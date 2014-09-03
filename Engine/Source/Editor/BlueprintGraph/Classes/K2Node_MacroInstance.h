@@ -34,7 +34,7 @@ public:
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual void PostPasteNode() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

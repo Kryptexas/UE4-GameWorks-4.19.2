@@ -23,9 +23,9 @@ FText UK2Node_AIMoveTo::GetMenuCategory() const
 	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AI);
 }
 
-FString UK2Node_AIMoveTo::GetTooltip() const
+FText UK2Node_AIMoveTo::GetTooltipText() const
 {
-	return TEXT("Simple order for Pawn with AIController to move to a specific location");
+	return LOCTEXT("AIMoveTo_Tooltip", "Simple order for Pawn with AIController to move to a specific location");
 }
 
 FText UK2Node_AIMoveTo::GetNodeTitle(ENodeTitleType::Type TitleType) const

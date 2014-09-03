@@ -11,7 +11,7 @@ class UK2Node_GameplayCueEvent : public UK2Node_Event
 	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;

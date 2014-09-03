@@ -13,7 +13,7 @@ class UK2Node_IfThenElse : public UK2Node
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetKeywords() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Branch_16x"); }

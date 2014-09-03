@@ -34,19 +34,19 @@ void UK2Node_Tunnel::PostPasteNode()
 	//@TODO: The gateway<->gateway node pairing should be unique, so we need to disallow this paste somehow (or just let it be an error later on)!
 }
 
-FString UK2Node_Tunnel::GetTooltip() const
+FText UK2Node_Tunnel::GetTooltipText() const
 {
 	if (bCanHaveInputs && !bCanHaveOutputs)
 	{
-		return NSLOCTEXT("K2Node", "OutputTunnelTooltip", "Outputs from this graph").ToString();
+		return NSLOCTEXT("K2Node", "OutputTunnelTooltip", "Outputs from this graph");
 	}
 	else if (!bCanHaveInputs && bCanHaveOutputs)
 	{
-		return NSLOCTEXT("K2Node", "InputTunnelTooltip", "Inputs into this graph").ToString();
+		return NSLOCTEXT("K2Node", "InputTunnelTooltip", "Inputs into this graph");
 	}
 	else
 	{
-		return NSLOCTEXT("K2Node", "TunnelConnectionTooltip", "Tunnel Connection").ToString();
+		return NSLOCTEXT("K2Node", "TunnelConnectionTooltip", "Tunnel Connection");
 	}
 }
 

@@ -12,7 +12,7 @@ class UK2Node_Knot : public UK2Node
 public:
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual bool ShouldOverridePinNames() const override;

@@ -23,9 +23,9 @@ FString UAnimGraphNode_LookAt::GetKeywords() const
 	return TEXT("Look At, Follow, Trace, Track");
 }
 
-FString UAnimGraphNode_LookAt::GetTooltip() const
+FText UAnimGraphNode_LookAt::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_LookAt_Tooltip", "This node allow a bone to trace or follow another bone").ToString();
+	return LOCTEXT("AnimGraphNode_LookAt_Tooltip", "This node allow a bone to trace or follow another bone");
 }
 
 FText UAnimGraphNode_LookAt::GetNodeTitle(ENodeTitleType::Type TitleType) const

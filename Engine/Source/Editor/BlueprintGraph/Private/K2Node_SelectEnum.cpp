@@ -41,9 +41,9 @@ void UDEPRECATED_K2Node_SelectEnum::AllocateDefaultPins()
 	UK2Node::AllocateDefaultPins();
 }
 
-FString UDEPRECATED_K2Node_SelectEnum::GetTooltip() const
+FText UDEPRECATED_K2Node_SelectEnum::GetTooltipText() const
 {
-	return TEXT("Return literal value set for each enum value");
+	return NSLOCTEXT("K2Node", "SelectEnumTooltip", "Return literal value set for each enum value");
 }
 
 FText  UDEPRECATED_K2Node_SelectEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const

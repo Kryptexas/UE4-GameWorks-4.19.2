@@ -462,9 +462,9 @@ UK2Node_MultiGate::UK2Node_MultiGate(const class FPostConstructInitializePropert
 {
 }
 
-FString UK2Node_MultiGate::GetTooltip() const
+FText UK2Node_MultiGate::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "MultiGate_Tooltip", "Executes a series of pins in order").ToString();
+	return NSLOCTEXT("K2Node", "MultiGate_Tooltip", "Executes a series of pins in order");
 }
 
 FLinearColor UK2Node_MultiGate::GetNodeTitleColor() const

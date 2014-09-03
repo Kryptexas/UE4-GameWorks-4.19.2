@@ -256,9 +256,9 @@ void UK2Node_Select::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_Select::GetTooltip() const
+FText UK2Node_Select::GetTooltipText() const
 {
-	return TEXT("Return the option at Index, (first option is indexed at 0)");
+	return LOCTEXT("SelectNodeTooltip", "Return the option at Index, (first option is indexed at 0)");
 }
 
 FText UK2Node_Select::GetNodeTitle(ENodeTitleType::Type TitleType) const

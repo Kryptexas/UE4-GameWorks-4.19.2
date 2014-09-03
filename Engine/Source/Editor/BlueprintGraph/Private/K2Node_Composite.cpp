@@ -139,17 +139,17 @@ void UK2Node_Composite::PostPasteNode()
 	}
 }
 
-FString UK2Node_Composite::GetTooltip() const
+FText UK2Node_Composite::GetTooltipText() const
 {
 	if (InputSinkNode != NULL)
 	{
 		if (!InputSinkNode->MetaData.ToolTip.IsEmpty())
 		{
-			return InputSinkNode->MetaData.ToolTip;
+			return FText::FromString(InputSinkNode->MetaData.ToolTip);
 		}
 	}
 
-	return FString::Printf(*LOCTEXT("CollapsedCompositeNode", "Collapsed composite node").ToString());
+	return LOCTEXT("CollapsedCompositeNode", "Collapsed composite node");
 }
 
 FLinearColor UK2Node_Composite::GetNodeTitleColor() const

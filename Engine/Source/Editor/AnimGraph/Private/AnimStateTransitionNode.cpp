@@ -154,9 +154,9 @@ FText UAnimStateTransitionNode::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	}
 }
 
-FString UAnimStateTransitionNode::GetTooltip() const
+FText UAnimStateTransitionNode::GetTooltipText() const
 {
-	return TEXT("This is a state transition");
+	return LOCTEXT("StateTransitionTooltip", "This is a state transition");
 }
 
 UAnimStateNodeBase* UAnimStateTransitionNode::GetPreviousState() const

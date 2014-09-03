@@ -268,7 +268,7 @@ FText FBlueprintActionMenuItemFactory::GetTooltipForAction(TWeakPtr<FBlueprintEd
 	{
 		if (UEdGraphNode* NodeTemplate = GetTemplateNode(Action, EditorContext))
 		{
-			Tooltip = FText::FromString(NodeTemplate->GetTooltip());
+			Tooltip = NodeTemplate->GetTooltipText();
 		}
 	}
 	

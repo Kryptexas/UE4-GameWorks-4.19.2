@@ -56,9 +56,9 @@ FText UK2Node_InputAxisEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return CachedNodeTitle;
 }
 
-FString UK2Node_InputAxisEvent::GetTooltip() const
+FText UK2Node_InputAxisEvent::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "InputAxis_Tooltip", "Event that provides the current value of the %s axis once per frame when input is enabled for the containing actor.").ToString(), *InputAxisName.ToString());
+	return FText::Format(NSLOCTEXT("K2Node", "InputAxis_Tooltip", "Event that provides the current value of the {0} axis once per frame when input is enabled for the containing actor."), FText::FromName(InputAxisName));
 }
 
 void UK2Node_InputAxisEvent::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const

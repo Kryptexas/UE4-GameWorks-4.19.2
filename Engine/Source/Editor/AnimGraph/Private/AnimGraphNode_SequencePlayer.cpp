@@ -69,10 +69,10 @@ FLinearColor UAnimGraphNode_SequencePlayer::GetNodeTitleColor() const
 	}
 }
 
-FString UAnimGraphNode_SequencePlayer::GetTooltip() const
+FText UAnimGraphNode_SequencePlayer::GetTooltipText() const
 {
 	const bool bAdditive = ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive());
-	return GetTitleGivenAssetInfo(FText::FromString(Node.Sequence->GetPathName()), bAdditive).ToString();
+	return GetTitleGivenAssetInfo(FText::FromString(Node.Sequence->GetPathName()), bAdditive);
 }
 
 FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const

@@ -64,9 +64,9 @@ FText UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return CachedNodeTitle;
 }
 
-FString UK2Node_InputAction::GetTooltip() const
+FText UK2Node_InputAction::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "InputAction_Tooltip", "Event for when the keys bound to input action %s are pressed or released.").ToString(), *InputActionName.ToString());
+	return FText::Format(NSLOCTEXT("K2Node", "InputAction_Tooltip", "Event for when the keys bound to input action {0} are pressed or released."), FText::FromName(InputActionName));
 }
 
 bool UK2Node_InputAction::IsCompatibleWithGraph(UEdGraph const* Graph) const

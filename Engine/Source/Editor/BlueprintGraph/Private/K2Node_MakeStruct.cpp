@@ -162,12 +162,12 @@ FText UK2Node_MakeStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return CachedNodeTitle;
 }
 
-FString UK2Node_MakeStruct::GetTooltip() const
+FText UK2Node_MakeStruct::GetTooltipText() const
 {
-	return FString::Printf(
-		*LOCTEXT("MakeStruct_Tooltip", "Adds a node that create a '%s' from its members").ToString(),
-		*(StructType ? StructType->GetName() : FString())
-		);
+	return FText::Format(
+		LOCTEXT("MakeStruct_Tooltip", "Adds a node that create a '{0}' from its members"),
+		StructType ? FText::FromName(StructType->GetFName()) : FText::GetEmpty()
+	);
 }
 
 FLinearColor UK2Node_MakeStruct::GetNodeTitleColor() const

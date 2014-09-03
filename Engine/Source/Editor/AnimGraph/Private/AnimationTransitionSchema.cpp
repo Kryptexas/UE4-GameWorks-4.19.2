@@ -94,7 +94,7 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 								Args.Add(TEXT("AssetName"), FText::FromString(AssetName));
 								FText Title = FText::Format(LOCTEXT("TransitionFor", "{NodeName} for '{AssetName}'"), Args);
 
-								TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_AssetPlayer, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+								TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_AssetPlayer, Title, NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 								Action->NodeTemplate = NodeTemplate;
 							}
 						}
@@ -117,7 +117,7 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 
 						FText Title = UK2Node_TransitionRuleGetter::GetFriendlyName(NodeTemplate->GetterType);
 
-						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_Transition, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_Transition, Title, NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 						Action->NodeTemplate = NodeTemplate;
 					}
 				}

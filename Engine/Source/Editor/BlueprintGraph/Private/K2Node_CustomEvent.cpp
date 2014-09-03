@@ -358,9 +358,9 @@ bool UK2Node_CustomEvent::IsUsedByAuthorityOnlyDelegate() const
 	return false;
 }
 
-FString UK2Node_CustomEvent::GetTooltip() const
+FText UK2Node_CustomEvent::GetTooltipText() const
 {
-	return LOCTEXT("AddCustomEvent_Tooltip", "An event with customizable name and parameters.").ToString();
+	return LOCTEXT("AddCustomEvent_Tooltip", "An event with customizable name and parameters.");
 }
 
 FString UK2Node_CustomEvent::GetDocumentationLink() const

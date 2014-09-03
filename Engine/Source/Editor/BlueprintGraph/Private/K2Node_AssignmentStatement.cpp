@@ -75,9 +75,9 @@ void UK2Node_AssignmentStatement::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_AssignmentStatement::GetTooltip() const
+FText UK2Node_AssignmentStatement::GetTooltipText() const
 {
-	return TEXT("Assigns Value to Variable");
+	return LOCTEXT("AssignmentStatementTooltip", "Assigns Value to Variable");
 }
 
 FText UK2Node_AssignmentStatement::GetNodeTitle(ENodeTitleType::Type TitleType) const

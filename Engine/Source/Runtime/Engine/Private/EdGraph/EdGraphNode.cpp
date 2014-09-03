@@ -178,9 +178,9 @@ FLinearColor UEdGraphNode::GetNodeCommentColor() const
 	return FLinearColor::White;
 }
 
-FString UEdGraphNode::GetTooltip() const
+FText UEdGraphNode::GetTooltipText() const
 {
-	return GetClass()->GetToolTipText().ToString();
+	return GetClass()->GetToolTipText();
 }
 
 FString UEdGraphNode::GetDocumentationExcerptName() const

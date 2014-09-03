@@ -34,9 +34,9 @@ FText UK2Node_SwitchName::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return NSLOCTEXT("K2Node", "Switch_Name", "Switch on Name");
 }
 
-FString UK2Node_SwitchName::GetTooltip() const
+FText UK2Node_SwitchName::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "SwitchName_ToolTip", "Selects an output that matches the input value").ToString();
+	return NSLOCTEXT("K2Node", "SwitchName_ToolTip", "Selects an output that matches the input value");
 }
 
 void UK2Node_SwitchName::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

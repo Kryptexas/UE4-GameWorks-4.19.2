@@ -296,7 +296,7 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 	else if (UK2Node const* const NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(ActionIn))
 	{
 		// If the node wants to create tooltip text, use that instead, because its probably more detailed
-		FString NodeToolTipText = NodeTemplate->GetTooltip();
+		FString NodeToolTipText = NodeTemplate->GetTooltipText().ToString();
 		if (NodeToolTipText.Len() > 0)
 		{
 			ToolTipOut = NodeToolTipText;
@@ -1305,7 +1305,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			}
 
 			// If the node wants to create tooltip text, use that instead, because its probably more detailed
-			FString NodeToolTipText = NodeTemplate->GetTooltip();
+			FString NodeToolTipText = NodeTemplate->GetTooltipText().ToString();
 			if (NodeToolTipText.Len() > 0)
 			{
 				ToolTipText = NodeToolTipText;
@@ -1384,7 +1384,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			FEdGraphSchemaAction_K2TargetNode* TargetNodeAction = (FEdGraphSchemaAction_K2TargetNode*)PaletteAction.Get();
 			if (TargetNodeAction->NodeTemplate)
 			{
-				ToolTipText = TargetNodeAction->NodeTemplate->GetTooltip();
+				ToolTipText = TargetNodeAction->NodeTemplate->GetTooltipText().ToString();
 			}
 		}
 	}

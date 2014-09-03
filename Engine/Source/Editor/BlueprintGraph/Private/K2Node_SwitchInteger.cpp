@@ -19,9 +19,9 @@ FText UK2Node_SwitchInteger::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return NSLOCTEXT("K2Node", "Switch_Interger", "Switch on Int");
 }
 
-FString UK2Node_SwitchInteger::GetTooltip() const
+FText UK2Node_SwitchInteger::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "SwitchInt_ToolTip", "Selects an output that matches the input value").ToString();
+	return NSLOCTEXT("K2Node", "SwitchInt_ToolTip", "Selects an output that matches the input value");
 }
 
 void UK2Node_SwitchInteger::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

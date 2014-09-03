@@ -70,7 +70,7 @@ UK2Node_EaseFunction::UK2Node_EaseFunction(const class FPostConstructInitializeP
 	: Super(PCIP)
 	, CachedEaseFuncPin(NULL)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Interpolates from value A to value B using a user specified easing function").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Interpolates from value A to value B using a user specified easing function");
 	OldEasingFunc = INDEX_NONE;
 	EaseFunctionName = TEXT("");
 }
@@ -112,7 +112,7 @@ FText UK2Node_EaseFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("EaseFunction_Title", "Ease");
 }
 
-FString UK2Node_EaseFunction::GetTooltip() const
+FText UK2Node_EaseFunction::GetTooltipText() const
 {
 	return NodeTooltip;
 }

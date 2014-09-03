@@ -19,7 +19,7 @@ class UAnimGraphNode_BlendListByInt : public UAnimGraphNode_BlendListBase
 	ANIMGRAPH_API virtual void RemovePinFromBlendList(UEdGraphPin* Pin);
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PostPlacedNewNode() override;
 	// End of UEdGraphNode interface

@@ -24,11 +24,11 @@ void UK2Node_GetNumEnumEntries::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_GetNumEnumEntries::GetTooltip() const
+FText UK2Node_GetNumEnumEntries::GetTooltipText() const
 {
 	const FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "GetNumEnumEntries_Tooltip", "Returns %s_MAX value").ToString(), *EnumName);
+	return FText::Format(NSLOCTEXT("K2Node", "GetNumEnumEntries_Tooltip", "Returns {0}_MAX value"), FText::FromString(EnumName));
 }
 
 FText UK2Node_GetNumEnumEntries::GetNodeTitle(ENodeTitleType::Type TitleType) const

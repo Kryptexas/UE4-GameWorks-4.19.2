@@ -22,9 +22,9 @@ FLinearColor UAnimGraphNode_TransitionResult::GetNodeTitleColor() const
 	return GetDefault<UGraphEditorSettings>()->ResultNodeTitleColor;
 }
 
-FString UAnimGraphNode_TransitionResult::GetTooltip() const
+FText UAnimGraphNode_TransitionResult::GetTooltipText() const
 {
-	return TEXT("This expression is evaluated to determine if the state transition can be taken");
+	return LOCTEXT("TransitionResultTooltip", "This expression is evaluated to determine if the state transition can be taken");
 }
 
 FText UAnimGraphNode_TransitionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const

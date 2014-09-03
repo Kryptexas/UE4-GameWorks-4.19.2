@@ -31,9 +31,9 @@ void UK2Node_EnumEquality::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_EnumEquality::GetTooltip() const
+FText UK2Node_EnumEquality::GetTooltipText() const
 {
-	return TEXT("Returns true if A is equal to B (A == B)");
+	return LOCTEXT("EnumEqualityTooltip", "Returns true if A is equal to B (A == B)");
 }
 
 FText UK2Node_EnumEquality::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -208,7 +208,7 @@ void UK2Node_EnumEquality::GetMenuEntries(FGraphContextMenuBuilder& Context) con
 
 		const FString Category = TEXT("Utilities| Enum");
 		const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
-		const FString Tooltip = EnumNodeTemplate->GetTooltip();
+		const FString Tooltip = EnumNodeTemplate->GetTooltipText().ToString();
 		const FString Keywords = EnumNodeTemplate->GetKeywords();
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);

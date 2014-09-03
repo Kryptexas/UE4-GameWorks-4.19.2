@@ -108,9 +108,9 @@ void UK2Node_Literal::PostReconstructNode()
 	}
 }
 
-FString UK2Node_Literal::GetTooltip() const
+FText UK2Node_Literal::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "Literal_Tooltip", "Stores a reference to an actor in the level").ToString();
+	return NSLOCTEXT("K2Node", "Literal_Tooltip", "Stores a reference to an actor in the level");
 }
 
 FText UK2Node_Literal::GetNodeTitle(ENodeTitleType::Type TitleType) const

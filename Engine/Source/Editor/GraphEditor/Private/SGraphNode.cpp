@@ -488,7 +488,7 @@ FText SGraphNode::GetNodeTooltip() const
 			return FText::FromString(GraphNode->GetNodeTitle(ENodeTitleType::ListView).BuildSourceString());
 		}
 
-		FText TooltipText = FText::FromString(GraphNode->GetTooltip());
+		FText TooltipText = GraphNode->GetTooltipText();
 
 		if (UEdGraph* Graph = GraphNode->GetGraph())
 		{

@@ -19,7 +19,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override
     {
@@ -69,7 +69,7 @@ private:
 	void SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const;
 
 	/** Tooltip text for this node. */
-	FString NodeTooltip;
+	FText NodeTooltip;
 
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;

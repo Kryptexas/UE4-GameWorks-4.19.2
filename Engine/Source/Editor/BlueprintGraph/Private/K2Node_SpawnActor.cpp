@@ -14,7 +14,7 @@ static FString NoCollisionFailPinName(TEXT("SpawnEvenIfColliding"));
 UK2Node_SpawnActor::UK2Node_SpawnActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform");
 }
 
 void UK2Node_SpawnActor::AllocateDefaultPins()
@@ -157,7 +157,7 @@ void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 	}
 }
 
-FString UK2Node_SpawnActor::GetTooltip() const
+FText UK2Node_SpawnActor::GetTooltipText() const
 {
 	return NodeTooltip;
 }

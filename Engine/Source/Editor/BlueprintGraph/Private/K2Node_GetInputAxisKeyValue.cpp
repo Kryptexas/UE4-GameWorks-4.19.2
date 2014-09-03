@@ -50,11 +50,11 @@ FText UK2Node_GetInputAxisKeyValue::GetNodeTitle(ENodeTitleType::Type TitleType)
 	return CachedNodeTitle;
 }
 
-FString UK2Node_GetInputAxisKeyValue::GetTooltip() const
+FText UK2Node_GetInputAxisKeyValue::GetTooltipText() const
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
-	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be 0."), Args).ToString();
+	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be 0."), Args);
 }
 
 bool UK2Node_GetInputAxisKeyValue::IsCompatibleWithGraph(UEdGraph const* Graph) const

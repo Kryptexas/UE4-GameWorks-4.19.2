@@ -21,9 +21,9 @@ FText UAnimGraphNode_BlendListByBool::GetNodeTitle(ENodeTitleType::Type TitleTyp
 	return LOCTEXT("UAnimGraphNode_BlendListByBool_Tooltip", "Blend Poses by bool");
 }
 
-FString UAnimGraphNode_BlendListByBool::GetTooltip() const
+FText UAnimGraphNode_BlendListByBool::GetTooltipText() const
 {
-	return LOCTEXT("UAnimGraphNode_BlendListByBool_Title", "Blend List (by bool)").ToString();
+	return LOCTEXT("UAnimGraphNode_BlendListByBool_Title", "Blend List (by bool)");
 }
 
 void UAnimGraphNode_BlendListByBool::CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex) const 

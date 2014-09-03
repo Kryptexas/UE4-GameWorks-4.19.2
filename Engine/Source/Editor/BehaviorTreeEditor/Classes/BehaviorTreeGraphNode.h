@@ -34,7 +34,7 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	virtual bool CanDuplicateNode() const override;
 	virtual bool CanUserDeleteNode() const override;
 	virtual void DestroyNode() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual void NodeConnectionListChanged() override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) override;

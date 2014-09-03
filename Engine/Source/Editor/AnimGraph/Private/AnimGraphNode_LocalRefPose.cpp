@@ -14,9 +14,9 @@ UAnimGraphNode_LocalRefPose::UAnimGraphNode_LocalRefPose(const FPostConstructIni
 	Node.RefPoseType = EIT_LocalSpace;
 }
 
-FString UAnimGraphNode_LocalRefPose::GetTooltip() const
+FText UAnimGraphNode_LocalRefPose::GetTooltipText() const
 {
-	return LOCTEXT("UAnimGraphNode_LocalRefPose_Tooltip", "Returns local space reference pose.").ToString();
+	return LOCTEXT("UAnimGraphNode_LocalRefPose_Tooltip", "Returns local space reference pose.");
 }
 
 FText UAnimGraphNode_LocalRefPose::GetNodeTitle(ENodeTitleType::Type TitleType) const

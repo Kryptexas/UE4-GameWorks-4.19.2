@@ -248,17 +248,17 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_InputKey::GetTooltip() const
+FText UK2Node_InputKey::GetTooltipText() const
 {
 	FText ModifierText = GetModifierText();
 	FText KeyText = GetKeyText();
 
 	if ( !ModifierText.IsEmpty() )
 	{
-		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText).ToString();
+		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText);
 	}
 
-	return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText).ToString();
+	return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText);
 }
 
 FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const

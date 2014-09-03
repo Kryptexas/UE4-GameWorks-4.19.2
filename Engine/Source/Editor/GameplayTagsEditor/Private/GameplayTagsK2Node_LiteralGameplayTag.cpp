@@ -47,7 +47,7 @@ void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuEntries( FGraphContextMenuBu
 
 	const FString Category = TEXT("Gameplay Tags|Tag Container");
 	const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
-	const FString Tooltip = EnumNodeTemplate->GetTooltip();
+	const FString Tooltip = EnumNodeTemplate->GetTooltipText().ToString();
 	const FString Keywords = EnumNodeTemplate->GetKeywords();
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);

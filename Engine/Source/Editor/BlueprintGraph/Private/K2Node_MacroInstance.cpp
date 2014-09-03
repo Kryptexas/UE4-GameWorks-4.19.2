@@ -101,24 +101,24 @@ void UK2Node_MacroInstance::AllocateDefaultPins()
 	}
 }
 
-FString UK2Node_MacroInstance::GetTooltip() const
+FText UK2Node_MacroInstance::GetTooltipText() const
 {
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
 	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetAssociatedGraphMetadata(MacroGraph))
 	{
 		if (!Metadata->ToolTip.IsEmpty())
 		{
-			return Metadata->ToolTip;
+			return FText::FromString(Metadata->ToolTip);
 		}
 	}
 	
 	if (MacroGraph)
 	{
-		return MacroGraph->GetName() + NSLOCTEXT("K2Node", "Name_Instance", " instance").ToString();
+		return FText::Format(NSLOCTEXT("K2Node", "MacroGraphInstance_Tooltip", "{0} instance"), FText::FromName(MacroGraph->GetFName()));
 	}
 	else
 	{
-		return NSLOCTEXT("K2Node", "Macro_Tooltip", "Macro").ToString();
+		return NSLOCTEXT("K2Node", "Macro_Tooltip", "Macro");
 	}
 }
 

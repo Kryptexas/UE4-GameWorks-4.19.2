@@ -196,7 +196,7 @@ FString SGraphNodeK2Composite::GetPreviewCornerText() const
 
 FString SGraphNodeK2Composite::GetTooltipTextForNode() const
 {
-	return GraphNode->GetTooltip();
+	return GraphNode->GetTooltipText().ToString();
 }
 
 TSharedRef<SWidget> SGraphNodeK2Composite::CreateNodeBody()

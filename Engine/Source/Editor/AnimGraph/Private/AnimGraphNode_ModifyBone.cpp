@@ -23,9 +23,9 @@ FString UAnimGraphNode_ModifyBone::GetKeywords() const
 	return TEXT("Modify, Transform");
 }
 
-FString UAnimGraphNode_ModifyBone::GetTooltip() const
+FText UAnimGraphNode_ModifyBone::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_ModifyBone_Tooltip", "The Transform Bone node alters the transform - i.e. Translation, Rotation, or Scale - of the bone").ToString();
+	return LOCTEXT("AnimGraphNode_ModifyBone_Tooltip", "The Transform Bone node alters the transform - i.e. Translation, Rotation, or Scale - of the bone");
 }
 
 FText UAnimGraphNode_ModifyBone::GetNodeTitle(ENodeTitleType::Type TitleType) const

@@ -58,7 +58,7 @@ public:
 	virtual void AllocateDefaultPins() override;
 	virtual void DestroyNode() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetDescriptiveCompiledName() const override;
 	virtual bool IsDeprecated() const override;

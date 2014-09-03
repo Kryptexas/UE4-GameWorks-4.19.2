@@ -15,7 +15,7 @@ class UAnimGraphNode_LocalToComponentSpace : public UAnimGraphNode_Base
 
 	// UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 

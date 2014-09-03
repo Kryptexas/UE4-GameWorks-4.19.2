@@ -89,31 +89,38 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_Event::GetTooltip() const
+FText UK2Node_Event::GetTooltipText() const
 {
-	FString Tooltip;
+	FText Tooltip;
 
 	UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName);
 	if (Function != NULL)
 	{
-		Tooltip = Function->GetToolTipText().ToString();
+		Tooltip = Function->GetToolTipText();
 
 		if (bOverrideFunction || (CustomFunctionName == NAME_None))
 		{
-			FString ClientString;
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("FunctionTooltip"), Tooltip);
 
 			//@TODO: KISMETREPLICATION: Should do this for events with a custom function name, if it's a newly introduced replicating thingy
 			if (Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic) || IsCosmeticTickEvent())
 			{
-				ClientString = NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.").ToString();
+				Args.Add(
+					TEXT("ClientString"),
+					NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.")
+				);
+				Tooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
 			} 
 			else if(Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
 			{
-				ClientString = NSLOCTEXT("K2Node", "ServerEvent", "\n\nAuthority Only. This event only fires on the server.").ToString();
-			}
-
-			Tooltip += ClientString;
-		}
+				Args.Add(
+					TEXT("ClientString"),
+					NSLOCTEXT("K2Node", "ServerEvent", "\n\nAuthority Only. This event only fires on the server.")
+				);
+				Tooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
+			}			
+		}		
 	}
 
 	return Tooltip;

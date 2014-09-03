@@ -24,7 +24,7 @@ FString UK2Node_GetDataTableRowHelper::RowNamePinName(LOCTEXT("RowNamePinName","
 UK2Node_GetDataTableRow::UK2Node_GetDataTableRow(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to retrieve a TableRow from a DataTable via it's RowName").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to retrieve a TableRow from a DataTable via it's RowName");
 }
 
 void UK2Node_GetDataTableRow::AllocateDefaultPins()
@@ -209,7 +209,7 @@ void UK2Node_GetDataTableRow::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 	}
 }
 
-FString UK2Node_GetDataTableRow::GetTooltip() const
+FText UK2Node_GetDataTableRow::GetTooltipText() const
 {
 	return NodeTooltip;
 }

@@ -36,15 +36,15 @@ void UAnimGraphNode_SequenceEvaluator::ReplaceReferredAnimations(const TMap<UAni
 	HandleAnimReferenceReplacement(Node.Sequence, ComplexAnimsMap, AnimSequenceMap);
 }
 
-FString UAnimGraphNode_SequenceEvaluator::GetTooltip() const
+FText UAnimGraphNode_SequenceEvaluator::GetTooltipText() const
 {
 	if ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive())
 	{
-		return FString::Printf(TEXT("Evaluate %s (additive)"), *(Node.Sequence->GetPathName()));
+		return FText::Format(LOCTEXT("SequenceEvaluator_AdditiveTooltip", "Evaluate {0} (additive)"), FText::FromString(Node.Sequence->GetPathName()));
 	}
 	else
 	{
-		return FString::Printf(TEXT("Evaluate %s"), *(Node.Sequence->GetPathName()));
+		return FText::Format(LOCTEXT("SequenceEvaluator_Tooltip", "Evaluate {0}"), FText::FromString(Node.Sequence->GetPathName()));
 	}
 }
 

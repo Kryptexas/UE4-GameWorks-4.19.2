@@ -205,11 +205,11 @@ FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return CachedNodeTitle;
 }
 
-FString UK2Node_BreakStruct::GetTooltip() const
+FText UK2Node_BreakStruct::GetTooltipText() const
 {
-	return FString::Printf(
-		*LOCTEXT("MakeStruct_Tooltip", "Adds a node that breaks a '%s' into its member fields").ToString(),
-		*(StructType ? StructType->GetName() : FString())
+	return FText::Format(
+		LOCTEXT("MakeStruct_Tooltip", "Adds a node that breaks a '{0}' into its member fields"),
+		StructType ? FText::FromName(StructType->GetFName()) : FText::GetEmpty()
 		);
 }
 

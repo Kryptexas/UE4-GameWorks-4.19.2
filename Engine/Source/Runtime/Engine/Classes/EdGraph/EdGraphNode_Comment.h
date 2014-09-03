@@ -45,7 +45,7 @@ public:
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override {}
-	ENGINE_API virtual FString GetTooltip() const override;
+	ENGINE_API virtual FText GetTooltipText() const override;
 	ENGINE_API virtual FLinearColor GetNodeCommentColor() const override;
 	ENGINE_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldOverridePinNames() const override { return true; }

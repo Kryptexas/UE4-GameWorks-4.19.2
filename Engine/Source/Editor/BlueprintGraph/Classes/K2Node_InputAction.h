@@ -34,7 +34,7 @@ class UK2Node_InputAction : public UK2Node
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Event_16x"); }
 	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
 	// End UEdGraphNode interface.

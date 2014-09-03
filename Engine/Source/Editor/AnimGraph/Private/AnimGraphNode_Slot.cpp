@@ -21,9 +21,9 @@ FLinearColor UAnimGraphNode_Slot::GetNodeTitleColor() const
 	return FLinearColor(0.7f, 0.7f, 0.7f);
 }
 
-FString UAnimGraphNode_Slot::GetTooltip() const
+FText UAnimGraphNode_Slot::GetTooltipText() const
 {
-	return TEXT("Plays animation from code using AnimMontage");
+	return LOCTEXT("AnimSlotNode_Tooltip", "Plays animation from code using AnimMontage");
 }
 
 FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const

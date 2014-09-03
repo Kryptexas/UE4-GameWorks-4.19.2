@@ -17,9 +17,9 @@ FText UAnimGraphNode_RotationMultiplier::GetControllerDescription() const
 	return LOCTEXT("ApplyPercentageOfRotation", "Apply a percentage of Rotation");
 }
 
-FString UAnimGraphNode_RotationMultiplier::GetTooltip() const
+FText UAnimGraphNode_RotationMultiplier::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_RotationMultiplier_Tooltip", "The Apply a Percentage of Rotation control drives the Rotation of a target bone at some specified percentage of the Rotation of another bone within the Skeleton.").ToString();
+	return LOCTEXT("AnimGraphNode_RotationMultiplier_Tooltip", "The Apply a Percentage of Rotation control drives the Rotation of a target bone at some specified percentage of the Rotation of another bone within the Skeleton.");
 }
 
 FText UAnimGraphNode_RotationMultiplier::GetNodeTitle(ENodeTitleType::Type TitleType) const

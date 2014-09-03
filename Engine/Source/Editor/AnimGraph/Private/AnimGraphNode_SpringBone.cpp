@@ -18,9 +18,9 @@ FText UAnimGraphNode_SpringBone::GetControllerDescription() const
 	return LOCTEXT("SpringController", "Spring controller");
 }
 
-FString UAnimGraphNode_SpringBone::GetTooltip() const
+FText UAnimGraphNode_SpringBone::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_SpringBone_Tooltip", "The Spring Controller applies a spring solver that can be used to limit how far a bone can stretch from its reference pose position and apply a force in the opposite direction.").ToString();
+	return LOCTEXT("AnimGraphNode_SpringBone_Tooltip", "The Spring Controller applies a spring solver that can be used to limit how far a bone can stretch from its reference pose position and apply a force in the opposite direction.");
 }
 
 FText UAnimGraphNode_SpringBone::GetNodeTitle(ENodeTitleType::Type TitleType) const

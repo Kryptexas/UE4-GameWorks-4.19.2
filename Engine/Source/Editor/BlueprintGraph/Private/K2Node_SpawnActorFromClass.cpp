@@ -25,7 +25,7 @@ FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("SpawnEve
 UK2Node_SpawnActorFromClass::UK2Node_SpawnActorFromClass(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform");
 }
 
 void UK2Node_SpawnActorFromClass::AllocateDefaultPins()
@@ -202,7 +202,7 @@ void UK2Node_SpawnActorFromClass::PinDefaultValueChanged(UEdGraphPin* ChangedPin
 	}
 }
 
-FString UK2Node_SpawnActorFromClass::GetTooltip() const
+FText UK2Node_SpawnActorFromClass::GetTooltipText() const
 {
 	return NodeTooltip;
 }

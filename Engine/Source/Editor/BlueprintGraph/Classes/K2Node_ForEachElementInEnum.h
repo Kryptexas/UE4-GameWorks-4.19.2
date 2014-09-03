@@ -18,7 +18,7 @@ class UK2Node_ForEachElementInEnum : public UK2Node
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Macro.Loop_16x"); }
 	// End UEdGraphNode interface

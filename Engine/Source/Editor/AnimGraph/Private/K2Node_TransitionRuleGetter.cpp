@@ -106,9 +106,9 @@ FText UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleType)
 	return Super::GetNodeTitle(TitleType);
 }
 
-FString UK2Node_TransitionRuleGetter::GetTooltip() const
+FText UK2Node_TransitionRuleGetter::GetTooltipText() const
 {
-	return GetNodeTitle(ENodeTitleType::FullTitle).ToString();
+	return GetNodeTitle(ENodeTitleType::FullTitle);
 }
 
 UEdGraphPin* UK2Node_TransitionRuleGetter::GetOutputPin() const

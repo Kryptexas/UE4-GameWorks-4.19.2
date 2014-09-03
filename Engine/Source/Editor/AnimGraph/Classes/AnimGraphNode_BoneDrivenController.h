@@ -19,7 +19,7 @@ public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	//virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	//////////////////////////////////////////////////////////////////////////
 
 	// UAnimGraphNode_SkeletalControlBase interface

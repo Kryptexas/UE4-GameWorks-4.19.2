@@ -121,9 +121,9 @@ void UK2Node_VariableSetRef::ReallocatePinsDuringReconstruction(TArray<UEdGraphP
   	}
 }
 
-FString UK2Node_VariableSetRef::GetTooltip() const
+FText UK2Node_VariableSetRef::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "SetValueOfRefVariable", "Set the value of the connected pass-by-ref variable").ToString());
+	return NSLOCTEXT("K2Node", "SetValueOfRefVariable", "Set the value of the connected pass-by-ref variable");
 }
 
 FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const

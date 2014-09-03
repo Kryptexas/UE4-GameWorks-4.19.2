@@ -24,9 +24,9 @@ FLinearColor UAnimGraphNode_MeshRefPose::GetNodeTitleColor() const
 	return FColor(200, 100, 100);
 }
 
-FString UAnimGraphNode_MeshRefPose::GetTooltip() const
+FText UAnimGraphNode_MeshRefPose::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_MeshRefPose_Tooltip", "Returns mesh space reference pose.").ToString();
+	return LOCTEXT("AnimGraphNode_MeshRefPose_Tooltip", "Returns mesh space reference pose.");
 }
 
 FText UAnimGraphNode_MeshRefPose::GetNodeTitle(ENodeTitleType::Type TitleType) const

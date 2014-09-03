@@ -15,9 +15,10 @@ UAnimGraphNode_BlendSpaceEvaluator::UAnimGraphNode_BlendSpaceEvaluator(const FPo
 {
 }
 
-FString UAnimGraphNode_BlendSpaceEvaluator::GetTooltip() const
+FText UAnimGraphNode_BlendSpaceEvaluator::GetTooltipText() const
 {
-	return FString::Printf(TEXT("Blendspace Evaluator'%s'"), (Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetPathName()) : TEXT("(None)"));
+	FText const BlendspaceName = (Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetPathName()) : LOCTEXT("None", "(None)");
+	return FText::Format(LOCTEXT("BlendspaceEvaluator_Tooltip", "Blendspace Evaluator '{0}'"), BlendspaceName);
 }
 
 FText UAnimGraphNode_BlendSpaceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleType) const

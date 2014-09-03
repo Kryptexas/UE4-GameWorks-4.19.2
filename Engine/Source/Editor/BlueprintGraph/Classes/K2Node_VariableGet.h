@@ -13,7 +13,7 @@ class BLUEPRINTGRAPH_API UK2Node_VariableGet : public UK2Node_Variable
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface
 

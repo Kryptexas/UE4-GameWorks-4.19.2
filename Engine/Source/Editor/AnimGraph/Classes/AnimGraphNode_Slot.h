@@ -15,7 +15,7 @@ class UAnimGraphNode_Slot : public UAnimGraphNode_Base
 
 	// Begin UEdGraphNode interface.
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface.
 

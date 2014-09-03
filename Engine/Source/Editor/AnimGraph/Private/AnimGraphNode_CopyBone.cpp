@@ -18,9 +18,9 @@ FText UAnimGraphNode_CopyBone::GetControllerDescription() const
 	return LOCTEXT("CopyBone", "Copy Bone");
 }
 
-FString UAnimGraphNode_CopyBone::GetTooltip() const
+FText UAnimGraphNode_CopyBone::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_CopyBone_Tooltip", "The Copy Bone control copies the Transform data or any component of it - i.e. Translation, Rotation, or Scale - from one bone to another.").ToString();
+	return LOCTEXT("AnimGraphNode_CopyBone_Tooltip", "The Copy Bone control copies the Transform data or any component of it - i.e. Translation, Rotation, or Scale - from one bone to another.");
 }
 
 FText UAnimGraphNode_CopyBone::GetNodeTitle(ENodeTitleType::Type TitleType) const

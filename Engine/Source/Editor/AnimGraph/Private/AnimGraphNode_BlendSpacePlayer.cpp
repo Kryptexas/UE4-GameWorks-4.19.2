@@ -17,9 +17,10 @@ UAnimGraphNode_BlendSpacePlayer::UAnimGraphNode_BlendSpacePlayer(const FPostCons
 {
 }
 
-FString UAnimGraphNode_BlendSpacePlayer::GetTooltip() const
+FText UAnimGraphNode_BlendSpacePlayer::GetTooltipText() const
 {
-	return FString::Printf(TEXT("Blendspace Player '%s'"), (Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetPathName()) : TEXT("(None)"));
+	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
+	return FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{0}'"), BlendSpaceName);
 }
 
 FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -30,7 +31,7 @@ FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleTy
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
-		return FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player'{BlendSpaceName}'"), Args);
+		return FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{BlendSpaceName}'"), Args);
 	}
 	else
 	{

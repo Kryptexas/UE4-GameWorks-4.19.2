@@ -16,7 +16,7 @@ class ANIMGRAPH_API UAnimGraphNode_StateMachineBase : public UAnimGraphNode_Base
 
 	// UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PostPlacedNewNode() override;
 	virtual UObject* GetJumpTargetForDoubleClick() const override;

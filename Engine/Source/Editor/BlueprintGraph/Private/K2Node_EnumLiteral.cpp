@@ -39,11 +39,11 @@ FName UK2Node_EnumLiteral::GetPaletteIcon(FLinearColor& OutColor) const
 	return PaletteIconName;
 }
 
-FString UK2Node_EnumLiteral::GetTooltip() const
+FText UK2Node_EnumLiteral::GetTooltipText() const
 {
 	if (Enum == nullptr)
 	{
-		return NSLOCTEXT("K2Node", "BadEnumLiteral_Tooltip", "Literal enum (bad enum)").ToString();
+		return NSLOCTEXT("K2Node", "BadEnumLiteral_Tooltip", "Literal enum (bad enum)");
 	}
 	else if (CachedTooltip.IsOutOfDate())
 	{
@@ -51,14 +51,14 @@ FString UK2Node_EnumLiteral::GetTooltip() const
 		Args.Add(TEXT("EnumName"), FText::FromName(Enum->GetFName()));
 		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "EnumLiteral_Tooltip", "Literal enum {EnumName}"), Args);
 	}
-	return ((FText&)CachedTooltip).ToString();	
+	return CachedTooltip;	
 }
 
 FText UK2Node_EnumLiteral::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (CachedTooltip.IsOutOfDate())
 	{
-		return FText::FromString(GetTooltip());
+		return GetTooltipText();
 	}
 	return CachedTooltip;
 }

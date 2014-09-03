@@ -22,9 +22,9 @@ void UK2Node_GetEnumeratorNameAsString::AllocateDefaultPins()
 	CreatePin(EGPD_Output, Schema->PC_String, TEXT(""), NULL, false, false, Schema->PN_ReturnValue);
 }
 
-FString UK2Node_GetEnumeratorNameAsString::GetTooltip() const
+FText UK2Node_GetEnumeratorNameAsString::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "GetEnumeratorNameAsString_Tooltip", "Returns user friendly name of enumerator").ToString();
+	return NSLOCTEXT("K2Node", "GetEnumeratorNameAsString_Tooltip", "Returns user friendly name of enumerator");
 }
 
 FText UK2Node_GetEnumeratorNameAsString::GetNodeTitle(ENodeTitleType::Type TitleType) const

@@ -18,9 +18,9 @@ UAnimGraphNode_UseCachedPose::UAnimGraphNode_UseCachedPose(const FPostConstructI
 {
 }
 
-FString UAnimGraphNode_UseCachedPose::GetTooltip() const
+FText UAnimGraphNode_UseCachedPose::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_UseCachedPose_Tooltip", "References an animation tree elsewhere in the blueprint, which will be evaluated at most once per frame.").ToString();
+	return LOCTEXT("AnimGraphNode_UseCachedPose_Tooltip", "References an animation tree elsewhere in the blueprint, which will be evaluated at most once per frame.");
 }
 
 FText UAnimGraphNode_UseCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -50,7 +50,7 @@ void UAnimGraphNode_UseCachedPose::GetMenuEntries(FGraphContextMenuBuilder& Cont
 			UAnimGraphNode_UseCachedPose* UseCachedPose = NewObject<UAnimGraphNode_UseCachedPose>();
 			UseCachedPose->NameOfCache = (*NodeIt)->CacheName;
 
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> UseCachedPoseAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetNodeCategory(), UseCachedPose->GetNodeTitle(ENodeTitleType::ListView), UseCachedPose->GetTooltip(), 0, UseCachedPose->GetKeywords());
+			TSharedPtr<FEdGraphSchemaAction_K2NewNode> UseCachedPoseAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetNodeCategory(), UseCachedPose->GetNodeTitle(ENodeTitleType::ListView), UseCachedPose->GetTooltipText().ToString(), 0, UseCachedPose->GetKeywords());
 			UseCachedPoseAction->NodeTemplate = UseCachedPose;
 		}
 	}

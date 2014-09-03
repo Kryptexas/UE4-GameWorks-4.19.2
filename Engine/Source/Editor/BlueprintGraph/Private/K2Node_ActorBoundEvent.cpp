@@ -97,16 +97,16 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return CachedNodeTitle;
 }
 
-FString UK2Node_ActorBoundEvent::GetTooltip() const
+FText UK2Node_ActorBoundEvent::GetTooltipText() const
 {
 	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegatePropertyConst();
 	if(TargetDelegateProp)
 	{
-		return TargetDelegateProp->GetToolTipText().ToString();
+		return TargetDelegateProp->GetToolTipText();
 	}
 	else
 	{
-		return DelegatePropertyName.ToString();
+		return FText::FromName(DelegatePropertyName);
 	}
 }
 

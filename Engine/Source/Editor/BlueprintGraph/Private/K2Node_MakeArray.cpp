@@ -297,9 +297,9 @@ void UK2Node_MakeArray::PostReconstructNode()
 	}
 }
 
-FString UK2Node_MakeArray::GetTooltip() const
+FText UK2Node_MakeArray::GetTooltipText() const
 {
-	return LOCTEXT("MakeArrayTooltip", "Create an array from a series of items.").ToString();
+	return LOCTEXT("MakeArrayTooltip", "Create an array from a series of items.");
 }
 
 void UK2Node_MakeArray::AddInputPin()

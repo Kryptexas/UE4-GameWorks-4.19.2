@@ -24,7 +24,7 @@ class UK2Node_GetInputAxisKeyValue : public UK2Node_CallFunction
 	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
 	// End EdGraphNode interface

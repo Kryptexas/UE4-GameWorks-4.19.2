@@ -15,14 +15,14 @@ UDEPRECATED_K2Node_LocalVariable::UDEPRECATED_K2Node_LocalVariable(const class F
 	CustomVariableName = TEXT("NewLocalVar");
 }
 
-FString UDEPRECATED_K2Node_LocalVariable::GetTooltip() const
+FText UDEPRECATED_K2Node_LocalVariable::GetTooltipText() const
 {
 	if(VariableTooltip.IsEmpty())
 	{
-		return Super::GetTooltip();
+		return Super::GetTooltipText();
 	}
 
-	return VariableTooltip.ToString();
+	return VariableTooltip;
 }
 
 FText UDEPRECATED_K2Node_LocalVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const

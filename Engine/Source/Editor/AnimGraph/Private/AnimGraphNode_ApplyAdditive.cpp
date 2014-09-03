@@ -21,9 +21,9 @@ FLinearColor UAnimGraphNode_ApplyAdditive::GetNodeTitleColor() const
 	return FLinearColor(0.75f, 0.75f, 0.75f);
 }
 
-FString UAnimGraphNode_ApplyAdditive::GetTooltip() const
+FText UAnimGraphNode_ApplyAdditive::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_ApplyAdditive_Tooltip", "Apply additive animation to normal pose").ToString();
+	return LOCTEXT("AnimGraphNode_ApplyAdditive_Tooltip", "Apply additive animation to normal pose");
 }
 
 FText UAnimGraphNode_ApplyAdditive::GetNodeTitle(ENodeTitleType::Type TitleType) const

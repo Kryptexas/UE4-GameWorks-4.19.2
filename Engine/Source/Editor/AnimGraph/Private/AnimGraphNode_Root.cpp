@@ -53,9 +53,9 @@ FText UAnimGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("AnimGraphNodeRoot_Title", "Final Animation Pose");
 }
 
-FString UAnimGraphNode_Root::GetTooltip() const
+FText UAnimGraphNode_Root::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNodeRoot_Tooltip", "Wire the final animation pose into this node").ToString();
+	return LOCTEXT("AnimGraphNodeRoot_Tooltip", "Wire the final animation pose into this node");
 }
 
 bool UAnimGraphNode_Root::IsSinkNode() const

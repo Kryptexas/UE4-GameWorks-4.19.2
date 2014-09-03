@@ -30,9 +30,9 @@ FText UAnimGraphNode_SkeletalControlBase::GetControllerDescription() const
 	return LOCTEXT("ImplementMe", "Implement me");
 }
 
-FString UAnimGraphNode_SkeletalControlBase::GetTooltip() const
+FText UAnimGraphNode_SkeletalControlBase::GetTooltipText() const
 {
-	return GetControllerDescription().ToString();
+	return GetControllerDescription();
 }
 
 void UAnimGraphNode_SkeletalControlBase::CreateOutputPins()

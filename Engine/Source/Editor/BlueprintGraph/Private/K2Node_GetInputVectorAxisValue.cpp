@@ -19,11 +19,11 @@ void UK2Node_GetInputVectorAxisValue::Initialize(const FKey AxisKey)
 	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputVectorAxisValue")));
 }
 
-FString UK2Node_GetInputVectorAxisValue::GetTooltip() const
+FText UK2Node_GetInputVectorAxisValue::GetTooltipText() const
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
-	return FText::Format(NSLOCTEXT("K2Node", "GetInputVectorAxis_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be (0, 0, 0)."), Args).ToString();
+	return FText::Format(NSLOCTEXT("K2Node", "GetInputVectorAxis_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be (0, 0, 0)."), Args);
 }
 
 void UK2Node_GetInputVectorAxisValue::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const

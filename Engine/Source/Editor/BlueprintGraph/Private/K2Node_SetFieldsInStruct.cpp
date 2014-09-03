@@ -65,12 +65,12 @@ FText UK2Node_SetFieldsInStruct::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	return CachedNodeTitle;
 }
 
-FString UK2Node_SetFieldsInStruct::GetTooltip() const
+FText UK2Node_SetFieldsInStruct::GetTooltipText() const
 {
-	return FString::Printf(
-		*LOCTEXT("SetFieldsInStruct_Tooltip", "Adds a node that modifies a '%s'").ToString(),
-		*(StructType ? StructType->GetName() : FString())
-		);
+	return FText::Format(
+		LOCTEXT("SetFieldsInStruct_Tooltip", "Adds a node that modifies a '{0}'"),
+		StructType ? FText::FromName(StructType->GetFName()) : FText::GetEmpty()
+	);
 }
 
 FName UK2Node_SetFieldsInStruct::GetPaletteIcon(FLinearColor& OutColor) const

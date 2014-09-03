@@ -255,7 +255,7 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 	return Settings->PureFunctionCallNodeTitleColor;
 }
 
-FString UMaterialGraphNode::GetTooltip() const
+FText UMaterialGraphNode::GetTooltipText() const
 {
 	if (MaterialExpression)
 	{
@@ -272,10 +272,10 @@ FString UMaterialGraphNode::GetTooltip() const
 				ToolTip += ToolTips[Index];
 			}
 
-			return ToolTip;
+			return FText::FromString(ToolTip);
 		}
 	}
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void UMaterialGraphNode::PrepareForCopying()

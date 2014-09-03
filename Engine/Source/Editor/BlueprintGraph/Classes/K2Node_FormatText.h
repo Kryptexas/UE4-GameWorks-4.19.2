@@ -19,7 +19,7 @@ class UK2Node_FormatText : public UK2Node
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FString GetPinDisplayName(const UEdGraphPin* Pin) const override;
 	// End UEdGraphNode interface.
 
@@ -88,6 +88,6 @@ private:
 	UEdGraphPin* CachedFormatPin;
 
 	/** Tooltip text for this node. */
-	FString NodeTooltip;
+	FText NodeTooltip;
 };
 

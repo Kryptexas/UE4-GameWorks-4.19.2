@@ -550,9 +550,9 @@ void UK2Node_Timeline::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGr
 	}
 }
 
-FString UK2Node_Timeline::GetTooltip() const
+FText UK2Node_Timeline::GetTooltipText() const
 {
-	return LOCTEXT("TimelineTooltip", "Timeline node allows values to be keyframed over time.\nDouble click to open timeline editor.").ToString();
+	return LOCTEXT("TimelineTooltip", "Timeline node allows values to be keyframed over time.\nDouble click to open timeline editor.");
 }
 
 FString UK2Node_Timeline::GetDocumentationExcerptName() const

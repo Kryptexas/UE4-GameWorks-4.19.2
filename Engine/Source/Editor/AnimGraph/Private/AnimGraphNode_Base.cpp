@@ -246,7 +246,7 @@ TSharedPtr<FEdGraphSchemaAction_K2NewNode> UAnimGraphNode_Base::CreateDefaultMen
 
 	FString Category = TemplateNode->GetNodeCategory();
 	FText MenuDesc = TemplateNode->GetNodeTitle(ENodeTitleType::ListView);
-	FString Tooltip = TemplateNode->GetTooltip();
+	FString Tooltip = TemplateNode->GetTooltipText().ToString();
 	FString Keywords = TemplateNode->GetKeywords();
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);

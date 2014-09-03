@@ -11,9 +11,9 @@ UAnimGraphNode_BoneDrivenController::UAnimGraphNode_BoneDrivenController(const F
 
 }
 
-FString UAnimGraphNode_BoneDrivenController::GetTooltip() const
+FText UAnimGraphNode_BoneDrivenController::GetTooltipText() const
 {
-	return LOCTEXT("UAnimGraphNode_BoneDrivenController_ToolTip", "Drives the transform of a bone using the transform of another").ToString();
+	return LOCTEXT("UAnimGraphNode_BoneDrivenController_ToolTip", "Drives the transform of a bone using the transform of another");
 }
 
 FText UAnimGraphNode_BoneDrivenController::GetNodeTitle(ENodeTitleType::Type TitleType) const

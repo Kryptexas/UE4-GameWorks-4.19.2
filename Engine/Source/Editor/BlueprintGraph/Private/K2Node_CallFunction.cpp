@@ -753,30 +753,37 @@ FLinearColor UK2Node_CallFunction::GetNodeTitleColor() const
 		return Super::GetNodeTitleColor();
 	}
 
-FString UK2Node_CallFunction::GetTooltip() const
+FText UK2Node_CallFunction::GetTooltipText() const
 {
-	FString Tooltip;
+	FText Tooltip;
 
 	if (UFunction* Function = GetTargetFunction())
 	{
-		Tooltip = GetDefaultTooltipForFunction(Function);
+		Tooltip = FText::FromString(GetDefaultTooltipForFunction(Function));
 
-		FString ClientString;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DefaultTooltip"), Tooltip);
 
 		if (Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
 		{
-			ClientString = NSLOCTEXT("K2Node", "ServerFunction", "\n\nAuthority Only. This function will only execute on the server.").ToString();
+			Args.Add(
+				TEXT("ClientString"),
+				NSLOCTEXT("K2Node", "ServerFunction", "Authority Only. This function will only execute on the server.")
+			);
+			Tooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
 		}
 		else if (Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic))
 		{
-			ClientString = NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.").ToString();
+			Args.Add(
+				TEXT("ClientString"),
+				NSLOCTEXT("K2Node", "ClientEvent", "Cosmetic. This event is only for cosmetic, non-gameplay actions.")
+			);
+			Tooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
 		} 
-
-		Tooltip += ClientString;
 	}
 	else
 	{
-		Tooltip = LOCTEXT("CallUnknownFunction", "Call unknown function ").ToString() + FunctionReference.GetMemberName().ToString();
+		Tooltip = FText::Format(LOCTEXT("CallUnknownFunction", "Call unknown function {0}"), FText::FromName(FunctionReference.GetMemberName()));
 	}
 
 	return Tooltip;

@@ -14,9 +14,9 @@ UAnimGraphNode_IdentityPose::UAnimGraphNode_IdentityPose(const FPostConstructIni
 	Node.RefPoseType = EIT_Additive;
 }
 
-FString UAnimGraphNode_IdentityPose::GetTooltip() const
+FText UAnimGraphNode_IdentityPose::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_IdentityPose_Tooltip", "Returns identity pose.").ToString();
+	return LOCTEXT("AnimGraphNode_IdentityPose_Tooltip", "Returns identity pose.");
 }
 
 FText UAnimGraphNode_IdentityPose::GetNodeTitle(ENodeTitleType::Type TitleType) const

@@ -52,9 +52,9 @@ FLinearColor UAnimGraphNode_StateMachineBase::GetNodeTitleColor() const
 	return FLinearColor(0.8f, 0.8f, 0.8f);
 }
 
-FString UAnimGraphNode_StateMachineBase::GetTooltip() const
+FText UAnimGraphNode_StateMachineBase::GetTooltipText() const
 {
-	return TEXT("Animation State Machine");
+	return LOCTEXT("StateMachineTooltip", "Animation State Machine");
 }
 
 FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleType) const

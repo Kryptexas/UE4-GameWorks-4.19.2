@@ -131,9 +131,9 @@ void UK2Node_ForEachElementInEnum::ValidateNodeDuringCompilation(FCompilerResult
 	}
 }
 
-FString UK2Node_ForEachElementInEnum::GetTooltip() const
+FText UK2Node_ForEachElementInEnum::GetTooltipText() const
 {
-	return GetNodeTitle(ENodeTitleType::FullTitle).ToString();
+	return GetNodeTitle(ENodeTitleType::FullTitle);
 }
 
 FText UK2Node_ForEachElementInEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const

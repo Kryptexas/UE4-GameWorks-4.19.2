@@ -23,9 +23,9 @@ FLinearColor UAnimGraphNode_TwoWayBlend::GetNodeTitleColor() const
 	return FLinearColor(0.75f, 0.75f, 0.75f);
 }
 
-FString UAnimGraphNode_TwoWayBlend::GetTooltip() const
+FText UAnimGraphNode_TwoWayBlend::GetTooltipText() const
 {
-	return TEXT("Blend two poses together");
+	return LOCTEXT("TwoWayBlendTooltip", "Blend two poses together");
 }
 
 FText UAnimGraphNode_TwoWayBlend::GetNodeTitle(ENodeTitleType::Type TitleType) const

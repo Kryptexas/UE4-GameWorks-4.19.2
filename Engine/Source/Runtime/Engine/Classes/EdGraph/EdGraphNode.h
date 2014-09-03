@@ -276,13 +276,16 @@ public:
 	/**
 	 * Gets the tooltip to display when over the node
 	 */
-	virtual FString GetTooltip() const;
+	virtual FText GetTooltipText() const;
+
+	DEPRECATED(4.5, "UEdGraphNode::GetTooltip() is deprecated, instead use GetTooltipText(), which returns localized text.")
+	virtual FString GetTooltip() const { return GetTooltipText().ToString(); }
 
 	/**
 	 * Returns the keywords that should be used when searching for this node
 	 */
 	virtual FString GetKeywords() const { return TEXT(""); }
-
+	 
 	/**
 	 * Returns the link used for external documentation for the graph node
 	 */

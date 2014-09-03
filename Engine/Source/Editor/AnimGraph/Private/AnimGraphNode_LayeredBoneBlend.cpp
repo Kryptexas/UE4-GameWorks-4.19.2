@@ -21,9 +21,9 @@ FLinearColor UAnimGraphNode_LayeredBoneBlend::GetNodeTitleColor() const
 	return FLinearColor(0.2f, 0.8f, 0.2f);
 }
 
-FString UAnimGraphNode_LayeredBoneBlend::GetTooltip() const
+FText UAnimGraphNode_LayeredBoneBlend::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_LayeredBoneBlend_Tooltip", "Layered blend per bone").ToString();
+	return LOCTEXT("AnimGraphNode_LayeredBoneBlend_Tooltip", "Layered blend per bone");
 }
 
 FText UAnimGraphNode_LayeredBoneBlend::GetNodeTitle(ENodeTitleType::Type TitleType) const

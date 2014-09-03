@@ -21,7 +21,7 @@ FString FK2Node_CreateWidgetHelper::OwningPlayerPinName(TEXT("OwningPlayer"));
 UK2Node_CreateWidget::UK2Node_CreateWidget(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Creates a new widget").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Creates a new widget");
 }
 
 void UK2Node_CreateWidget::AllocateDefaultPins()

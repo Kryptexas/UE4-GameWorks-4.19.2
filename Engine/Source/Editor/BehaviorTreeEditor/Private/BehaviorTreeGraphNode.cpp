@@ -127,27 +127,27 @@ FString	UBehaviorTreeGraphNode::GetDescription() const
 		*LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString());
 }
 
-FString UBehaviorTreeGraphNode::GetTooltip() const
+FText UBehaviorTreeGraphNode::GetTooltipText() const
 {
-	FString TooltipDesc;
+	FText TooltipDesc;
 
 	if(!NodeInstance)
 	{
-		TooltipDesc = LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString();
+		TooltipDesc = LOCTEXT("NodeClassError", "Class not found, make sure it's saved!");
 	}
 	else
 	{
 		if(bHasObserverError)
 		{
-			TooltipDesc = LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString();
+			TooltipDesc = LOCTEXT("ObserverError", "Observer has invalid abort setting!");
 		}
 		else if(DebuggerRuntimeDescription.Len() > 0)
 		{
-			TooltipDesc = DebuggerRuntimeDescription;
+			TooltipDesc = FText::FromString(DebuggerRuntimeDescription);
 		}
 		else if(ErrorMessage.Len() > 0)
 		{
-			TooltipDesc = ErrorMessage;
+			TooltipDesc = FText::FromString(ErrorMessage);
 		}
 		else
 		{
@@ -157,21 +157,23 @@ FString UBehaviorTreeGraphNode::GetTooltip() const
 			{
 				FAssetData AssetData(NodeInstance->GetClass()->ClassGeneratedBy);
 				const FString* Description = AssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint, BlueprintDescription));
+
 				if (Description && !Description->IsEmpty())
 				{
-					TooltipDesc = Description->Replace(TEXT("\\n"), TEXT("\n"));
+					TooltipDesc = FText::FromString(Description->Replace(TEXT("\\n"), TEXT("\n")));
 				}
 			}
 			else
 			{
-				TooltipDesc = NodeInstance->GetClass()->GetToolTipText().ToString();
+				TooltipDesc = NodeInstance->GetClass()->GetToolTipText();
 			}	
 		}
 	}
 
 	if (bInjectedNode)
 	{
-		TooltipDesc = LOCTEXT("Injected", "Injected: ").ToString() + ((TooltipDesc.Len() > 0) ? TooltipDesc : GetDescription());
+		FText const InjectedDesc = !TooltipDesc.IsEmpty() ? TooltipDesc : FText::FromString(GetDescription());
+		TooltipDesc = FText::Format(LOCTEXT("InjectedTooltip", "Injected: {0}"), InjectedDesc);
 	}
 
 	return TooltipDesc;

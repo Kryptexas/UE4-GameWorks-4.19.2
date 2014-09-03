@@ -147,16 +147,16 @@ void UK2Node_DelegateSet::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_DelegateSet::GetTooltip() const
+FText UK2Node_DelegateSet::GetTooltipText() const
 {
-	FString Tooltip = FString::Printf(*NSLOCTEXT("K2Node", "CreateEventForDelegate", "Create an event tied to the delegate %s").ToString(), *DelegatePropertyName.ToString());
+	FText Tooltip = FText::Format(NSLOCTEXT("K2Node", "CreateEventForDelegate", "Create an event tied to the delegate {0}"), FText::FromName(DelegatePropertyName));
 	if (UFunction* Function = GetDelegateSignature())
 	{
-		const FString SignatureTooltip = Function->GetToolTipText().ToString();
+		const FText SignatureTooltip = Function->GetToolTipText();
 
 		if (!SignatureTooltip.IsEmpty())
 		{
-			Tooltip += FString(TEXT("\n")) + SignatureTooltip;
+			Tooltip = FText::Format(LOCTEXT("DelegateSet_SubtitledTooltip", "{0}\n{1}"), Tooltip, SignatureTooltip);
 		}
 	}
 	return Tooltip;

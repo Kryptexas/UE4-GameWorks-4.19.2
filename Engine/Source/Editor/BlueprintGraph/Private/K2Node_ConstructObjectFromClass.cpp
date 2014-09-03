@@ -21,7 +21,7 @@ FString FK2Node_ConstructObjectFromClassHelper::ClassPinName(TEXT("Class"));
 UK2Node_ConstructObjectFromClass::UK2Node_ConstructObjectFromClass(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new object").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new object");
 }
 
 UClass* UK2Node_ConstructObjectFromClass::GetClassPinBaseClass() const
@@ -181,7 +181,7 @@ void UK2Node_ConstructObjectFromClass::PinDefaultValueChanged(UEdGraphPin* Chang
 	}
 }
 
-FString UK2Node_ConstructObjectFromClass::GetTooltip() const
+FText UK2Node_ConstructObjectFromClass::GetTooltipText() const
 {
 	return NodeTooltip;
 }

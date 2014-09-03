@@ -605,7 +605,7 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 	{
 		UK2Node_Event* const EventNode = (*It);
 
-		FString const Tooltip = EventNode->GetTooltip();
+		FString const Tooltip = EventNode->GetTooltipText().ToString();
 		FText const Description = EventNode->GetNodeTitle(ENodeTitleType::EditableTitle);
 
 		TSharedPtr<FEdGraphSchemaAction_K2Event> EventNodeAction = MakeShareable(new FEdGraphSchemaAction_K2Event(ActionCategory, Description, Tooltip, 0));

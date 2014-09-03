@@ -30,7 +30,7 @@ class UK2Node_SwitchEnum : public UK2Node_Switch, public INodeDependingOnEnumInt
 	// End of INodeDependingOnEnumInterface
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }	
 	// End of UEdGraphNode interface

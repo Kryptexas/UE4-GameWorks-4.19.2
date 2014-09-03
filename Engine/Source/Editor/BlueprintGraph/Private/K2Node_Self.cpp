@@ -45,9 +45,9 @@ void UK2Node_Self::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_Self::GetTooltip() const
+FText UK2Node_Self::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "GetSelfReference", "Gets a reference to this instance of the blueprint").ToString());
+	return NSLOCTEXT("K2Node", "GetSelfReference", "Gets a reference to this instance of the blueprint");
 }
 
 FString UK2Node_Self::GetKeywords() const

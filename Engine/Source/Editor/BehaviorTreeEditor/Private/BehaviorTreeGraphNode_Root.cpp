@@ -40,9 +40,9 @@ FName UBehaviorTreeGraphNode_Root::GetNameIcon() const
 	return FName("BTEditor.Graph.BTNode.Root.Icon");
 }
 
-FString UBehaviorTreeGraphNode_Root::GetTooltip() const
+FText UBehaviorTreeGraphNode_Root::GetTooltipText() const
 {
-	return UEdGraphNode::GetTooltip();
+	return UEdGraphNode::GetTooltipText();
 }
 
 void UBehaviorTreeGraphNode_Root::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)

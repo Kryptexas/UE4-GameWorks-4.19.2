@@ -48,7 +48,7 @@ void UK2Node_VariableSet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 	}
 }
 
-FString UK2Node_VariableSet::GetTooltip() const
+FText UK2Node_VariableSet::GetTooltipText() const
 {
 	FFormatNamedArguments Args;
 	Args.Add( TEXT( "VarName" ), FText::FromString( GetVarNameString() ));
@@ -81,7 +81,7 @@ FString UK2Node_VariableSet::GetTooltip() const
 			}
 		}
 	}
-	return FText::Format( NSLOCTEXT( "K2Node", "SetValueOfVariable", "Set the value of variable {VarName}{ReplicationCall}{ReplicationNotifyName}{TextPartition}{MetaData}"), Args ).ToString();
+	return FText::Format( NSLOCTEXT( "K2Node", "SetValueOfVariable", "Set the value of variable {VarName}{ReplicationCall}{ReplicationNotifyName}{TextPartition}{MetaData}"), Args );
 }
 
 FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const

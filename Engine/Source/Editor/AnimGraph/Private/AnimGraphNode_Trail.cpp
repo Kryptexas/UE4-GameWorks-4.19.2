@@ -18,9 +18,9 @@ FText UAnimGraphNode_Trail::GetControllerDescription() const
 	return LOCTEXT("TrailController", "Trail controller");
 }
 
-FString UAnimGraphNode_Trail::GetTooltip() const
+FText UAnimGraphNode_Trail::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_Trail_Tooltip", "The Trail Controller.").ToString();
+	return LOCTEXT("AnimGraphNode_Trail_Tooltip", "The Trail Controller.");
 }
 
 FText UAnimGraphNode_Trail::GetNodeTitle(ENodeTitleType::Type TitleType) const

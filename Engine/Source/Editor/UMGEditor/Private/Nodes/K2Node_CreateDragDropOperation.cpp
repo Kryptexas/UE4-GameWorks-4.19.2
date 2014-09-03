@@ -14,7 +14,7 @@
 UK2Node_CreateDragDropOperation::UK2Node_CreateDragDropOperation(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Creates a new drag drop operation").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Creates a new drag drop operation");
 }
 
 FText UK2Node_CreateDragDropOperation::GetBaseNodeTitle() const

@@ -13,7 +13,7 @@ class UAnimGraphNode_SkeletalControlBase : public UAnimGraphNode_Base
 public:
 	// UEdGraphNode interface
 	ANIMGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
-	ANIMGRAPH_API virtual FString GetTooltip() const override;
+	ANIMGRAPH_API virtual FText GetTooltipText() const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface

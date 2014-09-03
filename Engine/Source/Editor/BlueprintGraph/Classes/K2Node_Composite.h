@@ -17,7 +17,7 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	BLUEPRINTGRAPH_API virtual void DestroyNode() override;
 	BLUEPRINTGRAPH_API virtual void PostPasteNode() override;
-	BLUEPRINTGRAPH_API virtual FString GetTooltip() const override;
+	BLUEPRINTGRAPH_API virtual FText GetTooltipText() const override;
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
 	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	BLUEPRINTGRAPH_API virtual bool CanUserDeleteNode() const override;

@@ -18,9 +18,9 @@ FText UAnimGraphNode_TwoBoneIK::GetControllerDescription() const
 	return LOCTEXT("TwoBoneIK", "Two Bone IK");
 }
 
-FString UAnimGraphNode_TwoBoneIK::GetTooltip() const
+FText UAnimGraphNode_TwoBoneIK::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_TwoBoneIK_Tooltip", "The Two Bone IK control applies an inverse kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.").ToString();
+	return LOCTEXT("AnimGraphNode_TwoBoneIK_Tooltip", "The Two Bone IK control applies an inverse kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.");
 }
 
 FText UAnimGraphNode_TwoBoneIK::GetNodeTitle(ENodeTitleType::Type TitleType) const

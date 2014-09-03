@@ -42,11 +42,11 @@ void UK2Node_StructMemberSet::AllocateDefaultPins()
 	}
 }
 
-FString UK2Node_StructMemberSet::GetTooltip() const
+FText UK2Node_StructMemberSet::GetTooltipText() const
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("VariableName"), FText::FromName(VariableReference.GetMemberName()));
-	return FText::Format(LOCTEXT("K2Node_StructMemberSet_Tooltip", "Set member variables of {VariableName}"), Args).ToString();
+	return FText::Format(LOCTEXT("K2Node_StructMemberSet_Tooltip", "Set member variables of {VariableName}"), Args);
 }
 
 FText UK2Node_StructMemberSet::GetNodeTitle(ENodeTitleType::Type TitleType) const

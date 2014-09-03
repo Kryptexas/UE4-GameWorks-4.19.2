@@ -16,7 +16,7 @@ class UK2Node_SpawnActor : public UK2Node
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual bool IsDeprecated() const override;
 	virtual bool ShouldWarnOnDeprecation() const override;
 	virtual FString GetDeprecationMessage() const override;
@@ -57,7 +57,7 @@ private:
 	BLUEPRINTGRAPH_API UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch=NULL) const;
 
 	/** Tooltip text for this node. */
-	FString NodeTooltip;
+	FText NodeTooltip;
 
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;

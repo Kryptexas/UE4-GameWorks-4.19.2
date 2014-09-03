@@ -17,9 +17,10 @@ UAnimGraphNode_RotationOffsetBlendSpace::UAnimGraphNode_RotationOffsetBlendSpace
 {
 }
 
-FString UAnimGraphNode_RotationOffsetBlendSpace::GetTooltip() const
+FText UAnimGraphNode_RotationOffsetBlendSpace::GetTooltipText() const
 {
-	return FString::Printf(TEXT("AimOffset %s"), *(Node.BlendSpace->GetPathName()));
+	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
+	return FText::Format(LOCTEXT("AimOffsetTooltip", "AimOffset '{0}'"), BlendSpaceName);
 }
 
 FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const

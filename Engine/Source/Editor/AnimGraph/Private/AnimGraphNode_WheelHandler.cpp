@@ -24,9 +24,9 @@ FString UAnimGraphNode_WheelHandler::GetKeywords() const
 	return TEXT("Modify, Wheel, Vehicle");
 }
 
-FString UAnimGraphNode_WheelHandler::GetTooltip() const
+FText UAnimGraphNode_WheelHandler::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_WheelHandler_Tooltip", "This alters the wheel transform based on set up in Wheeled Vehicle. This only works when the owner is WheeledVehicle.").ToString();
+	return LOCTEXT("AnimGraphNode_WheelHandler_Tooltip", "This alters the wheel transform based on set up in Wheeled Vehicle. This only works when the owner is WheeledVehicle.");
 }
 
 FText UAnimGraphNode_WheelHandler::GetNodeTitle(ENodeTitleType::Type TitleType) const

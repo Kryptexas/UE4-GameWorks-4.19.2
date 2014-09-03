@@ -36,7 +36,7 @@ class UK2Node_EaseFunction : public UK2Node
 	void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	// End UEdGraphNode interface.
 
@@ -107,7 +107,7 @@ private:
 	FString EaseFunctionName;
 
 	/** Tooltip text for this node. */
-	FString NodeTooltip;
+	FText NodeTooltip;
 
 	/** The "EaseFunc" input pin, used to enable/disable easing customization */
 	UEdGraphPin* CachedEaseFuncPin;

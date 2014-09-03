@@ -23,7 +23,7 @@ public:
 	virtual void AllocateDefaultPins() override {}
 	virtual bool ShouldOverridePinNames() const override { return true; }
 	virtual FLinearColor GetNodeTitleColor() const override { return FLinearColor( 0.2f, 1.f, 0.2f ); }
-	ENGINE_API virtual FString GetTooltip() const override;
+	ENGINE_API virtual FText GetTooltipText() const override;
 	ENGINE_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	ENGINE_API virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const override;
 	ENGINE_API virtual void ResizeNode(const FVector2D& NewSize) override;

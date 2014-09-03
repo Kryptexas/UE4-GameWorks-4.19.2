@@ -104,9 +104,9 @@ FLinearColor UK2Node_IfThenElse::GetNodeTitleColor() const
 	return GetDefault<UGraphEditorSettings>()->ExecBranchNodeTitleColor;
 }
 
-FString UK2Node_IfThenElse::GetTooltip() const
+FText UK2Node_IfThenElse::GetTooltipText() const
 {
-	return *LOCTEXT("BrancStatement_Tooltip", "Branch Statement\nIf Condition is true, execution goes to True, otherwise it goes to False").ToString();
+	return LOCTEXT("BrancStatement_Tooltip", "Branch Statement\nIf Condition is true, execution goes to True, otherwise it goes to False");
 }
 
 FString UK2Node_IfThenElse::GetKeywords() const

@@ -26,16 +26,17 @@ void UK2Node_CastByteToEnum::AllocateDefaultPins()
 	CreatePin(EGPD_Output, Schema->PC_Byte, TEXT(""), Enum, false, false, Schema->PN_ReturnValue);
 }
 
-FString UK2Node_CastByteToEnum::GetTooltip() const
+FText UK2Node_CastByteToEnum::GetTooltipText() const
 {
-	return FString::Printf( 
-		*NSLOCTEXT("K2Node", "CastByteToEnum_Tooltip", "Byte to Enum %s").ToString(),
-		*Enum->GetName());
+	return FText::Format(
+		NSLOCTEXT("K2Node", "CastByteToEnum_Tooltip", "Byte to Enum {0}"),
+		FText::FromName(Enum->GetFName())
+	);
 }
 
 FText UK2Node_CastByteToEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText::FromString(GetTooltip());
+	return GetTooltipText();
 }
 
 FText UK2Node_CastByteToEnum::GetCompactNodeTitle() const

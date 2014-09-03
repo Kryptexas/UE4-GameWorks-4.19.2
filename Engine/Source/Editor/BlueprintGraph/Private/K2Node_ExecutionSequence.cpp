@@ -150,9 +150,9 @@ FLinearColor UK2Node_ExecutionSequence::GetNodeTitleColor() const
 	return FLinearColor::White;
 }
 
-FString UK2Node_ExecutionSequence::GetTooltip() const
+FText UK2Node_ExecutionSequence::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "ExecutePinInOrder_Tooltip", "Executes a series of pins in order").ToString();
+	return NSLOCTEXT("K2Node", "ExecutePinInOrder_Tooltip", "Executes a series of pins in order");
 }
 
 FString UK2Node_ExecutionSequence::GetUniquePinName()

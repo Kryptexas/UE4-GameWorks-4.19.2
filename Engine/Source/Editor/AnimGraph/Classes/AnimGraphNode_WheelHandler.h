@@ -17,7 +17,7 @@ class UAnimGraphNode_WheelHandler : public UAnimGraphNode_SkeletalControlBase
 public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FString GetKeywords() const override;
 	// validate if this is within VehicleAnimInstance
 	virtual void ValidateAnimNodePostCompile(class FCompilerResultsLog& MessageLog, class UAnimBlueprintGeneratedClass* CompiledClass, int32 CompiledNodeIndex) override;

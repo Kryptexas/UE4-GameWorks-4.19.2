@@ -21,9 +21,9 @@ FLinearColor UAnimGraphNode_RotateRootBone::GetNodeTitleColor() const
 	return FLinearColor(0.7f, 0.7f, 0.7f);
 }
 
-FString UAnimGraphNode_RotateRootBone::GetTooltip() const
+FText UAnimGraphNode_RotateRootBone::GetTooltipText() const
 {
-	return LOCTEXT("RotateRootBone", "Rotate Root Bone").ToString();
+	return LOCTEXT("RotateRootBone", "Rotate Root Bone");
 }
 
 FText UAnimGraphNode_RotateRootBone::GetNodeTitle(ENodeTitleType::Type TitleType) const

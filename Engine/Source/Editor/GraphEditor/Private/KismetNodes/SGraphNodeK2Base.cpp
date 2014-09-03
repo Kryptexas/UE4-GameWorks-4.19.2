@@ -40,7 +40,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	LeftNodeBox.Reset();
 
  	TSharedPtr< SToolTip > NodeToolTip = SNew( SToolTip );
-	if ( !GraphNode->GetTooltip().IsEmpty() )
+	if (!GraphNode->GetTooltipText().IsEmpty())
 	{
 		NodeToolTip = IDocumentation::Get()->CreateToolTip( TAttribute< FText >( this, &SGraphNode::GetNodeTooltip ), NULL, GraphNode->GetDocumentationLink(), GraphNode->GetDocumentationExcerptName() );
 	}

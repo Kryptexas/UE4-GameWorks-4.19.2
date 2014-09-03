@@ -20,9 +20,9 @@ UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const class FPostConstructIni
 	EventSignatureClass = UGameplayCueInterface::StaticClass();
 }
 
-FString UK2Node_GameplayCueEvent::GetTooltip() const
+FText UK2Node_GameplayCueEvent::GetTooltipText() const
 {
-	return TEXT("Handle GameplayCue Event");
+	return LOCTEXT("GameplayCueEvent_Tooltip", "Handle GameplayCue Event");
 }
 
 FText UK2Node_GameplayCueEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -76,7 +76,7 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 
 		const FString Category = FunctionCategory;
 		const FText MenuDesc = NodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
-		const FString Tooltip = NodeTemplate->GetTooltip();
+		const FString Tooltip = NodeTemplate->GetTooltipText().ToString();
 		const FString Keywords = NodeTemplate->GetKeywords();
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);

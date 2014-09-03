@@ -28,7 +28,7 @@ UK2Node_FormatText::UK2Node_FormatText(const class FPostConstructInitializePrope
 	: Super(PCIP)
 	, CachedFormatPin(NULL)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Builds a formatted string using available specifier values. Use {} to denote specifiers.").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Builds a formatted string using available specifier values. Use {} to denote specifiers.");
 }
 
 void UK2Node_FormatText::AllocateDefaultPins()
@@ -156,7 +156,7 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 	}
 }
 
-FString UK2Node_FormatText::GetTooltip() const
+FText UK2Node_FormatText::GetTooltipText() const
 {
 	return NodeTooltip;
 }

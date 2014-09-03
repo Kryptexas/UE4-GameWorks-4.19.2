@@ -22,7 +22,7 @@ class UK2Node_TemporaryVariable : public UK2Node
 
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetDescriptiveCompiledName() const override;
 	virtual bool IsCompatibleWithGraph(UEdGraph const* TargetGraph) const override;

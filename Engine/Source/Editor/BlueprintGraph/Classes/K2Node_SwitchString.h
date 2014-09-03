@@ -21,7 +21,7 @@ class UK2Node_SwitchString : public UK2Node_Switch
 	// End of UObject interface
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	// End of UEdGraphNode interface

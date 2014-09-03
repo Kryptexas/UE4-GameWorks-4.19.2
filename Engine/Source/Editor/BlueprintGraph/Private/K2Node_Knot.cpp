@@ -30,10 +30,10 @@ void UK2Node_Knot::AllocateDefaultPins()
 	UEdGraphPin* MyOutputPin = CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, /*bIsArray=*/ false, /*bIsReference=*/ false, OutputPinName);
 }
 
-FString UK2Node_Knot::GetTooltip() const
+FText UK2Node_Knot::GetTooltipText() const
 {
 	//@TODO: Should pull the tooltip from the source pin
-	return LOCTEXT("KnotTooltip", "Reroute Node (reroutes wires)").ToString();
+	return LOCTEXT("KnotTooltip", "Reroute Node (reroutes wires)");
 }
 
 FText UK2Node_Knot::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -60,7 +60,7 @@ void UK2Node_Knot::GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBu
 
 		FString EmptyCategory;
 		FText MenuDesc = LOCTEXT("KnotMenuDescription", "Add Reroute Node...");
-		FString Tooltip = TemplateNode->GetTooltip();//@TODO: Make this work +LOCTEXT("KnotMenuExtraTooltip", "\nYou can also create one by Shift+Dragging off a pin").ToString();
+		FString Tooltip = TemplateNode->GetTooltipText().ToString();//@TODO: Make this work +LOCTEXT("KnotMenuExtraTooltip", "\nYou can also create one by Shift+Dragging off a pin").ToString();
 		FString Keywords = TemplateNode->GetKeywords();
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, EmptyCategory, MenuDesc, Tooltip, 0, Keywords);
