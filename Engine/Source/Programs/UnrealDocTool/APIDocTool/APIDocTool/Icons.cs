@@ -146,6 +146,47 @@ namespace APIDocTool
 			new MetadataIcon(new Icon("%ROOT%/api_variable_meta_other.png", "Other"), new string[]{ }),
 		};
 
+		//// Blueprint Variable type icons 
+		public static readonly Dictionary<string, Icon> VariablePinIcons = new Dictionary<string, Icon>
+		{
+			{ "bool", new Icon("%ROOT%/bp_api_pin_bool.png", "Boolean") },
+			{ "byte", new Icon("%ROOT%/bp_api_pin_byte.png", "Byte") },
+			{ "class", new Icon("%ROOT%/bp_api_pin_class.png", "Class") },
+			{ "delegate", new Icon("%ROOT%/bp_api_pin_delegate.png", "Delegate") },
+			{ "exec", new Icon("%ROOT%/bp_api_pin_exec.png", "Exec") },
+			{ "float", new Icon("%ROOT%/bp_api_pin_float.png", "Float") },
+			{ "int", new Icon("%ROOT%/bp_api_pin_int.png", "Integer") },
+			{ "interface", new Icon("%ROOT%/bp_api_pin_interface.png", "Interface") },
+			{ "name", new Icon("%ROOT%/bp_api_pin_name.png", "Name") },
+			{ "object", new Icon("%ROOT%/bp_api_pin_object.png", "Object") },
+			{ "rotator", new Icon("%ROOT%/bp_api_pin_rotator.png", "Rotator") },
+			{ "string", new Icon("%ROOT%/bp_api_pin_string.png", "String") },
+			{ "struct", new Icon("%ROOT%/bp_api_pin_struct.png", "Struct") },
+			{ "text", new Icon("%ROOT%/bp_api_pin_text.png", "Text") },
+			{ "transform", new Icon("%ROOT%/bp_api_pin_transform.png", "Transform") },
+			{ "vector", new Icon("%ROOT%/bp_api_pin_vector.png", "Vector") },
+			{ "wildcard", new Icon("%ROOT%/bp_api_pin_wildcard.png", "Wildcard") },
+		};
+
+		//// Blueprint Array variable type icons 
+		public static readonly Dictionary<string, Icon> ArrayVariablePinIcons = new Dictionary<string, Icon>
+		{
+			{ "bool", new Icon("%ROOT%/bp_api_pin_array_bool.png", "Boolean Array") },
+			{ "byte", new Icon("%ROOT%/bp_api_pin_array_byte.png", "Byte Array") },
+			{ "class", new Icon("%ROOT%/bp_api_pin_array_class.png", "Class Array") },
+			{ "float", new Icon("%ROOT%/bp_api_pin_array_float.png", "Float Array") },
+			{ "int", new Icon("%ROOT%/bp_api_pin_array_int.png", "Integer Array") },
+			{ "name", new Icon("%ROOT%/bp_api_pin_array_name.png", "Name Array") },
+			{ "object", new Icon("%ROOT%/bp_api_pin_array_object.png", "Object Array") },
+			{ "rotator", new Icon("%ROOT%/bp_api_pin_array_rotator.png", "Rotator Array") },
+			{ "string", new Icon("%ROOT%/bp_api_pin_array_string.png", "String Array") },
+			{ "struct", new Icon("%ROOT%/bp_api_pin_array_struct.png", "Struct Array") },
+			{ "text", new Icon("%ROOT%/bp_api_pin_array_text.png", "Text Array") },
+			{ "transform", new Icon("%ROOT%/bp_api_pin_array_transform.png", "Transform Array") },
+			{ "vector", new Icon("%ROOT%/bp_api_pin_array_vector.png", "Vector Array") },
+			{ "wildcard", new Icon("%ROOT%/bp_api_pin_array_wildcard.png", "Wildcard Array") },
+		};
+
 		//// Meta icons ///////////////////////////////////////////////////////////////////////////////////////////
 
 		public static readonly MetadataIcon[] MetaMetadataIcons =

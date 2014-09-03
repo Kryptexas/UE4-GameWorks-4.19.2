@@ -456,6 +456,28 @@ namespace APIDocTool
 			WriteObject("MemberListTail");
 		}
 
+		public void WriteList(IEnumerable<UdnIconListItem> Items)
+		{
+			// Write the head
+			WriteObject("MemberIconListHeadBlank");
+
+			// Write the body
+			foreach (UdnIconListItem Item in Items)
+			{
+				if (Item.Link == null)
+				{
+					WriteObject("MemberIconListItem", "icon", Item.Icons, "name", Item.Name, "desc", Item.Description);
+				}
+				else
+				{
+					WriteObject("MemberIconListItemLinked", "icon", Item.Icons, "name", Item.Name, "link", "[RELATIVE:" + Item.Link + "]", "desc", Item.Description);
+				}
+			}
+
+			// Write the tail
+			WriteObject("MemberIconListTail");
+		}
+
 		public void WriteList(string NameColumn, string DescColumn, IEnumerable<UdnIconListItem> Items)
 		{
 			// Write the head

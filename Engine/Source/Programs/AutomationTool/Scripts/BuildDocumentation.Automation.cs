@@ -19,6 +19,7 @@ public class BuildDocumentation : BuildCommand
 		bool bCleanMeta = bClean || ParseParam("cleanmeta");
 		bool bCleanEnv = bClean || ParseParam("cleanenv");
 		bool bCleanXml = bClean || ParseParam("cleanxml");
+		bool bCleanJson = bClean || ParseParam("cleanjson");
 		bool bCleanUdn = bClean || ParseParam("cleanudn");
 		bool bCleanHtml = bClean || ParseParam("cleanhtml");
 		bool bCleanChm = bClean || ParseParam("cleanchm");
@@ -27,6 +28,7 @@ public class BuildDocumentation : BuildCommand
 		bool bBuildMeta = bBuild || ParseParam("buildmeta");
 		bool bBuildEnv = bBuild || ParseParam("buildenv");
 		bool bBuildXml = bBuild || ParseParam("buildxml");
+		bool bBuildJson = bBuild || ParseParam("buildjson");
 		bool bBuildUdn = bBuild || ParseParam("buildudn");
 		bool bBuildHtml = bBuild || ParseParam("buildhtml");
 		bool bBuildChm = bBuild || ParseParam("buildchm");
@@ -49,6 +51,8 @@ public class BuildDocumentation : BuildCommand
 		CommandUtils.CreateDirectory(BuildDir);
 		string DoxygenDir = Path.Combine(IntermediateDir, "doxygen");
 		CommandUtils.CreateDirectory(DoxygenDir);
+		string JsonDir = Path.Combine(IntermediateDir, "json");
+		CommandUtils.CreateDirectory(JsonDir);
 		string MetadataDir = Path.Combine(IntermediateDir, "metadata");
 		CommandUtils.CreateDirectory(MetadataDir);
 		string ArchiveDir = Path.Combine(CmdEnv.LocalRoot, "Engine\\Documentation\\Builds");
@@ -76,6 +80,7 @@ public class BuildDocumentation : BuildCommand
 		ApiToolCommandLine += " -enginedir=\"" + Path.Combine(CmdEnv.LocalRoot, "Engine") + "\"";
 		ApiToolCommandLine += " -targetinfo=\"" + TargetInfoPath + "\"";
 		ApiToolCommandLine += " -xmldir=\"" + DoxygenDir + "\"";
+		ApiToolCommandLine += " -jsondir=\"" + JsonDir + "\"";
 		ApiToolCommandLine += " -metadatadir=\"" + MetadataDir + "\"";
 		if (Filter != null) ApiToolCommandLine += " -filter=" + Filter;
 
@@ -92,7 +97,11 @@ public class BuildDocumentation : BuildCommand
 		{
 			RunAndLog(CmdEnv, ApiDocToolPath, "-cleanxml" + ApiToolCommandLine, "ApiDocTool-CleanXML");
 		}
-		if(bCleanUdn)
+		if (bCleanJson)
+		{
+			RunAndLog(CmdEnv, ApiDocToolPath, "-cleanjson" + ApiToolCommandLine, "ApiDocTool-CleanJSON");
+		}
+		if (bCleanUdn)
 		{
 			RunAndLog(CmdEnv, ApiDocToolPath, "-cleanudn" + ApiToolCommandLine, "ApiDocTool-CleanUDN");
 		}
@@ -119,7 +128,20 @@ public class BuildDocumentation : BuildCommand
 			RunAndLog(CmdEnv, ApiDocToolPath, "-buildxml" + ApiToolCommandLine, "ApiDocTool-BuildXML");
 			if (bMakeArchives)
 			{
-				CreateAndSubmitArchiveFromDir("Engine/Documentation/Builds/API-XML.tgz", "API documentation intermediates", IntermediateDir);
+				List<string> InputFiles = new List<string>();
+				FindFilesForTar(IntermediateDir, "build", InputFiles, true);
+				FindFilesForTar(IntermediateDir, "doxygen", InputFiles, true);
+				FindFilesForTar(IntermediateDir, "metadata", InputFiles, true);
+
+				CreateAndSubmitArchiveFromFiles("Engine/Documentation/Builds/API-XML.tgz", "API documentation intermediates", IntermediateDir, InputFiles);
+			}
+		}
+		if (bBuildJson)
+		{
+			RunAndLog(CmdEnv, ApiDocToolPath, "-buildjson" + ApiToolCommandLine, "ApiDocTool-BuildJSON");
+			if (bMakeArchives)
+			{
+				CreateAndSubmitArchiveFromDir("Engine/Documentation/Builds/API-JSON.tgz", "Blueprint API documentation intermediates", Path.Combine(IntermediateDir, "json"));
 			}
 		}
 		if (bBuildUdn)
@@ -127,8 +149,14 @@ public class BuildDocumentation : BuildCommand
 			RunAndLog(CmdEnv, ApiDocToolPath, "-buildudn" + (bStats? (" -stats=\"" + StatsPath + "\"") : "") + ApiToolCommandLine, "ApiDocTool-BuildUDN");
 			if (bMakeArchives)
 			{
-				CreateAndSubmitArchiveFromDir("Engine/Documentation/Builds/API-UDN.tgz", "API documentation UDN output", Path.Combine(CmdEnv.LocalRoot, "Engine\\Documentation\\Source\\API"));
-				CreateAndSubmitArchiveFromFiles("Engine/Documentation/Builds/API-Sitemap.tgz", "API documentation sitemap output", Path.Combine(CmdEnv.LocalRoot, "Engine\\Documentation\\CHM"), new string[] { "API.hhc", "API.hhk" });
+				string BaseDir = Path.Combine(CmdEnv.LocalRoot, "Engine\\Documentation\\Source");
+
+				List<string> InputFiles = new List<string>();
+				FindFilesForTar(BaseDir, "API", InputFiles, true);
+				FindFilesForTar(BaseDir, "BlueprintAPI", InputFiles, true);
+
+				CreateAndSubmitArchiveFromFiles("Engine/Documentation/Builds/API-UDN.tgz", "API documentation UDN output", BaseDir, InputFiles);
+				CreateAndSubmitArchiveFromFiles("Engine/Documentation/Builds/API-Sitemap.tgz", "API documentation sitemap output", Path.Combine(CmdEnv.LocalRoot, "Engine\\Documentation\\CHM"), new string[] { "API.hhc", "API.hhk", "BlueprintAPI.hhc", "BlueprintAPI.hhk" });
 			}
 		}
 		if (bBuildHtml)
@@ -153,6 +181,7 @@ public class BuildDocumentation : BuildCommand
 		{
 			RunAndLog(CmdEnv, ApiDocToolPath, "-buildchm" + ApiToolCommandLine, "ApiDocTool-BuildCHM");
 			SubmitFile("Engine/Documentation/CHM/API.chm", "API documentation CHM output");
+			SubmitFile("Engine/Documentation/CHM/BlueprintAPI.chm", "Blueprint API documentation CHM output");
 		}
 	}
 

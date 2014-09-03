@@ -34,6 +34,7 @@ namespace APIDocTool
 
 		public const string TabSpaces = "&nbsp;&nbsp;&nbsp;&nbsp;";
         public const string APIFolder = "API";
+		public const string BlueprintAPIFolder = "BlueprintAPI";
 
 		public static bool bIndexOnly = false;
 		public static bool bOutputPublish = false;
@@ -159,9 +160,6 @@ namespace APIDocTool
 			"DECLARE_LOG_CATEGORY_EXTERN(CategoryName, DefaultVerbosity, CompileTimeVerbosity)= ",
 		};
 
-		const string SitemapContentsFileName = "API.hhc";
-		const string SitemapIndexFileName = "API.hhk";
-
 		static Program()
 		{
 			List<string> DelegateMacros = new List<string>();
@@ -200,6 +198,7 @@ namespace APIDocTool
 			bool bCleanTargetInfo = false;
 			bool bCleanMetadata = false;
 			bool bCleanXml = false;
+			bool bCleanJson = false;
 			bool bCleanUdn = false;
 			bool bCleanHtml = false;
 			bool bCleanChm = false;
@@ -207,14 +206,19 @@ namespace APIDocTool
 			bool bBuildTargetInfo = false;
 			bool bBuildMetadata = false;
 			bool bBuildXml = false;
+			bool bBuildJson = false;
 			bool bBuildUdn = false;
 			bool bBuildHtml = false;
 			bool bBuildChm = false;
+
+			bool bBuildCodeAPI = false;
+			bool bBuildBlueprintAPI = false;
 
 			string TargetInfoPath = Path.Combine(IntermediateRootDir, "build\\targetinfo.xml");
 			string EngineDir = EngineRootDir;
 			string MetadataDir = Path.Combine(IntermediateRootDir, "metadata");
 			string XmlDir = Path.Combine(IntermediateRootDir, "doxygen");
+			string JsonDir = Path.Combine(IntermediateRootDir, "json");
 			string StatsPath = null;
 
 			List<string> Filters = new List<string>();
@@ -226,7 +230,15 @@ namespace APIDocTool
 				string OptionName = (EqualsIdx == -1)? Argument : Argument.Substring(0, EqualsIdx + 1);
 				string OptionValue = (EqualsIdx == -1)? null : Argument.Substring(EqualsIdx + 1);
 
-				if (OptionName == "-clean")
+				if (OptionName == "-blueprint")
+				{
+					bBuildBlueprintAPI = true;
+				}
+				else if (OptionName == "-code")
+				{
+					bBuildCodeAPI = true;
+				}
+				else if (OptionName == "-clean")
 				{
 					bCleanTargetInfo = bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = true;
 				}
@@ -270,6 +282,18 @@ namespace APIDocTool
 				else if (OptionName == "-rebuildxml")
 				{
 					bCleanXml = bBuildXml = true;
+				}
+				else if (OptionName == "-cleanjson")
+				{
+					bCleanJson = true;
+				}
+				else if (OptionName == "-buildjson")
+				{
+					bBuildJson = true;
+				}
+				else if (OptionName == "-rebuildjson")
+				{
+					bCleanJson = bBuildJson = true;
 				}
 				else if (OptionName == "-cleanudn")
 				{
@@ -319,6 +343,10 @@ namespace APIDocTool
 				{
 					XmlDir = Path.GetFullPath(OptionValue);
 				}
+				else if (OptionName == "-jsondir=")
+				{
+					JsonDir = Path.GetFullPath(OptionValue);
+				}
 				else if (OptionName == "-metadatadir=")
 				{
 					MetadataDir = Path.GetFullPath(OptionValue);
@@ -342,6 +370,13 @@ namespace APIDocTool
 				}
 			}
 
+			// If neither -blueprint or -code was specified, build both
+			if (!bBuildCodeAPI && !bBuildBlueprintAPI)
+			{
+				bBuildCodeAPI = true;
+				bBuildBlueprintAPI = true;
+			}
+
 			// Check we have all the required parameters
 			if (bBuildXml && TargetInfoPath == null)
 			{
@@ -349,69 +384,122 @@ namespace APIDocTool
 			}
 			else if (bValidArgs && EngineDir != null)
 			{
-				// If we don't intermediate paths, make them up
-				if (XmlDir == null) XmlDir = Path.Combine(EngineDir, "Intermediate\\Documentation\\Default\\Xml");
-				if (MetadataDir == null) MetadataDir = Path.Combine(EngineDir, "Intermediate\\Documentation\\Default\\Metadata");
-
 				// Derive all the engine paths we need in one place
 				string DoxygenPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\Doxygen\\bin\\doxygen.exe");
 				string UdnDir = Path.Combine(EngineDir, "Documentation\\Source");
 				string HtmlDir = Path.Combine(EngineDir, "Documentation\\HTML");
 				string ChmDir = Path.Combine(EngineDir, "Documentation\\CHM");
+				string EditorPath = Path.Combine(EngineDir, "Binaries\\Win64\\UE4Editor.exe");
 				string DocToolPath = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealDocTool.exe");
 				string ChmCompilerPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\HTML Help Workshop\\hhc.exe");
 				string SettingsPath = Path.Combine(EngineDir, "Documentation\\Extras\\API\\API.ini");
 				string MetadataPath = Path.Combine(MetadataDir, "metadata.xml");
 
-				// Read the settings file
-				Settings = IniFile.Read(SettingsPath);
-				IgnoredFunctionMacros = new HashSet<string>(Settings.FindValueOrDefault("Input.IgnoredFunctionMacros", "").Split('\n'));
-				IncludedSourceFiles = new HashSet<string>(Settings.FindValueOrDefault("Output.IncludedSourceFiles", "").Split('\n'));
+				if (bBuildCodeAPI)
+				{
+					// If we don't intermediate paths, make them up
+					if (XmlDir == null) XmlDir = Path.Combine(EngineDir, "Intermediate\\Documentation\\Default\\Xml");
+					if (MetadataDir == null) MetadataDir = Path.Combine(EngineDir, "Intermediate\\Documentation\\Default\\Metadata");
 
-				// Find all the metadata pages
-				AddMetadataKeyword(UdnDir, "UCLASS", "Programming/UnrealArchitecture/Reference/Classes#classdeclaration", "Programming/UnrealArchitecture/Reference/Classes/Specifiers");
-				AddMetadataKeyword(UdnDir, "UFUNCTION", "Programming/UnrealArchitecture/Reference/Functions", "Programming/UnrealArchitecture/Reference/Functions/Specifiers");
-				AddMetadataKeyword(UdnDir, "UPROPERTY", "Programming/UnrealArchitecture/Reference/Properties", "Programming/UnrealArchitecture/Reference/Properties/Specifiers");
-				AddMetadataKeyword(UdnDir, "USTRUCT", "Programming/UnrealArchitecture/Reference/Structs", "Programming/UnrealArchitecture/Reference/Structs/Specifiers");
+					// Read the settings file
+					Settings = IniFile.Read(SettingsPath);
+					IgnoredFunctionMacros = new HashSet<string>(Settings.FindValueOrDefault("Input.IgnoredFunctionMacros", "").Split('\n'));
+					IncludedSourceFiles = new HashSet<string>(Settings.FindValueOrDefault("Output.IncludedSourceFiles", "").Split('\n'));
 
-				// Clean the output folders
-				if (bCleanTargetInfo)
-				{
-					CleanTargetInfo(TargetInfoPath);
-				}
-				if (bCleanMetadata)
-				{
-					CleanMetadata(MetadataDir);
-				}
-				if (bCleanXml)
-				{
-					CleanXml(XmlDir);
-				}
-				if (bCleanUdn)
-				{
-					CleanUdn(UdnDir);
-				}
-				if (bCleanHtml)
-				{
-					CleanHtml(HtmlDir);
-				}
-				if (bCleanChm)
-				{
-					CleanChm(ChmDir);
-				}
+					// Find all the metadata pages
+					AddMetadataKeyword(UdnDir, "UCLASS", "Programming/UnrealArchitecture/Reference/Classes#classdeclaration", "Programming/UnrealArchitecture/Reference/Classes/Specifiers");
+					AddMetadataKeyword(UdnDir, "UFUNCTION", "Programming/UnrealArchitecture/Reference/Functions", "Programming/UnrealArchitecture/Reference/Functions/Specifiers");
+					AddMetadataKeyword(UdnDir, "UPROPERTY", "Programming/UnrealArchitecture/Reference/Properties", "Programming/UnrealArchitecture/Reference/Properties/Specifiers");
+					AddMetadataKeyword(UdnDir, "USTRUCT", "Programming/UnrealArchitecture/Reference/Structs", "Programming/UnrealArchitecture/Reference/Structs/Specifiers");
 
-				// Build the data
-				if (!bBuildTargetInfo || BuildTargetInfo(TargetInfoPath, EngineDir))
-				{
-					if (!bBuildMetadata || BuildMetadata(DoxygenPath, EngineDir, MetadataDir, MetadataPath))
+					// Clean the output folders
+					if (bCleanTargetInfo)
 					{
-						if (!bBuildXml || BuildXml(EngineDir, TargetInfoPath, DoxygenPath, XmlDir, Filters))
+						CleanTargetInfo(TargetInfoPath);
+					}
+					if (bCleanMetadata)
+					{
+						CleanMetadata(MetadataDir);
+					}
+					if (bCleanXml)
+					{
+						CleanXml(XmlDir);
+					}
+					if (bCleanUdn)
+					{
+						CleanUdn(Path.Combine(UdnDir, "API"));
+					}
+					if (bCleanHtml)
+					{
+						CleanHtml(Path.Combine(HtmlDir, "INT\\API"));
+					}
+					if (bCleanChm)
+					{
+						CleanChm(ChmDir);
+					}
+
+					// Build the data
+					if (!bBuildTargetInfo || BuildTargetInfo(TargetInfoPath, EngineDir))
+					{
+						if (!bBuildMetadata || BuildMetadata(DoxygenPath, EngineDir, MetadataDir, MetadataPath))
 						{
-							if (!bBuildUdn || BuildUdn(EngineDir, XmlDir, UdnDir, ChmDir, MetadataPath, StatsPath, Filters))
+							if (!bBuildXml || BuildXml(EngineDir, TargetInfoPath, DoxygenPath, XmlDir, Filters))
 							{
-								if (!bBuildHtml || BuildHtml(EngineDir, DocToolPath, UdnDir, HtmlDir))
+								if (!bBuildUdn || BuildUdn(EngineDir, XmlDir, UdnDir, ChmDir, MetadataPath, StatsPath, Filters))
 								{
-									if (!bBuildChm || BuildChm(ChmCompilerPath, HtmlDir, ChmDir))
+									if (!bBuildHtml || BuildHtml(EngineDir, DocToolPath, UdnDir, HtmlDir, false))
+									{
+										if (!bBuildChm || BuildChm(ChmCompilerPath, HtmlDir, ChmDir, false))
+										{
+											Console.WriteLine("Complete.");
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if (bBuildBlueprintAPI)
+				{
+					// If we don't intermediate paths, make them up
+					if (JsonDir == null) JsonDir = Path.Combine(EngineDir, "Intermediate\\Documentation\\Default\\Json");
+
+					// Read the settings file
+					Settings = IniFile.Read(SettingsPath);
+
+					// Clean the output folders
+					if (bCleanTargetInfo)
+					{
+						CleanTargetInfo(TargetInfoPath);
+					}
+					if (bCleanJson)
+					{
+						CleanJson(JsonDir);
+					}
+					if (bCleanUdn)
+					{
+						CleanUdn(Path.Combine(UdnDir, "BlueprintAPI"));
+					}
+					if (bCleanHtml)
+					{
+						CleanHtml(Path.Combine(HtmlDir, "INT\\BlueprintAPI"));
+					}
+					if (bCleanChm)
+					{
+						CleanChm(ChmDir);
+					}
+
+					// Build the data
+					if (!bBuildTargetInfo || BuildTargetInfo(TargetInfoPath, EngineDir))
+					{
+						if (!bBuildJson || BuildJson(JsonDir, EngineDir, EditorPath))
+						{
+							if (!bBuildUdn || BuildBlueprintUdn(JsonDir, UdnDir, ChmDir, StatsPath))
+							{
+								if (!bBuildHtml || BuildHtml(EngineDir, DocToolPath, UdnDir, HtmlDir, true))
+								{
+									if (!bBuildChm || BuildChm(ChmCompilerPath, HtmlDir, ChmDir, true))
 									{
 										Console.WriteLine("Complete.");
 									}
@@ -427,6 +515,8 @@ namespace APIDocTool
 				Console.WriteLine("APIDocTool.exe [options] -enginedir=<...>");                                    // <-- 80 character limit to start of comment
 				Console.WriteLine();
 				Console.WriteLine("Options:");
+				Console.WriteLine("    -blueprint:                      Build the blueprint API");
+				Console.WriteLine("    -code:                           Build the code API");
 				Console.WriteLine("    -rebuild:                        Clean and build everything");
 				Console.WriteLine("    -rebuild[meta|xml|udn|html|chm]: Clean and build specific files");
 				Console.WriteLine("    -clean:                          Clean all files");
@@ -436,6 +526,7 @@ namespace APIDocTool
 				Console.WriteLine("    -targetinfo=<...>:			    Specifies the build info, created by");
 				Console.WriteLine("                                     running UBT with -writetargetinfo=<...>");
 				Console.WriteLine("    -xmldir=<...>:				    Output directory for xml files");
+				Console.WriteLine("    -jsondir=<...>:				    Output directory for json files");
 				Console.WriteLine("    -metadatadir=<...>:			    Output directory for metadata files");
 				Console.WriteLine("    -filter=<...>,<...>:             Filter conversion, eg.");
 				Console.WriteLine("                                       Folders:  -filter=Core/Containers/...");
@@ -695,9 +786,47 @@ namespace APIDocTool
 			return true;
 		}
 
-		static void CleanUdn(string UdnDir)
+		static void CleanJson(string JsonDir)
 		{
-			string CleanDir = Path.Combine(UdnDir, "API");
+			Console.WriteLine("Cleaning '{0}'", JsonDir);
+			Utility.SafeDeleteDirectoryContents(JsonDir, true);
+		}
+
+		static bool BuildJson(string JsonDir, string EngineDir, string EditorPath)
+		{
+			// Create the output directory
+			Utility.SafeCreateDirectory(JsonDir);
+
+			using (Process JsonExportProcess = new Process())
+			{
+				JsonExportProcess.StartInfo.WorkingDirectory = EngineDir;
+				JsonExportProcess.StartInfo.FileName = EditorPath;
+				JsonExportProcess.StartInfo.Arguments = "-run=GenerateBlueprintAPI -path=" + JsonDir + " -name=BlueprintAPI";
+				JsonExportProcess.StartInfo.UseShellExecute = false;
+				JsonExportProcess.StartInfo.RedirectStandardOutput = true;
+				JsonExportProcess.StartInfo.RedirectStandardError = true;
+
+				JsonExportProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+				JsonExportProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+
+				try
+				{
+					JsonExportProcess.Start();
+					JsonExportProcess.BeginOutputReadLine();
+					JsonExportProcess.BeginErrorReadLine();
+					JsonExportProcess.WaitForExit();
+					return JsonExportProcess.ExitCode == 0;
+				}
+				catch (Exception Ex)
+				{
+					Console.WriteLine(Ex.ToString() + "\n" + Ex.StackTrace);
+					return false;
+				}
+			}
+		}
+
+		static void CleanUdn(string CleanDir)
+		{
 			Console.WriteLine("Cleaning '{0}'", CleanDir);
 
 			// Delete all the files
@@ -802,11 +931,86 @@ namespace APIDocTool
 
 			// Write the sitemap contents
 			Console.WriteLine("Writing sitemap contents...");
-			Index.WriteSitemapContents(Path.Combine(SitemapDir, SitemapContentsFileName));
+			Index.WriteSitemapContents(Path.Combine(SitemapDir, "API.hhc"));
 
 			// Write the sitemap index
 			Console.WriteLine("Writing sitemap index...");
-			Index.WriteSitemapIndex(Path.Combine(SitemapDir, SitemapIndexFileName));
+			Index.WriteSitemapIndex(Path.Combine(SitemapDir, "API.hhk"));
+
+			return true;
+		}
+
+		static bool BuildBlueprintUdn(string JsonDir, string UdnDir, string SitemapDir, string StatsPath)
+		{
+			// Read the input json file
+			string JsonFilePath = Path.Combine(JsonDir, "BlueprintAPI.json");
+			var json = (Dictionary<string, object>)fastJSON.JSON.Instance.Parse(File.ReadAllText(JsonFilePath));
+
+			APICategory.LoadTooltips((Dictionary<string, object>)json["Categories"]);
+
+			// TODO: This path is clearly sketchy as hell, but we'll clean it up later maybe
+			var Actions = (Dictionary<string, object>)((Dictionary<string, object>)((Dictionary<string, object>)((Dictionary<string, object>)json["Actor"])["Palette"])["ActionSet"])["Actions"];
+
+			APICategory RootCategory = new APICategory(null, "BlueprintAPI", true);
+
+			foreach (var Action in Actions)
+			{
+				var CategoryList = Action.Key.Split('|');
+				var ActionCategory = RootCategory;
+
+				Debug.Assert(CategoryList.Length > 0);
+				Debug.Assert(CategoryList[0] == "Library");
+
+				for (int CategoryIndex = 1; CategoryIndex < CategoryList.Length - 1; ++CategoryIndex)
+				{
+					ActionCategory = ActionCategory.GetSubCategory(CategoryList[CategoryIndex]);
+				}
+
+				ActionCategory.AddAction(new APIAction(ActionCategory, CategoryList.Last(), (Dictionary<string, object>)Action.Value));
+			}
+
+			// Build a list of pages to output
+			List<APIPage> OutputPages = new List<APIPage>(RootCategory.GatherPages().OrderBy(x => x.LinkPath));
+
+			// Create the output directory
+			Utility.SafeCreateDirectory(UdnDir);
+			Utility.SafeCreateDirectory(Path.Combine(UdnDir, APIFolder));
+
+			// Build the manifest
+			Console.WriteLine("Writing manifest...");
+			UdnManifest Manifest = new UdnManifest(RootCategory);
+			Manifest.PrintConflicts();
+			Manifest.Write(Path.Combine(UdnDir, BlueprintAPIFolder + "\\API.manifest"));
+
+			Console.WriteLine("Categories: " + OutputPages.Count(page => page is APICategory));
+			Console.WriteLine("Actions: " + OutputPages.Count(page => page is APIAction));
+
+			// Write all the pages
+			using (Tracker UdnTracker = new Tracker("Writing UDN pages...", OutputPages.Count))
+			{
+				foreach (int Idx in UdnTracker.Indices)
+				{
+					APIPage Page = OutputPages[Idx];
+
+					// Create the output directory
+					string MemberDirectory = Path.Combine(UdnDir, Page.LinkPath);
+					if (!Directory.Exists(MemberDirectory))
+					{
+						Directory.CreateDirectory(MemberDirectory);
+					}
+
+					// Write the page
+					Page.WritePage(Manifest, Path.Combine(MemberDirectory, "index.INT.udn"));
+				}
+			}
+
+			// Write the sitemap contents
+			Console.WriteLine("Writing sitemap contents...");
+			RootCategory.WriteSitemapContents(Path.Combine(SitemapDir, "BlueprintAPI.hhc"));
+
+			// Write the sitemap index
+			Console.WriteLine("Writing sitemap index...");
+			RootCategory.WriteSitemapIndex(Path.Combine(SitemapDir, "BlueprintAPI.hhk"));
 
 			return true;
 		}
@@ -905,14 +1109,13 @@ namespace APIDocTool
 			}
 		}
 
-		public static void CleanHtml(string HtmlPath)
+		public static void CleanHtml(string CleanDir)
 		{
-			string CleanDir = Path.Combine(HtmlPath, "INT\\API");
 			Console.WriteLine("Cleaning '{0}'", CleanDir);
 			Utility.SafeDeleteDirectoryContents(CleanDir, true);
 		}
 
-		public static bool BuildHtml(string EngineDir, string DocToolPath, string UdnPath, string HtmlDir)
+		public static bool BuildHtml(string EngineDir, string DocToolPath, string UdnPath, string HtmlDir, bool bBlueprint)
 		{
 			Utility.SafeCreateDirectory(HtmlDir);
 
@@ -920,7 +1123,7 @@ namespace APIDocTool
 			{
 				DocToolProcess.StartInfo.WorkingDirectory = EngineDir;
 				DocToolProcess.StartInfo.FileName = DocToolPath;
-				DocToolProcess.StartInfo.Arguments = "API\\* -lang=INT -t=DefaultAPI.html -v=warn";
+				DocToolProcess.StartInfo.Arguments = (bBlueprint ? "BlueprintAPI" : "API") + "\\* -lang=INT -t=DefaultAPI.html -v=warn";
 				DocToolProcess.StartInfo.UseShellExecute = false;
 				DocToolProcess.StartInfo.RedirectStandardOutput = true;
 				DocToolProcess.StartInfo.RedirectStandardError = true;
@@ -956,20 +1159,34 @@ namespace APIDocTool
 			}
 		}
 
-		public static bool BuildChm(string ChmCompilerPath, string BaseHtmlDir, string ChmDir)
+		public static bool BuildChm(string ChmCompilerPath, string BaseHtmlDir, string ChmDir, bool bBlueprint)
 		{
-			const string ProjectFileName = "API.hhp";
+			string ProjectFileName = (bBlueprint ? "BlueprintAPI.hhp" : "API.hhp");
 			Console.WriteLine("Searching for CHM input files...");
 
 			// Build a list of all the files we want to copy
 			List<string> FilePaths = new List<string>();
 			List<string> DirectoryPaths = new List<string>();
-			Utility.FindRelativeContents(BaseHtmlDir, "Images\\api*", false, FilePaths, DirectoryPaths);
+			if (bBlueprint)
+			{
+				Utility.FindRelativeContents(BaseHtmlDir, "Images\\bp_api*", false, FilePaths, DirectoryPaths);
+			}
+			else
+			{
+				Utility.FindRelativeContents(BaseHtmlDir, "Images\\api*", false, FilePaths, DirectoryPaths);
+			}
 			Utility.FindRelativeContents(BaseHtmlDir, "Include\\*", true, FilePaths, DirectoryPaths);
 
 			// Find all the HTML files
 			List<string> HtmlFilePaths = new List<string>();
-			Utility.FindRelativeContents(BaseHtmlDir, "INT\\API\\*.html", true, HtmlFilePaths, DirectoryPaths);
+			if (bBlueprint)
+			{
+				Utility.FindRelativeContents(BaseHtmlDir, "INT\\BlueprintAPI\\*.html", true, HtmlFilePaths, DirectoryPaths);
+			}
+			else 
+			{
+				Utility.FindRelativeContents(BaseHtmlDir, "INT\\API\\*.html", true, HtmlFilePaths, DirectoryPaths);
+			}
 
 			// Create all the target directories
 			foreach (string DirectoryPath in DirectoryPaths)
@@ -1015,16 +1232,32 @@ namespace APIDocTool
 			using (StreamWriter Writer = new StreamWriter(Path.Combine(ChmDir, ProjectFileName)))
 			{
 				Writer.WriteLine("[OPTIONS]");
-				Writer.WriteLine("Title=UE4 API Documentation");
-				Writer.WriteLine("Binary TOC=Yes");
-				Writer.WriteLine("Compatibility=1.1 or later");
-				Writer.WriteLine("Compiled file=API.chm");
-				Writer.WriteLine("Contents file=" + SitemapContentsFileName);
-				Writer.WriteLine("Index file=" + SitemapIndexFileName);
-				Writer.WriteLine("Default topic=INT\\API\\index.html");
-				Writer.WriteLine("Full-text search=Yes");
-				Writer.WriteLine("Display compile progress=Yes");
-				Writer.WriteLine("Language=0x409 English (United States)");
+				if (bBlueprint)
+				{
+					Writer.WriteLine("Title=UE4 Blueprint API Documentation");
+					Writer.WriteLine("Binary TOC=Yes");
+					Writer.WriteLine("Compatibility=1.1 or later");
+					Writer.WriteLine("Compiled file=BlueprintAPI.chm");
+					Writer.WriteLine("Contents file=BlueprintAPI.hhc");
+					Writer.WriteLine("Index file=BlueprintAPI.hhk");
+					Writer.WriteLine("Default topic=INT\\BlueprintAPI\\index.html");
+					Writer.WriteLine("Full-text search=Yes");
+					Writer.WriteLine("Display compile progress=Yes");
+					Writer.WriteLine("Language=0x409 English (United States)");
+				}
+				else
+				{
+					Writer.WriteLine("Title=UE4 API Documentation");
+					Writer.WriteLine("Binary TOC=Yes");
+					Writer.WriteLine("Compatibility=1.1 or later");
+					Writer.WriteLine("Compiled file=API.chm");
+					Writer.WriteLine("Contents file=API.hhc");
+					Writer.WriteLine("Index file=API.hhk");
+					Writer.WriteLine("Default topic=INT\\API\\index.html");
+					Writer.WriteLine("Full-text search=Yes");
+					Writer.WriteLine("Display compile progress=Yes");
+					Writer.WriteLine("Language=0x409 English (United States)");
+				}
 				Writer.WriteLine();
 				Writer.WriteLine("[FILES]");
 				foreach (string FilePath in FilePaths)
