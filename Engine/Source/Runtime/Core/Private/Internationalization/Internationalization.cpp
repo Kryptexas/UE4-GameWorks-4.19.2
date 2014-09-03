@@ -566,7 +566,7 @@ void FInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
 	}
 }
 
-void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCulturePtr >& OutAvailableCultures, const bool bIncludeDerivedCultures) const
+void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCultureRef >& OutAvailableCultures, const bool bIncludeDerivedCultures) const
 {
 	OutAvailableCultures.Reset();
 
@@ -627,7 +627,7 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 			FCulturePtr Culture = GetCulture(LocalizationFolder);
 			if(Culture.IsValid() && AllCultures.Contains(Culture.ToSharedRef()))
 			{
-				OutAvailableCultures.AddUnique(Culture);
+				OutAvailableCultures.AddUnique(Culture.ToSharedRef());
 			}
 		}
 	}

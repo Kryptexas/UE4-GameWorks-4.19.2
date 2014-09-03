@@ -68,8 +68,13 @@ public:
 
 	CORE_API void GetCultureNames(TArray<FString>& CultureNames) const;
 
+	CORE_API const TArray< FCultureRef >& GetAllCultures() const
+	{
+		return AllCultures;
+	}
+
 	// Given some paths to look at, populate a list of cultures that we have available localization information for. If bIncludeDerivedCultures, include cultures that are derived from those we have localization data for.
-	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCulturePtr >& OutAvailableCultures, const bool bIncludeDerivedCultures) const;
+	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCultureRef >& OutAvailableCultures, const bool bIncludeDerivedCultures) const;
 
 private:
 	FInternationalization();

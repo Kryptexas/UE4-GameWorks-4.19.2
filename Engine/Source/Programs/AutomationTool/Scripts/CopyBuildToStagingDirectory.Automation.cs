@@ -180,10 +180,6 @@ public partial class Project : CommandUtils
 
             // Initialize cultures to stage.
             List<string> CulturesToStage = null;
-            if (PlatformGameConfig != null)
-            {
-                PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "CulturesToStage", out CulturesToStage);
-            }
             if (CulturesToStage != null)
             {
                 CulturesToStage.AddRange(Params.CulturesToCook);
@@ -195,7 +191,15 @@ public partial class Project : CommandUtils
 
             if (CulturesToStage == null || CulturesToStage.Count == 0)
             {
-                throw new AutomationException("No cultures were specified for cooking and packaging. This will lead to fatal errors when launching. Specify culture codes via commandline (-CookCultures=) or using project packaging settings.");
+                if (PlatformGameConfig != null)
+                {
+                    PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "CulturesToStage", out CulturesToStage);
+                }
+            }
+
+            if (CulturesToStage == null || CulturesToStage.Count == 0)
+            {
+                throw new AutomationException("No cultures were specified for cooking and packaging. This will lead to fatal errors when launching. Specify culture codes via commandline (-CookCultures=) or using project packaging settings (+CulturesToStage).");
             }
 
 			// Engine ufs (content)

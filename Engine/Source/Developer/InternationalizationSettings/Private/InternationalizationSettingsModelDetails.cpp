@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "InternationalizationSettingsModulePrivatePCH.h"
 
@@ -248,7 +248,12 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 void FInternationalizationSettingsModelDetails::RefreshAvailableCultures()
 {
 	AvailableCultures.Empty();
-	FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetEditorLocalizationPaths(), AvailableCultures, true);
+	TArray<FCultureRef> LocalizedCultures;
+	FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetEditorLocalizationPaths(), LocalizedCultures, true);
+	for (const FCultureRef& Culture : LocalizedCultures)
+	{
+		AvailableCultures.Add(Culture);
+	}
 
 	// Update our selected culture based on the available choices
 	if ( !AvailableCultures.Contains( SelectedCulture ) )
