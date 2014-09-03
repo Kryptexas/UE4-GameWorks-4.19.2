@@ -457,8 +457,10 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 	return Ret;
 }
 
-bool FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(const FRenderingCompositePassContext* RESTRICT Context)
+bool FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(const FViewInfo* RESTRICT View)
 {
+	check(View);
+
 	FColorTransform ColorTransform;
 	ColorTransform.MinValue = FMath::Clamp(CVarColorMin.GetValueOnRenderThread(), -10.0f, 10.0f);
 	ColorTransform.MidValue = FMath::Clamp(CVarColorMid.GetValueOnRenderThread(), -10.0f, 10.0f);
@@ -477,19 +479,19 @@ bool FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(const FRenderingComp
 		return true;
 	}
 
-	if(Context->View.ColorScale.R != 1.0f || Context->View.ColorScale.G != 1.0f || Context->View.ColorScale.B != 1.0f)
+	if(View->ColorScale.R != 1.0f || View->ColorScale.G != 1.0f || View->ColorScale.B != 1.0f)
 	{
 		return true;
 	}
 
-	if(Context->View.OverlayColor.A > (1.0f/512.0f))
+	if(View->OverlayColor.A > (1.0f/512.0f))
 	{
 		return true;
 	}
 
-	if(Context->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	if(View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
-		const FFinalPostProcessSettings Settings = Context->View.FinalPostProcessSettings;
+		const FFinalPostProcessSettings Settings = View->FinalPostProcessSettings;
 		for(uint32 i = 0; i < (uint32)Settings.ContributingLUTs.Num(); ++i)
 		{
 			UTexture* LUTTexture = Settings.ContributingLUTs[i].LUTTexture;

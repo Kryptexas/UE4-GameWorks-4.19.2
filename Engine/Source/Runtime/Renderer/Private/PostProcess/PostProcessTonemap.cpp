@@ -607,11 +607,13 @@ static uint32 TonemapperFindLeastExpensive(uint32* RESTRICT Table, uint32 TableE
 }
 
 // Common conversion of engine settings into a bitmask which describes the shader options required.
-static uint32 TonemapperGenerateBitmask(const FRenderingCompositePassContext* RESTRICT Context, bool bGammaOnly, bool bMobile)
+static uint32 TonemapperGenerateBitmask(const FViewInfo* RESTRICT View, bool bGammaOnly, bool bMobile)
 {
+	check(View);
+
 	bGammaOnly |= !IsMobileHDR();
 
-	const FSceneViewFamily* RESTRICT Family = Context->View.Family;
+	const FSceneViewFamily* RESTRICT Family = View->Family;
 	if(
 		bGammaOnly ||
 		(Family->EngineShowFlags.Tonemapper == 0) || 
@@ -622,7 +624,7 @@ static uint32 TonemapperGenerateBitmask(const FRenderingCompositePassContext* RE
 
 	uint32 Bitmask = 0;
 
-	const FPostProcessSettings* RESTRICT Settings = &(Context->View.FinalPostProcessSettings);
+	const FPostProcessSettings* RESTRICT Settings = &(View->FinalPostProcessSettings);
 
 	FVector MixerR(Settings->FilmChannelMixerRed);
 	FVector MixerG(Settings->FilmChannelMixerGreen);
@@ -652,10 +654,10 @@ static uint32 TonemapperGenerateBitmask(const FRenderingCompositePassContext* RE
 
 // Common post.
 // These are separated because mosiac mode doesn't support them.
-static uint32 TonemapperGenerateBitmaskPost(const FRenderingCompositePassContext* RESTRICT Context)
+static uint32 TonemapperGenerateBitmaskPost(const FViewInfo* RESTRICT View)
 {
-	const FPostProcessSettings* RESTRICT Settings = &(Context->View.FinalPostProcessSettings);
-	const FSceneViewFamily* RESTRICT Family = Context->View.Family;
+	const FPostProcessSettings* RESTRICT Settings = &(View->FinalPostProcessSettings);
+	const FSceneViewFamily* RESTRICT Family = View->Family;
 
 	uint32 Bitmask = (Settings->GrainJitter > 0.0f) ? TonemapperGrainJitter : 0;
 
@@ -665,9 +667,9 @@ static uint32 TonemapperGenerateBitmaskPost(const FRenderingCompositePassContext
 }
 
 // PC only.
-static uint32 TonemapperGenerateBitmaskPC(const FRenderingCompositePassContext* RESTRICT Context, bool bGammaOnly)
+static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool bGammaOnly, bool bUseLUT)
 {
-	uint32 Bitmask = TonemapperGenerateBitmask(Context, bGammaOnly, false);
+	uint32 Bitmask = TonemapperGenerateBitmask(View, bGammaOnly, false);
 
 	// Must early exit if gamma only.
 	if(Bitmask == TonemapperGammaOnly) 
@@ -688,27 +690,29 @@ static uint32 TonemapperGenerateBitmaskPC(const FRenderingCompositePassContext* 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
 
 	int32 FringeQuality = CVar->GetValueOnRenderThread();
-	if(Context->View.Family->EngineShowFlags.SceneColorFringe
+	if(View->Family->EngineShowFlags.SceneColorFringe
 		// Removed this from the camera imperfections toggle because this no longer takes an extra pass.
 		// && Context->View.Family->EngineShowFlags.CameraImperfections
-		&& Context->View.FinalPostProcessSettings.SceneFringeIntensity > 0.01f
+		&& View->FinalPostProcessSettings.SceneFringeIntensity > 0.01f
 		&& FringeQuality > 0)
 	{
 		Bitmask |= TonemapperColorFringe;
 	}
 
-	if(FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(Context))
+	if(bUseLUT)
 	{
 		Bitmask |= TonemapperColorGrading;
 	}
 
-	return Bitmask + TonemapperGenerateBitmaskPost(Context);
+	return Bitmask + TonemapperGenerateBitmaskPost(View);
 }
 
 // Mobile only.
-static uint32 TonemapperGenerateBitmaskMobile(const FRenderingCompositePassContext* RESTRICT Context, bool bGammaOnly)
+static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bool bGammaOnly)
 {
-	uint32 Bitmask = TonemapperGenerateBitmask(Context, bGammaOnly, true);
+	check(View);
+
+	uint32 Bitmask = TonemapperGenerateBitmask(View, bGammaOnly, true);
 
 	bool bUseMosaic = IsMobileHDR32bpp();
 
@@ -733,9 +737,9 @@ static uint32 TonemapperGenerateBitmaskMobile(const FRenderingCompositePassConte
 	// Only add mobile post if FP16 is supported.
 	if(GSupportsRenderTargetFormat_PF_FloatRGBA)
 	{
-		Bitmask += TonemapperGenerateBitmaskPost(Context);
-		Bitmask += (Context->View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? TonemapperDOF         : 0;
-		Bitmask += (Context->View.bLightShaftUse)                                    ? TonemapperLightShafts : 0;
+		Bitmask += TonemapperGenerateBitmaskPost(View);
+		Bitmask += (View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? TonemapperDOF         : 0;
+		Bitmask += (View->bLightShaftUse)                                    ? TonemapperLightShafts : 0;
 
 		// Mobile is not supporting grain quantization and grain jitter currently.
 		Bitmask &= ~(TonemapperGrainQuantization | TonemapperGrainJitter);
@@ -1176,9 +1180,18 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessTonemapVS,TEXT("PostProcessTonemap"),TEXT("MainVS"),SF_Vertex);
 
 
-FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(bool bInDoGammaOnly)
+FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly)
 	: bDoGammaOnly(bInDoGammaOnly)
 {
+	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&View, bDoGammaOnly, FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(&View));
+	ConfigIndex = TonemapperFindLeastExpensive(TonemapperConfBitmaskPC, sizeof(TonemapperConfBitmaskPC)/4, TonemapperCostTab, ConfigBitmask);
+}
+
+bool FRCPassPostProcessTonemap::IsLUTNeeded() const
+{
+	uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
+
+	return TonemapperIsDefined(ConfigBitmask, TonemapperColorGrading) != 0;
 }
 
 template <uint32 ConfigIndex>
@@ -1198,9 +1211,6 @@ static void SetShaderTempl(const FRenderingCompositePassContext& Context)
 
 void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 {
-	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&Context, bDoGammaOnly);
-	uint32 ConfigIndex = TonemapperFindLeastExpensive(TonemapperConfBitmaskPC, sizeof(TonemapperConfBitmaskPC)/4, TonemapperCostTab, ConfigBitmask);
-
 	SCOPED_DRAW_EVENTF(PostProcessTonemap, DEC_SCENE_ITEMS, TEXT("Tonemapper#%d%s"), ConfigIndex, bDoGammaOnly ? TEXT(" GammaOnly") : TEXT(""));
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
@@ -1563,12 +1573,17 @@ static void SetShaderTemplES2(const FRenderingCompositePassContext& Context, boo
 	PixelShader->SetPS(Context);
 }
 
+
+FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& View, bool bInUsedFramebufferFetch) 
+	: bUsedFramebufferFetch(bInUsedFramebufferFetch)
+{
+	uint32 ConfigBitmask = TonemapperGenerateBitmaskMobile(&View, false);
+	ConfigIndex = TonemapperFindLeastExpensive(TonemapperConfBitmaskMobile, sizeof(TonemapperConfBitmaskMobile)/4, TonemapperCostTab, ConfigBitmask);
+}
+
 void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Context)
 {
-	uint32 ConfigBitmask = TonemapperGenerateBitmaskMobile(&Context, false);
-	uint32 ConfigIndex = TonemapperFindLeastExpensive(TonemapperConfBitmaskMobile, sizeof(TonemapperConfBitmaskMobile)/4, TonemapperCostTab, ConfigBitmask);
-
-	SCOPED_DRAW_EVENT(PostProcessTonemap, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENTF(PostProcessTonemap, DEC_SCENE_ITEMS, TEXT("Tonemapper#%d%s"), ConfigIndex, bUsedFramebufferFetch ? TEXT(" FramebufferFetch=0") : TEXT("FramebufferFetch=1"));
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 

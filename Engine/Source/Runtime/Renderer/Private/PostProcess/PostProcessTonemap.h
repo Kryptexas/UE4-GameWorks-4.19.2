@@ -41,7 +41,9 @@ class FRCPassPostProcessTonemap : public TRenderingCompositePassBase<4, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessTonemap(bool bInDoGammaOnly = false);
+	FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly = false);
+
+	bool IsLUTNeeded() const;
 
 	// interface FRenderingCompositePass ---------
 
@@ -50,8 +52,11 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
-	void SetShader(const FRenderingCompositePassContext& Context);
 	bool bDoGammaOnly;
+	// set in constructor
+	uint32 ConfigIndex;
+
+	void SetShader(const FRenderingCompositePassContext& Context);
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
@@ -61,13 +66,19 @@ private:
 class FRCPassPostProcessTonemapES2 : public TRenderingCompositePassBase<3, 1>
 {
 public:
-	FRCPassPostProcessTonemapES2(bool bInUsedFramebufferFetch) : bUsedFramebufferFetch(bInUsedFramebufferFetch) { }
+	FRCPassPostProcessTonemapES2(const FViewInfo& View, bool bInUsedFramebufferFetch);
+
+	// interface FRenderingCompositePass ---------
+
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
 	bool bUsedFramebufferFetch;
+	// set in constructor
+	uint32 ConfigIndex;
+
 	void SetShader(const FRenderingCompositePassContext& Context);
 };
 

@@ -144,27 +144,23 @@ static FRenderingCompositeOutputRef RenderBloom(
 	return RenderGaussianBlur(Context, EPostProcessRectSource::GBS_ViewRect, TEXT("BloomBlurX"), TEXT("BloomBlurY"), PreviousBloom, Size, Tint, Additive);
 }
 
-
-static FRenderingCompositeOutputRef CombineColorGradingLUTs(
-	FPostprocessContext& Context)
-{
-	FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(Context.View.GetShaderPlatform()));
-
-	return FRenderingCompositeOutputRef(Pass);
-}
-
 static void AddTonemapper(
 	FPostprocessContext& Context,
 	const FRenderingCompositeOutputRef& BloomOutputCombined,
-	const FRenderingCompositeOutputRef& EyeAdaptation,
-	const FRenderingCompositeOutputRef& CombinedLUT)
+	const FRenderingCompositeOutputRef& EyeAdaptation)
 {
-	FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap());
+	FRCPassPostProcessTonemap* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 	PostProcessTonemap->SetInput(ePId_Input1, BloomOutputCombined);
 	PostProcessTonemap->SetInput(ePId_Input2, EyeAdaptation);
-	PostProcessTonemap->SetInput(ePId_Input3, CombinedLUT);
+
+	if(PostProcessTonemap->IsLUTNeeded())
+	{
+		FRenderingCompositePass* CombinedLUT = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(Context.View.GetShaderPlatform()));
+
+		PostProcessTonemap->SetInput(ePId_Input3, CombinedLUT);
+	}
 
 	Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
 }
@@ -183,7 +179,7 @@ static void AddSelectionOutline(FPostprocessContext& Context)
 
 static void AddGammaOnlyTonemapper(FPostprocessContext& Context)
 {
-	FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(true));
+	FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, true));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 
@@ -993,11 +989,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 			if(bAllowTonemapper && FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
-				FRenderingCompositeOutputRef CombinedLUT;
-
-				CombinedLUT = CombineColorGradingLUTs(Context);
-
-				AddTonemapper(Context, BloomOutputCombined, EyeAdaptation, CombinedLUT);
+				AddTonemapper(Context, BloomOutputCombined, EyeAdaptation);
 			}
 
 			if(AntiAliasingMethod == AAM_FXAA)
@@ -1476,7 +1468,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 		}
 
 		// Must run to blit to back buffer even if post processing is off.
-		FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(bUsedFramebufferFetch));
+		FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(Context.View, bUsedFramebufferFetch));
 		PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 		PostProcessTonemap->SetInput(ePId_Input1, BloomOutput);
 		PostProcessTonemap->SetInput(ePId_Input2, DofOutput);
