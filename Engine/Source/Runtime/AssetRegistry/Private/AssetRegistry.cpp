@@ -89,9 +89,10 @@ FAssetRegistry::FAssetRegistry()
 	}
 #endif // WITH_EDITOR
 
-	// Listen for new content paths being added at runtime.  These are usually plugin-specific asset paths that
+	// Listen for new content paths being added or removed at runtime.  These are usually plugin-specific asset paths that
 	// will be loaded a bit later on.
 	FPackageName::OnContentPathMounted().AddRaw( this, &FAssetRegistry::OnContentPathMounted );
+	FPackageName::OnContentPathDismounted().AddRaw( this, &FAssetRegistry::OnContentPathDismounted );
 
 	// Now collect all code generator classes (currently BlueprintCore-derived ones)
 	CollectCodeGeneratorClasses();
@@ -168,6 +169,7 @@ FAssetRegistry::~FAssetRegistry()
 
 	// Stop listening for content mount point events
 	FPackageName::OnContentPathMounted().RemoveAll( this );
+	FPackageName::OnContentPathDismounted().RemoveAll( this );
 
 	// Commandlets dont listen for directory changes
 #if WITH_EDITOR
@@ -1538,15 +1540,18 @@ bool FAssetRegistry::AddAssetPath(const FString& PathToAdd)
 	return false;
 }
 
-bool FAssetRegistry::RemoveAssetPath(const FString& PathToRemove)
+bool FAssetRegistry::RemoveAssetPath(const FString& PathToRemove, bool bEvenIfAssetsStillExist)
 {
-	// Check if there were assets in the specified folder. You can not remove paths that still contain assets
-	TArray<FAssetData> AssetsInPath;
-	GetAssetsByPath(FName(*PathToRemove), AssetsInPath, true);
-	if ( AssetsInPath.Num() > 0 )
+	if ( !bEvenIfAssetsStillExist )
 	{
-		// At least one asset still exists in the path. Fail the remove.
-		return false;
+		// Check if there were assets in the specified folder. You can not remove paths that still contain assets
+		TArray<FAssetData> AssetsInPath;
+		GetAssetsByPath(FName(*PathToRemove), AssetsInPath, true);
+		if ( AssetsInPath.Num() > 0 )
+		{
+			// At least one asset still exists in the path. Fail the remove.
+			return false;
+		}
 	}
 
 	if ( PathTreeRoot.RemoveFolder(PathToRemove) )
@@ -1861,8 +1866,16 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 #endif // WITH_EDITOR
 
 
-void FAssetRegistry::OnContentPathMounted( const FString& AssetPath )
+void FAssetRegistry::OnContentPathMounted( const FString& InAssetPath, const FString& FileSystemPath )
 {
+	// Sanitize
+	FString AssetPath = InAssetPath;
+	if (AssetPath.EndsWith(TEXT("/")) == false)
+	{
+		// We actually want a trailing slash here so the path can be properly converted while searching for assets
+		AssetPath = AssetPath + TEXT("/");
+	}
+
 	// Add this to our list of root paths to process
 	AddPathToSearch( AssetPath );
 
@@ -1875,8 +1888,63 @@ void FAssetRegistry::OnContentPathMounted( const FString& AssetPath )
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 		if (DirectoryWatcher)
 		{
-			const FString& ContentFolder = FPackageName::LongPackageNameToFilename( AssetPath );
-			DirectoryWatcher->RegisterDirectoryChangedCallback( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+			// If the path doesn't exist on disk, make it so the watcher will work.
+			IFileManager::Get().MakeDirectory(*FileSystemPath);
+			DirectoryWatcher->RegisterDirectoryChangedCallback( FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+		}
+	}
+#endif // WITH_EDITOR
+
+}
+
+void FAssetRegistry::OnContentPathDismounted(const FString& InAssetPath, const FString& FileSystemPath)
+{
+	// Sanitize
+	FString AssetPath = InAssetPath;
+	if ( AssetPath.EndsWith(TEXT("/")) )
+	{
+		// We don't want a trailing slash here as it could interfere with RemoveAssetPath
+		AssetPath = AssetPath.LeftChop(1);
+	}
+
+	// Remove all cached assets found at this location
+	{
+		TArray<FAssetData*> AllAssetDataToRemove;
+		TArray<FString> PathList;
+		const bool bRecurse = true;
+		GetSubPaths(AssetPath, PathList, bRecurse);
+		PathList.Add(AssetPath);
+		for ( const FString& Path : PathList )
+		{
+			TArray<FAssetData*>* AssetsInPath = CachedAssetsByPath.Find(FName(*Path));
+			if ( AssetsInPath )
+			{
+				AllAssetDataToRemove.Append(*AssetsInPath);
+			}
+		}
+
+		for ( FAssetData* AssetData : AllAssetDataToRemove )
+		{
+			RemoveAssetData(AssetData);
+		}
+	}
+
+	// Remove the root path
+	{
+		const bool bEvenIfAssetsStillExist = true;
+		RemoveAssetPath(AssetPath, bEvenIfAssetsStillExist);
+	}
+
+	// Stop listening for directory changes in this content path
+#if WITH_EDITOR
+	// Commandlets and in-game don't listen for directory changes
+	if (!IsRunningCommandlet() && GIsEditor)
+	{
+		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
+		if (DirectoryWatcher)
+		{
+			DirectoryWatcher->UnregisterDirectoryChangedCallback(FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
 		}
 	}
 #endif // WITH_EDITOR

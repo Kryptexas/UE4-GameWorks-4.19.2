@@ -107,7 +107,7 @@ private:
 	bool AddAssetPath(const FString& PathToAdd);
 
 	/** Removes a path to the cached paths tree. Returns true if successful. */
-	bool RemoveAssetPath(const FString& PathToAdd);
+	bool RemoveAssetPath(const FString& PathToAdd, bool bEvenIfAssetsStillExist = false);
 
 	/** Helper function to return the name of an object, given the objects export text path */
 	FString ExportTextPathToObjectName(const FString& InExportTextPath) const;
@@ -140,9 +140,19 @@ private:
 	 * Called by the engine core when a new content path is added dynamically at runtime.  This is wired to 
 	 * FPackageName's static delegate.
 	 *
-	 * @param	AssetPath	The new content root asset path that was added (e.g. "/MyPlugin/")
+	 * @param	AssetPath		The new content root asset path that was added (e.g. "/MyPlugin/")
+	 * @param	FileSystemPath	The filesystem path that the AssetPath is mapped to
 	 */
-	void OnContentPathMounted( const FString& AssetPath );
+	void OnContentPathMounted( const FString& AssetPath, const FString& FileSystemPath );
+
+	/**
+	 * Called by the engine core when a content path is removed dynamically at runtime.  This is wired to 
+	 * FPackageName's static delegate.
+	 *
+	 * @param	AssetPath		The new content root asset path that was added (e.g. "/MyPlugin/")
+	 * @param	FileSystemPath	The filesystem path that the AssetPath is mapped to
+	 */
+	void OnContentPathDismounted( const FString& AssetPath, const FString& FileSystemPath );
 
 	/** Checks a filter to make sure there are no illegal entries */
 	bool IsFilterValid(const FARFilter& Filter) const;

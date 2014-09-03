@@ -219,8 +219,8 @@ private:
 	/** Notification for when the Asset Registry has completed it's initial search */
 	void OnAssetRegistrySearchCompleted();
 
-	/** Called from an engine core event when a new content path has been added, so that we can refresh our root set of paths */
-	void OnContentPathMounted( const FString& ContentPath );
+	/** Called from an engine core event when a new content path has been added or removed, so that we can refresh our root set of paths */
+	void OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FileSystemPath );
 
 	/** Delegate called when an editor setting is changed */
 	void HandleSettingChanged(FName PropertyName);

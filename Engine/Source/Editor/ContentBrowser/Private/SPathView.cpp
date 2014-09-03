@@ -14,6 +14,7 @@ SPathView::~SPathView()
 {
 	// Unsubscribe from content path events
 	FPackageName::OnContentPathMounted().RemoveAll( this );
+	FPackageName::OnContentPathDismounted().RemoveAll( this );
 
 	// Load the asset registry module to stop listening for updates
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -43,8 +44,9 @@ void SPathView::Construct( const FArguments& InArgs )
 	SearchBoxFolderFilter = MakeShareable( new FolderTextFilter( FolderTextFilter::FItemToStringArray::CreateSP( this, &SPathView::PopulateFolderSearchStrings ) ) );
 	SearchBoxFolderFilter->OnChanged().AddSP( this, &SPathView::FilterUpdated );
 
-	// Listen to find out when new game content paths are mounted, so that we can refresh our root set of paths
-	FPackageName::OnContentPathMounted().AddSP( this, &SPathView::OnContentPathMounted );
+	// Listen to find out when new game content paths are mounted or dismounted, so that we can refresh our root set of paths
+	FPackageName::OnContentPathMounted().AddSP( this, &SPathView::OnContentPathMountedOrDismounted );
+	FPackageName::OnContentPathDismounted().AddSP( this, &SPathView::OnContentPathMountedOrDismounted );
 
 	ClassesRootName = TEXT("Classes");
 	GameRootName = TEXT("Game");
@@ -1324,7 +1326,7 @@ void SPathView::OnAssetRegistrySearchCompleted()
 	PendingInitialPaths.Empty();
 }
 
-void SPathView::OnContentPathMounted( const FString& ContentPath )
+void SPathView::OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FilesystemPath )
 {
 	// A new content path has appeared, so we should refresh out root set of paths
 	bNeedsRepopulate = true;
