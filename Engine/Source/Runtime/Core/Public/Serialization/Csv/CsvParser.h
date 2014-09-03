@@ -13,7 +13,7 @@ struct FCsvParser
 	 *	Takes a copy because the parser tramples over the file to create null-terminated cell strings
 	 *	Avoid a copy by passing overship of the source string with MoveTemp()
 	 */
-	CSVPARSER_API FCsvParser(FString InSourceString);
+	CORE_API FCsvParser(FString InSourceString);
 
 	/**
 	 *	Const access to the parsed rows

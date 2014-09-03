@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Json.h"
+#include "Serialization/Csv/CsvParser.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 
@@ -234,8 +235,6 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 }
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR
-
-#include "CsvParser.h"
 
 struct FPropertyDisplayNameHelper
 {

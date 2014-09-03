@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Serialization/Csv/CsvParser.h"
 
 void FKeyHandleMap::Add( const FKeyHandle& InHandle, int32 InIndex )
 {
@@ -868,9 +869,6 @@ void UCurveBase::ResetCurve()
 	}
 }
 
-#if WITH_EDITOR
-#include "CsvParser.h"
-
 TArray<FString> UCurveBase::CreateCurveFromCSVString(const FString& InString)
 {
 	// Array used to store problems about curve import
@@ -930,8 +928,6 @@ TArray<FString> UCurveBase::CreateCurveFromCSVString(const FString& InString)
 	Modify(true);
 	return OutProblems;
 }
-
-#endif	// WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 

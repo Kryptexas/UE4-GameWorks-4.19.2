@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CsvParserPrivatePCH.h"
-#include "CsvParser.h"
-#include "ModuleManager.h"
+#include "Core.h"
+#include "Serialization/Csv/CsvParser.h"
 
 FCsvParser::FCsvParser(FString InSourceString)
 	: SourceString(MoveTemp(InSourceString))		
@@ -140,9 +139,3 @@ int8 FCsvParser::MeasureNewLine(const TCHAR* At)
 			return 0;
 	}
 }
-
-class FCsvParserModule : public IModuleInterface
-{
-};
-
-IMPLEMENT_MODULE(FCsvParserModule, CsvParser)

@@ -476,13 +476,11 @@ public:
 
 	// Begin UCurveBase interface
 
-#if WITH_EDITOR
 	/** 
 	 *	Create curve from CSV style comma-separated string. 
 	 *	@return	Set of problems encountered while processing input
 	 */
 	TArray<FString> CreateCurveFromCSVString(const FString& InString);
-#endif
 
 	/** Reset all curve data */
 	void ResetCurve();

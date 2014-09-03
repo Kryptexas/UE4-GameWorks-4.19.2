@@ -61,7 +61,6 @@ class UCurveTable : public UObject
 	/** Output entire contents of table as JSON */
 	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const;
 
-#if WITH_EDITOR
 	/** 
 	 *	Create table from CSV style comma-separated string. 
 	 *	RowCurve must be defined before calling this function. 
@@ -70,7 +69,6 @@ class UCurveTable : public UObject
 	 *	@return	Set of problems encountered while processing input
 	 */
 	ENGINE_API TArray<FString> CreateTableFromCSVString(const FString& InString, ERichCurveInterpMode InterpMode = RCIM_Linear);
-#endif
 
 	/** Empty the table info (will not clear RowCurve) */
 	ENGINE_API void EmptyTable();

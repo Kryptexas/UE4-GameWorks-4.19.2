@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Json.h"
+#include "Serialization/Csv/CsvParser.h"
 
 DEFINE_LOG_CATEGORY(LogCurveTable);
 
@@ -229,9 +230,6 @@ void GetCurveValues(const TArray<const TCHAR*>& Cells, TArray<float>* Values)
 	}
 }
 
-#if WITH_EDITOR
-#include "CsvParser.h"
-
 TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, ERichCurveInterpMode InterpMode)
 {
 	// Array used to store problems about table creation
@@ -305,8 +303,6 @@ TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, E
 	Modify(true);
 	return OutProblems;
 }
-
-#endif	// WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 

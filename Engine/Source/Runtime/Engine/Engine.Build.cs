@@ -67,11 +67,6 @@ public class Engine : ModuleRules
 			}
         );
 
-        if (UEBuildConfiguration.bBuildEditor)
-		{
-            PrivateDependencyModuleNames.AddRange(new string[] { "CsvParser" });
-		}
-
         CircularlyReferencedDependentModules.Add("AIModule");
 
 		DynamicallyLoadedModuleNames.AddRange(

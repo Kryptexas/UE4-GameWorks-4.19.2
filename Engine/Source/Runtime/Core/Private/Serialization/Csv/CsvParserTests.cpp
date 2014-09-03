@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CsvParserPrivatePCH.h"
-#include "CsvParser.h"
+#include "Core.h"
+#include "Serialization/Csv/CsvParser.h"
 
 namespace CsvParser_Tests
 {
@@ -49,7 +49,7 @@ namespace CsvParser_Tests
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBasicTest, "Engine.CSV Parser.Basic", 0)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBasicTest, "Core.CSV Parser.Basic", 0)
 
 bool FBasicTest::RunTest(const FString& Parameters)
 {
@@ -64,7 +64,7 @@ bool FBasicTest::RunTest(const FString& Parameters)
 	return CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FQuotedStringTest, "Engine.CSV Parser.Quoted String", 0)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FQuotedStringTest, "Core.CSV Parser.Quoted String", 0)
 
 bool FQuotedStringTest::RunTest(const FString& Parameters)
 {
@@ -82,7 +82,7 @@ bool FQuotedStringTest::RunTest(const FString& Parameters)
 	return CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEmptyCellsTest, "Engine.CSV Parser.Empty Cells", 0)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEmptyCellsTest, "Core.CSV Parser.Empty Cells", 0)
 
 bool FEmptyCellsTest::RunTest(const FString& Parameters)
 {
@@ -100,7 +100,7 @@ bool FEmptyCellsTest::RunTest(const FString& Parameters)
 	return CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMixedNewLinesTest, "Engine.CSV Parser.Mixed Newlines", 0)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMixedNewLinesTest, "Core.CSV Parser.Mixed Newlines", 0)
 
 bool FMixedNewLinesTest::RunTest(const FString& Parameters)
 {
@@ -113,7 +113,7 @@ bool FMixedNewLinesTest::RunTest(const FString& Parameters)
 	return CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEmptyStringTest, "Engine.CSV Parser.Empty String", 0)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEmptyStringTest, "Core.CSV Parser.Empty String", 0)
 
 bool FEmptyStringTest::RunTest(const FString& Parameters)
 {
@@ -121,7 +121,7 @@ bool FEmptyStringTest::RunTest(const FString& Parameters)
 			FCsvParser(FString("")).GetRows().Num() == 0;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOnlyNewLinesTest, "Engine.CSV Parser.Only Newlines", 0)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOnlyNewLinesTest, "Core.CSV Parser.Only Newlines", 0)
 
 bool FOnlyNewLinesTest::RunTest(const FString& Parameters)
 {
