@@ -577,7 +577,7 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 
 bool UK2Node::AllowSplitPins() const
 {
-	return GetDefault<UEditorExperimentalSettings>()->bAllowSplitStructPins;
+	return true;
 }
 
 void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)
