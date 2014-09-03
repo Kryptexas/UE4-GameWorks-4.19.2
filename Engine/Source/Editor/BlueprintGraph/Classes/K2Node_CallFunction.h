@@ -3,6 +3,7 @@
 #pragma once
 
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_CallFunction.generated.h"
 
 UCLASS()
