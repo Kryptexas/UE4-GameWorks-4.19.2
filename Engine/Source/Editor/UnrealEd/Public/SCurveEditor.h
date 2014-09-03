@@ -71,6 +71,28 @@ struct FTrackScaleInfo
 
 };
 
+/** Represents UI state for a curve displayed in the curve editor. */
+class FCurveViewModel
+{
+public:
+	/** The curve info for the curve being edited. */
+	FRichCurveEditInfo CurveInfo;
+	/** The color which should be used to draw the curve and it's label in the UI. */
+	FLinearColor Color;
+	/** Whether or not the curve should be displayed in the UI. */
+	bool bIsVisible;
+	/** Whether or not the curve is locked from editing. */
+	bool bIsLocked;
+
+	FCurveViewModel(FRichCurveEditInfo InCurveInfo, FLinearColor InColor, bool bInIsLocked)
+	{
+		CurveInfo = InCurveInfo;
+		Color = InColor;
+		bIsLocked = bInIsLocked;
+		bIsLocked = false;
+	}
+};
+
 //////////////////////////////////////////////////////////////////////////
 // SCurveEditor
 
@@ -230,12 +252,6 @@ private:
 	/** Adds a new key to the curve. */
 	void AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition);
 
-	/** Get the color associated with a given curve */
-	FLinearColor	GetCurveColor(FRichCurve* Curve) const;
-
-	/** Get the name for the given curve */
-	FText			GetCurveName(FRichCurve* Curve) const;
-
 	/** Test if the curve is exists, and if it being displayed on this widget */
 	bool		IsValidCurve(FRichCurve* Curve) const;
 
@@ -261,7 +277,7 @@ private:
 	void GetTangentPoints( FTrackScaleInfo &ScaleInfo,const FSelectedCurveKey &Key, FVector2D& Arrive, FVector2D& Leave) const;
 
 	/** Get the set of keys within a rectangle in local space */
-	TArray<FSelectedCurveKey> GetKeysWithinMarquee(const FGeometry& InMyGeometry, FVector2D MarqueeTopLeft, FVector2D MarqueeBottomRight) const;
+	TArray<FSelectedCurveKey> GetEditableKeysWithinMarquee(const FGeometry& InMyGeometry, FVector2D MarqueeTopLeft, FVector2D MarqueeBottomRight) const;
 
 	/** Empy key selecttion set */
 	void EmptySelection();
@@ -336,11 +352,11 @@ private:
 	UNREALED_API virtual FVector2D ComputeDesiredSize() const override;
 
 	/** Paint a curve */
-	void PaintCurve(	FRichCurve* Curve, const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, 
+	void PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, 
 					int32 LayerId, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle) const;
 
 	/** Paint the keys that make up a curve */
-	int32 PaintKeys( FRichCurve* Curve, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle ) const;
+	void PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, int32 SelectedLayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle ) const;
 
 	/** Paint the tangent for a key with cubic curves */
 	void PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, 
@@ -381,10 +397,7 @@ private:
 	void CreateLinesForSegment( FRichCurve* Curve, const FRichCurveKey& Key1, const FRichCurveKey& Key2, TArray<FVector2D>& Points, FTrackScaleInfo &ScaleInfo) const;
 	
 	/** Detect if user is clicking on a curve */
-	bool HitTestCurves(  const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
-
-	/** Add curve to selection */
-	void SelectCurve(FRichCurve* Curve, bool bMultiple);
+	TSharedPtr<FCurveViewModel> HitTestCurves(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	/* user is moving the tangent for a key */
 	void OnMoveTangent(FVector2D MouseCurvePosition);
@@ -394,20 +407,11 @@ private:
 	/** Construct widget that allows user to select which curve to edit if there are multiple */
 	TSharedRef<SWidget> CreateCurveSelectionWidget() const;
 
-	/** Get the state of a given curve's checkbox */
-	ESlateCheckBoxState::Type	GetCheckState(FRichCurve* Curve) const;
-
-	/** Called when the user clicks on the checkbox for a curve */
-	void			OnUserSelectedCurve( ESlateCheckBoxState::Type State, FRichCurve* Curve );
-
-	/** Get the tooltip for a curve selection checkbox */
-	FText			GetCurveCheckBoxToolTip(FRichCurve* Curve) const;
-
 	/** Create ontext Menu for waring menu*/
 	void	PushWarningMenu(FVector2D Position, const FText& Message);
 
 	/** Create context Menu for key interpolation settings*/
-	void	PushCurveMenu(const FGeometry& InMyGeometry, FVector2D Position);
+	void	PushKeyMenu(const FGeometry& InMyGeometry, FVector2D Position);
 
 	/** Called when the user selects the interpolation mode */
 	void	OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode);
@@ -439,6 +443,16 @@ private:
 
 	FVector2D SnapLocation(FVector2D InLocation);
 
+	FText GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	ESlateCheckBoxState::Type IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	void OnCurveIsVisibleChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
+
+	FText GetIsCurveLockedToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	ESlateCheckBoxState::Type IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	void OnCurveIsLockedChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
+
+	void RemoveCurveKeysFromSelection(TSharedPtr<FCurveViewModel> CurveViewModel);
+
 protected:
 
 	/** Set Default output values when range is too small **/
@@ -463,8 +477,6 @@ private:
 
 	/** Interface for curve supplier */
 	FCurveOwnerInterface*		CurveOwner;
-	/** Curves that we are editing */
-	TArray<FRichCurveEditInfo>	Curves;
 	/** Color for each curve */
 	TArray<FLinearColor>		CurveColors;
 
@@ -476,8 +488,6 @@ private:
 	bool				bAllowZoomOutput;
 	/** If we always show the color curves or allow the user to toggle this */
 	bool				bAlwaysDisplayColorCurves;
-	/** Which curves are currently selected for editing */
-	TArray<FRichCurve*>	SelectedCurves;
 
 	/** Array of selected keys*/
 	TArray<FSelectedCurveKey> SelectedKeys;
@@ -569,6 +579,8 @@ protected:
 
 	/** A map of selected key handle to their starting locations at the beginning of a drag operation. */
 	TMap<FKeyHandle, FVector2D> PreDragKeyLocations;
+
+	TArray<TSharedPtr<FCurveViewModel>> CurveViewModels;
 };
 
 #endif // __SCurveEditor_h__

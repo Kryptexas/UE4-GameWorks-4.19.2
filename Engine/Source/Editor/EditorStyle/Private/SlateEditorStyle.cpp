@@ -778,14 +778,23 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	}
 
 	{
-		Set( "CurveEd.TimelineArea", new IMAGE_BRUSH( "Old/White", Icon16x16, FLinearColor(1,1,1,0.25f) ) );
-		Set( "CurveEd.FitHorizontal", new IMAGE_BRUSH( "Icons/FitHorz_16x", Icon16x16 ) );
-		Set( "CurveEd.FitVertical", new IMAGE_BRUSH( "Icons/FitVert_16x", Icon16x16 ) );
-		Set( "CurveEd.CurveKey", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f) ) );
-		Set( "CurveEd.CurveKeySelected", new IMAGE_BRUSH( "Common/Key", FVector2D(11.0f, 11.0f), SelectionColor ) );
-		Set( "CurveEd.InfoFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
-		Set( "CurveEd.Tangent", new IMAGE_BRUSH( "Common/Tangent", FVector2D(7.0f, 7.0f), FLinearColor(0.0f, 0.66f, 0.7f) ) );
-		Set( "CurveEd.TangentColor", FLinearColor(0.0f, 0.66f, 0.7f) );
+		Set("CurveEd.TimelineArea", new IMAGE_BRUSH("Old/White", Icon16x16, FLinearColor(1, 1, 1, 0.25f)));
+		Set("CurveEd.FitHorizontal", new IMAGE_BRUSH("Icons/FitHorz_16x", Icon16x16));
+		Set("CurveEd.FitVertical", new IMAGE_BRUSH("Icons/FitVert_16x", Icon16x16));
+		Set("CurveEd.CurveKey", new IMAGE_BRUSH("Common/Key", FVector2D(11.0f, 11.0f)));
+		Set("CurveEd.CurveKeySelected", new IMAGE_BRUSH("Common/Key", FVector2D(11.0f, 11.0f), SelectionColor));
+		Set("CurveEd.InfoFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 8));
+		Set("CurveEd.LabelFont", TTF_CORE_FONT("Fonts/Roboto-Bold", 10));
+		Set("CurveEd.Tangent", new IMAGE_BRUSH("Common/Tangent", FVector2D(7.0f, 7.0f), FLinearColor(0.0f, 0.66f, 0.7f)));
+		Set("CurveEd.TangentColor", FLinearColor(0.0f, 0.66f, 0.7f));
+		Set("CurveEd.Visible", new IMAGE_BRUSH("Icons/icon_levels_visible_16px", Icon16x16));
+		Set("CurveEd.VisibleHighlight", new IMAGE_BRUSH("Icons/icon_levels_visible_hi_16px", Icon16x16));
+		Set("CurveEd.Invisible", new IMAGE_BRUSH("Icons/icon_levels_invisible_16px", Icon16x16));
+		Set("CurveEd.InvisibleHighlight", new IMAGE_BRUSH("Icons/icon_levels_invisible_hi_16px", Icon16x16));
+		Set("CurveEd.Locked", new IMAGE_BRUSH("Icons/icon_locked_16px", Icon16x16));
+		Set("CurveEd.LockedHighlight", new IMAGE_BRUSH("Icons/icon_locked_highlight_16px", Icon16x16));
+		Set("CurveEd.Unlocked", new IMAGE_BRUSH("Icons/icon_unlocked_16px", Icon16x16));
+		Set("CurveEd.UnlockedHighlight", new IMAGE_BRUSH("Icons/icon_unlocked_highlight_16px", Icon16x16));
 	}
 	
 	// Scrub control buttons

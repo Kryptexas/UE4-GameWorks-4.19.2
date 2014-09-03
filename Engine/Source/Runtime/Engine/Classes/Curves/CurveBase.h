@@ -387,6 +387,11 @@ template<class T> struct FRichCurveEditInfoTemplate
 	/** Pointer to curves to be edited */
 	T				CurveToEdit;
 
+	FRichCurveEditInfoTemplate()
+		: CurveName(NAME_None)
+		, CurveToEdit(nullptr)
+	{}
+
 	FRichCurveEditInfoTemplate(T InCurveToEdit)
 	:	CurveName(NAME_None)
 	,	CurveToEdit(InCurveToEdit)
