@@ -559,7 +559,7 @@ protected:
 	 */
 	void CORE_API Assign( int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds );
 
-private:
+public://private:
 
 	/** Holds the time span in 100 nanoseconds resolution. */
 	int64 Ticks;
