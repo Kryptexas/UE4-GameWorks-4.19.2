@@ -72,8 +72,8 @@ struct FGeomSelection
 	}
 };
 
-UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, NotBlueprintable, ConversionRoot)
-class ABrush : public AActor
+UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input), showcategories=("Input|MouseInput", "Input|TouchInput"), NotBlueprintable, ConversionRoot)
+class ENGINE_API ABrush : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -132,7 +132,7 @@ class ABrush : public AActor
 	/** Delegate used for notifications when PostRegisterAllComponents is called for a Brush */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnBrushRegistered, ABrush*);
 	/** Function to get the 'brush registered' delegate */
-	static ENGINE_API FOnBrushRegistered& GetOnBrushRegisteredDelegate()
+	static FOnBrushRegistered& GetOnBrushRegisteredDelegate()
 	{
 		return OnBrushRegistered;
 	}
@@ -140,12 +140,12 @@ class ABrush : public AActor
 
 	
 	// Begin UObject interface.
-	ENGINE_API virtual void PostLoad() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	ENGINE_API virtual void PostEditMove(bool bFinished) override;
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditMove(bool bFinished) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) override;
+	virtual bool Modify(bool bAlwaysMarkDirty = false) override;
 
 	virtual bool NeedsLoadForClient() const override
 	{ 
@@ -159,27 +159,27 @@ class ABrush : public AActor
 
 	
 	// Begin AActor interface
-	ENGINE_API virtual void Destroyed() override;
-	ENGINE_API virtual void PostRegisterAllComponents() override;
+	virtual void Destroyed() override;
+	virtual void PostRegisterAllComponents() override;
 	
 	virtual bool IsLevelBoundsRelevant() const override;
 
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 
-	ENGINE_API virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden ) override;
+	virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden ) override;
 
 	// End AActor interface
 
-	ENGINE_API virtual void InitPosRotScale();
-	ENGINE_API virtual void CopyPosRotScaleFrom( ABrush* Other );
+	virtual void InitPosRotScale();
+	virtual void CopyPosRotScaleFrom( ABrush* Other );
 
 private: 
 	/** An array to keep track of all the levels that need rebuilding. This is checked via NeedsRebuild() in the editor tick and triggers a csg rebuild. */
 	static TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
 
 	/** Delegate called when PostRegisterAllComponents is called for a Brush */
-	static ENGINE_API FOnBrushRegistered OnBrushRegistered;
+	static FOnBrushRegistered OnBrushRegistered;
 public:
 	/**
 	 * Called to see if any of the levels need rebuilding
@@ -187,21 +187,21 @@ public:
 	 * @param	OutLevels if specified, provides a copy of the levels array
 	 * @return	true if the csg needs to be rebuilt on the next editor tick.	
 	 */
-	ENGINE_API static bool NeedsRebuild(TArray< TWeakObjectPtr< ULevel > >* OutLevels = NULL){if(OutLevels){*OutLevels = LevelsToRebuild;} return(LevelsToRebuild.Num() > 0);}
+	static bool NeedsRebuild(TArray< TWeakObjectPtr< ULevel > >* OutLevels = NULL){if(OutLevels){*OutLevels = LevelsToRebuild;} return(LevelsToRebuild.Num() > 0);}
 	/**
 	 * Called upon finishing the csg rebuild to clear the rebuild bool.
 	 */
-	ENGINE_API static void OnRebuildDone(){LevelsToRebuild.Empty();}
+	static void OnRebuildDone(){LevelsToRebuild.Empty();}
 	/**
 	 * Called to make not of the level that needs rebuilding
 	 *
 	 * @param	InLevel The level that needs rebuilding
 	 */
-	ENGINE_API static void SetNeedRebuild(ULevel* InLevel){if(InLevel){LevelsToRebuild.AddUnique(InLevel);}}
+	static void SetNeedRebuild(ULevel* InLevel){if(InLevel){LevelsToRebuild.AddUnique(InLevel);}}
 #else
-	ENGINE_API static bool NeedsRebuild(TArray< TWeakObjectPtr< ULevel > >* OutLevels = NULL){return false;}
-	ENGINE_API static void OnRebuildDone(){}
-	ENGINE_API static void SetNeedRebuild(ULevel* InLevel){}
+	static bool NeedsRebuild(TArray< TWeakObjectPtr< ULevel > >* OutLevels = NULL){return false;}
+	static void OnRebuildDone(){}
+	static void SetNeedRebuild(ULevel* InLevel){}
 #endif//WITH_EDITOR
 
 	/** @return true if this is a static brush */
@@ -216,13 +216,13 @@ public:
 	// ABrush interface.
 
 	/** Returns the prepivot FVector of the RootComponent of this actor */
-	ENGINE_API FVector GetPrePivot() const;
+	FVector GetPrePivot() const;
 
 	/** Set the PrePivot of the root component */
-	ENGINE_API void SetPrePivot(const FVector& InPrePivot);
+	void SetPrePivot(const FVector& InPrePivot);
 
 	/** Figures out the best color to use for this brushes wireframe drawing.	*/
-	ENGINE_API virtual FColor GetWireColor() const;
+	virtual FColor GetWireColor() const;
 
 
 	/**

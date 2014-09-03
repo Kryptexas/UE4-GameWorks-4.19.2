@@ -15,7 +15,7 @@ class ADefaultPhysicsVolume : public APhysicsVolume
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor interface
-	virtual void Destroyed() override;
+	ENGINE_API virtual void Destroyed() override;
 	// End AActor interface
 };
 
