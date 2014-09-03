@@ -1345,6 +1345,57 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 }
 #endif // UE_WITH_PHYSICS
 
+#if WITH_PHYSX
+TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance * Body0, const FBodyInstance * Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos)
+{
+	TArray<int32> PairNotifyMapping;
+	PairNotifyMapping.Empty(NumPairs);
+
+	TMap<const FBodyInstance *, TMap<const FBodyInstance *, int32> > BodyPairNotifyMap;
+	for (uint32 PairIdx = 0; PairIdx < NumPairs; ++PairIdx)
+	{
+		const PxContactPair* Pair = Pairs + PairIdx;
+		// Get the two shapes that are involved in the collision
+		const PxShape* Shape0 = Pair->shapes[0];
+		check(Shape0);
+		const PxShape* Shape1 = Pair->shapes[1];
+		check(Shape1);
+
+		PairNotifyMapping.Add(-1);	//start as -1 because we can have collisions that we don't want to actually record collision
+
+		const FBodyInstance * const* SubBody0Res = Body0->ShapeToBodyMap.Find(Shape0);
+		const FBodyInstance * const* SubBody1Res = Body1->ShapeToBodyMap.Find(Shape1);
+
+		if (SubBody0Res == NULL){ SubBody0Res = &Body0;  }	//body may have no welding in which case just use the body
+		if (SubBody1Res == NULL){ SubBody1Res = &Body1; }
+		
+		const FBodyInstance * SubBody0 = *SubBody0Res;
+		const FBodyInstance * SubBody1 = *SubBody1Res;
+
+		if (SubBody0->bNotifyRigidBodyCollision || SubBody1->bNotifyRigidBodyCollision)
+		{
+			TMap<const FBodyInstance *, int32> & SubBodyNotifyMap = BodyPairNotifyMap.FindOrAdd(SubBody0);
+			int32 * NotifyInfoIndex = SubBodyNotifyMap.Find(SubBody1);
+
+			if (NotifyInfoIndex == NULL)
+			{
+				FCollisionNotifyInfo * NotifyInfo = new (PendingNotifyInfos) FCollisionNotifyInfo;
+				NotifyInfo->bCallEvent0 = (SubBody0->bNotifyRigidBodyCollision);
+				NotifyInfo->Info0.SetFrom(SubBody0);
+				NotifyInfo->bCallEvent1 = (SubBody1->bNotifyRigidBodyCollision);
+				NotifyInfo->Info1.SetFrom(SubBody1);
+
+				NotifyInfoIndex = &SubBodyNotifyMap.Add(SubBody0, PendingNotifyInfos.Num() - 1);
+			}
+
+			PairNotifyMapping[PairIdx] = *NotifyInfoIndex;
+		}
+	}
+
+	return PairNotifyMapping;
+}
+#endif
+
 //helper function for TermBody to avoid code duplication between scenes
 #if WITH_PHYSX
 void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance* BodyInstance)

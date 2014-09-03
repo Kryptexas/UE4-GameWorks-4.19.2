@@ -22,6 +22,7 @@ namespace physx
 	class PxGeometry;
 	class PxShape;
 	class PxTransform;
+	struct PxContactPair;
 }
 #endif // WITH_PHYSX
 
@@ -44,6 +45,8 @@ namespace ELockedAxis
 		None
 	};
 }
+
+struct FCollisionNotifyInfo;
 
 USTRUCT()
 struct ENGINE_API FCollisionResponse
@@ -210,6 +213,11 @@ public:
 
 	/** The parent body that we are welded to*/
 	FBodyInstance * WeldParent;
+
+#if WITH_PHYSX
+	/** Figures out the new FCollisionNotifyInfo needed for pending notification. It adds it, and then returns an array that goes from pair index to notify collision index */
+	static TArray<int32> AddCollisionNotifyInfo(const FBodyInstance * Body0, const FBodyInstance * Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos);
+#endif
 
 protected:
 

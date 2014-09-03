@@ -446,18 +446,21 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 	check(PhysScene);
 
-	// Allocate and fill in the NotifyInfo struct.
-	FCollisionNotifyInfo* NotifyInfo = new(PhysScene->PendingCollisionNotifies) FCollisionNotifyInfo;
-	NotifyInfo->bCallEvent0 = (BodyInst0->bNotifyRigidBodyCollision);
-	NotifyInfo->Info0.SetFrom(BodyInst0);
-	NotifyInfo->bCallEvent1 = (BodyInst1->bNotifyRigidBodyCollision);
-	NotifyInfo->Info1.SetFrom(BodyInst1);
-
-	FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
+	uint32 PreAddingCollisionNotify = PhysScene->PendingCollisionNotifies.Num() - 1;
+	TArray<int32> PairNotifyMapping = FBodyInstance::AddCollisionNotifyInfo(BodyInst0, BodyInst1, Pairs, NumPairs, PhysScene->PendingCollisionNotifies);
 
 	// Iterate through contact points
 	for(uint32 PairIdx=0; PairIdx<NumPairs; PairIdx++)
 	{
+		int32 NotifyIdx = PairNotifyMapping[PairIdx];
+		if (NotifyIdx == -1)	//the body instance this pair belongs to is not listening for events
+		{
+			continue;
+		}
+
+		FCollisionNotifyInfo * NotifyInfo = &PhysScene->PendingCollisionNotifies[NotifyIdx];
+		FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
+
 		const PxContactPair* Pair = Pairs + PairIdx;
 
 		// Get the two shapes that are involved in the collision
@@ -495,11 +498,16 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 		}	
 	}
 
-	// Discard pairs that don't generate any force (eg. have been rejected through a modify contact callback).
-	if(ImpactInfo->TotalNormalImpulse.SizeSquared() < KINDA_SMALL_NUMBER)
+	for (int32 NotifyIdx = PreAddingCollisionNotify + 1; NotifyIdx < PhysScene->PendingCollisionNotifies.Num(); NotifyIdx++)
 	{
-		PhysScene->PendingCollisionNotifies.RemoveAt(PhysScene->PendingCollisionNotifies.Num()-1);
-		return;
+		FCollisionNotifyInfo * NotifyInfo = &PhysScene->PendingCollisionNotifies[NotifyIdx];
+		FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
+		// Discard pairs that don't generate any force (eg. have been rejected through a modify contact callback).
+		if (ImpactInfo->TotalNormalImpulse.SizeSquared() < KINDA_SMALL_NUMBER)
+		{
+			PhysScene->PendingCollisionNotifies.RemoveAt(NotifyIdx);
+			NotifyIdx--;
+		}
 	}
 }
 
