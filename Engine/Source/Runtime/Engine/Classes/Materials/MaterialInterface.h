@@ -27,6 +27,7 @@ enum EMaterialUsage
 	MATUSAGE_Landscape,
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
+	MATUSAGE_UI,
 	MATUSAGE_MAX,
 };
 
