@@ -2,6 +2,8 @@
 
 #pragma once
 
+class UUserWidget;
+
 /**
  * The SObjectWidet allows UMG to insert an SWidget into the hierarchy that manages the lifetime of the
  * UMG UWidget that created it.  Once the SObjectWidget is destroyed it frees the reference it holds to
@@ -20,7 +22,7 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 
 	virtual ~SObjectWidget(void);
 
-	void Construct(const FArguments& InArgs, class UUserWidget* InWidgetObject);
+	void Construct(const FArguments& InArgs, UUserWidget* InWidgetObject);
 
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -71,5 +73,5 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 
 private:
 	/** The UWidget that created this SObjectWidget who needs to be kept alive. */
-	class UUserWidget* WidgetObject;
+	UUserWidget* WidgetObject;
 };

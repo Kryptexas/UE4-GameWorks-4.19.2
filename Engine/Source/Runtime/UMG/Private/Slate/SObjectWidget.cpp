@@ -16,7 +16,7 @@ void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObj
 
 SObjectWidget::~SObjectWidget(void)
 {
-	if ( WidgetObject )
+	if ( UObjectInitialized() && WidgetObject )
 	{
 		WidgetObject->ReleaseNativeWidget();
 	}
