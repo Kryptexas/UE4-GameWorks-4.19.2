@@ -28,10 +28,15 @@ void UK2Node_CastByteToEnum::AllocateDefaultPins()
 
 FText UK2Node_CastByteToEnum::GetTooltipText() const
 {
-	return FText::Format(
-		NSLOCTEXT("K2Node", "CastByteToEnum_Tooltip", "Byte to Enum {0}"),
-		FText::FromName(Enum->GetFName())
-	);
+	if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(
+			NSLOCTEXT("K2Node", "CastByteToEnum_Tooltip", "Byte to Enum {0}"),
+			FText::FromName(Enum->GetFName())
+		);
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_CastByteToEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const

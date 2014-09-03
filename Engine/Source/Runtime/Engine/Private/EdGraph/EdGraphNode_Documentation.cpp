@@ -32,7 +32,7 @@ void UEdGraphNode_Documentation::PostPlacedNewNode()
 
 FText UEdGraphNode_Documentation::GetTooltipText() const
 {
-	return FText::Format(NSLOCTEXT("K2Node", "DocumentationBlock_Tooltip", "Documentation:\n{0}"), FText::FromString(NodeComment));
+	return NSLOCTEXT("K2Node", "DocumentationBlock_Tooltip", "UDN Documentation Excerpt");
 }
 
 FText UEdGraphNode_Documentation::GetNodeTitle( ENodeTitleType::Type TitleType ) const

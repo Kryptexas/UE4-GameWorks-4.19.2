@@ -250,15 +250,22 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FText UK2Node_InputKey::GetTooltipText() const
 {
-	FText ModifierText = GetModifierText();
-	FText KeyText = GetKeyText();
-
-	if ( !ModifierText.IsEmpty() )
+	if (CachedTooltip.IsOutOfDate())
 	{
-		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText);
-	}
+		FText ModifierText = GetModifierText();
+		FText KeyText = GetKeyText();
 
-	return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText);
+		// FText::Format() is slow, so we cache this to save on performance
+		if (!ModifierText.IsEmpty())
+		{
+			CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText);
+		}
+		else
+		{
+			CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText);
+		}
+	}
+	return CachedTooltip;
 }
 
 FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const

@@ -36,6 +36,7 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 	BLUEPRINTGRAPH_API void RestoreAllPins();
 
 private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
 };

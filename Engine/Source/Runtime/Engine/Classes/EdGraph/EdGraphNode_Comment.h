@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "EdGraphNode_Comment.generated.h"
 
 typedef TArray<class UObject*> FCommentNodeSet;
@@ -74,6 +75,9 @@ public:
 private:
 	/** Nodes currently within the region of the comment */
 	FCommentNodeSet	NodesUnderComment;
+
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
 #endif
 };
 

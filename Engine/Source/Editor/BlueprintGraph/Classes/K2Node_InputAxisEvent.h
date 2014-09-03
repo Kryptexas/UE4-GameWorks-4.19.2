@@ -47,6 +47,7 @@ class UK2Node_InputAxisEvent : public UK2Node_Event
 	void Initialize(const FName AxisName);
 
 private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
 };

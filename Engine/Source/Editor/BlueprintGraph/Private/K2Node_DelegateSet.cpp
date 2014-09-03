@@ -149,17 +149,21 @@ void UK2Node_DelegateSet::AllocateDefaultPins()
 
 FText UK2Node_DelegateSet::GetTooltipText() const
 {
-	FText Tooltip = FText::Format(NSLOCTEXT("K2Node", "CreateEventForDelegate", "Create an event tied to the delegate {0}"), FText::FromName(DelegatePropertyName));
-	if (UFunction* Function = GetDelegateSignature())
+	if (CachedTooltip.IsOutOfDate())
 	{
-		const FText SignatureTooltip = Function->GetToolTipText();
-
-		if (!SignatureTooltip.IsEmpty())
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "CreateEventForDelegate", "Create an event tied to the delegate {0}"), FText::FromName(DelegatePropertyName));
+		if (UFunction* Function = GetDelegateSignature())
 		{
-			Tooltip = FText::Format(LOCTEXT("DelegateSet_SubtitledTooltip", "{0}\n{1}"), Tooltip, SignatureTooltip);
+			const FText SignatureTooltip = Function->GetToolTipText();
+
+			if (!SignatureTooltip.IsEmpty())
+			{
+				CachedTooltip = FText::Format(LOCTEXT("DelegateSet_SubtitledTooltip", "{0}\n{1}"), (FText&)CachedTooltip, SignatureTooltip);
+			}
 		}
 	}
-	return Tooltip;
+	return CachedTooltip;
 }
 
 FText UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const

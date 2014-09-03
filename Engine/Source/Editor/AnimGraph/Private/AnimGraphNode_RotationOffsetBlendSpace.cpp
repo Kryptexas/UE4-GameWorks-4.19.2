@@ -19,25 +19,41 @@ UAnimGraphNode_RotationOffsetBlendSpace::UAnimGraphNode_RotationOffsetBlendSpace
 
 FText UAnimGraphNode_RotationOffsetBlendSpace::GetTooltipText() const
 {
-	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
-	return FText::Format(LOCTEXT("AimOffsetTooltip", "AimOffset '{0}'"), BlendSpaceName);
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
-
-	if (TitleType == ENodeTitleType::ListView)
+	if (Node.BlendSpace == nullptr)
 	{
-		return FText::Format(LOCTEXT("AimOffsetListTitle", "AimOffset '{BlendSpaceName}'"), Args);
+		if (TitleType == ENodeTitleType::ListView)
+		{
+			return LOCTEXT("RotationOffsetBlend_NONE_ListTitle", "AimOffset '(None)'");
+		}
+		else
+		{
+			return LOCTEXT("RotationOffsetBlend_NONE_Title", "(None)\nAimOffset");
+		}
 	}
-	else
+	else if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
-		return FText::Format(LOCTEXT("AimOffsetFullTitle", "{BlendSpaceName}\nAimOffset"), Args);
+		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+
+		// FText::Format() is slow, so we cache this to save on performance
+		if (TitleType == ENodeTitleType::ListView)
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AimOffsetListTitle", "AimOffset '{BlendSpaceName}'"), Args));
+		}
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AimOffsetFullTitle", "{BlendSpaceName}\nAimOffset"), Args));
+		}
 	}
+	return CachedNodeTitles[TitleType];
 }
 
 void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const

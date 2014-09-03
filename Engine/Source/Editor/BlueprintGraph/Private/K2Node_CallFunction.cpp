@@ -750,19 +750,24 @@ FLinearColor UK2Node_CallFunction::GetNodeTitleColor() const
 		return GetDefault<UGraphEditorSettings>()->PureFunctionCallNodeTitleColor;
 	}
 
-		return Super::GetNodeTitleColor();
-	}
+	return Super::GetNodeTitleColor();
+}
 
 FText UK2Node_CallFunction::GetTooltipText() const
 {
 	FText Tooltip;
 
-	if (UFunction* Function = GetTargetFunction())
+	UFunction* Function = GetTargetFunction();
+	if (Function == nullptr)
 	{
-		Tooltip = FText::FromString(GetDefaultTooltipForFunction(Function));
+		return FText::Format(LOCTEXT("CallUnknownFunction", "Call unknown function {0}"), FText::FromName(FunctionReference.GetMemberName()));
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		FText BaseTooltip = FText::FromString(GetDefaultTooltipForFunction(Function));
 
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("DefaultTooltip"), Tooltip);
+		Args.Add(TEXT("DefaultTooltip"), BaseTooltip);
 
 		if (Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
 		{
@@ -770,7 +775,8 @@ FText UK2Node_CallFunction::GetTooltipText() const
 				TEXT("ClientString"),
 				NSLOCTEXT("K2Node", "ServerFunction", "Authority Only. This function will only execute on the server.")
 			);
-			Tooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedTooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
 		}
 		else if (Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic))
 		{
@@ -778,15 +784,15 @@ FText UK2Node_CallFunction::GetTooltipText() const
 				TEXT("ClientString"),
 				NSLOCTEXT("K2Node", "ClientEvent", "Cosmetic. This event is only for cosmetic, non-gameplay actions.")
 			);
-			Tooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedTooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
 		} 
+		else
+		{
+			CachedTooltip = BaseTooltip;
+		}
 	}
-	else
-	{
-		Tooltip = FText::Format(LOCTEXT("CallUnknownFunction", "Call unknown function {0}"), FText::FromName(FunctionReference.GetMemberName()));
-	}
-
-	return Tooltip;
+	return CachedTooltip;
 }
 
 FString UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)

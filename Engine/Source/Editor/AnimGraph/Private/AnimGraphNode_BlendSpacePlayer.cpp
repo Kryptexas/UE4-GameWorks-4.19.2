@@ -19,36 +19,52 @@ UAnimGraphNode_BlendSpacePlayer::UAnimGraphNode_BlendSpacePlayer(const FPostCons
 
 FText UAnimGraphNode_BlendSpacePlayer::GetTooltipText() const
 {
-	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
-	return FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{0}'"), BlendSpaceName);
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
-{
-	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
-	
-	if (TitleType == ENodeTitleType::ListView)
+{	
+	if (Node.BlendSpace == nullptr)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
-		return FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{BlendSpaceName}'"), Args);
+		if (TitleType == ENodeTitleType::ListView)
+		{
+			return LOCTEXT("BlendspacePlayer_NONE_ListTitle", "Blendspace Player '(None)'");
+		}
+		else
+		{
+			return LOCTEXT("BlendspacePlayer_NONE_Title", "(None)\nBlendspace Player");
+		}
 	}
-	else
+	else if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
-		FFormatNamedArguments TitleArgs;
-		TitleArgs.Add(TEXT("BlendSpaceName"), BlendSpaceName);
-		FText Title = FText::Format(LOCTEXT("BlendSpacePlayerFullTitle", "{BlendSpaceName}\nBlendspace Player"), TitleArgs);
+		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
 
-		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+		if (TitleType == ENodeTitleType::ListView)
 		{
 			FFormatNamedArguments Args;
-			Args.Add(TEXT("Title"), Title);
-			Args.Add(TEXT("SyncGroupName"), FText::FromName(SyncGroup.GroupName));
-			Title = FText::Format(LOCTEXT("BlendSpaceNodeGroupSubtitle", "{Title}\nSync group {SyncGroupName}"), Args);
+			Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{BlendSpaceName}'"), Args));
 		}
+		else
+		{
+			FFormatNamedArguments TitleArgs;
+			TitleArgs.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+			FText Title = FText::Format(LOCTEXT("BlendSpacePlayerFullTitle", "{BlendSpaceName}\nBlendspace Player"), TitleArgs);
 
-		return Title;
+			if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Title"), Title);
+				Args.Add(TEXT("SyncGroupName"), FText::FromName(SyncGroup.GroupName));
+				Title = FText::Format(LOCTEXT("BlendSpaceNodeGroupSubtitle", "{Title}\nSync group {SyncGroupName}"), Args);
+			}
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitles.SetCachedTitle(TitleType, Title);
+		}
 	}
+	return CachedNodeTitles[TitleType];
 }
 
 void UAnimGraphNode_BlendSpacePlayer::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const

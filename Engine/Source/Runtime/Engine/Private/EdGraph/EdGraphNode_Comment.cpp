@@ -57,7 +57,11 @@ void UEdGraphNode_Comment::PostPlacedNewNode()
 
 FText UEdGraphNode_Comment::GetTooltipText() const
 {
-	return FText::Format(NSLOCTEXT("K2Node", "CommentBlock_Tooltip", "Comment:\n{0}"), FText::FromString(NodeComment));
+	if (CachedTooltip.IsOutOfDate())
+	{
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "CommentBlock_Tooltip", "Comment:\n{0}"), FText::FromString(NodeComment));
+	}
+	return CachedTooltip;
 }
 
 FString UEdGraphNode_Comment::GetDocumentationLink() const
@@ -137,6 +141,7 @@ const FCommentNodeSet& UEdGraphNode_Comment::GetNodesUnderComment() const
 void UEdGraphNode_Comment::OnRenameNode(const FString& NewName)
 {
 	NodeComment = NewName;
+	CachedTooltip.MarkDirty();
 }
 
 TSharedPtr<class INameValidatorInterface> UEdGraphNode_Comment::MakeNameValidator() const

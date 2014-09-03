@@ -26,30 +26,23 @@ FString UAnimGraphNode_BlendListByEnum::GetNodeCategory() const
 
 FText UAnimGraphNode_BlendListByEnum::GetTooltipText() const
 {
-	if (BoundEnum != NULL)
-	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
-		return FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Tooltip", "Blend Poses based on enum ({EnumName}). Use context menu to add new entries."), Args);
-	}
-	else
-	{
-		return LOCTEXT("AnimGraphNode_BlendListByEnum_TooltipError", "ERROR: Blend Poses (by missing enum)");
-	}
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_BlendListByEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (BoundEnum != NULL)
-	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
-		return FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Title", "Blend Poses ({EnumName})"), Args);
-	}
-	else
+	if (BoundEnum == nullptr)
 	{
 		return LOCTEXT("AnimGraphNode_BlendListByEnum_TitleError", "ERROR: Blend Poses (by missing enum)");
 	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
+		CachedNodeTitle = FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Title", "Blend Poses ({EnumName})"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UAnimGraphNode_BlendListByEnum::PostPlacedNewNode()

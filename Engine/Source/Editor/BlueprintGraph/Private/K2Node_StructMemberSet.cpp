@@ -44,9 +44,14 @@ void UK2Node_StructMemberSet::AllocateDefaultPins()
 
 FText UK2Node_StructMemberSet::GetTooltipText() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("VariableName"), FText::FromName(VariableReference.GetMemberName()));
-	return FText::Format(LOCTEXT("K2Node_StructMemberSet_Tooltip", "Set member variables of {VariableName}"), Args);
+	if (CachedTooltip.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableName"), FText::FromName(VariableReference.GetMemberName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(LOCTEXT("K2Node_StructMemberSet_Tooltip", "Set member variables of {VariableName}"), Args);
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_StructMemberSet::GetNodeTitle(ENodeTitleType::Type TitleType) const

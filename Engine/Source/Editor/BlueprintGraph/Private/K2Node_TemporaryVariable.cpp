@@ -49,9 +49,14 @@ void UK2Node_TemporaryVariable::AllocateDefaultPins()
 
 FText UK2Node_TemporaryVariable::GetTooltipText() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("VariableType"), UEdGraphSchema_K2::TypeToText(VariableType));
-	return FText::Format(NSLOCTEXT("K2Node", "LocalTemporaryVariable", "Local temporary {VariableType} variable"), Args);
+	if (CachedTooltip.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableType"), UEdGraphSchema_K2::TypeToText(VariableType));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "LocalTemporaryVariable", "Local temporary {VariableType} variable"), Args);
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_TemporaryVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const

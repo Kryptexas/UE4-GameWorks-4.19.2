@@ -3,6 +3,7 @@
 #pragma once
 #include "AnimGraphNode_BlendSpaceBase.h"
 #include "Animation/AnimNode_BlendSpacePlayer.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_BlendSpacePlayer.generated.h"
 
 UCLASS(MinimalAPI)
@@ -38,4 +39,8 @@ class UAnimGraphNode_BlendSpacePlayer : public UAnimGraphNode_BlendSpaceBase
 	// UK2Node interface
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	// End of UK2Node interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTitleTextTable CachedNodeTitles;
 };

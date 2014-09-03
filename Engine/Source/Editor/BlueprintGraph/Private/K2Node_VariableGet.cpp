@@ -87,6 +87,11 @@ void UK2Node_VariableGet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 
 FText UK2Node_VariableGet::GetTooltipText() const
 {
+	if (!CachedTooltip.IsOutOfDate())
+	{
+		return CachedTooltip;
+	}
+
 	FFormatNamedArguments Args;
 	Args.Add( TEXT( "VarName" ), FText::FromString( GetVarNameString() ));
 	Args.Add( TEXT( "TextPartition" ), FText::GetEmpty());
@@ -123,7 +128,9 @@ FText UK2Node_VariableGet::GetTooltipText() const
 			}
 		}
 	}
-	return FText::Format( NSLOCTEXT( "K2Node", "GetVariable_ToolTip", "Read the value of variable {VarName}{TextPartition}{MetaData}"), Args );
+	// FText::Format() is slow, so we cache this to save on performance
+	CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "GetVariable_ToolTip", "Read the value of variable {VarName}{TextPartition}{MetaData}"), Args);
+	return CachedTooltip;
 }
 
 FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const

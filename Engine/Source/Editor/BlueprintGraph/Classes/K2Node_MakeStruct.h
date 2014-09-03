@@ -44,6 +44,7 @@ protected:
 	};
 
 private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
 };

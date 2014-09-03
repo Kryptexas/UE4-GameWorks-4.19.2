@@ -41,4 +41,8 @@ class UK2Node_InputAxisKeyEvent : public UK2Node_Event
 	// End UK2Node interface
 
 	void Initialize(const FKey AxisKey);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
 };

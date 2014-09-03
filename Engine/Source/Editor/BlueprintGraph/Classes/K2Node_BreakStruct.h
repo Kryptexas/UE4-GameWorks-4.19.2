@@ -32,7 +32,8 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 	// End K2Node interface
 
 private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
 };
 

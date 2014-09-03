@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_CastByteToEnum.generated.h"
 
 UCLASS(MinimalAPI)
@@ -36,5 +37,9 @@ class UK2Node_CastByteToEnum : public UK2Node
 	// End UK2Node interface
 
 	virtual FName GetFunctionName() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
 };
 

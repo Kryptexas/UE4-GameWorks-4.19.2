@@ -36,7 +36,8 @@ class UK2Node_TemporaryVariable : public UK2Node
 	// End UK2Node interface.
 
 private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
 };
 

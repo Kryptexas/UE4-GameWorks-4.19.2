@@ -34,7 +34,8 @@ class UK2Node_StructMemberGet : public UK2Node_StructOperation
 	BLUEPRINTGRAPH_API void AllocatePinsForSingleMemberGet(FName MemberName);
 
 private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
 };
 

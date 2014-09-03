@@ -111,15 +111,17 @@ FText UK2Node_MacroInstance::GetTooltipText() const
 			return FText::FromString(Metadata->ToolTip);
 		}
 	}
-	
-	if (MacroGraph)
-	{
-		return FText::Format(NSLOCTEXT("K2Node", "MacroGraphInstance_Tooltip", "{0} instance"), FText::FromName(MacroGraph->GetFName()));
-	}
-	else
+
+	if (MacroGraph == nullptr)
 	{
 		return NSLOCTEXT("K2Node", "Macro_Tooltip", "Macro");
 	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "MacroGraphInstance_Tooltip", "{0} instance"), FText::FromName(MacroGraph->GetFName()));
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const

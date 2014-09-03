@@ -91,17 +91,15 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FText UK2Node_Event::GetTooltipText() const
 {
-	FText Tooltip;
-
 	UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName);
-	if (Function != NULL)
+	if (CachedTooltip.IsOutOfDate() && (Function != nullptr))
 	{
-		Tooltip = Function->GetToolTipText();
+		CachedTooltip = Function->GetToolTipText();
 
 		if (bOverrideFunction || (CustomFunctionName == NAME_None))
 		{
 			FFormatNamedArguments Args;
-			Args.Add(TEXT("FunctionTooltip"), Tooltip);
+			Args.Add(TEXT("FunctionTooltip"), (FText&)CachedTooltip);
 
 			//@TODO: KISMETREPLICATION: Should do this for events with a custom function name, if it's a newly introduced replicating thingy
 			if (Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic) || IsCosmeticTickEvent())
@@ -110,7 +108,8 @@ FText UK2Node_Event::GetTooltipText() const
 					TEXT("ClientString"),
 					NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.")
 				);
-				Tooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
+				// FText::Format() is slow, so we cache this to save on performance
+				CachedTooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
 			} 
 			else if(Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
 			{
@@ -118,12 +117,13 @@ FText UK2Node_Event::GetTooltipText() const
 					TEXT("ClientString"),
 					NSLOCTEXT("K2Node", "ServerEvent", "\n\nAuthority Only. This event only fires on the server.")
 				);
-				Tooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
+				// FText::Format() is slow, so we cache this to save on performance
+				CachedTooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
 			}			
 		}		
 	}
 
-	return Tooltip;
+	return CachedTooltip;
 }
 
 FString UK2Node_Event::GetKeywords() const

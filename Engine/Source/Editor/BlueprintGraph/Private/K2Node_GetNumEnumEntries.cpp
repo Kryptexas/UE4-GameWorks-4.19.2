@@ -26,9 +26,16 @@ void UK2Node_GetNumEnumEntries::AllocateDefaultPins()
 
 FText UK2Node_GetNumEnumEntries::GetTooltipText() const
 {
-	const FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
-
-	return FText::Format(NSLOCTEXT("K2Node", "GetNumEnumEntries_Tooltip", "Returns {0}_MAX value"), FText::FromString(EnumName));
+	if (Enum == nullptr)
+	{
+		return NSLOCTEXT("K2Node", "GetNumEnumEntries_BadTooltip", "Returns (bad enum)_MAX value");
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "GetNumEnumEntries_Tooltip", "Returns {0}_MAX value"), FText::FromName(Enum->GetFName()));
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_GetNumEnumEntries::GetNodeTitle(ENodeTitleType::Type TitleType) const

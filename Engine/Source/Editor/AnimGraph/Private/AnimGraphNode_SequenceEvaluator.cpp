@@ -38,31 +38,35 @@ void UAnimGraphNode_SequenceEvaluator::ReplaceReferredAnimations(const TMap<UAni
 
 FText UAnimGraphNode_SequenceEvaluator::GetTooltipText() const
 {
-	if ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive())
-	{
-		return FText::Format(LOCTEXT("SequenceEvaluator_AdditiveTooltip", "Evaluate {0} (additive)"), FText::FromString(Node.Sequence->GetPathName()));
-	}
-	else
-	{
-		return FText::Format(LOCTEXT("SequenceEvaluator_Tooltip", "Evaluate {0}"), FText::FromString(Node.Sequence->GetPathName()));
-	}
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_SequenceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText SequenceName((Node.Sequence != NULL) ? FText::FromString(Node.Sequence->GetName()) : LOCTEXT("None", "(None)"));
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("SequenceName"), SequenceName);
-
-	if (Node.Sequence && Node.Sequence->IsValidAdditive())
+	if (Node.Sequence == nullptr)
 	{
-		return FText::Format(LOCTEXT("EvaluateSequence_Additive", "Evaluate {SequenceName} (additive)"), Args);
+		return LOCTEXT("EvaluateSequence_TitleNONE", "Evaluate (None)");
 	}
-	else
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
-		return FText::Format(LOCTEXT("EvaluateSequence", "Evaluate {SequenceName}"), Args);
+		const FText SequenceName = FText::FromString(Node.Sequence->GetName());
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SequenceName"), SequenceName);
+
+		// FText::Format() is slow, so we cache this to save on performance
+		if (Node.Sequence->IsValidAdditive())
+		{
+			CachedNodeTitle = FText::Format(LOCTEXT("EvaluateSequence_Additive", "Evaluate {SequenceName} (additive)"), Args);
+		}
+		else
+		{
+			CachedNodeTitle = FText::Format(LOCTEXT("EvaluateSequence", "Evaluate {SequenceName}"), Args);
+		}
 	}
+
+	return CachedNodeTitle;
 }
 
 void UAnimGraphNode_SequenceEvaluator::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const

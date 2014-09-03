@@ -173,6 +173,9 @@ FText UBehaviorTreeGraphNode::GetTooltipText() const
 	if (bInjectedNode)
 	{
 		FText const InjectedDesc = !TooltipDesc.IsEmpty() ? TooltipDesc : FText::FromString(GetDescription());
+		// @TODO: FText::Format() is slow... consider caching this tooltip like 
+		//        we do for a lot of the BP nodes now (unfamiliar with this 
+		//        node's purpose, so hesitant to muck with this at this time).
 		TooltipDesc = FText::Format(LOCTEXT("InjectedTooltip", "Injected: {0}"), InjectedDesc);
 	}
 

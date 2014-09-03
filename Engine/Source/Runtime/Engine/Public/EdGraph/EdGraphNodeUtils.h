@@ -83,7 +83,7 @@ public:
 	}
 
 	/** */
-	FORCEINLINE FText GetCachedTitle(ENodeTitleType::Type TitleType) const
+	FORCEINLINE FText& GetCachedTitle(ENodeTitleType::Type TitleType) const
 	{
 		return CachedNodeTitles[TitleType].GetCachedText();
 	}
@@ -95,6 +95,12 @@ public:
 		{
 			CachedNodeTitles[TitleIndex].MarkDirty();
 		}
+	}
+
+	/** */
+	FORCEINLINE FText& operator[](ENodeTitleType::Type TitleIndex) const
+	{
+		return GetCachedTitle(TitleIndex);
 	}
 
 private:

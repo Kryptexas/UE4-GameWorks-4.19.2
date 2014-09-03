@@ -40,6 +40,7 @@ class UK2Node_GetInputAxisValue : public UK2Node_CallFunction
 	void Initialize(const FName AxisName);
 
 private:
-	/** Constructing FText strings can be costly, so we cache the node's title */
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
 };

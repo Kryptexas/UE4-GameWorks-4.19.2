@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_EditablePinBase.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_Event.generated.h"
 
 UCLASS(MinimalAPI)
@@ -79,5 +80,9 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	 *		Calling - whether this function is being called ("sending") or showing implementation ("receiving"). Determined whether we output "Replicated To Server" or "Replicated From Client".
 	 */
 	static FString GetLocalizedNetString(uint32 NetFlags, bool Calling);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
 };
 

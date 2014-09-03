@@ -3,6 +3,7 @@
 #pragma once
 #include "AnimGraphNode_BlendListBase.h"
 #include "Animation/AnimNode_BlendListByEnum.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_BlendListByEnum.generated.h"
 
 UCLASS(MinimalAPI)
@@ -53,4 +54,8 @@ protected:
 
 	// Gets information about the specified pin.  If both bIsPosePin and bIsTimePin are false, the index is meaningless
 	static void GetPinInformation(const FString& InPinName, int32& Out_PinIndex, bool& Out_bIsPosePin, bool& Out_bIsTimePin);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

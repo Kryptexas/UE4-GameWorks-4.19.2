@@ -194,10 +194,14 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 
 FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (CachedNodeTitle.IsOutOfDate())
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("BreakNullStruct_Title", "Break <unknown struct>");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
+		Args.Add(TEXT("StructName"), FText::FromString(StructType->GetName()));
 
 		// FText::Format() is slow, so we cache this to save on performance
 		CachedNodeTitle = FText::Format(LOCTEXT("BreakNodeTitle", "Break {StructName}"), Args);
@@ -207,10 +211,19 @@ FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FText UK2Node_BreakStruct::GetTooltipText() const
 {
-	return FText::Format(
-		LOCTEXT("MakeStruct_Tooltip", "Adds a node that breaks a '{0}' into its member fields"),
-		StructType ? FText::FromName(StructType->GetFName()) : FText::GetEmpty()
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("BreakNullStruct_Tooltip", "Adds a node that breaks an '<unknown struct>' into its member fields");
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(
+			LOCTEXT("BreakStruct_Tooltip", "Adds a node that breaks a '{0}' into its member fields"),
+			FText::FromName(StructType->GetFName())
 		);
+	}
+	return CachedTooltip;
 }
 
 void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
