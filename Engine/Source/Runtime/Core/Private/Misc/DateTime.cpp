@@ -1,9 +1,5 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DateTime.cpp: Implements the FDateTime class.
-=============================================================================*/
-
 #include "Core.h"
 
 
@@ -49,15 +45,6 @@ FDateTime::FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minu
 		+ Minute * ETimespan::TicksPerMinute
 		+ Second * ETimespan::TicksPerSecond
 		+ Millisecond * ETimespan::TicksPerMillisecond;
-}
-
-
-/* FDateTime friend operators
- *****************************************************************************/
-
-FArchive& operator<<( FArchive& Ar, FDateTime& DateTime )
-{
-	return Ar << DateTime.Ticks;
 }
 
 
@@ -176,6 +163,14 @@ bool FDateTime::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* 
 	}
 
 	Buffer += 19;
+
+	return true;
+}
+
+
+bool FDateTime::Serialize( FArchive& Ar )
+{
+	Ar << *this;
 
 	return true;
 }
@@ -452,4 +447,13 @@ FDateTime FDateTime::UtcNow( )
 	FPlatformTime::UtcTime(Year, Month, DayOfWeek, Day, Hour, Minute, Second, Millisecond);
 
 	return FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond);
+}
+
+
+/* FDateTime friend functions
+ *****************************************************************************/
+
+FArchive& operator<<( FArchive& Ar, FDateTime& DateTime )
+{
+	return Ar << DateTime.Ticks;
 }

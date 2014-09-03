@@ -1,14 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DateTime.h: Declares the FDateTime class.
-=============================================================================*/
-
 #pragma once
 
 
-class UObject;
+class FArchive;
 class FOutputDevice;
+class UObject;
 
 
 namespace EDayOfWeek
@@ -236,7 +233,7 @@ public:
 public:
 
 	/**
-	 * Exports the DateTime value to a string.
+	 * Exports the date and time value to a string.
 	 *
 	 * @param ValueStr Will hold the string value.
 	 * @param DefaultValue The default value.
@@ -423,7 +420,7 @@ public:
 	CORE_API int32 GetYear( ) const;
 
 	/**
-	 * Imports the DateTime value from a text buffer.
+	 * Imports a date and time value from a text buffer.
 	 *
 	 * @param Buffer The text buffer to import from.
 	 * @param PortFlags Not used.
@@ -455,6 +452,14 @@ public:
 	{
 		return (GetHour() < 12);
 	}
+
+	/**
+	 * Serializes this date and time from or into the specified archive.
+	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @return true on success, false otherwise.
+	 */
+	CORE_API bool Serialize( FArchive& Ar );
 
 	/**
 	 * Returns the ISO-8601 string representation of the FDateTime.
@@ -637,8 +642,6 @@ public:
 
 public:
 
-	friend class UObject;
-
 	/**
 	 * Serializes the given date and time from or into the specified archive.
 	 *
@@ -673,7 +676,7 @@ protected:
 	 */
 	static const int32 DaysToMonth[];
 
-public://private:
+private:
 
 	/** Holds the ticks in 100 nanoseconds resolution since January 1, 0001 A.D. */
 	int64 Ticks;

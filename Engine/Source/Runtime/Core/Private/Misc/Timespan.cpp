@@ -1,14 +1,33 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Timespan.cpp: Implements the FTimespan class.
-=============================================================================*/
-
 #include "Core.h"
 
 
 /* FTimespan interface
  *****************************************************************************/
+
+bool FTimespan::ExportTextItem( FString& ValueStr, FTimespan const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
+{
+	ValueStr += ToString(TEXT("%N%d.%h:%m:%s.%f"));
+
+	return true;
+}
+
+
+bool FTimespan::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText )
+{
+	// @todo gmp: implement FTimespan::ImportTextItem
+	return false;
+}
+
+
+bool FTimespan::Serialize( FArchive& Ar )
+{
+	Ar << *this;
+
+	return true;
+}
+
 
 FString FTimespan::ToString( ) const
 {
@@ -110,7 +129,6 @@ bool FTimespan::Parse( const FString& TimespanString, FTimespan& OutTimespan )
 	TokenString.ReplaceInline(TEXT("-"), TEXT(":"));
 
 	TArray<FString> Tokens;
-
 	TokenString.ParseIntoArray(&Tokens, TEXT(":"), true);
 
 	if (Tokens.Num() == 4)
@@ -149,7 +167,6 @@ FArchive& operator<<( FArchive& Ar, FTimespan& Timespan )
 void FTimespan::Assign( int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds )
 {
 	int64 totalms = 1000 * (60 * 60 * 24 * (int64)Days + 60 * 60 * (int64)Hours + 60 * (int64)Minutes + (int64)Seconds) + (int64)Milliseconds;
-
 	check((totalms >= MinValue().GetTotalMilliseconds()) && (totalms <= MaxValue().GetTotalMilliseconds()));
 
 	Ticks = totalms * ETimespan::TicksPerMillisecond;

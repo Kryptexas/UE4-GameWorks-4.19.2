@@ -234,12 +234,28 @@ struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase
 {
 	enum 
 	{
+		WithCopy = true,
 		WithExportTextItem = true,
 		WithImportTextItem = true,
+		WithSerializer = true,
 		WithZeroConstructor = true,
 	};
 };
 IMPLEMENT_STRUCT(DateTime);
+
+template<>
+struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase
+{
+	enum 
+	{
+		WithCopy = true,
+		WithExportTextItem = true,
+		WithImportTextItem = false, // @todo gmp: implement FTimespan::ImportTextItem
+		WithSerializer = true,
+		WithZeroConstructor = true,
+	};
+};
+IMPLEMENT_STRUCT(Timespan);
 
 IMPLEMENT_STRUCT(StringAssetReference);
 

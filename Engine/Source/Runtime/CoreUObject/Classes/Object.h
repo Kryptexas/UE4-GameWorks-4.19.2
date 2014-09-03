@@ -677,7 +677,6 @@ public:
 USTRUCT(immutable, noexport, BlueprintType)
 struct FDateTime
 {
-	UPROPERTY()
 	int64 Ticks;
 };
 
@@ -687,7 +686,6 @@ struct FDateTime
 USTRUCT(immutable, noexport, BlueprintType)
 struct FTimespan
 {
-	UPROPERTY()
 	int64 Ticks;
 };
 
