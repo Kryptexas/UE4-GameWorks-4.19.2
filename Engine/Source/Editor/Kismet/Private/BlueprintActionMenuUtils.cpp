@@ -28,7 +28,7 @@ namespace BlueprintActionMenuUtilsImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
-	static bool IsUnBoundSpawner(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction);
+	static bool IsUnBoundSpawner(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * 
@@ -36,17 +36,17 @@ namespace BlueprintActionMenuUtilsImpl
 	 * @param  ClassSet	
 	 * @return 
 	 */
-	static UClass* FinCommonBaseClass(TArray<UClass*> const& ClassSet);
+	static UClass* FindCommonBaseClass(TArray<UClass*> const& ClassSet);
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionMenuUtilsImpl::IsUnBoundSpawner(FBlueprintActionFilter const& /*Filter*/, UBlueprintNodeSpawner const* BlueprintAction)
+static bool BlueprintActionMenuUtilsImpl::IsUnBoundSpawner(FBlueprintActionFilter const& /*Filter*/, FBlueprintActionInfo& BlueprintAction)
 {
-	return !BlueprintAction->IsBindingSet();
+	return !BlueprintAction.NodeSpawner->IsBindingSet();
 }
 
 //------------------------------------------------------------------------------
-static UClass* BlueprintActionMenuUtilsImpl::FinCommonBaseClass(TArray<UClass*> const& ClassSet)
+static UClass* BlueprintActionMenuUtilsImpl::FindCommonBaseClass(TArray<UClass*> const& ClassSet)
 {
 	UClass* CommonClass = UObject::StaticClass();
 	if (ClassSet.Num() > 0)
@@ -114,14 +114,14 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	ComponentsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
 	ComponentsFilter.PermittedNodeTypes.Add(UK2Node_ComponentBoundEvent::StaticClass());
 	// only want bound actions for this menu section
-	ComponentsFilter.AddIsFilteredTest(FBlueprintActionFilter::FIsFilteredDelegate::CreateStatic(IsUnBoundSpawner));
+	ComponentsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
 
 	FBlueprintActionFilter LevelActorsFilter;
 	LevelActorsFilter.Context = Context;
 	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
 	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_ActorBoundEvent::StaticClass());
 	// only want bound actions for this menu section
-	LevelActorsFilter.AddIsFilteredTest(FBlueprintActionFilter::FIsFilteredDelegate::CreateStatic(IsUnBoundSpawner));
+	LevelActorsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
 
 	// make sure the bound menu sections have the proper OwnerClasses specified
 	for (UObject* Selection : Context.SelectedObjects)
@@ -196,7 +196,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	{
 		// since we're consolidating all the bound actions, then we have to pick 
 		// one common base class to filter by
-		UClass* CommonClass = FinCommonBaseClass(LevelActorsFilter.TargetClasses);
+		UClass* CommonClass = FindCommonBaseClass(LevelActorsFilter.TargetClasses);
 		LevelActorsFilter.TargetClasses.Empty();
 		LevelActorsFilter.TargetClasses.Add(CommonClass);
 

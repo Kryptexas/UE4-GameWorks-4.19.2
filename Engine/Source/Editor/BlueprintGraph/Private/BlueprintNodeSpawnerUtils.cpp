@@ -9,33 +9,6 @@
 #include "BlueprintComponentNodeSpawner.h"
 #include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintDelegateNodeSpawner.h"
- 
-//------------------------------------------------------------------------------
-UClass* FBlueprintNodeSpawnerUtils::GetAssociatedClass(UBlueprintNodeSpawner const* BlueprintAction)
-{
-	UClass* ActionClass = BlueprintAction->NodeClass;
-	
-	if (UField const* AssociatedField = GetAssociatedField(BlueprintAction))
-	{
-		ActionClass = AssociatedField->GetOwnerClass();
-	}
-	else if (UBlueprintComponentNodeSpawner const* ComponentSpawner = Cast<UBlueprintComponentNodeSpawner>(BlueprintAction))
-	{
-		ActionClass = ComponentSpawner->GetComponentClass();
-	}
-	else if (UBlueprintVariableNodeSpawner const* VarSpawner = Cast<UBlueprintVariableNodeSpawner>(BlueprintAction))
-	{
-		UObject const* VarOuter = VarSpawner->GetVarOuter();
-		if (VarSpawner->IsLocalVariable())
-		{
-			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(VarOuter));
-			ActionClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
-		}
-		// else, should have been caught in GetAssociatedField()
-	}
-	
-	return ActionClass;
-}
 
 //------------------------------------------------------------------------------
 UField const* FBlueprintNodeSpawnerUtils::GetAssociatedField(UBlueprintNodeSpawner const* BlueprintAction)
