@@ -18,6 +18,7 @@
 #include "DeferredShadingRenderer.h"
 #include "SceneUtils.h"
 #include "DistanceFieldLightingShared.h"
+#include "PostProcess/PostProcessing.h"
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("r.EarlyZPass"),
