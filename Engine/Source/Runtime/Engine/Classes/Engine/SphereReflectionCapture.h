@@ -1,23 +1,20 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/**
- * 
- *
- */
-
 #pragma once
 #include "SphereReflectionCapture.generated.h"
 
-//
-// Forward declarations.
-//
 class UDrawSphereComponent;
-UCLASS(hidecategories=(Collision, Attachment, Actor), MinimalAPI)
+
+/** 
+ *	Actor used to capture the scene for reflection in a sphere shape 
+ *	@see https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/Reflections/1_4
+ */
+UCLASS(hidecategories = (Collision, Attachment, Actor), MinimalAPI)
 class ASphereReflectionCapture : public AReflectionCapture
 {
 	GENERATED_UCLASS_BODY()
 
-	// Reference to the draw capture radius component
+	/** Sphere component used to visualize the capture radius */
 	UPROPERTY()
 	TSubobjectPtr<UDrawSphereComponent> DrawCaptureRadius;
 

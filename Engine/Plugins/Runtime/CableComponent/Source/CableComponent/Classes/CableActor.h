@@ -4,11 +4,13 @@
 
 #include "CableActor.generated.h"
 
+/** An actor that renders a simulated cable */
 UCLASS(hidecategories=(Input,Collision,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"))
 class ACableActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Cable component that performs simulation and rendering */
 	UPROPERTY(Category=Cable, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCableComponent> CableComponent;
 };

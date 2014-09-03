@@ -5,6 +5,7 @@
 #include "Engine/TriggerBase.h"
 #include "TriggerCapsule.generated.h"
 
+/** A capsule shaped trigger, used to generate overlap events in the level */
 UCLASS(MinimalAPI)
 class ATriggerCapsule : public ATriggerBase
 {

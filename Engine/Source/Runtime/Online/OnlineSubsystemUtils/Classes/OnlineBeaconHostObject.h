@@ -16,7 +16,7 @@ class UNetConnection;
  * By defining a beacon type and implementing the ability to spawn unique AOnlineBeaconClients, any two instances of the engine
  * can communicate with each other without be officially connecting through normal Unreal networking
  */
-UCLASS(transient, config=Engine)
+UCLASS(transient, config=Engine, notplaceable)
 class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHostObject : public AActor
 {
 	GENERATED_UCLASS_BODY()

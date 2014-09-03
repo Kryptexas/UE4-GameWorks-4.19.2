@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*
- * CameraActor
- */
 
 #pragma once
 #include "CameraActor.generated.h"
 
+/** 
+ * A camera that can be placed in a level.
+ */
 UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, Blueprintable)
 class ACameraActor : public AActor
 {
@@ -14,12 +14,12 @@ class ACameraActor : public AActor
 
 private:
 
-	/* Specifies which player controller, if any, should automatically use this Camera when the controller is active. */
+	/** Specifies which player controller, if any, should automatically use this Camera when the controller is active. */
 	UPROPERTY(Category="AutoPlayerActivation", EditAnywhere)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoActivateForPlayer;
 
 public:
-	// The camera component for this camera
+	/** The camera component for this camera */
 	UPROPERTY(Category=CameraActor, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCameraComponent> CameraComponent;
 

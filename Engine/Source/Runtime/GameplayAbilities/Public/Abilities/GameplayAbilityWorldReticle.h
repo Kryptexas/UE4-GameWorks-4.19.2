@@ -5,7 +5,7 @@
 
 class AGameplayAbilityTargetActor;
 
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityWorldReticle : public AActor
 {
 	GENERATED_UCLASS_BODY()

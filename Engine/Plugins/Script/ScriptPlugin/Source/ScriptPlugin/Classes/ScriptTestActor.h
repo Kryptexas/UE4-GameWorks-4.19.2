@@ -5,7 +5,7 @@
 /**
 * Test Actor. To be removed at some point.
 */
-UCLASS(BlueprintType, MinimalAPI, EarlyAccessPreview)
+UCLASS(BlueprintType, MinimalAPI, EarlyAccessPreview, notplaceable)
 class AScriptTestActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

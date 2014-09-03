@@ -1,25 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-// Base ambient sound actor
-
 #pragma once
 #include "AmbientSound.generated.h"
 
+/** A sound actor that can be placed in a level */
 UCLASS(AutoExpandCategories=Audio, ClassGroup=Sounds, MinimalAPI, hidecategories(Collision, Input, Game), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
 class AAmbientSound : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Should the audio component automatically play on load? */
 	UPROPERTY()
 	uint32 bAutoPlay_DEPRECATED:1;
 
-	/** Audio component to play */
+	/** Audio component that handles sound playing */
 	UPROPERTY(Category=Sound, VisibleAnywhere, BlueprintReadOnly,meta=(ExposeFunctionCategories="Sound,Audio,Audio|Components|Audio"))
 	TSubobjectPtr<class UAudioComponent> AudioComponent;
 	
-	/** Dummy sound node property to force instantiation of subobject.	*/
 	UPROPERTY(instanced)
 	class UDEPRECATED_SoundNodeAmbient* SoundNodeInstance_DEPRECATED;
 

@@ -1,13 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/**
- * 
- *
- */
-
 #pragma once
 #include "BoxReflectionCapture.generated.h"
 
+/** 
+ *	Actor used to capture the scene for reflection in a box shape 
+ *	@see https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/Reflections/1_3/index.html
+ */
 UCLASS(hidecategories=(Collision, Attachment, Actor), MinimalAPI)
 class ABoxReflectionCapture : public AReflectionCapture
 {

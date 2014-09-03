@@ -12,7 +12,7 @@ class AGameplayDebuggingHUDComponent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, class AActor*);
 
-UCLASS(config = Engine, NotBlueprintable, Transient, hidecategories = Actor)
+UCLASS(config = Engine, NotBlueprintable, Transient, hidecategories = Actor, notplaceable)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 {
 	GENERATED_UCLASS_BODY()

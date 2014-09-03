@@ -1,13 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// Volume:  a bounding volume
-//=============================================================================
-
 #pragma once
 #include "Engine/Brush.h"
 #include "Volume.generated.h"
 
+/** 
+ *	An editable 3D volume placed in a level. Different types of volumes perform different functions
+ *	@see https://docs.unrealengine.com/latest/INT/Engine/Actors/Volumes
+ */
 UCLASS(MinimalAPI, showcategories=Collision, hidecategories=(Brush, Physics), abstract, ConversionRoot)
 class AVolume : public ABrush
 {

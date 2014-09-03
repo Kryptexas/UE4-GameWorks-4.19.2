@@ -13,7 +13,7 @@
  */
 
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayCueActor : public AActor
 {
 	// Defines how a GameplayCue is translated into viewable components

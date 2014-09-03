@@ -6,7 +6,7 @@
 #include "GameplayCueView.h"
 #include "AbilitySystemTestPawn.generated.h"
 
-UCLASS(Blueprintable, BlueprintType)
+UCLASS(Blueprintable, BlueprintType, notplaceable)
 class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public IGameplayCueInterface, public IAbilitySystemInterface
 {
 	GENERATED_UCLASS_BODY()

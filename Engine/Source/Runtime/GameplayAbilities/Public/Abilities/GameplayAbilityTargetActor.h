@@ -5,7 +5,7 @@
 #include "GameplayAbilityTargetActor.generated.h"
 
 
-UCLASS(Blueprintable, abstract)
+UCLASS(Blueprintable, abstract, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

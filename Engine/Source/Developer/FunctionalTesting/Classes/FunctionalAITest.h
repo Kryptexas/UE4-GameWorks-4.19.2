@@ -94,7 +94,7 @@ struct FAITestSpawnSet
 	{}
 };
 
-UCLASS(Blueprintable, MinimalAPI)
+UCLASS(Blueprintable, MinimalAPI, notplaceable)
 class AFunctionalAITest : public AFunctionalTest
 {
 	GENERATED_UCLASS_BODY()

@@ -28,6 +28,10 @@ ActorFactory.cpp:
 
 #include "VectorField/VectorField.h"
 
+#include "Engine/TriggerBox.h"
+#include "Engine/TriggerSphere.h"
+#include "Engine/TriggerCapsule.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
