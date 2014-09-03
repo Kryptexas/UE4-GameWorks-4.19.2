@@ -178,6 +178,9 @@ public:
 	/** determines if the body is currently welded */
 	uint32 bWelded : 1;
 
+	/** needed to distinguish between the root wanting hit events, and the root turning hit events on for one of its welded children */
+	uint32 bWeldedNotifyRigidBodyCollision : 1;
+
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bSimulatePhysics"))
 	uint32 bStartAwake:1;
