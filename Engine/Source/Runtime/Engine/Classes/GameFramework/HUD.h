@@ -399,12 +399,12 @@ public:
 	void DrawMaterialSimple(UMaterialInterface* Material, float ScreenX, float ScreenY, float ScreenW, float ScreenH, float Scale=1.f, bool bScalePosition=false);
 
 	/** Transforms a 3D world-space vector into 2D screen coordinates */
-	UFUNCTION(BlueprintPure, Category=HUD)
-	FVector Project(FVector Location);
+	UFUNCTION(BlueprintCallable, Category = HUD)
+	FVector Project(FVector Location) const;
 	
 	/** Transforms a 2D screen location into a 3D location and direction */
-	UFUNCTION(BlueprintPure, Category=HUD)
-	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection);
+	UFUNCTION(BlueprintCallable, Category = HUD)
+	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection) const;
 
 
 	/**

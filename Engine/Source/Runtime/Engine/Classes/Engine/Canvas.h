@@ -348,7 +348,7 @@ public:
 	static void WrapString( FTextSizingParameters& Parameters, const float InCurX, const TCHAR* const pText, TArray<FWrappedStringElement>& out_Lines, FWordWrapper::FWrappedLineData* const OutWrappedLineData = nullptr);
 
 	/** Transforms a 3D world-space vector into 2D screen coordinates. */
-	FVector Project(FVector Location);
+	FVector Project(FVector Location) const;
 
 	/** 
 	 * Transforms 2D screen coordinates into a 3D world-space origin and direction.
@@ -356,7 +356,7 @@ public:
 	 * @param WorldOrigin (out) - world-space origin vector
 	 * @param WorldDirection (out) - world-space direction vector
 	 */
-	void Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection);
+	void Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection) const;
 
 	/**
 	 * Calculate the length of a string, taking text wrapping into account.

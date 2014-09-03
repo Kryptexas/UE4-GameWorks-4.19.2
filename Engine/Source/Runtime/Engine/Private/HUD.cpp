@@ -625,7 +625,7 @@ void AHUD::DrawTextureSimple(UTexture* Texture, float ScreenX, float ScreenY, fl
 	}
 }
 
-FVector AHUD::Project(FVector Location)
+FVector AHUD::Project(FVector Location) const
 {
 	if (IsCanvasValid_WarnIfNot())
 	{
@@ -634,7 +634,7 @@ FVector AHUD::Project(FVector Location)
 	return FVector(0,0,0);
 }
 
-void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection)
+void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection) const
 {
 	WorldPosition = WorldDirection = FVector(0,0,0);
 	if (IsCanvasValid_WarnIfNot())

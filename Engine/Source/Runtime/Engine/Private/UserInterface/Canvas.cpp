@@ -1491,7 +1491,7 @@ void UCanvas::TextSize(UFont* InFont, const FString& InText, float& XL, float& Y
 	YL = YLi;
 }
 
-FVector UCanvas::Project( FVector Location )
+FVector UCanvas::Project(FVector Location) const
 {
 	FPlane V(0,0,0,0);
 
@@ -1514,7 +1514,7 @@ FVector UCanvas::Project( FVector Location )
 	return resultVec;
 }
 
-void UCanvas::Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection)
+void UCanvas::Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection) const
 {
 	if (SceneView != NULL)
 	{
