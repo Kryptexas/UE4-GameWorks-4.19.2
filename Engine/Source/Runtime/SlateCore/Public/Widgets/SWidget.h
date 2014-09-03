@@ -73,6 +73,7 @@ public:
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
 		const TAttribute<FSlateRenderTransform>& InTransform,
+		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
@@ -82,10 +83,11 @@ public:
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
 		const TAttribute<FSlateRenderTransform>& InTransform,
+		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
 	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTag, InMetaData);
+		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTransformPivot, InTag, InMetaData);
 	}
 
 	//
@@ -565,14 +567,28 @@ public:
 		Visibility = InVisibility;
 	}
 
+	/** @return the render transform of the widget. */
 	const FSlateRenderTransform& GetRenderTransform() const
 	{
 		return RenderTransform.Get();
 	}
 
+	/** @param InTransform the render transform to set for the widget (tranforms from widget's local space). */
 	void SetRenderTransform( TAttribute<FSlateRenderTransform> InTransform )
 	{
 		RenderTransform = InTransform;
+	}
+
+	/** @return the pivot point of the render transform. */
+	const FVector2D& GetRenderTransformPivot() const
+	{
+		return RenderTransformPivot.Get();
+	}
+
+	/** @param InTransformPivot Sets the pivot point of the widget's render transform (in normalized local space). */
+	void SetRenderTransformPivot( TAttribute<FVector2D> InTransformPivot )
+	{
+		RenderTransformPivot = InTransformPivot;
 	}
 
 	/**
@@ -780,6 +796,9 @@ protected:
 
 	/** Render transform of this widget */
 	TAttribute< FSlateRenderTransform > RenderTransform;
+
+	/** Render transform pivot of this widget (in normalized local space) */
+	TAttribute< FVector2D > RenderTransformPivot;
 private:
 
 	/**

@@ -39,11 +39,22 @@ FGeometry::FGeometry(const FVector2D& OffsetFromParent, const FVector2D& ParentA
 	const_cast<FVector2D&>(Position) = LocalLayoutTransform.GetTranslation();
 }
 
-FGeometry::FGeometry(const FVector2D& InLocalSize, const FSlateLayoutTransform& InLocalLayoutTransform, const FSlateRenderTransform& InLocalRenderTransform, const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, const FSlateRenderTransform& ParentAccumulatedRenderTransform) 
+FGeometry::FGeometry(const FVector2D& InLocalSize, const FSlateLayoutTransform& InLocalLayoutTransform, const FSlateRenderTransform& InLocalRenderTransform, const FVector2D& InLocalRenderTransformPivot, const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, const FSlateRenderTransform& ParentAccumulatedRenderTransform) 
 	: Size(InLocalSize)
 	, Scale(1.0f)
 	, AbsolutePosition(0.0f, 0.0f)
-	, AccumulatedRenderTransform(Concatenate(InLocalRenderTransform, InLocalLayoutTransform, ParentAccumulatedRenderTransform))
+	, AccumulatedRenderTransform(
+		Concatenate(
+			// convert the pivot to local space and make it the origin
+			Inverse(TransformPoint(FScale2D(InLocalSize), InLocalRenderTransformPivot)), 
+			// apply the render transform in local space centered around the pivot
+			InLocalRenderTransform, 
+			// translate the pivot point back.
+			TransformPoint(FScale2D(InLocalSize), InLocalRenderTransformPivot), 
+			// apply the layout transform next.
+			InLocalLayoutTransform, 
+			// finally apply the parent accumulated transform, which takes us to the root.
+			ParentAccumulatedRenderTransform))
 {
 	FSlateLayoutTransform AccumulatedLayoutTransform = Concatenate(InLocalLayoutTransform, ParentAccumulatedLayoutTransform);
 	// HACK to allow us to make FGeometry public members immutable to catch misuse.
@@ -78,9 +89,9 @@ FGeometry FGeometry::MakeRoot(const FVector2D& LocalSize, const FSlateLayoutTran
 	return FGeometry(LocalSize, LayoutTransform, FSlateLayoutTransform(), FSlateRenderTransform());
 }
 
-FGeometry FGeometry::MakeChild(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform) const
+FGeometry FGeometry::MakeChild(const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform, const FVector2D& RenderTransformPivot) const
 {
-	return FGeometry(LocalSize, LayoutTransform, RenderTransform, GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
+	return FGeometry(LocalSize, LayoutTransform, RenderTransform, RenderTransformPivot, GetAccumulatedLayoutTransform(), GetAccumulatedRenderTransform());
 }
 
 FGeometry FGeometry::MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform ) const
@@ -95,7 +106,7 @@ FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, con
 
 FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
 {
-	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform()));
+	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform(), ChildWidget->GetRenderTransformPivot()));
 }
 
 FGeometry FGeometry::MakeChild( const FVector2D& ChildOffset, const FVector2D& LocalSize, float LocalScale ) const
@@ -109,7 +120,7 @@ FArrangedWidget FGeometry::MakeChild( const TSharedRef<SWidget>& ChildWidget, co
 {
 	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
 	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
-	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)), ChildWidget->GetRenderTransform()));
+	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)), ChildWidget->GetRenderTransform(), ChildWidget->GetRenderTransformPivot()));
 }
 
 FPaintGeometry FGeometry::ToPaintGeometry() const

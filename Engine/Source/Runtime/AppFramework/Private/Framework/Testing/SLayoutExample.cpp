@@ -397,10 +397,12 @@ public:
 
 APPFRAMEWORK_API TSharedRef<SWidget> MakeLayoutExample()
 {
-	extern FSlateRenderTransform GetRenderTransform();
-	return 
+	extern FSlateRenderTransform GetTestRenderTransform();
+	extern FVector2D GetTestRenderTransformPivot();
+	return
 		SNew(SExampleLayout)
-		.RenderTransform_Static(&GetRenderTransform);
+		.RenderTransform_Static(&GetTestRenderTransform)
+		.RenderTransformPivot_Static(&GetTestRenderTransformPivot);
 }
 
 #undef LOCTEXT_NAMESPACE

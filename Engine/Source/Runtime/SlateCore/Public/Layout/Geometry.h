@@ -56,6 +56,7 @@ private:
 	 * @param InLocalSize						The size of the geometry in Local Space.
 	 * @param InLocalLayoutTransform			A layout transform from local space to the parent geoemtry's local space.
 	 * @param InLocalRenderTransform			A render-only transform in local space that will be prepended to the LocalLayoutTransform when rendering.
+	 * @param InLocalRenderTransformPivot		Pivot in normalizes local space for the local render transform.
 	 * @param ParentAccumulatedLayoutTransform	The accumulated layout transform of the parent widget. AccumulatedLayoutTransform = Concat(LocalLayoutTransform, ParentAccumulatedLayoutTransform).
 	 * @param ParentAccumulatedRenderTransform	The accumulated render transform of the parent widget. AccumulatedRenderTransform = Concat(LocalRenderTransform, LocalLayoutTransform, ParentAccumulatedRenderTransform).
 	 */
@@ -63,6 +64,7 @@ private:
 		const FVector2D& InLocalSize, 
 		const FSlateLayoutTransform& InLocalLayoutTransform, 
 		const FSlateRenderTransform& InLocalRenderTransform, 
+		const FVector2D& InLocalRenderTransformPivot, 
 		const FSlateLayoutTransform& ParentAccumulatedLayoutTransform, 
 		const FSlateRenderTransform& ParentAccumulatedRenderTransform);
 
@@ -127,10 +129,11 @@ public:
 	 * @param LocalSize			The size of the child geometry in local space.
 	 * @param LayoutTransform	Layout transform of the new child relative to this Geometry. Goes from the child's layout space to the this widget's layout space.
 	 * @param RenderTransform	Render-only transform of the new child that is applied before the layout transform for rendering purposes only.
+	 * @param RenderTransformPivot	Pivot in normalized local space of the Render transform.
 	 *
 	 * @return					The new child geometry.
 	 */
-	FGeometry MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform ) const;
+	FGeometry MakeChild( const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform, const FVector2D& RenderTransformPivot ) const;
 
 	/**
 	 * Create a child geometry relative to this one with a given local space size, layout transform, and identity render transform.

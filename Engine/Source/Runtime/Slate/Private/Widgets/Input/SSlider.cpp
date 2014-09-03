@@ -64,7 +64,7 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 		SliderGeometry = AllottedGeometry.MakeChild(
 			FVector2D(AllottedWidth, AllottedHeight), 
 			FSlateLayoutTransform(), 
-			RenderTransform);
+			RenderTransform, FVector2D::ZeroVector);
 		// The clipping rect is already given properly in window space. But we do not support layout rotations, so our local space rendering cannot
 		// get the clipping rect into local space properly for the local space clipping we do in the shader.
 		// Thus, we transform the clip coords into local space manually, UNDO the render transform so it will clip properly,

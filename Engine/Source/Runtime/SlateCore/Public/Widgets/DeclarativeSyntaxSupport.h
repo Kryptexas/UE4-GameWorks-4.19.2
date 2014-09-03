@@ -1009,7 +1009,8 @@ struct TSlateBaseNamedArgs
 	, _Cursor( TOptional<EMouseCursor::Type>() )
 	, _IsEnabled( true )
 	, _Visibility( EVisibility::Visible )
-	, _RenderTransform()
+	, _RenderTransform( FSlateRenderTransform() )
+	, _RenderTransformPivot( FVector2D::ZeroVector )
 	{
 	}
 
@@ -1048,6 +1049,7 @@ struct TSlateBaseNamedArgs
 	SLATE_ATTRIBUTE( bool, IsEnabled )
 	SLATE_ATTRIBUTE( EVisibility, Visibility )
 	SLATE_ATTRIBUTE( FSlateRenderTransform, RenderTransform )
+	SLATE_ATTRIBUTE( FVector2D, RenderTransformPivot )
 	SLATE_ARGUMENT( FName, Tag )
 
 	TArray<TSharedRef<ISlateMetaData>> MetaData;
@@ -1310,6 +1312,7 @@ struct TDecl
 			InArgs._IsEnabled ,
 			InArgs._Visibility,
 			InArgs._RenderTransform,
+			InArgs._RenderTransformPivot,
 			InArgs._Tag,
 			InArgs.MetaData );
 

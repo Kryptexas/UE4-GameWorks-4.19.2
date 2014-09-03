@@ -17,7 +17,8 @@ SWidget::SWidget()
 	, Cursor( TOptional<EMouseCursor::Type>() )
 	, EnabledState( true )
 	, Visibility( EVisibility::Visible )
-	, RenderTransform()
+	, RenderTransform( FSlateRenderTransform() )
+	, RenderTransformPivot( FVector2D::ZeroVector )
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
 	, bToolTipForceFieldEnabled( false )
@@ -33,6 +34,7 @@ void SWidget::Construct(
 	const TAttribute<bool> & InEnabledState ,
 	const TAttribute<EVisibility> & InVisibility,
 	const TAttribute<FSlateRenderTransform>& InTransform,
+	const TAttribute<FVector2D>& InTransformPivot,
 	const FName& InTag,
 	const TArray<TSharedRef<ISlateMetaData>>& InMetaData
 )
@@ -57,6 +59,7 @@ void SWidget::Construct(
 	EnabledState = InEnabledState;
 	Visibility = InVisibility;
 	RenderTransform = InTransform;
+	RenderTransformPivot = InTransformPivot;
 	Tag = InTag;
 	MetaData = InMetaData;
 }

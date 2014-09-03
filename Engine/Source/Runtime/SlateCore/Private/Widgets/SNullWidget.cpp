@@ -25,6 +25,7 @@ public:
 			InArgs._IsEnabled,
 			InArgs._Visibility,
 			InArgs._RenderTransform,
+			InArgs._RenderTransformPivot,
 			InArgs._Tag,
 			InArgs.MetaData
 		);

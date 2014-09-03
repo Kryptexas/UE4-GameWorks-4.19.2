@@ -1100,10 +1100,12 @@ private:
  */
 TSharedRef<SWidget> MakeWidgetGallery()
 {
-	extern FSlateRenderTransform GetRenderTransform();
-	return 
+	extern FSlateRenderTransform GetTestRenderTransform();
+	extern FVector2D GetTestRenderTransformPivot();
+	return
 		SNew(SWidgetGallery)
-		.RenderTransform_Static(&GetRenderTransform);
+		.RenderTransform_Static(&GetTestRenderTransform)
+		.RenderTransformPivot_Static(&GetTestRenderTransformPivot);
 }
 
 

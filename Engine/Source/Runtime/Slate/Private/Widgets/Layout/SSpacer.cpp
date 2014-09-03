@@ -19,6 +19,7 @@ void SSpacer::Construct( const FArguments& InArgs )
 		InArgs._IsEnabled,
 		InArgs._Visibility,
 		InArgs._RenderTransform,
+		InArgs._RenderTransformPivot,
 		InArgs._Tag,
 		InArgs.MetaData);
 }

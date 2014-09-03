@@ -4331,9 +4331,14 @@ namespace
 /**
  * Global access here because we need other translation units to access this function.
  */
-FSlateRenderTransform GetRenderTransform()
+FSlateRenderTransform GetTestRenderTransform()
 {
-	return Concatenate(-Offset, Concatenate(Shear, Scale, Rot, Offset));
+	return TransformCast<FSlateRenderTransform>(Concatenate(Shear, Scale, Rot));
+}
+
+FVector2D GetTestRenderTransformPivot()
+{
+	return Offset;
 }
 
 void SRenderTransformManipulatorWidgetImpl::Construct(const FArguments& InArgs)
@@ -4344,7 +4349,8 @@ void SRenderTransformManipulatorWidgetImpl::Construct(const FArguments& InArgs)
 			+ SVerticalBox::Slot().Padding(4)
 				[
 					SAssignNew(ImageWidget, SImage)
-					.RenderTransform_Static(&::GetRenderTransform)
+					.RenderTransform_Static(&::GetTestRenderTransform)
+					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 					.Image(GetStyle().GetBrush("UE4Icon"))
 				]
 			+ SVerticalBox::Slot().AutoHeight().Padding(4)
@@ -4373,8 +4379,8 @@ void SRenderTransformManipulatorWidgetImpl::Construct(const FArguments& InArgs)
 					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
 						[
 							SNew(SSpinBox<float>)
-							.MinValue(-1000.0f)
-							.MaxValue(1000.0f)
+							.MinValue(-2.0f)
+							.MaxValue(2.0f)
 							.OnValueChanged_Static([](float val) { Offset.X = val; })
 							.Value_Static([] { return Offset.X; })
 						]
@@ -4389,8 +4395,8 @@ void SRenderTransformManipulatorWidgetImpl::Construct(const FArguments& InArgs)
 					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
 						[
 							SNew(SSpinBox<float>)
-							.MinValue(-1000.0f)
-							.MaxValue(1000.0f)
+							.MinValue(-2.0f)
+							.MaxValue(2.0f)
 							.OnValueChanged_Static([](float val) { Offset.Y = val; })
 							.Value_Static([] { return Offset.Y; })
 						]
@@ -4476,7 +4482,8 @@ static TSharedPtr<FTabManager> TestSuite1TabManager;
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 {
-	extern FSlateRenderTransform GetRenderTransform();
+	extern FSlateRenderTransform GetTestRenderTransform();
+	extern FVector2D GetTestRenderTransformPivot();
 	if (TabIdentifier == FName(TEXT("AnimationTestTab")))
 	{
 		return SNew(SDockTab)
@@ -4505,7 +4512,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			)
 		[
 			SNew(SVerticalBox)
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			+SVerticalBox::Slot()
 			[
 				SNew(SAnimTest)
@@ -4525,7 +4533,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		.Label( NSLOCTEXT("TestSuite1", "DocumentsTab", "Documents") )
 		[
 			SNew( SDocumentsTest, TabManagerRef )
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			.Tag("DocumentSpawner")
 		];
 	}
@@ -4554,7 +4563,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. Label( LOCTEXT("RichTextTestTab", "Rich Text") )
 			[
 				SNew( SRichTextTest )
-				.RenderTransform_Static(&GetRenderTransform)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 	else if ( TabIdentifier == FName( TEXT( "MultiLineEditTab" ) ) )
@@ -4567,7 +4577,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				#else
 				SNew( SSpacer )
 				#endif //WITH_FANCY_TEXT
-				.RenderTransform_Static(&GetRenderTransform)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 #endif //WITH_FANCY_TEXT
@@ -4578,7 +4589,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "EditableTextTestTabToolTip", "Switches to the Editable Text tab, where you can test the various inline text editing controls." ) )
 		[
 			SNew( STextEditTest )
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 #if WITH_FANCY_TEXT
@@ -4589,7 +4601,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "RichEditableTextTestTabToolTip", "Switches to the Rich Editable Text tab, where you can test the various rich editable text features." ) )
 			[
 				SNew( SRichTextEditTest )
-				.RenderTransform_Static(&GetRenderTransform)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 #endif //WITH_FANCY_TEXT
@@ -4599,7 +4612,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. Label( LOCTEXT("LayoutRoundingTab", "Layout Rounding") )
 		[
 			SNew( SLayoutRoundingTest )
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("ElementTestsTab")))
@@ -4609,7 +4623,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "ElementTestsTabToolTip", "Switches to the Element Tests tab, which allows you to view various rendering-related features of Slate." ) )
 		[
 			SNew( SElementTesting )
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("SplitterTestTab")))
@@ -4619,7 +4634,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "SplitterTestTabToolTip", "Switches to the Splitter Test tab, which you can use to test splitters." ) )
 		[
 			SNew( SSplitterTest )
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("MultiBoxTestTab")))
@@ -4629,7 +4645,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "MultiBoxTextTabToolTip", "Switches to the MultiBox tab, where you can test out MultiBoxes and MultiBlocks." ) )
 		[
 			SNew( SMultiBoxTest )
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("WidgetGalleryTab")))
@@ -4648,7 +4665,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "ColorPickerTestTabToolTip", "Switches to the Color Picker tab, where you can test out the color picker." ) )
 		[
 			SNew(SColorPickerTest)
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == "DPIScalingTest")
@@ -4656,7 +4674,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		return SNew(SDockTab)
 		[
 			SNew(SDPIScalingTest)
-			.RenderTransform_Static(&GetRenderTransform)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("NotificationListTestTab")))
@@ -4666,7 +4685,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			. ToolTipText( LOCTEXT( "NotificationListTestTabToolTip", "Switches to the Notification List tab, where you can test out the notification list." ) )
 			[
 				SNew(SNotificationListTest)
-				.RenderTransform_Static(&GetRenderTransform)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 	else if (TabIdentifier == FName("GridPanelTest"))
@@ -4674,7 +4694,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		return SNew(SDockTab)
 			[
 				SNew(SGridPanelTest)
-				.RenderTransform_Static(&GetRenderTransform)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 	else
