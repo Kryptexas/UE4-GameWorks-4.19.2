@@ -673,7 +673,7 @@ protected:
 	 */
 	static const int32 DaysToMonth[];
 
-private:
+public://private:
 
 	/** Holds the ticks in 100 nanoseconds resolution since January 1, 0001 A.D. */
 	int64 Ticks;
