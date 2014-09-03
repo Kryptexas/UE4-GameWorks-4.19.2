@@ -319,7 +319,10 @@ public:
 
 	/** Returns a list of loaded Blueprints that are dependent on the given Blueprint. */
 	static void GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints);
-	
+
+	/** Ensures, that CachedDependencies in BP are up to date */
+	static void EnsureCachedDependenciesUpToDate(UBlueprint* Blueprint);
+
 	/** returns if a graph is an intermediate build product */
 	static bool IsGraphIntermediate(const UEdGraph* Graph);
 

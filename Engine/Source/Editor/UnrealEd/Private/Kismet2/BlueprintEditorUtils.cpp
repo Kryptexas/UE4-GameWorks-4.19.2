@@ -2167,6 +2167,15 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* Blueprint, TSet
 	}
 }
 
+void FBlueprintEditorUtils::EnsureCachedDependenciesUpToDate(UBlueprint* Blueprint)
+{
+	if (Blueprint && !Blueprint->bCachedDependenciesUpToDate)
+	{
+		GatherDependencies(Blueprint, Blueprint->CachedDependencies);
+		Blueprint->bCachedDependenciesUpToDate = true;
+	}
+}
+
 void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints)
 {
 	DependentBlueprints.Empty();
@@ -2181,11 +2190,7 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 		UBlueprint* TestBP = (UBlueprint*) *ObjIt;
 		if (TestBP && !TestBP->HasAnyFlags(RF_PendingKill))
 		{
-			if (!TestBP->bCachedDependenciesUpToDate)
-			{
-				GatherDependencies(TestBP, TestBP->CachedDependencies);
-				TestBP->bCachedDependenciesUpToDate = true;
-			}
+			EnsureCachedDependenciesUpToDate(TestBP);
 
 			if (TestBP->CachedDependencies.Contains(Blueprint))
 			{
