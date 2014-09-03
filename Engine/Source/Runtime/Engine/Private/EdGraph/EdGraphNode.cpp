@@ -159,7 +159,8 @@ void UEdGraphNode::DestroyNode()
 
 const class UEdGraphSchema* UEdGraphNode::GetSchema() const
 {
-	return GetGraph()->GetSchema();
+	UEdGraph* ParentGraph = GetGraph();
+	return ParentGraph ? ParentGraph->GetSchema() : NULL;
 }
 
 bool UEdGraphNode::IsCompatibleWithGraph(UEdGraph const* Graph) const
