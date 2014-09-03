@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Guid.h: Declares the FGuid class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -201,12 +197,7 @@ public:
 	 * @return true on success, false otherwise.
 	 * @see ImportTextItem
 	 */
-	bool ExportTextItem( FString& ValueStr, FGuid const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const
-	{
-		ValueStr += ToString();
-
-		return true;
-	}
+	CORE_API bool ExportTextItem( FString& ValueStr, FGuid const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const;
 
 	/**
 	 * Imports the GUIDs value from a text buffer.
@@ -218,22 +209,7 @@ public:
 	 * @return true on success, false otherwise.
 	 * @see ExportTextItem
 	 */
-	bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText )
-	{
-		if (FPlatformString::Strlen(Buffer) < 32)
-		{
-			return false;
-		}
-
-		if (!ParseExact(FString(Buffer).Left(32), EGuidFormats::Digits, *this))
-		{
-			return false;
-		}
-
-		Buffer += 32;
-
-		return true;
-	}
+	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText );
 
 	/**
 	 * Checks whether this GUID is valid or not.
