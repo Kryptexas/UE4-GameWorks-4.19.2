@@ -22,7 +22,7 @@ namespace EFunctionalTestResult
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFunctionalTestEventSignature);
 DECLARE_DELEGATE_OneParam(FFunctionalTestDoneSignature, class AFunctionalTest*);
 
-UCLASS(Blueprintable, MinimalAPI, notplaceable)
+UCLASS(Blueprintable, MinimalAPI)
 class AFunctionalTest : public AActor
 {
 	GENERATED_UCLASS_BODY()
