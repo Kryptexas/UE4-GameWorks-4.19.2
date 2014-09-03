@@ -804,7 +804,7 @@ void FSpriteEditorViewportClient::ToggleShowSourceTexture()
 void FSpriteEditorViewportClient::ToggleShowMeshEdges()
 {
 	EngineShowFlags.MeshEdges = !EngineShowFlags.MeshEdges;
-	Invalidate();
+	Invalidate(); 
 }
 
 bool FSpriteEditorViewportClient::IsShowMeshEdgesChecked() const
@@ -876,7 +876,22 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 			ClearSelectionSet();
 		}
 
-		SelectionSet.Add(SelectedItemProxy->Data);
+		if (Event == EInputEvent::IE_DoubleClick)
+		{
+			// Double click to select a polygon
+			if (const FSpriteSelectedVertex* SelectedVertex = SelectedItemProxy->Data->CastSelectedVertex())
+			{
+				if (SelectedVertex->IsValidInEditor(GetSpriteBeingEdited(), IsInRenderingEditMode()))
+				{
+					SelectPolygon(SelectedVertex->PolygonIndex);
+				}
+			}
+		}
+		else
+		{
+			SelectionSet.Add(SelectedItemProxy->Data);
+		}
+
 		bHandled = true;
 	}
 // 	else if (HWidgetUtilProxy* PivotProxy = HitProxyCast<HWidgetUtilProxy>(HitProxy))
@@ -893,10 +908,10 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 // 	}
 	else
 	{
-		ClearSelectionSet();
-
-		if (CurrentMode == ESpriteEditorMode::EditSourceRegionMode)
+		if (IsInSourceRegionEditMode())
 		{
+			ClearSelectionSet();
+
 			if (Event == EInputEvent::IE_DoubleClick)
 			{
 				FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
@@ -939,6 +954,36 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 						}
 						bHandled = true;
 					}
+				}
+			}
+		}
+		else if (IsInRenderingEditMode() || IsInCollisionEditMode())
+		{
+			if (bIsCtrlKeyDown)
+			{
+				FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
+				UPaperSprite* Sprite = RenderSpriteComponent->GetSprite();
+				if (Sprite != nullptr)
+				{
+					FVector2D SpriteSpaceClickPoint = Sprite->ConvertWorldSpaceToTextureSpace(WorldPoint);
+
+					// find a polygon to add vert to
+					if (SelectionSet.Num() > 0)
+					{
+						TSharedPtr<FSelectedItem> SelectedItemPtr = *SelectionSet.CreateIterator();
+						if (const FSpriteSelectedVertex* SelectedVertex = SelectedItemPtr->CastSelectedVertex())
+						{
+							if (SelectedVertex->IsValidInEditor(Sprite, IsInRenderingEditMode()))
+							{
+								AddPointToGeometry(SpriteSpaceClickPoint, SelectedVertex->PolygonIndex);
+							}
+						}
+					}
+					else
+					{
+						AddPointToGeometry(SpriteSpaceClickPoint);
+					}
+					bHandled = true;
 				}
 			}
 		}
@@ -1198,25 +1243,78 @@ void FSpriteEditorViewportClient::FocusOnSprite()
 	FocusViewportOnBox(RenderSpriteComponent->Bounds.GetBox());
 }
 
+// Be sure to call this with polygonIndex and VertexIndex in descending order
+static void DeleteVertexInPolygonInternal(UPaperSprite* Sprite, FSpritePolygonCollection* Geometry, const int PolygonIndex, const int VertexIndex)
+{
+	if (Geometry->Polygons.IsValidIndex(PolygonIndex))
+	{
+		FSpritePolygon& Polygon = Geometry->Polygons[PolygonIndex];
+		if (Polygon.Vertices.IsValidIndex(VertexIndex))
+		{
+			Polygon.Vertices.RemoveAt(VertexIndex);
+			
+			// Delete polygon
+			if (Polygon.Vertices.Num() == 0)
+			{
+				Geometry->Polygons.RemoveAt(PolygonIndex);
+			}
+		}
+	}
+}
+
 void FSpriteEditorViewportClient::DeleteSelection()
 {
-	BeginTransaction(LOCTEXT("DeleteSelectionTransaction", "Delete Selection"));
+	// Make a set of polygon-vertices "pairs" to delete
+	TSet<int32> CompositeIndicesSet;
+	const int32 MaxVerticesPerPolygon = 4096;
 
-	//@TODO: Really need a proper data structure!!!
-	if (SelectionSet.Num() == 1)
+	UPaperSprite* Sprite = GetSpriteBeingEdited();
+	FSpritePolygonCollection* Geometry = GetGeometryBeingEdited();
+	for (TSharedPtr<FSelectedItem> SelectionIt : SelectionSet)
 	{
-		// Remove this item
-		TSharedPtr<FSelectedItem> SelectedItem = *SelectionSet.CreateIterator();
-		SelectedItem->Delete();
-		ClearSelectionSet();
+		if (const FSpriteSelectedVertex* SelectedVertex = SelectionIt->CastSelectedVertex())
+		{
+			bool bValidSelectedVertex = SelectedVertex->IsValidInEditor(Sprite, IsInRenderingEditMode());
+			if (bValidSelectedVertex && ensure(SelectedVertex->PolygonIndex < MAX_int32))
+			{
+				// ensure we're not going to overflow the pair hash above
+				if (ensure(SelectedVertex->VertexIndex < MaxVerticesPerPolygon))
+				{
+					CompositeIndicesSet.Add(SelectedVertex->PolygonIndex * MaxVerticesPerPolygon + SelectedVertex->VertexIndex);
+				}
+				if (SelectedVertex->IsA(FSelectionTypes::Edge)) // add the "next" point for the edge
+				{
+					int32 NextIndex = (SelectedVertex->VertexIndex + 1) % Geometry->Polygons[SelectedVertex->PolygonIndex].Vertices.Num();
+					if (ensure(NextIndex < MaxVerticesPerPolygon))
+					{
+						CompositeIndicesSet.Add(SelectedVertex->PolygonIndex * MaxVerticesPerPolygon + NextIndex);
+					}
+				}
+			}
+		}
+	}
+
+	if (CompositeIndicesSet.Num() > 0)
+	{
+		BeginTransaction(LOCTEXT("DeleteSelectionTransaction", "Delete Selection"));
+
+		// Must delete vertices and polygons in descending order to preserve index validity
+		TArray<int32> CompositeIndices = CompositeIndicesSet.Array();
+		CompositeIndices.Sort();
+		for (int32 SelectedCompositeIndex = CompositeIndices.Num() - 1; SelectedCompositeIndex >= 0; --SelectedCompositeIndex)
+		{
+			int32 CompositeIndex = CompositeIndices[SelectedCompositeIndex];
+			int32 PolygonIndex = CompositeIndex / MaxVerticesPerPolygon;
+			int32 VertexIndex = CompositeIndex % MaxVerticesPerPolygon;
+			DeleteVertexInPolygonInternal(Sprite, Geometry, PolygonIndex, VertexIndex);
+		}
+
+		Geometry->GeometryType = ESpritePolygonMode::FullyCustom;
 		bManipulationDirtiedSomething = true;
-	}
-	else
-	{
-		// Can't handle this without a better DS, as the indices will get screwed up
-	}
 
-	EndTransaction();
+		ClearSelectionSet();
+		EndTransaction();
+	}
 }
 
 void FSpriteEditorViewportClient::SplitEdge()
@@ -1256,9 +1354,13 @@ void FSpriteEditorViewportClient::AddPolygon()
 		const float Size = 10.0f;
 
 		new (NewPoly.Vertices) FVector2D(BaseUV.X, BaseUV.Y);
+		new (NewPoly.Vertices) FVector2D(BaseUV.X + Size, BaseUV.Y);
 		new (NewPoly.Vertices) FVector2D(BaseUV.X + Size, BaseUV.Y + Size);
 		new (NewPoly.Vertices) FVector2D(BaseUV.X, BaseUV.Y + Size);
 		bManipulationDirtiedSomething = true;
+
+		// Select the newly added polygon
+		SelectPolygon(Geometry->Polygons.Num() - 1);
 
 		Geometry->GeometryType = ESpritePolygonMode::FullyCustom;
 	}
@@ -1268,7 +1370,7 @@ void FSpriteEditorViewportClient::AddPolygon()
 
 void FSpriteEditorViewportClient::AddSubtractivePolygon()
 {
-	BeginTransaction(LOCTEXT("AddPolygonTransaction", "Add Subtractive Polygon"));
+	BeginTransaction(LOCTEXT("AddSubtractivePolygonTransaction", "Add Subtractive Polygon"));
 
 	if (FSpritePolygonCollection* Geometry = GetGeometryBeingEdited())
 	{
@@ -1282,9 +1384,13 @@ void FSpriteEditorViewportClient::AddSubtractivePolygon()
 		const float Size = 10.0f;
 
 		new (NewPoly.Vertices) FVector2D(BaseUV.X, BaseUV.Y);
+		new (NewPoly.Vertices) FVector2D(BaseUV.X + Size, BaseUV.Y);
 		new (NewPoly.Vertices) FVector2D(BaseUV.X + Size, BaseUV.Y + Size);
 		new (NewPoly.Vertices) FVector2D(BaseUV.X, BaseUV.Y + Size);
 		bManipulationDirtiedSomething = true;
+
+		// Select the newly added polygon
+		SelectPolygon(Geometry->Polygons.Num() - 1);
 
 		Geometry->GeometryType = ESpritePolygonMode::FullyCustom;
 	}
@@ -1331,9 +1437,127 @@ FSpritePolygonCollection* FSpriteEditorViewportClient::GetGeometryBeingEdited() 
 	}
 }
 
+// Selects a polygon in the currently selected mode
+void FSpriteEditorViewportClient::SelectPolygon(const int PolygonIndex)
+{
+	UPaperSprite* Sprite = GetSpriteBeingEdited();
+	FSpritePolygonCollection* Geometry = GetGeometryBeingEdited();
+	if (ensure(Geometry != nullptr && PolygonIndex >= 0 && PolygonIndex < Geometry->Polygons.Num()))
+	{
+		FSpritePolygon& Polygon = Geometry->Polygons[PolygonIndex];
+		for (int VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
+		{
+			TSharedPtr<FSpriteSelectedVertex> Vertex = MakeShareable(new FSpriteSelectedVertex());
+			Vertex->SpritePtr = Sprite;
+			Vertex->PolygonIndex = PolygonIndex;
+			Vertex->VertexIndex = VertexIndex;
+			Vertex->bRenderData = IsInRenderingEditMode();
+			SelectionSet.Add(Vertex);
+		}
+	}
+}
+
 void FSpriteEditorViewportClient::ClearSelectionSet()
 {
 	SelectionSet.Empty();
+}
+
+static bool ClosestPointOnLine(const FVector2D& Point, const FVector2D& LineStart, const FVector2D& LineEnd, FVector2D& OutClosestPoint)
+{
+	FVector2D DL = LineEnd - LineStart;
+	FVector2D DP = Point - LineStart;
+	float DotL = FVector2D::DotProduct(DP, DL);
+	float DotP = FVector2D::DotProduct(DL, DL);
+	if (DotP > 0.0001f)
+	{
+		float T = DotL / DotP;
+		if (T >= -0.0001f && T <= 1.0001f)
+		{
+			T = FMath::Clamp(T, 0.0f, 1.0f);
+			OutClosestPoint = LineStart + T * DL;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// Adds a point to the currently edited index
+// If SelectedPolygonIndex is set, only that polygon is considered
+void FSpriteEditorViewportClient::AddPointToGeometry(const FVector2D& TextureSpacePoint, int SelectedPolygonIndex)
+{
+	FSpritePolygonCollection* Geometry = GetGeometryBeingEdited();
+
+	int ClosestPolygonIndex = -1;
+	int ClosestVertexInsertIndex = -1;
+	float ClosestDistanceSquared = MAX_FLT;
+
+	int StartPolygonIndex = 0;
+	int EndPolygonIndex = Geometry->Polygons.Num();
+	if (SelectedPolygonIndex >= 0 && SelectedPolygonIndex < Geometry->Polygons.Num())
+	{
+		StartPolygonIndex = SelectedPolygonIndex;
+		EndPolygonIndex = SelectedPolygonIndex + 1;
+	}
+
+	for (int PolygonIndex = StartPolygonIndex; PolygonIndex < EndPolygonIndex; ++PolygonIndex)
+	{
+		FSpritePolygon& Polygon = Geometry->Polygons[PolygonIndex];
+		if (Polygon.Vertices.Num() >= 3)
+		{
+			for (int VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
+			{
+				FVector2D ClosestPoint;
+				FVector2D LineStart = Polygon.Vertices[VertexIndex];
+				int NextVertexIndex = (VertexIndex + 1) % Polygon.Vertices.Num();
+				FVector2D LineEnd = Polygon.Vertices[NextVertexIndex];
+				if (ClosestPointOnLine(TextureSpacePoint, LineStart, LineEnd, /*out*/ClosestPoint))
+				{
+					float CurrentDistanceSquared = FVector2D::DistSquared(ClosestPoint, TextureSpacePoint);
+					if (CurrentDistanceSquared < ClosestDistanceSquared)
+					{
+						ClosestPolygonIndex = PolygonIndex;
+						ClosestDistanceSquared = CurrentDistanceSquared;
+						ClosestVertexInsertIndex = NextVertexIndex;
+					}
+				}
+			}
+		}
+		else
+		{
+			// Simply insert the vertex
+			for (int VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
+			{
+				float CurrentDistanceSquared = FVector2D::DistSquared(Polygon.Vertices[VertexIndex], TextureSpacePoint);
+				if (CurrentDistanceSquared < ClosestDistanceSquared)
+				{
+					ClosestPolygonIndex = PolygonIndex;
+					ClosestDistanceSquared = CurrentDistanceSquared;
+					ClosestVertexInsertIndex = VertexIndex + 1;
+				}
+			}
+		}
+	}
+
+	if (ClosestVertexInsertIndex != -1 && ClosestPolygonIndex != -1)
+	{
+		BeginTransaction(LOCTEXT("AddPolygonVertexTransaction", "Add Vertex to Polygon"));
+		FSpritePolygon& Polygon = Geometry->Polygons[ClosestPolygonIndex];
+		Polygon.Vertices.Insert(TextureSpacePoint, ClosestVertexInsertIndex);
+		Geometry->GeometryType = ESpritePolygonMode::FullyCustom;
+		bManipulationDirtiedSomething = true;
+		EndTransaction();
+
+		// Select this vertex
+		ClearSelectionSet();
+		TSharedPtr<FSpriteSelectedVertex> SelectedVertex = MakeShareable(new FSpriteSelectedVertex());
+		SelectedVertex->SpritePtr = GetSpriteBeingEdited();
+		SelectedVertex->PolygonIndex = ClosestPolygonIndex;
+		SelectedVertex->VertexIndex = ClosestVertexInsertIndex;
+		SelectedVertex->bRenderData = IsInRenderingEditMode();
+		SelectionSet.Add(SelectedVertex);
+
+	}
 }
 
 void FSpriteEditorViewportClient::ResetMarqueeTracking()

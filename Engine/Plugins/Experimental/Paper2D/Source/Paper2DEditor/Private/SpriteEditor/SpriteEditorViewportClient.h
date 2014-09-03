@@ -211,6 +211,10 @@ private:
 	void EndTransaction();
 
 	void UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite);
+	
+	// Selection handling
+	void SelectPolygon(const int PolygonIndex);
+	void AddPointToGeometry(const FVector2D& TextureSpacePoint, const int SelectedPolygonIndex = -1);
 	void ClearSelectionSet();
 
 

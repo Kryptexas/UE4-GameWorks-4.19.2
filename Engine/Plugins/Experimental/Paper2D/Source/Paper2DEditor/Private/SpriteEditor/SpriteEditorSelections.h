@@ -17,6 +17,8 @@ private:
 	FSelectionTypes() {}
 };
 
+class FSpriteSelectedVertex;
+
 //////////////////////////////////////////////////////////////////////////
 // FSelectedItem
 
@@ -51,11 +53,6 @@ public:
 	}
 
 	//@TODO: Doesn't belong here in base!
-	virtual void Delete()
-	{
-	}
-
-	//@TODO: Doesn't belong here in base!
 	virtual void SplitEdge()
 	{
 	}
@@ -63,6 +60,11 @@ public:
 	virtual FVector GetWorldPos() const
 	{
 		return FVector::ZeroVector;
+	}
+
+	virtual const FSpriteSelectedVertex* CastSelectedVertex() const
+	{
+		return nullptr;
 	}
 
 	virtual ~FSelectedItem() {}
@@ -239,12 +241,7 @@ public:
 		return GetWorldPosIndexed(VertexIndex);
 	}
 
-	virtual void Delete() override
-	{
-		// Cant delete anything on a bounds object
-	}
-
-		virtual void SplitEdge() override
+	virtual void SplitEdge() override
 	{
 		// Nonsense operation on a vertex, do nothing
 	}
@@ -271,6 +268,27 @@ public:
 		, PolygonIndex(0)
 		, bRenderData(false)
 	{
+	}
+
+	virtual bool IsValidInEditor(UPaperSprite* Sprite, bool bRenderData) const
+	{
+		if (SpritePtr == Sprite && this->bRenderData == bRenderData)
+		{
+			if (UPaperSprite* Sprite = SpritePtr.Get())
+			{
+				FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
+				if (Geometry.Polygons.IsValidIndex(PolygonIndex) && Geometry.Polygons[PolygonIndex].Vertices.IsValidIndex(VertexIndex))
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	virtual const FSpriteSelectedVertex* CastSelectedVertex() const
+	{
+		return (FSpriteSelectedVertex*)this;
 	}
 
 	virtual uint32 GetTypeHash() const override
@@ -346,29 +364,6 @@ public:
 		return GetWorldPosIndexed(VertexIndex);
 	}
 
-	virtual void Delete() override
-	{
-		if (UPaperSprite* Sprite = SpritePtr.Get())
-		{
-			FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
-			Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
-
-			if (Geometry.Polygons.IsValidIndex(PolygonIndex))
-			{
-				TArray<FVector2D>& Vertices = Geometry.Polygons[PolygonIndex].Vertices;
-				if (Vertices.IsValidIndex(VertexIndex))
-				{
-					Vertices.RemoveAt(VertexIndex);
-				}
-
-				if (Vertices.Num() < 1)
-				{
-					Geometry.Polygons.RemoveAt(PolygonIndex);
-				}
-			}
-		}
-	}
-
 	virtual void SplitEdge() override
 	{
 		// Nonsense operation on a vertex, do nothing
@@ -417,11 +412,6 @@ public:
 		const FVector Pos2 = GetWorldPosIndexed(VertexIndex+1);
 
 		return (Pos1 + Pos2) * 0.5f;
-	}
-
-	virtual void Delete() override
-	{
-		//@TODO: Support deleting edges
 	}
 
 	virtual void SplitEdge() override
@@ -504,11 +494,6 @@ public:
 		}
 
 		return FVector::ZeroVector;
-	}
-
-	virtual void Delete() override
-	{
-		//@TODO: Support deleting edges
 	}
 
 	virtual void SplitEdge() override
