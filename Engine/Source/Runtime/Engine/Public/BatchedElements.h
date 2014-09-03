@@ -297,8 +297,10 @@ private:
 
 	/** bound shader state for the fast path */
 	static FGlobalBoundShaderState SimpleBoundShaderState;
-	/** bound shader state for the regular mesh elements */
-	static FGlobalBoundShaderState RegularBoundShaderState;
+	/** bound shader state for the regular mesh elements with a linear texture */
+	static FGlobalBoundShaderState RegularLinearBoundShaderState;
+	/** bound shader state for the regular mesh elements with an sRGB texture */
+	static FGlobalBoundShaderState RegularSRGBBoundShaderState;
 	/** bound shader state for masked mesh elements */
 	static FGlobalBoundShaderState MaskedBoundShaderState;
 	/** bound shader state for masked mesh elements */

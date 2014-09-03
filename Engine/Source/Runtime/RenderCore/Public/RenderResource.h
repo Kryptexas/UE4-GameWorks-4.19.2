@@ -323,6 +323,11 @@ public:
 	 */
 	bool				bIgnoreGammaConversions;
 
+	/** 
+	 * Is the pixel data in this texture sRGB?
+	 **/
+	bool				bSRGB;
+
 	/** Default constructor. */
 	FTexture()
 	: TextureRHI(NULL)
@@ -331,6 +336,7 @@ public:
 	, LastRenderTime(-FLT_MAX)
 	, bGreyScaleFormat(false)
 	, bIgnoreGammaConversions(false)
+	, bSRGB(false)
 	{}
 
 	// Destructor

@@ -1,3 +1,4 @@
+
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
@@ -39,7 +40,7 @@ private:
  */
 class FSimpleElementPS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FSimpleElementPS,Global);
+	DECLARE_SHADER_TYPE(FSimpleElementPS, Global);
 public:
 
 	static bool ShouldCache(EShaderPlatform Platform) { return true; }
@@ -72,15 +73,13 @@ private:
 /**
  * A pixel shader for rendering a texture on a simple element.
  */
-class FSimpleElementGammaPS : public FSimpleElementPS
+class FSimpleElementGammaBasePS : public FSimpleElementPS
 {
-	DECLARE_SHADER_TYPE(FSimpleElementGammaPS,Global);
+	DECLARE_SHADER_TYPE(FSimpleElementGammaBasePS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
-
-	FSimpleElementGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
-	FSimpleElementGammaPS() {}
+	FSimpleElementGammaBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
+	FSimpleElementGammaBasePS() {}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture,float GammaValue,ESimpleElementBlendMode BlendMode);
 
@@ -90,18 +89,33 @@ private:
 	FShaderParameter Gamma;
 };
 
-/**
- * A pixel shader for rendering a masked texture on a simple element.
- */
-class FSimpleElementMaskedGammaPS : public FSimpleElementGammaPS
+template <bool bSRGBTexture>
+class FSimpleElementGammaPS : public FSimpleElementGammaBasePS
 {
-	DECLARE_SHADER_TYPE(FSimpleElementMaskedGammaPS,Global);
+	DECLARE_SHADER_TYPE(FSimpleElementGammaPS, Global);
 public:
+
+	FSimpleElementGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FSimpleElementGammaBasePS(Initializer) {}
+	FSimpleElementGammaPS() {}
 
 	static bool ShouldCache(EShaderPlatform Platform) { return true; }
 
-	FSimpleElementMaskedGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
-	FSimpleElementMaskedGammaPS() {}
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("SRGB_INPUT_TEXTURE"), bSRGBTexture ? TEXT("1") : TEXT("0"));
+	}
+};
+
+/**
+ * A pixel shader for rendering a masked texture on a simple element.
+ */
+class FSimpleElementMaskedGammaBasePS : public FSimpleElementGammaBasePS
+{
+	DECLARE_SHADER_TYPE(FSimpleElementMaskedGammaBasePS, Global);
+public:
+
+	FSimpleElementMaskedGammaBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
+	FSimpleElementMaskedGammaBasePS() {}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture,float Gamma,float ClipRefValue,ESimpleElementBlendMode BlendMode);
 
@@ -111,10 +125,26 @@ private:
 	FShaderParameter ClipRef;
 };
 
+template <bool bSRGBTexture>
+class FSimpleElementMaskedGammaPS : public FSimpleElementMaskedGammaBasePS
+{
+	DECLARE_SHADER_TYPE(FSimpleElementMaskedGammaPS, Global);
+public:
+
+	FSimpleElementMaskedGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FSimpleElementMaskedGammaBasePS(Initializer) {}
+	FSimpleElementMaskedGammaPS() {}
+
+	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("SRGB_INPUT_TEXTURE"), bSRGBTexture ? TEXT("1") : TEXT("0"));
+	}
+};
+
 /**
 * A pixel shader for rendering a masked texture using signed distance filed for alpha on a simple element.
 */
-class FSimpleElementDistanceFieldGammaPS : public FSimpleElementMaskedGammaPS
+class FSimpleElementDistanceFieldGammaPS : public FSimpleElementMaskedGammaBasePS
 {
 	DECLARE_SHADER_TYPE(FSimpleElementDistanceFieldGammaPS,Global);
 public:
@@ -261,3 +291,8 @@ private:
 	FShaderParameter ColorWeights; 
 	FShaderParameter Gamma;
 };
+
+typedef FSimpleElementGammaPS<true> FSimpleElementGammaPS_SRGB;
+typedef FSimpleElementGammaPS<false> FSimpleElementGammaPS_Linear;
+typedef FSimpleElementMaskedGammaPS<true> FSimpleElementMaskedGammaPS_SRGB;
+typedef FSimpleElementMaskedGammaPS<false> FSimpleElementMaskedGammaPS_Linear;

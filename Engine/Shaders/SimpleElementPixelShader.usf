@@ -25,6 +25,15 @@ void ReplicateChannelSimpleElementShader(inout float4 BaseColor)
 bool bEnableEditorPrimitiveDepthTest;
 float4 ScreenToPixel;
 
+MaterialFloat4 ColourTexture2DSample(Texture2D Tex, SamplerState Sampler, float2 UV)
+{
+	MaterialFloat4 Sample = Tex.Sample(Sampler, UV);
+#if SRGB_INPUT_TEXTURE && (ES2_PROFILE || ES3_1_PROFILE)
+	Sample.rgb = Sample.rgb * Sample.rgb;
+#endif
+	return Sample;
+}
+
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 
 void PerformEditorCompositingDepthTest(float4 SvPosition)
@@ -61,7 +70,8 @@ void Main(
 	}
 #endif
 	 
-	float4 BaseColor = Texture2DSample(InTexture, InTextureSampler,TextureCoordinate);
+	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
+
 	ReplicateChannelSimpleElementShader(BaseColor);
 	OutColor = RETURN_COLOR(BaseColor * Color);	
 
@@ -97,7 +107,7 @@ void GammaMain(
 	}
 #endif
 
-	float4 BaseColor = Texture2DSample(InTexture, InTextureSampler,TextureCoordinate);
+	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
 	ReplicateChannelSimpleElementShader(BaseColor);
 	OutColor = BaseColor * Color;
 	if( Gamma != 1.0 )
@@ -135,7 +145,7 @@ void GammaMaskedMain(
 	}
 #endif
 
-	float4 BaseColor = Texture2DSample(InTexture, InTextureSampler,TextureCoordinate);
+	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
 	ReplicateChannelSimpleElementShader(BaseColor);
 	clip(BaseColor.a - ClipRef);
 	OutColor.rgba = BaseColor * Color;

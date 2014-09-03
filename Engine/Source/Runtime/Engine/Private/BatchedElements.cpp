@@ -356,7 +356,8 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 }
 
 FGlobalBoundShaderState FBatchedElements::SimpleBoundShaderState;
-FGlobalBoundShaderState FBatchedElements::RegularBoundShaderState;
+FGlobalBoundShaderState FBatchedElements::RegularSRGBBoundShaderState;
+FGlobalBoundShaderState FBatchedElements::RegularLinearBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::MaskedBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::DistanceFieldBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::HitTestingBoundShaderState;
@@ -476,12 +477,24 @@ void FBatchedElements::PrepareShaders(
 			    // also don't support alpha testing to floating point render targets
 				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-				TShaderMapRef<FSimpleElementMaskedGammaPS> MaskedPixelShader(GetGlobalShaderMap(FeatureLevel));
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-					*VertexShader, *MaskedPixelShader);
+				if (Texture->bSRGB)
+				{
+					TShaderMapRef<FSimpleElementMaskedGammaPS_SRGB> MaskedPixelShader(GetGlobalShaderMap(FeatureLevel));
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, *MaskedPixelShader);
 
-				MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture );
-				MaskedPixelShader->SetParameters(RHICmdList, Texture,Gamma,GBatchedElementAlphaRefVal / 255.0f,BlendMode);
+					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+					MaskedPixelShader->SetParameters(RHICmdList, Texture, Gamma, GBatchedElementAlphaRefVal / 255.0f, BlendMode);
+				}
+				else
+				{
+					TShaderMapRef<FSimpleElementMaskedGammaPS_Linear> MaskedPixelShader(GetGlobalShaderMap(FeatureLevel));
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, *MaskedPixelShader);
+
+					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+					MaskedPixelShader->SetParameters(RHICmdList, Texture, Gamma, GBatchedElementAlphaRefVal / 255.0f, BlendMode);
+				}
 		    }
 		    // render distance field elements
 		    else if (
@@ -546,21 +559,36 @@ void FBatchedElements::PrepareShaders(
     
 			    if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
 			    {
-					TShaderMapRef<FSimpleElementPS> RegularPixelShader(GetGlobalShaderMap(FeatureLevel));
+					TShaderMapRef<FSimpleElementPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, SimpleBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, *RegularPixelShader );
+						*VertexShader, *PixelShader);
 
-					RegularPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
-				    RegularPixelShader->SetParameters(RHICmdList, Texture);
+					PixelShader->SetParameters(RHICmdList, Texture);
+					PixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 			    }
 			    else
 			    {
-					TShaderMapRef<FSimpleElementGammaPS> RegularPixelShader(GetGlobalShaderMap(FeatureLevel));
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, RegularBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, *RegularPixelShader );
+					FSimpleElementGammaBasePS* BasePixelShader;
+					FGlobalBoundShaderState* BoundShaderState;
 
-				    RegularPixelShader->SetParameters(RHICmdList, Texture,Gamma,BlendMode);
-					RegularPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+					if (Texture->bSRGB)
+					{
+						static TShaderMapRef<FSimpleElementGammaPS_SRGB> PixelShader(GetGlobalShaderMap(FeatureLevel));
+						BasePixelShader = *PixelShader;
+						BoundShaderState = &RegularSRGBBoundShaderState;
+					}
+					else
+					{
+						static TShaderMapRef<FSimpleElementGammaPS_Linear> PixelShader(GetGlobalShaderMap(FeatureLevel));
+						BasePixelShader = *PixelShader;
+						BoundShaderState = &RegularLinearBoundShaderState;
+					}
+
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, *BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, BasePixelShader);
+
+					BasePixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
+					BasePixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 			    }
 		    }
 	    }

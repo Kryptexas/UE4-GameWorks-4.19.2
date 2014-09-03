@@ -1208,6 +1208,7 @@ FTexture2DResource::FTexture2DResource( UTexture2D* InOwner, int32 InitialMipCou
 {
 	// HDR images are stored in linear but still require gamma correction to display correctly.
 	bIgnoreGammaConversions = !Owner->SRGB && Owner->CompressionSettings != TC_HDR;
+	bSRGB = InOwner->SRGB;
 
 	// First request to create the resource. Decrement the counter to signal that the resource is not ready
 	// for streaming yet.
