@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "SDesignerView.h"
@@ -467,7 +467,8 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 	{
 		FWidgetReference ParentRef = BlueprintEditor.Pin()->GetReferenceFromTemplate(SelectedWidget.GetTemplate()->GetParent());
 
-		TSharedPtr<SWidget> PreviewSlateWidget = ParentRef.GetPreview()->GetCachedWidget();
+		UWidget* Preview = ParentRef.GetPreview();
+		TSharedPtr<SWidget> PreviewSlateWidget = Preview ? Preview->GetCachedWidget() : NULL;
 		if ( PreviewSlateWidget.IsValid() )
 		{
 			FWidgetPath WidgetPath;

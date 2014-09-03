@@ -133,7 +133,7 @@ EVisibility FCanvasSlotExtension::GetAnchorVisibility(EAnchorWidget::Type Anchor
 	for ( const FWidgetReference& Selection : SelectionCache )
 	{
 		UWidget* PreviewWidget = Selection.GetPreview();
-		if ( PreviewWidget->Slot )
+		if ( PreviewWidget && PreviewWidget->Slot )
 		{
 			UCanvasPanelSlot* PreviewCanvasSlot = CastChecked<UCanvasPanelSlot>(PreviewWidget->Slot);
 			switch ( AnchorType )
@@ -160,7 +160,7 @@ FVector2D FCanvasSlotExtension::GetAnchorAlignment(EAnchorWidget::Type AnchorTyp
 	for ( const FWidgetReference& Selection : SelectionCache )
 	{
 		UWidget* PreviewWidget = Selection.GetPreview();
-		if ( PreviewWidget->Slot )
+		if ( PreviewWidget && PreviewWidget->Slot )
 		{
 			UCanvasPanelSlot* PreviewCanvasSlot = CastChecked<UCanvasPanelSlot>(PreviewWidget->Slot);
 
