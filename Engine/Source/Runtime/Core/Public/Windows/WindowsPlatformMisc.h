@@ -207,8 +207,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	/** @return Get the name of the platform specific file manager (Explorer) */
 	static FText GetFileManagerName();
 
-	static TArray<uint8> GetSystemFontBytes();
-
 	/**
 	 * Returns whether the platform is running on battery power or not.
 	 */

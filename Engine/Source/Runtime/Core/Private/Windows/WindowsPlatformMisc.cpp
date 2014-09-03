@@ -2276,13 +2276,6 @@ FText FWindowsPlatformMisc::GetFileManagerName()
 	return NSLOCTEXT("WindowsPlatform", "FileManagerName", "Explorer");
 }
 
-TArray<uint8> FWindowsPlatformMisc::GetSystemFontBytes()
-{
-	TArray<uint8> FontBytes;
-	FFileHelper::LoadFileToArray( FontBytes, TEXT("C:\\Windows\\Fonts\\comicbd.ttf") );
-	return FontBytes;
-}
-
 bool FWindowsPlatformMisc::IsRunningOnBattery()
 {
 	SYSTEM_POWER_STATUS status;
