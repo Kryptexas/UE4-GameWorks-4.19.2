@@ -26,6 +26,13 @@ void UGridSlot::ReleaseNativeWidget()
 void UGridSlot::BuildSlot(TSharedRef<SGridPanel> GridPanel)
 {
 	Slot = &GridPanel->AddSlot(Column, Row)
+		.HAlign(HorizontalAlignment)
+		.VAlign(VerticalAlignment)
+		.Row(Row)
+		.RowSpan(RowSpan)
+		.Column(Row)
+		.ColumnSpan(RowSpan)
+		.Nudge(Nudge)
 		[
 			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
 		];

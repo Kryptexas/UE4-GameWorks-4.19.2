@@ -23,6 +23,8 @@ void UUniformGridSlot::ReleaseNativeWidget()
 void UUniformGridSlot::BuildSlot(TSharedRef<SUniformGridPanel> GridPanel)
 {
 	Slot = &GridPanel->AddSlot(Column, Row)
+		.HAlign(HorizontalAlignment)
+		.VAlign(VerticalAlignment)
 		[
 			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
