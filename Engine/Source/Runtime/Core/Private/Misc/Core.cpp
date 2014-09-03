@@ -317,6 +317,7 @@ DEFINE_LOG_CATEGORY(LogContentComparisonCommandlet);
 DEFINE_LOG_CATEGORY(LogNetPackageMap);
 DEFINE_LOG_CATEGORY(LogNetSerialization);
 DEFINE_LOG_CATEGORY(LogMemory);
+DEFINE_LOG_CATEGORY(LogProfilingDebugging);
 
 DEFINE_LOG_CATEGORY(LogTemp);
 

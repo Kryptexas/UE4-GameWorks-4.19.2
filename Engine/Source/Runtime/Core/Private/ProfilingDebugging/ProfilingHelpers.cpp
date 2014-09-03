@@ -52,9 +52,11 @@ int32 GetChangeListNumberForPerfTesting()
  **/
 void SendDataToPCViaUnrealConsole( const FString& NotifyType, const FString& FullFileName )
 {
-	//UE_LOG(LogProfilingDebugging, Warning, TEXT("SendDataToPCViaUnrealConsole %s%s"), *NotifyType, *FullFileName );
+	const FString AbsoluteFilename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FullFileName );
 
-	const FString NotifyString = NotifyType + FullFileName;
+	UE_LOG( LogProfilingDebugging, Warning, TEXT( "SendDataToPCViaUnrealConsole %s%s" ), *NotifyType, *AbsoluteFilename );
+
+	const FString NotifyString = NotifyType + AbsoluteFilename + LINE_TERMINATOR;
 	
 	// send it across via UnrealConsole
 	FMsg::SendNotificationString( *NotifyString );
