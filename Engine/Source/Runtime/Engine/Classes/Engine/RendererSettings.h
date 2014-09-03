@@ -142,9 +142,9 @@ class ENGINE_API URendererSettings
 
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
-		ConsoleVariable="r.AllowMeshDistanceFieldRepresentations",
-		ToolTip="Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.  Enabling will increase mesh build times and memory usage.  Changing this setting requires restarting the editor."))
-	uint32 bAllowMeshDistanceFieldRepresentations:1;
+		ConsoleVariable="r.GenerateMeshDistanceFields",
+		ToolTip="Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows, and ray traced distance field shadows on directional lights.  Enabling will increase mesh build times and memory usage.  Changing this setting requires restarting the editor."))
+	uint32 bGenerateMeshDistanceFields:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.Shadow.DistanceFieldPenumbraSize",

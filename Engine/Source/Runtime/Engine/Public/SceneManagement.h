@@ -507,7 +507,7 @@ public:
 	float MaxDistanceToCastInLightW;
 
 	/** Whether the shadow is for a directional light. */
-	uint32 bDirectionalLight : 1;
+	bool bDirectionalLight;
 
 	/** Default constructor. */
 	FProjectedShadowInitializer()
@@ -531,13 +531,23 @@ public:
 	FShadowCascadeSettings CascadeSettings;
 
 	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
-	uint32 bOnePassPointLightShadow : 1;
+	bool bOnePassPointLightShadow;
+
+	/** Whether the shadow is a directional light cascade that will be computed by ray tracing the distance field. */
+	bool bRayTracedDistanceFieldShadow;
 
 	FWholeSceneProjectedShadowInitializer()
 	:	SplitIndex(INDEX_NONE)
 	,	bOnePassPointLightShadow(false)
+	,	bRayTracedDistanceFieldShadow(false)
 	{}	
 };
+
+inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)
+{
+	// Hasn't been tested elsewhere yet
+	return Platform == SP_PCD3D_SM5;
+}
 
 /** Represents a USkyLightComponent to the rendering thread. */
 class ENGINE_API FSkyLightSceneProxy

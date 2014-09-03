@@ -1,12 +1,11 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-
+	DistanceFieldSurfaceCacheLighting.usf
 =============================================================================*/
 
 #include "Common.usf"
 #include "DeferredShadingCommon.usf"
-#include "SHCommon.usf"
 #include "DistanceFieldLightingShared.usf"
 
 struct FObjectCullVertexOutput
@@ -390,7 +389,6 @@ SamplerState BentNormalAOSampler3;
 /** Normalizes the splatted surface cache values, packs depth in alpha. */
 void AOCombinePS2(
 	in float4 UVAndScreenPos : TEXCOORD0, 
-	in float4 SVPos : SV_POSITION,
 	out float4 OutColor : SV_Target0)
 {
 	float4 DistanceFieldNormalValue = Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, UVAndScreenPos.xy, 0);
@@ -421,10 +419,18 @@ void AOCombinePS2(
 	BRANCH
 	if (SceneDepth > AOMaxViewDistance)
 	{
+		float BentNormalLength = length(OutColor.rgb);
 		// Fade to unoccluded in the distance
-		OutColor.rgb = lerp(DistanceFieldNormalValue.xyz, OutColor.rgb, saturate(.003f * (AOMaxViewDistance - SceneDepth)));
+		float FadeAlpha = saturate(.001f * (.95f * AOMaxViewDistance - SceneDepth));
+		OutColor.rgb = lerp(DistanceFieldNormalValue.xyz, OutColor.rgb, FadeAlpha);
+		OutColor.rgb = normalize(OutColor.rgb) * lerp(1, BentNormalLength, FadeAlpha);
 
-		OutColor.a = abs(OutColor.a);
+		FLATTEN
+		if (SceneDepth > AOMaxViewDistance)
+		{
+			// Mark as valid for the gap filling pass, so we don't get overwritten
+			OutColor.a = abs(OutColor.a);
+		}
 	}
 
 #endif
@@ -439,7 +445,6 @@ SamplerState BentNormalAOSampler;
 /** Fills in texels with no splatted weight from screenspace neighbors. */
 void FillGapsPS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
-	in float4 SVPos : SV_POSITION,
 	out float4 OutColor : SV_Target0)
 {
 	float4 CenterValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UVAndScreenPos.xy, 0);
@@ -576,6 +581,11 @@ bool RayHitSphere( float3 RayOrigin, float3 UnitRayDirection, float3 SphereCente
 	return dot( CenterToRay, CenterToRay ) <= Square( SphereRadius );
 }
 
+#define MAX_INTERSECTING_OBJECTS 256
+groupshared uint IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS];
+
+groupshared uint NumIntersectingObjects;
+
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void VisualizeMeshDistanceFieldCS(
 	uint3 GroupId : SV_GroupID,
@@ -590,12 +600,38 @@ void VisualizeMeshDistanceFieldCS(
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 	float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-	
+
 	float TraceDistance = 10000;
 	float3 WorldRayStart = View.ViewOrigin.xyz;
 	float3 WorldRayEnd = View.ViewOrigin.xyz + normalize(OpaqueWorldPosition - View.ViewOrigin.xyz) * TraceDistance;
 	float3 WorldRayDirection = WorldRayEnd - WorldRayStart;
 	float3 UnitWorldRayDirection = normalize(WorldRayDirection);
+
+	if (ThreadIndex == 0)
+	{
+		NumIntersectingObjects = 0;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	LOOP
+	for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
+	{
+		float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
+
+		//@todo - make independent of current pixel
+		BRANCH
+		if (RayHitSphere(WorldRayStart, UnitWorldRayDirection, SphereCenterAndRadius.xyz, SphereCenterAndRadius.w))
+		{
+			uint ListIndex;
+			InterlockedAdd(NumIntersectingObjects, 1U, ListIndex);
+			IntersectingObjectIndices[ListIndex] = ObjectIndex; 
+		}
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	uint LocalNumIntersectingObjects = NumIntersectingObjects;
 
 	float3 Result = 0;
 	float MinRayTime = TraceDistance;
@@ -603,8 +639,9 @@ void VisualizeMeshDistanceFieldCS(
 	float TotalStepsTaken = 0;
 
 	LOOP
-	for (uint ObjectIndex = 0; ObjectIndex < NumObjects; ObjectIndex++)
+	for (uint ListObjectIndex = 0; ListObjectIndex < LocalNumIntersectingObjects; ListObjectIndex++)
 	{
+		uint ObjectIndex = IntersectingObjectIndices[ListObjectIndex];
 		float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
 
 #define TRACE_THROUGH_WORLD 0
@@ -620,16 +657,10 @@ void VisualizeMeshDistanceFieldCS(
 
 		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
-		//float3 VolumeRayEnd = mul(float4(OpaqueWorldPosition, 1), DistanceFieldObjectData.WorldToVolume[ObjectIndex]).xyz;
 		float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
 		float VolumeRayLength = length(VolumeRayDirection);
 		VolumeRayDirection /= VolumeRayLength;
-		/*
-		float3 TempPosition = mul(float4(OpaqueWorldPosition, 1), WorldToVolume).xyz;
-		float3 TempVolumeUV = DistanceFieldVolumePositionToUV(TempPosition, UVScaleAndVolumeScale.xyz, UVAdd);
-		float TempDistance = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, TempVolumeUV, 0).x;
-		Temp = min(Temp, TempDistance * UVScaleAndVolumeScale.w / 10.0f);
-		*/
+
 		float2 IntersectionTimes = LineBoxIntersect(VolumeRayStart, VolumeRayEnd, -LocalPositionExtent, LocalPositionExtent);
 
 		if (IntersectionTimes.x < IntersectionTimes.y && IntersectionTimes.x < 1)
@@ -640,7 +671,7 @@ void VisualizeMeshDistanceFieldCS(
 			float3 IntersectionPosition = float3(0, 0, 0);
 
 			uint StepIndex = 0;
-			uint MaxSteps = 512;
+			uint MaxSteps = 256;
 
 			LOOP
 			for (; StepIndex < MaxSteps; StepIndex++)

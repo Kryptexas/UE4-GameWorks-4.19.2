@@ -36,7 +36,7 @@ float GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVect
 		Visibility = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
 
 		// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
-		Visibility = lerp(0, Visibility, saturate(UnoccludedAngle / .1f));
+		Visibility = lerp(0, Visibility, saturate((UnoccludedAngle - .1f) / .2f));
 	}
 
 	return Visibility;

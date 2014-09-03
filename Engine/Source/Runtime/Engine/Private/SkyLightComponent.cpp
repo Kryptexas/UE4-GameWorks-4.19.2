@@ -247,7 +247,8 @@ bool USkyLightComponent::CanEditChange(const UProperty* InProperty) const
 		if (FCString::Strcmp(*PropertyName, TEXT("Contrast")) == 0
 			|| FCString::Strcmp(*PropertyName, TEXT("OcclusionMaxDistance")) == 0)
 		{
-			return Mobility == EComponentMobility::Movable && CastShadows;
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+			return Mobility == EComponentMobility::Movable && CastShadows && CVar->GetValueOnGameThread() != 0;
 		}
 	}
 

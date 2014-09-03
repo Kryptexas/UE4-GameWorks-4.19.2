@@ -1,7 +1,7 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	
+	DistanceFieldLightingShared.h
 =============================================================================*/
 
 #pragma once
@@ -18,6 +18,8 @@ const int32 GDistanceFieldAOTileSizeY = 8;
 const int32 GAODownsampleFactor = 2;
 /** Number of cone traced directions. */
 const int32 NumConeSampleDirections = 9;
+
+extern FIntPoint GetBufferSizeForAO();
 
 /** Generates unit length, stratified and uniformly distributed direction samples in a hemisphere. */
 extern void GenerateStratifiedUniformHemisphereSamples2(int32 NumThetaSteps, int32 NumPhiSteps, FRandomStream& RandomStream, TArray<FVector4>& Samples);
@@ -50,9 +52,6 @@ public:
 		AOStepScale.Bind(ParameterMap,TEXT("AOStepScale"));
 		AOStepExponentScale.Bind(ParameterMap,TEXT("AOStepExponentScale"));
 		AOMaxViewDistance.Bind(ParameterMap,TEXT("AOMaxViewDistance"));
-		DistanceFieldTexture.Bind(ParameterMap, TEXT("DistanceFieldTexture"));
-		DistanceFieldSampler.Bind(ParameterMap, TEXT("DistanceFieldSampler"));
-		DistanceFieldAtlasTexelSize.Bind(ParameterMap, TEXT("DistanceFieldAtlasTexelSize"));
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FAOParameters& Parameters)
@@ -61,9 +60,6 @@ public:
 		Ar << Parameters.AOStepScale;
 		Ar << Parameters.AOStepExponentScale;
 		Ar << Parameters.AOMaxViewDistance;
-		Ar << Parameters.DistanceFieldTexture;
-		Ar << Parameters.DistanceFieldSampler;
-		Ar << Parameters.DistanceFieldAtlasTexelSize;
 		return Ar;
 	}
 
@@ -84,6 +80,91 @@ public:
 
 		extern float GAOMaxViewDistance;
 		SetShaderValue(RHICmdList, ShaderRHI, AOMaxViewDistance, GAOMaxViewDistance);
+	}
+
+private:
+	FShaderParameter AOMaxDistance;
+	FShaderParameter AOStepScale;
+	FShaderParameter AOStepExponentScale;
+	FShaderParameter AOMaxViewDistance;
+};
+
+class FDistanceFieldObjectData
+{
+public:
+
+	FVertexBufferRHIRef Bounds;
+	FVertexBufferRHIRef Data;
+	FVertexBufferRHIRef Data2;
+	FShaderResourceViewRHIRef BoundsSRV;
+	FShaderResourceViewRHIRef DataSRV;
+	FShaderResourceViewRHIRef Data2SRV;
+};
+
+class FDistanceFieldObjectBuffers : public FRenderResource
+{
+public:
+
+	// In float4's
+	static int32 ObjectDataStride;
+	static int32 ObjectData2Stride;
+
+	int32 MaxObjects;
+	FDistanceFieldObjectData ObjectData;
+
+	FDistanceFieldObjectBuffers()
+	{
+		MaxObjects = 0;
+	}
+
+	virtual void InitDynamicRHI()  override
+	{
+		if (MaxObjects > 0)
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			ObjectData.Bounds = RHICreateVertexBuffer(MaxObjects * sizeof(FVector4), BUF_Volatile | BUF_ShaderResource, CreateInfo);
+			ObjectData.Data = RHICreateVertexBuffer(MaxObjects * sizeof(FVector4) * ObjectDataStride, BUF_Volatile | BUF_ShaderResource, CreateInfo);
+			ObjectData.Data2 = RHICreateVertexBuffer(MaxObjects * sizeof(FVector4) * ObjectData2Stride, BUF_Volatile | BUF_ShaderResource, CreateInfo);
+
+			ObjectData.BoundsSRV = RHICreateShaderResourceView(ObjectData.Bounds, sizeof(FVector4), PF_A32B32G32R32F);
+			ObjectData.DataSRV = RHICreateShaderResourceView(ObjectData.Data, sizeof(FVector4), PF_A32B32G32R32F);
+			ObjectData.Data2SRV = RHICreateShaderResourceView(ObjectData.Data2, sizeof(FVector4), PF_A32B32G32R32F);
+		}
+	}
+
+	virtual void ReleaseDynamicRHI() override
+	{
+		ObjectData.Bounds.SafeRelease();
+		ObjectData.Data.SafeRelease();
+		ObjectData.Data2.SafeRelease();
+		ObjectData.BoundsSRV.SafeRelease(); 
+		ObjectData.DataSRV.SafeRelease(); 
+		ObjectData.Data2SRV.SafeRelease(); 
+	}
+};
+
+class FDistanceFieldObjectBufferParameters
+{
+public:
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		ObjectBounds.Bind(ParameterMap, TEXT("ObjectBounds"));
+		ObjectData.Bind(ParameterMap, TEXT("ObjectData"));
+		ObjectData2.Bind(ParameterMap, TEXT("ObjectData2"));
+		NumObjects.Bind(ParameterMap, TEXT("NumObjects"));
+		DistanceFieldTexture.Bind(ParameterMap, TEXT("DistanceFieldTexture"));
+		DistanceFieldSampler.Bind(ParameterMap, TEXT("DistanceFieldSampler"));
+		DistanceFieldAtlasTexelSize.Bind(ParameterMap, TEXT("DistanceFieldAtlasTexelSize"));
+	}
+
+	template<typename TParamRef>
+	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FDistanceFieldObjectBuffers& ObjectBuffers, int32 NumObjectsValue)
+	{
+		SetSRVParameter(RHICmdList, ShaderRHI, ObjectBounds, ObjectBuffers.ObjectData.BoundsSRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, ObjectData, ObjectBuffers.ObjectData.DataSRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, ObjectData2, ObjectBuffers.ObjectData.Data2SRV);
+
+		SetShaderValue(RHICmdList, ShaderRHI, NumObjects, NumObjectsValue);
 
 		SetTextureParameter(
 			RHICmdList,
@@ -99,13 +180,20 @@ public:
 		const int32 NumTexelsOneDimZ = GDistanceFieldVolumeTextureAtlas.GetSizeZ();
 		const FVector InvTextureDim(1.0f / NumTexelsOneDimX, 1.0f / NumTexelsOneDimY, 1.0f / NumTexelsOneDimZ);
 		SetShaderValue(RHICmdList, ShaderRHI, DistanceFieldAtlasTexelSize, InvTextureDim);
+
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FDistanceFieldObjectBufferParameters& P)
+	{
+		Ar << P.ObjectBounds << P.ObjectData << P.ObjectData2 << P.NumObjects << P.DistanceFieldTexture << P.DistanceFieldSampler << P.DistanceFieldAtlasTexelSize;
+		return Ar;
 	}
 
 private:
-	FShaderParameter AOMaxDistance;
-	FShaderParameter AOStepScale;
-	FShaderParameter AOStepExponentScale;
-	FShaderParameter AOMaxViewDistance;
+	FShaderResourceParameter ObjectBounds;
+	FShaderResourceParameter ObjectData;
+	FShaderResourceParameter ObjectData2;
+	FShaderParameter NumObjects;
 	FShaderResourceParameter DistanceFieldTexture;
 	FShaderResourceParameter DistanceFieldSampler;
 	FShaderParameter DistanceFieldAtlasTexelSize;

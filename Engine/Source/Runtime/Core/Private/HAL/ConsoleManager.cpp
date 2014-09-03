@@ -1576,7 +1576,7 @@ static TAutoConsoleVariable<int32> CVarNumBufferedOcclusionQueries(
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarDistField(
-	TEXT("r.AllowMeshDistanceFieldRepresentations"),
+	TEXT("r.GenerateMeshDistanceFields"),
 	0,	
 	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
 	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),

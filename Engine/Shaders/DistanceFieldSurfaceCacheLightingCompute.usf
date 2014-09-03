@@ -1,12 +1,11 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-
+	DistanceFieldSurfaceCacheLightingCompute.usf
 =============================================================================*/
 
 #include "Common.usf"
 #include "DeferredShadingCommon.usf"
-#include "SHCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
 #include "DistanceFieldLightingShared.usf"
 
@@ -542,7 +541,7 @@ void FinalGatherCS(
 				float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
 				float3 VolumeShadingPosition = mul(float4(WorldShadingPosition, 1), WorldToVolume).xyz;
 
-				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f;
+				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f * UVScaleAndVolumeScale.w;
 				float BoxDistance = ComputeDistanceFromBoxToPoint(-LocalPositionExtent, LocalPositionExtent, VolumeShadingPosition) * UVScaleAndVolumeScale.w;
 
 				BRANCH
@@ -580,26 +579,42 @@ void FinalGatherCS(
 						float3 ClampedSamplePosition = clamp(StepSamplePosition, -LocalPositionExtent, LocalPositionExtent);
 						float DistanceToClamped = length(StepSamplePosition - ClampedSamplePosition);
 
-						float LocalStepOffset = length(StepSamplePosition - VolumeShadingPosition);
-
 						float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-						float DistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped;
+						float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
 
-						float EffectiveDistanceToOccluder = DistanceToOccluder;
-						float SphereRadius = LocalStepOffset * TanConeHalfAngle;
-						// Allows use of negative distances in the small steps to create full penumbra range, reduces over-occlusion
-						float MinOcclusionFraction = 0;//-.6f * (1 - saturate(4 * StepIndex / (float)NUM_CONE_STEPS));
-						float Visibility = saturate((EffectiveDistanceToOccluder / SphereRadius - MinOcclusionFraction) / (1 - MinOcclusionFraction));
+						float SphereRadius = WorldStepOffset * TanConeHalfAngle;
+
+						#define CIRCLE_LINE_INTERSECTION 0
+
+						#if CIRCLE_LINE_INTERSECTION
+
+							float Visibility = 1;
+
+							BRANCH
+							if (DistanceToOccluder < SphereRadius)
+							{
+								float SphereRadiusSquared = SphereRadius * SphereRadius;
+								// Area of the circle cut off by an intersecting line segment of distance DistanceToOccluder to the circle center
+								float CircleSegmentArea = SphereRadiusSquared * acos(DistanceToOccluder / SphereRadius) - DistanceToOccluder * sqrt(SphereRadiusSquared - DistanceToOccluder * DistanceToOccluder);
+								Visibility = 1 - saturate(CircleSegmentArea / (.5f * PI * SphereRadiusSquared));
+							}
+
+						#else
+							// Allows use of negative distances in the small steps to create full penumbra range, reduces over-occlusion
+							float MinOcclusionFraction = 0;//-.6f * (1 - saturate(4 * StepIndex / (float)NUM_CONE_STEPS));
+							// Derive visibility from 1d intersection
+							float Visibility = saturate((DistanceToOccluder / SphereRadius - MinOcclusionFraction) / (1 - MinOcclusionFraction));
+						#endif
 
 						// Don't allow small objects to fully occlude a cone step
 						Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
 
 						InterlockedMin(SharedConeVisibility[ConeIndex], asuint(Visibility));
 
-						if (EffectiveDistanceToOccluder < .9f * SphereRadius)
+						if (DistanceToOccluder < .9f * SphereRadius)
 						{
 							// Assuming occluder is straight forward along the cone
-							float WorldDistanceToOccluder = (LocalStepOffset + DistanceToOccluder) * UVScaleAndVolumeScale.w;
+							float WorldDistanceToOccluder = WorldStepOffset + DistanceToOccluder;
 							InterlockedMin(SharedMinOcclusionDistance, asuint(WorldDistanceToOccluder));
 						}
 					}
@@ -614,8 +629,9 @@ void FinalGatherCS(
 	{
 		float3 UnoccludedDirection = 0;
 		float Visibility = 0;
+		float NumSamplesToDisplay = NUM_SAMPLES;
 
-		for (uint ConeIndex = 0; ConeIndex < NUM_SAMPLES; ConeIndex++)
+		for (uint ConeIndex = 0; ConeIndex < NumSamplesToDisplay; ConeIndex++)
 		{
 			float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
 			float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
@@ -625,8 +641,8 @@ void FinalGatherCS(
 			Visibility += ConeVisibility;
 		}
 
-		UnoccludedDirection = UnoccludedDirection * BentNormalNormalizeFactor / (float)NUM_SAMPLES;
-		Visibility = Visibility / (float)NUM_SAMPLES;
+		UnoccludedDirection = UnoccludedDirection * BentNormalNormalizeFactor / (float)NumSamplesToDisplay;
+		Visibility = Visibility / (float)NumSamplesToDisplay;
 
 		RWOccluderRadius[RecordIndex] = RecordRadiusScale * asfloat(SharedMinOcclusionDistance);
 		RWIrradianceCacheBentNormal[RecordIndex] = float4(UnoccludedDirection, 0);

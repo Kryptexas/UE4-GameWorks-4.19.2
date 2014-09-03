@@ -1737,6 +1737,12 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		return;
 	}
 
+	if (bRayTracedDistanceFieldShadow)
+	{
+		RenderRayTracedDistanceFieldProjection(RHICmdList, ViewIndex, *View);
+		return;
+	}
+
 	// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to be translated.
 	const FVector4 PreShadowToPreViewTranslation(View->ViewMatrices.PreViewTranslation - PreShadowTranslation,0);
 
@@ -3136,7 +3142,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
 			{
 				FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
-				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow)
+				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow && !ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 				{
 					ProjectedShadowInfo->RenderDepth(RHICmdList, this);
 				}
@@ -3158,6 +3164,8 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 
 				if (ProjectedShadowInfo->bAllocated
 					&& ProjectedShadowInfo->bWholeSceneShadow
+					// Not supported on translucency yet
+					&& !ProjectedShadowInfo->bRayTracedDistanceFieldShadow
 					// Don't inject shadowed lighting with whole scene shadows used for previewing a light with static shadows,
 					// Since that would cause a mismatch with the built lighting
 					// However, stationary directional lights allow whole scene shadows that blend with precomputed shadowing

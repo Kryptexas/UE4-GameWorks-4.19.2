@@ -604,6 +604,9 @@ public:
 	/** Whether the shadow is a preshadow or not.  A preshadow is a per object shadow that handles the static environment casting on a dynamic receiver. */
 	uint32 bPreShadow : 1;
 
+	/** Whether the shadow is a directional light cascade that should be computed by ray tracing mesh distance fields. */
+	uint32 bRayTracedDistanceFieldShadow : 1;
+
 	uint32 bValidTransform : 1;
 
 	TBitArray<SceneRenderingBitArrayAllocator> StaticMeshWholeSceneShadowDepthMap;
@@ -675,6 +678,9 @@ public:
 	 * Projects the shadow onto the scene for a particular view.
 	 */
 	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View) const;
+
+	/** Renders ray traced distance field shadows. */
+	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo& View) const;
 
 	/** Render one pass point light shadow projections. */
 	void RenderOnePassPointLightProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo& View) const;
@@ -757,6 +763,9 @@ private:
 	void GetShadowTypeNameForDrawEvent(FString& TypeName) const;
 
 	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo);
+
+	/** Updates object buffers needed by ray traced distance field shadows. */
+	int32 UpdateShadowCastingObjectBuffers() const;
 };
 
 /** Shader parameters for rendering the depth of a mesh for shadowing. */
