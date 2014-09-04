@@ -176,9 +176,9 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 		.ContentStyle(TEXT("Tutorials.Content.Text"))
 		.BoldContentStyle(TEXT("Tutorials.Content.TextBold"))
 		.NumberedContentStyle(TEXT("Tutorials.Content.Text"))
-		.Header1Style(TEXT("Tutorials.Content.Header1"))
-		.Header2Style(TEXT("Tutorials.Content.Header2"))
-		.HyperlinkButtonStyle(TEXT("Tutorials.Content.Hyperlink"))
+		.Header1Style(TEXT("Tutorials.Content.HeaderText1"))
+		.Header2Style(TEXT("Tutorials.Content.HeaderText2"))
+		.HyperlinkStyle(TEXT("Tutorials.Content.Hyperlink"))
 		.HyperlinkTextStyle(TEXT("Tutorials.Content.HyperlinkText"))
 		.SeparatorStyle(TEXT("Tutorials.Separator"));
 

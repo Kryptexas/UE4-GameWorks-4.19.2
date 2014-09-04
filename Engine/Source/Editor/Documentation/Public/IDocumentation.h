@@ -59,6 +59,13 @@ public:
 	}
 
 	/** Set the hyperlink button style for this documentation */
+	FDocumentationStyle& HyperlinkStyle(const FName& InName) 
+	{
+		HyperlinkStyleName = InName;
+		return *this;
+	}
+
+	/** Set the hyperlink button style for this documentation */
 	FDocumentationStyle& HyperlinkButtonStyle(const FName& InName) 
 	{
 		HyperlinkButtonStyleName = InName;

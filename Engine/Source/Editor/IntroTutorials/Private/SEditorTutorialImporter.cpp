@@ -93,7 +93,18 @@ void SEditorTutorialImporter::Import(UEditorTutorial* InTutorial)
 {
 	if(!UDNPath.IsEmpty())
 	{
-		TSharedRef<IDocumentationPage> Page = IDocumentation::Get()->GetPage(UDNPath.ToString(), TSharedPtr<FParserConfiguration>(), FDocumentationStyle());
+		FDocumentationStyle DocumentationStyle;
+		DocumentationStyle
+			.ContentStyle(TEXT("Tutorials.Content.Text"))
+			.BoldContentStyle(TEXT("Tutorials.Content.TextBold"))
+			.NumberedContentStyle(TEXT("Tutorials.Content.Text"))
+			.Header1Style(TEXT("Tutorials.Content.HeaderText1"))
+			.Header2Style(TEXT("Tutorials.Content.HeaderText2"))
+			.HyperlinkStyle(TEXT("Tutorials.Content.Hyperlink"))
+			.HyperlinkTextStyle(TEXT("Tutorials.Content.HyperlinkText"))
+			.SeparatorStyle(TEXT("Tutorials.Separator"));
+
+		TSharedRef<IDocumentationPage> Page = IDocumentation::Get()->GetPage(UDNPath.ToString(), TSharedPtr<FParserConfiguration>(), DocumentationStyle);
 		InTutorial->Title = Page->GetTitle();
 
 		TArray<FExcerpt> Excerpts;
@@ -112,7 +123,7 @@ void SEditorTutorialImporter::Import(UEditorTutorial* InTutorial)
 				FString* TitleStringPtr = Excerpt.Variables.Find(TEXT("StageTitle"));
 				if(TitleStringPtr != nullptr)
 				{
-					RichText += FString::Printf(TEXT("<TextStyle FontFamily=\"Roboto\" FontSize=\"24\" FontStyle=\"Bold\" FontColor=\"(R=0.0,G=0.0,B=0.0,A=1.0)\">%s</>\n\n"), **TitleStringPtr);
+					RichText += FString::Printf(TEXT("<TextStyle Style=\"Tutorials.Content.HeaderText2\">%s</>\n\n"), **TitleStringPtr);
 				}
 				RichText += Excerpt.RichText;
 

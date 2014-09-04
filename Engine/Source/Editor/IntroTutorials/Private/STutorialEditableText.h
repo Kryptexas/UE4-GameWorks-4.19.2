@@ -177,6 +177,34 @@ public:
 	}
 };
 
+/** Helper struct to hold info about hyperlink types */
+struct FHyperlinkTypeDesc
+{
+	FHyperlinkTypeDesc(EHyperlinkType::Type InType, const FText& InText, const FText& InTooltipText, const FString& InId, FSlateHyperlinkRun::FOnClick InOnClickedDelegate)
+		: Type(InType)
+		, Text(InText)
+		, TooltipText(InTooltipText)
+		, Id(InId)
+		, OnClickedDelegate(InOnClickedDelegate)
+	{
+	}
+
+	/** The type of the link */
+	EHyperlinkType::Type Type;
+
+	/** Tag used by this hyperlink's run */
+	FString Id;
+
+	/** Text to display in the UI */
+	FText Text;
+
+	/** Tooltip text to display in the UI */
+	FText TooltipText;
+
+	/** Delegate to execute for this hyperlink's run */
+	FSlateHyperlinkRun::FOnClick OnClickedDelegate;
+};
+
 
 class STutorialEditableText : public SCompoundWidget
 {
@@ -226,27 +254,23 @@ protected:
 
 	EVisibility GetToolbarVisibility() const;
 
-	ESlateCheckBoxState::Type IsCreatingBrowserLink() const;
-
-	void OnCheckBrowserLink(ESlateCheckBoxState::Type State);
-
-	ESlateCheckBoxState::Type IsCreatingUDNLink() const;
-
-	void OnCheckUDNLink(ESlateCheckBoxState::Type State);
-
-	ESlateCheckBoxState::Type IsCreatingTutorialLink() const;
-
-	void OnCheckTutorialLink(ESlateCheckBoxState::Type State);
-
-	ESlateCheckBoxState::Type IsCreatingCodeLink() const;
-
-	void OnCheckCodeLink(ESlateCheckBoxState::Type State);
-
-	ESlateCheckBoxState::Type IsCreatingAssetLink() const;
-
-	void OnCheckAssetLink(ESlateCheckBoxState::Type State);
-
 	FText GetHyperlinkButtonText() const;
+
+	void OnActiveHyperlinkChanged(TSharedPtr<FHyperlinkTypeDesc> NewValue, ESelectInfo::Type SelectionType);
+
+	TSharedRef<SWidget> GenerateHyperlinkComboEntry(TSharedPtr<FHyperlinkTypeDesc> SourceEntry);
+
+	FText GetActiveHyperlinkName() const;
+
+	FText GetActiveHyperlinkTooltip() const;
+
+	TSharedPtr<FHyperlinkTypeDesc> GetHyperlinkTypeFromId(const FString& InId) const;
+
+	EVisibility GetOpenAssetVisibility() const;
+
+	void HandleOpenAssetCheckStateChanged(ESlateCheckBoxState::Type InCheckState);
+
+	ESlateCheckBoxState::Type IsOpenAssetChecked() const;
 
 protected:
 	TSharedPtr<SMultiLineEditableTextBox> RichEditableTextBox;
@@ -270,7 +294,10 @@ protected:
 	FOnTextCommitted OnTextCommitted;
 	FOnTextChanged OnTextChanged;
 
-	EHyperlinkType::Type CurrentHyperlinkType;
+	TArray<TSharedPtr<FHyperlinkTypeDesc>> HyperlinkDescs;
+	TSharedPtr<FHyperlinkTypeDesc> CurrentHyperlinkType;
+
+	bool bOpenAsset;
 
 	bool bNewHyperlink;
 };

@@ -72,7 +72,7 @@ struct INTROTUTORIALS_API FTutorialContent
 
 	FTutorialContent()
 	{
-		Type = ETutorialContent::Text;
+		Type = ETutorialContent::RichText;
 	}
 
 	/** The type of this content */
