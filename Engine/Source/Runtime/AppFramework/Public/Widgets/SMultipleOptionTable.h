@@ -3,7 +3,7 @@
 #pragma once
 
 #include "SCheckBox.h"
-#include "SMultiColumnTableRow.h"
+#include "STableRow.h"
 
 #define LOCTEXT_NAMESPACE "SMultipleOptionTable"
 
