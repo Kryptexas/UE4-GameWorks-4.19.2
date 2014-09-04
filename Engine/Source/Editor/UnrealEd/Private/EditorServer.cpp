@@ -688,22 +688,8 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		if ( NewBrush )
 		{
 			ULevel::LevelDirtiedEvent.Broadcast();
+			RebuildStaticNavigableGeometry(InWorld->GetCurrentLevel());
 		}
-
-#if WITH_NAVIGATION_GENERATOR
-		// update static navigable geometry in every level
-		for ( int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); ++LevelIndex ) 
-		{
-			ULevel* Level =  InWorld->GetLevel(LevelIndex);	
-
-			GEditor->RebuildStaticNavigableGeometry(Level);
-		}
-
-		if (IsLoading() == false && InWorld->GetNavigationSystem()) 
-		{
-			InWorld->GetNavigationSystem()->Build();
-		}
-#endif
 
 		if(FParse::Command(&Str,TEXT("SELECTNEWBRUSH")))
 		{
@@ -785,6 +771,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		if ( NewBrush )
 		{
 			ULevel::LevelDirtiedEvent.Broadcast();
+			RebuildStaticNavigableGeometry(InWorld->GetCurrentLevel());
 		}
 
 		if(FParse::Command(&Str,TEXT("SELECTNEWBRUSH")))
@@ -1451,6 +1438,8 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	FBSPOps::GFastRebuild = 1;
 
 	Level.UpdateModelComponents();
+
+	RebuildStaticNavigableGeometry(&Level);
 }
 
 void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
@@ -1573,7 +1562,6 @@ void UEditorEngine::RebuildAlteredBSP()
 		if ( LevelToRebuild.IsValid() )
 		{
 			RebuildLevel(*LevelToRebuild.Get());
-			GEditor->RebuildStaticNavigableGeometry(LevelToRebuild.Get());
 			NumLevelsTouched++;
 		}
 	}
@@ -1584,21 +1572,6 @@ void UEditorEngine::RebuildAlteredBSP()
 	{
 		FEditorDelegates::MapChange.Broadcast( MapChangeEventFlags::MapRebuild );
 	}
-
-#if WITH_NAVIGATION_GENERATOR	
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (World != NULL && World->GetNavigationSystem() != NULL)
-	{
-		for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
-		{
-			TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
-			if ( LevelToRebuild.IsValid() )
-			{
-				World->GetNavigationSystem()->UpdateLevelCollision(LevelToRebuild.Get());
-			}
-		}
-	}
-#endif // WITH_NAVIGATION_GENERATOR
 	
 	RedrawLevelEditingViewports();
 

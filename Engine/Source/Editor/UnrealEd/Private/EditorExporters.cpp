@@ -2566,6 +2566,13 @@ void UEditorEngine::RebuildStaticNavigableGeometry(ULevel* Level)
 				}
 			}
 		}
+
+		UWorld* World = GetEditorWorldContext().World();
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+		if (NavSys)
+		{
+			NavSys->UpdateLevelCollision(Level);
+		}
 	}
 }
 

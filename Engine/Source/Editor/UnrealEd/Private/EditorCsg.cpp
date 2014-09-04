@@ -293,15 +293,8 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 
 	GWarn->UpdateProgress( 4, 4 );
 
-#if WITH_NAVIGATION_GENERATOR
-	// update static navigable geometry in every level
-	for ( int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); ++LevelIndex ) 
-	{
-		ULevel* Level =  InWorld->GetLevel(LevelIndex);	
-
-		GEditor->RebuildStaticNavigableGeometry(Level);
-	}
-#endif
+	// update static navigable geometry in current level
+	RebuildStaticNavigableGeometry(InWorld->GetCurrentLevel());
 
 	// Empty EdPolys.
 	InWorld->GetModel()->Polys->Element.Empty();
