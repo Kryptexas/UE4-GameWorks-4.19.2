@@ -149,7 +149,7 @@ public:
 			OverlayWidget->AddSlot()
 			[
 				SNew(SBorder)
-				.Padding(2)
+				.Padding(1)
 				.BorderImage(FEditorStyle::GetBrush(Style, ".Border"))
 				//.BorderImage(FEditorStyle::GetBrush("NoBrush"))
 				.BorderBackgroundColor(this, &SAssetThumbnail::GetViewportBorderColorAndOpacity)

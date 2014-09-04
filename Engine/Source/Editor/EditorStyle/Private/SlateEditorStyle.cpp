@@ -1226,7 +1226,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "AssetThumbnail.HintShadowOffset", FVector2D(1,1) );
 		Set( "AssetThumbnail.HintShadowColorAndOpacity", FLinearColor(0, 0, 0, 1) );
 		Set( "AssetThumbnail.HintBackground", new BOX_BRUSH( "Common/TableViewHeader", FMargin(8.0f/32.0f) ) );
-		Set( "AssetThumbnail.Border", new IMAGE_BRUSH( "Common/DiagonalGradient", FVector2D(32.f, 32.f), FLinearColor(1, 1, 1, 1) ) );
+		Set( "AssetThumbnail.Border", new FSlateColorBrush( FColor::White ) );
 	}
 
 	// Open any asset dialog
