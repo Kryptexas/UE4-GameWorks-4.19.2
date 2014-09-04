@@ -182,9 +182,9 @@ struct FHyperlinkTypeDesc
 {
 	FHyperlinkTypeDesc(EHyperlinkType::Type InType, const FText& InText, const FText& InTooltipText, const FString& InId, FSlateHyperlinkRun::FOnClick InOnClickedDelegate)
 		: Type(InType)
+		, Id(InId)
 		, Text(InText)
 		, TooltipText(InTooltipText)
-		, Id(InId)
 		, OnClickedDelegate(InOnClickedDelegate)
 	{
 	}
