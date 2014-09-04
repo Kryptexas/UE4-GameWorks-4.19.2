@@ -16,7 +16,7 @@ ADocumentationActor::ADocumentationActor(const class FPostConstructInitializePro
 	RootComponent = SceneComponent;	
 
 #if WITH_EDITORONLY_DATA
- 	static ConstructorHelpers::FObjectFinder<UMaterial> MaterialAsset(TEXT("/Engine/EditorMaterials/HelpActorMaterial.HelpActorMaterial"));
+ 	static ConstructorHelpers::FObjectFinder<UMaterial> MaterialAsset(TEXT("/Engine/EditorMaterials/HelpActorMaterial"));
  	// Create a Material billboard to represent our actor
 	Billboard = PCIP.CreateDefaultSubobject<UMaterialBillboardComponent>(this, TEXT("BillboardComponent"));
 	Billboard->AddElement(MaterialAsset.Object, nullptr, false, 32.0f, 32.0f, nullptr);

@@ -271,10 +271,10 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 	bRotatedInSourceImage = false;
 #endif
 
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial.MaskedUnlitSpriteMaterial"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial"));
 	DefaultMaterial = MaskedMaterialRef.Object;
 
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterialRef(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial.OpaqueUnlitSpriteMaterial"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterialRef(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial"));
 	AlternateMaterial = OpaqueMaterialRef.Object;
 }
 
