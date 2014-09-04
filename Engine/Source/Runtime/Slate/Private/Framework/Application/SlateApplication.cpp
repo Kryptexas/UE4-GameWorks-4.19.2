@@ -3284,8 +3284,9 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 			LOG_EVENT( EEventLog::MouseButtonDown, Reply );
 
 			// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
+			// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.
 			const bool bFocusChangedByEventHandler = PreviouslyFocusedWidget != GetKeyboardFocusedWidget();
-			if (!Reply.GetFocusRecepient().IsValid() && !bFocusChangedByEventHandler)
+			if ((!Reply.GetFocusRecepient().IsValid() && !bFocusChangedByEventHandler) || (PLATFORM_MAC && !DragDetector.DetectDragForWidget.IsValid()))
 			{
 				// The event handler for OnMouseButton down may have altered the widget hierarchy.
 				// Refresh the previously-cached widget path.
@@ -3302,6 +3303,14 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 						SetKeyboardFocus( NewFocusedWidgetPath, EKeyboardFocusCause::Mouse );
 					}
 				}
+
+#if PLATFORM_MAC
+				if (WidgetsUnderCursor.TopLevelWindow.IsValid() && !DragDetector.DetectDragForWidget.IsValid())
+				{
+					WidgetsUnderCursor.TopLevelWindow->BringToFront(true);
+					FPlatformMisc::ActivateApplication();
+				}
+#endif
 			}
 		}
 

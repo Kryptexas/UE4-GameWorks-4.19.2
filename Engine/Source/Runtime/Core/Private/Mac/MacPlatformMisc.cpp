@@ -342,6 +342,13 @@ void FMacPlatformMisc::UpdateWindowMenu()
 	[WindowMenu addItem:BringAllToFrontItem];
 }
 
+void FMacPlatformMisc::ActivateApplication()
+{
+	MainThreadCall(^{
+		[NSApp activateIgnoringOtherApps:YES];
+	});
+}
+
 bool FMacPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 {
 	static uint32 IOPMNoSleepAssertion = 0;

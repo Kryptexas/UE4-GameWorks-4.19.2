@@ -136,6 +136,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	static void UpdateWindowMenu();
 
+	static void ActivateApplication();
+
 	/**
 	 * Returns whether the platform is running on battery power or not.
 	 */

@@ -136,6 +136,13 @@
 	}
 }
 
+// Returning YES allows SlateApplication to control if window should be activated on mouse down.
+// This is used for drag and drop when we don't want to activate if the mouse cursor is over a draggable item.
+- (BOOL)shouldDelayWindowOrderingForEvent:(NSEvent*)Event
+{
+	return YES;
+}
+
 - (void)activateInputMethod:(const TSharedRef<ITextInputMethodContext>&)InContext
 {
 	if (IMMContext.IsValid())
