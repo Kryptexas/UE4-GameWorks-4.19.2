@@ -21,8 +21,8 @@ enum EMediaAssetStreamModes
 };
 
 
-/** Multicast delegate that is invoked when a media asset's media is being closed. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMediaAssetMediaClosing, FString, ClosedUrl);
+/** Multicast delegate that is invoked when a media asset's media has been closed. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaAssetMediaClosed);
 
 /** Multicast delegate that is invoked when a media asset's media has been opened. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMediaAssetMediaOpened, FString, OpenedUrl);
@@ -237,9 +237,16 @@ public:
 
 public:
 
-	/** Holds a delegate that is invoked when a media asset's media is being unloaded. */
+	/** Gets an event delegate that is invoked when media has been opened or closed. */
+	DECLARE_EVENT(UMediaAsset, FOnMediaChanged)
+	FOnMediaChanged& OnMediaChanged( )
+	{
+		return MediaChangedEvent;
+	}
+
+	/** Holds a delegate that is invoked when a media asset's media has been closed. */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaAsset")
-	FOnMediaAssetMediaClosing OnMediaClosing;
+	FOnMediaAssetMediaClosed OnMediaClosed;
 
 	/** Holds a delegate that is invoked when a media asset's media has been opened. */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaAsset")
@@ -298,10 +305,10 @@ protected:
 
 private:
 
-	// Callback for when the media player is unloading media.
-	void HandleMediaPlayerMediaClosing( FString ClosedUrl );
+	/** Callback for when the media player has closed the media. */
+	void HandleMediaPlayerMediaClosed( );
 
-	// Callback for when the media player is loading media.
+	/** Callback for when the media player has opened new media. */
 	void HandleMediaPlayerMediaOpened( FString OpenedUrl );
 
 private:
@@ -311,4 +318,9 @@ private:
 
 	/** Holds the media player used to play the media file. */
 	TSharedPtr<class IMediaPlayer> MediaPlayer;
+
+private:
+
+	/** Holds a delegate that is executed when media has been opened or closed. */
+	FOnMediaChanged MediaChangedEvent;
 };

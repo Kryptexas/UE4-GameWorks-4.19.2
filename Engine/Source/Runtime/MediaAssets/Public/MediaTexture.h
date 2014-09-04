@@ -5,6 +5,7 @@
 #include "MediaSampleBuffer.h"
 #include "MediaTexture.generated.h"
 
+
 class UMediaAsset;
 
 
@@ -125,11 +126,8 @@ protected:
 
 private:
 
-	// Callback for when the media player unloads media.
-	void HandleMediaPlayerClosing( FString ClosingUrl );
-
-	// Callback for when the media player unloads media.
-	void HandleMediaPlayerOpened( FString OpenedUrl );
+	/** Callback for when the media asset changed its media. */
+	void HandleMediaAssetMediaChanged( );
 
 private:
 

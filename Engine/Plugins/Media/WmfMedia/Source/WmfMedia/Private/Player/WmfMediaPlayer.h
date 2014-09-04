@@ -54,10 +54,10 @@ public:
 	virtual bool SetLooping( bool Looping ) override;
 	virtual bool SetRate( float Rate ) override;
 
-	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaClosing, FOnMediaClosing);
-	virtual FOnMediaClosing& OnClosing( ) override
+	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaClosed, FOnMediaClosed);
+	virtual FOnMediaClosed& OnClosed( ) override
 	{
-		return ClosingEvent;
+		return ClosedEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaOpened, FOnMediaOpened);
@@ -90,24 +90,24 @@ protected:
 
 private:
 
-	// The available media tracks.
+	/** The available media tracks. */
 	TArray<IMediaTrackRef> Tracks;
 
-	// The duration of the currently loaded media.
+	/** The duration of the currently loaded media. */
 	FTimespan Duration;
 
-	// Holds the asynchronous callback object for the media stream.
+	/** Holds the asynchronous callback object for the media stream. */
 	TComPtr<FWmfMediaSession> MediaSession;
 
-	// The URL of the currently opened media.
+	/** The URL of the currently opened media. */
 	FString MediaUrl;
 
 private:
 
-	// Holds an event delegate that is invoked when media is being unloaded.
-	FOnMediaClosing ClosingEvent;
+	/** Holds an event delegate that is invoked when media has been closed. */
+	FOnMediaClosed ClosedEvent;
 
-	// Holds an event delegate that is invoked when media has been loaded.
+	/** Holds an event delegate that is invoked when media has been opened. */
 	FOnMediaOpened OpenedEvent;
 };
 

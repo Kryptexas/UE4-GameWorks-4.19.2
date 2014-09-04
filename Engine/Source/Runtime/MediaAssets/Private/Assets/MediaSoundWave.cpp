@@ -43,7 +43,7 @@ void UMediaSoundWave::SetMediaAsset( UMediaAsset* InMediaAsset )
 {
 	MediaAsset = InMediaAsset;
 
-	InitializeStream();
+	InitializeTrack();
 }
 
 
@@ -127,33 +127,21 @@ void UMediaSoundWave::Serialize( FArchive& Ar )
 /* UMediaSoundWave implementation
  *****************************************************************************/
 
-void UMediaSoundWave::InitializeStream( )
+void UMediaSoundWave::InitializeTrack( )
 {
 	// assign new media asset
 	if (CurrentMediaAsset != MediaAsset)
 	{
 		if (CurrentMediaAsset != nullptr)
 		{
-			IMediaPlayerPtr MediaPlayer = CurrentMediaAsset->GetMediaPlayer();
-
-			if (MediaPlayer.IsValid())
-			{
-				MediaPlayer->OnClosing().RemoveAll(this);
-				MediaPlayer->OnOpened().RemoveAll(this);			
-			}
+			CurrentMediaAsset->OnMediaChanged().RemoveAll(this);
 		}
 
 		CurrentMediaAsset = MediaAsset;
 
 		if (MediaAsset != nullptr)
 		{
-			IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
-
-			if (MediaPlayer.IsValid())
-			{
-				MediaPlayer->OnClosing().AddUObject(this, &UMediaSoundWave::HandleMediaPlayerClosing);
-				MediaPlayer->OnOpened().AddUObject(this, &UMediaSoundWave::HandleMediaPlayerOpened);
-			}
+			MediaAsset->OnMediaChanged().AddUObject(this, &UMediaSoundWave::HandleMediaAssetMediaChanged);
 		}	
 	}
 
@@ -198,13 +186,7 @@ void UMediaSoundWave::InitializeStream( )
 /* UMediaSoundWave callbacks
  *****************************************************************************/
 
-void UMediaSoundWave::HandleMediaPlayerClosing( FString ClosingUrl )
+void UMediaSoundWave::HandleMediaAssetMediaChanged( )
 {
-	InitializeStream();
-}
-
-
-void UMediaSoundWave::HandleMediaPlayerOpened( FString OpenedUrl )
-{
-	InitializeStream();
+	InitializeTrack();
 }

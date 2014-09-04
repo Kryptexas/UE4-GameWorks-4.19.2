@@ -157,6 +157,8 @@ void UMediaTexture::PostEditChangeProperty( FPropertyChangedEvent& PropertyChang
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
+#endif // WITH_EDITOR
+
 
 /* UMediaTexture implementation
  *****************************************************************************/
@@ -168,26 +170,14 @@ void UMediaTexture::InitializeTrack( )
 	{
 		if (CurrentMediaAsset != nullptr)
 		{
-			IMediaPlayerPtr MediaPlayer = CurrentMediaAsset->GetMediaPlayer();
-
-			if (MediaPlayer.IsValid())
-			{
-				MediaPlayer->OnClosing().RemoveAll(this);
-				MediaPlayer->OnOpened().RemoveAll(this);
-			}
+			CurrentMediaAsset->OnMediaChanged().RemoveAll(this);
 		}
 
 		CurrentMediaAsset = MediaAsset;
 
 		if (MediaAsset != nullptr)
 		{
-			IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
-
-			if (MediaPlayer.IsValid())
-			{
-				MediaPlayer->OnClosing().AddUObject(this, &UMediaTexture::HandleMediaPlayerClosing);
-				MediaPlayer->OnOpened().AddUObject(this, &UMediaTexture::HandleMediaPlayerOpened);
-			}
+			MediaAsset->OnMediaChanged().AddUObject(this, &UMediaTexture::HandleMediaAssetMediaChanged);
 		}	
 	}
 
@@ -195,9 +185,8 @@ void UMediaTexture::InitializeTrack( )
 	if (VideoTrack.IsValid())
 	{
 		VideoTrack->RemoveSink(VideoBuffer);
+		VideoTrack.Reset();
 	}
-
-	VideoTrack.Reset();
 
 	// initialize from new track
 	if (MediaAsset != nullptr)
@@ -232,16 +221,7 @@ void UMediaTexture::InitializeTrack( )
 /* UMediaTexture callbacks
  *****************************************************************************/
 
-void UMediaTexture::HandleMediaPlayerClosing( FString ClosingUrl )
+void UMediaTexture::HandleMediaAssetMediaChanged( )
 {
 	InitializeTrack();
 }
-
-
-void UMediaTexture::HandleMediaPlayerOpened( FString OpenedUrl )
-{
-	InitializeTrack();
-}
-
-
-#endif // WITH_EDITOR

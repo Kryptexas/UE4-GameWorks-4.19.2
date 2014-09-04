@@ -173,8 +173,8 @@ public:
 public:
 
 	/** Gets an event delegate that is invoked when media has been closed. */
-	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaClosing, FString /*ClosedUrl*/)
-	virtual FOnMediaClosing& OnClosing( ) = 0;
+	DECLARE_EVENT(IMediaPlayer, FOnMediaClosed)
+	virtual FOnMediaClosed& OnClosed( ) = 0;
 
 	/** Gets an event delegate that is invoked when media has been opened. */
 	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaOpened, FString /*OpenedUrl*/)

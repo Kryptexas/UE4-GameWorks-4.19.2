@@ -72,21 +72,20 @@ bool FWmfMediaPlayer::SupportsSeeking( ) const
 
 void FWmfMediaPlayer::Close( )
 {
-	if (!MediaUrl.IsEmpty())
+	if (MediaSession == NULL)
 	{
-		ClosingEvent.Broadcast(MediaUrl);
+		return;
 	}
 
-	if (MediaSession != NULL)
-	{
-		MediaSession->SetState(EMediaStates::Closed);
-		MediaSession.Reset();
-	}
+	MediaSession->SetState(EMediaStates::Closed);
+	MediaSession.Reset();
 
 	Tracks.Reset();
 
 	Duration = 0;
 	MediaUrl = FString();
+
+	ClosedEvent.Broadcast();
 }
 
 

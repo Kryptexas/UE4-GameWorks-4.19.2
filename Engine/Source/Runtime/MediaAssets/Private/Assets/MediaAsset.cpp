@@ -219,7 +219,7 @@ void UMediaAsset::InitializePlayer( )
 		if (MediaPlayer.IsValid())
 		{
 			MediaPlayer->Close();
-			MediaPlayer->OnClosing().RemoveAll(this);
+			MediaPlayer->OnClosed().RemoveAll(this);
 			MediaPlayer->OnOpened().RemoveAll(this);
 			MediaPlayer.Reset();
 		}
@@ -237,7 +237,7 @@ void UMediaAsset::InitializePlayer( )
 			return;
 		}
 
-		MediaPlayer->OnClosing().AddUObject(this, &UMediaAsset::HandleMediaPlayerMediaClosing);
+		MediaPlayer->OnClosed().AddUObject(this, &UMediaAsset::HandleMediaPlayerMediaClosed);
 		MediaPlayer->OnOpened().AddUObject(this, &UMediaAsset::HandleMediaPlayerMediaOpened);
 
 		// open the new media file
@@ -294,13 +294,15 @@ void UMediaAsset::InitializePlayer( )
 /* UMediaAsset callbacks
  *****************************************************************************/
 
-void UMediaAsset::HandleMediaPlayerMediaClosing( FString ClosedUrl )
+void UMediaAsset::HandleMediaPlayerMediaClosed( )
 {
-	OnMediaClosing.Broadcast(ClosedUrl);
+	MediaChangedEvent.Broadcast();
+	OnMediaClosed.Broadcast();
 }
 
 
 void UMediaAsset::HandleMediaPlayerMediaOpened( FString OpenedUrl )
 {
+	MediaChangedEvent.Broadcast();
 	OnMediaOpened.Broadcast(OpenedUrl);
 }
