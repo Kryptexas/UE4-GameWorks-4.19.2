@@ -10,6 +10,7 @@
 #define LOCTEXT_NAMESPACE "EditorViewport"
 
 SEditorViewport::SEditorViewport()
+	: LastTickTime(0)
 {
 }
 
@@ -96,6 +97,11 @@ FReply SEditorViewport::OnKeyboardFocusReceived( const FGeometry& MyGeometry, co
 {
 	// forward focus to the viewport
 	return FReply::Handled().SetKeyboardFocus( ViewportWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+}
+
+void SEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	LastTickTime = FPlatformTime::Seconds();
 }
 
 void SEditorViewport::BindCommands()
@@ -366,6 +372,13 @@ bool SEditorViewport::IsExposureSettingSelected( int32 ID ) const
 bool SEditorViewport::IsRealtime() const
 {
 	return Client->IsRealtime();
+}
+
+bool SEditorViewport::IsVisible() const
+{
+	const float VisibilityTimeThreshold = .25f;
+	// The viewport is visible if we don't have a parent layout (likely a floating window) or this viewport is visible in the parent layout
+	return FPlatformTime::Seconds() - LastTickTime <= VisibilityTimeThreshold;
 }
 
 void SEditorViewport::OnScreenCapture()

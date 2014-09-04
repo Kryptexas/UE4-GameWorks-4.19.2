@@ -17,11 +17,15 @@ public:
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	
 	/**
 	 * @return True if the viewport is being updated in realtime
 	 */
 	bool IsRealtime() const;
+
+	/** @return True if the viewport is currently visible */
+	virtual bool IsVisible() const;
 
 	/**
 	 * @return true if the specified coordinate system the active one active
@@ -142,4 +146,6 @@ protected:
 	TSharedPtr<FEditorViewportClient> Client;
 	/** Commandlist used in the viewport (Maps commands to viewport specific actions) */
 	TSharedPtr<FUICommandList> CommandList;
+	/** The last time the viewport was ticked (for visibility determination) */
+	double LastTickTime;
 };

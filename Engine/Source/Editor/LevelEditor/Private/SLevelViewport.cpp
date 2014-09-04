@@ -106,7 +106,7 @@ void SLevelViewport::HandleViewportSettingChanged(FName PropertyName)
 bool SLevelViewport::IsVisible() const
 {
 	// The viewport is visible if we don't have a parent layout (likely a floating window) or this viewport is visible in the parent layout
-	return ViewportWidget.IsValid() && ( !ParentLayout.IsValid() || ParentLayout.Pin()->IsLevelViewportVisible( *this ) );
+	return ViewportWidget.IsValid() && (!ParentLayout.IsValid() || ParentLayout.Pin()->IsLevelViewportVisible(*this)) && SEditorViewport::IsVisible();
 }
 
 void SLevelViewport::Construct(const FArguments& InArgs)
@@ -786,7 +786,11 @@ FReply SLevelViewport::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
 	const bool bContainsFocus = HasFocusedDescendants();
+
+	LastTickTime = FPlatformTime::Seconds();
 
 	// When we have focus we update the 'Allow Throttling' option in slate to be disabled so that interactions in the
 	// viewport with Slate widgets that are part of the game, don't throttle.

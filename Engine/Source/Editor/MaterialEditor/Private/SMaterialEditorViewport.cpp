@@ -178,7 +178,7 @@ void SMaterialEditorViewport::RefreshViewport()
 
 void SMaterialEditorViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
 bool SMaterialEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh)
@@ -292,7 +292,7 @@ void SMaterialEditorViewport::OnAddedToTab( const TSharedRef<SDockTab>& OwnerTab
 
 bool SMaterialEditorViewport::IsVisible() const
 {
-	return ViewportWidget.IsValid() && (!ParentTab.IsValid() || ParentTab.Pin()->IsForeground());
+	return ViewportWidget.IsValid() && (!ParentTab.IsValid() || ParentTab.Pin()->IsForeground()) && SEditorViewport::IsVisible() ;
 }
 
 void SMaterialEditorViewport::BindCommands()

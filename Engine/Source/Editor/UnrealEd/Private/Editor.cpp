@@ -1347,7 +1347,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 					continue;
 				}
 
-				if (!ViewportClient->IsLevelEditorClient() || ViewportClient->IsVisible())
+				if ( ViewportClient->IsVisible() )
 				{
 					// Only update ortho viewports if that mode is turned on, the viewport client we are about to update is orthographic and the current editing viewport is orthographic and tracking mouse movement.
 					bUpdateLinkedOrthoViewports = GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports && ViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient->IsTracking();
