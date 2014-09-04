@@ -865,7 +865,7 @@ namespace UnrealBuildTool
             throw new BuildException("Linux cannot compile C# files");
         }
 
-        static public void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+        public override void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
         {
             foreach (UEBuildBinary Binary in Binaries)
             {

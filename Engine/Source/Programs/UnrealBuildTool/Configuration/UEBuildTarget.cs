@@ -1324,7 +1324,7 @@ namespace UnrealBuildTool
 			OutputItems = new List<FileItem>();
 			UObjectModules = new List<UHTModuleInfo>();
 
-			var SpecialRocketLibFilesThatAreBuildProducts = PreBuildSetup();
+			var SpecialRocketLibFilesThatAreBuildProducts = PreBuildSetup(TargetToolChain);
 
 			EULAViolationWarning = !ProjectFileGenerator.bGenerateProjectFiles
 				? CheckForEULAViolation()
@@ -1402,7 +1402,7 @@ namespace UnrealBuildTool
 			// On Mac we have actions that should be executed after all the binaries are created
 			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac)
 			{
-				MacToolChain.SetupBundleDependencies(AppBinaries, GameName);
+				TargetToolChain.SetupBundleDependencies(AppBinaries, GameName);
 			}
 
 			// Generate the external file list 
@@ -1563,7 +1563,7 @@ namespace UnrealBuildTool
 		/// Setup target before build. This method finds dependencies, sets up global environment etc.
 		/// </summary>
 		/// <returns>Special Rocket lib files that are build products.</returns>
-		public List<string> PreBuildSetup()
+		public List<string> PreBuildSetup(IUEToolChain TargetToolChain)
 		{
 			// Set up the global compile and link environment in GlobalCompileEnvironment and GlobalLinkEnvironment.
 			SetupGlobalEnvironment();
@@ -1625,7 +1625,7 @@ namespace UnrealBuildTool
 			// On Mac AppBinaries paths for non-console targets need to be adjusted to be inside the app bundle
 			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac && !GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
-				MacToolChain.FixBundleBinariesPaths(this, AppBinaries);
+				TargetToolChain.FixBundleBinariesPaths(this, AppBinaries);
 			}
 
 			// If we're building a single module, then find the binary for that module and add it to our target

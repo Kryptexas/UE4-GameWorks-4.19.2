@@ -1313,6 +1313,11 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public override string GetPlatformVersion()
+		{
+			return IOSVersion;
+		}
+
 		public static int RunExecutableAndWait( string ExeName, string ArgumentList, out string StdOutResults )
 		{
 			// Create the process

@@ -1044,16 +1044,20 @@ namespace UnrealBuildTool
 			return TargetItem;
 		}
 
-		static public void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+		public override void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
 		{
+			base.SetupBundleDependencies(Binaries, GameName);
+
 			foreach (UEBuildBinary Binary in Binaries)
 			{
 				BundleDependencies.Add(FileItem.GetItemByPath(Binary.ToString()));
 			}
 		}
 		
-		static public void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries)
+		public override void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries)
 		{
+			base.FixBundleBinariesPaths(Target, Binaries);
+
 			string BundleContentsPath = Target.OutputPath + ".app/Contents/";
 			foreach (UEBuildBinary Binary in Binaries)
 			{

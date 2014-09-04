@@ -39,6 +39,12 @@ namespace UnrealBuildTool
 		void SetUpGlobalEnvironment();
 
         void AddFilesToManifest(ref FileManifest manifest, UEBuildBinary Binary );
+
+		void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName);
+
+		void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries);
+
+		string GetPlatformVersion();
 	}
 
 	public abstract class UEToolChain : IUEToolChain
@@ -197,5 +203,19 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public virtual void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+		{
+
+		}
+
+		public virtual void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries)
+		{
+
+		}
+
+		public virtual string GetPlatformVersion()
+		{
+			return "";
+		}
 	};
 }
