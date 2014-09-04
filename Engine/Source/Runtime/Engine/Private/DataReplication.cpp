@@ -309,7 +309,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 
 	if ( Object == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReceivedNak: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReceivedNak: Object == NULL" ) );
 		return;
 	}
 
@@ -374,7 +374,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 
 	if ( Object == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReceivedBunch: Object == NULL" ) );
 		return false;
 	}
 
@@ -773,7 +773,7 @@ void FObjectReplicator::PostReceivedBunch()
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "PostReceivedBunch: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "PostReceivedBunch: Object == NULL" ) );
 		return;
 	}
 
@@ -956,7 +956,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 	if ( Object == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReplicateProperties: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReplicateProperties: Object == NULL" ) );
 		return false;
 	}
 
@@ -1021,7 +1021,7 @@ void FObjectReplicator::ForceRefreshUnreliableProperties()
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ForceRefreshUnreliableProperties: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ForceRefreshUnreliableProperties: Object == NULL" ) );
 		return;
 	}
 
@@ -1036,7 +1036,7 @@ void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReli
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "PostSendBunch: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "PostSendBunch: Object == NULL" ) );
 		return;
 	}
 
@@ -1118,7 +1118,7 @@ bool FObjectReplicator::ReadyForDormancy(bool suppressLogs)
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReadyForDormancy: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReadyForDormancy: Object == NULL" ) );
 		return true;		// Technically, we don't want to hold up dormancy, but the owner needs to clean us up, so we warn
 	}
 
@@ -1153,7 +1153,7 @@ void FObjectReplicator::StartBecomingDormant()
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "StartBecomingDormant: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "StartBecomingDormant: Object == NULL" ) );
 		return;
 	}
 
