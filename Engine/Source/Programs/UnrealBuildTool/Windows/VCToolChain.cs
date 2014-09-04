@@ -380,7 +380,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" -Wno-microsoft");								
 
 				// Don't complain about use of 'const' on reference types when it will have no effect
-				// Arguments.Append( " -Wno-ignored-qualifiers" );	// @todo clang: Needed?
+				Arguments.Append( " -Wno-ignored-qualifiers" );	// @todo clang: This triggers for ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER  due to EURCMacro_##TypeName(const _ParamType1& In##ParamName1)
 
 				// @todo clang: Kind of a shame to turn these off.  We'd like to catch unused variables, but it is tricky with how our assertion macros work.
 				Arguments.Append(" -Wno-unused-variable");

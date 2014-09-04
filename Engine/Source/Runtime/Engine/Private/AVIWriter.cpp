@@ -39,6 +39,13 @@ const AMOVIESETUP_MEDIATYPE sudOpPinTypes =
 	&MEDIASUBTYPE_NULL      // Minor type
 };
 
+
+#ifdef __clang__
+	// Suppress warning about filling non-const string variable from literal
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wwritable-strings"	// warning : ISO C++11 does not allow conversion from string literal to 'LPWSTR' (aka 'wchar_t *') [-Wwritable-strings]
+#endif
+
 const AMOVIESETUP_PIN sudOutputPinDesktop = 
 {
 	L"Output",      // Obsolete, not used.
@@ -51,6 +58,10 @@ const AMOVIESETUP_PIN sudOutputPinDesktop =
 	1,              // Number of media types.
 	&sudOpPinTypes  // Pointer to media types.
 };
+
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 
 const AMOVIESETUP_FILTER sudPushSourceDesktop =
 {

@@ -35,6 +35,10 @@ public:
 		, AuthTicket(InAuthTicket)
 	{ }
 
+	virtual ~FUserOnlineAccountAmazon()
+	{
+	}
+
 	/** User Id represented as a FUniqueNetId */
 	TSharedRef<FUniqueNetId> UserIdPtr;
 	/** Id associated with the user account provided by the online service during registration */

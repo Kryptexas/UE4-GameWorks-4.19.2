@@ -34,6 +34,10 @@ public:
 		, AuthTicket(InAuthTicket)
 	{ }
 
+	virtual ~FUserOnlineAccountFacebook()
+	{
+	}
+
 	/** User Id represented as a FUniqueNetId */
 	TSharedRef<FUniqueNetId> UserIdPtr;
 	/** Id associated with the user account provided by the online service during registration */

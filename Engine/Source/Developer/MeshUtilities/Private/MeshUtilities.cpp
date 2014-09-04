@@ -503,7 +503,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 
 #else
 
-static void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
+void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	const FStaticMeshLODResources& LODModel,
 	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
@@ -512,8 +512,7 @@ static void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	bool bGenerateAsIfTwoSided,
 	FDistanceFieldVolumeData& OutData)
 {
-	if (DistanceFieldResolutionScale > 0 
-		&& CVarAllowMeshDistanceFieldRepresentations.GetValueOnGameThread() != 0)
+	if (DistanceFieldResolutionScale > 0)
 	{
 		UE_LOG(LogMeshUtilities,Error,TEXT("Couldn't generate distance field for mesh, platform is missing required Vector intrinsics."));
 	}
@@ -3901,3 +3900,6 @@ void FMeshUtilities::ShutdownModule()
 	MeshMerging = NULL;
 	VersionString.Empty();
 }
+
+
+#undef LOCTEXT_NAMESPACE

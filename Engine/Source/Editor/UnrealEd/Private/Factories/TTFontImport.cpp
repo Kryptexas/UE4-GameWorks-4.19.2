@@ -1190,7 +1190,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 			// like TrueType and OpenType; it won't work for raster fonts!
 			bool bUsingGlyphOutlines = false;
 			GLYPHMETRICS WinGlyphMetrics;
-			const MAT2 WinIdentityMatrix2x2 = { 0,1, 0,0, 0,0, 0,1 };
+			const MAT2 WinIdentityMatrix2x2 = { { 0, 1 }, { 0, 0 }, { 0, 0 }, { 0, 1 } };
 			int32 VerticalOffset = 0;
 			uint32 GGODataSize = 0;
 			if( !ImportOptions->Data.bEnableLegacyMode && ImportOptions->Data.bEnableAntialiasing )    // We only bother using GetGlyphOutline for AntiAliased fonts!

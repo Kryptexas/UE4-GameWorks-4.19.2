@@ -60,6 +60,12 @@ public:
 			Data &= ~Mask;
 		}
 	}
+	FORCEINLINE FBitReference& operator=(const FBitReference& Copy)
+	{
+		this->Data = Copy.Data;
+		this->Mask = Copy.Mask;
+		return *this;
+	}
 
 private:
 	uint32& Data;

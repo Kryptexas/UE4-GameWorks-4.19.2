@@ -114,11 +114,6 @@ private:
 	void UnloadSSLLibraries();
 
 private:
-#if PLATFORM_WINDOWS
-	/** Module handles for OpenSSL dlls */
-	HMODULE Module_libeay32;
-	HMODULE Module_ssleay32;
-#endif
 
 	/** The ticket we use for login. */
 	FString Ticket;
@@ -131,6 +126,12 @@ private:
 
 	/** A pointer to the persistent P4 connection for synchronous operations */
 	class FPerforceConnection* PersistentConnection;
+
+#if PLATFORM_WINDOWS
+	/** Module handles for OpenSSL dlls */
+	HMODULE Module_libeay32;
+	HMODULE Module_ssleay32;
+#endif
 
 	/** State cache */
 	TMap<FString, TSharedRef<class FPerforceSourceControlState, ESPMode::ThreadSafe> > StateCache;

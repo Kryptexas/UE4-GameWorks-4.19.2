@@ -75,6 +75,12 @@ namespace UnrealBuildTool
         {
             get
             {
+				// @todo clang: DTE #import doesn't work with Clang compiler
+				if( bCompileWithClang )
+				{
+					return false;
+				}
+
                 try
                 {
                     // Interrogate the Win32 registry

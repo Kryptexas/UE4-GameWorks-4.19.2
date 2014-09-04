@@ -3,7 +3,20 @@
 #include "UnrealEd.h"
 #include "RawMesh.h"
 #include "MeshUtilities.h"
+
+
+#ifdef __clang__
+	// SimplygonSDK.h uses 'deprecated' pragma which Clang does not recognize
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wunknown-pragmas"	// warning : unknown pragma ignored [-Wunknown-pragmas]
+#endif
+
 #include "SimplygonSDK.h"
+
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
+
 #include "MeshBoneReduction.h"
 #include "MaterialExportUtils.h"
 #include "ComponentReregisterContext.h"
@@ -87,6 +100,10 @@ class FSimplygonMeshReduction
 	, public IMeshMerging
 {
 public:
+	virtual ~FSimplygonMeshReduction()
+	{
+	}
+
 	virtual const FString& GetVersionString() const override
 	{
 		return VersionString;
@@ -97,7 +114,7 @@ public:
 		float& OutMaxDeviation,
 		const FRawMesh& InMesh,
 		const FMeshReductionSettings& InSettings
-		)
+		) override
 	{
 		SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(InMesh);
 		check(GeometryData);
@@ -189,7 +206,7 @@ public:
 		int32 LODIndex,
 		const FSkeletalMeshOptimizationSettings& Settings,
 		bool bCalcLODDistance
-		)
+		) override
 	{
 		check( SkeletalMesh );
 		check( LODIndex >= 0 );
@@ -329,7 +346,7 @@ public:
 		return true;
 	}
 	
-	bool IsSupported() const 
+	virtual bool IsSupported() const override
 	{
 		return true;
 	}
@@ -408,8 +425,8 @@ public:
 		bool bCastNormals;
 
 		FMaterialCastingProperties()
-			: bCastNormals(false)
-			, bCastMaterials(false)
+			: bCastMaterials(false),
+			  bCastNormals(false)			
 		{
 		}
 	};
