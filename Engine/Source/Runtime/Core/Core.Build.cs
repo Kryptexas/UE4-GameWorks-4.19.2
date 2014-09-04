@@ -27,6 +27,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Public/ProfilingDebugging",
 				"Runtime/Core/Public/Serialization",
 				"Runtime/Core/Public/Serialization/Json",
+				"Runtime/Core/Public/Serialization/Csv",
 				"Runtime/Core/Public/Stats",
 				"Runtime/Core/Public/Templates",
 				"Runtime/Core/Public/UObject",

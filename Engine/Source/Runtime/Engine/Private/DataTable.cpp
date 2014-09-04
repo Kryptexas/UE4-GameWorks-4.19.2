@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Json.h"
-#include "Serialization/Csv/CsvParser.h"
+#include "CsvParser.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 
