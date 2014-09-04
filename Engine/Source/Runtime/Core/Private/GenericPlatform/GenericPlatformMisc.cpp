@@ -782,3 +782,37 @@ bool FGenericPlatformMisc::IsRunningOnBattery()
 {
 	return false;
 }
+
+FGuid FGenericPlatformMisc::GetMachineId()
+{
+	FGuid MachineId;
+	FString MachineIdStr;
+
+	// Check to see if we already have a valid machine ID to use
+	if( !GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) || !FGuid::Parse( MachineIdStr, MachineId ) )
+	{
+		// No valid machine ID, generate and save a new one
+		MachineId = FGuid::NewGuid();
+		MachineIdStr = MachineId.ToString( EGuidFormats::Digits );
+
+		if( !SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) )
+		{
+			// Failed to persist the machine ID - reset it to zero to avoid returning a transient value
+			MachineId = FGuid();
+		}
+	}
+
+	return MachineId;
+}
+
+FString FGenericPlatformMisc::GetEpicAccountId()
+{
+	FString AccountId;
+	GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
+	return AccountId;
+}
+
+void FGenericPlatformMisc::SetEpicAccountId( const FString& AccountId )
+{
+	SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
+}

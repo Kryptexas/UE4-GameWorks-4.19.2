@@ -811,6 +811,21 @@ public:
 	 */
 	static bool IsRunningOnBattery();
 
+	/**
+	 * Get (or create) the unique ID used to identify this computer
+	 */
+	static FGuid GetMachineId();
+
+	/**
+	 * Get the Epic account ID for the user who last used the Launcher
+	 */
+	static FString GetEpicAccountId();
+
+	/**
+	 * Set the Epic account ID for the user who last used the Launcher
+	 */
+	static void SetEpicAccountId( const FString& AccountId );
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */

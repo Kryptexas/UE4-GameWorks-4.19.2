@@ -8,11 +8,6 @@
 #include "CrashReportAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#if !CRASH_REPORT_UNATTENDED_ONLY
-	#include "DesktopPlatformModule.h"
-#endif // CRASH_REPORT_UNATTENDED_ONLY
-
-
 
 FCrashDescription::FCrashDescription() :
 	BuiltFromCL( -1 ),
@@ -182,17 +177,10 @@ void FCrashDescription::InitializeEngineVersion()
 
 void FCrashDescription::InitializeIDs()
 {
-#if !CRASH_REPORT_UNATTENDED_ONLY
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-
-	MachineId = DesktopPlatform->GetMachineId().ToString( EGuidFormats::Digits );
+	MachineId = FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits );
 
 	// The Epic ID can be looked up from this ID.
-	EpicAccountId = DesktopPlatform->GetEpicAccountId();
-#else
-	MachineId = FGuid::NewGuid().ToString(EGuidFormats::Digits);
-	EpicAccountId = TEXT("BogusUnattendedAccount");
-#endif // CRASH_REPORT_UNATTENDED_ONLY
+	EpicAccountId = FPlatformMisc::GetEpicAccountId();
 
 	// Get the user name only for non-UE4 releases.
 	if( !FRocketSupport::IsRocket() )

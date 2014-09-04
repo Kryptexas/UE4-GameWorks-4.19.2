@@ -37,7 +37,6 @@ public class CrashReportClient : ModuleRules
 					"SlateCore",
 					"SlateReflector",
 					"StandaloneRenderer",
-					"DesktopPlatform",
 					"MessageLog",
 				}
 			);
