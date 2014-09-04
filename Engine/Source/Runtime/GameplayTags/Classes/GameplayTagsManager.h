@@ -238,6 +238,8 @@ private:
 	/** Helper function to populate the tag tree from each table */
 	void PopulateTreeFromDataTable(class UDataTable* Table);
 
+	void AddTagTableRow(const FGameplayTagTableRow& TagRow);
+
 	/**
 	 * Helper function for RequestGameplayTagParents to add all parents to the container
 	 *

@@ -4,6 +4,10 @@
 #include "GameplayTagsGraphPanelPinFactory.h"
 #include "GameplayTagContainerCustomization.h"
 #include "GameplayTagCustomization.h"
+#include "GameplayTagsSettings.h"
+#include "Settings.h"
+
+#define LOCTEXT_NAMESPACE "GameplayTagEditor"
 
 class FGameplayTagsEditorModule : public IGameplayTagsEditorModule
 {
@@ -24,11 +28,27 @@ void FGameplayTagsEditorModule::StartupModule()
 
 	TSharedPtr<FGameplayTagsGraphPanelPinFactory> GameplayTagsGraphPanelPinFactory = MakeShareable( new FGameplayTagsGraphPanelPinFactory() );
 	FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactory);
-	
+
+	if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+	{
+		SettingsModule->RegisterSettings("Project", "Project", "GameplayTags",
+			LOCTEXT("GameplayTagSettingsName", "GameplayTags"),
+			LOCTEXT("GameplayTagSettingsNameDesc", "GameplayTag Settings"),
+			GetMutableDefault<UGameplayTagsSettings>()
+			);
+	}
 }
 
 void FGameplayTagsEditorModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+	
+	
+	if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+	{
+		SettingsModule->UnregisterSettings("Project", "Project", "GameplayTags");
+	}
 }
+
+#undef LOCTEXT_NAMESPACE

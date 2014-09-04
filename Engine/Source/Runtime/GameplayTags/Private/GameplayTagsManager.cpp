@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsModulePrivatePCH.h"
+#include "GameplayTagsSettings.h"
 //#include "AssetRegistryModule.h"
+
+#pragma optimize( "", off )
+
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -38,6 +42,7 @@ void UGameplayTagsManager::LoadGameplayTagTables(TArray<FString>& TagTableNames)
 			GameplayTagTables.Add(TagTable);
 		}
 	}
+
 #if WITH_EDITOR
 	// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
 	if (GIsEditor && GameplayTagTables.Num() > 0 && !RegisteredObjectReimport)
@@ -117,47 +122,70 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 		{
 			PopulateTreeFromDataTable(*It);
 		}
+
+		// Load any GameplayTagSettings from config (their default object)
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* Class = *ClassIt;
+			if (!Class->IsChildOf<UGameplayTagsSettings>() || Class->HasAnyClassFlags(CLASS_Abstract))
+			{
+				continue;
+			}
+
+			for (FString TagStr : Class->GetDefaultObject<UGameplayTagsSettings>()->GameplayTags)
+			{
+				FGameplayTagTableRow TableRow;
+				TableRow.Tag = TagStr;
+				AddTagTableRow(TableRow);
+			}
+		}
 	}
 }
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)
 {
 	checkf(GameplayRootTag.IsValid(), TEXT("ConstructGameplayTagTree() must be called before PopulateTreeFromDataTable()"));
-
-	TArray< TSharedPtr<FGameplayTagNode> >& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
 	static const FString ContextString(TEXT("UNKNOWN"));
+	
 	const int32 NumRows = InTable->RowMap.Num();
 	for (int32 RowIdx = 0; RowIdx < NumRows; ++RowIdx)
 	{
 		FGameplayTagTableRow* TagRow = InTable->FindRow<FGameplayTagTableRow>(*FString::Printf(TEXT("%d"), RowIdx), ContextString);
 		if (TagRow)
 		{
-			// Split the tag text on the "." delimiter to establish tag depth and then insert each tag into the
-			// gameplay tag tree
-			TArray<FString> SubTags;
-			TagRow->Tag.ParseIntoArray(&SubTags, TEXT("."), true);
-
-			if (SubTags.Num() > 0)
-			{
-				int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow->CategoryText : FText());
-				TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
-
-				for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
-				{
-					TArray< TSharedPtr<FGameplayTagNode> >& ChildTags = CurNode.Get()->GetChildTagNodes();
-					FText Description;
-					if (SubTagIdx == SubTags.Num() - 1)
-					{
-						Description = TagRow->CategoryText;
-					}
-					InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
-
-					CurNode = ChildTags[InsertionIdx];
-				}
-			}
+			AddTagTableRow(*TagRow);
 		}
 	}
-	GameplayRootTags.Sort(FCompareFGameplayTagNodeByTag());
+	GameplayRootTag->GetChildTagNodes().Sort(FCompareFGameplayTagNodeByTag());
+}
+
+void UGameplayTagsManager::AddTagTableRow(const FGameplayTagTableRow& TagRow)
+{
+	TArray< TSharedPtr<FGameplayTagNode> >& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
+
+	// Split the tag text on the "." delimiter to establish tag depth and then insert each tag into the
+	// gameplay tag tree
+	TArray<FString> SubTags;
+	TagRow.Tag.ParseIntoArray(&SubTags, TEXT("."), true);
+
+	if (SubTags.Num() > 0)
+	{
+		int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow.CategoryText : FText());
+		TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
+
+		for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
+		{
+			TArray< TSharedPtr<FGameplayTagNode> >& ChildTags = CurNode.Get()->GetChildTagNodes();
+			FText Description;
+			if (SubTagIdx == SubTags.Num() - 1)
+			{
+				Description = TagRow.CategoryText;
+			}
+			InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
+
+			CurNode = ChildTags[InsertionIdx];
+		}
+	}
 }
 
 UGameplayTagsManager::~UGameplayTagsManager()
