@@ -123,7 +123,13 @@ void UK2Node_GetInputAxisValue::GetMenuActions(FBlueprintActionDatabaseRegistrar
 
 FText UK2Node_GetInputAxisValue::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Axis Values"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Axis Values"));
+	}
+	return CachedCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

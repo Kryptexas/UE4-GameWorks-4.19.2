@@ -154,21 +154,40 @@ void UK2Node_GetInputAxisKeyValue::GetMenuActions(FBlueprintActionDatabaseRegist
 
 FText UK2Node_GetInputAxisKeyValue::GetMenuCategory() const
 {
+	enum EAxisKeyCategory
+	{
+		GamepadKeyCategory,
+		MouseButtonCategory,
+		KeyValueCategory,
+		AxisKeyCategory_MAX,
+	};
+	static FNodeTextCache CachedCategories[AxisKeyCategory_MAX];
+
 	FText SubCategory;
+	EAxisKeyCategory CategoryIndex = AxisKeyCategory_MAX;
+
 	if (InputAxisKey.IsGamepadKey())
 	{
 		SubCategory = LOCTEXT("GamepadSubCategory", "Gamepad Values");
+		CategoryIndex = GamepadKeyCategory;
 	}
 	else if (InputAxisKey.IsMouseButton())
 	{
 		SubCategory = LOCTEXT("MouseSubCategory", "Mouse Values");
+		CategoryIndex = MouseButtonCategory;
 	}
 	else
 	{
 		SubCategory = LOCTEXT("KeySubCategory", "Key Values");
+		CategoryIndex = KeyValueCategory;
 	}
-	
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+
+	if (CachedCategories[CategoryIndex].IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategories[CategoryIndex] = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+	}
+	return CachedCategories[CategoryIndex];
 }
 
 #undef LOCTEXT_NAMESPACE

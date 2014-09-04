@@ -115,16 +115,20 @@ FText UBlueprintVariableNodeSpawner::GetDefaultMenuName() const
 //------------------------------------------------------------------------------
 FText UBlueprintVariableNodeSpawner::GetDefaultMenuCategory() const
 {
-	FText VarSubCategory;
-	if (IsLocalVariable())
+	if (CachedCategory.IsOutOfDate())
 	{
-		VarSubCategory = FText::FromName(LocalVarDesc.Category);
+		FText VarSubCategory;
+		if (IsLocalVariable())
+		{
+			VarSubCategory = FText::FromName(LocalVarDesc.Category);
+		}
+		else if (MemberVariable.IsValid())
+		{
+			VarSubCategory = FText::FromString(FObjectEditorUtils::GetCategory(MemberVariable.Get()));
+		}
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, VarSubCategory);
 	}
-	else if (MemberVariable.IsValid())
-	{
-		VarSubCategory = FText::FromString(FObjectEditorUtils::GetCategory(MemberVariable.Get()));
-	}
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, VarSubCategory);
+	return CachedCategory;
 }
 
 //------------------------------------------------------------------------------

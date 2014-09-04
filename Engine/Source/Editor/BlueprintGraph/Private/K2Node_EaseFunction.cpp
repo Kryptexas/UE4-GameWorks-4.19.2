@@ -11,6 +11,7 @@
 #include "Kismet2NameValidators.h"
 #include "KismetCompiler.h"
 #include "ScopedTransaction.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 
 #define LOCTEXT_NAMESPACE "K2Node_EaseFunction"
 
@@ -244,7 +245,13 @@ void UK2Node_EaseFunction::GetMenuActions(FBlueprintActionDatabaseRegistrar& Act
 
 FText UK2Node_EaseFunction::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("InterpCategory", "Interpolation"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Math, LOCTEXT("InterpCategory", "Interpolation"));
+	}
+	return CachedCategory;
 }
 
 void UK2Node_EaseFunction::ChangePinType(UEdGraphPin* Pin)

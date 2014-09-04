@@ -158,6 +158,15 @@ FText UBlueprintEventNodeSpawner::GetDefaultMenuName() const
 }
 
 //------------------------------------------------------------------------------
+FText UBlueprintEventNodeSpawner::GetDefaultMenuCategory() const
+{
+	// certain events can have specialized categories (like input events), so 
+	// we choose to leave this in the node's hands (returns an empty text string
+	// so that the menu builder polls the node instead).
+	return UBlueprintNodeSpawner::GetDefaultMenuCategory();
+}
+
+//------------------------------------------------------------------------------
 FText UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
 {
 	FText Keywords = FText::GetEmpty();

@@ -639,19 +639,14 @@ void UK2Node_Event::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& 
 
 FText UK2Node_Event::GetMenuCategory() const
 {
-	FText FuncCategory;
+	FString FuncSubCategory;
 	if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
 	{
-		FuncCategory = FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
+		FuncSubCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT(""));
 	}
 
-	FText Category = LOCTEXT("AddEventCategory", "Add Event");
-	if (!FuncCategory.IsEmpty())
-	{
-		Category = FText::Format(LOCTEXT("ConcatenatedCategory", "{0}|{1}"), Category, FuncCategory);
-	}
-
-	return Category;
+	FString RootCategory = LOCTEXT("AddEventCategory", "Add Event").ToString();
+	return FText::FromString(RootCategory + TEXT("|") + FuncSubCategory);
 }
 
 bool UK2Node_Event::IsDeprecated() const

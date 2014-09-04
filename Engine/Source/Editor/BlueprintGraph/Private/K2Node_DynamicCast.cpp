@@ -166,7 +166,13 @@ bool UK2Node_DynamicCast::HasExternalBlueprintDependencies(TArray<class UStruct*
 
 FText UK2Node_DynamicCast::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Casting"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Casting"));
+	}
+	return CachedCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

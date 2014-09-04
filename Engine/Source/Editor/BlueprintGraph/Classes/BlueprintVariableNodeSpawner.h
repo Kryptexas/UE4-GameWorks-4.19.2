@@ -108,6 +108,7 @@ private:
 	UPROPERTY()
 	FBPVariableDescription    LocalVarDesc;
 
-	/** Constructing FText strings can be costly, so we cache the default menu name */
+	/** Constructing FText strings can be costly, so we cache the default menu name/category */
 	FNodeTextCache CachedMenuName;
+	FNodeTextCache CachedCategory;
 };

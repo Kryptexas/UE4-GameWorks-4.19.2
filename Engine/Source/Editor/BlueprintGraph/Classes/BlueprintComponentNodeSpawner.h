@@ -50,6 +50,7 @@ private:
 	UPROPERTY()
 	TSubclassOf<UActorComponent> ComponentClass;
 
-	/** Constructing FText strings can be costly, so we cache the default menu name */
+	/** Constructing FText strings can be costly, so we cache the default menu name/category */
 	FNodeTextCache CachedMenuName;
+	FNodeTextCache CachedCategory;
 };

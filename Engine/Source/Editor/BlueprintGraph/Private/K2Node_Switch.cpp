@@ -6,6 +6,7 @@
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "K2Node_SwitchEnum.h"
 #include "EditorCategoryUtils.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 
 #define LOCTEXT_NAMESPACE "K2Node_Switch"
 
@@ -328,7 +329,13 @@ FNodeHandlingFunctor* UK2Node_Switch::CreateNodeHandler(FKismetCompilerContext& 
 
 FText UK2Node_Switch::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::FlowControl, LOCTEXT("ActionMenuCategory", "Switch"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::FlowControl, LOCTEXT("ActionMenuCategory", "Switch"));
+	}
+	return CachedCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

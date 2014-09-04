@@ -10,6 +10,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 
 static const FString OutputPinName = FString(TEXT("Array"));
 
@@ -414,7 +415,13 @@ void UK2Node_MakeArray::GetMenuActions(FBlueprintActionDatabaseRegistrar& Action
 
 FText UK2Node_MakeArray::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Array"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Array"));
+	}
+	return CachedCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

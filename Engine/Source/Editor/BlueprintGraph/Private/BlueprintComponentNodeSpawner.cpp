@@ -107,22 +107,26 @@ FText UBlueprintComponentNodeSpawner::GetDefaultMenuCategory() const
 {
 	check(ComponentClass != nullptr);
 
-	FText ClassGroup;
-	TArray<FString> ClassGroupNames;
-	ComponentClass->GetClassGroupNames(ClassGroupNames);
-
-	static FText const DefaultClassGroup(LOCTEXT("DefaultClassGroup", "Common"));
-	// 'Common' takes priority over other class groups
-	if (ClassGroupNames.Contains(DefaultClassGroup.ToString()) || (ClassGroupNames.Num() == 0)) 
+	if (CachedCategory.IsOutOfDate())
 	{
-		ClassGroup = DefaultClassGroup;
-	}
-	else
-	{
-		ClassGroup = FText::FromString(ClassGroupNames[0]);
-	}
+		FText ClassGroup;
+		TArray<FString> ClassGroupNames;
+		ComponentClass->GetClassGroupNames(ClassGroupNames);
 
-	return FText::Format(LOCTEXT("ComponentCategory", "Add Component|{0}"), ClassGroup);
+		static FText const DefaultClassGroup(LOCTEXT("DefaultClassGroup", "Common"));
+		// 'Common' takes priority over other class groups
+		if (ClassGroupNames.Contains(DefaultClassGroup.ToString()) || (ClassGroupNames.Num() == 0))
+		{
+			ClassGroup = DefaultClassGroup;
+		}
+		else
+		{
+			ClassGroup = FText::FromString(ClassGroupNames[0]);
+		}
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FText::Format(LOCTEXT("ComponentCategory", "Add Component|{0}"), ClassGroup);
+	}
+	return CachedCategory;
 }
 
 //------------------------------------------------------------------------------
