@@ -3,7 +3,7 @@
 #include "OutputLogPrivatePCH.h"
 #include "OutputLogModule.h"
 #include "SDebugConsole.h"
-
+#include "SOutputLog.h"
 
 namespace DebugConsoleDefs
 {
