@@ -817,13 +817,4 @@ private:
 
 	/** Is this widget hovered? */
 	bool bIsHovered;
-
-	// @see UseLegacyHittest()
-	static int32 bUseLegacyHittest;
-	static FAutoConsoleVariableRef CVarUseLegacyHittest;
-
-public:
-
-	/** For perf testing. Old hittest schema does not support widgets outside their parents' bounds. */
-	static bool UseLegacyHittest();
 };
