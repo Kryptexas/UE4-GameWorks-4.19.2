@@ -46,7 +46,7 @@ public:
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FText GetDefaultMenuTooltip() const override;
-	virtual FText GetDefaultSearchKeywords() const override;
+	virtual FString GetDefaultSearchKeywords() const override;
 	// End UBlueprintNodeSpawner interface
 
 	// FBlueprintNodeBinder interface

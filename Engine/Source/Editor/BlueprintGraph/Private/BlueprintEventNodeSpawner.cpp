@@ -167,12 +167,12 @@ FText UBlueprintEventNodeSpawner::GetDefaultMenuCategory() const
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
+FString UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
 {
-	FText Keywords = FText::GetEmpty();
+	FString Keywords;
 	if (EventFunc != nullptr)
 	{
-		Keywords = FText::FromString(UK2Node_CallFunction::GetKeywordsForFunction(EventFunc));
+		Keywords = UK2Node_CallFunction::GetKeywordsForFunction(EventFunc);
 	}
 	return Keywords;
 }

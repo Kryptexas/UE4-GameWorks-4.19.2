@@ -105,11 +105,13 @@ private:
 	 * Attempts to pull a keywords from the supplied spawner. If one isn't 
 	 * provided, then it spawns a temporary node and pulls them from that.
 	 * 
+	 * @TODO: Should search keywords be localized? Probably. 
+	 *
 	 * @param  EditorContext
 	 * @param  Action		The action you want to suss keyword information from.
 	 * @return A keyword text string for the menu item wrapping this action.
 	 */
-	FText GetSearchKeywordsForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action);
+	FString GetSearchKeywordsForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action);
 
 	/**
 	 * Attempts to pull a menu icon information from the supplied spawner. If
@@ -159,7 +161,7 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeActionMenu
 	NewMenuItem->MenuDescription    = GetMenuNameForAction(EditorContext, Action);
 	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, Action).ToString();
 	NewMenuItem->Category           = GetCategoryForAction(EditorContext, Action).ToString();
-	NewMenuItem->Keywords           = GetSearchKeywordsForAction(EditorContext, Action).ToString();
+	NewMenuItem->Keywords           = GetSearchKeywordsForAction(EditorContext, Action);
 
 	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);	
 	return MakeShareable(NewMenuItem);
@@ -184,7 +186,7 @@ TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMe
 
 	NewMenuItem->MenuDescription    = GetMenuNameForAction(EditorContext, BoundAction);
 	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, BoundAction).ToString();
-	NewMenuItem->Keywords			= GetSearchKeywordsForAction(EditorContext, BoundAction).ToString();
+	NewMenuItem->Keywords			= GetSearchKeywordsForAction(EditorContext, BoundAction);
 
 	return MakeShareable(NewMenuItem);
 }
@@ -276,17 +278,20 @@ FText FBlueprintActionMenuItemFactory::GetTooltipForAction(TWeakPtr<FBlueprintEd
 }
 
 //------------------------------------------------------------------------------
-FText FBlueprintActionMenuItemFactory::GetSearchKeywordsForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action)
+FString FBlueprintActionMenuItemFactory::GetSearchKeywordsForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action)
 {
 	check(Action != nullptr);
-	// give the action the chance to save on performance (to keep from having to spawn a template node)
-	FText SearchKeywords = Action->GetDefaultSearchKeywords();
+	// give the action the chance to save on performance (to keep from having to 
+	// spawn a template node)
+	//
+	// @TODO: Should search keywords be localized? Probably.
+	FString SearchKeywords = Action->GetDefaultSearchKeywords();
 	
 	if (SearchKeywords.IsEmpty())
 	{
 		if (UEdGraphNode* NodeTemplate = GetTemplateNode(Action, EditorContext))
 		{
-			SearchKeywords = FText::FromString(NodeTemplate->GetKeywords());
+			SearchKeywords = NodeTemplate->GetKeywords();
 		}
 	}
 	

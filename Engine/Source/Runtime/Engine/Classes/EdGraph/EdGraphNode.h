@@ -283,6 +283,8 @@ public:
 
 	/**
 	 * Returns the keywords that should be used when searching for this node
+	 *
+	 * @TODO: Should search keywords be localized? Probably.
 	 */
 	virtual FString GetKeywords() const { return TEXT(""); }
 	 

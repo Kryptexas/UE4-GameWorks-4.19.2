@@ -239,10 +239,10 @@ FText UBlueprintFunctionNodeSpawner::GetDefaultMenuTooltip() const
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
+FString UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
 {
 	check(Function != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetKeywordsForFunction(Function));
+	return UK2Node_CallFunction::GetKeywordsForFunction(Function);
 }
 
 //------------------------------------------------------------------------------

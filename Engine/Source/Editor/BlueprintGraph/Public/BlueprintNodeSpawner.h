@@ -131,9 +131,11 @@ public:
 	 * them from. Although, this can be thought of as a suggestion that the ui
 	 * building code is free to do with as it pleases (doesn't have to use it).
 	 *
+	 * @TODO: Should search keywords be localized? Probably.
+	 *
 	 * @return An empty text string (could be a localized keywords for sub-classes).
 	 */
-	virtual FText GetDefaultSearchKeywords() const;
+	virtual FString GetDefaultSearchKeywords() const;
 
 	/**
 	 * To save on performance, certain sub-classes can pull icons info from

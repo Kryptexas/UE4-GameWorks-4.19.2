@@ -102,12 +102,12 @@ FText UBlueprintNodeSpawner::GetDefaultMenuTooltip() const
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintNodeSpawner::GetDefaultSearchKeywords() const
+FString UBlueprintNodeSpawner::GetDefaultSearchKeywords() const
 {
 	// DO NOT make a template node and query it here (the separate ui building
 	// code can do that if it likes)... this is meant to be an overridable
 	// alternative to that (for perf reasons)
-	return FText::GetEmpty();
+	return FString();
 }
 
 //------------------------------------------------------------------------------
