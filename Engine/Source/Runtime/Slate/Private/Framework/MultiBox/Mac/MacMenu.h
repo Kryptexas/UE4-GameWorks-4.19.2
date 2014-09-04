@@ -5,28 +5,24 @@
 #include "MultiBox.h"
 #include "SMenuEntryBlock.h"
 
-#ifdef __OBJC__
 @interface FMacMenu : NSMenu <NSMenuDelegate>
-{
-	TSharedPtr<const FMenuEntryBlock> MenuEntryBlock;
-}
-- (TSharedPtr<const FMenuEntryBlock>&)GetMenuEntryBlock;
+@property (assign) TSharedPtr<const FMenuEntryBlock> MenuEntryBlock;
+@property (assign) TSharedPtr<const FMultiBox> MultiBox;
 @end
-#else
-class FMacMenu;
-#endif
 
 class SLATE_API FSlateMacMenu
 {
 public:
 
-	static void UpdateWithMultiBox(const TSharedRef< FMultiBox >& MultiBox);
-	static CFStringRef GetMenuItemTitle(const TSharedRef< const class FMenuEntryBlock >& Block);
+	static void UpdateWithMultiBox(const TSharedRef<FMultiBox>& MultiBox);
+	static void UpdateMenu(FMacMenu* Menu);
+	static void ExecuteMenuItemAction(const TSharedRef<const FMenuEntryBlock>& Block);
+
+private:
+
+	static NSString* GetMenuItemTitle(const TSharedRef< const FMenuEntryBlock >& Block);
 	static NSImage* GetMenuItemIcon(const TSharedRef<const FMenuEntryBlock>& Block);
-	static void ExecuteMenuItemAction(const TSharedRef< const class FMenuEntryBlock >& Block);
-	static CFStringRef GetMenuItemKeyEquivalent(const TSharedRef< const class FMenuEntryBlock >& Block, uint32* OutModifiers);
-	static void UpdateMenu(FMacMenu* InMenu);
-	static bool IsMenuItemEnabled(const TSharedRef<const class FMenuEntryBlock>& Block);
-	static int32 GetMenuItemState(const TSharedRef<const class FMenuEntryBlock>& Block);
-	static TSharedRef<SWidget> GetMenuBuilderWidget(FMacMenu* InMenu);
+	static NSString* GetMenuItemKeyEquivalent(const TSharedRef<const FMenuEntryBlock>& Block, uint32* OutModifiers);
+	static bool IsMenuItemEnabled(const TSharedRef<const FMenuEntryBlock>& Block);
+	static int32 GetMenuItemState(const TSharedRef<const FMenuEntryBlock>& Block);
 };

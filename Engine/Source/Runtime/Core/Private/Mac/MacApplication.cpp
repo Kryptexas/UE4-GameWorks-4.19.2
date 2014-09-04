@@ -13,23 +13,23 @@
 
 #include "ModuleManager.h"
 
-NSString* NSWindowDraggingFinished = @"NSWindowDraggingFinished";
+static NSString* NSWindowDraggingFinished = @"NSWindowDraggingFinished";
 
-void HandleNSEvent(NSEvent* Event)
+static void HandleNSEvent(NSEvent* Event)
 {
 	const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
-	|| [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
-	|| [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp
-	|| [Event type] == NSKeyDown || ([Event type] == NSKeyUp && !([Event modifierFlags] & NSCommandKeyMask));
-	
-	if( MacApplication )
+									  || [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
+									  || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp
+									  || [Event type] == NSKeyDown || [Event type] == NSKeyUp;
+
+	if (MacApplication)
 	{
-		if( !bIsMouseClickOrKeyEvent || [Event window] == NULL )
+		if (!bIsMouseClickOrKeyEvent || [Event window] == NULL)
 		{
 			FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
 		}
-		
-		if( [Event type] == NSLeftMouseUp )
+
+		if ([Event type] == NSLeftMouseUp)
 		{
 			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDraggingFinished object:[Event window]];
 			FMacEvent::SendToGameRunLoop(Notification, [Event window], EMacEventSendMethod::Async);
