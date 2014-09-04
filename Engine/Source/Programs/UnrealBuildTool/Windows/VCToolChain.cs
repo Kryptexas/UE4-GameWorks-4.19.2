@@ -20,7 +20,7 @@ namespace UnrealBuildTool
 			UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.Win32, this);
 		}
 
-		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
+		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment, VCEnvironment EnvVars)
 		{
 			string Result = "";
 
@@ -190,7 +190,15 @@ namespace UnrealBuildTool
 
 					// Allow optimized code to be debugged more easily.  This makes PDBs a bit larger, but doesn't noticeably affect
 					// compile times.  The executable code is not affected at all by this switch, only the debugging information.
-					Result += " /d2Zi+";
+					if (EnvVars.CLExeVersion >= new Version("18.0.30723"))
+					{
+						// VC2013 Update 3 has a new flag for doing this
+						Result += " /Zo";
+					}
+					else
+					{
+						Result += " /d2Zi+";
+					}
 				}
 				
 				// Favor code speed.
@@ -641,7 +649,8 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			string Arguments = GetCLArguments_Global(CompileEnvironment);
+			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.Config.Target.Platform);
+			string Arguments = GetCLArguments_Global(CompileEnvironment, EnvVars);
 
 			// Add include paths to the argument list.
 			foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
@@ -905,7 +914,7 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath = GetVCToolPath(CompileEnvironment.Config.Target.Platform, CompileEnvironment.Config.Target.Configuration, "cl");
+				CompileAction.CommandPath      = EnvVars.CompilerPath;
 
 				if( !WindowsPlatform.bCompileWithClang )
 				{
@@ -953,13 +962,15 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
+			var EnvVars = VCEnvironment.SetEnvironment(Environment.Config.Target.Platform);
+
 			CPPOutput Result = new CPPOutput();
 
 			foreach (FileItem RCFile in RCFiles)
 			{
 				Action CompileAction = new Action(ActionType.Compile);
-				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath = GetVCToolPath(Environment.Config.Target.Platform, Environment.Config.Target.Configuration, "rc");
+				CompileAction.WorkingDirectory  = Path.GetFullPath(".");
+				CompileAction.CommandPath       = EnvVars.ResourceCompilerPath;
 				CompileAction.StatusDescription = Path.GetFileName(RCFile.AbsolutePath);
 
 				// Suppress header spew
@@ -1034,6 +1045,8 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
+			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform);
+
 			if (LinkEnvironment.Config.bIsBuildingDotNetAssembly)
 			{
 				return FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
@@ -1045,10 +1058,7 @@ namespace UnrealBuildTool
 			// Create an action that invokes the linker.
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
-			LinkAction.CommandPath = GetVCToolPath(
-				LinkEnvironment.Config.Target.Platform,
-				LinkEnvironment.Config.Target.Configuration,
-				bIsBuildingLibrary ? "lib" : "link");
+			LinkAction.CommandPath      = bIsBuildingLibrary ? EnvVars.LibraryLinkerPath : EnvVars.LinkerPath;
 
 			// Get link arguments.
 			LinkAction.CommandArguments = bIsBuildingLibrary ?
@@ -1230,6 +1240,9 @@ namespace UnrealBuildTool
 
 		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
 		{
+			// Initialize environment variables required for spawned tools.
+			var EnvVars = VCEnvironment.SetEnvironment(CompileEnvironment.EnvironmentTargetPlatform);
+
 			var BuildProjectAction = new Action(ActionType.BuildProject);
 
 			// Specify the source file (prerequisite) for the action
@@ -1259,9 +1272,9 @@ namespace UnrealBuildTool
 			BuildProjectAction.bCanExecuteRemotely = false;
 
 			// Setup execution via MSBuild.
-			BuildProjectAction.WorkingDirectory = Path.GetFullPath(".");
+			BuildProjectAction.WorkingDirectory  = Path.GetFullPath(".");
 			BuildProjectAction.StatusDescription = Path.GetFileName(ProjectFileName);
-			BuildProjectAction.CommandPath = GetDotNetFrameworkToolPath(CompileEnvironment.EnvironmentTargetPlatform, "MSBuild");
+			BuildProjectAction.CommandPath       = EnvVars.MSBuildPath;
 			if (CompileEnvironment.TargetConfiguration == CSharpTargetConfiguration.Debug)
 			{
 				BuildProjectAction.CommandArguments = " /target:rebuild /property:Configuration=Debug";
@@ -1290,232 +1303,22 @@ namespace UnrealBuildTool
 		/** Gets the default include paths for the given platform. */
 		public static string GetVCIncludePaths(CPPTargetPlatform Platform)
 		{
-			string IncludePaths = "";
-			if (Platform == CPPTargetPlatform.Win32 || Platform == CPPTargetPlatform.Win64)
-			{
-				// Make sure we've got the environment variables set up for this target
-				VCToolChain.InitializeEnvironmentVariables(Platform);
+			Debug.Assert(Platform == CPPTargetPlatform.Win32 || Platform == CPPTargetPlatform.Win64);
 
-				// Also add any include paths from the INCLUDE environment variable.  MSVC is not necessarily running with an environment that
-				// matches what UBT extracted from the vcvars*.bat using SetEnvironmentVariablesFromBatchFile().  We'll use the variables we
-				// extracted to populate the project file's list of include paths
-				// @todo projectfiles: Should we only do this for VC++ platforms?
-				IncludePaths = Environment.GetEnvironmentVariable("INCLUDE");
-				if (!String.IsNullOrEmpty(IncludePaths) && !IncludePaths.EndsWith(";"))
-				{
-					IncludePaths += ";";
-				}
+			// Make sure we've got the environment variables set up for this target
+			VCEnvironment.SetEnvironment(Platform);
+
+			// Also add any include paths from the INCLUDE environment variable.  MSVC is not necessarily running with an environment that
+			// matches what UBT extracted from the vcvars*.bat using SetEnvironmentVariablesFromBatchFile().  We'll use the variables we
+			// extracted to populate the project file's list of include paths
+			// @todo projectfiles: Should we only do this for VC++ platforms?
+			var IncludePaths = Environment.GetEnvironmentVariable("INCLUDE");
+			if (!String.IsNullOrEmpty(IncludePaths) && !IncludePaths.EndsWith(";"))
+			{
+				IncludePaths += ";";
 			}
+
 			return IncludePaths;
-		}
-
-		/** Accesses the bin directory for the VC toolchain for the specified platform. */
-		static string GetVCToolPath(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, string ToolName)
-		{	
-			// Initialize environment variables required for spawned tools.
-			InitializeEnvironmentVariables( Platform );
-
-			// Out variable that is going to contain fully qualified path to executable upon return.
-			string VCToolPath = "";
-
-			// rc.exe resides in the Windows SDK folder.
-			if (ToolName.ToUpperInvariant() == "RC")
-			{
-				// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
-				if (Platform == CPPTargetPlatform.Win64)
-				{
-					VCToolPath = Path.Combine(WindowsSDKDir, "bin/x64/rc.exe");
-				}
-				// 32 bit
-				else
-				{
-					if( !WindowsPlatform.SupportWindowsXP )	// Windows XP requires use to force Windows SDK 7.1 even on the newer compiler, so we need the old path RC.exe
-					{
-						VCToolPath = Path.Combine( WindowsSDKDir, "bin/x86/rc.exe" );
-					}
-					else
-					{
-						VCToolPath = Path.Combine( WindowsSDKDir, "bin/rc.exe" );
-					}
-				}
-			}
-			// cl.exe and link.exe are found in the toolchain specific folders (32 vs. 64 bit)
-			else
-			{
-				bool bIsRequestingLinkTool = ToolName.Equals( "link", StringComparison.InvariantCultureIgnoreCase );
-				bool bIsRequestingLibTool = ToolName.Equals( "lib", StringComparison.InvariantCultureIgnoreCase );
-
-				// If we were asked to use Clang, then we'll redirect the path to the compiler to the LLVM installation directory
-				if( WindowsPlatform.bCompileWithClang && !bIsRequestingLinkTool && !bIsRequestingLibTool )
-				{
-					VCToolPath = Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.ProgramFilesX86 ), "LLVM", "msbuild-bin", ToolName + ".exe" );
-					if( !File.Exists( VCToolPath ) )
-					{
-						throw new BuildException( "Clang was selected as the Windows compiler, but LLVM/Clang does not appear to be installed.  Could not find: " + VCToolPath );
-					}
-				}
-				else
-				{
-					string BaseVSToolPath = FindBaseVSToolPath();
-
-					// Both target and build machines are 64 bit
-					bool bIs64Bit = (Platform == CPPTargetPlatform.Win64);
-					// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker)
-					//@todo.WIN32: Using the 64-bit linker appears to be broken at the moment.
-					bool bUse64BitLinker = (Platform == CPPTargetPlatform.Win64) && bIsRequestingLinkTool;
-
-					// Use the 64 bit tools if the build machine and target are 64 bit or if we're linking a 32 bit binary on a 64 bit machine
-					if (bIs64Bit || bUse64BitLinker)
-					{
-						// Use the native 64-bit compiler if present, otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
-						string PlatformToolPath = Path.Combine(BaseVSToolPath, "../../VC/bin/amd64/");
-						if(!Directory.Exists(PlatformToolPath))
-						{
-							PlatformToolPath = Path.Combine(BaseVSToolPath, "../../VC/bin/x86_amd64/");
-						}
-						VCToolPath = PlatformToolPath + ToolName + ".exe";
-					}
-					else
-					{
-						// Use 32 bit for cl.exe and other tools, or for link.exe if 64 bit path doesn't exist and we're targeting 32 bit.
-						VCToolPath = Path.Combine(BaseVSToolPath, "../../VC/bin/" + ToolName + ".exe");
-					}
-				}
-			}
-
-			return VCToolPath;
-		}
-
-		/** Accesses the directory for .NET Framework binaries such as MSBuild */
-		static string GetDotNetFrameworkToolPath(CPPTargetPlatform Platform, string ToolName)
-		{
-			// Initialize environment variables required for spawned tools.
-			InitializeEnvironmentVariables(Platform);
-
-			string FrameworkDirectory = Environment.GetEnvironmentVariable("FrameworkDir");
-			string FrameworkVersion = Environment.GetEnvironmentVariable("FrameworkVersion");
-			if (FrameworkDirectory == null || FrameworkVersion == null)
-			{
-				throw new BuildException( "NOTE: Please ensure that 64bit Tools are installed with DevStudio - there is usually an option to install these during install" );
-			}
-			string DotNetFrameworkBinDir = Path.Combine(FrameworkDirectory, FrameworkVersion);
-			string ToolPath = Path.Combine(DotNetFrameworkBinDir, ToolName + ".exe");
-			return ToolPath;
-		}
-
-		/** Helper to only initialize environment variables once. */
-		static bool bAreEnvironmentVariablesAlreadyInitialized = false;
-
-		/** Helper to make sure environment variables have been initialized for the right platform. */
-		static CPPTargetPlatform PlatformEnvironmentVariablesAreInitializedFor = CPPTargetPlatform.Win32;
-
-		/** Installation folder of the Windows SDK, e.g. C:\Program Files\Microsoft SDKs\Windows\v6.0A\ */
-		static string WindowsSDKDir = "";
-
-		/**
-		 * Initializes environment variables required by toolchain. Different for 32 and 64 bit.
-		 */
-		static void InitializeEnvironmentVariables( CPPTargetPlatform Platform )
-		{
-			if (!bAreEnvironmentVariablesAlreadyInitialized || Platform != PlatformEnvironmentVariablesAreInitializedFor)
-			{
-				string BaseVSToolPath = FindBaseVSToolPath();
-				
-				string VCVarsBatchFile = "";
-
-				// 64 bit tool chain.
-				if( Platform == CPPTargetPlatform.Win64 )
-				{
-					VCVarsBatchFile = Path.Combine(BaseVSToolPath, "../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
-				}
-				// The 32 bit vars batch file in the binary folder simply points to the one in the common tools folder.
-				else
-				{
-					VCVarsBatchFile = Path.Combine(BaseVSToolPath, "vsvars32.bat");
-				}
-				Utils.SetEnvironmentVariablesFromBatchFile(VCVarsBatchFile);
-
-				// Lib and bin folders have a x64 subfolder for 64 bit development.
-				string ConfigSuffix = "";
-				if( Platform == CPPTargetPlatform.Win64 )
-				{
-					ConfigSuffix = "\\x64";
-				}
-
-				// When targeting Windows XP on Visual Studio 2012+, we need to override the Windows SDK include and lib path set
-				// by the batch file environment (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-				if( WindowsPlatform.SupportWindowsXP )
-				{
-					Environment.SetEnvironmentVariable("PATH", Utils.ResolveEnvironmentVariable(WindowsSDKDir + "bin" + ConfigSuffix + ";%PATH%"));
-					Environment.SetEnvironmentVariable("LIB", Utils.ResolveEnvironmentVariable(WindowsSDKDir + "lib" + ConfigSuffix + ";%LIB%"));
-					Environment.SetEnvironmentVariable( "INCLUDE", Utils.ResolveEnvironmentVariable(WindowsSDKDir + "include;%INCLUDE%"));
-				}
-
-				bAreEnvironmentVariablesAlreadyInitialized = true;
-				PlatformEnvironmentVariablesAreInitializedFor = Platform;
-			}			
-		}
-
-		/// <returns>The path to Windows SDK directory for the specified version.</returns>
-		private static string FindWindowsSDKInstallationFolder( string Version )
-		{
-			// Based on VCVarsQueryRegistry
-			string WinSDKPath = (string)Microsoft.Win32.Registry.GetValue( @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null );
-			if( WinSDKPath != null )
-			{
-				return WinSDKPath;
-			}
-			WinSDKPath = (string)Microsoft.Win32.Registry.GetValue( @"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null );
-			if( WinSDKPath != null )
-			{
-				return WinSDKPath;
-			}
-			WinSDKPath = (string)Microsoft.Win32.Registry.GetValue( @"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null );
-			if( WinSDKPath != null )
-			{
-				return WinSDKPath;
-			}
-
-			throw new BuildException( "Windows SDK {0} must be installed in order to build this target.", Version );
-		}
-
-		/// <summary>
-		/// Figures out the path to Visual Studio's /Common7/Tools directory.  Note that if Visual Studio is not
-		/// installed, the Windows SDK path will be used, which also happens to be the same directory. (It installs
-		/// the toolchain into the folder where Visual Studio would have installed it to.
-		/// </summary>
-		/// <returns>The path to Visual Studio's /Common7/Tools directory</returns>
-		private static string FindBaseVSToolPath()
-		{
-			string BaseVSToolPath = "";
-			
-			// When targeting Windows XP on Visual Studio 2012+, we need to point at the older Windows SDK 7.1A that comes
-			// installed with Visual Studio 2012 Update 1. (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-			if( WindowsPlatform.SupportWindowsXP )
-			{
-				WindowsSDKDir = FindWindowsSDKInstallationFolder( "v7.1A" );
-			}
-			else
-			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-				{
-					WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.1" );
-				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-				{
-					WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.0" );
-				}
-			}
-
-			// Grab path to Visual Studio binaries from the system environment
-			BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
-
-			if (string.IsNullOrEmpty(BaseVSToolPath))
-			{
-				throw new BuildException("Visual Studio 2012 or Visual Studio 2013 must be installed in order to build this target.");
-			}
-
-			return BaseVSToolPath;
 		}
 
         public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
