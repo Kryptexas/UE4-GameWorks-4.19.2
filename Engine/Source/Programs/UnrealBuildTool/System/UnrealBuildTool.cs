@@ -2292,5 +2292,16 @@ namespace UnrealBuildTool
 
             return TargetCollectionName.ToString();
         }
+
+		/// <summary>
+		/// Sets up UBT when running from UAT
+		/// </summary>
+		/// <param name="UProjectDir"></param>
+		public static void SetupUBTFromUAT(string UProjectFile)
+		{
+			// when running UAT, the working directory is the root UE4 dir
+			BuildConfiguration.RelativeEnginePath = "Engine";
+			SetProjectFile(UProjectFile);
+		}
     }
 }

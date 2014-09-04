@@ -164,11 +164,11 @@ namespace UnrealBuildTool
 			if (Result)
 			{
 				// C# Boolean type expects "False" or "True" but since we're not case sensitive, we need to suppor that manually
-				if (String.Compare(TextValue, "true", false) == 0 || String.Compare(TextValue, "1") == 0)
+				if (String.Compare(TextValue, "true", true) == 0 || String.Compare(TextValue, "1") == 0)
 				{
 					Value = true;
 				}
-				else if (String.Compare(TextValue, "false", false) == 0 || String.Compare(TextValue, "0") == 0)
+				else if (String.Compare(TextValue, "false", true) == 0 || String.Compare(TextValue, "0") == 0)
 				{
 					Value = false;
 				}

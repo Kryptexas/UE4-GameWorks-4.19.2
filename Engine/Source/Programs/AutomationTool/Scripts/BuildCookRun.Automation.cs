@@ -36,6 +36,10 @@ public class BuildCookRun : BuildCommand
 			MakeForeignCodeSample();
 		}
 		var Params = SetupParams();
+
+		// allow BCR functions to call UBT functions (especially .ini parsing)
+		UnrealBuildTool.UnrealBuildTool.SetupUBTFromUAT(ProjectPath);
+
 		DoBuildCookRun(Params);
 	}
 

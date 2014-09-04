@@ -215,11 +215,16 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Relative root engine path.
 		/// </summary>
+		private static string _RelativeEnginePath = "../../Engine/";
 		public static string RelativeEnginePath
 		{
 			get
 			{
-				return "../../Engine/";
+				return _RelativeEnginePath;
+			}
+			set
+			{
+				_RelativeEnginePath = value;
 			}
 		}
 
