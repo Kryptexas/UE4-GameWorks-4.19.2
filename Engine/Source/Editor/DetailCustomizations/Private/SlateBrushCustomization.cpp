@@ -974,7 +974,7 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 		TemporaryBrush = *static_cast<FSlateBrush*>( RawData[0] );
 	}
 
-	const FSlateBrush* SSlateBrushStaticPreview::GetPropertyBrush() const
+	const FSlateBrush* GetPropertyBrush() const
 	{
 		return &TemporaryBrush;
 	}
