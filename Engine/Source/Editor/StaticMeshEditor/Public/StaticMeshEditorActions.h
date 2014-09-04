@@ -59,8 +59,6 @@ public:
 	// Mesh Menu Commands
 	TSharedPtr< FUICommandInfo > FindSource;
 
-	TSharedPtr< FUICommandInfo > GenerateUniqueUVs;
-
 	TSharedPtr< FUICommandInfo > ChangeMesh;
 
 	/**

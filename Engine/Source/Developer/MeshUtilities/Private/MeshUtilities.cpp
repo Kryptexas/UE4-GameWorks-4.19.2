@@ -90,19 +90,6 @@ private:
 
 	virtual bool BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true, TArray<FText> * OutWarningMessages = NULL, TArray<FName> * OutWarningNames = NULL);
 
-	virtual bool GenerateUVs(
-		FRawMesh& RawMesh,
-		uint32 TexCoordIndex,
-		float MinChartSpacingPercent,
-		float BorderSpacingPercent,
-		bool bUseMaxStretch,
-		const TArray< int32 >* InFalseEdgeIndices,
-		uint32& MaxCharts,
-		float& MaxDesiredStretch,
-		FText& OutError
-		) override;
-
-	virtual bool LayoutUVs(FRawMesh& RawMesh, uint32 TextureResolution, uint32 TexCoordIndex, FText& OutError) override;
 	virtual IMeshReduction* GetMeshReductionInterface() override;
 	virtual IMeshMerging* GetMeshMergingInterface() override;
 	virtual void CacheOptimizeIndexBuffer(TArray<uint16>& Indices) override;
@@ -3745,83 +3732,6 @@ void FMeshUtilities::MergeActors(
 	}
 }
 	
-
-/*------------------------------------------------------------------------------
-	UV Generation
-------------------------------------------------------------------------------*/
-
-#if PLATFORM_WINDOWS
-#include "Windows/D3D9MeshUtils.h"
-#endif // #if PLATFORM_WINDOWS
-
-bool FMeshUtilities::GenerateUVs(
-	FRawMesh& RawMesh,
-	uint32 TexCoordIndex,
-	float MinChartSpacingPercent,
-	float BorderSpacingPercent,
-	bool bUseMaxStretch,
-	const TArray< int32 >* InFalseEdgeIndices,
-	uint32& MaxCharts,
-	float& MaxDesiredStretch,
-	FText& OutError
-	)
-{
-#if PLATFORM_WINDOWS
-	FD3D9MeshUtilities D3DMeshUtils;
-	return D3DMeshUtils.GenerateUVs(RawMesh, TexCoordIndex, MinChartSpacingPercent, BorderSpacingPercent, bUseMaxStretch, InFalseEdgeIndices, MaxCharts, MaxDesiredStretch, OutError);
-#else
-	return false;
-#endif // #if PLATFORM_WINDOWS
-}
-
-
-
-bool FMeshUtilities::LayoutUVs(FRawMesh& RawMesh, uint32 TextureResolution, uint32 TexCoordIndex, FText& OutError)
-{
-#if 0//PLATFORM_WINDOWS
-	FD3D9MeshUtilities D3DMeshUtils;
-	return D3DMeshUtils.LayoutUVs(RawMesh, TextureResolution, TexCoordIndex, OutError);
-#else
-
-	OutError = FText();
-	if( !RawMesh.IsValid() )
-	{
-		OutError = LOCTEXT("LayoutUVs_FailedInvalid", "LayoutUVs failed, mesh was invalid.");
-		return false;
-	}
-
-	/*int32 NumTexCoords = 0;
-	for (int32 i = 0; i < MAX_MESH_TEXTURE_COORDS; ++i)
-	{
-		if (RawMesh.WedgeTexCoords[i].Num() != RawMesh.WedgeIndices.Num())
-		{
-			break;
-		}
-		NumTexCoords++;
-	}
-
-	if (NumTexCoords > MAX_MESH_TEXTURE_COORDS || TexCoordIndex > (uint32)NumTexCoords)
-	{
-		OutError = LOCTEXT("LayoutUVs_FailedUVs", "LayoutUVs failed, incorrect number of texcoords.");
-	return false;
-	}*/
-
-	FLayoutUV Packer( &RawMesh, 0, TexCoordIndex, TextureResolution );
-	
-	// Find overlapping corners to accelerate adjacency.
-	TMultiMap<int32,int32> OverlappingCorners;
-	FindOverlappingCorners( OverlappingCorners, RawMesh, THRESH_POINTS_ARE_SAME );
-
-	Packer.FindCharts( OverlappingCorners );
-	bool bPackSuccess = Packer.FindBestPacking();
-	if( bPackSuccess )
-	{
-		Packer.CommitPackedUVs();
-	}
-
-	return bPackSuccess;
-#endif // #if PLATFORM_WINDOWS
-}
 
 /*------------------------------------------------------------------------------
 	Mesh reduction.

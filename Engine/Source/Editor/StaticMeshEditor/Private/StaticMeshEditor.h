@@ -114,7 +114,6 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_SocketManager(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Collision(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_GenerateUniqueUVs(const FSpawnTabArgs& Args);
 
 private:
 	/** Binds commands associated with the Static Mesh Editor. */
@@ -259,9 +258,6 @@ private:
 	/** Convex Decomposition widget */
 	TSharedPtr< class SConvexDecomposition> ConvexDecomposition;
 
-	/** Generate Unique UVs widget. */
-	TSharedPtr< class SGenerateUniqueUVs> GenerateUniqueUVs;
-
 	/** Widget for displaying the available UV Channels. */
 	TSharedPtr< class STextComboBox > UVChannelCombo;
 
@@ -306,5 +302,4 @@ private:
 	static const FName PropertiesTabId;
 	static const FName SocketManagerTabId;
 	static const FName CollisionTabId;
-	static const FName GenerateUniqueUVsTabId;
 };

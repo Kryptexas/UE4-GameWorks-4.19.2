@@ -39,8 +39,6 @@ void FStaticMeshEditorCommands::RegisterCommands()
 
 	UI_COMMAND( FindSource, "Find Source", "Opens explorer at the location of this asset.", EUserInterfaceActionType::Button, FInputGesture() );
 	
-	UI_COMMAND( GenerateUniqueUVs, "Generate Unique UVs...", "Opens the _Generate Unique UVs_ pane for generating a set of unique (non-overlapping) texture coordinates.", EUserInterfaceActionType::Button, FInputGesture() );
-
 	UI_COMMAND( ChangeMesh, "Change Mesh", "Changes the static mesh asset loaded in the Static Mesh Editor to the asset currently selected in the Content Browser.", EUserInterfaceActionType::Button, FInputGesture() );
 }
 

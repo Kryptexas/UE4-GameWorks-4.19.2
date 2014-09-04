@@ -33,7 +33,6 @@ const FName FStaticMeshEditor::ViewportTabId( TEXT( "StaticMeshEditor_Viewport" 
 const FName FStaticMeshEditor::PropertiesTabId( TEXT( "StaticMeshEditor_Properties" ) );
 const FName FStaticMeshEditor::SocketManagerTabId( TEXT( "StaticMeshEditor_SocketManager" ) );
 const FName FStaticMeshEditor::CollisionTabId( TEXT( "StaticMeshEditor_Collision" ) );
-const FName FStaticMeshEditor::GenerateUniqueUVsTabId( TEXT( "StaticMeshEditor_GenerateUniqueUVs" ) );
 
 
 void FStaticMeshEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -57,10 +56,6 @@ void FStaticMeshEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>&
 	TabManager->RegisterTabSpawner( CollisionTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_Collision) )
 		.SetDisplayName( LOCTEXT("CollisionTab", "Convex Decomposition") )
 		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
-	TabManager->RegisterTabSpawner( GenerateUniqueUVsTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_GenerateUniqueUVs) )
-		.SetDisplayName( LOCTEXT("GenerateUniqueUVsTab", "Generate Unique UVs") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
 }
 
 void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -71,7 +66,6 @@ void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager
 	TabManager->UnregisterTabSpawner( PropertiesTabId );
 	TabManager->UnregisterTabSpawner( SocketManagerTabId );
 	TabManager->UnregisterTabSpawner( CollisionTabId );
-	TabManager->UnregisterTabSpawner( GenerateUniqueUVsTabId );
 }
 
 
@@ -158,7 +152,6 @@ void FStaticMeshEditor::InitStaticMeshEditor( const EToolkitMode::Type Mode, con
 					->SetSizeCoefficient(0.5f)
 					->AddTab(SocketManagerTabId, ETabState::ClosedTab)
 					->AddTab(CollisionTabId, ETabState::ClosedTab)
-					->AddTab(GenerateUniqueUVsTabId, ETabState::ClosedTab)
 				)
 			)
 		)
@@ -338,27 +331,6 @@ TSharedRef<SDockTab> FStaticMeshEditor::SpawnTab_Collision( const FSpawnTabArgs&
 		];
 }
 
-TSharedRef<SDockTab> FStaticMeshEditor::SpawnTab_GenerateUniqueUVs( const FSpawnTabArgs& Args )
-{
-	check( Args.GetTabId() == GenerateUniqueUVsTabId );
-	
-#if !PLATFORM_WINDOWS
-	FText ErrorMessage = FText::Format( LOCTEXT("StaticMeshGenerateUniqueUVs_Unsupported", "Generate Unique UVs not yet implemented for {0}."), FText::FromString( FPlatformProperties::IniPlatformName() ) );
-	OpenMsgDlgInt( EAppMsgType::Ok, ErrorMessage, LOCTEXT("StaticMeshGenerateUniqueUVs_UnsupportedErrorCaption", "Error") );
-#endif
-	
-	return SNew(SDockTab)
-		.Label( LOCTEXT("StaticMeshGenerateUniqueUVs_TabTitle", "Generate Unique UVs") )
-		[
-#if PLATFORM_WINDOWS
-			GenerateUniqueUVs.ToSharedRef()
-#else
-			SNew(STextBlock)
-			.Text( ErrorMessage )
-#endif
-		];
-}
-
 void FStaticMeshEditor::BindCommands()
 {
 	const FStaticMeshEditorCommands& Commands = FStaticMeshEditorCommands::Get();
@@ -516,9 +488,6 @@ void FStaticMeshEditor::BuildSubTools()
 	SocketManager = ISocketManager::CreateSocketManager( SharedThis(this) , OnSocketSelectionChanged );
 
 	SAssignNew( ConvexDecomposition, SConvexDecomposition )
-		.StaticMeshEditorPtr(SharedThis(this));
-
-	SAssignNew(GenerateUniqueUVs, SGenerateUniqueUVs)
 		.StaticMeshEditorPtr(SharedThis(this));
 
 	// Build toolbar widgets
@@ -1408,12 +1377,6 @@ void FStaticMeshEditor::OnChangeMesh()
 		AddEditingObject(SelectedMesh);
 
 		SetEditorMesh(SelectedMesh);
-
-		// Refresh the tool so it will update it's LOD list.
-		if(GenerateUniqueUVs.IsValid())
-		{
-			GenerateUniqueUVs->RefreshTool();
-		}
 
 		if(SocketManager.IsValid())
 		{
