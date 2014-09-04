@@ -1280,7 +1280,7 @@ bool USkeletalMeshComponent::IsAnySimulatingPhysics() const
  */
 void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) const
 {
-	if (GetWorld()->IsGameWorld() && SkeletalMesh && Canvas)
+	if (GetWorld()->IsGameWorld() && SkeletalMesh && Canvas && MasterPoseComponent == NULL)
 	{
 		// draw spacebases, we could cache parent bones, but this is mostly debug feature, I'm not caching it right now
 		for ( int32 Index=0; Index<RequiredBones.Num(); ++Index )
