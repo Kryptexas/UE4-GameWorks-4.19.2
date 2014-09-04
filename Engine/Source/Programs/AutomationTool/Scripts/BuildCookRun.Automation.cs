@@ -350,7 +350,7 @@ public class BuildCookRun : BuildCommand
 					}
 					if (!FileExists_NoExceptions(ProjectName))
 					{
-						var Branch = new BranchInfo(new List<UnrealTargetPlatform> { UnrealBuildTool.Utils.IsRunningOnMono ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Win64 });
+						var Branch = new BranchInfo(new List<UnrealTargetPlatform> { UnrealBuildTool.BuildHostPlatform.Current.Platform });
 						var GameProj = Branch.FindGame(OriginalProjectName);
 						if (GameProj != null)
 						{
