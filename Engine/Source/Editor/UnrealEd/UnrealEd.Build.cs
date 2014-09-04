@@ -48,6 +48,7 @@ public class UnrealEd : ModuleRules
 				"SourceCodeAccess",
 				"ReferenceViewer",
                 "IntroTutorials",
+				"OutputLog"
 			}
 		);
 

@@ -5,6 +5,119 @@
 #include "OutputLogActions.h"
 #include "SScrollBorder.h"
 
+/** Custom console editable text box whose only purpose is to prevent some keys from being typed */
+class SConsoleEditableTextBox : public SEditableTextBox
+{
+public:
+	SLATE_BEGIN_ARGS( SConsoleEditableTextBox ) {}
+		
+		/** Hint text that appears when there is no text in the text box */
+		SLATE_ATTRIBUTE(FText, HintText)
+
+		/** Called whenever the text is changed interactively by the user */
+		SLATE_EVENT(FOnTextChanged, OnTextChanged)
+
+		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
+		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
+
+	SLATE_END_ARGS()
+
+
+	void Construct( const FArguments& InArgs )
+	{
+		SetStyle(&FCoreStyle::Get().GetWidgetStyle< FEditableTextBoxStyle >("NormalEditableTextBox"));
+
+		SBorder::Construct(SBorder::FArguments()
+			.BorderImage(this, &SConsoleEditableTextBox::GetConsoleBorder)
+			.BorderBackgroundColor(Style->BackgroundColor)
+			.ForegroundColor(Style->ForegroundColor)
+			.Padding(Style->Padding)
+			[
+				SAssignNew( EditableText, SConsoleEditableText )
+				.HintText( InArgs._HintText )
+				.OnTextChanged( InArgs._OnTextChanged )
+				.OnTextCommitted( InArgs._OnTextCommitted )
+			] );
+	}
+
+private:
+	class SConsoleEditableText : public SEditableText
+	{
+	public:
+		SLATE_BEGIN_ARGS( SConsoleEditableText ) {}
+			/** The text that appears when there is nothing typed into the search box */
+			SLATE_ATTRIBUTE(FText, HintText)
+			/** Called whenever the text is changed interactively by the user */
+			SLATE_EVENT(FOnTextChanged, OnTextChanged)
+
+			/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
+			SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
+		SLATE_END_ARGS()
+
+		void Construct( const FArguments& InArgs )
+		{
+			SEditableText::Construct
+			( 
+				SEditableText::FArguments()
+				.HintText( InArgs._HintText )
+				.OnTextChanged( InArgs._OnTextChanged )
+				.OnTextCommitted( InArgs._OnTextCommitted ) 
+				.ClearKeyboardFocusOnCommit( false )
+				.IsCaretMovedWhenGainFocus( false ) 
+				.MinDesiredWidth( 400.0f )
+			);
+		}
+
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+		{
+			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
+			if( InKeyboardEvent.GetKey() == EKeys::Tilde )
+			{
+				return FReply::Unhandled();
+			}
+			else
+			{
+				return SEditableText::OnKeyDown( MyGeometry, InKeyboardEvent );
+			}
+		}
+
+		virtual FReply OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
+		{
+			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
+			if( InCharacterEvent.GetCharacter() != 0x60 )
+			{
+				return SEditableText::OnKeyChar( MyGeometry, InCharacterEvent );
+			}
+			else
+			{
+				return FReply::Unhandled();
+			}
+		}
+
+	};
+
+	/** @return Border image for the text box based on the hovered and focused state */
+	const FSlateBrush* GetConsoleBorder() const
+	{
+		if (EditableText->HasKeyboardFocus())
+		{
+			return &Style->BackgroundImageFocused;
+		}
+		else
+		{
+			if (EditableText->IsHovered())
+			{
+				return &Style->BackgroundImageHovered;
+			}
+			else
+			{
+				return &Style->BackgroundImageNormal;
+			}
+		}
+	}
+
+};
+
 SConsoleInputBox::SConsoleInputBox()
 	: SelectedSuggestion(-1)
 	, bIgnoreUIUpdate(false)
@@ -14,16 +127,16 @@ SConsoleInputBox::SConsoleInputBox()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SConsoleInputBox::Construct( const FArguments& InArgs )
 {
+	OnConsoleCommandExecuted = InArgs._OnConsoleCommandExecuted;
+
 	ChildSlot
 	[
 		SAssignNew( SuggestionBox, SMenuAnchor )
 			.Placement( InArgs._SuggestionListPlacement )
 			[
-				SAssignNew(InputText, SEditableTextBox)
+				SAssignNew(InputText, SConsoleEditableTextBox)
 					.OnTextCommitted(this, &SConsoleInputBox::OnTextCommitted)
 					.HintText( NSLOCTEXT( "ConsoleInputBox", "TypeInConsoleHint", "Enter console command" ) )
-					.ClearKeyboardFocusOnCommit(false)
-					.IsCaretMovedWhenGainFocus(false)
 					.OnTextChanged(this, &SConsoleInputBox::OnTextChanged)
 			]
 			.MenuContent
@@ -266,6 +379,8 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 		}
 
 		ClearSuggestions();
+
+		OnConsoleCommandExecuted.ExecuteIfBound();
 	}
 }
 

@@ -10,7 +10,7 @@ IMPLEMENT_MODULE( FOutputLogModule, OutputLog );
 
 namespace OutputLogModule
 {
-	static const FName OutputLogApp = FName(TEXT("OutputLogApp"));
+	static const FName OutputLogTabName = FName(TEXT("OutputLog"));
 }
 
 /** This class is to capture all log output even if the log window is closed */
@@ -71,7 +71,7 @@ void FOutputLogModule::StartupModule()
 {
 	FOutputLogCommands::Register();
 
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("OutputLog", FOnSpawnTab::CreateStatic( &SpawnOutputLog ) )
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(OutputLogModule::OutputLogTabName, FOnSpawnTab::CreateStatic( &SpawnOutputLog ) )
 		.SetDisplayName(NSLOCTEXT("UnrealEditor", "OutputLogTab", "Output Log"))
 		.SetTooltipText(NSLOCTEXT("UnrealEditor", "OutputLogTooltipText", "Open the Output Log tab."))
 		.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() )
@@ -84,7 +84,7 @@ void FOutputLogModule::ShutdownModule()
 {
 	if (FSlateApplication::IsInitialized())
 	{
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("OutputLog");
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(OutputLogModule::OutputLogTabName);
 	}
 	
 
@@ -99,37 +99,47 @@ TSharedRef< SWidget > FOutputLogModule::MakeConsoleInputBox( TSharedPtr< SEditab
 }
 
 
-void FOutputLogModule::OpenDebugConsoleForWindow( const TSharedRef< SWindow >& Window, const EDebugConsoleStyle::Type InStyle )
+void FOutputLogModule::ToggleDebugConsoleForWindow( const TSharedRef< SWindow >& Window, const EDebugConsoleStyle::Type InStyle, const FDebugConsoleDelegates& DebugConsoleDelegates )
 {
+	bool bShouldOpen = true;
 	// Close an existing console box, if there is one
-	bool bAlreadyOpenForThisWindow = false;
 	TSharedPtr< SWidget > PinnedDebugConsole( DebugConsole.Pin() );
 	if( PinnedDebugConsole.IsValid() )
 	{
-		TSharedPtr< SWindow > WindowForExistingConsole = FSlateApplication::Get().FindWidgetWindow( PinnedDebugConsole.ToSharedRef() );
-		if( WindowForExistingConsole.IsValid() )
+		// If the console is already open close it unless it is in a different window.  In that case reopen it on that window
+		bShouldOpen = false;
+		TSharedPtr< SWindow > WindowForExistingConsole = FSlateApplication::Get().FindWidgetWindow(PinnedDebugConsole.ToSharedRef());
+		if (WindowForExistingConsole.IsValid())
 		{
-			if( WindowForExistingConsole == Window )
-			{
-				bAlreadyOpenForThisWindow = true;
-			}
-			else
-			{
-				CloseDebugConsoleForWindow( WindowForExistingConsole.ToSharedRef() );
-			}
+			WindowForExistingConsole->RemoveOverlaySlot(PinnedDebugConsole.ToSharedRef());
+			DebugConsole.Reset();
 		}
 
-		DebugConsole.Reset();
+		if( WindowForExistingConsole != Window )
+		{
+			// Console is being opened on another window
+			bShouldOpen = true;
+		}
+	}
+	
+	TSharedPtr<SDockTab> ActiveTab = FGlobalTabmanager::Get()->GetActiveTab();
+	if (ActiveTab.IsValid() && ActiveTab->GetLayoutIdentifier() == FTabId(OutputLogModule::OutputLogTabName))
+	{
+		FGlobalTabmanager::Get()->DrawAttention(ActiveTab.ToSharedRef());
+		bShouldOpen = false;
 	}
 
-	if( !bAlreadyOpenForThisWindow )
+	if( bShouldOpen )
 	{
 		const EDebugConsoleStyle::Type DebugConsoleStyle = InStyle;
-		TSharedRef< SDebugConsole > DebugConsoleRef = SNew( SDebugConsole, DebugConsoleStyle, this );
+		TSharedRef< SDebugConsole > DebugConsoleRef = SNew( SDebugConsole, DebugConsoleStyle, this, &DebugConsoleDelegates );
 		DebugConsole = DebugConsoleRef;
 
 		const int32 MaximumZOrder = MAX_int32;
 		Window->AddOverlaySlot( MaximumZOrder )
+		.VAlign(VAlign_Bottom)
+		.HAlign(HAlign_Center)
+		.Padding( 10.0f )
 		[
 			DebugConsoleRef
 		];
@@ -140,14 +150,17 @@ void FOutputLogModule::OpenDebugConsoleForWindow( const TSharedRef< SWindow >& W
 }
 
 
-void FOutputLogModule::CloseDebugConsoleForWindow( const TSharedRef< SWindow >& Window )
+void FOutputLogModule::CloseDebugConsole()
 {
-#if !UE_BUILD_SHIPPING
 	TSharedPtr< SWidget > PinnedDebugConsole( DebugConsole.Pin() );
+
 	if( PinnedDebugConsole.IsValid() )
 	{
-		Window->RemoveOverlaySlot( PinnedDebugConsole.ToSharedRef() );
-		DebugConsole.Reset();
+		TSharedPtr< SWindow > WindowForExistingConsole = FSlateApplication::Get().FindWidgetWindow(PinnedDebugConsole.ToSharedRef());
+		if (WindowForExistingConsole.IsValid())
+		{
+			WindowForExistingConsole->RemoveOverlaySlot( PinnedDebugConsole.ToSharedRef() );
+			DebugConsole.Reset();
+		}
 	}
-#endif
 }

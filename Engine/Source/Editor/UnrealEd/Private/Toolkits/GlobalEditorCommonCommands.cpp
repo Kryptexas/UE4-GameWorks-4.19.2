@@ -9,6 +9,7 @@
 #include "AssetData.h"
 #include "ContentBrowserModule.h"
 #include "Toolkits/AssetEditorManager.h"
+#include "OutputLogModule.h"
 
 class SGlobalOpenAssetDialog : public SCompoundWidget
 {
@@ -98,6 +99,8 @@ void FGlobalEditorCommonCommands::RegisterCommands()
 	UI_COMMAND( FindInContentBrowser, "Find in Content Browser", "Summons the Content Browser and navigates to the selected asset", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::B));
 	UI_COMMAND( ViewReferences, "View References", "Launches the reference viewer showing the selected assets' references", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Shift | EModifierKey::Alt, EKeys::R));
 	
+	UI_COMMAND( OpenConsoleCommandBox, "Open Console Command Box", "Opens an edit box where you can type in a console command", EUserInterfaceActionType::Button, FInputGesture(EKeys::Tilde));
+
 	UI_COMMAND( OpenDocumentation, "Open Documentation...", "Opens documentation for this tool", EUserInterfaceActionType::Button, FInputGesture(EKeys::F1) );
 }
 
@@ -112,6 +115,10 @@ void FGlobalEditorCommonCommands::MapActions(TSharedRef<FUICommandList>& Toolkit
 	ToolkitCommands->MapAction(
 		Get().SummonOpenAssetDialog,
 		FExecuteAction::CreateStatic( &FGlobalEditorCommonCommands::OnSummonedAssetPicker ) );
+
+	ToolkitCommands->MapAction(
+		Get().OpenConsoleCommandBox,
+		FExecuteAction::CreateStatic( &FGlobalEditorCommonCommands::OnSummonedConsoleCommandBox ) );
 }
 
 void FGlobalEditorCommonCommands::OnPressedCtrlTab()
@@ -148,5 +155,27 @@ void FGlobalEditorCommonCommands::OnSummonedAssetPicker()
 		// Open the pop-up
 		FPopupTransitionEffect TransitionEffect(FPopupTransitionEffect::None);
 		TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect);
+	}
+}
+
+static void CloseDebugConsole()
+{
+	FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >(TEXT("OutputLog"));
+	OutputLogModule.CloseDebugConsole();
+}
+
+void FGlobalEditorCommonCommands::OnSummonedConsoleCommandBox()
+{
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+	
+	if( ParentWindow.IsValid() )
+	{
+		TSharedRef<SWindow> WindowRef = ParentWindow.ToSharedRef();
+		FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >(TEXT("OutputLog"));
+
+		FDebugConsoleDelegates Delegates;
+		Delegates.OnConsoleCommandExecuted = FSimpleDelegate::CreateStatic( &CloseDebugConsole );
+
+		OutputLogModule.ToggleDebugConsoleForWindow(WindowRef, EDebugConsoleStyle::Compact, Delegates);
 	}
 }

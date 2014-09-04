@@ -36,6 +36,8 @@ public:
 		/** Where to place the suggestion list */
 		SLATE_ARGUMENT( EMenuPlacement, SuggestionListPlacement )
 
+		/** Called when a console command is executed */
+		SLATE_EVENT( FSimpleDelegate, OnConsoleCommandExecuted )
 	SLATE_END_ARGS()
 
 	/** Protected console input box widget constructor, called by Slate */
@@ -98,6 +100,9 @@ private:
 
 	/** The list view for showing all log messages. Should be replaced by a full text editor */
 	TSharedPtr< SListView< TSharedPtr<FString> > > SuggestionListView;
+
+	/** Delegate to call when a console command is executed */
+	FSimpleDelegate OnConsoleCommandExecuted;
 
 	/** -1 if not set, otherwise index into Suggestions */
 	int32 SelectedSuggestion;

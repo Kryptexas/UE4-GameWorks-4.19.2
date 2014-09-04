@@ -17,6 +17,11 @@ namespace EDebugConsoleStyle
 	};
 };
 
+struct FDebugConsoleDelegates
+{
+	FSimpleDelegate OnKeyboardFocusLost;
+	FSimpleDelegate OnConsoleCommandExecuted;
+};
 
 class FOutputLogModule : public IModuleInterface
 {
@@ -29,10 +34,10 @@ public:
 	virtual TSharedRef< SWidget > MakeConsoleInputBox( TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox ) const;
 
 	/** Opens a debug console in the specified window, if not already open */
-	virtual void OpenDebugConsoleForWindow( const TSharedRef< SWindow >& Window, const EDebugConsoleStyle::Type InStyle );
+	virtual void ToggleDebugConsoleForWindow( const TSharedRef< SWindow >& Window, const EDebugConsoleStyle::Type InStyle, const FDebugConsoleDelegates& DebugConsoleDelegates );
 
 	/** Closes the debug console for the specified window */
-	virtual void CloseDebugConsoleForWindow( const TSharedRef< SWindow >& Window );
+	virtual void CloseDebugConsole();
 
 
 private:

@@ -12,9 +12,12 @@ namespace DebugConsoleDefs
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SDebugConsole::Construct( const FArguments& InArgs, const EDebugConsoleStyle::Type InStyle, FOutputLogModule* OutputLogModule )
+
+void SDebugConsole::Construct( const FArguments& InArgs, const EDebugConsoleStyle::Type InStyle, FOutputLogModule* OutputLogModule, const FDebugConsoleDelegates* DebugConsoleDelegates )
 {
 	CurrentStyle = InStyle;
+
+	TSharedPtr<SConsoleInputBox> ConsoleInputBox;
 
 	check( OutputLogModule != NULL );
 	ChildSlot
@@ -34,7 +37,7 @@ void SDebugConsole::Construct( const FArguments& InArgs, const EDebugConsoleStyl
 					.HeightOverride( 200.0f )
 					[
 						SNew( SBorder )
-							.BorderImage( FEditorStyle::GetBrush( "DebugConsole.Background" ) )
+							.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
 							.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
 							.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
 							[
@@ -50,35 +53,45 @@ void SDebugConsole::Construct( const FArguments& InArgs, const EDebugConsoleStyl
 		[
 			SNew(SBox)
 			.HeightOverride( 26.0f )
+			.HAlign( HAlign_Left )
 			[
 				SNew( SBorder )
-					.BorderImage( FEditorStyle::GetBrush( "Console.Background" ) )
-					.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
-					.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
+				.Padding( FMargin(2) )
+				.BorderImage( FEditorStyle::GetBrush( "DebugConsole.Background" ) )
+				.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
+				.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(3.0f)
+					.VAlign(VAlign_Center)
 					[
-						SNew( SHorizontalBox )
-							+SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding( 3.0f )
-							[
-								SNew( STextBlock )
-									.Text( NSLOCTEXT("Console", "ConsoleLabel", "Console >").ToString() )
-							]
-							+SHorizontalBox::Slot()
-								.Padding( 3.0f )
-								.FillWidth( 1.0f )
-							[
-								OutputLogModule->MakeConsoleInputBox( EditableTextBox )
-							]
+						SNew(STextBlock)
+						.Text(NSLOCTEXT("Console", "ConsoleLabel", "Console"))
+
 					]
+					+ SHorizontalBox::Slot()
+					.Padding(5.0f, 2.0f)
+					.VAlign(VAlign_Center)
+					.MaxWidth(400.0f)
+					[
+						SAssignNew(ConsoleInputBox, SConsoleInputBox)
+						.OnConsoleCommandExecuted(DebugConsoleDelegates->OnConsoleCommandExecuted)
+					]
+				]
 			]
 		]
 	];
 
+	EditableTextBox = ConsoleInputBox->GetEditableTextBox();
+
 	// Kick off intro animation
-	AnimCurve = FCurveSequence();
-	AnimCurve.AddCurve( 0.0f, DebugConsoleDefs::IntroAnimationDuration, ECurveEaseFunction::QuadOut );
-	AnimCurve.Play();
+	AnimCurveSequence = FCurveSequence();
+	AnimCurve = AnimCurveSequence.AddCurve( 0.0f, DebugConsoleDefs::IntroAnimationDuration, ECurveEaseFunction::QuadOut );
+	FlashCurve = AnimCurveSequence.AddCurve( DebugConsoleDefs::IntroAnimationDuration, .15f, ECurveEaseFunction::QuadInOut );
+
+	AnimCurveSequence.Play();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -90,14 +103,8 @@ SDebugConsole::SDebugConsole()
 
 void SDebugConsole::SetFocusToEditableText()
 {
-	FWidgetPath WidgetToFocusPath;
-	FSlateApplication::Get().GeneratePathToWidgetChecked( EditableTextBox.ToSharedRef(), WidgetToFocusPath );
-	if( WidgetToFocusPath.IsValid() )
-	{
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
-	}
+	FSlateApplication::Get().SetKeyboardFocus( EditableTextBox.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
 }
-
 
 EVisibility SDebugConsole::MakeVisibleIfLogIsShown() const
 {
@@ -114,4 +121,16 @@ FLinearColor SDebugConsole::GetAnimatedColorAndOpacity() const
 FSlateColor SDebugConsole::GetAnimatedSlateColor() const
 {
 	return FSlateColor( GetAnimatedColorAndOpacity() );
+}
+
+FSlateColor SDebugConsole::GetFlashColor() const
+{
+	float FlashAlpha = 1.0f - FlashCurve.GetLerp();
+
+	if (FlashAlpha == 1.0f)
+	{
+		FlashAlpha = 0.0f;
+	}
+
+	return FLinearColor(1,1,1,FlashAlpha);
 }
