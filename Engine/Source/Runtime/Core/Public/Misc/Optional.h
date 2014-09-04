@@ -172,8 +172,8 @@ public:
 	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const { return bIsSet; }
 
 	/** @return The optional value; undefined when IsSet() returns false. */
-	const OptionalType& GetValue() const { checkSlow(IsSet()); return (OptionalType&)Value; }
-	      OptionalType& GetValue()       { checkSlow(IsSet()); return (OptionalType&)Value; }
+	const OptionalType& GetValue() const { checkf(IsSet(), TEXT("It is an error to call GetValue() on an unset TOptional. Please either check IsSet() or use Get(DefaultValue) instead.")); return (OptionalType&)Value; }
+	      OptionalType& GetValue()       { checkf(IsSet(), TEXT("It is an error to call GetValue() on an unset TOptional. Please either check IsSet() or use Get(DefaultValue) instead.")); return (OptionalType&)Value; }
 
 	const OptionalType* operator->() const { return &GetValue(); }
 	      OptionalType* operator->()       { return &GetValue(); }
