@@ -248,54 +248,55 @@ FString UEdGraphSchema_K2::FPinTypeTreeInfo::GetDescription() const
 	}
 }
 
+
+const FString UEdGraphSchema_K2::PC_Exec(TEXT("exec"));
+const FString UEdGraphSchema_K2::PC_Boolean(TEXT("bool"));
+const FString UEdGraphSchema_K2::PC_Byte(TEXT("byte"));
+const FString UEdGraphSchema_K2::PC_Class(TEXT("class"));
+const FString UEdGraphSchema_K2::PC_Int(TEXT("int"));
+const FString UEdGraphSchema_K2::PC_Float(TEXT("float"));
+const FString UEdGraphSchema_K2::PC_Name(TEXT("name"));
+const FString UEdGraphSchema_K2::PC_Delegate(TEXT("delegate"));
+const FString UEdGraphSchema_K2::PC_MCDelegate(TEXT("mcdelegate"));
+const FString UEdGraphSchema_K2::PC_Object(TEXT("object"));
+const FString UEdGraphSchema_K2::PC_Interface(TEXT("interface"));
+const FString UEdGraphSchema_K2::PC_String(TEXT("string"));
+const FString UEdGraphSchema_K2::PC_Text(TEXT("text"));
+const FString UEdGraphSchema_K2::PC_Struct(TEXT("struct"));
+const FString UEdGraphSchema_K2::PC_Wildcard(TEXT("wildcard"));
+const FString UEdGraphSchema_K2::PSC_Self(TEXT("self"));
+const FString UEdGraphSchema_K2::PSC_Index(TEXT("index"));
+const FString UEdGraphSchema_K2::PN_Execute(TEXT("execute"));
+const FString UEdGraphSchema_K2::PN_Then(TEXT("then"));
+const FString UEdGraphSchema_K2::PN_Completed(TEXT("Completed"));
+const FString UEdGraphSchema_K2::PN_DelegateEntry(TEXT("delegate"));
+const FString UEdGraphSchema_K2::PN_EntryPoint(TEXT("EntryPoint"));
+const FString UEdGraphSchema_K2::PN_Self(TEXT("self"));
+const FString UEdGraphSchema_K2::PN_Else(TEXT("else"));
+const FString UEdGraphSchema_K2::PN_Loop(TEXT("loop"));
+const FString UEdGraphSchema_K2::PN_After(TEXT("after"));
+const FString UEdGraphSchema_K2::PN_ReturnValue(TEXT("ReturnValue"));
+const FString UEdGraphSchema_K2::PN_ObjectToCast(TEXT("Object"));
+const FString UEdGraphSchema_K2::PN_Condition(TEXT("Condition"));
+const FString UEdGraphSchema_K2::PN_Start(TEXT("Start"));
+const FString UEdGraphSchema_K2::PN_Stop(TEXT("Stop"));
+const FString UEdGraphSchema_K2::PN_Index(TEXT("Index"));
+const FString UEdGraphSchema_K2::PN_CastSucceeded(TEXT("then"));
+const FString UEdGraphSchema_K2::PN_CastFailed(TEXT("CastFailed"));
+const FString UEdGraphSchema_K2::PN_CastedValuePrefix(TEXT("As"));
+const FString UEdGraphSchema_K2::PN_MatineeFinished(TEXT("Finished"));
+
+const FName UEdGraphSchema_K2::FN_UserConstructionScript(TEXT("UserConstructionScript"));
+const FName UEdGraphSchema_K2::FN_ExecuteUbergraphBase(TEXT("ExecuteUbergraph"));
+const FName UEdGraphSchema_K2::GN_EventGraph(TEXT("EventGraph"));
+const FName UEdGraphSchema_K2::GN_AnimGraph(TEXT("AnimGraph"));
+const FName UEdGraphSchema_K2::VR_DefaultCategory(TEXT("Default"));
+
+const int32 UEdGraphSchema_K2::AG_LevelReference = 100;
+
 UEdGraphSchema_K2::UEdGraphSchema_K2(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
-	PC_Exec = TEXT("exec");
-	PC_Meta = TEXT("meta");
-	PC_Boolean = TEXT("bool");
-	PC_Byte = TEXT("byte");
-	PC_Class = TEXT("class");
-	PC_Int = TEXT("int");
-	PC_Float = TEXT("float");
-	PC_Name = TEXT("name");
-	PC_Delegate = TEXT("delegate");
-	PC_MCDelegate = TEXT("mcdelegate");
-	PC_Object = TEXT("object");
-	PC_Interface = TEXT("interface");
-	PC_String = TEXT("string");
-	PC_Text = TEXT("text");
-	PC_Struct = TEXT("struct");
-	PC_Wildcard = TEXT("wildcard");
-	PSC_Self = TEXT("self");
-	PSC_Index = TEXT("index");
-	PN_Execute = TEXT("execute");
-	PN_Then = TEXT("then");
-	PN_Completed = TEXT("Completed");
-	PN_DelegateEntry = TEXT("delegate");
-	PN_EntryPoint = TEXT("EntryPoint");
-	PN_Self = TEXT("self");
-	PN_Else = TEXT("else");
-	PN_Loop = TEXT("loop");
-	PN_After = TEXT("after");
-	PN_ReturnValue = TEXT("ReturnValue");
-	PN_ObjectToCast = TEXT("Object");
-	PN_Condition = TEXT("Condition");
-	PN_Start = TEXT("Start");
-	PN_Stop = TEXT("Stop");
-	PN_Index = TEXT("Index");
-	PN_CastSucceeded = TEXT("then");
-	PN_CastFailed = TEXT("CastFailed");
-	PN_CastedValuePrefix = TEXT("As");
-	PN_MatineeFinished = TEXT("Finished");
-	FN_UserConstructionScript = TEXT("UserConstructionScript");
-	FN_ExecuteUbergraphBase = TEXT("ExecuteUbergraph");
-	GN_EventGraph = TEXT("EventGraph");
-	GN_AnimGraph = TEXT("AnimGraph");
-	VR_DefaultCategory = TEXT("Default");
-	AG_LevelReference = 100;
-
 	VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
 	RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
 	TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));

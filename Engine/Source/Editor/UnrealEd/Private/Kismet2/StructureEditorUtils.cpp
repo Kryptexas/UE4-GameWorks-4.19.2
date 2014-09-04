@@ -163,7 +163,6 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruc
 		}
 	}
 	else if ((VarType.PinCategory == K2Schema->PC_Exec) 
-		|| (VarType.PinCategory == K2Schema->PC_Meta) 
 		|| (VarType.PinCategory == K2Schema->PC_Wildcard)
 		|| (VarType.PinCategory == K2Schema->PC_MCDelegate)
 		|| (VarType.PinCategory == K2Schema->PC_Delegate))
