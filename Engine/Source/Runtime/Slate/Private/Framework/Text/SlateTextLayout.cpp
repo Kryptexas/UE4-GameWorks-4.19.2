@@ -73,10 +73,13 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FTextBlockStyle& 
 			{
 				BlockHue.R += 50.0f;
 
+				// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+				const float InverseScale = Inverse(AllottedGeometry.Scale);
+
 				FSlateDrawElement::MakeBox(
 					OutDrawElements, 
 					BlockDebugLayer,
-					FPaintGeometry( AllottedGeometry.AbsolutePosition + Block->GetLocationOffset(), Block->GetSize(), AllottedGeometry.Scale ),
+					AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset()))),
 					&DefaultTextStyle.HighlightShape,
 					ClippingRect,
 					DrawEffects,

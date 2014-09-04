@@ -74,6 +74,9 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	const bool ShouldDropShadow = Style.ShadowOffset.Size() > 0;
 	const FVector2D BlockLocationOffset = Block->GetLocationOffset();
 	const FTextRange BlockRange = Block->GetTextRange();
+	
+	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+	const float InverseScale = Inverse(AllottedGeometry.Scale);
 
 	// Draw the optional shadow
 	if ( ShouldDropShadow )
@@ -81,7 +84,7 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			++LayerId,
-			FPaintGeometry( AllottedGeometry.AbsolutePosition + Block->GetLocationOffset() + Style.ShadowOffset, Block->GetSize(), AllottedGeometry.Scale ),
+			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset() + Style.ShadowOffset))),
 			Text.Get(),
 			BlockRange.BeginIndex,
 			BlockRange.EndIndex,
@@ -96,7 +99,7 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	FSlateDrawElement::MakeText(
 		OutDrawElements,
 		++LayerId,
-		FPaintGeometry( AllottedGeometry.AbsolutePosition + Block->GetLocationOffset(), Block->GetSize(), AllottedGeometry.Scale ),
+		AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset()))),
 		Text.Get(),
 		BlockRange.BeginIndex,
 		BlockRange.EndIndex,
