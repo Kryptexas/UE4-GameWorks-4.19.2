@@ -925,10 +925,10 @@ private:
 	 */
 	bool DoesFunctionHaveOutParameters( const UFunction* Function ) const;
 
-	const UScriptStruct* VectorStruct;
-	const UScriptStruct* RotatorStruct;
-	const UScriptStruct* TransformStruct;
-	const UScriptStruct* LinearColorStruct;
-	const UScriptStruct* ColorStruct;
+	static const UScriptStruct* VectorStruct;
+	static const UScriptStruct* RotatorStruct;
+	static const UScriptStruct* TransformStruct;
+	static const UScriptStruct* LinearColorStruct;
+	static const UScriptStruct* ColorStruct;
 };
 
