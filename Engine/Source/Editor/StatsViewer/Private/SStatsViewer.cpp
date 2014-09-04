@@ -134,16 +134,9 @@ void SStatsViewer::Construct( const FArguments& InArgs )
 				.Padding(0.0f)
 				.HAlign(HAlign_Right)
 				[
-					SNew( SComboButton )
-					.Visibility( this, &SStatsViewer::OnGetObjectSetsVisibility )
-					.ContentPadding(3)
-					.OnGetMenuContent( this, &SStatsViewer::OnGetObjectSetMenuContent )
-					.ButtonContent()
-					[
-						SNew( STextBlock )
-						.Text( this, &SStatsViewer::OnGetObjectSetMenuLabel )
-						.ToolTipText( LOCTEXT( "DisplayedObjects_Tooltip", "Choose the objects whose statistics you want to display" ) )
-					]
+					SAssignNew( CustomFilter, SBorder )
+					.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+					.Padding(0.0f)
 				]
 			]
 		]
@@ -712,15 +705,37 @@ void SStatsViewer::SetDisplayedStats( TSharedRef<IStatsPage> StatsPage )
 	FilterTextBoxWidget->SetText( FText::FromString(TEXT("")) );
 
 	// set custom widget, if any
-	TSharedPtr<SWidget> CustomWidget = CurrentStats->GetCustomWidget( SharedThis(this) );
-	if(CustomWidget.IsValid())
+	TSharedPtr<SWidget> CustomContentWidget = CurrentStats->GetCustomWidget( SharedThis(this) );
 	{
-		CustomContent->SetContent( CustomWidget.ToSharedRef() );
-		CustomContent->SetVisibility( EVisibility::Visible );
+		if(CustomContentWidget.IsValid())
+		{
+			CustomContent->SetContent( CustomContentWidget.ToSharedRef() );
+			CustomContent->SetVisibility( EVisibility::Visible );
+		}
+		else
+		{
+			CustomContent->SetVisibility( EVisibility::Collapsed );
+		}
 	}
-	else
+
+	// set custom filter, if any
+	TSharedPtr<SWidget> CustomFilterWidget = CurrentStats->GetCustomFilter( SharedThis(this) );
 	{
-		CustomContent->SetVisibility( EVisibility::Collapsed );
+		if (!CustomFilterWidget.IsValid())
+		{
+			CustomFilterWidget = SNew( SComboButton )
+				.Visibility( this, &SStatsViewer::OnGetObjectSetsVisibility )
+				.ContentPadding(3)
+				.OnGetMenuContent( this, &SStatsViewer::OnGetObjectSetMenuContent )
+				.ButtonContent()
+				[
+					SNew( STextBlock )
+						.Text( this, &SStatsViewer::OnGetObjectSetMenuLabel )
+						.ToolTipText( LOCTEXT( "DisplayedObjects_Tooltip", "Choose the objects whose statistics you want to display" ) )
+				];
+		}
+
+		CustomFilter->SetContent(CustomFilterWidget.ToSharedRef());
 	}
 
 	Refresh();

@@ -21,7 +21,7 @@ public:
 		FString EnumName = Entry::StaticClass()->GetName();
 		EnumName += TEXT(".");
 		EnumName += Entry::StaticClass()->GetMetaData( TEXT("ObjectSetType") );
-		ObjectSetEnum = FindObject<UEnum>( NULL, *EnumName );
+		ObjectSetEnum = FindObject<UEnum>( nullptr, *EnumName );
 		bRefresh = false;
 		bShow = false;
 		ObjectSetIndex = 0;
@@ -65,7 +65,7 @@ public:
 
 	virtual int32 GetObjectSetCount() const override
 	{
-		if(ObjectSetEnum != NULL)
+		if(ObjectSetEnum != nullptr)
 		{
 			return ObjectSetEnum->NumEnums() - 1;
 		}
@@ -74,7 +74,7 @@ public:
 
 	virtual FString GetObjectSetName( int32 InObjectSetIndex ) const override
 	{
-		if(ObjectSetEnum != NULL)
+		if(ObjectSetEnum != nullptr)
 		{
 			return ObjectSetEnum->GetDisplayNameText( InObjectSetIndex ).ToString();
 		}
@@ -86,7 +86,7 @@ public:
 
 	virtual FString GetObjectSetToolTip( int32 InObjectSetIndex ) const override
 	{
-		if(ObjectSetEnum != NULL)
+		if(ObjectSetEnum != nullptr)
 		{
 			return ObjectSetEnum->GetToolTipText( InObjectSetIndex ).ToString();
 		}
@@ -101,9 +101,14 @@ public:
 		return Entry::StaticClass();
 	}
 
+	virtual TSharedPtr<SWidget> GetCustomFilter( TWeakPtr< class IStatsViewer > InParentStatsViewer ) override
+	{
+		return nullptr;
+	}
+
 	virtual TSharedPtr<SWidget> GetCustomWidget( TWeakPtr< class IStatsViewer > InParentStatsViewer ) override
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	virtual void SetSelectedObjectSet( int32 InObjectSetIndex ) override
