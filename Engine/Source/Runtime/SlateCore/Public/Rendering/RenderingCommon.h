@@ -95,8 +95,12 @@ namespace ESlateLineJoinType
  */
 struct FSlateRotatedRect
 {
+	/** Default ctor. */
 	FSlateRotatedRect();
-	FSlateRotatedRect(const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform, const FSlateRect& ClipRectInLayoutWindowSpace);
+	/** Construct a rotated rect from a given aligned rect. */
+	explicit FSlateRotatedRect(const FSlateRect& AlignedRect);
+	/** Per-element constructor. */
+	FSlateRotatedRect(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
 	/** transformed Top-left corner. */
 	FVector2D TopLeft;
 	/** transformed X extent (right-left). */
@@ -104,18 +108,38 @@ struct FSlateRotatedRect
 	/** transformed Y extent (bottom-top). */
 	FVector2D ExtentY;
 
+	/** Convert to a bounding, aligned rect. */
 	FSlateRect ToBoundingRect() const;
+	/** Point-in-rect test. */
 	bool IsUnderLocation(const FVector2D& Location) const;
 };
 
 /**
- * Stores a Rotated rect as float16 for rendering.
+ * Transforms a rect by the given transform.
+ */
+template <typename TransformType>
+FSlateRotatedRect TransformRect(const TransformType& Transform, const FSlateRotatedRect& Rect)
+{
+	return FSlateRotatedRect
+	{
+		TransformPoint(Transform, Rect.TopLeft),
+		TransformVector(Transform, Rect.ExtentX),
+		TransformVector(Transform, Rect.ExtentY),
+	};
+}
+
+
+/**
+ * Stores a Rotated rect as float16 (for rendering).
  */
 struct FSlateRotatedRectFloat16
 {
+	/** Default ctor. */
 	FSlateRotatedRectFloat16();
-	FSlateRotatedRectFloat16(const FSlateRotatedRect& RotatedRect);
-	FSlateRotatedRectFloat16(const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform, const FSlateRect& ClipRectInLayoutWindowSpace);
+	/** Construct a float16 version of a rotated rect from a full-float version. */
+	explicit FSlateRotatedRectFloat16(const FSlateRotatedRect& RotatedRect);
+	/** Per-element constructor. */
+	FSlateRotatedRectFloat16(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
 	/** transformed Top-left corner. */
 	FFloat16 TopLeft[2];
 	/** transformed X extent (right-left). */
@@ -128,9 +152,9 @@ struct FSlateRotatedRectFloat16
  * Not all platforms support Float16, so we have to be tricky here and declare the proper vertex type.
  */
 #if SLATE_USE_FLOAT16
-typedef FSlateRotatedRectFloat16 FSlateClipRectType;
+typedef FSlateRotatedRectFloat16 FSlateRotatedClipRectType;
 #else
-typedef FSlateRotatedRect FSlateClipRectType;
+typedef FSlateRotatedRect FSlateRotatedClipRectType;
 #endif
 
 
@@ -144,13 +168,13 @@ struct FSlateVertex
 	/** Position of the vertex in window space */
 	int16 Position[2];
 	/** clip center/extents in render window space (window space with render transforms applied) */
-	FSlateClipRectType ClipRect;
+	FSlateRotatedClipRectType ClipRect;
 	/** Vertex color */
 	FColor Color;
 	
 	FSlateVertex();
-	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateClipRectType& InClipRect );
-	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateClipRectType& InClipRect );
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
 };
 
 template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };

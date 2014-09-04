@@ -64,11 +64,15 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 
 			const FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[IndexesInCell[i]];
 
-			// Compute the render space clipping rect.
-			FSlateRotatedRect DesktopOrientedClipRect(
-				Inverse(TestCandidate.CachedGeometry.GetAccumulatedLayoutTransform()),
-				TestCandidate.CachedGeometry.GetAccumulatedRenderTransform(),
-				TestCandidate.CachedGeometry.GetClippingRect().IntersectionWith(TestCandidate.ClippingRect));
+			// Compute the render space clipping rect (FGeometry exposes a layout space clipping rect).
+			FSlateRotatedRect DesktopOrientedClipRect = 
+				TransformRect(
+					Concatenate(
+						Inverse(TestCandidate.CachedGeometry.GetAccumulatedLayoutTransform()), 
+						TestCandidate.CachedGeometry.GetAccumulatedRenderTransform()
+					), 
+					FSlateRotatedRect(TestCandidate.CachedGeometry.GetClippingRect().IntersectionWith(TestCandidate.ClippingRect))
+				);
 
 			if (DesktopOrientedClipRect.IsUnderLocation(DesktopSpaceCoordinate) && TestCandidate.WidgetPtr.IsValid())
 			{
@@ -163,10 +167,16 @@ int32 FHittestGrid::InsertWidget( const int32 ParentHittestIndex, const EVisibil
 		// Mark any cell that is overlapped by this widget.
 
 		// Compute the render space clipping rect, and compute it's aligned bounds so we can insert conservatively into the hit test grid.
-		FSlateRect GridRelativeBoundingClipRect = FSlateRotatedRect(
-			Inverse(WindowAdjustedWidget.Geometry.GetAccumulatedLayoutTransform()),
-			WindowAdjustedWidget.Geometry.GetAccumulatedRenderTransform(),
-			WindowAdjustedWidget.Geometry.GetClippingRect().IntersectionWith(WindowAdjustedRect)).ToBoundingRect().OffsetBy(-GridOrigin);
+		FSlateRect GridRelativeBoundingClipRect = 
+			TransformRect(
+				Concatenate(
+					Inverse(WindowAdjustedWidget.Geometry.GetAccumulatedLayoutTransform()),
+					WindowAdjustedWidget.Geometry.GetAccumulatedRenderTransform()
+				),
+				FSlateRotatedRect(WindowAdjustedWidget.Geometry.GetClippingRect().IntersectionWith(WindowAdjustedRect))
+			)
+			.ToBoundingRect()
+			.OffsetBy(-GridOrigin);
 
 		// Starting and ending cells covered by this widget.	
 		const FIntPoint UpperLeftCell = FIntPoint(
