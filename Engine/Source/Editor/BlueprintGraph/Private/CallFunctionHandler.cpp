@@ -581,7 +581,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 						Term->bIsLocal = true;
 						if (!Pin->PinType.bIsArray)
 						{
-							Term->PropertyDefault = Pin->DefaultObject ? Pin->DefaultObject->GetFullName() : Pin->DefaultValue;
+							Term->PropertyDefault = Pin->DefaultObject ? Pin->DefaultObject->GetPathName() : Pin->DefaultValue;
 						}
 
 						Context.NetMap.Add(Pin, Term);

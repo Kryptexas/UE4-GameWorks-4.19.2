@@ -202,7 +202,7 @@ FString UEdGraphPin::GetDefaultAsString() const
 {
 	if(DefaultObject != NULL)
 	{
-		return DefaultObject->GetFullName();
+		return DefaultObject->GetPathName();
 	}
 	else
 	{
