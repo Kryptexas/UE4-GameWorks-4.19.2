@@ -113,6 +113,11 @@ public abstract class BaseLinuxPlatform : Platform
 		}
 	}
 
+	public override string GetEditorCookPlatform()
+	{
+		return "Linux";
+	}
+
 	/// <summary>
 	/// return true if we need to change the case of filenames outside of pak files
 	/// </summary>
@@ -179,6 +184,17 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
+		// package up the program
+		PrintRunTime();
+	}
+
+	public override bool CanHostPlatform(UnrealTargetPlatform Platform)
+	{
+		if (Platform == UnrealTargetPlatform.Mac || Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64)
+		{
+			return false;
+		}
+		return true;
 	}
 
 	/// <summary>
@@ -213,7 +229,7 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 				&& ((!String.IsNullOrEmpty(ProjParams.DeviceUsername) && !String.IsNullOrEmpty(ProjParams.DevicePassword))
 					|| !ProjParams.Unattended)) // Skip key generation in unattended mode if information is missing
 			{
-				Log("Configuring linux host");
+				Log("Configuring Linux host");
 
 				// Prompt for username if not already set
 				while (String.IsNullOrEmpty(ProjParams.DeviceUsername))
@@ -248,7 +264,7 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 					} while (key.Key != ConsoleKey.Enter);
 					Console.WriteLine();
 				}
-				String Command = @"C:\Windows\system32\cmd.exe";
+				String Command = @"/bin/sh";
 
 				// Convienence names
 				String keyName = String.Format("UE4:{0}@{1}", Environment.UserName, Environment.MachineName);
@@ -277,7 +293,7 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 			// Fail if a key couldn't be found or generated
 			if (String.IsNullOrEmpty(linuxKey))
 			{
-				throw new AutomationException("can't deploy/run using a linux device without a valid SSH key");
+				throw new AutomationException("can't deploy/run using a Linux device without a valid SSH key");
 			}
 
 			// Set username from key
@@ -304,15 +320,15 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 		return new List<string> { };
 	}
 
+	public override bool IsSupported { get { return true; } }
+
 }
 
-public class CentOSx64Platform : BaseLinuxPlatform
+
+public class GenericLinuxPlatform : BaseLinuxPlatform
 {
-	public CentOSx64Platform()
+	public GenericLinuxPlatform()
 		: base(UnrealTargetPlatform.Linux)
 	{
 	}
-
-	public override bool IsSupported { get { return true; } }
 }
-

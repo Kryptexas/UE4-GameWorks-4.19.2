@@ -106,6 +106,7 @@
     <Compile Include="Distiller.cs" />
     <Compile Include="HelpUtils.cs" />
     <Compile Include="HostPlatform.cs" />
+    <Compile Include="LinuxHostPlatform.cs" />
     <Compile Include="LocalBuildEnvironment.cs" />
     <Compile Include="LocalP4Environment.cs" />
     <Compile Include="Log.cs" />

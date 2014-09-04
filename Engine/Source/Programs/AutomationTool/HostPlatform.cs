@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
@@ -27,13 +28,26 @@ namespace AutomationTool
 		/// </summary>
 		internal static void Initialize()
 		{
-			if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
+			PlatformID Platform = Environment.OSVersion.Platform;
+			switch (Platform)
 			{
-				RunningPlatform = new MacHostPlatform();
-			}
-			else
-			{
-				RunningPlatform = new WindowsHostPlatform();
+				case PlatformID.Win32NT:
+					RunningPlatform = new WindowsHostPlatform();
+					break;
+
+				case PlatformID.Unix:
+					if (File.Exists ("/System/Library/CoreServices/SystemVersion.plist"))
+					{
+						RunningPlatform = new MacHostPlatform();
+					} 
+					else 
+					{
+						RunningPlatform = new LinuxHostPlatform();
+					}
+					break;
+
+				default:
+					throw new Exception ("Unhandled runtime platform " + Platform);
 			}
 		}
 
