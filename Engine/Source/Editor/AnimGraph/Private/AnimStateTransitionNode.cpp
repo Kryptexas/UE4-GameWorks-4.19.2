@@ -150,6 +150,10 @@ FText UAnimStateTransitionNode::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("BoundGraph"), (BoundGraph != NULL) ? FText::FromString(BoundGraph->GetName()) : LOCTEXT("Null", "(null)") );
+		// @TODO: FText::Format() is slow, and we could benefit from caching 
+		//        this off like we do for a lot of other nodes (but we have to
+		//        make sure to invalidate the cached string at the appropriate 
+		//        times).
 		return FText::Format(LOCTEXT("TransitioNState", "Trans {BoundGraph}}"), Args);
 	}
 }

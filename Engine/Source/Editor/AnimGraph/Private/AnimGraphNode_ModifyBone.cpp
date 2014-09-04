@@ -30,22 +30,27 @@ FText UAnimGraphNode_ModifyBone::GetTooltipText() const
 
 FText UAnimGraphNode_ModifyBone::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	Args.Add(TEXT("BoneName"), FText::FromName(Node.BoneToModify.BoneName));
+	if ((TitleType == ENodeTitleType::ListView) && (Node.BoneToModify.BoneName == NAME_None))
+	{
+		return GetControllerDescription();
+	}
+	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+		Args.Add(TEXT("BoneName"), FText::FromName(Node.BoneToModify.BoneName));
 
-	if(TitleType == ENodeTitleType::ListView)
-	{
-		if (Node.BoneToModify.BoneName == NAME_None)
+		// FText::Format() is slow, so we cache this to save on performance
+		if (TitleType == ENodeTitleType::ListView)
 		{
-			return FText::Format(LOCTEXT("AnimGraphNode_ModifyBone_MenuTitle", "{ControllerDescription}"), Args);
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_ModifyBone_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args));
 		}
-		return FText::Format(LOCTEXT("AnimGraphNode_ModifyBone_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_ModifyBone_Title", "{ControllerDescription}\nBone: {BoneName}"), Args));
+		}
 	}
-	else
-	{
-		return FText::Format(LOCTEXT("AnimGraphNode_ModifyBone_Title", "{ControllerDescription}\nBone: {BoneName}"), Args);
-	}
+	return CachedNodeTitles[TitleType];
 }
 
 #undef LOCTEXT_NAMESPACE

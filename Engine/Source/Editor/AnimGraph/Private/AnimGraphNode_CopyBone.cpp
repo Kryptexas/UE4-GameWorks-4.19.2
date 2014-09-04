@@ -25,28 +25,27 @@ FText UAnimGraphNode_CopyBone::GetTooltipText() const
 
 FText UAnimGraphNode_CopyBone::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	Args.Add(TEXT("SourceBoneName"), FText::FromName(Node.SourceBone.BoneName));
-	Args.Add(TEXT("TargetBoneName"), FText::FromName(Node.TargetBone.BoneName));
-
-	FText NodeTitle;
-	if (TitleType == ENodeTitleType::ListView)
+	if ((TitleType == ENodeTitleType::ListView) && (Node.TargetBone.BoneName == NAME_None) && (Node.SourceBone.BoneName == NAME_None))
 	{
-		if ((Node.SourceBone.BoneName == NAME_None) && (Node.TargetBone.BoneName == NAME_None))
+		return GetControllerDescription();
+	}
+	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+		Args.Add(TEXT("SourceBoneName"), FText::FromName(Node.SourceBone.BoneName));
+		Args.Add(TEXT("TargetBoneName"), FText::FromName(Node.TargetBone.BoneName));
+
+		if (TitleType == ENodeTitleType::ListView)
 		{
-			NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_CopyBone_MenuTitle", "{ControllerDescription}"), Args);
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_CopyBone_ListTitle", "{ControllerDescription} - Source Bone: {SourceBoneName} - Target Bone: {TargetBoneName}"), Args));
 		}
 		else
 		{
-			NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_CopyBone_ListTitle", "{ControllerDescription} - Source Bone: {SourceBoneName} - Target Bone: {TargetBoneName}"), Args);
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}\nSource Bone: {SourceBoneName}\nTarget Bone: {TargetBoneName}"), Args));
 		}
 	}
-	else
-	{
-		NodeTitle = FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}\nSource Bone: {SourceBoneName}\nTarget Bone: {TargetBoneName}"), Args);
-	}
-	return NodeTitle;
+	return CachedNodeTitles[TitleType];
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -25,9 +25,13 @@ FText UAnimGraphNode_UseCachedPose::GetTooltipText() const
 
 FText UAnimGraphNode_UseCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("CachePoseName"), FText::FromString(NameOfCache));
-	return FText::Format(LOCTEXT("AnimGraphNode_UseCachedPose_Title", "Use cached pose '{CachePoseName}'"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("CachePoseName"), FText::FromString(NameOfCache));
+		CachedNodeTitle = FText::Format(LOCTEXT("AnimGraphNode_UseCachedPose_Title", "Use cached pose '{CachePoseName}'"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FString UAnimGraphNode_UseCachedPose::GetNodeCategory() const

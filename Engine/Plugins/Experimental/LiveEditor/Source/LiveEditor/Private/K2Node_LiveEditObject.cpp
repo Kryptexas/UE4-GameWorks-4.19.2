@@ -184,19 +184,21 @@ void UK2Node_LiveEditObject::AllocateDefaultPins()
 FText UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* BaseClassPin = GetBaseClassPin();
-
-	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
-	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
+	if ((BaseClassPin == nullptr) || (BaseClassPin->DefaultObject == nullptr))
 	{
-		SpawnString = FText::FromString(BaseClassPin->DefaultObject->GetName());
+		return NSLOCTEXT("K2Node", "LiveEditObject_NullTitle", "LiveEditObject NONE");
 	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FNumberFormattingOptions NumberOptions;
+		NumberOptions.UseGrouping = false;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SpawnString"), FText::FromName(BaseClassPin->DefaultObject->GetFName()));
+		Args.Add(TEXT("ID"), FText::AsNumber(GetUniqueID(), &NumberOptions));
 
-	FNumberFormattingOptions NumberOptions;
-	NumberOptions.UseGrouping = false;
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("SpawnString"), SpawnString);
-	Args.Add(TEXT("ID"), FText::AsNumber(GetUniqueID(), &NumberOptions));
-	return FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args );
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_LiveEditObject::PinDefaultValueChanged(UEdGraphPin* Pin) 

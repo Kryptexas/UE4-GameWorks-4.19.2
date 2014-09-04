@@ -31,6 +31,7 @@ void UK2Node_TutorialExcerptComplete::PostLoad()
 		CachedExcerpt = Pin->DefaultValue;
 		Pin->bNotConnectable = true;
 		bExcerptCacheDirty = true;
+		CachedNodeTitle.MarkDirty();
 	}
 }
 
@@ -58,6 +59,7 @@ void UK2Node_TutorialExcerptComplete::PinDefaultValueChanged(UEdGraphPin* Pin)
 			bExcerptCacheDirty = true;
 		}
 		CachedExcerpt = Pin->DefaultValue;
+		CachedNodeTitle.MarkDirty();
 	}
 }
 
@@ -92,16 +94,17 @@ void UK2Node_TutorialExcerptComplete::PostPlacedNewNode()
 
 FText UK2Node_TutorialExcerptComplete::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if(CachedExcerpt.Len() > 0)
-	{
-		FFormatNamedArguments NamedArgs;
-		NamedArgs.Add(TEXT("ExcerptName"), FText::FromString(CachedExcerpt));
-		return FText::Format(LOCTEXT("TutorialExcerptComplete_TitleWithExcerpt", "Tutorial Excerpt '{ExcerptName}' Complete"), NamedArgs);
-	}
-	else
+	if (CachedExcerpt.IsEmpty())
 	{
 		return LOCTEXT("TutorialExcerptComplete_Title", "Tutorial Excerpt Complete");
 	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments NamedArgs;
+		NamedArgs.Add(TEXT("ExcerptName"), FText::FromString(CachedExcerpt));
+		CachedNodeTitle = FText::Format(LOCTEXT("TutorialExcerptComplete_TitleWithExcerpt", "Tutorial Excerpt '{ExcerptName}' Complete"), NamedArgs);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_TutorialExcerptComplete::TutorialExcerptComplete(const FString& Excerpt)
@@ -118,7 +121,7 @@ bool UK2Node_TutorialExcerptComplete::IsExcerptInteractive(const FString& InExer
 		for(TObjectIterator<UK2Node_TutorialExcerptComplete> It; It; ++It)
 		{
 			const FString& CachedExcerpt = It->CachedExcerpt;
-			if(CachedExcerpt.Len() > 0)
+			if (CachedExcerpt.Len() > 0)
 			{
 				AllBlueprintExcerpts.Add(CachedExcerpt);
 			}

@@ -25,22 +25,26 @@ FText UAnimGraphNode_Trail::GetTooltipText() const
 
 FText UAnimGraphNode_Trail::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	Args.Add(TEXT("BoneName"), FText::FromName(Node.TrailBone.BoneName));
+	if ((TitleType == ENodeTitleType::ListView) && (Node.TrailBone.BoneName == NAME_None))
+	{
+		return GetControllerDescription();
+	}
+	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+		Args.Add(TEXT("BoneName"), FText::FromName(Node.TrailBone.BoneName));
 
-	if (TitleType == ENodeTitleType::ListView)
-	{
-		if (Node.TrailBone.BoneName == NAME_None)
+		if (TitleType == ENodeTitleType::ListView)
 		{
-			return FText::Format(LOCTEXT("AnimGraphNode_Trail_MenuTitle", "{ControllerDescription}"), Args);
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_Trail_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args));
 		}
-		return FText::Format(LOCTEXT("AnimGraphNode_Trail_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_Trail_Title", "{ControllerDescription}\nBone: {BoneName}"), Args));
+		}
 	}
-	else
-	{
-		return FText::Format(LOCTEXT("AnimGraphNode_Trail_Title", "{ControllerDescription}\nBone: {BoneName}"), Args);
-	}
+	return CachedNodeTitles[TitleType];
 }
 
 #undef LOCTEXT_NAMESPACE

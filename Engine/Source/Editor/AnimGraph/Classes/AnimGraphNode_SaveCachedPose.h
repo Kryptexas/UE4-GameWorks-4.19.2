@@ -3,6 +3,7 @@
 #pragma once
 #include "AnimGraphNode_Base.h"
 #include "Animation/AnimNode_SaveCachedPose.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_SaveCachedPose.generated.h"
 
 UCLASS(MinimalAPI)
@@ -33,4 +34,8 @@ class UAnimGraphNode_SaveCachedPose : public UAnimGraphNode_Base
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual bool IsSinkNode() const override { return true; }
 	// End of UAnimGraphNode_Base interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

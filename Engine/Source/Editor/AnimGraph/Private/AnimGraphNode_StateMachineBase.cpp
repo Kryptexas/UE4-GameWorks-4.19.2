@@ -59,20 +59,34 @@ FText UAnimGraphNode_StateMachineBase::GetTooltipText() const
 
 FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText FirstLine = (EditorStateMachineGraph != NULL) ? FText::FromString(EditorStateMachineGraph->GetName()) : LOCTEXT("ErrorNoGraph", "Error: No Graph");
 	if ((TitleType == ENodeTitleType::ListView) && (EditorStateMachineGraph == nullptr))
 	{
 		return LOCTEXT("AddNewStateMachine", "Add New State Machine...");
 	}
-	else if(TitleType == ENodeTitleType::FullTitle)
+	else if (EditorStateMachineGraph == nullptr)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Title"), FirstLine);
-
-		return FText::Format(LOCTEXT("StateMachineFullTitle", "{Title}\nState Machine"), Args);
+		if (TitleType == ENodeTitleType::FullTitle)
+		{
+			return LOCTEXT("NullStateMachineFullTitle", "Error: No Graph\nState Machine");
+		}
+		else
+		{
+			return LOCTEXT("ErrorNoGraph", "Error: No Graph");
+		}
+	}
+	else if (TitleType == ENodeTitleType::FullTitle)
+	{
+		if (CachedFullTitle.IsOutOfDate())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Title"), FText::FromName(EditorStateMachineGraph->GetFName()));
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedFullTitle = FText::Format(LOCTEXT("StateMachineFullTitle", "{Title}\nState Machine"), Args);
+		}
+		return CachedFullTitle;
 	}
 
-	return FirstLine;
+	return FText::FromName(EditorStateMachineGraph->GetFName());
 }
 
 FString UAnimGraphNode_StateMachineBase::GetNodeCategory() const

@@ -28,19 +28,33 @@ FText UAnimGraphNode_Slot::GetTooltipText() const
 
 FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText SlotName = (Node.SlotName != NAME_None) ? FText::FromName(Node.SlotName) : LOCTEXT("NoSlotName", "(No slot name)");
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("SlotName"), SlotName);
-
-	if (TitleType == ENodeTitleType::ListView)
+	if (Node.SlotName != NAME_None)
 	{
-		return FText::Format(LOCTEXT("SlotNodeListTitle", "Slot '{SlotName}'"), Args);
+		if (TitleType == ENodeTitleType::ListView)
+		{
+			return LOCTEXT("SlotNodeListTitle_NoName", "Slot '(No slot name)'");
+		}
+		else
+		{
+			return LOCTEXT("SlotNodeTitle_NoName", "(No slot name)\nSlot");
+		}
 	}
-	else
+	else if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
-		return FText::Format(LOCTEXT("SlotNodeTitle", "{SlotName}\nSlot"), Args);
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SlotName"), FText::FromName(Node.SlotName));
+
+		// FText::Format() is slow, so we cache this to save on performance
+		if (TitleType == ENodeTitleType::ListView)
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SlotNodeListTitle", "Slot '{SlotName}'"), Args));
+		}
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SlotNodeTitle", "{SlotName}\nSlot"), Args));
+		}
 	}
+	return CachedNodeTitles[TitleType];
 }
 
 FString UAnimGraphNode_Slot::GetNodeCategory() const

@@ -77,19 +77,34 @@ FText UAnimGraphNode_SequencePlayer::GetTooltipText() const
 
 FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const bool bAdditive = ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive());
-	FText Title = GetTitleGivenAssetInfo((Node.Sequence != NULL) ? FText::FromString(Node.Sequence->GetName()) : LOCTEXT("None", "(None)"), bAdditive);
-
-	if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+	if (Node.Sequence == nullptr)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Title"), Title);
-		Args.Add(TEXT("SyncGroup"), FText::FromName(SyncGroup.GroupName));
-
-		Title = FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {SyncGroup}"), Args);
+		return LOCTEXT("SequenceNullTitle", "Play (None)");
 	}
+	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	{
+		if (!CachedNodeTitles.IsTitleCached(ENodeTitleType::ListView))
+		{
+			const bool bAdditive = Node.Sequence->IsValidAdditive();
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitles.SetCachedTitle(ENodeTitleType::ListView, GetTitleGivenAssetInfo(FText::FromName(Node.Sequence->GetFName()), bAdditive));
+		}
 
-	return Title;
+		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Title"), CachedNodeTitles[ENodeTitleType::ListView]);
+			Args.Add(TEXT("SyncGroup"), FText::FromName(SyncGroup.GroupName));
+
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {SyncGroup}"), Args));
+		}
+		else
+		{
+			return CachedNodeTitles[ENodeTitleType::ListView];
+		}
+	}
+	return CachedNodeTitles[TitleType];
 }
 
 FText UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(const FText& AssetName, bool bKnownToBeAdditive)

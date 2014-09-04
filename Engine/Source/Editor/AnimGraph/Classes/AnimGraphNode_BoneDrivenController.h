@@ -4,6 +4,7 @@
 
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "Animation/BoneControllers/AnimNode_BoneDrivenController.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_BoneDrivenController.generated.h"
 
 UCLASS(MinimalAPI)
@@ -31,4 +32,8 @@ protected:
 	// UAnimGraphNode_SkeletalControlBase interface
 	virtual FText GetControllerDescription() const override;
 	//////////////////////////////////////////////////////////////////////////
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTitleTextTable CachedNodeTitles;
 };

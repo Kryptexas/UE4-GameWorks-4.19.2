@@ -55,12 +55,13 @@ FText UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType
 	{
 		return LOCTEXT("NewSaveCachedPose", "New Save cached pose...");
 	}
-	else
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("NodeTitle"), FText::FromString(CacheName));
-		return FText::Format(LOCTEXT("AnimGraphNode_SaveCachedPose_Title", "Save cached pose '{NodeTitle}'"), Args);
+		CachedNodeTitle = FText::Format(LOCTEXT("AnimGraphNode_SaveCachedPose_Title", "Save cached pose '{NodeTitle}'"), Args);
 	}
+	return CachedNodeTitle;
 }
 
 FString UAnimGraphNode_SaveCachedPose::GetNodeCategory() const

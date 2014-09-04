@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintGraphDefinitions.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_TutorialExcerptComplete.generated.h"
 
 
@@ -58,4 +59,7 @@ private:
 
 	/** Set of all excerpts "excerpt complete" nodes currently use */
 	static TSet<FString> AllBlueprintExcerpts;
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
