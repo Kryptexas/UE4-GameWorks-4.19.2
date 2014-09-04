@@ -16,6 +16,16 @@ public:
 	FMacErrorReport()
 	{
 	}
+	
+	/**
+	 * Load helper modules
+	 */
+	static void Init();
+	
+	/**
+	 * Unload helper modules
+	 */
+	static void ShutDown();
 
 	/**
 	 * Discover all files in the crash report directory
@@ -24,13 +34,10 @@ public:
 	explicit FMacErrorReport(const FString& Directory);
 
 	/**
-	 * Do nothing - shouldn't be called on Mac
-	 * @return Dummy text
+	 * Parse the callstack from the Apple-style crash report log
+	 * @return UE4 crash diagnosis text
 	 */
-	FText DiagnoseReport() const	
-	{
-		return FText::FromString("No local diagnosis on Mac");
-	}
+	FText DiagnoseReport() const;
 
 	/**
 	 * Get the name of the crashed app from the report (hides implementation in FGenericErrorReport)

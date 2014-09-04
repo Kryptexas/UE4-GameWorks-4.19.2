@@ -1166,106 +1166,6 @@ void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 	sigaction(SIGABRT, &Action, NULL);
 }
 
-void FMacCrashContext::GenerateReport(char const* DiagnosticsPath) const
-{
-	int ReportFile = open(DiagnosticsPath, O_CREAT|O_WRONLY, 0766);
-	if (ReportFile != -1)
-	{
-		char Line[PATH_MAX] = {};
-		
-		WriteLine(ReportFile, "Generating report for minidump");
-		WriteLine(ReportFile);
-		
-		FCStringAnsi::Strncpy(Line, "Application version 4.0.", PATH_MAX);
-		FCStringAnsi::Strcat(Line, PATH_MAX, ItoANSI(ENGINE_VERSION_HIWORD, 10));
-		FCStringAnsi::Strcat(Line, PATH_MAX, ".");
-		FCStringAnsi::Strcat(Line, PATH_MAX, ItoANSI(ENGINE_VERSION_LOWORD, 10));
-		WriteLine(ReportFile, Line);
-		
-		FCStringAnsi::Strncpy(Line, " ... built from changelist ", PATH_MAX);
-		FCStringAnsi::Strcat(Line, PATH_MAX, ItoANSI(ENGINE_VERSION, 10));
-		WriteLine(ReportFile, Line);
-		WriteLine(ReportFile);
-		
-		FCStringAnsi::Strncpy(Line, "OS version Mac OS X ", PATH_MAX);
-		FCStringAnsi::Strcat(Line, PATH_MAX, GMacAppInfo.OSVersionUTF8);
-		FCStringAnsi::Strcat(Line, PATH_MAX, " (network name: ");
-		FCStringAnsi::Strcat(Line, PATH_MAX, GMacAppInfo.MachineName);
-		FCStringAnsi::Strcat(Line, PATH_MAX, ")");
-		WriteLine(ReportFile, Line);
-		
-		FCStringAnsi::Strncpy(Line, "Running ", PATH_MAX);
-		FCStringAnsi::Strcat(Line, PATH_MAX, ItoANSI(FPlatformMisc::NumberOfCores(), 10));
-		FCStringAnsi::Strcat(Line, PATH_MAX, " ");
-		FCStringAnsi::Strcat(Line, PATH_MAX, GMacAppInfo.MachineCPUString);
-		FCStringAnsi::Strcat(Line, PATH_MAX, "processors (");
-		FCStringAnsi::Strcat(Line, PATH_MAX, ItoANSI(FPlatformMisc::NumberOfCoresIncludingHyperthreads(), 10));
-		FCStringAnsi::Strcat(Line, PATH_MAX, " logical cores)");
-		WriteLine(ReportFile, Line);
-
-		FCStringAnsi::Strncpy(Line, "Exception was \"", PATH_MAX);
-		FCStringAnsi::Strcat(Line, PATH_MAX, SignalDescription);
-		FCStringAnsi::Strcat(Line, PATH_MAX, "\"");
-		WriteLine(ReportFile, Line);
-		WriteLine(ReportFile);
-		
-		WriteLine(ReportFile, "<SOURCE START>");
-		WriteLine(ReportFile, "<SOURCE END>");
-		WriteLine(ReportFile);
-		
-		WriteLine(ReportFile, "<CALLSTACK START>");
-		WriteLine(ReportFile, MinidumpCallstackInfo);
-		WriteLine(ReportFile, "<CALLSTACK END>");
-		WriteLine(ReportFile);
-		
-		// Technically _dyld_image_count & _dyld_get_image_name aren't async handler safe
-		// however, I imagine they actually are, since they merely access an internal list
-		// which isn't even thread safe...
-		uint32 ModuleCount = _dyld_image_count();
-		FCStringAnsi::Strncpy(Line, ItoANSI(ModuleCount, 10), PATH_MAX);
-		FCStringAnsi::Strcat(Line, PATH_MAX, " loaded modules");
-		WriteLine(ReportFile, Line);
-		WriteLine(ReportFile);
-		
-		WriteLine(ReportFile, "<MODULES START>");
-		for(uint32 Index = 0; Index < ModuleCount; Index++)
-		{
-			char const* ModulePath = _dyld_get_image_name(Index);
-			uint32 Version = 0;
-			struct mach_header_64* Header = (struct mach_header_64*)_dyld_get_image_header(Index);
-			struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header_64) );
-			if( Header->magic == MH_MAGIC_64 )
-			{
-				for( int32 i = 0; i < Header->ncmds; i++ )
-				{
-					if( CurrentCommand->cmd == LC_LOAD_DYLIB )
-					{
-						struct dylib_command *DylibCommand = (struct dylib_command *) CurrentCommand;
-						Version = DylibCommand->dylib.current_version;
-						Version = ((Version & 0xff) + ((Version >> 8) & 0xff) * 100 + ((Version >> 16) & 0xffff) * 10000);
-						break;
-					}
-					
-					CurrentCommand = (struct load_command *)( (char *)CurrentCommand + CurrentCommand->cmdsize );
-				}
-			}
-			
-			// Add version information (very useful!)
-			FCStringAnsi::Strncpy(Line, ModulePath, PATH_MAX);
-			FCStringAnsi::Strcat(Line, PATH_MAX, " (");
-			FCStringAnsi::Strcat(Line, PATH_MAX, ItoANSI(Version, 10));
-			FCStringAnsi::Strcat(Line, PATH_MAX, ")");
-			WriteLine(ReportFile, Line);
-		}
-		WriteLine(ReportFile, "<MODULES END>");
-		WriteLine(ReportFile);
-		
-		WriteLine(ReportFile, "Report end!");
-		
-		close(ReportFile);
-	}
-}
-
 void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 {
 	int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
@@ -1457,16 +1357,258 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 	}
 }
 
-void FMacCrashContext::GenerateMinidump(char const* MinidumpCallstackInfo, char const* Path) const
+void FMacCrashContext::GenerateMinidump(char const* Path) const
 {
 	int ReportFile = open(Path, O_CREAT|O_WRONLY, 0766);
 	if (ReportFile != -1)
 	{
+		TCHAR Line[PATH_MAX] = {};
+		
 		// write BOM
 		static uint16 ByteOrderMarker = 0xFEFF;
 		write(ReportFile, &ByteOrderMarker, sizeof(ByteOrderMarker));
 		
-		WriteLine(ReportFile, ANSI_TO_TCHAR(MinidumpCallstackInfo));
+		WriteUTF16String(ReportFile, TEXT("Process:\t"));
+		WriteUTF16String(ReportFile, *GMacAppInfo.AppName);
+		WriteUTF16String(ReportFile, TEXT(" ["));
+		WriteUTF16String(ReportFile, ItoTCHAR(FPlatformProcess::GetCurrentProcessId(), 10));
+		WriteLine(ReportFile, TEXT("]"));
+		
+		WriteUTF16String(ReportFile, TEXT("Path:\t"));
+		WriteLine(ReportFile, *GMacAppInfo.AppPath);
+		
+		WriteUTF16String(ReportFile, TEXT("Identifier:\t"));
+		WriteLine(ReportFile, *GMacAppInfo.AppName);
+		
+		WriteUTF16String(ReportFile, TEXT("Version:\t"));
+		WriteUTF16String(ReportFile, ENGINE_VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) ENGINE_VERSION_TEXT(".") ENGINE_VERSION_STRINGIFY(ENGINE_MINOR_VERSION) ENGINE_VERSION_TEXT(".") ENGINE_VERSION_STRINGIFY(ENGINE_PATCH_VERSION));
+		WriteUTF16String(ReportFile, TEXT(" ("));
+		WriteUTF16String(ReportFile, ENGINE_VERSION_STRING);
+		WriteLine(ReportFile, TEXT(")"));
+		
+		WriteLine(ReportFile, TEXT("Code Type:\tX86-64 (Native)"));
+		
+		WriteUTF16String(ReportFile, TEXT("Parent Process:\t"));
+		WriteUTF16String(ReportFile, *GMacAppInfo.ParentProcess);
+		WriteUTF16String(ReportFile, TEXT(" ["));
+		WriteUTF16String(ReportFile, ItoTCHAR(getppid(), 10));
+		WriteLine(ReportFile, TEXT("]"));
+		
+		WriteUTF16String(ReportFile, TEXT("Responsible:\t"));
+		WriteUTF16String(ReportFile, *GMacAppInfo.ParentProcess);
+		WriteUTF16String(ReportFile, TEXT(" ["));
+		WriteUTF16String(ReportFile, ItoTCHAR(getppid(), 10));
+		WriteLine(ReportFile, TEXT("]"));
+		
+		WriteUTF16String(ReportFile, TEXT("User ID:\t"));
+		WriteLine(ReportFile, ItoTCHAR(getuid(), 10));
+		
+		WriteLine(ReportFile, TEXT(""));
+		
+		WriteUTF16String(ReportFile, TEXT("Date/Time:\t"));
+		
+		time_t Now;
+		time(&Now);
+		struct tm LocalTime;
+		localtime_r(&Now, &LocalTime);
+		wcsftime(Line, PATH_MAX, TEXT("%Y-%m-%d %H:%M:%S %z"), &LocalTime);
+		WriteLine(ReportFile, Line);
+		
+		WriteUTF16String(ReportFile, TEXT("OS Version:\tMac OS X "));
+		WriteUTF16String(ReportFile, *GMacAppInfo.OSVersion);
+		WriteUTF16String(ReportFile, TEXT(" ("));
+		WriteUTF16String(ReportFile, *GMacAppInfo.OSBuild);
+		WriteLine(ReportFile, TEXT(")"));
+		
+		WriteLine(ReportFile, TEXT("Report Version:\t11"));
+		
+		WriteUTF16String(ReportFile, TEXT("Anonymous UUID:\t"));
+		WriteUTF16String(ReportFile, *GMacAppInfo.MachineUUID);
+										  
+		WriteLine(ReportFile, TEXT(""));
+		WriteLine(ReportFile, TEXT(""));
+		
+		WriteLine(ReportFile, TEXT("Crashed Thread:\t0"));
+		WriteLine(ReportFile, TEXT(""));
+		
+		WriteUTF16String(ReportFile, TEXT("Exception Type:\t"));
+		WriteUTF16String(ReportFile, TEXT(" ("));
+		WriteUTF16String(ReportFile, ItoTCHAR(Info->si_errno, 10));
+		WriteUTF16String(ReportFile, TEXT(", "));
+		WriteUTF16String(ReportFile, ItoTCHAR(Signal, 10));
+		WriteLine(ReportFile, TEXT(")"));
+		
+		WriteUTF16String(ReportFile, TEXT("Exception Codes:\t"));
+		WriteUTF16String(ReportFile, TEXT(" 0x"));
+		WriteUTF16String(ReportFile, ItoTCHAR(Info->si_code, 16));
+		WriteUTF16String(ReportFile, TEXT(", 0x"));
+		WriteLine(ReportFile, ItoTCHAR(Info->si_band, 16));
+		
+		WriteLine(ReportFile, TEXT("Application Specific Information:"));
+		for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(SignalDescription) + 1); i++)
+		{
+			Line[i] = SignalDescription[i];
+		}
+		WriteLine(ReportFile, Line);
+		
+		WriteLine(ReportFile, TEXT(""));
+		WriteLine(ReportFile, TEXT("Thread 0:"));
+		
+		static const int MAX_DEPTH = 100;
+		static uint64 StackTrace[MAX_DEPTH];
+		FMemory::MemZero( StackTrace );
+		FPlatformStackWalk::CaptureStackBackTrace( StackTrace, MAX_DEPTH, Context );
+		
+		// Skip the first two entries as they are inside the stack walking code.
+		Dl_info Info;
+		static const int32 IgnoreCount = 6;
+		int32 CurrentDepth = IgnoreCount;
+		// Allow the first entry to be NULL as the crash could have been caused by a call to a NULL function pointer,
+		// which would mean the top of the callstack is NULL.
+		while( StackTrace[CurrentDepth] || ( CurrentDepth == IgnoreCount ) )
+		{
+			WriteUTF16String(ReportFile, ItoTCHAR(CurrentDepth - IgnoreCount, 10));
+			WriteUTF16String(ReportFile, TEXT("\t"));
+			
+			dladdr((void*)StackTrace[CurrentDepth], &Info);
+			if(Info.dli_fname && FCStringAnsi::Strrchr(Info.dli_fname, '/'))
+			{
+				char const* Name = FCStringAnsi::Strrchr(Info.dli_fname, '/');
+				for(uint32 i = 1; i < PATH_MAX && (i < FCStringAnsi::Strlen(Name) + 1); i++)
+				{
+					Line[i-1] = Name[i];
+				}
+				WriteUTF16String(ReportFile, Line);
+			}
+			else
+			{
+				WriteUTF16String(ReportFile, TEXT("Unknown Module"));
+			}
+			WriteUTF16String(ReportFile, TEXT("\t0x"));
+			WriteUTF16String(ReportFile, ItoTCHAR(StackTrace[CurrentDepth], 16));
+			WriteUTF16String(ReportFile, TEXT(" "));
+			if(Info.dli_sname && FCStringAnsi::Strlen(Info.dli_sname))
+			{
+				for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(Info.dli_sname) + 1); i++)
+				{
+					Line[i] = Info.dli_sname[i];
+				}
+				WriteUTF16String(ReportFile, Line);
+			}
+			else
+			{
+				WriteUTF16String(ReportFile, TEXT("Unknown Function"));
+			}
+			WriteUTF16String(ReportFile, TEXT(" + "));
+			WriteLine(ReportFile, ItoTCHAR(StackTrace[CurrentDepth] - (uint64)Info.dli_saddr, 10));
+			
+			CurrentDepth++;
+		}
+		
+		WriteLine(ReportFile, TEXT(""));
+		
+		WriteLine(ReportFile, TEXT("Binary Images:"));
+		uint32 ModuleCount = _dyld_image_count();
+		for(uint32 Index = 0; Index < ModuleCount; Index++)
+		{
+			char const* ModulePath = _dyld_get_image_name(Index);
+			uint32 CompatVersion = 0;
+			uint32 CurrentVersion = 0;
+			uint8 UUID[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+			struct mach_header_64* Header = (struct mach_header_64*)_dyld_get_image_header(Index);
+			struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header_64) );
+			if( Header->magic == MH_MAGIC_64 )
+			{
+				uint8 Found = 0;
+				for( int32 i = 0; i < Header->ncmds && Found < 2; i++ )
+				{
+					if( CurrentCommand->cmd == LC_LOAD_DYLIB )
+					{
+						struct dylib_command *DylibCommand = (struct dylib_command *) CurrentCommand;
+						CompatVersion = DylibCommand->dylib.compatibility_version;
+						CurrentVersion = DylibCommand->dylib.current_version;
+						Found++;
+					}
+					else if ( CurrentCommand->cmd == LC_UUID )
+					{
+						struct uuid_command* UUIDCommand = (struct uuid_command*)CurrentCommand;
+						FMemory::Memcpy(UUID, UUIDCommand->uuid, 16);
+						Found++;
+					}
+					
+					CurrentCommand = (struct load_command *)( (char *)CurrentCommand + CurrentCommand->cmdsize );
+				}
+			}
+			
+			WriteUTF16String(ReportFile, TEXT("0x"));
+			WriteUTF16String(ReportFile, ItoTCHAR((uint64)Header, 16));
+			WriteUTF16String(ReportFile, TEXT(" -\t0x"));
+			WriteUTF16String(ReportFile, ItoTCHAR((uint64)Header + sizeof(struct mach_header_64) + Header->sizeofcmds, 16));
+			WriteUTF16String(ReportFile, TEXT(" "));
+			
+			char const* Name = FCStringAnsi::Strrchr(ModulePath, '/');
+			for(uint32 i = 1; i < PATH_MAX && (i < FCStringAnsi::Strlen(Name) + 1); i++)
+			{
+				Line[i-1] = Name[i];
+			}
+			WriteUTF16String(ReportFile, Line);
+			WriteUTF16String(ReportFile, TEXT(" ("));
+			
+			WriteUTF16String(ReportFile, ItoTCHAR(((CompatVersion >> 16) & 0xffff), 10));
+			WriteUTF16String(ReportFile, TEXT("."));
+			WriteUTF16String(ReportFile, ItoTCHAR(((CompatVersion >> 8) & 0xff), 10));
+			WriteUTF16String(ReportFile, TEXT("."));
+			WriteUTF16String(ReportFile, ItoTCHAR((CompatVersion & 0xff), 10));
+			WriteUTF16String(ReportFile, TEXT(" - "));
+			WriteUTF16String(ReportFile, ItoTCHAR(((CurrentVersion >> 16) & 0xffff), 10));
+			WriteUTF16String(ReportFile, TEXT("."));
+			WriteUTF16String(ReportFile, ItoTCHAR(((CurrentVersion >> 8) & 0xff), 10));
+			WriteUTF16String(ReportFile, TEXT("."));
+			WriteUTF16String(ReportFile, ItoTCHAR((CurrentVersion & 0xff), 10));
+			WriteUTF16String(ReportFile, TEXT(") <"));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[0], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[1], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[2], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[3], 16, 2));
+			WriteUTF16String(ReportFile, TEXT("-"));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[4], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[5], 16, 2));
+			WriteUTF16String(ReportFile, TEXT("-"));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[6], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[7], 16, 2));
+			WriteUTF16String(ReportFile, TEXT("-"));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[8], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[9], 16, 2));
+			WriteUTF16String(ReportFile, TEXT("-"));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[10], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[11], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[12], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[13], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[14], 16, 2));
+			WriteUTF16String(ReportFile, ItoTCHAR(UUID[15], 16, 2));
+			WriteUTF16String(ReportFile, TEXT("> "));
+			
+			for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(ModulePath) + 1); i++)
+			{
+				Line[i] = ModulePath[i];
+			}
+			WriteLine(ReportFile, Line);
+		}
+		
+		WriteLine(ReportFile, TEXT(""));
+		
+		WriteLine(ReportFile, TEXT("System Profile:"));
+		WriteUTF16String(ReportFile, TEXT("Model: "));
+		WriteUTF16String(ReportFile, *GMacAppInfo.MachineModel);
+		WriteUTF16String(ReportFile, TEXT(", "));
+		for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(GMacAppInfo.MachineCPUString) + 1); i++)
+		{
+			Line[i] = GMacAppInfo.MachineCPUString[i];
+		}
+		WriteLine(ReportFile, Line);
+		
+		WriteUTF16String(ReportFile, TEXT("Graphics: "));
+		WriteLine(ReportFile, *GMacAppInfo.PrimaryGPU);
 		
 		close(ReportFile);
 	}
@@ -1505,20 +1647,15 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 			close(ReportFile);
 		}
 		
-		// generate "minidump"
-		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
-		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/diagnostics.txt");
-		GenerateReport(FilePath);
-		
 		// generate "WER"
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/wermeta.xml");
 		GenerateWindowsErrorReport(FilePath);
 		
-		// generate "minidump" (just >1 byte)
+		// generate "minidump" (Apple crash log format)
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/minidump.dmp");
-		GenerateMinidump(MinidumpCallstackInfo, FilePath);
+		GenerateMinidump(FilePath);
 		
 		// generate "info.txt" custom data for our server
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);

@@ -39,10 +39,12 @@ extern "C"
 	void CSRelease(CSTypeRef CS);
 	void CSShow(CSTypeRef CS);
 	
-	CSSymbolicatorRef CSSymbolicatorCreateWithTask(task_t Task);
+	CSSymbolicatorRef CSSymbolicatorCreateWithPid(pid_t pid);
+	CSSymbolicatorRef CSSymbolicatorCreateWithPathAndArchitecture(const char* path, cpu_type_t type);
 	
 	CSSourceInfoRef CSSymbolicatorGetSourceInfoWithAddressAtTime(CSSymbolicatorRef Symbolicator, vm_address_t Address, uint64_t Time);
 	CSSymbolRef CSSymbolicatorGetSymbolWithMangledNameFromSymbolOwnerWithNameAtTime(CSSymbolicatorRef Symbolicator, const char* Symbol, const char* Name, uint64_t Time);
+	CSSymbolOwnerRef CSSymbolicatorGetSymbolOwnerWithUUIDAtTime(CSSymbolicatorRef Symbolicator, CFUUIDRef UUID, uint64_t Time);
 	
 	const char* CSSymbolGetName(CSSymbolRef Symbol);
 	CSRange CSSymbolGetRange(CSSymbolRef Symbol);
@@ -61,7 +63,8 @@ bool FApplePlatformSymbolication::SymbolInfoForAddress(uint64 ProgramCounter, FP
 {
 #if PLATFORM_MAC
 	bool bOK = false;
-	CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithTask(mach_task_self());
+	
+	CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPid(FPlatformProcess::GetCurrentProcessId());
 	if(!CSIsNull(Symbolicator))
 	{
 		CSSourceInfoRef Symbol = CSSymbolicatorGetSourceInfoWithAddressAtTime(Symbolicator, (vm_address_t)ProgramCounter, kCSNow);
@@ -81,15 +84,12 @@ bool FApplePlatformSymbolication::SymbolInfoForAddress(uint64 ProgramCounter, FP
 				FCStringAnsi::Strcpy(Info.ModuleName, DylibName);
 				
 				bOK = Info.LineNumber != 0;
-				
-				CSRelease(Owner);
 			}
-			
-			CSRelease(Symbol);
 		}
 		
 		CSRelease(Symbolicator);
 	}
+	
 	return bOK;
 #else
 	return false;
@@ -100,7 +100,8 @@ bool FApplePlatformSymbolication::SymbolInfoForFunctionFromModule(ANSICHAR const
 {
 #if PLATFORM_MAC
 	bool bOK = false;
-	CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithTask(mach_task_self());
+	
+	CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPid(FPlatformProcess::GetCurrentProcessId());
 	if(!CSIsNull(Symbolicator))
 	{
 		CSSymbolRef Symbol = CSSymbolicatorGetSymbolWithMangledNameFromSymbolOwnerWithNameAtTime(Symbolicator, MangledName, ModuleName, kCSNow);
@@ -110,12 +111,75 @@ bool FApplePlatformSymbolication::SymbolInfoForFunctionFromModule(ANSICHAR const
 			CSRange CodeRange = CSSymbolGetRange(Symbol);
 		
 			bOK = SymbolInfoForAddress(CodeRange.Location, Info);
-	
-			CSRelease(Symbol);
 		}
 		
 		CSRelease(Symbolicator);
 	}
+	
+	return bOK;
+#else
+	return false;
+#endif
+}
+
+bool FApplePlatformSymbolication::SymbolInfoForStrippedSymbol(uint64 ProgramCounter, ANSICHAR const* ModulePath, ANSICHAR const* ModuleUUID, FProgramCounterSymbolInfo& Info)
+{
+#if PLATFORM_MAC
+	bool bOK = false;
+	
+	if(IFileManager::Get().FileSize(UTF8_TO_TCHAR(ModulePath)) > 0)
+	{
+		CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPathAndArchitecture(ModulePath, CPU_TYPE_X86_64);
+		if(!CSIsNull(Symbolicator))
+		{
+			FString ModuleID(ModuleUUID);
+			CFUUIDRef UUID = CFUUIDCreateFromString(nullptr, (CFStringRef)ModuleID.GetNSString());
+			check(UUID);
+			
+			CSSymbolOwnerRef SymbolOwner = CSSymbolicatorGetSymbolOwnerWithUUIDAtTime(Symbolicator, UUID, kCSNow);
+			if(!CSIsNull(SymbolOwner))
+			{
+				CSSourceInfoRef Symbol = CSSymbolicatorGetSourceInfoWithAddressAtTime(Symbolicator, (vm_address_t)ProgramCounter, kCSNow);
+				
+				if(!CSIsNull(Symbol))
+				{
+					Info.LineNumber = CSSourceInfoGetLineNumber(Symbol);
+					
+					CSRange CodeRange = CSSourceInfoGetRange(Symbol);
+					Info.SymbolDisplacement = (ProgramCounter - CodeRange.Location);
+					
+					ANSICHAR const* FileName = CSSourceInfoGetPath(Symbol);
+					if(FileName)
+					{
+						FCStringAnsi::Sprintf(Info.Filename, FileName);
+					}
+					
+					CSSymbolRef SymbolData = CSSourceInfoGetSymbol(Symbol);
+					if(!CSIsNull(SymbolData))
+					{
+						ANSICHAR const* FunctionName = CSSymbolGetName(SymbolData);
+						if(FunctionName)
+						{
+							FCStringAnsi::Sprintf(Info.FunctionName, FunctionName);
+						}
+					}
+					
+					CSSymbolOwnerRef Owner = CSSourceInfoGetSymbolOwner(Symbol);
+					if(!CSIsNull(Owner))
+					{
+						ANSICHAR const* DylibName = CSSymbolOwnerGetName(Owner);
+						FCStringAnsi::Strcpy(Info.ModuleName, DylibName);
+						
+						bOK = Info.LineNumber != 0;
+					}
+				}
+			}
+			
+			CFRelease(UUID);
+			CSRelease(Symbolicator);
+		}
+	}
+	
 	return bOK;
 #else
 	return false;

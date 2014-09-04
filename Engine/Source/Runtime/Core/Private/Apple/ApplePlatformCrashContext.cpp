@@ -161,15 +161,16 @@ void FApplePlatformCrashContext::WriteLine(int ReportFile, const TCHAR* Line)
 	WriteUTF16String(ReportFile, WindowsTerminator, 2);
 }
 
-ANSICHAR* FApplePlatformCrashContext::ItoANSI(uint64 Val, uint64 Base)
+ANSICHAR* FApplePlatformCrashContext::ItoANSI(uint64 Val, uint64 Base, uint32 Len)
 {
 	static ANSICHAR InternalBuffer[64] = {0};
 	
 	uint64 i = 62;
+	int32 pad = Len;
 	
 	if(Val)
 	{
-		for(; Val && i ; --i, Val /= Base)
+		for(; Val && i ; --i, Val /= Base, --pad)
 		{
 			InternalBuffer[i] = "0123456789abcdef"[Val % Base];
 		}
@@ -177,20 +178,28 @@ ANSICHAR* FApplePlatformCrashContext::ItoANSI(uint64 Val, uint64 Base)
 	else
 	{
 		InternalBuffer[i--] = '0';
+		--pad;
+	}
+	
+	while(pad > 0)
+	{
+		InternalBuffer[i--] = '0';
+		--pad;
 	}
 	
 	return &InternalBuffer[i+1];
 }
 
-TCHAR* FApplePlatformCrashContext::ItoTCHAR(uint64 Val, uint64 Base)
+TCHAR* FApplePlatformCrashContext::ItoTCHAR(uint64 Val, uint64 Base, uint32 Len)
 {
 	static TCHAR InternalBuffer[64] = {0};
 	
 	uint64 i = 62;
+	int32 pad = Len;
 	
 	if(Val)
 	{
-		for(; Val && i ; --i, Val /= Base)
+		for(; Val && i ; --i, Val /= Base, --pad)
 		{
 			InternalBuffer[i] = TEXT("0123456789abcdef")[Val % Base];
 		}
@@ -198,6 +207,13 @@ TCHAR* FApplePlatformCrashContext::ItoTCHAR(uint64 Val, uint64 Base)
 	else
 	{
 		InternalBuffer[i--] = TEXT('0');
+		--pad;
+	}
+	
+	while(pad > 0)
+	{
+		InternalBuffer[i--] = '0';
+		--pad;
 	}
 	
 	return &InternalBuffer[i+1];

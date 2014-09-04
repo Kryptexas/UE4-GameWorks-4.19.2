@@ -14,12 +14,21 @@
 // Internal helper functions not exposed to public
 int32 GetModuleImageSize( const struct mach_header* Header )
 {
+#if PLATFORM_64BITS
+	struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header_64) );
+	int32 ModuleSize = 0;
+	
+	// Check header
+	if( Header->magic != MH_MAGIC_64 )
+		return 0;
+#else
 	struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header) );
 	int32 ModuleSize = 0;
 	
 	// Check header
 	if( Header->magic != MH_MAGIC )
 		return 0;
+#endif
 	
 	for( int32 i = 0; i < Header->ncmds; i++ )
 	{
@@ -37,11 +46,21 @@ int32 GetModuleImageSize( const struct mach_header* Header )
 
 int32 GetModuleTimeStamp( const struct mach_header* Header )
 {
+#if PLATFORM_64BITS
+	struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header_64) );
+	int32 ModuleSize = 0;
+	
+	// Check header
+	if( Header->magic != MH_MAGIC_64 )
+		return 0;
+#else
 	struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header) );
+	int32 ModuleSize = 0;
 	
 	// Check header
 	if( Header->magic != MH_MAGIC )
 		return 0;
+#endif
 	
 	for( int32 i = 0; i < Header->ncmds; i++ )
 	{
@@ -57,6 +76,75 @@ int32 GetModuleTimeStamp( const struct mach_header* Header )
 	return 0;
 }
 
+static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo&  SymbolInfo )
+{
+	Dl_info DylibInfo;
+	int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
+	if (Result == 0)
+	{
+		return;
+	}
+
+#if PLATFORM_MAC // On the Mac the crash report client can resymbolise
+	if (DylibInfo.dli_sname)
+	{
+		// Mangled function name
+		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
+	}
+	else
+	{
+		// Unknown!
+		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
+	}
+#else // But on iOS the best we can do is demangle
+	int32 Status = 0;
+	ANSICHAR* DemangledName = NULL;
+	
+	// Increased the size of the demangle destination to reduce the chances that abi::__cxa_demangle will allocate
+	// this causes the app to hang as malloc isn't signal handler safe. Ideally we wouldn't call this function in a handler.
+	size_t DemangledNameLen = 65536;
+	ANSICHAR DemangledNameBuffer[65536]= {0};
+	DemangledName = abi::__cxa_demangle(DylibInfo.dli_sname, DemangledNameBuffer, &DemangledNameLen, &Status);
+	
+	if (DemangledName)
+	{
+		// C++ function
+		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DemangledName);
+	}
+	else if (DylibInfo.dli_sname && strchr(DylibInfo.dli_sname, ']'))
+	{
+		// ObjC function
+		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
+	}
+	else if(DylibInfo.dli_sname)
+	{
+		// C function
+		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
+	}
+	else
+	{
+		// Unknown!
+		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
+	}
+#endif
+	
+	// No line number found.
+	FCStringAnsi::Strcat(SymbolInfo.Filename, "Unknown");
+	SymbolInfo.LineNumber = 0;
+	
+	// Write out Module information.
+	ANSICHAR* DylibPath = (ANSICHAR*)DylibInfo.dli_fname;
+	ANSICHAR* DylibName = FCStringAnsi::Strrchr(DylibPath, '/');
+	if (DylibName)
+	{
+		DylibName += 1;
+	}
+	else
+	{
+		DylibName = DylibPath;
+	}
+	FCStringAnsi::Strcpy(SymbolInfo.ModuleName, DylibName);
+}
 
 void FApplePlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
 {
@@ -80,7 +168,14 @@ bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 	}
 
 	FProgramCounterSymbolInfo SymbolInfo;
-	ProgramCounterToSymbolInfo( ProgramCounter, SymbolInfo );
+	if(!Context)
+	{
+		ProgramCounterToSymbolInfo( ProgramCounter, SymbolInfo );
+	}
+	else
+	{
+		AsyncSafeProgramCounterToSymbolInfo(ProgramCounter, SymbolInfo);
+	}
 	
 	// Write out function name.
 	FCStringAnsi::Strcat(HumanReadableString, HumanReadableStringSize, SymbolInfo.FunctionName);
@@ -122,59 +217,7 @@ void FApplePlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter,
 	bool bOK = FApplePlatformSymbolication::SymbolInfoForAddress(ProgramCounter, SymbolInfo);
 	if(!bOK)
 	{
-		Dl_info DylibInfo;
-		int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
-		if (Result == 0)
-		{
-			return;
-		}
-		
-		int32 Status = 0;
-		ANSICHAR* DemangledName = NULL;
-		
-		// Increased the size of the demangle destination to reduce the chances that abi::__cxa_demangle will allocate
-		// this causes the app to hang as malloc isn't signal handler safe. Ideally we wouldn't call this function in a handler.
-		size_t DemangledNameLen = 65536;
-		ANSICHAR DemangledNameBuffer[65536]= {0};
-		DemangledName = abi::__cxa_demangle(DylibInfo.dli_sname, DemangledNameBuffer, &DemangledNameLen, &Status);
-		
-		if (DemangledName)
-		{
-			// C++ function
-			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DemangledName);
-		}
-		else if (DylibInfo.dli_sname && strchr(DylibInfo.dli_sname, ']'))
-		{
-			// ObjC function
-			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
-		}
-		else if(DylibInfo.dli_sname)
-		{
-			// C function
-			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
-		}
-		else
-		{
-			// Unknown!
-			FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
-		}
-		
-		// No line number found.
-		FCStringAnsi::Strcat(SymbolInfo.Filename, "Unknown");
-		SymbolInfo.LineNumber = 0;
-		
-		// Write out Module information.
-		ANSICHAR* DylibPath = (ANSICHAR*)DylibInfo.dli_fname;
-		ANSICHAR* DylibName = FCStringAnsi::Strrchr(DylibPath, '/');
-		if(DylibName)
-		{
-			DylibName += 1;
-		}
-		else
-		{
-			DylibName = DylibPath;
-		}
-		FCStringAnsi::Strcpy(SymbolInfo.ModuleName, DylibName);
+		AsyncSafeProgramCounterToSymbolInfo(ProgramCounter, SymbolInfo);
 	}
 }
 

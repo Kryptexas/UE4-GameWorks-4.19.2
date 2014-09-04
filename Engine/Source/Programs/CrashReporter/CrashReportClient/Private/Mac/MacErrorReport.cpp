@@ -2,12 +2,29 @@
 
 #include "CrashReportClientApp.h"
 #include "../CrashReportUtil.h"
+#include "CrashDebugHelperModule.h"
 
 #include "MacErrorReport.h"
+
+namespace
+{
+	/** Pointer to dynamically loaded crash diagnosis module */
+	FCrashDebugHelperModule* CrashHelperModule;
+}
 
 FMacErrorReport::FMacErrorReport(const FString& Directory)
 	: FGenericErrorReport(Directory)
 {
+}
+
+void FMacErrorReport::Init()
+{
+	CrashHelperModule = &FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
+}
+
+void FMacErrorReport::ShutDown()
+{
+	CrashHelperModule->ShutdownModule();
 }
 
 FString FMacErrorReport::FindCrashedAppName() const
@@ -70,4 +87,54 @@ FString FMacErrorReport::FindMostRecentErrorReport()
 		ReportFinder);
 
 	return RecentReportDirectory;
+}
+
+FText FMacErrorReport::DiagnoseReport() const
+{
+	// Should check if there are local PDBs before doing anything
+	auto CrashDebugHelper = CrashHelperModule ? CrashHelperModule->Get() : nullptr;
+	if (!CrashDebugHelper)
+	{
+		// Not localized: should never be seen
+		return FText::FromString(TEXT("Failed to load CrashDebugHelper."));
+	}
+	
+	FString DumpFilename;
+	if (!FindFirstReportFileWithExtension(DumpFilename, TEXT(".dmp")))
+	{
+		if (!FindFirstReportFileWithExtension(DumpFilename, TEXT(".mdmp")))
+		{
+			return FText::FromString("No minidump found for this crash.");
+		}
+	}
+	
+	FCrashDebugInfo DebugInfo;
+	if (!CrashDebugHelper->ParseCrashDump(ReportDirectory / DumpFilename, DebugInfo))
+	{
+		return FText::FromString("No minidump found for this crash.");
+	}
+	
+	if (!CrashDebugHelper->CreateMinidumpDiagnosticReport(ReportDirectory / DumpFilename))
+	{
+		if ( FRocketSupport::IsRocket() )
+		{
+			return FText::FromString("We apologize for the inconvenience.\nPlease send this crash report to help improve our software.");
+		}
+		else
+		{
+			return FText::FromString("You do not have any debugging symbols required to display the callstack for this crash.");
+		}
+	}
+	else
+	{
+		FString CrashDump;
+		if ( FFileHelper::LoadFileToString( CrashDump, *(ReportDirectory / TEXT("diagnostics.txt")) ) )
+		{
+			return FText::FromString(CrashDump);
+		}
+		else
+		{
+			return FText::FromString("Failed to create diagnosis information.");
+		}
+	}
 }

@@ -189,17 +189,11 @@ enum EMacModifierKeys
 
 struct CORE_API FMacCrashContext : public FApplePlatformCrashContext
 {
-	/**
-	 * Dumps all the data from crash context to the "minidump" report.
-	 * @param DiagnosticsPath Path to put the file to
-	 */
-	void GenerateReport(char const* DiagnosticsPath) const;
-	
 	/** Mimics Windows WER format */
 	void GenerateWindowsErrorReport(char const* WERPath) const;
 	
 	/** Creates (fake so far) minidump */
-	void GenerateMinidump(char const* MinidumpCallstackInfo, char const* Path) const;
+	void GenerateMinidump(char const* Path) const;
 	
 	/** Generates information for crash reporter */
 	void GenerateCrashInfoAndLaunchReporter() const;

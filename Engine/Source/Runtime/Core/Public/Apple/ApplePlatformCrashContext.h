@@ -56,8 +56,8 @@ struct CORE_API FApplePlatformCrashContext : public FGenericCrashContext
 	static void WriteLine(int ReportFile, const TCHAR* Line);
 	
 	/** Async-safe ItoA */
-	static ANSICHAR* ItoANSI(uint64 Val, uint64 Base);
+	static ANSICHAR* ItoANSI(uint64 Val, uint64 Base, uint32 Len = 0);
 	
 	/** Async-safe ItoT */
-	static TCHAR* ItoTCHAR(uint64 Val, uint64 Base);
+	static TCHAR* ItoTCHAR(uint64 Val, uint64 Base, uint32 Len = 0);
 };
