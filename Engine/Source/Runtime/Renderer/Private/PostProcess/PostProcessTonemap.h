@@ -54,7 +54,7 @@ public:
 private:
 	bool bDoGammaOnly;
 	// set in constructor
-	uint32 ConfigIndex;
+	uint32 ConfigIndexPC;
 
 	void SetShader(const FRenderingCompositePassContext& Context);
 };
@@ -77,7 +77,7 @@ public:
 private:
 	bool bUsedFramebufferFetch;
 	// set in constructor
-	uint32 ConfigIndex;
+	uint32 ConfigIndexMobile;
 
 	void SetShader(const FRenderingCompositePassContext& Context);
 };
