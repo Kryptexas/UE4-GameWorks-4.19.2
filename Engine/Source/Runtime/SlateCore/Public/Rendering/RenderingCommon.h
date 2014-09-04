@@ -132,27 +132,27 @@ FSlateRotatedRect TransformRect(const TransformType& Transform, const FSlateRota
 /**
  * Stores a Rotated rect as float16 (for rendering).
  */
-struct FSlateRotatedRectFloat16
+struct FSlateRotatedRectHalf
 {
 	/** Default ctor. */
-	FSlateRotatedRectFloat16();
+	FSlateRotatedRectHalf();
 	/** Construct a float16 version of a rotated rect from a full-float version. */
-	explicit FSlateRotatedRectFloat16(const FSlateRotatedRect& RotatedRect);
+	explicit FSlateRotatedRectHalf(const FSlateRotatedRect& RotatedRect);
 	/** Per-element constructor. */
-	FSlateRotatedRectFloat16(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
+	FSlateRotatedRectHalf(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
 	/** transformed Top-left corner. */
-	FFloat16 TopLeft[2];
+	FVector2DHalf TopLeft;
 	/** transformed X extent (right-left). */
-	FFloat16 ExtentX[2];
+	FVector2DHalf ExtentX;
 	/** transformed Y extent (bottom-top). */
-	FFloat16 ExtentY[2];
+	FVector2DHalf ExtentY;
 };
 
 /**
  * Not all platforms support Float16, so we have to be tricky here and declare the proper vertex type.
  */
 #if SLATE_USE_FLOAT16
-typedef FSlateRotatedRectFloat16 FSlateRotatedClipRectType;
+typedef FSlateRotatedRectHalf FSlateRotatedClipRectType;
 #else
 typedef FSlateRotatedRect FSlateRotatedClipRectType;
 #endif
