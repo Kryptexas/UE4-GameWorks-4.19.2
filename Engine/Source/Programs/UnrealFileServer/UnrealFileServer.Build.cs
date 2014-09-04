@@ -19,6 +19,7 @@ public class UnrealFileServer : ModuleRules
                 "SandboxFile",
 				"Sockets",
 				"Projects",
+				"Messaging",
            }
 		);
 	}
