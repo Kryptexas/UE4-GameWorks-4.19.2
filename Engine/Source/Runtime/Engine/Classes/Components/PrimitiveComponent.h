@@ -981,7 +981,18 @@ public:
 	virtual int32 GetNumMaterials() const;
 	
 	/** Get a BodyInstance from this component. The supplied name is used in the SkeletalMeshComponent case. A name of NAME_None in the skeletal case gives the root body instance. */
-	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const;
+
+
+	/**
+	* returns BodyInstance of the component.
+	*
+	* @param BoneName				Used to get body associated with specific bone. NAME_None automatically gets the root most body
+	* @param bGetWelded				If the component has been welded to another component and bGetWelded is true we return the single welded BodyInstance that is used in the simulation
+	*
+	* @return		Returns the BodyInstance based on various states (does component have multiple bodies? Is the body welded to another body?)
+	*/
+
+	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const;
 
 	/** 
 	 * returns Distance to closest Body Instance surface. 

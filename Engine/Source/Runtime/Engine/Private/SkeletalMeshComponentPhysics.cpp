@@ -1489,7 +1489,7 @@ FName USkeletalMeshComponent::FindConstraintBoneName( int32 ConstraintIndex )
 }
 
 
-FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName) const
+FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName, bool) const
 {
 	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
 	FBodyInstance* BodyInst = NULL;

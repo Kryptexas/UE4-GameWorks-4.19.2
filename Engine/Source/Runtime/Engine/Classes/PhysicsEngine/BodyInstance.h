@@ -220,6 +220,7 @@ public:
 #if WITH_PHYSX
 	/** Figures out the new FCollisionNotifyInfo needed for pending notification. It adds it, and then returns an array that goes from pair index to notify collision index */
 	static TArray<int32> AddCollisionNotifyInfo(const FBodyInstance * Body0, const FBodyInstance * Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos);
+
 #endif
 
 protected:
@@ -334,9 +335,6 @@ public:
 
 
 
-#if WITH_PHYSX
-	TMap<physx::PxShape*, FBodyInstance*> ShapeToBodyMap;
-#endif
 
 	/** 
 	 * Takes two body instances and welds them together to create a single simulated rigid body. Returns true if success.

@@ -122,7 +122,7 @@ public:
 	// End UActorComponent interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const override;
+	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const override;
 	virtual bool CanEditSimulatePhysics() override;
 	virtual bool IsAnySimulatingPhysics() const override;
 

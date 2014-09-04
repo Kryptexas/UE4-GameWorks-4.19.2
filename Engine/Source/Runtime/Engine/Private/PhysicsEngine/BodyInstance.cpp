@@ -849,6 +849,10 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	check(Setup);
 	AActor* Owner = PrimComp ? PrimComp->GetOwner() : NULL;
 
+#if WITH_PHYSX
+	PhysxUserData = FPhysxUserData(this);
+#endif
+
 	// Make the debug name for this geometry...
 	FString DebugName(TEXT(""));
 #if (WITH_EDITORONLY_DATA || UE_BUILD_DEBUG || LOOKING_FOR_PERF_ISSUES) && !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && !NO_LOGGING
@@ -1131,7 +1135,6 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 #endif
 
 #if WITH_PHYSX
-	PhysxUserData = FPhysxUserData(this);
 
 	// If there is already a body instanced, or there is no scene to create it into, do nothing.
 	if (GetPxRigidActor() != NULL || !InRBScene)
@@ -1364,15 +1367,12 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance * Body0,
 
 		PairNotifyMapping.Add(-1);	//start as -1 because we can have collisions that we don't want to actually record collision
 
-		const FBodyInstance * const* SubBody0Res = Body0->ShapeToBodyMap.Find(Shape0);
-		const FBodyInstance * const* SubBody1Res = Body1->ShapeToBodyMap.Find(Shape1);
+		const FBodyInstance * SubBody0 = FPhysxUserData::Get<FBodyInstance>(Shape0->userData);
+		const FBodyInstance * SubBody1 = FPhysxUserData::Get<FBodyInstance>(Shape1->userData);
 
-		if (SubBody0Res == NULL){ SubBody0Res = &Body0;  }	//body may have no welding in which case just use the body
-		if (SubBody1Res == NULL){ SubBody1Res = &Body1; }
+		if (SubBody0 == NULL) { SubBody0 = Body0; }
+		if (SubBody1 == NULL) { SubBody1 = Body1; }
 		
-		const FBodyInstance * SubBody0 = *SubBody0Res;
-		const FBodyInstance * SubBody1 = *SubBody1Res;
-
 		if (SubBody0->bNotifyRigidBodyCollision || SubBody1->bNotifyRigidBodyCollision)
 		{
 			TMap<const FBodyInstance *, int32> & SubBodyNotifyMap = BodyPairNotifyMap.FindOrAdd(SubBody0);
@@ -1395,10 +1395,9 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance * Body0,
 
 	return PairNotifyMapping;
 }
-#endif
+
 
 //helper function for TermBody to avoid code duplication between scenes
-#if WITH_PHYSX
 void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance* BodyInstance)
 {
 	if (SceneIndex)
@@ -1533,7 +1532,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 #if WITH_PHYSX
 	
 	//first time we're welding with root so we need to grab the shapes
-	if (ShapeToBodyMap.Num() == 0)
+	/*if (ShapeToBodyMap.Num() == 0)
 	{
 		int32 NumSyncShapes = 0;
 		TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
@@ -1544,7 +1543,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 			FBodyInstance *& BI = ShapeToBodyMap.FindOrAdd(PShape);
 			BI = this;
 		}
-	}
+	}*/
 
 	TArray<PxShape *> PNewShapes;
 
@@ -1568,8 +1567,10 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 	for (int32 ShapeIdx = 0; ShapeIdx < PNewShapes.Num(); ++ShapeIdx)
 	{
 		PxShape* PShape = PNewShapes[ShapeIdx];
-		FBodyInstance *& BI = ShapeToBodyMap.FindOrAdd(PShape);
-		BI = TheirBody;
+		//FBodyInstance *& BI = ShapeToBodyMap.FindOrAdd(PShape);
+		//BI = TheirBody;
+
+		PShape->userData = &TheirBody->PhysxUserData;
 	}
 
 	if (TheirBody->bNotifyRigidBodyCollision)
@@ -1589,7 +1590,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 	return false;
 }
 
-void FBodyInstance::UnWeld(FBodyInstance* BI)
+void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 {
 	//@TODO: BOX2D: Implement Weld
 
@@ -1603,12 +1604,44 @@ void FBodyInstance::UnWeld(FBodyInstance* BI)
 	for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
 	{
 		PxShape* PShape = PShapes[ShapeIdx];
+		if (FBodyInstance * BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData))
+		{
+			bNeedsNotification |= BI->bNotifyRigidBodyCollision;
+
+			if (TheirBI == BI)
+			{
+				PShape->userData = NULL;
+				RigidActorSync->detachShape(*PShape);
+			}
+		}
+	}
+
+	for (int32 ShapeIdx = NumSyncShapes; ShapeIdx <PShapes.Num(); ++ShapeIdx)
+	{
+		PxShape* PShape = PShapes[ShapeIdx];
+		if (FBodyInstance * BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData))
+		{
+			bNeedsNotification |= BI->bNotifyRigidBodyCollision;
+
+			if (TheirBI == BI)
+			{
+				PShape->userData = NULL;
+				RigidActorSync->detachShape(*PShape);
+			}
+		}
+	}
+
+
+	/*for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
+	{
+		PxShape* PShape = PShapes[ShapeIdx];
 		if (FBodyInstance ** BIPtrPtr = ShapeToBodyMap.Find(PShape))
 		{
 			bNeedsNotification |= (*BIPtrPtr)->bNotifyRigidBodyCollision;
 
 			if (*BIPtrPtr == BI)
 			{
+				PShape->userData = NULL;
 				RigidActorSync->detachShape(*PShape);
 				ShapeToBodyMap.Remove(PShape);
 			}
@@ -1623,11 +1656,12 @@ void FBodyInstance::UnWeld(FBodyInstance* BI)
 			bNeedsNotification |= (*BIPtrPtr)->bNotifyRigidBodyCollision;
 			if (*BIPtrPtr == BI)
 			{
+				PShape->userData = NULL;
 				RigidActorAsync->detachShape(*PShape);
 				ShapeToBodyMap.Remove(PShape);
 			}
 		}
-	}
+	}*/
 
 	bWeldedNotifyRigidBodyCollision = bNeedsNotification;
 
