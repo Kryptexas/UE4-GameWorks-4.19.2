@@ -908,12 +908,22 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 
 void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex) const
 {
-	const FCaptureComponentSceneState* FoundState = ReflectionSceneData.AllocatedReflectionCaptureState.Find(ReflectionProxy->Component);
+	ERHIFeatureLevel::Type LocalFeatureLevel = GetFeatureLevel();
 
-	if (FoundState)
+	if (LocalFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
-		ReflectionCubemapArray = ReflectionSceneData.CubemapArray.GetRenderTarget().ShaderResourceTexture;
-		ArrayIndex = FoundState->CaptureIndex;
+		const FCaptureComponentSceneState* FoundState = ReflectionSceneData.AllocatedReflectionCaptureState.Find(ReflectionProxy->Component);
+
+		if (FoundState)
+		{
+			ReflectionCubemapArray = ReflectionSceneData.CubemapArray.GetRenderTarget().ShaderResourceTexture;
+			ArrayIndex = FoundState->CaptureIndex;
+		}
+	}
+	else if (ReflectionProxy->SM4FullHDRCubemap)
+	{
+		ReflectionCubemapArray = ReflectionProxy->SM4FullHDRCubemap->TextureRHI;
+		ArrayIndex = 0;
 	}
 }
 

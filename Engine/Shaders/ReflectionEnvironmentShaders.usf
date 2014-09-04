@@ -522,20 +522,25 @@ void ReflectionApplyPS(
 #endif
 
 #if APPLY_SKYLIGHT
-		float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
-		// Normalize for static skylight types which mix with lightmaps
-		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0;
-		float3 SkyLighting = GetSkyLightReflection(ReflectionVector, GBuffer.Roughness, bNormalize);
 
-		FLATTEN
-		if (bNormalize)
+		BRANCH
+		if (SpecularLighting.a > .001f)
 		{
-			SkyLighting *= GBuffer.IndirectIrradiance;
+			float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
+			// Normalize for static skylight types which mix with lightmaps
+			bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0;
+			float3 SkyLighting = GetSkyLightReflection(ReflectionVector, GBuffer.Roughness, bNormalize);
+
+			FLATTEN
+			if (bNormalize)
+			{
+				SkyLighting *= GBuffer.IndirectIrradiance;
+			}
+
+			float Visibility = GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness); 
+
+			SpecularLighting.rgb += (Visibility * SpecularLighting.a) * SkyLighting;
 		}
-
-		float Visibility = GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness); 
-
-		SpecularLighting.rgb += (Visibility * SpecularLighting.a) * SkyLighting;
 #endif
 
 #if APPLY_SSR

@@ -61,17 +61,24 @@ float4 PointSkyBentNormal;
 #if TRANSLUCENCY_LIGHTING_SURFACE
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-/** Prenormalized capture of the scene that's closest to the object being rendered, used for reflection environment on translucency. */
-TextureCubeArray ReflectionCubemap;
-SamplerState ReflectionCubemapSampler;
-int CubemapArrayIndex;
+	/** Prenormalized capture of the scene that's closest to the object being rendered, used for reflection environment on translucency. */
+	TextureCubeArray ReflectionCubemap;
+	SamplerState ReflectionCubemapSampler;
+	int CubemapArrayIndex;
+#else
+	TextureCube ReflectionCubemap;
+	SamplerState ReflectionCubemapSampler;
 #endif
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half IndirectIrradiance)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	float4 SpecularIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, CubemapArrayIndex, AbsoluteSpecularMip);
+#else
+	float4 SpecularIBL = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, AbsoluteSpecularMip);
+#endif
 
 	FLATTEN
 	if (View.UseLightmaps > 0)
@@ -82,7 +89,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 
 #if ENABLE_SKY_LIGHT
 	BRANCH
-	if (SkyLightParameters.y > 0 && SpecularIBL.a < .001f)
+	if (SkyLightParameters.y > 0 && SpecularIBL.a < .999f)
 	{
 		// Normalize for static skylight types which mix with lightmaps
 		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps;
@@ -103,9 +110,6 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 
 	return SpecularIBL.rgb * SpecularColor;
-#else
-	return 0;
-#endif
 }
 
 #endif
