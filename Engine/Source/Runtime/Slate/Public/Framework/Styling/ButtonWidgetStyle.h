@@ -14,7 +14,7 @@ class UButtonWidgetStyle : public USlateWidgetStyleContainerBase
 
 public:
 	/** The actual data describing the button's appearance. */
-	UPROPERTY(Category=Appearance, EditAnywhere, meta=(ShowOnlyInnerProperties))
+	UPROPERTY(Category=Appearance, EditAnywhere, meta=( ShowOnlyInnerProperties ))
 	FButtonStyle ButtonStyle;
 
 	virtual const struct FSlateWidgetStyle* const GetStyle() const override

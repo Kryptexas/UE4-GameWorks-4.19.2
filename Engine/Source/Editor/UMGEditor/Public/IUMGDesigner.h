@@ -3,6 +3,20 @@
 #pragma once
 
 /**
+ * The logical type of transform that can be applied to a widget.
+ */
+namespace ETransformMode
+{
+	enum Type
+	{
+		/** Allows parent transfers */
+		Layout,
+		/** Only effects the rendered appearance of the widget */
+		Render,
+	};
+}
+
+/**
  * The public interface implemented by the UMG Designer to allow extensions to call methods
  * on the designer.
  */
@@ -11,4 +25,10 @@ class UMGEDITOR_API IUMGDesigner
 public:
 	/** @return the effective preview scale after both the DPI and Zoom scale has been applied. */
 	virtual float GetPreviewScale() const = 0;
+
+	/** @return The currently selected widget. */
+	virtual FWidgetReference GetSelectedWidget() const = 0;
+
+	/** @return Get the transform mode currently in use in the designer. */
+	virtual ETransformMode::Type GetTransformMode() const = 0;
 };

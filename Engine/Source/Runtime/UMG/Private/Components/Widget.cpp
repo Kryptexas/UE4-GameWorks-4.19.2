@@ -12,6 +12,59 @@ UWidget::UWidget(const FPostConstructInitializeProperties& PCIP)
 	bIsVariable = true;
 	bDesignTime = false;
 	Visiblity = ESlateVisibility::Visible;
+	RenderTransformPivot = FVector2D(0.5f, 0.5f);
+}
+
+void UWidget::SetRenderTransform(FWidgetTransform Transform)
+{
+	RenderTransform = Transform;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderScale(FVector2D Scale)
+{
+	RenderTransform.Scale = Scale;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderShear(FVector2D Shear)
+{
+	RenderTransform.Shear = Shear;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderAngle(float Angle)
+{
+	RenderTransform.Angle = Angle;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderTranslation(FVector2D Translation)
+{
+	RenderTransform.Translation = Translation;
+	UpdateRenderTransform();
+}
+
+void UWidget::UpdateRenderTransform()
+{
+	if ( MyWidget.IsValid() )
+	{
+		// Compute the M (Shear Slot) = CoTan(90 - SlopeAngle)
+		float ShearX = 1.0f / FMath::Tan(FMath::DegreesToRadians(90 - FMath::Clamp(RenderTransform.Shear.X, -89.0f, 89.0f)));
+		float ShearY = 1.0f / FMath::Tan(FMath::DegreesToRadians(90 - FMath::Clamp(RenderTransform.Shear.Y, -89.0f, 89.0f)));
+
+		FSlateRenderTransform Transform2D = ::Concatenate(FScale2D(RenderTransform.Scale), FShear2D(ShearX, ShearY), FQuat2D(FMath::DegreesToRadians(RenderTransform.Angle)), FVector2D(RenderTransform.Translation));
+		MyWidget.Pin()->SetRenderTransform(Transform2D);
+	}
+}
+
+void UWidget::SetRenderTransformPivot(FVector2D Pivot)
+{
+	RenderTransformPivot = Pivot;
+	if ( MyWidget.IsValid() )
+	{
+		MyWidget.Pin()->SetRenderTransformPivot(Pivot);
+	}
 }
 
 bool UWidget::GetIsEnabled() const
@@ -267,12 +320,6 @@ const FSlateBrush* UWidget::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget");
 }
 
-TSharedRef<SWidget> UWidget::GetToolboxPreviewWidget() const
-{
-	return SNew(SImage);
-	//.Image( FEditorStyle::GetBrush("UMGEditor.ToolboxPreviewWidget") );
-}
-
 void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -359,6 +406,9 @@ void UWidget::SynchronizeProperties()
 		SafeWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
 	}
+
+	UpdateRenderTransform();
+	SafeWidget->SetRenderTransformPivot(RenderTransformPivot);
 
 	if ( !ToolTipText.IsEmpty() )
 	{

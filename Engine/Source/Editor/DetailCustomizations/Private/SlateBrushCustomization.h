@@ -8,6 +8,8 @@ class FSlateBrushStructCustomization : public IPropertyTypeCustomization
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
+	FSlateBrushStructCustomization();
+
 	/** IPropertyTypeCustomization interface */
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
@@ -24,11 +26,13 @@ private:
 	 */
 	EVisibility GetMarginPropertyVisibility() const;
 
-
 	/** Slate Brush DrawAs property */
 	TSharedPtr<IPropertyHandle> DrawAsProperty;
 
 	/** Error text to display if the resource object is not valid*/
 	TSharedPtr<SErrorText> ResourceErrorText;
+
+	/**  */
+	bool bSlimView;
 };
 

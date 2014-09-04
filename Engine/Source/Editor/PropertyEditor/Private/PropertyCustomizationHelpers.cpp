@@ -281,6 +281,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 	OnObjectChanged = InArgs._OnObjectChanged;
 
 	bool bDisplayThumbnail = false;
+	FIntPoint ThumbnailSize(64, 64);
 
 	if( InArgs._PropertyHandle.IsValid() && InArgs._PropertyHandle->IsValidHandle() )
 	{
@@ -291,6 +292,18 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 		if(DisplayThumbnailString.Len() > 0)
 		{
 			bDisplayThumbnail = DisplayThumbnailString == TEXT("true");
+		}
+
+		// check if the property metadata has an override to the thumbnail size
+		FString ThumbnailSizeString = PropertyHandle->GetProperty()->GetMetaData(TEXT("ThumbnailSize"));
+		if ( ThumbnailSizeString.Len() > 0 )
+		{
+			FVector2D ParsedVector;
+			if ( ParsedVector.InitFromString(ThumbnailSizeString) )
+			{
+				ThumbnailSize.X = (int32)ParsedVector.X;
+				ThumbnailSize.Y = (int32)ParsedVector.Y;
+			}
 		}
 
 		// if being used with an object property, check the allowed class is valid for the property
@@ -317,6 +330,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 				.OnShouldFilterAsset(InArgs._OnShouldFilterAsset)
 				.AllowClear(InArgs._AllowClear)
 				.PropertyHandle(PropertyHandle)
+				.ThumbnailSize(ThumbnailSize)
 		]
 	];
 }

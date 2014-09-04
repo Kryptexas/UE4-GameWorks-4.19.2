@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -13,12 +14,8 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
-	ContentScale = FVector2D(1.0f, 1.0f);
 	ContentColorAndOpacity = FLinearColor::White;
-
-	DesiredSizeScale = FVector2D(1.0f, 1.0f);
 	BrushColor = FLinearColor::White;
-	ForegroundColor = FLinearColor::Black;
 
 	SBorder::FArguments BorderDefaults;
 	bShowEffectWhenDisabled = BorderDefaults._ShowEffectWhenDisabled.Get();
@@ -47,16 +44,16 @@ void UBorder::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 	
-	MyBorder->SetBorderBackgroundColor(BrushColor);
-	MyBorder->SetColorAndOpacity(ContentColorAndOpacity);
-	MyBorder->SetForegroundColor(ForegroundColor);
+	TAttribute<FLinearColor> ContentColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ContentColorAndOpacity);
+	TAttribute<FSlateColor> BrushColorBinding = OPTIONAL_BINDING_CONVERT(FLinearColor, BrushColor, FSlateColor, ConvertLinearColorToSlateColor);
+	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(FSlateBrush, Background, const FSlateBrush*, ConvertImage);
 	
-	MyBorder->SetContentScale(ContentScale);
-	MyBorder->SetDesiredSizeScale(DesiredSizeScale);
+	MyBorder->SetBorderBackgroundColor(BrushColorBinding);
+	MyBorder->SetColorAndOpacity(ContentColorAndOpacityBinding);
+
+	MyBorder->SetBorderImage(ImageBinding);
 	
 	MyBorder->SetShowEffectWhenDisabled(bShowEffectWhenDisabled);
-	
-	MyBorder->SetBorderImage(GetBorderBrush());
 
 	MyBorder->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
 	MyBorder->SetOnMouseButtonUp(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonUp));
@@ -71,10 +68,18 @@ UClass* UBorder::GetSlotClass() const
 
 void UBorder::OnSlotAdded(UPanelSlot* Slot)
 {
+	// Copy the content properties into the new slot so that it matches what has been setup
+	// so far by the user.
+	UBorderSlot* BorderSlot = CastChecked<UBorderSlot>(Slot);
+	BorderSlot->Padding = Padding;
+	BorderSlot->HorizontalAlignment = HorizontalAlignment;
+	BorderSlot->VerticalAlignment = VerticalAlignment;
+
 	// Add the child to the live slot if it already exists
 	if ( MyBorder.IsValid() )
 	{
-		Cast<UBorderSlot>(Slot)->BuildSlot(MyBorder.ToSharedRef());
+		// Construct the underlying slot.
+		BorderSlot->BuildSlot(MyBorder.ToSharedRef());
 	}
 }
 
@@ -87,32 +92,22 @@ void UBorder::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-void UBorder::SetBrushColor(FLinearColor Color)
+void UBorder::SetContentColorAndOpacity(FLinearColor Color)
 {
-	BrushColor = Color;
+	ContentColorAndOpacity = Color;
 	if ( MyBorder.IsValid() )
 	{
 		MyBorder->SetColorAndOpacity(Color);
 	}
 }
 
-void UBorder::SetForegroundColor(FLinearColor InForegroundColor)
+void UBorder::SetBrushColor(FLinearColor Color)
 {
-	ForegroundColor = InForegroundColor;
+	BrushColor = Color;
 	if ( MyBorder.IsValid() )
 	{
-		MyBorder->SetForegroundColor(InForegroundColor);
+		MyBorder->SetBorderBackgroundColor(Color);
 	}
-}
-
-const FSlateBrush* UBorder::GetBorderBrush() const
-{
-	if ( Brush == NULL )
-	{
-		return NULL;
-	}
-
-	return &Brush->Brush;
 }
 
 FReply UBorder::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
@@ -155,9 +150,85 @@ FReply UBorder::HandleMouseDoubleClick(const FGeometry& Geometry, const FPointer
 	return FReply::Unhandled();
 }
 
+void UBorder::SetBrushFromAsset(USlateBrushAsset* Asset)
+{
+	Background = Asset ? Asset->Brush : FSlateBrush();
+
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetBorderImage(&Background);
+	}
+}
+
+void UBorder::SetBrushFromTexture(UTexture2D* Texture)
+{
+	Background.SetResourceObject(Texture);
+
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetBorderImage(&Background);
+	}
+}
+
+void UBorder::SetBrushFromMaterial(UMaterialInterface* Material)
+{
+	Background.SetResourceObject(Material);
+
+	//TODO UMG Check if the material can be used with the UI
+
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetBorderImage(&Background);
+	}
+}
+
+UMaterialInstanceDynamic* UBorder::GetDynamicMaterial()
+{
+	UMaterialInterface* Material = NULL;
+
+	UObject* Resource = Background.GetResourceObject();
+	Material = Cast<UMaterialInterface>(Resource);
+
+	if ( Material )
+	{
+		UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Material);
+
+		if ( !DynamicMaterial )
+		{
+			DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+			Background.SetResourceObject(DynamicMaterial);
+
+			if ( MyBorder.IsValid() )
+			{
+				MyBorder->SetBorderImage(&Background);
+			}
+		}
+
+		return DynamicMaterial;
+	}
+
+	//TODO UMG can we do something for textures?  General purpose dynamic material for them?
+
+	return NULL;
+}
+
+const FSlateBrush* UBorder::ConvertImage(TAttribute<FSlateBrush> InImageAsset) const
+{
+	UBorder* MutableThis = const_cast<UBorder*>( this );
+	MutableThis->Background = InImageAsset.Get();
+
+	return &Background;
+}
+
 void UBorder::PostLoad()
 {
 	Super::PostLoad();
+
+	if ( Brush_DEPRECATED != NULL )
+	{
+		Background = Brush_DEPRECATED->Brush;
+		Brush_DEPRECATED = nullptr;
+	}
 
 	if ( GetChildrenCount() > 0 )
 	{
@@ -177,6 +248,41 @@ void UBorder::PostLoad()
 }
 
 #if WITH_EDITOR
+
+void UBorder::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	static bool IsReentrant = false;
+
+	if ( !IsReentrant )
+	{
+		IsReentrant = true;
+
+		if ( PropertyChangedEvent.Property )
+		{
+			FName PropertyName = PropertyChangedEvent.Property->GetFName();
+
+			if ( UBorderSlot* Slot = Cast<UBorderSlot>(GetContentSlot()) )
+			{
+				if ( PropertyName == "Padding" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "Padding", Slot, "Padding");
+				}
+				else if ( PropertyName == "HorizontalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", Slot, "HorizontalAlignment");
+				}
+				else if ( PropertyName == "VerticalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", Slot, "VerticalAlignment");
+				}
+			}
+		}
+
+		IsReentrant = false;
+	}
+}
 
 const FSlateBrush* UBorder::GetEditorIcon()
 {

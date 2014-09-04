@@ -17,12 +17,16 @@ class UMG_API UImage : public UWidget
 public:
 
 	/** Image to draw */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* Image;
+	UPROPERTY()
+	USlateBrushAsset* Image_DEPRECATED;
+
+	/** Image to draw */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FSlateBrush Brush;
 
 	/** A bindable delegate for the Image. */
 	UPROPERTY()
-	FGetSlateBrushAsset ImageDelegate;
+	FGetSlateBrush BrushDelegate;
 
 	/** Color and opacity */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -47,17 +51,15 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetImage(USlateBrushAsset* InImage);
+	void SetBrushFromAsset(USlateBrushAsset* Asset);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetImageFromBrush(FSlateBrush Brush);
+	void SetBrushFromTexture(UTexture2D* Texture);
 
+	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetImageFromTexture(UTexture2D* Texture);
-
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetImageFromMaterial(UMaterialInterface* Material);
+	void SetBrushFromMaterial(UMaterialInterface* Material);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
@@ -67,7 +69,13 @@ public:
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
+	// UVisual interface
 	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	// UWidget interface
@@ -81,14 +89,11 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
-	const FSlateBrush* GetImageBrush() const;
-
-	const FSlateBrush* ConvertImage(TAttribute<USlateBrushAsset*> InImageAsset) const;
+	/** Translates the bound brush data and assigns it to the cached brush used by this widget. */
+	const FSlateBrush* ConvertImage(TAttribute<FSlateBrush> InImageAsset) const;
 
 	FReply HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 
 protected:
 	TSharedPtr<SImage> MyImage;
-
-	TOptional<FSlateBrush> DynamicBrush;
 };

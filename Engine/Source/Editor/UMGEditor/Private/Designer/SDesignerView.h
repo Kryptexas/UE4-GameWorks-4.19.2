@@ -41,8 +41,6 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
 
-	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
-
 	//virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
 
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
@@ -58,7 +56,9 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 	// IUMGDesigner interface
-	float GetPreviewScale() const override;
+	virtual float GetPreviewScale() const override;
+	virtual FWidgetReference GetSelectedWidget() const override;
+	virtual ETransformMode::Type GetTransformMode() const override;
 	// End of IUMGDesigner interface
 
 private:
@@ -126,36 +126,17 @@ private:
 	static const uint32 DefaultResolutionHeight;
 	static const FString DefaultAspectRatio;
 
-	enum DragHandle
-	{
-		DH_NONE = -1,
-
-		DH_TOP_LEFT = 0,
-		DH_TOP_CENTER,
-		DH_TOP_RIGHT,
-
-		DH_MIDDLE_LEFT,
-		DH_MIDDLE_RIGHT,
-
-		DH_BOTTOM_LEFT,
-		DH_BOTTOM_CENTER,
-		DH_BOTTOM_RIGHT,
-		
-		DH_MAX,
-	};
-
-	TArray< FVector2D > DragDirections;
-
 	/** Extensions for the designer to allow for custom widgets to be inserted onto the design surface as selection changes. */
 	TArray< TSharedRef<FDesignerExtension> > DesignerExtensions;
 
 private:
-	void DrawDragHandles(const FGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const;
-	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
+	void BindCommands();
+
+	void SetTransformMode(ETransformMode::Type InTransformMode);
+	bool CanSetTransformMode(ETransformMode::Type InTransformMode) const;
+	bool IsTransformModeActive(ETransformMode::Type InTransformMode) const;
 
 	UWidget* ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bIsPreview);
-
-private:
 
 	FVector2D GetExtensionPosition(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const;
 
@@ -164,6 +145,9 @@ private:
 private:
 	/** A reference to the BP Editor that owns this designer */
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
+
+	/** The designer command list */
+	TSharedPtr<FUICommandList> CommandList;
 
 	/** The transaction used to commit undoable actions from resize, move...etc */
 	FScopedTransaction* ScopedTransaction;
@@ -180,8 +164,6 @@ private:
 	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
 	TSharedPtr<SDPIScaler> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
-
-	DragHandle CurrentHandle;
 
 	FVector2D CachedDesignerWidgetLocation;
 	FVector2D CachedDesignerWidgetSize;
@@ -231,4 +213,7 @@ private:
 
 	/** */
 	EDesignerMessage::Type DesignerMessage;
+
+	/** */
+	ETransformMode::Type TransformMode;
 };

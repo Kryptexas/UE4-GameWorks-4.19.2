@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SlateWrapperTypes.h"
+#include "WidgetTransform.h"
 
 #include "Widget.generated.h"
 
@@ -41,6 +42,7 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(USlateBrushAsset*, FGetSlateBrushAsset);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateBrush, FGetSlateBrush);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateCheckBoxState::Type, FGetCheckBoxState);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(UWidget*, FGetContent);
 
@@ -103,6 +105,38 @@ public:
 	/** A bindable delegate for Cursor */
 	UPROPERTY()
 	FGetMouseCursor CursorDelegate;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, Category=Transform)
+	FWidgetTransform RenderTransform;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, Category=Transform)
+	FVector2D RenderTransformPivot;
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderTransform(FWidgetTransform InTransform);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderScale(FVector2D Scale);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderShear(FVector2D Shear);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderAngle(float Angle);
+	
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderTranslation(FVector2D Translation);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderTransformPivot(FVector2D Pivot);
 
 	/** Gets the current enabled status of the widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -210,9 +244,6 @@ public:
 
 	/** Gets the editor icon */
 	virtual const FSlateBrush* GetEditorIcon();
-
-	/** Gets a widget representing the tiny preview of the toolbox */
-	virtual TSharedRef<SWidget> GetToolboxPreviewWidget() const;
 	
 	/** Allows general fixups and connections only used at editor time. */
 	virtual void ConnectEditorData() { }
@@ -253,6 +284,8 @@ protected:
 	
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 
+	void UpdateRenderTransform();
+
 protected:
 	//TODO UMG Consider moving conversion functions into another class.
 	// Conversion functions
@@ -264,6 +297,11 @@ protected:
 	TOptional<float> ConvertFloatToOptionalFloat(TAttribute<float> InFloat) const
 	{
 		return InFloat.Get();
+	}
+
+	FSlateColor ConvertLinearColorToSlateColor(TAttribute<FLinearColor> InLinearColor) const
+	{
+		return FSlateColor(InLinearColor.Get());
 	}
 
 protected:

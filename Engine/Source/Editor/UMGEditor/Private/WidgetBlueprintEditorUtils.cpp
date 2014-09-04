@@ -176,7 +176,7 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 	TSet<FWidgetReference> Widgets = BlueprintEditor->GetSelectedWidgets();
 	UWidgetBlueprint* BP = BlueprintEditor->GetWidgetBlueprintObj();
 
-	MenuBuilder.PushCommandList(BlueprintEditor->WidgetCommandList.ToSharedRef());
+	MenuBuilder.PushCommandList(BlueprintEditor->DesignerCommandList.ToSharedRef());
 
 	MenuBuilder.BeginSection("Edit", LOCTEXT("Edit", "Edit"));
 	{

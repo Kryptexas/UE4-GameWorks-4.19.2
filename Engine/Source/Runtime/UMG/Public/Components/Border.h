@@ -18,20 +18,32 @@ class UMG_API UBorder : public UContentWidget
 public:
 
 	/** Color and opacity multiplier of content in the border */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
+	UPROPERTY(EditDefaultsOnly, Category="Content")
 	FLinearColor ContentColorAndOpacity;
 
-	/** The scaling factor for the border content */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout", AdvancedDisplay)
-	FVector2D ContentScale;
+	/** A bindable delegate for the ContentColorAndOpacity. */
+	UPROPERTY()
+	FGetLinearColor ContentColorAndOpacityDelegate;
 
-	/** Image to use for the border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* Brush;
+	/** The padding area between the slot and the content it contains. */
+	UPROPERTY(EditDefaultsOnly, Category="Content")
+	FMargin Padding;
+
+	/** The alignment of the content horizontally. */
+	UPROPERTY(EditDefaultsOnly, Category="Content")
+	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
+
+	/** The alignment of the content vertically. */
+	UPROPERTY(EditDefaultsOnly, Category="Content")
+	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
+
+	/** Brush to drag as the background */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=(DisplayName="Brush"))
+	FSlateBrush Background;
 
 	/** A bindable delegate for the Brush. */
 	UPROPERTY()
-	FGetSlateBrushAsset BrushDelegate;
+	FGetSlateBrush BackgroundDelegate;
 
 	/** Color and opacity of the actual border image */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -41,17 +53,9 @@ public:
 	UPROPERTY()
 	FGetLinearColor BrushColorDelegate;
 
-	/** The foreground color of text and some glyphs that appear as the border's content. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FLinearColor ForegroundColor;
-
 	/** Whether or not to show the disabled effect when this border is disabled */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	bool bShowEffectWhenDisabled;
-
-	/** The scaling factor for the border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
-	FVector2D DesiredSizeScale;
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseButtonDownEvent;
@@ -69,11 +73,29 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetBrushColor(FLinearColor InColorAndOpacity);
+	void SetContentColorAndOpacity(FLinearColor InContentColorAndOpacity);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetForegroundColor(FLinearColor InForegroundColor);
+	void SetBrushColor(FLinearColor InBrushColor);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetBrushFromAsset(USlateBrushAsset* Asset);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetBrushFromTexture(UTexture2D* Texture);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetBrushFromMaterial(UMaterialInterface* Material);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UMaterialInstanceDynamic* GetDynamicMaterial();
+
+public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
@@ -88,6 +110,10 @@ public:
 	// End of UObject interface
 
 #if WITH_EDITOR
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetToolboxCategory() override;
 #endif
@@ -113,5 +139,11 @@ protected:
 	FReply HandleMouseMove(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 	FReply HandleMouseDoubleClick(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 
-	const FSlateBrush* GetBorderBrush() const;
+	/** Translates the bound brush data and assigns it to the cached brush used by this widget. */
+	const FSlateBrush* ConvertImage(TAttribute<FSlateBrush> InImageAsset) const;
+
+protected:
+	/** Image to use for the border */
+	UPROPERTY()
+	USlateBrushAsset* Brush_DEPRECATED;
 };

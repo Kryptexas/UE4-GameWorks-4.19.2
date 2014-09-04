@@ -28,6 +28,7 @@ public:
 		const FString& MetaUIMinString = Property->GetMetaData(TEXT("UIMin"));
 		const FString& MetaUIMaxString = Property->GetMetaData(TEXT("UIMax"));
 		const FString& SliderExponentString = Property->GetMetaData(TEXT("SliderExponent"));
+		const FString& DeltaString = Property->GetMetaData(TEXT("Delta"));
 		const FString& ClampMinString = Property->GetMetaData(TEXT("ClampMin"));
 		const FString& ClampMaxString = Property->GetMetaData(TEXT("ClampMax"));
 
@@ -57,6 +58,12 @@ public:
 		if (SliderExponentString.Len())
 		{
 			TTypeFromString<NumericType>::FromString( SliderExponent, *SliderExponentString );
+		}
+
+		NumericType Delta = NumericType(0);
+		if ( DeltaString.Len() )
+		{
+			TTypeFromString<NumericType>::FromString( Delta, *DeltaString );
 		}
 		
 		if (ClampMin >= ClampMax && (ClampMinString.Len() || ClampMaxString.Len()))
@@ -93,6 +100,7 @@ public:
 				.MinSliderValue(SliderMinValue)
 				.MaxSliderValue(SliderMaxValue)
 				.SliderExponent(SliderExponent)
+				.Delta(Delta)
 				.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values").ToString() )
 				.OnValueChanged( this, &SPropertyEditorNumeric<NumericType>::OnValueChanged )
 				.OnValueCommitted( this, &SPropertyEditorNumeric<NumericType>::OnValueCommitted )
@@ -216,7 +224,7 @@ private:
 	}
 	
 	/**
- 	 * Called when the slider begins to move.  We create a transaction here to undo the property
+	 * Called when the slider begins to move.  We create a transaction here to undo the property
 	 */
 	void OnBeginSliderMovement()
 	{
@@ -227,7 +235,7 @@ private:
 
 
 	/**
- 	 * Called when the slider stops moving.  We end the previously created transation
+	 * Called when the slider stops moving.  We end the previously created transation
 	 */
 	void OnEndSliderMovement( NumericType NewValue )
 	{

@@ -7,19 +7,18 @@
 /////////////////////////////////////////////////////
 // UButton
 
+FName UButton::StyleName(TEXT("Style"));
+
 UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	ButtonStyle = PCIP.CreateDefaultSubobject<UButtonWidgetStyle>(this, StyleName);
+
 	SButton::FArguments ButtonDefaults;
-
-	Style = NULL;
-
-	DesiredSizeScale = ButtonDefaults._DesiredSizeScale.Get();
-	ContentScale = ButtonDefaults._ContentScale.Get();
+	ButtonStyle->ButtonStyle = *ButtonDefaults._ButtonStyle;
 
 	ColorAndOpacity = FLinearColor::White;
 	BackgroundColor = FLinearColor::White;
-	//ForegroundColor = FLinearColor::Black;
 
 	ClickMethod = EButtonClickMethod::DownAndUp;
 	TouchMethod = EButtonTouchMethod::DownAndUp;
@@ -36,7 +35,14 @@ void UButton::ReleaseNativeWidget()
 
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
+	const FButtonStyle* StylePtr = ( Style != nullptr ) ? Style->GetStyle<FButtonStyle>() : nullptr;
+	if ( StylePtr != nullptr )
+	{
+		ButtonStyle->ButtonStyle = *StylePtr;
+	}
+
 	MyButton = SNew(SButton)
+		.ButtonStyle(&ButtonStyle->ButtonStyle)
 		.ClickMethod(ClickMethod)
 		.TouchMethod(TouchMethod)
 		.IsFocusable(IsFocusable);
@@ -53,36 +59,9 @@ void UButton::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TOptional<FSlateSound> OptionalPressedSound;
-	if ( PressedSound.GetResourceObject() )
-	{
-		OptionalPressedSound = PressedSound;
-	}
-
-	TOptional<FSlateSound> OptionalHoveredSound;
-	if ( HoveredSound.GetResourceObject() )
-	{
-		OptionalHoveredSound = HoveredSound;
-	}
-
-	if ( MyStyle.IsSet() )
-	{
-		MyButton->SetButtonStyle(&MyStyle.GetValue());
-	}
-	else
-	{
-		const FButtonStyle* StylePtr = GetStyle();
-		MyButton->SetButtonStyle(StylePtr);
-	}
-
 	MyButton->SetColorAndOpacity( ColorAndOpacity );
 	MyButton->SetBorderBackgroundColor( BackgroundColor );
 	
-	MyButton->SetDesiredSizeScale( DesiredSizeScale );
-	MyButton->SetContentScale( ContentScale );
-	MyButton->SetPressedSound( OptionalPressedSound );
-	MyButton->SetHoveredSound( OptionalHoveredSound );
-
 	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked));
 }
 
@@ -109,52 +88,14 @@ void UButton::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-void UButton::SetStyle(USlateWidgetStyleAsset* InStyle)
-{
-	Style = InStyle;
-	MyStyle = TOptional<FButtonStyle>();
-
-	const FButtonStyle* StylePtr = GetStyle();
-
-	if ( MyButton.IsValid() )
-	{
-		MyButton->SetButtonStyle(StylePtr);
-	}
-}
-
-const FButtonStyle* UButton::GetStyle() const
-{
-	const FButtonStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FButtonStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		SButton::FArguments ButtonDefaults;
-		StylePtr = ButtonDefaults._ButtonStyle;
-	}
-
-	return StylePtr;
-}
-
 void UButton::SetButtonStyle(FButtonStyle InButtonStyle)
 {
-	MyStyle = InButtonStyle;
-
-	if ( MyButton.IsValid() )
-	{
-		MyButton->SetButtonStyle(&MyStyle.GetValue());
-	}
+	ButtonStyle->ButtonStyle = InButtonStyle;
 }
 
 FButtonStyle UButton::GetButtonStyle()
 {
-	// If the dynamic style hasn't been set, default it to a clone of the current
-	// button style asset.
-	if ( !MyStyle.IsSet() )
-	{
-		const FButtonStyle* StylePtr = GetStyle();
-		MyStyle = *StylePtr;
-	}
-	
-	return MyStyle.GetValue();
+	return ButtonStyle->ButtonStyle;
 }
 
 void UButton::SetColorAndOpacity(FLinearColor Color)

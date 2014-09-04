@@ -806,7 +806,6 @@ private:
 	void OnBrushResourceChanged()
 	{
 		CachePropertyValues();
-		ImageSizeProperty->SetValue( CachedTextureSize );
 		UpdatePreviewImageSize();
 		UpdateMarginLinePositions();
 	}
@@ -942,15 +941,72 @@ private:
 const float SSlateBrushPreview::ImagePadding = 5.0f;
 const float SSlateBrushPreview::BorderHitSize = 8.0f;
 
+// SSlateBrushStaticPreview
+////////////////////////////////////////////////////////////////////////////////
+
+class SSlateBrushStaticPreview : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(SSlateBrushStaticPreview) {}
+
+	SLATE_END_ARGS()
+
+	void Construct( const FArguments& InArgs, TSharedPtr<IPropertyHandle> InResourceObjectProperty )
+	{
+		ResourceObjectProperty = InResourceObjectProperty;
+
+		ChildSlot
+		[
+			SNew(SBorder)
+			.BorderImage(this, &SSlateBrushStaticPreview::GetPropertyBrush)
+			[
+				SNew(SSpacer)
+				.Size(FVector2D(1,1))
+			]
+		];
+	}
+
+	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+	{
+		TArray<void*> RawData;
+		ResourceObjectProperty->AccessRawData(RawData);
+
+		check(RawData[0] != NULL);
+		TemporaryBrush = *static_cast<FSlateBrush*>( RawData[0] );
+	}
+
+	const FSlateBrush* SSlateBrushStaticPreview::GetPropertyBrush() const
+	{
+		return &TemporaryBrush;
+	}
+
+private:
+
+	/**
+	 * Temporary brush data used to store the structure returned from the property handy so that we have stable
+	 * pointer to give to slate.
+	 */
+	FSlateBrush TemporaryBrush;
+
+	TSharedPtr<IPropertyHandle> ResourceObjectProperty;
+};
+
+// SBrushResourceObjectBox
+////////////////////////////////////////////////////////////////////////////////
+
 class SBrushResourceObjectBox : public SCompoundWidget
 {
 	SLATE_BEGIN_ARGS( SBrushResourceObjectBox ) {}
 	
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, IStructCustomizationUtils* StructCustomizationUtils, TSharedPtr<IPropertyHandle> InResourceObjectProperty )
+	void Construct(const FArguments& InArgs, IStructCustomizationUtils* StructCustomizationUtils, TSharedPtr<IPropertyHandle> InResourceObjectProperty, TSharedPtr<IPropertyHandle> InImageSizeProperty)
 	{
 		ResourceObjectProperty = InResourceObjectProperty;
+		ImageSizeProperty = InImageSizeProperty;
+
+		FSimpleDelegate OnBrushResourceChangedDelegate = FSimpleDelegate::CreateSP(this, &SBrushResourceObjectBox::OnBrushResourceChanged);
+		ResourceObjectProperty->SetOnPropertyValueChanged(OnBrushResourceChangedDelegate);
+
 		ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -961,6 +1017,7 @@ class SBrushResourceObjectBox : public SCompoundWidget
 				.PropertyHandle(InResourceObjectProperty)
 				.ThumbnailPool(StructCustomizationUtils->GetThumbnailPool())
 				.OnShouldFilterAsset(this, &SBrushResourceObjectBox::OnFilterAssetPicker)
+				.OnObjectChanged(this, &SBrushResourceObjectBox::OnAssetPicked)
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -996,6 +1053,31 @@ class SBrushResourceObjectBox : public SCompoundWidget
 
 private:
 
+	void OnBrushResourceChanged()
+	{
+		UObject* ResourceObject;
+		FPropertyAccess::Result Result = ResourceObjectProperty->GetValue(ResourceObject);
+		if ( Result == FPropertyAccess::Success )
+		{
+			FVector2D CachedTextureSize;
+
+			TArray<void*> RawData;
+			ImageSizeProperty->AccessRawData(RawData);
+			if ( RawData.Num() > 0 && RawData[0] != NULL )
+			{
+				CachedTextureSize = *static_cast<FVector2D*>( RawData[0] );
+			}
+
+			UTexture2D* BrushTexture = Cast<UTexture2D>(ResourceObject);
+			if ( BrushTexture )
+			{
+				CachedTextureSize = FVector2D(BrushTexture->GetSizeX(), BrushTexture->GetSizeY());
+			}
+
+			ImageSizeProperty->SetValue(CachedTextureSize);
+		}
+	}
+
 	/** Called when the asset picker needs to be filtered */
 	bool OnFilterAssetPicker(const FAssetData& InAssetData) const
 	{
@@ -1003,14 +1085,43 @@ private:
 		return !Class->IsChildOf(UTexture2D::StaticClass()) && !Class->IsChildOf(UMaterialInterface::StaticClass());
 	}
 
+	/**
+	 * When the asset is picked if it's a material being used in the UI we 
+	 * automatically set the bUsedWithUI flag if it isn't already set.
+	 */
+	void OnAssetPicked(const FAssetData& InAssetData) const
+	{
+		UObject* Resource = nullptr;
+
+		if ( ResourceObjectProperty->GetValue(Resource) == FPropertyAccess::Success && Resource && Resource->IsA<UMaterialInterface>() )
+		{
+			UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(Resource);
+			UMaterial* BaseMaterial = MaterialInterface->GetBaseMaterial();
+			if ( BaseMaterial && !BaseMaterial->bUsedWithUI )
+			{
+				bool bNeedsRecompile = true;
+				BaseMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_UI);
+			}
+		}
+	}
+
 private:
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty;
+	TSharedPtr<IPropertyHandle> ImageSizeProperty;
 	TSharedPtr<SErrorText> ResourceErrorText;
 };
+
+// FSlateBrushStructCustomization
+////////////////////////////////////////////////////////////////////////////////
 
 TSharedRef<IPropertyTypeCustomization> FSlateBrushStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FSlateBrushStructCustomization() );
+}
+
+FSlateBrushStructCustomization::FSlateBrushStructCustomization()
+	: bSlimView(true)
+{
 }
 
 void FSlateBrushStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
@@ -1023,6 +1134,10 @@ void FSlateBrushStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle
 		.NameContent()
 		[
 			StructPropertyHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		[
+			SNew(SSlateBrushStaticPreview, StructPropertyHandle)
 		];
 	}
 }
@@ -1036,7 +1151,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	TSharedPtr<IPropertyHandle> MarginProperty = StructPropertyHandle->GetChildHandle( TEXT("Margin") );
 	TSharedPtr<IPropertyHandle> TintProperty = StructPropertyHandle->GetChildHandle( TEXT("TintColor") );
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty = StructPropertyHandle->GetChildHandle( TEXT("ResourceObject") );
-
+	
 	StructBuilder.AddChildContent( NSLOCTEXT( "SlateBrushCustomization", "ResourceObjectFilterString", "Resource" ).ToString() )
 	.NameContent()
 	[
@@ -1046,7 +1161,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	.MinDesiredWidth(250.0f)
 	.MaxDesiredWidth(0.0f)
 	[
-		SNew( SBrushResourceObjectBox, &StructCustomizationUtils, ResourceObjectProperty )
+		SNew( SBrushResourceObjectBox, &StructCustomizationUtils, ResourceObjectProperty, ImageSizeProperty )
 	];
 
 	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() );
@@ -1057,49 +1172,52 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	StructBuilder.AddChildProperty( MarginProperty.ToSharedRef() )
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetMarginPropertyVisibility ) ) );
 
-	// Create the Slate Brush Preview widget and add the Preview group
-	TArray<void*> RawData;
-	StructPropertyHandle->AccessRawData( RawData );
-
-	// Can only display the preview with one brush
-	if( RawData.Num() == 1 )
+	// Don't show the preview area when in slim view mode.
+	if ( !bSlimView )
 	{
-		FSlateBrush* Brush = static_cast<FSlateBrush*>(RawData[ 0 ]);
+		// Create the Slate Brush Preview widget and add the Preview group
+		TArray<void*> RawData;
+		StructPropertyHandle->AccessRawData(RawData);
 
-		TSharedRef<SSlateBrushPreview> Preview = SNew( SSlateBrushPreview )
-			.DrawAsProperty( DrawAsProperty )
-			.TilingProperty( TilingProperty )
-			.ImageSizeProperty( ImageSizeProperty )
-			.MarginProperty( MarginProperty )
-			.ResourceObjectProperty( ResourceObjectProperty )
-			.SlateBrush( Brush );
+		// Can only display the preview with one brush
+		if ( RawData.Num() == 1 )
+		{
+			FSlateBrush* Brush = static_cast<FSlateBrush*>( RawData[0] );
 
-		IDetailGroup& PreviewGroup = StructBuilder.AddChildGroup( TEXT( "Preview" ), TEXT("") );
+			TSharedRef<SSlateBrushPreview> Preview = SNew(SSlateBrushPreview)
+				.DrawAsProperty(DrawAsProperty)
+				.TilingProperty(TilingProperty)
+				.ImageSizeProperty(ImageSizeProperty)
+				.MarginProperty(MarginProperty)
+				.ResourceObjectProperty(ResourceObjectProperty)
+				.SlateBrush(Brush);
 
-		PreviewGroup
-			.HeaderRow()
-			.NameContent()
-			[
-				StructPropertyHandle->CreatePropertyNameWidget( NSLOCTEXT( "UnrealEd", "Preview", "Preview" ).ToString(), false )
-			]
-		.ValueContent()
-			.MinDesiredWidth( 1 )
-			.MaxDesiredWidth( 4096 )
-			[
-				Preview->GenerateAlignmentComboBoxes()
-			];
+			IDetailGroup& PreviewGroup = StructBuilder.AddChildGroup(TEXT("Preview"), TEXT(""));
 
-		PreviewGroup
-			.AddWidgetRow()
+			PreviewGroup
+				.HeaderRow()
+				.NameContent()
+				[
+					StructPropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("UnrealEd", "Preview", "Preview").ToString(), false)
+				]
 			.ValueContent()
-			.MinDesiredWidth( 1 )
-			.MaxDesiredWidth( 4096 )
-			[
-				Preview
-			];
+				.MinDesiredWidth(1)
+				.MaxDesiredWidth(4096)
+				[
+					Preview->GenerateAlignmentComboBoxes()
+				];
+
+			PreviewGroup
+				.AddWidgetRow()
+				.ValueContent()
+				.MinDesiredWidth(1)
+				.MaxDesiredWidth(4096)
+				[
+					Preview
+				];
+		}
 	}
 }
-
 
 EVisibility FSlateBrushStructCustomization::GetTilingPropertyVisibility() const
 {

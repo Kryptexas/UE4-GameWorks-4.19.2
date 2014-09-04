@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ButtonWidgetStyle.h"
+
 #include "Button.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
@@ -15,17 +17,13 @@ class UMG_API UButton : public UContentWidget
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** Style of the button */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
+	/** The template style asset, used to seed the mutable instance of the style. */
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, DisplayName="Template Style", Category=Appearance, meta=(DesignerRebuild=true))
 	USlateWidgetStyleAsset* Style;
 
-	/** The scaling factor for the button border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
-	FVector2D DesiredSizeScale;
-
-	/** The scaling factor for the button content */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
-	FVector2D ContentScale;
+	/** The button style used at runtime by the slate button */
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance)
+	TSubobjectPtr<UButtonWidgetStyle> ButtonStyle;
 	
 	/** The color multiplier for the button content */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )
@@ -47,23 +45,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
 	bool IsFocusable;
 
-	/** The sound made when the user 'clicks' the button */
-	UPROPERTY(EditDefaultsOnly, Category=Sound)
-	FSlateSound PressedSound;
-
-	/** The sound made when the user hovers over the button */
-	UPROPERTY(EditDefaultsOnly, Category=Sound)
-	FSlateSound HoveredSound;
-
 public:
 
 	/** Called when the button is clicked */
 	UPROPERTY(BlueprintAssignable)
 	FOnButtonClickedEvent OnClicked;
-
-	/** Sets the look and feel of a button by giving it a new style from an existing style asset. */
-	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
-	void SetStyle(USlateWidgetStyleAsset* InStyle);
 
 	/** Sets the look and feel of a button from a new button style struct. */
 	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
@@ -102,6 +88,8 @@ public:
 	virtual const FText GetToolboxCategory() override;
 #endif
 
+	static FName StyleName;
+
 protected:
 
 	// UPanelWidget
@@ -118,9 +106,6 @@ protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
-
-	/** Get the button style of the current style asset */
-	const FButtonStyle* GetStyle() const;
 
 protected:
 	/** Cached pointer to the underlying slate button owned by this UWidget */

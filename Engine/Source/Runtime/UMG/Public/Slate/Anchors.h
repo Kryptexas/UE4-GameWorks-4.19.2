@@ -7,17 +7,17 @@
 /**
  * Describes how a widget is anchored.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAnchors
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the minimum anchors, left + top. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FVector2D Minimum;
 
 	/** Holds the maximum anchors, right + bottom. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FVector2D Maximum;
 
 public:

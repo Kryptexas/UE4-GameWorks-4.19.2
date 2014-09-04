@@ -69,3 +69,42 @@ void UBorderSlot::SynchronizeProperties()
 	SetHorizontalAlignment(HorizontalAlignment);
 	SetVerticalAlignment(VerticalAlignment);
 }
+
+#if WITH_EDITOR
+
+void UBorderSlot::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	static bool IsReentrant = false;
+
+	if ( !IsReentrant )
+	{
+		IsReentrant = true;
+
+		if ( PropertyChangedEvent.Property )
+		{
+			FName PropertyName = PropertyChangedEvent.Property->GetFName();
+
+			if ( UBorder* Border = CastChecked<UBorder>(Parent) )
+			{
+				if ( PropertyName == "Padding" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "Padding", Border, "Padding");
+				}
+				else if ( PropertyName == "HorizontalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", Border, "HorizontalAlignment");
+				}
+				else if ( PropertyName == "VerticalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", Border, "VerticalAlignment");
+				}
+			}
+		}
+
+		IsReentrant = false;
+	}
+}
+
+#endif

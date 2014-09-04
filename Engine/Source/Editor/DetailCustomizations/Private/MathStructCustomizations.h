@@ -41,9 +41,12 @@ protected:
 	/**
 	 * Constructs a widget for the property handle 
 	 *
+	 * @param StructurePropertyHandle	handle of the struct property
 	 * @param PropertyHandle	Child handle of the struct property
 	 */
-	virtual TSharedRef<SWidget> MakeChildWidget( TSharedRef<IPropertyHandle>& PropertyHandle );
+	virtual TSharedRef<SWidget> MakeChildWidget( 
+		TSharedRef<IPropertyHandle>& StructurePropertyHandle,
+		TSharedRef<IPropertyHandle>& PropertyHandle );
 
 	/**
 	 * Gets the value as a float for the provided property handle
@@ -109,7 +112,7 @@ private:
 	void OnEndSliderMovement( NumericType NewValue );
 
 	template<typename NumericType>
-	TSharedRef<SWidget> MakeNumericWidget( TSharedRef<IPropertyHandle>& PropertyHandle );
+	TSharedRef<SWidget> MakeNumericWidget(TSharedRef<IPropertyHandle>& StructurePropertyHandle, TSharedRef<IPropertyHandle>& PropertyHandle);
 
 protected:
 	/** All the sorted children of the struct that should be displayed */

@@ -66,7 +66,7 @@ void FMathStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>&
 		HorizontalBox->AddSlot()
 		.Padding( FMargin(0.0f, 2.0f, bLastChild ? 0.0f : 3.0f, 2.0f ) )
 		[
-			MakeChildWidget( ChildHandle )
+			MakeChildWidget(StructPropertyHandle, ChildHandle)
 		];
 	}
 
@@ -131,8 +131,79 @@ void FMathStructCustomization::GetSortedChildren( TSharedRef<IPropertyHandle> St
 }
 
 template<typename NumericType>
-TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(TSharedRef<IPropertyHandle>& PropertyHandle)
+void ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOptional<NumericType>& MinValue, TOptional<NumericType>& MaxValue, TOptional<NumericType>& SliderMinValue, TOptional<NumericType>& SliderMaxValue, NumericType& SliderExponent, NumericType& Delta)
 {
+	UProperty* Property = PropertyHandle->GetProperty();
+
+	const FString& MetaUIMinString = Property->GetMetaData(TEXT("UIMin"));
+	const FString& MetaUIMaxString = Property->GetMetaData(TEXT("UIMax"));
+	const FString& SliderExponentString = Property->GetMetaData(TEXT("SliderExponent"));
+	const FString& DeltaString = Property->GetMetaData(TEXT("Delta"));
+	const FString& ClampMinString = Property->GetMetaData(TEXT("ClampMin"));
+	const FString& ClampMaxString = Property->GetMetaData(TEXT("ClampMax"));
+
+	// If no UIMin/Max was specified then use the clamp string
+	const FString& UIMinString = MetaUIMinString.Len() ? MetaUIMinString : ClampMinString;
+	const FString& UIMaxString = MetaUIMaxString.Len() ? MetaUIMaxString : ClampMaxString;
+
+	NumericType ClampMin = TNumericLimits<NumericType>::Lowest();
+	NumericType ClampMax = TNumericLimits<NumericType>::Max();
+
+	if ( !ClampMinString.IsEmpty() )
+	{
+		TTypeFromString<NumericType>::FromString(ClampMin, *ClampMinString);
+	}
+
+	if ( !ClampMaxString.IsEmpty() )
+	{
+		TTypeFromString<NumericType>::FromString(ClampMax, *ClampMaxString);
+	}
+
+	NumericType UIMin = TNumericLimits<NumericType>::Lowest();
+	NumericType UIMax = TNumericLimits<NumericType>::Max();
+	TTypeFromString<NumericType>::FromString(UIMin, *UIMinString);
+	TTypeFromString<NumericType>::FromString(UIMax, *UIMaxString);
+
+	SliderExponent = NumericType(1);
+	if ( SliderExponentString.Len() )
+	{
+		TTypeFromString<NumericType>::FromString(SliderExponent, *SliderExponentString);
+	}
+
+	Delta = NumericType(0);
+	if ( DeltaString.Len() )
+	{
+		TTypeFromString<NumericType>::FromString(Delta, *DeltaString);
+	}
+
+	if ( ClampMin >= ClampMax && ( ClampMinString.Len() || ClampMaxString.Len() ) )
+	{
+		//UE_LOG(LogPropertyNode, Warning, TEXT("Clamp Min (%s) >= Clamp Max (%s) for Ranged Numeric"), *ClampMinString, *ClampMaxString);
+	}
+
+	const NumericType ActualUIMin = FMath::Max(UIMin, ClampMin);
+	const NumericType ActualUIMax = FMath::Min(UIMax, ClampMax);
+
+	MinValue = ClampMinString.Len() ? ClampMin : TOptional<NumericType>();
+	MaxValue = ClampMaxString.Len() ? ClampMax : TOptional<NumericType>();
+	SliderMinValue = ( UIMinString.Len() ) ? ActualUIMin : TOptional<NumericType>();
+	SliderMaxValue = ( UIMaxString.Len() ) ? ActualUIMax : TOptional<NumericType>();
+
+	if ( ActualUIMin >= ActualUIMax && ( MetaUIMinString.Len() || MetaUIMaxString.Len() ) )
+	{
+		//UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString);
+	}
+}
+
+template<typename NumericType>
+TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
+	TSharedRef<IPropertyHandle>& StructurePropertyHandle,
+	TSharedRef<IPropertyHandle>& PropertyHandle)
+{
+	TOptional<NumericType> MinValue, MaxValue, SliderMinValue, SliderMaxValue;
+	NumericType SliderExponent, Delta;
+	ExtractNumericMetadata(StructurePropertyHandle, MinValue, MaxValue, SliderMinValue, SliderMaxValue, SliderExponent, Delta);
+
 	TWeakPtr<IPropertyHandle> WeakHandlePtr = PropertyHandle;
 
 	return 
@@ -148,10 +219,12 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(TSharedRef<IProp
 		.LabelVAlign(VAlign_Center)
 		// Only allow spin on handles with one object.  Otherwise it is not clear what value to spin
 		.AllowSpin( PropertyHandle->GetNumOuterObjects() == 1 )
-		.MinValue(TOptional<NumericType>())
-		.MaxValue(TOptional<NumericType>())
-		.MaxSliderValue(TOptional<NumericType>())
-		.MinSliderValue(TOptional<NumericType>())
+		.MinValue(MinValue)
+		.MaxValue(MaxValue)
+		.MinSliderValue(SliderMinValue)
+		.MaxSliderValue(SliderMaxValue)
+		.SliderExponent(SliderExponent)
+		.Delta(Delta)
 		.Label()
 		[
 			SNew( STextBlock )
@@ -160,23 +233,25 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(TSharedRef<IProp
 		];
 }
 
-TSharedRef<SWidget> FMathStructCustomization::MakeChildWidget( TSharedRef<IPropertyHandle>& PropertyHandle )
+TSharedRef<SWidget> FMathStructCustomization::MakeChildWidget( 
+	TSharedRef<IPropertyHandle>& StructurePropertyHandle,
+	TSharedRef<IPropertyHandle>& PropertyHandle )
 {
 	const UClass* PropertyClass = PropertyHandle->GetPropertyClass();
 	
 	if (PropertyClass == UFloatProperty::StaticClass())
 	{
-		return MakeNumericWidget<float>(PropertyHandle);
+		return MakeNumericWidget<float>(StructurePropertyHandle, PropertyHandle);
 	}
 	
 	if (PropertyClass == UIntProperty::StaticClass())
 	{
-		return MakeNumericWidget<int32>(PropertyHandle);
+		return MakeNumericWidget<int32>(StructurePropertyHandle, PropertyHandle);
 	}
 
 	if (PropertyClass == UByteProperty::StaticClass())
 	{
-		return MakeNumericWidget<uint8>(PropertyHandle);
+		return MakeNumericWidget<uint8>(StructurePropertyHandle, PropertyHandle);
 	}
 
 	check(0); // Unsupported class

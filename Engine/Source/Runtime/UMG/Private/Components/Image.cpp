@@ -10,9 +10,19 @@
 
 UImage::UImage(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-	, Image()
 	, ColorAndOpacity(FLinearColor::White)
 {
+}
+
+void UImage::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( Image_DEPRECATED != NULL )
+	{
+		Brush = Image_DEPRECATED->Brush;
+		Image_DEPRECATED = nullptr;
+	}
 }
 
 void UImage::ReleaseNativeWidget()
@@ -33,7 +43,7 @@ void UImage::SynchronizeProperties()
 	Super::SynchronizeProperties();
 
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
-	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(USlateBrushAsset*, Image, const FSlateBrush*, ConvertImage);
+	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(FSlateBrush, Brush, const FSlateBrush*, ConvertImage);
 
 	MyImage->SetImage(ImageBinding);
 	MyImage->SetColorAndOpacity(ColorAndOpacityBinding);
@@ -58,81 +68,43 @@ void UImage::SetOpacity(float InOpacity)
 	}
 }
 
-const FSlateBrush* UImage::ConvertImage(TAttribute<USlateBrushAsset*> InImageAsset) const
+const FSlateBrush* UImage::ConvertImage(TAttribute<FSlateBrush> InImageAsset) const
 {
-	USlateBrushAsset* ImageAsset = InImageAsset.Get();
-	if ( ImageAsset != Image )
-	{
-		UImage* MutableThis = const_cast< UImage* >( this );
-		MutableThis->DynamicBrush = TOptional<FSlateBrush>();
-		MutableThis->Image = ImageAsset;
-	}
-	else if ( DynamicBrush.IsSet() )
-	{
-		return &DynamicBrush.GetValue();
-	}
+	UImage* MutableThis = const_cast<UImage*>( this );
+	MutableThis->Brush = InImageAsset.Get();
 
-	if ( Image == NULL && IsDesignTime() )
-	{
-		SImage::FArguments ImageDefaults;
-		return ImageDefaults._Image.Get();
-	}
-
-	return Image ? &Image->Brush : NULL;
+	return &Brush;
 }
 
-const FSlateBrush* UImage::GetImageBrush() const
+void UImage::SetBrushFromAsset(USlateBrushAsset* Asset)
 {
-	return ConvertImage(Image);
-}
-
-void UImage::SetImage(USlateBrushAsset* InImage)
-{
-	if ( InImage != Image )
-	{
-		DynamicBrush = TOptional<FSlateBrush>();
-	}
-
-	Image = InImage;
-	if ( MyImage.IsValid() )
-	{
-		MyImage->SetImage(GetImageBrush());
-	}
-}
-
-void UImage::SetImageFromBrush(FSlateBrush InImage)
-{
-	DynamicBrush = InImage;
+	Brush = Asset ? Asset->Brush : FSlateBrush();
 
 	if ( MyImage.IsValid() )
 	{
-		MyImage->SetImage(&DynamicBrush.GetValue());
+		MyImage->SetImage(&Brush);
 	}
 }
 
-void UImage::SetImageFromTexture(UTexture2D* Texture)
+void UImage::SetBrushFromTexture(UTexture2D* Texture)
 {
-	FSlateBrush TextureBrush;
-	TextureBrush.SetResourceObject(Texture);
-
-	DynamicBrush = TextureBrush;
+	Brush.SetResourceObject(Texture);
 
 	if ( MyImage.IsValid() )
 	{
-		MyImage->SetImage(&DynamicBrush.GetValue());
+		MyImage->SetImage(&Brush);
 	}
 }
 
-void UImage::SetImageFromMaterial(UMaterialInterface* Material)
+void UImage::SetBrushFromMaterial(UMaterialInterface* Material)
 {
-	FSlateBrush MaterialBrush;
-	MaterialBrush.SetResourceObject(Material);
+	Brush.SetResourceObject(Material);
 
-	DynamicBrush = MaterialBrush;
+	//TODO UMG Check if the material can be used with the UI
 
 	if ( MyImage.IsValid() )
 	{
-		MyImage->SetImage(&DynamicBrush.GetValue());
+		MyImage->SetImage(&Brush);
 	}
 }
 
@@ -140,17 +112,8 @@ UMaterialInstanceDynamic* UImage::GetDynamicMaterial()
 {
 	UMaterialInterface* Material = NULL;
 
-	if ( !DynamicBrush.IsSet() )
-	{
-		const FSlateBrush* Brush = GetImageBrush();
-		UObject* Resource = Brush->GetResourceObject();
-		Material = Cast<UMaterialInterface>(Resource);
-	}
-	else
-	{
-		UObject* Resource = DynamicBrush.GetValue().GetResourceObject();
-		Material = Cast<UMaterialInterface>(Resource);
-	}
+	UObject* Resource = Brush.GetResourceObject();
+	Material = Cast<UMaterialInterface>(Resource);
 
 	if ( Material )
 	{
@@ -159,16 +122,11 @@ UMaterialInstanceDynamic* UImage::GetDynamicMaterial()
 		if ( !DynamicMaterial )
 		{
 			DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
-
-			const FSlateBrush* Brush = GetImageBrush();
-			FSlateBrush ClonedBrush = *Brush;
-			ClonedBrush.SetResourceObject(DynamicMaterial);
-
-			DynamicBrush = ClonedBrush;
+			Brush.SetResourceObject(DynamicMaterial);
 
 			if ( MyImage.IsValid() )
 			{
-				MyImage->SetImage(&DynamicBrush.GetValue());
+				MyImage->SetImage(&Brush);
 			}
 		}
 		

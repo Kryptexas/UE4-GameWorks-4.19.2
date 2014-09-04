@@ -44,6 +44,16 @@ public:
 
 	virtual void ReleaseNativeWidget() override;
 
+public:
+
+#if WITH_EDITOR
+
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+
+#endif
+
 private:
 
 	/** A pointer to the button to allow us to adjust the size, padding...etc at runtime. */

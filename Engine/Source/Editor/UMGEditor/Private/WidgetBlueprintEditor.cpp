@@ -7,6 +7,7 @@
 #include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Animation/UMGSequencerObjectBindingManager.h"
+#include "ObjectEditorUtils.h"
 
 #include "PropertyCustomizationHelpers.h"
 
@@ -23,6 +24,7 @@ FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(NULL)
 {
+	
 }
 
 FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
@@ -64,24 +66,24 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 
 	SequencerObjectBindingManager->InitPreviewObjects();
 
-	WidgetCommandList = MakeShareable(new FUICommandList);
+	DesignerCommandList = MakeShareable(new FUICommandList);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Delete,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Delete,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::DeleteSelectedWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanDeleteSelectedWidgets)
 		);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Copy,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Copy,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CopySelectedWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCopySelectedWidgets)
 		);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Cut,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutSelectedWidgets)
 		);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Paste,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Paste,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::PasteWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanPasteWidgets)
 		);
@@ -191,21 +193,18 @@ const TSet< TWeakObjectPtr<UObject> >& FWidgetBlueprintEditor::GetSelectedObject
 	return SelectedObjects;
 }
 
+void FWidgetBlueprintEditor::InvalidatePreview()
+{
+	bPreviewInvalidated = true;
+}
+
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	FBlueprintEditor::OnBlueprintChanged(InBlueprint);
 
 	if ( InBlueprint )
 	{
-		// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
-		OnSelectedWidgetsChanging.Broadcast();
-
-		UpdatePreview(InBlueprint, true);
-
-		CleanSelection();
-
-		// Fire the selection updated event to ensure everyone is watching the same widgets.
-		OnSelectedWidgetsChanged.Broadcast();
+		RefreshPreview();
 	}
 }
 
@@ -351,45 +350,11 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we 
 	//       look to see if we can find the new instance in the preview world and then update the weak ptr.
-	if ( PreviewWidgetPtr.IsStale(true) )
+	if ( PreviewWidgetPtr.IsStale(true) || bPreviewInvalidated )
 	{
-		UpdatePreview(GetWidgetBlueprintObj(), true);
+		bPreviewInvalidated = false;
+		RefreshPreview();
 	}
-}
-
-static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, UProperty* MemberProperty)
-{
-	FString SourceValue;
-
-	// Get the property addresses for the source and destination objects.
-	uint8* SourceAddr = MemberProperty->ContainerPtrToValuePtr<uint8>(SourceObject);
-	uint8* DestionationAddr = MemberProperty->ContainerPtrToValuePtr<uint8>(DestinationObject);
-
-	if ( SourceAddr == NULL || DestionationAddr == NULL )
-	{
-		return false;
-	}
-
-	// Get the current value from the source object.
-	MemberProperty->ExportText_Direct(SourceValue, SourceAddr, SourceAddr, NULL, PPF_Localized);
-
-	const bool bNotifyObjectOfChange = true;
-
-	if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
-	{
-		DestinationObject->PreEditChange(MemberProperty);
-	}
-
-	// Set the value on the destination object.
-	MemberProperty->ImportText(*SourceValue, DestionationAddr, 0, DestinationObject);
-
-	if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
-	{
-		FPropertyChangedEvent PropertyEvent(MemberProperty);
-		DestinationObject->PostEditChangeProperty(PropertyEvent);
-	}
-
-	return true;
 }
 
 static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode, UProperty* MemberProperty, bool bIsModify)
@@ -410,10 +375,10 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 			UBoolProperty* EditConditionProperty = PropertyCustomizationHelpers::GetEditConditionProperty(MemberProperty, bDummyNegate);
 			if ( EditConditionProperty != NULL )
 			{
-				MigratePropertyValue(SourceObject, DestinationObject, EditConditionProperty);
+				FObjectEditorUtils::MigratePropertyValue(SourceObject, EditConditionProperty, DestinationObject, EditConditionProperty);
 			}
 
-			return MigratePropertyValue(SourceObject, DestinationObject, MemberProperty);
+			return FObjectEditorUtils::MigratePropertyValue(SourceObject, MemberProperty, DestinationObject, MemberProperty);
 		}
 	}
 	
@@ -614,6 +579,19 @@ void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimatio
 	}
 }
 
+void FWidgetBlueprintEditor::RefreshPreview()
+{
+	// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
+	OnSelectedWidgetsChanging.Broadcast();
+
+	UpdatePreview(GetWidgetBlueprintObj(), true);
+
+	CleanSelection();
+
+	// Fire the selection updated event to ensure everyone is watching the same widgets.
+	OnSelectedWidgetsChanged.Broadcast();
+}
+
 void FWidgetBlueprintEditor::DestroyPreview()
 {
 	UUserWidget* PreviewActor = GetPreview();
@@ -623,21 +601,6 @@ void FWidgetBlueprintEditor::DestroyPreview()
 
 		PreviewActor->MarkPendingKill();
 	}
-
-	//if ( PreviewBlueprint != NULL )
-	//{
-	//	if ( PreviewBlueprint->SimpleConstructionScript != NULL
-	//		&& PreviewActor == PreviewBlueprint->SimpleConstructionScript->GetComponentEditorActorInstance() )
-	//	{
-	//		// Ensure that all editable component references are cleared
-	//		PreviewBlueprint->SimpleConstructionScript->ClearEditorComponentReferences();
-
-	//		// Clear the reference to the preview actor instance
-	//		PreviewBlueprint->SimpleConstructionScript->SetComponentEditorActorInstance(NULL);
-	//	}
-
-	//	PreviewBlueprint = NULL;
-	//}
 }
 
 void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate)

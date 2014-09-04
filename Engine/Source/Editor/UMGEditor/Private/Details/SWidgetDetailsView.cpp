@@ -104,8 +104,8 @@ SWidgetDetailsView::~SWidgetDetailsView()
 
 void SWidgetDetailsView::RegisterCustomizations()
 {
-	FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, BlueprintEditor.Pin().ToSharedRef(), BlueprintEditor.Pin()->GetBlueprintObj());
-	PropertyView->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), LayoutDelegateDetails);
+	PropertyView->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, BlueprintEditor.Pin().ToSharedRef(), BlueprintEditor.Pin()->GetBlueprintObj()));
+	//PropertyView->RegisterInstancedCustomPropertyLayout(FSlateBrush::StaticStruct()->StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance));
 
 	static FName PropertyEditor("PropertyEditor");
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
@@ -338,12 +338,21 @@ void SWidgetDetailsView::NotifyPreChange(FEditPropertyChain* PropertyAboutToChan
 
 void SWidgetDetailsView::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged)
 {
+	const static FName DesignerRebuildName("DesignerRebuild");
+
 	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && !BlueprintEditor.Pin()->GetSequencer()->IsAutoKeyEnabled() )
 	{
 		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
 
 		const bool bIsModify = false;
 		Editor->MigrateFromChain(PropertyThatChanged, bIsModify);
+	}
+
+	// If the property that changed is marked as "DesignerRebuild" we invalidate
+	// the preview.
+	if ( PropertyChangedEvent.Property->GetBoolMetaData(DesignerRebuildName) )
+	{
+		BlueprintEditor.Pin()->InvalidatePreview();
 	}
 }
 

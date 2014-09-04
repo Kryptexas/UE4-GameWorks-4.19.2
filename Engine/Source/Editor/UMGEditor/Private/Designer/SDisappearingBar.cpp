@@ -12,7 +12,7 @@
 void SDisappearingBar::Construct(const FArguments& InArgs)
 {
 	FadeCurve = FCurveSequence(0, 0.25f);
-	FadeCurve.Play();
+	//FadeCurve.Play();
 
 	bDisappear = false;
 

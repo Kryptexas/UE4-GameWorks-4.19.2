@@ -40,6 +40,12 @@ public:
 	/** @return The preview widget. */
 	UUserWidget* GetPreview() const;
 
+	/** Causes the preview to be destroyed and a new one to be created next tick */
+	void InvalidatePreview();
+
+	/** Immediately rebuilds the preview widget. */
+	void RefreshPreview();
+
 	/** Creates a widget reference using the template. */
 	FWidgetReference GetReferenceFromTemplate(UWidget* TemplateWidget);
 
@@ -84,6 +90,7 @@ public:
 
 	/** Creates a sequencer widget */
 	TSharedRef<SWidget> CreateSequencerWidget();
+
 public:
 	/** Fires whenever the selected set of widgets changing */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
@@ -92,7 +99,7 @@ public:
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
 
 	/** Command list for handling widget actions in the WidgetBlueprintEditor */
-	TSharedPtr< FUICommandList > WidgetCommandList;
+	TSharedPtr< FUICommandList > DesignerCommandList;
 
 	/** Paste Metadata */
 	FVector2D PasteDropLocation;
@@ -165,4 +172,7 @@ private:
 
 	/** The widget references out in the ether that may need to be updated after being issued. */
 	TArray< TWeakPtr<FWidgetHandle> > WidgetHandlePool;
+
+	/** The preview becomes invalid and needs to be rebuilt on the next tick. */
+	bool bPreviewInvalidated;
 };

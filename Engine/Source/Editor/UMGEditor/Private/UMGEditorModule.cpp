@@ -13,6 +13,8 @@
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Animation/MarginTrackEditor.h"
 
+#include "DesignerCommands.h"
+
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 
 class FUMGEditorModule : public IUMGEditorModule
@@ -27,6 +29,8 @@ public:
 	virtual void StartupModule() override
 	{
 		FModuleManager::LoadModuleChecked<IUMGModule>("UMG");
+
+		FDesignerCommands::Register();
 
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager());
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager());

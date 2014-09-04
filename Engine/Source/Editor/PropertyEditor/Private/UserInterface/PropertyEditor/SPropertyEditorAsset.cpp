@@ -116,9 +116,9 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				.Padding( 0.0f, 0.0f, 2.0f, 0.0f )
 				.AutoWidth()
 				[
-					SNew(SBorder)
-					.Padding(2.0f)
-					.BorderImage( FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow") )
+					SAssignNew( ThumbnailBorder, SBorder )
+					.Padding( 3.0f )
+					.BorderImage( this, &SPropertyEditorAsset::GetThumbnailBorder )
 					.OnMouseDoubleClick( this, &SPropertyEditorAsset::OnAssetThumbnailDoubleClick )
 					[
 						SNew( SBox )
@@ -148,7 +148,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			.IsEnabled( this, &SPropertyEditorAsset::CanEdit )
 			+ SHorizontalBox::Slot()
 			[
-				SAssignNew(AssetComboButton, SComboButton)
+				SAssignNew( AssetComboButton, SComboButton )
 				.ToolTipText( this, &SPropertyEditorAsset::OnGetToolTip )
 				.ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
 				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
@@ -224,9 +224,21 @@ void SPropertyEditorAsset::GetDesiredWidth( float& OutMinDesiredWidth, float &Ou
 	OutMaxDesiredWidth = 0.0f;
 }
 
+const FSlateBrush* SPropertyEditorAsset::GetThumbnailBorder() const
+{
+	if ( ThumbnailBorder->IsHovered() )
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+	}
+}
+
 void SPropertyEditorAsset::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if(AssetThumbnail.IsValid())
+	if( AssetThumbnail.IsValid() )
 	{
 		// Ensure the thumbnail is up to date
 		FObjectOrAssetData Value;
