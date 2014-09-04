@@ -123,23 +123,36 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 			PopulateTreeFromDataTable(*It);
 		}
 
-		// Load any GameplayTagSettings from config (their default object)
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		if (ShouldImportTagsFromINI())
 		{
-			UClass* Class = *ClassIt;
-			if (!Class->IsChildOf<UGameplayTagsSettings>() || Class->HasAnyClassFlags(CLASS_Abstract))
+			// Load any GameplayTagSettings from config (their default object)
+			for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 			{
-				continue;
-			}
+				UClass* Class = *ClassIt;
+				if (!Class->IsChildOf<UGameplayTagsSettings>() || Class->HasAnyClassFlags(CLASS_Abstract))
+				{
+					continue;
+				}
 
-			for (FString TagStr : Class->GetDefaultObject<UGameplayTagsSettings>()->GameplayTags)
-			{
-				FGameplayTagTableRow TableRow;
-				TableRow.Tag = TagStr;
-				AddTagTableRow(TableRow);
+				for (FString TagStr : Class->GetDefaultObject<UGameplayTagsSettings>()->GameplayTags)
+				{
+					FGameplayTagTableRow TableRow;
+					TableRow.Tag = TagStr;
+					AddTagTableRow(TableRow);
+				}
+
+		
 			}
+			GameplayRootTag->GetChildTagNodes().Sort(FCompareFGameplayTagNodeByTag());
 		}
 	}
+}
+
+bool UGameplayTagsManager::ShouldImportTagsFromINI()
+{
+	bool ImportFromINI = false;
+	GConfig->GetBool(TEXT("GameplayTags"), TEXT("ImportTagsFromConfig"), ImportFromINI, GEngineIni);
+	return ImportFromINI;
 }
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)

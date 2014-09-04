@@ -29,13 +29,16 @@ void FGameplayTagsEditorModule::StartupModule()
 	TSharedPtr<FGameplayTagsGraphPanelPinFactory> GameplayTagsGraphPanelPinFactory = MakeShareable( new FGameplayTagsGraphPanelPinFactory() );
 	FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactory);
 
-	if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+	if (UGameplayTagsManager::ShouldImportTagsFromINI())
 	{
-		SettingsModule->RegisterSettings("Project", "Project", "GameplayTags",
-			LOCTEXT("GameplayTagSettingsName", "GameplayTags"),
-			LOCTEXT("GameplayTagSettingsNameDesc", "GameplayTag Settings"),
-			GetMutableDefault<UGameplayTagsSettings>()
-			);
+		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		{
+			SettingsModule->RegisterSettings("Project", "Project", "GameplayTags",
+				LOCTEXT("GameplayTagSettingsName", "GameplayTags"),
+				LOCTEXT("GameplayTagSettingsNameDesc", "GameplayTag Settings"),
+				GetMutableDefault<UGameplayTagsSettings>()
+				);
+		}
 	}
 }
 

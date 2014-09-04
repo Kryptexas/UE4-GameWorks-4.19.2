@@ -230,6 +230,9 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
 
+	/** Returns true if we should import tags from UGameplayTagsSettings objects (configured by INI files) */
+	static bool ShouldImportTagsFromINI();
+
 private:
 
 	friend class FGameplayTagTest;
