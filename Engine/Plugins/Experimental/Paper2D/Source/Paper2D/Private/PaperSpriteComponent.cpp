@@ -21,7 +21,6 @@ UPaperSpriteComponent::UPaperSpriteComponent(const FPostConstructInitializePrope
 
 	CastShadow = false;
 	bUseAsOccluder = false;
-	bCanEverAffectNavigation = false;
 }
 
 #if WITH_EDITOR
