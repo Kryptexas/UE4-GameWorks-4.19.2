@@ -1793,6 +1793,18 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bUseFullPrecisionUVs;
 
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bGenerateLightmapUVs;
+
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	int32 MinLightmapResolution;
+
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Source Lightmap Index"))
+	int32 SrcLightmapIndex;
+
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Destination Lightmap Index"))
+	int32 DstLightmapIndex;
+
 	UPROPERTY()
 	float BuildScale_DEPRECATED;
 
@@ -1808,7 +1820,7 @@ struct FMeshBuildSettings
 	float DistanceFieldResolutionScale;
 
 	/** 
-	 * Whether to generate the distance field treating every triangle hit as a frontface.  
+	 * Whether to generate the distance field treating every triangle hit as a front face.  
 	 * When enabled prevents the distance field from being discarded due to the mesh being open, but also lowers Distance Field AO quality.
 	 */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
@@ -1820,12 +1832,15 @@ struct FMeshBuildSettings
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
 		, bUseFullPrecisionUVs(false)
+		, bGenerateLightmapUVs(true)
+		, MinLightmapResolution(64)
+		, SrcLightmapIndex(0)
+		, DstLightmapIndex(1)
 		, BuildScale_DEPRECATED(1.0f)
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
-	{
-		DistanceFieldResolutionScale = 1;
-		bGenerateDistanceFieldAsIfTwoSided = false;
-	}
+		, DistanceFieldResolutionScale(1.0f)
+		, bGenerateDistanceFieldAsIfTwoSided(false)
+	{}
 
 	/** Equality operator. */
 	bool operator==(const FMeshBuildSettings& Other) const
@@ -1834,6 +1849,10 @@ struct FMeshBuildSettings
 			&& bRecomputeTangents == Other.bRecomputeTangents
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
+			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
+			&& MinLightmapResolution == Other.MinLightmapResolution
+			&& SrcLightmapIndex == Other.SrcLightmapIndex
+			&& DstLightmapIndex == Other.DstLightmapIndex
 			&& BuildScale3D == Other.BuildScale3D
 			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
 			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided;

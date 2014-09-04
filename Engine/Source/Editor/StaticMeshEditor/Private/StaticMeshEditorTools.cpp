@@ -379,6 +379,79 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs"))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs)
+			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged)
+		];
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<int32>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(1)
+			.MaxValue(2048)
+			.Value(this, &FMeshBuildSettingsLayout::GetMinLightmapResolution)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnMinLightmapResolutionChanged)
+		];
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<int32>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(0)
+			.MaxValue(8)
+			.Value(this, &FMeshBuildSettingsLayout::GetSrcLightmapIndex)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnSrcLightmapIndexChanged)
+		];
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<int32>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(0)
+			.MaxValue(8)
+			.Value(this, &FMeshBuildSettingsLayout::GetDstLightmapIndex)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDstLightmapIndexChanged)
+		];
+	}
+
+	{
 		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale").ToString())
 		.NameContent()
 		[
@@ -490,9 +563,29 @@ ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() 
 	return BuildSettings.bUseFullPrecisionUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
+ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs() const
+{
+	return BuildSettings.bGenerateLightmapUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
 ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided() const
 {
 	return BuildSettings.bGenerateDistanceFieldAsIfTwoSided ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+int32 FMeshBuildSettingsLayout::GetMinLightmapResolution() const
+{
+	return BuildSettings.MinLightmapResolution;
+}
+
+int32 FMeshBuildSettingsLayout::GetSrcLightmapIndex() const
+{
+	return BuildSettings.SrcLightmapIndex;
+}
+
+int32 FMeshBuildSettingsLayout::GetDstLightmapIndex() const
+{
+	return BuildSettings.DstLightmapIndex;
 }
 
 TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleX() const
@@ -567,6 +660,19 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 	}
 }
 
+void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState)
+{
+	const bool bGenerateLightmapUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bGenerateLightmapUVs != bGenerateLightmapUVs)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bGenerateLightmapUVs"), bGenerateLightmapUVs ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bGenerateLightmapUVs = bGenerateLightmapUVs;
+	}
+}
+
 void FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState)
 {
 	const bool bGenerateDistanceFieldAsIfTwoSided = (NewState == ESlateCheckBoxState::Checked) ? true : false;
@@ -577,6 +683,42 @@ void FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlate
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bGenerateDistanceFieldAsIfTwoSided"), bGenerateDistanceFieldAsIfTwoSided ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bGenerateDistanceFieldAsIfTwoSided = bGenerateDistanceFieldAsIfTwoSided;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnMinLightmapResolutionChanged( int32 NewValue )
+{
+	if (BuildSettings.MinLightmapResolution != NewValue)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("MinLightmapResolution"), FString::Printf(TEXT("%i"), NewValue));
+		}
+		BuildSettings.MinLightmapResolution = NewValue;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnSrcLightmapIndexChanged( int32 NewValue )
+{
+	if (BuildSettings.SrcLightmapIndex != NewValue)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("SrcLightmapIndex"), FString::Printf(TEXT("%i"), NewValue));
+		}
+		BuildSettings.SrcLightmapIndex = NewValue;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnDstLightmapIndexChanged( int32 NewValue )
+{
+	if (BuildSettings.DstLightmapIndex != NewValue)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("DstLightmapIndex"), FString::Printf(TEXT("%i"), NewValue));
+		}
+		BuildSettings.DstLightmapIndex = NewValue;
 	}
 }
 

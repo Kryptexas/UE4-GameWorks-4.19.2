@@ -143,7 +143,11 @@ private:
 	ESlateCheckBoxState::Type ShouldRecomputeTangents() const;
 	ESlateCheckBoxState::Type ShouldRemoveDegenerates() const;
 	ESlateCheckBoxState::Type ShouldUseFullPrecisionUVs() const;
+	ESlateCheckBoxState::Type ShouldGenerateLightmapUVs() const;
 	ESlateCheckBoxState::Type ShouldGenerateDistanceFieldAsIfTwoSided() const;
+	int32 GetMinLightmapResolution() const;
+	int32 GetSrcLightmapIndex() const;
+	int32 GetDstLightmapIndex() const;
 	TOptional<float> GetBuildScaleX() const;
 	TOptional<float> GetBuildScaleY() const;
 	TOptional<float> GetBuildScaleZ() const;
@@ -153,7 +157,11 @@ private:
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
 	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
+	void OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState);
 	void OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState);
+	void OnMinLightmapResolutionChanged( int32 NewValue );
+	void OnSrcLightmapIndexChanged( int32 NewValue );
+	void OnDstLightmapIndexChanged( int32 NewValue );
 	void OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType );
 	void OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType );
 	void OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType );

@@ -7,6 +7,7 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const class FPostConstructIni
 {
 	StaticMeshLODGroup = NAME_None;
 	bRemoveDegenerates = true;
+	bGenerateLightmapUVs = true;
 	bOneConvexHullPerUCX = true;
 }
 

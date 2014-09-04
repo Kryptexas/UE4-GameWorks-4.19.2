@@ -116,6 +116,7 @@ private:
 	void SetStaticMesh_CombineMeshes(ESlateCheckBoxState::Type NewType);
 	void SetStaticMesh_ReplaceVertexColor(ESlateCheckBoxState::Type NewType);
 	void SetStaticMesh_RemoveDegenerates(ESlateCheckBoxState::Type NewType);
+	void SetStaticMesh_GenerateLightmapUVs(ESlateCheckBoxState::Type NewType);
 	void SetStaticMesh_OneConvexHullPerUCX(ESlateCheckBoxState::Type NewType);
 	void SetMaterial_ImportMaterials(ESlateCheckBoxState::Type NewType);
 	void SetMaterial_ImportTextures(ESlateCheckBoxState::Type NewType);

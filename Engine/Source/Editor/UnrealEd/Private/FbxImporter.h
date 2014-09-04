@@ -113,6 +113,7 @@ struct FBXImportOptions
 	bool bCombineToSingle;
 	bool bReplaceVertexColors;
 	bool bRemoveDegenerates;
+	bool bGenerateLightmapUVs;
 	bool bOneConvexHullPerUCX;
 	FName StaticMeshLODGroup;
 	// Skeletal Mesh options

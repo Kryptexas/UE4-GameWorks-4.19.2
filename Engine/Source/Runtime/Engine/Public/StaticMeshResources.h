@@ -19,7 +19,7 @@ public:
 	/** Default values. */
 	FStaticMeshLODGroup()
 		: DefaultNumLODs(1)
-		, DefaultLightMapResolution(32)
+		, DefaultLightMapResolution(64)
 		, BasePercentTrianglesMult(1.0f)
 		, DisplayName( NSLOCTEXT( "UnrealEd", "None", "None" ) )
 	{

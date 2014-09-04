@@ -725,6 +725,17 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(SCheckBox)
+		.IsChecked(ImportUI->StaticMeshImportData->bGenerateLightmapUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_GenerateLightmapUVs)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("FbxOptionWindow_GenerateLightmapUVs", "Generate Lightmap UVs"))
+		]
+	];
+
+	NewBox->AddSlot().AutoHeight() .Padding(2)
+	[
+		SNew(SCheckBox)
 		.IsChecked(ImportUI->StaticMeshImportData->bOneConvexHullPerUCX ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_OneConvexHullPerUCX)
 		.IsEnabled( !bIsObjFormat )
@@ -1245,6 +1256,11 @@ void SFbxOptionWindow::SetStaticMesh_ReplaceVertexColor(ESlateCheckBoxState::Typ
 void SFbxOptionWindow::SetStaticMesh_RemoveDegenerates(ESlateCheckBoxState::Type NewType)
 {
 	ImportUI->StaticMeshImportData->bRemoveDegenerates = (NewType == ESlateCheckBoxState::Checked)? 1:0;
+}
+
+void SFbxOptionWindow::SetStaticMesh_GenerateLightmapUVs(ESlateCheckBoxState::Type NewType)
+{
+	ImportUI->StaticMeshImportData->bGenerateLightmapUVs = (NewType == ESlateCheckBoxState::Checked)? 1:0;
 }
 
 void SFbxOptionWindow::SetStaticMesh_OneConvexHullPerUCX(ESlateCheckBoxState::Type NewType)

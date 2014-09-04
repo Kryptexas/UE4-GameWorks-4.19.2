@@ -602,6 +602,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_AUTO_WELDING,
 	// Rename UCharacterMovementComponent::bCrouchMovesCharacterDown
 	VER_UE4_RENAME_CROUCHMOVESCHARACTERDOWN,
+	// Lightmap parameters in FMeshBuildSettings
+	VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

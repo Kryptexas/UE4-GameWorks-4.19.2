@@ -23,6 +23,9 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	/** Disabling this option will keep degenerate triangles found.  In general you should leave this option on. */
 	UPROPERTY(EditAnywhere, Category=ImportSettings)
 	uint32 bRemoveDegenerates:1;
+	
+	UPROPERTY(EditAnywhere, Category=ImportSettings)
+	uint32 bGenerateLightmapUVs:1;
 
 	/** If checked, one convex hull per UCX_ prefixed collision mesh will be generated instead of decomposing into multiple hulls */
 	UPROPERTY(EditAnywhere, config, Category=ImportSettings)

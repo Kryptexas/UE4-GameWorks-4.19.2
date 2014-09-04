@@ -19,16 +19,9 @@ FLayoutUV::FLayoutUV( FRawMesh* InMesh, uint32 InSrcChannel, uint32 InDstChannel
 	, ChartShader( &ChartRaster )
 {}
 
-void FindOverlappingCorners( TMultiMap<int32,int32>& OutOverlappingCorners, FRawMesh const& RawMesh, float ComparisonThreshold );
-
-void FLayoutUV::FindCharts()
+void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 {
 	double Begin = FPlatformTime::Seconds();
-
-	TMultiMap<int32,int32> OverlappingCorners;
-
-	// Find overlapping corners to accelerate adjacency.
-	FindOverlappingCorners( OverlappingCorners, *RawMesh, THRESH_POINTS_ARE_SAME );
 
 	uint32 NumIndexes = RawMesh->WedgeIndices.Num();
 	uint32 NumTris = NumIndexes / 3;

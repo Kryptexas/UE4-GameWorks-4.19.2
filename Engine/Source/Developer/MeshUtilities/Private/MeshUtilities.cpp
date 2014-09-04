@@ -1459,7 +1459,7 @@ static void ComputeTriangleTangents(
  * @param OutOverlappingCorners - Maps a corner index to the indices of all overlapping corners.
  * @param RawMesh - The mesh for which to compute overlapping corners.
  */
-void FindOverlappingCorners(
+static void FindOverlappingCorners(
 	TMultiMap<int32,int32>& OutOverlappingCorners,
 	FRawMesh const& RawMesh,
 	float ComparisonThreshold
@@ -2278,6 +2278,19 @@ bool FMeshUtilities::BuildStaticMesh(
 			check(RawMesh.WedgeTangentX.Num() == NumWedges);
 			check(RawMesh.WedgeTangentY.Num() == NumWedges);
 			check(RawMesh.WedgeTangentZ.Num() == NumWedges);
+
+			// Generate lightmap UVs
+			if( SrcModel.BuildSettings.bGenerateLightmapUVs )
+			{
+				FLayoutUV Packer( &RawMesh, SrcModel.BuildSettings.SrcLightmapIndex, SrcModel.BuildSettings.DstLightmapIndex, SrcModel.BuildSettings.MinLightmapResolution );
+
+				Packer.FindCharts( OverlappingCorners );
+				bool bPackSuccess = Packer.FindBestPacking();
+				if( bPackSuccess )
+				{
+					Packer.CommitPackedUVs();
+				}
+			}
 		}
 		else if (LODIndex > 0 && MeshReduction)
 		{
@@ -3155,7 +3168,7 @@ void FMeshUtilities::CreateProxyMesh(
 		StaticMesh->LightingGuid = FGuid::NewGuid();
 
 		// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-		StaticMesh->LightMapResolution = 32;
+		StaticMesh->LightMapResolution = 64;
 		StaticMesh->LightMapCoordinateIndex = 1;
 
 		FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
@@ -3794,8 +3807,12 @@ bool FMeshUtilities::LayoutUVs(FRawMesh& RawMesh, uint32 TextureResolution, uint
 	}*/
 
 	FLayoutUV Packer( &RawMesh, 0, TexCoordIndex, TextureResolution );
+	
+	// Find overlapping corners to accelerate adjacency.
+	TMultiMap<int32,int32> OverlappingCorners;
+	FindOverlappingCorners( OverlappingCorners, RawMesh, THRESH_POINTS_ARE_SAME );
 
-	Packer.FindCharts();
+	Packer.FindCharts( OverlappingCorners );
 	bool bPackSuccess = Packer.FindBestPacking();
 	if( bPackSuccess )
 	{

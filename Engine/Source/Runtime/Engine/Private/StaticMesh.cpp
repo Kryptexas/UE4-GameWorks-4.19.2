@@ -985,6 +985,11 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bRecomputeTangents;
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
+	Ar << BuildSettings.bGenerateLightmapUVs;
+
+	Ar << BuildSettings.MinLightmapResolution;
+	Ar << BuildSettings.SrcLightmapIndex;
+	Ar << BuildSettings.DstLightmapIndex;
 
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_BUILD_SCALE_VECTOR)
 	{
@@ -1006,7 +1011,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("4668778661B445A9523C94440EA899D")
+#define STATICMESH_DERIVEDDATA_VER TEXT("46A8778361B442A9523C54440EA1E9D")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1845,6 +1850,14 @@ void UStaticMesh::PostLoad()
 		{
 			FStaticMeshSourceModel& SrcModel = SourceModels[LODIndex];
 			SrcModel.BuildSettings.BuildScale3D = FVector( SrcModel.BuildSettings.BuildScale_DEPRECATED );
+		}
+	}
+
+	if( GetLinkerUE4Version() < VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS )
+	{
+		for( int32 i = 0; i < SourceModels.Num(); i++ )
+		{
+			SourceModels[i].BuildSettings.bGenerateLightmapUVs = false;
 		}
 	}
 
