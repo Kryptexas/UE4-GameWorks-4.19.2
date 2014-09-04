@@ -3445,7 +3445,10 @@ void FKismetCompilerContext::Compile()
 
 			CurrentBP->Status = BS_Dirty;
 			FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP, NewClass);
-			CurrentBP->BroadcastChanged();
+			
+			// Note: We do not send a change notification event to the dependent BP here because
+			// we have not yet reinstanced any of the instances of the BP being compiled, which may
+			// be referenced by instances of the dependent BP that may be reconstructed as a result.
 
 			// Clear the package dirty state if it did not initially have any unsaved changes to begin with
 			if(Package != nullptr && Package->IsDirty() && !bStartedWithUnsavedChanges)

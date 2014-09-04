@@ -429,19 +429,25 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
 	}
 
-	// for interface changes, auto-refresh nodes on any dependent blueprints
-	if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
-	{
-		TArray<UBlueprint*> DependentBPs;
-		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
+	TArray<UBlueprint*> DependentBPs;
+	FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
 
-		// refresh each dependent blueprint
-		for (UBlueprint* Dependent : DependentBPs)
+	// refresh each dependent blueprint
+	for (UBlueprint* Dependent : DependentBPs)
+	{
+		// for interface changes, auto-refresh nodes on any dependent blueprints
+		// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
+		if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
 		{
 			bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
 			Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
 			FBlueprintEditorUtils::RefreshAllNodes(Dependent);
 			Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
+		}
+		else if(!BlueprintObj->bIsRegeneratingOnLoad)
+		{
+			// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
+			Dependent->BroadcastChanged();
 		}
 	}
 
