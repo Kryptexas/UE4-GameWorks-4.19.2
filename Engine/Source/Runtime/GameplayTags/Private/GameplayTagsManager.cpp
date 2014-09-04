@@ -4,8 +4,6 @@
 #include "GameplayTagsSettings.h"
 //#include "AssetRegistryModule.h"
 
-#pragma optimize( "", off )
-
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
