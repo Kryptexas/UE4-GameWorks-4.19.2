@@ -54,6 +54,68 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 	#include <GPUPerfAPI/Gpa.h>
 #endif
 
+#if PLATFORM_SUPPORTS_RHI_THREAD
+void FD3D11DynamicRHI::SetupRecursiveResources()
+{
+	FRHICommandList_RecursiveHazardous RHICmdList;
+	extern int32 GCreateShadersOnLoad;
+	TGuardValue<int32> Guard(GCreateShadersOnLoad, 1);
+	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
+	GD3D11Vector4VertexDeclaration.InitRHI();
+
+	for (int32 NumBuffers = 1; NumBuffers <= MaxSimultaneousRenderTargets; NumBuffers++)
+	{
+		FOneColorPS* PixelShader = NULL;
+
+		// Set the shader to write to the appropriate number of render targets
+		// On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit
+		if (NumBuffers <= 1)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+		else if (NumBuffers == 2)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+		else if (NumBuffers== 3)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+		else if (NumBuffers == 4)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+		else if (NumBuffers == 5)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+		else if (NumBuffers == 6)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+		else if (NumBuffers == 7)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+		else if (NumBuffers == 8)
+		{
+			TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(ShaderMap);
+			PixelShader = *MRTPixelShader;
+		}
+
+		SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[NumBuffers - 1], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+	}
+}
+#endif
+
 void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
 {
 	#if WITH_GPA
@@ -1039,6 +1101,9 @@ void FD3D11DynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 
 	if(Query->QueryType == RQT_Occlusion)
 	{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		Query->bResultIsCached = false;
+#endif
 		Direct3DDeviceIMContext->Begin(Query->Resource);
 	}
 	else
@@ -1052,6 +1117,9 @@ void FD3D11DynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	GRHICommandList.Verify();
 
 	DYNAMIC_CAST_D3D11RESOURCE(OcclusionQuery,Query);
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	Query->bResultIsCached = false; // for occlusion queries, this is redundant with the one in begin
+#endif
 	Direct3DDeviceIMContext->End(Query->Resource);
 
 	//@todo - d3d debug spews warnings about OQ's that are being issued but not polled, need to investigate

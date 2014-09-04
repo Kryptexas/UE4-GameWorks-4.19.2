@@ -317,6 +317,10 @@ public:
 	/** If it hasn't been initialized yet, initializes the D3D device. */
 	virtual void InitD3DDevice();
 
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	void SetupRecursiveResources();
+#endif
+
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;

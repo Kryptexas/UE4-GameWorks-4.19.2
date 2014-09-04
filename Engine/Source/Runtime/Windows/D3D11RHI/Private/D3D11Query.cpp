@@ -29,12 +29,14 @@ FRenderQueryRHIRef FD3D11DynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 	return new FD3D11OcclusionQuery(Query, QueryType);
 }
 
+#if !PLATFORM_SUPPORTS_RHI_THREAD
 void FD3D11DynamicRHI::RHIResetRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
 	DYNAMIC_CAST_D3D11RESOURCE(OcclusionQuery,Query);
 
 	Query->bResultIsCached = false;
 }
+#endif
 
 bool FD3D11DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,uint64& OutResult,bool bWait)
 {

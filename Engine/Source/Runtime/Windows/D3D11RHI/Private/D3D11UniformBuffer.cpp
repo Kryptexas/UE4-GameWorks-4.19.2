@@ -87,6 +87,10 @@ void UniformBufferBeginFrame()
 
 static bool IsPoolingEnabled()
 {
+	if (GRHIThread && IsInRenderingThread() && GRHICommandList.IsRHIThreadActive())
+	{
+		return false; // we can't currently use pooling if the RHI thread is active. 
+	}
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UniformBufferPooling"));
 	int32 CVarValue = CVar->GetValueOnRenderThread();
 	return CVarValue != 0;
@@ -94,7 +98,7 @@ static bool IsPoolingEnabled()
 
 FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Contents,const FRHIUniformBufferLayout& Layout,EUniformBufferUsage Usage)
 {
-	check(IsInRenderingThread());
+	check(IsInRenderingThread() || IsInRHIThread());
 
 	FD3D11UniformBuffer* NewUniformBuffer = nullptr;
 	const uint32 NumBytes = Layout.ConstantBufferSize;

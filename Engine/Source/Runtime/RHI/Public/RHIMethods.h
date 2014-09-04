@@ -1270,11 +1270,13 @@ DEFINE_RHIMETHOD_GLOBAL_1(
 	return,return new FRHIRenderQuery();
 	);
 
+#if !PLATFORM_SUPPORTS_RHI_THREAD
 DEFINE_RHIMETHOD_CMDLIST_1(
 	void,ResetRenderQuery,
 	FRenderQueryRHIParamRef,RenderQuery,
 	,
 	);
+#endif
 
 DEFINE_RHIMETHOD_CMDLIST_1(
 	void,BeginRenderQuery,
@@ -1286,8 +1288,7 @@ DEFINE_RHIMETHOD_CMDLIST_1(
 	FRenderQueryRHIParamRef,RenderQuery,
 	,
 	);
-
-#if PLATFORM_SUPPORTS_RHI_THREAD
+#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
 	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
 		bool,GetRenderQueryResult,
 		FRenderQueryRHIParamRef,RenderQuery,
@@ -1295,6 +1296,17 @@ DEFINE_RHIMETHOD_CMDLIST_1(
 		bool,bWait,
 		return,return true;
 	);
+#else
+	DEFINE_RHIMETHOD_3(
+		bool,GetRenderQueryResult,
+		FRenderQueryRHIParamRef,RenderQuery,
+		uint64&,OutResult,
+		bool,bWait,
+		return,return true;
+	);
+#endif
+
+#if PLATFORM_SUPPORTS_RHI_THREAD
 	DEFINE_RHIMETHOD_CMDLIST_2(
 		void,BeginDrawingViewport,
 		FViewportRHIParamRef,Viewport,
@@ -1346,13 +1358,6 @@ DEFINE_RHIMETHOD_CMDLIST_1(
 		);
 
 #else
-	DEFINE_RHIMETHOD_3(
-		bool,GetRenderQueryResult,
-		FRenderQueryRHIParamRef,RenderQuery,
-		uint64&,OutResult,
-		bool,bWait,
-		return,return true;
-	);
 	DEFINE_RHIMETHOD_2(
 		void,BeginDrawingViewport,
 		FViewportRHIParamRef,Viewport,

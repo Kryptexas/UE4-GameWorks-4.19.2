@@ -17,8 +17,9 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount,
 Requirements for RHI thread
 * Microresources (those in RHIStaticStates.h) need to be able to be created by any thread at any time and be able to work with a radically simplified rhi resource lifecycle. CreateSamplerState, CreateRasterizerState, CreateDepthStencilState, CreateBlendState
 * CreateUniformBuffer needs to be threadsafe
-* GetRenderQueryResult needs to be threadsafe, but perhaps this can be supported if it can't be
+* GetRenderQueryResult should be threadsafe, if not, then PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult should be 1
 * AdvanceFrameForGetViewportBackBuffer needs be added as an RHI method and this needs to work with GetViewportBackBuffer to give the render thread the right back buffer even though many commands relating to the beginning and end of the frame are queued.
+* ResetRenderQuery does not exist; this stuff should be done in BeginQuery
 
 ***/
 #endif
@@ -348,6 +349,16 @@ void FRHICommandListExecutor::CheckNoOutstandingCmdLists()
 	check(GRHICommandList.OutstandingCmdListCount.GetValue() == 1); // else we are attempting to delete resources while there is still a live cmdlist (other than the immediate cmd list) somewhere.
 }
 
+bool FRHICommandListExecutor::IsRHIThreadActive()
+{
+	checkSlow(IsInRenderingThread());
+	if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
+	{
+		RHIThreadTask = nullptr;
+	}
+	return !!RHIThreadTask.GetReference();
+}
+
 FGraphEventRef FRHICommandListExecutor::RHIThreadFence()
 {
 	check(IsInRenderingThread() && GRHIThread);
@@ -355,6 +366,7 @@ FGraphEventRef FRHICommandListExecutor::RHIThreadFence()
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIThreadFence_Dispatch);
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 	}
+	// this isn't quite right, but is probably fine for current uses. If there is a RenderThreadSublistDispatchTask, then we need that to be the fence, however, then that RT thread task needs to "do not complete until" or something so we can track the actual completion.
 	if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
 	{
 		RHIThreadTask = nullptr;

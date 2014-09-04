@@ -1094,6 +1094,7 @@ struct FRHICommandEndRenderQuery : public FRHICommand<FRHICommandEndRenderQuery>
 	}
 };
 
+#if !PLATFORM_SUPPORTS_RHI_THREAD
 struct FRHICommandResetRenderQuery : public FRHICommand<FRHICommandResetRenderQuery>
 {
 	FRenderQueryRHIParamRef RenderQuery;
@@ -1107,6 +1108,7 @@ struct FRHICommandResetRenderQuery : public FRHICommand<FRHICommandResetRenderQu
 		ResetRenderQuery_Internal(RenderQuery);
 	}
 };
+#endif
 
 struct FRHICommandBeginScene : public FRHICommand<FRHICommandBeginScene>
 {
@@ -1695,6 +1697,7 @@ public:
 		}
 		new (AllocCommand<FRHICommandEndRenderQuery>()) FRHICommandEndRenderQuery(RenderQuery);
 	}
+#if !PLATFORM_SUPPORTS_RHI_THREAD
 	FORCEINLINE_DEBUGGABLE void ResetRenderQuery(FRenderQueryRHIParamRef RenderQuery)
 	{
 		if (Bypass())
@@ -1704,6 +1707,7 @@ public:
 		}
 		new (AllocCommand<FRHICommandResetRenderQuery>()) FRHICommandResetRenderQuery(RenderQuery);
 	}
+#endif
 
 #if PLATFORM_SUPPORTS_RHI_THREAD
 	FORCEINLINE_DEBUGGABLE void BeginScene()
@@ -1841,6 +1845,7 @@ public:
 #endif
 	}
 	static void CheckNoOutstandingCmdLists();
+	static bool IsRHIThreadActive();
 
 private:
 

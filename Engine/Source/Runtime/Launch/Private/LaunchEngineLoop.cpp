@@ -1308,6 +1308,18 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	if (GUseThreadedRendering)
 	{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		const bool DefaultUseRHIThread = false;
+		GUseRHIThread = DefaultUseRHIThread;
+		if (FParse::Param(FCommandLine::Get(),TEXT("rhithread")))
+		{
+			GUseRHIThread = true;
+		}
+		else if (FParse::Param(FCommandLine::Get(),TEXT("norhithread")))
+		{
+			GUseRHIThread = false;
+		}
+#endif
 		StartRenderingThread();
 	}
 	
