@@ -7,7 +7,7 @@
 
 UBTDecorator_Blackboard::UBTDecorator_Blackboard(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	NodeName = "Blackboard";
+	NodeName = "Blackboard Based Condition";
 	NotifyObserver = EBTBlackboardRestart::ResultChange;
 }
 
