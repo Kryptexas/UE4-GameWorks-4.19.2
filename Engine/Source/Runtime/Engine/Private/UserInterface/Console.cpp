@@ -551,7 +551,7 @@ bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Eve
 	bool bModifierDown = bCtrl;
 	FModifierKeysState KeyState = FSlateApplication::Get().GetModifierKeys();
 	bModifierDown |= KeyState.IsAltDown() || KeyState.IsCommandDown() || KeyState.IsShiftDown() || KeyState.IsControlDown();
-	if ( Key==GetDefault<UInputSettings>()->ConsoleKey && Event == IE_Pressed && !bModifierDown )
+	if ( GetDefault<UInputSettings>()->ConsoleKeys.Contains(Key) && Event == IE_Pressed && !bModifierDown )
 	{
 		if (ConsoleState == NAME_Typing)
 		{

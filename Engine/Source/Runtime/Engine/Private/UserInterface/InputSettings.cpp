@@ -15,6 +15,12 @@ void UInputSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
 
+	if (ConsoleKey_DEPRECATED.IsValid())
+	{
+		ConsoleKeys.Empty(1);
+		ConsoleKeys.Add(ConsoleKey_DEPRECATED);
+	}
+
 	TMap<FName, int32> UniqueAxisConfigNames;
 	for (int32 Index = 0; Index < AxisConfig.Num(); ++Index)
 	{
