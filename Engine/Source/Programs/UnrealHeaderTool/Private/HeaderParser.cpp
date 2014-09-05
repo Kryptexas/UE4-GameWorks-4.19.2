@@ -3295,12 +3295,12 @@ bool FHeaderParser::GetVarType
 
 	if ((VarProperty.PropertyFlags & CPF_BlueprintCallable) && VarProperty.Type != CPT_MulticastDelegate)
 	{
-		FError::Throwf(TEXT("'BlueprintCallable' is only allowed on multicast delegate properties"));
+		FError::Throwf(TEXT("'BlueprintCallable' is only allowed on a property when it is a multicast delegate"));
 	}
 
 	if ((VarProperty.PropertyFlags & CPF_BlueprintAuthorityOnly) && VarProperty.Type != CPT_MulticastDelegate)
 	{
-		FError::Throwf(TEXT("'BlueprintAuthorityOnly' is only allowed on multicast delegate properties"));
+		FError::Throwf(TEXT("'BlueprintAuthorityOnly' is only allowed on a property when it is a multicast delegate"));
 	}
 	
 	if (VariableCategory != EVariableCategory::Member)
