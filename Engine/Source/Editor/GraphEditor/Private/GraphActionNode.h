@@ -1,421 +1,263 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
+#include "SGraphActionMenu.h" // for FOnRenameRequestActionNode
+
 // Utility class for building menus of graph actions
-
-#ifndef __GraphActionNode_h__
-#define __GraphActionNode_h__
-
-struct FGraphActionNode : TSharedFromThis<FGraphActionNode>
+struct GRAPHEDITOR_API FGraphActionNode : TSharedFromThis<FGraphActionNode>
 {
-	/** The section this node belongs to (if any) */
-	int32 SectionID;
-
-	/** The category this node belongs in. */
-	FString Category;
-	/** The category chain, separated using '|' */
-	FString CategoryChain;
-
-	int32 Grouping;
-	TArray< TSharedPtr<FEdGraphSchemaAction> > Actions;
-
-	/** When the item is first created, a rename request may occur before everything is setup for it. This toggles to true in those cases */
-	bool bIsRenameRequestBeforeReady;
-
-	/** Broadcasts whenever renaming a layer is requested */
-	FOnRenameRequestActionNode& OnRenameRequest() { return RenameRequestEvent; }
-	void BroadcastRenameRequest() { RenameRequestEvent.ExecuteIfBound(); }
-
-	/** Broadcasts whenever a rename is requested */
-	FOnRenameRequestActionNode RenameRequestEvent;
-
-	TArray< TSharedPtr<FGraphActionNode> > Children;
 public:
-	static TSharedPtr<FGraphActionNode> NewAction( TSharedPtr<FEdGraphSchemaAction> InAction )
-	{
-		return MakeShareable( new FGraphActionNode( TEXT(""), (InAction.IsValid() ? InAction->Grouping : 0), InAction) );
-	}
+	/** */
+	static const int32 INVALID_SECTION_ID = 0;
 
-	static TSharedPtr<FGraphActionNode> NewAction( TArray< TSharedPtr<FEdGraphSchemaAction> >& InActionList )
-	{
-		int32 Grouping = 0;
-		int32 SectionID = 0;
-		for ( int32 ActionIndex = 0; ActionIndex < InActionList.Num(); ActionIndex++ )
-		{
-			TSharedPtr<FEdGraphSchemaAction> CurrentAction = InActionList[ActionIndex];
-			if ( CurrentAction.IsValid() )
-			{
-				Grouping = FMath::Max( CurrentAction->Grouping, Grouping );
-				// Copy the section ID if we don't already have one
-				if( SectionID == 0 )
-				{
-					SectionID = CurrentAction->SectionID;
-				}
-			}
-		}
+	/** Identifies the named section that this node belongs to, if any (defaults to INVALID_SECTION_ID) */
+	int32 const SectionID;
+	/** Identifies the menu group that this node belongs to (defaults to zero) */
+	int32 const Grouping;
+	/** A set of actions to execute when this node is picked from a menu */
+	TArray< TSharedPtr<FEdGraphSchemaAction> > const Actions;
 
-		return MakeShareable( new FGraphActionNode( TEXT(""), Grouping, InActionList, SectionID ) );
-	}
+	/** */
+	TArray< TSharedPtr<FGraphActionNode> > Children;
 
-	static TSharedPtr<FGraphActionNode> NewCategory( const FString& InCategory, const FString& InCategoryChain, int32 InGrouping = 0 )
-	{
-		return MakeShareable( new FGraphActionNode(InCategory, InCategoryChain, InGrouping, NULL) );
-	}
-
-	static TSharedPtr<FGraphActionNode> NewSeparator( int32 InGrouping = 0 )
-	{
-		return MakeShareable( new FGraphActionNode(TEXT(""), InGrouping, NULL) );
-	}
-
-	static TSharedPtr<FGraphActionNode> NewSeparatorWithTitle( int32 InGrouping, int32 InNodeSection )
-	{
-		return MakeShareable( new FGraphActionNode( InGrouping, InNodeSection) );
-	}
-
-	bool IsActionNode() const
-	{
-		return (Actions.Num() > 0 && Actions[0].IsValid());
-	}
-
-	bool IsCategoryNode() const
-	{
-		return (Actions.Num()==0 || !Actions[0].IsValid()) && !Category.IsEmpty();
-	}
-
-	bool IsSeparator() const
-	{
-		return (Actions.Num()==0 || !Actions[0].IsValid()) && Category.IsEmpty();
-	}
-
-	void AddChild(TSharedPtr<FGraphActionNode> NodeToAdd, TArray<FString>& CategoryStack, bool bAlphaSort, FString& CategoryChain)
-	{
-		// If we still have some categories in the chain to process...
-		if( CategoryStack.Num() )
-		{
-			// ...check to see if we have any 
-			const FString NextCategory = CategoryStack[0];
-			CategoryStack.RemoveAt(0,1);
-			bool bFoundMatch = false;
-			for( int32 i = 0; i < Children.Num(); i++ )
-			{
-				TSharedPtr<FGraphActionNode>& CurrentChild = Children[i];
-				if(CurrentChild->IsCategoryNode())
-				{
-					bFoundMatch = NextCategory == CurrentChild->Category && NodeToAdd->SectionID == CurrentChild->SectionID;
-				}
-				else if(CurrentChild->IsActionNode())
-				{
-					if ( NodeToAdd->IsActionNode() )
-					{
-						TSharedPtr<FEdGraphSchemaAction> CurrentAction = NodeToAdd->Actions[0];
-
-						// Make the action's name into a display name, all categories are set as such
-						bFoundMatch = CurrentAction->IsParentable()
-							&& NextCategory == FName::NameToDisplayString(CurrentChild->Actions[0]->MenuDescription.ToString(), false);
-					}
-				}
-				
-				if( bFoundMatch )
-				{
-					CategoryChain = CategoryChain.IsEmpty() ? NextCategory : FString::Printf( TEXT( "%s|%s" ), *CategoryChain, *NextCategory );
-					CurrentChild->AddChild(NodeToAdd, CategoryStack, bAlphaSort, CategoryChain);
-					break;
-				}
-			}
-
-			if( !bFoundMatch )
-			{
-				CategoryChain = CategoryChain.IsEmpty() ? NextCategory : FString::Printf( TEXT( "%s|%s" ), *CategoryChain, *NextCategory );
-				TSharedPtr<FGraphActionNode> NewCategoryNode = NewCategory(NextCategory, CategoryChain, NodeToAdd->Grouping);
-				// Copy the section ID also 
-				NewCategoryNode->SectionID = NodeToAdd->SectionID;
-				AddToChildrenSorted(NewCategoryNode, bAlphaSort);
-				NewCategoryNode->AddChild(NodeToAdd, CategoryStack, bAlphaSort, CategoryChain);
-			}
-		}
-		else
-		{
-			// End of the category chain, add it to this level!
-			AddToChildrenSorted(NodeToAdd, bAlphaSort);
-		}
-	}
+public:
+	/**
+	 * Static allocator for a new root node (so external users have a starting
+	 * point to build graph action trees from).
+	 *
+	 * @return A newly allocated root node (should not be displayed in the tree view).
+	 */
+	static TSharedPtr<FGraphActionNode> NewRootNode();
 
 	/**
-	* Iterates through all this node's children, and tells the tree view to expand them
-	*/
-	void ExpandAllChildren( TSharedPtr< STreeView< TSharedPtr<FGraphActionNode> > > TreeView )
-	{
-		if( Children.Num() )
-		{
-			TreeView->SetItemExpansion(this->AsShared(), true);
-			for( int32 i = 0; i < Children.Num(); i++ )
-			{
-				Children[i]->ExpandAllChildren(TreeView);
-			}
-		}
-	}
+	 * Inserts a new action node (and any accompanying category nodes) based off
+	 * the provided ActionSet. 
+	 *
+	 * NOTE: This does NOT insert the node in a sorted manner. Call SortChildren() 
+	 *       separately to accomplish that (done for performance reasons).
+	 * 
+	 * @param  ActionSet	A list of actions that you want the node to execute when picked.
+	 * @return The new action node.
+	 */
+	TSharedPtr<FGraphActionNode> AddChild(FGraphActionListBuilderBase::ActionGroup const& ActionSet);
 
-	void ClearChildren()
-	{
-		Children.Empty();
-	}
+	/**
+	 * Sorts all child nodes by section, group, and type (additionally, can
+	 * sort alphabetically if wanted).
+	 * 
+	 * @param  bAlphabetically	Determines if we sort alphabetically on top of section/group/type.
+	 * @param  bRecursive		Determines if we should sort all decedent nodes' children ass well.
+	 */
+	void SortChildren(bool bAlphabetically = true, bool bRecursive = true);
 
-	void AddToChildrenSorted(TSharedPtr<FGraphActionNode> NodeToAdd, bool bAlphaSort)
-	{
- 		if( NodeToAdd->SectionID != 0 )
- 		{
- 			return AddToChildrenSortedWithSection( NodeToAdd, bAlphaSort );
- 		}
-		// Run over the children list, and break when we figure out where we belong
-		int32 i;
-		for(i = 0; i < Children.Num(); i++)
-		{
-			if( NodeCompare(NodeToAdd, Children[i], bAlphaSort) )
-			{
-				break;
-			}
-		}
+	/**
+	 * Recursively collects all child/grandchild/decedent nodes.
+	 * 
+	 * @param  OutNodeArray	The array to fill out with decedent nodes.
+	 */
+	void GetAllNodes(TArray< TSharedPtr<FGraphActionNode> >& OutNodeArray) const;
 
-		// Check to see if this is the first node in a boundary between groupings, and add a separator if so
-		const int32 CurrentChildren = Children.Num();
-		if( i < CurrentChildren - 1 )
-		{
-			TSharedPtr<FGraphActionNode> PreviousEntry = Children[i];
-			if( NodeToAdd->Grouping != PreviousEntry->Grouping )
-			{
-				Children.Insert( NewSeparator(NodeToAdd->Grouping), i );
-			}
-		}
+	/**
+	 * Recursively collects all decedent action/separator nodes (leaves out 
+	 * branching category-nodes).
+	 * 
+	 * @param  OutLeafArray	The array to fill out with decedent leaf nodes.
+	 */
+	void GetLeafNodes(TArray< TSharedPtr<FGraphActionNode> >& OutLeafArray) const;
 
-		// Finally, add the item
-		Children.Insert(NodeToAdd, i);
-	}
+	/**
+	 * Takes the tree view and expands its elements for each child.
+	 * 
+	 * @param  TreeView		The tree responsible for visualizing this node hierarchy.
+	 * @param  bRecursive	Determines if you want children/decedents to expand their children as well. 
+	 */
+	void ExpandAllChildren(TSharedPtr< STreeView< TSharedPtr<FGraphActionNode> > > TreeView, bool bRecursive = true);
 
-	
-	void AddToChildrenSortedWithSection(TSharedPtr<FGraphActionNode> NodeToAdd, bool bAlphaSort)
-	{
-		// Run over the children list, and break when we figure out where we belong
-		int32 i;
-		for(i = 0; i < Children.Num(); i++)
-		{
-			if( NodeCompareWithSection(NodeToAdd, Children[i], bAlphaSort) )
-			{
-				break;
-			}
-		}
+	/**
+	 * Clears all children (not recursively... the TSharedPtrs should clean up 
+	 * appropriately).
+	 */
+	void ClearChildren();
 
-		const int32 CurrentChildren = Children.Num();
-		bool AddGroup = false;		
-		if ( CurrentChildren != 0)
-		{
-			// If we have any children check if the previous section matches, if not, insert a new one
-			int32 PreviousIndex = FMath::Clamp( i-1, 0, CurrentChildren - 1 );
-			TSharedPtr<FGraphActionNode> PreviousEntry = Children[PreviousIndex];
-			if( NodeToAdd->SectionID != PreviousEntry->SectionID )
-			{
-				AddGroup = true;
-			}
-		}
-		else
-		{
-			// There are no children so we need to create a section
-			AddGroup = true;
-		}
-		// Override the group requirement if this node is in a category (only variables are shown in categories anyway - no point in adding separators)
-		if( (NodeToAdd->Actions.Num() != 0 ) && ( NodeToAdd->Actions[0].IsValid() == true ) && (!NodeToAdd->Actions[0]->Category.IsEmpty()) )
-		{
-			AddGroup = false;
-		}
-		// If we want a group - add it now
-		if( AddGroup )
-		{
-			Children.Insert( NewSeparatorWithTitle(NodeToAdd->Grouping, NodeToAdd->SectionID), i );
-			i++;
-		}		
+	/**
+	 * Query to determine this node's type (there are five distinguishable node
+	 * types: root, section heading, category, action, & group-divider).
+	 *
+	 * @return True if this is the type your queried about, otherwise false.
+	 */
+	bool IsRootNode() const;
+	bool IsSectionHeadingNode() const;
+	bool IsCategoryNode() const;
+	bool IsActionNode() const;
+	bool IsGroupDividerNode() const;
 
-		// Finally, add the item
-		Children.Insert(NodeToAdd, i);
-	}
+	/**
+	 * Determines if this node is a menu separator of some kind (either a
+	 * "group-divider" or a "section heading").
+	 *
+	 * @return True if this is a menu divider, otherwise false.
+	 */
+	bool IsSeparator() const;
+	/**
+	 * Retrieves this node's display name (for category and action nodes). The
+	 * text string will be empty for separator and root nodes.
+	 *
+	 * @return The name to present this node with in the tree view (will be an empty text string if this is a separator node)
+	 */
+	FText const& GetDisplayName() const;
 
-	/** Comparison function for sorted insertion:  returns true when NodeA belongs before NodeB, false otherwise */
-	bool NodeCompareWithSection(TSharedPtr<FGraphActionNode> NodeA, TSharedPtr<FGraphActionNode> NodeB, bool bAlphaSort)
-	{
-		const bool bNodeAIsSeparator = NodeA->IsSeparator();
-		const bool bNodeBIsSeparator = NodeB->IsSeparator();
+	/**
+	 * Walks the node chain backwards, constructing a category path (delimited
+	 * by '|' characters). This includes this node's category (if it is a
+	 * category node).
+	 *
+	 * @return A category path string, denoting the category hierarchy up to this node.
+	 */
+	FString GetCategoryPath() const;
 
-		const bool bNodeAIsCategory = NodeA->IsCategoryNode();
-		const bool bNodeBIsCategory = NodeB->IsCategoryNode();
+	/**
+	 * Checks to see if this node contains at least one valid action.
+	 *
+	 * @return True is the Actions array contains a valid entry, otherwise false.
+	 */
+	bool HasValidAction() const;
 
-		if( ( NodeA->SectionID == NodeB->SectionID) && ( bNodeAIsSeparator == true ) )
-		{
-			return false;
-		}
-		if( NodeA->SectionID != NodeB->SectionID )
-		{
-			return NodeA->SectionID < NodeB->SectionID;
-		}
-		else if ( bNodeBIsCategory == true ) 
-		{
-			// If next node is a category and we are not, we go first
-			if( bNodeAIsCategory == false )
-			{
-				return true;
-			}
+	/**
+	 * Looks through this node's Actions array, and returns the first valid
+	 * action it finds.
+	 *
+	 * @return This node's first valid action (will be an empty pointer if this is not an action node).
+	 */
+	TSharedPtr<FEdGraphSchemaAction> GetPrimaryAction() const;
 
-			// Both nodes must categories - insert me here if this is my category
-			return (NodeA->Category == NodeB->Category);		
-		}		
-		else
-		{
-			if(bAlphaSort)
-			{
-				// Finally, alphabetize
-				if( bNodeAIsCategory )
-				{
-					return (NodeA->Category <= NodeB->Category);
-				}
-				else
-				{
-					return (NodeA->Actions[0]->MenuDescription.CompareTo(NodeB->Actions[0]->MenuDescription) <= 0);
-				}
-			}
-			else
-			{
-				return false;
-			}
-		}
-	}
-	/** Comparison function for sorted insertion:  returns true when NodeA belongs before NodeB, false otherwise */
-	bool NodeCompare(TSharedPtr<FGraphActionNode> NodeA, TSharedPtr<FGraphActionNode> NodeB, bool bAlphaSort)
-	{
-		const bool bNodeAIsSeparator = NodeA->IsSeparator();
-		const bool bNodeBIsSeparator = NodeB->IsSeparator();
+	/**
+	 * Accessor to the node's RenameRequestEvent (for binding purposes). Do not
+	 * Execute() the delegate from this function, instead call
+	 * BroadcastRenameRequest() on the node.
+	 *
+	 * @return The node's internal RenameRequestEvent.
+	 */
+	FOnRenameRequestActionNode& OnRenameRequest() { return RenameRequestEvent; }
 
-		const bool bNodeAIsCategory = NodeA->IsCategoryNode();
-		const bool bNodeBIsCategory = NodeB->IsCategoryNode();
+	/**
+	 * Executes the node's RenameRequestEvent if it is bound. Otherwise, it will
+	 * mark the node as having a pending rename request.
+	 *
+	 * @return True if the broadcast went through, false if the "pending rename request" flag was set.
+	 */
+	bool BroadcastRenameRequest();
 
-		// Grouping trumps all
-		if( NodeA->Grouping != NodeB->Grouping )
-		{
-			return NodeA->Grouping >= NodeB->Grouping;
-		}
-		// Next, make sure separators are preserved
-		else if( bNodeAIsSeparator != bNodeBIsSeparator )
-		{
-			return bNodeBIsSeparator;
-		}
-		// Next, categories come before terminals
-		else if( bNodeAIsCategory != bNodeBIsCategory )
-		{
-			return bNodeAIsCategory;
-		}
-		else
-		{
-			if(bAlphaSort)
-			{
-				// Finally, alphabetize
-				if( bNodeAIsCategory )
-				{
-					return (NodeA->Category <= NodeB->Category);
-				}
-				else
-				{
-					return (NodeA->Actions[0]->MenuDescription.CompareTo(NodeB->Actions[0]->MenuDescription) <= 0);
-				}
-			}
-			else
-			{
-				return false;
-			}
-		}
-	}
+	/**
+	 * Sometimes a call to BroadcastRenameRequest() is made before the
+	 * RenameRequestEvent has been bound. When that happens, this node is
+	 * marked with a pending rename request. This method determines if that is
+	 * the case for this node.
+	 *
+	 * @return True if a call to BroadcastRenameRequest() was made without a valid RenameRequestEvent.
+	 */
+	bool IsRenameRequestPending() const;
 
-	void GetLeafNodes(TArray< TSharedPtr<FGraphActionNode> >& LeafArray)
-	{
-		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
-		{
-			TSharedPtr<FGraphActionNode>& Child = Children[ChildIndex];
+private:
+	/**
+	 *
+	 *
+	 * @param  Grouping
+	 * @param  SectionID
+	 */
+	FGraphActionNode(int32 Grouping, int32 SectionID);
 
-			if (Child->IsCategoryNode())
-			{
-				Child->GetLeafNodes(LeafArray);
-			}
-			else
-			{
-				LeafArray.Add(Child);
-			}
-		}
-	}
+	/**
+	 * Constructor for action nodes. Private so that users go through AddChild().
+	 *
+	 * @param  ActionList
+	 * @param  Grouping
+	 * @param  SectionID
+	 */
+	FGraphActionNode(TArray< TSharedPtr<FEdGraphSchemaAction> > const& ActionList, int32 Grouping, int32 SectionID);
 
-	void GetAllNodes(TArray< TSharedPtr<FGraphActionNode> >& OutNodes, bool bLeavesOnly)
-	{
-		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
-		{
-			TSharedPtr<FGraphActionNode>& Child = Children[ChildIndex];
+	/**
+	 *
+	 *
+	 * @param  Parent
+	 * @param  Grouping
+	 * @param  SectionID
+	 * @return
+	 */
+	static TSharedPtr<FGraphActionNode> NewSectionHeadingNode(TWeakPtr<FGraphActionNode> Parent, int32 Grouping, int32 SectionID);
 
-			// Add us if a leaf, or we want all nodes (not just leaves)
-			if(!Child->IsCategoryNode() || !bLeavesOnly)
-			{
-				OutNodes.Add(Child);
-			}
+	/**
+	 *
+	 *
+	 * @param  Category
+	 * @param  Grouping
+	 * @param  SectionID
+	 * @return
+	 */
+	static TSharedPtr<FGraphActionNode> NewCategoryNode(FString const& Category, int32 Grouping, int32 SectionID);
 
-			// If a category, recurse into childen
-			if (Child->IsCategoryNode())
-			{
-				Child->GetAllNodes(OutNodes, bLeavesOnly);
-			}
-		}
-	}
+	/**
+	 *
+	 *
+	 * @param  ActionList
+	 * @return
+	 */
+	static TSharedPtr<FGraphActionNode> NewActionNode(TArray< TSharedPtr<FEdGraphSchemaAction> > const& ActionList);
 
-	/** Returns the node's string used for display purposes */
-	FString GetNodeString() const
-	{
-		if( IsCategoryNode() )
-		{
-			return Category;
-		}
-		else if(Actions.Num() > 0 && Actions[0].IsValid())
-		{
-			return Actions[0]->MenuDescription.ToString();
-		}
-		return FString();
-	}
-protected:
+	/**
+	 *
+	 *
+	 * @param  Parent
+	 * @param  Grouping
+	 * @return
+	 */
+	static TSharedPtr<FGraphActionNode> NewGroupDividerNode(TWeakPtr<FGraphActionNode> Parent, int32 Grouping);
 
-	FGraphActionNode( FString InCategory, int32 InGrouping, TSharedPtr<FEdGraphSchemaAction> InAction )
-		: SectionID ( 0 )
-		, Category( InCategory )
-		, Grouping( InGrouping )
-		, bIsRenameRequestBeforeReady( false )
-	{
-		Actions.Add( InAction );
-	}
+	/**
+	 * Whittles down the CategoryStack, adding category-nodes as needed. The
+	 * last category is what the node will be inserted under.
+	 *
+	 * @param  CategoryStack	A list of categories denoting where to nest the new node (the first element is the highest category)
+	 * @param  NodeToAdd		The node you want inserted.
+	 */
+	void AddChildRecursively(TArray<FString>& CategoryStack, TSharedPtr<FGraphActionNode> NodeToAdd);
 
-	FGraphActionNode( FString InCategory, FString InCategoryChain, int32 InGrouping, TSharedPtr<FEdGraphSchemaAction> InAction )
-		: SectionID ( 0 )
-		, Category( InCategory )
-		, CategoryChain( InCategoryChain )
-		, Grouping( InGrouping )
-		, bIsRenameRequestBeforeReady( false )
-	{
-		Actions.Add( InAction );
-	}
+	/**
+	 * Looks through this node's children to see if a there already exists a 
+	 * node matching one we'd have to spawn (to parent the supplied NodeToAdd).
+	 * 
+	 * @param   ParentName	The name of the category NodeToAdd wants to nest under.
+	 * @param   NodeToAdd	The node that we'll be adding to this child.
+	 * @return  A child node matching the supplied parameters (will be empty if no match was found).
+	 */
+	TSharedPtr<FGraphActionNode> FindMatchingParent(FString const& ParentName, TSharedPtr<FGraphActionNode> NodeToAdd);
 
-	FGraphActionNode( FString InCategory, int32 InGrouping, TArray< TSharedPtr<FEdGraphSchemaAction> >& InActionList, int32 InSectionID = 0 )
-		: SectionID ( InSectionID )
-		, Category( InCategory )
-		, Grouping( InGrouping )
-		, bIsRenameRequestBeforeReady( false )
-	{
-		Actions.Append( InActionList );
-	}
+	/**
+	 * Adds the specified node directly to this node's Children array. Will
+	 * create and insert separators if needed (if the node has a new group or
+	 * section).
+	 *
+	 * @param  NodeToAdd The node you want inserted.
+	 */
+	void InsertChild(TSharedPtr<FGraphActionNode> NodeToAdd);
 
-	FGraphActionNode( int32 InGrouping, int32 InNodeSection )		
-		: SectionID ( InNodeSection )
-		, Grouping( InGrouping )
-		, bIsRenameRequestBeforeReady( false )
-	{
-		Actions.Add( NULL );		
-	}
+private:
+	/** The category or action name (depends on what type of node this is) */
+	FText DisplayText;
+	/** The node that this is a direct child of (empty if this is a root node) */
+	TWeakPtr<FGraphActionNode> ParentNode;
+
+	/** Tracks what groups have already been added (so we can easily determine what group-dividers we need) */
+	TSet<int32> ChildGroupings;
+	/** Tracks what sections have already been added (so we can easily determine what heading we need) */
+	TSet<int32> ChildSections;
+
+	/** When the item is first created, a rename request may occur before everything is setup for it. This toggles to true in those cases */
+	bool bPendingRenameRequest;
+	/** Delegate to trigger when a rename was requested on this node */
+	FOnRenameRequestActionNode RenameRequestEvent;
+
+	friend struct FGraphActionNodeImpl;
+	/** For sorting, when we don't alphabetically sort (so menu items don't jump around). */
+	int32 InsertOrder;	
 };
-
-#endif // __GraphActionNode_h__
