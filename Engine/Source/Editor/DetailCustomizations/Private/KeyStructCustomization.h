@@ -34,7 +34,4 @@ private:
 
 	/** Holds a handle to the property being edited. */
 	TSharedPtr<IPropertyHandle> PropertyHandle;
-
-	/** Pointer to the first key being edited. */
-	FKey* SelectedKey;
 };

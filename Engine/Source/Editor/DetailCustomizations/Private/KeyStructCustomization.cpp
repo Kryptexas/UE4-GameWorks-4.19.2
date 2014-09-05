@@ -27,7 +27,7 @@ void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle>
 	TArray<void*> StructPtrs;
 	StructPropertyHandle->AccessRawData(StructPtrs);
 	check(StructPtrs.Num() != 0);
-	SelectedKey = (FKey*)StructPtrs[0];
+	FKey* SelectedKey = (FKey*)StructPtrs[0];
 
 	bool bMultipleValues = false;
 	for (int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
@@ -58,7 +58,29 @@ void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle>
 
 FKey FKeyStructCustomization::GetCurrentKey() const
 {
-	return *SelectedKey;
+	TArray<void*> StructPtrs;
+	PropertyHandle->AccessRawData(StructPtrs);
+	check(StructPtrs.Num() != 0);
+	FKey* SelectedKey = (FKey*)StructPtrs[0];
+
+	bool bMultipleValues = false;
+	for(int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
+	{
+		if(*(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
+		{
+			bMultipleValues = true;
+			break;
+		}
+	}
+
+	if( !bMultipleValues && SelectedKey )
+	{
+		return *SelectedKey;
+	}
+	else
+	{
+		return FKey();
+	}
 }
 
 void FKeyStructCustomization::OnKeyChanged(TSharedPtr<FKey> SelectedKey)
