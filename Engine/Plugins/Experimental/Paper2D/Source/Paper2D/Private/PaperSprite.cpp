@@ -1158,7 +1158,8 @@ FVector2D UPaperSprite::ConvertWorldSpaceDeltaToTextureSpace(const FVector& Worl
 FTransform UPaperSprite::GetPivotToWorld() const
 {
 	const FVector Translation(0, 0, 0);
-	return FTransform(Translation);
+	const FVector Scale3D(GetUnrealUnitsPerPixel());
+	return FTransform(FRotator::ZeroRotator, Translation, Scale3D);
 }
 
 FVector2D UPaperSprite::GetRawPivotPosition() const
