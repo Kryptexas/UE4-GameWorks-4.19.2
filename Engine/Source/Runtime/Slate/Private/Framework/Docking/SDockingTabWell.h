@@ -112,6 +112,12 @@ private:
 	 */
 	float ComputeDraggedTabOffset( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const FVector2D& TabGrabOffsetFraction ) const;
 
+	/**
+	 * The user is dropping a tab on this TabWell, and the TabWell's geometry is currently MyGeometry.
+	 * @return the index of the slot into which the tab shoudl go.
+	 */
+	int32 ComputeChildDropIndex(const FGeometry& MyGeometry, const TSharedRef<SDockTab>& TabBeingDragged);
+
 	/** The tabs in this TabWell */
 	TSlotlessChildren< SDockTab > Tabs;
 
@@ -119,7 +125,7 @@ private:
 	TWeakPtr<class SDockingTabStack> ParentTabStackPtr;
 
 	/** The Tab being dragged through the TabWell, if there is one */
-	TWeakPtr<SDockTab> TabBeingDraggedPtr;
+	TSharedPtr<SDockTab> TabBeingDraggedPtr;
 
 	/** The offset of the Tab being dragged through this panel */
 	float ChildBeingDraggedOffset;
