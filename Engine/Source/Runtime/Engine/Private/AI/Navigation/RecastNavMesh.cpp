@@ -947,6 +947,11 @@ void ARecastNavMesh::SetConfig(const FNavDataConfig& Src)
 	NavDataConfig = Src; 
 	AgentMaxHeight = AgentHeight = Src.AgentHeight;
 	AgentRadius = Src.AgentRadius;
+
+	if (Src.HasStepHeightOverride())
+	{
+		AgentMaxStepHeight = Src.AgentStepHeight;
+	}
 }
 
 void ARecastNavMesh::FillConfig(FNavDataConfig& Dest)
@@ -954,6 +959,7 @@ void ARecastNavMesh::FillConfig(FNavDataConfig& Dest)
 	Dest = NavDataConfig;
 	Dest.AgentHeight = AgentHeight;
 	Dest.AgentRadius = AgentRadius;
+	Dest.AgentStepHeight = AgentMaxStepHeight;
 }
 
 bool ARecastNavMesh::DoesSupportAgent(const FNavAgentProperties& AgentProps) const
