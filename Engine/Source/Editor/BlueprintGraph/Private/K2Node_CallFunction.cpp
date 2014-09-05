@@ -396,7 +396,7 @@ void UK2Node_CallFunction::GeneratePinHoverText(const UEdGraphPin& Pin, FString&
 
 	if (K2Schema == NULL)
 	{
-		Schema->ConstructBasicPinTooltip(Pin, TEXT(""), HoverTextOut);
+		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), HoverTextOut);
 		return;
 	}
 	
@@ -416,7 +416,7 @@ void UK2Node_CallFunction::GeneratePinHoverText(const UEdGraphPin& Pin, FString&
 	UFunction* Function = GetTargetFunction();
 	if (Function == NULL)
 	{
-		Schema->ConstructBasicPinTooltip(Pin, TEXT(""), HoverTextOut);
+		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), HoverTextOut);
 		return;
 	}
 
@@ -502,13 +502,13 @@ void UK2Node_CallFunction::GeneratePinHoverText(const UEdGraphPin& Pin, FString&
 		// if we came up with a valid description for the param/return-val
 		if (!ParamDesc.IsEmpty())
 		{
-			HoverTextOut += FString(TEXT("\n")) + ParamDesc;
+			HoverTextOut += ParamDesc;
 			break; // we found a match, so there's no need to continue
 		}
 
 	} while (CurStrPos < FullToolTipLen);
 
-	Schema->ConstructBasicPinTooltip(Pin, HoverTextOut, HoverTextOut);
+	Schema->ConstructBasicPinTooltip(Pin, FText::FromString(HoverTextOut), HoverTextOut);
 }
 
 bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)

@@ -1389,7 +1389,7 @@ const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGra
 
 		if (bCanAutocast || bCanAutoConvert)
 		{
-			return FPinConnectionResponse(CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE, FString::Printf(TEXT("Convert %s to %s"), *TypeToString(OutputPin->PinType), *TypeToString(InputPin->PinType)));
+			return FPinConnectionResponse(CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE, FString::Printf(TEXT("Convert %s to %s"), *TypeToText(OutputPin->PinType).ToString(), *TypeToText(InputPin->PinType).ToString()));
 		}
 		else
 		{
@@ -1405,7 +1405,7 @@ const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGra
 				}
 				return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, Msg);
 			}
-			return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, FString::Printf(TEXT("%s is not compatible with %s"), *TypeToString(PinA->PinType), *TypeToString(PinB->PinType)));
+			return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, FString::Printf(TEXT("%s is not compatible with %s"), *TypeToText(PinA->PinType).ToString(), *TypeToText(PinB->PinType).ToString()));
 		}
 	}
 }
@@ -2061,8 +2061,8 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 	}
 	else
 	{
-		//@TODO: MessageLog.Error(*FString::Printf(TEXT("Unsupported type %s on @@"), *UEdGraphSchema_K2::TypeToString(Type)), SourceObject);
-		DVSV_RETURN_MSG( FString::Printf(TEXT("Unsupported type %s on pin %s"), *UEdGraphSchema_K2::TypeToString(PinType), *(PinName)) ); 
+		//@TODO: MessageLog.Error(*FString::Printf(TEXT("Unsupported type %s on @@"), *UEdGraphSchema_K2::TypeToText(Type).ToString()), SourceObject);
+		DVSV_RETURN_MSG( FString::Printf(TEXT("Unsupported type %s on pin %s"), *UEdGraphSchema_K2::TypeToText(PinType).ToString(), *(PinName)) ); 
 	}
 
 #undef DVSV_RETURN_MSG
@@ -2192,26 +2192,39 @@ FString UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 	return DisplayName;
 }
 
-void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FString& PinDescription, FString& TooltipOut) const
+void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const
 {
-	// using a local FString so users can use the same variable for PinDescription and TooltipOut
-	FString ConstructedTooltip = UEdGraphSchema_K2::TypeToString(Pin.PinType);
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("PinType"), TypeToText(Pin.PinType));
 
 	if (UEdGraphNode* PinNode = Pin.GetOwningNode())
 	{
 		UEdGraphSchema_K2 const* const K2Schema = Cast<const UEdGraphSchema_K2>(PinNode->GetSchema());
 		if (ensure(K2Schema != NULL)) // ensure that this node belongs to this schema
 		{
-			ConstructedTooltip += TEXT(" ");
-			ConstructedTooltip += K2Schema->GetPinDisplayName(&Pin);
+			Args.Add(TEXT("DisplayName"), FText::FromString(GetPinDisplayName(&Pin)));
+			Args.Add(TEXT("LineFeed1"), FText::FromString(TEXT("\n")));
 		}
-	}	
+	}
+	else
+	{
+			Args.Add(TEXT("DisplayName"), FText::GetEmpty());
+			Args.Add(TEXT("LineFeed1"), FText::GetEmpty());
+	}
+
 
 	if (!PinDescription.IsEmpty())
 	{
-	ConstructedTooltip += FString(TEXT("\n")) + PinDescription;
+		Args.Add(TEXT("Description"), PinDescription);
+		Args.Add(TEXT("LineFeed2"), FText::FromString(TEXT("\n\n")));
 	}
-	TooltipOut = ConstructedTooltip; // using a local FString, so PinDescription and TooltipOut can be the same variable
+	else
+	{
+		Args.Add(TEXT("Description"), FText::GetEmpty());
+		Args.Add(TEXT("LineFeed2"), FText::GetEmpty());
+	}
+	
+	TooltipOut = FText::Format(LOCTEXT("PinTooltip", "{DisplayName}{LineFeed1}{PinType}{LineFeed2}{Description}"), Args).ToString(); 
 }
 
 EGraphType UEdGraphSchema_K2::GetGraphType(const UEdGraph* TestEdGraph) const
@@ -2480,52 +2493,98 @@ FString UEdGraphSchema_K2::TypeToString(const FEdGraphPinType& Type)
 
 FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
 {
+	return TypeToText(Property).ToString();
+}
+
+FText UEdGraphSchema_K2::TypeToText(UProperty* const Property)
+{
 	if (UStructProperty* Struct = Cast<UStructProperty>(Property))
 	{
 		if (Struct->Struct)
 		{
-		return FString::Printf(TEXT("struct'%s'"), *Struct->Struct->GetName());
-	}
+			FEdGraphPinType PinType;
+			PinType.PinCategory = PC_Struct;
+			PinType.PinSubCategoryObject = Struct->Struct;
+			return TypeToText(PinType);
+		}
 	}
 	else if (UClassProperty* Class = Cast<UClassProperty>(Property))
 	{
-		if (Class->MetaClass != nullptr)
+		if (Class->MetaClass)
 		{
-		return FString::Printf(TEXT("class'%s'"), *Class->MetaClass->GetName());
-	}
+			FEdGraphPinType PinType;
+			PinType.PinCategory = PC_Class;
+			PinType.PinSubCategoryObject = Class->MetaClass;
+			return TypeToText(PinType);
+		}
 	}
 	else if (UInterfaceProperty* Interface = Cast<UInterfaceProperty>(Property))
 	{
 		if (Interface->InterfaceClass != nullptr)
 		{
-		return FString::Printf(TEXT("interface'%s'"), *Interface->InterfaceClass->GetName());
-	}
+			FEdGraphPinType PinType;
+			PinType.PinCategory = PC_Interface;
+			PinType.PinSubCategoryObject = Interface->InterfaceClass;
+			return TypeToText(PinType);
+		}
 	}
 	else if (UObjectPropertyBase* Obj = Cast<UObjectPropertyBase>(Property))
 	{
 		if( Obj->PropertyClass )
 		{
-			if( Property->IsA(UWeakObjectProperty::StaticClass()) )
-			{
-				return FString::Printf(TEXT("weak_ptr_object'%s'"), *Obj->PropertyClass->GetName());
-			}
-			else
-			{
-				return FString::Printf(TEXT("object'%s'"), *Obj->PropertyClass->GetName());
-			}
+			FEdGraphPinType PinType;
+			PinType.PinCategory = PC_Object;
+			PinType.PinSubCategoryObject = Obj->PropertyClass;
+			PinType.bIsWeakPointer = Property->IsA(UWeakObjectProperty::StaticClass());
+			return TypeToText(PinType);
 		}
 
-		return TEXT("");
+		return FText::GetEmpty();
 	}
 	else if (UArrayProperty* Array = Cast<UArrayProperty>(Property))
 	{
 		if (Array->Inner)
 		{
-		return FString::Printf(TEXT("array[%s]"), *TypeToString(Array->Inner)); 
-	}
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ArrayType"), TypeToText(Array->Inner));
+			return FText::Format(LOCTEXT("ArrayPropertyText", "Array of {ArrayType}"), Args); 
+		}
 	}
 	
-		return Property->GetClass()->GetName();
+	return FText::FromString(Property->GetClass()->GetName());
+}
+
+FText UEdGraphSchema_K2::GetCategoryText(const FString& Category, const bool bForMenu)
+{
+	static TMap<FString, FText> CategoryDescriptions;
+	if (CategoryDescriptions.Num() == 0)
+	{
+		CategoryDescriptions.Add(PC_Exec, LOCTEXT("Exec", "Exec"));
+		CategoryDescriptions.Add(PC_Boolean, LOCTEXT("BoolCategory","Boolean"));
+		CategoryDescriptions.Add(PC_Byte, LOCTEXT("ByteCategory","Byte"));
+		CategoryDescriptions.Add(PC_Class, LOCTEXT("ClassCategory","Class"));
+		CategoryDescriptions.Add(PC_Int, LOCTEXT("IntCategory","Integer"));
+		CategoryDescriptions.Add(PC_Float, LOCTEXT("FloatCategory","Float"));
+		CategoryDescriptions.Add(PC_Name, LOCTEXT("NameCategory","Name"));
+		CategoryDescriptions.Add(PC_Delegate, LOCTEXT("DelegateCategory","Delegate"));
+		CategoryDescriptions.Add(PC_MCDelegate, LOCTEXT("MulticastDelegateCategory","Multicast Delegate"));
+		CategoryDescriptions.Add(PC_Object, LOCTEXT("ObjectCategory","Reference"));
+		CategoryDescriptions.Add(PC_Interface, LOCTEXT("InterfaceCategory","Interface"));
+		CategoryDescriptions.Add(PC_String, LOCTEXT("StringCategory","String"));
+		CategoryDescriptions.Add(PC_Text, LOCTEXT("TextCategory","Text"));
+		CategoryDescriptions.Add(PC_Struct, LOCTEXT("StructCategory","Structure"));
+		CategoryDescriptions.Add(PC_Wildcard, LOCTEXT("WildcardCategory","Wildcard"));
+	}
+
+	if (bForMenu)
+	{
+		if (Category == PC_Object)
+		{
+			return LOCTEXT("ObjectCategoryForMenu", "Object Reference");
+		}
+	}
+
+	return CategoryDescriptions.FindChecked(Category);
 }
 
 FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
@@ -2533,13 +2592,13 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 	FText PropertyText;
 
 	if (Type.PinSubCategoryObject != NULL)
-{
+	{
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 		if (Type.PinCategory == Schema->PC_Byte)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("EnumName"), FText::FromString(Type.PinSubCategoryObject->GetName()));
-			PropertyText = FText::Format(LOCTEXT("EnumAsText", "enum'{EnumName}'"), Args);
+			PropertyText = FText::Format(LOCTEXT("EnumAsText", "{EnumName} Enum"), Args);
 		}
 		else
 		{
@@ -2548,39 +2607,45 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 				UClass* PSCOAsClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
 				const bool bIsInterface = PSCOAsClass && PSCOAsClass->HasAnyClassFlags(CLASS_Interface);
 
-				FText CategoryDesc = !bIsInterface ? FText::FromString(Type.PinCategory) : LOCTEXT("Interface", "interface");
-
 				FFormatNamedArguments Args;
-				Args.Add(TEXT("Category"), CategoryDesc);
-				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
-				PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{Category}'{ObjectName}'"), Args);
+				// Don't display the category for "well-known" struct types
+				if (Type.PinCategory == PC_Struct && (Type.PinSubCategoryObject == VectorStruct || Type.PinSubCategoryObject == RotatorStruct || Type.PinSubCategoryObject == TransformStruct))
+				{
+					Args.Add(TEXT("Category"), FText::GetEmpty());
+				}
+				else
+				{
+					Args.Add(TEXT("Category"), (!bIsInterface ? GetCategoryText(Type.PinCategory) : GetCategoryText(PC_Interface)));
+				}
+				Args.Add(TEXT("ObjectName"), FText::FromString(FName::NameToDisplayString(Type.PinSubCategoryObject.Get()->GetName(), false)));
+				PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{ObjectName} {Category}"), Args);
 			}
 			else
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
 				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
-				PropertyText = FText::Format(LOCTEXT("WeakPtrAsText", "weak_ptr_{Category}'{ObjectName}'"), Args);
+				PropertyText = FText::Format(LOCTEXT("WeakPtrAsText", "{ObjectName} Weak {Category}"), Args);
 			}
 		}
 	}
 	else if (Type.PinSubCategory != TEXT(""))
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
-		Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategory));
-		PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{Category}'{ObjectName}'"), Args);
+		Args.Add(TEXT("Category"), GetCategoryText(Type.PinCategory));
+		Args.Add(TEXT("ObjectName"), FText::FromString(FName::NameToDisplayString(Type.PinSubCategory, false)));
+		PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{ObjectName} {Category}"), Args);
 	}
 	else
 	{
-		PropertyText = FText::FromString(Type.PinCategory);
+		PropertyText = GetCategoryText(Type.PinCategory);
 	}
 
 	if (Type.bIsArray)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PropertyTitle"), PropertyText);
-		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "array[{PropertyTitle}]"), Args);
+		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "Array of {PropertyTitle}"), Args);
 	}
 	else if (Type.bIsReference)
 	{

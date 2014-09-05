@@ -376,7 +376,7 @@ public:
 	virtual bool ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const override;
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
 	virtual FString GetPinDisplayName(const UEdGraphPin* Pin) const override;
-	virtual void ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FString& PinDescription, FString& TooltipOut) const override;
+	virtual void ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const override;
 	virtual EGraphType GetGraphType(const UEdGraph* TestEdGraph) const override;
 	virtual bool IsTitleBarPin(const UEdGraphPin& Pin) const override;
 	virtual void BreakNodeLinks(UEdGraphNode& TargetNode) const override;
@@ -723,6 +723,7 @@ public:
 	 *
 	 * @return	The converted type string.
 	 */
+	DEPRECATED(4.5, "UEdGraphSchema_K2::TypeToString is deprecated.  Use TypeToText instead.")
 	static FString TypeToString(const FEdGraphPinType& Type);
 
 	/**
@@ -732,7 +733,17 @@ public:
 	 *
 	 * @return	The converted type string.
 	 */
+	DEPRECATED(4.5, "UEdGraphSchema_K2::TypeToString is deprecated.  Use TypeToText instead.")
 	static FString TypeToString(UProperty* const Property);
+
+	/**
+	 * Converts the type of a property into a fully qualified string (e.g., object'ObjectName').
+	 *
+	 * @param	Property	The property to convert into a string.
+	 *
+	 * @return	The converted type string.
+	 */
+	static FText TypeToText(UProperty* const Property);
 
 	/**
 	 * Converts a pin type into a fully qualified FText (e.g., object'ObjectName').
@@ -742,6 +753,16 @@ public:
 	 * @return	The converted type text.
 	 */
 	static FText TypeToText(const FEdGraphPinType& Type);
+
+	/**
+	 * Returns the FText to use for a given schema category
+	 *
+	 * @param	Category	The category to convert into a FText.
+	 * @param	bForMenu	Indicates if this is for display in tooltips or menu
+	 *
+	 * @return	The text to display for the category.
+	 */
+	static FText GetCategoryText(const FString& Category, const bool bForMenu = false);
 
 	/**
 	 * Get the type tree for all of the property types valid for this schema

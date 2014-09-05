@@ -482,9 +482,9 @@ FString UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	return !Pin->PinFriendlyName.IsEmpty() ? Pin->PinFriendlyName.ToString() : Pin->PinName;
 }
 
-void UEdGraphSchema::ConstructBasicPinTooltip(UEdGraphPin const& Pin, FString const& PinDescription, FString& TooltipOut) const
+void UEdGraphSchema::ConstructBasicPinTooltip(UEdGraphPin const& Pin, FText const& PinDescription, FString& TooltipOut) const
 {
-	TooltipOut = PinDescription;
+	TooltipOut = PinDescription.ToString();
 }
 
 void UEdGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const

@@ -1680,7 +1680,7 @@ static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBluepr
 		{
 			PinTypeLog = "OUTPUT";
 		}
-		PinTypeLog += UEdGraphSchema_K2::TypeToString(ActionBuilder.FromPin->PinType);
+		PinTypeLog += UEdGraphSchema_K2::TypeToText(ActionBuilder.FromPin->PinType).ToString();
 
 		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping pin actions: %s"), *BuildIndentString(Indent, true), *PinTypeLog);
 	}
@@ -1765,7 +1765,7 @@ static void DumpBlueprintInfoUtils::DumpContextInfo(uint32 Indent, FBlueprintGra
 	}
 	else
 	{
-		ContextEntry += UEdGraphSchema_K2::TypeToString(ActionBuilder.FromPin->PinType);
+		ContextEntry += UEdGraphSchema_K2::TypeToText(ActionBuilder.FromPin->PinType).ToString();
 
 		ContextEntry += "\"," + IndentedNewline + "\"PinDirection\" : \"";
 		if (ActionBuilder.FromPin->Direction == EGPD_Input)

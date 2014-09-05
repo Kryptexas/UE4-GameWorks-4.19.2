@@ -433,7 +433,7 @@ void SGraphNodeK2Base::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGrap
 						PinnedWatchText += TEXT("\n");
 					}
 
-					FString PinName = UEdGraphSchema_K2::TypeToString(WatchPin->PinType);
+					FString PinName = UEdGraphSchema_K2::TypeToText(WatchPin->PinType).ToString();
 					PinName += TEXT(" ");
 					PinName += Schema->GetPinDisplayName(WatchPin);
 

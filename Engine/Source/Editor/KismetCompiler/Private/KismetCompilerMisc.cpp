@@ -247,15 +247,15 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("UnsupportedTypeForPin", "Unsupported type (%s) on @@").ToString(), *UEdGraphSchema_K2::TypeToString(Type)), SourcePin);
+		MessageLog.Error(*FString::Printf(*LOCTEXT("UnsupportedTypeForPin", "Unsupported type (%s) on @@").ToString(), *UEdGraphSchema_K2::TypeToText(Type).ToString()), SourcePin);
 	}
 
 	if (bTypeMismatch)
 	{
 		MessageLog.Error(*FString::Printf(*LOCTEXT("TypeDoesNotMatchPropertyOfType_Error", "@@ of type %s doesn't match the property %s of type %s").ToString(),
-			*UEdGraphSchema_K2::TypeToString(Type),
+			*UEdGraphSchema_K2::TypeToText(Type).ToString(),
 			*Property->GetName(),
-			*UEdGraphSchema_K2::TypeToString(Property)),
+			*UEdGraphSchema_K2::TypeToText(Property).ToString()),
 			SourcePin);
 	}
 

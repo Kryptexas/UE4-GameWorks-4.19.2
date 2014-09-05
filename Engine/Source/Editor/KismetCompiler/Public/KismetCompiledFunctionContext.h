@@ -528,7 +528,7 @@ public:
 			}
 			else
 			{
-				MessageLog.Error(*FString::Printf(TEXT("Expected @@ to %s instead of %s"), *Schema->TypeToString(TestType), *Schema->TypeToString(Pin->PinType)), Pin);
+				MessageLog.Error(*FString::Printf(TEXT("Expected @@ to %s instead of %s"), *Schema->TypeToText(TestType).ToString(), *Schema->TypeToText(Pin->PinType).ToString()), Pin);
 				return false;
 			}
 		}

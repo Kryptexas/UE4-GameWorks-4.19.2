@@ -373,7 +373,7 @@ UProperty* FKismetCompilerContext::CreateVariable(const FName VarName, const FEd
 	else
 	{
 		MessageLog.Error(*FString::Printf(*LOCTEXT("VariableInvalidType_Error", "The variable %s declared in @@ has an invalid type %s").ToString(),
-			*VarName.ToString(), *UEdGraphSchema_K2::TypeToString(VarType)), Blueprint);
+			*VarName.ToString(), *UEdGraphSchema_K2::TypeToText(VarType).ToString()), Blueprint);
 	}
 
 	return NewProperty;
@@ -583,7 +583,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			{
 				continue;
 			}
-			MessageLog.Warning(*FString::Printf(*LOCTEXT("AssociatedVarProperty_Error", "AssociatedVarProperty property overriden %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToString(Term.Type)), Term.Source);
+			MessageLog.Warning(*FString::Printf(*LOCTEXT("AssociatedVarProperty_Error", "AssociatedVarProperty property overriden %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()), Term.Source);
 		}
 
 		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog);
@@ -677,7 +677,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 		}
 		else
 		{
-			MessageLog.Error(*FString::Printf(*LOCTEXT("FailedCreateProperty_Error", "Failed to create property %s from @@ due to a bad or unknown type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToString(Term.Type)),
+			MessageLog.Error(*FString::Printf(*LOCTEXT("FailedCreateProperty_Error", "Failed to create property %s from @@ due to a bad or unknown type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()),
 				Term.Source);
 		}
 

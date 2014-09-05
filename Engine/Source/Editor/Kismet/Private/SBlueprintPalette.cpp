@@ -85,7 +85,7 @@ static FString GetVarType(UStruct* VarScope, FName VarName, bool bUseObjToolTip,
 					}
 					else
 					{
-						VarDesc = UEdGraphSchema_K2::TypeToString(PinType);
+						VarDesc = UEdGraphSchema_K2::TypeToText(PinType).ToString();
 					}
 				}
 			}

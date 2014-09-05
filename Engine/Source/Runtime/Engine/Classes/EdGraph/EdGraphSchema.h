@@ -575,7 +575,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @param   PinDescription	A detailed description, describing the pin's purpose
 	 * @param   TooltipOut		The constructed tool-tip (out)
 	 */
-	virtual void ConstructBasicPinTooltip(UEdGraphPin const& Pin, FString const& PinDescription, FString& TooltipOut) const;
+	virtual void ConstructBasicPinTooltip(UEdGraphPin const& Pin, FText const& PinDescription, FString& TooltipOut) const;
 
 	/** @return     The type of graph (function vs. ubergraph) that this that TestEdGraph is. */
 	//@TODO: This is too K2-specific to be included in EdGraphSchema and should be refactored

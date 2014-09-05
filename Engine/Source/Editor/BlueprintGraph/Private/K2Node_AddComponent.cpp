@@ -74,10 +74,10 @@ void UK2Node_AddComponent::AllocateDefaultPins()
 
 	UEdGraphSchema const* Schema = GetSchema();
 	check(Schema != NULL);
-	Schema->ConstructBasicPinTooltip(*ManualAttachmentPin, LOCTEXT("ManualAttachmentPinTooltip", "Defines whether the component should attach to the root automatically, or be left unattached for the user to manually attach later.").ToString(), ManualAttachmentPin->PinToolTip);
+	Schema->ConstructBasicPinTooltip(*ManualAttachmentPin, LOCTEXT("ManualAttachmentPinTooltip", "Defines whether the component should attach to the root automatically, or be left unattached for the user to manually attach later."), ManualAttachmentPin->PinToolTip);
 
 	UEdGraphPin* TransformPin = GetRelativeTransformPin();
-	Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinTooltip", "Defines where to position the component (relative to its parent). If the component is left unattached, then the transform is relative to the world.").ToString(), TransformPin->PinToolTip);
+	Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinTooltip", "Defines where to position the component (relative to its parent). If the component is left unattached, then the transform is relative to the world."), TransformPin->PinToolTip);
 }
 
 void UK2Node_AddComponent::AllocatePinsForExposedVariables()

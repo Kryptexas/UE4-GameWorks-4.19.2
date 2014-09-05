@@ -44,36 +44,22 @@ void UK2Node_SpawnActorFromClass::AllocateDefaultPins()
 
 	// Add blueprint pin
 	UEdGraphPin* ClassPin = CreatePin(EGPD_Input, K2Schema->PC_Class, TEXT(""), AActor::StaticClass(), false, false, FK2Node_SpawnActorFromClassHelper::ClassPinName);
-	SetPinToolTip(*ClassPin, LOCTEXT("ClassPinDescription", "The Actor class you want to spawn"));
+	K2Schema->ConstructBasicPinTooltip(*ClassPin, LOCTEXT("ClassPinDescription", "The Actor class you want to spawn"), ClassPin->PinToolTip);
 
 	// Transform pin
 	UScriptStruct* TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
 	UEdGraphPin* TransformPin = CreatePin(EGPD_Input, K2Schema->PC_Struct, TEXT(""), TransformStruct, false, false, FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName);
-	SetPinToolTip(*TransformPin, LOCTEXT("TransformPinDescription", "The transform to spawn the Actor with"));
+	K2Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinDescription", "The transform to spawn the Actor with"), TransformPin->PinToolTip);
 
 	// bNoCollisionFail pin
 	UEdGraphPin* NoCollisionFailPin = CreatePin(EGPD_Input, K2Schema->PC_Boolean, TEXT(""), NULL, false, false, FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName);
-	SetPinToolTip(*NoCollisionFailPin, LOCTEXT("NoCollisionFailPinDescription", "Determines if the Actor should be spawned when the location is blocked by a collision"));
+	K2Schema->ConstructBasicPinTooltip(*NoCollisionFailPin, LOCTEXT("NoCollisionFailPinDescription", "Determines if the Actor should be spawned when the location is blocked by a collision"), NoCollisionFailPin->PinToolTip);
 
 	// Result pin
 	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), AActor::StaticClass(), false, false, K2Schema->PN_ReturnValue);
-	SetPinToolTip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor"));
+	K2Schema->ConstructBasicPinTooltip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor"), ResultPin->PinToolTip);
 
 	Super::AllocateDefaultPins();
-}
-
-void UK2Node_SpawnActorFromClass::SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const
-{
-	MutatablePin.PinToolTip = UEdGraphSchema_K2::TypeToString(MutatablePin.PinType);
-
-	UEdGraphSchema_K2 const* const K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-	if (K2Schema != nullptr)
-	{
-		MutatablePin.PinToolTip += TEXT(" ");
-		MutatablePin.PinToolTip += K2Schema->GetPinDisplayName(&MutatablePin);
-	}
-
-	MutatablePin.PinToolTip += FString(TEXT("\n")) + PinDescription.ToString();
 }
 
 void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
