@@ -2169,7 +2169,7 @@ FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32
 ,	AdjacencyIndexBuffers(NULL)
 ,	bUse32BitIndices(false)
 {
-	if (InFeatureLevel > ERHIFeatureLevel::ES2)
+	if (InFeatureLevel > ERHIFeatureLevel::ES3_1)
 	{
 		// Vertex Buffer cannot be shared
 		VertexBuffer = new FLandscapeVertexBuffer(SubsectionSizeVerts, NumSubsections);
