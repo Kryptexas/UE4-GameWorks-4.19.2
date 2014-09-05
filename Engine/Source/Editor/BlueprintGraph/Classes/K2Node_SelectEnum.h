@@ -28,6 +28,6 @@ class UDEPRECATED_K2Node_SelectEnum : public UK2Node_Select
 	// End UK2Node_Select interface
 
 	// Bind the option to a named enum 
-	BLUEPRINTGRAPH_API void SetEnum(UEnum* InEnum) override;
+	BLUEPRINTGRAPH_API void SetEnum(UEnum* InEnum, bool bForceRegenerate = false) override;
 };
 

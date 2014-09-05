@@ -207,7 +207,7 @@ void UK2Node_Select::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// To refresh, just in case it changed
-	SetEnum(Enum);
+	SetEnum(Enum, true);
 
 	if (Enum)
 	{
@@ -344,13 +344,25 @@ void UK2Node_Select::PostReconstructNode()
 {
 	bReconstructNode = false;
 
+	const UEdGraphSchema_K2* Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+
 	UEdGraphPin* ReturnPin = GetReturnValuePin();
 	PinConnectionListChanged(ReturnPin);
+	const bool bFillTypeFromReturn = Schema && ReturnPin && (ReturnPin->PinType.PinCategory != Schema->PC_Wildcard);
 
 	TArray<UEdGraphPin*> OptionPins;
 	GetOptionPins(OptionPins);
 	for (auto It = OptionPins.CreateConstIterator(); It; It++)
 	{
+		UEdGraphPin* Pin = *It;
+		const bool bTypeShouldBeFilled = Schema && Pin && (Pin->PinType.PinCategory == Schema->PC_Wildcard);
+		if (bTypeShouldBeFilled && bFillTypeFromReturn)
+		{
+			Pin->Modify();
+			Pin->PinType = ReturnPin->PinType;
+			UEdGraphSchema_K2::ValidateExistingConnections(Pin);
+		}
+
 		PinConnectionListChanged(*It);
 	}
 
@@ -558,14 +570,14 @@ void UK2Node_Select::RemoveOptionPinToNode()
 	ReconstructNode();
 }
 
-void UK2Node_Select::SetEnum(UEnum* InEnum)
+void UK2Node_Select::SetEnum(UEnum* InEnum, bool bForceRegenerate)
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UEnum* PrevEnum = Enum;
 	Enum = InEnum;
 
-	if (PrevEnum != Enum)
+	if ((PrevEnum != Enum) || bForceRegenerate)
 	{
 		// regenerate enum name list
 		EnumEntries.Empty();

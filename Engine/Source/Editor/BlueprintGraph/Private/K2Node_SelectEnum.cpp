@@ -100,7 +100,7 @@ void UDEPRECATED_K2Node_SelectEnum::GetOptionPins(TArray<UEdGraphPin*>& OptionPi
 	}
 }
 
-void UDEPRECATED_K2Node_SelectEnum::SetEnum(UEnum* InEnum)
+void UDEPRECATED_K2Node_SelectEnum::SetEnum(UEnum* InEnum, bool bForceRegenerate)
 {
 	Enum = InEnum;
 

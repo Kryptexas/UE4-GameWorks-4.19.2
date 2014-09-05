@@ -3,10 +3,11 @@
 
 #pragma once
 #include "K2Node.h"
+#include "NodeDependingOnEnumInterface.h"
 #include "K2Node_Select.generated.h"
 
 UCLASS(MinimalAPI)
-class UK2Node_Select : public UK2Node
+class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -31,7 +32,7 @@ class UK2Node_Select : public UK2Node
 	TArray<FName> EnumEntryFriendlyNames;
 
 	/** Whether we need to reconstruct the node after the pins have changed */
-	UPROPERTY()
+	UPROPERTY(Transient)
 	bool bReconstructNode;
 
 	// Begin UEdGraphNode interface
@@ -57,6 +58,11 @@ class UK2Node_Select : public UK2Node
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
 	// End UK2Node interface
+
+	// INodeDependingOnEnumInterface
+	virtual class UEnum* GetEnum() const override { return Enum; }
+	virtual bool ShouldBeReconstructedAfterEnumChanged() const override { return true; }
+	// End of INodeDependingOnEnumInterface
 
 	/** Get the return value pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetReturnValuePin() const;
@@ -93,6 +99,6 @@ class UK2Node_Select : public UK2Node
 	BLUEPRINTGRAPH_API bool CanChangePinType(UEdGraphPin* Pin) const;
 
 	// Bind the options to a named enum 
-	virtual void SetEnum(UEnum* InEnum);
+	virtual void SetEnum(UEnum* InEnum, bool bForceRegenerate = false);
 };
 
