@@ -20,11 +20,11 @@ public:
 		: FTagMetaData(InTag)
 		{
 		}
-	/** User friendly display name */
-	FString FriendlyName;
-
 	/* The type of tab we want to open for this widget where relevant. */
 	FString TabTypeToOpen;
+
+	/** User friendly display name */
+	FString FriendlyName;
 };
 
 class INTROTUTORIALS_API FGraphNodeMetaData : public FTutorialMetaData
