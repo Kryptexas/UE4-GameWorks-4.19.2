@@ -659,6 +659,7 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 									.ToolTipText(LOCTEXT("CameraSpeed_ToolTip","Camera Speed"))
 									.Icon(FSlateIcon(FEditorStyle::GetStyleSetName(), "EditorViewport.CamSpeedSetting"))
 									.ParentToolBar(SharedThis(this))
+									.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("CameraSpeedButton")))
 									);
 	}
 	ToolbarBuilder.EndBlockGroup();
