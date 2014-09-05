@@ -5,6 +5,7 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 #include "ScopedTimers.h"
+#include "DesktopPlatformModule.h"
 
 DEFINE_LOG_CATEGORY(LogHotReload);
 
@@ -1135,7 +1136,7 @@ bool FHotReloadModule::InvokeUnrealBuildToolForCompile(const FString& InCmdLineP
 	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
 	ModuleCompileReadPipeText = TEXT("");
 
-	FProcHandle ProcHandle = FUBTInvoker::InvokeUnrealBuildToolAsync(InCmdLineParams, Ar, PipeRead, PipeWrite);
+	FProcHandle ProcHandle = FDesktopPlatformModule::Get()->InvokeUnrealBuildToolAsync(InCmdLineParams, Ar, PipeRead, PipeWrite);
 
 	// We no longer need the Write pipe so close it.
 	// We DO need the Read pipe however...

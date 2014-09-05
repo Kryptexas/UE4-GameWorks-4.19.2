@@ -20,6 +20,7 @@ public class HotReload : ModuleRules
 					"Core",
 					"CoreUObject",
 					"DirectoryWatcher",
+					"DesktopPlatform"
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);

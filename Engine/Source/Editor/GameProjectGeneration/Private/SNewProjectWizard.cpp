@@ -1123,7 +1123,7 @@ void SNewProjectWizard::UpdateProjectFileValidity( )
 					bLastGlobalValidityCheckSuccessful = false;
 					LastGlobalValidityErrorText = FText::Format( LOCTEXT("NoCompilerFound", "No compiler was found. In order to use a C++ template, you must first install {0}."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() );
 				}
-				else if ( !FModuleManager::Get().IsUnrealBuildToolAvailable() )
+				else if ( !FDesktopPlatformModule::Get()->IsUnrealBuildToolAvailable() )
 				{
 					bLastGlobalValidityCheckSuccessful = false;
 					LastGlobalValidityErrorText = LOCTEXT("UBTNotFound", "Engine source code was not found. In order to use a C++ template, you must have engine source code in Engine/Source.");

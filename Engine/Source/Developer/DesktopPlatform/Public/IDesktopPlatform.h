@@ -330,6 +330,27 @@ public:
 	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
 
 	/**
+	* Determines whether UnrealBuildTool is available
+	*
+	* @return true if UnrealBuildTool is available
+	*/
+	virtual bool IsUnrealBuildToolAvailable() = 0;
+
+	/**
+	 * Invokes UnrealBuildTool with the given arguments
+	 *
+	 * @return true if tool was invoked properly
+	 */
+	virtual bool InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice &Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput) = 0;
+
+	/** 
+	 * Launches UnrealBuildTool with the specified command line parameters 
+	 * 
+	 * @return process handle to the new UBT process
+	 */
+	virtual FProcHandle InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT = false) = 0;
+
+	/**
 	* Runs UnrealBuildTool with the given arguments.
 	*
 	* @param Description		Task description for FFeedbackContext

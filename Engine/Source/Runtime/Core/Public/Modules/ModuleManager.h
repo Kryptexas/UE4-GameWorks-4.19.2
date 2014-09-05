@@ -78,30 +78,6 @@ struct FModuleStatus
 };
 
 /**
- * Class for managing Sync/Async calls to UBT with the option to rebuild UBT.
- * Separated from ModuleManager in prep for merging this into the UBT calling code in DesktopPlatform.
- */
-class CORE_API FUBTInvoker
-{
-public:	
-
-	/** Returns the filename for UBT including the path */
-	static FString GetUnrealBuildToolExecutableFilename();
-
-	/** Returns true if tool was invoked properly */
-	static bool InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice &Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput);
-
-	/** Launches UnrealBuildTool with the specified command line parameters */
-	static FProcHandle InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT = false);
-
-	/** Builds unreal build tool using a compiler specific to the currently running platform */
-	static bool BuildUnrealBuildTool(FOutputDevice &Ar);
-
-	/** Returns the path to the unreal build tool source code */
-	static FString GetUnrealBuildToolSourceCodePath();	
-};
-
-/**
  * Implements the module manager.
  *
  * The module manager is used to load and unload modules, as well as to keep track of all of the
@@ -441,13 +417,6 @@ public:
 	{
 		return IsPackageLoaded;
 	}
-
-public:
-
-	/**
-	* @return true if the UBT executable exists (in Rocket) or source code is available to compile it (in non-Rocket)
-	*/
-	bool IsUnrealBuildToolAvailable();
 
 public:
 

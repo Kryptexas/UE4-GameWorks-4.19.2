@@ -434,6 +434,133 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 	return bRes;
 }
 
+bool FDesktopPlatformBase::IsUnrealBuildToolAvailable()
+{
+	// If using Rocket and the Rocket unreal build tool executable exists, then UBT is available
+	if (FApp::IsEngineInstalled())
+	{
+		return FPaths::FileExists(GetUnrealBuildToolExecutableFilename());
+	}
+	else
+	{
+		// If not using Rocket, check to make sure UBT can be built, since it is an intermediate.
+		// We are simply checking for the existence of source code files, which is a heuristic to determine if UBT can be built
+		TArray<FString> Filenames;
+		const FString UBTSourcePath = GetUnrealBuildToolSourceCodePath();
+		const FString SearchPattern = TEXT("*.cs");
+		const bool bFiles = true;
+		const bool bDirectories = false;
+		const bool bClearFileNames = false;
+		IFileManager::Get().FindFilesRecursive(Filenames, *UBTSourcePath, *SearchPattern, bFiles, bDirectories, bClearFileNames);
+
+		return Filenames.Num() > 0;
+	}
+}
+
+bool FDesktopPlatformBase::InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice &Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput)
+{
+	// Setup output redirection pipes, so that we can harvest compiler output and display it ourselves
+#if PLATFORM_LINUX
+	int pipefd[2];
+	pipe(pipefd);
+	void* PipeRead = &pipefd[0];
+	void* PipeWrite = &pipefd[1];
+#else
+	void* PipeRead = NULL;
+	void* PipeWrite = NULL;
+#endif
+
+	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
+
+	bool bInvoked = false;
+	FProcHandle ProcHandle = InvokeUnrealBuildToolAsync(InCmdLineParams, Ar, PipeRead, PipeWrite, bSkipBuildUBT);
+	if (ProcHandle.IsValid())
+	{
+		// rather than waiting, we must flush the read pipe or UBT will stall if it writes out a ton of text to the console.
+		while (FPlatformProcess::IsProcRunning(ProcHandle))
+		{
+			OutProcOutput += FPlatformProcess::ReadPipe(PipeRead);
+			FPlatformProcess::Sleep(0.1f);
+		}		
+		bInvoked = true;
+		bool bGotReturnCode = FPlatformProcess::GetProcReturnCode(ProcHandle, &OutReturnCode);		
+		check(bGotReturnCode);
+	}
+	else
+	{
+		bInvoked = false;
+		OutReturnCode = -1;
+		OutProcOutput = TEXT("");
+	}
+
+
+	FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
+
+	return bInvoked;
+}
+
+FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT)
+{
+#if PLATFORM_DESKTOP && !IS_MONOLITHIC
+	FString CmdLineParams = InCmdLineParams;
+
+	if (FRocketSupport::IsRocket())
+	{
+		CmdLineParams += TEXT(" -rocket");
+	}
+
+	// UnrealBuildTool is currently always located in the Binaries/DotNET folder
+	FString ExecutableFileName = GetUnrealBuildToolExecutableFilename();
+
+	// Rocket never builds UBT, UnrealBuildTool should already exist
+	bool bSkipBuild = FApp::IsEngineInstalled() || bSkipBuildUBT;
+	if (!bSkipBuild)
+	{
+		// When not using rocket, we should attempt to build UBT to make sure it is up to date
+		// Only do this if we have not already successfully done it once during this session.
+		static bool bSuccessfullyBuiltUBTOnce = false;
+		if (!bSuccessfullyBuiltUBTOnce)
+		{
+			Ar.Log(TEXT("Building UnrealBuildTool..."));
+			if (BuildUnrealBuildTool(Ar))
+			{
+				bSuccessfullyBuiltUBTOnce = true;
+			}
+			else
+			{
+				// Failed to build UBT
+				Ar.Log(TEXT("Failed to build UnrealBuildTool."));
+				return FProcHandle();
+			}
+		}
+	}
+
+	Ar.Logf(TEXT("Launching UnrealBuildTool... [%s %s]"), *ExecutableFileName, *CmdLineParams);
+
+#if PLATFORM_MAC
+	// On Mac we launch UBT with Mono
+	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
+	CmdLineParams = FString::Printf(TEXT("\"%s\" \"%s\" %s"), *ScriptPath, *ExecutableFileName, *CmdLineParams);
+	ExecutableFileName = TEXT("/bin/sh");
+#endif
+
+	// Run UnrealBuildTool
+	const bool bLaunchDetached = false;
+	const bool bLaunchHidden = true;
+	const bool bLaunchReallyHidden = bLaunchHidden;
+
+	FProcHandle ProcHandle = FPlatformProcess::CreateProc(*ExecutableFileName, *CmdLineParams, bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, NULL, 0, NULL, OutWritePipe);
+	if (!ProcHandle.IsValid())
+	{
+		Ar.Logf(TEXT("Failed to launch Unreal Build Tool. (%s)"), *ExecutableFileName);
+	}
+
+	return ProcHandle;
+#else
+	return FProcHandle();
+#endif // PLATFORM_DESKTOP && !IS_MONOLITHIC
+}
+
 bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
 {
 	// Get the platform-specific suffix for solution files
@@ -737,6 +864,110 @@ bool FDesktopPlatformBase::EnumerateProjectsKnownByEngine(const FString &Identif
 	}
 
 	return true;
+}
+
+FString FDesktopPlatformBase::GetUnrealBuildToolExecutableFilename() const
+{
+	const FString UBTPath = FString::Printf(TEXT("%sBinaries/DotNET/"), *FPaths::EngineDir());
+	const FString UBTExe = TEXT("UnrealBuildTool.exe");
+
+	FString ExecutableFileName = UBTPath / UBTExe;
+	ExecutableFileName = FPaths::ConvertRelativePathToFull(ExecutableFileName);
+	return ExecutableFileName;
+}
+
+FString FDesktopPlatformBase::GetUnrealBuildToolSourceCodePath() const
+{
+	return FPaths::Combine(*FPaths::EngineDir(), TEXT("Source"), TEXT("Programs"), TEXT("UnrealBuildTool"));
+}
+
+bool FDesktopPlatformBase::BuildUnrealBuildTool(FOutputDevice &Ar)
+{
+#if !IS_MONOLITHIC
+	if (FApp::IsEngineInstalled())
+	{
+		// We may not build UBT in rocket
+		return false;
+	}
+
+	FString CompilerExecutableFilename;
+	FString CmdLineParams;
+#if PLATFORM_WINDOWS
+	// To build UBT for windows, we must assemble a batch file that first registers the environment variable necessary to run msbuild then run it
+	// This can not be done in a single invocation of CMD.exe because the environment variables do not transfer between subsequent commands when using the "&" syntax
+	// devenv.exe can be used to build as well but it takes several seconds to start up so it is not desirable
+
+	// First determine the appropriate vcvars batch file to launch
+	FString VCVarsBat;
+
+#if _MSC_VER >= 1800
+	FPlatformMisc::GetVSComnTools(12, VCVarsBat);
+#else
+	FPlatformMisc::GetVSComnTools(11, VCVarsBat);
+#endif
+
+	VCVarsBat = FPaths::Combine(*VCVarsBat, L"../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
+
+	// Check to make sure we found one.
+	if (VCVarsBat.IsEmpty() || !FPaths::FileExists(VCVarsBat))
+	{
+		// VCVars doesn't exist, we can not build UBT
+		CompilerExecutableFilename = TEXT("");
+	}
+	else
+	{
+		// Now make a batch file in the intermediate directory to invoke the vcvars batch then msbuild
+		FString BuildBatchFile = FPaths::EngineIntermediateDir() / TEXT("Build") / TEXT("UnrealBuildTool") / TEXT("BuildUBT.bat");
+		BuildBatchFile.ReplaceInline(TEXT("/"), TEXT("\\"));
+
+		const FString CsProjLocation = FPaths::ConvertRelativePathToFull(GetUnrealBuildToolSourceCodePath()) / TEXT("UnrealBuildTool.csproj");
+
+		FString BatchFileContents;
+		BatchFileContents = FString::Printf(TEXT("call \"%s\"") LINE_TERMINATOR, *VCVarsBat);
+		BatchFileContents += FString::Printf(TEXT("msbuild /nologo /verbosity:quiet %s /property:Configuration=Development /property:Platform=AnyCPU"), *CsProjLocation);
+		FFileHelper::SaveStringToFile(BatchFileContents, *BuildBatchFile);
+
+		{
+			TCHAR CmdExePath[MAX_PATH];
+			FPlatformMisc::GetEnvironmentVariable(TEXT("ComSpec"), CmdExePath, ARRAY_COUNT(CmdExePath));
+			CompilerExecutableFilename = CmdExePath;
+		}
+
+		CmdLineParams = TEXT("/c ");
+		CmdLineParams += BuildBatchFile;
+	}
+#elif PLATFORM_MAC
+	const FString CsProjLocation = FPaths::ConvertRelativePathToFull(GetUnrealBuildToolSourceCodePath()) / TEXT("UnrealBuildTool_Mono.csproj");
+	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunXBuild.sh"));
+	CompilerExecutableFilename = TEXT("/bin/sh");
+	CmdLineParams = FString::Printf(TEXT("\"%s\" /property:Configuration=Development %s"), *ScriptPath, *CsProjLocation);
+#elif PLATFORM_LINUX
+	printf("ModuleManager.cpp: TODO: Linux BuildUBT");
+#else
+	Ar.Log(TEXT("Unknown platform, unable to build UnrealBuildTool."));
+#endif
+
+	// If a compiler executable was provided, try to build now
+	if (!CompilerExecutableFilename.IsEmpty())
+	{
+		const bool bLaunchDetached = false;
+		const bool bLaunchHidden = true;
+		const bool bLaunchReallyHidden = bLaunchHidden;
+		FProcHandle ProcHandle = FPlatformProcess::CreateProc(*CompilerExecutableFilename, *CmdLineParams, bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, NULL, 0, NULL, NULL);
+		if (ProcHandle.IsValid())
+		{
+			FPlatformProcess::WaitForProc(ProcHandle);
+			ProcHandle.Close();
+		}
+
+		// If the executable appeared where we expect it, then we were successful
+		return FPaths::FileExists(GetUnrealBuildToolExecutableFilename());
+	}
+	else
+#endif // !IS_MONOLITHIC
+	{
+		return false;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
