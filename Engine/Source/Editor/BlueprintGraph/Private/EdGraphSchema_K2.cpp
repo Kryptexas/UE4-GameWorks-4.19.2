@@ -300,6 +300,8 @@ const UScriptStruct* UEdGraphSchema_K2::TransformStruct = nullptr;
 const UScriptStruct* UEdGraphSchema_K2::LinearColorStruct = nullptr;
 const UScriptStruct* UEdGraphSchema_K2::ColorStruct = nullptr;
 
+bool UEdGraphSchema_K2::bGeneratingDocumentation = false;
+
 UEdGraphSchema_K2::UEdGraphSchema_K2(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -2194,37 +2196,44 @@ FString UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 
 void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("PinType"), TypeToText(Pin.PinType));
-
-	if (UEdGraphNode* PinNode = Pin.GetOwningNode())
+	if (bGeneratingDocumentation)
 	{
-		UEdGraphSchema_K2 const* const K2Schema = Cast<const UEdGraphSchema_K2>(PinNode->GetSchema());
-		if (ensure(K2Schema != NULL)) // ensure that this node belongs to this schema
+		TooltipOut = PinDescription.ToString();
+	}
+	else
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinType"), TypeToText(Pin.PinType));
+
+		if (UEdGraphNode* PinNode = Pin.GetOwningNode())
 		{
-			Args.Add(TEXT("DisplayName"), FText::FromString(GetPinDisplayName(&Pin)));
-			Args.Add(TEXT("LineFeed1"), FText::FromString(TEXT("\n")));
+			UEdGraphSchema_K2 const* const K2Schema = Cast<const UEdGraphSchema_K2>(PinNode->GetSchema());
+			if (ensure(K2Schema != NULL)) // ensure that this node belongs to this schema
+			{
+				Args.Add(TEXT("DisplayName"), FText::FromString(GetPinDisplayName(&Pin)));
+				Args.Add(TEXT("LineFeed1"), FText::FromString(TEXT("\n")));
+			}
 		}
-	}
-	else
-	{
-			Args.Add(TEXT("DisplayName"), FText::GetEmpty());
-			Args.Add(TEXT("LineFeed1"), FText::GetEmpty());
-	}
+		else
+		{
+				Args.Add(TEXT("DisplayName"), FText::GetEmpty());
+				Args.Add(TEXT("LineFeed1"), FText::GetEmpty());
+		}
 
 
-	if (!PinDescription.IsEmpty())
-	{
-		Args.Add(TEXT("Description"), PinDescription);
-		Args.Add(TEXT("LineFeed2"), FText::FromString(TEXT("\n\n")));
-	}
-	else
-	{
-		Args.Add(TEXT("Description"), FText::GetEmpty());
-		Args.Add(TEXT("LineFeed2"), FText::GetEmpty());
-	}
+		if (!PinDescription.IsEmpty())
+		{
+			Args.Add(TEXT("Description"), PinDescription);
+			Args.Add(TEXT("LineFeed2"), FText::FromString(TEXT("\n\n")));
+		}
+		else
+		{
+			Args.Add(TEXT("Description"), FText::GetEmpty());
+			Args.Add(TEXT("LineFeed2"), FText::GetEmpty());
+		}
 	
-	TooltipOut = FText::Format(LOCTEXT("PinTooltip", "{DisplayName}{LineFeed1}{PinType}{LineFeed2}{Description}"), Args).ToString(); 
+		TooltipOut = FText::Format(LOCTEXT("PinTooltip", "{DisplayName}{LineFeed1}{PinType}{LineFeed2}{Description}"), Args).ToString(); 
+	}
 }
 
 EGraphType UEdGraphSchema_K2::GetGraphType(const UEdGraph* TestEdGraph) const

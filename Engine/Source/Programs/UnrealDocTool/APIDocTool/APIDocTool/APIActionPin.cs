@@ -10,6 +10,7 @@ namespace APIDocTool
 	class APIActionPin : APIPage
 	{
 		public readonly string Tooltip;
+		public readonly string TypeText;
 
 		public readonly string PinCategory;
 		public readonly string PinSubCategory;
@@ -48,6 +49,7 @@ namespace APIDocTool
 
 			bInputPin = (string)PinProperties["Direction"] == "input";
 			PinCategory = (string)PinProperties["PinCategory"];
+			TypeText = (string)PinProperties["TypeText"];
 
 			if (PinProperties.TryGetValue("Tooltip", out Value))
 			{
@@ -132,10 +134,10 @@ namespace APIDocTool
 			Manifest.Add(Name, this);
 		}
 
-		public UdnIconListItem GetListItem()
+		public void WritePin(UdnWriter Writer)
 		{
+			// Get all the icons
 			List<Icon> ItemIcons = new List<Icon>();
-
 			if (bIsArray)
 			{
 				ItemIcons.Add(Icons.ArrayVariablePinIcons[GetPinCategory()]);
@@ -145,7 +147,7 @@ namespace APIDocTool
 				ItemIcons.Add(Icons.VariablePinIcons[GetPinCategory()]);
 			}
 
-			return new UdnIconListItem(ItemIcons, Name, Tooltip, null);
+			Writer.WriteObject("ActionPinListItem", "icons", ItemIcons, "name", Name, "type", TypeText, "tooltip", Tooltip);
 		}
 	}
 }

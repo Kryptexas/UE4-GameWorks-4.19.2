@@ -462,7 +462,7 @@ static NodeType* GenerateBlueprintAPIUtils::AddNodeToGraph(UEdGraph* Graph)
 //------------------------------------------------------------------------------
 static FString GenerateBlueprintAPIUtils::BuildDumpFilePath(UClass* BlueprintClass)
 {
-	FString CommandletSaveDir, Pathname;
+	FString CommandletSaveDir, Filename;
 
 	if (CommandOptions.SaveDir.IsEmpty())
 	{
@@ -477,19 +477,19 @@ static FString GenerateBlueprintAPIUtils::BuildDumpFilePath(UClass* BlueprintCla
 	
 	if (CommandOptions.Filename.IsEmpty())
 	{
-		FString Pathname = FString::Printf(TEXT("GenerateBlueprintAPI_%s"), FPlatformTime::StrTimestamp());
-		Pathname = Pathname.Replace(TEXT(" "), TEXT("_"));
-		Pathname = Pathname.Replace(TEXT("/"), TEXT("-"));
-		Pathname = Pathname.Replace(TEXT(":"), TEXT("."));
+		Filename = FString::Printf(TEXT("GenerateBlueprintAPI_%s"), FPlatformTime::StrTimestamp());
+		Filename = Filename.Replace(TEXT(" "), TEXT("_"));
+		Filename = Filename.Replace(TEXT("/"), TEXT("-"));
+		Filename = Filename.Replace(TEXT(":"), TEXT("."));
 	}
 	else
 	{
-		Pathname = CommandOptions.Filename;
+		Filename = CommandOptions.Filename;
 	}
 
-	Pathname += ".json";
+	Filename += ".json";
 
-	return CommandletSaveDir / *Pathname;
+	return CommandletSaveDir / *Filename;
 }
 
 //------------------------------------------------------------------------------
@@ -849,6 +849,8 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 					}
 					ActionEntry += PinDetailsIndentedNewline + "\"Direction\"            : \"" + (Pin->Direction == EGPD_Input ? "input" : "output") + "\"";
 
+					ActionEntry += PinDetailsIndentedNewline + "\"TypeText\"             : \"" + UEdGraphSchema_K2::TypeToText(Pin->PinType).ToString() + "\"";
+
 					if (!Pin->PinToolTip.IsEmpty())
 					{
 						const FString PinTooltipFieldLabel("\"Tooltip\"              : \"");
@@ -913,6 +915,8 @@ UGenerateBlueprintAPICommandlet::UGenerateBlueprintAPICommandlet(class FPostCons
 //------------------------------------------------------------------------------
 int32 UGenerateBlueprintAPICommandlet::Main(FString const& Params)
 {
+	UEdGraphSchema_K2::bGeneratingDocumentation = true;
+
 	TArray<FString> Tokens, Switches;
 	ParseCommandLine(*Params, Tokens, Switches);
 

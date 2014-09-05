@@ -277,6 +277,9 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	// action grouping values
 	static const int32 AG_LevelReference;
 
+	// Somewhat hacky mechanism to prevent tooltips created for pins from including the display name and type when generating BP API documentation
+	static bool bGeneratingDocumentation;
+
 	/** Whether this schema should use the old (legacy) menu building, or the new (experimental) menu building */
 	UPROPERTY(GlobalConfig)
 	bool bUseLegacyActionMenus;

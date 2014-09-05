@@ -37,6 +37,14 @@ namespace APIDocTool
 			}
 		}
 
+		private void WritePins(UdnWriter Writer, IEnumerable<APIActionPin> Pins)
+		{
+			foreach(var Pin in Pins)
+			{
+				Pin.WritePin(Writer);
+			}
+		}
+
 		public override void WritePage(UdnManifest Manifest, string OutputPath)
 		{
 			using (UdnWriter Writer = new UdnWriter(OutputPath))
@@ -50,12 +58,16 @@ namespace APIDocTool
 				{
 					// Inputs
 					Writer.EnterSection("inputs", "Inputs");
-					Writer.WriteList(Pins.Where(x => x.bInputPin).Select(x => x.GetListItem()));
+					Writer.WriteObject("MemberIconListHeadBlank");
+					WritePins(Writer, Pins.Where(x => x.bInputPin));
+					Writer.WriteObject("MemberIconListTail");
 					Writer.LeaveSection();
 
 					// Outputs
 					Writer.EnterSection("outputs", "Outputs");
-					Writer.WriteList(Pins.Where(x => !x.bInputPin).Select(x => x.GetListItem()));
+					Writer.WriteObject("MemberIconListHeadBlank");
+					WritePins(Writer, Pins.Where(x => !x.bInputPin));
+					Writer.WriteObject("MemberIconListTail");
 					Writer.LeaveSection();
 				}
 			}
