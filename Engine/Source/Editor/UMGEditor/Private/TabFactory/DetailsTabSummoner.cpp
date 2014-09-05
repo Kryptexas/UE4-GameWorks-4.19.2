@@ -27,7 +27,7 @@ TSharedRef<SWidget> FDetailsTabSummoner::CreateTabBody(const FWorkflowTabSpawnIn
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
 	return SNew(SWidgetDetailsView, BlueprintEditorPtr)
-			.Tag(TEXT("Details"));
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Details")));
 }
 
 #undef LOCTEXT_NAMESPACE 

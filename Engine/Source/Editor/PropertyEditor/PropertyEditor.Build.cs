@@ -12,6 +12,12 @@ public class PropertyEditor : ModuleRules
                 "ActorPickerMode",
 			}
 		);
+		
+        PublicIncludePathModuleNames.AddRange(
+            new string[] {                
+                "IntroTutorials"
+            }
+        );
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

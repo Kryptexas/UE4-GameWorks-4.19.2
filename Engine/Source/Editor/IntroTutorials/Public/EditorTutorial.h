@@ -118,16 +118,23 @@ struct INTROTUTORIALS_API FTutorialContentAnchor
 	/** Whether to draw an animated highlight around the widget */
 	UPROPERTY(EditAnywhere, Category="Anchor")
 	bool bDrawHighlight;
-
-	//FBlueprintGraphNodeMetaData Data
-	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
-	FString TagIdent;
-	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
- 	FString GUIDString;
-	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
-	FString OuterName;
+	
+	/* User friendly name to display in the dialog */
 	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
 	FString FriendlyName;
+
+	/* The type of tab to open for this node*/
+	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
+	FString TabTypeToOpen;
+
+	//FBlueprintGraphNodeMetaData specific members
+	/* The GUID string */
+	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
+ 	FString GUIDString;
+	
+	/* Name of the outer object - should be the blueprint that 'owns' the node */
+	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
+	FString OuterName;
 };
 
 /** Content that is displayed relative to a widget */

@@ -2436,7 +2436,7 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Palette(const FSpawnTabArgs& Args
 		.Label(LOCTEXT("MaterialPaletteTitle", "Palette"))
 		[
 			SNew( SBox )
-			.Tag(TEXT("MaterialPalette"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MaterialPalette")))
 			[
 				Palette.ToSharedRef()
 			]
@@ -2454,7 +2454,7 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Stats(const FSpawnTabArgs& Args)
 		.Label(LOCTEXT("MaterialStatsTitle", "Stats"))
 		[
 			SNew( SBox )
-			.Tag(TEXT("MaterialStats"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MaterialStats")))
 			[
 				Stats.ToSharedRef()
 			]
@@ -2472,7 +2472,7 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Find(const FSpawnTabArgs& Args)
 		.Label(LOCTEXT("MaterialFindTitle", "Find Results"))
 		[
 			SNew(SBox)
-			.Tag(TEXT("MaterialFind"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MaterialFind")))
 			[
 				FindResults.ToSharedRef()
 			]

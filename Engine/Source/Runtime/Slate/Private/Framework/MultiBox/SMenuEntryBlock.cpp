@@ -764,7 +764,7 @@ void SMenuEntryBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 		ChildSlot
 		[
 			SNew( SBox )
-			.Tag(TutorialName)
+			.AddMetaData<FTagMetaData>(FTagMetaData(TutorialName))
 			[
 				ChildWidget
 			]

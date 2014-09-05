@@ -21,6 +21,7 @@ public class LevelEditor : ModuleRules
 			new string[] {
 				"Settings",
 				"UserFeedback",
+				"IntroTutorials"
 			}
 		);
 

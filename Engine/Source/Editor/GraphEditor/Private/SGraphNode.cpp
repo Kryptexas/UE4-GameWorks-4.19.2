@@ -9,6 +9,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "SLevelOfDetailBranchNode.h"
 #include "IDocumentation.h"
+#include "TutorialMetaData.h"
 
 /////////////////////////////////////////////////////
 // SNodeTitle
@@ -700,19 +701,9 @@ void SGraphNode::UpdateGraphNode()
 		SetToolTip(DefaultToolTip);
 	}
 
-	// Setup a tag for this node
- 	FString TagName;
-	if (GraphNode != nullptr)
- 	{	
-		// We want the name of the blueprint as our name - we can find the node from the GUID
-		UObject* Package = GraphNode->GetOutermost();
-		UObject* LastOuter = GraphNode->GetOuter();
-		while (LastOuter->GetOuter() != Package)
-		{
-			LastOuter = LastOuter->GetOuter();
-		}
-		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
- 	}
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
+	PopulateMetaTag(&TagMeta);
 	
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
@@ -727,7 +718,7 @@ void SGraphNode::UpdateGraphNode()
 				SNew(SBorder)
 				.BorderImage( FEditorStyle::GetBrush( "Graph.Node.Body" ) )
 				.Padding(0)
-				.Tag(*TagName)
+				.AddMetaData<FGraphNodeMetaData>(TagMeta)
 				[
 					SAssignNew(InnerVerticalBox, SVerticalBox)
 					+SVerticalBox::Slot()
@@ -1289,4 +1280,22 @@ EVisibility SGraphNode::IsAddPinButtonVisible() const
 	}
 
 	return bIsHidden ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+void SGraphNode::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
+{
+	if (GraphNode != nullptr)
+	{
+		// We want the name of the blueprint as our name - we can find the node from the GUID
+		UObject* Package = GraphNode->GetOutermost();
+		UObject* LastOuter = GraphNode->GetOuter();
+		while (LastOuter->GetOuter() != Package)
+		{
+			LastOuter = LastOuter->GetOuter();
+		}
+		TagMeta->Tag = FName(*FString::Printf(TEXT("GraphNode_%s_%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString()));
+		TagMeta->OuterName = LastOuter->GetFullName();
+		TagMeta->GUID = GraphNode->NodeGuid;
+		TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->GetNodeTitle(ENodeTitleType::ListView).ToString(), *TagMeta->OuterName);		
+	}
 }

@@ -33,7 +33,7 @@ void SGraphEditor::ConstructImplementation( const FArguments& InArgs )
 	this->ChildSlot
 	[
 		SNew( SBox )
-		.Tag(TEXT("GraphEditorPanel"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("GraphEditorPanel")))
 		[
 			Implementation.ToSharedRef()
 		]

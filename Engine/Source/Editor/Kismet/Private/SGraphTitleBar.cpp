@@ -86,7 +86,7 @@ void SGraphTitleBar::Construct( const FArguments& InArgs )
 		SNew(SBorder)
 		.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
 		.HAlign(HAlign_Fill)
-		.Tag(TEXT("EventGraphTitleBar"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("EventGraphTitleBar")))
 		[
 			SNew(SVerticalBox)
 			// Title text/icon

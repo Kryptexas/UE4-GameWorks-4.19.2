@@ -244,7 +244,7 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SVerticalBox)
-		.Tag( TEXT("BlueprintInspector"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("BlueprintInspector")))
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[

@@ -15,10 +15,7 @@ void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const
 	ParentWindow = InArgs._ParentWindow;
 	bIsStandalone = InArgs._IsStandalone;
 	OnClosed = InArgs._OnClosed;
-
-	// Setup the map for opening of closed tabs by highlighted widgets
-	AddTabInfo();
-
+	
 	TSharedPtr<SOverlay> Overlay;
 
 	ChildSlot
@@ -151,24 +148,12 @@ void STutorialOverlay::PerformWidgetInteractions(const FTutorialWidgetContent &W
 
 void STutorialOverlay::OpenBrowserForWidgetAnchor(const FTutorialWidgetContent &WidgetContent)
 {
-	FString IdentString = WidgetContent.WidgetAnchor.WrapperIdentifier.ToString();
-	FString TabString = "";
-	
-	// See if we have a mapping for the widget ident.We will likely pull this from meta data when we have it)
-	for (TMap<FString, FString>::TConstIterator It(BrowserTabMap); It; ++It)
-	{
-		if (It.Key().StartsWith(IdentString) == true)
-		{
-			TabString = It.Value();
-		}
-	}
-
 	// Open the required tab if we found it in the map
-	if (TabString.IsEmpty() == false)
+	if (WidgetContent.WidgetAnchor.TabTypeToOpen.IsEmpty() == false)
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 		TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
-		LevelEditorTabManager->InvokeTab(FName(*TabString));
+		LevelEditorTabManager->InvokeTab(FName(*WidgetContent.WidgetAnchor.TabTypeToOpen));
 	}
 	
 }
@@ -198,14 +183,3 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 	}
 }
 
-void STutorialOverlay::AddTabInfo()
-{
-	BrowserTabMap.Empty();
-	BrowserTabMap.Add(FString(TEXT("ActorDetails")), FString(TEXT("LevelEditorSelectionDetails")));
-	BrowserTabMap.Add(FString(TEXT("SceneOutliner")), FString(TEXT("LevelEditorSceneOutliner")));
-	BrowserTabMap.Add(FString(TEXT("ContentBrowser")), FString(TEXT("ContentBrowserTab1")));
-	BrowserTabMap.Add(FString(TEXT("ToolsPanel")), FString(TEXT("LevelEditorToolBox")));
-	BrowserTabMap.Add(FString(TEXT("WorldSettings")), FString(TEXT("WorldSettingsTab")));
-	BrowserTabMap.Add(FString(TEXT("EditorViewports")), FString(TEXT("LevelEditorViewport")));	 
-	BrowserTabMap.Add(FString(TEXT("LayerBrowser")), FString(TEXT("LevelEditorLayerBrowser")));	
-}

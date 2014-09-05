@@ -32,9 +32,6 @@ protected :
 	/** Retrieves text to tack on to the top of the tooltip (above the standard text) */
 	FText GetToolTipHeading() const;
 
-	/* Populate a meta data tag with information about this graph node */
-	void PopulateMetaTag(class FBlueprintGraphNodeMetaData* TagMeta) const;
-
 protected:
 	static const FLinearColor BreakpointHitColor;
 	static const FLinearColor LatentBubbleColor;

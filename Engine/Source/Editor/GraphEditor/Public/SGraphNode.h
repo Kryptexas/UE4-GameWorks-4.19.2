@@ -299,6 +299,9 @@ protected:
 	/** Callback function executed when Add pin button is clicked */
 	virtual FReply OnAddPin() {return FReply::Handled();}
 
+	/* Populate a meta data tag with information about this graph node */
+	virtual void PopulateMetaTag(class FGraphNodeMetaData* TagMeta) const;
+
 protected:
 	/** Input pin widgets on this node */
 	TArray< TSharedRef<SGraphPin> > InputPins;

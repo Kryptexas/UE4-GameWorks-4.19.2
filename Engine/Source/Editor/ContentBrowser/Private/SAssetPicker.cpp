@@ -82,7 +82,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 				.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
 				.HasDownArrow( true )
 				.ContentPadding( FMargin( 1, 0 ) )
-				.Tag(TEXT("ContentBrowserFiltersCombo"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserFiltersCombo")))
 				.ButtonContent()
 				[
 					SNew( STextBlock )

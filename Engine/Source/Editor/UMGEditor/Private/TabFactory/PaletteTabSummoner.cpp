@@ -27,7 +27,7 @@ TSharedRef<SWidget> FPaletteTabSummoner::CreateTabBody(const FWorkflowTabSpawnIn
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
 	return SNew(SPaletteView, BlueprintEditorPtr)
-			.Tag(TEXT("Palette"));
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Palette")));
 }
 
 #undef LOCTEXT_NAMESPACE 

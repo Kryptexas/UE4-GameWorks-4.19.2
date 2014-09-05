@@ -450,7 +450,7 @@ TSharedRef<SWidget> FWidgetBlueprintEditor::CreateSequencerWidget()
 {
 	TSharedRef<SOverlay> SequencerOverlayRef =
 		SNew(SOverlay)
-		.Tag(TEXT("Sequencer"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Sequencer")))
 		+ SOverlay::Slot()
 		[
 			GetSequencer()->GetSequencerWidget()

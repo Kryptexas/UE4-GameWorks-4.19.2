@@ -29,6 +29,7 @@
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintDragDropMenuItem.h"
 #include "BlueprintNodeSpawner.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 
@@ -879,11 +880,12 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	GetPaletteItemIcon(GraphAction, InBlueprintEditor.Pin()->GetBlueprintObj(), IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(IconToolTip, IconBrush, IconColor, IconDocLink, IconDocExcerpt);
 
-	// Setup a tag for this node
-	FString TagName;
+	// Setup a meta tag for this node
+	FTutorialMetaData TagMeta("PaletteItem"); 
 	if( ActionPtr.IsValid() )
 	{
-		TagName = FString::Printf(TEXT("PaletteItem,%s,%d"), *GraphAction->MenuDescription.ToString(), GraphAction->SectionID);
+		TagMeta.Tag = *FString::Printf(TEXT("PaletteItem,%s,%d"), *GraphAction->MenuDescription.ToString(), GraphAction->SectionID);
+		TagMeta.FriendlyName = GraphAction->MenuDescription.ToString();
 	}
 	// construct the text widget
 	FSlateFontInfo NameFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
@@ -894,7 +896,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	ChildSlot
 	[
 		SNew(SHorizontalBox)
-		.Tag(*TagName)
+		.AddMetaData<FTutorialMetaData>(TagMeta)
 		// icon slot
 		+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -1534,20 +1536,20 @@ void SBlueprintPalette::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintE
 			SAssignNew(PaletteSplitter, SSplitter)
 				.Orientation(Orient_Vertical)
 				.OnSplitterFinishedResizing(this, &SBlueprintPalette::OnSplitterResized)
-				.Tag(TEXT("FullBlueprintPalette"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("FullBlueprintPalette")))
 
 			+ SSplitter::Slot()
 			.Value(FavoritesHeightRatio)
 			[
 				SNew(SBlueprintFavoritesPalette, InBlueprintEditor)
-				.Tag(TEXT("BlueprintPaletteFavorites"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("BlueprintPaletteFavorites")))
 			]
 
 			+ SSplitter::Slot()
 			.Value(LibraryHeightRatio)
 			[
 				SNew(SBlueprintLibraryPalette, InBlueprintEditor)
-				.Tag(TEXT("BlueprintPaletteLibrary"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("BlueprintPaletteLibrary")))
 			]
 		];
 	}	

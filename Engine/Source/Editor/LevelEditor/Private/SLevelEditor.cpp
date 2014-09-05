@@ -36,6 +36,7 @@
 #include "EditorModes.h"
 #include "IDocumentation.h"
 #include "NewsFeed.h"
+#include "TutorialMetaData.h"
 
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
@@ -187,7 +188,7 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 			+SOverlay::Slot()
 			[
 				SNew( SBox )
-				.Tag(TEXT("MainMenu"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MainMenu")))
 				[
 					Widget1
 				]
@@ -199,7 +200,7 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 			.HAlign( HAlign_Right )
 			[
 				SAssignNew( NotificationBarBox, SHorizontalBox )
-				.Tag(TEXT("PerformanceTools"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PerformanceTools")))
 			]
 #endif
 		]
@@ -215,7 +216,7 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 #if PLATFORM_MAC	
 	OwnerTab->SetRightContent(
 		SAssignNew( NotificationBarBox, SHorizontalBox )
-		.Tag(TEXT("PerformanceTools"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PerformanceTools")))
 		);
 #endif
 
@@ -550,7 +551,7 @@ static TSharedRef<SDockTab> SummonDetailsPanel( FName TabIdentifier )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( Label, nullptr, "Shared/LevelEditor", "DetailsTab" ) )
 		[
 			SNew( SBox )
-			.Tag(TEXT("ActorDetails"))
+			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ActorDetails"), TEXT("LevelEditorSelectionDetails")))
 			[
 				DetailsView
 			]
@@ -584,7 +585,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Icon( FEditorStyle::GetBrush("ToolBar.Icon") )
 			[
 				SNew(SHorizontalBox)
-				.Tag(TEXT("LevelToolbar"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("LevelToolbar")))
 				+ SHorizontalBox::Slot()
 				.FillWidth(1)
 				.VAlign(VAlign_Bottom)
@@ -614,7 +615,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Label( NSLOCTEXT( "LevelEditor", "ToolsTabTitle", "Modes" ) )
 			[
 				SNew( SBox )
-				.Tag(TEXT("ToolsPanel"))
+				.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ToolsPanel"), TEXT("LevelEditorToolBox")))
 				[
 					NewToolBox
 				]
@@ -667,7 +668,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 				SNew(SBorder)
 				.Padding(4)
 				.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-				.Tag(TEXT("SceneOutliner"))
+				.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("SceneOutliner"), TEXT("LevelEditorSceneOutliner")))
 				[
 					SceneOutlinerModule.CreateSceneOutliner(
 						InitOptions,
@@ -686,7 +687,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					SNew(SBorder)
 					.Padding( 0 )
 					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-					.Tag(TEXT("LayerBrowser"))
+					.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("LayerBrowser"), TEXT("LevelEditorLayerBrowser")))
 					[
 						LayersModule.CreateLayerBrowser()
 					]
@@ -779,7 +780,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		return SNew( SDockTab )
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.WorldProperties.Tab" ) )
 			.Label( NSLOCTEXT("LevelEditor", "WorldSettingsTabTitle", "World Settings") )
-			.Tag(TEXT("WorldSettings"))
+			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("WorldSettings"), TEXT("WorldSettingsTab")))
 			[
 				WorldSettingsView.ToSharedRef()
 			];

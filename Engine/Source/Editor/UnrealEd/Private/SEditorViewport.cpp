@@ -6,6 +6,7 @@
 #include "SceneViewport.h"
 #include "EditorViewportCommands.h"
 #include "IDocumentation.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewport"
 
@@ -37,7 +38,7 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 		SAssignNew( ViewportWidget, SViewport )
 		.ShowEffectWhenDisabled( false )
 		.EnableGammaCorrection( false ) // Scene rendering handles this
-		.Tag(TEXT("EditorViewports"))
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("EditorViewports"), TEXT("LevelEditorViewport")))
 		[
 			SAssignNew( ViewportOverlay, SOverlay )
 			+SOverlay::Slot()

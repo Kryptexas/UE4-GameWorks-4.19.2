@@ -104,7 +104,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnGetMenuContent( this, &SContentBrowser::MakeCreateAssetContextMenu )
 							.ToolTipText( this, &SContentBrowser::GetNewAssetToolTipText )
 							.IsEnabled( this, &SContentBrowser::IsAssetPathSelected )
-							.Tag(TEXT("ContentBrowserNewAsset"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserNewAsset")))
 							.ButtonContent()
 							[
 								SNew( SHorizontalBox )
@@ -144,7 +144,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.IsEnabled( this, &SContentBrowser::IsAssetPathSelected )
 							.OnClicked( this, &SContentBrowser::HandleImportClicked )
 							.ContentPadding( 0 )
-							.Tag(TEXT("ContentBrowserImportAsset"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserImportAsset")))
 							[
 								SNew( SHorizontalBox )
 
@@ -181,7 +181,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.ToolTipText( LOCTEXT( "SaveDirtyPackagesTooltip", "Save all modified assets." ) )
 							.ContentPadding( 0 )
 							.OnClicked( this, &SContentBrowser::OnSaveClicked )
-							.Tag(TEXT("ContentBrowserSaveDirtyPackages"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSaveDirtyPackages")))
 							[
 								SNew( SImage )
 								.Image( FEditorStyle::GetBrush( "ContentBrowser.SaveDirtyPackages" ) )
@@ -218,7 +218,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.ContentPadding( FMargin(1, 0) )
 							.OnClicked(this, &SContentBrowser::BackClicked)
 							.IsEnabled(this, &SContentBrowser::IsBackEnabled)
-							.Tag(TEXT("ContentBrowserHistoryBack"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserHistoryBack")))
 							[
 								SNew(SImage)
 								.Image(FEditorStyle::GetBrush("ContentBrowser.HistoryBack"))
@@ -244,7 +244,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.ContentPadding( FMargin(1, 0) )
 							.OnClicked(this, &SContentBrowser::ForwardClicked)
 							.IsEnabled(this, &SContentBrowser::IsForwardEnabled)
-							.Tag(TEXT("ContentBrowserHistoryForward"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserHistoryForward")))
 							[
 								SNew(SImage)
 								.Image(FEditorStyle::GetBrush("ContentBrowser.HistoryForward"))
@@ -272,7 +272,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.ToolTipText( LOCTEXT( "PathPickerTooltip", "Choose a path" ) )
 						.OnGetMenuContent( this, &SContentBrowser::GetPathPickerContent )
 						.HasDownArrow( false )
-						.Tag(TEXT("ContentBrowserPathPicker"))
+						.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserPathPicker")))
 						.ButtonContent()
 						[
 							SNew( SImage )
@@ -301,7 +301,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.InvertTextColorOnHover( false )
 							.OnCrumbClicked(this, &SContentBrowser::OnPathClicked)
 							.GetCrumbMenuContent(this, &SContentBrowser::OnGetCrumbDelimiterContent)
-							.Tag(TEXT("ContentBrowserPath"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserPath")))
 						]
 					]
 
@@ -321,7 +321,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.ToolTipText( LOCTEXT("LockToggleTooltip", "Toggle lock. If locked, this browser will ignore Find in Content Browser requests.") )
 							.ContentPadding( FMargin(1, 0) )
 							.OnClicked(this, &SContentBrowser::ToggleLockClicked)
-							.Tag(TEXT("ContentBrowserLock"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserLock")))
 							[
 								SNew(SImage)
 								.Image( this, &SContentBrowser::GetToggleLockImage)
@@ -368,11 +368,11 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.FocusSearchBoxWhenOpened( false )
 							.ShowTreeTitle( false )
 							.ShowSeparator( false )
-							.Tag(TEXT("ContentBrowserSources"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSources")))
 							.SearchContent()
 							[
 								SNew( SVerticalBox )
-								.Tag(TEXT("ContentBrowserSourcesToggle"))
+								.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSourcesToggle")))
 								+ SVerticalBox::Slot()
 								.FillHeight( 1.0f )
 								.Padding(0,0,2,0)
@@ -403,7 +403,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						[
 							SAssignNew(CollectionViewPtr, SCollectionView)
 							.OnCollectionSelected(this, &SContentBrowser::CollectionSelected)
-							.Tag(TEXT("ContentBrowserCollections"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserCollections")))
 						]
 					]
 				]
@@ -431,7 +431,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.Padding( 0, 0, 4, 0 )
 						[
 							SNew( SVerticalBox )
-							.Tag(TEXT("ContentBrowserSourcesToggle"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSourcesToggle")))
 							+ SVerticalBox::Slot()
 							.FillHeight( 1.0f )
 							[
@@ -462,7 +462,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnGetMenuContent( this, &SContentBrowser::MakeAddFilterMenu )
 							.HasDownArrow( true )
 							.ContentPadding( FMargin( 1, 0 ) )
-							.Tag(TEXT("ContentBrowserFiltersCombo"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserFiltersCombo")))
 							.ButtonContent()
 							[
 								SNew( STextBlock )
@@ -483,7 +483,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnTextCommitted( this, &SContentBrowser::OnSearchBoxCommitted )
 							.PossibleSuggestions( this, &SContentBrowser::GetAssetSearchSuggestions )
 							.DelayChangeNotificationsWhileTyping( true )
-							.Tag(TEXT("ContentBrowserSearchAssets"))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSearchAssets")))
 						]
 					]
 
@@ -495,7 +495,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.OnFilterChanged(this, &SContentBrowser::OnFilterChanged)
 						.OnGetContextMenu(this, &SContentBrowser::GetFilterContextMenu)
 						.FrontendFilters(FrontendFilters)
-						.Tag(TEXT("ContentBrowserFilters"))
+						.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserFilters")))
 					]
 
 					// Assets
@@ -522,7 +522,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.CanShowOnlyAssetsInSelectedFolders(true)
 						.CanShowRealTimeThumbnails(true)
 						.CanShowDevelopersFolder(true)
-						.Tag(TEXT("ContentBrowserAssets"))
+						.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserAssets")))
 					]
 				]
 			]

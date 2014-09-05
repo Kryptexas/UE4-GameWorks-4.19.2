@@ -45,8 +45,8 @@ void SGraphNodeK2Base::UpdateCompactNode()
 		NodeToolTip = IDocumentation::Get()->CreateToolTip( TAttribute< FText >( this, &SGraphNode::GetNodeTooltip ), NULL, GraphNode->GetDocumentationLink(), GraphNode->GetDocumentationExcerptName() );
 	}
 
-	// Setup a tag for this node
-	FBlueprintGraphNodeMetaData TagMeta(TEXT("Graphnode"), TEXT("None"), FGuid());
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
 	PopulateMetaTag(&TagMeta);
 
 	//
@@ -75,7 +75,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			// NODE CONTENT AREA
 			SNew(SOverlay)
 			.ToolTip( NodeToolTip.ToSharedRef() )
-			.AddMetaData<FBlueprintGraphNodeMetaData>(TagMeta)
+			.AddMetaData<FGraphNodeMetaData>(TagMeta)
 			+SOverlay::Slot()
 			[
 				SNew(SImage)
@@ -522,47 +522,6 @@ void SGraphNodeK2Base::PerformSecondPassLayout(const TMap< UObject*, TSharedRef<
 	PositionThisNodeBetweenOtherNodes(NodeToWidgetLookup, PrevNodes, NextNodes, Height);
 }
 
-void SGraphNodeK2Base::PopulateMetaTag(FBlueprintGraphNodeMetaData* TagMeta) const
-{
-	if (GraphNode != nullptr)
-	{
-		// We want the name of the blueprint as our name - we can find the node from the GUID
-		UObject* Package = GraphNode->GetOutermost();
-		UObject* LastOuter = GraphNode->GetOuter();
-		while (LastOuter->GetOuter() != Package)
-		{
-			LastOuter = LastOuter->GetOuter();
-		}
-		TagMeta->Tag = FName(*FString::Printf(TEXT("GraphNode_%s_%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString()));
-		TagMeta->OuterName = LastOuter->GetFullName();
-		TagMeta->GUID = GraphNode->NodeGuid;
-		FString TitleText = GetNodeCompactTitle().ToString();
-		if (GraphNode->Pins.Num() > 0)
-		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			for (int iPin = 0; iPin < GraphNode->Pins.Num(); iPin++)
-			{
-				if (GraphNode->Pins[iPin]->PinType.PinCategory != K2Schema->PC_Exec)
-				{
-					// Include the title if there is one
-					if (TitleText.IsEmpty())
-					{
-						TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->Pins[iPin]->PinName, *TagMeta->OuterName);
-					}
-					else
-					{
-						TagMeta->FriendlyName = FString::Printf(TEXT("%s %s in %s"), *TitleText, *GraphNode->Pins[iPin]->PinName, *TagMeta->OuterName);
-					}
 
-					break;
-				}
-			}
-		}
-		else
-		{
-			TagMeta->FriendlyName = TitleText;
-		}
-	}
-}
 
 #undef LOCTEXT_NAMESPACE

@@ -5,6 +5,7 @@
 #include "SGraphNodeComment.h"
 //#include "TextWrapperHelpers.h"
 #include "BlueprintEditorUtils.h"
+#include "TutorialMetaData.h"
 
 namespace SCommentNodeDefs
 {
@@ -114,6 +115,10 @@ void SGraphNodeComment::UpdateGraphNode()
 
 	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
 
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
+	PopulateMetaTag(&TagMeta);
+
 	bool bIsSet = GraphNode->IsA(UEdGraphNode_Comment::StaticClass());
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 	this->ChildSlot
@@ -125,7 +130,7 @@ void SGraphNodeComment::UpdateGraphNode()
 			.ColorAndOpacity( FLinearColor::White )
 			.BorderBackgroundColor( this, &SGraphNodeComment::GetCommentBodyColor )
 			.Padding(  FMargin(3.0f) )
-			.Tag(*TagName)
+			.AddMetaData<FGraphNodeMetaData>(TagMeta)
 			[
 				SNew(SVerticalBox)
 				.ToolTipText( this, &SGraphNode::GetNodeTooltip )
@@ -366,4 +371,22 @@ FSlateRect SGraphNodeComment::GetTitleRect() const
 	const FVector2D NodePosition = GetPosition();
 	FVector2D NodeSize  = TitleBar.IsValid() ? TitleBar->GetDesiredSize() : GetDesiredSize();
 	return FSlateRect( NodePosition.X, NodePosition.Y, NodePosition.X + NodeSize.X, NodePosition.Y + NodeSize.Y ) + SCommentNodeDefs::TitleBarOffset;
+}
+
+void SGraphNodeComment::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
+{
+	if (GraphNode != nullptr)
+	{
+		// We want the name of the blueprint as our name - we can find the node from the GUID
+		UObject* Package = GraphNode->GetOutermost();
+		UObject* LastOuter = GraphNode->GetOuter();
+		while (LastOuter->GetOuter() != Package)
+		{
+			LastOuter = LastOuter->GetOuter();
+		}
+		TagMeta->Tag = FName(*FString::Printf(TEXT("GraphNode_%s_%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString()));
+		TagMeta->OuterName = LastOuter->GetFullName();
+		TagMeta->GUID = GraphNode->NodeGuid;
+		TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString(), *TagMeta->OuterName);
+	}
 }

@@ -4,6 +4,7 @@
 #include "STutorialButton.h"
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "STutorialButton"
 
@@ -26,10 +27,11 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	PulseAnimation.AddCurve(0.0f, TutorialButtonConstants::PulseAnimationLength, ECurveEaseFunction::Linear);
 	PulseAnimation.Play();
 
+	FTutorialMetaData TagMeta(*FString::Printf(TEXT("%s.TutorialLaunchButton"), *Context.ToString()), TEXT("TutorialLaunchButton"));
 	ChildSlot
 	[
 		SNew(SButton)
-		.Tag(*FString::Printf(TEXT("%s.TutorialLaunchButton"), *Context.ToString()))
+		.AddMetaData<FTutorialMetaData>(TagMeta)
 		.ButtonStyle(FEditorStyle::Get(), "TutorialLaunch.Button")
 		.ToolTipText(LOCTEXT("TutorialLaunchToolTip", "Launch Tutorial (right-click for more options)"))
 		.Visibility(this, &STutorialButton::GetVisibility)

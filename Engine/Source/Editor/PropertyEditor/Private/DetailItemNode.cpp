@@ -9,6 +9,7 @@
 #include "DetailPropertyRow.h"
 #include "DetailCustomBuilderRow.h"
 #include "SDetailSingleItemRow.h"
+#include "TutorialMetaData.h"
 
 
 
@@ -137,10 +138,10 @@ void FDetailItemNode::ToggleExpansion()
 
 TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
 {
-	FString TagName;
+	FGraphNodeMetaData TagMeta(TEXT("DetailRowItem"));
 	if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid() )
 	{
-		TagName = FString::Printf(TEXT("DetailItemNode,%s,%d"), *Customization.GetPropertyNode()->GetDisplayName(), Customization.GetPropertyNode()->GetArrayIndex());
+		TagMeta.FriendlyName = Customization.GetPropertyNode()->GetDisplayName(); 
 	}
 	if( Customization.HasPropertyNode() && Customization.GetPropertyNode()->AsCategoryNode() )
 	{
@@ -148,7 +149,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 			SNew(SDetailCategoryTableRow, AsShared(), OwnerTable)
 			.IsEnabled(IsParentEnabled)
 			.DisplayName(Customization.GetPropertyNode()->GetDisplayName())
-			.Tag(*TagName)
+			.AddMetaData<FTutorialMetaData>(TagMeta)
 			.InnerCategory( true );
 	}
 	else
@@ -156,7 +157,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 		return
 			SNew(SDetailSingleItemRow, &Customization, HasMultiColumnWidget(), AsShared(), OwnerTable )
 			.IsEnabled( IsParentEnabled )
-			.Tag(*TagName)
+			.AddMetaData<FTutorialMetaData>(TagMeta)
 			.ColumnSizeData(ColumnSizeData);
 	}
 }

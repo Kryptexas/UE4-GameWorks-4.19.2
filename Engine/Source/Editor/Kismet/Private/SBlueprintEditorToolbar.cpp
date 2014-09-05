@@ -827,7 +827,7 @@ TArray< TSharedPtr< SWidget> > FBlueprintEditorToolbar::GenerateToolbarWidgets(c
 				TEXT("DefaultsMode")))
 			.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode"))
 			.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode.Small"))
-			.Tag(TEXT("DefaultsMode"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("DefaultsMode")))
 		);
 
 		Ret.Add(SNew(SBlueprintModeSeparator));
@@ -844,7 +844,7 @@ TArray< TSharedPtr< SWidget> > FBlueprintEditorToolbar::GenerateToolbarWidgets(c
 				TEXT("ComponentsMode")))
 			.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToComponentsMode"))
 			.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToComponentsMode.Small"))
-			.Tag(TEXT("ComponentsMode"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsMode")))
 		);
 
 		Ret.Add(SNew(SBlueprintModeSeparator));
@@ -862,7 +862,7 @@ TArray< TSharedPtr< SWidget> > FBlueprintEditorToolbar::GenerateToolbarWidgets(c
 			.ToolTipText(LOCTEXT("GraphModeButtonTooltip", "Switch to Graph Editing Mode"))
 			.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode"))
 			.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode.Small"))
-			.Tag(TEXT("GraphMode"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("GraphMode")))
 		);
 
 		// Right side padding

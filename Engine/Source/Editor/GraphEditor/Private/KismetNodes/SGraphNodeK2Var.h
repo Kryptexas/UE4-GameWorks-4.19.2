@@ -18,9 +18,6 @@ public:
 	virtual void UpdateGraphNode() override;
 	// End of SGraphNode interface
 
-	/* Populates a meta tag with information about the graph node */
-	void PopulateMetaTag(class FBlueprintGraphNodeMetaData* TagMeta, const FText &TitleText) const;
-
 protected:
 	FSlateColor GetVariableColor() const;
 };

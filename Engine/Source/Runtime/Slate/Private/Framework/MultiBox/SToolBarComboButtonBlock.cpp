@@ -106,7 +106,7 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 
 	bool bBool = TEXT("Bool");
 
-	// Create a tag
+	// Setup the string for the metatag
 	FName TagName;
 	if (ToolBarComboButtonBlock->GetTutorialHighlightName() == NAME_None)
 	{
@@ -120,7 +120,7 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 	// Create the content for our button
 	TSharedRef< SWidget > ButtonContent =
 		SNew( SVerticalBox )
-		.Tag(TagName)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TagName))
 		// Icon image
 		+ SVerticalBox::Slot()
 		.AutoHeight()

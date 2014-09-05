@@ -360,7 +360,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 			[
 				SAssignNew(FilterListPtr, SLogFilterList)
 				.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
-				.Tag(TEXT("CategoryFilters"))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("CategoryFilters")))
 				/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
 				/*.FrontendFilters(FrontendFilters)*/
 			]

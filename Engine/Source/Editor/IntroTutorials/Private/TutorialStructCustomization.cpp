@@ -254,25 +254,35 @@ private:
 			TSharedPtr<IPropertyHandle> TypeProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, Type));
 			TypeProperty->SetValue((uint8)ETutorialAnchorIdentifier::NamedWidget);
 			
+			// Set the friendly name to the PickedWidget name - we might not have any metadata
+			StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, FriendlyName))->SetValue(PickedWidgetName);
+			//StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, FriendlyName))->SetValue(FString());
+
 			for (const auto& MetaDataEntry : PickedAllMetaData)
 			{
-				if (MetaDataEntry->IsOfType<FBlueprintGraphNodeMetaData>())
+				if (MetaDataEntry->IsOfType<FTutorialMetaData>())
 				{
-					TSharedRef<FBlueprintGraphNodeMetaData> GraphNodeMeta = StaticCastSharedRef<FBlueprintGraphNodeMetaData>(MetaDataEntry);
-					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, TagIdent))->SetValue(GraphNodeMeta->Tag);
+					TSharedRef<FTutorialMetaData> GraphNodeMeta = StaticCastSharedRef<FGraphNodeMetaData>(MetaDataEntry);
+					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, FriendlyName))->SetValue(GraphNodeMeta->FriendlyName);
+					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, TabTypeToOpen))->SetValue(GraphNodeMeta->TabTypeToOpen);
+				}
+				else if (MetaDataEntry->IsOfType<FGraphNodeMetaData>())
+				{
+					TSharedRef<FGraphNodeMetaData> GraphNodeMeta = StaticCastSharedRef<FGraphNodeMetaData>(MetaDataEntry);
 					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, GUIDString))->SetValue(GraphNodeMeta->GUID.ToString());
 					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, OuterName))->SetValue(GraphNodeMeta->OuterName);
 					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, FriendlyName))->SetValue(GraphNodeMeta->FriendlyName);
+					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, TabTypeToOpen))->SetValue(GraphNodeMeta->TabTypeToOpen);
 				}
 				else
 				{
 					TSharedRef<FTagMetaData> GraphNodeMeta = StaticCastSharedRef<FTagMetaData>(MetaDataEntry);
-					TSharedPtr<IPropertyHandle> MetaDataPropertyIdent = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, TagIdent));
-					MetaDataPropertyIdent->SetValue(GraphNodeMeta->Tag);
+					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, FriendlyName))->SetValue(GraphNodeMeta->Tag);
 				}
 			}
 			
 			PickedWidgetName = NAME_None;
+			PickedAllMetaData.Reset();
 
 			if(ParentWindow.IsValid())
 			{

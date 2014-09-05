@@ -406,7 +406,7 @@ void FToolBarBuilder::AddWidget( TSharedRef<SWidget> InWidget, FName TutorialHig
 	TSharedRef<SWidget> ChildWidget = InWidget;
 	InWidget = 
 		SNew( SBox )
-		.Tag(TutorialHighlightName)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TutorialHighlightName))
 		[
 			ChildWidget
 		];

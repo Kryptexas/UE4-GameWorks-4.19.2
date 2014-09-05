@@ -4535,7 +4535,7 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			SNew( SDocumentsTest, TabManagerRef )
 			.RenderTransform_Static(&::GetTestRenderTransform)
 			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			.Tag("DocumentSpawner")
+			.AddMetaData<FTagMetaData>(FTagMetaData("DocumentSpawner"))
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("TableViewTestTab")))

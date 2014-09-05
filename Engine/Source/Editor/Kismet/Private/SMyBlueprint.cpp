@@ -206,7 +206,7 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		SNew(SBorder)
 		.Padding(4.0f)
 		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		.Tag(TEXT("MyBlueprintPanel"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MyBlueprintPanel")))
 		[
 			SNew(SVerticalBox)
 

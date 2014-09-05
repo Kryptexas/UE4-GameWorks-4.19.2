@@ -49,5 +49,11 @@ public class ContentBrowser : ModuleRules
                 "ReferenceViewer"
 			}
 		);
+		
+		PublicIncludePathModuleNames.AddRange(
+            new string[] {                
+                "IntroTutorials"
+            }
+        );
 	}
 }

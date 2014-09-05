@@ -5,6 +5,7 @@
 #include "SGraphNodeDocumentation.h"
 #include "IDocumentation.h"
 #include "SLevelOfDetailBranchNode.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "SGraphNodeDocumentation"
 
@@ -62,8 +63,13 @@ void SGraphNodeDocumentation::UpdateGraphNode()
 	// Create Node Title
 	TSharedPtr<SNodeTitle> NodeTitle = SNew( SNodeTitle, GraphNode );
 
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
+	PopulateMetaTag(&TagMeta);
+
 	TSharedRef<SOverlay> DefaultTitleAreaWidget =
 		SNew( SOverlay )
+		.AddMetaData<FGraphNodeMetaData>(TagMeta)
 		+SOverlay::Slot()
 		[
 			SNew( SImage )

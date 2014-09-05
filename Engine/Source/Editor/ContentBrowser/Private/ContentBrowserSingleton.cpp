@@ -8,6 +8,7 @@
 #include "IDocumentation.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "SAssetDialog.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -464,9 +465,9 @@ TSharedRef<SDockTab> FContentBrowserSingleton::SpawnContentBrowserTab( const FSp
 	}
 
 	// Add wrapper for tutorial highlighting
-	TSharedRef<SBox> Wrapper = 
-		SNew( SBox )
-		.Tag(TEXT("ContentBrowser"))
+	TSharedRef<SBox> Wrapper =
+		SNew(SBox)
+		.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ContentBrowser"), TEXT("ContentBrowserTab1")))
 		[
 			NewBrowser
 		];

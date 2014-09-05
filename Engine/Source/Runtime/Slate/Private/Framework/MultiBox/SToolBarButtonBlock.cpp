@@ -154,7 +154,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	TSharedRef< SWidget > ButtonContent =
 
 		SNew(SHorizontalBox)
-		.Tag(TutorialHighlightName)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TutorialHighlightName))
 
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)

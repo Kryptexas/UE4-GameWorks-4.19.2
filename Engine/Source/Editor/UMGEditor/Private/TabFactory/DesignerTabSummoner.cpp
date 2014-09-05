@@ -29,7 +29,7 @@ TSharedRef<SWidget> FDesignerTabSummoner::CreateTabBody(const FWorkflowTabSpawnI
 		.FillWidth(1)
 		[
 			SNew(SDesignerView, BlueprintEditor.Pin())
-			.Tag(TEXT("Designer"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Designer")))
 		];
 }
 

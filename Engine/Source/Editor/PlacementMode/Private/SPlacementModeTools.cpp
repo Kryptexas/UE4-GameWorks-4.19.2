@@ -321,7 +321,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.AutoHeight()
 		[
 			SNew( SBox)
-			.Tag(TEXT("PMRecentlyPlaced"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMRecentlyPlaced")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::RecentlyPlaced, NSLOCTEXT( "PlacementMode", "RecentlyPlaced", "Recently Placed" ), true )
 			]
@@ -331,7 +331,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.AutoHeight()
 		[
 			SNew( SBox )
-			.Tag(TEXT("PMGeometry"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMGeometry")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Geometry, NSLOCTEXT( "PlacementMode", "Geometry", "Geometry" ), false )
 			]
@@ -341,7 +341,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.AutoHeight()
 		[
 			SNew( SBox )
-			.Tag(TEXT("PMLights"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMLights")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Lights, NSLOCTEXT( "PlacementMode", "Lights", "Lights" ), false )
 			]
@@ -351,7 +351,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.AutoHeight()
 		[
 			SNew( SBox )
-			.Tag(TEXT("PMVisual"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMVisual")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Visual, NSLOCTEXT( "PlacementMode", "Visual", "Visual" ), false )
 			]
@@ -361,7 +361,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.AutoHeight()
 		[
 			SNew( SBox )
-			.Tag(TEXT("PMBasic"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMBasic")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Basic, NSLOCTEXT( "PlacementMode", "Basic", "Basic" ), false )
 			]
@@ -371,7 +371,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.AutoHeight()
 		[
 			SNew( SBox )
-			.Tag(TEXT("PMVolumes"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMVolumes")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Volumes, NSLOCTEXT( "PlacementMode", "Volumes", "Volumes" ), false )
 			]
@@ -381,7 +381,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.AutoHeight()
 		[
 			SNew( SBox )
-			.Tag(TEXT("PMAllClasses"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMAllClasses")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::AllClasses, NSLOCTEXT( "PlacementMode", "AllClasses", "All Classes" ), true )
 			]

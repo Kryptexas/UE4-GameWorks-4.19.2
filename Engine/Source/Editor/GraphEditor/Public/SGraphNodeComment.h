@@ -44,6 +44,7 @@ protected:
 	// SGraphNode Interface
 	virtual void UpdateGraphNode() override;
 	virtual bool ShouldScaleNodeComment()const override;
+	virtual void PopulateMetaTag(class FGraphNodeMetaData* TagMeta) const override;
 
 	/**
 	 * Helper method to update selection state of comment and any nodes 'contained' within it

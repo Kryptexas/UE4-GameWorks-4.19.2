@@ -25,6 +25,7 @@
 #include "IDocumentation.h"
 #include "Kismet2NameValidators.h"
 #include "UnrealExporter.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -2010,7 +2011,7 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 	this->ChildSlot
 	[
 		SNew( SBox )
-		.Tag(TEXT("ComponentsPanel"))
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 		[
 			Contents.ToSharedRef()
 		]
@@ -2045,15 +2046,14 @@ TSharedRef<ITableRow> SSCSEditor::MakeTableRowWidget( FSCSEditorTreeNodePtrType 
 		OnRenameComponent(false);
 	}
 
-	
-	// Setup a tag for this node
-	FString TagName;
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("TableRow"));
 	if (InNodePtr.IsValid() && InNodePtr->GetComponentTemplate() != NULL )
 	{
-		TagName = FString::Printf(TEXT("TableRow,%s,0"), *InNodePtr->GetComponentTemplate()->GetReadableName());		
+		TagMeta.FriendlyName = FString::Printf(TEXT("TableRow,%s,0"), *InNodePtr->GetComponentTemplate()->GetReadableName());
 	}
 	return SNew(SSCS_RowWidget, SharedThis(this), InNodePtr, OwnerTable)
-		.Tag(*TagName);
+		.AddMetaData<FTutorialMetaData>(TagMeta);
 }
 
 void SSCSEditor::GetSelectedItemsForContextMenu(TArray<FComponentEventConstructionData>& OutSelectedItems) const

@@ -27,7 +27,7 @@ TSharedRef<SWidget> FHierarchyTabSummoner::CreateTabBody(const FWorkflowTabSpawn
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
 	return SNew(SHierarchyView, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
-			.Tag(TEXT("Hierarchy"));
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Hierarchy")));
 }
 
 #undef LOCTEXT_NAMESPACE 
