@@ -66,8 +66,8 @@ public:
 	FOnSpinBoxValueChangedEvent OnEndSliderMovement;
 
 	/** Get the current value of the spin box. */
-	UFUNCTION(BlueprintPure, Category = "Behavior")
-	float GetValue();
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	float GetValue() const;
 
 	/** Set the value of the spin box. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
@@ -75,8 +75,8 @@ public:
 
 	// MIN VALUE
 	/** Get the current minimum value that can be manually set in the spin box. */
-	UFUNCTION(BlueprintPure, Category = "Behavior")
-	float GetMinValue();
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	float GetMinValue() const;
 
 	/** Set the minimum value that can be manually set in the spin box. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
@@ -88,8 +88,8 @@ public:
 
 	// MAX VALUE
 	/** Get the current maximum value that can be manually set in the spin box. */
-	UFUNCTION(BlueprintPure, Category = "Behavior")
-	float GetMaxValue();
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	float GetMaxValue() const;
 
 	/** Set the maximum value that can be manually set in the spin box. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
@@ -101,8 +101,8 @@ public:
 
 	// MIN SLIDER VALUE
 	/** Get the current minimum value that can be specified using the slider. */
-	UFUNCTION(BlueprintPure, Category = "Behavior")
-	float GetMinSliderValue();
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	float GetMinSliderValue() const;
 
 	/** Set the minimum value that can be specified using the slider. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
@@ -114,8 +114,8 @@ public:
 
 	// MAX SLIDER VALUE
 	/** Get the current maximum value that can be specified using the slider. */
-	UFUNCTION(BlueprintPure, Category = "Behavior")
-	float GetMaxSliderValue();
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	float GetMaxSliderValue() const;
 
 	/** Set the maximum value that can be specified using the slider. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")

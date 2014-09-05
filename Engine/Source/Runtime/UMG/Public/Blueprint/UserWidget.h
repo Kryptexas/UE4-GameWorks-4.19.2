@@ -127,10 +127,10 @@ public:
 
 	/*  */
 	UFUNCTION(BlueprintPure, Category="Appearance")
-	bool GetIsVisible();
+	bool GetIsVisible() const;
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
-	TEnumAsByte<ESlateVisibility::Type> GetVisiblity();
+	TEnumAsByte<ESlateVisibility::Type> GetVisiblity() const;
 
 	/** Sets the player context associated with this UI. */
 	void SetPlayerContext(FLocalPlayerContext InPlayerContext);

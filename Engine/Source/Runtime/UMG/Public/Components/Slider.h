@@ -60,8 +60,8 @@ public:
 	FOnFloatValueChangedEvent OnValueChanged;
 
 	/** Gets the current value of the slider. */
-	UFUNCTION(BlueprintPure, Category="Behavior")
-	float GetValue();
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	float GetValue() const;
 
 	/** Sets the current value of the slider. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")

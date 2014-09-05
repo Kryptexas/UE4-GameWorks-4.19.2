@@ -52,7 +52,7 @@ void USlider::HandleOnMouseCaptureEnd()
 	OnMouseCaptureEnd.Broadcast();
 }
 
-float USlider::GetValue()
+float USlider::GetValue() const
 {
 	if ( MySlider.IsValid() )
 	{

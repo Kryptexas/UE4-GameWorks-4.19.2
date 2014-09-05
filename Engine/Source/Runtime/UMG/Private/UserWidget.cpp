@@ -619,12 +619,12 @@ void UUserWidget::RemoveFromViewport()
 	}
 }
 
-bool UUserWidget::GetIsVisible()
+bool UUserWidget::GetIsVisible() const
 {
 	return FullScreenWidget.IsValid();
 }
 
-TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
+TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity() const
 {
 	if ( FullScreenWidget.IsValid() )
 	{

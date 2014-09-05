@@ -84,7 +84,7 @@ void USpinBox::SynchronizeProperties()
 	bOverride_MaxSliderValue ? SetMaxSliderValue(MaxSliderValue) : ClearMaxSliderValue();
 }
 
-float USpinBox::GetValue()
+float USpinBox::GetValue() const
 {
 	if (MySpinBox.IsValid())
 	{
@@ -104,7 +104,7 @@ void USpinBox::SetValue(float InValue)
 }
 
 // MIN VALUE
-float USpinBox::GetMinValue()
+float USpinBox::GetMinValue() const
 {
 	float ReturnVal = TNumericLimits<float>::Lowest();
 
@@ -140,7 +140,7 @@ void USpinBox::ClearMinValue()
 }
 
 // MAX VALUE
-float USpinBox::GetMaxValue()
+float USpinBox::GetMaxValue() const
 {
 	float ReturnVal = TNumericLimits<float>::Max();
 
@@ -175,7 +175,7 @@ void USpinBox::ClearMaxValue()
 }
 
 // MIN SLIDER VALUE
-float USpinBox::GetMinSliderValue()
+float USpinBox::GetMinSliderValue() const
 {
 	float ReturnVal = TNumericLimits<float>::Min();
 
@@ -211,7 +211,7 @@ void USpinBox::ClearMinSliderValue()
 }
 
 // MAX SLIDER VALUE
-float USpinBox::GetMaxSliderValue()
+float USpinBox::GetMaxSliderValue() const
 {
 	float ReturnVal = TNumericLimits<float>::Max();
 
