@@ -28,19 +28,15 @@ void AGameplayAbilityTargetActor_Radius::StartTargeting(UGameplayAbility* InAbil
 	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
 }
 
-void AGameplayAbilityTargetActor_Radius::ConfirmTargeting()
+void AGameplayAbilityTargetActor_Radius::ConfirmTargetingAndContinue()
 {
 	check(ShouldProduceTargetData());
-
 	if (SourceActor)
 	{
 		FVector Origin = StartLocation.GetTargetingTransform().GetLocation();
-
 		FGameplayAbilityTargetDataHandle Handle = MakeTargetData(PerformOverlap(Origin), Origin);
 		TargetDataReadyDelegate.Broadcast(Handle);
 	}
-
-	Destroy();
 }
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Radius::MakeTargetData(const TArray<AActor*> Actors, const FVector& Origin) const

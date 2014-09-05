@@ -6,7 +6,8 @@
 #include "GameplayAbilityWorldReticle.h"
 #include "GameplayAbilityTargetActor_Radius.generated.h"
 
-UCLASS(Blueprintable)
+/** Selects everything within a given radius of the source actor. */
+UCLASS(Blueprintable, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_Radius : public AGameplayAbilityTargetActor
 {
 	GENERATED_UCLASS_BODY()
@@ -15,7 +16,7 @@ public:
 
 	virtual void StartTargeting(UGameplayAbility* Ability);
 	
-	virtual void ConfirmTargeting() override;
+	virtual void ConfirmTargetingAndContinue() override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Radius)
 	float Radius;

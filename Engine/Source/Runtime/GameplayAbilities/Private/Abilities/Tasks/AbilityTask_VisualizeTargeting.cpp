@@ -12,7 +12,7 @@ UAbilityTask_VisualizeTargeting::UAbilityTask_VisualizeTargeting(const class FPo
 
 UAbilityTask_VisualizeTargeting* UAbilityTask_VisualizeTargeting::VisualizeTargeting(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, FName TaskInstanceName, float Duration)
 {
-	auto MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for abort list here, providing a given FName as a key
+	auto MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
 	MyObj->TargetClass = InTargetClass;
 	if (Duration > 0.0f)
 	{
@@ -89,6 +89,7 @@ void UAbilityTask_VisualizeTargeting::OnDestroy(bool AbilityEnded)
 	{
 		MyTargetActor->Destroy();
 	}
+	GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_VisualizeTargeting::OnTimeElapsed);
 
 	Super::OnDestroy(AbilityEnded);
 }

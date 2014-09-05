@@ -5,11 +5,31 @@
 UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
-
+	bTickingTask = true;
 }
 
-void UAbilityTask_MoveToLocation::InterpolatePosition()
+UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
 {
+	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject);
+
+	MyObj->StartLocation = MyObj->GetActor()->GetActorLocation();
+	MyObj->TargetLocation = Location;
+	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		//Avoid negative or divide-by-zero cases
+	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
+	MyObj->TimeMoveWillEnd = MyObj->TimeMoveStarted + MyObj->DurationOfMovement;
+	MyObj->LerpCurve = OptionalInterpolationCurve;
+
+	return MyObj;
+}
+
+void UAbilityTask_MoveToLocation::Activate()
+{
+}
+
+//TODO: This is still an awful way to do this and we should scrap this task or do it right.
+void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
+{
+	Super::TickTask(DeltaTime);
 	AActor* MyActor = GetActor();
 	if (MyActor)
 	{
@@ -31,31 +51,4 @@ void UAbilityTask_MoveToLocation::InterpolatePosition()
 			MyActor->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));
 		}
 	}
-}
-
-UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
-{
-	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject);
-
-	MyObj->StartLocation = MyObj->GetActor()->GetActorLocation();
-	MyObj->TargetLocation = Location;
-	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		//Avoid negative or divide-by-zero cases
-	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
-	MyObj->TimeMoveWillEnd = MyObj->TimeMoveStarted + MyObj->DurationOfMovement;
-	MyObj->LerpCurve = OptionalInterpolationCurve;
-
-	return MyObj;
-}
-
-void UAbilityTask_MoveToLocation::OnDestroy(bool AbilityEnded)
-{
-	GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_MoveToLocation::InterpolatePosition);
-
-	Super::OnDestroy(AbilityEnded);
-}
-
-void UAbilityTask_MoveToLocation::Activate()
-{
-	// FIXME: This is bad - its calling InterpolatePOsition @ 1000hz!!!!
-	GetWorld()->GetTimerManager().SetTimer(this, &UAbilityTask_MoveToLocation::InterpolatePosition, 0.001f, true);
 }

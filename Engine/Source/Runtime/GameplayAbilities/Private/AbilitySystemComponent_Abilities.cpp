@@ -709,11 +709,6 @@ bool UAbilitySystemComponent::ServerSetReplicatedTargetDataCancelled_Validate()
 
 // -------
 
-void UAbilitySystemComponent::SetTargetAbility(UGameplayAbility* NewTargetingAbility)
-{
-	TargetingAbility = NewTargetingAbility;
-}
-
 void UAbilitySystemComponent::ConsumeAbilityConfirmCancel()
 {
 	ReplicatedConfirmAbility = false;

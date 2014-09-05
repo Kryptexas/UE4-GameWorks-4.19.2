@@ -80,10 +80,9 @@ void AGameplayAbilityTargetActor_Trace::Tick(float DeltaSeconds)
 	}
 }
 
-void AGameplayAbilityTargetActor_Trace::ConfirmTargeting()
+void AGameplayAbilityTargetActor_Trace::ConfirmTargetingAndContinue()
 {
 	check(ShouldProduceTargetData());
-
 	if (SourceActor)
 	{
 		bDebug = false;
@@ -91,8 +90,6 @@ void AGameplayAbilityTargetActor_Trace::ConfirmTargeting()
 		FGameplayAbilityTargetDataHandle Handle = MakeTargetData(PerformTrace(SourceActor));
 		TargetDataReadyDelegate.Broadcast(Handle);
 	}
-
-	Destroy();
 }
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::MakeTargetData(FHitResult HitResult) const

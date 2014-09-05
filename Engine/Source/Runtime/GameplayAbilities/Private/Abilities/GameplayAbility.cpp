@@ -410,10 +410,6 @@ void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo* ActorInfo, c
 
 	bIsActive = true;
 	Comp->NotifyAbilityActivated(this);
-
-	// Become the 'Targeting Ability'
-	// These may need to be more robust - does every ability that activates become the targeting ability, or only certain ones?
-	Comp->SetTargetAbility(this);
 }
 
 void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -626,16 +622,43 @@ void UGameplayAbility::TaskStarted(UAbilityTask* NewTask)
 	ActiveTasks.Add(NewTask);
 }
 
-void UGameplayAbility::CancelTaskByInstanceName(FName InstanceName)
+void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTask)
 {
 	TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
 	for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 	{
 		if (NamedTasks[i].IsValid())
 		{
-			NamedTasks[i].Get()->EndTask();
+			UAbilityTask* CurrentTask = NamedTasks[i].Get();
+			CurrentTask->ExternalConfirm(bEndTask);
 		}
 	}
+}
+
+void UGameplayAbility::CancelTasksByInstanceName()
+{
+	for (int32 j = 0; j < CancelTaskInstanceNames.Num(); ++j)
+	{
+		FName InstanceName = CancelTaskInstanceNames[j];
+		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
+		{
+			if (NamedTasks[i].IsValid())
+			{
+				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				//TODO Change this to a proper cancel instead of just ending the task cold. Maybe make a separate function for calling EndTask so we don't lose this functionality.
+				CurrentTask->EndTask();
+			}
+		}
+	}
+	CancelTaskInstanceNames.Empty();
+}
+
+void UGameplayAbility::CancelTaskByInstanceName(FName InstanceName)
+{
+	//Avoid race condition by delaying for one frame
+	CancelTaskInstanceNames.AddUnique(InstanceName);
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UGameplayAbility::CancelTasksByInstanceName);
 }
 
 void UGameplayAbility::TaskEnded(UAbilityTask* Task)

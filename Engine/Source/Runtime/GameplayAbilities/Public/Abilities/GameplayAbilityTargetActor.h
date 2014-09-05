@@ -4,7 +4,7 @@
 #include "GameplayAbility.h"
 #include "GameplayAbilityTargetActor.generated.h"
 
-
+/** TargetActors are spawned to assist with ability targeting. They are spawned by ability tasks and create/determine the outgoing targeting data passed from one task to another. */
 UCLASS(Blueprintable, abstract, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor : public AActor
 {
@@ -29,6 +29,9 @@ public:
 	
 	/** Initialize and begin targeting logic  */
 	virtual void StartTargeting(UGameplayAbility* Ability);
+
+	/** Requesting targeting data, but not necessarily stopping/destroying the task. Useful for external target data requests. */
+	virtual void ConfirmTargetingAndContinue();
 
 	/** Outside code is saying 'stop and just give me what you have' */
 	UFUNCTION()
@@ -60,6 +63,9 @@ public:
 
 	UPROPERTY()
 	UGameplayAbility* OwningAbility;
+
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
+	bool bDestroyOnConfirmation;
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;

@@ -6,7 +6,7 @@
 UAbilityTask::UAbilityTask(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
+	bTickingTask = false;
 }
 
 void UAbilityTask::Activate()
@@ -64,6 +64,14 @@ void UAbilityTask::EndTask()
 	if (!IsPendingKill())
 	{
 		OnDestroy(false);
+	}
+}
+
+void UAbilityTask::ExternalConfirm(bool bEndTask)
+{
+	if (bEndTask)
+	{
+		EndTask();
 	}
 }
 

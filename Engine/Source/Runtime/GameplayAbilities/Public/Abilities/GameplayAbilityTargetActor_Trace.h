@@ -6,7 +6,8 @@
 #include "GameplayAbilityWorldReticle.h"
 #include "GameplayAbilityTargetActor_Trace.generated.h"
 
-UCLASS(Abstract, Blueprintable)
+/** Intermediate base class for all line-trace type targeting actors. */
+UCLASS(Abstract, Blueprintable, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_Trace : public AGameplayAbilityTargetActor
 {
 	GENERATED_UCLASS_BODY()
@@ -17,8 +18,8 @@ public:
 	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const override;
 
 	virtual void StartTargeting(UGameplayAbility* Ability) override;
-	
-	virtual void ConfirmTargeting() override;	
+
+	virtual void ConfirmTargetingAndContinue() override;
 
 	virtual void Tick(float DeltaSeconds) override;
 	

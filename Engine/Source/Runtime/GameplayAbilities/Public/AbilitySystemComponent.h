@@ -468,7 +468,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void TargetConfirm();
 
-	/** Any active targeting actors will be stopped and cancelled, not returning any targeting data */
+	/** Any active targeting actors will be stopped and canceled, not returning any targeting data */
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void TargetCancel();
 
@@ -536,15 +536,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void ServerSetReplicatedTargetDataCancelled();
 	
 
-	void SetTargetAbility(UGameplayAbility* NewTargetingAbility);
-
 	void ConsumeAbilityConfirmCancel();
 
 	void ConsumeAbilityTargetData();
-
-	/** This ability has a 'lock' on replicated targeting data. Only 1 targeting ability can be active at once */
-	UPROPERTY()
-	UGameplayAbility* TargetingAbility;
 
 	bool ReplicatedConfirmAbility;
 	bool ReplicatedCancelAbility;

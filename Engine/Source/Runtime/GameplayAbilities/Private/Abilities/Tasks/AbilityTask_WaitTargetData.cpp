@@ -10,12 +10,13 @@ UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const class FPostConstr
 	
 }
 
-UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject* WorldContextObject, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass)
+UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject* WorldContextObject, FName TaskInstanceName, bool CanFireMultipleTimes, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass)
 {
-	auto MyObj = NewTask<UAbilityTask_WaitTargetData>(WorldContextObject);
+	auto MyObj = NewTask<UAbilityTask_WaitTargetData>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
 	MyObj->TargetClass = InTargetClass;
 	MyObj->ConfirmationType = ConfirmationType;
-	return MyObj;	
+	MyObj->bMultiFire = CanFireMultipleTimes;
+	return MyObj;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -81,10 +82,20 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 			// Register with the TargetData callbacks if we are expecting client to send them
 			if (!CDO->ShouldProduceTargetDataOnServer)
 			{
+				//Problem here - if there's targeting data just sitting around, fire events don't get hooked up because of this if-else, even if we don't end the task.
 				if (AbilitySystemComponent->ReplicatedTargetData.IsValid())
 				{
 					ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
-					EndTask();
+					if (!bMultiFire)
+					{
+						EndTask();
+					}
+					else
+					{
+						//Since multifire is supported, we still need to hook up the callbacks
+						AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+						AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
+					}
 				}
 				else
 				{
@@ -171,10 +182,13 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 		ValidData.Broadcast(Data);
 	}
 
-	EndTask();
+	if (!bMultiFire)
+	{
+		EndTask();
+	}
 }
 
-/** Client cancelled this Targeting Task (we are the server */
+/** Client cancelled this Targeting Task (we are the server) */
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 {
 	check(AbilitySystemComponent.IsValid());
@@ -195,8 +209,11 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 	}
 
 	ValidData.Broadcast(Data);
-	
-	EndTask();
+
+	if (!bMultiFire)
+	{
+		EndTask();
+	}
 }
 
 /** The TargetActor we spawned locally has called back with a cancel event (they still include the 'last/best' targetdata but the consumer of this may want to discard it) */
@@ -208,6 +225,21 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbility
 	Cancelled.Broadcast(Data);
 
 	EndTask();
+}
+
+/** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
+void UAbilityTask_WaitTargetData::ExternalConfirm(bool bEndTask)
+{
+	check(AbilitySystemComponent.IsValid());
+	if (MyTargetActor.IsValid())
+	{
+		AGameplayAbilityTargetActor* CachedTargetActor = MyTargetActor.Get();
+		if (CachedTargetActor->ShouldProduceTargetData())
+		{
+			CachedTargetActor->ConfirmTargetingAndContinue();
+		}
+	}
+	Super::ExternalConfirm(bEndTask);
 }
 
 void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)

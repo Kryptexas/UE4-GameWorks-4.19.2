@@ -105,6 +105,9 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	/** Called explicitly to end the task (usually by the task itself). Calls OnDestroy. */
 	void EndTask();
 
+	/** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
+	virtual void ExternalConfirm(bool bEndTask);
+
 public:
 
 	/** This name allows us to find the task later so that we can end it. */

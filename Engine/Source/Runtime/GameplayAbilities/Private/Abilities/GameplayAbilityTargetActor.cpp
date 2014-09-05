@@ -17,6 +17,7 @@ AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const class FPostConstr
 	StaticTargetFunction = false;
 	ShouldProduceTargetDataOnServer = false;
 	bDebug = false;
+	bDestroyOnConfirmation = true;
 }
 
 void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -25,6 +26,7 @@ void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimePr
 	DOREPLIFETIME(AGameplayAbilityTargetActor, StartLocation);
 	DOREPLIFETIME(AGameplayAbilityTargetActor, SourceActor);
 	DOREPLIFETIME(AGameplayAbilityTargetActor, bDebug);
+	DOREPLIFETIME(AGameplayAbilityTargetActor, bDestroyOnConfirmation);
 }
 
 void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
@@ -32,12 +34,19 @@ void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
 	OwningAbility = Ability;
 }
 
-void AGameplayAbilityTargetActor::ConfirmTargeting()
+void AGameplayAbilityTargetActor::ConfirmTargetingAndContinue()
 {
 	check(ShouldProduceTargetData());
-
 	TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
-	Destroy();
+}
+
+void AGameplayAbilityTargetActor::ConfirmTargeting()
+{
+	ConfirmTargetingAndContinue();
+	if (bDestroyOnConfirmation)
+	{
+		Destroy();
+	}
 }
 
 /** Outside code is saying 'stop everything and just forget about it' */
