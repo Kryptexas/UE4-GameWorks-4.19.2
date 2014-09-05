@@ -11,7 +11,8 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"SourceCodeAccess",
-					"DesktopPlatform"
+					"DesktopPlatform",
+					"HotReload"
 				}
 			);
 

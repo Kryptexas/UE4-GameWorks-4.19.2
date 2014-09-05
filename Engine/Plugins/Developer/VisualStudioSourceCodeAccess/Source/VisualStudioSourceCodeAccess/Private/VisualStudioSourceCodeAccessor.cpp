@@ -6,6 +6,7 @@
 #include "ISourceCodeAccessModule.h"
 #include "ModuleManager.h"
 #include "DesktopPlatformModule.h"
+#include "Developer/HotReload/Public/IHotReload.h"
 
 
 #include "AllowWindowsPlatformTypes.h"
@@ -67,7 +68,7 @@ void FVisualStudioSourceCodeAccessor::Startup()
 	VSLaunchTime = 0.0;
 
 	// Setup compilation for saving all VS documents upon compilation start
-	FModuleManager::Get().OnModuleCompilerStarted().AddStatic( &SaveVisualStudioDocuments );
+	IHotReloadModule::Get().OnModuleCompilerStarted().AddStatic( &SaveVisualStudioDocuments );
 
 	// Cache this so we don't have to do it on a background thread
 	GetSolutionPath();
@@ -82,7 +83,8 @@ void FVisualStudioSourceCodeAccessor::Startup()
 
 void FVisualStudioSourceCodeAccessor::Shutdown()
 {
-	FModuleManager::Get().OnModuleCompilerStarted().RemoveStatic( &SaveVisualStudioDocuments );
+	// Unregister the hot-reload callback
+	IHotReloadModule::Get().OnModuleCompilerStarted().RemoveStatic( &SaveVisualStudioDocuments );
 }
 
 #if VSACCESSOR_HAS_DTE

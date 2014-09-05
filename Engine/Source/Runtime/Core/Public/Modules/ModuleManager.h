@@ -36,61 +36,6 @@ enum class EModuleLoadResult
 
 
 /**
- * Enumerates possible results of a compilation operation.
- *
- * This enum has to be compatible with the one defined in the
- * UE4\Engine\Source\Programs\UnrealBuildTool\System\ExternalExecution.cs file
- * to keep communication between UHT, UBT and Editor compiling processes valid.
- */
-namespace ECompilationResult
-{
-	enum Type
-	{
-		/** Compilation succeeded */
-		Succeeded = 0,
-		/** Compilation failed because generated code changed which was not supported */
-		FailedDueToHeaderChange = 1,
-		/** Compilation failed due to compilation errors */
-		OtherCompilationError,
-		/** Compilation is not supported in the current build */
-		Unsupported,
-		/** Unknown error */
-		Unknown
-	};
-
-	/**
-	* Converts ECompilationResult enum to string.
-	*/
-	static FORCEINLINE const TCHAR* ToString(ECompilationResult::Type Result)
-	{
-		switch (Result)
-		{
-		case ECompilationResult::Succeeded:
-			return TEXT("Succeeded");
-		case ECompilationResult::FailedDueToHeaderChange:
-			return TEXT("FailedDueToHeaderChange");
-		case ECompilationResult::OtherCompilationError:
-			return TEXT("OtherCompilationError");
-		case ECompilationResult::Unsupported:
-			return TEXT("Unsupported");
-		};
-		return TEXT("Unknown");
-	}
-}
-
-
-/**
- * Enumerates compilation methods for modules.
- */
-enum class EModuleCompileMethod
-{
-	Runtime,
-	External,
-	Unknown
-};
-
-
-/**
  * Enumerates reasons for modules to change.
  *
  * Values of this type will be passed into OnModuleChanged() delegates.
@@ -269,14 +214,6 @@ public:
 	void QueryModules( TArray<FModuleStatus>& OutModuleStatuses );
 
 	/**
-	 * Queries the compilation method for a given module.
-	 *
-	 * @param InModuleName Module to query the name of
-	 * @return A string describing the method used to compile the module.
-	 */
-	FString GetModuleCompileMethod(FName InModuleName);
-
-	/**
 	 * Unloads a specific module
 	 *
 	 * @param InModuleName The name of the module to unload.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
@@ -399,58 +336,12 @@ public:
 	}
 
 	/**
-	 * Module manager ticking is only used to check for asynchronously compiled modules that may need to be reloaded
-	 */
-	void Tick( );
-
-	/**
 	 * Unloads modules during the shutdown process.
 	 *
 	 * This method is Usually called at various points while exiting an application.
 	 */
 	void UnloadModulesAtShutdown( );
 
-	/**
-	 * Tries to recompile the specified module.  If the module is loaded, it will first be unloaded (then reloaded after,
-	 * if the recompile was successful.)
-	 *
-	 * @param InModuleName Name of the module to recompile.
-	 * @param bReloadAfterRecompile If true, the module will automatically be reloaded after a successful compile.  Otherwise, you'll need to load it yourself after.
-	 * @param Ar Output device for logging compilation status.
-	 * @return	Returns true if the module was successfully recompiled (and reloaded, if it was previously loaded).
-	 */
-	bool RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar );
-
-	/** @return	Returns true if an asynchronous compile is currently in progress */
-	bool IsCurrentlyCompiling() const;
-
-	/**
-	 * Declares a type of delegates that is executed after a module recompile has finished.
-	 *
-	 * The first argument signals whether compilation has finished.
-	 * The second argument shows whether compilation was successful or not.
-	 */
-	DECLARE_DELEGATE_TwoParams( FRecompileModulesCallback, bool, bool );
-
-	/**
-	 * Tries to recompile the specified modules in the background.  When recompiling finishes, the specified callback
-	 * delegate will be triggered, passing along a bool that tells you whether the compile action succeeded.  This
-	 * function never tries to unload modules or to reload the modules after they finish compiling.  You should do
-	 * that yourself in the recompile completion callback!
-	 *
-	 * @param ModuleNames Names of the modules to recompile
-	 * @param RecompileModulesCallback Callback function to execute after compilation finishes (whether successful or not.)
-	 * @param bWaitForCompletion True if the function should not return until recompilation attempt has finished and callbacks have fired
-	 * @param Ar Output device for logging compilation status
-	 * @return	True if the recompile action was kicked off successfully.  If this returns false, then the recompile callback will never fire.  In the case where bWaitForCompletion=false, this will also return false if the compilation failed for any reason.
-	 */
-	bool RecompileModulesAsync( const TArray< FName > ModuleNames, const FRecompileModulesCallback& RecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar );
-
-	/** Request that any current compilation operation be abandoned. */
-	void RequestStopCompilation()
-	{
-		bRequestCancelCompilation = true;
-	}
 
 	/** Delegate that's used by the module manager to initialize a registered module that we statically linked with (monolithic only) */
 	DECLARE_DELEGATE_RetVal( IModuleInterface*, FInitializeStaticallyLinkedModule )
@@ -506,12 +397,6 @@ public:
 	 */
 	static const TCHAR *GetUBTConfiguration( );
 
-	/** Called for successfully re-complied module */
-	void OnModuleCompileSucceeded(FName ModuleName, const FString& NewModuleFilename);
-
-	/** Called when the compile data for a module need to be update in memory and written to config */
-	void UpdateModuleCompileData(FName ModuleName);
-
 	/** Gets the filename for a module */
 	FString GetModuleFilename(FName ModuleName) const;
 
@@ -532,31 +417,6 @@ public:
 	FModulesChangedEvent& OnModulesChanged( )
 	{
 		return ModulesChangedEvent;
-	}
-
-	/**
-	 * Gets an event delegate that is executed when compilation of a module has started.
-	 *
-	 * @return The event delegate.
-	 */
-	DECLARE_EVENT(FModuleManager, FModuleCompilerStartedEvent);
-	FModuleCompilerStartedEvent& OnModuleCompilerStarted( )
-	{
-		return ModuleCompilerStartedEvent;
-	}
-
-	/**
-	 * Gets an event delegate that is executed when compilation of a module has finished.
-	 *
-	 * The first parameter is the result of the compilation operation.
-	 * The second parameter determines whether the log should be shown.
-	 *
-	 * @return The event delegate.
-	 */
-	DECLARE_EVENT_ThreeParams(FModuleManager, FModuleCompilerFinishedEvent, const FString&, ECompilationResult::Type, bool);
-	FModuleCompilerFinishedEvent& OnModuleCompilerFinished()
-	{
-		return ModuleCompilerFinishedEvent;
 	}
 
 	/**
@@ -604,47 +464,9 @@ protected:
 	 */
 	FModuleManager( )
 		: bCanProcessNewlyLoadedObjects(false)
-//		,  ModuleCompileProcessHandle(nullptr)
-		, ModuleCompileReadPipe(nullptr)
-		, bRequestCancelCompilation(false)
 	{ }
 
 protected:
-
-	/**
-	 * Helper structure to hold on to module state while asynchronously recompiling DLLs
-	 */
-	struct FModuleToRecompile
-	{
-		/** Name of the module */
-		FString ModuleName;
-
-		/** Desired module file name suffix, or empty string if not needed */
-		FString ModuleFileSuffix;
-
-		/** The module file name to use after a compilation succeeds, or an empty string if not changing */
-		FString NewModuleFilename;
-	};
-
-	/**
-	 * Helper structure to store the compile time and method for a module
-	 */
-	struct FModuleCompilationData
-	{
-		/** Has a timestamp been set for the .dll file */
-		bool bHasFileTimeStamp;
-
-		/** Last known timestamp for the .dll file */
-		FDateTime FileTimeStamp;
-
-		/** Last known compilation method of the .dll file */
-		EModuleCompileMethod CompileMethod;
-
-		FModuleCompilationData()
-			: bHasFileTimeStamp(false)
-			, CompileMethod(EModuleCompileMethod::Unknown)
-		{ }
-	};
 
 	/**
 	 * Information about a single module (may or may not be loaded.)
@@ -687,54 +509,15 @@ protected:
 	/** Type definition for maps of module names to module infos. */
 	typedef TMap<FName, TSharedRef<FModuleInfo>> FModuleMap;
 
-	/**
-	 * Tries to recompile the specified DLL using UBT. Does not interact with modules. This is a low level routine.
-	 *
-	 * @param ModuleNames List of modules to recompile, including the module name and optional file suffix.
-	 * @param Ar Output device for logging compilation status.
-	 */
-	bool RecompileModuleDLLs( const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice &Ar );
-
+public:
 	/**
 	 * Generates a unique file name for the specified module name by adding a random suffix and checking for file collisions.
 	 */
 	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName );
 
-	/** @returns Static: Returns arguments to pass to UnrealBuildTool when compiling modules */
-	FString MakeUBTArgumentsForModuleCompiling();
-
-	/** 
-	 *	Starts compiling DLL files for one or more modules.
-	 *
-	 *	@param GameName The name of the game.
-	 *	@param ModuleNames The list of modules to compile.
-	 *	@param InRecompileModulesCallback Callback function to make when module recompiles.
-	 *	@param Ar
-	 *	@param bInFailIfGeneratedCodeChanges If true, fail the compilation if generated headers change.
-	 *	@param InAdditionalCmdLineArgs Additional arguments to pass to UBT.
-	 *	@return true if successful, false otherwise.
-	 */
-	bool StartCompilingModuleDLLs( const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
-		const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
-		const FString& InAdditionalCmdLineArgs = FString() );
-
-	/** Launches UnrealBuildTool with the specified command line parameters */
-	bool InvokeUnrealBuildToolForCompile(const FString& InCmdLineParams, FOutputDevice &Ar);	
-
-	/** Checks to see if a pending compilation action has completed and optionally waits for it to finish.  If completed, fires any appropriate callbacks and reports status provided bFireEvents is true. */
-	void CheckForFinishedModuleDLLCompile( const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideTest = FText::GetEmpty(), bool bFireEvents = true );
-
+private:
 	/** Compares file versions between the current executing engine version and the specified dll */
 	static bool CheckModuleCompatibility(const TCHAR *Filename);
-
-	/** Called when a new module is added to the manager to get the saved compile data from config */
-	static void ReadModuleCompilationInfoFromConfig(FName ModuleName, FModuleCompilationData& CompileData);
-
-	/** Saves the module's compile data to config */
-	static void WriteModuleCompilationInfoToConfig(FName ModuleName, const FModuleCompilationData& CompileData);
-
-	/** Access the module's file and read the timestamp from the file system. Returns true if the timestamp was read successfully. */
-	bool GetModuleFileTimeStamp(FName ModuleName, FDateTime& OutFileTimeStamp) const;
 
 	/** Finds modules matching a given name wildcard. */
 	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
@@ -758,42 +541,12 @@ private:
 	    our set of known modules changes */
 	FModulesChangedEvent ModulesChangedEvent;
 	
-	/** Multicast delegate which will broadcast a notification when the compiler starts */
-	FModuleCompilerStartedEvent ModuleCompilerStartedEvent;
-	
-	/** Multicast delegate which will broadcast a notification when the compiler finishes */
-	FModuleCompilerFinishedEvent ModuleCompilerFinishedEvent;
-
 	/** Multicast delegate called to process any new loaded objects. */
 	FSimpleMulticastDelegate ProcessLoadedObjectsCallback;
-
-	/** Last known compilation data for each module */
-	TMap<FName, TSharedRef<FModuleCompilationData>> ModuleCompileData;
-
-	/** When compiling a module using an external application, stores the handle to the process that is running */
-	FProcHandle ModuleCompileProcessHandle;
-
-	/** When compiling a module using an external application, this is the process read pipe handle */
-	void* ModuleCompileReadPipe;
-
-	/** When compiling a module using an external application, this is the text that was read from the read pipe handle */
-	FString ModuleCompileReadPipeText;
-
-	/** Callback to execute after an asynchronous recompile has completed (whether successful or not.) */
-	FRecompileModulesCallback RecompileModulesCallback;
 
 	/** When module manager is linked against an application that supports UObjects, this delegate will be primed
 	    at startup to provide information about whether a UObject package is loaded into memory. */
 	FIsPackageLoadedCallback IsPackageLoaded;
-
-	/** Array of modules that we're currently recompiling */
-	TArray< FModuleToRecompile > ModulesBeingCompiled;
-
-	/** Array of modules that we're going to recompile */
-	TArray< FModuleToRecompile > ModulesThatWereBeingRecompiled;
-
-	/** true if we should attempt to cancel the current async compilation */
-	bool bRequestCancelCompilation;
 
 	/** Array of engine binaries directories. */
 	TArray<FString> EngineBinariesDirectories;

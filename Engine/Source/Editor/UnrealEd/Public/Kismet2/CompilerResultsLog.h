@@ -6,6 +6,7 @@
 
 #include "BlueprintUtilities.h"
 #include "TokenizedMessage.h"
+#include "CompilationResult.h"
 
 /** This class maps from final objects to their original source object, across cloning, autoexpansion, etc... */
 class UNREALED_API FBacktrackMap

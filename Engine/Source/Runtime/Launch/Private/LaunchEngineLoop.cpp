@@ -47,6 +47,7 @@
 	#include "EngineService.h"
 	#include "ContentStreaming.h"
 	#include "HighResScreenshot.h"
+	#include "HotReloadInterface.h"
 
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
@@ -1967,6 +1968,15 @@ void FEngineLoop::Exit()
 
 	// Tear down the RHI.
 	RHIExit();
+
+#if WITH_ENGINE
+	// Save the hot reload state
+	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+	if(HotReload != nullptr)
+	{
+		HotReload->SaveConfig();
+	}
+#endif
 
 	// Unload all modules.  Note that this doesn't actually unload the module DLLs (that happens at
 	// process exit by the OS), but it does call ShutdownModule() on all loaded modules in the reverse

@@ -3,13 +3,55 @@
 #pragma once
 
 #include "ModuleManager.h"
+#include "CoreUObject.h"
+#include "CompilationResult.h"
 
 /**
 * HotReload module interface
 */
-class COREUOBJECT_API IHotReloadInterface : public IModuleInterface
+class IHotReloadInterface : public IModuleInterface
 {
 public:
+	/**
+	 * Tries to gets a pointer to the active HotReload implementation. 
+	 */
+	static inline IHotReloadInterface* GetPtr()
+	{
+		return FModuleManager::GetModulePtr<IHotReloadInterface>("HotReload");
+	}
+
+	/**
+	 * Module manager ticking is only used to check for asynchronously compiled modules that may need to be reloaded
+	 */
+	virtual void Tick() = 0;
+
+	/**
+	 * Save the current state to disk before quitting.
+	 */
+	virtual void SaveConfig() = 0;
+
+	/**
+	 * Queries the compilation method for a given module.
+	 *
+	 * @param InModuleName Module to query the name of
+	 * @return A string describing the method used to compile the module.
+	 */
+	virtual FString GetModuleCompileMethod(FName InModuleName) = 0;
+
+	/**
+	 * Recompiles a single module
+	 */
+	virtual bool RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar ) = 0;
+
+	/**
+	 * Returns whether modules are currently being compiled
+	 */
+	virtual bool IsCurrentlyCompiling() const = 0;
+
+	/**
+	 * Request that current compile be stopped
+	 */
+	virtual void RequestStopCompilation() = 0;
 
 	/**
 	* Adds a function to re-map after hot-reload.
@@ -36,5 +78,24 @@ public:
 	 */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FHotReloadEvent, bool /* bWasTriggeredAutomatically */ );
 	virtual FHotReloadEvent& OnHotReload() = 0;
+
+	/**
+	 * Gets an event delegate that is executed when compilation of a module has started.
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_MULTICAST_DELEGATE(FModuleCompilerStartedEvent);
+	virtual FModuleCompilerStartedEvent& OnModuleCompilerStarted() = 0;
+
+	/**
+	 * Gets an event delegate that is executed when compilation of a module has finished.
+	 *
+	 * The first parameter is the result of the compilation operation.
+	 * The second parameter determines whether the log should be shown.
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FModuleCompilerFinishedEvent, const FString&, ECompilationResult::Type, bool);
+	virtual FModuleCompilerFinishedEvent& OnModuleCompilerFinished() = 0;
 };
 

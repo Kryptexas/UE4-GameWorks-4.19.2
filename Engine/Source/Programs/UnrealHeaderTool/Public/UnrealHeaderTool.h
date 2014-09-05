@@ -6,6 +6,7 @@
 
 #include "Core.h"
 #include "CoreUObject.h"
+#include "CompilationResult.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCompile, Log, All);
 

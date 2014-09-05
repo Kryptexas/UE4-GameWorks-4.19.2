@@ -34,6 +34,7 @@
 #include "DesktopPlatformModule.h"
 #include "ShaderCompiler.h"
 #include "NavigationBuildingNotification.h"
+#include "HotReloadInterface.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -392,17 +393,21 @@ void FUnrealEdMisc::InitEngineAnalytics()
 		}
 
 		// Record known modules' compilation methods
-		TArray<FModuleStatus> Modules;
-		FModuleManager::Get().QueryModules(Modules);
-		for (auto& Module : Modules)
+		IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+		if(HotReload != nullptr)
 		{
-			// Record only game modules as these are the only ones that should be hot-reloaded
-			if (Module.bIsGameModule)
+			TArray<FModuleStatus> Modules;
+			FModuleManager::Get().QueryModules(Modules);
+			for (auto& Module : Modules)
 			{
-				TArray< FAnalyticsEventAttribute > ModuleAttributes;
-				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("ModuleName"), Module.Name));
-				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("CompilationMethod"), FModuleManager::Get().GetModuleCompileMethod(*Module.Name)));
-				EngineAnalytics.RecordEvent(FString("Editor.Usage.Modules"), ModuleAttributes);
+				// Record only game modules as these are the only ones that should be hot-reloaded
+				if (Module.bIsGameModule)
+				{
+					TArray< FAnalyticsEventAttribute > ModuleAttributes;
+					ModuleAttributes.Add(FAnalyticsEventAttribute(FString("ModuleName"), Module.Name));
+					ModuleAttributes.Add(FAnalyticsEventAttribute(FString("CompilationMethod"), HotReload->GetModuleCompileMethod(*Module.Name)));
+					EngineAnalytics.RecordEvent(FString("Editor.Usage.Modules"), ModuleAttributes);
+				}
 			}
 		}
 	}

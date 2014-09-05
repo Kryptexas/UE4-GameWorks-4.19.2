@@ -73,6 +73,7 @@
 #include "IAnalyticsProvider.h"
 #include "ISCSEditorCustomization.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
+#include "Developer/HotReload/Public/IHotReload.h"
 
 // Blueprint merging
 #include "Merge.h"
@@ -1893,16 +1894,16 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FIsActionChecked::CreateSP(this, &FBlueprintEditor::GetSaveIntermediateBuildProducts));
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileGraphEditor,
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileGraphEditor_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
+		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileKismetCompiler,
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileKismetCompiler_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
+		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileBlueprintEditor,
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileBlueprintEditor_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
+		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompilePersona,
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompilePersona_OnClicked ),
-		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
+		FCanExecuteAction::CreateStatic( &FBlueprintEditor::CanRecompileModules ));
 
 	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().BeginBlueprintMerge,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::CreateMergeToolTab),
@@ -6168,6 +6169,12 @@ void FBlueprintEditor::RestoreEditedObjectState()
 			}
 		}
 	}
+}
+
+bool FBlueprintEditor::CanRecompileModules()
+{
+	// We're not able to recompile if a compile is already in progress!
+	return !IHotReloadModule::Get().IsCurrentlyCompiling();
 }
 
 void FBlueprintEditor::OnEditTunnel()

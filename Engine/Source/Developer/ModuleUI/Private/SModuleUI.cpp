@@ -252,18 +252,18 @@ FReply SModuleUI::FModuleListItem::OnRecompileClicked()
 			}
 		}
 
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
 		if( PackagesToRebind.Num() > 0 )
 		{
 			// Perform a hot reload
 			const bool bWaitForCompletion = true;			
-			IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
 			HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, *GLog);
 		}
 		else
 		{
 			// Perform a regular unload, then reload
 			const bool bReloadAfterRecompile = true;
-			FModuleManager::Get().RecompileModule( ModuleName, bReloadAfterRecompile, *GLog );
+			HotReloadSupport.RecompileModule( ModuleName, bReloadAfterRecompile, *GLog );
 		}
 	}
 

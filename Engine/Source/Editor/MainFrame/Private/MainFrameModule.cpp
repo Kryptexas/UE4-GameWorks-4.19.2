@@ -604,11 +604,11 @@ void FMainFrameModule::StartupModule( )
 
 	SetLevelNameForWindowTitle(TEXT(""));
 
-	FModuleManager::Get().OnModuleCompilerStarted().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileStarted );
-	FModuleManager::Get().OnModuleCompilerFinished().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileFinished );
-
 	// Register to find out about when hot reload completes, so we can show a notification
-	IHotReloadModule::Get().OnHotReload().AddRaw( this, &FMainFrameModule::HandleHotReloadFinished );
+	IHotReloadModule& HotReloadModule = IHotReloadModule::Get();
+	HotReloadModule.OnModuleCompilerStarted().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileStarted );
+	HotReloadModule.OnModuleCompilerFinished().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileFinished );
+	HotReloadModule.OnHotReload().AddRaw( this, &FMainFrameModule::HandleHotReloadFinished );
 
 #if WITH_EDITOR
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
@@ -647,11 +647,11 @@ void FMainFrameModule::ShutdownModule( )
 
 	if( IHotReloadModule::IsAvailable() )
 	{
-		IHotReloadModule::Get().OnHotReload().RemoveAll( this );
+		IHotReloadModule& HotReloadModule = IHotReloadModule::Get();
+		HotReloadModule.OnHotReload().RemoveAll( this );
+		HotReloadModule.OnModuleCompilerStarted().RemoveAll( this );
+		HotReloadModule.OnModuleCompilerFinished().RemoveAll( this );
 	}
-
-	FModuleManager::Get().OnModuleCompilerStarted().RemoveAll( this );
-	FModuleManager::Get().OnModuleCompilerFinished().RemoveAll( this );
 
 #if WITH_EDITOR
 	if(FModuleManager::Get().IsModuleLoaded("SourceCodeAccess"))
@@ -731,7 +731,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileStarted( )
 
 void FMainFrameModule::OnCancelCodeCompilationClicked()
 {
-	FModuleManager::Get().RequestStopCompilation();
+	IHotReloadModule::Get().RequestStopCompilation();
 }
 
 void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog)

@@ -898,9 +898,9 @@ void FLevelEditorActionCallbacks::ReloadLevelEditor_Clicked()
 void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 {
 	// Don't allow a recompile while already compiling!
-	if( !FModuleManager::Get().IsCurrentlyCompiling() )
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	if( !HotReloadSupport.IsCurrentlyCompiling() )
 	{
-		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
 		HotReloadSupport.DoHotReloadFromEditor();
 	}
 }
@@ -908,13 +908,15 @@ void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 {
 	// We're not able to recompile if a compile is already in progress!
-	return !FModuleManager::Get().IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
 }
 
 bool FLevelEditorActionCallbacks::Reload_CanExecute()
 {
 	// We're not able to reload if a compile is already in progress!
-	return !FModuleManager::Get().IsCurrentlyCompiling();
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	return !HotReloadSupport.IsCurrentlyCompiling();
 }
 
 void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()

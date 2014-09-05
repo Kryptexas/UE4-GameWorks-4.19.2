@@ -824,6 +824,9 @@ protected:
 
 private:
 
+	/** Returns true if modules can be recompiled */
+	static bool CanRecompileModules();
+
 	/* User wants to edit tunnel via function editor */
 	void OnEditTunnel();
 

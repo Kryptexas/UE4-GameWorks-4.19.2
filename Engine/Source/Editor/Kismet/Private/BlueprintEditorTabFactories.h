@@ -44,12 +44,6 @@ struct FLocalKismetCallbacks
 		FAssetEditorManager::Get().CloseAllAssetEditors();
 		GEngine->DeferredCommands.Add( TEXT( "Module Recompile Persona" ) );
 	}
-
-	static bool CanRecompileModules()
-	{
-		// We're not able to recompile if a compile is already in progress!
-		return !FModuleManager::Get().IsCurrentlyCompiling();
-	}
 };
 
 /////////////////////////////////////////////////////

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "HotReloadInterface.h"
 
 /**
  * Editor main frame module

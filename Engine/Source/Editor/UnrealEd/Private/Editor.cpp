@@ -88,6 +88,8 @@
 // AIMdule
 #include "BehaviorTree/BehaviorTreeManager.h"
 
+#include "HotReloadInterface.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
@@ -826,8 +828,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
-	// Tick the module manager
-	FModuleManager::Get().Tick();
+	// Tick the hot reload interface
+	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+	if(HotReload != nullptr)
+	{
+		HotReload->Tick();
+	}
 
 	// Tick the remote config IO manager
 	FRemoteConfigAsyncTaskManager::Get()->Tick();

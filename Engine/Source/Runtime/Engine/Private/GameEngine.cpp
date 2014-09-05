@@ -28,6 +28,7 @@
 
 #include "IHeadMountedDisplay.h"
 #include "RendererInterface.h"
+#include "HotReloadInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -777,7 +778,11 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Tick the module manager
-	FModuleManager::Get().Tick();
+	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+	if(HotReload != nullptr)
+	{
+		HotReload->Tick();
+	}
 
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 	{
