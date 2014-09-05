@@ -34,10 +34,18 @@ void FPathContextMenu::SetOnRenameFolderRequested(const FOnRenameFolderRequested
 	OnRenameFolderRequested = InOnRenameFolderRequested;
 }
 
-TSharedRef<FExtender> FPathContextMenu::MakePathViewContextMenuExtender(const TArray<FString>& InSelectedPaths)
+void FPathContextMenu::SetOnFolderDeleted(const FOnFolderDeleted& InOnFolderDeleted)
+{
+	OnFolderDeleted = InOnFolderDeleted;
+}
+
+void FPathContextMenu::SetSelectedPaths(const TArray<FString>& InSelectedPaths)
 {
 	SelectedPaths = InSelectedPaths;
+}
 
+TSharedRef<FExtender> FPathContextMenu::MakePathViewContextMenuExtender(const TArray<FString>& InSelectedPaths)
+{
 	// Cache any vars that are used in determining if you can execute any actions.
 	// Useful for actions whose "CanExecute" will not change or is expensive to calculate.
 	CacheCanExecuteVars();
@@ -555,6 +563,10 @@ FReply FPathContextMenu::ExecuteDeleteFolderConfirmed()
 	if ( ContentBrowserUtils::DeleteFolders(SelectedPaths) )
 	{
 		ResetColors();
+		if (OnFolderDeleted.IsBound())
+		{
+			OnFolderDeleted.Execute();
+		}
 	}
 
 	return FReply::Handled();

@@ -275,6 +275,9 @@ private:
 	/** Handler for when the asset context menu requests to rename a folder */
 	void OnRenameFolderRequested(const FString& FolderToRename);
 
+	/** Handler for when the path context menu has successfully deleted a folder */
+	void OnOpenedFolderDeleted();
+
 	/** Handler for when the asset context menu requests to duplicate an asset */
 	void OnDuplicateRequested(const TWeakObjectPtr<UObject>& OriginalObject);
 

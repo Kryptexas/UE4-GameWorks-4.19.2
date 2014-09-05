@@ -54,6 +54,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	PathContextMenu = MakeShareable(new FPathContextMenu( AsShared() ));
 	PathContextMenu->SetOnNewAssetRequested( FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested) );
 	PathContextMenu->SetOnRenameFolderRequested(FPathContextMenu::FOnRenameFolderRequested::CreateSP(this, &SContentBrowser::OnRenameFolderRequested));
+	PathContextMenu->SetOnFolderDeleted(FPathContextMenu::FOnFolderDeleted::CreateSP(this, &SContentBrowser::OnOpenedFolderDeleted));
 
 	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
 	TextFilter = MakeShareable( new FFrontendFilter_Text() );
@@ -958,11 +959,14 @@ void SContentBrowser::PathSelected(const FString& FolderPath)
 	{
 		PathChangedDelegate.Broadcast(FolderPath);
 	}
+
+	// Update the context menu's selected paths list
+	PathContextMenu->SetSelectedPaths(SelectedPaths);
 }
 
-TSharedRef<FExtender> SContentBrowser::GetPathContextMenuExtender(const TArray<FString>& SelectedPaths) const
+TSharedRef<FExtender> SContentBrowser::GetPathContextMenuExtender(const TArray<FString>& InSelectedPaths) const
 {
-	return PathContextMenu->MakePathViewContextMenuExtender( SelectedPaths );
+	return PathContextMenu->MakePathViewContextMenuExtender(InSelectedPaths);
 }
 
 void SContentBrowser::CollectionSelected(const FCollectionNameType& SelectedCollection)
@@ -1800,6 +1804,18 @@ void SContentBrowser::OnRenameFolderRequested(const FString& FolderToRename)
 	}
 }
 
+void SContentBrowser::OnOpenedFolderDeleted()
+{
+	// Since the contents of the asset view have just been deleted, set the selected path to the default "/Game"
+	TArray<FString> DefaultSelectedPaths;
+	DefaultSelectedPaths.Add(TEXT("/Game"));
+	PathViewPtr->SetSelectedPaths(DefaultSelectedPaths);
+
+	FSourcesData DefaultSourcesData;
+	DefaultSourcesData.PackagePaths.Add(TEXT("/Game"));
+	AssetViewPtr->SetSourcesData(DefaultSourcesData);
+}
+
 void SContentBrowser::OnDuplicateRequested(const TWeakObjectPtr<UObject>& OriginalObject)
 {
 	UObject* Object = OriginalObject.Get();
@@ -1837,8 +1853,6 @@ void SContentBrowser::HandleCollectionRenamed(const FCollectionNameType& Origina
 void SContentBrowser::HandlePathRemoved(const FString& Path)
 {
 	const FName PathName(*Path);
-
-	AssetViewPtr->SetSourcesData(FSourcesData());
 
 	auto RemoveHistoryDelegate = [&](const FHistoryData& HistoryData)
 	{

@@ -17,6 +17,13 @@ public:
 	DECLARE_DELEGATE_OneParam(FOnRenameFolderRequested, const FString& /*FolderToRename*/);
 	void SetOnRenameFolderRequested(const FOnRenameFolderRequested& InOnRenameFolderRequested);
 
+	/** Delegate for when the context menu has successfully deleted a folder */
+	DECLARE_DELEGATE(FOnFolderDeleted)
+	void SetOnFolderDeleted(const FOnFolderDeleted& InOnFolderDeleted);
+
+	/** Sets the currently selected paths */
+	void SetSelectedPaths(const TArray<FString>& InSelectedPaths);
+
 	/** Makes the asset tree context menu extender */
 	TSharedRef<FExtender> MakePathViewContextMenuExtender(const TArray<FString>& InSelectedPaths);
 
@@ -119,6 +126,7 @@ private:
 	TWeakPtr<SWidget> ParentContent;
 	FNewAssetContextMenu::FOnNewAssetRequested OnNewAssetRequested;
 	FOnRenameFolderRequested OnRenameFolderRequested;
+	FOnFolderDeleted OnFolderDeleted;
 
 	/** Cached SCC CanExecute vars */
 	bool bCanExecuteSCCCheckOut;
