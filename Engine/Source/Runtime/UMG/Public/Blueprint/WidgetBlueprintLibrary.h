@@ -88,9 +88,14 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Widget|Brush")
 	static FSlateBrush MakeBrushFromAsset(USlateBrushAsset* BrushAsset);
 
-	/**  */
+   /** 
+	* Creates a Slate Brush from a Texture2D
+	*
+	* @param Width  When less than or equal to zero, the Width of the brush will default to the Width of the Texture
+	* @param Height  When less than or equal to zero, the Height of the brush will default to the Height of the Texture
+	*/
 	UFUNCTION(BlueprintPure, Category="Widget|Brush")
-	static FSlateBrush MakeBrushFromTexture(UTexture2D* Texture);
+	static FSlateBrush MakeBrushFromTexture(UTexture2D* Texture, int32 Width = 0, int32 Height = 0);
 
 	/**  */
 	UFUNCTION(BlueprintPure, Category="Widget|Brush")

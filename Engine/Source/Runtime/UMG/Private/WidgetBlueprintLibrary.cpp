@@ -198,14 +198,15 @@ FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromAsset(USlateBrushAsset* BrushA
 	return FSlateNoResource();
 }
 
-FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromTexture(UTexture2D* Texture)
+FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromTexture(UTexture2D* Texture, int32 Width, int32 Height)
 {
 	if ( Texture )
 	{
 		FSlateBrush Brush;
 		Brush.SetResourceObject(Texture);
-		Brush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
-
+		Width = (Width > 0) ? Width : Texture->GetSizeX();
+		Height = (Height > 0) ? Height : Texture->GetSizeY();
+		Brush.ImageSize = FVector2D(Width, Height);
 		return Brush;
 	}
 	
