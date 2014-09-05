@@ -243,6 +243,7 @@ void UAnimSequenceBase::PostLoad()
 #if WITH_EDITOR
 	InitializeNotifyTrack();
 	UpdateAnimNotifyTrackCache();
+#endif
 
 	if(USkeleton* Skeleton = GetSkeleton())
 	{
@@ -278,7 +279,6 @@ void UAnimSequenceBase::PostLoad()
 			}
 		}
 	}
-#endif
 }
 
 void UAnimSequenceBase::UpgradeMorphTargetCurves()
