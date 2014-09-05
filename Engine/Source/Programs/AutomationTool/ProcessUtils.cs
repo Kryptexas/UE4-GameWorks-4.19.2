@@ -231,6 +231,14 @@ namespace AutomationTool
 			Proc.EnableRaisingEvents = false;
 		}
 
+        ~ProcessResult()
+        {
+            if(Proc != null)
+            {
+                Proc.Dispose();
+            }
+        }
+
 		/// <summary>
 		/// Removes a process from the list of tracked processes.
 		/// </summary>
@@ -702,7 +710,6 @@ namespace AutomationTool
                 }
 				Result.ExitCode = Proc.ExitCode;
 				Result.OnProcessExited();
-				Proc.Dispose();
 			}
 			else
 			{
