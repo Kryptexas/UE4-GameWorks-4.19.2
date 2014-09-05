@@ -178,9 +178,6 @@ public:
 	/** determines if the body is currently welded */
 	uint32 bWelded : 1;
 
-	/** needed to distinguish between the root wanting hit events, and the root turning hit events on for one of its welded children */
-	uint32 bWeldedNotifyRigidBodyCollision : 1;
-
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bSimulatePhysics"))
 	uint32 bStartAwake:1;
@@ -644,6 +641,11 @@ private:
 	 *  @return true if a hit is found
 	 */
 	bool InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const physx::PxRigidActor* RigidBody, const physx::PxGeometry* Geometry) const;
+
+	/** 
+	 * Helper function to update per shape filtering info. This should interface is not very friendly and should only be used from inside FBodyInstance
+	 */
+	void UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
 #endif 
 	/**
 	 * Invalidate Collision Profile Name
