@@ -35,7 +35,12 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 		{
 			static FName PropertyEditor("PropertyEditor");
 			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-			FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property,*PropertyHandle);
+			
+			IDetailsViewPrivate& DetailsView = InParentCategory->GetDetailsView();
+			
+			TSharedRef<IDetailsView> DetailsViewPtr = StaticCastSharedRef<IDetailsView>( DetailsView.AsShared() );
+			
+			FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property,*PropertyHandle, DetailsViewPtr );
 			if (LayoutCallback.IsValid())
 			{
 				if (PropertyHandle->IsValidHandle())

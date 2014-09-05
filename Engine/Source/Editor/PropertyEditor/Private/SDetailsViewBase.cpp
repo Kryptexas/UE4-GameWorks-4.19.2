@@ -944,12 +944,12 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 					FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 					if (Struct)
 					{
-						bIsCustomizedStruct = ParentPlugin.IsCustomizedStruct(Struct);
+						bIsCustomizedStruct = ParentPlugin.IsCustomizedStruct(Struct, SharedThis( this ) );
 					}
 
 					if (ParentStruct)
 					{
-						bIsChildOfCustomizedStruct = ParentPlugin.IsCustomizedStruct(ParentStruct);
+						bIsChildOfCustomizedStruct = ParentPlugin.IsCustomizedStruct(ParentStruct, SharedThis( this ) );
 					}
 				}
 

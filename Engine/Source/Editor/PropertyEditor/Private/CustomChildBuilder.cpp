@@ -91,7 +91,12 @@ TSharedRef<SWidget> FCustomChildrenBuilder::GenerateStructValueWidget( TSharedRe
 	UStructProperty* StructProperty = CastChecked<UStructProperty>( StructPropertyHandle->GetProperty() );
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(StructProperty, *StructPropertyHandle);
+	
+	IDetailsViewPrivate& DetailsView = ParentCategory.Pin()->GetDetailsView();
+	
+	TSharedRef<IDetailsView> DetailsViewPtr = StaticCastSharedRef<IDetailsView>( DetailsView.AsShared() );
+	
+	FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(StructProperty, *StructPropertyHandle, DetailsViewPtr );
 	if (LayoutCallback.IsValid())
 	{
 		TSharedRef<IPropertyTypeCustomization> CustomStructInterface = LayoutCallback.GetCustomizationInstance();
