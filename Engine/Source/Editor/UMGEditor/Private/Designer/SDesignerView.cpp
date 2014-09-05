@@ -11,6 +11,7 @@
 #include "SZoomPan.h"
 #include "SDisappearingBar.h"
 #include "SDesignerToolBar.h"
+#include "DesignerCommands.h"
 #include "STransformHandle.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
