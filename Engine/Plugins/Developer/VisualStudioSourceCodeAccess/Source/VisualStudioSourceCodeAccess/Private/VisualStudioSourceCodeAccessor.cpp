@@ -84,7 +84,10 @@ void FVisualStudioSourceCodeAccessor::Startup()
 void FVisualStudioSourceCodeAccessor::Shutdown()
 {
 	// Unregister the hot-reload callback
-	IHotReloadModule::Get().OnModuleCompilerStarted().RemoveStatic( &SaveVisualStudioDocuments );
+	if(IHotReloadModule::IsAvailable())
+	{
+		IHotReloadModule::Get().OnModuleCompilerStarted().RemoveStatic( &SaveVisualStudioDocuments );
+	}
 }
 
 #if VSACCESSOR_HAS_DTE
