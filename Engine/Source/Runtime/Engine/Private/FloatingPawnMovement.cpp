@@ -86,7 +86,7 @@ bool UFloatingPawnMovement::LimitWorldBounds()
 
 void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 {
-	const FVector ControlAcceleration = GetInputVector().ClampMaxSize(1.f);
+	const FVector ControlAcceleration = GetPendingInputVector().ClampMaxSize(1.f);
 
 	const float AnalogInputModifier = (ControlAcceleration.SizeSquared() > 0.f ? ControlAcceleration.Size() : 0.f);
 	const float MaxPawnSpeed = GetMaxSpeed() * AnalogInputModifier;

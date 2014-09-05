@@ -13,6 +13,8 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	// Overridden to only allow registration with components owned by a Pawn.
 	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
 
@@ -28,11 +30,29 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
 	virtual void AddInputVector(FVector WorldVector, bool bForce = false);
 
-	/** Return the input vector in world space. Note that the input should be consumed with ConsumeInputVector() at the end of an update, to prevent accumulation of control input between frames. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
-	FVector GetInputVector() const;
+	/**
+	 * Return the pending input vector in world space. This is the most up-to-date value of the input vector, pending ConsumeMovementInputVector() which clears it.
+	 * PawnMovementComponents implementing movement usually want to use either this or ConsumeInputVector() as these functions represent the most recent state of input.
+	 * @return The pending input vector in world space.
+	 * @see AddInputVector(), ConsumeInputVector(), GetLastInputVector()
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement", meta=(Keywords="GetInput"))
+	FVector GetPendingInputVector() const;
 
-	/** Returns the input vector and resets it to zero. Should be used during an update to prevent accumulation of control input between frames. */
+	/**
+	* Return the last input vector in world space that was processed by ConsumeInputVector(), which is usually done by the Pawn or PawnMovementComponent.
+	* Any user that needs to know about the input that last affected movement should use this function.
+	* @return The last input vector in world space that was processed by ConsumeInputVector().
+	* @see AddInputVector(), ConsumeInputVector(), GetPendingInputVector()
+	*/
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement", meta=(Keywords="GetInput"))
+	FVector GetLastInputVector() const;
+
+	/* Returns the pending input vector and resets it to zero.
+	 * This should be used during a movement update (by the Pawn or PawnMovementComponent) to prevent accumulation of control input between frames.
+	 * Copies the pending input vector to the saved input vector (GetLastMovementInputVector()).
+	 * @return The pending input vector.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
 	virtual FVector ConsumeInputVector();
 
@@ -44,7 +64,6 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
 	class APawn* GetPawnOwner() const;
 
-public:
 	/** Notify of collision in case we want to react, such as waking up avoidance or pathing code. */
 	virtual void NotifyBumpedPawn(APawn* BumpedPawn) {}
 
@@ -53,4 +72,16 @@ protected:
 	/** Pawn which owns this component. */
 	UPROPERTY()
 	class APawn* PawnOwner;
+
+public:
+
+	// DEPRECATED FUNCTIONS
+
+	/** (Deprecated) Return the input vector in world space. */
+	DEPRECATED(4.5, "GetInputVector() has been deprecated, use either GetPendingInputVector() or GetLastInputVector().")
+	FVector GetInputVector() const;
+
+	/** (Deprecated) Return the input vector in world space. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement", meta=(DeprecatedFunction, FriendlyName="GetInputVector", DeprecationMessage="GetInputVector has been deprecated, use either GetPendingInputVector or GetLastInputVector"))
+	FVector K2_GetInputVector() const;
 };

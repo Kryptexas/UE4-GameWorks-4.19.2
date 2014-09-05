@@ -573,10 +573,27 @@ void APawn::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bFor
 }
 
 
-FVector APawn::GetMovementInputVector() const
+FVector APawn::GetPendingMovementInputVector() const
 {
 	// There's really no point redirecting to the MovementComponent since GetInputVector is not virtual there, and it just comes back to us.
 	return ControlInputVector;
+}
+
+FVector APawn::GetLastMovementInputVector() const
+{
+	return LastControlInputVector;
+}
+
+// TODO: deprecated, remove
+FVector APawn::GetMovementInputVector() const
+{
+	return GetPendingMovementInputVector();
+}
+
+// TODO: deprecated, remove
+FVector APawn::K2_GetMovementInputVector() const
+{
+	return GetPendingMovementInputVector();
 }
 
 
@@ -604,9 +621,9 @@ void APawn::Internal_AddMovementInput(FVector WorldAccel, bool bForce /*=false*/
 
 FVector APawn::Internal_ConsumeMovementInputVector()
 {
-	const FVector OldValue = ControlInputVector;
+	LastControlInputVector = ControlInputVector;
 	ControlInputVector = FVector::ZeroVector;
-	return OldValue;
+	return LastControlInputVector;
 }
 
 

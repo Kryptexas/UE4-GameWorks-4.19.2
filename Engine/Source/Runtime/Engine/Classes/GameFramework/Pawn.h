@@ -323,22 +323,45 @@ protected:
 public:
 	/**
 	 * Add movement input along the given world direction vector (usually normalized) scaled by 'ScaleValue'. If ScaleValue < 0, movement will be in the opposite direction.
-	 * Base Pawn classes won't automatically apply movement, it's up to the user to do so in a Tick. Subclasses such as Character and DefaultPawn automatically handle this input and move.
-	 * @see GetMovementInputVector(), ConsumeMovementInputVector()
+	 * Base Pawn classes won't automatically apply movement, it's up to the user to do so in a Tick event. Subclasses such as Character and DefaultPawn automatically handle this input and move.
+	 * @see GetPendingMovementInputVector(), GetLastMovementInputVector(), ConsumeMovementInputVector()
 	 *
-	 * @param WorldDirection:	Direction in world space to apply input
-	 * @param ScaleValue:		Scale to apply to input. This can be used for analog input, ie a value of 0.5 applies half the normal value.
-	 * @param bForce:			If true always add the input, ignoring the result of IsMoveInputIgnored().
+	 * @param WorldDirection	Direction in world space to apply input
+	 * @param ScaleValue		Scale to apply to input. This can be used for analog input, ie a value of 0.5 applies half the normal value, while -1.0 would reverse the direction.
+	 * @param bForce			If true always add the input, ignoring the result of IsMoveInputIgnored().
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="AddInput"))
 	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.0f, bool bForce = false);
 
-	/** Return the input vector in world space. Note that the input should be consumed with ConsumeMovementInputVector() at the end of an update, to prevent accumulation of control input between frames. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
-	FVector GetMovementInputVector() const;
+	/**
+	 * Return the pending input vector in world space. This is the most up-to-date value of the input vector, pending ConsumeMovementInputVector() which clears it,
+	 * Usually only a PawnMovementComponent will want to read this value, or the Pawn itself if it is responsible for movement.
+	 *
+	 * @return The pending input vector in world space.
+	 * @see AddMovementInput(), GetLastMovementInputVector(), ConsumeMovementInputVector()
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="GetMovementInput GetInput"))
+	FVector GetPendingMovementInputVector() const;
 
-	/** Returns the input vector and resets it to zero. Should be used during an update to prevent accumulation of control input between frames. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	/**
+	 * Return the last input vector in world space that was processed by ConsumeMovementInputVector(), which is usually done by the Pawn or PawnMovementComponent.
+	 * Any user that needs to know about the input that last affected movement should use this function.
+	 * For example an animation update would want to use this, since by default the order of updates in a frame is:
+	 * PlayerController (device input) -> MovementComponent -> Pawn -> Mesh (animations)
+	 *
+	 * @return The last input vector in world space that was processed by ConsumeMovementInputVector().
+	 * @see AddMovementInput(), GetPendingMovementInputVector(), ConsumeMovementInputVector()
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="GetMovementInput GetInput"))
+	FVector GetLastMovementInputVector() const;
+
+	/**
+	 * Returns the pending input vector and resets it to zero.
+	 * This should be used during a movement update (by the Pawn or PawnMovementComponent) to prevent accumulation of control input between frames.
+	 * Copies the pending input vector to the saved input vector (GetLastMovementInputVector()).
+	 * @return The pending input vector.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="ConsumeInput"))
 	virtual FVector ConsumeMovementInputVector();
 
 	/** Add input (affecting Pitch) to the Controller's ControlRotation, if it is a local PlayerController. */
@@ -359,29 +382,59 @@ public:
 
 protected:
 
-	/** Accumulated control input vector, stored in world space. */
+	/**
+	 * Accumulated control input vector, stored in world space. This is the pending input, which is cleared (zeroed) once consumed.
+	 * @see GetPendingMovementInputVector(), AddMovementInput()
+	 */
 	UPROPERTY(Transient)
 	FVector ControlInputVector;
+
+	/**
+	 * The last control input vector that was processed by ConsumeMovementInputVector().
+	 * @see GetLastMovementInputVector()
+	 */
+	UPROPERTY(Transient)
+	FVector LastControlInputVector;
 
 public:
 	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Adds movement input if not ignored, or if forced. */
 	void Internal_AddMovementInput(FVector WorldAccel, bool bForce = false);
 
 	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the value of ControlInputVector. */
-	inline FVector Internal_GetMovementInputVector() const { return ControlInputVector; }
+	inline FVector Internal_GetPendingMovementInputVector() const { return ControlInputVector; }
 
-	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the vale of ControlInputVector and sets it to zero. */
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the value of LastControlInputVector. */
+	inline FVector Internal_GetLastMovementInputVector() const { return LastControlInputVector; }
+
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. LastControlInputVector is updated with initial value of ControlInputVector. Returns ControlInputVector and resets it to zero. */
 	FVector Internal_ConsumeMovementInputVector();
 
 public:
-	/** (DEPRECATED) Launch Character with LaunchVelocity  */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DeprecatedFunction, DeprecationMessage="Use Character.LaunchCharacter instead"))
-	void LaunchPawn(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
 
 	/** Add an Actor to ignore by Pawn's movement collision */
 	void MoveIgnoreActorAdd(AActor* ActorToIgnore);
 
 	/** Remove an Actor to ignore by Pawn's movement collision */
 	void MoveIgnoreActorRemove(AActor* ActorToIgnore);
+
+public:
+
+	// DEPRECATED FUNCTIONS
+
+	/** (Deprecated) Launch Character with LaunchVelocity  */
+	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DeprecatedFunction, DeprecationMessage="Use Character.LaunchCharacter instead"))
+	void LaunchPawn(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
+
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. */
+	DEPRECATED(4.5, "Internal_GetMovementInputVector is deprecated, use Internal_GetPendingMovementInputVector() or Internal_GetLastMovementInputVector() instead.")
+	inline FVector Internal_GetMovementInputVector() const { return Internal_GetPendingMovementInputVector(); }
+
+	/** (Deprecated) Return the input vector in world space. */
+	DEPRECATED(4.5, "GetMovementInputVector() has been deprecated, use either GetPendingMovementInputVector() or GetLastMovementInputVector().")
+	FVector GetMovementInputVector() const;
+
+	/** (Deprecated) Return the input vector in world space. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(DeprecatedFunction, FriendlyName="GetMovementInputVector", DeprecationMessage="GetMovementInputVector has been deprecated, use either GetPendingMovementInputVector or GetLastMovementInputVector"))
+	FVector K2_GetMovementInputVector() const;	
 };
 

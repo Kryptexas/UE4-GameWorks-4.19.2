@@ -56,12 +56,29 @@ void UPawnMovementComponent::AddInputVector(FVector WorldAccel, bool bForce /*=f
 	}
 }
 
-FVector UPawnMovementComponent::GetInputVector() const
+FVector UPawnMovementComponent::GetPendingInputVector() const
 {
-	return PawnOwner ? PawnOwner->Internal_GetMovementInputVector() : FVector::ZeroVector;
+	return PawnOwner ? PawnOwner->Internal_GetPendingMovementInputVector() : FVector::ZeroVector;
+}
+
+FVector UPawnMovementComponent::GetLastInputVector() const
+{
+	return PawnOwner ? PawnOwner->Internal_GetLastMovementInputVector() : FVector::ZeroVector;
 }
 
 FVector UPawnMovementComponent::ConsumeInputVector()
 {
 	return PawnOwner ? PawnOwner->Internal_ConsumeMovementInputVector() : FVector::ZeroVector;
+}
+
+// TODO: deprecated, remove
+FVector UPawnMovementComponent::GetInputVector() const
+{
+	return GetPendingInputVector();
+}
+
+// TODO: deprecated, remove
+FVector UPawnMovementComponent::K2_GetInputVector() const
+{
+	return GetPendingInputVector();
 }
