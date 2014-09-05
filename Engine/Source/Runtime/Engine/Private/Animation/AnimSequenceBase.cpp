@@ -264,7 +264,7 @@ void UAnimSequenceBase::PostLoad()
 			TArray<FFloatCurve*> UnlinkedCurves;
 			for(FFloatCurve& Curve : RawCurveData.FloatCurves)
 			{
-				if(!NameMapping->Exists(Curve.CurveUid))
+				if(!NameMapping->Exists(Curve.LastObservedName))
 				{
 					// The skeleton doesn't know our name. Use the last observed name that was saved with the
 					// curve to create a new name. This can happen if a user saves an animation but not a skeleton
