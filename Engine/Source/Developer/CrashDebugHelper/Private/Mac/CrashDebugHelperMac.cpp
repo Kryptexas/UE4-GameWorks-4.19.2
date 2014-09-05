@@ -220,11 +220,8 @@ static int32 SymboliseStackInfo(TArray<FCrashModuleInfo> const& ModuleInfo, FStr
 			break;
 		}
 	}
-	check(Module.Name.Len() > 0);
-	
-	bool bSuccess = FApplePlatformSymbolication::SymbolInfoForStrippedSymbol((ProgramCounter - Module.BaseOfImage), TCHAR_TO_UTF8(*Module.Name), TCHAR_TO_UTF8(*Module.Report), Info);
-	
-	if(bSuccess)
+
+	if((Module.Name.Len() > 0) && FApplePlatformSymbolication::SymbolInfoForStrippedSymbol((ProgramCounter - Module.BaseOfImage), TCHAR_TO_UTF8(*Module.Name), TCHAR_TO_UTF8(*Module.Report), Info))
 	{
 		if(FCStringAnsi::Strlen(Info.FunctionName) > 0)
 		{

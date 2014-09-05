@@ -1458,7 +1458,13 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			WriteUTF16String(ReportFile, ItoTCHAR(CurrentDepth - IgnoreCount, 10));
 			WriteUTF16String(ReportFile, TEXT("\t"));
 			
-			dladdr((void*)StackTrace[CurrentDepth], &Info);
+			if(dladdr((void*)StackTrace[CurrentDepth], &Info) == 0)
+			{
+				Info.dli_fbase = nullptr;
+				Info.dli_fname = nullptr;
+				Info.dli_saddr = nullptr;
+				Info.dli_sname = nullptr;
+			}
 			if(Info.dli_fname && FCStringAnsi::Strrchr(Info.dli_fname, '/'))
 			{
 				char const* Name = FCStringAnsi::Strrchr(Info.dli_fname, '/');
@@ -1470,7 +1476,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			}
 			else
 			{
-				WriteUTF16String(ReportFile, TEXT("Unknown Module"));
+				WriteUTF16String(ReportFile, TEXT("[Unknown]"));
 			}
 			WriteUTF16String(ReportFile, TEXT("\t0x"));
 			WriteUTF16String(ReportFile, ItoTCHAR(StackTrace[CurrentDepth], 16));
@@ -1485,7 +1491,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			}
 			else
 			{
-				WriteUTF16String(ReportFile, TEXT("Unknown Function"));
+				WriteUTF16String(ReportFile, TEXT("[Unknown]"));
 			}
 			WriteUTF16String(ReportFile, TEXT(" + "));
 			WriteLine(ReportFile, ItoTCHAR(StackTrace[CurrentDepth] - (uint64)Info.dli_saddr, 10));
