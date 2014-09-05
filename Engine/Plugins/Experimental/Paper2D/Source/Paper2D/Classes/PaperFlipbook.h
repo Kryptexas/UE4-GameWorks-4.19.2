@@ -83,6 +83,15 @@ public:
 		return KeyFrames[Index];
 	}
 
+	// Search for a socket at the specified frame
+	bool FindSocket(FName SocketName, int32 KeyFrameIndex, FTransform& OutLocalTransform);
+
+	// Returns true if the flipbook has any sockets
+	bool HasAnySockets() const;
+
+	// Returns a list of all of the sockets
+	void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
+
 	// Rebuilds cached data about the animation (such as total number of frames that the keyframes span, etc...)
 	void InvalidateCachedData();
 

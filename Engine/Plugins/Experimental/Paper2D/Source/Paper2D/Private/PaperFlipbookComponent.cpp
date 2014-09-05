@@ -96,6 +96,9 @@ void UPaperFlipbookComponent::CalculateCurrentFrame()
 
 	if (CachedFrameIndex != LastCachedFrame)
 	{
+		// Update children transforms in case we have anything attached to an animated socket
+		UpdateChildTransforms();
+
 		// Indicate we need to send new dynamic data.
 		MarkRenderDynamicDataDirty();
 	}
@@ -457,4 +460,54 @@ int32 UPaperFlipbookComponent::GetFlipbookLengthInFrames() const
 float UPaperFlipbookComponent::GetFlipbookFramerate() const
 {
 	return (SourceFlipbook != nullptr) ? SourceFlipbook->GetFramesPerSecond() : 15.0f;
+}
+
+bool UPaperFlipbookComponent::HasAnySockets() const
+{
+	if (SourceFlipbook != nullptr)
+	{
+		return SourceFlipbook->HasAnySockets();
+	}
+
+	return false;
+}
+
+FTransform UPaperFlipbookComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
+{
+	if (SourceFlipbook != nullptr)
+	{
+		FTransform SocketLocalTransform;
+		if (SourceFlipbook->FindSocket(InSocketName, (CachedFrameIndex != INDEX_NONE) ? CachedFrameIndex : 0, /*out*/ SocketLocalTransform))
+		{
+			switch (TransformSpace)
+			{
+			case RTS_World:
+				return SocketLocalTransform * ComponentToWorld;
+
+			case RTS_Actor:
+				if (const AActor* Actor = GetOwner())
+				{
+					const FTransform SocketTransform = SocketLocalTransform * ComponentToWorld;
+					return SocketTransform.GetRelativeTransform(Actor->GetTransform());
+				}
+				break;
+
+			case RTS_Component:
+				return SocketLocalTransform;
+
+			default:
+				check(false);
+			}
+		}
+	}
+
+	return Super::GetSocketTransform(InSocketName, TransformSpace);
+}
+
+void UPaperFlipbookComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
+{
+	if (SourceFlipbook != nullptr)
+	{
+		return SourceFlipbook->QuerySupportedSockets(OutSockets);
+	}
 }

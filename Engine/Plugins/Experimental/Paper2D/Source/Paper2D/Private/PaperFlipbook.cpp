@@ -143,6 +143,65 @@ FBoxSphereBounds UPaperFlipbook::GetRenderBounds() const
 	return MergedBoundingBox;
 }
 
+bool UPaperFlipbook::FindSocket(FName SocketName, int32 KeyFrameIndex, FTransform& OutLocalTransform)
+{
+	if (KeyFrames.IsValidIndex(KeyFrameIndex))
+	{
+		if (UPaperSprite* SpriteFrame = KeyFrames[KeyFrameIndex].Sprite)
+		{
+			if (FPaperSpriteSocket* SocketInfo = SpriteFrame->FindSocket(SocketName))
+			{
+				OutLocalTransform = SocketInfo->LocalTransform;
+				OutLocalTransform.ScaleTranslation(SpriteFrame->GetUnrealUnitsPerPixel());
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool UPaperFlipbook::HasAnySockets() const
+{
+	for (const FPaperFlipbookKeyFrame& KeyFrame : KeyFrames)
+	{
+		if (KeyFrame.Sprite != nullptr)
+		{
+			if (KeyFrame.Sprite->HasAnySockets())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void UPaperFlipbook::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
+{
+	TSet<FName> SocketNames;
+	TArray<FComponentSocketDescription> FrameDescriptions;
+
+	for (const FPaperFlipbookKeyFrame& KeyFrame : KeyFrames)
+	{
+		if (KeyFrame.Sprite != nullptr)
+		{
+			FrameDescriptions.Reset();
+			KeyFrame.Sprite->QuerySupportedSockets(/*out*/ FrameDescriptions);
+
+			for (const FComponentSocketDescription& FrameSocket : FrameDescriptions)
+			{
+				if (!SocketNames.Contains(FrameSocket.Name))
+				{
+					SocketNames.Add(FrameSocket.Name);
+					OutSockets.Add(FrameSocket);
+				}
+			}
+		}
+	}
+}
+
 void UPaperFlipbook::InvalidateCachedData()
 {
 	// No cached data yet, but the functions that currently have to iterate over all frames can use cached data in the future
