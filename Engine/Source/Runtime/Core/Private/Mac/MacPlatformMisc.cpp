@@ -34,27 +34,6 @@
  */
 struct MacApplicationInfo
 {
-	/**
-	 * Get a string description of the mode the engine was running in when it crashed
-	 */
-	static const TCHAR* GetEngineMode()
-	{
-		if( IsRunningCommandlet() )
-		{
-			return TEXT( "Commandlet" );
-		}
-		else if( GIsEditor )
-		{
-			return TEXT( "Editor" );
-		}
-		else if( IsRunningDedicatedServer() )
-		{
-			return TEXT( "Server" );
-		}
-		
-		return TEXT( "Game" );
-	}
-	
 	void Init()
 	{
 		SCOPED_AUTORELEASE_POOL;
@@ -118,7 +97,7 @@ struct MacApplicationInfo
 		
 		FString CrashVideoPath = FPaths::GameLogDir() + TEXT("CrashVideo.avi");
 		
-		BranchBaseDir = FString::Printf(TEXT("%s!%s!%s!%d"), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), GetEngineMode(), BUILT_FROM_CHANGELIST);
+		BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), BUILT_FROM_CHANGELIST );
 		
 		// Get the paths that the files will actually have been saved to
 		FString LogDirectory = FPaths::GameLogDir();

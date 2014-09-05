@@ -1105,17 +1105,6 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
  */
 void GenerateWindowsErrorReport(const FString & WERPath)
 {
-	struct FLocalHelpers
-	{
-		static const TCHAR* GetEngineMode()
-		{
-			return	IsRunningCommandlet()?	 	TEXT("Commandlet") :
-					GIsEditor?				 	TEXT("Editor") :
-					IsRunningDedicatedServer()?	TEXT("Server") :
-												TEXT("Game");
-		}
-	};
-
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*WERPath);
 	if (ReportFile != NULL)
 	{
@@ -1155,7 +1144,7 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000000</Parameter6>"));													// FIXME: supply valid?
 		WriteLine(ReportFile, TEXT("\t\t<Parameter7>0000000000000000</Parameter7>"));											// FIXME: supply valid?
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter8>!%s!</Parameter8>"), FCommandLine::Get()));				// FIXME: supply valid? Only partially valid
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter9>%s!%s!%s!%d</Parameter9>"), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FLocalHelpers::GetEngineMode(), BUILT_FROM_CHANGELIST));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter9>%s!%s!%s!%d</Parameter9>"), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), BUILT_FROM_CHANGELIST));
 		WriteLine(ReportFile, TEXT("\t</ProblemSignatures>"));
 
 		WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));

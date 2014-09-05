@@ -816,3 +816,12 @@ void FGenericPlatformMisc::SetEpicAccountId( const FString& AccountId )
 {
 	SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
 }
+
+const TCHAR* FGenericPlatformMisc::GetEngineMode()
+{
+	return	
+		IsRunningCommandlet() ? TEXT( "Commandlet" ) :
+		GIsEditor ? TEXT( "Editor" ) :
+		IsRunningDedicatedServer() ? TEXT( "Server" ) :
+		TEXT( "Game" );
+}

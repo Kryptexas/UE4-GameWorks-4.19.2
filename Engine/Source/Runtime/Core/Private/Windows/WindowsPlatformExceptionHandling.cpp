@@ -50,17 +50,6 @@ bool WriteMinidump(const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo)
 	return result == TRUE;
 }
 
-/** 
- * Get a string description of the mode the engine was running in when it crashed
- */
-const TCHAR* GetEngineMode()
-{
-	return	IsRunningCommandlet()?	 	TEXT("Commandlet") :
-			GIsEditor?				 	TEXT("Editor") :
-			IsRunningDedicatedServer()?	TEXT("Server") :
-										TEXT("Game");
-}
-
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 
 /** 
@@ -182,7 +171,7 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::Get(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), GetEngineMode(), BUILT_FROM_CHANGELIST );
+	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode, BUILT_FROM_CHANGELIST );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
@@ -355,7 +344,7 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 			FText MessageTitle( FText::Format(
 				NSLOCTEXT( "MessageDialog", "AppHasCrashed", "The {0} {1} has crashed and will close" ),
 				FText::FromString( ReportInformation.wzApplicationName ),
-				FText::FromString( GetEngineMode() )
+				FText::FromString( FPlatformMisc::GetEngineMode() )
 				) );
 			FMessageDialog::Open( EAppMsgType::Ok, FText::FromString( GErrorHist ), &MessageTitle );
 		}
