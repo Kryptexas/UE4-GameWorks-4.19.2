@@ -171,6 +171,8 @@ public:
 	static FORCEINLINE bool IsDebugContent()					{ return false; }
 	static FORCEINLINE void InitDebugContext()					{ }
 
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() UGL_REQUIRED(0)
+
 
 	// Silently ignored if not implemented:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID) UGL_OPTIONAL_VOID

@@ -44,6 +44,8 @@ typedef GLfloat GLdouble;
 #undef UGL_TIME_ELAPSED
 #define UGL_TIME_ELAPSED		GL_TIME_ELAPSED_EXT
 
+#define GL_HALF_FLOAT_OES 0x8D61
+
 
 
 struct FOpenGLES2 : public FOpenGLBase
@@ -64,7 +66,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static bool SupportsDisjointTimeQueries();
 	static FORCEINLINE bool SupportsBlitFramebuffer()					{ return bSupportsNVFrameBufferBlit; }
 	static FORCEINLINE bool SupportsDepthStencilRead()					{ return false; }
-	static FORCEINLINE bool SupportsFloatReadSurface()					{ return false; }
+	static FORCEINLINE bool SupportsFloatReadSurface()					{ return SupportsColorBufferHalfFloat(); }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return false; }
 	static FORCEINLINE bool SupportsMultisampledTextures()				{ return false; }
 	static FORCEINLINE bool SupportsFences()							{ return false; }
@@ -108,6 +110,8 @@ struct FOpenGLES2 : public FOpenGLBase
 
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
 	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
+
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
 
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data

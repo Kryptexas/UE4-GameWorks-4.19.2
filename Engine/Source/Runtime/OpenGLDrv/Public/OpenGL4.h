@@ -99,6 +99,8 @@ struct FOpenGL4 : public FOpenGL3
 
 	static uint64 GetVideoMemorySize();
 
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() { return GL_HALF_FLOAT; }
+
 protected:
 	static GLint MaxComputeTextureImageUnits;
 	static GLint MaxComputeUniformComponents;

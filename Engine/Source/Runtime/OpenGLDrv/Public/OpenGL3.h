@@ -574,6 +574,8 @@ struct FOpenGL3 : public FOpenGLBase
 
 	static void ProcessQueryGLInt();
 	static void ProcessExtensions(const FString& ExtensionsString);
+	
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() { return GL_HALF_FLOAT; }
 
 protected:
 	static GLsizei NextTextureName;
