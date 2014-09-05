@@ -17,6 +17,7 @@ class UMGEDITOR_API UK2Node_CreateDragDropOperation : public UK2Node_ConstructOb
 
 	// Begin UK2Node interface
 	void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const;
+	virtual FText GetMenuCategory() const override;
 	// End UK2Node interface.
 
 protected:

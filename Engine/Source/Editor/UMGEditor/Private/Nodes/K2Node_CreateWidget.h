@@ -18,6 +18,7 @@ class UMGEDITOR_API UK2Node_CreateWidget : public UK2Node_ConstructObjectFromCla
 
 	// Begin UK2Node interface
 	void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const;
+	virtual FText GetMenuCategory() const override;
 	// End UK2Node interface.
 
 	/** Get the owning player pin */

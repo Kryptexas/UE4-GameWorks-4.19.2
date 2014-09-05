@@ -83,6 +83,7 @@ FEditorCategoryUtilsImpl::FCategoryInfoMap& FEditorCategoryUtilsImpl::GetCategor
 		RegisterCategoryKey("Utilities", LOCTEXT("UtilitiesCategory", "Utilities"));
 		RegisterCategoryKey("Delegates", LOCTEXT("DelegatesCategory", "Event Dispatchers"));
 		RegisterCategoryKey("Variables", LOCTEXT("VariablesCategory", "Variables"));
+		RegisterCategoryKey("UserInterface", LOCTEXT("UserInterfaceCategory", "User Interface"));
 
 		// Utilities sub categories
 		RegisterCategoryKey("FlowControl", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("FlowControlCategory", "Flow Control")));
@@ -193,6 +194,7 @@ FText const& FEditorCategoryUtils::GetCommonCategory(const FCommonEditorCategory
 		CommonCategoryKeys.Add(FCommonEditorCategory::Utilities, "Utilities");
 		CommonCategoryKeys.Add(FCommonEditorCategory::Delegates, "Delegates");
 		CommonCategoryKeys.Add(FCommonEditorCategory::Variables, "Variables");
+		CommonCategoryKeys.Add(FCommonEditorCategory::UserInterface, "UserInterface");
 
 		CommonCategoryKeys.Add(FCommonEditorCategory::FlowControl, "FlowControl");
 		CommonCategoryKeys.Add(FCommonEditorCategory::Transformation, "Transformation");

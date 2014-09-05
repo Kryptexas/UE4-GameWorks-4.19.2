@@ -33,6 +33,7 @@ struct FCommonEditorCategory
 		Transformation,
 		Utilities,
 		FlowControl,
+		UserInterface,
 
 		// Type library categories:
 		String,

@@ -55,6 +55,11 @@ UClass* UK2Node_CreateWidget::GetClassPinBaseClass() const
 	return UUserWidget::StaticClass();
 }
 
+FText UK2Node_CreateWidget::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::UserInterface);
+}
+
 void UK2Node_CreateWidget::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	UK2Node_CreateWidget* TemplateNode = NewObject<UK2Node_CreateWidget>(GetTransientPackage(), GetClass());

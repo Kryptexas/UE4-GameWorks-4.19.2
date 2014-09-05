@@ -14,22 +14,27 @@
 UK2Node_CreateDragDropOperation::UK2Node_CreateDragDropOperation(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Creates a new drag drop operation");
+	NodeTooltip = LOCTEXT("DragDropNodeTooltip", "Creates a new drag drop operation");
 }
 
 FText UK2Node_CreateDragDropOperation::GetBaseNodeTitle() const
 {
-	return LOCTEXT("CreateWidget_BaseTitle", "Create Drag & Drop Operation");
+	return LOCTEXT("CreateDragDropWidget_BaseTitle", "Create Drag & Drop Operation");
 }
 
 FText UK2Node_CreateDragDropOperation::GetNodeTitleFormat() const
 {
-	return LOCTEXT("CreateWidget", "Create {ClassName}");
+	return LOCTEXT("CreateDragDropWidget", "Create {ClassName}");
 }
 
 UClass* UK2Node_CreateDragDropOperation::GetClassPinBaseClass() const
 {
 	return UDragDropOperation::StaticClass();
+}
+
+FText UK2Node_CreateDragDropOperation::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::UserInterface);
 }
 
 void UK2Node_CreateDragDropOperation::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
