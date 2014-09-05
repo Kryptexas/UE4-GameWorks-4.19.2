@@ -75,6 +75,11 @@ void UAbilityTask::ExternalConfirm(bool bEndTask)
 	}
 }
 
+void UAbilityTask::ExternalCancel()
+{
+	EndTask();
+}
+
 void UAbilityTask::OnDestroy(bool AbilityIsEnding)
 {
 	ensure(!IsPendingKill());

@@ -21,10 +21,6 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 	UPROPERTY(BlueprintAssignable)
 	FWaitTargetDataDelegate	Cancelled;
 
-	/** If true, will not call EndTask when target data is created/received. */
-	UPROPERTY()
-	bool bMultiFire;
-
 	UFUNCTION()
 	void OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data);
 
@@ -39,7 +35,7 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 
 	/** Spawns Targeting actor and waits for it to return valid data or to be cancelled. */
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true", HideSpawnParms="Instigator"), Category="Ability|Tasks")
-	static UAbilityTask_WaitTargetData* WaitTargetData(UObject* WorldContextObject, FName TaskInstanceName, bool CanFireMultipleTimes, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, TSubclassOf<AGameplayAbilityTargetActor> Class);
+	static UAbilityTask_WaitTargetData* WaitTargetData(UObject* WorldContextObject, FName TaskInstanceName, TEnumAsByte<EGameplayTargetingConfirmation::Type> ConfirmationType, TSubclassOf<AGameplayAbilityTargetActor> Class);
 
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	bool BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> Class, AGameplayAbilityTargetActor*& SpawnedActor);
@@ -49,6 +45,9 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 
 	/** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
 	virtual void ExternalConfirm(bool bEndTask) override;
+
+	/** Called when the ability is asked to cancel from an outside node. What this means depends on the individual task. By default, this does nothing other than ending the task. */
+	virtual void ExternalCancel() override;
 
 protected:
 

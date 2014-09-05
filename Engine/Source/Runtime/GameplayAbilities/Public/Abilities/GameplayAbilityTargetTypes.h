@@ -20,6 +20,7 @@ namespace EGameplayTargetingConfirmation
 		Instant,			// The targeting happens instantly without special logic or user input deciding when to 'fire'.
 		UserConfirmed,		// The targeting happens when the user confirms the targeting.
 		Custom,				// The GameplayTargeting Ability is responsible for deciding when the targeting data is ready. Not supported by all TargetingActors.
+		CustomMulti,		// The GameplayTargeting Ability is responsible for deciding when the targeting data is ready. Not supported by all TargetingActors. Should not destroy upon data production.
 	};
 }
 

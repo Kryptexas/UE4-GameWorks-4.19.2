@@ -635,8 +635,23 @@ void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTa
 	}
 }
 
-void UGameplayAbility::CancelTasksByInstanceName()
+void UGameplayAbility::EndOrCancelTasksByInstanceName()
 {
+	for (int32 j = 0; j < EndTaskInstanceNames.Num(); ++j)
+	{
+		FName InstanceName = EndTaskInstanceNames[j];
+		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
+		{
+			if (NamedTasks[i].IsValid())
+			{
+				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				CurrentTask->EndTask();
+			}
+		}
+	}
+	EndTaskInstanceNames.Empty();
+
 	for (int32 j = 0; j < CancelTaskInstanceNames.Num(); ++j)
 	{
 		FName InstanceName = CancelTaskInstanceNames[j];
@@ -646,19 +661,25 @@ void UGameplayAbility::CancelTasksByInstanceName()
 			if (NamedTasks[i].IsValid())
 			{
 				UAbilityTask* CurrentTask = NamedTasks[i].Get();
-				//TODO Change this to a proper cancel instead of just ending the task cold. Maybe make a separate function for calling EndTask so we don't lose this functionality.
-				CurrentTask->EndTask();
+				CurrentTask->ExternalCancel();
 			}
 		}
 	}
 	CancelTaskInstanceNames.Empty();
 }
 
+void UGameplayAbility::EndTaskByInstanceName(FName InstanceName)
+{
+	//Avoid race condition by delaying for one frame
+	EndTaskInstanceNames.AddUnique(InstanceName);
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UGameplayAbility::EndOrCancelTasksByInstanceName);
+}
+
 void UGameplayAbility::CancelTaskByInstanceName(FName InstanceName)
 {
 	//Avoid race condition by delaying for one frame
 	CancelTaskInstanceNames.AddUnique(InstanceName);
-	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UGameplayAbility::CancelTasksByInstanceName);
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UGameplayAbility::EndOrCancelTasksByInstanceName);
 }
 
 void UGameplayAbility::TaskEnded(UAbilityTask* Task)

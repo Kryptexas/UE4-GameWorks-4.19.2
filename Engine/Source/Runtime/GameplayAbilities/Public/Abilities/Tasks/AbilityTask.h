@@ -108,6 +108,9 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	/** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
 	virtual void ExternalConfirm(bool bEndTask);
 
+	/** Called when the ability is asked to cancel from an outside node. What this means depends on the individual task. By default, this does nothing other than ending the task. */
+	virtual void ExternalCancel();
+
 public:
 
 	/** This name allows us to find the task later so that we can end it. */
