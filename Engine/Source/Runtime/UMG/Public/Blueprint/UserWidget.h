@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Geometry.h"
+#include "Engine/GameInstance.h"
 #include "UserWidget.generated.h"
 
 static FGeometry NullGeometry;
@@ -364,10 +365,11 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 		return nullptr;
 	}
 
+	// Assign the outer to the game instance if it exists, otherwise use the world
+	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
 	ULocalPlayer* Player = World->GetFirstLocalPlayerFromController();
-
-	UObject* Outer = ( Player == nullptr ) ? StaticCast<UObject*>(World) : StaticCast<UObject*>(Player);
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+
 	NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
 	NewWidget->Initialize();
 
@@ -383,7 +385,11 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 		return nullptr;
 	}
 
-	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningPlayer);
+	// Assign the outer to the game instance if it exists, otherwise use the player controller's world
+	UWorld* World = OwningPlayer->GetWorld();
+	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+	
 	NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
 	NewWidget->Initialize();
 

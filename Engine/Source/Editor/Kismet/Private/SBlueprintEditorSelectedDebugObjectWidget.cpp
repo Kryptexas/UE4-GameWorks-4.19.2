@@ -19,6 +19,7 @@
 #include "IDocumentation.h"
 #include "SLevelOfDetailBranchNode.h"
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
+#include "Engine/GameInstance.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 
@@ -40,7 +41,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::Construct(const FArguments& InAr
 	DebugWorldsComboBox = SNew(STextComboBox)
 		.ToolTip(IDocumentation::Get()->CreateToolTip(
 		LOCTEXT("BlueprintDebugWorldTooltip", "Select a world to debug"),
-		NULL,
+		nullptr,
 		TEXT("Shared/Editors/BlueprintEditor/BlueprintDebugger"),
 		TEXT("DebugWorld")))
 		.OptionsSource(&DebugWorldNames)
@@ -52,7 +53,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::Construct(const FArguments& InAr
 	DebugObjectsComboBox = SNew(STextComboBox)
 		.ToolTip(IDocumentation::Get()->CreateToolTip(
 		LOCTEXT("BlueprintDebugObjectTooltip", "Select an object to debug"),
-		NULL,
+		nullptr,
 		TEXT("Shared/Editors/BlueprintEditor/BlueprintDebugger"),
 		TEXT("DebugObject")))
 		.OptionsSource(&DebugObjectNames)
@@ -172,7 +173,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::Tick(const FGeometry& AllottedGe
 		}
 		else
 		{
-			LastObjectObserved = NULL;
+			LastObjectObserved = nullptr;
 
 			// If the object name is a name (rather than the 'No debug selected' string then regenerate the names (which will reset the combo box) as the object is invalid.
 			TSharedPtr<FString> CurrentString = DebugObjectsComboBox->GetSelectedItem();
@@ -213,7 +214,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::OnRefresh()
 		}
 		else
 		{
-			// If we didnt find and object its probably a good idea to regenerate the names now - this will also ensure the combo box has a valid selection.
+			// If we didn't find and object its probably a good idea to regenerate the names now - this will also ensure the combo box has a valid selection.
 			GenerateDebugObjectNames(false);
 		}
 	}
@@ -232,10 +233,10 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugWorldNames(bool bRe
 	DebugWorldNames.Empty();
 	DebugWorlds.Empty();
 
-	DebugWorlds.Add(NULL);
+	DebugWorlds.Add(nullptr);
 	DebugWorldNames.Add(MakeShareable(new FString(GetDebugAllWorldsString())));
 
-	UWorld* PreviewWorld = NULL;
+	UWorld* PreviewWorld = nullptr;
 	TSharedPtr<SSCSEditorViewport> PreviewViewportPtr = BlueprintEditor.Pin()->GetSCSViewport();
 	if (PreviewViewportPtr.IsValid())
 	{
@@ -331,7 +332,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 	// Empty the lists of actors and regenerate them
 	DebugObjects.Empty();
 	DebugObjectNames.Empty();
-	DebugObjects.Add(NULL);
+	DebugObjects.Add(nullptr);
 	DebugObjectNames.Add(MakeShareable(new FString(GetNoDebugString())));
 
 	// Grab custom objects that should always be visible, regardless of the world
@@ -350,8 +351,8 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 		}
 	}
 
-	// Check for a specific debug world. If DebugWorld=NULL we take that as "any PIE world"
-	UWorld* DebugWorld = NULL;
+	// Check for a specific debug world. If DebugWorld=nullptr we take that as "any PIE world"
+	UWorld* DebugWorld = nullptr;
 	if (DebugWorldsComboBox.IsValid())
 	{
 		TSharedPtr<FString> CurrentWorldSelection = DebugWorldsComboBox->GetSelectedItem();
@@ -362,7 +363,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 		}
 	}
 
-	UWorld* PreviewWorld = NULL;
+	UWorld* PreviewWorld = nullptr;
 	TSharedPtr<SSCSEditorViewport> PreviewViewportPtr = BlueprintEditor.Pin()->GetSCSViewport();
 	if (PreviewViewportPtr.IsValid())
 	{
@@ -374,7 +375,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 		UObject* TestObject = *It;
 
 		// Skip Blueprint preview objects (don't allow them to be selected for debugging)
-		if (PreviewWorld != NULL && TestObject->IsIn(PreviewWorld))
+		if (PreviewWorld != nullptr && TestObject->IsIn(PreviewWorld))
 		{
 			continue;
 		}
@@ -386,39 +387,38 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 		if (bPassesFlags && bGeneratedByThisBlueprint)
 		{
 			UObject *ObjOuter = TestObject;
-			UWorld *ObjWorld = NULL;
-			while (ObjWorld == NULL && ObjOuter != NULL)
+			UWorld *ObjWorld = nullptr;
+			do		// Run through at least once in case the TestObject is a UGameInstance
 			{
+				UGameInstance *ObjGameInstance = Cast<UGameInstance>(ObjOuter);
+
 				ObjOuter = ObjOuter->GetOuter();
-				ObjWorld = Cast<UWorld>(ObjOuter);
-			}
+				ObjWorld = ObjGameInstance ? ObjGameInstance->GetWorld() : Cast<UWorld>(ObjOuter);
+			} while (ObjWorld == nullptr && ObjOuter != nullptr);
 
-			// Object not in any world
-			if (!ObjWorld)
+			if (ObjWorld)
 			{
-				continue;
-			}
+				// Make check on owning level (not streaming level)
+				if (ObjWorld->PersistentLevel && ObjWorld->PersistentLevel->OwningWorld)
+				{
+					ObjWorld = ObjWorld->PersistentLevel->OwningWorld;
+				}
 
-			// Make check on owning level (not streaming level)
-			if (ObjWorld->PersistentLevel && ObjWorld->PersistentLevel->OwningWorld)
-			{
-				ObjWorld = ObjWorld->PersistentLevel->OwningWorld;
-			}
+				// We have a specific debug world and the object isn't in it
+				if (DebugWorld && ObjWorld != DebugWorld)
+				{
+					continue;
+				}
 
-			// We have a specific debug world and the object isnt in it
-			if (DebugWorld && ObjWorld != DebugWorld)
-			{
-				continue;
+				if ((ObjWorld->WorldType == EWorldType::Editor) && (GUnrealEd->GetPIEViewport() == nullptr))
+				{
+					AddDebugObject(TestObject);
+				}
+				else if (ObjWorld->WorldType == EWorldType::PIE)
+				{
+					AddDebugObject(TestObject);
+				}
 			}
-
-			if ((ObjWorld->WorldType == EWorldType::Editor) && (GUnrealEd->GetPIEViewport() == nullptr))
-			{
-				AddDebugObject(TestObject);
-			}
-			else if (ObjWorld->WorldType == EWorldType::PIE)
-			{
-				AddDebugObject(TestObject);
-			}			
 		}
 	}
 
@@ -530,7 +530,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::DebugObjectSelectionChanged(TSha
 	{
 		if (*DebugObjectNames[ObjectIndex] == *NewSelection)
 		{
-			UObject* DebugObj = DebugObjects[ObjectIndex].IsValid() ? DebugObjects[ObjectIndex].Get() : NULL;
+			UObject* DebugObj = DebugObjects[ObjectIndex].IsValid() ? DebugObjects[ObjectIndex].Get() : nullptr;
 			GetBlueprintObj()->SetObjectBeingDebugged(DebugObj);
 		}
 	}
@@ -564,12 +564,12 @@ void SBlueprintEditorSelectedDebugObjectWidget::SelectedDebugObject_OnClicked()
 
 EVisibility SBlueprintEditorSelectedDebugObjectWidget::IsDebugWorldComboVisible() const
 {
-	if (GEditor->PlayWorld != NULL)
+	if (GEditor->PlayWorld != nullptr)
 	{
 		int32 LocalWorldCount = 0;
 		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			if (Context.WorldType == EWorldType::PIE && Context.World() != NULL)
+			if (Context.WorldType == EWorldType::PIE && Context.World() != nullptr)
 			{
 				++LocalWorldCount;
 			}
