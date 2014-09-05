@@ -14,6 +14,7 @@ namespace EStatsPage
 {
 	enum Type
 	{
+		CookerStats,
 		LightingBuildInfo,
 		PrimitiveStats,
 		StaticMeshLightingInfo,
