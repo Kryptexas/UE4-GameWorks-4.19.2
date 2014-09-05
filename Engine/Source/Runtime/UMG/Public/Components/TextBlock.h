@@ -88,7 +88,18 @@ public:
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
 
-	/**  */
+	/** 
+	Gets the widget text
+	@return The widget text
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	FText GetText() const;
+
+	/**
+	Directly sets the widget text.
+	Warning: This will wipe any binding created for the Text property!
+	@param InText The text to assign to the widget
+	*/
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetText(FText InText);
 

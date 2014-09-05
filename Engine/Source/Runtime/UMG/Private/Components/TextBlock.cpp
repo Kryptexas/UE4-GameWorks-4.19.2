@@ -111,6 +111,16 @@ void UTextBlock::SynchronizeProperties()
 #endif
 }
 
+FText UTextBlock::GetText() const
+{
+	if (MyTextBlock.IsValid())
+	{
+		return MyTextBlock->GetText();
+	}
+
+	return Text;
+}
+
 void UTextBlock::SetText(FText InText)
 {
 	Text = InText;
