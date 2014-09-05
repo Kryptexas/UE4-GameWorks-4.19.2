@@ -476,7 +476,8 @@ public:
 		{
 			if (FPaperSpriteSocket* Socket = Sprite->FindSocket(SocketName))
 			{
-				const FVector Delta3D = (PaperAxisX * Delta.X) + (PaperAxisY * -Delta.Y);
+				const FVector Delta3D_UU = (PaperAxisX * Delta.X) + (PaperAxisY * -Delta.Y);
+				const FVector Delta3D = Delta3D_UU * Sprite->GetPixelsPerUnrealUnit();
 				Socket->LocalTransform.SetLocation(Socket->LocalTransform.GetLocation() + Delta3D);
 			}
 		}
