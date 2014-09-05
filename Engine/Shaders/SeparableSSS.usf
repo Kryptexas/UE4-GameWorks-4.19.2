@@ -482,7 +482,7 @@ float4 SSSSBlurPS(
 	for (int i = 1; i < SSSS_N_KERNELWEIGHTCOUNT; i++) 
 	{
 		// Kernel.a = 0..3
-		half4 Kernel = GetKernel(i, SubsurfaceProfileInt);
+		half4 Kernel = GetKernel(SSSS_N_KERNELWEIGHTOFFSET + i, SubsurfaceProfileInt);
 
 		float3 LocalAccum = 0;
 

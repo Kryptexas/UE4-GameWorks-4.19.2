@@ -54,6 +54,17 @@ float GetSubsurfaceStrength(float2 UV)
 	#define SSSS_SPECULAR_CORRECTION 0
 #endif
 
+#if SSS_SAMPLESET == 0
+	#define	SSSS_N_KERNELWEIGHTCOUNT 6
+	#define	SSSS_N_KERNELWEIGHTOFFSET (13 + 9)
+#elif SSS_SAMPLESET == 1
+	#define	SSSS_N_KERNELWEIGHTCOUNT 9
+	#define	SSSS_N_KERNELWEIGHTOFFSET 13
+#else // SSS_SAMPLESET == 2
+	#define	SSSS_N_KERNELWEIGHTCOUNT 13
+	#define	SSSS_N_KERNELWEIGHTOFFSET 0
+#endif
+
 // 0: faster
 // 1: no color bleeding in z direction
 #define SSSS_FOLLOW_SURFACE 1

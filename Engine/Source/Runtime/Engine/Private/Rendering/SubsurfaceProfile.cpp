@@ -129,8 +129,10 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 	// true:16bit (currently required to have very small and very large kernel sizes), false: 8bit
 	const bool b16Bit = true;
 
+	const uint32 Width = 32;
+
 	// at minimum 64 lines (less reallocations)
-	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(16, FMath::Max(Height, (uint32)64)), PF_B8G8R8A8, TexCreate_None, TexCreate_None, false));
+	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(Width, FMath::Max(Height, (uint32)64)), PF_B8G8R8A8, TexCreate_FastVRAM, TexCreate_None, false));
 
 	if (b16Bit)
 	{
@@ -143,11 +145,15 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 	uint32 DestStride;
 	uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)GSSProfiles->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 
-	TArray<FLinearColor> kernel;
-	kernel.AddZeroed(13);	// highest quality
-	// todo: for optimizations
-//	kernel.AddZeroed(9);
-//	kernel.AddZeroed(6);	// lowest quality
+	// we precompute 3 kernels of different size and store in one line
+	const uint32 KernelSize0 = 13;
+	const uint32 KernelSize1 = 9; 
+	const uint32 KernelSize2 = 6;
+
+	const uint32 KernelTotalSize = KernelSize0 + KernelSize1 + KernelSize2;
+	check(KernelTotalSize < Width);
+
+	FLinearColor kernel[Width];
 
 	for (uint32 y = 0; y < Height; ++y)
 	{
@@ -161,12 +167,14 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 		Data.SubsurfaceColor = Data.SubsurfaceColor.GetClamped(Bias);
 		Data.FalloffColor = Data.FalloffColor.GetClamped(Bias);
 
-		ComputeMirroredSSSKernel(kernel, Data.SubsurfaceColor, Data.FalloffColor);
+		ComputeMirroredSSSKernel(&kernel[0], KernelSize0, Data.SubsurfaceColor, Data.FalloffColor);
+		ComputeMirroredSSSKernel(&kernel[KernelSize0], KernelSize1, Data.SubsurfaceColor, Data.FalloffColor);
+		ComputeMirroredSSSKernel(&kernel[KernelSize0 + KernelSize1], KernelSize2, Data.SubsurfaceColor, Data.FalloffColor);
 
 		const float TableMaxRGB = 1.0f;
 		const float TableMaxA = 3.0f;
 
-		for (int32 Pos = 0; Pos < kernel.Num(); ++Pos)
+		for (int32 Pos = 0; Pos < KernelTotalSize; ++Pos)
 		{
 			FVector4 C = kernel[Pos] * FLinearColor(1.0f / TableMaxRGB, 1.0f / TableMaxRGB, 1.0f / TableMaxRGB, 1.0f / TableMaxA);
 

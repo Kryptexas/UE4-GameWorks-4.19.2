@@ -27,8 +27,8 @@ FCompositionLighting GCompositionLighting;
 
 // -------------------------------------------------------
 
-static TAutoConsoleVariable<float> CVarSSSSS(
-	TEXT("r.SSSSS"),
+static TAutoConsoleVariable<float> CVarSSSScale(
+	TEXT("r.SSS.Scale"),
 	1.0f,
 	TEXT("Experimental screen space subsurface scattering pass")
 	TEXT("(use shadingmodel SubsurfaceProfile, get near to the object as the default)\n")
@@ -351,7 +351,7 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 		// Screen Space Subsurface Scattering
 		{
-			float Radius = CVarSSSSS.GetValueOnRenderThread();
+			float Radius = CVarSSSScale.GetValueOnRenderThread();
 
 			bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
@@ -367,11 +367,6 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 				Pass1->SetInput(ePId_Input0, Context.FinalOutput);
 				Pass1->SetInput(ePId_Input1, Pass0);
 				Context.FinalOutput = FRenderingCompositeOutputRef(Pass1);
-
-				// waste of performance?
-				FRenderingCompositePass* NullPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessPassThrough(0));
-				NullPass->SetInput(ePId_Input0, Context.FinalOutput);
-				Context.FinalOutput = FRenderingCompositeOutputRef(NullPass);
 			}
 		}
 
@@ -379,10 +374,7 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 		SCOPED_DRAW_EVENT(CompositionLighting, DEC_SCENE_ITEMS);
 
-		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
-
-		Context.FinalOutput.GetOutput()->RenderTargetDesc = SceneColor->GetDesc();
-		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
+		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);

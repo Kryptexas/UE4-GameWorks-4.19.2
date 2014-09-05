@@ -83,21 +83,19 @@ inline FVector SeparableSSS_Profile(float r, FLinearColor FalloffColor)
 		0.078f * SeparableSSS_Gaussian(7.41f, r, FalloffColor);
 }
 
-void ComputeMirroredSSSKernel(TArray<FLinearColor>& Out, FLinearColor SubsurfaceColor, FLinearColor FalloffColor)
+void ComputeMirroredSSSKernel(FLinearColor* TargetBuffer, uint32 TargetBufferSize, FLinearColor SubsurfaceColor, FLinearColor FalloffColor)
 {
-	// needs to be preallocated with the expected size e.g. 5 for a 9 sample kernel with one center and 4 left, 4 right and one center sample
-	check(Out.Num());
+	check(TargetBuffer);
+	check(TargetBufferSize > 0);
 
-	uint32 nNonMirroredSamples = Out.Num();
+	uint32 nNonMirroredSamples = TargetBufferSize;
 	int32 nTotalSamples = nNonMirroredSamples * 2 - 1;
 
 	// we could generate Out directly but the original code form SeparableSSS wasn't done like that so we convert it later
 	// .a is in mm
-	TArray<FLinearColor> kernel;
+	check(nTotalSamples < 64);
+	FLinearColor kernel[64];
 	{
-
-		kernel.AddZeroed(nTotalSamples);
-
 		const float Range = nTotalSamples > 20 ? 3.0f : 2.0f;
 		// tweak constant
 		const float Exponent = 2.0f;
@@ -170,12 +168,12 @@ void ComputeMirroredSSSKernel(TArray<FLinearColor>& Out, FLinearColor Subsurface
 		check(kernel[0].A == 0.0f);
 
 		// center sample
-		Out[0] = kernel[0];
+		TargetBuffer[0] = kernel[0];
 
 		// all positive samples
 		for (uint32 i = 0; i < nNonMirroredSamples - 1; i++)
 		{
-			Out[i + 1] = kernel[nNonMirroredSamples + i];
+			TargetBuffer[i + 1] = kernel[nNonMirroredSamples + i];
 		}
 	}
 }
