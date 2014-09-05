@@ -316,15 +316,21 @@ void UCharacterMovementComponent::OnRegister()
 }
 
 
-void UCharacterMovementComponent::OnUnregister()
+void UCharacterMovementComponent::BeginDestroy()
 {
-	delete ClientPredictionData;
-	ClientPredictionData = NULL;
-
-	delete ServerPredictionData;
-	ServerPredictionData = NULL;
-
-	Super::OnUnregister();
+	if (ClientPredictionData)
+	{
+		delete ClientPredictionData;
+		ClientPredictionData = NULL;
+	}
+	
+	if (ServerPredictionData)
+	{
+		delete ServerPredictionData;
+		ServerPredictionData = NULL;
+	}
+	
+	Super::BeginDestroy();
 }
 
 void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComponent)

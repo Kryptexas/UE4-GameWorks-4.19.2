@@ -278,6 +278,9 @@ public:
 
 	uint32 bWasDeactivated:1;
 
+	/** True if this was active before being unregistered or otherwise reset, if so reactivate it */
+	uint32 bWasActive:1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	uint32 bResetOnDetach:1;
 

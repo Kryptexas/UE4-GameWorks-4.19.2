@@ -2910,6 +2910,7 @@ UParticleSystemComponent::UParticleSystemComponent(const class FPostConstructIni
 	bIsViewRelevanceDirty = true;
 	CustomTimeDilation = 1.0f;
 	bAllowConcurrentTick = true;
+	bWasActive = false;
 #if WITH_EDITORONLY_DATA
 	EditorDetailMode = -1;
 #endif // WITH_EDITORONLY_DATA
@@ -3065,6 +3066,12 @@ void UParticleSystemComponent::OnRegister()
 
 	Super::OnRegister();
 
+	// If we were active before but are not now, activate us
+	if (bWasActive && !bIsActive)
+	{
+		Activate(true);
+	}
+
 	UE_LOG(LogParticles,Verbose,
 		TEXT("OnRegister %s Component=0x%p Scene=0x%p FXSystem=0x%p"),
 		Template != NULL ? *Template->GetName() : TEXT("NULL"), this, World->Scene, FXSystem);
@@ -3082,6 +3089,8 @@ void UParticleSystemComponent::OnUnregister()
 	UE_LOG(LogParticles,Verbose,
 		TEXT("OnUnregister %s Component=0x%p Scene=0x%p FXSystem=0x%p"),
 		Template != NULL ? *Template->GetName() : TEXT("NULL"), this, World->Scene, FXSystem);
+
+	bWasActive = bIsActive;
 
 	ResetParticles(true);
 	FXSystem = NULL;
@@ -4372,7 +4381,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		bool bIsTemplate = IsTemplate();
 		bWasCompleted = false;
 		// remember if we were active and therefore should restart after setting up the new template
-		bool bWasActive = bIsActive && !bWasDeactivated; 
+		bWasActive = bIsActive && !bWasDeactivated; 
 		bool bResetInstances = false;
 		if (NewTemplate != Template)
 		{
@@ -4478,6 +4487,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		bWasCompleted = false;
 		bWasDeactivated = false;
 		bIsActive = true;
+		bWasActive = false; // Set to false now, it may get set to true when it's deactivated due to unregister
 		SetComponentTickEnabled(true);
 
 		// if no instances, or recycling

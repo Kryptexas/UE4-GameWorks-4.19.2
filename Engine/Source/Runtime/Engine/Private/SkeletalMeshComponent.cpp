@@ -233,16 +233,39 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		if (NeedToSpawnAnimScriptInstance(bForceReinit))
 		{
 			AnimScriptInstance = NewObject<UAnimInstance>(this, AnimBlueprintGeneratedClass);
+
+			if (AnimScriptInstance)
+			{
+				AnimScriptInstance->InitializeAnimation();
+			}
 		}
 		else if (AnimationMode == EAnimationMode::AnimationSingleNode)
 		{
-			AnimScriptInstance = NewObject<UAnimSingleNodeInstance>(this);
-		}
+			UAnimSingleNodeInstance* OldInstance = NULL;
+			if (!bForceReinit)
+			{
+				OldInstance = Cast<UAnimSingleNodeInstance>(AnimScriptInstance);
+			}
 
-		if( AnimScriptInstance )
+			AnimScriptInstance = NewObject<UAnimSingleNodeInstance>(this);
+
+			if (AnimScriptInstance)
+			{
+				AnimScriptInstance->InitializeAnimation();
+			}
+
+			if (OldInstance && AnimScriptInstance)
+			{
+				// Copy data from old instance unless we force reinitialized
+				FSingleAnimationPlayData CachedData;
+				CachedData.PopulateFrom(OldInstance);
+				CachedData.Initialize(Cast<UAnimSingleNodeInstance>(AnimScriptInstance));
+			}
+		}
+		else if (AnimScriptInstance)
 		{
 			AnimScriptInstance->InitializeAnimation();
-		}
+		}		
 	}
 }
 
