@@ -282,6 +282,7 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 void UGameUserSettings::SaveSettings()
 {
 	SaveConfig(CPF_Config, *GGameUserSettingsIni);
+	Scalability::SaveState(GGameUserSettingsIni);
 }
 
 void UGameUserSettings::LoadConfigIni( bool bForceReload/*=false*/ )
@@ -374,6 +375,9 @@ void UGameUserSettings::ResetToCurrentSettings()
 		FullscreenMode = LastConfirmedFullscreenMode;
 		ResolutionSizeX = LastUserConfirmedResolutionSizeX;
 		ResolutionSizeY = LastUserConfirmedResolutionSizeY;
+
+		// Reset the quality settings to the current levels
+		ScalabilityQuality = Scalability::GetQualityLevels();
 	}
 }
 
