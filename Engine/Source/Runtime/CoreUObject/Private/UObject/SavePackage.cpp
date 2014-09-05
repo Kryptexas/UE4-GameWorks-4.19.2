@@ -535,7 +535,10 @@ public:
 	FArchive& operator<<(FAssetPtr& AssetPtr) override;
 	FArchive& operator<<(FStringAssetReference& Value) override
 	{
-		StringAssetReferencesMap.Add(Value.ToString());
+		if ( Value.IsValid() )
+		{
+			StringAssetReferencesMap.Add(Value.ToString());
+		}
 		return *this;
 	}
 	FArchive& operator<<(FName& Name) override
