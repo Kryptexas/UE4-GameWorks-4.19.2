@@ -11,11 +11,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogUObjectArray, Log, All);
 /** Global UObject array							*/
 FUObjectArray GUObjectArray;
 
-/**
- * Allocates and initializes the permanent object pool
- *
- * @param InPermanentObjectPoolSize size of permanent object pool
- */
 void FUObjectArray::AllocatePermanentObjectPool(int32 MaxObjectsNotConsideredByGC)
 {
 	// GObjFirstGCIndex is the index at which the garbage collector will start for the mark phase.
@@ -30,11 +25,14 @@ void FUObjectArray::AllocatePermanentObjectPool(int32 MaxObjectsNotConsideredByG
 	FWeakObjectPtr::Init(); // this adds a delete listener
 }
 
-/**
- * Adds a uobject to the global array which is used for uobject iteration
- *
- * @param	Object Object to allocate an index for
- */
+void FUObjectArray::CloseDisregardForGC()
+{
+	OpenForDisregardForGC = false;
+	GIsInitialLoad = false;
+	// Make sure the first GC index matches the last non-GC index after DisregardForGC is closed
+	ObjFirstGCIndex = ObjLastNonGCIndex + 1;
+}
+
 void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object)
 {
 	int32 Index;
