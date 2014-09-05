@@ -576,29 +576,48 @@ public:
 
 	/** Array slice or texture cube face.  Only valid if texture resource was created with TexCreate_TargetArraySlicesIndependently! */
 	uint32 ArraySliceIndex;
+	
+	ERenderTargetLoadAction LoadAction;
+	ERenderTargetStoreAction StoreAction;
 
 	FRHIRenderTargetView() : 
 		Texture(NULL),
 		MipIndex(0),
-		ArraySliceIndex(-1)
+		ArraySliceIndex(-1),
+		LoadAction(ERenderTargetLoadAction::ENoAction),
+		StoreAction(ERenderTargetStoreAction::EStore)
 	{}
 
 	FRHIRenderTargetView(const FRHIRenderTargetView& Other) :
 		Texture(Other.Texture),
 		MipIndex(Other.MipIndex),
-		ArraySliceIndex(Other.ArraySliceIndex)
+		ArraySliceIndex(Other.ArraySliceIndex),
+		LoadAction(Other.LoadAction),
+		StoreAction(Other.StoreAction)
 	{}
 
 	FRHIRenderTargetView(FTextureRHIParamRef InTexture) :
 		Texture(InTexture),
 		MipIndex(0),
-		ArraySliceIndex(-1)
+		ArraySliceIndex(-1),
+		LoadAction(ERenderTargetLoadAction::ENoAction),
+		StoreAction(ERenderTargetStoreAction::EStore)
 	{}
 
 	FRHIRenderTargetView(FTextureRHIParamRef InTexture, uint32 InMipIndex, uint32 InArraySliceIndex) :
 		Texture(InTexture),
 		MipIndex(InMipIndex),
-		ArraySliceIndex(InArraySliceIndex)
+		ArraySliceIndex(InArraySliceIndex),
+		LoadAction(ERenderTargetLoadAction::ENoAction),
+		StoreAction(ERenderTargetStoreAction::EStore)
+	{}
+	
+	FRHIRenderTargetView(FTextureRHIParamRef InTexture, uint32 InMipIndex, uint32 InArraySliceIndex, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
+		Texture(InTexture),
+		MipIndex(InMipIndex),
+		ArraySliceIndex(InArraySliceIndex),
+		LoadAction(InLoadAction),
+		StoreAction(InStoreAction)
 	{}
 };
 

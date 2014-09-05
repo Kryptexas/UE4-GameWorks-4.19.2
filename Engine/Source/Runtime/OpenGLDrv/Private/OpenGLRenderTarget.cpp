@@ -708,11 +708,10 @@ void FOpenGLDynamicRHI::RHIUnmapStagingSurface(FTextureRHIParamRef TextureRHI)
 
 void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<FFloat16Color>& OutData,ECubeFace CubeFace,int32 ArrayIndex,int32 MipIndex)
 {
-	VERIFY_GL_SCOPE();
-	// Not supported on older APIs
-	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ArrayIndex == 0);
+	VERIFY_GL_SCOPE();	
 
-	check( FOpenGL::SupportsFloatReadSurface() );
+	//reading from arrays only supported on SM5 and up.
+	check(FOpenGL::SupportsFloatReadSurface() && (ArrayIndex == 0 || GRHIFeatureLevel >= ERHIFeatureLevel::SM5));	
 	FOpenGLTextureBase* Texture = GetOpenGLTextureFromRHITexture(TextureRHI);
 	check(TextureRHI->GetFormat() == PF_FloatRGBA);
 
@@ -747,8 +746,8 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 
 	glBindFramebuffer(UGL_READ_FRAMEBUFFER, SourceFramebuffer);
 	FOpenGL::ReadBuffer(SourceFramebuffer == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-	glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_HALF_FLOAT, OutData.GetData());
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);	
+	glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, FOpenGL::GetReadHalfFloatPixelsEnum(), OutData.GetData());
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
 	if (bTempFBO)

@@ -555,7 +555,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	LevelColor = FLinearColor(1.f, 1.f, 1.f);
 
 	const auto FeatureLevel = GetScene()->GetFeatureLevel();
-	if (FeatureLevel == ERHIFeatureLevel::ES2)
+	if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
 	{
 		HeightmapTexture = NULL;
 		HeightmapSubsectionOffsetU = 0;
@@ -1946,7 +1946,7 @@ void FLandscapeVertexBuffer::InitRHI()
 template <typename INDEX_TYPE>
 void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation)
 {
-	if (InFeatureLevel == ERHIFeatureLevel::ES2)
+	if (InFeatureLevel <= ERHIFeatureLevel::ES3_1)
 	{
 		if (!bVertexScoresComputed)
 		{
@@ -1973,7 +1973,7 @@ void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatur
 		MaxIndexFull = 0;
 		MinIndexFull = MAX_int32;
 
-		if (InFeatureLevel == ERHIFeatureLevel::ES2)
+		if (InFeatureLevel <= ERHIFeatureLevel::ES3_1)
 		{
 			// ES2 version
 			float MipRatio = (float)SubsectionSizeQuads / (float)LodSubsectionSizeQuads; // Morph current MIP to base MIP
