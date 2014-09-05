@@ -37,7 +37,6 @@ private:
 	void HandleFilePathPickerPathPicked( const FString& PickedPath );
 
 private:
-
-	/** Pointer to the Path property handle. */
-	TSharedPtr<IPropertyHandle> PathProperty;
+	/** Pointer to the string that will be seet when changing the path */
+	TSharedPtr<IPropertyHandle> PathStringProperty;
 };
