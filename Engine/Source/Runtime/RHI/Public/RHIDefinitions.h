@@ -84,8 +84,8 @@ namespace ERHIFeatureLevel
 	{
 		/** Feature level defined by the core capabilities of OpenGL ES2. */
 		ES2,
-		/** Feature level defined by the capabilities of DX9 Shader Model 3. */
-		SM3,
+		/** Feature level defined by the core capabilities of OpenGL ES3.1 & Metal. */
+		ES3_1,
 		/** Feature level defined by the capabilities of DX10 Shader Model 4. */
 		SM4,
 		/** Feature level defined by the capabilities of DX11 Shader Model 5. */
@@ -650,8 +650,8 @@ inline int32 GetFeatureLevelMaxNumberOfBones(ERHIFeatureLevel::Type FeatureLevel
 	switch (FeatureLevel)
 	{
 	case ERHIFeatureLevel::ES2:
-	case ERHIFeatureLevel::SM3:
 		return 75;
+	case ERHIFeatureLevel::ES3_1:
 	case ERHIFeatureLevel::SM4:
 	case ERHIFeatureLevel::SM5:
 		return 256;

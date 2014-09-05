@@ -85,10 +85,10 @@ uint32 FSharedPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
 FBoneBufferTypeRef FBoneBufferPoolPolicy::CreateResource(CreationArguments Args)
 {
 	uint32 BufferSize = GetPoolBucketSize(GetPoolBucketIndex(Args));
-    FBoneBuffer Buffer;
+	FBoneBuffer Buffer;
 	FRHIResourceCreateInfo CreateInfo;
-    Buffer.VertexBufferRHI = RHICreateVertexBuffer( BufferSize, (BUF_Dynamic | BUF_ShaderResource), CreateInfo );
-    Buffer.VertexBufferSRV = RHICreateShaderResourceView( Buffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
+	Buffer.VertexBufferRHI = RHICreateVertexBuffer( BufferSize, (BUF_Dynamic | BUF_ShaderResource), CreateInfo );
+	Buffer.VertexBufferSRV = RHICreateShaderResourceView( Buffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
 	return Buffer;
 }
 
@@ -765,7 +765,7 @@ void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnv
 template <bool bExtraBoneInfluencesT>
 bool TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
-	return GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM3
+	return GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM4
 		&& (Material->IsUsedWithAPEXCloth() || Material->IsSpecialEngineMaterial()) 
 		&& Super::ShouldCache(Platform, Material, ShaderType);
 }

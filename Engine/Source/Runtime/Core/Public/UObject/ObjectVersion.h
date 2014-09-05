@@ -529,7 +529,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ANIMATION_REMOVE_NANS,
 	// Change skeleton preview attached assets property type
 	VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE,
- 	// Fix some blueprint variables that have the CPF_DisableEditOnTemplate flag set
+	// Fix some blueprint variables that have the CPF_DisableEditOnTemplate flag set
 	// when they shouldn't
 	VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS,
 	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s part two (missed conversion for some variables
@@ -540,7 +540,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS,
 	// Requires test of material coords to ensure they're saved correctly
 	VER_UE4_FIX_MATERIAL_COORDS,
- 	// Changed SpeedTree wind presets to v7
+	// Changed SpeedTree wind presets to v7
 	VER_UE4_SPEEDTREE_WIND_V7,
 	// NeedsLoadForEditorGame added
 	VER_UE4_LOAD_FOR_EDITOR_GAME,
@@ -604,6 +604,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_RENAME_CROUCHMOVESCHARACTERDOWN,
 	// Lightmap parameters in FMeshBuildSettings
 	VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS,
+	// Rename SM3 to ES3_1 and updates featurelevel material node selector
+	VER_UE4_RENAME_SM3_TO_ES3_1,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

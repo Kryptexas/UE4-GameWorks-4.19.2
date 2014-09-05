@@ -51,7 +51,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		// handle translucent material blend modes
 		if (IsTranslucentBlendMode(MaterialBlendMode))
 		{
-			if (FeatureLevel >= ERHIFeatureLevel::SM3)
+			if (FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
 				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
@@ -73,7 +73,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 			}
 			else
 			{
-				if (FeatureLevel >= ERHIFeatureLevel::SM3)
+				if (FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
 					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
 				}

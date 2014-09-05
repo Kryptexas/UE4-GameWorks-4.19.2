@@ -670,7 +670,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 {
 	const auto FeatureLevel = GetWorld()->FeatureLevel;
 	FPrimitiveSceneProxy* Proxy = NULL;
-	if (FeatureLevel >= ERHIFeatureLevel::SM3)
+	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 #if WITH_EDITOR
 		if (EditToolRenderData == NULL)

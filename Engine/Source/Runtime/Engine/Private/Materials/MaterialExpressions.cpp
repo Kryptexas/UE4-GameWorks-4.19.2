@@ -3260,17 +3260,17 @@ void  UMaterialExpressionBreakMaterialAttributes::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 
- 	//Switch the connection over to the new input.
- 	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_MULTIPLEX )
- 	{
- 		MaterialAttributes.Expression = Struct.Expression;
- 		MaterialAttributes.OutputIndex = Struct.OutputIndex;
- 		MaterialAttributes.Mask = Struct.Mask;
- 		MaterialAttributes.MaskR = Struct.MaskR;
- 		MaterialAttributes.MaskG = Struct.MaskG;
- 		MaterialAttributes.MaskB = Struct.MaskB;
- 		MaterialAttributes.MaskA = Struct.MaskA;
- 	}
+	//Switch the connection over to the new input.
+	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_MULTIPLEX )
+	{
+		MaterialAttributes.Expression = Struct.Expression;
+		MaterialAttributes.OutputIndex = Struct.OutputIndex;
+		MaterialAttributes.Mask = Struct.Mask;
+		MaterialAttributes.MaskR = Struct.MaskR;
+		MaterialAttributes.MaskG = Struct.MaskG;
+		MaterialAttributes.MaskB = Struct.MaskB;
+		MaterialAttributes.MaskA = Struct.MaskA;
+	}
 }
 
 int32 UMaterialExpressionBreakMaterialAttributes::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
@@ -4048,6 +4048,16 @@ bool UMaterialExpressionFeatureLevelSwitch::IsResultMaterialAttributes(int32 Out
 	}
 
 	return false;
+}
+
+void UMaterialExpressionFeatureLevelSwitch::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_RENAME_SM3_TO_ES3_1)
+	{
+		// Copy the ES2 input to SM3 (since SM3 will now become ES3_1 and we don't want broken content)
+		Inputs[ERHIFeatureLevel::ES3_1] = Inputs[ERHIFeatureLevel::ES2];
+	}
 }
 
 //
@@ -8831,36 +8841,36 @@ int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* C
 		// LB_AlphaBlend layers are blended last
 		if (Layer.BlendType != LB_AlphaBlend)
 		{
-		    // Height input
-		    const int32 HeightCode = Layer.HeightInput.Expression ? Layer.HeightInput.Compile(Compiler, MultiplexIndex) : Compiler->Constant(Layer.ConstHeightInput);
-    
-		    const int32 WeightCode = Compiler->StaticTerrainLayerWeight(Layer.LayerName,Layer.PreviewWeight > 0.0f ? Compiler->Constant(Layer.PreviewWeight) : INDEX_NONE);
-		    if( WeightCode != INDEX_NONE )
-		    {
-			    switch( Layer.BlendType )
-			    {
-			    case LB_WeightBlend:
-				    {
-					    // Store the weight plus accumulate the sum of all weights so far
-					    WeightCodes[LayerIdx] = WeightCode;
-					    WeightSumCode = Compiler->Add(WeightSumCode, WeightCode);
-				    }
-				    break;
-			    case LB_HeightBlend:
-				    {
-					    bNeedsRenormalize = true;
-    
-					    // Modify weight with height
-					    int32 ModifiedWeightCode = Compiler->Clamp(
-						    Compiler->Add(Compiler->Lerp(Compiler->Constant(-1.f), Compiler->Constant(1.f), WeightCode), HeightCode),
-						    Compiler->Constant(0.f), Compiler->Constant(1.f) );
-    
-					    // Store the final weight plus accumulate the sum of all weights so far
-					    WeightCodes[LayerIdx] = ModifiedWeightCode;
-					    WeightSumCode = Compiler->Add(WeightSumCode, ModifiedWeightCode);
-				    }
-				    break;
-			    }
+			// Height input
+			const int32 HeightCode = Layer.HeightInput.Expression ? Layer.HeightInput.Compile(Compiler, MultiplexIndex) : Compiler->Constant(Layer.ConstHeightInput);
+	
+			const int32 WeightCode = Compiler->StaticTerrainLayerWeight(Layer.LayerName,Layer.PreviewWeight > 0.0f ? Compiler->Constant(Layer.PreviewWeight) : INDEX_NONE);
+			if( WeightCode != INDEX_NONE )
+			{
+				switch( Layer.BlendType )
+				{
+				case LB_WeightBlend:
+					{
+						// Store the weight plus accumulate the sum of all weights so far
+						WeightCodes[LayerIdx] = WeightCode;
+						WeightSumCode = Compiler->Add(WeightSumCode, WeightCode);
+					}
+					break;
+				case LB_HeightBlend:
+					{
+						bNeedsRenormalize = true;
+	
+						// Modify weight with height
+						int32 ModifiedWeightCode = Compiler->Clamp(
+							Compiler->Add(Compiler->Lerp(Compiler->Constant(-1.f), Compiler->Constant(1.f), WeightCode), HeightCode),
+							Compiler->Constant(0.f), Compiler->Constant(1.f) );
+	
+						// Store the final weight plus accumulate the sum of all weights so far
+						WeightCodes[LayerIdx] = ModifiedWeightCode;
+						WeightSumCode = Compiler->Add(WeightSumCode, ModifiedWeightCode);
+					}
+					break;
+				}
 			}
 		}
 	}

@@ -362,7 +362,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 	float CurrentRealTime = View.Family->CurrentRealTime;
 	if (ViewState)
 	{
-		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM3)
+		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			bool bClearQueries = !View.Family->EngineShowFlags.HitProxies;
 			bool bSubmitQueries = !View.bDisableQuerySubmissions;

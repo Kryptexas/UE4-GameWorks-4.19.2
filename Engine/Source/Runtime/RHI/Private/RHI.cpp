@@ -248,7 +248,7 @@ RHI_API EShaderPlatform GetCurrentRHIShaderPlatform()
 FName FeatureLevelNames[] = 
 {
 	FName(TEXT("ES2")),
-	FName(TEXT("SM3")),
+	FName(TEXT("ES3_1")),
 	FName(TEXT("SM4")),
 	FName(TEXT("SM5")),
 };

@@ -103,7 +103,7 @@ public:
 	{
 		bool bShouldCache = TBasePassVertexShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
 		return bShouldCache 
-			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) || (IsPCPlatform(Platform)))
+			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) || (IsPCPlatform(Platform)))
 			&& (!bEnableAtmosphericFog || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4));
 	}
 
@@ -427,7 +427,7 @@ public:
 		const bool bCacheShaders = !bEnableSkyLight || (Material->GetShadingModel() != MSM_Unlit);
 
 		return bCacheShaders
-			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) || (IsPCPlatform(Platform)))
+			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) || (IsPCPlatform(Platform)))
 			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 

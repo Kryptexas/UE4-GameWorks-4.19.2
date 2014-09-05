@@ -841,7 +841,7 @@ FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InVi
 
 void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
-	if(FeatureLevel < ERHIFeatureLevel::SM3)
+	if(FeatureLevel < ERHIFeatureLevel::SM4)
 	{
 		// not yet supported on lower end platforms
 		return;
@@ -924,26 +924,26 @@ void FSceneRenderer::OnStartFrame()
  */
 static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
 {
-    FMemMark MemStackMark(FMemStack::Get());
+	FMemMark MemStackMark(FMemStack::Get());
 
 	// update any resources that needed a deferred update
 	FDeferredUpdateResource::UpdateResources(RHICmdList);
 
-    for( int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++ )
-    {
+	for( int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++ )
+	{
 		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(SceneRenderer->ViewFamily);
-        for( int ViewIndex = 0; ViewIndex < SceneRenderer->ViewFamily.Views.Num(); ViewIndex++ )
-        {
-            SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(SceneRenderer->Views[ViewIndex]);
-        }
-    }
+		for( int ViewIndex = 0; ViewIndex < SceneRenderer->ViewFamily.Views.Num(); ViewIndex++ )
+		{
+			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(SceneRenderer->Views[ViewIndex]);
+		}
+	}
 
 	if(SceneRenderer->ViewFamily.EngineShowFlags.OnScreenDebug)
 	{
 		GRenderTargetPool.SetEventRecordingActive(true);
 	}
 
-    {
+	{
 		SCOPE_CYCLE_COUNTER(STAT_TotalSceneRenderingTime);
 		
 		if(SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
@@ -977,7 +977,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 
 		GRenderTargetPool.SetEventRecordingActive(false);
 
-        // Delete the scene renderer.
+		// Delete the scene renderer.
 		delete SceneRenderer;
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer_Dispatch);
