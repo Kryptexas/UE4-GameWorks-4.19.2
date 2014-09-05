@@ -50,6 +50,12 @@ namespace FEditorClassUtils
 	 */
 	UNREALED_API FString GetDocumentationLink(const UClass* Class, const FString& OverrideExcerpt = FString());
 
+
+	/**
+	 * Return link path from a specified excerpt
+	 */
+	UNREALED_API FString GetDocumentationLinkFromExcerpt(const FString& DocLink, const FString DocExcerpt);
+
 	/**
 	 * Creates a link widget to the documentation for a given class
 	 *

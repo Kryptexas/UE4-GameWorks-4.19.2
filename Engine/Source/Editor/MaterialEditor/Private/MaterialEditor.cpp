@@ -59,6 +59,8 @@
 #include "SMaterialPalette.h"
 #include "FindInMaterial.h"
 #include "SColorPicker.h"
+#include "EditorClassUtils.h"
+#include "IDocumentation.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -2337,6 +2339,41 @@ void FMaterialEditor::OnFindInMaterial()
 	FindResults->FocusForUse();
 }
 
+FString FMaterialEditor::GetDocLinkForSelectedNode()
+{
+	FString DocumentationLink;
+
+	TArray<UObject*> SelectedNodes = GraphEditor->GetSelectedNodes().Array();
+	if (SelectedNodes.Num() == 1)
+	{
+		UMaterialGraphNode* SelectedGraphNode = Cast<UMaterialGraphNode>(SelectedNodes[0]);
+		if (SelectedGraphNode != NULL)
+		{
+			FString DocLink = SelectedGraphNode->GetDocumentationLink();
+			FString DocExcerpt = SelectedGraphNode->GetDocumentationExcerptName();
+
+			DocumentationLink = FEditorClassUtils::GetDocumentationLinkFromExcerpt(DocLink, DocExcerpt);
+		}
+	}
+
+	return DocumentationLink;
+}
+
+void FMaterialEditor::OnGoToDocumentation()
+{
+	FString DocumentationLink = GetDocLinkForSelectedNode();
+	if (!DocumentationLink.IsEmpty())
+	{
+		IDocumentation::Get()->Open(DocumentationLink);
+	}
+}
+
+bool FMaterialEditor::CanGoToDocumentation()
+{
+	FString DocumentationLink = GetDocLinkForSelectedNode();
+	return !DocumentationLink.IsEmpty();
+}
+
 void FMaterialEditor::RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName)
 {
 	// Grab the asset class, it will be checked for being a material function.
@@ -3514,6 +3551,12 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().CreateComponentMaskNode,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::OnCreateComponentMaskNode)
 			);
+
+		GraphEditorCommands->MapAction(FMaterialEditorCommands::Get().GoToDocumentation,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnGoToDocumentation),
+			FCanExecuteAction::CreateSP(this, &FMaterialEditor::CanGoToDocumentation)
+			);
+
 	}
 
 	FGraphAppearanceInfo AppearanceInfo;

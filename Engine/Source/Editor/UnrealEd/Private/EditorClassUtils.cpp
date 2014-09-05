@@ -26,22 +26,18 @@ TSharedRef<SToolTip> FEditorClassUtils::GetTooltip(const UClass* Class, const TA
 	return (Class ? IDocumentation::Get()->CreateToolTip(OverrideText, nullptr, GetDocumentationPage(Class), GetDocumentationExcerpt(Class)) : SNew(SToolTip));
 }
 
-FString FEditorClassUtils::GetDocumentationLink(const UClass* Class, const FString& OverrideExcerpt)
+FString FEditorClassUtils::GetDocumentationLinkFromExcerpt(const FString& DocLink, const FString DocExcerpt)
 {
 	FString DocumentationLink;
-	const FString ClassDocsPage = GetDocumentationPage(Class);
-
 	TSharedRef<IDocumentation> Documentation = IDocumentation::Get();
-	if (Documentation->PageExists(ClassDocsPage))
+	if (Documentation->PageExists(DocLink))
 	{
-		TSharedRef<IDocumentationPage> ClassDocs = Documentation->GetPage(ClassDocsPage, NULL);
-
-		const FString ExcerptSection = (OverrideExcerpt.IsEmpty() ? GetDocumentationExcerpt(Class) : OverrideExcerpt);
+		TSharedRef<IDocumentationPage> ClassDocs = Documentation->GetPage(DocLink, NULL);
 
 		FExcerpt Excerpt;
-		if (ClassDocs->GetExcerpt(ExcerptSection, Excerpt))
+		if (ClassDocs->GetExcerpt(DocExcerpt, Excerpt))
 		{
-			FString* FullDocumentationLink = Excerpt.Variables.Find( TEXT("ToolTipFullLink") );
+			FString* FullDocumentationLink = Excerpt.Variables.Find(TEXT("ToolTipFullLink"));
 			if (FullDocumentationLink)
 			{
 				DocumentationLink = *FullDocumentationLink;
@@ -51,6 +47,16 @@ FString FEditorClassUtils::GetDocumentationLink(const UClass* Class, const FStri
 
 	return DocumentationLink;
 }
+
+
+FString FEditorClassUtils::GetDocumentationLink(const UClass* Class, const FString& OverrideExcerpt)
+{
+	const FString ClassDocsPage = GetDocumentationPage(Class);
+	const FString ExcerptSection = (OverrideExcerpt.IsEmpty() ? GetDocumentationExcerpt(Class) : OverrideExcerpt);
+
+	return GetDocumentationLinkFromExcerpt(ClassDocsPage, ExcerptSection);
+}
+
 
 TSharedRef<SWidget> FEditorClassUtils::GetDocumentationLinkWidget(const UClass* Class)
 {

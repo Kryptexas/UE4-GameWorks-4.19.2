@@ -33,6 +33,7 @@
 #include "MaterialEditorActions.h"
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
@@ -380,6 +381,12 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 			// Select upstream and downstream nodes
 			Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().SelectDownstreamNodes);
 			Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().SelectUpstreamNodes);
+		}
+		Context.MenuBuilder->EndSection();
+
+		Context.MenuBuilder->BeginSection("MaterialEditorMenuDocumentation");
+		{
+			Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().GoToDocumentation);
 		}
 		Context.MenuBuilder->EndSection();
 
