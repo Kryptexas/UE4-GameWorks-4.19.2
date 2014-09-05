@@ -188,4 +188,42 @@ FEventReply UWidgetBlueprintLibrary::EndDragDrop(UPARAM(ref) FEventReply& Reply)
 	return Reply;
 }
 
+FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromAsset(USlateBrushAsset* BrushAsset)
+{
+	if ( BrushAsset )
+	{
+		return BrushAsset->Brush;
+	}
+
+	return FSlateNoResource();
+}
+
+FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromTexture(UTexture2D* Texture)
+{
+	if ( Texture )
+	{
+		FSlateBrush Brush;
+		Brush.SetResourceObject(Texture);
+		Brush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+
+		return Brush;
+	}
+	
+	return FSlateNoResource();
+}
+
+FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromMaterial(UMaterialInterface* Material, int32 Width, int32 Height)
+{
+	if ( Material )
+	{
+		FSlateBrush Brush;
+		Brush.SetResourceObject(Material);
+		Brush.ImageSize = FVector2D(Width, Height);
+
+		return Brush;
+	}
+
+	return FSlateNoResource();
+}
+
 #undef LOCTEXT_NAMESPACE

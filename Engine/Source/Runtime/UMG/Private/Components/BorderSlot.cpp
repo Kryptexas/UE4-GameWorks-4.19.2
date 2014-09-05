@@ -12,10 +12,6 @@ UBorderSlot::UBorderSlot(const FPostConstructInitializeProperties& PCIP)
 
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
-
-	SBorder::FArguments BorderDefaults;
-
-	Padding = BorderDefaults._Padding.Get();
 }
 
 void UBorderSlot::ReleaseNativeWidget()
@@ -38,29 +34,17 @@ void UBorderSlot::BuildSlot(TSharedRef<SBorder> InBorder)
 
 void UBorderSlot::SetPadding(FMargin InPadding)
 {
-	Padding = InPadding;
-	if ( Border.IsValid() )
-	{
-		Border->SetPadding(InPadding);
-	}
+	CastChecked<UBorder>(Parent)->SetPadding(InPadding);
 }
 
 void UBorderSlot::SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment)
 {
-	HorizontalAlignment = InHorizontalAlignment;
-	if ( Border.IsValid() )
-	{
-		Border->SetHAlign(InHorizontalAlignment);
-	}
+	CastChecked<UBorder>(Parent)->SetHorizontalAlignment(InHorizontalAlignment);
 }
 
 void UBorderSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
 {
-	VerticalAlignment = InVerticalAlignment;
-	if ( Border.IsValid() )
-	{
-		Border->SetVAlign(InVerticalAlignment);
-	}
+	CastChecked<UBorder>(Parent)->SetVerticalAlignment(InVerticalAlignment);
 }
 
 void UBorderSlot::SynchronizeProperties()

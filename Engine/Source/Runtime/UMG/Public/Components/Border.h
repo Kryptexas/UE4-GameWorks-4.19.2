@@ -75,6 +75,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetContentColorAndOpacity(FLinearColor InContentColorAndOpacity);
 
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetPadding(FMargin InPadding);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetBrushColor(FLinearColor InBrushColor);

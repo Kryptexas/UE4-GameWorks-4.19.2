@@ -17,8 +17,12 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 	ContentColorAndOpacity = FLinearColor::White;
 	BrushColor = FLinearColor::White;
 
-	SBorder::FArguments BorderDefaults;
-	bShowEffectWhenDisabled = BorderDefaults._ShowEffectWhenDisabled.Get();
+	Padding = FMargin(4, 2);
+
+	HorizontalAlignment = HAlign_Fill;
+	VerticalAlignment = VAlign_Fill;
+
+	bShowEffectWhenDisabled = true;
 }
 
 void UBorder::ReleaseNativeWidget()
@@ -98,6 +102,33 @@ void UBorder::SetContentColorAndOpacity(FLinearColor Color)
 	if ( MyBorder.IsValid() )
 	{
 		MyBorder->SetColorAndOpacity(Color);
+	}
+}
+
+void UBorder::SetPadding(FMargin InPadding)
+{
+	Padding = InPadding;
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetPadding(InPadding);
+	}
+}
+
+void UBorder::SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment)
+{
+	HorizontalAlignment = InHorizontalAlignment;
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetHAlign(InHorizontalAlignment);
+	}
+}
+
+void UBorder::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
+{
+	VerticalAlignment = InVerticalAlignment;
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetVAlign(InVerticalAlignment);
 	}
 }
 

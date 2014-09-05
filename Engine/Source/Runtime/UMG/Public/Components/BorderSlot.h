@@ -6,6 +6,8 @@
 
 #include "BorderSlot.generated.h"
 
+class UBorder;
+
 /** The Slot for the UBorderSlot, contains the widget displayed in a button's single slot */
 UCLASS()
 class UMG_API UBorderSlot : public UPanelSlot
@@ -13,7 +15,17 @@ class UMG_API UBorderSlot : public UPanelSlot
 	GENERATED_UCLASS_BODY()
 
 public:
-	
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetPadding(FMargin InPadding);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+
+protected:
 	/** The padding area between the slot and the content it contains. */
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	FMargin Padding;
@@ -26,14 +38,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetPadding(FMargin InPadding);
-
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
-
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+public:
 
 	// UPanelSlot interface
 	virtual void SynchronizeProperties() override;
@@ -58,4 +63,6 @@ private:
 
 	/** A pointer to the button to allow us to adjust the size, padding...etc at runtime. */
 	TSharedPtr<SBorder> Border;
+
+	friend UBorder;
 };

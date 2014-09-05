@@ -83,4 +83,16 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
 	static FEventReply EndDragDrop(UPARAM(ref) FEventReply& Reply);
+
+	/**  */
+	UFUNCTION(BlueprintPure, Category="Widget|Brush")
+	static FSlateBrush MakeBrushFromAsset(USlateBrushAsset* BrushAsset);
+
+	/**  */
+	UFUNCTION(BlueprintPure, Category="Widget|Brush")
+	static FSlateBrush MakeBrushFromTexture(UTexture2D* Texture);
+
+	/**  */
+	UFUNCTION(BlueprintPure, Category="Widget|Brush")
+	static FSlateBrush MakeBrushFromMaterial(UMaterialInterface* Material, int32 Width, int32 Height);
 };
