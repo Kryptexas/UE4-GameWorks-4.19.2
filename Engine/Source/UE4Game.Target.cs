@@ -109,11 +109,28 @@ public class UE4GameTarget : TargetRules
 	}
 	public override List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
     {
-        if (HostPlatform == UnrealTargetPlatform.Mac)
-        {
-            return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.IOS };
-        }
-        return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32, UnrealTargetPlatform.IOS, UnrealTargetPlatform.XboxOne, UnrealTargetPlatform.PS4, UnrealTargetPlatform.Android, UnrealTargetPlatform.Linux, UnrealTargetPlatform.HTML5 };
+		List<UnrealTargetPlatform> Platforms = null;
+
+		switch(HostPlatform)
+		{
+			case UnrealTargetPlatform.Mac:
+				Platforms = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.IOS };
+				break;
+
+			case UnrealTargetPlatform.Linux:
+				Platforms = new List<UnrealTargetPlatform> { HostPlatform };
+				break;
+
+			case UnrealTargetPlatform.Win64:
+				Platforms = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32, UnrealTargetPlatform.IOS, UnrealTargetPlatform.XboxOne, UnrealTargetPlatform.PS4, UnrealTargetPlatform.Android, UnrealTargetPlatform.Linux, UnrealTargetPlatform.HTML5 };
+				break;
+
+			default:
+				Platforms = new List<UnrealTargetPlatform>();
+				break;
+		}
+
+		return Platforms;
     }
     public override List<UnrealTargetConfiguration> GUBP_GetConfigs_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
     {
