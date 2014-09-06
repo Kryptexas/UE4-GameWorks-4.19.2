@@ -249,6 +249,9 @@ public:
 	/** Check to see if an actor can be selected in this mode - no side effects */
 	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const { return true; }
 
+	/** @return True if this mode allows the viewport to use a drag tool */
+	virtual bool AllowsViewportDragTool() const { return true; }
+
 	/** Returns the editor mode identifier. */
 	FEditorModeID GetID() const { return Info.ID; }
 
@@ -546,6 +549,8 @@ public:
 	bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
 	bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
 	bool IsTracking() const { return bIsTracking; }
+
+	bool AllowsViewportDragTool() const;
 
 	/** Notifies all active modes that a map change has occured */
 	void MapChangeNotify();

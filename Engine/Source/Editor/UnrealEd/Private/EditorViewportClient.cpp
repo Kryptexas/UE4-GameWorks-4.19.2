@@ -3101,6 +3101,11 @@ TSharedPtr<FDragTool> FEditorViewportClient::MakeDragTool(EDragTool::Type)
 	return MakeShareable( new FDragTool );
 }
 
+bool FEditorViewportClient::CanUseDragTool() const
+{
+	return !ShouldOrbitCamera() && GetCurrentWidgetAxis() == EAxisList::None && (!ModeTools || ModeTools->AllowsViewportDragTool());
+}
+
 bool FEditorViewportClient::ShouldOrbitCamera() const
 {
 	if( bCameraLock )

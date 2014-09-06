@@ -316,7 +316,7 @@ void FMouseDeltaTracker::ConditionalBeginUsingDragTool( FEditorViewportClient* I
 
 	if( bEnoughMouseMovement )
 	{
-		const bool bCanDrag = !InViewportClient->ShouldOrbitCamera() && InViewportClient->GetCurrentWidgetAxis() == EAxisList::None && !DragTool.IsValid() && !RightMouseButtonDown;
+		const bool bCanDrag = !DragTool.IsValid() && !RightMouseButtonDown && InViewportClient->CanUseDragTool();
 
 		if (bCanDrag && !bHasAttemptedDragTool)
 		{

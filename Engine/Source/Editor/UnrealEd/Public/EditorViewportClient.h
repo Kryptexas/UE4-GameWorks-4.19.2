@@ -611,6 +611,9 @@ public:
 	 */
 	virtual TSharedPtr<class FDragTool> MakeDragTool( EDragTool::Type DragToolType );
 
+	/** @return true if a drag tool can be used */
+	bool CanUseDragTool() const;
+
 	/** @return Whether or not to orbit the camera */
 	virtual bool ShouldOrbitCamera() const ;
 

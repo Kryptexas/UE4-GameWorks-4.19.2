@@ -1567,6 +1567,16 @@ bool FEditorModeTools::EndTracking(FEditorViewportClient* InViewportClient, FVie
 	return bTransactionHandled;
 }
 
+bool FEditorModeTools::AllowsViewportDragTool() const
+{
+	bool bCanUseDragTool = false;
+	for (const TSharedPtr<FEdMode>& Mode : Modes)
+	{
+		bCanUseDragTool |= Mode->AllowsViewportDragTool();
+	}
+	return bCanUseDragTool;
+}
+
 /** Notifies all active modes that a map change has occured */
 void FEditorModeTools::MapChangeNotify()
 {
