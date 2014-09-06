@@ -49,7 +49,10 @@ public:
 	/**
 	 * @return true if the viewport is visible. false otherwise                  
 	 */
-	bool IsVisible() const;
+	virtual bool IsVisible() const;
+
+	/** @return true if this viewport is in a foregrounded tab */
+	bool IsInForegroundTab() const;
 
 	/**
 	 * @return The editor client for this viewport

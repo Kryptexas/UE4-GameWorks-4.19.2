@@ -350,7 +350,7 @@ TSharedPtr<SLevelViewport> SLevelEditor::GetActiveViewport()
 					{
 						const TSharedPtr< SLevelViewport >& Viewport = (*LevelViewports)[ ViewportIndex ];
 
-						if( Viewport->IsVisible() )
+						if( Viewport->IsInForegroundTab() )
 						{
 							if( &Viewport->GetLevelViewportClient() == GCurrentLevelEditingViewportClient )
 							{

@@ -106,7 +106,12 @@ void SLevelViewport::HandleViewportSettingChanged(FName PropertyName)
 bool SLevelViewport::IsVisible() const
 {
 	// The viewport is visible if we don't have a parent layout (likely a floating window) or this viewport is visible in the parent layout
-	return ViewportWidget.IsValid() && (!ParentLayout.IsValid() || ParentLayout.Pin()->IsLevelViewportVisible(*this)) && SEditorViewport::IsVisible();
+	return IsInForegroundTab() && SEditorViewport::IsVisible();
+}
+
+bool SLevelViewport::IsInForegroundTab() const
+{
+	return ViewportWidget.IsValid() && (!ParentLayout.IsValid() || ParentLayout.Pin()->IsLevelViewportVisible(*this));
 }
 
 void SLevelViewport::Construct(const FArguments& InArgs)
