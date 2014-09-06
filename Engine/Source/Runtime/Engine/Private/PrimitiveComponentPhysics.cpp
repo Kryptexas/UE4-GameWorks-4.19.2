@@ -173,7 +173,11 @@ void UPrimitiveComponent::AddRadialImpulse(FVector Origin, float Radius, float S
 		return;
 	}
 
-	BodyInstance.AddRadialImpulseToBody(Origin, Radius, Strength, Falloff, bVelChange);
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->AddRadialImpulseToBody(Origin, Radius, Strength, Falloff, bVelChange);
+	}
 }
 
 
@@ -202,7 +206,11 @@ void UPrimitiveComponent::AddRadialForce(FVector Origin, float Radius, float Str
 		return;
 	}
 
-	BodyInstance.AddRadialForceToBody(Origin, Radius, Strength, Falloff);
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->AddRadialForceToBody(Origin, Radius, Strength, Falloff);
+	}
 }
 
 void UPrimitiveComponent::AddTorque(FVector Torque, FName BoneName)
@@ -300,41 +308,73 @@ void UPrimitiveComponent::WakeAllRigidBodies()
 
 void UPrimitiveComponent::SetEnableGravity(bool bGravityEnabled)
 {
-	BodyInstance.SetEnableGravity(bGravityEnabled);
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->SetEnableGravity(bGravityEnabled);
+	}
 }
 
 bool UPrimitiveComponent::IsGravityEnabled() const
 {
-	return BodyInstance.bEnableGravity;
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		return BI->bEnableGravity;
+	}
+
+	return false;
 }
 
 void UPrimitiveComponent::SetLinearDamping(float InDamping)
 {
-	BodyInstance.LinearDamping = InDamping;
-	BodyInstance.UpdateDampingProperties();
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->LinearDamping = InDamping;
+		BI->UpdateDampingProperties();
+	}
 }
 
 float UPrimitiveComponent::GetLinearDamping() const
 {
-	return BodyInstance.LinearDamping;
+
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		return BI->LinearDamping;
+	}
+	
+	return 0.f;
 }
 
 void UPrimitiveComponent::SetAngularDamping(float InDamping)
 {
-	BodyInstance.AngularDamping = InDamping;
-	BodyInstance.UpdateDampingProperties();
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->AngularDamping = InDamping;
+		BI->UpdateDampingProperties();
+	}
 }
 
 float UPrimitiveComponent::GetAngularDamping() const
 {
-	return BodyInstance.AngularDamping;
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		return BI->AngularDamping;
+	}
+	
+	return 0.f;
 }
 
 float UPrimitiveComponent::GetMass() const
 {
-	if (BodyInstance.IsValidBodyInstance())
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
 	{
-		return BodyInstance.GetBodyMass();
+		return BI->GetBodyMass();
 	}
 
 	return 0.0f;

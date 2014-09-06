@@ -1567,19 +1567,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 #if WITH_PHYSX
 	
-	//first time we're welding with root so we need to grab the shapes
-	/*if (ShapeToBodyMap.Num() == 0)
-	{
-		int32 NumSyncShapes = 0;
-		TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
-
-		for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ++ShapeIdx)
-		{
-			PxShape* PShape = PShapes[ShapeIdx];
-			FBodyInstance *& BI = ShapeToBodyMap.FindOrAdd(PShape);
-			BI = this;
-		}
-	}*/
+	
 
 	TArray<PxShape *> PNewShapes;
 
@@ -1588,6 +1576,12 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 	FTransform RelativeTM = TheirTM.GetRelativeTransform(MyTM);
 
+	PxScene * PSyncScene = RigidActorSync ? RigidActorSync->getScene() : NULL;
+	PxScene * PAsyncScene = RigidActorAsync ? RigidActorAsync->getScene() : NULL;
+
+	SCOPED_SCENE_WRITE_LOCK(PSyncScene);
+	SCOPED_SCENE_WRITE_LOCK(PAsyncScene);
+	
 	//child body gets placed into the same scenes as parent body
 	if (PxRigidActor* MyBody = RigidActorSync)
 	{
@@ -1631,6 +1625,12 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 	TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
 
 	bool bNeedsNotification = false;
+
+	PxScene * PSyncScene = RigidActorSync ? RigidActorSync->getScene() : NULL;
+	PxScene * PAsyncScene = RigidActorAsync ? RigidActorAsync->getScene() : NULL;
+
+	SCOPED_SCENE_WRITE_LOCK(PSyncScene);
+	SCOPED_SCENE_WRITE_LOCK(PAsyncScene);
 
 	for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
 	{
