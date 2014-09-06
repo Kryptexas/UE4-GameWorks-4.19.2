@@ -839,7 +839,7 @@ public:
 
 	/** Perform a line trace against a single component */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(FriendlyName = "Line Trace Component", bTraceComplex="true"))	
-	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal);
+	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName & BoneName);
 
 	/** Sets the bRenderCustomDepth property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
