@@ -663,11 +663,15 @@ namespace UnrealBuildTool
             // hack to set up the templates without adding anything to their .targets.cs files
             if (!String.IsNullOrEmpty(TargetName) && TargetName.StartsWith("TP_"))
             {
-                Result.Add(UnrealTargetPlatform.IOS);
-                if (HostPlatform != UnrealTargetPlatform.Mac)
+				if (HostPlatform == UnrealTargetPlatform.Win64)
+				{
+					Result.Add(UnrealTargetPlatform.IOS);
+					Result.Add(UnrealTargetPlatform.Android);
+				}
+                else if (HostPlatform == UnrealTargetPlatform.Mac)
                 {
-                    Result.Add(UnrealTargetPlatform.Android);
-                }
+					Result.Add(UnrealTargetPlatform.IOS);
+				}
             }
             return Result;
         }
