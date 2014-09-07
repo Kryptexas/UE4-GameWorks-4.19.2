@@ -259,10 +259,10 @@ void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
 		FSHVectorRGB2& AccumulatedIncidentRadiance,
 		FVector& SkyBentNormal) const
 {
-	// This could be called on a NULL volume for a newly created level. This is now checked at the callsite, but this check provides extra safety
+	// This could be called on a NULL volume for a newly created level. This is now checked at the call site, but this check provides extra safety
 	checkf(this, TEXT("FPrecomputedLightVolume::InterpolateIncidentRadiancePoint() is called on a null volume. Fix the call site."));
 
-	// Or a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
+	// Handle being called on a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
 	if (bInitialized)
 	{
 		FBoxCenterAndExtent BoundingBox( WorldPosition, FVector::ZeroVector );
@@ -302,9 +302,11 @@ void FPrecomputedLightVolume::InterpolateIncidentRadianceBlock(
 	TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
 	TArray<FVector>& AccumulatedSkyBentNormal) const
 {
-	// Handle being called on a NULL volume, which can happen for a newly created level,
-	// Or a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
-	if (this && bInitialized)
+	// This could be called on a NULL volume for a newly created level. This is now checked at the callsite, but this check provides extra safety
+	checkf(this, TEXT("FPrecomputedLightVolume::InterpolateIncidentRadianceBlock() is called on a null volume. Fix the call site."));
+
+	// Handle being called on a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
+	if (bInitialized)
 	{
 		static TArray<const FVolumeLightingSample*> PotentiallyIntersectingSamples;
 		PotentiallyIntersectingSamples.Reset(100);

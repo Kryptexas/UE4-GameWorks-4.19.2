@@ -850,14 +850,17 @@ void FIndirectLightingCache::InterpolateBlock(
 							&& CellIndex.Z + NumQueryStepCells.Z <= Block.TexelSize);
 
 						// Interpolate from the SH volume lighting samples that Lightmass computed
-						PrecomputedLightVolume->InterpolateIncidentRadianceBlock(
-							BoundingBox, 
-							NumQueryStepCells, 
-							FIntVector(Block.TexelSize), 
-							CellIndex, 
-							AccumulatedWeight, 
-							AccumulatedIncidentRadiance,
-							AccumulatedSkyBentNormal);
+						if (PrecomputedLightVolume)
+						{
+							PrecomputedLightVolume->InterpolateIncidentRadianceBlock(
+								BoundingBox,
+								NumQueryStepCells,
+								FIntVector(Block.TexelSize),
+								CellIndex,
+								AccumulatedWeight,
+								AccumulatedIncidentRadiance,
+								AccumulatedSkyBentNormal);
+						}
 					}
 				}
 			}
@@ -868,6 +871,7 @@ void FIndirectLightingCache::InterpolateBlock(
 		for (int32 VolumeIndex = 0; VolumeIndex < Scene->PrecomputedLightVolumes.Num(); VolumeIndex++)
 		{
 			const FPrecomputedLightVolume* PrecomputedLightVolume = Scene->PrecomputedLightVolumes[VolumeIndex];
+			check(PrecomputedLightVolume);
 			check(PrecomputedLightVolume->IsUsingHighQualityLightMap() == AllowHighQualityLightmaps(Scene->GetFeatureLevel()));
 			// Interpolate from the SH volume lighting samples that Lightmass computed
 			// Query using the bounds of all the samples in this block
