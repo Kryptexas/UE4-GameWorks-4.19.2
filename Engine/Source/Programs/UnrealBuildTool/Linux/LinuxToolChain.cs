@@ -128,7 +128,6 @@ namespace UnrealBuildTool
                 Result += " -Wno-unused-local-typedefs";
                 Result += " -Wno-multichar";
                 Result += " -Wno-unused-but-set-variable";
-                Result += " -Wno-sequence-point"; // TaskGraph.cpp:755 FTaskThread* Target = Target = &Thread(ThreadToExecuteOn);
                 Result += " -Wno-strict-overflow"; // Array.h:518
             }
             else
@@ -138,6 +137,7 @@ namespace UnrealBuildTool
                 Result += " -Wno-unused-private-field";     // MultichannelTcpSocket.h triggers this, possibly more
                 // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
                 Result += " -Wno-tautological-compare";
+				Result += " -Wno-undefined-bool-conversion";	// hides checking if 'this' pointer is null
                 if (!CrossCompiling())
                 {
                     Result += " -Wno-logical-op-parentheses";   // needed for external headers we can't change
@@ -190,7 +190,7 @@ namespace UnrealBuildTool
             }
             else
             {
-                Result += " -O2";
+                Result += " -O3";
             }
 
             if (CompileEnvironment.Config.bIsBuildingDLL)

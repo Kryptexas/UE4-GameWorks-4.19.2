@@ -11,7 +11,7 @@ namespace UnrealBuildTool
     class LinuxPlatform : UEBuildPlatform
     {
         /** This is the SDK version we support */
-        static private string ExpectedSDKVersion = "v3_clang-3.3_ld-2.24_glibc-2.12.2";
+		static private string ExpectedSDKVersion = "v4_clang-3.5.0_ld-2.24_glibc-2.12.2";
 
         /** Platform name (embeds architecture for now) */
         static private string TargetPlatformName = "Linux_x64";
