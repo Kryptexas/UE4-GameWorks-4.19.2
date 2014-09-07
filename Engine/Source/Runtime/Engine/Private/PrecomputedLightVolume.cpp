@@ -259,9 +259,11 @@ void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
 		FSHVectorRGB2& AccumulatedIncidentRadiance,
 		FVector& SkyBentNormal) const
 {
-	// Handle being called on a NULL volume, which can happen for a newly created level,
+	// This could be called on a NULL volume for a newly created level. This is now checked at the callsite, but this check provides extra safety
+	checkf(this, TEXT("FPrecomputedLightVolume::InterpolateIncidentRadiancePoint() is called on a null volume. Fix the call site."));
+
 	// Or a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
-	if (this && bInitialized)
+	if (bInitialized)
 	{
 		FBoxCenterAndExtent BoundingBox( WorldPosition, FVector::ZeroVector );
 		// Iterate over the octree nodes containing the query point.

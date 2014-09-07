@@ -722,12 +722,15 @@ void FIndirectLightingCache::InterpolatePoint(
 	for (int32 VolumeIndex = 0; VolumeIndex < Scene->PrecomputedLightVolumes.Num(); VolumeIndex++)
 	{
 		const FPrecomputedLightVolume* PrecomputedLightVolume = Scene->PrecomputedLightVolumes[VolumeIndex];
-		PrecomputedLightVolume->InterpolateIncidentRadiancePoint(
-			Block.Min + Block.Size / 2, 
-			AccumulatedWeight, 
-			AccumulatedDirectionalShadowing,
-			AccumulatedIncidentRadiance,
-			AccumulatedSkyBentNormal);
+		if (PrecomputedLightVolume)
+		{
+			PrecomputedLightVolume->InterpolateIncidentRadiancePoint(
+				Block.Min + Block.Size / 2,
+				AccumulatedWeight,
+				AccumulatedDirectionalShadowing,
+				AccumulatedIncidentRadiance,
+				AccumulatedSkyBentNormal);
+		}
 	}
 
 	if (AccumulatedWeight > 0)
