@@ -3053,7 +3053,8 @@ T* SmartCastProperty( UProperty* Src )
  */
 inline bool UObject::IsBasedOnArchetype(  const UObject* const SomeObject ) const
 {
-	if ( this && SomeObject != this )
+	checkfSlow(this, TEXT("IsBasedOnArchetype() is called on a null pointer. Fix the call site."));
+	if ( SomeObject != this )
 	{
 		for ( UObject* Template = GetArchetype(); Template; Template = Template->GetArchetype() )
 		{

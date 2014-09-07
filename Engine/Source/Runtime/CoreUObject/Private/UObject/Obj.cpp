@@ -401,8 +401,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 				UObject* Obj = It;
 				
 				// if this object is the correct type and its archetype is this object, add it to the list
-				CA_SUPPRESS(6011)
-				if ( Obj != this && Obj->IsBasedOnArchetype(this) )
+				if ( Obj != this && Obj && Obj->IsBasedOnArchetype(this) )
 				{
 					Instances.Add(Obj);
 				}

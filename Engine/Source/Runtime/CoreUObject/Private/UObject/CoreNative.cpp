@@ -233,7 +233,7 @@ UObject* FObjectInstancingGraph::InstancePropertyValue( class UObject* Component
 	// if the object we're instancing the components for (Owner) has the current component's outer in its archetype chain, and its archetype has a NULL value
 	// for this component property it means that the archetype didn't instance its component, so we shouldn't either.
 
-	if (ComponentTemplate == NULL && CurrentValue != NULL && Owner->IsBasedOnArchetype(CurrentValue->GetOuter()))
+	if (ComponentTemplate == NULL && CurrentValue != NULL && (Owner && Owner->IsBasedOnArchetype(CurrentValue->GetOuter())))
 	{
 		NewValue = NULL;
 	}
