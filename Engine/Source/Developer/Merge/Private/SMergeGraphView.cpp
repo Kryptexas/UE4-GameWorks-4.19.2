@@ -487,3 +487,5 @@ const FSlateBrush* SMergeGraphView::GetLockViewImage() const
 {
 	return bViewsAreLocked ? FEditorStyle::GetBrush("GenericLock") : FEditorStyle::GetBrush("GenericUnlock");
 }
+
+#undef LOCTEXT_NAMESPACE
