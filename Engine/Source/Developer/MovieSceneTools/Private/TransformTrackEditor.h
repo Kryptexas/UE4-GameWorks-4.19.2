@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "MovieSceneTransformTrack.h"
+#include "MovieScene3DTransformTrack.h"
 
 /**
  * Tools for animatable transforms
  */
-class FTransformTrackEditor : public FMovieSceneTrackEditor
+class F3DTransformTrackEditor : public FMovieSceneTrackEditor
 {
 public:
 	/**
@@ -15,8 +15,8 @@ public:
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
-	FTransformTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~FTransformTrackEditor();
+	F3DTransformTrackEditor( TSharedRef<ISequencer> InSequencer );
+	~F3DTransformTrackEditor();
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 

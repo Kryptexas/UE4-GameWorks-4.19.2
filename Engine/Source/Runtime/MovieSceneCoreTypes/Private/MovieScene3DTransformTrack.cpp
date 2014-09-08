@@ -1,10 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneCoreTypesPCH.h"
-#include "MovieSceneTransformSection.h"
-#include "MovieSceneTransformTrack.h"
+#include "MovieScene3DTransformSection.h"
+#include "MovieScene3DTransformTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieSceneTransformTrackInstance.h"
+#include "MovieScene3DTransformTrackInstance.h"
 
 bool FTransformKey::ShouldKeyTranslation( EAxis::Type Axis) const
 {
@@ -57,29 +57,29 @@ bool FTransformKey::GetVectorComponentIfDifferent( EAxis::Type Axis, const FVect
 	return bShouldAddKey;
 }
 
-UMovieSceneTransformTrack::UMovieSceneTransformTrack( const FPostConstructInitializeProperties& PCIP )
+UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FPostConstructInitializeProperties& PCIP )
 	: Super( PCIP )
 {
 }
 
-UMovieSceneSection* UMovieSceneTransformTrack::CreateNewSection()
+UMovieSceneSection* UMovieScene3DTransformTrack::CreateNewSection()
 {
-	return ConstructObject<UMovieSceneSection>( UMovieSceneTransformSection::StaticClass(), this, NAME_None, RF_Transactional );
+	return ConstructObject<UMovieSceneSection>( UMovieScene3DTransformSection::StaticClass(), this, NAME_None, RF_Transactional );
 }
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneTransformTrack::CreateInstance()
+TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DTransformTrack::CreateInstance()
 {
-	return MakeShareable( new FMovieSceneTransformTrackInstance( *this ) );
+	return MakeShareable( new FMovieScene3DTransformTrackInstance( *this ) );
 }
 
-bool UMovieSceneTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation )
+bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime(Sections, InKey.GetKeyTime());
-	if (!NearestSection || CastChecked<UMovieSceneTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
+	if (!NearestSection || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
 	{
 		Modify();
 
-		UMovieSceneTransformSection* NewSection = Cast<UMovieSceneTransformSection>( FindOrAddSection( InKey.GetKeyTime() ) );
+		UMovieScene3DTransformSection* NewSection = Cast<UMovieScene3DTransformSection>( FindOrAddSection( InKey.GetKeyTime() ) );
 
 		// key each component of the transform
 		NewSection->AddTranslationKeys( InKey );
@@ -92,13 +92,13 @@ bool UMovieSceneTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, cons
 }
 
 
-bool UMovieSceneTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, bool& OutHasTranslationKeys, bool& OutHasRotationKeys, bool& OutHasScaleKeys ) const
+bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, bool& OutHasTranslationKeys, bool& OutHasRotationKeys, bool& OutHasScaleKeys ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindSectionAtTime( Sections, Position );
 
 	if( Section )
 	{
-		const UMovieSceneTransformSection* TransformSection = CastChecked<UMovieSceneTransformSection>( Section );
+		const UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>( Section );
 
 		// Evalulate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
 		OutHasTranslationKeys = TransformSection->EvalTranslation( Position, OutTranslation );

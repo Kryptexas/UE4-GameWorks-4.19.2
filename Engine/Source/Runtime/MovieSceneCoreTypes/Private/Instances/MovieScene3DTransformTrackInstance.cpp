@@ -1,15 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneCoreTypesPCH.h"
-#include "MovieSceneTransformTrackInstance.h"
+#include "MovieScene3DTransformTrackInstance.h"
 
 
-FMovieSceneTransformTrackInstance::FMovieSceneTransformTrackInstance( UMovieSceneTransformTrack& InTransformTrack )
+FMovieScene3DTransformTrackInstance::FMovieScene3DTransformTrackInstance( UMovieScene3DTransformTrack& InTransformTrack )
 {
 	TransformTrack = &InTransformTrack;
 }
 
-void FMovieSceneTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	FVector Translation;
 	FRotator Rotation;

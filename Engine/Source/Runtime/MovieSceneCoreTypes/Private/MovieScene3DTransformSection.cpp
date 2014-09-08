@@ -1,16 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneCoreTypesPCH.h"
-#include "MovieSceneTransformSection.h"
-#include "MovieSceneTransformTrack.h"
+#include "MovieScene3DTransformSection.h"
+#include "MovieScene3DTransformTrack.h"
 
-UMovieSceneTransformSection::UMovieSceneTransformSection( const FPostConstructInitializeProperties& PCIP )
+UMovieScene3DTransformSection::UMovieScene3DTransformSection( const FPostConstructInitializeProperties& PCIP )
 	: Super( PCIP )
 {
 
 }
 
-void UMovieSceneTransformSection::MoveSection( float DeltaTime )
+void UMovieScene3DTransformSection::MoveSection( float DeltaTime )
 {
 	Super::MoveSection( DeltaTime );
 
@@ -23,7 +23,7 @@ void UMovieSceneTransformSection::MoveSection( float DeltaTime )
 	}
 }
 
-void UMovieSceneTransformSection::DilateSection( float DilationFactor, float Origin )
+void UMovieScene3DTransformSection::DilateSection( float DilationFactor, float Origin )
 {
 	Super::DilateSection(DilationFactor, Origin);
 
@@ -37,7 +37,7 @@ void UMovieSceneTransformSection::DilateSection( float DilationFactor, float Ori
 
 	
 
-bool UMovieSceneTransformSection::EvalTranslation( float Time, FVector& OutTranslation ) const
+bool UMovieScene3DTransformSection::EvalTranslation( float Time, FVector& OutTranslation ) const
 {
 	bool bHasTranslationKeys = Translation[0].GetNumKeys() > 0 || Translation[1].GetNumKeys() > 0 || Translation[2].GetNumKeys() > 0;
 
@@ -52,7 +52,7 @@ bool UMovieSceneTransformSection::EvalTranslation( float Time, FVector& OutTrans
 	return bHasTranslationKeys;
 }
 
-bool UMovieSceneTransformSection::EvalRotation( float Time, FRotator& OutRotation ) const
+bool UMovieScene3DTransformSection::EvalRotation( float Time, FRotator& OutRotation ) const
 {
 	bool bHasRotationKeys = Rotation[0].GetNumKeys() > 0 || Rotation[1].GetNumKeys() > 0 || Rotation[2].GetNumKeys() > 0;
 
@@ -68,7 +68,7 @@ bool UMovieSceneTransformSection::EvalRotation( float Time, FRotator& OutRotatio
 
 }
 
-bool UMovieSceneTransformSection::EvalScale( float Time, FVector& OutScale ) const
+bool UMovieScene3DTransformSection::EvalScale( float Time, FVector& OutScale ) const
 {
 	bool bHasScaleKeys = Scale[0].GetNumKeys() > 0 || Scale[1].GetNumKeys() > 0 || Scale[2].GetNumKeys() > 0;
 	
@@ -107,22 +107,22 @@ static FRichCurve* ChooseCurve( EAxis::Type Axis, FRichCurve* Curves )
 	}
 }
 
-FRichCurve& UMovieSceneTransformSection::GetTranslationCurve( EAxis::Type Axis ) 
+FRichCurve& UMovieScene3DTransformSection::GetTranslationCurve( EAxis::Type Axis ) 
 {
 	return *ChooseCurve( Axis, Translation );
 }
 
-FRichCurve& UMovieSceneTransformSection::GetRotationCurve( EAxis::Type Axis )
+FRichCurve& UMovieScene3DTransformSection::GetRotationCurve( EAxis::Type Axis )
 {
 	return *ChooseCurve( Axis, Rotation );
 }
 
-FRichCurve& UMovieSceneTransformSection::GetScaleCurve( EAxis::Type Axis )
+FRichCurve& UMovieScene3DTransformSection::GetScaleCurve( EAxis::Type Axis )
 {
 	return *ChooseCurve( Axis, Scale );
 }
 
-void UMovieSceneTransformSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, const bool bUnwindRotation )
+void UMovieScene3DTransformSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, const bool bUnwindRotation )
 {
 	if( IsTimeWithinSection(Time) )
 	{
@@ -131,7 +131,7 @@ void UMovieSceneTransformSection::AddKeyToCurve( FRichCurve& InCurve, float Time
 	}
 }
 
-void UMovieSceneTransformSection::AddTranslationKeys( const FTransformKey& TransformKey )
+void UMovieScene3DTransformSection::AddTranslationKeys( const FTransformKey& TransformKey )
 {
 	const float Time = TransformKey.GetKeyTime();
 
@@ -154,7 +154,7 @@ void UMovieSceneTransformSection::AddTranslationKeys( const FTransformKey& Trans
 	}
 }
 
-void UMovieSceneTransformSection::AddRotationKeys( const FTransformKey& TransformKey, const bool bUnwindRotation )
+void UMovieScene3DTransformSection::AddRotationKeys( const FTransformKey& TransformKey, const bool bUnwindRotation )
 {
 	const float Time = TransformKey.GetKeyTime();
 
@@ -175,7 +175,7 @@ void UMovieSceneTransformSection::AddRotationKeys( const FTransformKey& Transfor
 	}
 }
 
-void UMovieSceneTransformSection::AddScaleKeys( const FTransformKey& TransformKey )
+void UMovieScene3DTransformSection::AddScaleKeys( const FTransformKey& TransformKey )
 {
 	const float Time = TransformKey.GetKeyTime();
 
@@ -198,7 +198,7 @@ void UMovieSceneTransformSection::AddScaleKeys( const FTransformKey& TransformKe
 	}
 }
 
-bool UMovieSceneTransformSection::NewKeyIsNewData(const FTransformKey& TransformKey) const
+bool UMovieScene3DTransformSection::NewKeyIsNewData(const FTransformKey& TransformKey) const
 {
 	bool bHasEmptyKeys = false;
 	for (int32 i = 0; i < 3; ++i)

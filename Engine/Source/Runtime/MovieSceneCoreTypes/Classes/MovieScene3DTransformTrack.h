@@ -5,7 +5,7 @@
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
 #include "MovieScenePropertyTrack.h"
-#include "MovieSceneTransformTrack.generated.h"
+#include "MovieScene3DTransformTrack.generated.h"
 
 /**
  * Stores information about a transform for the purpose of adding keys to a transform section
@@ -127,7 +127,7 @@ private:
  * Handles manipulation of component transforms in a movie scene
  */
 UCLASS( MinimalAPI )
-class UMovieSceneTransformTrack : public UMovieScenePropertyTrack
+class UMovieScene3DTransformTrack : public UMovieScenePropertyTrack
 {
 	GENERATED_UCLASS_BODY()
 public:

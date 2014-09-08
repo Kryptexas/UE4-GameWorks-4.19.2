@@ -4,13 +4,13 @@
 
 #include "MovieSceneSection.h"
 
-#include "MovieSceneTransformSection.generated.h"
+#include "MovieScene3DTransformSection.generated.h"
 
 /**
- * A transform section
+ * A 3D transform section
  */
 UCLASS(MinimalAPI)
-class UMovieSceneTransformSection : public UMovieSceneSection
+class UMovieScene3DTransformSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
 public:

@@ -5,15 +5,15 @@
 /**
  * Instance of a UMovieSceneTransformTrack
  */
-class FMovieSceneTransformTrackInstance : public IMovieSceneTrackInstance
+class FMovieScene3DTransformTrackInstance : public IMovieSceneTrackInstance
 {
 public:
-	FMovieSceneTransformTrackInstance( UMovieSceneTransformTrack& InTransformTrack );
+	FMovieScene3DTransformTrackInstance( UMovieScene3DTransformTrack& InTransformTrack );
 
 	/** IMovieSceneTrackInstance interface */
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) override;
 	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) override {}
 private:
 	/** Track that is being instanced */
-	UMovieSceneTransformTrack* TransformTrack;
+	UMovieScene3DTransformTrack* TransformTrack;
 };
