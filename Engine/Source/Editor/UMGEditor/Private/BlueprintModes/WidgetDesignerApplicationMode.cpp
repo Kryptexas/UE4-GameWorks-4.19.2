@@ -135,17 +135,9 @@ void FWidgetDesignerApplicationMode::RegisterTabFactories(TSharedPtr<FTabManager
 void FWidgetDesignerApplicationMode::PreDeactivateMode()
 {
 	//FWidgetBlueprintApplicationMode::PreDeactivateMode();
-
-	//GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
-
-	//static FName PropertyEditor("PropertyEditor");
-	//FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-	//PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("CanvasPanelSlot"));
 }
 
 void FWidgetDesignerApplicationMode::PostActivateMode()
 {
 	//FWidgetBlueprintApplicationMode::PostActivateMode();
-
-	//GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
 }
