@@ -114,7 +114,7 @@ FText FMacErrorReport::DiagnoseReport() const
 		return FText::FromString("No minidump found for this crash.");
 	}
 	
-	if (!CrashDebugHelper->CreateMinidumpDiagnosticReport(ReportDirectory / DumpFilename))
+	if ( !CrashDebugHelper->CreateMinidumpDiagnosticReport(ReportDirectory / DumpFilename) )
 	{
 		if ( FRocketSupport::IsRocket() )
 		{
@@ -128,7 +128,9 @@ FText FMacErrorReport::DiagnoseReport() const
 	else
 	{
 		FString CrashDump;
-		if ( FFileHelper::LoadFileToString( CrashDump, *(ReportDirectory / TEXT("diagnostics.txt")) ) )
+		FString DiagnosticsPath = ReportDirectory / FString( TEXT( "Diagnostics.txt" ) );
+		CrashDebugHelper->CrashInfo.GenerateReport( DiagnosticsPath );
+		if ( FFileHelper::LoadFileToString( CrashDump, *(ReportDirectory / TEXT("Diagnostics.txt")) ) )
 		{
 			return FText::FromString(CrashDump);
 		}

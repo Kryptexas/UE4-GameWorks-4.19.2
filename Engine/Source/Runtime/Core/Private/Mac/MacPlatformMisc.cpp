@@ -166,11 +166,14 @@ struct MacApplicationInfo
 		
 		uint32 Status = notify_register_dispatch(kIOPSNotifyPowerSource, &PowerSourceNotification, dispatch_get_main_queue(), PowerSourceNotifyHandler);
 		check(Status == NOTIFY_STATUS_OK);
+		
+		NumCores = FPlatformMisc::NumberOfCores();
 	}
 	
 	bool RunningOnBattery;
 	bool RunningOnMavericks;
 	int32 PowerSourceNotification;
+	int32 NumCores;
 	char AppNameUTF8[PATH_MAX+1];
 	char AppLogPath[PATH_MAX+1];
 	char CrashReportPath[PATH_MAX+1];
@@ -1427,9 +1430,8 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		WriteLine(ReportFile, TEXT(""));
 		
 		WriteUTF16String(ReportFile, TEXT("Exception Type:\t"));
-		WriteUTF16String(ReportFile, TEXT(" ("));
 		WriteUTF16String(ReportFile, ItoTCHAR(Info->si_errno, 10));
-		WriteUTF16String(ReportFile, TEXT(", "));
+		WriteUTF16String(ReportFile, TEXT(" ("));
 		WriteUTF16String(ReportFile, ItoTCHAR(Signal, 10));
 		WriteLine(ReportFile, TEXT(")"));
 		
@@ -1440,6 +1442,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		WriteLine(ReportFile, ItoTCHAR(Info->si_band, 16));
 		
 		WriteLine(ReportFile, TEXT("Application Specific Information:"));
+		FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
 		FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, SignalDescription, FCStringAnsi::Strlen(SignalDescription));
 		WriteLine(ReportFile, Line);
 		
@@ -1472,6 +1475,8 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			if(Info.dli_fname && FCStringAnsi::Strrchr(Info.dli_fname, '/'))
 			{
 				char const* Name = FCStringAnsi::Strrchr(Info.dli_fname, '/');
+				Name++;
+				FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
 				FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, Name, FCStringAnsi::Strlen(Name));
 				WriteUTF16String(ReportFile, Line);
 			}
@@ -1484,6 +1489,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			WriteUTF16String(ReportFile, TEXT(" "));
 			if(Info.dli_sname && FCStringAnsi::Strlen(Info.dli_sname))
 			{
+				FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
 				FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, Info.dli_sname, FCStringAnsi::Strlen(Info.dli_sname));
 				WriteUTF16String(ReportFile, Line);
 			}
@@ -1539,6 +1545,8 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			WriteUTF16String(ReportFile, TEXT(" "));
 			
 			char const* Name = FCStringAnsi::Strrchr(ModulePath, '/');
+			Name++;
+			FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
 			FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, Name, FCStringAnsi::Strlen(Name));
 			WriteUTF16String(ReportFile, Line);
 			WriteUTF16String(ReportFile, TEXT(" ("));
@@ -1577,6 +1585,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			WriteUTF16String(ReportFile, ItoTCHAR(UUID[15], 16, 2));
 			WriteUTF16String(ReportFile, TEXT("> "));
 			
+			FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
 			FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, ModulePath, FCStringAnsi::Strlen(ModulePath));
 			WriteLine(ReportFile, Line);
 		}
@@ -1587,6 +1596,12 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		WriteUTF16String(ReportFile, TEXT("Model: "));
 		WriteUTF16String(ReportFile, *GMacAppInfo.MachineModel);
 		WriteUTF16String(ReportFile, TEXT(", "));
+		WriteUTF16String(ReportFile, ItoTCHAR(GMacAppInfo.NumCores, 10));
+		WriteUTF16String(ReportFile, TEXT(" processors, "));
+		WriteUTF16String(ReportFile, ItoTCHAR(GMacAppInfo.NumCores, 10));
+		WriteUTF16String(ReportFile, TEXT("-Core "));
+
+		FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
 		FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, GMacAppInfo.MachineCPUString, FCStringAnsi::Strlen(GMacAppInfo.MachineCPUString));
 		WriteLine(ReportFile, Line);
 		

@@ -33,8 +33,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	{
 		GWarn->Flush();
 	}
-	// @todo Disable calls to functions which eventually try and allocated memory, resulting in the application hanging before the crash reporter can launch
-	// We need to setup the memory allocator system to handle the case where we can't call the system malloc, free etc. to re-enable this.
 	if (GError)
 	{
 		GError->Flush();
