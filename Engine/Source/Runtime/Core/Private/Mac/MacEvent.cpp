@@ -13,7 +13,7 @@ FMacEvent::FMacEvent(NSEvent* const Event)
 	[Event retain];
 	
 	NSWindow* Window = FMacApplication::FindMacEventWindow(Event);
-	if(Window && [Window isKindOfClass:[FCocoaWindow class]])
+	if(Window)
 	{
 		MacWindow = FMacApplication::FindMacWindowByNSWindow((FCocoaWindow*)Window);
 	}
@@ -30,7 +30,7 @@ FMacEvent::FMacEvent(NSNotification* const Notification, NSWindow* const Window)
 	check(Notification);
 	[Notification retain];
 	
-	if(Window && [Window isKindOfClass:[FCocoaWindow class]])
+	if(Window)
 	{
 		MacWindow = FMacApplication::FindMacWindowByNSWindow((FCocoaWindow*)Window);
 	}
