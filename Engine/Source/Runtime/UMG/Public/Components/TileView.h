@@ -5,7 +5,7 @@
 #include "TileView.generated.h"
 
 /** A flow panel that presents the contents as a set of tiles all uniformly sized. */
-UCLASS(ClassGroup=UserInterface)
+UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UTileView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()
