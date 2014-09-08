@@ -555,6 +555,20 @@ bool FPropertyNode::IsEditConst() const
 						bIsEditConst = true;
 						break;
 					}
+					else
+					{
+						// If 
+						if ( const FPropertyNode* ObjectParentNode = ObjectPropertyNode->GetParentNode() )
+						{
+							if ( const UProperty* ParentProperty = ObjectParentNode->GetProperty() )
+							{
+								if ( ParentProperty->PropertyFlags & CPF_EditInline )
+								{
+									return ObjectParentNode->IsEditConst();
+								}
+							}
+						}
+					}
 				}
 			}
 		}
