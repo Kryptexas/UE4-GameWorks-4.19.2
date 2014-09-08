@@ -60,6 +60,22 @@ namespace FObjectEditorUtils
 		return bResult;
 	}
 
+	void GetClassDevelopmentStatus(UClass* Class, bool& bIsExperimental, bool& bIsEarlyAccess)
+	{
+		static const FName DevelopmentStatusKey(TEXT("DevelopmentStatus"));
+		static const FString EarlyAccessValue(TEXT("EarlyAccess"));
+		static const FString ExperimentalValue(TEXT("Experimental"));
+
+		bIsExperimental = bIsEarlyAccess = false;
+
+		FString DevelopmentStatus;
+		if ( Class->GetStringMetaDataHierarchical(DevelopmentStatusKey, /*out*/ &DevelopmentStatus) )
+		{
+			bIsExperimental = DevelopmentStatus == ExperimentalValue;
+			bIsEarlyAccess = DevelopmentStatus == EarlyAccessValue;
+		}
+	}
+
 	bool MigratePropertyValue(UObject* SourceObject, UProperty* SourceProperty, UObject* DestinationObject, UProperty* DestinationProperty)
 	{
 		FString SourceValue;

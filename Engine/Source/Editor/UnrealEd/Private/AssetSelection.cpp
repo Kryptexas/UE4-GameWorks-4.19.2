@@ -24,13 +24,11 @@
 #include "Editor/ActorPositioning.h"
 #include "Animation/SkeletalMeshActor.h"
 
+#include "ObjectEditorUtils.h"
+
 
 namespace AssetSelectionUtils
 {
-	const FName DevelopmentStatusKey(TEXT("DevelopmentStatus"));
-	const FString EarlyAccessValue(TEXT("EarlyAccess"));
-	const FString ExperimentalValue(TEXT("Experimental"));
-
 	bool IsClassPlaceable(const UClass* Class)
 	{
 		const bool bIsAddable =
@@ -205,23 +203,21 @@ namespace AssetSelectionUtils
 							}
 						}
 
-						// Check for experimental classes in the component hierarchy
-						FString DevelopmentStatus;
-						if (Component->GetClass()->GetStringMetaDataHierarchical(DevelopmentStatusKey, /*out*/ &DevelopmentStatus))
-						{
-							ActorInfo.bHaveExperimentalClass = ActorInfo.bHaveExperimentalClass || (DevelopmentStatus == ExperimentalValue);
-							ActorInfo.bHaveEarlyAccessClass = ActorInfo.bHaveEarlyAccessClass || (DevelopmentStatus == EarlyAccessValue);
-						}
+						// Check for experimental/early-access classes in the component hierarchy
+						bool bIsExperimental, bIsEarlyAccess;
+						FObjectEditorUtils::GetClassDevelopmentStatus(Component->GetClass(), bIsExperimental, bIsEarlyAccess);
+
+						ActorInfo.bHaveExperimentalClass |= bIsExperimental;
+						ActorInfo.bHaveEarlyAccessClass |= bIsEarlyAccess;
 					}
 
-					// Check for experimental classes in the actor hierarchy
+					// Check for experimental/early-access classes in the actor hierarchy
 					{
-						FString DevelopmentStatus;
-						if (CurrentClass->GetStringMetaDataHierarchical(DevelopmentStatusKey, /*out*/ &DevelopmentStatus))
-						{
-							ActorInfo.bHaveExperimentalClass = ActorInfo.bHaveExperimentalClass || (DevelopmentStatus == ExperimentalValue);
-							ActorInfo.bHaveEarlyAccessClass = ActorInfo.bHaveEarlyAccessClass || (DevelopmentStatus == EarlyAccessValue);
-						}
+						bool bIsExperimental, bIsEarlyAccess;
+						FObjectEditorUtils::GetClassDevelopmentStatus(CurrentClass, bIsExperimental, bIsEarlyAccess);
+
+						ActorInfo.bHaveExperimentalClass |= bIsExperimental;
+						ActorInfo.bHaveEarlyAccessClass |= bIsEarlyAccess;
 					}
 
 					if( CurrentActor->IsA( ALight::StaticClass() ) )

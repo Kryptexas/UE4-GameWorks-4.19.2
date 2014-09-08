@@ -46,6 +46,15 @@ namespace FObjectEditorUtils
 	ENGINE_API bool IsVariableCategoryHiddenFromClass( const UProperty* InVariable, const UClass* Class );
 
 	/**
+	 * Get the classes development status and return if it's either experimental or early access.
+	 * 
+	 * @param Class the class to inspect.
+	 * @param bIsExperimental [out] value indicating if the class is experimental.
+	 * @param bIsEarlyAccess [out] value indicating if the class is early access.
+	 */
+	ENGINE_API void GetClassDevelopmentStatus(UClass* Class, bool& bIsExperimental, bool& bIsEarlyAccess);
+
+	/**
 	 * Copy the value of a property from source object to a destination object.
 	 *
 	 * @param	SourceObject		The object to copy the property value from.

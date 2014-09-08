@@ -265,12 +265,15 @@ UWidgetBlueprint* SPaletteView::GetBlueprint() const
 
 void SPaletteView::BuildWidgetList()
 {
+	// Clear the current list of view models and categories
 	WidgetViewModels.Reset();
 	WidgetTemplateCategories.Reset();
 
+	// Generate a list of templates
 	BuildClassWidgetList();
 	BuildSpecialWidgetList();
 
+	// For each entry in the category create a view model for the widget template
 	for ( auto& Entry : WidgetTemplateCategories )
 	{
 		TSharedPtr<FWidgetHeaderViewModel> Header = MakeShareable(new FWidgetHeaderViewModel());
@@ -289,21 +292,32 @@ void SPaletteView::BuildWidgetList()
 		WidgetViewModels.Add(Header);
 	}
 
+	// Sort the view models by name
 	WidgetViewModels.Sort([] (TSharedPtr<FWidgetViewModel> L, TSharedPtr<FWidgetViewModel> R) { return R->GetName().CompareTo(L->GetName()) > 0; });
 }
 
 void SPaletteView::BuildClassWidgetList()
 {
+	static const FName DevelopmentStatusKey(TEXT("DevelopmentStatus"));
+
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		UClass* WidgetClass = *ClassIt;
 		if ( WidgetClass->IsChildOf(UWidget::StaticClass()) )
 		{
+			// We don't want to include experimental widget classes, so filter those out.
+			bool bIsExperimental, bIsEarlyAccess;
+			FObjectEditorUtils::GetClassDevelopmentStatus(WidgetClass, bIsExperimental, bIsEarlyAccess);
+
+			// Don't include skeleton classes of widgets.
 			const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 			const bool bIsValidClass =
-				!( WidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) || bIsSkeletonClass );
+				!( WidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) || bIsSkeletonClass || bIsExperimental );
 			const bool bIsSameClass = WidgetClass->GetFName() == GetBlueprint()->GeneratedClass->GetFName();
 
+			//TODO UMG does not prevent deep nested circular references
+
+			// Only use non-(abstract/deprecated/old) classes and don't include the current widget blueprint class.
 			if ( bIsValidClass && !bIsSameClass )
 			{
 				TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));

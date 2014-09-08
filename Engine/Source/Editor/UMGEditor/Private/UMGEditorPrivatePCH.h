@@ -15,6 +15,8 @@
 #include "ScopedTransaction.h"
 #include "TextFilter.h"
 
+#include "ObjectEditorUtils.h"
+
 #include "UMG.h"
 
 #include "UMGEditorClasses.h"
