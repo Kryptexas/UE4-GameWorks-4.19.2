@@ -1105,7 +1105,7 @@ bool FEdModeLandscape::HandleClick(FEditorViewportClient* InViewportClient, HHit
 	}
 
 	// Override Click Input for Splines Tool
-	if (CurrentTool && CurrentTool && CurrentTool->HandleClick(HitProxy, Click))
+	if (CurrentTool && CurrentTool->HandleClick(HitProxy, Click))
 	{
 		return true;
 	}
@@ -1164,25 +1164,16 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			return true;
 		}
 
-		if (CurrentTool && CurrentTool && CurrentTool->InputKey(ViewportClient, Viewport, Key, Event) == true)
+		if (CurrentTool && CurrentTool->InputKey(ViewportClient, Viewport, Key, Event) == true)
 		{
 			return true;
 		}
 
-		if ((Event == IE_Pressed || Event == IE_Released) && IsCtrlDown(Viewport))
+		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
-			// Cheat, but works... :)
-			bool bNeedSelectGizmo = CurrentGizmoActor.IsValid() && (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo) && CurrentGizmoActor->IsSelected();
-			GEditor->SelectNone(false, true);
-			if (bNeedSelectGizmo)
-			{
-				GEditor->SelectActor(CurrentGizmoActor.Get(), true, false);
-			}
-		}
-
-		if (Key == EKeys::LeftMouseButton)
-		{
-			if (Event == IE_Pressed && (IsCtrlDown(Viewport) || (Viewport->IsPenActive() && Viewport->GetTabletPressure() > 0.f)))
+			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
+			// Not using "if (!ViewportClient->IsMovingCamera())" because it's wrong in ortho viewports :D
+			if (!Viewport->KeyState(EKeys::MiddleMouseButton) && !Viewport->KeyState(EKeys::RightMouseButton) && !IsAltDown(Viewport) && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None)
 			{
 				if (CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
 				{
@@ -1209,15 +1200,15 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			}
 		}
 
-		if (Key == EKeys::LeftMouseButton || Key == EKeys::LeftControl || Key == EKeys::RightControl)
+		if (Key == EKeys::LeftMouseButton)
 		{
-			if (Event == IE_Released && CurrentTool && CurrentTool && bToolActive)
+			if (Event == IE_Released && CurrentTool && bToolActive)
 			{
 				//Set the cursor position to that of the slate cursor so it wont snap back
 				Viewport->SetPreCaptureMousePosFromSlateCursor();
 				CurrentTool->EndTool(ViewportClient);
 				bToolActive = false;
-				return (Key == EKeys::LeftMouseButton);
+				return true;
 			}
 		}
 
@@ -1276,7 +1267,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		// Prev tool 
 		if (Event == IE_Pressed && Key == EKeys::Comma)
 		{
-			if (CurrentTool && CurrentTool && bToolActive)
+			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
 				bToolActive = false;
@@ -1292,7 +1283,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		// Next tool 
 		if (Event == IE_Pressed && Key == EKeys::Period)
 		{
-			if (CurrentTool && CurrentTool && bToolActive)
+			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
 				bToolActive = false;
@@ -1400,7 +1391,7 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 		}
 	}
 
-	if (CurrentTool && CurrentTool && CurrentTool->InputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
+	if (CurrentTool && CurrentTool->InputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
 	{
 		return true;
 	}
@@ -2096,7 +2087,7 @@ bool FEdModeLandscape::UsesTransformWidget() const
 	}
 
 	// Override Widget for Splines Tool
-	if (CurrentTool && CurrentTool && CurrentTool->UsesTransformWidget())
+	if (CurrentTool && CurrentTool->UsesTransformWidget())
 	{
 		return true;
 	}
@@ -2233,7 +2224,7 @@ bool FEdModeLandscape::IsSelectionAllowed(AActor* InActor, bool bInSelection) co
 	}
 
 	// Override Selection for Splines Tool
-	if (CurrentTool && CurrentTool && CurrentTool->OverrideSelection())
+	if (CurrentTool && CurrentTool->OverrideSelection())
 	{
 		return CurrentTool->IsSelectionAllowed(InActor, bInSelection);
 	}

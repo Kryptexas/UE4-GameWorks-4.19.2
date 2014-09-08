@@ -242,7 +242,7 @@ bool FEdModeFoliage::DisallowMouseDeltaTracking() const
 /** FEdMode: Called once per frame */
 void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
-	if (IsCtrlDown(ViewportClient->Viewport) && bToolActive)
+	if (bToolActive)
 	{
 		ApplyBrush(ViewportClient);
 	}
@@ -310,41 +310,44 @@ static bool FoliageTrace(UWorld* InWorld, FHitResult& OutHit, FVector InStart, F
 void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY)
 {
 	bBrushTraceValid = false;
-	if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
+	if (!ViewportClient->IsMovingCamera())
 	{
-		// Compute a world space ray from the screen space mouse coordinates
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-			ViewportClient->Viewport,
-			ViewportClient->GetScene(),
-			ViewportClient->EngineShowFlags)
-			.SetRealtimeUpdate(ViewportClient->IsRealtime()));
-		FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
-		FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
-
-		FVector Start = MouseViewportRay.GetOrigin();
-		BrushTraceDirection = MouseViewportRay.GetDirection();
-		FVector End = Start + WORLD_MAX * BrushTraceDirection;
-
-		FHitResult Hit;
-		UWorld* World = ViewportClient->GetWorld();
-		static FName NAME_FoliageBrush = FName(TEXT("FoliageBrush"));
-		if (FoliageTrace(World, Hit, Start, End, NAME_FoliageBrush))
+		if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 		{
-			// Check filters
-			UPrimitiveComponent* PrimComp = Hit.Component.Get();
-			UMaterialInterface* Material = PrimComp ? PrimComp->GetMaterial(0) : nullptr;
+			// Compute a world space ray from the screen space mouse coordinates
+			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags)
+				.SetRealtimeUpdate(ViewportClient->IsRealtime()));
+			FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
+			FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
 
-			if (PrimComp &&
-				PrimComp->GetOutermost() == World->GetCurrentLevel()->GetOutermost() &&
-				(UISettings.bFilterLandscape || !PrimComp->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) &&
-				(UISettings.bFilterStaticMesh || !PrimComp->IsA(UStaticMeshComponent::StaticClass())) &&
-				(UISettings.bFilterBSP || !PrimComp->IsA(UModelComponent::StaticClass())) &&
-				(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode()))
-				)
+			FVector Start = MouseViewportRay.GetOrigin();
+			BrushTraceDirection = MouseViewportRay.GetDirection();
+			FVector End = Start + WORLD_MAX * BrushTraceDirection;
+
+			FHitResult Hit;
+			UWorld* World = ViewportClient->GetWorld();
+			static FName NAME_FoliageBrush = FName(TEXT("FoliageBrush"));
+			if (FoliageTrace(World, Hit, Start, End, NAME_FoliageBrush))
 			{
-				// Adjust the sphere brush
-				BrushLocation = Hit.Location;
-				bBrushTraceValid = true;
+				// Check filters
+				UPrimitiveComponent* PrimComp = Hit.Component.Get();
+				UMaterialInterface* Material = PrimComp ? PrimComp->GetMaterial(0) : nullptr;
+
+				if (PrimComp &&
+					PrimComp->GetOutermost() == World->GetCurrentLevel()->GetOutermost() &&
+					(UISettings.bFilterLandscape || !PrimComp->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) &&
+					(UISettings.bFilterStaticMesh || !PrimComp->IsA(UStaticMeshComponent::StaticClass())) &&
+					(UISettings.bFilterBSP || !PrimComp->IsA(UModelComponent::StaticClass())) &&
+					(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode()))
+					)
+				{
+					// Adjust the sphere brush
+					BrushLocation = Hit.Location;
+					bBrushTraceValid = true;
+				}
 			}
 		}
 	}
@@ -1830,41 +1833,45 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 {
 	if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 	{
-		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed && IsCtrlDown(Viewport))
+		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
-			if (!bToolActive)
+			if (!Viewport->KeyState(EKeys::MiddleMouseButton) && !Viewport->KeyState(EKeys::RightMouseButton)
+				&& !IsCtrlDown(Viewport) && !IsShiftDown(Viewport) && !IsAltDown(Viewport))
 			{
-				GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
-				InstanceSnapshot.Empty();
-
-				// Special setup beginning a stroke with the Reapply tool
-				// Necessary so we don't keep reapplying settings over and over for the same instances.
-				if (UISettings.GetReapplyToolSelected())
+				if (!bToolActive)
 				{
-					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
-					for (auto& MeshPair : IFA->FoliageMeshes)
-					{
-						FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-						if (MeshPair.Key->IsSelected)
-						{
-							// Take a snapshot of all the locations
-							InstanceSnapshot.Add(MeshPair.Key, FMeshInfoSnapshot(&MeshInfo));
+					GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
+					InstanceSnapshot.Empty();
 
-							// Clear the "FOLIAGE_Readjusted" flag
-							for (int32 Idx = 0; Idx < MeshInfo.Instances.Num(); Idx++)
+					// Special setup beginning a stroke with the Reapply tool
+					// Necessary so we don't keep reapplying settings over and over for the same instances.
+					if (UISettings.GetReapplyToolSelected())
+					{
+						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
+						for (auto& MeshPair : IFA->FoliageMeshes)
+						{
+							FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+							if (MeshPair.Key->IsSelected)
 							{
-								MeshInfo.Instances[Idx].Flags &= (~FOLIAGE_Readjusted);
+								// Take a snapshot of all the locations
+								InstanceSnapshot.Add(MeshPair.Key, FMeshInfoSnapshot(&MeshInfo));
+
+								// Clear the "FOLIAGE_Readjusted" flag
+								for (int32 Idx = 0; Idx < MeshInfo.Instances.Num(); Idx++)
+								{
+									MeshInfo.Instances[Idx].Flags &= (~FOLIAGE_Readjusted);
+								}
 							}
 						}
 					}
+					ApplyBrush(ViewportClient);
+					bToolActive = true;
+					return true;
 				}
 			}
-			ApplyBrush(ViewportClient);
-			bToolActive = true;
-			return true;
 		}
 
-		if (Event == IE_Released && bToolActive && (Key == EKeys::LeftMouseButton || Key == EKeys::LeftControl || Key == EKeys::RightControl))
+		if (bToolActive && Key == EKeys::LeftMouseButton && Event == IE_Released)
 		{
 			//Set the cursor position to that of the slate cursor so it wont snap back
 			Viewport->SetPreCaptureMousePosFromSlateCursor();
@@ -2049,10 +2056,9 @@ bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitPr
 
 		return true;
 	}
-	else
-		if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
-		{
-		if (HitProxy && HitProxy->IsA(HActor::StaticGetType()) && Click.IsControlDown())
+	else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
+	{
+		if (HitProxy && HitProxy->IsA(HActor::StaticGetType()))
 		{
 			GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
 			ApplyPaintBucket(((HActor*)HitProxy)->Actor, Click.IsShiftDown());
@@ -2060,7 +2066,7 @@ bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitPr
 		}
 
 		return true;
-		}
+	}
 
 	return FEdMode::HandleClick(InViewportClient, HitProxy, Click);
 }

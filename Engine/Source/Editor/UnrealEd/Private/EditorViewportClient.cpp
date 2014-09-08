@@ -723,7 +723,7 @@ void FEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 
 void FEditorViewportClient::LostFocus(FViewport* InViewport)
 {
-	StopTracking();	
+	StopTracking();
 }
 
 void FEditorViewportClient::Tick(float DeltaTime)
@@ -3147,6 +3147,7 @@ bool FEditorViewportClient::IsFlightCameraInputModeActive() const
 			const bool bIsNonOrbitMiddleMouse = bMiddleMouseButtonDown && !IsAltPressed();
 
 			const bool bIsMouseLooking =
+				bIsTracking &&
 				Widget->GetCurrentAxis() == EAxisList::None &&
 				( bLeftMouseButtonDown || bMiddleMouseButtonDown || bRightMouseButtonDown || bIsUsingTrackpad ) &&
 				!IsCtrlPressed() && !IsShiftPressed() && !IsAltPressed();
@@ -4003,7 +4004,7 @@ void FEditorViewportClient::DrawBoundingBox(FBox &Box, FCanvas* InCanvas, const 
 			FCanvasTextItem TextItem( FVector2D( ScreenBoxMin.X + ((ScreenBoxMax.X - ScreenBoxMin.X) * 0.5f),ScreenBoxMin.Y), FText::FromString( InLabelText ), GEngine->GetMediumFont(), InColor );
 			TextItem.bCentreX = true;
 			InCanvas->DrawItem( TextItem );
-		}		
+		}
 	}
 }
 
