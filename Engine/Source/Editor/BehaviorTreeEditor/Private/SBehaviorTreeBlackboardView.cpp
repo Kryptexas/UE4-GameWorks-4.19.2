@@ -184,6 +184,7 @@ private:
 		if(NewName != BlackboardEntryAction->Key.EntryName)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryRenameTransaction", "Rename Blackboard Entry"));
+			BlackboardEntryAction->BlackboardData->SetFlags(RF_Transactional);
 			BlackboardEntryAction->BlackboardData->Modify();
 			BlackboardEntryAction->Key.EntryName = FName(*NewText.ToString());
 

@@ -96,6 +96,7 @@ void SBehaviorTreeBlackboardEditor::HandleDeleteEntry()
 		if(BlackboardEntry != nullptr)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryDeleteTransaction", "Delete Blackboard Entry"));
+			BlackboardData->SetFlags(RF_Transactional);
 			BlackboardData->Modify();
 		
 			for(int32 ItemIndex = 0; ItemIndex < BlackboardData->Keys.Num(); ItemIndex++)
@@ -169,6 +170,7 @@ void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)
 	check(InClass->IsChildOf(UBlackboardKeyType::StaticClass()));
 
 	const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryAddTransaction", "Add Blackboard Entry"));
+	BlackboardData->SetFlags(RF_Transactional);
 	BlackboardData->Modify();
 
 	// create a name for this new key
