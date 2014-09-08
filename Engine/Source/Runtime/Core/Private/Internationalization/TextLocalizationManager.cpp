@@ -679,6 +679,25 @@ void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath
 		}
 	}
 
+	// Source path needs to be relative to Engine or Game directory
+	FString ConfigFullPath = FPaths::ConvertRelativePathToFull(ConfigFilePath);
+	FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineConfigDir());
+	bool IsEngineManifest = false;
+	
+	if (ConfigFullPath.StartsWith(EngineFullPath))
+	{
+		IsEngineManifest = true;
+	}
+
+	if (IsEngineManifest)
+	{
+		SourcePath = FPaths::Combine(*(FPaths::EngineDir()), *SourcePath);
+	}
+	else
+	{
+		SourcePath = FPaths::Combine(*(FPaths::GameDir()), *SourcePath);
+	}
+
 	TArray<TArray<uint8>> BackingBuffers;
 	BackingBuffers.SetNum(LocaleNames.Num());
 
