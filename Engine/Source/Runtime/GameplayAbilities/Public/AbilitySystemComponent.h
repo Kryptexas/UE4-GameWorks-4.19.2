@@ -4,6 +4,7 @@
 #include "GameplayEffect.h"
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "AbilitySystemComponent.generated.h"
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
