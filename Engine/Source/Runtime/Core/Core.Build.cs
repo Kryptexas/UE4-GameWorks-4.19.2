@@ -141,6 +141,10 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, "SDL");
 			AddThirdPartyPrivateStaticDependencies(Target, "OpenAL");
 		}
+        else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
+        {
+            PrivateDependencyModuleNames.Add("HTML5JS");
+        }
 
 
 		if ((UEBuildConfiguration.bIncludeADO == true) || (UEBuildConfiguration.bCompileAgainstEngine == true))

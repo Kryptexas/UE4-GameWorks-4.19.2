@@ -6,6 +6,7 @@
 
 #include "Core.h"
 #include "HTML5Application.h"
+#include "HTML5JavaScriptFx.h"
 #include <ctime>
 
 void FHTML5Misc::PlatformInit()
@@ -128,4 +129,23 @@ uint32 FHTML5Misc::GetKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMapp
 	}
 
 	return NumMappings;
+}
+
+EAppReturnType::Type FHTML5Misc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
+{
+
+#if PLATFORM_HTML5_BROWSER 
+
+	ANSICHAR* AText = TCHAR_TO_ANSI(Text);
+	ANSICHAR* ACaption = TCHAR_TO_ANSI(Caption);
+	return static_cast<EAppReturnType::Type>(UE_MessageBox(MsgType,AText,ACaption));
+
+#endif 
+
+#if PLATFORM_HTML5_WIN32
+
+	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption); 
+
+#endif 
+
 }

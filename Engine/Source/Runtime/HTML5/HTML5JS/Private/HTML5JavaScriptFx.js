@@ -88,8 +88,20 @@ var UE_JavaScriptLibary =
 		if (b64encoded == null)
 			return false;
 		return true;
-	}
+	},
 
+    UE_MessageBox: function (type, message, caption ) {
+        // type maps to EAppMsgType::Type
+        if ( type == 0 ){
+            var text = Pointer_stringify(message);
+            if (!confirm(text)) 
+                return 0; 
+        } else {
+            var text = Pointer_stringify(message);
+            alert(text);
+        }
+        return 1; 
+    }
 };
 
 mergeInto(LibraryManager.library, UE_JavaScriptLibary);
