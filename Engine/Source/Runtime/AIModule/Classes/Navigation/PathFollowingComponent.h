@@ -176,7 +176,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	void SetBlockDetection(float DistanceThreshold, float Interval, int32 NumSamples);
 
 	/** set threshold for precise reach tests in intermediate goals (minimal test radius)  */
-	void SetPreciseReachThreshold(float AgentRadiusMultiplier, float AgentHeightMultiplier);
+	void SetPreciseReachThreshold(float AgentRadiusMultiplier, float AgentHalfHeightMultiplier);
 
 	/** set status of last requested move */
 	void SetLastMoveAtGoal(bool bFinishedAtGoal);
@@ -289,7 +289,7 @@ protected:
 	float MinAgentRadiusPct;
 
 	/** part of agent height used as min acceptable height difference */
-	float MinAgentHeightPct;
+	float MinAgentHalfHeightPct;
 
 	/** game specific data */
 	FCustomMoveSharedPtr GameData;
