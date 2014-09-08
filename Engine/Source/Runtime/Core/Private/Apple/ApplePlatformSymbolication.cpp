@@ -59,6 +59,36 @@ extern "C"
 }
 #endif
 
+struct FApplePlatformSymbolCache
+{
+#if PLATFORM_MAC
+	TMap< FString, CSSymbolicatorRef > Symbolicators;
+#endif
+};
+
+FApplePlatformSymbolCache* FApplePlatformSymbolication::CreateSymbolCache(void)
+{
+#if PLATFORM_MAC
+	return new FApplePlatformSymbolCache;
+#else 
+	return nullptr;
+#endif
+}
+
+void FApplePlatformSymbolication::DestroySymbolCache(FApplePlatformSymbolCache* Cache)
+{
+#if PLATFORM_MAC
+	if(Cache)
+	{
+		for(auto It : Cache->Symbolicators)
+		{
+			CSRelease( It.Value );
+		}
+		delete Cache;
+	}
+#endif
+}
+
 bool FApplePlatformSymbolication::SymbolInfoForAddress(uint64 ProgramCounter, FProgramCounterSymbolInfo& Info)
 {
 #if PLATFORM_MAC
@@ -122,16 +152,29 @@ bool FApplePlatformSymbolication::SymbolInfoForFunctionFromModule(ANSICHAR const
 #endif
 }
 
-bool FApplePlatformSymbolication::SymbolInfoForStrippedSymbol(uint64 ProgramCounter, ANSICHAR const* ModulePath, ANSICHAR const* ModuleUUID, FProgramCounterSymbolInfo& Info)
+bool FApplePlatformSymbolication::SymbolInfoForStrippedSymbol(FApplePlatformSymbolCache* Cache, uint64 ProgramCounter, ANSICHAR const* ModulePath, ANSICHAR const* ModuleUUID, FProgramCounterSymbolInfo& Info)
 {
 #if PLATFORM_MAC
 	bool bOK = false;
 	
 	if(IFileManager::Get().FileSize(UTF8_TO_TCHAR(ModulePath)) > 0)
 	{
-		CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPathAndArchitecture(ModulePath, CPU_TYPE_X86_64);
-		if(!CSIsNull(Symbolicator))
+		CSSymbolicatorRef Symbolicator = { nullptr, nullptr };
+		if ( Cache )
 		{
+			Symbolicator = Cache->Symbolicators.FindOrAdd( FString(ModulePath) );
+		}
+		if( CSIsNull(Symbolicator) )
+		{
+			Symbolicator = CSSymbolicatorCreateWithPathAndArchitecture(ModulePath, CPU_TYPE_X86_64);
+		}
+		if( !CSIsNull(Symbolicator) )
+		{
+			if ( Cache )
+			{
+				Cache->Symbolicators[ FString(ModulePath) ] = Symbolicator;
+			}
+			
 			FString ModuleID(ModuleUUID);
 			CFUUIDRef UUID = CFUUIDCreateFromString(nullptr, (CFStringRef)ModuleID.GetNSString());
 			check(UUID);
@@ -176,7 +219,11 @@ bool FApplePlatformSymbolication::SymbolInfoForStrippedSymbol(uint64 ProgramCoun
 			}
 			
 			CFRelease(UUID);
-			CSRelease(Symbolicator);
+			
+			if ( !Cache )
+			{
+				CSRelease(Symbolicator);
+			}
 		}
 	}
 	
