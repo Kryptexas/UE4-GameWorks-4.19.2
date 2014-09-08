@@ -975,7 +975,15 @@ void UNavigationPath::OnPathEvent(FNavigationPath* UpdatedPath, ENavPathEvent::T
 	if (UpdatedPath == SharedPath.Get())
 	{
 		PathUpdatedNotifier.Broadcast(this, PathEvent);
-		bIsValid = SharedPath.IsValid() && SharedPath->IsValid();
+		if (SharedPath.IsValid() && SharedPath->IsValid())
+		{
+			bIsValid = true;
+			SetPathPointsFromPath(*UpdatedPath);
+		}
+		else
+		{
+			bIsValid = false;
+		}
 	}
 }
 
@@ -1081,11 +1089,7 @@ void UNavigationPath::SetPath(FNavPathSharedPtr NewSharedPath)
 				NewPath->EnableRecalculationOnInvalidation(RecalculateOnInvalidation == ENavigationOptionFlag::Enable);
 			}
 			
-			PathPoints.Reset(NewPath->GetPathPoints().Num());
-			for (const auto& PathPoint : NewPath->GetPathPoints())
-			{
-				PathPoints.Add(PathPoint.Location);
-			}
+			SetPathPointsFromPath(*NewPath);
 		}
 		else
 		{
@@ -1096,3 +1100,11 @@ void UNavigationPath::SetPath(FNavPathSharedPtr NewSharedPath)
 	}
 }
 
+void UNavigationPath::SetPathPointsFromPath(FNavigationPath& NativePath)
+{
+	PathPoints.Reset(NativePath.GetPathPoints().Num());
+	for (const auto& PathPoint : NativePath.GetPathPoints())
+	{
+		PathPoints.Add(PathPoint.Location);
+	}
+}

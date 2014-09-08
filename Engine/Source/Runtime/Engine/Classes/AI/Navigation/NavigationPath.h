@@ -5,6 +5,7 @@
 #include "NavigationPath.generated.h"
 
 class UNavigationPath;
+struct FNavigationPath;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNavigationPathUpdated, UNavigationPath*, AffectedPath, TEnumAsByte<ENavPathEvent::Type>, PathEvent);
 
@@ -73,4 +74,6 @@ public:
 protected:
 	void DrawDebug(UCanvas* Canvas, APlayerController*);
 	void OnPathEvent(FNavigationPath* Path, ENavPathEvent::Type PathEvent);
+
+	void SetPathPointsFromPath(FNavigationPath& NativePath);
 };
