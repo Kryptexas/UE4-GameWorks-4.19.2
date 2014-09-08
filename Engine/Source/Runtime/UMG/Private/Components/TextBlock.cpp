@@ -160,7 +160,7 @@ const FSlateBrush* UTextBlock::GetEditorIcon()
 
 const FText UTextBlock::GetToolboxCategory()
 {
-	return LOCTEXT("Primitive", "Primitive");
+	return LOCTEXT("Common", "Common");
 }
 
 #endif
