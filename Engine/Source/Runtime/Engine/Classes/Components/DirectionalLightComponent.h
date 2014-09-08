@@ -15,7 +15,7 @@ class UDirectionalLightComponent : public ULightComponent
 	GENERATED_UCLASS_BODY()
 
 	/** Whether to occlude fog and atmosphere inscattering with screenspace blurred occlusion from this light. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts, meta=(DisplayName = "Light Shaft Occlusion"))
 	uint32 bEnableLightShaftOcclusion:1;
 
 	/** 
@@ -98,7 +98,7 @@ class UDirectionalLightComponent : public ULightComponent
 	 * Whether to use ray traced distance field area shadows.  The project setting bGenerateMeshDistanceFields must be enabled for this to have effect.
 	 * Distance field shadows have a large per-pixel cost but a low per-object cost (and don't depend on triangle count) so they are effective for distant shadows from a dynamic sun.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldShadows)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldShadows, meta=(DisplayName = "Distance Field Shadows"))
 	bool bUseDistanceFieldShadows;
 
 	/** 
@@ -111,7 +111,7 @@ class UDirectionalLightComponent : public ULightComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(ShowOnlyInnerProperties))
 	struct FLightmassDirectionalLightSettings LightmassSettings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(DisplayName = "Atmosphere Sun Light"))
 	uint32 bUsedAsAtmosphereSunLight : 1;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")

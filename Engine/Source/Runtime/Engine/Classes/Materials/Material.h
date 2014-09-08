@@ -388,14 +388,14 @@ public:
 	FMaterialAttributesInput MaterialAttributes;
 
 	/** Indicates that the material should be rendered in the SeparateTranslucency Pass (not affected by DOF, requires bAllowSeparateTranslucency to be set in .ini). */
-	UPROPERTY(EditAnywhere, Category=Translucency)
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Separate Translucency"))
 	uint32 bEnableSeparateTranslucency:1;
 
 	/**
 	 * Indicates that the material should be rendered using responsive anti-aliasing. Improves sharpness of small moving particles such as sparks.
 	 * Only use for small moving features because it will cause aliasing of the background.
 	 */
-	UPROPERTY(EditAnywhere, Category=Translucency)
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Responsive AA"))
 	uint32 bEnableResponsiveAA:1;
 
 	/** Indicates that the material should be rendered without backface culling and the normal should be flipped for backfaces. */
@@ -613,11 +613,11 @@ public:
 	TEnumAsByte<enum EMaterialTessellationMode> D3D11TessellationMode;
 
 	/** Prevents cracks in the surface of the mesh when using tessellation. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation, meta=(DisplayName = "Crack Free Displacement"))
 	uint32 bEnableCrackFreeDisplacement:1;
 
 	/** Enables adaptive tessellation, which tries to maintain a uniform number of pixels per triangle. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation, meta=(DisplayName = "Adaptive Tessellation"))
 	uint32 bEnableAdaptiveTessellation:1;
 
 	/** Enables a wireframe view of the mesh the material is applied to.  */

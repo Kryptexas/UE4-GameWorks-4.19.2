@@ -89,7 +89,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	/**
 	 * Whether the light should be injected into the Light Propagation Volume
 	 **/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(DisplayName = "Dynamic Indirect Lighting"))
 	uint32 bAffectDynamicIndirectLighting : 1;
 
 	/** 
@@ -119,7 +119,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	 * Distance at which the light function should be completely faded to DisabledBrightness.  
 	 * This is useful for hiding aliasing from light functions applied in the distance.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction, meta=(DisplayName = "Fade Distance"))
 	float LightFunctionFadeDistance;
 
 	/** 
@@ -134,7 +134,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	 * For directional lights, the color around the light direction will be blurred radially and added back to the scene.
 	 * for point lights, the color on pixels closer than the light's SourceRadius will be blurred radially and added back to the scene.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts, meta=(DisplayName = "Light Shaft Bloom"))
 	uint32 bEnableLightShaftBloom:1;
 
 	/** Scales the additive color. */
