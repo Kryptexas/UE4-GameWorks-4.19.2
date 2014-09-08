@@ -666,12 +666,15 @@ public:
 		}
 
 		FString Result = Filename;
-		Result.ReplaceInline(TEXT("../"), TEXT(""));
-		Result.ReplaceInline(TEXT(".."), TEXT(""));
-		Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
+		if (!Result.StartsWith(TEXT("/system/fonts")))
+		{
+			Result.ReplaceInline(TEXT("../"), TEXT(""));
+			Result.ReplaceInline(TEXT(".."), TEXT(""));
+			Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
 
-		static FString BasePath = GFilePathBase + FString("/") + GGameName + FString("/");
-		Result =  BasePath + Result;
+			static FString BasePath = GFilePathBase + FString("/") + GGameName + FString("/");
+			Result = BasePath + Result;
+		}
 		return Result;
 	}
 

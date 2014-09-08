@@ -268,7 +268,12 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 	return !FParse::Param(FCommandLine::Get(),TEXT("joystick"));
 }
 
-
+TArray<uint8> FAndroidMisc::GetSystemFontBytes()
+{
+	TArray<uint8> FontBytes;
+	FFileHelper::LoadFileToArray(FontBytes, TEXT("/system/fonts/DroidSans.ttf"));
+	return FontBytes;
+}
 
 void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMake, FString InDeviceModel, FString InOSLanguage )
 {
