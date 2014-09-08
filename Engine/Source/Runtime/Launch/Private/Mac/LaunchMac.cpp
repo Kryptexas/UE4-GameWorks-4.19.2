@@ -38,9 +38,9 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	if (GError)
 	{
 		GError->Flush();
-		//GError->HandleError();
+		GError->HandleError();
 	}
-	//LaunchStaticShutdownAfterError();
+	LaunchStaticShutdownAfterError();
 	return Context.GenerateCrashInfoAndLaunchReporter();
 }
 

@@ -13,6 +13,7 @@
 #include "CocoaThread.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "EngineVersion.h"
+#include "MacMallocZone.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -1050,6 +1051,7 @@ bool FMacPlatformMisc::IsRunningOnMavericks()
 
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
+FMacMallocCrashHandler* GCrashMalloc = nullptr;
 
 /**
  * Good enough default crash reporter.
@@ -1069,9 +1071,7 @@ static void DefaultCrashHandler(FMacCrashContext const& Context)
 	if (GError)
 	{
 		GError->Flush();
-		// @todo Disable calls to functions which eventually try and allocated memory, resulting in the application hanging before the crash reporter can launch
-		// We need to setup the memory allocator system to handle the case where we can't call the system malloc, free etc. to re-enable this.
-		//GError->HandleError();
+		GError->HandleError();
 	}
 	
 	return Context.GenerateCrashInfoAndLaunchReporter();
@@ -1082,6 +1082,10 @@ static void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
 {
 	FMacCrashContext CrashContext;
 	CrashContext.InitFromSignal(Signal, Info, Context);
+	
+	// Switch to crash handler malloc to avoid malloc reentrancy
+	check(GCrashMalloc);
+	GCrashMalloc->Enable(&CrashContext, FPlatformTLS::GetCurrentThreadId());
 	
 	if (GCrashHandlerPointer)
 	{
@@ -1138,6 +1142,9 @@ void FMacPlatformMisc::SetGracefulTerminationHandler()
 void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
 {
 	GCrashHandlerPointer = CrashHandler;
+	
+	// Configure the crash handler malloc zone to reserve some VM space for itself
+	GCrashMalloc = new FMacMallocCrashHandler( 128 * 1024 * 1024 );
 	
 	struct sigaction Action;
 	FMemory::Memzero(&Action, sizeof(struct sigaction));
@@ -1433,10 +1440,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		WriteLine(ReportFile, ItoTCHAR(Info->si_band, 16));
 		
 		WriteLine(ReportFile, TEXT("Application Specific Information:"));
-		for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(SignalDescription) + 1); i++)
-		{
-			Line[i] = SignalDescription[i];
-		}
+		FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, SignalDescription, FCStringAnsi::Strlen(SignalDescription));
 		WriteLine(ReportFile, Line);
 		
 		WriteLine(ReportFile, TEXT(""));
@@ -1468,10 +1472,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			if(Info.dli_fname && FCStringAnsi::Strrchr(Info.dli_fname, '/'))
 			{
 				char const* Name = FCStringAnsi::Strrchr(Info.dli_fname, '/');
-				for(uint32 i = 1; i < PATH_MAX && (i < FCStringAnsi::Strlen(Name) + 1); i++)
-				{
-					Line[i-1] = Name[i];
-				}
+				FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, Name, FCStringAnsi::Strlen(Name));
 				WriteUTF16String(ReportFile, Line);
 			}
 			else
@@ -1483,10 +1484,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			WriteUTF16String(ReportFile, TEXT(" "));
 			if(Info.dli_sname && FCStringAnsi::Strlen(Info.dli_sname))
 			{
-				for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(Info.dli_sname) + 1); i++)
-				{
-					Line[i] = Info.dli_sname[i];
-				}
+				FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, Info.dli_sname, FCStringAnsi::Strlen(Info.dli_sname));
 				WriteUTF16String(ReportFile, Line);
 			}
 			else
@@ -1541,10 +1539,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			WriteUTF16String(ReportFile, TEXT(" "));
 			
 			char const* Name = FCStringAnsi::Strrchr(ModulePath, '/');
-			for(uint32 i = 1; i < PATH_MAX && (i < FCStringAnsi::Strlen(Name) + 1); i++)
-			{
-				Line[i-1] = Name[i];
-			}
+			FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, Name, FCStringAnsi::Strlen(Name));
 			WriteUTF16String(ReportFile, Line);
 			WriteUTF16String(ReportFile, TEXT(" ("));
 			
@@ -1582,10 +1577,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 			WriteUTF16String(ReportFile, ItoTCHAR(UUID[15], 16, 2));
 			WriteUTF16String(ReportFile, TEXT("> "));
 			
-			for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(ModulePath) + 1); i++)
-			{
-				Line[i] = ModulePath[i];
-			}
+			FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, ModulePath, FCStringAnsi::Strlen(ModulePath));
 			WriteLine(ReportFile, Line);
 		}
 		
@@ -1595,10 +1587,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		WriteUTF16String(ReportFile, TEXT("Model: "));
 		WriteUTF16String(ReportFile, *GMacAppInfo.MachineModel);
 		WriteUTF16String(ReportFile, TEXT(", "));
-		for(uint32 i = 0; i < PATH_MAX && (i < FCStringAnsi::Strlen(GMacAppInfo.MachineCPUString) + 1); i++)
-		{
-			Line[i] = GMacAppInfo.MachineCPUString[i];
-		}
+		FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, GMacAppInfo.MachineCPUString, FCStringAnsi::Strlen(GMacAppInfo.MachineCPUString));
 		WriteLine(ReportFile, Line);
 		
 		WriteUTF16String(ReportFile, TEXT("Graphics: "));
