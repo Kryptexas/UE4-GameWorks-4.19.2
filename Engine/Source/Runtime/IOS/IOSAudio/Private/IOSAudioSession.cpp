@@ -33,3 +33,8 @@ bool FIOSAudioDevice::SetAudioSessionActive(bool bActive)
 	AVAudioSession* AudioSession = [AVAudioSession sharedInstance];
 	return [AudioSession setActive:bActive error:nil] == YES;
 }
+
+bool FIOSAudioDevice::IsExernalBackgroundSoundActive()
+{
+	return [[AVAudioSession sharedInstance] isOtherAudioPlaying];
+}
