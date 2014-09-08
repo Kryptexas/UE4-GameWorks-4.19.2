@@ -661,7 +661,7 @@ public:
 				+SHorizontalBox::Slot() .AutoWidth() .VAlign(VAlign_Center)
 				[
 					SNew(SButton)
-					.Text( LOCTEXT("RestoreExpansionsButton", "Collapse All") )
+					.Text( LOCTEXT("CollapseExpansionsButton", "Collapse All") )
 					.OnClicked( this, &STableViewTesting::CollapseAll )
 				]
 				+SHorizontalBox::Slot() .AutoWidth() .VAlign(VAlign_Center)
