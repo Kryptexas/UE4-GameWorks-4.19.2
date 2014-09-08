@@ -361,7 +361,12 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 		return NULL;
 	}
 
-	const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, Factory, GEditor->ClickLocation, GEditor->ClickPlane, NewActorTemplate->GetPlacementExtent());
+	const FSnappedPositioningData PositioningData = FSnappedPositioningData(GCurrentLevelEditingViewportClient, GEditor->ClickLocation, GEditor->ClickPlane)
+		.UseFactory(Factory)
+		.UseStartTransform(NewActorTemplate->GetTransform())
+		.UsePlacementExtent(NewActorTemplate->GetPlacementExtent());
+
+	const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
 
 	// Do not fade snapping indicators over time if the viewport is not realtime
 	bool bClearImmediately = !GCurrentLevelEditingViewportClient || !GCurrentLevelEditingViewportClient->IsRealtime();

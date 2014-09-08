@@ -139,15 +139,17 @@ FTransform FActorPositioning::GetCurrentViewportPlacementTransform(const AActor&
 
 	if (CursorLocation.GetViewportType() == LVT_Perspective && !GCurrentLevelEditingViewportClient->Viewport->GetHitProxy( CursorPos.X, CursorPos.Y ))
 	{
-		ActorTransform.SetTranslation(FActorPositioning::GetActorPositionInFrontOfCamera(Actor, CursorLocation.GetOrigin(), CursorLocation.GetDirection()));
-	}
-	else if (bSnap)
-	{
-		ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, Factory, GEditor->ClickLocation, GEditor->ClickPlane, Actor.GetPlacementExtent());
+		ActorTransform.SetTranslation(GetActorPositionInFrontOfCamera(Actor, CursorLocation.GetOrigin(), CursorLocation.GetDirection()));
 	}
 	else
 	{
-		ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(Factory, GEditor->ClickLocation, GEditor->ClickPlane, Actor.GetPlacementExtent());
+		const FSnappedPositioningData PositioningData = FSnappedPositioningData(GCurrentLevelEditingViewportClient, GEditor->ClickLocation, GEditor->ClickPlane)
+			.DrawSnapHelpers(true)
+			.UseFactory(Factory)
+			.UseStartTransform(Actor.GetTransform())
+			.UsePlacementExtent(Actor.GetPlacementExtent());
+
+		ActorTransform = bSnap ? GetSnappedSurfaceAlignedTransform(PositioningData) : GetSurfaceAlignedTransform(PositioningData);
 	}
 
 	return ActorTransform;
@@ -176,40 +178,41 @@ FVector FActorPositioning::GetActorPositionInFrontOfCamera(const AActor& InActor
 	return NewLocation;
 }
 
-FTransform FActorPositioning::GetSurfaceAlignedTransform(const UActorFactory* InFactory, const FVector& InSurfaceLocation, const FVector& SurfaceNormal, const FVector& InPlacementExtent, const FTransform& InStartTransform)
+FTransform FActorPositioning::GetSurfaceAlignedTransform(const FPositioningData& Data)
 {
 	// Sort out the rotation first, then do the location
-	FQuat RotatorQuat = InStartTransform.GetRotation();
-	if (InFactory && GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.bSnapRotation)
+	FQuat RotatorQuat = Data.StartTransform.GetRotation();
+
+	if (Data.ActorFactory)
 	{
-		RotatorQuat = InFactory->AlignObjectToSurfaceNormal(SurfaceNormal, RotatorQuat);
+		RotatorQuat = Data.ActorFactory->AlignObjectToSurfaceNormal(Data.SurfaceNormal, RotatorQuat);
 	}
 
 	// Choose the largest location offset of the various options (global viewport settings, collision, factory offset)
 	const float SnapOffsetExtent = GetDefault<ULevelEditorViewportSettings>()->SnapToSurface.SnapOffsetExtent;
-	const float CollisionOffsetExtent = FVector::BoxPushOut(SurfaceNormal, InPlacementExtent);
+	const float CollisionOffsetExtent = FVector::BoxPushOut(Data.SurfaceNormal, Data.PlacementExtent);
 
-	FVector LocationOffset = SurfaceNormal * FMath::Max(SnapOffsetExtent, CollisionOffsetExtent);
-	if (InFactory && LocationOffset.SizeSquared() < InFactory->SpawnPositionOffset.SizeSquared())
+	FVector LocationOffset = Data.SurfaceNormal * FMath::Max(SnapOffsetExtent, CollisionOffsetExtent);
+	if (Data.ActorFactory && LocationOffset.SizeSquared() < Data.ActorFactory->SpawnPositionOffset.SizeSquared())
 	{
 		// Rotate the Spawn Position Offset to match our rotation
-		LocationOffset = RotatorQuat.RotateVector(-InFactory->SpawnPositionOffset);
+		LocationOffset = RotatorQuat.RotateVector(-Data.ActorFactory->SpawnPositionOffset);
 	}
 
-	return FTransform(RotatorQuat, InSurfaceLocation + LocationOffset);
+	return FTransform(Data.bAlignRotation ? RotatorQuat : Data.StartTransform.GetRotation(), Data.SurfaceLocation + LocationOffset);
 }
 
-FTransform FActorPositioning::GetSnappedSurfaceAlignedTransform(FLevelEditorViewportClient* InViewportClient, const UActorFactory* InFactory, FVector InSurfaceLocation, const FVector& SurfaceNormal, const FVector& InPlacementExtent, const FTransform& InStartTransform)
+FTransform FActorPositioning::GetSnappedSurfaceAlignedTransform(const FSnappedPositioningData& Data)
 {
-	FSnappingUtils::SnapPointToGrid(InSurfaceLocation, FVector(0.f));
+	FVector SnappedLocation = Data.SurfaceLocation;
+	FSnappingUtils::SnapPointToGrid(SnappedLocation, FVector(0.f));
 
-	bool bDrawVertexHelpers = false;
 	// Secondly, attempt vertex snapping
 	FVector AlignToNormal;
-	if (!InViewportClient || !FSnappingUtils::SnapLocationToNearestVertex( InSurfaceLocation, InViewportClient->GetDropPreviewLocation(), InViewportClient, AlignToNormal, bDrawVertexHelpers ))
+	if (!Data.LevelViewportClient || !FSnappingUtils::SnapLocationToNearestVertex( SnappedLocation, Data.LevelViewportClient->GetDropPreviewLocation(), Data.LevelViewportClient, AlignToNormal, Data.bDrawSnapHelpers ))
 	{
-		AlignToNormal = SurfaceNormal;
+		AlignToNormal = Data.SurfaceNormal;
 	}
 
-	return GetSurfaceAlignedTransform(InFactory, InSurfaceLocation, AlignToNormal, InPlacementExtent, InStartTransform);
+	return GetSurfaceAlignedTransform(Data);
 }

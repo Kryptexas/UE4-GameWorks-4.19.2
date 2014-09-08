@@ -2,6 +2,65 @@
 
 #pragma once
 
+/** Positioning data struct */
+struct FPositioningData
+{
+	FPositioningData(const FVector& InSurfaceLocation, const FVector& InSurfaceNormal)
+		: SurfaceLocation(InSurfaceLocation)
+		, SurfaceNormal(InSurfaceNormal)
+		, ActorFactory(nullptr)
+		, StartTransform(FTransform::Identity)
+		, PlacementExtent(0.f)
+	{
+		auto& Settings = GetDefault<ULevelEditorViewportSettings>()->SnapToSurface;
+		bAlignRotation = Settings.bEnabled && Settings.bSnapRotation;
+	}
+
+	/** The surface location we want to position to */
+	FVector SurfaceLocation;
+
+	/** The surface normal we want to potentially align to */
+	FVector SurfaceNormal;
+
+	/** Placement extent offset to use (default = 0,0,0) */
+	FPositioningData& UsePlacementExtent(const FVector& InPlacementExtent) { PlacementExtent = InPlacementExtent; return *this; }
+	FVector PlacementExtent;
+
+	/** The start transform we are using for positioning. Ensures a natural alignment to the surface when using rotation. (default = Identity) */
+	FPositioningData& UseStartTransform(const FTransform& InStartTransform) { StartTransform = InStartTransform; return *this; }
+	FTransform StartTransform;
+
+	/** A factory to use for the alignment. Factories define the alignment routine and spawn offset amounts if necessary. */
+	FPositioningData& UseFactory(const UActorFactory* InActorFactory) { ActorFactory = InActorFactory; return *this; }
+	const UActorFactory* ActorFactory;
+
+	/** Whether to align to the surface normal, or just snap to its position */
+	FPositioningData& AlignToSurfaceRotation(bool bInAlignRotation) { bAlignRotation = bInAlignRotation; return *this; }
+	bool bAlignRotation;
+};
+
+/** Structure used for positioning actors with snapping */
+struct FSnappedPositioningData : FPositioningData
+{
+	FSnappedPositioningData(FLevelEditorViewportClient* InLevelViewportClient, const FVector& InSurfaceLocation, const FVector& InSurfaceNormal)
+		: FPositioningData(InSurfaceLocation, InSurfaceNormal)
+		, LevelViewportClient(InLevelViewportClient)
+		, bDrawSnapHelpers(false)
+	{}
+
+	/** The level viewport - required for vertex snapping routines */
+	FLevelEditorViewportClient* LevelViewportClient;
+
+	/** Whether to draw vertex snapping helpers or not when snapping */
+	FSnappedPositioningData& DrawSnapHelpers(bool bInDrawSnapHelpers) { bDrawSnapHelpers = bInDrawSnapHelpers; return *this; }
+	bool bDrawSnapHelpers;
+
+	/** Mask these construction helpers to return the correct type */
+	FSnappedPositioningData& UsePlacementExtent(const FVector& InPlacementExtent) { PlacementExtent = InPlacementExtent; return *this; }
+	FSnappedPositioningData& UseStartTransform(const FTransform& InStartTransform) { StartTransform = InStartTransform; return *this; }
+	FSnappedPositioningData& UseFactory(const UActorFactory* InActorFactory) { ActorFactory = InActorFactory; return *this; }
+	FSnappedPositioningData& AlignToSurfaceRotation(bool bInAlignRotation) { bAlignRotation = bInAlignRotation; return *this; }
+};
 
 struct FActorPositionTraceResult
 {
@@ -88,26 +147,18 @@ struct FActorPositioning
 	/**
 	 *	Get the snapped position and rotation transform for an actor to snap it to the specified surface. This will potentially align the actor to the specified surface normal, and offset it based on factory settings
 	 *
-	 *	@param	InFactory				The factory used to spawn the actor. Factories define how actors are aligned and offset.
-	 *	@param	InSurfaceLocation		The location on the surface to transform to
-	 *	@param	InSurfaceNormal			The surface normal of the spawn position
-	 *	@param	InPlacementExtent		(optional) Optional actor placement extent
-	 *	@param	InStartTransform		(optional) Optional initial transform. This will result in a transformation from InStartTransform, to the surface transform
+	 *	@param	PositioningData			Positioning data used to calculate the transformation
 	 *
 	 *	@return	The expected transform for the specified actor
 	 */
-	static UNREALED_API FTransform GetSnappedSurfaceAlignedTransform(FLevelEditorViewportClient* InViewportClient, const UActorFactory* InFactory, FVector InSurfaceLocation, const FVector& InSurfaceNormal, const FVector& InPlacementExtent = FVector(0.f), const FTransform& InStartTransform = FTransform::Identity);
+	static UNREALED_API FTransform GetSnappedSurfaceAlignedTransform(const FSnappedPositioningData& PositioningData);
 
 	/**
 	 *	Get the position and rotation transform for an actor to snap it to the specified surface. This will potentially align the actor to the specified surface normal, and offset it.
 	 *
-	 *	@param	InFactory				The factory used to spawn the actor. Factories define how actors are aligned and offset.
-	 *	@param	InSurfaceLocation		The location on the surface to transform to
-	 *	@param	InSurfaceNormal			The surface normal of the spawn position
-	 *	@param	InPlacementExtent		(optional) Optional actor placement extent
-	 *	@param	InStartTransform		(optional) Optional initial transform. This will result in a transformation from InStartTransform, to the surface transform
+	 *	@param	PositioningData			Positioning data used to calculate the transformation
 	 *
 	 *	@return	The expected transform for the specified actor
 	 */
-	static UNREALED_API FTransform GetSurfaceAlignedTransform(const UActorFactory* InFactory, const FVector& InSurfaceLocation, const FVector& InSurfaceNormal, const FVector& InPlacementExtent = FVector(0.f), const FTransform& InStartTransform = FTransform::Identity);
+	static UNREALED_API FTransform GetSurfaceAlignedTransform(const FPositioningData& PositioningData);
 };

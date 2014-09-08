@@ -1011,7 +1011,14 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 	for (AActor* Actor : DraggingActors)
 	{
 		const UActorFactory* ActorFactory = FactoryToUse ? FactoryToUse : GEditor->FindActorFactoryForActorClass(Actor->GetClass());
-		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(this, ActorFactory, TraceResult.Location, TraceResult.SurfaceNormal, Actor->GetPlacementExtent());
+
+		const FSnappedPositioningData PositioningData = FSnappedPositioningData(this, TraceResult.Location, TraceResult.SurfaceNormal)
+			.DrawSnapHelpers(true)
+			.UseFactory(ActorFactory)
+			.UseStartTransform(PreDragActorTransforms.FindRef(Actor))
+			.UsePlacementExtent(Actor->GetPlacementExtent());
+
+		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
 
 		Actor->SetActorTransform(ActorTransform);
 		Actor->SetIsTemporarilyHiddenInEditor(false);
@@ -1216,6 +1223,9 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 				{
 					AActor* NewActor = *ActorIt;
 					DropPreviewActors.Add(NewActor);
+					
+					PreDragActorTransforms.Add(NewActor, NewActor->GetTransform());
+
 					NewActor->SetActorEnableCollision(false);
 
 					// Deselect if selected
@@ -1995,8 +2005,13 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 			check(PreDragActorTransform);
 
 			// Compute the surface aligned transform. Note we do not use the snapped version here as our DragDelta is already snapped
-			FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(Factory,
-				TraceResult.Location, TraceResult.SurfaceNormal, Actor->GetPlacementExtent(), *PreDragActorTransform);
+
+			const FPositioningData PositioningData = FPositioningData(TraceResult.Location, TraceResult.SurfaceNormal)
+				.UseStartTransform(*PreDragActorTransform)
+				.UsePlacementExtent(Actor->GetPlacementExtent())
+				.UseFactory(Factory);
+
+			FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(PositioningData);
 			
 			ActorTransform.SetScale3D(Actor->GetActorScale3D());
 			if (auto* RootComponent = Actor->GetRootComponent())
@@ -2577,6 +2592,8 @@ void FLevelEditorViewportClient::TrackingStopped()
 
 		GEditor->RedrawLevelEditingViewports();
 	}
+
+	PreDragActorTransforms.Empty();
 }
 
 void FLevelEditorViewportClient::HandleViewportSettingChanged(FName PropertyName)

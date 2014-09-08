@@ -3030,7 +3030,9 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 		return;
 	}
 
-	FVector SaveClickLocation = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, nullptr, GEditor->ClickLocation, GEditor->ClickPlane).GetLocation();
+	const FSnappedPositioningData PositioningData = FSnappedPositioningData(GCurrentLevelEditingViewportClient, GEditor->ClickLocation, GEditor->ClickPlane)
+		.AlignToSurfaceRotation(false);
+	FVector SaveClickLocation = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData).GetLocation();
 	
 	ULevel* DesiredLevel = InWorld->GetCurrentLevel();
 

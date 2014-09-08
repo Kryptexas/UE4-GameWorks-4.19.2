@@ -1319,6 +1319,8 @@ UActorFactoryPointLight::UActorFactoryPointLight(const class FPostConstructIniti
 {
 	DisplayName = LOCTEXT("PointLightDisplayName", "Point Light");
 	NewActorClass = APointLight::StaticClass();
+	SpawnPositionOffset = FVector(200, 0, 0);
+	bUseSurfaceOrientation = true;
 }
 
 /*-----------------------------------------------------------------------------
