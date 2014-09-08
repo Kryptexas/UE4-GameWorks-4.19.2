@@ -123,6 +123,28 @@ bool UCanvasPanelSlot::CanResize(const FVector2D& Direction) const
 	return true;
 }
 
+void UCanvasPanelSlot::SetPosition(FVector2D InPosition)
+{
+	LayoutData.Offsets.Left = InPosition.X;
+	LayoutData.Offsets.Top = InPosition.Y;
+
+	if ( Slot )
+	{
+		Slot->Offset(LayoutData.Offsets);
+	}
+}
+
+void UCanvasPanelSlot::SetSize(FVector2D InSize)
+{
+	LayoutData.Offsets.Right = InSize.X;
+	LayoutData.Offsets.Bottom = InSize.Y;
+
+	if ( Slot )
+	{
+		Slot->Offset(LayoutData.Offsets);
+	}
+}
+
 void UCanvasPanelSlot::SetOffsets(FMargin InOffset)
 {
 	LayoutData.Offsets = InOffset;
