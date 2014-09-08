@@ -452,21 +452,6 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 	return Result;
 }
 
-void FMacPlatformMisc::SubmitErrorReport(const TCHAR* InErrorHist, EErrorReportMode::Type InMode)
-{
-	if (GUseCrashReportClient && (!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash))
-	{
-		int32 FromCommandLine = 0;
-		FParse::Value( FCommandLine::Get(), TEXT("AutomatedPerfTesting="), FromCommandLine );
-		if (FApp::IsUnattended() && FromCommandLine != 0 && FParse::Param(FCommandLine::Get(), TEXT("KillAllPopUpBlockingWindows")))
-		{
-			abort();
-		}
-	}
-
-	// @todo Mac
-}
-
 void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
 	if( bFromMainLoop )

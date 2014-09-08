@@ -8,6 +8,7 @@
 #include "ModuleManager.h"
 #include "VarargsHelper.h"
 #include "SecureHash.h"
+#include "ExceptionHandling.h"
 #include "Containers/Map.h"
 #include "../../Launch/Resources/Version.h"
 
@@ -199,7 +200,22 @@ FString FGenericPlatformMisc::GetUniqueDeviceId()
 
 void FGenericPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode )
 {
-	UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform cannot submit a crash report. Report was:\n%s"), InErrorHist);
+	if ((!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash) && !FParse::Param(FCommandLine::Get(), TEXT("CrashForUAT")))
+	{
+		if ( GUseCrashReportClient )
+		{
+			int32 FromCommandLine = 0;
+			FParse::Value( FCommandLine::Get(), TEXT("AutomatedPerfTesting="), FromCommandLine );
+			if (FApp::IsUnattended() && FromCommandLine != 0 && FParse::Param(FCommandLine::Get(), TEXT("KillAllPopUpBlockingWindows")))
+			{
+				UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform does not implement KillAllPopUpBlockingWindows"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform cannot submit a crash report. Report was:\n%s"), InErrorHist);
+		}
+	}
 }
 
 

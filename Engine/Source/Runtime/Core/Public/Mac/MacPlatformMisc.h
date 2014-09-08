@@ -23,7 +23,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	}
 
 	static TArray<uint8> GetMacAddress();
-	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 #if !UE_BUILD_SHIPPING
 	FORCEINLINE static bool IsDebuggerPresent()
 	{
