@@ -221,6 +221,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 
 		InitializeAnimScriptInstance(bForceReinit);
 
+		TickAnimation(0.f); //Make sure we have a valid pose
+
 		RefreshBoneTransforms();
 		UpdateComponentToWorld();
 	}
