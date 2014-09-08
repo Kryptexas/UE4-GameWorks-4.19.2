@@ -354,8 +354,18 @@ struct FBehaviorTreeSearchData
 	/** first node allowed in search */
 	struct FBTNodeIndex SearchStart;
 
+	/** search unique number */
+	int32 SearchId;
+
 	/** adds update info to PendingUpdates array, removing all previous updates for this node */
 	void AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo);
+
+	/** assign unique Id number */
+	void AssignSearchId();
+
+private:
+
+	static int32 NextSearchId;
 };
 
 /** property block in blueprint defined nodes */

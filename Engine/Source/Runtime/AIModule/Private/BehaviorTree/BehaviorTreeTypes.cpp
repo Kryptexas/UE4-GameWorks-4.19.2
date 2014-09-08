@@ -142,6 +142,9 @@ bool FBTNodeIndex::TakesPriorityOver(const FBTNodeIndex& Other) const
 //----------------------------------------------------------------------//
 // FBehaviorTreeSearchData
 //----------------------------------------------------------------------//
+
+int32 FBehaviorTreeSearchData::NextSearchId = 1;
+
 void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo)
 {
 	UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[%s]: %s"),
@@ -175,6 +178,12 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 		const int32 Idx = PendingUpdates.Add(UpdateInfo);
 		PendingUpdates[Idx].bPostUpdate = (UpdateInfo.Mode == EBTNodeUpdateMode::Add) && (Cast<UBTService>(UpdateInfo.AuxNode) != NULL);
 	}
+}
+
+void FBehaviorTreeSearchData::AssignSearchId()
+{
+	SearchId = NextSearchId;
+	NextSearchId++;
 }
 
 //----------------------------------------------------------------------//

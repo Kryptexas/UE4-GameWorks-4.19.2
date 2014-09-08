@@ -854,6 +854,7 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 
 	FBehaviorTreeInstance& ActiveInstance = InstanceStack[ActiveInstanceIdx];
 	UBTCompositeNode* TestNode = ExecutionRequest.ExecuteNode;
+	SearchData.AssignSearchId();
 
 	// activate root node if needed (can't be handled by parent composite...)
 	if (ActiveInstance.ActiveNode == NULL)
