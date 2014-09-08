@@ -38,7 +38,7 @@ static uint32 RTBitOffsets[] = { OFFSET_RENDER_TARGET_FORMAT0, OFFSET_RENDER_TAR
 
 
 
-	
+
 /*
 void FPipelineShadow::SetHash(uint64 InHash)
 {
@@ -194,6 +194,7 @@ FMetalManager::FMetalManager()
 	, PreviousNumRenderTargets(0)
 	, CurrentDepthRenderTexture(nil)
 	, PreviousDepthRenderTexture(nil)
+	, CurrentMSAARenderTexture(nil)
 	, RingBuffer(Device, RingBufferSize, BufferOffsetAlignment)
 	, QueryBuffer(Device, 64 * 1024, 8)
 	, WhichFreeList(0)
@@ -207,6 +208,8 @@ FMetalManager::FMetalManager()
 		CurrentColorRenderTextures[Index] = nil;
 		PreviousColorRenderTextures[Index] = nil;
 	}
+	FMemory::MemSet(CurrentRenderTargetsViewInfo, 0);
+	FMemory::MemSet(PreviousRenderTargetsViewInfo, 0);
 
 	CommandQueue = [Device newCommandQueue];
 
@@ -280,20 +283,10 @@ void FMetalManager::InitFrame()
 	CreateAutoreleasePool();
 
 	// create the command buffer for this frame
-	CurrentCommandBuffer = [CommandQueue commandBufferWithUnretainedReferences];
-	[CurrentCommandBuffer retain];
-	TRACK_OBJECT(CurrentCommandBuffer);
-	
-	uint64 LocalCommandBufferIndex = CommandBufferIndex++;
-	[CurrentCommandBuffer addScheduledHandler : ^ (id <MTLCommandBuffer> Buffer)
-	{
-		FMetalManager::Get()->SetCompletedCommandBufferIndex(LocalCommandBufferIndex);
-	}];
+	CreateCurrentCommandBuffer(true);
 
-//	double Start = FPlatformTime::Seconds();
+	//	double Start = FPlatformTime::Seconds();
 	// block on the semaphore
-	dispatch_semaphore_wait(CommandBufferSemaphore, DISPATCH_TIME_FOREVER);
-
 //	double Mid = FPlatformTime::Seconds();
 
 	// mark us to get later
@@ -309,6 +302,51 @@ void FMetalManager::InitFrame()
 	NumDrawCalls = 0;
 }
 
+void FMetalManager::CreateCurrentCommandBuffer(bool bWait)
+{
+	if (bWait)
+	{
+		dispatch_semaphore_wait(CommandBufferSemaphore, DISPATCH_TIME_FOREVER);
+	}
+	
+	CurrentCommandBuffer = [CommandQueue commandBufferWithUnretainedReferences];
+	[CurrentCommandBuffer retain];
+	TRACK_OBJECT(CurrentCommandBuffer);
+
+	uint64 LocalCommandBufferIndex = CommandBufferIndex++;
+	[CurrentCommandBuffer addScheduledHandler : ^ (id <MTLCommandBuffer> Buffer)
+	{
+		FMetalManager::Get()->SetCompletedCommandBufferIndex(LocalCommandBufferIndex);
+	}];
+}
+
+void FMetalManager::SubmitCommandBufferAndWait()
+{
+	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
+	 {
+		dispatch_semaphore_signal(CommandBufferSemaphore);
+	 }];
+	
+	// commit the render context to the commandBuffer
+	[CurrentContext endEncoding];
+	[CurrentContext release];
+	CurrentContext = nil;
+
+	// kick the whole buffer
+	// Commit to hand the commandbuffer off to the gpu
+	[CurrentCommandBuffer commit];
+
+	// wait for the gpu to finish executing our commands.
+	[CurrentCommandBuffer waitUntilCompleted];
+	
+	//once a commandbuffer is commited it can't be added to again.
+	UNTRACK_OBJECT(CurrentCommandBuffer);
+	[CurrentCommandBuffer release];
+	
+	// create a new command buffer.
+	CreateCurrentCommandBuffer(true);
+}
+
 void FMetalManager::EndFrame(bool bPresent)
 {
 //	NSLog(@"There were %d draw calls for final RT in frame %lld", NumDrawCalls, GFrameCounter);
@@ -318,13 +356,13 @@ void FMetalManager::EndFrame(bool bPresent)
 	CurrentContext = nil;
 
 	// kick the whole buffer
-	[CurrentCommandBuffer addCompletedHandler:^(id <MTLCommandBuffer> Buffer)
+	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
 	 {
-		 dispatch_semaphore_signal(CommandBufferSemaphore);
+		dispatch_semaphore_signal(CommandBufferSemaphore);
 	 }];
-
+	
 	// Wait until at least 2 VBlanks has passed since last time
-	FramePacer->FramePacerEvent->Wait();
+//	FramePacer->FramePacerEvent->Wait();
 
 	// Commit before waiting to avoid leaving the gpu idle
 	[CurrentCommandBuffer commit];
@@ -427,10 +465,13 @@ void FMetalManager::SetBoundShaderState(FMetalBoundShaderState* BoundShaderState
 	CurrentBoundShaderState = BoundShaderState;
 }
 
-void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, int32 TotalNumRenderTargets)
+void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, uint32 MipIndex, uint32 ArraySliceIndex, MTLLoadAction LoadAction, MTLStoreAction StoreAction, int32 TotalNumRenderTargets)
 {
 	// rememeber our new max
 	CurrentNumRenderTargets = TotalNumRenderTargets;
+	
+	// user code generally passes -1 as a default, but we need 0
+	ArraySliceIndex = ArraySliceIndex == 0xFFFFFFFF ? 0 : ArraySliceIndex;
 
 	// update the current rendered-to pixel format
 	if (RenderSurface)
@@ -451,8 +492,17 @@ void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 R
 			// set the texture into the backbuffer
 			RenderSurface->Texture = CurrentDrawable.texture;
 		}
+		
+		if (RenderSurface->bIsCubemap)
+		{
+			ArraySliceIndex = GetMetalCubeFace((ECubeFace)ArraySliceIndex);
+		}
 
 		CurrentColorRenderTextures[RenderTargetIndex] = RenderSurface->Texture;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].MipIndex = MipIndex;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].ArraySliceIndex = ArraySliceIndex;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].LoadAction = LoadAction;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].StoreAction = StoreAction;
 
 		// only allow one MRT when using MSAA
 		checkf(RenderSurface->MSAATexture == NULL || TotalNumRenderTargets == 1);
@@ -461,6 +511,10 @@ void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 R
 	else
 	{
 		CurrentColorRenderTextures[RenderTargetIndex] = nil;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].MipIndex = 0;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].ArraySliceIndex = 0;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].LoadAction = MTLLoadActionDontCare;
+		CurrentRenderTargetsViewInfo[RenderTargetIndex].StoreAction = MTLStoreActionStore;
 	}
 }
 
@@ -486,7 +540,9 @@ void FMetalManager::UpdateContext()
 		bool bAllMatch = true;
 		for (uint32 AttachmentIndex = 0; AttachmentIndex < CurrentNumRenderTargets; AttachmentIndex++)
 		{
-			if (CurrentColorRenderTextures[AttachmentIndex] != PreviousColorRenderTextures[AttachmentIndex])
+			if (CurrentColorRenderTextures[AttachmentIndex] != PreviousColorRenderTextures[AttachmentIndex] ||
+				CurrentRenderTargetsViewInfo[AttachmentIndex].MipIndex != PreviousRenderTargetsViewInfo[AttachmentIndex].MipIndex ||
+				CurrentRenderTargetsViewInfo[AttachmentIndex].ArraySliceIndex != PreviousRenderTargetsViewInfo[AttachmentIndex].ArraySliceIndex)
 			{
 				bAllMatch = false;
 			}
@@ -527,7 +583,6 @@ void FMetalManager::UpdateContext()
 			{
 				// set up an MSAA attachment
 				ColorAttachment.texture = CurrentMSAARenderTexture;
-				[ColorAttachment setLoadAction:MTLLoadActionDontCare];
 				[ColorAttachment setStoreAction:MTLStoreActionMultisampleResolve];
 				[ColorAttachment setResolveTexture:CurrentColorRenderTextures[AttachmentIndex]];
 				Pipeline.SampleCount = CurrentMSAARenderTexture.sampleCount;
@@ -539,10 +594,13 @@ void FMetalManager::UpdateContext()
 			{
 				// set up non-MSAA attachment
 				ColorAttachment.texture = CurrentColorRenderTextures[AttachmentIndex];
-				[ColorAttachment setLoadAction:MTLLoadActionDontCare];
 				[ColorAttachment setStoreAction:MTLStoreActionStore];
 				Pipeline.SampleCount = 1;
 			}
+			ColorAttachment.level = CurrentRenderTargetsViewInfo[AttachmentIndex].MipIndex;
+			ColorAttachment.slice = CurrentRenderTargetsViewInfo[AttachmentIndex].ArraySliceIndex;
+			ColorAttachment.LoadAction = CurrentRenderTargetsViewInfo[AttachmentIndex].LoadAction;
+			//@todo implement store, but making sure that multisampleresolve is handled properly.
 
 			// assign the attachment to the slot
 			[CurrentRenderPass.colorAttachments setObject:ColorAttachment atIndexedSubscript:AttachmentIndex];
@@ -560,6 +618,7 @@ void FMetalManager::UpdateContext()
 
 		// remember this for next time
 		PreviousColorRenderTextures[AttachmentIndex] = CurrentColorRenderTextures[AttachmentIndex];
+		PreviousRenderTargetsViewInfo[AttachmentIndex] = CurrentRenderTargetsViewInfo[AttachmentIndex];
 	}
 	
 	if (CurrentDepthRenderTexture)
@@ -597,10 +656,12 @@ void FMetalManager::UpdateContext()
 	// commit pending commands on the old render target
 	if (CurrentContext)
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		if (NumDrawCalls == 0)
 		{
 			NSLog(@"There were %d draw calls for an RT in frame %lld", NumDrawCalls, GFrameCounter);
 		}
+#endif
 
 		[CurrentContext endEncoding];
 		NumDrawCalls = 0;
@@ -613,18 +674,9 @@ void FMetalManager::UpdateContext()
 		[CurrentCommandBuffer commit];
 		UNTRACK_OBJECT(CurrentCommandBuffer);
 		[CurrentCommandBuffer release];
-
+		
 		// create the command buffer for this frame
-		CurrentCommandBuffer = [CommandQueue commandBufferWithUnretainedReferences];
-		[CurrentCommandBuffer retain];
-		TRACK_OBJECT(CurrentCommandBuffer);
-
-		uint64 LocalCommandBufferIndex = CommandBufferIndex++;
-
-		[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
-		{
-			FMetalManager::Get()->SetCompletedCommandBufferIndex(LocalCommandBufferIndex);
-		}];
+		CreateCurrentCommandBuffer(false);
 	}
 		
 	// make a new render context to use to render to the framebuffer
@@ -671,7 +723,7 @@ uint32 FMetalManager::AllocateFromRingBuffer(uint32 Size, uint32 Alignment)
 
 uint32 FMetalManager::AllocateFromQueryBuffer()
 {
- 	return QueryBuffer.Allocate(8, 0);
+	return QueryBuffer.Allocate(8, 0);
 }
 
 

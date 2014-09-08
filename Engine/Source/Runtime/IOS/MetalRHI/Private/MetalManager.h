@@ -99,7 +99,7 @@ public:
 	 */
 	void SetBlendState(FMetalBlendState* BlendState);
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
-	void SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, int32 TotalNumRenderTargets);
+	void SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, uint32 MipIndex, uint32 ArraySliceIndex, MTLLoadAction LoadAction, MTLStoreAction StoreAction, int32 TotalNumRenderTargets);
 	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface);
 	
 	/**
@@ -132,6 +132,7 @@ public:
 		CompletedCommandBufferIndex = Index;
 	}
 
+	void SubmitCommandBufferAndWait();
 	bool WaitForCommandBufferComplete(uint64 IndexToWaitFor, double Timeout);
 
 	void SetRasterizerState(const FRasterizerStateInitializerRHI& State);
@@ -162,6 +163,9 @@ protected:
 	void InitFrame();
 	void GenerateFetchShader();
 
+	void CreateCurrentCommandBuffer(bool bWait);
+
+
 	id<MTLDevice> Device;
 
 	id<MTLCommandQueue> CommandQueue;
@@ -174,6 +178,15 @@ protected:
 
 	id<MTLRenderCommandEncoder> CurrentContext;
 	
+	struct FRenderTargetViewInfo
+	{
+		uint32 MipIndex;
+		uint32 ArraySliceIndex;
+		MTLLoadAction LoadAction;
+		MTLStoreAction StoreAction;
+	};
+	
+	FRenderTargetViewInfo CurrentRenderTargetsViewInfo[MaxMetalRenderTargets], PreviousRenderTargetsViewInfo[MaxMetalRenderTargets];
 	uint32 CurrentNumRenderTargets, PreviousNumRenderTargets;
 	id<MTLTexture> CurrentColorRenderTextures[MaxMetalRenderTargets], PreviousColorRenderTextures[MaxMetalRenderTargets];
 	id<MTLTexture> CurrentDepthRenderTexture, PreviousDepthRenderTexture;

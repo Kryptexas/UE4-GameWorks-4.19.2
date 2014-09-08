@@ -6,20 +6,6 @@
 
 #include "MetalRHIPrivate.h"
 
-FORCEINLINE int32 GetMetalCubeFace(ECubeFace Face)
-{
-	switch (Face)
-	{
-		case CubeFace_NegX:	return 0;
-		case CubeFace_NegY:	return 1;
-		case CubeFace_NegZ:	return 2;
-		case CubeFace_PosX:	return 3;
-		case CubeFace_PosY:	return 4;
-		case CubeFace_PosZ:	return 5;
-		default:			return -1;
-	}
-}
-
 /** Texture reference class. */
 class FMetalTextureReference : public FRHITextureReference
 {
@@ -448,7 +434,7 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 					 sourceSlice:SliceIndex
 					 sourceLevel:MipIndex + SourceMipOffset
 					sourceOrigin:Origin
-					  sourceSize:MTLSizeMake(MipSizeX, MipSizeY, 0)
+					  sourceSize:MTLSizeMake(MipSizeX, MipSizeY, 1)
 					   toTexture:NewTexture->Surface.Texture
 			    destinationSlice:SliceIndex
 			    destinationLevel:MipIndex + DestMipOffset

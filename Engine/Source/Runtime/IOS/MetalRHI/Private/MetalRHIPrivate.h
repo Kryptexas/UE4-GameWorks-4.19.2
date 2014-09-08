@@ -261,3 +261,38 @@ public:
 		return bRetVal;
 	}
 };
+
+FORCEINLINE int32 GetMetalCubeFace(ECubeFace Face)
+{
+	switch (Face)
+	{
+	case CubeFace_NegX:	return 0;
+	case CubeFace_NegY:	return 1;
+	case CubeFace_NegZ:	return 2;
+	case CubeFace_PosX:	return 3;
+	case CubeFace_PosY:	return 4;
+	case CubeFace_PosZ:	return 5;
+	default:			return -1;
+	}
+}
+
+FORCEINLINE MTLLoadAction GetMetalRTLoadAction(ERenderTargetLoadAction LoadAction)
+{
+	switch(LoadAction)
+	{
+		case ERenderTargetLoadAction::ENoAction: return MTLLoadActionDontCare;
+		case ERenderTargetLoadAction::ELoad: return MTLLoadActionLoad;
+		default: return MTLLoadActionDontCare;
+	}
+}
+
+FORCEINLINE MTLStoreAction GetMetalRTStoreAction(ERenderTargetStoreAction StoreAction)
+{
+	switch(StoreAction)
+	{
+		case ERenderTargetStoreAction::ENoAction: return MTLStoreActionDontCare;
+		case ERenderTargetStoreAction::EStore: return MTLStoreActionStore;
+		case ERenderTargetStoreAction::EMultisampleResolve: return MTLStoreActionMultisampleResolve;
+		default: return MTLStoreActionDontCare;
+	}
+}
