@@ -8,9 +8,10 @@ struct FPositioningData
 	FPositioningData(const FVector& InSurfaceLocation, const FVector& InSurfaceNormal)
 		: SurfaceLocation(InSurfaceLocation)
 		, SurfaceNormal(InSurfaceNormal)
-		, ActorFactory(nullptr)
-		, StartTransform(FTransform::Identity)
 		, PlacementExtent(0.f)
+		, StartTransform(FTransform::Identity)
+		, ActorFactory(nullptr)
+		, bAlignRotation(false)
 	{
 		auto& Settings = GetDefault<ULevelEditorViewportSettings>()->SnapToSurface;
 		bAlignRotation = Settings.bEnabled && Settings.bSnapRotation;
