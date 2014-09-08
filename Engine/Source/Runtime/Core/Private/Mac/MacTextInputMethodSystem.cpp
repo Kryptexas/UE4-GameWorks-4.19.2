@@ -251,7 +251,6 @@ bool FMacTextInputMethodSystem::IsActiveContext(const TSharedRef<ITextInputMetho
 			}
 		}
 	}
-	UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Checking for an active context failed when its window couldn't be found."));
 	return false;
 }
 // ITextInputMethodSystem Interface End
