@@ -171,4 +171,10 @@ void FProjectDescriptor::Write(TJsonWriter<>& Writer) const
 	Writer.WriteObjectEnd();
 }
 
+FString FProjectDescriptor::GetExtension()
+{
+	static const FString ProjectExtension(TEXT("uproject"));
+	return ProjectExtension;
+}
+
 #undef LOCTEXT_NAMESPACE

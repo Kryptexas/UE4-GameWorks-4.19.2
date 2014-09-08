@@ -197,7 +197,7 @@ bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProject
 	{
 		// The first command line argument could be the project file if it exists or the game name if not launching with a project file
 		const FString ProjectFilePath = FString(FirstCommandLineToken);
-		if ( FPaths::GetExtension(ProjectFilePath) == IProjectManager::GetProjectFileExtension() )
+		if ( FPaths::GetExtension(ProjectFilePath) == FProjectDescriptor::GetExtension() )
 		{
 			OutProjectFilePath = FirstCommandLineToken;
 			// Here we derive the game name from the project file
@@ -209,7 +209,7 @@ bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProject
 			// Full game name is assumed to be the first token
 			OutGameName = MoveTemp(FirstCommandLineToken);
 			// Derive the project path from the game name. All games must have a uproject file, even if they are in the root folder.
-			OutProjectFilePath = FPaths::Combine(*FPaths::RootDir(), *OutGameName, *FString(OutGameName + TEXT(".") + IProjectManager::GetProjectFileExtension()));
+			OutProjectFilePath = FPaths::Combine(*FPaths::RootDir(), *OutGameName, *FString(OutGameName + TEXT(".") + FProjectDescriptor::GetExtension()));
 			return true;
 		}
 	}
@@ -244,7 +244,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			// Check it's not UE4Game, otherwise assume a uproject file relative to the game project directory
 			if (LocalGameName != TEXT("UE4Game"))
 			{
-				ProjFilePath = FPaths::Combine(TEXT(".."), TEXT(".."), TEXT(".."), *LocalGameName, *FString(LocalGameName + TEXT(".") + IProjectManager::GetProjectFileExtension()));
+				ProjFilePath = FPaths::Combine(TEXT(".."), TEXT(".."), TEXT(".."), *LocalGameName, *FString(LocalGameName + TEXT(".") + FProjectDescriptor::GetExtension()));
 				FPaths::SetProjectFilePath(ProjFilePath);
 			}
 		}
@@ -907,7 +907,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if ( !GIsGameAgnosticExe && FApp::HasGameName() && !FPaths::IsProjectFilePathSet() )
 	{
 		// If we are using a non-agnostic exe where a name was specified but we did not specify a project path. Assemble one based on the game name.
-		const FString ProjectFilePath = FPaths::Combine(*FPaths::GameDir(), *FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), *IProjectManager::GetProjectFileExtension()));
+		const FString ProjectFilePath = FPaths::Combine(*FPaths::GameDir(), *FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), *FProjectDescriptor::GetExtension()));
 		FPaths::SetProjectFilePath(ProjectFilePath);
 	}
 

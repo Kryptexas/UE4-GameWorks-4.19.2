@@ -6471,7 +6471,7 @@ void UEditorEngine::UpdateRecentlyLoadedProjectFiles()
 		for ( int32 FileIdx = RecentlyOpenedProjectFiles.Num() - 1; FileIdx >= 0; --FileIdx )
 		{
 			const FString FileExtension = FPaths::GetExtension(RecentlyOpenedProjectFiles[FileIdx]);
-			if ( FileExtension != IProjectManager::GetProjectFileExtension() )
+			if ( FileExtension != FProjectDescriptor::GetExtension() )
 			{
 				RecentlyOpenedProjectFiles.RemoveAt(FileIdx, 1);
 			}

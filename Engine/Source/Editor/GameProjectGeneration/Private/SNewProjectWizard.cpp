@@ -685,7 +685,7 @@ FText SNewProjectWizard::GetCurrentProjectFileName() const
 
 FString SNewProjectWizard::GetCurrentProjectFileNameStringWithExtension() const
 {
-	return CurrentProjectFileName + TEXT(".") + IProjectManager::GetProjectFileExtension();
+	return CurrentProjectFileName + TEXT(".") + FProjectDescriptor::GetExtension();
 }
 
 
@@ -740,7 +740,7 @@ FString SNewProjectWizard::GetProjectFilenameWithPath() const
 	{
 		const FString ProjectName = CurrentProjectFileName;
 		const FString ProjectPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CurrentProjectFilePath);
-		const FString Filename = ProjectName + TEXT(".") + IProjectManager::GetProjectFileExtension();
+		const FString Filename = ProjectName + TEXT(".") + FProjectDescriptor::GetExtension();
 		FString ProjectFilename = FPaths::Combine( *ProjectPath, *ProjectName, *Filename );
 		FPaths::MakePlatformFilename(ProjectFilename);
 		return ProjectFilename;
@@ -955,7 +955,7 @@ void SNewProjectWizard::FindTemplateProjects()
 	// Add a template item for every discovered project
 	for ( auto TemplateFolderIt = AllTemplateFolders.CreateConstIterator(); TemplateFolderIt; ++TemplateFolderIt )
 	{
-		const FString SearchString = (*TemplateFolderIt) / TEXT("*.") + IProjectManager::GetProjectFileExtension();
+		const FString SearchString = (*TemplateFolderIt) / TEXT("*.") + FProjectDescriptor::GetExtension();
 		TArray<FString> FoundProjectFiles;
 		IFileManager::Get().FindFiles(FoundProjectFiles, *SearchString, /*Files=*/true, /*Directories=*/false);
 		if ( FoundProjectFiles.Num() > 0 )
@@ -1070,7 +1070,7 @@ void SNewProjectWizard::SetDefaultProjectLocation( )
 
 	// Check to make sure the project file doesn't already exist
 	FText FailReason;
-	if ( !GameProjectUtils::IsValidProjectFileForCreation(DefaultProjectFilePath / ProjectName / ProjectName + TEXT(".") + IProjectManager::GetProjectFileExtension(), FailReason) )
+	if ( !GameProjectUtils::IsValidProjectFileForCreation(DefaultProjectFilePath / ProjectName / ProjectName + TEXT(".") + FProjectDescriptor::GetExtension(), FailReason) )
 	{
 		// If it exists, find an appropriate numerical suffix
 		const int MaxSuffix = 1000;
@@ -1078,7 +1078,7 @@ void SNewProjectWizard::SetDefaultProjectLocation( )
 		for ( Suffix = 2; Suffix < MaxSuffix; ++Suffix )
 		{
 			ProjectName = GenericProjectName + FString::Printf(TEXT("%d"), Suffix);
-			if ( GameProjectUtils::IsValidProjectFileForCreation(DefaultProjectFilePath / ProjectName / ProjectName + TEXT(".") + IProjectManager::GetProjectFileExtension(), FailReason) )
+			if ( GameProjectUtils::IsValidProjectFileForCreation(DefaultProjectFilePath / ProjectName / ProjectName + TEXT(".") + FProjectDescriptor::GetExtension(), FailReason) )
 			{
 				// Found a name that is not taken. Break out.
 				break;

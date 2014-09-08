@@ -43,7 +43,7 @@ namespace GameProjectAutomationUtils
 		}
 
 
-		const FString Filename = ProjectName + TEXT(".") + IProjectManager::GetProjectFileExtension();
+		const FString Filename = ProjectName + TEXT(".") + FProjectDescriptor::GetExtension();
 		FString ProjectFilename = FPaths::Combine(*ProjectPath, *ProjectName, *Filename);
 		FPaths::MakePlatformFilename(ProjectFilename);
 
@@ -105,7 +105,7 @@ bool FBuildPromotionNewProjectCreateTest::RunTest(const FString& Parameters)
 		for (uint32 i = 2;; ++i)
 		{
 			const FString PossibleProjectName = FString::Printf(TEXT("%s%i"), *OldProjectName, i);
-			const FString PossibleProjectFilename = FString::Printf(TEXT("%s/%s/%s.%s"), *RootFolder, *PossibleProjectName, *PossibleProjectName, *IProjectManager::GetProjectFileExtension());
+			const FString PossibleProjectFilename = FString::Printf(TEXT("%s/%s/%s.%s"), *RootFolder, *PossibleProjectName, *PossibleProjectName, *FProjectDescriptor::GetExtension());
 			if (!FPaths::FileExists(PossibleProjectFilename))
 			{
 				DesiredProjectFilename = PossibleProjectFilename;

@@ -322,10 +322,10 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 		return false;
 	}
 
-	if ( FPaths::GetExtension(ProjectFile) != IProjectManager::GetProjectFileExtension() )
+	if ( FPaths::GetExtension(ProjectFile) != FProjectDescriptor::GetExtension() )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( IProjectManager::GetProjectFileExtension() ) );
+		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( FProjectDescriptor::GetExtension() ) );
 		OutFailReason = FText::Format( LOCTEXT( "InvalidProjectFileExtension", "File extension is not {ProjectFileExtension}" ), Args );
 		return false;
 	}
@@ -369,7 +369,7 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 	if ( AnyProjectFilesExistInFolder(FPaths::GetPath(ProjectFile)) )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( IProjectManager::GetProjectFileExtension() ) );
+		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( FProjectDescriptor::GetExtension() ) );
 		Args.Add( TEXT("ProjectFilePath"), FText::FromString( FPaths::GetPath(ProjectFile) ) );
 		OutFailReason = FText::Format( LOCTEXT( "AProjectFileAlreadyExistsAtLoction", "Another .{ProjectFileExtension} file already exists in {ProjectFilePath}" ), Args );
 		return false;
@@ -408,10 +408,10 @@ bool GameProjectUtils::OpenProject(const FString& ProjectFile, FText& OutFailRea
 		return false;
 	}
 
-	if ( FPaths::GetExtension(ProjectFile) != IProjectManager::GetProjectFileExtension() )
+	if ( FPaths::GetExtension(ProjectFile) != FProjectDescriptor::GetExtension() )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( IProjectManager::GetProjectFileExtension() ) );
+		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( FProjectDescriptor::GetExtension() ) );
 		OutFailReason = FText::Format( LOCTEXT( "InvalidProjectFileExtension", "File extension is not {ProjectFileExtension}" ), Args );
 		return false;
 	}
@@ -1335,7 +1335,7 @@ bool GameProjectUtils::ProjectFileExists(const FString& ProjectFile)
 bool GameProjectUtils::AnyProjectFilesExistInFolder(const FString& Path)
 {
 	TArray<FString> ExistingFiles;
-	const FString Wildcard = FString::Printf(TEXT("%s/*.%s"), *Path, *IProjectManager::GetProjectFileExtension());
+	const FString Wildcard = FString::Printf(TEXT("%s/*.%s"), *Path, *FProjectDescriptor::GetExtension());
 	IFileManager::Get().FindFiles(ExistingFiles, *Wildcard, /*Files=*/true, /*Directories=*/false);
 
 	return ExistingFiles.Num() > 0;

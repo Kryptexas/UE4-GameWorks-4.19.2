@@ -77,4 +77,7 @@ struct PROJECTS_API FProjectDescriptor
 
 	/** Writes the descriptor to the given JSON object */
 	void Write(TJsonWriter<>& Writer) const;
+
+	/** Returns the extension used for project descriptors (uproject) */
+	static FString GetExtension();
 };

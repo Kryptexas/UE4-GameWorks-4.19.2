@@ -1077,7 +1077,7 @@ void SProjectBrowser::HandleProjectItemDoubleClick( TSharedPtr<FProjectItem> Tem
 FReply SProjectBrowser::OnBrowseToProjectClicked()
 {
 	const FString ProjectFileDescription = LOCTEXT( "FileTypeDescription", "Unreal Project File" ).ToString();
-	const FString ProjectFileExtension = FString::Printf(TEXT("*.%s"), *IProjectManager::GetProjectFileExtension());
+	const FString ProjectFileExtension = FString::Printf(TEXT("*.%s"), *FProjectDescriptor::GetExtension());
 	const FString FileTypes = FString::Printf( TEXT("%s (%s)|%s"), *ProjectFileDescription, *ProjectFileExtension, *ProjectFileExtension );
 
 	// Find the first valid project file to select by default

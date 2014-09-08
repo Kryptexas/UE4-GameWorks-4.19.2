@@ -107,12 +107,6 @@ const FString& FProjectManager::GetAutoLoadProjectFileName()
 	return RecentProjectFileName;
 }
 
-const FString& FProjectManager::NonStaticGetProjectFileExtension()
-{
-	static FString GameProjectFileExtension(TEXT("uproject"));
-	return GameProjectFileExtension;
-}
-
 bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
 {
 	FProjectDescriptor Descriptor;

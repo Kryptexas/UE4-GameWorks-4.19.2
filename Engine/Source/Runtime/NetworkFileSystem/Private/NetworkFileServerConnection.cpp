@@ -725,7 +725,7 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	}
 	else
 	{
-		if (FPaths::GetExtension(GameName) == IProjectManager::GetProjectFileExtension())
+		if (FPaths::GetExtension(GameName) == FProjectDescriptor::GetExtension())
 		{
 			SandboxDirectory = FPaths::Combine(*FPaths::GetPath(GameName), TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
 		}

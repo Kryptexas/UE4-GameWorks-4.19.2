@@ -120,13 +120,6 @@ public:
 	virtual const FString& GetAutoLoadProjectFileName() = 0;
 
 	/**
-	 * Gets the extension for game project files.
-	 *
-	 * @return File extension.
-	 */
-	virtual const FString& NonStaticGetProjectFileExtension() = 0;
-
-	/**
 	 * Generates a new project file and saves it to disk at the specified location
 	 * 
 	 * @param NewProjectFilename	The filename of the file to be written out
@@ -227,7 +220,4 @@ public:
 	 * @return	True if the application needs to be restarted.
 	 */
 	virtual bool IsRestartRequired() const = 0;
-
-	/** Helper functions to reduce the syntax complexity of commonly used functions */
-	static const FString& GetProjectFileExtension() { return Get().NonStaticGetProjectFileExtension(); }
 };

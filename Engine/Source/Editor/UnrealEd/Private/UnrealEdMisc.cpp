@@ -1188,7 +1188,7 @@ void FUnrealEdMisc::SwitchProject(const FString& GameOrProjectFileName, bool bWa
 		return;
 	}
 
-	const bool bIsProjectFileName = FPaths::GetExtension(GameOrProjectFileName) == IProjectManager::GetProjectFileExtension();
+	const bool bIsProjectFileName = FPaths::GetExtension(GameOrProjectFileName) == FProjectDescriptor::GetExtension();
 
 	bool bSwitch = true;
 
