@@ -692,10 +692,12 @@ void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath
 	if (IsEngineManifest)
 	{
 		SourcePath = FPaths::Combine(*(FPaths::EngineDir()), *SourcePath);
+		DestinationPath = FPaths::Combine(*(FPaths::EngineDir()), *DestinationPath);
 	}
 	else
 	{
 		SourcePath = FPaths::Combine(*(FPaths::GameDir()), *SourcePath);
+		DestinationPath = FPaths::Combine(*(FPaths::GameDir()), *DestinationPath);
 	}
 
 	TArray<TArray<uint8>> BackingBuffers;
