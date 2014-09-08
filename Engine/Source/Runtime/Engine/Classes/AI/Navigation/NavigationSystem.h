@@ -639,7 +639,7 @@ protected:
 	TMap<const UObject*, FOctreeElementId> ObjectToOctreeId;
 
 	/** Map of all objects that are tied to indexed navigation parent */
-	TMultiMap<UObject*, UObject*> OctreeChildNodesMap;
+	TMultiMap<UObject*, FWeakObjectPtr> OctreeChildNodesMap;
 
 	/** Map of all custom navigation links, that are relevant for path following */
 	TMap<uint32, INavLinkCustomInterface*> CustomLinksMap;
