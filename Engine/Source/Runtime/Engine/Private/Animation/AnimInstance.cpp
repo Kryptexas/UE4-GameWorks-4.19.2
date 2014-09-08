@@ -1645,7 +1645,7 @@ bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotN
 }
 
 /** Play a Montage. Returns Length of Montage in seconds. Returns 0.f if failed to play. */
-float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate)
+float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate/*= 1.f*/)
 {
 	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f))
 	{
