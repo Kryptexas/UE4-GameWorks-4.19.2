@@ -580,7 +580,7 @@ FString FClassPickerDefaults::GetName() const
 	}
 
 	FText OutName;
-	if ( FText::FindText(TEXT(LOCTEXT_NAMESPACE), LocTextNameID, OutName) )
+	if ( FText::FindText(TEXT("UnrealEd"), LocTextNameID, OutName) )
 	{
 		return OutName.ToString();
 	}
@@ -614,7 +614,7 @@ FString FClassPickerDefaults::GetDescription() const
 	}
 
 	FText OutDesc;
-	if ( FText::FindText(TEXT(LOCTEXT_NAMESPACE), LocTextDescriptionID, OutDesc) )
+	if ( FText::FindText(TEXT("UnrealEd"), LocTextDescriptionID, OutDesc) )
 	{
 		return OutDesc.ToString();
 	}
