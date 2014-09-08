@@ -299,7 +299,7 @@ public:
 		{
 		}
 
-		void Init(const FString& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly);
+		void Init(const FText& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly);
 	
 	private:
 		/** The pin type corresponding to the schema type */
@@ -316,10 +316,10 @@ public:
 		bool bReadOnly;
 
 		/** Friendly display name of pin type; also used to see if it has subtypes */
-		FString FriendlyName;
+		FText FriendlyName;
 
 		/** Text for regular tooltip */
-		FString Tooltip;
+		FText Tooltip;
 
 	public:
 		const FEdGraphPinType& GetPinType(bool bForceLoadedSubCategoryObject);
@@ -328,10 +328,9 @@ public:
 			PinType.PinSubCategory = SubCategory;
 		}
 
-		FPinTypeTreeInfo(const FString& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FText& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
 
 		FPinTypeTreeInfo(TSharedPtr<FPinTypeTreeInfo> InInfo)
 		{
@@ -343,17 +342,17 @@ public:
 		}
 		
 		/** Returns a succinct menu description of this type */
-		FString GetDescription() const;
+		FText GetDescription() const;
 
-		FString GetToolTip() const
+		FText GetToolTip() const
 		{
 			if (PinType.PinSubCategoryObject.IsValid())
 			{
-				if (Tooltip.IsEmpty() || (PinType.PinSubCategoryObject->GetName() == Tooltip))
+				if (Tooltip.IsEmpty())
 				{
-					if ( (PinType.PinCategory == TEXT("struct")) && PinType.PinSubCategoryObject->IsA(UScriptStruct::StaticClass()) )
+					if ( (PinType.PinCategory == UEdGraphSchema_K2::PC_Struct) && PinType.PinSubCategoryObject->IsA(UScriptStruct::StaticClass()) )
 					{
-						return PinType.PinSubCategoryObject->GetPathName();
+						return FText::FromString(PinType.PinSubCategoryObject->GetPathName());
 					}
 				}
 			}

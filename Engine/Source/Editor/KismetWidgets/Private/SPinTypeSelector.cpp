@@ -120,7 +120,7 @@ FText SPinTypeSelector::GetTypeDescription() const
 	}
 	else
 	{
-		return FText::FromString(TargetPinType.Get().PinCategory);
+		return UEdGraphSchema_K2::GetCategoryText(TargetPinType.Get().PinCategory, true);
 	}
 }
 
@@ -152,17 +152,20 @@ void SPinTypeSelector::OnArrayCheckStateChanged(ESlateCheckBoxState::Type NewSta
 TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InItem, const TSharedRef<STableViewBase>& OwnerTree)
 {
 	const bool bHasChildren = (InItem->Children.Num() > 0);
-	const FString Description = InItem->GetDescription();
+	const FText Description = InItem->GetDescription();
 
 	// Determine the best icon the to represents this item
 	const FSlateBrush* IconBrush = GetIconFromPin(InItem->GetPinType(false));
 
 	// Use tooltip if supplied, otherwise just repeat description
-	const FString OrgTooltip = InItem->GetToolTip();
-	const FString Tooltip = !OrgTooltip.IsEmpty() ? OrgTooltip : Description;
+	const FText OrgTooltip = InItem->GetToolTip();
+	const FText Tooltip = !OrgTooltip.IsEmpty() ? OrgTooltip : Description;
+
+	const FEdGraphPinType& PinType = InItem->GetPinType(true);
+	const FString PinTooltipExcerpt = ((PinType.PinCategory != UEdGraphSchema_K2::PC_Byte || PinType.PinSubCategoryObject == nullptr) ? PinType.PinCategory : TEXT("Enum")); 
 
 	return SNew( SComboRow<FPinTypeTreeItem>, OwnerTree )
-		.ToolTip( IDocumentation::Get()->CreateToolTip( FText::FromString( Tooltip ), NULL, *BigTooltipDocLink, *Description) )
+		.ToolTip( IDocumentation::Get()->CreateToolTip( Tooltip, NULL, *BigTooltipDocLink, PinTooltipExcerpt) )
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -354,7 +357,7 @@ bool SPinTypeSelector::GetChildrenMatchingSearch(const FString& InSearchText, co
 		// Have to run GetChildrenMatchingSearch first, so that we can make sure we get valid children for the list!
 		if( GetChildrenMatchingSearch(InSearchText, Item->Children, ValidChildren)
 			|| InSearchText.IsEmpty()
-			|| Item->GetDescription().Contains(InSearchText) )
+			|| Item->GetDescription().ToString().Contains(InSearchText) )
 		{
 			NewInfo->Children = ValidChildren;
 			OutFilteredList.Add(NewInfo);
