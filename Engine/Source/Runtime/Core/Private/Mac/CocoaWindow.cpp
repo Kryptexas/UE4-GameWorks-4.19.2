@@ -484,6 +484,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	{
 		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4CloseEventMode ]));
 	}
+	self.bForwardEvents = false;
+	[self setDelegate:nil];
 }
 
 - (void)mouseDown:(NSEvent*)Event

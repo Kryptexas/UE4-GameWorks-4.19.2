@@ -85,89 +85,97 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		WindowStyle &= ~(NSTexturedBackgroundWindowMask);
 	}
 
-	WindowHandle = MainThreadReturn(^{ return [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO]; }, UE4NilEventMode);
-
-	if( WindowHandle == NULL )
-	{
-		// @todo Error message should be localized!
-		NSRunInformationalAlertPanel( @"Error", @"Window creation failed!", @"Yes", NULL, NULL );
-		check(0);
-		return;
-	}
-
 	MainThreadCall(^{
-		// Disable automatic release on close - explicit retain/release makes the Destroy() logic much easier to follow
-		[WindowHandle setReleasedWhenClosed: NO];
+		WindowHandle = [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO];
 		
-		[WindowHandle setWindowMode: WindowMode];
-		[WindowHandle setAcceptsInput: Definition->AcceptsInput];
-		[WindowHandle setDisplayReconfiguring: false];
-		[WindowHandle setAcceptsMouseMovedEvents: YES];
-		[WindowHandle setDelegate: WindowHandle];
-
-		// @todo: We really need a window type in tab manager to know what window level to use and whether or not a window should hide on deactivate
-		if(Definition->IsRegularWindow && (!InParent.IsValid() || Definition->IsModalWindow || (!Definition->SupportsMaximize && !Definition->SupportsMinimize)))
+		if( WindowHandle != nullptr )
 		{
-			[WindowHandle setLevel: NSNormalWindowLevel];
-		}
-		else
-		{
-			[WindowHandle setLevel: NSFloatingWindowLevel];
-			[WindowHandle setHidesOnDeactivate: YES];
-		}
-		
-		// Use of rounded corners will always render with system values for rounding
-		[WindowHandle setRoundedCorners: (Definition->CornerRadius != 0)];
-		
-		if( !Definition->HasOSWindowBorder )
-		{
-			[WindowHandle setBackgroundColor: [NSColor darkGrayColor]];
-			[WindowHandle setHasShadow: YES];
-		}
+			[WindowHandle setWindowMode: WindowMode];
+			[WindowHandle setAcceptsInput: Definition->AcceptsInput];
+			[WindowHandle setDisplayReconfiguring: false];
+			[WindowHandle setAcceptsMouseMovedEvents: YES];
+			[WindowHandle setDelegate: WindowHandle];
 
-		[WindowHandle setOpaque: NO];
-
-		ReshapeWindow( X, Y, SizeX, SizeY );
-
-		if( Definition->IsRegularWindow )
-		{
-			CFStringRef CFName = FPlatformString::TCHARToCFString( *Definition->Title );
-			[WindowHandle setTitle: ( NSString *)CFName];
-			CFRelease( CFName );
-
-			[NSApp addWindowsItem: WindowHandle title: [WindowHandle title] filename: NO];
-
-			// Tell Cocoa that we are opting into drag and drop.
-			// Only makes sense for regular windows (windows that last a while.)
-			[WindowHandle registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
-
-			if( Definition->HasOSWindowBorder )
+			// @todo: We really need a window type in tab manager to know what window level to use and whether or not a window should hide on deactivate
+			if(Definition->IsRegularWindow && (!InParent.IsValid() || Definition->IsModalWindow || (!Definition->SupportsMaximize && !Definition->SupportsMinimize)))
 			{
-				[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+				[WindowHandle setLevel: NSNormalWindowLevel];
 			}
 			else
 			{
-				[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+				[WindowHandle setLevel: NSFloatingWindowLevel];
+				[WindowHandle setHidesOnDeactivate: YES];
+			}
+			
+			// Use of rounded corners will always render with system values for rounding
+			[WindowHandle setRoundedCorners: (Definition->CornerRadius != 0)];
+			
+			if( !Definition->HasOSWindowBorder )
+			{
+				[WindowHandle setBackgroundColor: [NSColor darkGrayColor]];
+				[WindowHandle setHasShadow: YES];
+			}
+
+			[WindowHandle setOpaque: NO];
+
+			ReshapeWindow( X, Y, SizeX, SizeY );
+
+			if( Definition->IsRegularWindow )
+			{
+				CFStringRef CFName = FPlatformString::TCHARToCFString( *Definition->Title );
+				[WindowHandle setTitle: ( NSString *)CFName];
+				CFRelease( CFName );
+
+				[NSApp addWindowsItem: WindowHandle title: [WindowHandle title] filename: NO];
+
+				// Tell Cocoa that we are opting into drag and drop.
+				// Only makes sense for regular windows (windows that last a while.)
+				[WindowHandle registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
+
+				if( Definition->HasOSWindowBorder )
+				{
+					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+				}
+				else
+				{
+					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+				}
+			}
+			else if(Definition->AppearsInTaskbar)
+			{
+				[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+			}
+			else
+			{
+				[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
+			}
+
+			if( Definition->SupportsTransparency )
+			{
+				SetOpacity( Definition->Opacity );
+			}
+			else
+			{
+				SetOpacity( 1.0f );
 			}
 		}
-		else if(Definition->AppearsInTaskbar)
-		{
-			[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
-		}
 		else
 		{
-			[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
+			// @todo Error message should be localized!
+			NSRunInformationalAlertPanel( @"Error", @"Window creation failed!", @"Yes", NULL, NULL );
+			check(0);
 		}
-
-		if( Definition->SupportsTransparency )
-		{
-			SetOpacity( Definition->Opacity );
-		}
-		else
-		{
-			SetOpacity( 1.0f );
-		}
-	}, UE4ResizeEventMode, true);
+	}, UE4ShowEventMode, true);
+	
+	if( WindowHandle == nullptr )
+	{
+		return;
+	}
+	
+	if ( bShowImmediately )
+	{
+		Show();
+	}
 }
 
 FMacWindow::FMacWindow()
@@ -256,16 +264,12 @@ void FMacWindow::Destroy()
 {
 	if( WindowHandle )
 	{
-		// Retain the window as this FMacWindow may be destructed within OnWindowDestroyed.
-		// The destructor will release the window once, so we need to still have a reference.
-		// This makes it possible to correctly handle any NSEvent's sent to the window during destruction
-		// as the WindowHandle is still a valid NSWindow. Unlike HWNDs accessing a destructed NSWindow* is fatal.
-		FCocoaWindow* Window = [WindowHandle retain];
+		FCocoaWindow* Window = WindowHandle;
 		if(Definition->IsModalWindow)
 		{
-			RemoveModalWindow(WindowHandle);
+			RemoveModalWindow(Window);
 		}
-		Window.bForwardEvents = false;
+		
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
 			// This FMacWindow may have been destructed by now & so the WindowHandle will probably be invalid memory.
@@ -277,18 +281,11 @@ void FMacWindow::Destroy()
 				// Activate specified previous window if still present, provided it isn't minimized
 				KeyWindow->SetWindowFocus();
 			}
-
-			// Close the window, but don't destruct it...
+			
 			MainThreadCall(^{
 				[Window performClose:nil];
+				WindowHandle = nil;
 			}, UE4CloseEventMode, true);
-			
-			// Since event handling of the change in focus may try to communicate with this window,
-			// dispatch a call to release it which should be handled afterward.
-			// This will ensure proper event handling & destruction order.
-			dispatch_async(dispatch_get_main_queue(), ^{
-				[Window release];
-			});
 		}
 	}
 }
