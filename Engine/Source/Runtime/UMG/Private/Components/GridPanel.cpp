@@ -81,6 +81,11 @@ void UGridPanel::SynchronizeProperties()
 	}
 }
 
+UGridSlot* UGridPanel::GetGridChildSlot(UWidget* ChildWidget)
+{
+	return Cast<UGridSlot>(ChildWidget->Slot);
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UGridPanel::GetEditorIcon()

@@ -319,6 +319,11 @@ FReply FBlueprintWidgetCustomization::AddOrViewEventBinding(TSharedPtr<FEdGraphS
 
 void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
+	PerformBindingCustomization(DetailLayout);
+}
+
+void FBlueprintWidgetCustomization::PerformBindingCustomization(IDetailLayoutBuilder& DetailLayout)
+{
 	TArray< TWeakObjectPtr<UObject> > OutObjects;
 	DetailLayout.GetObjectsBeingCustomized(OutObjects);
 
@@ -333,13 +338,13 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 
 			if ( UDelegateProperty* DelegateProperty = Cast<UDelegateProperty>(*PropertyIt) )
 			{
-				if( DelegateProperty->GetName().EndsWith(TEXT("Delegate")) )
+				if ( DelegateProperty->GetName().EndsWith(TEXT("Delegate")) )
 				{
-					CreateDelegateCustomization( DetailLayout, DelegateProperty, Widget );
+					CreateDelegateCustomization(DetailLayout, DelegateProperty, Widget);
 				}
-				else if( DelegateProperty->GetName().EndsWith(TEXT("Event")) )
+				else if ( DelegateProperty->GetName().EndsWith(TEXT("Event")) )
 				{
-					CreateEventCustomization( DetailLayout, DelegateProperty, Widget );
+					CreateEventCustomization(DetailLayout, DelegateProperty, Widget);
 				}
 			}
 			else if ( UMulticastDelegateProperty* DelegateProperty = Cast<UMulticastDelegateProperty>(Property) )

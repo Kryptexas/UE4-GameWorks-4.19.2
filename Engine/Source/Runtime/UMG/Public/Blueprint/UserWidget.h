@@ -17,7 +17,7 @@ class UWidgetAnimation;
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to
  * allow script code to override OnPaint behavior.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct UMG_API FPaintContext
 {
 	GENERATED_USTRUCT_BODY()

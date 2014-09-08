@@ -9,6 +9,11 @@
 #include "ISequencer.h"
 #include "Animation/UMGDetailKeyframeHandler.h"
 
+#include "CanvasSlotCustomization.h"
+#include "HorizontalAlignmentCustomization.h"
+#include "VerticalAlignmentCustomization.h"
+#include "SlateChildSizeCustomization.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
@@ -105,6 +110,7 @@ SWidgetDetailsView::~SWidgetDetailsView()
 void SWidgetDetailsView::RegisterCustomizations()
 {
 	PropertyView->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, BlueprintEditor.Pin().ToSharedRef(), BlueprintEditor.Pin()->GetBlueprintObj()));
+
 	//PropertyView->RegisterInstancedCustomPropertyLayout(FSlateBrush::StaticStruct()->StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance));
 
 	static FName PropertyEditor("PropertyEditor");

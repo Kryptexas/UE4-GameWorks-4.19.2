@@ -8,6 +8,8 @@
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
 
+#include "CanvasSlotCustomization.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 // FCanvasSlotCustomization

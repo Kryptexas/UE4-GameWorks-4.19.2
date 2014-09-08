@@ -5,7 +5,7 @@
 #include "SlateEnums.generated.h"
 
 
-UENUM()
+UENUM(BlueprintType)
 namespace EButtonClickMethod
 {
 	/**
@@ -33,7 +33,7 @@ namespace EButtonClickMethod
 }
 
 
-UENUM()
+UENUM(BlueprintType)
 namespace EButtonTouchMethod
 {
 	/** Ways in which touch interactions trigger a "Clicked" event. */
@@ -51,7 +51,7 @@ namespace EButtonTouchMethod
 }
 
 
-UENUM()
+UENUM(BlueprintType)
 namespace EFocusMoveDirection
 {
 	/**
@@ -71,7 +71,7 @@ namespace EFocusMoveDirection
 /**
  * Enumerates horizontal alignment options, i.e. for widget slots.
  */
-UENUM()
+UENUM(BlueprintType)
 enum EHorizontalAlignment
 {
 	/** Fill the entire width. */
@@ -91,7 +91,7 @@ enum EHorizontalAlignment
 /**
  * Enumerates vertical alignment options, i.e. for widget slots.
  */
-UENUM()
+UENUM(BlueprintType)
 enum EVerticalAlignment
 {
 	/** Fill the entire height. */
@@ -111,7 +111,7 @@ enum EVerticalAlignment
 /**
  * Enumerates possible placements for pop-up menus.
  */
-UENUM()
+UENUM(BlueprintType)
 enum EMenuPlacement
 {
 	/** Place the menu immediately below the anchor */
@@ -134,7 +134,7 @@ enum EMenuPlacement
 /**
  * Enumerates widget orientations.
  */
-UENUM()
+UENUM(BlueprintType)
 enum EOrientation
 {
 	/** Orient horizontally, i.e. left to right. */
@@ -148,7 +148,7 @@ enum EOrientation
 /**
  * Enumerates scroll directions.
  */
-UENUM()
+UENUM(BlueprintType)
 enum EScrollDirection
 {
 	/** Scroll down. */
@@ -162,7 +162,7 @@ enum EScrollDirection
 /**
  * Additional information about a text committal
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ETextCommit
 {
 	enum Type
@@ -182,7 +182,7 @@ namespace ETextCommit
 /**
  * Additional information about a selection event
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ESelectInfo
 {
 	enum Type

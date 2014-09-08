@@ -15,18 +15,22 @@ class UMG_API UScrollBoxSlot : public UPanelSlot
 public:
 	
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (ScrollBox Slot)")
 	FMargin Padding;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (ScrollBox Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+public:
+
+	UFUNCTION(BlueprintCallable, Category="Layout (ScrollBox Slot)")
 	void SetPadding(FMargin InPadding);
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (ScrollBox Slot)")
 	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+
+public:
 
 	// UPanelSlot interface
 	virtual void SynchronizeProperties() override;

@@ -161,6 +161,18 @@ const FText UButton::GetToolboxCategory()
 	return LOCTEXT("Common", "Common");
 }
 
+bool UButton::CanEditChange(const UProperty* Property) const
+{
+	static const FName ButtonStyleName(TEXT("ButtonStyle"));
+
+	if ( Property->GetFName() == ButtonStyleName )
+	{
+		return  Style == nullptr;
+	}
+
+	return true;
+}
+
 #endif
 
 /////////////////////////////////////////////////////

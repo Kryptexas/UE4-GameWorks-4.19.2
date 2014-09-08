@@ -12,13 +12,20 @@ class UMG_API UGridPanel : public UPanelWidget
 
 public:
 
-	/** Fill */
+	/** The column fill rules */
 	UPROPERTY(EditDefaultsOnly, Category="Fill Rules")
 	TArray<float> ColumnFill;
 
-	/** Fill */
+	/** The row fill rules */
 	UPROPERTY(EditDefaultsOnly, Category="Fill Rules")
 	TArray<float> RowFill;
+
+	/**
+	 * Gets the grid slot object on the child widget inside this panel, allowing you to manipulate layout information.
+	 * @param ChildWidget The child widget.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Slot")
+	static UGridSlot* GetGridChildSlot(UWidget* ChildWidget);
 
 public:
 

@@ -2,6 +2,9 @@
 
 #pragma once
 
+/**
+ * Provides the customization for all UWidgets.  Bindings, style disabling...etc.
+ */
 class FBlueprintWidgetCustomization : public IDetailCustomization
 {
 public:
@@ -29,6 +32,8 @@ private:
 		FName FuncName;
 		UEdGraph* EdGraph;
 	};
+
+	void PerformBindingCustomization(IDetailLayoutBuilder& DetailLayout);
 
 	void RefreshBlueprintMemberCache(const UFunction* DelegateSignature);
 

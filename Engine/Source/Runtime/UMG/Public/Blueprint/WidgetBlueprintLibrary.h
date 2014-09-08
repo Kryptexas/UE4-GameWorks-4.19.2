@@ -84,20 +84,31 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
 	static FEventReply EndDragDrop(UPARAM(ref) FEventReply& Reply);
 
-	/**  */
+	/**
+	 * Creates a Slate Brush from a Slate Brush Asset
+	 *
+	 * @return A new slate brush using the asset's brush.
+	 */
 	UFUNCTION(BlueprintPure, Category="Widget|Brush")
 	static FSlateBrush MakeBrushFromAsset(USlateBrushAsset* BrushAsset);
 
-   /** 
-	* Creates a Slate Brush from a Texture2D
-	*
-	* @param Width  When less than or equal to zero, the Width of the brush will default to the Width of the Texture
-	* @param Height  When less than or equal to zero, the Height of the brush will default to the Height of the Texture
-	*/
+	/** 
+	 * Creates a Slate Brush from a Texture2D
+	 *
+	 * @param Width  When less than or equal to zero, the Width of the brush will default to the Width of the Texture
+	 * @param Height  When less than or equal to zero, the Height of the brush will default to the Height of the Texture
+	 *
+	 * @return A new slate brush using the texture.
+	 */
 	UFUNCTION(BlueprintPure, Category="Widget|Brush")
 	static FSlateBrush MakeBrushFromTexture(UTexture2D* Texture, int32 Width = 0, int32 Height = 0);
 
-	/**  */
+	/**
+	 * Creates a Slate Brush from a Material.  Materials don't have an implicit size, so providing a widget and height
+	 * is required to hint slate with how large the image wants to be by default.
+	 *
+	 * @return A new slate brush using the material.
+	 */
 	UFUNCTION(BlueprintPure, Category="Widget|Brush")
-	static FSlateBrush MakeBrushFromMaterial(UMaterialInterface* Material, int32 Width, int32 Height);
+	static FSlateBrush MakeBrushFromMaterial(UMaterialInterface* Material, int32 Width = 32, int32 Height = 32);
 };

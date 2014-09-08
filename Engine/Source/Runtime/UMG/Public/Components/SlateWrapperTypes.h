@@ -31,7 +31,7 @@ namespace ESlateVisibility
 }
 
 /** The sizing options of UWidgets */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateSizeRule
 {
 	enum Type
@@ -77,7 +77,7 @@ struct FEventReply
 };
 
 /** A struct exposing size param related properties to UMG. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSlateChildSize
 {
 	GENERATED_USTRUCT_BODY()

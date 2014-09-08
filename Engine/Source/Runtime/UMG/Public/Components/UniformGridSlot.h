@@ -18,36 +18,40 @@ class UMG_API UUniformGridSlot : public UPanelSlot
 public:
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Uniform Grid Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Uniform Grid Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 	
 	/** The row index of the cell this slot is in */
-	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category=Layout)
+	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category="Layout (Uniform Grid Slot)")
 	int32 Row;
 	
 	/** The column index of the cell this slot is in */
-	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category=Layout)
+	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category="Layout (Uniform Grid Slot)")
 	int32 Column;
 
+public:
+
 	/** Sets the row index of the slot, this determines what cell the slot is in the panel */
-	UFUNCTION(BlueprintCallable, Category=Layout)
+	UFUNCTION(BlueprintCallable, Category="Layout (Uniform Grid Slot)")
 	void SetRow(int32 InRow);
 
 	/** Sets the column index of the slot, this determines what cell the slot is in the panel */
-	UFUNCTION(BlueprintCallable, Category=Layout)
+	UFUNCTION(BlueprintCallable, Category="Layout (Uniform Grid Slot)")
 	void SetColumn(int32 InColumn);
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category=Layout)
+	UFUNCTION(BlueprintCallable, Category="Layout (Uniform Grid Slot)")
 	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category=Layout)
+	UFUNCTION(BlueprintCallable, Category="Layout (Uniform Grid Slot)")
 	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+
+public:
 
 	// UPanelSlot interface
 	virtual void SynchronizeProperties() override;
