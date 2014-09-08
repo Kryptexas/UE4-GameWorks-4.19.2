@@ -199,6 +199,10 @@ IOnlineSubsystem* FOnlineSubsystemModule::GetOnlineSubsystem(const FName InSubsy
 					OnlineSubsystems.Add(KeyName, NewSubsystemInstance);
 					OnlineSubsystem = OnlineSubsystems.Find(KeyName);
 				}
+				else
+				{
+					UE_LOG(LogOnline, Warning, TEXT("Unable to create OnlineSubsystem module %s"), *SubsystemName.ToString());
+				}
 			}
 			else
 			{

@@ -685,7 +685,7 @@ void GetWindowSizeForInstanceType(FIntPoint &WindowSize, const ULevelEditorPlayS
  * @param	WinX			Window X position. This will contain the X position to use for the next window. (Not changed for dedicated server window).
  * @param	WinY			Window Y position. This will contain the X position to use for the next window. (Not changed for dedicated server window).
  * @param	InstanceNum		PIE instance index.
- * @param	IsServer		Is this instance a dedicated server. true if so else false.
+ * @param	IsServer		Is this instance a server. true if so else false.
  */
 FString GenerateCmdLineForNextPieInstance(int32 &WinX, int32 &WinY, int32 &InstanceNum, bool IsServer)
 {
@@ -697,7 +697,7 @@ FString GenerateCmdLineForNextPieInstance(int32 &WinX, int32 &WinY, int32 &Insta
 	//	-Override GameUserSettings.ini
 	//	-Force no steam
 	//	-Allow saving of config files (since we are giving them an override INI)
-	FString CmdLine = FString::Printf(TEXT("GameUserSettingsINI=%s -MultiprocessSaveConfig %s "), *GameUserSettingsOverride, *PlayInSettings->AdditionalLaunchOptions);
+	FString CmdLine = FString::Printf(TEXT("GameUserSettingsINI=%s -MultiprocessSaveConfig %s -MultiprocessOSS "), *GameUserSettingsOverride, *PlayInSettings->AdditionalLaunchOptions);
 
 	if (IsServer && PlayInSettings->PlayNetDedicated)
 	{
@@ -980,17 +980,14 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 {
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	//const ULevelEditorPlaySettings* PlayInSettings = InPlaySettings != NULL ? InPlaySettings : GetDefault<ULevelEditorPlaySettings>();
+
 	FString CmdLine;
-	if (WindowPos != NULL)
+	if (WindowPos != NULL)	// If WindowPos == NULL, we're just launching one instance
 	{
 		CmdLine = GenerateCmdLineForNextPieInstance(WindowPos->X, WindowPos->Y, PIENum, bIsServer);
 	}
 	
-	FString URLParms;		
-	if (bIsServer == true)
-	{
-		URLParms = bIsServer == true ? TEXT("?Listen") : FString();
-	}
+	const FString URLParms = bIsServer == true ? TEXT("?Listen") : FString();
 	
 	// select map to play
 	TArray<FString> SavedMapNames;
