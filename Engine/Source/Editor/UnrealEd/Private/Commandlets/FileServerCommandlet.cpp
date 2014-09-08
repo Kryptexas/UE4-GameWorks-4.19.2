@@ -58,7 +58,7 @@ int32 UFileServerCommandlet::Main( const FString& Params )
 
 	// start the listening thread
 	INetworkFileServer* NetworkFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
-		.CreateNetworkFileServer(InstanceId.IsValid() ? 0 : -1);
+		.CreateNetworkFileServer(true, InstanceId.IsValid() ? 0 : -1);
 
 	TArray<TSharedPtr<FInternetAddr> > AddressList;
 

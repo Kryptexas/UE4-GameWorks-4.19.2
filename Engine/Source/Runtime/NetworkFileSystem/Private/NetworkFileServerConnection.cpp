@@ -643,6 +643,7 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	In << bIsStreamingRequest;
 
 	ConnectedPlatformName = TEXT("");
+
 	// figure out the best matching target platform for the set of valid ones
 	for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num() && ConnectedPlatformName == TEXT(""); TPIndex++)
 	{
@@ -663,19 +664,27 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	// if we didn't find one, reject client and also print some warnings
 	if (ConnectedPlatformName == TEXT(""))
 	{
-		// ConnectedPlatformName = TargetPlatformNames[0];
-		// reject client we can't cook for you!
-		UE_LOG(LogFileServer, Warning, TEXT("Unable to find target platform for client, terminating client connection!") );
-
-		for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num() && ConnectedPlatformName == TEXT(""); TPIndex++)
+		// if we didn't find one (and this is a dumb server - no active platforms), then just use what was sent
+		if (ActiveTargetPlatforms.Num() == 0)
 		{
-			UE_LOG(LogFileServer, Warning, TEXT("    Target platforms from client: %s"), *TargetPlatformNames[TPIndex]);
+			ConnectedPlatformName = TargetPlatformNames[0];
 		}
-		for (int32 ActiveTPIndex = 0; ActiveTPIndex < ActiveTargetPlatforms.Num(); ActiveTPIndex++)
+		// we only need to care about validating the connected platform if there are active targetplatforms
+		else
 		{
-			UE_LOG(LogFileServer, Warning, TEXT("    Active target platforms on server: %s"), *ActiveTargetPlatforms[ActiveTPIndex]->PlatformName());
-		}	
-		return false;
+			// reject client we can't cook/compile shaders for you!
+			UE_LOG(LogFileServer, Warning, TEXT("Unable to find target platform for client, terminating client connection!"));
+
+			for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num() && ConnectedPlatformName == TEXT(""); TPIndex++)
+			{
+				UE_LOG(LogFileServer, Warning, TEXT("    Target platforms from client: %s"), *TargetPlatformNames[TPIndex]);
+			}
+			for (int32 ActiveTPIndex = 0; ActiveTPIndex < ActiveTargetPlatforms.Num(); ActiveTPIndex++)
+			{
+				UE_LOG(LogFileServer, Warning, TEXT("    Active target platforms on server: %s"), *ActiveTargetPlatforms[ActiveTPIndex]->PlatformName());
+			}
+			return false;
+		}
 	}
 
 	ConnectedEngineDir = EngineRelativePath;

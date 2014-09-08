@@ -10,7 +10,8 @@ public class TargetPlatform : ModuleRules
 		PrivateDependencyModuleNames.Add("Core");		
         PublicDependencyModuleNames.Add("DesktopPlatform");
 
-		if (!UEBuildConfiguration.bBuildRequiresCookedData)
+		// no need for all these modules if the program doesn't want developer tools at all (like UnrealFileServer)
+		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bBuildDeveloperTools)
 		{
             // these are needed by multiple platform specific target platforms, so we make sure they are built with the base editor
             DynamicallyLoadedModuleNames.Add("ShaderPreprocessor");

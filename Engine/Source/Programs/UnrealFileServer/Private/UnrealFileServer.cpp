@@ -34,7 +34,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 	// start the listening thread
 	INetworkFileServer* NetworkFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
-		.CreateNetworkFileServer();
+		.CreateNetworkFileServer(false);
 
 	// loop while the server does the rest
 	double LastTime = FPlatformTime::Seconds();
