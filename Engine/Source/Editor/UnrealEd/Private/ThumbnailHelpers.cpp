@@ -803,6 +803,7 @@ bool FAnimBlueprintThumbnailScene::SetAnimBlueprint(class UAnimBlueprint* InBlue
 	{
 		CleanupComponentChildren(PreviewActor->SkeletalMeshComponent);
 		PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(nullptr);
+		PreviewActor->SkeletalMeshComponent->SetAnimInstanceClass(nullptr);
 	}
 
 	return bSetSucessfully;
