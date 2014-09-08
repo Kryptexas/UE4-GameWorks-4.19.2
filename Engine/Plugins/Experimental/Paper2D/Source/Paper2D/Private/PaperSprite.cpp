@@ -790,6 +790,9 @@ void UPaperSprite::BuildGeometryFromContours(FSpritePolygonCollection& GeomOwner
 			{
 				new (Polygon.Vertices) FVector2D(Contour[PointIndex]);
 			}
+
+			// Get intended winding
+			Polygon.bNegativeWinding = !PaperGeomTools::IsPolygonWindingCCW(Polygon.Vertices);
 		}
 	}
 }
@@ -1066,10 +1069,12 @@ void UPaperSprite::SetRotated(bool bRotated)
 	RebuildCollisionData();
 }
 
-void UPaperSprite::SetPivot(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot)
+void UPaperSprite::SetPivotMode(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot)
 {
 	this->PivotMode = PivotMode;
 	this->CustomPivotPoint = CustomTextureSpacePivot;
+	RebuildRenderData();
+	RebuildCollisionData();
 }
 
 FVector2D UPaperSprite::ConvertTextureSpaceToPivotSpace(FVector2D Input) const

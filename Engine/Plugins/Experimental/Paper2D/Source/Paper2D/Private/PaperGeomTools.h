@@ -15,6 +15,10 @@ public:
 	// Entries in the array that aren't polygons (< 3 points) are removed
 	static TArray<FSpritePolygon> CorrectPolygonWinding(const TArray<FSpritePolygon>& Polygons);
 
+	// Returns true if the points forming a polygon have CCW winding
+	// Returns true if the polygon isn't valid
+	static bool IsPolygonWindingCCW(const TArray<FVector2D>& Points);
+
 	// Checks that these polygons can be successfully triangulated	
 	static bool ArePolygonsValid(const TArray<FSpritePolygon>& Polygons);
 

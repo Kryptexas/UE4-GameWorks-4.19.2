@@ -104,7 +104,7 @@ void SSpriteEditorViewport::BindCommands()
 	CommandList->MapAction(
 		Commands.SetShowSourceTexture,
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowSourceTexture ),
-		FCanExecuteAction(),
+		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanShowSourceTexture),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowSourceTextureChecked ) );
 
 	CommandList->MapAction(
@@ -508,12 +508,11 @@ void FSpriteEditor::ExtendToolbar()
 // 			}
 // 			ToolbarBuilder.EndSection();
 
-			// Temporarily disabled until we decide what to do with it. Its not very useful as it is right now.
-//			ToolbarBuilder.BeginSection("Command");
-//			{
-//				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSourceTexture);
-//			}
-//			ToolbarBuilder.EndSection();
+			ToolbarBuilder.BeginSection("Command");
+			{
+				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSourceTexture);
+			}
+			ToolbarBuilder.EndSection();
 
 			ToolbarBuilder.BeginSection("Tools");
 			{

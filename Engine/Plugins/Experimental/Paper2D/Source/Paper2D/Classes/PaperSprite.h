@@ -206,7 +206,11 @@ public:
 
 	void SetTrim(bool bTrimmed, const FVector2D& OriginInSourceImage, const FVector2D& SourceImageDimension);
 	void SetRotated(bool bRotated);
-	void SetPivot(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot);
+	void SetPivotMode(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot);
+	
+	bool IsRotatedInSourceImage() const { return bRotatedInSourceImage; }
+	ESpritePivotMode::Type GetPivotMode(FVector2D& OutCustomTextureSpacePivot) const { OutCustomTextureSpacePivot = CustomPivotPoint; return PivotMode; }
+
 
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }

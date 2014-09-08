@@ -110,6 +110,47 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 			FComponentReregisterContext ReregisterSprite(SourceTextureViewComponent);
 			TargetSprite->InitializeSprite(SourceSprite->SourceTexture, SourceSprite->PixelsPerUnrealUnit);
 		}
+
+
+		// Position the sprite for the mode its meant to be in
+		FVector2D CurrentPivotPosition;
+		ESpritePivotMode::Type CurrentPivotMode = TargetSprite->GetPivotMode(/*out*/CurrentPivotPosition);
+
+		FVector Translation(1.0f * PaperAxisZ);
+		if (IsInSourceRegionEditMode())
+		{
+			if (CurrentPivotMode != ESpritePivotMode::Bottom_Left)
+			{
+				TargetSprite->SetPivotMode(ESpritePivotMode::Bottom_Left, FVector2D::ZeroVector);
+				TargetSprite->PostEditChange();
+			}
+			SourceTextureViewComponent->SetSpriteColor(FLinearColor::White);
+			SourceTextureViewComponent->SetWorldTransform(FTransform(Translation));
+		}
+		else
+		{
+			// Tint the source texture darker to help distinguish the two
+			FLinearColor DarkTintColor(0.05f, 0.05f, 0.05f, 1.0f);
+
+			FVector2D PivotPosition = SourceSprite->GetPivotPosition();
+			if (CurrentPivotMode != ESpritePivotMode::Custom || CurrentPivotPosition != PivotPosition)
+			{
+				TargetSprite->SetPivotMode(ESpritePivotMode::Custom, PivotPosition);
+				TargetSprite->PostEditChange();
+			}
+			SourceTextureViewComponent->SetSpriteColor(DarkTintColor);
+
+			bool bRotated = SourceSprite->IsRotatedInSourceImage();
+			if (bRotated)
+			{
+				FQuat Rotation(PaperAxisZ, FMath::DegreesToRadians(90.0f));
+				SourceTextureViewComponent->SetWorldTransform(FTransform(Rotation, Translation));
+			}
+			else
+			{
+				SourceTextureViewComponent->SetWorldTransform(FTransform(Translation));
+			}
+		}
 	}
 	else
 	{
@@ -723,7 +764,7 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 
 	// We don't draw the pivot when showing the source region
 	// The pivot may be outside the actual texture bounds there
-	if (bShowPivot && !bShowSourceTexture && CurrentMode != ESpriteEditorMode::EditSourceRegionMode)
+	if (bShowPivot && !bShowSourceTexture && !IsInSourceRegionEditMode())
 	{
 		FUnrealEdUtils::DrawWidget(View, PDI, RenderSpriteComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::XZ, EWidgetMovementMode::WMM_Translate);
 	}
@@ -753,14 +794,14 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 		const FVector PivotInWorldSpace = TextureSpaceToWorldSpace(PivotInTextureSpace);
 		RenderSpriteComponent->SetRelativeLocation(PivotInWorldSpace);
 
-		bool bSourceTextureViewComponentVisibility = bShowSourceTexture || (CurrentMode == ESpriteEditorMode::EditSourceRegionMode);
+		bool bSourceTextureViewComponentVisibility = bShowSourceTexture || IsInSourceRegionEditMode();
 		if (bSourceTextureViewComponentVisibility != SourceTextureViewComponent->IsVisible())
 		{
 			bDeferZoomToSprite = true;
 			SourceTextureViewComponent->SetVisibility(bSourceTextureViewComponentVisibility);
 		}
 
-		bool bRenderTextureViewComponentVisibility = !bSourceTextureViewComponentVisibility;
+		bool bRenderTextureViewComponentVisibility = !IsInSourceRegionEditMode();
 		if (bRenderTextureViewComponentVisibility != RenderSpriteComponent->IsVisible())
 		{
 			bDeferZoomToSprite = true;
@@ -957,7 +998,7 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 				}
 			}
 		}
-		else if (IsInRenderingEditMode() || IsInCollisionEditMode())
+		else if (IsEditingGeometry())
 		{
 			if (bIsCtrlKeyDown)
 			{

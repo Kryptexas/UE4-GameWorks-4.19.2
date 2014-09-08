@@ -6,7 +6,7 @@
 #include "PaperGeomTools.h"
 #include "GeomTools.h"
 
-static bool IsPolygonWindingCCW(const TArray<FVector2D>& Points)
+bool PaperGeomTools::IsPolygonWindingCCW(const TArray<FVector2D>& Points)
 {
 	float Sum = 0.0f;
 	const int PointCount = Points.Num();
@@ -370,37 +370,38 @@ bool PaperGeomTools::ArePolygonsValid(const TArray<FSpritePolygon>& Polygons)
 	}
 
 	// Make sure no polygons are self-intersecting
-	for (int PolygonIndex = 0; PolygonIndex < PolygonCount; ++PolygonIndex)
-	{
-		const TArray<FVector2D>& Polygon = Polygons[PolygonIndex].Vertices;
-		const int PointCount = Polygon.Num();
-		for (int PointIndexA = 0; PointIndexA < PointCount; ++PointIndexA)
-		{
-			const FVector2D& A0 = Polygon[PointIndexA];
-			const FVector2D& A1 = Polygon[(PointIndexA + 1) % PointCount];
-			const FVector2D A10 = A1 - A0;
-			for (int PointIndexB = 0; PointIndexB < PointCount - 3; ++PointIndexB)
-			{
-				const FVector2D& B0 = Polygon[(PointIndexA + 2 + PointIndexB) % PointCount];
-				const FVector2D& B1 = Polygon[(PointIndexA + 3 + PointIndexB) % PointCount];
-				const FVector2D B10 = B1 - B0;
+	// Disabled for now until we decide what to do with this - contour tracing can generate invalid polys & degenerate edges
+	//for (int PolygonIndex = 0; PolygonIndex < PolygonCount; ++PolygonIndex)
+	//{
+	//	const TArray<FVector2D>& Polygon = Polygons[PolygonIndex].Vertices;
+	//	const int PointCount = Polygon.Num();
+	//	for (int PointIndexA = 0; PointIndexA < PointCount; ++PointIndexA)
+	//	{
+	//		const FVector2D& A0 = Polygon[PointIndexA];
+	//		const FVector2D& A1 = Polygon[(PointIndexA + 1) % PointCount];
+	//		const FVector2D A10 = A1 - A0;
+	//		for (int PointIndexB = 0; PointIndexB < PointCount - 3; ++PointIndexB)
+	//		{
+	//			const FVector2D& B0 = Polygon[(PointIndexA + 2 + PointIndexB) % PointCount];
+	//			const FVector2D& B1 = Polygon[(PointIndexA + 3 + PointIndexB) % PointCount];
+	//			const FVector2D B10 = B1 - B0;
 
-				const float DetS = A10.X * B10.Y - A10.Y * B10.X;
-				const float DetT = B10.X * A10.Y - B10.Y * A10.X;
-				if (DetS != 0.0f && DetT != 0.0f)
-				{
-					const float S = (A0.Y * B10.X - B0.Y * B10.X - A0.X * B10.Y + B0.X * B10.Y) / DetS;
-					const float T = (B0.Y * A10.X - A0.Y * A10.X - B0.X * A10.Y + A0.X * A10.Y) / DetT;
-					if (S >= 0.0f && S <= 1.0f && T >= 0.0f && T <= 1.0f)
-					{
-						// Edges intersect
-						UE_LOG(LogPaper2D, Log, TEXT("Polygon %d is self intersecting"), PolygonIndex);
-						return false;
-					}
-				}
-			}
-		}
-	}
+	//			const float DetS = A10.X * B10.Y - A10.Y * B10.X;
+	//			const float DetT = B10.X * A10.Y - B10.Y * A10.X;
+	//			if (DetS != 0.0f && DetT != 0.0f)
+	//			{
+	//				const float S = (A0.Y * B10.X - B0.Y * B10.X - A0.X * B10.Y + B0.X * B10.Y) / DetS;
+	//				const float T = (B0.Y * A10.X - A0.Y * A10.X - B0.X * A10.Y + A0.X * A10.Y) / DetT;
+	//				if (S >= 0.0f && S <= 1.0f && T >= 0.0f && T <= 1.0f)
+	//				{
+	//					// Edges intersect
+	//					UE_LOG(LogPaper2D, Log, TEXT("Polygon %d is self intersecting"), PolygonIndex);
+	//					return false;
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 
 	return true;
 }

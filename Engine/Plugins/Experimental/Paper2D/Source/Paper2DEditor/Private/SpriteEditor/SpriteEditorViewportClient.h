@@ -66,9 +66,6 @@ public:
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
 	// End of FEditorViewportClient interface
 
-	void ToggleShowSourceTexture();
-	bool IsShowSourceTextureChecked() const { return bShowSourceTexture; }
-
 	void ToggleShowSockets() { bShowSockets = !bShowSockets; Invalidate(); }
 	bool IsShowSocketsChecked() const { return bShowSockets; }
 
@@ -95,6 +92,10 @@ public:
 
 	//
 	bool IsEditingGeometry() const { return IsInCollisionEditMode() || IsInRenderingEditMode(); }
+
+	void ToggleShowSourceTexture();
+	bool IsShowSourceTextureChecked() const { return bShowSourceTexture; }
+	bool CanShowSourceTexture() const { return !IsInSourceRegionEditMode(); }
 
 	void FocusOnSprite();
 
