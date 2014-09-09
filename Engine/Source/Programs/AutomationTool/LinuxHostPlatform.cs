@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -71,6 +71,8 @@ namespace AutomationTool
 				// For some reason AutomationScripts.Automation.csproj has ToolsVersion set
 				// to 11.0, which is no available on linux, so force ToolsVersion to 4.0
 				CommandLine += " /tv:4.0";
+				// Pass #define MONO to all the automation scripts (see XboxOne)
+				CommandLine += " /p:DefineConstants=MONO";
 				// Some projects have TargetFrameworkProfile=Client which causes warnings on Linux
 				// so force it to empty.
 				CommandLine += " /p:TargetFrameworkProfile=";
