@@ -754,7 +754,7 @@ inline bool TQuadricAttrOptimizer< NumAttributes >::Optimize( FVector& Point ) c
 
 	double det = iNvx * nvx + iNvy * nvy + iNvz * nvz;
 
-	if( abs( det ) < 1e-8 )
+	if( FMath::Abs( det ) < 1e-8 )
 	{
 		return false;
 	}
