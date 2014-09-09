@@ -632,6 +632,9 @@ namespace
 
 void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath)
 {
+	// Add one to the revision index, so all FText's refresh.
+	++HeadCultureRevisionIndex;
+	
 	FInternationalization& I18N = FInternationalization::Get();
 
 	FString SectionName = TEXT("RegenerateResources");
