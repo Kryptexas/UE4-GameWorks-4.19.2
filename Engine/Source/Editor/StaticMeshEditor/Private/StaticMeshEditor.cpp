@@ -1579,6 +1579,9 @@ void FStaticMeshEditor::DeleteSelectedPrims()
 			// Make sure rendering is done - so we are not changing data being used by collision drawing.
 			FlushRenderingCommands();
 
+			// Make sure to invalidate cooked data
+			StaticMesh->BodySetup->InvalidatePhysicsData();
+
 			// refresh collision change back to staticmesh components
 			RefreshCollisionChange(StaticMesh);
 
