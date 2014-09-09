@@ -24,6 +24,7 @@ public class UnrealFrontend : ModuleRules
 				"LauncherServices",
 				"Messaging",
 				"ProfilerClient",
+                "ProjectLauncher",
 				"Projects",
 				"SessionFrontend",
 				"SessionLauncher",

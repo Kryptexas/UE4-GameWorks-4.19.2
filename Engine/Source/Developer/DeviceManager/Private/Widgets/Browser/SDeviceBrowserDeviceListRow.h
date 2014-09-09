@@ -61,7 +61,7 @@ public:
 		}
 		else if (ColumnName == TEXT("Icon"))
 		{
-			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceService->GetDeviceId().GetPlatformName());
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(DeviceService->GetDevicePlatformName());
 
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
@@ -92,7 +92,7 @@ public:
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SDeviceBrowserDeviceListRow::HandleTextColorAndOpacity)
-						.Text(DeviceService->GetDeviceId().GetPlatformName())
+						.Text(DeviceService->GetDevicePlatformDisplayName())
 				];
 		}
 		else if (ColumnName == TEXT("Share"))
@@ -142,7 +142,7 @@ private:
 	// Callback for getting the text in the 'Name' column.
 	FText HandleNameText( ) const
 	{
-		return FText::FromString(DeviceService->GetCachedDeviceName());
+		return FText::FromString(DeviceService->GetDeviceName());
 	}
 
 	// Callback for changing this row's Share check box state.

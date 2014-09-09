@@ -24,6 +24,27 @@ class ITargetDeviceService
 public:
 
 	/**
+	 * Adds a flavor to this device.
+	 *
+	 * @return true if the service can start, false otherwise.
+	 */
+	virtual void AddTargetDevice(ITargetDevicePtr InDevice) = 0;
+
+	/**
+	 * Removes a flavor from this device.
+	 *
+	 * @return true if the service can start, false otherwise.
+	 */
+	virtual void RemoveTargetDevice(ITargetDevicePtr InDevice) = 0;
+
+	/**
+	 * Gets number of target devices.
+	 *
+	 * @return number of target devices in this device service.
+	 */
+	virtual int32 NumTargetDevices() = 0;
+
+	/**
 	 * Checks whether this service can start.
 	 *
 	 * A service can be started if it has a valid device and the device is connected.
@@ -31,7 +52,7 @@ public:
 	 *
 	 * @return true if the service can start, false otherwise.
 	 */
-	virtual bool CanStart( ) const = 0;
+	virtual bool CanStart(FName InFlavor = NAME_None) const = 0;
 
 	/**
 	 * Gets the name of the host that has a claim on the device.
@@ -48,25 +69,32 @@ public:
 	virtual const FString& GetClaimUser( ) = 0;
 
 	/**
-	 * Gets the target device that this service exposes.
+	 * Gets the target device for the supplied flavor, if no flavor is specified then the default device flavor is returned.
 	 *
 	 * @return A pointer to the target device.
 	 */
-	virtual ITargetDevicePtr GetDevice( ) = 0;
-
-	/**
-	 * Gets the identifier of the device that this service exposes.
-	 *
-	 * @return The device identifier.
-	 */
-	virtual const FTargetDeviceId& GetDeviceId( ) const = 0;
+	virtual ITargetDevicePtr GetDevice(FName InFlavor = NAME_None) const = 0;
 
 	/**
 	 * Gets the name of the device that this service exposes.
 	 *
 	 * @return The human readable device name.
 	 */
-	virtual FString GetCachedDeviceName( ) const = 0;
+	virtual FString GetDeviceName() const = 0;
+
+	/**
+	 * Gets the name of the platform of device that this service exposes.
+	 *
+	 * @return The platform name.
+	 */
+	virtual FName GetDevicePlatformName() const = 0;
+
+	/**
+	 * Gets the display name of the platform of device that this service exposes.
+	 *
+	 * @return The human readable platform name.
+	 */
+	virtual FString GetDevicePlatformDisplayName() const = 0;
 
 	/**
 	 * Checks whether the service is currently running.

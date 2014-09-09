@@ -10,6 +10,8 @@
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 
+#define LOCTEXT_NAMESPACE "TGenericMacTargetPlatform"
+
 /**
  * Template for Mac target platforms
  */
@@ -19,7 +21,8 @@ class TGenericMacTargetPlatform
 {
 public:
 
-	typedef TTargetPlatformBase<FMacPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
+	typedef FMacPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> TProperties;
+	typedef TTargetPlatformBase<TProperties> TSuper;
 
 	/**
 	 * Default constructor.
@@ -141,6 +144,46 @@ return TSuper::SupportsFeature(Feature);
 	}
 #endif //WITH_ENGINE
 
+
+	virtual bool SupportsVariants() const override
+	{
+		return true;
+	}
+
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		if (IS_DEDICATED_SERVER)
+		{
+			return LOCTEXT("MacServerVariantTitle", "Dedicated Server");
+		}
+
+		if (HAS_EDITOR_DATA)
+		{
+			return LOCTEXT("MacClientEditorDataVariantTitle", "Client with Editor Data");
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return LOCTEXT("MacClientOnlyVariantTitle", "Client only");
+		}
+
+		return LOCTEXT("MacClientVariantTitle", "Client");
+	}
+
+
+	virtual FText GetVariantTitle() const override
+	{
+		return LOCTEXT("MacVariantTitle", "Build Type");
+	}
+
+
+	virtual float GetVariantPriority() const override
+	{
+		return TProperties::GetVariantPriority();
+	}
+
+
 	DECLARE_DERIVED_EVENT(TGenericMacTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
 	{
@@ -179,3 +222,5 @@ private:
 	// Holds an event delegate that is executed when a target device has been lost, i.e. disconnected or timed out.
 	FOnTargetDeviceLost DeviceLostEvent;
 };
+
+#undef LOCTEXT_NAMESPACE

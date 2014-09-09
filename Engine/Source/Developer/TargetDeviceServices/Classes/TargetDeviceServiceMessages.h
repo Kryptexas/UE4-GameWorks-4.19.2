@@ -20,6 +20,12 @@ struct FTargetDeviceServiceDeployCommit
 	GENERATED_USTRUCT_BODY()
 
 	/**
+	 * Holds the variant identifier of the target device to use.
+	 */
+	UPROPERTY()
+	FName Variant;
+
+	/**
 	 * Holds the identifier of the deployment transaction to commit.
 	 */
 	UPROPERTY()
@@ -29,13 +35,14 @@ struct FTargetDeviceServiceDeployCommit
 	/**
 	 * Default constructor.
 	 */
-	FTargetDeviceServiceDeployCommit( ) { }
+	FTargetDeviceServiceDeployCommit() { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceServiceDeployCommit( const FGuid& InTransactionId )
-		: TransactionId(InTransactionId)
+	FTargetDeviceServiceDeployCommit(FName InVariant, const FGuid& InTransactionId)
+		: Variant(InVariant)
+		, TransactionId(InTransactionId)
 	{ }
 };
 
@@ -61,13 +68,13 @@ USTRUCT()
 struct FTargetDeviceServiceDeployFile
 {
 	GENERATED_USTRUCT_BODY()
-	
+
 	/**
 	 * Holds the name and path of the file as it will be stored on the target device.
 	 */
 	UPROPERTY()
 	FString TargetFileName;
-	
+
 	/**
 	 * Holds the identifier of the deployment transaction that this file is part of.
 	 */
@@ -78,12 +85,12 @@ struct FTargetDeviceServiceDeployFile
 	/**
 	 * Default constructor.
 	 */
-	FTargetDeviceServiceDeployFile( ) { }
+	FTargetDeviceServiceDeployFile() { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceServiceDeployFile( const FString& InTargetFileName, const FGuid& InTransactionId )
+	FTargetDeviceServiceDeployFile(const FString& InTargetFileName, const FGuid& InTransactionId)
 		: TargetFileName(InTargetFileName)
 		, TransactionId(InTransactionId)
 	{ }
@@ -109,6 +116,12 @@ USTRUCT()
 struct FTargetDeviceServiceDeployFinished
 {
 	GENERATED_USTRUCT_BODY()
+
+	/**
+	 * Holds the variant identifier of the target device to use.
+	 */
+	UPROPERTY()
+	FName Variant;
 
 	/**
 	 * Holds the created identifier for the deployed application.
@@ -137,13 +150,14 @@ struct FTargetDeviceServiceDeployFinished
 	/**
 	 * Default constructor.
 	 */
-	FTargetDeviceServiceDeployFinished( ) { }
+	FTargetDeviceServiceDeployFinished() { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceServiceDeployFinished( const FString& InAppId, bool InSucceeded, FGuid InTransactionId )
-		: AppID(InAppId)
+	FTargetDeviceServiceDeployFinished(FName InVariant, const FString& InAppId, bool InSucceeded, FGuid InTransactionId)
+		: Variant(InVariant)
+		, AppID(InAppId)
 		, Succeeded(InSucceeded)
 		, TransactionId(InTransactionId)
 	{ }
@@ -160,7 +174,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceDeployFinished> : public TStruct
 
 
 /* Application launch messages
- *****************************************************************************/
+*****************************************************************************/
 
 /**
  * Implements a message for committing a deployment transaction.
@@ -173,6 +187,12 @@ USTRUCT()
 struct FTargetDeviceServiceLaunchApp
 {
 	GENERATED_USTRUCT_BODY()
+
+	/**
+	 * Holds the variant identifier of the target device to use.
+	 */
+	UPROPERTY()
+	FName Variant;
 
 	/**
 	 * Holds the identifier of the application to launch.
@@ -201,13 +221,14 @@ struct FTargetDeviceServiceLaunchApp
 	/**
 	 * Default constructor.
 	 */
-	FTargetDeviceServiceLaunchApp( ) { }
+	FTargetDeviceServiceLaunchApp() { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceServiceLaunchApp( const FString& InAppId, uint8 InBuildConfiguration, const FString& InParams )
-		: AppID(InAppId)
+	FTargetDeviceServiceLaunchApp(FName InVariant, const FString& InAppId, uint8 InBuildConfiguration, const FString& InParams)
+		: Variant(InVariant)
+		, AppID(InAppId)
 		, BuildConfiguration(InBuildConfiguration)
 		, Params(InParams)
 	{ }
@@ -260,12 +281,12 @@ struct FTargetDeviceServiceLaunchFinished
 	/**
 	 * Default constructor.
 	 */
-	FTargetDeviceServiceLaunchFinished( ) { }
+	FTargetDeviceServiceLaunchFinished() { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceServiceLaunchFinished( const FString& InAppId, int32 InProcessId, bool InSucceeded )
+	FTargetDeviceServiceLaunchFinished(const FString& InAppId, int32 InProcessId, bool InSucceeded)
 		: AppID(InAppId)
 		, ProcessId(InProcessId)
 		, Succeeded(InSucceeded)
@@ -280,7 +301,6 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceLaunchFinished> : public TStruct
 		WithMessageHandling = true
 	};
 };
-
 
 /* Device claiming messages
  *****************************************************************************/
@@ -300,7 +320,7 @@ struct FTargetDeviceClaimDenied
 	 * Holds the identifier of the device that is already claimed.
 	 */
 	UPROPERTY()
-	FString DeviceID;
+	FString DeviceName;
 
 	/**
 	 * Holds the name of the host computer that claimed the device.
@@ -322,8 +342,8 @@ struct FTargetDeviceClaimDenied
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceClaimDenied( const FString& InDeviceId, const FString& InHostName, const FString& InHostUser )
-		: DeviceID(InDeviceId)
+	FTargetDeviceClaimDenied(const FString& InDeviceName, const FString& InHostName, const FString& InHostUser)
+		: DeviceName(InDeviceName)
 		, HostName(InHostName)
 		, HostUser(InHostUser)
 	{ }
@@ -354,7 +374,7 @@ struct FTargetDeviceClaimed
 	 * Holds the identifier of the device that is being claimed.
 	 */
 	UPROPERTY()
-	FString DeviceID;
+	FString DeviceName;
 
 	/**
 	 * Holds the name of the host computer that is claiming the device.
@@ -376,8 +396,8 @@ struct FTargetDeviceClaimed
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceClaimed( const FString& InDeviceId, const FString& InHostName, const FString& InHostUser )
-		: DeviceID(InDeviceId)
+	FTargetDeviceClaimed(const FString& InDeviceName, const FString& InHostName, const FString& InHostUser)
+		: DeviceName(InDeviceName)
 		, HostName(InHostName)
 		, HostUser(InHostUser)
 	{ }
@@ -408,7 +428,7 @@ struct FTargetDeviceUnclaimed
 	 * Holds the identifier of the device that is no longer claimed.
 	 */
 	UPROPERTY()
-	FString DeviceID;
+	FString DeviceName;
 
 	/**
 	 * Holds the name of the host computer that had claimed the device.
@@ -430,8 +450,8 @@ struct FTargetDeviceUnclaimed
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceUnclaimed( const FString& InDeviceId, const FString& InHostName, const FString& InHostUser )
-		: DeviceID(InDeviceId)
+	FTargetDeviceUnclaimed(const FString& InDeviceName, const FString& InHostName, const FString& InHostUser)
+		: DeviceName(InDeviceName)
 		, HostName(InHostName)
 		, HostUser(InHostUser)
 	{ }
@@ -488,6 +508,34 @@ struct TStructOpsTypeTraits<FTargetDeviceServicePing> : public TStructOpsTypeTra
 
 
 /**
+* Struct for a flavor's information
+*/
+USTRUCT()
+struct FTargetDeviceVariant
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString DeviceID;
+
+	UPROPERTY()
+	FName VariantName;
+
+	UPROPERTY()
+	FString TargetPlatformName;
+
+	UPROPERTY()
+	FName TargetPlatformId;
+
+	UPROPERTY()
+	FName VanillaPlatformId;
+
+	UPROPERTY()
+	FText PlatformDisplayName;
+};
+
+
+/**
  * Implements a message that is sent in response to target device service discovery messages.
  */
 USTRUCT()
@@ -500,12 +548,6 @@ struct FTargetDeviceServicePong
 	 */
 	UPROPERTY()
 	bool Connected;
-
-	/**
-	 * Holds the identifier of the device that this message corresponds to.
-	 */
-	UPROPERTY()
-	FString DeviceID;
 
 	/**
 	 * Holds the name of the host computer that the device is attached to.
@@ -550,12 +592,6 @@ struct FTargetDeviceServicePong
 	FString DeviceUserPassword;
 
 	/**
-	 * Holds the name of the device platform, i.e. Windows, Mac or iOS.
-	 */
-	UPROPERTY()
-	FString PlatformName;
-
-	/**
 	 * Holds a flag indicating whether this device is shared with other users on the network.
 	 */
 	UPROPERTY()
@@ -586,10 +622,28 @@ struct FTargetDeviceServicePong
 	bool SupportsReboot;
 
 	/**
+	* Holds a flag indicating whether the device's target platform supports variants.
+	*/
+	UPROPERTY()
+	bool SupportsVariants;
+
+	/**
 	 * Holds the device type.
 	 */
 	UPROPERTY()
 	FString Type;
+
+	/**
+	 * Holds the variant name of the default device.
+	 */
+	UPROPERTY()
+	FName DefaultVariant;
+
+	/**
+	 * List of the Flavors this service supports
+	 */
+	UPROPERTY()
+	TArray<FTargetDeviceVariant> Variants;
 };
 
 template<>
@@ -741,6 +795,12 @@ struct FTargetDeviceServiceRunExecutable
 	GENERATED_USTRUCT_BODY()
 
 	/**
+	 * Holds the variant identifier of the target device to use for execution.
+	 */
+	UPROPERTY()
+	FName Variant;
+
+	/**
 	 * Holds the path to the executable on the device.
 	 */
 	UPROPERTY()
@@ -756,13 +816,14 @@ struct FTargetDeviceServiceRunExecutable
 	/**
 	 * Default constructor.
 	 */
-	FTargetDeviceServiceRunExecutable( ) { }
+	FTargetDeviceServiceRunExecutable() { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceServiceRunExecutable( const FString& InExecutablePath, const FString& InParams )
-		: ExecutablePath(InExecutablePath)
+	FTargetDeviceServiceRunExecutable(FName InVariant, const FString& InExecutablePath, const FString& InParams)
+		: Variant(InVariant)
+		, ExecutablePath(InExecutablePath)
 		, Params(InParams)
 	{ }
 };
@@ -788,6 +849,12 @@ struct FTargetDeviceServiceRunFinished
 	GENERATED_USTRUCT_BODY()
 
 	/**
+	 * Holds the variant identifier of the target device to use.
+	 */
+	UPROPERTY()
+	FName Variant;
+
+	/**
 	 * Holds the path to the executable that was run.
 	 */
 	UPROPERTY()
@@ -809,13 +876,14 @@ struct FTargetDeviceServiceRunFinished
 	/**
 	 * Default constructor.
 	 */
-	FTargetDeviceServiceRunFinished( ) { }
+	FTargetDeviceServiceRunFinished() { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FTargetDeviceServiceRunFinished( const FString& InExecutablePath, int32 InProcessId, bool InSucceeded )
-		: ExecutablePath(InExecutablePath)
+	FTargetDeviceServiceRunFinished(FName InVariant, const FString& InExecutablePath, int32 InProcessId, bool InSucceeded)
+		: Variant(InVariant)
+		, ExecutablePath(InExecutablePath)
 		, ProcessId(InProcessId)
 		, Succeeded(InSucceeded)
 	{ }

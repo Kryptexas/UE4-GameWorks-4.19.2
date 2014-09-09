@@ -6,30 +6,23 @@
 /* FTargetDeviceProxy structors
  *****************************************************************************/
 
-FTargetDeviceProxy::FTargetDeviceProxy( const FString& InId )
+FTargetDeviceProxy::FTargetDeviceProxy(const FString& InName)
 	: Connected(false)
-	, Id(InId)
 	, LastUpdateTime(0)
+	, Name(InName)
 	, SupportsMultiLaunch(false)
 	, SupportsPowerOff(false)
 	, SupportsPowerOn(false)
 	, SupportsReboot(false)
 {
-	FTargetDeviceId DeviceId;
-
-	if (FTargetDeviceId::Parse(InId, DeviceId))
-	{
-		Name = DeviceId.GetDeviceName();
-		Platform = DeviceId.GetPlatformName();
-	}
 
 	InitializeMessaging();
 }
 
 
-FTargetDeviceProxy::FTargetDeviceProxy( const FString& InId, const FTargetDeviceServicePong& Message, const IMessageContextRef& Context )
+FTargetDeviceProxy::FTargetDeviceProxy(const FString& InName, const FTargetDeviceServicePong& Message, const IMessageContextRef& Context)
 	: Connected(false)
-	, Id(InId)
+	, Name(InName)
 	, SupportsMultiLaunch(false)
 	, SupportsPowerOff(false)
 	, SupportsPowerOn(false)
@@ -45,25 +38,39 @@ FTargetDeviceProxy::FTargetDeviceProxy( const FString& InId, const FTargetDevice
 
 void FTargetDeviceProxy::UpdateFromMessage( const FTargetDeviceServicePong& Message, const IMessageContextRef& Context )
 {
-	if (Message.DeviceID == Id)
+	if (Message.Name == Name)
 	{
 		MessageAddress = Context->GetSender();
 
 		Connected = Message.Connected;
 		HostName = Message.HostName;
 		HostUser = Message.HostUser;
-		Id = Message.DeviceID;
 		Make = Message.Make;
 		Model = Message.Model;
 		Name = Message.Name;
 		DeviceUser = Message.DeviceUser;
 		DeviceUserPassword = Message.DeviceUserPassword;
-		Platform = Message.PlatformName;
 		Shared = Message.Shared;
 		SupportsMultiLaunch = Message.SupportsMultiLaunch;
 		SupportsPowerOff = Message.SupportsPowerOff;
 		SupportsPowerOn = Message.SupportsPowerOn;
 		SupportsReboot = Message.SupportsReboot;
+		SupportsVariants = Message.SupportsVariants;
+		DefaultVariant = Message.DefaultVariant;
+
+		// Update the map of flavors.
+		for (int Index = 0; Index < Message.Variants.Num(); Index++)
+		{
+			const FTargetDeviceVariant & MsgVariant = Message.Variants[Index];
+
+			FTargetDeviceProxyVariant & Variant = TargetDeviceVariants.Add(MsgVariant.VariantName);
+			Variant.DeviceID = MsgVariant.DeviceID;
+			Variant.VariantName = MsgVariant.VariantName;
+			Variant.TargetPlatformName = MsgVariant.TargetPlatformName;
+			Variant.TargetPlatformId = MsgVariant.TargetPlatformId;
+			Variant.VanillaPlatformId = MsgVariant.VanillaPlatformId;
+			Variant.PlatformDisplayName = MsgVariant.PlatformDisplayName;
+		}
 
 		LastUpdateTime = FDateTime::UtcNow();
 	}
@@ -73,7 +80,101 @@ void FTargetDeviceProxy::UpdateFromMessage( const FTargetDeviceServicePong& Mess
 /* ITargetDeviceProxyPtr interface
  *****************************************************************************/
 
-bool FTargetDeviceProxy::DeployApp( const TMap<FString, FString>& Files, const FGuid& TransactionId )
+int32 FTargetDeviceProxy::GetNumVariants() const
+{
+	return TargetDeviceVariants.Num();
+}
+
+int32 FTargetDeviceProxy::GetVariants(TArray<FName>& OutVariants) const
+{
+	return TargetDeviceVariants.GetKeys(OutVariants);
+}
+
+FName FTargetDeviceProxy::GetTargetDeviceVariant(const FString& InDeviceId) const
+{
+	for (TMap<FName, FTargetDeviceProxyVariant>::TConstIterator ItVariant(TargetDeviceVariants); ItVariant; ++ItVariant)
+	{
+		const FTargetDeviceProxyVariant & Variant = ItVariant.Value();
+		if (Variant.DeviceID == InDeviceId)
+		{
+			return ItVariant.Key();
+		}
+	}
+	return NAME_None;
+}
+
+bool FTargetDeviceProxy::HasDeviceId(const FString& InDeviceId) const
+{
+	for (TMap<FName, FTargetDeviceProxyVariant>::TConstIterator ItVariant(TargetDeviceVariants); ItVariant; ++ItVariant)
+	{
+		const FTargetDeviceProxyVariant & Variant = ItVariant.Value();
+		if (Variant.DeviceID == InDeviceId)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+const FString& FTargetDeviceProxy::GetTargetDeviceId(FName InVariant) const
+{
+	if (InVariant == NAME_None)
+	{
+		return TargetDeviceVariants[DefaultVariant].DeviceID;
+	}
+	return TargetDeviceVariants[InVariant].DeviceID;
+}
+
+bool FTargetDeviceProxy::HasTargetPlatform(FName InTargetPlatformId) const
+{
+	for (TMap<FName, FTargetDeviceProxyVariant>::TConstIterator ItVariant(TargetDeviceVariants); ItVariant; ++ItVariant)
+	{
+		const FTargetDeviceProxyVariant & Variant = ItVariant.Value();
+		if (Variant.TargetPlatformId == InTargetPlatformId)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+FString FTargetDeviceProxy::GetTargetPlatformName(FName InVariant) const
+{
+	if (InVariant == NAME_None)
+	{
+		return TargetDeviceVariants[DefaultVariant].TargetPlatformName;
+	}
+	return TargetDeviceVariants[InVariant].TargetPlatformName;
+}
+
+FName FTargetDeviceProxy::GetTargetPlatformId(FName InVariant) const
+{
+	if (InVariant == NAME_None)
+	{
+		return TargetDeviceVariants[DefaultVariant].TargetPlatformId;
+	}
+	return TargetDeviceVariants[InVariant].TargetPlatformId;
+}
+
+FName FTargetDeviceProxy::GetVanillaPlatformId(FName InVariant) const
+{
+	if (InVariant == NAME_None)
+	{
+		return TargetDeviceVariants[DefaultVariant].VanillaPlatformId;
+	}
+	return TargetDeviceVariants[InVariant].VanillaPlatformId;
+}
+
+FText FTargetDeviceProxy::GetPlatformDisplayName(FName InVariant) const
+{
+	if (InVariant == NAME_None)
+	{
+		return TargetDeviceVariants[DefaultVariant].PlatformDisplayName;
+	}
+	return TargetDeviceVariants[InVariant].PlatformDisplayName;
+}
+
+bool FTargetDeviceProxy::DeployApp(FName InVariant, const TMap<FString, FString>& Files, const FGuid& TransactionId)
 {
 	for (TMap<FString, FString>::TConstIterator It(Files); It; ++It)
 	{
@@ -83,25 +184,22 @@ bool FTargetDeviceProxy::DeployApp( const TMap<FString, FString>& Files, const F
 		MessageEndpoint->Send(new FTargetDeviceServiceDeployFile(It.Value(), TransactionId), FileAttachment, MessageAddress);
 	}
 
-	MessageEndpoint->Send(new FTargetDeviceServiceDeployCommit(TransactionId), MessageAddress);
+	MessageEndpoint->Send(new FTargetDeviceServiceDeployCommit(InVariant, TransactionId), MessageAddress);
 
 	return true;
 }
 
-
-bool FTargetDeviceProxy::LaunchApp( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, const FString& Params )
+bool FTargetDeviceProxy::LaunchApp(FName InVariant, const FString& AppId, EBuildConfigurations::Type BuildConfiguration, const FString& Params)
 {
-	MessageEndpoint->Send(new FTargetDeviceServiceLaunchApp(AppId, BuildConfiguration, Params), MessageAddress);
+	MessageEndpoint->Send(new FTargetDeviceServiceLaunchApp(InVariant, AppId, BuildConfiguration, Params), MessageAddress);
 
 	return true;
 }
-
 
 void FTargetDeviceProxy::PowerOff( bool Force )
 {
 	MessageEndpoint->Send(new FTargetDeviceServicePowerOff(FPlatformProcess::UserName(false), Force), MessageAddress);
 }
-
 
 void FTargetDeviceProxy::PowerOn( )
 {
@@ -114,10 +212,9 @@ void FTargetDeviceProxy::Reboot( )
 	MessageEndpoint->Send(new FTargetDeviceServiceReboot(FPlatformProcess::UserName(false)), MessageAddress);
 }
 
-
-void FTargetDeviceProxy::Run( const FString& ExecutablePath, const FString& Params )
+void FTargetDeviceProxy::Run(FName InVariant, const FString& ExecutablePath, const FString& Params)
 {
-	MessageEndpoint->Send(new FTargetDeviceServiceRunExecutable(ExecutablePath, Params), MessageAddress);
+	MessageEndpoint->Send(new FTargetDeviceServiceRunExecutable(InVariant, ExecutablePath, Params), MessageAddress);
 }
 
 
@@ -126,16 +223,15 @@ void FTargetDeviceProxy::Run( const FString& ExecutablePath, const FString& Para
 
 void FTargetDeviceProxy::InitializeMessaging( )
 {
-	MessageEndpoint = FMessageEndpoint::Builder(FName(*FString::Printf(TEXT("FTargetDeviceProxy (%s)"), *Id)))
+	MessageEndpoint = FMessageEndpoint::Builder(FName(*FString::Printf(TEXT("FTargetDeviceProxy (%s)"), *Name)))
 		.Handling<FTargetDeviceServiceDeployFinished>(this, &FTargetDeviceProxy::HandleDeployFinishedMessage)
 		.Handling<FTargetDeviceServiceLaunchFinished>(this, &FTargetDeviceProxy::HandleLaunchFinishedMessage);
 }
 
-
 /* FTargetDeviceProxy event handlers
- *****************************************************************************/
+*****************************************************************************/
 
-void FTargetDeviceProxy::HandleDeployFinishedMessage( const FTargetDeviceServiceDeployFinished& Message, const IMessageContextRef& Context )
+void FTargetDeviceProxy::HandleDeployFinishedMessage(const FTargetDeviceServiceDeployFinished& Message, const IMessageContextRef& Context)
 {
 	if (Message.Succeeded)
 	{
@@ -148,7 +244,7 @@ void FTargetDeviceProxy::HandleDeployFinishedMessage( const FTargetDeviceService
 }
 
 
-void FTargetDeviceProxy::HandleLaunchFinishedMessage( const FTargetDeviceServiceLaunchFinished& Message, const IMessageContextRef& Context )
+void FTargetDeviceProxy::HandleLaunchFinishedMessage(const FTargetDeviceServiceLaunchFinished& Message, const IMessageContextRef& Context)
 {
 	if (Message.Succeeded)
 	{

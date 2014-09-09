@@ -550,6 +550,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 //		FModuleManager::Get().LoadModule(TEXT("Search"));
 		FModuleManager::Get().LoadModule(TEXT("SessionFrontend"));
 		FModuleManager::Get().LoadModule(TEXT("SessionLauncher"));
+		FModuleManager::Get().LoadModule(TEXT("ProjectLauncher"));
 		FModuleManager::Get().LoadModule(TEXT("SettingsEditor"));
 		FModuleManager::Get().LoadModule(TEXT("EditorSettingsViewer"));
 		FModuleManager::Get().LoadModule(TEXT("ProjectSettingsViewer"));

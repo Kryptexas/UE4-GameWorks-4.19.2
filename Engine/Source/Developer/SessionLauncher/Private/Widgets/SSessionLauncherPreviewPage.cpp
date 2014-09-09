@@ -815,7 +815,7 @@ void SSessionLauncherPreviewPage::RefreshDeviceProxyList( )
 
 		if (DeployedDeviceGroup.IsValid())
 		{
-			const TArray<FString>& Devices = DeployedDeviceGroup->GetDevices();
+			const TArray<FString>& Devices = DeployedDeviceGroup->GetDeviceIDs();
 
 			for (int32 Index = 0; Index < Devices.Num(); ++Index)
 			{

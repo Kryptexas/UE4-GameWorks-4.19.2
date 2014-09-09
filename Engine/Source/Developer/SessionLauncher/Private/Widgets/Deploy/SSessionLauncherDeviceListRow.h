@@ -138,11 +138,11 @@ private:
 		{
 			if (NewState == ESlateCheckBoxState::Checked)
 			{
-				ActiveGroup->AddDevice(DeviceProxy->GetDeviceId());
+				ActiveGroup->AddDevice(DeviceProxy->GetName());
 			}
 			else
 			{
-				ActiveGroup->RemoveDevice(DeviceProxy->GetDeviceId());
+				ActiveGroup->RemoveDevice(DeviceProxy->GetName());
 			}
 		}
 	}
@@ -156,7 +156,7 @@ private:
 
 			if (ActiveGroup.IsValid())
 			{
-				if (ActiveGroup->GetDevices().Contains(DeviceProxy->GetDeviceId()))
+				if (ActiveGroup->GetDeviceIDs().Contains(DeviceProxy->GetName()))
 				{
 					return ESlateCheckBoxState::Checked;
 				}
@@ -169,7 +169,7 @@ private:
 	// Callback for getting the icon image of the device.
 	const FSlateBrush* HandleDeviceImage( ) const
 	{
-		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetPlatformName());
+		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetTargetPlatformName(NAME_None));
 		return (PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush();
 	}
 
@@ -201,7 +201,7 @@ private:
 	// Callback for getting the host platform name.
 	FString HandleHostPlatformText( ) const
 	{
-		return DeviceProxy->GetPlatformName();
+		return DeviceProxy->GetTargetPlatformName(NAME_None);
 	}
 
 private:

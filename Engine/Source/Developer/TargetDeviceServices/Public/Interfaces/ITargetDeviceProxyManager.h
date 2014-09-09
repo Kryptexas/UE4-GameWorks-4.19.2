@@ -9,7 +9,6 @@ typedef TSharedPtr<class ITargetDeviceProxyManager> ITargetDeviceProxyManagerPtr
 /** Type definition for shared references to instances of ITargetDeviceProxyManager. */
 typedef TSharedRef<class ITargetDeviceProxyManager> ITargetDeviceProxyManagerRef;
 
-
 /**
  * Interface for device proxy managers.
  */
@@ -18,20 +17,28 @@ class ITargetDeviceProxyManager
 public:
 	
 	/**
-	 * Finds or adds a proxy for the specified device identifier.
+	 * Finds or adds a device proxy for the specified device name.
 	 *
-	 * @param DeviceId The identifier of the device to create the proxy for.
-	 * @return The proxy.
+	 * @param Name The name of the device to create the proxy for.
+	 * @return The device proxy.
 	 */
-	virtual ITargetDeviceProxyRef FindOrAddProxy( const FString& DeviceId ) = 0;
+	virtual ITargetDeviceProxyRef FindOrAddProxy(const FString& Name) = 0;
 
 	/**
-	 * Finds the proxy for the specified device identifier.
+	 * Finds the device proxy for the specified device name.
 	 *
-	 * @param DeviceId The identifier of the device to create the proxy for.
-	 * @return The proxy, or nullptr if it couldn't be found.
+	 * @param Name The name of the device to create the proxy for.
+	 * @return The device proxy, or nullptr if it couldn't be found.
 	 */
-	virtual ITargetDeviceProxyPtr FindProxy( const FString& DeviceId ) = 0;
+	virtual ITargetDeviceProxyPtr FindProxy(const FString& Name) = 0;
+
+	/**
+	 * Finds the device proxy for the specified target device id.
+	 *
+	 * @param DeviceId The identifier of the target device to create the proxy for.
+	 * @return The device proxy, or nullptr if it couldn't be found.
+	 */
+	virtual ITargetDeviceProxyPtr FindProxyDeviceForTargetDevice(const FString& DeviceId) = 0;
 
 	/**
 	 * Gets a list of devices found by the device discovery.
@@ -40,7 +47,7 @@ public:
 	 * @param IncludeUnshared Whether to include devices that are not being shared with the local user.
 	 * @param OutProxies Will hold the list of devices found by the locator
 	 */
-	virtual void GetProxies( const FString& PlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies ) = 0;
+	virtual void GetProxies(FName TargetPlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies) = 0;
 
 public:
 

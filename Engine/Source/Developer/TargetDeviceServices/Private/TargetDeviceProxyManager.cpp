@@ -30,19 +30,19 @@ FTargetDeviceProxyManager::~FTargetDeviceProxyManager( )
 /* ITargetDeviceProxyLocator interface
  *****************************************************************************/
 
-ITargetDeviceProxyPtr FTargetDeviceProxyManager::FindProxy( const FString& DeviceId ) 
+ITargetDeviceProxyPtr FTargetDeviceProxyManager::FindProxy( const FString& Name ) 
 {
-	return Proxies.FindRef(DeviceId);
+	return Proxies.FindRef(Name);
 }
 
 
-ITargetDeviceProxyRef FTargetDeviceProxyManager::FindOrAddProxy( const FString& DeviceId )
+ITargetDeviceProxyRef FTargetDeviceProxyManager::FindOrAddProxy(const FString& Name)
 {
-	TSharedPtr<FTargetDeviceProxy>& Proxy = Proxies.FindOrAdd(DeviceId);
+	TSharedPtr<FTargetDeviceProxy>& Proxy = Proxies.FindOrAdd(Name);
 
 	if (!Proxy.IsValid())
 	{
-		Proxy = MakeShareable(new FTargetDeviceProxy(DeviceId));
+		Proxy = MakeShareable(new FTargetDeviceProxy(Name));
 
 		ProxyAddedDelegate.Broadcast(Proxy.ToSharedRef());
 	}
@@ -50,8 +50,22 @@ ITargetDeviceProxyRef FTargetDeviceProxyManager::FindOrAddProxy( const FString& 
 	return Proxy.ToSharedRef();
 }
 
+ITargetDeviceProxyPtr FTargetDeviceProxyManager::FindProxyDeviceForTargetDevice(const FString& DeviceId)
+{
+	for (TMap<FString, TSharedPtr<FTargetDeviceProxy> >::TConstIterator ItProxies(Proxies); ItProxies; ++ItProxies)
+	{
+		const TSharedPtr<FTargetDeviceProxy>& Proxy = ItProxies.Value();
 
-void FTargetDeviceProxyManager::GetProxies( const FString& PlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies )
+		if (Proxy->HasDeviceId(DeviceId))
+		{
+			return Proxy;
+		}
+	}
+
+	return ITargetDeviceProxyPtr();
+}
+
+void FTargetDeviceProxyManager::GetProxies(FName TargetPlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies)
 {
 	OutProxies.Reset();
 
@@ -61,14 +75,13 @@ void FTargetDeviceProxyManager::GetProxies( const FString& PlatformName, bool In
 
 		if ((IncludeUnshared || Proxy->IsShared()) || (Proxy->GetHostUser() == FPlatformProcess::UserName(false)))
 		{
-			if (PlatformName.IsEmpty() || (Proxy->GetPlatformName() == PlatformName))
+			if (TargetPlatformName == NAME_None || Proxy->HasTargetPlatform(TargetPlatformName))
 			{
 				OutProxies.Add(Proxy);
-			}			
+			}		
 		}
 	}
 }
-
 
 /* FTargetDeviceProxyManager implementation
  *****************************************************************************/
@@ -89,7 +102,7 @@ void FTargetDeviceProxyManager::RemoveDeadProxies( )
 }
 
 
-void FTargetDeviceProxyManager::SendPing( )
+void FTargetDeviceProxyManager::SendPing()
 {
 	if (MessageEndpoint.IsValid())
 	{
@@ -103,11 +116,11 @@ void FTargetDeviceProxyManager::SendPing( )
 
 void FTargetDeviceProxyManager::HandlePongMessage( const FTargetDeviceServicePong& Message, const IMessageContextRef& Context )
 {
-	TSharedPtr<FTargetDeviceProxy>& Proxy = Proxies.FindOrAdd(Message.DeviceID);
+	TSharedPtr<FTargetDeviceProxy>& Proxy = Proxies.FindOrAdd(Message.Name);
 
 	if (!Proxy.IsValid())
 	{
-		Proxy = MakeShareable(new FTargetDeviceProxy(Message.DeviceID, Message, Context));
+		Proxy = MakeShareable(new FTargetDeviceProxy(Message.Name, Message, Context));
 		ProxyAddedDelegate.Broadcast(Proxy.ToSharedRef());
 	}
 	else

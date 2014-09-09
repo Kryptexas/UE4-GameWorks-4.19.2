@@ -8,6 +8,8 @@
 /* FAndroidTargetPlatform structors
  *****************************************************************************/
 
+#define LOCTEXT_NAMESPACE "FAndroidTargetPlatform"
+
 template<class TPlatformProperties>
 inline FAndroidTargetPlatform<TPlatformProperties>::FAndroidTargetPlatform( ) :
 	DeviceDetection(nullptr)
@@ -313,6 +315,17 @@ FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( class USoundWa
 
 #endif //WITH_ENGINE
 
+template<class TPlatformProperties>
+bool FAndroidTargetPlatform<TPlatformProperties>::SupportsVariants() const
+{
+	return true;
+}
+
+template<class TPlatformProperties>
+FText FAndroidTargetPlatform<TPlatformProperties>::GetVariantTitle() const
+{
+	return LOCTEXT("AndroidVariantTitle", "Texture Format");
+}
 
 /* FAndroidTargetPlatform implementation
  *****************************************************************************/
@@ -392,3 +405,5 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 
 	return true;
 }
+
+#undef LOCTEXT_NAMESPACE

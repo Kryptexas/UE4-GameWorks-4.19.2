@@ -44,6 +44,16 @@ class FAndroid_PVRTCTargetPlatform
 	{
 		return ExtensionsString.Contains(TEXT("GL_IMG_texture_compression_pvrtc"));
 	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		return LOCTEXT("Android_PVRTC_ShortName", "PVRTC");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return 0.9f;
+	}
 };
 
 /**

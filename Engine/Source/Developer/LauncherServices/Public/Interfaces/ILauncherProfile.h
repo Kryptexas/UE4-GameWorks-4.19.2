@@ -155,11 +155,112 @@ namespace ELauncherProfileValidationErrors
 
 
 /** Type definition for shared pointers to instances of ILauncherProfile. */
+typedef TSharedPtr<class ILauncherSimpleProfile> ILauncherSimpleProfilePtr;
+
+/** Type definition for shared references to instances of ILauncherProfile. */
+typedef TSharedRef<class ILauncherSimpleProfile> ILauncherSimpleProfileRef;
+
+/**
+* Interface for simple launcher profile.
+*/
+class ILauncherSimpleProfile
+{
+public:
+
+	/**
+	 * Gets the device name this profile is for.
+	 *
+	 * @return Device Name.
+	 */
+	virtual const FString& GetDeviceName() const = 0;
+
+	/**
+	 * Gets the device variant to use when deploying and launching.
+	 *
+	 * @return Device Variant name.
+	 *
+	 * @see SetDeviceVariant
+	 */
+	virtual FName GetDeviceVariant() const = 0;
+
+	/**
+	 * Gets the name of the build configuration.
+	 *
+	 * @return Build configuration name.
+	 *
+	 * @see SetBuildConfigurationName
+	 */
+	virtual EBuildConfigurations::Type GetBuildConfiguration() const = 0;
+
+	/**
+	 * Gets the selected cook mode.
+	 *
+	 * @return Cook mode.
+	 */
+	virtual ELauncherProfileCookModes::Type GetCookMode() const = 0;
+
+	/**
+	 * Updates the device name.
+	 *
+	 * @param InDeviceName - The new device name.
+	 */
+	virtual void SetDeviceName(const FString& InDeviceName) = 0;
+
+	/**
+	 * Sets the device variant.
+	 *
+	 * @param InVariant - The variant to set.
+	 *
+	 * @see GetDeviceVariant
+	 */
+	virtual void SetDeviceVariant(FName InVariant) = 0;
+
+	/**
+	 * Sets the build configuration.
+	 *
+	 * @param InConfiguration - The build configuration name to set.
+	 *
+	 * @see GetBuildConfigurationName
+	 */
+	virtual void SetBuildConfiguration(EBuildConfigurations::Type InConfiguration) = 0;
+
+	/**
+	 * Sets the cook mode.
+	 *
+	 * @param InMode - The cook mode.
+	 *
+	 * @see GetCookMode
+	 */
+	virtual void SetCookMode(ELauncherProfileCookModes::Type InMode) = 0;
+
+	/**
+	 * Serializes the simple profile from or into the specified archive.
+	 *
+	 * @param Archive - The archive to serialize from or into.
+	 *
+	 * @return true if the profile was serialized, false otherwise.
+	 */
+	virtual bool Serialize(FArchive& Archive) = 0;
+
+	/**
+	 * Sets all profile settings to their defaults.
+	 */
+	virtual void SetDefaults() = 0;
+
+public:
+
+	/**
+	* Virtual destructor.
+	*/
+	virtual ~ILauncherSimpleProfile() {}
+};
+
+
+/** Type definition for shared pointers to instances of ILauncherProfile. */
 typedef TSharedPtr<class ILauncherProfile> ILauncherProfilePtr;
 
 /** Type definition for shared references to instances of ILauncherProfile. */
 typedef TSharedRef<class ILauncherProfile> ILauncherProfileRef;
-
 
 /**
  * Delegate type for changing the device group to deploy to.
@@ -170,7 +271,6 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnLauncherProfileDeployedDeviceGroupChanged
 
 /** Delegate type for a change in project */
 DECLARE_MULTICAST_DELEGATE(FOnProfileProjectChanged);
-
 
 /**
  * Interface for launcher profile.
@@ -194,6 +294,20 @@ public:
 	virtual FString GetName( ) const = 0;
 
 	/**
+	 * Gets the human readable description of the profile.
+	 *
+	 * @return The profile description.
+	 */
+	virtual FString GetDescription() const = 0;
+
+	/**
+	 * Checks whether the last validation yielded any error.
+	 *
+	 * @return true if the any error is present, false otherwise.
+	 */
+	virtual bool HasValidationError() const = 0;
+
+	/**
 	 * Checks whether the last validation yielded the specified error.
 	 *
 	 * @param Error - The validation error to check for.
@@ -202,6 +316,11 @@ public:
 	 */
 	virtual bool HasValidationError( ELauncherProfileValidationErrors::Type Error ) const = 0;
 
+	/**
+	 * Gets the invalid platform, this is only valid when there is a platform centric validation error.
+	 *
+	 * @return string specifying the invalid platform.
+	 */
 	virtual FString GetInvalidPlatform() const = 0;
 
 	/**
@@ -243,6 +362,13 @@ public:
 	 * @param NewName - The new name of the profile.
 	 */
 	virtual void SetName( const FString& NewName ) = 0;
+
+	/**
+	 * Updates the description of the profile.
+	 *
+	 * @param NewDescription - The new description of the profile.
+	 */
+	virtual void SetDescription(const FString& NewDescription) = 0;
 
 public:
 
@@ -391,6 +517,14 @@ public:
 	virtual FString GetPackageDirectory( ) const = 0;
 
 	/**
+	 * Checks whether the profile specifies a project.
+	 * Not specifying a project means that it can be used for any project.
+	 *
+	 * @return true if the profile specifies a project.
+	 */
+	virtual bool HasProjectSpecified() const = 0;
+
+	/**
 	 * Gets the name of the Unreal project to use.
 	 */
 	virtual FString GetProjectName( ) const = 0;
@@ -407,7 +541,7 @@ public:
 	 *
 	 * @see SetRocketProjactPath
 	 */
-	virtual const FString& GetProjectPath( ) const = 0;
+	virtual FString GetProjectPath( ) const = 0;
 
     /**
      * Gets the timeout time for the cook on the fly server
@@ -645,6 +779,15 @@ public:
 	virtual void SetCookMode( ELauncherProfileCookModes::Type Mode ) = 0;
 
 	/**
+	 * Sets the cook options.
+	 *
+	 * @param Options - The cook options.
+	 *
+	 * @see GetCookOptions
+	 */
+	virtual void SetCookOptions(const FString& Options) = 0;
+
+	/**
 	 * Sets whether to pack with UnrealPak.
 	 *
 	 * @param UseUnrealPak - Whether UnrealPak should be used.
@@ -724,6 +867,18 @@ public:
 	 * @see GetPackageDirectory
 	 */
 	virtual void SetPackageDirectory( const FString& Dir ) = 0;
+
+	/**
+	 * Sets whether this profile specifies the a project.
+	 *
+	 * @param Specified - Whether a project is specified.
+	 */
+	virtual void SetProjectSpecified(bool Specified) = 0;
+
+	/**
+	* Notifies the profile that the fallback project path changed.
+	*/
+	virtual void FallbackProjectUpdated() = 0;
 
 	/**
 	 * Sets the path to the Rocket project to use.

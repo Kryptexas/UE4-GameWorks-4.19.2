@@ -10,8 +10,9 @@ class FLauncherDeployGameToDeviceCommand
 	: public FLauncherUATCommand
 {
 public:
-	FLauncherDeployGameToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook, const FString& InCmdLine )
+	FLauncherDeployGameToDeviceCommand(const ITargetDeviceProxyRef& InDeviceProxy, FName InFlavor, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook, const FString& InCmdLine)
 		: DeviceProxy(InDeviceProxy)
+		, Flavor(InFlavor)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
@@ -60,7 +61,7 @@ public:
 		if (TargetPlatform.PlatformName() != TEXT("IOS"))
 #endif
 		{
-			CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
+			CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetTargetDeviceId(Flavor));
 		}
 
 		// cook dependency arguments
@@ -103,6 +104,9 @@ private:
 	// Holds a pointer to the device proxy to deploy to.
 	ITargetDeviceProxyPtr DeviceProxy;
 
+	// Holds the name of the flavor of Target Device to use.
+	FName Flavor;
+
 	// Holds a pointer to the target platform.
 	const ITargetPlatform& TargetPlatform;
 
@@ -125,8 +129,9 @@ class FLauncherDeployServerToDeviceCommand
 {
 public:
 
-	FLauncherDeployServerToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook )
+	FLauncherDeployServerToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, FName InFlavor, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook )
 		: DeviceProxy(InDeviceProxy)
+		, Flavor(InFlavor)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
@@ -170,8 +175,8 @@ public:
 			*StagePath,
 			*InitialMap,
 			*TargetPlatform.PlatformName());
-		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
-		CommandLine += FString::Printf(TEXT(" -serverdevice=\"%s\""), *DeviceProxy->GetDeviceId());
+		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetTargetDeviceId(Flavor));
+		CommandLine += FString::Printf(TEXT(" -serverdevice=\"%s\""), *DeviceProxy->GetTargetDeviceId(Flavor));
 
 		// cook dependency arguments
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
@@ -203,6 +208,9 @@ private:
 	// Holds a pointer to the device proxy to deploy to.
 	ITargetDeviceProxyPtr DeviceProxy;
 
+	// Holds the name of the flavor of Target Device to use.
+	FName Flavor;
+
 	// Holds a pointer to the target platform.
 	const ITargetPlatform& TargetPlatform;
 
@@ -222,8 +230,9 @@ class FLauncherDeployGamePackageToDeviceCommand
 {
 public:
 
-	FLauncherDeployGamePackageToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook, const FString& InCmdLine )
+	FLauncherDeployGamePackageToDeviceCommand(const ITargetDeviceProxyRef& InDeviceProxy, FName InFlavor, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook, const FString& InCmdLine)
 		: DeviceProxy(InDeviceProxy)
+		, Flavor(InFlavor)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
@@ -255,7 +264,7 @@ public:
 			*ChainState.Profile->GetPackageDirectory(),
 			*InitialMap,
 			*TargetPlatform.PlatformName());
-		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
+		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetTargetDeviceId(Flavor));
 
 		// cook dependency arguments
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
@@ -296,6 +305,9 @@ private:
 	// Holds a pointer to the device proxy to deploy to.
 	ITargetDeviceProxyPtr DeviceProxy;
 
+	// Holds the name of the flavor of Target Device to use.
+	FName Flavor;
+
 	// Holds a pointer to the target platform.
 	const ITargetPlatform& TargetPlatform;
 
@@ -318,8 +330,9 @@ class FLauncherDeployServerPackageToDeviceCommand
 {
 public:
 
-	FLauncherDeployServerPackageToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook )
+	FLauncherDeployServerPackageToDeviceCommand(const ITargetDeviceProxyRef& InDeviceProxy, FName InFlavor, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook)
 		: DeviceProxy(InDeviceProxy)
+		, Flavor(InFlavor)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
@@ -360,8 +373,8 @@ public:
 			*ChainState.Profile->GetPackageDirectory(),
 			*InitialMap,
 			*TargetPlatform.PlatformName());
-		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
-		CommandLine += FString::Printf(TEXT(" -serverdevice=\"%s\""), *DeviceProxy->GetDeviceId());
+		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetTargetDeviceId(Flavor));
+		CommandLine += FString::Printf(TEXT(" -serverdevice=\"%s\""), *DeviceProxy->GetTargetDeviceId(Flavor));
 
 		// cook dependency arguments
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
@@ -392,6 +405,9 @@ private:
 
 	// Holds a pointer to the device proxy to deploy to.
 	ITargetDeviceProxyPtr DeviceProxy;
+
+	// Holds the name of the flavor of Target Device to use.
+	FName Flavor;
 
 	// Holds a pointer to the target platform.
 	const ITargetPlatform& TargetPlatform;

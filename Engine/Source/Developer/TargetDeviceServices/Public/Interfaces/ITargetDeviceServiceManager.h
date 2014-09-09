@@ -24,13 +24,12 @@ public:
 	 * could not be discovered automatically or are currently unavailable. This name will
 	 * be replaced with the actual device name once the physical device becomes available.
 	 *
-	 * @param DeviceId The device identifier for the service to add.
-	 * @param PreliminaryDeviceName The preliminary device name.
+	 * @param DeviceName The device name for the service to add to the startup list
 	 * @return true if the service added, false otherwise.
 	 * @see GetServices
 	 * @see RemoveStartupService
 	 */
-	virtual bool AddStartupService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName ) = 0;
+	virtual bool AddStartupService(const FString& DeviceName) = 0;
 
 	/**
 	 * Gets the collection of target device services managed by this instance.
@@ -43,11 +42,11 @@ public:
 	/**
 	 * Removes a service from the list of services that are started automatically.
 	 *
-	 * @param DeviceId The device identifier for the service to remove.
+	 * @param DeviceName The device name for the service to remove from the startup list.
 	 * @see AddStartupService
 	 * @see GetServices
 	 */
-	virtual void RemoveStartupService( const FTargetDeviceId& DeviceId ) = 0;
+	virtual void RemoveStartupService(const FString& DeviceName) = 0;
 
 public:
 

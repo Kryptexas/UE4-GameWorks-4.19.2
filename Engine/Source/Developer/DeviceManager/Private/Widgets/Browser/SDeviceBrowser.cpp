@@ -25,15 +25,16 @@ void SDeviceBrowser::Construct( const FArguments& InArgs, const FDeviceManagerMo
 		+ SVerticalBox::Slot()
 			.AutoHeight()
 				[
+					/*
 					SNew(SExpandableArea)
 						.AreaTitle(LOCTEXT("FilterBarAreaTitle", "Device Filter").ToString())
 						.InitiallyCollapsed(true)
 						.Padding(FMargin(8.0f, 8.0f, 8.0f, 4.0f))
 						.BodyContent()
-						[
+						[*/
 							// filter bar
 							SNew(SDeviceBrowserFilterBar, Filter.ToSharedRef())
-						]
+						//]
 				]
 
 		+ SVerticalBox::Slot()

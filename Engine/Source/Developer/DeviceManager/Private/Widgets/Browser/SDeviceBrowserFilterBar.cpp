@@ -31,36 +31,40 @@ void SDeviceBrowserFilterBar::Construct( const FArguments& InArgs, FDeviceBrowse
 		SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			.VAlign(VAlign_Top)
-			[
-				// search box
-				SAssignNew(FilterStringTextBox, SSearchBox)
-					.HintText(LOCTEXT("SearchBoxHint", "Search devices"))
-					.OnTextChanged(this, &SDeviceBrowserFilterBar::HandleFilterStringTextChanged)
-			]
-
-		+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.HAlign(HAlign_Right)
-			.Padding(6.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(6.0f, 0.0f, 6.0f, 0.0f)
 			[
 				// platform filter
 				SNew(SComboButton)
+					.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Style")
+					.ForegroundColor(FLinearColor::White)
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("PlatformComboButtonText", "Platforms"))
+						.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+						.Text(LOCTEXT("PlatformFiltersComboButtonText", "Platform Filters"))
 					]
-					.ContentPadding(FMargin(6.0f, 2.0f))
+					.ContentPadding(0.0f)
 					.MenuContent()
 					[
-						SAssignNew(PlatformListView, SListView<TSharedPtr<FString> >)
+						SAssignNew(PlatformListView, SListView<TSharedPtr<FDeviceBrowserFilterEntry> >)
 							.ItemHeight(24.0f)
 							.ListItemsSource(&Filter->GetFilteredPlatforms())
 							.OnGenerateRow(this, &SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow)
 					]
 			]
+
+		+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Top)
+			[
+				// search box
+				SAssignNew(FilterStringTextBox, SSearchBox)
+				.HintText(LOCTEXT("SearchBoxHint", "Search devices"))
+				.OnTextChanged(this, &SDeviceBrowserFilterBar::HandleFilterStringTextChanged)
+			]
+
 	];
 
 	Filter->OnFilterReset().AddSP(this, &SDeviceBrowserFilterBar::HandleFilterReset);
@@ -84,15 +88,15 @@ void SDeviceBrowserFilterBar::HandleFilterStringTextChanged( const FText& NewTex
 }
 
 
-void SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged( ESlateCheckBoxState::Type CheckState, TSharedPtr<FString> PlatformName )
+void SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged(ESlateCheckBoxState::Type CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry)
 {
-	Filter->SetPlatformEnabled(*PlatformName, CheckState == ESlateCheckBoxState::Checked);
+	Filter->SetPlatformEnabled(PlatformEntry->PlatformName, CheckState == ESlateCheckBoxState::Checked);
 }
 
 
-ESlateCheckBoxState::Type SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked( TSharedPtr<FString> PlatformName ) const
+ESlateCheckBoxState::Type SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
 {
-	if (Filter->IsPlatformEnabled(*PlatformName))
+	if (Filter->IsPlatformEnabled(PlatformEntry->PlatformName))
 	{
 		return ESlateCheckBoxState::Checked;
 	}
@@ -101,48 +105,48 @@ ESlateCheckBoxState::Type SDeviceBrowserFilterBar::HandlePlatformListRowIsChecke
 }
 
 
-FString SDeviceBrowserFilterBar::HandlePlatformListRowText( TSharedPtr<FString> PlatformName ) const
+FString SDeviceBrowserFilterBar::HandlePlatformListRowText(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
 {
-	return FString::Printf(TEXT("%s (%i)"), **PlatformName, Filter->GetServiceCountPerPlatform(*PlatformName));
+	return FString::Printf(TEXT("%s (%i)"), *(PlatformEntry->PlatformName), Filter->GetServiceCountPerPlatform(PlatformEntry->PlatformName));
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow( TSharedPtr<FString> PlatformName, const TSharedRef<STableViewBase>& OwnerTable )
+TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**PlatformName);
+	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(PlatformEntry->PlatformLookup);
 
 	return SNew(STableRow<TSharedPtr<FString> >, OwnerTable)
 		.Content()
 		[
 			SNew(SCheckBox)
-				.IsChecked(this, &SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked, PlatformName)
-				.Padding(FMargin(6.0, 2.0))
-				.OnCheckStateChanged(this, &SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged, PlatformName)
-				.Content()
+			.IsChecked(this, &SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked, PlatformEntry)
+			.Padding(FMargin(6.0, 2.0))
+			.OnCheckStateChanged(this, &SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged, PlatformEntry)
+			.Content()
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
 				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SBox)
-								.WidthOverride(24)
-								.HeightOverride(24)
-								[
-									SNew(SImage)
-										.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
-								]
-						]
-
-					+ SHorizontalBox::Slot()
-						.FillWidth(1.0f)
-						.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-								.Text(this, &SDeviceBrowserFilterBar::HandlePlatformListRowText, PlatformName)
-						]
+					SNew(SBox)
+					.WidthOverride(24)
+					.HeightOverride(24)
+					[
+						SNew(SImage)
+						.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
+					]
 				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(this, &SDeviceBrowserFilterBar::HandlePlatformListRowText, PlatformEntry)
+				]
+			]
 		];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

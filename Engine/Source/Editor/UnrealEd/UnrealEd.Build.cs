@@ -145,6 +145,7 @@ public class UnrealEd : ModuleRules
 				"PackagesDialog",
 				"Persona",
 				"PhAT",
+                "ProjectLauncher",
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",

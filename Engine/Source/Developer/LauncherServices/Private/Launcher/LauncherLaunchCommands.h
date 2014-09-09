@@ -11,8 +11,9 @@ class FLauncherLaunchGameCommand
 {
 public:
 
-	FLauncherLaunchGameCommand(const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
+	FLauncherLaunchGameCommand(const ITargetDeviceProxyRef& InDeviceProxy, FName InFlavor, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
 		: DeviceProxy(InDeviceProxy)
+		, Variant(InFlavor)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, Role(InRole)
@@ -56,7 +57,7 @@ public:
 		CommandLine += FString::Printf(TEXT(" -run -skipstage -stagingdirectory=\"%s\" -map=%s -device=\"%s\""),
 			*StagePath,
 			*Role->GetInitialMap(),
-			*DeviceProxy->GetDeviceId());
+			*DeviceProxy->GetTargetDeviceId(Variant));
 
 		// cook dependency arguments
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
@@ -80,6 +81,9 @@ private:
 	// Holds the device proxy to launch on.
 	ITargetDeviceProxyPtr DeviceProxy;
 
+	// Holds the name of the flavor of Target Device to use.
+	FName Variant;
+
 	// Holds a pointer to the target platform.
 	const ITargetPlatform& TargetPlatform;
 
@@ -102,8 +106,9 @@ class FLauncherLaunchDedicatedServerCommand
 {
 public:
 
-	FLauncherLaunchDedicatedServerCommand(const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
+	FLauncherLaunchDedicatedServerCommand(const ITargetDeviceProxyRef& InDeviceProxy, FName InFlavor, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
 		: DeviceProxy(InDeviceProxy)
+		, Variant(InFlavor)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, Role(InRole)
@@ -147,9 +152,9 @@ public:
 		CommandLine += FString::Printf(TEXT(" -run -skipstage -stagingdirectory=\"%s\" -map=%s -device=\"%s\" -dedicatedserver -noclient -serverdevice=\"%s\" -serverplatform=%s"),
 			*StagePath,
 			*Role->GetInitialMap(),
-			*DeviceProxy->GetDeviceId(),
-			*DeviceProxy->GetDeviceId(),
-			*DeviceProxy->GetPlatformName()
+			*DeviceProxy->GetTargetDeviceId(Variant),
+			*DeviceProxy->GetTargetDeviceId(Variant),
+			*DeviceProxy->GetTargetPlatformName(Variant)
 			);
 
 		// requires credentials
@@ -178,6 +183,9 @@ private:
 
 	// Holds the device proxy to launch on.
 	ITargetDeviceProxyPtr DeviceProxy;
+
+	// Holds the name of the flavor of Target Device to use.
+	FName Variant;
 
 	// Holds a pointer to the target platform.
 	const ITargetPlatform& TargetPlatform;

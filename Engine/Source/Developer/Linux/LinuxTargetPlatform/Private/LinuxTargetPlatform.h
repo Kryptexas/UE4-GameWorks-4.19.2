@@ -10,6 +10,8 @@
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 
+#define LOCTEXT_NAMESPACE "TLinuxTargetPlatform"
+
 /**
  * Template for Linux target platforms
  */
@@ -19,7 +21,8 @@ class TLinuxTargetPlatform
 {
 public:
 
-	typedef TTargetPlatformBase<FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
+	typedef FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> TProperties;
+	typedef TTargetPlatformBase<TProperties> TSuper;
 
 	/**
 	 * Default constructor.
@@ -62,6 +65,17 @@ public:
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
 
+	virtual bool AddDevice(const FString& DeviceName, bool bDefault) override
+	{
+		FTargetDeviceId UATFriendlyId(TEXT("Linux"), DeviceName);
+		FLinuxTargetDevicePtr Device = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceName));
+		if (Device.IsValid())
+		{
+			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
+		}
+		return true;
+	}
+
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const override
 	{
 		// TODO: ping all the machines in a local segment and/or try to connect to port 22 of those that respond
@@ -98,9 +112,7 @@ public:
 		{
 			return LocalDevice;
 		}
-
-		FTargetDeviceId UATFriendlyId(TEXT("Linux"), DeviceId.GetDeviceName());
-		return MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceId.GetDeviceName()));
+		return nullptr;
 	}
 
 	virtual bool IsRunningPlatform( ) const override
@@ -174,6 +186,41 @@ public:
 	}
 #endif //WITH_ENGINE
 
+	virtual bool SupportsVariants() const override
+	{
+		return true;
+	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		if (IS_DEDICATED_SERVER)
+		{
+			return LOCTEXT("LinuxServerVariantTitle", "Dedicated Server");
+		}
+
+		if (HAS_EDITOR_DATA)
+		{
+			return LOCTEXT("LinuxClientEditorDataVariantTitle", "Client with Editor Data");
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return LOCTEXT("LinuxClientOnlyVariantTitle", "Client only");
+		}
+
+		return LOCTEXT("LinuxClientVariantTitle", "Client");
+	}
+
+	virtual FText GetVariantTitle() const override
+	{
+		return LOCTEXT("LinuxVariantTitle", "Build Type");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return TProperties::GetVariantPriority();
+	}
+
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
 	{
@@ -215,3 +262,5 @@ private:
 	// Holds an event delegate that is executed when a target device has been lost, i.e. disconnected or timed out.
 	FOnTargetDeviceLost DeviceLostEvent;
 };
+
+#undef LOCTEXT_NAMESPACE

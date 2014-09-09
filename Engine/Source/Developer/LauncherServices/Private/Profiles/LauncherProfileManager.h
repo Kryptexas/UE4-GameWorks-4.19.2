@@ -7,15 +7,21 @@
  * Implements a helper class that manages all profiles in the Launcher
  */
 class FLauncherProfileManager
-	: public ILauncherProfileManager
+	: public TSharedFromThis<FLauncherProfileManager>
+	, public ILauncherProfileManager
 {
 public:
 
 	/** Default constructor. */
-	FLauncherProfileManager( );
+	FLauncherProfileManager();
 
 
 public:
+
+	/**
+	 * Loads the profiles and device groups.
+	 */
+	void Load();
 
 	// Begin ILauncherProfileManager interface
 
@@ -23,7 +29,15 @@ public:
 
 	virtual ILauncherDeviceGroupRef AddNewDeviceGroup( ) override;
 
-	virtual ILauncherProfileRef AddNewProfile( ) override;
+	virtual ILauncherDeviceGroupRef CreateUnmanagedDeviceGroup() override;
+
+	virtual ILauncherSimpleProfilePtr FindOrAddSimpleProfile(const FString& DeviceName) override;
+
+	virtual ILauncherSimpleProfilePtr FindSimpleProfile(const FString& DeviceName) override;
+
+	virtual ILauncherProfileRef AddNewProfile() override;
+
+	virtual ILauncherProfileRef CreateUnsavedProfile(FString ProfileName) override;
 
 	virtual void AddProfile( const ILauncherProfileRef& Profile ) override;
 
@@ -63,11 +77,21 @@ public:
 
 	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) override;
 
+	virtual void RemoveSimpleProfile(const ILauncherSimpleProfileRef& SimpleProfile) override;
+
 	virtual void RemoveProfile( const ILauncherProfileRef& Profile ) override;
 
-	virtual void SaveProfile( const ILauncherProfileRef& Profile, FArchive& Archive ) override;
+	virtual void SaveProfile( const ILauncherProfileRef& Profile) override;
 
 	virtual void SaveSettings( ) override;
+
+	virtual FString GetProjectName() const override;
+
+	virtual FString GetProjectBasePath() const override;
+
+	virtual FString GetProjectPath() const override;
+
+	virtual void SetProjectPath(const FString& InProjectPath) override;
 
 	// End ILauncherProfileManager interface
 
@@ -95,12 +119,17 @@ protected:
 	/**
 	 * Saves all the device groups to a config file
 	 */
-	void SaveDeviceGroups( );
+	void SaveDeviceGroups();
+
+	/*
+	* Saves all simple profiles to disk.
+	*/
+	void SaveSimpleProfiles();
 
 	/**
 	 * Saves all profiles to disk.
 	 */
-	void SaveProfiles( );
+	void SaveProfiles();
 
 protected:
 
@@ -119,8 +148,17 @@ private:
 	// Holds the collection of device groups.
 	TArray<ILauncherDeviceGroupPtr> DeviceGroups;
 
+	// Holds the collection of simple launcher profiles.
+	TArray<ILauncherSimpleProfilePtr> SimpleProfiles;
+
 	// Holds the collection of launcher profiles.
-	TArray<ILauncherProfilePtr> Profiles;
+	TArray<ILauncherProfilePtr> SavedProfiles;
+
+	// Holds the collection of launcher profiles.
+	TArray<ILauncherProfilePtr> AllProfiles;
+
+	// Holds the currently selected project path
+	FString ProjectPath;
 
 private:
 
@@ -135,4 +173,5 @@ private:
 
 	// Holds a delegate to be invoked when a launcher profile was removed.
 	FOnLauncherProfileManagerProfileRemoved ProfileRemovedDelegate;
+
 };

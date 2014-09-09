@@ -52,6 +52,16 @@ public:
 	{
 		return GLESVersion >= 0x30000;
 	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		return LOCTEXT("Android_ETC2_ShortName", "ETC2");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return 0.2f;
+	}
 };
 
 

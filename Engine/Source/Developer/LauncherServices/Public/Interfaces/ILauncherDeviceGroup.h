@@ -37,51 +37,51 @@ public:
 	/**
 	 * Adds a device to the group.
 	 *
-	 * @param DeviceId - The identifier of the device to add.
+	 * @param DeviceID - The identifier of the device to add.
 	 */
-	virtual void AddDevice( const FString& DeviceId ) = 0;
+	virtual void AddDevice(const FString& DeviceID) = 0;
 	
 	/**
 	 * Get a list of identifiers for devices associated with this device group.
 	 *
 	 * @return The list of device identifiers.
 	 */
-	virtual const TArray<FString>& GetDevices( ) = 0;
+	virtual const TArray<FString>& GetDeviceIDs() = 0;
 
 	/**
 	 * Gets the unique identifier of the device group.
 	 *
 	 * @return The device group identifier.
 	 */
-	virtual FGuid GetId( ) const = 0;
+	virtual FGuid GetId() const = 0;
 
 	/**
 	 * Gets the human readable name of the device group.
 	 *
 	 * @return The name of the device group.
 	 */
-	virtual const FString& GetName( ) const = 0;
+	virtual const FString& GetName() const = 0;
 
 	/**
 	 * Get a list of devices associated with this device group.
 	 *
 	 * @return The number of devices the device group maintains.
 	 */
-	virtual int32 GetNumDevices( ) const = 0;
+	virtual int32 GetNumDevices() const = 0;
 
 	/**
 	 * Removes a device from the group.
 	 *
-	 * @param DeviceId - The identifier of the device to remove.
+	 * @param DeviceID - The identifier of the device to remove.
 	 */
-	virtual void RemoveDevice( const FString& DeviceId ) = 0;
+	virtual void RemoveDevice(const FString& DeviceID) = 0;
 
 	/**
 	 * Sets the name of the device group.
 	 *
 	 * @param NewName - The new name.
 	 */
-	virtual void SetName( const FString& NewName ) = 0;
+	virtual void SetName(const FString& NewName) = 0;
 
 public:
 
@@ -90,19 +90,19 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnLauncherDeviceGroupDeviceAdded& OnDeviceAdded( ) = 0;
+	virtual FOnLauncherDeviceGroupDeviceAdded& OnDeviceAdded() = 0;
 
 	/**
 	 * Returns a delegate that is invoked when device was removed from this group.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnLauncherDeviceGroupDeviceRemoved& OnDeviceRemoved( ) = 0;
+	virtual FOnLauncherDeviceGroupDeviceRemoved& OnDeviceRemoved() = 0;
 
 public:
 
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~ILauncherDeviceGroup( ) { }
+	virtual ~ILauncherDeviceGroup() { }
 };

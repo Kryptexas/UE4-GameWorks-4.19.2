@@ -205,7 +205,7 @@ void FLauncherAutomatedServiceProvider::SetupProfileAndGroupSettings( const TCHA
 				}
 			}
 
-			bHasValidDeviceGroup = AutomatedDeviceGroup.IsValid() && ( AutomatedDeviceGroup->GetDevices().Num() > 0 );
+			bHasValidDeviceGroup = AutomatedDeviceGroup.IsValid() && (AutomatedDeviceGroup->GetNumDevices() > 0);
 
 			// A reference to the proxy manager responsible for device activity here.
 			DeviceProxyManager = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>(TEXT("TargetDeviceServices")).GetDeviceProxyManager();
@@ -243,11 +243,11 @@ void FLauncherAutomatedServiceProvider::HandleDeviceProxyManagerProxyAdded( cons
 		// @todo gmp: fix automated service provider; must use ILauncher interface here
 		//AddedProxy->Run(AutomatedProfile->GetBuildConfiguration(), AutomatedProfile->GetBuildGame(), CommandLine);
 
-		UE_LOG(LauncherAutomatedService, Display, TEXT("%s"), *FText::Format(FText::FromString("Deploying to: {0}"), FText::FromString(AddedProxy->GetDeviceId())).ToString());
+		UE_LOG(LauncherAutomatedService, Display, TEXT("%s"), *FText::Format(FText::FromString("Deploying to: {0}"), FText::FromString(AddedProxy->GetName())).ToString());
 
 		DeployedInstances.Add( AddedProxy );
 
-		if( AutomatedDeviceGroup->GetDevices().Num() == DeployedInstances.Num() )
+		if (AutomatedDeviceGroup->GetNumDevices() == DeployedInstances.Num())
 		{
 			bHasLaunchedAllInstances = true;
 			// All devices have been found. Start the automation test process

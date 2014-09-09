@@ -30,14 +30,17 @@ public:
 
 	virtual ILauncherProfileRef CreateProfile( const FString& ProfileName ) override
 	{
-		return MakeShareable(new FLauncherProfile(ProfileName));
+		ILauncherProfileManagerRef ProfileManager = GetProfileManager();
+		return MakeShareable(new FLauncherProfile(ProfileManager, FGuid(), ProfileName));
 	}
 
 	virtual ILauncherProfileManagerRef GetProfileManager( ) override
 	{
 		if (!ProfileManagerSingleton.IsValid())
 		{
-			ProfileManagerSingleton = MakeShareable(new FLauncherProfileManager());
+			TSharedPtr<FLauncherProfileManager> ProfileManager = MakeShareable(new FLauncherProfileManager());	
+			ProfileManager->Load();
+			ProfileManagerSingleton = ProfileManager;
 		}
 
 		return ProfileManagerSingleton.ToSharedRef();

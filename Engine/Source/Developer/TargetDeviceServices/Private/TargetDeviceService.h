@@ -2,33 +2,39 @@
 
 #pragma once
 
-
 /**
  * Implements remote services for a specific target device.
  */
 class FTargetDeviceService
 	: public ITargetDeviceService
 {
+	struct FVariantSortCallback
+	{
+		FORCEINLINE bool operator()(const ITargetDeviceWeakPtr& A, const ITargetDeviceWeakPtr& B) const
+		{
+			ITargetDevicePtr APtr = A.Pin();
+			ITargetDevicePtr BPtr = B.Pin();
+			return APtr->GetTargetPlatform().GetVariantPriority() > BPtr->GetTargetPlatform().GetVariantPriority();
+		}
+	};
+
 public:
 
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InDeviceId The identifier of the target device to expose.
 	 * @param InDeviceName The name of the device to expose.
 	 * @param InMessageBus The message bus to listen on for clients.
 	 */
-	FTargetDeviceService( const FTargetDeviceId& InDeviceId, const FString& InDeviceName, const IMessageBusRef& InMessageBus )
-		: CachedDeviceName(InDeviceName)
-		, DeviceId(InDeviceId)
+	FTargetDeviceService(const FString& InDeviceName, const IMessageBusRef& InMessageBus)
+		: DeviceName(InDeviceName)
 		, Running(false)
 		, Shared(false)
 	{
 		// initialize messaging
-		MessageEndpoint = FMessageEndpoint::Builder(FName(*FString::Printf(TEXT("FTargetDeviceService (%s)"), *DeviceId.ToString())), InMessageBus)
+		MessageEndpoint = FMessageEndpoint::Builder(FName(*FString::Printf(TEXT("FTargetDeviceService (%s)"), *DeviceName)), InMessageBus)
 			.Handling<FTargetDeviceClaimDenied>(this, &FTargetDeviceService::HandleClaimDeniedMessage)
 			.Handling<FTargetDeviceClaimed>(this, &FTargetDeviceService::HandleClaimedMessage)
-			.Handling<FTargetDeviceUnclaimed>(this, &FTargetDeviceService::HandleUnclaimedMessage)
 			.Handling<FTargetDeviceServiceDeployCommit>(this, &FTargetDeviceService::HandleDeployCommitMessage)
 			.Handling<FTargetDeviceServiceDeployFile>(this, &FTargetDeviceService::HandleDeployFileMessage)
 			.Handling<FTargetDeviceServiceLaunchApp>(this, &FTargetDeviceService::HandleLaunchAppMessage)
@@ -59,9 +65,18 @@ public:
 
 	// ITargetDeviceService interface
 
-	virtual bool CanStart( ) const override
+	virtual void AddTargetDevice(ITargetDevicePtr InDevice) override;
+
+	virtual void RemoveTargetDevice(ITargetDevicePtr InDevice) override;
+
+	virtual int32 NumTargetDevices() override
 	{
-		ITargetDevicePtr TargetDevice = TargetDevicePtr.Pin();
+		return TargetDevicePtrs.Num();
+	}
+
+	virtual bool CanStart(FName InFlavor = NAME_None) const override
+	{
+		ITargetDevicePtr TargetDevice = GetDevice(InFlavor);
 
 		if (TargetDevice.IsValid())
 		{
@@ -71,46 +86,52 @@ public:
 		return false;
 	}
 
-	virtual const FString& GetClaimHost( ) override
+	virtual const FString& GetClaimHost() override
 	{
 		return ClaimHost;
 	}
 
-	virtual const FString& GetClaimUser( ) override
+	virtual const FString& GetClaimUser() override
 	{
 		return ClaimUser;
 	}
 
-	virtual ITargetDevicePtr GetDevice( ) override
+	virtual ITargetDevicePtr GetDevice(FName InVariant = NAME_None) const override
 	{
-		return AcquireDevice();
-	}
-
-	virtual const FTargetDeviceId& GetDeviceId( ) const override
-	{
-		return DeviceId;
-	}
-
-	virtual FString GetCachedDeviceName( ) const override
-	{
-		ITargetDevicePtr TargetDevice = TargetDevicePtr.Pin();
-
-		if (TargetDevice.IsValid())
+		ITargetDevicePtr TargetDevice;
+		if (InVariant == NAME_None)
 		{
-			return TargetDevice->GetName();
+			TargetDevice = DefaultDevicePtr.Pin();
 		}
-
-		if (CachedDeviceName.IsEmpty())
+		else
 		{
-			return DeviceId.ToString();
+			const ITargetDeviceWeakPtr * WeakTargetDevicePtr = TargetDevicePtrs.Find(InVariant);
+			if (WeakTargetDevicePtr != NULL)
+			{
+				TargetDevice = WeakTargetDevicePtr->Pin();
+			}
 		}
-
-		return CachedDeviceName;
+		return TargetDevice;
 	}
 
-	virtual bool IsRunning( ) const override
+	virtual FString GetDeviceName() const override
 	{
-		return (Running && TargetDevicePtr.IsValid());
+		return DeviceName;
+	}
+
+	virtual FName GetDevicePlatformName() const override
+	{
+		return DevicePlatformName;
+	}
+
+	virtual FString GetDevicePlatformDisplayName() const override
+	{
+		return DevicePlatformDisplayName;
+	}
+
+	virtual bool IsRunning() const override
+	{
+		return Running;
 	}
 
 	virtual bool IsShared( ) const override
@@ -118,31 +139,21 @@ public:
 		return (Running && Shared);
 	}
 
-	virtual void SetShared( bool InShared ) override
+	virtual void SetShared(bool InShared) override
 	{
 		Shared = InShared;
 	}
 
-	virtual bool Start( ) override
+	virtual bool Start() override
 	{
 		if (!Running && MessageEndpoint.IsValid())
 		{
-			// initializes target device
-			ITargetDevicePtr TargetDevice = AcquireDevice();
-
-			if (!TargetDevice.IsValid())
-			{
-				return false;
-			}
-
-			CachedDeviceName = TargetDevice->GetName();
-
 			// notify other services
 			ClaimAddress = MessageEndpoint->GetAddress();
 			ClaimHost = FPlatformProcess::ComputerName();
 			ClaimUser = FPlatformProcess::UserName(false);
 
-			MessageEndpoint->Publish(new FTargetDeviceClaimed(DeviceId.ToString(), ClaimHost, ClaimUser));
+			MessageEndpoint->Publish(new FTargetDeviceClaimed(DeviceName, ClaimHost, ClaimUser));
 
 			Running = true;
 		}
@@ -150,20 +161,12 @@ public:
 		return true;
 	}
 
-	virtual void Stop( ) override
+	virtual void Stop() override
 	{
 		if (Running)
 		{
-			// cache device details
-			ITargetDevicePtr TargetDevice = TargetDevicePtr.Pin();
-
-			if (TargetDevice.IsValid())
-			{
-				CachedDeviceName = TargetDevice->GetName();
-			}
-
 			// notify other services
-			MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceId.ToString(), FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)));
+			MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)));
 
 			Running = false;
 		}
@@ -172,30 +175,12 @@ public:
 protected:
 
 	/**
-	 * Acquires the target device, if needed.
-	 *
-	 * @return The target device.
-	 */
-	ITargetDevicePtr AcquireDevice( )
-	{
-		ITargetDevicePtr TargetDevice = TargetDevicePtr.Pin();
-
-		if (!TargetDevice.IsValid())
-		{
-			TargetDevice = GetTargetPlatformManager()->FindTargetDevice(DeviceId);
-			TargetDevicePtr = TargetDevice;
-		}
-
-		return TargetDevice;
-	}
-
-	/**
-	 * Stores the specified file to deploy.
-	 *
-	 * @param FileReader The archive reader providing access to the file data.
-	 * @param TargetFileName The desired name of the file on the target device.
-	 */
-	bool StoreDeployedFile( FArchive* FileReader, const FString& TargetFileName  ) const
+	* Stores the specified file to deploy.
+	*
+	* @param FileReader The archive reader providing access to the file data.
+	* @param TargetFileName The desired name of the file on the target device.
+	*/
+	bool StoreDeployedFile(FArchive* FileReader, const FString& TargetFileName) const
 	{
 		if (FileReader == NULL)
 		{
@@ -222,7 +207,7 @@ protected:
 		}
 
 		void* Buffer = FMemory::Malloc(BufferSize);
-	
+
 		while (BytesRemaining > 0)
 		{
 			FileReader->Serialize(Buffer, BufferSize);
@@ -249,7 +234,7 @@ private:
 	// Callback for FTargetDeviceClaimDenied messages.
 	void HandleClaimDeniedMessage( const FTargetDeviceClaimDenied& Message, const IMessageContextRef& Context )
 	{
-		if (Running && (Message.DeviceID == DeviceId.ToString()))
+		if (Running && (Message.DeviceName == DeviceName))
 		{
 			Stop();
 
@@ -262,13 +247,13 @@ private:
 	// Callback for FTargetDeviceClaimDenied messages.
 	void HandleClaimedMessage( const FTargetDeviceClaimed& Message, const IMessageContextRef& Context )
 	{
-		if (Message.DeviceID == DeviceId.ToString())
+		if (Message.DeviceName == DeviceName)
 		{
 			if (Running)
 			{
 				if (Context->GetSender() != MessageEndpoint->GetAddress())
 				{
-					MessageEndpoint->Send(new FTargetDeviceClaimDenied(DeviceId.ToString(), FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)), Context->GetSender());
+					MessageEndpoint->Send(new FTargetDeviceClaimDenied(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)), Context->GetSender());
 				}
 			}
 			else
@@ -283,7 +268,7 @@ private:
 	// Callback for FTargetDeviceClaimDropped messages.
 	void HandleUnclaimedMessage( const FTargetDeviceUnclaimed& Message, const IMessageContextRef& Context )
 	{
-		if (Message.DeviceID == DeviceId.ToString())
+		if (Message.DeviceName == DeviceName)
 		{
 			if (Context->GetSender() == ClaimAddress)
 			{
@@ -295,7 +280,7 @@ private:
 	}
 
 	// Callback for FTargetDeviceServiceDeployFile messages.
-	void HandleDeployFileMessage( const FTargetDeviceServiceDeployFile& Message, const IMessageContextRef& Context )
+	void HandleDeployFileMessage(const FTargetDeviceServiceDeployFile& Message, const IMessageContextRef& Context)
 	{
 		if (!Running)
 		{
@@ -321,15 +306,14 @@ private:
 	}
 
 	// Callback for FTargetDeviceServiceDeployCommit messages.
-	void HandleDeployCommitMessage( const FTargetDeviceServiceDeployCommit& Message, const IMessageContextRef& Context )
+	void HandleDeployCommitMessage(const FTargetDeviceServiceDeployCommit& Message, const IMessageContextRef& Context)
 	{
 		if (!Running)
 		{
 			return;
 		}
 
-		ITargetDevicePtr TargetDevice = TargetDevicePtr.Pin();
-
+		ITargetDevicePtr TargetDevice = GetDevice(Message.Variant);
 		if (TargetDevice.IsValid())
 		{
 			FString SourceFolder = FPaths::EngineIntermediateDir() / TEXT("Deploy") / Message.TransactionId.ToString();
@@ -338,20 +322,19 @@ private:
 			bool Succeeded = TargetDevice->Deploy(SourceFolder, OutAppId);
 
 			IFileManager::Get().DeleteDirectory(*SourceFolder, false, true);
-			MessageEndpoint->Send(new FTargetDeviceServiceDeployFinished(OutAppId, Succeeded, Message.TransactionId), Context->GetSender());
+			MessageEndpoint->Send(new FTargetDeviceServiceDeployFinished(Message.Variant, OutAppId, Succeeded, Message.TransactionId), Context->GetSender());
 		}
 	}
 
 	// Callback for FTargetDeviceServiceLaunchApp messages.
-	void HandleLaunchAppMessage( const FTargetDeviceServiceLaunchApp& Message, const IMessageContextRef& Context )
+	void HandleLaunchAppMessage(const FTargetDeviceServiceLaunchApp& Message, const IMessageContextRef& Context)
 	{
 		if (!Running)
 		{
 			return;
 		}
 
-		ITargetDevicePtr TargetDevice = AcquireDevice();
-
+		ITargetDevicePtr TargetDevice = GetDevice(Message.Variant);
 		if (TargetDevice.IsValid())
 		{
 			uint32 ProcessId;
@@ -365,41 +348,7 @@ private:
 	}
 
 	// Callback for FTargetDeviceServicePing messages.
-	void HandlePingMessage( const FTargetDeviceServicePing& InMessage, const IMessageContextRef& Context )
-	{
-		if (!Running)
-		{
-			return;
-		}
-
-		if (Shared || (InMessage.HostUser == FPlatformProcess::UserName(false)))
-		{
-			ITargetDevicePtr TargetDevice = AcquireDevice();
-
-			if (TargetDevice.IsValid())
-			{
-				FTargetDeviceServicePong* Message = new FTargetDeviceServicePong();
-
-				Message->DeviceID = TargetDevice->GetId().ToString();
-				Message->Name = TargetDevice->GetName();
-				Message->Type = ETargetDeviceTypes::ToString(TargetDevice->GetDeviceType());
-				Message->HostName = FPlatformProcess::ComputerName();
-				Message->HostUser = FPlatformProcess::UserName(false);
-				Message->Connected = TargetDevice->IsConnected();
-				Message->Make = TEXT("@todo");
-				Message->Model = TEXT("@todo");
-				TargetDevice->GetUserCredentials(Message->DeviceUser, Message->DeviceUserPassword);
-				Message->PlatformName = TargetDevice->GetTargetPlatform().PlatformName();
-				Message->Shared = Shared;
-				Message->SupportsMultiLaunch = TargetDevice->SupportsFeature(ETargetDeviceFeatures::MultiLaunch);
-				Message->SupportsPowerOff = TargetDevice->SupportsFeature(ETargetDeviceFeatures::PowerOff);
-				Message->SupportsPowerOn = TargetDevice->SupportsFeature(ETargetDeviceFeatures::PowerOn);
-				Message->SupportsReboot = TargetDevice->SupportsFeature(ETargetDeviceFeatures::Reboot);
-
-				MessageEndpoint->Send(Message, Context->GetSender());
-			}
-		}
-	}
+	void HandlePingMessage(const FTargetDeviceServicePing& InMessage, const IMessageContextRef& Context);
 
 	// Callback for FTargetDeviceServicePowerOff messages.
 	void HandlePowerOffMessage( const FTargetDeviceServicePowerOff& Message, const IMessageContextRef& Context )
@@ -409,8 +358,7 @@ private:
 			return;
 		}
 
-		ITargetDevicePtr TargetDevice = AcquireDevice();
-
+		ITargetDevicePtr TargetDevice = GetDevice(); // Any Device is fine here
 		if (TargetDevice.IsValid())
 		{
 			TargetDevice->PowerOff(Message.Force);
@@ -425,8 +373,7 @@ private:
 			return;
 		}
 
-		ITargetDevicePtr TargetDevice = AcquireDevice();
-
+		ITargetDevicePtr TargetDevice = GetDevice(); // Any Device is fine here
 		if (TargetDevice.IsValid())
 		{
 			TargetDevice->PowerOn();
@@ -441,8 +388,7 @@ private:
 			return;
 		}
 
-		ITargetDevicePtr TargetDevice = AcquireDevice();
-
+		ITargetDevicePtr TargetDevice = GetDevice(); // Any Device is fine here
 		if (TargetDevice.IsValid())
 		{
 			TargetDevice->Reboot();
@@ -450,28 +396,33 @@ private:
 	}
 
 	// Callback for FTargetDeviceServiceRunExecutable messages.
-	void HandleRunExecutableMessage( const FTargetDeviceServiceRunExecutable& Message, const IMessageContextRef& Context )
+	void HandleRunExecutableMessage(const FTargetDeviceServiceRunExecutable& Message, const IMessageContextRef& Context)
 	{
 		if (!Running)
 		{
 			return;
 		}
 
-		ITargetDevicePtr TargetDevice = AcquireDevice();
-
+		ITargetDevicePtr TargetDevice = GetDevice(Message.Variant);
 		if (TargetDevice.IsValid())
 		{
 			uint32 OutProcessId;
 			bool Succeeded = TargetDevice->Run(Message.ExecutablePath, Message.Params, &OutProcessId);
 
-			MessageEndpoint->Send(new FTargetDeviceServiceRunFinished(Message.ExecutablePath, OutProcessId, Succeeded), Context->GetSender());
+			MessageEndpoint->Send(new FTargetDeviceServiceRunFinished(Message.Variant, Message.ExecutablePath, OutProcessId, Succeeded), Context->GetSender());
 		}
 	}
 
 private:
 
 	// Caches the name of the device name that this services exposes.
-	FString CachedDeviceName;
+	FString DeviceName;
+
+	// Caches the platform name of the device name that this services exposes.
+	FName DevicePlatformName;
+
+	// Caches the platform name of the device name that this services exposes.
+	FString DevicePlatformDisplayName;
 
 	// Holds the name of the host that has a claim on the device.
 	FString ClaimHost;
@@ -482,9 +433,6 @@ private:
 	// Holds the name of the user that has a claim on the device.
 	FString ClaimUser;
 
-	// Holds the identifier of the device that this service exposes.
-	const FTargetDeviceId DeviceId;
-
 	// Holds the message endpoint.
 	FMessageEndpointPtr MessageEndpoint;
 
@@ -494,6 +442,9 @@ private:
 	// Holds a flag indicating whether the device is shared with other users.
 	bool Shared;
 
-	// Holds a reference to the target device.
-	ITargetDeviceWeakPtr TargetDevicePtr;
+	// Default target device used when no flavor is specified
+	ITargetDeviceWeakPtr DefaultDevicePtr;
+	
+	// Map of all the Flavors for this Service
+	TMap<FName, ITargetDeviceWeakPtr> TargetDevicePtrs;
 };

@@ -55,6 +55,13 @@ public:
 		{
 			CommandLine += TEXT(" -Unversioned");
 		}
+
+		FString additionalOptions = ChainState.Profile->GetCookOptions();
+		if (!additionalOptions.IsEmpty())
+		{
+			CommandLine += TEXT(" ");
+			CommandLine += additionalOptions;
+		}
 		
 		return CommandLine;
 	}

@@ -100,6 +100,8 @@ uint32 FLauncherWorker::Run( )
 		}		
 	}
 
+	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+
 	if (Status == ELauncherWorkerStatus::Canceling)
 	{
 		Status = ELauncherWorkerStatus::Canceled;
@@ -109,9 +111,6 @@ uint32 FLauncherWorker::Run( )
 	{
 		LaunchCompleted.Broadcast(TaskChain->Succeeded(), FPlatformTime::Seconds() - LaunchStartTime, TaskChain->ReturnCode());
 	}
-
-	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
-
 
 	return 0;
 }
@@ -206,19 +205,24 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 
 	// determine deployment platforms
 	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();
+	FName Variant = NAME_None;
 
 	if (DeviceGroup.IsValid() && Platforms.Num() < 1)
 	{
-		const TArray<FString>& Devices = DeviceGroup->GetDevices();
+		const TArray<FString>& Devices = DeviceGroup->GetDeviceIDs();
 		// for each deployed device...
 		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
 		{
 			const FString& DeviceId = Devices[DeviceIndex];
 
-			ITargetDeviceProxyRef DeviceProxy = DeviceProxyManager->FindOrAddProxy(DeviceId);
+			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
 
-			// add the platform
-			Platforms.AddUnique(DeviceProxy->GetPlatformName());
+			if (DeviceProxy.IsValid())
+			{
+				// add the platform
+				Variant = DeviceProxy->GetTargetDeviceVariant(DeviceId);
+				Platforms.AddUnique(DeviceProxy->GetTargetPlatformName(Variant));
+			}			
 		}
 	}
 
@@ -373,20 +377,21 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 
 			TMap<FString, TSharedPtr<FLauncherTask> > PerPlatformFileServerTasks;
 
-			const TArray<FString>& Devices = DeviceGroup->GetDevices();
+			const TArray<FString>& Devices = DeviceGroup->GetDeviceIDs();
 
 			// for each deployed device...
 			for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
 			{
 				const FString& DeviceId = Devices[DeviceIndex];
-
-				ITargetDeviceProxyRef DeviceProxy = DeviceProxyManager->FindOrAddProxy(DeviceId);
-
-				// ... that runs the current platform...
-				if (DeviceProxy->GetPlatformName() != TargetPlatformName)
+				
+				// @Todo: this can probably been cleaned up if the variant class is exposed to the user (not 100% sure i want that yet)
+				//			Deeper investigation / refactoring may make this validation obsolete.
+				ITargetDeviceProxyPtr DeviceProxyPtr = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
+				if (!DeviceProxyPtr.IsValid() || DeviceProxyPtr->GetTargetPlatformName(DeviceProxyPtr->GetTargetDeviceVariant(DeviceId)) != TargetPlatformName)
 				{
 					continue;
 				}
+				ITargetDeviceProxyRef DeviceProxy = DeviceProxyPtr.ToSharedRef();
 
 				TSharedPtr<FLauncherTask> PerDeviceTask;
 
@@ -431,11 +436,11 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 					TSharedPtr<FLauncherUATCommand> Command = NULL;
 					if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
 					{
-						Command = MakeShareable(new FLauncherDeployServerToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand));
+						Command = MakeShareable(new FLauncherDeployServerToDeviceCommand(DeviceProxy, Variant, *TargetPlatform, CookCommand));
 					}
 					else
 					{
-						Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
+						Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, Variant, *TargetPlatform, CookCommand, LaunchCommandLine));
 					}
 					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
@@ -457,11 +462,11 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 					TSharedPtr<FLauncherUATCommand> Command = NULL;
 					if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
 					{
-						Command = MakeShareable(new FLauncherDeployServerPackageToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand));
+						Command = MakeShareable(new FLauncherDeployServerPackageToDeviceCommand(DeviceProxy, Variant, *TargetPlatform, CookCommand));
 					}
 					else
 					{
-						Command = MakeShareable(new FLauncherDeployGamePackageToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
+						Command = MakeShareable(new FLauncherDeployGamePackageToDeviceCommand(DeviceProxy, Variant, *TargetPlatform, CookCommand, LaunchCommandLine));
 					}
 					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
@@ -480,7 +485,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 				}
 				else if (TargetPlatform->PlatformName() == TEXT("XboxOne") || TargetPlatform->PlatformName() == TEXT("IOS") || TargetPlatform->PlatformName().StartsWith(TEXT("Android")))
 				{
-					TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
+					TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, Variant, *TargetPlatform, CookCommand, LaunchCommandLine));
 					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
@@ -510,11 +515,11 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 							TSharedPtr<FLauncherUATCommand> Command;
 							if (Roles[RoleIndex]->GetInstanceType() == ELauncherProfileRoleInstanceTypes::StandaloneClient)
 							{
-								Command = MakeShareable(new FLauncherLaunchGameCommand(DeviceProxy, *TargetPlatform, Roles[RoleIndex].ToSharedRef(), CookCommand));
+								Command = MakeShareable(new FLauncherLaunchGameCommand(DeviceProxy, Variant, *TargetPlatform, Roles[RoleIndex].ToSharedRef(), CookCommand));
 							}
 							else if (Roles[RoleIndex]->GetInstanceType() == ELauncherProfileRoleInstanceTypes::DedicatedServer)
 							{
-								Command = MakeShareable(new FLauncherLaunchDedicatedServerCommand(DeviceProxy, *TargetPlatform, Roles[RoleIndex].ToSharedRef(), CookCommand));
+								Command = MakeShareable(new FLauncherLaunchDedicatedServerCommand(DeviceProxy, Variant, *TargetPlatform, Roles[RoleIndex].ToSharedRef(), CookCommand));
 							}
 								
 							TSharedPtr<FLauncherTask> PerRoleTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));

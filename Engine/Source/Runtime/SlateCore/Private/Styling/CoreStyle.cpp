@@ -146,6 +146,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	Style->Set("NormalFont", TTF_FONT("Fonts/Roboto-Regular", 9));
 
+	Style->Set("SmallFont", TTF_FONT("Fonts/Roboto-Regular", 8));
+
 	// Normal Text
 	FTextBlockStyle NormalText = FTextBlockStyle()
 		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 9))
@@ -154,6 +156,10 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		.SetShadowColorAndOpacity(FLinearColor::Black)
 		.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
 		.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f /8.f)));
+
+	// Small Text
+	FTextBlockStyle SmallText = FTextBlockStyle(NormalText)
+		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 8));
 
 	// Embossed Text
 	Style->Set("EmbossedText", FTextBlockStyle(NormalText)
@@ -420,6 +426,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	// STextBlock defaults...
 	{
 		Style->Set("NormalText", NormalText);
+		Style->Set("SmallText", SmallText);
 	}
 
 	// SInlineEditableTextBlock
@@ -429,6 +436,9 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetShadowOffset( FVector2D::ZeroVector )
 			.SetShadowColorAndOpacity( FLinearColor::Black );
 
+		FTextBlockStyle InlineEditableTextBlockSmallReadOnly = FTextBlockStyle(InlineEditableTextBlockReadOnly)
+			.SetFont(SmallText.Font);
+
 		FEditableTextBoxStyle InlineEditableTextBlockEditable = FEditableTextBoxStyle()
 			.SetFont(NormalText.Font)
 			.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
@@ -437,10 +447,20 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) )
 			.SetScrollBarStyle( ScrollBar );
 
+		FEditableTextBoxStyle InlineEditableTextBlockSmallEditable = FEditableTextBoxStyle(InlineEditableTextBlockEditable)
+			.SetFont(SmallText.Font);
+
 		FInlineEditableTextBlockStyle InlineEditableTextBlockStyle = FInlineEditableTextBlockStyle()
 			.SetTextStyle(InlineEditableTextBlockReadOnly)
 			.SetEditableTextBoxStyle(InlineEditableTextBlockEditable);
+
 		Style->Set( "InlineEditableTextBlockStyle", InlineEditableTextBlockStyle );
+
+		FInlineEditableTextBlockStyle InlineEditableTextBlockSmallStyle = FInlineEditableTextBlockStyle()
+			.SetTextStyle(InlineEditableTextBlockSmallReadOnly)
+			.SetEditableTextBoxStyle(InlineEditableTextBlockSmallEditable);
+
+		Style->Set("InlineEditableTextBlockSmallStyle", InlineEditableTextBlockSmallStyle);
 	}
 
 	// SSuggestionTextBox defaults...

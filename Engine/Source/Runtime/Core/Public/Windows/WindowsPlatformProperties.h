@@ -9,6 +9,10 @@
 
 #pragma once
 
+//#include "Core.h"
+//#include "AssertionMacros.h"
+//#include "Internationalization.h"
+
 #include "GenericPlatformProperties.h"
 
 
@@ -102,5 +106,25 @@ struct FWindowsPlatformProperties
 	static FORCEINLINE bool SupportsQuit()
 	{
 		return true;
+	}
+
+	static FORCEINLINE float GetVariantPriority()
+	{
+		if (IS_DEDICATED_SERVER)
+		{
+			return 0.0f;
+		}
+
+		if (HAS_EDITOR_DATA)
+		{
+			return 0.0f;
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return 0.0f;
+		}
+
+		return 1.0f;
 	}
 };

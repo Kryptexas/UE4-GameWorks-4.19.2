@@ -19,14 +19,14 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	SDeviceBrowserFilterBar( )
+	SDeviceBrowserFilterBar()
 		: Filter(NULL)
 	{ }
 
 	/**
 	 * Destructor.
 	 */
-	~SDeviceBrowserFilterBar( );
+	~SDeviceBrowserFilterBar();
 
 public:
 
@@ -36,27 +36,27 @@ public:
 	 * @param InArgs The declaration data for this widget.
 	 * @param InFilter The filter model to use.
 	 */
-	void Construct( const FArguments& InArgs, FDeviceBrowserFilterRef InFilter );
+	void Construct(const FArguments& InArgs, FDeviceBrowserFilterRef InFilter);
 
 private:
 
 	// Callback for filter model resets.
-	void HandleFilterReset( );
+	void HandleFilterReset();
 
 	// Callback for changing the filter string text box text.
-	void HandleFilterStringTextChanged( const FText& NewText );
+	void HandleFilterStringTextChanged(const FText& NewText);
 
 	// Callback for changing the checked state of the given platform filter row.
-	void HandlePlatformListRowCheckStateChanged( ESlateCheckBoxState::Type CheckState, TSharedPtr<FString> PlatformName );
+	void HandlePlatformListRowCheckStateChanged(ESlateCheckBoxState::Type CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry);
 
 	// Callback for getting the checked state of the given platform filter row.
-	ESlateCheckBoxState::Type HandlePlatformListRowIsChecked( TSharedPtr<FString> PlatformName ) const;
+	ESlateCheckBoxState::Type HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
 
 	// Callback for getting the text for a row in the platform filter drop-down.
-	FString HandlePlatformListRowText( TSharedPtr<FString> PlatformName ) const;
+	FString HandlePlatformListRowText(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
 
 	// Generates a row widget for the platform filter list.
-	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow( TSharedPtr<FString> PlatformName, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry, const TSharedRef<STableViewBase>& OwnerTable);
 
 private:
 
@@ -67,5 +67,5 @@ private:
 	TSharedPtr<SSearchBox> FilterStringTextBox;
 
 	// Holds the platform filters list view.
-	TSharedPtr<SListView<TSharedPtr<FString>>> PlatformListView;
+	TSharedPtr<SListView<TSharedPtr<FDeviceBrowserFilterEntry>>> PlatformListView;
 };

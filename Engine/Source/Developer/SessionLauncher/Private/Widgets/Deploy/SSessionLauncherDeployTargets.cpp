@@ -288,7 +288,7 @@ void SSessionLauncherDeployTargets::RefreshDeviceProxyList( )
 
 		if (SelectedGroup.IsValid())
 		{
-			const TArray<FString>& Devices = SelectedGroup->GetDevices();
+			const TArray<FString>& Devices = SelectedGroup->GetDeviceIDs();
 
 			for (int32 Index = 0; Index < Devices.Num(); ++Index)
 			{
@@ -297,7 +297,7 @@ void SSessionLauncherDeployTargets::RefreshDeviceProxyList( )
 
 			if (ShowDevicesChoice == EShowDevicesChoices::ShowAllDevices)
 			{
-				Model->GetDeviceProxyManager()->GetProxies(FString(), false, DeviceProxyList);
+				Model->GetDeviceProxyManager()->GetProxies(NAME_None, false, DeviceProxyList);
 			}		
 		}
 	}
@@ -341,7 +341,7 @@ bool SSessionLauncherDeployTargets::HandleDeviceListRowIsEnabled( ITargetDeviceP
 
 		if (SelectedProfile.IsValid())
 		{
-			bool RetVal = SelectedProfile->IsDeployablePlatform(DeviceProxy->GetPlatformName()) || IsAlwaysEnabled;
+			bool RetVal = SelectedProfile->IsDeployablePlatform(DeviceProxy->GetTargetPlatformName(NAME_None)) || IsAlwaysEnabled;
 			return RetVal;
 		}
 	}
@@ -354,8 +354,8 @@ FText SSessionLauncherDeployTargets::HandleDeviceListRowToolTipText( ITargetDevi
 {
 	FTextBuilder Builder;
 	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipName", "Name: {0}"), FText::FromString(DeviceProxy->GetName()));
-	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipPlatform", "Platform: {0}"), FText::FromString(DeviceProxy->GetPlatformName()));
-	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: {0}"), FText::FromString(DeviceProxy->GetDeviceId()));
+	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipPlatform", "Platform: {0}"), FText::FromString(DeviceProxy->GetTargetPlatformName(NAME_None /*@Todo: Fix this!*/)));
+	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: {0}"), FText::FromString(DeviceProxy->GetTargetDeviceId(NAME_None /*@Todo: Fix this!*/)));
 
 	return Builder.ToText();
 }
