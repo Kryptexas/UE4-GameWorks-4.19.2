@@ -137,12 +137,17 @@ namespace DoxygenLib
 					{
 						LinkText = "";
 						LinkUrl = LinkUrl.Substring(WebPrefixIdx + WebPrefix.Length);
-						if (LinkUrl.EndsWith(".html"))
+
+						int AnchorIdx = LinkUrl.LastIndexOf('#');
+						if(AnchorIdx == -1)
 						{
-							LinkUrl = LinkUrl.Substring(0, LinkUrl.LastIndexOf('/') + 1);
+							LinkUrl = RemoveDefaultPageName(LinkUrl);
+						}
+						else
+						{
+							LinkUrl = RemoveDefaultPageName(LinkUrl.Substring(0, AnchorIdx)) + LinkUrl.Substring(AnchorIdx);
 						}
 					}
-
 					Writer.WriteLink(LinkText, LinkUrl);
 					break;
 				case "ref":
@@ -224,6 +229,22 @@ namespace DoxygenLib
 					ConvertNodeContents(Node, Writer, ResolveLink);
 					break;
 			}
+		}
+
+		/** 
+		 * Removes the default page name from a URL (index.html)
+		 * 
+		 * @param LinkUrl			URL for the page
+		 * @return URL with the page name removed
+		 */
+		static string RemoveDefaultPageName(string LinkUrl)
+		{
+			string DefaultPageName = "/index.html";
+			if (LinkUrl.EndsWith(DefaultPageName))
+			{
+				return LinkUrl.Substring(0, LinkUrl.Length - DefaultPageName.Length - 1);
+			}
+			return LinkUrl;
 		}
 
 		/** 
