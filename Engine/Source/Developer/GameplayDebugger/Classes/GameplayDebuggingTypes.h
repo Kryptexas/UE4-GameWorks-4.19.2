@@ -21,7 +21,6 @@ namespace EAIDebugDrawDataView
 		GameView4,
 		GameView5,
 		NavMesh,
-		EditorDebugAIFlag,
 		MAX UMETA(Hidden)
 	};
 }

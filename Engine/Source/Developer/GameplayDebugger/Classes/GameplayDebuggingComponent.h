@@ -44,12 +44,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	FString DebugComponentClassName;
 
 	UPROPERTY(Replicated)
-	bool bIsSelectedForDebugging;
-
-	UPROPERTY(Replicated)
-	int32 ActivationCounter;
-
-	UPROPERTY(Replicated)
 	int32 ShowExtendedInformatiomCounter;
 
 	UPROPERTY(Replicated)
@@ -90,6 +84,10 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	TArray<uint8> NavmeshRepData;
 	
 	/** Begin EQS replication data */
+
+	UPROPERTY(Replicated)
+	TArray<FString> AllEQSName;
+
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
 	TArray<uint8> EQSRepData;
 	
@@ -134,10 +132,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 
 	virtual void EnableDebugDraw(bool bEnable, bool InFocusedComponent = false);
 
-	FORCEINLINE bool IsSelected() const { return bIsSelectedForDebugging; }
-	/** Will broadcast information that this component is (no longer) being "observed" */
-	void SelectForDebugging(bool bNewStatus);
-
 	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return ReplicateViewDataCounters[InView] > 0 /*true*/; }
 	virtual void CollectDataToReplicate(bool bCollectExtendedData);
 
@@ -156,6 +150,8 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 		return TargetActor;
 	}
 
+	void SetEQSIndex(int32 Index) { CurrentEQSIndex = AllEQSName.Num() > 0 ? FMath::Clamp(Index, 0, AllEQSName.Num() - 1) : INDEX_NONE; }
+	int32 GetEQSIndex() { return CurrentEQSIndex; }
 	//=============================================================================
 	// EQS debugging
 	//=============================================================================

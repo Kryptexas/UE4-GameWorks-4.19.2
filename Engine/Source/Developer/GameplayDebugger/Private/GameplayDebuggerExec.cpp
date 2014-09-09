@@ -99,69 +99,6 @@ bool FGameplayDebuggerExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevic
 			}
 		}
 	}
-	else if (FParse::Command(&Cmd, TEXT("ToggleGameplayDebugView")))
-	{
-		static TArray<FString> ViewNames;
-		if (ViewNames.Num() == 0)
-		{
-			const UEnum* ViewlEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIDebugDrawDataView"), true);
-			ViewNames.AddZeroed(EAIDebugDrawDataView::MAX);
-			for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-			{
-				ViewNames[Index] = ViewlEnum->GetEnumName(Index);
-			}
-		}
-
-		const bool bActivePIE = Inworld && Inworld->IsGameWorld();
-		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
-		if (bActivePIE)
-		{
-			for (FActorIterator It(Inworld); It; ++It)
-			{
-				AActor* A = *It;
-				if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
-				{
-					AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(A);
-					if (Replicator->GetLocalPlayerOwner() == PC)
-					{
-						DebuggingReplicator = Replicator;
-						break;
-					}
-				}
-			}
-		}
-
-		FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(DebuggingReplicator);
-		FString InViewName = FParse::Token(Cmd, 0);
-		int32 ViewIndex = ViewNames.Find(InViewName);
-		FGameplayDebuggerSettings::ShowFlagIndex = FEngineShowFlags::FindIndexByName(TEXT("GameplayDebug"));
-		if (ViewIndex != INDEX_NONE)
-		{
-			DebuggerSettings.CheckFlag(ViewIndex) ? DebuggerSettings.ClearFlag(ViewIndex) : DebuggerSettings.SetFlag(ViewIndex);
-			if (bActivePIE)
-			{
-				GameplayDebuggerSettings().CheckFlag(ViewIndex) ? GameplayDebuggerSettings().ClearFlag(ViewIndex) : GameplayDebuggerSettings().SetFlag(ViewIndex);
-			}
-#if WITH_EDITOR
-			if (ViewIndex == EAIDebugDrawDataView::EQS && GCurrentLevelEditingViewportClient)
-			{
-				GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(FGameplayDebuggerSettings::ShowFlagIndex, DebuggerSettings.CheckFlag(ViewIndex));
-			}
-#endif
-			PC->ClientMessage(FString::Printf(TEXT("View %s %s")
-				, *InViewName
-				, DebuggerSettings.CheckFlag(ViewIndex) ? TEXT("enabled") : TEXT("disabled")));
-		}
-		else
-		{
-			PC->ClientMessage(TEXT("Unknown debug view name. Valid options are:"));
-			for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-			{
-				PC->ClientMessage(*ViewNames[Index]);
-			}
-		}
-		bHandled = true;
-	}
 	else if (FParse::Command(&Cmd, TEXT("RunEQS")))
 	{
 		bHandled = true;

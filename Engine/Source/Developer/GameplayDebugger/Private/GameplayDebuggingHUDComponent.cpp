@@ -25,11 +25,11 @@ AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const class FPost
 	, EngineShowFlags(EShowFlagInitMode::ESFIM_Game)
 {
 	World = NULL;
-#if WITH_EDITOR
+	SetTickableWhenPaused(true);
+
+#if WITH_EDITORONLY_DATA
 	SetIsTemporarilyHiddenInEditor(true);
 	SetActorHiddenInGame(false);
-#endif
-#if WITH_EDITORONLY_DATA
 	bHiddenEdLevel = true;
 	bHiddenEdLayer = true;
 	bHiddenEd = true;
@@ -106,7 +106,7 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 		DrawDebugComponentData(MyPC, DebugComponent);
 	}
 
-	if (!EngineShowFlags.DebugAI)
+	if (DefaultContext.Canvas && DefaultContext.Canvas->SceneView && DefaultContext.Canvas->SceneView->Family && DefaultContext.Canvas->SceneView->Family->EngineShowFlags.Game)
 	{
 		DrawMenu(MenuX, MenuY, DebugComponent);
 	}
@@ -182,7 +182,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
 
 	FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(GetDebuggingReplicator());
-	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::OverHead) || EngineShowFlags.DebugAI)
+	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::OverHead) /*|| EngineShowFlags.DebugAI*/)
 	{
 		DrawOverHeadInformation(MyPC, DebugComponent);
 	}
@@ -192,9 +192,10 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 		DrawNavMeshSnapshot(MyPC, DebugComponent);
 	}
 
-	if (DebugComponent->GetSelectedActor() && DebugComponent->IsSelected())
+	const bool bDrawFullData = GetDebuggingReplicator()->GetSelectedActorToDebug() == SelectedActor;
+	if (DebugComponent->GetSelectedActor() && bDrawFullData)
 	{
-		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) || EngineShowFlags.DebugAI)
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) /*|| EngineShowFlags.DebugAI*/)
 		{
 			DrawBasicData(MyPC, DebugComponent);
 		}
@@ -217,7 +218,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 			}
 		}
 
-		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Perception) || EngineShowFlags.DebugAI)
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Perception) /*|| EngineShowFlags.DebugAI*/)
 		{
 			DrawPerception(MyPC, DebugComponent);
 		}
@@ -275,7 +276,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 	FString ObjectName = FString::Printf( TEXT("{yellow}%s {white}(%s)"), *DebugComponent->ControllerName, *DebugComponent->PawnName);
 	CalulateStringSize(OverHeadContext, OverHeadContext.Font, ObjectName, TextXL, YL);
 
-	bool bDrawFullOverHead = DebugComponent->bIsSelectedForDebugging;
+	bool bDrawFullOverHead = GetDebuggingReplicator()->GetSelectedActorToDebug() == MyPawn;
 	float IconXLocation = OverHeadContext.DefaultX;
 	float IconYLocation = OverHeadContext.DefaultY;
 	if (bDrawFullOverHead)
@@ -307,8 +308,6 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 		OverHeadContext.FontRenderInfo.bEnableShadow = false;
 	}
 
-	APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
-	UGameplayDebuggingControllerComponent*  GDC = MyPC ? MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>() : NULL;
 	if (EngineShowFlags.DebugAI)
 	{
 		PrintString(OverHeadContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
@@ -333,10 +332,7 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 		PrintString(DefaultContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
 	}
 
-	if (DebugComponent->IsSelected())
-	{
-		DrawPath(PC, DebugComponent);
-	}
+	DrawPath(PC, DebugComponent);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -387,24 +383,26 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 	{
 		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
 		FVector CamLocation;
-		FRotator CamRotation;
-		check(MyPC->PlayerCameraManager != NULL);
-		MyPC->PlayerCameraManager->GetCameraViewPoint(CamLocation, CamRotation);
-		FVector FireDir = CamRotation.Vector();
-
-		FVector out_Location;
-		FRotator out_Rotation;
-		MyPC->GetPlayerViewPoint(out_Location, out_Rotation);
+		FVector FireDir;
+		if (!MyPC->GetSpectatorPawn())
+		{
+			FRotator CamRotation;
+			MyPC->GetPlayerViewPoint(CamLocation, CamRotation);
+			FireDir = CamRotation.Vector();
+		}
+		else
+		{
+			FireDir = DefaultContext.Canvas->SceneView->GetViewDirection();
+			CamLocation = DefaultContext.Canvas->SceneView->ViewMatrices.ViewOrigin;
+		}
 
 		float bestAim = 0;
 		for (int32 Index = 0; Index < CurrentLocalData.RenderDebugHelpers.Num(); ++Index)
 		{
 			auto& CurrentItem = CurrentLocalData.RenderDebugHelpers[Index];
 
-			// look for best controlled pawn target
-			const FVector AimDir = CurrentItem.Location - out_Location;
+			const FVector AimDir = CurrentItem.Location - CamLocation;
 			float FireDist = AimDir.SizeSquared();
-			// only find targets which are < 25000 units away
 
 			FireDist = FMath::Sqrt(FireDist);
 			float newAim = FireDir | AimDir;
@@ -455,7 +453,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 
 	const float RowHeight = 20.0f;
 	const int32 NumTests = CurrentLocalData.Tests.Num();
-	if (CurrentLocalData.NumValidItems > 0)
+	if (CurrentLocalData.NumValidItems > 0 && GetDebuggingReplicator()->EnableEQSOnHUD )
 	{
 		// draw test weights for best X items
 		const int32 NumItems = CurrentLocalData.Items.Num();

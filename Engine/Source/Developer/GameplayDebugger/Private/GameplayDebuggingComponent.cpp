@@ -136,8 +136,6 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 	bAutoActivate = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
-	bIsSelectedForDebugging = false;
-	ActivationCounter = 0;
 	ShowExtendedInformatiomCounter = 0;
 #if WITH_EDITOR
 	bWasSelectedInEditor = false;
@@ -162,11 +160,9 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 void UGameplayDebuggingComponent::Activate(bool bReset)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (IsActive() == false)
-		{
-			Super::Activate(bReset);
+		Super::Activate(bReset);
 		SetComponentTickEnabled(true);
-	}
+		SetIsReplicated(true);
 #else
 	Super::Activate(bReset);
 #endif
@@ -175,11 +171,9 @@ void UGameplayDebuggingComponent::Activate(bool bReset)
 void UGameplayDebuggingComponent::Deactivate()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (IsActive())
-		{
-			Super::Deactivate();
+		Super::Deactivate();
 		SetComponentTickEnabled(false);
-	}
+		SetIsReplicated(false);
 #else
 	Super::Deactivate();
 #endif
@@ -189,8 +183,6 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	DOREPLIFETIME(UGameplayDebuggingComponent, bIsSelectedForDebugging);
-	DOREPLIFETIME( UGameplayDebuggingComponent, ActivationCounter );
 	DOREPLIFETIME( UGameplayDebuggingComponent, ReplicateViewDataCounters );
 	DOREPLIFETIME( UGameplayDebuggingComponent, ShowExtendedInformatiomCounter );
 	DOREPLIFETIME( UGameplayDebuggingComponent, ControllerName )
@@ -233,6 +225,9 @@ void UGameplayDebuggingComponent::SetActorToDebug(AActor* Actor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	TargetActor = Actor;
+	EQSLocalData.Reset();
+	AllEQSName.Reset();
+	CurrentEQSIndex = INDEX_NONE;
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -258,8 +253,7 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 	}
 
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
-	UGameplayDebuggingComponent* DebugComponent = Replicator ? Replicator->GetDebugComponent() : NULL;
-	CurrentEQSIndex = DebugComponent ? FMath::Clamp(CurrentEQSIndex, 0, DebugComponent->EQSLocalData.Num() - 1) : INDEX_NONE;
+	CurrentEQSIndex = AllEQSName.Num() > 0 ?FMath::Clamp(CurrentEQSIndex, 0, AllEQSName.Num() - 1) : INDEX_NONE;
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -332,7 +326,6 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 
 			//always update component for best target
 			SetActorToDebug(Cast<AActor>(BestTarget));
-			SelectForDebugging(true);
 			ServerReplicateData(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 		}
 	}
@@ -352,12 +345,14 @@ void UGameplayDebuggingComponent::CollectDataToReplicate(bool bCollectExtendedDa
 		CollectBasicData();
 	}
 
-	if (IsSelected() && ShouldReplicateData(EAIDebugDrawDataView::EditorDebugAIFlag))
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	const bool bDrawFullData = Replicator->GetSelectedActorToDebug() == GetSelectedActor();
+	if (bDrawFullData && ShouldReplicateData(EAIDebugDrawDataView::Basic))
 	{
 		CollectPathData();
 	}
 
-	if (bCollectExtendedData && IsSelected())
+	if (bCollectExtendedData && bDrawFullData)
 	{
 		if (ShouldReplicateData(EAIDebugDrawDataView::BehaviorTree))
 		{
@@ -506,50 +501,12 @@ void UGameplayDebuggingComponent::CollectPathData()
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (bIsSelectedForDebugging != bNewStatus)
-	{
-		bIsSelectedForDebugging = bNewStatus;
-		
-#if 0
-		// temp: avoidance debug
-		UAvoidanceManager* Avoidance = GetWorld()->GetAvoidanceManager();
-		AController* ControllerOwner = Cast<AController>(GetOwner());
-		APawn* PawnOwner = ControllerOwner ? ControllerOwner->GetPawn() : Cast<APawn>(GetOwner());
-		UCharacterMovementComponent* MovementComp = PawnOwner ? PawnOwner->FindComponentByClass<UCharacterMovementComponent>() : NULL;
-		if (MovementComp && Avoidance)
-		{
-			Avoidance->AvoidanceDebugForUID(MovementComp->AvoidanceUID, bNewStatus);
-		}
-#endif
-
-#if WITH_EQS
-		if (bNewStatus == false)
-		{
-			CachedQueryInstance.Reset();
-			MarkRenderStateDirty();
-		}
-#endif // WITH_EQS
-	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
-
 void UGameplayDebuggingComponent::EnableDebugDraw(bool bEnable, bool InFocusedComponent)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (bEnable)
-	{
-		SelectForDebugging(InFocusedComponent);
-	}
-	else
-	{
-		SelectForDebugging(false);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
 #if WITH_EQS
-		EnableClientEQSSceneProxy(false);
+	EnableClientEQSSceneProxy(bEnable);
 #endif // WITH_EQS
-	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -573,7 +530,7 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 		break;
 
 	case EDebugComponentMessage::DeactivateReplilcation:
-			Deactivate();
+		Deactivate();
 		break;
 
 	case EDebugComponentMessage::ActivateDataView:
@@ -602,8 +559,7 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 void UGameplayDebuggingComponent::OnChangeEQSQuery()
 {
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
-	UGameplayDebuggingComponent* DebugComponent = Replicator ? Replicator->GetDebugComponent() : NULL;
-	if (DebugComponent && ++CurrentEQSIndex >= DebugComponent->EQSLocalData.Num())
+	if (++CurrentEQSIndex >= AllEQSName.Num())
 	{
 		CurrentEQSIndex = 0;
 	}
@@ -642,9 +598,9 @@ void UGameplayDebuggingComponent::OnRep_UpdateEQS()
 		FMemoryReader ArReader(UncompressedBuffer);
 
 		ArReader << EQSLocalData;
-		CurrentEQSIndex = 0;
 	}	
 
+	CurrentEQSIndex = AllEQSName.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, AllEQSName.Num() - 1) : INDEX_NONE;
 	UpdateBounds();
 	MarkRenderStateDirty();
 #endif //USE_EQS_DEBUGGER
@@ -672,6 +628,8 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	{
 		EQSDebug::FQueryData* CurrentLocalData = NULL;
 		CachedQueryInstance = AllQueries[Index].Instance;
+		float CachedTimestamp = AllQueries[Index].Timestamp;
+		AllEQSName.AddUnique(CachedQueryInstance->QueryName);
 
 		 //find corresponding query
 		bool bSkipToNext = false;
@@ -681,8 +639,11 @@ void UGameplayDebuggingComponent::CollectEQSData()
 			{
 				if (EQSLocalData[Idx].Id == CachedQueryInstance->QueryID)
 				{
-					bSkipToNext = true;
-					break;
+					if (EQSLocalData[Idx].Timestamp == CachedTimestamp)
+					{
+						bSkipToNext = true;
+						break;
+					}
 				}
 				CurrentLocalData = &EQSLocalData[Index];;
 				break;
@@ -1130,7 +1091,6 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 	FDebugRenderSceneCompositeProxy* CompositeProxy = NULL;
 
 #if WITH_RECAST	
-	const APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh) && World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		FNavMeshSceneProxyData NewNavmeshRenderData;
@@ -1146,13 +1106,14 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 #endif
 
 #if USE_EQS_DEBUGGER
-	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() )
+	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled())
 	{
 		if (EQSLocalData.IsValidIndex(CurrentEQSIndex))
 		{
 			CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
 			auto& CurrentLocalData = EQSLocalData[CurrentEQSIndex];
-			CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("GameplayDebug"), false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
+			bool bUseDebugAIFlag = false;
+			CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("DebugAI"), false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
 		}
 	}
 #endif // USE_EQS_DEBUGGER

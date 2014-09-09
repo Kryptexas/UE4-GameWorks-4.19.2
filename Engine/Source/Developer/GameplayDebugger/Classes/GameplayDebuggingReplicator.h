@@ -30,7 +30,46 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	APlayerController* LocalPlayerOwner;
 
 	UPROPERTY(Replicated, Transient)
+	AActor*	LastSelectedActorToDebug;
+
+	UPROPERTY(Replicated, Transient)
 	bool bIsGlobalInWorld;
+
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool OverHead;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool Basic;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool BehaviorTree;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView|EQS")
+	bool EQS;
+
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView|EQS", meta = (EditCondition = "EQS"))
+	bool EnableEQSOnHUD;
+
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView|EQS", meta = (EditCondition = "EQS"))
+	int32 ActiveEQSIndex;
+
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool Perception;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool GameView1;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool GameView2;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool GameView3;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = "DataView")
+	bool GameView4;
+	
+	UPROPERTY(Transient, EditAnywhere, Category = DataView)
+	bool GameView5;
 
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
@@ -40,6 +79,10 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerEnableTargetSelection(bool bEnable, APlayerController* Context);
+
+#if WITH_EDITOR
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 	virtual class UNetConnection* GetNetConnection() override;
 
@@ -64,7 +107,7 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	void SetLocalPlayerOwner(APlayerController* PC) { LocalPlayerOwner = PC; }
 	APlayerController* GetLocalPlayerOwner() { return LocalPlayerOwner; }
 
-	FORCEINLINE AActor* GetSelectedActorToDebug() { return LastSelectedActorInSimulation.Get(); }
+	FORCEINLINE AActor* GetSelectedActorToDebug() { return LastSelectedActorToDebug; }
 	void SetActorToDebug(AActor* InActor);
 
 	uint32 DebuggerShowFlags;
@@ -85,5 +128,4 @@ private:
 	TWeakObjectPtr<UClass> DebugComponentHUDClass;
 
 	TWeakObjectPtr<AGameplayDebuggingHUDComponent>	DebugRenderer;
-	TWeakObjectPtr<AActor>	LastSelectedActorInSimulation;
 };
