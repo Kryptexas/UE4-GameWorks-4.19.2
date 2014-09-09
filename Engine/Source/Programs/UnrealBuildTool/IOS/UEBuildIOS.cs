@@ -130,8 +130,11 @@ namespace UnrealBuildTool
                 InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
             }
 
-            // needs IOS8 for Metal
-            if (IOSToolChain.IOSSDKVersionFloat >= 8.0 && UEBuildConfiguration.bCompileAgainstEngine)
+            // needs IOS8 for Metal, but Rocket libs won't work with binary 4.4, because IOS8 will try to use Meta, 
+			// but 4.4 doesn't ship with Redist-MetalRHI, so skip Meta for binary users. GitHub people will still get Metal
+			// This is not going into 4.5
+			bool bIsRocket = UnrealBuildTool.UnrealBuildTool.RunningRocket() || UnrealBuildTool.UnrealBuildTool.BuildingRocket();
+            if (!bIsRocket && IOSToolChain.IOSSDKVersionFloat >= 8.0 && UEBuildConfiguration.bCompileAgainstEngine)
             {
                 InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
                 InBuildTarget.ExtraModuleNames.Add("MetalRHI");
