@@ -108,17 +108,8 @@ static FORCEINLINE void SerializeGenericChecksum( FArchive & Ar )
 	check( Checksum == 0xABADF00D );
 }
 
-static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd & Cmd, const int32 CurCmdIndex, const uint8 * Data, FArchive & Ar, const bool bDiscard )
+static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd & Cmd, const int32 CurCmdIndex, const uint8 * Data, FArchive & Ar )
 {
-	if ( bDiscard )
-	{
-		uint32 MarkerChecksum = 0;
-		uint32 PropertyChecksum = 0;
-		Ar << MarkerChecksum;
-		Ar << PropertyChecksum;
-		return;
-	}
-
 	// Serialize various attributes that will mostly ensure we are working on the same property
 	const uint32 NameHash = GetTypeHash( Cmd.Property->GetName() );
 
@@ -918,7 +909,7 @@ uint16 FRepLayout::SendProperties_r(
 #ifdef ENABLE_PROPERTY_CHECKSUMS
 			if ( WriterState.bDoChecksum )
 			{
-				SerializeReadWritePropertyChecksum( Cmd, CmdIndex, Data + Cmd.Offset, WriterState.Writer, false );
+				SerializeReadWritePropertyChecksum( Cmd, CmdIndex, Data + Cmd.Offset, WriterState.Writer );
 			}
 #endif
 		}
@@ -1036,29 +1027,11 @@ bool FRepLayout::ReadProperty(
 	const FRepLayoutCmd &	Cmd, 
 	const int32				CmdIndex, 
 	uint8 * RESTRICT		StoredData, 
-	uint8 * RESTRICT		Data, 
-	const bool				bDiscard ) const
+	uint8 * RESTRICT		Data ) const
 {
 	if ( !ShouldReadProperty( ReaderState ) )
 	{
 		// This property didn't change, nothing to read
-		return true;
-	}
-
-	if ( bDiscard )
-	{
-		FMemMark Mark( FMemStack::Get() );
-		uint8 * DiscardBuffer = NewZeroed<uint8>( FMemStack::Get(), Cmd.ElementSize );
-		const int32 OldArrayDim = Cmd.Property->ArrayDim;
-		Cmd.Property->ArrayDim = 1;		// Force this to 1, so that InitializeValue/DestroyValue work on a single item
-		Cmd.Property->InitializeValue( DiscardBuffer );
-		Cmd.Property->NetSerializeItem( ReaderState.Bunch, ReaderState.Bunch.PackageMap, DiscardBuffer );
-		Cmd.Property->DestroyValue( DiscardBuffer );
-		Cmd.Property->ArrayDim = OldArrayDim;
-		Mark.Pop();
-
-		// Read the next property handle
-		ReadNextHandle( ReaderState );
 		return true;
 	}
 
@@ -1101,7 +1074,7 @@ bool FRepLayout::ReadProperty(
 #ifdef ENABLE_PROPERTY_CHECKSUMS
 	if ( ReaderState.bDoChecksum )
 	{
-		SerializeReadWritePropertyChecksum( Cmd, CmdIndex, Data + SwappedCmd.Offset, ReaderState.Bunch, false );
+		SerializeReadWritePropertyChecksum( Cmd, CmdIndex, Data + SwappedCmd.Offset, ReaderState.Bunch );
 	}
 #endif
 
@@ -1122,8 +1095,7 @@ bool FRepLayout::ReceiveProperties_AnyArray_r(
 	const int32			ElementSize, 
 	const int32			CmdIndex, 
 	uint8 * RESTRICT	StoredData, 
-	uint8 *	RESTRICT	Data,
-	const bool			bDiscard ) const
+	uint8 *	RESTRICT	Data ) const
 {
 	const int32 CmdStart	= CmdIndex + 1;
 	const int32 CmdEnd		= Cmds[CmdIndex].EndCmd - 1;
@@ -1132,7 +1104,7 @@ bool FRepLayout::ReceiveProperties_AnyArray_r(
 	{
 		const int32 ElementOffset = i * ElementSize;
 
-		if ( !ReceiveProperties_r( ReaderState, UnmappedGuids, AbsOffset + ElementOffset, CmdStart, CmdEnd, StoredData + ElementOffset, Data + ElementOffset, bDiscard ) )
+		if ( !ReceiveProperties_r( ReaderState, UnmappedGuids, AbsOffset + ElementOffset, CmdStart, CmdEnd, StoredData + ElementOffset, Data + ElementOffset ) )
 		{
 			return false;
 		}
@@ -1148,8 +1120,7 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 	const FRepLayoutCmd &	Cmd, 
 	const int32				CmdIndex, 
 	uint8 * RESTRICT		StoredData, 
-	uint8 * RESTRICT		Data,
-	const bool				bDiscard ) const
+	uint8 * RESTRICT		Data ) const
 {
 	if ( !ShouldReadProperty( ReaderState ) )
 	{
@@ -1164,45 +1135,42 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 	// Read the next property handle
 	ReadNextHandle( ReaderState );
 
-	if ( !bDiscard )
+	FScriptArray * Array = (FScriptArray *)Data;
+	FScriptArray * StoredArray = (FScriptArray *)StoredData;
+
+	// Since we don't know yet if something under us could be unmapped, go ahead and allocate an array container now
+	FUnmappedGuidMgrElement * NewArrayElement = UnmappedGuids->Map.Find( AbsOffset );
+
+	if ( NewArrayElement == NULL )
 	{
-		FScriptArray * Array = (FScriptArray *)Data;
-		FScriptArray * StoredArray = (FScriptArray *)StoredData;
-
-		// Since we don't know yet if something under us could be unmapped, go ahead and allocate an array container now
-		FUnmappedGuidMgrElement * NewArrayElement = UnmappedGuids->Map.Find( AbsOffset );
-
-		if ( NewArrayElement == NULL )
-		{
-			NewArrayElement = &UnmappedGuids->Map.FindOrAdd( AbsOffset );
-			NewArrayElement->Array = new FUnmappedGuidMgr;
-			NewArrayElement->ParentIndex = Cmd.ParentIndex;
-			NewArrayElement->CmdIndex = CmdIndex;
-		}
-
-		check( NewArrayElement != NULL );
-		check( NewArrayElement->ParentIndex == Cmd.ParentIndex );
-		check( NewArrayElement->CmdIndex == CmdIndex );
-
-		UnmappedGuids = NewArrayElement->Array;
-
-		const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
-
-		if ( Array->Num() != ArrayNum && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
-		{
-			ReaderState.RepState->RepNotifies.AddUnique( Parent.Property );
-		}
-
-		// Set the array to the correct size (if we aren't discarding)
-		FScriptArrayHelper ArrayHelper( (UArrayProperty *)Cmd.Property, Data );
-		ArrayHelper.Resize( ArrayNum );
-
-		FScriptArrayHelper StoredArrayHelper( (UArrayProperty *)Cmd.Property, StoredData );
-		StoredArrayHelper.Resize( ArrayNum );
-
-		Data		= (uint8*)Array->GetData();
-		StoredData	= (uint8*)StoredArray->GetData();
+		NewArrayElement = &UnmappedGuids->Map.FindOrAdd( AbsOffset );
+		NewArrayElement->Array = new FUnmappedGuidMgr;
+		NewArrayElement->ParentIndex = Cmd.ParentIndex;
+		NewArrayElement->CmdIndex = CmdIndex;
 	}
+
+	check( NewArrayElement != NULL );
+	check( NewArrayElement->ParentIndex == Cmd.ParentIndex );
+	check( NewArrayElement->CmdIndex == CmdIndex );
+
+	UnmappedGuids = NewArrayElement->Array;
+
+	const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
+
+	if ( Array->Num() != ArrayNum && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+	{
+		ReaderState.RepState->RepNotifies.AddUnique( Parent.Property );
+	}
+
+	// Set the array to the correct size
+	FScriptArrayHelper ArrayHelper( (UArrayProperty *)Cmd.Property, Data );
+	ArrayHelper.Resize( ArrayNum );
+
+	FScriptArrayHelper StoredArrayHelper( (UArrayProperty *)Cmd.Property, StoredData );
+	StoredArrayHelper.Resize( ArrayNum );
+
+	Data		= (uint8*)Array->GetData();
+	StoredData	= (uint8*)StoredArray->GetData();
 
 	const uint16 OldHandle = ReaderState.CurrentHandle;
 
@@ -1210,7 +1178,7 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 	ReaderState.CurrentHandle = 0;
 
 	// Read any changed properties into the array
-	if ( !ReceiveProperties_AnyArray_r( ReaderState, UnmappedGuids, 0, ArrayNum, Cmd.ElementSize, CmdIndex, StoredData, Data, bDiscard ) )
+	if ( !ReceiveProperties_AnyArray_r( ReaderState, UnmappedGuids, 0, ArrayNum, Cmd.ElementSize, CmdIndex, StoredData, Data ) )
 	{
 		return false;
 	}
@@ -1231,8 +1199,7 @@ bool FRepLayout::ReceiveProperties_r(
 	const int32			CmdStart, 
 	const int32			CmdEnd, 
 	uint8 * RESTRICT	StoredData, 
-	uint8 * RESTRICT	Data,
-	const bool			bDiscard ) const
+	uint8 * RESTRICT	Data ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
@@ -1242,7 +1209,7 @@ bool FRepLayout::ReceiveProperties_r(
 
 		if ( Cmd.Type == REPCMD_DynamicArray )
 		{
-			if ( !ReceiveProperties_DynamicArray_r( ReaderState, UnmappedGuids, AbsOffset + Cmd.Offset, Cmd, CmdIndex, StoredData + Cmd.Offset, Data + Cmd.Offset, bDiscard ) )
+			if ( !ReceiveProperties_DynamicArray_r( ReaderState, UnmappedGuids, AbsOffset + Cmd.Offset, Cmd, CmdIndex, StoredData + Cmd.Offset, Data + Cmd.Offset ) )
 			{
 				return false;
 			}
@@ -1250,7 +1217,7 @@ bool FRepLayout::ReceiveProperties_r(
 			continue;
 		}
 
-		if ( !ReadProperty( ReaderState, UnmappedGuids, AbsOffset, Cmd, CmdIndex, StoredData, Data, bDiscard ) )
+		if ( !ReadProperty( ReaderState, UnmappedGuids, AbsOffset, Cmd, CmdIndex, StoredData, Data ) )
 		{
 			return false;
 		}
@@ -1259,7 +1226,7 @@ bool FRepLayout::ReceiveProperties_r(
 	return true;
 }
 
-bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool bDiscard, bool & bOutHasUnmapped ) const
+bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const
 {
 	check( InObjectClass == Owner );
 
@@ -1277,7 +1244,7 @@ bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT
 	ReadNextHandle( ReaderState );
 
 	// Read all properties
-	if ( !ReceiveProperties_r( ReaderState, &RepState->UnmappedGuids, 0, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), (uint8*)Data, bDiscard ) )
+	if ( !ReceiveProperties_r( ReaderState, &RepState->UnmappedGuids, 0, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), (uint8*)Data ) )
 	{
 		return false;
 	}
@@ -1292,7 +1259,7 @@ bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT
 #ifdef ENABLE_SUPER_CHECKSUMS
 	if ( InBunch.ReadBit() == 1 )
 	{
-		ValidateWithChecksum( RepState->StaticBuffer.GetTypedData(), InBunch, bDiscard );
+		ValidateWithChecksum( RepState->StaticBuffer.GetTypedData(), InBunch );
 	}
 #endif
 
@@ -1430,22 +1397,8 @@ void FRepLayout::CallRepNotifies( FRepState * RepState, UObject * Object ) const
 	RepState->RepNotifies.Empty();
 }
 
-void FRepLayout::ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const
+void FRepLayout::ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar ) const
 {
-	if ( bDiscard )
-	{
-		uint16 ArrayNum		= 0;
-		uint16 ElementSize	= 0;
-		Ar << ArrayNum;
-		Ar << ElementSize;
-
-		for ( int32 i = 0; i < ArrayNum; i++ )
-		{
-			ValidateWithChecksum_r( CmdIndex + 1, Cmd.EndCmd - 1, NULL, Ar, bDiscard );
-		}
-		return;
-	}
-
 	FScriptArray * Array = (FScriptArray *)Data;
 
 	uint16 ArrayNum		= Array->Num();
@@ -1468,7 +1421,7 @@ void FRepLayout::ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd,
 
 	for ( int32 i = 0; i < ArrayNum; i++ )
 	{
-		ValidateWithChecksum_r( CmdIndex + 1, Cmd.EndCmd - 1, LocalData + i * ElementSize, Ar, bDiscard );
+		ValidateWithChecksum_r( CmdIndex + 1, Cmd.EndCmd - 1, LocalData + i * ElementSize, Ar );
 	}
 }
 
@@ -1476,8 +1429,7 @@ void FRepLayout::ValidateWithChecksum_r(
 	const int32				CmdStart, 
 	const int32				CmdEnd, 
 	const uint8 * RESTRICT	Data, 
-	FArchive &				Ar,
-	const bool				bDiscard ) const
+	FArchive &				Ar ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
@@ -1487,24 +1439,24 @@ void FRepLayout::ValidateWithChecksum_r(
 
 		if ( Cmd.Type == REPCMD_DynamicArray )
 		{
-			ValidateWithChecksum_DynamicArray_r( Cmd, CmdIndex, Data + Cmd.Offset, Ar, bDiscard );
+			ValidateWithChecksum_DynamicArray_r( Cmd, CmdIndex, Data + Cmd.Offset, Ar );
 			CmdIndex = Cmd.EndCmd - 1;	// Jump past children of this array (-1 for ++ in for loop)
 			continue;
 		}
 
-		SerializeReadWritePropertyChecksum( Cmd, CmdIndex - 1, Data + Cmd.Offset, Ar, bDiscard );
+		SerializeReadWritePropertyChecksum( Cmd, CmdIndex - 1, Data + Cmd.Offset, Ar );
 	}
 }
 
-void FRepLayout::ValidateWithChecksum( const void * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const
+void FRepLayout::ValidateWithChecksum( const void * RESTRICT Data, FArchive & Ar ) const
 {
-	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)Data, Ar, bDiscard );
+	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)Data, Ar );
 }
 
 uint32 FRepLayout::GenerateChecksum( const FRepState * RepState ) const
 {
 	FBitWriter Writer( 1024, true );
-	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)RepState->StaticBuffer.GetTypedData(), Writer, false );
+	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)RepState->StaticBuffer.GetTypedData(), Writer );
 
 	return FCrc::MemCrc32( Writer.GetData(), Writer.GetNumBytes(), 0 );
 }

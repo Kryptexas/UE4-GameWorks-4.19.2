@@ -459,28 +459,10 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 				}
 			}
 #endif
-
 			if ( !Retirement[ ReplicatedProp->RepIndex ].CustomDelta )
 			{
 				// We hijack a non custom delta property to signify we are using FRepLayout to read the entire property block
-				FPropertyRetirement & Retire = Retirement[ ReplicatedProp->RepIndex ];
-
-				bool bDiscardLayout = false;
-
-				if ( Bunch.PacketId >= Retire.InPacketId ) //!! problem with reliable pkts containing dynamic references, being retransmitted, and overriding newer versions. Want "OriginalPacketId" for retransmissions?
-				{
-					// Receive this new property.
-					Retire.InPacketId = Bunch.PacketId;
-				}
-				else
-				{
-					UE_LOG( LogNet, Fatal, TEXT( "Bunch.PacketId < Retire.InPacketId. PacketId: %i, LastPacketId: %i, Partial: %s, Object: %s" ), Bunch.PacketId, Retire.InPacketId, Bunch.bPartial ? TEXT( "YES" ) : TEXT( "NO" ), *Object->GetFullName() );
-					bDiscardLayout = true;
-				}
-
-				check( Bunch.PacketId >= Retire.InPacketId );
-				
-				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bDiscardLayout, bOutHasUnmapped ) )
+				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bOutHasUnmapped ) )
 				{
 					UE_LOG( LogNet, Error, TEXT( "ReceiveProperties FAILED %s in %s" ), *ReplicatedProp->GetName(), *Object->GetFullName() );
 					return false;
@@ -506,32 +488,9 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 				}
 
 				// Pointer to destination.
-				uint8 * DestObj		= (uint8*)Object;
-				uint8 * DestRecent	= RepState->StaticBuffer.Num() ? RepState->StaticBuffer.GetTypedData() : NULL;
+				uint8 * DestRecent = RepState->StaticBuffer.GetTypedData();
 
-				// Check property ordering.
-				FPropertyRetirement & Retire = Retirement[ ReplicatedProp->RepIndex + Element ];
-
-				if ( Bunch.PacketId >= Retire.InPacketId ) //!! problem with reliable pkts containing dynamic references, being retransmitted, and overriding newer versions. Want "OriginalPacketId" for retransmissions?
-				{
-					// Receive this new property.
-					Retire.InPacketId = Bunch.PacketId;
-				}
-				else
-				{
-					UE_LOG( LogNet, Fatal, TEXT( "Bunch.PacketId < Retire.InPacketId. PacketId: %i, LastPacketId: %i, Partial: %s, Object: %s" ), Bunch.PacketId, Retire.InPacketId, Bunch.bPartial ? TEXT( "YES" ) : TEXT( "NO" ), *Object->GetFullName() );
-
-					// Skip this property, because it's out-of-date.
-					UE_LOG( LogNetTraffic, Log, TEXT( "Received out-of-date %s" ), *ReplicatedProp->GetName() );
-
-					DestObj		= NULL;
-					DestRecent	= NULL;
-				}
-
-				check( Bunch.PacketId >= Retire.InPacketId );
-
-				FMemMark Mark(FMemStack::Get());
-				uint8 * Data = DestObj ? ReplicatedProp->ContainerPtrToValuePtr<uint8>(DestObj, Element) : NewZeroed<uint8>(FMemStack::Get(),ReplicatedProp->ElementSize);
+				uint8 * Data = ReplicatedProp->ContainerPtrToValuePtr<uint8>((uint8*)Object, Element);
 				TArray<uint8>	MetaData;
 				PTRINT Offset = 0;
 
@@ -597,8 +556,6 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 						PropertyChanged = false;
 					}
 				}
-
-				Mark.Pop();
 
 				// Successfully received it.
 				UE_LOG( LogNetTraffic, Log, TEXT( " %s - %s - Change: %d" ), *Object->GetName(), *ReplicatedProp->GetName(), PropertyChanged );

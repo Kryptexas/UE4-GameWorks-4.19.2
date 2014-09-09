@@ -321,7 +321,7 @@ public:
 
 	void InitFromObjectClass( UClass * InObjectClass );
 
-	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool bDiscard, bool & bOutHasUnmapped ) const;
+	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const;
 	void UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject * Object, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const;
 
 	void CallRepNotifies( FRepState * RepState, UObject * Object ) const;
@@ -330,7 +330,7 @@ public:
 	bool AllAcked( FRepState * RepState ) const;
 	bool ReadyForDormancy( FRepState * RepState ) const;
 
-	void ValidateWithChecksum( const void * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const;
+	void ValidateWithChecksum( const void * RESTRICT Data, FArchive & Ar ) const;
 	uint32 GenerateChecksum( const FRepState * RepState ) const;
 
 	void MergeDirtyList( const void * RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const;
@@ -418,8 +418,7 @@ private:
 		const FRepLayoutCmd &	Cmd, 
 		const int32				CurrentCmdIndex, 
 		uint8 * RESTRICT		StoredData, 
-		uint8 * RESTRICT		Data, 
-		const bool				bDiscard ) const;
+		uint8 * RESTRICT		Data ) const;
 
 	bool ReceiveProperties_AnyArray_r( 
 		FRepReaderState &	ReaderState, 
@@ -429,8 +428,7 @@ private:
 		const int32			ElementSize, 
 		const int32			CmdIndex, 
 		uint8 * RESTRICT	StoredData, 
-		uint8 *	RESTRICT	Data,
-		const bool			bDiscard ) const;
+		uint8 *	RESTRICT	Data ) const;
 
 	bool ReceiveProperties_DynamicArray_r( 
 		FRepReaderState &		ReaderState, 
@@ -439,8 +437,7 @@ private:
 		const FRepLayoutCmd &	Cmd, 
 		const int32				CmdIndex, 
 		uint8 * RESTRICT		StoredData, 
-		uint8 * RESTRICT		Data,
-		const bool				bDiscard ) const;
+		uint8 * RESTRICT		Data ) const;
 
 	bool ReceiveProperties_r( 
 		FRepReaderState &	ReaderState, 
@@ -449,8 +446,7 @@ private:
 		const int32			CmdStart, 
 		const int32			CmdEnd, 
 		uint8 * RESTRICT	StoredData, 
-		uint8 * RESTRICT	Data,
-		const bool			bDiscard ) const;
+		uint8 * RESTRICT	Data ) const;
 
 	void UpdateUnmappedObjects_r( 
 		FRepState *			RepState, 
@@ -462,8 +458,8 @@ private:
 		bool &				bOutSomeObjectsWereMapped,
 		bool &				bOutHasMoreUnmapped ) const;
 
-	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const;
-	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8 * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const;
+	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar ) const;
+	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8 * RESTRICT Data, FArchive & Ar ) const;
 
 	void MergeDirtyList_AnyArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd & Cmd, const int32 ArrayNum, const int32 ElementSize, const int32 CmdIndex, const uint8 * RESTRICT Data ) const;
 	void MergeDirtyList_DynamicArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data ) const;
