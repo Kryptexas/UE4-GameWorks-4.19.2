@@ -85,7 +85,7 @@ void SSuperSearchBox::SuggestionSelectionChanged(TSharedPtr<FSearchEntry> NewVal
 		return;
 	}
 
-	if (NewValue->bCategory)
+	if (NewValue.Get() == NULL || NewValue->bCategory)
 	{
 		return;
 	}
