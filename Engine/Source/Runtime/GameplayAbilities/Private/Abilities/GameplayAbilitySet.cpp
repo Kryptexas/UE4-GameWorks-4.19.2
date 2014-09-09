@@ -25,7 +25,7 @@ void UGameplayAbilitySet::GiveAbilities(UAbilitySystemComponent* AbilitySystemCo
 	{
 		if (BindInfo.GameplayAbilityClass)
 		{
-			AbilitySystemComponent->GiveAbility(BindInfo.GameplayAbilityClass->GetDefaultObject<UGameplayAbility>(), (int32)BindInfo.Command);
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(BindInfo.GameplayAbilityClass->GetDefaultObject<UGameplayAbility>(), 1, (int32)BindInfo.Command));
 		}
 	}
 }

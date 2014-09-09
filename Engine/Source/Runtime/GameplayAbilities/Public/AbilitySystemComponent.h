@@ -55,6 +55,10 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
  * 
  */
 
+
+/**
+ *	The core ActorComponent for interfacing with the GameplayAbilities System
+ */
 UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
 class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, public IGameplayTagAssetInterface
 {
@@ -175,12 +179,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 		{
 			return PrevPredictionKey == Other.PrevPredictionKey
 				&& CurrPredictionKey == Other.CurrPredictionKey
-				&& Ability == Other.Ability;
+				&& Handle == Other.Handle;
 		}
 
 		uint32 PrevPredictionKey;
 		uint32 CurrPredictionKey;
-		UGameplayAbility* Ability;
+		FGameplayAbilitySpecHandle Handle;
 	};
 
 	// This is a list of GameplayAbilities that are predicted by the client and were triggered by abilities that were also predicted by the client
@@ -206,7 +210,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 		uint32 CurrPredictionKey;
 		EAbilityExecutionState State;
-		UGameplayAbility* Ability;
+		FGameplayAbilitySpecHandle Handle;
 	};
 
 	TArray<FExecutingAbilityInfo> ExecutingServerAbilities;
@@ -370,27 +374,29 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 *	
 	 */
 
-	UGameplayAbility* GiveAbility(UGameplayAbility* Ability, int32 InputID);
+	/** Grants Ability. Returns handle that can be used in TryActivateAbility, etc. */
+	FGameplayAbilitySpecHandle GiveAbility(FGameplayAbilitySpec AbilitySpec);
+
+	/** Attempts to activate the given ability */
+	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PrevPredictionKey = 0, uint32 CurrPredictionKey = 0, UGameplayAbility ** OutInstancedAbility = nullptr);
+
+	void TriggerAbilityFromGameplayEvent(FGameplayAbilitySpecHandle AbilityToTrigger, FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload, UAbilitySystemComponent& Component);
 
 	/** Wipes all 'given' abilities. */
 	void ClearAllAbilities();
 
 	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
-	void OnGiveAbility(UGameplayAbility* Ability, int32 InputID);
+	void OnGiveAbility(const FGameplayAbilitySpec AbilitySpec);
 
-	UGameplayAbility* CreateNewInstanceOfAbility(UGameplayAbility* Ability);
+	UGameplayAbility* CreateNewInstanceOfAbility(FGameplayAbilitySpec& Spec, UGameplayAbility* Ability);
 
-	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);
+	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);
 	
-	/** References to non-replicating abilities that we instanced. We need to keep these references to avoid GC */
+	/** FUll list of all instance-per-execution gameplay abilities associated with this component */
 	UPROPERTY()
-	TArray<UGameplayAbility*>	NonReplicatedInstancedAbilities;
+	TArray<UGameplayAbility*>	AllReplicatedInstancedAbilities;
 
-	/** References to replicating abilities that we instanced. We need to keep these references to avoid GC */
-	UPROPERTY(Replicated)
-	TArray<UGameplayAbility*>	ReplicatedInstancedAbilities;
-
-	void NotifyAbilityEnded(UGameplayAbility* Ability);
+	void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
 
 	/**
 	 *	The abilities we can activate. 
@@ -400,22 +406,25 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 *	This array is not vital for things to work. It is a convenience thing for 'giving abilities to the actor'. But abilities could also work on things
 	 *	without an AbilitySystemComponent. For example an ability could be written to execute on a StaticMeshActor. As long as the ability doesn't require 
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
-	 */ 
-	UPROPERTY(ReplicatedUsing = OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
-	TArray<FGameplayAbilityInputIDPair>	ActivatableAbilities;
+	 */
 
+	UPROPERTY(Replicated=OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
+	TArray<FGameplayAbilitySpec>	ActivatableAbilities;
+
+	FGameplayAbilitySpec* FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle);
 	
 	UFUNCTION()
 	void	OnRep_ActivateAbilities();
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void	ServerTryActivateAbility(class UGameplayAbility* AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey);
+	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilityFailed(class UGameplayAbility* AbilityToActivate, uint32 PredictionKey);
+	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilitySucceed(class UGameplayAbility* AbilityToActivate, uint32 PredictionKey);
+	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PredictionKey);
+	
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -456,10 +465,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void HandleGameplayEvent(FGameplayTag EventTag, FGameplayEventData* Payload);
 
-	TMap<FGameplayTag, TArray<TWeakObjectPtr<UGameplayAbility> > > GameplayEventTriggeredAbilities;
+	TMap<FGameplayTag, TArray<FGameplayAbilitySpecHandle > > GameplayEventTriggeredAbilities;
 
 	void NotifyAbilityCommit(UGameplayAbility* Ability);
-	void NotifyAbilityActivated(UGameplayAbility* Ability);
+	void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
 
 
 	UPROPERTY()
@@ -474,9 +483,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void TargetCancel();
 
 	// ----------------------------------------------------------------------------------------------------------------
-
-	/** This is temp for testing. We want to think a bit more on the API for outside stuff activating abilities */
-	bool	ActivateAbility(TWeakObjectPtr<UGameplayAbility> Ability);
 
 	/** Adds a UAbilityTask task to the list of tasks to be ticked */
 	void TickingTaskStarted(UAbilityTask* NewTask);

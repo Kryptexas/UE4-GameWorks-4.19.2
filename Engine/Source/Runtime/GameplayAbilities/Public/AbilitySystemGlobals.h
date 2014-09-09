@@ -20,7 +20,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	GENERATED_UCLASS_BODY()
 
 	virtual void InitGlobalData();
-	
 
 	/** Holds all of the valid gameplay-related tags that can be applied to assets */
 	UPROPERTY(config)

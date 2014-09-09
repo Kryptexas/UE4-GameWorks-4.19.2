@@ -16,12 +16,12 @@ UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const class FPost
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
 }
 
-void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority ||
 		ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
 	{
-		if (!CommitAbility(ActorInfo, ActivationInfo))
+		if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 		{
 			return;
 		}
@@ -31,21 +31,17 @@ void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilityActor
 	}
 }
 
-void UGameplayAbility_CharacterJump::InputReleased(const FGameplayAbilityActorInfo* ActorInfo)
+void UGameplayAbility_CharacterJump::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	// This is the 'top' of the ability execution code path. We don't have an ActivationInfo yet.
-	// Normally for InputPressed, we do a bunch of stuff (for clients): predict, tell the server, wait for confirm, rollback, etc.
-	// For jump, we are just going to call CancelAbility with an authority ActivationInfo. This is all jump needs, but more complex
-	// abilities may need more work.
-
-	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Authority);
-
-	CancelAbility(ActorInfo, ActivationInfo);
+	if (ActorInfo != NULL && ActorInfo->Actor != NULL)
+	{
+		CancelAbility(Handle, ActorInfo, ActivationInfo);
+	}
 }
 
-bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const
+bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
-	if (!Super::CanActivateAbility(ActorInfo))
+	if (!Super::CanActivateAbility(Handle, ActorInfo))
 	{
 		return false;
 	}
@@ -60,8 +56,10 @@ bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilityAc
  *	Montage that *it* played was still playing, and if so, to cancel it. If this is something we need to support, we may need some
  *	light weight data structure to represent 'non intanced abilities in action' with a way to cancel/end them.
  */
-void UGameplayAbility_CharacterJump::CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility_CharacterJump::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
+	Super::CancelAbility(Handle, ActorInfo, ActivationInfo);
+
 	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority ||
 		ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
 	{

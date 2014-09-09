@@ -37,11 +37,17 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 		const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
 		if (ActorInfo->AnimInstance.IsValid())
 		{
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
-
 			ActorInfo->AnimInstance->Montage_Play(MontageToPlay, 1.f);
-			ActorInfo->AnimInstance->Montage_SetEndDelegate(EndDelegate);
+			if (MontageToPlay)
+			{
+				FOnMontageEnded EndDelegate;
+				EndDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
+				ActorInfo->AnimInstance->Montage_SetEndDelegate(EndDelegate);
+			}
+			else
+			{
+				ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s with null montage."), *Ability->GetName());
+			}
 		}
 	}
 }

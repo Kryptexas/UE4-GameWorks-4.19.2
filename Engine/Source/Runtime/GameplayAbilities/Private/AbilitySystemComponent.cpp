@@ -612,8 +612,7 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
-
-	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedInstancedAbilities);
+	
 	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
 
 	DOREPLIFETIME(UAbilitySystemComponent, AbilityActor);
@@ -633,7 +632,7 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 		}
 	}
 
-	for (UGameplayAbility* Ability : ReplicatedInstancedAbilities)
+	for (UGameplayAbility* Ability : AllReplicatedInstancedAbilities)
 	{
 		if (Ability && !Ability->HasAnyFlags(RF_PendingKill))
 		{

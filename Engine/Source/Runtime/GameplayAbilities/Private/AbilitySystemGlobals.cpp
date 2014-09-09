@@ -171,5 +171,4 @@ void UAbilitySystemGlobals::InitAtributeDefaults()
 		AllocAttributeSetInitter();
 		GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
 	}
-
 }

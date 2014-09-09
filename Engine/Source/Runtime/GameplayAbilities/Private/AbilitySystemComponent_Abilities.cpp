@@ -115,21 +115,21 @@ void UAbilitySystemComponent::RefreshAbilityActorInfo()
 	AbilityActorInfo->InitFromActor(AbilityActorInfo->Actor.Get(), this);
 }
 
-UGameplayAbility* UAbilitySystemComponent::GiveAbility(UGameplayAbility* Ability, int32 InputID)
-{
-	check(Ability);
+FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(FGameplayAbilitySpec Spec)
+{	
+	check(Spec.Ability);
 	check(IsOwnerActorAuthoritative());	// Should be called on authority
 	
-	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
+	FGameplayAbilitySpec& OwnedSpec = ActivatableAbilities[ActivatableAbilities.Add(Spec)];
+	
+	if (OwnedSpec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
 	{
-		Ability = CreateNewInstanceOfAbility(Ability);
+		OwnedSpec.Ability = CreateNewInstanceOfAbility(OwnedSpec, Spec.Ability);
 	}
+	
+	OnGiveAbility(OwnedSpec);
 
-	ActivatableAbilities.Add(FGameplayAbilityInputIDPair(Ability, InputID));
-
-	OnGiveAbility(Ability, InputID);
-
-	return Ability;
+	return OwnedSpec.Handle;
 }
 
 void UAbilitySystemComponent::ClearAllAbilities()
@@ -140,26 +140,41 @@ void UAbilitySystemComponent::ClearAllAbilities()
 	ActivatableAbilities.Empty(ActivatableAbilities.Num());
 }
 
-void UAbilitySystemComponent::OnGiveAbility(UGameplayAbility* Ability, int32 InputID)
+void UAbilitySystemComponent::OnGiveAbility(const FGameplayAbilitySpec Spec)
 {
-	for (FAbilityTriggerData TriggerData : Ability->AbilityTriggers)
+	for (const FAbilityTriggerData& TriggerData : Spec.Ability->AbilityTriggers)
 	{
 		FGameplayTag EventTag = TriggerData.TriggerTag;
 
 		if (GameplayEventTriggeredAbilities.Contains(EventTag))
 		{
-			GameplayEventTriggeredAbilities[EventTag].AddUnique(Ability);
+			GameplayEventTriggeredAbilities[EventTag].AddUnique(Spec.Handle);	// Fixme: is this right? Do we want to trigger the ability directly of the spec?
 		}
 		else
 		{
-			TArray<TWeakObjectPtr<UGameplayAbility> > Triggers;
-			Triggers.Add(Ability);
+			TArray<FGameplayAbilitySpecHandle> Triggers;
+			Triggers.Add(Spec.Handle);
 			GameplayEventTriggeredAbilities.Add(EventTag, Triggers);
 		}
 	}
 }
 
-UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplayAbility *Ability)
+FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle)
+{
+	SCOPE_CYCLE_COUNTER(STAT_FindAbilitySpecFromHandle);
+
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
+	{
+		if (Spec.Handle == Handle)
+		{
+			return &Spec;
+		}
+	}
+
+	return nullptr;
+}
+
+UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayAbilitySpec& Spec, UGameplayAbility* Ability)
 {
 	check(Ability);
 	check(Ability->HasAllFlags(RF_ClassDefaultObject));
@@ -173,18 +188,21 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplayA
 	// Add it to one of our instance lists so that it doesn't GC.
 	if (AbilityInstance->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone)
 	{
-		ReplicatedInstancedAbilities.Add(AbilityInstance);
+		Spec.ReplicatedInstances.Add(AbilityInstance);
+		AllReplicatedInstancedAbilities.Add(AbilityInstance);
 	}
 	else
 	{
-		NonReplicatedInstancedAbilities.Add(AbilityInstance);
+		Spec.NonReplicatedInstances.Add(AbilityInstance);
 	}
 	
 	return AbilityInstance;
 }
 
-void UAbilitySystemComponent::NotifyAbilityEnded(UGameplayAbility* Ability)
+void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability)
 {
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	check(Spec);
 	check(Ability);
 
 	// If AnimatingAbility ended, clear the pointer
@@ -192,6 +210,8 @@ void UAbilitySystemComponent::NotifyAbilityEnded(UGameplayAbility* Ability)
 	{
 		AnimatingAbility = NULL;
 	}
+
+	Spec->IsActive = false;
 	
 	/** If this is instanced per execution, mark pending kill and remove it from our instanced lists if we are the authority */
 	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
@@ -202,80 +222,43 @@ void UAbilitySystemComponent::NotifyAbilityEnded(UGameplayAbility* Ability)
 		{
 			if (GetOwnerRole() == ROLE_Authority)
 			{
-				ReplicatedInstancedAbilities.Remove(Ability);
+				Spec->ReplicatedInstances.Remove(Ability);
+				AllReplicatedInstancedAbilities.Remove(Ability);
 				Ability->MarkPendingKill();
 			}
 		}
 		else
 		{
-			NonReplicatedInstancedAbilities.Remove(Ability);
+			Spec->NonReplicatedInstances.Remove(Ability);
 			Ability->MarkPendingKill();
 		}
 	}
 }
 
-bool UAbilitySystemComponent::ActivateAbility(TWeakObjectPtr<UGameplayAbility> Ability)
+void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore)
 {
-	check(AbilityActorInfo.IsValid());
-
-	if (Ability.IsValid())
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
 	{
-		Ability.Get()->InputPressed(AbilityActorInfo.Get());
-	}
-
-	return false;
-}
-
-void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore)
-{
-	/**
-	 *	FIXME
-	 *
-	 *	Right now we are canceling all activatable abilities that match Tags. This includes abilities that might not have been activated in the first place!
-	 *	For instanced-per-actor abilities this is fine. They could check if they were activated/still activating.
-	 *	For non-instanced abilities it is ambiguous. We have no way to know 'how many' non-instanced abilities are in flight.
-	 *	Likewise for instanced-per-execution abilities. Though they are present in Replicated/NonReplicatedInstancedAbilities list
-	 */
-
-	struct local
-	{
-		static void CancelAbilitiesWithTags(TArray<UGameplayAbility*>& AbilitiesToCancel, const FGameplayTagContainer InTags, TArray<FGameplayAbilityInputIDPair> Abilities, const FGameplayAbilityActorInfo* InActorInfo, const FGameplayAbilityActivationInfo InActivationInfo, UGameplayAbility* InIgnore)
+		if (Spec.IsActive && Spec.Ability && Spec.Ability->AbilityTags.MatchesAny(Tags, false))
 		{
-			for (int32 idx=0; idx < Abilities.Num(); ++idx)
+			if (Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 			{
-				UGameplayAbility *Ability = Abilities[idx].Ability;
-				if (Ability && (Ability != InIgnore) && Ability->AbilityTags.MatchesAny(InTags, false))
+				// We need to cancel spawned instance, not the CDO
+				TArray<UGameplayAbility*> AbilitiesToCancel = Spec.GetAbilityInstances();
+				for (UGameplayAbility* InstanceAbility : AbilitiesToCancel)
 				{
-					if (!Ability->HasAnyFlags(RF_ClassDefaultObject) || Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
+					if (InstanceAbility && Ignore != InstanceAbility)
 					{
-						AbilitiesToCancel.Add(Ability);
-					}					
+						InstanceAbility->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
+					}
 				}
 			}
-		}
-
-		static void CancelAbilitiesWithTags(TArray<UGameplayAbility*>& AbilitiesToCancel, const FGameplayTagContainer InTags, TArray<UGameplayAbility*> Abilities, const FGameplayAbilityActorInfo* InActorInfo, const FGameplayAbilityActivationInfo InActivationInfo, UGameplayAbility* InIgnore)
-		{
-			for (int32 idx=0; idx < Abilities.Num(); ++idx)
+			else
 			{
-				UGameplayAbility *Ability = Abilities[idx];
-				if (Ability && (Ability != InIgnore) && Ability->AbilityTags.MatchesAny(InTags, false))
-				{					
-					AbilitiesToCancel.Add(Ability);
-				}
+				Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
+				check(!Spec.IsActive);
 			}
 		}
-	};
-
-	TArray<UGameplayAbility*>	AbilitiesToCancel;
-	
-	local::CancelAbilitiesWithTags(AbilitiesToCancel, Tags, ReplicatedInstancedAbilities, ActorInfo, ActivationInfo, Ignore);
-	local::CancelAbilitiesWithTags(AbilitiesToCancel, Tags, NonReplicatedInstancedAbilities, ActorInfo, ActivationInfo, Ignore);
-	local::CancelAbilitiesWithTags(AbilitiesToCancel, Tags, ActivatableAbilities, ActorInfo, ActivationInfo, Ignore);
-
-	for (UGameplayAbility* Ability : AbilitiesToCancel)
-	{
-		Ability->CancelAbility(ActorInfo, ActivationInfo);
 	}
 }
 
@@ -291,26 +274,139 @@ TEXT("AbilitySystem.DenyClientActivations"),
 
 void UAbilitySystemComponent::OnRep_ActivateAbilities()
 {
-	for (FGameplayAbilityInputIDPair& Pair : ActivatableAbilities)
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
 	{
-		UGameplayAbility* Ability = Pair.Ability;
-		if (Ability)
-		{
-			OnGiveAbility(Ability, Pair.InputID);
-		}
+		OnGiveAbility(Spec);
 	}
 }
 
-void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayAbility * AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey)
+/**
+ * Attempts to activate the ability.
+ *	-This function calls CanActivateAbility
+ *	-This function handles instancing
+ *	-This function handles networking and prediction
+ *	-If all goes well, CallActivateAbility is called next.
+ */
+bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Handle, uint32 PrevPredictionKey, uint32 CurrPredictionKey, UGameplayAbility** OutInstancedAbility )
+{
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (!Spec)
+	{
+		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Handle"));
+		return false;
+	}
+
+	const FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
+
+	// make sure the ActorInfo and then Actor on that FGameplayAbilityActorInfo are valid, if not bail out.
+	if (ActorInfo == NULL || ActorInfo->Actor == NULL)
+	{
+		return false;
+	}
+
+	// This should only come from button presses/local instigation (AI, etc)
+	ENetRole NetMode = ActorInfo->Actor->Role;
+	ensure(NetMode != ROLE_SimulatedProxy);
+
+	UGameplayAbility* Ability = Spec->Ability;
+
+	// Always do a non instanced CanActivate check
+	if (!Ability->CanActivateAbility(Handle, ActorInfo))
+	{
+		return false;
+	}
+
+	if (Spec->IsActive)
+	{
+		ABILITY_LOG(Warning, TEXT("TryActivateAbility called when ability was already active. NetMode: %d. Ability: %s"), (int32)NetMode, *Ability->GetName());
+	}
+
+	//check(!Spec->IsActive);	// Shouldn't be here if the ability is already active.
+	Spec->IsActive = true;
+
+	// Setup a fresh ActivationInfo for this AbilitySpec.
+	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->Actor.Get(), PrevPredictionKey, CurrPredictionKey);
+	FGameplayAbilityActivationInfo &ActivationInfo = Spec->ActivationInfo;
+
+	// If we are the server or this is a client authorative 
+	if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Client || (NetMode == ROLE_Authority))
+	{
+		// Create instance of this ability if necessary
+
+		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+		{
+			UGameplayAbility* InstancedAbility = CreateNewInstanceOfAbility(*Spec, Ability);
+			InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+			if (OutInstancedAbility)
+			{
+				*OutInstancedAbility = InstancedAbility;
+			}
+		}
+		else
+		{
+			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+		}
+	}
+	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Server)
+	{
+		ServerTryActivateAbility(Handle, ActivationInfo.PrevPredictionKey, ActivationInfo.CurrPredictionKey);
+	}
+	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive)
+	{
+		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
+		ActivationInfo.GeneratePredictionKey(this);
+
+		// This must be called immediately after GeneratePredictionKey to prevent problems with recursively activating abilities
+		ServerTryActivateAbility(Handle, ActivationInfo.PrevPredictionKey, ActivationInfo.CurrPredictionKey);
+
+		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+		{
+			// For now, only NonReplicated + InstancedPerExecution abilities can be Predictive.
+			// We lack the code to predict spawning an instance of the execution and then merge/combine
+			// with the server spawned version when it arrives.
+
+			if (Ability->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNone)
+			{
+				UGameplayAbility* InstancedAbility = CreateNewInstanceOfAbility(*Spec, Ability);
+				InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+				if (OutInstancedAbility)
+				{
+					*OutInstancedAbility = InstancedAbility;
+				}
+			}
+			else
+			{
+				ensure(false);
+			}
+		}
+		else
+		{
+			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+		}
+	}
+
+	return true;
+}
+
+void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayAbilitySpecHandle Handle, uint32 PrevPredictionKey, uint32 CurrPredictionKey)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DenyClientActivation > 0)
 	{
 		DenyClientActivation--;
-		ClientActivateAbilityFailed(AbilityToActivate, CurrPredictionKey);
+		ClientActivateAbilityFailed(Handle, CurrPredictionKey);
 		return;
 	}
 #endif
+
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (!Spec)
+	{
+		// Can potentially happen in race conditions where client tries to activate ability that is removed server side before it is received.
+		return;
+	}
+
+	UGameplayAbility* AbilityToActivate = Spec->Ability;
 
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
@@ -321,19 +417,25 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayA
 		// first check if the server has already started this ability
 		for (auto ExecutingAbilityInfo : ExecutingServerAbilities)
 		{
-			if (ExecutingAbilityInfo.CurrPredictionKey == PrevPredictionKey && ExecutingAbilityInfo.Ability == AbilityToActivate)
+			if (ExecutingAbilityInfo.CurrPredictionKey == PrevPredictionKey && ExecutingAbilityInfo.Handle == Handle)
 			{
 				switch(ExecutingAbilityInfo.State)
 				{
 					case EAbilityExecutionState::Executing:
-						ExecutingAbilityInfo.Ability->CurrentActivationInfo.PrevPredictionKey = PrevPredictionKey;
-						ExecutingAbilityInfo.Ability->CurrentActivationInfo.CurrPredictionKey = CurrPredictionKey;
+					{
+						FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(ExecutingAbilityInfo.Handle);
+						if (Spec)
+						{
+							Spec->ActivationInfo.PrevPredictionKey = PrevPredictionKey;
+							Spec->ActivationInfo.CurrPredictionKey = CurrPredictionKey;
+						}
 						break;
+					}
 					case EAbilityExecutionState::Failed:
-						ClientActivateAbilityFailed(AbilityToActivate, CurrPredictionKey);
+						ClientActivateAbilityFailed(Handle, CurrPredictionKey);
 						break;
 					case EAbilityExecutionState::Succeeded:
-						ClientActivateAbilitySucceed(AbilityToActivate, CurrPredictionKey);
+						ClientActivateAbilitySucceed(Handle, CurrPredictionKey);
 						break;
 				}
 
@@ -345,7 +447,7 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayA
 		FPendingAbilityInfo AbilityInfo;
 		AbilityInfo.PrevPredictionKey = PrevPredictionKey;
 		AbilityInfo.CurrPredictionKey = CurrPredictionKey;
-		AbilityInfo.Ability = AbilityToActivate;
+		AbilityInfo.Handle = Handle;
 
 		PendingClientAbilities.Add(AbilityInfo);
 		return;
@@ -353,16 +455,10 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayA
 
 	UGameplayAbility *InstancedAbility = NULL;
 
-	if (AbilityToActivate->TryActivateAbility(AbilityActorInfo.Get(), PrevPredictionKey, CurrPredictionKey, &InstancedAbility))
+	// Attempt to activate the ability (server side) and tell the client if it succeeded or failed.
+	if (TryActivateAbility(Handle, PrevPredictionKey, CurrPredictionKey, &InstancedAbility))
 	{
-		if (InstancedAbility && InstancedAbility->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone)
-		{
-			InstancedAbility->ClientActivateAbilitySucceed(CurrPredictionKey);
-		}
-		else
-		{
-			ClientActivateAbilitySucceed(AbilityToActivate, CurrPredictionKey);
-		}
+		ClientActivateAbilitySucceed(Handle, CurrPredictionKey);
 
 		// Update our ReplicatedPredictionKey. When the client gets value, he will know his state (actor+all components/subobjects) are up to do date and he can
 		// remove any necessary predictive work.
@@ -375,16 +471,16 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayA
 	}
 	else
 	{
-		ClientActivateAbilityFailed(AbilityToActivate, CurrPredictionKey);
+		ClientActivateAbilityFailed(Handle, CurrPredictionKey);
 	}
 }
 
-bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(UGameplayAbility * AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey)
+bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey)
 {
 	return true;
 }
 
-void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(UGameplayAbility * AbilityToActivate, uint32 PredictionKey)
+void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGameplayAbilitySpecHandle Handle, uint32 PredictionKey)
 {
 	if (PredictionKey > 0)
 	{
@@ -394,11 +490,17 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(UGamepl
 			if (Key == PredictionKey)
 			{
 				ABILITY_LOG(Warning, TEXT("Failed ActivateAbility, clearing prediction data %d"), PredictionKey);
-
 				PredictionDelegates[idx].Value.PredictionKeyClearDelegate.Broadcast();
-				for (uint32 DependentKey : PredictionDelegates[idx].Value.DependentPredictionKeys)
+
+				// Find the actual UGameplayAbility
+				FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+				if (Spec)
 				{
-					ClientActivateAbilityFailed(AbilityToActivate, DependentKey);
+					UGameplayAbility* AbilityToActivate = Spec->Ability;
+					for (uint32 DependentKey : PredictionDelegates[idx].Value.DependentPredictionKeys)
+					{
+						ClientActivateAbilityFailed(Handle, DependentKey);
+					}
 				}
 				PredictionDelegates.RemoveAt(idx);
 				break;
@@ -411,10 +513,21 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(UGamepl
 	}
 }
 
-void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGameplayAbility* AbilityToActivate, uint32 PredictionKey)
+void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGameplayAbilitySpecHandle Handle, uint32 PredictionKey)
 {
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (!Spec)
+	{
+		// Can potentially happen in race conditions where client tries to activate ability that is removed server side before it is received.
+		return;
+	}
+
+	UGameplayAbility* AbilityToActivate = Spec->Ability;
+
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
+
+	Spec->ActivationInfo.SetActivationConfirmed();
 
 	// Fixme: We need a better way to link up/reconcile predictive replicated abilities. It would be ideal if we could predictively spawn an
 	// ability and then replace/link it with the server spawned one once the server has confirmed it.
@@ -429,7 +542,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 		{
 			// Find the one we predictively spawned, tell them we are confirmed
 			bool found = false;
-			for (UGameplayAbility* LocalAbility : NonReplicatedInstancedAbilities)				// Fixme: this has to be updated once predictive abilities can replicate
+			for (UGameplayAbility* LocalAbility : Spec->NonReplicatedInstances)				// Fixme: this has to be updated once predictive abilities can replicate
 			{
 				if (LocalAbility->GetCurrentActivationInfo().CurrPredictionKey == PredictionKey)
 				{
@@ -447,20 +560,88 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 	}
 	else
 	{
-		FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, 0, PredictionKey);
 		// We haven't already executed this ability at all, so kick it off.
+		
 		if (AbilityToActivate->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
 			// Need to instantiate this in order to execute
-			UGameplayAbility* InstancedAbility = CreateNewInstanceOfAbility(AbilityToActivate);
-			InstancedAbility->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
+			UGameplayAbility* InstancedAbility = CreateNewInstanceOfAbility(*Spec, AbilityToActivate);
+			InstancedAbility->CallActivateAbility(Handle, AbilityActorInfo.Get(), Spec->ActivationInfo);
 		}
 		else
 		{
-			AbilityToActivate->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
+			AbilityToActivate->CallActivateAbility(Handle, AbilityActorInfo.Get(), Spec->ActivationInfo);
 		}
 	}
 }
+
+void UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActorInfo* ActorInfo, FGameplayTag EventTag, FGameplayEventData* Payload, UAbilitySystemComponent& Component)
+{
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (!ensure(Spec))
+	{
+		return;
+	}
+
+	UGameplayAbility* Ability = Spec->Ability;
+	if (!ensure(Ability))
+	{
+		return;
+	}
+	
+
+	if (Ability->ShouldAbilityRespondToEvent(EventTag, Payload))
+	{
+		int32 ExecutingAbilityIndex = -1;
+
+		// if we're the server and this is coming from a predicted event we should check if the client has already predicted it
+		if (Payload->CurrPredictionKey
+			&& Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive
+			&& ActorInfo->Actor->Role == ROLE_Authority)
+		{
+			bool bPendingClientAbilityFound = false;
+			for (auto PendingAbilityInfo : Component.PendingClientAbilities)
+			{
+				if (Payload->CurrPredictionKey == PendingAbilityInfo.PrevPredictionKey && Handle == PendingAbilityInfo.Handle) // found a match
+				{
+					Payload->PrevPredictionKey = PendingAbilityInfo.PrevPredictionKey;
+					Payload->CurrPredictionKey = PendingAbilityInfo.CurrPredictionKey;
+
+					Component.PendingClientAbilities.RemoveSingleSwap(PendingAbilityInfo);
+					bPendingClientAbilityFound = true;
+					break;
+				}
+			}
+
+			// we haven't received the client's copy of the triggered ability
+			// keep track of this so we can associate the prediction keys when it comes in
+			if (bPendingClientAbilityFound == false)
+			{
+				UAbilitySystemComponent::FExecutingAbilityInfo Info;
+				Info.CurrPredictionKey = Payload->CurrPredictionKey;
+				Info.Handle = Handle;
+
+				ExecutingAbilityIndex = Component.ExecutingServerAbilities.Add(Info);
+			}
+		}
+
+		if (TryActivateAbility(Handle, Payload->PrevPredictionKey, Payload->CurrPredictionKey))
+		{
+			if (ExecutingAbilityIndex >= 0)
+			{
+				Component.ExecutingServerAbilities[ExecutingAbilityIndex].State = UAbilitySystemComponent::EAbilityExecutionState::Succeeded;
+			}
+		}
+		else if (ExecutingAbilityIndex >= 0)
+		{
+			Component.ExecutingServerAbilities[ExecutingAbilityIndex].State = UAbilitySystemComponent::EAbilityExecutionState::Failed;
+		}
+	}
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
+//								Input 
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
 
 void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStop()
 {
@@ -502,7 +683,7 @@ void UAbilitySystemComponent::NotifyAbilityCommit(UGameplayAbility* Ability)
 	AbilityCommitedCallbacks.Broadcast(Ability);
 }
 
-void UAbilitySystemComponent::NotifyAbilityActivated(UGameplayAbility* Ability)
+void UAbilitySystemComponent::NotifyAbilityActivated(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability)
 {
 	AbilityActivatedCallbacks.Broadcast(Ability);
 }
@@ -510,15 +691,13 @@ void UAbilitySystemComponent::NotifyAbilityActivated(UGameplayAbility* Ability)
 void UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, FGameplayEventData* Payload)
 {
 	if (GameplayEventTriggeredAbilities.Contains(EventTag))
-	{
-		TArray<TWeakObjectPtr<UGameplayAbility> > TriggeredAbilities = GameplayEventTriggeredAbilities[EventTag];
+	{		
+		TArray<FGameplayAbilitySpecHandle> TriggeredAbilityHandles = GameplayEventTriggeredAbilities[EventTag];
 
-		for (auto Ability : TriggeredAbilities)
+		for (auto AbilityHandle : TriggeredAbilityHandles)
 		{
-			if (Ability.IsValid())
-			{
-				Ability.Get()->TriggerAbilityFromGameplayEvent(AbilityActorInfo.Get(), EventTag, Payload, *this);
-			}
+			TriggerAbilityFromGameplayEvent(AbilityHandle, AbilityActorInfo.Get(), EventTag, Payload, *this);
+						
 		}
 	}
 }
@@ -592,11 +771,34 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 {
 	// FIXME: Maps or multicast delegate to actually do this
-	for (FGameplayAbilityInputIDPair& Pair: ActivatableAbilities)
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
 	{
-		if (Pair.InputID == InputID)
+		if (Spec.InputID == InputID)
 		{
-			Pair.Ability->InputPressed(AbilityActorInfo.Get());
+			if (Spec.Ability)
+			{
+				if (Spec.IsActive)
+				{
+					// The ability is active, so just pipe the input event to it
+					if (Spec.Ability->GetInstancingPolicy() ==  EGameplayAbilityInstancingPolicy::NonInstanced)
+					{
+						Spec.Ability->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
+					}
+					else
+					{
+						TArray<UGameplayAbility*> Instances = Spec.GetAbilityInstances();
+						for (UGameplayAbility* Instance : Instances)
+						{
+							Instance->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
+						}						
+					}
+				}
+				else
+				{
+					// Ability is not active, so try to activate it
+					TryActivateAbility(Spec.Handle);
+				}
+			}
 		}
 	}
 }
@@ -604,11 +806,33 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 {
 	// FIXME: Maps or multicast delegate to actually do this
-	for (FGameplayAbilityInputIDPair& Pair : ActivatableAbilities)
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
 	{
-		if (Pair.InputID == InputID)
+		if (Spec.InputID == InputID)
 		{
-			Pair.Ability->InputReleased(AbilityActorInfo.Get());
+			if (Spec.Ability)
+			{
+				if (Spec.IsActive)
+				{
+					// The ability is active, so just pipe the input event to it
+					if (Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
+					{
+						Spec.Ability->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
+					}
+					else
+					{
+						TArray<UGameplayAbility*> Instances = Spec.GetAbilityInstances();
+						for (UGameplayAbility* Instance : Instances)
+						{
+							Instance->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
+						}
+					}
+				}
+				else
+				{
+
+				}
+			}
 		}
 	}
 }

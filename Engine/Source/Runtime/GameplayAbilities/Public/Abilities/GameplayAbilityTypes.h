@@ -60,74 +60,6 @@ namespace EGameplayAbilityReplicationPolicy
 }
 
 
-USTRUCT(BlueprintType)
-struct FGameplayAbilityHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityHandle()
-	: Handle(INDEX_NONE)
-	{
-
-	}
-
-	FGameplayAbilityHandle(int32 InHandle)
-		: Handle(InHandle)
-	{
-
-	}
-
-	bool IsValid() const
-	{
-		return Handle != INDEX_NONE;
-	}
-
-	FGameplayAbilityHandle GetNextHandle()
-	{
-		return FGameplayAbilityHandle(Handle + 1);
-	}
-
-	bool operator==(const FGameplayAbilityHandle& Other) const
-	{
-		return Handle == Other.Handle;
-	}
-
-	bool operator!=(const FGameplayAbilityHandle& Other) const
-	{
-		return Handle != Other.Handle;
-	}
-
-	FString ToString() const
-	{
-		return FString::Printf(TEXT("%d"), Handle);
-	}
-
-private:
-
-	UPROPERTY()
-	int32 Handle;
-};
-
-
-USTRUCT()
-struct FGameplayAbilityInputIDPair
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityInputIDPair()
-	: Ability(nullptr), InputID(-1) { }
-
-	FGameplayAbilityInputIDPair(UGameplayAbility* InAbility, int32 InInputID)
-	: Ability(InAbility), InputID(InInputID) { }
-
-	UPROPERTY()
-	UGameplayAbility* Ability;
-
-	UPROPERTY()
-	int32	InputID;
-};
-
-
 UENUM(BlueprintType)
 namespace EGameplayAbilityActivationMode
 {
@@ -141,16 +73,56 @@ namespace EGameplayAbilityActivationMode
 	};
 }
 
+// ----------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct FGameplayAbilitySpecHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilitySpecHandle()
+	: Handle(INDEX_NONE)
+	{
+
+	}
+
+	bool IsValid() const
+	{
+		return Handle != INDEX_NONE;
+	}
+
+	void GenerateNewHandle()
+	{
+		static int32 GHandle = 1;
+		Handle = GHandle++;
+	}
+
+	bool operator==(const FGameplayAbilitySpecHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FGameplayAbilitySpecHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+private:
+
+	UPROPERTY()
+	int32 Handle;
+};
+
 /**
-*	FGameplayAbilityActorInfo
-*
-*	Cached data associated with an Actor using an Ability.
-*		-Initialized from an AActor* in InitFromActor
-*		-Abilities use this to know what to actor upon. E.g., instead of being coupled to a specific actor class.
-*		-These are generally passed around as pointers to support polymorphism.
-*		-Projects can override UAbilitySystemGlobals::AllocAbilityActorInfo to override the default struct type that is created.
-*
-*/
+ *	FGameplayAbilityActorInfo
+ *
+ *	Cached data associated with an Actor using an Ability.
+ *		-Initialized from an AActor* in InitFromActor
+ *		-Abilities use this to know what to actor upon. E.g., instead of being coupled to a specific actor class.
+ *		-These are generally passed around as pointers to support polymorphism.
+ *		-Projects can override UAbilitySystemGlobals::AllocAbilityActorInfo to override the default struct type that is created.
+ *
+ */
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 {
@@ -183,32 +155,23 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 };
 
 /**
-*	FGameplayAbilityActorInfo
-*
-*	Contains data used to determine locations for targeting systems.
-*
-*/
-
-
-/**
-*	FGameplayAbilityActivationInfo
-*
-*	Data tied to a specific activation of an ability.
-*		-Tell us whether we are the authority, if we are predicting, confirmed, etc.
-*		-Holds current and previous PredictionKey
-*		-Generally not meant to be subclassed in projects.
-*		-Passed around by value since the struct is small.
-*/
-
+ *	FGameplayAbilityActivationInfo
+ *
+ *	Data tied to a specific activation of an ability.
+ *		-Tell us whether we are the authority, if we are predicting, confirmed, etc.
+ *		-Holds current and previous PredictionKey
+ *		-Generally not meant to be subclassed in projects.
+ *		-Passed around by value since the struct is small.
+ */
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityActivationInfo()
-	: ActivationMode(EGameplayAbilityActivationMode::Authority)
-	, PrevPredictionKey(0)
-	, CurrPredictionKey(0)
+		: ActivationMode(EGameplayAbilityActivationMode::Authority)
+		, PrevPredictionKey(0)
+		, CurrPredictionKey(0)
 	{
 
 	}
@@ -229,7 +192,6 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	{
 	}
 
-
 	void GeneratePredictionKey(UAbilitySystemComponent * Component) const;
 
 	void SetActivationConfirmed();
@@ -244,6 +206,65 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	mutable uint32 CurrPredictionKey;
 };
 
+// ----------------------------------------------------
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilitySpec()
+	: IsActive(false)
+	{
+		
+	}
+
+	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE)
+	: Ability(InAbility), Level(InLevel), InputID(InInputID), IsActive(false)
+	{
+		Handle.GenerateNewHandle();
+	}
+
+	/** Handle for outside sources to refer to this spec by */
+	UPROPERTY()
+	FGameplayAbilitySpecHandle Handle;
+	
+	/** Ability of the spec (either CDO or instanced) */
+	UPROPERTY()
+	UGameplayAbility* Ability;
+	
+	/** Level of Ability */
+	UPROPERTY()
+	int32	Level;
+
+	/** InputID, if bound */
+	UPROPERTY()
+	int32	InputID;
+
+	/** Is this ability active? (Literally: has EndAbility been called on it since ActivateAbility was called on it */
+	UPROPERTY()
+	bool	IsActive;
+
+	/** Activation state of this ability. This is not replicated since it needs to be overwritten locally on clients during prediction. */
+	UPROPERTY(NotReplicated)
+	FGameplayAbilityActivationInfo	ActivationInfo;
+
+	/** Non replicating instances of this ability. */
+	UPROPERTY(NotReplicated)
+	TArray<UGameplayAbility*> NonReplicatedInstances;
+
+	/** Replicated instances of this ability.. */
+	UPROPERTY()
+	TArray<UGameplayAbility*> ReplicatedInstances;
+
+	TArray<UGameplayAbility*> GetAbilityInstances()
+	{
+		TArray<UGameplayAbility*> Abilities;
+		Abilities.Append(ReplicatedInstances);
+		Abilities.Append(NonReplicatedInstances);
+		return Abilities;
+	}
+};
 
 // ----------------------------------------------------
 

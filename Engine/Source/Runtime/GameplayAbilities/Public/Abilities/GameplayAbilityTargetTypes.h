@@ -245,6 +245,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 
 	FGameplayAbilityTargetingLocationInfo()
 	: LocationType(EGameplayAbilityTargetingLocationType::LiteralTransform)
+	, SourceActor(nullptr)
+	, SourceComponent(nullptr)
 	{
 	};
 
@@ -291,23 +293,23 @@ public:
 
 	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
-		TEnumAsByte<EGameplayAbilityTargetingLocationType::Type> LocationType;
+	TEnumAsByte<EGameplayAbilityTargetingLocationType::Type> LocationType;
 
 	/** A literal world transform can be used, if one has been calculated outside of the actor using the ability. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
-		FTransform LiteralTransform;
+	FTransform LiteralTransform;
 
 	/** A source actor is needed for Actor-based targeting, but not for Socket-based targeting. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
-		AActor* SourceActor;
+	AActor* SourceActor;
 
 	/** Socket-based targeting requires a skeletal mesh component to check for the named socket. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
-		USkeletalMeshComponent* SourceComponent;
+	USkeletalMeshComponent* SourceComponent;
 
 	/** If SourceComponent is valid, this is the name of the socket transform that will be used. If no Socket is provided, SourceComponent's transform will be used. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
-		FName SourceSocketName;
+	FName SourceSocketName;
 
 	// -------------------------------------
 
@@ -573,7 +575,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 	// -------------------------------------
 
 	UPROPERTY()
-		FHitResult	HitResult;
+	FHitResult	HitResult;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 

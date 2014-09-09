@@ -63,6 +63,7 @@
  */
 
 
+/** TriggerData */
 USTRUCT()
 struct FAbilityTriggerData
 {
@@ -108,22 +109,13 @@ public:
 	// ----------------------------------------------------------------------------------------------------------------
 	
 	/** Input binding. Base implementation calls TryActivateAbility */
-	virtual void InputPressed(const FGameplayAbilityActorInfo* ActorInfo);
+	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Input binding. Base implementation does nothing */
-	virtual void InputReleased(const FGameplayAbilityActorInfo* ActorInfo);
-	
-	/**
-	 * Attempts to activate the ability.
-	 *	-This function calls CanActivateAbility
-	 *	-This function handles instancing
-	 *	-This function handles networking and prediction
-	 *	-If all goes well, CallActivateAbility is called next.
-	 */
-	bool TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, uint32 PrevPredictionKey = 0, uint32 CurrPredictionKey = 0, UGameplayAbility ** OutInstancedAbility = NULL);
+	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Returns true if this ability can be activated right now. Has no side effects */
-	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const;
+	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	/** Returns true if this ability can be triggered right now. Has no side effects */
 	virtual bool ShouldAbilityRespondToEvent(FGameplayTag EventTag, const FGameplayEventData* Payload) const;
@@ -219,16 +211,14 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "ActivateAbility")
 	virtual void K2_ActivateAbility();	
 
-	virtual void ActivateAbility(const FGameplayAbilityActorInfo * ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	bool HasBlueprintActivate;
 
-	void CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	void CallActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Called on a predictive ability when the server confirms its execution */
-	void ConfirmActivateSucceed();
-
-	virtual void TriggerAbilityFromGameplayEvent(FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload, UAbilitySystemComponent& Component);
+	virtual void ConfirmActivateSucceed();
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void SendGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload);
@@ -244,7 +234,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "CommitAbility")
 	virtual bool K2_CommitAbility();
 
-	virtual bool CommitAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	virtual bool CommitAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/**
 	 * The last chance to fail before commiting
@@ -263,14 +253,14 @@ protected:
 	virtual void CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Do boilerplate init stuff and then call ActivateAbility */
-	void PreActivate(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	void PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	// --------------------------------------
 	//	CancelAbility
 	// --------------------------------------
 
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
-	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
 	UFUNCTION(BlueprintCallable, Category = Ability)
@@ -296,15 +286,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="EndAbility")
 	virtual void K2_EndAbility();
 
-	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo);
-
-	// -------------------------------------
-	
-	/** Ask server to try to activate ability */
-	virtual void ServerTryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
-
-	/** Called once server OKs a client ability activation */
-	virtual void ClientActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	// -------------------------------------
 	//	GameplayCue
@@ -329,20 +311,22 @@ protected:
 		return !HasAllFlags(RF_ClassDefaultObject);
 	}
 
-	void SetCurrentActorInfo(const FGameplayAbilityActorInfo* ActorInfo) const
+	void SetCurrentActorInfo(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 	{
 		if (IsInstantiated())
 		{
 			CurrentActorInfo = ActorInfo;
+			CurrentSpecHandle = Handle;
 		}
 	}
 
-	void SetCurrentInfo(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+	void SetCurrentInfo(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 	{
 		if (IsInstantiated())
 		{
 			CurrentActivationInfo = ActivationInfo;
 			CurrentActorInfo = ActorInfo;
+			CurrentSpecHandle = Handle;
 		}
 	}
 
@@ -353,12 +337,7 @@ protected:
 	USkeletalMeshComponent* GetOwningComponentFromActorInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category=Ability)
-	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;
-
-	UFUNCTION(Client, Reliable)
-	void ClientActivateAbilitySucceed(int32 PredictionKey);
-
-	virtual void ClientActivateAbilitySucceed_Internal(int32 PredictionKey);
+	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;	
 
 	bool IsSupportedForNetworking() const override;
 
@@ -432,7 +411,22 @@ protected:
 
 	UFUNCTION(BlueprintPure, Category = Ability, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
 	FGameplayAbilityTargetingLocationInfo MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName);
-private:
+
+	// ----------------------------------------------------------------------------------------------------------------
+	//
+	//	
+	//
+	// 
+	// ----------------------------------------------------------------------------------------------------------------
+	
+	/** Returns current level of the Ability */
+	UFUNCTION(BlueprintCallable, Category = Ability, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	int32 GetAbilityLevel() const;
+
+	/** Returns current ability level for non instanced abilities. You m ust call this version in these contexts! */
+	int32 GetAbilityLevel(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
+
+protected:
 
 	/** 
 	 *  This is shared, cached information about the thing using us
@@ -442,6 +436,8 @@ private:
 	 *	 (E.g, child classes may want to cast to FMyGameAbilityActorInfo)
 	 */
 	mutable const FGameplayAbilityActorInfo* CurrentActorInfo;
+
+	mutable FGameplayAbilitySpecHandle CurrentSpecHandle;
 
 	/** True if the ability is currently active. For instance per owner abilities */
 	bool bIsActive;
