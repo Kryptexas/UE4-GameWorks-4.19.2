@@ -107,11 +107,11 @@ public:
 	FGetMouseCursor CursorDelegate;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, Category=Transform)
+	UPROPERTY(EditDefaultsOnly, Category=RenderTransform, meta=(DisplayName="Transform"))
 	FWidgetTransform RenderTransform;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, Category=Transform)
+	UPROPERTY(EditDefaultsOnly, Category=RenderTransform, meta=(DisplayName="Pivot"))
 	FVector2D RenderTransformPivot;
 
 	/** */

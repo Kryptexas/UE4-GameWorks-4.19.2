@@ -122,14 +122,7 @@ FRichCurve& UMovieScene3DTransformSection::GetScaleCurve( EAxis::Type Axis )
 	return *ChooseCurve( Axis, Scale );
 }
 
-void UMovieScene3DTransformSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, const bool bUnwindRotation )
-{
-	if( IsTimeWithinSection(Time) )
-	{
-		Modify();
-		InCurve.UpdateOrAddKey(Time, Value);
-	}
-}
+
 
 void UMovieScene3DTransformSection::AddTranslationKeys( const FTransformKey& TransformKey )
 {
@@ -140,17 +133,17 @@ void UMovieScene3DTransformSection::AddTranslationKeys( const FTransformKey& Tra
 	// Key each component.  Note: we always key each component if no key exists
 	if( Translation[0].GetNumKeys() == 0 || TransformKey.ShouldKeyTranslation( EAxis::X ) )
 	{
-		AddKeyToCurve( Translation[0], Time, TransformKey.GetTranslationValue().X, bUnwindRotation );
+		AddKeyToCurve( Translation[0], Time, TransformKey.GetTranslationValue().X );
 	}
 
 	if( Translation[1].GetNumKeys() == 0 || TransformKey.ShouldKeyTranslation( EAxis::Y ) )
 	{ 
-		AddKeyToCurve( Translation[1], Time, TransformKey.GetTranslationValue().Y, bUnwindRotation );
+		AddKeyToCurve( Translation[1], Time, TransformKey.GetTranslationValue().Y );
 	}
 
 	if( Translation[2].GetNumKeys() == 0 || TransformKey.ShouldKeyTranslation( EAxis::Z ) )
 	{ 
-		AddKeyToCurve( Translation[2], Time, TransformKey.GetTranslationValue().Z, bUnwindRotation );
+		AddKeyToCurve( Translation[2], Time, TransformKey.GetTranslationValue().Z );
 	}
 }
 
@@ -161,17 +154,17 @@ void UMovieScene3DTransformSection::AddRotationKeys( const FTransformKey& Transf
 	// Key each component.  Note: we always key each component if no key exists
 	if( Rotation[0].GetNumKeys() == 0 || TransformKey.ShouldKeyRotation( EAxis::X ) )
 	{
-		AddKeyToCurve( Rotation[0], Time, TransformKey.GetRotationValue().Roll, bUnwindRotation );
+		AddKeyToCurve( Rotation[0], Time, TransformKey.GetRotationValue().Roll );
 	}
 
 	if( Rotation[1].GetNumKeys() == 0 || TransformKey.ShouldKeyRotation( EAxis::Y ) )
 	{ 
-		AddKeyToCurve( Rotation[1], Time, TransformKey.GetRotationValue().Pitch, bUnwindRotation );
+		AddKeyToCurve( Rotation[1], Time, TransformKey.GetRotationValue().Pitch );
 	}
 
 	if( Rotation[2].GetNumKeys() == 0 || TransformKey.ShouldKeyRotation( EAxis::Z ) )
 	{ 
-		AddKeyToCurve( Rotation[2], Time, TransformKey.GetRotationValue().Yaw, bUnwindRotation );
+		AddKeyToCurve( Rotation[2], Time, TransformKey.GetRotationValue().Yaw );
 	}
 }
 
@@ -184,17 +177,17 @@ void UMovieScene3DTransformSection::AddScaleKeys( const FTransformKey& Transform
 	// Key each component.  Note: we always key each component if no key exists
 	if( Scale[0].GetNumKeys() == 0 || TransformKey.ShouldKeyScale( EAxis::X ) )
 	{
-		AddKeyToCurve( Scale[0], Time, TransformKey.GetScaleValue().X, bUnwindRotation );
+		AddKeyToCurve( Scale[0], Time, TransformKey.GetScaleValue().X );
 	}
 
 	if( Scale[1].GetNumKeys() == 0 || TransformKey.ShouldKeyScale( EAxis::Y ) )
 	{ 
-		AddKeyToCurve( Scale[1], Time, TransformKey.GetScaleValue().Y, bUnwindRotation );
+		AddKeyToCurve( Scale[1], Time, TransformKey.GetScaleValue().Y );
 	}
 
 	if( Scale[2].GetNumKeys() == 0 || TransformKey.ShouldKeyScale( EAxis::Z ) )
 	{ 
-		AddKeyToCurve( Scale[2], Time, TransformKey.GetScaleValue().Z, bUnwindRotation );
+		AddKeyToCurve( Scale[2], Time, TransformKey.GetScaleValue().Z );
 	}
 }
 

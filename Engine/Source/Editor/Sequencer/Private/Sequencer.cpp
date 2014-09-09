@@ -306,7 +306,7 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 	UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>( Section->GetOuter() );
 
 	// If this check fails then the section is outered to a type that doesnt know about the section
-	checkSlow( Track->HasSection(Section) );
+	//checkSlow( Track->HasSection(Section) );
 	
 	Track->SetFlags( RF_Transactional );
 	Track->Modify();

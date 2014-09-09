@@ -124,6 +124,15 @@ public:
 	int32 GetRowIndex() const {return RowIndex;}
 	
 	/**
+	 * Adds a key to a rich curve, finding an existing key to modify or adding a new one
+	 *
+	 * @param InCurve	The curve to add keys to
+	 * @param Time		The time where the key should be added
+	 * @param Value		The value at the given time
+	 */
+	void MOVIESCENECORE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value );
+
+	/**
 	 * Checks to see if this section overlaps with an array of other sections
 	 * given an optional time and track delta.
 	 *

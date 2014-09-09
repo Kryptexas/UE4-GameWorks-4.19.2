@@ -76,14 +76,6 @@ public:
 private:
 	void AddKeyToNamedCurve(float Time, const FColorKey& Key);
 
-	/**
-	 * Adds a key to a rich curve, finding an existing key to modify or adding a new one
-	 *
-	 * @param InCurve	The curve to add keys to
-	 * @param Time		The time where the key should be added
-	 * @param Value		The value at the given time
-	 */
-	void AddKeyToCurve( FRichCurve& InCurve, float Time, float Value );
 private:
 	/** Red curve data */
 	UPROPERTY()

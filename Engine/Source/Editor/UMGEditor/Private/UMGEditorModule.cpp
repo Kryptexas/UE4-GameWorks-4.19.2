@@ -12,6 +12,7 @@
 
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Animation/MarginTrackEditor.h"
+#include "Animation/Sequencer2DTransformTrackEditor.h"
 
 #include "DesignerCommands.h"
 
@@ -48,6 +49,7 @@ public:
 		// Register with the sequencer module that we provide auto-key handlers.
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 		SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
+		SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&F2DTransformTrackEditor::CreateTrackEditor));
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */

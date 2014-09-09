@@ -32,7 +32,7 @@ public:
 	 * @param Value				The value of the key
 	 * @return True if the key was successfully added.
 	 */
-	virtual bool AddKeyToSection( float Time, const FMarginKey& MarginKey );
+	UMG_API bool AddKeyToSection( float Time, const FMarginKey& MarginKey );
 
 	/**
 	 * Evaluates the track at the playback position
