@@ -227,4 +227,9 @@ FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromMaterial(UMaterialInterface* M
 	return FSlateNoResource();
 }
 
+FSlateBrush UWidgetBlueprintLibrary::NoResourceBrush()
+{
+	return FSlateNoResource();
+}
+
 #undef LOCTEXT_NAMESPACE
