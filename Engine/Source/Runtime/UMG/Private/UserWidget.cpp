@@ -5,7 +5,9 @@
 #include "UMGSequencePlayer.h"
 #include "SceneViewport.h"
 #include "WidgetAnimation.h"
+
 #include "WidgetBlueprintLibrary.h"
+#include "WidgetLayoutLibrary.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -122,9 +124,7 @@ protected:
 UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	HorizontalAlignment = HAlign_Fill;
-	VerticalAlignment = VAlign_Fill;
-
+	ViewportAnchors = FAnchors(0, 0, 1, 1);
 	Visiblity = ESlateVisibility::SelfHitTestInvisible;
 
 	bInitialized = false;
@@ -180,27 +180,25 @@ void UUserWidget::PostInitProperties()
 
 UWorld* UUserWidget::GetWorld() const
 {
+	// Use the Player Context's world.
 	if ( PlayerContext.IsValid() )
 	{
-		return PlayerContext.GetWorld();
-	}
-
-	if ( CachedWorld == NULL )
-	{
-		UObject* Outer = GetOuter();
-		while ( Outer != NULL )
+		if ( UWorld* World = PlayerContext.GetWorld() )
 		{
-			CachedWorld = Outer->GetWorld();
-			if ( CachedWorld )
-			{
-				return CachedWorld;
-			}
-
-			Outer = Outer->GetOuter();
+			return World;
 		}
 	}
-	
-	return CachedWorld;
+
+	// If the current player context doesn't have a world or isn't valid, return the game instance's world.
+	if (  UGameInstance* GameInstance = Cast<UGameInstance>(GetOuter()) )
+	{
+		if ( UWorld* World = GameInstance->GetWorld() )
+		{
+			return World;
+		}
+	}
+
+	return nullptr;
 }
 
 void UUserWidget::Construct_Implementation()
@@ -499,41 +497,20 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
 	Tick( MyGeometry, InDeltaTime );
 }
 
-TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor, TSharedPtr<SWidget>& UserSlateWidget)
+TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bModal, bool bShowCursor, TSharedPtr<SWidget>& UserSlateWidget)
 {
 	UserSlateWidget = TakeWidget();
 
-	if ( bAbsoluteLayout )
-	{
-		//BIND_UOBJECT_ATTRIBUTE
+	return SNew(SConstraintCanvas)
 
-		return SNew(SConstraintCanvas)
-
-			+ SConstraintCanvas::Slot()
-			.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
-			.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
-			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
-			.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
-			[
-				UserSlateWidget.ToSharedRef()
-			];
-	}
-	else
-	{
-		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-
-		auto& NewSlot = VerticalBox->AddSlot()
-			.Padding(Padding)
-			.HAlign(HorizontalAlignment)
-			.VAlign(VerticalAlignment)
-			[
-				UserSlateWidget.ToSharedRef()
-			];
-
-		NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);
-
-		return VerticalBox;
-	}
+		+ SConstraintCanvas::Slot()
+		.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
+		.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
+		.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
+		.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
+		[
+			UserSlateWidget.ToSharedRef()
+		];
 }
 
 UWidget* UUserWidget::GetRootWidgetComponent()
@@ -546,12 +523,12 @@ UWidget* UUserWidget::GetRootWidgetComponent()
 	return NULL;
 }
 
-void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCursor)
+void UUserWidget::AddToViewport(bool bModal, bool bShowCursor)
 {
 	if ( !FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> OutUserSlateWidget;
-		TSharedRef<SWidget> RootWidget = MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor, OutUserSlateWidget);
+		TSharedRef<SWidget> RootWidget = MakeViewportWidget(bModal, bShowCursor, OutUserSlateWidget);
 
 		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, OutUserSlateWidget, bModal)
 			[
@@ -564,21 +541,25 @@ void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCur
 		UWorld* World = GetWorld();
 		if ( World && World->IsGameWorld() )
 		{
-			if ( UGameViewportClient* Viewport = World->GetGameViewport() )
+			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				Viewport->AddViewportWidgetContent(WidgetHost);
+				ViewportClient->AddViewportWidgetContent(WidgetHost);
 
 				//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
 				// the Widget stack, and the dialog stack.
 				if ( bModal )
 				{
-					TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-					if ( GameViewportWidget.IsValid() )
+					if ( FSceneViewport* SceneViewport = ViewportClient->GetGameViewport() )
 					{
-						GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(OutUserSlateWidget);
-						
-						FSlateApplication::Get().SetFocusToGameViewport();
-						FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+						TWeakPtr<SViewport> GameViewportWidget = SceneViewport->GetViewportWidget();
+
+						if ( GameViewportWidget.IsValid() )
+						{
+							GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(OutUserSlateWidget);
+
+							FSlateApplication::Get().SetFocusToGameViewport();
+							FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+						}
 					}
 				}
 			}
@@ -596,22 +577,26 @@ void UUserWidget::RemoveFromViewport()
 		UWorld* World = GetWorld();
 		if ( World && World->IsGameWorld() )
 		{
-			if ( UGameViewportClient* Viewport = World->GetGameViewport() )
+			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				Viewport->RemoveViewportWidgetContent(WidgetHost.ToSharedRef());
+				ViewportClient->RemoveViewportWidgetContent(WidgetHost.ToSharedRef());
 
 				if ( WidgetHost->IsModal() )
 				{
-					TWeakPtr<SViewport> GameViewportWidget = Viewport->GetGameViewport()->GetViewportWidget();
-					if ( GameViewportWidget.IsValid() )
+					if ( FSceneViewport* SceneViewport = ViewportClient->GetGameViewport() )
 					{
-						//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
-						// the Widget stack, and the dialog stack.
-						GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
-						FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+						TWeakPtr<SViewport> GameViewportWidget = SceneViewport->GetViewportWidget();
 
-						FSlateApplication::Get().SetFocusToGameViewport();
-						FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+						if ( GameViewportWidget.IsValid() )
+						{
+							//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+							// the Widget stack, and the dialog stack.
+							GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
+							FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+
+							FSlateApplication::Get().SetFocusToGameViewport();
+							FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+						}
 					}
 				}
 			}
@@ -657,19 +642,25 @@ APlayerController* UUserWidget::GetOwningPlayer() const
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
 }
 
-void UUserWidget::SetOffsetInViewport(FVector2D DesiredOffset)
+void UUserWidget::SetPositionInViewport(FVector2D Position)
 {
-	ViewportOffsets.Left = DesiredOffset.X;
-	ViewportOffsets.Top = DesiredOffset.Y;
+	float Scale = UWidgetLayoutLibrary::GetViewportScale(this);
+
+	ViewportOffsets.Left = Position.X * ( 1.0f / Scale );
+	ViewportOffsets.Top = Position.Y * ( 1.0f / Scale );
+
+	ViewportAnchors = FAnchors(0, 0);
 }
 
 void UUserWidget::SetDesiredSizeInViewport(FVector2D DesiredSize)
 {
 	ViewportOffsets.Right = DesiredSize.X;
 	ViewportOffsets.Bottom = DesiredSize.Y;
+
+	ViewportAnchors = FAnchors(0, 0);
 }
 
-void UUserWidget::SetAnchorsInViewport(FVector2D Anchors)
+void UUserWidget::SetAnchorsInViewport(FAnchors Anchors)
 {
 	ViewportAnchors = Anchors;
 }
@@ -701,7 +692,7 @@ FMargin UUserWidget::GetFullScreenOffset() const
 
 FAnchors UUserWidget::GetViewportAnchors() const
 {
-	return FAnchors(ViewportAnchors.X, ViewportAnchors.Y, ViewportAnchors.X, ViewportAnchors.Y);
+	return ViewportAnchors;
 }
 
 FVector2D UUserWidget::GetFullScreenAlignment() const

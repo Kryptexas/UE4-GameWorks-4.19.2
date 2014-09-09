@@ -45,9 +45,9 @@ public:
 	{ }
 
 	/** Construct Anchors where the spacing on each side is individually specified. */
-	FAnchors(float InLeft, float InTop, float InRight, float InBottom)
-		: Minimum(InLeft, InTop)
-		, Maximum(InRight, InBottom)
+	FAnchors(float MinX, float MinY, float MaxX, float MaxY)
+		: Minimum(MinX, MinY)
+		, Maximum(MaxX, MaxY)
 	{ }
 
 	/** Returns true if the anchors represent a stretch along the vertical axis */

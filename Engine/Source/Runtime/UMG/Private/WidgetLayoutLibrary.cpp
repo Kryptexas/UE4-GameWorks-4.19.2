@@ -14,6 +14,38 @@ UWidgetLayoutLibrary::UWidgetLayoutLibrary(const FPostConstructInitializePropert
 {
 }
 
+float UWidgetLayoutLibrary::GetViewportScale(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( World && World->IsGameWorld() )
+	{
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			FVector2D ViewportSize;
+			ViewportClient->GetViewportSize(ViewportSize);
+			return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+		}
+	}
+
+	return 1;
+}
+
+FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( World && World->IsGameWorld() )
+	{
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			FVector2D ViewportSize;
+			ViewportClient->GetViewportSize(ViewportSize);
+			return ViewportSize;
+		}
+	}
+
+	return FVector2D(1, 1);
+}
+
 UCanvasPanelSlot* UWidgetLayoutLibrary::SlotAsCanvasSlot(UWidget* ChildWidget)
 {
 	return Cast<UCanvasPanelSlot>(ChildWidget->Slot);

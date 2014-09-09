@@ -910,11 +910,10 @@ void SDesignerView::UpdatePreviewWidget()
 		PreviewWidget = LatestPreviewWidget;
 		if ( PreviewWidget )
 		{
-			const bool bAbsoluteLayout = false;
 			const bool bModal = false;
 			const bool bShowCursor = false;
 			TSharedPtr<SWidget> OutUserWidget;
-			TSharedRef<SWidget> CurrentWidget = PreviewWidget->MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor, OutUserWidget);
+			TSharedRef<SWidget> CurrentWidget = PreviewWidget->MakeViewportWidget(bModal, bShowCursor, OutUserWidget);
 			CurrentWidget->SlatePrepass();
 
 			if ( CurrentWidget != PreviewSlateWidget.Pin() )

@@ -99,23 +99,25 @@ public:
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
-	void AddToViewport(bool bAbsoluteLayout = false, bool bModal = false, bool bShowCursor = false);
+	void AddToViewport(bool bModal = false, bool bShowCursor = false);
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
 	void RemoveFromViewport();
 
-	/*  */
+	/**
+	 * Sets the widgets position in the viewport.
+	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
-	void SetOffsetInViewport(FVector2D DesiredOffset);
+	void SetPositionInViewport(FVector2D Position);
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
-	void SetDesiredSizeInViewport(FVector2D DesiredSize);
+	void SetDesiredSizeInViewport(FVector2D Size);
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
-	void SetAnchorsInViewport(FVector2D Anchors);
+	void SetAnchorsInViewport(FAnchors Anchors);
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
@@ -252,7 +254,7 @@ public:
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	/** Creates a fullscreen host widget, that wraps this widget. */
-	TSharedRef<SWidget> MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor, TSharedPtr<SWidget>& UserSlateWidget);
+	TSharedRef<SWidget> MakeViewportWidget(bool bModal, bool bShowCursor, TSharedPtr<SWidget>& UserSlateWidget);
 
 	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidgetComponent();
@@ -279,44 +281,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Behavior")
 	bool bSupportsKeyboardFocus;
 
-	UPROPERTY()
-	FMargin Padding;
-
-	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY()
-	FSlateChildSize Size;
-
-	/**
-	* Horizontal pivot position
-	*  Given a top aligned slot, where '+' represents the
-	*  anchor point defined by PositionAttr.
-	*
-	*   Left				Center				Right
-	+ _ _ _ _            _ _ + _ _          _ _ _ _ +
-	|		  |		   | 		   |	  |		    |
-	| _ _ _ _ |        | _ _ _ _ _ |	  | _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported in absolute layout
-	*/
-	UPROPERTY()
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
-
-	/**
-	* Vertical pivot position
-	*   Given a left aligned slot, where '+' represents the
-	*   anchor point defined by PositionAttr.
-	*
-	*   Top					Center			  Bottom
-	*	+_ _ _ _ _		 _ _ _ _ _		 _ _ _ _ _
-	*	|         |		| 		  |		|		  |
-	*	|         |     +		  |		|		  |
-	*	| _ _ _ _ |		| _ _ _ _ |		+ _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported in absolute layout
-	*/
-	UPROPERTY()
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
-
 	/** The components contained in this user widget. */
 	UPROPERTY(Transient)
 	TArray<UWidget*> Components;
@@ -342,7 +306,7 @@ protected:
 	int32 GetFullScreenZOrder() const;
 
 private:
-	FVector2D ViewportAnchors;
+	FAnchors ViewportAnchors;
 	FMargin ViewportOffsets;
 	FVector2D ViewportAlignment;
 	int32 ViewportZOrder;
