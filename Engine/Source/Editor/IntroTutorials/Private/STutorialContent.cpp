@@ -3,6 +3,7 @@
 #include "IntroTutorialsPrivatePCH.h"
 #include "STutorialContent.h"
 #include "STutorialEditableText.h"
+#include "IntroTutorials.h"
 
 #define LOCTEXT_NAMESPACE "STutorialContent"
 
@@ -10,9 +11,11 @@ namespace TutorialConstants
 {
 	const float BorderPulseAnimationLength = 1.0f;
 	const float BorderIntroAnimationLength = 0.5f;
+	const float ContentIntroAnimationLength = 0.5f;
 	const float MinBorderOpacity = 0.1f;
 	const float ShadowScale = 8.0f;
 	const float MaxBorderOffset = 8.0f;
+	const float BorderSize = 24.0f;
 }
 
 const float ContentOffset = 10.0f;
@@ -33,6 +36,9 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 	BorderIntroAnimation.Play();
 	BorderPulseAnimation.Play();
 
+	ContentIntroAnimation.AddCurve(0.0f, TutorialConstants::ContentIntroAnimationLength, ECurveEaseFunction::Linear);
+	ContentIntroAnimation.Play();
+
 	if (InContent.Text.IsEmpty() == true)
 	{
 		ChildSlot
@@ -45,37 +51,47 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 
 	ChildSlot
 	[
-		SAssignNew(ContentWidget, SBorder)
-
-		// Add more padding if the content is to be displayed centrally (i.e. not on a widget)
-		.Padding(24.0f)
-		.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
-		.Visibility(this, &STutorialContent::GetVisibility)
-		.BorderBackgroundColor(this, &STutorialContent::GetBackgroundColor)
-		.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
+		SNew(SFxWidget)
+		.RenderScale(this, &STutorialContent::GetAnimatedZoom)
+		.RenderScaleOrigin(FVector2D(0.5f, 0.5f))
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.MaxWidth(600.0f)
-			.VAlign(VAlign_Center)
+			SAssignNew(ContentWidget, SBorder)
+
+			// Add more padding if the content is to be displayed centrally (i.e. not on a widget)
+			.Padding(TutorialConstants::BorderSize)
+			.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
+			.Visibility(this, &STutorialContent::GetVisibility)
+			.BorderBackgroundColor(this, &STutorialContent::GetBackgroundColor)
+			.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 			[
-				GenerateContentWidget(InContent, InArgs._WrapTextAt, DocumentationPage)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Top)
-			.Padding(5.0f, 0.0f, 0.0f, 0.0f)
-			[
-				SNew(SButton)
-				.OnClicked(this, &STutorialContent::OnCloseButtonClicked)
-				.Visibility(this, &STutorialContent::GetCloseButtonVisibility)
-				.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
-				.ContentPadding(0.0f)
+				SNew(SFxWidget)
+				.RenderScale(this, &STutorialContent::GetInverseAnimatedZoom)
+				.RenderScaleOrigin(FVector2D(0.5f, 0.5f))
 				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("Symbols.X"))
-					.ColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f))
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.MaxWidth(600.0f)
+					.VAlign(VAlign_Center)
+					[
+						GenerateContentWidget(InContent, InArgs._WrapTextAt, DocumentationPage)
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Top)
+					.Padding(5.0f, 0.0f, 0.0f, 0.0f)
+					[
+						SNew(SButton)
+						.OnClicked(this, &STutorialContent::OnCloseButtonClicked)
+						.Visibility(this, &STutorialContent::GetCloseButtonVisibility)
+						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
+						.ContentPadding(0.0f)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("Symbols.X"))
+							.ColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f))
+						]
+					]
 				]
 			]
 		]
@@ -347,6 +363,24 @@ FSlateColor STutorialContent::GetBackgroundColor() const
 	// note cant use IsHovered() here because our widget is SelfHitTestInvisible
 	const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
 	return CachedContentGeometry.IsUnderLocation(CursorPos) ? FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) : FLinearColor(1.0f, 1.0f, 1.0f, 0.8f);
+}
+
+float STutorialContent::GetAnimatedZoom() const
+{
+	if(ContentIntroAnimation.IsPlaying())
+	{
+		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+		return 0.75f + (0.25f * IntroTutorials.GetIntroCurveValue(ContentIntroAnimation.GetLerp()));
+	}
+	else
+	{
+		return 1.0f;
+	}
+}
+
+float STutorialContent::GetInverseAnimatedZoom() const
+{
+	return 1.0f / GetAnimatedZoom();
 }
 
 #undef LOCTEXT_NAMESPACE

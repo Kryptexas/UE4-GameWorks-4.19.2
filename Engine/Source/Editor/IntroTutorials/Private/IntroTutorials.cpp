@@ -56,6 +56,7 @@ const FWelcomeTutorialProperties FIntroTutorials::TemplateOverview(TemplateOverv
 
 FIntroTutorials::FIntroTutorials()
 	: CurrentObjectClass(nullptr)
+	, ContentIntroCurve(nullptr)
 {
 	bDisableTutorials = false;
 	bEnablePostTutorialSurveys = false;
@@ -225,6 +226,12 @@ void FIntroTutorials::StartupModule()
 	PropertyEditorModule.RegisterCustomPropertyTypeLayout("TutorialContent", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTutorialContentCustomization::MakeInstance));
 	PropertyEditorModule.RegisterCustomPropertyTypeLayout("TutorialContentAnchor", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTutorialContentAnchorCustomization::MakeInstance));
 	PropertyEditorModule.RegisterCustomClassLayout("EditorTutorial", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorTutorialDetailsCustomization::MakeInstance));
+
+	ContentIntroCurve = LoadObject<UCurveFloat>(nullptr, TEXT("/Engine/Tutorial/ContentIntroCurve.ContentIntroCurve"));
+	if(ContentIntroCurve)
+	{
+		ContentIntroCurve->AddToRoot();
+	}
 }
 
 void FIntroTutorials::ShutdownModule()
@@ -265,6 +272,12 @@ void FIntroTutorials::ShutdownModule()
 		PropertyEditorModule.UnregisterCustomPropertyTypeLayout("TutorialContent");
 		PropertyEditorModule.UnregisterCustomPropertyTypeLayout("TutorialWidgetReference");
 		PropertyEditorModule.UnregisterCustomClassLayout("EditorTutorial");
+	}
+
+	if(ContentIntroCurve)
+	{
+		ContentIntroCurve->RemoveFromRoot();
+		ContentIntroCurve = nullptr;
 	}
 }
 
@@ -792,6 +805,16 @@ TSharedRef<SWidget> FIntroTutorials::CreateTutorialsWidget(FName InContext, TWea
 	return SNew(STutorialButton)
 		.Context(InContext)
 		.ContextWindow(InContextWindow);
+}
+
+float FIntroTutorials::GetIntroCurveValue(float InTime)
+{
+	if(ContentIntroCurve)
+	{
+		return ContentIntroCurve->GetFloatValue(InTime);
+	}
+
+	return 1.0f;
 }
 
 #undef LOCTEXT_NAMESPACE

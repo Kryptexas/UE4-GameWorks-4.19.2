@@ -73,6 +73,8 @@ public:
 
 	void GoToNextStage(TWeakPtr<SWindow> InNavigationWindow);
 
+	float GetIntroCurveValue(float InTime);
+
 private:
 
 	/** IModuleInterface implementation */
@@ -197,4 +199,7 @@ private:
 
 	/** Root widget for tutorial overlay system */
 	TSharedPtr<STutorialRoot> TutorialRoot;
+
+	/** Curve asset for intros */
+	UCurveFloat* ContentIntroCurve;
 };

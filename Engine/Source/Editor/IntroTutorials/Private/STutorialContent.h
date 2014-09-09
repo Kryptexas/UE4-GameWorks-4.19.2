@@ -77,6 +77,12 @@ private:
 	/** Alter the background color depending on hover state */
 	FSlateColor GetBackgroundColor() const;
 
+	/** Get zoom level padding for content (animated for intro) */
+	float GetAnimatedZoom() const;
+	
+	/** Get inverse zoom level padding for content - needed because rich text content doesnt scale well */
+	float GetInverseAnimatedZoom() const;
+
 private:
 
 	/** Copy of the window size we were last draw at */
@@ -115,6 +121,9 @@ private:
 	/** Animation curves for displaying border */
 	FCurveSequence BorderPulseAnimation;
 	FCurveSequence BorderIntroAnimation;
+
+	/** Animation curve for displaying content */
+	FCurveSequence ContentIntroAnimation;
 
 	/** Documentation page reference to use if we are displaying a UDN doc - we need this otherwise the page will be freed */
 	TSharedPtr<IDocumentationPage> DocumentationPage;
