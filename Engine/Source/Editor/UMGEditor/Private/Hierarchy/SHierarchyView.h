@@ -79,6 +79,15 @@ private:
 	/** Called when a Blueprint is recompiled and live objects are swapped out for replacements */
 	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
 
+	/** Saves the expansion of items into a list based on FName */
+	void SaveExpandedItems();
+
+	/** Restores the state of expanded items based on the saved expanded item state, then clears the expanded state cache. */
+	void RestoreExpandedItems();
+
+	/** Recursively expands the models based on the expansion set. */
+	void RecursiveExpand(TSharedPtr<FHierarchyModel>& Model);
+
 private:
 
 	/** Cached pointer to the blueprint editor that owns this tree. */
@@ -92,9 +101,6 @@ private:
 
 	/** The root widgets which are actually displayed by the TreeView which will be managed by the TreeFilterHandler. */
 	TArray< TSharedPtr<FHierarchyModel> > TreeRootWidgets;
-
-	/** Gets the visible items displayed in the tree view. */
-	TSet< TSharedPtr<FHierarchyModel> > VisibleItems;
 
 	/** The widget containing the treeview */
 	TSharedPtr<SBorder> TreeViewArea;
@@ -110,4 +116,7 @@ private:
 
 	/** Is the tree in such a changed state that the whole widget needs rebuilding? */
 	bool bRebuildTreeRequested;
+
+	/** Temporary expanded item state, used to restore expansion after tree rebuilds. */
+	TArray<FName> ExpandedItems;
 };

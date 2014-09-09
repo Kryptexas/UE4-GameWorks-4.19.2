@@ -10,6 +10,9 @@ class FHierarchyModel : public TSharedFromThis < FHierarchyModel >
 public:
 	FHierarchyModel();
 
+	/** Gets the unique name of the item used to restore item expansion. */
+	virtual FName GetUniqueName() const = 0;
+
 	/* @returns the widget name to use for the tree item */
 	virtual FText GetText() const = 0;
 
@@ -50,6 +53,8 @@ public:
 	
 	virtual ~FHierarchyRoot() {}
 
+	virtual FName GetUniqueName() const override;
+
 	/* @returns the widget name to use for the tree item */
 	virtual FText GetText() const override;
 
@@ -77,6 +82,8 @@ public:
 	FHierarchyWidget(FWidgetReference InItem, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor);
 
 	virtual ~FHierarchyWidget() {}
+
+	virtual FName GetUniqueName() const override;
 	
 	/* @returns the widget name to use for the tree item */
 	virtual FText GetText() const override;

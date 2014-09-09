@@ -259,6 +259,12 @@ FHierarchyRoot::FHierarchyRoot(TSharedPtr<FWidgetBlueprintEditor> InBlueprintEdi
 {
 }
 
+FName FHierarchyRoot::GetUniqueName() const
+{
+	static const FName DesignerRootName(TEXT("WidgetDesignerRoot"));
+	return DesignerRootName;
+}
+
 FText FHierarchyRoot::GetText() const
 {
 	return LOCTEXT("Root", "[Root]");
@@ -317,6 +323,17 @@ FHierarchyWidget::FHierarchyWidget(FWidgetReference InItem, TSharedPtr<FWidgetBl
 	: Item(InItem)
 	, BlueprintEditor(InBlueprintEditor)
 {
+}
+
+FName FHierarchyWidget::GetUniqueName() const
+{
+	UWidget* WidgetTemplate = Item.GetTemplate();
+	if ( WidgetTemplate )
+	{
+		return WidgetTemplate->GetFName();
+	}
+
+	return NAME_None;
 }
 
 FText FHierarchyWidget::GetText() const

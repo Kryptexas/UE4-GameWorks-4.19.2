@@ -87,17 +87,23 @@ SHierarchyView::~SHierarchyView()
 
 void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if ( bRebuildTreeRequested )
+	if ( bRebuildTreeRequested || bRefreshRequested )
 	{
-		bRebuildTreeRequested = false;
-		RebuildTreeView();
-	}
+		if ( bRebuildTreeRequested )
+		{
+			RebuildTreeView();
+		}
 
-	if ( bRefreshRequested )
-	{
-		bRefreshRequested = false;
+		SaveExpandedItems();
 
 		RefreshTree();
+
+		RestoreExpandedItems();
+
+		OnEditorSelectionChanged();
+
+		bRefreshRequested = false;
+		bRebuildTreeRequested = false;
 	}
 }
 
@@ -214,8 +220,6 @@ TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 
 void SHierarchyView::WidgetHierarchy_OnGetChildren(TSharedPtr<FHierarchyModel> InParent, TArray< TSharedPtr<FHierarchyModel> >& OutChildren)
 {
-	VisibleItems.Add(InParent);
-
 	InParent->GatherChildren(OutChildren);
 }
 
@@ -236,13 +240,7 @@ void SHierarchyView::WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyMod
 FReply SHierarchyView::HandleDeleteSelected()
 {
 	TSet<FWidgetReference> SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
-
-	// Remove the selected items from the filter cache
-	for (FWidgetReference& Item : SelectedWidgets)
-	{
-//		FilterHandler->RemoveCachedItem(Item.GetTemplate());
-	}
-
+	
 	FWidgetBlueprintEditorUtils::DeleteWidgets(GetBlueprint(), SelectedWidgets);
 
 	return FReply::Handled();
@@ -250,8 +248,6 @@ FReply SHierarchyView::HandleDeleteSelected()
 
 void SHierarchyView::RefreshTree()
 {
-	VisibleItems.Empty();
-
 	RootWidgets.Empty();
 	RootWidgets.Add( MakeShareable(new FHierarchyRoot(BlueprintEditor.Pin())) );
 
@@ -282,13 +278,50 @@ void SHierarchyView::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replaceme
 {
 	if ( !bRebuildTreeRequested )
 	{
-		for ( TSharedPtr<FHierarchyModel> Widget : VisibleItems )
+		bRefreshRequested = true;
+		bRebuildTreeRequested = true;
+
+		// We save the expanded items immediately because they're potentially about to become invalid.
+		SaveExpandedItems();
+	}
+}
+
+void SHierarchyView::SaveExpandedItems()
+{
+	if ( ExpandedItems.Num() == 0 )
+	{
+		TSet < TSharedPtr<FHierarchyModel> > ExpandedModels;
+		WidgetTreeView->GetExpandedItems(ExpandedModels);
+
+		for ( TSharedPtr<FHierarchyModel>& Model : ExpandedModels )
 		{
-			//if ( ReplacementMap.Contains(Widget) )
-			{
-				bRefreshRequested = true;
-				bRebuildTreeRequested = true;
-			}
+			ExpandedItems.Add(Model->GetUniqueName());
+		}
+	}
+}
+
+void SHierarchyView::RestoreExpandedItems()
+{
+	for ( TSharedPtr<FHierarchyModel>& Model : RootWidgets )
+	{
+		RecursiveExpand(Model);
+	}
+
+	ExpandedItems.Empty();
+}
+
+void SHierarchyView::RecursiveExpand(TSharedPtr<FHierarchyModel>& Model)
+{
+	if ( ExpandedItems.Contains(Model->GetUniqueName()) )
+	{
+		WidgetTreeView->SetItemExpansion(Model, true);
+
+		TArray< TSharedPtr<FHierarchyModel> > Children;
+		Model->GatherChildren(Children);
+
+		for ( TSharedPtr<FHierarchyModel>& ChildModel : Children )
+		{
+			RecursiveExpand(ChildModel);
 		}
 	}
 }
