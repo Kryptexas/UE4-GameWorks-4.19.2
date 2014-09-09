@@ -3178,9 +3178,9 @@ bool UEdGraphSchema_K2::IsAutoCreateRefTerm(const UEdGraphPin* Pin) const
 	if (FuncNode)
 	{
 		UFunction* TargetFunction = FuncNode->GetTargetFunction();
-		if (TargetFunction)
+		if (TargetFunction && !Pin->PinName.IsEmpty())
 		{
-			bIsAutoCreateRefTerm = TargetFunction->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
+			bIsAutoCreateRefTerm = (Pin->PinName == TargetFunction->GetMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm));
 		}
 	}
 
