@@ -189,6 +189,9 @@ public:
 	/** GenericCallback for Input being released. Auto cleared on broadcast */
 	FGenericAbilityDelegate	OnInputRelease;
 
+	/** Is this ability triggered from TriggerData (or is it triggered explicitly through input/game code) */
+	bool IsTriggered() const;
+
 protected:
 
 	// --------------------------------------

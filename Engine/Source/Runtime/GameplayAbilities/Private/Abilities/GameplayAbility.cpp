@@ -590,3 +590,10 @@ FGameplayAbilitySpec* UGameplayAbility::GetCurrentAbilitySpec() const
 	check(CurrentActorInfo);
 	return CurrentActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(CurrentSpecHandle);
 }
+
+bool UGameplayAbility::IsTriggered() const
+{
+	// Assume that if there is triggered data, then we are triggered. 
+	// If we need to support abilities that can be both, this will need to be expanded.
+	return AbilityTriggers.Num() > 0;
+}

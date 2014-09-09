@@ -9,14 +9,15 @@
 UAbilityTask_WaitAbilityActivate::UAbilityTask_WaitAbilityActivate(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	IncludeTriggeredAbilities = false;
 }
 
-UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate(UObject* WorldContextObject, FGameplayTag InWithTag, FGameplayTag InWithoutTag)
+UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate(UObject* WorldContextObject, FGameplayTag InWithTag, FGameplayTag InWithoutTag, bool InIncludeTriggeredAbilities)
 {
 	auto MyObj = NewTask<UAbilityTask_WaitAbilityActivate>(WorldContextObject);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
-
+	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
 	return MyObj;
 }
 
@@ -28,8 +29,13 @@ void UAbilityTask_WaitAbilityActivate::Activate()
 	}
 }
 
-void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility *ActivatedAbility)
+void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility* ActivatedAbility)
 {
+	if (!IncludeTriggeredAbilities && ActivatedAbility->IsTriggered())
+	{
+		return;
+	}
+
 	if ((WithTag.IsValid() && !ActivatedAbility->AbilityTags.HasTag(WithTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit)) ||
 		(WithoutTag.IsValid() && ActivatedAbility->AbilityTags.HasTag(WithoutTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit)))
 	{
