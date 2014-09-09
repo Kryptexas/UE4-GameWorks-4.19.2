@@ -36,9 +36,9 @@ namespace ESlateSizeRule
 {
 	enum Type
 	{
-		/** The container will size to fit the needs of the child widgets */
+		/** Only requests as much room as it needs based on the widgets desired size. */
 		Automatic,
-		/** The container will fill the percentage of the container based on the Value 0..1 */
+		/** Greedily attempts to fill all available room based on the percentage value 0..1 */
 		Fill
 	};
 }

@@ -38,31 +38,37 @@ void FSlateChildSizeCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> P
 		.AutoWidth()
 		.Padding(OuterPadding)
 		[
-			SNew(SCheckBox)
-			.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
-			.ToolTipText(LOCTEXT("Auto_ToolTip", "Auto"))
-			.Padding(ContentPadding)
-			.OnCheckStateChanged(this, &FSlateChildSizeCustomization::HandleCheckStateChanged, RuleHandle, ESlateSizeRule::Automatic)
-			.IsChecked(this, &FSlateChildSizeCustomization::GetCheckState, RuleHandle, ESlateSizeRule::Automatic)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("Auto", "Auto"))
-			]
-		]
+			SNew(SUniformGridPanel)
+			.SlotPadding(OuterPadding)
 
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(OuterPadding)
-		[
-			SNew(SCheckBox)
-			.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
-			.ToolTipText(LOCTEXT("Fill_ToolTip", "Fill"))
-			.Padding(ContentPadding)
-			.OnCheckStateChanged(this, &FSlateChildSizeCustomization::HandleCheckStateChanged, RuleHandle, ESlateSizeRule::Fill)
-			.IsChecked(this, &FSlateChildSizeCustomization::GetCheckState, RuleHandle, ESlateSizeRule::Fill)
+			+ SUniformGridPanel::Slot(0, 0)
 			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("Fill", "Fill"))
+				SNew(SCheckBox)
+				.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+				.ToolTipText(LOCTEXT("Auto_ToolTip", "Only requests as much room as it needs based on the widgets desired size."))
+				.Padding(ContentPadding)
+				.OnCheckStateChanged(this, &FSlateChildSizeCustomization::HandleCheckStateChanged, RuleHandle, ESlateSizeRule::Automatic)
+				.IsChecked(this, &FSlateChildSizeCustomization::GetCheckState, RuleHandle, ESlateSizeRule::Automatic)
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("Auto", "Auto"))
+				]
+			]
+
+			+ SUniformGridPanel::Slot(1, 0)
+			[
+				SNew(SCheckBox)
+				.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+				.ToolTipText(LOCTEXT("Fill_ToolTip", "Greedily attempts to fill all available room based on the percentage value 0..1"))
+				.Padding(ContentPadding)
+				.OnCheckStateChanged(this, &FSlateChildSizeCustomization::HandleCheckStateChanged, RuleHandle, ESlateSizeRule::Fill)
+				.IsChecked(this, &FSlateChildSizeCustomization::GetCheckState, RuleHandle, ESlateSizeRule::Fill)
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("Fill", "Fill"))
+				]
 			]
 		]
 
