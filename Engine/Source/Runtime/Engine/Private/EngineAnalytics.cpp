@@ -119,7 +119,9 @@ void FEngineAnalytics::Initialize()
 	checkf(!bIsInitialized, TEXT("FEngineAnalytics::Initialize called more than once."));
 
 	// Never use analytics when running a commandlet tool
-	const bool bShouldInitAnalytics = !IsRunningCommandlet();
+	check(GEngine);
+	const bool bShouldInitAnalytics = !IsRunningCommandlet() && GEngine->bEngineAnalyticsProviderEnabled;
+
 	if( bShouldInitAnalytics )
 	{
 #if DEBUG_ANALYTICS

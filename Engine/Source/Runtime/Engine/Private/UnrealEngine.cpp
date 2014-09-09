@@ -5388,24 +5388,21 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 
 void UEngine::InitHardwareSurvey()
 {
-	if (GConfig)
-	{
-		bool bEnabled = false;
+	bool bEnabled = bHardwareSurveyEnabled;
 
-		// The hardware survey costs time and we don't want to slow down debug builds.
-		// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
-#if UE_BUILD_DEBUG == 0
-		GConfig->GetBool(TEXT("Engine.HardwareSurvey"), TEXT("bEnableHardwareSurvey"), bEnabled, GEngineIni);
+	// The hardware survey costs time and we don't want to slow down debug builds.
+	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
+#if UE_BUILD_DEBUG
+	bEnabled = false;
 #endif
 
-		if (bEnabled)
+	if (bEnabled)
+	{
+		if (IsHardwareSurveyRequired())
 		{
-			if (IsHardwareSurveyRequired())
-			{
-				bPendingHardwareSurveyResults = true;
-			}
-		}	
-	}
+			bPendingHardwareSurveyResults = true;
+		}
+	}	
 }
 
 void UEngine::TickHardwareSurvey()
