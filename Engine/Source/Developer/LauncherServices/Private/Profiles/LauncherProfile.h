@@ -563,6 +563,9 @@ public:
 		{
 			ProjectPath = FString();
 		}
+
+		// Use the locally specified project path is resolving through the root isn't working
+		ProjectSpecified = GetProjectPath().IsEmpty();
 		
 		BuildConfiguration = FApp::GetBuildConfiguration();
 		FInternationalization& I18N = FInternationalization::Get();
