@@ -65,12 +65,13 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 	FString MapName = Parameters;
 	//Get the base filename for the map that will be used.
 	FString ShortMapName = FPaths::GetBaseFilename(MapName);
-	//Duration variable will be used to indicate how long the test will run for.
-	float Duration = 0.0f;
 	
 	//This gets the info we need from the automation test settings in the engine.ini.
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
 	check(AutomationTestSettings);
+
+	//Duration variable will be used to indicate how long the test will run for.
+	float Duration = 0.0f;
 
 	//Now we find the test timer(aka duration) for our test.
 	for (auto Iter = AutomationTestSettings->EditorPerformanceTestMaps.CreateConstIterator(); Iter; ++Iter)
@@ -85,21 +86,26 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 			{
 				UE_LOG(LogEditorAutomationTests, Warning, TEXT("Please set the test timer for '%s' in the automation preferences or engine.ini."), *ShortMapName);
 			}
-			else 
+			else
 			if (Duration < 0)
 			{
 				UE_LOG(LogEditorAutomationTests, Error, TEXT("Test timer preference option '%s' is less than 0."), *ShortMapName);
-				return false; 
+				return false;
 			}
 		}
 	}
-	//Loop through the latent performance command equal to the duration time.
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Starting loop to run the latent FEditorPerformanceCommand on '%s'."), *ShortMapName);
-	for (int32 Counter = 0; Counter < Duration; Counter++)
-	{
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
-		ADD_LATENT_AUTOMATION_COMMAND(FEditorPerformanceCommand(MapName));
-	}
+
+	//Load Map and get the time it took to take to load the map.
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
+
+	//Grab the performance numbers based on the duration.
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorPerformanceCommand(Duration));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
+
+	//Combine performance data into one chart.
+	ADD_LATENT_AUTOMATION_COMMAND(FGenerateEditorPerformanceCharts(ShortMapName));
+
 	return true;
 }
 
