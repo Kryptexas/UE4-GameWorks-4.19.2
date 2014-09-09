@@ -171,11 +171,6 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	{
 		return;
 	}
-	
-	if ( bShowImmediately )
-	{
-		Show();
-	}
 }
 
 FMacWindow::FMacWindow()
