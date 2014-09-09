@@ -118,7 +118,7 @@ FVertexFactoryType::FVertexFactoryType(
 
 	// This will trigger if an IMPLEMENT_VERTEX_FACTORY_TYPE was in a module not loaded before InitializeShaderTypes
 	// Vertex factory types need to be implemented in modules that are loaded before that
-	check(!bInitializedSerializationHistory);
+	checkf(!bInitializedSerializationHistory, TEXT("VF type was loaded after engine init, use ELoadingPhase::PostConfigInit on your module to cause it to load earlier."));
 
 	// Add this vertex factory type to the global list.
 	GlobalListLink.Link(GetTypeList());
