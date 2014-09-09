@@ -2,6 +2,9 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityTargetTypes.h"
+#include "GameplayEffect.h"
+#include "AbilitySystemComponent.h"
+
 
 void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
 {
