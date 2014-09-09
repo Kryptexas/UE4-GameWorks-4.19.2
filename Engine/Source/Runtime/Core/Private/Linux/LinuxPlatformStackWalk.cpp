@@ -133,7 +133,16 @@ namespace LinuxStackWalkHelpers
 	}
 }
 
-bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, EVerbosityFlags VerbosityFlags, FGenericCrashContext* Context )
+void FLinuxPlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo& out_SymbolInfo )
+{
+	// Set the program counter.
+	out_SymbolInfo.ProgramCounter = ProgramCounter;
+
+	// Get function, filename and line number.
+	// @TODO
+}
+
+bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context )
 {
 	if (HumanReadableString && HumanReadableStringSize > 0)
 	{
@@ -164,10 +173,8 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 			}
 			LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, TempArray);
 
-			if( VerbosityFlags & VF_DISPLAY_FILENAME )
+			// Get filename.
 			{
-				//Append the filename to the string here
-
 				const char * FunctionName = LinuxStackWalkHelpers::GetFunctionName(Context, CurrentCallDepth);
 				if (FunctionName)
 				{

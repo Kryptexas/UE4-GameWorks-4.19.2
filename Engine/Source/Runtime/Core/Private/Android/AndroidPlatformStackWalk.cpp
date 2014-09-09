@@ -10,7 +10,7 @@
 #include <cxxabi.h>
 #include <stdio.h>
 
-bool FAndroidPlatformStackWalk::ProgramCounterToHumanReadableString(int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, EVerbosityFlags VerbosityFlags, FGenericCrashContext* Context)
+bool FAndroidPlatformStackWalk::ProgramCounterToHumanReadableString(int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context)
 {
 	Dl_info DylibInfo;
 	int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
@@ -25,10 +25,9 @@ bool FAndroidPlatformStackWalk::ProgramCounterToHumanReadableString(int32 Curren
 	// Write out function name.
 	FCStringAnsi::Strcat(HumanReadableString, HumanReadableStringSize, SymbolInfo.FunctionName);
 
-	if (VerbosityFlags & VF_DISPLAY_FILENAME)
+	// Get filename.
 	{
 		ANSICHAR FileNameLine[MAX_SPRINTF];
-
 		if (SymbolInfo.LineNumber == 0)
 		{
 			// No line number. Print out the module offset address instead.
@@ -43,7 +42,7 @@ bool FAndroidPlatformStackWalk::ProgramCounterToHumanReadableString(int32 Curren
 		FCStringAnsi::Strcat(HumanReadableString, HumanReadableStringSize, FileNameLine);
 	}
 
-	if (VerbosityFlags & VF_DISPLAY_MODULE)
+	// Get module name.
 	{
 		ANSICHAR ModuleName[MAX_SPRINTF];
 		// Write out Module information if there is sufficient space.
@@ -57,7 +56,7 @@ bool FAndroidPlatformStackWalk::ProgramCounterToHumanReadableString(int32 Curren
 	return true;
 }
 
-void FAndroidPlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter, FProgramCounterSymbolInfo&  SymbolInfo)
+void FAndroidPlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter, FProgramCounterSymbolInfo& out_SymbolInfo)
 {
 	Dl_info DylibInfo;
 	int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
@@ -78,26 +77,26 @@ void FAndroidPlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter
 	if (DemangledName)
 	{
 		// C++ function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DemangledName);
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "%s ", DemangledName);
 	}
 	else if (DylibInfo.dli_sname)
 	{
 		// C function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
 	}
 	else
 	{
 		// Unknown!
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "[Unknown]() ");
 	}
 
 	// No line number available.
 	// TODO open libUE4.so from the apk and get the DWARF-2 data.
-	FCStringAnsi::Strcat(SymbolInfo.Filename, "Unknown");
-	SymbolInfo.LineNumber = 0;
+	FCStringAnsi::Strcat(out_SymbolInfo.Filename, "Unknown");
+	out_SymbolInfo.LineNumber = 0;
 	
 	// Offset of the symbol in the module, eg offset into libUE4.so needed for offline addr2line use.
-	SymbolInfo.OffsetInModule = ProgramCounter - (uint64)DylibInfo.dli_fbase;
+	out_SymbolInfo.OffsetInModule = ProgramCounter - (uint64)DylibInfo.dli_fbase;
 
 	// Write out Module information.
 	ANSICHAR* DylibPath = (ANSICHAR*)DylibInfo.dli_fname;
@@ -110,7 +109,7 @@ void FAndroidPlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter
 	{
 		DylibName = DylibPath;
 	}
-	FCStringAnsi::Strcpy(SymbolInfo.ModuleName, DylibName);
+	FCStringAnsi::Strcpy(out_SymbolInfo.ModuleName, DylibName);
 }
 
 namespace AndroidStackWalkHelpers

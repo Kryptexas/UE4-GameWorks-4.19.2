@@ -7,18 +7,6 @@
 
 #pragma once
 
-/** @name ObjectFlags
-* Flags used to control the output from stack tracing
-*/
-typedef uint32 EVerbosityFlags;
-
-#define VF_DISPLAY_BASIC		0x00000000
-#define VF_DISPLAY_FILENAME		0x00000001
-#define VF_DISPLAY_MODULE		0x00000002
-#define VF_DISPLAY_ALL			0xffffffff
-
-#define PLATFORM_SUPPORTS_STACK_SYMBOLS 0
-
 /**
 * This is used to capture all of the module information needed to load pdb's.
 * @todo, the memory profiler should not be using this as platform agnostic
@@ -42,13 +30,49 @@ struct FStackWalkModuleInfo
 	} PdbSig70;
 };
 
+/**
+ * Symbol information associated with a program counter.
+ */
+struct FProgramCounterSymbolInfo /*final*/
+{
+	enum
+	{
+		/** Length of the string used to store the symbol's names, including the trailing character. */
+		MAX_NAME_LENGHT = 1024,
+	};
 
+	/** Module name. */
+	ANSICHAR	ModuleName[MAX_NAME_LENGHT];
+
+	/** Function name. */
+	ANSICHAR	FunctionName[MAX_NAME_LENGHT];
+
+	/** Filename. */
+	ANSICHAR	Filename[MAX_NAME_LENGHT];
+
+	/** Line number in file. */
+	int32		LineNumber;
+
+	/** Symbol displacement of address.	*/
+	int32		SymbolDisplacement;
+
+	/** Program counter offset into module. */
+	uint64		OffsetInModule;
+
+	/** Program counter. */
+	uint64		ProgramCounter;
+
+	/** Default constructor. */
+	FProgramCounterSymbolInfo();
+};
 
 /**
 * Generic implementation for most platforms
 **/
 struct CORE_API FGenericPlatformStackWalk
 {
+	typedef FGenericPlatformStackWalk Base;
+
 	/**
 	 * Initializes stack traversal and symbol. Must be called before any other stack/symbol functions. Safe to reenter.
 	 */
@@ -60,27 +84,35 @@ struct CORE_API FGenericPlatformStackWalk
 	/**
 	 * Converts the passed in program counter address to a human readable string and appends it to the passed in one.
 	 * @warning: The code assumes that HumanReadableString is large enough to contain the information.
+	 * @warning: Please, do not override this method. Can't be modified or altered without notice.
+	 * 
+	 * This method is the same for all platforms to simplify parsing by the crash processor.
+	 * 
+	 * Example formatted line:
+	 *
+	 * UE4Editor_Core!FOutputDeviceWindowsError::Serialize() (0xddf1bae5) + 620 bytes [\engine\source\runtime\core\private\windows\windowsplatformoutputdevices.cpp:110]
+	 * ModuleName!FunctionName (ProgramCounter) + offset bytes [StrippedFilepath:LineNumber]
 	 *
 	 * @param	CurrentCallDepth		Depth of the call, if known (-1 if not - note that some platforms may not return meaningful information in the latter case)
 	 * @param	ProgramCounter			Address to look symbol information up for
 	 * @param	HumanReadableString		String to concatenate information with
 	 * @param	HumanReadableStringSize size of string in characters
-	 * @param	VerbosityFlags			Bit field of requested data for output. -1 for all output.
 	 * @param	Context					Pointer to crash context, if any
 	 * @return	true if the symbol was found, otherwise false
 	 */ 
-	static bool ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, EVerbosityFlags VerbosityFlags = VF_DISPLAY_ALL, FGenericCrashContext* Context = NULL );
+	static bool ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context = NULL );
 
-#if PLATFORM_SUPPORTS_STACK_SYMBOLS // never true here, but we provide this function signature for reference
 	/**
 	 * Converts the passed in program counter address to a symbol info struct, filling in module and filename, line number and displacement.
 	 * @warning: The code assumes that the destination strings are big enough
 	 *
-	 * @param	ProgramCounter					Address to look symbol information up for
-	 * @param	OutProgramCounterSymbolInfo		symbol information associated with program counter
+	 * @param	ProgramCounter		Address to look symbol information up for
+	 * @param	out_SymbolInfo		Symbol information associated with program counter
 	 */
-	 static void ProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo&  OutProgramCounterSymbolInfo);
-#endif
+	static void ProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo& out_SymbolInfo)
+	{
+		out_SymbolInfo.ProgramCounter = ProgramCounter;
+	}
 
 	/**
 	 * Capture a stack backtrace and optionally use the passed in exception pointers.
@@ -122,6 +154,4 @@ struct CORE_API FGenericPlatformStackWalk
 	{
 		return 0;
 	}
-
-
 };

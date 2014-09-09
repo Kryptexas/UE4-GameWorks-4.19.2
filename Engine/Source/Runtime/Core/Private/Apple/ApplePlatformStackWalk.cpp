@@ -76,7 +76,7 @@ int32 GetModuleTimeStamp( const struct mach_header* Header )
 	return 0;
 }
 
-static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo&  SymbolInfo )
+static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo& out_SymbolInfo )
 {
 	Dl_info DylibInfo;
 	int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
@@ -89,12 +89,12 @@ static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgram
 	if (DylibInfo.dli_sname)
 	{
 		// Mangled function name
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
 	}
 	else
 	{
 		// Unknown!
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "[Unknown]() ");
 	}
 #else // But on iOS the best we can do is demangle
 	int32 Status = 0;
@@ -109,28 +109,28 @@ static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgram
 	if (DemangledName)
 	{
 		// C++ function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DemangledName);
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "%s ", DemangledName);
 	}
 	else if (DylibInfo.dli_sname && strchr(DylibInfo.dli_sname, ']'))
 	{
 		// ObjC function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "%s ", DylibInfo.dli_sname);
 	}
 	else if(DylibInfo.dli_sname)
 	{
 		// C function
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "%s() ", DylibInfo.dli_sname);
 	}
 	else
 	{
 		// Unknown!
-		FCStringAnsi::Sprintf(SymbolInfo.FunctionName, "[Unknown]() ");
+		FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, "[Unknown]() ");
 	}
 #endif
 	
 	// No line number found.
-	FCStringAnsi::Strcat(SymbolInfo.Filename, "Unknown");
-	SymbolInfo.LineNumber = 0;
+	FCStringAnsi::Strcat(out_SymbolInfo.Filename, "Unknown");
+	out_SymbolInfo.LineNumber = 0;
 	
 	// Write out Module information.
 	ANSICHAR* DylibPath = (ANSICHAR*)DylibInfo.dli_fname;
@@ -143,7 +143,7 @@ static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgram
 	{
 		DylibName = DylibPath;
 	}
-	FCStringAnsi::Strcpy(SymbolInfo.ModuleName, DylibName);
+	FCStringAnsi::Strcpy(out_SymbolInfo.ModuleName, DylibName);
 }
 
 void FApplePlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
@@ -158,7 +158,7 @@ void FApplePlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 M
 	backtrace((void**)BackTrace, MaxDepth);
 }
 
-bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, EVerbosityFlags VerbosityFlags, FGenericCrashContext* Context )
+bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context )
 {
 	Dl_info DylibInfo;
 	int32 Result = dladdr((const void*)ProgramCounter, &DylibInfo);
@@ -180,7 +180,7 @@ bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 	// Write out function name.
 	FCStringAnsi::Strcat(HumanReadableString, HumanReadableStringSize, SymbolInfo.FunctionName);
 
-	if (VerbosityFlags & VF_DISPLAY_FILENAME)
+	// Get filename.
 	{
 		ANSICHAR FileNameLine[MAX_SPRINTF];
 		
@@ -198,7 +198,7 @@ bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 		FCStringAnsi::Strcat(HumanReadableString, HumanReadableStringSize, FileNameLine);
 	}
 
-	if (VerbosityFlags & VF_DISPLAY_MODULE)
+	// Get module name.
 	{
 		ANSICHAR ModuleName[MAX_SPRINTF];
 		// Write out Module information if there is sufficient space.
@@ -212,12 +212,12 @@ bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 	return true;
 }
 
-void FApplePlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo&  SymbolInfo )
+void FApplePlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgramCounterSymbolInfo& out_SymbolInfo )
 {
-	bool bOK = FApplePlatformSymbolication::SymbolInfoForAddress(ProgramCounter, SymbolInfo);
+	bool bOK = FApplePlatformSymbolication::SymbolInfoForAddress(ProgramCounter, out_SymbolInfo);
 	if(!bOK)
 	{
-		AsyncSafeProgramCounterToSymbolInfo(ProgramCounter, SymbolInfo);
+		AsyncSafeProgramCounterToSymbolInfo(ProgramCounter, out_SymbolInfo);
 	}
 }
 

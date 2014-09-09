@@ -89,7 +89,7 @@ void FApplePlatformSymbolication::DestroySymbolCache(FApplePlatformSymbolCache* 
 #endif
 }
 
-bool FApplePlatformSymbolication::SymbolInfoForAddress(uint64 ProgramCounter, FProgramCounterSymbolInfo& Info)
+bool FApplePlatformSymbolication::SymbolInfoForAddress(uint64 ProgramCounter, FProgramCounterSymbolInfo& out_SymbolInfo)
 {
 #if PLATFORM_MAC
 	bool bOK = false;
@@ -101,19 +101,19 @@ bool FApplePlatformSymbolication::SymbolInfoForAddress(uint64 ProgramCounter, FP
 		
 		if(!CSIsNull(Symbol))
 		{
-			Info.LineNumber = CSSourceInfoGetLineNumber(Symbol);
-			FCStringAnsi::Sprintf(Info.Filename, CSSourceInfoGetPath(Symbol));
-			FCStringAnsi::Sprintf(Info.FunctionName, CSSymbolGetName(CSSourceInfoGetSymbol(Symbol)));
+			out_SymbolInfo.LineNumber = CSSourceInfoGetLineNumber(Symbol);
+			FCStringAnsi::Sprintf(out_SymbolInfo.Filename, CSSourceInfoGetPath(Symbol));
+			FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, CSSymbolGetName(CSSourceInfoGetSymbol(Symbol)));
 			CSRange CodeRange = CSSourceInfoGetRange(Symbol);
-			Info.SymbolDisplacement = (ProgramCounter - CodeRange.Location);
+			out_SymbolInfo.SymbolDisplacement = (ProgramCounter - CodeRange.Location);
 			
 			CSSymbolOwnerRef Owner = CSSourceInfoGetSymbolOwner(Symbol);
 			if(!CSIsNull(Owner))
 			{
 				ANSICHAR const* DylibName = CSSymbolOwnerGetName(Owner);
-				FCStringAnsi::Strcpy(Info.ModuleName, DylibName);
+				FCStringAnsi::Strcpy(out_SymbolInfo.ModuleName, DylibName);
 				
-				bOK = Info.LineNumber != 0;
+				bOK = out_SymbolInfo.LineNumber != 0;
 			}
 		}
 		
