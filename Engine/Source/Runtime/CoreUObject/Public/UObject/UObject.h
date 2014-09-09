@@ -612,7 +612,7 @@ public:
 	 * @param bForceCheck Force checks even if not enabled globally.
 	 * @return true if the assumptions are met, false otherwise.
 	 */
-	virtual bool CheckDefaultSubobjects(bool bForceCheck = false);
+	bool CheckDefaultSubobjects(bool bForceCheck = false);
 
 	/**
 	 * Save configuration.
@@ -980,6 +980,13 @@ protected:
 
 	/** Checks it's ok to perform subobjects check at this time. */
 	bool CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult);
+
+	/**
+	* Checks default sub-object assumptions.
+	*
+	* @return true if the assumptions are met, false otherwise.
+	*/
+	virtual bool CheckDefaultSubobjectsInternal();
 
 private:
 	void ProcessContextOpcode(FFrame& Stack, RESULT_DECL, bool bCanFailSilent);

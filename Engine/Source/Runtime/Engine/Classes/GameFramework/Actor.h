@@ -1041,7 +1041,7 @@ public:
 	FActorEndPlaySignature OnEndPlay;
 	
 	// Begin UObject Interface
-	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) override;
+	virtual bool CheckDefaultSubobjectsInternal() override;
 	virtual void PostInitProperties() override;
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
 	virtual void ProcessEvent( UFunction* Function, void* Parameters ) override;

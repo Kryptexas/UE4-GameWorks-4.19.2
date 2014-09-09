@@ -998,55 +998,64 @@ bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult)
 
 bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
 {
-	bool Result = true;	
+	bool Result = true;
 	if (CanCheckDefaultSubObjects(bForceCheck, Result))
 	{
-		CompCheck(this);
-		UClass* Class = GetClass();
+		Result = CheckDefaultSubobjectsInternal();
+	}
+	return Result;
+}
 
-		if (Class != UFunction::StaticClass() && Class->GetName() != TEXT("EdGraphPin"))
+bool UObject::CheckDefaultSubobjectsInternal()
+{
+	bool Result = true;	
+
+	CompCheck(this);
+	UClass* Class = GetClass();
+
+	if (Class != UFunction::StaticClass() && Class->GetName() != TEXT("EdGraphPin"))
+	{
+		// Check for references to default subobjects of other objects.
+		// There should never be a pointer to a subobject from outside of the outer (chain) it belongs to.
+		TArray<const UObject*> OtherReferencedSubobjects;
+		FSubobjectReferenceFinder DefaultSubobjectCollector(OtherReferencedSubobjects, this);
+		for (int32 Index = 0; Index < OtherReferencedSubobjects.Num(); ++Index)
 		{
-			// Check for references to default subobjects of other objects.
-			// There should never be a pointer to a subobject from outside of the outer (chain) it belongs to.
-			TArray<const UObject*> OtherReferencedSubobjects;
-			FSubobjectReferenceFinder DefaultSubobjectCollector(OtherReferencedSubobjects, this);
-			for (int32 Index = 0; Index < OtherReferencedSubobjects.Num(); ++Index)
-			{
-				const UObject* TestObject = OtherReferencedSubobjects[Index];
-				UE_LOG(LogCheckSubobjects, Error, TEXT("%s has a reference to default subobject (%s) of %s."), *GetFullName(), *TestObject->GetFullName(), *TestObject->GetOuter()->GetFullName());
-			}
-			CompCheck(OtherReferencedSubobjects.Num() == 0);
+			const UObject* TestObject = OtherReferencedSubobjects[Index];
+			UE_LOG(LogCheckSubobjects, Error, TEXT("%s has a reference to default subobject (%s) of %s."), *GetFullName(), *TestObject->GetFullName(), *TestObject->GetOuter()->GetFullName());
 		}
+		CompCheck(OtherReferencedSubobjects.Num() == 0);
+	}
 
 #if 0 // usually overkill, but valid tests
-		if (!HasAnyFlags(RF_ClassDefaultObject) && Class->HasAnyClassFlags(CLASS_HasInstancedReference))
+	if (!HasAnyFlags(RF_ClassDefaultObject) && Class->HasAnyClassFlags(CLASS_HasInstancedReference))
+	{
+		UObject *Archetype = GetArchetype();
+		CompCheck(this != Archetype);
+		Archetype->CheckDefaultSubobjects();
+		if (Archetype != Class->GetDefaultObject())
 		{
-			UObject *Archetype = GetArchetype();
-			CompCheck(this != Archetype);
-			Archetype->CheckDefaultSubobjects();
-			if (Archetype != Class->GetDefaultObject())
-			{
-				Class->GetDefaultObject()->CheckDefaultSubobjects();
-			}
+			Class->GetDefaultObject()->CheckDefaultSubobjects();
 		}
+	}
 #endif
 
-		if (HasAnyFlags(RF_ClassDefaultObject))
-		{
-			CompCheck(GetFName() == Class->GetDefaultObjectName());
-		}
-
-
-		TArray<UObject *> AllCollectedComponents;
-		CollectDefaultSubobjects(AllCollectedComponents, true);
-		TArray<UObject *> DirectCollectedComponents;
-		CollectDefaultSubobjects(DirectCollectedComponents, false);
-		
-		AllCollectedComponents.Sort();
-		DirectCollectedComponents.Sort();
-
-		CompCheck(ALLOW_SUB_SUB_OBJECTS || AllCollectedComponents == DirectCollectedComponents); // just say no to subobjects of subobjects
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		CompCheck(GetFName() == Class->GetDefaultObjectName());
 	}
+
+
+	TArray<UObject *> AllCollectedComponents;
+	CollectDefaultSubobjects(AllCollectedComponents, true);
+	TArray<UObject *> DirectCollectedComponents;
+	CollectDefaultSubobjects(DirectCollectedComponents, false);
+		
+	AllCollectedComponents.Sort();
+	DirectCollectedComponents.Sort();
+
+	CompCheck(ALLOW_SUB_SUB_OBJECTS || AllCollectedComponents == DirectCollectedComponents); // just say no to subobjects of subobjects
+
 	return Result;
 }
 

@@ -104,13 +104,12 @@ FString FActorTickFunction::DiagnosticMessage()
 	return Target->GetFullName() + TEXT("[TickActor]");
 }
 
-bool AActor::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+bool AActor::CheckDefaultSubobjectsInternal()
 {
-	bool Result = true;
-	if (CanCheckDefaultSubObjects(bForceCheck, Result))
+	bool Result = Super::CheckDefaultSubobjectsInternal();
+	if (Result)
 	{
-		Result = Super::CheckDefaultSubobjects(bForceCheck);
-		Result = Result && CheckActorComponents();
+		Result = CheckActorComponents();
 	}
 	return Result;
 }
