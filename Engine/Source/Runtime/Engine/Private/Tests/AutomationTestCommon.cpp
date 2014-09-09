@@ -4,6 +4,7 @@
 #include "Matinee/MatineeActor.h"
 #include "AutomationTestCommon.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationLatentCommand, Log, All);
 
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...
@@ -34,6 +35,8 @@ bool FWaitForMatineeToCompleteLatentCommand::Update()
 
 bool FExecStringLatentCommand::Update()
 {
+	UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("Executing the console command: '%s'"), *ExecCommand);
+
 	if (GEngine->GameViewport)
 	{
 		GEngine->GameViewport->Exec( NULL, *ExecCommand, *GLog);
