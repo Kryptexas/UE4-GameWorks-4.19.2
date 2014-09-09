@@ -387,7 +387,7 @@ public:
 	FBodyInstance BodyInstance;
 
 	/** can this component potentially influence navigation */
-	UPROPERTY(EditDefaultsOnly, Category=Collision, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category=Collision, AdvancedDisplay)
 	uint32 bCanEverAffectNavigation:1;
 
 	/** cached navigation relevancy flag for collision updates */
