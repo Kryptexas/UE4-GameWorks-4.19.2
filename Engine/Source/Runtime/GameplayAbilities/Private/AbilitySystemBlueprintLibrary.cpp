@@ -22,7 +22,7 @@ UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemCompone
 
 void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
 {
-	if (Target.Data.IsValid())
+	if (Target.Data.IsValid() && GameplayEffect != NULL)
 	{
 		Target.Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);
 	}
