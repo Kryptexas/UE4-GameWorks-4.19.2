@@ -43,6 +43,7 @@ public:
 	virtual FModuleCompilerStartedEvent& OnModuleCompilerStarted() override { return ModuleCompilerStartedEvent; }
 	virtual FModuleCompilerFinishedEvent& OnModuleCompilerFinished() override { return ModuleCompilerFinishedEvent; }
 	virtual FString GetModuleCompileMethod(FName InModuleName) override;
+	virtual bool IsAnyGameModuleLoaded() const override;
 
 private:
 	/**
@@ -1090,8 +1091,19 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 		ExtraArg += TEXT( "-FailIfGeneratedCodeChanges " );
 	}
 
+	// If the're no game modules loaded, then it's not a code-based project and the target
+	// for UBT should be the editor.
+	FString TargetName;
+	if (IsAnyGameModuleLoaded())
+	{
+		TargetName = GameName;
+	}
+	else
+	{
+		TargetName = TEXT("UE4Editor");
+	}
 	FString CmdLineParams = FString::Printf( TEXT( "%s%s %s %s %s%s" ), 
-		*GameName, *ModuleArg, 
+		*TargetName, *ModuleArg, 
 		BuildPlatformName, BuildConfigurationName, 
 		*ExtraArg, *InAdditionalCmdLineArgs );
 
@@ -1421,6 +1433,27 @@ bool FHotReloadModule::GetModuleFileTimeStamp(FName ModuleName, FDateTime& OutFi
 		OutFileTimeStamp = FDateTime(IFileManager::Get().GetTimeStamp(*Filename));
 		return true;
 	}
+	return false;
+}
+
+bool FHotReloadModule::IsAnyGameModuleLoaded() const
+{
+	// Ask the module manager for a list of currently-loaded gameplay modules
+	TArray< FModuleStatus > ModuleStatuses;
+	FModuleManager::Get().QueryModules(ModuleStatuses);
+
+	for (auto ModuleStatusIt = ModuleStatuses.CreateConstIterator(); ModuleStatusIt; ++ModuleStatusIt)
+	{
+		const FModuleStatus& ModuleStatus = *ModuleStatusIt;
+
+		// We only care about game modules that are currently loaded
+		if (ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule)
+		{
+			// There is at least one loaded game module.
+			return true;
+		}
+	}
+
 	return false;
 }
 

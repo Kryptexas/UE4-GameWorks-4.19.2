@@ -97,5 +97,10 @@ public:
 	 */
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FModuleCompilerFinishedEvent, const FString&, ECompilationResult::Type, bool);
 	virtual FModuleCompilerFinishedEvent& OnModuleCompilerFinished() = 0;
+
+	/**
+	 * Checks if there's any game modules currently loaded
+	 */
+	virtual bool IsAnyGameModuleLoaded() const = 0;
 };
 
