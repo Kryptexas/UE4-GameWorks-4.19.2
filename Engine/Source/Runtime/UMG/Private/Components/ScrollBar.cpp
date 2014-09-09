@@ -59,7 +59,7 @@ const FSlateBrush* UScrollBar::GetEditorIcon()
 
 const FText UScrollBar::GetToolboxCategory()
 {
-	return LOCTEXT("Advanced", "Advanced");
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

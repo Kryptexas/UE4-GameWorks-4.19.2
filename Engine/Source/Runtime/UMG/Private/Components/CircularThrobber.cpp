@@ -103,7 +103,7 @@ const FSlateBrush* UCircularThrobber::GetEditorIcon()
 
 const FText UCircularThrobber::GetToolboxCategory()
 {
-	return LOCTEXT("Misc", "Misc");
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

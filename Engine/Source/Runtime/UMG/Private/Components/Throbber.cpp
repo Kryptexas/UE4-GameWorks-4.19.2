@@ -114,7 +114,7 @@ const FSlateBrush* UThrobber::GetEditorIcon()
 
 const FText UThrobber::GetToolboxCategory()
 {
-	return LOCTEXT("Misc", "Misc");
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

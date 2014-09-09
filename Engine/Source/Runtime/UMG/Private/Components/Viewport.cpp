@@ -628,7 +628,7 @@ const FSlateBrush* UViewport::GetEditorIcon()
 
 const FText UViewport::GetToolboxCategory()
 {
-	return LOCTEXT("Advanced", "Advanced");
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

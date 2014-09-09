@@ -54,7 +54,7 @@ const FSlateBrush* UNativeWidgetHost::GetEditorIcon()
 
 const FText UNativeWidgetHost::GetToolboxCategory()
 {
-	return LOCTEXT("Advanced", "Advanced");
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif
