@@ -773,7 +773,7 @@ public:
 	/** Deactivate the system */
 	void DeactivateSystem();
 	// Collision Handling...
-	virtual bool ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams & ObjectParams);
+	virtual bool ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent);
 
 	/** return true if this psys can tick in any thread */
 	FORCEINLINE bool CanTickInAnyThread()

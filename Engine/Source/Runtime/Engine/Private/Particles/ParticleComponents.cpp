@@ -3035,22 +3035,21 @@ SIZE_T UParticleSystemComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 }
 
 
-bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams & ObjectParams)
+bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent)
 {
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	check(GetWorld());
 	static FName NAME_ParticleCollision = FName(TEXT("ParticleCollision"));
-
 	if ( HalfExtent.IsZero() )
 	{
-		return GetWorld()->LineTraceSingle(Hit, Start, End, FCollisionQueryParams(NAME_ParticleCollision, true, SourceActor), ObjectParams);
+		return GetWorld()->LineTraceSingle(Hit, Start, End, FCollisionQueryParams(NAME_ParticleCollision, true, SourceActor), FCollisionObjectQueryParams(ECC_WorldStatic));
 	}
 	else
 	{
 		FCollisionQueryParams BoxParams(false);
 		BoxParams.TraceTag = NAME_ParticleCollision;
 		BoxParams.AddIgnoredActor(SourceActor);
-		return GetWorld()->SweepSingle(Hit, Start, End, FQuat::Identity, FCollisionShape::MakeBox(HalfExtent), BoxParams, ObjectParams);
+		return GetWorld()->SweepSingle(Hit, Start, End, FQuat::Identity, FCollisionShape::MakeBox(HalfExtent), BoxParams, FCollisionObjectQueryParams(ECC_WorldStatic));
 	}
 }
 
