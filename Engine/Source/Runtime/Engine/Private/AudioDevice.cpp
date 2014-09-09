@@ -2139,17 +2139,17 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 {
 	// Stop all audio components attached to the scene
 	bool bFoundIgnoredComponent = false;
-	for( int32 Index = ActiveSounds.Num() - 1; Index >= 0; Index-- )
+	for( int32 Index = ActiveSounds.Num() - 1; Index >= 0; --Index )
 	{
 		FActiveSound* ActiveSound = ActiveSounds[Index];
 		// if we are in the editor we want to always flush the ActiveSounds
-		if( ActiveSound->bIgnoreForFlushing && !GIsEditor )
+		if( ActiveSound->bIgnoreForFlushing )
 		{
 			bFoundIgnoredComponent = true;
 		}
 		else
 		{
-			if( WorldToFlush == NULL || ActiveSound->World == NULL || ActiveSound->World == WorldToFlush )
+			if( WorldToFlush == nullptr || ActiveSound->World == nullptr || ActiveSound->World == WorldToFlush )
 			{
 				ActiveSound->Stop(this);
 			}
@@ -2164,10 +2164,10 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 	if (bClearActivatedReverb)
 	{
 		ActivatedReverbs.Empty();
-		HighestPriorityReverb = NULL;
+		HighestPriorityReverb = nullptr;
 	}
 
-	if( WorldToFlush == NULL )
+	if( WorldToFlush == nullptr )
 	{
 		// Make sure sounds are fully stopped.
 		if( bFoundIgnoredComponent )

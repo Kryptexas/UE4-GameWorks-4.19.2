@@ -8401,7 +8401,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Stop all audio to remove references to current level.
 	if( GEngine && GEngine->GetAudioDevice() )
 	{
-		GEngine->GetAudioDevice()->Flush( NULL );
+		GEngine->GetAudioDevice()->Flush( WorldContext.World() );
 		// reset transient volume
 		GEngine->GetAudioDevice()->TransientMasterVolume = 1.0;
 	}

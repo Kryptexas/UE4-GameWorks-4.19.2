@@ -1647,7 +1647,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	// Stop all audio and remove references 
 	if ( GetAudioDevice() )
 	{
-		GetAudioDevice()->Flush(NULL);
+		GetAudioDevice()->Flush(ContextWorld);
 	}
 
 	// Reset the editor transform to avoid loading the new world with an offset if loading a sublevel

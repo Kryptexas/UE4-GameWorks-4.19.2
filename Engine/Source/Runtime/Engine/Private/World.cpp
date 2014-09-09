@@ -4429,7 +4429,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Stop all audio to remove references to old world
 			if (GEngine != NULL && GEngine->GetAudioDevice() != NULL)
 			{
-				GEngine->GetAudioDevice()->Flush(NULL);
+				GEngine->GetAudioDevice()->Flush(CurrentWorld);
 			}
 
 			// Copy the standby cheat status
