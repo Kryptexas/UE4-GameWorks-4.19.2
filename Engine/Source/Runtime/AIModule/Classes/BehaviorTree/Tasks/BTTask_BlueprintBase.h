@@ -75,11 +75,11 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void FinishAbort();
 
-	/** task execution will be finished (with result \'Success\') after receiving specified message */
+	/** task execution will be finished (with result 'Success') after receiving specified message */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void SetFinishOnMessage(FName MessageName);
 
-	/** task execution will be finished (with result \'Success\') after receiving specified message with indicated ID */
+	/** task execution will be finished (with result 'Success') after receiving specified message with indicated ID */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void SetFinishOnMessageWithId(FName MessageName, int32 RequestID = -1);
 
