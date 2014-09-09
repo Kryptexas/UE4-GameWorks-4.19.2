@@ -51,26 +51,11 @@ struct FEventReply
 {
 	GENERATED_USTRUCT_BODY()
 
+public:
+
 	FEventReply(bool IsHandled = false)
 	: NativeReply(IsHandled ? FReply::Handled() : FReply::Unhandled())
 	{
-	}
-
-	FReply ToReply(TSharedRef<SWidget> Widget) const
-	{
-		//FReply Reply = FReply::Unhandled();
-
-		//if ( bIsHandled )
-		//{
-		//	Reply = FReply::Handled();
-		//}
-
-		//if ( bCaptureMouse )
-		//{
-		//	Reply = Reply.CaptureMouse(Widget);
-		//}
-
-		return NativeReply;
 	}
 
 	FReply NativeReply;
@@ -83,7 +68,7 @@ struct FSlateChildSize
 	GENERATED_USTRUCT_BODY()
 
 	/** The parameter of the size rule. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( ClampMin="0", ClampMax="1" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( UIMin="0", UIMax="1" ))
 	float Value;
 
 	/** The sizing rule of the content. */

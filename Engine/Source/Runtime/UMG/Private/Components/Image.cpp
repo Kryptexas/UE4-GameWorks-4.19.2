@@ -142,7 +142,7 @@ FReply UImage::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEv
 {
 	if ( OnMouseButtonDownEvent.IsBound() )
 	{
-		return OnMouseButtonDownEvent.Execute(Geometry, MouseEvent).ToReply(MyImage.ToSharedRef());
+		return OnMouseButtonDownEvent.Execute(Geometry, MouseEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();

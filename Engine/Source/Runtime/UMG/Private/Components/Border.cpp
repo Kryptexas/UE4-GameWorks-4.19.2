@@ -145,7 +145,7 @@ FReply UBorder::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerE
 {
 	if ( OnMouseButtonDownEvent.IsBound() )
 	{
-		return OnMouseButtonDownEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+		return OnMouseButtonDownEvent.Execute(Geometry, MouseEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
@@ -155,7 +155,7 @@ FReply UBorder::HandleMouseButtonUp(const FGeometry& Geometry, const FPointerEve
 {
 	if ( OnMouseButtonUpEvent.IsBound() )
 	{
-		return OnMouseButtonUpEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+		return OnMouseButtonUpEvent.Execute(Geometry, MouseEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
@@ -165,7 +165,7 @@ FReply UBorder::HandleMouseMove(const FGeometry& Geometry, const FPointerEvent& 
 {
 	if ( OnMouseMoveEvent.IsBound() )
 	{
-		return OnMouseMoveEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+		return OnMouseMoveEvent.Execute(Geometry, MouseEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
@@ -175,7 +175,7 @@ FReply UBorder::HandleMouseDoubleClick(const FGeometry& Geometry, const FPointer
 {
 	if ( OnMouseDoubleClickEvent.IsBound() )
 	{
-		return OnMouseDoubleClickEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+		return OnMouseDoubleClickEvent.Execute(Geometry, MouseEvent).NativeReply;
 	}
 
 	return FReply::Unhandled();
