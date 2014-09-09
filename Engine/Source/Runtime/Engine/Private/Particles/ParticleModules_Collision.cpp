@@ -51,6 +51,7 @@ UParticleModuleCollision::UParticleModuleCollision(const class FPostConstructIni
 	bCollideOnlyIfVisible = true;
 	MaxCollisionDistance = 1000.0f;
 	bIgnoreSourceActor = true;
+	CollisionTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
 }
 
 void UParticleModuleCollision::InitializeDefaults()
@@ -85,6 +86,8 @@ void UParticleModuleCollision::InitializeDefaults()
 		DistributionDelayAmount->Constant = 0.0f;
 		DelayAmount.Distribution = DistributionDelayAmount;
 	}
+
+	ObjectParams = FCollisionObjectQueryParams(CollisionTypes);
 }
 
 void UParticleModuleCollision::PostInitProperties()
@@ -566,7 +569,7 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 	FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& Extent)
 {
 	check(Owner && Owner->Component);
-	return Owner->Component->ParticleLineCheck(Hit, SourceActor, End, Start, Extent);
+	return Owner->Component->ParticleLineCheck(Hit, SourceActor, End, Start, Extent, ObjectParams);
 }
 
 /*------------------------------------------------------------------------------
