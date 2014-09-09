@@ -141,7 +141,13 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 	FGraphNodeMetaData TagMeta(TEXT("DetailRowItem"));
 	if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid() )
 	{
-		TagMeta.FriendlyName = Customization.GetPropertyNode()->GetDisplayName(); 
+		TagMeta.FriendlyName = Customization.GetPropertyNode()->GetDisplayName();
+	}
+	if (ParentCategory.IsValid())
+	{
+		FString Tag = FString::Printf(TEXT("%s_%s"), *TagMeta.FriendlyName, *ParentCategory.Pin()->GetCategoryPathName());
+		TagMeta.Tag = *Tag;
+		TagMeta.TabTypeToOpen = TEXT("LevelEditorSelectionDetails");
 	}
 	if( Customization.HasPropertyNode() && Customization.GetPropertyNode()->AsCategoryNode() )
 	{

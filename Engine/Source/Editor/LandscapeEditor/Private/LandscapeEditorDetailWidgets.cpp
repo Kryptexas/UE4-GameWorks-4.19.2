@@ -153,7 +153,7 @@ void SToolSelector::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FNa
 	// Create the content for our button
 	TSharedRef< SWidget > ButtonContent =
 		SNew( SVerticalBox )
-
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("LandscapeToolButton")))
 		// Icon image
 		+ SVerticalBox::Slot()
 		.AutoHeight()

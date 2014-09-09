@@ -46,6 +46,7 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 			.BorderBackgroundColor(BorderColor)
 			.BorderImage(BorderStyle)
 			.Padding(10)
+			.AddMetaData<FTagMetaData>(TEXT("DetailsView.SelectedSurfaces"))
 			[
 				SNew(STextBlock)
 				.Text(this, &SSurfaceProperties::GetSelectedSurfacesDescription)
@@ -60,6 +61,7 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 			.BorderBackgroundColor( BorderColor )
 			.BorderImage( BorderStyle )
 			.Padding(10)
+			.AddMetaData<FTagMetaData>(TEXT("DetailsView.TexturePan"))
 			[
 				ConstructTexturePan()
 			]
@@ -78,6 +80,7 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 				.BorderBackgroundColor( BorderColor )
 				.BorderImage( BorderStyle )
 				.Padding(10)
+				.AddMetaData<FTagMetaData>(TEXT("DetailsView.TextureRotate"))
 				[
 					ConstructTextureRotate()
 				]
@@ -89,6 +92,7 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 				.BorderBackgroundColor( BorderColor )
 				.BorderImage( BorderStyle )
 				.Padding(10)
+				.AddMetaData<FTagMetaData>(TEXT("DetailsView.TextureFlip"))
 				[
 					ConstructTextureFlip()
 				]
@@ -103,6 +107,7 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 			.BorderBackgroundColor( BorderColor )
 			.BorderImage( BorderStyle )
 			.Padding(10)
+			.AddMetaData<FTagMetaData>(TEXT("DetailsView.TextureScale"))
 			[
 				ConstructTextureScale()
 			]
@@ -116,6 +121,7 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 			.BorderBackgroundColor( BorderColor )
 			.BorderImage( BorderStyle )
 			.Padding(10)
+			.AddMetaData<FTagMetaData>(TEXT("DetailsView.ConstructLighting"))
 			[
 				ConstructLighting()
 			]
