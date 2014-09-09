@@ -668,7 +668,7 @@ public:
 		}
 
 		FString Result = Filename;
-		if (!Result.StartsWith(TEXT("/system/fonts")))
+		if (!Result.StartsWith(GFontPathBase))
 		{
 			Result.ReplaceInline(TEXT("../"), TEXT(""));
 			Result.ReplaceInline(TEXT(".."), TEXT(""));
