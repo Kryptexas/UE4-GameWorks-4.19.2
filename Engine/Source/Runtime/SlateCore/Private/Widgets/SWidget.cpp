@@ -246,12 +246,6 @@ void SWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 {
 }
 
-bool SWidget::OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition )
-{
-	return true;
-}
-
-
 void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	// Tick this widget
@@ -400,9 +394,7 @@ int32 SWidget::FindChildUnderMouse( const FArrangedChildren& Children, const FPo
 		const FArrangedWidget& Candidate = Children[ChildIndex];
 		const bool bCandidateUnderCursor = 
 			// Candidate is physically under the cursor
-			Candidate.Geometry.IsUnderLocation( AbsoluteCursorLocation ) && 
-			// Candidate actually considers itself hit by this test
-			(Candidate.Widget->OnHitTest( Candidate.Geometry, AbsoluteCursorLocation ));
+			Candidate.Geometry.IsUnderLocation( AbsoluteCursorLocation );
 
 		if (bCandidateUnderCursor)
 		{

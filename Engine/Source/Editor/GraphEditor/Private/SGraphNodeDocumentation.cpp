@@ -294,16 +294,6 @@ FReply SGraphNodeDocumentation::OnMouseWheel( const FGeometry& MyGeometry, const
 	return FReply::Unhandled();
 }
 
-bool SGraphNodeDocumentation::OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition )
-{
-	if( !bUserIsDragging )
-	{
-		const FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( InAbsoluteCursorPosition );
-		return FindMouseZone( LocalMouseCoordinates ) != CRWZ_NotInWindow;
-	}
-	return true;
-}
-
 EVisibility SGraphNodeDocumentation::GetWidgetVisibility() const
 {
 	return ChildWidgetVisibility;

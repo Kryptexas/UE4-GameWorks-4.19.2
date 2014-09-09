@@ -124,14 +124,11 @@ public:
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 
 	/**
-	 * Called when a widget is being hit tested and has passed the bounding box test to determine
-	 * if the precise widget geometry is under the cursor.
-	 *
-	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param InAbsoluteCursorPosition	The absolute cursor position
-	 * @return true if this widget considers itself hit by the passed in cursor position.
+	 * DEPRECATED: This function caused a lot of confusion, and we found that all known uses of it were unnecessary.
+	 * We will provide a less confusing API for supporting non-rectangular hittesting and pixel-perfect hit testing.
 	 */
-	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition );
+	DEPRECATED(4.5, "OnHitTest is no longer called. It will be replaced by more robust hit testing logic in the near future.")
+	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ){return false;}
 
 	//
 	// KEYBOARD INPUT

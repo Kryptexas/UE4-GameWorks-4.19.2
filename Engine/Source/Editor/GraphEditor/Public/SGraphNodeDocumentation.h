@@ -17,7 +17,6 @@ public:
 	// Begin SWidget Interface
 	void Construct( const FArguments& InArgs, UEdGraphNode* InNode );
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
-	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ) override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End SWidget Interface
 

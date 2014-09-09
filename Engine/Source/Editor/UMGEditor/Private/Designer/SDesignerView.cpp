@@ -60,9 +60,7 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 {
 	const bool bCandidateUnderCursor =
 		// Candidate is physically under the cursor
-		Candidate.Geometry.IsUnderLocation(InAbsoluteCursorLocation) &&
-		// Candidate actually considers itself hit by this test
-		( Candidate.Widget->OnHitTest(Candidate.Geometry, InAbsoluteCursorLocation) );
+		Candidate.Geometry.IsUnderLocation(InAbsoluteCursorLocation);
 
 	bool bHitAnyWidget = false;
 	if ( bCandidateUnderCursor )

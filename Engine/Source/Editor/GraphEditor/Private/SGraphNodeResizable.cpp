@@ -111,12 +111,6 @@ FReply SGraphNodeResizable::OnMouseButtonUp( const FGeometry& MyGeometry, const 
 	return FReply::Unhandled();
 }
 
-bool SGraphNodeResizable::OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition )
-{
-	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( InAbsoluteCursorPosition );
-	EResizableWindowZone InMouseZone = FindMouseZone(LocalMouseCoordinates);
-	return (InMouseZone != CRWZ_NotInWindow) && (InMouseZone != CRWZ_InWindow);
-}
 
 FReply SGraphNodeResizable::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
