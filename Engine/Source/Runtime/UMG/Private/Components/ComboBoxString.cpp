@@ -152,7 +152,7 @@ const FSlateBrush* UComboBoxString::GetEditorIcon()
 
 const FText UComboBoxString::GetToolboxCategory()
 {
-	return LOCTEXT("Misc", "Misc");
+	return LOCTEXT("Input", "Input");
 }
 
 #endif
