@@ -384,6 +384,8 @@ public:
 
 	virtual void ShowSystemHelp() {}
 
+	virtual bool ApplicationLicenseValid(FPlatformUserId PlatformUser = PLATFORMUSERID_NONE) { return true; }
+
 public:
 
 	const TSharedPtr< ICursor > Cursor;

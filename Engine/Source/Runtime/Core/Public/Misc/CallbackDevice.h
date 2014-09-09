@@ -37,6 +37,8 @@ struct FTestHotFixPayload
 	bool Result;
 };
 
+//forward declares
+class FUniqueNetIdString;
 
 class CORE_API FCoreDelegates
 {
@@ -94,6 +96,9 @@ public:
 	// Callback for handling safe frame area size changes
 	DECLARE_MULTICAST_DELEGATE(FOnSafeFrameChangedEvent);
 
+	// Callback for handling accepting invitations - generally for engine code
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FUniqueNetIdString&);
+
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.
 	// second param is UserID, third is UserIndex / ControllerId.
@@ -104,7 +109,7 @@ public:
 
 	// Callback when a user logs in/out of the platform.
 	static FOnUserLoginChangedEvent OnUserLoginChangedEvent;
-	
+
 	// Callback when controllers disconnected / reconnected
 	static FOnUserControllerConnectionChange OnControllerConnectionChange;
 
@@ -190,6 +195,9 @@ public:
 	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
 
+	/** Called when the user accepts an invitation to the current game */
+	static FOnInviteAccepted OnInviteAccepted;
+
 	/** called when loading a string asset reference */
 	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, FString const& /*LoadedAssetLongPathname*/);
 	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
@@ -251,6 +259,11 @@ public:
 	/** Sent when all stats need to be disabled */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FStatDisableAll, const bool);
 	static FStatDisableAll StatDisableAll;
+
+	// Called when an application is notified that the application license info has been updated.
+	// The new license data should be polled and steps taken based on the results (i.e. halt application if license is no longer valid).
+	DECLARE_MULTICAST_DELEGATE(FApplicationLicenseChange);
+	static FApplicationLicenseChange ApplicationLicenseChange;
 
 private:
 	// Callbacks for hotfixes

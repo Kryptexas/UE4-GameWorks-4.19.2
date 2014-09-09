@@ -42,6 +42,9 @@ public:
 
 	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const override;
 
+	virtual void DisplayAccountUpgradeDialog(const FUniqueNetId& UniqueId) override {};
+	virtual void SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP) override {};
+
 	// FOnlineSubsystemImpl
 
 	/**

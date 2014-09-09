@@ -402,7 +402,7 @@ bool FOnlineSessionIOS::PingSearchResults(const FOnlineSessionSearchResult& Sear
 
 bool FOnlineSessionIOS::JoinSession(int32 PlayerNum, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
-	bool bSuccessfullyJointSession = false;
+	EOnJoinSessionCompleteResult::Type JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionIOS::JoinSession"));
 
 	FGameCenterSessionDelegate* SessionDelegate = *GKSessions.Find( SessionName );
@@ -411,12 +411,12 @@ bool FOnlineSessionIOS::JoinSession(int32 PlayerNum, FName SessionName, const FO
 		NSString* PeerID = [[SessionDelegate Session] peerID];
 		[SessionDelegate connectToPeer:PeerID];
 
-		bSuccessfullyJointSession = true;
+		JoinSessionResult = EOnJoinSessionCompleteResult::Success;
 	}
 
-	TriggerOnJoinSessionCompleteDelegates(SessionName, bSuccessfullyJointSession);
+	TriggerOnJoinSessionCompleteDelegates(SessionName, JoinSessionResult);
 
-	return bSuccessfullyJointSession;
+	return JoinSessionResult == EOnJoinSessionCompleteResult::Success;
 }
 
 
@@ -578,4 +578,14 @@ int32 FOnlineSessionIOS::GetNumSessions()
 void FOnlineSessionIOS::DumpSessionState()
 {
 
+}
+
+void FOnlineSessionIOS::RegisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnRegisterLocalPlayerCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(PlayerId, EOnJoinSessionCompleteResult::Success);
+}
+
+void FOnlineSessionIOS::UnregisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnUnregisterLocalPlayerCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(PlayerId, true);
 }

@@ -7,6 +7,8 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 
+#include "Engine/GameInstance.h"
+
 #define INVALID_CONTROLLERID 255
 
 UOnlineSessionClient::UOnlineSessionClient(const class FPostConstructInitializeProperties& PCIP)
@@ -227,12 +229,12 @@ void UOnlineSessionClient::DestroyExistingSession(FName SessionName, FOnDestroyS
  * @param SessionName the name of the session this callback is for
  * @param bWasSuccessful true if the async action completed without error, false if there was an error
  */
-void UOnlineSessionClient::OnJoinSessionComplete(FName SessionName, bool bWasSuccessful)
+void UOnlineSessionClient::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
-	UE_LOG(LogOnline, Verbose, TEXT("OnJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
+	UE_LOG(LogOnline, Verbose, TEXT("OnJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), static_cast<int32>(Result));
 	SessionInt->ClearOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
 
-	if (bWasSuccessful)
+	if (Result == EOnJoinSessionCompleteResult::Success)
 	{
 		FString URL;
 		if (SessionInt->GetResolvedConnectString(SessionName, URL))
@@ -273,8 +275,10 @@ void UOnlineSessionClient::JoinSession(int32 LocalUserNum, FName SessionName, co
 	}
 	else
 	{
-		SessionInt->AddOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
-		SessionInt->JoinSession(LocalUserNum, SessionName, SearchResult);
+		UGameInstance * const GameInstance = GetPlayerController()->GetGameInstance();
+		GameInstance->JoinSession(static_cast<ULocalPlayer*>(GetPlayerController()->Player), SearchResult);
+		/*SessionInt->AddOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
+		SessionInt->JoinSession(LocalUserNum, SessionName, SearchResult);*/
 	}
 }
 

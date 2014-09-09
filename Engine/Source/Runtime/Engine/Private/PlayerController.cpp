@@ -1590,7 +1590,7 @@ void APlayerController::ClientReturnToMainMenu_Implementation(const FString& Ret
 bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 {
 	bool bResult = false;
-	if (GetNetMode() != NM_Client)
+	if (GetNetMode() == NM_Standalone)
 	{
 		AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
 		if (bPause)

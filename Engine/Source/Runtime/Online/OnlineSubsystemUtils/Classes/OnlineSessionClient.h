@@ -106,7 +106,7 @@ protected:
 	 * @param SessionName the name of the session this callback is for
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
 	 */
-	void OnJoinSessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 	/**
 	 * Join a session of a given name after potentially tearing down an existing one

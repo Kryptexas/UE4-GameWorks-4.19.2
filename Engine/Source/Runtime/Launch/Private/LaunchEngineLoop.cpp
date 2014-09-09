@@ -1274,7 +1274,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// If Slate is being used, initialize the renderer after RHIInit 
 		FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
 		CurrentSlateApp.InitializeRenderer( SlateRenderer );
-		
+
 		GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
 	}
 #endif
@@ -1306,7 +1306,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
         // do any post appInit processing, before the render thread is started.
         FPlatformMisc::PlatformPostInit(true);
     }
-
 	if (GUseThreadedRendering)
 	{
 #if PLATFORM_SUPPORTS_RHI_THREAD
@@ -2242,6 +2241,9 @@ void FEngineLoop::OnResuming(_In_ Platform::Object^ Sender, _In_ Platform::Objec
 {
 	// Make the call down to the RHI to Resume the GPU state
 	RHIResumeRendering();
+
+	// Notify application of resume
+	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Broadcast();
 }
 
 void FEngineLoop::OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::ApplicationModel::SuspendingEventArgs^ Args)
@@ -2249,7 +2251,8 @@ void FEngineLoop::OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::Appl
 	// Get the Suspending Event
 	Windows::ApplicationModel::SuspendingDeferral^ SuspendingEvent = Args->SuspendingOperation->GetDeferral();
 	
-	// @TODO ASync Call to Save the Game - This will run in Parallel to the Flush
+	// Notify application of suspend. Application should kick off an async save at this point.
+	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Broadcast();
 
 	// Flush the RenderingThread
 	FlushRenderingCommands();
@@ -2257,6 +2260,7 @@ void FEngineLoop::OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::Appl
 	// Make the call down to the RHI to Suspend the GPU state
 	RHISuspendRendering();
 
+	// @TODO Wait for async save to complete
 	// Flush the log so it's all written to disk
 	GLog->FlushThreadedLogs();
 	GLog->Flush();

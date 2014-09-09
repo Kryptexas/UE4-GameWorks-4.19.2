@@ -154,7 +154,9 @@ namespace UnrealBuildTool
 				AllUnityFiles = CPPUnityFileBuilder.GetUnityFiles();
 			}
 
-			string PCHHeaderNameInCode = CPPFiles[0].PCHHeaderNameInCode;
+			//THIS CHANGE WAS MADE TO FIX THE BUILD IN OUR BRANCH
+			//DO NOT MERGE THIS BACK TO MAIN
+			string PCHHeaderNameInCode = CPPFiles.Count > 0 ? CPPFiles[0].PCHHeaderNameInCode : "";
 			if( CompileEnvironment.Config.PrecompiledHeaderIncludeFilename != null )
 			{
 				PCHHeaderNameInCode = ToolChain.ConvertPath( CompileEnvironment.Config.PrecompiledHeaderIncludeFilename );

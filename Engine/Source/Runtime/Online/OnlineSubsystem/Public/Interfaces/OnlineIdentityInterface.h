@@ -45,6 +45,17 @@ public:
 	}
 };
 
+namespace EUserPrivileges
+{
+	enum Type
+	{
+		CanPlay, // This one can be used for age restrictions on PS4
+		CanPlayOnline,
+		CanCommunicateOnline, // For voice AND text chat
+		CanUseUserGeneratedContent
+	};
+}
+
 /**
  * Delegate called when a player logs in/out
  *
@@ -61,7 +72,7 @@ typedef FOnLoginChanged::FDelegate FOnLoginChangedDelegate;
  * @param NewStatus the new login status for the user
  * @param NewId the new id to associate with the user
  */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnLoginStatusChanged, int32, ELoginStatus::Type, const FUniqueNetId&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginStatusChanged, int32, ELoginStatus::Type, ELoginStatus::Type, const FUniqueNetId&);
 typedef FOnLoginStatusChanged::FDelegate FOnLoginStatusChangedDelegate;
 
 /**
@@ -102,9 +113,23 @@ class IOnlineIdentity
 {
 
 protected:
-	IOnlineIdentity() {};
+	IOnlineIdentity() {};	
 
 public:
+
+	enum class EPrivilegeResults
+	{
+		NoFailures				=	0,
+		RequiredPatchAvailable	=	1 << 0,
+		RequiredSystemUpdate	=	1 << 1,
+		AgeRestrictionFailure	=	1 << 2, // parental control failure usually
+		AccountTypeFailure		=	1 << 3, // XboxLive Gold / PSPlus required but not available
+		UserNotFound			=	1 << 4, // Invalid user.
+		ChatRestriction			=	1 << 5, // User restricted from chat
+		UGCRestriction			=	1 << 6, // User restricted from User Generated Content
+		GenericFailure			=	1 << 7, // Platform failed for unknown reason and handles its own dialogs
+	};
+
 	virtual ~IOnlineIdentity() {};
 
 	/**
@@ -121,7 +146,7 @@ public:
 	 * @param NewStatus the new login status for the user
 	 * @param NewId the new id to associate with the user
 	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnLoginStatusChanged, ELoginStatus::Type, const FUniqueNetId&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnLoginStatusChanged, ELoginStatus::Type /*Previous*/, ELoginStatus::Type /*Current*/, const FUniqueNetId&);
 
 	/**
 	 * Delegate called when a controller-user pairing changes
@@ -285,6 +310,32 @@ public:
 	 */
 	//@todo - remove and use GetUserAccount instead
 	virtual FString GetAuthToken(int32 LocalUserNum) const = 0;
+
+	/**
+	 * Delegate executed when we get a user privilege result.
+	 *
+	 * @param UniqueId The unique id of the user who was queried
+	 * @param Privilege the privilege that was queried
+	 * @param PrivilegeResult bitwise OR of any privilege failures. 0 is success.
+	 */
+	DECLARE_DELEGATE_ThreeParams(FOnGetUserPrivilegeCompleteDelegate, const FUniqueNetId&, EUserPrivileges::Type, uint32);
+
+	/**
+	 * Gets the status of a user's privilege.
+	 *
+	 * @param UserId the unique id of the user to query
+	 * @param Privilege the privilege you want to know about
+	 * @param Delegate delegate to execute when the async task completes
+	 */
+	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) = 0;
+
+	/**
+	 * Temporary hack to get a corresponding FUniqueNetId from a PlatformUserId
+	 *
+	 * @param UniqueNetId The unique id to look up
+	 * @return The corresponding id or PLATFORMID_NONE if not found
+	 */
+	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) = 0;
 };
 
 typedef TSharedPtr<IOnlineIdentity, ESPMode::ThreadSafe> IOnlineIdentityPtr;

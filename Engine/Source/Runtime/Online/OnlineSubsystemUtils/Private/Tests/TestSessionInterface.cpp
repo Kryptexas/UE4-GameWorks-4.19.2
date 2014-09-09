@@ -285,12 +285,12 @@ void FTestSessionInterface::OnUpdateSessionComplete(FName SessionName, bool bWas
 	SessionInt->ClearOnUpdateSessionCompleteDelegate(OnUpdateSessionCompleteDelegate);
 }
 
-void FTestSessionInterface::OnJoinSessionComplete(FName SessionName, bool bWasSuccessful)
+void FTestSessionInterface::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
-	UE_LOG(LogOnline, Verbose, TEXT("OnJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
+	UE_LOG(LogOnline, Verbose, TEXT("OnJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), static_cast<int32>(Result));
 	SessionInt->ClearOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
 
-	if (bWasSuccessful)
+	if (Result == EOnJoinSessionCompleteResult::Success)
 	{
 		FString URL;
 		if (World && SessionInt->GetResolvedConnectString(SessionName, URL))

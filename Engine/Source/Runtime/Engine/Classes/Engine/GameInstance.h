@@ -25,6 +25,8 @@ namespace GameInstanceState
 	extern ENGINE_API const FName Playing;			// We are playing the game
 }
 
+class FOnlineSessionSearchResult;
+
 
 UCLASS(config=Game, transient, BlueprintType, Blueprintable)
 class ENGINE_API UGameInstance : public UObject, public FExec
@@ -69,6 +71,8 @@ public:
 
 	/** Starts the GameInstance state machine running */
 	virtual void StartGameInstance();
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults) { return false; }
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult & SearchResult) { return false; }
 
 	/** Local player access */
 

@@ -606,7 +606,7 @@ bool FOnlineSessionNull::JoinSession(int32 PlayerNum, FName SessionName, const F
 	if (Return != ERROR_IO_PENDING)
 	{
 		// Just trigger the delegate as having failed
-		TriggerOnJoinSessionCompleteDelegates(SessionName, Return == ERROR_SUCCESS ? true : false);
+		TriggerOnJoinSessionCompleteDelegates(SessionName, Return == ERROR_SUCCESS ? EOnJoinSessionCompleteResult::Success : EOnJoinSessionCompleteResult::UnknownError);
 	}
 
 	return Return == ERROR_SUCCESS || Return == ERROR_IO_PENDING;
@@ -1199,4 +1199,14 @@ void FOnlineSessionNull::DumpSessionState()
 	{
 		DumpNamedSession(&Sessions[SessionIdx]);
 	}
+}
+
+void FOnlineSessionNull::RegisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnRegisterLocalPlayerCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(PlayerId, EOnJoinSessionCompleteResult::Success);
+}
+
+void FOnlineSessionNull::UnregisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnUnregisterLocalPlayerCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(PlayerId, true);
 }

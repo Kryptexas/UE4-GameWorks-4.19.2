@@ -13,7 +13,7 @@
  * OnlineSubsystemGooglePlay - Implementation of the online subsystem for Google Play services
  */
 class ONLINESUBSYSTEMGOOGLEPLAY_API FOnlineSubsystemGooglePlay : 
-	public IOnlineSubsystem,
+	public FOnlineSubsystemImpl,
 	public FTickerObjectBase
 {
 public:

@@ -77,6 +77,7 @@ void APlayerState::OverrideWith(APlayerState* PlayerState)
 {
 	bIsSpectator = PlayerState->bIsSpectator;
 	bOnlySpectator = PlayerState->bOnlySpectator;
+	PlayerName = PlayerState->PlayerName;
 	SetUniqueId(PlayerState->UniqueId.GetUniqueNetId());
 }
 

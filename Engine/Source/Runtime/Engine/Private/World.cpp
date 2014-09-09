@@ -4519,6 +4519,11 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 			}
 
+			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystem::GameMode);
+
+			// Note that AI system will be created only if ai-system-creation conditions are met
+			LoadedWorld->CreateAISystem();
+
 			// call initialize functions on everything that wasn't carried over from the old world
 			LoadedWorld->InitializeActorsForPlay(PendingTravelURL, false);
 
@@ -4565,11 +4570,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)
 				{
-					UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystem::GameMode);
-
-					// Note that AI system will be created only if ai-system-creation conditions are met
-					LoadedWorld->CreateAISystem();
-
 					// inform the new GameMode so it can handle players that persisted
 					GameMode->PostSeamlessTravel();					
 				}

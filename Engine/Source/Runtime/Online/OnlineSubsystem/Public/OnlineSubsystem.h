@@ -317,6 +317,17 @@ public:
 	 */
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) = 0;
 
+
+	/**
+	 * Displays a system dialog to purchase user account upgrades.  e.g. PlaystationPlus, XboxLive GOLD, etc.
+	 */
+	virtual void DisplayAccountUpgradeDialog(const FUniqueNetId& UniqueId) = 0;
+
+	/**
+	 * Some platforms must know when the game is using Multiplayer features so they can do recurring authorization checks.
+	 */
+	virtual void SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP) = 0;
+
 	/**
 	 * Called when the connection state as reported by the online platform changes
 	 *

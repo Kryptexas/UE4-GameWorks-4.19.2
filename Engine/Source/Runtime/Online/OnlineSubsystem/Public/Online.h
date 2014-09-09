@@ -18,6 +18,7 @@
 #include "OnlineUserCloudInterface.h"
 #include "OnlineUserInterface.h"
 #include "OnlinePartyInterface.h"
+#include "OnlineFriendsInterface.h" //Needed for online friend functionality
 
 /** Macro to handle the boilerplate of accessing the proper online subsystem and getting the requested interface */
 #define IMPLEMENT_GET_INTERFACE(InterfaceType) \

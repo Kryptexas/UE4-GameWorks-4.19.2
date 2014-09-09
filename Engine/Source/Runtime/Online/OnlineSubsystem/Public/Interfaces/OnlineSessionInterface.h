@@ -90,13 +90,27 @@ typedef FOnFindSessionsComplete::FDelegate FOnFindSessionsCompleteDelegate;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCancelFindSessionsComplete, bool);
 typedef FOnCancelFindSessionsComplete::FDelegate FOnCancelFindSessionsCompleteDelegate;
 
+
+
+namespace EOnJoinSessionCompleteResult
+{
+	enum Type
+	{
+		Success,
+		RoomIsFull,
+		RoomDoesNotExist,
+		CouldNotRetrieveAddress,
+		AlreadyInSession,
+		UnknownError
+	};
+}
 /**
  * Delegate fired when the joining process for an online session has completed
  *
  * @param SessionName the name of the session this callback is for
  * @param bWasSuccessful true if the async action completed without error, false if there was an error
  */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnJoinSessionComplete, FName, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnJoinSessionComplete, FName, EOnJoinSessionCompleteResult::Type);
 typedef FOnJoinSessionComplete::FDelegate FOnJoinSessionCompleteDelegate;
 
 /**
@@ -131,6 +145,19 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionInviteAccepted, int32, bool, co
 typedef FOnSessionInviteAccepted::FDelegate FOnSessionInviteAcceptedDelegate;
 
 /**
+	* Called when a user accepts a session invitation. Allows the game code a chance
+	* to clean up any existing state before accepting the invite. The invite must be
+	* accepted by calling JoinSession() after clean up has completed
+	*
+	* @param bWasSuccessful true if the async action completed without error, false if there was an error
+	* @param ControllerId the controller number of the accepting user
+	* @param UserId the user being invited
+	* @param InviteResult the search/settings for the session we're joining via invite
+	*/
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnSessionUserInviteAccepted, const bool, const int32, TSharedPtr< FUniqueNetId >, const FOnlineSessionSearchResult&);
+typedef FOnSessionUserInviteAccepted::FDelegate FOnSessionUserInviteAcceptedDelegate;
+
+/**
  * Delegate fired when the session registration process has completed
  *
  * @param SessionName the name of the session the player joined or not
@@ -149,6 +176,16 @@ typedef FOnRegisterPlayersComplete::FDelegate FOnRegisterPlayersCompleteDelegate
  */
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUnregisterPlayersComplete, FName, const TArray< TSharedRef<class FUniqueNetId> >&, bool);
 typedef FOnUnregisterPlayersComplete::FDelegate FOnUnregisterPlayersCompleteDelegate;
+
+/**
+ * Delegate fired when local player registration has completed
+ */
+DECLARE_DELEGATE_TwoParams(FOnRegisterLocalPlayerCompleteDelegate, const FUniqueNetId&, EOnJoinSessionCompleteResult::Type);
+
+/**
+ * Delegate fired when local player unregistration has completed
+ */
+DECLARE_DELEGATE_TwoParams(FOnUnregisterLocalPlayerCompleteDelegate, const FUniqueNetId&, const bool);	
 
 /**
  * Interface definition for the online services session services 
@@ -473,7 +510,7 @@ public:
 	 * @param SessionName the name of the session this callback is for
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
 	 */
-	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnJoinSessionComplete, FName, bool);
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnJoinSessionComplete, FName, EOnJoinSessionCompleteResult::Type);
 
 	/**
 	 * Allows the local player to follow a friend into a session
@@ -559,6 +596,18 @@ public:
 	 * @param InviteResult the search/settings for the session we're joining via invite
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSessionInviteAccepted, bool, const FOnlineSessionSearchResult&);
+
+	/**
+	 * Called when a user accepts a session invitation. Allows the game code a chance
+	 * to clean up any existing state before accepting the invite. The invite must be
+	 * accepted by calling JoinSession() after clean up has completed
+	 *
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param ControllerId the controller number of the accepting user
+	 * @param UserId the user being invited
+	 * @param InviteResult the search/settings for the session we're joining via invite
+	 */
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnSessionUserInviteAccepted, const bool, const int32, TSharedPtr< FUniqueNetId >, const FOnlineSessionSearchResult&);
 
 	/**
 	 * Returns the platform specific connection information for joining the match.
@@ -650,6 +699,24 @@ public:
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
 	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnUnregisterPlayersComplete, FName, const TArray< TSharedRef<class FUniqueNetId> >&, bool);
+
+	/**
+	 * Registers a local player with a session.
+	 *
+	 * @param PlayerId the player to register
+	 * @param SessionName the session in which to register the player
+	 * @param Delegate the delegate executed when the asynchronous operation completes
+	 */
+	virtual void RegisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnRegisterLocalPlayerCompleteDelegate& Delegate) = 0;
+
+	/**
+	 * Unregisters a local player with a session.
+	 *
+	 * @param PlayerId the player to unregister
+	 * @param SessionName the session in which to unregister the player
+	 * @param Delegate the delegate executed when the asynchronous operation completes
+	 */
+	virtual void UnregisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnUnregisterLocalPlayerCompleteDelegate& Delegate) = 0;
 
 	/**
 	 * Gets the number of known sessions registered with the interface

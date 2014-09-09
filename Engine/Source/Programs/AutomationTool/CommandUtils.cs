@@ -1310,7 +1310,7 @@ namespace AutomationTool
 			}
 			foreach (var SourceSubDirectory in Directory.GetDirectories(Source))
 			{
-				string DestPath = Dest + PathSeparator.Default.ToString() + GetDirectoryName(SourceSubDirectory);
+				string DestPath = Dest + GetPathSeparatorChar(PathSeparator.Default) + GetLastDirectoryName(SourceSubDirectory);
 				if (!CopyDirectory_NoExceptions(SourceSubDirectory, DestPath, bQuiet))
 				{
 					return false;
@@ -1318,7 +1318,7 @@ namespace AutomationTool
 			}
 			foreach (var SourceFile in Directory.GetFiles(Source))
 			{
-				int FilenameStart = SourceFile.LastIndexOf(PathSeparator.Default.ToString());
+				int FilenameStart = SourceFile.LastIndexOf(GetPathSeparatorChar(PathSeparator.Default));
 				string DestPath = Dest + SourceFile.Substring(FilenameStart);
 				if (!CopyFile_NoExceptions(SourceFile, DestPath, bQuiet))
 				{
