@@ -11,10 +11,6 @@ FPaperFlipbookSceneProxy::FPaperFlipbookSceneProxy(const UPaperFlipbookComponent
 {
 	//@TODO: PAPER2D: WireframeColor = RenderComp->GetWireframeColor();
 
-	Material = InComponent->GetSpriteMaterial();
-
-	if (Material)
-	{
-		MaterialRelevance = Material->GetRelevance();
-	}
+	Material = InComponent->GetMaterial(0);
+	MaterialRelevance = InComponent->GetMaterialRelevance();
 }

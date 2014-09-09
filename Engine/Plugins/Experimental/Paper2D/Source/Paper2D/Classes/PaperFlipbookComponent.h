@@ -9,7 +9,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFlipbookFinishedPlaySignature);
 
 UCLASS(ShowCategories=(Mobility, ComponentReplication), ClassGroup=Paper2D, EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
-class PAPER2D_API UPaperFlipbookComponent : public UPrimitiveComponent
+class PAPER2D_API UPaperFlipbookComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -18,9 +18,9 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"), ReplicatedUsing=OnRep_SourceFlipbook)
 	UPaperFlipbook* SourceFlipbook;
 
-	/** Material used to display the flipbook */
-	UPROPERTY(Category=Sprite, EditAnywhere)
-	UMaterialInterface* Material;
+	// DEPRECATED in 4.5: The material override for this flipbook component (if any); replaced by the Materials array inherited from UMeshComponent
+	UPROPERTY()
+	UMaterialInterface* Material_DEPRECATED;
 
 	/** Current play rate of the flipbook */
 	UPROPERTY(Category=Sprite, EditAnywhere, Replicated)
@@ -64,8 +64,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="Sprite")
 	virtual UPaperFlipbook* GetFlipbook();
 
-	/** Gets the material used by this instance */
-	UFUNCTION(BlueprintCallable, Category="Sprite")
+	/** DEPRECATED! Use GetMaterial() instead.  Gets the material used by this instance */
+	//@TODO: DEPRECATED(4.5, "GetSpriteMaterial has been replaced by GetMaterial")
+	UFUNCTION(BlueprintCallable, Category="Sprite", meta=(DeprecatedFunction, DeprecationMessage="Use GetMaterial instead"))
 	UMaterialInterface* GetSpriteMaterial() const;
 
 	/** Set color of the sprite */
@@ -150,6 +151,13 @@ protected:
 	void TickFlipbook(float DeltaTime);
 
 public:
+	// UObject interface
+#if WITH_EDITORONLY_DATA
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+#endif
+	// End of UObject interface
+
 	// UActorComponent interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void SendRenderDynamicData_Concurrent() override;
@@ -165,6 +173,11 @@ public:
 	// UPrimitiveComponent interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel) override;
+	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+	virtual int32 GetNumMaterials() const override;
 	// End of UPrimitiveComponent interface
 };
 

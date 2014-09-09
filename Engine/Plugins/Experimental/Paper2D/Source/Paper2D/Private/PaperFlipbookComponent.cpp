@@ -3,7 +3,9 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperFlipbookSceneProxy.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperCustomVersion.h"
 #include "Runtime/Engine/Public/Net/UnrealNetwork.h"
+#include "Runtime/Engine/Public/ContentStreaming.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookComponent
@@ -14,7 +16,11 @@ UPaperFlipbookComponent::UPaperFlipbookComponent(const FPostConstructInitializeP
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	Material = nullptr;
+	Material_DEPRECATED = nullptr;
+
+	CastShadow = false;
+	bUseAsOccluder = false;
+	bCanEverAffectNavigation = false;
 
 	SpriteColor = FLinearColor::White;
 
@@ -41,6 +47,31 @@ UPaperSprite* UPaperFlipbookComponent::GetSpriteAtCachedIndex() const
 	}
 	return SpriteToSend;
 }
+
+
+#if WITH_EDITORONLY_DATA
+void UPaperFlipbookComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+}
+
+void UPaperFlipbookComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+
+	if (PaperVer < FPaperCustomVersion::ConvertPaperFlipbookComponentToBeMeshComponent)
+	{
+		if (Material_DEPRECATED != nullptr)
+		{
+			SetMaterial(0, Material_DEPRECATED);
+		}
+	}
+}
+#endif
 
 FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 {
@@ -86,6 +117,58 @@ FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform & LocalToW
 	{
 		return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
 	}
+}
+
+void UPaperFlipbookComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel)
+{
+	// Get any textures referenced by our materials
+	Super::GetUsedTextures(OutTextures, QualityLevel);
+
+	// Get the texture referenced by each keyframe
+	if (SourceFlipbook != nullptr)
+	{
+		for (int32 Index = 0; Index < SourceFlipbook->GetNumKeyFrames(); ++Index)
+		{
+			const FPaperFlipbookKeyFrame& KeyFrame = SourceFlipbook->GetKeyFrameChecked(Index);
+			if (KeyFrame.Sprite != nullptr)
+			{
+				if (UTexture* BakedTexture = KeyFrame.Sprite->GetBakedTexture())
+				{
+					OutTextures.AddUnique(BakedTexture);
+				}
+			}
+		}
+	}
+}
+
+UMaterialInterface* UPaperFlipbookComponent::GetMaterial(int32 MaterialIndex) const
+{
+	if (Materials.IsValidIndex(MaterialIndex) && (Materials[MaterialIndex] != nullptr))
+	{
+		return Materials[MaterialIndex];
+	}
+	else if (SourceFlipbook != nullptr)
+	{
+		return SourceFlipbook->GetDefaultMaterial();
+	}
+
+	return nullptr;
+}
+
+void UPaperFlipbookComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	return Super::GetUsedMaterials(OutMaterials);
+}
+
+void UPaperFlipbookComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	//@TODO: PAPER2D: Need to support this for proper texture streaming
+	return Super::GetStreamingTextureInfo(OutStreamingTextures);
+}
+
+int32 UPaperFlipbookComponent::GetNumMaterials() const
+{
+	return FMath::Max<int32>(Materials.Num(), 1);
 }
 
 void UPaperFlipbookComponent::CalculateCurrentFrame()
@@ -257,6 +340,10 @@ bool UPaperFlipbookComponent::SetFlipbook(class UPaperFlipbook* NewFlipbook)
 			// Update physics representation right away
 			RecreatePhysicsState();
 
+			// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
+			// and the component may have to be added to the streaming system for the first time.
+			IStreamingManager::Get().NotifyPrimitiveAttached(this, DPT_Spawned);
+
 			// Since we have new mesh, we need to update bounds
 			UpdateBounds();
 
@@ -274,18 +361,7 @@ UPaperFlipbook* UPaperFlipbookComponent::GetFlipbook()
 
 UMaterialInterface* UPaperFlipbookComponent::GetSpriteMaterial() const
 {
-	if (Material != nullptr)
-	{
-		return Material;
-	}
-	else if (SourceFlipbook != nullptr)
-	{
-		return SourceFlipbook->GetDefaultMaterial();
-	}
-	else
-	{
-		return nullptr;
-	}
+	return GetMaterial(0);
 }
 
 void UPaperFlipbookComponent::SetSpriteColor(FLinearColor NewColor)

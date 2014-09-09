@@ -37,6 +37,9 @@ struct FPaperCustomVersion
 		// Added the option to snap pivots to a pixel grid
 		AddPivotSnapToPixelGrid = 9,
 
+		// Converted UPaperFlipbookComponent to be derived from UMeshComponent
+		ConvertPaperFlipbookComponentToBeMeshComponent = 10,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
