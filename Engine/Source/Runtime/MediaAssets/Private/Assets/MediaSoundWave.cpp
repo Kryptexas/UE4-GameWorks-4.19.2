@@ -28,20 +28,20 @@ UMediaSoundWave::~UMediaSoundWave( )
 /* UMediaSoundWave interface
  *****************************************************************************/
 
-TSharedPtr<IMediaPlayer> UMediaSoundWave::GetMediaPlayer( ) const
+TSharedPtr<IMediaPlayer> UMediaSoundWave::GetPlayer( ) const
 {
-	if (MediaAsset == nullptr)
+	if (MediaPlayer == nullptr)
 	{
 		return nullptr;
 	}
 
-	return MediaAsset->GetMediaPlayer();
+	return MediaPlayer->GetPlayer();
 }
 
 
-void UMediaSoundWave::SetMediaAsset( UMediaAsset* InMediaAsset )
+void UMediaSoundWave::SetMediaPlayer( UMediaPlayer* InMediaPlayer )
 {
-	MediaAsset = InMediaAsset;
+	MediaPlayer = InMediaPlayer;
 
 	InitializeTrack();
 }
@@ -129,19 +129,19 @@ void UMediaSoundWave::Serialize( FArchive& Ar )
 
 void UMediaSoundWave::InitializeTrack( )
 {
-	// assign new media asset
-	if (CurrentMediaAsset != MediaAsset)
+	// assign new media player asset
+	if (CurrentMediaPlayer != MediaPlayer)
 	{
-		if (CurrentMediaAsset != nullptr)
+		if (CurrentMediaPlayer != nullptr)
 		{
-			CurrentMediaAsset->OnMediaChanged().RemoveAll(this);
+			CurrentMediaPlayer->OnMediaChanged().RemoveAll(this);
 		}
 
-		CurrentMediaAsset = MediaAsset;
+		CurrentMediaPlayer = MediaPlayer;
 
-		if (MediaAsset != nullptr)
+		if (MediaPlayer != nullptr)
 		{
-			MediaAsset->OnMediaChanged().AddUObject(this, &UMediaSoundWave::HandleMediaAssetMediaChanged);
+			MediaPlayer->OnMediaChanged().AddUObject(this, &UMediaSoundWave::HandleMediaPlayerMediaChanged);
 		}	
 	}
 
@@ -154,13 +154,13 @@ void UMediaSoundWave::InitializeTrack( )
 	AudioTrack.Reset();
 
 	// initialize from new track
-	if (MediaAsset != nullptr)
+	if (MediaPlayer != nullptr)
 	{
-		IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
+		IMediaPlayerPtr Player = MediaPlayer->GetPlayer();
 
-		if (MediaPlayer.IsValid())
+		if (Player .IsValid())
 		{
-			AudioTrack = MediaPlayer->GetTrackSafe(AudioTrackIndex, EMediaTrackTypes::Audio);
+			AudioTrack = Player ->GetTrackSafe(AudioTrackIndex, EMediaTrackTypes::Audio);
 		}
 	}
 
@@ -186,7 +186,7 @@ void UMediaSoundWave::InitializeTrack( )
 /* UMediaSoundWave callbacks
  *****************************************************************************/
 
-void UMediaSoundWave::HandleMediaAssetMediaChanged( )
+void UMediaSoundWave::HandleMediaPlayerMediaChanged( )
 {
 	InitializeTrack();
 }

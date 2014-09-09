@@ -10,7 +10,7 @@
 #include "CoreUObject.h"
 #include "Engine.h"
 #include "Media.h"
-#include "MediaAsset.h"
+#include "MediaPlayer.h"
 #include "MediaSoundWave.h"
 #include "MediaTexture.h"
 

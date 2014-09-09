@@ -77,7 +77,7 @@
 #include "SourceCodeAccessSettingsDetails.h"
 #include "ParticleSystemComponentDetails.h"
 #include "DocumentationActorDetails.h"
-#include "MediaAssetCustomization.h"
+#include "MediaPlayerCustomization.h"
 #include "MediaSoundWaveCustomization.h"
 #include "MediaTextureCustomization.h"
 #include "SoundWaveDetails.h"
@@ -252,7 +252,7 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	RegisterCustomClassLayout("SourceCodeAccessSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FSourceCodeAccessSettingsDetails::MakeInstance));
 	RegisterCustomClassLayout("ParticleSystemComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FParticleSystemComponentDetails::MakeInstance));
 
-	RegisterCustomClassLayout("MediaAsset", FOnGetDetailCustomizationInstance::CreateStatic(&FMediaAssetCustomization::MakeInstance));
+	RegisterCustomClassLayout("MediaPlayer", FOnGetDetailCustomizationInstance::CreateStatic(&FMediaPlayerCustomization::MakeInstance));
 	RegisterCustomClassLayout("MediaSoundWave", FOnGetDetailCustomizationInstance::CreateStatic(&FMediaSoundWaveCustomization::MakeInstance));
 	RegisterCustomClassLayout("MediaTexture", FOnGetDetailCustomizationInstance::CreateStatic(&FMediaTextureCustomization::MakeInstance));
 }

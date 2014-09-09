@@ -10,8 +10,8 @@
 UMediaTexture::UMediaTexture( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 	, ClearColor(FLinearColor::Red)
-	, MediaAsset(nullptr)
-	, CurrentMediaAsset(nullptr)
+	, MediaPlayer(nullptr)
+	, CurrentMediaPlayer(nullptr)
 	, VideoBuffer(MakeShareable(new FMediaSampleBuffer))
 {
 	NeverStream = true;
@@ -32,17 +32,17 @@ UMediaTexture::~UMediaTexture( )
 /* UMediaTexture interface
  *****************************************************************************/
 
-TSharedPtr<class IMediaPlayer> UMediaTexture::GetMediaPlayer( ) const
+TSharedPtr<class IMediaPlayer> UMediaTexture::GetPlayer( ) const
 {
-	return (MediaAsset != nullptr)
-		? MediaAsset->GetMediaPlayer()
+	return (MediaPlayer != nullptr)
+		? MediaPlayer->GetPlayer()
 		: nullptr;
 }
 
 
-void UMediaTexture::SetMediaAsset( UMediaAsset* InMediaAsset )
+void UMediaTexture::SetMediaPlayer( UMediaPlayer* InMediaPlayer )
 {
-	MediaAsset = InMediaAsset;
+	MediaPlayer = InMediaPlayer;
 
 	InitializeTrack();
 }
@@ -103,7 +103,7 @@ void UMediaTexture::FinishDestroy( )
 
 FString UMediaTexture::GetDesc( )
 {
-	TSharedPtr<IMediaPlayer> MediaPlayer = GetMediaPlayer();
+	TSharedPtr<IMediaPlayer> MediaPlayer = GetPlayer();
 
 	if (!MediaPlayer.IsValid())
 	{
@@ -165,19 +165,19 @@ void UMediaTexture::PostEditChangeProperty( FPropertyChangedEvent& PropertyChang
 
 void UMediaTexture::InitializeTrack( )
 {
-	// assign new media asset
-	if (CurrentMediaAsset != MediaAsset)
+	// assign new media player asset
+	if (CurrentMediaPlayer != MediaPlayer)
 	{
-		if (CurrentMediaAsset != nullptr)
+		if (CurrentMediaPlayer != nullptr)
 		{
-			CurrentMediaAsset->OnMediaChanged().RemoveAll(this);
+			CurrentMediaPlayer->OnMediaChanged().RemoveAll(this);
 		}
 
-		CurrentMediaAsset = MediaAsset;
+		CurrentMediaPlayer = MediaPlayer;
 
-		if (MediaAsset != nullptr)
+		if (MediaPlayer != nullptr)
 		{
-			MediaAsset->OnMediaChanged().AddUObject(this, &UMediaTexture::HandleMediaAssetMediaChanged);
+			MediaPlayer->OnMediaChanged().AddUObject(this, &UMediaTexture::HandleMediaPlayerMediaChanged);
 		}	
 	}
 
@@ -189,13 +189,13 @@ void UMediaTexture::InitializeTrack( )
 	}
 
 	// initialize from new track
-	if (MediaAsset != nullptr)
+	if (MediaPlayer != nullptr)
 	{
-		IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
+		IMediaPlayerPtr Player = MediaPlayer->GetPlayer();
 
-		if (MediaPlayer.IsValid())
+		if (Player.IsValid())
 		{
-			VideoTrack = MediaPlayer->GetTrackSafe(VideoTrackIndex, EMediaTrackTypes::Video);
+			VideoTrack = Player->GetTrackSafe(VideoTrackIndex, EMediaTrackTypes::Video);
 		}
 	}
 
@@ -221,7 +221,7 @@ void UMediaTexture::InitializeTrack( )
 /* UMediaTexture callbacks
  *****************************************************************************/
 
-void UMediaTexture::HandleMediaAssetMediaChanged( )
+void UMediaTexture::HandleMediaPlayerMediaChanged( )
 {
 	InitializeTrack();
 }

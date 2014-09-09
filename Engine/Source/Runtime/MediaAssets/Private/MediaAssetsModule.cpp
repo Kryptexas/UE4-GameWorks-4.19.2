@@ -23,18 +23,18 @@ public:
 
 			if (MovieCmd.Contains(TEXT("PLAY")))
 			{
-				for (TObjectIterator<UMediaAsset> It; It; ++It)
+				for (TObjectIterator<UMediaPlayer> It; It; ++It)
 				{
-					UMediaAsset* MediaAsset = *It;
-					MediaAsset->Play();
+					UMediaPlayer* MediaPlayer = *It;
+					MediaPlayer->Play();
 				}
 			}
 			else if (MovieCmd.Contains(TEXT("PAUSE")))
 			{
-				for (TObjectIterator<UMediaAsset> It; It; ++It)
+				for (TObjectIterator<UMediaPlayer> It; It; ++It)
 				{
-					UMediaAsset* MediaAsset = *It;
-					MediaAsset->Pause();
+					UMediaPlayer* MediaPlayer = *It;
+					MediaPlayer->Pause();
 				}
 			}
 

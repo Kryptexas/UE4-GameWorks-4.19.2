@@ -4606,7 +4606,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("MaterialFunction"),
 			TEXT("MaterialInstanceConstant"),
 			TEXT("MaterialParameterCollection"),
-			TEXT("MediaAsset"),
+			TEXT("MediaPlayer"),
 			TEXT("MediaSoundWave"),
 			TEXT("MediaTexture"),
 			TEXT("MultiFont"),

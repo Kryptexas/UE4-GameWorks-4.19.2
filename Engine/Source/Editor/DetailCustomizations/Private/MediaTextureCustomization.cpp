@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
-#include "MediaAsset.h"
+#include "MediaPlayer.h"
 #include "MediaTextureCustomization.h"
 
 
@@ -14,14 +14,14 @@
 void FMediaTextureCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	DetailBuilder.GetObjectsBeingCustomized(CustomizedMediaTextures);
-	MediaAssetProperty = DetailBuilder.GetProperty("MediaAsset");
+	MediaPlayerProperty = DetailBuilder.GetProperty("MediaPlayer");
 	VideoTrackIndexProperty = DetailBuilder.GetProperty("VideoTrackIndex");
 
-	// customize MediaAsset category
-	IDetailCategoryBuilder& MediaAssetCategory = DetailBuilder.EditCategory(TEXT("MediaAsset"));
+	// customize MediaPlayer category
+	IDetailCategoryBuilder& MediaPlayerCategory = DetailBuilder.EditCategory(TEXT("MediaPlayer"));
 	{
 		// video track index
-		IDetailPropertyRow& VideoTrackIndexRow = MediaAssetCategory.AddProperty(VideoTrackIndexProperty);
+		IDetailPropertyRow& VideoTrackIndexRow = MediaPlayerCategory.AddProperty(VideoTrackIndexProperty);
 
 		VideoTrackIndexRow.DisplayName(TEXT("Video Track"));
 		VideoTrackIndexRow.CustomWidget()
@@ -51,31 +51,31 @@ void FMediaTextureCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailB
 
 TSharedRef<SWidget> FMediaTextureCustomization::HandleVideoTrackComboButtonMenuContent( ) const
 {
-	// get assigned media asset
-	UObject* MediaAssetObj = nullptr;
-	FPropertyAccess::Result Result = MediaAssetProperty->GetValue(MediaAssetObj);
+	// get assigned media player asset
+	UObject* MediaPlayerObj = nullptr;
+	FPropertyAccess::Result Result = MediaPlayerProperty->GetValue(MediaPlayerObj);
 
 	if (Result == FPropertyAccess::MultipleValues)
 	{
 		return SNullWidget::NullWidget;
 	}
 
-	UMediaAsset* MediaAsset = Cast<UMediaAsset>(MediaAssetObj);
+	UMediaPlayer* MediaPlayer = Cast<UMediaPlayer>(MediaPlayerObj);
 
-	if (MediaAsset == nullptr)
+	if (MediaPlayer == nullptr)
 	{
 		return SNullWidget::NullWidget;
 	}
 
 	// get media tracks
-	IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
+	IMediaPlayerPtr Player = MediaPlayer->GetPlayer();
 
-	if (!MediaPlayer.IsValid())
+	if (!Player.IsValid())
 	{
 		return SNullWidget::NullWidget;
 	}
 
-	const TArray<IMediaTrackRef>& MediaTracks = MediaPlayer->GetTracks();
+	const TArray<IMediaTrackRef>& MediaTracks = Player->GetTracks();
 
 	// populate the menu
 	FMenuBuilder MenuBuilder(true, nullptr);
@@ -107,20 +107,20 @@ void FMediaTextureCustomization::HandleVideoTrackComboButtonMenuEntryExecute( ui
 
 FText FMediaTextureCustomization::HandleVideoTrackComboButtonText( ) const
 {
-	// get assigned media asset
-	UObject* MediaAssetObj = nullptr;
-	FPropertyAccess::Result Result = MediaAssetProperty->GetValue(MediaAssetObj);
+	// get assigned media player asset
+	UObject* MediaPlayerObj = nullptr;
+	FPropertyAccess::Result Result = MediaPlayerProperty->GetValue(MediaPlayerObj);
 
 	if (Result != FPropertyAccess::Success)
 	{
 		return FText::GetEmpty();
 	}
 
-	UMediaAsset* MediaAsset = Cast<UMediaAsset>(MediaAssetObj);
+	UMediaPlayer* MediaPlayer = Cast<UMediaPlayer>(MediaPlayerObj);
 
-	if (MediaAsset == nullptr)
+	if (MediaPlayer == nullptr)
 	{
-		return LOCTEXT("NoMediaAssetSelected", "No Media Asset selected");
+		return LOCTEXT("NoMediaPlayerSelected", "No Media Asset selected");
 	}
 
 	// get selected value
@@ -133,14 +133,14 @@ FText FMediaTextureCustomization::HandleVideoTrackComboButtonText( ) const
 	}
 
 	// get selected media track
-	IMediaPlayerPtr MediaPlayer = MediaAsset->GetMediaPlayer();
+	IMediaPlayerPtr Player = MediaPlayer->GetPlayer();
 
-	if (!MediaPlayer.IsValid())
+	if (!Player.IsValid())
 	{
 		return LOCTEXT("NoMediaLoaded", "No media loaded");
 	}
 
-	IMediaTrackPtr Track = MediaPlayer->GetTrackSafe(VideoTrackIndex, EMediaTrackTypes::Video);
+	IMediaTrackPtr Track = Player->GetTrackSafe(VideoTrackIndex, EMediaTrackTypes::Video);
 
 	// generate track name string
 	if (Track.IsValid())

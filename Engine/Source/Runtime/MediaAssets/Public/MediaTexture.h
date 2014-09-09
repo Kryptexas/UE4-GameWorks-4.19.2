@@ -6,11 +6,11 @@
 #include "MediaTexture.generated.h"
 
 
-class UMediaAsset;
+class UMediaPlayer;
 
 
 /**
- * Implements a texture for rendering video tracks from media assets.
+ * Implements a texture asset for rendering video tracks from UMediaPlayer assets.
  */
 UCLASS(hidecategories=(Compression, LevelOfDetail, Object, Texture))
 class MEDIAASSETS_API UMediaTexture
@@ -30,8 +30,8 @@ class MEDIAASSETS_API UMediaTexture
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture)
 	FLinearColor ClearColor;
 
-	/** The index of the media asset's video track to render on this texture. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaAsset)
+	/** The index of the MediaPlayer's video track to render on this texture. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaPlayer)
 	int32 VideoTrackIndex;
 
 public:
@@ -62,11 +62,11 @@ public:
 	}
 
 	/**
-	 * Gets the media player associated with the assigned media asset.
+	 * Gets the low-level player associated with the assigned UMediaPlayer asset.
 	 *
-	 * @return Media player, or nullptr if no player is available.
+	 * @return The player, or nullptr if no player is available.
 	 */
-	TSharedPtr<class IMediaPlayer> GetMediaPlayer( ) const;
+	TSharedPtr<class IMediaPlayer> GetPlayer( ) const;
 
 	/**
 	 * Gets the currently selected video track, if any.
@@ -79,12 +79,12 @@ public:
 	}
 	
 	/**
-	 * Sets the media asset to be used for this texture.
+	 * Sets the media player asset to be used for this texture.
 	 *
-	 * @param InMediaAsset The asset to set.
+	 * @param InMediaPlayer The asset to set.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaTexture")
-	void SetMediaAsset( UMediaAsset* InMediaAsset );
+	void SetMediaPlayer( UMediaPlayer* InMediaPlayer );
 
 public:
 
@@ -113,9 +113,9 @@ public:
 
 protected:
 
-	/** The media asset to track video from. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MediaAsset)
-	UMediaAsset* MediaAsset;
+	/** The MediaPlayer asset to stream video from. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MediaPlayer)
+	UMediaPlayer* MediaPlayer;
 
 protected:
 
@@ -126,16 +126,16 @@ protected:
 
 private:
 
-	/** Callback for when the media asset changed its media. */
-	void HandleMediaAssetMediaChanged( );
+	/** Callback for when the UMediaPlayer asset changed its media. */
+	void HandleMediaPlayerMediaChanged( );
 
 private:
 
 	/** The texture's cached width and height (in pixels). */
 	FIntPoint CachedDimensions;
 
-	/** Holds the media asset currently being used. */
-	UMediaAsset* CurrentMediaAsset;
+	/** Holds the UMediaPlayer asset currently being used. */
+	UMediaPlayer* CurrentMediaPlayer;
 
 	/** Synchronizes access to this object from the render thread. */
 	FRenderCommandFence* ReleasePlayerFence;

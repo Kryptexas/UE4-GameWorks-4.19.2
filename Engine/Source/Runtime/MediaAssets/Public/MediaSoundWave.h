@@ -6,11 +6,11 @@
 #include "Sound/SoundWave.h"
 #include "MediaSoundWave.generated.h"
 
-class UMediaAsset;
+class UMediaPlayer;
 
 
 /**
- * Implements a playable sound object for audio streams from media assets.
+ * Implements a playable sound asset for audio streams from UMediaPlayer assets.
  */
 UCLASS(hidecategories=(Compression, Sound, SoundWave, Subtitles))
 class MEDIAASSETS_API UMediaSoundWave
@@ -18,13 +18,13 @@ class MEDIAASSETS_API UMediaSoundWave
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The index of the media asset's audio track to get the wave data from. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaAsset)
+	/** The index of the MediaPlayer's audio track to get the wave data from. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaPlayer)
 	int32 AudioTrackIndex;
 
-	/** The media asset to stream audio from. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaAsset)
-	UMediaAsset* MediaAsset;
+	/** The MediaPlayer asset to stream audio from. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaPlayer)
+	UMediaPlayer* MediaPlayer;
 
 public:
 
@@ -34,21 +34,21 @@ public:
 public:
 
 	/**
-	 * Sets the media asset to be used for this texture.
+	 * Sets the MediaPlayer asset to be used for this texture.
 	 *
-	 * @param InMediaAsset The asset to set.
+	 * @param InMediaPlayer The asset to set.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaSound")
-	void SetMediaAsset( UMediaAsset* InMediaAsset );
+	void SetMediaPlayer( UMediaPlayer* InMediaPlayer );
 
 public:
 
 	/**
-	 * Gets the media player associated with the assigned media asset.
+	 * Gets the low-level player associated with the assigned UMediaPlayer asset.
 	 *
-	 * @return Media player, or nullptr if no player is available.
+	 * @return The player, or nullptr if no player is available.
 	 */
-	TSharedPtr<class IMediaPlayer> GetMediaPlayer( ) const;
+	TSharedPtr<class IMediaPlayer> GetPlayer( ) const;
 
 public:
 
@@ -75,8 +75,8 @@ protected:
 
 private:
 
-	/** Callback for when the media asset changed its media. */
-	void HandleMediaAssetMediaChanged( );
+	/** Callback for when the UMediaPlayer asset changed its media. */
+	void HandleMediaPlayerMediaChanged( );
 
 private:
 
@@ -86,8 +86,8 @@ private:
 	/** Holds the selected audio track. */
 	IMediaTrackPtr AudioTrack;
 
-	/** Holds the media asset currently being used. */
-	UMediaAsset* CurrentMediaAsset;
+	/** Holds the media player asset currently being used. */
+	UMediaPlayer* CurrentMediaPlayer;
 
 	/** Holds queued audio samples. */
 	TArray<uint8> QueuedAudio;

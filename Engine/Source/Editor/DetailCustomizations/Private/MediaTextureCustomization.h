@@ -46,8 +46,8 @@ private:
 	/** The collection of media textures being customized */
 	TArray<TWeakObjectPtr<UObject>> CustomizedMediaTextures;
 
-	/** Pointer to the MediaAsset property handle. */
-	TSharedPtr<IPropertyHandle> MediaAssetProperty;
+	/** Pointer to the MediaPlayer property handle. */
+	TSharedPtr<IPropertyHandle> MediaPlayerProperty;
 
 	/** Pointer to the VideoTrackIndex property handle. */
 	TSharedPtr<IPropertyHandle> VideoTrackIndexProperty;
