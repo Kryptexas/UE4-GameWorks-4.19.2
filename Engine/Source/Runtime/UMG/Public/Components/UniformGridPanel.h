@@ -13,15 +13,15 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 public:
 
 	/** Padding given to each slot */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout")
 	FMargin SlotPadding;
 
 	/** The minimum desired width of the slots */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout")
 	float MinDesiredSlotWidth;
 
 	/** The minimum desired height of the slots */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout")
 	float MinDesiredSlotHeight;
 
 public:

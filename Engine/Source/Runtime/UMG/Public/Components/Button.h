@@ -67,7 +67,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
 	void SetBackgroundColor(FLinearColor InBackgroundColor);
 
-	/** @return true if the user is actively pressing the button otherwise false.  For detecting Clicks, use the OnClicked event. */
+	/**
+	 * Returns true if the user is actively pressing the button.  Do not use this for detecting 'Clicks', use the OnClicked event instead.
+	 *
+	 * @return true if the user is actively pressing the button otherwise false.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Button")
 	bool IsPressed() const;
 

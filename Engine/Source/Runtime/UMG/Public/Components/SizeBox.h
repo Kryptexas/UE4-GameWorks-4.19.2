@@ -102,27 +102,27 @@ protected:
 
 
 	/** When specified, ignore the content's desired size and report the WidthOverride as the Box's desired width. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout, meta=( editcondition="bOverride_WidthOverride" ))
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_WidthOverride" ))
 	float WidthOverride;
 
 	/** When specified, ignore the content's desired size and report the HeightOverride as the Box's desired height. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout, meta=( editcondition="bOverride_HeightOverride" ))
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_HeightOverride" ))
 	float HeightOverride;
 
 	/** When specified, will report the MinDesiredWidth if larger than the content's desired width. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout, meta=( editcondition="bOverride_MinDesiredWidth" ))
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MinDesiredWidth" ))
 	float MinDesiredWidth;
 
 	/** When specified, will report the MinDesiredHeight if larger than the content's desired height. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout, meta=( editcondition="bOverride_MinDesiredHeight" ))
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MinDesiredHeight" ))
 	float MinDesiredHeight;
 
 	/** When specified, will report the MaxDesiredWidth if smaller than the content's desired width. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout, meta=( editcondition="bOverride_MaxDesiredWidth" ))
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MaxDesiredWidth" ))
 	float MaxDesiredWidth;
 
 	/** When specified, will report the MaxDesiredHeight if smaller than the content's desired height. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout, meta=( editcondition="bOverride_MaxDesiredHeight" ))
+	UPROPERTY(EditDefaultsOnly, Category="Child Layout", meta=( editcondition="bOverride_MaxDesiredHeight" ))
 	float MaxDesiredHeight;
 
 protected:
