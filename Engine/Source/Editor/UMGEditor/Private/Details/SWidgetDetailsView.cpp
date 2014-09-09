@@ -8,6 +8,7 @@
 #include "Kismet2NameValidators.h"
 #include "ISequencer.h"
 #include "Animation/UMGDetailKeyframeHandler.h"
+#include "EditorClassUtils.h"
 
 #include "CanvasSlotCustomization.h"
 #include "HorizontalAlignmentCustomization.h"
@@ -76,12 +77,22 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 			.AutoWidth()
 			[
 				SNew(SCheckBox)
+				.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
 				.IsChecked(this, &SWidgetDetailsView::GetIsVariable)
 				.OnCheckStateChanged(this, &SWidgetDetailsView::HandleIsVariableChanged)
+				.Padding(FMargin(3,1,3,1))
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("IsVariable", "Is Variable"))
+					.Font(FEditorStyle::GetFontStyle("BoldFont"))
+					.Text(LOCTEXT("IsVariable", "Variable"))
 				]
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(10,0,0,0)
+			[
+				SAssignNew(ClassLinkArea, SBox)
 			]
 		]
 
@@ -157,6 +168,15 @@ void SWidgetDetailsView::OnEditorSelectionChanged()
 		{
 			SelectedObjects.Add(S);
 		}
+	}
+
+	if ( SelectedObjects.Num() == 1 )
+	{
+		ClassLinkArea->SetContent(FEditorClassUtils::GetSourceLink(SelectedObjects[0]->GetClass(), TWeakObjectPtr<UObject>()));
+	}
+	else
+	{
+		ClassLinkArea->SetContent(SNullWidget::NullWidget);
 	}
 
 	const bool bForceRefresh = false;

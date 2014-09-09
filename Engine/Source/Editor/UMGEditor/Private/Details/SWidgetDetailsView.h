@@ -58,7 +58,11 @@ private:
 	/** The editor that owns this details view */
 	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 
+	/** The name text box that users can use to rename their widgets */
 	TSharedPtr<SEditableTextBox> NameTextBox;
+
+	/** The container widget for the class link users can click to open another asset */
+	TSharedPtr<SBox> ClassLinkArea;
 	
 	/** Property viewing widget */
 	TSharedPtr<class IDetailsView> PropertyView;
