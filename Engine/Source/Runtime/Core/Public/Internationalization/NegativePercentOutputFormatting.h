@@ -7,20 +7,23 @@ namespace EPercentNegativePattern
 {
 	/** 
 	 * enum value associated with a pattern used to display positive percent values
-	 * Below X represents the number being converted to display as a percent, % will be replaced
+	 * Below X represents the number being converted to display as a percent, Y will be replaced
 	 * with the cultural values PercentSymbol
-	 * -X %		NegativeSymbolXSpacePct
-	 * -X%		NegativeSymbolXPct
-	 * -%X		NegativeSymbolPctX
-	 * %-X		PctNegativeSymbolX
-	 * %X-		PctXNegativeSymbol
-	 * X-%		XNegativeSymbolPct
-	 * X%-		XPctNegativeSymbol
-	 * -% X		NegativeSymbolPctSpaceX
-	 * X %-		XSpacePctNegativeSymbol
-	 * % X-		PctSpaceXNegativeSymbol
-	 * % -X		PctSpaceNegativeSymbolX
-	 * X- %		XNegativeSymbolSpacePct
+	 *
+	 * |------------|-------------------------|
+	 * | -X Y		| NegativeSymbolXSpacePct |
+	 * | -XY		| NegativeSymbolXPct      |
+	 * | -YX		| NegativeSymbolPctX      |
+	 * | Y-X		| PctNegativeSymbolX      |
+	 * | YX-		| PctXNegativeSymbol      |
+	 * | X-Y		| XNegativeSymbolPct      |
+	 * | XY-		| XPctNegativeSymbol      |
+	 * | -Y X		| NegativeSymbolPctSpaceX |
+	 * | X Y-		| XSpacePctNegativeSymbol |
+	 * | Y X-		| PctSpaceXNegativeSymbol |
+	 * | Y -X		| PctSpaceNegativeSymbolX |
+	 * | X- Y		| XNegativeSymbolSpacePct |
+	 * |------------|-------------------------|
 	 */
 	enum Type
 	{

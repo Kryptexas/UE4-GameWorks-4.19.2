@@ -9,22 +9,25 @@ namespace ECurrencyNegativePattern
 	 * enum value associated with a pattern used to display negative currency values
 	 * Below X represents the number being converted to display as a currency, $ and - will be replaced
 	 * with the cultural values CurrencySymbol and NegativeSign respectively
-	 * ($X)		BracketCurrencySymbolXBracket
-	 * -$X		NegativeSymbolCurrencySymbolX
-	 * $-X		CurrencySymbolNegativeSymbolX
-	 * $X-		CurrencySymbolXNegativeSymbol
-	 * (X$)		BracketXCurrencySymbolBracket
-	 * -X$		NegativeSymbolXCurrencySymbol
-	 * X-$		XNegativeSymbolCurrencySymbol
-	 * X$-		XCurrencySymbolNegativeSymbol
-	 * -X $		NegativeSymbolXSpaceCurrencySymbol
-	 * -$ X		NegativeSymbolCurrencySymbolSpaceX
-	 * X $-		XSpaceCurrencySymbolNegativeSymbol
-	 * $ X-		CurrencySymbolSpaceXNegativeSymbol
-	 * $ -X		CurrencySymbolSpaceNegativeSymbolX
-	 * X- $		XNegativeSymbolSpaceCurrencySymbol
-	 * ($ X)	BracketCurrencySymbolSpaceXBracket
-	 * (X $)	BracketXSpaceCurrencySymbolBracket
+	 *
+	 * |------------|------------------------------------|
+	 * | ($X)		| BracketCurrencySymbolXBracket      |
+	 * | -$X		| NegativeSymbolCurrencySymbolX      |
+	 * | $-X		| CurrencySymbolNegativeSymbolX      |
+	 * | $X-		| CurrencySymbolXNegativeSymbol      |
+	 * | (X$)		| BracketXCurrencySymbolBracket      |
+	 * | -X$		| NegativeSymbolXCurrencySymbol      |
+	 * | X-$		| XNegativeSymbolCurrencySymbol      |
+	 * | X$-		| XCurrencySymbolNegativeSymbol      |
+	 * | -X $		| NegativeSymbolXSpaceCurrencySymbol |
+	 * | -$ X		| NegativeSymbolCurrencySymbolSpaceX |
+	 * | X $-		| XSpaceCurrencySymbolNegativeSymbol |
+	 * | $ X-		| CurrencySymbolSpaceXNegativeSymbol |
+	 * | $ -X		| CurrencySymbolSpaceNegativeSymbolX |
+	 * | X- $		| XNegativeSymbolSpaceCurrencySymbol |
+	 * | ($ X)	    | BracketCurrencySymbolSpaceXBracket |
+	 * | (X $)		| BracketXSpaceCurrencySymbolBracket |
+	 * |------------|------------------------------------|
 	 */
 	enum Type
 	{
