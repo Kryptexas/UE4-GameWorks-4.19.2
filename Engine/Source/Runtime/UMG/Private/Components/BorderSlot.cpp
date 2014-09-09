@@ -50,9 +50,12 @@ void UBorderSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
 
 void UBorderSlot::SynchronizeProperties()
 {
-	SetPadding(Padding);
-	SetHorizontalAlignment(HorizontalAlignment);
-	SetVerticalAlignment(VerticalAlignment);
+	if ( Border.IsValid() )
+	{
+		SetPadding(Padding);
+		SetHorizontalAlignment(HorizontalAlignment);
+		SetVerticalAlignment(VerticalAlignment);
+	}
 }
 
 #if WITH_EDITOR
