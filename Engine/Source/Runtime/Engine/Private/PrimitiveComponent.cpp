@@ -1318,7 +1318,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			InitSweepCollisionParams(Params, ResponseParam);
 			bool const bHadBlockingHit = GetWorld()->ComponentSweepMulti(Hits, this, TraceStart, TraceEnd, GetComponentRotation(), Params);
 
-			if (Hits.Num() > 0 && !IsZeroExtent())
+			if (Hits.Num() > 0)
 			{
 				const float DeltaSize = FMath::Sqrt(DeltaSizeSq);
 				for(int32 HitIdx=0; HitIdx<Hits.Num(); HitIdx++)
