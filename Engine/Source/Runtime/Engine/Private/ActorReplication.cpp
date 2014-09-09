@@ -101,8 +101,7 @@ void AActor::PostNetReceiveLocationAndRotation()
 {
 	if( RootComponent && RootComponent->IsRegistered() && (ReplicatedMovement.Location != GetActorLocation() || ReplicatedMovement.Rotation != GetActorRotation()) )
 	{
-		TeleportTo(ReplicatedMovement.Location, ReplicatedMovement.Rotation, false, true);
-		//SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred for performance, but existing overrides of TeleportTo() will be affected.
+		SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation, /*bSweep=*/ false);
 	}
 }
 
