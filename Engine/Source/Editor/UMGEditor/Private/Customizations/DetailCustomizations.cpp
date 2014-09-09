@@ -711,7 +711,7 @@ void FBlueprintWidgetCustomization::HandleCreateAndAddBinding(UWidget* Widget, T
 	FString Pre = bIsPure ? FString(TEXT("Get")) : FString(TEXT("On"));
 
 	FString WidgetName;
-	if ( Widget && Widget->bIsVariable )
+	if ( Widget && !Widget->IsGeneratedName() )
 	{
 		WidgetName = TEXT("_") + Widget->GetName() + TEXT("_");
 	}
