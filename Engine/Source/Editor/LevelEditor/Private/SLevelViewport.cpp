@@ -920,6 +920,8 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 			{
 				World->EditorViews[LevelViewportClient->ViewportType].CamOrthoZoom = DEFAULT_ORTHOZOOM;
 			}
+	
+			ResetNewLevelViewFlags();
 
 			LevelViewportClient->SetInitialViewTransform(
 				World->EditorViews[LevelViewportClient->ViewportType].CamPosition,
@@ -937,6 +939,9 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 		}
 		else if( MapChangeType == EMapChangeType::NewMap )
 		{
+		
+			ResetNewLevelViewFlags();
+
 			LevelViewportClient->ResetViewForNewMap();
 		}
 		World->EditorViews[LevelViewportClient->ViewportType].CamUpdated = false;
@@ -3367,6 +3372,15 @@ void SLevelViewport::HideMouseCaptureLabel()
 {
 	ViewportOverlay->RemoveSlot(PIEOverlaySlotIndex);
 	PIEOverlaySlotIndex = 0;
+}
+
+void SLevelViewport::ResetNewLevelViewFlags()
+{
+	ChangeExposureSetting(FEditorViewportCommands::AutoExposureRadioID);
+
+	LevelViewportClient->SetViewMode(VMI_Lit);
+
+	OnUseDefaultShowFlags();
 }
 
 void SLevelViewport::EndPlayInEditorSession()

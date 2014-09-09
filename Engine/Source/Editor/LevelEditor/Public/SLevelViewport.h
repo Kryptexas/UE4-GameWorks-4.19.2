@@ -648,6 +648,8 @@ private:
 	/** Hide the mouse capture label */
 	void HideMouseCaptureLabel();
 
+	/** Resets view flags when a new level is created or opened */
+	void ResetNewLevelViewFlags();
 private:
 	/** Returns the DPI scaler that should be used for game UI in the viewport */
 	float GetGameViewportDPIScale() const;
