@@ -51,9 +51,8 @@ public:
 	 * @param CategoryName The name of the category to update.
 	 * @param DisplayName The category's localized display name.
 	 * @param Description The category's localized description text.
-	 * @param IconName The name of the category's icon.
 	 */
-	virtual void DescribeCategory( const FName& CategoryName, const FText& DisplayName, const FText& Description, const FName& IconName ) = 0;
+	virtual void DescribeCategory( const FName& CategoryName, const FText& DisplayName, const FText& Description ) = 0;
 
 	/**
 	 * Gets the setting categories.

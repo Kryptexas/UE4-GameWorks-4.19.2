@@ -5597,15 +5597,6 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 
 	// Settings Editor
 	{
-		Set( "SettingsEditor.Category_ContentEditors", new IMAGE_BRUSH( "Icons/icon_Editor_Preferences_ContentEditors_40x", Icon40x40 ) );
-		Set( "SettingsEditor.Category_Default", new IMAGE_BRUSH( "Icons/icon_MatEd_Sphere_40x", Icon40x40 ) );
-		Set( "SettingsEditor.Category_Editor", new IMAGE_BRUSH( "Icons/icon_Editor_Preferences_General_40x", Icon40x40 ) );
-		Set( "SettingsEditor.Category_Engine", new IMAGE_BRUSH( "Icons/icon_Cascade_RestartSim_40x", Icon40x40 ) );
-		Set( "SettingsEditor.Category_Game", new IMAGE_BRUSH( "Icons/icon_MatEd_Realtime_40x", Icon40x40 ) );
-		Set( "SettingsEditor.Category_LevelEditor", new IMAGE_BRUSH( "Icons/icon_Editor_Preferences_LevelEditor_40x", Icon40x40 ) );
-		Set( "SettingsEditor.Category_Project", new IMAGE_BRUSH( "Icons/icon_BlueprintEditor_Settings_40x", Icon40x40 ) );
-		Set( "SettingsEditor.Category_Platforms", new IMAGE_BRUSH( "Icons/icon_PlayOnDevice_40px", Icon40x40 ) );
-		Set( "SettingsEditor.Category_Plugins", new IMAGE_BRUSH( "Icons/Profiler/profiler_mem_40x", Icon40x40 ) );
 		Set( "SettingsEditor.Collision_Engine", new IMAGE_BRUSH("Icons/icon_Cascade_RestartSim_40x", Icon16x16));
 		Set( "SettingsEditor.Collision_Game", new IMAGE_BRUSH("Icons/icon_MatEd_Realtime_40x", Icon16x16));
 

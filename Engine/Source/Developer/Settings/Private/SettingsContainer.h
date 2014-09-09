@@ -112,7 +112,7 @@ public:
 		IconName = InIconName;
 	}
 
-	virtual void DescribeCategory( const FName& CategoryName, const FText& InDisplayName, const FText& InDescription, const FName& InIconName ) override
+	virtual void DescribeCategory( const FName& CategoryName, const FText& InDisplayName, const FText& InDescription ) override
 	{
 		TSharedPtr<FSettingsCategory>& Category = Categories.FindOrAdd(CategoryName);
 
@@ -121,7 +121,7 @@ public:
 			Category = MakeShareable(new FSettingsCategory(CategoryName));
 		}
 
-		Category->Describe(InDisplayName, InDescription, InIconName);
+		Category->Describe(InDisplayName, InDescription);
 		CategoryModifiedDelegate.Broadcast(CategoryName);
 	}
 

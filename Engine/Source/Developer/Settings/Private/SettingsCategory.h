@@ -79,11 +79,10 @@ public:
 	 * @param InIconName The name of the category's icon.
 	 * @return The category.
 	 */
-	void Describe( const FText& InDisplayName, const FText& InDescription, const FName& InIconName )
+	void Describe( const FText& InDisplayName, const FText& InDescription )
 	{
 		Description = InDescription;
 		DisplayName = InDisplayName;
-		IconName = InIconName;
 	}
 
 	/**
@@ -108,11 +107,6 @@ public:
 	virtual const FText& GetDisplayName( ) const override
 	{
 		return DisplayName;
-	}
-
-	virtual const FName& GetIconName( ) const override
-	{
-		return IconName;
 	}
 
 	virtual const FName& GetName( ) const override
@@ -147,9 +141,6 @@ private:
 
 	// Holds the collection of setting sections.
 	TMap<FName, TSharedPtr<FSettingsSection> > Sections;
-
-	// Holds the name of the category's icon.
-	FName IconName;
 
 	// Holds the category's name.
 	FName Name;

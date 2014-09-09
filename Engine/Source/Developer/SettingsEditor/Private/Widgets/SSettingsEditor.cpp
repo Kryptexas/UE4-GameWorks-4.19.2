@@ -54,11 +54,13 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
+			.Padding(16.0f, 0.0f)
 			[
 				SNew(SHorizontalBox)
 
 				+ SHorizontalBox::Slot()
 					.AutoWidth()
+					.Padding(0.0f, 16.0f)
 					[
 						// categories menu
 						SNew(SScrollBox)
@@ -92,13 +94,13 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 				+ SHorizontalBox::Slot()
 					.FillWidth(1.0f)
+					.Padding(0.0f, 16.0f)
 					[
 						SNew(SVerticalBox)
 							.Visibility(this, &SSettingsEditor::HandleSettingsBoxVisibility)
 
 						+ SVerticalBox::Slot()
 							.AutoHeight()
-							.Padding(0.0f, 16.0f)
 							[
 								// title and button bar
 								SNew(SHorizontalBox)
@@ -187,7 +189,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 						+ SVerticalBox::Slot()
 							.AutoHeight()
-							.Padding(0.0f, 0.0f, 0.0f, 16.0f)
+							.Padding(0.0f, 16.0f, 0.0f, 16.0f)
 							[
 								// checkout notice
 								SNew(SSettingsEditorCheckoutNotice)
@@ -199,6 +201,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 						+ SVerticalBox::Slot()
 							.FillHeight(1.0f)
+							.Padding(0.0f, 12.0f, 0.0f, 0.0f)
 							[
 								// settings area
 								SNew(SOverlay)
@@ -376,8 +379,6 @@ TWeakObjectPtr<UObject> SSettingsEditor::GetSelectedSettingsObject( ) const
 
 TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategoryRef& Category )
 {
-	const float VerticalSlotPadding = 10.0f;
-
 	// create section widgets
 	TSharedRef<SVerticalBox> SectionsBox = SNew(SVerticalBox);
 	TArray<ISettingsSectionPtr> Sections;
@@ -413,7 +414,7 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 	{
 		SectionsBox->AddSlot()
 			.HAlign(HAlign_Left)
-			.Padding(0.0f, VerticalSlotPadding, 0.0f, 0.0f)
+			.Padding(0.0f, 10.0f, 0.0f, 0.0f)
 			[
 				SNew(SHorizontalBox)
 
@@ -444,44 +445,23 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 		}
 	}
 
-	const FSlateBrush* CategoryIcon = FEditorStyle::GetBrush(Category->GetIconName());
-
 	// create category widget
-	return SNew(SHorizontalBox)
+	return SNew(SVerticalBox)
 
-	+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Top)
-		.Padding(8.0f, VerticalSlotPadding, 12.0f, VerticalSlotPadding)
+	+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
-			// category icon
-			SNew(SImage)
-				.Image((CategoryIcon == FEditorStyle::GetDefaultBrush()) ? FEditorStyle::GetBrush("SettingsEditor.Category_Default") : CategoryIcon)
+			// category title
+			SNew(STextBlock)
+				.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+				.Text(Category->GetDisplayName())
 		]
 
-	+ SHorizontalBox::Slot()
-		.FillWidth(1.0f)
-		.VAlign(VAlign_Center)
+	+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
 		[
-			SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0.0f, VerticalSlotPadding, 0.0f, 0.0f)
-				[
-					// category title
-					SNew(STextBlock)
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-						.Text(Category->GetDisplayName())
-				]
-
-			+ SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					// sections list
-					SectionsBox
-				]
+			// sections list
+			SectionsBox
 		];
 }
 
@@ -512,7 +492,7 @@ void SSettingsEditor::ReloadCategories( )
 	{
 		CategoriesBox->AddSlot()
 			.AutoHeight()
-			.Padding(0.0f, 0.0f, 0.0f, 8.0f)
+			.Padding(0.0f, 0.0f, 0.0f, 16.0f)
 			[
 				MakeCategoryWidget(Category.ToSharedRef())
 			];

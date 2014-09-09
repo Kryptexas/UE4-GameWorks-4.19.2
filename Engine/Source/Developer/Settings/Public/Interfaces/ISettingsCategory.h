@@ -52,13 +52,6 @@ public:
 	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const = 0;
 
 	/**
-	 * Gets the name of the category's icon.
-	 *
-	 * @return Icon image name.
-	 */
-	virtual const FName& GetIconName( ) const = 0;
-
-	/**
 	 * Gets the category's name.
 	 *
 	 * @return Category name.
