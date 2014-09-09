@@ -606,6 +606,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS,
 	// Rename SM3 to ES3_1 and updates featurelevel material node selector
 	VER_UE4_RENAME_SM3_TO_ES3_1,
+	// Deprecated separate style assets for use in UMG
+	VER_UE4_DEPRECATE_UMG_STYLE_ASSETS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

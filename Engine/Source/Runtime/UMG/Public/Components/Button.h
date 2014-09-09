@@ -18,8 +18,8 @@ class UMG_API UButton : public UContentWidget
 
 public:
 	/** The template style asset, used to seed the mutable instance of the style. */
-	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, DisplayName="Template Style", Category=Appearance, meta=( DesignerRebuild=true ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** The button style used at runtime by the slate button */
 	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance )
@@ -90,7 +90,6 @@ public:
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetToolboxCategory() override;
-	virtual bool CanEditChange(const UProperty* Property) const override;
 #endif
 
 	static FName StyleName;

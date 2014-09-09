@@ -35,12 +35,6 @@ void UButton::ReleaseNativeWidget()
 
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
-	const FButtonStyle* StylePtr = ( Style != nullptr ) ? Style->GetStyle<FButtonStyle>() : nullptr;
-	if ( StylePtr != nullptr )
-	{
-		ButtonStyle->ButtonStyle = *StylePtr;
-	}
-
 	MyButton = SNew(SButton)
 		.ButtonStyle(&ButtonStyle->ButtonStyle)
 		.ClickMethod(ClickMethod)
@@ -140,6 +134,17 @@ void UButton::PostLoad()
 			}
 		}
 	}
+
+	if( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS && Style_DEPRECATED != nullptr )
+	{
+		const FButtonStyle* StylePtr = Style_DEPRECATED->GetStyle<FButtonStyle>();
+		if(StylePtr != nullptr)
+		{
+			ButtonStyle->ButtonStyle = *StylePtr;
+		}
+
+		Style_DEPRECATED = nullptr;
+	}
 }
 
 FReply UButton::SlateHandleClicked()
@@ -159,18 +164,6 @@ const FSlateBrush* UButton::GetEditorIcon()
 const FText UButton::GetToolboxCategory()
 {
 	return LOCTEXT("Common", "Common");
-}
-
-bool UButton::CanEditChange(const UProperty* Property) const
-{
-	static const FName ButtonStyleName(TEXT("ButtonStyle"));
-
-	if ( Property->GetFName() == ButtonStyleName )
-	{
-		return  Style == nullptr;
-	}
-
-	return true;
 }
 
 #endif
