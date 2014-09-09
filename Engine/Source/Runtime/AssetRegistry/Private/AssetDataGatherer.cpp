@@ -311,12 +311,36 @@ void FAssetDataGatherer::AddFilesToSearch(const TArray<FString>& Files)
 	}
 }
 
+void FAssetDataGatherer::PrioritizeSearchPath(const FString& PathToPrioritize)
+{
+	const bool bIncludeReadOnlyRoots = true;
+	if ( FPackageName::IsValidLongPackageName(PathToPrioritize, bIncludeReadOnlyRoots) )
+	{
+		const FString FilenamePathToPrioritize = FPackageName::LongPackageNameToFilename(PathToPrioritize);
+
+		// Critical section. This code needs to be as fast as possible since it is in a critical section!
+		// Swap all priority files to the top of the list
+		{
+			FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
+			int32 LowestNonPriorityFileIdx = 0;
+			for ( int32 FilenameIdx = 0; FilenameIdx < FilesToSearch.Num(); ++FilenameIdx )
+			{
+				if ( FilesToSearch[FilenameIdx].StartsWith(FilenamePathToPrioritize) )
+				{
+					FilesToSearch.Swap(FilenameIdx, LowestNonPriorityFileIdx);
+					LowestNonPriorityFileIdx++;
+				}
+			}
+		}
+	}
+}
+
 void FAssetDataGatherer::DiscoverFilesToSearch()
 {
 	if( PathsToSearch.Num() > 0 )
 	{
 		TArray<FString> DiscoveredFilesToSearch;
-		TArray<FString> LocalDiscoveredPaths;
+		TSet<FString> LocalDiscoveredPathsSet;
 
 		TArray<FString> CopyOfPathsToSearch;
 		{
@@ -348,17 +372,20 @@ void FAssetDataGatherer::DiscoverFilesToSearch()
 				{
 					// Add the path to this asset into the list of discovered paths
 					const FString LongPackageName = FPackageName::FilenameToLongPackageName(Filename);
-					LocalDiscoveredPaths.AddUnique( FPackageName::GetLongPackagePath(LongPackageName) );
+					LocalDiscoveredPathsSet.Add( FPackageName::GetLongPackagePath(LongPackageName) );
 					DiscoveredFilesToSearch.Add(Filename);
 				}
 			}
 		}
 
+		// Turn the set into an array here before the critical section below
+		TArray<FString> LocalDiscoveredPathsArray = LocalDiscoveredPathsSet.Array();
+
 		{
 			// Place all the discovered files into the files to search list
 			FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 			FilesToSearch.Append(DiscoveredFilesToSearch);
-			DiscoveredPaths.Append(LocalDiscoveredPaths);
+			DiscoveredPaths.Append(LocalDiscoveredPathsArray);
 		}
 	}
 }

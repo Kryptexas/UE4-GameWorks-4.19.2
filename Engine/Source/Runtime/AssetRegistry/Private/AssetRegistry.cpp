@@ -1070,6 +1070,14 @@ void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths, bool b
 	ScanPathsSynchronous_Internal(InPaths, bForceRescan, bUseCache);
 }
 
+void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
+{
+	if (BackgroundAssetSearch.IsValid())
+	{
+		BackgroundAssetSearch->PrioritizeSearchPath(PathToPrioritize);
+	}
+}
+
 void FAssetRegistry::AssetCreated(UObject* NewAsset)
 {
 	if ( ensure(NewAsset) && NewAsset->IsAsset() )

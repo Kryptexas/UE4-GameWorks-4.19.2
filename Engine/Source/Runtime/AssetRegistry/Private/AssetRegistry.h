@@ -36,6 +36,7 @@ public:
 	virtual bool RemovePath(const FString& PathToRemove) override;
 	virtual void SearchAllAssets(bool bSynchronousSearch) override;
 	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) override;
+	virtual void PrioritizeSearchPath(const FString& PathToPrioritize) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, int32 AssetCount) override;
 

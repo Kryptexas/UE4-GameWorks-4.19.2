@@ -826,6 +826,13 @@ void SPathView::TreeSelectionChanged( TSharedPtr< FTreeItem > TreeItem, ESelectI
 			}
 		}
 	}
+
+	if (TreeItem.IsValid())
+	{
+		// Prioritize the asset registry scan for the selected path
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().PrioritizeSearchPath(TreeItem->FolderPath);
+	}
 }
 
 void SPathView::TreeExpansionChanged( TSharedPtr< FTreeItem > TreeItem, bool bIsExpanded )
