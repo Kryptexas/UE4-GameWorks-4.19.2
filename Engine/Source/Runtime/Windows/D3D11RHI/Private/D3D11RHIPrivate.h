@@ -317,10 +317,6 @@ public:
 	/** If it hasn't been initialized yet, initializes the D3D device. */
 	virtual void InitD3DDevice();
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
-	void SetupRecursiveResources();
-#endif
-
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;
@@ -584,6 +580,13 @@ protected:
 	void ReadSurfaceDataNoMSAARaw(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
 
 	void ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous& RHICmdList, FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
+
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	void SetupRecursiveResources();
+#endif
+#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
+	void CheckThreadsafeQueries(bool bWait = false);
+#endif
 
 	friend struct FD3DGPUProfiler;
 };

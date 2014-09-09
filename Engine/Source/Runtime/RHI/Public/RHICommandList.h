@@ -10,6 +10,8 @@
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
+#define USE_RHICOMMAND_STATE_REDUCTION (0)
+
 extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
 
 struct FRHICommandBase
@@ -94,7 +96,6 @@ public:
 		}
 	}
 
-
 	struct FDrawUpData
 	{
 
@@ -114,17 +115,21 @@ public:
 			, OutIndexData(nullptr)
 		{
 		}
-
 	};
 
 private:
 	FRHICommandBase* Root;
 	FRHICommandBase** CommandLink;
 	bool bExecuting;
-	FGraphEventArray RTTasks;
 	uint32 NumCommands;
 	uint32 UID;
-	FMemStackBase MemManager; // this has 1k inline storage, so we want to small members before it
+	FMemStackBase MemManager; 
+#if USE_RHICOMMAND_STATE_REDUCTION
+protected:
+	struct FRHICommandListStateCache* StateCache;
+private:
+#endif
+	FGraphEventArray RTTasks;
 
 	void Reset();
 
@@ -132,8 +137,50 @@ private:
 	friend class FRHICommandListIterator;
 
 public:
-	FDrawUpData DrawUPData; // this isn't used very much so we put it at the cold end here
+	FDrawUpData DrawUPData; 
 };
+
+#if USE_RHICOMMAND_STATE_REDUCTION
+struct FRHICommandListStateCache
+{
+	// warning, no destructor is ever called for this struct
+
+	FRHICommandListStateCache()
+	{
+		FlushShaderState();
+		FlushSamplerState();
+	}
+	enum 
+	{
+		MAX_SAMPLERS_PER_SHADER_STAGE = 32, // it is okish if this is too small, those buffers simply won't get state reduction
+		MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE = 14, // it is okish if this is too small, those buffers simply won't get state reduction
+	};
+	FSamplerStateRHIParamRef Samplers[SF_NumFrequencies][MAX_SAMPLERS_PER_SHADER_STAGE];
+	FUniformBufferRHIParamRef BoundUniformBuffers[SF_NumFrequencies][MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE];
+
+	FORCEINLINE void FlushSamplerState()
+	{
+		for (int32 Index = 0; Index < SF_NumFrequencies; Index++)
+		{
+			for (int32 IndexInner = 0; IndexInner < MAX_SAMPLERS_PER_SHADER_STAGE; IndexInner++)
+			{
+				Samplers[Index][IndexInner] = nullptr;
+			}
+		}
+	}
+
+	FORCEINLINE void FlushShaderState()
+	{
+		for (int32 Index = 0; Index < SF_NumFrequencies; Index++)
+		{
+			for (int32 IndexInner = 0; IndexInner < MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE; IndexInner++)
+			{
+				BoundUniformBuffers[Index][IndexInner] = nullptr;
+			}
+		}
+	}
+};
+#endif
 
 template<typename TCmd>
 struct FRHICommand : public FRHICommandBase
@@ -158,10 +205,7 @@ struct FRHICommandSetRasterizerState : public FRHICommand<FRHICommandSetRasteriz
 		: State(InState)
 	{
 	}
-	void Execute()
-	{
-		SetRasterizerState_Internal(State);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetDepthStencilState : public FRHICommand<FRHICommandSetDepthStencilState>
@@ -173,10 +217,7 @@ struct FRHICommandSetDepthStencilState : public FRHICommand<FRHICommandSetDepthS
 		, StencilRef(InStencilRef)
 	{
 	}
-	void Execute()
-	{
-		SetDepthStencilState_Internal(State, StencilRef);
-	}
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -195,10 +236,7 @@ struct FRHICommandSetShaderParameter : public FRHICommand<FRHICommandSetShaderPa
 		, NumBytes(InNumBytes)
 	{
 	}
-	void Execute()
-	{
-		SetShaderParameter_Internal(Shader, BufferIndex, BaseIndex, NumBytes, NewValue); 
-	}
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -213,10 +251,7 @@ struct FRHICommandSetShaderUniformBuffer : public FRHICommand<FRHICommandSetShad
 		, UniformBuffer(InUniformBuffer)
 	{
 	}
-	void Execute()
-	{
-		SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer);
-	}
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -231,10 +266,7 @@ struct FRHICommandSetShaderTexture : public FRHICommand<FRHICommandSetShaderText
 		, Texture(InTexture)
 	{
 	}
-	void Execute()
-	{
-		SetShaderTexture_Internal(Shader, TextureIndex, Texture);
-	}
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -249,10 +281,7 @@ struct FRHICommandSetShaderResourceViewParameter : public FRHICommand<FRHIComman
 		, SRV(InSRV)
 	{
 	}
-	void Execute()
-	{
-		SetShaderResourceViewParameter_Internal(Shader, SamplerIndex, SRV);
-	}
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -267,10 +296,7 @@ struct FRHICommandSetUAVParameter : public FRHICommand<FRHICommandSetUAVParamete
 		, UAV(InUAV)
 	{
 	}
-	void Execute()
-	{
-		SetUAVParameter_Internal(Shader, UAVIndex, UAV);
-	}
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -287,10 +313,7 @@ struct FRHICommandSetUAVParameter_IntialCount : public FRHICommand<FRHICommandSe
 		, InitialCount(InInitialCount)
 	{
 	}
-	void Execute()
-	{
-		SetUAVParameter_Internal(Shader, UAVIndex, UAV, InitialCount);
-	}
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -305,10 +328,7 @@ struct FRHICommandSetShaderSampler : public FRHICommand<FRHICommandSetShaderSamp
 		, Sampler(InSampler)
 	{
 	}
-	void Execute()
-	{
-		SetShaderSampler_Internal(Shader, SamplerIndex, Sampler);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandDrawPrimitive : public FRHICommand<FRHICommandDrawPrimitive>
@@ -324,11 +344,7 @@ struct FRHICommandDrawPrimitive : public FRHICommand<FRHICommandDrawPrimitive>
 		, NumInstances(InNumInstances)
 	{
 	}
-	void Execute()
-	{
-		DrawPrimitive_Internal(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
-	}
-
+	RHI_API void Execute();
 };
 
 struct FRHICommandDrawIndexedPrimitive : public FRHICommand<FRHICommandDrawIndexedPrimitive>
@@ -352,10 +368,7 @@ struct FRHICommandDrawIndexedPrimitive : public FRHICommand<FRHICommandDrawIndex
 		, NumInstances(InNumInstances)
 	{
 	}
-	void Execute()
-	{
-		DrawIndexedPrimitive_Internal(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetBoundShaderState : public FRHICommand<FRHICommandSetBoundShaderState>
@@ -365,10 +378,7 @@ struct FRHICommandSetBoundShaderState : public FRHICommand<FRHICommandSetBoundSh
 		: BoundShaderState(InBoundShaderState)
 	{
 	}
-	void Execute()
-	{
-		SetBoundShaderState_Internal(BoundShaderState);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetBlendState : public FRHICommand<FRHICommandSetBlendState>
@@ -380,10 +390,7 @@ struct FRHICommandSetBlendState : public FRHICommand<FRHICommandSetBlendState>
 		, BlendFactor(InBlendFactor)
 	{
 	}
-	void Execute()
-	{
-		SetBlendState_Internal(State, BlendFactor);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetStreamSource : public FRHICommand<FRHICommandSetStreamSource>
@@ -399,10 +406,7 @@ struct FRHICommandSetStreamSource : public FRHICommand<FRHICommandSetStreamSourc
 		, Offset(InOffset)
 	{
 	}
-	void Execute()
-	{
-		SetStreamSource_Internal(StreamIndex, VertexBuffer, Stride, Offset);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetViewport : public FRHICommand<FRHICommandSetViewport>
@@ -422,10 +426,7 @@ struct FRHICommandSetViewport : public FRHICommand<FRHICommandSetViewport>
 		, MaxZ(InMaxZ)
 	{
 	}
-	void Execute()
-	{
-		SetViewport_Internal(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetScissorRect : public FRHICommand<FRHICommandSetScissorRect>
@@ -443,10 +444,7 @@ struct FRHICommandSetScissorRect : public FRHICommand<FRHICommandSetScissorRect>
 		, MaxY(InMaxY)
 	{
 	}
-	void Execute()
-	{
-		SetScissorRect_Internal(bEnable, MinX, MinY, MaxX, MaxY);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetRenderTargets : public FRHICommand<FRHICommandSetRenderTargets>
@@ -479,15 +477,7 @@ struct FRHICommandSetRenderTargets : public FRHICommand<FRHICommandSetRenderTarg
 			UAVs[Index] = InUAVs[Index];
 		}
 	}
-	void Execute()
-	{
-		SetRenderTargets_Internal(
-			NewNumSimultaneousRenderTargets,
-			NewRenderTargetsRHI,
-			NewDepthStencilTargetRHI,
-			NewNumUAVs,
-			UAVs);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandEndDrawPrimitiveUP : public FRHICommand<FRHICommandEndDrawPrimitiveUP>
@@ -506,13 +496,7 @@ struct FRHICommandEndDrawPrimitiveUP : public FRHICommand<FRHICommandEndDrawPrim
 		, OutVertexData(InOutVertexData)
 	{
 	}
-	void Execute()
-	{
-		void* Buffer = NULL;
-		BeginDrawPrimitiveUP_Internal(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, Buffer);
-		FMemory::Memcpy(Buffer, OutVertexData, NumVertices * VertexDataStride);
-		EndDrawPrimitiveUP_Internal();
-	}
+	RHI_API void Execute();
 };
 
 
@@ -540,24 +524,7 @@ struct FRHICommandEndDrawIndexedPrimitiveUP : public FRHICommand<FRHICommandEndD
 		, OutIndexData(InOutIndexData)
 	{
 	}
-	void Execute()
-	{
-		void* VertexBuffer = nullptr;
-		void* IndexBuffer = nullptr;
-		BeginDrawIndexedPrimitiveUP_Internal(
-			PrimitiveType,
-			NumPrimitives,
-			NumVertices,
-			VertexDataStride,
-			VertexBuffer,
-			MinVertexIndex,
-			NumIndices,
-			IndexDataStride,
-			IndexBuffer);
-		FMemory::Memcpy(VertexBuffer, OutVertexData, NumVertices * VertexDataStride);
-		FMemory::Memcpy(IndexBuffer, OutIndexData, NumIndices * IndexDataStride);
-		EndDrawIndexedPrimitiveUP_Internal();
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetComputeShader : public FRHICommand<FRHICommandSetComputeShader>
@@ -567,10 +534,7 @@ struct FRHICommandSetComputeShader : public FRHICommand<FRHICommandSetComputeSha
 		: ComputeShader(InComputeShader)
 	{
 	}
-	void Execute()
-	{
-		SetComputeShader_Internal(ComputeShader);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandDispatchComputeShader : public FRHICommand<FRHICommandDispatchComputeShader>
@@ -584,11 +548,7 @@ struct FRHICommandDispatchComputeShader : public FRHICommand<FRHICommandDispatch
 		, ThreadGroupCountZ(InThreadGroupCountZ)
 	{
 	}
-	void Execute()
-	{
-		DispatchComputeShader_Internal(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-	}
-
+	RHI_API void Execute();
 };
 
 struct FRHICommandDispatchIndirectComputeShader : public FRHICommand<FRHICommandDispatchIndirectComputeShader>
@@ -600,10 +560,7 @@ struct FRHICommandDispatchIndirectComputeShader : public FRHICommand<FRHICommand
 		, ArgumentOffset(InArgumentOffset)
 	{
 	}
-	void Execute()
-	{
-		DispatchIndirectComputeShader_Internal(ArgumentBuffer, ArgumentOffset);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandAutomaticCacheFlushAfterComputeShader : public FRHICommand<FRHICommandAutomaticCacheFlushAfterComputeShader>
@@ -613,18 +570,12 @@ struct FRHICommandAutomaticCacheFlushAfterComputeShader : public FRHICommand<FRH
 		: bEnable(InbEnable)
 	{
 	}
-	void Execute()
-	{
-		AutomaticCacheFlushAfterComputeShader_Internal(bEnable);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandFlushComputeShaderCache : public FRHICommand<FRHICommandFlushComputeShaderCache>
 {
-	void Execute()
-	{
-		FlushComputeShaderCache_Internal();
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandDrawPrimitiveIndirect : public FRHICommand<FRHICommandDrawPrimitiveIndirect>
@@ -638,10 +589,7 @@ struct FRHICommandDrawPrimitiveIndirect : public FRHICommand<FRHICommandDrawPrim
 		, ArgumentOffset(InArgumentOffset)
 	{
 	}
-	void Execute()
-	{
-		DrawPrimitiveIndirect_Internal(PrimitiveType, ArgumentBuffer, ArgumentOffset);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandDrawIndexedIndirect : public FRHICommand<FRHICommandDrawIndexedIndirect>
@@ -660,10 +608,7 @@ struct FRHICommandDrawIndexedIndirect : public FRHICommand<FRHICommandDrawIndexe
 		, NumInstances(InNumInstances)
 	{
 	}
-	void Execute()
-	{
-		DrawIndexedIndirect_Internal(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandDrawIndexedPrimitiveIndirect : public FRHICommand<FRHICommandDrawIndexedPrimitiveIndirect>
@@ -680,10 +625,7 @@ struct FRHICommandDrawIndexedPrimitiveIndirect : public FRHICommand<FRHICommandD
 		, ArgumentOffset(InArgumentOffset)
 	{
 	}
-	void Execute()
-	{
-		DrawIndexedPrimitiveIndirect_Internal(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandEnableDepthBoundsTest : public FRHICommand<FRHICommandEnableDepthBoundsTest>
@@ -698,10 +640,7 @@ struct FRHICommandEnableDepthBoundsTest : public FRHICommand<FRHICommandEnableDe
 		, MaxDepth(InMaxDepth)
 	{
 	}
-	void Execute()
-	{
-		EnableDepthBoundsTest_Internal(bEnable, MinDepth, MaxDepth);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandClearUAV : public FRHICommand<FRHICommandClearUAV>
@@ -717,10 +656,7 @@ struct FRHICommandClearUAV : public FRHICommand<FRHICommandClearUAV>
 		Values[2] = InValues[2];
 		Values[3] = InValues[3];
 	}
-	void Execute()
-	{
-		ClearUAV_Internal(UnorderedAccessViewRHI, Values);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandCopyToResolveTarget : public FRHICommand<FRHICommandCopyToResolveTarget>
@@ -737,11 +673,7 @@ struct FRHICommandCopyToResolveTarget : public FRHICommand<FRHICommandCopyToReso
 		, ResolveParams(InResolveParams)
 	{
 	}
-	void Execute()
-	{
-		CopyToResolveTarget_Internal(SourceTexture, DestTexture, bKeepOriginalSurface, ResolveParams);
-	}
-
+	RHI_API void Execute();
 };
 
 struct FRHICommandClear : public FRHICommand<FRHICommandClear>
@@ -772,10 +704,7 @@ struct FRHICommandClear : public FRHICommand<FRHICommandClear>
 		, bClearStencil(InbClearStencil)
 	{
 	}
-	void Execute()
-	{
-		Clear_Internal(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandClearMRT : public FRHICommand<FRHICommandClearMRT>
@@ -813,10 +742,7 @@ struct FRHICommandClearMRT : public FRHICommand<FRHICommandClearMRT>
 			ColorArray[Index] = InColorArray[Index];
 		}
 	}
-	void Execute()
-	{
-		ClearMRT_Internal(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
-	}
+	RHI_API void Execute();
 };
 
 
@@ -920,15 +846,7 @@ struct FRHICommandBuildLocalBoundShaderState : public FRHICommand<FRHICommandBui
 
 	{
 	}
-	void Execute()
-	{
-		check(!IsValidRef(WorkArea.ComputedBSS->BSS)); // should not already have been created
-		if (WorkArea.ComputedBSS->UseCount)
-		{
-			WorkArea.ComputedBSS->BSS = CreateBoundShaderState_Internal(WorkArea.Args.VertexDeclarationRHI, WorkArea.Args.VertexShaderRHI, WorkArea.Args.HullShaderRHI, WorkArea.Args.DomainShaderRHI, WorkArea.Args.PixelShaderRHI, WorkArea.Args.GeometryShaderRHI);
-		}
-	}
-
+	RHI_API void Execute();
 };
 
 struct FRHICommandSetLocalBoundShaderState : public FRHICommand<FRHICommandSetLocalBoundShaderState>
@@ -940,18 +858,7 @@ struct FRHICommandSetLocalBoundShaderState : public FRHICommand<FRHICommandSetLo
 		check(CheckCmdList == LocalBoundShaderState.WorkArea->CheckCmdList && CheckCmdList->GetUID() == LocalBoundShaderState.WorkArea->UID); // this BSS was not built for this particular commandlist
 		LocalBoundShaderState.WorkArea->ComputedBSS->UseCount++;
 	}
-	void Execute()
-	{
-		check(LocalBoundShaderState.WorkArea->ComputedBSS->UseCount > 0 && IsValidRef(LocalBoundShaderState.WorkArea->ComputedBSS->BSS)); // this should have been created and should have uses outstanding
-
-		SetBoundShaderState_Internal(LocalBoundShaderState.WorkArea->ComputedBSS->BSS);
-
-		if (--LocalBoundShaderState.WorkArea->ComputedBSS->UseCount == 0)
-		{
-			LocalBoundShaderState.WorkArea->ComputedBSS->~FComputedBSS();
-		}
-	}
-
+	RHI_API void Execute();
 };
 
 
@@ -1022,21 +929,7 @@ struct FRHICommandBuildLocalUniformBuffer : public FRHICommand<FRHICommandBuildL
 
 	{
 	}
-	void Execute()
-	{
-		check(!IsValidRef(WorkArea.ComputedUniformBuffer->UniformBuffer) && WorkArea.Layout && WorkArea.Contents); // should not already have been created
-		if (WorkArea.ComputedUniformBuffer->UseCount)
-		{
-#if PLATFORM_SUPPORTS_RHI_THREAD
-			WorkArea.ComputedUniformBuffer->UniformBuffer = RHICreateUniformBuffer(WorkArea.Contents, *WorkArea.Layout, UniformBuffer_SingleFrame);
-#else
-			WorkArea.ComputedUniformBuffer->UniformBuffer = CreateUniformBuffer_Internal(WorkArea.Contents, *WorkArea.Layout, UniformBuffer_SingleFrame);
-#endif
-		}
-		WorkArea.Layout = nullptr;
-		WorkArea.Contents = nullptr;
-	}
-
+	RHI_API void Execute();
 };
 
 template <typename TShaderRHIParamRef>
@@ -1054,16 +947,7 @@ struct FRHICommandSetLocalUniformBuffer : public FRHICommand<FRHICommandSetLocal
 		check(CheckCmdList == LocalUniformBuffer.WorkArea->CheckCmdList && CheckCmdList->GetUID() == LocalUniformBuffer.WorkArea->UID); // this uniform buffer was not built for this particular commandlist
 		LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UseCount++;
 	}
-	void Execute()
-	{
-		check(LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UseCount > 0 && IsValidRef(LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UniformBuffer)); // this should have been created and should have uses outstanding
-		SetShaderUniformBuffer_Internal(Shader, BaseIndex, LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UniformBuffer);
-		if (--LocalUniformBuffer.WorkArea->ComputedUniformBuffer->UseCount == 0)
-		{
-			LocalUniformBuffer.WorkArea->ComputedUniformBuffer->~FComputedUniformBuffer();
-		}
-	}
-
+	RHI_API void Execute();
 };
 
 struct FRHICommandBeginRenderQuery : public FRHICommand<FRHICommandBeginRenderQuery>
@@ -1074,10 +958,7 @@ struct FRHICommandBeginRenderQuery : public FRHICommand<FRHICommandBeginRenderQu
 		: RenderQuery(InRenderQuery)
 	{
 	}
-	void Execute()
-	{
-		BeginRenderQuery_Internal(RenderQuery);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandEndRenderQuery : public FRHICommand<FRHICommandEndRenderQuery>
@@ -1088,10 +969,7 @@ struct FRHICommandEndRenderQuery : public FRHICommand<FRHICommandEndRenderQuery>
 		: RenderQuery(InRenderQuery)
 	{
 	}
-	void Execute()
-	{
-		EndRenderQuery_Internal(RenderQuery);
-	}
+	RHI_API void Execute();
 };
 
 #if !PLATFORM_SUPPORTS_RHI_THREAD
@@ -1103,10 +981,7 @@ struct FRHICommandResetRenderQuery : public FRHICommand<FRHICommandResetRenderQu
 		: RenderQuery(InRenderQuery)
 	{
 	}
-	void Execute()
-	{
-		ResetRenderQuery_Internal(RenderQuery);
-	}
+	RHI_API void Execute();
 };
 #endif
 
@@ -1115,10 +990,7 @@ struct FRHICommandBeginScene : public FRHICommand<FRHICommandBeginScene>
 	FORCEINLINE_DEBUGGABLE FRHICommandBeginScene()
 	{
 	}
-	void Execute()
-	{
-		BeginScene_Internal();
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandEndScene : public FRHICommand<FRHICommandEndScene>
@@ -1126,10 +998,7 @@ struct FRHICommandEndScene : public FRHICommand<FRHICommandEndScene>
 	FORCEINLINE_DEBUGGABLE FRHICommandEndScene()
 	{
 	}
-	void Execute()
-	{
-		EndScene_Internal();
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandUpdateVertexBuffer : public FRHICommand<FRHICommandUpdateVertexBuffer>
@@ -1144,13 +1013,7 @@ struct FRHICommandUpdateVertexBuffer : public FRHICommand<FRHICommandUpdateVerte
 		, BufferSize(InBufferSize)
 	{
 	}
-	void Execute()
-	{
-		void* Data = LockVertexBuffer_Internal(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
-		FMemory::Memcpy(Data, Buffer, BufferSize);
-		UnlockVertexBuffer_Internal(VertexBuffer);
-		FMemory::Free((void*)Buffer);
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandBeginFrame : public FRHICommand<FRHICommandBeginFrame>
@@ -1158,10 +1021,7 @@ struct FRHICommandBeginFrame : public FRHICommand<FRHICommandBeginFrame>
 	FORCEINLINE_DEBUGGABLE FRHICommandBeginFrame()
 	{
 	}
-	void Execute()
-	{
-		BeginFrame_Internal();
-	}
+	RHI_API void Execute();
 };
 
 struct FRHICommandEndFrame : public FRHICommand<FRHICommandEndFrame>
@@ -1169,12 +1029,38 @@ struct FRHICommandEndFrame : public FRHICommand<FRHICommandEndFrame>
 	FORCEINLINE_DEBUGGABLE FRHICommandEndFrame()
 	{
 	}
-	void Execute()
-	{
-		EndFrame_Internal();
-	}
+	RHI_API void Execute();
 };
 
+#if PLATFORM_SUPPORTS_RHI_THREAD
+struct FRHICommandBeginDrawingViewport : public FRHICommand<FRHICommandBeginDrawingViewport>
+{
+	FViewportRHIParamRef Viewport;
+	FTextureRHIParamRef RenderTargetRHI;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginDrawingViewport(FViewportRHIParamRef InViewport, FTextureRHIParamRef InRenderTargetRHI)
+		: Viewport(InViewport)
+		, RenderTargetRHI(InRenderTargetRHI)
+	{
+	}
+	RHI_API void Execute();
+};
+
+struct FRHICommandEndDrawingViewport : public FRHICommand<FRHICommandEndDrawingViewport>
+{
+	FViewportRHIParamRef Viewport;
+	bool bPresent;
+	bool bLockToVsync;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandEndDrawingViewport(FViewportRHIParamRef InViewport, bool InbPresent, bool InbLockToVsync)
+		: Viewport(InViewport)
+		, bPresent(InbPresent)
+		, bLockToVsync(InbLockToVsync)
+	{
+	}
+	RHI_API void Execute();
+};
+#endif
 
 
 class RHI_API FRHICommandList : public FRHICommandListBase
@@ -1185,6 +1071,17 @@ public:
 	void* operator new(size_t Size);
 	void operator delete(void *RawMemory);
 
+#if USE_RHICOMMAND_STATE_REDUCTION
+	FORCEINLINE_DEBUGGABLE bool AllocStateCache()
+	{
+		if (!StateCache)
+		{
+			StateCache = new (Alloc<FRHICommandListStateCache>()) FRHICommandListStateCache();
+			return false;
+		}
+		return true;
+	}
+#endif
 	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
 	{
 		return BuildLocalBoundShaderState(
@@ -1238,6 +1135,12 @@ public:
 			SetBoundShaderState_Internal(LocalBoundShaderState.BypassBSS);
 			return;
 		}
+#if USE_RHICOMMAND_STATE_REDUCTION
+		if (StateCache)
+		{
+			StateCache->FlushShaderState();
+		}
+#endif
 		new (AllocCommand<FRHICommandSetLocalBoundShaderState>()) FRHICommandSetLocalBoundShaderState(this, LocalBoundShaderState);
 	}
 
@@ -1268,22 +1171,44 @@ public:
 			SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer.BypassUniform);
 			return;
 		}
+#if USE_RHICOMMAND_STATE_REDUCTION
+		if (StateCache)
+		{
+			//local uniform buffers are rare, so we will just flush
+			StateCache->BoundUniformBuffers[TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency][BaseIndex] = nullptr;
+		}
+#endif
 		new (AllocCommand<FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef> >()) FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef>(this, Shader, BaseIndex, UniformBuffer);
 	}
 
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void SetShaderUniformBuffer(TShaderRHIParamRef Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBuffer)
+	template <typename TShaderRHI>
+	FORCEINLINE_DEBUGGABLE void SetShaderUniformBuffer(TShaderRHI* Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBuffer)
 	{
 		if (Bypass())
 		{
 			SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer);
 			return;
 		}
-		new (AllocCommand<FRHICommandSetShaderUniformBuffer<TShaderRHIParamRef> >()) FRHICommandSetShaderUniformBuffer<TShaderRHIParamRef>(Shader, BaseIndex, UniformBuffer);
+#if USE_RHICOMMAND_STATE_REDUCTION
+		if (BaseIndex < FRHICommandListStateCache::MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE)
+		{
+			if (AllocStateCache() && StateCache->BoundUniformBuffers[TRHIShaderToEnum<TShaderRHI*>::ShaderFrequency][BaseIndex] == UniformBuffer)
+			{
+				return;
+			}
+			StateCache->BoundUniformBuffers[TRHIShaderToEnum<TShaderRHI*>::ShaderFrequency][BaseIndex] = UniformBuffer;
+		}
+#endif
+		new (AllocCommand<FRHICommandSetShaderUniformBuffer<TShaderRHI*> >()) FRHICommandSetShaderUniformBuffer<TShaderRHI*>(Shader, BaseIndex, UniformBuffer);
+	}
+	template <typename TShaderRHI>
+	FORCEINLINE void SetShaderUniformBuffer(TRefCountPtr<TShaderRHI>& Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBuffer)
+	{
+		SetShaderUniformBuffer(Shader.GetReference(), BaseIndex, UniformBuffer);
 	}
 
-	template <typename TShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void SetShaderParameter(TShaderRHIParamRef Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
+	template <typename TShaderRHI>
+	FORCEINLINE_DEBUGGABLE void SetShaderParameter(TShaderRHI* Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 	{
 		if (Bypass())
 		{
@@ -1292,7 +1217,12 @@ public:
 		}
 		void* UseValue = Alloc(NumBytes, 16);
 		FMemory::Memcpy(UseValue, NewValue, NumBytes);
-		new (AllocCommand<FRHICommandSetShaderParameter<TShaderRHIParamRef> >()) FRHICommandSetShaderParameter<TShaderRHIParamRef>(Shader, BufferIndex, BaseIndex, NumBytes, UseValue);
+		new (AllocCommand<FRHICommandSetShaderParameter<TShaderRHI*> >()) FRHICommandSetShaderParameter<TShaderRHI*>(Shader, BufferIndex, BaseIndex, NumBytes, UseValue);
+	}
+	template <typename TShaderRHI>
+	FORCEINLINE void SetShaderParameter(TRefCountPtr<TShaderRHI>& Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
+	{
+		SetShaderParameter(Shader.GetReference(), BufferIndex, BaseIndex, NumBytes, NewValue);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1325,6 +1255,16 @@ public:
 			SetShaderSampler_Internal(Shader, SamplerIndex, State);
 			return;
 		}
+#if USE_RHICOMMAND_STATE_REDUCTION
+		if (SamplerIndex < FRHICommandListStateCache::MAX_SAMPLERS_PER_SHADER_STAGE)
+		{
+			if (AllocStateCache() && StateCache->Samplers[TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency][SamplerIndex] == State)
+			{
+				return;
+			}
+			StateCache->Samplers[TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency][SamplerIndex] = State;
+		}
+#endif
 		new (AllocCommand<FRHICommandSetShaderSampler<TShaderRHIParamRef> >()) FRHICommandSetShaderSampler<TShaderRHIParamRef>(Shader, SamplerIndex, State);
 	}
 
@@ -1355,6 +1295,12 @@ public:
 			SetBoundShaderState_Internal(BoundShaderState);
 			return;
 		}
+#if USE_RHICOMMAND_STATE_REDUCTION
+		if (StateCache)
+		{
+			StateCache->FlushShaderState();
+		}
+#endif
 		new (AllocCommand<FRHICommandSetBoundShaderState>()) FRHICommandSetBoundShaderState(BoundShaderState);
 	}
 
@@ -1544,6 +1490,12 @@ public:
 			SetComputeShader_Internal(ComputeShader);
 			return;
 		}
+#if USE_RHICOMMAND_STATE_REDUCTION
+		if (StateCache)
+		{
+			StateCache->FlushShaderState();
+		}
+#endif
 		new (AllocCommand<FRHICommandSetComputeShader>()) FRHICommandSetComputeShader(ComputeShader);
 	}
 
@@ -1825,9 +1777,6 @@ public:
 	static FGraphEventRef RHIThreadFence();
 	static void WaitOnRHIThreadFence(FGraphEventRef& Fence);
 
-	FORCEINLINE_DEBUGGABLE void Verify()
-	{
-	}
 	FORCEINLINE_DEBUGGABLE bool Bypass()
 	{
 #if !UE_BUILD_SHIPPING

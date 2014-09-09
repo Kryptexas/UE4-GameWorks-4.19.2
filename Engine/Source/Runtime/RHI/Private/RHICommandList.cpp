@@ -24,6 +24,11 @@ Requirements for RHI thread
 ***/
 #endif
 
+#if !PLATFORM_USES_FIXED_RHI_CLASS
+#include "RHICommandListCommandExecutes.inl"
+#endif
+
+
 static TAutoConsoleVariable<int32> CVarRHICmdBypass(
 	TEXT("r.RHICmdBypass"),
 	FRHICommandListExecutor::DefaultBypass,
@@ -58,6 +63,7 @@ void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdLis
 		while (Iter.HasCommandsLeft())
 		{
 			FRHICommandBase* Cmd = Iter.NextCommand();
+			//FPlatformMisc::Prefetch(Cmd->Next);
 			Cmd->CallExecuteAndDestruct();
 		}
 	}
@@ -415,6 +421,9 @@ void FRHICommandListBase::Reset()
 	NumCommands = 0;
 	Root = nullptr;
 	CommandLink = &Root;
+#if USE_RHICOMMAND_STATE_REDUCTION
+	StateCache = nullptr;
+#endif
 	UID = GRHICommandList.UIDCounter.Increment();
 }
 
@@ -540,22 +549,6 @@ void FRHICommandListBase::QueueCommandListSubmit(class FRHICommandList* CmdList)
 }
 
 #if PLATFORM_SUPPORTS_RHI_THREAD
-struct FRHICommandBeginDrawingViewport : public FRHICommand<FRHICommandBeginDrawingViewport>
-{
-	FViewportRHIParamRef Viewport;
-	FTextureRHIParamRef RenderTargetRHI;
-
-	FORCEINLINE_DEBUGGABLE FRHICommandBeginDrawingViewport(FViewportRHIParamRef InViewport, FTextureRHIParamRef InRenderTargetRHI)
-		: Viewport(InViewport)
-		, RenderTargetRHI(InRenderTargetRHI)
-	{
-	}
-	void Execute()
-	{
-		BeginDrawingViewport_Internal(Viewport, RenderTargetRHI);
-	}
-};
-
 void FRHICommandList::BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextureRHIParamRef RenderTargetRHI)
 {
 	check(IsImmediate() && IsInRenderingThread());
@@ -566,23 +559,6 @@ void FRHICommandList::BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextu
 	}
 	new (AllocCommand<FRHICommandBeginDrawingViewport>()) FRHICommandBeginDrawingViewport(Viewport, RenderTargetRHI);
 }
-struct FRHICommandEndDrawingViewport : public FRHICommand<FRHICommandEndDrawingViewport>
-{
-	FViewportRHIParamRef Viewport;
-	bool bPresent;
-	bool bLockToVsync;
-
-	FORCEINLINE_DEBUGGABLE FRHICommandEndDrawingViewport(FViewportRHIParamRef InViewport, bool InbPresent, bool InbLockToVsync)
-		: Viewport(InViewport)
-		, bPresent(InbPresent)
-		, bLockToVsync(InbLockToVsync)
-	{
-	}
-	void Execute()
-	{
-		EndDrawingViewport_Internal(Viewport, bPresent, bLockToVsync);
-	}
-};
 
 void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPresent, bool bLockToVsync)
 {

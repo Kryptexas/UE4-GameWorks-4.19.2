@@ -74,6 +74,11 @@ DECLARE_CYCLE_STAT(TEXT("Delete Resources"), STAT_DeleteResources, STATGROUP_RHI
 
 void FRHIResource::FlushPendingDeletes()
 {
+	if (GIsRequestingExit) 
+	{ 
+		// Leak these because we're terrible people. 
+		return; 
+	}
 	SCOPE_CYCLE_COUNTER(STAT_DeleteResources);
 
 	check(IsInRenderingThread());

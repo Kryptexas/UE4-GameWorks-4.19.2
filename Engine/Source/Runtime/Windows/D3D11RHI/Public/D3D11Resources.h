@@ -578,6 +578,10 @@ public:
 		bResultIsCached(false),
 		QueryType(InQueryType)
 	{}
+
+#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
+	~FD3D11OcclusionQuery();
+#endif
 };
 
 /** Updates tracked stats for a buffer. */

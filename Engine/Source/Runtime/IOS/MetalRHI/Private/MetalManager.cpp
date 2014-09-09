@@ -815,8 +815,6 @@ void FMetalManager::CommitGraphicsResourceTables()
 {
 	uint32 Start = FPlatformTime::Cycles();
 
-// 	GRHICommandList.Verify();
-
 	check(CurrentBoundShaderState);
 
 	SetResourcesFromTables(CurrentBoundShaderState->VertexShader, CrossCompiler::SHADER_STAGE_VERTEX, ResourceTableFrameCounter);
