@@ -18,6 +18,7 @@ jobject GJavaGlobalThis = NULL;
 static SVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 
 extern FString GFilePathBase;
+extern FString GFontPathBase;
 extern bool GOBBinAPK;
 
 #if USE_JNI_HELPER
@@ -120,6 +121,7 @@ jmethodID JDef_GameActivity::AndroidThunkJava_CloseAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetAssetManager;
 jmethodID JDef_GameActivity::AndroidThunkJava_Minimize;
 jmethodID JDef_GameActivity::AndroidThunkJava_ForceQuit;
+jmethodID JDef_GameActivity::AndroidThunkJava_GetFontDirectory;
 
 jclass JDef_GameActivity::JavaAchievementClassID;
 jfieldID JDef_GameActivity::AchievementIDField;
@@ -422,6 +424,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::AndroidThunkJava_ForceQuit = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ForceQuit", "()V");
 	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ForceQuit );
 	
+	JDef_GameActivity::AndroidThunkJava_GetFontDirectory = env->GetStaticMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GetFontDirectory", "()Ljava/lang/String;");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GetFontDirectory );
+	
 
 	// Set up achievement query IDs
 	JDef_GameActivity::JavaAchievementClassID = env->FindClass("com/epicgames/ue4/GameActivity$JavaAchievement");
@@ -459,6 +464,13 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	// Next we check to see if the OBB file is in the APK
 	jmethodID isOBBInAPKMethod = env->GetStaticMethodID(JDef_GameActivity::ClassID, "isOBBInAPK", "()Z");
 	GOBBinAPK = (bool)env->CallStaticBooleanMethod(JDef_GameActivity::ClassID, isOBBInAPKMethod, nullptr);
+
+	// Get the system font directory
+	jstring fontPath = (jstring)env->CallStaticObjectMethod(JDef_GameActivity::ClassID, JDef_GameActivity::AndroidThunkJava_GetFontDirectory);
+	const char * nativeFontPathString = env->GetStringUTFChars(fontPath, 0);
+	GFontPathBase = FString(nativeFontPathString);
+	env->ReleaseStringUTFChars(fontPath, nativeFontPathString);
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Font Path found as '%s'\n"), *GFontPathBase);
 
 	// Wire up to core delegates, so core code can call out to Java
 	DECLARE_DELEGATE_OneParam(FAndroidLaunchURLDelegate, const FString&);

@@ -37,6 +37,8 @@ public:
 	static jmethodID AndroidThunkJava_Minimize;
 	static jmethodID AndroidThunkJava_ForceQuit;
 
+	static jmethodID AndroidThunkJava_GetFontDirectory;
+
 	// IDs related to achievement query
 	static jclass JavaAchievementClassID;
 	static jfieldID AchievementIDField;

@@ -169,6 +169,7 @@ int32 FAndroidMisc::NumberOfCores()
 }
 
 extern FString GFilePathBase;
+extern FString GFontPathBase;
 
 class FTestUtime
 {
@@ -271,7 +272,8 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 TArray<uint8> FAndroidMisc::GetSystemFontBytes()
 {
 	TArray<uint8> FontBytes;
-	FFileHelper::LoadFileToArray(FontBytes, TEXT("/system/fonts/DroidSans.ttf"));
+	static FString FullFontPath = GFontPathBase + FString(TEXT("DroidSans.ttf"));
+	FFileHelper::LoadFileToArray(FontBytes, *FullFontPath);
 	return FontBytes;
 }
 

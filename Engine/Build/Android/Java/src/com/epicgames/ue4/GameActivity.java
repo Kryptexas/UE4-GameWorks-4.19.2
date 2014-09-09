@@ -2,6 +2,8 @@
 
 package com.epicgames.ue4;
 
+import java.io.File;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -1050,6 +1052,28 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	{
 		System.exit(0);
 		// finish();
+	}
+
+	public static String AndroidThunkJava_GetFontDirectory()
+	{
+		// Parse and find the first known fonts directory on the device
+		String[] fontdirs = { "/system/fonts", "/system/font", "/data/fonts" };
+
+		String targetDir = null;
+
+		for ( String fontdir : fontdirs )
+        {
+			Log.debug(fontdir);
+            File dir = new File( fontdir );
+
+			if(dir.exists())
+			{
+				targetDir = fontdir;
+				break;
+			}
+		}
+		
+		return targetDir + "/";
 	}
 
 	public native boolean nativeIsShippingBuild();

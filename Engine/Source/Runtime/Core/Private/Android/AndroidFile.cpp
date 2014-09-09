@@ -21,6 +21,8 @@ static int32 GPackagePatchVersion = 0;
 
 // External File Path base - setup during load
 FString GFilePathBase;
+// External font path base - setup during load
+FString GFontPathBase;
 
 // Is the OBB in an APK file or not
 bool GOBBinAPK;
