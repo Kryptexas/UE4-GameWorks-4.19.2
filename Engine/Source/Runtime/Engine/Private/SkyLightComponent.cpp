@@ -445,8 +445,20 @@ void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
 		&& LightColor != NewColor)
 	{
-		LightColor	= NewColor;
+		LightColor = NewColor;
 		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
+{
+	// Can't set color on a static light
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& Cubemap != NewCubemap)
+	{
+		Cubemap = NewCubemap;
+		MarkRenderStateDirty();
+		SetCaptureIsDirty();
 	}
 }
 

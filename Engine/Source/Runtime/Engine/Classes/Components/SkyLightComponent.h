@@ -153,6 +153,10 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetLightColor(FLinearColor NewLightColor);
 
+	/** Sets the cubemap used when SourceType is set to SpecifiedCubemap, and causes a skylight update on the next tick. */
+	UFUNCTION(BlueprintCallable, Category="SkyLight")
+	void SetCubemap(UTextureCube* NewCubemap);
+
 	/** Indicates that the capture needs to recapture the scene, adds it to the recapture queue. */
 	void SetCaptureIsDirty();
 
