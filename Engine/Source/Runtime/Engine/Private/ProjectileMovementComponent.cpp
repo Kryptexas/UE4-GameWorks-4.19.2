@@ -5,11 +5,14 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectileMovement, Log, All);
 
+const float UProjectileMovementComponent::MIN_TICK_TIME = 0.0002f;
+
 UProjectileMovementComponent::UProjectileMovementComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bUpdateOnlyIfRendered = false;
 	bInitialVelocityInLocalSpace = true;
+	bForceSubStepping = false;
 
 	Velocity = FVector(1.f,0.f,0.f);
 
@@ -22,6 +25,9 @@ UProjectileMovementComponent::UProjectileMovementComponent(const class FPostCons
 	HomingAccelerationMagnitude = 0.f;
 
 	bWantsInitializeComponent = true;
+
+	MaxSimulationTimeStep = 0.05f;
+	MaxSimulationIterations = 8;
 }
 
 void UProjectileMovementComponent::Serialize( FArchive& Ar)
@@ -101,15 +107,15 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	FVector OldHitNormal(0.f,0.f,1.f);
 	bool bSliding = false;
 
-	while( RemainingTime > 0.f && (Iterations < 8) && !ActorOwner->IsPendingKill() && UpdatedComponent )
+	while( RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && UpdatedComponent )
 	{
 		Iterations++;
 
-		// subdivide long ticks if falling to more closely follow parabolic trajectory
-		float TimeTick = (!ShouldApplyGravity() || RemainingTime < 0.05f) ? RemainingTime : FMath::Min(0.05f, RemainingTime*0.5f);
+		// subdivide long ticks to more closely follow parabolic trajectory
+		const float TimeTick = ShouldUseSubStepping() ? GetSimulationTimeStep(RemainingTime, Iterations) : RemainingTime;
 		RemainingTime -= TimeTick;
-		Hit.Time = 1.f;
 
+		Hit.Time = 1.f;
 		const FVector OldVelocity = Velocity;
 		FVector MoveDelta = ComputeMoveDelta(Velocity, TimeTick, !bSliding);
 
@@ -204,11 +210,11 @@ void UProjectileMovementComponent::SetVelocityInLocalSpace(FVector NewVelocity)
 }
 
 
-FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bApplyGravity)
+FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled)
 {
 	FVector NewVelocity = OldVelocity;
 
-	const FVector Acceleration = ComputeAcceleration(bApplyGravity);
+	const FVector Acceleration = ComputeAcceleration(OldVelocity, DeltaTime, bGravityEnabled);
 	NewVelocity += Acceleration * DeltaTime;
 
 	return LimitVelocity(NewVelocity);
@@ -217,45 +223,58 @@ FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, flo
 
 FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 {
-	if (GetMaxSpeed() > 0.f)
+	const float CurrentMaxSpeed = GetMaxSpeed();
+	if (CurrentMaxSpeed > 0.f)
 	{
-		NewVelocity = NewVelocity.ClampMaxSize(GetMaxSpeed());
+		NewVelocity = NewVelocity.ClampMaxSize(CurrentMaxSpeed);
 	}
 
 	return NewVelocity;
 }
 
-FVector UProjectileMovementComponent::ComputeMoveDelta(const FVector& InVelocity, float DeltaTime, bool bApplyGravity) const
+FVector UProjectileMovementComponent::ComputeMoveDelta(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const
 {
 	// p = p0 + v*t
 	FVector Delta = InVelocity * DeltaTime;
+	
+	const FVector Acceleration = ComputeAcceleration(InVelocity, DeltaTime, bGravityEnabled);
+	if (!Acceleration.IsZero())
+	{
+		// p = p0 + v*t (above) + 1/2*a*t^2 (below)
+		Delta += 0.5f * Acceleration * FMath::Square(DeltaTime);
 
-	// z = z0 + v*t (above) + 1/2*a*t^2
-	const FVector Acceleration = ComputeAcceleration(bApplyGravity);
-	Delta += 0.5f * Acceleration * FMath::Square(DeltaTime);
+		// limit velocity, else acceleration will push this result over the allowed velocity constraint during this timestep.
+		const FVector EffectiveVelocity = Delta / DeltaTime;
+		const FVector ClampedVelocity = LimitVelocity(EffectiveVelocity);
+		if (ClampedVelocity != EffectiveVelocity)
+		{
+			// Maintain direction but change magnitude
+			Delta = Delta.SafeNormal() * (GetMaxSpeed() * DeltaTime);
+		}
+	}
 
 	return Delta;
 }
 
-FVector UProjectileMovementComponent::ComputeAcceleration(bool bApplyGravity) const
+FVector UProjectileMovementComponent::ComputeAcceleration(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const
 {
 	FVector Acceleration(FVector::ZeroVector);
 
-	if (bApplyGravity)
+	if (bGravityEnabled)
 	{
 		Acceleration.Z += GetEffectiveGravityZ();
 	}
 
 	if (bIsHomingProjectile && HomingTargetComponent.IsValid())
 	{
-		Acceleration += ComputeHoming();
+		Acceleration += ComputeHomingAcceleration(InVelocity, DeltaTime, bGravityEnabled);
 	}
 
 	return Acceleration;
 }
 
 // Allow the projectile to track towards its homing target.
-FVector UProjectileMovementComponent::ComputeHoming() const
+FVector UProjectileMovementComponent::ComputeHomingAcceleration(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const
 {
 	FVector HomingAcceleration = ((HomingTargetComponent->GetComponentLocation() - UpdatedComponent->GetComponentLocation()).SafeNormal() * HomingAccelerationMagnitude);
 	return HomingAcceleration;
@@ -264,7 +283,7 @@ FVector UProjectileMovementComponent::ComputeHoming() const
 float UProjectileMovementComponent::GetEffectiveGravityZ() const
 {
 	// TODO: apply buoyancy if in water
-	return GetGravityZ() * ProjectileGravityScale;
+	return ShouldApplyGravity() ? GetGravityZ() * ProjectileGravityScale : 0.f;
 }
 
 
@@ -283,7 +302,7 @@ bool UProjectileMovementComponent::HandleHitWall(const FHitResult& Hit, float Ti
 	{
 		return true;
 	}
-
+	
 	HandleImpact(Hit, TimeTick, MoveDelta);
 	
 	if( ActorOwner->IsPendingKill() || !UpdatedComponent )
@@ -388,4 +407,38 @@ bool UProjectileMovementComponent::CheckStillInWorld()
 		}
 	}
 	return true;
+}
+
+
+bool UProjectileMovementComponent::ShouldUseSubStepping() const
+{
+	return bForceSubStepping || (GetEffectiveGravityZ() != 0.f) || (bIsHomingProjectile && HomingTargetComponent.IsValid());
+}
+
+
+float UProjectileMovementComponent::GetSimulationTimeStep(float RemainingTime, int32 Iterations) const
+{
+	if (RemainingTime > MaxSimulationTimeStep)
+	{
+		if (Iterations < MaxSimulationIterations)
+		{
+			// Subdivide moves to be no longer than MaxSimulationTimeStep seconds
+			RemainingTime = FMath::Min(MaxSimulationTimeStep, RemainingTime * 0.5f);
+		}
+		else
+		{
+			// If this is the last iteration, just use all the remaining time. This is usually better than cutting things short, as the simulation won't move far enough otherwise.
+			// Print a throttled warning.
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			static uint32 s_WarningCount = 0;
+			if ((s_WarningCount++ < 100) || (GFrameCounter & 15) == 0)
+			{
+				UE_LOG(LogProjectileMovement, Warning, TEXT("GetSimulationTimeStep() - Max iterations %d hit while remaining time %.6f > MaxSimulationTimeStep (%.3f) for '%s'"), MaxSimulationIterations, RemainingTime, MaxSimulationTimeStep, *GetPathNameSafe(UpdatedComponent));
+			}
+#endif
+		}
+	}
+
+	// no less than MIN_TICK_TIME (to avoid potential divide-by-zero during simulation).
+	return FMath::Max(MIN_TICK_TIME, RemainingTime);
 }
