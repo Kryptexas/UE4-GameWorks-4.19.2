@@ -213,6 +213,9 @@ SPaletteView::~SPaletteView()
 		FilterHandler->SetIsEnabled(false);
 		FilterHandler->RefreshAndFilterTree();
 	}
+
+	GEditor->OnObjectsReplaced().RemoveAll( this );
+
 	SaveItemExpansion();
 }
 
