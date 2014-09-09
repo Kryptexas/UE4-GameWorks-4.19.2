@@ -40,6 +40,7 @@ public class DetailCustomizations : ModuleRules
 				"RHI",
                 "Media",
                 "MediaAssets",
+                "HardwareTargeting",
 			}
 		);
 

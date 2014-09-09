@@ -566,6 +566,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
 		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
+		FModuleManager::Get().LoadModule(TEXT("HardwareTargeting"));
 
 		if (!IsRunningCommandlet())
 		{

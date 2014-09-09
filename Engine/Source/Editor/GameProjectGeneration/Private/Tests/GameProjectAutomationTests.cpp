@@ -116,7 +116,7 @@ bool FBuildPromotionNewProjectCreateTest::RunTest(const FString& Parameters)
 	}
 
 	FText FailReason;
-	if (GameProjectUtils::CreateProject(DesiredProjectFilename, TEXT(""), false, true, FailReason))
+	if (GameProjectUtils::CreateProject(FProjectInformation(DesiredProjectFilename, false, true), FailReason))
 	{
 		UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Generated a new project: %s"), *DesiredProjectFilename);
 		UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Test successful!"));

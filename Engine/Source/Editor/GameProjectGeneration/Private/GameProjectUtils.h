@@ -2,6 +2,29 @@
 
 #pragma once
 
+#include "HardwareTargetingModule.h"
+
+struct FProjectInformation
+{
+	FProjectInformation(FString InProjectFilename, bool bInGenerateCode, bool bInCopyStarterContent, FString InTemplateFile = FString())
+		: ProjectFilename(MoveTemp(InProjectFilename))
+		, TemplateFile(MoveTemp(InTemplateFile))
+		, bShouldGenerateCode(bInGenerateCode)
+		, bCopyStarterContent(bInCopyStarterContent)
+		, TargetedHardware(EHardwareClass::Desktop)
+		, DefaultGraphicsPerformance(EGraphicsPreset::Maximum)
+	{
+	}
+	FString ProjectFilename;
+	FString TemplateFile;
+
+	bool bShouldGenerateCode;
+	bool bCopyStarterContent;
+
+	EHardwareClass::Type TargetedHardware;
+	EGraphicsPreset::Type DefaultGraphicsPerformance;
+};
+
 class GameProjectUtils
 {
 public:
@@ -133,7 +156,7 @@ public:
 	static bool OpenCodeIDE(const FString& ProjectFile, FText& OutFailReason);
 
 	/** Creates the specified project file and all required folders. If TemplateFile is non-empty, it will be used as the template for creation. On failure, OutFailReason will be populated. */
-	static bool CreateProject(const FString& NewProjectFile, const FString& TemplateFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason);
+	static bool CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason);
 
 	/** Prompts the user to update his project file, if necessary. */
 	static void CheckForOutOfDateGameProjectFile();
@@ -238,11 +261,14 @@ public:
 	static void ClearSupportedTargetPlatforms();
 
 private:
+
+	static FString GetHardwareConfigString(const FProjectInformation& InProjectInfo);
+
 	/** Generates a new project without using a template project */
-	static bool GenerateProjectFromScratch(const FString& NewProjectFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason);
+	static bool GenerateProjectFromScratch(const FProjectInformation& InProjectInfo, FText& OutFailReason);
 
 	/** Generates a new project using a template project */
-	static bool CreateProjectFromTemplate(const FString& NewProjectFile, const FString& TemplateFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason);
+	static bool CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason);
 
 	/** Copies starter content into the specified project folder. */
 	static bool CopyStarterContent(const FString& DestProjectFolder, FText& OutFailReason);
@@ -278,7 +304,7 @@ private:
 	static void DeleteGeneratedBuildFiles(const FString& NewProjectFolder);
 
 	/** Creates ini files for a new project. On failure, OutFailReason will be populated. */
-	static bool GenerateConfigFiles(const FString& NewProjectPath, const FString& NewProjectName, bool bShouldGenerateCode, bool bCopyStarterContent, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
+	static bool GenerateConfigFiles(const FProjectInformation& InProjectInfo, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
 	/** Creates the basic source code for a new project. On failure, OutFailReason will be populated. */
 	static bool GenerateBasicSourceCode(const FString& NewProjectSourcePath, const FString& NewProjectName, TArray<FString>& OutGeneratedStartupModuleNames, TArray<FString>& OutCreatedFiles, FText& OutFailReason);

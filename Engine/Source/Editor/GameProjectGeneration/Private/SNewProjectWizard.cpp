@@ -9,7 +9,7 @@
 #include "TemplateCategory.h"
 #include "GameProjectGenerationModule.h"
 #include "SWizard.h"
-
+#include "HardwareTargetingModule.h"
 
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
 
@@ -240,9 +240,9 @@ public:
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				.HAlign(HAlign_Center)
+				.Padding(ThumbnailPadding)
 				[
 					SNew(SBox)
-					.Padding(ThumbnailPadding)
 					.WidthOverride(ThumbnailSize)
 					.HeightOverride(ThumbnailSize)
 					[
@@ -255,9 +255,10 @@ public:
 				+ SVerticalBox::Slot()
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Top)
+				.Padding(FMargin(ThumbnailPadding, 0))
 				[
 					SNew(SRichTextBlock)
-					.WrapTextAt(ItemWidth - ThumbnailPadding*2)
+					.AutoWrapText(true)
 					.Justification(ETextJustify::Center)
 					//.HighlightText(this, &SNewProjectWizard::GetItemHighlightText)
 					.Text(InArgs._Item->Name)
@@ -277,7 +278,7 @@ private:
 		{
 			return ItemPtr->Thumbnail.Get();
 		}
-		return FEditorStyle::GetBrush("GameProjectDialog.DefaultGameThumbnail");
+		return FEditorStyle::GetBrush("GameProjectDialog.DefaultGameThumbnail.Small");
 	}
 
 };
@@ -290,7 +291,12 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	bLastGlobalValidityCheckSuccessful = true;
 	bLastNameAndLocationValidityCheckSuccessful = true;
 	bPreventPeriodicValidityChecksUntilNextChange = false;
-	 
+	
+	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
+
+	SelectedHardwareClassTarget = EHardwareClass::Desktop;
+	SelectedGraphicsPreset = EGraphicsPreset::Maximum;
+
 	// Find all template projects
 	FindTemplateProjects();
 	SetDefaultProjectLocation();
@@ -305,202 +311,281 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	.OnMouseButtonDoubleClick(this, &SNewProjectWizard::HandleTemplateListViewDoubleClick)
 	.OnSelectionChanged(this, &SNewProjectWizard::HandleTemplateListViewSelectionChanged);
 
-	const FMargin StandardVerticalPad(0.f, 0.f, 0.f, 10.f);
 	const EVisibility StarterContentVisiblity = GameProjectUtils::IsStarterContentAvailableForNewProjects() ? EVisibility::Visible : EVisibility::Collapsed;
 
+	TSharedRef<SSeparator> Separator = SNew(SSeparator).Orientation(EOrientation::Orient_Vertical);
+	Separator->SetBorderBackgroundColor(FLinearColor::White.CopyWithNewOpacity(0.25f));
+
+	const float UniformPadding = 16.f;
 	ChildSlot
 	[
-		SNew(SOverlay)
-
-		// Wizard
-		+SOverlay::Slot()
+		SNew(SBorder)
+		.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 		[
-			SAssignNew(MainWizard, SWizard)
-			.ShowPageList(false)
-			.ShowCancelButton(false)
-			.CanFinish(this, &SNewProjectWizard::HandleCreateProjectWizardCanFinish)
-			.FinishButtonText(LOCTEXT("FinishButtonText", "Create Project"))
-			.FinishButtonToolTip(LOCTEXT("FinishButtonToolTip", "Creates your new project in the specified location with the specified template and name.") )
-			.OnFinished(this, &SNewProjectWizard::HandleCreateProjectWizardFinished)
-			.OnFirstPageBackClicked(InArgs._OnBackRequested)
+			SNew(SOverlay)
 
-			// Choose Template
-			+SWizard::Page()
-			.OnEnter(this, &SNewProjectWizard::OnPageVisited, TemplatePageName)
+			// Wizard
+			+SOverlay::Slot()
+			.Padding(UniformPadding / 2)
 			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-				.Padding(10.f)
-				[
-					SNew(SHorizontalBox)
+				SAssignNew(MainWizard, SWizard)
+				.ShowPageList(false)
+				.ShowCancelButton(false)
+				.CanFinish(this, &SNewProjectWizard::HandleCreateProjectWizardCanFinish)
+				.FinishButtonText(LOCTEXT("FinishButtonText", "Create Project"))
+				.FinishButtonToolTip(LOCTEXT("FinishButtonToolTip", "Creates your new project in the specified location with the specified template and name.") )
+				.OnFinished(this, &SNewProjectWizard::HandleCreateProjectWizardFinished)
+				.OnFirstPageBackClicked(InArgs._OnBackRequested)
 
-					// Template category tabs
-					+ SHorizontalBox::Slot()
+				// Choose Template
+				+SWizard::Page()
+				.OnEnter(this, &SNewProjectWizard::OnPageVisited, TemplatePageName)
+				[
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+					.Padding(FMargin(UniformPadding / 2, UniformPadding / 2, UniformPadding / 2, 0))
 					[
 						SNew(SVerticalBox)
 
-						+SVerticalBox::Slot()
-						.Padding(FMargin(5.f, 0.f))
+						+ SVerticalBox::Slot()
+						.Padding(FMargin(0, 0, 0, 15))
 						.AutoHeight()
 						[
-							BuildCategoryTabs()
+							SNew(STextBlock)
+							.Text(LOCTEXT("ProjectTemplateDescription", "Choose a template to use as a starting point for your new project:"))
 						]
 
-						// Templates list
 						+ SVerticalBox::Slot()
-						.FillHeight(1.0f)
-						// Manual padding offset to align to the bottom of the file path widget
-						.Padding(FMargin(0,0,0,13.f))
 						[
-							SNew(SBorder)
-							.Padding(10)
-							.BorderImage(FEditorStyle::GetBrush("GameProjectDialog.TabBackground"))
-							[
-								SNew(SScrollBorder, TemplateListView.ToSharedRef())
-								[
-									TemplateListView.ToSharedRef()
-								]
-							]
-						]
-					]
-
-					// Selected template details
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					// top-offset fudge to account for size of tabs
-					.Padding(FMargin(20.0f, 42.f, 0.f, 0.f))
-					[
-						// This pane is always 512px wide - the width of the template preview
-						SNew(SBox)
-						.WidthOverride(512)
-						[
+							// Template category tabs
 							SNew(SVerticalBox)
 
-							// Preview image
-							+ SVerticalBox::Slot()
+							+SVerticalBox::Slot()
+							.Padding(FMargin(8.f, 0.f))
 							.AutoHeight()
-							.HAlign(HAlign_Center)
-							.Padding(StandardVerticalPad)
 							[
-								SNew(SOverlay)
-							
-								+ SOverlay::Slot()
-								[
-									SNew(SBorder)
-									.Padding(FMargin(0, 0, 0, 5.f))
-									.BorderImage(FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
-									[
-										SNew(SImage)
-										.Image(this, &SNewProjectWizard::GetSelectedTemplatePreviewImage)
-									]
-								]
-
-								+ SOverlay::Slot()
-								.HAlign(HAlign_Right)
-								.VAlign(VAlign_Top)
-								.Padding(10)
-								[
-									SNew(SBox)
-									.WidthOverride(48)
-									.HeightOverride(48)
-									[
-										SNew(SImage)
-										.Image(this, &SNewProjectWizard::GetSelectedTemplateTypeImage)
-									]
-								]
+								BuildCategoryTabs()
 							]
 
-							// Template Name
+							// Templates list
 							+ SVerticalBox::Slot()
-							.Padding(StandardVerticalPad)
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								.AutoWrapText(true)
-								.TextStyle(FEditorStyle::Get(), "GameProjectDialog.FeatureText")
-								.Text(this, &SNewProjectWizard::GetSelectedTemplateProperty<FText>, &FTemplateItem::Name)
-							]
-						
-							// Template Description
-							+ SVerticalBox::Slot()
-							.Padding(StandardVerticalPad)
-							[
-								SNew(SScrollBox)
-								+ SScrollBox::Slot()
-								[
-									SNew(STextBlock)
-									.AutoWrapText(true)
-									.Text(this, &SNewProjectWizard::GetSelectedTemplateProperty<FText>, &FTemplateItem::Description)
-								]
-							]
-						
-							// Include Starter Content?
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(StandardVerticalPad)
-							[
-								SNew(SCheckBox)
-								.Visibility(StarterContentVisiblity)
-								.ToolTipText( LOCTEXT("CopyStarterContent_ToolTip", "Adds example content to your new project, including simple placeable meshes with basic materials and textures.\nYou can turn this off to start with a project that is only has the bare essentials for the selected project template."))
-								.OnCheckStateChanged(this, &SNewProjectWizard::OnCopyStarterContentChanged)
-								.IsChecked(this, &SNewProjectWizard::IsCopyStarterContentChecked)
-								.Content()
-								[
-									SNew(STextBlock)
-									.Text(LOCTEXT("CopyStarterContent", "Include starter content" ))
- 								]
-							]
-
-							// Project name error text
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(StandardVerticalPad)
+							.FillHeight(1.0f)
 							[
 								SNew(SBorder)
-								.BorderImage(FEditorStyle::GetBrush("GameProjectDialog.ErrorLabelBorder"))
-								.Visibility(this, &SNewProjectWizard::GetNameAndLocationErrorLabelVisibility)
-								.Padding(5.f)
-								.Content()
+								.Padding(UniformPadding)
+								.BorderImage(FEditorStyle::GetBrush("GameProjectDialog.TabBackground"))
 								[
-									SNew(STextBlock)
-									.Text(this, &SNewProjectWizard::GetNameAndLocationErrorLabelText)
-									.TextStyle(FEditorStyle::Get(), "GameProjectDialog.ErrorLabelFont")
+									SNew(SHorizontalBox)
+
+									+ SHorizontalBox::Slot()
+									[
+										SNew(SScrollBorder, TemplateListView.ToSharedRef())
+										[
+											TemplateListView.ToSharedRef()
+										]
+									]
+										
+									+ SHorizontalBox::Slot()
+									.Padding(UniformPadding, 0)
+									.AutoWidth()
+									[
+										Separator
+									]
+
+									// Selected template details
+									+ SHorizontalBox::Slot()
+									[
+										SNew(SScrollBox)
+										+ SScrollBox::Slot()
+										.Padding(UniformPadding, 0)
+										[
+											SNew(SVerticalBox)
+
+											// Preview image
+											+ SVerticalBox::Slot()
+											.AutoHeight()
+											.HAlign(HAlign_Center)
+											.Padding(FMargin(0, 0, 0, 15.f))
+											[
+												SNew(SBox)
+												.Visibility(this, &SNewProjectWizard::GetSelectedTemplatePreviewVisibility)
+												.WidthOverride(400)
+												.HeightOverride(200)
+												[
+													SNew(SOverlay)
+							
+													+ SOverlay::Slot()
+													[
+														SNew(SBorder)
+														.Padding(FMargin(0, 0, 0, 5.f))
+														.BorderImage(FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
+														[
+															SNew(SImage)
+															.Image(this, &SNewProjectWizard::GetSelectedTemplatePreviewImage)
+														]
+													]
+
+													+ SOverlay::Slot()
+													.HAlign(HAlign_Right)
+													.VAlign(VAlign_Top)
+													.Padding(10)
+													[
+														SNew(SBox)
+														.WidthOverride(48)
+														.HeightOverride(48)
+														[
+															SNew(SImage)
+															.Image(this, &SNewProjectWizard::GetSelectedTemplateTypeImage)
+														]
+													]
+												]
+											]
+
+											// Template Name
+											+ SVerticalBox::Slot()
+											.Padding(FMargin(0, 0, 0, 10))
+											.AutoHeight()
+											[
+												SNew(STextBlock)
+												.AutoWrapText(true)
+												.TextStyle(FEditorStyle::Get(), "GameProjectDialog.FeatureText")
+												.Text(this, &SNewProjectWizard::GetSelectedTemplateProperty<FText>, &FTemplateItem::Name)
+											]
+						
+											// Template Description
+											+ SVerticalBox::Slot()
+											[
+												SNew(STextBlock)
+												.AutoWrapText(true)
+												.Text(this, &SNewProjectWizard::GetSelectedTemplateProperty<FText>, &FTemplateItem::Description)
+											]
+										]
+									]
+
+
 								]
 							]
+						]
 
-							// File path widget
-							+ SVerticalBox::Slot()
-							.AutoHeight()
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(FMargin(0, 15, 0, 0))
+						[
+							SNew(SScrollBox)
+
+							+ SScrollBox::Slot()
 							[
-								SNew(SFilepath)
-								.OnBrowseForFolder(this, &SNewProjectWizard::HandleBrowseButtonClicked)
-								.LabelBackgroundBrush(FEditorStyle::GetBrush("ProjectBrowser.Background"))
-								.LabelBackgroundColor(FLinearColor::White)
-								.FolderPath(this, &SNewProjectWizard::GetCurrentProjectFilePath)
-								.Name(this, &SNewProjectWizard::GetCurrentProjectFileName)
-								.OnFolderChanged(this, &SNewProjectWizard::OnCurrentProjectFilePathChanged)
-								.OnNameChanged(this, &SNewProjectWizard::OnCurrentProjectFileNameChanged)
+								
+								SNew(SVerticalBox)
+									
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								.Padding(FMargin(0, 0, 0, 25.f))
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("ProjectSettingsDescription", "Now choose some settings for your project. Don't worry, you can still change these after the project has been created:"))
+								]
+
+								+ SVerticalBox::Slot()
+								.HAlign(HAlign_Center)
+								.AutoHeight()
+								[
+									SNew(SBox)
+									.WidthOverride(650)
+									[
+										SNew(SVerticalBox)
+
+										+ SVerticalBox::Slot()
+										.AutoHeight()
+										.HAlign(HAlign_Center)
+										.Padding(FMargin(0, 0, 0, 25.f))
+										[
+											SNew(SHorizontalBox)
+
+											+ SHorizontalBox::Slot()
+											.AutoWidth()
+											[
+												HardwareTargeting.MakeHardwareClassTargetCombo(
+													FOnHardwareClassChanged::CreateSP(this, &SNewProjectWizard::SetHardwareClassTarget),
+													TAttribute<EHardwareClass::Type>(this, &SNewProjectWizard::GetHardwareClassTarget)
+													)
+											]
+								
+											+ SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(FMargin(30, 0))
+											[
+												HardwareTargeting.MakeGraphicsPresetTargetCombo(
+													FOnGraphicsPresetChanged::CreateSP(this, &SNewProjectWizard::SetGraphicsPreset),
+													TAttribute<EGraphicsPreset::Type>(this, &SNewProjectWizard::GetGraphicsPreset)
+													)
+											]
+								
+											+ SHorizontalBox::Slot()
+											.AutoWidth()
+											[
+												SNew(SButton)
+												.Visibility(StarterContentVisiblity)
+												.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+												.ForegroundColor(FSlateColor::UseForeground())
+												.ContentPadding(6.f)
+												.ToolTipText( LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."))
+												.OnClicked(this, &SNewProjectWizard::OnCopyStarterContentClicked)
+												[
+													SNew(SVerticalBox)
+
+													+ SVerticalBox::Slot()
+													.AutoHeight()
+													.HAlign(HAlign_Center)
+													[
+														SNew(SImage)
+														.Image(this, &SNewProjectWizard::GetStartContentIcon)
+													]
+
+													+ SVerticalBox::Slot()
+													.AutoHeight()
+													.Padding(4)
+													.HAlign(HAlign_Center)
+													[
+														SNew(STextBlock)
+														.Text(this, &SNewProjectWizard::GetStartContentText)
+													]
+												]
+											]
+										]
+
+										// File path widget
+										+ SVerticalBox::Slot()
+										.AutoHeight()
+										.HAlign(HAlign_Center)
+										[
+											SNew(SFilepath)
+											.OnBrowseForFolder(this, &SNewProjectWizard::HandleBrowseButtonClicked)
+											.LabelBackgroundBrush(FEditorStyle::GetBrush("ProjectBrowser.Background"))
+											.LabelBackgroundColor(FLinearColor::White)
+											.FolderPath(this, &SNewProjectWizard::GetCurrentProjectFilePath)
+											.Name(this, &SNewProjectWizard::GetCurrentProjectFileName)
+											.OnFolderChanged(this, &SNewProjectWizard::OnCurrentProjectFilePathChanged)
+											.OnNameChanged(this, &SNewProjectWizard::OnCurrentProjectFileNameChanged)
+										]
+									]
+								]
 							]
 						]
 					]
 				]
 			]
-		]
 
-		// Global Error label
-		+SOverlay::Slot()
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Bottom)
-		.Padding( FMargin( 0.0f, 5.0f, 0.0f, 0.0f ) )
-		[
-			// Constant height, whether the label is visible or not
-			SNew(SBox)
-			.HeightOverride(20.0f)
+			// Global Error label
+			+SOverlay::Slot()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Bottom)
+			.Padding( UniformPadding / 2 )
 			[
 				SNew(SBorder)
 				.Visibility(this, &SNewProjectWizard::GetGlobalErrorLabelVisibility)
 				.BorderImage(FEditorStyle::GetBrush("GameProjectDialog.ErrorLabelBorder"))
-				.Content()
+				.Padding( UniformPadding / 2 )
 				[
 					SNew(SHorizontalBox)
 										
@@ -538,6 +623,31 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 							SNew(SImage)
 							.Image(FEditorStyle::GetBrush("GameProjectDialog.ErrorLabelCloseButton"))
 						]
+					]
+				]
+			]
+
+			// Project filename error
+			+SOverlay::Slot()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Bottom)
+			.Padding( UniformPadding / 2 )
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("GameProjectDialog.ErrorLabelBorder"))
+				.Visibility(this, &SNewProjectWizard::GetNameAndLocationErrorLabelVisibility)
+				.Padding(UniformPadding / 2)
+				[
+					SNew(SHorizontalBox)
+										
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.FillWidth(1.0f)
+					[
+						SNew(STextBlock)
+						.AutoWrapText(true)
+						.Text(this, &SNewProjectWizard::GetNameAndLocationErrorLabelText)
+						.TextStyle(FEditorStyle::Get(), "GameProjectDialog.ErrorLabelFont")
 					]
 				]
 			]
@@ -616,13 +726,10 @@ TSharedRef<SWidget> SNewProjectWizard::BuildCategoryTabs()
 	return TabStrip;
 }
 
-void SNewProjectWizard::OnCopyStarterContentChanged(ESlateCheckBoxState::Type InNewState)
+FReply SNewProjectWizard::OnCopyStarterContentClicked()
 {
-	bCopyStarterContent = InNewState == ESlateCheckBoxState::Checked;
-}
-ESlateCheckBoxState::Type SNewProjectWizard::IsCopyStarterContentChecked() const
-{
-	return bCopyStarterContent ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	bCopyStarterContent = !bCopyStarterContent;
+	return FReply::Handled();
 }
 
 void SNewProjectWizard::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -660,6 +767,12 @@ const FSlateBrush* SNewProjectWizard::GetSelectedTemplatePreviewImage() const
 {
 	auto PreviewImage = GetSelectedTemplateProperty(&FTemplateItem::PreviewImage);
 	return PreviewImage.IsValid() ? PreviewImage.Get() : nullptr;
+}
+
+EVisibility SNewProjectWizard::GetSelectedTemplatePreviewVisibility() const
+{
+	auto PreviewImage = GetSelectedTemplateProperty(&FTemplateItem::PreviewImage);
+	return PreviewImage.IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 const FSlateBrush* SNewProjectWizard::GetSelectedTemplateTypeImage() const
@@ -835,7 +948,8 @@ void SNewProjectWizard::OnPageVisited(FName NewPageName)
 
 EVisibility SNewProjectWizard::GetGlobalErrorLabelVisibility() const
 {
-	return GetGlobalErrorLabelText().IsEmpty() ? EVisibility::Hidden : EVisibility::Visible;
+	const bool bIsVisible = GetNameAndLocationErrorLabelText().IsEmpty() && !GetGlobalErrorLabelText().IsEmpty();
+	return bIsVisible ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 
@@ -1192,10 +1306,12 @@ bool SNewProjectWizard::CreateProject( const FString& ProjectFile )
 		return false;
 	}
 
-	const bool bAddCode = SelectedTemplate->bGenerateCode;
 	FText FailReason;
 
-	if (!GameProjectUtils::CreateProject( ProjectFile, SelectedTemplate->ProjectFile, bAddCode, bCopyStarterContent, FailReason))
+	FProjectInformation ProjectInfo(ProjectFile, SelectedTemplate->bGenerateCode, bCopyStarterContent, SelectedTemplate->ProjectFile);
+	ProjectInfo.TargetedHardware = SelectedHardwareClassTarget;
+	ProjectInfo.DefaultGraphicsPerformance = SelectedGraphicsPreset;
+	if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason))
 	{
 		DisplayError(FailReason);
 		return false;
@@ -1376,5 +1492,24 @@ void SNewProjectWizard::HandleCategoryChanged(ESlateCheckBoxState::Type CheckSta
 	TemplateListView->RequestListRefresh();
 }
 
+void SNewProjectWizard::SetHardwareClassTarget(EHardwareClass::Type InHardwareClass)
+{
+	SelectedHardwareClassTarget = InHardwareClass;
+}
+
+void SNewProjectWizard::SetGraphicsPreset(EGraphicsPreset::Type InGraphicsPreset)
+{
+	SelectedGraphicsPreset = InGraphicsPreset;
+}
+
+FText SNewProjectWizard::GetStartContentText() const
+{
+	return bCopyStarterContent ? LOCTEXT("IncludeStarterContent", "With Starter Content") : LOCTEXT("NoStarterContent", "No Starter Content");
+}
+
+const FSlateBrush* SNewProjectWizard::GetStartContentIcon() const
+{
+	return bCopyStarterContent ? FEditorStyle::GetBrush("GameProjectDialog.IncludeStarterContent") : FEditorStyle::GetBrush("GameProjectDialog.NoStarterContent");
+}
 
 #undef LOCTEXT_NAMESPACE

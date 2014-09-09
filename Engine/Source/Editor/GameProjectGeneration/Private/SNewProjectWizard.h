@@ -2,7 +2,6 @@
 
 #pragma once
 
-
 struct FTemplateItem;
 struct FTemplateCategory;
 
@@ -74,6 +73,9 @@ private:
 	const FSlateBrush* GetSelectedTemplatePreviewImage() const;
 	const FSlateBrush* GetSelectedTemplateTypeImage() const;
 
+	/** Get the visibility for the selected template preview image */
+	EVisibility GetSelectedTemplatePreviewVisibility() const;
+
 	/** Gets the assembled project filename with path */
 	FString GetProjectFilenameWithPath() const;
 
@@ -111,13 +113,22 @@ private:
 	FText GetNameAndLocationErrorLabelText() const;
 
 	/** Handler for when the "copy starter content" checkbox changes state */
-	void OnCopyStarterContentChanged(ESlateCheckBoxState::Type InNewState);
+	FReply OnCopyStarterContentClicked();
 
-	/** Returns true if the "copy starter content" checkbox should be checked. */
-	ESlateCheckBoxState::Type IsCopyStarterContentChecked() const;
+private:
 
-	/** Gets the visibility of the copy starter content option */
-	EVisibility GetCopyStarterContentCheckboxVisibility() const;
+	EHardwareClass::Type SelectedHardwareClassTarget;
+	void SetHardwareClassTarget(EHardwareClass::Type InHardwareClass);
+	EHardwareClass::Type GetHardwareClassTarget() const { return SelectedHardwareClassTarget; }
+
+	EGraphicsPreset::Type SelectedGraphicsPreset;
+	void SetGraphicsPreset(EGraphicsPreset::Type InGraphicsPreset);
+	EGraphicsPreset::Type GetGraphicsPreset() const { return SelectedGraphicsPreset; }
+
+private:
+
+	FText GetStartContentText() const;
+	const FSlateBrush* GetStartContentIcon() const;
 
 private:
 

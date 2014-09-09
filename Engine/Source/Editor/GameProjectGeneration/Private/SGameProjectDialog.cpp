@@ -20,173 +20,156 @@ void SGameProjectDialog::Construct( const FArguments& InArgs )
 {
 	bool bAtLeastOneVisibleRecentProject = false;
 
-	ProjectsTabVisibility = InArgs._AllowProjectOpening ? EVisibility::Visible : EVisibility::Collapsed;
-	NewProjectTabVisibility = InArgs._AllowProjectCreate ? EVisibility::Visible : EVisibility::Collapsed;
+	if (InArgs._AllowProjectCreate)
+	{
+		NewProjectWizard = SNew(SNewProjectWizard);
+	}
 
-	ChildSlot
-	[
-		// Drop shadow border
-		SNew(SBorder)
-			.Padding(10.0f )
-			.BorderImage(FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
+	if (InArgs._AllowProjectOpening)
+	{
+		ProjectBrowser = SNew(SProjectBrowser);
+	}
+
+	TSharedPtr<SWidget> Content;
+
+	if (InArgs._AllowProjectCreate && InArgs._AllowProjectOpening)
+	{
+		// Create the Open Project tab button
+		TSharedRef<SButton> ProjectsTabButton = SNew(SButton)
+			.ForegroundColor(FCoreStyle::Get().GetSlateColor("Foreground"))
+			.ButtonStyle(FEditorStyle::Get(), TEXT("NoBorder"))
+			.OnClicked(this, &SGameProjectDialog::HandleProjectsTabButtonClicked)
+			.ContentPadding(FMargin(40, 5))
+			.Text(LOCTEXT("ProjectsTabTitle", "Projects"))
+			.TextStyle(FEditorStyle::Get(), TEXT("ProjectBrowser.Tab.Text"));
+
+		// Create the New Project tab button
+		TSharedRef<SButton> NewProjectTabButton = SNew(SButton)
+			.ForegroundColor(FCoreStyle::Get().GetSlateColor("Foreground"))
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.OnClicked(this, &SGameProjectDialog::HandleNewProjectTabButtonClicked)
+			.ContentPadding(FMargin(20, 5))
+			.TextStyle(FEditorStyle::Get(), "ProjectBrowser.Tab.Text")
+			.Text(LOCTEXT("NewProjectTabTitle", "New Project"))
+			.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("NewProjectTabTitle", "New Project"), nullptr, "Shared/LevelEditor", "NewProjectTab"));
+
+		// Allow creation and opening, so we need tabs here
+		ChildSlot
+		[
+		
+			SNew(SBorder)
+			.ColorAndOpacity(this, &SGameProjectDialog::HandleCustomContentColorAndOpacity)
+			.BorderImage(FEditorStyle::GetBrush("Docking.Tab.ContentAreaBrush"))
+			.Padding(0)
 			[
-				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush( "Docking.Tab.ContentAreaBrush"))
-					.Padding(10.0f)
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FMargin(6.f, 0, 0, 0))
+				[
+					SNew(SHorizontalBox)
+
+					// Open Project Tab
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
 					[
-						SNew(SVerticalBox)
+						SNew( SBorder )
+						.BorderImage(this, &SGameProjectDialog::OnGetTabBorderImage, ProjectsTab)
+						.Padding(0)
+						[
+							SNew(SOverlay)
 
-						+ SVerticalBox::Slot()
-							.AutoHeight()
+							+ SOverlay::Slot()
+							.VAlign(VAlign_Top)
 							[
-								SNew(SHorizontalBox)
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									[
-										SNew( SBorder )
-											.Visibility(ProjectsTabVisibility)
-											.BorderImage(this, &SGameProjectDialog::HandleProjectsTabHeaderBorderImage)
-											.Padding(0)
-											[
-												SNew(SOverlay)
-
-												+ SOverlay::Slot()
-													.VAlign(VAlign_Top)
-													[
-														SNew(SBox)
-															.HeightOverride(2.0f)
-															[
-																SNew(SImage)
-																	.Image(this, &SGameProjectDialog::HandleProjectsTabHeaderImage)
-																	.Visibility(EVisibility::HitTestInvisible)
-															]
-													]
-
-												+ SOverlay::Slot()
-													[
-														SAssignNew(ProjectsTabButton, SButton)
-															.ForegroundColor(FCoreStyle::Get().GetSlateColor("Foreground"))
-															.ButtonStyle(FEditorStyle::Get(), TEXT("NoBorder"))
-															.OnClicked(this, &SGameProjectDialog::HandleProjectsTabButtonClicked)
-															.ContentPadding(FMargin(40, 5))
-															.Text(LOCTEXT("ProjectsTabTitle", "Projects"))
-															.TextStyle(FEditorStyle::Get(), TEXT("ProjectBrowser.Tab.Text"))
-													]
-											]
-									]
-
-								+ SHorizontalBox::Slot()
-									.Padding(InArgs._AllowProjectOpening ? 10 : 0, 0)
-									.AutoWidth()
-									[
-										SNew(SBorder)
-											.Visibility(NewProjectTabVisibility)
-											.BorderImage(this, &SGameProjectDialog::HandleNewProjectTabHeaderBorderImage)
-											.Padding(0)
-											[
-												SNew(SOverlay)
-
-												+ SOverlay::Slot()
-													.VAlign(VAlign_Top)
-													[
-														SNew(SBox)
-														.HeightOverride(2.0f)
-														[
-															SNew(SImage)
-																.Image(this, &SGameProjectDialog::HandleNewProjectTabHeaderImage)
-																.Visibility(EVisibility::HitTestInvisible)
-														]
-													]
-
-												+ SOverlay::Slot()
-													[
-														SAssignNew(NewProjectTabButton, SButton)
-															.ForegroundColor(FCoreStyle::Get().GetSlateColor("Foreground"))
-															.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-															.OnClicked(this, &SGameProjectDialog::HandleNewProjectTabButtonClicked)
-															.ContentPadding(FMargin(20, 5))
-															.TextStyle(FEditorStyle::Get(), "ProjectBrowser.Tab.Text")
-															.Text(LOCTEXT("NewProjectTabTitle", "New Project"))
-															.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("NewProjectTabTitle", "New Project"), nullptr, "Shared/LevelEditor", "NewProjectTab"))
-													]
-											]
-									]
-
-								+ SHorizontalBox::Slot()
-									.FillWidth(1.0f)
-									.HAlign(HAlign_Right)
-									.Padding(0,5)
-									[
-										SNew(SBorder)
-											.BorderImage(FEditorStyle::Get().GetBrush( "ToolPanel.GroupBorder" ))
-											.Padding(3)
-											[
-												SAssignNew(MarketplaceButton, SButton)
-													.Visibility( FDesktopPlatformModule::Get()->CanOpenLauncher(true) ? EVisibility::Collapsed : EVisibility::Visible )
-													.ForegroundColor(this, &SGameProjectDialog::HandleMarketplaceTabButtonForegroundColor)
-													.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-													.OnClicked(this, &SGameProjectDialog::HandleMarketplaceTabButtonClicked)
-													.ContentPadding(FMargin(20, 0))
-													.ToolTipText(LOCTEXT("MarketplaceToolTip", "Check out the Marketplace to find new projects!"))
-													.HAlign(HAlign_Center)
-													.VAlign(VAlign_Center)
-													.Content()
-													[
-														SNew(SHorizontalBox)
-
-														+ SHorizontalBox::Slot()
-															.Padding(2.0f)
-															.AutoWidth()
-															[
-																SNew(SImage)
-																	.Image(FEditorStyle::GetBrush("LevelEditor.OpenMarketplace")) 
-															]
-
-														+ SHorizontalBox::Slot()
-															.Padding( 2.0f )
-															[
-																SNew(STextBlock)
-																	.TextStyle(FEditorStyle::Get(), "ProjectBrowser.Tab.Text")
-																	.Text(LOCTEXT("Marketplace", "Marketplace"))
-															]
-													]
-											]
-									]
+								SNew(SBox)
+								.HeightOverride(2.0f)
+								[
+									SNew(SImage)
+									.Image(this, &SGameProjectDialog::OnGetTabHeaderImage, ProjectsTab, ProjectsTabButton)
+									.Visibility(EVisibility::HitTestInvisible)
+								]
 							]
 
-						+ SVerticalBox::Slot()
+							+ SOverlay::Slot()
 							[
-								// custom content area
-								SNew(SBorder)
-									.ColorAndOpacity(this, &SGameProjectDialog::HandleCustomContentColorAndOpacity)
-									.BorderImage(FEditorStyle::GetBrush("ProjectBrowser.Background"))
-									.Padding(10.0f)
-									[
-										SAssignNew(ContentAreaSwitcher, SWidgetSwitcher)
-											.WidgetIndex(InArgs._AllowProjectOpening ? 0 : 1)
-
-										+ SWidgetSwitcher::Slot()
-											[
-												// project browser
-												SAssignNew(ProjectBrowser, SProjectBrowser)
-													.AllowProjectCreate(InArgs._AllowProjectCreate)
-													.OnNewProjectScreenRequested(this, &SGameProjectDialog::ShowNewProjectTab)
-											]
-
-										+ SWidgetSwitcher::Slot()
-											[
-												// new project wizard
-												SAssignNew(NewProjectWizard, SNewProjectWizard)
-											]
-									]
+								ProjectsTabButton
 							]
+						]
 					]
-			]
-	];
 
-	ActiveTab = InArgs._AllowProjectOpening ? SGameProjectDialog::ProjectsTab : SGameProjectDialog::NewProjectTab;
-	ActiveTab = !ProjectBrowser->HasProjects() && InArgs._AllowProjectCreate ? SGameProjectDialog::NewProjectTab : ActiveTab;
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(6.f, 0, 0, 0))
+					.AutoWidth()
+					[
+						SNew(SBorder)
+						.BorderImage(this, &SGameProjectDialog::OnGetTabBorderImage, NewProjectTab)
+						.Padding(0)
+						[
+							SNew(SOverlay)
+
+							+ SOverlay::Slot()
+							.VAlign(VAlign_Top)
+							[
+								SNew(SBox)
+								.HeightOverride(2.0f)
+								[
+									SNew(SImage)
+									.Image(this, &SGameProjectDialog::OnGetTabHeaderImage, NewProjectTab, NewProjectTabButton)
+									.Visibility(EVisibility::HitTestInvisible)
+								]
+							]
+
+							+ SOverlay::Slot()
+							[
+								NewProjectTabButton
+							]
+						]
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				[
+					SAssignNew(ContentAreaSwitcher, SWidgetSwitcher)
+					.WidgetIndex(0)
+
+					+ SWidgetSwitcher::Slot()
+					[
+						ProjectBrowser.ToSharedRef()
+					]
+
+					+ SWidgetSwitcher::Slot()
+					[
+						NewProjectWizard.ToSharedRef()
+					]
+				]
+			]
+		];
+	}
+	else
+	{
+		TSharedPtr<SWidget> BorderContent;
+		if (NewProjectWizard.IsValid())
+		{
+			BorderContent = NewProjectWizard;
+		}
+		else
+		{
+			BorderContent = ProjectBrowser;
+		}
+
+		ChildSlot
+		[
+			BorderContent.ToSharedRef()
+		];
+	}
+
+	ActiveTab = InArgs._AllowProjectOpening ? ProjectsTab : NewProjectTab;
+	if (ProjectBrowser.IsValid())
+	{
+		ActiveTab = !ProjectBrowser->HasProjects() && InArgs._AllowProjectCreate ? NewProjectTab : ActiveTab;
+	}
 
 	if (ActiveTab == ProjectsTab)
 	{
@@ -278,60 +261,6 @@ FLinearColor SGameProjectDialog::HandleCustomContentColorAndOpacity( ) const
 }
 
 
-FReply SGameProjectDialog::HandleMarketplaceTabButtonClicked( )
-{
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-
-	if (DesktopPlatform != nullptr)
-	{
-		TArray<FAnalyticsEventAttribute> EventAttributes;
-
-		if (DesktopPlatform->OpenLauncher(false, TEXT("-OpenMarket")))
-		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
-		}
-		else
-		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("FALSE")));
-
-			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Unreal Engine Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
-			{
-				if (!DesktopPlatform->OpenLauncher(true, TEXT("-OpenMarket")))
-				{
-					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
-					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));
-				}
-				else
-				{
-					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("TRUE")));
-				}
-			}
-		}
-
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Source"), TEXT("ProjectBrowser")));
-		if( FEngineAnalytics::IsAvailable() )
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.OpenMarketplace"), EventAttributes);
-		}
-	}
-
-	return FReply::Handled();
-}
-
-
-FSlateColor SGameProjectDialog::HandleMarketplaceTabButtonForegroundColor( ) const
-{
-	//if (MarketplaceButton->IsHovered())
-	//{
-	//	return FLinearColor::Black;
-	//}
-	//else
-	//{
-		return FSlateColor::UseForeground();
-	//}
-}
-
-
 FReply SGameProjectDialog::HandleNewProjectTabButtonClicked( )
 {
 	ShowNewProjectTab();
@@ -340,25 +269,14 @@ FReply SGameProjectDialog::HandleNewProjectTabButtonClicked( )
 }
 
 
-const FSlateBrush* SGameProjectDialog::HandleNewProjectTabHeaderBorderImage( ) const
+const FSlateBrush* SGameProjectDialog::OnGetTabHeaderImage( ETab InTab, TSharedRef<SButton> TabButton ) const
 {
-	if (ActiveTab == NewProjectTab)
-	{
-		return FEditorStyle::GetBrush("ProjectBrowser.Tab.ActiveBackground");
-	}
-	
-	return FEditorStyle::GetBrush("ProjectBrowser.Tab.Background");
-}
-
-
-const FSlateBrush* SGameProjectDialog::HandleNewProjectTabHeaderImage( ) const
-{
-	if (NewProjectTabButton->IsPressed())
+	if (TabButton->IsPressed())
 	{
 		return FEditorStyle::GetBrush("ProjectBrowser.Tab.PressedHighlight");
 	}
 
-	if ((ActiveTab == NewProjectTab) || NewProjectTabButton->IsHovered())
+	if ((ActiveTab == InTab) || TabButton->IsHovered())
 	{
 		return FEditorStyle::GetBrush("ProjectBrowser.Tab.ActiveHighlight");
 	}
@@ -374,31 +292,14 @@ FReply SGameProjectDialog::HandleProjectsTabButtonClicked( )
 	return FReply::Handled();
 }
 
-
-const FSlateBrush* SGameProjectDialog::HandleProjectsTabHeaderBorderImage( ) const
+const FSlateBrush* SGameProjectDialog::OnGetTabBorderImage( ETab InTab ) const
 {
-	if (ActiveTab == ProjectsTab)
+	if (ActiveTab == InTab)
 	{
 		return FEditorStyle::GetBrush("ProjectBrowser.Tab.ActiveBackground");
 	}
 	
 	return FEditorStyle::GetBrush("ProjectBrowser.Tab.Background");
-}
-
-
-const FSlateBrush* SGameProjectDialog::HandleProjectsTabHeaderImage( ) const
-{
-	if (ProjectsTabButton->IsPressed())
-	{
-		return FEditorStyle::GetBrush("ProjectBrowser.Tab.PressedHighlight");
-	}
-
-	if ((ActiveTab == ProjectsTab) || ProjectsTabButton->IsHovered())
-	{
-		return FEditorStyle::GetBrush("ProjectBrowser.Tab.ActiveHighlight");
-	}
-	
-	return FEditorStyle::GetBrush("ProjectBrowser.Tab.Highlight");
 }
 
 

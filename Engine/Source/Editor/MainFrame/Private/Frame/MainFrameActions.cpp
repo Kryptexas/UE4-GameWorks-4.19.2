@@ -378,9 +378,23 @@ void FMainFrameActionCallbacks::NewProject( bool bAllowProjectOpening, bool bAll
 		return;
 	}
 
+	FText Title;
+	if (bAllowProjectOpening && bAllowProjectCreate)
+	{
+		Title = LOCTEXT( "SelectProjectWindowHeader", "Select Project");
+	}
+	else if (bAllowProjectOpening)
+	{
+		Title = LOCTEXT( "OpenProjectWindowHeader", "Open Project");
+	}
+	else
+	{
+		Title = LOCTEXT( "NewProjectWindowHeader", "New Project");
+	}
+
 	TSharedRef<SWindow> NewProjectWindow =
 		SNew(SWindow)
-		.Title(LOCTEXT( "SelectProjectWindowHeader", "Select Project"))
+		.Title(Title)
 		.ClientSize( FMainFrameModule::GetProjectBrowserWindowSize() )
 		.SizingRule( ESizingRule::UserSized )
 		.SupportsMinimize(false) .SupportsMaximize(false);

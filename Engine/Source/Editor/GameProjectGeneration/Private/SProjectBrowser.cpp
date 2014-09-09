@@ -97,11 +97,9 @@ SProjectBrowser::SProjectBrowser()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SProjectBrowser::Construct( const FArguments& InArgs )
 {
-	NewProjectScreenRequestedDelegate = InArgs._OnNewProjectScreenRequested;
 	bPreventSelectionChangeEvent = false;
 	ThumbnailBorderPadding = 5;
 	ThumbnailSize = 128.0f;
-	bAllowProjectCreate = InArgs._AllowProjectCreate;
 
 	// Prepare the categories box
 	CategoriesBox = SNew(SVerticalBox);
@@ -129,66 +127,121 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		SNew(SVerticalBox)
-
-		// Page description
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(10.0f, 0.0f)
+		SNew(SBorder)
+		.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+		.Padding(8.f)
 		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("SelectProjectDescription", "Select an existing project from the list below."))
-		]
+			SNew(SVerticalBox)
 
-		// Categories
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		[
-			SNew(SBorder)
-			.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-			.Padding(4)
+			// Categories
+			+ SVerticalBox::Slot()
+			.Padding(8.f)
+			.FillHeight(1.0f)
 			[
 				SNew(SVerticalBox)
 
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				.VAlign(VAlign_Top)
-				.Padding(FMargin(5.f, 10.f))
+				.HAlign(HAlign_Left)
+				.Padding(FMargin(0, 0, 0, 5.f))
 				[
 					SNew(SHorizontalBox)
+					
 					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(FMargin(0,0,5,0))
 					[
-						SNew(SOverlay)
-
-						+SOverlay::Slot()
+						SNew(SButton)
+						.Visibility( FDesktopPlatformModule::Get()->CanOpenLauncher(true) ? EVisibility::Collapsed : EVisibility::Visible )
+						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+						.OnClicked(this, &SProjectBrowser::HandleMarketplaceTabButtonClicked)
+						.ForegroundColor(FSlateColor::UseForeground())
+						.ToolTipText(LOCTEXT("MarketplaceToolTip", "Check out the Marketplace to find new projects!"))
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
 						[
-							SNew(SSearchBox)
-							.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
-							.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
-						]
+							SNew(SHorizontalBox)
 
-						+SOverlay::Slot()
-						[
-							SNew(SBorder)
-							.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
-							.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
+							+ SHorizontalBox::Slot()
+							.Padding(2.0f)
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("LevelEditor.OpenMarketplace.Small")) 
+							]
+
+							+ SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.Padding(2.0f)
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "ProjectBrowser.Toolbar.Text")
+								.Text(LOCTEXT("Marketplace", "Marketplace"))
+							]
 						]
 					]
 
 					+SHorizontalBox::Slot()
 					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
 						SNew(SButton)
-						.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
 						.OnClicked(this, &SProjectBrowser::FindProjects)
+						.ForegroundColor(FSlateColor::UseForeground())
 						.ToolTipText(LOCTEXT("RefreshProjectList", "Refresh the project list"))
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
 						[
-							SNew(SImage).Image(FEditorStyle::Get().GetBrush("Icons.Refresh"))
+							SNew(SHorizontalBox)
+
+							+ SHorizontalBox::Slot()
+							.Padding(2.0f)
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("Icons.Refresh")) 
+							]
+
+							+ SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.Padding(2.0f)
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "ProjectBrowser.Toolbar.Text")
+								.Text(LOCTEXT("RefreshProjectsText", "Refresh"))
+							]
 						]
 					]
 				]
 
 				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Top)
+				.Padding(FMargin(0, 5.f))
+				[
+					SNew(SOverlay)
+
+					+SOverlay::Slot()
+					[
+						SNew(SSearchBox)
+						.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
+						.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
+					]
+
+					+SOverlay::Slot()
+					[
+						SNew(SBorder)
+						.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
+						.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				.Padding(FMargin(0, 5.f))
 				[
 					SNew(SScrollBox)
 
@@ -198,48 +251,48 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 					]
 				]
 			]
-		]
 
-		+ SVerticalBox::Slot()
-		.Padding( 0, 40, 0, 0 )	// Lots of vertical padding before the dialog buttons at the bottom
-		.AutoHeight()
-		[
-			SNew( SHorizontalBox )
-
-			// Auto-load project
-			+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			.Padding(4, 0)
+			+ SVerticalBox::Slot()
+			.Padding( 0, 40, 0, 0 )	// Lots of vertical padding before the dialog buttons at the bottom
+			.AutoHeight()
 			[
-				SNew(SCheckBox)			
-				.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
-				.OnCheckStateChanged(this, &SProjectBrowser::OnAutoloadLastProjectChanged)
-				.Content()
+				SNew( SHorizontalBox )
+
+				// Auto-load project
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
 				[
-					SNew(STextBlock).Text(LOCTEXT("AutoloadOnStartupCheckbox", "Always load last project on startup"))
+					SNew(SCheckBox)			
+					.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.OnCheckStateChanged(this, &SProjectBrowser::OnAutoloadLastProjectChanged)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("AutoloadOnStartupCheckbox", "Always load last project on startup"))
+					]
 				]
-			]
 
-			// Browse Button
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(4, 0)
-			[
-				SNew(SButton)
-				.Text(LOCTEXT("BrowseProjectButton", "Browse..."))
-				.OnClicked(this, &SProjectBrowser::OnBrowseToProjectClicked)
-				.ContentPadding( FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding") )
-			]
+				// Browse Button
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(8.f, 0)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("BrowseProjectButton", "Browse..."))
+					.OnClicked(this, &SProjectBrowser::OnBrowseToProjectClicked)
+					.ContentPadding( FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding") )
+				]
 
-			// Open Button
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.Text(LOCTEXT("OpenProjectButton", "Open"))
-				.OnClicked(this, &SProjectBrowser::HandleOpenProjectButtonClicked)
-				.IsEnabled(this, &SProjectBrowser::HandleOpenProjectButtonIsEnabled)
-				.ContentPadding( FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding") )
+				// Open Button
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("OpenProjectButton", "Open"))
+					.OnClicked(this, &SProjectBrowser::HandleOpenProjectButtonClicked)
+					.IsEnabled(this, &SProjectBrowser::HandleOpenProjectButtonIsEnabled)
+					.ContentPadding( FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding") )
+				]
 			]
 		]
 	];
@@ -272,7 +325,6 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 {
 	// Title
 	InCategoriesBox->AddSlot()
-	.Padding(FMargin(5.f, 0.f))
 	.AutoHeight()
 	[
 		SNew(STextBlock)
@@ -284,7 +336,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 	// Separator
 	InCategoriesBox->AddSlot()
 	.AutoHeight()
-	.Padding(5.0f, 2.0f, 5.0f, 8.0f)
+	.Padding(0, 2.0f, 0, 8.0f)
 	[
 		SNew(SSeparator)
 		.Visibility(this, &SProjectBrowser::GetProjectCategoryVisibility, Category)
@@ -293,7 +345,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 	// Project tile view
 	InCategoriesBox->AddSlot()
 	.AutoHeight()
-	.Padding(5.0f, 0.0f, 5.0f, 40.0f)
+	.Padding(0.f, 0.0f, 0.f, 40.0f)
 	[
 		SAssignNew(Category->ProjectTileView, STileView<TSharedPtr<FProjectItem> >)
 		.Visibility(this, &SProjectBrowser::GetProjectCategoryVisibility, Category)
@@ -1158,6 +1210,47 @@ void SProjectBrowser::HandleProjectViewSelectionChanged(TSharedPtr<FProjectItem>
 			CurrentSelectedProjectPath = FText::FromString( SelectedItem->ProjectFile );
 		}
 	}
+}
+
+
+FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+	if (DesktopPlatform != nullptr)
+	{
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+
+		if (DesktopPlatform->OpenLauncher(false, TEXT("-OpenMarket")))
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
+		}
+		else
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("FALSE")));
+
+			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Unreal Engine Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
+			{
+				if (!DesktopPlatform->OpenLauncher(true, TEXT("-OpenMarket")))
+				{
+					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
+					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));
+				}
+				else
+				{
+					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("TRUE")));
+				}
+			}
+		}
+
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Source"), TEXT("ProjectBrowser")));
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.OpenMarketplace"), EventAttributes);
+		}
+	}
+
+	return FReply::Handled();
 }
 
 void SProjectBrowser::OnFilterTextChanged(const FText& InText)

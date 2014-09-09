@@ -31,7 +31,8 @@ public class GameProjectGeneration : ModuleRules
                 "SourceControl",
  				"TargetPlatform",
 				"UnrealEd",
-				"DesktopPlatform"
+				"DesktopPlatform",
+                "HardwareTargeting"
 			}
 		);
 
