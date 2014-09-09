@@ -995,7 +995,6 @@ static bool BlueprintActionFilterImpl::IsNotSubClassCast(FBlueprintActionFilter 
 			// Only worry about removing cast nodes when dragging off output pins
 			if (ContextPin->Direction != EGPD_Output)
 			{
-				bIsFilteredOut = true;
 				break;
 			}
 			
