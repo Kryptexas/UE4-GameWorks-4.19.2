@@ -292,7 +292,7 @@ void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScale
 
 void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM /* = NULL */, TArray<physx::PxShape*> * NewShapes /* = NULL */ )
 {
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// in editor, there are a lot of things relying on body setup to create physics meshes
 	CreatePhysicsMeshes();
 #endif
@@ -556,7 +556,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 #endif // WITH_PHYSX
 
 
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 void UBodySetup::RemoveSimpleCollision()
 {
@@ -828,12 +828,16 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format)
 			return NULL;
 		}
 
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 		TArray<uint8> OutData;
 		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, this);
 		if (DerivedPhysXData->CanBuild())
 		{
+		#if WITH_EDITOR
 			GetDerivedDataCacheRef().GetSynchronous(DerivedPhysXData, OutData);
+		#elif WITH_RUNTIME_PHYSICS_COOKING
+			DerivedPhysXData->Build(OutData);
+		#endif
 			if (OutData.Num())
 			{
 				Result->Lock(LOCK_READ_WRITE);

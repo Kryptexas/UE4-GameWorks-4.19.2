@@ -10,6 +10,8 @@ public class TargetPlatform : ModuleRules
 		PrivateDependencyModuleNames.Add("Core");		
         PublicDependencyModuleNames.Add("DesktopPlatform");
 
+        PrivateIncludePathModuleNames.Add("PhysXFormats");
+
 		// no need for all these modules if the program doesn't want developer tools at all (like UnrealFileServer)
 		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bBuildDeveloperTools)
 		{
@@ -102,11 +104,11 @@ public class TargetPlatform : ModuleRules
                     DynamicallyLoadedModuleNames.Add("AudioFormatOpus");
                 }
             }
-
-			if (UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
-			{
-				DynamicallyLoadedModuleNames.Add("PhysXFormats");
-			}
 		}
+        
+        if (UEBuildConfiguration.bBuildDeveloperTools == true && (UEBuildConfiguration.bBuildRequiresCookedData || UEBuildConfiguration.bRuntimePhysicsCooking) && UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
+        {
+            DynamicallyLoadedModuleNames.Add("PhysXFormats");
+        }
 	}
 }

@@ -4,8 +4,10 @@
 
 #if WITH_PHYSX
 
+#if _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4946 ) // reinterpret_cast used between related classes
+#endif
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -13,8 +15,8 @@
 #endif
 
 #if USING_CODE_ANALYSIS
-	#pragma warning( push )
-	#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
+#pragma warning( push )
+#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
 #endif	// USING_CODE_ANALYSIS
 
 #pragma pack(push,8)
@@ -38,10 +40,12 @@
 #pragma pack(pop)
 
 #if USING_CODE_ANALYSIS
-	#pragma warning( pop )
+#pragma warning( pop )
 #endif	// USING_CODE_ANALYSIS
 
+#if _MSC_VER
 #pragma warning( pop )
+#endif
 
 #ifdef __clang__
 #pragma clang diagnostic pop
@@ -70,7 +74,7 @@ public:
 		check(Src);
 		int32 CurrentNum = (*Data).Num();
 		(*Data).AddUninitialized(Count);
-		FMemory::Memcpy( &(*Data)[CurrentNum], Src, Count );
+		FMemory::Memcpy(&(*Data)[CurrentNum], Src, Count);
 		return Count;
 	}
 };

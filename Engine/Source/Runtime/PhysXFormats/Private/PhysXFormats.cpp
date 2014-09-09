@@ -6,6 +6,8 @@
 #include "Engine.h"
 #include "PhysicsPublic.h"
 #include "TargetPlatform.h"
+#include "IPhysXFormat.h"
+#include "IPhysXFormatModule.h"
 #include "PhysXFormats.h"
 
 static_assert(WITH_PHYSX, "No point in compiling PhysX cooker, if we don't have PhysX.");

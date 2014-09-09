@@ -2,12 +2,13 @@
 
 #pragma once
 
-#if WITH_PHYSX && WITH_EDITOR
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "PhysXSupport.h"
+#include "IPhysXFormat.h"
 
 // Forward declarations
 class ULandscapeMeshCollisionComponent;

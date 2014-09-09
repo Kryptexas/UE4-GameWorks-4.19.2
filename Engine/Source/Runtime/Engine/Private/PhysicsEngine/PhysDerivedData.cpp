@@ -3,7 +3,8 @@
 #include "PhysDerivedData.h"
 #include "TargetPlatform.h"
 
-#if WITH_PHYSX && WITH_EDITOR
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+#include "IPhysxFormatModule.h"
 #include "Landscape/LandscapeMeshCollisionComponent.h"
 
 FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, UBodySetup* InBodySetup )
@@ -41,12 +42,19 @@ FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, ULandscapeMesh
 
 void FDerivedDataPhysXCooker::InitCooker()
 {
+#if WITH_EDITOR
 	// static here as an optimization
 	static ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	if (TPM)
 	{
 		Cooker = TPM->FindPhysXFormat( Format );
 	}
+#elif WITH_RUNTIME_PHYSICS_COOKING
+	if (IPhysXFormatModule* Module = FModuleManager::LoadModulePtr<IPhysXFormatModule>("PhysXFormats"))
+	{
+		Cooker = Module->GetPhysXFormat();
+	}
+#endif
 }
 
 bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )

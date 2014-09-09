@@ -7,6 +7,8 @@
 #include "TargetPlatformPrivatePCH.h"
 #include "PlatformInfo.h"
 #include "DesktopPlatformModule.h"
+#include "IPhysXFormatModule.h"
+#include "IPhysXFormat.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);
 

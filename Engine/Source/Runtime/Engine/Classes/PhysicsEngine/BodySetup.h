@@ -541,7 +541,7 @@ public:
 	/** Returns the physics material used for this body. If none, specified, returns the default engine material. */
 	ENGINE_API class UPhysicalMaterial* GetPhysMaterial() const;
 
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	/** Clear all simple collision */
 	ENGINE_API void RemoveSimpleCollision();
 
@@ -566,7 +566,7 @@ public:
 	 */
 	ENGINE_API void CreateFromModel(class UModel* InModel, bool bRemoveExisting);
 
-#endif // WITH_EDITOR
+#endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 	/**
 	 * Converts the skinned data of a skeletal mesh into a tri mesh collision. This is used for per poly scene queries and is quite expensive.
