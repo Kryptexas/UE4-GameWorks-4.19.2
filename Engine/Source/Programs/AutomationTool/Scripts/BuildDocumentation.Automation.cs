@@ -45,7 +45,7 @@ class DocumentationNode : GUBP.GUBPNode
 
 	public override int CISFrequencyQuantumShift(GUBP bp)
 	{
-		return base.CISFrequencyQuantumShift(bp) + 4;
+		return base.CISFrequencyQuantumShift(bp) + 3;
 	}
 
 	protected void ExecuteApiDocTool(string Arguments, string LogName)
