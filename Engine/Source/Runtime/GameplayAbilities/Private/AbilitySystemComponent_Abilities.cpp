@@ -453,7 +453,8 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 		return;
 	}
 
-	UGameplayAbility *InstancedAbility = NULL;
+	UGameplayAbility* InstancedAbility = NULL;
+	Spec->InputPressed = true; // Pretend input was pressed. Allows UAbilityTask_WaitInputRelease to work.
 
 	// Attempt to activate the ability (server side) and tell the client if it succeeded or failed.
 	if (TryActivateAbility(Handle, PrevPredictionKey, CurrPredictionKey, &InstancedAbility))
@@ -471,6 +472,7 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	}
 	else
 	{
+		Spec->InputPressed = false;
 		ClientActivateAbilityFailed(Handle, CurrPredictionKey);
 	}
 }
@@ -777,6 +779,7 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 		{
 			if (Spec.Ability)
 			{
+				Spec.InputPressed = true;
 				if (Spec.IsActive)
 				{
 					// The ability is active, so just pipe the input event to it
@@ -812,26 +815,28 @@ void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 		{
 			if (Spec.Ability)
 			{
-				if (Spec.IsActive)
-				{
-					// The ability is active, so just pipe the input event to it
-					if (Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
-					{
-						Spec.Ability->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
-					}
-					else
-					{
-						TArray<UGameplayAbility*> Instances = Spec.GetAbilityInstances();
-						for (UGameplayAbility* Instance : Instances)
-						{
-							Instance->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
-						}
-					}
-				}
-				else
-				{
+				AbilitySpectInputReleased(Spec);
+			}
+		}
+	}
+}
 
-				}
+void UAbilitySystemComponent::AbilitySpectInputReleased(FGameplayAbilitySpec& Spec)
+{
+	Spec.InputPressed = false;
+	if (Spec.IsActive)
+	{
+		// The ability is active, so just pipe the input event to it
+		if (Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
+		{
+			Spec.Ability->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
+		}
+		else
+		{
+			TArray<UGameplayAbility*> Instances = Spec.GetAbilityInstances();
+			for (UGameplayAbility* Instance : Instances)
+			{
+				Instance->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
 			}
 		}
 	}
@@ -857,6 +862,20 @@ void UAbilitySystemComponent::InputCancel()
 	}
 
 	CancelCallbacks.Broadcast();
+}
+
+bool UAbilitySystemComponent::ServerInputRelease_Validate(FGameplayAbilitySpecHandle Handle)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerInputRelease_Implementation(FGameplayAbilitySpecHandle Handle)
+{
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (Spec)
+	{
+		AbilitySpectInputReleased(*Spec);
+	}
 }
 
 void UAbilitySystemComponent::TargetConfirm()

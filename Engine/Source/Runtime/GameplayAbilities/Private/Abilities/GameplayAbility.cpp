@@ -333,6 +333,8 @@ void UGameplayAbility::InputPressed(const FGameplayAbilitySpecHandle Handle, con
 
 void UGameplayAbility::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
+	OnInputRelease.Broadcast(this);
+	OnInputRelease.Clear();
 }
 
 bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const
@@ -580,4 +582,11 @@ int32 UGameplayAbility::GetAbilityLevel(FGameplayAbilitySpecHandle Handle, const
 	check(Spec);
 
 	return Spec->Level;
+}
+
+FGameplayAbilitySpec* UGameplayAbility::GetCurrentAbilitySpec() const
+{
+	check(IsInstantiated()); // You should not call this on non instanced abilities.
+	check(CurrentActorInfo);
+	return CurrentActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(CurrentSpecHandle);
 }

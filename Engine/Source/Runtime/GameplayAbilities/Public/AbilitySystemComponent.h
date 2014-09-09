@@ -451,6 +451,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void AbilityInputReleased(int32 InputID);
 
+	void AbilitySpectInputReleased(FGameplayAbilitySpec& Spec);
+
+	/** Sent by abilities when they *need* to tell server when activation input is released. (Not sent by defauly only sent when using AbilityTask_WaitInputRelease) */
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerInputRelease(FGameplayAbilitySpecHandle AbilityToActivate);
+
 	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputConfirm();
 

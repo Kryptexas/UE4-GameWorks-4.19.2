@@ -138,18 +138,28 @@ public:
 	}
 
 	/** Gets the current actor info bound to this ability - can only be called on instanced abilities. */
-	const FGameplayAbilityActorInfo* GetCurrentActorInfo()
+	const FGameplayAbilityActorInfo* GetCurrentActorInfo() const
 	{
 		check(IsInstantiated());
 		return CurrentActorInfo;
 	}
 
 	/** Gets the current activation info bound to this ability - can only be called on instanced abilities. */
-	FGameplayAbilityActivationInfo GetCurrentActivationInfo()
+	FGameplayAbilityActivationInfo GetCurrentActivationInfo() const
 	{
 		check(IsInstantiated());
 		return CurrentActivationInfo;
 	}
+
+	/** Gets the current AbilitySpecHandle- can only be called on instanced abilities. */
+	FGameplayAbilitySpecHandle GetCurrentAbilitySpecHandle() const
+	{
+		check(IsInstantiated());
+		return CurrentSpecHandle;
+	}
+
+	/** Retrieves the actual AbilitySpec for this ability. Can only be called on instanced abilities. */
+	FGameplayAbilitySpec* GetCurrentAbilitySpec() const;
 
 	virtual UWorld* GetWorld() const override
 	{
@@ -175,7 +185,9 @@ public:
 	void TaskStarted(UAbilityTask* NewTask);
 
 	void TaskEnded(UAbilityTask* Task);
-	
+
+	/** GenericCallback for Input being released. Auto cleared on broadcast */
+	FGenericAbilityDelegate	OnInputRelease;
 
 protected:
 

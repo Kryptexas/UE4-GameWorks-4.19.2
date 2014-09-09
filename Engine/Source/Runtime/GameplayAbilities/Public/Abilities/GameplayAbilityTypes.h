@@ -214,13 +214,13 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
-	: IsActive(false)
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), IsActive(false)
 	{
 		
 	}
 
 	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE)
-	: Ability(InAbility), Level(InLevel), InputID(InInputID), IsActive(false)
+	: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), IsActive(false)
 	{
 		Handle.GenerateNewHandle();
 	}
@@ -240,6 +240,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	/** InputID, if bound */
 	UPROPERTY()
 	int32	InputID;
+
+	/** Is input currently pressed. Set to false when input is released */
+	UPROPERTY(NotReplicated)
+	bool	InputPressed;
 
 	/** Is this ability active? (Literally: has EndAbility been called on it since ActivateAbility was called on it */
 	UPROPERTY()
