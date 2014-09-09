@@ -648,12 +648,13 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 				
 			if( !LayoutCallbacks )
 			{
-				FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
-				if (LayoutCallbacks)
-				{
-					const FPropertyTypeLayoutCallback& Callback = LayoutCallbacks->Find(PropertyHandle);
-					return Callback;
-				}
+				LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
+			}
+
+			if ( LayoutCallbacks )
+			{
+				const FPropertyTypeLayoutCallback& Callback = LayoutCallbacks->Find(PropertyHandle);
+				return Callback;
 			}
 		}
 	}
