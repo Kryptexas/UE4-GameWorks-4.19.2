@@ -15,6 +15,9 @@ UPaperFlipbook::UPaperFlipbook(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	FramesPerSecond = 15;
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial"));
+	DefaultMaterial = MaskedMaterialRef.Object;
 }
 
 int32 UPaperFlipbook::GetFramesPerSecond() const

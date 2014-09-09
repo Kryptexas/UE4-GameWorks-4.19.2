@@ -14,8 +14,7 @@ UPaperFlipbookComponent::UPaperFlipbookComponent(const FPostConstructInitializeP
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial"));
-	Material = DefaultMaterial.Object;
+	Material = nullptr;
 
 	SpriteColor = FLinearColor::White;
 
@@ -275,7 +274,18 @@ UPaperFlipbook* UPaperFlipbookComponent::GetFlipbook()
 
 UMaterialInterface* UPaperFlipbookComponent::GetSpriteMaterial() const
 {
-	return Material;
+	if (Material != nullptr)
+	{
+		return Material;
+	}
+	else if (SourceFlipbook != nullptr)
+	{
+		return SourceFlipbook->GetDefaultMaterial();
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 void UPaperFlipbookComponent::SetSpriteColor(FLinearColor NewColor)

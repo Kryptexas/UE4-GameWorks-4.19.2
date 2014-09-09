@@ -41,6 +41,10 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	TArray<FPaperFlipbookKeyFrame> KeyFrames;
 
+	// The material to use on a flipbook player instance if not overridden
+	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
+	UMaterialInterface* DefaultMaterial;
+
 public:
 	// Returns the nominal frame rate to play this flipbook animation back at
 	int32 GetFramesPerSecond() const;
@@ -91,6 +95,9 @@ public:
 
 	// Returns a list of all of the sockets
 	void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
+
+	// Return the default material for this flipbook
+	UMaterialInterface* GetDefaultMaterial() const { return DefaultMaterial; }
 
 	// Rebuilds cached data about the animation (such as total number of frames that the keyframes span, etc...)
 	void InvalidateCachedData();
