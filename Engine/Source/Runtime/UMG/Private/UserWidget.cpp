@@ -633,13 +633,23 @@ const FLocalPlayerContext& UUserWidget::GetPlayerContext() const
 
 ULocalPlayer* UUserWidget::GetOwningLocalPlayer() const
 {
-	APlayerController* PC = PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
-	return PC ? Cast<ULocalPlayer>(PC->Player) : NULL;
+	APlayerController* PC = PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : nullptr;
+	return PC ? Cast<ULocalPlayer>(PC->Player) : nullptr;
 }
 
 APlayerController* UUserWidget::GetOwningPlayer() const
 {
-	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
+	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : nullptr;
+}
+
+class APawn* UUserWidget::GetOwningPlayerPawn() const
+{
+	if ( APlayerController* PC = GetOwningPlayer() )
+	{
+		return PC->GetPawn();
+	}
+
+	return nullptr;
 }
 
 void UUserWidget::SetPositionInViewport(FVector2D Position)

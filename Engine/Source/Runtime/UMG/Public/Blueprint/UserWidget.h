@@ -148,6 +148,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Player")
 	class APlayerController* GetOwningPlayer() const;
 
+	/** Gets the player pawn associated with this UI. */
+	UFUNCTION(BlueprintCallable, Category="Player")
+	class APawn* GetOwningPlayerPawn() const;
+
 	/** Called when the widget is constructed */
 	UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	void Construct();
