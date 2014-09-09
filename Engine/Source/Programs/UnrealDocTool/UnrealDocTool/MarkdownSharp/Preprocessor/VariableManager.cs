@@ -15,7 +15,7 @@ namespace MarkdownSharp.Preprocessor
 
     public class VariableManager
     {
-        public static readonly Regex InLineVariableOrMetadata = new Regex(@"(?<=^[ ]{0,3}(\S.*)?)(?<!\(http://[^)]+)((\%(?<pathWithColon>(?<path>[^%: \s]*?):)?(?<variableName>([_ \(\):a-zA-Z0-9\<\>*;]+?))\%))", RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline | RegexOptions.Compiled);
+        public static readonly Regex InLineVariableOrMetadata = new Regex(@"(?<=^[ ]{0,3}(\S.*)?)(?<!http://[^) ]+)((\%(?<pathWithColon>(?<path>[^%: \s]*?):)?(?<variableName>([_ \(\):a-zA-Z0-9\<\>*;]+?))\%))", RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline | RegexOptions.Compiled);
         private static readonly Regex VariableDefinitionPattern = new Regex(@"
                 (
                     ^\[VAR:(?<variableName>[_a-zA-Z0-9]+?)\]$\n
