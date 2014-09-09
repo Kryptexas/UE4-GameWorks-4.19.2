@@ -314,6 +314,7 @@ public:
 	inline float GetFullyOccludedSamplesFraction(int32 ElementIndex) const { return MaterialElements[ElementIndex].FullyOccludedSamplesFraction; }
 	inline int32 GetNumElements() const { return MaterialElements.Num(); }
 	inline bool ShouldColorInvalidTexels() const { return bColorInvalidTexels; }
+	inline bool HasImportedNormal(int32 ElementIndex) const { return MaterialElements[ElementIndex].Material->NormalSize > 0; }
 
 	/**
 	 *	Returns the Guid for the object associated with this lighting mesh.

@@ -2522,12 +2522,6 @@ FGatheredLightSample FStaticLightingSystem::CalculatePointLighting(
 		// Compute the incident lighting of the light on the vertex.
 		const FLinearColor LightIntensity = InLightIntensity * InTransmission;
 
-		// Figure out the tangent space normal of this point on the mapping's surface.  This normal is used
-		// when computing lighting for simple light maps.
-		const FVector4 TangentNormal = MaterialSettings.bUseNormalMapsForSimpleLightMaps ?
-			Mapping->Mesh->EvaluateNormal(Vertex.TextureCoordinates[0], ElementIndex) :
-			FVector4( 0.0f, 0.0f, 1.0f, 0.0f );
-
 		// Compute the light-map sample for the front-face of the vertex.
 		FGatheredLightSample FrontFaceSample = FGatheredLightSample::PointLightWorldSpace(LightIntensity, TangentLightVector, WorldLightVector.SafeNormal());
 

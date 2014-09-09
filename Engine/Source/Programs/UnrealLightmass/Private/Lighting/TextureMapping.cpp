@@ -922,6 +922,23 @@ void FStaticLightingSystem::SetupTextureMapping(
 				}
 				// Mark the texel as mapped to some geometry in the scene
 				CurrentLightSample.bIsMapped = true;
+
+				if (MaterialSettings.bUseNormalMapsForLighting && TextureMapping->Mesh->HasImportedNormal(TexelToVertex.ElementIndex))
+				{
+					const FVector4 TangentNormal = TextureMapping->Mesh->EvaluateNormal(TexelToVertex.TextureCoordinates[0], TexelToVertex.ElementIndex);
+
+					const FVector4 WorldTangentRow0(TexelToVertex.WorldTangentX.X, TexelToVertex.WorldTangentY.X, TexelToVertex.WorldTangentZ.X);
+					const FVector4 WorldTangentRow1(TexelToVertex.WorldTangentX.Y, TexelToVertex.WorldTangentY.Y, TexelToVertex.WorldTangentZ.Y);
+					const FVector4 WorldTangentRow2(TexelToVertex.WorldTangentX.Z, TexelToVertex.WorldTangentY.Z, TexelToVertex.WorldTangentZ.Z);
+					const FVector4 WorldVector(
+						Dot3(WorldTangentRow0, TangentNormal),
+						Dot3(WorldTangentRow1, TangentNormal),
+						Dot3(WorldTangentRow2, TangentNormal)
+						);
+
+					TexelToVertex.WorldTangentZ = WorldVector;
+				}
+
 				// Normalize the tangent basis and ensure it is orthonormal
 				TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.UnsafeNormal3();
 				TexelToVertex.TriangleNormal = TexelToVertex.TriangleNormal.UnsafeNormal3();

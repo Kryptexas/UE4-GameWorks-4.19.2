@@ -136,6 +136,11 @@ class ENGINE_API URendererSettings
 	uint32 bAllowStaticLighting:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		ConsoleVariable="r.NormalMapsForStaticLighting",
+		ToolTip="Whether to allow any static lighting to use normal maps for lighting computations."))
+	uint32 bUseNormalMapsForStaticLighting:1;
+
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.GBuffer",
 		ToolTip="1=Use GBuffer, 0=Don't use GBuffer (minimal limited renderer)."))
 		uint32 bGBuffer:1;

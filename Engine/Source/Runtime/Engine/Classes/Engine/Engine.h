@@ -1364,10 +1364,6 @@ private:
 
 public:
 
-	/** Enables normal map sampling when Lightmass is generating 'simple' light maps.  This increases lighting build time, but may improve quality when normal maps are used to represent curvature over a large surface area.  When this setting is disabled, 'simple' light maps will not take normal maps into account. */
-	UPROPERTY(globalconfig)
-	uint32 bUseNormalMapsForSimpleLightMaps:1;
-
 	/** determines if we should start the matinee capture as soon as the game loads */
 	UPROPERTY(transient)
 	uint32 bStartWithMatineeCapture:1;

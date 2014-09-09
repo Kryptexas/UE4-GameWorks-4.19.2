@@ -1567,6 +1567,11 @@ static TAutoConsoleVariable<int32> CVarAllowStaticLighting(
 	TEXT("Games that only use dynamic lighting should set this to 0 to save some static lighting overhead."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarNormalMaps(
+	TEXT("r.NormalMapsForStaticLighting"),
+	0,
+	TEXT("Whether to allow any static lighting to use normal maps for lighting computations."),
+	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarNumBufferedOcclusionQueries(
 	TEXT("r.NumBufferedOcclusionQueries"),

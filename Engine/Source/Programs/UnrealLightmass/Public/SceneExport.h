@@ -162,11 +162,8 @@ struct FSceneMaterialSettings
 	/** The size of the normal sample */
 	int32 NormalSize;
 
-
-	/** Enables normal map sampling when Lightmass is generating 'simple' light maps.  This increases lighting build time, but may improve quality when normal maps are used to represent curvature over a large surface area.  When this setting is disabled, 'simple' light maps will not take normal maps into account. */
-	/** Note: This setting is driven from the level's UEngine::bUseNormalMapsForSimpleLightMaps option */
-	bool bUseNormalMapsForSimpleLightMaps;
-
+	/** Whether to use the normal map for lighting, if false the smoothed vertex normal will be used. */
+	bool bUseNormalMapsForLighting;
 
 	/** 
 	 * Debugging - Amount of incoming light to reflect diffusely (equally in all directions). 

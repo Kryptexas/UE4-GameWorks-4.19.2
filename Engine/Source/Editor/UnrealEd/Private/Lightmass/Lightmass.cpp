@@ -1118,9 +1118,11 @@ void FLightmassExporter::BuildMaterialMap(UMaterialInterface* Material)
 		{
 			if( ErrorCode == NSwarm::SWARM_ERROR_FILE_FOUND_NOT )
 			{
+				static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NormalMapsForStaticLighting"));
+				const bool bUseNormalMapsForLighting = CVar->GetValueOnGameThread() != 0;
+
 				// Only generate normal maps if we'll actually need them for lighting
-				const bool bWantNormals = GEngine->bUseNormalMapsForSimpleLightMaps;
-				MaterialRenderer.BeginGenerateMaterialData(Material, bWantNormals, NewChannelName, MaterialExportData);
+				MaterialRenderer.BeginGenerateMaterialData(Material, bUseNormalMapsForLighting, NewChannelName, MaterialExportData);
 			}
 			else
 			{
@@ -1825,7 +1827,8 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 
 		Scene.MaterialSettings.EnvironmentColor = FLinearColor(LevelSettings.EnvironmentColor) * LevelSettings.EnvironmentIntensity;
 
-		Scene.MaterialSettings.bUseNormalMapsForSimpleLightMaps = GEngine->bUseNormalMapsForSimpleLightMaps;
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NormalMapsForStaticLighting"));
+		Scene.MaterialSettings.bUseNormalMapsForLighting = CVar->GetValueOnGameThread() != 0;
 	}
 	{
 		verify(GConfig->GetBool(TEXT("DevOptions.MeshAreaLights"), TEXT("bVisualizeMeshAreaLightPrimitives"), bConfigBool, GLightmassIni));
