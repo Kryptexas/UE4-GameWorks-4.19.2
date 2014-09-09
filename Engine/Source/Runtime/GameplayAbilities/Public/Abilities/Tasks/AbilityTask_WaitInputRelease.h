@@ -2,6 +2,7 @@
 #pragma once
 #include "AbilityTask.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "AbilitySystemComponent.h"
 #include "AbilityTask_WaitInputRelease.generated.h"
 
 /**

@@ -407,7 +407,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 
 	/** Rather than targeting a single point, this type of targeting selects multiple actors. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-		TArray<AActor*> TargetActorArray;
+	TArray<AActor*> TargetActorArray;
 
 	virtual TArray<AActor*>	GetActors() const override
 	{
@@ -463,19 +463,19 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Mesh : public FGameplayA
 
 	/** Actor who owns the named component. Actor's location is used as start point if component cannot be found. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-		AActor* SourceActor;
+	AActor* SourceActor;
 
 	/** Local skeletal mesh component that holds the socket. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-		USkeletalMeshComponent* SourceComponent;
+	USkeletalMeshComponent* SourceComponent;
 
 	/** If SourceActor and SourceComponent are valid, this is the name of the socket that will be used instead of the actor's location. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-		FName SourceSocketName;
+	FName SourceSocketName;
 
 	/** Point being targeted. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-		FVector_NetQuantize TargetPoint;
+	FVector_NetQuantize TargetPoint;
 
 	// -------------------------------------
 

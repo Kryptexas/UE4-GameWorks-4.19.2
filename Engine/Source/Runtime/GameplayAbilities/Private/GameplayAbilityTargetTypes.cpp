@@ -28,7 +28,7 @@ void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEf
 	}
 
 	TArray<AActor*> Actors = GetActors();
-	for (AActor * TargetActor : Actors)
+	for (AActor* TargetActor : Actors)
 	{
 		check(TargetActor);
 		UAbilitySystemComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
