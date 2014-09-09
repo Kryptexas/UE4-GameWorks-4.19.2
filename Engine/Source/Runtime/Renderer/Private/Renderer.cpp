@@ -124,7 +124,7 @@ void FRendererModule::DebugLogOnCrash()
 	}
 }
 
-void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkScale, bool bDebugOut)
+void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, float WorkScale)
 {
 	check(IsInGameThread());
 
@@ -153,14 +153,13 @@ void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkSca
 
 	FSceneView DummyView(ViewInitOptions);
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 	  RendererGPUBenchmarkCommand,
 	  FSceneView, DummyView, DummyView,
-	  uint32, WorkScale, WorkScale,
-	  bool, bDebugOut, bDebugOut,
+	  float, WorkScale, WorkScale,
 	  FSynthBenchmarkResults&, InOut, InOut,
 	{
-		RendererGPUBenchmark(RHICmdList, InOut, DummyView, WorkScale, bDebugOut);
+		RendererGPUBenchmark(RHICmdList, InOut, DummyView, WorkScale);
 	});
 	FlushRenderingCommands();
 }

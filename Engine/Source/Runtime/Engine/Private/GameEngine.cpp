@@ -37,28 +37,22 @@ ENGINE_API bool GDisallowNetworkTravel = false;
 /** Benchmark results to the log */
 static void RunSynthBenchmark(const TArray<FString>& Args)
 {
-	uint32 WorkScale = 10;
-	bool bDebugOut = false;
-
-	// 2 arguments mean with debug out
-	if(Args.Num() > 1)
-	{
-		bDebugOut = true;
-	}
+	float WorkScale = 10.0f;
 
 	if ( Args.Num() > 0 )
 	{
-		WorkScale = FCString::Atoi(*Args[0]);
-		WorkScale = FMath::Clamp(WorkScale, (uint32)1, (uint32)1000);
+		WorkScale = FCString::Atof(*Args[0]);
+		WorkScale = FMath::Clamp(WorkScale, 1.0f, 1000.0f);
 	}
 
 	FSynthBenchmarkResults Result;
-	ISynthBenchmark::Get().Run(Result, true, WorkScale, bDebugOut);
+	ISynthBenchmark::Get().Run(Result, true, WorkScale);
 }
 
 static FAutoConsoleCommand GDumpDrawListStatsCmd(
 	TEXT("SynthBenchmark"),
-	TEXT("Run simple benchmark to get some metrics to find reasonable game settings automatically."),
+	TEXT("Run simple benchmark to get some metrics to find reasonable game settings automatically\n")
+	TEXT("Optional (float) parameter allows to scale with work amount to trade time or precision (default: 10)."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&RunSynthBenchmark)
 	);
 

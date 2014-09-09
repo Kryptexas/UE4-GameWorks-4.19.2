@@ -126,7 +126,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBenchmarkVS,TEXT("GPUBenchmark"),TEXT("MainBe
 
 
 template <uint32 Method>
-void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
+void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src, float WorkScale)
 {
 	auto ShaderMap = GetGlobalShaderMap(View.GetFeatureLevel());
 
@@ -141,14 +141,24 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, TRe
 	PixelShader->SetParameters(RHICmdList, View, Src);
 	VertexShader->SetParameters(RHICmdList, View);
 
-	for(uint32 i = 0; i < Count; ++i)
+	// single pass was not fine grained enough so we reduce the pass size based on the fractional part of WorkScale
+	float TotalHeight = GBenchmarkResolution * WorkScale;
+
+	// rounds up
+	uint32 PassCount = (uint32)FMath::CeilToFloat(TotalHeight / GBenchmarkResolution);
+
+	for(uint32 i = 0; i < PassCount; ++i)
 	{
+		float Top = i * GBenchmarkResolution;
+		float Bottom = FMath::Min(Top + GBenchmarkResolution, TotalHeight);
+		float LocalHeight = Bottom - Top;
+
 		DrawRectangle(
 			RHICmdList,
 			0, 0,
-			GBenchmarkResolution, GBenchmarkResolution,
+			GBenchmarkResolution, LocalHeight,
 			0, 0,
-			GBenchmarkResolution, GBenchmarkResolution,
+			GBenchmarkResolution, LocalHeight,
 			FIntPoint(GBenchmarkResolution, GBenchmarkResolution),
 			FIntPoint(GBenchmarkResolution, GBenchmarkResolution),
 			*VertexShader,
@@ -156,17 +166,17 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, TRe
 	}
 }
 
-void RunBenchmarkShader(FRHICommandListImmediate& RHICmdList, const FSceneView& View, uint32 MethodId, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
+void RunBenchmarkShader(FRHICommandListImmediate& RHICmdList, const FSceneView& View, uint32 MethodId, TRefCountPtr<IPooledRenderTarget>& Src, float WorkScale)
 {
 	SCOPED_DRAW_EVENTF(Benchmark, DEC_SCENE_ITEMS, TEXT("Benchmark Method:%d"), MethodId);
 
 	switch(MethodId)
 	{
-		case 0: RunBenchmarkShader<0>(RHICmdList, View, Src, Count); return;
-		case 1: RunBenchmarkShader<1>(RHICmdList, View, Src, Count); return;
-		case 2: RunBenchmarkShader<2>(RHICmdList, View, Src, Count); return;
-		case 3: RunBenchmarkShader<3>(RHICmdList, View, Src, Count); return;
-		case 4: RunBenchmarkShader<4>(RHICmdList, View, Src, Count); return;
+		case 0: RunBenchmarkShader<0>(RHICmdList, View, Src, WorkScale); return;
+		case 1: RunBenchmarkShader<1>(RHICmdList, View, Src, WorkScale); return;
+		case 2: RunBenchmarkShader<2>(RHICmdList, View, Src, WorkScale); return;
+		case 3: RunBenchmarkShader<3>(RHICmdList, View, Src, WorkScale); return;
+		case 4: RunBenchmarkShader<4>(RHICmdList, View, Src, WorkScale); return;
 
 		default:
 			check(0);
@@ -296,63 +306,10 @@ private:
 	TArray<float> TimingValues;
 };
 
-#if !UE_BUILD_SHIPPING
-// for debugging only
-class FBenchmarkGraph
-{
-public:
-	FBenchmarkGraph(uint32 InWidth, uint32 InHeight, const TCHAR* InFilePath)
-		: FilePath(InFilePath)
-		, Height(InHeight)
-		, Width(InWidth)
-	{
-		Data.AddZeroed(Width * Height);
-	}
-
-
-	// @param x 0..Width-1
-	// @param y 0..Height-1
-	void DrawPixel(int32 X, int32 Y, FColor Color = FColor::White)
-	{
-		if((uint32)X < Width && (uint32)Y < Height)
-		{
-			Data[X + Y * Width] = Color;
-		}
-	}
-
-	// @param x 0..Width-1
-	// @param Value 0..1
-	void DrawBar(int32 X, float Value)
-	{
-		Value = FMath::Clamp(Value, 0.0f, 1.0f);
-
-		uint32 StartY = (uint32)((1.0f - Value) * Height);
-		for(uint32 Y = StartY; Y < Height; ++Y)
-		{
-			bool bBetterThanReference = Y < (Height / 2);
-			// better than reference system: green, otherwise red
-			DrawPixel(X, Y, bBetterThanReference ? FColor::Green : FColor::Red);
-		}
-	}
-
-	void Save() const
-	{
-		FFileHelper::CreateBitmap(*FilePath, Width, Height, Data.GetData());
-	}
-
-private:
-	TArray<FColor> Data;
-	FString FilePath;
-	uint32 Height;
-	uint32 Width;
-};
-#endif
-
-
-void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkResults& InOut, const FSceneView& View, uint32 WorkScale, bool bDebugOut)
+void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkResults& InOut, const FSceneView& View, float WorkScale, bool bDebugOut)
 {
 	check(IsInRenderingThread());
-	
+
 	// two RT to ping pong so we force the GPU to flush it's pipeline
 	TRefCountPtr<IPooledRenderTarget> RTItems[3];
 	{
@@ -383,7 +340,7 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 		const uint32 TimerSampleCount = IterationCount * MethodCount + 1;
 
 		static FRenderQueryRHIRef TimerQueries[TimerSampleCount];
-		static uint32 PassCount[IterationCount];
+		static float LocalWorkScale[IterationCount];
 
 		for(uint32  i = 0; i < TimerSampleCount; ++i)
 		{
@@ -394,13 +351,49 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 		if(!bSupportsTimerQueries)
 		{
 			UE_LOG(LogSynthBenchmark, Warning, TEXT("GPU driver does not support timer queries."));
+
+			// Temporary workaround for GL_TIMESTAMP being unavailable and GL_TIME_ELAPSED workaround breaking drivers
+#if PLATFORM_MAC
+			GLint RendererID = 0;
+			float PerfScale = 1.0f;
+			[[NSOpenGLContext currentContext] getValues:&RendererID forParameter:NSOpenGLCPCurrentRendererID];
+			{
+				switch((RendererID & kCGLRendererIDMatchingMask))
+				{
+					case kCGLRendererATIRadeonX4000ID: // AMD 7xx0 & Dx00 series - should be pretty beefy
+						PerfScale = 1.2f;break;
+					case kCGLRendererATIRadeonX3000ID: // AMD 5xx0, 6xx0 series - mostly OK
+					case kCGLRendererGeForceID: // Nvidia 6x0 & 7x0 series - mostly OK
+						PerfScale = 2.0f;break;
+					case kCGLRendererIntelHD5000ID: // Intel HD 5000, Iris, Iris Pro - not dreadful
+						PerfScale = 4.2f;break;
+					case kCGLRendererIntelHD4000ID: // Intel HD 4000 - quite slow
+						PerfScale = 7.5f;break;
+					case kCGLRendererATIRadeonX2000ID: // ATi 4xx0, 3xx0, 2xx0 - almost all very slow and drivers are now very buggy
+					case kCGLRendererGeForce8xxxID: // Nvidia 3x0, 2x0, 1x0, 9xx0, 8xx0 - almost all very slow
+					case kCGLRendererIntelHDID: // Intel HD 3000 - very, very slow and very buggy driver
+					default:
+						PerfScale = 10.0f;break;
+				}
+			}
+
+			InOut.GPUStats[0].SetMeasuredTime(PerfScale * (1.0f / 4.601f));
+			InOut.GPUStats[1].SetMeasuredTime(PerfScale * (1.0f / 7.447f));
+			InOut.GPUStats[2].SetMeasuredTime(PerfScale * (1.0f / 3.847f));
+			InOut.GPUStats[3].SetMeasuredTime(PerfScale * (1.0f / 25.463f));
+			InOut.GPUStats[4].SetMeasuredTime(PerfScale * (1.0f / 1.072f));
+#endif
+			return;
 		}
 
-		// TimingValues are in Seconds per GPixel
+		// TimingValues are in Seconds
 		FTimingSeries TimingSeries[MethodCount];
+		// in 1/1000000 Seconds
+		uint64 TotalTimes[MethodCount];
 		
 		for(uint32 MethodIterator = 0; MethodIterator < MethodCount; ++MethodIterator)
 		{
+			TotalTimes[MethodIterator] = 0;
 			TimingSeries[MethodIterator].Init(IterationCount);
 		}
 
@@ -435,9 +428,9 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 				SetRenderTarget(RHICmdList, RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());	
 
 				// decide how much work we do in this pass
-				PassCount[Iteration] = (Iteration / 10 + 1) * WorkScale;
+				LocalWorkScale[Iteration] = (Iteration / 10 + 1) * WorkScale;
 
-				RunBenchmarkShader(RHICmdList, View, MethodId, RTItems[SrcRTIndex], PassCount[Iteration]);
+				RunBenchmarkShader(RHICmdList, View, MethodId, RTItems[SrcRTIndex], LocalWorkScale[Iteration]);
 
 				RHICmdList.CopyToResolveTarget(RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, RTItems[DestRTIndex]->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 
@@ -474,10 +467,6 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 			RHICmdList.GetRenderQueryResult(TimerQueries[0], OldAbsTime, true);
 			GTimerQueryPool.ReleaseQuery(RHICmdList, TimerQueries[0]);
 
-#if !UE_BUILD_SHIPPING
-			FBenchmarkGraph BenchmarkGraph(IterationCount, IterationCount, *(FPaths::ScreenShotDir() + TEXT("GPUSynthBenchmarkGraph.bmp")));
-#endif
-
 			for(uint32 Iteration = 0; Iteration < IterationCount; ++Iteration)
 			{
 				uint32 Results[MethodCount];
@@ -490,131 +479,43 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 					RHICmdList.GetRenderQueryResult(TimerQueries[QueryIndex], AbsTime, true);
 					GTimerQueryPool.ReleaseQuery(RHICmdList, TimerQueries[QueryIndex]);
 
-					Results[MethodId] = AbsTime - OldAbsTime;
+					uint64 RelTime = AbsTime - OldAbsTime; 
+
+					TotalTimes[MethodId] += RelTime;
+					Results[MethodId] = RelTime;
+
 					OldAbsTime = AbsTime;
 				}
 
-				double SamplesInGPix = PassCount[Iteration] * GBenchmarkResolution * GBenchmarkResolution / 1000000000.0;
-
 				for(uint32 MethodId = 0; MethodId < MethodCount; ++MethodId)
 				{
-					double TimeInSec = Results[MethodId] / 1000000.0;
-					double TimingValue = TimeInSec / SamplesInGPix;
+					float TimeInSec = Results[MethodId] / 1000000.0f;
+
+					// to normalize from seconds to seconds per GPixel
+					float SamplesInGPix = LocalWorkScale[Iteration] * GBenchmarkResolution * GBenchmarkResolution / 1000000000.0f;
 
 					// TimingValue in Seconds per GPixel
-					TimingSeries[MethodId].SetEntry(Iteration, (float)TimingValue);
-				}
-
-#if !UE_BUILD_SHIPPING
-				{
-					// This is for debugging and we don't want to change the output but we still use "InOut".
-					// That shouldn't hurt, as we override the values after that anyway.
-
-					for(uint32 MethodId = 0; MethodId < MethodCount; ++MethodId)
-					{
-						InOut.GPUStats[MethodId].SetMeasuredTime(TimingSeries[MethodId].GetEntry(Iteration));
-					}
-
-					float LocalGPUIndex = InOut.ComputeGPUPerfIndex();
-
-					// * 0.01 to get it in 0..1 range
-					// * 0.5f to have 100 is the middle
-					BenchmarkGraph.DrawBar(Iteration, LocalGPUIndex * 0.01f * 0.5f);
-				}
-#endif
-			}
-			
-			// Temporary workaround for GL_TIMESTAMP being unavailable and GL_TIME_ELAPSED workaround breaking drivers
-#if PLATFORM_MAC
-			if(!TimerQueries[0])
-			{
-				GLint RendererID = 0;
-				[[NSOpenGLContext currentContext] getValues:&RendererID forParameter:NSOpenGLCPCurrentRendererID];
-				{
-					switch((RendererID & kCGLRendererIDMatchingMask))
-					{
-						case kCGLRendererATIRadeonX4000ID: // AMD 7xx0 & Dx00 series - should be pretty beefy
-						{
-							InOut.GPUStats[0].SetMeasuredTime(1.2f * (1.0f / 4.601f));
-							InOut.GPUStats[1].SetMeasuredTime(1.2f * (1.0f / 7.447f));
-							InOut.GPUStats[2].SetMeasuredTime(1.2f * (1.0f / 3.847f));
-							InOut.GPUStats[3].SetMeasuredTime(1.2f * (1.0f / 25.463f));
-							InOut.GPUStats[4].SetMeasuredTime(1.2f * (1.0f / 1.072f));
-							break;
-						}
-						case kCGLRendererATIRadeonX3000ID: // AMD 5xx0, 6xx0 series - mostly OK
-						case kCGLRendererGeForceID: // Nvidia 6x0 & 7x0 series - mostly OK
-						{
-							InOut.GPUStats[0].SetMeasuredTime(2.f * (1.0f / 4.601f));
-							InOut.GPUStats[1].SetMeasuredTime(2.f * (1.0f / 7.447f));
-							InOut.GPUStats[2].SetMeasuredTime(2.f * (1.0f / 3.847f));
-							InOut.GPUStats[3].SetMeasuredTime(2.f * (1.0f / 25.463f));
-							InOut.GPUStats[4].SetMeasuredTime(2.f * (1.0f / 1.072f));
-							break;
-						}
-						case kCGLRendererIntelHD5000ID: // Intel HD 5000, Iris, Iris Pro - not dreadful
-						{
-							InOut.GPUStats[0].SetMeasuredTime(4.f * (1.0f / 4.601f));
-							InOut.GPUStats[1].SetMeasuredTime(4.f * (1.0f / 7.447f));
-							InOut.GPUStats[2].SetMeasuredTime(4.f * (1.0f / 3.847f));
-							InOut.GPUStats[3].SetMeasuredTime(4.f * (1.0f / 25.463f));
-							InOut.GPUStats[4].SetMeasuredTime(4.f * (1.0f / 1.072f));
-							break;
-						}
-						case kCGLRendererIntelHD4000ID: // Intel HD 4000 - quite slow
-						{
-							InOut.GPUStats[0].SetMeasuredTime(7.5f * (1.0f / 4.601f));
-							InOut.GPUStats[1].SetMeasuredTime(7.5f * (1.0f / 7.447f));
-							InOut.GPUStats[2].SetMeasuredTime(7.5f * (1.0f / 3.847f));
-							InOut.GPUStats[3].SetMeasuredTime(7.5f * (1.0f / 25.463f));
-							InOut.GPUStats[4].SetMeasuredTime(7.5f * (1.0f / 1.072f));
-							break;
-						}
-						case kCGLRendererATIRadeonX2000ID: // ATi 4xx0, 3xx0, 2xx0 - almost all very slow and drivers are now very buggy
-						case kCGLRendererGeForce8xxxID: // Nvidia 3x0, 2x0, 1x0, 9xx0, 8xx0 - almost all very slow
-						case kCGLRendererIntelHDID: // Intel HD 3000 - very, very slow and very buggy driver
-						default:
-						{
-							InOut.GPUStats[0].SetMeasuredTime(10.f * (1.0f / 4.601f));
-							InOut.GPUStats[1].SetMeasuredTime(10.f * (1.0f / 7.447f));
-							InOut.GPUStats[2].SetMeasuredTime(10.f * (1.0f / 3.847f));
-							InOut.GPUStats[3].SetMeasuredTime(10.f * (1.0f / 25.463f));
-							InOut.GPUStats[4].SetMeasuredTime(10.f * (1.0f / 1.072f));
-							break;
-						}
-					}
+					TimingSeries[MethodId].SetEntry(Iteration, TimeInSec / SamplesInGPix);
 				}
 			}
-			
-#endif
 
-			for(uint32 MethodId = 0; MethodId < MethodCount; ++MethodId)
+			if(bSupportsTimerQueries)
 			{
-				float Confidence = 0.0f;
-				
 				// Temporary workaround for GL_TIMESTAMP being unavailable and GL_TIME_ELAPSED workaround breaking drivers on OS X
-				if(!PLATFORM_MAC || bSupportsTimerQueries)
+				for(uint32 MethodId = 0; MethodId < MethodCount; ++MethodId)
 				{
-					float TimingValue = TimingSeries[MethodId].ComputeValue(Confidence);
+					float Confidence = 0.0f;
+					// in seconds per GPixel
+					float NormalizedTime = TimingSeries[MethodId].ComputeValue(Confidence);
 
 					if(Confidence > 0)
 					{
-						InOut.GPUStats[MethodId].SetMeasuredTime(TimingValue, Confidence);
+						FTimeSample TimeSample(TotalTimes[MethodId] / 1000000.0f, NormalizedTime);
+
+						InOut.GPUStats[MethodId].SetMeasuredTime(TimeSample, Confidence);
 					}
 				}
-
-				UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s'"),
-					1.0f / InOut.GPUStats[MethodId].GetMeasuredTime(), Confidence, InOut.GPUStats[MethodId].GetDesc());
 			}
-
-			UE_LOG(LogSynthBenchmark, Display, TEXT(""));
-			
-#if !UE_BUILD_SHIPPING
-			if(bDebugOut)
-			{
-				BenchmarkGraph.Save();
-			}
-#endif
 		}
 	}
 }
