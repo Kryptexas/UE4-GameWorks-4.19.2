@@ -611,12 +611,36 @@ bool FStructureEditorUtils::ChangeEditableOnBPInstance(UUserDefinedStruct* Struc
 	const bool bNewDontEditoOnInstance = !bInIsEditable;
 	if (VarDesc && (bNewDontEditoOnInstance != VarDesc->bDontEditoOnInstance))
 	{
-		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
+		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableOnBPInstance", "Change variable editable on BP instance"));
 		ModifyStructData(Struct);
 
 		VarDesc->bDontEditoOnInstance = bNewDontEditoOnInstance;
 		OnStructureChanged(Struct);
 		return true;
+	}
+	return false;
+}
+
+bool FStructureEditorUtils::MoveVariable(UUserDefinedStruct* Struct, FGuid VarGuid, EMoveDirection MoveDirection)
+{
+	if (Struct)
+	{
+		const bool bMoveUp = (EMoveDirection::MD_Up == MoveDirection);
+		auto& DescArray = GetVarDesc(Struct);
+		const int32 InitialIndex = bMoveUp ? 1 : 0;
+		const int32 IndexLimit = DescArray.Num() - (bMoveUp ? 0 : 1);
+		for (int32 Index = InitialIndex; Index < IndexLimit; ++Index)
+		{
+			if (DescArray[Index].VarGuid == VarGuid)
+			{
+				const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Varaibles reordered"));
+				ModifyStructData(Struct);
+
+				DescArray.Swap(Index, Index + (bMoveUp ? -1 : 1));
+				OnStructureChanged(Struct);
+				return true;
+			}
+		}
 	}
 	return false;
 }

@@ -73,6 +73,13 @@ public:
 
 	static bool ChangeEditableOnBPInstance(UUserDefinedStruct* Struct, FGuid VarGuid, bool bInIsEditable);
 
+	enum EMoveDirection
+	{
+		MD_Up,
+		MD_Down,
+	};
+	static bool MoveVariable(UUserDefinedStruct* Struct, FGuid VarGuid, EMoveDirection MoveDirection);
+
 	//3D Widget
 	static bool CanEnable3dWidget(const UUserDefinedStruct* Struct, FGuid VarGuid);
 

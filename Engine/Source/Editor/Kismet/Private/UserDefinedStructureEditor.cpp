@@ -422,6 +422,12 @@ private:
 	FSimpleDelegate OnRegenerateChildren;
 };
 
+enum EMemberFieldPosition
+{
+	MFP_First	=	0x1,
+	MFP_Last	=	0x2,
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FUserDefinedStructureFieldLayout
 
@@ -429,10 +435,11 @@ private:
 class FUserDefinedStructureFieldLayout : public IDetailCustomNodeBuilder, public TSharedFromThis<FUserDefinedStructureFieldLayout>
 {
 public:
-	FUserDefinedStructureFieldLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails, TWeakPtr<class FUserDefinedStructureLayout> InStructureLayout, FGuid InFieldGuid)
+	FUserDefinedStructureFieldLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails, TWeakPtr<class FUserDefinedStructureLayout> InStructureLayout, FGuid InFieldGuid, uint32 InPositionFlags)
 		: StructureDetails(InStructureDetails)
 		, StructureLayout(InStructureLayout)
-		, FieldGuid(InFieldGuid) {}
+		, FieldGuid(InFieldGuid)
+		, PositionFlags(InPositionFlags) {}
 
 	void OnChanged()
 	{
@@ -642,6 +649,26 @@ public:
 		}
 	}
 
+	FReply OnMoveUp()
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid() && !(PositionFlags & EMemberFieldPosition::MFP_First))
+		{
+			FStructureEditorUtils::MoveVariable(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, FStructureEditorUtils::MD_Up);
+		}
+		return FReply::Handled();
+	}
+
+	FReply OnMoveDown()
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid() && !(PositionFlags & EMemberFieldPosition::MFP_Last))
+		{
+			FStructureEditorUtils::MoveVariable(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, FStructureEditorUtils::MD_Down);
+		}
+		return FReply::Handled();
+	}
+
 	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override 
 	{
 		auto K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -691,6 +718,34 @@ public:
 				.bAllowExec(false)
 				.bAllowWildcard(false)
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ContentPadding(0)
+				.OnClicked(this, &FUserDefinedStructureFieldLayout::OnMoveUp)
+				.IsEnabled(!(EMemberFieldPosition::MFP_First & PositionFlags))
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgUpButton"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ContentPadding(0)
+				.OnClicked(this, &FUserDefinedStructureFieldLayout::OnMoveDown)
+				.IsEnabled(!(EMemberFieldPosition::MFP_Last & PositionFlags))
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgDownButton"))
+				]
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -777,6 +832,8 @@ private:
 	FGuid FieldGuid;
 
 	FSimpleDelegate OnRegenerateChildren;
+
+	uint32 PositionFlags;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -844,9 +901,14 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 	{
 		if(auto Struct = StructureDetailsSP->GetUserDefinedStruct())
 		{
-			for (auto& VarDesc : FStructureEditorUtils::GetVarDesc(Struct))
+			auto& VarDescArrayRef = FStructureEditorUtils::GetVarDesc(Struct);
+			for (int32 Index = 0; Index < VarDescArrayRef.Num(); ++Index)
 			{
-				TSharedRef<class FUserDefinedStructureFieldLayout> VarLayout = MakeShareable(new FUserDefinedStructureFieldLayout(StructureDetails,  SharedThis(this), VarDesc.VarGuid));
+				auto& VarDesc = VarDescArrayRef[Index];
+				uint32 PositionFlag = 0;
+				PositionFlag |= (0 == Index) ? EMemberFieldPosition::MFP_First : 0;
+				PositionFlag |= ((VarDescArrayRef.Num() - 1) == Index) ? EMemberFieldPosition::MFP_Last : 0;
+				TSharedRef<class FUserDefinedStructureFieldLayout> VarLayout = MakeShareable(new FUserDefinedStructureFieldLayout(StructureDetails,  SharedThis(this), VarDesc.VarGuid, PositionFlag));
 				ChildrenBuilder.AddChildCustomBuilder(VarLayout);
 			}
 		}
