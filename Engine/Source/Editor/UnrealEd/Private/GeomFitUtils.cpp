@@ -63,7 +63,7 @@ static bool PromptToRemoveExistingCollision(UStaticMesh* StaticMesh)
 // THIS FUNCTION REPLACES EXISTING SIMPLE COLLISION MODEL WITH KDOP
 #define MY_FLTMAX (3.402823466e+38F)
 
-int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, TArray<FVector> &Dirs)
+int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVector> &Dirs)
 {
 	// Make sure rendering is done - so we are not changing data being used by collision drawing.
 	FlushRenderingCommands();
