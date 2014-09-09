@@ -2260,7 +2260,7 @@ FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProces
 			return 0;
 		}
 
-		if(DataPtr->MID->GetMaterial() == Material && DataPtr->Location == Location && DataPtr->Priority == Priority)
+		if(DataPtr->GetLocation() == Location && DataPtr->GetPriority() == Priority && DataPtr->GetMaterialInterface()->GetMaterial() == Material)
 		{
 			return DataPtr;
 		}
@@ -2318,10 +2318,10 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 
 	if(PostProcessMaterialNode)
 	{
-		UMaterialInstanceDynamic* DestMID = PostProcessMaterialNode->MID;
-		UMaterialInstance* SrcMID = (UMaterialInstance*)this;
-
+		UMaterialInstanceDynamic* DestMID = PostProcessMaterialNode->GetMID();
 		check(DestMID);
+
+		UMaterialInstance* SrcMID = (UMaterialInstance*)this;
 		check(SrcMID);
 
 		// a material already exists, blend with existing ones

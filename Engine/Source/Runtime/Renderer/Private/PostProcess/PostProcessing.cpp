@@ -480,7 +480,7 @@ FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProces
 	{
 		FPostProcessMaterialNode* DataPtr = Dest.BlendableManager.IterateBlendables<FPostProcessMaterialNode>(Iterator);
 
-		if(!DataPtr || DataPtr->Location == InLocation)
+		if(!DataPtr || DataPtr->GetLocation() == InLocation)
 		{
 			return DataPtr;
 		}
@@ -494,13 +494,26 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 		return;
 	}
 
-	FBlendableEntry* Iterator = 0;
-
+	// hard coded - this should be a reasonable limit
 	const uint32 MAX_PPMATERIALNODES = 10;
-
-	FPostProcessMaterialNode* PPNodes[MAX_PPMATERIALNODES];
-
+	FBlendableEntry* Iterator = 0;
+	FPostProcessMaterialNode PPNodes[MAX_PPMATERIALNODES];
 	uint32 PPNodeCount = 0;
+
+	static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
+	static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
+
+	if(Context.View.Family->EngineShowFlags.VisualizeBuffer)
+	{	
+		// Apply requested material to the full screen
+		UMaterial* Material = GetBufferVisualizationData().GetMaterial(Context.View.CurrentBufferVisualizationMode);
+		
+		if(Material && Material->BlendableLocation == InLocation)
+		{
+			PPNodes[0] = FPostProcessMaterialNode(Material, InLocation, Material->BlendablePriority);
+			++PPNodeCount;
+		}
+	}
 	for(;PPNodeCount < MAX_PPMATERIALNODES; ++PPNodeCount)
 	{
 		FPostProcessMaterialNode* Data = IteratePostProcessMaterialNodes(Context.View.FinalPostProcessSettings, InLocation, Iterator);
@@ -510,18 +523,16 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 			break;
 		}
 
-		check(Data->MID);
+		check(Data->GetMaterialInterface());
 
-		PPNodes[PPNodeCount] = Data;
+		PPNodes[PPNodeCount] = *Data;
 	}
 	
-	::Sort(PPNodes,PPNodeCount, FPostProcessMaterialNode::FCompare());
+	::Sort(PPNodes, PPNodeCount, FPostProcessMaterialNode::FCompare());
 
 	for(uint32 i = 0; i < PPNodeCount; ++i)
 	{
-		FPostProcessMaterialNode* Data = PPNodes[i];
-
-		UMaterialInterface* MaterialInterface = Data->MID;
+		UMaterialInterface* MaterialInterface = PPNodes[i].GetMaterialInterface();
 
 		FMaterialRenderProxy* Proxy = MaterialInterface->GetRenderProxy(false);
 
@@ -582,7 +593,7 @@ static void AddHighResScreenshotMask(FPostprocessContext& Context, FRenderingCom
 	}
 }
 
-static void AddGBufferVisualization(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucencyInput)
+static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucencyInput)
 {
 	static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
 	static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
@@ -662,22 +673,6 @@ static void AddGBufferVisualization(FPostprocessContext& Context, FRenderingComp
 						((FRCPassPostProcessVisualizeBuffer*)CompositePass)->AddVisualizationBuffer(FRenderingCompositeOutputRef(), FString());
 					}
 				}
-			}
-		}
-		else if (bVisualizationEnabled && !bOverviewModeEnabled)
-		{
-			// Apply requested material to the full screen
-			UMaterial* Material = GetBufferVisualizationData().GetMaterial(Context.View.CurrentBufferVisualizationMode);
-			check(Material);
-			FRenderingCompositePass* MaterialPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(Material));
-			MaterialPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-			MaterialPass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(SeparateTranslucencyInput));
-			Context.FinalOutput = FRenderingCompositeOutputRef(MaterialPass);
-
-			if (Material->GetMaterialResource(Context.View.GetFeatureLevel())->NeedsGBuffer())
-			{
-				// AdjustGBufferRefCount(-1) call is done when the pass gets executed
-				GSceneRenderTargets.AdjustGBufferRefCount(1);
 			}
 		}
 	}
@@ -1071,7 +1066,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			Context.FinalOutput = FRenderingCompositeOutputRef(PassVisualize);
 		}
 
-		AddGBufferVisualization(Context, SeparateTranslucency);
+		AddGBufferVisualizationOverview(Context, SeparateTranslucency);
 
 		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
 		if (bStereoRenderingAndHMD)

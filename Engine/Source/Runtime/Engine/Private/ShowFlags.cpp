@@ -422,7 +422,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	// disable AA in full screen GBuffer visualization
 	if(EngineShowFlags.VisualizeBuffer && CurrentBufferVisualizationMode != NAME_None)
 	{
-		EngineShowFlags.AntiAliasing = 0;
+		EngineShowFlags.Tonemapper = 0;
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
