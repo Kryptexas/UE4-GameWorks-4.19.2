@@ -2549,6 +2549,11 @@ FText UEdGraphSchema_K2::TypeToText(UProperty* const Property)
 
 FText UEdGraphSchema_K2::GetCategoryText(const FString& Category, const bool bForMenu)
 {
+	if (Category.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+
 	static TMap<FString, FText> CategoryDescriptions;
 	if (CategoryDescriptions.Num() == 0)
 	{
