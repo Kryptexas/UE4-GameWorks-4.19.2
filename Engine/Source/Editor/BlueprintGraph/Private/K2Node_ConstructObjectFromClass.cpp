@@ -151,8 +151,8 @@ void UK2Node_ConstructObjectFromClass::PinDefaultValueChanged(UEdGraphPin* Chang
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 		// Because the archetype has changed, we break the output link as the output pin type will change
-		UEdGraphPin* ResultPin = GetResultPin();
-		ResultPin->BreakAllPinLinks();
+		//UEdGraphPin* ResultPin = GetResultPin();
+		//ResultPin->BreakAllPinLinks();
 
 		// Remove all pins related to archetype variables
 		TArray<UEdGraphPin*> OldPins = Pins;
