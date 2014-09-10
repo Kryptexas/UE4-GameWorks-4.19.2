@@ -7,11 +7,10 @@
 /////////////////////////////////////////////////////
 // UButton
 
-FName UButton::StyleName(TEXT("Style"));
-
 UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	static const FName StyleName(TEXT("Style"));
 	ButtonStyle = PCIP.CreateDefaultSubobject<UButtonWidgetStyle>(this, StyleName);
 
 	SButton::FArguments ButtonDefaults;

@@ -92,8 +92,6 @@ public:
 	virtual const FText GetToolboxCategory() override;
 #endif
 
-	static FName StyleName;
-
 protected:
 
 	// UPanelWidget
