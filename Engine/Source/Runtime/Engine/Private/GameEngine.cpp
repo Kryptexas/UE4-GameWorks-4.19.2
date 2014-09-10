@@ -80,11 +80,11 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullScreenAllowed())
+		if ((WindowMode != EWindowMode::Windowed) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullScreenAllowed())
 		{
 			return EWindowMode::Fullscreen;
 		}
-		
+
 		return WindowMode;
 	}
 
