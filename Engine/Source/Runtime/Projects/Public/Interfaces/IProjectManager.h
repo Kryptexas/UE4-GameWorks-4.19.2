@@ -106,9 +106,9 @@ public:
 	/**
 	 * Checks if the modules for a project are up to date
 	 *
-	 * @return	true if the UBT needs to be run to recompile modules for a project.
+	 * @return	false if UBT needs to be run to recompile modules for a project.
 	 */
-	virtual bool AreProjectModulesUpToDate( ) = 0;
+	virtual bool CheckModuleCompatibility(TArray<FString>& OutIncompatibleModules) = 0;
 
 	/**
 	 * Gets the name of the text file that contains the most recently loaded filename.

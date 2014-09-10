@@ -412,23 +412,23 @@ bool FPluginManager::AreRequiredPluginsAvailable()
 	return ConfigureEnabledPlugins();
 }
 
-bool FPluginManager::AreEnabledPluginModulesUpToDate()
+bool FPluginManager::CheckModuleCompatibility(TArray<FString>& OutIncompatibleModules)
 {
 	if(!ConfigureEnabledPlugins())
 	{
 		return false;
 	}
 
+	bool bResult = true;
 	for (TArray< TSharedRef< FPluginInstance > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
 	{
 		const TSharedRef< FPluginInstance > &Plugin = *Iter;
-		if (Plugin->bEnabled && !FModuleDescriptor::AreModulesUpToDate(Plugin->Descriptor.Modules))
+		if (Plugin->bEnabled && !FModuleDescriptor::CheckModuleCompatbility(Plugin->Descriptor.Modules, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject, OutIncompatibleModules))
 		{
-			return false;
+			bResult = false;
 		}
 	}
-
-	return true;
+	return bResult;
 }
 
 IPluginManager& IPluginManager::Get()

@@ -2356,29 +2356,45 @@ bool FEngineLoop::AppInit( )
 #if UE_EDITOR
 	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet() && IPluginManager::Get().AreRequiredPluginsAvailable())
 	{
-		if(!IProjectManager::Get().AreProjectModulesUpToDate() || !IPluginManager::Get().AreEnabledPluginModulesUpToDate())
+		TArray<FString> IncompatibleFiles;
+		if((IProjectManager::Get().CheckModuleCompatibility(IncompatibleFiles) & IPluginManager::Get().CheckModuleCompatibility(IncompatibleFiles)) == false)
 		{
-			int32 Result = FPlatformMisc::MessageBoxExt(EAppMsgType::YesNoCancel, TEXT("Project modules are missing or out of date. Would you like to recompile them?"), TEXT("Question"));
-			if(Result == EAppReturnType::Yes)
+			// Log the modules which need to be rebuilt
+			FString ModulesList = TEXT("The following modules are missing or built with a different engine version:\n\n");
+			for(int Idx = 0; Idx < IncompatibleFiles.Num(); Idx++)
 			{
-				FFeedbackContext *Context = FDesktopPlatformModule::Get()->GetNativeFeedbackContext();
-
-				// Try to compile it
-				Context->BeginSlowTask(FText::FromString(TEXT("Project is out of date, recompiling...")), true, true);
-				bool bCompileResult = FDesktopPlatformModule::Get()->CompileGameProject(FPaths::RootDir(), FPaths::GetProjectFilePath(), Context);
-				Context->EndSlowTask();
-
-				// Check it succeeded
-				if(!bCompileResult || !IProjectManager::Get().AreProjectModulesUpToDate() || !IPluginManager::Get().AreEnabledPluginModulesUpToDate())
-				{
-					if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, TEXT("Game code couldn't be compiled. Continue trying to start anyway?"), TEXT("Error")) == EAppReturnType::No)
-					{
-						return false;
-					}
-				}
+				UE_LOG(LogInit, Warning, TEXT("Incompatible or missing module: %s"), *IncompatibleFiles[Idx]);
+				ModulesList += IncompatibleFiles[Idx] + TEXT("\n");
 			}
-			else if(Result == EAppReturnType::Cancel)
+			ModulesList += TEXT("\nWould you like to rebuild them now?");
+
+			// If we're running with -stdout, assume that we're a non interactive process and about to fail
+			if (FApp::IsUnattended() || FParse::Param(FCommandLine::Get(), TEXT("stdout")))
 			{
+				return false;
+			}
+
+			// Ask whether to compile before continuing
+			if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *ModulesList, TEXT("Question")) == EAppReturnType::No)
+			{
+				return false;
+			}
+
+			// Try to compile it
+			FFeedbackContext *Context = (FFeedbackContext*)FDesktopPlatformModule::Get()->GetNativeFeedbackContext();
+			Context->BeginSlowTask(FText::FromString(TEXT("Starting build...")), true, true);
+			bool bCompileResult = FDesktopPlatformModule::Get()->CompileGameProject(FPaths::RootDir(), FPaths::GetProjectFilePath(), Context);
+			Context->EndSlowTask();
+
+			// Check it succeeded
+			TArray<FString> StillIncompatibleFiles;
+			if(!bCompileResult || !IProjectManager::Get().CheckModuleCompatibility(StillIncompatibleFiles) || !IPluginManager::Get().CheckModuleCompatibility(StillIncompatibleFiles))
+			{
+				for(int Idx = 0; Idx < StillIncompatibleFiles.Num(); Idx++)
+				{
+					UE_LOG(LogInit, Warning, TEXT("Still incompatible or missing module: %s"), *StillIncompatibleFiles[Idx]);
+				}
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *FString::Printf(TEXT("%s could not be compiled. Try rebuilding from source manually."), GGameName), TEXT("Error"));
 				return false;
 			}
 		}

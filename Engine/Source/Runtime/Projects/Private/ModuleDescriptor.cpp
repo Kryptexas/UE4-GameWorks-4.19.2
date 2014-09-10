@@ -360,17 +360,19 @@ void FModuleDescriptor::LoadModulesForPhase(ELoadingPhase::Type LoadingPhase, co
 	}
 }
 
-bool FModuleDescriptor::AreModulesUpToDate(const TArray<FModuleDescriptor>& Modules)
+bool FModuleDescriptor::CheckModuleCompatbility(const TArray<FModuleDescriptor>& Modules, bool bGameModules, TArray<FString>& OutIncompatibleFiles)
 {
+	bool bResult = true;
 	for(int Idx = 0; Idx < Modules.Num(); Idx++)
 	{
 		const FModuleDescriptor &Module = Modules[Idx];
 		if (Module.IsCompiledInCurrentConfiguration() && !FModuleManager::Get().IsModuleUpToDate(Module.Name))
 		{
-			return false;
+			OutIncompatibleFiles.Add(FModuleManager::GetCleanModuleFilename(Module.Name, bGameModules));
+			bResult = false;
 		}
 	}
-	return true;
+	return bResult;
 }
 
 #undef LOCTEXT_NAMESPACE

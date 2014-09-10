@@ -373,11 +373,14 @@ public:
 	 */
 	static const TCHAR *GetUBTConfiguration( );
 
-	/** Gets the filename for a module */
+	/** Gets the filename for a module. The return value is a full path of a module known to the module manager. */
 	FString GetModuleFilename(FName ModuleName) const;
 
 	/** Sets the filename for a module. The module is not reloaded immediately, but the new name will be used for subsequent unload/load events. */
 	void SetModuleFilename(FName ModuleName, const FString& Filename);
+
+	/** Gets the clean filename for a module, without having added it to the module manager. */
+	static FString GetCleanModuleFilename(FName ModuleName, bool bIsGameModule);
 
 public:
 
@@ -487,6 +490,9 @@ public:
 private:
 	/** Compares file versions between the current executing engine version and the specified dll */
 	static bool CheckModuleCompatibility(const TCHAR *Filename);
+
+	/** Gets the prefix and suffix for a module file */
+	static void GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix);
 
 	/** Finds modules matching a given name wildcard. */
 	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;

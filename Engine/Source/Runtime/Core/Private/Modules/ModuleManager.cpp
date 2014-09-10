@@ -739,7 +739,6 @@ void FModuleManager::QueryModules( TArray< FModuleStatus >& OutModuleStatuses )
 	}
 }
 
-
 FString FModuleManager::GetModuleFilename(FName ModuleName) const
 {
 	return Modules.FindChecked(ModuleName)->Filename;
@@ -750,7 +749,61 @@ void FModuleManager::SetModuleFilename(FName ModuleName, const FString& Filename
 	Modules.FindChecked(ModuleName)->Filename = Filename;
 }
 
+FString FModuleManager::GetCleanModuleFilename(FName ModuleName, bool bGameModule)
+{
+	FString Prefix, Suffix;
+	GetModuleFilenameFormat(bGameModule, Prefix, Suffix);
+	return Prefix + ModuleName.ToString() + Suffix;
+}
 
+void FModuleManager::GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix)
+{
+	// Get the module configuration for this directory type
+	const TCHAR* ConfigSuffix = NULL;
+	switch(FApp::GetBuildConfiguration())
+	{
+	case EBuildConfigurations::Debug:
+		ConfigSuffix = TEXT("-Debug");
+		break;
+	case EBuildConfigurations::DebugGame:
+		ConfigSuffix = bGameModule? TEXT("-DebugGame") : NULL;
+		break;
+	case EBuildConfigurations::Development:
+		ConfigSuffix = NULL;
+		break;
+	case EBuildConfigurations::Test:
+		ConfigSuffix = TEXT("-Test");
+		break;
+	case EBuildConfigurations::Shipping:
+		ConfigSuffix = TEXT("-Shipping");
+		break;
+	default:
+		check(false);
+		break;
+	}
+
+	// Get the base name for modules of this application
+	OutPrefix = FPlatformProcess::GetModulePrefix() + FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
+	if (OutPrefix.Contains(TEXT("-")))
+	{
+		OutPrefix = OutPrefix.Left(OutPrefix.Find(TEXT("-")) + 1);
+	}
+	else
+	{
+		OutPrefix += TEXT("-");
+	}
+
+	// Get the suffix for each module
+	OutSuffix.Empty();
+	if (ConfigSuffix != NULL)
+	{
+		OutSuffix += TEXT("-");
+		OutSuffix += FPlatformProcess::GetBinariesSubdirectory();
+		OutSuffix += ConfigSuffix;
+	}
+	OutSuffix += TEXT(".");
+	OutSuffix += FPlatformProcess::GetModuleExtension();
+}
 
 void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
@@ -770,54 +823,11 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 	}
 }
 
-
 void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
-	// Get the module configuration for this directory type
-	const TCHAR* ConfigSuffix = NULL;
-	switch(FApp::GetBuildConfiguration())
-	{
-	case EBuildConfigurations::Debug:
-		ConfigSuffix = TEXT("-Debug");
-		break;
-	case EBuildConfigurations::DebugGame:
-		ConfigSuffix = bIsGameDirectory? TEXT("-DebugGame") : NULL;
-		break;
-	case EBuildConfigurations::Development:
-		ConfigSuffix = NULL;
-		break;
-	case EBuildConfigurations::Test:
-		ConfigSuffix = TEXT("-Test");
-		break;
-	case EBuildConfigurations::Shipping:
-		ConfigSuffix = TEXT("-Shipping");
-		break;
-	default:
-		check(false);
-		break;
-	}
-
-	// Get the base name for modules of this application
-	FString ModulePrefix = FPlatformProcess::GetModulePrefix() + FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
-	if (ModulePrefix.Contains(TEXT("-")))
-	{
-		ModulePrefix = ModulePrefix.Left(ModulePrefix.Find(TEXT("-")) + 1);
-	}
-	else
-	{
-		ModulePrefix += TEXT("-");
-	}
-
-	// Get the suffix for each module
-	FString ModuleSuffix;
-	if (ConfigSuffix != NULL)
-	{
-		ModuleSuffix += TEXT("-");
-		ModuleSuffix += FPlatformProcess::GetBinariesSubdirectory();
-		ModuleSuffix += ConfigSuffix;
-	}
-	ModuleSuffix += TEXT(".");
-	ModuleSuffix += FPlatformProcess::GetModuleExtension();
+	// Get the prefix and suffix for module filenames
+	FString ModulePrefix, ModuleSuffix;
+	GetModuleFilenameFormat(bIsGameDirectory, ModulePrefix, ModuleSuffix);
 
 	// Find all the files
 	TArray<FString> FullFileNames;
@@ -832,14 +842,13 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 		if (FileName.StartsWith(ModulePrefix) && FileName.EndsWith(ModuleSuffix))
 		{
 			FString ModuleName = FileName.Mid(ModulePrefix.Len(), FileName.Len() - ModulePrefix.Len() - ModuleSuffix.Len());
-			if (ConfigSuffix != NULL || (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame")))
+			if (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame"))
 			{
 				OutModulePaths.Add(FName(*ModuleName), FullFileName);
 			}
 		}
 	}
 }
-
 
 void FModuleManager::UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar )
 {
