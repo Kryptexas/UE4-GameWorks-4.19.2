@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CheckBoxWidgetStyle.h"
+
 #include "CheckBox.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, bool, bIsChecked );
@@ -15,45 +17,49 @@ class UMG_API UCheckBox : public UContentWidget
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** The checkbox bar style */
+	UPROPERTY(VisibleAnywhere, Instanced, Category="Style")
+	TSubobjectPtr<UCheckBoxWidgetStyle> CheckBoxStyle;
+
 	/** Style of the check box */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** Image to use when the checkbox is unchecked */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UncheckedImage;
+	UPROPERTY()
+	USlateBrushAsset* UncheckedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is unchecked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UncheckedHoveredImage;
+	UPROPERTY()
+	USlateBrushAsset* UncheckedHoveredImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is unchecked and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UncheckedPressedImage;
+	UPROPERTY()
+	USlateBrushAsset* UncheckedPressedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CheckedImage;
+	UPROPERTY()
+	USlateBrushAsset* CheckedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CheckedHoveredImage;
+	UPROPERTY()
+	USlateBrushAsset* CheckedHoveredImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CheckedPressedImage;
+	UPROPERTY()
+	USlateBrushAsset* CheckedPressedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is in an ambiguous state and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UndeterminedImage;
+	UPROPERTY()
+	USlateBrushAsset* UndeterminedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UndeterminedHoveredImage;
+	UPROPERTY()
+	USlateBrushAsset* UndeterminedHoveredImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is in an ambiguous state and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UndeterminedPressedImage;
+	UPROPERTY()
+	USlateBrushAsset* UndeterminedPressedImage_DEPRECATED;
 
 	/** Whether the check box is currently in a checked state */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -71,22 +77,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FMargin Padding;
 
-	/** Foreground color for the checkbox's content and parts */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor ForegroundColor;
-
 	/** The color of the background border */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateColor BorderBackgroundColor;
-
-	UPROPERTY(EditDefaultsOnly, Category="Sound")
-	FSlateSound CheckedSound;
-
-	UPROPERTY(EditDefaultsOnly, Category="Sound")
-	FSlateSound UncheckedSound;
-
-	UPROPERTY(EditDefaultsOnly, Category="Sound")
-	FSlateSound HoveredSound;
 
 public:
 
@@ -118,7 +111,13 @@ public:
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
+	// UVisual interface
 	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
