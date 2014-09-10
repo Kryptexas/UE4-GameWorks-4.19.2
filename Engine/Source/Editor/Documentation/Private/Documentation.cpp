@@ -10,6 +10,8 @@
 #include "IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 
+#define LOCTEXT_NAMESPACE "DocumentationActor"
+
 TSharedRef< IDocumentation > FDocumentation::Create() 
 {
 	return MakeShareable( new FDocumentation() );
@@ -55,6 +57,26 @@ bool FDocumentation::Open( const FString& Link ) const
 {
 	FString DocumentationUrl;
 
+	// Warn the user if they are opening a URL
+	if (Link.StartsWith(TEXT("http")) || Link.StartsWith(TEXT("https")))
+	{
+		FText Message = LOCTEXT("OpeningURLMessage", "You are about to open an external URL. This will open your web browser. Do you want to proceed?");
+		FText URLDialog = LOCTEXT("OpeningURLTitle", "Open external link");
+
+		FSuppressableWarningDialog::FSetupInfo Info(Message, URLDialog, "SupressOpenURLWarning");
+		Info.ConfirmText = LOCTEXT("OpenURL_yes", "Yes");
+		Info.CancelText = LOCTEXT("OpenURL_no", "No");
+		FSuppressableWarningDialog OpenURLWarning(Info);
+		if (OpenURLWarning.ShowModal() == FSuppressableWarningDialog::Cancel)
+		{
+			return false;
+		}
+		else
+		{
+			FPlatformProcess::LaunchURL(*Link, nullptr, nullptr);
+		}
+	}
+
 	if (!FParse::Param(FCommandLine::Get(), TEXT("testdocs")))
 	{
 		FString OnDiskPath = FDocumentationLink::ToFilePath(Link);
@@ -64,6 +86,8 @@ bool FDocumentation::Open( const FString& Link ) const
 		}
 	}
 
+	
+	
 	if (DocumentationUrl.IsEmpty())
 	{
 		// When opening a doc website we always request the most ideal culture for our documentation.
@@ -202,3 +226,5 @@ TSharedRef< class SToolTip > FDocumentation::CreateToolTip( const TAttribute<FTe
 			DocToolTip.ToSharedRef()
 		];
 }
+
+#undef LOCTEXT_NAMESPACE
