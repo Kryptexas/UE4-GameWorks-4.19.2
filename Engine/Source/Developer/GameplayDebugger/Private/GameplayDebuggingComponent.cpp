@@ -227,7 +227,6 @@ void UGameplayDebuggingComponent::SetActorToDebug(AActor* Actor)
 	TargetActor = Actor;
 	EQSLocalData.Reset();
 	AllEQSName.Reset();
-	CurrentEQSIndex = INDEX_NONE;
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -253,7 +252,6 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 	}
 
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
-	CurrentEQSIndex = AllEQSName.Num() > 0 ?FMath::Clamp(CurrentEQSIndex, 0, AllEQSName.Num() - 1) : INDEX_NONE;
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -600,7 +598,6 @@ void UGameplayDebuggingComponent::OnRep_UpdateEQS()
 		ArReader << EQSLocalData;
 	}	
 
-	CurrentEQSIndex = AllEQSName.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, AllEQSName.Num() - 1) : INDEX_NONE;
 	UpdateBounds();
 	MarkRenderStateDirty();
 #endif //USE_EQS_DEBUGGER
@@ -1084,14 +1081,20 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 //----------------------------------------------------------------------//
 FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 {
-	if (!IsActive())
+	FDebugRenderSceneCompositeProxy* CompositeProxy = NULL;
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
 	{
 		return NULL;
 	}
-	FDebugRenderSceneCompositeProxy* CompositeProxy = NULL;
+
+	if (!Replicator || !Replicator->IsDrawEnabled())
+	{
+		return NULL;
+	}
 
 #if WITH_RECAST	
-	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh) && World && World->GetNetMode() != NM_DedicatedServer)
+	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh))
 	{
 		FNavMeshSceneProxyData NewNavmeshRenderData;
 		NewNavmeshRenderData.Reset();
@@ -1108,11 +1111,11 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 #if USE_EQS_DEBUGGER
 	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled())
 	{
-		if (EQSLocalData.IsValidIndex(CurrentEQSIndex))
+		const int32 EQSIndex = AllEQSName.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, AllEQSName.Num() - 1) : INDEX_NONE;
+		if (EQSLocalData.IsValidIndex(EQSIndex))
 		{
 			CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
-			auto& CurrentLocalData = EQSLocalData[CurrentEQSIndex];
-			bool bUseDebugAIFlag = false;
+			auto& CurrentLocalData = EQSLocalData[EQSIndex];
 			CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("DebugAI"), false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
 		}
 	}

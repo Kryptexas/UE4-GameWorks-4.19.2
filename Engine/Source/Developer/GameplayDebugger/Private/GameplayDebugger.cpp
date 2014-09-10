@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerPrivate.h"
+#include "Misc/CoreMisc.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
 #include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggingControllerComponent.h"
+#include "AISystem.h"
 
 uint32 FGameplayDebuggerSettings::ShowFlagIndex = 0;
 
@@ -13,7 +16,7 @@ FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingRepli
 	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
 }
 
-class FGameplayDebugger : public IGameplayDebugger
+class FGameplayDebugger : public FSelfRegisteringExec, public IGameplayDebugger
 {
 public:
 	// Begin IModuleInterface
@@ -31,6 +34,10 @@ public:
 	TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& GetAllReplicators(UWorld* InWorld);
 	void AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator);
 	void RemoveReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator);
+
+	// Begin FExec Interface
+	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	// End FExec Interface
 
 private:
 	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) override;
@@ -251,4 +258,115 @@ void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
 	}
 #endif
 }
-#endif
+#endif //WITH_EDITOR
+
+bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	bool bHandled = false;
+
+	APlayerController* PC = Inworld ? Inworld->GetFirstPlayerController() : NULL;
+	if (!Inworld || !PC)
+	{
+		return bHandled;
+	}
+
+	if (FParse::Command(&Cmd, TEXT("EnableGDT")))
+	{
+		AGameplayDebuggingReplicator* Replicator = NULL;
+		for (TActorIterator<AGameplayDebuggingReplicator> It(Inworld); It; ++It)
+		{
+			Replicator = *It;
+			if (Replicator && !Replicator->IsPendingKill())
+			{
+				APlayerController* LocalPC = Replicator->GetLocalPlayerOwner();
+				if (LocalPC == PC)
+				{
+					break;
+				}
+			}
+			Replicator = NULL;
+		}
+
+		if (Inworld->GetNetMode() == NM_Client)
+		{
+			if (!Replicator)
+			{
+				PC->ConsoleCommand("cheat EnableGDT");
+			}
+			else if (!Replicator->IsToolCreated())
+			{
+				Replicator->CreateTool();
+				Replicator->EnableTool();
+				bHandled = true;
+			}
+		}
+		else if (Inworld->GetNetMode() < NM_Client)
+		{
+			if (!Replicator)
+			{
+				CreateGameplayDebuggerForPlayerController(PC);
+				for (TActorIterator<AGameplayDebuggingReplicator> It(Inworld); It; ++It)
+				{
+					Replicator = *It;
+					if (Replicator && !Replicator->IsPendingKill())
+					{
+						APlayerController* LocalPC = Replicator->GetLocalPlayerOwner();
+						if (LocalPC == PC)
+						{
+							break;
+						}
+					}
+					Replicator = NULL;
+				}
+			}
+
+			if (Inworld->GetNetMode() != NM_DedicatedServer)
+			{
+				if (Replicator && !Replicator->IsToolCreated())
+				{
+					Replicator->CreateTool();
+					Replicator->EnableTool();
+					bHandled = true;
+				}
+			}
+		}
+	}
+	else if (FParse::Command(&Cmd, TEXT("RunEQS")))
+	{
+		bHandled = true;
+		APlayerController* MyPC = Inworld->GetFirstPlayerController();
+		UAISystem* AISys = UAISystem::GetCurrent(Inworld);
+
+		UEnvQueryManager* EQS = AISys ? AISys->GetEnvironmentQueryManager() : NULL;
+		if (MyPC && EQS)
+		{
+			AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
+			for (FActorIterator It(Inworld); It; ++It)
+			{
+				AActor* A = *It;
+				if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+				{
+					DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
+					if (DebuggingReplicator && !DebuggingReplicator->IsGlobalInWorld() && DebuggingReplicator->GetLocalPlayerOwner() == MyPC)
+					{
+						break;
+					}
+				}
+			}
+
+			UObject* Target = DebuggingReplicator != NULL ? DebuggingReplicator->GetSelectedActorToDebug() : NULL;
+			FString QueryName = FParse::Token(Cmd, 0);
+			if (Target)
+			{
+				AISys->RunEQS(QueryName, Target);
+			}
+			else
+			{
+				MyPC->ClientMessage(TEXT("No debugging target to run EQS"));
+			}
+		}
+	}
+
+	return bHandled;
+}
+

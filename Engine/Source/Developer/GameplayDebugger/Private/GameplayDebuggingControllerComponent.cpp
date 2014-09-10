@@ -129,7 +129,7 @@ void UGameplayDebuggingControllerComponent::BindActivationKeys()
 		FInputChord ActivationKey(EKeys::Quote, false, false, false, false);
 		for (uint32 BindIndex = 0; BindIndex < (uint32)PlayerOwner->PlayerInput->DebugExecBindings.Num(); BindIndex++)
 		{
-			if (PlayerOwner->PlayerInput->DebugExecBindings[BindIndex].Command == TEXT("cheat EnableGDT"))
+			if (PlayerOwner->PlayerInput->DebugExecBindings[BindIndex].Command == TEXT("EnableGDT"))
 			{
 				ActivationKey.Key = PlayerOwner->PlayerInput->DebugExecBindings[BindIndex].Key;
 				ActivationKey.bCtrl = PlayerOwner->PlayerInput->DebugExecBindings[BindIndex].Control;
@@ -284,8 +284,6 @@ void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 				UpdateNavMeshTimer();
 
 				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::NavMesh);
-				OwnerComp->SetVisibility(true, true);
-				OwnerComp->SetHiddenInGame(false, true);
 				OwnerComp->MarkRenderStateDirty();
 			}
 			else
@@ -294,8 +292,6 @@ void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 
 				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::NavMesh);
 				OwnerComp->ServerDiscardNavmeshData();
-				OwnerComp->SetVisibility(false, true);
-				OwnerComp->SetHiddenInGame(true, true);
 				OwnerComp->MarkRenderStateDirty();
 			}
 		}

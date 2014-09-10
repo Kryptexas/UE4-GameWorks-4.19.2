@@ -126,7 +126,8 @@ void AGameplayDebuggingReplicator::PostEditChangeProperty(FPropertyChangedEvent&
 #if WITH_EQS
 	if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(AGameplayDebuggingReplicator, EQS))
 	{
-		GetDebugComponent()->EnableClientEQSSceneProxy(Settings.CheckFlag(EAIDebugDrawDataView::EQS));
+		GetDebugComponent()->EnableClientEQSSceneProxy(EQS);
+		GetDebugComponent()->SetEQSIndex(ActiveEQSIndex);
 		GetDebugComponent()->MarkRenderStateDirty();
 	}
 
@@ -159,6 +160,24 @@ void AGameplayDebuggingReplicator::BeginPlay()
 			}
 		}
 		GetDebugComponent();
+	}
+
+	if (GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer)
+	{
+		if (GIsEditor)
+		{
+			UDebugDrawService::Register(TEXT("DebugAI"), FDebugDrawDelegate::CreateUObject(this, &AGameplayDebuggingReplicator::OnDebugAIDelegate));
+		}
+		UDebugDrawService::Register(TEXT("Game"), FDebugDrawDelegate::CreateUObject(this, &AGameplayDebuggingReplicator::DrawDebugDataDelegate));
+
+		if (!DebugComponentHUDClass.IsValid())
+		{
+			DebugComponentHUDClass = StaticLoadClass(AGameplayDebuggingHUDComponent::StaticClass(), NULL, *DebugComponentHUDClassName, NULL, LOAD_None, NULL);
+			if (!DebugComponentHUDClass.IsValid())
+			{
+				DebugComponentHUDClass = AGameplayDebuggingHUDComponent::StaticClass();
+			}
+		}
 	}
 
 #if WITH_EDITOR
@@ -415,6 +434,7 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 		return;
 	}
 
+	EnableDraw(true);
 	UWorld* World = GetWorld();
 	if (World && GetDebugComponent() && GetDebugComponent()->GetOwnerRole() == ROLE_Authority)
 	{

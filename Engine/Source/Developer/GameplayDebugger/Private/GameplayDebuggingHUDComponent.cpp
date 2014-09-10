@@ -351,16 +351,17 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 	PrintString(DefaultContext, TEXT("\n{green}EQS {white}[Use + key to switch query]\n"));
 
-	if (DebugComponent->EQSLocalData.Num() == 0)
+	if (DebugComponent->AllEQSName.Num() == 0)
 	{
 		return;
 	}
 
-	if (!DebugComponent->EQSLocalData.IsValidIndex(DebugComponent->CurrentEQSIndex))
+	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+	if (!DebugComponent->AllEQSName.IsValidIndex(EQSIndex))
 	{
 		return;
 	}
-	const FString SelecterEQSName = DebugComponent->EQSLocalData[DebugComponent->CurrentEQSIndex].Name;
+	const FString SelecterEQSName = DebugComponent->AllEQSName[EQSIndex];
 
 	PrintString(DefaultContext, TEXT("{white}Queries: "));
 	for (auto CurrentQuery : DebugComponent->EQSLocalData)
@@ -376,7 +377,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 	}
 	PrintString(DefaultContext, TEXT("\n"));
 
-	auto& CurrentLocalData = DebugComponent->EQSLocalData[DebugComponent->CurrentEQSIndex];
+	auto& CurrentLocalData = DebugComponent->EQSLocalData[EQSIndex];
 
 	/** find and draw item selection */
 	int32 BestItemIndex = INDEX_NONE;
@@ -518,7 +519,8 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 	const float PosY = DefaultContext.CursorY + 1.0f;
 	float PosX = DefaultContext.CursorX;
 
-	auto& CurrentLocalData = DebugComponent->EQSLocalData[DebugComponent->CurrentEQSIndex];
+	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+	auto& CurrentLocalData = DebugComponent->EQSLocalData[EQSIndex];
 	const EQSDebug::FItemData& ItemData = CurrentLocalData.Items[ItemIdx];
 
 	PrintString(DefaultContext, FColor::White, ItemData.Desc, PosX, PosY);

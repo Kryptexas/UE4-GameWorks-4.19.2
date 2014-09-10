@@ -150,7 +150,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 		return TargetActor;
 	}
 
-	void SetEQSIndex(int32 Index) { CurrentEQSIndex = AllEQSName.Num() > 0 ? FMath::Clamp(Index, 0, AllEQSName.Num() - 1) : INDEX_NONE; }
+	void SetEQSIndex(int32 Index) { CurrentEQSIndex = Index; }
 	int32 GetEQSIndex() { return CurrentEQSIndex; }
 	//=============================================================================
 	// EQS debugging
