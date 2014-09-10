@@ -206,6 +206,8 @@ void FSequencer::ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<ISeq
 	RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(NewRoot));
 	MovieSceneStack.Add(RootMovieSceneInstance.ToSharedRef());
 
+	SequencerWidget->ResetBreadcrumbs();
+
 	NotifyMovieSceneDataChanged();
 }
 

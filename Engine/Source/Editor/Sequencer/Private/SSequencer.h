@@ -89,6 +89,7 @@ public:
 	 * @param FilteringShots A list of shots that are now filtering, or none if filtering is off
 	 */
 	void UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& FilteringShots);
+	void ResetBreadcrumbs();
 
 	/** Deletes selected nodes out of the sequencer node tree */
 	void DeleteSelectedNodes();

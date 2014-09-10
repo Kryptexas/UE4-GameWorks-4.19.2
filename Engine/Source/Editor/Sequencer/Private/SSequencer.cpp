@@ -312,7 +312,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 		]
 	];
 
-	BreadcrumbTrail->PushCrumb(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSequencer::GetRootMovieSceneName)), FSequencerBreadcrumb( Sequencer.Pin()->GetRootMovieSceneInstance() ));
+	ResetBreadcrumbs();
 }
 
 SSequencer::~SSequencer()
@@ -371,6 +371,12 @@ void SSequencer::UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieScen
 	}
 
 	SequencerNodeTree->UpdateCachedVisibilityBasedOnShotFiltersChanged();
+}
+
+void SSequencer::ResetBreadcrumbs()
+{
+	BreadcrumbTrail->ClearCrumbs();
+	BreadcrumbTrail->PushCrumb(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSequencer::GetRootMovieSceneName)), FSequencerBreadcrumb(Sequencer.Pin()->GetRootMovieSceneInstance()));
 }
 
 void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
