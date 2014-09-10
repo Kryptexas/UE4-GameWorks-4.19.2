@@ -132,6 +132,64 @@ namespace EGameplayEffectStackingPolicy
 
 
 /**
+ * This handle is required for things outside of FActiveGameplayEffectsContainer to refer to a specific active GameplayEffect
+ *	For example if a skill needs to create an active effect and then destroy that specific effect that it created, it has to do so
+ *	through a handle. a pointer or index into the active list is not sufficient.
+ */
+USTRUCT(BlueprintType)
+struct FActiveGameplayEffectHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActiveGameplayEffectHandle()
+		: Handle(INDEX_NONE)
+	{
+
+	}
+
+	FActiveGameplayEffectHandle(int32 InHandle)
+		: Handle(InHandle)
+	{
+
+	}
+
+	bool IsValid() const
+	{
+		return Handle != INDEX_NONE;
+	}
+
+	static FActiveGameplayEffectHandle GenerateNewHandle(UAbilitySystemComponent* OwningComponent);
+
+	UAbilitySystemComponent* GetOwningAbilitySystemComponent();
+
+	bool operator==(const FActiveGameplayEffectHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FActiveGameplayEffectHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+	friend uint32 GetTypeHash(const FActiveGameplayEffectHandle& InHandle)
+	{
+		return InHandle.Handle;
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("%d"), Handle);
+	}
+
+private:
+
+	UPROPERTY()
+	int32 Handle;
+};
+
+
+/**
  * FGameplayEffectInstigatorContext
  *	Data struct for an instigator. This is still being fleshed out. We will want to track actors but also be able to provide some level of tracking for actors that are destroyed.
  *	We may need to store some positional information as well.

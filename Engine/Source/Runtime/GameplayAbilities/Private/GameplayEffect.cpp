@@ -1573,8 +1573,8 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
 
-	LastAssignedHandle = LastAssignedHandle.GetNextHandle();
-	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GetWorldTime(), GetGameStateTime(), InPrevPredictionKey, InCurrPredictionKey);
+	FActiveGameplayEffectHandle NewHandle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
+	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPrevPredictionKey, InCurrPredictionKey);
 
 	// register callbacks with the timer manager
 	if (Owner)
@@ -1582,14 +1582,14 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 		if (Spec.GetDuration() > 0.f)
 		{
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
-			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, LastAssignedHandle);
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, NewHandle);
 			TimerManager.SetTimer(NewEffect.DurationHandle, Delegate, Spec.GetDuration(), false, Spec.GetDuration());
 		}
 		// The timer manager moves things from the pending list to the active list after checking the active list on the first tick so we need to execute here
 		if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
 		{
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
-			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::ExecutePeriodicEffect, LastAssignedHandle);
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::ExecutePeriodicEffect, NewHandle);
 
 			// If this is a periodic stacking effect, make sure that it's in sync with the others.
 			float FirstDelay = -1.f;
@@ -1615,7 +1615,7 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 			TimerManager.SetTimer(NewEffect.PeriodHandle, Delegate, Spec.GetPeriod(), true, FirstDelay); // this is going to be off by a frame for stacking because of the pending list
 		}
 
-		NewEffect.Spec.Duration.Get()->OnDirty = FAggregator::FOnDirty::CreateRaw(this, &FActiveGameplayEffectsContainer::OnDurationAggregatorDirty, Owner, LastAssignedHandle);
+		NewEffect.Spec.Duration.Get()->OnDirty = FAggregator::FOnDirty::CreateRaw(this, &FActiveGameplayEffectsContainer::OnDurationAggregatorDirty, Owner, NewHandle);
 	}
 	
 	if (InCurrPredictionKey == 0 || IsNetAuthority())	// Clients predicting a GameplayEffect must not call MarkItemDirty
@@ -2149,3 +2149,30 @@ FString EGameplayEffectStackingPolicyToString(int32 Type)
 	return e->GetEnum(Type).ToString();
 }
 
+namespace GlobalActiveGameplayEffectHandles
+{
+	static TMap<FActiveGameplayEffectHandle, TWeakObjectPtr<UAbilitySystemComponent>>	Map;
+}
+
+FActiveGameplayEffectHandle FActiveGameplayEffectHandle::GenerateNewHandle(UAbilitySystemComponent* OwningComponent)
+{
+	static int32 GHandleID=0;
+	FActiveGameplayEffectHandle NewHandle(GHandleID++);
+
+	TWeakObjectPtr<UAbilitySystemComponent> WeakPtr(OwningComponent);
+
+	GlobalActiveGameplayEffectHandles::Map.Add(NewHandle, WeakPtr);
+
+	return NewHandle;
+}
+
+UAbilitySystemComponent* FActiveGameplayEffectHandle::GetOwningAbilitySystemComponent()
+{
+	TWeakObjectPtr<UAbilitySystemComponent>* Ptr = GlobalActiveGameplayEffectHandles::Map.Find(*this);
+	if (Ptr)
+	{
+		return Ptr->Get();
+	}
+
+	return nullptr;	
+}

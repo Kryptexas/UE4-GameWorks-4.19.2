@@ -9,6 +9,7 @@
 UAbilityTask_WaitGameplayEffectRemoved::UAbilityTask_WaitGameplayEffectRemoved(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	Registered = false;
 }
 
 UAbilityTask_WaitGameplayEffectRemoved* UAbilityTask_WaitGameplayEffectRemoved::WaitForGameplayEffectRemoved(UObject* WorldContextObject, FActiveGameplayEffectHandle InHandle)
@@ -21,27 +22,35 @@ UAbilityTask_WaitGameplayEffectRemoved* UAbilityTask_WaitGameplayEffectRemoved::
 
 void UAbilityTask_WaitGameplayEffectRemoved::Activate()
 {
-	if (AbilitySystemComponent.IsValid())	
-	{		
-		FOnActiveGameplayEffectRemoved* DelPtr = AbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
+	UAbilitySystemComponent* EffectOwningAbilitySystemComponent = Handle.GetOwningAbilitySystemComponent();
+
+	if (EffectOwningAbilitySystemComponent)
+	{
+		FOnActiveGameplayEffectRemoved* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
 		if (DelPtr)
 		{
 			DelPtr->AddUObject(this, &UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved);
+			Registered = true;
 		}
-		else
-		{
-			// GameplayEffect was already removed, treat this as a warning? Could be cases of immunity or chained gameplay rules that would instant remove something
-			OnGameplayEffectRemoved();
-		}
+	}
+
+	if (!Registered)
+	{
+		// GameplayEffect was already removed, treat this as a warning? Could be cases of immunity or chained gameplay rules that would instant remove something
+		OnGameplayEffectRemoved();
 	}
 }
 
 void UAbilityTask_WaitGameplayEffectRemoved::OnDestroy(bool AbilityIsEnding)
 {
-	FOnActiveGameplayEffectRemoved* DelPtr = AbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
-	if (DelPtr)
+	UAbilitySystemComponent* EffectOwningAbilitySystemComponent = Handle.GetOwningAbilitySystemComponent();
+	if (EffectOwningAbilitySystemComponent)
 	{
-		DelPtr->RemoveUObject(this, &UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved);
+		FOnActiveGameplayEffectRemoved* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
+		if (DelPtr)
+		{
+			DelPtr->RemoveUObject(this, &UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved);
+		}
 	}
 
 	Super::OnDestroy(AbilityIsEnding);

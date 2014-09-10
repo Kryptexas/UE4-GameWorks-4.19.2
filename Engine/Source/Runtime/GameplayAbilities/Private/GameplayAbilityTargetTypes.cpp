@@ -7,14 +7,14 @@
 #include "AbilitySystemBlueprintLibrary.h"
 
 
-void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, float Level)
 {
 	// TODO: Improve relationship between InstigatorContext and FGameplayAbilityTargetData/FHitResult (or use something different between HitResult)
 
 
 	FGameplayEffectSpec	SpecToApply(GameplayEffect,					// The UGameplayEffect data asset
 		InstigatorInfo.Actor.Get(),		// The actor who instigated this
-		1.f,							// FIXME: Leveling
+		Level,							// FIXME: Leveling
 		NULL							// FIXME: CurveData override... should we just remove this?
 		);
 	if (HasHitResult())
@@ -27,20 +27,24 @@ void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEf
 		SpecToApply.InstigatorContext.AddOrigin(GetOrigin().GetLocation());
 	}
 
-	TArray<TWeakObjectPtr<AActor>> Actors = GetActors();
+	TArray<TWeakObjectPtr<AActor> > Actors = GetActors();
+	TArray<FActiveGameplayEffectHandle>	AppliedHandles;
+	AppliedHandles.Reserve(Actors.Num());
+
 	for (TWeakObjectPtr<AActor> TargetActor : Actors)
 	{
 		if (TargetActor.IsValid())
 		{
-			UAbilitySystemComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor.Get());
+			UAbilitySystemComponent* TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor.Get());
 			if (TargetComponent)
 			{
-				InstigatorInfo.AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);
+				AppliedHandles.Add( InstigatorInfo.AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent) );
 			}
 		}
 	}
-}
 
+	return AppliedHandles;
+}
 
 FString FGameplayAbilityTargetData::ToString() const
 {

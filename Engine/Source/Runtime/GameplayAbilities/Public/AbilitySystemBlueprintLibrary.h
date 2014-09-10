@@ -26,7 +26,11 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	// -------------------------------------------------------------------------------
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
-	static void ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
+	static TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level=1);
+
+	/** Applies GameplayEffect to TargetData and returns the handle of the  */
+	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
+	static FActiveGameplayEffectHandle ApplyGameplayEffectToTargetData_Single(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level=1);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd);
@@ -40,15 +44,14 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
 
-	//TODO Consider adding this functionality, or delete it soon.
-//	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
-//	static TArray<TSharedPtr<FGameplayAbilityTargetData>> GetDataArrayFromTargetData(FGameplayAbilityTargetDataHandle TargetData);
-
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static int32 GetDataCountFromTargetData(FGameplayAbilityTargetDataHandle TargetData);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
-	static TArray<TWeakObjectPtr<AActor>> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromActor(AActor* Actor);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static TArray<AActor*> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static bool TargetDataHasHitResult(FGameplayAbilityTargetDataHandle HitResult, int32 Index);

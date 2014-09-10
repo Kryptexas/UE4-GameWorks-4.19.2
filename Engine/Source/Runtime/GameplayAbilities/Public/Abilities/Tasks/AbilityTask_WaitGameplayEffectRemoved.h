@@ -36,4 +36,5 @@ class UAbilityTask_WaitGameplayEffectRemoved : public UAbilityTask
 protected:
 
 	virtual void OnDestroy(bool AbilityIsEnding) override;
+	bool Registered;
 };

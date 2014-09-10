@@ -374,59 +374,6 @@ protected:
 };
 
 /**
-* This handle is required for things outside of FActiveGameplayEffectsContainer to refer to a specific active GameplayEffect
-*	For example if a skill needs to create an active effect and then destroy that specific effect that it created, it has to do so
-*	through a handle. a pointer or index into the active list is not sufficient.
-*/
-USTRUCT(BlueprintType)
-struct FActiveGameplayEffectHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FActiveGameplayEffectHandle()
-		: Handle(INDEX_NONE)
-	{
-
-	}
-
-	FActiveGameplayEffectHandle(int32 InHandle)
-		: Handle(InHandle)
-	{
-
-	}
-
-	bool IsValid() const
-	{
-		return Handle != INDEX_NONE;
-	}
-
-	FActiveGameplayEffectHandle GetNextHandle()
-	{
-		return FActiveGameplayEffectHandle(Handle + 1);
-	}
-
-	bool operator==(const FActiveGameplayEffectHandle& Other) const
-	{
-		return Handle == Other.Handle;
-	}
-
-	bool operator!=(const FActiveGameplayEffectHandle& Other) const
-	{
-		return Handle != Other.Handle;
-	}
-
-	FString ToString() const
-	{
-		return FString::Printf(TEXT("%d"), Handle);
-	}
-
-private:
-
-	UPROPERTY()
-	int32 Handle;
-};
-
-/**
  * FGameplayEffectLevelSpec
  *	Level Specification. This can be a static, constant level specified on creation or it can be dynamically tied to a source's attribute value.
  *	For example, a GameplayEffect could be made whose level is tied to its instigators PhysicalDamage or Intelligence attribute.
@@ -1302,8 +1249,6 @@ private:
 
 	FAggregatorRef& FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 
-	FActiveGameplayEffectHandle LastAssignedHandle;
-
 	TMap<FGameplayAttribute, FAggregatorRef> OngoingPropertyEffects;
 
 	TMap<FGameplayAttribute, FOnGameplayAttributeChange> AttributeChangeDelegates;
@@ -1336,6 +1281,7 @@ struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructO
 };
 
 
+/** Allows blueprints to generate a GameplayEffectSpec once and then reference it by handle, to apply it multiple times/multiple targets. */
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
 {

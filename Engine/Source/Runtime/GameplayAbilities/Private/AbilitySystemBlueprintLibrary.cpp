@@ -20,18 +20,57 @@ UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemCompone
 	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
 }
 
-void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+TArray<FActiveGameplayEffectHandle> UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level)
 {
-	if (GameplayEffect != NULL)
+	TArray<FActiveGameplayEffectHandle> Handles;
+
+	if (GameplayEffect == nullptr)
 	{
-		for (int32 i = 0; i < Target.Data.Num(); ++i)
+		return Handles;
+	}
+
+	for (auto Data : Target.Data)
+	{
+		if (Data.IsValid())
 		{
-			if (Target.Data[i].IsValid())
+			Handles.Append(Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo, (float)Level));
+		}
+	}
+
+	return Handles;
+}
+
+FActiveGameplayEffectHandle UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData_Single(FGameplayAbilityTargetDataHandle Target, UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level)
+{
+	FActiveGameplayEffectHandle Handle;
+
+	if (GameplayEffect == nullptr)
+	{
+		return Handle;
+	}
+
+	if (Target.Data.Num() != 1)
+	{
+		ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on invalid TargetDataHandle."));
+		return Handle;
+	}
+
+	
+	if (Target.Data[0].IsValid())
+	{
+		TArray<FActiveGameplayEffectHandle> Handles = Target.Data[0]->ApplyGameplayEffect(GameplayEffect, InstigatorInfo, (float)Level);
+		int32 Num = Handles.Num();
+		if (Num > 0)
+		{
+			Handle = Handles[0];
+			if (Num > 1)
 			{
-				Target.Data[i]->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);
+				ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on TargetData with multiple actor targets"));
 			}
 		}
 	}
+
+	return Handle;
 }
 
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd)
@@ -64,6 +103,17 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	return Handle;
 }
 
+
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(AActor* Actor)
+{
+	// Construct TargetData
+	FGameplayAbilityTargetData_ActorArray*	NewData = new FGameplayAbilityTargetData_ActorArray();
+	NewData->TargetActorArray.Add(Actor);
+
+	FGameplayAbilityTargetDataHandle		Handle(NewData);
+	return Handle;
+}
+
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(FHitResult HitResult)
 {
 	// Construct TargetData
@@ -76,24 +126,24 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	return Handle;
 }
 
-//TArray<TSharedPtr<FGameplayAbilityTargetData>> UAbilitySystemBlueprintLibrary::GetDataArrayFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
-//{
-//	return TargetData.Data;
-//}
-
 int32 UAbilitySystemBlueprintLibrary::GetDataCountFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
 {
 	return TargetData.Data.Num();
 }
 
-TArray<TWeakObjectPtr<AActor>> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
+TArray<AActor*> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
 	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
+	TArray<AActor*>	ResolvedArray;
 	if (Data)
 	{
-		return Data->GetActors();
+		TArray<TWeakObjectPtr<AActor>> WeakArray = Data->GetActors();
+		for (TWeakObjectPtr<AActor> WeakPtr : WeakArray)
+		{
+			ResolvedArray.Add(WeakPtr.Get());
+		}
 	}
-	return TArray<TWeakObjectPtr<AActor>>();
+	return ResolvedArray;
 }
 
 bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
