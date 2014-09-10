@@ -54,7 +54,7 @@ public:
 	void EnableRecalculationOnInvalidation(TEnumAsByte<ENavigationOptionFlag::Type> DoRecalculation);
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
-	float GetPathLenght() const;
+	float GetPathLength() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	float GetPathCost() const;

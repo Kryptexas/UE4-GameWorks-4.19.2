@@ -357,8 +357,8 @@ const TArray<FNavigationPortalEdge>* FNavMeshPath::GeneratePathCorridorEdges() c
 #if WITH_RECAST
 	// mz@todo the underlying recast function queries the navmesh a portal at a time, 
 	// which is a waste of performance. A batch-query function has to be added.
-	const int32 CorridorLenght = PathCorridor.Num();
-	if (CorridorLenght != 0 && IsInGameThread() && NavigationDataUsed.IsValid())
+	const int32 CorridorLength = PathCorridor.Num();
+	if (CorridorLength != 0 && IsInGameThread() && NavigationDataUsed.IsValid())
 	{
 		const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
 		MyOwner->GetEdgesForPathCorridor(&PathCorridor, &PathCorridorEdges);
@@ -1041,7 +1041,7 @@ void UNavigationPath::EnableRecalculationOnInvalidation(TEnumAsByte<ENavigationO
 	}
 }
 
-float UNavigationPath::GetPathLenght() const
+float UNavigationPath::GetPathLength() const
 {
 	check((SharedPath.IsValid() && SharedPath->IsValid()) == !!bIsValid);
 	return !!bIsValid ? SharedPath->GetLength() : -1.f;
