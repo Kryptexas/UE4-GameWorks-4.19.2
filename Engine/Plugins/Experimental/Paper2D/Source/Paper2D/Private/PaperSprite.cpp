@@ -1020,37 +1020,29 @@ void UPaperSprite::ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>
 	SpriteTextureBitmap.ExtractRects(/*out*/ OutRects);
 }
 
-void UPaperSprite::InitializeSprite(UTexture2D* Texture, float InPixelsPerUnrealUnit)
+void UPaperSprite::InitializeSprite(const FSpriteAssetInitParameters& InitParams)
 {
-	if (Texture != NULL)
+	if (InitParams.bNewlyCreated)
 	{
-		const FVector2D Dimension(Texture->GetSizeX(), Texture->GetSizeY());
-		InitializeSprite(Texture, FVector2D::ZeroVector, Dimension, InPixelsPerUnrealUnit);
-	}
-	else
-	{
-		InitializeSprite(NULL, FVector2D::ZeroVector, FVector2D::ZeroVector, InPixelsPerUnrealUnit);
-	}
-}
+		const UPaperRuntimeSettings* DefaultSettings = GetDefault<UPaperRuntimeSettings>();
+		PixelsPerUnrealUnit = DefaultSettings->DefaultPixelsPerUnrealUnit;
 
-void UPaperSprite::InitializeSprite(UTexture2D* Texture)
-{
-	InitializeSprite(Texture, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
-}
+		if (UMaterialInterface* TranslucentMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultTranslucentSpriteMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+		{
+			DefaultMaterial = TranslucentMaterial;
+		}
 
-void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnrealUnit)
-{
-	PixelsPerUnrealUnit = InPixelsPerUnrealUnit;
-	SourceTexture = Texture;
-	SourceUV = Offset;
-	SourceDimension = Dimension;
+		if (UMaterialInterface* OpaqueMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultOpaqueSpriteMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+		{
+			AlternateMaterial = OpaqueMaterial;
+		}
+	}
+
+	SourceTexture = InitParams.Texture;
+	SourceUV = InitParams.Offset;
+	SourceDimension = InitParams.Dimension;
 	RebuildCollisionData();
 	RebuildRenderData();
-}
-
-void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension)
-{
-	InitializeSprite(Texture, Offset, Dimension, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
 }
 
 void UPaperSprite::SetTrim(bool bTrimmed, const FVector2D& OriginInSourceImage, const FVector2D& SourceImageDimension)

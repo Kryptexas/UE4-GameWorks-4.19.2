@@ -502,7 +502,12 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 		}
 
 		TargetSprite->Modify();
-		TargetSprite->InitializeSprite(ImageTexture, Frame.SpritePosInSheet, Frame.SpriteSizeInSheet, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
+		FSpriteAssetInitParameters SpriteInitParams;
+		SpriteInitParams.Texture = ImageTexture;
+		SpriteInitParams.Offset = Frame.SpritePosInSheet;
+		SpriteInitParams.Dimension = Frame.SpriteSizeInSheet;
+		SpriteInitParams.bNewlyCreated = true;
+		TargetSprite->InitializeSprite(SpriteInitParams);
 
 		if (Frame.bRotated)
 		{

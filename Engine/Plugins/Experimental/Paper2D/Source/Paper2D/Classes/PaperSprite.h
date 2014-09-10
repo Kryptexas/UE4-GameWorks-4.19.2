@@ -199,10 +199,7 @@ public:
 	void Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target);
 
 	// Reinitializes this sprite (NOTE: Does not register existing components in the world)
-	void InitializeSprite(UTexture2D* Texture, float InPixelsPerUnrealUnit);
-	void InitializeSprite(UTexture2D* Texture);
-	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension);
-	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnit);
+	void InitializeSprite(const FSpriteAssetInitParameters& InitParams);
 
 	void SetTrim(bool bTrimmed, const FVector2D& OriginInSourceImage, const FVector2D& SourceImageDimension);
 	void SetRotated(bool bRotated);

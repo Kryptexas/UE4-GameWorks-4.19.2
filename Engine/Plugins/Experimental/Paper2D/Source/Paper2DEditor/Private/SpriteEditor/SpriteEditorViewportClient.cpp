@@ -108,7 +108,11 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 		if ((SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture()) || (TargetSprite->PixelsPerUnrealUnit != SourceSprite->PixelsPerUnrealUnit))
 		{
 			FComponentReregisterContext ReregisterSprite(SourceTextureViewComponent);
-			TargetSprite->InitializeSprite(SourceSprite->SourceTexture, SourceSprite->PixelsPerUnrealUnit);
+
+			FSpriteAssetInitParameters SpriteReinitParams;
+			SpriteReinitParams.SetTextureAndFill(SourceSprite->SourceTexture);
+			TargetSprite->PixelsPerUnrealUnit = SourceSprite->PixelsPerUnrealUnit;
+			TargetSprite->InitializeSprite(SpriteReinitParams);
 		}
 
 

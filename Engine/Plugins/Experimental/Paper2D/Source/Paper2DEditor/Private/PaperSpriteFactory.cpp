@@ -28,14 +28,19 @@ UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 {
 	UPaperSprite* NewSprite = ConstructObject<UPaperSprite>(Class, InParent, Name, Flags | RF_Transactional);
 
+	FSpriteAssetInitParameters SpriteInitParams;
+	SpriteInitParams.bNewlyCreated = true;
 	if (bUseSourceRegion)
 	{
-		NewSprite->InitializeSprite(InitialTexture, InitialSourceUV, InitialSourceDimension);
+		SpriteInitParams.Texture = InitialTexture;
+		SpriteInitParams.Offset = InitialSourceUV;
+		SpriteInitParams.Dimension = InitialSourceDimension;
 	}
 	else
 	{
-		NewSprite->InitializeSprite(InitialTexture);
+		SpriteInitParams.SetTextureAndFill(InitialTexture);
 	}
+	NewSprite->InitializeSprite(SpriteInitParams);
 
 	return NewSprite;
 }

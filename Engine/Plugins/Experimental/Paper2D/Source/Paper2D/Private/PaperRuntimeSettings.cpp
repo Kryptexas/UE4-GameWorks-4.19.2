@@ -13,4 +13,11 @@ UPaperRuntimeSettings::UPaperRuntimeSettings(const FPostConstructInitializePrope
 	, bEnableTileMapEditing(false)
 	, bEnableTerrainSplineEditing(false)
 {
+#if WITH_EDITORONLY_DATA
+	if (!IsRunningCommandlet())
+	{
+		DefaultTranslucentSpriteMaterialName = FStringAssetReference("/Paper2D/MaskedUnlitSpriteMaterial.MaskedUnlitSpriteMaterial");
+		DefaultOpaqueSpriteMaterialName = FStringAssetReference("/Paper2D/OpaqueUnlitSpriteMaterial.OpaqueUnlitSpriteMaterial");
+	}
+#endif
 }

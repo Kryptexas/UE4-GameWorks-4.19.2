@@ -139,6 +139,49 @@ struct FSpritePolygonCollection
 	}
 };
 
+USTRUCT()
+struct FSpriteAssetInitParameters
+{
+	GENERATED_USTRUCT_BODY()
+
+	FSpriteAssetInitParameters()
+		: Texture(nullptr)
+		, Offset(FVector2D::ZeroVector)
+		, Dimension(FVector2D::ZeroVector)
+		, bNewlyCreated(false)
+	{
+	}
+
+	// Set the texture and the offset/dimension to fully match the specified texture 
+	void SetTextureAndFill(UTexture2D* InTexture)
+	{
+		Texture = InTexture;
+		if (Texture != nullptr)
+		{
+			Dimension = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+			Offset = FVector2D::ZeroVector;
+		}
+		else
+		{
+			Dimension = FVector2D::ZeroVector;
+			Offset = FVector2D::ZeroVector;
+		}
+	}
+
+public:
+	// The texture to use
+	UTexture2D* Texture;
+
+	// The offset within the texture (in pixels)
+	FVector2D Offset;
+
+	// The dimension of the subregion within the texture (in pixels)
+	FVector2D Dimension;
+
+	// Is this sprite newly created (should we pull the default pixels/uu and materials from the project settings)?
+	bool bNewlyCreated;
+};
+
 UENUM()
 namespace ESpritePivotMode
 {

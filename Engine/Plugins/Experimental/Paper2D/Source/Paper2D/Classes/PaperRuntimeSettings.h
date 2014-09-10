@@ -16,6 +16,16 @@ class PAPER2D_API UPaperRuntimeSettings : public UObject
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Settings)
 	float DefaultPixelsPerUnrealUnit;
 
+#if WITH_EDITORONLY_DATA
+	// The default translucent or masked material for newly created sprites
+	UPROPERTY(Config, EditAnywhere, Category=Settings, meta=(AllowedClasses="MaterialInterface", DisplayName="Default Translucent Sprite Material"))
+	FStringAssetReference DefaultTranslucentSpriteMaterialName;
+
+	// The default opaque material for newly created sprites
+	UPROPERTY(Config, EditAnywhere, Category=Settings, meta=(AllowedClasses="MaterialInterface", DisplayName="Default Opaque Sprite Material"))
+	FStringAssetReference DefaultOpaqueSpriteMaterialName;
+#endif
+
 	// Enables experimental *incomplete and unsupported* texture atlas groups that sprites can be assigned to
 	UPROPERTY(EditAnywhere, config, Category=Experimental)
 	bool bEnableSpriteAtlasGroups;
