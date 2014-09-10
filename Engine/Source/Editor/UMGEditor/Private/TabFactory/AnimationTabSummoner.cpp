@@ -106,9 +106,10 @@ private:
 
 		FName CurrentName = WidgetAnimation->GetFName();
 
+		bool bNewAnimation = ListItem.Pin()->bNewAnimation;
+
 		if(!CurrentName.ToString().Equals(InText.ToString()) && !InText.IsEmpty())
 		{
-			bool bNewAnimation = ListItem.Pin()->bNewAnimation;
 			FText TransactionName = bNewAnimation ? LOCTEXT("NewAnimation", "New Animation") : LOCTEXT("RenameAnimation", "Rename Animation");
 
 			{
@@ -130,6 +131,13 @@ private:
 			FBlueprintEditorUtils::ReplaceVariableReferences(Blueprint, CurrentName, FName(*InText.ToString()));
 
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+		}
+		else if( bNewAnimation )
+		{
+			const FScopedTransaction Transaction(LOCTEXT("NewAnimation", "New Animation"));
+			Blueprint->Modify();
+			Blueprint->Animations.Add(WidgetAnimation);
+			ListItem.Pin()->bNewAnimation = false;
 		}
 	}
 private:
