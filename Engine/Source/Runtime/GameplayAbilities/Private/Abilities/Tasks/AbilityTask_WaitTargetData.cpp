@@ -82,7 +82,7 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject
 			if (!CDO->ShouldProduceTargetDataOnServer)
 			{
 				//Problem here - if there's targeting data just sitting around, fire events don't get hooked up because of this if-else, even if we don't end the task.
-				if (AbilitySystemComponent->ReplicatedTargetData.IsValid())
+				if (AbilitySystemComponent->ReplicatedTargetData.IsValid(0))
 				{
 					ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
 					if (ConfirmationType == EGameplayTargetingConfirmation::CustomMulti)

@@ -22,10 +22,22 @@ UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemCompone
 
 void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
 {
-	if (Target.Data.IsValid() && GameplayEffect != NULL)
+	if (GameplayEffect != NULL)
 	{
-		Target.Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);
+		for (int32 i = 0; i < Target.Data.Num(); ++i)
+		{
+			if (Target.Data[i].IsValid())
+			{
+				Target.Data[i]->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);
+			}
+		}
 	}
+}
+
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd)
+{
+	TargetHandle.Append(&HandleToAdd);
+	return TargetHandle;
 }
 
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromLocations(const FGameplayAbilityTargetingLocationInfo& SourceLocation, const FGameplayAbilityTargetingLocationInfo& TargetLocation)
@@ -37,7 +49,7 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 
 	// Give it a handle and return
 	FGameplayAbilityTargetDataHandle	Handle;
-	Handle.Data = TSharedPtr<FGameplayAbilityTargetData_LocationInfo>(NewData);
+	Handle.Data.Add(TSharedPtr<FGameplayAbilityTargetData_LocationInfo>(NewData));
 	return Handle;
 }
 
@@ -48,7 +60,7 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	FGameplayAbilityTargetDataHandle	Handle;
 
 	// Give it a handle and return
-	Handle.Data = TSharedPtr<FGameplayAbilityTargetData_Mesh>(NewData);
+	Handle.Data.Add(TSharedPtr<FGameplayAbilityTargetData_Mesh>(NewData));
 	return Handle;
 }
 
@@ -59,14 +71,24 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 
 	// Give it a handle and return
 	FGameplayAbilityTargetDataHandle	Handle;
-	Handle.Data = TSharedPtr<FGameplayAbilityTargetData>(TargetData);
+	Handle.Data.Add(TSharedPtr<FGameplayAbilityTargetData>(TargetData));
 
 	return Handle;
 }
 
-TArray<TWeakObjectPtr<AActor>> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
+//TArray<TSharedPtr<FGameplayAbilityTargetData>> UAbilitySystemBlueprintLibrary::GetDataArrayFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
+//{
+//	return TargetData.Data;
+//}
+
+int32 UAbilitySystemBlueprintLibrary::GetDataCountFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
 {
-	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	return TargetData.Data.Num();
+}
+
+TArray<TWeakObjectPtr<AActor>> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
+{
+	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
 		return Data->GetActors();
@@ -74,9 +96,9 @@ TArray<TWeakObjectPtr<AActor>> UAbilitySystemBlueprintLibrary::GetActorsFromTarg
 	return TArray<TWeakObjectPtr<AActor>>();
 }
 
-bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTargetDataHandle TargetData)
+bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
-	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
 		return Data->HasHitResult();
@@ -84,9 +106,9 @@ bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTarg
 	return false;
 }
 
-FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
+FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
-	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
 		const FHitResult* HitResultPtr = Data->GetHitResult();
@@ -99,9 +121,9 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 	return FHitResult();
 }
 
-bool UAbilitySystemBlueprintLibrary::TargetDataHasEndPoint(FGameplayAbilityTargetDataHandle TargetData)
+bool UAbilitySystemBlueprintLibrary::TargetDataHasEndPoint(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
-	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
 		const FHitResult* HitResultPtr = Data->GetHitResult();
@@ -110,9 +132,9 @@ bool UAbilitySystemBlueprintLibrary::TargetDataHasEndPoint(FGameplayAbilityTarge
 	return false;
 }
 
-FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTargetDataHandle TargetData)
+FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
-	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
+	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
 		const FHitResult* HitResultPtr = Data->GetHitResult();

@@ -153,21 +153,33 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 
 	FGameplayAbilityTargetDataHandle() { }
 	FGameplayAbilityTargetDataHandle(struct FGameplayAbilityTargetData* DataPtr)
-		: Data(DataPtr)
 	{
-
+		Data.Add(TSharedPtr<FGameplayAbilityTargetData>(DataPtr));
 	}
 
-	TSharedPtr<FGameplayAbilityTargetData>	Data;
+	TArray<TSharedPtr<FGameplayAbilityTargetData>>	Data;
 
 	void Clear()
 	{
 		Data.Reset();
 	}
 
-	bool IsValid() const
+	bool IsValid(int32 Index) const
 	{
-		return Data.IsValid();
+		return (Index < Data.Num() && Data[Index].IsValid());
+	}
+
+	FGameplayAbilityTargetData* Get(int32 Index)
+	{
+		return IsValid(Index) ? Data[Index].Get() : NULL;
+	}
+
+	void Append(struct FGameplayAbilityTargetDataHandle* OtherHandle)
+	{
+		for (int32 i = 0; i < OtherHandle->Data.Num(); ++i)
+		{
+			Data.Add(OtherHandle->Data[i]);
+		}
 	}
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
@@ -176,9 +188,22 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 	bool operator==(FGameplayAbilityTargetDataHandle const& Other) const
 	{
 		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
-		bool bBothValid = IsValid() && Other.IsValid();
-		bool bBothInvalid = !IsValid() && !Other.IsValid();
-		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
+		if (Data.Num() != Other.Data.Num())
+		{
+			return false;
+		}
+		for (int32 i = 0; i < Data.Num(); ++i)
+		{
+			if (Data[i].IsValid() != Other.Data[i].IsValid())
+			{
+				return false;
+			}
+			if (Data[i].Get() != Other.Data[i].Get())
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** Comparison operator */
@@ -346,7 +371,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_LocationInfo : public FG
 
 	/** Generic location data for target */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-		FGameplayAbilityTargetingLocationInfo TargetLocation;
+	FGameplayAbilityTargetingLocationInfo TargetLocation;
 
 	// -------------------------------------
 
@@ -590,7 +615,7 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_SingleTargetHit> : public
 {
 	enum
 	{
-		WithNetSerializer = true	// Fow now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
+		WithNetSerializer = true	// For now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
 	};
 };
 
