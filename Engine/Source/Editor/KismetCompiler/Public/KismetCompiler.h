@@ -35,10 +35,6 @@ protected:
 
 	// List of functions currently allocated
 	TIndirectArray<FKismetFunctionContext> FunctionList;
-
-	// List of validated Timelines
-	TArray<FName> ValidatedTimelines;
-
 protected:
 	// This struct holds the various compilation options, such as which passes to perform, whether to save intermediate results, etc
 	FKismetCompilerOptions CompileOptions;

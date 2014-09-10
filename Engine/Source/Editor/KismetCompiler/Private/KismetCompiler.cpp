@@ -501,7 +501,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 	{
 		UTimelineTemplate* Timeline = Blueprint->Timelines[TimelineIndex];
 		// Not fatal if NULL, but shouldn't happen
-		if (!Timeline || !ValidatedTimelines.Find( Timeline->GetFName() ))
+		if (!Timeline)
 		{
 			continue;
 		}
@@ -1718,24 +1718,7 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		BPGClass->SimpleConstructionScript = NULL;
 
 		BPGClass->ComponentTemplates = Blueprint->ComponentTemplates;
-
-		if( bIsFullCompile )
-		{
-			// Add only the timelines we have validated as having connections in the graph
-			for( int32 TimelineIndex = 0; TimelineIndex < Blueprint->Timelines.Num(); ++TimelineIndex )
-			{
-				UTimelineTemplate* TimeLineInstance = Blueprint->Timelines[ TimelineIndex ];
-
-				if( ValidatedTimelines.Find( TimeLineInstance->GetFName() ) != INDEX_NONE )
-				{
-					BPGClass->Timelines.Add( TimeLineInstance );
-				}
-			}
-		}
-		else
-		{
-			BPGClass->Timelines = Blueprint->Timelines;
-		}
+		BPGClass->Timelines = Blueprint->Timelines;
 		BPGClass->SimpleConstructionScript = Blueprint->SimpleConstructionScript;
 	}
 
@@ -1857,9 +1840,6 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 				// Only create nodes for play/stop if they are actually connected - otherwise we get a 'unused node being pruned' warning
 				if(bPlayPinConnected || bPlayFromStartPinConnected || bStopPinConnected || bReversePinConnected || bReverseFromEndPinConnected || bSetNewTimePinConnected)
 				{
-					// This timeline is wired up so it is now considered validated
-					ValidatedTimelines.Add( TimelineNode->TimelineName );
-
 					// First create 'get var' node to get the timeline object
 					UK2Node_VariableGet* GetTimelineNode = SpawnIntermediateNode<UK2Node_VariableGet>(TimelineNode, SourceGraph);
 					GetTimelineNode->VariableReference.SetSelfMember(TimelineNode->TimelineName);
@@ -1925,22 +1905,23 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 							MovePinLinksToIntermediate(*NewTimePin, *InputPin);
 						}
 					}
-					// Create event to call on each update
-					UFunction* EventSigFunc = UTimelineComponent::GetTimelineEventSignature();
-
-					// Create event nodes for any event tracks
-					for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
-					{
-						FName EventTrackName =  Timeline->EventTracks[EventTrackIdx].TrackName;
-						CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName.ToString(), EventSigFunc->GetFName());
-					}
-
-					// Generate Update Pin Event Node
-					CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetUpdateFunctionName(), TEXT("Update"), EventSigFunc->GetFName());
-
-					// Generate Finished Pin Event Node
-					CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetFinishedFunctionName(), TEXT("Finished"), EventSigFunc->GetFName());
 				}
+
+				// Create event to call on each update
+				UFunction* EventSigFunc = UTimelineComponent::GetTimelineEventSignature();
+
+				// Create event nodes for any event tracks
+				for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
+				{
+					FName EventTrackName =  Timeline->EventTracks[EventTrackIdx].TrackName;
+					CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName.ToString(), EventSigFunc->GetFName());
+				}
+
+				// Generate Update Pin Event Node
+				CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetUpdateFunctionName(), TEXT("Update"), EventSigFunc->GetFName());
+
+				// Generate Finished Pin Event Node
+				CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetFinishedFunctionName(), TEXT("Finished"), EventSigFunc->GetFName());
 			}			
 		}
 	}
