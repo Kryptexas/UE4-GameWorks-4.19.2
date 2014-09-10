@@ -1032,6 +1032,9 @@ namespace UM
 		/// [FunctionMetadata] This function can only be called on 'this' in a blueprint. It cannot be called on another instance.
 		BlueprintProtected,
 
+		/// [FunctionMetadata] Used for BlueprintCallable functions that have a WorldContext pin to indicate that the function can be called even if the class does not implement the virtual function GetWorld().
+		CallableWithoutWorldContext,
+
 		/// [FunctionMetadata] Indicates that a BlueprintCallable function should use the Commutative Associative Binary node.
 		CommutativeAssociativeBinaryOperator,
 

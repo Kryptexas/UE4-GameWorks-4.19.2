@@ -56,6 +56,7 @@ const FName FBlueprintMetadata::MD_FriendlyName(TEXT("FriendlyName"));
 const FName FBlueprintMetadata::MD_ExposeOnSpawn(TEXT("ExposeOnSpawn"));
 const FName FBlueprintMetadata::MD_DefaultToSelf(TEXT("DefaultToSelf"));
 const FName FBlueprintMetadata::MD_WorldContext(TEXT("WorldContext"));
+const FName FBlueprintMetadata::MD_CallableWithoutWorldContext(TEXT("CallableWithoutWorldContext"));
 const FName FBlueprintMetadata::MD_AutoCreateRefTerm(TEXT("AutoCreateRefTerm"));
 
 const FName FBlueprintMetadata::MD_ShowWorldContextPin(TEXT("ShowWorldContextPin"));
@@ -387,6 +388,19 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		if (bIsUnsafeForConstruction && bIsConstructionScript)
 		{
 			return false;
+		}
+
+		const bool bRequiresWorldContext = InFunction->HasMetaData(FBlueprintMetadata::MD_WorldContext);
+		if (bRequiresWorldContext)
+		{
+			if (InDestGraph && !InFunction->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
+			{
+				UClass* ParentClass = FBlueprintEditorUtils::FindBlueprintForGraphChecked(InDestGraph)->ParentClass;
+				if (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+				{
+					return false;
+				}
+			}
 		}
 
 		const bool bFunctionHidden = FObjectEditorUtils::IsFunctionHiddenFromClass(InFunction, InClass);
@@ -3260,6 +3274,15 @@ bool UEdGraphSchema_K2::ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const
 		{
 			// Don't show literal buttons for component type objects
 			bShow = !ObjectClass->IsChildOf(UActorComponent::StaticClass());
+
+			if (bShow)
+			{
+				if (UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Pin->GetOwningNode()))
+				{
+					const UEdGraphPin* WorldContextPin = CallFunctionNode->FindPin(CallFunctionNode->GetTargetFunction()->GetMetaData(FBlueprintMetadata::MD_WorldContext));
+					bShow = (WorldContextPin != Pin);
+				}
+			}
 		}
 	}
 	return bShow;

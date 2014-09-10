@@ -525,7 +525,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			{
 				DefaultToSelfParamNames.Add(WorldContextPinName);
 			}
-			else
+			else if (!Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
 			{
 				RequiresSetValue.Add(WorldContextPinName);
 			}

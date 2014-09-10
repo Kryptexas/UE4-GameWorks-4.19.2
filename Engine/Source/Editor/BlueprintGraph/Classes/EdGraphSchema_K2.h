@@ -98,6 +98,9 @@ public:
 	/** The specified parameter should be used as the context object when retrieving a UWorld pointer (implies hidden and default-to-self) */
 	static const FName MD_WorldContext;
 
+	/** For functions that have the MD_WorldContext metadata but are safe to be called from contexts that do not have the ability to provide the world context (either through GetWorld() or ShowWorldContextPin class metadata */
+	static const FName MD_CallableWithoutWorldContext;
+
 	/** If true, an unconnected pin will generate a UPROPERTY under the hood to connect as the input, which will be set to the literal value for the pin.  Only valid for reference parameters. */
 	static const FName MD_AutoCreateRefTerm;
 

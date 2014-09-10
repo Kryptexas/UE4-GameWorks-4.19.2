@@ -1126,35 +1126,49 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 		MessageLog.Warning(*FString::Printf(*LOCTEXT("EnumToExecExpansionFailed", "Unable to find enum parameter with name '%s' to expand for @@").ToString(), *EnumParamName), this);
 	}
 
-	// enforce UnsafeDuringActorConstruction keyword
-	if (Function && Function->HasMetaData(FBlueprintMetadata::MD_UnsafeForConstructionScripts))
+	if (Function)
 	{
-		// emit warning if we are in a construction script
-		UEdGraph const* const Graph = GetGraph();
-		UEdGraphSchema_K2 const* const Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-		bool bNodeIsInConstructionScript = Schema && Schema->IsConstructionScript(Graph);
-
-		if (bNodeIsInConstructionScript == false)
+		// enforce UnsafeDuringActorConstruction keyword
+		if (Function->HasMetaData(FBlueprintMetadata::MD_UnsafeForConstructionScripts))
 		{
-			// IsConstructionScript() can return false if graph was cloned from the construction script
-			// in that case, check the function entry
-			TArray<const UK2Node_FunctionEntry*> EntryPoints;
-			Graph->GetNodesOfClass(EntryPoints);
+			// emit warning if we are in a construction script
+			UEdGraph const* const Graph = GetGraph();
+			UEdGraphSchema_K2 const* const Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
+			bool bNodeIsInConstructionScript = Schema && Schema->IsConstructionScript(Graph);
 
-			if (EntryPoints.Num() == 1)
+			if (bNodeIsInConstructionScript == false)
 			{
-				UK2Node_FunctionEntry const* const Node = EntryPoints[0];
-				if (Node)
+				// IsConstructionScript() can return false if graph was cloned from the construction script
+				// in that case, check the function entry
+				TArray<const UK2Node_FunctionEntry*> EntryPoints;
+				Graph->GetNodesOfClass(EntryPoints);
+
+				if (EntryPoints.Num() == 1)
 				{
-					UFunction* const SignatureFunction = FindField<UFunction>(Node->SignatureClass, Node->SignatureName);
-					bNodeIsInConstructionScript = SignatureFunction && (SignatureFunction->GetFName() == Schema->FN_UserConstructionScript);
+					UK2Node_FunctionEntry const* const Node = EntryPoints[0];
+					if (Node)
+					{
+						UFunction* const SignatureFunction = FindField<UFunction>(Node->SignatureClass, Node->SignatureName);
+						bNodeIsInConstructionScript = SignatureFunction && (SignatureFunction->GetFName() == Schema->FN_UserConstructionScript);
+					}
 				}
+			}
+
+			if ( bNodeIsInConstructionScript )
+			{
+				MessageLog.Warning(*LOCTEXT("FunctionUnsafeDuringConstruction", "Function '@@' is unsafe to call in a construction script.").ToString(), this);
 			}
 		}
 
-		if ( bNodeIsInConstructionScript )
+		// enforce WorldContext restrictions
+		else if (   Function->HasMetaData(FBlueprintMetadata::MD_WorldContext) 
+			     && !Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
 		{
-			MessageLog.Warning(*LOCTEXT("FunctionUnsafeDuringConstruction", "Function '@@' is unsafe to call in a construction script.").ToString(), this);
+			UClass* ParentClass = GetBlueprint()->ParentClass;
+			if (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+			{
+				MessageLog.Warning(*LOCTEXT("FunctionUnsafeInContext", "Function '@@' is unsafe to call from blueprints of class '@@'.").ToString(), this, ParentClass);
+			}
 		}
 	}
 }
