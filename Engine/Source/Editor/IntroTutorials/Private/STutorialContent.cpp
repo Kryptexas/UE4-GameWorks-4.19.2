@@ -84,7 +84,7 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 						SNew(SButton)
 						.OnClicked(this, &STutorialContent::OnCloseButtonClicked)
 						.Visibility(this, &STutorialContent::GetCloseButtonVisibility)
-						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
+						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.Button"))
 						.ContentPadding(0.0f)
 						[
 							SNew(SImage)

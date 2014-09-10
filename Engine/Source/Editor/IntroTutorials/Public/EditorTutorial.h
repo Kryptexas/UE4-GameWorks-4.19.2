@@ -59,9 +59,13 @@ struct INTROTUTORIALS_API FTutorialCategory
 	UPROPERTY(EditAnywhere, Category="Content", meta=(MultiLine=true))
 	FText Description;
 
-	/** Icon for this tutorial, used when presented to the user */
+	/** Icon for this tutorial, used when presented to the user in the tutorial browser. Only used if there isn't a valid texture to use. */
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	FString Icon;
+
+	/** Texture for this tutorial, used when presented to the user in the tutorial browser. */
+	UPROPERTY(EditAnywhere, Category="Tutorial", meta=(AllowedClasses="Texture2D"))
+	FStringAssetReference Texture;
 };
 
 /** Content wrapper */
@@ -204,9 +208,13 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	FText Title;
 
-	/** Icon for this tutorial, used when presented to the user */
+	/** Icon name for this tutorial, used when presented to the user in the tutorial browser. This is a name for the icon in the Slate editor style. Only used if there isn't a valid texture to use. */
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	FString Icon;
+
+	/** Texture for this tutorial, used when presented to the user in the tutorial browser. */
+	UPROPERTY(EditAnywhere, Category="Tutorial")
+	UTexture2D* Texture;
 
 	/** Category of this tutorial, used to organize tutorials when presented to the user */
 	UPROPERTY(EditAnywhere, Category="Tutorial")

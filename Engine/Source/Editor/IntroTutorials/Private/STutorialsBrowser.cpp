@@ -19,13 +19,15 @@ class FTutorialListEntry_Category : public ITutorialListEntry, public TSharedFro
 {
 public:
 	FTutorialListEntry_Category(FOnCategorySelected InOnCategorySelected)
-		:  OnCategorySelected(InOnCategorySelected)
+		: OnCategorySelected(InOnCategorySelected)
+		, SlateBrush(nullptr)
 	{}
 
 	FTutorialListEntry_Category(const FTutorialCategory& InCategory, FOnCategorySelected InOnCategorySelected, const TAttribute<FText>& InHighlightText)
 		: Category(InCategory)
 		, OnCategorySelected(InOnCategorySelected)
 		, HighlightText(InHighlightText)
+		, SlateBrush(nullptr)
 	{
 		if(!Category.Identifier.IsEmpty())
 		{
@@ -38,6 +40,30 @@ public:
 			{
 				CategoryName = Category.Identifier;
 			}
+		}
+
+		if(Category.Texture.IsValid())
+		{
+			UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Category.Texture.AssetLongPathname);
+			if(Texture != nullptr)
+			{
+				FIntPoint TextureSize = Texture->GetImportedSize();
+				DynamicBrush = MakeShareable(new FSlateDynamicImageBrush(Texture, FVector2D((float)TextureSize.X, (float)TextureSize.Y), NAME_None));
+				SlateBrush = DynamicBrush.Get();		
+			}
+		}	
+
+		if(SlateBrush == nullptr)
+		{
+			if(Category.Icon.Len() > 0)
+			{
+				SlateBrush = FEditorStyle::Get().GetBrush(FName(*Category.Icon));
+			}
+		}
+
+		if(SlateBrush == nullptr)
+		{
+			SlateBrush = FEditorStyle::Get().GetBrush("Tutorials.Browser.DefaultTutorialIcon");
 		}
 	}
 
@@ -58,10 +84,17 @@ public:
 				.AutoWidth()
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
-				.Padding(16.0f)
+				.Padding(8.0f)
 				[
-					SNew(SImage)
-					.Image(FEditorStyle::Get().GetBrush(FName(*Category.Icon)))
+					SNew(SBox)
+					.WidthOverride(64.0f)
+					.HeightOverride(64.0f)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					[
+						SNew(SImage)
+						.Image(SlateBrush)
+					]
 				]
 				+SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -160,6 +193,12 @@ public:
 
 	/** Text to highlight */
 	TAttribute<FText> HighlightText;
+
+	/** Static brush from the editor style */
+	const FSlateBrush* SlateBrush;
+
+	/** Dynamic brush from the texture specified by the user */
+	TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;
 };
 
 DECLARE_DELEGATE_TwoParams(FOnTutorialSelected, UEditorTutorial* /* InTutorial */, bool /* bRestart */ );
@@ -171,7 +210,24 @@ public:
 		: Tutorial(InTutorial)
 		, OnTutorialSelected(InOnTutorialSelected)
 		, HighlightText(InHighlightText)
-	{}
+		, SlateBrush(nullptr)
+	{
+		if(Tutorial->Texture != nullptr)
+		{
+			FIntPoint TextureSize = Tutorial->Texture->GetImportedSize();
+			DynamicBrush = MakeShareable(new FSlateDynamicImageBrush(Tutorial->Texture, FVector2D((float)TextureSize.X, (float)TextureSize.Y), NAME_None));
+			SlateBrush = DynamicBrush.Get();
+		}	
+		else if(Tutorial->Icon.Len() > 0)
+		{
+			SlateBrush = FEditorStyle::Get().GetBrush(FName(*Tutorial->Icon));
+		}
+		
+		if(SlateBrush == nullptr)
+		{
+			SlateBrush = FEditorStyle::Get().GetBrush("Tutorials.Browser.DefaultTutorialIcon");
+		}
+	}
 
 	virtual ~FTutorialListEntry_Tutorial()
 	{}
@@ -194,15 +250,16 @@ public:
 					.AutoWidth()
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
+					.Padding(8.0f)
 					[
 						SNew(SBox)
-						.WidthOverride(96.0f)
-						.HeightOverride(96.0f)
+						.WidthOverride(64.0f)
+						.HeightOverride(64.0f)
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Center)
 						[
 							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush(FName(*Tutorial->Icon)))
+							.Image(SlateBrush)
 						]
 					]
 					+SHorizontalBox::Slot()
@@ -314,6 +371,12 @@ public:
 
 	/** Documentation page reference to use if we are displaying a UDN doc */
 	mutable TSharedPtr<IDocumentationPage> DocumentationPage;
+
+	/** Static brush from the editor style */
+	const FSlateBrush* SlateBrush;
+
+	/** Dynamic brush from the texture specified by the user */
+	TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;
 };
 
 void STutorialsBrowser::Construct(const FArguments& InArgs)
@@ -346,7 +409,7 @@ void STutorialsBrowser::Construct(const FArguments& InArgs)
 						SNew(SButton)
 						.OnClicked(this, &STutorialsBrowser::OnBackButtonClicked)
 						.IsEnabled(this, &STutorialsBrowser::IsBackButtonEnabled)
-						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Browser.Button"))
+						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.Button"))
 						.Content()
 						[
 							SNew(SImage)
