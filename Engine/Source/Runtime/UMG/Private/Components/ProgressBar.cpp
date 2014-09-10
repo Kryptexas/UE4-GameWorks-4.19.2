@@ -13,6 +13,9 @@ UProgressBar::UProgressBar(const FPostConstructInitializeProperties& PCIP)
 	static const FName StyleName(TEXT("Style"));
 	ProgressStyle = PCIP.CreateDefaultSubobject<UProgressWidgetStyle>(this, StyleName);
 
+	SProgressBar::FArguments SlateDefaults;
+	ProgressStyle->ProgressBarStyle = *SlateDefaults._Style;
+
 	BarFillType = EProgressBarFillType::LeftToRight;
 	bIsMarquee = false;
 	Percent = 0;
