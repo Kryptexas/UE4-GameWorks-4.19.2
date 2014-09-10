@@ -127,11 +127,10 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessDownsampleVS,TEXT("PostProcessDownsample"),TEXT("MainDownsampleVS"),SF_Vertex);
 
 
-FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat, uint32 InQuality, EPostProcessRectSource::Type InRectSource, const TCHAR *InDebugName)
+FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat, uint32 InQuality, const TCHAR *InDebugName)
 	: OverrideFormat(InOverrideFormat)
 	, Quality(InQuality)
 	, DebugName(InDebugName)
-	, RectSource(InRectSource)
 {
 }
 
@@ -209,13 +208,11 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 		}
 	}
 
-	const int NumOverrideRects = Context.View.UIBlurOverrideRectangles.Num();
-	const bool bHasMultipleQuads = RectSource == EPostProcessRectSource::GBS_UIBlurRects && NumOverrideRects > 1;
 	bool bHasCleared = false;
 
 	// check if we have to clear the whole surface.
 	// Otherwise perform the clear when the dest rectangle has been computed.
-	if (bHasMultipleQuads || Context.View.GetFeatureLevel() == ERHIFeatureLevel::ES2)
+	if (Context.View.GetFeatureLevel() == ERHIFeatureLevel::ES2)
 	{
 		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 		bHasCleared = true;
@@ -223,80 +220,26 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 
 	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(Context.GetShaderMap());
 
-	switch (RectSource)
+	FIntRect SrcRect = View.ViewRect / ScaleFactor;
+	FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
+	SrcRect = DestRect * 2;
+
+	if (!bHasCleared)
 	{
-		case EPostProcessRectSource::GBS_ViewRect:
-		{
-			FIntRect SrcRect = View.ViewRect / ScaleFactor;
-			FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
-			SrcRect = DestRect * 2;
-
-			if (bHasCleared == false)
-			{
-				Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
-			}
-
-			// Draw a quad mapping scene color to the view's render target
-			DrawRectangle(
-				Context.RHICmdList,
-				DestRect.Min.X, DestRect.Min.Y,
-				DestRect.Width(), DestRect.Height(),
-				SrcRect.Min.X, SrcRect.Min.Y,
-				SrcRect.Width(), SrcRect.Height(),
-				DestSize,
-				SrcSize,
-				*VertexShader,
-				EDRF_UseTriangleOptimization);
-		}
-		break;
-		case EPostProcessRectSource::GBS_UIBlurRects:
-		{
-			static auto* ICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("UI.BlurRadius"));
-			int32 IntegerKernelRadius = FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius(Context.View.GetFeatureLevel(), ICVar->GetValueOnRenderThread());
-
-			// Add Downsample's own inflation (PS linear+HW filter) to maximum required by Gaussian blur
-			InflateSize += IntegerKernelRadius;
-			// UIBlur performs x2 1/2 sizing downsamples.
-			// possible optimization of inflate x2 for the 2nd pass.
-			// Although Blur's bDoFastBlur can require 8x.
-			InflateSize *= 4;
-
-			const float UpsampleScale = ((float)Context.View.ViewRect.Width() / (float)Context.View.UnscaledViewRect.Width());
-			for (int i = 0 ; i < NumOverrideRects ; i++)
-			{
-				const FIntRect& CurrentRect = Context.View.UIBlurOverrideRectangles[i];
-
-				// scale from unscaled rect(s) to scaled backbuffer size.
-				FIntRect SrcRect = CurrentRect.Scale(UpsampleScale);
-				SrcRect = SrcRect / ScaleFactor;
-				SrcRect.InflateRect(InflateSize); // inflate to read the texels required by gaussian blur.
-				SrcRect.Clip(Context.View.ViewRect); // clip the inflated rectangle against the bounds of the surface.
-				FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
-				SrcRect = DestRect * 2;
-
-				if (bHasCleared == false)
-				{
-					Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
-				}
-
-				// Draw a quad mapping scene color to the view's render target
-				DrawRectangle(
-					Context.RHICmdList,
-					DestRect.Min.X, DestRect.Min.Y,
-					DestRect.Width(), DestRect.Height(),
-					SrcRect.Min.X, SrcRect.Min.Y,
-					SrcRect.Width(), SrcRect.Height(),
-					DestSize,
-					SrcSize,
-					*VertexShader,
-					EDRF_UseTriangleOptimization);
-			}
-		}
-		break;
-		default:
-			checkNoEntry();
-		break;
+		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
 	}
+
+	// Draw a quad mapping scene color to the view's render target
+	DrawRectangle(
+		Context.RHICmdList,
+		DestRect.Min.X, DestRect.Min.Y,
+		DestRect.Width(), DestRect.Height(),
+		SrcRect.Min.X, SrcRect.Min.Y,
+		SrcRect.Width(), SrcRect.Height(),
+		DestSize,
+		SrcSize,
+		*VertexShader,
+		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }

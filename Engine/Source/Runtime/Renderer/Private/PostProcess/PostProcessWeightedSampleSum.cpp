@@ -314,13 +314,12 @@ static uint32 Compute1DGaussianFilterKernel(ERHIFeatureLevel::Type InFeatureLeve
 	return NumSamples;
 }
 
-FRCPassPostProcessWeightedSampleSum::FRCPassPostProcessWeightedSampleSum(EFilterShape InFilterShape, EFilterCombineMethod InCombineMethod, float InSizeScale, EPostProcessRectSource::Type InRectSource, const TCHAR* InDebugName, FLinearColor InTintValue)
+FRCPassPostProcessWeightedSampleSum::FRCPassPostProcessWeightedSampleSum(EFilterShape InFilterShape, EFilterCombineMethod InCombineMethod, float InSizeScale, const TCHAR* InDebugName, FLinearColor InTintValue)
 	: FilterShape(InFilterShape)
 	, CombineMethod(InCombineMethod)
 	, SizeScale(InSizeScale)
 	, TintValue(InTintValue)
 	, DebugName(InDebugName)
-	, RectSource(InRectSource)
 {
 }
 
@@ -445,52 +444,20 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		&VertexShader
 		);
 
-	const int NumOverrideRects = Context.View.UIBlurOverrideRectangles.Num();
-	const bool bHasMultipleQuads = RectSource == EPostProcessRectSource::GBS_UIBlurRects && NumOverrideRects > 1;
 	bool bRequiresClear = true;
 	// check if we have to clear the whole surface.
 	// Otherwise perform the clear when the dest rectangle has been computed.
-	if (bHasMultipleQuads || FeatureLevel == ERHIFeatureLevel::ES2)
+	if (FeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 		bRequiresClear = false;
 	}
 
-	switch (RectSource)
-	{
-		case EPostProcessRectSource::GBS_ViewRect:
-		{
-			FIntRect SrcRect =  View.ViewRect / SrcScaleFactor;
-			FIntRect DestRect = View.ViewRect / DstScaleFactor;
+	FIntRect SrcRect =  View.ViewRect / SrcScaleFactor;
+	FIntRect DestRect = View.ViewRect / DstScaleFactor;
 
-			DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
-		}
-		break;
-		case EPostProcessRectSource::GBS_UIBlurRects:
-		{
-			const float UpsampleScale = ((float)Context.View.ViewRect.Width() / (float)Context.View.UnscaledViewRect.Width());
-			int32 InflateSize = NumSamples + 1;
-			for (int i = 0; i < NumOverrideRects; i++)
-			{
-				const FIntRect& CurrentRect = Context.View.UIBlurOverrideRectangles[i];
-				// scale from unscaled rect(s) to scaled backbuffer size.
-				FIntRect ScaledQuad = CurrentRect.Scale(UpsampleScale);
-				// inflate to read the texels required by the blur.
-				// pre-adjusting for scaling factor.
-				ScaledQuad.InflateRect(InflateSize * SrcScaleFactor.GetMax());
-				ScaledQuad.Clip(Context.View.ViewRect); // clip the inflated rectangle against the bounds of the surface.
+	DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
 
-				FIntRect SrcRect = ScaledQuad / SrcScaleFactor;
-				FIntRect DestRect = ScaledQuad / DstScaleFactor;
-
-				DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
-			}
-		}
-		break;
-		default:
-			checkNoEntry();
-		break;
-	}
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 

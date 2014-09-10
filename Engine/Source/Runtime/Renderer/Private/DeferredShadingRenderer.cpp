@@ -44,14 +44,6 @@ static FAutoConsoleVariableRef CVarEarlyZPassMovable(
 	);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static TAutoConsoleVariable<int32> CVarTestUIBlur(
-	TEXT("UI.TestUIBlur"),
-	0,
-	TEXT("Adds a 20,20 - 400,400 UIBlur rectangle to test the feature quickly.\n")
-	TEXT("0: off (default)\n")
-	TEXT("1: on\n"),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarVisualizeTexturePool(
 	TEXT("r.VisualizeTexturePool"),
 	0,
@@ -954,13 +946,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Resolve the scene color for post processing.
 	GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if(CVarTestUIBlur.GetValueOnRenderThread() > 0)
-	{
-		Views[0].UIBlurOverrideRectangles.Add(FIntRect(20, 20, 400, 400));
-	}
-#endif
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 

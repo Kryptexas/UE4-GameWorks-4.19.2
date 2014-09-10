@@ -109,7 +109,6 @@ public:
 	FRCPassPostProcessWeightedSampleSum(EFilterShape InFilterShape,
 			EFilterCombineMethod InCombineMethod,
 			float InSizeScale,
-			EPostProcessRectSource::Type InRectSource = EPostProcessRectSource::GBS_ViewRect,
 			const TCHAR* InDebugName = TEXT("WeightedSampleSum"),
 			FLinearColor InAdditiveTintValue = FLinearColor::White);
 
@@ -133,7 +132,6 @@ private:
 	float SizeScale;
 	FLinearColor TintValue;
 	const TCHAR* DebugName;
-	EPostProcessRectSource::Type RectSource;
 	// @return true: half x resolution for horizontal pass, vertical pass takes that as input, lower quality
 	bool DoFastBlur() const;
 };

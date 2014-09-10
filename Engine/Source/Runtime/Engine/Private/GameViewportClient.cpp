@@ -746,16 +746,6 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 					if (View)
 					{
-						// Add depth of field override regions.
-						if (PlayerController->MyHUD)
-						{
-							if( !PlayerController->bCinematicMode )
-							{
-								View->UIBlurOverrideRectangles = PlayerController->MyHUD->GetUIBlurRectangles();
-							}
-							PlayerController->MyHUD->ClearUIBlurOverrideRects();
-						}
-					
 						if (View->Family->EngineShowFlags.Wireframe)
 						{
 							// Wireframe color is emissive-only, and mesh-modifying materials do not use material substitution, hence...

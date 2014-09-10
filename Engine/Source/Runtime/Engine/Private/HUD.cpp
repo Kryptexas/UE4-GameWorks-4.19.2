@@ -866,24 +866,9 @@ const FHUDHitBox* AHUD::GetHitBoxWithName( const FName InName ) const
 	return NULL;
 }
 
-void AHUD::ClearUIBlurOverrideRects()
-{
-	UIBlurOverrideRectangles.Empty();
-}
-
-void AHUD::AddUIBlurOverrideRect( const FIntRect& UIBlurOverrideRect )
-{
-	UIBlurOverrideRectangles.Add(UIBlurOverrideRect);
-}
-
 bool AHUD::AnyCurrentHitBoxHits() const
 {
 	return HitBoxHits.Num() != 0;
-}
-
-const TArray<FIntRect>& AHUD::GetUIBlurRectangles() const
-{
-	return UIBlurOverrideRectangles;
 }
 
 bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bIsTouchEvent)

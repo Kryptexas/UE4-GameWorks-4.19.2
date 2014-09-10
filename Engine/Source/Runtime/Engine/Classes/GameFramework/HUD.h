@@ -230,11 +230,6 @@ protected:
 	UPROPERTY()
 	TArray<struct FDebugTextInfo> DebugTextList;
 
-private:
-
-	/** Areas of the screen where UIBlur is enabled. */
-	TArray< FIntRect > UIBlurOverrideRectangles;
-
 public:
 	//=============================================================================
 	// Utils
@@ -623,19 +618,6 @@ public:
 	 */
 	const FHUDHitBox* GetHitBoxWithName( const FName InName ) const;
 
-	//=============================================================================
-	// UIBlur overrides
-	//=============================================================================
-
-	/** Empty the list of UIBlur rectangles  */
-	void ClearUIBlurOverrideRects();
-
-	/** Add a rectangle in which UIBlur will be enabled */
-	void AddUIBlurOverrideRect( const FIntRect& UIBlurOverrideRect );
-
-	/** Get the array of rectangles in which UIBlur enabled */
-	const TArray<FIntRect>& GetUIBlurRectangles() const;
-	
 protected:
 	bool IsCanvasValid_WarnIfNot() const;
 

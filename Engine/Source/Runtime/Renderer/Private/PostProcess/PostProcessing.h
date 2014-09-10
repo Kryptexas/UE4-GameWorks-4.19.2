@@ -78,17 +78,3 @@ public:
 
 /** The global used for post processing. */
 extern FPostProcessing GPostProcessing;
-
-/**
- * Used to specify the rectangles used by some passes.
- */
-namespace EPostProcessRectSource
-{
-	enum Type
-	{
-		// The default behavior for most cases. represents the entire view rect.
-		GBS_ViewRect,
-		// Specifies that the rectangle(s) for the post process operation will use the UIBlurRects container.
-		GBS_UIBlurRects
-	};
-}

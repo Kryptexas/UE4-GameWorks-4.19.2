@@ -1807,17 +1807,6 @@ static TAutoConsoleVariable<int32> CVarRefractionQuality(
 	TEXT("  3: high quality (e.g. color fringe, not yet implemented)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-
-
-
-static TAutoConsoleVariable<float> CVarUIBlurRadius(
-	TEXT("UI.BlurRadius"),
-	1.2f,
-	TEXT("Gaussian blur radius for post process UIBlur operation\n")
-	TEXT("as a percent of screen width\n")
-	TEXT("0 to turn off gaussian blur. (Default 1.2)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarDBuffer(
 	TEXT("r.DBuffer"),
 	0,

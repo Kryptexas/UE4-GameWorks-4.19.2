@@ -18,10 +18,8 @@ public:
 	// constructor
 	// @param InDebugName we store the pointer so don't release this string
 	// @param Quality 0:1 sample, 1:4 samples with blurring
-	// @param InRectSource used to select rectangle source, either viewrect (typical case) or UIBlur if pass is a component of UIBlur effect.
 	FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat = PF_Unknown,
 			uint32 InQuality = 1,
-			EPostProcessRectSource::Type InRectSource = EPostProcessRectSource::GBS_ViewRect,
 			const TCHAR *InDebugName = TEXT("Downsample"));
 
 	// interface FRenderingCompositePass ---------
@@ -38,6 +36,5 @@ private:
 	uint32 Quality;
 	// must be a valid pointer
 	const TCHAR* DebugName;
-	EPostProcessRectSource::Type RectSource;
 	bool IsDepthInputAvailable() const;
 };

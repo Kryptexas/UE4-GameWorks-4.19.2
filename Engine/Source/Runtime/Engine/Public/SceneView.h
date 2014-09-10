@@ -369,9 +369,6 @@ public:
 	FTextureRHIRef AtmosphereIrradianceTexture;
 	FTextureRHIRef AtmosphereInscatterTexture;
 
-	/** Areas of the screen where the depth of field should be forced to the max. */
-	TArray< FIntRect > UIBlurOverrideRectangles;
-
 	/** Feature level for this scene */
 	ERHIFeatureLevel::Type FeatureLevel;
 
