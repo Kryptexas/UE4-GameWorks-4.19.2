@@ -10,6 +10,12 @@
 UComboBoxString::UComboBoxString(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	static const FName StyleName(TEXT("Style"));
+	ComboBoxStyle = PCIP.CreateDefaultSubobject<UComboBoxWidgetStyle>(this, StyleName);
+
+	SComboBox< TSharedPtr<FString> >::FArguments SlateDefaults;
+	ComboBoxStyle->ComboBoxStyle = *SlateDefaults._ComboBoxStyle;
+
 	ContentPadding = FMargin(4.0, 2.0);
 	MaxListHeight = 450.0f;
 	HasDownArrow = true;
@@ -30,17 +36,18 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 		AddOption(DefaultOptions);
 	}
 
-	TSharedPtr<FString> InitiallySelectedItem;
-	int32 InitialIndex = FindOptionIndex(InitiallySelectedOption);
+	TSharedPtr<FString> SelectedOptionPtr;
+	int32 InitialIndex = FindOptionIndex(SelectedOption);
 	if ( InitialIndex != -1 )
 	{
-		InitiallySelectedItem = Options[InitialIndex];
+		SelectedOptionPtr = Options[InitialIndex];
 	}
 
 	MyComboBox =
 		SNew(SComboBox< TSharedPtr<FString> >)
+		.ComboBoxStyle(&ComboBoxStyle->ComboBoxStyle)
 		.OptionsSource(&Options)
-		.InitiallySelectedItem(InitiallySelectedItem)
+		.InitiallySelectedItem(SelectedOptionPtr)
 		.ContentPadding(ContentPadding)
 		.MaxListHeight(MaxListHeight)
 		.HasDownArrow(HasDownArrow)
@@ -55,21 +62,8 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 	if ( InitialIndex != -1 )
 	{
 		// Generate the widget for the initially selected widget if needed
-		ComoboBoxContent->SetContent(HandleGenerateWidget(InitiallySelectedItem));
+		ComoboBoxContent->SetContent(HandleGenerateWidget(SelectedOptionPtr));
 	}
-
-	//TODO UMG Expose the rest of these options
-
-	//SLATE_STYLE_ARGUMENT(FComboBoxStyle, ComboBoxStyle)
-
-	//	/** The visual style of the button part of the combo box (overrides ComboBoxStyle) */
-	//	SLATE_STYLE_ARGUMENT(FButtonStyle, ButtonStyle)
-
-	//	/** The sound to play when the button is pressed (overrides ComboBoxStyle) */
-	//	SLATE_ARGUMENT(TOptional<FSlateSound>, PressedSoundOverride)
-
-	//	/** The sound to play when the selection changes (overrides ComboBoxStyle) */
-	//	SLATE_ARGUMENT(TOptional<FSlateSound>, SelectionChangeSoundOverride)
 
 	return MyComboBox.ToSharedRef();
 }

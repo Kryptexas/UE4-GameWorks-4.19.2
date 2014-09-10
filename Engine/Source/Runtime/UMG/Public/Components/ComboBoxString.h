@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ComboBoxWidgetStyle.h"
+
 #include "ComboBoxString.generated.h"
 
 /**
@@ -17,13 +19,17 @@ class UMG_API UComboBoxString : public UWidget
 
 public:
 
+	/** The style */
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance )
+	TSubobjectPtr<UComboBoxWidgetStyle> ComboBoxStyle;
+
 	/** The list of items to be displayed on the combobox. */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	TArray<FString> DefaultOptions;
 
 	/** The item in the combobox to select by default */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
-	FString InitiallySelectedOption;
+	FString SelectedOption;
 
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FMargin ContentPadding;
