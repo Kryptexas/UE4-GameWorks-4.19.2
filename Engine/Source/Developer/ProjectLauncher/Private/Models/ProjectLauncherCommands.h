@@ -15,8 +15,8 @@ public:
 	 */
 	FProjectLauncherCommands( )
 		: TCommands<FProjectLauncherCommands>(
-			"ProjectLauncherCommand",
-			NSLOCTEXT("Contexts", "ProjectLauncherCommand", "Project Launcher Command"),
+			"LauncherCommand",
+			NSLOCTEXT("Contexts", "LauncherCommand", "Project Launcher Command"),
 			NAME_None,
 			FEditorStyle::GetStyleSetName()
 	)

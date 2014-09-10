@@ -39,6 +39,8 @@ SProjectLauncher::~SProjectLauncher( )
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SProjectLauncher::Construct( const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow, const FProjectLauncherModelRef& InModel )
 {
+	FProjectLauncherCommands::Register();
+
 	Model = InModel;
 
 	// create & initialize main menu bar

@@ -20,8 +20,6 @@ SProjectLauncherSettings::~SProjectLauncherSettings( )
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SProjectLauncherSettings::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
 {
-	FProjectLauncherCommands::Register();
-
 	Model = InModel;
 
 	OnCloseClicked = InArgs._OnCloseClicked;
