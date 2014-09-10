@@ -22,8 +22,8 @@ public:
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** The button style used at runtime by the slate button */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance )
-	TSubobjectPtr<UButtonWidgetStyle> ButtonStyle;
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance, meta=( DisplayName="Style" ))
+	TSubobjectPtr<UButtonWidgetStyle> WidgetStyle;
 	
 	/** The color multiplier for the button content */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )

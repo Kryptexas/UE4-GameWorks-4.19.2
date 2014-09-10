@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "EditableTextWidgetStyle.h"
+
 #include "EditableText.generated.h"
 
 /** Editable text box widget */
@@ -33,25 +35,29 @@ public:
 	UPROPERTY()
 	FGetText HintTextDelegate;
 
+	/** The button style used at runtime by the slate button */
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance, meta=(DisplayName="Style") )
+	TSubobjectPtr<UEditableTextWidgetStyle> WidgetStyle;
+
 	/** Text style */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** Background image for the selected text (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* BackgroundImageSelected;
+	UPROPERTY()
+	USlateBrushAsset* BackgroundImageSelected_DEPRECATED;
 
 	/** Background image for the selection targeting effect (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* BackgroundImageSelectionTarget;
+	UPROPERTY()
+	USlateBrushAsset* BackgroundImageSelectionTarget_DEPRECATED;
 
 	/** Background image for the composing text (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* BackgroundImageComposing;
+	UPROPERTY()
+	USlateBrushAsset* BackgroundImageComposing_DEPRECATED;
 
 	/** Image brush used for the caret (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CaretImage;
+	UPROPERTY()
+	USlateBrushAsset* CaretImage_DEPRECATED;
 
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -104,25 +110,42 @@ public:
 	FOnEditableTextCommittedEvent OnTextCommitted;
 
 	/**
-	Gets the widget text
-	@return The widget text
-	*/
+	 * Gets the widget text
+	 * @return The widget text
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Widget")
-		FText GetText() const;
+	FText GetText() const;
 
 	/**
-	Directly sets the widget text.
-	Warning: This will wipe any binding created for the Text property!
-	@param InText The text to assign to the widget
-	*/
+	 * Directly sets the widget text.
+	 * Warning: This will wipe any binding created for the Text property!
+	 * @param InText The text to assign to the widget
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Widget")
-		void SetText(FText InText);
-	
-	virtual void ReleaseNativeWidget() override;
+	void SetText(FText InText);
+
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetIsPassword(bool InbIsPassword);
+
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetHintText(FText InHintText);
+
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetIsReadOnly(bool InbIsReadyOnly);
 
 public:
+	
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
+	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;

@@ -11,10 +11,10 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	static const FName StyleName(TEXT("Style"));
-	ButtonStyle = PCIP.CreateDefaultSubobject<UButtonWidgetStyle>(this, StyleName);
+	WidgetStyle = PCIP.CreateDefaultSubobject<UButtonWidgetStyle>(this, StyleName);
 
 	SButton::FArguments ButtonDefaults;
-	ButtonStyle->ButtonStyle = *ButtonDefaults._ButtonStyle;
+	WidgetStyle->ButtonStyle = *ButtonDefaults._ButtonStyle;
 
 	ColorAndOpacity = FLinearColor::White;
 	BackgroundColor = FLinearColor::White;
@@ -35,7 +35,7 @@ void UButton::ReleaseNativeWidget()
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
 	MyButton = SNew(SButton)
-		.ButtonStyle(&ButtonStyle->ButtonStyle)
+		.ButtonStyle(&WidgetStyle->ButtonStyle)
 		.ClickMethod(ClickMethod)
 		.TouchMethod(TouchMethod)
 		.IsFocusable(IsFocusable);
@@ -83,12 +83,12 @@ void UButton::OnSlotRemoved(UPanelSlot* Slot)
 
 void UButton::SetButtonStyle(FButtonStyle InButtonStyle)
 {
-	ButtonStyle->ButtonStyle = InButtonStyle;
+	WidgetStyle->ButtonStyle = InButtonStyle;
 }
 
 FButtonStyle UButton::GetButtonStyle()
 {
-	return ButtonStyle->ButtonStyle;
+	return WidgetStyle->ButtonStyle;
 }
 
 void UButton::SetColorAndOpacity(FLinearColor Color)
@@ -139,7 +139,7 @@ void UButton::PostLoad()
 		const FButtonStyle* StylePtr = Style_DEPRECATED->GetStyle<FButtonStyle>();
 		if(StylePtr != nullptr)
 		{
-			ButtonStyle->ButtonStyle = *StylePtr;
+			WidgetStyle->ButtonStyle = *StylePtr;
 		}
 
 		Style_DEPRECATED = nullptr;

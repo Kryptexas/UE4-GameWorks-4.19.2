@@ -20,8 +20,8 @@ class UMG_API UComboBoxString : public UWidget
 public:
 
 	/** The style */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance )
-	TSubobjectPtr<UComboBoxWidgetStyle> ComboBoxStyle;
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance, meta=( DisplayName="Style" ))
+	TSubobjectPtr<UComboBoxWidgetStyle> WidgetStyle;
 
 	/** The list of items to be displayed on the combobox. */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
