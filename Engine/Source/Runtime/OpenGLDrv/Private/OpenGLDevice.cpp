@@ -680,7 +680,11 @@ static void InitRHICapabilitiesForGL()
 	SetupTextureFormat( PF_Unknown,				FOpenGLTextureFormat());
 	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat(GL_RGBA32F,						GL_NONE,									GL_RGBA,				GL_FLOAT,							false));
 	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat());
+#if PLATFORM_IOS || PLATFORM_ANDROID
+	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat(GL_DEPTH_COMPONENT,				GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
+#else
 	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat(GL_DEPTH_COMPONENT16,				GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
+#endif
 	SetupTextureFormat( PF_A16B16G16R16,		FOpenGLTextureFormat(GL_RGBA16,							GL_RGBA16,									GL_RGBA,				GL_UNSIGNED_SHORT,					false));
 	SetupTextureFormat( PF_D24,					FOpenGLTextureFormat(depthFormat,						GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
 	SetupTextureFormat( PF_A1,					FOpenGLTextureFormat());

@@ -740,7 +740,14 @@ void FSceneRenderTargets::FinishRenderingPrePass(FRHICommandListImmediate& RHICm
 void FSceneRenderTargets::BeginRenderingShadowDepth(FRHICommandListImmediate& RHICmdList)
 {
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ShadowDepthZ);
-	SetRenderTarget(RHICmdList, FTextureRHIRef(), GetShadowDepthZSurface());
+	if (GSupportsDepthRenderTargetWithoutColorRenderTarget)
+	{
+		SetRenderTarget(RHICmdList, FTextureRHIRef(), GetShadowDepthZSurface());
+	}
+	else
+	{
+		SetRenderTarget(RHICmdList, GetOptionalShadowDepthColorSurface(), GetShadowDepthZSurface());
+	}
 }
 
 void FSceneRenderTargets::BeginRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution)
@@ -1073,6 +1080,12 @@ void FSceneRenderTargets::AllocateForwardShadingShadowDepthTarget(const FIntPoin
 {
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 	GRenderTargetPool.FindFreeElement(Desc, ShadowDepthZ, TEXT("ShadowDepthZ"));
+
+	if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, OptionalShadowDepthColor, TEXT("OptionalShadowDepthColor"));
+	}
 }
 
 // for easier use of "VisualizeTexture"
