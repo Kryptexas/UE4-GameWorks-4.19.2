@@ -104,7 +104,7 @@ namespace AutomationTool
 		public override bool IsScriptModuleSupported(string ModuleName)
 		{
 			// @todo: add more unsupported modules here
-			return String.Compare(ModuleName, "XBoxOne", true) != 0;
+			return true;
 		}
 
 		public override string UBTProjectName
