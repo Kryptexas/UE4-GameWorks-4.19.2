@@ -38,7 +38,7 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
-	static TArray<AActor*> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData);
+	static TArray<TWeakObjectPtr<AActor>> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static bool TargetDataHasHitResult(FGameplayAbilityTargetDataHandle HitResult);

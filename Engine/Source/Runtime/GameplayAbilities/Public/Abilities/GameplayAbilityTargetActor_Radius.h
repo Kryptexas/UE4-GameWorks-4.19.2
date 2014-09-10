@@ -23,8 +23,8 @@ public:
 
 protected:
 
-	TArray<AActor*>	PerformOverlap(const FVector& Origin);
+	TArray<TWeakObjectPtr<AActor>>	PerformOverlap(const FVector& Origin);
 
-	FGameplayAbilityTargetDataHandle MakeTargetData(const TArray<AActor*> Actors, const FVector& Origin) const;
+	FGameplayAbilityTargetDataHandle MakeTargetData(const TArray<TWeakObjectPtr<AActor>> Actors, const FVector& Origin) const;
 
 };

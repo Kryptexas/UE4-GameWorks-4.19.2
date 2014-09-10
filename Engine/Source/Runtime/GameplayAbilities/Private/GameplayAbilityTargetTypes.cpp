@@ -27,14 +27,16 @@ void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEf
 		SpecToApply.InstigatorContext.AddOrigin(GetOrigin().GetLocation());
 	}
 
-	TArray<AActor*> Actors = GetActors();
-	for (AActor* TargetActor : Actors)
+	TArray<TWeakObjectPtr<AActor>> Actors = GetActors();
+	for (TWeakObjectPtr<AActor> TargetActor : Actors)
 	{
-		check(TargetActor);
-		UAbilitySystemComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-		if (TargetComponent)
+		if (TargetActor.IsValid())
 		{
-			InstigatorInfo.AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);
+			UAbilitySystemComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor.Get());
+			if (TargetComponent)
+			{
+				InstigatorInfo.AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);
+			}
 		}
 	}
 }
@@ -72,7 +74,7 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 	return FGameplayAbilityTargetDataHandle(ReturnData);
 }
 
-FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(TArray<AActor*> TargetActors) const
+FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor>> TargetActors) const
 {
 	/** Note: This is cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
 	FGameplayAbilityTargetData_ActorArray* ReturnData = new FGameplayAbilityTargetData_ActorArray();

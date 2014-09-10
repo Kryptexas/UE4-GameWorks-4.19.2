@@ -39,7 +39,7 @@ void AGameplayAbilityTargetActor_Radius::ConfirmTargetingAndContinue()
 	}
 }
 
-FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Radius::MakeTargetData(const TArray<AActor*> Actors, const FVector& Origin) const
+FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Radius::MakeTargetData(const TArray<TWeakObjectPtr<AActor>> Actors, const FVector& Origin) const
 {
 	if (OwningAbility)
 	{
@@ -51,12 +51,12 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Radius::MakeTargetD
 	return FGameplayAbilityTargetDataHandle();
 }
 
-TArray<AActor*>	AGameplayAbilityTargetActor_Radius::PerformOverlap(const FVector& Origin)
+TArray<TWeakObjectPtr<AActor>>	AGameplayAbilityTargetActor_Radius::PerformOverlap(const FVector& Origin)
 {
 	static FName RadiusTargetingOverlap = FName(TEXT("RadiusTargetingOverlap"));
 	bool bTraceComplex = false;
 	
-	TArray<AActor*> ActorsToIgnore;
+	TArray<TWeakObjectPtr<AActor>> ActorsToIgnore;
 	ActorsToIgnore.Add(SourceActor);
 
 	FCollisionQueryParams Params(RadiusTargetingOverlap, bTraceComplex);
@@ -69,7 +69,7 @@ TArray<AActor*>	AGameplayAbilityTargetActor_Radius::PerformOverlap(const FVector
 	SourceActor->GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(Radius), Params);
 
 
-	TArray<AActor*>	HitActors;
+	TArray<TWeakObjectPtr<AActor>>	HitActors;
 
 	for (int32 i=0; i < Overlaps.Num(); ++i)
 	{

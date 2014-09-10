@@ -64,9 +64,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 
 	void ApplyGameplayEffect(UGameplayEffect *GameplayEffect, const struct FGameplayAbilityActorInfo InstigatorInfo);
 
-	virtual TArray<AActor*>	GetActors() const
+	virtual TArray<TWeakObjectPtr<AActor>>	GetActors() const
 	{
-		return TArray<AActor*>();
+		return TArray<TWeakObjectPtr<AActor>>();
 	}
 
 	// -------------------------------------
@@ -207,10 +207,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Radius : public FGamepla
 	FGameplayAbilityTargetData_Radius()
 	: Origin(0.f) { }
 
-	FGameplayAbilityTargetData_Radius(const TArray<AActor*>& InActors, const FVector& InOrigin)
+	FGameplayAbilityTargetData_Radius(const TArray<TWeakObjectPtr<AActor>> InActors, const FVector& InOrigin)
 		: Actors(InActors), Origin(InOrigin) { }
 
-	virtual TArray<AActor*>	GetActors() const { return Actors; }
+	virtual TArray<TWeakObjectPtr<AActor>>	GetActors() const { return Actors; }
 
 	virtual bool HasOrigin() const { return true; }
 
@@ -225,7 +225,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Radius : public FGamepla
 
 private:
 
-	TArray<AActor*> Actors;
+	TArray<TWeakObjectPtr<AActor>> Actors;
 	FVector Origin;
 };
 
@@ -289,7 +289,7 @@ public:
 
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const;
 
-	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<AActor*> TargetActors) const;
+	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor>> TargetActors) const;
 
 	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
@@ -407,9 +407,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 
 	/** Rather than targeting a single point, this type of targeting selects multiple actors. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
-	TArray<AActor*> TargetActorArray;
+	TArray<TWeakObjectPtr<AActor>> TargetActorArray;
 
-	virtual TArray<AActor*>	GetActors() const override
+	virtual TArray<TWeakObjectPtr<AActor>>	GetActors() const override
 	{
 		return TargetActorArray;
 	}
@@ -550,9 +550,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 
 	// -------------------------------------
 
-	virtual TArray<AActor*>	GetActors() const override
+	virtual TArray<TWeakObjectPtr<AActor>>	GetActors() const override
 	{
-		TArray<AActor*>	Actors;
+		TArray<TWeakObjectPtr<AActor>>	Actors;
 		if (HitResult.Actor.IsValid())
 		{
 			Actors.Push(HitResult.Actor.Get());

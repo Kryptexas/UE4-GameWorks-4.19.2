@@ -64,14 +64,14 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	return Handle;
 }
 
-TArray<AActor*> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
+TArray<TWeakObjectPtr<AActor>> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
 {
 	FGameplayAbilityTargetData* Data = TargetData.Data.Get();
 	if (Data)
 	{
 		return Data->GetActors();
 	}
-	return TArray<AActor*>();
+	return TArray<TWeakObjectPtr<AActor>>();
 }
 
 bool UAbilitySystemBlueprintLibrary::TargetDataHasHitResult(FGameplayAbilityTargetDataHandle TargetData)
