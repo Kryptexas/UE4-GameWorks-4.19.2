@@ -72,6 +72,9 @@ if [ -z "$1" ]; then
   Run Header
   Run GenerateProjectFiles
 
+  # rebuild dependencies locally for editor targets (extra safety still)
+  Run CompileTPS
+
   # build usual targets, roughly ascending by build time
   Run BuildTarget BlankProgram
   Run BuildTarget UnrealPak
@@ -79,9 +82,6 @@ if [ -z "$1" ]; then
   Run BuildTarget UE4Client
   Run BuildTarget UE4Game
   Run BuildTarget UE4Server 
-
-  # rebuild dependencies locally for editor targets (extra safety still)
-  Run CompileTPS
 
   # build editor targets, roughly ascending by build time
   Run BuildTarget ShaderCompileWorker
