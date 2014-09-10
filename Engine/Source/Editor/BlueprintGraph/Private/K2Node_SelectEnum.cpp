@@ -65,21 +65,36 @@ void UDEPRECATED_K2Node_SelectEnum::NotifyPinConnectionListChanged(UEdGraphPin* 
 
 void UDEPRECATED_K2Node_SelectEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+	{
+		UDEPRECATED_K2Node_SelectEnum* EnumNode = CastChecked<UDEPRECATED_K2Node_SelectEnum>(NewNode);
+		if (EnumPtr.IsValid())
+		{
+			EnumNode->Enum = EnumPtr.Get();
+		}
+	};
+
 	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
 	{
 		UEnum const* Enum = (*EnumIt);
-		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
 		{
-			UDEPRECATED_K2Node_SelectEnum* EnumNode = CastChecked<UDEPRECATED_K2Node_SelectEnum>(NewNode);
-			if (EnumPtr.IsValid())
-			{
-				EnumNode->Enum = EnumPtr.Get();
-			}
-		};
+			continue;
+		}
+
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Enum))
+		{
+			continue;
+		}
+
 		
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
-		ActionRegistrar.AddBlueprintAction(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(Enum, NodeSpawner);
 		
 		TWeakObjectPtr<UEnum> EnumPtr = Enum;
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);

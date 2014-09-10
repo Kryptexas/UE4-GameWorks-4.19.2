@@ -19,7 +19,7 @@ public:
 	 * 
 	 * @param  NodeSpawner	The new node spawner that you wish to register.
 	 */
-	void AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner);
+	bool AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner);
 
 	/**
 	 * Each action should be recorded under a specific UField key; primarily to 
@@ -29,10 +29,10 @@ public:
 	 * @param  FieldOwner	A field object that the node is associated with (flags when this action should be updated).
 	 * @param  NodeSpawner	The new node spawner that you wish to register.
 	 */
-	void AddBlueprintAction(UClass const* ClassOwner, UBlueprintNodeSpawner* NodeSpawner);
-	void AddBlueprintAction(UEnum const* EnumOwner, UBlueprintNodeSpawner* NodeSpawner);
-	void AddBlueprintAction(UScriptStruct const* StructOwner, UBlueprintNodeSpawner* NodeSpawner);
-	void AddBlueprintAction(UField const* FieldOwner, UBlueprintNodeSpawner* NodeSpawner);
+	bool AddBlueprintAction(UClass const* ClassOwner, UBlueprintNodeSpawner* NodeSpawner);
+	bool AddBlueprintAction(UEnum const* EnumOwner, UBlueprintNodeSpawner* NodeSpawner);
+	bool AddBlueprintAction(UScriptStruct const* StructOwner, UBlueprintNodeSpawner* NodeSpawner);
+	bool AddBlueprintAction(UField const* FieldOwner, UBlueprintNodeSpawner* NodeSpawner);
 
 	/**
 	 * Special case for asset bound actions (we want to clean-up/refresh these 
@@ -41,7 +41,7 @@ public:
 	 * @param  AssetOwner	An asset object that the node is associated with (flags when this action should be updated).
 	 * @param  NodeSpawner	The new node spawner that you wish to register.
 	 */
-	void AddBlueprintAction(UObject const* AssetOwner, UBlueprintNodeSpawner* NodeSpawner);
+	bool AddBlueprintAction(UObject const* AssetOwner, UBlueprintNodeSpawner* NodeSpawner);
 
 	/**
 	 * Occasionally (when an asset is added/refreshed), this registrar will be 
@@ -69,7 +69,7 @@ private:
 	 * @param  ActionKey	The key you want the action listed under.
 	 * @param  NodeSpawner	The new node spawner that you wish to register.
 	 */
-	void AddActionToDatabase(UObject const* ActionKey, UBlueprintNodeSpawner* NodeSpawner);
+	bool AddActionToDatabase(UObject const* ActionKey, UBlueprintNodeSpawner* NodeSpawner);
 
 private:
 	/** The node type that this is currently passed to (acts as a fallback database key). */

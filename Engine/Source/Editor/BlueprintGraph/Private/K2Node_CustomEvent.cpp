@@ -237,24 +237,36 @@ void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLo
 
 void UK2Node_CustomEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(GetClass(), FName());
-	check(NodeSpawner != nullptr);
-
-	auto SetupCustomEventNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
 	{
-		UK2Node_CustomEvent* EventNode = CastChecked<UK2Node_CustomEvent>(NewNode);
-		UBlueprint* Blueprint = EventNode->GetBlueprint();
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(GetClass(), FName());
+		check(NodeSpawner != nullptr);
 
-		// in GetNodeTitle(), we use an empty CustomFunctionName to identify a menu entry
-		if (!bIsTemplateNode)
+		auto SetupCustomEventNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
 		{
-			EventNode->CustomFunctionName = FBlueprintEditorUtils::FindUniqueCustomEventName(Blueprint);
-		}
-		EventNode->bIsEditable = true;
-	};
+			UK2Node_CustomEvent* EventNode = CastChecked<UK2Node_CustomEvent>(NewNode);
+			UBlueprint* Blueprint = EventNode->GetBlueprint();
 
-	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(SetupCustomEventNodeLambda);
-	ActionRegistrar.AddBlueprintAction(NodeSpawner);
+			// in GetNodeTitle(), we use an empty CustomFunctionName to identify a menu entry
+			if (!bIsTemplateNode)
+			{
+				EventNode->CustomFunctionName = FBlueprintEditorUtils::FindUniqueCustomEventName(Blueprint);
+			}
+			EventNode->bIsEditable = true;
+		};
+
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(SetupCustomEventNodeLambda);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 void UK2Node_CustomEvent::ReconstructNode()

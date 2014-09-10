@@ -69,7 +69,7 @@ FBlueprintActionDatabaseRegistrar::FBlueprintActionDatabaseRegistrar(FActionRegi
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner)
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner)
 {
 	UField const* ActionKey = GeneratingClass;
 	// if this spawner wraps some member function/property, then we want it 
@@ -79,49 +79,64 @@ void FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UBlueprintNodeSpawner
 	{
 		ActionKey = MemberField;
 	}
-	AddActionToDatabase(ActionKey, NodeSpawner);
+	return AddActionToDatabase(ActionKey, NodeSpawner);
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UClass const* ClassOwner, UBlueprintNodeSpawner* NodeSpawner)
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UClass const* ClassOwner, UBlueprintNodeSpawner* NodeSpawner)
 {
+	// @TODO: assert that AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner) 
+	//        wouldn't come up with a different key (besides GeneratingClass)
+
 	// ResolveActionKey() is used on ClassOwner (in AddActionToDatabase), to 
 	// convert it into a proper key
-	AddActionToDatabase(ClassOwner, NodeSpawner);
+	return AddActionToDatabase(ClassOwner, NodeSpawner);
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UEnum const* EnumOwner, UBlueprintNodeSpawner* NodeSpawner)
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UEnum const* EnumOwner, UBlueprintNodeSpawner* NodeSpawner)
 {
+	// @TODO: assert that AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner) 
+	//        wouldn't come up with a different key (besides GeneratingClass)
+
 	// ResolveActionKey() is used on EnumOwner (in AddActionToDatabase), to 
 	// convert it into a proper key
-	AddActionToDatabase(EnumOwner, NodeSpawner);
+	return AddActionToDatabase(EnumOwner, NodeSpawner);
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UScriptStruct const* StructOwner, UBlueprintNodeSpawner* NodeSpawner)
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UScriptStruct const* StructOwner, UBlueprintNodeSpawner* NodeSpawner)
 {
+	// @TODO: assert that AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner) 
+	//        wouldn't come up with a different key (besides GeneratingClass)
+
 	// ResolveActionKey() is used on StructOwner (in AddActionToDatabase), to 
 	// convert it into a proper key
-	AddActionToDatabase(StructOwner, NodeSpawner);
+	return AddActionToDatabase(StructOwner, NodeSpawner);
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UField const* FieldOwner, UBlueprintNodeSpawner* NodeSpawner)
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UField const* FieldOwner, UBlueprintNodeSpawner* NodeSpawner)
 {
+	// @TODO: assert that AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner) 
+	//        wouldn't come up with a different key (besides GeneratingClass)
+
 	// ResolveActionKey() is used on FieldOwner (in AddActionToDatabase), to 
 	// convert it into a proper key
-	AddActionToDatabase(FieldOwner, NodeSpawner);
+	return AddActionToDatabase(FieldOwner, NodeSpawner);
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UObject const* AssetOwner, UBlueprintNodeSpawner* NodeSpawner)
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UObject const* AssetOwner, UBlueprintNodeSpawner* NodeSpawner)
 {
+	// @TODO: assert that AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner) 
+	//        wouldn't come up with a different key (besides GeneratingClass)
+
 	// cannot record an action under any ol' object (we want to associate them 
 	// with asset/class outers that are subject to change; so that we can 
 	// refresh/rebuild corresponding actions when that happens).
 	check(AssetOwner->IsAsset());
-	AddActionToDatabase(AssetOwner, NodeSpawner);
+	return AddActionToDatabase(AssetOwner, NodeSpawner);
 }
 
 //------------------------------------------------------------------------------
@@ -136,7 +151,7 @@ bool FBlueprintActionDatabaseRegistrar::IsOpenForRegistration(UObject const* Own
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionDatabaseRegistrar::AddActionToDatabase(UObject const* ActionKey, UBlueprintNodeSpawner* NodeSpawner)
+bool FBlueprintActionDatabaseRegistrar::AddActionToDatabase(UObject const* ActionKey, UBlueprintNodeSpawner* NodeSpawner)
 {
 	ensureMsg(NodeSpawner->NodeClass == GeneratingClass, TEXT("We expect a nodes to add only spawners for its own type... Maybe a sub-class is adding nodes it shouldn't?"));
 	if (IsOpenForRegistration(ActionKey))
@@ -156,5 +171,7 @@ void FBlueprintActionDatabaseRegistrar::AddActionToDatabase(UObject const* Actio
 		}
 
 		ActionList.Add(NodeSpawner);
+		return true;
 	}
+	return false;
 }

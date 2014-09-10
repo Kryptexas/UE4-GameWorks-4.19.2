@@ -101,6 +101,15 @@ void UK2Node_LatentAbilityCall::GetMenuActions(FBlueprintActionDatabaseRegistrar
 			{
 				continue;
 			}
+
+			// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+			// check to make sure that the registrar is looking for actions of this type
+			// (could be regenerating actions for a specific asset, and therefore the 
+			// registrar would only accept actions corresponding to that asset)
+			if (!ActionRegistrar.IsOpenForRegistration(Function))
+			{
+				continue;
+			}
 			
 			UObjectProperty* ReturnProperty = Cast<UObjectProperty>(Function->GetReturnProperty());
 			// see if the function is a static factory method for online proxies
@@ -131,7 +140,7 @@ void UK2Node_LatentAbilityCall::GetMenuActions(FBlueprintActionDatabaseRegistrar
 				
 				// @TODO: since this can't be folded into FBlueprintActionDatabase, we
 				//        need a way to associate these spawners with a certain class
-				ActionRegistrar.AddBlueprintAction(NodeSpawner);
+				ActionRegistrar.AddBlueprintAction(Function, NodeSpawner);
 			}
 		}
 	}

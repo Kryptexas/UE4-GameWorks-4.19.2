@@ -149,19 +149,29 @@ void UK2Node_InputAction::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 	TArray<FName> ActionNames;
 	GetDefault<UInputSettings>()->GetActionNames(ActionNames);
 
+	auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName ActionName)
+	{
+		UK2Node_InputAction* InputNode = CastChecked<UK2Node_InputAction>(NewNode);
+		InputNode->InputActionName = ActionName;
+	};
+
 	for (FName const InputActionName : ActionNames)
 	{
+		UClass* ActionKey = GetClass();
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
+		{
+			continue;
+		}
+
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
 
-		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName ActionName)
-		{
-			UK2Node_InputAction* InputNode = CastChecked<UK2Node_InputAction>(NewNode);
-			InputNode->InputActionName = ActionName;
-		};
-
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputActionName);
-		ActionRegistrar.AddBlueprintAction(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 }
 

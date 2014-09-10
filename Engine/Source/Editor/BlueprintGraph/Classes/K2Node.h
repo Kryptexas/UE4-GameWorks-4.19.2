@@ -298,7 +298,7 @@ class UK2Node : public UEdGraphNode
 	 *
 	 * @param  ActionListOut	The list to be populated with new spawners.
 	 */
-	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegisrar) const {}
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const {}
 
 	/**
 	 * Override to provide a default category for specific node types to be 

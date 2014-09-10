@@ -846,7 +846,10 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 	else if (Class->IsChildOf<UEdGraphNode>())
 	{
 		FActionList& ClassActionList = ActionRegistry.FindOrAdd(Class);
-		ClassActionList.Empty();
+		if (!bIsInitializing)
+		{
+			ClassActionList.Empty();
+		}
 
 		FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, ActionPrimingQueue, Class);
 		if (!bIsInitializing)
