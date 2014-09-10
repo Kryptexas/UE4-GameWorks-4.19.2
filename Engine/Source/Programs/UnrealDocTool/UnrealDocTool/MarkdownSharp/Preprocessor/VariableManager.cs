@@ -225,18 +225,20 @@ namespace MarkdownSharp.Preprocessor
 
                 if (!data.ProcessedDocumentCache.TryGetLinkedFileVariable(currentFile, variableName, out outString))
                 {
-                    //error
-                    errorId = data.ErrorList.Count;
-                    data.ErrorList.Add(
-                        Markdown.GenerateError(
-                            Language.Message("VariableOrMetadataNotFoundInFile", variableName, currentFile.FullName),
-                            MessageClass.Error,
-                            OnErrorStringToUseForMatch,
-                            errorId,
-                            data));
+					if (doc.PerformStrictConversion())
+					{
+						//error
+						errorId = data.ErrorList.Count;
+						data.ErrorList.Add(
+							Markdown.GenerateError(
+								Language.Message("VariableOrMetadataNotFoundInFile", variableName, currentFile.FullName),
+								MessageClass.Error,
+								OnErrorStringToUseForMatch,
+								errorId,
+								data));
 
-                    isProblem = true;
-
+						isProblem = true;
+					}
                     outString = OnErrorStringToUseForMatch.Replace("%", "&#37;");
                 }
                 else

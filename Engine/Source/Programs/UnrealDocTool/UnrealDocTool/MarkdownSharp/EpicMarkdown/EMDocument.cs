@@ -126,6 +126,11 @@ namespace MarkdownSharp.EpicMarkdown
             return LocalPath;
         }
 
+		public bool PerformStrictConversion()
+		{
+			return !GetAbsoluteMarkdownPath().Replace('\\', '/').StartsWith("API/");
+		}
+
         public string GetAbsolutePath(string relativePath)
         {
             return
