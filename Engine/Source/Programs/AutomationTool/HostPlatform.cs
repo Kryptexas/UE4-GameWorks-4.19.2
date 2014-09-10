@@ -112,6 +112,13 @@ namespace AutomationTool
 		abstract public void SetConsoleCtrlHandler(ProcessManager.CtrlHandlerDelegate Handler);
 
 		/// <summary>
+		/// Platform specific override to skip loading/compiling unsupported modules
+		/// </summary>
+		/// <param name="ModuleName">Module name</param>
+		/// <returns>True if module should be compiled or loaded</returns>
+		abstract public bool IsScriptModuleSupported(string ModuleName);
+
+		/// <summary>
 		/// Gets UBT project name for the current platform.
 		/// </summary>
 		abstract public string UBTProjectName { get; }

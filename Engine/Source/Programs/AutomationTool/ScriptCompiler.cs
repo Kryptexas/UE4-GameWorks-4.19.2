@@ -140,8 +140,20 @@ namespace AutomationTool
 			Log.TraceVerbose("Discovering game folders.");
 			UnrealBuildTool.RulesCompiler.SetAssemblyNameAndGameFolders("UnrealAutomationToolRules", AllGameFolders);
 
-			var Modules = UnrealBuildTool.RulesCompiler.FindAllRulesSourceFiles(UnrealBuildTool.RulesCompiler.RulesFileType.AutomationModule, RemappedAdditionalScriptFolders);
-			CompileModules(Modules);
+			var DiscoveredModules = UnrealBuildTool.RulesCompiler.FindAllRulesSourceFiles(UnrealBuildTool.RulesCompiler.RulesFileType.AutomationModule, RemappedAdditionalScriptFolders);
+			var ModulesToCompile = new List<string>(DiscoveredModules.Count);
+			foreach (var ModuleFilename in DiscoveredModules)
+			{
+				if (HostPlatform.Current.IsScriptModuleSupported(CommandUtils.GetFilenameWithoutAnyExtensions(ModuleFilename)))
+				{
+					ModulesToCompile.Add(ModuleFilename);
+				}
+				else
+				{
+					CommandUtils.LogVerbose("Script module {0} filtered by the Host Platform and will not be compiled.", ModuleFilename);
+				}
+			}
+			CompileModules(ModulesToCompile);
 
 			Environment.CurrentDirectory = OldCWD;
 		}
@@ -243,6 +255,12 @@ namespace AutomationTool
 				CommandUtils.Log("Found {0} script DLL(s).", ScriptDLLFiles.Length);
 				foreach (var ScriptsDLLFilename in ScriptDLLFiles)
 				{
+
+					if (!HostPlatform.Current.IsScriptModuleSupported(CommandUtils.GetFilenameWithoutAnyExtensions(ScriptsDLLFilename)))
+					{
+						CommandUtils.LogVerbose("Script module {0} filtered by the Host Platform and will not be loaded.", ScriptsDLLFilename);
+						continue;
+					}
 					// Load the assembly into our app domain
 					CommandUtils.Log("Loading script DLL: {0}", ScriptsDLLFilename);
 					try

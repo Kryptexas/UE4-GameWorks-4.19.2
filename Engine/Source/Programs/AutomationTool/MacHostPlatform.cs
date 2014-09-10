@@ -124,6 +124,12 @@ namespace AutomationTool
 			// @todo: add mono support
 		}
 
+		public override bool IsScriptModuleSupported(string ModuleName)
+		{
+			// @todo: add more unsupported modules here
+			return String.Compare(ModuleName, "XBoxOne", true) != 0;
+		}
+
 		public override string UBTProjectName
 		{
 			get { return "UnrealBuildTool_Mono"; }
