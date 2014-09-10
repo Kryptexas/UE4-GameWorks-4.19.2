@@ -33,8 +33,7 @@ void STutorialButton::Construct(const FArguments& InArgs)
 		SNew(SButton)
 		.AddMetaData<FTutorialMetaData>(TagMeta)
 		.ButtonStyle(FEditorStyle::Get(), "TutorialLaunch.Button")
-		.ToolTipText(LOCTEXT("TutorialLaunchToolTip", "Launch Tutorial (right-click for more options)"))
-		.Visibility(this, &STutorialButton::GetVisibility)
+		.ToolTipText(this, &STutorialButton::GetButtonToolTip)
 		.OnClicked(this, &STutorialButton::HandleButtonClicked)
 		.ContentPadding(0.0f)
 		[
@@ -51,7 +50,8 @@ void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCur
 	{
 		UEditorTutorial* AttractTutorial = nullptr;
 		UEditorTutorial* LaunchTutorial = nullptr;
-		GetDefault<UEditorTutorialSettings>()->FindTutorialsForContext(Context, AttractTutorial, LaunchTutorial);
+		FString BrowserFilter;
+		GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(Context, AttractTutorial, LaunchTutorial, BrowserFilter);
 
 		bTutorialAvailable = (LaunchTutorial != nullptr);
 		bTutorialCompleted = (LaunchTutorial != nullptr) && GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(LaunchTutorial);
@@ -83,7 +83,7 @@ int32 STutorialButton::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 {
 	LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1000;
 
-	if (!(bTutorialCompleted || bTutorialDismissed))
+	if (ShouldShowAlert())
 	{
 		float AlphaFactor0 = 0.0f;
 		float AlphaFactor1 = 0.0f;
@@ -130,37 +130,59 @@ FReply STutorialButton::HandleButtonClicked()
 {
 	UEditorTutorial* AttractTutorial = nullptr;
 	UEditorTutorial* LaunchTutorial = nullptr;
-	GetDefault<UEditorTutorialSettings>()->FindTutorialsForContext(Context, AttractTutorial, LaunchTutorial);
-	if (LaunchTutorial != nullptr && ContextWindow.IsValid())
+	FString BrowserFilter;
+	GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(Context, AttractTutorial, LaunchTutorial, BrowserFilter);
+
+	bTutorialAvailable = (LaunchTutorial != nullptr);
+	bTutorialCompleted = (LaunchTutorial != nullptr) && GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(LaunchTutorial);
+	bTutorialDismissed = (AttractTutorial != nullptr) && GetDefault<UTutorialStateSettings>()->IsTutorialDismissed(AttractTutorial);
+
+	if(ContextWindow.IsValid())
 	{
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-		const bool bRestart = true;
-		IntroTutorials.LaunchTutorial(LaunchTutorial, bRestart, ContextWindow);
+		if(ShouldLaunchBrowser())
+		{
+			IntroTutorials.SummonTutorialBrowser(ContextWindow.Pin().ToSharedRef(), BrowserFilter);
+		}
+		else if (LaunchTutorial != nullptr)
+		{
+			const bool bRestart = true;
+			IntroTutorials.LaunchTutorial(LaunchTutorial, bRestart, ContextWindow);
+		}
 	}
 
 	return FReply::Handled();
 }
 
-EVisibility STutorialButton::GetVisibility() const
-{
-	return bTutorialAvailable ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
 FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	if(!ShouldLaunchBrowser())
 	{
-		const bool bInShouldCloseWindowAfterMenuSelection = true;
-		FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, nullptr);
+		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+		{
+			const bool bInShouldCloseWindowAfterMenuSelection = true;
+			FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, nullptr);
 
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DismissReminder", "Dismiss Alert"),
-			LOCTEXT("DismissReminderTooltip", "Don't show me this alert again"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAlert))
-			);
+			if(ShouldShowAlert())
+			{
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("DismissReminder", "Dismiss Alert"),
+					LOCTEXT("DismissReminderTooltip", "Don't show me this alert again"),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAlert))
+					);
+			}
 
-		FSlateApplication::Get().PushMenu(SharedThis(this), MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect::ContextMenu);
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("LaunchBrowser", "Show Available Tutorials"),
+				LOCTEXT("LaunchBrowserTooltip", "Display the tutorials browser"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::LaunchBrowser))
+				);
+
+
+			FSlateApplication::Get().PushMenu(SharedThis(this), MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect::ContextMenu);
+		}
 	}
 	return FReply::Handled();
 }
@@ -169,7 +191,8 @@ void STutorialButton::DismissAlert()
 {
 	UEditorTutorial* AttractTutorial = nullptr;
 	UEditorTutorial* LaunchTutorial = nullptr;
-	GetDefault<UEditorTutorialSettings>()->FindTutorialsForContext(Context, AttractTutorial, LaunchTutorial);
+	FString BrowserFilter;
+	GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(Context, AttractTutorial, LaunchTutorial,BrowserFilter);
 	if (AttractTutorial != nullptr)
 	{
 		const bool bDismissAcrossSessions = true;
@@ -180,6 +203,40 @@ void STutorialButton::DismissAlert()
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 		IntroTutorials.CloseAllTutorialContent();
 	}
+}
+
+void STutorialButton::LaunchBrowser()
+{
+	if(ContextWindow.IsValid())
+	{
+		UEditorTutorial* AttractTutorial = nullptr;
+		UEditorTutorial* LaunchTutorial = nullptr;
+		FString BrowserFilter;
+		GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(Context, AttractTutorial, LaunchTutorial, BrowserFilter);
+
+		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+		IntroTutorials.SummonTutorialBrowser(ContextWindow.Pin().ToSharedRef(), BrowserFilter);
+	}
+}
+
+bool STutorialButton::ShouldLaunchBrowser() const
+{
+	return (!bTutorialAvailable || (bTutorialAvailable && bTutorialCompleted));
+}
+
+bool STutorialButton::ShouldShowAlert() const
+{
+	return (bTutorialAvailable && !(bTutorialCompleted || bTutorialDismissed));
+}
+
+FText STutorialButton::GetButtonToolTip() const
+{
+	if(ShouldLaunchBrowser())
+	{
+		return LOCTEXT("TutorialLaunchBrowserToolTip", "Show Available Tutorials");
+	}
+
+	return LOCTEXT("TutorialLaunchToolTip", "Launch Tutorial (right-click for more options)");
 }
 
 #undef LOCTEXT_NAMESPACE

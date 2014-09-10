@@ -15,6 +15,10 @@ struct FTutorialContext
 	UPROPERTY(EditAnywhere, Category = "Tutorials")
 	FName Context;
 
+	/** The filter string to apply to the tutorials browser when launched from this context */
+	UPROPERTY(EditAnywhere, Category = "Tutorials")
+	FString BrowserFilter;
+
 	/** The tutorial to use in this context to let the user know there is a tutorial available */
 	UPROPERTY(EditAnywhere, Category = "Tutorials", meta = (MetaClass = "EditorTutorial"))
 	FStringClassReference AttractTutorial;
@@ -42,6 +46,6 @@ class UEditorTutorialSettings : public UObject
 	UPROPERTY(Config, EditAnywhere, Category = "Tutorials")
 	TArray<FTutorialContext> TutorialContexts;
 
-	/** Get the tutorial for the specified context */
-	void FindTutorialsForContext(FName InContext, UEditorTutorial*& OutAttractTutorial, UEditorTutorial*& OutLaunchTutorial) const;
+	/** Get the tutorial info for the specified context */
+	void FindTutorialInfoForContext(FName InContext, UEditorTutorial*& OutAttractTutorial, UEditorTutorial*& OutLaunchTutorial, FString& OutBrowserFilter) const;
 };

@@ -9,12 +9,14 @@ UEditorTutorialSettings::UEditorTutorialSettings(const class FPostConstructIniti
 
 }
 
-void UEditorTutorialSettings::FindTutorialsForContext(FName InContext, UEditorTutorial*& OutAttractTutorial, UEditorTutorial*& OutLaunchTutorial) const
+void UEditorTutorialSettings::FindTutorialInfoForContext(FName InContext, UEditorTutorial*& OutAttractTutorial, UEditorTutorial*& OutLaunchTutorial, FString& OutBrowserFilter) const
 {
 	for (const auto& Context : TutorialContexts)
 	{
 		if (Context.Context == InContext)
 		{
+			OutBrowserFilter = Context.BrowserFilter;
+
 			TSubclassOf<UEditorTutorial> LaunchTutorialClass = LoadClass<UEditorTutorial>(nullptr, *Context.LaunchTutorial.AssetLongPathname, nullptr, LOAD_None, nullptr);
 			if (LaunchTutorialClass != nullptr)
 			{

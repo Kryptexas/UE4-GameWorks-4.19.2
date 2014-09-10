@@ -75,6 +75,8 @@ public:
 
 	float GetIntroCurveValue(float InTime);
 
+	void SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter = TEXT(""));
+
 private:
 
 	/** IModuleInterface implementation */
@@ -143,8 +145,6 @@ private:
 
 	/** Handle linking between tutorials */
 	FString HandleGotoNextTutorial(const FString& InCurrentPage) const;
-
-	void SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter = TEXT(""));
 
 public:
 

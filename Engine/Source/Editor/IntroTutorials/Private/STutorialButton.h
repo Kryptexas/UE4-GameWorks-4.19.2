@@ -20,13 +20,23 @@ class STutorialButton : public SCompoundWidget
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 private:
-	void HandleMainFrameLoad(TSharedPtr<SWindow> InRootWindow, bool bIsNewProjectWindow);
-
+	/** Handle clicking the tutorial button */
 	FReply HandleButtonClicked();
 
-	EVisibility GetVisibility() const;
-
+	/** Dismiss the pulsing alert */
 	void DismissAlert();
+
+	/** Launch the tutorials browser */
+	void LaunchBrowser();
+
+	/** Check whether we should launch the browser in this context */
+	bool ShouldLaunchBrowser() const;
+
+	/** Check whether we should show the alert in this context */
+	bool ShouldShowAlert() const;
+
+	/** Get the tooltip for the tutorials button */
+	FText GetButtonToolTip() const;
 
 private:
 	/** Flag to defer tutorial open until the first Tick() */
