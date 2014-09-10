@@ -174,6 +174,21 @@ FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromHandle(FGamepl
 	return nullptr;
 }
 
+FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromInputID(int32 InputID)
+{
+	if (InputID != INDEX_NONE)
+	{
+		for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
+		{
+			if (Spec.InputID == InputID)
+			{
+				return &Spec;
+			}
+		}
+	}
+	return nullptr;
+}
+
 UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayAbilitySpec& Spec, UGameplayAbility* Ability)
 {
 	check(Ability);

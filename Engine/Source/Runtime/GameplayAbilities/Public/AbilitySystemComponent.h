@@ -412,6 +412,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	TArray<FGameplayAbilitySpec>	ActivatableAbilities;
 
 	FGameplayAbilitySpec* FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle);
+
+	FGameplayAbilitySpec* FindAbilitySpecFromInputID(int32 InputID);
 	
 	UFUNCTION()
 	void	OnRep_ActivateAbilities();
