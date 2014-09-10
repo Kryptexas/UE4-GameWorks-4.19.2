@@ -13,7 +13,7 @@ URotatingMovementComponent::URotatingMovementComponent(const class FPostConstruc
 
 void URotatingMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	// skip if don't want component updated when not rendered or updated component can't move
+	// skip if we don't want component updated when not rendered or if updated component can't move
 	if ( ShouldSkipUpdate(DeltaTime) )
 	{
 		return;
@@ -30,7 +30,7 @@ void URotatingMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	{
 		const FVector OldPivot = OldRotation.RotateVector(PivotTranslation);
 		const FVector NewPivot = NewRotation.RotateVector(PivotTranslation);
-		NewLocation = (NewLocation + OldPivot - NewPivot);
+		NewLocation = NewLocation + ConstrainDirectionToPlane(OldPivot - NewPivot);
 	}
 
 	UpdatedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
