@@ -716,6 +716,7 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 			if (bWaitForCompletion)
 			{
 				Ar.Logf(ELogVerbosity::Warning, TEXT("HotReload operation took %4.1fs."), float(FPlatformTime::Seconds() - StartTime));
+				bIsHotReloadingFromEditor = false;
 			}
 			else
 			{
@@ -727,6 +728,7 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 		{
 			Ar.Logf(ELogVerbosity::Warning, TEXT("RebindPackages failed because the compiler could not be started."));
 			Result = ECompilationResult::OtherCompilationError;
+			bIsHotReloadingFromEditor = false;
 		}
 	}
 	else
