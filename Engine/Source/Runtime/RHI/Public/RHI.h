@@ -105,6 +105,9 @@ extern RHI_API bool GSupportsGSRenderTargetLayerSwitchingToMips;
 /** True if the RHI supports separate blend states per render target. */
 extern RHI_API bool GSupportsSeparateRenderTargetBlendState;
 
+/** True if the RHI can render to a depth-only render target with no additional color render target. */
+extern RHI_API bool GSupportsDepthRenderTargetWithoutColorRenderTarget;
+
 /** True if the RHI supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
 
@@ -963,11 +966,11 @@ struct FTextureMemoryStats
 	// Hardware state (never change after device creation):
 
 	// -1 if unknown, in bytes
-    int64 DedicatedVideoMemory;
+	int64 DedicatedVideoMemory;
 	// -1 if unknown, in bytes
-    int64 DedicatedSystemMemory;
+	int64 DedicatedSystemMemory;
 	// -1 if unknown, in bytes
-    int64 SharedSystemMemory;
+	int64 SharedSystemMemory;
 	// Total amount of "graphics memory" that we think we can use for all our graphics resources, in bytes. -1 if unknown.
 	int64 TotalGraphicsMemory;
 

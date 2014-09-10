@@ -176,6 +176,7 @@ bool GSupportsQuads = false;
 bool GSupportsVolumeTextureRendering = true;
 bool GSupportsGSRenderTargetLayerSwitchingToMips = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
+bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 float GPixelCenterOffset = 0;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;

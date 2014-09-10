@@ -193,6 +193,9 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 		GEmitMeshDrawEvent = 1;
 		GEmitDrawEvents = true;
 	}
+
+	// ES2 requires a color attachment when rendering to depth-only.
+	GSupportsDepthRenderTargetWithoutColorRenderTarget = false;
 }
 
 #endif
