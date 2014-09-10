@@ -394,8 +394,20 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	//
 	// build collision
 	//
-	bool bEnableCollision = ImportCollisionModels(StaticMesh, GetNodeNameWithoutNamespace( Node ) )
-		|| (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates);
+	bool bImportedCollision = ImportCollisionModels(StaticMesh, GetNodeNameWithoutNamespace(Node));
+
+	if (false && !bImportedCollision && StaticMesh)	//if didn't import collision automatically generate one
+	{
+		StaticMesh->CreateBodySetup();
+
+		const int32 NumDirs = 18;
+		TArray<FVector> Dirs;
+		Dirs.AddUninitialized(NumDirs);
+		for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
+		GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
+	}
+
+	bool bEnableCollision = bImportedCollision || (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates);
 	for(int32 SectionIndex=MaterialIndexOffset; SectionIndex<MaterialIndexOffset+MaterialCount; SectionIndex++)
 	{
 		FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
@@ -1200,12 +1212,11 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		StaticMesh = NULL;
 	}
 
-
-	if (StaticMesh)
+	if (StaticMesh && StaticMesh->bCustomizedCollision == false && ImportOptions->bAutoGenerateCollision)
 	{
 
 		FKAggregateGeom & AggGeom = StaticMesh->BodySetup->AggGeom;
-		AggGeom.ConvexElems.Empty(1);	//when reimport happens we remove any existing convex mesh
+		AggGeom.ConvexElems.Empty(1);	//if no custom collision is setup we just regenerate collision when reimport
 
 		const int32 NumDirs = 18;
 		TArray<FVector> Dirs;
@@ -1388,6 +1399,8 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 	}
 
 	TSharedPtr< FbxArray<FbxNode*> > Models = Record->GetValue();
+
+	StaticMesh->bCustomizedCollision = true;
 
 	StaticMesh->CreateBodySetup();
 

@@ -115,6 +115,7 @@ struct FBXImportOptions
 	bool bRemoveDegenerates;
 	bool bGenerateLightmapUVs;
 	bool bOneConvexHullPerUCX;
+	bool bAutoGenerateCollision;
 	FName StaticMeshLODGroup;
 	// Skeletal Mesh options
 	bool bImportMorph;

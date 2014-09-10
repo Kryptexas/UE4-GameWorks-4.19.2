@@ -822,6 +822,7 @@ struct ExistingStaticMeshData
 	TArray<UStaticMeshSocket*>	ExistingSockets;
 
 	bool						ExistingUseMaximumStreamingTexelRatio;
+	bool						ExistingCustomizedCollision;
 
 	int32							ExistingLightMapResolution;
 	int32							ExistingLightMapCoordinateIndex;
@@ -859,6 +860,7 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh)
 		ExistingMeshDataPtr->ExistingSockets = ExistingMesh->Sockets;
 
 		ExistingMeshDataPtr->ExistingUseMaximumStreamingTexelRatio = ExistingMesh->bUseMaximumStreamingTexelRatio;
+		ExistingMeshDataPtr->ExistingCustomizedCollision = ExistingMesh->bCustomizedCollision;
 
 		ExistingMeshDataPtr->ExistingLightMapResolution = ExistingMesh->LightMapResolution;
 		ExistingMeshDataPtr->ExistingLightMapCoordinateIndex = ExistingMesh->LightMapCoordinateIndex;
@@ -906,6 +908,7 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 		}
 
 		NewMesh->bUseMaximumStreamingTexelRatio = ExistingMeshDataPtr->ExistingUseMaximumStreamingTexelRatio;
+		NewMesh->bCustomizedCollision = ExistingMeshDataPtr->ExistingCustomizedCollision;
 
 		NewMesh->LightMapResolution = ExistingMeshDataPtr->ExistingLightMapResolution;
 		NewMesh->LightMapCoordinateIndex = ExistingMeshDataPtr->ExistingLightMapCoordinateIndex;

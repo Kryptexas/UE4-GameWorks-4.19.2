@@ -745,6 +745,18 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 		]
 	];
 
+	NewBox->AddSlot().AutoHeight().Padding(2)
+		[
+			SNew(SCheckBox)
+			.IsChecked(ImportUI->StaticMeshImportData->bAutoGenerateCollision ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+			.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_AutoGenerateCollision)
+			.IsEnabled(!bIsObjFormat)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("FbxOptionWindow_AutoGenerateCollision", "Auto Generate Collision"))
+			]
+		];
+
 
 	return NewBox;
 }
@@ -1266,6 +1278,11 @@ void SFbxOptionWindow::SetStaticMesh_GenerateLightmapUVs(ESlateCheckBoxState::Ty
 void SFbxOptionWindow::SetStaticMesh_OneConvexHullPerUCX(ESlateCheckBoxState::Type NewType)
 {
 	ImportUI->StaticMeshImportData->bOneConvexHullPerUCX = (NewType == ESlateCheckBoxState::Checked)? 1:0;
+}
+
+void SFbxOptionWindow::SetStaticMesh_AutoGenerateCollision(ESlateCheckBoxState::Type NewType)
+{
+	ImportUI->StaticMeshImportData->bAutoGenerateCollision = (NewType == ESlateCheckBoxState::Checked) ? 1 : 0;
 }
 
 void SFbxOptionWindow::SetMaterial_ImportMaterials(ESlateCheckBoxState::Type NewType)

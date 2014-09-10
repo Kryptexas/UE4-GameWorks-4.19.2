@@ -9,6 +9,7 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const class FPostConstructIni
 	bRemoveDegenerates = true;
 	bGenerateLightmapUVs = true;
 	bOneConvexHullPerUCX = true;
+	bAutoGenerateCollision = true;
 }
 
 UFbxStaticMeshImportData* UFbxStaticMeshImportData::GetImportDataForStaticMesh(UStaticMesh* StaticMesh, UFbxStaticMeshImportData* TemplateForCreation)

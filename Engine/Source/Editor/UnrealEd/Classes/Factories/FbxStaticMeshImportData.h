@@ -31,6 +31,10 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	UPROPERTY(EditAnywhere, config, Category=ImportSettings)
 	uint32 bOneConvexHullPerUCX:1;
 
+	/** If checked, collision will automatically be generated (ignored if custom collision is imported or used). */
+	UPROPERTY(EditAnywhere, config, Category = ImportSettings)
+	uint32 bAutoGenerateCollision : 1;
+
 	/** Gets or creates fbx import data for the specified static mesh */
 	static UFbxStaticMeshImportData* GetImportDataForStaticMesh(UStaticMesh* StaticMesh, UFbxStaticMeshImportData* TemplateForCreation);
 };

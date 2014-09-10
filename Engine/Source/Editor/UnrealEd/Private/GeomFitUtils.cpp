@@ -229,6 +229,8 @@ int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh)
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
 
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
+
 	return bs->AggGeom.BoxElems.Num() - 1;
 }
 
@@ -409,6 +411,7 @@ int32 GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
 
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	return bs->AggGeom.SphereElems.Num() - 1;
 }
 
@@ -550,6 +553,8 @@ int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
+
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 
 	return bs->AggGeom.SphylElems.Num() - 1;
 }

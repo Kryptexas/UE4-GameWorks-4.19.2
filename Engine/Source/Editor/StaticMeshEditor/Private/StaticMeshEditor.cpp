@@ -687,6 +687,8 @@ void FStaticMeshEditor::DuplicateSelectedPrims(const FVector* InOffset)
 
 		// Update views/property windows
 		Viewport->RefreshViewport();
+
+		StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	}
 }
 
@@ -768,6 +770,8 @@ void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
 			AggGeom->ConvexElems[PrimData.PrimIndex].ScaleElem(ModifiedScale, MinPrimSize);
 			break;
 		}
+
+		StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	}
 }
 
@@ -874,6 +878,8 @@ void FStaticMeshEditor::SetPrimTransform(const FPrimData& InPrimData, const FTra
 		AggGeom->ConvexElems[InPrimData.PrimIndex].SetTransform(InPrimTransform);
 		break;
 	}
+
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 }
 
 void FStaticMeshEditor::RefreshTool()
@@ -1123,6 +1129,8 @@ void FStaticMeshEditor::OnRemoveCollision(void)
 
 			// Update views/property windows
 			Viewport->RefreshViewport();
+
+			StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 		}
 	}
 }
@@ -1240,6 +1248,8 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 
 				// Update views/property windows
 				Viewport->RefreshViewport();
+
+				StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 			}
 		}
 	}
@@ -1295,6 +1305,8 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 
 			// Update views/property windows
 			Viewport->RefreshViewport();
+
+			StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 		}
 	}
 	else
@@ -1437,6 +1449,8 @@ void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)
 
 		// Update screen.
 		Viewport->RefreshViewport();
+
+		StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	}
 }
 
@@ -1590,6 +1604,8 @@ void FStaticMeshEditor::DeleteSelectedPrims()
 
 			// Update views/property windows
 			Viewport->RefreshViewport();
+
+			StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 		}
 	}
 }
