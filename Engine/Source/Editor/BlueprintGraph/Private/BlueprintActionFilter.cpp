@@ -187,7 +187,7 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	The action you wish to query.
 	 * @return True if the action would produce a bound node, tied to an object that isn't selected.
 	 */
-	static bool IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+	static bool IsUnBoundBindingSpawner(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * 
@@ -670,20 +670,14 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsBoundToUnselectedObject(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+static bool BlueprintActionFilterImpl::IsUnBoundBindingSpawner(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
+	bool const bIsBindingSpecificSpawner = (Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction.NodeSpawner) != nullptr);
+
 	bool bIsFilteredOut = false;
-	if (UBlueprintBoundEventNodeSpawner const* BoundSpawner = Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction.NodeSpawner))
+	if (bIsBindingSpecificSpawner)
 	{
-		bIsFilteredOut = true;
-		for (UObject const* SelectedObj : Filter.Context.SelectedObjects)
-		{
-			if (BoundSpawner->CanBind(SelectedObj))
-			{
-				bIsFilteredOut = false;
-				break;
-			}
-		}
+		bIsFilteredOut = (BlueprintAction.GetBindings().Num() <= 0);
 	}
 	return bIsFilteredOut;
 }
@@ -1045,9 +1039,29 @@ FBlueprintActionInfo::FBlueprintActionInfo(UObject const* ActionOwnerIn, UBluepr
 }
 
 //------------------------------------------------------------------------------
+FBlueprintActionInfo::FBlueprintActionInfo(FBlueprintActionInfo const& Rhs, IBlueprintNodeBinder::FBindingSet const& InBindings)
+	: NodeSpawner(Rhs.NodeSpawner)
+	, Bindings(InBindings)
+	, ActionOwner(Rhs.ActionOwner)
+	, CacheFlags(Rhs.CacheFlags)
+	, CachedOwnerClass(Rhs.CachedOwnerClass)
+	, CachedActionField(Rhs.CachedActionField)
+	, CachedActionProperty(Rhs.CachedActionProperty)
+	, CachedActionFunction(Rhs.CachedActionFunction)
+{
+	checkSlow(NodeSpawner != nullptr);
+}
+
+//------------------------------------------------------------------------------
 UObject const* FBlueprintActionInfo::GetActionOwner()
 {
 	return ActionOwner;
+}
+
+//------------------------------------------------------------------------------
+IBlueprintNodeBinder::FBindingSet const& FBlueprintActionInfo::GetBindings() const
+{
+	return Bindings;
 }
 
 //------------------------------------------------------------------------------
@@ -1174,7 +1188,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_RejectPermittedNodeSubClasses) != 0));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNonTargetMemeber, (Flags & BPFILTER_RejectPersistentNonTargetFields) == 0));
-	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsBoundToUnselectedObject));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsUnBoundBindingSpawner));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsOutOfScopeLocalVariable));
 
 	// @TODO: account for all K2ActionMenuBuilder checks...

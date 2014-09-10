@@ -142,6 +142,7 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventSignatureName.ToString()) );
 		bOverrideFunction = false;
 		bInternalEvent = true;
+		CachedNodeTitle.MarkDirty();
 	}
 }
 
@@ -164,6 +165,7 @@ UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
 			TargetDelegateProp = NewProperty;
 			DelegatePropertyName = NewProperty->GetFName();
 			EventSignatureClass = Cast<UClass>(NewProperty->GetOuter());
+			CachedNodeTitle.MarkDirty();
 		}
 	}
 

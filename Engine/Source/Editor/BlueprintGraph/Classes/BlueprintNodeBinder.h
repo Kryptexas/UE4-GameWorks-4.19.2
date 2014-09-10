@@ -2,121 +2,63 @@
 
 #pragma once
 
+// Forward declarations
 class UEdGraphNode;
 
-/**
- * 
- */
-class FBlueprintNodeBinder
+
+class IBlueprintNodeBinder
 {
 public:
-	virtual ~FBlueprintNodeBinder() {}
+	/** */
+	typedef TSet< TWeakObjectPtr<UObject> > FBindingSet;
+
+public:
+	/**
+	 * Checks to see if the specified object can be bound by this.
+	 * 
+	 * @param  BindingCandidate	The object you want to check for.
+	 * @return True if BindingCandidate can be bound by this controller, false if not.
+	 */
+	virtual bool IsBindingCompatible(UObject const* BindingCandidate) const = 0;
 
 	/**
+	 * Determines if this will accept more than one binding (used to block multiple 
+	 * bindings from being applied to nodes that can only have one).
 	 * 
-	 * 
-	 * @param  BindingCandidate	
-	 * @return 
+	 * @return True if this will accept multiple bindings, otherwise false.
 	 */
-	virtual bool CanBind(UObject const* BindingCandidate) const = 0;
+	virtual bool CanBindMultipleObjects() const = 0;
 
 	/**
+	 * Attempts to bind all bindings to the supplied node.
 	 * 
-	 * 
-	 * @return 
+	 * @param  Node	 The node you want bound to.
+	 * @return True if all bindings were successfully applied, false if any failed.
 	 */
-	virtual bool CanBindMultipleObjects() const
+	bool ApplyBindings(UEdGraphNode* Node, FBindingSet const& Bindings) const
 	{
-		return false;
-	}
-
-	/**
-	 * 
-	 * 
-	 * @return 
-	 */
-	bool IsBindingSet() const
-	{
-		return (BoundObjects.Num() > 0);
-	}
-
-	/**
-	 * 
-	 * 
-	 * @param  BindingCandidate	
-	 * @return 
-	 */
-	bool AddBinding(UObject const* BindingCandidate)
-	{
-		bool const bAddBinding = CanBind(BindingCandidate) && (!IsBindingSet() || CanBindMultipleObjects());
-		if (bAddBinding)
+		uint32 BindingCount = 0;
+		for (TWeakObjectPtr<UObject> const& Binding : Bindings)
 		{
-			BoundObjects.Add(BindingCandidate);
-		}
-		return bAddBinding;
-	}
-
-	/**
-	 * 
-	 * 
-	 * @param  Node	
-	 * @return 
-	 */
-	bool Bind(UEdGraphNode* Node) const
-	{
-		bool bFullSuccess = true;
-		for (TWeakObjectPtr<UObject> Instance : BoundObjects)
-		{
-			if (Instance.IsValid())
+			if (Binding.IsValid() && BindToNode(Node, Binding.Get()))
 			{
-				bFullSuccess &= BindToNode(Node, Instance.Get());
+				++BindingCount;
+				if (!CanBindMultipleObjects())
+				{
+					break;
+				}
 			}
 		}
-		return bFullSuccess;
-	}
-
-	/**
-	 * 
-	 * 
-	 * @param  Binding	
-	 * @return 
-	 */
-	void RemoveBinding(UObject const* Binding)
-	{
-		BoundObjects.Remove(Binding);
-	}
-
-	/**
-	 * 
-	 * 
-	 * @return 
-	 */
-	void ClearBindings()
-	{
-		BoundObjects.Empty();
-	}
-
-	/**
-	 * 
-	 * 
-	 * @return 
-	 */
-	TSet< TWeakObjectPtr<UObject> > const& GetBindings() const
-	{
-		return BoundObjects;
+		return (BindingCount == Bindings.Num());
 	}
 
 protected:
 	/**
+	 * Attempts to apply the specified binding to the supplied node.
 	 * 
-	 * 
-	 * @param  Node	
-	 * @param  Binding	
-	 * @return 
+	 * @param  Node		The node you want bound.
+	 * @param  Binding	The binding you want applied to Node.
+	 * @return True if the binding was successful, false if not.
 	 */
 	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const = 0;
-
-protected:
-	/** */
-	TSet< TWeakObjectPtr<UObject> > BoundObjects;
 };

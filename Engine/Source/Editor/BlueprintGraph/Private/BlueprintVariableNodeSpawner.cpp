@@ -53,7 +53,7 @@ UBlueprintVariableNodeSpawner::UBlueprintVariableNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
+UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	FCustomizeNodeDelegate PostSpawnDelegate = CustomizeNodeDelegate;
 
@@ -88,7 +88,7 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FVect
 		PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(MemberVarSetupLambda, Property, CustomizeNodeDelegate);
 	}
 
-	return Super::Invoke(ParentGraph, Location, PostSpawnDelegate);
+	return Super::Invoke(ParentGraph, Bindings, Location, PostSpawnDelegate);
 }
 
 //------------------------------------------------------------------------------

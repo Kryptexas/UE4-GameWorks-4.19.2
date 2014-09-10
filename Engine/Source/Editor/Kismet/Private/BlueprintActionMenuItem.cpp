@@ -63,6 +63,16 @@ FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* 
 }
 
 //------------------------------------------------------------------------------
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, IBlueprintNodeBinder::FBindingSet const& InBindings)
+	: IconBrush(nullptr)
+	, IconTint(FLinearColor::White)
+	, Action(NodeSpawner)
+	, Bindings(InBindings)
+{
+	check(Action != nullptr);
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEdGraphPin* FromPin, FVector2D const Location, bool bSelectNewNode/* = true*/)
 {
 	using namespace FBlueprintMenuActionItemImpl;
@@ -88,7 +98,7 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 	}
 
 	// this could return an existing node
-	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Location);
+	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Bindings, Location);
 	
 	// if a returned node hasn't been added to the graph yet (it must have been freshly spawned)
 	if (ParentGraph->Nodes.Find(SpawnedNode) == INDEX_NONE)

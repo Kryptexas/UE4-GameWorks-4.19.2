@@ -35,13 +35,12 @@ UBlueprintBoundEventNodeSpawner::UBlueprintBoundEventNodeSpawner(class FPostCons
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintBoundEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
+UEdGraphNode* UBlueprintBoundEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	UK2Node_Event* EventNode = nullptr;
-	if (IsBindingSet())
+	if (Bindings.Num() > 0)
 	{
-		EventNode = CastChecked<UK2Node_Event>(Super::Invoke(ParentGraph, Location));
-		Bind(EventNode);
+		EventNode = CastChecked<UK2Node_Event>(Super::Invoke(ParentGraph, Bindings, Location));
 	}
 	return EventNode;
 }
@@ -70,14 +69,14 @@ FText UBlueprintBoundEventNodeSpawner::GetDefaultMenuCategory() const
 }
 
 //------------------------------------------------------------------------------
-UK2Node_Event const* UBlueprintBoundEventNodeSpawner::FindPreExistingEvent(UBlueprint* Blueprint) const
+UK2Node_Event const* UBlueprintBoundEventNodeSpawner::FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& Bindings) const
 {
 	UK2Node_Event const* PreExistingEvent = nullptr;
 
 	UObject const* BoundObject = nullptr;
-	if (IsBindingSet())
+	if (Bindings.Num() > 0)
 	{
-		BoundObject = BoundObjects.CreateConstIterator()->Get();
+		BoundObject = Bindings.CreateConstIterator()->Get();
 	}
 
 	if (BoundObject != nullptr)
@@ -95,7 +94,7 @@ UK2Node_Event const* UBlueprintBoundEventNodeSpawner::FindPreExistingEvent(UBlue
 }
 
 //------------------------------------------------------------------------------
-bool UBlueprintBoundEventNodeSpawner::CanBind(UObject const* BindingCandidate) const
+bool UBlueprintBoundEventNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
 	bool bCanBind = false;
 

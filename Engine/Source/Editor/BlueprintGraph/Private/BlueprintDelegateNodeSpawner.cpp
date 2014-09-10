@@ -36,7 +36,7 @@ UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintDelegateNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
+UEdGraphNode* UBlueprintDelegateNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UMulticastDelegateProperty const* Property, FCustomizeNodeDelegate UserDelegate)
 	{
@@ -53,7 +53,7 @@ UEdGraphNode* UBlueprintDelegateNodeSpawner::Invoke(UEdGraph* ParentGraph, FVect
 	};
 
 	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, GetProperty(), CustomizeNodeDelegate);
-	return Super::Invoke(ParentGraph, Location, PostSpawnSetupDelegate);
+	return Super::Invoke(ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
 }
 
 //------------------------------------------------------------------------------

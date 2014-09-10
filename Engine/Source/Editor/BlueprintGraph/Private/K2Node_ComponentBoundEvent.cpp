@@ -35,6 +35,7 @@ void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectPro
 		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InComponentProperty->GetName(), *GetName(), *EventSignatureName.ToString()) );
 		bOverrideFunction = false;
 		bInternalEvent = true;
+		CachedNodeTitle.MarkDirty();
 	}
 }
 
@@ -52,6 +53,7 @@ void UK2Node_ComponentBoundEvent::RegisterDynamicBinding(UDynamicBlueprintBindin
 	Binding.DelegatePropertyName = DelegatePropertyName;
 	Binding.FunctionNameToBind = CustomFunctionName;
 
+	CachedNodeTitle.MarkDirty();
 	ComponentBindingObject->ComponentDelegateBindings.Add(Binding);
 }
 

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "BlueprintNodeBinder.h" // for IBlueprintNodeBinder::FBindingSet
+
 // Forward declarations
 class UBlueprintNodeSpawner;
 class UBlueprint;
@@ -55,6 +57,9 @@ struct BLUEPRINTGRAPH_API FBlueprintActionInfo
 	/** */
 	FBlueprintActionInfo(UObject const* ActionOwner, UBlueprintNodeSpawner const* Action);
 
+	/** */
+	FBlueprintActionInfo(FBlueprintActionInfo const& Rhs, IBlueprintNodeBinder::FBindingSet const& Bindings);
+
 	/**
 	 * Retrieves the key that the wrapped action is associated with in the 
 	 * FBlueprintActionDatabase (either a UClass, or asset object).
@@ -62,6 +67,13 @@ struct BLUEPRINTGRAPH_API FBlueprintActionInfo
 	 * @return The class/asset that this action conceptually belongs to.
 	 */
 	UObject const* GetActionOwner();
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	IBlueprintNodeBinder::FBindingSet const& GetBindings() const;
 
 	/**
 	 * Retrieves a class associated with the wrapped action. Intended to be the 
@@ -127,6 +139,9 @@ private:
 	UProperty const* CachedActionProperty;
 	/** */
 	UFunction const* CachedActionFunction;
+
+	/** */
+	IBlueprintNodeBinder::FBindingSet Bindings;
 };
 
 

@@ -67,7 +67,7 @@ public:
 	 * @param  BoundAction	
 	 * @return 
 	 */
-	TSharedPtr<FBlueprintBoundMenuItem> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner* BoundAction);
+	TSharedPtr<FBlueprintBoundMenuItem> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action, IBlueprintNodeBinder::FBindingSet const& Bindings);
 	
 private:
 	/**
@@ -178,15 +178,17 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeDragDropMe
 }
 
 //------------------------------------------------------------------------------
-TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner* BoundAction)
+TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action, IBlueprintNodeBinder::FBindingSet const& Bindings)
 {
-	FBlueprintBoundMenuItem* NewMenuItem = new FBlueprintBoundMenuItem(BoundAction, MenuGrouping);
+	FBlueprintBoundMenuItem* NewMenuItem = new FBlueprintBoundMenuItem(Action, MenuGrouping);
+	NewMenuItem->AddBindings(Bindings);
+
 	// FBlueprintBoundMenuItem takes care of its own menu category
 	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
 
-	NewMenuItem->MenuDescription    = GetMenuNameForAction(EditorContext, BoundAction);
-	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, BoundAction).ToString();
-	NewMenuItem->Keywords			= GetSearchKeywordsForAction(EditorContext, BoundAction);
+	NewMenuItem->MenuDescription = GetMenuNameForAction(EditorContext, Action);
+	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, Action).ToString();
+	NewMenuItem->Keywords = GetSearchKeywordsForAction(EditorContext, Action);
 
 	return MakeShareable(NewMenuItem);
 }
@@ -223,35 +225,32 @@ FText FBlueprintActionMenuItemFactory::GetCategoryForAction(TWeakPtr<FBlueprintE
 	
 	if (MenuCategory.IsEmpty())
 	{
-		// @TODO: consider moving GetMenuCategory() up into UEdGraphNode
-		if (UK2Node* NodeTemplate = Cast<UK2Node>(GetTemplateNode(Action, EditorContext)))
+		// put uncategorized function calls in a member function category
+		// (sorted by their respective classes)
+		if (UBlueprintFunctionNodeSpawner const* FuncSpawner = Cast<UBlueprintFunctionNodeSpawner>(Action))
 		{
-			MenuCategory = NodeTemplate->GetMenuCategory();
-		}
-		
-		// if the category is still empty, then try and construct the category
-		// from the spawner's type
-		if (MenuCategory.IsEmpty())
-		{
-			// put uncategorized function calls in a member function category
-			// (sorted by their respective classes)
-			if (UBlueprintFunctionNodeSpawner const* FuncSpawner = Cast<UBlueprintFunctionNodeSpawner>(Action))
+			UFunction const* Function = FuncSpawner->GetFunction();
+			check(Function != nullptr);
+			UClass* FuncOwner = Function->GetOuterUClass();
+
+			UBlueprint* Blueprint = GetTargetBlueprint();
+			check(Blueprint != nullptr);
+			UClass* BlueprintClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
+
+			// if this is NOT a self function call (self function calls
+			// don't get nested any deeper)
+			if (!BlueprintClass->IsChildOf(FuncOwner))
 			{
-				UFunction const* Function = FuncSpawner->GetFunction();
-				check(Function != nullptr);
-				UClass* FuncOwner = Function->GetOuterUClass();
-				
-				UBlueprint* Blueprint = GetTargetBlueprint();
-				check(Blueprint != nullptr);
-				UClass* BlueprintClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
-				
-				// if this is NOT a self function call (self function calls
-				// don't get nested any deeper)
-				if (!BlueprintClass->IsChildOf(FuncOwner))
-				{
-					MenuCategory = FuncOwner->GetDisplayNameText();
-				}
-				MenuCategory = FText::Format(LOCTEXT("MemberFunctionsCategory", "Call Function|{0}"), MenuCategory);
+				MenuCategory = FuncOwner->GetDisplayNameText();
+			}
+			MenuCategory = FText::Format(LOCTEXT("MemberFunctionsCategory", "Call Function|{0}"), MenuCategory);
+		}
+		else 
+		{
+			// @TODO: consider moving GetMenuCategory() up into UEdGraphNode
+			if (UK2Node* NodeTemplate = Cast<UK2Node>(GetTemplateNode(Action, EditorContext)))
+			{
+				MenuCategory = NodeTemplate->GetMenuCategory();
 			}
 		}
 	}
@@ -448,75 +447,60 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::SetSectionSortOrde
 }
 // 
 //------------------------------------------------------------------------------
-TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo& DatabaseAction, TArray<UObject*> const& Bindings)
+TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo& DatabaseActionInfo, TArray<UObject*> const& PerspectiveBindings)
 {
- 	TSharedPtr<FBlueprintBoundMenuItem> MenuItem;
+	TSharedPtr<FBlueprintBoundMenuItem> MenuItem;
+	UBlueprintNodeSpawner const* DatabaseAction = DatabaseActionInfo.NodeSpawner;
 	
+	IBlueprintNodeBinder::FBindingSet CompatibleBindingsToFilter;
 	// we don't want the blueprint database growing out of control with an entry 
 	// for every object you could ever possibly bind to, so each 
-	// UBlueprintNodeSpawner comes with an interface to bind through... however,
-	// we can't mutate the action database (by binding to those actions directly)
-	// so, we have to clone and test the action post binding
-	for (auto BindingIt = Bindings.CreateConstIterator(); BindingIt;)
+	// UBlueprintNodeSpawner comes with an interface to test/bind through... 
+	for (auto BindingIt = PerspectiveBindings.CreateConstIterator(); BindingIt;)
 	{
 		UObject const* BindingObj = *BindingIt;
+		++BindingIt;
+		bool const bIsLastBinding = !BindingIt;
+
 		// check to see if this object can be bound to this action
-		if (DatabaseAction.NodeSpawner->CanBind(BindingObj))
+		if (DatabaseAction->IsBindingCompatible(BindingObj))
 		{
-			// we don't want binding to mutate the database, so we clone the 
-			// action and pass that to FBlueprintBoundMenuItem for binding;
-			// if we haven't created a mutable BoundAction yet, we need that...
-			// we do this prior to filtering because there may be tests that 
-			// reject based off bindings
-			//
-			// don't worry about outer, if this makes it through the filter,
-			// then the menu item will add a reference to keep it around
-			UBlueprintNodeSpawner* BoundAction = DuplicateObject<UBlueprintNodeSpawner>(DatabaseAction.NodeSpawner, GetTransientPackage());
-			BoundAction->CustomizeNodeDelegate = DatabaseAction.NodeSpawner->CustomizeNodeDelegate; // delegate isn't duplicated
+			// add bindings before filtering (in case tests accept/reject based off of this)
+			CompatibleBindingsToFilter.Add(BindingObj);
 
-			FBlueprintActionInfo BoundActionInfo(DatabaseAction.GetActionOwner(), BoundAction);
-			do
+			// if BoundAction is now "full" (meaning it can take any more 
+			// bindings), or if this is the last binding to test...
+			if (!DatabaseAction->CanBindMultipleObjects() || bIsLastBinding)
 			{
-				// add bindings before filtering (in case tests accept/reject based off of this)
-				BoundAction->AddBinding(BindingObj);
-				
-				++BindingIt;
-				bool const bIsLastBinding = !BindingIt;
+				// we don't want binding to mutate DatabaseActionInfo, so we clone  
+				// the action info, and tack on some binding data
+				FBlueprintActionInfo BoundActionInfo(DatabaseActionInfo, CompatibleBindingsToFilter);
 
-				// if BoundAction is now "full" (meaning it can take any more 
-				// bindings), or if this is the last binding to test...
-				if (!BoundAction->CanBindMultipleObjects() || bIsLastBinding)
+				// have to check IsFiltered() for every "fully bound" action (in
+				// case there are tests that reject based off of this), we may 
+				// test this multiple times per action (we have to make sure 
+				// that every set of bound objects pass before folding them into
+				// MenuItem)
+				bool const bPassedFilter = !Filter.IsFiltered(BoundActionInfo);
+				if (bPassedFilter)
 				{
-					// have to check IsFiltered() for every "fully bound" action (in
-					// case there are tests that reject based off of this), we may 
-					// test this multiple times per action (we have to make sure 
-					// that every set of bound objects pass before folding them into
-					// MenuItem)
-					bool const bPassedFilter = !Filter.IsFiltered(BoundActionInfo);
-					if (bPassedFilter)
+					if (!MenuItem.IsValid())
 					{
-						if (!MenuItem.IsValid())
-						{
-							MenuItem = ItemFactory.MakeBoundMenuItem(EditorContext, BoundAction);
-						}
-
-						for (TWeakObjectPtr<UObject> Object : BoundAction->GetBindings())
-						{
-							MenuItem->AddBinding(Object.Get());
-						}
+						MenuItem = ItemFactory.MakeBoundMenuItem(EditorContext, DatabaseAction, CompatibleBindingsToFilter);
 					}
-					BoundAction->ClearBindings();
+					else
+					{
+						// move these bindings over to the menu item (so we can 
+						// test the next set)
+						MenuItem->AddBindings(CompatibleBindingsToFilter);
+					}
 				}
+				CompatibleBindingsToFilter.Empty(); // do before we copy back over cached fields for DatabaseActionInfo
 
-				if (!bIsLastBinding)
-				{
-					BindingObj = *BindingIt;
-				}
-			} while (BindingIt);
-		}
-		else
-		{
-			++BindingIt;
+				// copy over any fields that got cached for filtering (with
+				// an empty binding set)
+				/*DatabaseActionInfo = FBlueprintActionInfo(BoundActionInfo, CompatibleBindingsToFilter);*/
+			}
 		}
 	}
 

@@ -24,7 +24,7 @@ class UEdGraphNode;
  * these "actions".
  */
 UCLASS(Transient)
-class BLUEPRINTGRAPH_API UBlueprintNodeSpawner : public UObject, public FBlueprintNodeBinder
+class BLUEPRINTGRAPH_API UBlueprintNodeSpawner : public UObject, public IBlueprintNodeBinder
 {
 	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_TwoParams(FCustomizeNodeDelegate, UEdGraphNode*, bool);
@@ -82,10 +82,11 @@ public:
 	 * this case upon use.
 	 * 
 	 * @param  ParentGraph	The graph you want the node spawned into.
+	 * @param  Bindings		
 	 * @param  Location     Where you want the new node positioned in the graph.
 	 * @return Null if it failed to spawn a node, otherwise a newly spawned node or possibly one that already existed.
 	 */
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location) const;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const;
 	
 	// @TODO: for favorites, generated for the spawner type + data (function, property, node, etc.)
 	//virtual FGuid GetActionHash() const;
@@ -160,22 +161,24 @@ public:
 	 */
 	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr) const;
 
-	// FBlueprintNodeBinder interface
-	virtual bool CanBind(UObject const* BindingCandidate) const override;
-	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const override;
-	// End FBlueprintNodeBinder interface
-
+	// IBlueprintNodeBinder interface
+	virtual bool   IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }
+	virtual bool   CanBindMultipleObjects() const override { return false; }
 protected:
+	virtual bool   BindToNode(UEdGraphNode* Node, UObject* Binding) const override { return false; }
+	// End IBlueprintNodeBinder interface
+
 	/**
 	 * Protected Invoke() that let's sub-classes specify their own post-spawn
 	 * delegate. Creates a new node based off of the set NodeClass.
 	 * 
 	 * @param  ParentGraph			The graph you want the node spawned into.
+	 * @param  Bindings				
 	 * @param  Location				Where you want the new node positioned in the graph.
 	 * @param  PostSpawnDelegate	A delegate to run after spawning the node, but prior to allocating the node's pins.
 	 * @return Null if it failed to spawn a node (if NodeClass is null), otherwise a newly spawned node.
 	 */
-	UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
+	UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
 };
 
 /*******************************************************************************

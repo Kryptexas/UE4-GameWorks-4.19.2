@@ -204,7 +204,7 @@ UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner
 
 		if (CompatibleOuter != nullptr)
 		{
-			TemplateNode = NodeSpawner->Invoke(CompatibleOuter, FVector2D::ZeroVector);
+			TemplateNode = NodeSpawner->Invoke(CompatibleOuter, IBlueprintNodeBinder::FBindingSet(), FVector2D::ZeroVector);
 			NodeTemplateCache.Add(NodeSpawner, TemplateNode);
 		}
 	}

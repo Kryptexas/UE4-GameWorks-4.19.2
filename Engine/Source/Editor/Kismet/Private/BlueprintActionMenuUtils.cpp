@@ -42,7 +42,7 @@ namespace BlueprintActionMenuUtilsImpl
 //------------------------------------------------------------------------------
 static bool BlueprintActionMenuUtilsImpl::IsUnBoundSpawner(FBlueprintActionFilter const& /*Filter*/, FBlueprintActionInfo& BlueprintAction)
 {
-	return !BlueprintAction.NodeSpawner->IsBindingSet();
+	return (BlueprintAction.GetBindings().Num() <= 0);
 }
 
 //------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& Context, bool bIsContextSensitive, FBlueprintActionMenuBuilder& MenuOut)
 {
 	using namespace BlueprintActionMenuUtilsImpl;
-	
+
 	//--------------------------------------
 	// Composing Filters
 	//--------------------------------------

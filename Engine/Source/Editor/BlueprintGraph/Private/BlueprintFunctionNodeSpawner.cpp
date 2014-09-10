@@ -82,7 +82,7 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 
 	FVector2D BindingPos = CalculateBindingPosition(NewNode);
 	UEdGraph* ParentGraph = NewNode->GetGraph();
-	NodeType* BindingNode = CastChecked<NodeType>(BindingSpawner->Invoke(ParentGraph, BindingPos));
+	NodeType* BindingNode = CastChecked<NodeType>(BindingSpawner->Invoke(ParentGraph, IBlueprintNodeBinder::FBindingSet(), BindingPos));
 
 	BindingOffset.Y += UEdGraphSchema_K2::EstimateNodeHeight(BindingNode);
 
@@ -193,7 +193,7 @@ UBlueprintFunctionNodeSpawner::UBlueprintFunctionNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
+UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* Function, FCustomizeNodeDelegate UserDelegate)
 	{
@@ -207,12 +207,12 @@ UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FVect
 		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
 	};
 
-	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, Function, CustomizeNodeDelegate);
-	UEdGraphNode* SpawnedNode = Super::Invoke(ParentGraph, Location, PostSpawnSetupDelegate);
-
-	// if this spawner was set up to spawn 
+	// if this spawner was set up to spawn a bound node, reset this so the 
+	// bound nodes get positioned properly
 	BlueprintFunctionNodeSpawnerImpl::BindingOffset = FVector2D::ZeroVector;
-	Bind(SpawnedNode);
+
+	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, Function, CustomizeNodeDelegate);
+	UEdGraphNode* SpawnedNode = Super::Invoke(ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
 
 	return SpawnedNode;
 }
@@ -235,14 +235,24 @@ FText UBlueprintFunctionNodeSpawner::GetDefaultMenuCategory() const
 FText UBlueprintFunctionNodeSpawner::GetDefaultMenuTooltip() const
 {
 	check(Function != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
+
+	FText Tooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
+	if (Tooltip.IsEmpty())
+	{
+		Tooltip = GetDefaultMenuName();
+	}
+	return Tooltip;
 }
 
 //------------------------------------------------------------------------------
 FString UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
 {
 	check(Function != nullptr);
-	return UK2Node_CallFunction::GetKeywordsForFunction(Function);
+	
+	FString SearchKeywords = UK2Node_CallFunction::GetKeywordsForFunction(Function);
+	// add at least one character, so that the menu item doesn't attempt to
+	// ping a template node
+	return SearchKeywords.AppendChar(TEXT(' '));
 }
 
 //------------------------------------------------------------------------------
@@ -253,12 +263,12 @@ bool UBlueprintFunctionNodeSpawner::CanBindMultipleObjects() const
 }
 
 //------------------------------------------------------------------------------
-bool UBlueprintFunctionNodeSpawner::CanBind(UObject const* BindingCandidate) const
+bool UBlueprintFunctionNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
 	bool bCanBind = false;
 	if (Function != nullptr)
 	{
-		// @TODO: don't know exactly why we can only bind non-pure or cost 
+		// @TODO: don't know exactly why we can only bind non-pure/const 
 		//        functions... this is mirrored after FK2ActionMenuBuilder::GetFunctionCallsOnSelectedActors()
 		//        and FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents(),
 		//        where we make the same stipulation

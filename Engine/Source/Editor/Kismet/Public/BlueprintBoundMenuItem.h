@@ -4,6 +4,7 @@
 
 #include "EdGraph/EdGraphSchema.h" // for FEdGraphSchemaAction
 #include "SlateColor.h"
+#include "BlueprintNodeBinder.h" // for IBlueprintNodeBinder::FBindingSet
 #include "BlueprintBoundMenuItem.generated.h"
 
 // Forward declarations
@@ -27,7 +28,7 @@ public:
 	
 	/** Constructors */
 	FBlueprintBoundMenuItem() : BoundSpawner(nullptr) {}
-	FBlueprintBoundMenuItem(UBlueprintNodeSpawner* BoundSpawner, int32 MenuGrouping = 0);
+	FBlueprintBoundMenuItem(UBlueprintNodeSpawner const* BoundSpawner, int32 MenuGrouping = 0);
 	
 	// FEdGraphSchemaAction interface
 	virtual FName         GetTypeId() const final { return StaticGetTypeId(); }
@@ -36,7 +37,12 @@ public:
 	virtual void          AddReferencedObjects(FReferenceCollector& Collector) final;
 	// End FEdGraphSchemaAction interface
 
-	bool AddBinding(UObject const* Binding);
+	/**
+	 * 
+	 * 
+	 * @param  BindingSet	
+	 */
+	void AddBindings(IBlueprintNodeBinder::FBindingSet const& BindingSet);
 
 	/**
 	 * Retrieves the icon brush for this menu entry (to be displayed alongside
@@ -49,7 +55,7 @@ public:
 
 private:
 	/** Instanced node-spawner, that comprises the action portion of this menu entry. */
-	UBlueprintNodeSpawner* BoundSpawner;
+	UBlueprintNodeSpawner const* BoundSpawner;
 	/** */
-	TSet< TWeakObjectPtr<UObject> > BoundObjects;
+	IBlueprintNodeBinder::FBindingSet BoundObjects;
 };

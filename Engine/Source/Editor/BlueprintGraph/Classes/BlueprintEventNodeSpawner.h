@@ -45,7 +45,7 @@ public:
 	static UBlueprintEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location) const override;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FString GetDefaultSearchKeywords() const override;
@@ -71,7 +71,7 @@ public:
 	 * 
 	 * @return 
 	 */
-	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint) const;
+	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& Bindings) const;
 
 protected:
 	/** Constructing FText strings can be costly, so we cache the default menu name */

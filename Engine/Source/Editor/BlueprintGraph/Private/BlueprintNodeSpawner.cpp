@@ -69,9 +69,9 @@ UBlueprintNodeSpawner::~UBlueprintNodeSpawner()
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
+UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	return Invoke(ParentGraph, Location, CustomizeNodeDelegate);
+	return Invoke(ParentGraph, Bindings, Location, CustomizeNodeDelegate);
 }
 
 //------------------------------------------------------------------------------
@@ -121,18 +121,6 @@ FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 }
 
 //------------------------------------------------------------------------------
-bool UBlueprintNodeSpawner::CanBind(UObject const* BindingCandidate) const 
-{
-	return false;
-}
-
-//------------------------------------------------------------------------------
-bool UBlueprintNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Binding) const
-{
-	return false;
-}
-
-//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer) const
 {	
 	UEdGraphNode* TemplateNode = BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, Outer);
@@ -140,7 +128,7 @@ UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer) const
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
+UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
 {
 	UEdGraphNode* NewNode = nullptr;
 	if (NodeClass != nullptr)
@@ -163,6 +151,8 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D con
 			NewNode->AllocateDefaultPins();
 			NewNode->PostPlacedNewNode();
 		}
+
+		ApplyBindings(NewNode, Bindings);
 	}
 
 	return NewNode;

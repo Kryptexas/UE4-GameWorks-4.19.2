@@ -202,7 +202,7 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeComponentBoundEv
 //------------------------------------------------------------------------------
 static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeActorBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty)
 {
-	return UBlueprintBoundEventNodeSpawner::Create(UK2Node_ComponentBoundEvent::StaticClass(), DelegateProperty);
+	return UBlueprintBoundEventNodeSpawner::Create(UK2Node_ActorBoundEvent::StaticClass(), DelegateProperty);
 }
 
 /*******************************************************************************

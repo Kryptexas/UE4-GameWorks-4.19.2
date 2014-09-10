@@ -32,19 +32,19 @@ public:
 	static UBlueprintBoundEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, UMulticastDelegateProperty* EventDelegate, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FVector2D const Location) const override;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	// End UBlueprintNodeSpawner interface
 
 	// UBlueprintEventNodeSpawner interface
-	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint) const override;
+	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& Bindings) const override;
 	// End UBlueprintEventNodeSpawner interface
 
-	// FBlueprintNodeBinder interface
-	virtual bool CanBind(UObject const* BindingCandidate) const override;
+	// IBlueprintNodeBinder interface
+	virtual bool IsBindingCompatible(UObject const* BindingCandidate) const override;
 	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const override;
-	// End FBlueprintNodeBinder interface
+	// End IBlueprintNodeBinder interface
 
 	/**
 	 * 

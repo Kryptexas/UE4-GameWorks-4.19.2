@@ -89,13 +89,13 @@ UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(class FPostConstructIniti
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2D const Location) const
+UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	check(ParentGraph != nullptr);
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
 	// look to see if a node for this event already exists (only one node is
 	// allowed per event, per blueprint)
-	UK2Node_Event const* PreExistingNode = FindPreExistingEvent(Blueprint);
+	UK2Node_Event const* PreExistingNode = FindPreExistingEvent(Blueprint, Bindings);
 	// @TODO: casting away the const is bad form!
 	UK2Node_Event* EventNode = const_cast<UK2Node_Event*>(PreExistingNode);
 
@@ -129,7 +129,7 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FVector2
 		};
 
 		FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, EventFunc, EventName, CustomizeNodeDelegate);
-		EventNode = Cast<UK2Node_Event>(Super::Invoke(ParentGraph, Location, PostSpawnDelegate));
+		EventNode = Cast<UK2Node_Event>(Super::Invoke(ParentGraph, Bindings, Location, PostSpawnDelegate));
 	}
 	// else, a node for this event already exists, and we should return that 
 	// (the FBlueprintActionMenuItem should detect this and focus in on it).
@@ -184,7 +184,7 @@ UFunction const* UBlueprintEventNodeSpawner::GetEventFunction() const
 }
 
 //------------------------------------------------------------------------------
-UK2Node_Event const* UBlueprintEventNodeSpawner::FindPreExistingEvent(UBlueprint* Blueprint) const
+UK2Node_Event const* UBlueprintEventNodeSpawner::FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& /*Bindings*/) const
 {
 	UK2Node_Event* PreExistingNode = nullptr;
 

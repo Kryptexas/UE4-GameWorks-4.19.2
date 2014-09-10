@@ -4,6 +4,7 @@
 
 #include "EdGraph/EdGraphSchema.h" // for FEdGraphSchemaAction
 #include "SlateColor.h"
+#include "BlueprintNodeBinder.h" // for IBlueprintNodeBinder::FBindingSet
 #include "BlueprintActionMenuItem.generated.h"
 
 // Forward declarations
@@ -28,6 +29,7 @@ public:
 	/** Constructors */
 	FBlueprintActionMenuItem() : IconBrush(nullptr), IconTint(FLinearColor::White), Action(nullptr) {}
 	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTint, int32 MenuGrouping = 0);
+	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, IBlueprintNodeBinder::FBindingSet const& Bindings);
 	
 	// FEdGraphSchemaAction interface
 	virtual FName         GetTypeId() const final { return StaticGetTypeId(); }
@@ -52,4 +54,6 @@ private:
 	FSlateColor IconTint;
 	/** Specialized node-spawner, that comprises the action portion of this menu entry. */
 	UBlueprintNodeSpawner const* Action;
+	/** */
+	IBlueprintNodeBinder::FBindingSet Bindings;
 };

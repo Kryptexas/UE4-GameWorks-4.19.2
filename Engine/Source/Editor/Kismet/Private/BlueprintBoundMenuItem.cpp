@@ -20,7 +20,7 @@ namespace BlueprintBoundMenuItemImpl
 	 * @param  BoundSpawner	
 	 * @return 
 	 */
-	static FText GetMenuCategoryFromAction(UBlueprintNodeSpawner* BoundSpawner);
+	static FText GetMenuCategoryFromAction(UBlueprintNodeSpawner const* BoundSpawner, IBlueprintNodeBinder::FBindingSet const& Bindings);
 
 	/**
 	 * 
@@ -28,22 +28,21 @@ namespace BlueprintBoundMenuItemImpl
 	 * @param  ObjectsList	
 	 * @return 
 	 */
-	static UClass* FindCommonBaseClass(TSet< TWeakObjectPtr<UObject> > const& ObjectsList);
+	static UClass* FindCommonBaseClass(IBlueprintNodeBinder::FBindingSet const& ObjectsList);
 }
 
 //------------------------------------------------------------------------------
-static FText BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(UBlueprintNodeSpawner* BoundSpawner)
+static FText BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(UBlueprintNodeSpawner const* BoundSpawner, IBlueprintNodeBinder::FBindingSet const& Bindings)
 {
-	TSet< TWeakObjectPtr<UObject> > const& BoundObjects = BoundSpawner->GetBindings();
-	check(BoundObjects.Num() > 0);
+	check(Bindings.Num() > 0);
 
 	FText BoundObjectName;
-	if (BoundObjects.Num() > 1)
+	if (Bindings.Num() > 1)
 	{
-		UClass* CommonBaseClass = FindCommonBaseClass(BoundObjects);
+		UClass* CommonBaseClass = FindCommonBaseClass(Bindings);
 		BoundObjectName = FText::Format(LOCTEXT("MultipleBindingsCategoryPostfix", "Selected {0}s"), CommonBaseClass->GetDisplayNameText());
 	}
-	else if (UObject const* BoundObject = BoundObjects.CreateConstIterator()->Get())
+	else if (UObject const* BoundObject = Bindings.CreateConstIterator()->Get())
 	{
 		BoundObjectName = FText::FromName(BoundObject->GetFName());
 	}
@@ -62,7 +61,7 @@ static FText BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(UBlueprintNod
 }
 
 //------------------------------------------------------------------------------
-static UClass* BlueprintBoundMenuItemImpl::FindCommonBaseClass(TSet< TWeakObjectPtr<UObject> > const& ObjectsList)
+static UClass* BlueprintBoundMenuItemImpl::FindCommonBaseClass(IBlueprintNodeBinder::FBindingSet const& ObjectsList)
 {
 	UClass* CommonClass = nullptr;
 	for (TWeakObjectPtr<UObject> BoundObjPtr : ObjectsList)
@@ -95,32 +94,34 @@ static UClass* BlueprintBoundMenuItemImpl::FindCommonBaseClass(TSet< TWeakObject
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintBoundMenuItem::FBlueprintBoundMenuItem(UBlueprintNodeSpawner* BoundSpawnerIn, int32 MenuGrouping/* = 0*/)
+FBlueprintBoundMenuItem::FBlueprintBoundMenuItem(UBlueprintNodeSpawner const* BoundSpawnerIn, int32 MenuGrouping/* = 0*/)
 	: BoundSpawner(BoundSpawnerIn) 
 {
 	Grouping = MenuGrouping;
-	Category = BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(BoundSpawnerIn).ToString();
+	// category will be generated as we add bindings
 }
 
 //------------------------------------------------------------------------------
 UEdGraphNode* FBlueprintBoundMenuItem::PerformAction(UEdGraph* ParentGraph, UEdGraphPin* FromPin, FVector2D const Location, bool bSelectNewNode/* = true*/)
 {
-	FBlueprintActionMenuItem BlueprintActionItem(BoundSpawner, nullptr, FSlateColor(FLinearColor::White));
-
 	UEdGraphNode* NewNode = nullptr;
+
+	IBlueprintNodeBinder::FBindingSet Bindings;
 	for (auto BoundObjIt = BoundObjects.CreateConstIterator(); BoundObjIt; )
 	{
 		do
 		{
 			if (BoundObjIt->IsValid())
 			{
-				BoundSpawner->AddBinding(BoundObjIt->Get());
+				Bindings.Add(BoundObjIt->Get());
 			}
 			++BoundObjIt;
 
-		} while (BoundObjIt && (BoundSpawner->CanBindMultipleObjects() || !BoundSpawner->IsBindingSet()));
+		} while ( BoundObjIt && (BoundSpawner->CanBindMultipleObjects() || (Bindings.Num() == 0)) );
 
+		FBlueprintActionMenuItem BlueprintActionItem(BoundSpawner, Bindings);
 		NewNode = BlueprintActionItem.PerformAction(ParentGraph, FromPin, Location, bSelectNewNode);
+		// @TODO: select ALL spawned nodes
 	}
 	
 	return NewNode;
@@ -156,19 +157,16 @@ void FBlueprintBoundMenuItem::AddReferencedObjects(FReferenceCollector& Collecto
 }
 
 //------------------------------------------------------------------------------
-bool FBlueprintBoundMenuItem::AddBinding(UObject const* Binding)
+void FBlueprintBoundMenuItem::AddBindings(IBlueprintNodeBinder::FBindingSet const& BindingSet)
 {
-	bool const bIsCompatible = (Binding != nullptr) && BoundSpawner->CanBind(Binding);
-	if (bIsCompatible)
-	{
-		BoundObjects.Add(Binding);
-	}
-	return bIsCompatible;
+	BoundObjects.Append(BindingSet);
+	Category = BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(BoundSpawner, BoundObjects).ToString();
 }
 
 //------------------------------------------------------------------------------
 FSlateBrush const* FBlueprintBoundMenuItem::GetMenuIcon(FSlateColor& ColorOut)
 {
+	// @TODO: 
 	return nullptr;
 }
 
