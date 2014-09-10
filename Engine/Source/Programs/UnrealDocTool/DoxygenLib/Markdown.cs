@@ -253,7 +253,7 @@ namespace DoxygenLib
 			string DefaultPageName = "/index.html";
 			if (LinkUrl.EndsWith(DefaultPageName))
 			{
-				return LinkUrl.Substring(0, LinkUrl.Length - DefaultPageName.Length - 1);
+				return LinkUrl.Substring(0, LinkUrl.Length - DefaultPageName.Length + 1);
 			}
 			return LinkUrl;
 		}
