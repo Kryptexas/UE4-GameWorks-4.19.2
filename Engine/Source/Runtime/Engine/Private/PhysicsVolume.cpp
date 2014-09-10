@@ -10,7 +10,7 @@ APhysicsVolume::APhysicsVolume(const class FPostConstructInitializeProperties& P
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
 	BrushComponent->SetCollisionProfileName(CollisionProfileName);
 
-	FluidFriction = 0.3f;
+	FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
 	TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
 	bAlwaysRelevant = true;
 	NetUpdateFrequency = 0.1f;
