@@ -62,6 +62,18 @@ private:
 	// Callback for getting the enabled state of the Generate DSYM button.
     bool HandleGenDSYMButtonEnabled() const;
 
+	// Callback for determining if the build configuration should be shown
+	EVisibility ShowBuildConfiguration() const;
+
+	// Callback for selecting a build configuration.
+	void HandleBuildConfigurationSelectorConfigurationSelected(EBuildConfigurations::Type Configuration);
+
+	// Callback for getting the content text of the build configuration selector.
+	FString HandleBuildConfigurationSelectorText() const;
+
+	// Callback for determining the visibility of a validation error icon.
+	EVisibility HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const;
+
 private:
 
 	// Holds a pointer to the data model.

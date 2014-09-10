@@ -57,6 +57,37 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
 					]
 			]
 
+		+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 3, 0, 3)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Visibility(this, &SProjectLauncherBuildPage::ShowBuildConfiguration)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SProjectLauncherFormLabel)
+						.ErrorToolTipText(NSLOCTEXT("SProjectLauncherBuildValidation", "NoBuildConfigurationSelectedError", "A Build Configuration must be selected."))
+						.ErrorVisibility(this, &SProjectLauncherBuildPage::HandleValidationErrorIconVisibility, ELauncherProfileValidationErrors::NoBuildConfigurationSelected)
+						.LabelText(LOCTEXT("ConfigurationComboBoxLabel", "Build Configuration:"))
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						// build configuration selector
+						SNew(SProjectLauncherBuildConfigurationSelector)
+						.Font(FCoreStyle::Get().GetFontStyle(TEXT("NormalFont")))
+						.OnConfigurationSelected(this, &SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSelected)
+						.Text(this, &SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText)
+					]
+				]
+			]
+
         + SVerticalBox::Slot()
             .AutoHeight()
             .Padding(0.0f, 8.0f, 0.0f, 0.0f)
@@ -205,5 +236,55 @@ bool SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled() const
     return false;
 }
 
+EVisibility SProjectLauncherBuildPage::ShowBuildConfiguration() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid() && SelectedProfile->IsBuilding())
+	{
+		return EVisibility::Visible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+void SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSelected(EBuildConfigurations::Type Configuration)
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetBuildConfiguration(Configuration);
+	}
+}
+
+FString SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		return EBuildConfigurations::ToString(SelectedProfile->GetBuildConfiguration());
+	}
+
+	return FString();
+}
+
+EVisibility SProjectLauncherBuildPage::HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->HasValidationError(Error))
+		{
+			return EVisibility::Visible;
+		}
+	}
+
+	return EVisibility::Hidden;
+}
 
 #undef LOCTEXT_NAMESPACE

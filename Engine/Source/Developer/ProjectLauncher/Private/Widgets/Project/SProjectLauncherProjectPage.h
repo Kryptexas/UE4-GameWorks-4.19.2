@@ -27,11 +27,6 @@ public:
 
 private:
 
-	// Callback for getting the enabled state of the project settings area.
-	bool HandleProjectSettingsAreaIsEnabled( ) const;
-
-private:
-
 	// Holds a pointer to the data model.
 	FProjectLauncherModelPtr Model;
 };

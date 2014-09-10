@@ -6,6 +6,11 @@
 
 void FTargetDeviceService::AddTargetDevice(ITargetDevicePtr InDevice)
 {
+	if (!InDevice.IsValid())
+	{
+		return;
+	}
+
 	FName Variant = FName(InDevice->GetTargetPlatform().PlatformName().GetCharArray().GetData());
 
 	if (DevicePlatformName == NAME_None)
@@ -35,18 +40,37 @@ void FTargetDeviceService::AddTargetDevice(ITargetDevicePtr InDevice)
 	// Sort and choose cache the default
 	TargetDevicePtrs.ValueSort(FVariantSortCallback());
 	auto DeviceIterator = TargetDevicePtrs.CreateIterator();
-	DefaultDevicePtr = (*DeviceIterator).Value;
+	if (DeviceIterator)
+	{
+		DefaultDevicePtr = (*DeviceIterator).Value;
+	}
+	else
+	{
+		DefaultDevicePtr = nullptr;
+	}
 }
 
 void FTargetDeviceService::RemoveTargetDevice(ITargetDevicePtr InDevice)
 {
+	if (!InDevice.IsValid())
+	{
+		return;
+	}
+
 	FName Variant = FName(InDevice->GetTargetPlatform().PlatformName().GetCharArray().GetData());
 
 	TargetDevicePtrs.Remove(Variant);
 
 	// Cache the default
 	auto DeviceIterator = TargetDevicePtrs.CreateIterator();
-	DefaultDevicePtr = (*DeviceIterator).Value;
+	if (DeviceIterator)
+	{
+		DefaultDevicePtr = (*DeviceIterator).Value;
+	}
+	else
+	{
+		DefaultDevicePtr = nullptr;
+	}
 }
 
 void FTargetDeviceService::HandlePingMessage(const FTargetDeviceServicePing& InMessage, const IMessageContextRef& Context)

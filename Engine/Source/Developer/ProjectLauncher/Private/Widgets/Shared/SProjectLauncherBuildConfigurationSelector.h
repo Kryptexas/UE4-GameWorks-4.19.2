@@ -25,6 +25,7 @@ public:
 	SLATE_BEGIN_ARGS(SProjectLauncherBuildConfigurationSelector) { }
 		SLATE_EVENT(FOnSessionSProjectLauncherBuildConfigurationSelected, OnConfigurationSelected)
 		SLATE_ATTRIBUTE(FString, Text)
+		SLATE_ATTRIBUTE(FSlateFontInfo, Font)
 	SLATE_END_ARGS()
 
 public:
@@ -35,7 +36,7 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct(	const FArguments& InArgs )
+	void Construct(const FArguments& InArgs)
 	{
 		OnConfigurationSelected = InArgs._OnConfigurationSelected;
 
@@ -58,6 +59,8 @@ public:
 			MenuBuilder.AddMenuEntry(LOCTEXT("TestAction", "Test"), LOCTEXT("TestActionHint", "Test configuration."), FSlateIcon(), TestAction);
 		}
 
+		FSlateFontInfo TextFont = InArgs._Font.IsSet() ? InArgs._Font.Get() : FCoreStyle::Get().GetFontStyle(TEXT("SmallFont"));
+		
 		ChildSlot
 		[
 			// build configuration menu
@@ -66,7 +69,7 @@ public:
 			.ButtonContent()
 			[
 				SNew(STextBlock)
-				.Font(FCoreStyle::Get().GetFontStyle(TEXT("SmallFont")))
+				.Font(TextFont)
 				.Text(InArgs._Text)
 			]
 			.ContentPadding(FMargin(4.0f, 2.0f))

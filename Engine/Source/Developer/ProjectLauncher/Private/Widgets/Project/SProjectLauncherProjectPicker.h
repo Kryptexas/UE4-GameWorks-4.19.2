@@ -47,23 +47,7 @@ protected:
 	 */
 	TSharedRef<SWidget> MakeProjectWidget( );
 
-	/**
-	 * Creates the widget for the project and configuration selection.
-	 *
-	 * @return The widget.
-	 */
-	TSharedRef<SWidget> MakeProjectAndConfigWidget( );
-
 private:
-
-	// Handles selecting a build configuration.
-	void HandleBuildConfigurationSelectorConfigurationSelected( EBuildConfigurations::Type );
-
-	// Handles getting the content text of the build configuration selector.
-	FString HandleBuildConfigurationSelectorText( ) const;
-
-	// Handles changing the selected profile in the profile manager.
-	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
 
 	// Handles getting the text for the project combo button.
 	FString HandleProjectComboButtonText( ) const;
@@ -94,6 +78,4 @@ private:
 	// Holds a pointer to the data model.
 	FProjectLauncherModelPtr Model;
 
-	// Holds the repository path text box.
-	TSharedPtr<SEditableTextBox> RepositoryPathTextBox;
 };
