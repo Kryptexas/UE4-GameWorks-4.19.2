@@ -5,8 +5,8 @@
 #if WITH_EDITOR
 #include "Components/MaterialBillboardComponent.h"
 #include "IDocumentation.h"
-#endif
 #include "Dialogs.h"
+#endif
 
 ADocumentationActor::ADocumentationActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
