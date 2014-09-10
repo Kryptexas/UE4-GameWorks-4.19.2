@@ -1083,6 +1083,9 @@ namespace UM
 		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
 		UnsafeDuringActorConstruction,
 
+		/// [FunctionMetadta] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
+		WorldContext,
+
 	};
 
 	// Metadata usable in UINTERFACE

@@ -33,11 +33,11 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	// --- Spawning functions ------------------------------
 
 	/** Spawns an instance of a blueprint, but does not automatically run its construction script.  */
-	UFUNCTION(BlueprintCallable, Category="Spawning", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true", DeprecatedFunction, DeprecationMessage="Use BeginSpawningActorFromClass"))
+	UFUNCTION(BlueprintCallable, Category="Spawning", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true", DeprecatedFunction, DeprecationMessage="Use BeginSpawningActorFromClass"))
 	static class AActor* BeginSpawningActorFromBlueprint(UObject* WorldContextObject, const class UBlueprint* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail);
 
 	/** Spawns an instance of an actor class, but does not automatically run its construction script.  */
-	UFUNCTION(BlueprintCallable, Category="Spawning", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, Category="Spawning", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true", BlueprintInternalUseOnly = "true"))
 	static class AActor* BeginSpawningActorFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, bool bNoCollisionFail = false);
 
 	/** 'Finish' spawning an actor.  This will run the construction script. */
@@ -60,7 +60,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 *	@param	ActorClass	Class of Actor to find. Must be specified or result array will be empty.
 	 *	@param	OutActors	Output array of Actors of the specified class.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities",  meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category="Utilities",  meta=(WorldContext="WorldContextObject"))
 	static void GetAllActorsOfClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors);
 
 	/** 
@@ -69,50 +69,50 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 *	@param	Interface	Interface to find. Must be specified or result array will be empty.
 	 *	@param	OutActors	Output array of Actors of the specified class.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities",  meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category="Utilities",  meta=(WorldContext="WorldContextObject"))
 	static void GetAllActorsWithInterface(UObject* WorldContextObject, TSubclassOf<UInterface> Interface, TArray<AActor*>& OutActors);
 
 	// --- Player functions ------------------------------
 
 	/** Returns the game instance object  */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject"))
 	static class UGameInstance* GetGameInstance(UObject* WorldContextObject);
 
 	/** Returns the player controller at the specified player index */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
 	static class APlayerController* GetPlayerController(UObject* WorldContextObject, int32 PlayerIndex);
 
 	/** Returns the player pawn at the specified player index */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
 	static class APawn* GetPlayerPawn(UObject* WorldContextObject, int32 PlayerIndex);
 
 	/** Returns the player character (NULL if the player pawn doesn't exist OR is not a character) at the specified player index */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
 	static class ACharacter* GetPlayerCharacter(UObject* WorldContextObject, int32 PlayerIndex);
 
 	/** Returns the player's camera manager for the specified player index */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
 	static class APlayerCameraManager* GetPlayerCameraManager(UObject* WorldContextObject, int32 PlayerIndex);
 
 	/** Create a new player for this game.  
 	 *  @param ControllerId		The ID of the controller that the should control the newly created player.  A value of -1 specifies to use the next available ID
 	 *  @param bSpawnPawn		Whether a pawn should be spawned immediately. If false a pawn will not be created until transition to the next map.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay="2", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(WorldContext="WorldContextObject", AdvancedDisplay="2", UnsafeDuringActorConstruction="true"))
 	static class APlayerController* CreatePlayer(UObject* WorldContextObject, int32 ControllerId = -1, bool bSpawnPawn = true);
 
 	// --- Level Streaming functions ------------------------
 	
 	/** Stream the level with the LevelName ; Calling again before it finishes has no effect */
-	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", Latent = "", LatentInfo = "LatentInfo"), Category="Game")
+	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", Latent = "", LatentInfo = "LatentInfo"), Category="Game")
 	static void LoadStreamLevel(UObject* WorldContextObject, FName LevelName, bool bMakeVisibleAfterLoad, bool bShouldBlockOnLoad, FLatentActionInfo LatentInfo);
 
 	/** Unload a streamed in level */
-	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", Latent = "", LatentInfo = "LatentInfo"), Category="Game")
+	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", Latent = "", LatentInfo = "LatentInfo"), Category="Game")
 	static void UnloadStreamLevel(UObject* WorldContextObject, FName LevelName, FLatentActionInfo LatentInfo);
 	
 	/** Returns level streaming object with specified level package name */
-	UFUNCTION(BlueprintPure, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"), Category="Game")
+	UFUNCTION(BlueprintPure, meta=(WorldContext="WorldContextObject"), Category="Game")
 	static class ULevelStreaming* GetStreamingLevel(UObject* WorldContextObject, FName PackageName);
 	
 	/**
@@ -122,16 +122,16 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param	bAbsolute			if true options are reset, if false options are carried over from current level
 	 * @param	Options				a string of options to use for the travel URL
 	 */
-	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay = "2"), Category="Game")
+	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", AdvancedDisplay = "2"), Category="Game")
 	static void OpenLevel(UObject* WorldContextObject, FName LevelName, bool bAbsolute = true, FString Options = FString(TEXT("")));
 
 	// --- Global functions ------------------------------
 
 	/** Returns the current GameMode or NULL if the GameMode can't be retrieved */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject") )
 	static class AGameMode* GetGameMode(UObject* WorldContextObject);
 
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject") )
 	static class AGameState* GetGameState(UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "GetClass"), Category="Utilities")
@@ -141,7 +141,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * Sets the global time dilation
 	 * @param	TimeDilation	value to set the global time dilation to
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Time", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	UFUNCTION(BlueprintCallable, Category="Utilities|Time", meta=(WorldContext="WorldContextObject") )
 	static void SetGlobalTimeDilation(UObject* WorldContextObject, float TimeDilation);
 
 	/**
@@ -149,14 +149,14 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param	bPaused		Whether the game should be paused or not
 	 * @return	Whether the game was successfully paused/unpaused
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(WorldContext="WorldContextObject") )
 	static bool SetGamePaused(UObject* WorldContextObject, bool bPaused);
 
 	/**
 	 * Returns the game's paused state
 	 * @return	Whether the game is currently paused or not
 	 */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject") )
 	static bool IsGamePaused(UObject* WorldContextObject);
 
 
@@ -171,7 +171,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param DamagePreventionChannel - Damage will not be applied to victim if there is something between the origin and the victim which blocks traces on this channel
 	 * @return true if damage was applied to at least one actor.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AutoCreateRefTerm="IgnoreActors"))
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage", meta=(WorldContext="WorldContextObject", AutoCreateRefTerm="IgnoreActors"))
 		static bool ApplyRadialDamage(UObject* WorldContextObject, float BaseDamage, const FVector& Origin, float DamageRadius, TSubclassOf<class UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser = NULL, AController* InstigatedByController = NULL, bool bDoFullDamage = false, ECollisionChannel DamagePreventionChannel = ECC_Visibility);
 	
 	/** Hurt locally authoritative actors within the radius. Will only hit components that block the Visibility channel.
@@ -187,7 +187,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param DamagePreventionChannel - Damage will not be applied to victim if there is something between the origin and the victim which blocks traces on this channel
 	 * @return true if damage was applied to at least one actor.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AutoCreateRefTerm="IgnoreActors"))
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage", meta=(WorldContext="WorldContextObject", AutoCreateRefTerm="IgnoreActors"))
 		static bool ApplyRadialDamageWithFalloff(UObject* WorldContextObject, float BaseDamage, float MinimumDamage, const FVector& Origin, float DamageInnerRadius, float DamageOuterRadius, float DamageFalloff, TSubclassOf<class UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser = NULL, AController* InstigatedByController = NULL, ECollisionChannel DamagePreventionChannel = ECC_Visibility);
 	
 
@@ -224,7 +224,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Falloff - Affects falloff of effect as it nears OuterRadius
 	 * @param bOrientShakeTowardsEpicenter - Changes the rotation of shake to point towards epicenter instead of forward
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game|Feedback", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Game|Feedback", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true"))
 	static void PlayWorldCameraShake(UObject* WorldContextObject, TSubclassOf<class UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff = 1.f, bool bOrientShakeTowardsEpicenter = false);
 
 	// --- Particle functions ------------------------------
@@ -236,7 +236,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Rotation - rotation to place the effect in world space	
 	 * @param bAutoDestroy - Whether the component will automatically be destroyed when the particle system completes playing or whether it can be reactivated
 	 */
-	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem", meta=(Keywords = "particle system", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem", meta=(Keywords = "particle system", WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true"))
 	static UParticleSystemComponent* SpawnEmitterAtLocation(UObject* WorldContextObject, class UParticleSystem* EmitterTemplate, FVector Location, FRotator Rotation = FRotator::ZeroRotator, bool bAutoDestroy = true);
 
 	/** Plays the specified effect attached to and following the specified component. The system will go away when the effect is complete. Does not replicate.
@@ -270,7 +270,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param PitchMultiplier - PitchMultiplier
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
 	static void PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** Plays a dialogue at the given location. This is a fire and forget sound and does not travel with any actor. Replication is also not handled at this point.
@@ -281,7 +281,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param PitchMultiplier - PitchMultiplier
 	 * @param AttenuationSettings - Override attenuation settings package to play sound with
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConstruction = "true"))
 	static void PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const struct FDialogueContext& Context, FVector Location, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** Plays a sound attached to and following the specified component. This is a fire and forget sound. Replication is also not handled at this point.
@@ -313,7 +313,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	static class UAudioComponent* PlayDialogueAttached(class UDialogueWave* Dialogue, const struct FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
 	/** DEPRECATED - Use GameplayStatics.PlaySoundAtLocation or GameplayStatics.PlaySoundAttached instead. */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", DeprecatedFunction, DeprecationMessage="Use GameplayStatics.PlaySoundAtLocation or GameplayStatics.PlaySoundAttached instead."))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", DeprecatedFunction, DeprecationMessage="Use GameplayStatics.PlaySoundAtLocation or GameplayStatics.PlaySoundAttached instead."))
 	static void PlaySound(UObject* WorldContextObject, class USoundCue* InSoundCue, class USceneComponent* AttachComponent, FName AttachName=NAME_None, bool bFollow=false, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
 
 	// --- Audio Functions ----------------------------
@@ -364,7 +364,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Rotation - rotation to place the decal in world space	
 	 * @param LifeSpan - destroy decal component after time runs out (0 = infinite)
 	 */
-	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true"))
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal", meta=(WorldContext="WorldContextObject", UnsafeDuringActorConstruction = "true"))
 	static UDecalComponent* SpawnDecalAtLocation(UObject* WorldContextObject, class UMaterialInterface* DecalMaterial, FVector DecalSize, FVector Location, FRotator Rotation = FRotator(-90, 0, 0), float LifeSpan = 0);
 
 	/** Spawns a decal attached to and following the specified component. Does not replicate.
@@ -460,14 +460,14 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	static float GetWorldDeltaSeconds(UObject* WorldContextObject);
 
 	/** Returns time in seconds since world was brought up for play, does NOT stop when game pauses, NOT dilated/clamped */
-	UFUNCTION(BlueprintPure, Category="Utilities|Time", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintPure, Category="Utilities|Time", meta=(WorldContext="WorldContextObject"))
 	static float GetRealTimeSeconds(UObject* WorldContextObject);
 	
 	/** Returns time in seconds since world was brought up for play, IS stopped when game pauses, NOT dilated/clamped. */
-	UFUNCTION(BlueprintPure, Category="Utilities|Time", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintPure, Category="Utilities|Time", meta=(WorldContext="WorldContextObject"))
 	static float GetAudioTimeSeconds(UObject* WorldContextObject);
 
-	UFUNCTION(BlueprintPure, Category="Utilities|Time", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintPure, Category="Utilities|Time", meta=(WorldContext="WorldContextObject"))
 	static void GetAccurateRealTime(UObject* WorldContextObject, int32& Seconds, float& PartialSeconds);
 
 	/** DVRStreaming API */
@@ -498,18 +498,18 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param bDrawDebug		When true, a debug arc is drawn (red for an invalid arc, green for a valid arc)
 	 * @return					Returns false if there is no valid solution or the valid solutions are blocked.  Returns true otherwise.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game|Components|ProjectileMovement", FriendlyName="SuggestProjectileVelocity", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category="Game|Components|ProjectileMovement", FriendlyName="SuggestProjectileVelocity", meta=(WorldContext="WorldContextObject"))
 	static bool BlueprintSuggestProjectileVelocity(UObject* WorldContextObject, FVector& TossVelocity, FVector StartLocation, FVector EndLocation, float LaunchSpeed, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, float CollisionRadius, bool bFavorHighArc, bool bDrawDebug);
 
 	/** Native version, has more options than the Blueprint version. */
 	static bool SuggestProjectileVelocity(UObject* WorldContextObject, FVector& TossVelocity, FVector StartLocation, FVector EndLocation, float TossSpeed, bool bHighArc = false, float CollisionRadius = 0.f, float OverrideGravityZ = 0, ESuggestProjVelocityTraceOption::Type TraceOption = ESuggestProjVelocityTraceOption::TraceFullPath, const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, const TArray<AActor*>& ActorsToIgnore = TArray<AActor*>(), bool bDrawDebug = false);
 
 	/** Returns world origin current location */
-	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject") )
+	UFUNCTION(BlueprintPure, Category="Game", meta=(WorldContext="WorldContextObject") )
 	static FIntVector GetWorldOriginLocation(UObject* WorldContextObject);
 	
 	/** Requests a new location for a world origin */
-	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(WorldContext="WorldContextObject"))
 	static void SetWorldOriginLocation(UObject* WorldContextObject, FIntVector NewLocation);
 };
 

@@ -200,24 +200,24 @@ public:
 	// Kismet functions
 	//----------------------------------------------------------------------//
 	/** Project a point onto the NavigationData */
-	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
+	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 	
-	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
+	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static FVector GetRandomPoint(UObject* WorldContext, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
-	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
+	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static FVector GetRandomPointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Potentially expensive. Use with caution. Consider using UPathFollowingComponent::GetRemainingPathCost instead */
-	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
+	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static ENavigationQueryResult::Type GetPathCost(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathCost, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Potentially expensive. Use with caution */
-	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
+	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static ENavigationQueryResult::Type GetPathLength(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathLength, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
-	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
+	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static bool IsNavigationBeingBuilt(UObject* WorldContext);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
@@ -241,7 +241,7 @@ public:
 	 *	@param Querier if not passed default navigation data will be used
 	 *	@param HitLocation if line was obstructed this will be set to hit location. Otherwise it contains SegmentEnd
 	 *	@return true if line from RayStart to RayEnd was obstructed. Also, true when no navigation data present */
-	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ))
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(WorldContext="WorldContext" ))
 	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, AController* Querier = NULL);
 
 	/** delegate type for events that dirty the navigation data ( Params: const FBox& DirtyBounds ) */

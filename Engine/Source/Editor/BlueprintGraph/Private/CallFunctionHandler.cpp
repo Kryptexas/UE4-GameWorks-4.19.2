@@ -512,14 +512,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			FString const DefaltToSelfPinName = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 			AutoCreateRefTermPinNames.Remove(DefaltToSelfPinName);
 
-			if (Context.Blueprint->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
-			{
-				RequiresSetValue.Add(DefaltToSelfPinName);
-			}
-			else
-			{
-				DefaultToSelfParamNames.Add(DefaltToSelfPinName);
-			}
+			DefaultToSelfParamNames.Add(DefaltToSelfPinName);
 		}
 		if (Function->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 		{
