@@ -160,7 +160,17 @@ void UMediaSoundWave::InitializeTrack( )
 
 		if (Player .IsValid())
 		{
-			AudioTrack = Player ->GetTrackSafe(AudioTrackIndex, EMediaTrackTypes::Audio);
+			AudioTrack = Player ->GetTrack(AudioTrackIndex, EMediaTrackTypes::Audio);
+
+			if (!AudioTrack.IsValid())
+			{
+				AudioTrack = Player->GetFirstTrack(EMediaTrackTypes::Audio);
+
+				if (AudioTrack.IsValid())
+				{
+					AudioTrackIndex = AudioTrack->GetIndex();
+				}
+			}
 		}
 	}
 

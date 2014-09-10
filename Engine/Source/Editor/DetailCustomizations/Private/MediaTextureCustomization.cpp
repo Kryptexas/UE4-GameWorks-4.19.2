@@ -140,7 +140,7 @@ FText FMediaTextureCustomization::HandleVideoTrackComboButtonText( ) const
 		return LOCTEXT("NoMediaLoaded", "No media loaded");
 	}
 
-	IMediaTrackPtr Track = Player->GetTrackSafe(VideoTrackIndex, EMediaTrackTypes::Video);
+	IMediaTrackPtr Track = Player->GetTrack(VideoTrackIndex, EMediaTrackTypes::Video);
 
 	// generate track name string
 	if (Track.IsValid())

@@ -195,7 +195,17 @@ void UMediaTexture::InitializeTrack( )
 
 		if (Player.IsValid())
 		{
-			VideoTrack = Player->GetTrackSafe(VideoTrackIndex, EMediaTrackTypes::Video);
+			VideoTrack = Player->GetTrack(VideoTrackIndex, EMediaTrackTypes::Video);
+
+			if (!VideoTrack.IsValid())
+			{
+				VideoTrack = Player->GetFirstTrack(EMediaTrackTypes::Video);
+
+				if (VideoTrack.IsValid())
+				{
+					VideoTrackIndex = VideoTrack->GetIndex();
+				}
+			}
 		}
 	}
 

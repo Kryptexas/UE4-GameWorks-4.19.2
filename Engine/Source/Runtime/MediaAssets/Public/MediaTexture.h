@@ -119,10 +119,10 @@ protected:
 
 protected:
 
-	/**
-	 * Initializes the video track.
-	 */
+	/** Initializes the video track. */
 	void InitializeTrack( );
+
+	void PickDefaultTrack( );
 
 private:
 

@@ -81,6 +81,7 @@ public:
 	 * Gets access to the media's audio, video and other tracks.
 	 *
 	 * @return Media tracks interface.
+	 * @see GetFirstTrack, GetTrack
 	 */
 	virtual const TArray<IMediaTrackRef>& GetTracks( ) const = 0;
 
@@ -183,13 +184,34 @@ public:
 public:
 
 	/**
-	 * Attempts to get the media track with the specified index and type.
+	 * Gets the first media track matching the specified type.
+	 *
+	 * @param TrackType The expected type of the track, i.e. audio or video.
+	 * @return The first matching track, nullptr otherwise.
+	 * @see GetTrack, GetTracks
+	 */
+	IMediaTrackPtr GetFirstTrack( EMediaTrackTypes TrackType )
+	{
+		for (const IMediaTrackRef& Track : GetTracks())
+		{
+			if (Track->GetType() == TrackType)
+			{
+				return Track;
+			}
+		}
+
+		return nullptr;
+	}
+
+	/**
+	 * Gets the media track with the specified index and type.
 	 *
 	 * @param TrackIndex The index of the track to get.
 	 * @param TrackType The expected type of the track, i.e. audio or video.
 	 * @return The track if it exists, nullptr otherwise.
+	 * @see GetFirstTrack, GetTracks
 	 */
-	IMediaTrackPtr GetTrackSafe( int32 TrackIndex, EMediaTrackTypes TrackType )
+	IMediaTrackPtr GetTrack( int32 TrackIndex, EMediaTrackTypes TrackType )
 	{
 		if (GetTracks().IsValidIndex(TrackIndex))
 		{
