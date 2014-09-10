@@ -5,7 +5,6 @@
 #if WITH_EDITOR
 #include "Components/MaterialBillboardComponent.h"
 #include "IDocumentation.h"
-#include "Dialogs.h"
 #endif
 
 ADocumentationActor::ADocumentationActor(const class FPostConstructInitializeProperties& PCIP)
