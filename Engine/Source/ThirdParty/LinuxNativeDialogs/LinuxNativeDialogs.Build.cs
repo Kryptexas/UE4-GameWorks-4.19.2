@@ -13,9 +13,11 @@ public class LinuxNativeDialogs : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            		PublicLibraryPaths.Add(LNDLibPath + "Linux/" + Target.Architecture);
+			string CrossCompilingDir = (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux) ? "/NotForLicensees" : "";
+
+            PublicLibraryPaths.Add(LNDLibPath + "Linux/" + Target.Architecture + CrossCompilingDir);
 			PublicIncludePaths.Add(LNDPath + "include/");
-            		PublicAdditionalLibraries.Add("LND");
+			PublicAdditionalLibraries.Add("LND");
 		}
 	}
 }

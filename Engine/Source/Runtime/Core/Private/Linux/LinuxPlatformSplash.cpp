@@ -11,9 +11,11 @@
 
 #if WITH_EDITOR
 
+#include <GL/glcorearb.h>
+#include <GL/glext.h>
+#include "SDL.h"
 #include "SDL_thread.h"
 #include "SDL_timer.h"
-#include "SDL_opengl.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -68,6 +70,56 @@ static unsigned char *ScratchSpace = nullptr;
 static int32 ThreadState = 0;
 static int32 SplashBPP = 0;
 
+//////////////////////////////////
+// the below GL subset is a hack, as in general using GL for that
+
+// subset of GL functions
+/** List all OpenGL entry points used by Unreal. */
+#define ENUM_GL_ENTRYPOINTS(EnumMacro) \
+	EnumMacro(PFNGLBINDTEXTUREPROC, glBindTexture) \
+	EnumMacro(PFNGLTEXIMAGE2DPROC, glTexImage2D) \
+	EnumMacro(PFNGLGENTEXTURESPROC, glGenTextures) \
+	EnumMacro(PFNGLTEXPARAMETERIPROC, glTexParameteri)
+
+#define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
+ENUM_GL_ENTRYPOINTS(DEFINE_GL_ENTRYPOINTS);
+
+// subset 
+#if !defined (GL_QUADS)
+	#define GL_QUADS                                0x0007
+#endif // GL_QUADS
+
+/* Matrix Mode */
+#if !defined (GL_MATRIX_MODE)
+	#define GL_MATRIX_MODE                          0x0BA0
+#endif // GL_MATRIX_MODE
+
+#if !defined (GL_MODELVIEW)
+	#define GL_MODELVIEW                            0x1700
+#endif // GL_MODELVIEW
+
+#if !defined (GL_PROJECTION)
+	#define GL_PROJECTION                           0x1701
+#endif // GL_PROJECTION
+
+#if !defined (GL_TEXTURE)
+	#define GL_TEXTURE                              0x1702
+#endif // GL_TEXTURE
+
+extern "C"
+{
+	GLAPI void glMatrixMode(GLenum mode);
+	GLAPI void glLoadIdentity(void);
+	GLAPI void glDisable(GLenum cap);
+	GLAPI void glEnable(GLenum cap);
+	GLAPI void glBegin(GLenum mode);
+	GLAPI void glEnd(void);
+	GLAPI void glVertex2i(GLint x, GLint y);
+	GLAPI void glTexCoord2i(GLint s, GLint t);
+};
+
+//////////////////////////////////
+
 //---------------------------------------------------------
 static int32 OpenFonts ( )
 {
@@ -77,7 +129,7 @@ static int32 OpenFonts ( )
 	
 	if (FT_Init_FreeType(&FontLibrary))
 	{
-		UE_LOG(LogHAL, Error, TEXT("*** Unable to initialize trutype font library."));		
+		UE_LOG(LogHAL, Error, TEXT("*** Unable to initialize font library."));		
 		return -1;
 	}
 	
@@ -354,6 +406,10 @@ static int StartSplashScreenThread(void *ptr)
 		UE_LOG(LogHAL, Error, TEXT("Splash screen SDL_GL_CreateContext failed: %s"), UTF8_TO_TCHAR(SDL_GetError()));
 		return -1;		
 	}
+
+	// Initialize all entry points required by Unreal.
+	#define GET_GL_ENTRYPOINTS(Type,Func) Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
+	ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 
 	// set up viewport
 	glMatrixMode(GL_MODELVIEW);

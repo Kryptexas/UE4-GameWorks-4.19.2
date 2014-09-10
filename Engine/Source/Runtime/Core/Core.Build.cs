@@ -121,11 +121,12 @@ public class Core : ModuleRules
 				"SDL2"
                 );
 
-            // We need FreeType2 for the Splash, but only in the Editor
+            // We need FreeType2 and GL for the Splash, but only in the Editor
             if (Target.Type == TargetRules.TargetType.Editor)
             {
                 AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
-            }
+				AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+			}
 
             // add steam controller dependency for game and client only
             if (UEBuildConfiguration.bCompileAgainstEngine == true && 
