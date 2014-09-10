@@ -554,7 +554,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	TSet<FString> PinsToHide;
 	FBlueprintEditorUtils::GetHiddenPinsForFunction(BP, Function, PinsToHide);
 
-	const bool bShowHiddenSelfPins = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins));
+	const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
 
 	// Create the inputs and outputs
 	bool bAllPinsGood = true;
@@ -592,7 +592,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 				FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 				bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
 
-				if (!bShowHiddenSelfPins || !bIsSelfPin)
+				if (!bShowWorldContextPin || !bIsSelfPin)
 				{
 					Pin->bHidden = true;
 					K2Schema->SetPinDefaultValueBasedOnType(Pin);
@@ -1078,7 +1078,7 @@ void UK2Node_CallFunction::PostPasteNode()
 		TSet<FString> PinsToHide;
 		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetBlueprint(), Function, PinsToHide);
 
-		const bool bShowHiddenSelfPins = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins));
+		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
 
 		FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 		FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
@@ -1089,7 +1089,7 @@ void UK2Node_CallFunction::PostPasteNode()
 			UEdGraphPin* Pin = Pins[PinIndex];
 
 			bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
-			bool bPinShouldBeHidden = PinsToHide.Contains(Pin->PinName) && (!bShowHiddenSelfPins || !bIsSelfPin);
+			bool bPinShouldBeHidden = PinsToHide.Contains(Pin->PinName) && (!bShowWorldContextPin || !bIsSelfPin);
 
 			if (bPinShouldBeHidden && !Pin->bHidden)
 			{

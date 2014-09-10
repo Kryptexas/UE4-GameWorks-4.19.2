@@ -875,9 +875,9 @@ namespace UM
 		/// [ClassMetadata] Used by BlueprintFunctionLibrary classes to restrict the graphs the functions in the library can be used in to the classes specified.
 		RestrictedToClasses,
 
-		/// [ClassMetadata] Indicates that when placing blueprint nodes in graphs owned by this class that any hidden self pins (generally used to determine the world) should be visible because the self context of the class cannot
+		/// [ClassMetadata] Indicates that when placing blueprint nodes in graphs owned by this class that the hidden world context pin should be visible because the self context of the class cannot
 		///                 provide the world context and it must be wired in manually
-		ShowHiddenSelfPins,
+		ShowWorldContextPin,
 
 	};
 
@@ -1080,7 +1080,7 @@ namespace UM
 		/// [FunctionMetadata] For BlueprintCallable functions indicates that the function should be displayed the same as the implicit Make Struct nodes
 		NativeMakeFunc,
 
-		// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
+		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
 		UnsafeDuringActorConstruction,
 
 	};
