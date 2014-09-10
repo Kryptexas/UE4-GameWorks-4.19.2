@@ -580,6 +580,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 			ExistingClass->GetDefaultObject()->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
 			const FName OldClassRename = MakeUniqueObjectName(GetTransientPackage(), ExistingClass->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), *NameWithoutPrefix));
 			ExistingClass->Rename(*OldClassRename.ToString(), GetTransientPackage());
+			ExistingClass->SetFlags(RF_Transient);
 			ExistingClass->AddToRoot();
 			ClassInfo->OldField = ExistingClass;
 

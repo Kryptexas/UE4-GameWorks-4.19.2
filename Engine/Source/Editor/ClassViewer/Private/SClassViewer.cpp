@@ -1676,7 +1676,9 @@ void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOu
 		UClass* CurrentClass = *ClassIt;
 
 		// Ignore deprecated and temporary trash classes.
-		if (CurrentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) || FKismetEditorUtilities::IsClassABlueprintSkeleton(CurrentClass))
+		if (CurrentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) || 
+			FKismetEditorUtilities::IsClassABlueprintSkeleton(CurrentClass) ||
+			CurrentClass->HasAnyFlags(RF_Transient))
 		{
 			continue;
 		}

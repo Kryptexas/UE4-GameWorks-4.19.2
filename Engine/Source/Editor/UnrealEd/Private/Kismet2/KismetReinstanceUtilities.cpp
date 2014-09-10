@@ -68,6 +68,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Add the class to the root set, so that it doesn't get prematurely garbage collected
 		DuplicatedClass->AddToRoot();
 		ClassToReinstance->ClassFlags &= ~CLASS_NewerVersionExists;
+		InClassToReinstance->RemoveFromRoot();
 		GIsDuplicatingClassForReinstancing = false;
 
 		// Bind and link the duplicate class, so that it has the proper duplicate property offsets
