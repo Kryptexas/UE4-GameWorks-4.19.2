@@ -371,6 +371,11 @@ float4 CaptureProperties;
 float4x4 CaptureBoxTransform;
 float4 CaptureBoxScales;
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+TextureCubeArray ReflectionEnvironmentColorTextureArray;
+int CaptureArrayIndex;
+#endif
+
 /** Standard deferred shading implementation of reflection environment, used in feature level SM4 */
 void StandardDeferredReflectionPS(
 	float4 InScreenPosition : TEXCOORD0,
@@ -461,7 +466,12 @@ void StandardDeferredReflectionPS(
 		if (DistanceAlpha > 0)
 		{
 			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness);
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+			float4 Reflection = ReflectionEnvironmentColorTextureArray.SampleLevel(ReflectionEnvironmentColorSampler, float4(ProjectedCaptureVector, CaptureArrayIndex), AbsoluteSpecularMip);
+#else
 			float4 Reflection = TextureCubeSampleLevel(ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, ProjectedCaptureVector, AbsoluteSpecularMip);
+#endif
 
 			Reflection.rgb *= CaptureProperties.r;
 
