@@ -272,7 +272,7 @@ TSharedRef<SWidget> SDeleteAssetsDialog::BuildDeleteDialog()
 				.Padding( 3.0f )
 				[
 					SNew( STextBlock )
-					.Text( LOCTEXT( "AttemptingDelete", "Assets Referencing the Pending Deleted Assets" ) )
+					.Text( LOCTEXT( "AssetsReferencingPendingDeletedAssets", "Assets Referencing the Pending Deleted Assets" ) )
 					.Font( FEditorStyle::GetFontStyle( "BoldFont" ) )
 					.ShadowOffset( FVector2D( 1.0f, 1.0f ) )
 				]
@@ -549,7 +549,7 @@ TSharedRef<SWidget> SDeleteAssetsDialog::CreateThumbnailWidget()
 
 EVisibility SDeleteAssetsDialog::GetReferencesVisiblity() const
 {
-	return DeleteModel->IsAnythingReferencedInMemory() ? EVisibility::Visible : EVisibility::Collapsed;
+	return DeleteModel->IsAnythingReferencedInMemoryByNonUndo() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SDeleteAssetsDialog::GetUndoVisiblity() const
@@ -566,6 +566,12 @@ TSharedRef<ITableRow> SDeleteAssetsDialog::HandleGenerateAssetRow( TSharedPtr<FP
 FReply SDeleteAssetsDialog::Delete()
 {
 	ParentWindow.Get()->RequestDestroyWindow();
+
+	if (DeleteModel->IsAnythingReferencedInMemoryByUndo())
+	{
+		GEditor->Trans->Reset(LOCTEXT("DeleteSelectedItem", "Delete Selected Item"));
+	}
+
 	DeleteModel->DoDelete();
 
 	return FReply::Handled();
