@@ -2,6 +2,8 @@
 
 #pragma once
 
+class ADocumentationActor;
+
 class FDocumentationActorDetails : public IDetailCustomization
 {
 public:
@@ -13,7 +15,20 @@ public:
 	
 	/* Handler for clicking the help button */
 	FReply OnHelpButtonClicked();
+
+	/* Handler to get the text for the button */
+	FText OnGetButtonText() const;
+	
+	/* Handler to get the text for the button tooltip  */
+	FText FDocumentationActorDetails::OnGetButtonTooltipText() const;
+
+	/* Handler to determine if the button is enabled (link is valid)  */
+	bool IsButtonEnabled() const;
+
 private:
-	/* The documentation actor that we are showing in the details panel */
-	TWeakObjectPtr<class ADocumentationActor>	SelectedDocActor;
+	/* The first documentation actor that we are showing in the details panel */
+	TWeakObjectPtr<ADocumentationActor>	SelectedDocumentationActor;
+
+	/* Handle to the string property */
+	TSharedPtr<IPropertyHandle> PropertyHandle;
 };
