@@ -309,6 +309,9 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 	//checkSlow( Track->HasSection(Section) );
 	
 	Track->SetFlags( RF_Transactional );
+
+	FScopedTransaction DeleteSectionTransaction( NSLOCTEXT("Sequencer", "DeleteSection_Transaction", "Delete Section") );
+	
 	Track->Modify();
 
 	Track->RemoveSection(Section);
@@ -324,11 +327,15 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 
 void FSequencer::DeleteSelectedKeys()
 {
+	FScopedTransaction DeleteKeysTransaction( NSLOCTEXT("Sequencer", "DeleteSelectedKeys_Transaction", "Delete Selected Keys") );
+
 	TArray<FSelectedKey> SelectedKeysArray = SelectedKeys.Array();
 	for ( const FSelectedKey& Key : SelectedKeysArray )
 	{
 		if (Key.IsValid())
 		{
+			Key.Section->Modify();
+
 			Key.KeyArea->DeleteKey(Key.KeyHandle.GetValue());
 		}
 	}

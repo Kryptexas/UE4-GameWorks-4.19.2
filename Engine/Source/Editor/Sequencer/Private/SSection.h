@@ -70,10 +70,10 @@ private:
 	 * Determines the key that is under the mouse
 	 *
 	 * @param MousePosition		The current screen space position of the mouse
-	 * @param SectionGeometry	The geometry of the section
+	 * @param AllottedGeometry	The geometry of the mouse event
 	 * @return The key that is under the mouse.  Invalid if there is no key under the mouse
 	 */
-	FSelectedKey GetKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& SectionGeometry ) const;
+	FSelectedKey GetKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry ) const;
 
 	/**
 	 * Checks for user interaction (via the mouse) with the left and right edge of a section

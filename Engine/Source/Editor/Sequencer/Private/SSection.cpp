@@ -70,7 +70,7 @@ FGeometry SSection::GetKeyAreaGeometry( const struct FKeyAreaElement& KeyArea, c
 }
 
 
-FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& SectionGeometry ) const
+FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry ) const
 {
 	UMovieSceneSection& Section = *SectionInterface->GetSectionObject();
 
@@ -81,11 +81,14 @@ FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const F
 		TSharedRef<IKeyArea> KeyArea = Element.KeyAreaNode.GetKeyArea( SectionIndex ); 
 
 		// Compute the current key area geometry
-		FGeometry KeyAreaGeometry = GetKeyAreaGeometry( Element, SectionGeometry );
+		FGeometry KeyAreaGeometryPadded = GetKeyAreaGeometry( Element, AllottedGeometry );
 
 		// Is the key area under the mouse
-		if( KeyAreaGeometry.IsUnderLocation( MousePosition ) )
+		if( KeyAreaGeometryPadded.IsUnderLocation( MousePosition ) )
 		{
+			FGeometry SectionGeometry = AllottedGeometry.MakeChild(FVector2D(SequencerSectionConstants::SectionGripSize, 0), AllottedGeometry.GetDrawSize() - FVector2D(SequencerSectionConstants::SectionGripSize*2, 0.0f));
+			FGeometry KeyAreaGeometry = GetKeyAreaGeometry( Element, SectionGeometry );
+
 			FVector2D LocalSpaceMousePosition = KeyAreaGeometry.AbsoluteToLocal( MousePosition );
 
 			FTimeToPixel TimeToPixelConverter( KeyAreaGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
@@ -466,12 +469,12 @@ FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 
 	bDragging = false;
 
-	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 		// Check for clicking on a key and mark it as the pressed key for drag detection (if necessary) later
 		PressedKey = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
 
-		if( !PressedKey.IsValid() )
+		if( !PressedKey.IsValid() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
 			CheckForEdgeInteraction( MouseEvent, MyGeometry );
 		}
@@ -513,7 +516,7 @@ FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 	}
 	else
 	{
-		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && HasMouseCapture() && MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
+		if( ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton ) && HasMouseCapture() && MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
 		{
 			HandleSelection( MyGeometry, MouseEvent );
 		}
@@ -676,7 +679,7 @@ void SSection::HandleSelection( const FGeometry& MyGeometry, const FPointerEvent
 		bool bSelectDueToDrag = false;
 		HandleKeySelection( Key, MouseEvent, bSelectDueToDrag );
 	}
-	else
+	else if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton ) // Only select anything but keys on left mouse button
 	{
 		HandleSectionSelection( MouseEvent );
 	}

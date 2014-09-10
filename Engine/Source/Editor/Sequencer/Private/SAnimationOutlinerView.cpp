@@ -23,7 +23,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 
 	// Choose the font.  If the node is a root node, we show a larger font for it.
 	FSlateFontInfo NodeFont = Node->GetParent().IsValid() ? 
-		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.NormalFont") :
+		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont") :
 		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.BoldFont");
 
 	TSharedRef<SWidget> TextWidget = 
