@@ -12,6 +12,7 @@ UThrobber::UThrobber(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SThrobber::FArguments DefaultArgs;
+	Image = *DefaultArgs._PieceImage;
 
 	NumberOfPieces = DefaultArgs._NumPieces;
 
@@ -20,12 +21,19 @@ UThrobber::UThrobber(const FPostConstructInitializeProperties& PCIP)
 	bAnimateOpacity = (DefaultArgs._Animate & SThrobber::Opacity) != 0;
 }
 
+void UThrobber::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyThrobber.Reset();
+}
+
 TSharedRef<SWidget> UThrobber::RebuildWidget()
 {
 	SThrobber::FArguments DefaultArgs;
 
 	MyThrobber = SNew(SThrobber)
-		.PieceImage(GetPieceBrush())
+		.PieceImage(&Image)
 		.NumPieces(NumberOfPieces)
 		.Animate(GetAnimation());
 
@@ -36,7 +44,6 @@ void UThrobber::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	MyThrobber->SetPieceImage(GetPieceBrush());
 	MyThrobber->SetNumPieces(NumberOfPieces);
 	MyThrobber->SetAnimate(GetAnimation());
 }
@@ -50,16 +57,6 @@ SThrobber::EAnimation UThrobber::GetAnimation() const
 	return static_cast<SThrobber::EAnimation>(AnimationParams);
 }
 
-const FSlateBrush* UThrobber::GetPieceBrush() const
-{
-	if (PieceImage == NULL)
-	{
-		SThrobber::FArguments DefaultArgs;
-		return DefaultArgs._PieceImage;
-	}
-	return &PieceImage->Brush;
-}
-
 void UThrobber::SetNumberOfPieces(int32 InNumberOfPieces)
 {
 	NumberOfPieces = InNumberOfPieces;
@@ -69,7 +66,7 @@ void UThrobber::SetNumberOfPieces(int32 InNumberOfPieces)
 	}
 }
 
-void UThrobber:: SetAnimateHorizontally(bool bInAnimateHorizontally)
+void UThrobber::SetAnimateHorizontally(bool bInAnimateHorizontally)
 {
 	bAnimateHorizontally = bInAnimateHorizontally;
 	if (MyThrobber.IsValid())
@@ -78,7 +75,7 @@ void UThrobber:: SetAnimateHorizontally(bool bInAnimateHorizontally)
 	}
 }
 
-void UThrobber:: SetAnimateVertically(bool bInAnimateVertically)
+void UThrobber::SetAnimateVertically(bool bInAnimateVertically)
 {
 	bAnimateVertically = bInAnimateVertically;
 	if (MyThrobber.IsValid())
@@ -96,12 +93,17 @@ void UThrobber:: SetAnimateOpacity(bool bInAnimateOpacity)
 	}
 }
 
-void UThrobber::SetPieceImage(USlateBrushAsset* InPieceImage)
+void UThrobber::PostLoad()
 {
-	PieceImage = InPieceImage;
-	if (MyThrobber.IsValid())
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
 	{
-		MyThrobber->SetPieceImage(GetPieceBrush());
+		if ( PieceImage_DEPRECATED != nullptr )
+		{
+			Image = PieceImage_DEPRECATED->Brush;
+			PieceImage_DEPRECATED = nullptr;
+		}
 	}
 }
 

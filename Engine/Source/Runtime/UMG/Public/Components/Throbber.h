@@ -30,13 +30,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetAnimateOpacity(bool bInAnimateOpacity);
 
-	/** Sets the image to use for each segment of the throbber. */
-	UFUNCTION(BlueprintCallable, Category = "Appearance")
-	void SetPieceImage(USlateBrushAsset* InPieceImage);
-
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -62,8 +66,11 @@ protected:
 	bool bAnimateOpacity;
 
 	/** Image to use for each segment of the throbber */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* PieceImage;
+	UPROPERTY()
+	USlateBrushAsset* PieceImage_DEPRECATED;
+
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FSlateBrush Image;
 
 protected:
 	// UWidget interface
@@ -74,9 +81,6 @@ private:
 
 	/** Gets the combined value of the animation properties as a single SThrobber::EAnimation value. */
 	SThrobber::EAnimation GetAnimation() const;
-
-	/** Gets the brush which should be used to draw the trobber pieces. */
-	const FSlateBrush* GetPieceBrush() const;
 
 private:
 	/** The Throbber widget managed by this object. */

@@ -12,6 +12,7 @@ UCircularThrobber::UCircularThrobber(const FPostConstructInitializeProperties& P
 	: Super(PCIP)
 {
 	SCircularThrobber::FArguments DefaultArgs;
+	Image = *DefaultArgs._PieceImage;
 
 	NumberOfPieces = DefaultArgs._NumPieces;
 	Period = DefaultArgs._Period;
@@ -30,7 +31,7 @@ TSharedRef<SWidget> UCircularThrobber::RebuildWidget()
 	SCircularThrobber::FArguments DefaultArgs;
 
 	MyCircularThrobber = SNew(SCircularThrobber)
-		.PieceImage(GetPieceBrush())
+		.PieceImage(&Image)
 		.NumPieces(NumberOfPieces)
 		.Period(Period)
 		.Radius(Radius);
@@ -42,20 +43,9 @@ void UCircularThrobber::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	MyCircularThrobber->SetPieceImage(GetPieceBrush());
 	MyCircularThrobber->SetNumPieces(NumberOfPieces);
 	MyCircularThrobber->SetPeriod(Period);
 	MyCircularThrobber->SetRadius(Radius);
-}
-
-const FSlateBrush* UCircularThrobber::GetPieceBrush() const
-{
-	if (PieceImage == NULL)
-	{
-		SCircularThrobber::FArguments DefaultArgs;
-		return DefaultArgs._PieceImage;
-	}
-	return &PieceImage->Brush;
 }
 
 void UCircularThrobber::SetNumberOfPieces(int32 InNumberOfPieces)
@@ -85,12 +75,17 @@ void UCircularThrobber::SetRadius(float InRadius)
 	}
 }
 
-void UCircularThrobber::SetPieceImage(USlateBrushAsset* InPieceImage)
+void UCircularThrobber::PostLoad()
 {
-	PieceImage = InPieceImage;
-	if (MyCircularThrobber.IsValid())
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
 	{
-		MyCircularThrobber->SetPieceImage(GetPieceBrush());
+		if ( PieceImage_DEPRECATED != nullptr )
+		{
+			Image = PieceImage_DEPRECATED->Brush;
+			PieceImage_DEPRECATED = nullptr;
+		}
 	}
 }
 

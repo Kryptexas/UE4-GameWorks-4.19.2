@@ -26,15 +26,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetRadius(float InRadius);
 
-	/** Sets image to use for each segment of the throbber. */
-	UFUNCTION(BlueprintCallable, Category = "Appearance")
-	void SetPieceImage(USlateBrushAsset* InPieceImage);
-
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
+	// UVisual interface
 	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -56,18 +58,16 @@ protected:
 	float Radius;
 
 	/** Image to use for each segment of the throbber */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* PieceImage;
+	UPROPERTY()
+	USlateBrushAsset* PieceImage_DEPRECATED;
+
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FSlateBrush Image;
 
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
-
-private:
-
-	/** Gets the brush used to draw the pieces of the throbber. */
-	const FSlateBrush* GetPieceBrush() const;
 
 private:
 	/** The CircularThrobber widget managed by this object. */
