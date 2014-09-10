@@ -1042,13 +1042,13 @@ FBlueprintActionInfo::FBlueprintActionInfo(UObject const* ActionOwnerIn, UBluepr
 //------------------------------------------------------------------------------
 FBlueprintActionInfo::FBlueprintActionInfo(FBlueprintActionInfo const& Rhs, IBlueprintNodeBinder::FBindingSet const& InBindings)
 	: NodeSpawner(Rhs.NodeSpawner)
-	, Bindings(InBindings)
 	, ActionOwner(Rhs.ActionOwner)
 	, CacheFlags(Rhs.CacheFlags)
 	, CachedOwnerClass(Rhs.CachedOwnerClass)
 	, CachedActionField(Rhs.CachedActionField)
 	, CachedActionProperty(Rhs.CachedActionProperty)
 	, CachedActionFunction(Rhs.CachedActionFunction)
+	, Bindings(InBindings)
 {
 	checkSlow(NodeSpawner != nullptr);
 }
