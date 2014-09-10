@@ -1839,10 +1839,12 @@ protected:
 	 */
 	void Broadcast( FUNC_PARAM_LIST ) const
 	{
-		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+		bool NeedsCompaction = false;
 
 		LockInvocationList();
 		{
+			const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+
 			// call bound functions in reverse order, so we ignore any instances that may be added by callees
 			for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 			{
@@ -1851,16 +1853,16 @@ protected:
 
 				if ((DelegateInstanceInterface == nullptr) || !DelegateInstanceInterface->ExecuteIfSafe(FUNC_PARAM_PASSTHRU))
 				{
-					const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->RequestCompaction();
+					NeedsCompaction = true;
 				}
 			}
 		}
 		UnlockInvocationList();
 
-		// NOTE: The implementation of multicast delegates relies on the assumption
-		// that this is the only place where invocation list compaction takes place.
-
-		const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->CompactInvocationList();
+		if (NeedsCompaction)
+		{
+			const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->CompactInvocationList();
+		}
 	}
 
 	/**
@@ -1894,6 +1896,8 @@ protected:
 				break;	// no need to continue, as we never allow the same delegate to be bound twice
 			}
 		}
+
+		const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->CompactInvocationList();
 	}
 };
 
