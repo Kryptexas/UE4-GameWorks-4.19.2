@@ -189,7 +189,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 			// Make sure that nodes are up to date, so that we get any updated blueprint signatures
 			FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(GeneratingBP);
 
-			if (GeneratingBP->Status != BS_Error)
+			if ((GeneratingBP->Status != BS_Error) && (GeneratingBP->BlueprintType != EBlueprintType::BPTYPE_MacroLibrary))
 			{
 				FKismetEditorUtilities::RecompileBlueprintBytecode(GeneratingBP, ObjLoaded);
 			}
