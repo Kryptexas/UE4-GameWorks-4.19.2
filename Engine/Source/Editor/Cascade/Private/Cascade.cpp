@@ -5062,7 +5062,7 @@ void UCascadeParticleSystemComponent::CascadeTickComponent(float DeltaTime, enum
 
 const static FName CascadeParticleSystemComponentParticleLineCheckName(TEXT("ParticleLineCheck"));
 
-bool UCascadeParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& Extent)
+bool UCascadeParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& Extent, const FCollisionObjectQueryParams&)
 {
 	if (bWarmingUp == false)
 	{
