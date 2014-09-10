@@ -3,7 +3,7 @@
 #include "SlateViewerApp.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "STestSuite.h"
-
+#include "ISourceCodeAccessModule.h"
 
 IMPLEMENT_APPLICATION(SlateViewer, "SlateViewer");
 
@@ -21,6 +21,18 @@ void RunSlateViewer( const TCHAR* CommandLine )
 
 	// crank up a normal Slate application using the platform's standalone renderer
 	FSlateApplication::InitializeAsStandaloneApplication(GetStandardStandaloneRenderer());
+
+	// Load the source code access module
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>( FName( "SourceCodeAccess" ) );
+	
+	// Manually load in the source code access plugins, as standalone programs don't currently support plugins.
+#if PLATFORM_MAC
+	IModuleInterface& XCodeSourceCodeAccessModule = FModuleManager::LoadModuleChecked<IModuleInterface>( FName( "XCodeSourceCodeAccess" ) );
+	SourceCodeAccessModule.SetAccessor(FName("XCodeSourceCodeAccess"));
+#elif PLATFORM_WINDOWS
+	IModuleInterface& VisualStudioSourceCodeAccessModule = FModuleManager::LoadModuleChecked<IModuleInterface>( FName( "VisualStudioSourceCodeAccess" ) );
+	SourceCodeAccessModule.SetAccessor(FName("VisualStudioSourceCodeAccess"));
+#endif
 
 	// set the application name
 	FGlobalTabmanager::Get()->SetApplicationTitle(NSLOCTEXT("SlateViewer", "AppTitle", "Slate Viewer"));

@@ -12,9 +12,13 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"SourceCodeAccess",
 					"DesktopPlatform",
-					"HotReload"
 				}
 			);
+
+			if (UEBuildConfiguration.bBuildEditor)
+			{
+				PrivateDependencyModuleNames.Add("HotReload");
+			}
 
 			if (WindowsPlatform.bHasVisualStudioDTE)
 			{

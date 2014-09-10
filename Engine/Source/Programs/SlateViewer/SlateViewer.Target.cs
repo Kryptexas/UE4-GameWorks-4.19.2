@@ -57,7 +57,9 @@ public class SlateViewerTarget : TargetRules
 
 		// SlateViewer doesn't ever compile with the engine linked in
 		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+
+		// We need CoreUObject compiled in as the source code access module requires it
+		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 
 		// SlateViewer.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.

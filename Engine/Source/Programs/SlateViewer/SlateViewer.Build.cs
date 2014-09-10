@@ -17,8 +17,18 @@ public class SlateViewer : ModuleRules
 				"SlateCore",
 				"SlateReflector",
 				"StandaloneRenderer",
+				"SourceCodeAccess",
 			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PrivateDependencyModuleNames.Add("XCodeSourceCodeAccess");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PrivateDependencyModuleNames.Add("VisualStudioSourceCodeAccess");
+		}
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
 
