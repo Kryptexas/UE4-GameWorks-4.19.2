@@ -7,7 +7,7 @@
 /**
  * SProgressBar Fill Type 
  */
-UENUM()
+UENUM(BlueprintType)
 namespace EProgressBarFillType
 {
 	enum Type
@@ -18,6 +18,10 @@ namespace EProgressBarFillType
 		RightToLeft,
 		// will fill up from the center to the outer edges
 		FillFromCenter,
+		// will fill up from the top to the the bottom
+		TopToBottom,
+		// will fill up from the bottom to the the top
+		BottomToTop,
 	};
 }
 

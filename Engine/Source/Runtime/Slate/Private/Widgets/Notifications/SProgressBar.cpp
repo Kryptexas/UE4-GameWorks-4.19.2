@@ -113,20 +113,25 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 	
 	if( ProgressFraction.IsSet() )
 	{
+		const float ClampedFraction = FMath::Clamp(ProgressFraction.GetValue(), 0.0f, 1.0f);
+
 		switch (BarFillType)
 		{
 			case EProgressBarFillType::RightToLeft:
 			{
-				const float ClampedFraction = FMath::Clamp( ProgressFraction.GetValue(), 0.0f, 1.0f  );
+				const float LeftOffset = ForegroundClippingRect.GetSize().X * (1.0 - ClampedFraction);
+				FSlateRect ClippingArea = ForegroundClippingRect;
+				ClippingArea.Left += LeftOffset;
+
 				// Draw Fill
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					RetLayerId++,
 					AllottedGeometry.ToPaintGeometry(
-						FVector2D( AllottedGeometry.Size.X - (AllottedGeometry.Size.X * ( ClampedFraction )) , 0.0f),
-						FVector2D( AllottedGeometry.Size.X * ( ClampedFraction ) , AllottedGeometry.Size.Y )),
+						FVector2D::ZeroVector,
+						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
 					CurrentFillImage,
-					ForegroundClippingRect,
+					ClippingArea,
 					DrawEffects,
 					FillColorAndOpacitySRGB
 					);
@@ -134,7 +139,6 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 			}
 			case EProgressBarFillType::FillFromCenter:
 			{
-				const float ClampedFraction = FMath::Clamp( ProgressFraction.GetValue(), 0.0f, 1.0f  );
 				// Draw Fill
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
@@ -149,26 +153,68 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 					);
 				break;
 			}
-			case EProgressBarFillType::LeftToRight:
-			default:
+			case EProgressBarFillType::TopToBottom:
 			{
-				const float ClampedFraction = FMath::Clamp( ProgressFraction.GetValue(), 0.0f, 1.0f  );
+				const float BottomOffset = ForegroundClippingRect.GetSize().Y * ( 1.0 - ClampedFraction );
+				FSlateRect ClippingArea = ForegroundClippingRect;
+				ClippingArea.Bottom -= BottomOffset;
+
 				// Draw Fill
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					RetLayerId++,
 					AllottedGeometry.ToPaintGeometry(
 						FVector2D::ZeroVector,
-						FVector2D( AllottedGeometry.Size.X * ( ClampedFraction ) , AllottedGeometry.Size.Y )),
+						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
 					CurrentFillImage,
-					ForegroundClippingRect,
+					ClippingArea,
+					DrawEffects,
+					FillColorAndOpacitySRGB
+					);
+				break;
+			}
+			case EProgressBarFillType::BottomToTop:
+			{
+				const float TopOffset = ForegroundClippingRect.GetSize().Y * ( 1.0 - ClampedFraction );
+				FSlateRect ClippingArea = ForegroundClippingRect;
+				ClippingArea.Top += TopOffset;
+
+				// Draw Fill
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					RetLayerId++,
+					AllottedGeometry.ToPaintGeometry(
+						FVector2D::ZeroVector,
+						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
+					CurrentFillImage,
+					ClippingArea,
+					DrawEffects,
+					FillColorAndOpacitySRGB
+					);
+				break;
+			}
+			case EProgressBarFillType::LeftToRight:
+			default:
+			{
+				const float RightOffset = ForegroundClippingRect.GetSize().X * ( 1.0 - ClampedFraction );
+				FSlateRect ClippingArea = ForegroundClippingRect;
+				ClippingArea.Right -= RightOffset;
+
+				// Draw Fill
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					RetLayerId++,
+					AllottedGeometry.ToPaintGeometry(
+						FVector2D::ZeroVector,
+						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
+					CurrentFillImage,
+					ClippingArea,
 					DrawEffects,
 					FillColorAndOpacitySRGB
 					);
 				break;
 			}
 		}
-		
 	}
 	else
 	{
