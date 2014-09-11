@@ -76,6 +76,9 @@ private:
 
 	virtual FSlateRect ComputeAreaBounds() const override;
 
+	/** Adds any pending selected widgets to the selection set */
+	void ResolvePendingSelectedWidgets();
+
 	/** Updates the designer to display the latest preview widget */
 	void UpdatePreviewWidget();
 
@@ -181,8 +184,17 @@ private:
 	TArray< TWeakPtr<SWidget> > SelectedSlateWidgets;
 	TWeakPtr<SWidget> SelectedSlateWidget;
 
+	/**
+	 * Holds onto a temporary widget that the user may be getting ready to select, or may just 
+	 * be the widget that got hit on the initial mouse down before moving the parent.
+	 */
+	FWidgetReference PendingSelectedWidget;
+
 	/**  */
 	bool bMouseDown;
+
+	/**  */
+	FVector2D ScreenMouseDownLocation;
 
 	/** An existing widget is being moved in its current container, or in to a new container. */
 	bool bMovingExistingWidget;
