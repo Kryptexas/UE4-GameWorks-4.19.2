@@ -276,7 +276,21 @@ void UPaperSpriteComponent::SetSpriteColor(FLinearColor NewColor)
 
 FLinearColor UPaperSpriteComponent::GetWireframeColor() const
 {
-	return FLinearColor::Yellow;
+	if (Mobility == EComponentMobility::Static)
+	{
+		return FColor(0, 255, 255, 255);
+	}
+	else
+	{
+		if (BodyInstance.bSimulatePhysics)
+		{
+			return FColor(0, 255, 128, 255);
+		}
+		else
+		{
+			return FColor(255, 0, 255, 255);
+		}
+	}
 }
 
 const UObject* UPaperSpriteComponent::AdditionalStatObject() const

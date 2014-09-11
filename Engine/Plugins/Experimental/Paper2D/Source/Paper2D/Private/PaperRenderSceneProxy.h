@@ -115,7 +115,7 @@ protected:
 	void GetBatchMesh(const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor, class UMaterialInterface* BatchMaterial, const TArray<FSpriteDrawCallRecord>& Batch, int32 ViewIndex, FMeshElementCollector& Collector) const;
 	void GetNewBatchMeshes(const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor, int32 ViewIndex, FMeshElementCollector& Collector) const;
 
-	bool IsCollisionView(const FSceneView* View, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const;
+	bool IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const;
 
 	friend class FPaperBatchSceneProxy;
 
@@ -129,6 +129,7 @@ protected:
 	class UMaterialInterface* Material;
 	FVector Origin;
 	AActor* Owner;
+	UBodySetup* BodySetup;
 
 	bool bCastShadow;
 
