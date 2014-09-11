@@ -1114,13 +1114,13 @@ private:
 // FSlateBrushStructCustomization
 ////////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<IPropertyTypeCustomization> FSlateBrushStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FSlateBrushStructCustomization::MakeInstance(bool bIncludePreview) 
 {
-	return MakeShareable( new FSlateBrushStructCustomization() );
+	return MakeShareable( new FSlateBrushStructCustomization(bIncludePreview) );
 }
 
-FSlateBrushStructCustomization::FSlateBrushStructCustomization()
-	: bSlimView(true)
+FSlateBrushStructCustomization::FSlateBrushStructCustomization(bool bIncludePreview)
+	: bIncludePreview(bIncludePreview)
 {
 }
 
@@ -1173,7 +1173,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetMarginPropertyVisibility ) ) );
 
 	// Don't show the preview area when in slim view mode.
-	if ( !bSlimView )
+	if ( bIncludePreview )
 	{
 		// Create the Slate Brush Preview widget and add the Preview group
 		TArray<void*> RawData;

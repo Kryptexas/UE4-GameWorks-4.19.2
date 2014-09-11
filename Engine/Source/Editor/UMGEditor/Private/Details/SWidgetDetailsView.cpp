@@ -10,6 +10,8 @@
 #include "Animation/UMGDetailKeyframeHandler.h"
 #include "EditorClassUtils.h"
 
+#include "Customizations/SlateBrushCustomization.h"
+
 #include "CanvasSlotCustomization.h"
 #include "HorizontalAlignmentCustomization.h"
 #include "VerticalAlignmentCustomization.h"
@@ -125,13 +127,12 @@ SWidgetDetailsView::~SWidgetDetailsView()
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("EHorizontalAlignment"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("EVerticalAlignment"), nullptr, PropertyView);
 	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("SlateChildSize"), nullptr, PropertyView);
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("SlateBrush"), nullptr, PropertyView);
 }
 
 void SWidgetDetailsView::RegisterCustomizations()
 {
 	PropertyView->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, BlueprintEditor.Pin().ToSharedRef(), BlueprintEditor.Pin()->GetBlueprintObj()));
-
-	//PropertyView->RegisterInstancedCustomPropertyLayout(FSlateBrush::StaticStruct()->StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance));
 
 	static FName PropertyEditor("PropertyEditor");
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
@@ -140,6 +141,7 @@ void SWidgetDetailsView::RegisterCustomizations()
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EHorizontalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FHorizontalAlignmentCustomization::MakeInstance), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EVerticalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVerticalAlignmentCustomization::MakeInstance), nullptr, PropertyView);
 	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateChildSize"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateChildSizeCustomization::MakeInstance), nullptr, PropertyView);
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateBrush"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance, false), nullptr, PropertyView);
 }
 
 void SWidgetDetailsView::OnEditorSelectionChanging()

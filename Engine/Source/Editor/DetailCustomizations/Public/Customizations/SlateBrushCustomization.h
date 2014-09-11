@@ -3,12 +3,12 @@
 #pragma once
 
 
-class FSlateBrushStructCustomization : public IPropertyTypeCustomization
+class DETAILCUSTOMIZATIONS_API FSlateBrushStructCustomization : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance(bool bIncludePreview);
 
-	FSlateBrushStructCustomization();
+	FSlateBrushStructCustomization(bool bIncludePreview);
 
 	/** IPropertyTypeCustomization interface */
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
@@ -32,7 +32,7 @@ private:
 	/** Error text to display if the resource object is not valid*/
 	TSharedPtr<SErrorText> ResourceErrorText;
 
-	/**  */
-	bool bSlimView;
+	/** Should we show the preview portion of the customization? */
+	bool bIncludePreview;
 };
 
