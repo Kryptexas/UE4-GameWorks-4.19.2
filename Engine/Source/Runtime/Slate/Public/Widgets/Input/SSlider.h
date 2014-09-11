@@ -68,20 +68,20 @@ public:
 
 	/** See the Value attribute */
 	void SetValue(const TAttribute<float>& InValueAttribute);
-    
-    /** See the IndentHandle attribute */
+	
+	/** See the IndentHandle attribute */
 	void SetIndentHandle(const TAttribute<bool>& InIndentHandle);
-    
-    /** See the Locked attribute */
+	
+	/** See the Locked attribute */
 	void SetLocked(const TAttribute<bool>& InLocked);
-    
-    /** See the Orientation attribute */
+	
+	/** See the Orientation attribute */
 	void SetOrientation(EOrientation InOrientation);
-    
-    /** See the SliderBarColor attribute */
+	
+	/** See the SliderBarColor attribute */
 	void SetSliderBarColor(FSlateColor InSliderBarColor);
-    
-    /** See the SliderHandleColor attribute */
+	
+	/** See the SliderHandleColor attribute */
 	void SetSliderHandleColor(FSlateColor InSliderHandleColor);
 
 public:
@@ -114,11 +114,8 @@ protected:
 
 private:
 
-	// Holds the image to use when the slider handle is in its disabled state.
-	const FSlateBrush* DisabledHandleImage;
-
-	// Holds the image to use when the slider handle is in its normal state.
-	const FSlateBrush* NormalHandleImage;
+	// Holds the style passed to the widget upon construction.
+	const FSliderStyle* Style;
 
 	// Holds a flag indicating whether the slideable area should be indented to fit the handle.
 	TAttribute<bool> IndentHandle;

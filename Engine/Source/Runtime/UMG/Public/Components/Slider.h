@@ -16,8 +16,9 @@ class UMG_API USlider : public UWidget
 
 public:
 	
-	///** The style used to draw the slider. */
-	//SLATE_STYLE_ARGUMENT(FSliderStyle, Style)
+	/** The progress bar style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FSliderStyle WidgetStyle;
 
 	/** The volume value to display. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)

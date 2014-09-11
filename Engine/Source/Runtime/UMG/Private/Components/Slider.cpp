@@ -13,11 +13,15 @@ USlider::USlider(const FPostConstructInitializeProperties& PCIP)
 	Orientation = EOrientation::Orient_Horizontal;
 	SliderBarColor = FLinearColor::White;
 	SliderHandleColor = FLinearColor::White;
+
+	SSlider::FArguments Defaults;
+	WidgetStyle = *Defaults._Style;
 }
 
 TSharedRef<SWidget> USlider::RebuildWidget()
 {
 	MySlider = SNew(SSlider)
+		.Style(&WidgetStyle)
 		.OnMouseCaptureBegin(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureBegin))
 		.OnMouseCaptureEnd(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureEnd))
 		.OnValueChanged(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnValueChanged));
