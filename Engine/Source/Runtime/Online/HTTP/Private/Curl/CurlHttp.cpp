@@ -39,7 +39,7 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 		GConfig->GetBool(TEXT("/Script/Engine.NetworkSettings"), TEXT("n.VerifyPeer"), bVerifyPeer, GEngineIni);
 		if (bVerifyPeer)
 		{
-			UE_LOG(LogInit, Display, TEXT("Libcurl will verify peer certificate"));
+			UE_LOG(LogInit, Verbose, TEXT("Libcurl will verify peer certificate"));
 			curl_easy_setopt(EasyHandle, CURLOPT_SSL_VERIFYPEER, 1L);
 		}
 		else
@@ -68,7 +68,7 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 			}
 		}
 
-		if (!FParse::Param(FCommandLine::Get(), TEXT("reuseconn")))
+		if (FParse::Param(FCommandLine::Get(), TEXT("noreuseconn")))
 		{
 			curl_easy_setopt(EasyHandle, CURLOPT_FORBID_REUSE, 1L);
 		}

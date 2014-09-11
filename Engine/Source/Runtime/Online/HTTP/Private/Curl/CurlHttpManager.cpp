@@ -67,7 +67,7 @@ void FCurlHttpManager::InitCurl()
 			UE_LOG(LogInit, Fatal, TEXT("Could not initialize create libcurl multi handle! HTTP transfers will not function properly."));
 		}
 
-		UE_LOG(LogInit, Log, TEXT("Libcurl will %s"), FParse::Param(FCommandLine::Get(), TEXT("reuseconn")) ? TEXT("reuse connections") : TEXT("NOT reuse connections"));
+		UE_LOG(LogInit, Log, TEXT("Libcurl will %s"), FParse::Param(FCommandLine::Get(), TEXT("noreuseconn")) ? TEXT("NOT reuse connections") : TEXT("reuse connections"));
 	}
 	else
 	{

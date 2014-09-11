@@ -16,6 +16,10 @@ void FWindowsPlatformHttp::Init()
 	{
 		bUseCurl = true;
 	}
+	else if (GConfig && GConfig->GetBool(TEXT("Networking"), TEXT("UseLibCurl"), bUseCurl, GEngineIni))
+	{
+		bUseCurl = true;
+	}
 
 #if WITH_LIBCURL
 	FCurlHttpManager::InitCurl();
