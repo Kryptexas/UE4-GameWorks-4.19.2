@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "ClassIconFinder.h"
+#include "BlueprintBoundNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Literal"
 
@@ -115,9 +116,14 @@ FText UK2Node_Literal::GetTooltipText() const
 
 FText UK2Node_Literal::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	AActor* Actor = Cast<AActor>(ObjectRef);
+	if(TitleType == ENodeTitleType::ListView)
+	{
+		return NSLOCTEXT("K2Node", "Literal_Title", "Get Selected Actor Reference(s)");
+	}
+
 	if( ObjectRef != NULL )
 	{
-		AActor* Actor = Cast<AActor>(ObjectRef);
 		if(Actor != NULL)
 		{
 			return FText::FromString(Actor->GetActorLabel());
@@ -145,6 +151,34 @@ FLinearColor UK2Node_Literal::GetNodeTitleColor() const
 	{
 		return Super::GetNodeTitleColor();
 	}
+}
+
+void UK2Node_Literal::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto CanBindObjectLambda = [](UObject const* BindingObject)
+	{
+		if(AActor const* Actor = Cast<AActor>(BindingObject))
+		{
+			// Make sure the Actor has a world
+			if(Actor->GetWorld())
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	auto PostBindSetupLambda = [](UEdGraphNode* NewNode, UObject* BindObject)->bool
+	{
+ 		UK2Node_Literal* LiteralNode = CastChecked<UK2Node_Literal>(NewNode);
+ 		LiteralNode->SetObjectRef(BindObject);
+ 		return true;
+	};
+
+	UBlueprintBoundNodeSpawner* NodeSpawner = UBlueprintBoundNodeSpawner::Create(GetClass());
+	NodeSpawner->CanBindObjectDelegate = UBlueprintBoundNodeSpawner::FCanBindObjectDelegate::CreateStatic(CanBindObjectLambda);
+	NodeSpawner->OnBindObjectDelegate = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 UK2Node::ERedirectType UK2Node_Literal::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
@@ -184,7 +218,7 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 
 	if( ValuePin )
 	{
-		ValuePin->PinFriendlyName = GetNodeTitle(ENodeTitleType::ListView);
+		ValuePin->PinFriendlyName = GetNodeTitle(ENodeTitleType::FullTitle);
 		ValuePin->PinName = ValuePin->PinFriendlyName.BuildSourceString();
 	}
 }

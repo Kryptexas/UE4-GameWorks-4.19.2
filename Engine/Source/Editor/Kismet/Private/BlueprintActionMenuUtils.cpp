@@ -120,6 +120,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	LevelActorsFilter.Context = Context;
 	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
 	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_ActorBoundEvent::StaticClass());
+	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_Literal::StaticClass());
 	// only want bound actions for this menu section
 	LevelActorsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
 

@@ -157,9 +157,10 @@ public:
 	 * then we use TargetGraph as a model to create one that will work.
 	 *
 	 * @param  TargetGraph    Optional param that defines a compatible graph outer (used as an achetype if we don't have a compatible outer on hand).
+	 * @param  Bindings    	  Objects to bind to the template node
 	 * @return Should return a new/cached template-node (but could be null, or some pre-existing node... depends on the sub-class's Invoke() method).
 	 */
-	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr) const;
+	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr, FBindingSet const& Bindings = FBindingSet()) const;
 
 	// IBlueprintNodeBinder interface
 	virtual bool   IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }

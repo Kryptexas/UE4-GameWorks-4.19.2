@@ -34,6 +34,7 @@ public:
 	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	virtual void PostReconstructNode() override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End UK2Node interface
 
 	/** Accessor for the value pin of the node */

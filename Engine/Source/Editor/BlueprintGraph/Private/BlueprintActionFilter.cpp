@@ -7,6 +7,7 @@
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintBoundEventNodeSpawner.h"
+#include "BlueprintBoundNodeSpawner.h"
 #include "EdGraphSchema_K2.h"		// for FBlueprintMetadata
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()/IsVariableCategoryHiddenFromClass()
@@ -672,7 +673,7 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 //------------------------------------------------------------------------------
 static bool BlueprintActionFilterImpl::IsUnBoundBindingSpawner(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
-	bool const bIsBindingSpecificSpawner = (Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction.NodeSpawner) != nullptr);
+	bool const bIsBindingSpecificSpawner = (Cast<UBlueprintBoundEventNodeSpawner>(BlueprintAction.NodeSpawner) != nullptr || Cast<UBlueprintBoundNodeSpawner>(BlueprintAction.NodeSpawner) != nullptr);
 
 	bool bIsFilteredOut = false;
 	if (bIsBindingSpecificSpawner)
@@ -759,7 +760,7 @@ static bool BlueprintActionFilterImpl::HasMatchingPin(FBlueprintActionInfo& Blue
 	bool bHasCompatiblePin = false;
 
 	UEdGraph* OuterGraph = Pin->GetOwningNode()->GetGraph();
-	if (UEdGraphNode* TemplateNode = BlueprintAction.NodeSpawner->GetTemplateNode(OuterGraph))
+	if (UEdGraphNode* TemplateNode = BlueprintAction.NodeSpawner->GetTemplateNode(OuterGraph, BlueprintAction.GetBindings()))
 	{
 		if (TemplateNode->Pins.Num() == 0)
 		{

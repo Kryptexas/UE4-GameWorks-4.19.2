@@ -101,7 +101,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 			SubTitleText = FText::Format(NSLOCTEXT("GraphEditor", "ActorRef", "from {0}"), LevelName);
 		}
 
-		TitleText = GraphNode->GetNodeTitle(ENodeTitleType::ListView);
+		TitleText = GraphNode->GetNodeTitle(ENodeTitleType::FullTitle);
 
 		TitleHAlign = HAlign_Left;
 		TitleMargin = FMargin(12.0f, VerticalTitleMargin, 32.0f, 2.0f);

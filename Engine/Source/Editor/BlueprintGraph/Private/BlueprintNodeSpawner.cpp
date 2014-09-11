@@ -121,10 +121,17 @@ FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer) const
-{	
+UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer, FBindingSet const& Bindings) const 
+{       
 	UEdGraphNode* TemplateNode = BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, Outer);
-	return TemplateNode;
+
+	if (TemplateNode && Bindings.Num() > 0) 
+	{ 
+		UEdGraphNode* BoundTemplateNode = DuplicateObject(TemplateNode, TemplateNode->GetOuter()); 
+		ApplyBindings(BoundTemplateNode, Bindings); 
+		return BoundTemplateNode; 
+	} 
+	return TemplateNode; 
 }
 
 //------------------------------------------------------------------------------

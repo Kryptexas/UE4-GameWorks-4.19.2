@@ -105,6 +105,7 @@ FBlueprintBoundMenuItem::FBlueprintBoundMenuItem(UBlueprintNodeSpawner const* Bo
 UEdGraphNode* FBlueprintBoundMenuItem::PerformAction(UEdGraph* ParentGraph, UEdGraphPin* FromPin, FVector2D const Location, bool bSelectNewNode/* = true*/)
 {
 	UEdGraphNode* NewNode = nullptr;
+	FVector2D CurrentLocation = Location;
 
 	IBlueprintNodeBinder::FBindingSet Bindings;
 	for (auto BoundObjIt = BoundObjects.CreateConstIterator(); BoundObjIt; )
@@ -120,7 +121,14 @@ UEdGraphNode* FBlueprintBoundMenuItem::PerformAction(UEdGraph* ParentGraph, UEdG
 		} while ( BoundObjIt && (BoundSpawner->CanBindMultipleObjects() || (Bindings.Num() == 0)) );
 
 		FBlueprintActionMenuItem BlueprintActionItem(BoundSpawner, Bindings);
-		NewNode = BlueprintActionItem.PerformAction(ParentGraph, FromPin, Location, bSelectNewNode);
+		NewNode = BlueprintActionItem.PerformAction(ParentGraph, FromPin, CurrentLocation, bSelectNewNode);
+
+		// Increase the node location a safe distance so follow-up nodes are not stacked
+		CurrentLocation.Y += UEdGraphSchema_K2::EstimateNodeHeight(NewNode);
+
+		// Clear the bindings array for the next pass
+		Bindings.Empty();
+
 		// @TODO: select ALL spawned nodes
 	}
 	
