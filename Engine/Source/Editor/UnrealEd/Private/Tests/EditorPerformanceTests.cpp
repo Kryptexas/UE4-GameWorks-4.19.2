@@ -35,20 +35,40 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 		{
 			//Get the location of the map being used.
 			FString Filename = FPaths::ConvertRelativePathToFull(PerformanceMapName[indexloop]);
-			
-			//If true it will proceed to add the asset to the test list.
-			//This will be false if the map is on a different drive.
-			if (FPaths::MakePathRelativeTo(Filename, *FPaths::GameContentDir()))
+
+			if (Filename.Contains(TEXT("/Engine/"), ESearchCase::IgnoreCase, ESearchDir::FromStart))
 			{
-				FString ShortName = FPaths::GetBaseFilename(Filename);
-				FString PathName = FPaths::GetPath(Filename);
-				OutBeautifiedNames.Add(ShortName);
-				FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-				OutTestCommands.Add(AssetName);
+				//If true it will proceed to add the asset to the test list.
+				//This will be false if the map is on a different drive.
+				if (FPaths::MakePathRelativeTo(Filename, *FPaths::EngineContentDir()))
+				{
+					FString ShortName = FPaths::GetBaseFilename(Filename);
+					FString PathName = FPaths::GetPath(Filename);
+					OutBeautifiedNames.Add(ShortName);
+					FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+					OutTestCommands.Add(AssetName);
+				}
+				else
+				{
+					UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
+				}
 			}
 			else
 			{
-				UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
+				//If true it will proceed to add the asset to the test list.
+				//This will be false if the map is on a different drive.
+				if (FPaths::MakePathRelativeTo(Filename, *FPaths::GameContentDir()))
+				{
+					FString ShortName = FPaths::GetBaseFilename(Filename);
+					FString PathName = FPaths::GetPath(Filename);
+					OutBeautifiedNames.Add(ShortName);
+					FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+					OutTestCommands.Add(AssetName);
+				}
+				else
+				{
+					UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
+				}
 			}
 		}
 
