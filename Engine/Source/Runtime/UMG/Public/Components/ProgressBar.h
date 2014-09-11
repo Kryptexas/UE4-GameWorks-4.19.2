@@ -15,8 +15,8 @@ class UMG_API UProgressBar : public UWidget
 public:
 
 	/** The progress bar style */
-	UPROPERTY(VisibleAnywhere, Instanced, Category="Style")
-	TSubobjectPtr<UProgressWidgetStyle> ProgressStyle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FProgressBarStyle WidgetStyle;
 
 	/** Style used for the progress bar */
 	UPROPERTY()
