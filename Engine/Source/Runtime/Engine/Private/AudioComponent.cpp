@@ -129,7 +129,9 @@ void UAudioComponent::Play(float StartTime)
 
 void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDuration, const float FadeVolumeLevel)
 {
-	UE_LOG(LogAudio, Verbose, TEXT( "%g: Playing AudioComponent : '%s' with Sound: '%s'" ), GetWorld() ? GetWorld()->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "NULL" ) );
+	UWorld* World = GetWorld();
+
+	UE_LOG(LogAudio, Verbose, TEXT( "%g: Playing AudioComponent : '%s' with Sound: '%s'" ), World ? World->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "NULL" ) );
 
 	if (bIsActive)
 	{
@@ -140,7 +142,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		bAutoDestroy = bCurrentAutoDestroy;
 	}
 
-	if (Sound)
+	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
 	{
 		FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
 		if (AudioDevice != NULL)

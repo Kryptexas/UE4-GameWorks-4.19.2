@@ -605,7 +605,7 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 
 	const bool bIsInGameWorld = ThisWorld->IsGameWorld();
 
-	if (GEngine && GEngine->UseSound() && ThisWorld->GetNetMode() != NM_DedicatedServer)
+	if (GEngine && GEngine->UseSound() && ThisWorld->bAllowAudioPlayback && ThisWorld->GetNetMode() != NM_DedicatedServer)
 	{
 		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
 		{
@@ -657,9 +657,9 @@ void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class
 		return;
 	}
 
-	if (GEngine && GEngine->UseSound())
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (GEngine && GEngine->UseSound() && ThisWorld->bAllowAudioPlayback)
 	{
-		UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
 		const bool bIsInGameWorld = ThisWorld->IsGameWorld();
 
 		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
