@@ -193,6 +193,17 @@ static void CalcBoundingBox(const FRawMesh& RawMesh, FVector& Center, FVector& E
 	Box.GetCenterAndExtents(Center, Extents);
 }
 
+void ComputeBoundingBox(UStaticMesh* StaticMesh, FVector& Center, FVector& Extents)
+{
+	// Calculate bounding Box.
+	FRawMesh RawMesh;
+	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+	FVector unitVec = FVector(1.f);
+	CalcBoundingBox(RawMesh, Center, Extents, unitVec);
+}
+
 int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh)
 {
 	if (!PromptToRemoveExistingCollision(StaticMesh))

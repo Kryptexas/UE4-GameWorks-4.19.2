@@ -806,6 +806,20 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 	return NewMesh;
 }
 
+void UnFbx::FFbxImporter::VerifyGeometry(UStaticMesh* StaticMesh)
+{
+	// Calculate bounding box to check if too small
+	{
+		FVector Center, Extents;
+		ComputeBoundingBox(StaticMesh, Center, Extents);
+
+		if (Extents.GetAbsMax() < 5.f)
+		{
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Prompt_MeshVerySmall", "Warning: The imported mesh is very small. This is most likely an issue with the units used when exporting to FBX. Please import again and increase the Scale to make the mesh bigger.")), FFbxErrors::Generic_Mesh_SmallGeometry);
+		}
+	}
+}
+
 UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex)
 {
 	bool bBuildStatus = true;
@@ -1212,17 +1226,24 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		StaticMesh = NULL;
 	}
 
-	if (StaticMesh && StaticMesh->bCustomizedCollision == false && ImportOptions->bAutoGenerateCollision)
+	if (StaticMesh)
 	{
 
-		FKAggregateGeom & AggGeom = StaticMesh->BodySetup->AggGeom;
-		AggGeom.ConvexElems.Empty(1);	//if no custom collision is setup we just regenerate collision when reimport
+		//collision generation
+		if (StaticMesh->bCustomizedCollision == false && ImportOptions->bAutoGenerateCollision)
+		{
+			FKAggregateGeom & AggGeom = StaticMesh->BodySetup->AggGeom;
+			AggGeom.ConvexElems.Empty(1);	//if no custom collision is setup we just regenerate collision when reimport
 
-		const int32 NumDirs = 18;
-		TArray<FVector> Dirs;
-		Dirs.AddUninitialized(NumDirs);
-		for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
-		GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
+			const int32 NumDirs = 18;
+			TArray<FVector> Dirs;
+			Dirs.AddUninitialized(NumDirs);
+			for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
+			GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
+		}
+		
+		//warnings based on geometry
+		VerifyGeometry(StaticMesh);
 	}
 
 	return StaticMesh;

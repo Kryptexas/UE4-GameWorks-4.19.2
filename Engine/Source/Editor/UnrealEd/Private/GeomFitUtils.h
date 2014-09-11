@@ -109,6 +109,7 @@ UNREALED_API int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const 
 UNREALED_API int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh);
 UNREALED_API int32 GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh);
 UNREALED_API int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh);
+UNREALED_API void ComputeBoundingBox(UStaticMesh* StaticMesh, FVector& Center, FVector& Extents);
 
 /**
  * Refresh Collision Change

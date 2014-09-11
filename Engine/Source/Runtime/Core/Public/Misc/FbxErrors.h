@@ -29,6 +29,8 @@ struct CORE_API FFbxErrors
 
 	static FName Generic_Mesh_NoGeometry;
 
+	static FName Generic_Mesh_SmallGeometry;
+
 	static FName Generic_Mesh_TriangulationFailed;
 
 	static FName Generic_Mesh_ConvertSmoothingGroupFailed;

@@ -599,6 +599,12 @@ private:
 	*/
 	void InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD);
 
+	/**
+	* Method used to verify if the geometry is valid. For example, if the bounding box is tiny we should warn
+	* @param StaticMesh - The imported static mesh which we'd like to verify
+	*/
+	void VerifyGeometry(UStaticMesh* StaticMesh);
+
 public:
 	// current Fbx scene we are importing. Make sure to release it after import
 	FbxScene* Scene;
