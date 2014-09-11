@@ -190,7 +190,7 @@ void FPluginManager::DiscoverAllPlugins()
 					else
 					{
 						// NOTE: Even though loading of this plugin failed, we'll keep processing other plugins
-						UE_LOG(LogPluginManager, Error, TEXT("%s"), *FailureReason.ToString());
+						UE_LOG(LogPluginManager, Error, TEXT("%s (%s)"), *FailureReason.ToString(), *PluginDescriptorFilename);
 					}
 				}
 				else
