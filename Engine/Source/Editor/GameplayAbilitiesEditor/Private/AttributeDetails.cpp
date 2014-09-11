@@ -32,12 +32,17 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 
 	FString FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
 
-	// Gather all UAttraibute classes
+	// Gather all UAttriubute classes
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
 		UClass *Class = *ClassIt;
 		if (Class->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
 		{
+			if (Class->HasMetaData(TEXT("HideInDetailsView")))
+			{
+				continue;
+			}
+
 			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 			{
 				UProperty *Property = *PropertyIt;
