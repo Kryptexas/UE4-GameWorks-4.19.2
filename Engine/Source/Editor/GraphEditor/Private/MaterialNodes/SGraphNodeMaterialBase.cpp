@@ -2,9 +2,13 @@
 
 #include "GraphEditorCommon.h"
 #include "Materials/MaterialExpression.h"
+#include "Materials/MaterialFunction.h"
 #include "SGraphNodeMaterialBase.h"
 #include "ScopedTransaction.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "TutorialMetaData.h"
+
+
 
 /**
 * Simple representation of the backbuffer that the preview canvas renders to
@@ -444,4 +448,19 @@ ESlateCheckBoxState::Type SGraphNodeMaterialBase::IsExpressionPreviewChecked() c
 const FSlateBrush* SGraphNodeMaterialBase::GetExpressionPreviewArrow() const
 {
 	return FEditorStyle::GetBrush(MaterialNode->MaterialExpression->bCollapsed ? TEXT("Kismet.TitleBarEditor.ArrowDown") : TEXT("Kismet.TitleBarEditor.ArrowUp"));
+}
+
+void SGraphNodeMaterialBase::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
+{
+	if (GraphNode != nullptr)
+	{
+		UMaterialGraph* OuterGraph = MaterialNode->GetTypedOuter<UMaterialGraph>();
+		if ((OuterGraph != nullptr) && (MaterialNode->MaterialExpression != nullptr) )
+		{
+			TagMeta->OuterName = OuterGraph->OriginalMaterialFullName;
+			TagMeta->GUID = MaterialNode->MaterialExpression->MaterialExpressionGuid;
+			TagMeta->Tag = FName(*FString::Printf(TEXT("MaterialExprNode_%s_%s"), *TagMeta->OuterName, *TagMeta->GUID.ToString()));
+		}
+		TagMeta->FriendlyName = FString::Printf(TEXT("%s expression node in %s"), *GraphNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString(), *TagMeta->OuterName);		
+	}
 }

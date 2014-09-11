@@ -148,12 +148,18 @@ void STutorialOverlay::PerformWidgetInteractions(const FTutorialWidgetContent &W
 
 void STutorialOverlay::OpenBrowserForWidgetAnchor(const FTutorialWidgetContent &WidgetContent)
 {
+	bool bTabOpened = false;
 	// Open the required tab if we found it in the map
 	if (WidgetContent.WidgetAnchor.TabTypeToOpen.IsEmpty() == false)
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 		TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
-		LevelEditorTabManager->InvokeTab(FName(*WidgetContent.WidgetAnchor.TabTypeToOpen));
+		TSharedPtr<SDockTab> DocTab = LevelEditorTabManager->InvokeTab(FName(*WidgetContent.WidgetAnchor.TabTypeToOpen));
+		bTabOpened = DocTab.IsValid();
+	}
+	if (bTabOpened == false)
+	{
+		//bTabOpened = FAssetEditorManager::Get().OpenEditorForAsset()
 	}
 	
 }

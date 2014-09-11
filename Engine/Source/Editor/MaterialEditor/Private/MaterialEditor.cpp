@@ -481,6 +481,8 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 		}
 	}
 
+	// Store the name of this material (for the tutorial widget meta)
+	Material->MaterialGraph->OriginalMaterialFullName = OriginalMaterial->GetName();
 	Material->MaterialGraph->RebuildGraph();
 	RecenterEditor();
 
@@ -2619,6 +2621,9 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		// Set the expression location.
 		NewExpression->MaterialExpressionEditorX = NodePos.X;
 		NewExpression->MaterialExpressionEditorY = NodePos.Y;
+
+		// Create a GUID for the node
+		NewExpression->UpdateMaterialExpressionGuid(true, true);
 
 		if (bAutoAssignResource)
 		{

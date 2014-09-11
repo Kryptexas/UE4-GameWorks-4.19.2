@@ -73,6 +73,9 @@ public:
 
 	UMaterialGraphNode* GetMaterialGraphNode() const {return MaterialNode;}
 
+	/* Populate a meta data tag with information about this graph node */
+	virtual void PopulateMetaTag(class FGraphNodeMetaData* TagMeta) const override;
+
 protected:
 	// SGraphNode interface
 	virtual void AddPin( const TSharedRef<SGraphPin>& PinToAdd ) override;

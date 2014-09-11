@@ -369,6 +369,7 @@ void UMaterialExpression::CopyMaterialExpressions(const TArray<UMaterialExpressi
 			}
 
 			NewExpression->UpdateParameterGuid(true, true);
+			NewExpression->UpdateMaterialExpressionGuid(true, true);
 
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>( NewExpression );
 			if( FunctionInput )
@@ -465,6 +466,8 @@ void UMaterialExpression::PostInitProperties()
 	Super::PostInitProperties();
 
 	UpdateParameterGuid(false, false);
+	
+	UpdateMaterialExpressionGuid(false, true);
 }
 
 void UMaterialExpression::PostLoad()
@@ -482,6 +485,8 @@ void UMaterialExpression::PostLoad()
 	}
 
 	UpdateParameterGuid(false, false);
+	
+	UpdateMaterialExpressionGuid(false, false);
 }
 
 void UMaterialExpression::PostDuplicate(bool bDuplicateForPIE)
@@ -491,6 +496,7 @@ void UMaterialExpression::PostDuplicate(bool bDuplicateForPIE)
 	// We do not force a guid regen here because this function is used when the Material Editor makes a copy of a material to edit.
 	// If we forced a GUID regen, it would cause all of the guids for a material to change everytime a material was edited.
 	UpdateParameterGuid(false, true);
+	UpdateMaterialExpressionGuid(false, true);
 }
 
 #if WITH_EDITOR
@@ -866,6 +872,25 @@ void UMaterialExpression::ConnectExpression( FExpressionInput* Input, int32 Outp
 		Input->MaskG = Output.MaskG;
 		Input->MaskB = Output.MaskB;
 		Input->MaskA = Output.MaskA;
+	}
+}
+
+void UMaterialExpression::UpdateMaterialExpressionGuid(bool bForceGeneration, bool bAllowMarkingPackageDirty)
+{
+	// If we are in the editor, and we don't have a valid GUID yet, generate one.
+	if (GIsEditor && !FApp::IsGame())
+	{
+		FGuid& Guid = GetMaterialExpressionId();
+
+		if (bForceGeneration || !Guid.IsValid())
+		{
+			Guid = FGuid::NewGuid();
+
+			if (bAllowMarkingPackageDirty)
+			{
+				MarkPackageDirty();
+			}
+		}
 	}
 }
 
