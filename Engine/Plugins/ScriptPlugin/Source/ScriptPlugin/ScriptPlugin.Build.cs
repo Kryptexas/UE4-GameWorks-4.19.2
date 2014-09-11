@@ -45,12 +45,6 @@ namespace UnrealBuildTool.Rules
 
 			}
 
-			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
-					// ... add private dependencies that you statically link with here ...
-				}
-				);
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[]
@@ -61,11 +55,26 @@ namespace UnrealBuildTool.Rules
 
 			if (!UnrealBuildTool.BuildingRocket())
 			{
-				var LuaPath = Path.Combine("..", "Plugins", "Script", "ScriptPlugin", "Source", "ScriptPlugin", "lua-5.2.3");
-				if (Directory.Exists(LuaPath))
-				{
+				var LuaPath = Path.Combine("..", "Plugins", "ScriptPlugin", "Source", "Lua");				
+				var LuaLibDirectory = Path.Combine(LuaPath, "Lib", Target.Platform.ToString(), "Release");
+				var LuaLibPath = Path.Combine(LuaLibDirectory, "Lua.lib");
+				if (File.Exists(LuaLibPath))
+				{					
 					Definitions.Add("WITH_LUA=1");
-					PrivateIncludePaths.Add(Path.Combine("ScriptPlugin", "lua-5.2.3", "src"));
+
+					// Path to Lua include files
+					var IncludePath = Path.GetFullPath(Path.Combine(LuaPath, "Include"));
+					PrivateIncludePaths.Add(IncludePath);
+
+					// Lib file
+					PublicLibraryPaths.Add(LuaLibDirectory);
+					PublicAdditionalLibraries.Add(LuaLibPath);
+
+					Log.TraceVerbose("LUA Integration enabled: {0}", IncludePath);
+				}
+				else
+				{
+					Log.TraceVerbose("LUA Integration NOT enabled");
 				}
 			}
 		}

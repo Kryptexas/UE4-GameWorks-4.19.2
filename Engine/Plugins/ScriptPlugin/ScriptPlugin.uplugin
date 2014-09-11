@@ -19,5 +19,10 @@
 			"LoadingPhase" : "PreDefault",
 			"BlacklistPlatforms" : [ "Linux" ]
 		}
+		{
+			"Name" : "ScriptEditorPlugin",
+			"Type" : "Editor",
+			"BlacklistPlatforms" : [ "Linux" ]
+		}
 	]
 }

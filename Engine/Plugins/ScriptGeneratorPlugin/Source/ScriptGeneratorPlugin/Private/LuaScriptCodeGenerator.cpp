@@ -315,6 +315,13 @@ bool FLuaScriptCodeGenerator::IsPropertyTypeSupported(UProperty* Property) const
 			bSupported = false;
 		}
 	}
+	else if (Property->IsA(ULazyObjectProperty::StaticClass()) ||
+		Property->IsA(UAssetObjectProperty::StaticClass()) ||
+		Property->IsA(UAssetClassProperty::StaticClass()) ||
+		Property->IsA(UWeakObjectProperty::StaticClass()))
+	{
+		bSupported = false;
+	}
 	else if (!Property->IsA(UIntProperty::StaticClass()) &&
 		!Property->IsA(UFloatProperty::StaticClass()) &&
 		!Property->IsA(UStrProperty::StaticClass()) &&
@@ -325,10 +332,7 @@ bool FLuaScriptCodeGenerator::IsPropertyTypeSupported(UProperty* Property) const
 	{
 		bSupported = false;
 	}
-	else if (Property->IsA(ULazyObjectProperty::StaticClass()))
-	{
-		bSupported = false;
-	}
+
 	return bSupported;
 }
 
