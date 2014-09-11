@@ -8,9 +8,6 @@
 
 #include "DistanceFieldAtlas.h"
 
-/** Maximum object / tile interactions to allocate memory for. */
-static const int32 GMaxTileShadingJobs = 500000;
-
 /** Tile sized used for most AO compute shaders. */
 const int32 GDistanceFieldAOTileSizeX = 8;
 const int32 GDistanceFieldAOTileSizeY = 8;

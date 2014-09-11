@@ -157,96 +157,114 @@ void DistanceFieldShadowingCS(
 
 	GroupMemoryBarrierWithGroupSync();
 
+	uint GroupIndex = SceneDepth > MaxTileZ2 ? 1 : 0;
+	uint NumIntersectingObjects = GroupIndex == 0 ? TileNumObjects0 : TileNumObjects1;
+	
 	float Result = 0;
 
+#define COMPUTE_SHADOWING 1
+#if COMPUTE_SHADOWING
 	BRANCH
 	if (SceneDepth > MinDepth)
 	{
-		float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
-		float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-
-		float TraceDistance = 10000;
-		float RayStartOffset = 10;
-		float3 WorldRayStart = OpaqueWorldPosition - LightDirection * RayStartOffset;
-		float3 WorldRayEnd = OpaqueWorldPosition - LightDirection * TraceDistance;
-		float3 WorldRayDirection = WorldRayEnd - WorldRayStart;
-		float3 UnitWorldRayDirection = normalize(WorldRayDirection);
-		uint GroupIndex = SceneDepth > MaxTileZ2 ? 1 : 0;
-		uint NumIntersectingObjects = GroupIndex == 0 ? TileNumObjects0 : TileNumObjects1;
+		FGBufferData GBufferData = GetGBufferData(ScreenUV);
+		float3 WorldNormal = GBufferData.WorldNormal;
 
 		//@todo - expose
-		float SunAngle = 1 * PI / 180.0f;
-		float TanSunAngle = tan(SunAngle);
-		float MinRayTime = TraceDistance;
-		float ClosestDistanceToIntersection = 1000;
-		float TotalStepsTaken = 0;
-		float MinConeVisibility = 1;
+		float SunAngle = 2 * PI / 180.0f;
 
-		LOOP
-		for (uint ListObjectIndex = 0; ListObjectIndex < NumIntersectingObjects && MinRayTime >= TraceDistance; ListObjectIndex++)
+		BRANCH
+		if (dot(WorldNormal, -LightDirection) > cos(PI / 2 + SunAngle))
 		{
-			uint ObjectIndex = IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * GroupIndex + ListObjectIndex];
-			float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
-			float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
-			float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-			float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+			float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
+			float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
-			float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
-			float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
-			float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
-			float VolumeRayLength = length(VolumeRayDirection);
-			VolumeRayDirection /= VolumeRayLength;
+			float TraceDistance = 10000;
+			float RayStartOffset = 2;
+			float3 WorldRayStart = OpaqueWorldPosition - LightDirection * RayStartOffset;
+			float3 WorldRayEnd = OpaqueWorldPosition - LightDirection * TraceDistance;
+			float3 WorldRayDirection = WorldRayEnd - WorldRayStart;
+			float3 UnitWorldRayDirection = normalize(WorldRayDirection);
 
-			float2 IntersectionTimes = LineBoxIntersect(VolumeRayStart, VolumeRayEnd, -LocalPositionExtent, LocalPositionExtent);
+			float TanSunAngle = tan(SunAngle);
+			float MinRayTime = TraceDistance;
+			float ClosestDistanceToIntersection = 1000;
+			float TotalStepsTaken = 0;
+			float MinConeVisibility = 1;
 
-			if (IntersectionTimes.x < IntersectionTimes.y && IntersectionTimes.x < 1)
+			LOOP
+			for (uint ListObjectIndex = 0; ListObjectIndex < NumIntersectingObjects && MinRayTime >= TraceDistance; ListObjectIndex++)
 			{
-				float SampleRayTime = IntersectionTimes.x * VolumeRayLength;
+				uint ObjectIndex = IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * GroupIndex + ListObjectIndex];
+				float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
+				float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
+				float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
+				float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
 
-				float MinDistance = 1000000;
-				float3 IntersectionPosition = float3(0, 0, 0);
+				float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
+				float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
+				float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
+				float VolumeRayLength = length(VolumeRayDirection);
+				VolumeRayDirection /= VolumeRayLength;
 
-				uint StepIndex = 0;
-				uint MaxSteps = 256;
+				float2 IntersectionTimes = LineBoxIntersect(VolumeRayStart, VolumeRayEnd, -LocalPositionExtent, LocalPositionExtent);
 
-				LOOP
-				for (; StepIndex < MaxSteps; StepIndex++)
+				if (IntersectionTimes.x < IntersectionTimes.y && IntersectionTimes.x < 1)
 				{
-					float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
-					float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
-					float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-					float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x;
-					MinDistance = min(MinDistance, DistanceField);
-					MinConeVisibility = min(MinConeVisibility, saturate(DistanceField / (TanSunAngle * SampleRayTime)));
-					IntersectionPosition = SampleVolumePosition;
-
+					float SampleRayTime = IntersectionTimes.x * VolumeRayLength;
+					uint MaxSteps = 64;
 					float MinStepSize = 1.0f / (4 * MaxSteps);
-					float StepDistance = max(DistanceField, MinStepSize);
-					SampleRayTime += StepDistance;
 
-					// Terminate the trace if we reached a negative area or went past the end of the ray
-					if (DistanceField < 0 
-						|| SampleRayTime > IntersectionTimes.y * VolumeRayLength)
+					float MinDistance = 1000000;
+					float3 IntersectionPosition = float3(0, 0, 0);
+
+					uint StepIndex = 0;
+
+					LOOP
+					for (; StepIndex < MaxSteps; StepIndex++)
 					{
-						break;
+						float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
+						float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
+						float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+						float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x;
+
+						MinDistance = min(MinDistance, DistanceField);
+						float SphereRadius = TanSunAngle * SampleRayTime;
+
+						MinConeVisibility = min(MinConeVisibility, saturate(DistanceField / SphereRadius));
+						IntersectionPosition = SampleVolumePosition;
+
+						float StepDistance = max(DistanceField, MinStepSize);
+						SampleRayTime += StepDistance;
+
+						// Terminate the trace if we reached a negative area or went past the end of the ray
+						if (DistanceField < 0 
+							|| SampleRayTime > IntersectionTimes.y * VolumeRayLength)
+						{
+							break;
+						}
 					}
-				}
 
-				if (MinDistance * UVScaleAndVolumeScale.w < 0 || StepIndex == MaxSteps)
-				{
-					MinRayTime = min(MinRayTime, SampleRayTime * UVScaleAndVolumeScale.w);
-				}
+					if (MinDistance * UVScaleAndVolumeScale.w < 0 || StepIndex == MaxSteps)
+					{
+						MinRayTime = min(MinRayTime, SampleRayTime * UVScaleAndVolumeScale.w);
+					}
 
-				if (SampleRayTime * UVScaleAndVolumeScale.w > 100)
-				{
-					ClosestDistanceToIntersection = min(ClosestDistanceToIntersection, MinDistance * UVScaleAndVolumeScale.w);
+					if (SampleRayTime * UVScaleAndVolumeScale.w > 100)
+					{
+						ClosestDistanceToIntersection = min(ClosestDistanceToIntersection, MinDistance * UVScaleAndVolumeScale.w);
+					}
+					TotalStepsTaken += StepIndex;
 				}
-				TotalStepsTaken += StepIndex;
 			}
-		}
 
-		Result = MinConeVisibility;
+			Result = MinConeVisibility;
+		}
 	}
+
+#else
+	Result = .0001f * NumIntersectingObjects;
+#endif
 
 	//Result = (GroupIndex == 0 ? Group0BoundingRadius : Group1BoundingRadius) / 1000.0f;
 	//Result = TotalStepsTaken / 1000.0f;

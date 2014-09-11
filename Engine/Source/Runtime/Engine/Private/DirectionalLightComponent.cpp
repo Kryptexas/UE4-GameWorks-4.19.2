@@ -187,8 +187,7 @@ public:
 	/** Returns the number of view dependent shadows this light will create. */
 	virtual int32 GetNumViewDependentWholeSceneShadows(const FSceneView& View) const 
 	{ 
-		int32 NumCascades = WholeSceneDynamicShadowRadius > 0.0f ? DynamicShadowCascades : 0;
-		NumCascades = FMath::Min<int32>(NumCascades, View.MaxShadowCascades);
+		int32 NumCascades = GetNumShadowMappedCascades();
 
 		if (ShouldCreateRayTracedCascade())
 		{
@@ -298,6 +297,12 @@ public:
 
 private:
 
+	int32 GetNumShadowMappedCascades() const
+	{
+		int32 NumCascades = WholeSceneDynamicShadowRadius > 0.0f ? DynamicShadowCascades : 0;
+		return FMath::Min<int32>(NumCascades, View.MaxShadowCascades);
+	}
+
 	float GetCSMMaxDistance() const
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.DistanceScale"));
@@ -322,7 +327,11 @@ private:
 
 	bool ShouldCreateRayTracedCascade() const
 	{
-		return GetDistanceFieldShadowDistance() > GetCSMMaxDistance() && DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform);
+		const int32 NumCascades = GetNumShadowMappedCascades();
+		const float RaytracedShadowDistance = GetDistanceFieldShadowDistance();
+		const bool bCreateWithCSM = NumCascades > 0 && RaytracedShadowDistance > GetCSMMaxDistance();
+		const bool bCreateWithoutCSM = NumCascades == 0 && RaytracedShadowDistance > 0;
+		return DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform) && (bCreateWithCSM || bCreateWithoutCSM);
 	}
 
 	float ComputeShadowDistance() const

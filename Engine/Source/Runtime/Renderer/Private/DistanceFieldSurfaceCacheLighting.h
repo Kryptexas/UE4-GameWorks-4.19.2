@@ -7,6 +7,7 @@
 #pragma once
 
 const static int32 GAOMaxSupportedLevel = 4;
+//@todo - derive from worst case
 const static uint32 GMaxIrradianceCacheSamples = 100000;
 static const int32 GMaxNumObjectsPerTile = 512;
 

@@ -22,8 +22,8 @@
 #define SORTTHREADGROUP_SIZEY 1
 #endif
 
-#ifndef NUM_SAMPLES
-#define NUM_SAMPLES 1
+#ifndef NUM_CONE_DIRECTIONS
+#define NUM_CONE_DIRECTIONS 1
 #endif
 
 #ifndef DOWNSAMPLE_FACTOR
@@ -48,7 +48,7 @@ float AOMaxViewDistance;
 
 #define NUM_CULLED_OBJECT_LISTS 3
 
-float GetPhaseParameters(uint Phase, out uint StartIndex, out uint EndIndex)
+void GetPhaseParameters(uint Phase, out uint StartIndex, out uint EndIndex)
 {
 	if (Phase == 0)
 	{
@@ -65,13 +65,11 @@ float GetPhaseParameters(uint Phase, out uint StartIndex, out uint EndIndex)
 		StartIndex = 8;
 		EndIndex = 9;
 	}
-
-	return AOStepScale;
 }
 
-float GetStepOffset(uint StepIndex, float StepScale)
+float GetStepOffset(float StepIndex)
 {
-	return StepScale * exp2(AOStepExponentScale * StepIndex);
+	return AOStepScale * exp2(AOStepExponentScale * StepIndex);
 }
 
 float3 DistanceFieldVolumePositionToUV(float3 VolumePosition, float3 UVScale, float3 UVAdd)

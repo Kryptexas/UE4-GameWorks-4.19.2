@@ -71,8 +71,8 @@ void ObjectCullPS(
 	{
 		uint StartIndex;
 		uint EndIndex;
-		float StepScale = GetPhaseParameters(GroupIndex, StartIndex, EndIndex);
-		float GroupMaxSampleRadius = GetStepOffset(EndIndex, StepScale) * 2 * RadiusScale;
+		GetPhaseParameters(GroupIndex, StartIndex, EndIndex);
+		float GroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
 	
 		BRANCH
 		if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, SphereCenterAndRadius.w + GroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
