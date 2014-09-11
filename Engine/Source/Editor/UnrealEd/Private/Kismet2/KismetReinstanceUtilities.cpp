@@ -44,6 +44,10 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InNewClass, U
 			}
 		}
 	}
+
+	// Finally, remove the old class from Root so that it can get GC'd and mark it as CLASS_NewerVersionExists
+	InOldClass->RemoveFromRoot();
+	InOldClass->ClassFlags |= CLASS_NewerVersionExists;
 }
 
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
@@ -68,7 +72,6 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Add the class to the root set, so that it doesn't get prematurely garbage collected
 		DuplicatedClass->AddToRoot();
 		ClassToReinstance->ClassFlags &= ~CLASS_NewerVersionExists;
-		InClassToReinstance->RemoveFromRoot();
 		GIsDuplicatingClassForReinstancing = false;
 
 		// Bind and link the duplicate class, so that it has the proper duplicate property offsets
