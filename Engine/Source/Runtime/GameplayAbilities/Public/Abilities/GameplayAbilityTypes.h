@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayEffect.h"
 #include "GameplayAbilityTypes.generated.h"
 
 class UGameplayEffect;
@@ -323,6 +324,27 @@ struct FGameplayAbiliyInputBinds
 	FString	EnumName;
 
 	UEnum* GetBindEnum() { return FindObject<UEnum>(ANY_PACKAGE, *EnumName); }
+};
+
+/** 
+ *	Structure that contains a counted set of GameplayTags. Can optionally include parent tags
+ *	
+ */
+struct FGameplayTagCountContainer
+{
+	FGameplayTagCountContainer()
+	: TagContainerType(EGameplayTagMatchType::Explicit)
+	{ }
+
+	bool HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const;
+	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
+	void UpdateTagMap(const struct FGameplayTagContainer& Container, int32 CountDelta);
+	void UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta);
+
+	TMap<struct FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
+	TMap<struct FGameplayTag, int32> GameplayTagCountMap;
+
+	EGameplayTagMatchType::Type TagContainerType;
 };
 
 /** Used for cleaning up predicted data on network clients */

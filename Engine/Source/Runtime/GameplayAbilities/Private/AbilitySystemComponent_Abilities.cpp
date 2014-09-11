@@ -277,6 +277,16 @@ void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContaine
 	}
 }
 
+void UAbilitySystemComponent::BlockAbilitiesWithTags(const FGameplayTagContainer Tags)
+{
+	BlockedAbilityTags.UpdateTagMap(Tags, 1);
+}
+
+void UAbilitySystemComponent::UnBlockAbilitiesWithTags(const FGameplayTagContainer Tags)
+{
+	BlockedAbilityTags.UpdateTagMap(Tags, -1);
+}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 int32 DenyClientActivation = 0;
 static FAutoConsoleVariableRef CVarDenyClientActivation(
@@ -324,6 +334,12 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	ensure(NetMode != ROLE_SimulatedProxy);
 
 	UGameplayAbility* Ability = Spec->Ability;
+
+	// Check if any of this ability's tags are currently blocked
+	if (BlockedAbilityTags.HasAnyMatchingGameplayTags(Ability->AbilityTags, EGameplayTagMatchType::IncludeParentTags))
+	{
+		return false;
+	}
 
 	// Always do a non instanced CanActivate check
 	if (!Ability->CanActivateAbility(Handle, ActorInfo))

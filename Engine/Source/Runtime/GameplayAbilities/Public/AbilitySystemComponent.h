@@ -391,6 +391,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UGameplayAbility* CreateNewInstanceOfAbility(FGameplayAbilitySpec& Spec, UGameplayAbility* Ability);
 
 	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);
+
+	void BlockAbilitiesWithTags(const FGameplayTagContainer Tags);
+	void UnBlockAbilitiesWithTags(const FGameplayTagContainer Tags);
 	
 	/** FUll list of all instance-per-execution gameplay abilities associated with this component */
 	UPROPERTY()
@@ -596,6 +599,8 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_GameplayEffects)
 	FActiveGameplayCueContainer	ActiveGameplayCues;
+
+	FGameplayTagCountContainer BlockedAbilityTags;
 
 	UFUNCTION()
 	void OnRep_GameplayEffects();

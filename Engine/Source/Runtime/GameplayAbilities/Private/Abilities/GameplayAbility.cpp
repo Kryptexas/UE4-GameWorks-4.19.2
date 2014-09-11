@@ -271,6 +271,12 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 	}
 	ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
 
+	// Unblock ability tags we previously blocked
+	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		ActorInfo->AbilitySystemComponent->UnBlockAbilitiesWithTags(BlockAbilitiesWithTag);
+	}
+
 	// Tell owning AbilitySystemComponent that we ended so it can do stuff (including MarkPendingKill us)
 	ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(Handle, this);
 }
@@ -302,6 +308,7 @@ void UGameplayAbility::PreActivate(const FGameplayAbilitySpecHandle Handle, cons
 	UAbilitySystemComponent* Comp = ActorInfo->AbilitySystemComponent.Get();
 
 	Comp->CancelAbilitiesWithTags(CancelAbilitiesWithTag, Handle, ActorInfo, ActivationInfo, this);
+	Comp->BlockAbilitiesWithTags(BlockAbilitiesWithTag);
 
 	bIsActive = true;
 	Comp->NotifyAbilityActivated(Handle, this);

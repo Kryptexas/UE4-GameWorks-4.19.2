@@ -408,6 +408,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer CancelAbilitiesWithTag;
 
+	/** Abilities with these tags are blocked while this ability is active */
+	UPROPERTY(EditDefaultsOnly, Category = Tags)
+	FGameplayTagContainer BlockAbilitiesWithTag;
+
 	// ----------------------------------------------------------------------------------------------------------------
 	//
 	//	Ability Tasks
