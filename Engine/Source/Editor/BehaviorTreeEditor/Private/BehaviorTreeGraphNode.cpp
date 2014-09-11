@@ -111,6 +111,25 @@ void UBehaviorTreeGraphNode::ResetNodeOwner()
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
 		NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
 		NodeInstance->ClearFlags(RF_Transient);
+
+		// also reset decorators and services
+		for(auto& Decorator : Decorators)
+		{
+			if(Decorator->NodeInstance != nullptr)
+			{
+				Decorator->NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+				Decorator->NodeInstance->ClearFlags(RF_Transient);
+			}
+		}
+
+		for(auto& Service : Services)
+		{
+			if(Service->NodeInstance != nullptr)
+			{
+				Service->NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+				Service->NodeInstance->ClearFlags(RF_Transient);
+			}
+		}
 	}
 }
 
