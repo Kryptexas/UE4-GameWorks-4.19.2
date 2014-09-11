@@ -2329,14 +2329,14 @@ bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) c
 			{
 				// Fill indices
 				{
-					int32 SubNumX, SubNumY, SubX, SubY;
-					CDI.ComponentXYToSubsectionXY(x, y, SubNumX, SubNumY, SubX, SubY);
 
 					// Whether this vertex is in hole
 					bool bInvisible = false;
 					if (VisDataMap.Num())
 					{
-						bInvisible = (VisDataMap[x + y * (ComponentSizeQuadsLOD + 1)] >= VisThreshold);
+						int32 TexelX, TexelY;
+						CDI.VertexXYToTexelXY(x, y, TexelX, TexelY);
+						bInvisible = (VisDataMap[CDI.TexelXYToIndex(TexelX, TexelY)] >= VisThreshold);
 					}
 
 					// triangulation matches FLandscapeIndexBuffer constructor

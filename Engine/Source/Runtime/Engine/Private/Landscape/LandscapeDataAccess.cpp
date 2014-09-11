@@ -33,6 +33,7 @@ ENGINE_API FLandscapeComponentDataInterface::FLandscapeComponentDataInterface(UL
 
 	ComponentSizeVerts = (Component->ComponentSizeQuads + 1) >> MipLevel;
 	SubsectionSizeVerts = (Component->SubsectionSizeQuads + 1) >> MipLevel;
+	ComponentNumSubsections = Component->NumSubsections;
 
 	if (MipLevel < Component->HeightmapTexture->Source.GetNumMips())
 	{

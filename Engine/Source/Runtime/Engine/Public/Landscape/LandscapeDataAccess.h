@@ -142,8 +142,13 @@ struct FLandscapeComponentDataInterface
 //#if LANDSCAPE_VALIDATE_DATA_ACCESS
 //		check(MipLevel == 0);
 //#endif
-		OutX = QuadIndex % ComponentSizeVerts;
-		OutY = QuadIndex / ComponentSizeVerts;
+		OutX = QuadIndex % (ComponentSizeVerts-1);
+		OutY = QuadIndex / (ComponentSizeVerts-1);
+	}
+
+	int32 VertexXYToIndex(int32 VertX, int32 VertY) const
+	{
+		return VertY * ComponentSizeVerts + VertX;
 	}
 
 	void ComponentXYToSubsectionXY(int32 CompX, int32 CompY, int32& SubNumX, int32& SubNumY, int32& SubX, int32& SubY ) const
@@ -168,6 +173,29 @@ struct FLandscapeComponentDataInterface
 			SubNumY = 0;
 			SubY = 0;
 		}
+	}
+
+	void VertexXYToTexelXY(int32 VertX, int32 VertY, int32& OutX, int32& OutY) const
+	{
+		int32 SubNumX, SubNumY, SubX, SubY;
+		ComponentXYToSubsectionXY(VertX, VertY, SubNumX, SubNumY, SubX, SubY);
+
+		OutX = SubNumX * SubsectionSizeVerts + SubX;
+		OutY = SubNumY * SubsectionSizeVerts + SubY;
+	}
+	
+	int32 VertexIndexToTexel(int32 VertexIndex) const
+	{
+		int32 VertX, VertY;
+		VertexIndexToXY(VertexIndex, VertX, VertY);
+		int32 TexelX, TexelY;
+		VertexXYToTexelXY(VertX, VertY, TexelX, TexelY);
+		return TexelXYToIndex(TexelX, TexelY);
+	}
+
+	int32 TexelXYToIndex(int32 TexelX, int32 TexelY) const
+	{
+		return TexelY * ComponentNumSubsections * SubsectionSizeVerts + TexelX;
 	}
 
 	FColor* GetRawHeightData() const
@@ -197,7 +225,7 @@ struct FLandscapeComponentDataInterface
 
 	ENGINE_API bool GetWeightmapTextureData(ULandscapeLayerInfoObject* LayerInfo, TArray<uint8>& OutData);
 
-	FColor* GetHeightData( int32 LocalX, int32 LocalY ) const
+	FColor* GetHeightData(int32 LocalX, int32 LocalY) const
 	{
 #if LANDSCAPE_VALIDATE_DATA_ACCESS
 		check(Component);
@@ -205,13 +233,10 @@ struct FLandscapeComponentDataInterface
 		check(LocalX >=0 && LocalY >=0 && LocalX < ComponentSizeVerts && LocalY < ComponentSizeVerts );
 #endif
 
-		int32 SubNumX;
-		int32 SubNumY;
-		int32 SubX;
-		int32 SubY;
-		ComponentXYToSubsectionXY(LocalX, LocalY, SubNumX, SubNumY, SubX, SubY );
+		int32 TexelX, TexelY;
+		VertexXYToTexelXY(LocalX, LocalY, TexelX, TexelY);
 		
-		return &HeightMipData[SubX + SubNumX*SubsectionSizeVerts + HeightmapComponentOffsetX + (SubY+SubNumY*SubsectionSizeVerts+HeightmapComponentOffsetY)*HeightmapStride];
+		return &HeightMipData[TexelX + HeightmapComponentOffsetX + (TexelY + HeightmapComponentOffsetY) * HeightmapStride];
 	}
 
 	ENGINE_API FColor* GetXYOffsetData(int32 LocalX, int32 LocalY) const;
@@ -322,6 +347,7 @@ private:
 
 	int32 ComponentSizeVerts;
 	int32 SubsectionSizeVerts;
+	int32 ComponentNumSubsections;
 
 	bool bNeedToDeleteDataInterface;
 public:

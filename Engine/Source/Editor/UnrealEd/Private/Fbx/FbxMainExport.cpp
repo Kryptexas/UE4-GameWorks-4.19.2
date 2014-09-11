@@ -2360,9 +2360,9 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 	FbxLayerElementArrayTemplate<FbxVector2>& WeightmapUVs = LayerElementWeightmapUVs->GetDirectArray();
 	WeightmapUVs.Resize(VertexCount);
 
-	TArray<uint8> VisibiltyData;
-	VisibiltyData.Empty(VertexCount);
-	VisibiltyData.AddZeroed(VertexCount);
+	TArray<uint8> VisibilityData;
+	VisibilityData.Empty(VertexCount);
+	VisibilityData.AddZeroed(VertexCount);
 
 	for (int32 ComponentIndex = 0, SelectedComponentIndex = 0; ComponentIndex < Landscape->LandscapeComponents.Num(); ComponentIndex++)
 	{
@@ -2386,9 +2386,12 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 			}
 		}
 
-		for (int32 i = 0; i < CompVisData.Num(); ++i)
+		if (CompVisData.Num() > 0)
 		{
-			VisibiltyData[BaseVertIndex + i] = CompVisData[i];
+			for (int32 i = 0; i < VertexCountPerComponent; ++i)
+			{
+				VisibilityData[BaseVertIndex + i] = CompVisData[CDI.VertexIndexToTexel(i)];
+			}
 		}
 		
 		for (int32 VertIndex = 0; VertIndex < VertexCountPerComponent; VertIndex++)
@@ -2467,7 +2470,7 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 		{
 			for (int32 X = 0; X < ComponentSizeQuads; X++)
 			{
-				if (VisibiltyData[BaseVertIndex + Y * (ComponentSizeQuads + 1) + X] < VisThreshold)
+				if (VisibilityData[BaseVertIndex + Y * (ComponentSizeQuads + 1) + X] < VisThreshold)
 				{
 					Mesh->BeginPolygon();
 					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 0)*(ComponentSizeQuads + 1));
