@@ -245,8 +245,8 @@ namespace UnrealBuildTool
 			}
 
 			// Add include paths to the argument list.
-			List<string> AllIncludes = CompileEnvironment.Config.CPPIncludeInfo.IncludePaths;
-			AllIncludes.AddRange(CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths);
+			HashSet<string> AllIncludes = CompileEnvironment.Config.CPPIncludeInfo.IncludePaths;
+			AllIncludes.UnionWith(CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths);
 			foreach (string IncludePath in AllIncludes)
 			{
 				Arguments.Append(" -I\"");

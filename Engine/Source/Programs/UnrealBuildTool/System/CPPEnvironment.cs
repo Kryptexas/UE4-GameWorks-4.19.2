@@ -271,8 +271,8 @@ namespace UnrealBuildTool
 			bIsBuildingLibrary                     = InCopyEnvironment.bIsBuildingLibrary;
 			bIsBuildingDLL                         = InCopyEnvironment.bIsBuildingDLL;
 			CLRMode                                = InCopyEnvironment.CLRMode;
-			CPPIncludeInfo.IncludePaths                 .AddRange(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
-			CPPIncludeInfo.SystemIncludePaths           .AddRange(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);
+			CPPIncludeInfo.IncludePaths            .UnionWith(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
+			CPPIncludeInfo.SystemIncludePaths      .UnionWith(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);
 			SystemDotNetAssemblyPaths    .AddRange(InCopyEnvironment.SystemDotNetAssemblyPaths);
 			FrameworkAssemblyDependencies.AddRange(InCopyEnvironment.FrameworkAssemblyDependencies);
  			PrivateAssemblyDependencies  .AddRange(InCopyEnvironment.PrivateAssemblyDependencies);

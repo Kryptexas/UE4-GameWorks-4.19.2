@@ -14,13 +14,13 @@ namespace UnrealBuildTool
 	public class CPPIncludeInfo
 	{
 		/** Ordered list of include paths for the module  */
-		public List<string> IncludePaths = new List<string>();
+		public HashSet<string> IncludePaths = new HashSet<string>();
 
 		/**
 		 * The include paths where changes to contained files won't cause dependent C++ source files to
 		 * be recompiled, unless BuildConfiguration.bCheckSystemHeadersForModification==true.
 		 */
-		public List<string> SystemIncludePaths = new List<string>();
+		public HashSet<string> SystemIncludePaths = new HashSet<string>();
 
 		/** Contains a mapping from filename to the full path of the header in this environment.  This is used to optimized include path lookups at runtime for any given single module. */
 		[NonSerialized]

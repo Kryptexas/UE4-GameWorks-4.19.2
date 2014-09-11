@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="NewIncludePaths">List of include paths to add</param>
 		/// <param name="bAddingSystemIncludes">Are the include paths to add system include paths</param>
-		void AddInteliiSenseIncludePaths( List<string> NewIncludePaths, bool bAddingSystemIncludes );
+		void AddInteliiSenseIncludePaths(HashSet<string> NewIncludePaths, bool bAddingSystemIncludes);
 	}
 
 
@@ -307,7 +307,7 @@ namespace UnrealBuildTool
 		/// Adds all of the specified include paths to this VCProject's list of include paths for all modules in the project
 		/// </summary>
 		/// <param name="NewIncludePaths">List of include paths to add</param>
-		public void AddInteliiSenseIncludePaths( List<string> NewIncludePaths, bool bAddingSystemIncludes ) 
+		public void AddInteliiSenseIncludePaths(HashSet<string> NewIncludePaths, bool bAddingSystemIncludes) 
 		{
 			foreach( var CurPath in NewIncludePaths )
 			{

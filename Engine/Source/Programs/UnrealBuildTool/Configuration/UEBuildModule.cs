@@ -98,10 +98,10 @@ namespace UnrealBuildTool
 			return ModuleType;
 		}
 
-		/** Converts an optional string list parameter to a well-defined list. */
-		protected static List<string> ListFromOptionalEnumerableStringParameter(IEnumerable<string> InEnumerableStrings)
+		/** Converts an optional string list parameter to a well-defined hash set. */
+		protected static HashSet<string> HashSetFromOptionalEnumerableStringParameter(IEnumerable<string> InEnumerableStrings)
 		{
-			return InEnumerableStrings == null ? new List<string>() : new List<string>(InEnumerableStrings);
+			return InEnumerableStrings == null ? new HashSet<string>() : new HashSet<string>(InEnumerableStrings);
 		}
 
 		/** The target which owns this module. */
@@ -140,32 +140,32 @@ namespace UnrealBuildTool
 		/** Whether this module is included in the current target.  Only set after UEBuildBinary.BindModules is called. */
 		public bool bIncludedInTarget = false;
 
-		protected readonly List<string> PublicDefinitions;
-		protected readonly List<string> PublicIncludePaths;
-		protected readonly List<string> PrivateIncludePaths;
-		protected readonly List<string> PublicSystemIncludePaths;
-		protected readonly List<string> PublicLibraryPaths;
-		protected readonly List<string> PublicAdditionalLibraries;
-		protected readonly List<string> PublicFrameworks;
-		protected readonly List<string> PublicWeakFrameworks;
-		protected readonly List<UEBuildFramework> PublicAdditionalFrameworks;
-		protected readonly List<string> PublicAdditionalShadowFiles;
-		protected readonly List<UEBuildBundleResource> PublicAdditionalBundleResources;
+		protected readonly HashSet<string> PublicDefinitions;
+		protected readonly HashSet<string> PublicIncludePaths;
+		protected readonly HashSet<string> PrivateIncludePaths;
+		protected readonly HashSet<string> PublicSystemIncludePaths;
+		protected readonly HashSet<string> PublicLibraryPaths;
+		protected readonly HashSet<string> PublicAdditionalLibraries;
+		protected readonly HashSet<string> PublicFrameworks;
+		protected readonly HashSet<string> PublicWeakFrameworks;
+		protected readonly HashSet<UEBuildFramework> PublicAdditionalFrameworks;
+		protected readonly HashSet<string> PublicAdditionalShadowFiles;
+		protected readonly HashSet<UEBuildBundleResource> PublicAdditionalBundleResources;
 
 		/** Names of modules with header files that this module's public interface needs access to. */
-		protected List<string> PublicIncludePathModuleNames;
+		protected HashSet<string> PublicIncludePathModuleNames;
 
 		/** Names of modules that this module's public interface depends on. */
-		protected List<string> PublicDependencyModuleNames;
+		protected HashSet<string> PublicDependencyModuleNames;
 
 		/** Names of DLLs that this module should delay load */
-		protected List<string> PublicDelayLoadDLLs;
+		protected HashSet<string> PublicDelayLoadDLLs;
 
 		/** Names of modules with header files that this module's private implementation needs access to. */
-		protected List<string> PrivateIncludePathModuleNames;
+		protected HashSet<string> PrivateIncludePathModuleNames;
 	
 		/** Names of modules that this module's private implementation depends on. */
-		protected List<string> PrivateDependencyModuleNames;
+		protected HashSet<string> PrivateDependencyModuleNames;
 
 		/** If any of this module's dependent modules circularly reference this module, then they must be added to this list */
 		public HashSet<string> CircularlyReferencedDependentModules
@@ -175,10 +175,10 @@ namespace UnrealBuildTool
 		}
 
 		/** Extra modules this module may require at run time */
-		protected List<string> DynamicallyLoadedModuleNames;
+		protected HashSet<string> DynamicallyLoadedModuleNames;
 
         /** Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like) */
-        protected List<string> PlatformSpecificDynamicallyLoadedModuleNames;
+		protected HashSet<string> PlatformSpecificDynamicallyLoadedModuleNames;
 
 		public UEBuildModule(
 			UEBuildTarget InTarget,
@@ -213,25 +213,25 @@ namespace UnrealBuildTool
 			Type = InType;
 			ModuleDirectory = InModuleDirectory;
 			OutputDirectory = InOutputDirectory;
-			PublicDefinitions = ListFromOptionalEnumerableStringParameter(InPublicDefinitions);
-			PublicIncludePaths = ListFromOptionalEnumerableStringParameter(InPublicIncludePaths);
-			PublicSystemIncludePaths = ListFromOptionalEnumerableStringParameter(InPublicSystemIncludePaths);
-			PublicLibraryPaths = ListFromOptionalEnumerableStringParameter(InPublicLibraryPaths);
-			PublicAdditionalLibraries = ListFromOptionalEnumerableStringParameter(InPublicAdditionalLibraries);
-			PublicFrameworks = ListFromOptionalEnumerableStringParameter(InPublicFrameworks);
-			PublicWeakFrameworks = ListFromOptionalEnumerableStringParameter(InPublicWeakFrameworks);
-			PublicAdditionalFrameworks = InPublicAdditionalFrameworks == null ? new List<UEBuildFramework>() : new List<UEBuildFramework>(InPublicAdditionalFrameworks);
-			PublicAdditionalShadowFiles = ListFromOptionalEnumerableStringParameter(InPublicAdditionalShadowFiles);
-			PublicAdditionalBundleResources = InPublicAdditionalBundleResources == null ? new List<UEBuildBundleResource>() : new List<UEBuildBundleResource>(InPublicAdditionalBundleResources);
-			PublicIncludePathModuleNames = ListFromOptionalEnumerableStringParameter( InPublicIncludePathModuleNames );
-			PublicDependencyModuleNames = ListFromOptionalEnumerableStringParameter(InPublicDependencyModuleNames);
-			PublicDelayLoadDLLs = ListFromOptionalEnumerableStringParameter(InPublicDelayLoadDLLs);
-			PrivateIncludePaths = ListFromOptionalEnumerableStringParameter(InPrivateIncludePaths);
-			PrivateIncludePathModuleNames = ListFromOptionalEnumerableStringParameter( InPrivateIncludePathModuleNames );
-			PrivateDependencyModuleNames = ListFromOptionalEnumerableStringParameter( InPrivateDependencyModuleNames );
-			CircularlyReferencedDependentModules = new HashSet<string>( ListFromOptionalEnumerableStringParameter( InCircularlyReferencedDependentModules ) );
-			DynamicallyLoadedModuleNames = ListFromOptionalEnumerableStringParameter( InDynamicallyLoadedModuleNames );
-            PlatformSpecificDynamicallyLoadedModuleNames = ListFromOptionalEnumerableStringParameter(InPlatformSpecificDynamicallyLoadedModuleNames);
+			PublicDefinitions = HashSetFromOptionalEnumerableStringParameter(InPublicDefinitions);
+			PublicIncludePaths = HashSetFromOptionalEnumerableStringParameter(InPublicIncludePaths);
+			PublicSystemIncludePaths = HashSetFromOptionalEnumerableStringParameter(InPublicSystemIncludePaths);
+			PublicLibraryPaths = HashSetFromOptionalEnumerableStringParameter(InPublicLibraryPaths);
+			PublicAdditionalLibraries = HashSetFromOptionalEnumerableStringParameter(InPublicAdditionalLibraries);
+			PublicFrameworks = HashSetFromOptionalEnumerableStringParameter(InPublicFrameworks);
+			PublicWeakFrameworks = HashSetFromOptionalEnumerableStringParameter(InPublicWeakFrameworks);
+			PublicAdditionalFrameworks = InPublicAdditionalFrameworks == null ? new HashSet<UEBuildFramework>() : new HashSet<UEBuildFramework>(InPublicAdditionalFrameworks);
+			PublicAdditionalShadowFiles = HashSetFromOptionalEnumerableStringParameter(InPublicAdditionalShadowFiles);
+			PublicAdditionalBundleResources = InPublicAdditionalBundleResources == null ? new HashSet<UEBuildBundleResource>() : new HashSet<UEBuildBundleResource>(InPublicAdditionalBundleResources);
+			PublicIncludePathModuleNames = HashSetFromOptionalEnumerableStringParameter( InPublicIncludePathModuleNames );
+			PublicDependencyModuleNames = HashSetFromOptionalEnumerableStringParameter(InPublicDependencyModuleNames);
+			PublicDelayLoadDLLs = HashSetFromOptionalEnumerableStringParameter(InPublicDelayLoadDLLs);
+			PrivateIncludePaths = HashSetFromOptionalEnumerableStringParameter(InPrivateIncludePaths);
+			PrivateIncludePathModuleNames = HashSetFromOptionalEnumerableStringParameter( InPrivateIncludePathModuleNames );
+			PrivateDependencyModuleNames = HashSetFromOptionalEnumerableStringParameter( InPrivateDependencyModuleNames );
+			CircularlyReferencedDependentModules = new HashSet<string>( HashSetFromOptionalEnumerableStringParameter( InCircularlyReferencedDependentModules ) );
+			DynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter( InDynamicallyLoadedModuleNames );
+            PlatformSpecificDynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter(InPlatformSpecificDynamicallyLoadedModuleNames);
 			IsRedistributableOverride = InIsRedistributableOverride;
 
 			Target.RegisterModule(this);
@@ -524,8 +524,8 @@ namespace UnrealBuildTool
 		protected virtual void SetupPublicCompileEnvironment(
 			UEBuildBinary SourceBinary,
 			bool bIncludePathsOnly,
-			ref List<string> IncludePaths,
-			ref List<string> SystemIncludePaths,
+			ref HashSet<string> IncludePaths,
+			ref HashSet<string> SystemIncludePaths,
 			ref List<string> Definitions,
 			ref List<UEBuildFramework> AdditionalFrameworks,
 			ref Dictionary<UEBuildModule, bool> VisitedModules
@@ -624,26 +624,23 @@ namespace UnrealBuildTool
 		}
 
 		/** Adds PathsToAdd to IncludePaths, performing path normalization and ignoring duplicates. */
-		protected void AddIncludePathsWithChecks(List<string> IncludePaths, List<string> PathsToAdd)
+		protected void AddIncludePathsWithChecks(HashSet<string> IncludePaths, HashSet<string> PathsToAdd)
 		{
 			foreach (var Path in PathsToAdd)
 			{
 				var NormalizedPath = Path.TrimEnd('/');
-				if (!IncludePaths.Contains(NormalizedPath))
+				// If path doesn't exist, it may contain VC macro (which is passed directly to and expanded by compiler).
+				if (Directory.Exists(NormalizedPath) || DoesPathContainVCMacro(NormalizedPath))
 				{
-					// If path doesn't exist, it may contain VC macro (which is passed directly to and expanded by compiler).
-					if (Directory.Exists(NormalizedPath) || DoesPathContainVCMacro(NormalizedPath))
-					{
-						IncludePaths.Add(NormalizedPath);
-					}
+					IncludePaths.Add(NormalizedPath);
 				}
 			}
 		}
 
 		/** Sets up the environment for compiling this module. */
 		protected virtual void SetupPrivateCompileEnvironment(
-			ref List<string> IncludePaths,
-			ref List<string> SystemIncludePaths,
+			ref HashSet<string> IncludePaths,
+			ref HashSet<string> SystemIncludePaths,
 			ref List<string> Definitions,
 			ref List<UEBuildFramework> AdditionalFrameworks
 			)
@@ -932,7 +929,7 @@ namespace UnrealBuildTool
 		public readonly SourceFilesClass SourceFilesFound = new SourceFilesClass();
 
 		/** The preprocessor definitions used to compile this module's private implementation. */
-		List<string> Definitions;
+		HashSet<string> Definitions;
 
 		/// When set, allows this module to report compiler definitions and include paths for Intellisense
 		IntelliSenseGatherer IntelliSenseGatherer;
@@ -1087,7 +1084,7 @@ namespace UnrealBuildTool
 				CategorizeSourceFiles(InSourceFiles, SourceFilesToBuild);
 			}
 
-			Definitions = ListFromOptionalEnumerableStringParameter(InDefinitions);
+			Definitions = HashSetFromOptionalEnumerableStringParameter(InDefinitions);
 			foreach (var Def in Definitions)
 			{
 				Log.TraceVerbose("Compile Env {0}: {1}", Name, Def);
@@ -2089,7 +2086,7 @@ namespace UnrealBuildTool
 	class UEBuildModuleCPPCLR : UEBuildModuleCPP
 	{
 		/** The assemblies referenced by the module's private implementation. */
-		List<string> PrivateAssemblyReferences;
+		HashSet<string> PrivateAssemblyReferences;
 
 		public UEBuildModuleCPPCLR(
 			UEBuildTarget InTarget,
@@ -2137,7 +2134,7 @@ namespace UnrealBuildTool
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
 			InEnableExceptions, bInBuildSourceFiles)
 		{
-			PrivateAssemblyReferences = ListFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
+			PrivateAssemblyReferences = HashSetFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
 		}
 
 		// UEBuildModule interface.
