@@ -12,9 +12,13 @@ UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
+	Orientation = Orient_Vertical;
+
 	SScrollBox::FArguments Defaults;
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
-	Orientation = Defaults._Orientation;
+
+	WidgetStyle = *Defaults._Style;
+	WidgetBarStyle = *Defaults._ScrollBarStyle;
 }
 
 void UScrollBox::ReleaseNativeWidget()
@@ -53,23 +57,9 @@ void UScrollBox::OnSlotRemoved(UPanelSlot* Slot)
 
 TSharedRef<SWidget> UScrollBox::RebuildWidget()
 {
-	const FScrollBoxStyle* StylePtr = ( Style != nullptr ) ? Style->GetStyle<FScrollBoxStyle>() : nullptr;
-	if ( StylePtr == nullptr )
-	{
-		SScrollBox::FArguments Defaults;
-		StylePtr = Defaults._Style;
-	}
-
-	const FScrollBarStyle* BarStylePtr = ( BarStyle != nullptr ) ? BarStyle->GetStyle<FScrollBarStyle>() : nullptr;
-	if ( BarStylePtr == nullptr )
-	{
-		SScrollBox::FArguments Defaults;
-		BarStylePtr = Defaults._ScrollBarStyle;
-	}
-
 	MyScrollBox = SNew(SScrollBox)
-		.Style(StylePtr)
-		.ScrollBarStyle(BarStylePtr)
+		.Style(&WidgetStyle)
+		.ScrollBarStyle(&WidgetBarStyle)
 		.Orientation(Orientation);
 
 	for ( UPanelSlot* Slot : Slots )
@@ -97,6 +87,36 @@ void UScrollBox::SetScrollOffset(float NewScrollOffset)
 	if ( MyScrollBox.IsValid() )
 	{
 		MyScrollBox->SetScrollOffset(NewScrollOffset);
+	}
+}
+
+void UScrollBox::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FScrollBoxStyle* StylePtr = Style_DEPRECATED->GetStyle<FScrollBoxStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+
+		if ( BarStyle_DEPRECATED != nullptr )
+		{
+			const FScrollBarStyle* StylePtr = BarStyle_DEPRECATED->GetStyle<FScrollBarStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetBarStyle = *StylePtr;
+			}
+
+			BarStyle_DEPRECATED = nullptr;
+		}
 	}
 }
 
