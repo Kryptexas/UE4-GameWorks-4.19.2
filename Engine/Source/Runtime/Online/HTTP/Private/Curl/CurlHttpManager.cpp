@@ -7,6 +7,7 @@
 #if WITH_LIBCURL
 
 CURLM * FCurlHttpManager::GMultiHandle = NULL;
+FCurlHttpManager::FCurlRequestOptions FCurlHttpManager::CurlRequestOptions;
 
 void FCurlHttpManager::InitCurl()
 {
@@ -66,14 +67,67 @@ void FCurlHttpManager::InitCurl()
 		{
 			UE_LOG(LogInit, Fatal, TEXT("Could not initialize create libcurl multi handle! HTTP transfers will not function properly."));
 		}
-
-		UE_LOG(LogInit, Log, TEXT("Libcurl will %s"), FParse::Param(FCommandLine::Get(), TEXT("noreuseconn")) ? TEXT("NOT reuse connections") : TEXT("reuse connections"));
 	}
 	else
 	{
 		UE_LOG(LogInit, Fatal, TEXT("Could not initialize libcurl (result=%d), HTTP transfers will not function properly."), (int32)InitResult);
 	}
+
+	// Init curl request options
+
+	// set certificate verification (disable to allow self-signed certificates)
+	bool bVerifyPeer = true;
+	if (GConfig->GetBool(TEXT("/Script/Engine.NetworkSettings"), TEXT("n.VerifyPeer"), bVerifyPeer, GEngineIni))
+	{
+		CurlRequestOptions.bVerifyPeer = bVerifyPeer;
+	}
+
+	FString ProxyAddress;
+	if (FParse::Value(FCommandLine::Get(), TEXT("httpproxy="), ProxyAddress))
+	{
+		if (!ProxyAddress.IsEmpty())
+		{
+			CurlRequestOptions.bUseHttpProxy = true;
+			CurlRequestOptions.HttpProxyAddress = ProxyAddress;
+		}
+		else
+		{
+			UE_LOG(LogInit, Warning, TEXT(" Libcurl: -httpproxy has been passed as a parameter, but the address doesn't seem to be valid"));
+		}
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("noreuseconn")))
+	{
+		CurlRequestOptions.bDontReuseConnections = true;
+	}
+
+	// print for visibility
+	CurlRequestOptions.Log();
 }
+
+void FCurlHttpManager::FCurlRequestOptions::Log()
+{
+	UE_LOG(LogInit, Log, TEXT(" CurlRequestOptions (configurable via config and command line):"));
+		UE_LOG(LogInit, Log, TEXT(" - bVerifyPeer = %s  - Libcurl will %sverify peer certificate"),
+		bVerifyPeer ? TEXT("true") : TEXT("false"),
+		bVerifyPeer ? TEXT("") : TEXT("NOT ")
+		);
+
+	UE_LOG(LogInit, Log, TEXT(" - bUseHttpProxy = %s  - Libcurl will %suse HTTP proxy"),
+		bUseHttpProxy ? TEXT("true") : TEXT("false"),
+		bUseHttpProxy ? TEXT("") : TEXT("NOT ")
+		);	
+	if (bUseHttpProxy)
+	{
+		UE_LOG(LogInit, Log, TEXT(" - HttpProxyAddress = '%s'"), *CurlRequestOptions.HttpProxyAddress);
+	}
+
+	UE_LOG(LogInit, Log, TEXT(" - bDontReuseConnections = %s  - Libcurl will %sreuse connections"),
+		bDontReuseConnections ? TEXT("true") : TEXT("false"),
+		bDontReuseConnections ? TEXT("NOT ") : TEXT("")
+		);
+}
+
 
 void FCurlHttpManager::ShutdownCurl()
 {

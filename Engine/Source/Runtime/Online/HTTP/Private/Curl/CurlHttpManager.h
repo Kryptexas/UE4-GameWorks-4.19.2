@@ -38,6 +38,31 @@ public:
 	static void InitCurl();
 	static void ShutdownCurl();
 	static CURLM * GMultiHandle;
+
+	static struct FCurlRequestOptions
+	{
+		FCurlRequestOptions()
+			:	bVerifyPeer(true)
+			,	bUseHttpProxy(false)
+			,	bDontReuseConnections(false)
+		{}
+
+		/** Prints out the options to the log */
+		void Log();
+
+		/** Whether or not should verify peer certificate (disable to allow self-signed certs) */
+		bool bVerifyPeer;
+
+		/** Whether or not should use HTTP proxy */
+		bool bUseHttpProxy;
+
+		/** Forbid reuse connections (for debugging purposes, since normally it's faster to reuse) */
+		bool bDontReuseConnections;
+
+		/** Address of the HTTP proxy */
+		FString HttpProxyAddress;
+	}
+	CurlRequestOptions;
 };
 
 #endif //WITH_LIBCURL

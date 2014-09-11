@@ -3,6 +3,7 @@
 #include "HttpPrivatePCH.h"
 #include "CurlHttp.h"
 #include "EngineVersion.h"
+#include "CurlHttpManager.h"
 
 #if WITH_LIBCURL
 
@@ -35,16 +36,12 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 #endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 		// set certificate verification (disable to allow self-signed certificates)
-		bool bVerifyPeer = true;
-		GConfig->GetBool(TEXT("/Script/Engine.NetworkSettings"), TEXT("n.VerifyPeer"), bVerifyPeer, GEngineIni);
-		if (bVerifyPeer)
+		if (FCurlHttpManager::CurlRequestOptions.bVerifyPeer)
 		{
-			UE_LOG(LogInit, Verbose, TEXT("Libcurl will verify peer certificate"));
 			curl_easy_setopt(EasyHandle, CURLOPT_SSL_VERIFYPEER, 1L);
 		}
 		else
 		{
-			UE_LOG(LogInit, Display, TEXT("Libcurl will NOT verify peer certificate"));
 			curl_easy_setopt(EasyHandle, CURLOPT_SSL_VERIFYPEER, 0L);
 		}
 
@@ -54,21 +51,13 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 		// associate with this just in case
 		curl_easy_setopt(EasyHandle, CURLOPT_PRIVATE, this);
 
-		FString ProxyAddress;
-		if (FParse::Value(FCommandLine::Get(), TEXT("httpproxy="), ProxyAddress))
+		if (FCurlHttpManager::CurlRequestOptions.bUseHttpProxy)
 		{
-			if (!ProxyAddress.IsEmpty())
-			{
-				curl_easy_setopt(EasyHandle, CURLOPT_PROXY, TCHAR_TO_ANSI(*ProxyAddress));
-				UE_LOG(LogHttp, Display, TEXT("Using '%s' as HTTP proxy for request %p"), *ProxyAddress, this);
-			}
-			else
-			{
-				UE_LOG(LogHttp, Warning, TEXT("-httpproxy has been passed as a parameter, but address doesn't seem to be valid"));
-			}
+			// guaranteed to be valid at this point
+			curl_easy_setopt(EasyHandle, CURLOPT_PROXY, TCHAR_TO_ANSI(*FCurlHttpManager::CurlRequestOptions.HttpProxyAddress));
 		}
 
-		if (FParse::Param(FCommandLine::Get(), TEXT("noreuseconn")))
+		if (FCurlHttpManager::CurlRequestOptions.bDontReuseConnections)
 		{
 			curl_easy_setopt(EasyHandle, CURLOPT_FORBID_REUSE, 1L);
 		}
