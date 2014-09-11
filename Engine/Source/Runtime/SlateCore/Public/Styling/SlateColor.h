@@ -10,7 +10,7 @@
  *
  * Should we use the specified color? If not, then which color from the style should we use.
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateColorStylingMode
 {
 	enum Type

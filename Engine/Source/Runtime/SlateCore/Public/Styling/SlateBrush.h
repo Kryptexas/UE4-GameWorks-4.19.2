@@ -11,13 +11,13 @@
 /**
  * Enumerates ways in which an image can be drawn.
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateBrushDrawType
 {
 	enum Type
 	{
 		/** Don't do anything */
-		NoDrawType,
+		NoDrawType UMETA(Hidden),
 
 		/** Draw a 3x3 box, where the sides and the middle stretch based on the Margin */
 		Box,
@@ -34,7 +34,7 @@ namespace ESlateBrushDrawType
 /**
  * Enumerates tiling options for image drawing.
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateBrushTileType
 {
 	enum Type
