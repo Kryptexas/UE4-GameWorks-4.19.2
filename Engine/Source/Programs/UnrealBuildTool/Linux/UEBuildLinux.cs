@@ -100,12 +100,6 @@ namespace UnrealBuildTool
 
             return SDKStatus.Invalid;
         }
-
-        public override bool CanUseXGE()
-        {
-            // disabled until XGE crash is fixed
-            return false;
-        }
         
         /**
          *	Register the platform with the UEBuildPlatform class
