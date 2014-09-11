@@ -110,7 +110,8 @@ int32 STutorialOverlay::TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeo
 		// if we are picking, we need to draw an outline here
 		FName WidgetNameToHighlight = NAME_None;
 		bool bIsPicking = false;
-		FIntroTutorials& IntroTutorials = FModuleManager::Get().GetModuleChecked<FIntroTutorials>("IntroTutorials");
+		static FName IntroTutorialsModuleName("IntroTutorials");
+		FIntroTutorials& IntroTutorials = FModuleManager::Get().GetModuleChecked<FIntroTutorials>(IntroTutorialsModuleName);
 		if(IntroTutorials.OnIsPicking().IsBound())
 		{
 			bIsPicking = IntroTutorials.OnIsPicking().Execute(WidgetNameToHighlight);

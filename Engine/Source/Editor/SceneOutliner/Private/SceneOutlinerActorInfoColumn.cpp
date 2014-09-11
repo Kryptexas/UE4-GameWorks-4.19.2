@@ -19,7 +19,8 @@ FSceneOutlinerActorInfoColumn::FSceneOutlinerActorInfoColumn( const TWeakPtr< IS
 
 FName FSceneOutlinerActorInfoColumn::GetColumnID()
 {
-	return FName( "ActorInfo" );
+	static FName ActorInfo("ActorInfo");
+	return ActorInfo;
 }
 
 

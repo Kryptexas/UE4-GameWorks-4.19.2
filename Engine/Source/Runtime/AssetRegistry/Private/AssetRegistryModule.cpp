@@ -41,9 +41,12 @@ void FAssetRegistryModule::ShutdownModule()
 	}
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
-	// unregister message log
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	MessageLogModule.UnregisterLogListing("AssetRegistry");
+	if( FModuleManager::Get().IsModuleLoaded("MessageLog") )
+	{
+		// unregister message log
+		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
+		MessageLogModule.UnregisterLogListing("AssetRegistry");
+	}
 #endif
 }
 

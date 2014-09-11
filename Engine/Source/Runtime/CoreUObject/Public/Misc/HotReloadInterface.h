@@ -17,7 +17,8 @@ public:
 	 */
 	static inline IHotReloadInterface* GetPtr()
 	{
-		return FModuleManager::GetModulePtr<IHotReloadInterface>("HotReload");
+		static FName HotReload("HotReload");
+		return FModuleManager::GetModulePtr<IHotReloadInterface>(HotReload);
 	}
 
 	/**

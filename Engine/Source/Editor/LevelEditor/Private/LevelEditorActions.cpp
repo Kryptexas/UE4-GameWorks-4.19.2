@@ -54,6 +54,8 @@ DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
 #define LOCTEXT_NAMESPACE "LevelEditorActions"
 
+const FName HotReloadModule("HotReload");
+
 namespace LevelEditorActionsHelpers
 {
 	/** 
@@ -866,7 +868,7 @@ void FLevelEditorActionCallbacks::MapCheck_Execute()
 
 bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 {
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	// If there is at least one loaded game module, source code actions should be available.
 	return HotReloadSupport.IsAnyGameModuleLoaded();
 }
@@ -884,7 +886,7 @@ void FLevelEditorActionCallbacks::ReloadLevelEditor_Clicked()
 void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 {
 	// Don't allow a recompile while already compiling!
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	if( !HotReloadSupport.IsCurrentlyCompiling() )
 	{
 		HotReloadSupport.DoHotReloadFromEditor();
@@ -894,14 +896,15 @@ void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 {
 	// We're not able to recompile if a compile is already in progress!
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
 }
 
 bool FLevelEditorActionCallbacks::Reload_CanExecute()
 {
 	// We're not able to reload if a compile is already in progress!
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	return !HotReloadSupport.IsCurrentlyCompiling();
 }
 

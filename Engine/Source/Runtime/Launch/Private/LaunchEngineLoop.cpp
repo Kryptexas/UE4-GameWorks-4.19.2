@@ -2137,10 +2137,11 @@ void FEngineLoop::Tick()
 #if WITH_EDITOR
 		if( GIsEditor )
 		{
+			static FName AutomationController("AutomationController");
 			//Check if module loaded to support the change to allow this to be hot compilable.
-			if (FModuleManager::Get().IsModuleLoaded(TEXT("AutomationController")))
+			if (FModuleManager::Get().IsModuleLoaded(AutomationController))
 			{
-				FModuleManager::GetModuleChecked<IAutomationControllerModule>("AutomationController").Tick();
+				FModuleManager::GetModuleChecked<IAutomationControllerModule>(AutomationController).Tick();
 			}
 		}
 #endif

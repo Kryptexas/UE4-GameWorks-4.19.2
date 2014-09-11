@@ -6,6 +6,11 @@
 #include "ModuleInterface.h"
 #include "IAssetRegistry.h"
 
+namespace AssetRegistryConstants
+{
+	const FName ModuleName("AssetRegistry");
+}
+
 /**
  * Asset registry module
  */
@@ -26,7 +31,7 @@ public:
 	/** Tick the asset registry with the supplied timestep */
 	static void TickAssetRegistry(float DeltaTime)
 	{
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName);
 		AssetRegistryModule.Get().Tick(DeltaTime);
 	}
 
@@ -35,7 +40,7 @@ public:
 	{
 		if ( GIsEditor )
 		{
-			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName);
 			AssetRegistryModule.Get().AssetCreated(NewAsset);
 		}
 	}
@@ -45,7 +50,7 @@ public:
 	{
 		if ( GIsEditor )
 		{
-			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName);
 			AssetRegistryModule.Get().AssetDeleted(DeletedAsset);
 		}
 	}
@@ -55,7 +60,7 @@ public:
 	{
 		if ( GIsEditor )
 		{
-			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName);
 			AssetRegistryModule.Get().AssetRenamed(RenamedAsset, OldObjectPath);
 		}
 	}

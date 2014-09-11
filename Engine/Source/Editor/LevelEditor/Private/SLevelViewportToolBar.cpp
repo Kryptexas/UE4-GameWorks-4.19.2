@@ -299,22 +299,27 @@ const FSlateBrush* SLevelViewportToolBar::GetCameraMenuLabelIcon() const
 	TSharedPtr< SLevelViewport > PinnedViewport( Viewport.Pin() );
 	if( PinnedViewport.IsValid() )
 	{
+		static FName PerspectiveIcon("EditorViewport.Perspective");
+		static FName TopIcon("EditorViewport.Top");
+		static FName SideIcon("EditorViewport.Side");
+		static FName FrontIcon("EditorViewport.Front");
+
 		switch( PinnedViewport->GetLevelViewportClient().ViewportType )
 		{
 			case LVT_Perspective:
-				Icon = FName( "EditorViewport.Perspective" );
+				Icon = PerspectiveIcon;
 				break;
 
 			case LVT_OrthoXY:
-				Icon = FName( "EditorViewport.Top" );
+				Icon = TopIcon;
 				break;
 
 			case LVT_OrthoYZ:
-				Icon = FName( "EditorViewport.Side" );
+				Icon = SideIcon;
 				break;
 
 			case LVT_OrthoXZ:
-				Icon = FName( "EditorViewport.Front" );
+				Icon = FrontIcon;
 				break;
 		}
 	}

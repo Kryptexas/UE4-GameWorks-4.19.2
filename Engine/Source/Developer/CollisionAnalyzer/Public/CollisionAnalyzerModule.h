@@ -17,7 +17,8 @@ public:
 	/** Gets the debugger singleton or returns NULL */
 	static ICollisionAnalyzer* Get()
 	{
-		FCollisionAnalyzerModule& DebuggerModule = FModuleManager::Get().LoadModuleChecked<FCollisionAnalyzerModule>("CollisionAnalyzer");
+		static FName CollisionAnalyzerModuleName("CollisionAnalyzer");
+		FCollisionAnalyzerModule& DebuggerModule = FModuleManager::Get().LoadModuleChecked<FCollisionAnalyzerModule>(CollisionAnalyzerModuleName);
 		return DebuggerModule.GetSingleton();
 	}
 

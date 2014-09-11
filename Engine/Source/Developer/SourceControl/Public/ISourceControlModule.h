@@ -123,6 +123,7 @@ public:
 	 */
 	static inline ISourceControlModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked<ISourceControlModule>("SourceControl");
+		static FName SourceControlModule("SourceControl");
+		return FModuleManager::LoadModuleChecked<ISourceControlModule>(SourceControlModule);
 	}
 };

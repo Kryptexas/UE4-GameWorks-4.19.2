@@ -982,7 +982,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Find out if the editor has focus. Audio should only play if the editor has focus.
-	const bool bHasFocus = FPlatformProcess::IsThisApplicationForeground();
+	const bool bHasFocus = FSlateApplication::Get().GetActiveTopLevelWindow().IsValid() || FPlatformProcess::IsThisApplicationForeground();
 
 	if (bHasFocus || GetDefault<ULevelEditorMiscSettings>()->bAllowBackgroundAudio)
 	{
@@ -1004,12 +1004,14 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Tick the asset registry
 	FAssetRegistryModule::TickAssetRegistry(DeltaSeconds);
 
-	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	static FName SourceCodeAccessName("SourceCodeAccess");
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>(SourceCodeAccessName);
 	SourceCodeAccessModule.GetAccessor().Tick(DeltaSeconds);
 
 	// tick the directory watcher
 	// @todo: Put me into an FTicker that is created when the DW module is loaded
-	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	static FName DirectoryWatcherName("DirectoryWatcher");
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(DirectoryWatcherName);
 	DirectoryWatcherModule.Get()->Tick(DeltaSeconds);
 
 	if( bShouldTickEditorWorld )
@@ -5980,7 +5982,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 {
 	bool bShouldThrottle = false;
 
-	bool bIsForeground = FPlatformProcess::IsThisApplicationForeground();
+	bool bIsForeground = FSlateApplication::Get().GetActiveTopLevelWindow().IsValid() || FPlatformProcess::IsThisApplicationForeground();
 
 	if( !bIsForeground )
 	{

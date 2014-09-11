@@ -590,8 +590,10 @@ public:
 
 		const bool bIsActive = OwnerWidget->AsWidget()->HasKeyboardFocus();
 
+		static FName GenericWhiteBoxBrush("GenericWhiteBox");
+
 		// @todo: Slate Style - make this part of the widget style
-		const FSlateBrush* WhiteBox = FCoreStyle::Get().GetBrush("GenericWhiteBox");
+		const FSlateBrush* WhiteBox = FCoreStyle::Get().GetBrush(GenericWhiteBoxBrush);
 
 		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
 

@@ -20,7 +20,8 @@ public:
 	 */
 	static inline IGameplayDebugger& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IGameplayDebugger >("GameplayDebugger");
+		static FName GamePlayDebuggerModuleName("GameplayDebugger");
+		return FModuleManager::LoadModuleChecked< IGameplayDebugger >(GamePlayDebuggerModuleName);
 	}
 
 	/**
@@ -30,7 +31,8 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "GameplayDebugger" );
+		static FName GamePlayDebuggerModuleName("GameplayDebugger");
+		return FModuleManager::Get().IsModuleLoaded( GamePlayDebuggerModuleName );
 	}
 
 	// Each player controller that wants to use gameplay debugging must call this function
