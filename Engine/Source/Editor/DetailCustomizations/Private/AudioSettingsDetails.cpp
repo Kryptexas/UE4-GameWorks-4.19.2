@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AudioSettingsDetails.h"
+#include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 
 TSharedRef<IDetailCustomization> FAudioSettingsDetails::MakeInstance()
 {

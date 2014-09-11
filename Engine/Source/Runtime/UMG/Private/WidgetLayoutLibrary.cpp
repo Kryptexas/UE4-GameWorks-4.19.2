@@ -3,6 +3,7 @@
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
 #include "WidgetLayoutLibrary.h"
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

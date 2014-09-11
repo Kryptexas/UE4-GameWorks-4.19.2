@@ -4,7 +4,8 @@
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
 #include "CookerSettings.h"
-
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 

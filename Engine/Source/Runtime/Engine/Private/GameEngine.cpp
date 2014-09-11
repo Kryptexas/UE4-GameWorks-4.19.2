@@ -15,7 +15,7 @@
 #include "ConfigCacheIni.h"
 #include "EngineModule.h"
 #include "Engine/GameInstance.h"
-
+#include "Engine/RendererSettings.h"
 #include "AVIWriter.h"
 
 #include "Slate.h"

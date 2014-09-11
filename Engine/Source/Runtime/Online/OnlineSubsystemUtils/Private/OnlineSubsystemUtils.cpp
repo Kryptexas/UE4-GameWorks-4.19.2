@@ -10,6 +10,7 @@
 
 #include "Voice.h"
 #include "SoundDefinitions.h"
+#include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 
 // Testing classes
 #include "Tests/TestFriendsInterface.h"

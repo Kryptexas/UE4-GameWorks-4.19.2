@@ -31,6 +31,7 @@
 #include "EngineAnalytics.h"
 #include "Engine/GameInstance.h"
 #include "EditorAnalytics.h"
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 
 #include "Online.h"
 

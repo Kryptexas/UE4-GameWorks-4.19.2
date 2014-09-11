@@ -29,6 +29,7 @@
 #include "SceneOutlinerTreeItems.h"
 #include "BufferVisualizationData.h"
 #include "EditorViewportCommands.h"
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 
 static const FName LevelEditorName("LevelEditor");
 

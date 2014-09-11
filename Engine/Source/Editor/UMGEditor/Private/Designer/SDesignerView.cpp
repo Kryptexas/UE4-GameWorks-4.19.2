@@ -13,6 +13,7 @@
 #include "SDesignerToolBar.h"
 #include "DesignerCommands.h"
 #include "STransformHandle.h"
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
