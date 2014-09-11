@@ -21,9 +21,10 @@ public:
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
-	/** The button style used at runtime by the slate button */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance, meta=( DisplayName="Style" ))
-	TSubobjectPtr<UButtonWidgetStyle> WidgetStyle;
+	/** The button style used at runtime */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FButtonStyle WidgetStyle;
+	/*ShowOnlyInnerProperties,*/
 	
 	/** The color multiplier for the button content */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )
@@ -50,14 +51,6 @@ public:
 	/** Called when the button is clicked */
 	UPROPERTY(BlueprintAssignable)
 	FOnButtonClickedEvent OnClicked;
-
-	/** Sets the look and feel of a button from a new button style struct. */
-	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
-	void SetButtonStyle(FButtonStyle InButtonStyle);
-
-	/** Gets a dynamic button style that can be changed. */
-	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
-	FButtonStyle GetButtonStyle();
 	
 	/** Sets the color multiplier for the button content */
 	UFUNCTION(BlueprintCallable, Category="Button|Appearance")

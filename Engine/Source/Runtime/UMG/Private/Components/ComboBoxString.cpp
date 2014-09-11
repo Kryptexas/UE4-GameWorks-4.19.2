@@ -10,11 +10,8 @@
 UComboBoxString::UComboBoxString(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	static const FName StyleName(TEXT("Style"));
-	WidgetStyle = PCIP.CreateDefaultSubobject<UComboBoxWidgetStyle>(this, StyleName);
-
 	SComboBox< TSharedPtr<FString> >::FArguments SlateDefaults;
-	WidgetStyle->ComboBoxStyle = *SlateDefaults._ComboBoxStyle;
+	WidgetStyle = *SlateDefaults._ComboBoxStyle;
 
 	ContentPadding = FMargin(4.0, 2.0);
 	MaxListHeight = 450.0f;
@@ -45,7 +42,7 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 
 	MyComboBox =
 		SNew(SComboBox< TSharedPtr<FString> >)
-		.ComboBoxStyle(&WidgetStyle->ComboBoxStyle)
+		.ComboBoxStyle(&WidgetStyle)
 		.OptionsSource(&Options)
 		.InitiallySelectedItem(SelectedOptionPtr)
 		.ContentPadding(ContentPadding)

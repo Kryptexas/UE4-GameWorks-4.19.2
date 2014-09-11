@@ -35,9 +35,9 @@ public:
 	UPROPERTY()
 	FGetText HintTextDelegate;
 
-	/** The button style used at runtime by the slate button */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance, meta=(DisplayName="Style") )
-	TSubobjectPtr<UEditableTextWidgetStyle> WidgetStyle;
+	/** The style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FEditableTextStyle WidgetStyle;
 
 	/** Text style */
 	UPROPERTY()

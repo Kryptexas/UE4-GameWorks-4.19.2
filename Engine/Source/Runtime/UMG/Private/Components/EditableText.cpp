@@ -10,11 +10,8 @@
 UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	static const FName StyleName(TEXT("Style"));
-	WidgetStyle = PCIP.CreateDefaultSubobject<UEditableTextWidgetStyle>(this, StyleName);
-
 	SEditableText::FArguments Defaults;
-	WidgetStyle->EditableTextStyle = *Defaults._Style;
+	WidgetStyle = *Defaults._Style;
 
 	ColorAndOpacity = FLinearColor::Black;
 
@@ -49,7 +46,7 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 	}
 	
 	MyEditableText = SNew(SEditableText)
-	.Style(&WidgetStyle->EditableTextStyle)
+	.Style(&WidgetStyle)
 	.Font(FSlateFontInfo(FontPath, Font.Size))
 	.MinDesiredWidth(MinimumDesiredWidth)
 	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
@@ -147,7 +144,7 @@ void UEditableText::PostLoad()
 			const FEditableTextStyle* StylePtr = Style_DEPRECATED->GetStyle<FEditableTextStyle>();
 			if ( StylePtr != nullptr )
 			{
-				WidgetStyle->EditableTextStyle = *StylePtr;
+				WidgetStyle = *StylePtr;
 			}
 
 			Style_DEPRECATED = nullptr;
@@ -155,25 +152,25 @@ void UEditableText::PostLoad()
 
 		if ( BackgroundImageSelected_DEPRECATED != nullptr )
 		{
-			WidgetStyle->EditableTextStyle.BackgroundImageSelected = BackgroundImageSelected_DEPRECATED->Brush;
+			WidgetStyle.BackgroundImageSelected = BackgroundImageSelected_DEPRECATED->Brush;
 			BackgroundImageSelected_DEPRECATED = nullptr;
 		}
 
 		if ( BackgroundImageSelectionTarget_DEPRECATED != nullptr )
 		{
-			WidgetStyle->EditableTextStyle.BackgroundImageSelectionTarget = BackgroundImageSelectionTarget_DEPRECATED->Brush;
+			WidgetStyle.BackgroundImageSelectionTarget = BackgroundImageSelectionTarget_DEPRECATED->Brush;
 			BackgroundImageSelectionTarget_DEPRECATED = nullptr;
 		}
 
 		if ( BackgroundImageComposing_DEPRECATED != nullptr )
 		{
-			WidgetStyle->EditableTextStyle.BackgroundImageComposing = BackgroundImageComposing_DEPRECATED->Brush;
+			WidgetStyle.BackgroundImageComposing = BackgroundImageComposing_DEPRECATED->Brush;
 			BackgroundImageComposing_DEPRECATED = nullptr;
 		}
 
 		if ( CaretImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->EditableTextStyle.CaretImage = CaretImage_DEPRECATED->Brush;
+			WidgetStyle.CaretImage = CaretImage_DEPRECATED->Brush;
 			CaretImage_DEPRECATED = nullptr;
 		}
 	}

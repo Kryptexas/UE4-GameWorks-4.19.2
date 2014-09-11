@@ -10,11 +10,8 @@
 UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	static const FName StyleName(TEXT("Style"));
-	WidgetStyle = PCIP.CreateDefaultSubobject<UCheckBoxWidgetStyle>(this, StyleName);
-
 	SCheckBox::FArguments SlateDefaults;
-	WidgetStyle->CheckBoxStyle = *SlateDefaults._Style;
+	WidgetStyle = *SlateDefaults._Style;
 
 	CheckedState = ESlateCheckBoxState::Unchecked;
 
@@ -35,7 +32,7 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 {
 	MyCheckbox = SNew(SCheckBox)
 		.OnCheckStateChanged( BIND_UOBJECT_DELEGATE(FOnCheckStateChanged, SlateOnCheckStateChangedCallback) )
-		.Style(&WidgetStyle->CheckBoxStyle)
+		.Style(&WidgetStyle)
 		.HAlign( HorizontalAlignment )
 		.Padding( Padding )
 		.BorderBackgroundColor( BorderBackgroundColor )
@@ -148,7 +145,7 @@ void UCheckBox::PostLoad()
 			const FCheckBoxStyle* StylePtr = Style_DEPRECATED->GetStyle<FCheckBoxStyle>();
 			if ( StylePtr != nullptr )
 			{
-				WidgetStyle->CheckBoxStyle = *StylePtr;
+				WidgetStyle = *StylePtr;
 			}
 
 			Style_DEPRECATED = nullptr;
@@ -156,55 +153,55 @@ void UCheckBox::PostLoad()
 
 		if ( UncheckedImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.UncheckedImage = UncheckedImage_DEPRECATED->Brush;
+			WidgetStyle.UncheckedImage = UncheckedImage_DEPRECATED->Brush;
 			UncheckedImage_DEPRECATED = nullptr;
 		}
 
 		if ( UncheckedHoveredImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.UncheckedHoveredImage = UncheckedHoveredImage_DEPRECATED->Brush;
+			WidgetStyle.UncheckedHoveredImage = UncheckedHoveredImage_DEPRECATED->Brush;
 			UncheckedHoveredImage_DEPRECATED = nullptr;
 		}
 
 		if ( UncheckedPressedImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.UncheckedPressedImage = UncheckedPressedImage_DEPRECATED->Brush;
+			WidgetStyle.UncheckedPressedImage = UncheckedPressedImage_DEPRECATED->Brush;
 			UncheckedPressedImage_DEPRECATED = nullptr;
 		}
 
 		if ( CheckedImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.CheckedImage = CheckedImage_DEPRECATED->Brush;
+			WidgetStyle.CheckedImage = CheckedImage_DEPRECATED->Brush;
 			CheckedImage_DEPRECATED = nullptr;
 		}
 
 		if ( CheckedHoveredImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.CheckedHoveredImage = CheckedHoveredImage_DEPRECATED->Brush;
+			WidgetStyle.CheckedHoveredImage = CheckedHoveredImage_DEPRECATED->Brush;
 			CheckedHoveredImage_DEPRECATED = nullptr;
 		}
 
 		if ( CheckedPressedImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.CheckedPressedImage = CheckedPressedImage_DEPRECATED->Brush;
+			WidgetStyle.CheckedPressedImage = CheckedPressedImage_DEPRECATED->Brush;
 			CheckedPressedImage_DEPRECATED = nullptr;
 		}
 
 		if ( UndeterminedImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.UndeterminedImage = UndeterminedImage_DEPRECATED->Brush;
+			WidgetStyle.UndeterminedImage = UndeterminedImage_DEPRECATED->Brush;
 			UndeterminedImage_DEPRECATED = nullptr;
 		}
 
 		if ( UndeterminedHoveredImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.UndeterminedHoveredImage = UndeterminedHoveredImage_DEPRECATED->Brush;
+			WidgetStyle.UndeterminedHoveredImage = UndeterminedHoveredImage_DEPRECATED->Brush;
 			UndeterminedHoveredImage_DEPRECATED = nullptr;
 		}
 
 		if ( UndeterminedPressedImage_DEPRECATED != nullptr )
 		{
-			WidgetStyle->CheckBoxStyle.UndeterminedPressedImage = UndeterminedPressedImage_DEPRECATED->Brush;
+			WidgetStyle.UndeterminedPressedImage = UndeterminedPressedImage_DEPRECATED->Brush;
 			UndeterminedPressedImage_DEPRECATED = nullptr;
 		}
 	}

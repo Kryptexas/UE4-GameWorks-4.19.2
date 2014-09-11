@@ -18,8 +18,8 @@ class UMG_API UCheckBox : public UContentWidget
 
 public:
 	/** The checkbox bar style */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=Appearance, meta=( DisplayName="Style" ))
-	TSubobjectPtr<UCheckBoxWidgetStyle> WidgetStyle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FCheckBoxStyle WidgetStyle;
 
 	/** Style of the check box */
 	UPROPERTY()
