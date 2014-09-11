@@ -2879,7 +2879,7 @@ namespace UnrealBuildTool
 							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
 							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
 							InOptimizeCode: RulesObject.OptimizeCode,
-							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : !this.bEditorRecompile,
+							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
 							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
 							InUseRTTI: RulesObject.bUseRTTI,
 							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,

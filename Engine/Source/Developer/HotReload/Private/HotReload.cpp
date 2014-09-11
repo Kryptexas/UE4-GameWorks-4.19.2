@@ -1093,6 +1093,9 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 		ExtraArg += TEXT( "-FailIfGeneratedCodeChanges " );
 	}
 
+	// Shared PCH does no work with hot-reloading modules as we don't scan all modules for them.
+	ExtraArg += TEXT("-nosharedpch ");
+
 	// If the're no game modules loaded, then it's not a code-based project and the target
 	// for UBT should be the editor.
 	FString TargetName;
