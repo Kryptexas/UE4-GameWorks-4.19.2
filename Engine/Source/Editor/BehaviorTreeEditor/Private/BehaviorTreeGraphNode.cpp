@@ -110,6 +110,7 @@ void UBehaviorTreeGraphNode::ResetNodeOwner()
 	{
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
 		NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+		NodeInstance->ClearFlags(RF_Transient);
 	}
 }
 
