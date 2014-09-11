@@ -47,11 +47,6 @@ public:
 	static FOnPackageMarkedDirty PackageMarkedDirtyEvent;
 
 private:
-#if !IS_MONOLITHIC
-	/** True if we have attempted to load code for this package from a DLL already */
-	bool bHasAttemptedBind;
-#endif
-
 	/** Used by the editor to determine if a package has been changed.																							*/
 	bool	bDirty;
 public:

@@ -329,7 +329,7 @@ bool FHotReloadModule::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 #if !UE_BUILD_SHIPPING
 	if ( FParse::Command( &Cmd, TEXT( "Module" ) ) )
 	{
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 		// Recompile <ModuleName>
 		if( FParse::Command( &Cmd, TEXT( "Recompile" ) ) )
 		{
@@ -343,7 +343,7 @@ bool FHotReloadModule::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 
 			return true;
 		}
-#endif // !IS_MONOLITHIC
+#endif // WITH_HOT_RELOAD
 	}
 #endif // !UE_BUILD_SHIPPING
 	return false;
@@ -395,7 +395,7 @@ FString FHotReloadModule::GetModuleCompileMethod(FName InModuleName)
 
 bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar )
 {
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	const bool bShowProgressDialog = true;
 	const bool bShowCancelButton = false;
 
@@ -471,7 +471,7 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 	return bWasSuccessful;
 #else
 	return false;
-#endif // !IS_MONOLITHIC
+#endif // WITH_HOT_RELOAD
 }
 
 /** Type hash for a UObject Function Pointer, maybe not a great choice, but it should be sufficient for the needs here. **/
@@ -525,7 +525,7 @@ void FHotReloadModule::DoHotReloadCallback(bool bRecompileFinished, bool bRecomp
 ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFinished, bool bRecompileSucceeded, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	if (bRecompileSucceeded)
 	{
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
@@ -661,7 +661,7 @@ void FHotReloadModule::RebindPackages(TArray<UPackage*> InPackages, TArray<FName
 ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	bool bCanRebind = InPackages.Num() > 0;
 
 	// Verify that we're going to be able to rebind the specified packages
@@ -919,7 +919,7 @@ void FHotReloadModule::RecordAnalyticsEvent(const TCHAR* ReloadFrom, ECompilatio
 
 bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames, const FRecompileModulesCallback& InRecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar )
 {
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	// NOTE: This method of recompiling always using a rolling file name scheme, since we never want to unload before
 	// we start recompiling, and we need the output DLL to be unlocked before we invoke the compiler
 
@@ -973,7 +973,7 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 	return bWasSuccessful;
 #else
 	return false;
-#endif // !IS_MONOLITHIC
+#endif // WITH_HOT_RELOAD
 }
 
 void FHotReloadModule::OnModuleCompileSucceeded(FName ModuleName, const FString& NewModuleFilename)
@@ -981,7 +981,7 @@ void FHotReloadModule::OnModuleCompileSucceeded(FName ModuleName, const FString&
 	// If the compile succeeded, update the module info entry with the new file name for this module
 	FModuleManager::Get().SetModuleFilename(ModuleName, NewModuleFilename);
 
-#if !IS_MONOLITHIC && WITH_EDITOR
+#if WITH_HOT_RELOAD
 	// UpdateModuleCompileData() should have been run before compiling so the
 	// data in ModuleInfo should be correct for the pre-compile dll file.
 	FModuleCompilationData& CompileData = ModuleCompileData.FindChecked(ModuleName).Get();
@@ -1007,7 +1007,7 @@ void FHotReloadModule::OnModuleCompileSucceeded(FName ModuleName, const FString&
 bool FHotReloadModule::RecompileModuleDLLs( const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice& Ar )
 {
 	bool bCompileSucceeded = false;
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
 	if( StartCompilingModuleDLLs( FApp::GetGameName(), ModuleNames, FRecompileModulesCallback(), Ar, true, AdditionalArguments ) )
 	{
@@ -1050,7 +1050,7 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 	const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
 	const FString& InAdditionalCmdLineArgs )
 {
-#if PLATFORM_DESKTOP && !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	// Keep track of what we're compiling
 	ModulesBeingCompiled = ModuleNames;
 	ModulesThatWereBeingRecompiled = ModulesBeingCompiled;
@@ -1134,7 +1134,7 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 
 bool FHotReloadModule::InvokeUnrealBuildToolForCompile(const FString& InCmdLineParams, FOutputDevice &Ar)
 {
-#if PLATFORM_DESKTOP && !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 
 	// Make sure we're not already compiling something!
 	check(!IsCurrentlyCompiling());
@@ -1178,12 +1178,12 @@ bool FHotReloadModule::InvokeUnrealBuildToolForCompile(const FString& InCmdLineP
 	return ProcHandle.IsValid();
 #else
 	return false;
-#endif // PLATFORM_DESKTOP && !IS_MONOLITHIC
+#endif // WITH_HOT_RELOAD
 }
 
 void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideText, bool bFireEvents)
 {
-#if PLATFORM_DESKTOP && !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	bCompileStillInProgress = false;
 	ECompilationResult::Type CompilationResult = ECompilationResult::OtherCompilationError;
 
@@ -1323,7 +1323,7 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 	{
 		Ar.Logf(TEXT("Error: CheckForFinishedModuleDLLCompile: There is no compilation in progress right now"));
 	}
-#endif // PLATFORM_DESKTOP && !IS_MONOLITHIC
+#endif // WITH_HOT_RELOAD
 }
 
 void FHotReloadModule::UpdateModuleCompileData(FName ModuleName)
@@ -1341,7 +1341,7 @@ void FHotReloadModule::UpdateModuleCompileData(FName ModuleName)
 	CompileData.FileTimeStamp = FDateTime(0);
 	CompileData.CompileMethod = EModuleCompileMethod::Unknown;
 
-#if !IS_MONOLITHIC && WITH_EDITOR
+#if WITH_HOT_RELOAD
 	ReadModuleCompilationInfoFromConfig(ModuleName, CompileData);
 
 	FDateTime FileTimeStamp;

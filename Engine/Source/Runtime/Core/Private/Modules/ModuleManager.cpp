@@ -8,7 +8,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	/** If true, we are reloading a class for HotReload */
 	CORE_API bool			GIsHotReload							= false;
 #endif

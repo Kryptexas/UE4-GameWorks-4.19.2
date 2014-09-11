@@ -2217,12 +2217,12 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	else if( FParse::Command(&Cmd,TEXT("HotReload")) )
 	{
 		return HandleHotReloadCommand( Cmd, Ar );
 	}
-#endif // !IS_MONOLITHIC
+#endif // WITH_HOT_RELOAD
 	else if (FParse::Command(&Cmd, TEXT("DumpConsoleCommands")))
 	{
 		return HandleDumpConsoleCommandsCommand( Cmd, Ar, InWorld );
@@ -2651,7 +2651,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString Module(FParse::Token(Cmd, 0));
@@ -2672,7 +2672,7 @@ bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	return true;
 }
-#endif // !IS_MONOLITHIC
+#endif // WITH_HOT_RELOAD
 
 bool UEngine::HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {

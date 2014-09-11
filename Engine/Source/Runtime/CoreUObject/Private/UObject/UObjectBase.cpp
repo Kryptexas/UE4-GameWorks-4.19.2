@@ -427,7 +427,7 @@ void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)())
 	GetDeferredCompiledInStructRegistration().Add(InRegister);
 }
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 struct FStructOrEnumCompiledInfo : FFieldCompiledInInfo
 {
 	FStructOrEnumCompiledInfo(SIZE_T InClassSize, uint32 InCrc)
@@ -446,7 +446,7 @@ static TMap<FName, FStructOrEnumCompiledInfo*>& GetStructOrEnumGeneratedCodeInfo
 
 class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRegister)(), UObject* StructOuter, const TCHAR* StructName, SIZE_T Size, uint32 Crc)
 {
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	// Try to get the existing info for this struct
 	const FName StructFName(StructName);
 	FStructOrEnumCompiledInfo* Info = nullptr;
@@ -513,7 +513,7 @@ void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)())
 
 class UEnum *GetStaticEnum(class UEnum *(*InRegister)(), UObject* EnumOuter, const TCHAR* EnumName)
 {
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
 		UEnum* ReturnEnum = FindObjectChecked<UEnum>(EnumOuter, EnumName);
@@ -541,7 +541,7 @@ static TArray<FFieldCompiledInInfo*>& GetDeferredClassRegistration()
 	return DeferredClassRegistration;
 }
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 /** Map of deferred class registration info (including size and reflection info) */
 static TMap<FName, FFieldCompiledInInfo*>& GetDeferRegisterClassMap()
 {
@@ -560,7 +560,7 @@ static TArray<FFieldCompiledInInfo*>& GetHotReloadClasses()
 void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, SIZE_T ClassSize, uint32 Crc)
 {
 	const FName CPPClassName(Name);
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	// Check for existing classes
 	auto ExistingClassInfo = GetDeferRegisterClassMap().Find(CPPClassName);
 	ClassInfo->bHasChanged = !ExistingClassInfo || (*ExistingClassInfo)->Size != ClassInfo->Size || (*ExistingClassInfo)->Crc != ClassInfo->Crc;
@@ -610,7 +610,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 
 void UObjectCompiledInDefer(class UClass *(*InRegister)(), const TCHAR* Name)
 {
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	// Either add all classes if not hot-reloading, or those which have changed
 	if (!GIsHotReload || GetDeferRegisterClassMap().FindChecked(Name)->bHasChanged)
 #endif
@@ -630,7 +630,7 @@ void UClassRegisterAllCompiledInClasses()
 	GetDeferredClassRegistration().Empty();
 }
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 /** Re-instance all existing classes that have changed during hot-reload */
 void UClassReplaceHotReloadClasses()
 {
@@ -737,7 +737,7 @@ void ProcessNewlyLoadedUObjects()
 		UObjectLoadAllCompiledInStructs();
 		UObjectLoadAllCompiledInDefaultProperties();		
 	}
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	UClassReplaceHotReloadClasses();
 #endif
 }

@@ -909,7 +909,7 @@ IConsoleObject* FConsoleManager::AddConsoleObject(const TCHAR* Name, IConsoleObj
 		// An existing console object was found that has the same name as the object being registered.
 		// In most cases this is not allowed, but if there is a variable with the same name and is
 		// in an 'unregistered' state or we're hot reloading dlls, we may be able to replace or update that variable.
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 		const bool bCanUpdateOrReplaceObj = (ExistingObj->AsVariable()||ExistingObj->AsCommand()) && (GIsHotReload || ExistingObj->TestFlags(ECVF_Unregistered));
 #else
 		const bool bCanUpdateOrReplaceObj = ExistingObj->AsVariable() && ExistingObj->TestFlags(ECVF_Unregistered);

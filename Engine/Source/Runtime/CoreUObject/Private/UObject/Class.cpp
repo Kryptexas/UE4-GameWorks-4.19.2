@@ -1825,7 +1825,7 @@ void UScriptStruct::DeferCppStructOps(FName Target, ICppStructOps* InCppStructOp
 {
 	if (GetDeferredCppStructOps().Contains(Target))
 	{
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 		if (!GIsHotReload) // in hot reload, we will just leak these...they may be in use.
 #endif
 		{
@@ -1859,7 +1859,7 @@ void UScriptStruct::PrepareCppStructOps()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// test that the constructor is initializing everything
 		if (CppStructOps && !CppStructOps->HasZeroConstructor()
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 			&& !GIsHotReload // in hot reload, these produce bogus warnings
 #endif
 			)
@@ -3317,7 +3317,7 @@ UClass::UClass
 	*(const TCHAR**)&ClassConfigName = InConfigName;
 }
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 
 bool UClass::HotReloadPrivateStaticClass(
 	uint32			InSize,
@@ -3411,7 +3411,7 @@ bool UClass::HotReloadPrivateStaticClass(
 void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 {
 	FName InFName(InName);
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
 		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");

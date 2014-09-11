@@ -1823,7 +1823,7 @@ public:
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const class FPostConstructInitializeProperties&),
 		void(*InClassAddReferencedObjects)(UObject*, class FReferenceCollector&));
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	/**
 	 * Called when a class is reloading from a DLL...updates various information in-place.
 	 * @param	InSize							sizeof the class
@@ -2190,7 +2190,7 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 template<class TClass>
 void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UClass*& ReturnClass, void (*RegisterNativeFunc)() )
 { 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
 		UPackage* Package = FindPackage(NULL, PackageName);

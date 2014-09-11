@@ -273,7 +273,7 @@ COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const Native& 
 	{
 		if( NativeBytecodeIndex<0 || (uint32)NativeBytecodeIndex>ARRAY_COUNT(GNatives) || GNatives[NativeBytecodeIndex]!=&UObject::execUndefined) 
 		{
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 			if (GIsHotReload)
 			{
 				IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
@@ -311,7 +311,7 @@ COREUOBJECT_API uint8 GRegisterCast( int32 CastCode, const Native& Func )
 	if (CastCode != INDEX_NONE)
 	{
 		if(  
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 			!GIsHotReload && 
 #endif
 			(CastCode<0 || (uint32)CastCode>ARRAY_COUNT(GCasts) || GCasts[CastCode]!=&UObject::execUndefined) ) 
