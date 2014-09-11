@@ -79,6 +79,11 @@ public:
 	static UClass* RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded);
 
 	/**
+	 * Replace subobjects of CDO in linker
+	 */
+	static void PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, UObject* NewCDO);
+
+	/**
 	 * Copies the default properties of all parent blueprint classes in the chain to the specified blueprint's skeleton CDO
 	 */
 	static void PropagateParentBlueprintDefaults(UClass* ClassToPropagate);

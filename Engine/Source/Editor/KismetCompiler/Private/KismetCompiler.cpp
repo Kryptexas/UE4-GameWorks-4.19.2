@@ -3093,8 +3093,6 @@ void FKismetCompilerContext::Compile()
 	}
 
 	UObject* OldCDO = NULL;
-
-	int32 OldSkelLinkerIdx = INDEX_NONE;
 	int32 OldGenLinkerIdx = INDEX_NONE;
 	ULinkerLoad* OldLinker = Blueprint->GetLinker();
 
@@ -3107,17 +3105,9 @@ void FKismetCompilerContext::Compile()
 		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
 		{
 			FObjectExport& ThisExport = OldLinker->ExportMap[i];
-			if( ThisExport.ObjectName == SkeletonName )
-			{
-				OldSkelLinkerIdx = i;
-			}
-			else if( ThisExport.ObjectName == GeneratedName )
+			if( ThisExport.ObjectName == GeneratedName )
 			{
 				OldGenLinkerIdx = i;
-			}
-
-			if( OldSkelLinkerIdx != INDEX_NONE && OldGenLinkerIdx != INDEX_NONE )
-			{
 				break;
 			}
 		}
@@ -3338,7 +3328,8 @@ void FKismetCompilerContext::Compile()
 						}
 					}
 
-					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);			
+					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
+					FBlueprintEditorUtils::PatchCDOSubobjectsIntoExport(OldCDO, NewCDO);
 				}
 
 				// >>> Backwards Compatibility: Propagate data from the skel CDO to the gen CDO if we haven't already done so for this blueprint

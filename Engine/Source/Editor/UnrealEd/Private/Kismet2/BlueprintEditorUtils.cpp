@@ -1234,27 +1234,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 					if (bRegenerated)
 					{
-						// Collect the instanced components in both the old and new CDOs
-						TArray<UObject*> OldComponents, NewComponents;
-						PreviousCDO->CollectDefaultSubobjects(OldComponents, true);
-						NewCDO->CollectDefaultSubobjects(NewComponents, true);
-
-						// For all components common to both, patch the linker table with the new version of the component, so things that reference the default (e.g. InternalArchetypes) will have the updated version
-						for (auto OldCompIt = OldComponents.CreateIterator(); OldCompIt; ++OldCompIt)
-						{
-							UObject* OldComponent = (*OldCompIt);
-							const FName OldComponentName = OldComponent->GetFName();
-							for (auto NewCompIt = NewComponents.CreateIterator(); NewCompIt; ++NewCompIt)
-							{
-								UObject* NewComponent = *NewCompIt;
-								if (NewComponent->GetFName() == OldComponentName)
-								{
-									ULinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldComponent, NewComponent);
-									break;
-								}
-							}
-						}
-						NewCDO->CheckDefaultSubobjects();
+						PatchCDOSubobjectsIntoExport(PreviousCDO, NewCDO);
 						// We purposefully do not call post load here, it happens later on in the normal flow
 					}
 				}
@@ -1313,6 +1293,40 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	}
 
 	return bRegenerated ? Blueprint->GeneratedClass : NULL;
+}
+
+void FBlueprintEditorUtils::PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, UObject* NewCDO)
+{
+	if (PreviousCDO && NewCDO)
+	{
+		// Collect the instanced components in both the old and new CDOs
+		TArray<UObject*> OldComponents, NewComponents;
+		PreviousCDO->CollectDefaultSubobjects(OldComponents, true);
+		NewCDO->CollectDefaultSubobjects(NewComponents, true);
+
+		TMap<FName, UObject*> NewComponentsMap;
+		for (auto NewCompIt = NewComponents.CreateIterator(); NewCompIt; ++NewCompIt)
+		{
+			UObject* NewComponent = *NewCompIt;
+			if (NewComponent)
+			{
+				NewComponentsMap.Add(NewComponent->GetFName(), NewComponent);
+			}
+		}
+
+		// For all components common to both, patch the linker table with the new version of the component, so things that reference the default (e.g. InternalArchetypes) will have the updated version
+		for (auto OldCompIt = OldComponents.CreateIterator(); OldCompIt; ++OldCompIt)
+		{
+			UObject* OldComponent = (*OldCompIt);
+			const FName OldComponentName = OldComponent->GetFName();
+			UObject** NewComponentPtr = NewComponentsMap.Find(OldComponentName);
+			if (NewComponentPtr && *NewComponentPtr)
+			{
+				ULinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldComponent, *NewComponentPtr);
+			}
+		}
+		NewCDO->CheckDefaultSubobjects();
+	}
 }
 
 void FBlueprintEditorUtils::PropagateParentBlueprintDefaults(UClass* ClassToPropagate)
