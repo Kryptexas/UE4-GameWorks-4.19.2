@@ -15,8 +15,8 @@ public:
 	 */
 	FSessionLauncherCommands( )
 		: TCommands<FSessionLauncherCommands>(
-			"LauncherCommand",
-			NSLOCTEXT("Contexts", "LauncherCommand", "Launcher Command"),
+			"SessionLauncherCommand",
+			NSLOCTEXT("Contexts", "SessionLauncherCommand", "Launcher Command"),
 			NAME_None,
 			FEditorStyle::GetStyleSetName()
 	)
