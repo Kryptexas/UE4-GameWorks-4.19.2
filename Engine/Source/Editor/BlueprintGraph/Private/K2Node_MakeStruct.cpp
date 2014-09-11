@@ -206,7 +206,7 @@ bool UK2Node_MakeStruct::CanBeExposed(const UProperty* Property)
 		const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
 
 		//TODO: remove CPF_Edit in a future release
-		const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit);
+		const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit) && !(Property->ArrayDim > 1);
 		const bool bBlueprintReadOnly = Property->HasAllPropertyFlags(CPF_BlueprintReadOnly);
 		if(bVisible && bConvertable && !bBlueprintReadOnly)
 		{
