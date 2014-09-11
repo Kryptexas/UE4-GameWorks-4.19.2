@@ -548,7 +548,7 @@ public:
 	bool IsPlaying() const;
 
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetPosition(float InPos);
+	void SetPosition(float InPos, bool bFireNotifies = true);
 
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	float GetPosition() const;

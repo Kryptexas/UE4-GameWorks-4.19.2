@@ -1552,12 +1552,12 @@ bool USkeletalMeshComponent::IsPlaying() const
 	return false;
 }
 
-void USkeletalMeshComponent::SetPosition(float InPos)
+void USkeletalMeshComponent::SetPosition(float InPos, bool bFireNotifies)
 {
 	UAnimSingleNodeInstance* SingleNodeInstance = GetSingleNodeInstance();
 	if (SingleNodeInstance)
 	{
-		SingleNodeInstance->SetPosition(InPos);
+		SingleNodeInstance->SetPosition(InPos, bFireNotifies);
 	}
 	else if( AnimScriptInstance != NULL )
 	{

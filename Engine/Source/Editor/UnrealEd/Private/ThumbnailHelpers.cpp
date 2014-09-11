@@ -539,7 +539,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 
 				PreviewActor->SkeletalMeshComponent->PlayAnimation(InAnimation,false);
 				PreviewActor->SkeletalMeshComponent->Stop();
-				PreviewActor->SkeletalMeshComponent->SetPosition(AnimPosition);
+				PreviewActor->SkeletalMeshComponent->SetPosition(AnimPosition, false);
 
 				UAnimSingleNodeInstance* SingleNodeInstance = PreviewActor->SkeletalMeshComponent->GetSingleNodeInstance();
 				if (SingleNodeInstance)
