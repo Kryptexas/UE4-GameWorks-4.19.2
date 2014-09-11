@@ -2369,7 +2369,7 @@ bool FEngineLoop::AppInit( )
 			}
 
 			// Ask whether to compile before continuing
-			if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *ModulesList, *FString::Printf(TEXT("Error loading %s"), GGameName)) == EAppReturnType::No)
+			if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *ModulesList, *FString::Printf(TEXT("Missing %s Modules"), GGameName)) == EAppReturnType::No)
 			{
 				return false;
 			}
