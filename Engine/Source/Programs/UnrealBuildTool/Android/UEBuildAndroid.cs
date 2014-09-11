@@ -26,6 +26,11 @@ namespace UnrealBuildTool
 			return base.GetActiveArchitecture();
 		}
 
+		public override bool CanUseXGE()
+		{
+			return false;
+		}
+
         protected override bool PlatformSupportsAutoSDKs()
         {
             return true;
