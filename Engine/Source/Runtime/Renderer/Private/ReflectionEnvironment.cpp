@@ -972,12 +972,16 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 	}
 	else
 	{
-		const bool bReflectionEnv = ShouldDoReflectionEnvironment();
-		const bool bTiledDeferredReflections = ShouldUseTiledDeferredReflectionEnvironment(Scene) && bReflectionEnv && Scene->ReflectionSceneData.CubemapArray.IsValid();
+		bool bReflectionEnv = ShouldDoReflectionEnvironment();
+		const bool bWantsTiledReflections = ShouldUseTiledDeferredReflectionEnvironment(Scene);
 
-		if (bTiledDeferredReflections)
+		if (bWantsTiledReflections && !Scene->ReflectionSceneData.CubemapArray.IsValid())
 		{
-			check(bReflectionEnv);
+			bReflectionEnv = false;
+		}
+
+		if (bWantsTiledReflections && bReflectionEnv)
+		{
 			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO);
 		}
 		else
