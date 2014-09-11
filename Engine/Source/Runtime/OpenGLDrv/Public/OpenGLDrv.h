@@ -302,9 +302,6 @@ public:
 	virtual void Init();
 	virtual void Shutdown();
 
-	virtual void PushEvent(const TCHAR* Name);
-	virtual void PopEvent();
-
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD

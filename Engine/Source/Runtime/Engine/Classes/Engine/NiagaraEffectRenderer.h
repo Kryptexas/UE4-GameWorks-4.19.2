@@ -266,8 +266,6 @@ public:
 		if (DynamicVertexAllocation.IsValid()
 			&& (bIsWireframe || !PDI->IsMaterialIgnored(MaterialRenderProxy, View->GetFeatureLevel())))
 		{
-			SCOPED_DRAW_EVENT(NiagaraRender, DEC_SCENE_ITEMS);
-
 			FMeshBatch MeshBatch;
 			MeshBatch.VertexFactory = &VertexFactory;
 			MeshBatch.CastShadow = SceneProxy->CastsDynamicShadow();
@@ -676,8 +674,6 @@ public:
 		if (DynamicVertexAllocation.IsValid()
 			&& (bIsWireframe || !PDI->IsMaterialIgnored(MaterialRenderProxy, View->GetFeatureLevel())))
 		{
-			SCOPED_DRAW_EVENT(NiagaraRender, DEC_SCENE_ITEMS);
-
 			FMeshBatch MeshBatch;
 			MeshBatch.VertexFactory = &VertexFactory;
 			MeshBatch.CastShadow = SceneProxy->CastsDynamicShadow();

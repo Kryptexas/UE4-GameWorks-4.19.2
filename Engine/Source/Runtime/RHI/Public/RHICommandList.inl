@@ -68,7 +68,6 @@ FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::ImmediateFlush(EImmediateF
 		break;
 	case EImmediateFlushType::FlushRHIThreadFlushResources:
 		{
-			check(GRHIThread);
 			if (HasCommands())
 			{
 				GRHICommandList.ExecuteList(*this);

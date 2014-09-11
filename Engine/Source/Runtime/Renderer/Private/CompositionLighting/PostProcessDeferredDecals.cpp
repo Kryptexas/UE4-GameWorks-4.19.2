@@ -374,7 +374,7 @@ FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
 void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
-	SCOPED_DRAW_EVENT(StencilDecalMask, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask, DEC_SCENE_ITEMS);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
 	SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface());
@@ -640,7 +640,7 @@ void SetShader(const FRenderingCompositePassContext& Context, const FTransientDe
 
 bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
-	SCOPED_DRAW_EVENT(RenderPreStencil, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, RenderPreStencil, DEC_SCENE_ITEMS);
 
 	const FSceneView& View = Context.View;
 
@@ -721,7 +721,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		PassOutputs[0].RenderTargetDesc = OutputOfMyInput->RenderTargetDesc;
 	}
 
-	SCOPED_DRAW_EVENT(PostProcessDeferredDecals, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, PostProcessDeferredDecals, DEC_SCENE_ITEMS);
 
 	if(RenderStage == 0)
 	{
@@ -754,7 +754,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		}
 
 
-		SCOPED_DRAW_EVENT(DBufferClear, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, DBufferClear, DEC_SCENE_ITEMS);
 		{
 			// could be optimized
 			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
@@ -888,7 +888,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		int32 WasInsideDecal = -1;
 		const ERHIFeatureLevel::Type SMFeatureLevel = Context.GetFeatureLevel();
 
-		SCOPED_DRAW_EVENT(Decals, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Decals, DEC_SCENE_ITEMS);
 		INC_DWORD_STAT_BY(STAT_Decals, SortedDecals.Num());
 		
 		RHICmdList.SetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);

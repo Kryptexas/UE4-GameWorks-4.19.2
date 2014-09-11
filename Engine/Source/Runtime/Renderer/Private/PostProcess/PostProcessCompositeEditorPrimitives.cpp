@@ -182,7 +182,7 @@ static void SetCompositePrimitivesShaderTempl(const FRenderingCompositePassConte
 
 void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(CompositeEditorPrimitives, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, CompositeEditorPrimitives, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -213,13 +213,13 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 
 		if(bClearIsNeeded)
 		{
-			SCOPED_DRAW_EVENT(ClearViewEditorPrimitives, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(Context.RHICmdList, ClearViewEditorPrimitives, DEC_SCENE_ITEMS);
 			// Clear color and depth
 			// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
 			Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
 		}
 
-		SCOPED_DRAW_EVENT(RenderEditorPrimitives, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(Context.RHICmdList, RenderEditorPrimitives, DEC_SCENE_ITEMS);
 
 		Context.RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 

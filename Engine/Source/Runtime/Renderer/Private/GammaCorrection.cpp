@@ -90,7 +90,7 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdL
 		ViewFamily.bDeferClear = false;
 	}
 
-	SCOPED_DRAW_EVENT(GammaCorrection, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, GammaCorrection, DEC_SCENE_ITEMS);
 
 	// turn off culling and blending
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());

@@ -250,7 +250,7 @@ IMPLEMENT_SHADER_TYPE(,FLpvVisualisePS,TEXT("LPVVisualise"),TEXT("PShader"),SF_P
 
 void FLightPropagationVolume::Visualise(FRHICommandList& RHICmdList, const FViewInfo& View) const
 {
-	SCOPED_DRAW_EVENT(LpvVisualise, DEC_LIGHT);
+	SCOPED_DRAW_EVENT(RHICmdList, LpvVisualise, DEC_LIGHT);
 	check(View.GetFeatureLevel() == ERHIFeatureLevel::SM5);
 
 	TShaderMapRef<FLpvVisualiseVS> VertexShader(View.ShaderMap);

@@ -216,7 +216,7 @@ void FHitProxyDrawingPolicy::SetMeshRenderState(
 	const ContextDataType PolicyContext
 	) const
 {
-	EmitMeshDrawEvents(PrimitiveSceneProxy, Mesh);
+	EmitMeshDrawEvents(RHICmdList, PrimitiveSceneProxy, Mesh);
 
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 

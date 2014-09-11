@@ -70,7 +70,7 @@ FRCPassPostProcessPassThrough::FRCPassPostProcessPassThrough(FPooledRenderTarget
 
 void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PassThrough, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PassThrough, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 

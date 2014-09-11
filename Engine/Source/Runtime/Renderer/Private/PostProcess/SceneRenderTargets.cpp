@@ -233,7 +233,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 /** Clears the GBuffer render targets to default values. */
 void FSceneRenderTargets::ClearGBufferTargets(FRHICommandListImmediate& RHICmdList, const FLinearColor& ClearColor)
 {
-	SCOPED_DRAW_EVENT(ClearGBufferTargets, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, ClearGBufferTargets, DEC_SCENE_ITEMS);
 
 	// Clear GBufferA, GBufferB, GBufferC, GBufferD, GBufferE
 	{
@@ -256,7 +256,7 @@ void FSceneRenderTargets::ClearGBufferTargets(FRHICommandListImmediate& RHICmdLi
 
 void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandList& RHICmdList, bool bGBufferPass)
 {
-	SCOPED_DRAW_EVENT(BeginRenderingSceneColor, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneColor, DEC_SCENE_ITEMS);
 
 	if(IsSimpleDynamicLightingEnabled())
 	{
@@ -603,7 +603,7 @@ void FSceneRenderTargets::AdjustGBufferRefCount(int Delta)
 
 void FSceneRenderTargets::FinishRenderingSceneColor(FRHICommandListImmediate& RHICmdList, bool bKeepChanges, const FResolveRect& ResolveRect)
 {
-	SCOPED_DRAW_EVENT(FinishRenderingSceneColor, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingSceneColor, DEC_SCENE_ITEMS);
 
 	if(bKeepChanges)
 	{
@@ -617,7 +617,7 @@ bool FSceneRenderTargets::BeginRenderingCustomDepth(FRHICommandListImmediate& RH
 
 	if(CustomDepth)
 	{
-		SCOPED_DRAW_EVENT(BeginRenderingCustomDepth, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingCustomDepth, DEC_SCENE_ITEMS);
 		
 		SetRenderTarget(RHICmdList, FTextureRHIRef(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
 
@@ -629,7 +629,7 @@ bool FSceneRenderTargets::BeginRenderingCustomDepth(FRHICommandListImmediate& RH
 
 void FSceneRenderTargets::FinishRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect)
 {
-	SCOPED_DRAW_EVENT(FinishRenderingCustomDepth, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingCustomDepth, DEC_SCENE_ITEMS);
 
 	RHICmdList.CopyToResolveTarget(SceneColor->GetRenderTargetItem().TargetableTexture, SceneColor->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
 
@@ -641,7 +641,7 @@ void FSceneRenderTargets::FinishRenderingCustomDepth(FRHICommandListImmediate& R
 */
 void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect)
 {
-	SCOPED_DRAW_EVENT(ResolveSceneColor, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneColor, DEC_SCENE_ITEMS);
 
 	uint32 samples = GSceneRenderTargets.SceneColor->GetDesc().NumSamples;
 
@@ -707,7 +707,7 @@ void FSceneRenderTargets::ResolveGBufferSurfaces(FRHICommandList& RHICmdList, co
 {
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
-		SCOPED_DRAW_EVENT(ResolveGBufferSurfaces, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, ResolveGBufferSurfaces, DEC_SCENE_ITEMS);
 
 		RHICmdList.CopyToResolveTarget(GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GBufferA->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
 		RHICmdList.CopyToResolveTarget(GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GBufferB->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
@@ -723,7 +723,7 @@ void FSceneRenderTargets::ResolveGBufferSurfaces(FRHICommandList& RHICmdList, co
 
 void FSceneRenderTargets::BeginRenderingPrePass(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(BeginRenderingPrePass, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingPrePass, DEC_SCENE_ITEMS);
 
 	// Set the scene depth surface and a DUMMY buffer as color buffer
 	// (as long as it's the same dimension as the depth buffer),
@@ -733,7 +733,7 @@ void FSceneRenderTargets::BeginRenderingPrePass(FRHICommandListImmediate& RHICmd
 
 void FSceneRenderTargets::FinishRenderingPrePass(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(FinishRenderingPrePass, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingPrePass, DEC_SCENE_ITEMS);
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneDepthZ);
 }
 
@@ -752,7 +752,7 @@ void FSceneRenderTargets::BeginRenderingShadowDepth(FRHICommandListImmediate& RH
 
 void FSceneRenderTargets::BeginRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution)
 {
-	SCOPED_DRAW_EVENT(BeginRenderingCubeShadowDepth, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingCubeShadowDepth, DEC_SCENE_ITEMS);
 	SetRenderTarget(RHICmdList, FTextureRHIRef(), GetCubeShadowDepthZSurface(ShadowResolution));
 }
 
@@ -793,20 +793,20 @@ void FSceneRenderTargets::FinishRenderingReflectiveShadowMap(FRHICommandList& RH
 
 void FSceneRenderTargets::FinishRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution, const FResolveParams& ResolveParams)
 {
-	SCOPED_DRAW_EVENT(FinishRenderingCubeShadowDepth, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingCubeShadowDepth, DEC_SCENE_ITEMS);
 	RHICmdList.CopyToResolveTarget(GetCubeShadowDepthZSurface(ShadowResolution), GetCubeShadowDepthZTexture(ShadowResolution), false, ResolveParams);
 }
 
 void FSceneRenderTargets::BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(BeginRenderingSceneAlphaCopy, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneAlphaCopy, DEC_SCENE_ITEMS);
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.SceneAlphaCopy);
 	SetRenderTarget(RHICmdList, GetSceneAlphaCopySurface(), 0);
 }
 
 void FSceneRenderTargets::FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(FinishRenderingSceneAlphaCopy, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingSceneAlphaCopy, DEC_SCENE_ITEMS);
 	RHICmdList.CopyToResolveTarget(GetSceneAlphaCopySurface(), SceneAlphaCopy->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams(FResolveRect()));
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.SceneAlphaCopy);
 }
@@ -814,7 +814,7 @@ void FSceneRenderTargets::FinishRenderingSceneAlphaCopy(FRHICommandListImmediate
 
 void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(BeginRenderingLightAttenuation, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingLightAttenuation, DEC_SCENE_ITEMS);
 
 	AllocLightAttenuation();
 
@@ -826,7 +826,7 @@ void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmd
 
 void FSceneRenderTargets::FinishRenderingLightAttenuation(FRHICommandList& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(FinishRenderingLightAttenuation, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingLightAttenuation, DEC_SCENE_ITEMS);
 
 	// Resolve the light attenuation surface.
 	RHICmdList.CopyToResolveTarget(GetLightAttenuationSurface(), LightAttenuation->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams(FResolveRect()));
@@ -848,7 +848,7 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 {
 	if(IsSeparateTranslucencyActive(View))
 	{
-		SCOPED_DRAW_EVENT(BeginSeparateTranslucency, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, BeginSeparateTranslucency, DEC_SCENE_ITEMS);
 
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
@@ -889,7 +889,7 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 
 void FSceneRenderTargets::ResolveSceneDepthTexture(FRHICommandList& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(ResolveSceneDepthTexture, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneDepthTexture, DEC_SCENE_ITEMS);
 
 	RHICmdList.CopyToResolveTarget(GetSceneDepthSurface(), GetSceneDepthTexture(), true, FResolveParams());
 }
@@ -901,7 +901,7 @@ void FSceneRenderTargets::ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& R
 	// is unsupported in d3d feature level 10.
 	if(!GSupportsDepthFetchDuringDepthTest)
 	{
-		SCOPED_DRAW_EVENT(ResolveSceneDepthToAuxiliaryTexture, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneDepthToAuxiliaryTexture, DEC_SCENE_ITEMS);
 
 		RHICmdList.CopyToResolveTarget(GetSceneDepthSurface(), GetAuxiliarySceneDepthTexture(), true, FResolveParams());
 	}

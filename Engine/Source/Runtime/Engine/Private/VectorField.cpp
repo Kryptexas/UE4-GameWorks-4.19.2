@@ -800,7 +800,7 @@ public:
 
 		if (GetFeatureLevel() == ERHIFeatureLevel::SM5 && AnimatedVectorField && AnimatedVectorField->Texture && AnimatedVectorField->Texture->Resource)
 		{
-			SCOPED_DRAW_EVENT(AnimateVectorField, DEC_PARTICLE);
+			SCOPED_DRAW_EVENT(RHICmdList, AnimateVectorField, DEC_PARTICLE);
 
 			// Move frame time forward.
 			FrameTime += AnimatedVectorField->FramesPerSecond * DeltaSeconds;

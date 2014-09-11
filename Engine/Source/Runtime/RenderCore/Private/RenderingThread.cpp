@@ -833,7 +833,12 @@ void AdvanceFrameRenderPrerequisite()
  */
 void FlushRenderingCommands()
 {
-	FlushPendingDeleteRHIResources_GameThread(); // we do this here because with modal dialogs or blueprint debugging, the engine does not tick
+	ENQUEUE_UNIQUE_RENDER_COMMAND(
+		FlushPendingDeleteRHIResources,
+	{
+		GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+	}
+	);
 
 	AdvanceFrameRenderPrerequisite();
 

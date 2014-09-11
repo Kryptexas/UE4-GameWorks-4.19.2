@@ -204,6 +204,16 @@ void FD3D11DynamicRHI::Shutdown()
 	ZeroBufferSize = 0;
 }
 
+void FD3D11DynamicRHI::RHIPushEvent(const TCHAR* Name)
+{ 
+	GPUProfilingData.PushEvent(Name); 
+}
+void FD3D11DynamicRHI::RHIPopEvent()
+{ 
+	GPUProfilingData.PopEvent(); 
+}
+
+
 /**
  * Returns a supported screen resolution that most closely matches the input.
  * @param Width - Input: Desired resolution width in pixels. Output: A width that the platform supports.

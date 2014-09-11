@@ -19,7 +19,7 @@ IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 /** OpenGL Logging. */
 DEFINE_LOG_CATEGORY(LogOpenGL);
 
-void FOpenGLDynamicRHI::PushEvent(const TCHAR* Name)
+void FOpenGLDynamicRHI::RHIPushEvent(const TCHAR* Name)
 {
 #if ENABLE_OPENGL_DEBUG_GROUPS
 	// @todo-mobile: Fix string conversion ASAP!
@@ -33,7 +33,7 @@ void FOpenGLGPUProfiler::PushEvent(const TCHAR* Name)
 	FGPUProfiler::PushEvent(Name);
 }
 
-void FOpenGLDynamicRHI::PopEvent()
+void FOpenGLDynamicRHI::RHIPopEvent()
 {
 #if ENABLE_OPENGL_DEBUG_GROUPS
 	FOpenGL::PopGroupMarker();

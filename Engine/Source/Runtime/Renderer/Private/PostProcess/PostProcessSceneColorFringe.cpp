@@ -143,7 +143,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSceneColorFringePS,TEXT("PostProcessSceneColo
 
 void FRCPassPostProcessSceneColorFringe::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(SceneColorFringe, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, SceneColorFringe, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 

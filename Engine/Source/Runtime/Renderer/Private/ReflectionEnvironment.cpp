@@ -709,7 +709,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 		// ReflectionEnv is assumed to be on when going into this method
 		{
 			// Render the reflection environment with tiled deferred culling
-			SCOPED_DRAW_EVENT(ReflectionEnvironmentGather, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, ReflectionEnvironmentGather, DEC_SCENE_ITEMS);
 
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
@@ -819,7 +819,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		{
 			bRequiresApply = true;
 
-			SCOPED_DRAW_EVENT(StandardDeferredReflectionEnvironment, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredReflectionEnvironment, DEC_SCENE_ITEMS);
 
 			{
 				FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
@@ -882,7 +882,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		if (bRequiresApply)
 		{
 			// Apply reflections to screen
-			SCOPED_DRAW_EVENT(ReflectionApply, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, ReflectionApply, DEC_SCENE_ITEMS);
 
 			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 

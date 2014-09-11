@@ -17,7 +17,7 @@
 
 void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSelectionOutlineBuffer, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSelectionOutlineBuffer, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* SceneColorInputDesc = GetInputDesc(ePId_Input0);
 
@@ -364,7 +364,7 @@ static void SetSelectionOutlineShaderTempl(const FRenderingCompositePassContext&
 
 void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSelectionOutline, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSelectionOutline, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* SceneColorInputDesc = GetInputDesc(ePId_Input0);
 	const FPooledRenderTargetDesc* SelectionColorInputDesc = GetInputDesc(ePId_Input1);
 

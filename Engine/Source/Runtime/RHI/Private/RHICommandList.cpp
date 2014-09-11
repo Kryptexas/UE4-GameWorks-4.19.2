@@ -657,7 +657,7 @@ DECLARE_CYCLE_STAT(TEXT("Explicit wait for RHI thread"), STAT_ExplicitWaitRHIThr
 DECLARE_CYCLE_STAT(TEXT("Deep spin for stray resource init."), STAT_SpinWaitRHIThread, STATGROUP_RHICMDLIST);
 void FRHICommandListBase::WaitForRHIThreadTasks()
 {
-	check(IsImmediate() && IsInRenderingThread() && GRHIThread);
+	check(IsImmediate() && IsInRenderingThread());
 	if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
 	{
 		RHIThreadTask = nullptr;

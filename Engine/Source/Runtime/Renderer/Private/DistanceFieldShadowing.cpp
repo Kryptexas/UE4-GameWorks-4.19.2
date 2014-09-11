@@ -287,7 +287,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 		&& DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform))
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderRayTracedDistanceFieldShadows);
-		SCOPED_DRAW_EVENT(RayTracedDistanceFieldShadow, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow, DEC_SCENE_ITEMS);
 
 		// Update the global distance field atlas
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
@@ -314,7 +314,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
 
 					{
-						SCOPED_DRAW_EVENT(RayTraceShadows, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows, DEC_SCENE_ITEMS);
 						TShaderMapRef<FDistanceFieldShadowingCS> ComputeShader(View.ShaderMap);
 
 						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -328,7 +328,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				{
 					GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
 
-					SCOPED_DRAW_EVENT(Upsample, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, Upsample, DEC_SCENE_ITEMS);
 
 					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());

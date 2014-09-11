@@ -34,8 +34,6 @@ public:
 
 	// FDynamicRHI interface.
 	virtual void Init();
-	virtual void PushEvent(const TCHAR* Name);
-	virtual void PopEvent();
 	virtual void Shutdown() {}
 
 	// The RHI methods are defined as virtual functions in URenderHardwareInterface.

@@ -386,7 +386,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 /** Draws windows from a FSlateDrawBuffer on the render thread */
 void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync)
 {
-	SCOPED_DRAW_EVENT(SlateUI, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, SlateUI, DEC_SCENE_ITEMS);
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());

@@ -2121,3 +2121,13 @@ DEFINE_RHIMETHOD_GLOBALFLUSH_0(
 	void*,GetNativeDevice,
 	return,return NULL
 	);
+
+DEFINE_RHIMETHOD_CMDLIST_1(
+	void,PushEvent,
+	const TCHAR*, Name,
+	,
+	);
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,PopEvent,
+	,
+	);

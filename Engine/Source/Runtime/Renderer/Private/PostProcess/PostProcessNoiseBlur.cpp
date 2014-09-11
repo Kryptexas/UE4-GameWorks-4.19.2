@@ -112,7 +112,7 @@ void SetNoiseBlurShader(const FRenderingCompositePassContext& Context, float InR
 
 void FRCPassPostProcessNoiseBlur::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(NoiseBlur, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, NoiseBlur, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 

@@ -293,7 +293,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
-		SCOPED_DRAW_EVENT(Fog, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Fog, DEC_SCENE_ITEMS);
 
 		static const FVector2D Vertices[4] =
 		{

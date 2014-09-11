@@ -24,7 +24,7 @@ void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList
 #if WANTS_DRAW_MESH_EVENTS
 		FString EventName;
 		OwnerName.ToString(EventName);
-		SCOPED_DRAW_EVENTF(SceneCapture, DEC_SCENE_ITEMS, TEXT("SceneCapture %s"), *EventName);
+		SCOPED_DRAW_EVENTF(RHICmdList, SceneCapture, DEC_SCENE_ITEMS, TEXT("SceneCapture %s"), *EventName);
 #endif
 
 		// Render the scene normally

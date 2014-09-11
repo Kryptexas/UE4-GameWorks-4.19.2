@@ -2039,10 +2039,7 @@ void FEngineLoop::Tick()
 		{
 			GRHICommandList.LatchBypass();
 			GFrameNumberRenderThread++;
-			if (GRHICommandList.Bypass())
-			{
-				GDynamicRHI->PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
-			}
+			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
 			RHICmdList.BeginFrame();
 		});
 
@@ -2215,10 +2212,7 @@ void FEngineLoop::Tick()
 			EndFrame,
 		{
 			RHICmdList.EndFrame();
-			if (GRHICommandList.Bypass())
-			{
-				GDynamicRHI->PopEvent();
-			}
+			RHICmdList.PopEvent();
 		});
 	} 
 

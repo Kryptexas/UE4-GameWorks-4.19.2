@@ -91,7 +91,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramCS,TEXT("PostProcessHistogram"),TEXT
 
 void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessHistogram, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessHistogram, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)

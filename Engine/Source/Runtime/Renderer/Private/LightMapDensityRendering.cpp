@@ -40,12 +40,12 @@ bool FDeferredShadingSceneRenderer::RenderLightMapDensities(FRHICommandListImmed
 	bool bDirty=0;
 	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
-		SCOPED_DRAW_EVENT(LightMapDensity, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, LightMapDensity, DEC_SCENE_ITEMS);
 
 		// Draw the scene's emissive and light-map color.
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 
 			FViewInfo& View = Views[ViewIndex];
 
@@ -56,7 +56,7 @@ bool FDeferredShadingSceneRenderer::RenderLightMapDensities(FRHICommandListImmed
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
 
 			{
-				SCOPED_DRAW_EVENT(Dynamic, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, Dynamic, DEC_SCENE_ITEMS);
 
 				const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 

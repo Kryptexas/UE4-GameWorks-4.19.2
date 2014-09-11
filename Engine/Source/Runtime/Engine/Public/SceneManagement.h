@@ -1719,8 +1719,25 @@ extern ENGINE_API EVertexColorViewMode::Type GVertexColorViewMode;
  */
 extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/**
+	 * true if we debug material names with SCOPED_DRAW_EVENT.
+	 * Toggle with "ShowMaterialDrawEvents" console command.
+	 */
+	extern ENGINE_API bool GShowMaterialDrawEvents;
+	extern ENGINE_API void EmitMeshDrawEvents_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh);
+#endif
+
 /** Emits draw events for a given FMeshBatch and the PrimitiveSceneProxy corresponding to that mesh element. */
-extern ENGINE_API void EmitMeshDrawEvents(const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh);
+FORCEINLINE void EmitMeshDrawEvents(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if ( GShowMaterialDrawEvents )
+	{
+		EmitMeshDrawEvents_Inner(RHICmdList, PrimitiveSceneProxy, Mesh);
+	}
+#endif
+}
 
 /**
  * Draws a mesh, modifying the material which is used depending on the view's show flags.

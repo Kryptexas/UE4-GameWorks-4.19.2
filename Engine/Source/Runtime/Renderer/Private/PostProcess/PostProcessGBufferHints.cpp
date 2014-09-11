@@ -87,7 +87,7 @@ FRCPassPostProcessGBufferHints::FRCPassPostProcessGBufferHints()
 
 void FRCPassPostProcessGBufferHints::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(GBufferHints, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, GBufferHints, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)

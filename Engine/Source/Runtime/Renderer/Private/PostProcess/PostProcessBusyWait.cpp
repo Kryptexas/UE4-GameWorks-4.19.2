@@ -83,7 +83,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBusyWaitPS,TEXT("PostProcessBusyWait"),TEXT("
 
 void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(BusyWait, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, BusyWait, DEC_SCENE_ITEMS);
 
 	const FSceneView& View = Context.View;
 	

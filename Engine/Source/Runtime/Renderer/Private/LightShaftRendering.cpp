@@ -451,7 +451,7 @@ void AllocateOrReuseLightShaftRenderTarget(FRHICommandListImmediate& RHICmdList,
 template<bool bDownsampleOcclusion>
 void DownsamplePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource, TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
 {
-	SCOPED_DRAW_EVENT(Downsample, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, Downsample, DEC_SCENE_ITEMS);
 
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const uint32 DownsampleFactor	= GetLightShaftDownsampleFactor();
@@ -624,7 +624,7 @@ void ApplyRadialBlurPasses(
 		BlurLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, PassIndex, EffectiveSource);
 
 		{
-			SCOPED_DRAW_EVENT(RadialBlur, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, RadialBlur, DEC_SCENE_ITEMS);
 			// Apply a radial blur to the bloom and occlusion mask
 			DrawRectangle( 
 				RHICmdList,
@@ -668,7 +668,7 @@ void FinishOcclusionTerm(FRHICommandList& RHICmdList, const FViewInfo& View, con
 	MaskOcclusionTermPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, LightShaftsSource);
 
 	{
-		SCOPED_DRAW_EVENT(FinishOcclusion, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, FinishOcclusion, DEC_SCENE_ITEMS);
 		// Apply a radial blur to the bloom and occlusion mask
 		DrawRectangle( 
 			RHICmdList,
@@ -733,7 +733,7 @@ FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHI
 
 			if (bEnableOcclusion && LightSceneInfo->Proxy->GetLightType() == LightType_Directional)
 			{
-				SCOPED_DRAW_EVENT(RenderLightShaftOcclusion, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, RenderLightShaftOcclusion, DEC_SCENE_ITEMS);
 
 				// Allocate light shaft render targets on demand, using the pool
 				// Need two targets to ping pong between
@@ -836,7 +836,7 @@ IMPLEMENT_SHADER_TYPE(,FApplyLightShaftsPixelShader,TEXT("LightShaftShader"),TEX
 
 void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource)
 {
-	SCOPED_DRAW_EVENT(Apply, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, Apply, DEC_SCENE_ITEMS);
 
 	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
@@ -886,7 +886,7 @@ void FDeferredShadingSceneRenderer::RenderLightShaftBloom(FRHICommandListImmedia
 
 			if (LightSceneInfo->bEnableLightShaftBloom)
 			{
-				SCOPED_DRAW_EVENT(RenderLightShaftBloom, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, RenderLightShaftBloom, DEC_SCENE_ITEMS);
 
 				// Allocate light shaft render targets on demand, using the pool
 				AllocateOrReuseLightShaftRenderTarget(RHICmdList, LightShafts0, TEXT("LightShafts0"));

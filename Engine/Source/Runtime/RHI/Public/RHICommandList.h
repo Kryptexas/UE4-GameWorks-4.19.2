@@ -1062,6 +1062,21 @@ struct FRHICommandEndDrawingViewport : public FRHICommand<FRHICommandEndDrawingV
 };
 #endif
 
+struct FRHICommandPushEvent : public FRHICommand<FRHICommandPushEvent>
+{
+	const TCHAR *Name;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandPushEvent(const TCHAR *InName)
+		: Name(InName)
+	{
+	}
+	RHI_API void Execute();
+};
+
+struct FRHICommandPopEvent : public FRHICommand<FRHICommandPopEvent>
+{
+	RHI_API void Execute();
+};
 
 class RHI_API FRHICommandList : public FRHICommandListBase
 {
@@ -1685,6 +1700,30 @@ public:
 	void BeginFrame();
 	void EndFrame();
 #endif
+
+	FORCEINLINE_DEBUGGABLE void PushEvent(const TCHAR* Name)
+	{
+		if (Bypass())
+		{
+			PushEvent_Internal(Name);
+			return;
+		}
+		int32 Len = FCString::Strlen(Name) + 1;
+		TCHAR* NameCopy  = (TCHAR*)Alloc(Len * (int32)sizeof(TCHAR), (int32)sizeof(TCHAR));
+		FCString::Strcpy(NameCopy, Len, Name);
+		new (AllocCommand<FRHICommandPushEvent>()) FRHICommandPushEvent(NameCopy);
+	}
+
+	FORCEINLINE_DEBUGGABLE void PopEvent()
+	{
+		if (Bypass())
+		{
+			PopEvent_Internal();
+			return;
+		}
+		new (AllocCommand<FRHICommandPopEvent>()) FRHICommandPopEvent();
+	}
+
 };
 
 namespace EImmediateFlushType

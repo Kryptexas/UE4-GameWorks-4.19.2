@@ -693,7 +693,7 @@ int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortB
 	const auto FeatureLevel = GRHIFeatureLevel;
 	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
-	SCOPED_DRAW_EVENTF(SortGPU, DEC_PARTICLE, TEXT("SortGPU_%d"), Count);
+	SCOPED_DRAW_EVENTF(RHICmdList, SortGPU, DEC_PARTICLE, TEXT("SortGPU_%d"), Count);
 
 	// Determine how many tiles need to be sorted.
 	const int32 TileCount = Count / TILE_SIZE;

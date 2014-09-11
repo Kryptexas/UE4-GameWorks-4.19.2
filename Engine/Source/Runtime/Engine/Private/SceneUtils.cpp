@@ -6,24 +6,23 @@
 
 #if WANTS_DRAW_MESH_EVENTS && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS
 
-bool FDrawEvent::IsInRenderingThread_Internal()
+void FDrawEvent::Start(FRHICommandList& InRHICmdList, const FColor& Color, const TCHAR* Fmt, ...)
 {
-	return IsInRenderingThread();
-}
-
-ENGINE_API void FDrawEvent::Start(const FColor& Color, const TCHAR* Fmt, ...)
-{
-	if (GRHICommandList.Bypass()) // todo interleave draw evens into command buffers
+	check(IsInParallelRenderingThread() || IsInRHIThread());
 	{
-		check(IsInRenderingThread_Internal());
 		va_list ptr;
 		va_start(ptr, Fmt);
 		TCHAR TempStr[256];
 		// Build the string in the temp buffer
 		FCString::GetVarArgs(TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr) - 1, Fmt, ptr);
-		GDynamicRHI->PushEvent(TempStr);
-		bDrawEventHasBeenEmitted = true;
+		InRHICmdList.PushEvent(TempStr);
+		RHICmdList = &InRHICmdList;
 	}
+}
+
+void FDrawEvent::Stop()
+{
+	RHICmdList->PopEvent();
 }
 
 #endif // WANTS_DRAW_MESH_EVENTS && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS

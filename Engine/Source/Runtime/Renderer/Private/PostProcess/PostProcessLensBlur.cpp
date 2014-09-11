@@ -162,7 +162,7 @@ FRCPassPostProcessLensBlur::FRCPassPostProcessLensBlur(float InPercentKernelSize
 
 void FRCPassPostProcessLensBlur::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PassPostProcessLensBlur, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PassPostProcessLensBlur, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 	

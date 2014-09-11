@@ -10,30 +10,26 @@
 #include "RendererInterface.h"
 
 /** Emits draw events for a given FMeshBatch and the FPrimitiveSceneProxy corresponding to that mesh element. */
-void EmitMeshDrawEvents(const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh)
-{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	extern bool GShowMaterialDrawEvents;
-	if ( GShowMaterialDrawEvents )
+void EmitMeshDrawEvents_Inner(FRHICommandList& RHICmdList, const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh)
+{
+	// Only show material name at the top level
+	// Note: this is the parent's material name, not the material instance
+	SCOPED_DRAW_EVENTF(RHICmdList, MaterialEvent, DEC_SCENE_ITEMS, *Mesh.MaterialRenderProxy->GetMaterial(PrimitiveSceneProxy->GetScene()->GetFeatureLevel())->GetFriendlyName());
+	if (PrimitiveSceneProxy)
 	{
-		// Only show material name at the top level
-		// Note: this is the parent's material name, not the material instance
-		SCOPED_DRAW_EVENTF(MaterialEvent, DEC_SCENE_ITEMS, *Mesh.MaterialRenderProxy->GetMaterial(PrimitiveSceneProxy->GetScene()->GetFeatureLevel())->GetFriendlyName());
-		if (PrimitiveSceneProxy)
+		// Show Actor, level and resource name inside the material name
+		// These are separate draw events since some platforms only allow 32 character event names (xenon)
 		{
-			// Show Actor, level and resource name inside the material name
-			// These are separate draw events since some platforms only allow 32 character event names (xenon)
-			{
-				SCOPED_CONDITIONAL_DRAW_EVENTF(LevelEvent, PrimitiveSceneProxy->GetLevelName() != NAME_None, DEC_SCENE_ITEMS, PrimitiveSceneProxy->GetLevelName().IsValid() ? *PrimitiveSceneProxy->GetLevelName().ToString() : TEXT(""));
-			}
-			{
-				SCOPED_CONDITIONAL_DRAW_EVENTF(OwnerEvent,PrimitiveSceneProxy->GetOwnerName() != NAME_None, DEC_SCENE_ITEMS, *PrimitiveSceneProxy->GetOwnerName().ToString());
-			}
-			SCOPED_CONDITIONAL_DRAW_EVENTF(ResourceEvent,PrimitiveSceneProxy->GetResourceName() != NAME_None, DEC_SCENE_ITEMS, PrimitiveSceneProxy->GetResourceName().IsValid() ? *PrimitiveSceneProxy->GetResourceName().ToString() : TEXT(""));
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, LevelEvent, PrimitiveSceneProxy->GetLevelName() != NAME_None, DEC_SCENE_ITEMS, PrimitiveSceneProxy->GetLevelName().IsValid() ? *PrimitiveSceneProxy->GetLevelName().ToString() : TEXT(""));
 		}
+		{
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, OwnerEvent,PrimitiveSceneProxy->GetOwnerName() != NAME_None, DEC_SCENE_ITEMS, *PrimitiveSceneProxy->GetOwnerName().ToString());
+		}
+		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, ResourceEvent,PrimitiveSceneProxy->GetResourceName() != NAME_None, DEC_SCENE_ITEMS, PrimitiveSceneProxy->GetResourceName().IsValid() ? *PrimitiveSceneProxy->GetResourceName().ToString() : TEXT(""));
 	}
-#endif
 }
+#endif
 
 void DrawPlane10x10(class FPrimitiveDrawInterface* PDI,const FMatrix& ObjectToWorld, float Radii, FVector2D UVMin, FVector2D UVMax, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriorityGroup)
 {

@@ -186,14 +186,14 @@ void FMetalDynamicRHI::RHIEndScene()
 	FMetalManager::Get()->EndScene();
 }
 
-void FMetalDynamicRHI::PushEvent(const TCHAR* Name)
+void FMetalDynamicRHI::RHIPushEvent(const TCHAR* Name)
 {
 #if ENABLE_METAL_GPUEVENTS
 	[FMetalManager::GetContext() pushDebugGroup: [NSString stringWithTCHARString:Name]];
 #endif
 }
 
-void FMetalDynamicRHI::PopEvent()
+void FMetalDynamicRHI::RHIPopEvent()
 {
 #if ENABLE_METAL_GPUEVENTS
 	[FMetalManager::GetContext() popDebugGroup];

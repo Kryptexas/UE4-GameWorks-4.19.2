@@ -395,3 +395,17 @@ void FRHICommandEndDrawingViewport::Execute()
 	INTERNAL_DECORATOR(EndDrawingViewport)(Viewport, bPresent, bLockToVsync);
 }
 #endif
+
+void FRHICommandPushEvent::Execute()
+{
+	RHISTAT(PushEvent);
+	INTERNAL_DECORATOR(PushEvent)(Name);
+}
+
+void FRHICommandPopEvent::Execute()
+{
+	RHISTAT(PopEvent);
+	INTERNAL_DECORATOR(PopEvent)();
+}
+
+

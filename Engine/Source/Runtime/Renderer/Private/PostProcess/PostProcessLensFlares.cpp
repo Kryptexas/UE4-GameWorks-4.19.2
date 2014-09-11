@@ -113,7 +113,7 @@ FRCPassPostProcessLensFlares::FRCPassPostProcessLensFlares(float InSizeScale)
 
 void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(LensFlares, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, LensFlares, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc1 = GetInputDesc(ePId_Input0);
 	const FPooledRenderTargetDesc* InputDesc2 = GetInputDesc(ePId_Input1);

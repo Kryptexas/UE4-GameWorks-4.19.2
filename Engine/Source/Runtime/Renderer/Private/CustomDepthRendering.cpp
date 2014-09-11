@@ -23,7 +23,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 
 	if(Prims.Num())
 	{
-		SCOPED_DRAW_EVENT(CustomDepth, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, CustomDepth, DEC_SCENE_ITEMS);
 
 		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 

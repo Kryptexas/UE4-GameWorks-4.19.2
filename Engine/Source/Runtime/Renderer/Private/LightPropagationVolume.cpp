@@ -929,7 +929,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList, FViewI
 		return;
 	}
 
-	SCOPED_DRAW_EVENT(LpvClear, DEC_LIGHT);
+	SCOPED_DRAW_EVENT(RHICmdList, LpvClear, DEC_LIGHT);
 
 	if ( !LpvWriteUniformBuffer.IsInitialized() )
 	{
@@ -1042,7 +1042,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 {
 	const FLightSceneProxy* LightProxy = ProjectedShadowInfo.LightSceneInfo->Proxy;
 	{
-		SCOPED_DRAW_EVENT(LpvInjectDirectionalLightRSM, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvInjectDirectionalLightRSM, DEC_LIGHT);
 
 		SetVplInjectionConstants(ProjectedShadowInfo, LightProxy );
 
@@ -1062,7 +1062,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 	// If this is the first directional light, build the geometry volume with it
 	if ( !GeometryVolumeGenerated && SecondaryOcclusionStrength > 0.001f )
 	{
-		SCOPED_DRAW_EVENT(LpvBuildGeometryVolume, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvBuildGeometryVolume, DEC_LIGHT);
 		GeometryVolumeGenerated = true;
 		FVector LightDirection( 0.0f, 0.0f, 1.0f );
 		if ( LightProxy )
@@ -1101,7 +1101,7 @@ void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList, FV
 	// Inject the VPLs into the LPV
 	if ( mInjectedLightCount )
 	{
-		SCOPED_DRAW_EVENT(LpvAccumulateVplLists, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvAccumulateVplLists, DEC_LIGHT);
 		mWriteBufferIndex = 1-mWriteBufferIndex; // Swap buffers with each iteration
 
 		TShaderMapRef<FLpvInject_AccumulateVplListsCS> Shader(View.ShaderMap);
@@ -1122,7 +1122,7 @@ void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList, FV
 	{
 		static int PropagationStep = 0;
 
-		SCOPED_DRAW_EVENT(LpvPropagate, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvPropagate, DEC_LIGHT);
 		static int numIterations = 3;
 		for ( int i=0; i<numIterations; i++ )
 		{
@@ -1209,7 +1209,7 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 	if ( GeometryVolumeGenerated )
 	{
 		// Inject the VPLs into the LPV
-		SCOPED_DRAW_EVENT(LpvDirectLightInjection, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvDirectLightInjection, DEC_LIGHT);
 
 		FLpvDirectLightInjectParameters InjectUniformBufferParams;
 		InjectUniformBufferParams.LightColor = Light.GetColor() * Light.GetIndirectLightingScale();

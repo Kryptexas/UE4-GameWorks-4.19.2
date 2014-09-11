@@ -183,7 +183,7 @@ static int32 GenerateParticleSortKeys(
 	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
 	)
 {
-	SCOPED_DRAW_EVENT(ParticleSortKeyGen, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, ParticleSortKeyGen, DEC_PARTICLE);
 
 	// MOBILEPREVIEWTODO: Proper value for this
 	const auto FeatureLevel = GRHIFeatureLevel;
@@ -317,7 +317,7 @@ int32 SortParticlesGPU(
 	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
 	)
 {
-	SCOPED_DRAW_EVENTF(ParticleSort, DEC_PARTICLE, TEXT("ParticleSort_%d"), SimulationsToSort.Num());
+	SCOPED_DRAW_EVENTF(RHICmdList, ParticleSort, DEC_PARTICLE, TEXT("ParticleSort_%d"), SimulationsToSort.Num());
 
 	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 

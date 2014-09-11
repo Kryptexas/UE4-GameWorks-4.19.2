@@ -159,12 +159,20 @@ public:
 		Timing(InRHI, 1)
 	{
 		// Initialize Buffered timestamp queries 
-		Timing.InitResource();
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		Timing.InitDynamicRHI();
+#else
+		Timing.InitResource(); // can't do this from the RHI thread
+#endif
 	}
 
 	virtual ~FD3D11EventNode()
 	{
-		Timing.ReleaseResource();
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		Timing.ReleaseDynamicRHI();
+#else
+		Timing.ReleaseResource();  // can't do this from the RHI thread
+#endif
 	}
 
 	/** 
@@ -197,16 +205,26 @@ public:
 		RootEventTiming(InRHI, 1),
 		DisjointQuery(InRHI)
 	{
-
-	  RootEventTiming.InitResource();
-	  DisjointQuery.InitResource();
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		RootEventTiming.InitDynamicRHI();
+		DisjointQuery.InitDynamicRHI();
+#else
+		// can't do these on the RHI thread
+		RootEventTiming.InitResource();
+		DisjointQuery.InitResource();
+#endif
 	}
 
 	~FD3D11EventNodeFrame()
 	{
-
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		RootEventTiming.ReleaseDynamicRHI();
+		DisjointQuery.ReleaseDynamicRHI();
+#else
+		// can't do these on the RHI thread
 		RootEventTiming.ReleaseResource();
 		DisjointQuery.ReleaseResource();
+#endif
 	}
 
 	/** Start this frame of per tracking */
@@ -235,12 +253,22 @@ public:
 	FD3D11GPUProfile(FD3D11DynamicRHI* D3D11RHI)
 	: DisjointQuery(D3D11RHI)
 	{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		DisjointQuery.InitDynamicRHI();
+#else
+		// can't do these on the RHI thread
 		DisjointQuery.InitResource();
+#endif
 	}
 
 	~FD3D11GPUProfile()
 	{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		DisjointQuery.ReleaseDynamicRHI();
+#else
+		// can't do these on the RHI thread
 		DisjointQuery.ReleaseResource();
+#endif
 	}
 
 	FD3D11DisjointTimeStampQuery DisjointQuery;
@@ -320,8 +348,6 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;
-	virtual void PushEvent(const TCHAR* Name) override { GPUProfilingData.PushEvent(Name); }
-	virtual void PopEvent() override { GPUProfilingData.PopEvent(); }
 
 	/**
 	 * Reads a D3D query's data into the provided buffer.

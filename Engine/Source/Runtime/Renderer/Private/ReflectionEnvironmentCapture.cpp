@@ -318,11 +318,11 @@ void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, ERHIFeatu
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 	{	
-		SCOPED_DRAW_EVENT(DownsampleCubeMips, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, DownsampleCubeMips, DEC_SCENE_ITEMS);
 		// Downsample all the mips, each one reads from the mip above it
 		for (int32 MipIndex = 1; MipIndex < NumMips; MipIndex++)
 		{
-			SCOPED_DRAW_EVENT(DownsampleCubeMip, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, DownsampleCubeMip, DEC_SCENE_ITEMS);
 			const int32 SourceMipIndex = FMath::Max(MipIndex - 1, 0);
 			const int32 MipSize = 1 << (NumMips - MipIndex - 1);
 
@@ -349,7 +349,7 @@ void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, ERHIFeatu
 				// Draw each face with a geometry shader that routes to the correct render target slice
 				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 				{
-					SCOPED_DRAW_EVENT(DownsampleCubeFace, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, DownsampleCubeFace, DEC_SCENE_ITEMS);
 					GeometryShader->SetParameters(RHICmdList, CubeFace);
 
 					PixelShader->SetParameters(RHICmdList, CubeFace, SourceMipIndex, EffectiveSource);
@@ -411,7 +411,7 @@ void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, ERHIFeatu
 
 	if (OutIrradianceEnvironmentMap)
 	{
-		SCOPED_DRAW_EVENT(ComputeDiffuseIrradiance, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, ComputeDiffuseIrradiance, DEC_SCENE_ITEMS);
 		check(DiffuseConvolutionSource != NULL);
 		ComputeDiffuseIrradiance(RHICmdList, FeatureLevel, DiffuseConvolutionSource->ShaderResourceTexture, DiffuseConvolutionSourceMip, OutIrradianceEnvironmentMap);
 	}
@@ -419,11 +419,11 @@ void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, ERHIFeatu
 	ComputeAverageBrightness(RHICmdList, FeatureLevel);
 
 	{	
-		SCOPED_DRAW_EVENT(FilterCubeMap, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, FilterCubeMap, DEC_SCENE_ITEMS);
 		// Filter all the mips, each one reads from whichever scratch render target holds the downsampled contents, and writes to the destination cubemap
 		for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 		{
-			SCOPED_DRAW_EVENT(FilterCubeMip, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, FilterCubeMip, DEC_SCENE_ITEMS);
 			FSceneRenderTargetItem& EffectiveRT = GetEffectiveRenderTarget(false, MipIndex);
 			FSceneRenderTargetItem& EffectiveSource = GetEffectiveSourceTexture(false, MipIndex);
 			check(EffectiveRT.TargetableTexture != EffectiveSource.ShaderResourceTexture);
@@ -460,7 +460,7 @@ void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, ERHIFeatu
 
 				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 				{
-					SCOPED_DRAW_EVENT(FilterCubeFace, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, FilterCubeFace, DEC_SCENE_ITEMS);
 					GeometryShader->SetParameters(RHICmdList, CubeFace);
 
 					PixelShader->SetParameters(RHICmdList, CubeFace, MipIndex, EffectiveSource);
@@ -833,7 +833,7 @@ void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRe
 	const auto FeatureLevel = SceneRenderer->FeatureLevel;
 	
 	{
-		SCOPED_DRAW_EVENT(CubeMapCapture, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, CubeMapCapture, DEC_SCENE_ITEMS);
 
 		// Render the scene normally for one face of the cubemap
 		SceneRenderer->Render(RHICmdList);
@@ -856,7 +856,7 @@ void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRe
 		FSceneRenderTargetItem& EffectiveColorRT =  GSceneRenderTargets.ReflectionColorScratchCubemap[0]->GetRenderTargetItem();
 
 		{
-			SCOPED_DRAW_EVENT(CubeMapCopyScene, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, CubeMapCopyScene, DEC_SCENE_ITEMS);
 			if (GSupportsGSRenderTargetLayerSwitchingToMips)
 			{
 			// Copy the captured scene into the cubemap face

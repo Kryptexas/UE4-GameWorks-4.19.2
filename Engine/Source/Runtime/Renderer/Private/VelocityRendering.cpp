@@ -621,7 +621,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 		return;
 	}
 
-	SCOPED_DRAW_EVENT(RenderVelocities, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, RenderVelocities, DEC_SCENE_ITEMS);
 
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer

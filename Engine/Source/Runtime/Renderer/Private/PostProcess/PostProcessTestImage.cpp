@@ -89,7 +89,7 @@ FRCPassPostProcessTestImage::FRCPassPostProcessTestImage()
 
 void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(TestImage, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, TestImage, DEC_SCENE_ITEMS);
 
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);

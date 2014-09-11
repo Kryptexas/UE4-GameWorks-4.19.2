@@ -107,7 +107,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	
 	check(Material);
 
-	SCOPED_DRAW_EVENTF(PostProcessMaterial, DEC_SCENE_ITEMS, TEXT("PostProcessMaterial Material=%s"), *Material->GetFriendlyName());
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessMaterial, DEC_SCENE_ITEMS, TEXT("PostProcessMaterial Material=%s"), *Material->GetFriendlyName());
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 

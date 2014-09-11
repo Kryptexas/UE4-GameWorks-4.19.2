@@ -351,7 +351,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(FRHICommandListI
 			}
 
 			{
-				SCOPED_DRAW_EVENT(TiledDeferredLighting, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, TiledDeferredLighting, DEC_SCENE_ITEMS);
 
 				IPooledRenderTarget& InTexture = *GSceneRenderTargets.GetSceneColor();
 

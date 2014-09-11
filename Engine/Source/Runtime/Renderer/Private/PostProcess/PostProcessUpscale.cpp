@@ -128,7 +128,7 @@ void FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassContext& 
 
 void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessUpscale, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessUpscale, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)

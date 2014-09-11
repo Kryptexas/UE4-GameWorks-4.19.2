@@ -31,9 +31,6 @@ public:
 	/** Shutdown the RHI; handle shutdown and resource destruction before the RHI's actual destructor is called (so that all resources of the RHI are still available for shutdown). */
 	virtual void Shutdown() = 0;
 
-	virtual void PushEvent(const TCHAR* Name) {}
-	virtual void PopEvent() {}
-
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames = 0
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD

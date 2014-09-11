@@ -143,12 +143,12 @@ void FEmptyDynamicRHI::RHIEndScene()
 
 }
 
-void FEmptyDynamicRHI::PushEvent(const TCHAR* Name)
+void FEmptyDynamicRHI::RHIPushEvent(const TCHAR* Name)
 {
 
 }
 
-void FEmptyDynamicRHI::PopEvent()
+void FEmptyDynamicRHI::RHIPopEvent()
 {
 
 }

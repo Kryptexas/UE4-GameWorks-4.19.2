@@ -675,7 +675,7 @@ IMPLEMENT_SHADER_TYPE(,FHZBTestPS,TEXT("HZBOcclusion"),TEXT("HZBTestPS"),SF_Pixe
 
 void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
-	SCOPED_DRAW_EVENT(SubmitHZB, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, SubmitHZB, DEC_SCENE_ITEMS);
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	if( !ViewState )
@@ -744,7 +744,7 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 
 	// Draw test
 	{
-		SCOPED_DRAW_EVENT(TestHZB, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, TestHZB, DEC_SCENE_ITEMS);
 
 		SetRenderTarget(RHICmdList, ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, NULL);
 
@@ -855,7 +855,7 @@ IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<1>,TEXT("HZBOcclusion"),TEXT("HZBBu
 void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHZB);
-	SCOPED_DRAW_EVENT(BuildHZB, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, BuildHZB, DEC_SCENE_ITEMS);
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
@@ -888,7 +888,7 @@ void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 	
 	// Mip 0
 	{
-		SCOPED_DRAW_EVENTF(BuildHZB, DEC_SCENE_ITEMS, TEXT("HZB#%d"), 0);
+		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, DEC_SCENE_ITEMS, TEXT("HZB#%d"), 0);
 
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, 0, NULL);
 
@@ -922,7 +922,7 @@ void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 	// Mip 1-7
 	for( uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++ )
 	{
-		SCOPED_DRAW_EVENTF(BuildHZB, DEC_SCENE_ITEMS, TEXT("HZB#%d"), MipIndex);
+		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, DEC_SCENE_ITEMS, TEXT("HZB#%d"), MipIndex);
 
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
 
@@ -974,7 +974,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 	// Perform occlusion queries for each view
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
-		SCOPED_DRAW_EVENT(BeginOcclusionTests, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, BeginOcclusionTests, DEC_SCENE_ITEMS);
 		FViewInfo& View = Views[ViewIndex];
 
 		if (bUseDownsampledDepth)
@@ -1029,7 +1029,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 			ShadowOcclusionQueryMap.Reset();
 
 			{
-				SCOPED_DRAW_EVENT(ShadowFrustumQueries, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowFrustumQueries, DEC_SCENE_ITEMS);
 
 				for(TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights);LightIt;++LightIt)
 				{
@@ -1100,11 +1100,11 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 				VertexShader->SetParameters(RHICmdList, View);
 
 				{
-					SCOPED_DRAW_EVENT(IndividualQueries, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, IndividualQueries, DEC_SCENE_ITEMS);
 					View.IndividualOcclusionQueries.Flush(RHICmdList);
 				}
 				{
-					SCOPED_DRAW_EVENT(GroupedQueries, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, GroupedQueries, DEC_SCENE_ITEMS);
 					View.GroupedOcclusionQueries.Flush(RHICmdList);
 				}
 			}
@@ -1120,7 +1120,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 		{
 			check( ViewState->HZBOcclusionTests.IsValidFrame(View.FrameNumber) );
 
-			SCOPED_DRAW_EVENT(HZB, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, HZB, DEC_SCENE_ITEMS);
 
 			BuildHZB(RHICmdList, View);
 			ViewState->HZBOcclusionTests.Submit(RHICmdList, View);

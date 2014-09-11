@@ -479,7 +479,7 @@ void FGPUSkinCache::DispatchSkinCacheProcess(FRHICommandListImmediate& RHICmdLis
 
 	uint32 VertexCountAlign64 = (VertexCount + 63) / 64;
 
-	SCOPED_DRAW_EVENT(SkinCacheDispatch, DEC_SKEL_MESH);
+	SCOPED_DRAW_EVENT(RHICmdList, SkinCacheDispatch, DEC_SKEL_MESH);
 
 	if (bUseExtraBoneInfluences)
 	{
