@@ -209,7 +209,10 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 	{
 		UEditorTutorial* PreviousTutorial = CurrentTutorial;
 		int32 PreviousTutorialStage = CurrentTutorialStage;
-		CurrentTutorial->HandleTutorialStageEnded(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+		if(CurrentTutorialStage < CurrentTutorial->Stages.Num())
+		{
+			CurrentTutorial->HandleTutorialStageEnded(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+		}
 
 		if(CurrentTutorialStage + 1 >= CurrentTutorial->Stages.Num() && FName(*CurrentTutorial->NextTutorial.AssetLongPathname) != NAME_None)
 		{
