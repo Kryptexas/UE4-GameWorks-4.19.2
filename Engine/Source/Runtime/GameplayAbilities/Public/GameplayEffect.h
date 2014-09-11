@@ -1156,7 +1156,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	friend struct FActiveGameplayEffect;
 
-	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false) {};
+	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false), GameplayTagCountContainer(EGameplayTagMatchType::IncludeParentTags) {};
 
 	UPROPERTY()
 	TArray< FActiveGameplayEffect >	GameplayEffects;
@@ -1253,8 +1253,7 @@ private:
 
 	TMap<FGameplayAttribute, FOnGameplayAttributeChange> AttributeChangeDelegates;
 
-	TMap<FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
-	TMap<FGameplayTag, int32> GameplayTagCountMap;
+	FGameplayTagCountContainer GameplayTagCountContainer;
 
 	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
 
@@ -1267,8 +1266,8 @@ private:
 	void InternalOnActiveGameplayEffectAdded(const FActiveGameplayEffect& Effect);
 	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
 
-	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta, class IGameplayTagsModule& GameplayTagsModule);
-	void UpdateTagMap(const FGameplayTag& Tag, int32 CountDelta, class IGameplayTagsModule& GameplayTagsModule);
+	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
+	void UpdateTagMap(const FGameplayTag& Tag, int32 CountDelta);
 };
 
 template<>

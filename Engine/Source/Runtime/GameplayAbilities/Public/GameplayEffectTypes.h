@@ -315,3 +315,31 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGa
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float ,const FGameplayEffectModCallbackData*);
+
+// -----------------------------------------------------------
+
+/** 
+ *	Structure that contains a counted set of GameplayTags. Can optionally include parent tags
+ *	
+ */
+struct FGameplayTagCountContainer
+{
+	FGameplayTagCountContainer()
+	: TagContainerType(EGameplayTagMatchType::Explicit)
+	{ }
+
+	FGameplayTagCountContainer(EGameplayTagMatchType::Type InTagContainerType)
+	: TagContainerType(InTagContainerType)
+	{ }
+
+	bool HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const;
+	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
+	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
+	void UpdateTagMap(const struct FGameplayTagContainer& Container, int32 CountDelta);
+	void UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta);
+
+	TMap<struct FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
+	TMap<struct FGameplayTag, int32> GameplayTagCountMap;
+
+	EGameplayTagMatchType::Type TagContainerType;
+};
