@@ -13,6 +13,7 @@ class AGameplayAbilityTargetActor;
 class UAbilityTask;
 class UAttributeSet;
 
+GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 
 UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
@@ -325,6 +326,19 @@ struct FGameplayAbiliyInputBinds
 
 	UEnum* GetBindEnum() { return FindObject<UEnum>(ANY_PACKAGE, *EnumName); }
 };
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FAttributeDefaults
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "AttributeTest")
+	TSubclassOf<UAttributeSet> Attributes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	class UDataTable*	DefaultStartingTable;
+};
+
 
 /** Used for cleaning up predicted data on network clients */
 DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);

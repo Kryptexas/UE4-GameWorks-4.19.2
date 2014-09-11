@@ -7,24 +7,6 @@
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "AbilitySystemComponent.generated.h"
 
-GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
-
-/** Used to register callbacks to confirm/cancel input */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
-
-
-USTRUCT()
-struct GAMEPLAYABILITIES_API FAttributeDefaults
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category="AttributeTest")
-	TSubclassOf<UAttributeSet> Attributes;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AttributeTest")
-	class UDataTable*	DefaultStartingTable;
-};
-
 /** 
  *	UAbilitySystemComponent	
  *
@@ -63,6 +45,9 @@ UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,S
 class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, public IGameplayTagAssetInterface
 {
 	GENERATED_UCLASS_BODY()
+
+	/** Used to register callbacks to confirm/cancel input */
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
 	friend FGameplayEffectSpec;
 	friend class AAbilitySystemDebugHUD;
