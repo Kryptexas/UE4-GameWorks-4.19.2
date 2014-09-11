@@ -163,6 +163,11 @@ public:
 
 	virtual UWorld* GetWorld() const override
 	{
+		if (!IsInstantiated())
+		{
+			// If we are a CDO, we must return nullptr instead of calling Outer->GetWorld() to fool UObject::ImplementsGetWorld.
+			return nullptr;
+		}
 		return GetOuter()->GetWorld();
 	}
 
