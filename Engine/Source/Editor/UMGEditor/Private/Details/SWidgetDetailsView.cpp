@@ -234,13 +234,12 @@ FText SWidgetDetailsView::GetNameText() const
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		if ( Widget )
 		{
-			return FText::FromString(Widget->GetLabel());
+			return FText::FromName(Widget->GetFName());
 		}
 	}
 	
 	return FText::GetEmpty();
 }
-
 
 void SWidgetDetailsView::HandleNameTextChanged(const FText& Text)
 {
