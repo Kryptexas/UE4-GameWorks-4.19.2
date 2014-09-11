@@ -523,6 +523,11 @@ UEdGraphNode* SGraphNode::GetNodeObj() const
 	return GraphNode;
 }
 
+TSharedRef<SGraphNode> SGraphNode::GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return StaticCastSharedRef<SGraphNode>(AsShared());
+}
+
 TSharedPtr<SGraphPanel> SGraphNode::GetOwnerPanel() const
 {
 	return OwnerGraphPanelPtr.Pin();

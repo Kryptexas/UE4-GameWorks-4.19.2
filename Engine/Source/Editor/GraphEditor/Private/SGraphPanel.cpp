@@ -642,7 +642,9 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 			if (HoveredNodeIndex != INDEX_NONE)
 			{
 				const FArrangedWidget& HoveredNode = ArrangedNodes[HoveredNodeIndex];
-				const TSharedRef<SGraphNode>& GraphNode = StaticCastSharedRef<SGraphNode>(HoveredNode.Widget);
+				TSharedRef<SGraphNode> GraphNode = StaticCastSharedRef<SGraphNode>(HoveredNode.Widget);
+				TSharedPtr<SGraphNode> GraphSubNode = GraphNode->GetNodeUnderMouse(HoveredNode.Geometry, MouseEvent);
+				GraphNode = GraphSubNode.IsValid() ? GraphSubNode.ToSharedRef() : GraphNode;
 				NodeUnderCursor = GraphNode->GetNodeObj();
 
 				// Selection should switch to this code if it isn't already selected.

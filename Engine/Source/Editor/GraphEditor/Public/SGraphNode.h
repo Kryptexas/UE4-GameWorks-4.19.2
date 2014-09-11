@@ -120,6 +120,9 @@ public:
 	/** @return the node being observed by this widget*/
 	UEdGraphNode* GetNodeObj() const;
 
+	/** @return the node under the mouse (either this node or one of its children) */
+	virtual TSharedRef<SGraphNode> GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
 	TSharedPtr<SGraphPanel> GetOwnerPanel() const;
 
 	/**
