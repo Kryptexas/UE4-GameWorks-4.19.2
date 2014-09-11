@@ -416,6 +416,13 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 	}
 
 	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+
+	if (NewPlayer->PlayerState && NewPlayer->PlayerState->bOnlySpectator)
+	{
+		UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayer tried to restart a spectator-only player!"));
+		return;
+	}
+
 	AActor* StartSpot = FindPlayerStart(NewPlayer);
 
 	// if a start spot wasn't found,
