@@ -137,7 +137,7 @@ TArray<AActor*> UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(FGamepla
 	TArray<AActor*>	ResolvedArray;
 	if (Data)
 	{
-		TArray<TWeakObjectPtr<AActor>> WeakArray = Data->GetActors();
+		TArray<TWeakObjectPtr<AActor> > WeakArray = Data->GetActors();
 		for (TWeakObjectPtr<AActor> WeakPtr : WeakArray)
 		{
 			ResolvedArray.Add(WeakPtr.Get());
