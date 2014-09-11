@@ -17,7 +17,7 @@
 //
 // FLandscapeToolErosionBase
 //
-class FLandscapeToolStrokeErosionBase
+class FLandscapeToolStrokeErosionBase : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeErosionBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
@@ -25,9 +25,9 @@ public:
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
 		, bWeightApplied(InTarget.TargetType != ELandscapeToolTargetType::Heightmap)
-	{}
+	{
+	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
 protected:
 	ULandscapeInfo* LandscapeInfo;
 	FLandscapeHeightCache HeightCache;
@@ -41,7 +41,8 @@ class FLandscapeToolErosionBase : public FLandscapeToolBase<TStrokeClass>
 public:
 	FLandscapeToolErosionBase(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<TStrokeClass>(InEdMode)
-	{}
+	{
+	}
 
 	virtual ELandscapeToolTargetTypeMask::Type GetSupportedTargetTypes() override
 	{
@@ -58,11 +59,10 @@ class FLandscapeToolStrokeErosion : public FLandscapeToolStrokeErosionBase
 public:
 	FLandscapeToolStrokeErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
-	{}
+	{
+	}
 
-	virtual ~FLandscapeToolStrokeErosion() {}
-
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!LandscapeInfo)
 		{
@@ -260,7 +260,8 @@ class FLandscapeToolErosion : public FLandscapeToolErosionBase<FLandscapeToolStr
 public:
 	FLandscapeToolErosion(FEdModeLandscape* InEdMode)
 		: FLandscapeToolErosionBase(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Erosion"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Erosion", "Erosion"); };
@@ -276,11 +277,10 @@ class FLandscapeToolStrokeHydraErosion : public FLandscapeToolStrokeErosionBase
 public:
 	FLandscapeToolStrokeHydraErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
-	{}
+	{
+	}
 
-	virtual ~FLandscapeToolStrokeHydraErosion() {}
-
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!LandscapeInfo)
 		{
@@ -462,7 +462,8 @@ class FLandscapeToolHydraErosion : public FLandscapeToolErosionBase<FLandscapeTo
 public:
 	FLandscapeToolHydraErosion(FEdModeLandscape* InEdMode)
 		: FLandscapeToolErosionBase(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("HydraErosion"); } // formerly HydraulicErosion
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_HydraErosion", "Hydraulic Erosion"); };

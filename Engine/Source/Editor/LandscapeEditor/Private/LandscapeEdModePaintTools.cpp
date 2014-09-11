@@ -43,7 +43,8 @@ class FLandscapeToolPaintBase : public FLandscapeToolBase<TStrokeClass>
 public:
 	FLandscapeToolPaintBase(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<TStrokeClass>(InEdMode)
-	{}
+	{
+	}
 
 	virtual ELandscapeToolTargetTypeMask::Type GetSupportedTargetTypes() override
 	{
@@ -53,7 +54,7 @@ public:
 
 
 template<class ToolTarget>
-class FLandscapeToolStrokePaintBase
+class FLandscapeToolStrokePaintBase : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokePaintBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
@@ -62,7 +63,6 @@ public:
 	{
 	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
 protected:
 	typename ToolTarget::CacheClass Cache;
 	ULandscapeInfo* LandscapeInfo;
@@ -81,13 +81,14 @@ class FLandscapeToolStrokePaint : public FLandscapeToolStrokePaintBase<ToolTarge
 {
 	TMap<FIntPoint, float> TotalInfluenceMap;	// amount of time and weight the brush has spent on each vertex.
 public:
+	enum { UseContinuousApply = (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap) };
+
 	FLandscapeToolStrokePaint(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
-	{}
+	{
+	}
 
-	virtual ~FLandscapeToolStrokePaint() {}
-
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		// Get list of verts to update
 		TMap<FIntPoint, float> BrushInfo;
@@ -119,19 +120,11 @@ public:
 		this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
 
 		// The source data we use for editing. 
-		// For heightmaps we use a cached snapshot, for weightmaps we use the live data.
 		TArray<typename ToolTarget::CacheClass::DataType>* SourceDataArrayPtr = &Data;
 		TArray<typename ToolTarget::CacheClass::DataType> OriginalData;
 
-		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
+		if ((ToolTarget::TargetType == ELandscapeToolTargetType::Weightmap) && !bUseWeightTargetValue)
 		{
-			// Heightmaps use the original data rather than the data edited during the stroke.
-			this->Cache.GetOriginalData(X1, Y1, X2, Y2, OriginalData);
-			SourceDataArrayPtr = &OriginalData;
-		}
-		else
-			if (!bUseWeightTargetValue)
-			{
 			// When painting weights (and not using target value mode), we use a source value that tends more
 			// to the current value as we paint over the same region multiple times.
 			this->Cache.GetOriginalData(X1, Y1, X2, Y2, OriginalData);
@@ -149,7 +142,7 @@ public:
 					SourceValue = FMath::Lerp<typename ToolTarget::CacheClass::DataType>(SourceValue, CurrentValue, FMath::Min<float>(VertexInfluence * 0.05f, 1.f));
 				}
 			}
-			}
+		}
 
 		FMatrix ToWorld = ToolTarget::ToWorldMatrix(this->LandscapeInfo);
 		FMatrix FromWorld = ToolTarget::FromWorldMatrix(this->LandscapeInfo);
@@ -158,23 +151,27 @@ public:
 		float AdjustedStrength = ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
 		typename ToolTarget::CacheClass::DataType DestValue = ToolTarget::CacheClass::ClampValue(255.f * UISettings->WeightTargetValue);
 
+		float DeltaTime = FMath::Min<float>(FApp::GetDeltaTime(), 0.1f); // Under 10 fps slow down paint speed
+		// * 3.0f to partially compensate for impact of DeltaTime on slowing the tools down compared to the old framerate-dependent version
+		float PaintStrength = UISettings->ToolStrength * Pressure * AdjustedStrength * DeltaTime * 3.0f;
+
 		FPlane BrushPlane;
 		TArray<FVector> Normals;
 
 		if (bUseClayBrush)
 		{
 			// Calculate normals for brush verts in data space
-			Normals.Empty(OriginalData.Num());
-			Normals.AddZeroed(OriginalData.Num());
+			Normals.Empty((*SourceDataArrayPtr).Num());
+			Normals.AddZeroed((*SourceDataArrayPtr).Num());
 
 			for (int32 Y = Y1; Y < Y2; Y++)
 			{
 				for (int32 X = X1; X < X2; X++)
 				{
-					FVector Vert00 = ToWorld.TransformPosition(FVector((float)X + 0.f, (float)Y + 0.f, DATA_AT(OriginalData, X + 0, Y + 0)));
-					FVector Vert01 = ToWorld.TransformPosition(FVector((float)X + 0.f, (float)Y + 1.f, DATA_AT(OriginalData, X + 0, Y + 1)));
-					FVector Vert10 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 0.f, DATA_AT(OriginalData, X + 1, Y + 0)));
-					FVector Vert11 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 1.f, DATA_AT(OriginalData, X + 1, Y + 1)));
+					FVector Vert00 = ToWorld.TransformPosition(FVector((float)X + 0.f, (float)Y + 0.f, DATA_AT(*SourceDataArrayPtr, X + 0, Y + 0)));
+					FVector Vert01 = ToWorld.TransformPosition(FVector((float)X + 0.f, (float)Y + 1.f, DATA_AT(*SourceDataArrayPtr, X + 0, Y + 1)));
+					FVector Vert10 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 0.f, DATA_AT(*SourceDataArrayPtr, X + 1, Y + 0)));
+					FVector Vert11 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 1.f, DATA_AT(*SourceDataArrayPtr, X + 1, Y + 1)));
 
 					FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).SafeNormal();
 					FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).SafeNormal();
@@ -204,7 +201,7 @@ public:
 				ALandscape::UnpackKey(It.Key(), X, Y);
 				float Weight = It.Value();
 
-				AveragePoint += FVector((float)X * Weight, (float)Y * Weight, (float)DATA_AT(OriginalData, FMath::FloorToInt(X), FMath::FloorToInt(Y)) * Weight);
+				AveragePoint += FVector((float)X * Weight, (float)Y * Weight, (float)DATA_AT(*SourceDataArrayPtr, FMath::FloorToInt(X), FMath::FloorToInt(Y)) * Weight);
 
 				FVector SampleNormal = DATA_AT(Normals, X, Y);
 				AverageNormal += SampleNormal * Weight;
@@ -220,7 +217,7 @@ public:
 
 			// Convert to world space
 			FVector AverageLocation = ToWorld.TransformPosition(AveragePoint);
-			FVector StrengthVector = ToWorld.TransformVector(FVector(0, 0, UISettings->ToolStrength * Pressure * AdjustedStrength));
+			FVector StrengthVector = ToWorld.TransformVector(FVector(0, 0, PaintStrength));
 
 			// Brush pushes out in the normal direction
 			FVector OffsetVector = AverageNormal * StrengthVector.Z;
@@ -233,17 +230,17 @@ public:
 			BrushPlane = FPlane(AverageLocation + OffsetVector, AverageNormal);
 		}
 
-		// Apply the brush	
-		for (auto It = BrushInfo.CreateIterator(); It; ++It)
+		// Apply the brush
+		for (auto BrushPair : BrushInfo)
 		{
 			int32 X, Y;
-			ALandscape::UnpackKey(It.Key(), X, Y);
+			ALandscape::UnpackKey(BrushPair.Key, X, Y);
 
 			// Update influence map
-			float VertexInfluence = TotalInfluenceMap.FindRef(It.Key());
-			TotalInfluenceMap.Add(It.Key(), VertexInfluence + It.Value());
+			float VertexInfluence = TotalInfluenceMap.FindRef(BrushPair.Key);
+			TotalInfluenceMap.Add(BrushPair.Key, VertexInfluence + BrushPair.Value);
 
-			float PaintAmount = It.Value() * UISettings->ToolStrength * Pressure * AdjustedStrength;
+			float PaintAmount = BrushPair.Value * PaintStrength;
 			typename ToolTarget::CacheClass::DataType& CurrentValue = DATA_AT(Data, X, Y);
 			const typename ToolTarget::CacheClass::DataType& SourceValue = DATA_AT(*SourceDataArrayPtr, X, Y);
 
@@ -258,9 +255,8 @@ public:
 					CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
 				}
 			}
-			else
-				if (bUseClayBrush)
-				{
+			else if (bUseClayBrush)
+			{
 				// Brush application starts from original world location at start of stroke
 				FVector WorldLoc = ToWorld.TransformPosition(FVector(X, Y, SourceValue));
 
@@ -268,7 +264,7 @@ public:
 				WorldLoc.Z = (BrushPlane.W - BrushPlane.X*WorldLoc.X - BrushPlane.Y*WorldLoc.Y) / BrushPlane.Z;
 
 				// Painted amount lerps based on brush falloff.
-				float PaintValue = FMath::Lerp<float>((float)SourceValue, FromWorld.TransformPosition(WorldLoc).Z, It.Value());
+				float PaintValue = FMath::Lerp<float>((float)SourceValue, FromWorld.TransformPosition(WorldLoc).Z, BrushPair.Value);
 
 				if (bInvert)
 				{
@@ -278,18 +274,18 @@ public:
 				{
 					CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(FMath::RoundToInt(PaintValue), CurrentValue));
 				}
+			}
+			else
+			{
+				if (bInvert)
+				{
+					CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue));
 				}
 				else
 				{
-					if (bInvert)
-					{
-						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue));
-					}
-					else
-					{
-						CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue));
-					}
+					CurrentValue = ToolTarget::CacheClass::ClampValue(FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue));
 				}
+			}
 		}
 
 		this->Cache.SetCachedData(X1, Y1, X2, Y2, Data, UISettings->PaintingRestriction);
@@ -303,7 +299,8 @@ class FLandscapeToolPaint : public FLandscapeToolPaintBase<FWeightmapToolTarget,
 public:
 	FLandscapeToolPaint(FEdModeLandscape* InEdMode)
 		: FLandscapeToolPaintBase<FWeightmapToolTarget, FLandscapeToolStrokePaint<FWeightmapToolTarget>>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Paint"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Paint", "Paint"); };
@@ -314,7 +311,8 @@ class FLandscapeToolSculpt : public FLandscapeToolPaintBase<FHeightmapToolTarget
 public:
 	FLandscapeToolSculpt(FEdModeLandscape* InEdMode)
 		: FLandscapeToolPaintBase<FHeightmapToolTarget, FLandscapeToolStrokePaint<FHeightmapToolTarget>>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Sculpt"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Sculpt", "Sculpt"); };
@@ -330,11 +328,10 @@ class FLandscapeToolStrokeSmooth : public FLandscapeToolStrokePaintBase<ToolTarg
 public:
 	FLandscapeToolStrokeSmooth(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
-	{}
+	{
+	}
 
-	virtual ~FLandscapeToolStrokeSmooth() {}
-
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!this->LandscapeInfo) return;
 
@@ -414,7 +411,8 @@ class FLandscapeToolSmooth : public FLandscapeToolPaintBase<ToolTarget, FLandsca
 public:
 	FLandscapeToolSmooth(FEdModeLandscape* InEdMode)
 		: FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeSmooth<ToolTarget> >(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Smooth"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Smooth", "Smooth"); };
@@ -449,9 +447,7 @@ public:
 		}
 	}
 
-	virtual ~FLandscapeToolStrokeFlatten() {}
-
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!this->LandscapeInfo) return;
 
@@ -572,14 +568,12 @@ template<class ToolTarget>
 class FLandscapeToolFlatten : public FLandscapeToolPaintBase < ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget> >
 {
 protected:
-	FVector LastMousePosition;
 	UStaticMesh* PlaneMesh;
 	UStaticMeshComponent* MeshComponent;
 
 public:
 	FLandscapeToolFlatten(FEdModeLandscape* InEdMode)
 		: FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget> >(InEdMode)
-		, LastMousePosition(FVector::ZeroVector)
 		, PlaneMesh(LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorLandscapeResources/FlattenPlaneMesh.FlattenPlaneMesh")))
 		, MeshComponent(NULL)
 	{
@@ -603,12 +597,13 @@ public:
 
 		if (ViewportClient->IsLevelEditorClient() && MeshComponent != NULL)
 		{
-			this->EdMode->LandscapeMouseTrace((FEditorViewportClient*)ViewportClient, x, y, LastMousePosition);
+			FVector MousePosition;
+			this->EdMode->LandscapeMouseTrace((FEditorViewportClient*)ViewportClient, x, y, MousePosition);
 
 			const FTransform LocalToWorld = this->EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy()->ActorToWorld();
 			FVector Origin;
-			Origin.X = FMath::RoundToFloat(LastMousePosition.X);
-			Origin.Y = FMath::RoundToFloat(LastMousePosition.Y);
+			Origin.X = FMath::RoundToFloat(MousePosition.X);
+			Origin.Y = FMath::RoundToFloat(MousePosition.Y);
 			Origin.Z = (FMath::RoundToFloat((this->EdMode->UISettings->FlattenTarget - LocalToWorld.GetTranslation().Z) / LocalToWorld.GetScale3D().Z * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
 			MeshComponent->SetRelativeLocation(Origin, false);
 		}
@@ -654,11 +649,10 @@ class FLandscapeToolStrokeNoise : public FLandscapeToolStrokePaintBase<ToolTarge
 public:
 	FLandscapeToolStrokeNoise(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
-	{}
+	{
+	}
 
-	virtual ~FLandscapeToolStrokeNoise() {}
-
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!this->LandscapeInfo) return;
 
@@ -743,7 +737,8 @@ class FLandscapeToolNoise : public FLandscapeToolPaintBase < ToolTarget, FLandsc
 public:
 	FLandscapeToolNoise(FEdModeLandscape* InEdMode)
 		: FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeNoise<ToolTarget> >(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Noise"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Noise", "Noise"); };

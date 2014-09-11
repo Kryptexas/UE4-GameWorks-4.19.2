@@ -50,17 +50,16 @@ namespace
 // FLandscapeToolRetopologize
 //
 
-class FLandscapeToolStrokeRetopologize
+class FLandscapeToolStrokeRetopologize : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeRetopologize(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
 		, Cache(InTarget)
-	{}
+	{
+	}
 
-	virtual ~FLandscapeToolStrokeRetopologize() {}
-
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (!LandscapeInfo)
 		{
@@ -553,7 +552,8 @@ class FLandscapeToolRetopologize : public FLandscapeToolBase<FLandscapeToolStrok
 public:
 	FLandscapeToolRetopologize(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeRetopologize>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Retopologize"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Retopologize", "Retopologize"); }

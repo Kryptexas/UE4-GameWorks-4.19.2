@@ -894,7 +894,8 @@ class FLandscapeBrushAlphaBase : public FLandscapeBrushCircle_Smooth
 public:
 	FLandscapeBrushAlphaBase(FEdModeLandscape* InEdMode, UMaterialInterface* InBrushMaterial)
 		: FLandscapeBrushCircle_Smooth(InEdMode, InBrushMaterial)
-	{}
+	{
+	}
 
 	float GetAlphaSample(float SampleX, float SampleY)
 	{

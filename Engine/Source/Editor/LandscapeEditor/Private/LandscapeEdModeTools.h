@@ -17,12 +17,15 @@ struct FNoiseParameter
 
 	// Constructors.
 
-	FNoiseParameter() {}
+	FNoiseParameter()
+	{
+	}
 	FNoiseParameter(float InBase, float InScale, float InAmount) :
 		Base(InBase),
 		NoiseScale(InScale),
 		NoiseAmount(InAmount)
-	{}
+	{
+	}
 
 	// Sample
 	float Sample(int32 X, int32 Y) const
@@ -1199,18 +1202,24 @@ struct FWeightmapToolTarget
 	static FMatrix FromWorldMatrix(ULandscapeInfo* LandscapeInfo) { return FMatrix::Identity; }
 };
 
-template<class TInputType>
-class FLandscapeStrokeBase
+/**
+* FLandscapeToolStrokeBase - base class for tool strokes (used by FLandscapeToolBase)
+*/
+
+class FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeStrokeBase(TInputType& InTarget) {}
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
+	// Whether to call Apply() every frame even if the mouse hasn't moved
+	enum { UseContinuousApply = false };
+
+	// Signature of Apply() method:
+	// void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions);
 };
 
 
 /**
- * FLandscapeToolPaintBase - base class for painting tools
- *		ToolTarget - the target for the tool (weight or heightmaap)
+ * FLandscapeToolBase - base class for painting tools
+ *		ToolTarget - the target for the tool (weight or heightmap)
  *		StrokeClass - the class that implements the behavior for a mouse stroke applying the tool.
  */
 template<class TStrokeClass>
@@ -1220,33 +1229,48 @@ public:
 	FLandscapeToolBase(FEdModeLandscape* InEdMode)
 		: EdMode(InEdMode)
 		, bToolActive(false)
-		, ToolStroke(NULL)
-	{}
+	{
+	}
 
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
 		if (!ensure(MousePositions.Num() == 0))
 		{
-			MousePositions.Empty();
+			MousePositions.Empty(1);
 		}
 
 		bToolActive = true;
-		ToolStroke = new TStrokeClass(EdMode, InTarget);
+		ToolStroke.Emplace(EdMode, InTarget);
 
 		EdMode->CurrentBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
 
-		new(MousePositions)FLandscapeToolMousePosition(InHitLocation.X, InHitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+		// Save the mouse position
+		LastMousePosition = FVector2D(InHitLocation);
+		MousePositions.Emplace(InHitLocation.X, InHitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+		TimeSinceLastMouseMove = 0.0f;
+
 		ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
-		MousePositions.Empty();
+
+		MousePositions.Empty(1);
 		return true;
 	}
 
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override
 	{
-		if (bToolActive && MousePositions.Num())
+		if (bToolActive)
 		{
-			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
-			MousePositions.Empty();
+			if (MousePositions.Num())
+			{
+				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				MousePositions.Empty(1);
+			}
+			else if (TStrokeClass::UseContinuousApply && TimeSinceLastMouseMove >= 0.25f)
+			{
+				MousePositions.Emplace(LastMousePosition.X, LastMousePosition.Y, IsShiftDown(ViewportClient->Viewport));
+				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				MousePositions.Empty(1);
+			}
+			TimeSinceLastMouseMove += DeltaTime;
 		}
 	}
 
@@ -1255,11 +1279,10 @@ public:
 		if (bToolActive && MousePositions.Num())
 		{
 			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
-			MousePositions.Empty();
+			MousePositions.Empty(1);
 		}
 
-		delete ToolStroke;
-		ToolStroke = NULL;
+		ToolStroke.Reset();
 		bToolActive = false;
 		EdMode->CurrentBrush->EndStroke();
 	}
@@ -1278,7 +1301,9 @@ public:
 			if (bToolActive)
 			{
 				// Save the mouse position
-				new(MousePositions)FLandscapeToolMousePosition(HitLocation.X, HitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+				LastMousePosition = FVector2D(HitLocation);
+				MousePositions.Emplace(HitLocation.X, HitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+				TimeSinceLastMouseMove = 0.0f;
 			}
 		}
 
@@ -1287,7 +1312,9 @@ public:
 
 protected:
 	TArray<FLandscapeToolMousePosition> MousePositions;
+	FVector2D LastMousePosition;
+	float TimeSinceLastMouseMove;
 	FEdModeLandscape* EdMode;
 	bool bToolActive;
-	TStrokeClass* ToolStroke;
+	TOptional<TStrokeClass> ToolStroke;
 };
