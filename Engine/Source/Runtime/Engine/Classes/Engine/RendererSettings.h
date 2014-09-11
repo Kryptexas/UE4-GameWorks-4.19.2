@@ -81,6 +81,26 @@ namespace EAntiAliasingMethodUI
 }
 
 
+/** The Side to use when scaling the UI. */
+UENUM()
+namespace EUIScalingRule
+{
+	enum Type
+	{
+		/** Evaluates the scale curve based on the shortest side of the viewport */
+		ShortestSide,
+		/** Evaluates the scale curve based on the longest side of the viewport */
+		LongestSide,
+		/** Evaluates the scale curve based on the X axis of the viewport */
+		Horizontal,
+		/** Evaluates the scale curve based on the Y axis of the viewport */
+		Vertical,
+		/** Custom - Allows custom rule interpretation */
+		//Custom
+	};
+}
+
+
 /**
  * Implements project settings for the Rendering sub-system.
  */
@@ -227,8 +247,13 @@ class ENGINE_API URendererSettings
 	float WireframeCullThreshold;
 
 	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
+		DisplayName="DPI Scale Rule",
+		ToolTip="The rule used when trying to decide what scale to apply." ))
+	TEnumAsByte<EUIScalingRule::Type> UIScaleRule;
+
+	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
 		DisplayName="DPI Curve",
-		ToolTip="Controls how the UI is scaled at different resolutions based on the shortest side" ))
+		ToolTip="Controls how the UI is scaled at different resolutions based on the DPI Scale Rule" ))
 	FRuntimeFloatCurve UIScaleCurve;
 
 public:

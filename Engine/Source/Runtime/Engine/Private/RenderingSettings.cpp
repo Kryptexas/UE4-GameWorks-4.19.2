@@ -82,8 +82,34 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 float URendererSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
 {
-	int32 ShortestSide = FMath::Min(Size.X, Size.Y);
-	const FRichCurve* DPICurve = UIScaleCurve.GetRichCurveConst();
-	float Scale = DPICurve->Eval((float)ShortestSide, 1.0f);
+	float Scale = 1;
+
+	//if ( UIScaleRule == EUIScalingRule::Custom )
+	//{
+
+	//}
+	//else
+	{
+		int32 EvalPoint = 0;
+		switch ( UIScaleRule )
+		{
+		case EUIScalingRule::ShortestSide:
+			EvalPoint = FMath::Min(Size.X, Size.Y);
+			break;
+		case EUIScalingRule::LongestSide:
+			EvalPoint = FMath::Max(Size.X, Size.Y);
+			break;
+		case EUIScalingRule::Horizontal:
+			EvalPoint = Size.X;
+			break;
+		case EUIScalingRule::Vertical:
+			EvalPoint = Size.Y;
+			break;
+		}
+
+		const FRichCurve* DPICurve = UIScaleCurve.GetRichCurveConst();
+		Scale = DPICurve->Eval((float)EvalPoint, 1.0f);
+	}
+
 	return FMath::Max(Scale, 0.01f);
 }
