@@ -1028,7 +1028,6 @@ namespace EBlueprintActionInfoFlags
 //------------------------------------------------------------------------------
 FBlueprintActionInfo::FBlueprintActionInfo(UObject const* ActionOwnerIn, UBlueprintNodeSpawner const* Action)
 	: NodeSpawner(Action)
-	, Bindings()
 	, ActionOwner(ActionOwnerIn)
 	, CacheFlags(0)
 	, CachedOwnerClass(nullptr)
