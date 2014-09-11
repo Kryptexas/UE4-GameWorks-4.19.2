@@ -159,7 +159,7 @@ private:
 
 		FORCEINLINE static uint32 GetKeyHash(const KeyType& Identifier)
 		{
-			return FCrc::StrCrc_DEPRECATED( *Identifier );
+			return FCrc::StrCrc32( *Identifier );
 		}
 	};
 
