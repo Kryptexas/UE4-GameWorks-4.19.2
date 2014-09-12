@@ -186,7 +186,7 @@ public:
 	/**
 	 * Coefficient of friction. This property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
 	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
-	 * See also: BrakingDecelerationWalking
+	 * @see BrakingDecelerationWalking
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float GroundFriction;
@@ -216,8 +216,8 @@ public:
 	float MaxAcceleration;
 
 	/**
-	 * Deceleration when walking and not applying acceleration.
-	 * See also: GroundFriction
+	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
+	 * @see GroundFriction
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float BrakingDecelerationWalking;
@@ -234,9 +234,17 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float BrakingDecelerationFlying;
 
-	/** Amount of lateral movement control available to the pawn when falling. 0 = no control, 1 = full control at max speed of MaxWalkSpeed. */
+	/** When falling, amount of lateral movement control available to the character. 0 = no control, 1 = full control at max speed of MaxWalkSpeed. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float AirControl;
+
+	/** When falling, multiplier applied to AirControl when lateral velocity is less than AirControlBoostVelocityThreshold. Setting this to zero will disable air control boosting. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float AirControlBoostMultiplier;
+
+	/** When falling, if lateral velocity magnitude is less than this value, AirControl is multiplied by AirControlBoostMultiplier. Setting this to zero will disable air control  boosting. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float AirControlBoostVelocityThreshold;
 
 	/** Friction to apply to lateral air movement when falling. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
@@ -426,8 +434,10 @@ public:
 	 * Compute remaining time step given remaining time and current iterations.
 	 * The last iteration (limited by MaxSimulationIterations) always returns the remaining time, which may violate MaxSimulationTimeStep.
 	 *
-	 * @see MaxSimulationTimeStep
-	 * @see MaxSimulationIterations
+	 * @param RemainingTime		Remaining time in the tick.
+	 * @param Iterations		Current iteration of the tick (starting at 1).
+	 * @return The remaining time step to use for the next sub-step of iteration.
+	 * @see MaxSimulationTimeStep, MaxSimulationIterations
 	 */
 	float GetSimulationTimeStep(float RemainingTime, int32 Iterations) const;
 
@@ -708,9 +718,15 @@ public:
 	/** Return true if we have a valid CharacterOwner and UpdatedComponent. */
 	virtual bool HasValidData() const;
 
-	/** Update Velocity and Acceleration to air control in the desired Direction for AIControlled Pawn 
-		@PARAM Direction is the desired direction of movement
-		@Param ZDiff is the height difference between the destination and the Pawn's current position */
+	/**
+	 * Update Velocity and Acceleration to air control in the desired Direction for character using path following.
+	 * @param Direction is the desired direction of movement
+	 * @param ZDiff is the height difference between the destination and the Pawn's current position
+	 * @see RequestDirectMove()
+	*/
+	virtual void PerformAirControlForPathFollowing(FVector Direction, float ZDiff);
+
+	DEPRECATED(4.5, "PerformAirControl has been deprecated, use PerformAirControlForPathFollowing instead.")
 	virtual void PerformAirControl(FVector Direction, float ZDiff);
 
 	/** Transition from walking to falling */
@@ -905,8 +921,77 @@ public:
 	/** Get as close to waterline as possible, staying on same side as currently. */
 	FVector FindWaterLine(FVector Start, FVector End);
 
-	/** Handle changing physics to falling over deltatime and iterations */
+	/** Handle falling movement. */
 	virtual void PhysFalling(float deltaTime, int32 Iterations);
+
+	// Helpers for PhysFalling
+
+	/**
+	 * Get the acceleration to use during falling movement. Base implementation simply returns current Acceleration.
+	 * The Z component of the result is ignored, and the actual value of acceleration used while falling will be modified by the result of GetAirControl().
+	 * This function is used internally by PhysFalling().
+	 *
+	 * @param DeltaTime Time step for the current update.
+	 * @return Acceleration to use during falling movement.
+	 */
+	virtual FVector GetFallingLateralAcceleration(float DeltaTime);
+	
+	/**
+	 * Get the air control to use during falling movement. This is a multiplier applied to the acceleration used when falling.
+	 * Given an initial air control (TickAirControl), applies the result of BoostAirControl(). If non-zero and FindAirControlImpact()
+	 * returns true, we then apply the result of LimitAirControl().
+	 * This function is used internally by PhysFalling().
+	 *
+	 * @param DeltaTime			Time step for the current update.
+	 * @param TickAirControl	Current air control value.
+	 * @param FallAcceleration	Acceleration used during movement.
+	 * @return Air control to use during falling movement.
+	 * @see AirControl, BoostAirControl(), LimitAirControl()
+	 */
+	virtual float GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
+
+protected:
+
+	/**
+	 * Increase air control if conditions of AirControlBoostMultiplier and AirControlBoostVelocityThreshold are met.
+	 * This function is used internally by GetAirControl().
+	 *
+	 * @param DeltaTime			Time step for the current update.
+	 * @param TickAirControl	Current air control value.
+	 * @param FallAcceleration	Acceleration used during movement.
+	 * @return Modified air control to use during falling movement
+	 * @see GetAirControl()
+	 */
+	virtual float BoostAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
+
+	/**
+	 * Checks if air control will cause the player collision shape to hit something given current conditions.
+	 * This function is used internally by GetAirControl().
+	 *
+	 * @param DeltaTime			Time step for the current update.
+	 * @param TickAirControl	Current air control value.
+	 * @param FallAcceleration	Acceleration used during movement.
+	 * @param OutHitResult		Result of impact, valid if this function returns true.
+	 * @return True if there is an impact, in which case OutHitResult contains the result of that impact.
+	 * @see GetAirControl()
+	 */
+	virtual bool FindAirControlImpact(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, FHitResult& OutHitResult);
+
+	/**
+	 * Limits the air control to use during falling movement, given an impact from FindAirControlImpact().
+	 * This function is used internally by GetAirControl().
+	 *
+	 * @param DeltaTime			Time step for the current update.
+	 * @param TickAirControl	Current air control value.
+	 * @param FallAcceleration	Acceleration used during movement.
+	 * @param HitResult			Result of impact from FindAirControlImpact().
+	 * @return Modified air control to use during falling movement
+	 * @see FindAirControlImpact()
+	 */
+	virtual float LimitAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, const FHitResult& HitResult);
+	
+
+public:
 
 	/** Handle landing against Hit surface over remaingTime and iterations */
 	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations);
@@ -992,7 +1077,7 @@ public:
 	 * Add force to character. Forces are accumulated each tick and applied together
 	 * so multiple calls to this function will accumulate.
 	 * Forces are scaled depending on timestep, so they can be applied each frame. If you want an
-	 * instantaneous force, use AdddImpulse.
+	 * instantaneous force, use AddImpulse.
 	 * Adding a force always takes the actor's mass into account.
 	 * Note that changing the momentum of characters like this can change the movement mode.
 	 * 
@@ -1260,6 +1345,15 @@ protected:
 
 	/** Internal function to call OnMovementUpdated delegate on CharacterOwner. */
 	virtual void CallMovementUpdateDelegate(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity);
+
+	/**
+	 * Event triggered when we are moving on a base but we are not able to move the full DeltaPosition because something has blocked us.
+	 * Note: MoveComponentFlags includes the flag to ignore the movement base while this event is fired.
+	 * @param DeltaPosition		How far we tried to move with the base.
+	 * @param OldLocation		Location before we tried to move with the base.
+	 * @param MoveOnBaseHit		Hit result for the object we hit when trying to move with the base.
+	 */
+	virtual void OnUnableToFollowBaseMove(const FVector& DeltaPosition, const FVector& OldLocation, const FHitResult& MoveOnBaseHit);
 
 public:
 	// Movement functions broken out based on owner's network Role.

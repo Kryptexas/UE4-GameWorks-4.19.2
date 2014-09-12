@@ -182,6 +182,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	MaxOutOfWaterStepHeight = 40.0f;
 	OutofWaterZ = 420.0f;
 	AirControl = 0.05f;
+	AirControlBoostMultiplier = 2.f;
+	AirControlBoostVelocityThreshold = 25.f;
 	FallingLateralFriction = 0.f;
 	MaxAcceleration = 2048.0f;
 	BrakingDecelerationWalking = MaxAcceleration;
@@ -710,8 +712,14 @@ void UCharacterMovementComponent::ApplyNetworkMovementMode(const uint8 ReceivedM
 	SetMovementMode(NetMovementMode, NetCustomMode);
 }
 
-
+// TODO: deprecated, remove
 void UCharacterMovementComponent::PerformAirControl(FVector Direction, float ZDiff)
+{
+	PerformAirControlForPathFollowing(Direction, ZDiff);
+}
+
+
+void UCharacterMovementComponent::PerformAirControlForPathFollowing(FVector Direction, float ZDiff)
 {
 	// use air control if low grav or above destination and falling towards it
 	if ( CharacterOwner && Velocity.Z < 0.f && (ZDiff < 0.f || GetGravityZ() > 0.9f * GetWorld()->GetDefaultGravityZ()))
@@ -1293,7 +1301,13 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 			}
 			else
 			{
-				MoveUpdatedComponent( DeltaPosition, FinalQuat.Rotator(), true );
+				FHitResult MoveOnBaseHit(1.f);
+				const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+				MoveUpdatedComponent(DeltaPosition, FinalQuat.Rotator(), true, &MoveOnBaseHit);
+				if ((UpdatedComponent->GetComponentLocation() - (OldLocation + DeltaPosition)).IsNearlyZero() == false)
+				{
+					OnUnableToFollowBaseMove(DeltaPosition, OldLocation, MoveOnBaseHit);
+				}
 			}
 		}
 
@@ -1302,6 +1316,12 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 			CharacterOwner->Mesh->ApplyDeltaToAllPhysicsTransforms(DeltaPosition, DeltaQuat);
 		}
 	}
+}
+
+
+void UCharacterMovementComponent::OnUnableToFollowBaseMove(const FVector& DeltaPosition, const FVector& OldLocation, const FHitResult& MoveOnBaseHit)
+{
+	// no default implementation, left for subclasses to override.
 }
 
 
@@ -2214,7 +2234,7 @@ void UCharacterMovementComponent::RequestDirectMove(const FVector& MoveVelocity,
 	if (IsFalling())
 	{
 		const FVector FallVelocity = MoveVelocity.ClampMaxSize(GetMaxSpeed());
-		PerformAirControl(FallVelocity, FallVelocity.Z);
+		PerformAirControlForPathFollowing(FallVelocity, FallVelocity.Z);
 		return;
 	}
 
@@ -2747,6 +2767,47 @@ void UCharacterMovementComponent::NotifyJumpApex()
 }
 
 
+FVector UCharacterMovementComponent::GetFallingLateralAcceleration(float DeltaTime)
+{
+	// No acceleration in Z
+	return FVector(Acceleration.X, Acceleration.Y, 0.f);
+}
+
+
+float UCharacterMovementComponent::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
+{
+	// Boost
+	if (TickAirControl > 0.f)
+	{
+		TickAirControl = BoostAirControl(DeltaTime, TickAirControl, FallAcceleration);
+	}
+
+	// Limit
+	if (TickAirControl > 0.f)
+	{
+		FHitResult HitResult(1.f);
+		if (FindAirControlImpact(DeltaTime, TickAirControl, FallAcceleration, HitResult))
+		{
+			TickAirControl = LimitAirControl(DeltaTime, TickAirControl, FallAcceleration, HitResult);
+		}
+	}
+
+	return TickAirControl;
+}
+
+
+float UCharacterMovementComponent::BoostAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
+{
+	// Allow a burst of initial acceleration
+	if (AirControlBoostMultiplier > 0.f && Velocity.SizeSquared2D() < FMath::Square(AirControlBoostVelocityThreshold))
+	{
+		TickAirControl = FMath::Min(1.f, AirControlBoostMultiplier * TickAirControl);
+	}
+
+	return TickAirControl;
+}
+
+
 void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 {
 	if (deltaTime < MIN_TICK_TIME)
@@ -2758,66 +2819,19 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 	const float Speed2d = Velocity.Size2D();
 	const float BoundSpeed2d = FMath::Max(Speed2d, GetMaxSpeed() * AnalogInputModifier);
 
-	//bound acceleration, falling object has minimal ability to impact acceleration
-	FVector FallAcceleration = Acceleration;
+	FVector FallAcceleration = GetFallingLateralAcceleration(deltaTime);
 	FallAcceleration.Z = 0.f;
-	
-	FHitResult Hit(1.f);
-	if( !HasRootMotion() )
+
+	// bound acceleration, falling object has minimal ability to impact acceleration
+	if (!HasRootMotion() && FallAcceleration.SizeSquared() > 0.f)
 	{
-		// test for slope to avoid using air control to climb walls
-		float TickAirControl = AirControl;
-		if ( TickAirControl > 0.0f && FallAcceleration.SizeSquared() > 0.f )
-		{
-			const float TestWalkTime = FMath::Max(deltaTime, 0.05f);
-			const FVector TestWalk = ((TickAirControl * GetMaxAcceleration() * FallAcceleration.SafeNormal() + FVector(0.f,0.f,GetGravityZ())) * TestWalkTime + Velocity) * TestWalkTime;
-			if(!TestWalk.IsZero())
-			{
-				static const FName FallingTraceParamsTag = FName(TEXT("PhysFalling"));
-				FHitResult Result(1.f);
-				FCollisionQueryParams CapsuleQuery(FallingTraceParamsTag, false, CharacterOwner);
-				FCollisionResponseParams ResponseParam;
-				InitCollisionParams(CapsuleQuery, ResponseParam);
-				const FVector PawnLocation = CharacterOwner->GetActorLocation();
-				const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
+		const float TickAirControl = GetAirControl(deltaTime, AirControl, FallAcceleration);
 
-				bool bHit = false;
-				const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
-				if(bUseFlatBaseForFloorChecks)
-				{
-					const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleHalfHeight()));
-					bHit = GetWorld()->SweepSingle( Result, PawnLocation, PawnLocation + TestWalk, FQuat::Identity, CollisionChannel, BoxShape, CapsuleQuery, ResponseParam );
-				}
-				else
-				{
-					bHit = GetWorld()->SweepSingle( Result, PawnLocation, PawnLocation + TestWalk, FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleQuery, ResponseParam );
-				}
-
-				if (bHit)
-				{
-					// Only matters if we can't walk there
-					if (!IsValidLandingSpot(Result.Location, Result))
-					{
-						TickAirControl = 0.f;
-					}
-				}
-			}
-		}
-
-		float MaxAccel = GetMaxAcceleration() * TickAirControl;
-
-		// Boost maxAccel to increase player's control when falling
-		if( (Speed2d < 10.f) && (TickAirControl > 0.f) && (TickAirControl <= 0.05f) ) //allow initial burst
-		{
-			MaxAccel = MaxAccel + (10.f - Speed2d)/deltaTime;
-		}
-		
+		const float MaxAccel = GetMaxAcceleration() * TickAirControl;
 		FallAcceleration = FallAcceleration.ClampMaxSize(MaxAccel);
 	}
 
 	float remainingTime = deltaTime;
-	float timeTick = 0.1f;
-
 	while( (remainingTime >= MIN_TICK_TIME) && (Iterations < MaxSimulationIterations) )
 	{
 		Iterations++;
@@ -2855,6 +2869,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		}
 
 		// Move
+		FHitResult Hit(1.f);
 		FVector Adjusted = 0.5f*(OldVelocity + Velocity) * timeTick;  
 		SafeMoveUpdatedComponent( Adjusted, PawnRotation, true, Hit);
 		
@@ -3007,6 +3022,54 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 	}
 }
 
+
+bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, FHitResult& OutHitResult)
+{
+	// test for slope to avoid using air control to climb walls
+	const float TestWalkTime = FMath::Max(DeltaTime, 0.05f);
+	const FVector TestWalk = ((TickAirControl * GetMaxAcceleration() * FallAcceleration.SafeNormal() + FVector(0.f,0.f,GetGravityZ())) * TestWalkTime + Velocity) * TestWalkTime;
+	if (!TestWalk.IsZero())
+	{
+		static const FName FallingTraceParamsTag = FName(TEXT("PhysFalling"));
+		FCollisionQueryParams CapsuleQuery(FallingTraceParamsTag, false, CharacterOwner);
+		FCollisionResponseParams ResponseParam;
+		InitCollisionParams(CapsuleQuery, ResponseParam);
+		const FVector PawnLocation = CharacterOwner->GetActorLocation();
+		const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
+
+		const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
+		if (bUseFlatBaseForFloorChecks)
+		{
+			const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleHalfHeight()));
+			GetWorld()->SweepSingle( OutHitResult, PawnLocation, PawnLocation + TestWalk, FQuat::Identity, CollisionChannel, BoxShape, CapsuleQuery, ResponseParam );
+		}
+		else
+		{
+			GetWorld()->SweepSingle( OutHitResult, PawnLocation, PawnLocation + TestWalk, FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleQuery, ResponseParam );
+		}
+
+		if (OutHitResult.bBlockingHit)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+float UCharacterMovementComponent::LimitAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, const FHitResult& HitResult)
+{
+	if (HitResult.bBlockingHit)
+	{
+		if (!IsValidLandingSpot(HitResult.Location, HitResult))
+		{
+			TickAirControl = 0.f;
+		}
+	}
+
+	return TickAirControl;
+}
 
 bool UCharacterMovementComponent::CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir)
 {
