@@ -2462,7 +2462,7 @@ bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 		const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(FunctionResult->GetSchema());
 		FunctionResult->NodePosX = FunctionEntryNode->NodePosX + FunctionEntryNode->NodeWidth + 256;
 		FunctionResult->NodePosY = FunctionEntryNode->NodePosY;
-			
+		UEdGraphSchema_K2::SetNodeMetaData(FunctionResult, FNodeMetadata::DefaultGraphNode);
 		ResultNodeCreator.Finalize();
 		
 		// Connect the function entry to the result node, if applicable

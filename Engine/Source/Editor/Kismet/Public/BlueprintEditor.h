@@ -236,6 +236,12 @@ public:
 	/** Returns whether a graph is editable or not */
 	virtual bool IsEditable(UEdGraph* InGraph) const;
 
+	/** */
+	bool IsGraphPanelEnabled(UEdGraph* InGraph) const;
+
+	/** */
+	virtual float GetInstructionTextOpacity() const;
+
 	/** Returns true if in editing mode */
 	bool InEditingMode() const;
 
@@ -1035,6 +1041,10 @@ private:
 	/** Delegates that are fired when the blueprint editor changes modes */
 	FOnModeSet OnModeSetData;
 
+	/** */
+	bool bActionMenuIsOpen;
+	/** */
+	float InstructionsFadeCountdown;
 };
 
 #undef LOCTEXT_NAMESPACE

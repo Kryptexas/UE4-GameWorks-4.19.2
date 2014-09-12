@@ -2,7 +2,7 @@
 
 #include "EditorSettingsViewerPrivatePCH.h"
 #include "Tests/AutomationTestSettings.h"
-
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -187,6 +187,13 @@ protected:
 			LOCTEXT("ContentEditorsGraphEditorSettingsName", "Graph Editors"),
 			LOCTEXT("ContentEditorsGraphEditorSettingsDescription", "Customize Anim, Blueprint and Material Editor."),
 			GetMutableDefault<UGraphEditorSettings>()
+		);
+
+		// graph editors
+		SettingsModule.RegisterSettings("Editor", "ContentEditors", "BlueprintEditor",
+			LOCTEXT("ContentEditorsBlueprintEditorSettingsName", "Blueprint Editor"),
+			LOCTEXT("ContentEditorsGraphBlueprintSettingsDescription", "Customize Blueprint Editors."),
+			GetMutableDefault<UBlueprintEditorSettings>()
 		);
 	}
 

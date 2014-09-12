@@ -61,7 +61,6 @@ private:
 	SGraphEditor::FOnCreateActionMenu OnCreateActionMenu;
 
 	TAttribute<bool> IsEditable;
-
 	TAttribute<bool> TitleBarEnabledOnly;
 
 	bool bAutoExpandActionMenu;
@@ -77,6 +76,17 @@ private:
 
 	/** Function to check whether we should show read-only text in the panel */
 	EVisibility ReadOnlyVisibility() const;
+
+	/** Returns dynamic text, meant to passively instruct the user on what to do in the graph */
+	FString GetInstructionText() const;
+	/** Function to check whether we should show instruction text to the user */
+	EVisibility InstructionTextVisibility() const;
+	/** Returns a 0.0 to 1.0 value, denoting the instruction text's fade percent */
+	float GetInstructionTextFade() const;
+	/** A dynamic tint for the instruction text (allows us to nicely fade it in/out) */
+	FLinearColor InstructionTextTint() const;
+	/** Determines the color of the box containing the instruction text */
+	FSlateColor InstructionBorderColor() const;
 
 	/** Notification list to pass messages to editor users  */
 	TSharedPtr<SNotificationList> NotificationListPtr;

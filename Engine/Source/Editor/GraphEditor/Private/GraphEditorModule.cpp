@@ -54,6 +54,7 @@ void FGraphEditorModule::ShutdownModule()
 TSharedRef<SGraphEditor> FGraphEditorModule::PRIVATE_MakeGraphEditor( 
 	const TSharedPtr<FUICommandList>& InAdditionalCommands, 
 	const TAttribute<bool>& InIsEditable, 
+	const TAttribute<bool>& InIsEmpty,
 	TAttribute<FGraphAppearanceInfo> Appearance,
 	TSharedPtr<SWidget> InTitleBar,
 	const TAttribute<bool>& InTitleBarEnabledOnly,

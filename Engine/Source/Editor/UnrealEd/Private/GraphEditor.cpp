@@ -18,6 +18,7 @@ void SGraphEditor::ConstructImplementation( const FArguments& InArgs )
 	// Construct the implementation and make it the contents of this widget.
 	Implementation = GraphEdModule.PRIVATE_MakeGraphEditor( InArgs._AdditionalCommands, 
 		InArgs._IsEditable, 
+		InArgs._IsEmpty,
 		InArgs._Appearance,
 		InArgs._TitleBar,
 		InArgs._TitleBarEnabledOnly,

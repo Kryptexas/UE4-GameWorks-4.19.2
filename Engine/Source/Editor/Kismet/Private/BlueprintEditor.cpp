@@ -68,6 +68,7 @@
 #include "AnimationStateMachineSchema.h"
 #include "AnimationTransitionGraph.h"
 #include "BlueprintEditorModes.h"
+#include "BlueprintEditorSettings.h"
 
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
@@ -167,6 +168,59 @@ private:
 
 /////////////////////////////////////////////////////
 // FBlueprintEditor
+
+namespace BlueprintEditorImpl
+{
+	static const float InstructionFadeDuration = 0.5f;
+
+	/**
+	*
+	*
+	* @param  InGraph
+	* @return
+	*/
+	static bool GraphHasUserPlacedNodes(UEdGraph const* InGraph);
+
+	/**
+	*
+	*
+	* @param  InGraph
+	* @return
+	*/
+	static bool GraphHasDefaultNode(UEdGraph const* InGraph);
+}
+
+static bool BlueprintEditorImpl::GraphHasUserPlacedNodes(UEdGraph const* InGraph)
+{
+	bool bHasUserPlacedNodes = false;
+
+	for (UEdGraphNode const* Node : InGraph->Nodes)
+	{
+		if (!Node->GetOutermost()->GetMetaData()->HasValue(Node, FNodeMetadata::DefaultGraphNode))
+		{
+			bHasUserPlacedNodes = true;
+			break;
+		}
+	}
+
+	return bHasUserPlacedNodes;
+}
+
+static bool BlueprintEditorImpl::GraphHasDefaultNode(UEdGraph const* InGraph)
+{
+	bool bHasDefaultNodes = false;
+
+	for (UEdGraphNode const* Node : InGraph->Nodes)
+	{
+		if (Node->GetOutermost()->GetMetaData()->HasValue(Node, FNodeMetadata::DefaultGraphNode))
+		{
+			bHasDefaultNodes = true;
+			break;
+		}
+	}
+
+	return bHasDefaultNodes;
+}
 
 bool FBlueprintEditor::IsASubGraph( const UEdGraph* GraphPtr )
 {
@@ -457,10 +511,6 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FTabInfo> InTabInfo, UEdGraph* InGraph)
 {
 	check((InGraph != NULL) && IsEditingSingleBlueprint());
-
-	// Cache off whether or not this is an interface, since it is used to govern multiple widget's behavior
-	const bool bIsInterface = (GetBlueprintObj()->BlueprintType == BPTYPE_Interface);
-	const bool bIsDelegate = FBlueprintEditorUtils::IsDelegateSignatureGraph(InGraph);
 
 	// No need to regenerate the commands.
 	if(!GraphEditorCommands.IsValid())
@@ -770,11 +820,13 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 		InEvents.OnCreateActionMenu = SGraphEditor::FOnCreateActionMenu::CreateSP(this, &FBlueprintEditor::OnCreateGraphActionMenu);
 	}
 
+
+	bool const bEnableTitleBarOnly = !IsGraphPanelEnabled(InGraph);
 	TSharedRef<SGraphEditor> Editor = SNew(SGraphEditor)
 		.AdditionalCommands(GraphEditorCommands)
 		.IsEditable(this, &FBlueprintEditor::IsEditable, InGraph)
 		.TitleBar(TitleBarWidget)
-		.TitleBarEnabledOnly(bIsInterface || bIsDelegate)
+		.TitleBarEnabledOnly(bEnableTitleBarOnly)
 		.Appearance(this, &FBlueprintEditor::GetGraphAppearance)
 		.GraphToEdit(InGraph)
 		.GraphEvents(InEvents)
@@ -825,6 +877,17 @@ FGraphAppearanceInfo FBlueprintEditor::GetGraphAppearance() const
 		break;
 	}
 
+	UEdGraph const* EditingGraph = GetFocusedGraph();
+	if (EditingGraph && BlueprintEditorImpl::GraphHasDefaultNode(EditingGraph))
+	{
+		AppearanceInfo.InstructionText = LOCTEXT("AppearanceInstructionText_DefaultGraph", "Drag Off Pins to Create/Connect New Nodes.");
+	}
+	else // if the graph is empty...
+	{
+		AppearanceInfo.InstructionText = LOCTEXT("AppearanceInstructionText_EmptyGraph", "Right-Click to Create New Nodes.");
+	}
+	AppearanceInfo.InstructionFade.Bind(this, &FBlueprintEditor::GetInstructionTextOpacity);
+
 	AppearanceInfo.PIENotifyText = GetPIEStatus();
 
 	return AppearanceInfo;
@@ -854,6 +917,8 @@ FBlueprintEditor::FBlueprintEditor()
 	, CurrentUISelection(FBlueprintEditor::NoSelection)
 	, bEditorMarkedAsClosed(false)
 	, bCodeBasedProject(false)
+	, bActionMenuIsOpen(false)
+	, InstructionsFadeCountdown(0.f)
 {
 	AnalyticsStats.GraphActionMenusNonCtxtSensitiveExecCount = 0;
 	AnalyticsStats.GraphActionMenusCtxtSensitiveExecCount = 0;
@@ -2267,6 +2332,12 @@ void FBlueprintEditor::OnGraphEditorDropStreamingLevel(const TArray< TWeakObject
 
 FActionMenuContent FBlueprintEditor::OnCreateGraphActionMenu(UEdGraph* InGraph, const FVector2D& InNodePosition, const TArray<UEdGraphPin*>& InDraggedPins, bool bAutoExpand, SGraphEditor::FActionMenuClosed InOnMenuClosed)
 {
+	bActionMenuIsOpen = true;
+	if (!BlueprintEditorImpl::GraphHasUserPlacedNodes(InGraph))
+	{
+		InstructionsFadeCountdown = BlueprintEditorImpl::InstructionFadeDuration;
+	}
+
 	TSharedRef<SBlueprintActionMenu> ActionMenu = 
 		SNew(SBlueprintActionMenu, SharedThis(this))
 		.GraphObj(InGraph)
@@ -2290,6 +2361,16 @@ void FBlueprintEditor::OnGraphActionMenuClosed(bool bActionExecuted, bool bConte
 	{
 		AnalyticsStats.GraphActionMenusCancelledCount++;
 	}
+
+	if (UEdGraph* EditingGraph = GetFocusedGraph())
+	{
+		// if the user didn't place any nodes...
+		if (!BlueprintEditorImpl::GraphHasUserPlacedNodes(EditingGraph))
+		{
+			InstructionsFadeCountdown = 0.0f;
+		}
+	}
+	bActionMenuIsOpen = false;
 }
 
 void FBlueprintEditor::OnSelectedNodesChanged(const FGraphPanelSelectionSet& NewSelection)
@@ -5499,6 +5580,11 @@ void FBlueprintEditor::Tick(float DeltaTime)
 
 		SaveEditedObjectState();
 	}
+
+	if (InstructionsFadeCountdown > 0.f)
+	{
+		InstructionsFadeCountdown -= DeltaTime;
+	}
 }
 TStatId FBlueprintEditor::GetStatId() const
 {
@@ -6537,6 +6623,34 @@ UEdGraph* FBlueprintEditor::GetFocusedGraph() const
 bool FBlueprintEditor::IsEditable(UEdGraph* InGraph) const
 {
 	return InEditingMode() && InGraph && InGraph->bEditable;
+}
+
+bool FBlueprintEditor::IsGraphPanelEnabled(UEdGraph* InGraph) const
+{
+	bool const bIsInterface = (FBlueprintEditorUtils::FindBlueprintForGraph(InGraph)->BlueprintType == BPTYPE_Interface);
+	bool const bIsDelegate  = FBlueprintEditorUtils::IsDelegateSignatureGraph(InGraph);
+
+	return !bIsInterface && !bIsDelegate;
+}
+
+float FBlueprintEditor::GetInstructionTextOpacity() const
+{
+	UEdGraph* EditingGraph = GetFocusedGraph();
+	UBlueprintEditorSettings const* Settings = GetDefault<UBlueprintEditorSettings>();
+
+	if ((EditingGraph == nullptr) || !IsEditable(EditingGraph) || !IsGraphPanelEnabled(EditingGraph) || !Settings->bShowGraphInstructionText)
+	{
+		return 0.0f;
+	}
+	else if ((InstructionsFadeCountdown > 0.0f) || bActionMenuIsOpen)
+	{
+		return InstructionsFadeCountdown / BlueprintEditorImpl::InstructionFadeDuration;
+	}
+	else if (BlueprintEditorImpl::GraphHasUserPlacedNodes(EditingGraph))
+	{
+		return 0.0f;
+	}
+	return 1.0f;
 }
 
 FString FBlueprintEditor::GetGraphDecorationString(UEdGraph* InGraph) const

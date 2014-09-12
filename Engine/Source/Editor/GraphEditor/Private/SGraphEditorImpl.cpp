@@ -260,7 +260,30 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 		+SOverlay::Slot()
 		.VAlign(VAlign_Top)
 		[
-			InArgs._TitleBar.IsValid() ? InArgs._TitleBar.ToSharedRef() : (TSharedRef<SWidget>)SNullWidget::NullWidget
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			[
+				InArgs._TitleBar.IsValid() ? InArgs._TitleBar.ToSharedRef() : (TSharedRef<SWidget>)SNullWidget::NullWidget
+			]
+			+ SVerticalBox::Slot()
+			.Padding(20.f, 20.f, 20.f, 0.f)
+			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Center)
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Padding(FMargin(10.f, 4.f))
+				.BorderImage(FEditorStyle::GetBrush(TEXT("Graph.InstructionBackground")))
+				.BorderBackgroundColor(this, &SGraphEditorImpl::InstructionBorderColor)
+				.HAlign(HAlign_Center)
+				.ColorAndOpacity(this, &SGraphEditorImpl::InstructionTextTint)
+				.Visibility(this, &SGraphEditorImpl::InstructionTextVisibility)
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "Graph.InstructionText")
+					.Text(this, &SGraphEditorImpl::GetInstructionText)
+				]
+			]			
 		]
 
 		// Bottom-right corner text indicating the type of tool
@@ -298,6 +321,23 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.TextStyle(FEditorStyle::Get(), "Graph.CornerText")
 			.Text(ReadOnlyText)
 		]
+
+// 		+ SOverlay::Slot()
+// 		.Padding(20)
+// 		.VAlign(VAlign_Fill)
+// 		.HAlign(HAlign_Fill)
+// 		[
+// 			SNew(SVerticalBox)
+// 			+ SVerticalBox::Slot()
+// 			.FillHeight(0.5)
+// 			.VAlign(VAlign_Bottom)
+// 			.HAlign(HAlign_Center)
+// 			[
+// 				
+// 			]
+// 			+ SVerticalBox::Slot()
+// 			.FillHeight(0.5)
+// 		]
 
 		// Bottom-right corner text for notification list position
 		+SOverlay::Slot()
@@ -616,7 +656,45 @@ EVisibility SGraphEditorImpl::ReadOnlyVisibility() const
 	return EVisibility::Hidden;
 }
 
+FString SGraphEditorImpl::GetInstructionText() const
+{
+	if (Appearance.IsBound())
+	{
+		return Appearance.Get().InstructionText.ToString();
+	}
+	return TEXT("");
+}
 
+EVisibility SGraphEditorImpl::InstructionTextVisibility() const
+{
+	if (GetInstructionTextFade() > 0.0f)
+	{
+		return EVisibility::Visible;
+	}
+	return EVisibility::Hidden;
+}
+
+float SGraphEditorImpl::GetInstructionTextFade() const
+{
+	float InstructionOpacity = 1.0f;
+	if (Appearance.IsBound())
+	{
+		InstructionOpacity = Appearance.Get().InstructionFade.Get();
+	}
+	return InstructionOpacity;
+}
+
+FLinearColor SGraphEditorImpl::InstructionTextTint() const
+{
+	return FLinearColor(1.f, 1.f, 1.f, GetInstructionTextFade());
+}
+
+FSlateColor SGraphEditorImpl::InstructionBorderColor() const
+{
+	FLinearColor BorderColor(0.1f, 0.1f, 0.1f, 0.7f);
+	BorderColor.A *= GetInstructionTextFade();
+	return BorderColor;
+}
 
 /////////////////////////////////////////////////////
 

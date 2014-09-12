@@ -3468,6 +3468,14 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 				.SetColorAndOpacity( FLinearColor(0.8, 0.8f, 0.8f, 0.2f) )
 				.SetShadowOffset( FVector2D::ZeroVector )
 			);
+
+			Set( "Graph.InstructionText", FTextBlockStyle(NormalText)
+				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 24 ) )
+				.SetColorAndOpacity( FLinearColor(1.f, 1.f, 1.f, 0.6f) )
+				.SetShadowOffset( FVector2D::ZeroVector )
+			);
+
+			Set( "Graph.InstructionBackground", new BOX_BRUSH("Common/GroupBorder", FMargin(4.0f / 16.0f), FLinearColor(0.1f, 0.1f, 0.1f, 0.7f)) );
 		}
 
 		{

@@ -18,6 +18,7 @@ struct FGraphAppearanceInfo
 {
 	FGraphAppearanceInfo()
 		: CornerImage(NULL)
+		, InstructionFade(1.f)
 	{
 	}
 
@@ -29,6 +30,10 @@ struct FGraphAppearanceInfo
 	FString PIENotifyText;
 	/** If set, will be used as override for read only text */
 	FString ReadOnlyText;
+	/** Text to display if the graph is empty (to guide the user on what to do) */
+	FText InstructionText;
+	/** Allows graphs to nicely fade instruction text (or completely hide it). */
+	TAttribute<float> InstructionFade;
 };
 
 /** Struct used to return info about action menu */
@@ -105,6 +110,7 @@ public:
 	SLATE_BEGIN_ARGS(SGraphEditor)
 		: _AdditionalCommands( static_cast<FUICommandList*>(NULL) )
 		, _IsEditable(true)
+		, _IsEmpty(false)
 		, _TitleBarEnabledOnly(false)
 		, _GraphToEdit(NULL)
 		, _GraphToDiff(NULL)
@@ -114,6 +120,7 @@ public:
 
 		SLATE_ARGUMENT( TSharedPtr<FUICommandList>, AdditionalCommands )
 		SLATE_ATTRIBUTE( bool, IsEditable )		
+		SLATE_ATTRIBUTE( bool, IsEmpty )	
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, TitleBar )
 		SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
 		SLATE_ATTRIBUTE( bool, TitleBarEnabledOnly )
