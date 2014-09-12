@@ -716,8 +716,6 @@ private:
 
 	/** The widget used when editing the name */ 
 	TSharedPtr<SEditableTextBox> NameEditableTextBox;
-	/** Flag to indicate whether or not the variable name is invalid */
-	bool bIsNodeNameInvalid;
 	/** The target GraphNode */
 	TWeakObjectPtr<UEdGraphNode> GraphNodePtr;
 	/** Weak reference to the Blueprint editor */
