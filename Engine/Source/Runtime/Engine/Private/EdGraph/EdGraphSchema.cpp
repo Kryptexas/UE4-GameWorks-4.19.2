@@ -366,6 +366,19 @@ void UEdGraphSchema::BreakNodeLinks(UEdGraphNode& TargetNode) const
 #endif	//#if WITH_EDITOR
 }
 
+bool UEdGraphSchema::SetNodeMetaData(UEdGraphNode* Node, FName const& KeyValue)
+{
+	if (UPackage* Package = Node->GetOutermost())
+	{
+		if (UMetaData* MetaData = Package->GetMetaData())
+		{
+			MetaData->SetValue(Node, KeyValue, TEXT("true"));
+			return true;
+		}
+	}
+	return false;
+}
+
 void UEdGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifcation) const
 {
 #if WITH_EDITOR

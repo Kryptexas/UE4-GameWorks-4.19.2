@@ -52,6 +52,15 @@ namespace ENodeAdvancedPins
 	};
 }
 
+/** Holds metadata keys, so as to discourage text duplication throughout the engine */
+struct ENGINE_API FNodeMetadata
+{
+	/** Identifies nodes that are defaultly added to populate new graphs (helps determine if a graph has any user placed nodes) */
+	static const FName DefaultGraphNode;
+private: 
+	FNodeMetadata() {}
+};
+
 // This is the context for a GetContextMenuActions call into a specific node
 struct FGraphNodeContextMenuBuilder
 {

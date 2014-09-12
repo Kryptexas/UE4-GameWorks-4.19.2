@@ -2333,6 +2333,7 @@ void UEdGraphSchema_K2::CreateMacroGraphTerminators(UEdGraph& Graph, UClass* Cla
 		UK2Node_Tunnel* EntryNode = EntryNodeCreator.CreateNode();
 		EntryNode->bCanHaveOutputs = true;
 		EntryNodeCreator.Finalize();
+		SetNodeMetaData(EntryNode, FNodeMetadata::DefaultGraphNode);
 	}
 
 	{
@@ -2341,6 +2342,7 @@ void UEdGraphSchema_K2::CreateMacroGraphTerminators(UEdGraph& Graph, UClass* Cla
 		ExitNode->bCanHaveInputs = true;
 		ExitNode->NodePosX = 240;
 		ExitNodeCreator.Finalize();
+		SetNodeMetaData(ExitNode, FNodeMetadata::DefaultGraphNode);
 	}
 }
 		
@@ -2357,6 +2359,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 	EntryNode->SignatureClass = Class;
 	EntryNode->SignatureName = GraphName;
 	FunctionEntryCreator.Finalize();
+	SetNodeMetaData(EntryNode, FNodeMetadata::DefaultGraphNode);
 
 	// See if we need to implement a return node
 	UFunction* InterfaceToImplement = FindField<UFunction>(Class, GraphName);
@@ -2382,6 +2385,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 			ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
 			ReturnNode->NodePosY = EntryNode->NodePosY;
 			NodeCreator.Finalize();
+			SetNodeMetaData(ReturnNode, FNodeMetadata::DefaultGraphNode);
 
 			// Auto-connect the pins for entry and exit, so that by default the signature is properly generated
 			UEdGraphPin* EntryNodeExec = FindExecutionPin(*EntryNode, EGPD_Output);
@@ -2404,6 +2408,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UFunctio
 	EntryNode->SignatureClass = NULL;
 	EntryNode->SignatureName = GraphName;
 	FunctionEntryCreator.Finalize();
+	SetNodeMetaData(EntryNode, FNodeMetadata::DefaultGraphNode);
 
 	// We don't have a signature class to base this on permanently, because it's not an override function.
 	// so we need to define the pins as user defined so that they are serialized.
@@ -2430,6 +2435,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UFunctio
 		ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
 		ReturnNode->NodePosY = EntryNode->NodePosY;
 		NodeCreator.Finalize();
+		SetNodeMetaData(ReturnNode, FNodeMetadata::DefaultGraphNode);
 
 		ReturnNode->CreateUserDefinedPinsForFunctionEntryExit(FunctionSignature, /*bIsFunctionEntry=*/ false);
 

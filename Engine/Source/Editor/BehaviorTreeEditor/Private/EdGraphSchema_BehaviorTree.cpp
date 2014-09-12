@@ -245,6 +245,7 @@ void UEdGraphSchema_BehaviorTree::CreateDefaultNodesForGraph(UEdGraph& Graph) co
 	FGraphNodeCreator<UBehaviorTreeGraphNode_Root> NodeCreator(Graph);
 	UBehaviorTreeGraphNode_Root* MyNode = NodeCreator.CreateNode();
 	NodeCreator.Finalize();
+	SetNodeMetaData(MyNode, FNodeMetadata::DefaultGraphNode);
 }
 
 FString UEdGraphSchema_BehaviorTree::GetShortTypeName(const UObject* Ob) const

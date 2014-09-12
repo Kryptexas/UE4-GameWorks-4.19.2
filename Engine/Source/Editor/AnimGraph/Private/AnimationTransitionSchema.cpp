@@ -132,6 +132,7 @@ void UAnimationTransitionSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) con
 	FGraphNodeCreator<UAnimGraphNode_TransitionResult> NodeCreator(Graph);
 	UAnimGraphNode_TransitionResult* ResultSinkNode = NodeCreator.CreateNode();
 	NodeCreator.Finalize();
+	SetNodeMetaData(ResultSinkNode, FNodeMetadata::DefaultGraphNode);
 
 	UAnimationTransitionGraph* TypedGraph = CastChecked<UAnimationTransitionGraph>(&Graph);
 	TypedGraph->MyResultNode = ResultSinkNode;

@@ -141,6 +141,7 @@ void UEdGraphSchema_EnvironmentQuery::CreateDefaultNodesForGraph(UEdGraph& Graph
 	FGraphNodeCreator<UEnvironmentQueryGraphNode_Root> NodeCreator(Graph);
 	UEnvironmentQueryGraphNode_Root* MyNode = NodeCreator.CreateNode();
 	NodeCreator.Finalize();
+	SetNodeMetaData(MyNode, FNodeMetadata::DefaultGraphNode);
 }
 
 FString GetNodeDescriptionHelper(UObject* Ob)

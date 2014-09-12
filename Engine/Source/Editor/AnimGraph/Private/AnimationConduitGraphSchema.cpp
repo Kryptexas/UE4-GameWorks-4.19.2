@@ -18,6 +18,7 @@ void UAnimationConduitGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) c
 {
 	FGraphNodeCreator<UAnimGraphNode_TransitionResult> NodeCreator(Graph);
 	UAnimGraphNode_TransitionResult* ResultSinkNode = NodeCreator.CreateNode();
+	SetNodeMetaData(ResultSinkNode, FNodeMetadata::DefaultGraphNode);
 
 	UAnimationTransitionGraph* TypedGraph = CastChecked<UAnimationTransitionGraph>(&Graph);
 	TypedGraph->MyResultNode = ResultSinkNode;

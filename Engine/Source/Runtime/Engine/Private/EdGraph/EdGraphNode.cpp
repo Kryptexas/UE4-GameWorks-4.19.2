@@ -13,6 +13,8 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
+FName const FNodeMetadata::DefaultGraphNode(TEXT("DefaultGraphNode"));
+
 /////////////////////////////////////////////////////
 // FGraphNodeContextMenuBuilder
 

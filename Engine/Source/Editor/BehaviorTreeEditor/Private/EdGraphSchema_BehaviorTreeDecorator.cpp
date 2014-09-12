@@ -118,7 +118,7 @@ void UEdGraphSchema_BehaviorTreeDecorator::CreateDefaultNodesForGraph(UEdGraph& 
 	FGraphNodeCreator<UBehaviorTreeDecoratorGraphNode_Logic> NodeCreator(Graph);
 	UBehaviorTreeDecoratorGraphNode_Logic* MyNode = NodeCreator.CreateNode();
 	MyNode->LogicMode = EDecoratorLogicMode::Sink;
-
+	SetNodeMetaData(MyNode, FNodeMetadata::DefaultGraphNode);
 	NodeCreator.Finalize();
 }
 

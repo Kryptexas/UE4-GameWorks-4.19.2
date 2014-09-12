@@ -287,6 +287,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 			EventNode->CreateNewGuid();
 			EventNode->PostPlacedNewNode();
 			EventNode->AllocateDefaultPins();
+			UEdGraphSchema_K2::SetNodeMetaData(EventNode, FNodeMetadata::DefaultGraphNode);
 
 			Graph->AddNode(EventNode);
 
@@ -299,6 +300,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 			GetOwnerNode->AllocateDefaultPins();
 			GetOwnerNode->NodePosX = EventNode->NodePosX;
 			GetOwnerNode->NodePosY = EventNode->NodePosY + EventNode->NodeHeight + 100;
+			UEdGraphSchema_K2::SetNodeMetaData(GetOwnerNode, FNodeMetadata::DefaultGraphNode);
 
 			Graph->AddNode(GetOwnerNode);
 		}

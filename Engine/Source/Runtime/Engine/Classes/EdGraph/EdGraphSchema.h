@@ -395,8 +395,6 @@ public:
 };
 
 
-
-
 UCLASS(abstract)
 class ENGINE_API UEdGraphSchema : public UObject
 {
@@ -596,6 +594,9 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @param	TargetNode	The node to break links on
 	 */
 	virtual void BreakNodeLinks(UEdGraphNode& TargetNode) const;
+
+	/** */
+	static bool SetNodeMetaData(UEdGraphNode* Node, FName const& KeyValue);
 
 	/**
 	 * Breaks all links from/to a single pin

@@ -118,6 +118,7 @@ void UAnimationGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) const
 	FGraphNodeCreator<UAnimGraphNode_Root> NodeCreator(Graph);
 	UAnimGraphNode_Root* ResultSinkNode = NodeCreator.CreateNode();
 	NodeCreator.Finalize();
+	SetNodeMetaData(ResultSinkNode, FNodeMetadata::DefaultGraphNode);
 }
 
 void UAnimationGraphSchema::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) const

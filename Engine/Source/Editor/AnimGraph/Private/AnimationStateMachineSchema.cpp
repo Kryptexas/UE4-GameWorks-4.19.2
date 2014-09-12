@@ -120,6 +120,7 @@ void UAnimationStateMachineSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) c
 	FGraphNodeCreator<UAnimStateEntryNode> NodeCreator(Graph);
 	UAnimStateEntryNode* EntryNode = NodeCreator.CreateNode();
 	NodeCreator.Finalize();
+	SetNodeMetaData(EntryNode, FNodeMetadata::DefaultGraphNode);
 
 	if (UAnimationStateMachineGraph* StateMachineGraph = CastChecked<UAnimationStateMachineGraph>(&Graph))
 	{
