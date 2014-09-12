@@ -1343,6 +1343,17 @@ void FPhAT::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.HierarchyFilterBodies,
 		FExecuteAction::CreateSP(this, &FPhAT::SetHierarchyFilter, PHFM_Bodies));
+
+	ToolkitCommands->MapAction(
+		Commands.Mirror,
+		FExecuteAction::CreateSP(this, &FPhAT::Mirror),
+		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation)
+		);
+}
+
+void FPhAT::Mirror()
+{
+	SharedData->Mirror();
 }
 
 TSharedRef<ITableRow> FPhAT::OnGenerateRowForTree(FTreeElemPtr Item, const TSharedRef<STableViewBase>& OwnerTable)

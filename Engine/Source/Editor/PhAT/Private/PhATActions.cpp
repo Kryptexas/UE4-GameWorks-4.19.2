@@ -75,6 +75,7 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(SideView, "Side", "Orthographic view from side", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(TopView, "Top", "Orthographic view from top", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(FrontView, "Front", "Orthographic view from front", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(Mirror, "Mirror", "Finds the body on the other side and duplicates constraint and body", EUserInterfaceActionType::Button, FInputGesture(EKeys::M));
 
 
 	UI_COMMAND(SelectionLock, "Lock Selection", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::X));

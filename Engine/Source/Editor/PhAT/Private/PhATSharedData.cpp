@@ -204,6 +204,121 @@ void FPhATSharedData::Initialize()
 	EnableSimulation(false);
 }
 
+void FPhATSharedData::CopyConstraintProperties(UPhysicsConstraintTemplate * FromConstraintSetup, UPhysicsConstraintTemplate * ToConstraintSetup)
+{
+	//We want to copy frame2 relative to frame1. To do this we need to go from body2 into body1, compute relative.
+	//Then apply relative inside body1 of the destination constraint, and finally move it into body2 of destination constraint
+
+	//In total there are 4 bodies, body a and b are the frame1 frame2 bodies of the copied
+	// body c and d are frame 1 and frame 2 of the destination constraint
+	//we use the body letter to denote which space we're in, for example Frame1a would be frame1 inside BodyA
+	//Frame1b would be frame 1 inside body b. In this case BodyA * Frame1a == BodyB * Frame1b
+
+	FTransform Frame1A = FromConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
+	FTransform BodyA = GetConstraintBodyTM(FromConstraintSetup, EConstraintFrame::Frame1);
+	FTransform BodyB = GetConstraintBodyTM(FromConstraintSetup, EConstraintFrame::Frame2);
+	FTransform BodyAFrame1A = GetConstraintWorldTM(FromConstraintSetup, EConstraintFrame::Frame1);
+	FTransform BodyBFrame2B = GetConstraintWorldTM(FromConstraintSetup, EConstraintFrame::Frame2);
+
+	FTransform Frame1C = ToConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
+	FTransform BodyC = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame1);
+	FTransform BodyD = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame2);
+
+	FTransform FromF1AToF2A = BodyBFrame2B * BodyA.Inverse() * Frame1A.Inverse();
+	FTransform Frame2C = FromF1AToF2A * Frame1C;
+	FTransform Frame2D = Frame2C* BodyC * BodyD.Inverse();
+
+
+	ToConstraintSetup->Modify();
+	FConstraintInstance OldInstance = ToConstraintSetup->DefaultInstance;
+	ToConstraintSetup->DefaultInstance.CopyConstraintParamsFrom(&FromConstraintSetup->DefaultInstance);
+
+	// recover certain data that we'd like to keep - i.e. bone indices
+	// those still should stay
+	ToConstraintSetup->DefaultInstance.ConstraintIndex = OldInstance.ConstraintIndex;
+	ToConstraintSetup->DefaultInstance.ConstraintData = OldInstance.ConstraintData;
+	ToConstraintSetup->DefaultInstance.JointName = OldInstance.JointName;
+	ToConstraintSetup->DefaultInstance.ConstraintBone1 = OldInstance.ConstraintBone1;
+	ToConstraintSetup->DefaultInstance.ConstraintBone2 = OldInstance.ConstraintBone2;
+	ToConstraintSetup->DefaultInstance.Pos1 = OldInstance.Pos1;
+	ToConstraintSetup->DefaultInstance.Pos2 = OldInstance.Pos2;
+
+	//frame1 stays the same
+	ToConstraintSetup->DefaultInstance.PriAxis1 = OldInstance.PriAxis1;
+	ToConstraintSetup->DefaultInstance.SecAxis1 = OldInstance.SecAxis1;
+
+	//frame2 is copied but relative to frame1
+	ToConstraintSetup->DefaultInstance.PriAxis2 = Frame2D.GetUnitAxis(EAxis::X);
+	ToConstraintSetup->DefaultInstance.SecAxis2 = Frame2D.GetUnitAxis(EAxis::Y);
+}
+
+struct FMirrorInfo
+{
+	FName BoneName;
+	int32 BoneIndex;
+	int32 BodyIndex;
+	int32 ConstraintIndex;
+	FMirrorInfo()
+	{
+		BoneIndex = INDEX_NONE;
+		BodyIndex = INDEX_NONE;
+		ConstraintIndex = INDEX_NONE;
+		BoneName = NAME_None;
+	}
+};
+
+void FPhATSharedData::Mirror()
+{
+	TArray<FMirrorInfo> MirrorInfos;
+	if (EditingMode == PEM_BodyEdit)	//grab all selected bodies
+	{
+		for (const FSelection & Selection : SelectedBodies)
+		{
+			MirrorInfos.AddUninitialized();
+			FMirrorInfo & MirrorInfo = MirrorInfos[MirrorInfos.Num() - 1];
+			MirrorInfo.BoneName = PhysicsAsset->BodySetup[Selection.Index]->BoneName;
+			MirrorInfo.BodyIndex = Selection.Index;
+			MirrorInfo.ConstraintIndex = PhysicsAsset->FindConstraintIndex(MirrorInfo.BoneName);
+		}
+	}
+	else if (EditingMode == PEM_ConstraintEdit)	//grab all selected constraints
+	{
+		for (const FSelection & Selection : SelectedConstraints)
+		{
+			MirrorInfos.AddUninitialized();
+			FMirrorInfo & MirrorInfo = MirrorInfos[MirrorInfos.Num() - 1];
+			MirrorInfo.BoneName = PhysicsAsset->ConstraintSetup[Selection.Index]->DefaultInstance.ConstraintBone1;
+			MirrorInfo.BodyIndex = PhysicsAsset->FindBodyIndex(MirrorInfo.BoneName);
+			MirrorInfo.ConstraintIndex = Selection.Index;
+		}
+	}
+
+	for (FMirrorInfo & MirrorInfo : MirrorInfos)	//mirror all selected bodies/constraints
+	{
+		int32 BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(MirrorInfo.BoneName);
+
+		int32 MirrorBoneIndex = PhysicsAsset->FindMirroredBone(EditorSkelMesh, BoneIndex);
+		if (MirrorBoneIndex != INDEX_NONE)
+		{
+			UBodySetup * SrcBody = PhysicsAsset->BodySetup[MirrorInfo.BodyIndex];
+			const FScopedTransaction Transaction(NSLOCTEXT("PhAT", "MirrorBody", "MirrorBody"));
+			MakeNewBody(MirrorBoneIndex, false);
+
+			int32 MirrorBodyIndex = PhysicsAsset->FindControllingBodyIndex(EditorSkelMesh, MirrorBoneIndex);
+
+			UBodySetup * DestBody = PhysicsAsset->BodySetup[MirrorBodyIndex];
+			DestBody->Modify();
+			DestBody->CopyBodyPropertiesFrom(SrcBody);
+
+			int32 MirrorConstraintIndex = PhysicsAsset->FindConstraintIndex(DestBody->BoneName);
+			UPhysicsConstraintTemplate * FromConstraint = PhysicsAsset->ConstraintSetup[MirrorInfo.ConstraintIndex];
+			UPhysicsConstraintTemplate * ToConstraint = PhysicsAsset->ConstraintSetup[MirrorConstraintIndex];
+			CopyConstraintProperties(FromConstraint, ToConstraint);
+		}
+	}
+	
+}
+
 FPhATSharedData::EPhATRenderMode FPhATSharedData::GetCurrentMeshViewMode()
 {
 	if (bRunningSimulation)
@@ -777,7 +892,7 @@ void FPhATSharedData::InitConstraintSetup(UPhysicsConstraintTemplate* Constraint
 	SetCollisionBetween(ChildBodyIndex, ParentBodyIndex, false);
 }
 
-void FPhATSharedData::MakeNewBody(int32 NewBoneIndex)
+void FPhATSharedData::MakeNewBody(int32 NewBoneIndex, bool bAutoSelect)
 {
 	FName NewBoneName = EditorSkelMesh->RefSkeleton.GetBoneName(NewBoneIndex);
 
@@ -886,7 +1001,11 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex)
 	// update the tree
 	HierarchyChangedEvent.Broadcast();
 
-	SetSelectedBodyAnyPrim(NewBodyIndex);
+	if (bAutoSelect)
+	{
+		SetSelectedBodyAnyPrim(NewBodyIndex);
+	}
+	
 
 	RefreshPhysicsAssetChange(PhysicsAsset);
 }
@@ -928,55 +1047,11 @@ void FPhATSharedData::PasteConstraintProperties()
 
 	UPhysicsConstraintTemplate* FromConstraintSetup = CopiedConstraintTemplate;
 
-	//We want to copy frame2 relative to frame1. To do this we need to go from body2 into body1, compute relative.
-	//Then apply relative inside body1 of the destination constraint, and finally move it into body2 of destination constraint
-	
-	//In total there are 4 bodies, body a and b are the frame1 frame2 bodies of the copied
-	// body c and d are frame 1 and frame 2 of the destination constraint
-	//we use the body letter to denote which space we're in, for example Frame1a would be frame1 inside BodyA
-	//Frame1b would be frame 1 inside body b. In this case BodyA * Frame1a == BodyB * Frame1b
-
-	FTransform Frame1A = FromConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
-	FTransform BodyA = GetConstraintBodyTM(FromConstraintSetup, EConstraintFrame::Frame1);
-	FTransform BodyB = GetConstraintBodyTM(FromConstraintSetup, EConstraintFrame::Frame2);
-	FTransform BodyAFrame1A = GetConstraintWorldTM(FromConstraintSetup, EConstraintFrame::Frame1);
-	FTransform BodyBFrame2B = GetConstraintWorldTM(FromConstraintSetup, EConstraintFrame::Frame2);
-
 	for(int32 i=0; i<SelectedConstraints.Num(); ++i)
 	{
 		// If we are showing instance properties - copy instance properties. If showing setup, just copy setup properties.
 		UPhysicsConstraintTemplate* ToConstraintSetup = PhysicsAsset->ConstraintSetup[SelectedConstraints[i].Index];
-
-		FTransform Frame1C = ToConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
-		FTransform BodyC = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame1);
-		FTransform BodyD = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame2);
-
-		FTransform FromF1AToF2A = BodyBFrame2B * BodyA.Inverse() * Frame1A.Inverse();
-		FTransform Frame2C = FromF1AToF2A * Frame1C;
-		FTransform Frame2D = Frame2C* BodyC * BodyD.Inverse();
-
-
-		ToConstraintSetup->Modify();
-		FConstraintInstance OldInstance = ToConstraintSetup->DefaultInstance;
-		ToConstraintSetup->DefaultInstance.CopyConstraintParamsFrom(&FromConstraintSetup->DefaultInstance);
-
-		// recover certain data that we'd like to keep - i.e. bone indices
-		// those still should stay
-		ToConstraintSetup->DefaultInstance.ConstraintIndex		= OldInstance.ConstraintIndex;
-		ToConstraintSetup->DefaultInstance.ConstraintData		= OldInstance.ConstraintData;
-		ToConstraintSetup->DefaultInstance.JointName			= OldInstance.JointName;
-		ToConstraintSetup->DefaultInstance.ConstraintBone1		= OldInstance.ConstraintBone1;
-		ToConstraintSetup->DefaultInstance.ConstraintBone2		= OldInstance.ConstraintBone2;
-		ToConstraintSetup->DefaultInstance.Pos1					= OldInstance.Pos1;
-		ToConstraintSetup->DefaultInstance.Pos2					= OldInstance.Pos2;
-
-		//frame1 stays the same
-		ToConstraintSetup->DefaultInstance.PriAxis1 = OldInstance.PriAxis1;
-		ToConstraintSetup->DefaultInstance.SecAxis1 = OldInstance.SecAxis1;
-
-		//frame2 is copied but relative to frame1
-		ToConstraintSetup->DefaultInstance.PriAxis2 = Frame2D.GetUnitAxis(EAxis::X);
-		ToConstraintSetup->DefaultInstance.SecAxis2 = Frame2D.GetUnitAxis(EAxis::Y);
+		CopyConstraintProperties(FromConstraintSetup, ToConstraintSetup);
 	}
 	
 }

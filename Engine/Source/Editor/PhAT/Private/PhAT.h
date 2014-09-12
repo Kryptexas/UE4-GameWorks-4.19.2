@@ -230,6 +230,7 @@ private:
 	void OnToggleSwing2();
 	void OnToggleTwist();
 	void OnFocusSelection();
+	void Mirror();
 
 	//menu commands
 	void OnSelectAll();
