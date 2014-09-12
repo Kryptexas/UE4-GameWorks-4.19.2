@@ -36,7 +36,8 @@ static uint32 RTBitOffsets[] = { OFFSET_RENDER_TARGET_FORMAT0, OFFSET_RENDER_TAR
 	}
 #define GET_HASH(Offset, NumBits) ((Hash >> Offset) & ((1ULL << NumBits) - 1))
 
-
+//@todo-rco: HACK! This needs to exist until we merge SetRenderTargets()+Clear()
+extern int GMetalHackDepthActions;
 
 
 /*
@@ -628,8 +629,18 @@ void FMetalManager::UpdateContext()
 		// set up the depth attachment
 		DepthAttachment.texture = CurrentDepthRenderTexture;
 		[DepthAttachment setLoadAction:MTLLoadActionClear];
-		[DepthAttachment setStoreAction:MTLStoreActionDontCare];
-		[DepthAttachment setClearDepth:0.0];
+		if (GMetalHackDepthActions == 1)
+		{
+			// For Shadow Maps, clear to 1.0f and save the render target
+			[DepthAttachment setStoreAction:MTLStoreActionStore];
+			[DepthAttachment setClearDepth:1.0f];
+		}
+		else if (GMetalHackDepthActions == 0)
+		{
+			// Regular operation, clear to zero (due to inverted Z) and don't store it
+			[DepthAttachment setStoreAction:MTLStoreActionDontCare];
+			[DepthAttachment setClearDepth:0.0f];
+		}
 
 		Pipeline.DepthTargetFormat = CurrentDepthRenderTexture.pixelFormat;
 		if (Pipeline.SampleCount == 0)

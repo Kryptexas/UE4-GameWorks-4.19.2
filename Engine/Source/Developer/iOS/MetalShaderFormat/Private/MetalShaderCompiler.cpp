@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 // 
 
 #include "MetalShaderFormat.h"
@@ -621,7 +621,7 @@ static void BuildMetalShaderOutput(
 		Header.Bindings.NumUniformBuffers = FMath::Max((uint8)GetNumUniformBuffersUsed(GenericSRT), Header.Bindings.NumUniformBuffers);
 	}
 
-	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(GetMaxSupportedFeatureLevel((EShaderPlatform)ShaderOutput.Target.Platform));
+	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::ES3_1);
 
 	if (Header.Bindings.NumSamplers > MaxSamplers)
 	{
@@ -821,7 +821,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1;
 	AdditionalDefines.SetDefine(TEXT("IOS"), 1);
 	AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
-	AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
+	AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
 	AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
