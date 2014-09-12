@@ -13,6 +13,10 @@
 #include "Components/PrimitiveComponent.h"
 #include "NavMovementComponent.generated.h"
 
+/**
+ * NavMovementComponent defines base functionality for MovementComponents that move any 'agent' that may be involved in AI pathfinding.
+
+ */
 UCLASS(abstract)
 class ENGINE_API UNavMovementComponent : public UMovementComponent
 {

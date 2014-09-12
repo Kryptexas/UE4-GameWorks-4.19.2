@@ -186,12 +186,15 @@ DEPRECATED(4.4, "FRepRelativeMovement has been renamed to FBasedMovementInfo")
 typedef FBasedMovementInfo FRepRelativeMovement;
 
 
-//=============================================================================
-// Characters are Pawns that have a mesh, collision, and physics and are responsible for all
-// physical interaction between the player or AI and the world. They are strongly tied
-// to a CharacterMovementComponent that handles movement of the collision capsule, and they
-// also have implementations of basic networking and input models.
-//=============================================================================
+
+/**
+ * Characters are Pawns that have a mesh, collision, and default movement logic. They are responsible for all
+ * physical interaction between the player or AI and the world, and also have implementations of basic networking and input models.
+ * They are designed for a vertically-oriented player representation that can walk, run, jump, fly, and swim through the world using CharacterMovementComponent.
+ *
+ * @see APawn, UCharacterMovementComponent
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/Character/
+ */ 
 
 UCLASS(abstract, config=Game, BlueprintType, hidecategories=("Pawn|Character|InternalEvents"))
 class ENGINE_API ACharacter : public APawn

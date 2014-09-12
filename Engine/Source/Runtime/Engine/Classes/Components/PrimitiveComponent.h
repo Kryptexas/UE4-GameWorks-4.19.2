@@ -23,14 +23,18 @@ struct FStreamingTexturePrimitiveInfo
 	float TexelFactor;
 };
 
+/** Determines whether a Character can attempt to step up onto a component when they walk in to it. */
 UENUM()
 enum ECanBeCharacterBase
 {
-	// Character cannot step up onto this Component.
+	/** Character cannot step up onto this Component. */
 	ECB_No,
-	// Character can step up onto this Component.
+	/** Character can step up onto this Component. */
 	ECB_Yes,
-	// Owning actor determines whether character can step up onto this Component (default true unless overridden in code).
+	/**
+	 * Owning actor determines whether character can step up onto this Component (default true unless overridden in code).
+	 * @see AActor::CanBeBaseForCharacter()
+	 */
 	ECB_Owner,
 	ECB_MAX,
 };
@@ -70,13 +74,14 @@ struct FSpriteCategoryInfo
 	FText Description;
 };
 
-/** Delegate for notification of blocking collision against a specific component.  
+/**
+ * Delegate for notification of blocking collision against a specific component.  
  * NormalImpulse will be filled in for physics-simulating bodies, but will be zero for swept-component blocking collisions. 
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FComponentHitSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, FVector, NormalImpulse, const FHitResult&, Hit );
-/** Delegate for notification of start of overlap of a specific component */
+/** Delegate for notification of start of overlap with a specific component */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams( FComponentBeginOverlapSignature,class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex, bool, bFromSweep, const FHitResult &, SweepResult);
-/** Delegate for notification of end of overlap of a specific component */
+/** Delegate for notification of end of overlap with a specific component */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FComponentEndOverlapSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentBeginCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
@@ -88,45 +93,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentOnInputTouchEndSignature
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentBeginTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentEndTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 
+/**
+ * PrimitiveComponents are SceneComponents that contain or generate some sort of geometry, generally to be rendered or used as collision data.
+ * There are several subclasses for the various types of geometry, but the most common by far are the ShapeComponents (Capsule, Sphere, Box), StaticMeshComponent, and SkeletalMeshComponent.
+ * ShapeComponents generate geometry that is used for collision detection but are not rendered, while StaticMeshComponents and SkeletalMeshComponents contain pre-built geometry that is rendered, but can also be used for collision detection.
+ */
 UCLASS(abstract, HideCategories=(Mobility), ShowCategories=(PhysicsVolume))
 class ENGINE_API UPrimitiveComponent : public USceneComponent, public INavRelevantInterface
 {
 	GENERATED_UCLASS_BODY()
-
-	/** Tick function for physics ticking **/
-	UPROPERTY()
-	struct FPrimitiveComponentPostPhysicsTickFunction PostPhysicsComponentTick;
-
-	/** A fence to track when the primitive is detached from the scene in the rendering thread. */
-	FRenderCommandFence DetachFence;
-
-	/**
-	 * Incremented by the main thread before being attached to the scene, decremented
-	 * by the rendering thread after removal. This counter exists to assert that 
-	 * operations are safe in order to help avoid race conditions.
-	 *
-	 *           *** Runtime logic should NEVER rely on this value. ***
-	 *
-	 * The only safe assertions to make are:
-	 *
-	 *     AttachmentCounter == 0: The primitive is not exposed to the rendering
-	 *                             thread, it is safe to modify shared members.
-	 *                             This assertion is valid ONLY from the main thread.
-	 *
-	 *     AttachmentCounter >= 1: The primitive IS exposed to the rendering
-	 *                             thread and therefore shared members must not
-	 *                             be modified. This assertion may be made from
-	 *                             any thread. Note that it is valid and expected
-	 *                             for AttachmentCounter to be larger than 1, e.g.
-	 *                             during reattachment.
-	 */
-	FThreadSafeCounter AttachmentCounter;
-
-	// Scene data
-
-	/** Replacement primitive to draw instead of this one (multiple UPrim's will point to the same Replacement) */
-	UPROPERTY()
-	TLazyObjectPtr<class UPrimitiveComponent> ReplacementPrimitive;
 
 	// Rendering
 	
@@ -169,30 +144,46 @@ public:
 	 * Indicates if we'd like to create physics state all the time (for collision and simulation). 
 	 * If you set this to false, it still will create physics state if collision or simulation activated. 
 	 * This can help performance if you'd like to avoid overhead of creating physics state when triggers 
-	 **/
+	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Collision)
 	uint32 bAlwaysCreatePhysicsState:1;
 
-	/** If true, this component will generate overlap events when it is overlapping other components (e.g. Begin Overlap) */
+	/**
+	 * If true, this component will generate overlap events when it is overlapping other components (e.g. Begin Overlap)
+	 * @see [Overlap Events] https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents
+	 * @see UpdateOverlaps(), BeginComponentOverlap(), EndComponentOverlap()
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
 	uint32 bGenerateOverlapEvents:1;
 
-	/** If true, this component will generate individual overlaps for each overlapping physics body if it is a multi-body component. When false, this component will
-		generate only one overlap, regardless of how many physics bodies it has and how many of them are overlapping another component/body. This flag has no
-		influence on single body components. */
+	/**
+	 * If true, this component will generate individual overlaps for each overlapping physics body if it is a multi-body component. When false, this component will
+	 * generate only one overlap, regardless of how many physics bodies it has and how many of them are overlapping another component/body. This flag has no
+	 * influence on single body components.
+	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Collision)
 	uint32 bMultiBodyOverlap:1;
 
-
-	/** If true, this component will look for collisions on both physic scenes during movement */
+	/**
+	 * If true, this component will look for collisions on both physic scenes during movement.
+	 * Only required if the asynchronous physics scene is enabled and has geometry in it, and you wish to test for collisions with objects in that scene.
+	 * @see MoveComponent()
+	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Collision)
 	uint32 bCheckAsyncSceneOnMove:1;
 
-	/** If true, component sweeps with this component should trace against complex collision during movement. */
+	/**
+	 * If true, component sweeps with this component should trace against complex collision during movement (for example, each triangle of a mesh).
+	 * If false, collision will be resolved against simple collision bounds instead.
+	 * @see MoveComponent()
+	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Collision)
 	uint32 bTraceComplexOnMove:1;
 
-	/** If true, component sweeps will return the material in their hit-info. */
+	/**
+	 * If true, component sweeps will return the material in their hit result.
+	 * @see MoveComponent(), FHitResult
+	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Collision)
 	uint32 bReturnMaterialOnMove:1;
 
@@ -355,6 +346,7 @@ public:
 	/** Composite the drawing of this component onto the scene after post processing (only applies to editor drawing) */
 	UPROPERTY()
 	uint32 bUseEditorCompositing:1;
+
 	/**
 	 * Translucent objects with a lower sort priority draw behind objects with a higher priority.
 	 * Translucent objects with the same priority are rendered from back-to-front based on their bounds origin.
@@ -362,7 +354,7 @@ public:
 	 * Ignored if the object is not translucent.  The default priority is zero.
 	 * Warning: This should never be set to a non-default value unless you know what you are doing, as it will prevent the renderer from sorting correctly.  
 	 * It is especially problematic on dynamic gameplay effects.
-	 **/
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category=Rendering)
 	int32 TranslucencySortPriority;
 
@@ -373,10 +365,11 @@ public:
 	/** Used by the renderer, to identify a component across re-registers. */
 	FPrimitiveComponentId ComponentId;
 
-	/** Multiplier used to scale the Light Propagation Volume light injection bias, to reduce light bleeding. 
-	  * Set to 0 for no bias, 1 for default or higher for increased biasing (e.g. for 
-	  * thin geometry such as walls)
-	  **/
+	/**
+	 * Multiplier used to scale the Light Propagation Volume light injection bias, to reduce light bleeding. 
+	 * Set to 0 for no bias, 1 for default or higher for increased biasing (e.g. for 
+	 * thin geometry such as walls)
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category=Rendering, meta=(UIMin = "0.0", UIMax = "3.0"))
 	float LpvBiasMultiplier;
 
@@ -386,11 +379,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(ShowOnlyInnerProperties))
 	FBodyInstance BodyInstance;
 
-	/** can this component potentially influence navigation */
+	/** Whether this component can potentially influence navigation */
 	UPROPERTY(EditAnywhere, Category=Collision, AdvancedDisplay)
 	uint32 bCanEverAffectNavigation:1;
 
-	/** cached navigation relevancy flag for collision updates */
+	/** Cached navigation relevancy flag for collision updates */
 	uint32 bNavigationRelevant : 1;
 
 protected:
@@ -404,8 +397,7 @@ protected:
 	/** Last time we checked AreAllCollideableDescendantsRelative(), so we can throttle those tests since it rarely changes once false. */
 	float LastCheckedAllCollideableDescendantsTime;
 
-	/** if set to true then DoCustomNavigableGeometryExport will be called to collect navigable 
-	 *	geometry of this component. */
+	/** If true then DoCustomNavigableGeometryExport will be called to collect navigable geometry of this component. */
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> bHasCustomNavigableGeometry;
 
 	/** Next id to be used by a component. */
@@ -429,7 +421,6 @@ public:
 	 * The value of WorldSettings->TimeSeconds for the frame when this component was last rendered.  This is written
 	 * from the render thread, which is up to a frame behind the game thread, so you should allow this time to
 	 * be at least a frame behind the game thread's world time before you consider the actor non-visible.
-	 * There's an equivalent variable in PrimitiveComponent.
 	 */
 	UPROPERTY(transient)
 	float LastRenderTime;
@@ -449,7 +440,7 @@ public:
 	 * Set of actors to ignore during component sweeps in MoveComponent().
 	 * All components owned by these actors will be ignored when this component moves or updates overlaps.
 	 * Components on the other Actor may also need to be told to do the same when they move.
-	 * @see IgnoreActorWhenMoving
+	 * @see IgnoreActorWhenMoving()
 	 */
 	TArray<TWeakObjectPtr<AActor> > MoveIgnoreActors;
 
@@ -488,6 +479,7 @@ public:
 	 * Begin tracking an overlap interaction with the component specified.
 	 * @param OtherComp - The component of the other actor that this component is now overlapping
 	 * @param bDoNotifies - True to dispatch appropriate begin/end overlap notifications when these events occur.
+	 * @see [Overlap Events] https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents
 	 */
 	void BeginComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies);
 	
@@ -496,11 +488,13 @@ public:
 	 * @param OtherComp - The component of the other actor to stop overlapping
 	 * @param bDoNotifies - True to dispatch appropriate begin/end overlap notifications when these events occur.
 	 * @param bNoNotifySelf	- True to skip end overlap notifications to this component's.  Does not affect notifications to OtherComp's actor.
+	 * @see [Overlap Events] https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents
 	 */
 	void EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies=true, bool bNoNotifySelf=false);
 
 	/** Returns true if this component is overlapping OtherComp, false otherwise. */
 	bool IsOverlappingComponent(UPrimitiveComponent const* OtherComp) const;
+	
 	/** Returns true if this component is overlapping OtherComp, false otherwise. */
 	bool IsOverlappingComponent(const FOverlapInfo& Overlap) const;
 
@@ -536,62 +530,62 @@ public:
 	 */
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
 
-	/** Overridden to use the overlaps to find the physics volume. */
+	/** Update current physics volume for this component, if bShouldUpdatePhysicsVolume is true. Overridden to use the overlaps to find the physics volume. */
 	virtual void UpdatePhysicsVolume( bool bTriggerNotifiers ) override;
 
 	/**
-	 *  Test the collision of the supplied component at the supplied location/rotation, and determine the set of components that it overlaps
+	 *  Test the collision of the supplied component at the supplied location/rotation, and determine the set of components that it overlaps.
 	 *  @param  OutOverlaps     Array of overlaps found between this component in specified pose and the world
 	 *  @param  World			World to use for overlap test
 	 *  @param  Pos             Location to place the component's geometry at to test against the world
 	 *  @param  Rot             Rotation to place components' geometry at to test against the world
 	 *  @param  TestChannel		The 'channel' that this ray is in, used to determine which components to hit
 	 *	@param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
-	 *  @return TRUE if OutOverlaps contains any blocking results
+	 *  @return true if OutOverlaps contains any blocking results
 	 */
 	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
 
-	/** Called when a component is touched */
+	/** Event called when a component is touched */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentHitSignature OnComponentHit;
 
-	/** Called when something overlaps this component */
+	/** Event called when something overlaps this component */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentBeginOverlapSignature OnComponentBeginOverlap;
 
-	/** Called when something ends overlapping this component */
+	/** Event called when something ends overlapping this component */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentEndOverlapSignature OnComponentEndOverlap;
 
-	/** Called when the mouse cursor is moved over this component and mouse over events are enabled in the player controller */
+	/** Event called when the mouse cursor is moved over this component and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentBeginCursorOverSignature OnBeginCursorOver;
 		 
-	/** Called when the mouse cursor is moved off this component and mouse over events are enabled in the player controller */
+	/** Event called when the mouse cursor is moved off this component and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentEndCursorOverSignature OnEndCursorOver;
 
-	/** Called when the left mouse button is clicked while the mouse is over this component and click events are enabled in the player controller */
+	/** Event called when the left mouse button is clicked while the mouse is over this component and click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentOnClickedSignature OnClicked;
 
-	/** Called when the left mouse button is released while the mouse is over this component click events are enabled in the player controller */
+	/** Event called when the left mouse button is released while the mouse is over this component click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentOnReleasedSignature OnReleased;
 		 
-	/** Called when a touch input is received over this component when touch events are enabled in the player controller */
+	/** Event called when a touch input is received over this component when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentOnInputTouchBeginSignature OnInputTouchBegin;
 
-	/** Called when a touch input is released over this component when touch events are enabled in the player controller */
+	/** Event called when a touch input is released over this component when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentOnInputTouchEndSignature OnInputTouchEnd;
 
-	/** Called when a finger is moved over this component when touch over events are enabled in the player controller */
+	/** Event called when a finger is moved over this component when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentBeginTouchOverSignature OnInputTouchEnter;
 
-	/** Called when a finger is moved off this component when touch over events are enabled in the player controller */
+	/** Event called when a finger is moved off this component when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentEndTouchOverSignature OnInputTouchLeave;
 
@@ -851,6 +845,37 @@ public:
 	/** The primitive's scene info. */
 	FPrimitiveSceneProxy* SceneProxy;
 	
+	/** A fence to track when the primitive is detached from the scene in the rendering thread. */
+	FRenderCommandFence DetachFence;
+
+	/**
+	 * Incremented by the main thread before being attached to the scene, decremented
+	 * by the rendering thread after removal. This counter exists to assert that 
+	 * operations are safe in order to help avoid race conditions.
+	 *
+	 *           *** Runtime logic should NEVER rely on this value. ***
+	 *
+	 * The only safe assertions to make are:
+	 *
+	 *     AttachmentCounter == 0: The primitive is not exposed to the rendering
+	 *                             thread, it is safe to modify shared members.
+	 *                             This assertion is valid ONLY from the main thread.
+	 *
+	 *     AttachmentCounter >= 1: The primitive IS exposed to the rendering
+	 *                             thread and therefore shared members must not
+	 *                             be modified. This assertion may be made from
+	 *                             any thread. Note that it is valid and expected
+	 *                             for AttachmentCounter to be larger than 1, e.g.
+	 *                             during reattachment.
+	 */
+	FThreadSafeCounter AttachmentCounter;
+
+	// Scene data
+
+	/** Replacement primitive to draw instead of this one (multiple UPrim's will point to the same Replacement) */
+	UPROPERTY()
+	TLazyObjectPtr<class UPrimitiveComponent> ReplacementPrimitive;
+
 #if WITH_EDITOR
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const; // recursive function
 #endif
@@ -953,6 +978,11 @@ public:
 	 */
 	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel);
 
+
+	/** Tick function for physics ticking **/
+	UPROPERTY()
+	struct FPrimitiveComponentPostPhysicsTickFunction PostPhysicsComponentTick;
+
 	/** Controls if we get a post physics tick or not. If set during ticking, will take effect next frame **/
 	void SetPostPhysicsComponentTickEnabled(bool bEnable);
 
@@ -1032,7 +1062,7 @@ public:
 		return false;
 	}
 
-	/** Called when a component is 'damaged', allowing for component class specific behaviour */
+	/** Event called when a component is 'damaged', allowing for component class specific behaviour */
 	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
 	/**
@@ -1067,7 +1097,7 @@ protected:
 	// Begin USceneComponent Interface
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
 
-	/** Called when AttachParent changes, to allow the scene to update its attachment state. */
+	/** Event called when AttachParent changes, to allow the scene to update its attachment state. */
 	virtual void OnAttachmentChanged() override;
 
 	/**
@@ -1111,6 +1141,7 @@ protected:
 
 	/** Called to send a transform update for this component to the physics engine */
 	void SendPhysicsTransform(bool bTeleport);
+
 	/** Ensure physics state created **/
 	void EnsurePhysicsStateCreated();
 public:

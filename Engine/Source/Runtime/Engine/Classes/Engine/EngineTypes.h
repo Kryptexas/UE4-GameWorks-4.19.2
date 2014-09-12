@@ -200,16 +200,28 @@ enum ETriangleSortAxis
 	TSA_MAX,
 };
 
-/** Movement modes for Characters.  */
+/** Movement modes for Characters. */
 UENUM(BlueprintType)
 enum EMovementMode
 {
+	/** None (movement is disabled). */
 	MOVE_None		UMETA(DisplayName="None"),
+
+	/** Walking on a surface. */
 	MOVE_Walking	UMETA(DisplayName="Walking"),
+
+	/** Falling under the effects of gravity, such as after jumping or walking off the edge of a surface. */
 	MOVE_Falling	UMETA(DisplayName="Falling"),
+
+	/** Swimming through a fluid volume, under the effects of gravity and buoyancy. */
 	MOVE_Swimming	UMETA(DisplayName="Swimming"),
+
+	/** Flying, ignoring the effects of gravity. Affected by the current physics volume's fluid friction. */
 	MOVE_Flying		UMETA(DisplayName="Flying"),
+
+	/** User-defined custom movement mode, including many possible sub-modes. */
 	MOVE_Custom		UMETA(DisplayName="Custom"),
+
 	MOVE_MAX		UMETA(Hidden),
 };
 
@@ -1312,13 +1324,15 @@ struct FPrimitiveMaterialRef
 	}
 };
 
-/** Structure containing information about one hit of the trace */
+/**
+ * Structure containing information about one hit of a trace, such as point of impact and surface normal at that point.
+ */
 USTRUCT(BlueprintType, meta=(HasNativeBreak="Engine.GameplayStatics.BreakHitResult"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Indicates if this hit was requesting a block - if false, was requesting a touch instead */
+	/** Indicates if this hit was a result of blocking collision. If false, there was no hit or it was an overlap/touch instead. */
 	UPROPERTY()
 	uint32 bBlockingHit:1;
 
@@ -1331,43 +1345,67 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	uint32 bStartPenetrating:1;
 
-	/* 'Time' of hit along ray (between 0.0 and 1.0), between TraceStart and TraceEnd. */
+	/**
+	 * 'Time' of impact along trace direction (ranging from 0.0 to 1.0) if there is a hit, indicating time between TraceStart and TraceEnd.
+	 * For swept movement (but not queries) this may be pulled back slightly from the actual time of impact, to prevent precision problems with adjacent geometry.
+	 */
 	UPROPERTY()
 	float Time;
 	
-	/** Location of the hit in world space.  If this was a Swept Shape test, this is the location where we can place the shape in the world where it will not inter-penetrate. */
+	/**
+	 * The location in world space where the shape would end up against the impacted object, if there is a hit. Equal to the point of impact for line tests.
+	 * Example: for a sphere trace test, this is the point where the center of the sphere would be located when it touched the other object.
+	 * For swept movement (but not queries) this may not equal the final location of the shape since hits are pulled back slightly to prevent precision issues.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize Location;
 
-	/** Normal of the hit in world space, for the object that was swept. This is computed for capsules and spheres, otherwise it will be the same as ImpactNormal.*/
+	/**
+	 * Normal of the hit in world space, for the object that was swept. Equal to ImpactNormal for line tests.
+	 * This is computed for capsules and spheres, otherwise it will be the same as ImpactNormal.
+	 * Example: for a sphere trace test, this is a normalized vector pointing in towards the center of the sphere at the point of impact.
+	 */
 	UPROPERTY()
 	FVector_NetQuantizeNormal Normal;
 
-	/** Location of the actual contact of the trace shape (box, sphere, etc.) with the world. (e.g. A box was swept.  This is the point where a side of the box touched something.) */
+	/**
+	 * Location in world space of the actual contact of the trace shape (box, sphere, ray, etc) with the impacted object.
+	 * Example: for a sphere trace test, this is the point where the surface of the sphere touches the other object.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize ImpactPoint;
 
-	/** Normal of the hit in world space, for the object that was hit by the sweep. */
+	/**
+	 * Normal of the hit in world space, for the object that was hit by the sweep, if any.
+	 * For example if a box hits a flat plane, this is a normalized vector pointing out from the plane.
+	 * In the case of impact with a corner or edge of a surface, usually the "most opposing" normal (opposed to the query direction) is chosen.
+	 */
 	UPROPERTY()
 	FVector_NetQuantizeNormal ImpactNormal;
 
-	/** Start location of the trace. */
+	/**
+	 * Start location of the trace.
+	 * For example if a sphere is swept against the world, this is the starting location of the center of the sphere.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize TraceStart;
 
-	/** End location of the trace. This is NOT where the impact occurred (if any), but the furthest point in the attempted sweep. */
+	/**
+	 * End location of the trace; this is NOT where the impact occurred (if any), but the furthest point in the attempted sweep.
+	 * For example if a sphere is swept against the world, this would be the center of the sphere if there was no blocking hit.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize TraceEnd;
 
 	/**
-	  * If this test started in penetration (bStartPenetrating is true), and a depenetration vector can be computed,
+	  * If this test started in penetration (bStartPenetrating is true) and a depenetration vector can be computed,
 	  * this value is the distance along Normal that will result in moving out of penetration.
 	  * If the distance cannot be computed, this distance will be zero.
 	  */
 	UPROPERTY()
 	float PenetrationDepth;
 
-	/** Extra data about item that was hit (hit primitive specific) */
+	/** Extra data about item that was hit (hit primitive specific). */
 	UPROPERTY()
 	int32 Item;
 
@@ -1375,11 +1413,11 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	TWeakObjectPtr<class UPhysicalMaterial> PhysMaterial;
 
-	/** Actor that the check hit. */
+	/** Actor hit by the trace. */
 	UPROPERTY()
 	TWeakObjectPtr<class AActor> Actor;
 
-	/** PrimitiveComponent that the check hit. */
+	/** PrimitiveComponent hit by the trace. */
 	UPROPERTY(NotReplicated)
 	TWeakObjectPtr<class UPrimitiveComponent> Component;
 
@@ -1387,9 +1425,10 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	FName BoneName;
 
-	/** Face index we hit (for complex hits with triangle meshes) */
+	/** Face index we hit (for complex hits with triangle meshes). */
 	UPROPERTY()
 	int32 FaceIndex;
+
 
 	FHitResult()
 	{
@@ -1423,10 +1462,10 @@ struct ENGINE_API FHitResult
 		}
 	}
 
-	/** Utility to return the Actor that owns the Component that was hit */
+	/** Utility to return the Actor that owns the Component that was hit. */
 	AActor* GetActor() const;
 
-	/** Utility to return the Component that was hit */
+	/** Utility to return the Component that was hit. */
 	UPrimitiveComponent* GetComponent() const;
 
 	/** Return true if there was a blocking hit that was not caused by starting in penetration. */
@@ -1435,7 +1474,7 @@ struct ENGINE_API FHitResult
 		return bBlockingHit && !bStartPenetrating;
 	}
 
-	/** Returns the first 'blocking' hit in an array of results */
+	/** Static utility function that returns the first 'blocking' hit in an array of results. */
 	static FHitResult* GetFirstBlockingHit(TArray<FHitResult>& InHits)
 	{
 		for(int32 HitIdx=0; HitIdx<InHits.Num(); HitIdx++)
@@ -1448,7 +1487,7 @@ struct ENGINE_API FHitResult
 		return NULL;
 	}
 
-	/** Returns number of blocking hits in array */
+	/** Static utility function that returns the number of blocking hits in array. */
 	static int32 GetNumBlockingHits(const TArray<FHitResult>& InHits)
 	{
 		int32 NumBlocks = 0;
@@ -1462,7 +1501,7 @@ struct ENGINE_API FHitResult
 		return NumBlocks;
 	}
 
-	/** Returns number of overlapping hits in array */
+	/** Static utility function that returns the number of overlapping hits in array. */
 	static int32 GetNumOverlapHits(const TArray<FHitResult>& InHits)
 	{
 		return (InHits.Num() - GetNumBlockingHits(InHits));
@@ -1504,17 +1543,17 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
-/** Structure containing information about minimum translation directon (MTD) */
+/** Structure containing information about minimum translation direction (MTD) */
 USTRUCT()
 struct ENGINE_API FMTDResult
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Direction of the minimum translation required to fix penetration. */
+	/** Normalized direction of the minimum translation required to fix penetration. */
 	UPROPERTY()
 	FVector Direction;
 
-	/** Distance required to move along the MTD. */
+	/** Distance required to move along the MTD vector (Direction). */
 	UPROPERTY()
 	float Distance;
 

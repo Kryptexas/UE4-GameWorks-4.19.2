@@ -9,6 +9,7 @@
  * Behavior such as bouncing after impacts and homing toward a target are supported.
  * If the updated component is simulating physics, only the initial launch parameters (when initial velocity is non-zero) will affect the projectile,
  * and the physics sim will take over from there.
+ * @see UMovementComponent
  */
 UCLASS(ClassGroup=Movement, meta=(BlueprintSpawnableComponent), ShowCategories=(Velocity))
 class ENGINE_API UProjectileMovementComponent : public UMovementComponent

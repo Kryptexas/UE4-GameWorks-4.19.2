@@ -13,12 +13,25 @@ struct FCollisionQueryParams;
 struct FCollisionResponseParams;
 struct FCollisionShape;
 
+
+/**
+ * MovementComponent is an abstract component class that defines functionality for moving a PrimitiveComponent (our UpdatedComponent) each tick.
+ * Base functionality includes:
+ *    - Restricting movement to a plane or axis.
+ *    - Utility functions for special handling of collision results (SlideAlongSurface(), ComputeSlideVector(), TwoWallAdjust()).
+ *    - Utility functions for moving when there may be initial penetration (SafeMoveUpdatedComponent(), ResolvePenetration()).
+ *    - Automatically registering the component tick and finding a component to move on the owning Actor.
+ */
 UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The component we move and update. **/
+	/**
+	 * The component we move and update.
+	 * If this is null at startup and bAutoRegisterUpdatedComponent is true, the owning Actor's root component will automatically be set as our UpdatedComponent at startup.
+	 * @see bAutoRegisterUpdatedComponent, SetUpdatedComponent()
+	 */
 	UPROPERTY(BlueprintReadOnly, Category=MovementComponent)
 	UPrimitiveComponent* UpdatedComponent;
 
@@ -28,7 +41,7 @@ class ENGINE_API UMovementComponent : public UActorComponent
 	 */
 	EMoveComponentFlags MoveComponentFlags;
 
-	/** Current velocity of moved component, replicated to clients using Actor ReplicatedMovement property. */
+	/** Current velocity of updated component. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
 	FVector Velocity;
 
@@ -50,14 +63,16 @@ protected:
 	FVector PlaneConstraintOrigin;
 
 public:
-	/** If true, movement will be constrained to a plane.	 */
+	/**
+	 * If true, movement will be constrained to a plane.
+	 * @see PlaneConstraintNormal, PlaneConstraintOrigin
+	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement)
 	uint32 bConstrainToPlane:1;
 
-	/** If true, and if plane constraints are enabled, then the component updated by this MovementComponent will be snapped to the plane when first attached (in SetUpdatedComponent()).	 */
+	/** If true and plane constraints are enabled, then the updated component will be snapped to the plane when first attached. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlanarMovement)
 	uint32 bSnapToPlaneAtStart:1;
-
 
 	/** If true, skips TickComponent() if UpdatedComponent was not recently rendered. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementComponent)
@@ -159,7 +174,7 @@ public:
 	/** Update ComponentVelocity of UpdatedComponent. This needs to be called by derived classes at the end of an update whenever Velocity has changed.	 */
 	virtual void UpdateComponentVelocity();
 
-	/** Initialize collision params appropriately based on our collision settings. Use this before any Line or Sweep tests. */
+	/** Initialize collision params appropriately based on our collision settings. Use this before any Line, Overlap, or Sweep tests. */
 	virtual void InitCollisionParams(FCollisionQueryParams &OutParams, FCollisionResponseParams& OutResponseParam) const;
 
 	/** Return true if the given collision shape overlaps other geometry at the given location and rotation. The collision params are set by InitCollisionParams(). */
@@ -168,6 +183,7 @@ public:
 	/**
 	 * Moves our UpdatedComponent by the given Delta, and sets rotation to NewRotation.
 	 * Respects the plane constraint, if enabled.
+	 * @return True if some movement occurred, false if no movement occurred. Result of any impact will be stored in OutHit.
 	 */
 	virtual bool MoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL);
 
@@ -234,6 +250,7 @@ public:
 
 	/**
 	 * Adds force from radial force components.
+	 * Intended to be overridden by subclasses; default implementation does nothing.
 	 * @param	Origin		The origin of the force
 	 * @param	Radius		The radius in which the force will be applied
 	 * @param	Strength	The strength of the force
@@ -243,6 +260,7 @@ public:
 
 	/**
 	 * Adds impulse from radial force components.
+	 * Intended to be overridden by subclasses; default implementation does nothing.
 	 * @param	Origin		The origin of the force
 	 * @param	Radius		The radius in which the force will be applied
 	 * @param	Strength	The strength of the force
@@ -252,40 +270,43 @@ public:
 	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
 	/**
-	 * Sets the normal of the plane that constrains movement, if plane constraint is enabled.
-	 * @param PlaneNormal	- The normal of the plane. If non-zero, it will be normalized.
+	 * Sets the normal of the plane that constrains movement, enforced if the plane constraint is enabled.
+	 * @param PlaneNormal	The normal of the plane. If non-zero in length, it will be normalized.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SetPlaneConstraintNormal(FVector PlaneNormal);
 
-	/** Uses the Forward and Up vectors to compute the plane that constrains movement, if plane constraint is enabled.	 */
+	/** Uses the Forward and Up vectors to compute the plane that constrains movement, enforced if the plane constraint is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SetPlaneConstraintFromVectors(FVector Forward, FVector Up);
 
-	/** Sets the origin of the plane that constrains movement, if plane constraint is enabled.	 */
+	/** Sets the origin of the plane that constrains movement, enforced if the plane constraint is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SetPlaneConstraintOrigin(FVector PlaneOrigin);
 
-	/** @return The normal of the plane that constrains movement, if plane constraint is enabled.	 */
+	/** @return The normal of the plane that constrains movement, enforced if the plane constraint is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	const FVector& GetPlaneConstraintNormal() const;
 
 	/**
-	 * @return The origin of the plane that constrains movement, if plane constraint is enabled.
-	 * This defines the behavior of snapping a position to the plane, such as by SnapUpdatedComponentToPlane().
+	 * Get the plane constraint origin. This defines the behavior of snapping a position to the plane, such as by SnapUpdatedComponentToPlane().
+	 * @return The origin of the plane that constrains movement, if the plane constraint is enabled.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	const FVector& GetPlaneConstraintOrigin() const;
 
-	/** Constrain a direction vector to the plane constraint, if enabled.	 */
+	/**
+	 * Constrain a direction vector to the plane constraint, if enabled.
+	 * @see SetPlaneConstraint
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual FVector ConstrainDirectionToPlane(FVector Direction) const;
 
-	/** Constrain a position vector to the plane constraint, if enabled.	 */
+	/** Constrain a position vector to the plane constraint, if enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual FVector ConstrainLocationToPlane(FVector Location) const;
 
-	/** Snap the updated component to the plane constraint, if enabled.	 */
+	/** Snap the updated component to the plane constraint, if enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SnapUpdatedComponentToPlane();
 

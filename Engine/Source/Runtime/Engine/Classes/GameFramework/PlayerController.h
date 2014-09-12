@@ -59,11 +59,14 @@ struct FDynamicForceFeedbackDetails
 /**
  * PlayerControllers are used by human players to control Pawns.
  *
- * The control rotation (accessed via GetControlRotation()), determines the aiming
+ * ControlRotation (accessed via GetControlRotation()), determines the aiming
  * orientation of the controlled Pawn.
  *
- * PlayerControllers exist on the server for every player-controlled pawn,
- * and also on the controlling client's machine.
+ * In networked games, PlayerControllers exist on the server for every player-controlled pawn,
+ * and also on the controlling client's machine. They do *not* exist on a client's
+ * machine for pawns controlled by remote players elsewhere on the network.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/PlayerController/
  */
 //=============================================================================
 

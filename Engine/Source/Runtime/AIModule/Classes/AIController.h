@@ -1,13 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// AIController, the base class of AI.
-//
-// Controllers are non-physical actors that can be attached to a pawn to control
-// its actions.  AIControllers implement the artificial intelligence for the pawns they control.
-//
-//=============================================================================
-
 #pragma once
 
 #include "AITypes.h"
@@ -62,6 +54,18 @@ struct FFocusKnowledge
 	TArray<struct FFocusItem> Priorities;
 };
 
+//=============================================================================
+/**
+ * AIController is the base class of controllers for AI-controlled Pawns.
+ * 
+ * Controllers are non-physical actors that can be attached to a pawn to control its actions.
+ * AIControllers manage the artificial intelligence for the pawns they control.
+ * In networked games, they only exist on the server.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/
+ */
+//=============================================================================
+
 UCLASS(BlueprintType, Blueprintable)
 class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface
 {
@@ -107,6 +111,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = AI)
 	TSubobjectPtr<UPawnActionsComponent> ActionsComp;
 
+	/** Event called when PossessedPawn is possesed by this controller. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
 	void OnPossess(APawn* PossessedPawn);
 
@@ -208,10 +213,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="SetFocalPoint"))
 	void K2_SetFocalPoint(FVector FP, bool bOffsetFromBase = false);
 
-	/* Set Focus for actor, will set FocalPoint as a result. */
+	/** Set Focus for actor, will set FocalPoint as a result. */
 	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="SetFocus"))
 	void K2_SetFocus(AActor* NewFocus);
 
+	/** Get the focused actor. */
 	UFUNCTION(BlueprintCallable, Category="AI")
 	AActor* GetFocusActor() const;
 

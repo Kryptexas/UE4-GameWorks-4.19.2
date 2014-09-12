@@ -8,6 +8,11 @@
 #include "GameFramework/NavMovementComponent.h"
 #include "PawnMovementComponent.generated.h"
 
+/** 
+ * PawnMovementComponent can be used to update movement for an associated Pawn.
+ * It also provides ways to accumulate and read directional input in a generic way (with AddInputVector(), ConsumeInputVector(), etc).
+ * @see APawn
+ */
 UCLASS(abstract)
 class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 {
@@ -15,13 +20,13 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 
 public:
 
-	// Overridden to only allow registration with components owned by a Pawn.
+	/** Overridden to only allow registration with components owned by a Pawn. */
 	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
 
 	/**
 	 * Adds the given vector to the accumulated input in world space. Input vectors are usually between 0 and 1 in magnitude. 
 	 * They are accumulated during a frame then applied as acceleration during the movement update.
-	 * @see Pawn.AddMovementInput()
+	 * @see APawn::AddMovementInput()
 	 *
 	 * @param WorldDirection:	Direction in world space to apply input
 	 * @param ScaleValue:		Scale to apply to input. This can be used for analog input, ie a value of 0.5 applies half the normal value.
@@ -69,7 +74,7 @@ public:
 
 protected:
 
-	/** Pawn which owns this component. */
+	/** Pawn that owns this component. */
 	UPROPERTY()
 	class APawn* PawnOwner;
 

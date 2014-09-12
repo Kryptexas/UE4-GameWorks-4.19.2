@@ -13,6 +13,9 @@ class UFloatingPawnMovement;
 class USphereComponent;
 class UStaticMeshComponent;
 
+/**
+ * 
+ */
 UCLASS(config=Game, Blueprintable, BlueprintType)
 class ENGINE_API ADefaultPawn : public APawn
 {

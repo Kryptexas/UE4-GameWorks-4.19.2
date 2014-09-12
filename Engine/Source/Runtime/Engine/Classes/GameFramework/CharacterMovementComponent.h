@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/**
- * Movement component updates position of associated PrimitiveComponent (owned by a Character) during its tick.
- * Assumes/requires the character's root component to be a CapsuleComponent.
- */
-
 #pragma once
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "Animation/AnimationAsset.h"
@@ -19,7 +14,7 @@ struct FVector_NetQuantize100;
 struct FVector_NetQuantizeNormal;
 class FDebugDisplayInfo;
 
-// Data about the floor for walking movement.
+/** Data about the floor for walking movement, used by CharacterMovementComponent. */
 USTRUCT(BlueprintType)
 struct ENGINE_API FFindFloorResult
 {
@@ -45,7 +40,7 @@ struct ENGINE_API FFindFloorResult
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=CharacterFloor)
 	float LineDist;
 
-	/** Hit result of the test that found a floor. */
+	/** Hit result of the test that found a floor. Includes more specific data about the point of impact and surface normal at that point. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=CharacterFloor)
 	FHitResult HitResult;
 
@@ -105,14 +100,32 @@ struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+
+//=============================================================================
+/**
+ * CharacterMovementComponent handles movement logic for the associated Character owner.
+ *
+ * It supports various movement modes including:
+ *    - walking:  Walking on a surface, under the effects of friction, and able to "step up" barriers.
+ *    - falling:  Falling under the effects of gravity. Usually this is the mode after jumping or walking off the edge of a surface.
+ *    - flying:   Flying, ignoring the effects of gravity.
+ *    - swimming: Swimming through a fluid volume, under the effects of gravity and buoyancy.
+ *    - custom:   User-defined custom movement mode, including many possible sub-modes. See UCharacterMovementComponent::CustomMovementMode and SetMovementMode().
+ *
+ * Movement is affected primarily by current Velocity and Acceleration. Acceleration is updated each frame
+ * based on the input vector accumulated thus far (see UPawnMovementComponent::GetPendingInputVector()).
+ *
+ * Networking is fully implemented, with server-client correction and prediction included.
+ *
+ * @see ACharacter, UPawnMovementComponent
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/Character/
+ */
+//=============================================================================
+
 UCLASS()
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
 	GENERATED_UCLASS_BODY()
-
-	/** Post-physics tick function for this character */
-	UPROPERTY()
-	struct FCharacterMovementComponentPreClothTickFunction PreClothComponentTick;
 
 protected:
 
@@ -151,32 +164,23 @@ private:
 public:
 	
 	/**
-	 * Don't allow the character to perch on the edge of a surface if the contact is this close to the edge of the capsule.
-	 * Note that characters will not fall off if they are within MaxStepHeight of a walkable surface below.
+	 * Actor's current movement mode (walking, falling, etc). This is automatically replicated through the Character owner and for client-server movement functions.
+	 * @see SetMovementMode()
 	 */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
-	float PerchRadiusThreshold;
-
-	/**
-	 * When perching on a ledge, add this additional distance to MaxStepHeight when determining how high above a walkable floor we can perch.
-	 * Note that we still enforce MaxStepHeight to start the step up; this just allows the character to hang off the edge or step slightly higher off the floor.
-	 * (@see PerchRadiusThreshold)
-	 */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
-	float PerchAdditionalHeight;
-
-	/** Actor's current physics mode. This is automatically replicated through the CharacterOwner and for client-server movement functions. */
 	UPROPERTY(Category=MovementMode, BlueprintReadOnly)
 	TEnumAsByte<enum EMovementMode> MovementMode;
 
-	/** Current custom sub-mode if MovementMode is set to Custom. This is automatically replicated through the CharacterOwner and for client-server movement functions. */
+	/**
+	 * Current custom sub-mode if MovementMode is set to Custom. This is automatically replicated through the Character owner and for client-server movement functions.
+	 * @see SetMovementMode()
+	 */
 	UPROPERTY(Category=MovementMode, BlueprintReadOnly)
 	uint8 CustomMovementMode;
 
-	/** Save Base location to check in UpdateBasedMovement() whether base moved in the last frame, and therefore pawn needs an update. */
+	/** Saved location of object we are standing on, for UpdateBasedMovement() to determine if base moved in the last frame, and therefore pawn needs an update. */
 	FVector OldBaseLocation;
 
-	/** Save Base rotation to check in UpdateBasedMovement() whether base moved in the last frame, and therefore pawn needs an update. */
+	/** Saved location of object we are standing on, for UpdateBasedMovement() to determine if base moved in the last frame, and therefore pawn needs an update. */
 	FQuat OldBaseQuat;
 
 	/** Custom gravity scale. Gravity is multiplied by this amount for the character. */
@@ -258,6 +262,21 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	float Buoyancy;
 
+	/**
+	 * Don't allow the character to perch on the edge of a surface if the contact is this close to the edge of the capsule.
+	 * Note that characters will not fall off if they are within MaxStepHeight of a walkable surface below.
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float PerchRadiusThreshold;
+
+	/**
+	 * When perching on a ledge, add this additional distance to MaxStepHeight when determining how high above a walkable floor we can perch.
+	 * Note that we still enforce MaxStepHeight to start the step up; this just allows the character to hang off the edge or step slightly higher off the floor.
+	 * (@see PerchRadiusThreshold)
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float PerchAdditionalHeight;
+
 	/** Change in rotation per second, used when UseControllerDesiredRotation or OrientRotationToMovement are true. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	FRotator RotationRate;
@@ -273,9 +292,17 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bOrientRotationToMovement:1;
 
-	/** true during movement update. Attempts to change CharacterOwner and UpdatedComponent are deferred until after an update. */
+protected:
+
+	/**
+	 * True during movement update.
+	 * Used internally so that attempts to change CharacterOwner and UpdatedComponent are deferred until after an update.
+	 * @see IsMovementInProgress()
+	 */
 	UPROPERTY()
 	uint32 bMovementInProgress:1;
+
+public:
 
 	/**
 	 * If true, high-level movement updates will be wrapped in a movement scope that accumulates updates and defers a bulk of the work until the end.
@@ -411,11 +438,11 @@ protected:
 	UPROPERTY()
 	FVector LastUpdateLocation;
 
-	/** Accumulated impulse added this tick */
+	/** Accumulated impulse to be added next tick. */
 	UPROPERTY()
 	FVector PendingImpulseToApply;
 
-	/** Accumulated force added this tick */
+	/** Accumulated force to be added next tick. */
 	UPROPERTY()
 	FVector PendingForceToApply;
 
@@ -458,6 +485,7 @@ public:
 	 * Increasing this value can address issues with fast-moving objects or complex collision scenarios, at the cost of performance.
 	 *
 	 * WARNING: if (MaxSimulationTimeStep * MaxSimulationIterations) is too low for the min framerate, the last simulation step may exceed MaxSimulationTimeStep to complete the simulation.
+	 * @see MaxSimulationTimeStep
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="1", ClampMax="25", UIMin="1", UIMax="25"))
 	int32 MaxSimulationIterations;
@@ -471,21 +499,22 @@ public:
 	float JumpOutOfWaterPitch;
 
 	/**
-	 * Impacts on the upper hemisphere will have the vertical velocity scaled by this factor of the Normal's Z component (in AdjustUpperHemisphereImpact).
-	 * A value of 0 indicates that this behavior is disabled.
+	 * Impacts on the upper hemisphere will have the vertical velocity scaled by this factor of the normal's Z component (in AdjustUpperHemisphereImpact()).
+	 * This can dampen such impacts to feel less like a capsule. A value of 0 indicates that this behavior is disabled.
+	 * @see AdjustUpperHemisphereImpact()
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	float UpperImpactNormalScale;
 
-	/** Information about the floor the Character is standing on (only used by MOVE_Walking) */
+	/** Information about the floor the Character is standing on (updated only during walking movement). */
 	UPROPERTY(Category="Character Movement", VisibleInstanceOnly, BlueprintReadOnly)
 	FFindFloorResult CurrentFloor;
 
-	/** Default movement mode when not in water */
+	/** Default movement mode when not in water. Used at player startup or when teleported. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<enum EMovementMode> DefaultLandMovementMode;
 
-	/** Default movement mode when in water */
+	/** Default movement mode when in water. Used at player startup or when teleported. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<enum EMovementMode> DefaultWaterMovementMode;
 
@@ -508,8 +537,11 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bImpartBaseVelocityZ:1;
 
-	/** If true, impart the base component's tangential components of angular velocity when jumping or falling off it.
-	  * Only those components of the velocity allowed by the separate component settings (bImpartBaseVelocity[XYZ]) will be applied. */
+	/**
+	 * If true, impart the base component's tangential components of angular velocity when jumping or falling off it.
+	 * Only those components of the velocity allowed by the separate component settings (bImpartBaseVelocityX etc) will be applied.
+	 * @see bImpartBaseVelocityX, bImpartBaseVelocityY, bImpartBaseVelocityZ
+	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bImpartBaseAngularVelocity:1;
 
@@ -517,11 +549,11 @@ public:
 	UPROPERTY(Transient)
 	uint32 bJustTeleported:1;
 
-	/** True when a network replication update is received for simulated proxies */
+	/** True when a network replication update is received for simulated proxies. */
 	UPROPERTY(Transient)
 	uint32 bNetworkUpdateReceived:1;
 
-	/** True when the networked movement mode has been replicated */
+	/** True when the networked movement mode has been replicated. */
 	UPROPERTY(Transient)
 	uint32 bNetworkMovementModeChanged:1;
 
@@ -529,7 +561,7 @@ public:
 	UPROPERTY()
 	uint32 bNotifyApex:1;
 
-	/** instantly stop in flying mode */
+	/** Instantly stop when in flying mode and no acceleration is being applied. */
 	UPROPERTY()
 	uint32 bCheatFlying:1;
 
@@ -550,8 +582,8 @@ public:
 	uint32 bIgnoreBaseRotation:1;
 
 	/** 
-	 *  Set this to true if riding on a moving base that you know is clear from non-moving world obstructions.
-	 *  This can solve move-order dependencies when riding an interp actor, and it's faster.
+	 * Set this to true if riding on a moving base that you know is clear from non-moving world obstructions.
+	 * Optimization to avoid sweeps during based movement, use with care.
 	 */
 	UPROPERTY()
 	uint32 bFastAttachedMove:1;
@@ -586,6 +618,8 @@ public:
 
 protected:
 
+	// AI PATH FOLLOWING
+
 	/** Was velocity requested by path following? */
 	UPROPERTY(Transient)
 	uint32 bHasRequestedVelocity:1;
@@ -612,7 +646,10 @@ protected:
 
 public:
 
-	/** Velocity requested by path following */
+	/**
+	 * Velocity requested by path following.
+	 * @see RequestDirectMove()
+	 */
 	UPROPERTY(Transient)
 	FVector RequestedVelocity;
 
@@ -698,6 +735,12 @@ public:
 	/** @return true if the character is in the 'Walking' movement mode. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	bool IsWalking() const;
+
+	/**
+	 * @return true if currently performing a movement update.
+	 * @see bMovementInProgress
+	 */
+	bool IsMovementInProgress() const { return bMovementInProgress; }
 
 	//BEGIN UNavMovementComponent Interface
 	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) override;
@@ -873,7 +916,7 @@ public:
 	/** @return true if we can step up on the actor in the given FHitResult. */
 	virtual bool CanStepUp(const FHitResult& Hit) const;
 
-	/**  Struct updated by StepUp() method to return result of final step down, if applicable. */
+	/** Struct updated by StepUp() to return result of final step down, if applicable. */
 	struct FStepDownResult
 	{
 		uint32 bComputedFloor:1;		// True if the floor was computed as a result of the step down.
@@ -888,21 +931,21 @@ public:
 	/** 
 	 * Move up steps or slope. Does nothing and returns false if CanStepUp(Hit) returns false.
 	 *
-	 * @param GravDir:			Gravity vector
-	 * @param Delta:			Requested move
-	 * @param Hit:				[In] The hit before the step up.
-	 * @param OutStepDownResult:[Out] If non-null, a floor check will be performed if possible as part of the final step down, and it will be updated to reflect this result.
+	 * @param GravDir			Gravity vector
+	 * @param Delta				Requested move
+	 * @param Hit				[In] The hit before the step up.
+	 * @param OutStepDownResult	[Out] If non-null, a floor check will be performed if possible as part of the final step down, and it will be updated to reflect this result.
 	 * @return true if the step up was successful.
 	 */
 	virtual bool StepUp(const FVector& GravDir, const FVector& Delta, const FHitResult &Hit, struct UCharacterMovementComponent::FStepDownResult* OutStepDownResult = NULL);
 
-	/** Update the base of the actor */
+	/** Update the base of the character, which is the obejct we are standing on. */
 	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
 
-	/** Applies repulsion force to all touched components */
+	/** Applies repulsion force to all touched components. */
 	void ApplyRepulsionForce(float DeltaTime);
 	
-	/** Applies momentum accumulated through AddImpulse()/AddForce() */
+	/** Applies momentum accumulated through AddImpulse() and AddForce(). */
 	void ApplyAccumulatedForces(float DeltaSeconds);	
 
 	/** 
@@ -991,15 +1034,16 @@ protected:
 	virtual float LimitAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, const FHitResult& HitResult);
 	
 
-public:
-
-	/** Handle landing against Hit surface over remaingTime and iterations */
+	/** Handle landing against Hit surface over remaingTime and iterations, calling SetPostLandedPhysics() and starting the new movement mode. */
 	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations);
 
-	/** Set new physics after landing */
+	/** Use new physics after landing. Defaults to swimming if in water, walking otherwise. */
 	virtual void SetPostLandedPhysics(const FHitResult& Hit);
 
-	/** Called by owning Character on successful teleport. */
+
+public:
+
+	/** Called by owning Character upon successful teleport from AActor::TeleportTo(). */
 	virtual void OnTeleported();
 
 	/**
@@ -1015,14 +1059,14 @@ public:
 	 */
 	virtual void UnCrouch(bool bClientSimulation = false);
 
-	// @return true if the character is allowed to crouch in the current state. By default it is allowed when walking or falling, if CanEverCrouch() is true.
+	/** @return true if the character is allowed to crouch in the current state. By default it is allowed when walking or falling, if CanEverCrouch() is true. */
 	virtual bool CanCrouchInCurrentState() const;
 	
-	/** @return true if there is a suitable floor SideStep from current position  */
+	/** @return true if there is a suitable floor SideStep from current position. */
 	bool CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir);
 
 	/** 
-	 * @param Delta is the current move delta (which ended up going over a ledge.
+	 * @param Delta is the current move delta (which ended up going over a ledge).
 	 * @return new delta which moves along the ledge
 	 */
 	FVector GetLedgeMove(const FVector& OldLocation, const FVector& Delta, const FVector& GravDir);
@@ -1128,7 +1172,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	void SetWalkableFloorAngle(float InWalkableFloorAngle);
 
-
 	/** Get the Z component of the normal of the steepest walkable surface for the character. Any lower than this and it is not walkable. */
 	FORCEINLINE float GetWalkableFloorZ() const { return WalkableFloorZ; }
 
@@ -1139,6 +1182,10 @@ public:
 	/** Set the Z component of the normal of the steepest walkable surface for the character. Also computes WalkableFloorAngle. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	void SetWalkableFloorZ(float InWalkableFloorZ);
+
+	/** Post-physics tick function for this character */
+	UPROPERTY()
+	struct FCharacterMovementComponentPreClothTickFunction PreClothComponentTick;
 
 	/** Tick function called after physics (sync scene) has finished simulation, before cloth */
 	virtual void PreClothTick(float DeltaTime, FCharacterMovementComponentPreClothTickFunction& ThisTickFunction);
@@ -1217,8 +1264,9 @@ protected:
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
 
 	/**
-	 * Given an upward impact on the top of the capsule, allows calculation of a different movement delta.
+	 * Given an upward impact on the top of the capsule, allows calculation of a different movement delta. This can dampen such impacts to feel less like a capsule.
 	 * Default implementation scales the Delta Z value by: 1 - (Abs(Normal.Z) * UpperImpactNormalScale), clamped to [0..1]
+	 * @see UpperImpactNormalScale
 	 */
 	virtual FVector AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const;
 

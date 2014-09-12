@@ -8,6 +8,9 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "FloatingPawnMovement.generated.h"
 
+/**
+ * 
+ */
 UCLASS()
 class ENGINE_API UFloatingPawnMovement : public UPawnMovementComponent
 {

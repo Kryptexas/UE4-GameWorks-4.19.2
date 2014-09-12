@@ -73,7 +73,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysic
 /**
  * A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities.
  * Useful as a 'dummy' component in the hierarchy to offset others.
- * @see https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Components/USceneComponent/index.html
  * @see [Scene Components](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Actors/Components/index.html#scenecomponents)
  */
 UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger, PhysicsVolume), meta=(BlueprintSpawnableComponent))
@@ -497,13 +496,9 @@ public:
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL);
 
 	/**
-	 * Tries to move the component by a movement vector.
-	 * 
-	 * Assumes that the component's current Location is valid and that the component does fit in its current Location. 
-	 * Assumes that the level's Dynamics member is locked, which will always be the case during
-	 * a call to UWorld::Tick; if not locked, no actor-actor collision checking is performed.
-	 *
-	 * Updates actor's PhysicsVolume and touching interactions (if bShouldUpdatePhysicsVolume is true).
+	 * Tries to move the component by a movement vector (Delta) and sets rotation to NewRotation.
+	 * Assumes that the component's current location is valid and that the component does fit in its current Location.
+	 * Dispatches blocking hit notifications (if bSweep is true), and calls UpdateOverlaps() after movement to update overlap state.
 	 * 
 	 * @param Delta			The desired location change in world space.
 	 * @param NewRotation	The new desired rotation in world space.
@@ -608,7 +603,7 @@ public:
 	}
 
 	/** 
-	 * Updates the PhysicsVolume of this SceneComponent
+	 * Updates the PhysicsVolume of this SceneComponent, if bShouldUpdatePhysicsVolume is true.
 	 * 
 	 * @param bTriggerNotifiers		if true, send zone/volume change events
 	 */
