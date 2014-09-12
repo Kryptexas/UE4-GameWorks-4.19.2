@@ -2,6 +2,7 @@
 // ApplicationLifecycleComponent.cpp: Component to handle receiving notifications from the OS about application state (activated, suspended, termination, etc)
 
 #include "EnginePrivate.h"
+#include "Components/ApplicationLifecycleComponent.h"
 #include "CallbackDevice.h"
 
 UApplicationLifecycleComponent::UApplicationLifecycleComponent(const class FPostConstructInitializeProperties& PCIP)

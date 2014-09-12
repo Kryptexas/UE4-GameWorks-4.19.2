@@ -117,7 +117,6 @@
 #include "Engine/TargetPoint.h"
 #include "Engine/TextRenderActor.h"
 #include "VectorField/VectorFieldVolume.h"
-#include "Components/ApplicationLifecycleComponent.h"
 #include "Engine/DataAsset.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Vehicles/VehicleWheel.h"
