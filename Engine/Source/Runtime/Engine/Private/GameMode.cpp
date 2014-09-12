@@ -400,7 +400,10 @@ void AGameMode::PreInitializeComponents()
 
 	GameState = GetWorld()->SpawnActor<AGameState>(GameStateClass, SpawnInfo);
 	GetWorld()->GameState = GameState;
-	GameState->AuthorityGameMode = this;
+	if (GameState)
+	{
+		GameState->AuthorityGameMode = this;
+	}
 
 	// Only need NetworkManager for servers in net games
 	GetWorld()->NetworkManager = GetWorldSettings()->GameNetworkManagerClass ? GetWorld()->SpawnActor<AGameNetworkManager>(GetWorldSettings()->GameNetworkManagerClass, SpawnInfo ) : NULL;

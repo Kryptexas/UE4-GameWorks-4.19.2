@@ -939,6 +939,9 @@ namespace UM
 		/// [PropertyMetadata] Used for FStringClassReference properties.  Indicates whether only blueprint classes should be shown in the class picker.
 		IsBlueprintBaseOnly,
 
+		/// [PropertyMetadata] Used for Subclass properties. Indicates whether only placeable classes should be shown in the class picker.
+		OnlyPlaceable,
+
 		/// [PropertyMetadata]
 		MakeEditWidget,
 

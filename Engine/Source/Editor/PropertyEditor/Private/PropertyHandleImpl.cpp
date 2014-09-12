@@ -1929,16 +1929,21 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 
 		const bool bAllowAbstract = Property->GetOwnerProperty()->HasMetaData(TEXT("AllowAbstract"));
 		const bool bBlueprintBaseOnly = Property->GetOwnerProperty()->HasMetaData(TEXT("BlueprintBaseOnly"));
+		const bool bAllowOnlyPlaceable = Property->GetOwnerProperty()->HasMetaData(TEXT("OnlyPlaceable"));
 		UClass* InterfaceThatMustBeImplemented = Property->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement"));
 
-		for( TObjectIterator<UClass> It ; It ; ++It )
+		if (!bAllowOnlyPlaceable || MetaClass->IsChildOf<AActor>())
 		{
-			if ( It->IsChildOf(MetaClass) && 
-				PropertyEditorHelpers::IsEditInlineClassAllowed(*It, bAllowAbstract) &&
-				(!bBlueprintBaseOnly || FKismetEditorUtilities::CanCreateBlueprintOfClass(*It)) &&
-				(!InterfaceThatMustBeImplemented || It->ImplementsInterface(InterfaceThatMustBeImplemented)) )
+			for (TObjectIterator<UClass> It; It; ++It)
 			{
-				OutOptionStrings.Add( TSharedPtr< FString >( new FString( It->GetName() ) ) );
+				if (It->IsChildOf(MetaClass)
+					&& PropertyEditorHelpers::IsEditInlineClassAllowed(*It, bAllowAbstract)
+					&& (!bBlueprintBaseOnly || FKismetEditorUtilities::CanCreateBlueprintOfClass(*It))
+					&& (!InterfaceThatMustBeImplemented || It->ImplementsInterface(InterfaceThatMustBeImplemented))
+					&& (!bAllowOnlyPlaceable || !It->HasAnyClassFlags(CLASS_Abstract | CLASS_NotPlaceable)))
+				{
+					OutOptionStrings.Add(TSharedPtr< FString >(new FString(It->GetName())));
+				}
 			}
 		}
 	}

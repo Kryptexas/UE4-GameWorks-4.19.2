@@ -476,7 +476,7 @@ namespace ClassViewer
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is a brush.
 		 */
-		static bool IsBrush(UClass* InClass)
+		static bool IsBrush(const UClass* InClass)
 		{
 			return InClass->IsChildOf( ABrush::StaticClass() );
 		}
@@ -485,7 +485,7 @@ namespace ClassViewer
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is placeable.
 		 */
-		static bool IsPlaceable(UClass* InClass)
+		static bool IsPlaceable(const UClass* InClass)
 		{
 			return !InClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NotPlaceable) && InClass->IsChildOf<AActor>();
 		}
@@ -494,7 +494,7 @@ namespace ClassViewer
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is abstract.
 		 */
-		static bool IsAbstract(UClass* InClass)
+		static bool IsAbstract(const UClass* InClass)
 		{
 			return InClass->HasAnyClassFlags(CLASS_Abstract);
 		}
@@ -1623,12 +1623,8 @@ FClassHierarchy::~FClassHierarchy()
 
 static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TMultiMap<FName, FAssetData>& BlueprintPackageToAssetDataMap)
 {
-	const bool bIsPlaceable = ClassViewer::Helpers::IsPlaceable(Class);
-	const bool bIsAbstract = ClassViewer::Helpers::IsAbstract(Class);
-	const bool bIsBrush = ClassViewer::Helpers::IsBrush(Class);
-
 	// Create the new node so it can be passed to AddChildren, fill it in with if it is placeable, abstract, and/or a brush.
-	TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(Class->GetName(), Class->GetDisplayNameText().ToString(), bIsPlaceable && !bIsAbstract && !bIsBrush));
+	TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(Class->GetName(), Class->GetDisplayNameText().ToString()));
 	NewNode->Blueprint = ClassViewer::Helpers::GetBlueprint(Class);
 	NewNode->Class = Class;
 
@@ -1660,7 +1656,7 @@ void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOu
 {
 	UClass* RootClass = UObject::StaticClass();
 
-	ObjectClassRoot = MakeShareable(new FClassViewerNode(RootClass->GetName(), RootClass->GetDisplayNameText().ToString(), false));
+	ObjectClassRoot = MakeShareable(new FClassViewerNode(RootClass->GetName(), RootClass->GetDisplayNameText().ToString()));
 	ObjectClassRoot->Class = RootClass;
 
 	TMap< UClass*, TSharedPtr< FClassViewerNode > > Nodes;
@@ -1914,7 +1910,7 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 	const FString AssetName = InAssetData.AssetName.ToString();
 
 	// Create the viewer node.
-	InOutClassViewerNode = MakeShareable(new FClassViewerNode(AssetName, AssetName, true));
+	InOutClassViewerNode = MakeShareable(new FClassViewerNode(AssetName, AssetName));
 			
 	// It is an unloaded blueprint, so we need to create the structure that will hold the data.
 	TSharedPtr<FUnloadedBlueprintData> UnloadedBlueprintData = MakeShareable( new FUnloadedBlueprintData(InOutClassViewerNode) );
@@ -2912,7 +2908,7 @@ FReply SClassViewer::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const
 
 TSharedPtr<FClassViewerNode> SClassViewer::CreateNoneOption()
 {
-	TSharedPtr<FClassViewerNode> NoneItem = MakeShareable( new FClassViewerNode("None", "None", false) );
+	TSharedPtr<FClassViewerNode> NoneItem = MakeShareable( new FClassViewerNode("None", "None") );
 
 	// The item "passes" the filter so it does not appear grayed out.
 	NoneItem->bPassesFilter = true;
