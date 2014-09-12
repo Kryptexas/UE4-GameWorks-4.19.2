@@ -208,7 +208,7 @@ public:
 	 * Sets a rect that should be used to offset rendering into the viewport render target
 	 * If not set the canvas will render to the full target
 	 *
- 	 * @param ViewRect The rect to use
+	 * @param ViewRect The rect to use
 	 */
 	ENGINE_API void SetRenderTargetRect( const FIntRect& ViewRect );
 
@@ -312,6 +312,11 @@ public:
 	*/
 	EShaderPlatform GetShaderPlatform() const { return ShaderPlatform; }
 
+	// Get/Set if this Canvas allows its batched elements to switch vertical axis (e.g., rendering to back buffer should never flip)
+	bool GetAllowSwitchVerticalAxis() const { return bAllowsToSwitchVerticalAxis; }
+
+	void SetAllowSwitchVerticalAxis(bool bInAllowsToSwitchVerticalAxis) { bAllowsToSwitchVerticalAxis = bInAllowsToSwitchVerticalAxis; }
+
 public:
 	float AlphaModulate;
 
@@ -382,6 +387,8 @@ private:
 	float CurrentDeltaWorldTime;
 	/** true, if Canvas should be scaled to whole render target */
 	bool bScaledToRenderTarget;
+	// True if canvas allows switching vertical axis; false will ignore any flip
+	bool bAllowsToSwitchVerticalAxis;
 	/** Feature level that we are currently rendering with */
 	ERHIFeatureLevel::Type FeatureLevel;
 	/** Shader platform that we are currently rendering with */

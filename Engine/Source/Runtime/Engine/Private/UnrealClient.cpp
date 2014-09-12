@@ -1074,7 +1074,10 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				auto World = ViewportClient->GetWorld();
 				FCanvas Canvas(this, NULL, World, World ? World->FeatureLevel : GRHIFeatureLevel);
 				{
+					// Make sure the Canvas is not rendered upside down
+					Canvas.SetAllowSwitchVerticalAxis(false);
 					ViewportClient->Draw(this, &Canvas);
+					Canvas.SetAllowSwitchVerticalAxis(true);
 				}
 				Canvas.Flush_GameThread();
 				ViewportClient->ProcessScreenShots(this);
