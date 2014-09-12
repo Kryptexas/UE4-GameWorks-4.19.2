@@ -617,6 +617,8 @@ static void BuildMetalShaderOutput(
 		BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.ShaderResourceViewMap);
 		BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.SamplerMap);
 		BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.UnorderedAccessViewMap);
+
+		Header.Bindings.NumUniformBuffers = FMath::Max((uint8)GetNumUniformBuffersUsed(GenericSRT), Header.Bindings.NumUniformBuffers);
 	}
 
 	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(GetMaxSupportedFeatureLevel((EShaderPlatform)ShaderOutput.Target.Platform));
@@ -852,6 +854,13 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 			return;
 		}
 
+
+		// This requires removing the HLSLCC_NoPreprocess flag later on!
+		if (!RemoveUniformBuffersFromSource(PreprocessedShader))
+		{
+			return;
+		}
+
 		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 		if (bDumpDebugInfo)
 		{
@@ -878,6 +887,9 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CrossCompile.bat")));
 			}
 		}
+
+		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
+		CCFlags &= ~HLSLCC_NoPreprocess;
 
 		FMetalCodeBackend MetalBackEnd(CCFlags);
 		FMetalLanguageSpec MetalLanguageSpec;

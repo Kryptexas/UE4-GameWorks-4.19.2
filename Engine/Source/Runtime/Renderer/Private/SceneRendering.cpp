@@ -206,11 +206,13 @@ void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradi
 
 /** Creates the view's uniform buffer given a set of view transforms. */
 TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
+	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,	
 	const FMatrix& EffectiveTranslatedViewMatrix, 
 	FBox* OutTranslucentCascadeBoundsArray, 
 	int32 NumTranslucentCascades) const
 {
 	check(Family);
+	check(!DirectionalLightShadowInfo || DirectionalLightShadowInfo->Num() > 0);
 
 	// Calculate the vector used by shaders to convert clip space coordinates to texture space.
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
@@ -292,11 +294,60 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 		ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * float(ViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
 	}
 
+	//white texture should act like a shadowmap cleared to the farplane.
+	ViewUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
+	ViewUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();		
 	if (Family->Scene)
 	{
 		FScene* Scene = (FScene*)Family->Scene;
-		ViewUniformShaderParameters.DirectionalLightColor = Scene->SimpleDirectionalLight ? Scene->SimpleDirectionalLight->Proxy->GetColor() / PI : FLinearColor::Black;
-		ViewUniformShaderParameters.DirectionalLightDirection = Scene->SimpleDirectionalLight ? -Scene->SimpleDirectionalLight->Proxy->GetDirection() : FVector::ZeroVector;
+
+		if (Scene->SimpleDirectionalLight)
+		{			
+			ViewUniformShaderParameters.DirectionalLightColor = Scene->SimpleDirectionalLight->Proxy->GetColor() / PI;
+			ViewUniformShaderParameters.DirectionalLightDirection = -Scene->SimpleDirectionalLight->Proxy->GetDirection();			
+
+			static_assert(MAX_FORWARD_SHADOWCASCADES <= 4, "more than 4 cascades not supported by the shader and uniform buffer");
+			if (DirectionalLightShadowInfo)
+			{
+				FProjectedShadowInfo& ShadowInfo = *((*DirectionalLightShadowInfo)[0]);
+				FIntPoint ShadowBufferResolution = ShadowInfo.GetShadowBufferResolution();
+				FVector4 ShadowBufferSizeValue((float)ShadowBufferResolution.X, (float)ShadowBufferResolution.Y, 1.0f / (float)ShadowBufferResolution.X, 1.0f / (float)ShadowBufferResolution.Y);
+
+				ViewUniformShaderParameters.DirectionalLightShadowTexture = GSceneRenderTargets.GetShadowDepthZTexture();				
+				ViewUniformShaderParameters.DirectionalLightShadowTransition = 1.0f / ShadowInfo.ComputeTransitionSize();
+				ViewUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
+
+				int32 NumShadowsToCopy = FMath::Min(DirectionalLightShadowInfo->Num(), MAX_FORWARD_SHADOWCASCADES);				
+				for (int32 i = 0; i < NumShadowsToCopy; ++i)
+				{
+					const FProjectedShadowInfo& ShadowInfo = *(*DirectionalLightShadowInfo)[i];
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i] = ShadowInfo.GetScreenToShadowMatrix(*this);
+					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = ShadowInfo.CascadeSettings.SplitFar;
+				}
+
+				for (int32 i = NumShadowsToCopy; i < MAX_FORWARD_SHADOWCASCADES; ++i)
+				{
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
+				}
+			}
+			else
+			{
+				ViewUniformShaderParameters.DirectionalLightShadowTransition = 0.0f;
+				ViewUniformShaderParameters.DirectionalLightShadowSize = FVector::ZeroVector;
+				for (int32 i = 0; i < MAX_FORWARD_SHADOWCASCADES; ++i)
+				{
+					ViewUniformShaderParameters.DirectionalLightScreenToShadow[i].SetIdentity();
+					ViewUniformShaderParameters.DirectionalLightShadowDistances[i] = 0.0f;
+				}			
+			}			 
+		}
+		else
+		{
+			ViewUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
+			ViewUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
+		}
+		
 		ViewUniformShaderParameters.UpperSkyColor = Scene->UpperDynamicSkylightColor;
 		ViewUniformShaderParameters.LowerSkyColor = Scene->LowerDynamicSkylightColor;
 
@@ -500,7 +551,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	return TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
-void FViewInfo::InitRHIResources()
+void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo)
 {
 	FBox VolumeBounds[TVC_MAX];
 
@@ -508,6 +559,7 @@ void FViewInfo::InitRHIResources()
 	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
 
 	UniformBuffer = CreateUniformBuffer(
+		DirectionalLightShadowInfo,
 		TranslatedViewMatrix,
 		VolumeBounds,
 		TVC_MAX);
@@ -632,7 +684,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 
 bool FSceneRenderer::DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	return !(InFeatureLevel == ERHIFeatureLevel::ES2)
+	return !IsMobilePlatform(GRHIShaderPlatform)
 		&& CVarAllowOcclusionQueries.GetValueOnRenderThread() != 0;
 }
 
@@ -827,21 +879,20 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer)
 {
-	ERHIFeatureLevel::Type FeatureLevel = InViewFamily->Scene->GetFeatureLevel();
-
-	if (FeatureLevel == ERHIFeatureLevel::ES2)
+	bool bUseDeferred = InViewFamily->Scene->ShouldUseDeferredRenderer();
+	if (bUseDeferred)
 	{
-		return new FForwardShadingSceneRenderer(InViewFamily, HitProxyConsumer);
+		return new FDeferredShadingSceneRenderer(InViewFamily, HitProxyConsumer);
 	}
 	else
 	{
-		return new FDeferredShadingSceneRenderer(InViewFamily, HitProxyConsumer);
+		return new FForwardShadingSceneRenderer(InViewFamily, HitProxyConsumer);
 	}
 }
 
 void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
-	if(FeatureLevel < ERHIFeatureLevel::SM4)
+	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
 	{
 		// not yet supported on lower end platforms
 		return;
@@ -1063,7 +1114,7 @@ TGlobalResource<FFilterVertexDeclaration>& FRendererModule::GetFilterVertexDecla
 bool IsMobileHDR()
 {
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	return MobileHDRCvar->GetValueOnRenderThread() == 1;
+	return MobileHDRCvar->GetValueOnAnyThread() == 1;
 }
 
 bool IsMobileHDR32bpp()

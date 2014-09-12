@@ -99,9 +99,6 @@ extern RHI_API bool GSupportsQuads;
 /** True if and only if the GPU support rendering to volume textures (2D Array, 3D). Some OpenGL 3.3 cards support SM4, but can't render to volume textures. */
 extern RHI_API bool GSupportsVolumeTextureRendering;
 
-/** Used to work around a bug with Nvidia cards on Mac: using GL_LayerIndex to specify render target layer doesn't work when rendering to mips. */
-extern RHI_API bool GSupportsGSRenderTargetLayerSwitchingToMips;
-
 /** True if the RHI supports separate blend states per render target. */
 extern RHI_API bool GSupportsSeparateRenderTargetBlendState;
 

@@ -223,7 +223,7 @@ IMPLEMENT_SHADER_TYPE(template<>, TDeferredLightOverlapPS<true>, TEXT("Stationar
 IMPLEMENT_SHADER_TYPE(template<>, TDeferredLightOverlapPS<false>, TEXT("StationaryLightOverlapShaders"), TEXT("OverlapDirectionalPixelMain"), SF_Pixel);
 
 /** Gathers simple lights from visible primtives in the passed in views. */
-void GatherSimpleLights(const FSceneViewFamily& ViewFamily, const TArray<FViewInfo>& Views, FSimpleLightArray& SimpleLights)
+void FSceneRenderer::GatherSimpleLights(const FSceneViewFamily& ViewFamily, const TArray<FViewInfo>& Views, FSimpleLightArray& SimpleLights)
 {
 	TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator> PrimitivesWithSimpleLights;
 
@@ -254,7 +254,7 @@ void GatherSimpleLights(const FSceneViewFamily& ViewFamily, const TArray<FViewIn
 }
 
 /** Gets a readable light name for use with a draw event. */
-void GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy, FString& LightNameWithLevel)
+void FSceneRenderer::GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy, FString& LightNameWithLevel)
 {
 #if WANTS_DRAW_MESH_EVENTS
 	if (GEmitDrawEvents)
@@ -305,9 +305,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 		const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 
-		if (!LightSceneInfoCompact.Color.IsAlmostBlack()
-			// Only render lights with dynamic lighting or unbuilt static lights
-			&& (!LightSceneInfo->Proxy->HasStaticLighting() || !LightSceneInfo->bPrecomputedLightingIsValid)
+		if (LightSceneInfo->ShouldRenderLightViewIndependent()
 			// Reflection override skips direct specular because it tends to be blindingly bright with a perfectly smooth surface
 			&& !ViewFamily.EngineShowFlags.ReflectionOverride)
 		{
@@ -885,4 +883,3 @@ void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(FRHIComma
 		}
 	}
 }
-

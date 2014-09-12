@@ -278,7 +278,7 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 {
 	const auto FeatureLevel = Scene->GetFeatureLevel();
 
-	if (CastShadow && FeatureLevel >= ERHIFeatureLevel::SM4)
+	if (CastShadow)
 	{
 		FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
 	}
@@ -302,7 +302,7 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 		return;
 	}
 
-	if (FeatureLevel >= ERHIFeatureLevel::SM4)
+	if (Scene->ShouldUseDeferredRenderer())
 	{
 		extern TAutoConsoleVariable<int32> CVarEarlyZPass;
 		int32 EarlyZPass = CVarEarlyZPass.GetValueOnRenderThread();

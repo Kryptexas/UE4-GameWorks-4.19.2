@@ -37,7 +37,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 	// Create an FViewInfo so we can initialize its RHI resources
 	//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 	FViewInfo View(&SceneView);
-	View.InitRHIResources();
+	View.InitRHIResources(nullptr);
 
 	const auto FeatureLevel = View.GetFeatureLevel();
 	

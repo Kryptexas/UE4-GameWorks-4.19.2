@@ -16,6 +16,17 @@ enum EOutputFormat
 	HDR_LINEAR_64,
 };
 
+static bool ShouldCacheShaderByOutputFormat(EOutputFormat OutputFormat)
+{
+	bool bSupportsMobileHDR = IsMobileHDR();
+	bool bShaderUsesLDR = (OutputFormat == LDR_GAMMA_32);
+	bool bShaderUsesHDR = !bShaderUsesLDR;
+
+	// only cache this shader if the LDR/HDR output matches what we currently support.  IsMobileHDR can't change, so we don't need
+	// the LDR shaders if we are doing HDR, and vice-versa.	
+	return (bShaderUsesLDR && !bSupportsMobileHDR) || (bShaderUsesHDR && bSupportsMobileHDR);
+}
+
 /**
  * The base shader type for vertex shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
  */
@@ -38,7 +49,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return IsES2Platform(Platform) && LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		return IsMobilePlatform(Platform) && LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -83,6 +94,11 @@ class TBasePassForForwardShadingVS : public TBasePassForForwardShadingVSBaseType
 	DECLARE_SHADER_TYPE(TBasePassForForwardShadingVS,MeshMaterial);
 public:
 	
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{		
+		return TBasePassForForwardShadingVSBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType) && ShouldCacheShaderByOutputFormat(OutputFormat);
+	}
+
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		TBasePassForForwardShadingVSBaseType<LightMapPolicyType>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
@@ -111,7 +127,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return IsES2Platform(Platform) && LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		return IsMobilePlatform(Platform) && LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -126,7 +142,7 @@ public:
 	{
 		LightMapPolicyType::PixelParametersType::Bind(Initializer.ParameterMap);
 		ReflectionCubemap.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap"));
-		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));
+		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));		
 	}
 	TBasePassForForwardShadingPSBaseType() {}
 
@@ -137,6 +153,7 @@ public:
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
+		FRHIPixelShader* PixelShader = GetPixelShader();
 		if (ReflectionCubemap.IsBound())
 		{
 			FTexture* ReflectionTexture = GBlackTextureCube;
@@ -151,10 +168,10 @@ public:
 			}
 
 			// Set the reflection cubemap
-			SetTextureParameter(RHICmdList, GetPixelShader(), ReflectionCubemap, ReflectionSampler, ReflectionTexture);
+			SetTextureParameter(RHICmdList, PixelShader, ReflectionCubemap, ReflectionSampler, ReflectionTexture);
 		}
 
-		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, PixelShader,VertexFactory,View,Proxy,BatchElement);		
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -162,25 +179,34 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		LightMapPolicyType::PixelParametersType::Serialize(Ar);
 		Ar << ReflectionCubemap;
-		Ar << ReflectionSampler;
+		Ar << ReflectionSampler;		
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 	FShaderResourceParameter ReflectionCubemap;
-	FShaderResourceParameter ReflectionSampler;
+	FShaderResourceParameter ReflectionSampler;	
 };
 
 
-template< typename LightMapPolicyType, EOutputFormat OutputFormat>
+template< typename LightMapPolicyType, EOutputFormat OutputFormat, bool bEnableSkyLight>
 class TBasePassForForwardShadingPS : public TBasePassForForwardShadingPSBaseType<LightMapPolicyType>
 {
 	DECLARE_SHADER_TYPE(TBasePassForForwardShadingPS,MeshMaterial);
 public:
+
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{		
+		// Only compile skylight version for lit materials on ES2 (Metal) or higher
+		const bool bShouldCacheBySkylight = !bEnableSkyLight || (Material->GetShadingModel() != MSM_Unlit);
+
+		return TBasePassForForwardShadingPSBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType) && ShouldCacheShaderByOutputFormat(OutputFormat) && bShouldCacheBySkylight;
+	}
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
-	{
+	{		
 		TBasePassForForwardShadingPSBaseType<LightMapPolicyType>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"), (uint32)(bEnableSkyLight ? 1 : 0));
 		OutEnvironment.SetDefine( TEXT("USE_HDR_MOSAIC"), OutputFormat == HDR_LINEAR_32 ? 1u : 0u );
 		OutEnvironment.SetDefine( TEXT("OUTPUT_GAMMA_SPACE"), OutputFormat == LDR_GAMMA_32 ? 1u : 0u );
 	}
@@ -229,7 +255,9 @@ public:
 		LightMapPolicyType InLightMapPolicy,
 		EBlendMode InBlendMode,
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
-		bool bOverrideWithShaderComplexity = false
+		bool bInEnableSkyLight,
+		bool bOverrideWithShaderComplexity,
+		ERHIFeatureLevel::Type FeatureLevel
 		):
 		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity),
 		LightMapPolicy(InLightMapPolicy),
@@ -239,17 +267,42 @@ public:
 		if (IsMobileHDR32bpp())
 		{
 			VertexShader = InMaterialResource.GetShader<TBasePassForForwardShadingVS<LightMapPolicyType, HDR_LINEAR_64> >(InVertexFactory->GetType());
-			PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_32> >(InVertexFactory->GetType());
+
+			if (bInEnableSkyLight)
+			{
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_32, true> >(InVertexFactory->GetType());
+			}
+			else
+			{
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_32, false> >(InVertexFactory->GetType());
+			}
 		}
 		else if (IsMobileHDR())
 		{
 			VertexShader = InMaterialResource.GetShader<TBasePassForForwardShadingVS<LightMapPolicyType, HDR_LINEAR_64> >(InVertexFactory->GetType());
-			PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_64> >(InVertexFactory->GetType());
+
+			if (bInEnableSkyLight)
+			{
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_64, true> >(InVertexFactory->GetType());
+			}
+			else
+			{
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_64, false> >(InVertexFactory->GetType());
+			}
+			
 		}
 		else
 		{
 			VertexShader = InMaterialResource.GetShader<TBasePassForForwardShadingVS<LightMapPolicyType, LDR_GAMMA_32> >(InVertexFactory->GetType());
-			PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32> >(InVertexFactory->GetType());
+
+			if (bInEnableSkyLight)
+			{
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32, true> >(InVertexFactory->GetType());
+			}
+			else
+			{
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32, false> >(InVertexFactory->GetType());
+			}			
 		}
 	}
 
@@ -466,32 +519,53 @@ void ProcessBasePassMeshForForwardShading(
 		? Parameters.Mesh.LCI->GetLightMapInteraction() 
 		: FLightMapInteraction();
 
-	if (LightMapInteraction.GetType() == LMIT_Texture)
+	if (bIsLitMaterial)
 	{
-		const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-			? Parameters.Mesh.LCI->GetShadowMapInteraction() 
-			: FShadowMapInteraction();
+		const FLightSceneInfo* SimpleDirectionalLight = Action.GetSimpleDirectionalLight();
+		const bool bUseMovableLight = SimpleDirectionalLight && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 
-		if (ShadowMapInteraction.GetType() == SMIT_Texture)
+		if (bUseMovableLight)
 		{
-			Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(
-				RHICmdList, 
-				Parameters,
-				TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>(),
-				TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
+			// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
+			if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+			{
+				Action.template Process<FMovableDirectionalLightCSMLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMLightingPolicy(), FMovableDirectionalLightCSMLightingPolicy::ElementDataType());
+			}
+			else
+			{
+				Action.template Process<FMovableDirectionalLightLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightLightingPolicy(), FMovableDirectionalLightLightingPolicy::ElementDataType());
+			}		
+		}
+		else if (LightMapInteraction.GetType() == LMIT_Texture)
+		{
+			const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
+				? Parameters.Mesh.LCI->GetShadowMapInteraction() 
+				: FShadowMapInteraction();
+
+			if (ShadowMapInteraction.GetType() == SMIT_Texture)
+			{
+				Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(
+					RHICmdList, 
+					Parameters,
+					TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>(),
+					TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
+			}
+			else
+			{
+				Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction );
+			}
+		}
+		else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
+			&& Parameters.PrimitiveSceneProxy
+			// Movable objects need to get their GI from the indirect lighting cache
+			&& Parameters.PrimitiveSceneProxy->IsMovable())
+		{
+			Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy>(RHICmdList, Parameters,FSimpleDirectionalLightAndSHIndirectPolicy(),FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH())); 
 		}
 		else
 		{
-			Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction );
+			Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
 		}
-	}
-	else if (bIsLitMaterial 
-		&& IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
-		&& Parameters.PrimitiveSceneProxy
-		// Movable objects need to get their GI from the indirect lighting cache
-		&& Parameters.PrimitiveSceneProxy->IsMovable())
-	{
-		Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy>(RHICmdList, Parameters,FSimpleDirectionalLightAndSHIndirectPolicy(),FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH())); 
 	}
 	else
 	{

@@ -12,6 +12,7 @@
 #include "LightmapCommon.usf"  
 #include "BRDF.usf"
 #include "SHCommon.usf"
+#include "ShadowFilteringCommon.usf"
 
 /** Prenormalized capture of the scene that's closest to the object being rendered. */
 #if !MATERIAL_FULLY_ROUGH
@@ -61,9 +62,7 @@ half DirectionalLightShadowing;
 void Main( 
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FForwardShadingBasePassInterpolantsVSToPS BasePassInterpolants,
-	#if ES2_PROFILE && (USE_HDR_MOSAIC || !COMPILER_GLSL_ES2)
 		in half4 SvPosition	: SV_Position,
-	#endif
 	OPTIONAL_IsFrontFace,
 	out half4 OutColor	: SV_Target0
 	)
@@ -81,15 +80,17 @@ void Main(
 	);
 	  
 	//Clip if the blend mode requires it.
-	GetMaterialCoverageAndClipping(MaterialParameters);
+	GetMaterialCoverageAndClipping(MaterialParameters);	
 
-#if COMPILER_HLSL	// Not sure why this isn't needed everywhere
+	//@mw todo:
+	//Go over with Brian to determine the proper defines to wrap it and test cases to fix it.
+	/*
 	float2 PixelPos = SvPosition - View.ViewRectMin.xy;	
 	MaterialParameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
 	MaterialParameters.ScreenPosition.zw = SvPosition.zw;
 	
 	MaterialParameters.ScreenPosition.xyz *= MaterialParameters.ScreenPosition.w;
-#endif
+	*/
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 #if DIFFUSE_SPEC_INPUTS
@@ -177,16 +178,65 @@ void Main(
 		#if SIMPLE_DYNAMIC_LIGHTING
 			Shadow = DirectionalLightShadowing;
 		#endif
-		
+			
+#if MOVABLE_DIRECTIONAL_LIGHT_CSM
+		// Cascaded Shadow Map
+		{
+			FPCFSamplerSettings Settings;			
+			Settings.ShadowDepthTexture = View.DirectionalLightShadowTexture;
+			Settings.ShadowDepthTextureSampler = View.DirectionalLightShadowSampler;
+			Settings.TransitionScale = View.DirectionalLightShadowTransition;
+			Settings.ShadowBufferSize = View.DirectionalLightShadowSize;
+			Settings.bSubsurface = false;
+			Settings.DensityMulConstant = 0;
+			Settings.ProjectionDepthBiasParameters = 0;
+						
+			float4 ShadowPosition;	
+#if MAX_FORWARD_SHADOWCASCADES == 2			
+			{				
+				if (MaterialParameters.ScreenPosition.w >= View.DirectionalLightShadowDistances.x)
+				{
+					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[1]);
+				}
+				else
+				{
+					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[0]);
+				}
+			}
+#else			
+			{
+				ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[0]);				
+			}
+#endif
+
+			// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
+			// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
+			float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
+			Settings.SceneDepth = LightSpacePixelDepthForOpaque;
+
+#if 0
+			half ShadowMap = Manual1x1PCF(ShadowPosition.xy, Settings);
+#else
+			half ShadowMap = Manual2x2PCF(ShadowPosition.xy, Settings);
+#endif
+			Shadow = min(Shadow, ShadowMap);
+		}
+#endif
+
 		half NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
 		half RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
 
 		Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
-
 		#if !MATERIAL_FULLY_ROUGH
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness);
 			// Environment map has been prenormalized, scale by lightmap luminance
 			Color += SpecularIBL * IndirectIrradiance * SpecularColor;
+		#endif
+
+		#if ENABLE_SKY_LIGHT
+			//@mw todo
+			// TODO: Also need to do specular.
+			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * View.SkyLightColor.rgb * DiffuseColor;    
 		#endif
 	#endif
 			 
@@ -232,8 +282,8 @@ void Main(
 		OutColor.rgb = sqrt( OutColor.rgb );
 	#endif
 
-	#if ES2_PROFILE && (!OUTPUT_GAMMA_SPACE)
-		#if COMPILER_GLSL_ES2
+	#if (ES2_PROFILE || ES3_1_PROFILE) && (!OUTPUT_GAMMA_SPACE)
+		#if COMPILER_GLSL_ES2 || METAL_PROFILE
 			#if USE_HDR_MOSAIC
 				OutColor.rgb = HdrMosaic(OutColor.rgb, SvPosition.xy);
 			#endif

@@ -373,7 +373,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	ParentSceneInfo(InParentSceneInfo),
 	DependentView(NULL),
 	ShadowId(INDEX_NONE),
-	PreShadowTranslation(Initializer.PreShadowTranslation),
+	PreShadowTranslation(Initializer.PreShadowTranslation),	
 	ShadowBounds(Initializer.SubjectBounds.Origin - Initializer.PreShadowTranslation, Initializer.SubjectBounds.SphereRadius),
 	X(0),
 	Y(0),
@@ -396,7 +396,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	bRayTracedDistanceFieldShadow(false)
 {
 	const FMatrix WorldToLightScaled = Initializer.WorldToLight * FScaleMatrix(Initializer.Scales);
-
+	
 	// Create an array of the extreme vertices of the subject's bounds.
 	FBoundingBoxVertexArray BoundsPoints;
 	FBoundingBoxEdgeArray BoundsEdges;
@@ -519,7 +519,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 ,	bPreShadow(false)
 ,	bRayTracedDistanceFieldShadow(Initializer.bRayTracedDistanceFieldShadow)
 ,	bValidTransform(true)
-{
+{	
 	FVector	XAxis, YAxis;
 	Initializer.FaceDirection.FindBestAxisVectors(XAxis,YAxis);
 	const FMatrix WorldToLightScaled = Initializer.WorldToLight * FScaleMatrix(Initializer.Scales);
@@ -1039,7 +1039,7 @@ void FDeferredShadingSceneRenderer::UpdatePreshadowCache()
 	}
 }
 
-bool FDeferredShadingSceneRenderer::ShouldCreateObjectShadowForStationaryLight(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bInteractionShadowMapped) const
+bool FSceneRenderer::ShouldCreateObjectShadowForStationaryLight(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bInteractionShadowMapped) const
 {
 	const bool bCreateObjectShadowForStationaryLight = 
 		LightSceneInfo->bCreatePerObjectShadowsForDynamicObjects 
@@ -1580,7 +1580,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 	}
 }
 
-void FDeferredShadingSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList)
+void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList)
 {
 	// Initialize the views' ProjectedShadowVisibilityMaps and remove shadows without subjects.
 	for(TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights);LightIt;++LightIt)
@@ -1716,7 +1716,7 @@ void FDeferredShadingSceneRenderer::InitProjectedShadowVisibility(FRHICommandLis
 	}
 }
 
-inline void FDeferredShadingSceneRenderer::GatherShadowsForPrimitiveInner(
+inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 	const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact, 
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
@@ -1826,7 +1826,7 @@ inline void FDeferredShadingSceneRenderer::GatherShadowsForPrimitiveInner(
 	}
 }
 
-void FDeferredShadingSceneRenderer::GatherShadowPrimitives(
+void FSceneRenderer::GatherShadowPrimitives(
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 	bool bStaticSceneOnly
@@ -1929,6 +1929,173 @@ void FDeferredShadingSceneRenderer::GatherShadowPrimitives(
 	}
 }
 
+void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, FVisibleLightInfo& VisibleLightInfo, FLightSceneInfo& LightSceneInfo)
+{
+	// Allow each view to create a whole scene view dependent shadow
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		FViewInfo& View = Views[ViewIndex];
+
+		TArray<float, TInlineAllocator<2> > FadeAlphas;
+		FadeAlphas.Init(0.0f, Views.Num());
+		FadeAlphas[ViewIndex] = 1.0f;
+
+		if (View.StereoPass == eSSP_LEFT_EYE
+			&& Views.IsValidIndex(ViewIndex + 1)
+			&& Views[ViewIndex + 1].StereoPass == eSSP_RIGHT_EYE)
+		{
+			FadeAlphas[ViewIndex + 1] = 1.0f;
+		}		
+
+		// If rendering in stereo mode we render shadow depths only for the left eye, but project for both eyes!
+		if (View.StereoPass != eSSP_RIGHT_EYE)
+		{
+			const int32 NumSplits = LightSceneInfo.Proxy->GetNumViewDependentWholeSceneShadows(View);
+			for (int32 SplitIndex = 0; SplitIndex < NumSplits; SplitIndex++)
+			{
+				FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;
+
+				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, SplitIndex, ProjectedShadowInitializer))
+				{
+					const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetShadowDepthTextureResolution();
+					// Create the projected shadow info.
+					FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo(
+						&LightSceneInfo,
+						&View,
+						ProjectedShadowInitializer,
+						//@todo - remove the shadow border for whole scene shadows
+						ShadowBufferResolution.X - SHADOW_BORDER * 2,
+						ShadowBufferResolution.Y - SHADOW_BORDER * 2,
+						false	// no RSM
+						);
+
+					ProjectedShadowInfo->FadeAlphas = FadeAlphas;
+
+					FVisibleLightInfo& LightViewInfo = VisibleLightInfos[LightSceneInfo.Id];
+					VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
+					VisibleLightInfo.AllProjectedShadows.Add(ProjectedShadowInfo);
+					ShadowInfos.Add(ProjectedShadowInfo);
+				}
+			}
+
+			FSceneViewState* ViewState = (FSceneViewState*)View.State;
+			if (ViewState)
+			{
+				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+
+				if (LightPropagationVolume && View.FinalPostProcessSettings.LPVIntensity > 0)
+				{
+					// Generate the RSM shadow info
+					FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;
+					FLightPropagationVolume& Lpv = *LightPropagationVolume;
+
+					if (LightSceneInfo.Proxy->GetViewDependentRsmWholeSceneProjectedShadowInitializer(View, Lpv.GetBoundingBox(), ProjectedShadowInitializer))
+					{
+						const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapTextureResolution();
+
+						// Create the projected shadow info.
+						FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo(
+							&LightSceneInfo,
+							&View,
+							ProjectedShadowInitializer,
+							ShadowBufferResolution.X,
+							ShadowBufferResolution.Y,
+							true);
+
+						FVisibleLightInfo& LightViewInfo = VisibleLightInfos[LightSceneInfo.Id];
+						VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
+						VisibleLightInfo.AllProjectedShadows.Add(ProjectedShadowInfo);
+						VisibleLightInfo.ReflectiveShadowMaps.Add(ProjectedShadowInfo);
+						ShadowInfos.Add(ProjectedShadowInfo); // or separate list?
+					}
+				}
+			}
+		}
+	}
+}
+
+void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
+{	
+	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> ViewDependentWholeSceneShadows;
+	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> PreShadows;
+	{
+		SCOPE_CYCLE_COUNTER(STAT_InitDynamicShadowsTime);
+
+		for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+		{
+			const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
+			FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
+			
+			// Only consider lights that may have shadows.
+			if (LightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows())
+			{
+				// see if the light is visible in any view
+				bool bIsVisibleInAnyView = false;
+
+				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+				{
+					// View frustums are only checked when lights have visible primitives or have modulated shadows,
+					// so we don't need to check for that again here
+					bIsVisibleInAnyView = LightSceneInfo->ShouldRenderLight(Views[ViewIndex]);
+
+					if (bIsVisibleInAnyView)
+					{
+						break;
+					}
+				}
+
+				if (bIsVisibleInAnyView)
+				{									
+					AddViewDependentWholeSceneShadowsForView(ViewDependentWholeSceneShadows, VisibleLightInfo, *LightSceneInfo);					
+				}
+
+				const int32 NumShadows = VisibleLightInfo.AllProjectedShadows.Num();
+				if (NumShadows > 0)
+				{
+					//create the shadow depth texture and/or surface
+					const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetShadowDepthTextureResolution();
+					const int32 MaxWide = GMaxShadowDepthBufferSizeX / ShadowBufferResolution.X;
+					const int32 MaxHigh = GMaxShadowDepthBufferSizeY / ShadowBufferResolution.Y;
+
+
+					const int32 NumWide = FMath::Min(NumShadows, MaxWide);
+					const int32 NumHigh = FMath::Min(((NumShadows - 1) / MaxWide) + 1, MaxHigh);
+
+					const FIntPoint AtlasShadowBufferResolution(ShadowBufferResolution.X * NumWide, ShadowBufferResolution.Y * NumHigh);
+					GSceneRenderTargets.AllocateForwardShadingShadowDepthTarget(AtlasShadowBufferResolution);
+
+
+					// Allocate atlas shadow texture space to the shadows.				
+					FTextureLayout ShadowLayout(1, 1, AtlasShadowBufferResolution.X, AtlasShadowBufferResolution.Y, false, false);
+					for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
+					{
+						FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.AllProjectedShadows[ShadowIndex];
+						if (!ProjectedShadowInfo->bRendered)
+						{
+							if (ShadowLayout.AddElement(
+								ProjectedShadowInfo->X,
+								ProjectedShadowInfo->Y,
+								ProjectedShadowInfo->ResolutionX + SHADOW_BORDER * 2,
+								ProjectedShadowInfo->ResolutionY + SHADOW_BORDER * 2)
+								)
+							{
+								ProjectedShadowInfo->bAllocated = true;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Calculate visibility of the projected shadows.
+		InitProjectedShadowVisibility(RHICmdList);
+	}
+
+	// Gathers the list of primitives used to draw various shadow types
+	GatherShadowPrimitives(PreShadows, ViewDependentWholeSceneShadows, false);
+}
+
 void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DynamicShadowSetupTime);
@@ -2003,87 +2170,7 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate&
 					// Allow movable and stationary lights to create CSM, or static lights that are unbuilt
 					if (!LightSceneInfo->Proxy->HasStaticLighting() || bCreateShadowToPreviewStaticLight)
 					{
-						TArray<float, TInlineAllocator<2> > FadeAlphas;
-						// Allow each view to create a whole scene view dependent shadow
-						for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-						{
-							FViewInfo& View = Views[ViewIndex];
-
-							// If rendering in stereo mode we render shadow depths only for the left eye, but project for both eyes!
-							if (View.StereoPass != eSSP_RIGHT_EYE)
-							{
-								FadeAlphas.Init(0.0f,Views.Num());
-								FadeAlphas[ViewIndex] = 1.0f;
-
-								if (View.StereoPass == eSSP_LEFT_EYE
-									&& Views.IsValidIndex(ViewIndex + 1)
-									&& Views[ViewIndex + 1].StereoPass == eSSP_RIGHT_EYE)
-								{
-									FadeAlphas[ViewIndex + 1] = 1.0f;
-								}
-
-								const int32 NumSplits = LightSceneInfo->Proxy->GetNumViewDependentWholeSceneShadows(View);
-								for (int32 SplitIndex = 0; SplitIndex < NumSplits; SplitIndex++)
-								{
-									FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;
-
-									if (LightSceneInfo->Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, SplitIndex, ProjectedShadowInitializer))
-									{
-										const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetShadowDepthTextureResolution();
-										// Create the projected shadow info.
-										FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(),1,16) FProjectedShadowInfo(
-											LightSceneInfo,
-											&View,
-											ProjectedShadowInitializer,
-											//@todo - remove the shadow border for whole scene shadows
-											ShadowBufferResolution.X - SHADOW_BORDER * 2,
-											ShadowBufferResolution.Y - SHADOW_BORDER * 2,
-											false	// no RSM
-											);
-
-										ProjectedShadowInfo->FadeAlphas = FadeAlphas;
-
-										FVisibleLightInfo& LightViewInfo = VisibleLightInfos[LightSceneInfo->Id];
-										VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
-										VisibleLightInfo.AllProjectedShadows.Add(ProjectedShadowInfo);
-										ViewDependentWholeSceneShadows.Add(ProjectedShadowInfo);
-									}
-								}
-
-								FSceneViewState* ViewState = (FSceneViewState*)View.State;
-								if(ViewState)
-								{
-									FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
-
-									if (LightPropagationVolume && View.FinalPostProcessSettings.LPVIntensity > 0 )
-									{
-										// Generate the RSM shadow info
-										FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;
-										FLightPropagationVolume& Lpv = *LightPropagationVolume;
-
-										if (LightSceneInfo->Proxy->GetViewDependentRsmWholeSceneProjectedShadowInitializer( View, Lpv.GetBoundingBox(), ProjectedShadowInitializer ))
-										{
-											const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapTextureResolution();
-
-											// Create the projected shadow info.
-											FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(),1,16) FProjectedShadowInfo(
-												LightSceneInfo,
-												&View,
-												ProjectedShadowInitializer,
-												ShadowBufferResolution.X,
-												ShadowBufferResolution.Y,
-												true);
-
-											FVisibleLightInfo& LightViewInfo = VisibleLightInfos[LightSceneInfo->Id];
-											VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
-											VisibleLightInfo.AllProjectedShadows.Add(ProjectedShadowInfo);
-											VisibleLightInfo.ReflectiveShadowMaps.Add(ProjectedShadowInfo); 
-											ViewDependentWholeSceneShadows.Add(ProjectedShadowInfo); // or separate list?
-										}
-									}
-								}
-							}
-						}
+						AddViewDependentWholeSceneShadowsForView(ViewDependentWholeSceneShadows, VisibleLightInfo, *LightSceneInfo);
 
 						// Look for individual primitives with a dynamic shadow.
 						for (FLightPrimitiveInteraction* Interaction = LightSceneInfo->DynamicPrimitiveList;

@@ -102,7 +102,6 @@ public:
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return true; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return true; }
 	static FORCEINLINE bool SupportsVolumeTextureRendering()			{ return false; }
-	static FORCEINLINE bool SupportsGSRenderTargetLayerSwitchingToMips() { return true; }
 	static FORCEINLINE bool SupportsShaderFramebufferFetch()			{ return false; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return true; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return true; }

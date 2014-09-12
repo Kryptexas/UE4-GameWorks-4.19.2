@@ -9,36 +9,3 @@
 extern ENGINE_API int32 GReflectionCaptureSize;
 
 extern void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, FTextureRHIRef LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap);
-
-class FDownsampleGS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FDownsampleGS,Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	FDownsampleGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FGlobalShader(Initializer)
-	{
-		CubeFace.Bind(Initializer.ParameterMap,TEXT("CubeFace"));
-	}
-	FDownsampleGS() {}
-
-	void SetParameters(FRHICommandList& RHICmdList, int32 CubeFaceValue)
-	{
-		SetShaderValue(RHICmdList, GetGeometryShader(), CubeFace, CubeFaceValue);
-	}
-
-	virtual bool Serialize(FArchive& Ar)
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << CubeFace;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-	FShaderParameter CubeFace;
-};

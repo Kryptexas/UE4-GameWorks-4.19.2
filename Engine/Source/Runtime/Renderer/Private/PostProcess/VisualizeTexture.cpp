@@ -24,7 +24,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+		return true;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -152,8 +152,7 @@ class FVisualizeTexturePresentPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
-
+		return true;
 	}
 
 	/** Default constructor. */
@@ -909,7 +908,7 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
 	FeatureLevel = View.GetFeatureLevel();
-	bEnabled = FeatureLevel >= ERHIFeatureLevel::ES2;
+	bEnabled = true;
 	ViewRect = View.UnscaledViewRect;
 	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 

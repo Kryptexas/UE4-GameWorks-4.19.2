@@ -682,7 +682,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 		Proxy = new FLandscapeComponentSceneProxy(this, NULL);
 #endif
 	}
-	else if (FeatureLevel >= ERHIFeatureLevel::ES2)
+	else
 	{
 #if WITH_EDITOR
 		if (!PlatformData.HasValidPlatformData()) // Deferred generation

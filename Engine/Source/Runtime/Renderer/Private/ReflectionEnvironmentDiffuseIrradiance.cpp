@@ -38,7 +38,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return true;
 	}
 
 	FCopyDiffuseIrradiancePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -116,7 +116,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return true;
 	}
 
 	FAccumulateDiffuseIrradiancePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -191,7 +191,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return true;
 	}
 
 	FAccumulateCubeFacesPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -245,75 +245,37 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, ERHIFeatureL
 		{
 			const int32 MipIndex = 0;
 			const int32 MipSize = GDiffuseIrradianceCubemapSize;
-			FSceneRenderTargetItem& EffectiveRT = GetEffectiveDiffuseIrradianceRenderTarget(MipIndex);
-			if (GSupportsGSRenderTargetLayerSwitchingToMips)
+			FSceneRenderTargetItem& EffectiveRT = GetEffectiveDiffuseIrradianceRenderTarget(MipIndex);			
+			
+			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 			{
-				SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, 0, NULL);
-
+				SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, 0, CubeFace, NULL);
+					
 				const FIntRect ViewRect(0, 0, MipSize, MipSize);
 				RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
 				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-
-				TShaderMapRef<FScreenVSForGS> VertexShader(ShaderMap);
-				TShaderMapRef<FDownsampleGS> GeometryShader(ShaderMap);
 				TShaderMapRef<FCopyDiffuseIrradiancePS> PixelShader(ShaderMap);
-
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
-
-				// Draw each face with a geometry shader that routes to the correct render target slice
-				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
-				{
-					GeometryShader->SetParameters(RHICmdList, CubeFace);
-
-					PixelShader->SetParameters(RHICmdList, CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
-
-					DrawRectangle( 
-						RHICmdList,
-						ViewRect.Min.X, ViewRect.Min.Y, 
-						ViewRect.Width(), ViewRect.Height(),
-						ViewRect.Min.X, ViewRect.Min.Y, 
-						ViewRect.Width(), ViewRect.Height(),
-						FIntPoint(ViewRect.Width(), ViewRect.Height()),
-						FIntPoint(MipSize, MipSize),
-						*VertexShader);
-
-					RHICmdList.CopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
-				}
-			}
-			else
-			{
-				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
-				{
-					SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, 0, CubeFace, NULL);
 					
-					const FIntRect ViewRect(0, 0, MipSize, MipSize);
-					RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-					RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+				TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 					
-					TShaderMapRef<FScreenVSForGS> VertexShader(ShaderMap);
-					TShaderMapRef<FCopyDiffuseIrradiancePS> PixelShader(ShaderMap);
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 					
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				PixelShader->SetParameters(RHICmdList, CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
 					
-					PixelShader->SetParameters(RHICmdList, CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
+				DrawRectangle(
+					RHICmdList,
+					ViewRect.Min.X, ViewRect.Min.Y,
+					ViewRect.Width(), ViewRect.Height(),
+					ViewRect.Min.X, ViewRect.Min.Y,
+					ViewRect.Width(), ViewRect.Height(),
+					FIntPoint(ViewRect.Width(), ViewRect.Height()),
+					FIntPoint(MipSize, MipSize),
+					*VertexShader);
 					
-					DrawRectangle(
-						RHICmdList,
-						ViewRect.Min.X, ViewRect.Min.Y,
-						ViewRect.Width(), ViewRect.Height(),
-						ViewRect.Min.X, ViewRect.Min.Y,
-						ViewRect.Width(), ViewRect.Height(),
-						FIntPoint(ViewRect.Width(), ViewRect.Height()),
-						FIntPoint(MipSize, MipSize),
-						*VertexShader);
-					
-					RHICmdList.CopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
-				}
-			}
+				RHICmdList.CopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
+			}			
 		}
 
 		const int32 NumMips = FMath::CeilLogTwo(GDiffuseIrradianceCubemapSize) + 1;
@@ -328,82 +290,46 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, ERHIFeatureL
 				FSceneRenderTargetItem& EffectiveRT = GetEffectiveDiffuseIrradianceRenderTarget(MipIndex);
 				FSceneRenderTargetItem& EffectiveSource = GetEffectiveDiffuseIrradianceSourceTexture(MipIndex);
 				check(EffectiveRT.TargetableTexture != EffectiveSource.ShaderResourceTexture);
-
-				if (GSupportsGSRenderTargetLayerSwitchingToMips)
+				
+				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 				{
-					SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, MipIndex, NULL);
-
+					SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, MipIndex, CubeFace, NULL);
+						
 					const FIntRect ViewRect(0, 0, MipSize, MipSize);
 					RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 					RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-
-					TShaderMapRef<FScreenVSForGS> VertexShader(ShaderMap);
-					TShaderMapRef<FDownsampleGS> GeometryShader(ShaderMap);
 					TShaderMapRef<FAccumulateDiffuseIrradiancePS> PixelShader(ShaderMap);
-
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
-
-					// Draw each face with a geometry shader that routes to the correct render target slice
-					for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
-					{
-						GeometryShader->SetParameters(RHICmdList, CubeFace);
-
-						PixelShader->SetParameters(RHICmdList, CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
-
-						DrawRectangle( 
-							RHICmdList,
-							ViewRect.Min.X, ViewRect.Min.Y, 
-							ViewRect.Width(), ViewRect.Height(),
-							ViewRect.Min.X, ViewRect.Min.Y, 
-							ViewRect.Width(), ViewRect.Height(),
-							FIntPoint(ViewRect.Width(), ViewRect.Height()),
-							FIntPoint(MipSize, MipSize),
-							*VertexShader);
-
-						RHICmdList.CopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
-					}
-				}
-				else
-				{
-					for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
-					{
-						SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, MipIndex, CubeFace, NULL);
 						
-						const FIntRect ViewRect(0, 0, MipSize, MipSize);
-						RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
-						RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-						RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+					TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 						
-						TShaderMapRef<FScreenVSForGS> VertexShader(ShaderMap);
-						TShaderMapRef<FAccumulateDiffuseIrradiancePS> PixelShader(ShaderMap);
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 						
-						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					PixelShader->SetParameters(RHICmdList, CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
 						
-						PixelShader->SetParameters(RHICmdList, CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
+					DrawRectangle(
+						RHICmdList,
+						ViewRect.Min.X, ViewRect.Min.Y,
+						ViewRect.Width(), ViewRect.Height(),
+						ViewRect.Min.X, ViewRect.Min.Y,
+						ViewRect.Width(), ViewRect.Height(),
+						FIntPoint(ViewRect.Width(), ViewRect.Height()),
+						FIntPoint(MipSize, MipSize),
+						*VertexShader);
 						
-						DrawRectangle(
-							RHICmdList,
-							ViewRect.Min.X, ViewRect.Min.Y,
-							ViewRect.Width(), ViewRect.Height(),
-							ViewRect.Min.X, ViewRect.Min.Y,
-							ViewRect.Width(), ViewRect.Height(),
-							FIntPoint(ViewRect.Width(), ViewRect.Height()),
-							FIntPoint(MipSize, MipSize),
-							*VertexShader);
-						
-						RHICmdList.CopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
-					}
-				}
+					RHICmdList.CopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
+				}				
 			}
 		}
 
 		{
 			// Gather the cubemap face results and normalize, copy this coefficient to GSceneRenderTargets.SkySHIrradianceMap
 			FSceneRenderTargetItem& EffectiveRT = GSceneRenderTargets.SkySHIrradianceMap->GetRenderTargetItem();
-			SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, 0, NULL);
+
+			//load/store actions so we don't lose results as we render one pixel at a time on tile renderers.
+			FRHIRenderTargetView RTV(EffectiveRT.TargetableTexture, 0, -1, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+			RHICmdList.SetRenderTargets(1, &RTV, nullptr, 0, nullptr);
 
 			const FIntRect ViewRect(CoefficientIndex, 0, CoefficientIndex + 1, 1);
 			RHICmdList.SetViewport(0, 0, 0.0f, FSHVector3::MaxSHBasis, 1, 1.0f);

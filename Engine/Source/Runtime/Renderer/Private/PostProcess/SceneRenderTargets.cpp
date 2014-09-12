@@ -1122,16 +1122,13 @@ static TCHAR* const GetTranslucencyShadowTransmissionName(uint32 Id)
 
 void FSceneRenderTargets::AllocateReflectionTargets()
 {	
-	if (CurrentFeatureLevel >= ERHIFeatureLevel::ES2 && GSupportsRenderTargetFormat_PF_FloatRGBA)
+	if (GSupportsRenderTargetFormat_PF_FloatRGBA)
 	{
 		extern ENGINE_API int32 GReflectionCaptureSize;
 		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
 		
-		uint32 CubeTexFlags = 0;
-		if (!GSupportsGSRenderTargetLayerSwitchingToMips)
-		{
-			CubeTexFlags = TexCreate_TargetArraySlicesIndependently;
-		}
+		// We write to these cubemap faces individually during filtering
+		uint32 CubeTexFlags = TexCreate_TargetArraySlicesIndependently;
 
 		{
 			// Create scratch cubemaps for filtering passes

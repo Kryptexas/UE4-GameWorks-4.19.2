@@ -967,4 +967,31 @@ private:
 	FCachedPointIndirectLightingPolicy CachedPointIndirectLightingPolicy;
 };
 
+class FMovableDirectionalLightLightingPolicy : public FNoLightMapPolicy
+{
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		return Material->GetShadingModel() != MSM_Unlit;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"),TEXT("1"));
+		FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+};
+
+class FMovableDirectionalLightCSMLightingPolicy : public FNoLightMapPolicy
+{
+public:
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		return Material->GetShadingModel() != MSM_Unlit;
+	}	
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
+};
+
 #endif // __LIGHTMAPRENDERING_H__

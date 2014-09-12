@@ -667,7 +667,7 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
@@ -752,13 +752,13 @@ private:
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
-	void RenderDepthInner(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
 
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view
 	*/
 	friend class FRenderDepthDynamicThreadTask;
-	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
 
 	void GetShadowTypeNameForDrawEvent(FString& TypeName) const;
 
@@ -1007,8 +1007,6 @@ public:
 		ShadowBufferSize.Bind(ParameterMap,TEXT("ShadowBufferSize"));
 		ShadowDepthTexture.Bind(ParameterMap,TEXT("ShadowDepthTexture"));
 		ShadowDepthTextureSampler.Bind(ParameterMap,TEXT("ShadowDepthTextureSampler"));
-		ShadowDepthTextureObject.Bind(ParameterMap,TEXT("ShadowDepthTextureObject"));
-		ShadowDepthSampler.Bind(ParameterMap,TEXT("ShadowDepthSampler"));
 		ProjectionDepthBias.Bind(ParameterMap,TEXT("ProjectionDepthBiasParameters"));
 		FadePlaneOffset.Bind(ParameterMap,TEXT("FadePlaneOffset"));
 		InvFadePlaneLength.Bind(ParameterMap,TEXT("InvFadePlaneLength"));
@@ -1044,14 +1042,13 @@ public:
 		FTexture2DRHIRef ShadowDepthTextureValue = GSceneRenderTargets.GetShadowDepthZTexture(ShadowInfo->bAllocatedInPreshadowCache);
 		FSamplerStateRHIParamRef DepthSamplerState = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
-		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);
-		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTextureObject, ShadowDepthTextureValue);
+		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);		
 
-		if (ShadowDepthSampler.IsBound())
+		if (ShadowDepthTextureSampler.IsBound())
 		{
 			RHICmdList.SetShaderSampler(
 				ShaderRHI, 
-				ShadowDepthSampler.GetBaseIndex(), 
+				ShadowDepthTextureSampler.GetBaseIndex(),
 				DepthSamplerState
 				);
 		}
@@ -1075,8 +1072,6 @@ public:
 		Ar << P.ShadowBufferSize;
 		Ar << P.ShadowDepthTexture;
 		Ar << P.ShadowDepthTextureSampler;
-		Ar << P.ShadowDepthTextureObject;
-		Ar << P.ShadowDepthSampler;
 		Ar << P.ProjectionDepthBias;
 		Ar << P.FadePlaneOffset;
 		Ar << P.InvFadePlaneLength;
@@ -1091,8 +1086,6 @@ private:
 	FShaderParameter ShadowBufferSize;
 	FShaderResourceParameter ShadowDepthTexture;
 	FShaderResourceParameter ShadowDepthTextureSampler;
-	FShaderResourceParameter ShadowDepthTextureObject;
-	FShaderResourceParameter ShadowDepthSampler;
 	FShaderParameter ProjectionDepthBias;
 	FShaderParameter FadePlaneOffset;
 	FShaderParameter InvFadePlaneLength;

@@ -183,6 +183,30 @@ public:
 
 	bool ShouldRenderLight(const FViewInfo& View) const;
 
+	/** Encapsulates all View-Independent reasons to have this light render. */
+	bool ShouldRenderLightViewIndependent() const
+	{
+		return !Proxy->GetColor().IsAlmostBlack()
+			// Only render lights with dynamic lighting or unbuilt static lights
+			&& (!Proxy->HasStaticLighting() || !bPrecomputedLightingIsValid);
+	}
+
+	/** Encapsulates all View-Independent reasons to render ViewIndependentWholeSceneShadows for this light */
+	bool ShouldRenderViewIndependentWholeSceneShadows() const
+	{
+		bool bShouldRenderLight = ShouldRenderLightViewIndependent();
+		bool bCastDynamicShadow = Proxy->CastsDynamicShadow();
+		
+		// Also create a whole scene shadow for lights with precomputed shadows that are unbuilt
+		const bool bCreateShadowToPreviewStaticLight =
+			Proxy->HasStaticShadowing()
+			&& bCastDynamicShadow
+			&& !bPrecomputedLightingIsValid;
+
+		bool bShouldRenderShadow = bShouldRenderLight && bCastDynamicShadow && (!Proxy->HasStaticLighting() || bCreateShadowToPreviewStaticLight);
+		return bShouldRenderShadow;
+	}
+
 	/** Hash function. */
 	friend uint32 GetTypeHash(const FLightSceneInfo* LightSceneInfo)
 	{

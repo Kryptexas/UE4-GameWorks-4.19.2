@@ -446,12 +446,13 @@ public:
 
 	/** Creates the view's uniform buffer given a set of view transforms. */
 	TUniformBufferRef<FViewUniformShaderParameters> CreateUniformBuffer(
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
 		FBox* OutTranslucentCascadeBoundsArray, 
 		int32 NumTranslucentCascades) const;
 
 	/** Initializes the RHI resources used by this view. */
-	void InitRHIResources();
+	void InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo);
 
 	/** Determines distance culling and fades if the state changes */
 	bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
@@ -556,6 +557,47 @@ protected:
 
 	// Shared functionality between all scene renderers
 
+	/** Generates FProjectedShadowInfos for all wholesceneshadows on the given light.*/
+	void AddViewDependentWholeSceneShadowsForView(TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, FVisibleLightInfo& VisibleLightInfo, FLightSceneInfo& LightSceneInfo);
+
+	/**
+	* Used by RenderLights to figure out if projected shadows need to be rendered to the attenuation buffer.
+	* Or to render a given shadowdepth map for forward rendering.
+	*
+	* @param LightSceneInfo Represents the current light
+	* @return true if anything needs to be rendered
+	*/
+	bool CheckForProjectedShadows(const FLightSceneInfo* LightSceneInfo) const;
+
+	/** Returns whether a per object shadow should be created due to the light being a stationary light. */
+	bool ShouldCreateObjectShadowForStationaryLight(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bInteractionShadowMapped) const;
+
+	/** Gathers the list of primitives used to draw various shadow types */
+	void GatherShadowPrimitives(
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		bool bReflectionCaptureScene);
+
+	/**
+	* Checks to see if this primitive is affected by various shadow types
+	*
+	* @param PrimitiveSceneInfoCompact The primitive to check for shadow interaction
+	* @param PreShadows The list of pre-shadows to check against
+	*/
+	void GatherShadowsForPrimitiveInner(const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		bool bReflectionCaptureScene);
+
+	/** Gets a readable light name for use with a draw event. */
+	static void GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy, FString& LightNameWithLevel);
+
+	/** Gathers simple lights from visible primtives in the passed in views. */
+	static void GatherSimpleLights(const FSceneViewFamily& ViewFamily, const TArray<FViewInfo>& Views, FSimpleLightArray& SimpleLights);
+
+	/** Calculates projected shadow visibility. */
+	void InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList);	
+
 	/** Performs once per frame setup prior to visibility determination. */
 	void PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdList);
 
@@ -593,7 +635,7 @@ protected:
 	void OnStartFrame();
 
 	/** Renders the scene's distortion */
-	void RenderDistortion(FRHICommandListImmediate& RHICmdList);
+	void RenderDistortion(FRHICommandListImmediate& RHICmdList);	
 };
 
 
@@ -616,6 +658,9 @@ protected:
 
 	void InitViews(FRHICommandListImmediate& RHICmdList);
 
+	/** Finds the visible dynamic shadows for each view. */
+	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
+
 	/** Renders the opaque base pass for forward shading. */
 	void RenderForwardShadingBasePass(FRHICommandListImmediate& RHICmdList);
 
@@ -624,4 +669,15 @@ protected:
 
 	/** Renders the base pass for translucency. */
 	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
+
+	/** Renders any necessary shadowmaps. */
+	void RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList);
+
+	/**
+	  * Used by RenderShadowDepthMaps to render shadowmap for the given light.
+	  *
+	  * @param LightSceneInfo Represents the current light
+	  * @return true if anything got rendered
+	  */
+	bool RenderShadowDepthMap(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
 };

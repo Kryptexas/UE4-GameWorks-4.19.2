@@ -620,6 +620,9 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		!LightSceneInfo->Proxy->HasStaticLighting())
 	{
 		SimpleDirectionalLight = LightSceneInfo;
+
+		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+		bScenesPrimitivesNeedStaticMeshElementUpdate = !ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1068,6 +1071,8 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	{
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
+			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+			bScenesPrimitivesNeedStaticMeshElementUpdate = !ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 			SimpleDirectionalLight = NULL;
 		}
 
@@ -1615,6 +1620,8 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 		BasePassForForwardShadingLowQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 	}
 
 	PositionOnlyDepthDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
@@ -1668,7 +1675,7 @@ void FScene::Release()
 					*FString::Printf(TEXT("Component Name: %s World Name: %s Component Mesh: %s"), 
 										*ActorComponent->GetFullName(), 
 										*GetWorld()->GetFullName(), 
- 										Cast<UStaticMeshComponent>(ActorComponent) ? *CastChecked<UStaticMeshComponent>(ActorComponent)->StaticMesh->GetFullName() : TEXT("Not a static mesh"))) )
+										Cast<UStaticMeshComponent>(ActorComponent) ? *CastChecked<UStaticMeshComponent>(ActorComponent)->StaticMesh->GetFullName() : TEXT("Not a static mesh"))) )
 			{
 				bTriggeredOnce = true;
 				break;	
@@ -1826,6 +1833,10 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_Default]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_Default]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightCSMDrawList[EBasePass_Default]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightCSMDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(HitProxyDrawList);
 	DUMP_DRAW_LIST(HitProxyDrawList_OpaqueOnly);
 	DUMP_DRAW_LIST(VelocityDrawList);
@@ -1991,6 +2002,8 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingNoLightMapDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingLowQualityLightMapDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightCSMDrawList, InOffset);
 
 	// Motion blur 
 	MotionBlurInfoData.ApplyOffset(InOffset);
@@ -2249,6 +2262,18 @@ template<>
 TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHIndirectPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightLightingPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightCSMLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightCSMLightingPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType];
 }
 
 /*-----------------------------------------------------------------------------

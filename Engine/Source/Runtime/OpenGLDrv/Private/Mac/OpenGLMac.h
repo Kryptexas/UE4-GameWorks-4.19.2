@@ -71,9 +71,6 @@ struct FMacOpenGL : public FOpenGL3
 		MacGetQueryObject(QueryId, QueryMode, OutResult);
 	}
 	
-	// A driver bug with Nvidia cards on mac causes rendering with GL_LayerIndex to target different cubemap faces when rendering to mip > 0 to always go to the +X cube face
-	static FORCEINLINE bool SupportsGSRenderTargetLayerSwitchingToMips() { return false; }
-
 	static FORCEINLINE void InitDebugContext() UGL_OPTIONAL_VOID
 
 	static FORCEINLINE void LabelObject(GLenum Type, GLuint Object, const ANSICHAR* Name)

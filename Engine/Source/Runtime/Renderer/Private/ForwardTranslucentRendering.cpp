@@ -128,6 +128,7 @@ public:
 		) const
 	{
 		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
+		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
 		TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
@@ -136,7 +137,9 @@ public:
 			LightMapPolicy,
 			Parameters.BlendMode,
 			Parameters.TextureMode,
-			View.Family->EngineShowFlags.ShaderComplexity
+			Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
+			View.Family->EngineShowFlags.ShaderComplexity,
+			View.GetFeatureLevel()
 			);
 
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));

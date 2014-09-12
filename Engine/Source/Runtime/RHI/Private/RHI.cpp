@@ -169,7 +169,6 @@ bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;
 bool GSupportsVolumeTextureRendering = true;
-bool GSupportsGSRenderTargetLayerSwitchingToMips = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 float GPixelCenterOffset = 0;

@@ -630,7 +630,6 @@ static void InitRHICapabilitiesForGL()
 #endif
 
 	GSupportsVolumeTextureRendering = FOpenGL::SupportsVolumeTextureRendering();
-	GSupportsGSRenderTargetLayerSwitchingToMips = FOpenGL::SupportsGSRenderTargetLayerSwitchingToMips();
 	GSupportsRenderDepthTargetableShaderResources = true;
 	GSupportsVertexTextureFetch = true;
 	GSupportsRenderTargetFormat_PF_G8 = true;
@@ -676,7 +675,7 @@ static void InitRHICapabilitiesForGL()
 
 	GLenum depthFormat = FOpenGL::GetDepthFormat();
 
-	// Initialize the platform pixel format map.						 InternalFormat						InternalFormatSRGB							Format				Type								bCompressed
+	// Initialize the platform pixel format map.					 InternalFormat						InternalFormatSRGB							Format				Type								bCompressed
 	SetupTextureFormat( PF_Unknown,				FOpenGLTextureFormat());
 	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat(GL_RGBA32F,						GL_NONE,									GL_RGBA,				GL_FLOAT,							false));
 	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat());

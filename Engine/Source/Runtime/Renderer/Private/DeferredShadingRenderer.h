@@ -80,7 +80,7 @@ public:
 	/** Sorts base pass draw lists front to back for improved GPU culling. */
 	void SortBasePassStaticData(FVector ViewPosition);
 
-    /** Renders the basepass for the dynamic data of a given View. */
+	/** Renders the basepass for the dynamic data of a given View. */
 	void RenderBasePassDynamicData(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
 
 	/** Renders the basepass for the dynamic data of a given View, in parallel. */
@@ -128,62 +128,47 @@ private:
 	/** Creates a per object projected shadow for the given interaction. */
 	void CreatePerObjectProjectedShadow(
 		FRHICommandListImmediate& RHICmdList,
-		FLightPrimitiveInteraction* Interaction, 
-		bool bCreateTranslucentObjectShadow, 
+		FLightPrimitiveInteraction* Interaction,
+		bool bCreateTranslucentObjectShadow,
 		bool bCreateInsetObjectShadow,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& OutPreShadows);
 
 	/**
-	 * Creates a projected shadow for all primitives affected by a light.  
-	 * @param LightSceneInfo - The light to create a shadow for.
-	 */
+	* Creates a projected shadow for all primitives affected by a light.
+	* @param LightSceneInfo - The light to create a shadow for.
+	*/
 	void CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo);
-
-	/**
-	 * Checks to see if this primitive is affected by various shadow types
-	 *
-	 * @param PrimitiveSceneInfoCompact The primitive to check for shadow interaction
-	 * @param PreShadows The list of pre-shadows to check against
-	 */
-	void GatherShadowsForPrimitiveInner(const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		bool bReflectionCaptureScene);
-
-	/** Gathers the list of primitives used to draw various shadow types */
-	void GatherShadowPrimitives(
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		bool bReflectionCaptureScene);
 
 	/** Updates the preshadow cache, allocating new preshadows that can fit and evicting old ones. */
 	void UpdatePreshadowCache();
 
 	/** Finds a matching cached preshadow, if one exists. */
 	TRefCountPtr<FProjectedShadowInfo> GetCachedPreshadow(
-		const FLightPrimitiveInteraction* InParentInteraction, 
+		const FLightPrimitiveInteraction* InParentInteraction,
 		const FProjectedShadowInitializer& Initializer,
 		const FBoxSphereBounds& Bounds,
 		uint32 InResolutionX);
 
-	/** Calculates projected shadow visibility. */
-	void InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList);
-
-	/** Returns whether a per object shadow should be created due to the light being a stationary light. */
-	bool ShouldCreateObjectShadowForStationaryLight(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bInteractionShadowMapped) const;
-
 	/** Creates shadows for the given interaction. */
 	void SetupInteractionShadows(
 		FRHICommandListImmediate& RHICmdList,
-		FLightPrimitiveInteraction* Interaction, 
-		FVisibleLightInfo& VisibleLightInfo, 
+		FLightPrimitiveInteraction* Interaction,
+		FVisibleLightInfo& VisibleLightInfo,
 		bool bStaticSceneOnly,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows);
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows);
 
 	/** Finds the visible dynamic shadows for each view. */
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
+
+	/**
+	* Used by RenderLights to figure out if light functions need to be rendered to the attenuation buffer.
+	*
+	* @param LightSceneInfo Represents the current light
+	* @return true if anything got rendered
+	*/
+	bool CheckForLightFunction(const FLightSceneInfo* LightSceneInfo) const;
 
 	/** Determines which primitives are visible for each view. */
 	void InitViews(FRHICommandListImmediate& RHICmdList);
@@ -267,14 +252,6 @@ private:
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
-	/**
-	  * Used by RenderLights to figure out if projected shadows need to be rendered to the attenuation buffer.
-	  *
-	  * @param LightSceneInfo Represents the current light
-	  * @return true if anything needs to be rendered
-	  */
-	bool CheckForProjectedShadows( const FLightSceneInfo* LightSceneInfo ) const;
-
 	/** Renders one pass point light shadows. */
 	bool RenderOnePassPointLightShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
 
@@ -301,14 +278,6 @@ private:
 
 	/** Caches the depths of any preshadows that should be cached, and renders their projections. */
 	bool RenderCachedPreshadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
-
-	/**
-	  * Used by RenderLights to figure out if light functions need to be rendered to the attenuation buffer.
-	  *
-	  * @param LightSceneInfo Represents the current light
-	  * @return true if anything got rendered
-	  */
-	bool CheckForLightFunction( const FLightSceneInfo* LightSceneInfo ) const;
 
 	/**
 	  * Used by RenderLights to render a light function to the attenuation buffer.

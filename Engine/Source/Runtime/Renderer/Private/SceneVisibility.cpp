@@ -754,7 +754,7 @@ static void ComputeRelevanceForView(
 		if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
 			// In ES2, the per-object reflection is used for everything
 			// Otherwise it is just used on translucency
-			&& (Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2 || bTranslucentRelevance))
+			&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
 		{
 			PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIt.GetIndex()].Origin);
 			PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
@@ -1260,10 +1260,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 
 			// This finishes the update of view state
 			ViewState->UpdateLastRenderTime(*View.Family);
-		}
-
-		// Initialize the view's RHI resources.
-		View.InitRHIResources();
+		}		
 	}
 }
 
@@ -1510,7 +1507,7 @@ void FSceneRenderer::PostVisibilityFrameSetup()
 	}
 
 	bool bCheckLightShafts = false;
-	if (Scene->GetFeatureLevel() <= ERHIFeatureLevel::ES2)
+	if (Scene->GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
 	{
 		// Clear the mobile light shaft data.
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -1655,6 +1652,13 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		// per bone motion blur
 		GPrevPerBoneMotionBlur.RestoreForPausedMotionBlur();
 	}
+
+	// initialize per-view uniform buffer.
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		// Initialize the view's RHI resources.
+		Views[ViewIndex].InitRHIResources(nullptr);
+	}	
 
 	OnStartFrame();
 }

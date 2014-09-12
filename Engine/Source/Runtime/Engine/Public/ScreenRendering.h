@@ -51,7 +51,7 @@ class FScreenPS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FScreenPS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2); }
+	static bool ShouldCache(EShaderPlatform Platform) { return true; }
 
 	FScreenPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -118,7 +118,7 @@ class FScreenVSForGS : public FScreenVS
 	DECLARE_EXPORTED_SHADER_TYPE(FScreenVSForGS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2); }
+	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); }
 
 	FScreenVSForGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 	  FScreenVS(Initializer)

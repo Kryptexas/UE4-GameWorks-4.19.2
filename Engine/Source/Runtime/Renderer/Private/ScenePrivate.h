@@ -415,21 +415,21 @@ class FSceneViewState : public FSceneViewStateInterface, public FDeferredCleanup
 {
 public:
 
-    class FProjectedShadowKey
-    {
+	class FProjectedShadowKey
+	{
 	public:
 
-        FORCEINLINE bool operator == (const FProjectedShadowKey &Other) const
-        {
-            return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && SplitIndex == Other.SplitIndex && bTranslucentShadow == Other.bTranslucentShadow);
-        }
+		FORCEINLINE bool operator == (const FProjectedShadowKey &Other) const
+		{
+			return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && SplitIndex == Other.SplitIndex && bTranslucentShadow == Other.bTranslucentShadow);
+		}
 
-        FProjectedShadowKey(FPrimitiveComponentId InPrimitiveId, const ULightComponent* InLight, int32 InSplitIndex, bool bInTranslucentShadow):
-            PrimitiveId(InPrimitiveId),
-            Light(InLight),
+		FProjectedShadowKey(FPrimitiveComponentId InPrimitiveId, const ULightComponent* InLight, int32 InSplitIndex, bool bInTranslucentShadow):
+			PrimitiveId(InPrimitiveId),
+			Light(InLight),
 			SplitIndex(InSplitIndex),
 			bTranslucentShadow(bInTranslucentShadow)
-        {
+		{
 		}
 
 		friend FORCEINLINE uint32 GetTypeHash(const FSceneViewState::FProjectedShadowKey& Key)
@@ -439,10 +439,10 @@ public:
 
 	private:
 		FPrimitiveComponentId PrimitiveId;
-        const ULightComponent* Light;
+		const ULightComponent* Light;
 		int32 SplitIndex;
 		bool bTranslucentShadow;
-    };
+	};
 
 	int32 NumBufferedFrames;
 	typedef TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef> ShadowKeyOcclusionQueryMap;
@@ -590,7 +590,7 @@ public:
 	FLightPropagationVolume* GetLightPropagationVolume() const { return LightPropagationVolume; }
 
 	/** Default constructor. */
-    FSceneViewState();
+	FSceneViewState();
 
 	void DestroyAOTileResources();
 	void DestroyLightPropagationVolume();
@@ -660,21 +660,21 @@ public:
 		return SeparateTranslucencyRT;
 	}
 
-    // FRenderResource interface.
+	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
-    {
+	{
 		HZBOcclusionTests.InitDynamicRHI();
 	}
 
 	virtual void ReleaseDynamicRHI() override
-    {
+	{
 #if BUFFERED_OCCLUSION_QUERIES
 		for (int i = 0; i < ShadowOcclusionQueryMaps.Num(); ++i)
 		{
 			ShadowOcclusionQueryMaps[i].Reset();
 		}
 #else
-        ShadowOcclusionQueryMap.Reset();
+		ShadowOcclusionQueryMap.Reset();
 #endif
 		PrimitiveOcclusionHistorySet.Empty();
 		PrimitiveFadingStates.Empty();
@@ -695,7 +695,7 @@ public:
 		HZB.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
-    }
+	}
 
 	// FSceneViewStateInterface
 	RENDERER_API virtual void Destroy();
@@ -1190,6 +1190,8 @@ public:
 	TStaticMeshDrawList< TBasePassForForwardShadingDrawingPolicy< TLightMapPolicy<LQ_LIGHTMAP> > >							BasePassForForwardShadingLowQualityLightMapDrawList[EBasePass_MAX];
 	TStaticMeshDrawList< TBasePassForForwardShadingDrawingPolicy< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> > >	BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[EBasePass_MAX];
 	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FSimpleDirectionalLightAndSHIndirectPolicy > >				BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FMovableDirectionalLightLightingPolicy > >					BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy< FMovableDirectionalLightCSMLightingPolicy > >				BasePassForForwardShadingMovableDirectionalLightCSMDrawList[EBasePass_MAX];
 
 	/** Maps a light-map type to the appropriate base pass draw list. */
 	template<typename LightMapPolicyType>
@@ -1230,8 +1232,8 @@ public:
 	/** Whether the early Z pass was force enabled when static draw lists were built. */
 	int32 StaticDrawListsEarlyZPassMode;
 
-	/** True if a change to SkyLight has occurred that requires static draw lists to be updated. */
-	bool bScenesPrimitivesNeedStaticMeshElementUpdate;
+	/** True if a change to SkyLight / Lighting has occurred that requires static draw lists to be updated. */
+	bool bScenesPrimitivesNeedStaticMeshElementUpdate;	
 
 	/** The scene's sky light, if any. */
 	FSkyLightSceneProxy* SkyLight;
@@ -1460,6 +1462,11 @@ public:
 	virtual bool IsEditorScene() const override { return bIsEditorScene; }
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return GetWorld()->FeatureLevel; }
+
+	bool ShouldRenderSkylight() const
+	{
+		return SkyLight && !SkyLight->bHasStaticLighting && GSupportsRenderTargetFormat_PF_FloatRGBA;
+	}
 
 private:
 
