@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "ClassIconFinder.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Literal"
 
