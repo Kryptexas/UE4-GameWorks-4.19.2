@@ -1077,7 +1077,7 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();
 		
 		// Certain keys are only available while the flight camera input mode is active
-		const bool bUsingFlightInput = IsFlightCameraInputModeActive();
+		const bool bUsingFlightInput = IsFlightCameraInputModeActive() || bIsUsingTrackpad;
 
 		// Do we want to use the regular arrow keys for flight input?
 		// Because the arrow keys are used for nudging actors, we'll only do this while the ALT key is up
