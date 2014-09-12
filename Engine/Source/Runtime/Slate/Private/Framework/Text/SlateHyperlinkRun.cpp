@@ -6,14 +6,14 @@
 
 #include "SlateHyperlinkRun.h"
 
-TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate )
+TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate )
 {
-	return MakeShareable( new FSlateHyperlinkRun( InRunInfo, InText, InStyle, NavigateDelegate ) );
+	return MakeShareable( new FSlateHyperlinkRun( InRunInfo, InText, InStyle, NavigateDelegate, InTooltipDelegate, InTooltipTextDelegate ) );
 }
 
-TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, const FTextRange& InRange )
+TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate, const FTextRange& InRange )
 {
-	return MakeShareable( new FSlateHyperlinkRun( InRunInfo, InText, InStyle, NavigateDelegate, InRange ) );
+	return MakeShareable( new FSlateHyperlinkRun( InRunInfo, InText, InStyle, NavigateDelegate, InTooltipDelegate, InTooltipTextDelegate, InRange ) );
 }
 
 FTextRange FSlateHyperlinkRun::GetTextRange() const 
@@ -163,7 +163,7 @@ void FSlateHyperlinkRun::Move(const TSharedRef<FString>& NewText, const FTextRan
 
 TSharedRef<IRun> FSlateHyperlinkRun::Clone() const
 {
-	return FSlateHyperlinkRun::Create(RunInfo, Text, Style, NavigateDelegate, Range);
+	return FSlateHyperlinkRun::Create(RunInfo, Text, Style, NavigateDelegate, TooltipDelegate, TooltipTextDelegate, Range);
 }
 
 void FSlateHyperlinkRun::AppendTextTo(FString& AppendToText) const
@@ -184,24 +184,28 @@ const FRunInfo& FSlateHyperlinkRun::GetRunInfo() const
 	return RunInfo;
 }
 
-FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate ) 
+FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate ) 
 	: RunInfo( InRunInfo )
 	, Text( InText )
 	, Range( 0, Text->Len() )
 	, Style( InStyle )
 	, NavigateDelegate( InNavigateDelegate )
+	, TooltipDelegate( InTooltipDelegate )
+	, TooltipTextDelegate( InTooltipTextDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
 {
 
 }
 
-FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, const FTextRange& InRange ) 
+FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate, const FTextRange& InRange ) 
 	: RunInfo( InRunInfo )
 	, Text( InText )
 	, Range( InRange )
 	, Style( InStyle )
 	, NavigateDelegate( InNavigateDelegate )
+	, TooltipDelegate( InTooltipDelegate )
+	, TooltipTextDelegate( InTooltipTextDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
 {
@@ -214,6 +218,8 @@ FSlateHyperlinkRun::FSlateHyperlinkRun( const FSlateHyperlinkRun& Run )
 	, Range( Run.Range )
 	, Style( Run.Style )
 	, NavigateDelegate( Run.NavigateDelegate )
+	, TooltipDelegate( Run.TooltipDelegate )
+	, TooltipTextDelegate( Run.TooltipTextDelegate )
 	, ViewModel( MakeShareable( new FSlateHyperlinkRun::FWidgetViewModel() ) )
 	, Children()
 {

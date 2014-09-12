@@ -2895,7 +2895,9 @@ protected:
 			RunInfo, 
 			MakeShareable(new FString(Name.ToString())), 
 			FTestStyle::Get().GetWidgetStyle<FHyperlinkStyle>(FName(TEXT("RichText.Editor.Hyperlink"))), 
-			OnHyperlinkClicked
+			OnHyperlinkClicked,
+			FSlateHyperlinkRun::FOnGenerateTooltip(),
+			FSlateHyperlinkRun::FOnGetTooltipText()
 			);
 		RichEditableTextBox->InsertRunAtCursor(HyperlinkRun);
 

@@ -146,10 +146,6 @@ TSharedRef< ISlateRun > FHyperlinkDecorator::Create(const TSharedRef<class FText
 		RunInfo.MetaData.Add(Pair.Key, OriginalText.Mid( Pair.Value.BeginIndex, Pair.Value.EndIndex - Pair.Value.BeginIndex));
 	}
 
-	TSharedRef<FSlateHyperlinkRun> HyperlinkRun = FSlateHyperlinkRun::Create( RunInfo, InOutModelText, Style->GetWidgetStyle<FHyperlinkStyle>( FName( *StyleName ) ), NavigateDelegate, ModelRange );
-	HyperlinkRun->OnGenerateToolTip() = ToolTipDelegate;
-	HyperlinkRun->OnGetToolTipText() = ToolTipTextDelegate;
-
-	return HyperlinkRun;
+	return FSlateHyperlinkRun::Create( RunInfo, InOutModelText, Style->GetWidgetStyle<FHyperlinkStyle>( FName( *StyleName ) ), NavigateDelegate, ToolTipDelegate, ToolTipTextDelegate, ModelRange );
 }
 #endif //WITH_FANCY_TEXT

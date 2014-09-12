@@ -465,7 +465,9 @@ FReply STutorialEditableText::HandleInsertHyperLinkClicked()
 			RunInfo, 
 			MakeShareable(new FString(Name.ToString())), 
 			FEditorStyle::Get().GetWidgetStyle<FHyperlinkStyle>(FName(TEXT("Tutorials.Content.Hyperlink"))), 
-			CurrentHyperlinkType->OnClickedDelegate
+			CurrentHyperlinkType->OnClickedDelegate,
+			CurrentHyperlinkType->TooltipDelegate,
+			CurrentHyperlinkType->TooltipTextDelegate
 			);
 
 		// @todo: if the rich editable text box allowed us to replace a run that we found under the cursor (or returned a non-const
