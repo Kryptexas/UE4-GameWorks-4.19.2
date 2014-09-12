@@ -13,6 +13,7 @@
 #include "BoneSelectionWidget.h"
 #include "SRetargetSourceWindow.h"
 #include "SRigWindow.h"
+#include "Editor/AnimGraph/Classes/AnimPreviewInstance.h"
 
 #define LOCTEXT_NAMESPACE "SRetargetManager"
 

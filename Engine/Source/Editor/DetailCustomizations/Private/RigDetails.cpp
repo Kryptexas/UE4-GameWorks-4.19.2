@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "RigDetails.h"
 #include "Animation/Rig.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE	"RigDetails"
 
