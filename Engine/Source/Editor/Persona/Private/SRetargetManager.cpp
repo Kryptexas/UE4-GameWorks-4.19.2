@@ -105,7 +105,7 @@ void SRetargetManager::Construct(const FArguments& InArgs)
 			.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("RigSetup_Tooltip", "Set up Rig for retargeting between skeletons."),
 																			NULL,
 																			DocLink,
-																			TEXT("Rig Setup")))
+																			TEXT("RigSetup")))
 			.Font(FEditorStyle::GetFontStyle(TEXT("Persona.RetargetManager.FilterFont")))
 			.Text(LOCTEXT("RigTemplate_Description", "You can set up Rig for this skeleton, then when you retarget animation to different skeleton with the same Rig, it will use the information to convert data. "))
 		]
@@ -149,7 +149,7 @@ void SRetargetManager::Construct(const FArguments& InArgs)
 			.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("RetargetBasePose_Tooltip", "Set up base pose for retargeting."),
 																			NULL,
 																			DocLink,
-																			TEXT("Set up Base Pose")))
+																			TEXT("SetupBasePose")))
 			.Font(FEditorStyle::GetFontStyle(TEXT("Persona.RetargetManager.FilterFont")))
 			.Text(LOCTEXT("BasePose_Description", "This information is used when retargeting assets to different skeleton. You need to make sure the ref pose of both mesh is same when retargeting, so you can see the pose and \
 											edit using bone transform widget, and click Save button below. "))

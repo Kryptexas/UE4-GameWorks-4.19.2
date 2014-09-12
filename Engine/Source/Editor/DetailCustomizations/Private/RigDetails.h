@@ -25,6 +25,7 @@ private:
 	// array custom boxes - these will stay around as long as this window is up
 	TArray<TSharedPtr<SEditableTextBox>>	DisplayNameTextBoxes;
 	TArray<TArray<TSharedPtr<FString>>>		ParentSpaceOptionList;
+	TArray<TSharedPtr<SComboBox< TSharedPtr<FString> >>>	ParentSpaceComboBoxes;
 
 	/** we only support one item */
 	TWeakObjectPtr<UObject> ItemBeingEdited;
@@ -37,6 +38,11 @@ private:
 
 	// combo box handler
 	void OnParentSpaceSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo, TSharedRef<IPropertyHandle> ParentSpacePropertyHandle);
+	/** Called to create a widget for each string */
+	TSharedRef<SWidget> MakeItemWidget(TSharedPtr<FString> StringItem);
+	/** Helper method to get the text for a given item in the combo box */
+	FString GetSelectedTextLabel(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle) const;
+	void OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle, int32 ArrayIndex, bool bTranslation);
 
 	// button handlers
 	FReply OnSetAllToWorld();
