@@ -39,6 +39,8 @@ public:
 
 	static jmethodID AndroidThunkJava_GetFontDirectory;
 
+	static jmethodID AndroidThunkJava_IsMusicActive;
+
 	// IDs related to achievement query
 	static jclass JavaAchievementClassID;
 	static jfieldID AchievementIDField;

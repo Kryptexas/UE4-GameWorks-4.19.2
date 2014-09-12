@@ -16,6 +16,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.widget.EditText;
 import android.text.InputType;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
@@ -38,6 +39,8 @@ import android.view.ViewGroup.MarginLayoutParams;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+
+import android.media.AudioManager;
 
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -1074,6 +1077,12 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		}
 		
 		return targetDir + "/";
+	}
+
+	public boolean AndroidThunkJava_IsMusicActive()
+	{
+		AudioManager audioManager = (AudioManager)this.getSystemService(Context.AUDIO_SERVICE);
+		return audioManager.isMusicActive();
 	}
 
 	public native boolean nativeIsShippingBuild();

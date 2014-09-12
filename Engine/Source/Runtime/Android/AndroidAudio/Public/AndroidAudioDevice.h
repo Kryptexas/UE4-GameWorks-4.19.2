@@ -279,6 +279,9 @@ public:
 	 */
 	virtual void Update( bool bGameTicking );
 
+	/** Check if any background music or sound is playing through the audio device */
+	virtual bool IsExernalBackgroundSoundActive() override;
+
 protected:
 
 	virtual FSoundSource* CreateSoundSource() override; 

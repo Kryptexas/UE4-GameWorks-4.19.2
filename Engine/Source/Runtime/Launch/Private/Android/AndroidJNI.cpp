@@ -122,6 +122,7 @@ jmethodID JDef_GameActivity::AndroidThunkJava_GetAssetManager;
 jmethodID JDef_GameActivity::AndroidThunkJava_Minimize;
 jmethodID JDef_GameActivity::AndroidThunkJava_ForceQuit;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetFontDirectory;
+jmethodID JDef_GameActivity::AndroidThunkJava_IsMusicActive;
 
 jclass JDef_GameActivity::JavaAchievementClassID;
 jfieldID JDef_GameActivity::AchievementIDField;
@@ -356,6 +357,17 @@ void AndroidThunkCpp_ForceQuit()
 	}
 }
 
+bool AndroidThunkCpp_IsMusicActive()
+{
+	bool active = false;
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		active = (bool)Env->CallObjectMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_IsMusicActive);
+	}
+	
+	return active;
+}
+
 //The JNI_OnLoad function is triggered by loading the game library from 
 //the Java source file.
 //	static
@@ -427,6 +439,8 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::AndroidThunkJava_GetFontDirectory = env->GetStaticMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GetFontDirectory", "()Ljava/lang/String;");
 	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GetFontDirectory );
 	
+	JDef_GameActivity::AndroidThunkJava_IsMusicActive = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IsMusicActive", "()Z");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_IsMusicActive );
 
 	// Set up achievement query IDs
 	JDef_GameActivity::JavaAchievementClassID = env->FindClass("com/epicgames/ue4/GameActivity$JavaAchievement");

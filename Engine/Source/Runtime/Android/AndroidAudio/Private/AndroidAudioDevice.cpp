@@ -191,3 +191,11 @@ class ICompressedAudioInfo* FSLESAudioDevice::CreateCompressedAudioInfo(USoundWa
 
 	return NULL;
 }
+
+/** Check if any background music or sound is playing through the audio device */
+bool FSLESAudioDevice::IsExernalBackgroundSoundActive()
+{
+	extern bool AndroidThunkCpp_IsMusicActive();
+	return AndroidThunkCpp_IsMusicActive();
+
+}
