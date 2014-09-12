@@ -327,7 +327,7 @@ void InitGamePhys()
 	PxRegisterUnifiedHeightFields(*GPhysXSDK);
 
 
-#if WITH_PHYSICS_COOKING
+#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
 	// Create Cooking
 	PxCookingParams PCookingParams(PScale);
 	PCookingParams.meshWeldTolerance = 0.1f; // Weld to 1mm precision
@@ -456,7 +456,7 @@ void TermGamePhys()
 	}
 #endif	// #if WITH_APEX
 
-#if WITH_PHYSICS_COOKING
+#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
 	if(GPhysXCooking != NULL)
 	{
 		GPhysXCooking->release(); 
