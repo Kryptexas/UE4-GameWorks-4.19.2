@@ -219,3 +219,11 @@ void UAnalyticsBlueprintLibrary::SetUserId(const FString& UserId)
 		UE_LOG(LogAnalyticsBPLib, Warning, TEXT("SetUserId: Failed to get the default analytics provider. Double check your [Analytics] configuration in your INI"));
 	}
 }
+
+FAnalyticsEventAttr UAnalyticsBlueprintLibrary::MakeEventAttribute(const FString& AttributeName, const FString& AttributeValue)
+{
+	FAnalyticsEventAttr EventAttr;
+	EventAttr.Name = AttributeName;
+	EventAttr.Value = AttributeValue;
+	return EventAttr;
+}

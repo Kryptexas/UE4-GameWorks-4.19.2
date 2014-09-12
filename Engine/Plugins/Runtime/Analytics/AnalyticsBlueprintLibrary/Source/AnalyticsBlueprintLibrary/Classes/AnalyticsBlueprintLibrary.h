@@ -63,6 +63,10 @@ class UAnalyticsBlueprintLibrary :
 	UFUNCTION(BlueprintCallable, Category="Analytics")
 	static void RecordCurrencyGiven(const FString& GameCurrencyType, int32 GameCurrencyAmount);
 
+	/** Builds a struct from the attribute name and value */
+	UFUNCTION(BlueprintPure, Category="Analytics")
+	static FAnalyticsEventAttr MakeEventAttribute(const FString& AttributeName, const FString& AttributeValue);
+
 	/** Gets the current session id from the analytics provider */
 	UFUNCTION(BlueprintCallable, Category="Analytics")
 	static FString GetSessionId();
