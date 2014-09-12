@@ -30,6 +30,8 @@ ACameraActor::ACameraActor(const class FPostConstructInitializeProperties& PCIP)
 	AspectRatio_DEPRECATED = 1.777778f;
 	PostProcessBlendWeight_DEPRECATED = 1.0f;
 	// End of deprecated property initialization
+
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void ACameraActor::Serialize(FArchive& Ar)
