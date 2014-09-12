@@ -101,6 +101,33 @@ void FCurlHttpManager::InitCurl()
 		CurlRequestOptions.bDontReuseConnections = true;
 	}
 
+	// discover cert location
+	if (PLATFORM_LINUX)	// only relevant to Linux (for now?), not #ifdef'ed to keep the code checked by the compiler when compiling for other platforms
+	{
+		static const char * KnownBundlePaths[] =
+		{
+			"/etc/pki/tls/certs/ca-bundle.crt",
+			"/etc/ssl/certs/ca-certificates.crt",
+			nullptr
+		};
+
+		for (const char ** CurrentBundle = KnownBundlePaths; *CurrentBundle; ++CurrentBundle)
+		{
+			FString FileName(*CurrentBundle);
+			UE_LOG(LogInit, Log, TEXT(" Libcurl: checking if '%s' exists"), *FileName);
+
+			if (FPaths::FileExists(FileName))
+			{
+				CurlRequestOptions.CertBundlePath = *CurrentBundle;
+				break;
+			}
+		}
+		if (CurlRequestOptions.CertBundlePath == nullptr)
+		{
+			UE_LOG(LogInit, Log, TEXT(" Libcurl: did not find a cert bundle in any of known locations, TLS may not work"));
+		}
+	}
+
 	// print for visibility
 	CurlRequestOptions.Log();
 }
@@ -125,6 +152,11 @@ void FCurlHttpManager::FCurlRequestOptions::Log()
 	UE_LOG(LogInit, Log, TEXT(" - bDontReuseConnections = %s  - Libcurl will %sreuse connections"),
 		bDontReuseConnections ? TEXT("true") : TEXT("false"),
 		bDontReuseConnections ? TEXT("NOT ") : TEXT("")
+		);
+
+	UE_LOG(LogInit, Log, TEXT(" - CertBundlePath = %s  - Libcurl will %s"),
+		(CertBundlePath != nullptr) ? *FString(CertBundlePath) : TEXT("nullptr"),
+		(CertBundlePath != nullptr) ? TEXT("set CURLOPT_CAINFO to it") : TEXT("use whatever was configured at build time.")
 		);
 }
 

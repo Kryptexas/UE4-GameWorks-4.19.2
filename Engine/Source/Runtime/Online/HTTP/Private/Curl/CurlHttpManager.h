@@ -45,6 +45,7 @@ public:
 			:	bVerifyPeer(true)
 			,	bUseHttpProxy(false)
 			,	bDontReuseConnections(false)
+			,	CertBundlePath(nullptr)
 		{}
 
 		/** Prints out the options to the log */
@@ -61,6 +62,9 @@ public:
 
 		/** Address of the HTTP proxy */
 		FString HttpProxyAddress;
+
+		/** A path to certificate bundle */
+		const char * CertBundlePath;
 	}
 	CurlRequestOptions;
 };

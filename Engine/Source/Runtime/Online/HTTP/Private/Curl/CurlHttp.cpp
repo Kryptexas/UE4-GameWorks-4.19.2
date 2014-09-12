@@ -61,6 +61,11 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 		{
 			curl_easy_setopt(EasyHandle, CURLOPT_FORBID_REUSE, 1L);
 		}
+
+		if (FCurlHttpManager::CurlRequestOptions.CertBundlePath)
+		{
+			curl_easy_setopt(EasyHandle, CURLOPT_CAINFO, FCurlHttpManager::CurlRequestOptions.CertBundlePath);
+		}
 	}
 }
 
