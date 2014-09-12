@@ -60,12 +60,14 @@ public class AndroidPlatform : Platform
 		string PackageName = GetPackageInfo(ApkName, false);
 		if (PackageName == null)
 		{
+            ErrorReporter.Error("Failed to get package name from " + ApkName, (int)ErrorCodes.Error_FailureGettingPackageInfo);
 			throw new AutomationException("Failed to get package name from " + ApkName);
 		}
 
 		string PackageVersion = GetPackageInfo(ApkName, true);
 		if (PackageVersion == null || PackageVersion.Length == 0)
 		{
+            ErrorReporter.Error("Failed to get package version from " + ApkName, (int)ErrorCodes.Error_FailureGettingPackageInfo);
 			throw new AutomationException("Failed to get package version from " + ApkName);
 		}
 
@@ -123,7 +125,9 @@ public class AndroidPlatform : Platform
 			// for now, we only support 1 pak/obb file
 			if (PakFiles.Length > 1)
 			{
-				throw new AutomationException("Can't package for Android with 0 or more than 1 pak file (found {0} pak files in {1})", PakFiles.Length, SC.StageDirectory);
+                string ErrorString = String.Format("Can't package for Android with 0 or more than 1 pak file (found {0} pak files in {1})", PakFiles.Length, SC.StageDirectory);
+                ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_OnlyOneObbFileSupported);
+                throw new AutomationException(ErrorString);
 			}
 
 			string LocalObbName = GetFinalObbName(ApkName);
@@ -178,7 +182,9 @@ public class AndroidPlatform : Platform
 	{
 		if (SC.StageTargetConfigurations.Count != 1)
 		{
-			throw new AutomationException("Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+            string ErrorString = String.Format("Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+            ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_OnlyOneTargetConfigurationSupported);
+			throw new AutomationException(ErrorString);
 		}
 
 		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
@@ -193,12 +199,16 @@ public class AndroidPlatform : Platform
 			// verify the files exist
 			if (!FileExists(ApkName))
 			{
-				throw new AutomationException("ARCHIVE FAILED - {0} was not found", ApkName);
+                string ErrorString = String.Format("ARCHIVE FAILED - {0} was not found", ApkName);
+                ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_AppNotFound);
+                throw new AutomationException(ErrorString);
 			}
 			if (!Params.OBBinAPK && !FileExists(ObbName))
 			{
-				throw new AutomationException("ARCHIVE FAILED - {0} was not found", ObbName);
-			}
+                string ErrorString = String.Format("ARCHIVE FAILED - {0} was not found", ObbName);
+                ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_ObbNotFound);
+                throw new AutomationException(ErrorString);
+            }
 
 			SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
 			if (!Params.OBBinAPK)
@@ -319,16 +329,44 @@ public class AndroidPlatform : Platform
 			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
 		}
 
+        // check the APK exists
+        if (!File.Exists(ApkName))
+        {
+            ErrorReporter.Error(String.Format("Could not find apk '{0}'", ApkName), (int)ErrorCodes.Error_AppNotFound);
+            throw new AutomationException("Could not find apk '{0}'", ApkName);
+        }
+
 		// now we can use the apk to get more info
 		string DeviceObbName = GetDeviceObbName(ApkName);
 		string PackageName = GetPackageInfo(ApkName, false);
 
-		// install the apk
-		string UninstallCommandline = AdbCommand + "uninstall " + PackageName;
-		RunAndLog(CmdEnv, CmdEnv.CmdExe, UninstallCommandline);
+        // try uninstalling an old app with the same identifier.
+        string UninstallCommandline = AdbCommand + "uninstall " + PackageName;
+        int SuccessCode = 0;
+        RunAndLog(CmdEnv, CmdEnv.CmdExe, UninstallCommandline, out SuccessCode);
 
+		// install the apk
+        SuccessCode = 0;
 		string InstallCommandline = AdbCommand + "install \"" + ApkName + "\"";
-		RunAndLog(CmdEnv, CmdEnv.CmdExe, InstallCommandline);
+        string InstallOutput = RunAndLog(CmdEnv, CmdEnv.CmdExe, InstallCommandline, out SuccessCode);
+        int FailureIndex = InstallOutput.IndexOf("Failure"); 
+
+        // adb install doesn't always return an error code on failure, and instead prints "Failure", followed by an error code.
+        if (SuccessCode != 0 || FailureIndex != -1)
+        {
+            string ErrorMessage = String.Format("Installation of apk '{0}' failed", ApkName);
+            if (FailureIndex != -1)
+            {
+                string FailureString = InstallOutput.Substring(FailureIndex + 7).Trim();
+                if (FailureString != "")
+                {
+                    ErrorMessage += ": " + FailureString;
+                }
+            }
+
+            ErrorReporter.Error(ErrorMessage, (int)ErrorCodes.Error_AppInstallFailed);
+            throw new AutomationException(ErrorMessage);
+        }
 
 		// update the ue4commandline.txt
 		// update and deploy ue4commandline.txt
@@ -549,6 +587,7 @@ public class AndroidPlatform : Platform
 		string[] Subdirs = Directory.GetDirectories(Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/build-tools/"));
 		if (Subdirs.Length == 0)
 		{
+            ErrorReporter.Error("Failed to find %ANDROID_HOME%/build-tools subdirectory", (int)ErrorCodes.Error_AndroidBuildToolsPathNotFound);
 			throw new AutomationException("Failed to find %ANDROID_HOME%/build-tools subdirectory");
 		}
 		// we expect there to be one, so use the first one
@@ -609,7 +648,9 @@ public class AndroidPlatform : Platform
 		// if after the fallbacks, we still don't have it, we can't continue
 		if (Array.IndexOf(AppArchitectures, DeviceArch) == -1)
 		{
-			throw new AutomationException("Unable to run because you don't have an apk that is usable on {0}", Params.Device);
+            string ErrorString = String.Format("Unable to run because you don't have an apk that is usable on {0}", Params.Device);
+            ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_NoApkSuitableForArchitecture);
+            throw new AutomationException(ErrorString);
 		}
 
 		return DeviceArch;
@@ -632,7 +673,8 @@ public class AndroidPlatform : Platform
 		string PackageName = GetPackageInfo(ApkName, false);
 		if (PackageName == null)
 		{
-			throw new AutomationException("Failed to get package name from " + ClientApp);
+            ErrorReporter.Error("Failed to get package name from " + ClientApp, (int)ErrorCodes.Error_FailureGettingPackageInfo);
+            throw new AutomationException("Failed to get package name from " + ClientApp);
 		}
 
 		string AdbCommand = GetAdbCommand(Params);

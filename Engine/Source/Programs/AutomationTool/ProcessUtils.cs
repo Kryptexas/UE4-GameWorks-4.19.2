@@ -818,6 +818,19 @@ namespace AutomationTool
             return "";
         }
 
+        /// <summary>
+        /// Runs external program and writes the output to a logfile.
+        /// </summary>
+        /// <param name="Env">Environment to use.</param>
+        /// <param name="App">Executable to run</param>
+        /// <param name="CommandLine">Commandline to pass on to the executable</param>
+        /// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
+        /// <returns>Whether the program executed successfully or not.</returns>
+        public static string RunAndLog(CommandEnvironment Env, string App, string CommandLine, out int SuccessCode, string LogName = null)
+        {
+            return RunAndLog(App, CommandLine, out SuccessCode, GetRunAndLogLogName(Env, App, LogName));
+        }
+
 		/// <summary>
 		/// Runs UAT recursively
 		/// </summary>

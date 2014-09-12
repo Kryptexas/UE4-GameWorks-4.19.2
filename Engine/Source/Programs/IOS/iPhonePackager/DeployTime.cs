@@ -129,7 +129,7 @@ namespace iPhonePackager
 						if (!DeploymentHelper.Get().UninstallIPAOnDevice(ApplicationIdentifier))
 						{
 							Program.Error("Failed to uninstall IPA on device");
-							Program.ReturnCode = (int)ErrorCodes.Error_IPAUninstallFailed;
+							Program.ReturnCode = (int)ErrorCodes.Error_AppUninstallFailed;
 						}
 					}
 					break;
@@ -147,13 +147,13 @@ namespace iPhonePackager
 							if (!DeploymentHelper.Get().InstallIPAOnDevice(IPAPath))
 							{
 								Program.Error("Failed to install IPA on device");
-								Program.ReturnCode = (int)ErrorCodes.Error_IPAInstallFailed;
+								Program.ReturnCode = (int)ErrorCodes.Error_AppInstallFailed;
 							}
 						}
 						else
 						{
 							Program.Error(String.Format("Failed to find IPA file: '{0}'", IPAPath));
-							Program.ReturnCode = (int)ErrorCodes.Error_IPANotFound;
+							Program.ReturnCode = (int)ErrorCodes.Error_AppNotFound;
 						}
 					}
 					break;

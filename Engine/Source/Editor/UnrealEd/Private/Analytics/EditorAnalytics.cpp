@@ -130,12 +130,12 @@ FString FEditorAnalytics::TranslateErrorCode(int32 ErrorCode)
 		return TEXT("Failed to Code Sign");
 	case EAnalyticsErrorCodes::DeviceBackupFailed:
 		return TEXT("Failed to backup device");
-	case EAnalyticsErrorCodes::IPAUninstallFailed:
-		return TEXT("Failed to Uninstall IPA");
-	case EAnalyticsErrorCodes::IPAInstallFailed:
-		return TEXT("Failed to Install IPA");
-	case EAnalyticsErrorCodes::IPANotFound:
-		return TEXT("IPA Not Found for Install");
+	case EAnalyticsErrorCodes::AppUninstallFailed:
+		return TEXT("Failed to Uninstall app");
+	case EAnalyticsErrorCodes::AppInstallFailed:
+		return TEXT("Failed to Install app");
+	case EAnalyticsErrorCodes::AppNotFound:
+		return TEXT("App package file not found for Install");
 	case EAnalyticsErrorCodes::StubNotSignedCorrectly:
 		return TEXT("Stub not signed correctly.");
 	case EAnalyticsErrorCodes::IPAMissingInfoPList:
@@ -148,6 +148,18 @@ FString FEditorAnalytics::TranslateErrorCode(int32 ErrorCode)
 		return TEXT("Could not create directory");
 	case EAnalyticsErrorCodes::CopyFile:
 		return TEXT("Could not copy file");
+	case EAnalyticsErrorCodes::OnlyOneObbFileSupported:
+		return TEXT("Android packaging supports only exactly one obb/pak file");
+	case EAnalyticsErrorCodes::FailureGettingPackageInfo:
+		return TEXT("Failed to get package info from APK file");
+	case EAnalyticsErrorCodes::OnlyOneTargetConfigurationSupported:
+		return TEXT("Android is only able to package a single target configuration");
+	case EAnalyticsErrorCodes::ObbNotFound:
+		return TEXT("OBB/PAK file not found");
+	case EAnalyticsErrorCodes::AndroidBuildToolsPathNotFound:
+		return TEXT("Android build-tools directory not found");
+	case EAnalyticsErrorCodes::NoApkSuitableForArchitecture:
+		return TEXT("No APK suitable for architecture found");
 	}
 	return TEXT("Unknown Error");
 }
