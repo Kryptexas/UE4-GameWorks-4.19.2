@@ -126,6 +126,9 @@ private:
 	// Holds a delegate to be invoked when this panel is closed
 	FOnClicked OnCloseClicked;
 
+	// Holds a delegate to be invoked when a rerun of the profile is requested
+	FOnClicked OnRerunClicked;
+
 	// Holds a delegate to be invoked when this profile is deleted
 	FOnProfileRun OnDeleteClicked;
 

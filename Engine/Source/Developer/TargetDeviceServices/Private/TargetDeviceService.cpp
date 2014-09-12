@@ -80,7 +80,7 @@ void FTargetDeviceService::HandlePingMessage(const FTargetDeviceServicePing& InM
 		return;
 	}
 
-	if (Shared || (InMessage.HostUser == FPlatformProcess::UserName(false)))
+	if (Shared || (InMessage.HostUser == FPlatformProcess::UserName(true)))
 	{
 		ITargetDevicePtr DefaultDevice = GetDevice(); // Default Device is needed here!
 

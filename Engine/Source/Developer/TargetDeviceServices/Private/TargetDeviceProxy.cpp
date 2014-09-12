@@ -198,18 +198,18 @@ bool FTargetDeviceProxy::LaunchApp(FName InVariant, const FString& AppId, EBuild
 
 void FTargetDeviceProxy::PowerOff( bool Force )
 {
-	MessageEndpoint->Send(new FTargetDeviceServicePowerOff(FPlatformProcess::UserName(false), Force), MessageAddress);
+	MessageEndpoint->Send(new FTargetDeviceServicePowerOff(FPlatformProcess::UserName(true), Force), MessageAddress);
 }
 
 void FTargetDeviceProxy::PowerOn( )
 {
-	MessageEndpoint->Send(new FTargetDeviceServicePowerOn(FPlatformProcess::UserName(false)), MessageAddress);
+	MessageEndpoint->Send(new FTargetDeviceServicePowerOn(FPlatformProcess::UserName(true)), MessageAddress);
 }
 
 
 void FTargetDeviceProxy::Reboot( )
 {
-	MessageEndpoint->Send(new FTargetDeviceServiceReboot(FPlatformProcess::UserName(false)), MessageAddress);
+	MessageEndpoint->Send(new FTargetDeviceServiceReboot(FPlatformProcess::UserName(true)), MessageAddress);
 }
 
 void FTargetDeviceProxy::Run(FName InVariant, const FString& ExecutablePath, const FString& Params)

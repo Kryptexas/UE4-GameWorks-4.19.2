@@ -73,7 +73,7 @@ void FTargetDeviceProxyManager::GetProxies(FName TargetPlatformName, bool Includ
 	{
 		const TSharedPtr<FTargetDeviceProxy>& Proxy = It.Value();
 
-		if ((IncludeUnshared || Proxy->IsShared()) || (Proxy->GetHostUser() == FPlatformProcess::UserName(false)))
+		if ((IncludeUnshared || Proxy->IsShared()) || (Proxy->GetHostUser() == FPlatformProcess::UserName(true)))
 		{
 			if (TargetPlatformName == NAME_None || Proxy->HasTargetPlatform(TargetPlatformName))
 			{
@@ -106,7 +106,7 @@ void FTargetDeviceProxyManager::SendPing()
 {
 	if (MessageEndpoint.IsValid())
 	{
-		MessageEndpoint->Publish(new FTargetDeviceServicePing(FPlatformProcess::UserName(false)), EMessageScope::Network);
+		MessageEndpoint->Publish(new FTargetDeviceServicePing(FPlatformProcess::UserName(true)), EMessageScope::Network);
 	}
 }
 

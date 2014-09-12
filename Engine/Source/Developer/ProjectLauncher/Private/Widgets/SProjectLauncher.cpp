@@ -219,6 +219,7 @@ void SProjectLauncher::Construct( const FArguments& InArgs, const TSharedRef<SDo
 		[
 			SAssignNew(ProgressPanel, SProjectLauncherProgress)
 			.OnCloseClicked(this, &SProjectLauncher::OnProgressClose)
+			.OnRerunClicked(this, &SProjectLauncher::OnRerunClicked)
 		]
 	];
 }
@@ -269,6 +270,7 @@ void SProjectLauncher::OnProfileEdit(const ILauncherProfileRef& Profile)
 
 void SProjectLauncher::OnProfileRun(const ILauncherProfileRef& Profile)
 {
+	LauncherProfile = Profile;
 	LauncherWorker = Model->GetSProjectLauncher()->Launch(Model->GetDeviceProxyManager(), Profile);
 	
 	if (LauncherWorker.IsValid())
@@ -300,6 +302,7 @@ FReply SProjectLauncher::OnProfileSettingsClose()
 	{
 		LauncherWorker->Cancel();
 	}
+	LauncherProfile.Reset();
 
 	WidgetSwitcher->SetActiveWidgetIndex(ELauncherPanels::Launch);
 
@@ -312,8 +315,25 @@ FReply SProjectLauncher::OnProgressClose()
 	{
 		LauncherWorker->Cancel();
 	}
+	LauncherProfile.Reset();
 
 	WidgetSwitcher->SetActiveWidgetIndex(ELauncherPanels::Launch);
+
+	return FReply::Handled();
+}
+
+FReply SProjectLauncher::OnRerunClicked()
+{
+	if (LauncherWorker.IsValid())
+	{
+		LauncherWorker->Cancel();
+	}
+	LauncherWorker = Model->GetSProjectLauncher()->Launch(Model->GetDeviceProxyManager(), LauncherProfile.ToSharedRef());
+
+	if (LauncherWorker.IsValid())
+	{
+		ProgressPanel->SetLauncherWorker(LauncherWorker.ToSharedRef());
+	}
 
 	return FReply::Handled();
 }

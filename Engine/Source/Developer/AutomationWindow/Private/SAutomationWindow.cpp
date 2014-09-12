@@ -1484,7 +1484,7 @@ void SAutomationWindow::FindWorkers()
 {
 	ActiveSession = SessionManager->GetSelectedSession();
 
-	bool SessionIsValid = ActiveSession.IsValid() && (ActiveSession->GetSessionOwner() == FPlatformProcess::UserName(false));
+	bool SessionIsValid = ActiveSession.IsValid() && (ActiveSession->GetSessionOwner() == FPlatformProcess::UserName(true));
 
 	if (SessionIsValid)
 	{

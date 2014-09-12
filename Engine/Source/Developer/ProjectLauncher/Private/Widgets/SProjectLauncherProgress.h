@@ -16,6 +16,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SProjectLauncherProgress) { }
 	SLATE_EVENT(FOnClicked, OnCloseClicked)
+	SLATE_EVENT(FOnClicked, OnRerunClicked)
 	SLATE_END_ARGS()
 
 public:
@@ -38,6 +39,7 @@ public:
 	void Construct( const FArguments& InArgs )
 	{
 		OnCloseClicked = InArgs._OnCloseClicked;
+		OnRerunClicked = InArgs._OnRerunClicked;
 
 		ChildSlot
 		[
@@ -174,14 +176,31 @@ public:
 				.AutoWidth()
 				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 				[
-					// done button
+					// Re-Run button
 					SNew(SButton)
 					.ContentPadding(FMargin(6.0f, 2.0f))
-					.OnClicked(this, &SProjectLauncherProgress::HandleDoneButtonClicked)
-					.ToolTipText(LOCTEXT("DoneButtonTooltip", "Close this page."))
+					.IsEnabled(this, &SProjectLauncherProgress::IsRerunButtonEnabled)
+					.OnClicked(this, &SProjectLauncherProgress::HandleRerunButtonClicked)
+					.ToolTipText(this, &SProjectLauncherProgress::GetRerunButtonToolTip)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("DoneButtonLabel", "Done"))
+						.Text(this, &SProjectLauncherProgress::GetRerunButtonText)
+					]
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					// Cancel / Done button
+					SNew(SButton)
+					.ContentPadding(FMargin(6.0f, 2.0f))
+					.IsEnabled(this, &SProjectLauncherProgress::IsDoneButtonEnabled)
+					.OnClicked(this, &SProjectLauncherProgress::HandleDoneButtonClicked)
+					.ToolTipText(this, &SProjectLauncherProgress::GetDoneButtonToolTip)
+					[
+						SNew(STextBlock)
+						.Text(this, &SProjectLauncherProgress::GetDoneButtonText)
 					]
 				]
 			]
@@ -352,15 +371,106 @@ private:
 		return FReply::Handled();
 	}
 
+	bool IsRerunButtonEnabled() const
+	{
+		ILauncherWorkerPtr LauncherWorkerPtr = LauncherWorker.Pin();
+
+		if (LauncherWorkerPtr.IsValid() && 
+			(LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Canceled || LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Completed))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	FReply HandleRerunButtonClicked()
+	{
+		if (OnRerunClicked.IsBound())
+		{
+			return OnRerunClicked.Execute();
+		}
+
+		return FReply::Handled();
+	}
+
+	FText GetRerunButtonToolTip() const
+	{
+		return LOCTEXT("DoneButtonCloseTooltip", "Run this launch profile.");
+	}
+
+	FText GetRerunButtonText() const
+	{
+		return LOCTEXT("DoneButtonDoneLabel", "Run");
+	}
+
+	bool IsDoneButtonEnabled() const
+	{
+		ILauncherWorkerPtr LauncherWorkerPtr = LauncherWorker.Pin();
+
+		if (LauncherWorkerPtr.IsValid() && LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Canceling)
+		{
+			return false;
+		}
+		
+		return true;
+	}
+
 	FReply HandleDoneButtonClicked()
 	{
-		if (OnCloseClicked.IsBound())
+		ILauncherWorkerPtr LauncherWorkerPtr = LauncherWorker.Pin();
+
+		if (LauncherWorkerPtr.IsValid() && LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Busy)
+		{
+			LauncherWorkerPtr->Cancel();
+		}
+		else if (LauncherWorkerPtr.IsValid() && LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Canceling)
+		{
+			// do nothing
+		}
+		else if (OnCloseClicked.IsBound())
 		{
 			return OnCloseClicked.Execute();
 		}
 
 		return FReply::Handled();
 	}
+
+	FText GetDoneButtonToolTip() const
+	{
+		ILauncherWorkerPtr LauncherWorkerPtr = LauncherWorker.Pin();
+
+		if (LauncherWorkerPtr.IsValid())
+		{
+			if (LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Busy)
+			{
+				return LOCTEXT("DoneButtonCancelTooltip", "Cancel the run of this profile.");
+			}
+			else if (LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Canceling)
+			{
+				return LOCTEXT("DoneButtonCancellingTooltip", "Currently canceling.");
+			}
+		}
+		return LOCTEXT("DoneButtonCloseTooltip", "Close this page.");
+	}
+	FText GetDoneButtonText() const
+	{
+		ILauncherWorkerPtr LauncherWorkerPtr = LauncherWorker.Pin();
+
+		if (LauncherWorkerPtr.IsValid())
+		{
+			if (LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Busy)
+			{
+				return LOCTEXT("DoneButtonCancelLabel", "Cancel");
+			}
+			else if (LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Canceling)
+			{
+				return LOCTEXT("DoneButtonCancellingLabel", "Cancelling");
+			}
+		}
+		return LOCTEXT("DoneButtonDoneLabel", "Done");
+	}
+	
 
 	void ClearLog()
 	{
@@ -500,8 +610,11 @@ private:
 	// Holds the save button.
 	TSharedPtr<SButton> SaveButton;
 
-	// Holds a delegate to be invoked when this panel is closed
+	// Holds a delegate to be invoked when this panel is closed.
 	FOnClicked OnCloseClicked;
+
+	// Holds a delegate to be invoked when we want the launch profile rerun.
+	FOnClicked OnRerunClicked;
 };
 
 

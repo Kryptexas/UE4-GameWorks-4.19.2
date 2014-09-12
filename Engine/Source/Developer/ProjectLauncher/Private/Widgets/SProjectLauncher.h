@@ -91,10 +91,16 @@ private:
 	// Callback for when the progress panel is closed
 	FReply OnProgressClose();
 
+	// Callback for when the progress panel requests the profile to be re run
+	FReply OnRerunClicked();
+
 private:
 
 	// Holds the current launcher worker, if any.
 	ILauncherWorkerPtr LauncherWorker;
+
+	// Holds the Launcher profile the launcherWorker is running.
+	ILauncherProfilePtr LauncherProfile;
 
 	// Holds a pointer to the view model.
 	FProjectLauncherModelPtr Model;

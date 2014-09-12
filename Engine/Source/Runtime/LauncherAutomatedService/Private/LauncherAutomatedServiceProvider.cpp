@@ -238,7 +238,7 @@ void FLauncherAutomatedServiceProvider::HandleDeviceProxyManagerProxyAdded( cons
 	if (AddedProxy->IsConnected())
 	{
 		FString SessionName = FString::Printf(TEXT("%s - %s"), FPlatformProcess::ComputerName(), *AutomatedDeviceGroup->GetName());
-		FString CommandLine = FString::Printf(TEXT("%s %s -SessionId=\"%s\" -SessionOwner=\"%s\" -SessionName=\"%s\""), *AutomatedProfile->GetDefaultLaunchRole()->GetInitialMap(), *AutomatedProfile->GetDefaultLaunchRole()->GetCommandLine(), *SessionID.ToString(), FPlatformProcess::UserName(false), *SessionName);
+		FString CommandLine = FString::Printf(TEXT("%s %s -SessionId=\"%s\" -SessionOwner=\"%s\" -SessionName=\"%s\""), *AutomatedProfile->GetDefaultLaunchRole()->GetInitialMap(), *AutomatedProfile->GetDefaultLaunchRole()->GetCommandLine(), *SessionID.ToString(), FPlatformProcess::UserName(true), *SessionName);
 
 		// @todo gmp: fix automated service provider; must use ILauncher interface here
 		//AddedProxy->Run(AutomatedProfile->GetBuildConfiguration(), AutomatedProfile->GetBuildGame(), CommandLine);

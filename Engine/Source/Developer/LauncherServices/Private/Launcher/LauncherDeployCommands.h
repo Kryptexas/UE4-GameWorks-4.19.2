@@ -74,7 +74,7 @@ public:
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
-			FPlatformProcess::UserName(false),
+			FPlatformProcess::UserName(true),
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
@@ -193,7 +193,7 @@ public:
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
-			FPlatformProcess::UserName(false),
+			FPlatformProcess::UserName(true),
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
@@ -276,7 +276,7 @@ public:
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
-			FPlatformProcess::UserName(false),
+			FPlatformProcess::UserName(true),
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
@@ -391,7 +391,7 @@ public:
 			*InitialMap,
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
-			FPlatformProcess::UserName(false),
+			FPlatformProcess::UserName(true),
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())

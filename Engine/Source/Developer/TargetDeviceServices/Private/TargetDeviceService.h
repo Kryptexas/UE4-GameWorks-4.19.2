@@ -151,7 +151,7 @@ public:
 			// notify other services
 			ClaimAddress = MessageEndpoint->GetAddress();
 			ClaimHost = FPlatformProcess::ComputerName();
-			ClaimUser = FPlatformProcess::UserName(false);
+			ClaimUser = FPlatformProcess::UserName(true);
 
 			MessageEndpoint->Publish(new FTargetDeviceClaimed(DeviceName, ClaimHost, ClaimUser));
 
@@ -166,7 +166,7 @@ public:
 		if (Running)
 		{
 			// notify other services
-			MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)));
+			MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(true)));
 
 			Running = false;
 		}
@@ -253,7 +253,7 @@ private:
 			{
 				if (Context->GetSender() != MessageEndpoint->GetAddress())
 				{
-					MessageEndpoint->Send(new FTargetDeviceClaimDenied(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)), Context->GetSender());
+					MessageEndpoint->Send(new FTargetDeviceClaimDenied(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(true)), Context->GetSender());
 				}
 			}
 			else

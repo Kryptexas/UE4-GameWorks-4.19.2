@@ -66,7 +66,7 @@ public:
 		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s\""),
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
-			FPlatformProcess::UserName(false),
+			FPlatformProcess::UserName(true),
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			Role->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT(""),
@@ -170,7 +170,7 @@ public:
 		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s\""),
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
-			FPlatformProcess::UserName(false),
+			FPlatformProcess::UserName(true),
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			*Role->GetCommandLine()
