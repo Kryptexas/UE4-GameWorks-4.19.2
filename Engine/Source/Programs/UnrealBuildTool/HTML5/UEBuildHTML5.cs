@@ -110,7 +110,7 @@ namespace UnrealBuildTool
 
         public override bool CanUseXGE()
         {
-            return (GetActiveArchitecture() == "-win32" );
+            return (GetActiveArchitecture() == "-win32");
         }
 
         /**
@@ -118,12 +118,6 @@ namespace UnrealBuildTool
          */
         protected override void RegisterBuildPlatformInternal()
         {
-            //@todo.Rocket: Add platform support
-            if (UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket())
-            {
-                return;
-            }
-
             // Make sure the SDK is installed
             if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
             {
@@ -388,8 +382,13 @@ namespace UnrealBuildTool
                     }
                     else if (InModule.ToString() == "NetworkFileSystem") // server 
                     {
-                        InModule.AddPublicDependencyModule("WebSockets");
-                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                        if (UnrealBuildTool.RunningRocket() == false || 
+                            Target.Type == TargetRules.TargetType.Game || 
+                            Target.Type == TargetRules.TargetType.RocketGame )
+                        {
+                            InModule.AddPrivateDependencyModule("WebSockets");
+                            InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                        }
                     }
                 }
             }
