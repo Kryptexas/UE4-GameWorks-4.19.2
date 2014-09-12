@@ -3216,7 +3216,7 @@ int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler
 		case 15: Ret = Refraction.Compile(Compiler); Expression = Refraction.Expression; break; 
 	};
 
-	const int32 CustomUVStart = 14;
+	const int32 CustomUVStart = 16;
 
 	if (MultiplexIndex >= CustomUVStart && MultiplexIndex <= CustomUVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0)
 	{
