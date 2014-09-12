@@ -213,6 +213,17 @@ UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner
 }
 
 //------------------------------------------------------------------------------
+UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner const* NodeSpawner, ENoInit) const
+{
+	UEdGraphNode* TemplateNode = nullptr;
+	if (UEdGraphNode* const* FoundNode = NodeTemplateCache.Find(NodeSpawner))
+	{
+		return *FoundNode;
+	}
+	return nullptr;
+}
+
+//------------------------------------------------------------------------------
 void FBlueprintNodeTemplateCache::ClearCachedTemplate(UBlueprintNodeSpawner const* NodeSpawner)
 {
 	NodeTemplateCache.Remove(NodeSpawner); // GC should take care of the rest

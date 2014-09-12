@@ -193,6 +193,16 @@ UBlueprintFunctionNodeSpawner::UBlueprintFunctionNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
+void UBlueprintFunctionNodeSpawner::Prime()
+{
+	// we expect that you don't need a node template to construct menu entries
+	// from this, so we choose not to pre-cache one here
+
+	// we don't have any expensive FText::Format() constructed strings to cache
+	// either
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* Function, FCustomizeNodeDelegate UserDelegate)
@@ -253,6 +263,12 @@ FString UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
 	// add at least one character, so that the menu item doesn't attempt to
 	// ping a template node
 	return SearchKeywords.AppendChar(TEXT(' '));
+}
+
+//------------------------------------------------------------------------------
+FName UBlueprintFunctionNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
+{
+	return UK2Node_CallFunction::GetPaletteIconForFunction(Function, ColorOut);
 }
 
 //------------------------------------------------------------------------------

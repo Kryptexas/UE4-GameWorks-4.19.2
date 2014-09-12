@@ -53,6 +53,19 @@ UBlueprintVariableNodeSpawner::UBlueprintVariableNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
+void UBlueprintVariableNodeSpawner::Prime()
+{
+	// we expect that you don't need a node template to construct menu entries
+	// from this, so we choose not to pre-cache one here
+
+	// all of these perform expensive FText::Format() operations and cache the 
+	// results...
+	GetDefaultMenuName();
+	GetDefaultMenuCategory();
+	GetDefaultMenuTooltip();
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	FCustomizeNodeDelegate PostSpawnDelegate = CustomizeNodeDelegate;
@@ -129,6 +142,47 @@ FText UBlueprintVariableNodeSpawner::GetDefaultMenuCategory() const
 		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, VarSubCategory);
 	}
 	return CachedCategory;
+}
+
+//------------------------------------------------------------------------------
+FText UBlueprintVariableNodeSpawner::GetDefaultMenuTooltip() const
+{
+	if (CachedTooltip.IsOutOfDate())
+	{
+		if (NodeClass->IsChildOf<UK2Node_VariableSet>())
+		{
+			if (IsLocalVariable())
+			{
+				CachedTooltip = UK2Node_VariableSet::GetBlueprintVarTooltip(LocalVarDesc);
+			}
+			else
+			{
+				CachedTooltip = UK2Node_VariableSet::GetPropertyTooltip(MemberVariable.Get());
+			}
+		}
+		else if (NodeClass->IsChildOf<UK2Node_VariableGet>())
+		{
+			if (IsLocalVariable())
+			{
+				CachedTooltip = UK2Node_VariableGet::GetBlueprintVarTooltip(LocalVarDesc);
+			}
+			else
+			{
+				CachedTooltip = UK2Node_VariableGet::GetPropertyTooltip(MemberVariable.Get());
+			}
+		}
+	}	
+	return CachedTooltip;
+}
+
+//------------------------------------------------------------------------------
+FString UBlueprintVariableNodeSpawner::GetDefaultSearchKeywords() const
+{
+	// @TODO: maybe UPROPERTY() fields should have keyword metadata like functions
+	// 
+	// add at least one character, so that the menu item doesn't attempt to
+	// ping a node template 	
+	return TEXT(" ");
 }
 
 //------------------------------------------------------------------------------

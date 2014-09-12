@@ -5,6 +5,9 @@
 #include "K2Node.h"
 #include "K2Node_Variable.generated.h"
 
+// Forward Declarations
+struct FBPVariableDescription;
+
 UENUM()
 namespace ESelfContextInfo
 {
@@ -138,5 +141,13 @@ public:
 	 * @return A icon representing the specified variable's type.
 	 */
 	static FName GetVarIconFromPinType(const FEdGraphPinType& InPinType, FLinearColor& IconColorOut);
+
+protected:
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	FBPVariableDescription const* GetBlueprintVarDescription() const;
 };
 

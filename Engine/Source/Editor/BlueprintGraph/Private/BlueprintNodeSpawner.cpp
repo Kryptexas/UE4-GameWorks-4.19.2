@@ -69,6 +69,37 @@ UBlueprintNodeSpawner::~UBlueprintNodeSpawner()
 }
 
 //------------------------------------------------------------------------------
+void UBlueprintNodeSpawner::Prime()
+{
+	if (UEdGraphNode* CachedTemplateNode = GetTemplateNode())
+	{
+		// since we're priming incrementally, someone could have already
+		// requested this template, and allocated its pins (don't need to do 
+		// redundant work)
+		if (CachedTemplateNode->Pins.Num() == 0)
+		{
+			// in certain scenarios we need pin information from the 
+			// spawner (to help filter by pin context)
+			CachedTemplateNode->AllocateDefaultPins();
+		}
+
+		//
+		// let the node cache any FText::Format() operations that may be used...
+		if (UK2Node* K2NodeTemplate = Cast<UK2Node>(CachedTemplateNode))
+		{
+			K2NodeTemplate->GetMenuCategory();
+		}
+		CachedTemplateNode->GetTooltipText();
+		CachedTemplateNode->GetNodeTitle(ENodeTitleType::ListView);
+	}
+
+	// in case any of these cache FText::Format() operations
+	GetDefaultMenuName();
+	GetDefaultMenuCategory();
+	GetDefaultMenuTooltip();
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	return Invoke(ParentGraph, Bindings, Location, CustomizeNodeDelegate);
@@ -132,6 +163,12 @@ UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer, FBindingSe
 		return BoundTemplateNode; 
 	} 
 	return TemplateNode; 
+}
+
+//------------------------------------------------------------------------------
+UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(ENoInit) const
+{
+	return BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, NoInit);
 }
 
 //------------------------------------------------------------------------------

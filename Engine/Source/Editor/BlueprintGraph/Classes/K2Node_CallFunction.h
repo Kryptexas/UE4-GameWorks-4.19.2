@@ -167,6 +167,9 @@ public:
 	/** Used to determine the result of AllowMultipleSelfs() (without having a node instance) */
 	static bool CanFunctionSupportMultipleTargets(UFunction const* InFunction);
 
+	/** */
+	static FName GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor);
+
 private: 
 
 	/** Helper function to check if the SelfPin is wired correctly */

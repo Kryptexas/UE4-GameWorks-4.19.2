@@ -52,6 +52,26 @@ public:
 	}
 };
 
+namespace K2Node_VariableGetImpl
+{
+	/**
+	 * Shared utility method for retrieving a UK2Node_VariableGet's bare tooltip.
+	 * 
+	 * @param  VarName	The name of the variable that the node represents.
+	 * @return A formatted text string, describing what the VariableGet node does.
+	 */
+	static FText GetBaseTooltip(FName VarName);
+}
+
+static FText K2Node_VariableGetImpl::GetBaseTooltip(FName VarName)
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VarName"), FText::FromName(VarName));
+
+	return FText::Format(LOCTEXT("GetVariableTooltip", "Read the value of variable {VarName}"), Args);
+
+}
+
 UK2Node_VariableGet::UK2Node_VariableGet(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -85,51 +105,87 @@ void UK2Node_VariableGet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 	}
 }
 
+FText UK2Node_VariableGet::GetPropertyTooltip(UProperty* VariableProperty)
+{
+	FName VarName = NAME_None;
+	if (VariableProperty != nullptr)
+	{
+		VarName = VariableProperty->GetFName();
+
+		UClass* SourceClass = VariableProperty->GetOwnerClass();
+		// discover if the variable property is a non blueprint user variable
+		bool const bIsNativeVariable = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy == nullptr);
+		FName const TooltipMetaKey(TEXT("tooltip"));
+
+		FText SubTooltip;
+		if (bIsNativeVariable)
+		{
+			FText const PropertyTooltip = VariableProperty->GetToolTipText();
+			if (!PropertyTooltip.IsEmpty())
+			{
+				// See if the native property has a tooltip
+				SubTooltip = PropertyTooltip;
+				FString TooltipName = FString::Printf(TEXT("%s.%s"), *VarName.ToString(), *TooltipMetaKey.ToString());
+				FText::FindText(*VariableProperty->GetFullGroupName(true), *TooltipName, SubTooltip);
+			}
+		}
+		else if (UBlueprint* VarBlueprint = Cast<UBlueprint>(SourceClass->ClassGeneratedBy))
+		{
+			FString UserTooltipData;
+			if (FBlueprintEditorUtils::GetBlueprintVariableMetaData(VarBlueprint, VarName, /*InLocalVarScope =*/nullptr, TooltipMetaKey, UserTooltipData))
+			{
+				SubTooltip = FText::FromString(UserTooltipData);
+			}
+		}
+
+		if (!SubTooltip.IsEmpty())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("VarName"), FText::FromName(VarName));
+			Args.Add(TEXT("PropertyTooltip"), SubTooltip);
+
+			return FText::Format(LOCTEXT("GetVariableProperty_Tooltip", "Read the value of variable {VarName}\n{PropertyTooltip}"), Args);
+		}
+	}
+	return K2Node_VariableGetImpl::GetBaseTooltip(VarName);
+}
+
+FText UK2Node_VariableGet::GetBlueprintVarTooltip(FBPVariableDescription const& VarDesc)
+{
+	FName const TooltipMetaKey(TEXT("tooltip"));
+	int32 const MetaIndex = VarDesc.FindMetaDataEntryIndexForKey(TooltipMetaKey);
+	bool const bHasTooltipData = (MetaIndex != INDEX_NONE);
+
+	if (bHasTooltipData)
+	{
+		FString UserTooltipData = VarDesc.GetMetaData(TooltipMetaKey);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VarName"), FText::FromName(VarDesc.VarName));
+		Args.Add(TEXT("UserTooltip"), FText::FromString(UserTooltipData));
+
+		return FText::Format(LOCTEXT("GetVariableProperty_Tooltip", "Read the value of variable {VarName}\n{UserTooltip}"), Args);
+	}
+	return K2Node_VariableGetImpl::GetBaseTooltip(VarDesc.VarName);
+}
+
 FText UK2Node_VariableGet::GetTooltipText() const
 {
 	if (!CachedTooltip.IsOutOfDate())
 	{
-		return CachedTooltip;
-	}
-
-	FFormatNamedArguments Args;
-	Args.Add( TEXT( "VarName" ), FText::FromString( GetVarNameString() ));
-	Args.Add( TEXT( "TextPartition" ), FText::GetEmpty());
-	Args.Add( TEXT( "MetaData" ), FText::GetEmpty());
-
-	FName VarName = VariableReference.GetMemberName();
-	if (VarName != NAME_None)
-	{
-		FString BPMetaData;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprint(), VarName, VariableReference.GetMemberScope(this), TEXT("tooltip"), BPMetaData);
-
-		if( !BPMetaData.IsEmpty() )
+		if (UProperty* Property = GetPropertyForVariable())
 		{
-			Args.Add( TEXT( "TextPartition" ), FText::FromString( "\n" ));
-			Args.Add( TEXT( "MetaData" ), FText::FromString( BPMetaData ));
+			CachedTooltip = GetPropertyTooltip(Property);
+		}
+		else if (FBPVariableDescription const* VarDesc = GetBlueprintVarDescription())
+		{
+			CachedTooltip = GetBlueprintVarTooltip(*VarDesc);
+		}
+		else
+		{
+			CachedTooltip = K2Node_VariableGetImpl::GetBaseTooltip(GetVarName());
 		}
 	}
-	if(  UProperty* Property = GetPropertyForVariable() )
-	{
-		// discover if the variable property is a non blueprint user variable
-		UClass* SourceClass = Property->GetOwnerClass();
-		if( SourceClass && SourceClass->ClassGeneratedBy == NULL )
-		{
-			const FString MetaData = Property->GetToolTipText().ToString();
-
-			if( !MetaData.IsEmpty() )
-			{
-				// See if the property associated with this editor has a tooltip
-				FText PropertyMetaData = FText::FromString( *MetaData );
-				FString TooltipName = FString::Printf( TEXT("%s.tooltip"), *(Property->GetName()));
-				FText::FindText( *(Property->GetFullGroupName(true)), *TooltipName, PropertyMetaData );
-				Args.Add( TEXT( "TextPartition" ), FText::FromString( "\n" ));
-				Args.Add( TEXT( "MetaData" ), PropertyMetaData );
-			}
-		}
-	}
-	// FText::Format() is slow, so we cache this to save on performance
-	CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "GetVariable_ToolTip", "Read the value of variable {VarName}{TextPartition}{MetaData}"), Args);
 	return CachedTooltip;
 }
 

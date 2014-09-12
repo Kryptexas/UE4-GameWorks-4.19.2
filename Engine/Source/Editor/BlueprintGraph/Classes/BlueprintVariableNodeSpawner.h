@@ -46,9 +46,12 @@ public:
 	static UBlueprintVariableNodeSpawner* Create(TSubclassOf<UK2Node_Variable> NodeClass, UEdGraph* VarContext, FBPVariableDescription const& VarDesc, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
+	virtual void Prime() override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
+	virtual FText GetDefaultMenuTooltip() const override;
+	virtual FString GetDefaultSearchKeywords() const override;
 	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const override;
 	// End UBlueprintNodeSpawner interface
 	
@@ -108,7 +111,8 @@ private:
 	UPROPERTY()
 	FBPVariableDescription    LocalVarDesc;
 
-	/** Constructing FText strings can be costly, so we cache the default menu name/category */
+	/** Constructing FText strings can be costly, so we cache the default menu name/category/tooltip */
 	FNodeTextCache CachedMenuName;
 	FNodeTextCache CachedCategory;
+	FNodeTextCache CachedTooltip;
 };

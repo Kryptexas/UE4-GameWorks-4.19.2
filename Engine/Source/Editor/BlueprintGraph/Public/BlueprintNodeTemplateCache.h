@@ -36,6 +36,16 @@ public:
 	UEdGraphNode* GetNodeTemplate(UBlueprintNodeSpawner const* NodeSpawner, UEdGraph* TargetGraph = nullptr);
 
 	/**
+	 * Retrieves a cached template associated with the supplied spawner. Does 
+	 * NOT attempt to allocate one if it doesn't exist.
+	 * 
+	 * @param  NodeSpawner	The spawner you want a template node for.
+	 * @param  ENoInit Signifies to use this function over the other (mutating) GetNodeTemplate().
+	 * @return Should return the cached template-node (if one exists, otherwise false).
+	 */
+	UEdGraphNode* GetNodeTemplate(UBlueprintNodeSpawner const* NodeSpawner, ENoInit) const;
+
+	/**
 	 * Wipes any nodes that were cached on behalf of the specified spawner 
 	 * (should be called when NodeSpawner is destroyed, in case 
 	 * GetNodeTemplate() was called for it).

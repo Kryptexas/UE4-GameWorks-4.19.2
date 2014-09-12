@@ -42,11 +42,13 @@ public:
 	static UBlueprintFunctionNodeSpawner* Create(TSubclassOf<UK2Node_CallFunction> NodeClass, UFunction const* const Function, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
+	virtual void Prime() override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FText GetDefaultMenuTooltip() const override;
 	virtual FString GetDefaultSearchKeywords() const override;
+	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const;
 	// End UBlueprintNodeSpawner interface
 
 	// IBlueprintNodeBinder interface

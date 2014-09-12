@@ -516,4 +516,28 @@ FString UK2Node_Variable::GetDocumentationExcerptName() const
 	return GetVarName().ToString();
 }
 
+FBPVariableDescription const* UK2Node_Variable::GetBlueprintVarDescription() const
+{
+	FName const& VarName = VariableReference.GetMemberName();
+	UStruct const* VariableScope = VariableReference.GetMemberScope(this);
+
+	bool const bIsLocalVariable = (VariableScope != nullptr);
+	if (bIsLocalVariable)
+	{
+		return FBlueprintEditorUtils::FindLocalVariable(GetBlueprint(), VariableScope, VarName);
+	}
+	else if (UProperty const* VarProperty = GetPropertyForVariable())
+	{
+		UClass const* SourceClass = VarProperty->GetOwnerClass();
+		UBlueprint const* SourceBlueprint = (SourceClass != nullptr) ? Cast<UBlueprint>(SourceClass->ClassGeneratedBy) : nullptr;
+
+		if (SourceBlueprint != nullptr)
+		{
+			int32 const VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(SourceBlueprint, VarName);
+			return &SourceBlueprint->NewVariables[VarIndex];
+		}
+	}
+	return nullptr;
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -8,6 +8,7 @@
 // Forward declarations
 class UEdGraph;
 class UEdGraphNode;
+class FBlueprintNodeTemplateCache;
 
 /*******************************************************************************
 * UBlueprintNodeSpawner Declaration
@@ -70,6 +71,13 @@ public:
 	 * template node for each to hold on to).
 	 */
 	FCustomizeNodeDelegate CustomizeNodeDelegate;
+
+	/**
+	 * Not required, but intended to passively help speed up menu building 
+	 * operations. Will cache a node-template (via GetTemplateNode), along with  
+	 * any expensive text strings, to avoid constructing them all on demand.
+	 */
+	virtual void Prime();
 
 	/**
 	 * Takes care of spawning a node for the specified graph. Looks to see if 
@@ -161,6 +169,14 @@ public:
 	 * @return Should return a new/cached template-node (but could be null, or some pre-existing node... depends on the sub-class's Invoke() method).
 	 */
 	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr, FBindingSet const& Bindings = FBindingSet()) const;
+
+	/**
+	 * Retrieves a cached template for the node that this is set to spawn. Will
+	 * NOT spawn one if it is not already cached.
+	 *
+	 * @return The cached template-node (if one already exists for this spawner).
+	 */
+	UEdGraphNode* GetTemplateNode(ENoInit) const;
 
 	// IBlueprintNodeBinder interface
 	virtual bool   IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }

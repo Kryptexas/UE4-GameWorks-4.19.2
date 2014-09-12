@@ -5,6 +5,69 @@
 #include "KismetCompiler.h"
 #include "VariableSetHandler.h"
 
+#define LOCTEXT_NAMESPACE "K2Node_VariableSet"
+
+namespace K2Node_VariableSetImpl
+{
+	/**
+	 * Shared utility method for retrieving a UK2Node_VariableSet's bare tooltip.
+	 * 
+	 * @param  VarName	The name of the variable that the node represents.
+	 * @return A formatted text string, describing what the VariableSet node does.
+	 */
+	static FText GetBaseTooltip(FName VarName);
+
+	/**
+	 * Returns true if the specified variable RepNotify AND is defined in a 
+	 * blueprint. Most (all?) native rep notifies are intended to be client 
+	 * only. We are moving away from this paradigm in blueprints. So for now 
+	 * this is somewhat of a hold over to avoid nasty bugs where a K2 set node 
+	 * is calling a native function that the designer has no idea what it is 
+	 * doing.
+	 * 
+	 * @param  VariableProperty	The variable property you wish to check.
+	 * @return True if the specified variable RepNotify AND is defined in a blueprint.
+	 */
+	static bool PropertyHasLocalRepNotify(UProperty* VariableProperty);
+}
+
+static FText K2Node_VariableSetImpl::GetBaseTooltip(FName VarName)
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VarName"), FText::FromName(VarName));
+
+	return FText::Format(LOCTEXT("SetVariableTooltip", "Set the value of variable {VarName}"), Args);
+
+}
+
+static bool K2Node_VariableSetImpl::PropertyHasLocalRepNotify(UProperty* VariableProperty)
+{
+	if (VariableProperty != nullptr)
+	{
+		// We check that the variable is 'defined in a blueprint' so as to avoid 
+		// natively defined RepNotifies being called unintentionally. Most(all?) 
+		// native rep notifies are intended to be client only. We are moving 
+		// away from this paradigm in blueprints. So for now this is somewhat of 
+		// a hold over to avoid nasty bugs where a K2 set node is calling a 
+		// native function that the designer has no idea what it is doing.
+		UBlueprintGeneratedClass* VariableSourceClass = Cast<UBlueprintGeneratedClass>(VariableProperty->GetOwnerClass());
+		bool const bIsBlueprintProperty = (VariableSourceClass != nullptr);
+
+		if (bIsBlueprintProperty && (VariableProperty->RepNotifyFunc != NAME_None))
+		{
+			// Find function (ok if its defined in native class)
+			UFunction* Function = VariableSourceClass->FindFunctionByName(VariableProperty->RepNotifyFunc);
+
+			// If valid repnotify func
+			if ((Function != nullptr) && (Function->NumParms == 0) && (Function->GetReturnProperty() == nullptr))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 UK2Node_VariableSet::UK2Node_VariableSet(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -48,12 +111,115 @@ void UK2Node_VariableSet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 	}
 }
 
+
+
+FText UK2Node_VariableSet::GetPropertyTooltip(UProperty* VariableProperty)
+{
+	FText TextFormat;
+	FFormatNamedArguments Args;
+
+	bool const bHasLocalRepNotify = K2Node_VariableSetImpl::PropertyHasLocalRepNotify(VariableProperty);
+	if (bHasLocalRepNotify)
+	{
+		Args.Add(TEXT("ReplicationNotifyName"), FText::FromName(VariableProperty->RepNotifyFunc));
+		TextFormat = LOCTEXT("SetVariableWithRepNotify_Tooltip", "Set the value of variable {VarName} and call {ReplicationNotifyName}");
+	}
+
+	FName VarName = NAME_None;
+	if (VariableProperty != nullptr)
+	{
+		VarName = VariableProperty->GetFName();
+
+		UClass* SourceClass = VariableProperty->GetOwnerClass();
+		// discover if the variable property is a non blueprint user variable
+		bool const bIsNativeVariable = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy == nullptr);
+		FName const TooltipMetaKey(TEXT("tooltip"));
+
+		FText SubTooltip;
+		if (bIsNativeVariable)
+		{
+			FText const PropertyTooltip = VariableProperty->GetToolTipText();
+			if (!PropertyTooltip.IsEmpty())
+			{
+				// See if the native property has a tooltip
+				SubTooltip = PropertyTooltip;
+				FString TooltipName = FString::Printf(TEXT("%s.%s"), *VarName.ToString(), *TooltipMetaKey.ToString());
+				FText::FindText(*VariableProperty->GetFullGroupName(true), *TooltipName, SubTooltip);
+			}
+		}
+		else if (UBlueprint* VarBlueprint = Cast<UBlueprint>(SourceClass->ClassGeneratedBy))
+		{
+			FString UserTooltipData;
+			if (FBlueprintEditorUtils::GetBlueprintVariableMetaData(VarBlueprint, VarName, /*InLocalVarScope =*/nullptr, TooltipMetaKey, UserTooltipData))
+			{
+				SubTooltip = FText::FromString(UserTooltipData);
+			}
+		}
+
+		if (!SubTooltip.IsEmpty())
+		{
+			Args.Add(TEXT("PropertyTooltip"), SubTooltip);
+			if (bHasLocalRepNotify)
+			{
+				TextFormat = LOCTEXT("SetVariablePropertyWithRepNotify_Tooltip", "Set the value of variable {VarName} and call {ReplicationNotifyName}\n{PropertyTooltip}");
+			}
+			else
+			{
+				TextFormat = LOCTEXT("SetVariableProperty_Tooltip", "Set the value of variable {VarName}\n{PropertyTooltip}");
+			}
+		}
+	}
+
+	if (TextFormat.IsEmpty())
+	{
+		return K2Node_VariableSetImpl::GetBaseTooltip(VarName);
+	}
+	else
+	{
+		Args.Add(TEXT("VarName"), FText::FromName(VarName));
+		return FText::Format(TextFormat, Args);
+	}
+}
+
+FText UK2Node_VariableSet::GetBlueprintVarTooltip(FBPVariableDescription const& VarDesc)
+{
+	FName const TooltipMetaKey(TEXT("tooltip"));
+	int32 const MetaIndex = VarDesc.FindMetaDataEntryIndexForKey(TooltipMetaKey);
+	bool const bHasTooltipData = (MetaIndex != INDEX_NONE);
+
+	if (bHasTooltipData)
+	{
+		FString UserTooltipData = VarDesc.GetMetaData(TooltipMetaKey);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VarName"), FText::FromName(VarDesc.VarName));
+		Args.Add(TEXT("UserTooltip"), FText::FromString(UserTooltipData));
+
+		return FText::Format(LOCTEXT("SetVariableProperty_Tooltip", "Set the value of variable {VarName}\n{UserTooltip}"), Args);
+	}
+	return K2Node_VariableSetImpl::GetBaseTooltip(VarDesc.VarName);
+}
+
 FText UK2Node_VariableSet::GetTooltipText() const
 {
-	if (!CachedTooltip.IsOutOfDate())
+	//if (!CachedTooltip.IsOutOfDate())
 	{
-		return CachedTooltip;
+		if (UProperty* Property = GetPropertyForVariable())
+		{
+			CachedTooltip = GetPropertyTooltip(Property);
+		}
+		else if (FBPVariableDescription const* VarDesc = GetBlueprintVarDescription())
+		{
+			CachedTooltip = GetBlueprintVarTooltip(*VarDesc);
+		}
+		else
+		{
+			CachedTooltip = K2Node_VariableSetImpl::GetBaseTooltip(GetVarName());
+		}
 	}
+	return CachedTooltip;
+
+	
 
 	FFormatNamedArguments Args;
 	Args.Add( TEXT( "VarName" ), FText::FromString( GetVarNameString() ));
@@ -139,38 +305,7 @@ FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
  */
 bool UK2Node_VariableSet::HasLocalRepNotify() const
 {
-	UProperty *Property = NULL;
-	{
-		// Find the property, but only look in blueprint classes for it
-		UBlueprintGeneratedClass *SearchClass = Cast<UBlueprintGeneratedClass>(GetVariableSourceClass());
-		while(Property == NULL && SearchClass != NULL)
-		{
-			for (TFieldIterator<UProperty> It(SearchClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
-			{
-				if (It->GetFName() == GetVarName())
-				{
-					Property = *It;
-					break;
-				}
-			}
-			SearchClass = Cast<UBlueprintGeneratedClass>(SearchClass->GetSuperStruct());
-		}
-	}
-
-	// If valid property with RepNotify
-	if (Property != NULL && Property->RepNotifyFunc != NAME_None)
-	{
-		// Find function (ok if its defined in native class)
-		UFunction* Function = GetVariableSourceClass()->FindFunctionByName(Property->RepNotifyFunc);
-
-		// If valid repnotify func
-		if( Function != NULL && Function->NumParms == 0 && Function->GetReturnProperty() == NULL )
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return K2Node_VariableSetImpl::PropertyHasLocalRepNotify(GetPropertyForVariable());
 }
 
 bool UK2Node_VariableSet::ShouldFlushDormancyOnSet() const
@@ -200,3 +335,5 @@ FNodeHandlingFunctor* UK2Node_VariableSet::CreateNodeHandler(FKismetCompilerCont
 {
 	return new FKCHandler_VariableSet(CompilerContext);
 }
+
+#undef LOCTEXT_NAMESPACE
