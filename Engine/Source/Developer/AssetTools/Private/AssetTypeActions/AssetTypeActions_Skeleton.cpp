@@ -567,7 +567,7 @@ void FAssetTypeActions_Skeleton::CreateRig(const TWeakObjectPtr<USkeleton> Skele
 	if(Skeleton.IsValid())
 	{
 		FCreateRigDlg CreateRigDlg(Skeleton.Get());
-		if(CreateRigDlg.ShowModal() == FDlgMergeSkeleton::Confirm)
+		if(CreateRigDlg.ShowModal() == FCreateRigDlg::Confirm)
 		{
 			check(CreateRigDlg.RequiredBones.Num() > 0);
 
