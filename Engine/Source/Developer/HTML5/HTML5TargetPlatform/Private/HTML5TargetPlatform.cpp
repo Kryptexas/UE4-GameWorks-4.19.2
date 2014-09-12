@@ -163,7 +163,11 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 			{
 				TextureFormatName = NameG8;
 			}
-			else
+			else if ( Texture->CompressionSettings == TC_EditorIcon )
+			{
+				TextureFormatName = NameRGBA8; 
+			} 
+			else 
 			{
 				TextureFormatName = NameBGRA8;
 			}
