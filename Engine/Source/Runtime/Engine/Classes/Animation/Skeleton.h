@@ -141,6 +141,49 @@ struct FBoneReductionSetting
 		return (BonesToRemove.Contains(BoneName));
 	}
 };
+
+USTRUCT()
+struct FNameMapping
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FName NodeName;
+
+	UPROPERTY()
+	FName BoneName;
+
+	FNameMapping()
+		: NodeName(NAME_None)
+		, BoneName(NAME_None)
+	{
+	}
+
+	FNameMapping(FName InNodeName)
+		: NodeName(InNodeName)
+		, BoneName(NAME_None)
+	{
+	}
+
+	FNameMapping(FName InNodeName, FName InBoneName)
+		: NodeName(InNodeName)
+		, BoneName(InBoneName)
+	{
+	}
+};
+
+USTRUCT()
+struct FRigConfiguration
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	class URig * Rig;
+
+	// @todo in the future we can make this to be run-time data
+	UPROPERTY()
+	TArray<FNameMapping> BoneMappingTable;
+};
 /**
  *	USkeleton : that links between mesh and animation
  *		- Bone hierarchy for animations
@@ -167,6 +210,9 @@ private:
 
 	/** Guid for skeleton */
 	FGuid Guid;
+
+	UPROPERTY()
+	FRigConfiguration RigConfig;
 
 	/** Conversion function. Remove when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
 	void ConvertToFReferenceSkeleton();
@@ -296,6 +342,7 @@ public:
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
+	ENGINE_API USkeletalMesh* GetPreviewMesh() const;
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty=true);
@@ -576,12 +623,20 @@ public:
 	// Asset registry information for animation curves
 	ENGINE_API static const FName CurveTag;
 	ENGINE_API static const TCHAR CurveTagDelimiter;
+
+	// rig Configs
+	ENGINE_API void SetRigConfig(URig * Rig);
+	ENGINE_API FName GetRigBoneMapping(const FName & NodeName) const;
+	ENGINE_API bool SetRigBoneMapping(const FName & NodeName, FName BoneName);
+	// verify if it has all latest data
+	ENGINE_API void RefreshRigConfig();
+	int32 FindRigBoneMapping(const FName & NodeName) const;
+	ENGINE_API URig * GetRig() const;
 #endif
 
 public:
 	// this should be outside of editor because slot node is initialize to it
 	ENGINE_API static const FName DefaultSlotGroupName;
-
 private:
 	void RegenerateGuid();
 };

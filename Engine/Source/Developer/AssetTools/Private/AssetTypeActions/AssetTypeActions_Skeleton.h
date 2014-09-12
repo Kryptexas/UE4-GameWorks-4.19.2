@@ -47,9 +47,15 @@ private:
 	/** Handler for when Skeleton Retarget is selected */
 	void ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<USkeleton>> Skeletons);
 
+	/** Handler for when Create Rig is selected */
+	void ExecuteCreateRig(TArray<TWeakObjectPtr<USkeleton>> Skeletons);
+
 private: // Helper functions
 	/** Creates animation assets using the BaseName+Suffix */
 	void CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix);
+
+	/** Creates animation assets using the BaseName+Suffix */
+	void CreateRig(const TWeakObjectPtr<USkeleton> Skeleton);
 
  	/** 
 	 * Main function for handling retargeting old Skeleton to new Skeleton

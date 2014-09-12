@@ -2490,6 +2490,13 @@ void USkeletalMesh::CalculateInvRefMatrices()
 			// Precompute inverse so we can use from-refpose-skin vertices.
 			RefBasesInvMatrix[b] = RefBases[b].InverseFast(); 
 		}
+
+#if WITH_EDITORONLY_DATA
+		if(RetargetBasePose.Num() == 0)
+		{
+			RetargetBasePose = RefSkeleton.GetRefBonePose();
+		}
+#endif // WITH_EDITORONLY_DATA
 	}
 }
 
@@ -2685,6 +2692,13 @@ void USkeletalMesh::PostLoad()
 		// Rebuild name table.
 		RefSkeleton.RebuildNameToIndexMap();
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (RetargetBasePose.Num() == 0)
+	{
+		RetargetBasePose = RefSkeleton.GetRefBonePose();
+	}
+#endif
 }
 
 void USkeletalMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const

@@ -51,12 +51,12 @@ protected:
 typedef SListView< TSharedPtr<FDisplayedRetargetSourceInfo> > SRetargetSourceListType;
 
 //////////////////////////////////////////////////////////////////////////
-// SRetargetSourceManager
+// SRetargetSourceWindow
 
-class SRetargetSourceManager : public SCompoundWidget
+class SRetargetSourceWindow : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SRetargetSourceManager )
+	SLATE_BEGIN_ARGS( SRetargetSourceWindow )
 		: _Persona()
 	{}
 		
@@ -77,7 +77,7 @@ public:
 	* Destructor - resets the morph targets
 	*
 	*/
-	virtual ~SRetargetSourceManager();
+	virtual ~SRetargetSourceWindow();
 
 	/**
 	* Filters the SListView when the user changes the search text box (NameFilterBox)
@@ -209,4 +209,7 @@ private:
 
 	/** Delegate for undo/redo transaction **/
 	void PostUndo();
+
+	/** Button handler **/
+	FReply OnAddRetargetSourceButtonClicked();
 };

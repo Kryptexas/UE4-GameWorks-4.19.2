@@ -46,6 +46,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 
 	// Begin UAnimInstance interface
 	virtual void NativeInitializeAnimation() override;
+	virtual void NativeUpdateAnimation(float DeltaTimeX) override;
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
 	// End UAnimInstance interface
 
@@ -100,6 +101,15 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 * @param	InBoneName	The name of the existing modification to remove
 	 */
 	void RemoveBoneModification(const FName& InBoneName);
+
+	/**
+	 * Reset all bone modified
+	 */
+	void ResetModifiedBone();
+
+#if WITH_EDITORONLY_DATA
+	bool bForceRetargetBasePose;
+#endif
 };
 
 

@@ -447,6 +447,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowReferencePoseEnabled));
 
 	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowRetargetBasePose,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ShowRetargetBasePose),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanShowRetargetBasePose),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowRetargetBasePoseEnabled));
+
+	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowBound,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ShowBound),
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanShowBound),
@@ -977,6 +983,31 @@ bool SAnimationEditorViewportTabBody::IsShowReferencePoseEnabled() const
 	if(PreviewComponent)
 	{
 		return PreviewComponent->bForceRefpose;
+	}
+	return false;
+}
+
+void SAnimationEditorViewportTabBody::ShowRetargetBasePose()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		PreviewComponent->PreviewInstance->bForceRetargetBasePose = !PreviewComponent->PreviewInstance->bForceRetargetBasePose;
+	}
+}
+
+bool SAnimationEditorViewportTabBody::CanShowRetargetBasePose() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->PreviewInstance;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowRetargetBasePoseEnabled() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		return PreviewComponent->PreviewInstance->bForceRetargetBasePose;
 	}
 	return false;
 }

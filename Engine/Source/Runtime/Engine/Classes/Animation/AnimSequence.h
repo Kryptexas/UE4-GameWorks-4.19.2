@@ -724,6 +724,11 @@ private:
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	
 	void RemoveNaNTracks();
+
+	/** Retargeting functions */
+	bool ConvertAnimationDataToRiggingData(TArray<struct FRawAnimSequenceTrack> & RawRiggingAnimationData);
+	bool ConvertRiggingDataToAnimationData(TArray<struct FRawAnimSequenceTrack> & RawRiggingAnimationData);
+	int32 GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & AnimationDataInComponentSpace, TArray<struct FRawAnimSequenceTrack> * RawRiggingAnimationData) const;
 #endif
 
 	/**

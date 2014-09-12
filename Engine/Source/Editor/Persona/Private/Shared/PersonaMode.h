@@ -16,7 +16,8 @@ struct FPersonaTabs
 	static const FName MorphTargetsID;
 	static const FName SkeletonTreeViewID;
 	// Skeleton Pose manager
-	static const FName RetargetSourceManagerID;
+	static const FName RetargetManagerID;
+	static const FName RigManagerID;
 	// Skeleton/Sockets
 	// Anim Blueprint Params
 	// Explorer
@@ -203,19 +204,19 @@ struct FPreviewViewportSummoner : public FWorkflowTabFactory
 };
 
 /////////////////////////////////////////////////////
-// FRetargetSourceManagerTabSummoner
+// FRetargetManagerTabSummoner
 
-struct FRetargetSourceManagerTabSummoner : public FWorkflowTabFactory
+struct FRetargetManagerTabSummoner : public FWorkflowTabFactory
 {
 public:
-	FRetargetSourceManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FRetargetManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
 	// Create a tooltip widget for the tab
 	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override
 	{
-		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("RetargetSourceTooltip", "In this panel, you can manage retarget sources for different body types"), NULL, TEXT("Shared/Editors/Persona"), TEXT("RetargetSource_Window"));
+		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("RetargetSourceTooltip", "In this panel, you can manage retarget sources for different body types"), NULL, TEXT("Shared/Editors/Persona"), TEXT("RetargetManager"));
 	}
 };
 

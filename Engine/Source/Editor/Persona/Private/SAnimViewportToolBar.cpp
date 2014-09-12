@@ -457,6 +457,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			ShowMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("ShowMenu_Actions_Mesh", "Mesh"));
 			{
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowReferencePose );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowRetargetBasePose );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowBound );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowPreviewMesh );
 			}

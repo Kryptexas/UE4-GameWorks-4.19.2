@@ -23,11 +23,11 @@
 
 UAnimSingleNodeInstance::UAnimSingleNodeInstance(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, PlayRate(1.f)
+	, bLooping(true)
+	, bPlaying(true)
+	, bReverse(false)
 {
-	PlayRate = 1.0f;
-	bLooping = true;
-	bPlaying = true;
-	bReverse = false;
 }
 
 void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,bool bIsLooping,float InPlayRate)

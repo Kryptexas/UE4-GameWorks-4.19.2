@@ -6,8 +6,12 @@
 
 UAnimPreviewInstance::UAnimPreviewInstance(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, SkeletalControlAlpha(1.0f)
+#if WITH_EDITORONLY_DATA
+	, bForceRetargetBasePose(false)
+#endif
 {
-	SkeletalControlAlpha = 1.0f;
+	
 }
 
 void UAnimPreviewInstance::NativeInitializeAnimation()
@@ -18,6 +22,11 @@ void UAnimPreviewInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 
 	SetPlaying(bCachedIsPlaying);
+}
+
+void UAnimPreviewInstance::ResetModifiedBone()
+{
+	BoneControllers.Empty();
 }
 
 FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName)
@@ -61,9 +70,40 @@ void UAnimPreviewInstance::RemoveBoneModification(const FName& InBoneName)
 	);
 }
 
+void UAnimPreviewInstance::NativeUpdateAnimation(float DeltaTimeX)
+{
+#if WITH_EDITORONLY_DATA
+	if(bForceRetargetBasePose)
+	{
+		// nothing to be done here
+		return;
+	}
+#endif // #if WITH_EDITORONLY_DATA
+
+	Super::NativeUpdateAnimation(DeltaTimeX);
+}
+
 bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 {
-	Super::NativeEvaluateAnimation(Output);
+#if WITH_EDITORONLY_DATA
+	if(bForceRetargetBasePose)
+	{
+		USkeletalMeshComponent * MeshComponent = GetSkelMeshComponent();
+		if(MeshComponent && MeshComponent->SkeletalMesh)
+		{
+			FAnimationRuntime::FillWithRetargetBaseRefPose(Output.Pose.Bones, GetSkelMeshComponent()->SkeletalMesh, RequiredBones);
+		}
+		else
+		{
+			// ideally we'll return just ref pose, but not sure if this will work with LODs
+			FAnimationRuntime::FillWithRefPose(Output.Pose.Bones, RequiredBones);
+		}
+	}
+	else
+#endif // #if WITH_EDITORONLY_DATA
+	{
+		Super::NativeEvaluateAnimation(Output);
+	}
 
 	USkeletalMeshComponent* Component = GetSkelMeshComponent();
 

@@ -62,6 +62,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetTools, Log, All);
 #include "AssetTypeActions/AssetTypeActions_PhysicsAsset.h"
 #include "AssetTypeActions/AssetTypeActions_Redirector.h"
 #include "AssetTypeActions/AssetTypeActions_ReverbEffect.h"
+#include "AssetTypeActions/AssetTypeActions_Rig.h"
 #include "AssetTypeActions/AssetTypeActions_Skeleton.h"
 #include "AssetTypeActions/AssetTypeActions_SlateBrush.h"
 #include "AssetTypeActions/AssetTypeActions_SlateWidgetStyle.h"

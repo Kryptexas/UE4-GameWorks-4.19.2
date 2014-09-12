@@ -62,6 +62,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PhysicsAsset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Redirector) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ReverbEffect) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Rig) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SkeletalMesh) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Skeleton) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateBrush) );

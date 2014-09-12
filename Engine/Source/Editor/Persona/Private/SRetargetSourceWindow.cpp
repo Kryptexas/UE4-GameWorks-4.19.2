@@ -2,7 +2,7 @@
 
 
 #include "PersonaPrivatePCH.h"
-#include "SRetargetSourceManager.h"
+#include "SRetargetSourceWindow.h"
 #include "ObjectTools.h"
 #include "ScopedTransaction.h"
 #include "AssetRegistryModule.h"
@@ -10,7 +10,7 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "AssetNotifications.h"
 
-#define LOCTEXT_NAMESPACE "SRetargetSourceManager"
+#define LOCTEXT_NAMESPACE "SRetargetSourceWindow"
 
 static const FName ColumnId_RetargetSourceNameLabel( "Retarget Source Name" );
 static const FName ColumnID_BaseReferenceMeshLabel( "Reference Mesh" );
@@ -33,8 +33,8 @@ public:
 	/** The item for this row **/
 	SLATE_ARGUMENT( FDisplayedRetargetSourceInfoPtr, Item )
 
-	/* The SRetargetSourceManager that handles all retarget sources */
-	SLATE_ARGUMENT( class SRetargetSourceManager*, RetargetSourceManager )
+	/* The SRetargetSourceWindow that handles all retarget sources */
+	SLATE_ARGUMENT( class SRetargetSourceWindow*, RetargetSourceWindow )
 
 	/* Widget used to display the list of retarget sources*/
 	SLATE_ARGUMENT( TSharedPtr<SRetargetSourceListType>, RetargetSourceListView )
@@ -60,8 +60,8 @@ private:
 	/* Returns the reference mesh this pose is based on	*/
 	FString GetReferenceMeshName() { return Item->ReferenceMesh->GetPathName(); }
 
-	/* The SRetargetSourceManager that handles all retarget sources*/
-	SRetargetSourceManager* RetargetSourceManager;
+	/* The SRetargetSourceWindow that handles all retarget sources*/
+	SRetargetSourceWindow* RetargetSourceWindow;
 
 	/** Widget used to display the list of retarget sources*/
 	TSharedPtr<SRetargetSourceListType> RetargetSourceListView;
@@ -88,7 +88,7 @@ private:
 void SRetargetSourceListRow::Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 {
 	Item = InArgs._Item;
-	RetargetSourceManager = InArgs._RetargetSourceManager;
+	RetargetSourceWindow = InArgs._RetargetSourceWindow;
 	RetargetSourceListView = InArgs._RetargetSourceListView;
 	OnRenameCommit = InArgs._OnRenameCommit;
 	OnVerifyRenameCommit = InArgs._OnVerifyRenameCommit;
@@ -117,7 +117,7 @@ TSharedRef< SWidget > SRetargetSourceListRow::GenerateWidgetForColumn( const FNa
 				.Text( FText::FromString(Item->Name.ToString()) )
 				.OnTextCommitted(this, &SRetargetSourceListRow::HandleNameCommitted)
 				.OnVerifyTextChanged(this, &SRetargetSourceListRow::HandleVerifyNameChanged)
-				.HighlightText( RetargetSourceManager->GetFilterText() )
+				.HighlightText( RetargetSourceWindow->GetFilterText() )
 				.IsReadOnly(false)
 				.IsSelected(this, &SMultiColumnTableRow< FDisplayedRetargetSourceInfoPtr >::IsSelectedExclusively)
 			];
@@ -139,7 +139,7 @@ TSharedRef< SWidget > SRetargetSourceListRow::GenerateWidgetForColumn( const FNa
 			[
 				SNew( STextBlock )
 				.Text( Item->GetReferenceMeshName() )
-				.HighlightText( RetargetSourceManager->GetFilterText() )
+				.HighlightText( RetargetSourceWindow->GetFilterText() )
 			];
 	}
 }
@@ -156,9 +156,9 @@ bool SRetargetSourceListRow::HandleVerifyNameChanged( const FText& NewText, FTex
 	return !OnVerifyRenameCommit.IsBound() || OnVerifyRenameCommit.Execute(Item->Name, NewText.ToString(), OutErrorMessage);
 }
 //////////////////////////////////////////////////////////////////////////
-// SRetargetSourceManager
+// SRetargetSourceWindow
 
-void SRetargetSourceManager::Construct(const FArguments& InArgs)
+void SRetargetSourceWindow::Construct(const FArguments& InArgs)
 {
 	PersonaPtr = InArgs._Persona;
 	Skeleton = NULL;
@@ -166,7 +166,7 @@ void SRetargetSourceManager::Construct(const FArguments& InArgs)
 	if ( PersonaPtr.IsValid() )
 	{
 		Skeleton = PersonaPtr.Pin()->GetSkeleton();
-		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SRetargetSourceManager::PostUndo ) );
+		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SRetargetSourceWindow::PostUndo ) );
 	}
 
 	FString SkeletonName = Skeleton ? Skeleton->GetName() : LOCTEXT( "RetargetSourceMeshNameLabel", "No Skeleton Present" ).ToString();
@@ -178,8 +178,31 @@ void SRetargetSourceManager::Construct(const FArguments& InArgs)
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STextBlock )
-			.Text( SkeletonName )
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("Skeleton_Label", "Current Skeleton "))
+				.Font(FEditorStyle::GetFontStyle("Persona.RetargetManager.BoldFont"))
+			]
+
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			[
+				SNew(STextBlock)
+				.Text(SkeletonName)
+			]
+
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Right)
+			[
+				SNew(SButton)
+				.OnClicked(FOnClicked::CreateSP(this, &SRetargetSourceWindow::OnAddRetargetSourceButtonClicked))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Text(LOCTEXT("AddRetargetSourceButton_Label", "Add New Retarget Source"))
+			]
 		]
 
 		+ SVerticalBox::Slot()
@@ -193,8 +216,8 @@ void SRetargetSourceManager::Construct(const FArguments& InArgs)
 			[
 				SAssignNew( NameFilterBox, SSearchBox )
 				.SelectAllTextWhenFocused( true )
-				.OnTextChanged( this, &SRetargetSourceManager::OnFilterTextChanged )
-				.OnTextCommitted( this, &SRetargetSourceManager::OnFilterTextCommitted )
+				.OnTextChanged( this, &SRetargetSourceWindow::OnFilterTextChanged )
+				.OnTextCommitted( this, &SRetargetSourceWindow::OnFilterTextCommitted )
 			]
 		]
 
@@ -203,8 +226,8 @@ void SRetargetSourceManager::Construct(const FArguments& InArgs)
 		[
 			SAssignNew( RetargetSourceListView, SRetargetSourceListType )
 			.ListItemsSource( &RetargetSourceList )
-			.OnGenerateRow( this, &SRetargetSourceManager::GenerateRetargetSourceRow )
-			.OnContextMenuOpening( this, &SRetargetSourceManager::OnGetContextMenuContent )
+			.OnGenerateRow( this, &SRetargetSourceWindow::GenerateRetargetSourceRow )
+			.OnContextMenuOpening( this, &SRetargetSourceWindow::OnGetContextMenuContent )
 			.ItemHeight( 22.0f )
 			.HeaderRow
 			(
@@ -221,20 +244,20 @@ void SRetargetSourceManager::Construct(const FArguments& InArgs)
 	CreateRetargetSourceList();
 }
 
-void SRetargetSourceManager::OnFilterTextChanged( const FText& SearchText )
+void SRetargetSourceWindow::OnFilterTextChanged( const FText& SearchText )
 {
 	FilterText = SearchText;
 
 	CreateRetargetSourceList( SearchText.ToString() );
 }
 
-void SRetargetSourceManager::OnFilterTextCommitted( const FText& SearchText, ETextCommit::Type CommitInfo )
+void SRetargetSourceWindow::OnFilterTextCommitted( const FText& SearchText, ETextCommit::Type CommitInfo )
 {
 	// Just do the same as if the user typed in the box
 	OnFilterTextChanged( SearchText );
 }
 
-TSharedRef<ITableRow> SRetargetSourceManager::GenerateRetargetSourceRow(TSharedPtr<FDisplayedRetargetSourceInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SRetargetSourceWindow::GenerateRetargetSourceRow(TSharedPtr<FDisplayedRetargetSourceInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	check( InInfo.IsValid() );
 
@@ -242,19 +265,19 @@ TSharedRef<ITableRow> SRetargetSourceManager::GenerateRetargetSourceRow(TSharedP
 		SNew( SRetargetSourceListRow, OwnerTable )
 		.Persona( PersonaPtr )
 		.Item( InInfo )
-		.RetargetSourceManager( this )
+		.RetargetSourceWindow( this )
 		.RetargetSourceListView( RetargetSourceListView )
-		.OnRenameCommit(this, &SRetargetSourceManager::OnRenameCommit)
-		.OnVerifyRenameCommit(this, &SRetargetSourceManager::OnVerifyRenameCommit);
+		.OnRenameCommit(this, &SRetargetSourceWindow::OnRenameCommit)
+		.OnVerifyRenameCommit(this, &SRetargetSourceWindow::OnVerifyRenameCommit);
 }
 
 
-void SRetargetSourceManager::OnRenameCommit( const FName & OldName,  const FString& NewName )
+void SRetargetSourceWindow::OnRenameCommit( const FName & OldName,  const FString& NewName )
 {
 	FString NewNameString = NewName;
 	if (OldName != FName(*NewNameString.Trim().TrimTrailing()))
 	{
-		const FScopedTransaction Transaction( LOCTEXT("RetargetSourceManager_Rename", "Rename Retarget Source") );
+		const FScopedTransaction Transaction( LOCTEXT("RetargetSourceWindow_Rename", "Rename Retarget Source") );
 
 		FReferencePose * Pose = Skeleton->AnimRetargetSources.Find(OldName);
 		if (Pose)
@@ -321,21 +344,21 @@ void SRetargetSourceManager::OnRenameCommit( const FName & OldName,  const FStri
 	}
 }
 
-bool SRetargetSourceManager::OnVerifyRenameCommit( const FName & OldName, const FString& NewName, FText& OutErrorMessage)
+bool SRetargetSourceWindow::OnVerifyRenameCommit( const FName & OldName, const FString& NewName, FText& OutErrorMessage)
 {
 	// if same reject
 	FString NewString = NewName;
 
 	if (OldName == FName(*NewString.Trim().TrimTrailing()))
 	{
-		OutErrorMessage = FText::Format (LOCTEXT("RetargetSourceManagerNameSame", "{0} Nothing modified"), FText::FromString(OldName.ToString()) );
+		OutErrorMessage = FText::Format (LOCTEXT("RetargetSourceWindowNameSame", "{0} Nothing modified"), FText::FromString(OldName.ToString()) );
 		return false;
 	}
 
 	FReferencePose * Pose = Skeleton->AnimRetargetSources.Find(OldName);
 	if (!Pose)
 	{
-		OutErrorMessage = FText::Format (LOCTEXT("RetargetSourceManagerNameNotFound", "{0} Not found"), FText::FromString(OldName.ToString()) );
+		OutErrorMessage = FText::Format (LOCTEXT("RetargetSourceWindowNameNotFound", "{0} Not found"), FText::FromString(OldName.ToString()) );
 		return false;
 	}
 
@@ -343,14 +366,14 @@ bool SRetargetSourceManager::OnVerifyRenameCommit( const FName & OldName, const 
 
 	if (Pose)
 	{
-		OutErrorMessage = FText::Format (LOCTEXT("RetargetSourceManagerNameDuplicated", "{0} already exists"), FText::FromString(NewName) );
+		OutErrorMessage = FText::Format (LOCTEXT("RetargetSourceWindowNameDuplicated", "{0} already exists"), FText::FromString(NewName) );
 		return false;
 	}
 
 	return true;
 }
 
-TSharedPtr<SWidget> SRetargetSourceManager::OnGetContextMenuContent() const
+TSharedPtr<SWidget> SRetargetSourceWindow::OnGetContextMenuContent() const
 {
 	if ( Skeleton )
 	{
@@ -359,7 +382,7 @@ TSharedPtr<SWidget> SRetargetSourceManager::OnGetContextMenuContent() const
 
 		MenuBuilder.BeginSection("RetargetSourceAction", LOCTEXT( "New", "New" ) );
 		{
-			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceManager::OnAddRetargetSource ) );
+			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceWindow::OnAddRetargetSource ) );
 			const FText Label = LOCTEXT("AddRetargetSourceActionLabel", "Add...");
 			const FText ToolTip = LOCTEXT("AddRetargetSourceActionTooltip", "Add new retarget source.");
 			MenuBuilder.AddMenuEntry( Label, ToolTip, FSlateIcon(), Action);
@@ -368,22 +391,22 @@ TSharedPtr<SWidget> SRetargetSourceManager::OnGetContextMenuContent() const
 
 		MenuBuilder.BeginSection("RetargetSourceAction", LOCTEXT( "Selected", "Selected Item Actions" ) );
 		{
-			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceManager::OnRenameRetargetSource ), 
-				FCanExecuteAction::CreateSP( this, &SRetargetSourceManager::CanPerformRename ) );
+			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceWindow::OnRenameRetargetSource ), 
+				FCanExecuteAction::CreateSP( this, &SRetargetSourceWindow::CanPerformRename ) );
 			const FText Label = LOCTEXT("RenameRetargetSourceActionLabel", "Rename");
 			const FText ToolTip = LOCTEXT("RenameRetargetSourceActionTooltip", "Rename the selected retarget source.");
 			MenuBuilder.AddMenuEntry( Label, ToolTip, FSlateIcon(), Action);
 		}
 		{
-			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceManager::OnDeleteRetargetSource ), 
-				FCanExecuteAction::CreateSP( this, &SRetargetSourceManager::CanPerformDelete ) );
+			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceWindow::OnDeleteRetargetSource ), 
+				FCanExecuteAction::CreateSP( this, &SRetargetSourceWindow::CanPerformDelete ) );
 			const FText Label = LOCTEXT("DeleteRetargetSourceActionLabel", "Delete");
 			const FText ToolTip = LOCTEXT("DeleteRetargetSourceActionTooltip", "Deletes the selected retarget sources.");
 			MenuBuilder.AddMenuEntry( Label, ToolTip, FSlateIcon(), Action);
 		}
 		{
-			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceManager::OnRefreshRetargetSource ), 
-				FCanExecuteAction::CreateSP( this, &SRetargetSourceManager::CanPerformRefresh ) );
+			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceWindow::OnRefreshRetargetSource ), 
+				FCanExecuteAction::CreateSP( this, &SRetargetSourceWindow::CanPerformRefresh ) );
 			const FText Label = LOCTEXT("RefreshRetargetSourceActionLabel", "Refresh");
 			const FText ToolTip = LOCTEXT("RefreshRetargetSourceActionTooltip", "Refreshs the selected retarget sources.");
 			MenuBuilder.AddMenuEntry( Label, ToolTip, FSlateIcon(), Action);
@@ -401,7 +424,7 @@ TSharedPtr<SWidget> SRetargetSourceManager::OnGetContextMenuContent() const
 /** @TODO: FIXME: Item to rename. Only valid for adding and this is so hacky, I know**/
 //TSharedPtr<FDisplayedBasePoseInfo> ItemToRename;
 
-void SRetargetSourceManager::CreateRetargetSourceList( const FString& SearchText, const FName  NewName )
+void SRetargetSourceWindow::CreateRetargetSourceList( const FString& SearchText, const FName  NewName )
 {
 	RetargetSourceList.Empty();
 
@@ -440,7 +463,7 @@ void SRetargetSourceManager::CreateRetargetSourceList( const FString& SearchText
 	RetargetSourceListView->RequestListRefresh();
 }
 
-int32 SRetargetSourceManager::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SRetargetSourceWindow::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const int32 Result = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
@@ -454,7 +477,7 @@ int32 SRetargetSourceManager::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	return Result;
 }
 
-void SRetargetSourceManager::AddRetargetSource( const FName Name, USkeletalMesh * ReferenceMesh  )
+void SRetargetSourceWindow::AddRetargetSource( const FName Name, USkeletalMesh * ReferenceMesh  )
 {
 	// need to verify if the name is unique, if not create unique name
 	if ( Skeleton )
@@ -485,7 +508,7 @@ void SRetargetSourceManager::AddRetargetSource( const FName Name, USkeletalMesh 
 		RefPose.PoseName = FName(*NewSourceName);
 		RefPose.ReferenceMesh = ReferenceMesh;
 
-		const FScopedTransaction Transaction( LOCTEXT("RetargetSourceManager_Add", "Add New Retarget Source") );
+		const FScopedTransaction Transaction( LOCTEXT("RetargetSourceWindow_Add", "Add New Retarget Source") );
 		Skeleton->Modify();
 
 		Skeleton->AnimRetargetSources.Add(Name, RefPose);
@@ -501,14 +524,14 @@ void SRetargetSourceManager::AddRetargetSource( const FName Name, USkeletalMesh 
 	}
 }
 
-void SRetargetSourceManager::OnAddRetargetSource()
+void SRetargetSourceWindow::OnAddRetargetSource()
 {
 	// show list of skeletalmeshes that they can choose from
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 	FAssetPickerConfig AssetPickerConfig;
 	AssetPickerConfig.Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
-	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SRetargetSourceManager::OnAssetSelectedFromMeshPicker);
+	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SRetargetSourceWindow::OnAssetSelectedFromMeshPicker);
 	AssetPickerConfig.bAllowNullSelection = false;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
 	AssetPickerConfig.ThumbnailScale = 0.0f;
@@ -544,7 +567,7 @@ void SRetargetSourceManager::OnAddRetargetSource()
 		);
 }
 
-void SRetargetSourceManager::OnAssetSelectedFromMeshPicker(const FAssetData& AssetData)
+void SRetargetSourceWindow::OnAssetSelectedFromMeshPicker(const FAssetData& AssetData)
 {
 	USkeletalMesh * SelectedMesh = CastChecked<USkeletalMesh> (AssetData.GetAsset());
 
@@ -568,17 +591,17 @@ void SRetargetSourceManager::OnAssetSelectedFromMeshPicker(const FAssetData& Ass
 	FSlateApplication::Get().DismissAllMenus();
 }
 
-bool SRetargetSourceManager::CanPerformDelete() const
+bool SRetargetSourceWindow::CanPerformDelete() const
 {
 	TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
 	return SelectedRows.Num() > 0;
 }
 
-void SRetargetSourceManager::OnDeleteRetargetSource()
+void SRetargetSourceWindow::OnDeleteRetargetSource()
 {
 	TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
 	
-	const FScopedTransaction Transaction( LOCTEXT("RetargetSourceManager_Delete", "Delete Retarget Source") );
+	const FScopedTransaction Transaction( LOCTEXT("RetargetSourceWindow_Delete", "Delete Retarget Source") );
 	for (int RowIndex = 0; RowIndex < SelectedRows.Num(); ++RowIndex)
 	{
 		const FReferencePose * PoseFound = Skeleton->AnimRetargetSources.Find(SelectedRows[RowIndex]->Name);
@@ -654,13 +677,13 @@ void SRetargetSourceManager::OnDeleteRetargetSource()
 	CreateRetargetSourceList( NameFilterBox->GetText().ToString() );
 }
 
-bool SRetargetSourceManager::CanPerformRename() const
+bool SRetargetSourceWindow::CanPerformRename() const
 {
 	TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
 	return SelectedRows.Num() == 1;
 }
 
-void SRetargetSourceManager::OnRenameRetargetSource()
+void SRetargetSourceWindow::OnRenameRetargetSource()
 {
 	TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
 
@@ -678,17 +701,17 @@ void SRetargetSourceManager::OnRenameRetargetSource()
 	}
 }
 
-bool SRetargetSourceManager::CanPerformRefresh() const
+bool SRetargetSourceWindow::CanPerformRefresh() const
 {
 	TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
 	return SelectedRows.Num() > 0;
 }
 
-void SRetargetSourceManager::OnRefreshRetargetSource()
+void SRetargetSourceWindow::OnRefreshRetargetSource()
 {
 	TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
 
-	const FScopedTransaction Transaction( LOCTEXT("RetargetSourceManager_Refresh", "Refresh Retarget Source") );
+	const FScopedTransaction Transaction( LOCTEXT("RetargetSourceWindow_Refresh", "Refresh Retarget Source") );
 	for (int RowIndex = 0; RowIndex < SelectedRows.Num(); ++RowIndex)
 	{
 		Skeleton->Modify();
@@ -699,7 +722,7 @@ void SRetargetSourceManager::OnRefreshRetargetSource()
 		// feedback of pose has been updated
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("RetargetSourceName"), FText::FromString( RetargetSourceName.ToString() ) );
-		FNotificationInfo Info( FText::Format( LOCTEXT("RetargetSourceManager_RefreshPose", "Retarget Source {RetargetSourceName} is refreshed"), Args ) );
+		FNotificationInfo Info( FText::Format( LOCTEXT("RetargetSourceWindow_RefreshPose", "Retarget Source {RetargetSourceName} is refreshed"), Args ) );
 		Info.ExpireDuration = 5.0f;
 		Info.bUseLargeFont = false;
 		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
@@ -712,7 +735,7 @@ void SRetargetSourceManager::OnRefreshRetargetSource()
 	FAssetNotifications::SkeletonNeedsToBeSaved(Skeleton);
 }
 
-SRetargetSourceManager::~SRetargetSourceManager()
+SRetargetSourceWindow::~SRetargetSourceWindow()
 {
 	if (PersonaPtr.IsValid())
 	{
@@ -720,10 +743,15 @@ SRetargetSourceManager::~SRetargetSourceManager()
 	}
 }
 
-void SRetargetSourceManager::PostUndo()
+void SRetargetSourceWindow::PostUndo()
 {
 	CreateRetargetSourceList();
 }
 
+FReply SRetargetSourceWindow::OnAddRetargetSourceButtonClicked()
+{
+	OnAddRetargetSource();
+	return FReply::Handled();
+}
 #undef LOCTEXT_NAMESPACE
 

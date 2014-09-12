@@ -19,7 +19,7 @@
 const FName FPersonaTabs::MorphTargetsID("MorphTargetsTab");
 const FName FPersonaTabs::SkeletonTreeViewID("SkeletonTreeView");		//@TODO: Name
 // Skeleton Pose manager
-const FName FPersonaTabs::RetargetSourceManagerID("RetargetSourceManager");
+const FName FPersonaTabs::RetargetManagerID("RetargetManager");
 // Anim Blueprint params
 // Explorer
 // Blueprint Defaults
@@ -65,7 +65,7 @@ FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InM
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FPreviewViewportSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FMorphTargetTabSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FRetargetSourceManagerTabSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FRetargetManagerTabSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotGroupNamesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonCurveNameManagerSummoner(InPersona)));
@@ -224,27 +224,28 @@ TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSp
 }
 
 /////////////////////////////////////////////////////
-// FRetargetSourceManagerTabSummoner
+// FRetargetManagerTabSummoner
 
-#include "SRetargetSourceManager.h"
+#include "SRetargetManager.h"
 
-FRetargetSourceManagerTabSummoner::FRetargetSourceManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-	: FWorkflowTabFactory(FPersonaTabs::RetargetSourceManagerID, InHostingApp)
+FRetargetManagerTabSummoner::FRetargetManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FPersonaTabs::RetargetManagerID, InHostingApp)
 {
-	TabLabel = LOCTEXT("RetargetSourceManagerTabTitle", "Retarget Source Manager");
+	TabLabel = LOCTEXT("RetargetManagerTabTitle", "Retarget Manager");
 
 	EnableTabPadding();
 	bIsSingleton = true;
 
-	ViewMenuDescription = LOCTEXT("RetargetSourceManagerTabView", "Retarget Source Manager");
-	ViewMenuTooltip = LOCTEXT("RetargetSourceManagerTabView_ToolTip", "Manages different source pose for animations (retargeting)");
+	ViewMenuDescription = LOCTEXT("RetargetManagerTabView", "Retarget Manager");
+	ViewMenuTooltip = LOCTEXT("RetargetManagerTabView_ToolTip", "Manages different options for retargeting");
 }
 
-TSharedRef<SWidget> FRetargetSourceManagerTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+TSharedRef<SWidget> FRetargetManagerTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SRetargetSourceManager)
+	return SNew(SRetargetManager)
 		.Persona(StaticCastSharedPtr<FPersona>(HostingApp.Pin()));
 }
+
 
 /////////////////////////////////////////////////////
 // FAnimBlueprintDefaultsEditorSummoner

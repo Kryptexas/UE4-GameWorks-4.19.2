@@ -687,6 +687,10 @@ public:
 	UPROPERTY()
 	float FloorOffset;
 
+	/** This is buffer that saves pose that is used by retargeting*/
+	UPROPERTY()
+	TArray<FTransform> RetargetBasePose;
+
 #endif
 
 	/** Clothing asset data */

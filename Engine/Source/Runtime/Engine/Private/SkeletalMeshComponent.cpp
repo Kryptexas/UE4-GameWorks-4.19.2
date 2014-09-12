@@ -1026,7 +1026,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
 
 		// New bone positions need to be sent to render thread
-		UpdateComponentToWorld();
+		UpdateChildTransforms();
 
 		// animation often change overlap. 
 		UpdateOverlaps();

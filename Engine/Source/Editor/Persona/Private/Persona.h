@@ -560,7 +560,7 @@ private:
 
 	// tool bar actions
 	void OnAnimNotifyWindow();
-	void OnRetargetSourceMgr();
+	void OnRetargetManager();
 	void OnReimportMesh();
 	void OnImportAsset(enum EFBXImportType DefaultImportType);
 	void OnReimportAnimation();

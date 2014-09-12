@@ -700,6 +700,25 @@ void FAnimationRuntime::FillWithRefPose(TArray<FTransform> & OutAtoms, const FBo
 	}
 }
 
+void FAnimationRuntime::FillWithRetargetBaseRefPose( TArray<FTransform> & OutAtoms, const USkeletalMesh * Mesh, const FBoneContainer & RequiredBones )
+{
+	// Copy Target Asset's ref pose.
+	if (Mesh)
+	{
+		const TArray<FBoneIndexType> & BoneIndices = RequiredBones.GetBoneIndicesArray();
+		OutAtoms.Empty(BoneIndices.Num());
+		OutAtoms.AddUninitialized(BoneIndices.Num());
+		for (int32 Idx = 0; Idx < BoneIndices.Num(); ++Idx)
+		{
+			OutAtoms[Idx] = Mesh->RetargetBasePose[BoneIndices[Idx]];
+		}
+	}
+	else
+	{
+		OutAtoms.Empty();
+	}
+}
+
 void FAnimationRuntime::ConvertPoseToMeshSpace(const TArray<FTransform> & LocalTransforms, TArray<FTransform> & MeshSpaceTransforms, const FBoneContainer & RequiredBones)
 {
 	const int32 NumBones = RequiredBones.GetNumBones();
@@ -1180,6 +1199,62 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType> & RequiredBoneIndices
 	return false;
 }
 #endif
+
+void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose)
+{
+	check(Skeleton);
+
+	const TArray<FTransform> & ReferencePose = Skeleton->GetReferenceSkeleton().GetRefBonePose();
+	SpaceBaseRefPose.Empty(ReferencePose.Num());
+	SpaceBaseRefPose.AddUninitialized(ReferencePose.Num());
+
+	// initialize to identity since some of them don't have tracks
+	for(int Index=0; Index <SpaceBaseRefPose.Num(); ++Index)
+	{
+		int32 ParentIndex = Skeleton->GetReferenceSkeleton().GetParentIndex(Index);
+		if(ParentIndex != INDEX_NONE)
+		{
+			SpaceBaseRefPose[Index] = ReferencePose[Index] * SpaceBaseRefPose[ParentIndex];
+		}
+		else
+		{
+			SpaceBaseRefPose[Index] = ReferencePose[Index];
+		}
+	}
+}
+
+void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose)
+{
+	check(Skeleton);
+
+	// @Todo fixme: this has to get preview mesh instead of skeleton
+	
+	const USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh();
+	if (PreviewMesh)
+	{
+		const TArray<FTransform> & ReferencePose = PreviewMesh->RetargetBasePose;
+		SpaceBaseRefPose.Empty(ReferencePose.Num());
+		SpaceBaseRefPose.AddUninitialized(ReferencePose.Num());
+
+		// initialize to identity since some of them don't have tracks
+		for(int Index=0; Index <SpaceBaseRefPose.Num(); ++Index)
+		{
+			int32 ParentIndex = Skeleton->GetReferenceSkeleton().GetParentIndex(Index);
+			if(ParentIndex != INDEX_NONE)
+			{
+				SpaceBaseRefPose[Index] = ReferencePose[Index] * SpaceBaseRefPose[ParentIndex];
+			}
+			else
+			{
+				SpaceBaseRefPose[Index] = ReferencePose[Index];
+			}
+		}
+	}
+	else
+	{
+		FAnimationRuntime::FillUpSpaceBasesRefPose(Skeleton, SpaceBaseRefPose);
+	}
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // FA2CSPose

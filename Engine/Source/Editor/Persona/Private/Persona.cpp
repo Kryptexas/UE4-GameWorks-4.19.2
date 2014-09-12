@@ -751,7 +751,7 @@ void FPersona::ExtendDefaultPersonaToolbar()
 			{
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ChangeSkeletonPreviewMesh, NAME_None, LOCTEXT("Toolbar_ChangePreviewMesh", "Set Preview"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().AnimNotifyWindow);
-				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().RetargetSourceMgr, NAME_None, LOCTEXT("Toolbar_RetargetSourceMgr", "Retarget Source"));
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().RetargetManager, NAME_None, LOCTEXT("Toolbar_RetargetManager", "Retarget Manager"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ImportMesh);
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ReimportMesh);
 
@@ -1007,8 +1007,8 @@ void FPersona::CreateDefaultCommands()
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::SkeletonDisplayMode)
 		);
 
-	ToolkitCommands->MapAction(FPersonaCommands::Get().RetargetSourceMgr,
-		FExecuteAction::CreateSP(this, &FPersona::OnRetargetSourceMgr),
+	ToolkitCommands->MapAction(FPersonaCommands::Get().RetargetManager,
+		FExecuteAction::CreateSP(this, &FPersona::OnRetargetManager),
 		FCanExecuteAction(),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::SkeletonDisplayMode)
@@ -2783,9 +2783,9 @@ void FPersona::OnAnimNotifyWindow()
 	TabManager->InvokeTab(FPersonaTabs::SkeletonAnimNotifiesID);
 }
 
-void FPersona::OnRetargetSourceMgr()
+void FPersona::OnRetargetManager()
 {
-	TabManager->InvokeTab(FPersonaTabs::RetargetSourceManagerID);
+	TabManager->InvokeTab(FPersonaTabs::RetargetManagerID);
 }
 
 void FPersona::OnImportAsset(enum EFBXImportType DefaultImportType)

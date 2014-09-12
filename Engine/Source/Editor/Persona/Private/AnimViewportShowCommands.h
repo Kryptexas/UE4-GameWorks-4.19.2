@@ -41,6 +41,9 @@ public:
 
 	/** Show reference pose on preview mesh */
 	TSharedPtr< FUICommandInfo > ShowReferencePose;
+
+	/** Show reference pose on preview mesh */
+	TSharedPtr< FUICommandInfo > ShowRetargetBasePose;
 	
 	/** Show Bound of preview mesh */
 	TSharedPtr< FUICommandInfo > ShowBound;

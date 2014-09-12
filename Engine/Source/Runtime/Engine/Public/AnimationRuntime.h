@@ -144,6 +144,9 @@ public:
 	/** Fill ref pose **/
 	static void FillWithRefPose(TArray<FTransform> & OutAtoms, const FBoneContainer & RequiredBones);
 
+	/** fill with retarget base ref pose but this isn't used during run-time, so it always copies all of them */
+	static void FillWithRetargetBaseRefPose( TArray<FTransform> & OutAtoms, const USkeletalMesh * Mesh, const FBoneContainer & RequiredBones );
+
 	/** Convert LocalTransforms into MeshSpaceTransforms over RequiredBones. */
 	static void ConvertPoseToMeshSpace(const TArray<FTransform> & LocalTransforms, TArray<FTransform> & MeshSpaceTransforms, const FBoneContainer & RequiredBones);
 
@@ -258,6 +261,10 @@ public:
 	static FTransform GetSpaceTransform(FA2CSPose& Pose, int32 Index);
 	static void SetSpaceTransform(FA2Pose& Pose, int32 Index, FTransform & NewTransform);
 	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform & NewTransform);
+
+	// space bases
+	static void FillUpSpaceBasesRefPose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose);
+	static void FillUpSpaceBasesRetargetBasePose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose);
 
 private:
 	/** 

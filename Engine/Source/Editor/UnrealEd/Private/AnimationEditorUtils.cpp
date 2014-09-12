@@ -47,11 +47,6 @@ namespace AnimationEditorUtils
 		{
 			AssetCreated.Execute(ObjectsToSync);
 		}
-// 		if(ObjectsToSync.Num() > 0)
-// 		{
-// 			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-// 			ContentBrowserModule.Get().SyncBrowserToAssets(ObjectsToSync, /*bAllowLockedBrowsers=*/true);
-// 		}
 	}
 
 	template <typename TFactory, typename T>

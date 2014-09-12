@@ -9,6 +9,7 @@
 #include "AnimationRuntime.h"
 #include "AssetRegistryModule.h"
 #include "Animation/AnimSequence.h"
+#include "Animation/Rig.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
 #define ROOT_BONE_PARENT	INDEX_NONE
@@ -755,6 +756,11 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 	return PreviewMesh;
 }
 
+USkeletalMesh* USkeleton::GetPreviewMesh() const
+{
+	return PreviewSkeletalMesh.Get();
+}
+
 void USkeleton::SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty/*=true*/)
 {
 	if (bMarkAsDirty)
@@ -975,6 +981,129 @@ void USkeleton::RegenerateGuid()
 {
 	Guid = FGuid::NewGuid();
 	check(Guid.IsValid());
+}
+
+void USkeleton::SetRigConfig(URig * Rig)
+{
+	if (RigConfig.Rig != Rig)
+	{
+		RigConfig.Rig = Rig;
+		RigConfig.BoneMappingTable.Empty();
+
+		if (Rig)
+		{
+			const FReferenceSkeleton & RefSkeleton = GetReferenceSkeleton();
+			const TArray<FNode> & Nodes = Rig->GetNodes();
+			// now add bone mapping table
+			for (auto Node: Nodes)
+			{
+				// if find same bone, use that bone for mapping
+				if (RefSkeleton.FindBoneIndex(Node.Name) != INDEX_NONE)
+				{
+					RigConfig.BoneMappingTable.Add(FNameMapping(Node.Name, Node.Name));
+				}
+				else
+				{
+					RigConfig.BoneMappingTable.Add(FNameMapping(Node.Name));
+				}
+			}
+		}
+	}
+}
+
+int32 USkeleton::FindRigBoneMapping(const FName & NodeName) const
+{
+	int32 Index=0;
+	for(const auto & NameMap : RigConfig.BoneMappingTable)
+	{
+		if(NameMap.NodeName == NodeName)
+		{
+			return Index;
+		}
+
+		++Index;
+	}
+
+	return INDEX_NONE;
+}
+
+FName USkeleton::GetRigBoneMapping(const FName & NodeName) const
+{
+	int32 Index = FindRigBoneMapping(NodeName);
+
+	if (Index != INDEX_NONE)
+	{
+		return RigConfig.BoneMappingTable[Index].BoneName;
+	}
+
+	return NAME_None;
+}
+
+bool USkeleton::SetRigBoneMapping(const FName & NodeName, FName BoneName)
+{
+	// make sure it's valid
+	int32 BoneIndex = ReferenceSkeleton.FindBoneIndex(BoneName);
+
+	// @todo we need to have validation phase where you can't set same bone for different nodes
+	// but it might be annoying to do that right now since the tool is ugly
+	// so for now it lets you set everything, but in the future
+	// we'll have to add verification
+	if ( BoneIndex != INDEX_NONE )
+	{
+		int32 Index = FindRigBoneMapping(NodeName);
+
+		if(Index != INDEX_NONE)
+		{
+			RigConfig.BoneMappingTable[Index].BoneName = BoneName;
+			return true;
+		}
+	}
+
+
+	return false;
+}
+
+void USkeleton::RefreshRigConfig()
+{
+	if (RigConfig.Rig != NULL)
+	{
+		if (RigConfig.BoneMappingTable.Num() > 0)
+		{
+			// verify if any missing bones or anything
+			// remove if removed
+			for ( int32 TableId=0; TableId<RigConfig.BoneMappingTable.Num(); ++TableId )
+			{
+				auto & BoneMapping = RigConfig.BoneMappingTable[TableId];
+
+				if ( RigConfig.Rig->FindNode(BoneMapping.NodeName) == INDEX_NONE)
+				{
+					// if not contains, remove it
+					RigConfig.BoneMappingTable.RemoveAt(TableId);
+					--TableId;
+				}
+			}
+
+			// if the count doesn't match, there is missing nodes. 
+			if (RigConfig.Rig->GetNodeNum() != RigConfig.BoneMappingTable.Num())
+			{
+				int32 NodeNum = RigConfig.Rig->GetNodeNum();
+				for(int32 NodeId=0; NodeId<NodeNum; ++NodeId)
+				{
+					const auto * Node = RigConfig.Rig->GetNode(NodeId);
+
+					if (FindRigBoneMapping(Node->Name) == INDEX_NONE)
+					{
+						RigConfig.BoneMappingTable.Add(FNameMapping(Node->Name));
+					}
+				}
+			}
+		}
+	}
+}
+
+URig * USkeleton::GetRig() const
+{
+	return RigConfig.Rig;
 }
 
 #undef LOCTEXT_NAMESPACE 
