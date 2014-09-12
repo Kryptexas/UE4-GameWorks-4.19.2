@@ -439,4 +439,9 @@ private:
 	 * Holds the list of custom fields
 	 */
 	TMap< FString, FString > CustomFields;
+
+	/**
+	 * Holds the total build size in bytes
+	 */
+	int64 TotalBuildSize;
 };
