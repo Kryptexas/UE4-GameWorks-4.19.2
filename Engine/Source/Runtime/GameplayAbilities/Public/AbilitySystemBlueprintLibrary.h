@@ -60,6 +60,12 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	static FHitResult GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle HitResult, int32 Index);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static bool TargetDataHasOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FTransform GetTargetDataOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static bool TargetDataHasEndPoint(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")

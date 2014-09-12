@@ -171,12 +171,43 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 	return FHitResult();
 }
 
+bool UAbilitySystemBlueprintLibrary::TargetDataHasOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
+{
+	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
+	if (Data)
+	{
+		return (Data->HasHitResult() || Data->HasOrigin());
+	}
+	return false;
+}
+
+FTransform UAbilitySystemBlueprintLibrary::GetTargetDataOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
+{
+	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
+	if (Data)
+	{
+		if (Data->HasOrigin())
+		{
+			return Data->GetOrigin();
+		}
+		if (Data->HasHitResult())
+		{
+			const FHitResult* HitResultPtr = Data->GetHitResult();
+			FTransform ReturnTransform;
+			ReturnTransform.SetLocation(HitResultPtr->TraceStart);
+			ReturnTransform.SetRotation((HitResultPtr->Location - HitResultPtr->TraceStart).SafeNormal().Rotation().Quaternion());
+			return ReturnTransform;
+		}
+	}
+
+	return FTransform::Identity;
+}
+
 bool UAbilitySystemBlueprintLibrary::TargetDataHasEndPoint(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
 	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
-		const FHitResult* HitResultPtr = Data->GetHitResult();
 		return (Data->HasHitResult() || Data->HasEndPoint());
 	}
 	return false;
@@ -205,7 +236,7 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 		}
 	}
 
-	return FVector();
+	return FVector::ZeroVector;
 }
 
 // -------------------------------------------------------------------------------------

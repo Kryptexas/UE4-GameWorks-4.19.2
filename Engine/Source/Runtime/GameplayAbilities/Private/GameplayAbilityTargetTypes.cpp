@@ -213,6 +213,7 @@ bool FGameplayAbilityTargetData_SingleTargetHit::NetSerialize(FArchive& Ar, clas
 {
 	Ar << HitResult.Actor;
 
+	HitResult.TraceStart.NetSerialize(Ar, Map, bOutSuccess);
 	HitResult.Location.NetSerialize(Ar, Map, bOutSuccess);
 	HitResult.Normal.NetSerialize(Ar, Map, bOutSuccess);
 
