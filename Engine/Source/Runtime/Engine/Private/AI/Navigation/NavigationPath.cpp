@@ -297,11 +297,20 @@ const FNavPathType FNavMeshPath::Type;
 FNavMeshPath::FNavMeshPath()
 	: bCorridorEdgesGenerated(false)
 	, bDynamic(false)
-	, bStrigPulled(false)
+	, bStringPulled(false)
 	, bWantsStringPulling(true)
 	, bWantsPathCorridor(false)
 {
 	PathType = FNavMeshPath::Type;
+}
+
+void FNavMeshPath::Reset()
+{
+	PathPoints.Reset();
+	PathCorridor.Reset();
+	PathCorridorCost.Reset();
+	bStringPulled = false;
+	bCorridorEdgesGenerated = false;
 }
 
 float FNavMeshPath::GetStringPulledLength(const int32 StartingPoint) const
@@ -367,6 +376,15 @@ const TArray<FNavigationPortalEdge>* FNavMeshPath::GeneratePathCorridorEdges() c
 #endif // WITH_RECAST
 	return &PathCorridorEdges;
 }
+
+void FNavMeshPath::PerformStringPulling(const FVector& StartLoc, const FVector& EndLoc)
+{
+#if WITH_RECAST
+	const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
+	bStringPulled = MyOwner->FindStraightPath(StartLoc, EndLoc, PathCorridor, PathPoints, &CustomLinkIds);
+#endif	// WITH_RECAST
+}
+
 
 #if DEBUG_DRAW_OFFSET
 	UWorld* GInternalDebugWorld_ = NULL;

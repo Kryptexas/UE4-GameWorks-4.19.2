@@ -1772,11 +1772,24 @@ bool ARecastNavMesh::IsSegmentOnNavmesh(const FVector& SegmentStart, const FVect
 	
 	FRaycastResult Result;
 	{
-		SECTION_LOCK_TILES_FOR(this);		
+		SECTION_LOCK_TILES;
 		RecastNavMeshImpl->Raycast2D(SegmentStart, SegmentEnd, GetRightFilterRef(Filter), QueryOwner, Result);
 	}
 
 	return Result.HasHit() == false;
+}
+
+bool ARecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks) const
+{
+	bool bResult = false;
+	if (RecastNavMeshImpl)
+	{
+		SECTION_LOCK_TILES;
+
+		bResult = RecastNavMeshImpl->FindStraightPath(StartLoc, EndLoc, PathCorridor, PathPoints, CustomLinks);
+	}
+
+	return bResult;
 }
 
 int32 ARecastNavMesh::DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps)

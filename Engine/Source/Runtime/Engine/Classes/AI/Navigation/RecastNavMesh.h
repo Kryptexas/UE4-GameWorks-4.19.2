@@ -81,7 +81,10 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	FORCEINLINE void SetWantsStringPulling(const bool bNewWantsStringPulling) { bWantsStringPulling = bNewWantsStringPulling; }
 	FORCEINLINE bool WantsStringPulling() const { return bWantsStringPulling; }
-	FORCEINLINE bool IsStringPulled() const { return bStrigPulled; }
+	FORCEINLINE bool IsStringPulled() const { return bStringPulled; }
+	
+	/** find string pulled path from PathCorridor */
+	void PerformStringPulling(const FVector& StartLoc, const FVector& EndLoc);
 
 	FORCEINLINE void SetWantsPathCorridor(const bool bNewWantsPathCorridor) { bWantsPathCorridor = bNewWantsPathCorridor; }
 	FORCEINLINE bool WantsPathCorridor() const { return bWantsPathCorridor; }
@@ -98,6 +101,8 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	void OffsetFromCorners(float Distance);
 
 	void ApplyFlags(int32 NavDataFlags);
+
+	void Reset();
 
 	/** get cost of path, starting from next poly in corridor */
 	virtual float GetCostFromNode(NavNodeRef PathNode) const { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
@@ -122,7 +127,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	FORCEINLINE_DEBUGGABLE float GetTotalPathLength() const
 	{
-		return bStrigPulled ? GetStringPulledLength(0) : GetPathCorridorLength(0);
+		return bStringPulled ? GetStringPulledLength(0) : GetPathCorridorLength(0);
 	}
 
 	FORCEINLINE int32 GetNodeRefIndex(const NavNodeRef NodeRef) const { return PathCorridor.Find(NodeRef); }
@@ -186,7 +191,7 @@ protected:
 	/** does this path contain string pulled path? If true then NumPathVerts > 0 and
 	 *	OutPathVerts contains valid data. If false there's only navigation corridor data
 	 *	available.*/
-	uint32 bStrigPulled : 1;	
+	uint32 bStringPulled : 1;	
 
 	/** If set to true path instance will contain a string pulled version. Otherwise only
 	 *	navigation corridor will be available. Defaults to true */
@@ -867,6 +872,9 @@ public:
 	
 	/** @return true is specified segment is fully on navmesh (respecting the optional filter) */
 	bool IsSegmentOnNavmesh(const FVector& SegmentStart, const FVector& SegmentEnd, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
+
+	/** finds stringpulled path from given corridor */
+	bool FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks = NULL) const;
 
 	/** Runs A* pathfinding on navmesh and collect data for every step */
 	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);

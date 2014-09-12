@@ -746,10 +746,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 	}
 
 	// initialize output
-	// @todo this should be moved into a FNavMeshPath function 
-	Path.GetPathPoints().Reset();
-	Path.PathCorridor.Reset();
-	Path.PathCorridorCost.Reset();
+	Path.Reset();
 
 	// get path corridor
 	dtQueryResult PathResult;
@@ -942,6 +939,8 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 
 		if (Path.WantsStringPulling())
 		{
+			FVector UseEndLoc = EndLoc;
+			
 			// if path is partial (path corridor doesn't contain EndPolyID), find new RecastEndPos on last poly in corridor
 			if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
 			{
@@ -951,60 +950,11 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 				const dtStatus NewEndPointStatus = NavQuery.closestPointOnPoly(LastPolyID, &RecastEndPos.X, NewEndPoint);
 				if (dtStatusSucceed(NewEndPointStatus))
 				{
-					FMemory::Memcpy(&RecastEndPos.X, NewEndPoint, sizeof(NewEndPoint));
+					UseEndLoc = Recast2UnrealPoint(NewEndPoint);
 				}
 			}
 
-			dtQueryResult StringPullResult;
-			const dtStatus StringPullStatus = NavQuery.findStraightPath(&RecastStartPos.X, &RecastEndPos.X,
-				Path.PathCorridor.GetTypedData(), Path.PathCorridor.Num(), StringPullResult, DT_STRAIGHTPATH_AREA_CROSSINGS);
-
-			if (dtStatusSucceed(StringPullStatus))
-			{
-				Path.GetPathPoints().AddZeroed(StringPullResult.size());
-
-				// convert to desired format
-				FNavPathPoint* CurVert = Path.GetPathPoints().GetTypedData();
-				UNavigationSystem* NavSys = NavMeshOwner->GetWorld()->GetNavigationSystem();
-
-				for (int32 VertIdx=0; VertIdx < StringPullResult.size(); ++VertIdx)
-				{
-					const float* CurRecastVert = StringPullResult.getPos(VertIdx);
-					CurVert->Location = Recast2UnrVector(CurRecastVert);
-					CurVert->NodeRef = StringPullResult.getRef(VertIdx);
-
-					FNavMeshNodeFlags CurNodeFlags(0);
-					CurNodeFlags.PathFlags = StringPullResult.getFlag(VertIdx);
-
-					uint8 AreaID = RECAST_DEFAULT_AREA;
-					DetourNavMesh->getPolyArea(CurVert->NodeRef, &AreaID);
-					CurNodeFlags.Area = AreaID;
-
-					const UClass* AreaClass = NavMeshOwner->GetAreaClass(AreaID);
-					const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
-					CurNodeFlags.AreaFlags = DefArea ? DefArea->GetAreaFlags() : 0;
-
-					CurVert->Flags = CurNodeFlags.Pack();
-
-					// include smart link data
-					// if there will be more "edge types" we change this implementation to something more generic
-					if (CurNodeFlags.PathFlags & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
-					{
-						const dtOffMeshConnection* OffMeshCon = DetourNavMesh->getOffMeshConnectionByRef(CurVert->NodeRef);
-						if (OffMeshCon)
-						{
-							CurVert->CustomLinkId = OffMeshCon->userId;
-							Path.CustomLinkIds.Add(OffMeshCon->userId);
-						}
-					}
-
-					CurVert++;
-				}
-
-				// findStraightPath returns 0 for polyId of last point for some reason, even though it knows the poly id.  We will fill that in correctly with the last poly id of the corridor.
-				// @TODO shouldn't it be the same as EndPolyID? (nope, it could be partial path)
-				Path.GetPathPoints().Last().NodeRef = Path.PathCorridor.Last();
-			}
+			Path.PerformStringPulling(StartLoc, UseEndLoc);
 		}
 		else
 		{
@@ -1030,6 +980,69 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 			Path.SetPathCorridorEdges(PathCorridorEdges);
 		}
 	}
+}
+
+bool FPImplRecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks) const
+{
+	INITIALIZE_NAVQUERY_SIMPLE(NavQuery, RECAST_MAX_SEARCH_NODES);
+
+	const FVector RecastStartPos = Unreal2RecastPoint(StartLoc);
+	const FVector RecastEndPos = Unreal2RecastPoint(EndLoc);
+	bool bResult = false;
+
+	dtQueryResult StringPullResult;
+	const dtStatus StringPullStatus = NavQuery.findStraightPath(&RecastStartPos.X, &RecastEndPos.X,
+		PathCorridor.GetTypedData(), PathCorridor.Num(), StringPullResult, DT_STRAIGHTPATH_AREA_CROSSINGS);
+
+	PathPoints.Reset();
+	if (dtStatusSucceed(StringPullStatus))
+	{
+		PathPoints.AddZeroed(StringPullResult.size());
+
+		// convert to desired format
+		FNavPathPoint* CurVert = PathPoints.GetTypedData();
+
+		for (int32 VertIdx = 0; VertIdx < StringPullResult.size(); ++VertIdx)
+		{
+			const float* CurRecastVert = StringPullResult.getPos(VertIdx);
+			CurVert->Location = Recast2UnrVector(CurRecastVert);
+			CurVert->NodeRef = StringPullResult.getRef(VertIdx);
+
+			FNavMeshNodeFlags CurNodeFlags(0);
+			CurNodeFlags.PathFlags = StringPullResult.getFlag(VertIdx);
+
+			uint8 AreaID = RECAST_DEFAULT_AREA;
+			DetourNavMesh->getPolyArea(CurVert->NodeRef, &AreaID);
+			CurNodeFlags.Area = AreaID;
+
+			const UClass* AreaClass = NavMeshOwner->GetAreaClass(AreaID);
+			const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
+			CurNodeFlags.AreaFlags = DefArea ? DefArea->GetAreaFlags() : 0;
+
+			CurVert->Flags = CurNodeFlags.Pack();
+
+			// include smart link data
+			// if there will be more "edge types" we change this implementation to something more generic
+			if (CustomLinks && (CurNodeFlags.PathFlags & DT_STRAIGHTPATH_OFFMESH_CONNECTION))
+			{
+				const dtOffMeshConnection* OffMeshCon = DetourNavMesh->getOffMeshConnectionByRef(CurVert->NodeRef);
+				if (OffMeshCon)
+				{
+					CurVert->CustomLinkId = OffMeshCon->userId;
+					CustomLinks->Add(OffMeshCon->userId);
+				}
+			}
+
+			CurVert++;
+		}
+
+		// findStraightPath returns 0 for polyId of last point for some reason, even though it knows the poly id.  We will fill that in correctly with the last poly id of the corridor.
+		// @TODO shouldn't it be the same as EndPolyID? (nope, it could be partial path)
+		PathPoints.Last().NodeRef = PathCorridor.Last();
+		bResult = true;
+	}
+
+	return bResult;
 }
 
 static bool IsDebugNodeModified(const FRecastDebugPathfindingNode& NodeData, const FRecastDebugPathfindingStep& PreviousStep)
