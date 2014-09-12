@@ -2578,8 +2578,10 @@ void SAssetView::OnPreviewAssets()
 	OnAssetsActivated.ExecuteIfBound(GetSelectedAssets(), EAssetTypeActivationMethod::Previewed);
 }
 
-void SAssetView::ClearSelection()
+void SAssetView::ClearSelection(bool bForceSilent)
 {
+	const bool bTempBulkSelectingValue = bForceSilent ? true : bBulkSelecting;
+	TGuardValue<bool>(bBulkSelecting, bTempBulkSelectingValue);
 	switch ( GetCurrentViewType() )
 	{
 		case EAssetViewType::List: ListView->ClearSelection(); break;

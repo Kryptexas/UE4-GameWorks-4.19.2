@@ -337,6 +337,10 @@ void SAssetPicker::OnFilterChanged()
 FReply SAssetPicker::OnNoneButtonClicked()
 {
 	OnAssetSelected.ExecuteIfBound(FAssetData());
+	if (AssetViewPtr.IsValid())
+	{
+		AssetViewPtr->ClearSelection(true);
+	}
 	return FReply::Handled();
 }
 

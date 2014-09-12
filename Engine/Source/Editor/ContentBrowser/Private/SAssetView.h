@@ -225,7 +225,7 @@ public:
 	void OnPreviewAssets();
 
 	/** Clears the selection of all the lists in the view */
-	void ClearSelection();
+	void ClearSelection(bool bForceSilent = false);
 
 	/** Returns true if the asset view is in thumbnail editing mode */
 	bool IsThumbnailEditMode() const;
