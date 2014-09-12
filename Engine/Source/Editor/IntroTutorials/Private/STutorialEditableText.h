@@ -2,31 +2,6 @@
 
 #pragma once
 
-namespace TutorialTextHelpers
-{
-	extern void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
-
-	extern void OnDocLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
-
-	extern void OnTutorialLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
-
-	extern void OnCodeLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
-
-	extern void OnAssetLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
-}
-
-namespace EHyperlinkType
-{
-	enum Type
-	{
-		Browser,
-		UDN,
-		Tutorial,
-		Code,
-		Asset
-	};
-}
-
 /** Text style and name to display in the UI */
 struct FTextStyleAndName
 {
@@ -138,73 +113,6 @@ struct FTextStyleAndName
 	FText DisplayName;
 };
 
-/**
- * This is a custom decorator used to allow arbitrary styling of text within a rich-text editor
- * This is required since normal text styling can only work with known styles from a given Slate style-set
- */
-class FTextStyleDecorator : public ITextDecorator
-{
-public:
-
-	static TSharedRef<FTextStyleDecorator> Create()
-	{
-		return MakeShareable(new FTextStyleDecorator());
-	}
-
-	virtual ~FTextStyleDecorator()
-	{
-	}
-
-	virtual bool Supports(const FTextRunParseResults& RunParseResult, const FString& Text) const override
-	{
-		return (RunParseResult.Name == TEXT("TextStyle"));
-	}
-
-	virtual TSharedRef<ISlateRun> Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style) override
-	{
-		FRunInfo RunInfo(RunParseResult.Name);
-		for(const TPair<FString, FTextRange>& Pair : RunParseResult.MetaData)
-		{
-			RunInfo.MetaData.Add(Pair.Key, OriginalText.Mid(Pair.Value.BeginIndex, Pair.Value.EndIndex - Pair.Value.BeginIndex));
-		}
-
-		FTextRange ModelRange;
-		ModelRange.BeginIndex = InOutModelText->Len();
-		*InOutModelText += OriginalText.Mid(RunParseResult.ContentRange.BeginIndex, RunParseResult.ContentRange.EndIndex - RunParseResult.ContentRange.BeginIndex);
-		ModelRange.EndIndex = InOutModelText->Len();
-
-		return FSlateTextRun::Create(RunInfo, InOutModelText, FTextStyleAndName::CreateTextBlockStyle(RunInfo), ModelRange);
-	}
-};
-
-/** Helper struct to hold info about hyperlink types */
-struct FHyperlinkTypeDesc
-{
-	FHyperlinkTypeDesc(EHyperlinkType::Type InType, const FText& InText, const FText& InTooltipText, const FString& InId, FSlateHyperlinkRun::FOnClick InOnClickedDelegate)
-		: Type(InType)
-		, Id(InId)
-		, Text(InText)
-		, TooltipText(InTooltipText)
-		, OnClickedDelegate(InOnClickedDelegate)
-	{
-	}
-
-	/** The type of the link */
-	EHyperlinkType::Type Type;
-
-	/** Tag used by this hyperlink's run */
-	FString Id;
-
-	/** Text to display in the UI */
-	FText Text;
-
-	/** Tooltip text to display in the UI */
-	FText TooltipText;
-
-	/** Delegate to execute for this hyperlink's run */
-	FSlateHyperlinkRun::FOnClick OnClickedDelegate;
-};
-
 
 class STutorialEditableText : public SCompoundWidget
 {
@@ -256,9 +164,9 @@ protected:
 
 	FText GetHyperlinkButtonText() const;
 
-	void OnActiveHyperlinkChanged(TSharedPtr<FHyperlinkTypeDesc> NewValue, ESelectInfo::Type SelectionType);
+	void OnActiveHyperlinkChanged(TSharedPtr<struct FHyperlinkTypeDesc> NewValue, ESelectInfo::Type SelectionType);
 
-	TSharedRef<SWidget> GenerateHyperlinkComboEntry(TSharedPtr<FHyperlinkTypeDesc> SourceEntry);
+	TSharedRef<SWidget> GenerateHyperlinkComboEntry(TSharedPtr<struct FHyperlinkTypeDesc> SourceEntry);
 
 	FText GetActiveHyperlinkName() const;
 
@@ -271,6 +179,8 @@ protected:
 	void HandleOpenAssetCheckStateChanged(ESlateCheckBoxState::Type InCheckState);
 
 	ESlateCheckBoxState::Type IsOpenAssetChecked() const;
+
+	EVisibility GetExcerptVisibility() const;
 
 protected:
 	TSharedPtr<SMultiLineEditableTextBox> RichEditableTextBox;
@@ -285,6 +195,7 @@ protected:
 	TSharedPtr<SComboBox<TSharedPtr<FTextStyleAndName>>> FontComboBox;
 	TSharedPtr<STextBlock> HyperlinkNameTextBlock;
 	TSharedPtr<SEditableTextBox> HyperlinkURLTextBox;
+	TSharedPtr<SEditableTextBox> UDNExcerptTextBox;
 
 	TSharedPtr<FTextStyleAndName> ActiveStyle;
 	TSharedPtr<FTextStyleAndName> HyperlinkStyle;
@@ -294,8 +205,7 @@ protected:
 	FOnTextCommitted OnTextCommitted;
 	FOnTextChanged OnTextChanged;
 
-	TArray<TSharedPtr<FHyperlinkTypeDesc>> HyperlinkDescs;
-	TSharedPtr<FHyperlinkTypeDesc> CurrentHyperlinkType;
+	TSharedPtr<struct FHyperlinkTypeDesc> CurrentHyperlinkType;
 
 	bool bOpenAsset;
 

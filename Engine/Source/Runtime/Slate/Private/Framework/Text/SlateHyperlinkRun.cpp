@@ -56,9 +56,31 @@ int8 FSlateHyperlinkRun::GetKerning( int32 CurrentIndex, float Scale ) const
 
 TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunRenderer >& Renderer )
 {
+	FText ToolTipText;
+	TSharedPtr<IToolTip> ToolTip;
+	
+	if(TooltipDelegate.IsBound())
+	{
+		ToolTip = TooltipDelegate.Execute(RunInfo.MetaData);
+	}
+	else
+	{
+		const FString* Url = RunInfo.MetaData.Find(TEXT("href"));
+		if(TooltipTextDelegate.IsBound())
+		{
+			ToolTipText = TooltipTextDelegate.Execute(RunInfo.MetaData);
+		}
+		else if(Url != nullptr)
+		{
+			ToolTipText = FText::FromString(*Url);
+		}
+	}
+
 	TSharedRef< SWidget > Widget = SNew( SRichTextHyperlink, ViewModel )
 		.Style( &Style )
 		.Text( FText::FromString( FString( EndIndex - StartIndex, **Text + StartIndex ) ) )
+		.ToolTip( ToolTip )
+		.ToolTipText( ToolTipText )
 		.OnNavigate( this, &FSlateHyperlinkRun::OnNavigate );
 
 	Children.Add( Widget );

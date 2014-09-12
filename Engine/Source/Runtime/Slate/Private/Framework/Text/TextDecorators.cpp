@@ -93,14 +93,16 @@ TSharedRef< ISlateRun > FImageDecorator::Create(const TSharedRef<class FTextLayo
 	return FSlateImageRun::Create( RunInfo, InOutModelText, &ImageStyle.Image, ImageStyle.Baseline, ModelRange );
 }
 
-TSharedRef< FHyperlinkDecorator > FHyperlinkDecorator::Create( FString Id, const FSlateHyperlinkRun::FOnClick& NavigateDelegate )
+TSharedRef< FHyperlinkDecorator > FHyperlinkDecorator::Create( FString Id, const FSlateHyperlinkRun::FOnClick& NavigateDelegate, const FSlateHyperlinkRun::FOnGetTooltipText& InToolTipTextDelegate, const FSlateHyperlinkRun::FOnGenerateTooltip& InToolTipDelegate )
 {
-	return MakeShareable( new FHyperlinkDecorator( Id, NavigateDelegate ) );
+	return MakeShareable( new FHyperlinkDecorator( Id, NavigateDelegate, InToolTipTextDelegate, InToolTipDelegate ) );
 }
 
-FHyperlinkDecorator::FHyperlinkDecorator( FString InId, const FSlateHyperlinkRun::FOnClick& InNavigateDelegate )
+FHyperlinkDecorator::FHyperlinkDecorator( FString InId, const FSlateHyperlinkRun::FOnClick& InNavigateDelegate, const FSlateHyperlinkRun::FOnGetTooltipText& InToolTipTextDelegate, const FSlateHyperlinkRun::FOnGenerateTooltip& InToolTipDelegate )
 	: Id( InId )
 	, NavigateDelegate( InNavigateDelegate )
+	, ToolTipTextDelegate( InToolTipTextDelegate )
+	, ToolTipDelegate( InToolTipDelegate )
 {
 
 }
@@ -144,6 +146,10 @@ TSharedRef< ISlateRun > FHyperlinkDecorator::Create(const TSharedRef<class FText
 		RunInfo.MetaData.Add(Pair.Key, OriginalText.Mid( Pair.Value.BeginIndex, Pair.Value.EndIndex - Pair.Value.BeginIndex));
 	}
 
-	return FSlateHyperlinkRun::Create( RunInfo, InOutModelText, Style->GetWidgetStyle<FHyperlinkStyle>( FName( *StyleName ) ), NavigateDelegate, ModelRange );
+	TSharedRef<FSlateHyperlinkRun> HyperlinkRun = FSlateHyperlinkRun::Create( RunInfo, InOutModelText, Style->GetWidgetStyle<FHyperlinkStyle>( FName( *StyleName ) ), NavigateDelegate, ModelRange );
+	HyperlinkRun->OnGenerateToolTip() = ToolTipDelegate;
+	HyperlinkRun->OnGetToolTipText() = ToolTipTextDelegate;
+
+	return HyperlinkRun;
 }
 #endif //WITH_FANCY_TEXT

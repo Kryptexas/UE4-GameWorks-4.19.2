@@ -2,153 +2,10 @@
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "STutorialEditableText.h"
-#include "IDocumentation.h"
-#include "ISourceCodeAccessModule.h"
-#include "ContentBrowserModule.h"
-#include "SColorPicker.h"
-#include "DesktopPlatformModule.h"
 #include "RichTextLayoutMarshaller.h"
-#include "EditorTutorial.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
+#include "TutorialText.h"
 
 #define LOCTEXT_NAMESPACE "STutorialEditableText"
-
-
-namespace TutorialTextHelpers
-{
-
-void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
-{
-	const FString* Url = Metadata.Find(TEXT("href"));
-	if(Url)
-	{
-		FPlatformProcess::LaunchURL(**Url, nullptr, nullptr);
-	}
-}
-
-
-void OnDocLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
-{
-	const FString* Url = Metadata.Find(TEXT("href"));
-	if(Url)
-	{
-		IDocumentation::Get()->Open(*Url);
-	}
-}
-
-static void ParseTutorialLink(const FString &InternalLink)
-{
-	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *InternalLink);
-	if (Blueprint && Blueprint->GeneratedClass)
-	{
-		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const bool bRestart = true;
-		IntroTutorials.LaunchTutorial(Blueprint->GeneratedClass->GetDefaultObject<UEditorTutorial>(), bRestart, MainFrameModule.GetParentWindow());
-	}
-}
-
-void OnTutorialLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
-{
-	const FString* Url = Metadata.Find(TEXT("href"));
-	if(Url)
-	{
-		ParseTutorialLink(*Url);
-	}
-}
-
-static void ParseCodeLink(const FString &InternalLink)
-{
-	// Tokens used by the code parsing. Details in the parse section	
-	static const FString ProjectSpecifier(TEXT("[PROJECTPATH]"));
-	static const FString ProjectPathSpecifier(TEXT("[PROJECT]"));
-	static const FString EnginePathSpecifier(TEXT("[ENGINEPATH]"));
-
-	FString Path;
-	int32 Line = 0;
-	int32 Col = 0;
-
-	TArray<FString> Tokens;
-	InternalLink.ParseIntoArray(&Tokens, TEXT(","), 0);
-	int32 TokenStringsCount = Tokens.Num();
-	if (TokenStringsCount > 0)
-	{
-		Path = Tokens[0];
-	}
-	if (TokenStringsCount > 1)
-	{
-		TTypeFromString<int32>::FromString(Line, *Tokens[1]);
-	}
-	if (TokenStringsCount > 2)
-	{
-		TTypeFromString<int32>::FromString(Col, *Tokens[2]);
-	}
-
-	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
-	ISourceCodeAccessor& SourceCodeAccessor = SourceCodeAccessModule.GetAccessor();
-
-	if (Path.Contains(EnginePathSpecifier) == true)
-	{
-		// replace engine path specifier with path to engine
-		Path.ReplaceInline(*EnginePathSpecifier, *FPaths::EngineDir());
-	}
-
-	if (Path.Contains(ProjectSpecifier) == true)
-	{
-		// replace project specifier with path to project
-		Path.ReplaceInline(*ProjectSpecifier, FApp::GetGameName());
-	}
-
-	if (Path.Contains(ProjectPathSpecifier) == true)
-	{
-		// replace project specifier with path to project
-		Path.ReplaceInline(*ProjectPathSpecifier, *FPaths::GetProjectFilePath());
-	}
-
-	Path = FPaths::ConvertRelativePathToFull(Path);
-
-	SourceCodeAccessor.OpenFileAtLine(Path, Line, Col);
-}
-
-void OnCodeLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
-{
-	const FString* Url = Metadata.Find(TEXT("href"));
-	if(Url)
-	{	
-		ParseCodeLink(*Url);
-	}
-}
-
-static void ParseAssetLink(const FString& InternalLink, const FString* Action)
-{
-	UObject* RequiredObject = FindObject<UObject>(ANY_PACKAGE, *InternalLink);
-	if (RequiredObject != nullptr)
-	{
-		if(Action && *Action == TEXT("select"))
-		{
-			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-			TArray<UObject*> AssetToBrowse;
-			AssetToBrowse.Add(RequiredObject);
-			ContentBrowserModule.Get().SyncBrowserToAssets(AssetToBrowse);
-		}
-		else
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(RequiredObject);
-		}
-	}
-}
-
-void OnAssetLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
-{
-	const FString* Url = Metadata.Find(TEXT("href"));
-	const FString* Action = Metadata.Find(TEXT("action"));
-	if(Url)
-	{
-		ParseAssetLink(*Url, Action);
-	}
-}
-
-}
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void STutorialEditableText::Construct(const FArguments& InArgs)
@@ -174,49 +31,16 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 		FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Content.Text")
 		);
 
-	HyperlinkDescs.Add(MakeShareable(new FHyperlinkTypeDesc(
-		EHyperlinkType::Browser, 
-		LOCTEXT("BrowserLinkTypeLabel", "URL"), 
-		LOCTEXT("BrowserLinkTypeTooltip", "A link that opens a browser window (e.g. http://www.unrealengine.com)"),
-		TEXT("browser"),
-		FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnBrowserLinkClicked))));
 
-	CurrentHyperlinkType = HyperlinkDescs[0];
+	TArray<TSharedRef<class ITextDecorator>> Decorators;
+	FTutorialText::GetRichTextDecorators(Decorators);
 
-	HyperlinkDescs.Add(MakeShareable(new FHyperlinkTypeDesc(
-		EHyperlinkType::UDN, 
-		LOCTEXT("UDNLinkTypeLabel", "UDN"), 
-		LOCTEXT("UDNLinkTypeTooltip", "A link that opens some UDN documentation (e.g. /Engine/Blueprints/UserGuide/Types/ClassBlueprint)"),
-		TEXT("udn"),
-		FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnDocLinkClicked))));
-
-	HyperlinkDescs.Add(MakeShareable(new FHyperlinkTypeDesc(
-		EHyperlinkType::Asset, 
-		LOCTEXT("AssetLinkTypeLabel", "Asset"), 
-		LOCTEXT("AssetLinkTypeTooltip", "A link that opens an asset (e.g. /Game/StaticMeshes/SphereMesh.SphereMesh)"),
-		TEXT("asset"),
-		FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnAssetLinkClicked))));
-
-	HyperlinkDescs.Add(MakeShareable(new FHyperlinkTypeDesc(
-		EHyperlinkType::Code, 
-		LOCTEXT("CodeLinkTypeLabel", "Code"), 
-		LOCTEXT("CodeLinkTypeTooltip", "A link that opens code in your selected IDE.\nFor example: [PROJECTPATH]/Private/SourceFile.cpp,1,1.\nThe numbers correspond to line number and column number.\nYou can use [PROJECT], [PROJECTPATH] and [ENGINEPATH] tags to make paths."),
-		TEXT("code"),
-		FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnCodeLinkClicked))));
-
-	HyperlinkDescs.Add(MakeShareable(new FHyperlinkTypeDesc(
-		EHyperlinkType::Tutorial, 
-		LOCTEXT("TutorialLinkTypeLabel", "Tutorial"), 
-		LOCTEXT("TutorialLinkTypeTooltip", "A type of asset link that opens another tutorial, e.g. /Game/Tutorials/StaticMeshTutorial.StaticMeshTutorial"),
-		TEXT("tutorial"),
-		FSlateHyperlinkRun::FOnClick::CreateStatic(&TutorialTextHelpers::OnTutorialLinkClicked))));
-
-	for(const auto& HyperlinkDesc : HyperlinkDescs)
+	for(auto& Decorator : Decorators)
 	{
-		RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(HyperlinkDesc->Id, HyperlinkDesc->OnClickedDelegate));
+		RichTextMarshaller->AppendInlineDecorator(Decorator);
 	}
 
-	RichTextMarshaller->AppendInlineDecorator(FTextStyleDecorator::Create());
+	CurrentHyperlinkType = FTutorialText::GetHyperLinkDescs()[0];
 
 	this->ChildSlot
 	[
@@ -350,12 +174,12 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 							.VAlign(VAlign_Center)
 							[
 								SNew(SComboBox<TSharedPtr<FHyperlinkTypeDesc>>)
-								.OptionsSource(&HyperlinkDescs)
+								.OptionsSource(&FTutorialText::GetHyperLinkDescs())
 								.ComboBoxStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.ComboBox")
 								.OnSelectionChanged(this, &STutorialEditableText::OnActiveHyperlinkChanged)
 								.OnGenerateWidget(this, &STutorialEditableText::GenerateHyperlinkComboEntry)
 								.ContentPadding(0.0f)
-								.InitiallySelectedItem(HyperlinkDescs[0])
+								.InitiallySelectedItem(FTutorialText::GetHyperLinkDescs()[0])
 								.Content()
 								[
 									SNew(SBox)
@@ -384,6 +208,16 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 									.TextStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.Text")
 									.Text(LOCTEXT("OpenAssetLabel", "Open Asset"))
 								]
+							]
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							.VAlign(VAlign_Center)
+							.Padding(5.0f, 0.0f, 0.0f, 0.0f)
+							[
+								SAssignNew(UDNExcerptTextBox, SEditableTextBox)
+								.HintText(LOCTEXT("ExcerptHint", "Excerpt"))
+								.ToolTipText(LOCTEXT("ExcerptAssetTooltip", "Enter the excerpt that should be used for this link's rich tooltip"))
+								.Visibility(this, &STutorialEditableText::GetExcerptVisibility)
 							]
 							+SHorizontalBox::Slot()
 							.FillWidth(1.0f)
@@ -551,7 +385,7 @@ void STutorialEditableText::StyleSelectedText()
 TSharedPtr<FHyperlinkTypeDesc> STutorialEditableText::GetHyperlinkTypeFromId(const FString& InId) const
 {
 	TSharedPtr<FHyperlinkTypeDesc> FoundType;
-	for(const auto& Desc : HyperlinkDescs)
+	for(const auto& Desc : FTutorialText::GetHyperLinkDescs())
 	{
 		if(Desc->Id == InId)
 		{
@@ -589,7 +423,7 @@ void STutorialEditableText::HandleHyperlinkComboOpened()
 		HyperlinkURLTextBox->SetText((URLUnderCursor) ? FText::FromString(*URLUnderCursor) : FText());
 
 		const FString* const IdUnderCursor = Run->GetRunInfo().MetaData.Find(TEXT("id"));
-		CurrentHyperlinkType = IdUnderCursor ? GetHyperlinkTypeFromId(*IdUnderCursor) : HyperlinkDescs[0];
+		CurrentHyperlinkType = IdUnderCursor ? GetHyperlinkTypeFromId(*IdUnderCursor) : FTutorialText::GetHyperLinkDescs()[0];
 
 		FString RunText;
 		Run->AppendTextTo(RunText);
@@ -620,6 +454,10 @@ FReply STutorialEditableText::HandleInsertHyperLinkClicked()
 		if(CurrentHyperlinkType->Type == EHyperlinkType::Asset)
 		{
 			RunInfo.MetaData.Add(TEXT("action"), bOpenAsset ? TEXT("edit") : TEXT("select"));
+		}
+		else if(CurrentHyperlinkType->Type == EHyperlinkType::UDN && !UDNExcerptTextBox->GetText().IsEmpty())
+		{
+			RunInfo.MetaData.Add(TEXT("excerpt"), UDNExcerptTextBox->GetText().ToString());
 		}
 
 		// Create the new run, and then insert it at the cursor position
@@ -700,6 +538,11 @@ void STutorialEditableText::HandleOpenAssetCheckStateChanged(ESlateCheckBoxState
 ESlateCheckBoxState::Type STutorialEditableText::IsOpenAssetChecked() const
 {
 	return bOpenAsset ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+EVisibility STutorialEditableText::GetExcerptVisibility() const
+{
+	return CurrentHyperlinkType.IsValid() && CurrentHyperlinkType->Type == EHyperlinkType::UDN ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -59,7 +59,7 @@ class SLATE_API FHyperlinkDecorator : public ITextDecorator
 {
 public:
 
-	static TSharedRef< FHyperlinkDecorator > Create( FString Id, const FSlateHyperlinkRun::FOnClick& NavigateDelegate );
+	static TSharedRef< FHyperlinkDecorator > Create( FString Id, const FSlateHyperlinkRun::FOnClick& NavigateDelegate, const FSlateHyperlinkRun::FOnGetTooltipText& InToolTipTextDelegate = FSlateHyperlinkRun::FOnGetTooltipText(), const FSlateHyperlinkRun::FOnGenerateTooltip& InToolTipDelegate = FSlateHyperlinkRun::FOnGenerateTooltip() );
 	virtual ~FHyperlinkDecorator() {}
 
 public:
@@ -70,12 +70,14 @@ public:
 
 private:
 
-	FHyperlinkDecorator( FString InId, const FSlateHyperlinkRun::FOnClick& InNavigateDelegate );
+	FHyperlinkDecorator( FString InId, const FSlateHyperlinkRun::FOnClick& InNavigateDelegate, const FSlateHyperlinkRun::FOnGetTooltipText& InToolTipTextDelegate, const FSlateHyperlinkRun::FOnGenerateTooltip& InToolTipDelegate );
 
 private:
 
 	FString Id;
 	FSlateHyperlinkRun::FOnClick NavigateDelegate;
+	FSlateHyperlinkRun::FOnGetTooltipText ToolTipTextDelegate;
+	FSlateHyperlinkRun::FOnGenerateTooltip ToolTipDelegate;
 };
 
 

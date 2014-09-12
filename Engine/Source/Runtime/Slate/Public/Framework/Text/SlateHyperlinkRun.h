@@ -8,7 +8,9 @@ class SLATE_API FSlateHyperlinkRun : public ISlateRun, public TSharedFromThis< F
 public:
 
 	typedef TMap< FString, FString > FMetadata;
-	DECLARE_DELEGATE_OneParam( FOnClick, const FMetadata& /*Metadata*/ )
+	DECLARE_DELEGATE_OneParam( FOnClick, const FMetadata& /*Metadata*/ );
+	DECLARE_DELEGATE_RetVal_OneParam( FText, FOnGetTooltipText, const FMetadata& /*Metadata*/ );
+	DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<IToolTip>, FOnGenerateTooltip, const FMetadata& /*Metadata*/ );
 
 public:
 
@@ -73,6 +75,10 @@ public:
 
 	virtual const FRunInfo& GetRunInfo() const override;
 
+	FOnGenerateTooltip& OnGenerateToolTip() { return TooltipDelegate; }
+
+	FOnGetTooltipText& OnGetToolTipText() { return TooltipTextDelegate; }
+
 private:
 
 	FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate );
@@ -92,6 +98,8 @@ private:
 	FTextRange Range;
 	FHyperlinkStyle Style;
 	FOnClick NavigateDelegate;
+	FOnGenerateTooltip TooltipDelegate;
+	FOnGetTooltipText TooltipTextDelegate;
 
 	TSharedRef< FWidgetViewModel > ViewModel;
 	TArray< TSharedRef<SWidget> > Children;
