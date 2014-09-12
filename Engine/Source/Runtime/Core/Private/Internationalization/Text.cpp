@@ -574,7 +574,7 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 				Ar << NoHistory;
 			}
 		}
-		else
+		else if (Ar.IsLoading())
 		{
 			// The type is serialized during the serialization of the history, during deserialization we need to deserialize it and create the correct history
 			int8 HistoryType = INDEX_NONE;
