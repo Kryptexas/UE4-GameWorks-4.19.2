@@ -114,6 +114,7 @@ public:
 	static FORCEINLINE bool SupportsASTC()								{ return bSupportsASTC; }
 	static FORCEINLINE bool SupportsETC1()								{ return false; }
 	static FORCEINLINE bool SupportsETC2()								{ return false; }
+	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return true; }
 	static FORCEINLINE bool SupportsCombinedDepthStencilAttachment()	{ return true; }
 	static FORCEINLINE bool SupportsFastBufferData()					{ return true; }
 	static FORCEINLINE bool SupportsCopyImage()							{ return bSupportsCopyImage; }

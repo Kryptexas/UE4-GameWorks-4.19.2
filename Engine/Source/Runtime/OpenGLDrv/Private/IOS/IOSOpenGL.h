@@ -105,6 +105,8 @@ struct FIOSOpenGL : public FOpenGLES2
 	{
 		return SP_OPENGL_ES2_IOS;
 	}
+
+	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return false; }
 };
 
 typedef FIOSOpenGL FOpenGL;
