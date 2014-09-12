@@ -1396,7 +1396,6 @@ void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeChildre
 		.AutoWidth()
 		.VAlign(VAlign_Center)
 		.Padding(FMargin(2))
-		//.AspectRatio()
 		[
 			SNew(SLandscapeAssetThumbnail, ThumbnailMIC, StructCustomizationUtils.GetThumbnailPool().ToSharedRef())
 			.ThumbnailSize(FIntPoint(48, 48))

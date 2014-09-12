@@ -170,7 +170,6 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 				.AutoWidth()
 				.VAlign(VAlign_Center)
 				.Padding(FMargin(2))
-				//.AspectRatio()
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush(Target->TargetType == ELandscapeToolTargetType::Heightmap ? TEXT("LandscapeEditor.Target_Heightmap") : TEXT("LandscapeEditor.Target_Visibility")))
@@ -210,7 +209,6 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 				.AutoWidth()
 				.VAlign(VAlign_Center)
 				.Padding(FMargin(2))
-				//.AspectRatio()
 				[
 					(Target->bValid)
 					? (TSharedRef<SWidget>)(

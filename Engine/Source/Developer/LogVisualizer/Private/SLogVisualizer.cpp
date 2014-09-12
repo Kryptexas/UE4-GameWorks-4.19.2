@@ -163,7 +163,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnRecordButtonClicked)
@@ -177,7 +176,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SCheckBox)
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
@@ -193,7 +191,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SCheckBox)
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
@@ -208,7 +205,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.MaxWidth(3)
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SSeparator)
 						.Orientation(Orient_Vertical)
@@ -217,7 +213,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnSave)
@@ -231,7 +226,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnLoad)
@@ -245,7 +239,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnRemove)
@@ -258,7 +251,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.MaxWidth(3)
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SSeparator)
 						.Orientation(Orient_Vertical)

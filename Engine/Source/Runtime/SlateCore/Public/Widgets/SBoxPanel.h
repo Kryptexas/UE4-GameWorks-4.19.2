@@ -23,7 +23,6 @@ public:
 		/**
 		 * How much space this slot should occupy along panel's direction.
 		 *   When SizeRule is SizeRule_Auto, the widget's DesiredSize will be used as the space required.
-		 *   When SizeRule is SizeRule_AspectRatio, the widget will attempt to maintain the specified aspect ratio.
 		 *   When SizeRule is SizeRule_Stretch, the available space will be distributed proportionately between
 		 *   peer Widgets depending on the Value property. Available space is space remaining after all the
 		 *   peers' SizeRule_Auto requirements have been satisfied.
@@ -125,9 +124,9 @@ public:
 			return *this;
 		}
 
+		DEPRECATED( 4.5, "AspectRatio() property is no longer supported; it did not behave correctly to begin with and was rarely used." )
 		FSlot& AspectRatio()
 		{
-			SizeParam = FAspectRatio();
 			return *this;
 		}
 		
@@ -245,9 +244,9 @@ public:
 			return *this;
 		}
 
+		DEPRECATED( 4.5, "AspectRatio() property is no longer supported; it did not behave correctly to begin with and was rarely used." )
 		FSlot& AspectRatio()
 		{
-			SizeParam = FAspectRatio();
 			return *this;
 		}
 

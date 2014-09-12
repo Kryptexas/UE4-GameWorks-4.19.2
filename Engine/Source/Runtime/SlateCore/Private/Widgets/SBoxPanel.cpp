@@ -60,19 +60,6 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 					// for stretch children we save sum up the stretch coefficients
 					StretchCoefficientTotal += CurChild.SizeParam.Value.Get();
 				}
-				else if (CurChild.SizeParam.SizeRule == FSizeParam::SizeRule_AspectRatio)
-				{
-					// Aspect ratio children contribute size such that they maintain
-					// the aspect ratio of 1 (i.e. they're square).
-					float ChildSize = (Orientation == Orient_Vertical)
-						? AllottedGeometry.Size.X
-						: AllottedGeometry.Size.Y;
-
-					// Clamp to the max size if it was specified
-					float MaxSize = CurChild.MaxSize.Get();
-					FixedTotal += MaxSize > 0 ? FMath::Min( MaxSize, ChildSize ) : ChildSize ;
-				
-				}
 				else
 				{
 					// Auto-sized children contribute their desired size to the fixed space requirement
@@ -114,14 +101,6 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 				{
 					// Stretch widgets get a fraction of the space remaining after all the fixed-space requirements are met
 					ChildSize = NonFixedSpace * CurChild.SizeParam.Value.Get() / StretchCoefficientTotal;
-				}
-				else if (CurChild.SizeParam.SizeRule == FSizeParam::SizeRule_AspectRatio)
-				{
-					// Aspect ratio children contribute size such that they maintain
-					// the aspect ratio of 1.
-					ChildSize = (Orientation == Orient_Vertical)
-						? AllottedGeometry.Size.X
-						: AllottedGeometry.Size.Y;
 				}
 				else
 				{
@@ -204,7 +183,6 @@ static FVector2D ComputeDesiredSizeForBox( const TPanelChildren<SBoxPanel::FSlot
 	// The layout along the panel's axis is describe dy the SizeParam, while the perpendicular layout is described by the
 	// alignment property.
 	FVector2D MyDesiredSize(0,0);
-	int32 NumAspectRatioChildren = 0;
 	for( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 	{
 		const SBoxPanel::FSlot& CurChild = Children[ChildIndex];
@@ -217,24 +195,15 @@ static FVector2D ComputeDesiredSizeForBox( const TPanelChildren<SBoxPanel::FSlot
 				// That will be the desired width of the whole panel.
 				MyDesiredSize.X = FMath::Max(MyDesiredSize.X, CurChildDesiredSize.X + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Horizontal>());
 
-				if ( CurChild.SizeParam.SizeRule == FSizeParam::SizeRule_AspectRatio )
+				// Clamp to the max size if it was specified
+				float FinalChildDesiredSize = CurChildDesiredSize.Y;
+				float MaxSize = CurChild.MaxSize.Get();
+				if( MaxSize > 0 )
 				{
-					// Omit aspect ratio children for now. We do not know how big they need to be yet.
-					NumAspectRatioChildren++;
+					FinalChildDesiredSize = FMath::Min( MaxSize, FinalChildDesiredSize );
 				}
-				else
-				{
-					// Clamp to the max size if it was specified
-					float FinalChildDesiredSize = CurChildDesiredSize.Y;
-					float MaxSize = CurChild.MaxSize.Get();
-					if( MaxSize > 0 )
-					{
-						FinalChildDesiredSize = FMath::Min( MaxSize, FinalChildDesiredSize );
-					}
 
-					MyDesiredSize.Y += FinalChildDesiredSize + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();
-				}
-						
+				MyDesiredSize.Y += FinalChildDesiredSize + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();				
 			}
 			else
 			{
@@ -242,37 +211,18 @@ static FVector2D ComputeDesiredSizeForBox( const TPanelChildren<SBoxPanel::FSlot
 
 				MyDesiredSize.Y = FMath::Max(MyDesiredSize.Y, CurChildDesiredSize.Y + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>());
 
-				if ( CurChild.SizeParam.SizeRule == FSizeParam::SizeRule_AspectRatio )
+				// Clamp to the max size if it was specified
+				float FinalChildDesiredSize = CurChildDesiredSize.X;
+				float MaxSize = CurChild.MaxSize.Get();
+				if( MaxSize > 0 )
 				{
-					// Omit aspect ratio children for now. We do not know how big they need to be yet.
-					NumAspectRatioChildren++;
+					FinalChildDesiredSize = FMath::Min( MaxSize, FinalChildDesiredSize );
 				}
-				else
-				{
-					// Clamp to the max size if it was specified
-					float FinalChildDesiredSize = CurChildDesiredSize.X;
-					float MaxSize = CurChild.MaxSize.Get();
-					if( MaxSize > 0 )
-					{
-						FinalChildDesiredSize = FMath::Min( MaxSize, FinalChildDesiredSize );
-					}
 
-					MyDesiredSize.X += FinalChildDesiredSize + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Horizontal>();
-				}
+				MyDesiredSize.X += FinalChildDesiredSize + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Horizontal>();
 			}
 		}
 	}
-
-	// Aspect ratio children need room proportional to the height/width of the entire box
-	if ( Orientation == Orient_Vertical )
-	{
-		MyDesiredSize.Y += MyDesiredSize.X * NumAspectRatioChildren;
-	}
-	else
-	{
-		MyDesiredSize.X += MyDesiredSize.Y * NumAspectRatioChildren;
-	}
-
 
 	return MyDesiredSize;
 }

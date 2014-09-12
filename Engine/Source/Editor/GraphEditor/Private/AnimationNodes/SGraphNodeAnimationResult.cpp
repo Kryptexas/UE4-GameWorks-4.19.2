@@ -36,7 +36,8 @@ TSharedRef<SWidget> SGraphNodeAnimationResult::CreateNodeContentArea()
 				SAssignNew(LeftNodeBox, SVerticalBox)
 			]
 			+SHorizontalBox::Slot()
-			.AspectRatio()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
 				SNew(SImage)
 				.Image( FEditorStyle::GetBrush("Graph.AnimationResultNode.Body") )

@@ -115,24 +115,7 @@ public:
 			]
 			+SScrollBox::Slot() .Padding(5)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.FillWidth(1)
-					[
-						SNew(STextBlock) .Text( LOCTEXT("ExampleLayout-TextLabel09", "A somewhat long piece of text.") )
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.AspectRatio()
-					.Padding( 2.0f, 1.0f )
-					[
-						SNew(SImage) .Image( FCoreStyle::Get().GetBrush("ToolBar.SubMenuIndicator") )
-					]
-				]
+				SNew(STextBlock) .Text( LOCTEXT("ExampleLayout-TextLabel09", "A somewhat long piece of text.") )
 			]
 			// Fixed Size example
 			+SScrollBox::Slot() .Padding(5)

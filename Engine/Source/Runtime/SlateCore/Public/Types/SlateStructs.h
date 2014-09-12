@@ -66,7 +66,6 @@ private:
  * Describes a way in which a parent widget allocates available space to its child widgets.
  *
  * When SizeRule is SizeRule_Auto, the widget's DesiredSize will be used as the space required.
- * When SizeRule is SizeRule_AspectRatio, the widget will attempt to maintain the specified aspect ratio.
  * When SizeRule is SizeRule_Stretch, the available space will be distributed proportionately between
  * peer Widgets depending on the Value property. Available space is space remaining after all the
  * peers' SizeRule_Auto requirements have been satisfied.
@@ -78,8 +77,7 @@ struct FSizeParam
 	enum ESizeRule
 	{
 		SizeRule_Auto,
-		SizeRule_Stretch,
-		SizeRule_AspectRatio
+		SizeRule_Stretch
 	};
 	
 	/** The sizing rule to use. */
@@ -137,19 +135,5 @@ struct FAuto
 {
 	FAuto()
 		: FSizeParam(SizeRule_Auto, 0.0f)
-	{ }
-};
-
-
-/**
- * Structure for size parameters with SizeRule == SizeRule_AspectRatio.
- *
- * @see FAuto, FStretch
- */
-struct FAspectRatio
-	: public FSizeParam
-{
-	FAspectRatio( )
-		: FSizeParam(SizeRule_AspectRatio, 1.0f)
 	{ }
 };

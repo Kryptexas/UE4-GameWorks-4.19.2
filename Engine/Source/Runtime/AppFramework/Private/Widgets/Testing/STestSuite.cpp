@@ -3348,7 +3348,6 @@ public:
 								+ SVerticalBox::Slot()
 									.AutoHeight()
 									. HAlign(HAlign_Center)
-									. AspectRatio()
 								[
 									SNew(SImage)
 										. Image( FCoreStyle::Get().GetBrush( TEXT("DefaultAppIcon") ) )
@@ -3372,13 +3371,12 @@ public:
 									[
 										SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot()
-											.AutoWidth()
-											. AspectRatio()
+										.AutoWidth()
 										[
 											SNew(SImage) .Image( FCoreStyle::Get().GetBrush( TEXT("DefaultAppIcon") ) )
 										]
 										+ SHorizontalBox::Slot()
-											.AutoWidth()
+										.AutoWidth()
 										[
 											SNew(STextBlock) .Text( LOCTEXT("ButtonTextLabel", "Button with content") )
 										]
@@ -4496,10 +4494,9 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding( 2.0f )
-					.AspectRatio()
 					[
 						SNew(SImage)
-							.Image( FCoreStyle::Get().GetBrush( TEXT("DefaultAppIcon") ) )
+						.Image( FCoreStyle::Get().GetBrush( TEXT("DefaultAppIcon") ) )
 					]
 					+SHorizontalBox::Slot()
 						.AutoWidth()

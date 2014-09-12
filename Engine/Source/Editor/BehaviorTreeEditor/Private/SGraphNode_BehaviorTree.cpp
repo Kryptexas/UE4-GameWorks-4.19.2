@@ -441,14 +441,11 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 										.ToolTipText( this, &SGraphNode_BehaviorTree::GetErrorMsgToolTip )
 									]
 									+SHorizontalBox::Slot()
-									.AspectRatio()
+									.AutoWidth()
+									.VAlign(VAlign_Center)
 									[
-										SNew(SOverlay)
-										+SOverlay::Slot()
-										[
-											SNew(SImage)
-											.Image(this, &SGraphNode_BehaviorTree::GetNameIcon)
-										]
+										SNew(SImage)
+										.Image(this, &SGraphNode_BehaviorTree::GetNameIcon)
 									]
 									+SHorizontalBox::Slot()
 									.Padding(FMargin(4.0f, 0.0f, 4.0f, 0.0f))

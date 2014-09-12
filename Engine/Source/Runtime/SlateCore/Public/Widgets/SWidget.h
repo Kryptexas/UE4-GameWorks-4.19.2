@@ -449,7 +449,7 @@ public:
 	 *
 	 * @return The desired size.
 	 */
-	protected: virtual FVector2D ComputeDesiredSize() const = 0;
+	private: virtual FVector2D ComputeDesiredSize() const = 0;
 
 	public:
 
