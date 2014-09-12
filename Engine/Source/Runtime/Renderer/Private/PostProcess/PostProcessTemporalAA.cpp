@@ -64,6 +64,7 @@ public:
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter SampleWeights;
 	FShaderParameter LowpassWeights;
+	FShaderParameter PlusWeights;
 	FCameraMotionParameters CameraMotionParams;
 	FShaderParameter RandomOffset;
 
@@ -75,6 +76,7 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		SampleWeights.Bind(Initializer.ParameterMap, TEXT("SampleWeights"));
 		LowpassWeights.Bind(Initializer.ParameterMap, TEXT("LowpassWeights"));
+		PlusWeights.Bind(Initializer.ParameterMap, TEXT("PlusWeights"));
 		CameraMotionParams.Bind(Initializer.ParameterMap);
 		RandomOffset.Bind(Initializer.ParameterMap, TEXT("RandomOffset"));
 	}
@@ -83,7 +85,7 @@ public:
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << CameraMotionParams << RandomOffset;
+		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << PlusWeights << CameraMotionParams << RandomOffset;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -135,8 +137,10 @@ public:
 
 			float Weights[9];
 			float WeightsLow[9];
+			float WeightsPlus[5];
 			float TotalWeight = 0.0f;
 			float TotalWeightLow = 0.0f;
+			float TotalWeightPlus = 0.0f;
 			for( int32 i = 0; i < 9; i++ )
 			{
 				// Exponential fit to Blackman-Harris 3.3
@@ -157,11 +161,23 @@ public:
 				WeightsLow[i] = FMath::Exp( -2.29f * ( PixelOffsetX * PixelOffsetX + PixelOffsetY * PixelOffsetY ) );
 				TotalWeightLow += WeightsLow[i];
 			}
+
+			WeightsPlus[0] = Weights[1];
+			WeightsPlus[1] = Weights[3];
+			WeightsPlus[2] = Weights[4];
+			WeightsPlus[3] = Weights[5];
+			WeightsPlus[4] = Weights[7];
+			TotalWeightPlus = Weights[1] + Weights[3] + Weights[4] + Weights[5] + Weights[7];
 			
 			for( int32 i = 0; i < 9; i++ )
 			{
 				SetShaderValue(Context.RHICmdList, ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
 				SetShaderValue(Context.RHICmdList, ShaderRHI, LowpassWeights, WeightsLow[i] / TotalWeightLow, i );
+			}
+
+			for( int32 i = 0; i < 5; i++ )
+			{
+				SetShaderValue(Context.RHICmdList, ShaderRHI, PlusWeights, WeightsPlus[i] / TotalWeightPlus, i );
 			}
 			
 			FVector2D RandomOffsetValue;

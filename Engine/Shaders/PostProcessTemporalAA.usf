@@ -15,12 +15,11 @@
 float4 CameraMotion[5];
 float SampleWeights[9];
 float LowpassWeights[9];
+float PlusWeights[5];
 float2 RandomOffset;
 
 // TODO: This can be removed.
 float ClampFeebackMix;
-
-
 
 // Faster but less accurate luma computation. 
 // Luma includes a scaling by 4.
@@ -33,6 +32,11 @@ float Luma4(float3 Color)
 float HdrWeight4(float3 Color, float Exposure) 
 {
 	return rcp(Luma4(Color) * Exposure + 4.0);
+}
+
+float HdrWeightY(float Color, float Exposure) 
+{
+	return rcp(Color * Exposure + 1.0);
 }
 
 float HdrWeightG(float3 Color, float Exposure) 
@@ -61,6 +65,11 @@ float HdrWeightInv4(float3 Color, float Exposure)
 float HdrWeightInvG(float3 Color, float Exposure) 
 {
 	return rcp(Color.g * (-Exposure) + 1.0);
+}
+
+float HdrWeightInvY(float Color, float Exposure) 
+{
+	return rcp(Color * (-Exposure) + 1.0);
 }
 
 float HdrWeightInv4_(float Color, float Exposure) 
@@ -182,7 +191,6 @@ void SSRTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleV
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_NEW 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 0
 	#define AA_DYNAMIC 0
@@ -199,7 +207,6 @@ void DOFTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleV
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_NEW 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 4
 	#define AA_DYNAMIC 0
@@ -216,7 +223,6 @@ void LightShaftTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposur
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_NEW 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 0
 	#define AA_DYNAMIC 0
@@ -232,22 +238,14 @@ void MainTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScale
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#if 1
-		#define AA_NEW 1
-		#define AA_FILTERED 1
-		#define AA_BORDER 1
-		#define AA_CROSS 2
-		#define AA_GREEN_AS_LUMA 0
-		#define AA_AABB 1
-		#define AA_LOWPASS 1
-		#define AA_ONE_DYNAMIC_SAMPLE 1
-		#define AA_DEBUG 0
-		#define AA_VELOCITY_WEIGHTING 1
-	#else
-		#define AA_NEW 0
-		#define AA_BORDER 1
-		#define AA_GRAIN 1
-	#endif
+	#define AA_FILTERED 1
+	#define AA_BORDER 1
+	#define AA_CROSS 2
+	#define AA_GREEN_AS_LUMA 0
+	#define AA_AABB 1
+	#define AA_LOWPASS 1
+	#define AA_DEBUG 0
+	#define AA_VELOCITY_WEIGHTING 1
 	#include "PostProcessTemporalCommon.usf"
 #else 
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
@@ -258,26 +256,15 @@ void MainFastTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureS
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#if 1
-		#define AA_NEW 1
-		#define AA_FILTERED 1
-		#define AA_BORDER 1
-		#define AA_CROSS 2
-		#define AA_GREEN_AS_LUMA 1
-		#define AA_AABB 1
-		#define AA_LOWPASS 0
-		#define AA_ONE_DYNAMIC_SAMPLE 1
-		#define AA_DEBUG 0
-		#define AA_VELOCITY_WEIGHTING 0
-	#else
-		#define AA_NEW 0
-		#define AA_BORDER 1
-		#define AA_GRAIN 1
-		#define AA_HDR 0
-		#define AA_HDR_HISTORY 0
-		#define AA_LOWPASS 0
-		#define AA_ONE_DYNAMIC_SAMPLE 1
-	#endif
+	#define AA_FILTERED 1
+	#define AA_BORDER 1
+	#define AA_CROSS 2
+	#define AA_GREEN_AS_LUMA 1
+	#define AA_AABB 1
+	#define AA_LOWPASS 0
+	#define AA_DEBUG 0
+	#define AA_VELOCITY_WEIGHTING 0
+	#define AA_YCOCG 1
 	#include "PostProcessTemporalCommon.usf"
 #else 
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
