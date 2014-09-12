@@ -172,7 +172,7 @@ void SWidgetDetailsView::OnEditorSelectionChanged()
 		}
 	}
 
-	if ( SelectedObjects.Num() == 1 )
+	if ( SelectedObjects.Num() == 1 && SelectedObjects[0].IsValid() )
 	{
 		ClassLinkArea->SetContent(FEditorClassUtils::GetSourceLink(SelectedObjects[0]->GetClass(), TWeakObjectPtr<UObject>()));
 	}
