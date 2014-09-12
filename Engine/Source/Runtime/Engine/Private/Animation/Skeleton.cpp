@@ -983,6 +983,7 @@ void USkeleton::RegenerateGuid()
 	check(Guid.IsValid());
 }
 
+#if WITH_EDITOR
 void USkeleton::SetRigConfig(URig * Rig)
 {
 	if (RigConfig.Rig != Rig)
@@ -1105,5 +1106,5 @@ URig * USkeleton::GetRig() const
 {
 	return RigConfig.Rig;
 }
-
+#endif //WITH_EDITOR
 #undef LOCTEXT_NAMESPACE 

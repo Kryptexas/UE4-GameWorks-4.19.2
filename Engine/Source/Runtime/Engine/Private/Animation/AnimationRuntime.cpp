@@ -700,6 +700,7 @@ void FAnimationRuntime::FillWithRefPose(TArray<FTransform> & OutAtoms, const FBo
 	}
 }
 
+#if WITH_EDITOR
 void FAnimationRuntime::FillWithRetargetBaseRefPose( TArray<FTransform> & OutAtoms, const USkeletalMesh * Mesh, const FBoneContainer & RequiredBones )
 {
 	// Copy Target Asset's ref pose.
@@ -718,6 +719,7 @@ void FAnimationRuntime::FillWithRetargetBaseRefPose( TArray<FTransform> & OutAto
 		OutAtoms.Empty();
 	}
 }
+#endif // WITH_EDITOR
 
 void FAnimationRuntime::ConvertPoseToMeshSpace(const TArray<FTransform> & LocalTransforms, TArray<FTransform> & MeshSpaceTransforms, const FBoneContainer & RequiredBones)
 {
@@ -1223,6 +1225,7 @@ void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton * Skeleton, TArr
 	}
 }
 
+#if WITH_EDITOR
 void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose)
 {
 	check(Skeleton);
@@ -1255,6 +1258,7 @@ void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton * Skele
 		FAnimationRuntime::FillUpSpaceBasesRefPose(Skeleton, SpaceBaseRefPose);
 	}
 }
+#endif // WITH_EDITOR
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // FA2CSPose

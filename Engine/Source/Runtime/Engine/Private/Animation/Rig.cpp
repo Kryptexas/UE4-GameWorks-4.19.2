@@ -18,20 +18,6 @@ URig::URig(const class FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void URig::PostLoad()
-{
-	Super::PostLoad();
-	// find 
-	// display name is empty, copy from Name - this is for old data
-	for (auto &Node : Nodes )
-	{
-		if (Node.DisplayName.Len() == 0)
-		{
-			Node.DisplayName = Node.Name.ToString();
-		}
-	}
-}
-
 #if WITH_EDITOR
 void URig::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
