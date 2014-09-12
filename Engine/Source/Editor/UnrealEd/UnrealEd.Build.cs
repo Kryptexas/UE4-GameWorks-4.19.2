@@ -149,7 +149,6 @@ public class UnrealEd : ModuleRules
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",
-				"SessionLauncher",
 				"TaskBrowser",
 				"Sequencer",
 				"SoundClassEditor",

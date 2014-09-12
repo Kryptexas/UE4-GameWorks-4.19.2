@@ -182,7 +182,6 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 
 		if (GetDefault<UEditorExperimentalSettings>()->bGameLauncher)
 		{
-			//FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "SessionLauncher"); // Will be deleted soon
 			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "ProjectLauncher");
 		}
 

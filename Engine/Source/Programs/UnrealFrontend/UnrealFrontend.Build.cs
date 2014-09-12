@@ -27,7 +27,6 @@ public class UnrealFrontend : ModuleRules
                 "ProjectLauncher",
 				"Projects",
 				"SessionFrontend",
-				"SessionLauncher",
 				"SessionServices",
 				"Slate",
 				"SlateCore",
