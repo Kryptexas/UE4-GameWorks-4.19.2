@@ -202,7 +202,7 @@ void FLevelEditorModule::ShutdownModule()
 		TSharedPtr<SDockTab> LevelEditorTab = LevelEditorInstanceTabPtr.Pin();
 		if (LevelEditorTab.IsValid())
 		{
-			LevelEditorTab->RequestCloseTab();
+			LevelEditorTab->RemoveTabFromParent();
 		}
 		LevelEditorInstanceTabPtr.Reset();
 	}
