@@ -3250,7 +3250,7 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 				}
 
 #if PLATFORM_MAC
-				if (WidgetsUnderCursor.TopLevelWindow.IsValid() && !DragDetector.DetectDragForWidget.IsValid())
+				if (WidgetsUnderCursor.TopLevelWindow.IsValid() && !DragDetector.DetectDragForWidget.IsValid() && MenuStack.GetNumStackLevels() == 0)
 				{
 					MouseCaptorHelper Captor = MouseCaptor;
 					WidgetsUnderCursor.TopLevelWindow->BringToFront(true);
