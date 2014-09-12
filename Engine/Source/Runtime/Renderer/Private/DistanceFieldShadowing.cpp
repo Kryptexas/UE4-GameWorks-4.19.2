@@ -192,7 +192,8 @@ int32 FProjectedShadowInfo::UpdateShadowCastingObjectBuffers() const
 			FIntVector BlockMin;
 			FIntVector BlockSize;
 			bool bBuiltAsIfTwoSided;
-			PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided);
+			bool bMeshWasPlane;
+			PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided, bMeshWasPlane);
 
 			if (BlockMin.X >= 0 && BlockMin.Y >= 0 && BlockMin.Z >= 0)
 			{

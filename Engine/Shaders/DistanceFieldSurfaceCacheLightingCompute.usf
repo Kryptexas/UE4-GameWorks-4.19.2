@@ -531,6 +531,8 @@ void FinalGatherCS(
 		RotatedConeDirection = DebugConeDirection;
 #endif
 
+		float MinVisibility = 1;
+		float MinWorldDistanceToOccluder = AOMaxDistance;
 		float MaxWorldStepOffset = GetStepOffset(NUM_CONE_STEPS);
 #endif
 		LOOP 
@@ -609,22 +611,26 @@ void FinalGatherCS(
 						// Derive visibility from 1d intersection
 						float Visibility = saturate(DistanceToOccluder / ShadingSphereRadius);
 
-						// Don't allow small objects to fully occlude a cone step
-						Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
-						float OccluderDistanceFraction = (WorldStepOffset + DistanceToOccluder) / AOMaxDistance;
-						// Fade out occlusion based on distance to occluder
-						Visibility = max(Visibility, saturate((OccluderDistanceFraction - 0) / 4));
-						Visibility = max(Visibility, saturate((OccluderDistanceFraction - .7f) / .4f));
-
-						InterlockedMin(SharedConeVisibility[ConeIndex], asuint(Visibility));
-
-						if (DistanceToOccluder < .9f * SphereRadius)
+						BRANCH
+						if (Visibility < MinVisibility)
 						{
-							// Assuming occluder is straight forward along the cone
-							float WorldDistanceToOccluder = WorldStepOffset + DistanceToOccluder;
-							InterlockedMin(SharedMinOcclusionDistance, asuint(WorldDistanceToOccluder));
-						}
+							// Don't allow small objects to fully occlude a cone step
+							Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
+							float OccluderDistanceFraction = (WorldStepOffset + DistanceToOccluder) / AOMaxDistance;
+							// Fade out occlusion based on distance to occluder
+							Visibility = max(Visibility, saturate((OccluderDistanceFraction - 0) / 4));
+							Visibility = max(Visibility, saturate((OccluderDistanceFraction - .7f) / .4f));
 
+							MinVisibility = min(MinVisibility, Visibility);
+
+							if (DistanceToOccluder < .9f * SphereRadius)
+							{
+								// Assuming occluder is straight forward along the cone
+								float WorldDistanceToOccluder = WorldStepOffset + DistanceToOccluder;
+								MinWorldDistanceToOccluder = min(MinWorldDistanceToOccluder, WorldDistanceToOccluder);
+							}
+						}
+						
 						float MinStepSize = .6f * (GetStepOffset(StepIndex + 1) - GetStepOffset(StepIndex));
 						WorldStepOffset += max(DistanceToOccluder, MinStepSize);
 					}
@@ -697,6 +703,11 @@ void FinalGatherCS(
 				}
 			}
 		}
+
+#if USE_CONE_TRACING
+		InterlockedMin(SharedConeVisibility[ConeIndex], asuint(MinVisibility));
+		InterlockedMin(SharedMinOcclusionDistance, asuint(MinWorldDistanceToOccluder));
+#endif
 	}
 
 	GroupMemoryBarrierWithGroupSync();

@@ -2664,11 +2664,23 @@ void UpdateVisibleObjectBuffers(const FScene* Scene, const FDistanceFieldAOParam
 				FIntVector BlockMin;
 				FIntVector BlockSize;
 				bool bBuiltAsIfTwoSided;
-				PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided);
+				bool bMeshWasPlane;
+				PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided, bMeshWasPlane);
 
 				if (BlockMin.X >= 0 && BlockMin.Y >= 0 && BlockMin.Z >= 0)
 				{
-					const FMatrix LocalToWorld = PrimitiveSceneInfo->Proxy->GetLocalToWorld();
+					FMatrix LocalToWorld = PrimitiveSceneInfo->Proxy->GetLocalToWorld();
+
+					if (bMeshWasPlane)
+					{
+						FVector LocalScales = LocalToWorld.GetScaleVector();
+						FVector AbsLocalScales(FMath::Abs(LocalScales.X), FMath::Abs(LocalScales.Y), FMath::Abs(LocalScales.Z));
+						float MidScale = FMath::Min(AbsLocalScales.X, AbsLocalScales.Y);
+						float ScaleAdjust = FMath::Sign(LocalScales.Z) * MidScale / AbsLocalScales.Z;
+						// The mesh was determined to be a plane flat in Z during the build process, so we can change the Z scale
+						// Helps in cases with modular ground pieces with scales of (10, 10, 1) and some triangles just above Z=0
+						LocalToWorld.SetAxis(2, LocalToWorld.GetScaledAxis(EAxis::Z) * ScaleAdjust);
+					}
 
 					const FMatrix VolumeToWorld = FScaleMatrix(LocalVolumeBounds.GetExtent()) 
 						* FTranslationMatrix(LocalVolumeBounds.GetCenter())

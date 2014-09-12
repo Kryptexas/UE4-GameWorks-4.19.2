@@ -10,7 +10,7 @@
 #include "GCObject.h"
 
 // DDC key for distance field data, must be changed when modifying the generation code or data format
-#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798763B445A9533C94441EA899D")
+#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798763B445A9543C94442EA899D")
 
 /** Represents a distance field volume texture for a single UStaticMesh. */
 class FDistanceFieldVolumeTexture
@@ -111,6 +111,9 @@ public:
 	/** Whether the distance field was built assuming that every triangle is a frontface. */
 	bool bBuiltAsIfTwoSided;
 
+	/** Whether the mesh was a plane with very little extent in Z. */
+	bool bMeshWasPlane;
+
 	FDistanceFieldVolumeTexture VolumeTexture;
 
 	FDistanceFieldVolumeData() :
@@ -118,6 +121,7 @@ public:
 		LocalBoundingBox(0),
 		bMeshWasClosed(true),
 		bBuiltAsIfTwoSided(false),
+		bMeshWasPlane(false),
 		VolumeTexture(*this)
 	{}
 
@@ -141,7 +145,7 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldVolumeData& Data)
 	{
 		// Note: this is derived data, no need for versioning (bump the DDC guid)
-		Ar << Data.DistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided;
+		Ar << Data.DistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided << Data.bMeshWasPlane;
 		return Ar;
 	}
 };

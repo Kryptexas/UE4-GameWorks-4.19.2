@@ -354,11 +354,28 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 		TArray<FkDOPBuildCollisionTriangle<uint32> > BuildTriangles;
 
+		FVector BoundsSize = Bounds.GetBox().GetExtent() * 2;
+		float MaxDimension = FMath::Max(FMath::Max(BoundsSize.X, BoundsSize.Y), BoundsSize.Z);
+
+		// Consider the mesh a plane if it is very flat
+		const bool bMeshWasPlane = BoundsSize.Z * 100 < MaxDimension 
+			// And it lies mostly on the origin
+			&& Bounds.Origin.Z - Bounds.BoxExtent.Z < KINDA_SMALL_NUMBER 
+			&& Bounds.Origin.Z + Bounds.BoxExtent.Z > -KINDA_SMALL_NUMBER;
+
 		for (int32 i = 0; i < Indices.Num(); i += 3)
 		{
-			const FVector V0 = PositionVertexBuffer.VertexPosition(Indices[i + 0]);
-			const FVector V1 = PositionVertexBuffer.VertexPosition(Indices[i + 1]);
-			const FVector V2 = PositionVertexBuffer.VertexPosition(Indices[i + 2]);
+			FVector V0 = PositionVertexBuffer.VertexPosition(Indices[i + 0]);
+			FVector V1 = PositionVertexBuffer.VertexPosition(Indices[i + 1]);
+			FVector V2 = PositionVertexBuffer.VertexPosition(Indices[i + 2]);
+
+			if (bMeshWasPlane)
+			{
+				// Flatten out the mesh into an actual plane, this will allow us to manipulate the component's Z scale at runtime without artifacts
+				V0.Z = 0;
+				V1.Z = 0;
+				V2.Z = 0;
+			}
 
 			const FVector LocalNormal = ((V1 - V2) ^ (V0 - V2)).SafeNormal();
 
@@ -468,6 +485,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 
 			OutData.bMeshWasClosed = !bNegativeAtBorder;
 			OutData.bBuiltAsIfTwoSided = bGenerateAsIfTwoSided;
+			OutData.bMeshWasPlane = bMeshWasPlane;
 
 			UE_LOG(LogMeshUtilities,Log,TEXT("Finished distance field build in %.1fs - %ux%ux%u distance field, %u triangles"), 
 				(float)(FPlatformTime::Seconds() - StartTime),
