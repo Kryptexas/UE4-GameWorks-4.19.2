@@ -244,6 +244,16 @@ namespace EpicGames.MCP.Automation
         public class PatchGenerationOptions
         {
             /// <summary>
+            /// By default, we will only consider data modified within 12 days to be reusable
+            /// </summary>
+            public const int DEFAULT_DATA_AGE_THRESHOLD = 12;
+
+            public PatchGenerationOptions()
+            {
+                DataAgeThreshold = DEFAULT_DATA_AGE_THRESHOLD;
+            }
+
+            /// <summary>
             /// Staging information
             /// </summary>
             public BuildPatchToolStagingInfo StagingInfo;
@@ -271,18 +281,14 @@ namespace EpicGames.MCP.Automation
             /// Matches the corresponding BuildPatchTool command line argument.
             /// </summary>
             public MCPPlatform Platform;
-        }
-
-		public class CompactifyOptions
-		{
             /// <summary>
-            /// If specified, BuildPatchTool will run a compactify on this directory.
+            /// When identifying existing patch data to reuse in this build, only
+            /// files modified within this number of days will be considered for reuse.
+            /// IMPORTANT: This should always be smaller than the data age threshold for any compactify process which will run on the directory, to ensure
+            /// that we do not reuse any files which could be deleted by a concurrently running compactify. It is recommended that this number be at least
+            /// two days less than the compactify data age threshold.
             /// </summary>
-            public string CompactifyDirectory;
-            /// <summary>
-            /// Corresponds to the -preview parameter
-            /// </summary>
-            public bool bPreviewCompactify;
+            public int DataAgeThreshold;
 		}
 
         static BuildPatchToolBase Handler = null;
@@ -318,11 +324,6 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Opts">Parameters which will be passed to the patch tool generation process</param>
 		public abstract void Execute(PatchGenerationOptions Opts);
 
-		/// <summary>
-		/// Runs the Build Patch Tool executable to compactify a cloud directory using the supplied parameters.
-		/// </summary>
-		/// <param name="Opts">Parameters which will be passed to the compactify process</param>
-		public abstract void Execute(CompactifyOptions Opts);
     }
 
 

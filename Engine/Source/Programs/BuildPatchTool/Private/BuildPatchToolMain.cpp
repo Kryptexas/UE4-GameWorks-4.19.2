@@ -33,7 +33,14 @@
 	-PrereqName=""		Specifies in quotes, the display name for the prerequisites installer
 	-PrereqPath=""		Specifies in quotes, the prerequisites installer to launch on successful product install
 	-PrereqArgs=""		Specifies in quotes, the commandline to send to prerequisites installer on launch
-	
+	-DataAgeThreshold=12.5		Specified the maximum age (in days) of existing patch data which can be reused in the generated manifest
+
+	NB: If -DataAgeThreshold is not specified on the command line, then it *MUST* be present in the [PatchGeneration] section of BuildPatchTool.ini in the cloud directory
+
+	Example command lines:
+	-BuildRoot="D:\Builds\ExampleGame_[07-02_03.00]" -FileIgnoreList="D:\Builds\ExampleGame_[07-02_03.00]\Manifest_DebugFiles.txt" -CloudDir="D:\BuildPatchCloud" -AppID=123456 -AppName="Example" -BuildVersion="ExampleGame_[07-02_03.00]" -AppLaunch=".\ExampleGame\Binaries\Win32\ExampleGame.exe" -AppArgs="-pak -nosteam" -DataAgeThreshold=12
+	-BuildRoot="C:\Program Files (x86)\Community Portal" -CloudDir="E:\BuildPatchCloud" -AppID=0 -AppName="Community Portal" -BuildVersion="++depot+UE4-CL-1791234" -AppLaunch=".\Engine\Binaries\Win32\CommunityPortal.exe" -AppArgs="" -nochunks -DataAgeThreshold=12
+
 	-custom="field=value"	 	Adds a custom string field to the build manifest
 	-customint="field=number"	Adds a custom int64 field to the build manifest 
 	-customfloat="field=number"	Adds a custom double field to the build manifest
@@ -47,12 +54,17 @@
 	Optional arguments:
 	-stdout				Adds stdout logging to the app.
 	-preview			Log all the actions it will take to update internal structures, but don't actually execute them.
+	-ManifestsList=""			Specifies in quotes, the list of manifest filenames to keep following the operation. If omitted, all manifests are kept.
+	-ManifestsFile=""			Specifies in quotes, the name of the file (relative to CloudDir) which contains a list of manifests to keep, one manifest filename per line
+	-DataAgeThreshold=14.25		The maximum age in days of chunk files that will be retained. All older chunks will be deleted.
 
+	NB: If -ManifestsList is specified, then -ManifestsFile is ignored.
+	NB: If -DataAgeThreshold is not specified on the command line, then it *MUST* be present in the [Compactify] section of BuildPatchTool.ini in the cloud directory
 
 	Example command lines:
-	-BuildRoot="D:\Builds\ExampleGame_[07-02_03.00]" -FileIgnoreList="D:\Builds\ExampleGame_[07-02_03.00]\Manifest_DebugFiles.txt" -CloudDir="D:\BuildPatchCloud" -AppID=123456 -AppName="Example" -BuildVersion="ExampleGame_[07-02_03.00]" -AppLaunch=".\ExampleGame\Binaries\Win32\ExampleGame.exe" -AppArgs="-pak -nosteam"
-	-BuildRoot="C:\Program Files (x86)\Community Portal" -CloudDir="E:\BuildPatchCloud" -AppID=0 -AppName="Community Portal" -BuildVersion="++depot+UE4-CL-1791234" -AppLaunch=".\Engine\Binaries\Win32\CommunityPortal.exe" -AppArgs="" -nochunks
-	-CloudDir="E:\BuildPatchCloude" -compactify
+	-CloudDir="E:\BuildPatchCloud" -compactify -DataAgeThreshold=14
+	-CloudDir="E:\BuildPatchCloud" -compactify -DataAgeThreshold=14 -ManifestsList="Example_V1.manifest,Example_V2.manifest"
+	-CloudDir="E:\BuildPatchCloud" -compactify -DataAgeThreshold=14 -ManifestsFile="preserve_manifests.txt"
 =============================================================================*/
 
 #include "RequiredProgramMainCPPInclude.h"
@@ -130,10 +142,15 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	FString PrereqName;
 	FString PrereqPath;
 	FString PrereqArgs;
+	FString ManifestsList;
+	FString ManifestsFile;
+	float DataAgeThreshold = 0.0f;
+	FString IniFile;
 	TMap<FString, FVariant> CustomFields;
 
 	bool bCompactify = false;
-	bool bPreviewCompactify = false;
+	bool bPatchGeneration = true;
+	bool bPreview = false;
 
 	// Collect all the info from the CommandLine
 	TArray< FString > Tokens, Switches;
@@ -151,16 +168,19 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		int32 PrereqNameIdx;
 		int32 PrereqPathIdx;
 		int32 PrereqArgsIdx;
-
+		int32 ManifestsListIdx;
+		int32 ManifestsFileIdx;
+		int32 DataAgeThresholdIdx;
 
 		FCommandLineMatcher Matcher;
 		bSuccess = true;
 
 		Matcher.Command = TEXT("compactify");
 		bCompactify = Switches.FindMatch(Matcher) != INDEX_NONE;
+		bPatchGeneration = !bCompactify;
 
 		Matcher.Command = TEXT("preview");
-		bPreviewCompactify = bCompactify && Switches.FindMatch(Matcher) != INDEX_NONE;
+		bPreview = bCompactify && Switches.FindMatch(Matcher) != INDEX_NONE;
 		
 		Matcher.Command = TEXT( "BuildRoot" );
 		BuildRootIdx = Switches.FindMatch( Matcher );
@@ -195,9 +215,18 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		Matcher.Command = TEXT( "PrereqArgs" );
 		PrereqArgsIdx = Switches.FindMatch( Matcher );
 
+		Matcher.Command = TEXT("ManifestsList");
+		ManifestsListIdx = Switches.FindMatch(Matcher);
+
+		Matcher.Command = TEXT("ManifestsFile");
+		ManifestsFileIdx = Switches.FindMatch(Matcher);
+
+		Matcher.Command = TEXT("DataAgeThreshold");
+		DataAgeThresholdIdx = Switches.FindMatch(Matcher);
+
 		// Check required param indexes
 		bSuccess = bSuccess && CloudDirIdx != INDEX_NONE;
-		if (!bCompactify)
+		if (bPatchGeneration)
 		{
 			bSuccess = bSuccess && BuildRootIdx != INDEX_NONE;
 			bSuccess = bSuccess && AppIDIdx != INDEX_NONE;
@@ -209,7 +238,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 		// Get required param values
 		bSuccess = bSuccess && FParse::Value( *Switches[CloudDirIdx], TEXT( "CloudDir=" ), CloudDirectory );
-		if (!bCompactify)
+		if (bPatchGeneration)
 		{
 			bSuccess = bSuccess && FParse::Value(*Switches[BuildRootIdx], TEXT("BuildRoot="), RootDirectory);
 			bSuccess = bSuccess && FParse::Value(*Switches[AppIDIdx], TEXT("AppID="), AppID);
@@ -238,6 +267,16 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		if( PrereqArgsIdx != INDEX_NONE )
 		{
 			FParse::Value( *Switches[ PrereqArgsIdx ], TEXT( "FileIgnoreList=" ), PrereqArgs );
+		}
+
+		if (ManifestsListIdx != INDEX_NONE)
+		{
+			bool bShouldStopOnComma = false;
+			FParse::Value(*Switches[ManifestsListIdx], TEXT("ManifestsList="), ManifestsList, bShouldStopOnComma);
+		}
+		else if (ManifestsFileIdx != INDEX_NONE)
+		{
+			FParse::Value( *Switches[ ManifestsFileIdx ], TEXT( "ManifestsFile=" ), ManifestsFile);
 		}
 
 		FString CustomValue;
@@ -292,6 +331,36 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 		FPaths::NormalizeDirectoryName( RootDirectory );
 		FPaths::NormalizeDirectoryName( CloudDirectory );
+
+		if (bSuccess)
+		{
+			// Initialize the configuration system, we can only do this reliably if we have CloudDirectory (i.e. bSuccess is true)
+			IniFile = CloudDirectory / TEXT("BuildPatchTool.ini");
+			GConfig->InitializeConfigSystem();
+		}
+
+		if (DataAgeThresholdIdx != INDEX_NONE)
+		{
+			FParse::Value(*Switches[DataAgeThresholdIdx], TEXT("DataAgeThreshold="), DataAgeThreshold);
+		}
+		else if (bSuccess && bCompactify)
+		{
+			// For compactification, if we don't pass in DataAgeThreshold, then it *MUST* be specified in BuildPatchTool.ini
+			if (!GConfig->GetFloat(TEXT("Compactify"), TEXT("DataAgeThreshold"), DataAgeThreshold, IniFile))
+			{
+				GLog->Log(ELogVerbosity::Error, TEXT("DataAgeThreshold must be specified either on the command line or in the Compactify section of BuildPatchTool.ini"));
+				bSuccess = false; // We couldn't get the DataAgeThreshold value from the .ini file
+			}
+		}
+		else if (bSuccess && bPatchGeneration)
+		{
+			// For patch generation, if we don't pass in DataAgeThreshold, then it *MUST* be specified in BuildPatchTool.ini
+			if (!GConfig->GetFloat(TEXT("PatchGeneration"), TEXT("DataAgeThreshold"), DataAgeThreshold, IniFile))
+			{
+				GLog->Log(ELogVerbosity::Error, TEXT("DataAgeThreshold must be specified either on the command line or in the PatchGeneration section of BuildPatchTool.ini"));
+				bSuccess = false; // We couldn't get the DataAgeThreshold value from the .ini file
+			}
+		}
 	}
 
 	// Check for argument error
@@ -317,10 +386,33 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 	if (bCompactify)
 	{
+		// Split out our manifests to keep arg (if any) into an array of manifest filenames
+		TArray<FString> ManifestsArr;
+		if (ManifestsList.Len() > 0)
+		{
+			ManifestsList.ParseIntoArray(&ManifestsArr, TEXT(","), true);
+		}
+		else if (ManifestsFile.Len() > 0)
+		{
+			FString ManifestsFilePath = CloudDirectory / ManifestsFile;
+			FString Temp;
+			if (FFileHelper::LoadFileToString(Temp, *ManifestsFilePath))
+			{
+				Temp.ReplaceInline(TEXT("\r"), TEXT("\n"));
+				Temp.ParseIntoArray(&ManifestsArr, TEXT("\n"), true);
+			}
+			else
+			{
+				GLog->Log(ELogVerbosity::Error, TEXT("Could not open specified manifests to keep file"));
+				BuildPatchServicesModule.Reset();
+				return 2;
+			}
+		}
+
 		// Run the compactify routine
-		bSuccess = BuildPatchServicesModule->CompactifyCloudDirectory(bPreviewCompactify);
+		bSuccess = BuildPatchServicesModule->CompactifyCloudDirectory(ManifestsArr, DataAgeThreshold, bPreview);
 	}
-	else
+	else if (bPatchGeneration)
 	{
 		FBuildPatchSettings Settings;
 		Settings.RootDirectory = RootDirectory + TEXT("/");
@@ -333,6 +425,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		Settings.PrereqName = PrereqName;
 		Settings.PrereqPath = PrereqPath;
 		Settings.PrereqArgs = PrereqArgs;
+		Settings.DataAgeThreshold = DataAgeThreshold;
 		Settings.CustomFields = CustomFields;
 
 		// Run the build generation
@@ -345,6 +438,12 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			bSuccess = BuildPatchServicesModule->GenerateChunksManifestFromDirectory(Settings);
 		}
 	}
+	else
+	{
+		GLog->Log(ELogVerbosity::Error, TEXT("Unknown tool mode"));
+		BuildPatchServicesModule.Reset();
+		return 3;
+	}
 
 	// Release the module ptr
 	BuildPatchServicesModule.Reset();
@@ -352,8 +451,8 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	// Check for processing error
 	if (!bSuccess)
 	{
-		GLog->Log(ELogVerbosity::Error, TEXT("An fatal error occurred executing BuildPatchTool.exe"));
-		return 2;
+		GLog->Log(ELogVerbosity::Error, TEXT("A fatal error occurred executing BuildPatchTool.exe"));
+		return 4;
 	}
 
 	GLog->Log(TEXT("BuildPatchToolMain completed successfuly"));

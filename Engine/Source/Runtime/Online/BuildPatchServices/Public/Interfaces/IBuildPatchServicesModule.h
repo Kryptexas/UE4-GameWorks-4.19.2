@@ -111,9 +111,11 @@ public:
 	/**
 	 * Processes a Cloud Directory to identify and delete any orphaned chunks or files.
 	 * NOTE: THIS function is blocking and will not return until finished. Don't run on main thread.
+	 * @param ManifestsToKeep      If specified, these manifests will be retained, and all others will be deleted
+	 * @param DataAgeThreshold     Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
 	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
 	 * @return              true if no file errors occurred
 	 */
-	virtual bool CompactifyCloudDirectory( const bool bPreview ) = 0;
+	virtual bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview) = 0;
 #endif // WITH_BUILDPATCHGENERATION
 };

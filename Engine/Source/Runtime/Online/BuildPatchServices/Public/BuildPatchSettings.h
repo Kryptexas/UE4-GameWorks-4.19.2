@@ -26,6 +26,8 @@ struct FBuildPatchSettings
 	FString PrereqPath;
 	// The command line arguments for the prerequisites installer
 	FString PrereqArgs;
+	// The maximum age (in days) of existing data files which can be reused in this build
+	float DataAgeThreshold;
 	// Map of custom fields to add to the manifest
 	TMap<FString, FVariant> CustomFields;
 };

@@ -619,7 +619,7 @@ const TMap<FGuid, int64>& FBuildDataChunkProcessor::GetChunkFilesizes()
 
 /* FBuildDataFileProcessor implementation
 *****************************************************************************/
-FBuildDataFileProcessor::FBuildDataFileProcessor( FBuildPatchAppManifestRef InBuildManifest, const FString& InBuildRoot )
+FBuildDataFileProcessor::FBuildDataFileProcessor(FBuildPatchAppManifestRef InBuildManifest, const FString& InBuildRoot, const FDateTime& InDataThresholdTime)
 	: NumNewFiles( 0 )
 	, NumKnownFiles( 0 )
 	, BuildManifest( InBuildManifest )
@@ -628,6 +628,7 @@ FBuildDataFileProcessor::FBuildDataFileProcessor( FBuildPatchAppManifestRef InBu
 	, FileHash()
 	, FileSize( 0 )
 	, IsProcessingFile( false )
+	, DataThresholdTime( InDataThresholdTime )
 {
 }
 
@@ -678,7 +679,7 @@ void FBuildDataFileProcessor::EndFile()
 	// Use hash and full file name to find out if we have a file match
 	FString FullPath = FPaths::Combine( *BuildRoot, *CurrentFile->Filename );
 	FGuid FileGuid = FGuid::NewGuid();
-	bool bFoundSameFile = FBuildDataGenerator::FindExistingFileData( FullPath, CurrentFile->FileHash, FileGuid );
+	bool bFoundSameFile = FBuildDataGenerator::FindExistingFileData( FullPath, CurrentFile->FileHash, DataThresholdTime, FileGuid );
 
 	// Fill the 'chunk part' info
 	FChunkPart& FilePart = CurrentFile->FileChunkParts[0];
@@ -717,12 +718,13 @@ void FBuildDataFileProcessor::GetFileStats( uint32& OutNewFiles, uint32& OutKnow
 
 /* FBuildSimpleChunkCache::FChunkReader implementation
 *****************************************************************************/
-FBuildGenerationChunkCache::FChunkReader::FChunkReader( const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead )
+FBuildGenerationChunkCache::FChunkReader::FChunkReader( const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead, const FDateTime& InDataAgeThreshold )
 	: ChunkFilePath( InChunkFilePath )
 	, ChunkFileReader( NULL )
 	, ChunkFile( InChunkFile )
 	, FileBytesRead( InBytesRead )
 	, MemoryBytesRead( 0 )
+	, DataAgeThreshold( InDataAgeThreshold )
 {
 	ChunkFile->GetDataLock( &ChunkData, &ChunkHeader );
 }
@@ -757,6 +759,13 @@ FArchive* FBuildGenerationChunkCache::FChunkReader::GetArchive()
 		if( ChunkHeader->Guid.IsValid() == false )
 		{
 			*ChunkFileReader << *ChunkHeader;
+		}
+		// Check the file is not too old to reuse
+		if (IFileManager::Get().GetTimeStamp(*ChunkFilePath) < DataAgeThreshold)
+		{
+			// Break the magic to mark as invalid (this chunk is too old to reuse)
+			ChunkHeader->Magic = 0;
+			return ChunkFileReader;
 		}
 		// Check we can seek otherwise bad chunk
 		const int64 ExpectedFileSize = ChunkHeader->DataSize + ChunkHeader->HeaderSize;
@@ -794,7 +803,7 @@ FArchive* FBuildGenerationChunkCache::FChunkReader::GetArchive()
 				FBuildPatchData::ChunkDataSize,
 				CompressedData.GetData(),
 				ChunkHeader->DataSize );
-			// Mark that we have fully read decompressed data and unpate the chunkfile's data size as we are expanding it
+			// Mark that we have fully read decompressed data and update the chunkfile's data size as we are expanding it
 			*FileBytesRead = FBuildPatchData::ChunkDataSize;
 			ChunkHeader->DataSize = FBuildPatchData::ChunkDataSize;
 			// Check uncompression was OK
@@ -869,8 +878,13 @@ const uint32 FBuildGenerationChunkCache::FChunkReader::BytesLeft()
 	return FBuildPatchData::ChunkDataSize - MemoryBytesRead;
 }
 
-/* FBuildSimpleChunkCache implementation
+/* FBuildGenerationChunkCache implementation
 *****************************************************************************/
+FBuildGenerationChunkCache::FBuildGenerationChunkCache(const FDateTime& DataAgeThreshold)
+	: DataAgeThreshold(DataAgeThreshold)
+{
+}
+
 TSharedRef< FBuildGenerationChunkCache::FChunkReader > FBuildGenerationChunkCache::GetChunkReader( const FString& ChunkFilePath )
 {
 	if( ChunkCache.Contains( ChunkFilePath ) == false )
@@ -898,7 +912,7 @@ TSharedRef< FBuildGenerationChunkCache::FChunkReader > FBuildGenerationChunkCach
 		ChunkCache.Add( ChunkFilePath, MakeShareable( new FChunkFile( 1, true ) ) );
 		BytesReadPerChunk.Add( ChunkFilePath, new uint32( 0 ) );
 	}
-	return MakeShareable( new FChunkReader( ChunkFilePath, ChunkCache[ ChunkFilePath ], BytesReadPerChunk[ ChunkFilePath ] ) );
+	return MakeShareable( new FChunkReader( ChunkFilePath, ChunkCache[ ChunkFilePath ], BytesReadPerChunk[ ChunkFilePath ], DataAgeThreshold ) );
 }
 
 void FBuildGenerationChunkCache::Cleanup()
@@ -911,15 +925,15 @@ void FBuildGenerationChunkCache::Cleanup()
 	BytesReadPerChunk.Empty( 0 );
 }
 
-/* FBuildSimpleChunkCache system singleton setup
+/* FBuildGenerationChunkCache system singleton setup
 *****************************************************************************/
 TSharedPtr< FBuildGenerationChunkCache > FBuildGenerationChunkCache::SingletonInstance = NULL;
 
-void FBuildGenerationChunkCache::Init()
+void FBuildGenerationChunkCache::Init(const FDateTime& DataAgeThreshold)
 {
 	// We won't allow misuse of these functions
 	check( !SingletonInstance.IsValid() );
-	SingletonInstance = MakeShareable( new FBuildGenerationChunkCache() );
+	SingletonInstance = MakeShareable(new FBuildGenerationChunkCache(DataAgeThreshold));
 }
 
 FBuildGenerationChunkCache& FBuildGenerationChunkCache::Get()
@@ -981,6 +995,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	const FString& PrereqName = Settings.PrereqName;
 	const FString& PrereqPath = Settings.PrereqPath;
 	const FString& prereqArgs = Settings.PrereqArgs;
+	const float& DataAgeThreshold = Settings.DataAgeThreshold;
 
 	// Output to log for builder info
 	GLog->Logf( TEXT( "Running Chunks Patch Generation for: %u:%s %s" ), InAppID, *AppName, *BuildVersion );
@@ -989,7 +1004,8 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	FScopeLock SingleConcurrentBuild( &SingleConcurrentBuildCS );
 
 	// Create our chunk cache
-	FBuildGenerationChunkCache::Init();
+	const FDateTime Cutoff = FDateTime::UtcNow() - FTimespan::FromDays(DataAgeThreshold);
+	FBuildGenerationChunkCache::Init(Cutoff);
 
 	// Create a manifest
 	FBuildPatchAppManifestRef BuildManifest = MakeShareable( new FBuildPatchAppManifest() );
@@ -1180,6 +1196,7 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 	const FString& LaunchExe = Settings.LaunchExe;
 	const FString& LaunchCommand = Settings.LaunchCommand;
 	const FString& IgnoreListFile = Settings.IgnoreListFile;
+	const float& DataAgeThreshold = Settings.DataAgeThreshold;
 
 	// Output to log for builder info
 	GLog->Logf( TEXT( "Running Files Patch Generation for: %u:%s %s" ), InAppID, *AppName, *BuildVersion );
@@ -1198,7 +1215,8 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 	BuildManifest->DestroyData(); 
 
 	// Declare a build processor
-	FBuildDataFileProcessor DataProcessor( BuildManifest, RootDirectory );
+	const FDateTime Cutoff = FDateTime::UtcNow() - FTimespan::FromDays(DataAgeThreshold);
+	FBuildDataFileProcessor DataProcessor(BuildManifest, RootDirectory, Cutoff);
 
 	// Set the App details
 	BuildManifest->AppID = InAppID;
@@ -1439,7 +1457,7 @@ FString FBuildDataGenerator::DiscoverChunkFilename(const FGuid& ChunkGuid, const
 	return TEXT("");
 }
 
-bool FBuildDataGenerator::FindExistingFileData( const FString& InSourceFile, const FSHAHash& InFileHash, FGuid& OutFileGuid )
+bool FBuildDataGenerator::FindExistingFileData( const FString& InSourceFile, const FSHAHash& InFileHash, const FDateTime& DataThresholdTime, FGuid& OutFileGuid )
 {
 	bool bFoundMatchingFile = false;
 
@@ -1578,6 +1596,13 @@ bool FBuildDataGenerator::FindExistingFileData( const FString& InSourceFile, con
 			for( auto FileIt = FileList->CreateConstIterator(); FileIt && !bFoundMatchingFile ; ++FileIt)
 			{
 				FString CloudFilename = *FileIt;
+				// Check the file date
+				FDateTime ModifiedDate = IFileManager::Get().GetTimeStamp( *CloudFilename );
+				if (ModifiedDate < DataThresholdTime)
+				{
+					// We don't want to reuse this file's Guid, as it's older than any existing files we want to consider
+					continue;
+				}
 				// Compare the files
 				FArchive* SourceFile = IFileManager::Get().CreateFileReader( *InSourceFile );
 				FArchive* FoundFile = IFileManager::Get().CreateFileReader( *CloudFilename );

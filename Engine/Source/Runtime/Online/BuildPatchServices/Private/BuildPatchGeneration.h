@@ -371,10 +371,11 @@ public:
 
 	/**
 	 * Constructor
-	 * @param	InBuildManifest		The build manifest that receives the manifest data.
-	 * @param	InBuildRoot			The root directory of the build
+	 * @param	InBuildManifest			The build manifest that receives the manifest data.
+	 * @param	InBuildRoot				The root directory of the build
+	 * @param	InDataThresholdTime		The cutoff time used for file reuse. Files older than this will not be reused
 	 */
-	FBuildDataFileProcessor( FBuildPatchAppManifestRef InBuildManifest, const FString& InBuildRoot );
+	FBuildDataFileProcessor( FBuildPatchAppManifestRef InBuildManifest, const FString& InBuildRoot, const FDateTime& InDataThresholdTime );
 
 	/**
 	 * Mark the beginning of a new file
@@ -426,6 +427,9 @@ private:
 
 	// Are we currently processing a file
 	bool IsProcessingFile;
+
+	// The threshold time for old data. Used to determine whether to reuse chunks.
+	FDateTime DataThresholdTime;
 };
 
 /**
@@ -463,14 +467,18 @@ public:
 		// How many bytes we have read out of this chunk, used to calculate when we need more data from file
 		uint32 MemoryBytesRead;
 
+		// The validity period of chunk data. Anything older than this will be considered to be invalid
+		FDateTime DataAgeThreshold;
+
 	public:
 		/**
 		 * Constructs the reader from required data
 		 * @param	InChunkFilePath		The file path of the source file for the chunk
 		 * @param	InChunkFile			The data structure for this chunk
 		 * @param	InBytesRead			Pointer to an unsigned int to keep track of how much data is read from file
+		 * @param	InDataAgeThreshold	The validity period of chunk data. Anything older than this will be considered to be invalid
 		 */
-		FChunkReader( const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead );
+		FChunkReader( const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead, const FDateTime& InDataAgeThreshold );
 
 		/**
 		 * Destructor. Cleans up and releases data locks.
@@ -512,8 +520,17 @@ public:
 	};
 
 private:
+	/**
+	* Constructor
+	* @param	DataAgeThreshold		The cutoff point before which data chunks should be regarded as isvalid
+	*/
+	FBuildGenerationChunkCache(const FDateTime& DataAgeThreshold);
+
+private:
 	// The number of chunks to cache in memory
 	const static int32 NumChunksToCache = 256;
+
+	FDateTime DataAgeThreshold;
 
 	// The map of chunks we have cached
 	TMap< FString, TSharedRef< FChunkFile > > ChunkCache;
@@ -533,8 +550,9 @@ public:
 
 	/**
 	 * Call to initialise static singleton so that the cache system can be used
+	 * @param DataAgeThreshold		Any chunks older than this date will be classed as invalid
 	 */
-	static void Init();
+	static void Init(const FDateTime& DataAgeThreshold);
 
 	/**
 	 * Get a reference to the chunk system. Only call between Init and Shutdown calls.
@@ -604,12 +622,13 @@ public:
 	/**
 	 * Checks to see if a given file already exists in the database of known files
 	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread.
-	 * @param InSourceFile	IN		The filename of the file on disk.
-	 * @param InFileHash	IN		The hash for the file.
-	 * @param OutFileGuid	OUT		Will be set to the existing file guid if found.
+	 * @param InSourceFile			IN		The filename of the file on disk.
+	 * @param InFileHash			IN		The hash for the file.
+	 * @param DataThresholdTime		IN		The date/time before which files will not be reused
+	 * @param OutFileGuid			OUT		Will be set to the existing file guid if found.
 	 * @return		Whether this file is new or existing.
 	 */
-	static bool FindExistingFileData( const FString& InSourceFile, const FSHAHash& InFileHash, FGuid& OutFileGuid );
+	static bool FindExistingFileData( const FString& InSourceFile, const FSHAHash& InFileHash, const FDateTime& DataThresholdTime, FGuid& OutFileGuid );
 
 	/**
 	 * Saves out the file data for use with file based patch manifests
@@ -659,6 +678,7 @@ private:
 
 	// A critical section to enforce only one build at a time
 	static FCriticalSection SingleConcurrentBuildCS;
+
 };
 
 #endif //WITH_BUILDPATCHGENERATION

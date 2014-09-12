@@ -189,9 +189,9 @@ bool FBuildPatchServicesModule::GenerateFilesManifestFromDirectory( const FBuild
 	return FBuildDataGenerator::GenerateFilesManifestFromDirectory( Settings );
 }
 
-bool FBuildPatchServicesModule::CompactifyCloudDirectory(const bool bPreview)
+bool FBuildPatchServicesModule::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview)
 {
-	return FBuildDataCompactifier::CompactifyCloudDirectory(bPreview);
+	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview);
 }
 
 #endif //WITH_BUILDPATCHGENERATION
