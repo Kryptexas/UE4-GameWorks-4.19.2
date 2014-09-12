@@ -53,6 +53,7 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 	ChildSlot
 	[
 		SNew(SFxWidget)
+		.Visibility(EVisibility::SelfHitTestInvisible)
 		.RenderScale(this, &STutorialContent::GetAnimatedZoom)
 		.RenderScaleOrigin(FVector2D(0.5f, 0.5f))
 		[

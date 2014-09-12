@@ -265,9 +265,9 @@ private:
 			{
 				if (MetaDataEntry->IsOfType<FTutorialMetaData>())
 				{
-					TSharedRef<FTutorialMetaData> GraphNodeMeta = StaticCastSharedRef<FGraphNodeMetaData>(MetaDataEntry);
-					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, FriendlyName))->SetValue(GraphNodeMeta->FriendlyName);
-					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, TabTypeToOpen))->SetValue(GraphNodeMeta->TabTypeToOpen);
+					TSharedRef<FTutorialMetaData> TutorialMeta = StaticCastSharedRef<FTutorialMetaData>(MetaDataEntry);
+					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, FriendlyName))->SetValue(TutorialMeta->FriendlyName);
+					StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTutorialContentAnchor, TabTypeToOpen))->SetValue(TutorialMeta->TabTypeToOpen);
 				}
 				else if (MetaDataEntry->IsOfType<FGraphNodeMetaData>())
 				{

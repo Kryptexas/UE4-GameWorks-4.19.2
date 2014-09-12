@@ -27,11 +27,10 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	PulseAnimation.AddCurve(0.0f, TutorialButtonConstants::PulseAnimationLength, ECurveEaseFunction::Linear);
 	PulseAnimation.Play();
 
-	FTutorialMetaData TagMeta(*FString::Printf(TEXT("%s.TutorialLaunchButton"), *Context.ToString()), TEXT("TutorialLaunchButton"));
 	ChildSlot
 	[
 		SNew(SButton)
-		.AddMetaData<FTutorialMetaData>(TagMeta)
+		.AddMetaData<FTagMetaData>(*FString::Printf(TEXT("%s.TutorialLaunchButton"), *Context.ToString()))
 		.ButtonStyle(FEditorStyle::Get(), "TutorialLaunch.Button")
 		.ToolTipText(this, &STutorialButton::GetButtonToolTip)
 		.OnClicked(this, &STutorialButton::HandleButtonClicked)
