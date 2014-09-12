@@ -2030,6 +2030,7 @@ void FCascade::ExtendToolbar()
 	TSharedRef<SWidget> CurrentLOD = SNew(SBox)
 			[
 				SNew(SHorizontalBox)
+				.AddMetaData<FTagMetaData>(TEXT("Cascade.LODBOx"))
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)

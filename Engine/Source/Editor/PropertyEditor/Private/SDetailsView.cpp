@@ -125,6 +125,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			// Create the search box
 			SAssignNew( SearchBox, SSearchBox )
 			.OnTextChanged( this, &SDetailsView::OnFilterTextChanged  )
+			.AddMetaData<FTagMetaData>(TEXT("Details.Search"))
 		]
 		+SHorizontalBox::Slot()
 		.Padding( 4.0f, 0.0f, 0.0f, 0.0f )

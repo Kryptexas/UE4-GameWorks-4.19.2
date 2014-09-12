@@ -59,7 +59,8 @@ void SBlueprintEditorSelectedDebugObjectWidget::Construct(const FArguments& InAr
 		.OptionsSource(&DebugObjectNames)
 		.InitiallySelectedItem(GetDebugObjectName())
 		.OnComboBoxOpening(this, &SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames, true)
-		.OnSelectionChanged(this, &SBlueprintEditorSelectedDebugObjectWidget::DebugObjectSelectionChanged);
+		.OnSelectionChanged(this, &SBlueprintEditorSelectedDebugObjectWidget::DebugObjectSelectionChanged)
+		.AddMetaData<FTagMetaData>(TEXT("SelectDebugObjectCobmo"));
 
 	TSharedRef<SWidget> DebugObjectSelectionWidget =
 		SNew(SHorizontalBox)

@@ -114,6 +114,11 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 		.Padding(5.0f, 0.0f, 0.0f, 0.0f)
 		.VAlign((VAlign_Center));
 
+	FTagMetaData MetaData(TEXT("Undefined"));
+	if (Tabs.Num() > 0)
+	{
+		MetaData.Tag = *Tabs[0].TabId.ToString();
+	}
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -159,6 +164,7 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 						SAssignNew(ContentSlot, SBorder)
 							.BorderImage(this, &SDockingTabStack::GetContentAreaBrush)
 							.Padding(this, &SDockingTabStack::GetContentPadding)
+							.AddMetaData<FTagMetaData>(MetaData)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("EmptyTabMessage", "Empty Tab!"))

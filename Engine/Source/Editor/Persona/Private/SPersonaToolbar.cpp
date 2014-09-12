@@ -95,6 +95,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 				NULL,
 				TEXT("Shared/Editors/Persona"),
 				TEXT("SkeletonMode")))
+			.AddMetaData<FTagMetaData>(TEXT("Persona.Skeleton"))
 			.ShortContents()
 			[
 				SNew(SContentReference)
@@ -118,6 +119,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 				NULL,
 				TEXT("Shared/Editors/Persona"),
 				TEXT("MeshMode")))
+			.AddMetaData<FTagMetaData>(TEXT("Persona.Mesh"))
 			.ShortContents()
 			[
 				SNew(SContentReference)
@@ -164,6 +166,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 				NULL,
 				TEXT("Shared/Editors/Persona"),
 				TEXT("AnimationMode")))
+			.AddMetaData<FTagMetaData>(TEXT("Persona.Anim"))
 			.ShortContents()
 			[
 				//@TODO: How to show this guy?
@@ -197,6 +200,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 					TEXT("GraphMode")))
 				.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode"))
 				.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode.Small"))
+				.AddMetaData<FTagMetaData>(TEXT("Persona.Graph"))
 				.ShortContents()
 				[
 					SNew(SContentReference)

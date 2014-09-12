@@ -664,6 +664,7 @@ void SAnimCurvePanel::Construct(const FArguments& InArgs)
 						.Text( LOCTEXT("AddFloatTrack", "Add...") )
 						.ToolTipText( LOCTEXT("AddTrackTooltip", "Add float track above here") )
 						.OnClicked( this, &SAnimCurvePanel::AddButtonClicked )
+						.AddMetaData<FTagMetaData>(TEXT("AnimCurve.AddFloat"))
 					]
 
 					+SHorizontalBox::Slot()

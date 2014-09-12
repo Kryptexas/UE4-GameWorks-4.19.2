@@ -676,6 +676,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 			SNew(SBorder)
 			. BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
 			. HAlign(HAlign_Center)
+			.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.Title"))
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
@@ -715,6 +716,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				]
 				.ToolTipText( LOCTEXT( "AddFloatTrack", "Add Float Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_FloatInterp )
+				.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.AddFloatTrack"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -729,6 +731,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				]
 				.ToolTipText( LOCTEXT( "AddVectorTrack", "Add Vector Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_VectorInterp )
+				.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.AddVectorTrack"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -743,6 +746,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				]
 				.ToolTipText( LOCTEXT( "AddEventTrack", "Add Event Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_Event )
+				.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.AddEventTrack"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -757,6 +761,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				]
 				.ToolTipText( LOCTEXT( "AddColorTrack", "Add Color Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_LinearColorInterp )
+				.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.AddColorTrack"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -772,6 +777,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.ToolTipText( LOCTEXT( "AddExternalAsset", "Add Selected Curve Asset" ) )
 				.IsEnabled( this, &STimelineEditor::IsCurveAssetSelected )
 				.OnClicked( this, &STimelineEditor::CreateNewTrackFromAsset )
+				.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.AddCurveAssetTrack"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -792,6 +798,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.OnTextCommitted( this, &STimelineEditor::OnLengthStringChanged )
 				.SelectAllTextWhenFocused(true)
 				.MinDesiredWidth(64)
+				.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.Length"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -803,6 +810,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.OnCheckStateChanged( this, &STimelineEditor::OnUseLastKeyframeChanged )
 				[
 					SNew(STextBlock) .Text( LOCTEXT( "UseLastKeyframe", "Use Last Keyframe?" ) )
+					.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.UseLastKeyframe"))
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -815,6 +823,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.OnCheckStateChanged( this, &STimelineEditor::OnAutoPlayChanged )
 				[
 					SNew(STextBlock) .Text( LOCTEXT( "AutoPlay", "AutoPlay" ) )
+					.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.AutoPlay"))
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -827,6 +836,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.OnCheckStateChanged( this, &STimelineEditor::OnLoopChanged )
 				[
 					SNew(STextBlock) .Text( LOCTEXT( "Loop", "Loop" ) )
+					.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.Loop"))
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -839,6 +849,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.OnCheckStateChanged( this, &STimelineEditor::OnReplicatedChanged )
 				[
 					SNew(STextBlock) .Text( LOCTEXT( "Replicated", "Replicated" ) )
+					.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.Replicated"))
 				]
 			]
 		]

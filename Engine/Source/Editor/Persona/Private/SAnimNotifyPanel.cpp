@@ -2932,6 +2932,7 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 		[
 			SNew( SExpandableArea )
 			.AreaTitle( LOCTEXT("Notifies", "Notifies") )
+			.AddMetaData<FTagMetaData>(TEXT("AnimNotify.Notify"))
 			.BodyContent()
 			[
 				SAssignNew( PanelArea, SBorder )
