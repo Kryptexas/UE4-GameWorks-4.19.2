@@ -213,6 +213,7 @@ private:
 	void OnPlayAnimation();
 	bool IsPlayAnimation() const;
 	void OnShowSkeleton();
+	void OnViewType(ELevelViewportType ViewType);
 	bool IsShowSkeleton() const;
 	void OnSetBodyPhysicsType( EPhysicsType InPhysicsType );
 	bool IsBodyPhysicsType( EPhysicsType InPhysicsType );

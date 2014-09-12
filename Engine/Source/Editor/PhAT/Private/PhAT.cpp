@@ -1214,6 +1214,30 @@ void FPhAT::BindCommands()
 		FIsActionChecked::CreateSP(this, &FPhAT::IsShowSkeleton));
 
 	ToolkitCommands->MapAction(
+		Commands.PerspectiveView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_Perspective),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.TopView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoXY),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.SideView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoYZ),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.FrontView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoXZ),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
 		Commands.MakeBodyKinematic,
 		FExecuteAction::CreateSP(this, &FPhAT::OnSetBodyPhysicsType, EPhysicsType::PhysType_Kinematic ),
 		FCanExecuteAction(),
@@ -2695,6 +2719,14 @@ void FPhAT::OnPlayAnimation()
 bool FPhAT::IsPlayAnimation() const
 {
 	return SharedData->EditorSkelComp->IsPlaying();
+}
+
+void FPhAT::OnViewType(ELevelViewportType ViewType)
+{
+	if (PreviewViewport.IsValid())
+	{
+		PreviewViewport->SetViewportType(ViewType);
+	}
 }
 
 void FPhAT::OnShowSkeleton()

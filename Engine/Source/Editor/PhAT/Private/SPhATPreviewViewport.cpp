@@ -19,6 +19,11 @@ SPhATPreviewViewport::~SPhATPreviewViewport()
 	}
 }
 
+void SPhATPreviewViewport::SetViewportType(ELevelViewportType ViewType)
+{
+	ViewportClient->SetViewportType(ViewType);
+}
+
 void SPhATPreviewViewport::Construct(const FArguments& InArgs)
 {
 	PhATPtr = InArgs._PhAT;
