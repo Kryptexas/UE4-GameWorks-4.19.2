@@ -619,9 +619,9 @@ void Main(
 		FDBufferData DBufferData = GetDBufferData(ScreenUV);
 
 		// the material can disable the DBuffer effects for beter performance or control
-		if((MATERIALDECALRESPONSEMASK & 0x1) == 0) { DBufferData.Color = 0; DBufferData.ColorOpacity = 1; }
-		if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.WorldNormal = 0; DBufferData.NormalOpacity = 1; }
-		if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.Roughness = 0; DBufferData.RoughnessOpacity = 1; }
+		if((MATERIALDECALRESPONSEMASK & 0x1) == 0) { DBufferData.PreMulColor = 0; DBufferData.ColorOpacity = 1; }
+		if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.PreMulWorldNormal = 0; DBufferData.NormalOpacity = 1; }
+		if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.PreMulRoughness = 0; DBufferData.RoughnessOpacity = 1; }
 
 #if DIFFUSE_SPEC_INPUTS
 		ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, DiffuseColor, SpecularColor);
