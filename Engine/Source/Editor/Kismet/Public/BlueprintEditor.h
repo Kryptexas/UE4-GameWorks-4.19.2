@@ -235,12 +235,11 @@ public:
 
 	/** Returns whether a graph is editable or not */
 	virtual bool IsEditable(UEdGraph* InGraph) const;
-
-	/** */
+	/** Determines if the graph's title bar should be the only interactable widget .*/
 	bool IsGraphPanelEnabled(UEdGraph* InGraph) const;
 
-	/** */
-	virtual float GetInstructionTextOpacity() const;
+	/** Used to determine the visibility of the graph's instruction text. */
+	float GetInstructionTextOpacity(UEdGraph* InGraph) const;
 
 	/** Returns true if in editing mode */
 	bool InEditingMode() const;
@@ -827,6 +826,8 @@ protected:
 
 	/** Get graph appearance */
 	virtual FGraphAppearanceInfo GetGraphAppearance() const;
+	/** Used to get the apperance of a specific graph, GetGraphAppearance() uses the currently focused graph. */
+	FGraphAppearanceInfo GetGraphAppearance(class UEdGraph* InGraph) const;
 
 private:
 
@@ -1041,9 +1042,9 @@ private:
 	/** Delegates that are fired when the blueprint editor changes modes */
 	FOnModeSet OnModeSetData;
 
-	/** */
-	bool bActionMenuIsOpen;
-	/** */
+	/** When set, flags which graph has a action menu currently open (if null, no graphs do). */
+	UEdGraph* HasOpenActionMenu;
+	/** Used to nicely fade instruction text, when the context menu is opened. */
 	float InstructionsFadeCountdown;
 };
 
