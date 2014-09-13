@@ -71,7 +71,7 @@ FWidgetGraphApplicationMode::FWidgetGraphApplicationMode(TSharedPtr<FWidgetBluep
 					->Split
 					(
 						FTabManager::NewStack()
-						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::OpenedTab )
+						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::ClosedTab )
 					)
 				)
 			)

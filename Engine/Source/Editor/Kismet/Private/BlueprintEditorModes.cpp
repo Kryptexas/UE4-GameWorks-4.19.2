@@ -117,7 +117,7 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 					->Split
 					(
 						FTabManager::NewStack()
-						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::OpenedTab )
+						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::ClosedTab )
 					)
 				)
 			)
@@ -473,7 +473,7 @@ FBlueprintMacroApplicationMode::FBlueprintMacroApplicationMode(TSharedPtr<class 
 					->Split
 					(
 						FTabManager::NewStack()
-						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::OpenedTab )
+						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::ClosedTab )
 					)
 				)
 			)
