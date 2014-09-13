@@ -6,6 +6,9 @@
 #include "EdGraph/EdGraph.h"
 #include "KismetEditorUtilities.h"	// for CreateBlueprint()
 #include "BlueprintNodeSpawner.h"   // for NodeClass/Invoke()
+#include "BlueprintEditorSettings.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogBlueprintNodeCache, Log, All);
 
 /*******************************************************************************
  * Static FBlueprintNodeTemplateCache Helpers
@@ -51,6 +54,21 @@ namespace BlueprintNodeTemplateCacheImpl
 	 * @return 
 	 */
 	static UEdGraph* AddGraph(UBlueprint* BlueprintOuter, TSubclassOf<UEdGraphSchema> SchemaClass);
+
+	/**
+	 * 
+	 * 
+	 * @param  Object	
+	 * @return 
+	 */
+	static int32 ApproximateMemFootprint(UObject* Object);
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	static int32 GetCacheCapSize();
 }
 
 //------------------------------------------------------------------------------
@@ -119,18 +137,46 @@ static UEdGraph* BlueprintNodeTemplateCacheImpl::AddGraph(UBlueprint* BlueprintO
 }
 
 //------------------------------------------------------------------------------
+static int32 BlueprintNodeTemplateCacheImpl::ApproximateMemFootprint(UObject* Object)
+{
+	TArray<UObject*> ChildObjs;
+	GetObjectsWithOuter(Object, ChildObjs);
+
+	int32 ApproimateDataSize = sizeof(*Object);
+	for (UObject* ChildObj : ChildObjs)
+	{
+		// @TODO: doesn't account for any internal allocated memory (for member TArrays, etc.)
+		ApproimateDataSize += sizeof(*ChildObj);
+	}
+	return ApproimateDataSize;
+}
+
+//------------------------------------------------------------------------------
+static int32 BlueprintNodeTemplateCacheImpl::GetCacheCapSize()
+{
+	UBlueprintEditorSettings const* BpSettings = GetDefault<UBlueprintEditorSettings>();
+	// have to convert from MB to bytes
+	return (BpSettings->NodeTemplateCacheCapMB * 1024.f * 1024.f);
+}
+
+//------------------------------------------------------------------------------
 FBlueprintNodeTemplateCache::FBlueprintNodeTemplateCache()
+	: ApproximateAllocationTotal(0)
 {
 	using namespace BlueprintNodeTemplateCacheImpl; // for MakeCompatibleBlueprint()
 
-	TemplateOuters.Add(MakeCompatibleBlueprint(UBlueprint::StaticClass(), AActor::StaticClass(), UBlueprintGeneratedClass::StaticClass()));
-	TemplateOuters.Add(MakeCompatibleBlueprint(UAnimBlueprint::StaticClass(), UAnimInstance::StaticClass(), UAnimBlueprintGeneratedClass::StaticClass()));
+	UBlueprint* StandardBlueprint = MakeCompatibleBlueprint(UBlueprint::StaticClass(), AActor::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+	AddBlueprintOuter(StandardBlueprint);
+
+	UBlueprint* AnimBlueprint = MakeCompatibleBlueprint(UAnimBlueprint::StaticClass(), UAnimInstance::StaticClass(), UAnimBlueprintGeneratedClass::StaticClass());
+	AddBlueprintOuter(AnimBlueprint);
 }
 
 //------------------------------------------------------------------------------
 UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner const* NodeSpawner, UEdGraph* TargetGraph)
 {
 	using namespace BlueprintNodeTemplateCacheImpl;
+	static bool LoggedOnce = false;
 
 	UEdGraphNode* TemplateNode = nullptr;
 	if (UEdGraphNode** FoundNode = NodeTemplateCache.Find(NodeSpawner))
@@ -189,8 +235,13 @@ UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner
 					GeneratedClassType = TargetBlueprint->GeneratedClass->GetClass();
 				}
 
+				// @TODO: if we're out of space, we shouldn't be 
 				CompatibleBlueprint = MakeCompatibleBlueprint(BlueprintClass, TargetBlueprint->ParentClass, GeneratedClassType);
-				TemplateOuters.Add(CompatibleBlueprint);
+				if (!AddBlueprintOuter(CompatibleBlueprint) && !LoggedOnce)
+				{
+					UE_LOG(LogBlueprintNodeCache, Display, TEXT("The blueprint template-node cache is full. As a result, you may experience slower than usual menu interactions. To avoid this, increase the cache's cap in the blueprint editor prefences."));
+					LoggedOnce = true;
+				}
 
 				// this graph may come default with a compatible graph
 				CompatibleOuter = FindCompatibleGraph(CompatibleBlueprint, NodeCDO);
@@ -199,13 +250,18 @@ UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner
 			if (CompatibleOuter == nullptr)
 			{
 				CompatibleOuter = AddGraph(CompatibleBlueprint, TargetGraph->Schema);
+				ApproximateAllocationTotal += ApproximateMemFootprint(CompatibleOuter);
 			}
 		}
 
 		if (CompatibleOuter != nullptr)
 		{
 			TemplateNode = NodeSpawner->Invoke(CompatibleOuter, IBlueprintNodeBinder::FBindingSet(), FVector2D::ZeroVector);
-			NodeTemplateCache.Add(NodeSpawner, TemplateNode);
+			if (!CacheTemplateNode(NodeSpawner, TemplateNode) && !LoggedOnce)
+			{
+				UE_LOG(LogBlueprintNodeCache, Display, TEXT("The blueprint template-node cache is full. As a result, you may experience slower than usual menu interactions. To avoid this, increase the cache's cap in the blueprint editor prefences."));
+				LoggedOnce = true;
+			}
 		}
 	}
 
@@ -230,6 +286,16 @@ void FBlueprintNodeTemplateCache::ClearCachedTemplate(UBlueprintNodeSpawner cons
 }
 
 //------------------------------------------------------------------------------
+int32 FBlueprintNodeTemplateCache::EstimateAllocatedSize() const
+{
+	int32 TotalEstimatedSize = NodeTemplateCache.GetAllocatedSize();
+	TotalEstimatedSize += TemplateOuters.GetAllocatedSize();
+	TotalEstimatedSize += ApproximateAllocationTotal;
+
+	return TotalEstimatedSize;
+}
+
+//------------------------------------------------------------------------------
 void FBlueprintNodeTemplateCache::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	for (auto& TemplateEntry : NodeTemplateCache)
@@ -237,4 +303,47 @@ void FBlueprintNodeTemplateCache::AddReferencedObjects(FReferenceCollector& Coll
 		Collector.AddReferencedObject(TemplateEntry.Value);
 	}
 	Collector.AddReferencedObjects(TemplateOuters);
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNodeTemplateCache::AddBlueprintOuter(UBlueprint* Blueprint)
+{
+	int32 const ApproxBlueprintSize = BlueprintNodeTemplateCacheImpl::ApproximateMemFootprint(Blueprint);
+	ApproximateAllocationTotal += ApproxBlueprintSize;
+	int32 const NewEstimatedSize = EstimateAllocatedSize();
+
+	if (NewEstimatedSize > BlueprintNodeTemplateCacheImpl::GetCacheCapSize())
+	{
+		ApproximateAllocationTotal -= ApproxBlueprintSize;
+		return false;
+	}
+	else
+	{
+		TemplateOuters.Add(Blueprint);
+		return true;
+	}
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNodeTemplateCache::CacheTemplateNode(UBlueprintNodeSpawner const* NodeSpawner, UEdGraphNode* NewNode)
+{
+	if (NewNode == nullptr)
+	{
+		return true;
+	}
+
+	int32 const ApproxNodeSize = BlueprintNodeTemplateCacheImpl::ApproximateMemFootprint(NewNode);
+	ApproximateAllocationTotal += ApproxNodeSize;
+	int32 const NewEstimatedSize = EstimateAllocatedSize();
+
+	if (NewEstimatedSize > BlueprintNodeTemplateCacheImpl::GetCacheCapSize())
+	{
+		ApproximateAllocationTotal -= ApproxNodeSize;
+		return false;
+	}
+	else
+	{
+		NodeTemplateCache.Add(NodeSpawner, NewNode);
+		return true;
+	}
 }

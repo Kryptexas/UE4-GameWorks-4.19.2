@@ -24,7 +24,7 @@ namespace UnrealBuildTool.Rules
 					"SlateCore",
 					"UnrealEd",
                     "InternationalizationSettings",
-					"Kismet"
+					"BlueprintGraph"
 				}
 			);
 

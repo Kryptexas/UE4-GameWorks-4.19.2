@@ -54,11 +54,35 @@ public:
 	 */
 	void ClearCachedTemplate(UBlueprintNodeSpawner const* NodeSpawner);
 
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	int32 EstimateAllocatedSize() const;
+
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End FGCObject interface
 
 private:
+	/**
+	 * 
+	 * 
+	 * @param  Blueprint	
+	 * @return 
+	 */
+	bool AddBlueprintOuter(UBlueprint* Blueprint);
+
+	/**
+	 * 
+	 * 
+	 * @param  NodeSpawner	
+	 * @param  NewNode	
+	 * @return 
+	 */
+	bool CacheTemplateNode(UBlueprintNodeSpawner const* NodeSpawner, UEdGraphNode* NewNode);
+
 	/** 
 	 * Unfortunately, we cannot nest template-nodes in the transient package. 
 	 * Certain nodes operate on the assumption that they have a UEdGraph outer, 
@@ -73,4 +97,7 @@ private:
 
 	/** */
 	TMap<UBlueprintNodeSpawner const*, UEdGraphNode*> NodeTemplateCache;
+
+	/** */
+	int32 ApproximateAllocationTotal;
 };
