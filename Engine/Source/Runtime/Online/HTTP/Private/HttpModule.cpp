@@ -61,14 +61,13 @@ void FHttpModule::ShutdownModule()
 		delete HttpManager;	// can be passed NULLs
 	}
 	else
-#else
+#endif	// PLATFORM_WINDOWS
 	{
 		// at least on Linux, the code in HTTP manager (e.g. request destructors) expects platform to be initialized yet
 		delete HttpManager;	// can be passed NULLs
 
 		FPlatformHttp::Shutdown();
 	}
-#endif	// PLATFORM_WINDOWS
 
 	HttpManager = nullptr;
 	Singleton = nullptr;
