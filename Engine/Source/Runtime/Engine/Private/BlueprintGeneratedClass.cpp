@@ -293,8 +293,8 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 	{
 		const UTimelineTemplate* TimelineTemplate = Timelines[i];
 
-		// Not fatal if NULL, but shouldn't happen
-		if(!TimelineTemplate)
+		// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
+		if(!TimelineTemplate||!TimelineTemplate->bValidatedAsWired)
 		{
 			continue;
 		}

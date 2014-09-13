@@ -131,6 +131,10 @@ class UTimelineTemplate : public UObject
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TimelineTemplate)
 	uint32 bReplicated:1;
 
+	/** Compiler Validated As Wired up */
+	UPROPERTY()
+	uint32 bValidatedAsWired:1;
+
 	/** Set of event tracks */
 	UPROPERTY()
 	TArray<struct FTTEventTrack> EventTracks;

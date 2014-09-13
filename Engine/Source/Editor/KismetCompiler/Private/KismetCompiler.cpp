@@ -1841,8 +1841,11 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 				UEdGraphPin* SetTimePin = TimelineNode->GetSetNewTimePin();
 				bool bSetNewTimePinConnected = (SetTimePin->LinkedTo.Num() > 0);
 
+				// Set the timeline template as wired/not wired for component pruning later
+				Timeline->bValidatedAsWired = bPlayPinConnected || bPlayFromStartPinConnected || bStopPinConnected || bReversePinConnected || bReverseFromEndPinConnected || bSetNewTimePinConnected;
+
 				// Only create nodes for play/stop if they are actually connected - otherwise we get a 'unused node being pruned' warning
-				if(bPlayPinConnected || bPlayFromStartPinConnected || bStopPinConnected || bReversePinConnected || bReverseFromEndPinConnected || bSetNewTimePinConnected)
+				if(Timeline->bValidatedAsWired)
 				{
 					// First create 'get var' node to get the timeline object
 					UK2Node_VariableGet* GetTimelineNode = SpawnIntermediateNode<UK2Node_VariableGet>(TimelineNode, SourceGraph);
