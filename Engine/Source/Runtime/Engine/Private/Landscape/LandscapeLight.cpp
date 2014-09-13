@@ -631,7 +631,9 @@ void ULandscapeComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemory
 	int32 Width, Height;
 	GetLightMapResolution(Width, Height);
 
-	if(AllowHighQualityLightmaps())
+	const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
+	if(AllowHighQualityLightmaps(FeatureLevel))
 	{
 		LightMapMemoryUsage  = NUM_HQ_LIGHTMAP_COEF * (Width * Height * 4 / 3); // assuming DXT5
 	}

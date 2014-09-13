@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Components/PrimitiveComponent.h"
+#include "RHIDefinitions.h"
 #include "MeshComponent.generated.h"
 
 struct FMaterialRelevance;
@@ -29,7 +30,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	// End UPrimitiveComponent Interface
 
 	/** Accesses the scene relevance information for the materials applied to the mesh. */
-	FMaterialRelevance GetMaterialRelevance() const;
+	FMaterialRelevance GetMaterialRelevance(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	/**
 	 *	Tell the streaming system whether or not all mip levels of all textures used by this component should be loaded and remain loaded.

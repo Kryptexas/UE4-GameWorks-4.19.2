@@ -64,6 +64,10 @@ public:
 	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
 	bool bContextMenuChunkAssignments;
 
+	/** Enables the dynamic feature level switching functionality */
+	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Feature Level Preview"))
+	bool bFeatureLevelPreview;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

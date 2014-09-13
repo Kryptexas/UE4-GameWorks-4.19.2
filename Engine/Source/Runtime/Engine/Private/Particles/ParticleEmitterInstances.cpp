@@ -2503,21 +2503,21 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
  * @param OutMaterialRelevance - Pointer to where material relevance flags will be stored.
  * @param LODLevel - The LOD level for which to compute material relevance flags.
  */
-void FParticleEmitterInstance::GatherMaterialRelevance( FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel ) const
+void FParticleEmitterInstance::GatherMaterialRelevance(FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel, ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	// These will catch the sprite cases...
 	if (CurrentMaterial)
 	{
-		(*OutMaterialRelevance) |= CurrentMaterial->GetRelevance();
+		(*OutMaterialRelevance) |= CurrentMaterial->GetRelevance(InFeatureLevel);
 	}
 	else if (LODLevel->RequiredModule->Material)
 	{
-		(*OutMaterialRelevance) |= LODLevel->RequiredModule->Material->GetRelevance();
+		(*OutMaterialRelevance) |= LODLevel->RequiredModule->Material->GetRelevance(InFeatureLevel);
 	}
 	else
 	{
 		check( UMaterial::GetDefaultMaterial(MD_Surface) );
-		(*OutMaterialRelevance) |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance();
+		(*OutMaterialRelevance) |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance(InFeatureLevel);
 	}
 }
 
@@ -3337,13 +3337,13 @@ void FParticleMeshEmitterInstance::SetMeshMaterials( const TArray<UMaterialInter
  * @param OutMaterialRelevance - Pointer to where material relevance flags will be stored.
  * @param LODLevel - The LOD level for which to compute material relevance flags.
  */
-void FParticleMeshEmitterInstance::GatherMaterialRelevance( FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel ) const
+void FParticleMeshEmitterInstance::GatherMaterialRelevance( FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel, ERHIFeatureLevel::Type InFeatureLevel ) const
 {
 	TArray<UMaterialInterface*,TInlineAllocator<2> > Materials;
 	GetMeshMaterials(Materials, LODLevel);
 	for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
 	{
-		(*OutMaterialRelevance) |= Materials[MaterialIndex]->GetRelevance();
+		(*OutMaterialRelevance) |= Materials[MaterialIndex]->GetRelevance(InFeatureLevel);
 	}
 }
 

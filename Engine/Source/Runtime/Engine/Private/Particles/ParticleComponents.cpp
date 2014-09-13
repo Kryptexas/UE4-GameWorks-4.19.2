@@ -5044,7 +5044,8 @@ void UParticleSystemComponent::CacheViewRelevanceFlags(UParticleSystem* Template
 
 				if (EmitterLODLevel->bEnabled == true)
 				{
-					EmitterInst->GatherMaterialRelevance(&LODViewRel, EmitterLODLevel);
+					auto World = GetWorld();
+					EmitterInst->GatherMaterialRelevance(&LODViewRel, EmitterLODLevel, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
 				}
 			}
 		}

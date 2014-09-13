@@ -219,11 +219,11 @@ public:
 	// Accessors.
 	ELightMapInteractionType GetType() const { return Type; }
 	
-	const ULightMapTexture2D* GetTexture() const
+	const ULightMapTexture2D* GetTexture(bool bHighQuality) const
 	{
 		check(Type == LMIT_Texture);
 #if ALLOW_LQ_LIGHTMAPS && ALLOW_HQ_LIGHTMAPS
-		return AllowsHighQualityLightmaps() ? HighQualityTexture : LowQualityTexture;
+		return bHighQuality ? HighQualityTexture : LowQualityTexture;
 #elif ALLOW_HQ_LIGHTMAPS
 		return HighQualityTexture;
 #else
@@ -446,7 +446,7 @@ class FLightCacheInterface
 {
 public:
 	virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const = 0;
-	virtual FLightMapInteraction GetLightMapInteraction() const = 0;
+	virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const = 0;
 	virtual FShadowMapInteraction GetShadowMapInteraction() const { return FShadowMapInteraction::None(); }
 };
 

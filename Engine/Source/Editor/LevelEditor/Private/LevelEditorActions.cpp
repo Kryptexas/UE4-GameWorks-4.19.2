@@ -455,8 +455,7 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	UWorld::ChangeAllWorldFeatureLevels(InPreviewFeatureLevel);
-//	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel); // The ultimate goal, but needs removal of the global feature level first!
+	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel);
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)

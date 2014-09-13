@@ -392,21 +392,64 @@ void FShaderResource::FinishCleanup()
 	delete this;
 }
 
+bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform TargetPlatform)
+{
+	bool bFeatureLevelCompatible = CurrentPlatform == TargetPlatform;
+	
+	if (!bFeatureLevelCompatible && IsPCPlatform(CurrentPlatform) && IsPCPlatform(TargetPlatform) )
+	{
+		if (CurrentPlatform == SP_OPENGL_SM4_MAC || TargetPlatform == SP_OPENGL_SM4_MAC)
+		{
+			// prevent SP_OPENGL_SM4 == SP_OPENGL_SM4_MAC, allow SP_OPENGL_SM4_MAC == SP_OPENGL_SM4_MAC,
+			// allow lesser feature levels on SP_OPENGL_SM4_MAC device.
+			// do not allow MAC targets to work on non MAC devices.
+			bFeatureLevelCompatible = CurrentPlatform == SP_OPENGL_SM4_MAC && 
+				GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
+		}
+		else
+		{
+			bFeatureLevelCompatible = GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
+		}
+
+		bool bIsTargetD3D = TargetPlatform == SP_PCD3D_SM5 ||
+								TargetPlatform == SP_PCD3D_SM4 ||
+								TargetPlatform == SP_PCD3D_ES2;
+
+		bool bIsCurrentPlatformD3D = CurrentPlatform == SP_PCD3D_SM5 ||
+								CurrentPlatform == SP_PCD3D_SM4 ||
+								CurrentPlatform == SP_PCD3D_ES2;
+
+		bFeatureLevelCompatible = bFeatureLevelCompatible && bIsCurrentPlatformD3D && bIsTargetD3D;
+	}
+
+	return bFeatureLevelCompatible;
+}
 
 void FShaderResource::InitRHI()
 {
 	checkf(Code.Num() > 0, TEXT("FShaderResource::InitRHI was called with empty bytecode, which can happen if the resource is initialized multiple times on platforms with no editor data."));
 
 	// we can't have this called on the wrong platform's shaders
-	if (Target.Platform != GRHIShaderPlatform)
-	{
-		if (FPlatformProperties::RequiresCookedData())
+	if (!ArePlatformsCompatible(GMaxRHIShaderPlatform, (EShaderPlatform)Target.Platform))
+ 	{
+		for (int i = 0; i < EShaderPlatform::SP_NumPlatforms; i++)
 		{
-			UE_LOG(LogShaders, Fatal, TEXT("FShaderResource::InitRHI got platform %s but expected %s"), 
-				*LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString(), *LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString() );
+			for (int j = 0; j < EShaderPlatform::SP_NumPlatforms; j++)
+			{
+				bool bOK = ArePlatformsCompatible((EShaderPlatform)i, (EShaderPlatform)j);
+
+				UE_LOG(LogShaders, Warning, TEXT("platform %s %s %s"),
+					*LegacyShaderPlatformToShaderFormat((EShaderPlatform)i).ToString(), (bOK ? *FString("IS compatible with") : *FString("ISNOT compatible with")), *LegacyShaderPlatformToShaderFormat((EShaderPlatform)j).ToString());
+			}
 		}
-		return;
-	}
+
+ 		if (FPlatformProperties::RequiresCookedData())
+ 		{
+ 			UE_LOG(LogShaders, Fatal, TEXT("FShaderResource::InitRHI got platform %s but expected %s"), 
+ 				*LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString(), *LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString() );
+ 		}
+ 		return;
+ 	}
 
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShadersUsedForRendering, 1);
 	SCOPE_CYCLE_COUNTER(STAT_Shaders_RTShaderLoadTime);
@@ -1085,13 +1128,6 @@ const TArray<FName>& GetTargetShaderFormats()
 #endif // WITH_ENGINE
 
 	return Results;
-}
-
-
-FName GetRuntimeShaderFormat()
-{
-	static FName RuntimeFormat = LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform);
-	return RuntimeFormat;
 }
 
 void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)

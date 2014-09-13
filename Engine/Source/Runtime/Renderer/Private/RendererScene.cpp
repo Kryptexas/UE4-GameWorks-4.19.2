@@ -217,6 +217,8 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 {
 	check(World);
 
+	FeatureLevel = World->FeatureLevel;
+
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
 	bStaticDrawListsMobileHDR = MobileHDRCvar->GetValueOnAnyThread() == 1;

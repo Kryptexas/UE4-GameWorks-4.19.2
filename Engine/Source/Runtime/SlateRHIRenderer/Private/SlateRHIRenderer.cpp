@@ -1146,7 +1146,7 @@ void FSlateRHIRenderer::SetColorVisionDeficiencyType( uint32 Type )
 bool FSlateRHIRenderer::AreShadersInitialized() const
 {
 #if WITH_EDITORONLY_DATA
-	return AreGlobalShadersComplete(TEXT("SlateElement"));
+	return IsGlobalShaderMapComplete(TEXT("SlateElement"));
 #else
 	return true;
 #endif

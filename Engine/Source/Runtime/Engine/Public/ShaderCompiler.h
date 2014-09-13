@@ -338,8 +338,5 @@ extern void GlobalBeginCompileShader(
 /** Implementation of the 'recompileshaders' console command.  Recompiles shaders at runtime based on various criteria. */
 extern bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar);
 
-/** Returns whether the global shader map contains all global shader types. */
-extern ENGINE_API bool IsGlobalShaderMapComplete();
-
-/** Returns whether all global shader types containing the substring are complete and ready for rendering. */
-extern ENGINE_API bool AreGlobalShadersComplete(const TCHAR* TypeNameSubstring);
+/** Returns whether all global shader types containing the substring are complete and ready for rendering. if type name is null, check everything */
+extern ENGINE_API bool IsGlobalShaderMapComplete(const TCHAR* TypeNameSubstring = nullptr);

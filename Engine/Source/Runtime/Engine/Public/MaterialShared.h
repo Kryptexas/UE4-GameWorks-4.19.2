@@ -553,7 +553,7 @@ public:
 	ENGINE_API void GetShaderList(TMap<FShaderId,FShader*>& OutShaders) const;
 
 	/** Registers a material shader map in the global map so it can be used by materials. */
-	void Register();
+	void Register(EShaderPlatform InShaderPlatform);
 
 	// Reference counting.
 	ENGINE_API void AddRef();

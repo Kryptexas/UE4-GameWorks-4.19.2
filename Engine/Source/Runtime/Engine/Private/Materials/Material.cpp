@@ -715,9 +715,9 @@ bool UMaterial::IsUsageFlagDirty(EMaterialUsage Usage)
 	return false;
 }
 
-bool UMaterial::IsCompilingOrHadCompileError()
+bool UMaterial::IsCompilingOrHadCompileError(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FMaterialResource* Res = GetMaterialResource(GRHIFeatureLevel);
+	FMaterialResource* Res = GetMaterialResource(InFeatureLevel);
 
 	// should never be the case
 	check(Res);
@@ -3023,7 +3023,7 @@ bool UMaterial::UpdateLightmassTextureTracking()
 #if WITH_EDITORONLY_DATA
 	TArray<UTexture*> UsedTextures;
 	
-	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GRHIFeatureLevel, true);
+	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
 	if (UsedTextures.Num() != ReferencedTextureGuids.Num())
 	{
 		bTexturesHaveChanged = true;

@@ -124,6 +124,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 	const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
 	const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
+	const auto FeatureLevel = View.GetFeatureLevel();
 
 	const bool bMaterialMasked = Material->IsMasked();
 	const bool bMaterialModifiesMesh = Material->MaterialModifiesMeshPosition_RenderThread();
@@ -134,14 +135,14 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 	}
 
 	bool bIsLitMaterial = (Material->GetShadingModel() != MSM_Unlit);
-	/*const */FLightMapInteraction LightMapInteraction = (Mesh.LCI && bIsLitMaterial) ? Mesh.LCI->GetLightMapInteraction() : FLightMapInteraction();
+	/*const */FLightMapInteraction LightMapInteraction = (Mesh.LCI && bIsLitMaterial) ? Mesh.LCI->GetLightMapInteraction(FeatureLevel) : FLightMapInteraction();
 	// force simple lightmaps based on system settings
-	bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps(View.GetFeatureLevel()) && LightMapInteraction.AllowsHighQualityLightmaps();
+	bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps(FeatureLevel) && LightMapInteraction.AllowsHighQualityLightmaps();
 	if (bIsLitMaterial && PrimitiveSceneProxy && (LightMapInteraction.GetType() == LMIT_Texture))
 	{
 		// Should this object be texture lightmapped? Ie, is lighting not built for it??
 		bool bUseDummyLightMapPolicy = false;
-		if ((Mesh.LCI == NULL) || (Mesh.LCI->GetLightMapInteraction().GetType() != LMIT_Texture))
+		if ((Mesh.LCI == NULL) || (Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetType() != LMIT_Texture))
 		{
 			bUseDummyLightMapPolicy = true;
 

@@ -516,7 +516,7 @@ void ProcessBasePassMeshForForwardShading(
 	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 
 	const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-		? Parameters.Mesh.LCI->GetLightMapInteraction() 
+		? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
 		: FLightMapInteraction();
 
 	if (bIsLitMaterial)

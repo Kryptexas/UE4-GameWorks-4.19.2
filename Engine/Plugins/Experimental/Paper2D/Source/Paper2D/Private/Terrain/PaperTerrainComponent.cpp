@@ -50,7 +50,7 @@ FPaperTerrainSceneProxy::FPaperTerrainSceneProxy(const UPaperTerrainComponent* I
 	for (const FPaperTerrainMaterialPair& Batch : DrawingData)
 	{
 		const UMaterialInterface* MaterialInterface = (Batch.Material != nullptr) ? Batch.Material : UMaterial::GetDefaultMaterial(MD_Surface);
-		MaterialRelevance |= MaterialInterface->GetRelevance_Concurrent();
+		MaterialRelevance |= MaterialInterface->GetRelevance_Concurrent(GetScene()->GetFeatureLevel());
 	}
 }
 

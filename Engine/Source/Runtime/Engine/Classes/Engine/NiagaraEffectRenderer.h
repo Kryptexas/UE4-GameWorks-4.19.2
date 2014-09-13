@@ -147,7 +147,7 @@ protected:
 			Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
 		check(Material);
-		MaterialRelevance = Material->GetRelevance();
+		MaterialRelevance = Material->GetRelevance(SceneProxy->GetScene()->GetFeatureLevel());
 	}
 
 	const FNiagaraSceneProxy *SceneProxy;

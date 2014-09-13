@@ -1461,7 +1461,7 @@ public:
 
 	virtual bool IsEditorScene() const override { return bIsEditorScene; }
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return GetWorld()->FeatureLevel; }
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
 
 	bool ShouldRenderSkylight() const
 	{
@@ -1579,6 +1579,9 @@ private:
 	 * Note: This is tracked on the game thread!
 	 */
 	bool bHasSkyLight;
+
+	/** This scene's feature level */
+	ERHIFeatureLevel::Type FeatureLevel;
 };
 
 #endif // __SCENEPRIVATE_H__

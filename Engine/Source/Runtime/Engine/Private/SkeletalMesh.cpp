@@ -3795,7 +3795,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		,	PhysicsAssetForDebug(Component->GetPhysicsAsset())
 		,	bForceWireframe(Component->bForceWireframe)
 		,	bCanHighlightSelectedSections(Component->bCanHighlightSelectedSections)
-		,	MaterialRelevance(Component->GetMaterialRelevance())
+		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene()->GetFeatureLevel()))
 		,	bMaterialsNeedMorphUsage_GameThread(false)
 {
 	check(MeshObject);
@@ -3809,6 +3809,8 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 	{
 		bAlwaysHasVelocity = true;
 	}
+
+	const auto FeatureLevel = GetScene()->GetFeatureLevel();
 
 	// setup materials and performance classification for each LOD.
 	extern bool GForceDefaultMaterial;
@@ -3851,7 +3853,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 			if (GForceDefaultMaterial && Material && !IsTranslucentBlendMode(Material->GetBlendMode()))
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
-				MaterialRelevance |= Material->GetRelevance();
+				MaterialRelevance |= Material->GetRelevance(FeatureLevel);
 			}
 
 			// if this is a clothing section, then enabled and will be drawn but the corresponding original section should be disabled
@@ -3867,7 +3869,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 			  (bClothSection && !Material->CheckMaterialUsage(MATUSAGE_Clothing)))
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
-				MaterialRelevance |= Material->GetRelevance();
+				MaterialRelevance |= Material->GetRelevance(FeatureLevel);
 			}
 
 			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, GetScene()->GetFeatureLevel() );
@@ -3878,7 +3880,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 					*Material->GetPathName(), 
 					*Component->SkeletalMesh->GetPathName() )
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
-				MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance();
+				MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance(FeatureLevel);
 			}
 
 			bool bSectionCastsShadow = !bSectionHidden && bCastShadow &&
@@ -4605,10 +4607,11 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 		// update the new LODSections on the render thread proxy
 		if (MaterialsToSwap.Num())
 		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			UpdateSkelProxyLODSectionElementsCmd,
 				TSet<UMaterialInterface*>,MaterialsToSwap,MaterialsToSwap,
 				UMaterialInterface*,DefaultMaterial,UMaterial::GetDefaultMaterial(MD_Surface),
+				ERHIFeatureLevel::Type, FeatureLevel, GetScene()->GetFeatureLevel(),
 			FSkeletalMeshSceneProxy*,SkelMeshSceneProxy,this,
 			{
 					for( int32 LodIdx=0; LodIdx < SkelMeshSceneProxy->LODSections.Num(); LodIdx++ )
@@ -4624,7 +4627,7 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 							}
 						}
 					}
-					SkelMeshSceneProxy->MaterialRelevance |= DefaultMaterial->GetRelevance();
+					SkelMeshSceneProxy->MaterialRelevance |= DefaultMaterial->GetRelevance(FeatureLevel);
 			});
 		}
 	}

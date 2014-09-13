@@ -4036,7 +4036,7 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 	float BytesPerPixel = 1.0f;
 
 	float LightMapTypeModifier = NUM_HQ_LIGHTMAP_COEF;
-	if (!AllowHighQualityLightmaps())
+	if (!AllowHighQualityLightmaps(GMaxRHIFeatureLevel))
 	{
 		LightMapTypeModifier = NUM_LQ_LIGHTMAP_COEF;
 	}

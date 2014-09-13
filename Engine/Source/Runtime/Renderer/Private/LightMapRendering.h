@@ -267,7 +267,7 @@ public:
 		if(PixelShaderParameters)
 		{
 			PixelShaderParameters->SetLightMapScale(RHICmdList, PixelShader,LightMapInteraction);
-			PixelShaderParameters->SetLightMapTexture(RHICmdList, PixelShader, LightMapInteraction.GetTexture());
+			PixelShaderParameters->SetLightMapTexture(RHICmdList, PixelShader, LightMapInteraction.GetTexture(AllowHighQualityLightmaps(View.GetFeatureLevel())));
 			PixelShaderParameters->SetSkyOcclusionTexture(RHICmdList, PixelShader, LightMapInteraction.GetSkyOcclusionTexture());
 		}
 	}

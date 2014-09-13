@@ -343,13 +343,17 @@ public:
 		// LMResolutionScale is the physical resolution of the lightmap texture
 		FVector2D LMResolutionScale(1.0f,1.0f);
 
+		const auto FeatureLevel = View.GetFeatureLevel();
+
+		bool bHighQualityLightMaps = AllowHighQualityLightmaps(FeatureLevel);
+
 		bool bTextureMapped = false;
 		if (Mesh.LCI &&
-			(Mesh.LCI->GetLightMapInteraction().GetType() == LMIT_Texture) &&
-			Mesh.LCI->GetLightMapInteraction().GetTexture())
+			(Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetType() == LMIT_Texture) &&
+			Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetTexture(bHighQualityLightMaps))
 		{
-			LMResolutionScale.X = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeX();
-			LMResolutionScale.Y = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeY();
+			LMResolutionScale.X = Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetTexture(bHighQualityLightMaps)->GetSizeX();
+			LMResolutionScale.Y = Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetTexture(bHighQualityLightMaps)->GetSizeY();
 			bTextureMapped = true;
 
 			BuiltLightingAndSelectedFlags.X = 1.0f;

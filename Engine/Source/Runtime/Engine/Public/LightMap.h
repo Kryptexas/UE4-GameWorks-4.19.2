@@ -71,7 +71,7 @@ public:
 	// FLightMap interface.
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) {}
 	virtual void Serialize(FArchive& Ar);
-	virtual FLightMapInteraction GetInteraction() const = 0;
+	virtual FLightMapInteraction GetInteraction(ERHIFeatureLevel::Type InFeatureLevel) const = 0;
 
 	// Runtime type casting.
 	virtual class FLightMap2D* GetLightMap2D() { return NULL; }
@@ -228,7 +228,7 @@ public:
 	virtual void AddReferencedObjects( FReferenceCollector& Collector );
 
 	virtual void Serialize(FArchive& Ar);
-	virtual FLightMapInteraction GetInteraction() const;
+	virtual FLightMapInteraction GetInteraction(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	// Runtime type casting.
 	virtual const FLightMap2D* GetLightMap2D() const { return this; }
@@ -372,7 +372,7 @@ public:
 	// FLightMap interface.
 	virtual void Serialize(FArchive& Ar);
 
-	virtual FLightMapInteraction GetInteraction() const { return FLightMapInteraction::None(); }
+	virtual FLightMapInteraction GetInteraction(ERHIFeatureLevel::Type InFeatureLevel) const { return FLightMapInteraction::None(); }
 };
 
 /** Stores debug information for a lightmap sample. */

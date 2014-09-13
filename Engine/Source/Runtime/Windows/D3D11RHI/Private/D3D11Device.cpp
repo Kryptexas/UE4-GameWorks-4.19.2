@@ -75,18 +75,18 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	// ES2 feature level emulation in D3D11
 	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
 	{
-		GMaxRHIFeatureLevelValue = GRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
-		GRHIShaderPlatformValue = SP_PCD3D_ES2;
+		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
+		GMaxRHIShaderPlatformValue = SP_PCD3D_ES2;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{
-		GMaxRHIFeatureLevelValue = GRHIFeatureLevelValue = ERHIFeatureLevel::SM5;
-		GRHIShaderPlatformValue = SP_PCD3D_SM5;
+		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM5;
+		GMaxRHIShaderPlatformValue = SP_PCD3D_SM5;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_10_0)
 	{
-		GMaxRHIFeatureLevelValue = GRHIFeatureLevelValue = ERHIFeatureLevel::SM4;
-		GRHIShaderPlatformValue = SP_PCD3D_SM4;
+		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM4;
+		GMaxRHIShaderPlatformValue = SP_PCD3D_SM4;
 	}
 
 	GPixelCenterOffset = 0.0f;	// Note that in D3D11, there is no half-texel offset (ala DX9)	

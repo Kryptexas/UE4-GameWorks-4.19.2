@@ -837,7 +837,7 @@ public:
 	ENGINE_API bool IsUsageFlagDirty(EMaterialUsage Usage);
 	
 	/** Useful to customize rendering if that case (e.g. hide the object) */
-	ENGINE_API bool IsCompilingOrHadCompileError();
+	ENGINE_API bool IsCompilingOrHadCompileError(ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
 	void BackwardsCompatibilityInputConversion();

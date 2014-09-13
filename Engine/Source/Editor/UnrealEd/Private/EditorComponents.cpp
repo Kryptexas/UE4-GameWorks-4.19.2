@@ -111,7 +111,7 @@ static void GetAxisColors(FLinearColor Out[3], bool b3D)
 
 void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
-	if(LevelGridMaterial->IsCompilingOrHadCompileError() || LevelGridMaterial2->IsCompilingOrHadCompileError())
+	if (LevelGridMaterial->IsCompilingOrHadCompileError(View->GetFeatureLevel()) || LevelGridMaterial2->IsCompilingOrHadCompileError(View->GetFeatureLevel()))
 	{
 		// The material would appear to be black (because we don't use a MaterialDomain but a UsageFlag - we should change that).
 		// Here we rather want to hide it.

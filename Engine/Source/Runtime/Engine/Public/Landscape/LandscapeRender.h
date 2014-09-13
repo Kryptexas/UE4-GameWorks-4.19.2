@@ -378,9 +378,9 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 		// FLightCacheInterface
 		virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const;
 
-		virtual FLightMapInteraction GetLightMapInteraction() const
+		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 		{
-			return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
+			return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
 		}
 
 		virtual FShadowMapInteraction GetShadowMapInteraction() const

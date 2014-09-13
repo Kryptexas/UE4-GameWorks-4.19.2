@@ -38,11 +38,11 @@ void UMaterialInterface::PostLoad()
 	PostLoadDefaultMaterials();
 }
 
-FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Material) const
+FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	if(Material)
 	{
-		const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel);
+		const FMaterialResource* MaterialResource = Material->GetMaterialResource(InFeatureLevel);
 		const bool bIsTranslucent = IsTranslucentBlendMode((EBlendMode)GetBlendMode());
 		const bool bIsLit = GetShadingModel() != MSM_Unlit;
 		// Determine the material's view relevance.
@@ -62,19 +62,19 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 	}
 }
 
-FMaterialRelevance UMaterialInterface::GetRelevance() const
+FMaterialRelevance UMaterialInterface::GetRelevance(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	// Find the interface's concrete material.
 	const UMaterial* Material = GetMaterial();
-	return GetRelevance_Internal(Material);
+	return GetRelevance_Internal(Material, InFeatureLevel);
 }
 
-FMaterialRelevance UMaterialInterface::GetRelevance_Concurrent() const
+FMaterialRelevance UMaterialInterface::GetRelevance_Concurrent(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	// Find the interface's concrete material.
 	TMicRecursionGuard RecursionGuard;
 	const UMaterial* Material = GetMaterial_Concurrent(RecursionGuard);
-	return GetRelevance_Internal(Material);
+	return GetRelevance_Internal(Material, InFeatureLevel);
 }
 
 int32 UMaterialInterface::GetWidth() const
@@ -324,9 +324,25 @@ void UMaterialInterface::SetFeatureLevelToCompile(ERHIFeatureLevel::Type Feature
 	}
 }
 
+uint32 UMaterialInterface::FeatureLevelsForAllMaterials = 0;
+
+void UMaterialInterface::SetGlobalRequiredFeatureLevel(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile)
+{
+	uint32 FeatureLevelBit = (1 << FeatureLevel);
+	if (bShouldCompile)
+	{
+		FeatureLevelsForAllMaterials |= FeatureLevelBit;
+	}
+	else
+	{
+		FeatureLevelsForAllMaterials &= (~FeatureLevelBit);
+	}
+}
+
+
 uint32 UMaterialInterface::GetFeatureLevelsToCompileForRendering() const
 {
-	return FeatureLevelsToForceCompile | (1 << GRHIFeatureLevel);
+	return FeatureLevelsToForceCompile | GetFeatureLevelsToCompileForAllMaterials();
 }
 
 

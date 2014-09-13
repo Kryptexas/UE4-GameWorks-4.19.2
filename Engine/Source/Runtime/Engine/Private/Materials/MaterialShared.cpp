@@ -1247,7 +1247,7 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		else if (GameThreadShaderMap)
 		{
 			// We are going to use the inlined shader map, register it so it can be re-used by other materials
-			GameThreadShaderMap->Register();
+			GameThreadShaderMap->Register(Platform);
 		}
 	}
 	else
@@ -1535,13 +1535,14 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 	InitResource();
 
 	check(UMaterial::GetDefaultMaterial(MD_Surface));
-	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToCache[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
-	int32 NumFeatureLevelsToCache = bES2Preview ? 2 : 1;
 
-	for (int32 i = 0; i < NumFeatureLevelsToCache; ++i)
+	uint32 FeatureLevelsToCompile = UMaterialInterface::GetFeatureLevelsToCompileForAllMaterials();
+	TArray<FMaterialResource*> ResourcesToCache;
+
+	while (FeatureLevelsToCompile != 0)
 	{
-		ERHIFeatureLevel::Type FeatureLevel = FeatureLevelsToCache[i];
+		ERHIFeatureLevel::Type FeatureLevel = (ERHIFeatureLevel::Type)FBitSet::GetAndClearNextBit(FeatureLevelsToCompile);
+
 		const FMaterial* MaterialNoFallback = GetMaterialNoFallback(FeatureLevel);
 
 		if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())

@@ -204,9 +204,14 @@ private:
 	/** Feature levels to force to compile. */
 	uint32 FeatureLevelsToForceCompile;
 
+	/** Feature level bitfield to compile for all materials */
+	static uint32 FeatureLevelsForAllMaterials;
 public:
-	/** Set which feature levels the preview material should compile. GRHIFeatureLevel is always compiled! */
+	/** Set which feature levels this material instance should compile. GMaxRHIFeatureLevel is always compiled! */
 	ENGINE_API void SetFeatureLevelToCompile(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile);
+
+	/** Set which feature levels _all_ materials should compile to. GMaxRHIFeatureLevel is always compiled. */
+	ENGINE_API static void SetGlobalRequiredFeatureLevel(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile);
 
 	// Begin UObject interface.
 	ENGINE_API virtual void BeginDestroy() override;
@@ -331,11 +336,11 @@ public:
 		PURE_VIRTUAL(UMaterialInterface::GetTerrainLayerWeightParameterValue,return false;);
 
 	/** @return The material's relevance. */
-	ENGINE_API FMaterialRelevance GetRelevance() const;
+	ENGINE_API FMaterialRelevance GetRelevance(ERHIFeatureLevel::Type InFeatureLevel) const;
 	/** @return The material's relevance, from concurrent render thread updates. */
-	ENGINE_API FMaterialRelevance GetRelevance_Concurrent() const;
+	ENGINE_API FMaterialRelevance GetRelevance_Concurrent(ERHIFeatureLevel::Type InFeatureLevel) const;
 private:
-	ENGINE_API FMaterialRelevance GetRelevance_Internal(const UMaterial* Material) const;
+	ENGINE_API FMaterialRelevance GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const;
 public:
 
 	int32 GetWidth() const;
@@ -579,8 +584,12 @@ public:
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property );
 
+	/** Get bitfield indicating which feature levels should be compiled by default */
+	ENGINE_API static uint32 GetFeatureLevelsToCompileForAllMaterials() { return FeatureLevelsForAllMaterials | (1 << GMaxRHIFeatureLevel); }
+
 protected:
-	/** Returns a bitfield indicating which feature levels should be compiled for rendering. */
+
+	/** Returns a bitfield indicating which feature levels should be compiled for rendering. GMaxRHIFeatureLevel is always present */
 	ENGINE_API uint32 GetFeatureLevelsToCompileForRendering() const;
 
 	void UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy);

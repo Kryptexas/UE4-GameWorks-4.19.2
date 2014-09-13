@@ -420,7 +420,7 @@ FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	}
 
 	TextMaterial = EffectiveMaterial;
-	MaterialRelevance |= TextMaterial->GetMaterial()->GetRelevance();
+	MaterialRelevance |= TextMaterial->GetMaterial()->GetRelevance(GetScene()->GetFeatureLevel());
 }
 
 FTextRenderSceneProxy::~FTextRenderSceneProxy()

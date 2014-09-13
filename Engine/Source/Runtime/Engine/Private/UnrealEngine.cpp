@@ -10043,7 +10043,8 @@ bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
 {
 	return FPlatformProperties::SupportsHighQualityLightmaps()
 		&& (FeatureLevel > ERHIFeatureLevel::ES3_1)
-		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0);
+		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0)
+		&& !IsMobilePlatform(GShaderPlatformForFeatureLevel[FeatureLevel]);
 }
 
 bool AllowHighQualityLightmaps()

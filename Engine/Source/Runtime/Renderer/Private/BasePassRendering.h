@@ -879,7 +879,7 @@ void ProcessBasePassMesh(
 		else
 		{
 			const FLightMapInteraction LightMapInteraction = (bAllowStaticLighting && Parameters.Mesh.LCI && bIsLitMaterial) 
-				? Parameters.Mesh.LCI->GetLightMapInteraction() 
+				? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
 				: FLightMapInteraction();
 
 			// force LQ lightmaps based on system settings

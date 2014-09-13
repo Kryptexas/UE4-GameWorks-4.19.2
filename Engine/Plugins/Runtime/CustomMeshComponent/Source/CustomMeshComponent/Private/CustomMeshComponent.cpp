@@ -81,7 +81,7 @@ public:
 
 	FCustomMeshSceneProxy(UCustomMeshComponent* Component)
 		: FPrimitiveSceneProxy(Component)
-		, MaterialRelevance(Component->GetMaterialRelevance())
+		, MaterialRelevance(Component->GetMaterialRelevance(GetScene()->GetFeatureLevel()))
 	{
 		const FColor VertexColor(255,255,255);
 

@@ -77,7 +77,7 @@ FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 
 UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP )
 :	UObject(PCIP)
-,	FeatureLevel(GRHIFeatureLevel)
+,	FeatureLevel(GMaxRHIFeatureLevel)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
@@ -91,7 +91,7 @@ UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP )
 
 UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL )
 :	UObject(PCIP)
-,	FeatureLevel(GRHIFeatureLevel)
+,	FeatureLevel(GMaxRHIFeatureLevel)
 ,	URL(InURL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
@@ -5139,10 +5139,29 @@ void UWorld::GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& O
 	}
 }
 
-void UWorld::ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
+		FlushRenderingCommands();
+
+		FGlobalComponentReregisterContext RecreateComponents;
+		
+		// Decrement refcount on old feature level
+		UMaterialInterface::SetGlobalRequiredFeatureLevel(InFeatureLevel, true);
+
+		UMaterial::AllMaterialsCacheResourceShadersForRendering();
+		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+		GetGlobalShaderMap(InFeatureLevel, false);
+		GShaderCompilingManager->ProcessAsyncResults(false, true);
+
+		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
+		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
+		{
+			BeginUpdateResourceRHI(*It);
+		}
+
+		// try iterating over all worlds here
 		FeatureLevel = InFeatureLevel;
 
 		if (Scene)
@@ -5156,85 +5175,8 @@ void UWorld::ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 			FXSystem = FFXSystemInterface::Create(InFeatureLevel);
 			Scene->SetFXSystem(FXSystem);
 		}
-	}
-}
 
-void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	if (InFeatureLevel != FeatureLevel)
-	{
-		FlushRenderingCommands();
-
-		FGlobalComponentReregisterContext RecreateComponents;
-
-		// TODO: Remove these
-		GRHIFeatureLevelValue = InFeatureLevel;
-		GRHIShaderPlatformValue = GShaderPlatformForFeatureLevel[InFeatureLevel];
-
-		UMaterial::AllMaterialsCacheResourceShadersForRendering();
-		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-		GetGlobalShaderMap(InFeatureLevel, false);
-		GShaderCompilingManager->ProcessAsyncResults(false, true);
-
-		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
-		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
-		{
-			BeginUpdateResourceRHI(*It);
-		}
-
-		// try iterating over all worlds here
-		ChangeWorldFeatureLevel(InFeatureLevel);
-
-		FOutputDeviceNull Ar;
-		RecompileShaders(TEXT("CHANGED"), Ar);
-	}
-}
-
-void UWorld::ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	bool bSomethingChanged = false;
-
-	// try iterating over all worlds here
-	for (TObjectIterator<UWorld> It; It; ++It)
-	{
-		UWorld* World = *It;
-
-		if (World->FeatureLevel != InFeatureLevel)
-		{
-			bSomethingChanged = true;
-		}
-	}
-
-	if (bSomethingChanged)
-	{
-		FlushRenderingCommands();
-
-		FGlobalComponentReregisterContext RecreateComponents;
-
-		GRHIFeatureLevelValue = InFeatureLevel;
-		GRHIShaderPlatformValue = GShaderPlatformForFeatureLevel[InFeatureLevel];
-
-		UMaterial::AllMaterialsCacheResourceShadersForRendering();
-		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-		GetGlobalShaderMap(InFeatureLevel, false);
-		GShaderCompilingManager->ProcessAsyncResults(false, true);
-		
-		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
-		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
-		{
-			BeginUpdateResourceRHI(*It);
-		}
-
-		// try iterating over all worlds here
-		for (TObjectIterator<UWorld> It; It; ++It)
-		{
-			UWorld* World = *It;
-
-			if (World->FeatureLevel != InFeatureLevel)
-			{
-				World->ChangeWorldFeatureLevel(InFeatureLevel);
-			}
-		}
+		TriggerStreamingDataRebuild();
 
 		FOutputDeviceNull Ar;
 		RecompileShaders(TEXT("CHANGED"), Ar);

@@ -237,31 +237,35 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 /** Creates an FName for the given feature level. */
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
-extern RHI_API ERHIFeatureLevel::Type GRHIFeatureLevelValue;
 extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevelValue;
-extern RHI_API EShaderPlatform GRHIShaderPlatformValue;
+extern RHI_API EShaderPlatform GMaxRHIShaderPlatformValue;
 
 /** Function for retrieving the current feature level. Only exists to provide a convient way of tracking access to this global during mobile preview work */
-extern RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel();
 extern RHI_API ERHIFeatureLevel::Type GetMaxRHIFeatureLevel();
-extern RHI_API EShaderPlatform GetCurrentRHIShaderPlatform();
+extern RHI_API EShaderPlatform GetMaxRHIShaderPlatform();
 
 /** treating GRHIFeatureLevel as a function allows for better usage tracking at small cost to performance. */
 #define RHI_FEATURE_LEVEL_AS_FUNCTION 0
 
 #if RHI_FEATURE_LEVEL_AS_FUNCTION
-	#define GRHIFeatureLevel GetCurrentRHIFeatureLevel()
 	#define GMaxRHIFeatureLevel GetMaxRHIFeatureLevel()
-	#define GRHIShaderPlatform GetCurrentRHIShaderPlatform()
+	#define GMaxRHIShaderPlatform GetMaxRHIShaderPlatform()
 #else
-	#define GRHIFeatureLevel GRHIFeatureLevelValue
 	#define GMaxRHIFeatureLevel GMaxRHIFeatureLevelValue
-	#define GRHIShaderPlatform GRHIShaderPlatformValue
+	#define GMaxRHIShaderPlatform GMaxRHIShaderPlatformValue
 #endif
+
+#define GRHIShaderPlatform GMaxRHIShaderPlatform
+#define GRHIFeatureLevel GMaxRHIFeatureLevel
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];
 
+/** Get the shader platform associated with the supplied feature level on this machine */
+inline EShaderPlatform GetFeatureLevelShaderPlatform(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	return GShaderPlatformForFeatureLevel[InFeatureLevel];
+}
 
 inline FArchive& operator <<(FArchive& Ar, EResourceLockMode& LockMode)
 {

@@ -475,6 +475,8 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 {
 	if ( StaticMesh && !bIgnoreInstanceForTextureStreaming )
 	{
+		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
 		bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
 			&& StaticMesh->RenderData
 			&& StaticMesh->RenderData->LODResources.Num() > 0
@@ -525,7 +527,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 				// Enumerate the textures used by the material.
 				TArray<UTexture*> Textures;
 
-				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
+				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
 
 				// Add each texture to the output with the appropriate parameters.
 				// TODO: Take into account which UVIndex is being used.
@@ -543,7 +545,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 			{
 				const FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
 				FLightMap2D* Lightmap = LODInfo.LightMap ? LODInfo.LightMap->GetLightMap2D() : NULL;
-				uint32 LightmapIndex = AllowHighQualityLightmaps() ? 0 : 1;
+				uint32 LightmapIndex = AllowHighQualityLightmaps(FeatureLevel) ? 0 : 1;
 				if ( Lightmap != NULL && Lightmap->IsValid(LightmapIndex) )
 				{
 					const FVector2D& Scale = Lightmap->GetCoordinateScale();

@@ -68,9 +68,9 @@ ENGINE_API FColor GTexelSelectionColor(255, 50, 0);
 
 FLightMap::FLightMap()
 	: bAllowHighQualityLightMaps(true)
-	, NumRefs(0) 
+	, NumRefs(0)
 {
-	bAllowHighQualityLightMaps = !IsMobilePlatform(GRHIShaderPlatform) && AllowHighQualityLightmaps();
+	bAllowHighQualityLightMaps = AllowHighQualityLightmaps();
 #if !PLATFORM_DESKTOP 
 	checkf(bAllowHighQualityLightMaps || IsMobilePlatform(GRHIShaderPlatform), TEXT("Low quality lightmaps are not currently supported on consoles. Make sure console variable r.HighQualityLightMaps is true for this platform"));
 #endif
@@ -1265,7 +1265,7 @@ UTexture2D* FLightMap2D::GetTexture(uint32 BasisIndex)
  */
 bool FLightMap2D::IsValid(uint32 BasisIndex) const
 {
-	return AllowHighQualityLightmaps() ? BasisIndex == 0 : BasisIndex == 1;
+	return Textures[BasisIndex] != nullptr;
 }
 
 struct FLegacyLightMapTextureInfo
@@ -1419,16 +1419,18 @@ void FLightMap2D::Serialize(FArchive& Ar)
 	}
 }
 
-FLightMapInteraction FLightMap2D::GetInteraction() const
+FLightMapInteraction FLightMap2D::GetInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	int32 LightmapIndex = AllowHighQualityLightmaps() ? 0 : 1;
+	bool bHighQuality = AllowHighQualityLightmaps(InFeatureLevel);
+
+	int32 LightmapIndex = bHighQuality ? 0 : 1;
 
 	bool bValidTextures = Textures[ LightmapIndex ] && Textures[ LightmapIndex ]->Resource;
 
 	// When the FLightMap2D is first created, the textures aren't set, so that case needs to be handled.
 	if(bValidTextures)
 	{
-		return FLightMapInteraction::Texture(Textures, SkyOcclusionTexture, ScaleVectors, AddVectors, CoordinateScale, CoordinateBias, AllowHighQualityLightmaps());
+		return FLightMapInteraction::Texture(Textures, SkyOcclusionTexture, ScaleVectors, AddVectors, CoordinateScale, CoordinateBias, bHighQuality);
 	}
 
 	return FLightMapInteraction::None();

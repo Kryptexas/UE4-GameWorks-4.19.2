@@ -784,7 +784,7 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 				checkSlow(InOutShaderMap->GetShaderMapId() == ShaderMapId);
 
 				// Register in the global map
-				InOutShaderMap->Register();
+				InOutShaderMap->Register(Platform);
 			}
 			else
 			{
@@ -985,7 +985,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 				ShaderMap->Serialize(Ar, false);
 
 				// Register in the global map
-				ShaderMap->Register();
+				ShaderMap->Register(ShaderPlatform);
 
 				LoadedShaderMaps.Add(ShaderMap);
 			}
@@ -1215,7 +1215,7 @@ void FMaterialShaderMap::Compile(
 			}
 
 			// Register this shader map in the global map with the material's ID.
-			Register();
+			Register(InPlatform);
   
 			// Mark the shader map as not having been finalized with ProcessCompilationResults
 			bCompilationFinalized = false;
@@ -1448,9 +1448,9 @@ void FMaterialShaderMap::GetShaderList(TMap<FShaderId,FShader*>& OutShaders) con
 /**
  * Registers a material shader map in the global map so it can be used by materials.
  */
-void FMaterialShaderMap::Register() 
+void FMaterialShaderMap::Register(EShaderPlatform InShaderPlatform)
 {
-	if (GCreateShadersOnLoad && Platform == GRHIShaderPlatform)
+	if (GCreateShadersOnLoad && Platform == InShaderPlatform)
 	{
 		for (TMap<FShaderType*, TRefCountPtr<FShader> >::TConstIterator ShaderIt(GetShaders()); ShaderIt; ++ShaderIt)
 		{

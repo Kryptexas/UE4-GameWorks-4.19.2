@@ -1495,14 +1495,17 @@ void ApplyViewModeOverrides(
 			bool bTextureMapped = false;
 			FVector2D LMResolution;
 
-			if (EngineShowFlags.LightMapDensity &&
-				Mesh.LCI &&
-				(Mesh.LCI->GetLightMapInteraction().GetType() == LMIT_Texture) &&
-				Mesh.LCI->GetLightMapInteraction().GetTexture())
+			if (EngineShowFlags.LightMapDensity && Mesh.LCI)
 			{
-				LMResolution.X = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeX();
-				LMResolution.Y = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeY();
-				bTextureMapped = true;
+				auto Interaction = Mesh.LCI->GetLightMapInteraction(FeatureLevel);
+				auto Texture = Interaction.GetTexture(AllowHighQualityLightmaps(FeatureLevel));
+
+				if (Interaction.GetType() == LMIT_Texture && Texture)
+				{
+					LMResolution.X = Texture->GetSizeX();
+					LMResolution.Y = Texture->GetSizeY();
+					bTextureMapped = true;
+				}
 			}
 
 			if (bTextureMapped == false)
@@ -1746,14 +1749,17 @@ int32 DrawRichMesh(
 			bool bTextureMapped = false;
 			FVector2D LMResolution;
 
-			if (PDI->View->Family->EngineShowFlags.LightMapDensity &&
-				ModifiedMesh.LCI &&
-				(ModifiedMesh.LCI->GetLightMapInteraction().GetType() == LMIT_Texture) &&
-				ModifiedMesh.LCI->GetLightMapInteraction().GetTexture())
+			if (EngineShowFlags.LightMapDensity && Mesh.LCI)
 			{
-				LMResolution.X = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeX();
-				LMResolution.Y = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeY();
-				bTextureMapped = true;
+				auto Interaction = Mesh.LCI->GetLightMapInteraction(FeatureLevel);
+				auto Texture = Interaction.GetTexture(AllowHighQualityLightmaps(FeatureLevel));
+
+				if (Interaction.GetType() == LMIT_Texture && Texture)
+				{
+					LMResolution.X = Texture->GetSizeX();
+					LMResolution.Y = Texture->GetSizeY();
+					bTextureMapped = true;
+				}
 			}
 
 			if (bTextureMapped == false)

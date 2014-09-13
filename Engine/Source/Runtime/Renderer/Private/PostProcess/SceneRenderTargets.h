@@ -263,7 +263,7 @@ public:
 	const FTexture2DRHIRef* GetActualDepthTexture() const
 	{
 		const FTexture2DRHIRef* DepthTexture = NULL;
-		if((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GRHIShaderPlatform))
+		if((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
 		{
 			if(GSupportsDepthFetchDuringDepthTest)
 			{

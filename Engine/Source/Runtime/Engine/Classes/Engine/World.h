@@ -635,11 +635,8 @@ public:
 
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
-	static void ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
-	/** Change the feature level that this world is current rendering with */
-	void ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** List of all the controllers in the world. */
 	TArray<TAutoWeakObjectPtr<class AController> >	ControllerList;

@@ -163,7 +163,7 @@ public:
 		{
 			const FModelElement& SourceElement = SourceElements[ElementIndex];
 			FElementInfo* Element = new(Elements) FElementInfo(SourceElement);
-			MaterialRelevance |= Element->GetMaterial()->GetRelevance();
+			MaterialRelevance |= Element->GetMaterial()->GetRelevance(GetScene()->GetFeatureLevel());
 		}
 
 		// Try to find a color for level coloration.
@@ -813,9 +813,9 @@ private:
 			}
 		}
 
-		virtual FLightMapInteraction GetLightMapInteraction() const
+		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 		{
-			return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
+			return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
 		}
 
 		virtual FShadowMapInteraction GetShadowMapInteraction() const

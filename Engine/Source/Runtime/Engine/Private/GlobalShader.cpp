@@ -413,59 +413,34 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 	return GGlobalShaderMap[Platform];
 }
 
-bool IsGlobalShaderMapComplete()
+bool IsGlobalShaderMapComplete(const TCHAR* TypeNameSubstring)
 {
-	EShaderPlatform Platform = GRHIShaderPlatform;
-
-	TShaderMap<FGlobalShaderType>* GlobalShaderMap = GGlobalShaderMap[Platform];
-
-	if (GlobalShaderMap)
+	for (int32 i = 0; i < SP_NumPlatforms; ++i)
 	{
-		for(TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
-		{
-			FGlobalShaderType* GlobalShaderType = ShaderTypeIt->GetGlobalShaderType();
+		EShaderPlatform Platform = (EShaderPlatform)i;
+		
+		TShaderMap<FGlobalShaderType>* GlobalShaderMap = GGlobalShaderMap[Platform];
 
-			if (GlobalShaderType && GlobalShaderType->ShouldCache(Platform))
+		if (GlobalShaderMap)
+		{
+			for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList()); ShaderTypeIt; ShaderTypeIt.Next())
 			{
-				if (!GlobalShaderMap->HasShader(GlobalShaderType))
+				FGlobalShaderType* GlobalShaderType = ShaderTypeIt->GetGlobalShaderType();
+
+				if (GlobalShaderType
+					&& (TypeNameSubstring == nullptr || (FPlatformString::Strstr(GlobalShaderType->GetName(), TypeNameSubstring) != nullptr))
+					&& GlobalShaderType->ShouldCache(Platform))
 				{
-					return false;
+					if (!GlobalShaderMap->HasShader(GlobalShaderType))
+					{
+						return false;
+					}
 				}
 			}
 		}
-
-		return true;
 	}
 	
-	return false;
-}
-
-bool AreGlobalShadersComplete(const TCHAR* TypeNameSubstring)
-{
-	EShaderPlatform Platform = GRHIShaderPlatform;
-	TShaderMap<FGlobalShaderType>* GlobalShaderMap = GGlobalShaderMap[Platform];
-
-	if (GlobalShaderMap)
-	{
-		for(TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
-		{
-			FGlobalShaderType* GlobalShaderType = ShaderTypeIt->GetGlobalShaderType();
-
-			if (GlobalShaderType 
-				&& FPlatformString::Strstr(GlobalShaderType->GetName(), TypeNameSubstring) != NULL
-				&& GlobalShaderType->ShouldCache(Platform))
-			{
-				if (!GlobalShaderMap->HasShader(GlobalShaderType))
-				{
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}
-
-	return false;
+	return true;
 }
 
 /**

@@ -697,8 +697,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 			LOCTEXT( "MaterialQualityLevelSubMenu_ToolTip", "Sets the value of the CVar \"r.MaterialQualityLevel\" (low=0, high=1). This affects materials via the QualitySwitch material expression." ),
 			FNewMenuDelegate::CreateStatic( &MakeMaterialQualityLevelMenu ) );
 
-		static const auto CVarFeatureLevelPreview = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FeatureLevelPreview"));
-		if (CVarFeatureLevelPreview->GetValueOnGameThread() != 0)
+		if (GetDefault<UEditorExperimentalSettings>()->bFeatureLevelPreview)
 		{
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("FeatureLevelPreviewSubMenu", "Feature Level Preview"),

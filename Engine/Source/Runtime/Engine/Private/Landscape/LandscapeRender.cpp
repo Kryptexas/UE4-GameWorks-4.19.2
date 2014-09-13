@@ -635,7 +635,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 		MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
 
-	MaterialRelevance = MaterialInterface->GetRelevance();
+	MaterialRelevance = MaterialInterface->GetRelevance(FeatureLevel);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || (UE_BUILD_SHIPPING && WITH_EDITOR)
 	if( GIsEditor )
@@ -804,6 +804,8 @@ FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FS
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Landscape;
 
+	auto FeatureLevel = View->GetFeatureLevel();
+
 #if WITH_EDITOR
 	if( !GLandscapeEditModeActive )
 	{
@@ -823,13 +825,13 @@ FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FS
 			if( EditToolRenderData->ToolMaterial )
 			{
 				Result.bDynamicRelevance = true;
-				ToolRelevance |= EditToolRenderData->ToolMaterial->GetRelevance_Concurrent();
+				ToolRelevance |= EditToolRenderData->ToolMaterial->GetRelevance_Concurrent(FeatureLevel);
 			}
 
 			if( EditToolRenderData->GizmoMaterial )
 			{
 				Result.bDynamicRelevance = true;
-				ToolRelevance |= EditToolRenderData->GizmoMaterial->GetRelevance_Concurrent();
+				ToolRelevance |= EditToolRenderData->GizmoMaterial->GetRelevance_Concurrent(FeatureLevel);
 			}
 		}
 
@@ -840,12 +842,12 @@ FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FS
 				&& !(GLandscapeEditRenderMode & ELandscapeEditRenderMode::Mask) && GSelectionRegionMaterial)
 			{
 				Result.bDynamicRelevance = true;
-				ToolRelevance |= GSelectionRegionMaterial->GetRelevance_Concurrent();
+				ToolRelevance |= GSelectionRegionMaterial->GetRelevance_Concurrent(FeatureLevel);
 			}
 			if ((GLandscapeEditRenderMode & ELandscapeEditRenderMode::SelectComponent) && (EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_COMPONENT) && GSelectionColorMaterial)
 			{
 				Result.bDynamicRelevance = true;
-				ToolRelevance |= GSelectionColorMaterial->GetRelevance_Concurrent();
+				ToolRelevance |= GSelectionColorMaterial->GetRelevance_Concurrent(FeatureLevel);
 			}
 		}
 
@@ -854,7 +856,7 @@ FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FS
 			((EditToolRenderData && (EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_REGION)) || (!(GLandscapeEditRenderMode & ELandscapeEditRenderMode::InvertedMask))) )
 		{
 			Result.bDynamicRelevance = true;
-			ToolRelevance |= GMaskRegionMaterial->GetRelevance_Concurrent();
+			ToolRelevance |= GMaskRegionMaterial->GetRelevance_Concurrent(FeatureLevel);
 		}
 
 		ToolRelevance.SetPrimitiveViewRelevance(Result);
@@ -1041,7 +1043,7 @@ namespace
 {
 	inline bool RequiresAdjacencyInformation(FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) // Assumes VertexFactory supports tessellation, and rendering thread with this function
 	{
-		if (RHISupportsTessellation(GRHIShaderPlatform) && MaterialRenderProxy )
+		if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && MaterialRenderProxy)
 		{
 			check ( IsInRenderingThread() );
 			const FMaterial* MaterialResource = MaterialRenderProxy->GetMaterial(InFeatureLevel);
@@ -2748,8 +2750,10 @@ void ULandscapeComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimit
 		}
 
 		// Lightmap
+		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
 		FLightMap2D* Lightmap = LightMap ? LightMap->GetLightMap2D() : nullptr;
-		uint32 LightmapIndex = AllowHighQualityLightmaps() ? 0 : 1;
+		uint32 LightmapIndex = AllowHighQualityLightmaps(FeatureLevel) ? 0 : 1;
 		if (Lightmap && Lightmap->IsValid(LightmapIndex))
 		{
 			const FVector2D& Scale = Lightmap->GetCoordinateScale();

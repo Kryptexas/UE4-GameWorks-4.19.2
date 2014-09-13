@@ -55,7 +55,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	ForcedLodModel(InComponent->ForcedLodModel),
 	bCastShadow(InComponent->CastShadow),
 	CollisionTraceFlag(ECollisionTraceFlag::CTF_UseDefault),
-	MaterialRelevance(InComponent->GetMaterialRelevance()),
+	MaterialRelevance(InComponent->GetMaterialRelevance(GetScene()->GetFeatureLevel())),
 	CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
 	check(RenderData);
@@ -64,12 +64,14 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	LevelColor = FLinearColor(1,1,1);
 	PropertyColor = FLinearColor(1,1,1);
 
+	const auto FeatureLevel = GetScene()->GetFeatureLevel();
+
 	// Copy the pointer to the volume data, async building of the data may modify the one on FStaticMeshLODResources while we are rendering
 	DistanceFieldData = RenderData->LODResources[0].DistanceFieldData;
 
 	if (GForceDefaultMaterial)
 	{
-		MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance();
+		MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance(FeatureLevel);
 	}
 
 	// Build the proxy's LOD data.
@@ -88,7 +90,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 			bAnySectionCastsShadows |= RenderData->LODResources[LODIndex].Sections[SectionIndex].bCastShadow;
 			if (SectionInfo.Material == UMaterial::GetDefaultMaterial(MD_Surface))
 			{
-				MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance();
+				MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance(FeatureLevel);
 			}
 		}
 	}
@@ -390,9 +392,9 @@ HHitProxy* FStaticMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Componen
 #endif // WITH_EDITOR
 
 // use for render thread only
-bool UseLightPropagationVolumeRT2()
+bool UseLightPropagationVolumeRT2(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5))
+	if (InFeatureLevel < ERHIFeatureLevel::SM5)
 	{
 		return false;
 	}
@@ -406,10 +408,10 @@ bool UseLightPropagationVolumeRT2()
 	return Value != 0;
 }
 
-inline bool AllowShadowOnlyMesh()
+inline bool AllowShadowOnlyMesh(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// todo: later we should refine that (only if occlusion feature in LPV is on, only if inside a cascade, if shadow casting is disabled it should look at bUseEmissiveForDynamicAreaLighting)
-	return !UseLightPropagationVolumeRT2();
+	return !UseLightPropagationVolumeRT2(InFeatureLevel);
 }
 
 void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
@@ -423,6 +425,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 		//Never use the dynamic path in this path, because only unselected elements will use DrawStaticElements
 		bool bUseSelectedMaterial = false;
 		const bool bUseHoveredMaterial = false;
+		const auto FeatureLevel = GetScene()->GetFeatureLevel();
 
 		//check if a LOD is being forced
 		if (ForcedLodModel > 0) 
@@ -471,12 +474,12 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 
 					// The shadow-only mesh can be used only if all elements cast shadows and use opaque materials with no vertex modification.
 					// In some cases (e.g. LPV) we don't want the optimization
-					bool bSafeToUseShadowOnlyMesh = AllowShadowOnlyMesh();
+					bool bSafeToUseShadowOnlyMesh = AllowShadowOnlyMesh(FeatureLevel);
 
 					bool bAnySectionCastsShadow = false;
 					for (int32 SectionIndex = 0; bSafeToUseShadowOnlyMesh && SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 					{
-						const FMaterial* Material = ProxyLODInfo.Sections[SectionIndex].Material->GetRenderProxy(false)->GetMaterial(GetScene()->GetFeatureLevel());
+						const FMaterial* Material = ProxyLODInfo.Sections[SectionIndex].Material->GetRenderProxy(false)->GetMaterial(FeatureLevel);
 						const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 						bSafeToUseShadowOnlyMesh =
 							Section.bCastShadow
@@ -1377,9 +1380,9 @@ FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSc
 	return FLightInteraction::Dynamic();
 }
 
-FLightMapInteraction FStaticMeshSceneProxy::FLODInfo::GetLightMapInteraction() const
+FLightMapInteraction FStaticMeshSceneProxy::FLODInfo::GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
+	return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
 }
 
 FShadowMapInteraction FStaticMeshSceneProxy::FLODInfo::GetShadowMapInteraction() const

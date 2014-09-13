@@ -14,7 +14,7 @@
 
 FNullDynamicRHI::FNullDynamicRHI()
 {
-	GRHIShaderPlatformValue = ShaderFormatToLegacyShaderPlatform(FName(FPlatformMisc::GetNullRHIShaderFormat()));
+	GMaxRHIShaderPlatformValue = ShaderFormatToLegacyShaderPlatform(FName(FPlatformMisc::GetNullRHIShaderFormat()));
 }
 
 void FNullDynamicRHI::Init()
