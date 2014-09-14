@@ -913,9 +913,6 @@ private:
 	friend class FRecastNavMeshGenerator;
 	friend class FPImplRecastNavMesh;
 	friend class UCrowdManager;
-	// retrieves RecastNavMeshImpl
-	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
-	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
 	// destroys FPImplRecastNavMesh instance if it has been created 
 	void DestroyRecastPImpl();
 	// @todo docuement
@@ -923,6 +920,10 @@ private:
 	void UpdateNavObject();
 
 protected:
+	// retrieves RecastNavMeshImpl
+	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
+	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
+
 	TArray<FTileSetItem> TileSet;
 
 private:
