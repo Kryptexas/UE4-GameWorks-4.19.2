@@ -524,7 +524,7 @@ bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddManifestText( 
 		*Filename, 
 		LineNumber, 
 		*LineText);
-	FLocItem Source( SourceText );
+	FLocItem Source( SourceText.ReplaceEscapedCharWithChar() );
 	return ManifestInfo->AddEntry(EntryDescription, InNamespace, Source, Context);
 }
 

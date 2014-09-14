@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "InternationalizationArchive.h"
@@ -8,6 +8,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationArchiveSerializer, Log, All);
 
+const FString FInternationalizationArchiveJsonSerializer::TAG_FORMATVERSION = TEXT("FormatVersion");
 const FString FInternationalizationArchiveJsonSerializer::TAG_NAMESPACE = TEXT("Namespace");
 const FString FInternationalizationArchiveJsonSerializer::TAG_CHILDREN = TEXT("Children");
 const FString FInternationalizationArchiveJsonSerializer::TAG_SUBNAMESPACES = TEXT("Subnamespaces");
@@ -122,6 +123,15 @@ bool FInternationalizationArchiveJsonSerializer::SerializeArchive( TSharedRef< c
 
 bool FInternationalizationArchiveJsonSerializer::DeserializeInternal( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
 {
+	if( InJsonObj->HasField( TAG_FORMATVERSION ) )
+	{
+		InternationalizationArchive->FormatVersion = static_cast<int>(InJsonObj->GetNumberField( TAG_FORMATVERSION ));
+	}
+	else
+	{
+		InternationalizationArchive->FormatVersion = FInternationalizationArchive::EFormatVersion::Initial;
+	}
+
 	return JsonObjToArchive( InJsonObj, TEXT(""), InternationalizationArchive );
 }
 
@@ -136,6 +146,9 @@ bool FInternationalizationArchiveJsonSerializer::SerializeInternal( TSharedRef< 
 
 	// Clear anything that may be in the JSON object
 	JsonObj->Values.Empty();
+
+	// Set format version.
+	JsonObj->SetNumberField(TAG_FORMATVERSION, static_cast<double>(InInternationalizationArchive->FormatVersion));
 
 	// Setup the JSON object using the structured data created
 	StructuredDataToJsonObj( RootElement, JsonObj );
@@ -365,9 +378,8 @@ void FInternationalizationArchiveJsonSerializer::StructuredDataToJsonObj( TShare
 		const TSharedPtr< FArchiveEntry > Entry = *Iter;
 		TSharedPtr< FJsonObject > EntryNode = MakeShareable( new FJsonObject );
 
-		// Add escapes for special chars - doesn't do backslash
-		FString ProcessedSourceText = Entry->Source.Text.ReplaceQuotesWithEscapedQuotes();
-		FString ProcessedTranslation = Entry->Translation.Text.ReplaceQuotesWithEscapedQuotes();
+		FString ProcessedSourceText = Entry->Source.Text;
+		FString ProcessedTranslation = Entry->Translation.Text;
 
 		TSharedPtr< FJsonObject > SourceNode;
 		if( Entry->Source.MetadataObj.IsValid() )

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-class FLocMetadataObject;
+;class FLocMetadataObject;
 
 struct CORE_API FContext
 {
@@ -112,11 +112,19 @@ typedef TMultiMap< FString, TSharedRef< FManifestEntry >, FDefaultSetAllocator, 
 
 class CORE_API FInternationalizationManifest 
 {
-
 public:
+	enum EFormatVersion
+	{
+		Initial = 0,
+		EscapeFixes,
+
+		LatestPlusOne,
+		Latest = LatestPlusOne - 1
+	};
 
 	//Default constructor
 	FInternationalizationManifest( )
+		: FormatVersion(static_cast<int32>(EFormatVersion::Latest))
 	{
 	}
 
@@ -151,11 +159,24 @@ public:
 		return EntriesBySourceText.Num();
 	}
 
+	void UpdateEntry(const TSharedRef<FManifestEntry>& OldEntry, TSharedRef<FManifestEntry>& NewEntry);
+
+	void SetFormatVersion(const EFormatVersion Version)
+	{
+		FormatVersion = static_cast<int>(Version);
+	}
+
+	EFormatVersion GetFormatVersion() const
+	{
+		return EFormatVersion(FormatVersion);
+	}
+
 	friend class IInternationalizationManifestSerializer;
 	friend class FInternationalizationManifestJsonSerializer;
 
 private:
 
+	int32 FormatVersion;
 	TManifestEntryBySourceTextContainer EntriesBySourceText;
 	TManifestEntryByContextIdContainer EntriesByContextId;
 };

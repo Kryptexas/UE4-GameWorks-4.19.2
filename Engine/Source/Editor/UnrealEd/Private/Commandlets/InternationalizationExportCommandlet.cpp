@@ -181,23 +181,103 @@ static const TMap< FString, FString > POCulturePluralForms = TMapBuilder< FStrin
 */
 FString ConditionArchiveStrForPo( const FString& InStr )
 {
-	FString Result = InStr;
-	Result.ReplaceInline(TEXT("\\'"), TEXT("\\\\'"));
-	Result.ReplaceInline(TEXT("\\x"), TEXT("\\\\x"));
-	Result.ReplaceInline(TEXT("\\u"), TEXT("\\\\u"));
-	Result.ReplaceInline(TEXT("\r"), TEXT("\\r"));
-	Result.ReplaceInline(TEXT("\n"), TEXT("\\n"));
-
-
+	FString Result;
+	for (const TCHAR C : InStr)
+	{
+		switch(C)
+		{
+		case TEXT('\\'):	Result += TEXT("\\\\");	break;
+		case TEXT('"'):		Result += TEXT("\\\"");	break;
+		case TEXT('\r'):	Result += TEXT("\\r");	break;
+		case TEXT('\n'):	Result += TEXT("\\n");	break;
+		case TEXT('\t'):	Result += TEXT("\\t");	break;
+		default:			Result += C;			break;
+		}
+	}
 	return Result;
 }
 
 FString ConditionPoStringForArchive( const FString& InStr )
 {
-	FString Result = InStr;
-	Result.ReplaceInline(TEXT("\\\\u"), TEXT("\\u"));
-	Result.ReplaceInline(TEXT("\\\\x"), TEXT("\\x"));
-	Result.ReplaceInline(TEXT("\\\\'"), TEXT("\\'"));
+	FString Result;
+	FString EscapeSequenceBuffer;
+
+	auto HandleEscapeSequenceBuffer = [&]()
+	{
+		// Insert unescaped sequence if needed.
+		if(!EscapeSequenceBuffer.IsEmpty())
+		{
+			bool EscapeSequenceIdentified = true;
+
+			// Identify escape sequence
+			TCHAR UnescapedCharacter = 0;
+			if(EscapeSequenceBuffer == TEXT("\\\\"))
+			{
+				UnescapedCharacter = '\\';
+			}
+			else if(EscapeSequenceBuffer == TEXT("\\\""))
+			{
+				UnescapedCharacter = '"';
+			}
+			else if(EscapeSequenceBuffer == TEXT("\\r"))
+			{
+				UnescapedCharacter = '\r';
+			}
+			else if(EscapeSequenceBuffer == TEXT("\\n"))
+			{
+				UnescapedCharacter = '\n';
+			}
+			else if(EscapeSequenceBuffer == TEXT("\\t"))
+			{
+				UnescapedCharacter = '\t';
+			}
+			else
+			{
+				EscapeSequenceIdentified = false;
+			}
+
+			// If identified, append the processed sequence as the unescaped character.
+			if(EscapeSequenceIdentified)
+			{
+				Result += UnescapedCharacter;
+			}
+			// If it was not identified, preserve the escape sequence and append it.
+			else
+			{
+				Result += EscapeSequenceBuffer;
+			}
+			// Either way, we've appended something based on the buffer and it should be reset.
+			EscapeSequenceBuffer.Empty();
+		}
+	};
+
+	for (const TCHAR C : InStr)
+	{
+		// Not in an escape sequence.
+		if(EscapeSequenceBuffer.IsEmpty())
+		{
+			// Regular character, just copy over.
+			if(C != TEXT('\\'))
+			{
+				Result += C;
+			}
+			// Start of an escape sequence, put in escape sequence buffer.
+			else
+			{
+				EscapeSequenceBuffer += C;
+			}
+		}
+		// If already in an escape sequence.
+		else
+		{
+			// Append to escape sequence buffer.
+			EscapeSequenceBuffer += C;
+
+			HandleEscapeSequenceBuffer();
+		}
+	}
+	// Catch any trailing backslashes.
+	HandleEscapeSequenceBuffer();
 	return Result;
 }
 

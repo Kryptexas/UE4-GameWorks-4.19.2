@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "InternationalizationManifest.h"
@@ -9,6 +9,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationManifestSerializer, Log, All);
 
+const FString FInternationalizationManifestJsonSerializer::TAG_FORMATVERSION = TEXT("FormatVersion");
 const FString FInternationalizationManifestJsonSerializer::TAG_NAMESPACE = TEXT("Namespace");
 const FString FInternationalizationManifestJsonSerializer::TAG_CHILDREN = TEXT("Children");
 const FString FInternationalizationManifestJsonSerializer::TAG_SUBNAMESPACES = TEXT("Subnamespaces");
@@ -115,6 +116,15 @@ bool FInternationalizationManifestJsonSerializer::SerializeManifest( TSharedRef<
 
 bool FInternationalizationManifestJsonSerializer::DeserializeInternal( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationManifest > Manifest )
 {
+	if( InJsonObj->HasField( TAG_FORMATVERSION ) )
+	{
+		Manifest->FormatVersion = static_cast<int>(InJsonObj->GetNumberField( TAG_FORMATVERSION ));
+	}
+	else
+	{
+		Manifest->FormatVersion = FInternationalizationManifest::EFormatVersion::Initial;
+	}
+
 	return JsonObjToManifest(InJsonObj, TEXT(""), Manifest );
 }
 
@@ -131,6 +141,9 @@ bool FInternationalizationManifestJsonSerializer::SerializeInternal( TSharedRef<
 
 	//Clear out anything that may be in the JSON object
 	JsonObj->Values.Empty();
+
+	// Set format version.
+	JsonObj->SetNumberField(TAG_FORMATVERSION, static_cast<double>(InManifest->FormatVersion));
 
 	// Setup the JSON object using the structured data created
 	StructuredDataToJsonObj( RootElement, JsonObj );
@@ -262,7 +275,7 @@ bool FInternationalizationManifestJsonSerializer::JsonObjToManifest( TSharedRef<
 						{
 							UE_LOG( LogInternationalizationManifestSerializer, Warning,TEXT("Could not add JSON entry to the Internationalization manifest: Namespace:%s SourceText:%s SourceData:%s"), 
 								*AccumulatedNamespace, 
-								*SourceText, 
+								*Source.Text, 
 								*FInternationalizationMetaDataJsonSerializer::MetadataToString(Source.MetadataObj) );
 						}
 					}
@@ -406,7 +419,7 @@ void FInternationalizationManifestJsonSerializer::StructuredDataToJsonObj( TShar
 
 		// Add escapes for special chars - doesn't do backslash
 		{
-			FString ProcessedText = Entry->Source.Text.ReplaceQuotesWithEscapedQuotes();
+			FString ProcessedText = Entry->Source.Text;
 			SourceNode->SetStringField(TAG_SOURCE_TEXT, ProcessedText);
 		}
 

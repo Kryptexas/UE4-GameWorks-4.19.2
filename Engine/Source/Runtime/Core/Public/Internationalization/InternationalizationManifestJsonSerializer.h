@@ -144,6 +144,7 @@ protected:
 
 public:
 
+	static const FString TAG_FORMATVERSION;
 	static const FString TAG_NAMESPACE;
 	static const FString TAG_CHILDREN;
 	static const FString TAG_SUBNAMESPACES;
