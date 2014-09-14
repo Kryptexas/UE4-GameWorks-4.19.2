@@ -12,24 +12,25 @@ void FSensingComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 		const UPawnSensingComponent* Senses = Cast<const UPawnSensingComponent>(Component);
 		if (Senses != NULL)
 		{
-			TArray<FVector> Verts;
+			const FTransform Transform = FTransform(Senses->GetSensorRotation(), Senses->GetSensorLocation());
 
 			//LOS hearing
 			if (Senses->LOSHearingThreshold > 0.0f)
 			{
-				DrawWireSphere(PDI, Senses->GetSensorLocation(), FColor::Yellow, Senses->LOSHearingThreshold, 16, SDPG_World);
+				DrawWireSphere(PDI, Transform, FColor::Yellow, Senses->LOSHearingThreshold, 16, SDPG_World);
 			}
 
 			//Hearing
 			if (Senses->HearingThreshold > 0.0f)
 			{
-				DrawWireSphere(PDI, Senses->GetSensorLocation(), FColor::Cyan, Senses->HearingThreshold, 16, SDPG_World);
+				DrawWireSphere(PDI, Transform, FColor::Cyan, Senses->HearingThreshold, 16, SDPG_World);
 			}
 
 			// Sight
 			if (Senses->SightRadius > 0.0f)
 			{
-				DrawWireCone(PDI, FTranslationMatrix(Senses->GetSensorLocation()), Senses->SightRadius, Senses->GetPeripheralVisionAngle(), 10, FColor::Green, SDPG_World, Verts);
+				TArray<FVector> Verts;
+				DrawWireCone(PDI, Transform, Senses->SightRadius, Senses->GetPeripheralVisionAngle(), 10, FColor::Green, SDPG_World, Verts);
 			}
 		}
 	}
