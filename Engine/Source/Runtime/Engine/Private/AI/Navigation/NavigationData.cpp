@@ -183,6 +183,8 @@ void ANavigationData::PostLoad()
 
 void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
+	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
+
 	PurgeUnusedPaths();
 	if (NextObservedPathsTickInSeconds >= 0.f)
 	{
