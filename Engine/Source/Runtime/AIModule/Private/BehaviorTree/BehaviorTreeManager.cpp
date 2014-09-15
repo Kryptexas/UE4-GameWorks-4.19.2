@@ -372,7 +372,7 @@ void UBehaviorTreeManager::RemoveActiveComponent(UBehaviorTreeComponent* Compone
 
 UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UWorld* World)
 {
-	UAISystem* AISys = UAISystem::GetCurrent(World);
+	UAISystem* AISys = World ? UAISystem::GetCurrent(World) : NULL;
 	return AISys ? AISys->GetBehaviorTreeManager() : NULL;
 }
 
