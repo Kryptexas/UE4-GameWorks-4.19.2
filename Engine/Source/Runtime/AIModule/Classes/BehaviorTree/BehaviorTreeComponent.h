@@ -118,6 +118,9 @@ public:
 	/** schedule execution flow update in next tick */
 	void ScheduleExecutionUpdate();
 
+	/** remove all runtime data, used on map change */
+	void Cleanup();
+
 	/** tries to find behavior tree instance in context */
 	int32 FindInstanceContainingNode(const UBTNode* Node) const;
 

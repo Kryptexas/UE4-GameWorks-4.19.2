@@ -29,6 +29,12 @@ UBehaviorTreeComponent::UBehaviorTreeComponent(const class FPostConstructInitial
 
 void UBehaviorTreeComponent::BeginDestroy()
 {
+	UBehaviorTreeManager* BTManager = UBehaviorTreeManager::GetCurrent(GetWorld());
+	if (BTManager)
+	{
+		BTManager->RemoveActiveComponent(this);
+	}
+
 	RemoveAllInstances();
 	Super::BeginDestroy();
 }
@@ -124,6 +130,12 @@ bool UBehaviorTreeComponent::StartTree(class UBehaviorTree* TreeAsset, EBTExecut
 #if USE_BEHAVIORTREE_DEBUGGER
 	DebuggerSteps.Reset();
 #endif
+	
+	UBehaviorTreeManager* BTManager = UBehaviorTreeManager::GetCurrent(GetWorld());
+	if (BTManager)
+	{
+		BTManager->AddActiveComponent(this);
+	}
 
 	// push new instance
 	const bool bPushed = PushInstance(TreeAsset);
@@ -174,6 +186,16 @@ void UBehaviorTreeComponent::RestartTree()
 		FBehaviorTreeInstance& TopInstance = InstanceStack[0];
 		RequestExecution(TopInstance.RootNode, 0, TopInstance.RootNode, -1, EBTNodeResult::Aborted);
 	}
+}
+
+void UBehaviorTreeComponent::Cleanup()
+{
+	StopTree();
+	RemoveAllInstances();
+
+	KnownInstances.Reset();
+	InstanceStack.Reset();
+	NodeInstances.Reset();
 }
 
 void UBehaviorTreeComponent::OnTaskFinished(const class UBTTaskNode* TaskNode, EBTNodeResult::Type TaskResult)
