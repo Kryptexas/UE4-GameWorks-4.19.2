@@ -255,6 +255,8 @@ namespace UnrealBuildTool.IOS
 				LaunchXib = BuildDirectory + "/Resources/Interface/LaunchScreen.xib";
 			}
 
+			List<string> PListAdditionalLines = new List<string>();
+
 			bool bSkipDefaultPNGs = false;
 			if (File.Exists(LaunchXib))
 			{
