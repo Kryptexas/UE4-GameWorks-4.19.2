@@ -409,6 +409,13 @@ FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo() const
 	return *CurrentActorInfo;
 }
 
+/** Convenience method for abilities to get owning actor - useful for aiming abilities */
+AActor* UGameplayAbility::GetOwningActorFromActorInfo() const
+{
+	check(CurrentActorInfo);
+	return CurrentActorInfo->Actor.Get();
+}
+
 /** Convenience method for abilities to get skeletal mesh component - useful for aiming abilities */
 USkeletalMeshComponent* UGameplayAbility::GetOwningComponentFromActorInfo() const
 {

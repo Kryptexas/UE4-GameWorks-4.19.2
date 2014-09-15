@@ -354,6 +354,9 @@ protected:
 	FGameplayAbilityActorInfo GetActorInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category = Ability)
+	AActor* GetOwningActorFromActorInfo() const;
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
 	USkeletalMeshComponent* GetOwningComponentFromActorInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category=Ability)
