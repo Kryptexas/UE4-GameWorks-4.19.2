@@ -17,6 +17,10 @@ public:
 
 public:
 
+	/** The style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FTextBlockStyle WidgetStyle;
+
 	/** The text content for this editable text box widget */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText Text;
@@ -48,6 +52,10 @@ public:
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
