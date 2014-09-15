@@ -242,6 +242,21 @@ void STextBlock::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth)
 	MinDesiredWidth = InMinDesiredWidth;
 }
 
+void STextBlock::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
+{
+	LineHeightPercentage = InLineHeightPercentage;
+}
+
+void STextBlock::SetMargin(const TAttribute<FMargin>& InMargin)
+{
+	Margin = InMargin;
+}
+
+void STextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	Justification = InJustification;
+}
+
 FTextBlockStyle STextBlock::GetComputedTextStyle() const
 {
 	FTextBlockStyle ComputedStyle = *TextStyle;
