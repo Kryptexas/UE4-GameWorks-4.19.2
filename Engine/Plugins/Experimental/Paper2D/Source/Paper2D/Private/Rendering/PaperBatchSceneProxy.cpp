@@ -20,7 +20,7 @@ uint32 FPaperBatchSceneProxy::GetMemoryFootprint() const
 
 FPrimitiveViewRelevance FPaperBatchSceneProxy::GetViewRelevance(const FSceneView* View)
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Paper2DSprites;

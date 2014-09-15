@@ -234,8 +234,23 @@ public:
 	/** Removes the primitive from the scene. */
 	void RemoveFromScene(bool bUpdateStaticDrawLists);
 
+	/** return true if we need to call ConditionalUpdateStaticMeshes */
+	FORCEINLINE bool NeedsUpdateStaticMeshes()
+	{
+		return bNeedsStaticMeshUpdate;
+	}
+
 	/** Updates the primitive's static meshes in the scene. */
-	void ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList);
+	void UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList);
+
+	/** Updates the primitive's static meshes in the scene. */
+	FORCEINLINE void ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList)
+	{
+		if (NeedsUpdateStaticMeshes())
+		{
+			UpdateStaticMeshes(RHICmdList);
+		}
+	}
 
 	/** Sets a flag to update the primitive's static meshes before it is next rendered. */
 	void BeginDeferredUpdateStaticMeshes();
@@ -278,7 +293,7 @@ public:
 	inline int32 GetIndex() const { return PackedIndex; }
 
 	/* @return true if the object needs to be rendered in the velocity pass (is not moving like the world, needed for motionblur and TemporalAA) */
-	bool ShouldRenderVelocity(const FViewInfo& View) const;
+	bool ShouldRenderVelocity(const FViewInfo& View, bool bCheckVisibility = true) const;
 	
 	/**
 	 * Shifts primitive position and all relevant data by an arbitrary delta.

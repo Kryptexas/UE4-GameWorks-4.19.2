@@ -29,6 +29,14 @@ public:
 	{
 		Prims.Add(PrimitiveSceneProxy);
 	}
+	/**
+	* Adds a new primitives to the list of distortion prims
+	* @param PrimitiveSceneProxies - primitive info to add.
+	*/
+	void Append(FPrimitiveSceneProxy** PrimitiveSceneProxies, int32 NumProxies)
+	{
+		Prims.Append(PrimitiveSceneProxies, NumProxies);
+	}
 
 	/** 
 	* @return number of prims to render

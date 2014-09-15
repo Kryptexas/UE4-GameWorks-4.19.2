@@ -103,6 +103,11 @@ public:
 	void AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency);
 
 	/**
+	* Similar to AddScenePrimitive, but we are doing placement news and increasing counts when that happens
+	*/
+	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum);
+
+	/**
 	* Sort any primitives that were added to the set back-to-front
 	*/
 	void SortPrimitives();
@@ -131,8 +136,6 @@ public:
 		check(i>=0 && i<NumSeparateTranslucencyPrims());
 		return SortedSeparateTranslucencyPrims[i].PrimitiveSceneInfo;
 	}
-
-private:
 
 	/** contains a sort key */
 	struct FDepthSortedPrim
@@ -165,6 +168,14 @@ private:
 		int32 SortPriority;
 	};
 
+	/**
+	* Adds primitives originally created with PlaceScenePrimitive
+	*/
+	void AppendScenePrimitives(FSortedPrim* Normal, int32 NumNormal, FSortedPrim* Separate, int32 NumSeparate);
+
+
+private:
+
 	/** sortkey compare class */
 	struct FCompareFDepthSortedPrim
 	{
@@ -192,6 +203,9 @@ private:
 	/** Renders a single primitive for the deferred shading pipeline. */
 	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, bool bSeparateTranslucencyPass) const;
 };
+
+template <> struct TIsPODType<FTranslucentPrimSet::FDepthSortedPrim> { enum { Value = true }; };
+template <> struct TIsPODType<FTranslucentPrimSet::FSortedPrim> { enum { Value = true }; };
 
 /** A batched occlusion primitive. */
 struct FOcclusionPrimitive

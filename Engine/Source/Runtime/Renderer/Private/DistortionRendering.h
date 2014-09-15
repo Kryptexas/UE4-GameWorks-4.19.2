@@ -24,9 +24,19 @@ public:
 	/**
 	* Add a new primitive to the list of distortion prims
 	* @param PrimitiveSceneProxy - primitive info to add.
-	* @param ViewInfo - used to transform bounds to view space
 	*/
-	void AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneProxy,const FViewInfo& ViewInfo);
+	void AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneProxy)
+	{
+		Prims.Add(PrimitiveSceneProxy);
+	}
+	/**
+	* Adds a new primitives to the list of distortion prims
+	* @param PrimitiveSceneProxies - primitive info to add.
+	*/
+	void Append(FPrimitiveSceneProxy** PrimitiveSceneProxies, int32 NumProxies)
+	{
+		Prims.Append(PrimitiveSceneProxies, NumProxies);
+	}
 
 	/** 
 	* @return number of prims to render

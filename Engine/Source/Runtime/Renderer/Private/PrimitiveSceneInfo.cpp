@@ -293,18 +293,16 @@ void FPrimitiveSceneInfo::RemoveFromScene(bool bUpdateStaticDrawLists)
 	}
 }
 
-void FPrimitiveSceneInfo::ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList)
+void FPrimitiveSceneInfo::UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList)
 {
-	if (bNeedsStaticMeshUpdate)
-	{
-		bNeedsStaticMeshUpdate = false;
+	checkSlow(bNeedsStaticMeshUpdate);
+	bNeedsStaticMeshUpdate = false;
 
-		// Remove the primitive's static meshes from the draw lists they're currently in, and re-add them to the appropriate draw lists.
-		for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); MeshIndex++)
-		{
-			StaticMeshes[MeshIndex].RemoveFromDrawLists();
-			StaticMeshes[MeshIndex].AddToDrawLists(RHICmdList, Scene);
-		}
+	// Remove the primitive's static meshes from the draw lists they're currently in, and re-add them to the appropriate draw lists.
+	for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); MeshIndex++)
+	{
+		StaticMeshes[MeshIndex].RemoveFromDrawLists();
+		StaticMeshes[MeshIndex].AddToDrawLists(RHICmdList, Scene);
 	}
 }
 
@@ -414,17 +412,19 @@ uint32 FPrimitiveSceneInfo::GetMemoryFootprint()
 	return( sizeof( *this ) + HitProxies.GetAllocatedSize() + StaticMeshes.GetAllocatedSize() );
 }
 
-bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View) const
+bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View, bool bCheckVisibility) const
 {
 	int32 PrimitiveId = GetIndex();
-	const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
-
-	// Only render if visible.
-	if(!bVisible)
+	if (bCheckVisibility)
 	{
-		return false;
-	}
+		const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
 
+		// Only render if visible.
+		if(!bVisible)
+		{
+			return false;
+		}
+	}
 	// Used to determine whether object is movable or not.
 	if(!Proxy->IsMovable())
 	{

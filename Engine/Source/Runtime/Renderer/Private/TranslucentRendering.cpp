@@ -756,6 +756,39 @@ void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneI
 	}
 }
 
+void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Normal, int32 NumNormal, FSortedPrim* Separate, int32 NumSeparate)
+{
+	SortedPrims.Append(Normal, NumNormal);
+	SortedSeparateTranslucencyPrims.Append(Separate, NumSeparate);
+}
+
+void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
+{
+	float SortKey=0.f;
+	//sort based on distance to the view position, view rotation is not a factor
+	SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
+	// UE4_TODO: also account for DPG in the sort key.
+
+	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
+
+	if(bUseSeparateTranslucency 
+		&& FeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+		// add to list of translucent prims that use scene color
+		new (SeparatePlace) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
+		SeparateNum++;
+	}
+
+	if (bUseNormalTranslucency 
+		// Force separate translucency to be rendered normally if the feature level does not support separate translucency
+			|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4))
+	{
+		// add to list of translucent prims
+		new (NormalPlace) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
+		NormalNum++;
+	}
+}
+
 /**
 * Sort any primitives that were added to the set back-to-front
 */

@@ -77,6 +77,7 @@ DEFINE_STAT(STAT_PreRenderView);
 DEFINE_STAT(STAT_GetDynamicMeshElements);
 DEFINE_STAT(STAT_UpdateStaticMeshesTime);
 DEFINE_STAT(STAT_StaticRelevance);
+DEFINE_STAT(STAT_ViewRelevance);
 DEFINE_STAT(STAT_ComputeViewRelevance);
 DEFINE_STAT(STAT_OcclusionCull);
 DEFINE_STAT(STAT_UpdatePrimitiveFading);

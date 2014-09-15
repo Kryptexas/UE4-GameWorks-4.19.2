@@ -771,11 +771,6 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 	return bDirty;
 }
 
-void FDistortionPrimSet::AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneProxy,const FViewInfo& ViewInfo)
-{
-	Prims.Add(PrimitiveSceneProxy);
-}
-
 /** 
  * Renders the scene's distortion 
  */

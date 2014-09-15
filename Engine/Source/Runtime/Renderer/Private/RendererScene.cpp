@@ -891,7 +891,7 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 
 const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Position) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	int32 ClosestCaptureIndex = INDEX_NONE;
 	float ClosestDistanceSquared = FLT_MAX;
 
