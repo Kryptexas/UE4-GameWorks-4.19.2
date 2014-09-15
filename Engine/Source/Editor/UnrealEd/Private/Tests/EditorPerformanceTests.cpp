@@ -115,6 +115,8 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 		}
 	}
 
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Running the performance capture test for %.0f seconds on %s"), Duration, *ShortMapName);
+
 	//Load Map and get the time it took to take to load the map.
 	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
