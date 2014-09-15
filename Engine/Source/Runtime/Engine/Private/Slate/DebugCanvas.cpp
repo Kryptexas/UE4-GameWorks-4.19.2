@@ -150,8 +150,8 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 {
 	// If the canvas is not null there is more than one viewport draw call before slate draws.  This can happen on resizes. 
 	// We need to delete the old canvas
-        // This can also happen if we are debugging a HUD blueprint and in that case we need to continue using
-        // the same canvas
+		// This can also happen if we are debugging a HUD blueprint and in that case we need to continue using
+		// the same canvas
 	if (FSlateApplication::Get().IsNormalExecution())
 	{
 		if( GameThreadCanvas != NULL )
@@ -171,6 +171,9 @@ void FDebugCanvasDrawer::DrawRenderThread(FRHICommandListImmediate& RHICmdList, 
 	{
 		FTexture2DRHIRef& RT = *(FTexture2DRHIRef*)InWindowBackBuffer;
 		RenderTarget->SetRenderTargetTexture( RT );
+		bool bNeedToFlipVertical = RenderThreadCanvas->Canvas.GetAllowSwitchVerticalAxis();
+		// Do not flip when rendering to the back buffer
+		RenderThreadCanvas->Canvas.SetAllowSwitchVerticalAxis(false);
 		if (RenderThreadCanvas->Canvas.IsScaledToRenderTarget() && IsValidRef(RT)) 
 		{
 			RenderThreadCanvas->Canvas.SetRenderTargetRect( FIntRect(0, 0, RT->GetSizeX(), RT->GetSizeY()) );
@@ -181,6 +184,7 @@ void FDebugCanvasDrawer::DrawRenderThread(FRHICommandListImmediate& RHICmdList, 
 			RenderThreadCanvas->Canvas.Flush_RenderThread(RHICmdList, true);
 		}
 		RenderThreadCanvas->Canvas.Flush_RenderThread(RHICmdList, true);
+		RenderThreadCanvas->Canvas.SetAllowSwitchVerticalAxis(bNeedToFlipVertical);
 		RenderTarget->ClearRenderTargetTexture();
 	}
 }

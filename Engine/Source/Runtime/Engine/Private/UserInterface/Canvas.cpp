@@ -35,6 +35,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 ,	CurrentWorldTime(0)
 ,	CurrentDeltaWorldTime(0)
 ,	FeatureLevel(InFeatureLevel)
+,	ShaderPlatform(GRHIShaderPlatform)
 {
 	Construct();
 
@@ -56,6 +57,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentWorldTime(InWorldTime)
 ,	CurrentDeltaWorldTime(InWorldDeltaTime)
 ,	FeatureLevel(InFeatureLevel)
+,	ShaderPlatform(GRHIShaderPlatform)
 {
 	Construct();
 }
@@ -174,8 +176,7 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 			Gamma = 1.0f;
 		}
 
-		const bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform) || !Canvas->GetAllowSwitchVerticalAxis();
-
+		bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
 
 		// draw batched items
 		Data->BatchedElements.Draw(
@@ -205,7 +206,7 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 {	
 	checkSlow(Data);
-	bool bDirty=false;		
+	bool bDirty=false;
 	if( Data->BatchedElements.HasPrimsToDraw() )
 	{
 		bDirty = true;
@@ -218,7 +219,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 			Gamma = 1.0f;
 		}
 
-		const bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) || !Canvas->GetAllowSwitchVerticalAxis();
+		bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
 
 		// Render the batched elements.
 		struct FBatchedDrawParameters
@@ -311,7 +312,7 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverlayColor = FLinearColor::White;
 
-	const bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) || !Canvas->GetAllowSwitchVerticalAxis();
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
@@ -378,7 +379,7 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
-	const bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) || !Canvas->GetAllowSwitchVerticalAxis();
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
 	struct FDrawTileParameters
 	{
 		FSceneView* View;
