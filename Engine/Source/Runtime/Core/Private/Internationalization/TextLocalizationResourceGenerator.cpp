@@ -208,7 +208,7 @@ bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, con
 			const FString& Namespace = ManifestEntry->Namespace;
 			const FLocItem& Source = ManifestEntry->Source;
 			const FString& SourceString = Source.Text;
-			const FString UnescapedSourceString = SourceString.ReplaceEscapedCharWithChar();
+			const FString UnescapedSourceString = SourceString;
 			const uint32 SourceStringHash = FCrc::StrCrc32(*UnescapedSourceString);
 
 			FLocalizationEntryTracker::FKeyTable& KeyTable = LocalizationEntryTracker.Namespaces.FindOrAdd(*Namespace);
@@ -236,7 +236,7 @@ bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, con
 				FString UnescapedTranslatedString;
 				if( ArchiveEntry.IsValid() )
 				{
-					UnescapedTranslatedString = ArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
+					UnescapedTranslatedString = ArchiveEntry->Translation.Text;
 
 					if(UnescapedTranslatedString.IsEmpty())
 					{

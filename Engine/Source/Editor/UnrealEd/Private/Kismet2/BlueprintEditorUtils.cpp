@@ -4494,7 +4494,7 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 								Args.Add(TEXT("EventNodeName"), FText::FromString(EventNode->GetName()));
 
 								// Emit something to the log to indicate that we've made a change
-								Blueprint->Message_Note( FText::Format(LOCTEXT("EventSignatureFixed_Note", "{NodeTitle ({EventNodeName}) had an invalid function signature - it has now been fixed."), Args).ToString() );
+								Blueprint->Message_Note( FText::Format(LOCTEXT("EventSignatureFixed_Note", "{NodeTitle} ({EventNodeName}) had an invalid function signature - it has now been fixed."), Args).ToString() );
 
 								// Fix up the event signature
 								EventNode->EventSignatureClass = Blueprint->GeneratedClass;
