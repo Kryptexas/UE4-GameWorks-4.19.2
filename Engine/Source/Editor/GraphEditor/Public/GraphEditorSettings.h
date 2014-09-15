@@ -25,6 +25,41 @@ public:
 	TEnumAsByte<EBlueprintPinStyleType> DataPinStyle;
 
 public:
+	/** The maximum value to clamp the absolute value of the horizontal distance between endpoints when calculating tangents (when the wire is moving forward) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	float ForwardSplineHorizontalDeltaRange;
+
+	/** The maximum value to clamp the absolute value of the vertical distance between endpoints when calculating tangents (when the wire is moving forward) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	float ForwardSplineVerticalDeltaRange;
+
+	/** The amount that the horizontal delta affects the generated tangent handle of splines (when the wire is moving forward) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	FVector2D ForwardSplineTangentFromHorizontalDelta;
+
+	/** The amount that the vertical delta affects the generated tangent handle of splines (when the wire is moving forward) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	FVector2D ForwardSplineTangentFromVerticalDelta;
+
+	/** The maximum value to clamp the absolute value of the horizontal distance between endpoints when calculating tangents (when the wire is moving backwards) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	float BackwardSplineHorizontalDeltaRange;
+
+	/** The maximum value to clamp the absolute value of the vertical distance between endpoints when calculating tangents (when the wire is moving backwards) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	float BackwardSplineVerticalDeltaRange;
+
+	/** The amount that the horizontal delta affects the generated tangent handle of splines (when the wire is moving backwards) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	FVector2D BackwardSplineTangentFromHorizontalDelta;
+
+	/** The amount that the vertical delta affects the generated tangent handle of splines (when the wire is moving backwards) */
+	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
+	FVector2D BackwardSplineTangentFromVerticalDelta;
+
+	/** Compute a tangent given the start and end points of the spline */
+	FVector2D ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const;
+public:
 
 	/** The default color is used only for types not specifically defined below.  Generally if it's seen, it means another type needs to be defined so that the wire in question can have an appropriate color. */
 	UPROPERTY(EditAnywhere,  config, Category=PinColors)

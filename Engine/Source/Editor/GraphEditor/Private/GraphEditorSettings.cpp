@@ -12,6 +12,14 @@
 
 UGraphEditorSettings::UGraphEditorSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
+	, ForwardSplineHorizontalDeltaRange(1000.0f)
+	, ForwardSplineVerticalDeltaRange(1000.0f)
+	, ForwardSplineTangentFromHorizontalDelta(1.0f, 0.0f)
+	, ForwardSplineTangentFromVerticalDelta(1.0f, 0.0f)
+	, BackwardSplineHorizontalDeltaRange(200.0f)
+	, BackwardSplineVerticalDeltaRange(200.0f)
+	, BackwardSplineTangentFromHorizontalDelta(3.0f, 0.0f)
+	, BackwardSplineTangentFromVerticalDelta(1.5f, 0.0f)
 {
 	DataPinStyle = BPST_VariantA;
 
@@ -63,4 +71,22 @@ UGraphEditorSettings::UGraphEditorSettings( const class FPostConstructInitialize
 	ExecBranchNodeTitleColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	ExecSequenceNodeTitleColor= FLinearColor(0.8f, 0.4f, 0.4f, 1.0f);
 	ResultNodeTitleColor = FLinearColor(1.0f, 0.65f, 0.4f, 1.0f);
+}
+
+FVector2D UGraphEditorSettings::ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const
+{
+	const FVector2D DeltaPos = End - Start;
+	const bool bGoingForward = DeltaPos.X >= 0.0f;
+
+	const float ClampedTensionX = FMath::Min<float>(FMath::Abs<float>(DeltaPos.X), bGoingForward ? ForwardSplineHorizontalDeltaRange : BackwardSplineHorizontalDeltaRange);
+	const float ClampedTensionY = FMath::Min<float>(FMath::Abs<float>(DeltaPos.Y), bGoingForward ? ForwardSplineVerticalDeltaRange : BackwardSplineVerticalDeltaRange);
+
+	if (bGoingForward)
+	{
+		return (ClampedTensionX * ForwardSplineTangentFromHorizontalDelta) + (ClampedTensionY * ForwardSplineTangentFromVerticalDelta);
+	}
+	else
+	{
+		return (ClampedTensionX * BackwardSplineTangentFromHorizontalDelta) + (ClampedTensionY * BackwardSplineTangentFromVerticalDelta);
+	}
 }

@@ -190,6 +190,7 @@ FKismetNodeInfoContext::FKismetNodeInfoContext(UEdGraph* SourceGraph)
 FConnectionDrawingPolicy::FConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements)
 	: WireLayerID(InBackLayerID)
 	, ArrowLayerID(InFrontLayerID)
+	, Settings(GetDefault<UGraphEditorSettings>())
 	, ZoomFactor(InZoomFactor)
 	, ClippingRect(InClippingRect)
 	, DrawElementsList(InDrawElements)
@@ -326,8 +327,7 @@ void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& S
 	const FVector2D& P0 = Start;
 	const FVector2D& P1 = End;
 
-	const int32 Tension  = FMath::Abs<int32>(Start.X - End.X);
-	const FVector2D P0Tangent = Tension * FVector2D(1.0f, 0);
+	const FVector2D P0Tangent = Settings->ComputeSplineTangent(P0, P1);
 	const FVector2D P1Tangent = P0Tangent;
 
 	// Draw the spline itself
@@ -531,8 +531,6 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	: FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements)
 	, GraphObj(InGraphObj)
 {
-	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
-
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;
 	ArrowRadius = FVector2D::ZeroVector;
@@ -1245,8 +1243,6 @@ FSoundCueGraphConnectionDrawingPolicy::FSoundCueGraphConnectionDrawingPolicy(int
 	, GraphObj(InGraphObj)
 {
 	// Cache off the editor options
-	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
-
 	ActiveColor = Settings->TraceAttackColor;
 	InactiveColor = Settings->TraceReleaseColor;
 
