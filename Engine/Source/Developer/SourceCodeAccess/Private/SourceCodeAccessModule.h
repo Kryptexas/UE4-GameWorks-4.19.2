@@ -27,7 +27,10 @@ public:
 
 private:
 	/** Handle when one of the modular features we are interested in is registered */
-	void HandleModularFeatureRegistered(const FName& Type);
+	void HandleModularFeatureRegistered(const FName& Type, IModularFeature* ModularFeature);
+
+	/** Handle when one of the modular features we are interested in is unregistered */
+	void HandleModularFeatureUnregistered(const FName& Type, IModularFeature* ModularFeature);
 
 private:
 	/** Event delegate fired when launching code accessor */
