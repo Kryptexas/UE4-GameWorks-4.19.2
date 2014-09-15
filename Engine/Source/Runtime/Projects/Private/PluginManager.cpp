@@ -309,6 +309,14 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
 				ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
 				ContentFolders.Emplace(ContentFolder);
+
+				if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
+				{
+					if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+					{
+						CoreSystemSection->AddUnique("Paths", ContentFolder.ContentPath);
+					}
+				}
 			}
 		}
 
