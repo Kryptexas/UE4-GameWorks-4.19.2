@@ -59,9 +59,9 @@ FString FTimespan::ToString( const TCHAR* Format ) const
 			case TCHAR('f'): Result += FString::Printf(TEXT("%03i"), FMath::Abs(GetMilliseconds())); break;
 			case TCHAR('D'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalDays())); break;
 			case TCHAR('H'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalHours())); break;
-			case TCHAR('M'): Result += FString::Printf(TEXT("%02i"), FMath::Abs(GetTotalMinutes())); break;
-			case TCHAR('S'): Result += FString::Printf(TEXT("%02i"), FMath::Abs(GetTotalSeconds())); break;
-			case TCHAR('F'): Result += FString::Printf(TEXT("%03i"), FMath::Abs(GetTotalMilliseconds())); break;
+			case TCHAR('M'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalMinutes())); break;
+			case TCHAR('S'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalSeconds())); break;
+			case TCHAR('F'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalMilliseconds())); break;
 
 			default:
 

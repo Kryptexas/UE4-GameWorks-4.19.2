@@ -440,11 +440,11 @@ public:
 	 *		%m - prints the time span's minutes part (0..59)
 	 *		%s - prints the time span's seconds part (0..59)
 	 *		%f - prints the time span's milliseconds part (0..999)
-	 *		%D - prints the total number of days
-	 *		%H - prints the total number of hours (0..23)
-	 *		%M - prints the total number of minutes (0..59)
-	 *		%S - prints the total number of seconds (0..59)
-	 *		%F - prints the total number of milliseconds (0..999)
+	 *		%D - prints the total number of days (without minus sign)
+	 *		%H - prints the total number of hours (without minus sign)
+	 *		%M - prints the total number of minutes (without minus sign)
+	 *		%S - prints the total number of seconds (without minus sign)
+	 *		%F - prints the total number of milliseconds (without minus sign)
 	 *
 	 * @param Format - The format of the returned string.
 	 * @return String representation.
