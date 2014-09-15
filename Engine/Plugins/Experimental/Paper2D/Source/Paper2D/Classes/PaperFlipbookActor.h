@@ -10,7 +10,7 @@ class APaperFlipbookActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Sprite, VisibleAnywhere)
+	UPROPERTY(Category=Sprite, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Flipbook"))
 	TSubobjectPtr<class UPaperFlipbookComponent> RenderComponent;
 
 	// AActor interface

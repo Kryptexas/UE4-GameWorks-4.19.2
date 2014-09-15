@@ -10,7 +10,7 @@ class APaperSpriteActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Sprite, VisibleAnywhere)
+	UPROPERTY(Category=Sprite, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Sprite"))
 	TSubobjectPtr<class UPaperSpriteComponent> RenderComponent;
 
 	// AActor interface
