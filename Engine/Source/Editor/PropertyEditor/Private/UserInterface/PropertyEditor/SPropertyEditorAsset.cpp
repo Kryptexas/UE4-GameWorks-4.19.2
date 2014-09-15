@@ -117,7 +117,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				.AutoWidth()
 				[
 					SAssignNew( ThumbnailBorder, SBorder )
-					.Padding( 3.0f )
+					.Padding( 5.0f )
 					.BorderImage( this, &SPropertyEditorAsset::GetThumbnailBorder )
 					.OnMouseDoubleClick( this, &SPropertyEditorAsset::OnAssetThumbnailDoubleClick )
 					[

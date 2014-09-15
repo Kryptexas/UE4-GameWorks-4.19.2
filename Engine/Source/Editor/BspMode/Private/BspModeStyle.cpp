@@ -114,7 +114,7 @@ void FBspModeStyle::Initialize()
 		.SetSelectedTextColor( InvertedForeground )
 		);
 
-	StyleSet->Set( "BspMode.ThumbnailShadow", new BOX_BRUSH( "ContentBrowser/ThumbnailShadow" , FMargin( 5.0f / 64.0f ) ) );
+	StyleSet->Set( "BspMode.ThumbnailShadow", new BOX_BRUSH( "ContentBrowser/ThumbnailShadow" , FMargin( 4.0f / 64.0f ) ) );
 	StyleSet->Set( "BspMode.ThumbnailBackground", new IMAGE_BRUSH( "Common/ClassBackground_64x", FVector2D(64.f, 64.f), FLinearColor(0.75f, 0.75f, 0.75f, 1.0f) ) );
 	StyleSet->Set( "BspMode.ThumbnailText", NormalText );
 

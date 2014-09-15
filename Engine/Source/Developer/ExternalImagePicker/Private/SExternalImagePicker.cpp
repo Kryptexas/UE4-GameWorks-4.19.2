@@ -35,7 +35,7 @@ void SExternalImagePicker::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FEditorStyle::Get().GetBrush("ExternalImagePicker.ThumbnailShadow"))
-				.Padding(5.0f)
+				.Padding(4.0f)
 				.Content()
 				[
 					SNew(SBorder)

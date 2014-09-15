@@ -98,7 +98,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SProjectBrowser::Construct( const FArguments& InArgs )
 {
 	bPreventSelectionChangeEvent = false;
-	ThumbnailBorderPadding = 5;
+	ThumbnailBorderPadding = 4;
 	ThumbnailSize = 128.0f;
 
 	// Prepare the categories box

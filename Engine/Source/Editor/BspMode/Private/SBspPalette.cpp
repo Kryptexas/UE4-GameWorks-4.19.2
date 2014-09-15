@@ -155,7 +155,7 @@ TSharedRef<ITableRow> SBspPalette::MakeListViewWidget(TSharedPtr<FBspBuilderType
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.Padding(5.0f)
+				.Padding(4.0f)
 				.BorderImage(FBspModeStyle::Get().GetBrush("BspMode.ThumbnailShadow"))
 				[
 					SNew(SBox)

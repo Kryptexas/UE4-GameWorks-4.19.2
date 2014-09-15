@@ -110,7 +110,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	TileViewThumbnailResolution = 256;
 	TileViewThumbnailSize = 128;
 	TileViewThumbnailPadding = 5;
-	TileViewNameHeight = 36;
+	TileViewNameHeight = 32;
 	ThumbnailScaleSliderValue = InArgs._ThumbnailScale; 
 
 	if ( !ThumbnailScaleSliderValue.IsBound() )
@@ -118,7 +118,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 		ThumbnailScaleSliderValue = FMath::Clamp<float>(ThumbnailScaleSliderValue.Get(), 0.0f, 1.0f);
 	}
 
-	MinThumbnailScale = 0.4f * ThumbnailScaleRangeScalar;
+	MinThumbnailScale = 0.3f * ThumbnailScaleRangeScalar;
 	MaxThumbnailScale = 2.0f * ThumbnailScaleRangeScalar;
 
 	bCanShowClasses = InArgs._CanShowClasses;
@@ -785,6 +785,8 @@ void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	CalculateFillScale( AllottedGeometry );
+
+	TileViewNameHeight = int(FMath::Min(GetTileViewThumbnailSize(), 32.f));
 
 	CurrentTime = InCurrentTime;
 
@@ -2695,7 +2697,7 @@ TSharedRef<ITableRow> SAssetView::MakeTileViewWidget(TSharedPtr<FAssetViewItem> 
 		TSharedRef<SAssetTileItem> Item =
 			SNew(SAssetTileItem)
 			.AssetItem(AssetItem)
-			.ItemWidth(this, &SAssetView::GetTileViewItemWidth)
+			.ThumbnailSize(this, &SAssetView::GetTileViewThumbnailSize)
 			.OnRenameBegin(this, &SAssetView::AssetRenameBegin)
 			.OnRenameCommit(this, &SAssetView::AssetRenameCommit)
 			.OnVerifyRenameCommit(this, &SAssetView::AssetVerifyRenameCommit)
@@ -2740,7 +2742,7 @@ TSharedRef<ITableRow> SAssetView::MakeTileViewWidget(TSharedPtr<FAssetViewItem> 
 			.AssetThumbnail(AssetThumbnail)
 			.AssetItem(AssetItem)
 			.ThumbnailPadding(TileViewThumbnailPadding)
-			.ItemWidth(this, &SAssetView::GetTileViewItemWidth)
+			.ThumbnailSize(this, &SAssetView::GetTileViewThumbnailSize)
 			.OnRenameBegin(this, &SAssetView::AssetRenameBegin)
 			.OnRenameCommit(this, &SAssetView::AssetRenameCommit)
 			.OnVerifyRenameCommit(this, &SAssetView::AssetVerifyRenameCommit)
@@ -3507,12 +3509,12 @@ float SAssetView::GetListViewItemHeight() const
 
 float SAssetView::GetTileViewItemHeight() const
 {
-	return TileViewNameHeight + GetTileViewItemBaseHeight() * FillScale;
+	return TileViewNameHeight + GetTileViewThumbnailSize();
 }
 
 float SAssetView::GetTileViewItemBaseHeight() const
 {
-	return (TileViewThumbnailSize + TileViewThumbnailPadding * 2) * FMath::Lerp(MinThumbnailScale, MaxThumbnailScale, GetThumbnailScale());
+	return TileViewThumbnailSize * FMath::Lerp(MinThumbnailScale, MaxThumbnailScale, GetThumbnailScale()) + TileViewThumbnailPadding * 2;
 }
 
 float SAssetView::GetTileViewItemWidth() const
@@ -3522,7 +3524,12 @@ float SAssetView::GetTileViewItemWidth() const
 
 float SAssetView::GetTileViewItemBaseWidth() const
 {
-	return ( TileViewThumbnailSize + TileViewThumbnailPadding * 2 ) * FMath::Lerp( MinThumbnailScale, MaxThumbnailScale, GetThumbnailScale() );
+	return FMath::Max(75.f, GetTileViewThumbnailSize() + TileViewThumbnailPadding * 2);
+}
+
+float SAssetView::GetTileViewThumbnailSize() const
+{
+	return TileViewThumbnailSize * FMath::Lerp( MinThumbnailScale, MaxThumbnailScale, GetThumbnailScale() );
 }
 
 EColumnSortMode::Type SAssetView::GetColumnSortMode(const FName ColumnId) const

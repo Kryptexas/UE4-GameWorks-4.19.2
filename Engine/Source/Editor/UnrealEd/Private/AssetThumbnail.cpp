@@ -52,7 +52,6 @@ public:
 		AssetThumbnail = InArgs._AssetThumbnail;
 		bHasRenderedThumbnail = false;
 		WidthLastFrame = 0;
-		GenericThumbnailBorderPadding = 2.f;
 
 		AssetThumbnail->OnAssetDataChanged().AddSP(this, &SAssetThumbnail::OnAssetDataChanged);
 
@@ -93,7 +92,7 @@ public:
 			SNew(SBorder)
 			.BorderImage( this, &SAssetThumbnail::GetBackgroundBrush )
 			.BorderBackgroundColor( this, &SAssetThumbnail::GetAssetColor )
-			.Padding( GenericThumbnailBorderPadding )
+			.Padding( 0 )
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Center)
 			.Visibility(this, &SAssetThumbnail::GetClassThumbnailVisibility)
@@ -109,7 +108,7 @@ public:
 			SNew(SBorder)
 			.BorderImage( this, &SAssetThumbnail::GetBackgroundBrush )
 			.BorderBackgroundColor( this, &SAssetThumbnail::GetAssetColor )
-			.Padding( GenericThumbnailBorderPadding )
+			.Padding( 0 )
 			.VAlign(VAlign_Center) .HAlign(HAlign_Center)
 			.Visibility(this, &SAssetThumbnail::GetGenericThumbnailVisibility)
 			[
@@ -149,10 +148,8 @@ public:
 			OverlayWidget->AddSlot()
 			[
 				SNew(SBorder)
-				.Padding(1)
-				.BorderImage(FEditorStyle::GetBrush(Style, ".Border"))
-				//.BorderImage(FEditorStyle::GetBrush("NoBrush"))
-				.BorderBackgroundColor(this, &SAssetThumbnail::GetViewportBorderColorAndOpacity)
+				.Padding(0)
+				.BorderImage(FEditorStyle::GetBrush("NoBrush"))
 				.ColorAndOpacity(this, &SAssetThumbnail::GetViewportColorAndOpacity)
 				.Visibility(this, &SAssetThumbnail::GetViewportVisibility)
 				[
@@ -182,6 +179,18 @@ public:
 				.WrapTextAt(this, &SAssetThumbnail::GetTextWrapWidth)
 				.HighlightText( HighlightedText )
 			]
+		];
+
+		// The asset color strip, only visible when the rendered viewport is
+		OverlayWidget->AddSlot()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(AssetColor)
+			.Visibility(this, &SAssetThumbnail::GetViewportVisibility)
+			.Padding(this, &SAssetThumbnail::GetAssetColorStripPadding)
 		];
 
 		ChildSlot
@@ -292,7 +301,8 @@ private:
 
 	float GetTextWrapWidth() const
 	{
-		return WidthLastFrame - GenericThumbnailBorderPadding * 2.f;
+		/** 2px padding either side of the text */
+		return WidthLastFrame;// - 4.f;
 	}
 
 	const FSlateBrush* GetBackgroundBrush() const
@@ -330,6 +340,13 @@ private:
 	EVisibility GetViewportVisibility() const
 	{
 		return bHasRenderedThumbnail ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	FMargin GetAssetColorStripPadding() const
+	{
+		// The strip is 2.5% the height of the thumbnail
+		const float Height = FMath::CeilToFloat(WidthLastFrame*0.025f);
+		return FMargin(0,Height,0,0);
 	}
 
 	const FSlateBrush* GetClassThumbnailBrush() const
@@ -534,7 +551,6 @@ private:
 
 	FLinearColor AssetColor;
 	float WidthLastFrame;
-	float GenericThumbnailBorderPadding;
 	bool bHasRenderedThumbnail;
 	FName Style;
 	TAttribute< FText > HighlightedText;

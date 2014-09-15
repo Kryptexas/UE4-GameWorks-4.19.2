@@ -973,12 +973,13 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 			.VAlign(VAlign_Center)
 			[
 				SNew( SBox )
+				.Padding(ThumbnailPadding - 4.f)
 				.WidthOverride( this, &SAssetListItem::GetThumbnailBoxSize )
 				.HeightOverride( this, &SAssetListItem::GetThumbnailBoxSize )
 				[
 					// Drop shadow border
 					SNew(SBorder)
-					.Padding(ThumbnailPadding)
+					.Padding(4.f)
 					.BorderImage( IsFolder() ? FEditorStyle::GetBrush("NoBorder") : FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow") )
 					[
 						SNew(SOverlay)
@@ -1145,7 +1146,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		);
 
 	AssetThumbnail = InArgs._AssetThumbnail;
-	ItemWidth = InArgs._ItemWidth;
+	ThumbnailSize = InArgs._ThumbnailSize;
 	ThumbnailPadding = IsFolder() ? InArgs._ThumbnailPadding + 5.0f : InArgs._ThumbnailPadding;
 
 	TSharedPtr<SWidget> Thumbnail;
@@ -1182,16 +1183,17 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 			// Thumbnail
 			+SVerticalBox::Slot()
 			.AutoHeight()
+			.HAlign(HAlign_Center)
 			[
-				// Use ItemWidth for both the width and height to make it square.
 				// The remainder of the space is reserved for the name.
 				SNew(SBox)
+				.Padding(ThumbnailPadding - 4.f)
 				.WidthOverride( this, &SAssetTileItem::GetThumbnailBoxSize )
 				.HeightOverride( this, &SAssetTileItem::GetThumbnailBoxSize )
 				[
 					// Drop shadow border
 					SNew(SBorder)
-					.Padding(ThumbnailPadding)
+					.Padding(4.f)
 					.BorderImage(IsFolder() ? FEditorStyle::GetBrush("NoBorder") : FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
 					[
 						SNew(SOverlay)
@@ -1260,7 +1262,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 			]
 
 			+SVerticalBox::Slot()
-			.Padding(FMargin(ThumbnailPadding, 0, ThumbnailPadding, ThumbnailPadding))
+			.Padding(FMargin(2.f, 0, 2.f, ThumbnailPadding))
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.FillHeight(1.f)
@@ -1302,14 +1304,14 @@ void SAssetTileItem::OnAssetDataChanged()
 	SetToolTip( CreateToolTipWidget() );
 }
 
-FOptionalSize SAssetTileItem::GetThumbnailBoxSize() const
-{
-	return FOptionalSize( ItemWidth.Get() );
-}
-
 FOptionalSize SAssetTileItem::GetSCCImageSize() const
 {
 	return GetThumbnailBoxSize().Get() * 0.2;
+}
+
+FOptionalSize SAssetTileItem::GetThumbnailBoxSize() const
+{
+	return ThumbnailSize.Get(16);
 }
 
 FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
@@ -1331,7 +1333,8 @@ FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
 
 float SAssetTileItem::GetNameTextWrapWidth() const
 {
-	return ItemWidth.Get() - ThumbnailPadding * 2.f;
+	// Wrap to the entire size of the tile, minus some padding
+	return LastGeometry.Size.X - 4.f;
 }
 
 ///////////////////////////////

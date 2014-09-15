@@ -417,7 +417,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 													+ SOverlay::Slot()
 													[
 														SNew(SBorder)
-														.Padding(FMargin(0, 0, 0, 5.f))
+														.Padding(FMargin(0, 0, 0, 4.f))
 														.BorderImage(FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
 														[
 															SNew(SImage)

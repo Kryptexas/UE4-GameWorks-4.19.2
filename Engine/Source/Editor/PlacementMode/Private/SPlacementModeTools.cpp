@@ -171,7 +171,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 			[
 				// Drop shadow border
 				SNew( SBorder )
-				.Padding( 5 )
+				.Padding( 4 )
 				.BorderImage( FEditorStyle::GetBrush( "ContentBrowser.ThumbnailShadow" ) )
 				[
 					SNew( SBox )
