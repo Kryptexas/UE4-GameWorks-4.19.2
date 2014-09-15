@@ -256,6 +256,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static const FString PN_Start;    // Category=PC_Int, singleton, input
 	static const FString PN_Stop;    // Category=PC_Int, singleton, input
 	static const FString PN_Index;    // Category=PC_Int, singleton, output
+	static const FString PN_Item;    // Category=PC_Int, singleton, output
 	static const FString PN_CastSucceeded;    // Category=PC_Exec, singleton, output
 	static const FString PN_CastFailed;    // Category=PC_Exec, singleton, output
 	static const FString PN_CastedValuePrefix;    // Category=PC_Object, singleton, output; actual pin name varies depending on the type to be casted to, this is just a prefix

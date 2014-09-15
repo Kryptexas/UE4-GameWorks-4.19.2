@@ -266,6 +266,7 @@ const FString UEdGraphSchema_K2::PN_Condition(TEXT("Condition"));
 const FString UEdGraphSchema_K2::PN_Start(TEXT("Start"));
 const FString UEdGraphSchema_K2::PN_Stop(TEXT("Stop"));
 const FString UEdGraphSchema_K2::PN_Index(TEXT("Index"));
+const FString UEdGraphSchema_K2::PN_Item(TEXT("Item"));
 const FString UEdGraphSchema_K2::PN_CastSucceeded(TEXT("then"));
 const FString UEdGraphSchema_K2::PN_CastFailed(TEXT("CastFailed"));
 const FString UEdGraphSchema_K2::PN_CastedValuePrefix(TEXT("As"));

@@ -783,8 +783,7 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 		LastThenPin = Branch->GetThenPin();		//Connect the loop branch to the spawn-assignment code block
 		bIsErrorFree &= Schema->TryCreateConnection(SpawnedActorReturnPin, GetElement->GetTargetArrayPin());
 		bIsErrorFree &= Schema->TryCreateConnection(IteratorVar->GetVariablePin(), GetElement->FindPinChecked(K2Schema->PN_Index));
-		UEdGraphPin* RetValPin = GetElement->FindPinChecked(TEXT("Item"));		//TODO Should this be a field? Maybe create UEdGraphSchema_K2::PN_Item?
-		bIsErrorFree &= ConnectSpawnProperties(ClassToSpawn, Schema, CompilerContext, SourceGraph, LastThenPin, RetValPin);		//Last argument needs to be our array element
+		bIsErrorFree &= ConnectSpawnProperties(ClassToSpawn, Schema, CompilerContext, SourceGraph, LastThenPin, GetElement->FindPinChecked(K2Schema->PN_Item));		//Last argument is the array element
 		bIsErrorFree &= Schema->TryCreateConnection(LastThenPin, IteratorAssign->GetExecPin());		//Connect the spawn-assignment code block to the iterator increment
 		
 		//Finish by providing the proper path out
