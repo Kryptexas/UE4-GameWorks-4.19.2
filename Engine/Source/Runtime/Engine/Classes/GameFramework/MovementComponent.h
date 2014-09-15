@@ -21,6 +21,7 @@ struct FCollisionShape;
  *    - Utility functions for special handling of collision results (SlideAlongSurface(), ComputeSlideVector(), TwoWallAdjust()).
  *    - Utility functions for moving when there may be initial penetration (SafeMoveUpdatedComponent(), ResolvePenetration()).
  *    - Automatically registering the component tick and finding a component to move on the owning Actor.
+ * Normally the root component of the owning actor is moved, however another component may be selected (see SetUpdatedComponent()).
  */
 UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent

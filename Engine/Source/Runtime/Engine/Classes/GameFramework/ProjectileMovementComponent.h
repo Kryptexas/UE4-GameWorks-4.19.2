@@ -5,10 +5,14 @@
 #include "ProjectileMovementComponent.generated.h"
 
 /**
- * ProjectileMovementComponent updates the position of the associated UpdatedComponent during its tick.
+ * ProjectileMovementComponent updates the position of another component during its tick.
+ *
  * Behavior such as bouncing after impacts and homing toward a target are supported.
- * If the updated component is simulating physics, only the initial launch parameters (when initial velocity is non-zero) will affect the projectile,
- * and the physics sim will take over from there.
+ *
+ * Normally the root component of the owning actor is moved, however another component may be selected (see SetUpdatedComponent()).
+ * If the updated component is simulating physics, only the initial launch parameters (when initial velocity is non-zero)
+ * will affect the projectile, and the physics sim will take over from there.
+ *
  * @see UMovementComponent
  */
 UCLASS(ClassGroup=Movement, meta=(BlueprintSpawnableComponent), ShowCategories=(Velocity))

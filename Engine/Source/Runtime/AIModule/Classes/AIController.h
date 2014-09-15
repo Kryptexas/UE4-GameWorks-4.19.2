@@ -64,7 +64,6 @@ struct FFocusKnowledge
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/
  */
-//=============================================================================
 
 UCLASS(BlueprintType, Blueprintable)
 class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface

@@ -68,7 +68,6 @@ struct FDynamicForceFeedbackDetails
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/PlayerController/
  */
-//=============================================================================
 
 UCLASS(config=Game, BlueprintType, Blueprintable)
 class ENGINE_API APlayerController : public AController

@@ -14,7 +14,8 @@ class USphereComponent;
 class UStaticMeshComponent;
 
 /**
- * 
+ * DefaultPawn implements a simple Pawn with spherical collision and built-in flying movement.
+ * @see UFloatingPawnMovement
  */
 UCLASS(config=Game, Blueprintable, BlueprintType)
 class ENGINE_API ADefaultPawn : public APawn
@@ -27,15 +28,27 @@ class ENGINE_API ADefaultPawn : public APawn
 	virtual void UpdateNavigationRelevance() override;
 	// End Pawn overrides
 
-	/** Input callback to move forward. */
+	/**
+	 * Input callback to move forward in local space (or backward if Val is negative).
+	 * @param Val Amount of movement in the forward direction (or backward if negative).
+	 * @see APawn::AddMovementInput()
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual void MoveForward(float Val);
 
-	/** Input callback to strafe right. */
+	/**
+	 * Input callback to strafe right in local space (or left if Val is negative).
+	 * @param Val Amount of movement in the right direction (or left if negative).
+	 * @see APawn::AddMovementInput()
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual void MoveRight(float Val);
 
-	/** Input callback to move up in world space. */
+	/**
+	 * Input callback to move up in world space (or down if Val is negative).
+	 * @param Val Amount of movement in the world up direction (or down if negative).
+	 * @see APawn::AddMovementInput()
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual void MoveUp_World(float Val);
 
@@ -47,7 +60,7 @@ class ENGINE_API ADefaultPawn : public APawn
 	void TurnAtRate(float Rate);
 
 	/**
-	* Called via input to lookup at a given rate.
+	* Called via input to look up at a given rate (or down if Rate is negative).
 	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	*/
 	UFUNCTION(BlueprintCallable, Category="Pawn")
@@ -92,7 +105,7 @@ public:
 	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<UStaticMeshComponent> MeshComponent;
 
-	/** If true, adds default bindings for movement and camera look. */
+	/** If true, adds default input bindings for movement and camera look. */
 	UPROPERTY(Category=Pawn, EditAnywhere, BlueprintReadOnly)
 	uint32 bAddDefaultMovementBindings:1;
 };
