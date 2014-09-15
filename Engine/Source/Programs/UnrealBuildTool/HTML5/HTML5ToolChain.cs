@@ -310,7 +310,6 @@ namespace UnrealBuildTool
 			}
 
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
-			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 
 			CPPOutput Result = new CPPOutput();
 
