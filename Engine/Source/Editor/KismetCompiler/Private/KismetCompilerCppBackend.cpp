@@ -472,8 +472,18 @@ void FKismetCppBackend::EmitDynamicCastStatement(FKismetFunctionContext& Functio
 	FString ObjectValue = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UObjectProperty>()));
 	FString CastedValue = TermToText(Statement.LHS, (UProperty*)(GetDefault<UObjectProperty>()));
 
-	Emit(Body, *FString::Printf(TEXT("\t\t\t %s = Cast<%s>(%s);\n"),
+	Emit(Body, *FString::Printf(TEXT("\t\t\t%s = Cast<%s>(%s);\n"),
 		*CastedValue, *TargetClass, *ObjectValue));
+}
+
+void FKismetCppBackend::EmitMetaCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	FString DesiredClass	= TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
+	FString SourceClass		= TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UClassProperty>()));
+	FString Destination		= TermToText(Statement.LHS, (UProperty*)(GetDefault<UClassProperty>()));
+
+	Emit(Body, *FString::Printf(TEXT("\t\t\t%s = ((%s)->IsChildOf(DesiredClass)) ? SourceClass : NULL;\n"), 
+		*Destination, *SourceClass, *DesiredClass, *SourceClass));
 }
 
 void FKismetCppBackend::EmitObjectToBoolStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -836,6 +846,12 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 						break;
 					case KCST_Comment:
 						Emit(Body, *FString::Printf(TEXT("\t\t\t// %s\n"), *Statement.Comment));
+						break;
+					case KCST_MetaCast:
+						EmitMetaCastStatement(FunctionContext, Statement);
+						break;
+					case KCST_Return:
+						Emit(Body, TEXT("\t\t\t// Return statement.\n"));
 						break;
 					default:
 						Emit(Body, TEXT("\t// Warning: Ignoring unsupported statement\n"));

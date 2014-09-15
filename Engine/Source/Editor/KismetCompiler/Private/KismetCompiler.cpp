@@ -3377,16 +3377,8 @@ void FKismetCompilerContext::Compile()
 			// The C++ backend is currently only for debugging, so it's only run if the output will be visible
 			Backend_CPP.GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile);
 		
-			// need to break it down per line to prevent the log from failing to emit it
-			TArray<FString> Lines;
-			FString TotalString = FString::Printf(TEXT("\n\n\n[header]\n\n\n%s[body]\n%s"), *Backend_CPP.Header, *Backend_CPP.Body);
-
-			TotalString.ParseIntoArray(&Lines, TEXT("\n"), true);
-			for (int32 I=0; I<Lines.Num(); ++I)
-			{
-				FString Line = Lines[I];
-				UE_LOG(LogK2Compiler, Log, TEXT("%s"), *Line);
-			}
+			UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *Backend_CPP.Header);
+			UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *Backend_CPP.Body);
 		}
 
 		// Always run the VM backend, it's needed for more than just debug printing
