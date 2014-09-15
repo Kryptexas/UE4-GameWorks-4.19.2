@@ -67,7 +67,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;
 
-	bShowCollision = false;
+	bShowCollision = true;
 	bShowSockets = true;
 	bDrawUVs = false;
 	bDrawNormals = false;
