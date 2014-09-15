@@ -19,6 +19,10 @@ private:
 	 */
 	virtual void OnValueChanged();
 
+	ESlateCheckBoxState::Type GetForegroundCheckState() const;
+
+	void HandleForegroundChanged(ESlateCheckBoxState::Type CheckedState);
+
 private:
 
 	TSharedPtr<IPropertyHandle> ColorRuleHandle;
