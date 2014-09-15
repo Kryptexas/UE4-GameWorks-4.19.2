@@ -113,6 +113,9 @@ private:
 	/** -1 if not set, otherwise index into Suggestions */
 	int32 SelectedSuggestion;
 
+	/** Entry that was actually clicked or pressed enter on. NULLs out when menu closes */
+	TSharedPtr<FSearchEntry> EntryClicked;
+
 	/** to prevent recursive calls in UI callback */
 	bool bIgnoreUIUpdate; 
 };
