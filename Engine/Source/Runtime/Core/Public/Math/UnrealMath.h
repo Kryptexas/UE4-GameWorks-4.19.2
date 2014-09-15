@@ -178,6 +178,17 @@ inline bool FMath::PointBoxIntersection
 }
 
 inline bool FMath::LineBoxIntersection
+	( 
+	const FBox& Box, 
+	const FVector& Start, 
+	const FVector& End, 
+	const FVector& Direction
+	)
+{
+	return LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
+}
+
+inline bool FMath::LineBoxIntersection
 	(
 	const FBox&		Box,
 	const FVector&	Start,

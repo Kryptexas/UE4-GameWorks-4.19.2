@@ -284,7 +284,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 				const FVector RayDirection = (*SampleDirections)[SampleIndex];
 				const FVector ReflectedRayDirection = RayDirection;
 
-				if (FMath::LineBoxIntersection(VolumeBounds, VoxelPosition, VoxelPosition + ReflectedRayDirection * VolumeMaxDistance, ReflectedRayDirection, FVector(1.0f) / ReflectedRayDirection))
+				if (FMath::LineBoxIntersection(VolumeBounds, VoxelPosition, VoxelPosition + ReflectedRayDirection * VolumeMaxDistance, ReflectedRayDirection))
 				{
 					FkHitResult Result;
 

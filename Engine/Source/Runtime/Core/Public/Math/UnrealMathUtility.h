@@ -770,6 +770,9 @@ struct FMath : public FPlatformMath
 	static bool PointBoxIntersection( const FVector& Point, const FBox& Box );
 
 	/** Determines whether a line intersects a box. */
+	static bool LineBoxIntersection( const FBox& Box, const FVector& Start, const FVector& End, const FVector& Direction );
+
+	/** Determines whether a line intersects a box. This overload avoids the need to do the reciprocal every time. */
 	static bool LineBoxIntersection( const FBox& Box, const FVector& Start, const FVector& End, const FVector& Direction, const FVector& OneOverDirection );
 
 	/* Swept-Box vs Box test */

@@ -243,7 +243,7 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, in
 			{
 				const FVector Direction = (End - Start);
 
-				if (FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal()))
+				if (FMath::LineBoxIntersection(Box, Start, End, Direction))
 				{
 					bIntersects = true;
 					break;
@@ -862,7 +862,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
-				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
+				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction);
 			}
 
 			Start = End;
@@ -876,7 +876,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
-				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
+				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction);
 			}
 		}
 	}
