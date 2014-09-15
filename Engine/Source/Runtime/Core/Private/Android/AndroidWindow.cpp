@@ -104,6 +104,7 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	float RequestedContentScaleFactor = CVar->GetFloat();
 
 	// 0 means to use native size
+	int32 Width, Height;
 	if (RequestedContentScaleFactor == 0.0f)
 	{
 		Width = MaxWidth;
@@ -111,7 +112,6 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	}
 	else
 	{
-		int32 Width, Height;
 		if (GAndroidIsPortrait)
 		{
 			Height = 1280 * RequestedContentScaleFactor;
