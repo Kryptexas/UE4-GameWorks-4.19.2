@@ -81,12 +81,14 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 				[
 					SAssignNew( EditableText, SMultiLineEditableText )
 					.Text( InArgs._Text )
+					.TextStyle( InArgs._TextStyle )
 					.Marshaller( InArgs._Marshaller )
 					.Font( Font )
 					.IsReadOnly( InArgs._IsReadOnly )
 					.OnTextChanged( InArgs._OnTextChanged )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.OnCursorMoved( InArgs._OnCursorMoved )
+					.ContextMenuExtender( InArgs._ContextMenuExtender )
 					.Justification(InArgs._Justification)
 					.LineHeightPercentage(InArgs._LineHeightPercentage)
 					.Margin(InArgs._Margin)
@@ -230,6 +232,16 @@ void SMultiLineEditableTextBox::InsertRunAtCursor(TSharedRef<IRun> InRun)
 	EditableText->InsertRunAtCursor(InRun);
 }
 
+void SMultiLineEditableTextBox::GoTo(const FTextLocation& NewLocation)
+{
+	return EditableText->GoTo(NewLocation);
+}
+
+void SMultiLineEditableTextBox::ScrollTo(const FTextLocation& NewLocation)
+{
+	return EditableText->ScrollTo(NewLocation);
+}
+
 void SMultiLineEditableTextBox::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)
 {
 	EditableText->ApplyToSelection(InRunInfo, InStyle);
@@ -243,6 +255,21 @@ TSharedPtr<const IRun> SMultiLineEditableTextBox::GetRunUnderCursor() const
 const TArray<TSharedRef<const IRun>> SMultiLineEditableTextBox::GetSelectedRuns() const
 {
 	return EditableText->GetSelectedRuns();
+}
+
+TSharedPtr<const SScrollBar> SMultiLineEditableTextBox::GetHScrollBar() const
+{
+	return EditableText->GetHScrollBar();
+}
+
+TSharedPtr<const SScrollBar> SMultiLineEditableTextBox::GetVScrollBar() const
+{
+	return EditableText->GetVScrollBar();
+}
+
+void SMultiLineEditableTextBox::Refresh()
+{
+	return EditableText->Refresh();
 }
 
 #endif //WITH_FANCY_TEXT

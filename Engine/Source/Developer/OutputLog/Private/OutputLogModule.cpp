@@ -3,7 +3,6 @@
 #include "OutputLogPrivatePCH.h"
 #include "SDebugConsole.h"
 #include "SOutputLog.h"
-#include "OutputLogActions.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
 IMPLEMENT_MODULE( FOutputLogModule, OutputLog );
@@ -69,8 +68,6 @@ TSharedRef<SDockTab> SpawnOutputLog( const FSpawnTabArgs& Args )
 
 void FOutputLogModule::StartupModule()
 {
-	FOutputLogCommands::Register();
-
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(OutputLogModule::OutputLogTabName, FOnSpawnTab::CreateStatic( &SpawnOutputLog ) )
 		.SetDisplayName(NSLOCTEXT("UnrealEditor", "OutputLogTab", "Output Log"))
 		.SetTooltipText(NSLOCTEXT("UnrealEditor", "OutputLogTooltipText", "Open the Output Log tab."))
@@ -86,9 +83,6 @@ void FOutputLogModule::ShutdownModule()
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(OutputLogModule::OutputLogTabName);
 	}
-	
-
-	FOutputLogCommands::Unregister();
 }
 
 TSharedRef< SWidget > FOutputLogModule::MakeConsoleInputBox( TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox ) const

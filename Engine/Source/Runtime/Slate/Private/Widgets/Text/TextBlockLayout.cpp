@@ -158,6 +158,7 @@ bool FTextBlockLayout::IsStyleUpToDate(const FTextBlockStyle& NewStyle) const
 		&& (CurrentStyle.ColorAndOpacity == NewStyle.ColorAndOpacity)
 		&& (CurrentStyle.ShadowOffset == NewStyle.ShadowOffset)
 		&& (CurrentStyle.ShadowColorAndOpacity == NewStyle.ShadowColorAndOpacity)
+		&& (CurrentStyle.SelectedBackgroundColor == NewStyle.SelectedBackgroundColor)
 		&& (CurrentStyle.HighlightColor == NewStyle.HighlightColor)
 		&& (CurrentStyle.HighlightShape == NewStyle.HighlightShape);
 }

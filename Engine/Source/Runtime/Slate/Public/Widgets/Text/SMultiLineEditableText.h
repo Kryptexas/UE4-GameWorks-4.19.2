@@ -115,6 +115,12 @@ public:
 	/** Insert the given run at the current cursor position */
 	void InsertRunAtCursor(TSharedRef<IRun> InRun);
 
+	/** Move the cursor to the given location in the document (will also scroll to this point) */
+	void GoTo(const FTextLocation& NewLocation);
+
+	/** Scroll to the given location in the document (without moving the cursor) */
+	void ScrollTo(const FTextLocation& NewLocation);
+
 	/** Apply the given style to the currently selected text (or insert a new run at the current cursor position if no text is selected) */
 	void ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle);
 
@@ -123,6 +129,15 @@ public:
 
 	/** Get the runs currently that are current selected, some of which may be only partially selected */
 	const TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
+
+	/** Get the horizontal scroll bar widget */
+	TSharedPtr<const SScrollBar> GetHScrollBar() const;
+
+	/** Get the vertical scroll bar widget */
+	TSharedPtr<const SScrollBar> GetVScrollBar() const;
+
+	/** Refresh this text box immediately, rather than wait for the usual caching mechanisms to take affect on the text Tick */
+	void Refresh();
 
 private:
 	
@@ -260,6 +275,28 @@ private:
 			, CursorInfo()
 		{
 		}
+	};
+
+	/** Information needed to be able to scroll to a given point */
+	struct FScrollInfo
+	{
+		FScrollInfo()
+			: Position()
+			, Alignment(ECursorAlignment::Left)
+		{
+		}
+
+		FScrollInfo(const FTextLocation InPosition, const ECursorAlignment InAlignment)
+			: Position(InPosition)
+			, Alignment(InAlignment)
+		{
+		}
+
+		/** The location in the document to scroll to (in line model space) */
+		FTextLocation Position;
+
+		/** The alignment at the given position. This may affect which line view the character maps to when converted from line model space */
+		ECursorAlignment Alignment;
 	};
 
 	/** Run highlighter used to draw the cursor */
@@ -539,8 +576,8 @@ private:
 	/** True if characters were selected by dragging since the last keyboard focus.  Used for text selection. */
 	bool bHasDragSelectedSinceFocused;
 
-	/** True if we're pending a check to ensure the cursor is currently scrolled into view */
-	bool bPendingScrollCursorIntoView;
+	/** If set, the pending data containing a position that should be scrolled into view */
+	TOptional< FScrollInfo > PositionToScrollIntoView;
 
 	/** Undo states */
 	TArray< FUndoState > UndoStates;

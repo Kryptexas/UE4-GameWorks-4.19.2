@@ -13,7 +13,8 @@ class SLATE_API SMultiLineEditableTextBox : public SBorder
 public:
 
 	SLATE_BEGIN_ARGS( SMultiLineEditableTextBox )
-		: _Style(&FCoreStyle::Get().GetWidgetStyle< FEditableTextBoxStyle >("NormalEditableTextBox"))
+		: _Style(&FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("NormalEditableTextBox"))
+		, _TextStyle(&FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText"))
 		, _Marshaller()
 		, _Text()
 		, _HintText()
@@ -39,6 +40,9 @@ public:
 
 		/** The styling of the textbox */
 		SLATE_STYLE_ARGUMENT( FEditableTextBoxStyle, Style )
+
+		/** Pointer to a style of the text block, which dictates the font, color, and shadow options. */
+		SLATE_STYLE_ARGUMENT( FTextBlockStyle, TextStyle )
 
 		/** The marshaller used to get/set the raw text to/from the text layout. */
 		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
@@ -102,6 +106,9 @@ public:
 
 		/** Called when the cursor is moved within the text area */
 		SLATE_EVENT( SMultiLineEditableText::FOnCursorMoved, OnCursorMoved )
+
+		/** Menu extender for the right-click context menu */
+		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE( float, WrapTextAt )
@@ -175,6 +182,12 @@ public:
 	/** Insert the given run at the current cursor position */
 	void InsertRunAtCursor(TSharedRef<IRun> InRun);
 
+	/** Move the cursor to the given location in the document */
+	void GoTo(const FTextLocation& NewLocation);
+
+	/** Scroll to the given location in the document (without moving the cursor) */
+	void ScrollTo(const FTextLocation& NewLocation);
+
 	/** Apply the given style to the currently selected text (or insert a new run at the current cursor position if no text is selected) */
 	void ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle);
 
@@ -183,6 +196,15 @@ public:
 
 	/** Get the runs currently that are current selected, some of which may be only partially selected */
 	const TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
+
+	/** Get the horizontal scroll bar widget */
+	TSharedPtr<const SScrollBar> GetHScrollBar() const;
+
+	/** Get the vertical scroll bar widget */
+	TSharedPtr<const SScrollBar> GetVScrollBar() const;
+
+	/** Refresh this text box immediately, rather than wait for the usual caching mechanisms to take affect on the text Tick */
+	void Refresh();
 
 protected:
 

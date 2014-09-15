@@ -863,26 +863,34 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	// Output Log Window
 #if WITH_EDITOR || IS_PROGRAM
 	{
-		Set("LogTableRow.Normal", FTableRowStyle(NormalTableRowStyle)
-			.SetTextColor( FLinearColor(FColor(0xffaaaaaa)) )
-			.SetSelectedTextColor( FLinearColor(FColor(0xff333333)) ) );
+		const FTextBlockStyle NormalLogText = FTextBlockStyle(NormalText)
+			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 9 ) )
+			.SetColorAndOpacity( FLinearColor(FColor(0xffaaaaaa)) )
+			//.SetSelectedBackgroundColor( SelectionColor );
+			.SetSelectedBackgroundColor( FLinearColor(FColor(0xffeeeeee)) );
 
-		Set("LogTableRow.Command", FTableRowStyle(NormalTableRowStyle)
-			.SetTextColor( FLinearColor(FColor(0xff33ff33)) )
-			.SetSelectedTextColor( FLinearColor(FColor(0xff055505)) ) );
+		Set("Log.Normal", NormalLogText );
 
-		Set("LogTableRow.Warning", FTableRowStyle(NormalTableRowStyle)
-			.SetTextColor( FLinearColor(FColor(0xffbbbb44)) )
-			.SetSelectedTextColor( FLinearColor(FColor(0xff444411)) ) );
+		Set("Log.Command", FTextBlockStyle(NormalLogText)
+			.SetColorAndOpacity( FLinearColor(FColor(0xff33dd33)) )
+			);
 
-		Set("LogTableRow.Error", FTableRowStyle(NormalTableRowStyle)
-			.SetTextColor( FLinearColor(FColor(0xffff0000)) )
-			.SetSelectedTextColor( FLinearColor(FColor(0xff440000)) ) );
+		Set("Log.Warning", FTextBlockStyle(NormalLogText)
+			.SetColorAndOpacity( FLinearColor(FColor(0xffbbbb44)) )
+			);
 
-		Set("Log.Normal", FTextBlockStyle(NormalText)
-			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 9 ) ) );
+		Set("Log.Error", FTextBlockStyle(NormalLogText)
+			.SetColorAndOpacity( FLinearColor(FColor(0xffdd0000)) )
+			);
 
 		Set("Log.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_OutputLog_16x", Icon16x16 ) );
+
+		Set("Log.TextBox", FEditableTextBoxStyle(NormalEditableTextBoxStyle)
+			.SetBackgroundImageNormal( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageHovered( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageFocused( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
+			);
 
 		Set("DebugConsole.Background", new BOX_BRUSH("Old/Menu_Background", FMargin(8.0f / 64.0f)));
 	}

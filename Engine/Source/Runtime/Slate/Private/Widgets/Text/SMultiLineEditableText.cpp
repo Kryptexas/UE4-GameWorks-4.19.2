@@ -153,9 +153,10 @@ int32 SMultiLineEditableText::FTextSelectionRunRenderer::OnPaint( const FPaintAr
 	FVector2D Location( Block->GetLocationOffset() );
 	Location.Y = Line.Offset.Y;
 
-	const FLinearColor FocusedSelectionColorAdjustment(-0.2f, -0.05f, 0.15f);
-	const FLinearColor UnfocusedSelectionColorAdjustment(-0.01f, -0.01f, 0.01f);
-	const FColor SelectionBackgroundColorAndOpacity = ((FLinearColor::White - DefaultStyle.ColorAndOpacity.GetColor(InWidgetStyle))*0.5f + (bHasKeyboardFocus ? FocusedSelectionColorAdjustment : UnfocusedSelectionColorAdjustment)) * InWidgetStyle.GetColorAndOpacityTint();
+	// If we've not been set to an explicit color, calculate a suitable one from the linked color
+	const FColor SelectionBackgroundColorAndOpacity = DefaultStyle.SelectedBackgroundColor.IsColorSpecified() 
+		? DefaultStyle.SelectedBackgroundColor.GetSpecifiedColor() * InWidgetStyle.GetColorAndOpacityTint()
+		: ((FLinearColor::White - DefaultStyle.SelectedBackgroundColor.GetColor(InWidgetStyle))*0.5f + FLinearColor(-0.2f, -0.05f, 0.15f)) * InWidgetStyle.GetColorAndOpacityTint();
 
 	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
 	const float InverseScale = Inverse(AllottedGeometry.Scale);
@@ -170,16 +171,18 @@ int32 SMultiLineEditableText::FTextSelectionRunRenderer::OnPaint( const FPaintAr
 			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(HighlightWidth, Line.Size.Y)), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
 			&DefaultStyle.HighlightShape,
 			MyClippingRect,
-			bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
+			bParentEnabled && bHasKeyboardFocus ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			SelectionBackgroundColorAndOpacity
 		);
 	}
 
-	//FLinearColor InvertedForeground = FLinearColor::White - InWidgetStyle.GetForegroundColor();
-	//InvertedForeground.A = InWidgetStyle.GetForegroundColor().A;
+	/*
+	FLinearColor InvertedForeground = FLinearColor::White - InWidgetStyle.GetForegroundColor();
+	InvertedForeground.A = InWidgetStyle.GetForegroundColor().A;
 
-	//FWidgetStyle WidgetStyle( InWidgetStyle );
-	//WidgetStyle.SetForegroundColor( InvertedForeground );
+	FWidgetStyle WidgetStyle( InWidgetStyle );
+	WidgetStyle.SetForegroundColor( InvertedForeground );
+	*/
 
 	return Run->OnPaint( Args, Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
@@ -195,7 +198,6 @@ SMultiLineEditableText::SMultiLineEditableText()
 	, bIsDragSelecting(false)
 	, bWasFocusedByLastMouseDown(false)
 	, bHasDragSelectedSinceFocused(false)
-	, bPendingScrollCursorIntoView(false)
 	, CurrentUndoLevel(INDEX_NONE)
 	, bIsChangingText(false)
 	, IsReadOnly(false)
@@ -368,19 +370,18 @@ bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool 
 		ClearSelection();
 		TextLayout->ClearLines();
 
-		if(TextToSetString.Len())
+		Marshaller->SetText(TextToSetString, *TextLayout);
+
+		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+		if(Lines.Num() == 0)
 		{
-			Marshaller->SetText(TextToSetString, *TextLayout);
-		}
-		else
-		{
-			TSharedPtr< FString > LineText = MakeShareable(new FString());
+			TSharedRef< FString > LineText = MakeShareable(new FString());
 
 			// Create an empty run
 			TArray< TSharedRef< IRun > > Runs;
-			Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText.ToSharedRef(), TextStyle));
+			Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, TextStyle));
 
-			TextLayout->AddLine(LineText.ToSharedRef(), Runs);
+			TextLayout->AddLine(LineText, Runs);
 		}
 
 		return true;
@@ -408,6 +409,8 @@ void SMultiLineEditableText::ForceRefreshTextLayout(const FText& CurrentText)
 	SelectionStart = OldSelectionStart;
 	CursorInfo = OldCursorInfo;
 	UpdateCursorHighlight();
+
+	TextLayout->UpdateIfNeeded();
 }
 
 void SMultiLineEditableText::OnHScrollBarMoved(const float InScrollOffsetFraction)
@@ -475,6 +478,10 @@ void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InK
 
 		OnTextCommitted.ExecuteIfBound(EditedText, TextAction);
 		UpdateCursorHighlight();
+
+		// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
+		// lose focus since it can cause the scroll position to jump unexpectedly
+		PositionToScrollIntoView = TOptional<FScrollInfo>();
 	}
 }
 
@@ -931,7 +938,7 @@ FReply SMultiLineEditableText::MoveCursor( FMoveCursor Args )
 
 void SMultiLineEditableText::UpdateCursorHighlight()
 {
-	bPendingScrollCursorIntoView = true;
+	PositionToScrollIntoView = FScrollInfo(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment());
 
 	RemoveCursorHighlight();
 
@@ -1241,6 +1248,37 @@ void SMultiLineEditableText::InsertRunAtCursor(TSharedRef<IRun> InRun)
 	FinishChangingText();
 }
 
+void SMultiLineEditableText::GoTo(const FTextLocation& NewLocation)
+{
+	const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+	if (Lines.IsValidIndex(NewLocation.GetLineIndex()))
+	{
+		const FTextLayout::FLineModel& Line = Lines[NewLocation.GetLineIndex()];
+		if (NewLocation.GetOffset() <= Line.Text->Len())
+		{
+			ClearSelection();
+
+			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewLocation);
+			OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
+			UpdatePreferredCursorScreenOffsetInLine();
+			UpdateCursorHighlight();
+		}
+	}
+}
+
+void SMultiLineEditableText::ScrollTo(const FTextLocation& NewLocation)
+{
+	const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+	if (Lines.IsValidIndex(NewLocation.GetLineIndex()))
+	{
+		const FTextLayout::FLineModel& Line = Lines[NewLocation.GetLineIndex()];
+		if (NewLocation.GetOffset() <= Line.Text->Len())
+		{
+			PositionToScrollIntoView = FScrollInfo(NewLocation, ECursorAlignment::Left);
+		}
+	}
+}
+
 void SMultiLineEditableText::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)
 {
 	StartChangingText();
@@ -1417,6 +1455,41 @@ const TArray<TSharedRef<const IRun>> SMultiLineEditableText::GetSelectedRuns() c
 	}
 
 	return Runs;
+}
+
+TSharedPtr<const SScrollBar> SMultiLineEditableText::GetHScrollBar() const
+{
+	return HScrollBar;
+}
+
+TSharedPtr<const SScrollBar> SMultiLineEditableText::GetVScrollBar() const
+{
+	return VScrollBar;
+}
+
+void SMultiLineEditableText::Refresh()
+{
+	bool bHasSetText = false;
+
+	const FText& TextToSet = BoundText.Get(FText::GetEmpty());
+	if (!BoundTextLastTick.IdenticalTo(TextToSet))
+	{
+		// The pointer used by the bound text has changed, however the text may still be the same - check that now
+		if (!BoundTextLastTick.IsDisplayStringEqualTo(TextToSet))
+		{
+			// The source text has changed, so update the internal editable text
+			bHasSetText = true;
+			SetEditableText(TextToSet);
+		}
+
+		// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
+		BoundTextLastTick = FTextSnapshot(TextToSet);
+	}
+
+	if (!bHasSetText && Marshaller->IsDirty())
+	{
+		ForceRefreshTextLayout(TextToSet);
+	}
 }
 
 bool SMultiLineEditableText::CanExecuteSelectAll() const
@@ -1730,7 +1803,7 @@ void SMultiLineEditableText::InsertTextAtCursorImpl(const FString& InString)
 
 bool SMultiLineEditableText::CanExecuteUndo() const
 {
-	if(TextInputMethodContext->IsComposing)
+	if(IsReadOnly.Get() || TextInputMethodContext->IsComposing)
 	{
 		return false;
 	}
@@ -1957,45 +2030,25 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 
 	if (!bShouldAppearFocused)
 	{
-		bool bHasSetText = false;
-
-		const FText& TextToSet = BoundText.Get(FText::GetEmpty());
-		if (!BoundTextLastTick.IdenticalTo(TextToSet))
-		{
-			// The pointer used by the bound text has changed, however the text may still be the same - check that now
-			if (!BoundTextLastTick.IsDisplayStringEqualTo(TextToSet))
-			{
-				// The source text has changed, so update the internal editable text
-				bHasSetText = true;
-				SetEditableText(TextToSet);
-			}
-
-			// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
-			BoundTextLastTick = FTextSnapshot(TextToSet);
-		}
-
-		if (!bHasSetText && Marshaller->IsDirty())
-		{
-			ForceRefreshTextLayout(TextToSet);
-		}
+		Refresh();
 	}
 
 	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
 	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
 	// Try and make sure that the line containing the cursor is in view
-	if (bPendingScrollCursorIntoView)
+	if (PositionToScrollIntoView.IsSet())
 	{
-		bPendingScrollCursorIntoView = false;
+		const FScrollInfo& ScrollInfo = PositionToScrollIntoView.GetValue();
 
 		const TArray<FTextLayout::FLineView>& LineViews = TextLayout->GetLineViews();
-		const int32 LineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right);
+		const int32 LineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, ScrollInfo.Position, ScrollInfo.Alignment == ECursorAlignment::Right);
 		if (LineViews.IsValidIndex(LineViewIndex))
 		{
 			const FTextLayout::FLineView& LineView = LineViews[LineViewIndex];
 			const FSlateRect LocalLineViewRect(LineView.Offset / TextLayout->GetScale(), (LineView.Offset + LineView.Size) / TextLayout->GetScale());
 
-			const FVector2D LocalCursorLocation = TextLayout->GetLocationAt(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right) / TextLayout->GetScale();
+			const FVector2D LocalCursorLocation = TextLayout->GetLocationAt(ScrollInfo.Position, ScrollInfo.Alignment == ECursorAlignment::Right) / TextLayout->GetScale();
 			const FSlateRect LocalCursorRect(LocalCursorLocation, FVector2D(LocalCursorLocation.X + CaretWidth, LocalCursorLocation.Y + FontMaxCharHeight));
 
 			if (LocalCursorRect.Left < 0.0f)
@@ -2016,6 +2069,8 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 				ScrollOffset.Y += (LocalLineViewRect.Bottom - AllottedGeometry.Size.Y);
 			}
 		}
+
+		PositionToScrollIntoView = TOptional<FScrollInfo>();
 	}
 
 	{

@@ -196,6 +196,11 @@ struct SLATECORE_API FTextBlockStyle : public FSlateWidgetStyle
 	FLinearColor ShadowColorAndOpacity;
 	FTextBlockStyle& SetShadowColorAndOpacity(const FLinearColor& InShadowColorAndOpacity) { ShadowColorAndOpacity = InShadowColorAndOpacity; return *this; }
 
+	/** The background color of selected text */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateColor SelectedBackgroundColor;
+	FTextBlockStyle& SetSelectedBackgroundColor(const FSlateColor& InSelectedBackgroundColor) { SelectedBackgroundColor = InSelectedBackgroundColor; return *this; }
+
 	/** The color of highlighted text */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FLinearColor HighlightColor;

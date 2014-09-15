@@ -3,16 +3,19 @@
 #pragma once
 
 
+class FOutputLogTextLayoutMarshaller;
+
+
 /**
  * A single log message for the output log, holding a message and
  * a style, for color and bolding of the message.
  */
 struct FLogMessage
 {
-	FString Message;
+	TSharedRef<FString> Message;
 	FName Style;
 
-	FLogMessage(const FString& NewMessage, FName NewStyle = NAME_None)
+	FLogMessage(const TSharedRef<FString>& NewMessage, FName NewStyle = NAME_None)
 		: Message(NewMessage)
 		, Style(NewStyle)
 	{
@@ -153,60 +156,15 @@ public:
 	 */
 	static bool CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, TArray< TSharedPtr<FLogMessage> >& OutMessages );
 
-	/**
-	 * Called after a key is pressed when this widget has keyboard focus
-	 *
-	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
-	 *
-	 * @return  Returns whether the event was handled, along with other possible actions
-	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
-
 protected:
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	/** Makes the widget for the log messages in the list view */
-	TSharedRef<ITableRow> MakeLogListItemWidget(TSharedPtr<FLogMessage> Message, const TSharedRef<STableViewBase>& OwnerTable);
-
 private:
 	/**
-	 * Creates a widget for the context menu that can be inserted into a pop-up window
-	 *
-	 * @return	Widget for this context menu
+	 * Extends the context menu used by the text box
 	 */
-	TSharedPtr< SWidget > BuildMenuWidget();
-
-	/**
-	 * Called when copy is selected
-	 */
-	void OnCopy();
-
-	/**
-	 * Called to determine whether copy is currently a valid command
-	 */
-	bool CanCopy() const;
-
-	/**
-	 * Called when select all is selected
-	 */
-	void OnSelectAll();
-
-	/**
-	 * Called to determine whether select all is currently a valid command
-	 */
-	bool CanSelectAll() const;
-
-	/**
-	 * Called when select none is selected
-	 */
-	void OnSelectNone();
-
-	/**
-	 * Called to determine whether select none is currently a valid command
-	 */
-	bool CanSelectNone() const;
+	void ExtendTextBoxMenu(FMenuBuilder& Builder);
 
 	/**
 	 * Called when delete all is selected
@@ -218,17 +176,9 @@ private:
 	 */
 	bool CanClearLog() const;
 
-	/** 
-	 * Output log commands
-	 */
-	TSharedPtr<FUICommandList> OutputLogActions;
+	/** Converts the array of messages into something the text box understands */
+	TSharedPtr< FOutputLogTextLayoutMarshaller > MessagesTextMarshaller;
 
-	/** All log messages stored in this widget for the list view */
-	TArray< TSharedPtr<FLogMessage> > Messages;
-
-	/** The list view for showing all log messages. Should be replaced by a full text editor */
-	TSharedPtr< SListView< TSharedPtr<FLogMessage> > > MessageListView;
-
-	/** Scroll bar for output log. */
-	TSharedPtr< SScrollBar > OutputLogScrollBar;
+	/** The editable text showing all log messages */
+	TSharedPtr< SMultiLineEditableTextBox > MessagesTextBox;
 };

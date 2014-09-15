@@ -63,6 +63,7 @@ void FCheckBoxStyle::PostSerialize(const FArchive& Ar)
 FTextBlockStyle::FTextBlockStyle()
 : Font()
 , ColorAndOpacity()
+, SelectedBackgroundColor(FSlateColor::UseForeground())
 , ShadowOffset(FVector2D::ZeroVector)
 , ShadowColorAndOpacity(FLinearColor::Black)
 {
