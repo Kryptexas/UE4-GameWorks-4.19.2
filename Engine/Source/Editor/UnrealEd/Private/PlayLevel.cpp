@@ -786,21 +786,7 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			}
 		}
 		
-		if (!bPlayOnLocalPcSession && !bStartMovieCapture && PlayInSettings->PlayNetMode == PIE_Client)
-		{
-			// Editor counts as a client
-			NumClients++;
-		}
-
-		if (bPlayOnLocalPcSession)
-		{
-			// Spawn number of clients
-			for (int32 i = NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
-			{
-				PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, NumClients + 1, false);
-			}
-		}
-		else 
+		if (!bPlayOnLocalPcSession)
 		{
 			if (bStartMovieCapture)
 			{
@@ -810,7 +796,16 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			else
 			{
 				PlayInEditor(GetEditorWorldContext().World(), bWantSimulateInEditor);
+
+				// Editor counts as a client
+				NumClients++;
 			}
+		}
+
+		// Spawn number of clients
+		for (int32 i = NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
+		{
+			PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, NumClients + 1, false);
 		}
 	}
 	else

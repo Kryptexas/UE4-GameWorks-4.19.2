@@ -191,7 +191,7 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	bool PlayNetDedicated;
 
-	/** Number of player windows that should be opened. Listen server will count as a player, a dedicated server will not. */
+	/** Number of player windows that should be opened. The editor will count as a player, a dedicated server will not. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions, meta=(ClampMin = "1", UIMin = "1", UIMax = "64"))
 	int32 PlayNumberOfClients;
 
