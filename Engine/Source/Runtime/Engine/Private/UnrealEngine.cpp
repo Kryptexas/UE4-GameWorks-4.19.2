@@ -7426,8 +7426,10 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 	if (InWorld)
 	{
 		ULocalPlayer* const LP = GEngine->GetFirstGamePlayer(InWorld);
-		check(LP);
-		LP->HandleDisconnect(InWorld, NetDriver);
+		if(ensure(LP))
+		{
+			LP->HandleDisconnect(InWorld, NetDriver);
+		}
 	}
 	else if(NetDriver && NetDriver->NetDriverName == NAME_PendingNetDriver)
 	{
@@ -7436,8 +7438,10 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 		check(Context.OwningGameInstance != NULL && Context.OwningGameInstance->GetFirstGamePlayer() != NULL);
 
 		ULocalPlayer* const LP = Context.OwningGameInstance->GetFirstGamePlayer();
-		check(LP);
-		LP->HandleDisconnect(InWorld, NetDriver);
+		if(ensure(LP))
+		{
+			LP->HandleDisconnect(InWorld, NetDriver);
+		}
 	}
 	else
 	{
