@@ -23,7 +23,6 @@ void FSourceCodeAccessModule::StartupModule()
 
 	// Register to check for source control features
 	IModularFeatures::Get().OnModularFeatureRegistered().AddRaw(this, &FSourceCodeAccessModule::HandleModularFeatureRegistered);
-	IModularFeatures::Get().OnModularFeatureUnregistered().AddRaw(this, &FSourceCodeAccessModule::HandleModularFeatureUnregistered);
 
 	// bind default accessor to editor
 	IModularFeatures::Get().RegisterModularFeature(SourceCodeAccessorFeatureName, &DefaultSourceCodeAccessor);
@@ -54,7 +53,6 @@ void FSourceCodeAccessModule::ShutdownModule()
 
 	// we don't care about modular features any more
 	IModularFeatures::Get().OnModularFeatureRegistered().RemoveAll(this);
-	IModularFeatures::Get().OnModularFeatureUnregistered().RemoveAll(this);
 }
 
 bool FSourceCodeAccessModule::CanAccessSourceCode() const
@@ -104,7 +102,7 @@ FOpenFileFailed& FSourceCodeAccessModule::OnOpenFileFailed()
 	return OpenFileFailedDelegate;
 }
 
-void FSourceCodeAccessModule::HandleModularFeatureRegistered(const FName& Type, IModularFeature* ModularFeature)
+void FSourceCodeAccessModule::HandleModularFeatureRegistered(const FName& Type)
 {
 	if(Type == SourceCodeAccessorFeatureName)
 	{
@@ -130,14 +128,6 @@ void FSourceCodeAccessModule::HandleModularFeatureRegistered(const FName& Type, 
 				break;
 			}
 		}
-	}
-}
-
-void FSourceCodeAccessModule::HandleModularFeatureUnregistered(const FName& Type, IModularFeature* ModularFeature)
-{
-	if(Type == SourceCodeAccessorFeatureName && CurrentSourceCodeAccessor == static_cast<ISourceCodeAccessor*>(ModularFeature))
-	{
-		CurrentSourceCodeAccessor = &DefaultSourceCodeAccessor;
 	}
 }
 

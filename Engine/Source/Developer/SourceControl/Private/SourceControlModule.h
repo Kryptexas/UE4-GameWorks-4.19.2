@@ -87,10 +87,7 @@ private:
 	void OnSourceControlDialogClosed(const TSharedRef<class SWindow>& InWindow);
 
 	/** Delegate handling when source control features are registered */
-	void HandleModularFeatureRegistered(const FName& Type, IModularFeature* ModularFeature);
-
-	/** Delegate handling when source control features are unregistered */
-	void HandleModularFeatureUnregistered(const FName& Type, IModularFeature* ModularFeature);
+	void HandleModularFeatureRegistered(const FName& Type);
 
 private:
 	/** The settings object */

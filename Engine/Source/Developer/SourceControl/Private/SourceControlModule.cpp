@@ -19,8 +19,6 @@ DEFINE_LOG_CATEGORY(LogSourceControl);
 
 #define LOCTEXT_NAMESPACE "SourceControl"
 
-static const FName SourceControlFeatureName("SourceControl");
-
 namespace SourceControlConstants
 {
 	/** The maximum number of file/directory status requests we should dispatch in a tick */
@@ -43,10 +41,9 @@ void FSourceControlModule::StartupModule()
 
 	// Register to check for source control features
 	IModularFeatures::Get().OnModularFeatureRegistered().AddRaw(this, &FSourceControlModule::HandleModularFeatureRegistered);
-	IModularFeatures::Get().OnModularFeatureUnregistered().AddRaw(this, &FSourceControlModule::HandleModularFeatureUnregistered);
 
 	// bind default provider to editor
-	IModularFeatures::Get().RegisterModularFeature( SourceControlFeatureName, &DefaultSourceControlProvider );
+	IModularFeatures::Get().RegisterModularFeature( "SourceControl", &DefaultSourceControlProvider );
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	// create a message log for source control to use
@@ -70,11 +67,10 @@ void FSourceControlModule::ShutdownModule()
 #endif
 
 	// unbind default provider from editor
-	IModularFeatures::Get().UnregisterModularFeature( SourceControlFeatureName, &DefaultSourceControlProvider );
+	IModularFeatures::Get().UnregisterModularFeature( "SourceControl", &DefaultSourceControlProvider );
 
 	// we don't care about modular features any more
 	IModularFeatures::Get().OnModularFeatureRegistered().RemoveAll(this);
-	IModularFeatures::Get().OnModularFeatureUnregistered().RemoveAll(this);
 }
 
 void FSourceControlModule::SaveSettings()
@@ -193,11 +189,11 @@ void FSourceControlModule::InitializeSourceControlProviders()
 	// Look for valid SourceControl modules - they will register themselves as editor features
 	RefreshSourceControlProviders();
 
-	int32 SourceControlCount = IModularFeatures::Get().GetModularFeatureImplementationCount(SourceControlFeatureName);
+	int32 SourceControlCount = IModularFeatures::Get().GetModularFeatureImplementationCount("SourceControl");
 	if( SourceControlCount > 0 )
 	{
 		FString PreferredSourceControlProvider = SourceControlSettings.GetProvider();
-		TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
+		TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
 		for(auto It(Providers.CreateIterator()); It; It++)
 		{ 
 			ISourceControlProvider* Provider = *It;
@@ -314,7 +310,7 @@ ISourceControlProvider& FSourceControlModule::GetProvider() const
 
 void FSourceControlModule::SetProvider( const FName& InName )
 {
-	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
+	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
 	for(auto It(Providers.CreateIterator()); It; It++)
 	{
 		ISourceControlProvider* Provider = *It;
@@ -339,12 +335,12 @@ void FSourceControlModule::ClearCurrentSourceControlProvider()
 
 int32 FSourceControlModule::GetNumSourceControlProviders()
 {
-	return IModularFeatures::Get().GetModularFeatureImplementationCount(SourceControlFeatureName);
+	return IModularFeatures::Get().GetModularFeatureImplementationCount("SourceControl");
 }
 
 void FSourceControlModule::SetCurrentSourceControlProvider(int32 ProviderIndex)
 {
-	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
+	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
 	check(Providers.IsValidIndex(ProviderIndex));
 	SetCurrentSourceControlProvider(*Providers[ProviderIndex]);
 }
@@ -369,7 +365,7 @@ void FSourceControlModule::SetCurrentSourceControlProvider(ISourceControlProvide
 
 FName FSourceControlModule::GetSourceControlProviderName(int32 ProviderIndex)
 {
-	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
+	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
 	check(Providers.IsValidIndex(ProviderIndex));
 	return Providers[ProviderIndex]->GetName();
 }
@@ -379,19 +375,11 @@ TSharedPtr<class SSourceControlLogin> FSourceControlModule::GetLoginWidget() con
 	return SourceControlLoginPtr;
 }
 
-void FSourceControlModule::HandleModularFeatureRegistered(const FName& Type, IModularFeature* ModularFeature)
+void FSourceControlModule::HandleModularFeatureRegistered(const FName& Type)
 {
-	if(Type == SourceControlFeatureName)
+	if(Type == TEXT("SourceControl"))
 	{
 		InitializeSourceControlProviders();
-	}
-}
-
-void FSourceControlModule::HandleModularFeatureUnregistered(const FName& Type, IModularFeature* ModularFeature)
-{
-	if(Type == SourceControlFeatureName && CurrentSourceControlProvider == static_cast<ISourceControlProvider*>(ModularFeature))
-	{
-		ClearCurrentSourceControlProvider();
 	}
 }
 

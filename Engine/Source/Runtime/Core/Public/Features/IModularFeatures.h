@@ -115,7 +115,7 @@ public:
 	 *
 	 * @param	Type	The name of the modular feature type being registered.
 	 */
-	DECLARE_EVENT_TwoParams(IModularFeatures, FOnModularFeatureRegistered, const FName& /** Type */, class IModularFeature* /*ModularFeature*/);
+	DECLARE_EVENT_OneParam(IModularFeatures, FOnModularFeatureRegistered, const FName& /** Type */);
 	virtual FOnModularFeatureRegistered& OnModularFeatureRegistered() = 0;
 
 	/** 
@@ -123,7 +123,7 @@ public:
 	 *
 	 * @param	Type	The name of the modular feature type being unregistered.
 	 */
-	DECLARE_EVENT_TwoParams(IModularFeatures, FOnModularFeatureUnregistered, const FName& /** Type */, class IModularFeature* /*ModularFeature*/);
+	DECLARE_EVENT_OneParam(IModularFeatures, FOnModularFeatureUnregistered, const FName& /** Type */);
 	virtual FOnModularFeatureUnregistered& OnModularFeatureUnregistered() = 0;
 };
 
