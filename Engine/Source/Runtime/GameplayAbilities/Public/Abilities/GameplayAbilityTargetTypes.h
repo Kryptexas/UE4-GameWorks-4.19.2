@@ -315,7 +315,7 @@ public:
 
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const;
 
-	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors) const;
+	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors, bool OneActorPerHandle = false) const;
 
 	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
@@ -449,7 +449,45 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 
 	virtual FTransform GetOrigin() const override
 	{
-		return SourceLocation.GetTargetingTransform();		//No single aim-at target, since this is aimed at multiple characters.
+		FTransform ReturnTransform = SourceLocation.GetTargetingTransform();
+
+		//Aim at first valid target, if we have one. Duplicating GetEndPoint() code here so we don't iterate through the target array twice.
+		for (int32 i = 0; i < TargetActorArray.Num(); ++i)
+		{
+			if (TargetActorArray[i].IsValid())
+			{
+				ReturnTransform.SetRotation((TargetActorArray[i].Get()->GetActorLocation()).SafeNormal().Rotation().Quaternion());
+				break;
+			}
+		}
+		return ReturnTransform;
+	}
+
+	// -------------------------------------
+
+	virtual bool HasEndPoint() const override
+	{
+		//We have an endpoint if we have at least one valid actor in our target array
+		for (int32 i = 0; i < TargetActorArray.Num(); ++i)
+		{
+			if (TargetActorArray[i].IsValid())
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	virtual FVector GetEndPoint() const override
+	{
+		for (int32 i = 0; i < TargetActorArray.Num(); ++i)
+		{
+			if (TargetActorArray[i].IsValid())
+			{
+				return TargetActorArray[i].Get()->GetActorLocation();
+			}
+		}
+		return FVector::ZeroVector;
 	}
 
 	// -------------------------------------

@@ -78,13 +78,36 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 	return FGameplayAbilityTargetDataHandle(ReturnData);
 }
 
-FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors) const
+FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors, bool OneActorPerHandle) const
 {
 	/** Note: This is cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
 	FGameplayAbilityTargetData_ActorArray* ReturnData = new FGameplayAbilityTargetData_ActorArray();
-	ReturnData->TargetActorArray = TargetActors;
+	FGameplayAbilityTargetDataHandle ReturnDataHandle = FGameplayAbilityTargetDataHandle(ReturnData);
 	ReturnData->SourceLocation = *this;
-	return FGameplayAbilityTargetDataHandle(ReturnData);
+	if (OneActorPerHandle)
+	{
+		if (TargetActors[0].IsValid())
+		{
+			ReturnData->TargetActorArray.Add(TargetActors[0].Get());
+		}
+
+		for (int32 i = 1; i < TargetActors.Num(); ++i)
+		{
+			if (TargetActors[i].IsValid())
+			{
+				FGameplayAbilityTargetData_ActorArray* CurrentData = new FGameplayAbilityTargetData_ActorArray();
+				FGameplayAbilityTargetDataHandle CurrentDataHandle = FGameplayAbilityTargetDataHandle(CurrentData);
+				CurrentData->SourceLocation = *this;
+				CurrentData->TargetActorArray.Add(TargetActors[i].Get());
+				ReturnDataHandle.Append(&CurrentDataHandle);
+			}
+		}
+	}
+	else
+	{
+		ReturnData->TargetActorArray = TargetActors;
+	}
+	return ReturnDataHandle;
 }
 
 bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
