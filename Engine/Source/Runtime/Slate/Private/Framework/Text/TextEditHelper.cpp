@@ -156,7 +156,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 		return FReply::Handled();
 	}
-	else if( Key == EKeys::Enter )
+	else if( Key == EKeys::Enter && !TextEditor->GetIsReadOnly() )
 	{
 		FScopedTextTransaction TextTransaction(TextEditor);
 
@@ -188,7 +188,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 	}	
 	else if( Key == EKeys::Escape )
 	{
-		return TextEditor->OnEscape();;
+		return TextEditor->OnEscape();
 	}
 
 	// @Todo: Slate keybindings support more than one set of keys. 
