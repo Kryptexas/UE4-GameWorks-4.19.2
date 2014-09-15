@@ -13,8 +13,11 @@ class UMG_API UScrollBar : public UPanelWidget
 public:
 
 	/** Style of the scrollbar */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FScrollBarStyle WidgetStyle;
+
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/**  */
 	UPROPERTY(EditDefaultsOnly, Category="Behavior")
@@ -56,10 +59,17 @@ public:
 	///** @return True if the user is scrolling by dragging the scroll bar thumb. */
 	//bool IsScrolling() const;
 
-
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	// UWidget interface

@@ -16,9 +16,12 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSpinBoxBeginSliderMovement);
 
 public:
-	/** Text style */
-	UPROPERTY(EditDefaultsOnly, Category = Style, meta = (DisplayThumbnail = "true"))
-	USlateWidgetStyleAsset* Style;
+	/** The Style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FSpinBoxStyle WidgetStyle;
+
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** Value stored in this spin box */
 	UPROPERTY(EditDefaultsOnly, Category = Content)
@@ -47,6 +50,9 @@ public:
 	/** Whether to select the text in the spin box when the value is committed */
 	UPROPERTY(EditDefaultsOnly, Category = Content, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
+
+	UPROPERTY(EditDefaultsOnly, Category="Style")
+	FSlateColor ForegroundColor;
 
 public:
 	/** Called when the value is changed interactively by the user */
@@ -125,12 +131,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
 	void ClearMaxSliderValue();
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetForegroundColor(FSlateColor InForegroundColor);
+
+	// UWidget interface
+	virtual void SynchronizeProperties() override;
+	// End of UWidget interface
+
 	// UVisual interface
 	virtual void ReleaseNativeWidget() override;
 	// End of UVisual interface
 
-	// UWidget interface
-	virtual void SynchronizeProperties() override;
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;

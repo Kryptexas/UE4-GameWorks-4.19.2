@@ -26,6 +26,9 @@ USpinBox::USpinBox(const FPostConstructInitializeProperties& PCIP)
 	MinDesiredWidth = Defaults._MinDesiredWidth.Get();
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
+
+	WidgetStyle = *Defaults._Style;
+	ForegroundColor = FSlateColor(FLinearColor::Black);
 }
 
 void USpinBox::ReleaseNativeWidget()
@@ -44,16 +47,8 @@ TSharedRef<SWidget> USpinBox::RebuildWidget()
 		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 	}
 	
-	SSpinBox<float>::FArguments Defaults;
-	
-	const FSpinBoxStyle* StylePtr = (Style != nullptr) ? Style->GetStyle<FSpinBoxStyle>() : nullptr;
-	if ( StylePtr == nullptr )
-	{
-		StylePtr = Defaults._Style;
-	}
-	
 	MySpinBox = SNew(SSpinBox<float>)
-	.Style(StylePtr)
+	.Style(&WidgetStyle)
 	.Font(FSlateFontInfo(FontPath, Font.Size))
 	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 	.SelectAllTextOnCommit(SelectAllTextOnCommit)
@@ -76,6 +71,8 @@ void USpinBox::SynchronizeProperties()
 	MySpinBox->SetDelta(Delta);
 	MySpinBox->SetSliderExponent(SliderExponent);
 	MySpinBox->SetMinDesiredWidth(MinDesiredWidth);
+
+	MySpinBox->SetForegroundColor(ForegroundColor);
 
 	// Set optional values
 	bOverride_MinValue ? SetMinValue(MinValue) : ClearMinValue();
@@ -246,6 +243,15 @@ void USpinBox::ClearMaxSliderValue()
 	}
 }
 
+void USpinBox::SetForegroundColor(FSlateColor InForegroundColor)
+{
+	ForegroundColor = InForegroundColor;
+	if ( MySpinBox.IsValid() )
+	{
+		MySpinBox->SetForegroundColor(ForegroundColor);
+	}
+}
+
 // Event handlers
 void USpinBox::HandleOnValueChanged(float InValue)
 {
@@ -266,6 +272,26 @@ void USpinBox::HandleOnEndSliderMovement(float InValue)
 {
 	OnEndSliderMovement.Broadcast(InValue);
 }
+
+void USpinBox::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FSpinBoxStyle* StylePtr = Style_DEPRECATED->GetStyle<FSpinBoxStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+	}
+}
+
 
 #if WITH_EDITOR
 

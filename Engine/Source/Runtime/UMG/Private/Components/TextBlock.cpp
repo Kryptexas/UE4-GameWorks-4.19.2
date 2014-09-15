@@ -12,15 +12,24 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
+	STextBlock::FArguments Defaults;
+	WidgetStyle = *Defaults._TextStyle;
+
 	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
-
-	Style = NULL;
+	LineHeightPercentage = 1.0f;
 
 	// @TODO UMG HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
+}
+
+void UTextBlock::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyTextBlock.Reset();
 }
 
 void UTextBlock::SetColorAndOpacity(FLinearColor InColorAndOpacity)
@@ -52,19 +61,8 @@ void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
-	MyTextBlock = SNew(STextBlock);
-
-#if WITH_EDITOR
-	MyEditorTextBlock = SNew(SInlineEditableTextBlock)
-		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleTextCommitted))
-		//.IsSelected(InArgs._IsSelected)
-		;
-
-	//if ( IsDesignTime() )
-	//{
-	//	return MyEditorTextBlock.ToSharedRef();
-	//}
-#endif
+	MyTextBlock = SNew(STextBlock)
+		.TextStyle(&WidgetStyle);
 
 	return MyTextBlock.ToSharedRef();
 }
@@ -80,13 +78,6 @@ void UTextBlock::SynchronizeProperties()
 		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 	}
 
-	const FTextBlockStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FTextBlockStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		STextBlock::FArguments Defaults;
-		StylePtr = Defaults._TextStyle;
-	}
-
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
@@ -94,21 +85,14 @@ void UTextBlock::SynchronizeProperties()
 	MyTextBlock->SetText(TextBinding);
 	MyTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
 	MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
-	MyTextBlock->SetTextStyle(StylePtr);
 	MyTextBlock->SetShadowOffset(ShadowOffset);
 	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
 	MyTextBlock->SetAutoWrapText(AutoWrapText);
 	MyTextBlock->SetWrapTextAt(WrapTextAt != 0 ? WrapTextAt : TAttribute<float>());
 	MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
-
-#if WITH_EDITOR
-	MyEditorTextBlock->SetText(TextBinding);
-	//MyEditorTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
-	//MyEditorTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
-	//MyEditorTextBlock->SetTextStyle(StylePtr);
-	//MyEditorTextBlock->SetShadowOffset(ShadowOffset);
-	//MyEditorTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
-#endif
+	MyTextBlock->SetLineHeightPercentage(LineHeightPercentage);
+	MyTextBlock->SetMargin(Margin);
+	MyTextBlock->SetJustification(Justification);
 }
 
 FText UTextBlock::GetText() const
@@ -130,6 +114,25 @@ void UTextBlock::SetText(FText InText)
 	}
 }
 
+void UTextBlock::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FTextBlockStyle* StylePtr = Style_DEPRECATED->GetStyle<FTextBlockStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+	}
+}
+
 #if WITH_EDITOR
 
 FString UTextBlock::GetLabelMetadata() const
@@ -146,11 +149,6 @@ void UTextBlock::HandleTextCommitted(const FText& InText, ETextCommit::Type Comm
 	//TODO UMG How will this migrate to the template?  Seems to me we need the previews to have access to their templates!
 	//TODO UMG How will the user click the editable area?  There is an overlay blocking input so that other widgets don't get them.
 	//     Need a way to recognize one particular widget and forward things to them!
-}
-
-void UTextBlock::OnBeginEdit()
-{
-	MyEditorTextBlock->EnterEditingMode();
 }
 
 const FSlateBrush* UTextBlock::GetEditorIcon()

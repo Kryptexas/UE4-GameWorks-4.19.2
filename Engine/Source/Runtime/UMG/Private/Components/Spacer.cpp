@@ -14,6 +14,13 @@ USpacer::USpacer(const FPostConstructInitializeProperties& PCIP)
 	bIsVariable = false;
 }
 
+void USpacer::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MySpacer.Reset();
+}
+
 void USpacer::SetSize(FVector2D InSize)
 {
 	Size = InSize;

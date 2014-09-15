@@ -18,7 +18,7 @@ void UImage::PostLoad()
 {
 	Super::PostLoad();
 
-	if ( Image_DEPRECATED != NULL )
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS && Image_DEPRECATED != nullptr )
 	{
 		Brush = Image_DEPRECATED->Brush;
 		Image_DEPRECATED = nullptr;

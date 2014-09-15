@@ -255,7 +255,7 @@ void UBorder::PostLoad()
 {
 	Super::PostLoad();
 
-	if ( Brush_DEPRECATED != NULL )
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS && Brush_DEPRECATED != nullptr )
 	{
 		Background = Brush_DEPRECATED->Brush;
 		Brush_DEPRECATED = nullptr;

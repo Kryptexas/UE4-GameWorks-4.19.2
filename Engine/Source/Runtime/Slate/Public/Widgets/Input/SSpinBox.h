@@ -87,14 +87,16 @@ public:
 	{
 		check(InArgs._Style);
 
+		Style = InArgs._Style;
+
 		ForegroundColor = InArgs._Style->ForegroundColor;
+
 		ValueAttribute = InArgs._Value;
 		OnValueChanged = InArgs._OnValueChanged;
 		OnValueCommitted = InArgs._OnValueCommitted;
 		OnBeginSliderMovement = InArgs._OnBeginSliderMovement;
 		OnEndSliderMovement = InArgs._OnEndSliderMovement;
 		MinDesiredWidth = InArgs._MinDesiredWidth;
-		ArrowImageWidth = InArgs._Style->ArrowsImage.ImageSize.X;
 	
 		MinValue = InArgs._MinValue;
 		MaxValue = InArgs._MaxValue;
@@ -126,7 +128,8 @@ public:
 		.Padding( InArgs._ContentPadding )
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			.Padding( TextMargin )
 			.HAlign(HAlign_Fill) 
@@ -137,7 +140,8 @@ public:
 				.Text( this, &SSpinBox<NumericType>::GetValueAsString )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 			]
-			+SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			.Padding( TextMargin )
 			.HAlign(HAlign_Fill) 
@@ -153,17 +157,17 @@ public:
 				.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
 				.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
-			]			
-			+SHorizontalBox::Slot()
+			]
+
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.HAlign(HAlign_Fill) 
 			.VAlign(VAlign_Center) 
 			[
 				SNew(SImage)
 				.Image( &InArgs._Style->ArrowsImage )
-				.ColorAndOpacity( FSlateColor::UseForeground() )
+				.ColorAndOpacity(FSlateColor::UseForeground())
 			]
-
 		];
 	}
 	
@@ -191,7 +195,7 @@ public:
 			BackgroundImage,
 			MyClippingRect,
 			DrawEffects,
-			InWidgetStyle.GetColorAndOpacityTint()
+			BackgroundImage->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 			);
 
 		const int32 FilledLayer = BackgroundLayer + 1;
@@ -222,7 +226,7 @@ public:
 					FillImage,
 					MyClippingRect,
 					DrawEffects,
-					InWidgetStyle.GetColorAndOpacityTint()
+					FillImage->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 					);
 			}
 		}
@@ -701,6 +705,8 @@ private:
 		bUnlimitedSpinRange = !((MinValue.Get().IsSet() && MaxValue.Get().IsSet()) || (MinSliderValue.Get().IsSet() && MaxSliderValue.Get().IsSet()));
 	}
 
+	const FSpinBoxStyle* Style;
+
 	const FSlateBrush* BackgroundHoveredBrush;
 	const FSlateBrush* BackgroundBrush;
 	const FSlateBrush* ActiveFillBrush;
@@ -718,7 +724,7 @@ private:
 	TAttribute<float> MinDesiredWidth;
 	float GetTextMinDesiredWidth() const
 	{
-		return FMath::Max(0.0f, MinDesiredWidth.Get() - ArrowImageWidth);
+		return FMath::Max(0.0f, MinDesiredWidth.Get() - Style->ArrowsImage.ImageSize.X);
 	}
 
 	/** Whether the user is dragging the slider */
@@ -738,7 +744,4 @@ private:
 	/** This is the cached value the user believes it to be (usually different due to truncation to an int). Used for identifying 
 		external forces on the spinbox and syncing the internal value to them. Synced when a value is committed to the spinbox. */
 	NumericType CachedExternalValue;
-
-	/** The width of the arrow image, used for calculating the min desired width of the internal text controls. */
-	float ArrowImageWidth;
 };

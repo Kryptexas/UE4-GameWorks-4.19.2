@@ -16,16 +16,16 @@ namespace ESlateColorStylingMode
 	enum Type
 	{
 		/** Color value is stored in this Slate color. */
-		UseColor_Specified,
+		UseColor_Specified UMETA(DisplayName="Specified Color"),
 
 		/** Color value is stored in the linked color. */
-		UseColor_Specified_Link,
+		UseColor_Specified_Link UMETA(Hidden),
 
 		/** Use the widget's foreground color. */
-		UseColor_Foreground,
+		UseColor_Foreground UMETA(DisplayName="Foreground Color"),
 
 		/** Use the widget's subdued color. */
-		UseColor_Foreground_Subdued
+		UseColor_Foreground_Subdued UMETA(Hidden)
 	};
 }
 
