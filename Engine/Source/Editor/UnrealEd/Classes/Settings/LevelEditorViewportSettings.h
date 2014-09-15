@@ -330,6 +330,10 @@ public:
 	UPROPERTY(config)
 	uint32 bStrictBoxSelection:1;
 
+	/** True if viewport box selection also selects occluded objects, false if only objects with visible pixels are selected */
+	UPROPERTY(config)
+	uint32 bTransparentBoxSelection:1;
+
 	/** Whether to show selection outlines for selected Actors */
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Use Selection Outline"))
 	uint32 bUseSelectionOutline:1;

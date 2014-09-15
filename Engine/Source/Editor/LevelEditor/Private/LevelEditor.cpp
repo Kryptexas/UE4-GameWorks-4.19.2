@@ -1424,6 +1424,13 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 
 	ActionList.MapAction(
+		Commands.TransparentBoxSelect,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnToggleTransparentBoxSelect ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::OnIsTransparentBoxSelectEnabled ) 
+		);
+
+	ActionList.MapAction(
 		Commands.DrawBrushMarkerPolys,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnDrawBrushMarkerPolys ),
 		FCanExecuteAction(),

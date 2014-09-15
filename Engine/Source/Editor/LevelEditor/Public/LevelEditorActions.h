@@ -520,6 +520,7 @@ public:
 	TSharedPtr< FUICommandInfo > AllowGroupSelection;
 
 	TSharedPtr< FUICommandInfo > StrictBoxSelect;
+	TSharedPtr< FUICommandInfo > TransparentBoxSelect;
 	TSharedPtr< FUICommandInfo > DrawBrushMarkerPolys;
 	TSharedPtr< FUICommandInfo > OnlyLoadVisibleInPIE;
 
@@ -1061,6 +1062,8 @@ public:
 	static bool OnIsAllowGroupSelectionEnabled(); 
 	static void OnToggleStrictBoxSelect();
 	static bool OnIsStrictBoxSelectEnabled(); 
+	static void OnToggleTransparentBoxSelect();
+	static bool OnIsTransparentBoxSelectEnabled();
 	static void OnDrawBrushMarkerPolys();
 	static bool OnIsDrawBrushMarkerPolysEnabled();
 	static void OnToggleOnlyLoadVisibleInPIE();

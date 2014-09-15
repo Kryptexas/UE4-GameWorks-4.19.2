@@ -681,6 +681,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AllowTranslucentSelection );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AllowGroupSelection );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().StrictBoxSelect );
+		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().TransparentBoxSelect );
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ShowTransformWidget );
 	}
 	MenuBuilder.EndSection();
