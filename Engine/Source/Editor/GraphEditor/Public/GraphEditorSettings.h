@@ -21,7 +21,7 @@ class GRAPHEDITOR_API UGraphEditorSettings
 public:
 
 	/** The visual styling to use for graph editor pins (in Blueprints, materials, etc...) */
-	UPROPERTY(config, EditAnywhere, Category=Blueprint)
+	UPROPERTY(config, EditAnywhere, Category=GeneralStyle)
 	TEnumAsByte<EBlueprintPinStyleType> DataPinStyle;
 
 public:

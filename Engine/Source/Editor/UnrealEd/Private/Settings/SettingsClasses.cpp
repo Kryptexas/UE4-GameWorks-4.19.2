@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
+#include "EdGraphSchema_K2.h" // for bUseLegacyActionMenus
 
 
 /* UContentBrowserSettings interface
@@ -51,7 +52,10 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const class FP
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
-{ }
+{ 
+	// setting was originally loaded from .ini into UEdGraphSchema_K2
+	bUseRefactoredBlueprintMenuingSystem = !GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus;
+}
 
 
 void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )

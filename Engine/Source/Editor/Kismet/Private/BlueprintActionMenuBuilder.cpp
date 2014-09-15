@@ -661,7 +661,8 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 		MenuSection->Empty();
 	}
 	
-	if (!GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus)
+	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
+	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
 	{
 		FBlueprintActionDatabase::FActionRegistry const& ActionDatabase = FBlueprintActionDatabase::Get().GetAllActions();
 		for (auto const& ActionEntry : ActionDatabase)

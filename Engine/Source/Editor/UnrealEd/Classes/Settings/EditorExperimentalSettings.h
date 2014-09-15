@@ -53,8 +53,12 @@ public:
 	bool bBreakOnExceptions;
 
 	/** Should arrows indicating data/execution flow be drawn halfway along wires? */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints"))
+	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints")*/)
 	bool bDrawMidpointArrowsInBlueprints;
+
+	/** Determines if the Blueprint editor should use the new (experimental) menu system, or the old (legacy) system */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use new Blueprint menuing system"))
+	bool bUseRefactoredBlueprintMenuingSystem;
 
 	/** Whether to show Audio Streaming options for SoundWaves (disabling will not stop all audio streaming) */
 	UPROPERTY(EditAnywhere, config, Category=Audio)

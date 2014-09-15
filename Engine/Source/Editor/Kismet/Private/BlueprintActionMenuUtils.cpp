@@ -216,8 +216,8 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	MenuOut.RebuildActionList();
 
-	UEdGraphSchema_K2 const* const K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if (!K2Schema->bUseLegacyActionMenus)
+	UEditorExperimentalSettings const* ExperimentalSettings =  GetDefault<UEditorExperimentalSettings>();
+	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
 	{
 		for (UEdGraph const* Graph : Context.Graphs)
 		{

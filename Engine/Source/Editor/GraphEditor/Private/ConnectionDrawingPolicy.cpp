@@ -14,6 +14,7 @@
 #include "AnimGraphNode_Base.h"
 #include "Sound/SoundNode.h"
 #include "K2Node_Knot.h"
+#include "BlueprintEditorSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConnectionDrawingPolicy, Log, All);
 
@@ -537,7 +538,7 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	ArrowRadius = FVector2D::ZeroVector;
 
 	// But we do want to draw midpoint arrowheads
-	if (GetDefault<UEditorExperimentalSettings>()->bDrawMidpointArrowsInBlueprints)
+	if (GetDefault<UBlueprintEditorSettings>()->bDrawMidpointArrowsInBlueprints)
 	{
 		MidpointImage = FEditorStyle::GetBrush( TEXT("Graph.Arrow") );
 		MidpointRadius = MidpointImage->ImageSize * ZoomFactor * 0.5f;
