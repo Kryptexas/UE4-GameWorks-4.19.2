@@ -32,6 +32,7 @@ FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
 	, LoadingIsDone(0)
 	, bUserCalledFinish(false)
 	, LoadingScreenAttributes()
+	, LastPlayTime(0.0)
 {
 }
 
@@ -131,6 +132,8 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		LoadingIsDone.Set(0);
 		bUserCalledFinish = false;
 		
+		LastPlayTime = FPlatformTime::Seconds();
+
         bool bInitialized = true;
 		if (MovieStreamingIsPrepared())
 		{
@@ -153,21 +156,29 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 
 void FDefaultGameMoviePlayer::StopMovie()
 {
+	LastPlayTime = 0;
 	bUserCalledFinish = true;
 }
 
 void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 {
-	if (LoadingScreenIsPrepared() && IsMovieCurrentlyPlaying())
+	const bool bEnforceMinimumTime = LoadingScreenAttributes.MinimumLoadingScreenDisplayTime >= 0.0f;
+
+	if (LoadingScreenIsPrepared() && ( IsMovieCurrentlyPlaying() || !bEnforceMinimumTime ) )
 	{
 		SyncMechanism->DestroySlateThread();
 		delete SyncMechanism;
 		SyncMechanism = NULL;
-		
-		LoadingIsDone.Set(1);
+
+		if( !bEnforceMinimumTime )
+		{
+			LoadingIsDone.Set(1);
+		}
 		
 		const bool bAutoCompleteWhenLoadingCompletes = LoadingScreenAttributes.bAutoCompleteWhenLoadingCompletes;
-		while (!IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes && !bUserCalledFinish)
+	
+		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
+		while ( !bUserCalledFinish && ( (!bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes ) || ( bEnforceMinimumTime &&  (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime ) ) )
 		{
 			if (FSlateApplication::IsInitialized())
 			{
@@ -179,12 +190,16 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 			}
 		}
 
+
+		LoadingIsDone.Set(1);
+
 		MovieStreamingIsDone.Set(1);
 		if( MovieStreamer.IsValid() )
 		{
 			MovieStreamer->ForceCompletion();
 		}
 
+		LastPlayTime = 0;
 		FlushRenderingCommands();
 
 		// Allow the movie streamer to clean up any resources it uses once there are no movies to play.

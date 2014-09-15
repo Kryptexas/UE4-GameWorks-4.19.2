@@ -74,7 +74,8 @@ public:
 struct MOVIEPLAYER_API FLoadingScreenAttributes
 {
 	FLoadingScreenAttributes()
-		: bAutoCompleteWhenLoadingCompletes(true)
+		: MinimumLoadingScreenDisplayTime(0.0f)
+		, bAutoCompleteWhenLoadingCompletes(true)
 		, bMoviesAreSkippable(true) {}
 
 	/** The widget to be displayed on top of the movie or simply standalone if there is no movie */
@@ -83,12 +84,14 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 	/** The movie paths local to the game's Content/Movies/ directory we will play */
 	TArray<FString> MoviePaths;
 
+	/** The minimum time that a loading screen should be opened for */
+	float MinimumLoadingScreenDisplayTime;
+
 	/** If true, the loading screen will disappear as soon as all movies are played and loading is done */
 	bool bAutoCompleteWhenLoadingCompletes;
 
 	/** If true, movies can be skipped by clicking the loading screen as long as loading is done */
 	bool bMoviesAreSkippable;
-
 
 	/** True if there is either a standalone widget or any movie paths or both */
 	bool IsValid() const;

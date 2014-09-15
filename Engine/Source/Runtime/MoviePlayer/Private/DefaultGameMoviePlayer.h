@@ -85,6 +85,8 @@ private:
 	/** Attributes of the loading screen we are currently displaying */
 	FLoadingScreenAttributes LoadingScreenAttributes;
 	
+	/** The last time a movie was started */
+	double LastPlayTime;
 private:
 	/** Singleton handle */
 	static TSharedPtr<FDefaultGameMoviePlayer> MoviePlayer;
