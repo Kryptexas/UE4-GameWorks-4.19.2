@@ -250,8 +250,15 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 			ArchiveSerializer.DeserializeArchive( ExistingArchiveJsonObject.ToSharedRef(), OutputInternationalizationArchive );
 		}
 
+		if (InternationalizationArchive->GetFormatVersion() < FInternationalizationArchive::EFormatVersion::Latest)
+		{
+			UE_LOG( LogGenerateArchiveCommandlet, Error,TEXT("Archive version is out of date. Repair the archives or manually set the version to %d."), static_cast<int32>(FInternationalizationArchive::EFormatVersion::Latest));
+			return -1;
+		}
+
 		// Combine the generated gather archive with the contents of the archive structure we will write out.
 		AppendArchiveData( InternationalizationArchive, OutputInternationalizationArchive );
+		InternationalizationArchive->SetFormatVersion(FInternationalizationArchive::EFormatVersion::Latest);
 
 		TSharedRef< FJsonObject > OutputArchiveJsonObj = MakeShareable( new FJsonObject );
 		ArchiveSerializer.SerializeArchive( OutputInternationalizationArchive, OutputArchiveJsonObj );
