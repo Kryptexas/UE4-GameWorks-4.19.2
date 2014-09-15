@@ -22,6 +22,7 @@ class UK2Node_LatentAbilityCall : public UK2Node_BaseAsyncTask
 
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
+	bool ConnectSpawnProperties(UClass* ClassToSpawn, const UEdGraphSchema_K2* Schema, class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UEdGraphPin*& LastThenPin, UEdGraphPin* SpawnedActorReturnPin);		//Helper
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 
 	void CreatePinsForClass(UClass* InClass);
@@ -29,7 +30,8 @@ class UK2Node_LatentAbilityCall : public UK2Node_BaseAsyncTask
 	UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
 	UEdGraphPin* GetResultPin() const;
 	bool IsSpawnVarPin(UEdGraphPin* Pin);
-	bool ValidateActorSpawning(class FKismetCompilerContext& CompilerContext);
+	bool ValidateActorSpawning(class FKismetCompilerContext& CompilerContext, bool bGenerateErrors);
+	bool ValidateActorArraySpawning(class FKismetCompilerContext& CompilerContext, bool bGenerateErrors);
 
 	UPROPERTY()
 	TArray<UEdGraphPin*>	SpawnParmPins;
