@@ -886,7 +886,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 					SNew( SBorder )
 
 					// We'll use the border's padding to actually create the horizontal line
-					.Padding( 1.f )
+					.Padding(FEditorStyle::GetMargin(TEXT("Menu.Separator.Padding")))
 
 					// Separator graphic
 					.BorderImage( FEditorStyle::GetBrush( TEXT( "Menu.Separator" ) ) )
@@ -912,7 +912,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 				SNew( SBorder )
 
 				// We'll use the border's padding to actually create the horizontal line
-				.Padding( 1.f )
+				.Padding(FEditorStyle::GetMargin(TEXT("Menu.Separator.Padding")))
 
 				// Separator graphic
 				.BorderImage( FEditorStyle::GetBrush( TEXT( "Menu.Separator" ) ) )

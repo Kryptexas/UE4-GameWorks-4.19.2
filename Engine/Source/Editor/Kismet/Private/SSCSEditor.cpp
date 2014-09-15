@@ -1985,20 +1985,24 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 	if( InKismet2.IsValid() )
 	{
 		Contents = SNew(SVerticalBox)
+
+		// Component picker
 		+ SVerticalBox::Slot()
+		.Padding(1.f)
 		.AutoHeight()
 		[
-			SNew(SComponentClassCombo)
-			.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SComponentClassCombo)
+				.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+			]
 		]
+
+		// Tree
 		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SSpacer)
-			.Size(FVector2D(0.0f, 2.0f))
-		]
-		+ SVerticalBox::Slot()
-		.FillHeight(.8f)
+		.Padding(0.f, 0.f, 0.f, 2.f)
 		[
 			SCSTreeWidget.ToSharedRef()
 		];
@@ -2010,7 +2014,9 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 
 	this->ChildSlot
 	[
-		SNew( SBox )
+		SNew(SBorder)
+		.Padding(2.0f)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 		[
 			Contents.ToSharedRef()
