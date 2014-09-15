@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -98,8 +98,14 @@ namespace UnrealBuildTool.IOS
 			}
 		}
 
+
 		public override bool PrepForUATPackageOrDeploy(string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor)
 		{
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			{
+				throw new BuildException("UEDeployIOS.PrepForUATPackageOrDeploy only supports running on the Mac");
+			}
+
 			bool bIsUE4Game = InExecutablePath.Contains ("UE4Game");
 			string BinaryPath = Path.GetDirectoryName (InExecutablePath);
 			string GameExeName = Path.GetFileName (InExecutablePath);
@@ -275,9 +281,6 @@ namespace UnrealBuildTool.IOS
 
 				PListAdditionalLines.Add("\t<key>UILaunchStoryboardName</key>");
 				PListAdditionalLines.Add("\t<string>LaunchScreen</string>");
-
-				PListAdditionalLines.Add("\t<key>NibLaunch</key>");
-				PListAdditionalLines.Add("\t<string>" + CommandLine + "</string>");
 
 				bSkipDefaultPNGs = true;
 			}

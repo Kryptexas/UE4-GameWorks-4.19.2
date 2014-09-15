@@ -103,22 +103,31 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor")); 
 	float RequestedContentScaleFactor = CVar->GetFloat();
 
-	int32 Width, Height;
-	if (GAndroidIsPortrait)
+	// 0 means to use native size
+	if (RequestedContentScaleFactor == 0.0f)
 	{
-		Height = 1280 * RequestedContentScaleFactor;
+		Width = MaxWidth;
+		Height = MaxHeight;
 	}
 	else
 	{
-		Height = 720 * RequestedContentScaleFactor;
+		int32 Width, Height;
+		if (GAndroidIsPortrait)
+		{
+			Height = 1280 * RequestedContentScaleFactor;
+		}
+		else
+		{
+			Height = 720 * RequestedContentScaleFactor;
+		}
+
+		// apply the aspect ration to get the width
+		Width = Height * AspectRatio;
+
+		// clamp to native resolution
+		Width = FPlatformMath::Min(Width, MaxWidth);
+		Height = FPlatformMath::Min(Height, MaxHeight);
 	}
-
-	// apply the aspect ration to get the width
-	Width = Height * AspectRatio;
-
-	// clamp to native resolution
-	Width = FPlatformMath::Min(Width, MaxWidth);
-	Height = FPlatformMath::Min(Height, MaxHeight);
 
 	FPlatformRect ScreenRect;
 	ScreenRect.Left = 0;

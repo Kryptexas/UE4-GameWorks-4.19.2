@@ -145,9 +145,22 @@ id<MTLDevice> GMetalDevice = nil;
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
 		float RequestedContentScaleFactor = CVar->GetFloat();
 
-		// for TV screens, always use scale factor of 1
-		self.contentScaleFactor = bIsForOnDevice ? RequestedContentScaleFactor : 1.0f;
-		UE_LOG(LogIOS, Log, TEXT("Setting contentScaleFactor to %0.4f (optimal = %0.4f)"), self.contentScaleFactor, NativeScale);
+		// 0 means to leave the scale alone, use native
+		if (RequestedContentScaleFactor == 0.0f)
+		{
+#ifdef __IPHONE_8_0
+			UE_LOG(LogIOS, Log, TEXT("Leaving view scale factor alone, with scale = %f, nativeScale = %f"), [[UIScreen mainScreen] scale], [[UIScreen mainScreen] nativeScale]);
+#else
+			UE_LOG(LogIOS, Log, TEXT("Leaving view scale factor alone, with scale = %f"), NativeScale);
+#endif
+		}
+		else
+		{
+			// for TV screens, always use scale factor of 1
+			self.contentScaleFactor = bIsForOnDevice ? RequestedContentScaleFactor : 1.0f;
+			UE_LOG(LogIOS, Log, TEXT("Setting contentScaleFactor to %0.4f (optimal = %0.4f)"), self.contentScaleFactor, NativeScale);
+		}
+
 
 		// metal has no further action needed
 		if (!bIsUsingMetal)
