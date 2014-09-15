@@ -1239,7 +1239,7 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 		EstimatedSystemSize += EstimatedCacheSize;
 
 		FString const NodeCacheSizeStr = BuildByteSizeString(EstimatedCacheSize);
-		FString const AvgNodeSizeStr = BuildByteSizeString(EstimatedCacheSize / TemplateCount);
+		FString const AvgNodeSizeStr = BuildByteSizeString((TemplateCount > 0) ? EstimatedCacheSize / TemplateCount : 0);
 		FString NodeCacheStats = FString::Printf(TEXT("%s\"Template-Cache Stats\" : {"), *IndentedNewline);
 		NodeCacheStats += FString::Printf(TEXT("%s\"TotalPrimingDuration\" : %.3f seconds,"), *DblIndentedNewline, TotalPrimingTime);
 		NodeCacheStats += FString::Printf(TEXT("%s\"CachedNodeCount\"      : %d,"), *DblIndentedNewline, TemplateCount);

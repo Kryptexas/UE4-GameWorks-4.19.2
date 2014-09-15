@@ -5,6 +5,7 @@
 #include "EdGraphSchema_K2.h"	// for FBlueprintMetadata
 #include "GameFramework/Actor.h"
 #include "BlueprintVariableNodeSpawner.h"
+#include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 
@@ -50,7 +51,7 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 {
 	bool bSuccessfulBinding = false;
 
-	bool const bIsTemplateNode = (NewNode->GetOutermost() == GetTransientPackage());
+	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(NewNode->GetGraph());
 	if (!bIsTemplateNode)
 	{
 		if (UProperty const* BoundProperty = Cast<UProperty>(BoundObject))

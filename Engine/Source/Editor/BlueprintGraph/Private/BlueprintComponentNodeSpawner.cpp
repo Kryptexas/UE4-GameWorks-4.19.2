@@ -4,6 +4,7 @@
 #include "BlueprintComponentNodeSpawner.h"
 #include "K2Node_AddComponent.h"
 #include "ClassIconFinder.h" // for FindIconNameForClass()
+#include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
 
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"
 
@@ -55,7 +56,7 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 	
 	UK2Node_AddComponent* NewNode = CastChecked<UK2Node_AddComponent>(Super::Invoke(ParentGraph, Bindings, Location, PostSpawnDelegate));
 
-	bool const bIsTemplateNode = (ParentGraph->GetOutermost() == GetTransientPackage());
+	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
 	if (!bIsTemplateNode)
 	{
 		UBlueprint* Blueprint = NewNode->GetBlueprint();

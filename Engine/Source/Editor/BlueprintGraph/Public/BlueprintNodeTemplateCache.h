@@ -55,11 +55,31 @@ public:
 	void ClearCachedTemplate(UBlueprintNodeSpawner const* NodeSpawner);
 
 	/**
+	 * Utility method to help external systems identify if a graph they have 
+	 * belongs here, to the FBlueprintNodeTemplateCache system.
 	 * 
-	 * 
-	 * @return 
+	 * @param  ParentGraph	The graph you want to check.
+	 * @return True if the graph was allocated by a FBlueprintNodeTemplateCache (to house template nodes).
 	 */
-	int32 EstimateAllocatedSize() const;
+	static bool IsTemplateOuter(UEdGraph* ParentGraph);
+
+	/**
+	 * Approximates the current memory footprint of the entire cache 
+	 * (instantiated UObject sizes + allocated container space).
+	 * 
+	 * @return The approximated total (in bytes) that this cache has allocated.
+	 */
+	int32 GetEstimateCacheSize() const;
+
+	/**
+	 * External systems can make changes that alter the memory footprint of the
+	 * cache (like calling AllocateDefaultPins), and since we don't recalculate
+	 * the cache's size every frame sometimes we need to update the internal 
+	 * estimate.
+	 * 
+	 * @return The new approximated total (in bytes) that this cache has allocated.
+	 */
+	int32 RecalculateCacheSize();
 
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -67,22 +87,27 @@ public:
 
 private:
 	/**
+	 * Caches the supplied blueprint, so that it may be reused as an outer for
+	 * template nodes (certain nodes types assume they'll have a graph outer, 
+	 * with a blueprint outer beyond that, so we cannot just spawn nodes into 
+	 * the transient package).
 	 * 
-	 * 
-	 * @param  Blueprint	
-	 * @return 
+	 * @param  Blueprint	The blueprint you wish to store for reuse.
+	 * @return True if the blueprint was successfully cached (the cache could be full, and therefore this could fail).
 	 */
-	bool AddBlueprintOuter(UBlueprint* Blueprint);
+	bool CacheBlueprintOuter(UBlueprint* Blueprint);
 
 	/**
+	 * Attempts to cache the supplied node, and associates it with the specified 
+	 * spawner (so that we can remove it later if it is no longer needed).
 	 * 
-	 * 
-	 * @param  NodeSpawner	
-	 * @param  NewNode	
-	 * @return 
+	 * @param  NodeSpawner	Acts as the key for the given template node.
+	 * @param  NewNode		The template node you want stored.
+	 * @return True if the node was successfully cached (the cache could be full, and therefore this could fail).
 	 */
 	bool CacheTemplateNode(UBlueprintNodeSpawner const* NodeSpawner, UEdGraphNode* NewNode);
 
+private:
 	/** 
 	 * Unfortunately, we cannot nest template-nodes in the transient package. 
 	 * Certain nodes operate on the assumption that they have a UEdGraph outer, 
@@ -98,6 +123,11 @@ private:
 	/** */
 	TMap<UBlueprintNodeSpawner const*, UEdGraphNode*> NodeTemplateCache;
 
-	/** */
-	int32 ApproximateAllocationTotal;
+
+	/** 
+	 * It can be costly to tally back up the estimated cache size every time an
+	 * entry is added, so we keep this approximate tally of memory allocated for
+	 * UObjects (owned by this system).
+	 */
+	int32 ApproximateObjectMem;
 };

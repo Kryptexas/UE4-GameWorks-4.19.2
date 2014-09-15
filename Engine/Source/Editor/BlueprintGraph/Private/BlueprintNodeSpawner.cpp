@@ -186,7 +186,7 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet c
 		NewNode->NodePosX = Location.X;
 		NewNode->NodePosY = Location.Y;
 
-		bool const bIsTemplateNode = (ParentGraph->GetOutermost() == GetTransientPackage());
+		bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
 		PostSpawnDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
 
 		if (!bIsTemplateNode)

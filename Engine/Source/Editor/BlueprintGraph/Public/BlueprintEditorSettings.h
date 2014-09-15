@@ -19,7 +19,7 @@ public:
 // Perf Settings
 public:
 	/** The node template cache is used to speed up blueprint menuing. This determines the peak data size for that cache. */
-	UPROPERTY(EditAnywhere, config, Category="Performance", DisplayName="Node-Template Cache Cap (MB)", meta=(ClampMin="0.004", UIMin="0"))
+	UPROPERTY(EditAnywhere, config, Category="Performance", DisplayName="Node-Template Cache Cap (MB)", meta=(ClampMin="0", UIMin="0"))
 	float NodeTemplateCacheCapMB;
 };
  
