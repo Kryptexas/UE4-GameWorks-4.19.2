@@ -164,6 +164,12 @@ void FRHICommandSetRenderTargets::Execute()
 		UAVs);
 }
 
+void FRHICommandSetRenderTargetsAndClear::Execute()
+{
+	RHISTAT(SetRenderTargetsAndClear);
+	INTERNAL_DECORATOR(SetRenderTargetsAndClear)(RenderTargetsInfo);
+}
+
 void FRHICommandEndDrawPrimitiveUP::Execute()
 {
 	RHISTAT(EndDrawPrimitiveUP);

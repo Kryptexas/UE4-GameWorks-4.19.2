@@ -1003,6 +1003,19 @@ void FD3D11DynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 
 	// Could support in DX11.1 via ID3D11DeviceContext1::Discard*() functions.
 }
 
+void FD3D11DynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
+{
+	RHISetRenderTargets(RenderTargetsInfo.NumColorRenderTargets,
+		RenderTargetsInfo.ColorRenderTarget,
+		RenderTargetsInfo.DepthStencilTarget,
+		0,
+		nullptr);
+	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
+	{
+		RHIClearMRT(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, RenderTargetsInfo.ClearColors, RenderTargetsInfo.bClearDepth, RenderTargetsInfo.DepthClearValue, RenderTargetsInfo.bClearStencil, RenderTargetsInfo.StencilClearValue, FIntRect());
+	}
+}
+
 // Primitive drawing.
 
 static D3D11_PRIMITIVE_TOPOLOGY GetD3D11PrimitiveType(uint32 PrimitiveType, bool bUsingTessellation)

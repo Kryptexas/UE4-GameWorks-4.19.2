@@ -524,7 +524,7 @@ enum class ERenderTargetLoadAction
 {
 	ENoAction,
 	ELoad,
-	//EClear clear should go here but isn't implemented yet.
+	EClear,
 };
 
 /**

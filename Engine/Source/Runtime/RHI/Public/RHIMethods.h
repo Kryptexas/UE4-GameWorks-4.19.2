@@ -1876,6 +1876,11 @@ DEFINE_RHIMETHOD_3(
 	uint32,ColorBitMask,
 	,
 	);
+DEFINE_RHIMETHOD_1(
+	void,SetRenderTargetsAndClear,
+	const FRHISetRenderTargetsInfo&, RenderTargetsInfo,
+	,
+	);
 
 // Primitive drawing.
 DEFINE_RHIMETHOD_CMDLIST_4(

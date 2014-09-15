@@ -364,6 +364,19 @@ void FMetalDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 
 {
 }
 
+void FMetalDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
+{
+//@todo-rco: TEMP
+	RHISetRenderTargets(RenderTargetsInfo.NumColorRenderTargets,
+		RenderTargetsInfo.ColorRenderTarget,
+		RenderTargetsInfo.DepthStencilTarget,
+		0,
+		nullptr);
+	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
+	{
+		RHIClearMRT(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, RenderTargetsInfo.ClearColors, RenderTargetsInfo.bClearDepth, RenderTargetsInfo.DepthClearValue, RenderTargetsInfo.bClearStencil, RenderTargetsInfo.StencilClearValue, FIntRect());
+	}
+}
 
 // Occlusion/Timer queries.
 void FMetalDynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)

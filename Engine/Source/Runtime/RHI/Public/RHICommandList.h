@@ -480,6 +480,18 @@ struct FRHICommandSetRenderTargets : public FRHICommand<FRHICommandSetRenderTarg
 	RHI_API void Execute();
 };
 
+struct FRHICommandSetRenderTargetsAndClear : public FRHICommand<FRHICommandSetRenderTargetsAndClear>
+{
+	FRHISetRenderTargetsInfo RenderTargetsInfo;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandSetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& InRenderTargetsInfo) :
+		RenderTargetsInfo(InRenderTargetsInfo)
+	{
+	}
+
+	RHI_API void Execute();
+};
+
 struct FRHICommandEndDrawPrimitiveUP : public FRHICommand<FRHICommandEndDrawPrimitiveUP>
 {
 	uint32 PrimitiveType;
@@ -1423,6 +1435,16 @@ public:
 			NewDepthStencilTargetRHI,
 			NewNumUAVs,
 			UAVs);
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
+	{
+		if (Bypass())
+		{
+			SetRenderTargetsAndClear_Internal(RenderTargetsInfo);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetRenderTargetsAndClear>()) FRHICommandSetRenderTargetsAndClear(RenderTargetsInfo);
 	}
 
 	FORCEINLINE_DEBUGGABLE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)

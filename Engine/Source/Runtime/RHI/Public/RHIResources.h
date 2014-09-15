@@ -621,6 +621,38 @@ public:
 	{}
 };
 
+class FRHISetRenderTargetsInfo
+{
+public:
+	// Color Render Targets Info
+	int32 NumColorRenderTargets;
+	FLinearColor ClearColors[MaxSimultaneousRenderTargets];
+	bool bClearColor;
+	FRHIRenderTargetView ColorRenderTarget[MaxSimultaneousRenderTargets];
+
+	// Depth/Stencil Render Target Info
+	ERenderTargetLoadAction DepthLoadAction;
+	ERenderTargetStoreAction DepthStoreAction;
+	float DepthClearValue;
+	bool bClearDepth;
+	uint32 StencilClearValue;
+	bool bClearStencil;
+	FTextureRHIParamRef DepthStencilTarget;
+
+	FRHISetRenderTargetsInfo() :
+		NumColorRenderTargets(0),
+		bClearColor(false),
+		DepthLoadAction(ERenderTargetLoadAction::EClear),
+		DepthStoreAction(ERenderTargetStoreAction::ENoAction),
+		DepthClearValue(0.0f),
+		bClearDepth(false),
+		StencilClearValue(0),
+		bClearStencil(false),
+		DepthStencilTarget(nullptr)
+	{
+	}
+};
+
 class FRHICustomPresent : public FRHIResource
 {
 public:
