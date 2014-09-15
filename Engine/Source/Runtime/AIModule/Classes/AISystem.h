@@ -54,28 +54,15 @@ public:
 	FORCEINLINE UAIPerceptionSystem* GetPerceptionSystem() { return PerceptionSystem; }
 	FORCEINLINE const UAIPerceptionSystem* GetPerceptionSystem() const { return PerceptionSystem; }
 
-	FORCEINLINE static UAISystem* GetCurrent(UWorld* World) 
+	FORCEINLINE static UAISystem* GetCurrent(UWorld* World, bool bChecked = true) 
 	{ 
-		check(World != NULL)
-		check(World->GetAISystem() == NULL || Cast<UAISystem>(World->GetAISystem()) != NULL);
-		return (UAISystem*)(World->GetAISystem());
-	}
+		if (!bChecked && World == NULL)
+		{
+			return NULL;
+		}
 
-	FORCEINLINE static UBehaviorTreeManager* GetCurrentBTManager(UWorld* World)
-	{
-		UAISystem* AISys = GetCurrent(World);
-		// if AI system is NULL you're probably running your AI code on a client
-		// or did something horribly wrong
-		check(AISys != NULL);
-		return AISys->GetBehaviorTreeManager();
-	}
-
-	FORCEINLINE static UEnvQueryManager* GetCurrentEQSManager(UWorld* World)
-	{
-		UAISystem* AISys = GetCurrent(World);
-		// if AI system is NULL you're probably running your AI code on a client
-		check(AISys != NULL);
-		return AISys->GetEnvironmentQueryManager();
+		check(World);
+		return Cast<UAISystem>(World->GetAISystem());
 	}
 
 	FORCEINLINE UWorld* GetOuterWorld() const { return Cast<UWorld>(GetOuter()); }

@@ -168,7 +168,7 @@ void AEQSTestingPawn::Reset()
 
 void AEQSTestingPawn::MakeOneStep()
 {
-	UEnvQueryManager* EQS = UAISystem::GetCurrentEQSManager(GetWorld());
+	UEnvQueryManager* EQS = UEnvQueryManager::GetCurrent(GetWorld());
 	if (EQS == NULL)
 	{
 		return;
