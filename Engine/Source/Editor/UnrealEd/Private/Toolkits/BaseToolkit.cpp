@@ -61,6 +61,12 @@ const TMap< EToolkitTabSpot::Type, TArray< TWeakPtr< SDockableTab > > >& FBaseTo
 }
 
 
+FName FBaseToolkit::GetToolkitContextFName() const
+{
+	return GetToolkitFName();
+}
+
+
 bool FBaseToolkit::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const
 {
 	if( ToolkitCommands->ProcessCommandBindings( InKeyboardEvent ) )

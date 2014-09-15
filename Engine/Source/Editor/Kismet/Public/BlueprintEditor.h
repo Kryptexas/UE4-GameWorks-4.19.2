@@ -140,6 +140,7 @@ public:
 	// End of FAssetEditorToolkit 
 
 	// IToolkit interface
+	virtual FName GetToolkitContextFName() const override;
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FText GetToolkitName() const override;

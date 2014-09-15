@@ -5954,6 +5954,26 @@ FName FBlueprintEditor::GetToolkitFName() const
 	return FName("BlueprintEditor");
 }
 
+FName FBlueprintEditor::GetToolkitContextFName() const
+{
+	if(GetBlueprintObj())
+	{
+		switch (GetBlueprintObj()->BlueprintType)
+		{
+		case BPTYPE_Normal:
+			return FName("BlueprintEditor");
+		case BPTYPE_MacroLibrary:
+			return FName("BlueprintEditor.MacroLibrary");
+		case BPTYPE_Interface:
+			return FName("BlueprintEditor.Interface");
+		case BPTYPE_LevelScript:
+			return FName("BlueprintEditor.LevelScript");
+		}
+	}
+
+	return FName("BlueprintEditor");
+}
+
 FText FBlueprintEditor::GetBaseToolkitName() const
 {
 	return LOCTEXT( "AppLabel", "Blueprint Editor" );

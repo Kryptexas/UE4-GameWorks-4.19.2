@@ -20,6 +20,7 @@ public:
 	virtual ~FBaseToolkit();
 
 	/** IToolkit interface */
+	virtual FName GetToolkitContextFName() const override;
 	virtual bool ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const override;
 	virtual bool IsHosted() const override;
 	virtual const TSharedRef< class IToolkitHost > GetToolkitHost() const override;

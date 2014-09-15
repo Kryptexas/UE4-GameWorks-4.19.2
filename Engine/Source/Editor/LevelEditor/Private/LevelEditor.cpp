@@ -125,7 +125,7 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
+				.Padding(8.0f, 0.0f, 8.0f, 0.0f)
 				.VAlign(VAlign_Center)
 				[
 					TutorialWidget

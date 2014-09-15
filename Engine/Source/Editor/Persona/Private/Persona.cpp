@@ -1463,6 +1463,11 @@ FString FPersona::GetDefaultEditorTitle()
 	return NSLOCTEXT("Kismet", "PreviewParamatersTabTitle", "Preview Parameters").ToString();
 }
 
+FName FPersona::GetToolkitContextFName() const
+{
+	return GetToolkitFName();
+}
+
 FName FPersona::GetToolkitFName() const
 {
 	return FName("Persona");

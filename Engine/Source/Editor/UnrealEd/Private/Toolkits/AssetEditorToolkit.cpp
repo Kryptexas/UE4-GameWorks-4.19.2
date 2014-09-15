@@ -104,7 +104,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		TSharedRef<SWidget> UserFeedbackWidget = UserFeedback.CreateFeedbackWidget(GetBaseToolkitName());
 
 		IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
-		TSharedRef<SWidget> TutorialWidget = IntroTutorials.CreateTutorialsWidget(GetToolkitFName(), NewMajorTab->GetParentWindow());
+		TSharedRef<SWidget> TutorialWidget = IntroTutorials.CreateTutorialsWidget(GetToolkitContextFName(), NewMajorTab->GetParentWindow());
 
 		NewMajorTab->SetRightContent(
 				SNew(SHorizontalBox)
@@ -117,7 +117,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
+				.Padding(8.0f, 0.0f, 8.0f, 0.0f)
 				.VAlign(VAlign_Center)
 				[
 					TutorialWidget
