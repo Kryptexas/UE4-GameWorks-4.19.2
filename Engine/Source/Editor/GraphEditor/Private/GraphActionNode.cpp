@@ -325,7 +325,9 @@ FString FGraphActionNode::GetCategoryPath() const
 	TWeakPtr<FGraphActionNode> AncestorNode = ParentNode;
 	while (AncestorNode.IsValid())
 	{
-		CategoryPath = AncestorNode.Pin()->DisplayText.ToString() + TEXT("|") + CategoryPath;
+		TSharedPtr<FGraphActionNode> ActionNode = AncestorNode.Pin();
+		CategoryPath = ActionNode->DisplayText.ToString() + TEXT("|") + CategoryPath;
+		AncestorNode = ActionNode->GetParentNode();
 	}
 	return CategoryPath;
 }
