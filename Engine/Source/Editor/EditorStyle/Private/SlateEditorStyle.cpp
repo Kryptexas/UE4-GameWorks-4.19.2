@@ -2156,6 +2156,13 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 #endif // WITH_EDITOR || IS_PROGRAM
 
 #if WITH_EDITOR
+	// Supersearch
+	FTextBlockStyle SuperSearchCategoryText = FTextBlockStyle(NormalText)
+		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 10))
+		.SetColorAndOpacity(FLinearColor(0, 0.3f, 1.f));
+
+	Set("SuperSearchCategoryText", SuperSearchCategoryText);
+
 	// Gameplay Tags
 	{
 		Set("GameplayTagTreeView", FTableRowStyle()

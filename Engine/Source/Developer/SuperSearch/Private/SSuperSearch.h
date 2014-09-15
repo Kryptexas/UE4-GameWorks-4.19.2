@@ -47,9 +47,6 @@ public:
 		return InputText.ToSharedRef();
 	}
 
-	/** SWidget interface */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 protected:
 
 	virtual bool SupportsKeyboardFocus() const { return true; }
@@ -110,6 +107,8 @@ private:
 	//TODO: properly clean map up as time goes by requests are processed and can be discarded
 	/** A cache of results based on search */
 	TMap<FString, FSearchResults> SearchResultsCache;
+
+	TMap<FString, FName> CategoryToIconMap;
 
 	/** -1 if not set, otherwise index into Suggestions */
 	int32 SelectedSuggestion;

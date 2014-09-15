@@ -8,6 +8,11 @@ SSuperSearchBox::SSuperSearchBox()
 	: SelectedSuggestion(-1)
 	, bIgnoreUIUpdate(false)
 {
+	CategoryToIconMap.Add("Documentation", FName("LevelEditor.BrowseDocumentation") );
+	CategoryToIconMap.Add("Wiki", FName("MainFrame.VisitWiki") );
+	CategoryToIconMap.Add("Answerhub", FName("MainFrame.VisitSearchForAnswersPage") );
+	CategoryToIconMap.Add("API", FName("LevelEditor.BrowseAPIReference") );
+	CategoryToIconMap.Add("Tutorials", FName("LevelEditor.Tutorials") );
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -16,51 +21,38 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SAssignNew( SuggestionBox, SMenuAnchor )
-			.Placement( InArgs._SuggestionListPlacement )
+		.Placement( InArgs._SuggestionListPlacement )
+		[
+			SAssignNew(InputText, SSearchBox)
+			.OnTextCommitted(this, &SSuperSearchBox::OnTextCommitted)
+			.HintText(NSLOCTEXT("SuperSearchBox", "HelpHint", "Search For Help"))
+			.OnTextChanged(this, &SSuperSearchBox::OnTextChanged)
+			.SelectAllTextWhenFocused(false)
+			.DelayChangeNotificationsWhileTyping(true)
+			.MinDesiredWidth(200)
+		]
+		.MenuContent
+		(
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			.Padding( FMargin(2) )
 			[
-				SAssignNew(InputText, SSearchBox)
-					.OnTextCommitted(this, &SSuperSearchBox::OnTextCommitted)
-					.HintText( NSLOCTEXT( "SuperSearchBox", "HelpHint", "Search For Help" ) )
-					.OnTextChanged(this, &SSuperSearchBox::OnTextChanged)
-					.SelectAllTextWhenFocused(false)
-					.DelayChangeNotificationsWhileTyping(true)
-			]
-			.MenuContent
-			(
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-				.Padding( FMargin(2) )
+				SNew(SBox)
+				.HeightOverride(250) // avoids flickering, ideally this would be adaptive to the content without flickering
 				[
-					SNew(SBox)
-					.HeightOverride(250) // avoids flickering, ideally this would be adaptive to the content without flickering
-					[
-						SAssignNew(SuggestionListView, SListView< TSharedPtr<FSearchEntry> >)
-							.ListItemsSource(&Suggestions)
-							.SelectionMode( ESelectionMode::Single )							// Ideally the mouse over would not highlight while keyboard controls the UI
-							.OnGenerateRow(this, &SSuperSearchBox::MakeSuggestionListItemWidget)
-							.OnSelectionChanged(this, &SSuperSearchBox::SuggestionSelectionChanged)
-							.ItemHeight(18)
-					]
+					SAssignNew(SuggestionListView, SListView< TSharedPtr<FSearchEntry> >)
+						.ListItemsSource(&Suggestions)
+						.SelectionMode( ESelectionMode::Single )							// Ideally the mouse over would not highlight while keyboard controls the UI
+						.OnGenerateRow(this, &SSuperSearchBox::MakeSuggestionListItemWidget)
+						.OnSelectionChanged(this, &SSuperSearchBox::SuggestionSelectionChanged)
+						.ItemHeight(18)
 				]
-			)
-			.OnMenuOpenChanged(this, &SSuperSearchBox::OnMenuOpenChanged)
+			]
+		)
+		.OnMenuOpenChanged(this, &SSuperSearchBox::OnMenuOpenChanged)
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-void SSuperSearchBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	if (!GIntraFrameDebuggingGameThread && !IsEnabled())
-	{
-		SetEnabled(true);
-	}
-	else if (GIntraFrameDebuggingGameThread && IsEnabled())
-	{
-		SetEnabled(false);
-	}
-}
 
 void SSuperSearchBox::OnMenuOpenChanged( bool bIsOpen )
 {
@@ -123,23 +115,37 @@ TSharedRef<ITableRow> SSuperSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 		Combined = Suggestion->Title;
 	}
 
-	FText HighlightText = FText::FromString(Left);
-
 	bool bCategory = Suggestion->bCategory;
+
+	
+	TSharedPtr<SWidget> IconWidget;
+	if (bCategory)
+	{
+		FName * IconResult = CategoryToIconMap.Find(Combined);
+		SAssignNew(IconWidget, SImage)
+			.Image(FEditorStyle::GetBrush(IconResult ? *IconResult : FName("MainFrame.VisitEpicGamesDotCom") ));
+	}
 
 	return
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
 		.ShowSelection(bCategory == false)
+		.Padding(FMargin(bCategory ? 2.5 : 16, 2.5, 2.5, 2.5))
 		[
-			SNew(SBox)
-			.WidthOverride(600)			// to enforce some minimum width, ideally we define the minimum, not a fixed width
-			.Padding(FMargin(bCategory ? 0 : 16, 0, 0, 0))
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(FMargin(0,0,2.5,0))
+			[
+				bCategory ? IconWidget.ToSharedRef() : SNew(SSpacer)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
 			[
 				SNew(STextBlock)
 				.Text(Combined)
-				//.TextStyle( FEditorStyle::Get(), "Log.Normal")
-				.HighlightText(HighlightText)
+				.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(bCategory ? "SuperSearchCategoryText" : "NormalText"))
+				.MinDesiredWidth(600)
 			]
+			
 		];
 }
 

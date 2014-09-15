@@ -484,7 +484,6 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 				[
 					SNew(SBox)
 					.Padding( FMargin( 4.0f, 0.0f, 0.0f, 0.0f ) )
-					.WidthOverride( 180.0f )
 					[
 						bUseSuperSearch ? SuperSearchModule.MakeSearchBox( ExposedEditableTextBox ) : OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
 					]
