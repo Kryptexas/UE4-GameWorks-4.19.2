@@ -114,9 +114,6 @@ struct FAssetPickerConfig
 	/** Indicates if this view is allowed to show classes */
 	bool bCanShowClasses;
 
-	/** Indicates if the 'Show Only Assets In Selection' option should be visible */
-	bool bCanShowOnlyAssetsInSelectedFolders;
-
 	/** Indicates if the 'Real-Time Thumbnails' option should be visible */
 	bool bCanShowRealTimeThumbnails;
 
@@ -143,7 +140,6 @@ struct FAssetPickerConfig
 		, bAutohideSearchBar(false)
 		, bAllowDragging(true)
 		, bCanShowClasses(true)
-		, bCanShowOnlyAssetsInSelectedFolders(false)
 		, bCanShowRealTimeThumbnails(false)
 		, bCanShowDevelopersFolder(false)
 		, bPreloadAssetsForContextMenu(true)

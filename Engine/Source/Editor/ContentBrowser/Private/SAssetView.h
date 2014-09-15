@@ -23,7 +23,6 @@ public:
 		, _AllowThumbnailEditMode(false)
 		, _CanShowClasses(true)
 		, _CanShowFolders(false)
-		, _CanShowOnlyAssetsInSelectedFolders(false)
 		, _CanShowRealTimeThumbnails(false)
 		, _CanShowDevelopersFolder(false)
 		, _PreloadAssetsForContextMenu(true)
@@ -107,9 +106,6 @@ public:
 
 		/** Indicates if the 'Show Folders' option should be visible */
 		SLATE_ARGUMENT( bool, CanShowFolders )
-
-		/** Indicates if the 'Show Only Assets In Selection' option should be visible */
-		SLATE_ARGUMENT( bool, CanShowOnlyAssetsInSelectedFolders )
 
 		/** Indicates if the 'Real-Time Thumbnails' option should be visible */
 		SLATE_ARGUMENT( bool, CanShowRealTimeThumbnails )
@@ -346,17 +342,6 @@ private:
 	/** @return true when we are showing folders */
 	bool IsShowingFolders() const;
 
-
-	/** Toggle whether only assets from the selected folders are shown */
-	void ToggleShowOnlyAssetsInSelectedFolders();
-
-	/** Whether or not it's possible to only show assets from the selected folders */
-	bool CanShowOnlyAssetsInSelectedFolders() const;
-
-	/** @return true when we are showing only the assets from the selected folders */
-	bool IsShowingOnlyAssetsInSelectedFolders() const;
-
-
 	/** Toggle whether to show real-time thumbnails */
 	void ToggleRealTimeThumbnails();
 
@@ -365,7 +350,6 @@ private:
 
 	/** @return true if we are showing real-time thumbnails */
 	bool IsShowingRealTimeThumbnails() const;
-
 
 	/** Toggle whether plugin content folders should be shown or not */
 	void ToggleShowPluginFolders();
@@ -755,9 +739,6 @@ private:
 
 	/** Indicates if the 'Show Folders' option should be visible */
 	bool bCanShowFolders;
-
-	/** Indicates if the 'Show Only Assets In Selection' option should be visible */
-	bool bCanShowOnlyAssetsInSelectedFolders;
 
 	/** Indicates if the 'Real-Time Thumbnails' option should be visible */
 	bool bCanShowRealTimeThumbnails;

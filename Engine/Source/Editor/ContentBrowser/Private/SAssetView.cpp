@@ -124,8 +124,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bCanShowClasses = InArgs._CanShowClasses;
 
 	bCanShowFolders = InArgs._CanShowFolders;
-
-	bCanShowOnlyAssetsInSelectedFolders = InArgs._CanShowOnlyAssetsInSelectedFolders;
 		
 	bCanShowRealTimeThumbnails = InArgs._CanShowRealTimeThumbnails;
 
@@ -1303,7 +1301,7 @@ void SAssetView::RefreshSourceItems()
 		// Assemble the filter using the current sources
 		// force recursion when the user is searching
 		const bool bRecurse = ShouldFilterRecursively();
-		const bool bUsingFolders = GetDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders || IsShowingFolders();
+		const bool bUsingFolders = IsShowingFolders();
 		FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 
 		bWereItemsRecursivelyFiltered = bRecurse;
@@ -1463,7 +1461,7 @@ void SAssetView::RefreshFilteredItems()
 	if ( bIsFrontendFilterActive && FrontendFilters.IsValid() )
 	{
 		const bool bRecurse = ShouldFilterRecursively();
-		const bool bUsingFolders = GetDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders || IsShowingFolders();
+		const bool bUsingFolders = IsShowingFolders();
 		FARFilter CombinedFilter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 		CombinedFilter.Append(BackendFilter);
 
@@ -2050,7 +2048,7 @@ bool SAssetView::PassesCurrentFrontendFilter(const FAssetData& Item) const
 void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDataList) const
 {
 	const bool bRecurse = ShouldFilterRecursively();
-	const bool bUsingFolders = GetDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders || IsShowingFolders();
+	const bool bUsingFolders = IsShowingFolders();
 	FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 	
 	if ( SourcesData.Collections.Num() > 0 && Filter.ObjectPaths.Num() == 0 )
@@ -2206,19 +2204,6 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			);
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ShowOnlyAssetsInSelectedFolders", "Show Only Assets in Selected Folders"),
-			LOCTEXT("ShowOnlyAssetsInSelectedFoldersToolTip", "Only displays the assets of the selected folders"),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &SAssetView::ToggleShowOnlyAssetsInSelectedFolders ),
-				FCanExecuteAction::CreateSP( this, &SAssetView::CanShowOnlyAssetsInSelectedFolders ),
-				FIsActionChecked::CreateSP( this, &SAssetView::IsShowingOnlyAssetsInSelectedFolders )
-			),
-			NAME_None,
-			EUserInterfaceActionType::ToggleButton
-			);
-
-		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ShowDevelopersFolderOption", "Show Developers Folder"),
 			LOCTEXT("ShowDevelopersFolderOptionToolTip", "Show the developers folder in the view."),
 			FSlateIcon(),
@@ -2320,23 +2305,6 @@ bool SAssetView::IsToggleShowFoldersAllowed() const
 bool SAssetView::IsShowingFolders() const
 {
 	return IsToggleShowFoldersAllowed() ? GetDefault<UContentBrowserSettings>()->DisplayFolders : false;
-}
-
-void SAssetView::ToggleShowOnlyAssetsInSelectedFolders()
-{
-	check( CanShowOnlyAssetsInSelectedFolders() );
-	GetMutableDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders = !GetDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders;
-	RequestSlowFullListRefresh();
-}
-
-bool SAssetView::CanShowOnlyAssetsInSelectedFolders() const
-{
-	 return bCanShowOnlyAssetsInSelectedFolders;
-}
-
-bool SAssetView::IsShowingOnlyAssetsInSelectedFolders() const
-{
-	return CanShowOnlyAssetsInSelectedFolders() ? GetDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders : false;
 }
 
 void SAssetView::ToggleRealTimeThumbnails()
@@ -3732,8 +3700,7 @@ void SAssetView::SetUserSearching(bool bInSearching)
 
 void SAssetView::HandleSettingChanged(FName PropertyName)
 {
-	if ((PropertyName == "ShowOnlyAssetsInSelectedFolders") ||
-		(PropertyName == "DisplayFolders") ||
+	if ((PropertyName == "DisplayFolders") ||
 		(PropertyName == "DisplayDevelopersFolder") ||
 		(PropertyName == "DisplayEngineFolder") ||
 		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now

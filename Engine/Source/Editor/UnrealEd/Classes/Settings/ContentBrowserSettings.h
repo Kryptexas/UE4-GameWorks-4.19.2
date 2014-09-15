@@ -25,10 +25,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=ContentBrowser, meta=(DisplayName = "Assets to Load at Once Before Warning"))
 	int32 NumObjectsToLoadBeforeWarning;
 
-	/** Whether to show only assets in selected folders in the Content Browser, excluding sub-folders. Note that this always the case when 'Display Folders' is enabled. */
-	UPROPERTY(config)
-	bool ShowOnlyAssetsInSelectedFolders;
-
 	/** Whether to render thumbnails for loaded assets in real-time in the Content Browser */
 	UPROPERTY(config)
 	bool RealTimeThumbnails;

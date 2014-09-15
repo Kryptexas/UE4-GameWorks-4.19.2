@@ -520,7 +520,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.AllowThumbnailEditMode(true)
 						.AllowThumbnailHintLabel(false)
 						.CanShowFolders(true)
-						.CanShowOnlyAssetsInSelectedFolders(true)
 						.CanShowRealTimeThumbnails(true)
 						.CanShowDevelopersFolder(true)
 						.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserAssets")))
