@@ -3,7 +3,9 @@
 #include "UnrealEd.h"
 #include "Commandlets/RepairLocalizationDataCommandlet.h"
 #include "InternationalizationManifest.h"
+#include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchive.h"
+#include "InternationalizationArchiveJsonSerializer.h"
 #include "Regex.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogRepairLocalizationDataCommandlet, Log, All);
