@@ -594,6 +594,7 @@ TSharedRef<SDockTab> FAssetEditorToolkit::SpawnTab_Toolbar( const FSpawnTabArgs&
 
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
 		.Label( NSLOCTEXT("AssetEditorToolkit", "Toolbar_TabTitle", "Toolbar") )
+		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Toolbar"))
 		.ShouldAutosize(true)
 		[
 			SAssignNew(ToolbarWidgetContent, SBorder)

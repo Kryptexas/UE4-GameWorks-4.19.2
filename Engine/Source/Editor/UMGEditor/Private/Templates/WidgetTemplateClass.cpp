@@ -16,7 +16,7 @@ FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
 FText FWidgetTemplateClass::GetCategory() const
 {
 	auto DefaultWidget = WidgetClass->GetDefaultObject<UWidget>();
-	return DefaultWidget->GetToolboxCategory();
+	return DefaultWidget->GetPaletteCategory();
 }
 
 UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)
