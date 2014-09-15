@@ -1480,6 +1480,14 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 		// Create a new blueprint guid
 		Blueprint->GenerateNewGuid();
 
+		// Give all nodes a new Guid
+		TArray< UEdGraphNode* > AllGraphNodes;
+		GetAllNodesOfClass(Blueprint, AllGraphNodes);
+		for(auto& Node : AllGraphNodes)
+		{
+			Node->CreateNewGuid();
+		}
+
 		// And compile again to make sure they go into the generated class, get cleaned up, etc...
 		FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
 

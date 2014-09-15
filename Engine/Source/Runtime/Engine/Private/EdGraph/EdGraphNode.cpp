@@ -246,6 +246,13 @@ void UEdGraphNode::PostLoad()
 		// Generate new one
 		CreateNewGuid();
 	}
+
+	// Duplicating a Blueprint needs to have a new Node Guid generated, which was not occuring before this version
+	if(GetLinkerUE4Version() < VER_UE4_POST_DUPLICATE_NODE_GUID)
+	{
+		// Generate new one
+		CreateNewGuid();
+	}
 }
 
 void UEdGraphNode::CreateNewGuid()

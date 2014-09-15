@@ -608,6 +608,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_RENAME_SM3_TO_ES3_1,
 	// Deprecated separate style assets for use in UMG
 	VER_UE4_DEPRECATE_UMG_STYLE_ASSETS,
+	// Duplicating Blueprints will regenerate NodeGuids after this version
+	VER_UE4_POST_DUPLICATE_NODE_GUID,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
