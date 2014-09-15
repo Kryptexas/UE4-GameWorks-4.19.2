@@ -62,6 +62,9 @@ public:
 	/** Delegate to handle Add looping interpolation context menu option */
 	void OnAddLoopingInterpolation(TArray<FAssetData> SelectedAssets);
 
+	/** Delegate to handle reimport selected animations */
+	void OnReimportAnimation(TArray<FAssetData> SelectedAssets);
+
 	/** This will allow duplicate the current object, and remap to new skeleton 
 	 *	Only allowed for AnimSequence 
 	 */

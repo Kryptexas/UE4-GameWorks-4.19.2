@@ -146,6 +146,16 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 				FCanExecuteAction()
 				)
 				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ReimportAnimation", "Reimport Animation"),
+				LOCTEXT("ReimportAnimation_ToolTip", "Reimport current animaion."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnReimportAnimation, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -280,6 +290,21 @@ void SAnimationSequenceBrowser::OnAddLoopingInterpolation(TArray<FAssetData> Sel
 		}
 
 		PersonaPtr.Pin()->AddLoopingInterpolation(AnimSequences);
+	}
+}
+
+void SAnimationSequenceBrowser::OnReimportAnimation(TArray<FAssetData> SelectedAssets)
+{
+	if (SelectedAssets.Num() > 0)
+	{
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		for (auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		{
+			if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			{
+				FReimportManager::Instance()->Reimport(AnimSequence, true);
+			}
+		}
 	}
 }
 
