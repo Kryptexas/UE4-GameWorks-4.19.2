@@ -6,6 +6,7 @@
 #include "K2ActionMenuBuilder.h"
 #include "EdGraphSchema_K2_Actions.h"
 #include "K2Node.h"
+#include "K2Node_CommutativeAssociativeBinaryOperator.h"
 #include "AnimationGraph.h"
 #include "AnimGraphNode_StateMachine.h"
 #include "BlueprintEditorUtils.h"
@@ -806,7 +807,7 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 
 	ActionEntry += " : {";
 
-	const FString TooltipFieldLabel("\"Tooltip\"     : \"");
+	const FString TooltipFieldLabel("\"Tooltip\"      : \"");
 	const FString TooltipStr = PrimeAction->TooltipDescription.Replace(TEXT("\n"), *(IndentedNewline + BuildIndentString(TooltipFieldLabel.Len(), /*bUseSpaces =*/true)));
 
 	ActionEntry += IndentedNewline + TooltipFieldLabel + MakeJsonString(TooltipStr) + "\"";
@@ -819,9 +820,28 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 		ActionList.OwnerOfTemporaries->AddNode(Node);
 		Node->AllocateDefaultPins();
 
+		if (Node->ShouldDrawCompact())
+		{
+			ActionEntry += IndentedNewline + "\"CompactTitle\" : \"" + MakeJsonString(Node->GetCompactNodeTitle().ToString()) + "\"";
+		}
+
+		if (Node->IsNodePure())
+		{
+			ActionEntry += IndentedNewline + "\"NodeType\"     : \"pure\"";
+		}
+		else
+		{
+			ActionEntry += IndentedNewline + "\"NodeType\"     : \"function\"";
+		}
+
+		if (Node->IsA<UK2Node_CommutativeAssociativeBinaryOperator>())
+		{
+			ActionEntry += IndentedNewline + "\"ShowAddPin\"   : \"true\"";
+		}
+
 		if (Node->Pins.Num() > 0)
 		{
-			ActionEntry += "," + IndentedNewline + "\"Pins\"        : {";
+			ActionEntry += "," + IndentedNewline + "\"Pins\"         : {";
 
 			const FString PinEntryIndentedNewline = "\n" + BuildIndentString(Indent+1);
 			const FString PinDetailsIndentedNewline = "\n" + BuildIndentString(Indent+2);
@@ -869,6 +889,16 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 					if (Pin->PinType.PinSubCategoryObject.IsValid())
 					{
 						ActionEntry += "," + PinDetailsIndentedNewline + "\"PinSubCategoryObject\" : \"" + MakeJsonString(Pin->PinType.PinSubCategoryObject->GetName()) + "\"";
+					}
+
+					if (!CastChecked<UEdGraphSchema_K2>(Node->GetSchema())->ShouldShowAssetPickerForPin(Pin))
+					{
+						ActionEntry += "," + PinDetailsIndentedNewline + "\"ShowAssetPicker\"      : \"false\"";
+					}
+
+					if (!Pin->DefaultValue.IsEmpty())
+					{
+						ActionEntry += "," + PinDetailsIndentedNewline + "\"DefaultValue\"         : \"" + MakeJsonString(Pin->DefaultValue) + "\"";
 					}
 
 					if (Pin->PinType.bIsArray)
