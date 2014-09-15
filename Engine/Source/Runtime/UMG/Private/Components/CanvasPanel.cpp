@@ -110,7 +110,7 @@ const FSlateBrush* UCanvasPanel::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Canvas");
 }
 
-const FText UCanvasPanel::GetToolboxCategory()
+const FText UCanvasPanel::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");
 }

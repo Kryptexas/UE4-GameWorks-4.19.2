@@ -274,7 +274,7 @@ const FSlateBrush* USpinBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.SpinBox");
 }
 
-const FText USpinBox::GetToolboxCategory()
+const FText USpinBox::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
 }

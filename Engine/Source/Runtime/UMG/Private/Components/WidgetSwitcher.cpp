@@ -122,7 +122,7 @@ const FSlateBrush* UWidgetSwitcher::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.WidgetSwitcher");
 }
 
-const FText UWidgetSwitcher::GetToolboxCategory()
+const FText UWidgetSwitcher::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");
 }

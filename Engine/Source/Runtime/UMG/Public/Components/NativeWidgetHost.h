@@ -19,7 +19,7 @@ class UMG_API UNativeWidgetHost : public UWidget
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
-	virtual const FText GetToolboxCategory() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:

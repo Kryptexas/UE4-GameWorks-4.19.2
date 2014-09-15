@@ -82,7 +82,7 @@ const FSlateBrush* USlider::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Slider");
 }
 
-const FText USlider::GetToolboxCategory()
+const FText USlider::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
 }

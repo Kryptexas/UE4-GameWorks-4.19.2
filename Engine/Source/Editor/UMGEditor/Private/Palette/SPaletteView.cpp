@@ -127,7 +127,7 @@ public:
 	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) override
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
-		.Style( FEditorStyle::Get(), "UMGEditor.ToolboxHeader" )
+		.Style( FEditorStyle::Get(), "UMGEditor.PaletteHeader" )
 			.Padding(2.0f)
 			.ShowSelection(false)
 			[
@@ -182,7 +182,7 @@ void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 		.AutoHeight()
 		[
 			SNew(SSearchBox)
-			.HintText(LOCTEXT("SearchTemplates", "Search Templates"))
+			.HintText(LOCTEXT("SearchTemplates", "Search Palette"))
 			.OnTextChanged(this, &SPaletteView::OnSearchChanged)
 		]
 

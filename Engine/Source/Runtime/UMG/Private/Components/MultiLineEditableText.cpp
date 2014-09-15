@@ -101,7 +101,7 @@ const FSlateBrush* UMultiLineEditableText::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.MultiLineEditableText");
 }
 
-const FText UMultiLineEditableText::GetToolboxCategory()
+const FText UMultiLineEditableText::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");
 }

@@ -139,7 +139,7 @@ const FSlateBrush* UEditableTextBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.EditableTextBox");
 }
 
-const FText UEditableTextBox::GetToolboxCategory()
+const FText UEditableTextBox::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
 }

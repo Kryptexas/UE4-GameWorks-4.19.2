@@ -47,7 +47,7 @@ class UMG_API UScrollBox : public UPanelWidget
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
-	virtual const FText GetToolboxCategory() override;
+	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 #endif
 

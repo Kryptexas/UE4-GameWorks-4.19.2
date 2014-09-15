@@ -78,7 +78,7 @@ const FSlateBrush* UVerticalBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.VerticalBox");
 }
 
-const FText UVerticalBox::GetToolboxCategory()
+const FText UVerticalBox::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");
 }

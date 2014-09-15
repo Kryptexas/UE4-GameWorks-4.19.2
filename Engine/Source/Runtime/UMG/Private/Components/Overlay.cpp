@@ -73,7 +73,7 @@ const FSlateBrush* UOverlay::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Overlay");
 }
 
-const FText UOverlay::GetToolboxCategory()
+const FText UOverlay::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");
 }

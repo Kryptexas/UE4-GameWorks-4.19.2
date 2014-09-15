@@ -57,7 +57,7 @@ const FSlateBrush* UScrollBar::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ScrollBar");
 }
 
-const FText UScrollBar::GetToolboxCategory()
+const FText UScrollBar::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");
 }

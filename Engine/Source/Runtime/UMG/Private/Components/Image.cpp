@@ -155,7 +155,7 @@ const FSlateBrush* UImage::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Image");
 }
 
-const FText UImage::GetToolboxCategory()
+const FText UImage::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
 }

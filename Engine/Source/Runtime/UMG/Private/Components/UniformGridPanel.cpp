@@ -83,7 +83,7 @@ const FSlateBrush* UUniformGridPanel::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.UniformGrid");
 }
 
-const FText UUniformGridPanel::GetToolboxCategory()
+const FText UUniformGridPanel::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");
 }

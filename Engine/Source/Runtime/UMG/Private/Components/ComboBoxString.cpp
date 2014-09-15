@@ -141,7 +141,7 @@ const FSlateBrush* UComboBoxString::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.ComboBox");
 }
 
-const FText UComboBoxString::GetToolboxCategory()
+const FText UComboBoxString::GetPaletteCategory()
 {
 	return LOCTEXT("Input", "Input");
 }

@@ -723,7 +723,7 @@ const FSlateBrush* UUserWidget::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.UserWidget");
 }
 
-const FText UUserWidget::GetToolboxCategory()
+const FText UUserWidget::GetPaletteCategory()
 {
 	return LOCTEXT("UserCreated", "User Created");
 }

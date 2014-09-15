@@ -626,7 +626,7 @@ const FSlateBrush* UViewport::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Viewport");
 }
 
-const FText UViewport::GetToolboxCategory()
+const FText UViewport::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");
 }

@@ -320,7 +320,7 @@ const FSlateBrush* UBorder::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Border");
 }
 
-const FText UBorder::GetToolboxCategory()
+const FText UBorder::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
 }

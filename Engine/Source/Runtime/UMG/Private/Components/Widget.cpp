@@ -310,7 +310,7 @@ FString UWidget::GetLabel() const
 	}
 }
 
-const FText UWidget::GetToolboxCategory()
+const FText UWidget::GetPaletteCategory()
 {
 	return LOCTEXT("Uncategorized", "Uncategorized");
 }
