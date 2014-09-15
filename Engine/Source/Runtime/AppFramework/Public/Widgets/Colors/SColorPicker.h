@@ -427,7 +427,7 @@ private:
 private:
 
 	/** A static pointer to the global color themes viewer */
-	static TSharedPtr<class SColorThemesViewer> ColorThemesViewer;
+	static TWeakPtr<class SColorThemesViewer> ColorThemesViewer;
 };
 
 
