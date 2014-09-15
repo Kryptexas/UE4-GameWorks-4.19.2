@@ -44,8 +44,10 @@ public:
 
 	virtual void Serialize( FArchive& Ar ) override;
 
+#if WITH_EDITORONLY_DATA
 	/** Gets asset registry tags */
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+#endif
 
 	/** Generates a new blueprint Guid, used when creating new blueprints */
 	void GenerateNewGuid()

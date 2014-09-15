@@ -232,6 +232,7 @@ void UBlueprintCore::Serialize(FArchive& Ar)
 	}
 }
 
+#if WITH_EDITORONLY_DATA
 void UBlueprintCore::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	Super::GetAssetRegistryTags(OutTags);
@@ -248,6 +249,7 @@ void UBlueprintCore::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) co
 
 	OutTags.Add( FAssetRegistryTag("GeneratedClass", GeneratedClassVal, FAssetRegistryTag::TT_Hidden) );
 }
+#endif
 
 void UBlueprintCore::GenerateDeterministicGuid()
 {
