@@ -204,7 +204,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			
 			if (ServerConnection != NULL && ServerConnection->PlayerController != NULL && ServerConnection->PlayerController->PlayerState != NULL)
 			{
-				Ping = FMath::TruncToInt(1000.0f * ServerConnection->PlayerController->PlayerState->ExactPing);
+				Ping = FMath::TruncToInt(ServerConnection->PlayerController->PlayerState->ExactPing);
 			}
 
 			if (ServerConnection != NULL)

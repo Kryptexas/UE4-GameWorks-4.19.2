@@ -68,7 +68,7 @@ void APlayerState::RecalculateAvgPing()
 	}
 
 	// Calculate the average, and divide it by 4 to optimize replication
-	ExactPing = (float)Sum / (float)Count;
+	ExactPing = (Count > 0 ? ((float)Sum / (float)Count) : 0.f);
 	Ping = FMath::Min(255, (int32)(ExactPing * 0.25f));
 }
 
