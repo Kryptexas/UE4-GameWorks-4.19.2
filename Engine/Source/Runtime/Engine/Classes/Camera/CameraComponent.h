@@ -32,7 +32,7 @@ class UCameraComponent : public USceneComponent
 
 	/** If this camera component is placed on a pawn, should it use the view rotation of the pawn where possible? */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
-	uint32 bUseControllerViewRotation:1;
+	uint32 bUsePawnViewRotation:1;
 
 	// The type of camera
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
@@ -49,6 +49,7 @@ class UCameraComponent : public USceneComponent
 	// UActorComponent interface
 	ENGINE_API virtual void OnRegister() override;
 	ENGINE_API virtual void OnUnregister() override;
+	ENGINE_API virtual void PostLoad() override;
 #if WITH_EDITOR
 	ENGINE_API virtual void CheckForErrors() override;
 	// End of UActorComponent interface
@@ -87,4 +88,9 @@ public:
 	ENGINE_API void OverrideFrustumColor(FColor OverrideColor);
 	ENGINE_API void RestoreFrustumColor();
 #endif
+
+public:
+	/** DEPRECATED: use bUsePawnViewRotation instead */
+	UPROPERTY()
+	uint32 bUseControllerViewRotation_DEPRECATED:1;
 };

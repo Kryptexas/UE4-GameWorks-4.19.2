@@ -17,7 +17,7 @@ USpringArmComponent::USpringArmComponent(const class FPostConstructInitializePro
 	
 	bAutoActivate = true;
 	bTickInEditor = true;
-	bUseControllerViewRotation = false;
+	bUsePawnViewRotation = false;
 	bDoCollisionTest = true;
 
 	bInheritPitch = true;
@@ -123,7 +123,7 @@ void USpringArmComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (bUseControllerViewRotation)
+	if (bUsePawnViewRotation)
 	{
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
 		{

@@ -610,6 +610,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DEPRECATE_UMG_STYLE_ASSETS,
 	// Duplicating Blueprints will regenerate NodeGuids after this version
 	VER_UE4_POST_DUPLICATE_NODE_GUID,
+	// Rename USpringArmComponent::bUseControllerViewRotation to bUsePawnViewRotation,
+	// Rename UCameraComponent::bUseControllerViewRotation to bUsePawnViewRotation (and change the default value)
+	VER_UE4_RENAME_CAMERA_COMPONENT_VIEW_ROTATION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

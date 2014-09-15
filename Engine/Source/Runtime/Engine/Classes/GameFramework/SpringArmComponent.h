@@ -42,7 +42,7 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 
 	/** If this component is placed on a pawn, should it use the view rotation of the pawn where possible? */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
-	uint32 bUseControllerViewRotation:1;
+	uint32 bUsePawnViewRotation:1;
 
 	/** Should we inherit pitch from parent component. Does nothing if using Absolute Rotation. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
