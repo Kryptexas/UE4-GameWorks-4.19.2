@@ -38,6 +38,7 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnGenerateRow FOnGenerateRow;
 	typedef typename TSlateDelegates< ItemType >::FOnItemScrolledIntoView FOnItemScrolledIntoView;
 	typedef typename TSlateDelegates< NullableItemType >::FOnSelectionChanged FOnSelectionChanged;
+	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonClick FOnMouseButtonClick;
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 
 public:
@@ -57,6 +58,7 @@ public:
 		, _ListItemsSource( static_cast<const TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(16)
 		, _OnContextMenuOpening()
+		, _OnMouseButtonClick()
 		, _OnMouseButtonDoubleClick()
 		, _OnSelectionChanged()
 		, _SelectionMode(ESelectionMode::Multi)
@@ -73,6 +75,8 @@ public:
 		SLATE_ATTRIBUTE( float, ItemHeight )
 
 		SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
+
+		SLATE_EVENT(FOnMouseButtonClick, OnMouseButtonClick)
 
 		SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
 
@@ -102,6 +106,7 @@ public:
 
 		this->ItemsSource = InArgs._ListItemsSource;
 		this->OnContextMenuOpening = InArgs._OnContextMenuOpening;
+		this->OnClick = InArgs._OnMouseButtonClick;
 		this->OnDoubleClick = InArgs._OnMouseButtonDoubleClick;
 		this->OnSelectionChanged = InArgs._OnSelectionChanged;
 		this->SelectionMode = InArgs._SelectionMode;
@@ -658,6 +663,16 @@ public:
 		this->OnRightMouseButtonUp( MouseEvent.GetScreenSpacePosition() );
 	}
 
+	virtual bool Private_OnItemClicked(ItemType TheItem) override
+	{
+		if (OnClick.ExecuteIfBound(TheItem))
+		{
+			return true;	// Handled
+		}
+
+		return false;	// Not handled
+	}
+	
 	virtual bool Private_OnItemDoubleClicked( ItemType TheItem ) override
 	{
 		if( OnDoubleClick.ExecuteIfBound( TheItem ) )
@@ -1321,6 +1336,9 @@ protected:
 
 	/** Delegate to invoke when selection changes. */
 	FOnSelectionChanged OnSelectionChanged;
+
+	/** Caled when the user clicks on an element int he list view with the left mouse button */
+	FOnMouseButtonClick OnClick;
 
 	/** Called when the user double-clicks on an element in the list view with the left mouse button */
 	FOnMouseButtonDoubleClick OnDoubleClick;

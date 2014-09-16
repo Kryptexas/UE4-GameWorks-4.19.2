@@ -147,6 +147,9 @@ public:
 	/** Called when the item is right-clicked when not right mouse scrolling */
 	virtual void Private_OnItemRightClicked( ItemType TheItem, const FPointerEvent& MouseEvent ) = 0;
 
+	/** Called when the item is clicked, and returns whether or not the event was handled */
+	virtual bool Private_OnItemClicked(ItemType TheItem) = 0;
+
 	/** Called when the item is double-clicked, and returns whether or not the event was handled */
 	virtual bool Private_OnItemDoubleClicked( ItemType TheItem ) = 0;
 

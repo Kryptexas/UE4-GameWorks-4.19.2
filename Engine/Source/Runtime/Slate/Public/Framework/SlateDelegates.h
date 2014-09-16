@@ -182,6 +182,13 @@ public:
 		bool
 	)
 
+	/** Called when the user clicks on an item in a tree or list */
+	DECLARE_DELEGATE_OneParam(
+		FOnMouseButtonClick,
+			/** param: The item that was double-clicked on */
+			ArgumentType
+			)
+
 	/** Called when the user double-clicks on an item in a tree or list */
 	DECLARE_DELEGATE_OneParam(
 		FOnMouseButtonDoubleClick,

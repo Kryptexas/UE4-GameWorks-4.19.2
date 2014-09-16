@@ -218,7 +218,7 @@ public:
 						OwnerWidget->Private_SetItemSelection( *MyItem, true, true );
 						ChangedSelectionOnMouseDown = true;
 					}
-
+					
 					return FReply::Handled()
 						.DetectDrag( SharedThis(this), EKeys::LeftMouseButton )
 						.SetKeyboardFocus( OwnerWidget->AsWidget(), EKeyboardFocusCause::Mouse )
@@ -349,6 +349,12 @@ public:
 						}
 						break;
 					}
+				}
+
+				const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget(this);
+				if (MyItem && OwnerWidget->Private_OnItemClicked(*MyItem))
+				{
+					Reply = FReply::Handled().ReleaseMouseCapture();
 				}
 
 				if ( ChangedSelectionOnMouseDown )
