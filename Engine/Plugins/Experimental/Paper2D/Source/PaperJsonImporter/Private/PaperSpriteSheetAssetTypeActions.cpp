@@ -9,6 +9,7 @@
 #include "AssetRegistryModule.h"
 #include "PaperFlipbookFactory.h"
 #include "PackageTools.h"
+#include "PaperFlipbookHelpers.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -77,35 +78,46 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteReimport(TArray<TWeakObjectPtr<UP
 static bool ExtractSpriteNumber(const FString& String, FString& BareString, int& Number)
 {
 	bool bExtracted = false;
+
 	int LastCharacter = String.Len() - 1;
-	if (LastCharacter >= 0 && FChar::IsDigit(String[LastCharacter]))
+	if (LastCharacter >= 0)
 	{
-		while (LastCharacter > 0 && FChar::IsDigit(String[LastCharacter - 1]))
+		// Find the last character that isn't a digit (Handle sprite names with numbers inside inverted commas / parentheses)
+		while (LastCharacter >= 0 && !FChar::IsDigit(String[LastCharacter]))
 		{
 			LastCharacter--;
 		}
 
+		// Only proceed if we found a number in the sprite name
 		if (LastCharacter >= 0)
 		{
-			int FirstDigit = LastCharacter;
-			int EndCharacter = FirstDigit;
-			while (EndCharacter > 0 && !FChar::IsAlnum(String[EndCharacter - 1]))
+			while (LastCharacter > 0 && FChar::IsDigit(String[LastCharacter - 1]))
 			{
-				EndCharacter--;
+				LastCharacter--;
 			}
 
-			if (EndCharacter == 0)
+			if (LastCharacter >= 0)
 			{
-				// This string consists of non alnum + number, eg. _42
-				// The flipbook / category name in this case will be _
-				// Otherwise, we strip out all trailing non-alnum chars
-				EndCharacter = FirstDigit;
+				int FirstDigit = LastCharacter;
+				int EndCharacter = FirstDigit;
+				while (EndCharacter > 0 && !FChar::IsAlnum(String[EndCharacter - 1]))
+				{
+					EndCharacter--;
+				}
+
+				if (EndCharacter == 0)
+				{
+					// This string consists of non alnum + number, eg. _42
+					// The flipbook / category name in this case will be _
+					// Otherwise, we strip out all trailing non-alnum chars
+					EndCharacter = FirstDigit;
+				}
+
+				FString NumberString = String.Mid(FirstDigit);
+				BareString = String.Left(EndCharacter);
+				Number = FCString::Atoi(*NumberString);
+				bExtracted = true;
 			}
-			
-			FString NumberString = String.Mid(FirstDigit);
-			BareString = String.Left(EndCharacter);
-			Number = FCString::Atoi(*NumberString);
-			bExtracted = true;
 		}
 	}
 
@@ -129,13 +141,12 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjec
 			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 			
-			TMap<FString, UPaperSprite*> SpriteNameMap;
-			TSet<FString> FlipbookNames;
-			TMap<FString, TArray<UPaperSprite*> > FlipbookSprites;
-			TArray<UPaperSprite*> AllValidSprites;
-
 			check(SpriteSheet->SpriteNames.Num() == SpriteSheet->Sprites.Num());
 			bool useSpriteNames = (SpriteSheet->SpriteNames.Num() == SpriteSheet->Sprites.Num());
+
+			// Create a list of sprites and sprite names to feed into paper flipbook helpers
+			TArray<UPaperSprite*> Sprites;
+			TArray<FString> SpriteNames;
 
 			for (int SpriteIndex = 0; SpriteIndex < SpriteSheet->Sprites.Num(); ++SpriteIndex)
 			{
@@ -149,73 +160,30 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjec
 				if (Sprite != nullptr)
 				{
 					const FString SpriteName = useSpriteNames ? SpriteSheet->SpriteNames[SpriteIndex] : Sprite->GetName();
-
-					SpriteNameMap.Add(SpriteName, Sprite);
-					
-					int SpriteNumber = 0;
-					FString SpriteBareString;
-					if (ExtractSpriteNumber(SpriteName, /*out*/SpriteBareString, /*out*/SpriteNumber))
-					{
-						FlipbookNames.Add(SpriteBareString);
-						if (FlipbookSprites.Contains(SpriteBareString))
-						{
-							FlipbookSprites[SpriteBareString].Add(Sprite);
-						}
-						else
-						{
-							FlipbookSprites.Add(SpriteBareString, TArray<UPaperSprite*>());
-						}
-					}
-
-					AllValidSprites.Add(Sprite);
+					Sprites.Add(Sprite);
+					SpriteNames.Add(SpriteName);
 				}
 			}
 
-			// Natural sort using the same method as above
-			struct FSpriteSortPredicate
-			{
-				FSpriteSortPredicate() {}
-
-				// Sort predicate operator
-				bool operator()(UPaperSprite& LHS, UPaperSprite& RHS) const
-				{
-					FString LeftString;
-					int LeftNumber;
-					ExtractSpriteNumber(LHS.GetName(), /*out*/LeftString, /*out*/LeftNumber);
-
-					FString RightString;
-					int RightNumber;
-					ExtractSpriteNumber(RHS.GetName(), /*out*/RightString, /*out*/RightNumber);
-
-					return (LeftString == RightString) ? LeftNumber < RightNumber : LeftString < RightString;
-				}
-			};
-
-			// Haven't matched any existing names, so create one flipbook with all sprites in it
-			if (FlipbookNames.Num() == 0 &&
-				EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("Paper2D", "Paper2D_SpriteSheetCreateOneFlipbook", "Unable to detect flipbooks by name in this sprite sheet. Proceed to create a single flipbook containing all sprites in this sprite sheet?")) )
-			{
-				const FString& DefaultFlipbookName = SpriteSheet->GetName() + TEXT(" Flipbook");
-				FlipbookNames.Add(DefaultFlipbookName);
-				FlipbookSprites.Add(DefaultFlipbookName, AllValidSprites);
-			}
+			TMap<FString, TArray<UPaperSprite*> > SpriteFlipbookMap;
+			FPaperFlipbookHelpers::ExtractFlipbooksFromSprites(/*out*/SpriteFlipbookMap, Sprites, SpriteNames);
 
 			// Create one flipbook for every grouped flipbook name
-			if (FlipbookNames.Num() > 0)
+			if (SpriteFlipbookMap.Num() > 0)
 			{
 				UPaperFlipbookFactory* FlipbookFactory = ConstructObject<UPaperFlipbookFactory>(UPaperFlipbookFactory::StaticClass());
 
-				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "Paper2D_SpriteSheetCreateFlipbooks", "Creating flipbooks from Sprite Sheet"), true, true);
+				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "Paper2D_CreateFlipbooks", "Creating flipbooks from selection"), true, true);
 
-				TArray<FString> FlipbookNameArray = FlipbookNames.Array();
+				int Progress = 0;
+				int TotalProgress = SpriteFlipbookMap.Num();
 				TArray<UObject*> ObjectsToSync;
-				for (int FlipbookNameIndex = 0; FlipbookNameIndex < FlipbookNames.Num(); ++FlipbookNameIndex)
+				for (auto It : SpriteFlipbookMap)
 				{
-					GWarn->UpdateProgress(FlipbookNameIndex, FlipbookNames.Num());
+					GWarn->UpdateProgress(Progress++, TotalProgress);
 
-					const FString& FlipbookName = FlipbookNameArray[FlipbookNameIndex];
-					TArray<UPaperSprite*>& Sprites = FlipbookSprites[FlipbookName];
-					Sprites.Sort(FSpriteSortPredicate());
+					const FString& FlipbookName = It.Key;
+					TArray<UPaperSprite*>& Sprites = It.Value;
 
 					const FString TentativePackagePath = PackageTools::SanitizePackageName(PackagePath + TEXT("/") + FlipbookName);
 					FString DefaultSuffix;

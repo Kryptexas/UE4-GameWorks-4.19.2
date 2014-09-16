@@ -6,6 +6,7 @@
 #include "SpriteEditor/SpriteEditor.h"
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
+#include "PaperFlipbookHelpers.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -51,8 +52,8 @@ void FSpriteAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, FMen
 	auto Sprites = GetTypedWeakObjectPtrs<UPaperSprite>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Sprite_CreateFlipbook", "Create Flipbook"),
-		LOCTEXT("Sprite_CreateFlipbookTooltip", "Creates a flipbook from the selected sprites."),
+		LOCTEXT("Sprite_CreateFlipbook", "Create Flipbooks"),
+		LOCTEXT("Sprite_CreateFlipbookTooltip", "Creates flipbooks from the selected sprites."),
 		FSlateIcon(),
 		FUIAction(
 		FExecuteAction::CreateSP(this, &FSpriteAssetTypeActions::ExecuteCreateFlipbook, Sprites),
@@ -68,92 +69,82 @@ void FSpriteAssetTypeActions::ExecuteCreateFlipbook(TArray<TWeakObjectPtr<UPaper
 {
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	TArray<UPaperSprite*> Sprites;
+	TArray<UPaperSprite*> AllSprites;
 
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
 		UPaperSprite *Object = (*ObjIt).Get();
 		if (Object && Object->IsValidLowLevel())
 		{
-			Sprites.Add(Object);
+			AllSprites.Add(Object);
 		}
 	}
 
-	// Attempt to natural sort if possible
-	// Cache results if it becomes a bottleneck
-	struct FSpriteSortPredicate
+	TMap<FString, TArray<UPaperSprite*> > SpriteFlipbookMap;
+	FPaperFlipbookHelpers::ExtractFlipbooksFromSprites(/*out*/SpriteFlipbookMap, AllSprites, TArray<FString>());
+	TArray<UObject*> ObjectsToSync;
+
+	if (SpriteFlipbookMap.Num() > 0)
 	{
-		FSpriteSortPredicate() {}
+		GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "Paper2D_CreateFlipbooks", "Creating flipbooks from selection"), true, true);
 
-		void ExtractNumber(const FString& String, FString& BareString, int& Number) const
+		int Progress = 0;
+		int TotalProgress = SpriteFlipbookMap.Num();
+
+		// Create the flipbook
+		bool bOneFlipbookCreated = SpriteFlipbookMap.Num() == 1;
+		for (auto Iter : SpriteFlipbookMap)
 		{
-			bool bExtracted = false;
-			int LastCharacter = String.Len() - 1;
-			if (LastCharacter >= 0 && FChar::IsDigit(String[LastCharacter]))
-			{
-				while (LastCharacter > 0 && FChar::IsDigit(String[LastCharacter - 1]))
-				{
-					LastCharacter--;
-				}
+			GWarn->UpdateProgress(Progress++, TotalProgress);
 
-				if (LastCharacter >= 0)
+			const FString& FlipbookName = Iter.Key;
+			TArray<UPaperSprite*> Sprites = Iter.Value;
+
+			const FString SpritePathName = AllSprites[0]->GetOutermost()->GetPathName();
+			const FString LongPackagePath = FPackageName::GetLongPackagePath(AllSprites[0]->GetOutermost()->GetPathName());
+
+			const FString NewFlipBookDefaultPath = LongPackagePath + TEXT("/") + FlipbookName;
+			FString DefaultSuffix;
+			FString AssetName;
+			FString PackageName;
+
+			UPaperFlipbookFactory* FlipbookFactory = ConstructObject<UPaperFlipbookFactory>(UPaperFlipbookFactory::StaticClass());
+			for (int32 SpriteIndex = 0; SpriteIndex < Sprites.Num(); ++SpriteIndex)
+			{
+				UPaperSprite* Sprite = Sprites[SpriteIndex];
+				FPaperFlipbookKeyFrame* KeyFrame = new (FlipbookFactory->KeyFrames) FPaperFlipbookKeyFrame();
+				KeyFrame->Sprite = Sprite;
+				KeyFrame->FrameRun = 1;
+			}
+
+			AssetToolsModule.Get().CreateUniqueAssetName(NewFlipBookDefaultPath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
+			const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+			if (bOneFlipbookCreated)
+			{
+				ContentBrowserModule.Get().CreateNewAsset(AssetName, PackagePath, UPaperFlipbook::StaticClass(), FlipbookFactory);
+			}
+			else
+			{
+				if (UObject* NewAsset = AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UPaperFlipbook::StaticClass(), FlipbookFactory))
 				{
-					int FirstDigit = LastCharacter;
-					FString NumberString = String.Mid(FirstDigit);
-					BareString = String.Left(FirstDigit);
-					Number = FCString::Atoi(*NumberString);
-					bExtracted = true;
+					ObjectsToSync.Add(NewAsset);
 				}
 			}
-		
-			if (!bExtracted)
+
+			if (GWarn->ReceivedUserCancel())
 			{
-				BareString = String;
-				Number = -1;
+				break;
 			}
 		}
 
-		// Sort predicate operator
-		bool operator()(UPaperSprite& LHS, UPaperSprite& RHS) const
+		GWarn->EndSlowTask();
+
+		if (ObjectsToSync.Num() > 0)
 		{
-			FString LeftString;
-			int LeftNumber;
-			ExtractNumber(LHS.GetName(), /*out*/LeftString, /*out*/LeftNumber);
-
-			FString RightString;
-			int RightNumber;
-			ExtractNumber(RHS.GetName(), /*out*/RightString, /*out*/RightNumber);
-
-			return (LeftString == RightString) ? LeftNumber < RightNumber : LeftString < RightString;
+			ContentBrowserModule.Get().SyncBrowserToAssets(ObjectsToSync);
 		}
-	};
-
-	Sprites.Sort(FSpriteSortPredicate());
-	
-	// Create the flipbook
-	if (Sprites.Num() > 0)
-	{
-		const FString SpritePathName = Sprites[0]->GetOutermost()->GetPathName();
-		const FString LongPackagePath = FPackageName::GetLongPackagePath(Sprites[0]->GetOutermost()->GetPathName());
-
-		const FString NewFlipBookDefaultPath = LongPackagePath + TEXT("/NewFlipbook");
-		FString DefaultSuffix;
-		FString AssetName;
-		FString PackageName;
-		AssetToolsModule.Get().CreateUniqueAssetName(NewFlipBookDefaultPath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
-		const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
-
-		UPaperFlipbookFactory* FlipbookFactory = ConstructObject<UPaperFlipbookFactory>(UPaperFlipbookFactory::StaticClass());
-		for (int32 SpriteIndex = 0; SpriteIndex < Sprites.Num(); ++SpriteIndex)
-		{
-			UPaperSprite* Sprite = Sprites[SpriteIndex];
-			FPaperFlipbookKeyFrame* KeyFrame = new (FlipbookFactory->KeyFrames) FPaperFlipbookKeyFrame();
-			KeyFrame->Sprite = Sprite;
-			KeyFrame->FrameRun = 1;
-		}
-
-		ContentBrowserModule.Get().CreateNewAsset(AssetName, PackagePath, UPaperFlipbook::StaticClass(), FlipbookFactory);
 	}
+
 }
 
 
