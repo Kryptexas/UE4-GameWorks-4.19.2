@@ -12,6 +12,8 @@ import android.app.NativeActivity;
 import android.os.Bundle;
 import android.util.Log;
 
+import android.os.Vibrator;
+
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.widget.EditText;
@@ -668,6 +670,20 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 			adPopupWindow.dismiss();
 			adPopupWindow.update();
+		}
+	}
+
+	public void AndroidThunkJava_Vibrate(long Duration)
+	{
+		Vibrator vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
+		if (vibrator.hasVibrator())
+		{
+			if (Duration < 1)
+			{
+				vibrator.cancel();
+			} else {
+				vibrator.vibrate(Duration);
+			}
 		}
 	}
 

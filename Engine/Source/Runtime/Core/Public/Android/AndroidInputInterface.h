@@ -4,6 +4,7 @@
 #include <android/input.h>
 #include <android/keycodes.h>
 #include <android/api-level.h>
+#include "IForceFeedbackSystem.h"
 
 #if __ANDROID_API__ <= 18
 
@@ -103,6 +104,10 @@ struct FAndroidControllerData
 	float RYAnalog;
 	float LTAnalog;
 	float RTAnalog;
+
+	/** Vibration settings */
+	bool VibeIsOn;
+	FForceFeedbackValues VibeValues;
 };
 
 enum FAndroidMessageType
@@ -132,7 +137,7 @@ struct FDeferredAndroidMessage
 /**
  * Interface class for Android input devices                 
  */
-class FAndroidInputInterface
+class FAndroidInputInterface : public IForceFeedbackSystem
 {
 public:
 
@@ -141,7 +146,7 @@ public:
 
 public:
 
-	~FAndroidInputInterface() {}
+	~FAndroidInputInterface();
 
 	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
 
@@ -162,12 +167,21 @@ public:
 
 	static void QueueMotionData(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
 
+	/**
+	* IForceFeedbackSystem implementation
+	*/
+	virtual void SetChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
+	virtual void SetChannelValues(int32 ControllerId, const FForceFeedbackValues &values) override;
+
 private:
 
 	FAndroidInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
 
 
 private:
+
+	/** Push Vibration changes to the controllers */
+	void UpdateVibeMotors(FAndroidControllerData &State);
 
 	struct MotionData
 	{

@@ -30,6 +30,8 @@ public:
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
+	virtual IForceFeedbackSystem *GetForceFeedbackSystem() override;
+
 	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 	
 	void InitializeWindow( const TSharedRef< FGenericWindow >& InWindow, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately );

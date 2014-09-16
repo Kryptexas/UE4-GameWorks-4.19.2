@@ -29,6 +29,10 @@ TSharedRef< FAndroidInputInterface > FAndroidInputInterface::Create(  const TSha
 	return MakeShareable( new FAndroidInputInterface( InMessageHandler ) );
 }
 
+FAndroidInputInterface::~FAndroidInputInterface()
+{
+}
+
 FAndroidInputInterface::FAndroidInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 	: MessageHandler( InMessageHandler )
 {
@@ -62,6 +66,91 @@ void FAndroidInputInterface::SetMessageHandler( const TSharedRef< FGenericApplic
 void FAndroidInputInterface::Tick(float DeltaTime)
 {
 
+
+}
+
+void FAndroidInputInterface::SetChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
+{
+	// For now, force the device to 0
+	// Should use Java to enumerate number of controllers and assign device ID
+	// to controller number
+	ControllerId = 0;
+
+	// Note: only one motor on Android at the moment, but remember all the settings
+	// update will look at combination of all values to pick state
+
+	// Save a copy of the value for future comparison
+	switch (ChannelType)
+	{
+		case FF_CHANNEL_LEFT_LARGE:
+			NewControllerData[ControllerId].VibeValues.LeftLarge = Value;
+			break;
+
+		case FF_CHANNEL_LEFT_SMALL:
+			NewControllerData[ControllerId].VibeValues.LeftSmall = Value;
+			break;
+
+		case FF_CHANNEL_RIGHT_LARGE:
+			NewControllerData[ControllerId].VibeValues.RightLarge = Value;
+			break;
+
+		case FF_CHANNEL_RIGHT_SMALL:
+			NewControllerData[ControllerId].VibeValues.RightSmall = Value;
+			break;
+
+		default:
+			// Unknown channel, so ignore it
+			break;
+	}
+
+	// Update with the latest values (wait for SendControllerEvents later?)
+	UpdateVibeMotors(NewControllerData[ControllerId]);
+}
+
+void FAndroidInputInterface::SetChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
+{
+	// For now, force the device to 0
+	// Should use Java to enumerate number of controllers and assign device ID
+	// to controller number
+	ControllerId = 0;
+
+	// Note: only one motor on Android at the moment, but remember all the settings
+	// update will look at combination of all values to pick state
+
+	NewControllerData[ControllerId].VibeValues = Values;
+
+	// Update with the latest values (wait for SendControllerEvents later?)
+	UpdateVibeMotors(NewControllerData[ControllerId]);
+}
+
+extern void AndroidThunkCpp_Vibrate(int64_t Duration);
+
+void FAndroidInputInterface::UpdateVibeMotors(FAndroidControllerData &State)
+{
+	// Use largest vibration state as value
+	float MaxLeft = State.VibeValues.LeftLarge > State.VibeValues.LeftSmall ? State.VibeValues.LeftLarge : State.VibeValues.LeftSmall;
+	float MaxRight = State.VibeValues.RightLarge > State.VibeValues.RightSmall ? State.VibeValues.RightLarge : State.VibeValues.RightSmall;
+	float Value = MaxLeft > MaxRight ? MaxLeft : MaxRight;
+
+	if (State.VibeIsOn)
+	{
+		// Turn it off if below threshold
+		if (Value < 0.3f)
+		{
+			AndroidThunkCpp_Vibrate(0);
+			State.VibeIsOn = false;
+			UE_LOG(LogTemp, Display, TEXT("UpdateVibeMotors: OFF"));
+		}
+	}
+	else {
+		if (Value >= 0.3f)
+		{
+			// Turn it on for 10 seconds (or until below threshold)
+			AndroidThunkCpp_Vibrate(10000);
+			State.VibeIsOn = true;
+			UE_LOG(LogTemp, Display, TEXT("UpdateVibeMotors: ON"));
+		}
+	}
 }
 
 void FAndroidInputInterface::SendControllerEvents()
