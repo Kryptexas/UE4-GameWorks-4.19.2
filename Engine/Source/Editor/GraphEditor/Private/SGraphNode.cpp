@@ -68,7 +68,8 @@ void SNodeTitle::RebuildWidget()
 
 	// Break the title into lines
 	TArray<FString> Lines;
-	CachedTitle.ToString().ParseIntoArray(&Lines, TEXT("\n"), false);
+	const FString CachedTitleString = CachedTitle.ToString().Replace(TEXT("\r"), TEXT(""));
+	CachedTitleString.ParseIntoArray(&Lines, TEXT("\n"), false);
 
 	if (Lines.Num())
 	{
