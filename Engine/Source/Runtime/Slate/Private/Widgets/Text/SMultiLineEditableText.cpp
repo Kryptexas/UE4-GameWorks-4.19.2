@@ -2080,7 +2080,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 
 		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
-		const float ViewOffset = (ContentSize > 0.0f) ? FMath::Clamp<float>(ScrollOffset.X / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
+		const float ViewOffset = (ContentSize > 0.0f && ViewFraction < 1.0f) ? FMath::Clamp<float>(ScrollOffset.X / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
 	
 		// Update the scrollbar with the clamped version of the offset
 		ScrollOffset.X = ViewOffset * ContentSize;
@@ -2102,7 +2102,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 
 		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
-		const float ViewOffset = (ContentSize > 0.0f) ? FMath::Clamp<float>(ScrollOffset.Y / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
+		const float ViewOffset = (ContentSize > 0.0f && ViewFraction < 1.0f) ? FMath::Clamp<float>(ScrollOffset.Y / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
 	
 		// Update the scrollbar with the clamped version of the offset
 		ScrollOffset.Y = ViewOffset * ContentSize;
