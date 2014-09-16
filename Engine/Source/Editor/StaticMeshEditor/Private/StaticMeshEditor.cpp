@@ -588,6 +588,13 @@ bool FStaticMeshEditor::HasSelectedPrims() const
 void FStaticMeshEditor::AddSelectedPrim(const FPrimData& InPrimData)
 {
 	check(IsPrimValid(InPrimData));
+
+	// Enable collision, if not already
+	if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+	{
+		Viewport->GetViewportClient().SetShowWireframeCollision();
+	}
+
 	SelectedPrims.Add(InPrimData);	
 }
 
@@ -694,10 +701,6 @@ void FStaticMeshEditor::DuplicateSelectedPrims(const FVector* InOffset)
 
 void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 {
-	check(StaticMesh->BodySetup);
-
-	FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
-
 	for (int32 PrimIdx = 0; PrimIdx < SelectedPrims.Num(); PrimIdx++)
 	{
 		const FPrimData& PrimData = SelectedPrims[PrimIdx];
@@ -714,10 +717,6 @@ void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 
 void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
 {
-	check(StaticMesh->BodySetup);
-
-	FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
-
 	const FQuat DeltaQ = InRot.Quaternion();
 
 	for (int32 PrimIdx = 0; PrimIdx < SelectedPrims.Num(); PrimIdx++)
@@ -882,6 +881,101 @@ void FStaticMeshEditor::SetPrimTransform(const FPrimData& InPrimData, const FTra
 	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 }
 
+bool FStaticMeshEditor::OverlapsExistingPrim(const FPrimData& InPrimData) const
+{
+	check(StaticMesh->BodySetup);
+
+	const FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
+
+	// Assume that if the transform of the prim is the same, then it overlaps (FKConvexElem doesn't have an operator==, and no shape takes tolerances into account)
+	check(IsPrimValid(InPrimData));
+	switch (InPrimData.PrimType)
+	{
+	case KPT_Sphere:
+		{
+			const FKSphereElem InSphereElem = AggGeom->SphereElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InSphereElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->SphereElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKSphereElem& SphereElem = AggGeom->SphereElems[i];
+				const FTransform ElemTM = SphereElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	case KPT_Box:
+		{
+			const FKBoxElem InBoxElem = AggGeom->BoxElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InBoxElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->BoxElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKBoxElem& BoxElem = AggGeom->BoxElems[i];
+				const FTransform ElemTM = BoxElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	case KPT_Sphyl:
+		{
+			const FKSphylElem InSphylElem = AggGeom->SphylElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InSphylElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->SphylElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKSphylElem& SphylElem = AggGeom->SphylElems[i];
+				const FTransform ElemTM = SphylElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	case KPT_Convex:
+		{
+			const FKConvexElem InConvexElem = AggGeom->ConvexElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InConvexElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->ConvexElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKConvexElem& ConvexElem = AggGeom->ConvexElems[i];
+				const FTransform ElemTM = ConvexElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	}
+
+	return false;
+}
+
 void FStaticMeshEditor::RefreshTool()
 {
 	int32 NumLODs = StaticMesh->GetNumLODs();
@@ -1044,8 +1138,13 @@ void FStaticMeshEditor::GenerateKDop(const FVector* Directions, uint32 NumDirect
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("KDop Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Convex, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Convex, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1062,8 +1161,13 @@ void FStaticMeshEditor::OnCollisionBox()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Box Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Box, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Box, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1080,8 +1184,13 @@ void FStaticMeshEditor::OnCollisionSphere()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Sphere Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Sphere, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Sphere, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1098,8 +1207,13 @@ void FStaticMeshEditor::OnCollisionSphyl()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Capsule Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Sphyl, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Sphyl, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1243,6 +1357,13 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 
 				BodySetup->CreatePhysicsMeshes();
 
+				// Select the new prims
+				FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
+				for (int32 i = 0; i < NumBoxElems; ++i)
+				{
+					AddSelectedPrim(FPrimData(KPT_Convex, (AggGeom->ConvexElems.Num() - (i+1))));
+				}
+
 				// Mark static mesh as dirty, to help make sure it gets saved.
 				StaticMesh->MarkPackageDirty();
 
@@ -1290,8 +1411,14 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 			// Make sure rendering is done - so we are not changing data being used by collision drawing.
 			FlushRenderingCommands();
 
-			// copy body properties from
+			// Copy body properties from
 			BodySetup->CopyBodyPropertiesFrom(SelectedMesh->BodySetup);
+
+			// Enable collision, if not already
+			if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+			{
+				Viewport->GetViewportClient().SetShowWireframeCollision();
+			}
 
 			//Invalidate physics data
 			BodySetup->InvalidatePhysicsData();
@@ -1440,6 +1567,12 @@ void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)
 
 		// Run actual util to do the work
 		DecomposeMeshToHulls(bs, Verts, Indices, InMaxHullCount, InMaxHullVerts);		
+
+		// Enable collision, if not already
+		if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+		{
+			Viewport->GetViewportClient().SetShowWireframeCollision();
+		}
 
 		// refresh collision change back to staticmesh components
 		RefreshCollisionChange(StaticMesh);

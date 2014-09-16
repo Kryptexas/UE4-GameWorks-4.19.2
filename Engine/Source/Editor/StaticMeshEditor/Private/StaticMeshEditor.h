@@ -14,6 +14,7 @@ public:
 		: StaticMesh( NULL )
 		, NumLODLevels(0)
 		, MinPrimSize(0.5f)
+		, OverlapNudge(10.0f)
 	{}
 
 	~FStaticMeshEditor();
@@ -75,6 +76,7 @@ public:
 	virtual bool GetLastSelectedPrimTransform(FTransform& OutTransform) const;
 	FTransform GetPrimTransform(const FPrimData& InPrimData) const;
 	void SetPrimTransform(const FPrimData& InPrimData, const FTransform& InPrimTransform) const;
+	bool OverlapsExistingPrim(const FPrimData& InPrimData) const;
 
 	virtual int32 GetNumTriangles( int32 LODLevel = 0 ) const override;
 	virtual int32 GetNumVertices( int32 LODLevel = 0 ) const override;
@@ -295,7 +297,8 @@ private:
 	TArray<FPrimData> SelectedPrims;
 
 	/** Misc consts */
-	const float	MinPrimSize;
+	const float MinPrimSize;
+	const FVector OverlapNudge;
 
 	/**	The tab ids for all the tabs used */
 	static const FName ViewportTabId;
