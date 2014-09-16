@@ -265,7 +265,7 @@ void FTextLayout::JustifyLayout()
 		return;
 	}
 
-	const float LayoutWidthNoMargin = FMath::Max(DrawSize.X - Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale, ViewSize.X);
+	const float LayoutWidthNoMargin = FMath::Max(DrawSize.X, ViewSize.X * Scale) - (Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale);
 
 	for (FLineView& LineView : LineViews)
 	{

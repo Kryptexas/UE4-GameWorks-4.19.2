@@ -657,8 +657,31 @@ public:
 					+ SGridPanel::Slot(1, 25)
 						.Padding(0.0f, 5.0f)
 						[
-							SNew(STextBlock)
-								.Text(LOCTEXT("STextBlockExampleLabel", "This is a text block"))			
+							SNew(SVerticalBox)
+							
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(STextBlock)
+									.Text(LOCTEXT("STextBlockLeftExampleLabel", "This is a left-justified text block"))
+									.Justification(ETextJustify::Left)
+							]
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(STextBlock)
+									.Text(LOCTEXT("STextBlockCenterExampleLabel", "This is a center-justified text block"))
+									.Justification(ETextJustify::Center)
+							]
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(STextBlock)
+									.Text(LOCTEXT("STextBlockRightExampleLabel", "This is a right-justified text block"))
+									.Justification(ETextJustify::Right)
+							]
 						]
 
 					// STextComboBox
