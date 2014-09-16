@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Runtime/SlateCore/Public/Layout/Margin.h"
 #include "GraphEditorSettings.generated.h"
 
 
