@@ -246,7 +246,7 @@ FText UK2Node_ConstructObjectFromClass::GetNodeTitleFormat() const
 
 FText UK2Node_ConstructObjectFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 	{
 		return GetBaseNodeTitle();
 	}

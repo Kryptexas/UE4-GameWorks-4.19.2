@@ -32,6 +32,8 @@ namespace ENodeTitleType
 		ListView,
 		// Returns the editable title (which might not be a title at all)
 		EditableTitle,
+		// Menu Title for context menus to be displayed in context menus referencing the node
+		MenuTitle,
 
 		MAX_TitleTypes,
 	};

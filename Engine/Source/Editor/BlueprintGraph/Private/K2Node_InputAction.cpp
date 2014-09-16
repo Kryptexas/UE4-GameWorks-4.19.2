@@ -47,7 +47,7 @@ FLinearColor UK2Node_InputAction::GetNodeTitleColor() const
 
 FText UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		return FText::FromName(InputActionName);
 	}

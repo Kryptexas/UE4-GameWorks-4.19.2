@@ -18,7 +18,7 @@ FText UAnimGraphNode_BoneDrivenController::GetTooltipText() const
 
 FText UAnimGraphNode_BoneDrivenController::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if ((Node.SourceBone.BoneName == NAME_None) && (Node.TargetBone.BoneName == NAME_None) && (TitleType == ENodeTitleType::ListView))
+	if ((Node.SourceBone.BoneName == NAME_None) && (Node.TargetBone.BoneName == NAME_None) && (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle))
 	{
 		return GetControllerDescription();
 	}
@@ -29,7 +29,7 @@ FText UAnimGraphNode_BoneDrivenController::GetNodeTitle(ENodeTitleType::Type Tit
 		Args.Add(TEXT("SourceBone"), FText::FromName(Node.SourceBone.BoneName));
 		Args.Add(TEXT("TargetBone"), FText::FromName(Node.TargetBone.BoneName));
 
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			Args.Add(TEXT("Delim"), FText::FromString(TEXT(" - ")));
 		}

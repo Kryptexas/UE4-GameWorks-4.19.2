@@ -42,7 +42,7 @@ FText UK2Node_Knot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		return FText::FromString(NodeComment);
 	}
-	else if (TitleType == ENodeTitleType::ListView)
+	else if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		return LOCTEXT("KnotListTitle", "Add Reroute Node...");
 	}

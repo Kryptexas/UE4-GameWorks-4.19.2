@@ -31,7 +31,7 @@ FText UDEPRECATED_K2Node_LocalVariable::GetNodeTitle(ENodeTitleType::Type TitleT
 	{
 		return FText::FromName(CustomVariableName);
 	}
-	else if(TitleType == ENodeTitleType::ListView)
+	else if(TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("TypeName"), UEdGraphSchema_K2::TypeToText(VariableType));

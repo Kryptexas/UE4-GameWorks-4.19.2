@@ -30,7 +30,7 @@ FText UAnimGraphNode_LookAt::GetTooltipText() const
 
 FText UAnimGraphNode_LookAt::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if ((TitleType == ENodeTitleType::ListView) && (Node.BoneToModify.BoneName == NAME_None))
+	if ((TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle) && (Node.BoneToModify.BoneName == NAME_None))
 	{
 		return GetControllerDescription();
 	}
@@ -41,7 +41,7 @@ FText UAnimGraphNode_LookAt::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		Args.Add(TEXT("BoneName"), FText::FromName(Node.BoneToModify.BoneName));
 
 		// FText::Format() is slow, so we cache this to save on performance
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_LookAt_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args));
 		}

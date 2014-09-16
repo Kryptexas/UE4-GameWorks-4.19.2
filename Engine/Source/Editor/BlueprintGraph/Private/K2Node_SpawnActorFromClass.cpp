@@ -260,7 +260,7 @@ FLinearColor UK2Node_SpawnActorFromClass::GetNodeTitleColor() const
 FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FText NodeTitle = NSLOCTEXT("K2Node", "SpawnActor_BaseTitle", "Spawn Actor from Class");
-	if (TitleType != ENodeTitleType::ListView)
+	if (TitleType != ENodeTitleType::MenuTitle)
 	{
 		FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
 		if (UEdGraphPin* ClassPin = GetClassPin())

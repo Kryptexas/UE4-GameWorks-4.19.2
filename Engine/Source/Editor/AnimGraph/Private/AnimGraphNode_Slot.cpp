@@ -30,7 +30,7 @@ FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (Node.SlotName != NAME_None)
 	{
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			return LOCTEXT("SlotNodeListTitle_NoName", "Slot '(No slot name)'");
 		}
@@ -45,7 +45,7 @@ FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		Args.Add(TEXT("SlotName"), FText::FromName(Node.SlotName));
 
 		// FText::Format() is slow, so we cache this to save on performance
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SlotNodeListTitle", "Slot '{SlotName}'"), Args));
 		}

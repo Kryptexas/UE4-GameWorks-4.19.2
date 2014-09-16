@@ -25,7 +25,7 @@ FText UAnimGraphNode_Trail::GetTooltipText() const
 
 FText UAnimGraphNode_Trail::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if ((TitleType == ENodeTitleType::ListView) && (Node.TrailBone.BoneName == NAME_None))
+	if ((TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle) && (Node.TrailBone.BoneName == NAME_None))
 	{
 		return GetControllerDescription();
 	}
@@ -35,7 +35,7 @@ FText UAnimGraphNode_Trail::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
 		Args.Add(TEXT("BoneName"), FText::FromName(Node.TrailBone.BoneName));
 
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_Trail_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args));
 		}

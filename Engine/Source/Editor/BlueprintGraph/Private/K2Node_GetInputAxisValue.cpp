@@ -34,7 +34,7 @@ void UK2Node_GetInputAxisValue::Initialize(const FName AxisName)
 
 FText UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		return FText::FromName(InputAxisName);
 	}

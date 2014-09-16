@@ -106,11 +106,7 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (CustomFunctionName.IsNone())
-	{
-		return LOCTEXT("ActionMenuTitle", "Custom Event...");
-	}
-	else if (TitleType != ENodeTitleType::FullTitle)
+	if (TitleType != ENodeTitleType::FullTitle)
 	{
 		return FText::FromName(CustomFunctionName);
 	}

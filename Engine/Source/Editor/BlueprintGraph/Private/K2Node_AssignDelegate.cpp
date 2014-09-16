@@ -20,7 +20,7 @@ UK2Node_AssignDelegate::UK2Node_AssignDelegate(const class FPostConstructInitial
 //------------------------------------------------------------------------------
 FText UK2Node_AssignDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 	{
 		if (CachedListTitle.IsOutOfDate())
 		{

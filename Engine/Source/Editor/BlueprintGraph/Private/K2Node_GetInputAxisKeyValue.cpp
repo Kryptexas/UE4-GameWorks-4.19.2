@@ -37,7 +37,7 @@ void UK2Node_GetInputAxisKeyValue::Initialize(const FKey AxisKey)
 
 FText UK2Node_GetInputAxisKeyValue::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		return InputAxisKey.GetDisplayName();
 	}

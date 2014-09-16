@@ -51,7 +51,7 @@ FText UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType
 	{
 		return FText::FromString(CacheName);
 	}
-	else if ((TitleType == ENodeTitleType::ListView) && CacheName.IsEmpty())
+	else if ((TitleType == ENodeTitleType::MenuTitle) && CacheName.IsEmpty())
 	{
 		return LOCTEXT("NewSaveCachedPose", "New Save cached pose...");
 	}

@@ -58,7 +58,7 @@ FString UK2Node_Self::GetKeywords() const
 FText UK2Node_Self::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FText NodeTitle = NSLOCTEXT("K2Node", "SelfReferenceName", "Self-Reference");
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		NodeTitle = LOCTEXT("ListTitle", "Get a reference to self");
 	}

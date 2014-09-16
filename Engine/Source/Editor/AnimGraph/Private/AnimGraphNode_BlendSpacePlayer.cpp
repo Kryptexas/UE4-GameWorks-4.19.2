@@ -27,7 +27,7 @@ FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleTy
 {	
 	if (Node.BlendSpace == nullptr)
 	{
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			return LOCTEXT("BlendspacePlayer_NONE_ListTitle", "Blendspace Player '(None)'");
 		}
@@ -40,7 +40,7 @@ FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleTy
 	{
 		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
 
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);

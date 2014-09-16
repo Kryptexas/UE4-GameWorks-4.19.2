@@ -27,7 +27,7 @@ FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type
 {
 	if (Node.BlendSpace == nullptr)
 	{
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			return LOCTEXT("RotationOffsetBlend_NONE_ListTitle", "AimOffset '(None)'");
 		}
@@ -44,7 +44,7 @@ FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type
 		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
 
 		// FText::Format() is slow, so we cache this to save on performance
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AimOffsetListTitle", "AimOffset '{BlendSpaceName}'"), Args));
 		}

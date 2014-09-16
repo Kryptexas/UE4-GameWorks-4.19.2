@@ -279,7 +279,7 @@ UEdGraphPin* UK2Node_GetDataTableRow::GetResultPin() const
 
 FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		return LOCTEXT("ListViewTitle", "Get Data Table Row");
 	}

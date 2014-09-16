@@ -32,7 +32,7 @@ FText UAnimGraphNode_WheelHandler::GetTooltipText() const
 FText UAnimGraphNode_WheelHandler::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FText NodeTitle;
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 	{
 		NodeTitle = GetControllerDescription();
 	}

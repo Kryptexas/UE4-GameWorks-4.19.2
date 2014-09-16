@@ -204,7 +204,7 @@ FText FBlueprintActionMenuItemFactory::GetMenuNameForAction(TWeakPtr<FBlueprintE
 	{
 		if (UEdGraphNode* NodeTemplate = GetTemplateNode(Action, EditorContext))
 		{
-			MenuName = NodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
+			MenuName = NodeTemplate->GetNodeTitle(ENodeTitleType::MenuTitle);
 		}
 		else
 		{

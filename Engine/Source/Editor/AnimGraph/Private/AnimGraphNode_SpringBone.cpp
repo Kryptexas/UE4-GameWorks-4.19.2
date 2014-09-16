@@ -25,7 +25,7 @@ FText UAnimGraphNode_SpringBone::GetTooltipText() const
 
 FText UAnimGraphNode_SpringBone::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if ((TitleType == ENodeTitleType::ListView) && (Node.SpringBone.BoneName == NAME_None))
+	if ((TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle) && (Node.SpringBone.BoneName == NAME_None))
 	{
 		return GetControllerDescription();
 	}
@@ -36,7 +36,7 @@ FText UAnimGraphNode_SpringBone::GetNodeTitle(ENodeTitleType::Type TitleType) co
 		Args.Add(TEXT("BoneName"), FText::FromName(Node.SpringBone.BoneName));
 
 		// FText::Format() is slow, so we cache this to save on performance
-		if (TitleType == ENodeTitleType::ListView)
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_SpringBone_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args));
 		}

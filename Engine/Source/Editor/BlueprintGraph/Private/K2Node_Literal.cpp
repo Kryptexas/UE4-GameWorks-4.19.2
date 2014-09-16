@@ -118,7 +118,7 @@ FText UK2Node_Literal::GetTooltipText() const
 FText UK2Node_Literal::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	AActor* Actor = Cast<AActor>(ObjectRef);
-	if(TitleType == ENodeTitleType::ListView)
+	if(TitleType == ENodeTitleType::MenuTitle)
 	{
 		return NSLOCTEXT("K2Node", "Literal_Title", "Get Selected Actor Reference(s)");
 	}

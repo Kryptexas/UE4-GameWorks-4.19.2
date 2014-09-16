@@ -90,7 +90,7 @@ void UBlueprintNodeSpawner::Prime()
 			K2NodeTemplate->GetMenuCategory();
 		}
 		CachedTemplateNode->GetTooltipText();
-		CachedTemplateNode->GetNodeTitle(ENodeTitleType::ListView);
+		CachedTemplateNode->GetNodeTitle(ENodeTitleType::MenuTitle);
 	}
 
 	// in case any of these cache FText::Format() operations

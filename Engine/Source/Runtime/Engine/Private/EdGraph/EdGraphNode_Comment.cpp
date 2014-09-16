@@ -76,16 +76,13 @@ FString UEdGraphNode_Comment::GetDocumentationExcerptName() const
 
 FText UEdGraphNode_Comment::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if(TitleType == ENodeTitleType::ListView)
+	if(TitleType == ENodeTitleType::MenuTitle)
 	{
-		if (NodeComment.IsEmpty())
-		{
-			return NSLOCTEXT("K2Node", "NoComment_ListTitle", "Add Comment...");
-		}
-		else 
-		{
-			return NSLOCTEXT("K2Node", "CommentBlock_ListTitle", "Comment");
-		}		
+		return NSLOCTEXT("K2Node", "NoComment_ListTitle", "Add Comment...");
+	}
+	else if(TitleType == ENodeTitleType::ListView)
+	{
+		return NSLOCTEXT("K2Node", "CommentBlock_ListTitle", "Comment");	
 	}
 
 	return FText::FromString(NodeComment);

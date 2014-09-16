@@ -2453,7 +2453,7 @@ void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& 
 //------------------------------------------------------------------------------
 FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (Expression.IsEmpty() && (TitleType == ENodeTitleType::ListView))
+	if (Expression.IsEmpty() && (TitleType == ENodeTitleType::MenuTitle))
 	{
 		return LOCTEXT("AddMathExprMenuOption", "Add Math Expression...");
 	}

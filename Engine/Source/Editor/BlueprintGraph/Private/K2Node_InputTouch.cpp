@@ -61,7 +61,7 @@ FLinearColor UK2Node_InputTouch::GetNodeTitleColor() const
 FText UK2Node_InputTouch::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FText Title = NSLOCTEXT("K2Node", "InputTouch_Name", "InputTouch");
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		Title = NSLOCTEXT("K2Node", "InputTouch_ListTitle", "Touch");
 	}
