@@ -3115,13 +3115,9 @@ FString FEditorFileUtils::ExtractPackageName(const FString& ObjectPath)
 
 void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages)
 {
-	// If we are saving map packages, collect all valid worlds and see if their package is dirty
-	TArray<UWorld*> Worlds;
-	EditorLevelUtils::GetWorlds(GWorld, Worlds, true);
-
-	for (int32 WorldIdx = 0; WorldIdx < Worlds.Num(); ++WorldIdx)
+	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
 	{
-		UPackage* WorldPackage = Worlds[WorldIdx]->GetOutermost();
+		UPackage* WorldPackage = WorldIt->GetOutermost();
 		if (WorldPackage->IsDirty() && (WorldPackage->PackageFlags & PKG_PlayInEditor) == 0
 			&& !WorldPackage->HasAnyFlags(RF_Transient))
 		{

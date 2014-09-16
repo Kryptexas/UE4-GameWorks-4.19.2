@@ -638,7 +638,7 @@ bool ContentBrowserUtils::SavePackages(const TArray<UPackage*>& Packages)
 bool ContentBrowserUtils::SaveDirtyPackages()
 {
 	const bool bPromptUserToSave = true;
-	const bool bSaveMapPackages = false;
+	const bool bSaveMapPackages = true;
 	const bool bSaveContentPackages = true;
 	return FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages );
 }
