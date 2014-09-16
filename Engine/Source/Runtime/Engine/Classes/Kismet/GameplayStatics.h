@@ -141,6 +141,13 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * Sets the global time dilation
 	 * @param	TimeDilation	value to set the global time dilation to
 	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|Time", meta=(WorldContext="WorldContextObject") )
+	static float GetGlobalTimeDilation(UObject* WorldContextObject);
+
+	/**
+	 * Sets the global time dilation
+	 * @param	TimeDilation	value to set the global time dilation to
+	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Time", meta=(WorldContext="WorldContextObject") )
 	static void SetGlobalTimeDilation(UObject* WorldContextObject, float TimeDilation);
 

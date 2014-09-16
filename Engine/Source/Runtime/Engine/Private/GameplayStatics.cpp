@@ -103,6 +103,12 @@ class UClass* UGameplayStatics::GetObjectClass(const UObject* Object)
 	return Object ? Object->GetClass() : NULL;
 }
 
+float UGameplayStatics::GetGlobalTimeDilation(UObject* WorldContextObject)
+{
+	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
+	return World->GetWorldSettings()->TimeDilation;
+}
+
 void UGameplayStatics::SetGlobalTimeDilation(UObject* WorldContextObject, float TimeDilation)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
