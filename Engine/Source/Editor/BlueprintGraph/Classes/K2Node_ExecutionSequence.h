@@ -23,6 +23,7 @@ class UK2Node_ExecutionSequence : public UK2Node
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual bool CanEverRemoveExecutionPin() const override { return true; }
 	// End UK2Node interface
 
 	// K2Node_ExecutionSequence interface

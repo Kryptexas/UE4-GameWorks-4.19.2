@@ -153,16 +153,8 @@ void UK2Node_Switch::PostEditChangeProperty(struct FPropertyChangedEvent& Proper
 	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 	if (PropertyName == TEXT("bHasDefaultPin"))
 	{
-		// Disallow enabling the default pin on enums
-		if (IsA(UK2Node_SwitchEnum::StaticClass()))
-		{
-			bHasDefaultPin = false;
-		}
-		else
-		{
-			// Signal to the reconstruction logic that the default pin value has changed
-			bHasDefaultPinValueChanged = true;
-		}
+		// Signal to the reconstruction logic that the default pin value has changed
+		bHasDefaultPinValueChanged = true;
 		
 		if (!bHasDefaultPin)
 		{

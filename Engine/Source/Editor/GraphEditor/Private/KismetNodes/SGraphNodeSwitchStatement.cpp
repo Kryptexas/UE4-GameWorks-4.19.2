@@ -5,6 +5,7 @@
 #include "SGraphNodeSwitchStatement.h"
 #include "KismetPins/SGraphPinExec.h"
 #include "NodeFactory.h"
+#include "K2Node_SwitchEnum.h"
 
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
@@ -97,7 +98,7 @@ void SGraphNodeSwitchStatement::CreateOutputSideAddButton(TSharedPtr<SVerticalBo
 
 EVisibility SGraphNodeSwitchStatement::IsAddPinButtonVisible() const
 {
-	if(NULL != Cast<UK2Node_SwitchInteger>(GraphNode))
+	if(!GraphNode->IsA<UK2Node_SwitchEnum>())
 	{
 		return SGraphNode::IsAddPinButtonVisible();
 	}
@@ -106,16 +107,16 @@ EVisibility SGraphNodeSwitchStatement::IsAddPinButtonVisible() const
 
 FReply SGraphNodeSwitchStatement::OnAddPin()
 {
-	if(UK2Node_SwitchInteger* SwitchNode = Cast<UK2Node_SwitchInteger>(GraphNode))
-	{
-		const FScopedTransaction Transaction( NSLOCTEXT("Kismet", "AddExecutionPin", "Add Execution Pin") );
-		SwitchNode->Modify();
+	UK2Node_Switch* SwitchNode = CastChecked<UK2Node_Switch>(GraphNode);
 
-		SwitchNode->AddPinToSwitchNode();
-		FBlueprintEditorUtils::MarkBlueprintAsModified(SwitchNode->GetBlueprint());
+	const FScopedTransaction Transaction( NSLOCTEXT("Kismet", "AddExecutionPin", "Add Execution Pin") );
+	SwitchNode->Modify();
 
-		UpdateGraphNode();
-		GraphNode->GetGraph()->NotifyGraphChanged();
-	}
+	SwitchNode->AddPinToSwitchNode();
+	FBlueprintEditorUtils::MarkBlueprintAsModified(SwitchNode->GetBlueprint());
+
+	UpdateGraphNode();
+	GraphNode->GetGraph()->NotifyGraphChanged();
+
 	return FReply::Handled();
 }

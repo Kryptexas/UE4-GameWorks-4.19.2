@@ -74,7 +74,8 @@ void UK2Node_SwitchString::GetMenuActions(FBlueprintActionDatabaseRegistrar& Act
 void UK2Node_SwitchString::CreateSelectionPin()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_String, TEXT(""), NULL, false, false, TEXT("Selection"));
+	UEdGraphPin* Pin = CreatePin(EGPD_Input, K2Schema->PC_String, TEXT(""), NULL, false, false, TEXT("Selection"));
+	K2Schema->SetPinDefaultValueBasedOnType(Pin);
 }
 
 FString UK2Node_SwitchString::GetPinNameGivenIndex(int32 Index)
