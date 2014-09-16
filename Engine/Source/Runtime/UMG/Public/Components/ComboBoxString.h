@@ -66,10 +66,19 @@ public:
 	bool RemoveOption(const FString& Option);
 
 	UFUNCTION(BlueprintCallable, Category="ComboBox")
-	int32 FindOptionIndex(const FString& Option);
+	int32 FindOptionIndex(const FString& Option) const;
+
+	UFUNCTION(BlueprintCallable, Category = "ComboBox")
+	FString GetOptionAtIndex(int32 Index) const;
 
 	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	void ClearOptions();
+
+	UFUNCTION(BlueprintCallable, Category = "ComboBox")
+	void SetSelectedOption(FString Option);
+
+	UFUNCTION(BlueprintCallable, Category = "ComboBox")
+	FString GetSelectedOption() const;
 
 	virtual void ReleaseNativeWidget() override;
 
@@ -101,4 +110,7 @@ protected:
 
 	/** A shared pointer to a container that holds the comobobox content that is selected */
 	TSharedPtr< SBox > ComoboBoxContent;
+
+	/** A shared pointer to the current selected string */
+	TSharedPtr<FString> CurrentOptionPtr;
 };
