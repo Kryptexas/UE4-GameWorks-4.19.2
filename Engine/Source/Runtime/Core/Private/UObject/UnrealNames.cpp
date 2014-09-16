@@ -837,12 +837,15 @@ bool FName::IsValidXName( FString InvalidChars/*=INVALID_NAME_CHARACTERS*/, FTex
 	// See if the name contains invalid characters.
 	TCHAR CharString[] = { '\0', '\0' };
 	FString MatchedInvalidChars;
+	TSet<TCHAR> AlreadyMatchedInvalidChars;
 	for( int32 x = 0; x < InvalidChars.Len() ; ++x )
 	{
-		CharString[0] = InvalidChars[x];
-		if( Name.Contains( CharString ) )
+		TCHAR CharToTest = InvalidChars[x];
+		CharString[0] = CharToTest;
+		if( !AlreadyMatchedInvalidChars.Contains( CharToTest ) && Name.Contains( CharString ) )
 		{
 			MatchedInvalidChars += CharString;
+			AlreadyMatchedInvalidChars.Add( CharToTest );
 		}
 	}
 
