@@ -49,6 +49,15 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	//Modules to Preload
+	TArray<FString> ModulesToPreload;
+	GetConfigArray(*SectionName, TEXT("ModulesToPreload"), ModulesToPreload, GatherTextConfigPath);
+
+	for (const FString& ModuleName : ModulesToPreload)
+	{
+		FModuleManager::Get().LoadModule(*ModuleName);
+	}
+
 	//Include paths
 	TArray<FString> IncludePaths;
 	GetConfigArray(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
