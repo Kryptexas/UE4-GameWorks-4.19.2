@@ -689,7 +689,7 @@ void UDestructibleComponent::SetDestructibleMesh(class UDestructibleMesh* NewMes
 	this->DestructibleMesh = GetDestructibleMesh();
 #endif // WITH_EDITORONLY_DATA
 	
-	SetChunkVisible(0, true);
+	RecreatePhysicsState();
 }
 
 class UDestructibleMesh * UDestructibleComponent::GetDestructibleMesh()
