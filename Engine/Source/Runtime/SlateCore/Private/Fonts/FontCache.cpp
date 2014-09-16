@@ -37,7 +37,7 @@ namespace FontCacheConstants
 }
 
 #if WITH_FREETYPE
-const uint32 GlyphFlags = FT_LOAD_TARGET_NORMAL | FT_LOAD_NO_BITMAP;
+const uint32 GlyphFlags = FT_LOAD_NO_BITMAP;
 
 /**
  * Memory allocation functions to be used only by freetype
@@ -135,6 +135,16 @@ public:
 
 		uint32 LocalGlyphFlags = GlyphFlags;
 
+		switch(InFontInfo.Hinting)
+		{
+		case EFontHinting::Auto:		LocalGlyphFlags |= FT_LOAD_FORCE_AUTOHINT; break;
+		case EFontHinting::AutoLight:	LocalGlyphFlags |= FT_LOAD_TARGET_LIGHT; break;
+		case EFontHinting::Monochrome:	LocalGlyphFlags |= FT_LOAD_TARGET_MONO | FT_LOAD_FORCE_AUTOHINT; break;
+		case EFontHinting::None:		LocalGlyphFlags |= FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_HINTING; break;
+		case EFontHinting::Default:
+		default:						LocalGlyphFlags |= FT_LOAD_TARGET_NORMAL; break;
+		}
+
 		// If the requested glyph doesn't exist, use the localization fallback font.
 		if ( FontFace == nullptr || (Char != 0 && GlyphIndex == 0) )
 		{
@@ -205,7 +215,7 @@ public:
 
 		// Get the slot for the glyph.  This contains measurement info
 		FT_GlyphSlot Slot = FontFace->glyph;
-
+		
 		FT_Render_Glyph( Slot, FT_RENDER_MODE_NORMAL );
 
 		// one byte per pixel 
