@@ -266,10 +266,10 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 
 	TArray<ABrush*> DynamicBrushes;
 	DynamicBrushes.Empty();
-	for( FActorIterator It(InWorld); It; ++It )
+	for( TActorIterator<ABrush> It(InWorld); It; ++It )
 	{
-		ABrush* B=Cast<ABrush>(*It);
-		if ( B && B->Brush && !B->IsStaticBrush() )
+		ABrush* B=*It;
+		if ( B->Brush && !B->IsStaticBrush() )
 		{
 			DynamicBrushes.Add(B);
 		}

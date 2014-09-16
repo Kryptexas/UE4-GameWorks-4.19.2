@@ -1316,15 +1316,13 @@ bool FCleanupConvertToValidation::Update()
 			// If we found the mesh, find and delete the static mesh actor we added to the level to clear the reference to it.
 			if (GeneratedMesh)
 			{
-				for (FActorIterator ActorIt(TestWorld); ActorIt; ++ActorIt)
+				for (TActorIterator<AStaticMeshActor> ActorIt(TestWorld); ActorIt; ++ActorIt)
 				{
-					AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(*ActorIt);
-					if (StaticMeshActor)
+					AStaticMeshActor* StaticMeshActor = *ActorIt;
+
+					if ( StaticMeshActor->StaticMeshComponent->StaticMesh == GeneratedMesh )
 					{
-						if ( StaticMeshActor->StaticMeshComponent->StaticMesh == GeneratedMesh )
-						{
-							TestWorld->DestroyActor(StaticMeshActor);
-						}
+						TestWorld->DestroyActor(StaticMeshActor);
 					}
 				}
 			}

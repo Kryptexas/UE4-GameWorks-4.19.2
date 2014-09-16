@@ -1337,29 +1337,26 @@ bool ULocalPlayer::HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& 
 	{
 		TArray<UWorld*> MatineeActorWorldsThatSkipped;
 		// if so, look for all active matinees that has this Player in a director group
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<AMatineeActor> It(GetWorld()); It; ++It)
 		{
-			AMatineeActor* MatineeActor = Cast<AMatineeActor>(*It);
+			AMatineeActor* MatineeActor = *It;
 
-			if( MatineeActor )
+			// is it currently playing (and skippable)?
+			if (MatineeActor->bIsPlaying && MatineeActor->bIsSkippable && (MatineeActor->bClientSideOnly || MatineeActor->GetWorld()->IsServer()))
 			{
-				// is it currently playing (and skippable)?
-				if (MatineeActor->bIsPlaying && MatineeActor->bIsSkippable && (MatineeActor->bClientSideOnly || MatineeActor->GetWorld()->IsServer()))
+				for (int32 GroupIndex = 0; GroupIndex < MatineeActor->GroupInst.Num(); GroupIndex++)
 				{
-					for (int32 GroupIndex = 0; GroupIndex < MatineeActor->GroupInst.Num(); GroupIndex++)
+					// is the PC the group actor?
+					if (MatineeActor->GroupInst[GroupIndex]->GetGroupActor() == PlayerController)
 					{
-						// is the PC the group actor?
-						if (MatineeActor->GroupInst[GroupIndex]->GetGroupActor() == PlayerController)
+						const float RightBeforeEndTime = 0.1f;
+						// make sure we aren';t already at the end (or before the allowed skip time)
+						if ((MatineeActor->InterpPosition < MatineeActor->MatineeData->InterpLength - RightBeforeEndTime) && 
+							(MatineeActor->InterpPosition >= InitialNoSkipTime))
 						{
-							const float RightBeforeEndTime = 0.1f;
-							// make sure we aren';t already at the end (or before the allowed skip time)
-							if ((MatineeActor->InterpPosition < MatineeActor->MatineeData->InterpLength - RightBeforeEndTime) && 
-								(MatineeActor->InterpPosition >= InitialNoSkipTime))
-							{
-								// skip to end
-								MatineeActor->SetPosition(MatineeActor->MatineeData->InterpLength - RightBeforeEndTime, true);
-								MatineeActorWorldsThatSkipped.AddUnique( MatineeActor->GetWorld() );
-							}
+							// skip to end
+							MatineeActor->SetPosition(MatineeActor->MatineeData->InterpLength - RightBeforeEndTime, true);
+							MatineeActorWorldsThatSkipped.AddUnique( MatineeActor->GetWorld() );
 						}
 					}
 				}

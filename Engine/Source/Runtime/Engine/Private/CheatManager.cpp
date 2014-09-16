@@ -237,10 +237,10 @@ void UCheatManager::DestroyTarget()
 
 void UCheatManager::DestroyAll(TSubclassOf<AActor> aClass)
 {
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<AActor> It(GetWorld(),aClass); It; ++It)
 	{
 		AActor* A = *It;
-		if (A && A->IsA(aClass) && !A->IsPendingKill())
+		if (!A->IsPendingKill())
 		{
 			APawn* Pawn = Cast<APawn>(A);
 			if (Pawn != NULL)
@@ -438,10 +438,10 @@ void UCheatManager::ViewClass( TSubclassOf<AActor> DesiredClass )
 {
 	bool bFound = false;
 	AActor* First = NULL;
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<AActor> It(GetWorld(), DesiredClass); It; ++It)
 	{
 		AActor* TestActor = *It;
-		if (TestActor && !TestActor->IsPendingKill() && (*TestActor->GetClass()).IsChildOf(*DesiredClass) )
+		if (!TestActor->IsPendingKill())
 		{
 			AActor* Other = TestActor;
 			if (bFound || (First == NULL))

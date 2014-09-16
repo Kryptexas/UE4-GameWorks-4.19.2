@@ -608,12 +608,12 @@ void FEdMode::Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawIn
 	{
 		// Draw translucent polygons on brushes and volumes
 
-		for( FActorIterator It(GetWorld()); It; ++ It )
+		for( TActorIterator<ABrush> It(GetWorld()); It; ++ It )
 		{
-			ABrush* Brush = Cast<ABrush>( *It );
+			ABrush* Brush = *It;
 
 			// Brush->Brush is checked to safe from brushes that were created without having their brush members attached.
-			if( Brush && Brush->Brush && (FActorEditorUtils::IsABuilderBrush(Brush) || Brush->IsVolumeBrush()) && GEditor->GetSelectedActors()->IsSelected(Brush) )
+			if( Brush->Brush && (FActorEditorUtils::IsABuilderBrush(Brush) || Brush->IsVolumeBrush()) && GEditor->GetSelectedActors()->IsSelected(Brush) )
 			{
 				// Build a mesh by basically drawing the triangles of each 
 				FDynamicMeshBuilder MeshBuilder;

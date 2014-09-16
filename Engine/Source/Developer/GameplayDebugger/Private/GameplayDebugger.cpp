@@ -341,13 +341,13 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 		if (MyPC && EQS)
 		{
 			AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
-			for (FActorIterator It(Inworld); It; ++It)
+			for (TActorIterator<AGameplayDebuggingReplicator> It(Inworld); It; ++It)
 			{
-				AActor* A = *It;
-				if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+				AGameplayDebuggingReplicator* A = *It;
+				if (!A->IsPendingKill())
 				{
-					DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
-					if (DebuggingReplicator && !DebuggingReplicator->IsGlobalInWorld() && DebuggingReplicator->GetLocalPlayerOwner() == MyPC)
+					DebuggingReplicator = A;
+					if (!DebuggingReplicator->IsGlobalInWorld() && DebuggingReplicator->GetLocalPlayerOwner() == MyPC)
 					{
 						break;
 					}

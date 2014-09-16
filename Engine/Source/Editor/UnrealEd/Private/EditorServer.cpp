@@ -108,10 +108,10 @@ static int32 CleanBSPMaterials(UWorld* InWorld, bool bPreviewOnly, bool bLogBrus
 	// Clear the mark flag the polys of all non-volume, non-builder brushes.
 	// Make a list of all brushes that were encountered.
 	TArray<ABrush*> Brushes;
-	for ( FActorIterator It(InWorld) ; It ; ++It )
+	for ( TActorIterator<ABrush> It(InWorld) ; It ; ++It )
 	{
-		ABrush* ItBrush = Cast<ABrush>(*It);
-		if ( ItBrush && !ItBrush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(ItBrush) && !ItBrush->IsBrushShape() )
+		ABrush* ItBrush = *It;
+		if ( !ItBrush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(ItBrush) && !ItBrush->IsBrushShape() )
 		{
 			if( ItBrush->Brush && ItBrush->Brush->Polys )
 			{
@@ -2987,13 +2987,9 @@ void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShould
 				}
 
 				// Clean-up flag for Landscape Proxy cases...
-				for( FActorIterator CurActorIt(InWorld); CurActorIt; ++CurActorIt )
+				for( TActorIterator<ALandscapeProxy> ProxyIt(InWorld); ProxyIt; ++ProxyIt )
 				{
-					ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(*CurActorIt);
-					if (Proxy)
-					{
-						Proxy->bIsMovingToLevel = false;
-					}
+					ProxyIt->bIsMovingToLevel = false;
 				}
 
 				BufferLevel->ClearLevelComponents();
@@ -6074,7 +6070,7 @@ bool UEditorEngine::HandleSetDetailModeViewCommand( const TCHAR* Str, FOutputDev
 			Actor->GetComponents(Components);
 
 			for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
-				{
+			{
 				Components[ComponentIndex]->MarkRenderStateDirty();
 			}
 		}
@@ -6177,12 +6173,11 @@ bool UEditorEngine::HandleListMapPackageDependenciesCommand( const TCHAR* Str, F
 
 bool UEditorEngine::HandleRebuildVolumesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
-	for( FActorIterator It(InWorld); It; ++It )
+	for( TActorIterator<AVolume> It(InWorld); It; ++It )
 	{
-		AActor* Actor = *It;
-		AVolume* Volume = Cast<AVolume>(Actor);
+		AVolume* Volume = *It;
 
-		if(Volume != NULL && !Volume->IsTemplate() && Volume->BrushComponent.IsValid())
+		if(!Volume->IsTemplate() && Volume->BrushComponent.IsValid())
 		{
 			UE_LOG(LogEditorServer, Log, TEXT("BSBC: %s"), *Volume->GetPathName() );
 			Volume->BrushComponent->BuildSimpleBrushCollision();

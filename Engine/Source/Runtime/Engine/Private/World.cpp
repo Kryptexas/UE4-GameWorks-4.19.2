@@ -4672,10 +4672,10 @@ void UWorld::UpdateConstraintActors()
 {
 	if( bAreConstraintsDirty )
 	{
-		for( FActorIterator It(this); It; ++It )
+		for( TActorIterator<APhysicsConstraintActor> It(this); It; ++It )
 		{
-			APhysicsConstraintActor* ConstraintActor = Cast<APhysicsConstraintActor>( *It );
-			if( ConstraintActor && ConstraintActor->ConstraintComp)
+			APhysicsConstraintActor* ConstraintActor = *It;
+			if( ConstraintActor->ConstraintComp)
 			{
 				ConstraintActor->ConstraintComp->UpdateConstraintFrames();
 			}

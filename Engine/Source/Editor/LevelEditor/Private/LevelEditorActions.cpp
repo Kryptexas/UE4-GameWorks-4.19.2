@@ -1382,13 +1382,9 @@ void FLevelEditorActionCallbacks::OnSelectAllLights()
 {
 	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	// Select all light actors.
-	for( FActorIterator It(GetWorld()); It; ++It )
+	for( TActorIterator<ALight> It(GetWorld()); It; ++It )
 	{
-		ALight* Light = Cast<ALight>(*It);
-		if( Light )
-		{
-			GUnrealEd->SelectActor( Light, true, false, false );
-		}
+		GUnrealEd->SelectActor( *It, true, false, false );
 	}
 
 	GEditor->GetSelectedActors()->EndBatchSelectOperation();

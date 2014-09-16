@@ -1668,16 +1668,14 @@ void APlayerController::NotifyLoadedWorld(FName WorldPackageName, bool bFinalDes
 	// place the camera at the first playerstart we can find
 	SetViewTarget(this);
 	
-	for( FActorIterator It(GetWorld()); It; ++It )
+	for( TActorIterator<APlayerStart> It(GetWorld()); It; ++It )
 	{
-		APlayerStart* P = Cast<APlayerStart>(*It);
-		if (P)
-		{
-			FRotator SpawnRotation(ForceInit);
-			SpawnRotation.Yaw = P->GetActorRotation().Yaw;
-			SetInitialLocationAndRotation(P->GetActorLocation(), SpawnRotation);
-			break;
-		}
+		APlayerStart* P = *It;
+
+		FRotator SpawnRotation(ForceInit);
+		SpawnRotation.Yaw = P->GetActorRotation().Yaw;
+		SetInitialLocationAndRotation(P->GetActorLocation(), SpawnRotation);
+		break;
 	}
 }
 

@@ -1502,9 +1502,9 @@ void UChildConnection::HandleClientPlayer(APlayerController* PC, UNetConnection*
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		UE_LOG(LogNet, Error, TEXT("Failed to find LocalPlayer for received PlayerController '%s' with index %d. PlayerControllers:"), *PC->GetName(), int32(PC->NetPlayerIndex));
 		check( PC->GetWorld() );
-		for (FActorIterator It(PC->GetWorld()); It; ++It)
+		for (TActorIterator<APlayerController> It(PC->GetWorld()); It; ++It)
 		{
-			if (Cast<const APlayerController>(*It) && It->Role < ROLE_Authority)
+			if (It->Role < ROLE_Authority)
 			{
 				UE_LOG(LogNet, Log, TEXT(" - %s"), *It->GetFullName());
 			}

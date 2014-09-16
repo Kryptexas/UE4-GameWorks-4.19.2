@@ -88,14 +88,12 @@ class AActor* FLogVisualizer::GetHelperActor(class UWorld* InWorld)
 		return DebugActor.Get();
 	}
 
-	for (FActorIterator It(InWorld); It; ++It)
+	for (TActorIterator<ALogVisualizerDebugActor> It(InWorld); It; ++It)
 	{
-		ALogVisualizerDebugActor* LogVisualizerDebugActor = Cast<ALogVisualizerDebugActor>(*It);
-		if (LogVisualizerDebugActor != NULL)
-		{
-			DebugActor = LogVisualizerDebugActor;
-			return LogVisualizerDebugActor;
-		}
+		ALogVisualizerDebugActor* LogVisualizerDebugActor = *It;
+
+		DebugActor = LogVisualizerDebugActor;
+		return LogVisualizerDebugActor;
 	}
 
 	FActorSpawnParameters SpawnInfo;

@@ -3333,10 +3333,10 @@ void ALandscapeProxy::PostEditImport()
 	Super::PostEditImport();
 	if (!bIsProxy && GetWorld()) // For Landscape
 	{
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<ALandscape> It(GetWorld()); It; ++It)
 		{
-			ALandscape* Landscape = Cast<ALandscape>(*It);
-			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
+			ALandscape* Landscape = *It;
+			if (Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
 			{
 				// Copy/Paste case, need to generate new GUID
 				LandscapeGuid = FGuid::NewGuid();
@@ -3794,13 +3794,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		// Need to update Gizmo scene proxy
 		if (bNeedsRecalcBoundingBox && GetWorld())
 		{
-			for (FActorIterator It(GetWorld()); It; ++It)
+			for (TActorIterator<ALandscapeGizmoActiveActor> It(GetWorld()); It; ++It)
 			{
-				ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-				if (Gizmo)
-				{
-					Gizmo->ReregisterAllComponents();
-				}
+				It->ReregisterAllComponents();
 			}
 		}
 

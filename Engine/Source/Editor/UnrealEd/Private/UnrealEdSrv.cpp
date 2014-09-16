@@ -502,10 +502,10 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 				
 		// for removing 
 		TMap<ULandscapeInfo*, ALandscapeGizmoActiveActor*> GizmoMap;
-		for (FActorIterator It(InWorld); It; ++It)
+		for (TActorIterator<ALandscapeGizmoActiveActor> It(InWorld); It; ++It)
 		{
-			ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-			if (Gizmo && Gizmo->TargetLandscapeInfo)
+			ALandscapeGizmoActiveActor* Gizmo = *It;
+			if (Gizmo->TargetLandscapeInfo)
 			{
 				if (!GizmoMap.FindRef(Gizmo->TargetLandscapeInfo))
 				{

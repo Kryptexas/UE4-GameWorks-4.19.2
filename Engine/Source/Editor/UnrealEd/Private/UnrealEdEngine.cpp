@@ -990,21 +990,16 @@ static void InternalUpdateVolumeActorVisibility( TArray<AActor*>& ActorsToUpdate
 }
 
 
-void UUnrealEdEngine::UpdateVolumeActorVisibility( const UClass* InVolumeActorClass, FLevelEditorViewportClient* InViewport )
+void UUnrealEdEngine::UpdateVolumeActorVisibility( UClass* InVolumeActorClass, FLevelEditorViewportClient* InViewport )
 {
-	const UClass* VolumeClassToCheck = InVolumeActorClass ? InVolumeActorClass : AVolume::StaticClass();
+	TSubclassOf<AActor> VolumeClassToCheck = InVolumeActorClass ? InVolumeActorClass : AVolume::StaticClass();
 	
 	// Build a list of actors that need to be updated.  Only take actors of the passed in volume class.  
 	UWorld* World = InViewport ? InViewport->GetWorld() : GWorld;
 	TArray< AActor *> ActorsToUpdate;
-	for( FActorIterator It( World ); It; ++It)
+	for( TActorIterator<AActor> It( World, VolumeClassToCheck ); It; ++It)
 	{
-		AActor* Actor = *It;
-
-		if( Actor->IsA( VolumeClassToCheck ) )
-		{
-			ActorsToUpdate.Add(Actor);
-		}
+		ActorsToUpdate.Add(*It);
 	}
 
 	if( ActorsToUpdate.Num() > 0 )

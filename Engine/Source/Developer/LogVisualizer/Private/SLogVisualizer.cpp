@@ -586,7 +586,7 @@ void SLogVisualizer::OnListDoubleClick(TSharedPtr<FLogsListItem> LogListItem)
 		TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[LogListItem->LogIndex];
 		for (FActorIterator It(GetWorld()); It; ++It)
 		{
-			AActor* Actor = Cast<AActor>(*It);
+			AActor* Actor = *It;
 			if (Actor->GetFName() == Log->Name)
 			{
 				Actor->GetActorBounds(false, Orgin, Extent);

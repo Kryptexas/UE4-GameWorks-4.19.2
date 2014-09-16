@@ -1097,14 +1097,13 @@ bool FBlueprintInstancesTest::RunTest(const FString& InParameters)
 	TSet<AActor*> BlueprintInstances;
 	for ( FActorIterator It(GWorld); It; ++It )
 	{
-		if (AActor* Actor = Cast<AActor>(*It))
-		{
-			UClass* ActorClass = Actor->GetClass();
+		AActor* Actor = *It;
 
-			if (ActorClass->ClassGeneratedBy && ActorClass->ClassGeneratedBy->IsA( UBlueprint::StaticClass() ) )
-			{
-				BlueprintInstances.Add(Actor);
-			}
+		UClass* ActorClass = Actor->GetClass();
+
+		if (ActorClass->ClassGeneratedBy && ActorClass->ClassGeneratedBy->IsA( UBlueprint::StaticClass() ) )
+		{
+			BlueprintInstances.Add(Actor);
 		}
 	}
 

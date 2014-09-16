@@ -656,12 +656,12 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 	if (LocalPC && LocalPC->GetHUD() && LocalPC->GetPawnOrSpectator())
 	{
 		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
-		for (FActorIterator It(World); It; ++It)
+		for (TActorIterator<AGameplayDebuggingReplicator> It(World); It; ++It)
 		{
-			AActor* A = *It;
-			if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+			AGameplayDebuggingReplicator* A = *It;
+			if (!A->IsPendingKill())
 			{
-				DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
+				DebuggingReplicator = A;
 				break;
 			}
 		}

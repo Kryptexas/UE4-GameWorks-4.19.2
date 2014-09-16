@@ -255,10 +255,10 @@ void ULandscapeEditorObject::Load()
 
 	// Gizmo History (not saved!)
 	GizmoHistories.Empty();
-	for (FActorIterator It(ParentMode->GetWorld()); It; ++It)
+	for (TActorIterator<ALandscapeGizmoActor> It(ParentMode->GetWorld()); It; ++It)
 	{
-		ALandscapeGizmoActor* Gizmo = Cast<ALandscapeGizmoActor>(*It);
-		if (Gizmo && !Gizmo->IsEditable())
+		ALandscapeGizmoActor* Gizmo = *It;
+		if (!Gizmo->IsEditable())
 		{
 			new(GizmoHistories) FGizmoHistory(Gizmo);
 		}

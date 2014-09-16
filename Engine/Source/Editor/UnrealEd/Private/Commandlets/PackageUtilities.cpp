@@ -2374,7 +2374,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 				World->UpdateWorldComponents( true, false );
 
 				// iterate through all the actors in the world, looking for matches with the class to replace (must have exact match, not subclass)
-				for (FActorIterator It(World); It; ++It)
+				for (TActorIterator<AActor> It(World, ClassToReplace); It; ++It)
 				{
 					AActor* OldActor = *It;
 					if (OldActor->GetClass() == ClassToReplace)

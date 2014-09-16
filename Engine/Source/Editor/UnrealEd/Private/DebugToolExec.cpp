@@ -215,9 +215,9 @@ bool FDebugToolExec::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			}
 
 			float   MinDist = FLT_MAX;
-			for( FActorIterator It(InWorld); It; ++It )
+			for( TActorIterator<AActor> It(InWorld, Class); It; ++It )
 			{
-				if ( !It->IsPendingKill() && It->IsA(Class) )
+				if ( !It->IsPendingKill() )
 				{
 					float const Dist = (PlayerController && It->GetRootComponent()) ? FVector::Dist(It->GetActorLocation(), PlayerLocation) : 0.f;
 					if (Dist < MinDist)

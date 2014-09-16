@@ -1752,9 +1752,9 @@ void ULandscapeInfo::RecreateLandscapeInfo(UWorld* InWorld, bool bMapCheck)
 
 	TMap<FGuid, TArray<ALandscapeProxy*>> ValidLandscapesMap;
 	// Gather all valid landscapes in the world
-	for (FActorIterator It(InWorld); It; ++It)
+	for (TActorIterator<ALandscapeProxy> It(InWorld); It; ++It)
 	{
-		ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(*It);
+		ALandscapeProxy* Proxy = *It;
 		if (Proxy
 			&& Proxy->HasAnyFlags(RF_BeginDestroyed) == false
 			&& Proxy->IsPendingKill() == false

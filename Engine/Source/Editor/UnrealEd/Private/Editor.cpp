@@ -3287,7 +3287,7 @@ void UEditorEngine::SelectAllActorsWithClass( bool bArchetype )
 		// For this function to have been called in the first place, all of the selected actors should be of the same type
 		// and with the same archetype; however, it's safest to confirm the assumption first
 		bool bAllSameClassAndArchetype = false;
-		UClass* FirstClass = NULL;
+		TSubclassOf<AActor> FirstClass;
 		UObject* FirstArchetype = NULL;
 
 		// Find the class and archetype of the first selected actor; they will be used to check that all selected actors
@@ -4519,14 +4519,10 @@ void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 Orig
 APlayerStart* UEditorEngine::CheckForPlayerStart()
 {
 	UWorld* IteratorWorld = GWorld;
-	for( FActorIterator It(IteratorWorld); It; ++It )
+	for( TActorIterator<APlayerStart> It(IteratorWorld); It; ++It )
 	{
-		APlayerStart* Start = Cast<APlayerStart>(*It);
-		if (Start)
-		{
-			// Return the found start.
-			return Start;
-		}
+		// Return the found start.
+		return *It;
 	}
 
 	// No player start was found, return NULL.

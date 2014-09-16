@@ -300,14 +300,10 @@ void FEdModeLandscape::Enter()
 		GEditor->SelectNone(false, true);
 	}
 
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<ALandscapeGizmoActiveActor> It(GetWorld()); It; ++It)
 	{
-		ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-		if (Gizmo)
-		{
-			CurrentGizmoActor = Gizmo;
-			break;
-		}
+		CurrentGizmoActor = *It;
+		break;
 	}
 
 	if (!CurrentGizmoActor.IsValid())
@@ -501,25 +497,17 @@ void FEdModeLandscape::Exit()
 
 	// Clear all GizmoActors if there is no Landscape in World
 	bool bIsLandscapeExist = false;
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
 	{
-		ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(*It);
-		if (Proxy)
-		{
-			bIsLandscapeExist = true;
-			break;
-		}
+		bIsLandscapeExist = true;
+		break;
 	}
 
 	if (!bIsLandscapeExist)
 	{
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<ALandscapeGizmoActor> It(GetWorld()); It; ++It)
 		{
-			ALandscapeGizmoActor* Gizmo = Cast<ALandscapeGizmoActor>(*It);
-			if (Gizmo)
-			{
-				GetWorld()->DestroyActor(Gizmo, false, false);
-			}
+			GetWorld()->DestroyActor(*It, false, false);
 		}
 	}
 
@@ -1630,14 +1618,10 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 	if (!CurrentGizmoActor.IsValid())
 	{
 		ALandscapeGizmoActiveActor* GizmoActor = NULL;
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<ALandscapeGizmoActiveActor> It(GetWorld()); It; ++It)
 		{
-			ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-			if (Gizmo)
-			{
-				GizmoActor = Gizmo;
-				break;
-			}
+			GizmoActor = *It;
+			break;
 		}
 	}
 

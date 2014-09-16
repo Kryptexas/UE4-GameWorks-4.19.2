@@ -50,17 +50,13 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 		return CachedDebuggingReplicator.Get();
 	}
 	
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<AGameplayDebuggingReplicator> It(GetWorld()); It; ++It)
 	{
-		AActor* A = *It;
-		if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+		AGameplayDebuggingReplicator* Replicator = *It;
+		if (!Replicator->IsPendingKill() && Replicator->GetLocalPlayerOwner() == PlayerOwner)
 		{
-			AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(A);
-			if (Replicator->GetLocalPlayerOwner() == PlayerOwner)
-			{
-				CachedDebuggingReplicator = Replicator;
-				return Replicator;
-			}
+			CachedDebuggingReplicator = Replicator;
+			return Replicator;
 		}
 	}
 

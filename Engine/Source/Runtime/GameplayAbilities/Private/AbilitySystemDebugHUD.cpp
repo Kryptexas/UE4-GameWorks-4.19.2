@@ -130,12 +130,10 @@ static void	ToggleDebugHUD(const TArray<FString>& Args, UWorld* InWorld)
 
 	AAbilitySystemDebugHUD *HUD = NULL;
 
-	for (FActorIterator It(InWorld); It; ++It)
+	for (TActorIterator<AAbilitySystemDebugHUD> It(InWorld); It; ++It)
 	{
-		AActor *Actor = *It;
-		HUD = Cast<AAbilitySystemDebugHUD>(Actor);
-		if (HUD)
-			break;
+		HUD = *It;
+		break;
 	}
 
 	if (!HUD)

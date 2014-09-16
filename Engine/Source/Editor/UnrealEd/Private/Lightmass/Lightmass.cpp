@@ -823,57 +823,55 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 			ACameraActor* Camera = *CameraIt;
 			if (World->ContainsActor(Camera) && !Camera->IsPendingKill())
 			{
-				for( FActorIterator It(World); It; ++It )
+				for( TActorIterator<AMatineeActor> It(World); It; ++It )
 				{
-					AMatineeActor* MatineeActor = Cast<AMatineeActor>(*It);
-					if( MatineeActor )
+					AMatineeActor* MatineeActor = *It;
+
+					bool bNeedsTermInterp = false;
+					if (MatineeActor->GroupInst.Num() == 0)
 					{
-						bool bNeedsTermInterp = false;
-						if (MatineeActor->GroupInst.Num() == 0)
+						// If matinee is closed, GroupInst will be empty, so we need to populate it
+						bNeedsTermInterp = true;
+						MatineeActor->InitInterp();
+					}
+					UInterpGroupInst* GroupInstance = MatineeActor->FindGroupInst(Camera);
+					if (GroupInstance && GroupInstance->Group)
+					{
+						for (int32 TrackIndex = 0; TrackIndex < GroupInstance->Group->InterpTracks.Num(); TrackIndex++)
 						{
-							// If matinee is closed, GroupInst will be empty, so we need to populate it
-							bNeedsTermInterp = true;
-							MatineeActor->InitInterp();
-						}
-						UInterpGroupInst* GroupInstance = MatineeActor->FindGroupInst(Camera);
-						if (GroupInstance && GroupInstance->Group)
-						{
-							for (int32 TrackIndex = 0; TrackIndex < GroupInstance->Group->InterpTracks.Num(); TrackIndex++)
+							UInterpTrackMove* MoveTrack = Cast<UInterpTrackMove>(GroupInstance->Group->InterpTracks[TrackIndex]);
+							if (MoveTrack)
 							{
-								UInterpTrackMove* MoveTrack = Cast<UInterpTrackMove>(GroupInstance->Group->InterpTracks[TrackIndex]);
-								if (MoveTrack)
+								float StartTime;
+								float EndTime;
+								//@todo - look at the camera cuts to only process time ranges where the camera is actually active
+								MoveTrack->GetTimeRange(StartTime, EndTime);
+								for (int32 TrackInstanceIndex = 0; TrackInstanceIndex < GroupInstance->TrackInst.Num(); TrackInstanceIndex++)
 								{
-									float StartTime;
-									float EndTime;
-									//@todo - look at the camera cuts to only process time ranges where the camera is actually active
-									MoveTrack->GetTimeRange(StartTime, EndTime);
-									for (int32 TrackInstanceIndex = 0; TrackInstanceIndex < GroupInstance->TrackInst.Num(); TrackInstanceIndex++)
+									UInterpTrackInst* TrackInstance = GroupInstance->TrackInst[TrackInstanceIndex];
+									UInterpTrackInstMove* MoveTrackInstance = Cast<UInterpTrackInstMove>(TrackInstance);
+									if (MoveTrackInstance)
 									{
-										UInterpTrackInst* TrackInstance = GroupInstance->TrackInst[TrackInstanceIndex];
-										UInterpTrackInstMove* MoveTrackInstance = Cast<UInterpTrackInstMove>(TrackInstance);
-										if (MoveTrackInstance)
+										//@todo - handle long camera paths
+										for (float Time = StartTime; Time < EndTime; Time += FMath::Max((EndTime - StartTime) * .001f, .001f))
 										{
-											//@todo - handle long camera paths
-											for (float Time = StartTime; Time < EndTime; Time += FMath::Max((EndTime - StartTime) * .001f, .001f))
+											const FVector RelativePosition = MoveTrack->EvalPositionAtTime(TrackInstance, Time);
+											FVector CurrentPosition;
+											FRotator CurrentRotation;
+											MoveTrack->ComputeWorldSpaceKeyTransform(MoveTrackInstance, RelativePosition, FRotator::ZeroRotator, CurrentPosition, CurrentRotation);
+											if (CameraTrackPositions.Num() == 0 || !CurrentPosition.Equals(CameraTrackPositions.Last(), CellSize * .1f))
 											{
-												const FVector RelativePosition = MoveTrack->EvalPositionAtTime(TrackInstance, Time);
-												FVector CurrentPosition;
-												FRotator CurrentRotation;
-												MoveTrack->ComputeWorldSpaceKeyTransform(MoveTrackInstance, RelativePosition, FRotator::ZeroRotator, CurrentPosition, CurrentRotation);
-												if (CameraTrackPositions.Num() == 0 || !CurrentPosition.Equals(CameraTrackPositions.Last(), CellSize * .1f))
-												{
-													CameraTrackPositions.Add(CurrentPosition);
-												}
+												CameraTrackPositions.Add(CurrentPosition);
 											}
 										}
 									}
 								}
 							}
 						}
-						if (bNeedsTermInterp)
-						{
-							MatineeActor->TermInterp();
-						}
+					}
+					if (bNeedsTermInterp)
+					{
+						MatineeActor->TermInterp();
 					}
 				}
 			}
