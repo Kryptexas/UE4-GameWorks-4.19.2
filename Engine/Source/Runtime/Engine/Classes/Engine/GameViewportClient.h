@@ -570,9 +570,9 @@ public:
 	FViewportFrame* ViewportFrame;
 
 	/**
- 	 * Controls supression of the blue transition text messages 
+ 	 * Controls suppression of the blue transition text messages 
 	 * 
-	 * @param bSuppress	Pass true to supress messages
+	 * @param bSuppress	Pass true to suppress messages
 	 */
 	void SetSuppressTransitionMessage( bool bSuppress )
 	{

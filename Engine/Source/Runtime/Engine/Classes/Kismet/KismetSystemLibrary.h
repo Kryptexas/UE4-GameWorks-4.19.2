@@ -1163,4 +1163,13 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer);
+
+	/** 
+	 * Sets the state of the transition message rendered by the viewport. (The blue text displayed when the game is paused and so forth.)
+	 *
+	 * @param WorldContextObject	World context
+	 * @param State					set true to supress transition message
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	static void SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState);
 };
