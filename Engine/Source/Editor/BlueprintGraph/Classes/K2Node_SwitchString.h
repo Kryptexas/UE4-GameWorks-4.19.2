@@ -33,7 +33,7 @@ class UK2Node_SwitchString : public UK2Node_Switch
 	// UK2Node_Switch Interface
 	BLUEPRINTGRAPH_API virtual void AddPinToSwitchNode() override;
 	virtual FString GetUniquePinName() override;
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const override { return Schema->PC_String; }
+	virtual FEdGraphPinType GetPinType() const override;
 	// End of UK2Node_Switch Interface
 
 	virtual FString GetPinNameGivenIndex(int32 Index) override;

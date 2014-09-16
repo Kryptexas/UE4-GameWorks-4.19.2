@@ -45,7 +45,7 @@ class UK2Node_Switch : public UK2Node
 	virtual FString GetUniquePinName() { return FString(); }
 
 	/** Gets the pin type from the schema for the subclass */
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const { check(false); return Schema->PC_Int; }
+	virtual FEdGraphPinType GetPinType() const { check(false); return FEdGraphPinType(); }
 
 	/**
 	 * Adds a new execution pin to a switch node

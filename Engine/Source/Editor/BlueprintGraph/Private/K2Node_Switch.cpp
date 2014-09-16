@@ -25,9 +25,8 @@ protected:
 	TMap<UEdGraphNode*, FBPTerminal*> BoolTermMap;
 
 public:
-	FKCHandler_Switch(FKismetCompilerContext& InCompilerContext, const FString& InConnectionPinType)
+	FKCHandler_Switch(FKismetCompilerContext& InCompilerContext)
 		: FNodeHandlingFunctor(InCompilerContext)
-		, ConnectionPinType(InConnectionPinType)
 	{
 	}
 
@@ -51,9 +50,12 @@ public:
 	{
 		UK2Node_Switch* SwitchNode = CastChecked<UK2Node_Switch>(Node);
 
+		FEdGraphPinType ExpectedExecPinType;
+		ExpectedExecPinType.PinCategory = UEdGraphSchema_K2::PC_Exec;
+
 		// Make sure that the input pin is connected and valid for this block
-		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(SwitchNode, CompilerContext.GetSchema()->PN_Execute, EGPD_Input);
-		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, CompilerContext.GetSchema()->PC_Exec))
+		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(SwitchNode, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
+		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedExecPinType))
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, ExecTriggeringPin);
 			return;
@@ -61,7 +63,7 @@ public:
 
 		// Make sure that the selection pin is connected and valid for this block
 		UEdGraphPin* SelectionPin = SwitchNode->GetSelectionPin();
-		if ((SelectionPin == NULL) || !Context.ValidatePinType(SelectionPin, ConnectionPinType))
+		if ((SelectionPin == NULL) || !Context.ValidatePinType(SelectionPin, SwitchNode->GetPinType()))
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidSelectionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, SelectionPin);
 			return;
@@ -137,7 +139,7 @@ public:
 	}
 
 private:
-	FString ConnectionPinType;
+	FEdGraphPinType ExpectedSelectionPinType;
 };
 
 UK2Node_Switch::UK2Node_Switch(const class FPostConstructInitializeProperties& PCIP)
@@ -316,7 +318,7 @@ UEdGraphPin* UK2Node_Switch::GetDefaultPin()
 
 FNodeHandlingFunctor* UK2Node_Switch::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
-	return new FKCHandler_Switch(CompilerContext, GetPinType(CompilerContext.GetSchema()));
+	return new FKCHandler_Switch(CompilerContext);
 }
 
 FText UK2Node_Switch::GetMenuCategory() const

@@ -33,7 +33,7 @@ class UK2Node_SwitchInteger : public UK2Node_Switch
 	virtual FString GetUniquePinName() override;
 	virtual FString GetPinNameGivenIndex(int32 Index) override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const override { return Schema->PC_Int; }
+	virtual FEdGraphPinType GetPinType() const override;
 	// End of UK2Node_Switch Interface
 
 protected:

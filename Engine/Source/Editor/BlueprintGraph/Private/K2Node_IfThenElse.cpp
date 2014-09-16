@@ -23,8 +23,15 @@ public:
 	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		// For imperative nodes, make sure the exec function was actually triggered and not just included due to an output data dependency
-		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Execute, EGPD_Input);
-		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, CompilerContext.GetSchema()->PC_Exec))
+		FEdGraphPinType ExpectedExecPinType;
+		ExpectedExecPinType.PinCategory = UEdGraphSchema_K2::PC_Exec;
+
+		FEdGraphPinType ExpectedBoolPinType;
+		ExpectedBoolPinType.PinCategory = UEdGraphSchema_K2::PC_Boolean;
+
+
+		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
+		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedExecPinType))
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForBranch_Error", "@@ must have a valid execution pin @@").ToString()), Node, ExecTriggeringPin);
 			return;
@@ -39,9 +46,9 @@ public:
 		UEdGraphPin* CondPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Condition, EGPD_Input);
 		UEdGraphPin* ThenPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Then, EGPD_Output);
 		UEdGraphPin* ElsePin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Else, EGPD_Output);
-		if (Context.ValidatePinType(ThenPin, CompilerContext.GetSchema()->PC_Exec) &&
-			Context.ValidatePinType(ElsePin, CompilerContext.GetSchema()->PC_Exec) &&
-			Context.ValidatePinType(CondPin, CompilerContext.GetSchema()->PC_Boolean))
+		if (Context.ValidatePinType(ThenPin, ExpectedExecPinType) &&
+			Context.ValidatePinType(ElsePin, ExpectedExecPinType) &&
+			Context.ValidatePinType(CondPin, ExpectedBoolPinType))
 		{
 			UEdGraphPin* PinToTry = FEdGraphUtilities::GetNetFromPin(CondPin);
 			FBPTerminal** CondTerm = Context.NetMap.Find(PinToTry);

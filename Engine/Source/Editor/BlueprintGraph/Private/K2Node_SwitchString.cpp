@@ -78,6 +78,13 @@ void UK2Node_SwitchString::CreateSelectionPin()
 	K2Schema->SetPinDefaultValueBasedOnType(Pin);
 }
 
+FEdGraphPinType UK2Node_SwitchString::GetPinType() const 
+{ 
+	FEdGraphPinType PinType;
+	PinType.PinSubCategory = UEdGraphSchema_K2::PC_String;
+	return PinType;
+}
+
 FString UK2Node_SwitchString::GetPinNameGivenIndex(int32 Index)
 {
 	check(Index);

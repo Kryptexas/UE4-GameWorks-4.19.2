@@ -131,6 +131,14 @@ void UK2Node_SwitchEnum::CreateSelectionPin()
 	K2Schema->SetPinDefaultValueBasedOnType(Pin);
 }
 
+FEdGraphPinType UK2Node_SwitchEnum::GetPinType() const
+{ 
+	FEdGraphPinType EnumPinType;
+	EnumPinType.PinCategory = UEdGraphSchema_K2::PC_Byte;
+	EnumPinType.PinSubCategoryObject = Enum;
+	return EnumPinType; 
+}
+
 FString UK2Node_SwitchEnum::GetUniquePinName()
 {
 	FString NewPinName;
