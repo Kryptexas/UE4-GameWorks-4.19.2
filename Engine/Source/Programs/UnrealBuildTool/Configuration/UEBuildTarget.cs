@@ -1399,8 +1399,8 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// On Mac we have actions that should be executed after all the binaries are created
-			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac)
+			// On Mac and Linux we have actions that should be executed after all the binaries are created
+			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac || GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Linux)
 			{
 				TargetToolChain.SetupBundleDependencies(AppBinaries, GameName);
 			}
