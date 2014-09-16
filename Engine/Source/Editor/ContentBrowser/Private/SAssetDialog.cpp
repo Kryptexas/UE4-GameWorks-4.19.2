@@ -9,6 +9,7 @@ SAssetDialog::SAssetDialog()
 	: DialogType(EAssetDialogType::Open)
 	, ExistingAssetPolicy(ESaveAssetDialogExistingAssetPolicy::Disallow)
 	, bLastInputValidityCheckSuccessful(false)
+	, bPendingFocusNextFrame(true)
 {
 }
 
@@ -52,6 +53,7 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 		PathPickerConfig.bAllowContextMenu = false;
 		ConfirmButtonText = LOCTEXT("AssetDialogOpenButton", "Open");
 		AssetPickerConfig.SelectionMode = OpenAssetConfig.bAllowMultipleSelection ? ESelectionMode::Multi : ESelectionMode::Single;
+		AssetPickerConfig.bFocusSearchBoxWhenOpened = true;
 		bIncludeNameBox = false;
 	}
 	else if ( DialogType == EAssetDialogType::Save )
@@ -60,6 +62,7 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 		PathPickerConfig.bAllowContextMenu = true;
 		ConfirmButtonText = LOCTEXT("AssetDialogSaveButton", "Save");
 		AssetPickerConfig.SelectionMode = ESelectionMode::Single;
+		AssetPickerConfig.bFocusSearchBoxWhenOpened = false;
 		bIncludeNameBox = true;
 		ExistingAssetPolicy = SaveAssetConfig.ExistingAssetPolicy;
 		SetCurrentlyEnteredAssetName(SaveAssetConfig.DefaultAssetName);
@@ -145,10 +148,11 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 			.VAlign(VAlign_Center)
 			.Padding(4, 3)
 			[
-				SNew(SEditableTextBox)
+				SAssignNew(NameEditableText, SEditableTextBox)
 				.Text(this, &SAssetDialog::GetAssetNameText)
 				.OnTextCommitted(this, &SAssetDialog::OnAssetNameTextCommited)
 				.OnTextChanged(this, &SAssetDialog::OnAssetNameTextCommited, ETextCommit::Default)
+				.SelectAllTextWhenFocused(true)
 			];
 	}
 
@@ -203,6 +207,17 @@ FReply SAssetDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
 }
 
+void SAssetDialog::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	if (bPendingFocusNextFrame)
+	{
+		FocusNameBox();
+		bPendingFocusNextFrame = false;
+	}
+
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+}
+
 void SAssetDialog::SetOnAssetsChosenForOpen(const FOnAssetsChosenForOpen& InOnAssetsChosenForOpen)
 {
 	OnAssetsChosenForOpen = InOnAssetsChosenForOpen;
@@ -211,6 +226,14 @@ void SAssetDialog::SetOnAssetsChosenForOpen(const FOnAssetsChosenForOpen& InOnAs
 void SAssetDialog::SetOnObjectPathChosenForSave(const FOnObjectPathChosenForSave& InOnObjectPathChosenForSave)
 {
 	OnObjectPathChosenForSave = InOnObjectPathChosenForSave;
+}
+
+void SAssetDialog::FocusNameBox()
+{
+	if ( NameEditableText.IsValid() )
+	{
+		FSlateApplication::Get().SetKeyboardFocus(NameEditableText.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+	}
 }
 
 FText SAssetDialog::GetAssetNameText() const

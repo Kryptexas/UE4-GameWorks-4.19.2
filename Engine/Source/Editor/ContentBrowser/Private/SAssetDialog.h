@@ -14,6 +14,7 @@ public:
 	virtual void Construct(const FArguments& InArgs, const FSharedAssetDialogConfig& InConfig);
 
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 	/** Sets the delegate handler for when an open operation is committed */
 	void SetOnAssetsChosenForOpen(const FOnAssetsChosenForOpen& InOnAssetsChosenForOpen);
@@ -22,6 +23,9 @@ public:
 	void SetOnObjectPathChosenForSave(const FOnObjectPathChosenForSave& InOnObjectPathChosenForSave);
 
 private:
+
+	/** Moves keyboard focus to the name box if this is a save dialog */
+	void FocusNameBox();
 
 	/** Gets the name to display in the asset name box */
 	FText GetAssetNameText() const;
@@ -99,6 +103,9 @@ private:
 	/** The assets that are currently selected in the asset picker */
 	TArray<FAssetData> CurrentlySelectedAssets;
 
+	/** The name box. Only used in save dialogs. */
+	TSharedPtr<SEditableTextBox> NameEditableText;
+
 	/** The object path of the asset to save. Only used in save dialogs. */
 	FString CurrentlySelectedPath;
 
@@ -113,4 +120,7 @@ private:
 
 	/** True if the last validity check returned that the class name/path is valid for creation */
 	bool bLastInputValidityCheckSuccessful;
+
+	/** Used to focus the name box after opening the dialog */
+	bool bPendingFocusNextFrame;
 };
