@@ -514,7 +514,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 									SAssignNew(LogsLinesWidget, SListView<TSharedPtr<FLogEntryItem> >)
 									.ItemHeight(20)
 									.ListItemsSource(&LogEntryLines)
-									.SelectionMode(ESelectionMode::Multi)
+									.SelectionMode(ESelectionMode::Single)
+									.OnSelectionChanged(this, &SLogVisualizer::LogEntryLineSelectionChanged)
 									.OnGenerateRow(this, &SLogVisualizer::LogEntryLinesGenerateRow)
 								]
 							]
@@ -1510,12 +1511,27 @@ TSharedRef<ITableRow> SLogVisualizer::LogEntryLinesGenerateRow(TSharedPtr<FLogEn
 			]			
 		];
 }
-/*
-void SLogVisualizer::LogEntryLineSelectionChanged(TSharedPtr<FLogsListItem> SelectedItem, ESelectInfo::Type SelectInfo)
-{
 
+void SLogVisualizer::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, ESelectInfo::Type SelectInfo)
+{
+	TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLog::Get().GetAllExtensions();
+	for (auto Iterator = AllExtensions.CreateIterator(); Iterator; ++Iterator)
+	{
+		FVisualLogExtensionInterface* Extension = (*Iterator).Value;
+		if (Extension != NULL)
+		{
+			if (SelectedItem.IsValid() == true)
+			{
+				Extension->LogEntryLineSelectionChanged(SelectedItem, SelectedItem->UserData, SelectedItem->TagName);
+			}
+			else
+			{
+				Extension->LogEntryLineSelectionChanged(SelectedItem, 0, NAME_None);
+			}
+		}
+	}
 }
-*/
+
 bool SLogVisualizer::ShouldListLog(const TSharedPtr<FActorsVisLog>& Log)
 {
 	//// Check log name filter
@@ -1742,6 +1758,8 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 
 			EntryItem.Verbosity = LogLine->Verbosity;
 			EntryItem.Line = LogLine->Line;
+			EntryItem.UserData = LogLine->UserData;
+			EntryItem.TagName = LogLine->TagName;
 
 			LogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
 		}

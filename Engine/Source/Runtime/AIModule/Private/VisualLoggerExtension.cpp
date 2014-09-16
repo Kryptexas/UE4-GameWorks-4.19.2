@@ -7,6 +7,7 @@
 FVisualLoggerExtension::FVisualLoggerExtension()
 	:  CachedEQSId(INDEX_NONE)
 	, CurrentTimestamp(FLT_MIN)
+	, SelectedEQSId(INDEX_NONE)
 {
 
 }
@@ -38,6 +39,7 @@ void FVisualLoggerExtension::DisableEQSRendering(class AActor* HelperActor)
 #if USE_EQS_DEBUGGER
 	if (HelperActor)
 	{
+		SelectedEQSId = INDEX_NONE;
 		UEQSRenderingComponent* EQSRenderComp = HelperActor->FindComponentByClass<UEQSRenderingComponent>();
 		if (EQSRenderComp)
 		{
@@ -48,6 +50,14 @@ void FVisualLoggerExtension::DisableEQSRendering(class AActor* HelperActor)
 		}
 	}
 #endif
+}
+
+void FVisualLoggerExtension::LogEntryLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName)
+{
+	if (TagName == *EVisLogTags::TAG_EQS)
+	{
+		SelectedEQSId = (int32)UserData;
+	}
 }
 
 void FVisualLoggerExtension::DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp)
@@ -68,11 +78,18 @@ void FVisualLoggerExtension::DrawData(class UWorld* InWorld, class UCanvas* Canv
 		UEnvQueryDebugHelpers::BlobArrayToDebugData(DataBlock.Data, DebugData, false);
 		if (DebugData.Id != CachedEQSId || (EQSRenderComp && EQSRenderComp->bHiddenInGame))
 		{
-			CachedEQSId = DebugData.Id;
-			EQSRenderComp->DebugData = DebugData;
-			EQSRenderComp->Activate();
-			EQSRenderComp->SetHiddenInGame(false);
-			EQSRenderComp->MarkRenderStateDirty();
+				if (SelectedEQSId == INDEX_NONE)
+				{
+					SelectedEQSId = DebugData.Id;
+				}
+				if (DebugData.Id == SelectedEQSId)
+				{
+					CachedEQSId = DebugData.Id;
+					EQSRenderComp->DebugData = DebugData;
+					EQSRenderComp->Activate();
+					EQSRenderComp->SetHiddenInGame(false);
+					EQSRenderComp->MarkRenderStateDirty();
+				}
 		}
 	}
 #endif

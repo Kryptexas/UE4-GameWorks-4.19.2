@@ -32,9 +32,15 @@ struct ENGINE_API FVisLogEntry
 		FString Line;
 		FName Category;
 		TEnumAsByte<ELogVerbosity::Type> Verbosity;
+		int64 UserData;
+		FName TagName;
 
 		FLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine)
-			: Line(InLine), Category(InCategory), Verbosity(InVerbosity)
+			: Line(InLine), Category(InCategory), Verbosity(InVerbosity), UserData(0)
+		{}
+
+		FLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine, int64 InUserData)
+			: Line(InLine), Category(InCategory), Verbosity(InVerbosity), UserData(InUserData)
 		{}
 	};
 	TArray<FLogLine> LogLines;
@@ -314,6 +320,8 @@ namespace VisualLogJson
 	static const FString TAG_TYPECOLORSIZE = TEXT("TypeColorSize");
 	static const FString TAG_POINTS = TEXT("Points");
 	static const FString TAG_ELEMENTSTODRAW = TEXT("ElementsToDraw");
+	static const FString TAG_TAGNAME = TEXT("DataBlockTagName");
+	static const FString TAG_USERDATA = TEXT("UserData");
 
 	static const FString TAG_HISTOGRAMSAMPLES = TEXT("HistogramSamples");
 	static const FString TAG_HISTOGRAMSAMPLE = TEXT("Sample");
@@ -322,7 +330,6 @@ namespace VisualLogJson
 
 	static const FString TAG_DATABLOCK = TEXT("DataBlock");
 	static const FString TAG_DATABLOCK_DATA = TEXT("DataBlockData");
-	static const FString TAG_DATABLOCK_TAGNAME = TEXT("DataBlockTagName");
 
 	static const FString TAG_LOGS = TEXT("Logs");
 }
@@ -348,6 +355,7 @@ struct FVisualLogExtensionInterface
 	virtual void OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor) = 0;
 	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp) = 0;
 	virtual void DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp) = 0;
+	virtual void LogEntryLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName) = 0;
 };
 
 
@@ -377,7 +385,7 @@ public:
 
 	void RedirectToVisualLog(const class UObject* Src, const class AActor* Dest);
 
-	void LogLine(const class AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line);
+	void LogLine(const class AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData = 0, FName TagName = NAME_Name);
 
 	const FLogsMap* GetLogs() const { return &LogsMap; }
 

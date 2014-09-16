@@ -86,6 +86,9 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 				LogLines[LogLineIndex].Category = FName(*(JsonLogLine->GetStringField(VisualLogJson::TAG_CATEGORY)));
 				LogLines[LogLineIndex].Verbosity = TEnumAsByte<ELogVerbosity::Type>((uint8)FMath::TruncToInt(JsonLogLine->GetNumberField(VisualLogJson::TAG_VERBOSITY)));
 				LogLines[LogLineIndex].Line = JsonLogLine->GetStringField(VisualLogJson::TAG_LINE);
+				LogLines[LogLineIndex].TagName = FName(*(JsonLogLine->GetStringField(VisualLogJson::TAG_TAGNAME)));
+				LogLines[LogLineIndex].UserData = (int64)(JsonLogLine->GetNumberField(VisualLogJson::TAG_USERDATA));
+
 			}
 		}
 	}
@@ -155,7 +158,7 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 			if (JsonSampleObject.IsValid())
 			{
 				FDataBlock& Sample = DataBlocks[DataBlocks.Add(FDataBlock())];
-				Sample.TagName = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_DATABLOCK_TAGNAME)));
+				Sample.TagName = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_TAGNAME)));
 				Sample.Category = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_CATEGORY)));
 				Sample.Verbosity = TEnumAsByte<ELogVerbosity::Type>((uint8)FMath::TruncToInt(JsonSampleObject->GetNumberField(VisualLogJson::TAG_VERBOSITY)));
 
@@ -220,6 +223,8 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 		JsonLogLineObject->SetStringField(VisualLogJson::TAG_CATEGORY, LogLine->Category.ToString());
 		JsonLogLineObject->SetNumberField(VisualLogJson::TAG_VERBOSITY, LogLine->Verbosity);
 		JsonLogLineObject->SetStringField(VisualLogJson::TAG_LINE, LogLine->Line);
+		JsonLogLineObject->SetStringField(VisualLogJson::TAG_TAGNAME, LogLine->TagName.ToString());
+		JsonLogLineObject->SetNumberField(VisualLogJson::TAG_USERDATA, LogLine->UserData);
 		JsonLines[LogLineIndex] = MakeShareable(new FJsonValueObject(JsonLogLineObject));
 	}
 
@@ -298,7 +303,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 		const FString CurrentDataAsString = FBase64::Encode(CompressedData);
 
 		JsonSampleObject->SetStringField(VisualLogJson::TAG_CATEGORY, CurrentData.Category.ToString());
-		JsonSampleObject->SetStringField(VisualLogJson::TAG_DATABLOCK_TAGNAME, CurrentData.TagName.ToString());
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_TAGNAME, CurrentData.TagName.ToString());
 		JsonSampleObject->SetStringField(VisualLogJson::TAG_DATABLOCK_DATA, CurrentDataAsString);
 		JsonSampleObject->SetNumberField(VisualLogJson::TAG_VERBOSITY, CurrentData.Verbosity);
 
@@ -654,7 +659,7 @@ void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 	}
 }
 
-void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line)
+void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData, FName TagName)
 {
 	if (IsRecording() == false || Actor == NULL || Actor->IsPendingKill() || (IsAllBlocked() && !InWhitelist(CategoryName)))
 	{
@@ -667,7 +672,8 @@ void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVer
 	{
 		// @todo will have to store CategoryName separately, and create a map of names 
 		// used in log to have saved logs independent from FNames index changes
-		Entry->LogLines.Add(FVisLogEntry::FLogLine(CategoryName, Verbosity, Line));
+		int32 LineIndex = Entry->LogLines.Add(FVisLogEntry::FLogLine(CategoryName, Verbosity, Line, UserData));
+		Entry->LogLines[LineIndex].TagName = TagName;
 	}
 }
 #endif // ENABLE_VISUAL_LOG

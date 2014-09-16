@@ -32,6 +32,8 @@ struct FLogEntryItem
 	FLinearColor CategoryColor;
 	ELogVerbosity::Type Verbosity;
 	FString Line;
+	int64 UserData;
+	FName TagName;
 };
 
 namespace ELogsSortMode
@@ -106,7 +108,8 @@ public:
 	TSharedRef<ITableRow> LogsListGenerateRow(TSharedPtr<FLogsListItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void LogsListSelectionChanged(TSharedPtr<FLogsListItem> SelectedItem, ESelectInfo::Type SelectInfo);
 	TSharedRef<ITableRow> LogEntryLinesGenerateRow(TSharedPtr<FLogEntryItem> Item, const TSharedRef<STableViewBase>& OwnerTable);
-
+	void LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, ESelectInfo::Type SelectInfo);
+	
 	FOnZoomChanged& OnZoomChanged() { return ZoomChangedNotify; }
 
 	FOnHistogramWindowChanged& OnHistogramWindowChanged() { return HistogramWindowChangedNotify; }
