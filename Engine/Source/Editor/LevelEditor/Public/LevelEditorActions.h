@@ -502,11 +502,7 @@ public:
 	 * Blueprints commands
 	 */
 	TSharedPtr< FUICommandInfo > OpenLevelBlueprint;
-	TSharedPtr< FUICommandInfo > OpenGameModeBlueprint;
-	TSharedPtr< FUICommandInfo > OpenGameStateBlueprint;
-	TSharedPtr< FUICommandInfo > OpenDefaultPawnBlueprint;
-	TSharedPtr< FUICommandInfo > OpenHUDBlueprint;
-	TSharedPtr< FUICommandInfo > OpenPlayerControllerBlueprint;
+	TSharedPtr< FUICommandInfo > CheckOutProjectSettingsConfig;
 	TSharedPtr< FUICommandInfo > CreateClassBlueprint;
 
 	/** Editor mode commands */
@@ -1024,26 +1020,14 @@ public:
 	/** Open the Marketplace */
 	static void OpenMarketplace();
 
+	/** Checks out the Project Settings config */
+	static void CheckOutProjectSettingsConfig();
+
 	/** Open the level's blueprint in Kismet2 */
 	static void OpenLevelBlueprint( TWeakPtr< SLevelEditor > LevelEditor );
 
-	/** Open the world's game mode blueprint or help the user create one. */
-	static void OpenGameModeBlueprint( TWeakPtr< SLevelEditor > LevelEditor );
-
-	/** Open the current game state blueprint or help the user create one */
-	static void OpenGameStateBlueprint( TWeakPtr< SLevelEditor > LevelEditor );
-	
-	/** Open the current default pawn blueprint or help the user create one */
-	static void OpenDefaultPawnBlueprint( TWeakPtr< SLevelEditor > LevelEditor );
-	
-	/** Open the current HUD blueprint or help the user create one */
-	static void OpenHUDBlueprint( TWeakPtr< SLevelEditor > LevelEditor );
-	
-	/** Open the current player controller blueprint or help the user create one */
-	static void OpenPlayerControllerBlueprint( TWeakPtr< SLevelEditor > LevelEditor );
-
-	/** Returns TRUE if the user can edit game info Blueprints, this requires an active Blueprint based game mode to be set */
-	static bool CanEditGameInfoBlueprints( TWeakPtr< SLevelEditor > LevelEditor);
+	/** Returns TRUE if the user can edit the game mode Blueprint, this requires the DefaultEngine config file to be writable */
+	static bool CanSelectGameModeBlueprint();
 
 	/** Helps the user create a class Blueprint */
 	static void CreateClassBlueprint();

@@ -86,45 +86,13 @@ void SLevelEditor::BindCommands()
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::EditAsset_Clicked, EToolkitMode::Standalone, TWeakPtr< SLevelEditor >( SharedThis( this ) ), true ) );
 
 	LevelEditorCommands->MapAction(
+		Actions.CheckOutProjectSettingsConfig,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig ) );
+
+	LevelEditorCommands->MapAction(
 		Actions.OpenLevelBlueprint,
 		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenLevelBlueprint, SharedThis( this ) ) );
 	
-	LevelEditorCommands->MapAction(
-		Actions.OpenGameModeBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenGameModeBlueprint, SharedThis( this ) ) );
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenGameStateBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenGameStateBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenDefaultPawnBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenDefaultPawnBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenHUDBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenHUDBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenPlayerControllerBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenPlayerControllerBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
 	LevelEditorCommands->MapAction(
 		Actions.CreateClassBlueprint,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CreateClassBlueprint ) );

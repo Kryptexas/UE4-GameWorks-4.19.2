@@ -50,6 +50,7 @@ public class LevelEditor : ModuleRules
                 "RHI",
 				"Projects",
 				"TargetPlatform",
+				"EngineSettings",
 			}
 		);
 

@@ -56,6 +56,13 @@ class ENGINESETTINGS_API UGameMapsSettings
 	 */
 	static void SetGameDefaultMap( const FString& NewMap );
 
+	/**
+	 * Set the default game type (see GlobalDefaultGameMode below)
+	 *
+	 * @param NewGameMode name of valid map to use
+	 */
+	static void SetGlobalDefaultGameMode( const FString& NewGameMode );
+
 public:
 
 	/** If set, this map will be loaded when the Editor starts up. */

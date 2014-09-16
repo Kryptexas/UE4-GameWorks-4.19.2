@@ -21,6 +21,7 @@
 #include "Editor/ClassViewer/Private/SClassViewer.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
 #include "KismetEditorUtilities.h"
+#include "ISourceControlModule.h"
 
 namespace LevelEditorActionHelpers
 {
@@ -41,6 +42,183 @@ namespace LevelEditorActionHelpers
 			return InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InUnloadedClassData) == EFilterReturn::Passed;
 		}
 	};
+
+	/**
+	 * Retrieves the GameMode class
+	 *
+	 * @param InLevelEditor				The editor to extract the world from
+	 * @param bInIsProjectSettings		TRUE if retrieving the game mode from the project settings
+	 * @return							The GameMode class in the Project Settings or World Settings
+	 */
+	static UClass* GetGameModeClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback for the label to display for the GameMode menu selection */
+	static FText GetOpenGameModeBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback when selecting a GameMode class, assigns it to the world */
+	static void OnSelectGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback when creating a new GameMode class, creates the Blueprint and assigns it to the world */
+	static void OnCreateGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/**
+	 * Retrieves the active GameState class from
+	 *
+	 * @param InLevelEditor		The editor to extract the world from
+	 * @param bInIsProjectSettings		TRUE if retrieving the game mode from the project settings
+	 * @return					The active GameState class in the World Settings
+	 */
+	static UClass* GetGameStateClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback for the label to display for the GameState menu selection */
+	static FText GetOpenGameStateBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+	
+	/** Callback when selecting a GameState class, assigns it to the world */
+	static void OnSelectGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback when creating a new GameState class, creates the Blueprint and assigns it to the world */
+	static void OnCreateGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/**
+	 * Retrieves the active Pawn class from
+	 *
+	 * @param InLevelEditor		The editor to extract the world from
+	 * @return					The active Pawn class in the World Settings
+	 */
+	static UClass* GetPawnClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback for the label to display for the Pawn menu selection */
+	static FText GetOpenPawnBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback for the tooltip to display for the Pawn menu selection */
+	static FText GetOpenPawnBlueprintTooltip(TWeakPtr< SLevelEditor > InLevelEditor);
+
+	/** Callback when selecting a Pawn class, assigns it to the world */
+	static void OnSelectPawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback when creating a new Pawn class, creates the Blueprint and assigns it to the world */
+	static void OnCreatePawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/**
+	 * Retrieves the active HUD class from
+	 *
+	 * @param InLevelEditor		The editor to extract the world from
+	 * @param bInIsProjectSettings		TRUE if retrieving the game mode from the project settings
+	 * @return					The active HUD class in the World Settings
+	 */
+	static UClass* GetHUDClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback for the label to display for the HUD menu selection */
+	static FText GetOpenHUDBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+	
+	/** Callback when selecting a HUD class, assigns it to the world */
+	static void OnSelectHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback when creating a new HUD class, creates the Blueprint and assigns it to the world */
+	static void OnCreateHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/**
+	 * Retrieves the active PlayerController class from
+	 *
+	 * @param InLevelEditor		The editor to extract the world from
+	 * @param bInIsProjectSettings		TRUE if retrieving the game mode from the project settings
+	 * @return					The active PlayerController class in the World Settings
+	 */
+	static UClass* GetPlayerControllerClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback for the label to display for the PlayerController menu selection */
+	static FText GetOpenPlayerControllerBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback when selecting a PlayerController class, assigns it to the world */
+	static void OnSelectPlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Callback when creating a new PlayerController class, creates the Blueprint and assigns it to the world */
+	static void OnCreatePlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings);
+
+	/** Open the game mode blueprint, in the project settings or world settings */
+	static void OpenGameModeBlueprint( TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings )
+	{
+		if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+		{
+			if(UBlueprint* BlueprintClass = Cast<UBlueprint>(GameModeClass->ClassGeneratedBy))
+			{
+				// @todo Re-enable once world centric works
+				const bool bOpenWorldCentric = false;
+				FAssetEditorManager::Get().OpenEditorForAsset(
+					BlueprintClass,
+					bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+					InLevelEditor.Pin() );
+			}
+		}
+	}
+
+	/** Open the game state blueprint, in the project settings or world settings */
+	static void OpenGameStateBlueprint( TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings )
+	{
+		if(UClass* GameStateClass = GetGameStateClass(InLevelEditor, bInIsProjectSettings))
+		{
+			if(UBlueprint* BlueprintClass = Cast<UBlueprint>(GameStateClass->ClassGeneratedBy))
+			{
+				// @todo Re-enable once world centric works
+				const bool bOpenWorldCentric = false;
+				FAssetEditorManager::Get().OpenEditorForAsset(
+					BlueprintClass,
+					bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+					InLevelEditor.Pin() );
+			}
+		}
+	}
+
+	/** Open the default pawn blueprint, in the project settings or world settings */
+	static void OpenDefaultPawnBlueprint( TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings )
+	{
+		if(UClass* DefaultPawnClass = GetPawnClass(InLevelEditor, bInIsProjectSettings))
+		{
+			if(UBlueprint* BlueprintClass = Cast<UBlueprint>(DefaultPawnClass->ClassGeneratedBy))
+			{
+				// @todo Re-enable once world centric works
+				const bool bOpenWorldCentric = false;
+				FAssetEditorManager::Get().OpenEditorForAsset(
+					BlueprintClass,
+					bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+					InLevelEditor.Pin() );
+			}
+		}
+	}
+
+	/** Open the HUD blueprint, in the project settings or world settings */
+	static void OpenHUDBlueprint( TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings )
+	{
+		if(UClass* DefaultHUDClass = GetHUDClass(InLevelEditor, bInIsProjectSettings))
+		{
+			if(UBlueprint* BlueprintClass = Cast<UBlueprint>(DefaultHUDClass->ClassGeneratedBy))
+			{
+				// @todo Re-enable once world centric works
+				const bool bOpenWorldCentric = false;
+				FAssetEditorManager::Get().OpenEditorForAsset(
+					BlueprintClass,
+					bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+					InLevelEditor.Pin() );
+			}
+		}
+	}
+
+	/** Open the player controller blueprint, in the project settings or world settings */
+	static void OpenPlayerControllerBlueprint( TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings )
+	{
+		if(UClass* PlayerControllerClass = GetPlayerControllerClass(InLevelEditor, bInIsProjectSettings))
+		{
+			if(UBlueprint* BlueprintClass = Cast<UBlueprint>(PlayerControllerClass->ClassGeneratedBy))
+			{
+				// @todo Re-enable once world centric works
+				const bool bOpenWorldCentric = false;
+				FAssetEditorManager::Get().OpenEditorForAsset(
+					BlueprintClass,
+					bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+					InLevelEditor.Pin() );
+			}
+		}
+	}
 
 	/**
 	 * Builds a sub-menu for selecting a class
@@ -109,7 +287,7 @@ namespace LevelEditorActionHelpers
 	struct FBlueprintMenuSettings
 	{
 		/** The UI command for editing the Blueprint class associated with the menu */
-		TSharedPtr< FUICommandInfo > EditCommand;
+		FUIAction EditCommand;
 
 		/** Current class associated with the menu */
 		UClass* CurrentClass;
@@ -122,38 +300,566 @@ namespace LevelEditorActionHelpers
 
 		/** Callback when a class is picked, to create a new child class of and assign */
 		FOnClassPicked OnCreateClassPicked;
+
+		/** Level Editor these menu settings are for */
+		TWeakPtr< SLevelEditor > LevelEditor;
+
+		/** TRUE if these represent Project Settings, FALSE if they represent World Settings */
+		bool bIsProjectSettings;
 	};
+
+	/** Returns the label of the "Check Out" option based on if source control is present or not */
+	FText GetCheckOutLabel()
+	{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+		if(ISourceControlModule::Get().IsEnabled())
+		{
+			return LOCTEXT("CheckoutMenuLabel", "Check Out");
+		}
+		else
+		{
+			return LOCTEXT("MakeWritableLabel", "Make Writable");
+		}
+#undef LOCTEXT_NAMESPACE
+	}
+
+	/** Returns the tooltip of the "Check Out" option based on if source control is present or not */
+	FText GetCheckOutTooltip()
+	{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+		if(ISourceControlModule::Get().IsEnabled())
+		{
+			return LOCTEXT("CheckoutMenuTooltip", "Checks out the project settings config file so the game mode can be set.");
+		}
+		else
+		{
+			return LOCTEXT("MakeWritableTooltip", "Forces the project settings config file to be writable so the game mode can be set.");
+		}
+#undef LOCTEXT_NAMESPACE
+	}
 
 	/**
 	 * A sub-menu for the Blueprints dropdown, facilitates all the sub-menu actions such as creating, editing, and selecting classes for the world settings game mode.
 	 *
 	 * @param InMenuBuilder		Object to append menu items/widgets to
+	 * @param InCommandList		Commandlist for menu items
 	 * @param InSettingsData	All the data needed to create the menu actions
 	 */
-	void GetBlueprintSettingsSubMenu(FMenuBuilder& InMenuBuilder, FBlueprintMenuSettings InSettingsData)
+	void GetBlueprintSettingsSubMenu(FMenuBuilder& InMenuBuilder, const TSharedRef<FUICommandList> InCommandList, FBlueprintMenuSettings InSettingsData);
+
+	void CreateGameModeSubMenu(FMenuBuilder& InMenuBuilder, TSharedRef<FUICommandList> InCommandList, TWeakPtr< SLevelEditor > InLevelEditor, bool bInProjectSettings)
 	{
 #define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+		LevelEditorActionHelpers::FBlueprintMenuSettings GameModeMenuSettings;
+		GameModeMenuSettings.EditCommand = 
+			FUIAction(
+				FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &OpenGameModeBlueprint, InLevelEditor, bInProjectSettings )
+			);
+		GameModeMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnCreateGameModeClassPicked, InLevelEditor, bInProjectSettings );
+		GameModeMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnSelectGameModeClassPicked, InLevelEditor, bInProjectSettings );
+		GameModeMenuSettings.CurrentClass = LevelEditorActionHelpers::GetGameModeClass(InLevelEditor, bInProjectSettings);
+		GameModeMenuSettings.RootClass = AGameMode::StaticClass();
+		GameModeMenuSettings.LevelEditor = InLevelEditor;
+		GameModeMenuSettings.bIsProjectSettings = bInProjectSettings;
 
-		FSlateIcon EditBPIcon(FEditorStyle::Get().GetStyleSetName(), TEXT("PropertyWindow.Button_Edit"));
-		FSlateIcon NewBPIcon(FEditorStyle::Get().GetStyleSetName(), TEXT("PropertyWindow.Button_AddToArray"));
-		FText RootClassName = FText::FromString(InSettingsData.RootClass->GetName());
-
-		// If there is currently a valid GameMode Blueprint, offer to edit the Blueprint
-		if(InSettingsData.CurrentClass && InSettingsData.CurrentClass->ClassGeneratedBy)
+		auto IsGameModeActive = [](TWeakPtr< SLevelEditor > InLevelEditor, bool bInProjectSettings)->bool
 		{
-			FText BlueprintName = FText::FromString(InSettingsData.CurrentClass->ClassGeneratedBy->GetName());
-			InMenuBuilder.AddMenuEntry( InSettingsData.EditCommand, NAME_None, FText::Format( LOCTEXT("EditBlueprint", "Edit {Blueprint}"), BlueprintName), FText::Format( LOCTEXT("EditBlueprint_Tooltip", "Open the world's assigned {RootClass} blueprint"), RootClassName), EditBPIcon );
-		}
+			UClass* WorldSettingsGameMode = LevelEditorActionHelpers::GetGameModeClass(InLevelEditor, false);
+			if((WorldSettingsGameMode == nullptr) ^ bInProjectSettings ) //(WorldSettingsGameMode && !bInProjectSettings) || (!WorldSettingsGameMode && bInProjectSettings) )
+			{
+				return false;
+			}
+			return true;
+		};
 
+		InMenuBuilder.AddSubMenu( LevelEditorActionHelpers::GetOpenGameModeBlueprintLabel(InLevelEditor, bInProjectSettings), LOCTEXT("GameMode_Tooltip", "Select, edit, or create a new GameMode blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, InCommandList, GameModeMenuSettings), FUIAction(FExecuteAction(), FCanExecuteAction(), FIsActionChecked::CreateStatic(IsGameModeActive, InLevelEditor, bInProjectSettings)), NAME_None, EUserInterfaceActionType::RadioButton );
+#undef LOCTEXT_NAMESPACE
+
+	}
+
+	/**
+	 * Builds the game mode's sub menu objects
+	 *
+	 * @param InMenuBuilder		Object to append menu items/widgets to
+	 * @param InCommandList		Commandlist for menu items
+	 * @param InSettingsData	All the data needed to create the menu actions
+	 */
+	void GetGameModeSubMenu(FMenuBuilder& InMenuBuilder, const TSharedRef<FUICommandList> InCommandList, const FBlueprintMenuSettings& InSettingsData)
+	{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+		// Game State
+		LevelEditorActionHelpers::FBlueprintMenuSettings GameStateMenuSettings;
+		GameStateMenuSettings.EditCommand = 
+			FUIAction(
+				FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &OpenGameStateBlueprint, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings )
+			);
+		GameStateMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnCreateGameStateClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		GameStateMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnSelectGameStateClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		GameStateMenuSettings.CurrentClass = LevelEditorActionHelpers::GetGameStateClass(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings);
+		GameStateMenuSettings.RootClass = AGameState::StaticClass();
+		GameStateMenuSettings.LevelEditor = InSettingsData.LevelEditor;
+		GameStateMenuSettings.bIsProjectSettings = InSettingsData.bIsProjectSettings;
+
+		InMenuBuilder.AddSubMenu( LevelEditorActionHelpers::GetOpenGameStateBlueprintLabel(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings), LOCTEXT("GameState_Tooltip", "Select, edit, or create a new GameState blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, InCommandList, GameStateMenuSettings ) );
+
+		// Pawn
+		LevelEditorActionHelpers::FBlueprintMenuSettings PawnMenuSettings;
+		PawnMenuSettings.EditCommand = 
+			FUIAction(
+				FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &OpenDefaultPawnBlueprint, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings )
+			);
+		PawnMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnCreatePawnClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		PawnMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnSelectPawnClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		PawnMenuSettings.CurrentClass = LevelEditorActionHelpers::GetPawnClass(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings);
+		PawnMenuSettings.RootClass = APawn::StaticClass();
+		PawnMenuSettings.LevelEditor = InSettingsData.LevelEditor;
+		PawnMenuSettings.bIsProjectSettings = InSettingsData.bIsProjectSettings;
+
+		InMenuBuilder.AddSubMenu( LevelEditorActionHelpers::GetOpenPawnBlueprintLabel(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings), LOCTEXT("Pawn_Tooltip", "Select, edit, or create a new Pawn blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, InCommandList, PawnMenuSettings ) );
+
+		// HUD
+		LevelEditorActionHelpers::FBlueprintMenuSettings HUDMenuSettings;
+		HUDMenuSettings.EditCommand = 
+			FUIAction(
+				FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &OpenHUDBlueprint, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings )
+			);
+		HUDMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnCreateHUDClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		HUDMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnSelectHUDClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		HUDMenuSettings.CurrentClass = LevelEditorActionHelpers::GetHUDClass(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings);
+		HUDMenuSettings.RootClass = AHUD::StaticClass();
+		HUDMenuSettings.LevelEditor = InSettingsData.LevelEditor;
+		HUDMenuSettings.bIsProjectSettings = InSettingsData.bIsProjectSettings;
+
+		InMenuBuilder.AddSubMenu( LevelEditorActionHelpers::GetOpenHUDBlueprintLabel(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings), LOCTEXT("HUD_Tooltip", "Select, edit, or create a new HUD blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, InCommandList, HUDMenuSettings ) );
+
+		// Player Controller
+		LevelEditorActionHelpers::FBlueprintMenuSettings PlayerControllerMenuSettings;
+		PlayerControllerMenuSettings.EditCommand = 
+			FUIAction(
+				FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &OpenPlayerControllerBlueprint, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings )
+			);
+		PlayerControllerMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnCreatePlayerControllerClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		PlayerControllerMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnSelectPlayerControllerClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
+		PlayerControllerMenuSettings.CurrentClass = LevelEditorActionHelpers::GetPlayerControllerClass(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings);
+		PlayerControllerMenuSettings.RootClass = APlayerController::StaticClass();
+		PlayerControllerMenuSettings.LevelEditor = InSettingsData.LevelEditor;
+		PlayerControllerMenuSettings.bIsProjectSettings = InSettingsData.bIsProjectSettings;
+
+		InMenuBuilder.AddSubMenu( LevelEditorActionHelpers::GetOpenPlayerControllerBlueprintLabel(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings), LOCTEXT("PlayerController_Tooltip", "Select, edit, or create a new Player controller blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, InCommandList, PlayerControllerMenuSettings ) );
+#undef LOCTEXT_NAMESPACE
+	}
+}
+
+void LevelEditorActionHelpers::GetBlueprintSettingsSubMenu(FMenuBuilder& InMenuBuilder, const TSharedRef<FUICommandList> InCommandList, FBlueprintMenuSettings InSettingsData)
+{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+
+	InMenuBuilder.PushCommandList(InCommandList);
+
+	FSlateIcon EditBPIcon(FEditorStyle::Get().GetStyleSetName(), TEXT("PropertyWindow.Button_Edit"));
+	FSlateIcon NewBPIcon(FEditorStyle::Get().GetStyleSetName(), TEXT("PropertyWindow.Button_AddToArray"));
+	FText RootClassName = FText::FromString(InSettingsData.RootClass->GetName());
+
+	// If there is currently a valid GameMode Blueprint, offer to edit the Blueprint
+	if(InSettingsData.CurrentClass && InSettingsData.CurrentClass->ClassGeneratedBy)
+	{
+		FText BlueprintName = FText::FromString(InSettingsData.CurrentClass->ClassGeneratedBy->GetName());
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Blueprint"), BlueprintName);
+		Args.Add(TEXT("RootClass"), RootClassName);
+
+		InMenuBuilder.AddMenuEntry( FText::Format( LOCTEXT("EditBlueprint", "Edit {Blueprint}"), Args), FText::Format( LOCTEXT("EditBlueprint_Tooltip", "Open the world's assigned {RootClass} blueprint"), Args), EditBPIcon, InSettingsData.EditCommand );
+	}
+
+	if(InSettingsData.bIsProjectSettings && InSettingsData.CurrentClass && InSettingsData.CurrentClass->IsChildOf(AGameMode::StaticClass()) && !FLevelEditorActionCallbacks::CanSelectGameModeBlueprint())
+	{
+		InMenuBuilder.BeginSection("CheckoutSection", LOCTEXT("CheckoutSection","Check Out Project Settings") );
+		TAttribute<FText> CheckOutLabel;
+		CheckOutLabel.BindStatic(&GetCheckOutLabel);
+
+		TAttribute<FText> CheckOutTooltip;
+		CheckOutTooltip.BindStatic(&GetCheckOutTooltip);
+		InMenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().CheckOutProjectSettingsConfig, NAME_None, CheckOutLabel, CheckOutTooltip, FSlateIcon(FEditorStyle::Get().GetStyleSetName(), TEXT("Icons.Error")));
+		InMenuBuilder.EndSection();
+	}
+	else
+	{
 		// Create a new GameMode, this is always available so the user can easily create a new one
 		InMenuBuilder.AddSubMenu( LOCTEXT("CreateBlueprint", "Create..."), FText::Format( LOCTEXT("CreateClass_Tooltip", "Create a new {RootClass} based on a selected class and auto-assign it to the world"), RootClassName ), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetCreateSettingsClassSubMenu, InSettingsData.RootClass, InSettingsData.OnCreateClassPicked ), false, NewBPIcon );
 
 		// Select a game mode, this is always available so the user can switch his selection
 		InMenuBuilder.AddSubMenu( FText::Format( LOCTEXT("SelectGameModeClass", "Select {RootClass} Class"), RootClassName ), FText::Format( LOCTEXT("SelectGameModeClass_Tooltip", "Select a class to be the active {RootClass} in the world"), RootClassName ), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetSelectSettingsClassSubMenu, InSettingsData.RootClass, InSettingsData.OnSelectClassPicked ) );
 
-#undef LOCTEXT_NAMESPACE
+		if(InSettingsData.RootClass == AGameMode::StaticClass())
+		{
+			InMenuBuilder.BeginSection(NAME_None, LOCTEXT("GameModeClasses", "Game Mode Classes"));
+
+			if(InSettingsData.CurrentClass &&InSettingsData.CurrentClass->ClassGeneratedBy)
+			{
+				GetGameModeSubMenu(InMenuBuilder, InCommandList, InSettingsData);
+			}
+
+			InMenuBuilder.EndSection();
+		}
 	}
+
+	InMenuBuilder.PopCommandList();
+
+#undef LOCTEXT_NAMESPACE
 }
+
+UClass* LevelEditorActionHelpers::GetGameModeClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	UClass* GameModeClass = nullptr;
+	if(bInIsProjectSettings)
+	{
+		UObject* GameModeObject = LoadObject<UObject>(nullptr, *UGameMapsSettings::GetGlobalDefaultGameMode());
+		if(UBlueprint* GameModeAsBlueprint = Cast<UBlueprint>(GameModeObject))
+		{
+			GameModeClass = GameModeAsBlueprint->GeneratedClass;
+		}
+		else
+		{
+			GameModeClass = FindObject<UClass>(nullptr, *UGameMapsSettings::GetGlobalDefaultGameMode());
+		}
+	}
+	else
+	{
+		AWorldSettings* WorldSettings = InLevelEditor.Pin()->GetWorld()->GetWorldSettings();
+		if(WorldSettings->DefaultGameMode)
+		{
+			GameModeClass = WorldSettings->DefaultGameMode;
+		}
+	}
+	return GameModeClass;
+}
+
+FText LevelEditorActionHelpers::GetOpenGameModeBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		if(GameModeClass->ClassGeneratedBy)
+		{
+			return FText::Format( LOCTEXT("GameModeEditBlueprint", "GameMode: Edit {GameModeName}"), FText::FromString(GameModeClass->ClassGeneratedBy->GetName()));
+		}
+
+		return FText::Format( LOCTEXT("GameModeBlueprint", "GameMode: {GameModeName}"), FText::FromString(GameModeClass->GetName()));
+	}
+
+	if(bInIsProjectSettings)
+	{
+		return LOCTEXT("GameModeCreateBlueprint", "GameMode: New...");
+	}
+
+	// For World Settings, we want to inform the user that they are not overridding the Project Settings
+	return LOCTEXT("GameModeNotOverridden", "GameMode: Not overridden!");
+
+#undef LOCTEXT_NAMESPACE
+}
+
+void LevelEditorActionHelpers::OnCreateGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(InChosenClass)
+	{
+		const FString NewBPName(TEXT("NewGameMode"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameModeBlueprint_Title", "Create GameMode Blueprint"), InChosenClass, NewBPName);
+
+		if(Blueprint)
+		{
+			// @todo Re-enable once world centric works
+			const bool bOpenWorldCentric = false;
+			FAssetEditorManager::Get().OpenEditorForAsset(
+				Blueprint,
+				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+				InLevelEditor.Pin()  );
+			OnSelectGameModeClassPicked(Blueprint->GeneratedClass, InLevelEditor, bInIsProjectSettings);
+		}
+	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void LevelEditorActionHelpers::OnSelectGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(bInIsProjectSettings)
+	{
+		UGameMapsSettings::SetGlobalDefaultGameMode(InChosenClass? InChosenClass->GetPathName() : FString());
+
+		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		if (SettingsModule != nullptr)
+		{
+			ISettingsContainerPtr SettingsContainer = SettingsModule->GetContainer("Project");
+
+			if (SettingsContainer.IsValid())
+			{
+				ISettingsCategoryPtr SettingsCategory = SettingsContainer->GetCategory("Project");
+
+				if(SettingsCategory.IsValid())
+				{
+					SettingsCategory->GetSection("Maps")->Save();
+				}
+			}
+		}
+	}
+	else
+	{
+		InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode = InChosenClass;
+	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+UClass* LevelEditorActionHelpers::GetGameStateClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		if(ActiveGameMode)
+		{
+			return ActiveGameMode->GameStateClass;
+		}
+	}
+	return NULL;
+}
+
+FText LevelEditorActionHelpers::GetOpenGameStateBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+	if(UClass* GameStateClass = GetGameStateClass(InLevelEditor, bInIsProjectSettings))
+	{
+		if(GameStateClass->ClassGeneratedBy)
+		{
+			return FText::Format( LOCTEXT("GameStateEditBlueprint", "GameState: Edit {GameStateName}"), FText::FromString(GameStateClass->ClassGeneratedBy->GetName()));
+		}
+
+		return FText::Format( LOCTEXT("GameStateBlueprint", "GameState: {GameStateName}"), FText::FromString(GameStateClass->GetName()));
+	}
+
+	return LOCTEXT("GameStateCreateBlueprint", "GameState: New...");
+#undef LOCTEXT_NAMESPACE
+}
+
+void LevelEditorActionHelpers::OnCreateGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(InChosenClass)
+	{
+		const FString NewBPName(TEXT("NewGameState"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameStateBlueprint_Title", "Create GameState Blueprint"), InChosenClass, NewBPName);
+
+		if(Blueprint)
+		{
+			// @todo Re-enable once world centric works
+			const bool bOpenWorldCentric = false;
+			FAssetEditorManager::Get().OpenEditorForAsset(
+				Blueprint,
+				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+				InLevelEditor.Pin()  );
+
+			OnSelectGameStateClassPicked(Blueprint->GeneratedClass, InLevelEditor, bInIsProjectSettings);
+		}
+	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void LevelEditorActionHelpers::OnSelectGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		ActiveGameMode->GameStateClass = InChosenClass;
+	}
+
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+UClass* LevelEditorActionHelpers::GetPawnClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+
+		if(ActiveGameMode)
+		{
+			return ActiveGameMode->DefaultPawnClass;
+		}
+	}
+	return NULL;
+}
+
+FText LevelEditorActionHelpers::GetOpenPawnBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+	if(UClass* PawnClass = GetPawnClass(InLevelEditor, bInIsProjectSettings))
+	{
+		if(PawnClass->ClassGeneratedBy)
+		{
+			return FText::Format( LOCTEXT("PawnEditBlueprint", "Pawn: Edit {PawnName}"), FText::FromString(PawnClass->ClassGeneratedBy->GetName()));
+		}
+
+		return FText::Format( LOCTEXT("PawnBlueprint", "Pawn: {PawnName}"), FText::FromString(PawnClass->GetName()));
+	}
+
+	return LOCTEXT("PawnCreateBlueprint", "Pawn: New...");
+#undef LOCTEXT_NAMESPACE
+}
+
+void LevelEditorActionHelpers::OnCreatePawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(InChosenClass)
+	{
+		const FString NewBPName(TEXT("NewPawn"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreatePawnBlueprint_Title", "Create Pawn Blueprint"), InChosenClass, NewBPName);
+
+		if(Blueprint)
+		{
+			// @todo Re-enable once world centric works
+			const bool bOpenWorldCentric = false;
+			FAssetEditorManager::Get().OpenEditorForAsset(
+				Blueprint,
+				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+				InLevelEditor.Pin()  );
+
+			OnSelectPawnClassPicked(Blueprint->GeneratedClass, InLevelEditor, bInIsProjectSettings);
+		}
+	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void LevelEditorActionHelpers::OnSelectPawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		ActiveGameMode->DefaultPawnClass = InChosenClass;
+	}
+
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+UClass* LevelEditorActionHelpers::GetHUDClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		if(ActiveGameMode)
+		{
+			return ActiveGameMode->HUDClass;
+		}
+	}
+	return NULL;
+}
+
+FText LevelEditorActionHelpers::GetOpenHUDBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+	if(UClass* HUDClass = GetHUDClass(InLevelEditor, bInIsProjectSettings))
+	{
+		if(HUDClass->ClassGeneratedBy)
+		{
+			return FText::Format( LOCTEXT("HUDEditBlueprint", "HUD: Edit {HUDName}"), FText::FromString(HUDClass->ClassGeneratedBy->GetName()));
+		}
+
+		return FText::Format( LOCTEXT("HUDBlueprint", "HUD: {HUDName}"), FText::FromString(HUDClass->GetName()));
+	}
+
+	return LOCTEXT("HUDCreateBlueprint", "HUD: New...");
+#undef LOCTEXT_NAMESPACE
+}
+
+void LevelEditorActionHelpers::OnCreateHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(InChosenClass)
+	{
+		const FString NewBPName(TEXT("NewHUD"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateHUDBlueprint_Title", "Create HUD Blueprint"), InChosenClass, NewBPName);
+
+		if(Blueprint)
+		{
+			// @todo Re-enable once world centric works
+			const bool bOpenWorldCentric = false;
+			FAssetEditorManager::Get().OpenEditorForAsset(
+				Blueprint,
+				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+				InLevelEditor.Pin()  );
+
+			OnSelectHUDClassPicked(Blueprint->GeneratedClass, InLevelEditor, bInIsProjectSettings);
+		}
+	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void LevelEditorActionHelpers::OnSelectHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		ActiveGameMode->HUDClass = InChosenClass;
+	}
+
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+UClass* LevelEditorActionHelpers::GetPlayerControllerClass(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		if(ActiveGameMode)
+		{
+			return ActiveGameMode->PlayerControllerClass;
+		}
+	}
+	return NULL;
+}
+
+FText LevelEditorActionHelpers::GetOpenPlayerControllerBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
+	if(UClass* PlayerControllerClass = GetPlayerControllerClass(InLevelEditor, bInIsProjectSettings))
+	{
+		if(PlayerControllerClass->ClassGeneratedBy)
+		{
+			return FText::Format( LOCTEXT("PlayerControllerEditBlueprint", "PlayerController: Edit {PlayerControllerName}"), FText::FromString(PlayerControllerClass->ClassGeneratedBy->GetName()));
+		}
+
+		return FText::Format( LOCTEXT("PlayerControllerBlueprint", "PlayerController: {PlayerControllerName}"), FText::FromString(PlayerControllerClass->GetName()));
+	}
+
+	return LOCTEXT("PlayerControllerCreateBlueprint", "PlayerController: New...");
+#undef LOCTEXT_NAMESPACE
+}
+
+void LevelEditorActionHelpers::OnCreatePlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(InChosenClass)
+	{
+		const FString NewBPName(TEXT("NewPlayerController"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreatePlayerControllerBlueprint_Title", "Create PlayerController Blueprint"), InChosenClass, NewBPName);
+
+		if(Blueprint)
+		{
+			// @todo Re-enable once world centric works
+			const bool bOpenWorldCentric = false;
+			FAssetEditorManager::Get().OpenEditorForAsset(
+				Blueprint,
+				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
+				InLevelEditor.Pin()  );
+
+			OnSelectPlayerControllerClassPicked(Blueprint->GeneratedClass, InLevelEditor, bInIsProjectSettings);
+		}
+	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void LevelEditorActionHelpers::OnSelectPlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor, bool bInIsProjectSettings)
+{
+	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
+	{
+		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		ActiveGameMode->PlayerControllerClass = InChosenClass;
+	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
 
 /**
  * Static: Creates a widget for the level editor tool bar
@@ -898,71 +1604,23 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenBlueprintMenuContent( TSh
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection(NAME_None, LOCTEXT("WorldSettingsClasses", "World Settings Classes"));
+	MenuBuilder.BeginSection(NAME_None, LOCTEXT("ProjectSettingsClasses", "Project Settings"));
 	{
-		AWorldSettings* WorldSettings = InLevelEditor.Pin()->GetWorld()->GetWorldSettings();
-
-		// Game Mode
-		AGameMode* ActiveGameMode = NULL;
-
-		// If the WorldSettings' default game mode is valid, pull out the default object so we can edit it
-		if(WorldSettings->DefaultGameMode)
+		// If source control is enabled, queue up a query to the status of the config file so it is (hopefully) ready before we get to the sub-menu
+		if(ISourceControlModule::Get().IsEnabled())
 		{
-			ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
+			FString ConfigFilePath = FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefaultEngine.ini"), *FPaths::SourceConfigDir()));
+
+			// note: calling QueueStatusUpdate often does not spam status updates as an internal timer prevents this
+			ISourceControlModule::Get().QueueStatusUpdate(ConfigFilePath);
 		}
+		LevelEditorActionHelpers::CreateGameModeSubMenu(MenuBuilder, InCommandList, InLevelEditor, true);
+	}
+	MenuBuilder.EndSection();
 
-		LevelEditorActionHelpers::FBlueprintMenuSettings GameModeMenuSettings;
-		GameModeMenuSettings.EditCommand = FLevelEditorCommands::Get().OpenGameModeBlueprint;
-		GameModeMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnCreateGameModeClassPicked, InLevelEditor );;
-		GameModeMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnSelectGameModeClassPicked, InLevelEditor );;
-		GameModeMenuSettings.CurrentClass = GetActiveGameModeClass(InLevelEditor);
-		GameModeMenuSettings.RootClass = AGameMode::StaticClass();
-
-		MenuBuilder.AddSubMenu( GetOpenGameModeBlueprintLabel(InLevelEditor), LOCTEXT("GameMode_Tooltip", "Select, edit, or create a new GameMode blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, GameModeMenuSettings) );
-
-		if(ActiveGameMode && ActiveGameMode->GetClass()->ClassGeneratedBy)
-		{
-			// Game State
-			LevelEditorActionHelpers::FBlueprintMenuSettings GameStateMenuSettings;
-			GameStateMenuSettings.EditCommand = FLevelEditorCommands::Get().OpenGameStateBlueprint;
-			GameStateMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnCreateGameStateClassPicked, InLevelEditor );;
-			GameStateMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnSelectGameStateClassPicked, InLevelEditor );;
-			GameStateMenuSettings.CurrentClass = GetActiveGameStateClass(InLevelEditor);
-			GameStateMenuSettings.RootClass = AGameState::StaticClass();
-
-			MenuBuilder.AddSubMenu( GetOpenGameStateBlueprintLabel(InLevelEditor), LOCTEXT("GameState_Tooltip", "Select, edit, or create a new GameState blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, GameStateMenuSettings ) );
-		
-			// Pawn
-			LevelEditorActionHelpers::FBlueprintMenuSettings PawnMenuSettings;
-			PawnMenuSettings.EditCommand = FLevelEditorCommands::Get().OpenDefaultPawnBlueprint;
-			PawnMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnCreatePawnClassPicked, InLevelEditor );;
-			PawnMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnSelectPawnClassPicked, InLevelEditor );;
-			PawnMenuSettings.CurrentClass = GetActivePawnClass(InLevelEditor);
-			PawnMenuSettings.RootClass = APawn::StaticClass();
-
-			MenuBuilder.AddSubMenu( GetOpenPawnBlueprintLabel(InLevelEditor), LOCTEXT("Pawn_Tooltip", "Select, edit, or create a new Pawn blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, PawnMenuSettings ) );
-
-			// HUD
-			LevelEditorActionHelpers::FBlueprintMenuSettings HUDMenuSettings;
-			HUDMenuSettings.EditCommand = FLevelEditorCommands::Get().OpenHUDBlueprint;
-			HUDMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnCreateHUDClassPicked, InLevelEditor );;
-			HUDMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnSelectHUDClassPicked, InLevelEditor );;
-			HUDMenuSettings.CurrentClass = GetActiveHUDClass(InLevelEditor);
-			HUDMenuSettings.RootClass = AHUD::StaticClass();
-
-			MenuBuilder.AddSubMenu( GetOpenHUDBlueprintLabel(InLevelEditor), LOCTEXT("HUD_Tooltip", "Select, edit, or create a new HUD blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, HUDMenuSettings ) );
-
-			// Player Controller
-			LevelEditorActionHelpers::FBlueprintMenuSettings PlayerControllerMenuSettings;
-			PlayerControllerMenuSettings.EditCommand = FLevelEditorCommands::Get().OpenPlayerControllerBlueprint;
-			PlayerControllerMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnCreatePlayerControllerClassPicked, InLevelEditor );;
-			PlayerControllerMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &FLevelEditorToolBar::OnSelectPlayerControllerClassPicked, InLevelEditor );;
-			PlayerControllerMenuSettings.CurrentClass = GetActivePlayerControllerClass(InLevelEditor);
-			PlayerControllerMenuSettings.RootClass = APlayerController::StaticClass();
-
-			MenuBuilder.AddSubMenu( GetOpenPlayerControllerBlueprintLabel(InLevelEditor), LOCTEXT("PlayerController_Tooltip", "Select, edit, or create a new Player controller blueprint for the world"), FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetBlueprintSettingsSubMenu, PlayerControllerMenuSettings ) );
-
-		}
+	MenuBuilder.BeginSection(NAME_None, LOCTEXT("WorldSettingsClasses", "World Override"));
+	{
+		LevelEditorActionHelpers::CreateGameModeSubMenu(MenuBuilder, InCommandList, InLevelEditor, false);
 	}
 	MenuBuilder.EndSection();
 
@@ -999,314 +1657,6 @@ void FLevelEditorToolBar::OnOpenSubLevelBlueprint( ULevel* InLevel )
 	{
 		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "UnableToCreateLevelScript", "Unable to find or create a level blueprint for this level.") );
 	}
-}
-
-UClass* FLevelEditorToolBar::GetActiveGameModeClass(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AWorldSettings* WorldSettings = InLevelEditor.Pin()->GetWorld()->GetWorldSettings();
-	if(WorldSettings->DefaultGameMode)
-	{
-		return WorldSettings->DefaultGameMode;
-	}
-	return NULL;
-}
-
-FText FLevelEditorToolBar::GetOpenGameModeBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
-	if(UClass* GameModeClass = GetActiveGameModeClass(InLevelEditor))
-	{
-		if(GameModeClass->ClassGeneratedBy)
-		{
-			return FText::Format( LOCTEXT("GameModeEditBlueprint", "GameMode: Edit {GameModeName}"), FText::FromString(GameModeClass->ClassGeneratedBy->GetName()));
-		}
-
-		return FText::Format( LOCTEXT("GameModeBlueprint", "GameMode: {GameModeName}"), FText::FromString(GameModeClass->GetName()));
-	}
-
-	return LOCTEXT("GameModeCreateBlueprint", "GameMode: New...");
-#undef LOCTEXT_NAMESPACE
-}
-
-void FLevelEditorToolBar::OnCreateGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	if(InChosenClass)
-	{
-		const FString NewBPName(TEXT("NewGameMode"));
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameModeBlueprint_Title", "Create GameMode Blueprint"), InChosenClass, NewBPName);
-
-		if(Blueprint)
-		{
-			// @todo Re-enable once world centric works
-			const bool bOpenWorldCentric = false;
-			FAssetEditorManager::Get().OpenEditorForAsset(
-				Blueprint,
-				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
-				InLevelEditor.Pin()  );
-
-			InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void FLevelEditorToolBar::OnSelectGameModeClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode = InChosenClass;
-
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-UClass* FLevelEditorToolBar::GetActiveGameStateClass(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AWorldSettings* WorldSettings = InLevelEditor.Pin()->GetWorld()->GetWorldSettings();
-	if(WorldSettings->DefaultGameMode)
-	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(WorldSettings->DefaultGameMode->GetDefaultObject());
-		if(ActiveGameMode)
-		{
-			return ActiveGameMode->GameStateClass;
-		}
-	}
-	return NULL;
-}
-
-FText FLevelEditorToolBar::GetOpenGameStateBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
-	if(UClass* GameStateClass = GetActiveGameStateClass(InLevelEditor))
-	{
-		if(GameStateClass->ClassGeneratedBy)
-		{
-			return FText::Format( LOCTEXT("GameStateEditBlueprint", "GameState: Edit {GameStateName}"), FText::FromString(GameStateClass->ClassGeneratedBy->GetName()));
-		}
-
-		return FText::Format( LOCTEXT("GameStateBlueprint", "GameState: {GameStateName}"), FText::FromString(GameStateClass->GetName()));
-	}
-
-	return LOCTEXT("GameStateCreateBlueprint", "GameState: New...");
-#undef LOCTEXT_NAMESPACE
-}
-
-void FLevelEditorToolBar::OnCreateGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	if(InChosenClass)
-	{
-		const FString NewBPName(TEXT("NewGameState"));
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameStateBlueprint_Title", "Create GameState Blueprint"), InChosenClass, NewBPName);
-
-		if(Blueprint)
-		{
-			// @todo Re-enable once world centric works
-			const bool bOpenWorldCentric = false;
-			FAssetEditorManager::Get().OpenEditorForAsset(
-				Blueprint,
-				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
-				InLevelEditor.Pin()  );
-
-			AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-			ActiveGameMode->GameStateClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void FLevelEditorToolBar::OnSelectGameStateClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-
-	ActiveGameMode->GameStateClass = InChosenClass;
-
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-UClass* FLevelEditorToolBar::GetActivePawnClass(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AWorldSettings* WorldSettings = InLevelEditor.Pin()->GetWorld()->GetWorldSettings();
-	if(WorldSettings->DefaultGameMode)
-	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(WorldSettings->DefaultGameMode->GetDefaultObject());
-		if(ActiveGameMode)
-		{
-			return ActiveGameMode->DefaultPawnClass;
-		}
-	}
-	return NULL;
-}
-
-FText FLevelEditorToolBar::GetOpenPawnBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
-	if(UClass* PawnClass = GetActivePawnClass(InLevelEditor))
-	{
-		if(PawnClass->ClassGeneratedBy)
-		{
-			return FText::Format( LOCTEXT("PawnEditBlueprint", "Pawn: Edit {PawnName}"), FText::FromString(PawnClass->ClassGeneratedBy->GetName()));
-		}
-
-		return FText::Format( LOCTEXT("PawnBlueprint", "Pawn: {PawnName}"), FText::FromString(PawnClass->GetName()));
-	}
-
-	return LOCTEXT("PawnCreateBlueprint", "Pawn: New...");
-#undef LOCTEXT_NAMESPACE
-}
-
-void FLevelEditorToolBar::OnCreatePawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	if(InChosenClass)
-	{
-		const FString NewBPName(TEXT("NewPawn"));
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreatePawnBlueprint_Title", "Create Pawn Blueprint"), InChosenClass, NewBPName);
-
-		if(Blueprint)
-		{
-			// @todo Re-enable once world centric works
-			const bool bOpenWorldCentric = false;
-			FAssetEditorManager::Get().OpenEditorForAsset(
-				Blueprint,
-				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
-				InLevelEditor.Pin()  );
-
-			AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-			ActiveGameMode->DefaultPawnClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void FLevelEditorToolBar::OnSelectPawnClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-
-	ActiveGameMode->DefaultPawnClass = InChosenClass;
-
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-UClass* FLevelEditorToolBar::GetActiveHUDClass(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AWorldSettings* WorldSettings = InLevelEditor.Pin()->GetWorld()->GetWorldSettings();
-	if(WorldSettings->DefaultGameMode)
-	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(WorldSettings->DefaultGameMode->GetDefaultObject());
-		if(ActiveGameMode)
-		{
-			return ActiveGameMode->HUDClass;
-		}
-	}
-	return NULL;
-}
-
-FText FLevelEditorToolBar::GetOpenHUDBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
-	if(UClass* HUDClass = GetActiveHUDClass(InLevelEditor))
-	{
-		if(HUDClass->ClassGeneratedBy)
-		{
-			return FText::Format( LOCTEXT("HUDEditBlueprint", "HUD: Edit {HUDName}"), FText::FromString(HUDClass->ClassGeneratedBy->GetName()));
-		}
-
-		return FText::Format( LOCTEXT("HUDBlueprint", "HUD: {HUDName}"), FText::FromString(HUDClass->GetName()));
-	}
-
-	return LOCTEXT("HUDCreateBlueprint", "HUD: New...");
-#undef LOCTEXT_NAMESPACE
-}
-
-void FLevelEditorToolBar::OnCreateHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	if(InChosenClass)
-	{
-		const FString NewBPName(TEXT("NewHUD"));
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateHUDBlueprint_Title", "Create HUD Blueprint"), InChosenClass, NewBPName);
-
-		if(Blueprint)
-		{
-			// @todo Re-enable once world centric works
-			const bool bOpenWorldCentric = false;
-			FAssetEditorManager::Get().OpenEditorForAsset(
-				Blueprint,
-				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
-				InLevelEditor.Pin()  );
-
-			AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-			ActiveGameMode->HUDClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void FLevelEditorToolBar::OnSelectHUDClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-
-	ActiveGameMode->HUDClass = InChosenClass;
-
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-UClass* FLevelEditorToolBar::GetActivePlayerControllerClass(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AWorldSettings* WorldSettings = InLevelEditor.Pin()->GetWorld()->GetWorldSettings();
-	if(WorldSettings->DefaultGameMode)
-	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(WorldSettings->DefaultGameMode->GetDefaultObject());
-		if(ActiveGameMode)
-		{
-			return ActiveGameMode->PlayerControllerClass;
-		}
-	}
-	return NULL;
-}
-
-FText FLevelEditorToolBar::GetOpenPlayerControllerBlueprintLabel(TWeakPtr< SLevelEditor > InLevelEditor)
-{
-#define LOCTEXT_NAMESPACE "LevelToolBarViewMenu"
-	if(UClass* PlayerControllerClass = GetActivePlayerControllerClass(InLevelEditor))
-	{
-		if(PlayerControllerClass->ClassGeneratedBy)
-		{
-			return FText::Format( LOCTEXT("PlayerControllerEditBlueprint", "PlayerController: Edit {PlayerControllerName}"), FText::FromString(PlayerControllerClass->ClassGeneratedBy->GetName()));
-		}
-
-		return FText::Format( LOCTEXT("PlayerControllerBlueprint", "PlayerController: {PlayerControllerName}"), FText::FromString(PlayerControllerClass->GetName()));
-	}
-
-	return LOCTEXT("PlayerControllerCreateBlueprint", "PlayerController: New...");
-#undef LOCTEXT_NAMESPACE
-}
-
-void FLevelEditorToolBar::OnCreatePlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	if(InChosenClass)
-	{
-		const FString NewBPName(TEXT("NewPlayerController"));
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreatePlayerControllerBlueprint_Title", "Create PlayerController Blueprint"), InChosenClass, NewBPName);
-
-		if(Blueprint)
-		{
-			// @todo Re-enable once world centric works
-			const bool bOpenWorldCentric = false;
-			FAssetEditorManager::Get().OpenEditorForAsset(
-				Blueprint,
-				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone,
-				InLevelEditor.Pin()  );
-
-			AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-			ActiveGameMode->PlayerControllerClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void FLevelEditorToolBar::OnSelectPlayerControllerClassPicked(UClass* InChosenClass, TWeakPtr< SLevelEditor > InLevelEditor)
-{
-	AGameMode* ActiveGameMode = Cast<AGameMode>(InLevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->GetDefaultObject());
-
-	ActiveGameMode->PlayerControllerClass = InChosenClass;
-
-	FSlateApplication::Get().DismissAllMenus();
 }
 
 TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRef<FUICommandList> InCommandList, TWeakPtr<SLevelEditor> LevelEditorWeakPtr )

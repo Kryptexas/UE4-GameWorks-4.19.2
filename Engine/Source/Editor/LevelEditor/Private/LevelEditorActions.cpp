@@ -49,6 +49,7 @@
 #include "ActorPickerMode.h"
 #include "EngineBuildSettings.h"
 #include "HotReloadInterface.h"
+#include "ISourceControlModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -1698,9 +1699,25 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 	}
 }
 
-bool FLevelEditorActionCallbacks::CanEditGameInfoBlueprints( TWeakPtr< SLevelEditor > LevelEditor)
+bool FLevelEditorActionCallbacks::CanSelectGameModeBlueprint()
 {
-	return LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode && LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->ClassGeneratedBy;
+	bool bCheckOutNeeded = false;
+
+	FString ConfigFilePath = FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefaultEngine.ini"), *FPaths::SourceConfigDir()));
+	if(ISourceControlModule::Get().IsEnabled())
+	{
+		// note: calling QueueStatusUpdate often does not spam status updates as an internal timer prevents this
+		//ISourceControlModule::Get().QueueStatusUpdate(ConfigFilePath);
+
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFilePath, EStateCacheUsage::Use);
+		bCheckOutNeeded = SourceControlState.IsValid() && SourceControlState->CanCheckout();
+	}
+	else
+	{
+		bCheckOutNeeded = (FPaths::FileExists(ConfigFilePath) && IFileManager::Get().IsReadOnly(*ConfigFilePath));
+	}
+	return !bCheckOutNeeded;
 }
 
 void FLevelEditorActionCallbacks::OpenLevelBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
@@ -1747,132 +1764,16 @@ void FLevelEditorActionCallbacks::CreateClassBlueprint()
 	}
 }
 
-void FLevelEditorActionCallbacks::OpenGameModeBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
+void FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig( )
 {
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
+	FString ConfigFilePath = FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefaultEngine.ini"), *FPaths::SourceConfigDir()));
+	if(ISourceControlModule::Get().IsEnabled())
 	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		UClass* ParentBlueprintClass = NULL;
-
-		if(ActiveGameMode)
-		{
-			ParentBlueprintClass = ActiveGameMode;
-		}
-		else
-		{
-			ParentBlueprintClass = AGameMode::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewGameMode"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameModeBlueprint_Title", "Create GameMode Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode = Cast<UClass>(Blueprint->GeneratedClass);
-		}
+		SourceControlHelpers::CheckOutFile(ConfigFilePath);
 	}
-}
-
-void FLevelEditorActionCallbacks::OpenGameStateBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
+	else
 	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->GameStateClass)
-		{
-			ParentBlueprintClass = GameMode->GameStateClass;
-		}
-		else
-		{
-			ParentBlueprintClass = AGameState::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewGameState"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameStateBlueprint_Title", "Create GameState Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->GameStateClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenDefaultPawnBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
-	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->DefaultPawnClass)
-		{
-			ParentBlueprintClass = GameMode->DefaultPawnClass;
-		}
-		else
-		{
-			ParentBlueprintClass = APawn::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewPawn"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateDefaultPawnBlueprint_Title", "Create DefaultPawn Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->DefaultPawnClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenHUDBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
-	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->HUDClass)
-		{
-			ParentBlueprintClass = GameMode->HUDClass;
-		}
-		else
-		{
-			ParentBlueprintClass = AHUD::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewHUD"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateHUDBlueprint_Title", "Create HUD Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->HUDClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenPlayerControllerBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
-	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->PlayerControllerClass)
-		{
-			ParentBlueprintClass = GameMode->PlayerControllerClass;
-		}
-		else
-		{
-			ParentBlueprintClass = APlayerController::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewPC"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreatePlayerControllerBlueprint_Title", "Create PlayerController Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->PlayerControllerClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
+		FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ConfigFilePath, false);
 	}
 }
 
@@ -2757,11 +2658,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( EditMatinee, "Edit Matinee", "Selects a Matinee to edit", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameModeBlueprint, "Open/Create Game Mode Blueprint", "Opens or create the active GameMode blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameStateBlueprint, "Open/Create Game State Blueprint", "Open or create the GameState blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenDefaultPawnBlueprint, "Open/Create Default Pawn Blueprint", "Open or create the Pawn blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenHUDBlueprint, "Open/Create HUD Blueprint", "Open or create the HUD blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenPlayerControllerBlueprint, "Open/Create Player Controller Blueprint", "Open or create the Player Controller blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( CheckOutProjectSettingsConfig, "Check Out", "Checks out the project settings config file so the game mode can be set.", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( CreateClassBlueprint, "New Class Blueprint...", "Create a new Class Blueprint", EUserInterfaceActionType::Button, FInputGesture());
 
 	UI_COMMAND( ShowTransformWidget, "Show Transform Widget", "Toggles the visibility of the transform widgets", EUserInterfaceActionType::ToggleButton, FInputGesture() );
