@@ -286,3 +286,9 @@ int8 ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes,
 	}
 	return LODToRender;
 }
+
+FViewUniformShaderParameters::FViewUniformShaderParameters()
+	: DirectionalLightShadowTexture(GWhiteTexture->TextureRHI)
+	, DirectionalLightShadowSampler(TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI())
+{
+}
