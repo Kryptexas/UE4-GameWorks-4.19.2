@@ -5,7 +5,7 @@
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
 
-#define STEAMVR_SUPPORTED_PLATFORMS ((PLATFORM_WINDOWS || PLATFORM_MAC) && WITH_STEAMWORKS)
+#define STEAMVR_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WITH_STEAMWORKS)
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 

@@ -30,9 +30,7 @@ namespace UnrealBuildTool.Rules
 
 			Definitions.Add("WITH_STEAMWORKS=" + (UEBuildConfiguration.bCompileSteamOSS ? "1" : "0"));
 			
-			// Currently, we only support SteamVR on Windows and Mac
-
-            if (UEBuildConfiguration.bCompileSteamOSS && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac))
+            if (UEBuildConfiguration.bCompileSteamOSS && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
             {
 				AddThirdPartyPrivateStaticDependencies(Target, "Steamworks");
             }
