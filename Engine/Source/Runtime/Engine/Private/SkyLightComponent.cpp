@@ -425,13 +425,13 @@ void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& 
 }
 
 /** Set brightness of the light */
-void USkyLightComponent::SetBrightness(float NewBrightness)
+void USkyLightComponent::SetIntensity(float NewIntensity)
 {
 	// Can't set brightness on a static light
 	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
-		&& Intensity != NewBrightness)
+		&& Intensity != NewIntensity)
 	{
-		Intensity = NewBrightness;
+		Intensity = NewIntensity;
 		MarkRenderStateDirty();
 	}
 }

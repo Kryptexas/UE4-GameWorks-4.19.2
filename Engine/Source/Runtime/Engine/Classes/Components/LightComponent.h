@@ -150,9 +150,9 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	FColor BloomTint;
 
 public:
-	/** Set brightness of the light */
+	/** Set intensity of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
-	void SetBrightness(float NewBrightness);
+	void SetIntensity(float NewIntensity);
 
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")

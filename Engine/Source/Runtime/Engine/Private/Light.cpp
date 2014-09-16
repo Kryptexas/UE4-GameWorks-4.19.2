@@ -103,7 +103,7 @@ void ALight::SetBrightness(float NewBrightness)
 {
 	if(LightComponent)
 	{
-		LightComponent->SetBrightness(NewBrightness);
+		LightComponent->SetIntensity(NewBrightness);
 	}
 }
 

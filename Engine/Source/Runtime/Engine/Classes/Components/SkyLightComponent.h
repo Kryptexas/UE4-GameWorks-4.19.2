@@ -147,7 +147,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	void CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& OutIrradianceMap) const;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
-	void SetBrightness(float NewBrightness);
+	void SetIntensity(float NewIntensity);
 
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")

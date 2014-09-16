@@ -644,13 +644,13 @@ void ULightComponent::DestroyRenderState_Concurrent()
 }
 
 /** Set brightness of the light */
-void ULightComponent::SetBrightness(float NewBrightness)
+void ULightComponent::SetIntensity(float NewIntensity)
 {
 	// Can't set brightness on a static light
 	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
-		&& Intensity != NewBrightness)
+		&& Intensity != NewIntensity)
 	{
-		Intensity = NewBrightness;
+		Intensity = NewIntensity;
 
 		// Use lightweight color and brightness update 
 		if( World && World->Scene )
