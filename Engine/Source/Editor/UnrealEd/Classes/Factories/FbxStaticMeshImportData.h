@@ -24,7 +24,7 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	UPROPERTY(EditAnywhere, Category=ImportSettings)
 	uint32 bRemoveDegenerates:1;
 	
-	UPROPERTY(EditAnywhere, Category=ImportSettings)
+	UPROPERTY(EditAnywhere, config, Category=ImportSettings)
 	uint32 bGenerateLightmapUVs:1;
 
 	/** If checked, one convex hull per UCX_ prefixed collision mesh will be generated instead of decomposing into multiple hulls */
