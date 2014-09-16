@@ -1469,6 +1469,7 @@ void UBehaviorTreeComponent::RemoveAllInstances()
 		DummyInstance.InstanceMemory.Reset();
 	}
 
+	KnownInstances.Reset();
 	NodeInstances.Reset();
 }
 

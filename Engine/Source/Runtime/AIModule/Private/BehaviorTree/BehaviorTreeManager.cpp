@@ -28,7 +28,10 @@ void UBehaviorTreeManager::FinishDestroy()
 
 	for (int32 Idx = 0; Idx < ActiveComponents.Num(); Idx++)
 	{
-		ActiveComponents[Idx]->Cleanup();
+		if (ActiveComponents[Idx] && !ActiveComponents[Idx]->HasAnyFlags(RF_BeginDestroyed))
+		{
+			ActiveComponents[Idx]->Cleanup();
+		}
 	}
 
 	ActiveComponents.Reset();

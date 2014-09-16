@@ -74,9 +74,10 @@ void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp, EBT
 	FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
 	if (Info.FirstNodeInstance >= 0)
 	{
+		const int32 MaxAllowedIdx = OwnerComp->NodeInstances.Num();
 		const int32 LastNodeIdx = OwnerComp->KnownInstances.IsValidIndex(InstanceIdIndex + 1) ?
-			OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance :
-			OwnerComp->NodeInstances.Num();
+			FMath::Min(OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance, MaxAllowedIdx) :
+			MaxAllowedIdx;
 
 		for (int32 Idx = Info.FirstNodeInstance; Idx < LastNodeIdx; Idx++)
 		{
