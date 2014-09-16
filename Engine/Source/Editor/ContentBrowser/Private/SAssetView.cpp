@@ -124,6 +124,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bCanShowClasses = InArgs._CanShowClasses;
 
 	bCanShowFolders = InArgs._CanShowFolders;
+
+	bFilterRecursivelyWithBackendFilter = InArgs._FilterRecursivelyWithBackendFilter;
 		
 	bCanShowRealTimeThumbnails = InArgs._CanShowRealTimeThumbnails;
 
@@ -1407,7 +1409,14 @@ void SAssetView::RefreshSourceItems()
 bool SAssetView::ShouldFilterRecursively() const
 {
 	// Quick check for conditions which force recursive filtering
-	if (bUserSearching || !BackendFilter.IsEmpty())
+	if (bUserSearching)
+	{
+		return true;
+	}
+
+	// In some cases we want to not filter recursively even if we have a backend filter (e.g. the open level window)
+	// Most of the time, bFilterRecursivelyWithBackendFilter is true
+	if ( bFilterRecursivelyWithBackendFilter && !BackendFilter.IsEmpty() )
 	{
 		return true;
 	}

@@ -31,6 +31,9 @@ DECLARE_DELEGATE_OneParam(FSyncToAssetsDelegate, const TArray< FAssetData >& /*A
 /** Called to set a new filter for an existing asset picker */
 DECLARE_DELEGATE_OneParam(FSetARFilterDelegate, const FARFilter& /*NewFilter*/);
 
+/** A pointer to an existing delegate that, when executed, will set the filter an the asset picker after it is created. */
+DECLARE_DELEGATE_OneParam(FSetPathPickerPathsDelegate, const TArray<FString>& /*NewPaths*/);
+
 /** Called to adjust the selection from the current assetdata, should be +1 to increment or -1 to decrement */
 DECLARE_DELEGATE_OneParam( FAdjustSelectionDelegate, const int32 /*direction*/ );
 

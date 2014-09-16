@@ -23,6 +23,7 @@ public:
 		, _AllowThumbnailEditMode(false)
 		, _CanShowClasses(true)
 		, _CanShowFolders(false)
+		, _FilterRecursivelyWithBackendFilter(true)
 		, _CanShowRealTimeThumbnails(false)
 		, _CanShowDevelopersFolder(false)
 		, _PreloadAssetsForContextMenu(true)
@@ -104,13 +105,16 @@ public:
 		/** Indicates if this view is allowed to show classes */
 		SLATE_ARGUMENT( bool, CanShowClasses )
 
-		/** Indicates if the 'Show Folders' option should be visible */
+		/** Indicates if the 'Show Folders' option should be enabled or disabled */
 		SLATE_ARGUMENT( bool, CanShowFolders )
 
-		/** Indicates if the 'Real-Time Thumbnails' option should be visible */
+		/** If true, recursive filtering will be caused by applying a backend filter */
+		SLATE_ARGUMENT( bool, FilterRecursivelyWithBackendFilter )
+
+		/** Indicates if the 'Real-Time Thumbnails' option should be enabled or disabled */
 		SLATE_ARGUMENT( bool, CanShowRealTimeThumbnails )
 
-		/** Indicates if the 'Show Developers' option should be visible */
+		/** Indicates if the 'Show Developers' option should be enabled or disabled */
 		SLATE_ARGUMENT( bool, CanShowDevelopersFolder )
 
 		/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
@@ -737,13 +741,16 @@ private:
 	/** Indicates if this view is allowed to show classes */
 	bool bCanShowClasses;
 
-	/** Indicates if the 'Show Folders' option should be visible */
+	/** Indicates if the 'Show Folders' option should be enabled or disabled */
 	bool bCanShowFolders;
 
-	/** Indicates if the 'Real-Time Thumbnails' option should be visible */
+	/** If true, recursive filtering will be caused by applying a backend filter */
+	bool bFilterRecursivelyWithBackendFilter;
+
+	/** Indicates if the 'Real-Time Thumbnails' option should be enabled or disabled */
 	bool bCanShowRealTimeThumbnails;
 
-	/** Indicates if the 'Show Developers' option should be visible */
+	/** Indicates if the 'Show Developers' option should be enabled or disabled */
 	bool bCanShowDevelopersFolder;
 
 	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */

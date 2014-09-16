@@ -11,8 +11,6 @@ SAssetPicker::~SAssetPicker()
 
 void SAssetPicker::Construct( const FArguments& InArgs )
 {
-	TSharedPtr<AssetFilterCollectionType> FrontendFilters = MakeShareable(new AssetFilterCollectionType());
-
 	BindCommands();
 
 	OnAssetsActivated = InArgs._AssetPickerConfig.OnAssetsActivated;
@@ -22,6 +20,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	bPendingFocusNextFrame = InArgs._AssetPickerConfig.bFocusSearchBoxWhenOpened;
 	DefaultFilterMenuExpansion = InArgs._AssetPickerConfig.DefaultFilterMenuExpansion;
 	SaveSettingsName = InArgs._AssetPickerConfig.SaveSettingsName;
+	OnFolderEnteredDelegate = InArgs._AssetPickerConfig.OnFolderEntered;
 
 	for (auto DelegateIt = InArgs._AssetPickerConfig.GetCurrentSelectionDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
 	{
@@ -57,12 +56,13 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	TAttribute< FText > HighlightText;
 	EThumbnailLabel::Type ThumbnailLabel = InArgs._AssetPickerConfig.ThumbnailLabel;
 
+	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
+
 	// Search box
 	if (!InArgs._AssetPickerConfig.bAutohideSearchBar)
 	{
 		TextFilter = MakeShareable( new FFrontendFilter_Text() );
 		TextFilter->SetIncludeClassName(InArgs._AssetPickerConfig.Filter.ClassNames.Num() != 1);
-		FrontendFilters->Add( TextFilter );
 		HighlightText = TAttribute< FText >( this, &SAssetPicker::GetHighlightedText );
 
 		OtherDevelopersFilter = MakeShareable( new FFrontendFilter_ShowOtherDevelopers(nullptr) );
@@ -211,7 +211,8 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.OnAssetTagWantsToBeDisplayed(InArgs._AssetPickerConfig.OnAssetTagWantsToBeDisplayed)
 		.AllowDragging( InArgs._AssetPickerConfig.bAllowDragging )
 		.CanShowClasses( InArgs._AssetPickerConfig.bCanShowClasses )
-		.CanShowFolders( false )
+		.CanShowFolders( InArgs._AssetPickerConfig.bCanShowFolders )
+		.FilterRecursivelyWithBackendFilter( false )
 		.CanShowRealTimeThumbnails( InArgs._AssetPickerConfig.bCanShowRealTimeThumbnails )
 		.CanShowDevelopersFolder( InArgs._AssetPickerConfig.bCanShowDevelopersFolder )
 		.PreloadAssetsForContextMenu( InArgs._AssetPickerConfig.bPreloadAssetsForContextMenu )
@@ -219,6 +220,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.ThumbnailLabel( ThumbnailLabel )
 		.AssetShowWarningText( InArgs._AssetPickerConfig.AssetShowWarningText)
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
+		.OnPathSelected(this, &SAssetPicker::FolderEntered)
 	];
 
 	LoadSettings();
@@ -275,19 +277,44 @@ FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent
 	return FReply::Unhandled();
 }
 
+void SAssetPicker::FolderEntered(const FString& FolderPath)
+{
+	CurrentSourcesData.PackagePaths.Empty();
+	CurrentSourcesData.PackagePaths.Add(FName(*FolderPath));
+
+	AssetViewPtr->SetSourcesData(CurrentSourcesData);
+
+	OnFolderEnteredDelegate.ExecuteIfBound(FolderPath);
+}
+
 FText SAssetPicker::GetHighlightedText() const
 {
 	return TextFilter->GetRawFilterText();
 }
 
+void SAssetPicker::SetSearchBoxText(const FText& InSearchText)
+{
+	TextFilter->SetRawFilterText(InSearchText);
+	if (InSearchText.IsEmpty())
+	{
+		FrontendFilters->Remove(TextFilter);
+		AssetViewPtr->SetUserSearching(false);
+	}
+	else
+	{
+		FrontendFilters->Add(TextFilter);
+		AssetViewPtr->SetUserSearching(true);
+	}
+}
+
 void SAssetPicker::OnSearchBoxChanged(const FText& InSearchText)
 {
-	TextFilter->SetRawFilterText( InSearchText );
+	SetSearchBoxText( InSearchText );
 }
 
 void SAssetPicker::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo)
 {
-	TextFilter->SetRawFilterText( InSearchText );
+	SetSearchBoxText( InSearchText );
 
 	if (CommitInfo == ETextCommit::OnEnter)
 	{

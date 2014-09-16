@@ -25,7 +25,7 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 	PathPickerConfig.DefaultPath = DefaultPath;
 	PathPickerConfig.bFocusSearchBoxWhenOpened = false;
 	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP(this, &SAssetDialog::HandlePathSelected);
-	TSharedPtr<SWidget> PathPicker = FContentBrowserSingleton::Get().CreatePathPicker(PathPickerConfig);
+	PathPickerConfig.SetPathsDelegates.Add(&SetPathsDelegate);
 
 	FAssetPickerConfig AssetPickerConfig;
 	AssetPickerConfig.Filter.ClassNames.Append(AssetClassNames);
@@ -38,7 +38,8 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 	AssetPickerConfig.SetFilterDelegates.Add(&SetFilterDelegate);
 	AssetPickerConfig.GetCurrentSelectionDelegates.Add(&GetCurrentSelectionDelegate);
 	AssetPickerConfig.SaveSettingsName = TEXT("AssetDialog");
-	TSharedPtr<SWidget> AssetPicker = FContentBrowserSingleton::Get().CreateAssetPicker(AssetPickerConfig);
+	AssetPickerConfig.bCanShowFolders = true;
+	AssetPickerConfig.OnFolderEntered = FOnPathSelected::CreateSP(this, &SAssetDialog::HandleAssetViewFolderEntered);
 
 	SetCurrentlySelectedPath(DefaultPath);
 
@@ -67,6 +68,9 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 	{
 		ensureMsgf(0, TEXT("AssetDialog type %d is not supported."), DialogType);
 	}
+
+	TSharedPtr<SWidget> PathPicker = FContentBrowserSingleton::Get().CreatePathPicker(PathPickerConfig);
+	TSharedPtr<SWidget> AssetPicker = FContentBrowserSingleton::Get().CreateAssetPicker(AssetPickerConfig);
 
 	// The root widget in this dialog.
 	TSharedRef<SVerticalBox> MainVerticalBox = SNew(SVerticalBox);
@@ -249,6 +253,15 @@ void SAssetDialog::HandlePathSelected(const FString& NewPath)
 	SetCurrentlySelectedPath(NewPath);
 
 	SetFilterDelegate.ExecuteIfBound(NewFilter);
+}
+
+void SAssetDialog::HandleAssetViewFolderEntered(const FString& NewPath)
+{
+	SetCurrentlySelectedPath(NewPath);
+
+	TArray<FString> NewPaths;
+	NewPaths.Add(NewPath);
+	SetPathsDelegate.Execute(NewPaths);
 }
 
 bool SAssetDialog::IsConfirmButtonEnabled() const

@@ -26,6 +26,11 @@ public:
 	// End of SWidget implementation
 
 private:
+	void FolderEntered(const FString& FolderPath);
+
+	/** Called when the editable text needs to be set or cleared */
+	void SetSearchBoxText(const FText& InSearchText);
+
 	/** Called by the editable text control when the search text is changed by the user */
 	void OnSearchBoxChanged(const FText& InSearchText);
 
@@ -81,6 +86,10 @@ private:
 	void SaveSettings() const;
 
 private:
+
+	/** The list of FrontendFilters currently applied to the asset view */
+	TSharedPtr<AssetFilterCollectionType> FrontendFilters;
+
 	/** The asset view widget */
 	TSharedPtr<SAssetView> AssetViewPtr;
 
@@ -101,6 +110,9 @@ private:
 
 	/** Called when any number of assets are activated */
 	FOnAssetsActivated OnAssetsActivated;
+
+	/** Called when a folder is entered in the asset view */
+	FOnPathSelected OnFolderEnteredDelegate;
 
 	/** True if the search box will take keyboard focus next frame */
 	bool bPendingFocusNextFrame;

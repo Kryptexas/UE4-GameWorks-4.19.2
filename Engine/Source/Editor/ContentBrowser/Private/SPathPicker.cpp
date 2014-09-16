@@ -8,7 +8,14 @@
 
 void SPathPicker::Construct( const FArguments& InArgs )
 {
-	TSharedPtr<SPathView> PathViewPtr;
+	for (auto DelegateIt = InArgs._PathPickerConfig.SetPathsDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
+	{
+		if ((*DelegateIt) != NULL)
+		{
+			(**DelegateIt) = FSetPathPickerPathsDelegate::CreateSP(this, &SPathPicker::SetPaths);
+		}
+	}
+
 	ChildSlot
 	[
 		SAssignNew(PathViewPtr, SPathView)
@@ -72,6 +79,11 @@ void SPathPicker::CreateNewFolder(FString FolderPath, FOnCreateNewFolder InOnCre
 	}
 
 	InOnCreateNewFolder.ExecuteIfBound(DefaultFolderName.ToString(), FolderPath);
+}
+
+void SPathPicker::SetPaths(const TArray<FString>& NewPaths)
+{
+	PathViewPtr->SetSelectedPaths(NewPaths);
 }
 
 

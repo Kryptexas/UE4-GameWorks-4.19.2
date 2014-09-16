@@ -25,4 +25,12 @@ private:
 
 	/** Handler for creating a new folder in the path picker */
 	void CreateNewFolder(FString FolderPath, FOnCreateNewFolder InOnCreateNewFolder);
+
+	/** Sets the selected paths in this picker */
+	void SetPaths(const TArray<FString>& NewPaths);
+
+private:
+
+	/** The path view in this picker */
+	TSharedPtr<SPathView> PathViewPtr;
 };

@@ -38,6 +38,9 @@ private:
 	/** Handler for when a path is selected in the path view */
 	void HandlePathSelected(const FString& NewPath);
 
+	/** Handler for when a folder is entered in the asset view */
+	void HandleAssetViewFolderEntered(const FString& NewPath);
+
 	/** Determines if the confirm button (e.g. Open/Save) is enabled. */
 	bool IsConfirmButtonEnabled() const;
 
@@ -74,6 +77,9 @@ private:
 
 	/** Whether this is an open or save dialog */
 	EAssetDialogType::Type DialogType;
+
+	/** Used to update the path view after it has been created */
+	FSetPathPickerPathsDelegate SetPathsDelegate;
 
 	/** Used to update the asset view after it has been created */
 	FSetARFilterDelegate SetFilterDelegate;

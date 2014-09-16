@@ -62,6 +62,9 @@ struct FAssetPickerConfig
 	/** The delegate that fires when an asset was selected */
 	FOnAssetSelected OnAssetSelected;
 
+	/** The delegate that fires when a folder was double clicked */
+	FOnPathSelected OnFolderEntered;
+
 	/** The delegate that fires when an asset is double clicked */
 	FOnAssetDoubleClicked OnAssetDoubleClicked;
 
@@ -114,10 +117,13 @@ struct FAssetPickerConfig
 	/** Indicates if this view is allowed to show classes */
 	bool bCanShowClasses;
 
-	/** Indicates if the 'Real-Time Thumbnails' option should be visible */
+	/** Indicates if the 'Show folders' option should be enabled or disabled */
+	bool bCanShowFolders;
+
+	/** Indicates if the 'Real-Time Thumbnails' option should be enabled or disabled */
 	bool bCanShowRealTimeThumbnails;
 
-	/** Indicates if the 'Show Developers' option should be visible */
+	/** Indicates if the 'Show Developers' option should be enabled or disabled */
 	bool bCanShowDevelopersFolder;
 
 	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
@@ -140,6 +146,7 @@ struct FAssetPickerConfig
 		, bAutohideSearchBar(false)
 		, bAllowDragging(true)
 		, bCanShowClasses(true)
+		, bCanShowFolders(false)
 		, bCanShowRealTimeThumbnails(false)
 		, bCanShowDevelopersFolder(false)
 		, bPreloadAssetsForContextMenu(true)
@@ -159,6 +166,9 @@ struct FPathPickerConfig
 
 	/** The delegate that fires when a path is right clicked and a context menu is requested */
 	FContentBrowserMenuExtender_SelectedPaths OnGetPathContextMenuExtender;
+
+	/** A pointer to an existing delegate that, when executed, will set the paths for the path picker after it is created. */
+	TArray<FSetPathPickerPathsDelegate*> SetPathsDelegates;
 
 	/** If true, the search box will gain focus when the path picker is created */
 	bool bFocusSearchBoxWhenOpened;
