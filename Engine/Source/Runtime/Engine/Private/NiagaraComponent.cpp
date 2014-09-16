@@ -141,9 +141,6 @@ public:
 		, UpdateScript(*InComponent->UpdateScript)
 		, SpawnScript(InComponent->SpawnScript)
 		, ConstantTable(InComponent->UpdateScript->ConstantTable)
-		, BufferIndex(0)
-		, NumVectorsPerAttribute(0)
-		, NumParticles(0)
 		, SpawnRemainder(0.0f)
 		, CachedBounds(ForceInit)
 	{
@@ -165,60 +162,39 @@ public:
 		// Cache the ComponentToWorld transform.
 		CachedComponentToWorld = Component.GetComponentToWorld();
 		
-		// Flip buffers.
-		BufferIndex ^= 0x1;
-
-		// Get prev + next data.
-		TArray<FVector4>& PrevParticles = ParticleBuffers[BufferIndex ^ 0x1];
-		TArray<FVector4>& Particles = ParticleBuffers[BufferIndex];
+		Data.SwapBuffers();
 
 		// Figure out how many we will spawn.
 		int32 NumToSpawn = CalcNumToSpawn(DeltaSeconds);
+		int32 MaxNewParticles = Data.GetNumParticles() + NumToSpawn;
 
 		// Remember the stride of the original data.
-		int32 PrevNumVectorsPerAttribute = NumVectorsPerAttribute;
+		int32 PrevNumVectorsPerAttribute = Data.GetParticleAllocation();
 
-		// The script updates relative time so we don't know yet which will die
-		// without simulation. Allocate for the worst case.
-		int32 MaxNewParticles = NumParticles + NumToSpawn;
-		NumVectorsPerAttribute = MaxNewParticles;
-		Particles.Reset(NumAttributes * NumVectorsPerAttribute);
-		Particles.AddUninitialized(NumAttributes * NumVectorsPerAttribute);
-
+		Data.Allocate( MaxNewParticles );
 		// Simulate particles forward by DeltaSeconds.
-		{
-			SCOPE_CYCLE_COUNTER(STAT_NiagaraSimulate);
-			UpdateParticles(
-				DeltaSeconds,
-				PrevParticles.GetTypedData(),
-				PrevNumVectorsPerAttribute,
-				Particles.GetTypedData(),
-				NumVectorsPerAttribute,
-				NumParticles
-				);
-		}
+		UpdateParticles(
+			DeltaSeconds,
+			Data.GetPreviousBuffer(),
+			PrevNumVectorsPerAttribute,
+			Data.GetCurrentBuffer(),
+			MaxNewParticles,
+			Data.GetNumParticles()
+			);
 
-		// Spawn new particles overwriting dead particles and compact the final buffer.
-		{
-			SCOPE_CYCLE_COUNTER(STAT_NiagaraSpawnAndKill);
-			NumParticles = SpawnAndKillParticles(
-				Particles.GetTypedData(),
-				NumParticles,
-				NumToSpawn,
-				NumVectorsPerAttribute
-				);
-		}
+		SpawnAndKillParticles(
+			NumToSpawn
+			);
 
-		DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"),STAT_NiagaraNumParticles,STATGROUP_Niagara);
-		INC_DWORD_STAT_BY(STAT_NiagaraNumParticles, NumParticles);
+		DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"), STAT_NiagaraNumParticles, STATGROUP_Niagara);
+		INC_DWORD_STAT_BY(STAT_NiagaraNumParticles, Data.GetNumParticles());
+
 	}
 
 	FBox GetBounds() const { return CachedBounds; }
 
 
-	int GetNumParticles() const { return NumParticles; }
-	int GetNumVectorsPerAttribute() const { return NumVectorsPerAttribute; }
-	const TArray<FVector4> &GetParticles() { return ParticleBuffers[BufferIndex]; }
+	FNiagaraEmitterParticleData &GetData()	{ return Data; }
 
 	void SetConstant(int Idx, const FVector4 &Value)
 	{
@@ -238,14 +214,8 @@ private:
 	UNiagaraScript *SpawnScript;
 	/** Local constant table. */
 	TArray<FVector4> ConstantTable;
-	/** 16-byte aligned set of attribute data used by vector VM for simulation */
-	TArray<FVector4> ParticleBuffers[2];
-	/** Current buffer. */
-	int32 BufferIndex;
-	/** Stride between attributes for the current particle buffer. In sizeof(FVector4). */
-	int32 NumVectorsPerAttribute;
-	/** Total number of alive particles */
-	int32 NumParticles;
+	/** particle simulation data */
+	FNiagaraEmitterParticleData Data;
 	/** Keep partial particle spawns from last frame */
 	float SpawnRemainder;
 	/** The cached ComponentToWorld transform. */
@@ -288,10 +258,11 @@ private:
 		int32 NumParticles
 		)
 	{
-		VectorRegister* InputRegisters[VectorVM::MaxInputRegisters] = {0};
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraSimulate);
+
+		VectorRegister* InputRegisters[VectorVM::MaxInputRegisters] = { 0 };
 		VectorRegister* OutputRegisters[VectorVM::MaxOutputRegisters] = {0};
 		const int32 NumAttr = UpdateScript.Attributes.Num();
-		const int32 NumVectors = NumParticles;
 
 		check(NumAttr < VectorVM::MaxInputRegisters);
 		check(NumAttr < VectorVM::MaxOutputRegisters);
@@ -313,27 +284,16 @@ private:
 			OutputRegisters,
 			NumAttr,
 			ConstantTable.GetData(),
-			NumVectors
+			NumParticles
 			);
 	}
 
-	/** Init new particles, and write over dead ones */
-	int32 SpawnAndKillParticles(
-		FVector4* Particles,
-		int32 NumParticles,
-		int32 NumToSpawn,
-		int32 NumVectorsPerAttribute
-		)
+	int32 SpawnAndKillParticles(int32 NumToSpawn)
 	{
-		int32 OrigNumParticles = NumParticles;
-		FVector4 *NewParticles = Particles + NumParticles;
-
-		// Spawn new Particles at the end of the buffer
-		for (int32 i = 0; i < NumToSpawn; i++)
-		{
-			SpawnParticleAtIndex(NewParticles, NumVectorsPerAttribute, i);
-			NumParticles++;
-		}
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraSpawnAndKill);
+		int32 OrigNumParticles = Data.GetNumParticles();
+		int32 CurNumParticles = OrigNumParticles;
+		CurNumParticles = SpawnParticles(NumToSpawn);
 
 		// run the spawn graph over all new particles
 		if (SpawnScript && SpawnScript->ByteCode.Num())
@@ -341,16 +301,18 @@ private:
 			VectorRegister* InputRegisters[VectorVM::MaxInputRegisters] = { 0 };
 			VectorRegister* OutputRegisters[VectorVM::MaxOutputRegisters] = { 0 };
 			const int32 NumAttr = SpawnScript->Attributes.Num();
-			const int32 NumVectors = NumToSpawn;// ((NumParticles + 0x3) & ~0x3);
+			const int32 NumVectors = NumToSpawn;
 
 			check(NumAttr < VectorVM::MaxInputRegisters);
 			check(NumAttr < VectorVM::MaxOutputRegisters);
 
+			FVector4 *NewParticlesStart = Data.GetCurrentBuffer() + OrigNumParticles;
+
 			// Setup input and output registers.
 			for (int32 AttrIndex = 0; AttrIndex < NumAttr; ++AttrIndex)
 			{
-				InputRegisters[AttrIndex] = (VectorRegister*)(NewParticles + AttrIndex * NumVectorsPerAttribute);
-				OutputRegisters[AttrIndex] = (VectorRegister*)(NewParticles + AttrIndex * NumVectorsPerAttribute);
+				InputRegisters[AttrIndex] = (VectorRegister*)(NewParticlesStart + AttrIndex * Data.GetParticleAllocation());
+				OutputRegisters[AttrIndex] = (VectorRegister*)(NewParticlesStart + AttrIndex * Data.GetParticleAllocation());
 			}
 
 			// copy script specific constants into the constant table
@@ -367,50 +329,62 @@ private:
 				);
 		}
 
-
 		// Iterate over looking for dead particles and move from the end of the list to the dead location, compacting in the process
 		int32 ParticleIndex = 0;
-		FVector4* ParticleRelativeTimes = (Particles + ENiagaraVectorAttr::RelativeTime * NumVectorsPerAttribute);
+		const FVector4* ParticleRelativeTimes = Data.GetAttributeData("Age");
 		while (ParticleIndex < OrigNumParticles)
 		{
 			if (ParticleRelativeTimes[ParticleIndex].X > 1.0f)
 			{
 				// Particle is dead, move one from the end here.
-				MoveParticleToIndex(Particles, NumVectorsPerAttribute, --NumParticles, ParticleIndex);
+				MoveParticleToIndex(--CurNumParticles, ParticleIndex);
 			}
 			ParticleIndex++;
 		}
 
-		return NumParticles;
+		Data.SetNumParticles(CurNumParticles);
+		return CurNumParticles;
 	}
 
 	/** Spawn a new particle at this index */
-	void SpawnParticleAtIndex(FVector4* Particles, int32 NumVectorsPerAttribute, int32 ParticleIndex)
+	int32 SpawnParticles(int32 NumToSpawn)
 	{
-		FVector SpawnLocation = CachedComponentToWorld.GetLocation();
-		SpawnLocation.X += FMath::FRandRange(-20.f, 20.f);
-		SpawnLocation.Y += FMath::FRandRange(-20.f, 20.f);
-		SpawnLocation.Z += FMath::FRandRange(-20.f, 20.f);
+		FVector4 *PosPtr = Data.GetAttributeDataWrite("Position");
+		FVector4 *VelPtr = Data.GetAttributeDataWrite("Velocity");
+		FVector4 *ColPtr = Data.GetAttributeDataWrite("Color");
+		FVector4 *RotPtr = Data.GetAttributeDataWrite("Rotation");
+		FVector4 *AgePtr = Data.GetAttributeDataWrite("Age");
 
-		FVector4* Attr = Particles + ParticleIndex;
-		Attr[NumVectorsPerAttribute*ENiagaraVectorAttr::Position] = SpawnLocation;
-		Attr[NumVectorsPerAttribute*ENiagaraVectorAttr::Color] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-		Attr[NumVectorsPerAttribute*ENiagaraVectorAttr::RelativeTime] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-		Attr[NumVectorsPerAttribute*ENiagaraVectorAttr::Rotation] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-		Attr[NumVectorsPerAttribute*ENiagaraVectorAttr::Velocity] = FVector4(0.0f, 0.0f, 2.0f, 0.0f);
+		// Spawn new Particles at the end of the buffer
+		int32 ParticleIndex = Data.GetNumParticles();
+		for (int32 i = 0; i < NumToSpawn; i++)
+		{
+			FVector SpawnLocation = CachedComponentToWorld.GetLocation();
+			SpawnLocation.X += FMath::FRandRange(-20.f, 20.f);
+			SpawnLocation.Y += FMath::FRandRange(-20.f, 20.f);
+			SpawnLocation.Z += FMath::FRandRange(-20.f, 20.f);
+
+			PosPtr[ParticleIndex] = SpawnLocation;
+			ColPtr[ParticleIndex] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+			VelPtr[ParticleIndex] = FVector4(0.0f, 0.0f, 2.0f, 0.0f);
+			RotPtr[ParticleIndex] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+			AgePtr[ParticleIndex] = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+			ParticleIndex++;
+		}
+		return ParticleIndex;
 	}
 
 	/** Util to move a particle */
-	void MoveParticleToIndex(FVector4* Particles, int32 NumVectorsPerAttribute, int32 SrcIndex, int32 DestIndex)
+	void MoveParticleToIndex(int32 SrcIndex, int32 DestIndex)
 	{
-		FVector4 *SrcPtr = Particles + SrcIndex;
-		FVector4 *DestPtr = Particles + DestIndex;
+		FVector4 *SrcPtr = Data.GetCurrentBuffer() + SrcIndex;
+		FVector4 *DestPtr = Data.GetCurrentBuffer() + DestIndex;
 
-		for (int32 AttrIndex = 0; AttrIndex < ENiagaraVectorAttr::MaxVectorAttribs; AttrIndex++)
+		for (int32 AttrIndex = 0; AttrIndex < Data.GetNumAttributes(); AttrIndex++)
 		{
 			*DestPtr = *SrcPtr;
-			DestPtr += NumVectorsPerAttribute;
-			SrcPtr += NumVectorsPerAttribute;
+			DestPtr += Data.GetParticleAllocation();
+			SrcPtr += Data.GetParticleAllocation();
 		}
 	}
 
@@ -478,8 +452,7 @@ void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 	if (Simulation && SceneProxy)
 	{
 		FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(SceneProxy);
-		FNiagaraDynamicDataBase* DynamicData = NiagaraProxy->GetEffectRenderer()->GenerateVertexData(Simulation->GetNumVectorsPerAttribute(), Simulation->GetParticles());
-		//FNiagaraDynamicDataBase* DynamicData = Simulation->GetDynamicData();
+		FNiagaraDynamicDataBase* DynamicData = NiagaraProxy->GetEffectRenderer()->GenerateVertexData(Simulation->GetData());
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			FSendNiagaraDynamicData,

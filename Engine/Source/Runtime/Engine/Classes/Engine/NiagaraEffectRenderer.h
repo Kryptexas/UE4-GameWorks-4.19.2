@@ -10,45 +10,9 @@ DECLARE_CYCLE_STAT(TEXT("PreRenderView"), STAT_NiagaraPreRenderView, STATGROUP_N
 DECLARE_CYCLE_STAT(TEXT("Render Total"), STAT_NiagaraRender, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Sprites"), STAT_NiagaraRenderSprites, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Ribbons"), STAT_NiagaraRenderRibbons, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Generate Sprite Vertex Data"), STAT_NiagaraGenSpriteVertexData, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVertexData, STATGROUP_Niagara);
 
-
-/** TODO: This should not be declared here but in its own file */
-struct FNiagaraParticleAttribute
-{
-	FName Name;
-	FVector4 *DataPtr;
-};
-
-class FNiagaraEmitterParticleData
-{
-public:
-	FNiagaraEmitterParticleData() 
-	{
-		AddAttribute("Position");
-		AddAttribute("Velocity");
-		AddAttribute("Color");
-	}
-
-	~FNiagaraEmitterParticleData() {}
-	
-	void Allocate(int NumParticles)
-	{
-	}
-
-	FVector4 *GetAttributeData(FName Name)
-	{
-		return nullptr;
-	}
-
-	void AddAttribute(FName NewAttrName)
-	{
-	}
-
-private:
-	TArray<FVector4> ParticleBuffers[2];
-	TArray<FNiagaraParticleAttribute> Attributes;
-	TMap<FName, FNiagaraParticleAttribute*> AttrMap;
-};
 
 
 
@@ -110,7 +74,7 @@ public:
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) = 0;
 	virtual void CreateRenderThreadResources() = 0;
 	virtual void ReleaseRenderThreadResources() = 0;
-	virtual FNiagaraDynamicDataBase *GenerateVertexData(int NumParticles, const TArray<FVector4> &Particles) = 0;
+	virtual FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data) = 0;
 	virtual int GetDynamicDataSize() = 0;
 
 	virtual bool HasDynamicData() = 0;
@@ -415,35 +379,41 @@ public:
 
 
 	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(int NumParticles, const TArray<FVector4> &ParticleArray) override
+	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data) override
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraGenSpriteVertexData);
 		FNiagaraDynamicDataSprites *DynamicData = new FNiagaraDynamicDataSprites;
 		TArray<FParticleSpriteVertex>& RenderData = DynamicData->VertexData;
 
-		RenderData.Reset(NumParticles);
+		RenderData.Reset(Data.GetNumParticles());
 		//CachedBounds.Init();
 
-		const FVector4* Particles = ParticleArray.GetTypedData();
-		int32 AttrStride = NumParticles;
-		for (int32 ParticleIndex = 0; ParticleIndex < NumParticles; ParticleIndex++)
-		{
-			const FVector4* Particle = Particles + ParticleIndex;
+		const FVector4 *PosPtr = Data.GetAttributeData("Position");
+		const FVector4 *ColPtr = Data.GetAttributeData("Color");
+		const FVector4 *AgePtr = Data.GetAttributeData("Age");
+		const FVector4 *RotPtr = Data.GetAttributeData("Rotation");
 
+		float ParticleId = 0.0f, IdInc = 1.0f / Data.GetNumParticles();
+		for (uint32 ParticleIndex = 0; ParticleIndex < Data.GetNumParticles(); ParticleIndex++)
+		{
 			FParticleSpriteVertex& NewVertex = *new(RenderData)FParticleSpriteVertex;
-			NewVertex.Position = Particle[AttrStride * 0];
+			NewVertex.Position = PosPtr[ParticleIndex];
 			NewVertex.OldPosition = NewVertex.Position;
-			//CachedBounds += NewVertex.Position;
-			NewVertex.Color = FLinearColor(Particle[AttrStride * 2]);
-			NewVertex.ParticleId = static_cast<float>(ParticleIndex) / NumParticles;
-			NewVertex.RelativeTime = Particle[AttrStride*4].X;
+			NewVertex.Color = FLinearColor(ColPtr[ParticleIndex]);
+			NewVertex.ParticleId = ParticleId;
+			ParticleId += IdInc;
+			NewVertex.RelativeTime = AgePtr[ParticleIndex].X;
 			NewVertex.Size = FVector2D(1.0f, 1.0f);
-			NewVertex.Rotation = Particle[AttrStride*3].X;
+			NewVertex.Rotation = RotPtr[ParticleIndex].X;
 			NewVertex.SubImageIndex = 0.f;
+
+			//CachedBounds += NewVertex.Position;
 		}
 		//CachedBounds.ExpandBy(MaxSize);
 
 		return DynamicData;
 	}
+
 
 
 
@@ -729,44 +699,47 @@ public:
 
 
 	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(int NumParticles, const TArray<FVector4> &ParticleArray) override
+	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraGenRibbonVertexData);
 		FNiagaraDynamicDataRibbon *DynamicData = new FNiagaraDynamicDataRibbon;
 		TArray<FParticleBeamTrailVertex>& RenderData = DynamicData->VertexData;
 
-		RenderData.Reset(NumParticles*2);
+		RenderData.Reset(Data.GetNumParticles() * 2);
 		//CachedBounds.Init();
-
-		const FVector4* Particles = ParticleArray.GetTypedData();
-		int32 AttrStride = NumParticles;
-
 
 		// build a sorted list by age, so we always get particles in order 
 		// regardless of them being moved around due to dieing and spawning
 		TArray<int32> SortedIndices;
-		for (int32 Idx = 0; Idx < NumParticles; Idx++)
+		for (uint32 Idx = 0; Idx < Data.GetNumParticles(); Idx++)
 		{
 			SortedIndices.Add(Idx);
 		}
 
+		const FVector4 *AgeData = Data.GetAttributeData("Age");
 		SortedIndices.Sort(
-			[&Particles, AttrStride](const int32& A, const int32& B) {
-				return Particles[A + AttrStride * 4].X < Particles[B + AttrStride * 4].X;
-				}
+			[&AgeData](const int32& A, const int32& B) {
+			return AgeData[A].X < AgeData[B].X;
+		}
 		);
 
 
 		FVector2D UVs[4] = { FVector2D(0.0f, 0.0f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 1.0f), FVector2D(0.0f, 1.0f) };
-		
-		FVector PrevPos, PrevPos2, PrevDir(0.0f, 0.0f, 0.1f);
-		for (int32 i = 0; i<SortedIndices.Num() - 1; i++)
-		{
-			const FVector4* Particle = Particles + SortedIndices[i];
-			const FVector4* Particle2 = Particles + SortedIndices[i+1];
 
-			const FVector ParticlePos = Particle[AttrStride * 0];
-			FVector ParticleDir = Particle2[AttrStride * 0] - ParticlePos;
-			if (ParticleDir.Size()<=SMALL_NUMBER)
+		const FVector4 *PosPtr = Data.GetAttributeData("Position");
+		const FVector4 *ColorPtr = Data.GetAttributeData("Color");
+		const FVector4 *AgePtr = Data.GetAttributeData("Age");
+		const FVector4 *RotPtr = Data.GetAttributeData("Rotation");
+
+		FVector PrevPos, PrevPos2, PrevDir(0.0f, 0.0f, 0.1f);
+		for (int32 i = 0; i < SortedIndices.Num() - 1; i++)
+		{
+			uint32 Index1 = SortedIndices[i];
+			uint32 Index2 = SortedIndices[i + 1];
+
+			const FVector ParticlePos = PosPtr[Index1];
+			FVector ParticleDir = PosPtr[Index2] - ParticlePos;
+			if (ParticleDir.Size() <= SMALL_NUMBER)
 			{
 				ParticleDir = PrevDir*0.1f;
 			}
@@ -776,17 +749,17 @@ public:
 
 			if (i == 0)
 			{
-				AddRibbonVert(RenderData, ParticlePos + ParticleRight, Particle, AttrStride, UVs[0]);
-				AddRibbonVert(RenderData, ParticlePos - ParticleRight, Particle, AttrStride, UVs[1]);
+				AddRibbonVert(RenderData, ParticlePos + ParticleRight, Data, UVs[0], ColorPtr[i], AgePtr[i], RotPtr[i]);
+				AddRibbonVert(RenderData, ParticlePos - ParticleRight, Data, UVs[1], ColorPtr[i], AgePtr[i], RotPtr[i]);
 			}
 			else
 			{
-				AddRibbonVert(RenderData, PrevPos2, Particle, AttrStride, UVs[0]);
-				AddRibbonVert(RenderData, PrevPos, Particle, AttrStride, UVs[1]);
+				AddRibbonVert(RenderData, PrevPos2, Data, UVs[0], ColorPtr[i], AgePtr[i], RotPtr[i]);
+				AddRibbonVert(RenderData, PrevPos, Data, UVs[1], ColorPtr[i], AgePtr[i], RotPtr[i]);
 			}
 
-			AddRibbonVert(RenderData, ParticlePos - ParticleRight + ParticleDir, Particle, AttrStride, UVs[2]);
-			AddRibbonVert(RenderData, ParticlePos + ParticleRight + ParticleDir, Particle, AttrStride, UVs[3]);
+			AddRibbonVert(RenderData, ParticlePos - ParticleRight + ParticleDir, Data, UVs[2], ColorPtr[i], AgePtr[i], RotPtr[i]);
+			AddRibbonVert(RenderData, ParticlePos + ParticleRight + ParticleDir, Data, UVs[3], ColorPtr[i], AgePtr[i], RotPtr[i]);
 			PrevPos = ParticlePos - ParticleRight + ParticleDir;
 			PrevPos2 = ParticlePos + ParticleRight + ParticleDir;
 			PrevDir = ParticleDir;
@@ -795,23 +768,24 @@ public:
 		return DynamicData;
 	}
 
-
-	void AddRibbonVert(TArray<FParticleBeamTrailVertex>& RenderData, FVector ParticlePos, const FVector4 *Particle, int32 AttrStride, FVector2D UV1)
+	void AddRibbonVert(TArray<FParticleBeamTrailVertex>& RenderData, FVector ParticlePos, const FNiagaraEmitterParticleData &Data, FVector2D UV1,
+		const FVector4 Color, const FVector4 Age, const FVector4 Rotation)
 	{
 		FParticleBeamTrailVertex& NewVertex = *new(RenderData)FParticleBeamTrailVertex;
 		NewVertex.Position = ParticlePos;
 		NewVertex.OldPosition = NewVertex.Position;
-		NewVertex.Color = FLinearColor(Particle[AttrStride * 2]);
+		NewVertex.Color = FLinearColor(Color);
 		NewVertex.ParticleId = 0;
-		NewVertex.RelativeTime = Particle[AttrStride * 4].X;
+		NewVertex.RelativeTime = Age.X;
 		NewVertex.Size = FVector2D(1.0f, 1.0f);
-		NewVertex.Rotation = Particle[AttrStride * 3].X;
+		NewVertex.Rotation = Rotation.X;
 		NewVertex.SubImageIndex = 0.f;
 		NewVertex.Tex_U = UV1.X;
 		NewVertex.Tex_V = UV1.Y;
 		NewVertex.Tex_U2 = UV1.X;
 		NewVertex.Tex_V2 = UV1.Y;
 	}
+
 
 
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override

@@ -7,6 +7,7 @@
 #include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
 
 class INiagaraEditor;
+class INiagaraEffectEditor;
 
 /** DataTable Editor module */
 class FNiagaraEditorModule : public IModuleInterface,
@@ -23,6 +24,7 @@ public:
 
 	/** Creates an instance of Niagara editor.  Only virtual so that it can be called across the DLL boundary. */
 	virtual TSharedRef<INiagaraEditor> CreateNiagaraEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UNiagaraScript* Script );
+	virtual TSharedRef<INiagaraEffectEditor> CreateNiagaraEffectEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UNiagaraEffect* Effect);
 
 	/** Gets the extensibility managers for outside entities to extend static mesh editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() {return MenuExtensibilityManager;}

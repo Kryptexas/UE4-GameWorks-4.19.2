@@ -12,7 +12,7 @@ namespace VectorVM
 	/** Constants. */
 	enum
 	{
-		ChunkSize = 64,
+		ChunkSize = 128,
 		ElementsPerVector = 4,
 		VectorsPerChunk = ChunkSize / ElementsPerVector,
 	};

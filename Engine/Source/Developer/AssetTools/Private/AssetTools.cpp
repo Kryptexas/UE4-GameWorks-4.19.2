@@ -97,6 +97,7 @@ FAssetTools::FAssetTools()
 	if ( bEnableNiagara )
 	{
 		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_NiagaraScript) );
+		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_NiagaraEffect) );
 	}
 }
 
