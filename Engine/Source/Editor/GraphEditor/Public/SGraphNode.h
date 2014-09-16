@@ -329,6 +329,7 @@ protected:
 
 	/** Is this node editable */
 	TAttribute<bool> IsEditable;
+
 	FSingleNodeEvent OnDoubleClick;
 
 	// Is the current tooltip a complex one that should be dropped when the tooltip is no longer displayed?
@@ -349,4 +350,7 @@ protected:
 
 	/** Caches true position of node */
 	FVector2D CachedUnscaledPosition;
+
+	/** Cached pointer to graph editor settings */
+	const class UGraphEditorSettings* Settings;
 };

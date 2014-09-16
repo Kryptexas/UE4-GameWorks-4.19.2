@@ -141,7 +141,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	const int32 NodeLayerId = NodeShadowsLayerId + 1;
 	int32 MaxLayerId = NodeLayerId;
 
-	const FVector2D NodeShadowSize = FEditorStyle::GetVector(TEXT("Graph.Node.ShadowSize"));
+	const FVector2D NodeShadowSize = GetDefault<UGraphEditorSettings>()->GetShadowDeltaSize();
 	const UEdGraphSchema* Schema = GraphObj->GetSchema();
 
 	// Draw the child nodes

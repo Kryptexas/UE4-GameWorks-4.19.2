@@ -233,8 +233,12 @@ void FConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartPoint, 
 
 void FConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& StartGeom, FGeometry& EndGeom, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
 {
-	const FVector2D StartPoint = FGeometryHelper::VerticalMiddleRightOf( StartGeom );
-	const FVector2D EndPoint = FGeometryHelper::VerticalMiddleLeftOf( EndGeom ) - FVector2D(ArrowRadius.X, 0);
+	//@TODO: These values should be pushed into the Slate style, they are compensating for a bit of
+	// empty space inside of the pin brush images.
+	const float StartFudgeX = 4.0f;
+	const float EndFudgeX = 4.0f;
+	const FVector2D StartPoint = FGeometryHelper::VerticalMiddleRightOf(StartGeom) - FVector2D(StartFudgeX, 0.0f);
+	const FVector2D EndPoint = FGeometryHelper::VerticalMiddleLeftOf(EndGeom) - FVector2D(ArrowRadius.X - EndFudgeX, 0);
 
 	DrawSplineWithArrow(StartPoint, EndPoint, WireColor, WireThickness, bDrawBubbles, Bidirectional);
 }

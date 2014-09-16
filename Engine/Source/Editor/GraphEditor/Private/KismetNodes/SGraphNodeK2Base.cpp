@@ -77,6 +77,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			.ToolTip( NodeToolTip.ToSharedRef() )
 			.AddMetaData<FGraphNodeMetaData>(TagMeta)
 			+SOverlay::Slot()
+			.Padding(Settings->GetNonPinNodeBodyPadding())
 			[
 				SNew(SImage)
 				.Image( FEditorStyle::GetBrush("Graph.CompactNode.Body") )
@@ -84,6 +85,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			+SOverlay::Slot()
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
+			.Padding(Settings->GetNonPinNodeBodyPadding())
 			[
 				// MIDDLE
 				SNew(STextBlock)

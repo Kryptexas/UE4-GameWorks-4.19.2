@@ -83,10 +83,13 @@ void SGraphNodeSwitchStatement::CreateOutputSideAddButton(TSharedPtr<SVerticalBo
 		NSLOCTEXT("SwitchStatementNode", "SwitchStatementNodeAddPinButton", "Add pin"),
 		NSLOCTEXT("SwitchStatementNode", "SwitchStatementNodeAddPinButton_Tooltip", "Add new pin"));
 
+	FMargin AddPinPadding = Settings->GetOutputPinPadding();
+	AddPinPadding.Top += 6.0f;
+
 	OutputBox->AddSlot()
 	.AutoHeight()
 	.VAlign(VAlign_Center)
-	.Padding(10,10,10,4)
+	.Padding(AddPinPadding)
 	[
 		AddPinButton
 	];

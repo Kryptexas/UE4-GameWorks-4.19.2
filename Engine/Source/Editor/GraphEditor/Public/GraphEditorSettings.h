@@ -20,9 +20,49 @@ class GRAPHEDITOR_API UGraphEditorSettings
 
 public:
 
+#if WITH_EDITOR
+	// UObject interface
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+#endif
+
+public:
+
 	/** The visual styling to use for graph editor pins (in Blueprints, materials, etc...) */
 	UPROPERTY(config, EditAnywhere, Category=GeneralStyle)
 	TEnumAsByte<EBlueprintPinStyleType> DataPinStyle;
+
+	/** The amount of padding above a pin (defaults to 4) */
+	UPROPERTY(/*config, */ EditAnywhere, Category=GeneralStyle, AdvancedDisplay)
+	float PaddingAbovePin;
+
+	/** The amount of padding below a pin (defaults to 4) */
+	UPROPERTY(/*config, */ EditAnywhere, Category=GeneralStyle, AdvancedDisplay)
+	float PaddingBelowPin;
+
+	/** The amount of horizontal padding towards the center of a node on an input pin (defaults to 10) */
+	UPROPERTY(/*config, */ EditAnywhere, Category=GeneralStyle, AdvancedDisplay)
+	float PaddingRightOfInput;
+
+	/** The amount of horizontal padding towards the center of a node on an output pin (defaults to 10) */
+	UPROPERTY(/*config, */ EditAnywhere, Category=GeneralStyle, AdvancedDisplay)
+	float PaddingLeftOfOutput;
+
+	/** The amount of padding towards the node edge (defaults to 10, can be negative to make pins overlap or stick out of a node */
+	UPROPERTY(/*config, */ EditAnywhere, Category=GeneralStyle, AdvancedDisplay)
+	float PaddingTowardsNodeEdge;
+
+	/** Returns the padding to use for an input pin on a graph node */
+	FMargin GetInputPinPadding() const;
+
+	/** Returns the padding to use for an output pin on a graph node */
+	FMargin GetOutputPinPadding() const;
+
+	/** Returns the padding to use for a node region that won't contain a pin */
+	FMargin GetNonPinNodeBodyPadding() const;
+
+	/** Returns the size adjustment from node render geometry to shadow render geometry */
+	FVector2D GetShadowDeltaSize() const;
 
 public:
 	/** The maximum value to clamp the absolute value of the horizontal distance between endpoints when calculating tangents (when the wire is moving forward) */

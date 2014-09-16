@@ -12,6 +12,11 @@
 
 UGraphEditorSettings::UGraphEditorSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
+	, PaddingAbovePin(4.0f)
+	, PaddingBelowPin(4.0f)
+	, PaddingRightOfInput(10.0f)
+	, PaddingLeftOfOutput(10.0f)
+	, PaddingTowardsNodeEdge(10.0f)
 	, ForwardSplineHorizontalDeltaRange(1000.0f)
 	, ForwardSplineVerticalDeltaRange(1000.0f)
 	, ForwardSplineTangentFromHorizontalDelta(1.0f, 0.0f)
@@ -69,8 +74,48 @@ UGraphEditorSettings::UGraphEditorSettings( const class FPostConstructInitialize
 	ParentFunctionCallNodeTitleColor = FLinearColor(1.0f, 0.170000f, 0.0f, 1.0f);
 	FunctionTerminatorNodeTitleColor = FLinearColor(0.6f, 0.0f, 1.0f, 1.0f);
 	ExecBranchNodeTitleColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	ExecSequenceNodeTitleColor= FLinearColor(0.8f, 0.4f, 0.4f, 1.0f);
+	ExecSequenceNodeTitleColor = FLinearColor(0.8f, 0.4f, 0.4f, 1.0f);
 	ResultNodeTitleColor = FLinearColor(1.0f, 0.65f, 0.4f, 1.0f);
+}
+
+#if WITH_EDITOR
+void UGraphEditorSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UGraphEditorSettings, DataPinStyle)) || (PropertyName == GET_MEMBER_NAME_CHECKED(UGraphEditorSettings, PaddingTowardsNodeEdge)))
+	{
+		// Invalidate all node graph editors
+		//@TODO: That thing I said
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif
+
+FMargin UGraphEditorSettings::GetInputPinPadding() const
+{
+	const float HPad = FMath::Max<float>(PaddingTowardsNodeEdge, 0.0f);
+	return FMargin(HPad, PaddingAbovePin, PaddingRightOfInput, PaddingBelowPin);
+}
+
+FMargin UGraphEditorSettings::GetOutputPinPadding() const
+{
+	const float HPad = FMath::Max<float>(PaddingTowardsNodeEdge, 0.0f);
+	return FMargin(PaddingLeftOfOutput, PaddingAbovePin, HPad, PaddingBelowPin);
+}
+
+FMargin UGraphEditorSettings::GetNonPinNodeBodyPadding() const
+{
+	const float NegativeHPad = FMath::Max<float>(-PaddingTowardsNodeEdge, 0.0f);
+	return FMargin(NegativeHPad, 0.0f, NegativeHPad, 0.0f);
+}
+
+FVector2D UGraphEditorSettings::GetShadowDeltaSize() const
+{
+	FVector2D ShadowSize = FEditorStyle::GetVector(TEXT("Graph.Node.ShadowSize"));
+	ShadowSize.X += FMath::Min<float>(PaddingTowardsNodeEdge, 0.0f);
+	return ShadowSize;
 }
 
 FVector2D UGraphEditorSettings::ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const

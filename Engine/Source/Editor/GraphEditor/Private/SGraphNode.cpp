@@ -733,6 +733,7 @@ void SGraphNode::UpdateGraphNode()
 	
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
+
 	this->ChildSlot
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
@@ -741,31 +742,39 @@ void SGraphNode::UpdateGraphNode()
 			+SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(SBorder)
-				.BorderImage( FEditorStyle::GetBrush( "Graph.Node.Body" ) )
-				.Padding(0)
+				SNew(SOverlay)
 				.AddMetaData<FGraphNodeMetaData>(TagMeta)
+				+SOverlay::Slot()
+				.Padding(Settings->GetNonPinNodeBodyPadding())
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("Graph.Node.Body"))
+				]
+				+SOverlay::Slot()
 				[
 					SAssignNew(InnerVerticalBox, SVerticalBox)
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Top)
+					.Padding(Settings->GetNonPinNodeBodyPadding())
 					[
 						TitleAreaWidget
 					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(1.0f)
-					[
-						ErrorText->AsShared()
-					]
+
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Top)
 					[
 						CreateNodeContentArea()
+					]
+
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(Settings->GetNonPinNodeBodyPadding())
+					[
+						ErrorText->AsShared()
 					]
 				]
 			]			
@@ -927,19 +936,19 @@ void SGraphNode::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
 	PinToAdd->SetOwner(SharedThis(this));
 
 	const UEdGraphPin* PinObj = PinToAdd->GetPinObj();
-	const bool bAdvancedParameter = PinObj && PinObj->bAdvancedView;
-	if(bAdvancedParameter)
+	const bool bAdvancedParameter = (PinObj != nullptr) && PinObj->bAdvancedView;
+	if (bAdvancedParameter)
 	{
 		PinToAdd->SetVisibility( TAttribute<EVisibility>(PinToAdd, &SGraphPin::IsPinVisibleAsAdvanced) );
 	}
-	
+
 	if (PinToAdd->GetDirection() == EEdGraphPinDirection::EGPD_Input)
 	{
 		LeftNodeBox->AddSlot()
 			.AutoHeight()
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Center)
-			.Padding(10,4)
+			.Padding(Settings->GetInputPinPadding())
 		[
 			PinToAdd
 		];
@@ -951,7 +960,7 @@ void SGraphNode::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
 			.AutoHeight()
 			.HAlign(HAlign_Right)
 			.VAlign(VAlign_Center)
-			.Padding(10,4)
+			.Padding(Settings->GetOutputPinPadding())
 		[
 			PinToAdd
 		];
@@ -1065,6 +1074,7 @@ SGraphNode::SGraphNode()
 	, bRenameIsPending( false )
 	, ErrorColor( FLinearColor::White )
 	, CachedUnscaledPosition( FVector2D::ZeroVector )
+	, Settings( GetDefault<UGraphEditorSettings>() )
 {
 	// Set up animation
 	{
