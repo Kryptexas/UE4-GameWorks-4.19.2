@@ -56,7 +56,7 @@ struct INTROTUTORIALS_API FTutorialCategory
 	FText Title;
 
 	/** Localized text to use to describe this category */
-	UPROPERTY(EditAnywhere, Category="Content", meta=(MultiLine=true))
+	UPROPERTY(EditAnywhere, Category="Content")
 	FText Description;
 
 	/** Icon for this tutorial, used when presented to the user in the tutorial browser. Only used if there isn't a valid texture to use. */
@@ -92,7 +92,7 @@ struct INTROTUTORIALS_API FTutorialContent
 	FString ExcerptName;
 
 	/** Localized text to use with this content */
-	UPROPERTY(EditAnywhere, Category="Content", meta=(MultiLine=true))
+	UPROPERTY(EditAnywhere, Category="Content")
 	FText Text;
 };
 

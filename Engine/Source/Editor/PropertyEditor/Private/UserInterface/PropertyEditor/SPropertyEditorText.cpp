@@ -13,7 +13,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 	PropertyEditor = InPropertyEditor;
 
 	const UProperty* Property = InPropertyEditor->GetProperty();
-	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
+	bIsMultiLine = !Property->GetBoolMetaData("SingleLine");
 	if(bIsMultiLine)
 	{
 		ChildSlot

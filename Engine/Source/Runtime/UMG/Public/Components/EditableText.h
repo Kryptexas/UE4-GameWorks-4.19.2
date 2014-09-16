@@ -20,7 +20,7 @@ public:
 public:
 
 	/** The text content for this editable text box widget */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category = Content, meta=(SingleLine=true))
 	FText Text;
 
 	/** A bindable delegate to allow logic to drive the text of the widget */
@@ -28,7 +28,7 @@ public:
 	FGetText TextDelegate;
 
 	/** Hint text that appears when there is no text in the text box */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category = Content, meta=(SingleLine=true))
 	FText HintText;
 
 	/** A bindable delegate to allow logic to drive the hint text of the widget */
