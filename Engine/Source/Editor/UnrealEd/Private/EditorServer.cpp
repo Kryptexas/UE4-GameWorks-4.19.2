@@ -3467,7 +3467,8 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 		Arguments.Add(TEXT("Warnings"), WarningCount - ErrorCount);
 		Arguments.Add(TEXT("Time"), CurrentTime);
 		FMessageLog("MapCheck").Info()
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Complete", "========== Map Check: {Errors} Error(s), {Warnings} Warning(s), [{Time}ms] ==========" ), Arguments ) ));
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Complete", "Map check completed" )))
+			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_CompleteDetail", "There are {Errors} Error(s) and {Warnings} Warning(s), and it took {Time}ms to complete." ), Arguments ) ));
 	}
 
 	GWarn->EndSlowTask();

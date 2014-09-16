@@ -4,64 +4,55 @@
 
 /**
  * An implementation for the message log widget.
+ *
  * It holds a series of message log listings which it can switch between.
  */
-class SMessageLog : public SCompoundWidget
+class SMessageLog
+	: public SCompoundWidget
 {
 public:
+
 	SLATE_BEGIN_ARGS(SMessageLog){}
 	SLATE_END_ARGS()
 
 	static FName AppName;
 	
-	/** Constructor */
-	SMessageLog();
-
-	/** Destructor */	
+	/** Destructor. */
 	~SMessageLog();
 
-	void Construct( const FArguments& InArgs, const TSharedPtr<class FMessageLogViewModel>& InMessageLogViewModel );
-
 	/**
-	 * Called after a key is pressed when this widget has keyboard focus
+	 * Constructs the widget.
 	 *
-	 * @param  InKeyboardEvent  Keyboard event
-	 *
-	 * @return  Returns whether the event was handled, along with other possible actions
+	 * @param InArgs The construction arguments.
+	 * @param InModel The view model to use.
 	 */
+	void Construct( const FArguments& InArgs, const TSharedRef<class FMessageLogViewModel>& InViewModel );
+
+public:
+
+	// SWidget overrides
+
 	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 private:
-	/** Gets the currently visible log listing's label */
-	FString GetCurrentListingLabel() const;
 
-	/** Changes the selected log listing */
-	void ChangeCurrentListingSelection( TSharedPtr<class FMessageLogListingViewModel> Selection, ESelectInfo::Type SelectInfo );
-
-	/** Generates the widgets for the log listings in the current listing combo box */
-	TSharedRef<SWidget> MakeCurrentListingSelectionWidget( TSharedPtr<class FMessageLogListingViewModel> Selection );
-
-	/** Called whenever the viewmodel selection changes */
-	void OnSelectionUpdated();
+	/** Callback for generating a row in the categories list. */
+	TSharedRef<ITableRow> HandleCategoriesListGenerateRow( IMessageLogListingPtr Item, const TSharedRef<STableViewBase>& OwnerTable );
+	
+	/** Callback for changing the selected item in the categories list. */
+	void HandleCategoriesListSelectionChanged( IMessageLogListingPtr Selection, ESelectInfo::Type SelectInfo );
 
 private:	
 
-	/** The message log view model */
-	TSharedPtr<class FMessageLogViewModel> MessageLogViewModel;
+	/** Holds the log categories list view widget. */
+	TSharedPtr<SListView<IMessageLogListingPtr>> CategoriesListView;
 
-	/** The current log listing widget, if any */
-	TSharedPtr<class SMessageLogListing> LogListing;
-
-	/** The combo box for selecting the current listing */
-	TSharedPtr< SComboBox< TSharedPtr<class FMessageLogListingViewModel> > > CurrentListingSelector;
-
-	/** The widget for displaying the current listing */
+	/** The widget for displaying the current listing. */
 	TSharedPtr<SBorder> CurrentListingDisplay;
 
-	/** The widget for displaying the current listing's options, if any */
-	TSharedPtr<SBorder> CurrentListingOptions;
+	/** The current log listing widget, if any. */
+	TSharedPtr<class SMessageLogListing> LogListing;
 
-	/**	Whether the view is currently updating the viewmodel selection */
-	bool bUpdatingSelection;
+	/** The message log view model */
+	TSharedPtr<class FMessageLogViewModel> ViewModel;
 };
-

@@ -571,7 +571,8 @@ void UPrimitiveComponent::CheckForErrors()
 	{
 		FMessageLog("MapCheck").PerformanceWarning()
 			->AddToken(FUObjectToken::Create(Owner))
-			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_ShadowCasterUsingBoundsScale", "Actor casts dynamic shadows and has a BoundsScale greater than 1! This will have a large performance hit" )))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_ShadowCasterUsingBoundsScale", "Actor casts dynamic shadows and has a BoundsScale greater than 1" )))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_ShadowCasterUsingBoundsScaleDetail", "This will have a large performance hit." )))
 			->AddToken(FMapErrorToken::Create(FMapErrors::ShadowCasterUsingBoundsScale));
 	}
 
@@ -579,7 +580,9 @@ void UPrimitiveComponent::CheckForErrors()
 	{
 		FMessageLog("MapCheck").Error()
 			->AddToken(FUObjectToken::Create(Owner))
-			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_InvalidLightmapSettings", "Component is a static type but has invalid lightmap settings!  Indirect lighting will be black.  Common causes are lightmap resolution of 0, LightmapCoordinateIndex out of bounds." )))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_InvalidLightmapSettings", "Component is a static type but has invalid lightmap settings" )))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_InvalidLightmapSettingsDetail", "The indirect lighting on this component will be black." )))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_InvalidLightmapSettingsDetail2", "Common causes: lightmap resolution of 0, LightmapCoordinateIndex out of bounds" )))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticComponentHasInvalidLightmapSettings));
 	}
 }

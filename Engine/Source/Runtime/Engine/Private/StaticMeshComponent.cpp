@@ -350,11 +350,9 @@ void UStaticMeshComponent::CheckForErrors()
 
 	if (!StaticMesh && (!Owner || !Owner->IsA(AWorldSettings::StaticClass())))	// Ignore worldsettings
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("OwnerName"), FText::FromString(OwnerName));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(Owner))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_StaticMeshNull", "{OwnerName} : Static mesh actor has NULL StaticMesh property" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshNull", "Static mesh actor has NULL StaticMesh property" )))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshNull));
 	}
 
@@ -380,11 +378,9 @@ void UStaticMeshComponent::CheckForErrors()
 
 	if ( BodyInstance.bSimulatePhysics && StaticMesh != NULL && StaticMesh->BodySetup != NULL && StaticMesh->BodySetup->AggGeom.GetElementCount() == 0) 
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_SimulatePhyNoSimpleCollision", "{ActorName} : Using bSimulatePhysics but StaticMesh has not simple collision."), Arguments ) ));
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_SimulatePhyNoSimpleCollision", "Using bSimulatePhysics but StaticMesh has not simple collision.")));
 	}
 
 	if( Mobility == EComponentMobility::Movable &&

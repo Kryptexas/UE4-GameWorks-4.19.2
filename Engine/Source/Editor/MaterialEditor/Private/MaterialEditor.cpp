@@ -613,13 +613,7 @@ void FMaterialEditor::CreateInternalWidgets()
 	LogOptions.MaxPageCount = 1;
 	StatsListing = MessageLogModule.CreateLogListing( "MaterialEditorStats", LogOptions );
 
-	Stats = 
-		SNew(SBorder)
-		.Padding(0.0f)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() )
-		];
+	Stats = MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() );
 
 	FindResults =
 		SNew(SFindInMaterial, SharedThis(this));

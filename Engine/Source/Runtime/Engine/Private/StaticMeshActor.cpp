@@ -126,20 +126,17 @@ void AStaticMeshActor::CheckForErrors()
 
 	if( !StaticMeshComponent.IsValid() )
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_StaticMeshComponent", "{ActorName}: Static mesh actor has NULL StaticMeshComponent property - please delete" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property" )))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshComponentDetail", "Please delete the component or assign a valid one." )))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
 	}
 	else if( StaticMeshComponent->StaticMesh == NULL )
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_StaticMeshNull", "{ActorName} : Static mesh actor has NULL StaticMesh property" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshNull", "Static mesh actor has NULL StaticMesh property" )))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshNull));
 	}
 	else
@@ -164,7 +161,8 @@ void AStaticMeshActor::CheckForErrors()
 					Arguments.Add(TEXT("ActorName1"), FText::FromString(A->GetName()));
 					MapCheck.Warning()
 						->AddToken(FUObjectToken::Create(this))
-						->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SameLocation", "{ActorName0} is in the same location as {ActorName1}" ), Arguments ) ))
+						->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_SameLocation", "Overlapping actors" )))
+						->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SameLocationDetail", "{ActorName0} is in the same location as {ActorName1}." ), Arguments ) ))
 						->AddToken(FMapErrorToken::Create(FMapErrors::SameLocation));
 				}
 			}

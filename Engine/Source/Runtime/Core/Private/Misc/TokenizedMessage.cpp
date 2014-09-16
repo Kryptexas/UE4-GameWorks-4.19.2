@@ -129,26 +129,6 @@ const TArray<TSharedRef<IMessageToken> >& FTokenizedMessage::GetMessageTokens() 
 	return MessageTokens;
 }
 
-void FTokenizedMessage::SetRightClickedMethod(const FOnMessageRightClicked& InRightClickedMethod)
-{
-	RightClickedMethod = InRightClickedMethod;
-}
-
-const FOnMessageRightClicked& FTokenizedMessage::GetRightClickedMethod() const
-{
-	return RightClickedMethod;
-}
-
-void FTokenizedMessage::SetSelectionChangedMethod(const FOnMessageSelectionChanged& InMessageSelectionChanged)
-{
-	MessageSelectionChangedMethod = InMessageSelectionChanged;
-}
-
-const FOnMessageSelectionChanged& FTokenizedMessage::GetSelectionChangedMethod() const
-{
-	return MessageSelectionChangedMethod;
-}
-
 FURLToken::FGenerateURL FURLToken::GenerateURL;
 
 void FURLToken::VisitURL(const TSharedRef<IMessageToken>& Token, FString InURL)

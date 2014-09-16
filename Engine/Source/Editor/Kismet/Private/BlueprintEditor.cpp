@@ -1697,14 +1697,7 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 	CompilerResultsListing = MessageLogModule.CreateLogListing( "BlueprintEditorCompileResults" );
 	CompilerResultsListing->OnMessageTokenClicked().AddSP(this, &FBlueprintEditor::OnLogTokenClicked);
 
-	CompilerResults = 
-		SNew(SBorder)
-		.Padding(0.0f)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			MessageLogModule.CreateLogListingWidget( CompilerResultsListing.ToSharedRef() )
-		];
-
+	CompilerResults = MessageLogModule.CreateLogListingWidget( CompilerResultsListing.ToSharedRef() );
 	FindResults = SNew(SFindInBlueprints, SharedThis(this));
 	
 	this->Inspector = 

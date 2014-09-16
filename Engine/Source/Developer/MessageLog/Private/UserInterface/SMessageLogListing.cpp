@@ -3,246 +3,16 @@
 #include "MessageLogPrivatePCH.h"
 #include "SMessageLogListing.h"
 #include "IMessageLogListing.h"
-#include "UObjectToken.h"
+#include "SMessageLogMessageListRow.h"
 
-#if WITH_EDITOR
-#include "IDocumentation.h"
-#endif
 
 #define LOCTEXT_NAMESPACE "Developer.MessageLog"
-
-class SMessageLogListingItem : public STableRow< TSharedPtr< FTokenizedMessage > >
-{
-public:
-	DECLARE_DELEGATE_TwoParams( FOnTokenClicked, TSharedPtr<FTokenizedMessage>, const TSharedRef<class IMessageToken>& );
-
-public:
-	SLATE_BEGIN_ARGS(SMessageLogListingItem)
-		: _Message()
-		, _OnTokenClicked()
-		{}
-		SLATE_ATTRIBUTE(TSharedPtr<FTokenizedMessage>, Message)
-		SLATE_EVENT( FOnTokenClicked, OnTokenClicked )
-	SLATE_END_ARGS()
-
-	/**
-	 * Construct child widgets that comprise this widget.
-	 *
-	 * @param InArgs  Declaration from which to construct this widget
-	 */
-	void Construct( const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView )
-	{
-		this->OnTokenClicked = InArgs._OnTokenClicked;
-
-		Message = InArgs._Message.Get();
-
-		STableRow< TSharedPtr< FTokenizedMessage > >::Construct(
-			STableRow< TSharedPtr< FTokenizedMessage > >::FArguments()
-			.Content()
-			[
-				GenerateWidget()
-			],
-			InOwnerTableView );
-	}
-
-	/** @return Widget for this log listing item*/
-	virtual TSharedRef<SWidget> GenerateWidget()
-	{
-		// See if we have any valid tokens which match the column name
-		const TArray< TSharedRef<IMessageToken> >& MessageTokens = Message->GetMessageTokens();
-
-		// Collect entire message for tooltip
-		FText FullMessage = Message->ToText();
-
-		// Create the horizontal box and add the icon
-		TSharedPtr<SHorizontalBox> HorzBox;
-		TSharedRef<SWidget> CellContent =
-			SNew(SBorder)
-			.OnMouseButtonUp(this, &SMessageLogListingItem::Message_OnMouseButtonUp)
-			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-			.Padding( FMargin(2.f, 2.f, 2.f, 1.f) )
-			[
-				SAssignNew(HorzBox, SHorizontalBox)
-				.ToolTipText(FullMessage)
-			];
-		check(HorzBox.IsValid());
-
-		// Iterate over parts of the message and create widgets for them
-		for (auto TokenIt = MessageTokens.CreateConstIterator(); TokenIt; ++TokenIt)
-		{
-			const TSharedRef<IMessageToken>& Token = *TokenIt;
-			CreateMessage( HorzBox, Token );
-		}
-
-		return CellContent;
-	}
-
-protected:
-	TSharedPtr<SWidget> CreateHyperlink(const TSharedRef<IMessageToken>& InMessageToken, const FText& InToolTip = FText() )
-	{
-		return SNew(SHyperlink)
-			.Text(InMessageToken->ToText())
-			.ToolTipText(InToolTip)
-			.TextStyle(FEditorStyle::Get(), "MessageLog")
-			.OnNavigate(this, &SMessageLogListingItem::Hyperlink_OnNavigate, InMessageToken);
-	}
-
-	void CreateMessage( TSharedPtr<SHorizontalBox> InHorzBox, const TSharedRef<IMessageToken>& InMessageToken )
-	{
-		if ( InHorzBox.IsValid() )
-		{
-			TSharedPtr<SWidget> Content;
-
-			switch(InMessageToken->GetType())
-			{
-			case EMessageToken::Text:
-			case EMessageToken::String:
-				{
-					if(InMessageToken->GetOnMessageTokenActivated().IsBound())
-					{
-						Content = CreateHyperlink(InMessageToken);
-					}
-					else
-					{
-						SAssignNew(Content, STextBlock)
-							.Text( InMessageToken->ToText() )
-							.TextStyle( FEditorStyle::Get(), TEXT("MessageLog") );
-					}
-				}
-				break;
-			case EMessageToken::Image:
-				{
-					const TSharedRef<FImageToken> ImageToken = StaticCastSharedRef<FImageToken>(InMessageToken);
-					if(ImageToken->GetImageName() != NAME_None)
-					{
-						if(InMessageToken->GetOnMessageTokenActivated().IsBound())
-						{
-							SAssignNew(Content, SButton)
-								.OnClicked(this, &SMessageLogListingItem::Button_OnClicked, InMessageToken)
-								.Content()
-								[
-									SNew(SImage)
-									.Image( FEditorStyle::GetBrush( ImageToken->GetImageName() ) )
-								];
-						}
-						else
-						{
-							SAssignNew(Content, SImage)
-								.Image( FEditorStyle::GetBrush( ImageToken->GetImageName() ) );
-						}
-					}
-				}
-				break;
-			case EMessageToken::Severity:
-				{
-					const TSharedRef<FSeverityToken> SeverityToken = StaticCastSharedRef<FSeverityToken>(InMessageToken);
-					FName SeverityBrush = FTokenizedMessage::GetSeverityIconName(SeverityToken->GetSeverity());
-					if(SeverityBrush != NAME_None)
-					{
-						if(InMessageToken->GetOnMessageTokenActivated().IsBound())
-						{
-							SAssignNew(Content, SButton)
-								.OnClicked(this, &SMessageLogListingItem::Button_OnClicked, InMessageToken)
-								.Content()
-								[
-									SNew(SImage)
-									.Image( FEditorStyle::GetBrush( SeverityBrush ) )
-								];
-						}
-						else
-						{
-							SAssignNew(Content, SImage)
-								.Image( FEditorStyle::GetBrush( SeverityBrush ) );
-						}
-					}
-				}
-				break;
-			case EMessageToken::Object:
-				{
-					const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(InMessageToken);
-					Content = CreateHyperlink(InMessageToken, FUObjectToken::DefaultOnGetObjectDisplayName().IsBound() ? FUObjectToken::DefaultOnGetObjectDisplayName().Execute(UObjectToken->GetObject().Get(), true) : UObjectToken->ToText());
-				}
-				break;
-			case EMessageToken::URL:
-				{
-					const TSharedRef<FURLToken> URLToken = StaticCastSharedRef<FURLToken>(InMessageToken);
-					Content = CreateHyperlink(InMessageToken, FText::FromString( URLToken->GetURL() ) );
-				}
-				break;
-			case EMessageToken::AssetName:
-				{
-					const TSharedRef<FAssetNameToken> AssetNameToken = StaticCastSharedRef<FAssetNameToken>(InMessageToken);
-					Content = CreateHyperlink(InMessageToken, AssetNameToken->ToText());
-				}
-				break;
-			case EMessageToken::Documentation:
-				{
-#if WITH_EDITOR
-					const TSharedRef<FDocumentationToken> DocumentationToken = StaticCastSharedRef<FDocumentationToken>(InMessageToken);
-					Content = IDocumentation::Get()->CreateAnchor( DocumentationToken->GetDocumentationLink(), DocumentationToken->GetPreviewExcerptLink(), DocumentationToken->GetPreviewExcerptName() );
-#endif
-				}
-				break;
-			}
-
-			AddContentToBox( InHorzBox, Content );
-		}
-	}
-	
-	void AddContentToBox( TSharedPtr<SHorizontalBox> InHorzBox, TSharedPtr<SWidget> InContent ) const
-	{
-		if ( InHorzBox.IsValid() && InContent.IsValid() )
-		{
-			InHorzBox->AddSlot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Left)
-				.Padding(0.f, 0.f, 2.f, 0.f)
-				[
-					InContent.ToSharedRef()
-				];
-		}
-	}
-
-	void Hyperlink_OnNavigate( TSharedRef<IMessageToken> InMessageToken )
-	{
-		InMessageToken->GetOnMessageTokenActivated().ExecuteIfBound( InMessageToken );
-		OnTokenClicked.ExecuteIfBound(Message, InMessageToken);
-	}
-
-	FReply Button_OnClicked( TSharedRef<IMessageToken> InMessageToken )
-	{
-		InMessageToken->GetOnMessageTokenActivated().ExecuteIfBound( InMessageToken );
-		OnTokenClicked.ExecuteIfBound(Message, InMessageToken);
-		return FReply::Handled();
-	}
-
-	FReply Message_OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-	{
-		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
-		{
-			Message->GetRightClickedMethod().ExecuteIfBound(Message);
-		}
-
-		return FReply::Handled();
-	}
-
-protected:
-
-	/** The message used to create this widget */
-	TSharedPtr<FTokenizedMessage> Message;
-
-	/** Delegate to execute when the token is clicked */
-	FOnTokenClicked OnTokenClicked;
-};
 
 
 SMessageLogListing::SMessageLogListing()
 	: UICommandList( MakeShareable( new FUICommandList ) )
 	, bUpdatingSelection( false )
-{
-
-}
+{ }
 
 
 SMessageLogListing::~SMessageLogListing()
@@ -250,6 +20,7 @@ SMessageLogListing::~SMessageLogListing()
 	MessageLogListingViewModel->OnDataChanged().RemoveAll( this );
 	MessageLogListingViewModel->OnSelectionChanged().RemoveAll( this );
 }
+
 
 void SMessageLogListing::Construct( const FArguments& InArgs, const TSharedRef< IMessageLogListing >& InModelView )
 {
@@ -260,16 +31,26 @@ void SMessageLogListing::Construct( const FArguments& InArgs, const TSharedRef< 
 
 	ChildSlot
 	[
-		SAssignNew(VerticalBox, SVerticalBox)
-		+SVerticalBox::Slot()
-		.FillHeight(1)
-		[
-			SAssignNew(MessageListView, SListView< TSharedRef<FTokenizedMessage> >)
-				.ListItemsSource(&MessageLogListingViewModel->GetFilteredMessages())
-				.OnGenerateRow(this, &SMessageLogListing::MakeMessageLogListItemWidget)
-				.OnSelectionChanged(this, &SMessageLogListing::OnLineSelectionChanged)
-				.ItemHeight(24)
-		]
+		SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				SAssignNew(VerticalBox, SVerticalBox)
+
+				+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					[
+						SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("MessageLog.ListBorder"))
+							[
+								SAssignNew(MessageListView, SListView< TSharedRef<FTokenizedMessage> >)
+									.ListItemsSource(&MessageLogListingViewModel->GetFilteredMessages())
+									.OnGenerateRow(this, &SMessageLogListing::MakeMessageLogListItemWidget)
+									.OnSelectionChanged(this, &SMessageLogListing::OnLineSelectionChanged)
+									.ItemHeight(24.0f)
+							]
+					]
+			]
 	];
 
 	//If we have some content below the message log, add a separator and a new box.
@@ -279,13 +60,7 @@ void SMessageLogListing::Construct( const FArguments& InArgs, const TSharedRef< 
 	{
 		VerticalBox->AddSlot()
 			.AutoHeight()
-			.Padding(0, 0, 0, 1)
-			[
-				SNew(SSeparator)
-			];
-
-		VerticalBox->AddSlot()
-			.AutoHeight()
+			.Padding(6.0f)
 			[
 				SAssignNew(HorizontalBox, SHorizontalBox)
 			];
@@ -364,6 +139,7 @@ void SMessageLogListing::OnChanged()
 	RefreshVisibility();
 }
 
+
 void SMessageLogListing::OnSelectionChanged()
 {
 	if( bUpdatingSelection )
@@ -386,6 +162,7 @@ void SMessageLogListing::OnSelectionChanged()
 	bUpdatingSelection = false;
 }
 
+
 void SMessageLogListing::RefreshVisibility()
 {
 	const TArray< TSharedRef<FTokenizedMessage> >& Messages = MessageLogListingViewModel->GetFilteredMessages();
@@ -397,6 +174,7 @@ void SMessageLogListing::RefreshVisibility()
 	MessageListView->RequestListRefresh();
 }
 
+
 void SMessageLogListing::BroadcastMessageTokenClicked( TSharedPtr<FTokenizedMessage> Message, const TSharedRef<IMessageToken>& Token )
 {
 	ClearSelectedMessages();
@@ -404,20 +182,24 @@ void SMessageLogListing::BroadcastMessageTokenClicked( TSharedPtr<FTokenizedMess
 	MessageLogListingViewModel->ExecuteToken(Token);
 }
 
+
 const TArray< TSharedRef<FTokenizedMessage> > SMessageLogListing::GetSelectedMessages() const
 {
 	return MessageLogListingViewModel->GetSelectedMessages();
 }
+
 
 void SMessageLogListing::SelectMessage( const TSharedRef<class FTokenizedMessage>& Message, bool bSelected ) const
 {
 	MessageLogListingViewModel->SelectMessage( Message, bSelected );
 }
 
+
 bool SMessageLogListing::IsMessageSelected( const TSharedRef<class FTokenizedMessage>& Message ) const
 {
 	return MessageLogListingViewModel->IsMessageSelected( Message );
 }
+
 
 void SMessageLogListing::ScrollToMessage( const TSharedRef<class FTokenizedMessage>& Message ) const
 {
@@ -427,15 +209,18 @@ void SMessageLogListing::ScrollToMessage( const TSharedRef<class FTokenizedMessa
 	}
 }
 
+
 void SMessageLogListing::ClearSelectedMessages() const
 {
 	MessageLogListingViewModel->ClearSelectedMessages();
 }
 
+
 void SMessageLogListing::InvertSelectedMessages() const
 {
 	MessageLogListingViewModel->InvertSelectedMessages();
 }
+
 
 FText SMessageLogListing::GetSelectedMessagesAsText() const
 {
@@ -448,38 +233,36 @@ FText SMessageLogListing::GetAllMessagesAsText() const
 	return MessageLogListingViewModel->GetAllMessagesAsText();
 }
 
+
 TSharedRef<ITableRow> SMessageLogListing::MakeMessageLogListItemWidget( TSharedRef<FTokenizedMessage> Message, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	return
-		SNew(SMessageLogListingItem, OwnerTable)
+		SNew(SMessageLogMessageListRow, OwnerTable)
 		.Message(Message)
 		.OnTokenClicked( this, &SMessageLogListing::BroadcastMessageTokenClicked );
 }
 
+
 void SMessageLogListing::OnLineSelectionChanged( TSharedPtr< FTokenizedMessage > Selection, ESelectInfo::Type /*SelectInfo*/ )
 {
-	if( bUpdatingSelection )
+	if (bUpdatingSelection)
 	{
 		return;
 	}
 
 	bUpdatingSelection = true;
-	TArray< TSharedRef< FTokenizedMessage > > SelectedItems = MessageListView->GetSelectedItems();
-	
-	MessageLogListingViewModel->SelectMessages( SelectedItems );
-	
-	if ( Selection.IsValid() )
 	{
-		Selection->GetSelectionChangedMethod().ExecuteIfBound( SelectedItems );
+		MessageLogListingViewModel->SelectMessages(MessageListView->GetSelectedItems());
 	}
-
 	bUpdatingSelection = false;
 }
+
 
 void SMessageLogListing::CopySelectedToClipboard() const
 {
 	CopyText( true, true );
 }
+
 
 FText SMessageLogListing::CopyText( bool bSelected, bool bClipboard ) const
 {
@@ -504,15 +287,18 @@ FText SMessageLogListing::CopyText( bool bSelected, bool bClipboard ) const
 	return CombinedString;
 }
 
+
 const TSharedRef< const FUICommandList > SMessageLogListing::GetCommandList() const 
 { 
 	return UICommandList;
 }
 
+
 FReply SMessageLogListing::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
 	return UICommandList->ProcessCommandBindings( InKeyboardEvent ) ? FReply::Handled() : FReply::Unhandled();
 }
+
 
 EVisibility SMessageLogListing::GetFilterMenuVisibility()
 {
@@ -523,6 +309,7 @@ EVisibility SMessageLogListing::GetFilterMenuVisibility()
 
 	return EVisibility::Hidden;
 }
+
 
 TSharedRef<ITableRow> SMessageLogListing::MakeShowWidget(TSharedRef<FMessageFilter> Selection, const TSharedRef<STableViewBase>& OwnerTable)
 {
@@ -548,6 +335,7 @@ TSharedRef<ITableRow> SMessageLogListing::MakeShowWidget(TSharedRef<FMessageFilt
 		];
 }
 
+
 TSharedRef<SWidget> SMessageLogListing::OnGetFilterMenuContent()
 {
 	return 
@@ -556,6 +344,7 @@ TSharedRef<SWidget> SMessageLogListing::OnGetFilterMenuContent()
 		.OnGenerateRow(this, &SMessageLogListing::MakeShowWidget)
 		.ItemHeight(24);
 }
+
 
 FText SMessageLogListing::OnGetPageMenuLabel() const
 {
@@ -568,6 +357,7 @@ FText SMessageLogListing::OnGetPageMenuLabel() const
 		return LOCTEXT("PageMenuLabel", "Page");
 	}
 }
+
 
 TSharedRef<SWidget> SMessageLogListing::OnGetPageMenuContent() const
 {
@@ -591,15 +381,18 @@ TSharedRef<SWidget> SMessageLogListing::OnGetPageMenuContent() const
 	return SNullWidget::NullWidget;
 }
 
+
 void SMessageLogListing::OnPageSelected(uint32 PageIndex)
 {
 	MessageLogListingViewModel->SetCurrentPageIndex(PageIndex);
 }
 
+
 bool SMessageLogListing::IsPageWidgetEnabled() const
 {
 	return MessageLogListingViewModel->GetPageCount() > 1;
 }
+
 
 EVisibility SMessageLogListing::GetPageWidgetVisibility() const
 {
@@ -613,10 +406,12 @@ EVisibility SMessageLogListing::GetPageWidgetVisibility() const
 	}
 }
 
+
 bool SMessageLogListing::IsClearWidgetEnabled() const
 {
 	return MessageLogListingViewModel->NumMessages() > 0;
 }
+
 
 EVisibility SMessageLogListing::GetClearWidgetVisibility() const
 {
@@ -630,10 +425,12 @@ EVisibility SMessageLogListing::GetClearWidgetVisibility() const
 	}
 }
 
+
 FReply SMessageLogListing::OnClear()
 {
 	MessageLogListingViewModel->ClearMessages();
 	return FReply::Handled();
 }
+
 
 #undef LOCTEXT_NAMESPACE

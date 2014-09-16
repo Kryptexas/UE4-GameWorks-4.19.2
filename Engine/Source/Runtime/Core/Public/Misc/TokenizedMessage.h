@@ -26,7 +26,7 @@ namespace EMessageToken
 {
 	enum Type
 	{
-		String,
+		Action,
 		Text,
 		Image,
 		Severity,
@@ -93,11 +93,6 @@ protected:
 	FText CachedText;
 };
 
-/** Delegate used when selecting Message lines */
-DECLARE_DELEGATE_OneParam(FOnMessageSelectionChanged, TArray< TSharedRef<class FTokenizedMessage> >&);
-
-/** Delegate used when right clicking a message line */
-DECLARE_DELEGATE_OneParam(FOnMessageRightClicked, TSharedPtr<class FTokenizedMessage>&);
 
 /** Dummy struct that other structs need to inherit from if they wish to assign to MessageData */
 struct FTokenizedMiscData {};
@@ -169,34 +164,6 @@ public:
 	CORE_API const TArray< TSharedRef<IMessageToken> >& GetMessageTokens() const;
 
 	/** 
-	 * Set the delegate for when a message is right-clicked
-	 * 
-	 * @param	InRightClickedMethod	The delegate to call when a message is right clicked
-	 */
-	CORE_API void SetRightClickedMethod(const FOnMessageRightClicked& InRightClickedMethod);
-
-	/** 
-	 * Get the delegate for when a message is right-clicked
-	 * 
-	 * @returns the delegate to call when a message is right clicked
-	 */	
-	CORE_API const FOnMessageRightClicked& GetRightClickedMethod() const;
-
-	/** 
-	 * Set the delegate for when a messages selection has changed
-	 * 
-	 * @param	InMessageSelectionChanged	The delegate to call when a messages selection has changed
-	 */
-	CORE_API void SetSelectionChangedMethod(const FOnMessageSelectionChanged& InMessageSelectionChanged);
-
-	/** 
-	 * Get the delegate for when a messages selection has changed
-	 * 
-	 * @returns the delegate to call when a messages selection has changed
-	 */	
-	CORE_API const FOnMessageSelectionChanged& GetSelectionChangedMethod() const;
-
-	/** 
 	 * Helper function for getting a severity as text
 	 *
 	 * @param	InSeverity	the severity to use
@@ -216,25 +183,21 @@ private:
 	/** Private constructor - we want to only create these structures as shared references via Create() */
 	FTokenizedMessage()
 		: Severity( EMessageSeverity::Info )
-		, MessageData( NULL )
-	{}
+		, MessageData( nullptr )
+	{ }
 
 protected:
+
 	/** the array of message tokens this message contains */
 	TArray< TSharedRef<IMessageToken> > MessageTokens;
 
 private:
+
 	/** The severity of this message */
 	EMessageSeverity::Type Severity;
 
 	/** A payload for this message */
 	FTokenizedMiscData* MessageData;	// @todo Don't use TSharedPtr as it'll get free'd mid-sort! (refcount == 0)
-
-	/** Delegate for when a message is right-clicked */
-	FOnMessageRightClicked RightClickedMethod;
-
-	/** Delegate for when message selection is changed */
-	FOnMessageSelectionChanged MessageSelectionChangedMethod;
 };
 
 /** Basic message token with a localized text payload */
@@ -479,4 +442,60 @@ private:
 
 	/** The excerpt to display */
 	FString PreviewExcerptName;
+};
+
+
+DECLARE_DELEGATE(FOnActionTokenExecuted);
+
+/**
+ * Message token that performs an action when activated.
+ */
+class FActionToken
+	: public IMessageToken
+{
+	/** Factory method, tokens can only be constructed as shared refs */
+	CORE_API static TSharedRef<FActionToken> Create( const FText& ActionName, const FText& ActionDescription, const FOnActionTokenExecuted& Action )
+	{
+		return MakeShareable(new FActionToken(ActionName, ActionDescription, Action));
+	}
+
+public:
+
+	/** Executes the assigned action delegate. */
+	void ExecuteAction( )
+	{
+		Action.ExecuteIfBound();
+	}
+
+	/** Gets the action's description text. */
+	const FText& GetActionDescription( )
+	{
+		return ActionDescription;
+	}
+
+public:
+
+	// IMessageToken interface
+	virtual EMessageToken::Type GetType() const override
+	{
+		return EMessageToken::Action;
+	}
+
+protected:
+
+	/** Hidden constructor. */
+	FActionToken( const FText& InActionName, const FText& InActionDescription, const FOnActionTokenExecuted& InAction )
+		: Action(InAction)
+		, ActionDescription(InActionDescription)
+	{
+		CachedText = InActionName;
+	}
+
+private:
+
+	/** Holds a delegate that is executed when this token is activated. */
+	FOnActionTokenExecuted Action;
+
+	/** The action's description text. */
+	const FText ActionDescription;
 };

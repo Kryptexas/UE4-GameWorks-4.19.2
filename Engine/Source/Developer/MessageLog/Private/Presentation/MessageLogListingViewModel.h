@@ -7,11 +7,16 @@
 #include "IMessageLogListing.h"
 #include "MessageLogInitializationOptions.h"
 
-/** The non-UI solution specific presentation logic for a collection of messages for a particular system */
-class FMessageLogListingViewModel : public IMessageLogListing, public TSharedFromThis< FMessageLogListingViewModel >
-{
 
+/**
+ * The non-UI solution specific presentation logic for a collection of messages for a particular system.
+ */
+class FMessageLogListingViewModel
+	: public TSharedFromThis<FMessageLogListingViewModel>
+	, public IMessageLogListing
+{
 public:
+
 	/**  
 	 *	Factory method which creates a new FMessageLogListingViewModel object
 	 *

@@ -93,23 +93,13 @@ FMessageLog::~FMessageLog()
 
 const TSharedRef<FTokenizedMessage>& FMessageLog::AddMessage( const TSharedRef<FTokenizedMessage>& InMessage )
 {
-	if(MessageSelectionChanged.IsBound())
-	{
-		InMessage->SetSelectionChangedMethod( MessageSelectionChanged );
-	}
 	Messages.Add(InMessage);
+
 	return InMessage;
 }
 
 void FMessageLog::AddMessages( const TArray< TSharedRef<FTokenizedMessage> >& InMessages )
 {
-	if(MessageSelectionChanged.IsBound())
-	{
-		for(TArray< TSharedRef<FTokenizedMessage> >::TConstIterator It = InMessages.CreateConstIterator(); It; It++)
-		{
-			(*It)->SetSelectionChangedMethod( MessageSelectionChanged );
-		}
-	}
 	Messages.Append(InMessages);
 }
 

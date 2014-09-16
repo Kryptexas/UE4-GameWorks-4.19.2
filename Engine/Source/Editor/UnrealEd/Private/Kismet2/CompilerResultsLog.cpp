@@ -178,9 +178,7 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 				ObjText = LOCTEXT("None", "(none)");
 			}
 			
-			TSharedRef<FUObjectToken> Token = FUObjectToken::Create( ObjectArgument, ObjText );
-			Token->OnMessageTokenActivated(FOnMessageTokenActivated::CreateRaw(this, &FCompilerResultsLog::OnTokenActivated));
-			Line->AddToken( Token );
+			Line->AddToken( FUObjectToken::Create( ObjectArgument, ObjText ) );
 		}
 		Line->AddToken( FTextToken::Create( FText::FromString( Start ) ) );
 	}
@@ -348,11 +346,6 @@ void FCompilerResultsLog::GetGlobalModuleCompilerDump(const FString& LogDump, EC
 	}
 
 	MessageLog.AddMessages(ParseCompilerLogDump(LogDump));
-}
-
-void FCompilerResultsLog::OnTokenActivated(const TSharedRef<class IMessageToken>& InTokenRef)
-{
-
 }
 
 // Note: Message is not a fprintf string!  It should be preformatted, but can contain @@ to indicate object references, which are the varargs
