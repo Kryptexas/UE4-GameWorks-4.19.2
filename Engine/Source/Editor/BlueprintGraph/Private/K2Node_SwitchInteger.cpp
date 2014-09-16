@@ -54,7 +54,7 @@ void UK2Node_SwitchInteger::CreateSelectionPin()
 FEdGraphPinType UK2Node_SwitchInteger::GetPinType() const 
 { 
 	FEdGraphPinType PinType;
-	PinType.PinSubCategory = UEdGraphSchema_K2::PC_Int;
+	PinType.PinCategory = UEdGraphSchema_K2::PC_Int;
 	return PinType;
 }
 
