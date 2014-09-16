@@ -942,7 +942,7 @@ namespace UnrealBuildTool
 
 					// Get the output directory
 					string RootDirectory = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath);
-					if ((TargetRules.IsAGame(TargetRulesObject.Type) || TargetRulesObject.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !TargetRulesObject.bOutputToEngineBinaries)
+                    if ((TargetRules.IsAGame(TargetRulesObject.Type) || TargetRulesObject.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !TargetRulesObject.bOutputToEngineBinaries)
 					{
 						if (UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(TargetFilePath, UnrealBuildTool.GetUProjectPath()))
 						{
@@ -955,6 +955,15 @@ namespace UnrealBuildTool
 							{
 								RootDirectory = Path.GetDirectoryName(Path.GetFullPath(UnrealProjectPath));
 							}
+						}
+					}
+
+					if(TargetRulesObject.Type == TargetRules.TargetType.Program && !TargetRulesObject.bOutputToEngineBinaries)
+					{
+						string UnrealProjectPath = UProjectInfo.GetProjectForTarget(TargetName);
+						if (!String.IsNullOrEmpty(UnrealProjectPath))
+						{
+							RootDirectory = Path.GetDirectoryName(Path.GetFullPath(UnrealProjectPath));
 						}
 					}
 

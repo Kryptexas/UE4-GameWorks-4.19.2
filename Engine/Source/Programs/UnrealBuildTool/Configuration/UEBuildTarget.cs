@@ -2228,7 +2228,11 @@ namespace UnrealBuildTool
 
 			// Build base directory string ("../Binaries/<Platform>/")
 			string BinariesDirName;
-			if( PluginInfo != null )
+			if(TargetType.HasValue && TargetType.Value == TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile() && !ProjectFileGenerator.bGenerateProjectFiles)
+			{
+				BinariesDirName = Path.Combine( UnrealBuildTool.GetUProjectPath(), "Binaries" );
+			}
+			else if( PluginInfo != null )
 			{
 				BinariesDirName = Path.Combine( PluginInfo.Directory, "Binaries" );
 			}
