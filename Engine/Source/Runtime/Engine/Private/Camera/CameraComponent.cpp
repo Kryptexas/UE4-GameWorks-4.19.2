@@ -149,7 +149,7 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
 		{
 			const FRotator PawnViewRotation = OwningPawn->GetViewRotation();
-			if (PawnViewRotation != GetComponentRotation())
+			if (!PawnViewRotation.Equals(GetComponentRotation()))
 			{
 				SetWorldRotation(PawnViewRotation);
 			}
