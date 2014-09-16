@@ -6,7 +6,6 @@
 
 #pragma once
 
-
 #include "Engine.h"
 
 class UNREALED_API FBlueprintCompileReinstancer

@@ -25,13 +25,15 @@ public class HotReload : ModuleRules
 				}
 				);
 
-
-			PrivateDependencyModuleNames.AddRange(
-				new string[] 
-				{
-					"Engine",
-					"UnrealEd", 
-				}
-			);
+            if (UEBuildConfiguration.bCompileAgainstEngine)
+            {
+                PrivateDependencyModuleNames.AddRange(
+				    new string[] 
+				    {
+					    "Engine",
+					    "UnrealEd", 
+				    }
+			    );
+            }
 	}
 }
