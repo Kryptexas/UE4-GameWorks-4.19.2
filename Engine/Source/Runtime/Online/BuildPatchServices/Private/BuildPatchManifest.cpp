@@ -156,7 +156,8 @@ bool FBuildPatchAppManifest::SaveToFile(FString Filename)
 	{
 		FString JSONOutput;
 		SerializeToJSON(JSONOutput);
-		FileOut->Serialize(TCHAR_TO_ANSI(*JSONOutput), JSONOutput.Len());
+		FTCHARToUTF8 JsonUTF8(*JSONOutput);
+		FileOut->Serialize((UTF8CHAR*)JsonUTF8.Get(), JsonUTF8.Length() * sizeof(UTF8CHAR));
 		FileOut->Close();
 		delete FileOut;
 	}
