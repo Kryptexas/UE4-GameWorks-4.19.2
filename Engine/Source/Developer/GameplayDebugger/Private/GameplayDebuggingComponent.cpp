@@ -621,6 +621,12 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	}
 
 	auto AllQueries = QueryManager->GetDebugger().GetAllQueriesForOwner(Owner);
+	const class APawn* OwnerAsPawn = Cast<class APawn>(Owner);
+	if (OwnerAsPawn != NULL && OwnerAsPawn->GetController())
+	{
+		const auto& AllControllerQueries = QueryManager->GetDebugger().GetAllQueriesForOwner(OwnerAsPawn->GetController());
+		AllQueries.Append(AllControllerQueries);
+	}
 	for (int32 Index = 0; Index < AllQueries.Num(); ++Index)
 	{
 		EQSDebug::FQueryData* CurrentLocalData = NULL;
