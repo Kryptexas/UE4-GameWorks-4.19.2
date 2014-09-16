@@ -49,6 +49,14 @@ void FChunkManifestGenerator::OnAssetLoaded(UObject* Asset)
 	}
 }
 
+void FChunkManifestGenerator::OnLastPackageLoaded( UPackage* Package )
+{
+	if ( !AssetsLoadedWithLastPackage.Contains(Package->GetFName()))
+	{
+		AssetsLoadedWithLastPackage.Add(Package->GetFName());
+	}
+}
+
 bool FChunkManifestGenerator::CleanTempPackagingDirectory(const FString& Platform) const
 {
 	FString TmpPackagingDir = GetTempPackagingDirectoryForPlatform(Platform);
@@ -187,7 +195,7 @@ void FChunkManifestGenerator::Initialize(bool InGenerateChunks)
 }
 
 void FChunkManifestGenerator::AddPackageToChunkManifest(UPackage* Package, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile)
-{		
+{
 	TArray<int32> TargetChunks;
 	TArray<int32> ExistingChunkIDs;
 	
@@ -465,6 +473,11 @@ void FChunkManifestGenerator::AddPackageToManifest(const FString& PackageSandbox
 	ChunkManifests[ChunkId]->Add(PackageName, PackageSandboxPath);
 	//Safety check, it the package happens to exist in the unassigned list remove it now.
 	UnassignedPackageSet.Remove(PackageName);
+}
+
+void FChunkManifestGenerator::AddUnassignedPackageToManifest(UPackage* Package, const FString& PackageSandboxPath )
+{
+	NotifyPackageWasNotAssigned(PackageSandboxPath, Package->GetFName() );
 }
 
 void FChunkManifestGenerator::RemovePackageFromManifest(FName PackageName, int32 ChunkId)

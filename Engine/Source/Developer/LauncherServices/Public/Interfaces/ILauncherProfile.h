@@ -17,7 +17,10 @@ namespace ELauncherProfileCookModes
 		ByTheBook,
 
 		/** Cook the build on the fly while the game is running. */
-		OnTheFly
+		OnTheFly,
+
+		/** Cook by the book in the editor process space */
+		ByTheBookInEditor
 	};
 }
 
@@ -272,6 +275,11 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnLauncherProfileDeployedDeviceGroupChanged
 /** Delegate type for a change in project */
 DECLARE_MULTICAST_DELEGATE(FOnProfileProjectChanged);
 
+/** Delegate type for detecting if cook is finished
+ *	Used when cooking from the editor.  Specific cook task will wait for the cook to be finished by the editor
+ */
+DECLARE_DELEGATE_RetVal(bool, FIsCookFinishedDelegate);
+
 /**
  * Interface for launcher profile.
  */
@@ -370,6 +378,11 @@ public:
 	 */
 	virtual void SetDescription(const FString& NewDescription) = 0;
 
+	/**
+	 * Returns the cook delegate which can be used to query if the cook is finished
+	 *  Used by cook by the book in the editor
+	 */
+	virtual FIsCookFinishedDelegate& OnIsCookFinished() = 0;
 public:
 
 	/**

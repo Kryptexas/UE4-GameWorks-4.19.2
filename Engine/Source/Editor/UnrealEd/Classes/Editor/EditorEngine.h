@@ -1463,6 +1463,24 @@ public:
 	 */
 	virtual void PlayMap( const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, int32 InPlayInViewportIndex = -1, bool bUseMobilePreview = false, bool bMovieCapture = false );
 
+
+
+	/**
+	 * Can the editor do cook by the book in the editor process space
+	 */
+	virtual bool CanCookByTheBookInEditor() const { return false; }
+
+	/**
+	 * Start cook by the book in the editor process space
+	 */
+	virtual void StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections ) { }
+
+	/**
+	 * Checks if the cook by the book is finished
+	 */
+	virtual bool IsCookByTheBookInEditorFinished() const { return true; }
+
+
 	/**
 	 * Makes a request to start a play from a Slate editor session
 	 * @param	bAtPlayerStart			Whether or not we would really like to use the game or level's PlayerStart vs the StartLocation

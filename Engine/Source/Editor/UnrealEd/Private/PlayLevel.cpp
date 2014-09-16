@@ -1256,10 +1256,16 @@ void UEditorEngine::PlayUsingLauncher()
 		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
 		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
-		LauncherProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);
+		LauncherProfile->SetCookMode(CanCookByTheBookInEditor() ? ELauncherProfileCookModes::ByTheBookInEditor : ELauncherProfileCookModes::ByTheBook);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
 		LauncherProfile->SetEditorExe(FUnrealEdMisc::Get().GetExecutableForCommandlets());
+
+
+		// hack to make launch on use pak files and generate manifests
+		LauncherProfile->SetDeployWithUnrealPak( true );
+
+
 
 		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
 		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) != TEXT("IOS") || !PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
@@ -1269,9 +1275,10 @@ void UEditorEngine::PlayUsingLauncher()
 
 		TArray<FString> MapNames;
 		FWorldContext & EditorContext = GetEditorWorldContext();
-		if (EditorContext.World()->WorldComposition)
+		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) )
 		{
 			// Open world composition from original folder
+			// Or if using by book in editor don't need to resave the package just cook it by the book 
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
 			MapNames.Add(MapName);
 		}
@@ -1291,6 +1298,35 @@ void UEditorEngine::PlayUsingLauncher()
 		for (const FString& MapName : MapNames)
 		{
 			LauncherProfile->AddCookedMap(MapName);
+		}
+
+
+		if ( LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor )
+		{
+			// check( GEditor != NULL );
+
+			TArray<ITargetPlatform*> TargetPlatforms;
+			for ( const auto &PlatformName : LauncherProfile->GetCookedPlatforms() )
+			{
+				ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
+				// todo pass in all the target platforms instead of just the single platform
+				// crashes if two requests are inflight but we can support having multiple platforms cooking at once
+				TargetPlatforms.Add( TargetPlatform ); 
+			}
+
+
+			const TArray<FString> &CookedMaps = LauncherProfile->GetCookedMaps();
+
+			// const TArray<FString>& CookedMaps = ChainState.Profile->GetCookedMaps();
+			TArray<FString> CookDirectories;
+			TArray<FString> CookCultures;
+			TArray<FString> IniMapSections;
+
+			StartCookByTheBookInEditor(TargetPlatforms, CookedMaps, CookDirectories, CookCultures, IniMapSections );
+
+			FIsCookFinishedDelegate &CookerFinishedDelegate = LauncherProfile->OnIsCookFinished();
+
+			CookerFinishedDelegate.BindUObject(this, &UEditorEngine::IsCookByTheBookInEditorFinished);   // AddUObject(this, &UEditorEngine::IsCookByTheBookInEditorFinished);
 		}
 
 		ILauncherPtr Launcher = LauncherServicesModule.CreateLauncher();

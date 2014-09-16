@@ -410,7 +410,7 @@ public:
 
 	virtual bool IsDeployablePlatform( const FString& PlatformName ) override
 	{
-		if (CookMode == ELauncherProfileCookModes::ByTheBook)
+		if (CookMode == ELauncherProfileCookModes::ByTheBook || CookMode == ELauncherProfileCookModes::ByTheBookInEditor)
 		{
 			return CookedPlatforms.Contains(PlatformName);
 		}
@@ -700,6 +700,11 @@ public:
 		Validate();
 	}
 
+	virtual FIsCookFinishedDelegate& OnIsCookFinished() override
+	{
+		return IsCookFinishedDelegate;
+	}
+
 	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) override
 	{
 		if (DeploymentMode != Mode)
@@ -922,7 +927,7 @@ protected:
 		}
 
 		// Deploy: deployment by copying to devices requires cooking by the book
-		if ((DeploymentMode == ELauncherProfileDeploymentModes::CopyToDevice) && (CookMode != ELauncherProfileCookModes::ByTheBook))
+		if ((DeploymentMode == ELauncherProfileDeploymentModes::CopyToDevice) && ((CookMode != ELauncherProfileCookModes::ByTheBook)&&(CookMode!=ELauncherProfileCookModes::ByTheBookInEditor)))
 		{
 			ValidationErrors.Add(ELauncherProfileValidationErrors::CopyToDeviceRequiresCookByTheBook);
 		}
@@ -1136,8 +1141,10 @@ private:
 
 	// Path to the editor executable to pass to UAT, for cooking, etc... May be empty.
 	FString EditorExe;
-        
+
 private:
+
+	FIsCookFinishedDelegate IsCookFinishedDelegate;
 
 	// Holds a delegate to be invoked when changing the device group to deploy to.
 	FOnLauncherProfileDeployedDeviceGroupChanged DeployedDeviceGroupChangedDelegate;

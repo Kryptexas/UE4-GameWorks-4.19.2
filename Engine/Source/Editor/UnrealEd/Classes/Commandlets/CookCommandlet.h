@@ -137,5 +137,12 @@ private:
 	/** Cooks all files */
 	bool Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
 
+	/** Cooks all files newly (in a new way) */
+	bool NewCook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
+
+
+	/**	Process deferred commands */
+	void ProcessDeferredCommands();
+
 
 };

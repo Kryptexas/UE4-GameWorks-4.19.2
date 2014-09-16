@@ -811,9 +811,13 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 							}
 							check(LoadedWorld);
 
-							// LoadedWorld won't be serialized as there's a BeginLoad on the stack so we manually serialize it here.
-							check( LoadedWorld->GetLinker() );
-							LoadedWorld->GetLinker()->Preload( LoadedWorld );
+							if ( !LevelPackage->IsFullyLoaded() )
+							{
+								// LoadedWorld won't be serialized as there's a BeginLoad on the stack so we manually serialize it here.
+								check( LoadedWorld->GetLinker() );
+								LoadedWorld->GetLinker()->Preload( LoadedWorld );
+							}
+							
 
 							// Keep reference to prevent garbage collection.
 							check( LoadedWorld->PersistentLevel );

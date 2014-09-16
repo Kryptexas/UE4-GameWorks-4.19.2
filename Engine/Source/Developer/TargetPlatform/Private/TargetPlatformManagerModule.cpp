@@ -153,6 +153,10 @@ public:
 					Results = Platforms;
 				}
 			}
+			else
+			{
+				Results = Platforms;
+			}
 		}
 
 		return Results;

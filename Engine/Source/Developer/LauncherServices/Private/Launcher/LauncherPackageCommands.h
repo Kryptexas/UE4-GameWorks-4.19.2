@@ -42,7 +42,7 @@ public:
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
         
 		// Determine if we should force PAK for the current configuration+platform+cook mode
-		if (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook)
+		if (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook || ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor)
 		{
 			if (ChainState.Profile->IsPackingWithUnrealPak() || (TargetPlatform.PlatformName() == TEXT("LinuxServer")) || (TargetPlatform.PlatformName() == TEXT("PS4")) || TargetPlatform.PlatformName().StartsWith(TEXT("Android")))
 			{
@@ -62,7 +62,7 @@ public:
 			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			&& (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook || ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor)) ? TEXT(" -pak") : TEXT(""),
 			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""));
 
 		return CommandLine;
@@ -136,7 +136,7 @@ public:
  
 		// if it is PS4 or Android and cook by the book, make sure to add -pak
 		if ((TargetPlatform.PlatformName() == TEXT("PS4") || TargetPlatform.PlatformName() == TEXT("LinuxServer") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook)
+			&& (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook||ChainState.Profile->GetCookMode()==ELauncherProfileCookModes::ByTheBookInEditor))
 		{
 			CommandLine += TEXT(" -pak");
 		}
@@ -152,7 +152,7 @@ public:
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			&& (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook || ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor)) ? TEXT(" -pak") : TEXT(""),
 			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""));
 
 		return CommandLine;
@@ -211,7 +211,7 @@ public:
  
 		// if it is PS4 or Android and cook by the book, make sure to add -pak
 		if ((TargetPlatform.PlatformName() == TEXT("PS4") || TargetPlatform.PlatformName() == TEXT("Android") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook)
+			&& (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook || ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor))
 		{
 			CommandLine += TEXT(" -pak");
 		}
@@ -233,7 +233,7 @@ public:
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			&& (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook || ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor)) ? TEXT(" -pak") : TEXT(""),
 			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""));
 
 		return CommandLine;
@@ -322,7 +322,7 @@ public:
  
 		// if it is PS4 and cook by the book, make sure to add -pak
 		if ((TargetPlatform.PlatformName() == TEXT("PS4") || TargetPlatform.PlatformName() == TEXT("LinuxServer") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook)
+			&& (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook || ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) )
 		{
 			CommandLine += TEXT(" -pak");
 		}
@@ -338,7 +338,7 @@ public:
 			*ChainState.Profile->GetName(),
 			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			((TargetPlatform.PlatformName() == TEXT("PS4") || ChainState.Profile->IsPackingWithUnrealPak())
-			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT(" -pak") : TEXT(""),
+			&& (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook || ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor)) ? TEXT(" -pak") : TEXT(""),
 			ChainState.Profile->GetLaunchRoles().Num() > 0 ? (ChainState.Profile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""));
 
 		return CommandLine;

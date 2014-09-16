@@ -9,31 +9,76 @@
 #include "CookOnTheFlyServer.generated.h"
 
 
+class FChunkManifestGenerator;
+
+enum class ECookInitializationFlags
+{
+	None = 0x0,						// No flags
+	Compressed = 0x1,				// will save compressed packages
+	Iterative = 0x2,				// use iterative cooking (previous cooks will not be cleaned unless detected out of date, experimental)
+	SkipEditorContent = 0x4,		// do not cook any content in the content\editor directory
+	Unversioned = 0x8,				// save the cooked packages without a version number
+	AutoTick = 0x10,				// enable ticking (only works in the editor)
+	AsyncSave = 0x20,				// save packages async
+	LeakTest = 0x40,				// test for uobject leaks after each level load
+	IncludeServerMaps = 0x80,		// should we include the server maps when cooking
+	GenerateStreamingInstallManifest = 0x100,  // should we generate streaming install manifest
+};
+ENUM_CLASS_FLAGS(ECookInitializationFlags);
+
+UENUM()
+namespace ECookMode
+{
+	enum Type
+	{
+		CookOnTheFly,				// default mode, handles requests from network
+		CookByTheBookFromTheEditor,	// precook all resources while in the editor
+		CookByTheBook,				// cooking by the book (not in the editor)
+	};
+}
+
 UCLASS()
 class UCookOnTheFlyServer : public UObject, public FTickableEditorObject
 {
 	GENERATED_UCLASS_BODY()
 
 private:
-	/** Cook ont he fly is almost always true, just leaving this option here if we want to switch the cook commandlet over to using this structure to cook */
-	bool bCookOnTheFly;
-	/** If true, iterative cooking is being done */
-	bool bIterativeCooking;
-	/** If true, packages are cooked compressed */
-	bool bCompressed;
-	/** Skip saving any packages in Engine/COntent/Editor* UNLESS TARGET HAS EDITORONLY DATA (in which case it will save those anyway) */
-	bool bSkipEditorContent;
-	/** Should we use Async loading and saving (good for the editor) */
-	bool bAsyncSaveLoad;
-	/** Should we auto tick (used in the editor) */
-	bool bIsAutoTick;
-	/** Holds the sandbox file wrapper to handle sandbox path conversion. */
-	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
+	/** Current cook mode the cook on the fly server is running in */
+	ECookMode::Type CurrentCookMode;
+	
+	//////////////////////////////////////////////////////////////////////////
+	// Cook by the book options
+	struct FCookByTheBookOptions
+	{
+	public:
+		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
+			bRunning(false),
+			CookTime( 0.0f )
+		{ }
+
+		/** Should we generate streaming install manifests (only valid option in cook by the book) */
+		bool bGenerateStreamingInstallManifests;
+		/** Is cook by the book currently running */
+		bool bRunning;
+		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
+		TSet<FWeakObjectPtr> LastGCItems;
+		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
+		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
+		double CookTime;
+	};
+	FCookByTheBookOptions* CookByTheBookOptions;
+	
+
+	//////////////////////////////////////////////////////////////////////////
+	// Cook on the fly options
 	/** Cook on the fly server uses the NetworkFileServer */
 	TArray<class INetworkFileServer*> NetworkFileServers;
 
-	/** We hook this up to a delegate to avoid reloading textures and whatnot */
-	TSet<FString> PackagesToNotReload;
+	//////////////////////////////////////////////////////////////////////////
+	// General cook options
+	ECookInitializationFlags CookFlags;
+	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
+	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
 
 private:
 
@@ -195,34 +240,35 @@ public:
 	{
 	private:
 		FName Filename;
-		FName Platformname;
-		uint32 CachedHash;
+		TArray<FName> Platformnames;
 	public:
-		FFilePlatformRequest() : CachedHash(0) { }
+		
+		// yes we have some friends
+		friend uint32 GetTypeHash(const UCookOnTheFlyServer::FFilePlatformRequest& Key);
 
-		FFilePlatformRequest( const FName &InFilename, const FName &InPlatformname ) : Filename( InFilename ), Platformname( InPlatformname ) 
+		FFilePlatformRequest() { }
+
+		FFilePlatformRequest( const FName& InFilename, const TArray<FName>& InPlatformname ) : Filename( InFilename )
 		{
-			UpdateHash();
+			Platformnames = InPlatformname;
 		}
 
-		FFilePlatformRequest( const FString &InFilename, const FName &InPlatformname ) : Filename( *InFilename ), Platformname( InPlatformname ) 
+		FFilePlatformRequest( const FName& InFilename, TArray<FName>&& InPlatformname ) : Filename( InFilename ), Platformnames(MoveTemp(InPlatformname))
 		{
-			UpdateHash();
 		}
 
-		FFilePlatformRequest( const FFilePlatformRequest &InFilePlatformRequest ) : Filename( InFilePlatformRequest.Filename ), Platformname( InFilePlatformRequest.Platformname ), CachedHash( InFilePlatformRequest.CachedHash )
+		FFilePlatformRequest( const FFilePlatformRequest& InFilePlatformRequest ) : Filename( InFilePlatformRequest.Filename ), Platformnames( InFilePlatformRequest.Platformnames )
 		{
-#if DO_CHECK
-			uint32 OldHash = CachedHash;
-			UpdateHash();
-			check( OldHash == CachedHash );
-#endif
 		}
+		
+		FFilePlatformRequest( FFilePlatformRequest&& InFilePlatformRequest ) : Filename( MoveTemp(InFilePlatformRequest.Filename) ), Platformnames( MoveTemp(InFilePlatformRequest.Platformnames) )
+		{
+		}
+		
 
 		void SetFilename( const FString &InFilename ) 
 		{
 			Filename = FName(*InFilename);
-			UpdateHash();
 		}
 
 		const FName &GetFilename() const
@@ -230,19 +276,25 @@ public:
 			return Filename;
 		}
 
-		const FName &GetPlatformname() const
+		const TArray<FName> &GetPlatformnames() const
 		{
-			return Platformname;
+			return Platformnames;
 		}
 
-		void UpdateHash()
+		void RemovePlatform( const FName &Platform )
 		{
-			CachedHash = GetTypeHash(Filename) ^ GetTypeHash(Platformname);
+			Platformnames.Remove(Platform);
 		}
 
-		uint32 GetCachedHash() const
+		void AddPlatform( const FName &Platform )
 		{
-			return CachedHash;
+			check( Platform != NAME_None );
+			Platformnames.Add(Platform );
+		}
+
+		bool HasPlatform( const FName &Platform ) const
+		{
+			return Platformnames.Find(Platform) != INDEX_NONE;
 		}
 
 		bool IsValid()  const
@@ -253,20 +305,23 @@ public:
 		void Clear()
 		{
 			Filename = TEXT("");
-			Platformname = TEXT("");
-			UpdateHash();
+			Platformnames.Empty();
+		}
+
+		FFilePlatformRequest &operator=( FFilePlatformRequest &&InFileRequest )
+		{
+			Filename = MoveTemp( InFileRequest.Filename );
+			Platformnames = MoveTemp( InFileRequest.Platformnames );
+			return *this;
 		}
 
 		bool operator ==( const FFilePlatformRequest &InFileRequest ) const
 		{
-			if ( CachedHash == InFileRequest.CachedHash )
+			if ( InFileRequest.Filename == Filename )
 			{
-				if ( InFileRequest.Filename == Filename )
+				if ( InFileRequest.Platformnames == Platformnames )
 				{
-					if ( InFileRequest.Platformname == Platformname )
-					{
-						return true;
-					}
+					return true;
 				}
 			}
 			return false;
@@ -274,24 +329,26 @@ public:
 
 		FORCEINLINE FString &&ToString() const
 		{
-			return MoveTemp( FString::Printf( TEXT("%s %s"), *Filename.ToString(), *Platformname.ToString() ) );
+			FString Result = FString::Printf(TEXT("%s;"), *Filename.ToString());
+
+			for ( const auto &Platform : Platformnames )
+			{
+				Result += FString::Printf(TEXT("%s,"), *Platform.ToString() );
+			}
+			return MoveTemp(Result);
 		}
 
 	};
 
+
 private:
-
-	FThreadSafeQueue<FFilePlatformRequest> FileRequests; // list of requested files
-	FLookupQueue<FFilePlatformRequest> UnsolicitedFileRequests; // list of files which haven't been requested but we think should cook based on previous requests
-	FThreadSafeQueue<FFilePlatformRequest> UnsolicitedCookedPackages; // list of files which weren't requested but were cooked (based on UnsolicitedFileRequests)
-
 
 	/** Helper list of all files which have been cooked */
 	struct FThreadSafeFilenameSet
 	{
 	private:
 		mutable FCriticalSection	SynchronizationObject;
-		TSet<FFilePlatformRequest> FilesProcessed;
+		TMap<FName, FFilePlatformRequest> FilesProcessed;
 	public:
 
 		void Lock()
@@ -303,38 +360,168 @@ private:
 			SynchronizationObject.Unlock();
 		}
 
-		void Add(const FFilePlatformRequest &Filename)
+		void Add(const FFilePlatformRequest& Request)
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
-			check(Filename.IsValid());
-			FilesProcessed.Add(Filename);
-		}
-		bool Exists(const FFilePlatformRequest &Filename) const
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-			return FilesProcessed.Contains(Filename);
-		}
-		int RemoveAll( const FName &Filename )
-		{
-			FScopeLock ScopeLock( &SynchronizationObject );
-			int NumRemoved = 0;
-			// for ( TSet<FFilePlatformRequest>::TIterator It( FilesProcessed ); It; ++It )
-			for ( auto It = FilesProcessed.CreateIterator(); It; ++It )
+			check(Request.IsValid());
+
+			// see if it's already in the requests list
+			FFilePlatformRequest *ExistingRequest = FilesProcessed.Find(Request.GetFilename() );
+			
+			if ( ExistingRequest )
 			{
-				if ( It->GetFilename() == Filename )
+				check( ExistingRequest->GetFilename() == Request.GetFilename() );
+				for ( const auto &Platform : Request.GetPlatformnames() )
 				{
-					It.RemoveCurrent();
-					++NumRemoved;
+					ExistingRequest->AddPlatform(Platform);
 				}
 			}
-			return NumRemoved;
+			else
+				FilesProcessed.Add(Request.GetFilename(), Request);
+		}
+		bool Exists(const FFilePlatformRequest& Request) const
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+
+			const FFilePlatformRequest* OurRequest = FilesProcessed.Find( Request.GetFilename() );
+			
+			if (!OurRequest)
+			{
+				return false;
+			}
+
+			// make sure all the platforms are completed
+			for ( const auto& Platform : Request.GetPlatformnames() )
+			{
+				if ( !OurRequest->GetPlatformnames().Contains( Platform ) )
+				{
+					return false;
+				}
+			}
+
+			return true;
+			// return FilesProcessed.Contains(Filename);
+		}
+		bool GetCookedPlatforms( const FName& Filename, TArray<FName>& PlatformList )
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			const FFilePlatformRequest* Request = FilesProcessed.Find(Filename);
+			if ( Request )
+			{
+				PlatformList = Request->GetPlatformnames();
+				return true;
+			}
+			return false;
+			
+		}
+		int RemoveAll( const FName& Filename )
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			return FilesProcessed.Remove( Filename );
 		}
 	};
-	FThreadSafeFilenameSet ThreadSafeFilenameSet; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
 
+
+	struct FFilenameQueue
+	{
+	private:
+		TArray<FName>			Queue;
+		TMap<FName, TArray<FName>> PlatformList;
+		mutable FCriticalSection SynchronizationObject;
+	public:
+		void EnqueueUnique(const FFilePlatformRequest& Request, bool ForceEnqueFront = false)
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			TArray<FName>* Platforms = PlatformList.Find(Request.GetFilename());
+			if ( Platforms == NULL )
+			{
+				PlatformList.Add(Request.GetFilename(), Request.GetPlatformnames());
+				Queue.Add(Request.GetFilename());
+			}
+			else
+			{
+				// add the requested platforms to the platform list
+				for ( const auto& Platform : Request.GetPlatformnames() )
+				{
+					Platforms->AddUnique(Platform);
+				}
+			}
+
+			if ( ForceEnqueFront )
+			{
+				int32 Index = Queue.Find(Request.GetFilename());
+				if ( Index != 0 )
+				{
+					Queue.Swap(0, Index);
+				}
+			}
+		}
+		
+		bool Dequeue(FFilePlatformRequest* Result)
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			if (Queue.Num())
+			{
+				FName Filename = Queue[0];
+				Queue.RemoveAt(0);
+				TArray<FName> Platforms = PlatformList.FindChecked(Filename);
+				PlatformList.Remove(Filename);
+				*Result = MoveTemp(FFilePlatformRequest(MoveTemp(Filename), MoveTemp(Platforms)));
+				return true;
+			}
+			return false;
+		}
+		
+		bool HasItems() const
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			return Queue.Num() > 0;
+		}
+
+		int Num() const 
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			return Queue.Num();
+		}
+	};
+
+	struct FThreadSafeUnsolicitedPackagesList
+	{
+	private:
+		FCriticalSection SyncObject;
+		TArray<FFilePlatformRequest> CookedPackages;
+	public:
+		void AddCookedPackage( const FFilePlatformRequest& PlatformRequest )
+		{
+			FScopeLock S( &SyncObject );
+			CookedPackages.Add( PlatformRequest );
+		}
+		void GetPackagesForPlatformAndRemove( const FName& Platform, TArray<FName> PackageNames )
+		{
+			FScopeLock S( &SyncObject );
+			
+			for ( int I = CookedPackages.Num()-1; I >= 0; --I )
+			{
+				FFilePlatformRequest &Request = CookedPackages[I];
+
+				if ( Request.GetPlatformnames().Contains( Platform ) )
+				{
+					// remove the platform
+					Request.RemovePlatform( Platform );
+
+					if ( Request.GetPlatformnames().Num() == 0 )
+					{
+						CookedPackages.RemoveAt(I);
+					}
+				}
+			}
+		}
+	};
 
 	FThreadSafeQueue<struct FRecompileRequest*> RecompileRequests;
-
+	FFilenameQueue CookRequests; // list of requested files
+	FThreadSafeUnsolicitedPackagesList UnsolicitedCookedPackages;
+	FThreadSafeFilenameSet CookedPackages; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
 
 public:
 
@@ -349,22 +536,20 @@ public:
 	};
 
 
+	virtual ~UCookOnTheFlyServer();
 
 	/**
 	 * FTickableEditorObject interface used by cook on the side
 	 */
 	TStatId GetStatId() const override;
-	 void Tick(float DeltaTime) override;
-	 bool IsTickable() const override;
-
-
-
-
+	void Tick(float DeltaTime) override;
+	bool IsTickable() const override;
+	ECookMode::Type GetCookMode() const { return CurrentCookMode; }
 
 	/**
 	 * Initialize the CookServer so that either CookOnTheFly can be called or Cook on the side can be started and ticked
 	 */
-	void Initialize( bool inCompressed, bool inIterativeCooking, bool inSkipEditorContent, bool inIsAutoTick = false, bool inAsyncLoadSave = false, const FString &OutputDirectoryOverride = FString(TEXT("")) );
+	void Initialize( ECookMode::Type DesiredCookMode, ECookInitializationFlags InCookInitializationFlags, const FString &OutputDirectoryOverride = FString(TEXT("")) );
 
 	/**
 	 * Cook on the side, cooks while also running the editor...
@@ -385,7 +570,15 @@ public:
 	 */
 	void EndNetworkFileServer();
 
-	
+
+	/**
+	 * Start a cook by the book session
+	 * Cook on the fly can't run at the same time as cook by the book
+	 */
+	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections );
+
+	bool IsCookByTheBookRunning() const;
+
 	/**
 	 * Handles cook package requests until there are no more requests, then returns
 	 *
@@ -401,8 +594,7 @@ public:
 	 */
 	void TickRecompileShaderRequests();
 
-	bool HasCookRequests() const { return FileRequests.HasItems(); }
-	bool HasUnsolicitedCookRequests() const { return UnsolicitedFileRequests.HasItems(); }
+	bool HasCookRequests() const { return CookRequests.HasItems(); }
 
 	bool HasRecompileShaderRequests() const { return RecompileRequests.HasItems(); }
 
@@ -435,8 +627,81 @@ public:
 
 private:
 	
+	//////////////////////////////////////////////////////////////////////////
+	// cook by the book specific functions
+	/**
+	 * Collect all the files which need to be cooked for a cook by the book session
+	 */
+	void CollectFilesToCook(TArray<FString>& FilesInPath, 
+		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, 
+		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev);
+	/**
+	 * Call back from the TickCookOnTheSide when a cook by the book finishes (when started form StartCookByTheBook)
+	 */
+	void CookByTheBookFinished();
 
-	bool ShouldCook(const FString& InFileName, const FName &InPlatformName);
+	/**
+	 * Helper function returns if we are in any cook by the book mode
+	 *
+	 * @return if the cook mode is a cook by the book mode
+	 */
+	inline bool IsCookByTheBookMode() const 
+	{ 
+		return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookByTheBook; 
+	}
+
+	/**
+	 * GetDependencies
+	 * 
+	 * @param Packages List of packages to use as the root set for dependency checking
+	 * @param Found return value, all objects which package is dependent on
+	 */
+	void GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found);
+	/**
+	 * GenerateManifestInfo
+	 * generate the manifest information for a given package
+	 *
+	 * @param Package package to generate manifest information for
+	 */
+	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
+
+	//////////////////////////////////////////////////////////////////////////
+	// cook on the fly specific functions
+	/**
+	 * Cook requests for a package from network
+	 *  blocks until cook is complete
+	 * 
+	 * @param  Filename	requested file to cook
+	 * @param  Platformname platform to cook for
+	 * @param  out UnsolicitedFiles return a list of files which were cooked as a result of cooking the requested package
+	 */
+	void HandleNetworkFileServerFileRequest( const FString& Filename, const FString& Platformname, TArray<FString>& UnsolicitedFiles );
+
+	/**
+	 * Shader recompile request from network
+	 *  blocks until shader recompile complete
+	 *
+	 * @param  RecompileData input params for shader compile and compiled shader output
+	 */
+	void HandleNetworkFileServerRecompileShaders(const struct FShaderRecompileData& RecompileData);
+
+	//////////////////////////////////////////////////////////////////////////
+	// general functions
+
+	/**
+	 * Determines if a package should be cooked
+	 * 
+	 * @param InFileName		package file name
+	 * @param InPlatformName	desired platform to cook for
+	 * @return If the package should be cooked
+	 */
+	bool ShouldCook(const FString& InFileName, const FName& InPlatformName);
+
+
+	bool IsCookFlagSet( const ECookInitializationFlags& InCookFlags ) const 
+	{
+		return (CookFlags & InCookFlags) != ECookInitializationFlags::None;
+	}
 
 	/**
 	 * Returns cooker output directory.
@@ -479,17 +744,17 @@ private:
 	 */
 	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames );
 
-	// Callback for handling a network file request.
-	void HandleNetworkFileServerFileRequest( const FString& Filename, const FString &Platformname, TArray<FString>& UnsolicitedFiles );
 
-	// Callback for recompiling shaders
-	void HandleNetworkFileServerRecompileShaders(const struct FShaderRecompileData& RecompileData);
+	/**
+	 *  Save the global shader map
+	 *  
+	 *  @param	Platforms		List of platforms to make global shader maps for
+	 */
+	void SaveGlobalShaderMapFiles(const TArray<ITargetPlatform*>& Platforms);
 
-
-	void MaybeMarkPackageAsAlreadyLoaded(UPackage *Package);
 
 	/** Gets the output directory respecting any command line overrides */
-	FString GetOutputDirectoryOverride( const FString &OutputDirectoryOverride ) const;
+	FString GetOutputDirectoryOverride( const FString& OutputDirectoryOverride ) const;
 
 	/** Cleans sandbox folders for all target platforms */
 	void CleanSandbox(const TArray<ITargetPlatform*>& Platforms);
@@ -497,23 +762,21 @@ private:
 	/** Generates asset registry */
 	void GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms);
 
-	/** Saves global shader map files */
-	// void SaveGlobalShaderMapFiles(const TArray<ITargetPlatform*>& Platforms);
-
-	/** Collects all files to be cooked. This includes all commandline specified maps */
-	//void CollectFilesToCook(TArray<FString>& FilesInPath);
-
 	/** Generates long package names for all files to be cooked */
 	void GenerateLongPackageNames(TArray<FString>& FilesInPath);
 
-	/** Cooks all files */
-	//bool Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
+
+	void GetDependencies( UPackage* Package, TArray<UPackage*> Dependencies );
 
 };
 
 FORCEINLINE uint32 GetTypeHash(const UCookOnTheFlyServer::FFilePlatformRequest &Key)
 {
-	//return GetTypeHash( Key.Filename ) ^ GetTypeHash( Key.Platformname );
-	return Key.GetCachedHash();
+	uint32 Hash = GetTypeHash( Key.Filename );
+	for ( const auto &PlatformName : Key.Platformnames )
+	{
+		Hash += Hash << 2 ^ GetTypeHash( PlatformName );
+	}
+	return Hash;
 }
 

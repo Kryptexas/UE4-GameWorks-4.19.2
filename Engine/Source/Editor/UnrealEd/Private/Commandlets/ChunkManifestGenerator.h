@@ -12,7 +12,7 @@ class FChunkManifestGenerator
 	/** Holds a reference to asset registry */
 	IAssetRegistry& AssetRegistry;
 	/** Platforms to generate the manifests for. */
-	const TArray<ITargetPlatform*>& Platforms;
+	const TArray<ITargetPlatform*> Platforms;
 	/** ChunkIDs associated with a package in the asset registry */
 	TMap<FName, TArray<int32> > RegistryChunkIDsMap;
 	/** List of all asset packages that were created while loading the last package in the cooker. */
@@ -51,6 +51,7 @@ class FChunkManifestGenerator
 		FName		PackageName;
 		uint32		ParentNodeIndex;
 	};
+
 
 	/**
 	 * Adds a package to chunk manifest
@@ -212,7 +213,7 @@ public:
 	void Initialize(bool InGenerateChunks);
 
 	/**
-	 * Adds a package to chunk manifest.
+	 * Adds a package to chunk manifest (just calls the other AddPackageToChunkManifestFunction with more parameters)
 	 *
 	 * @param Package Package to add to one of the manifests
 	 * @param SandboxFilename Cooked sandbox path of the package to add to a manifest
@@ -220,6 +221,35 @@ public:
 	 * @param the SandboxPlatformFile used during cook
 	 */
 	void AddPackageToChunkManifest(UPackage* Package, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile);
+	
+
+	/**
+	 * Add a package to the manifest but don't assign it to any chunk yet, packages which are not assigned by the end of the cook will be put into chunk 0
+	 * 
+	 * @param Package which is unassigned
+	 * @param The sandbox file path of the package
+	 */
+	void AddUnassignedPackageToManifest(UPackage* Package, const FString& PackageSandboxPath );
+
+	/**
+	* Adds a package to chunk manifest
+	*
+	* @param PackageFName Package name (Package->GetFName())
+	* @param PackagePathName Package path name (Package->GetPathName())
+	* @param SandboxFilename Cooked sandbox path of the package to add to a manifest
+	* @param LastLoadedMapName Name of the last loaded map (can be empty)
+	* @param the SandboxPlatformFile used during cook
+	*/
+	void FChunkManifestGenerator::AddPackageToChunkManifest(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile);
+
+
+
+	/**
+	 * Collects all the packages loaded 
+	 *
+	 * @param Package Package which was loaded 
+	 */
+	void OnLastPackageLoaded( UPackage* Package );
 
 	/**
 	 * The cooker is about to load a new package from the list, reset AssetsLoadedWithLastPackage

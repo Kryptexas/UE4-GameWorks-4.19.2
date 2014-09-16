@@ -536,6 +536,24 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	void AttachSelectedActors();
 
 
+	
+	/**
+	 * Can the editor do cook by the book in the editor process space
+	 */
+	virtual bool CanCookByTheBookInEditor() const;
+
+	/**
+	 * Start cook by the book in the editor process space
+	 */
+	virtual void StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections );
+
+	/**
+	 * Checks if the cook by the book is finished
+	 */
+	virtual bool IsCookByTheBookInEditorFinished() const override;
+
+
+
 	// Hook replacements.
 	void ShowActorProperties();
 

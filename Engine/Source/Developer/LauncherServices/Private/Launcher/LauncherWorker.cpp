@@ -226,6 +226,13 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 		}
 	}
 
+
+#if !WITH_EDITOR
+	// can't cook by the book in the editor if we are not in the editor...
+	check( InProfile->GetCookMode() != ELauncherProfileCookModes::ByTheBookInEditor );
+#endif
+
+
 	// for each desired platform...
 	for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex)
 	{
@@ -312,7 +319,38 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
                 CookCommand = Command;
             }
         }
+		else if ( InProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor )
+		{
+			// need a command which will wait for the cook to finish
+			class FWaitForCookInEditorToFinish : public FLauncherTask
+			{
+			public:
+				FWaitForCookInEditorToFinish() : FLauncherTask( FString(TEXT("CookByTheBookInEditor")), FString(TEXT("CookByTheBookInEditorDesk")), NULL, NULL)
+				{
+				}
+				virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
+				{
+					while ( !ChainState.Profile->OnIsCookFinished().Execute() )
+					{
+						FPlatformProcess::Sleep( 0.1f );
+					}
+					return true;
+				}
+			};
 
+			TSharedPtr<FLauncherTask> Command = MakeShareable( new FWaitForCookInEditorToFinish() );
+
+			if (!PerPlatformCookTask.IsValid())
+			{
+				PerPlatformCookTask = Command;
+				FirstPlatformCookTask = Command;
+			}
+			else
+			{
+				PerPlatformCookTask->AddContinuation(Command);
+				PerPlatformCookTask = Command;
+			}
+		}
 		// ... package the build...
 		if (InProfile->GetPackagingMode() != ELauncherProfilePackagingModes::DoNotPackage || ((TargetPlatform->PlatformName() == TEXT("IOS") || TargetPlatform->PlatformName() == TEXT("HTML5")) && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::CopyRepository && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy))
 		{

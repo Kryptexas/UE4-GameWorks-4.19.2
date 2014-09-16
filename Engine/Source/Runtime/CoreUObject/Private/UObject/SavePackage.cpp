@@ -2348,13 +2348,27 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			ensureMsgf(false, TEXT("Recursive SavePackage() is not supported"));
 			return false;
 		}
+		UE_LOG_COOK_TIME(TEXT("First"));
 
+
+		
+		bool bIsCooking = TargetPlatform != NULL;
+
+		// if we are cooking we should be doing it in the editor
+		// otherwise some other assumptions are bad
+		check( !bIsCooking || WITH_EDITOR );
 	#if WITH_EDITOR
-		// Attempt to create a backup of this package before it is saved, if applicable
-		if (FCoreUObjectDelegates::AutoPackageBackupDelegate.IsBound())
+		if ( !bIsCooking )
 		{
-			FCoreUObjectDelegates::AutoPackageBackupDelegate.Execute(*InOuter);
+			// Attempt to create a backup of this package before it is saved, if applicable
+			if (FCoreUObjectDelegates::AutoPackageBackupDelegate.IsBound())
+			{
+				FCoreUObjectDelegates::AutoPackageBackupDelegate.Execute(*InOuter);
+			}
+
+			UE_LOG_COOK_TIME(TEXT("AutoPackageBackupDelegate"));
 		}
+		
 	#endif	// #if WITH_EDITOR
 
 		// do any path replacements on the source DestFile
@@ -2367,11 +2381,15 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		// The latter implies flushing all file handles which is a pre-requisite of saving a package. The code basically needs 
 		// to be sure that we are not reading from a file that is about to be overwritten and that there is no way we might 
 		// start reading from the file till we are done overwriting it.
+
 		FlushAsyncLoading();
-		(*GFlushStreamingFunc)();
-		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 
 		UE_LOG_COOK_TIME(TEXT("Flush Async loading"));
+		(*GFlushStreamingFunc)();
+		UE_LOG_COOK_TIME(TEXT("Flush streaming func"));
+		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
+
+		UE_LOG_COOK_TIME(TEXT("Block till all requests finished and flush handles"));
 
 		check(InOuter);
 		check(Filename);
@@ -2510,12 +2528,14 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			FArchiveSaveTagExports ExportTaggerArchive( InOuter );
 			ExportTaggerArchive.SetPortFlags( ComparisonFlags );
 			ExportTaggerArchive.SetCookingTarget(TargetPlatform);
-	
+			
+			check( ExportTaggerArchive.IsCooking() == !!TargetPlatform );
+			check( ExportTaggerArchive.IsCooking() == bIsCooking );
+
 			// Tag exports and route presave.
 			FPackageExportTagger PackageExportTagger( Base, TopLevelFlags, InOuter );
 			PackageExportTagger.TagPackageExports( ExportTaggerArchive, true );
 			ExportTaggerArchive.SetFilterEditorOnly(FilterEditorOnly);
-
 
 			UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
 		
@@ -2544,7 +2564,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				// only need to do this if we are cooking a different platform then the one which is currently running
 				// TODO: if save package is cancelled then call ClearCache on each object
 				TArray<UObject*> CachedObjects;
-				if ( !!TargetPlatform )
+
+#if WITH_EDITOR
+				if ( bIsCooking )
 				{
 					TArray<UObject*> TagExpObjects;
 					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
@@ -2558,7 +2580,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						}
 					}
 				}
-
+#endif
 
 
 
