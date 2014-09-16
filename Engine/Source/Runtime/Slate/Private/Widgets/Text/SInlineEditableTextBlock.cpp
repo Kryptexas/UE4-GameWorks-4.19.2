@@ -32,6 +32,7 @@ void SInlineEditableTextBlock::Construct( const FArguments& InArgs )
 			.HighlightText( InArgs._HighlightText )
 			.ToolTipText( InArgs._ToolTipText )
 			.WrapTextAt( InArgs._WrapTextAt )
+			.Justification( InArgs._Justification )
 			.LineBreakPolicy( InArgs._LineBreakPolicy )
 		]
 	];

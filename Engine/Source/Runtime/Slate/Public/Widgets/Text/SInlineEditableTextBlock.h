@@ -20,6 +20,7 @@ class SLATE_API SInlineEditableTextBlock: public SCompoundWidget
 		, _ShadowColorAndOpacity()
 		, _HighlightText()
 		, _WrapTextAt(0.0f)
+		, _Justification(ETextJustify::Left)
 		, _LineBreakPolicy()
 		, _IsReadOnly(false)
 	{}
@@ -47,6 +48,9 @@ class SLATE_API SInlineEditableTextBlock: public SCompoundWidget
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE( float, WrapTextAt )
+
+		/** How the text should be aligned with the margin. */
+		SLATE_ATTRIBUTE( ETextJustify::Type, Justification )
 
 		/** The iterator to use to detect appropriate soft-wrapping points for lines (or null to use the default) */
 		SLATE_ARGUMENT( TSharedPtr<IBreakIterator>, LineBreakPolicy )
