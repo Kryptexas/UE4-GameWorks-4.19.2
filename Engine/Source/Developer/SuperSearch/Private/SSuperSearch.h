@@ -11,6 +11,7 @@ struct FSearchEntry
 	FString Title;
 	FString URL;
 	bool bCategory;
+	FAssetData AssetData;
 
 	static FSearchEntry * MakeCategoryEntry(const FString & InTitle);
 };
@@ -66,7 +67,7 @@ protected:
 
 	void Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 
-	void SuggestionSelectionChanged(TSharedPtr<FSearchEntry> NewValue, ESelectInfo::Type SelectInfo);
+	void SuggestionSelectionChanged(TSharedPtr<FSearchEntry> NewValue);
 	
 	void OnMenuOpenChanged(bool bIsOpen);
 
@@ -102,6 +103,7 @@ private:
 	struct FSearchResults
 	{
 		 FCategoryResults OnlineResults;
+		 TArray<FSearchEntry> TutorialResults;
 	};
 
 	//TODO: properly clean map up as time goes by requests are processed and can be discarded
