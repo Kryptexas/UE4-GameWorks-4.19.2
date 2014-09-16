@@ -122,7 +122,10 @@ TSharedRef<ITableRow> SMessageLog::HandleCategoriesListGenerateRow( IMessageLogL
 	
 void SMessageLog::HandleCategoriesListSelectionChanged( IMessageLogListingPtr Selection, ESelectInfo::Type SelectInfo )
 {
-	CurrentListingDisplay->SetContent(SAssignNew(LogListing, SMessageLogListing, Selection.ToSharedRef()));
+	CurrentListingDisplay->SetContent(Selection.IsValid()
+		? SAssignNew(LogListing, SMessageLogListing, Selection.ToSharedRef())
+		: SNullWidget::NullWidget
+	);
 }
 
 
