@@ -158,7 +158,7 @@ static void OnCodeLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
 
 static void ParseAssetLink(const FString& InternalLink, const FString* Action)
 {
-	UObject* RequiredObject = FindObject<UObject>(ANY_PACKAGE, *InternalLink);
+	UObject* RequiredObject = LoadObject<UObject>(nullptr, *InternalLink);
 	if (RequiredObject != nullptr)
 	{
 		if(Action && *Action == TEXT("select"))
