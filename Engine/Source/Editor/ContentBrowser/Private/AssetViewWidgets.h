@@ -379,7 +379,7 @@ public:
 		, _ThumbnailLabel( EThumbnailLabel::ClassName )
 		, _ThumbnailHintColorAndOpacity( FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ) )
 		, _AllowThumbnailHintLabel(true)
-		, _ThumbnailSize(16)
+		, _ItemWidth(16)
 		, _ShouldAllowToolTip(true)
 		, _ThumbnailEditMode(false)
 	{}
@@ -402,8 +402,8 @@ public:
 		/** Whether the thumbnail should ever show it's hint label */
 		SLATE_ARGUMENT( bool, AllowThumbnailHintLabel )
 
-		/** The width of the thumbnail */
-		SLATE_ATTRIBUTE( float, ThumbnailSize )
+		/** The width of the item */
+		SLATE_ATTRIBUTE( float, ItemWidth )
 
 		/** Delegate for when an asset name has entered a rename state */
 		SLATE_EVENT( FOnRenameBegin, OnRenameBegin )
@@ -473,7 +473,7 @@ private:
 	TSharedPtr<FAssetThumbnail> AssetThumbnail;
 
 	/** The width of the item. Used to enforce a square thumbnail. */
-	TAttribute<float> ThumbnailSize;
+	TAttribute<float> ItemWidth;
 
 	/** The padding allotted for the thumbnail */
 	float ThumbnailPadding;

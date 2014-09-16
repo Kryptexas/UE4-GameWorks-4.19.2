@@ -1146,7 +1146,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		);
 
 	AssetThumbnail = InArgs._AssetThumbnail;
-	ThumbnailSize = InArgs._ThumbnailSize;
+	ItemWidth = InArgs._ItemWidth;
 	ThumbnailPadding = IsFolder() ? InArgs._ThumbnailPadding + 5.0f : InArgs._ThumbnailPadding;
 
 	TSharedPtr<SWidget> Thumbnail;
@@ -1262,7 +1262,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 			]
 
 			+SVerticalBox::Slot()
-			.Padding(FMargin(2.f, 0, 2.f, ThumbnailPadding))
+			.Padding(FMargin(1.f, 0))
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.FillHeight(1.f)
@@ -1277,6 +1277,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 					.IsSelected(InArgs._IsSelected)
 					.IsReadOnly(ThumbnailEditMode)
 					.WrapTextAt(this, &SAssetTileItem::GetNameTextWrapWidth)
+					.Justification(ETextJustify::Center)
 					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 			]
 		]
@@ -1304,14 +1305,14 @@ void SAssetTileItem::OnAssetDataChanged()
 	SetToolTip( CreateToolTipWidget() );
 }
 
+FOptionalSize SAssetTileItem::GetThumbnailBoxSize() const
+{
+	return FOptionalSize( ItemWidth.Get() );
+}
+
 FOptionalSize SAssetTileItem::GetSCCImageSize() const
 {
 	return GetThumbnailBoxSize().Get() * 0.2;
-}
-
-FOptionalSize SAssetTileItem::GetThumbnailBoxSize() const
-{
-	return ThumbnailSize.Get(16);
 }
 
 FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
@@ -1334,7 +1335,7 @@ FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
 float SAssetTileItem::GetNameTextWrapWidth() const
 {
 	// Wrap to the entire size of the tile, minus some padding
-	return LastGeometry.Size.X - 4.f;
+	return LastGeometry.Size.X - 2.f;
 }
 
 ///////////////////////////////

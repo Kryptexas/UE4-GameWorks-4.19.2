@@ -503,7 +503,6 @@ private:
 
 	/** Gets the scaled item width for the tile view before the filler scale is applied */
 	float GetTileViewItemBaseWidth() const;
-	float GetTileViewThumbnailSize() const;
 
 	/** Gets the sort mode for the supplied ColumnId */
 	EColumnSortMode::Type GetColumnSortMode(const FName ColumnId) const;

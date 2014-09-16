@@ -52,6 +52,7 @@ public:
 		AssetThumbnail = InArgs._AssetThumbnail;
 		bHasRenderedThumbnail = false;
 		WidthLastFrame = 0;
+		GenericThumbnailBorderPadding = 2.f;
 
 		AssetThumbnail->OnAssetDataChanged().AddSP(this, &SAssetThumbnail::OnAssetDataChanged);
 
@@ -92,7 +93,7 @@ public:
 			SNew(SBorder)
 			.BorderImage( this, &SAssetThumbnail::GetBackgroundBrush )
 			.BorderBackgroundColor( this, &SAssetThumbnail::GetAssetColor )
-			.Padding( 0 )
+			.Padding( GenericThumbnailBorderPadding )
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Center)
 			.Visibility(this, &SAssetThumbnail::GetClassThumbnailVisibility)
@@ -108,7 +109,7 @@ public:
 			SNew(SBorder)
 			.BorderImage( this, &SAssetThumbnail::GetBackgroundBrush )
 			.BorderBackgroundColor( this, &SAssetThumbnail::GetAssetColor )
-			.Padding( 0 )
+			.Padding( GenericThumbnailBorderPadding )
 			.VAlign(VAlign_Center) .HAlign(HAlign_Center)
 			.Visibility(this, &SAssetThumbnail::GetGenericThumbnailVisibility)
 			[
@@ -301,8 +302,7 @@ private:
 
 	float GetTextWrapWidth() const
 	{
-		/** 2px padding either side of the text */
-		return WidthLastFrame;// - 4.f;
+		return WidthLastFrame - GenericThumbnailBorderPadding * 2.f;
 	}
 
 	const FSlateBrush* GetBackgroundBrush() const
@@ -551,6 +551,7 @@ private:
 
 	FLinearColor AssetColor;
 	float WidthLastFrame;
+	float GenericThumbnailBorderPadding;
 	bool bHasRenderedThumbnail;
 	FName Style;
 	TAttribute< FText > HighlightedText;
