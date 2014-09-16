@@ -5,9 +5,9 @@
 
 #if ENABLE_VISUAL_LOG
 FVisualLoggerExtension::FVisualLoggerExtension()
-	:  CachedEQSId(INDEX_NONE)
-	, CurrentTimestamp(FLT_MIN)
+	: CachedEQSId(INDEX_NONE)
 	, SelectedEQSId(INDEX_NONE)
+	, CurrentTimestamp(FLT_MIN)
 {
 
 }
