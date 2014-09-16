@@ -32,12 +32,19 @@ public:
 	/** Delegate fired when the close button is clicked */
 	SLATE_ARGUMENT(FSimpleDelegate, OnClosed)
 
+	SLATE_ARGUMENT(FSimpleDelegate, OnBackClicked)
+	SLATE_ARGUMENT(FSimpleDelegate, OnHomeClicked)
+	SLATE_ARGUMENT(FSimpleDelegate, OnNextClicked)
+	SLATE_ATTRIBUTE(bool, IsBackEnabled)
+	SLATE_ATTRIBUTE(bool, IsHomeEnabled)
+	SLATE_ATTRIBUTE(bool, IsNextEnabled)
+
 	/** Whether we can show full window content in this overlay (i.e. in the same window as the navigation controls) */
 	SLATE_ARGUMENT(bool, AllowNonWidgetContent)
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, FTutorialStage* const InStage);
+	void Construct(const FArguments& InArgs, UEditorTutorial* InTutorial, FTutorialStage* const InStage);
 
 	/** SWidget implementation */
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;

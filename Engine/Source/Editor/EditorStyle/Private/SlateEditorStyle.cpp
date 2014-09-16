@@ -2455,12 +2455,15 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 			.SetPressedPadding( FMargin(0,1,0,0)));
 
 		Set( "Tutorials.Content.Button", FButtonStyle()
-			.SetNormal( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,0.15f) ) )
+			.SetNormal( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0,0,0,0) ) )
 			.SetHovered( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
 			.SetPressed( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
 			.SetDisabled( BOX_BRUSH( "Common/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(1,1,1,1) ) )
 			.SetNormalPadding( FMargin(0,0,0,1))
 			.SetPressedPadding( FMargin(0,1,0,0)));
+
+		Set( "Tutorials.Content.Color", FLinearColor(1.0f,1.0f,1.0f,0.9f) );
+		Set( "Tutorials.Content.Color.Hovered", FLinearColor(1.0f,1.0f,1.0f,1.0f) );
 
 		Set( "Tutorials.Browser.CategoryArrow", new IMAGE_BRUSH( "Tutorials/BrowserCategoryArrow", FVector2D(24.0f, 24.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
 		Set( "Tutorials.Browser.DefaultTutorialIcon", new IMAGE_BRUSH( "Tutorials/DefaultTutorialIcon_40x", FVector2D(40.0f, 40.0f), FLinearColor::White ) );
@@ -2468,6 +2471,18 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 
 		Set( "Tutorials.Browser.BackButton", new IMAGE_BRUSH( "Tutorials/BrowserBack", FVector2D(32.0f, 32.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
 		Set( "Tutorials.Browser.RestartButton", new IMAGE_BRUSH( "Tutorials/BrowserRestart", FVector2D(16.0f, 16.0f), FLinearColor(0.0f, 0.0f, 0.0f, 1.0f) ) );
+
+		Set( "Tutorials.Navigation.Button", FButtonStyle()
+			.SetNormal( BOX_BRUSH( "Tutorials/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0,0,0,0) ) )
+			.SetHovered( BOX_BRUSH( "Tutorials/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0,0,0,0) ) )
+			.SetPressed( BOX_BRUSH( "Tutorials/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0,0,0,0) ) )
+			.SetDisabled( BOX_BRUSH( "Tutorials/ButtonHoverHint", FMargin(4/16.0f), FLinearColor(0,0,0,0) ) )
+			.SetNormalPadding( FMargin(0,0,0,1))
+			.SetPressedPadding( FMargin(0,1,0,0)));
+
+		Set( "Tutorials.Navigation.NextButton", new IMAGE_BRUSH( "Tutorials/NavigationNext", Icon32x32 ) );
+		Set( "Tutorials.Navigation.HomeButton", new IMAGE_BRUSH( "Tutorials/NavigationHome", Icon32x32 ) );
+		Set( "Tutorials.Navigation.BackButton", new IMAGE_BRUSH( "Tutorials/NavigationBack", Icon32x32 ) );
 
 		Set( "Tutorials.WidgetContent", FTextBlockStyle(TutorialText)
 			.SetFontSize(10));

@@ -16,20 +16,29 @@ namespace TutorialConstants
 	const float MinBorderOpacity = 0.1f;
 	const float ShadowScale = 8.0f;
 	const float MaxBorderOffset = 8.0f;
-	const float BorderSize = 24.0f;
+	const FMargin BorderSizeStandalone(24.0f, 24.0f);
+	const FMargin BorderSize(24.0f, 24.0f, 24.0f, 42.0f);
 }
 
 const float ContentOffset = 10.0f;
 
-void STutorialContent::Construct(const FArguments& InArgs, const FTutorialContent& InContent)
+void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTutorial, const FTutorialContent& InContent)
 {
 	bIsVisible = Anchor.Type == ETutorialAnchorIdentifier::None;
+
+	Tutorial = InTutorial;
 
 	VerticalAlignment = InArgs._VAlign;
 	HorizontalAlignment = InArgs._HAlign;
 	WidgetOffset = InArgs._Offset;
 	bIsStandalone = InArgs._IsStandalone;
 	OnClosed = InArgs._OnClosed;
+	OnNextClicked = InArgs._OnNextClicked;
+	OnHomeClicked = InArgs._OnHomeClicked;
+	OnBackClicked = InArgs._OnBackClicked;
+	IsBackEnabled = InArgs._IsBackEnabled;
+	IsHomeEnabled = InArgs._IsHomeEnabled;
+	IsNextEnabled = InArgs._IsNextEnabled;
 	Anchor = InArgs._Anchor;
 
 	BorderIntroAnimation.AddCurve(0.0f, TutorialConstants::BorderIntroAnimationLength, ECurveEaseFunction::CubicOut);
@@ -57,42 +66,92 @@ void STutorialContent::Construct(const FArguments& InArgs, const FTutorialConten
 		.RenderScale(this, &STutorialContent::GetAnimatedZoom)
 		.RenderScaleOrigin(FVector2D(0.5f, 0.5f))
 		[
-			SAssignNew(ContentWidget, SBorder)
-
-			// Add more padding if the content is to be displayed centrally (i.e. not on a widget)
-			.Padding(TutorialConstants::BorderSize)
-			.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
-			.Visibility(this, &STutorialContent::GetVisibility)
-			.BorderBackgroundColor(this, &STutorialContent::GetBackgroundColor)
-			.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
+			SNew(SOverlay)
+			+SOverlay::Slot()
 			[
-				SNew(SFxWidget)
-				.RenderScale(this, &STutorialContent::GetInverseAnimatedZoom)
-				.RenderScaleOrigin(FVector2D(0.5f, 0.5f))
+				SAssignNew(ContentWidget, SBorder)
+
+				// Add more padding if the content is to be displayed centrally (i.e. not on a widget)
+				.Padding(bIsStandalone ? TutorialConstants::BorderSizeStandalone : TutorialConstants::BorderSize)
+				.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
+				.Visibility(this, &STutorialContent::GetVisibility)
+				.BorderBackgroundColor(this, &STutorialContent::GetBackgroundColor)
+				.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.MaxWidth(600.0f)
-					.VAlign(VAlign_Center)
+					SNew(SFxWidget)
+					.RenderScale(this, &STutorialContent::GetInverseAnimatedZoom)
+					.RenderScaleOrigin(FVector2D(0.5f, 0.5f))
 					[
-						GenerateContentWidget(InContent, InArgs._WrapTextAt, DocumentationPage)
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Top)
-					.Padding(5.0f, 0.0f, 0.0f, 0.0f)
-					[
-						SNew(SButton)
-						.OnClicked(this, &STutorialContent::OnCloseButtonClicked)
-						.Visibility(this, &STutorialContent::GetCloseButtonVisibility)
-						.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.Button"))
-						.ContentPadding(0.0f)
+						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("Symbols.X"))
-							.ColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f))
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							.MaxWidth(600.0f)
+							.VAlign(VAlign_Center)
+							[
+								GenerateContentWidget(InContent, InArgs._WrapTextAt, DocumentationPage)
+							]
 						]
+					]
+				]
+			]
+			+SOverlay::Slot()
+			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Right)
+			.Padding(16.0f)
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Top)
+				.Padding(2.0f)
+				[
+					SNew(SComboButton)
+					.ToolTipText(LOCTEXT("MoreOptionsTooltip", "More Options"))
+					.Visibility(this, &STutorialContent::GetMenuButtonVisibility)
+					.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.Button"))
+					.ContentPadding(0.0f)
+					.OnGetMenuContent(FOnGetContent::CreateSP(this, &STutorialContent::HandleGetMenuContent))
+				]
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Top)
+				.Padding(0.0f)
+				[
+					SNew(SButton)
+					.ToolTipText(LOCTEXT("QuitStandaloneTooltip", "Close this Message"))
+					.OnClicked(this, &STutorialContent::OnCloseButtonClicked)
+					.Visibility(this, &STutorialContent::GetCloseButtonVisibility)
+					.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.Button"))
+					.ContentPadding(0.0f)
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("Symbols.X"))
+						.ColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f))
+					]
+				]
+			]
+			+SOverlay::Slot()
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			.Padding(8.0f)
+			[
+				SAssignNew(NextButton, SButton)
+				.ToolTipText(this, &STutorialContent::GetNextButtonTooltip)
+				.OnClicked(this, &STutorialContent::HandleNextClicked)
+				.Visibility(this, &STutorialContent::GetMenuButtonVisibility)
+				.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Navigation.Button"))
+				.ContentPadding(0.0f)
+				[
+					SNew(SBox)
+					.Padding(8.0f)
+					[
+						SNew(SImage)
+						.Image(this, &STutorialContent::GetNextButtonBrush)
+						.ColorAndOpacity(this, &STutorialContent::GetNextButtonColor)
 					]
 				]
 			]
@@ -322,6 +381,11 @@ EVisibility STutorialContent::GetCloseButtonVisibility() const
 	return bIsStandalone ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+EVisibility STutorialContent::GetMenuButtonVisibility() const
+{
+	return !bIsStandalone ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
 void STutorialContent::HandlePaintNamedWidget(TSharedRef<SWidget> InWidget, const FGeometry& InGeometry)
 {
 	switch(Anchor.Type)
@@ -359,12 +423,12 @@ FSlateColor STutorialContent::GetBackgroundColor() const
 {
 	// note cant use IsHovered() here because our widget is SelfHitTestInvisible
 	const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
-	return CachedContentGeometry.IsUnderLocation(CursorPos) ? FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) : FLinearColor(1.0f, 1.0f, 1.0f, 0.8f);
+	return CachedContentGeometry.IsUnderLocation(CursorPos) ? FEditorStyle::Get().GetColor("Tutorials.Content.Color.Hovered") : FEditorStyle::Get().GetColor("Tutorials.Content.Color");
 }
 
 float STutorialContent::GetAnimatedZoom() const
 {
-	if(ContentIntroAnimation.IsPlaying())
+	if(ContentIntroAnimation.IsPlaying() && FSlateApplication::Get().IsRunningAtTargetFrameRate())
 	{
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 		return 0.75f + (0.25f * IntroTutorials.GetIntroCurveValue(ContentIntroAnimation.GetLerp()));
@@ -378,6 +442,132 @@ float STutorialContent::GetAnimatedZoom() const
 float STutorialContent::GetInverseAnimatedZoom() const
 {
 	return 1.0f / GetAnimatedZoom();
+}
+
+TSharedRef<SWidget> STutorialContent::HandleGetMenuContent()
+{
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, TSharedPtr<const FUICommandList>());
+
+	MenuBuilder.BeginSection(TEXT("Tutorial Options"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ExitLabel", "Exit"),
+			LOCTEXT("ExitTooltip", "Quit this tutorial. You can find it again in the tutorials browser, reached from the Help menu."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &STutorialContent::HandleExitSelected),
+				FCanExecuteAction()
+			)
+		);
+
+		if(IsBackEnabled.Get())
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("BackLabel", "Back"),
+				LOCTEXT("BackTooltip", "Go back to the previous stage of this tutorial."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &STutorialContent::HandleBackSelected),
+					FCanExecuteAction()
+				)
+			);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("RestartLabel", "Restart"),
+				LOCTEXT("RestartTooltip", "Start this tutorial again from the beginning."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &STutorialContent::HandleRestartSelected),
+					FCanExecuteAction()
+				)
+			);
+		}
+
+		if(IsHomeEnabled.Get())
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("OpenBrowserLabel", "More Tutorials..."),
+				LOCTEXT("OpenBrowserTooltip", "Open the tutorial browser to find more tutorials."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &STutorialContent::HandleBrowseSelected),
+					FCanExecuteAction()
+				)
+			);	
+		}
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+void STutorialContent::HandleExitSelected()
+{
+	OnClosed.ExecuteIfBound();
+}
+
+void STutorialContent::HandleBackSelected()
+{
+	OnBackClicked.ExecuteIfBound();
+}
+
+void STutorialContent::HandleRestartSelected()
+{
+	if(Tutorial.IsValid())
+	{
+		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+		const bool bRestart = true;
+		IntroTutorials.LaunchTutorial(Tutorial.Get(), bRestart, FSlateApplication::Get().FindWidgetWindow(AsShared()));		
+	}
+}
+
+void STutorialContent::HandleBrowseSelected()
+{
+	OnHomeClicked.ExecuteIfBound();
+}
+
+FReply STutorialContent::HandleNextClicked()
+{
+	if(IsNextEnabled.Get())
+	{
+		OnNextClicked.ExecuteIfBound();
+	}
+	else
+	{
+		OnHomeClicked.ExecuteIfBound();
+	}
+	
+	return FReply::Handled();
+}
+
+const FSlateBrush* STutorialContent::GetNextButtonBrush() const
+{
+	if(IsNextEnabled.Get())
+	{
+		return FEditorStyle::GetBrush("Tutorials.Navigation.NextButton");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("Tutorials.Navigation.HomeButton");
+	}
+}
+
+FText STutorialContent::GetNextButtonTooltip() const
+{
+	if(IsNextEnabled.Get())
+	{
+		return LOCTEXT("NextButtonTooltip", "Go to the next stage of this tutorial.");
+	}
+	else
+	{
+		return LOCTEXT("HomeButtonTooltip", "This tutorial is complete. Open the tutorial browser to find more tutorials.");
+	}
+}
+
+FSlateColor STutorialContent::GetNextButtonColor() const
+{
+	return NextButton->IsHovered() ? FLinearColor(0.1f, 0.1f, 0.1f, 1.0f) : FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 #undef LOCTEXT_NAMESPACE

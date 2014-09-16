@@ -10,7 +10,7 @@
 #include "BlueprintEditorUtils.h"
 #include "Guid.h"
 
-void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const InStage)
+void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTutorial, FTutorialStage* const InStage)
 {
 	ParentWindow = InArgs._ParentWindow;
 	bIsStandalone = InArgs._IsStandalone;
@@ -39,8 +39,14 @@ void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
-					SNew(STutorialContent, InStage->Content)
+					SNew(STutorialContent, InTutorial, InStage->Content)
 					.OnClosed(InArgs._OnClosed)
+					.OnNextClicked(InArgs._OnNextClicked)
+					.OnHomeClicked(InArgs._OnHomeClicked)
+					.OnBackClicked(InArgs._OnBackClicked)
+					.IsBackEnabled(InArgs._IsBackEnabled)
+					.IsHomeEnabled(InArgs._IsHomeEnabled)
+					.IsNextEnabled(InArgs._IsNextEnabled)
 					.IsStandalone(InArgs._IsStandalone)
 					.WrapTextAt(600.0f)
 				]
@@ -56,14 +62,19 @@ void STutorialOverlay::Construct(const FArguments& InArgs, FTutorialStage* const
 			{
 				if (WidgetContent.Content.Type != ETutorialContent::None)
 				{
-
 					TSharedPtr<STutorialContent> ContentWidget =
-						SNew(STutorialContent, WidgetContent.Content)
+						SNew(STutorialContent, InTutorial, WidgetContent.Content)
 						.HAlign(WidgetContent.HorizontalAlignment)
 						.VAlign(WidgetContent.VerticalAlignment)
 						.Offset(WidgetContent.Offset)
 						.IsStandalone(bIsStandalone)
 						.OnClosed(OnClosed)
+						.OnNextClicked(InArgs._OnNextClicked)
+						.OnHomeClicked(InArgs._OnHomeClicked)
+						.OnBackClicked(InArgs._OnBackClicked)
+						.IsBackEnabled(InArgs._IsBackEnabled)
+						.IsHomeEnabled(InArgs._IsHomeEnabled)
+						.IsNextEnabled(InArgs._IsNextEnabled)
 						.WrapTextAt(WidgetContent.ContentWidth)
 						.Anchor(WidgetContent.WidgetAnchor);
 					

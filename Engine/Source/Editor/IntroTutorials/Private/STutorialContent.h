@@ -32,6 +32,24 @@ class STutorialContent : public SCompoundWidget
 	/** Delegate fired when the close button is clicked */
 	SLATE_ARGUMENT(FSimpleDelegate, OnClosed)
 
+	/** Delegate fired when the back button is clicked */
+	SLATE_ARGUMENT(FSimpleDelegate, OnBackClicked)
+
+	/** Delegate fired when the home button is clicked */
+	SLATE_ARGUMENT(FSimpleDelegate, OnHomeClicked)
+
+	/** Delegate fired when the next button is clicked */
+	SLATE_ARGUMENT(FSimpleDelegate, OnNextClicked)
+
+	/** Attribute controlling enabled state of back functionality */
+	SLATE_ATTRIBUTE(bool, IsBackEnabled)
+
+	/** Attribute controlling enabled state of home functionality */
+	SLATE_ATTRIBUTE(bool, IsHomeEnabled)
+
+	/** Attribute controlling enabled state of next functionality */
+	SLATE_ATTRIBUTE(bool, IsNextEnabled)
+
 	/** Where text should be wrapped */
 	SLATE_ARGUMENT(float, WrapTextAt)
 
@@ -40,7 +58,7 @@ class STutorialContent : public SCompoundWidget
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const FTutorialContent& InContent);
+	void Construct(const FArguments& InArgs, UEditorTutorial* InTutorial, const FTutorialContent& InContent);
 
 	/** SWidget implementation */
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
@@ -74,6 +92,9 @@ private:
 	/** Get close button visibility - varies depending on whether we are standalone or not */
 	EVisibility GetCloseButtonVisibility() const;
 
+	/** Get menu button visibility - varies depending on whether we are standalone or not */
+	EVisibility GetMenuButtonVisibility() const;
+
 	/** Alter the background color depending on hover state */
 	FSlateColor GetBackgroundColor() const;
 
@@ -82,6 +103,33 @@ private:
 	
 	/** Get inverse zoom level padding for content - needed because rich text content doesnt scale well */
 	float GetInverseAnimatedZoom() const;
+
+	/** Get the content for the navigation menu */
+	TSharedRef<SWidget> HandleGetMenuContent();
+
+	/** Delegate handler for exiting the tutorial */
+	void HandleExitSelected();
+
+	/** Delegate handler for going to the previous stage of the tutorial */
+	void HandleBackSelected();
+
+	/** Delegate handler for restarting the tutorial */
+	void HandleRestartSelected();
+
+	/** Delegate handler for exiting the tutorial to the browser */
+	void HandleBrowseSelected();
+
+	/** Delegate handler for going to the next stage of the tutorial */
+	FReply HandleNextClicked();
+
+	/** Delegate handler allowing us to change the brush of the 'next' button depending on context */
+	const FSlateBrush* GetNextButtonBrush() const;
+
+	/** Delegate handler allowing us to change the tootlip of the 'next' button depending on context */
+	FText GetNextButtonTooltip() const;
+
+	/** Chage next button color based on hover state */
+	FSlateColor GetNextButtonColor() const;
 
 private:
 
@@ -118,6 +166,24 @@ private:
 	/** Delegate fired when the close button is clicked */
 	FSimpleDelegate OnClosed;
 
+	/** Delegate fired when the next button is clicked */
+	FSimpleDelegate OnNextClicked;
+
+	/** Delegate fired when the home button is clicked */
+	FSimpleDelegate OnHomeClicked;
+
+	/** Delegate fired when the back button is clicked */
+	FSimpleDelegate OnBackClicked;
+
+	/** Attribute controlling enabled state of back functionality */
+	TAttribute<bool> IsBackEnabled;
+
+	/** Attribute controlling enabled state of home functionality */
+	TAttribute<bool> IsHomeEnabled;
+
+	/** Attribute controlling enabled state of next functionality */
+	TAttribute<bool> IsNextEnabled;
+
 	/** Animation curves for displaying border */
 	FCurveSequence BorderPulseAnimation;
 	FCurveSequence BorderIntroAnimation;
@@ -127,4 +193,10 @@ private:
 
 	/** Documentation page reference to use if we are displaying a UDN doc - we need this otherwise the page will be freed */
 	TSharedPtr<IDocumentationPage> DocumentationPage;
+
+	/** The tutorial we are referencing */
+	TWeakObjectPtr<UEditorTutorial> Tutorial;
+
+	/** Next button widget */
+	TSharedPtr<SWidget> NextButton;
 };

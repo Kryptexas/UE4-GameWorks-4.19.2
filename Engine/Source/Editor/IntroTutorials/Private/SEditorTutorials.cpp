@@ -114,9 +114,7 @@ EVisibility SEditorTutorials::GetBrowserVisibility() const
 
 EVisibility SEditorTutorials::GetNavigationVisibility() const
 {
-	UEditorTutorial* CurrentTutorial = OnGetCurrentTutorial.Execute();
-
-	return bShowNavigation && CurrentTutorial != nullptr && !CurrentTutorial->bIsStandalone ? EVisibility::Visible : EVisibility::Collapsed;
+	return EVisibility::Collapsed;
 }
 
 void SEditorTutorials::HandleCloseClicked()
@@ -189,11 +187,17 @@ void SEditorTutorials::RebuildCurrentContent()
 	{
 		ContentBox->AddSlot()
 		[
-			SAssignNew(OverlayContent, STutorialOverlay, &CurrentTutorial->Stages[CurrentTutorialStage])
+			SAssignNew(OverlayContent, STutorialOverlay, CurrentTutorial, &CurrentTutorial->Stages[CurrentTutorialStage])
 			.OnClosed(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleCloseClicked))
 			.IsStandalone(CurrentTutorial->bIsStandalone)
 			.ParentWindow(ParentWindow)
 			.AllowNonWidgetContent(bShowNavigation)
+			.OnBackClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleBackClicked))
+			.OnHomeClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleHomeClicked))
+			.OnNextClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleNextClicked))
+			.IsBackEnabled(this, &SEditorTutorials::IsBackButtonEnabled)
+			.IsHomeEnabled(this, &SEditorTutorials::IsHomeButtonEnabled)
+			.IsNextEnabled(this, &SEditorTutorials::IsNextButtonEnabled)
 		];
 	}
 	else
@@ -201,7 +205,7 @@ void SEditorTutorials::RebuildCurrentContent()
 		// create 'empty' overlay, as we may need this for picking visualization
 		ContentBox->AddSlot()
 		[
-			SAssignNew(OverlayContent, STutorialOverlay, nullptr)
+			SAssignNew(OverlayContent, STutorialOverlay, nullptr, nullptr)
 			.OnClosed(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleCloseClicked))
 			.IsStandalone(false)
 			.ParentWindow(ParentWindow)
