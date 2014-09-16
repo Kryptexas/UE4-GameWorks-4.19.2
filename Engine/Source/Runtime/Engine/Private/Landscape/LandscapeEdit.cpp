@@ -3946,6 +3946,13 @@ void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		{
 			StaticLightingResolution = 0;
 		}
+		InvalidateLightingCache();
+	}
+	else if (GIsEditor && PropertyName == FName(TEXT("LightingLODBias")))
+	{
+		int32 MaxLOD = FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1;
+		LightingLODBias = FMath::Clamp<int32>(LightingLODBias, -1, MaxLOD);
+		InvalidateLightingCache();
 	}
 	else if (GIsEditor && (PropertyName == FName(TEXT("CollisionMipLevel"))))
 	{

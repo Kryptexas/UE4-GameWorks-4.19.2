@@ -85,6 +85,9 @@ ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializePro
 	NeighborLODBias[5] = 128;
 	NeighborLODBias[6] = 128;
 	NeighborLODBias[7] = 128;
+#if WITH_EDITORONLY_DATA
+	LightingLODBias = -1; // -1 Means automatic LOD calculation based on ForcedLOD + LODBias
+#endif
 
 	Mobility = EComponentMobility::Static;
 

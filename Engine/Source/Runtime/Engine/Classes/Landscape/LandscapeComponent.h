@@ -211,6 +211,10 @@ public:
 	FGuid StateId;
 
 #if WITH_EDITORONLY_DATA
+	/** LOD level Bias to use when lighting buidling via lightmass, -1 Means automatic LOD calculation based on ForcedLOD + LODBias */
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
+	int32 LightingLODBias;
+
 	UPROPERTY(Transient, DuplicateTransient)
 	UTexture2D* SelectDataTexture; // Data texture used for selection mask
 
