@@ -1339,6 +1339,7 @@ void ALandscapeProxy::SetAbsoluteSectionBase(FIntPoint InSectionBase)
 		{
 			FIntPoint AbsoluteSectionBase = Comp->GetSectionBase() + Difference;
 			Comp->SetSectionBase(AbsoluteSectionBase);
+			Comp->RecreateRenderState_Concurrent();
 		}
 	}
 
