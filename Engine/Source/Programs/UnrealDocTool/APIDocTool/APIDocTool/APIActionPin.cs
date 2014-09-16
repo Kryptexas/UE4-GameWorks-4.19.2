@@ -134,6 +134,30 @@ namespace APIDocTool
 					return "rotator";
 				}
 			}
+			else if (PinCategory == "byte")
+			{
+				if (PinSubCategoryObject != "")
+				{
+					return "enum";
+				}
+			}
+
+			return PinCategory;
+		}
+
+		private string GetTypeText()
+		{
+			if (PinCategory == "struct")
+			{
+				if (PinSubCategoryObject == "Vector2D")
+				{
+					return "vector2d struct";
+				}
+				else if (PinSubCategoryObject == "LinearColor")
+				{
+					return "linearcolor";
+				}
+			}
 			else if (PinCategory == "bool")
 			{
 				return "boolean";
@@ -141,13 +165,6 @@ namespace APIDocTool
 			else if (PinCategory == "int")
 			{
 				return "integer";
-			}
-			else if (PinCategory == "byte")
-			{
-				if (PinSubCategoryObject != "")
-				{
-					return "enum";
-				}
 			}
 
 			return PinCategory;
@@ -160,10 +177,8 @@ namespace APIDocTool
 
 		public void WriteObject(UdnWriter Writer, bool bDrawLabels)
 		{
-			string PinCategory = GetPinCategory();
-
 			Writer.EnterObject("BlueprintPin");
-			Writer.WriteParamLiteral("type", PinCategory + (bIsArray ? " array" : ""));
+			Writer.WriteParamLiteral("type", GetTypeText() + (bIsArray ? " array" : ""));
 			Writer.WriteParamLiteral("id", GetId());
 
 			if (bShowPinLabel && bDrawLabels)
@@ -172,10 +187,10 @@ namespace APIDocTool
 			}
 
 			var DefaultValueElements = DefaultValue.Split(',');
-			switch(PinCategory)
+			switch(GetPinCategory())
 			{
 				case "byte":
-					Writer.WriteParamLiteral("value", (DefaultValueElements.Length > 0 ? DefaultValueElements[0] : "0"));
+					Writer.WriteParamLiteral("value", (DefaultValueElements[0].Length > 0 ? DefaultValueElements[0] : "0"));
 					break;
 
 				case "class":
@@ -186,11 +201,11 @@ namespace APIDocTool
 					break;
 
 				case "float":
-					Writer.WriteParamLiteral("value", (DefaultValueElements.Length > 0 ? DefaultValueElements[0] : "0.0"));
+					Writer.WriteParamLiteral("value", (DefaultValueElements[0].Length > 0 ? DefaultValueElements[0] : "0.0"));
 					break;
 
 				case "integer":
-					Writer.WriteParamLiteral("value", (DefaultValueElements.Length > 0 ? DefaultValueElements[0] : "0"));
+					Writer.WriteParamLiteral("value", (DefaultValueElements[0].Length > 0 ? DefaultValueElements[0] : "0"));
 					break;
 
 				case "object":
@@ -201,21 +216,31 @@ namespace APIDocTool
 					break;
 
 				case "rotator":
-					Writer.WriteParamLiteral("yaw", (DefaultValueElements.Length > 0 ? DefaultValueElements[0] : "0.0"));
+					Writer.WriteParamLiteral("yaw", (DefaultValueElements[0].Length > 0 ? DefaultValueElements[0] : "0.0"));
 					Writer.WriteParamLiteral("pitch", (DefaultValueElements.Length > 1 ? DefaultValueElements[1] : "0.0"));
 					Writer.WriteParamLiteral("roll", (DefaultValueElements.Length > 2 ? DefaultValueElements[2] : "0.0"));
 					break;
 
 				case "struct":
-					if (PinSubCategoryObject == "Vector2D")
+					if (PinSubCategoryObject == "LinearColor")
 					{
-						Writer.WriteParamLiteral("x", (DefaultValueElements.Length > 0 ? DefaultValueElements[0] : "0.0"));
+						float r = (DefaultValueElements[0].Length > 0 ? float.Parse(DefaultValueElements[0].Split('=')[1]) : 0) * 255;
+						float g = (DefaultValueElements.Length > 1 ? float.Parse(DefaultValueElements[1].Split('=')[1]) : 0) * 255;
+						float b = (DefaultValueElements.Length > 2 ? float.Parse(DefaultValueElements[2].Split('=')[1]) : 0) * 255;
+
+						Writer.WriteParamLiteral("r", ((int)r).ToString());
+						Writer.WriteParamLiteral("g", ((int)g).ToString());
+						Writer.WriteParamLiteral("b", ((int)b).ToString());
+					}
+					else if (PinSubCategoryObject == "Vector2D")
+					{
+						Writer.WriteParamLiteral("x", (DefaultValueElements[0].Length > 0 ? DefaultValueElements[0] : "0.0"));
 						Writer.WriteParamLiteral("y", (DefaultValueElements.Length > 1 ? DefaultValueElements[1] : "0.0"));
 					}
 					break;
 
 				case "vector":
-					Writer.WriteParamLiteral("x",(DefaultValueElements.Length > 0 ? DefaultValueElements[0] : "0.0"));
+					Writer.WriteParamLiteral("x", (DefaultValueElements[0].Length > 0 ? DefaultValueElements[0] : "0.0"));
 					Writer.WriteParamLiteral("y",(DefaultValueElements.Length > 1 ? DefaultValueElements[1] : "0.0"));
 					Writer.WriteParamLiteral("z",(DefaultValueElements.Length > 2 ? DefaultValueElements[2] : "0.0"));
 					break;
