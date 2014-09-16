@@ -667,7 +667,7 @@ FString SGraphEditorImpl::GetInstructionText() const
 
 EVisibility SGraphEditorImpl::InstructionTextVisibility() const
 {
-	if (GetInstructionTextFade() > 0.0f)
+	if (!GetInstructionText().IsEmpty() && (GetInstructionTextFade() > 0.0f))
 	{
 		return EVisibility::Visible;
 	}
