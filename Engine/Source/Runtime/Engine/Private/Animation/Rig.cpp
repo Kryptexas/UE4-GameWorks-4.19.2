@@ -294,6 +294,7 @@ void URig::CreateFromSkeleton(const USkeleton * Skeleton, const TMap<int32, int3
 	}
 }
 
+/*
 void URig::CalculateComponentSpace(int32 NodeIndex, const FTransform & LocalTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutComponentSpaceTransform) const
 {
 	int32 ConstraintIndex = FindRigControlByNodeName(Nodes[NodeIndex].Name);
@@ -409,7 +410,7 @@ void URig::CalculateLocalSpace(int32 NodeIndex, const FTransform & ComponentTran
 		// @todo fix this
 		OutLocalSpaceTransform.SetScale3D(ComponentTransform.GetScale3D());
 	}
-}
+}*/
 
 void URig::SetAllConstraintsToParents()
 {

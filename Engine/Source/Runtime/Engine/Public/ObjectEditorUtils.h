@@ -123,6 +123,21 @@ namespace FObjectEditorUtils
 
 		return true;
 	}
+
+	/** Helper function to convert the input for GetActions to a list that can be used for delegates */
+	template <typename T>
+	static TArray<TWeakObjectPtr<T>> GetTypedWeakObjectPtrs(const TArray<UObject*>& InObjects)
+	{
+		check(InObjects.Num() > 0);
+
+		TArray<TWeakObjectPtr<T>> TypedObjects;
+		for(auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+		{
+			TypedObjects.Add(CastChecked<T>(*ObjIt));
+		}
+
+		return TypedObjects;
+	}
 };
 
 #endif // WITH_EDITOR

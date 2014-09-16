@@ -1042,6 +1042,21 @@ FName USkeleton::GetRigBoneMapping(const FName & NodeName) const
 	return NAME_None;
 }
 
+int32 USkeleton::GetMappedValidNodes(TArray<FName> &OutValidNodeNames)
+{
+	OutValidNodeNames.Empty();
+
+	for (auto Entry : RigConfig.BoneMappingTable)
+	{
+		if (Entry.BoneName != NAME_None)
+		{
+			OutValidNodeNames.Add(Entry.NodeName);
+		}
+	}
+
+	return OutValidNodeNames.Num();
+}
+
 bool USkeleton::SetRigBoneMapping(const FName & NodeName, FName BoneName)
 {
 	// make sure it's valid

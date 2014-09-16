@@ -632,6 +632,8 @@ public:
 	ENGINE_API void SetRigConfig(URig * Rig);
 	ENGINE_API FName GetRigBoneMapping(const FName & NodeName) const;
 	ENGINE_API bool SetRigBoneMapping(const FName & NodeName, FName BoneName);
+	// this make sure it stays within the valid range
+	ENGINE_API int32 GetMappedValidNodes(TArray<FName> &OutValidNodeNames);
 	// verify if it has all latest data
 	ENGINE_API void RefreshRigConfig();
 	int32 FindRigBoneMapping(const FName & NodeName) const;

@@ -291,6 +291,9 @@ private:
 /** 
  * Slate panel for choose Skeleton for assets to relink
  */
+
+DECLARE_DELEGATE_FourParams(FOnRetargetAnimation, USkeleton* /*OldSkeleton*/, USkeleton* /*NewSkeleton*/, bool /*bRemapReferencedAssets*/, bool /*bConvertSpaces*/)
+
 class SAnimationRemapSkeleton : public SCompoundWidget
 {
 public:
@@ -309,7 +312,7 @@ public:
 		SLATE_ARGUMENT( bool, ShowRemapOption )
 		SLATE_ARGUMENT( bool, ShowConvertSpacesOption )
 		SLATE_ARGUMENT( bool, ShowCompatibleDisplayOption )
-
+		SLATE_EVENT(FOnRetargetAnimation, OnRetargetDelegate)
 	SLATE_END_ARGS()	
 
 	/**
@@ -352,6 +355,8 @@ private:
 
 	TWeakPtr<SWindow> WidgetWindow;
 
+	FOnRetargetAnimation OnRetargetAnimationDelegate;
+
 	/** Handlers for check box for remapping assets option */
 	ESlateCheckBoxState::Type IsRemappingReferencedAssets() const;
 	void OnRemappingReferencedAssetsChanged(ESlateCheckBoxState::Type InNewRadioState);
@@ -390,14 +395,13 @@ private:
 public:
 
 	/**
-	 *  Show Modal window
+	 *  Show window
 	 *
 	 * @param OldSkeleton		Old Skeleton to change from
-	 * @param NewSkeleton(out)	New Selected Skeleton
 	 *
 	 * @return true if successfully selected new skeleton
 	 */
-	static UNREALED_API bool ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool *bShowOnlyCompatibleSkeletons, bool * bConvertSpace = NULL, bool * bRemapReferencedAssets=NULL);
+	static UNREALED_API void ShowWindow(USkeleton * OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate);
 };
 
 ////////////////////////////////////////////////////

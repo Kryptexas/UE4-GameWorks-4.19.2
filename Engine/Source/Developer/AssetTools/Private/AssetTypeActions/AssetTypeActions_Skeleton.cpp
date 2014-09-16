@@ -417,28 +417,20 @@ void FAssetTypeActions_Skeleton::GetActions( const TArray<UObject*>& InObjects, 
 			LOCTEXT("CreateSkeletonSubmenu_ToolTip", "Create assets for this skeleton"),
 			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillCreateMenu, Skeletons));
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_Retarget", "Retarget to Another Skeleton"),
-		LOCTEXT("Skeleton_RetargetTooltip", "Allow all animation assets for this skeleton retarget to another skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton, Skeletons ),
-			FCanExecuteAction()
-			)
-		);
-
-	if (InObjects.Num() == 1)
+	// only show if one is selected. It won't work since I changed the window to be normal window
+	if (Skeletons.Num() == 1)
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Skeleton_CreateRig", "Create Rig"),
-			LOCTEXT("Skeleton_CreateRigTooltip", "Create Rig from this skeleton."),
+			LOCTEXT("Skeleton_Retarget", "Retarget to Another Skeleton"),
+			LOCTEXT("Skeleton_RetargetTooltip", "Allow all animation assets for this skeleton retarget to another skeleton."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteCreateRig, Skeletons),
+				FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton, Skeletons),
 				FCanExecuteAction()
 				)
 			);
 	}
+
 	// @todo ImportAnimation
 	/*
 	MenuBuilder.AddMenuEntry(
@@ -468,6 +460,22 @@ void FAssetTypeActions_Skeleton::FillCreateMenu(FMenuBuilder& MenuBuilder, TArra
 	FAnimAssetCreated OnAssetCreated;
 	OnAssetCreated.BindSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated);
 	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, /*OnAssetCreated*/FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated));
+
+	MenuBuilder.AddMenuSeparator();
+
+	// create rig
+	if(Skeletons.Num() == 1)
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("Skeleton_CreateRig", "Create Rig"),
+			LOCTEXT("Skeleton_CreateRigTooltip", "Create Rig from this skeleton."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteCreateRig, Skeletons),
+				FCanExecuteAction()
+				)
+			);
+	}
 }
 
 void FAssetTypeActions_Skeleton::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -601,44 +609,41 @@ void FAssetTypeActions_Skeleton::CreateAnimationAssets(const TArray<TWeakObjectP
 	AnimationEditorUtils::CreateAnimationAssets(Skeletons, AssetClass, InPrefix, /*OnAssetCreated*/FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated));
 }
 
+void FAssetTypeActions_Skeleton::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces)
+{
+	// find all assets who references old skeleton
+	TArray<FName> Packages;
+
+	// If the asset registry is still loading assets, we cant check for referencers, so we must open the rename dialog
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().GetReferencers(OldSkeleton->GetOutermost()->GetFName(), Packages);
+
+	if(AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		// Open a dialog asking the user to wait while assets are being discovered
+		SDiscoveringAssetsDialog::OpenDiscoveringAssetsDialog(
+			SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetTypeActions_Skeleton::PerformRetarget, OldSkeleton, NewSkeleton, Packages, bConvertSpaces)
+			);
+	}
+	else
+	{
+		PerformRetarget(OldSkeleton, NewSkeleton, Packages, bConvertSpaces);
+	}
+}
 void FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<USkeleton>> Skeletons)
 {
+	// only allow 1 for now, it is scary to do this for multi
 	// warn the user to shut down any persona that is opened
 	if ( FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("CloseReferencingEditors", "You need to close Persona or anything that references animation, mesh or animation blueprint before this step. Continue?")) == EAppReturnType::Yes )
 	{
 		for (auto SkelIt = Skeletons.CreateConstIterator(); SkelIt; ++SkelIt)
 		{	
 			USkeleton * OldSkeleton = (*SkelIt).Get();
-			USkeleton * NewSkeleton = NULL;
 
 			const FText Message = LOCTEXT("RetargetSkeleton_Warning", "This only converts animation data -i.e. animation assets and Anim Blueprints. \nIf you'd like to convert SkeletalMesh, use the context menu (Assign Skeleton) for each mesh. \n\nIf you'd like to convert mesh as well, please do so before converting animation data. \nOtherwise you will lose any extra track that is in the new mesh.");
 
-			bool bConvertSpaces = OldSkeleton != NULL;
-			bool bShowOnlyCompatibleSkeletons = OldSkeleton != NULL;
-
 			// ask user what they'd like to change to 
-			if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, OldSkeleton? &bShowOnlyCompatibleSkeletons : NULL, OldSkeleton ? &bConvertSpaces : NULL))
-			{
-				// find all assets who references old skeleton
-				TArray<FName> Packages;
-
-				// If the asset registry is still loading assets, we cant check for referencers, so we must open the rename dialog
-				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-				AssetRegistryModule.Get().GetReferencers(OldSkeleton->GetOutermost()->GetFName(), Packages);
-
-				if ( AssetRegistryModule.Get().IsLoadingAssets() )
-				{
-					// Open a dialog asking the user to wait while assets are being discovered
-					SDiscoveringAssetsDialog::OpenDiscoveringAssetsDialog(
-						SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetTypeActions_Skeleton::PerformRetarget, OldSkeleton, NewSkeleton, Packages, bConvertSpaces)
-						);
-				}
-				else
-				{
-					PerformRetarget(OldSkeleton, NewSkeleton, Packages, bConvertSpaces);
-				}
-				
-			}
+			SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, FOnRetargetAnimation::CreateSP(this, &FAssetTypeActions_Skeleton::RetargetAnimationHandler));
 		}
 	}
 }

@@ -10,7 +10,7 @@
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "NotificationManager.h"
 #include "Editor/Persona/Public/PersonaModule.h"
-
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "EditorAnimUtils"
 
@@ -18,7 +18,6 @@ namespace EditorAnimUtils
 {
 	//////////////////////////////////////////////////////////////////
 	// FAnimationRetargetContext
-
 	FAnimationRetargetContext::FAnimationRetargetContext(const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces) 
 		: SingleTargetObject(NULL)
 		, bConvertAnimationDataInComponentSpaces(bInConvertAnimationDataInComponentSpaces)
@@ -28,21 +27,22 @@ namespace EditorAnimUtils
 		{
 			Objects.Add((*Iter).GetAsset());
 		}
-		Initialize(Objects,bRetargetReferredAssets);
+		auto WeakObjectList = FObjectEditorUtils::GetTypedWeakObjectPtrs<UObject>(Objects);
+		Initialize(WeakObjectList,bRetargetReferredAssets);
 	}
 
-	FAnimationRetargetContext::FAnimationRetargetContext(const TArray<UObject*>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces) 
+	FAnimationRetargetContext::FAnimationRetargetContext(TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces) 
 		: SingleTargetObject(NULL)
 		, bConvertAnimationDataInComponentSpaces(bInConvertAnimationDataInComponentSpaces)
 	{
 		Initialize(AssetsToRetarget,bRetargetReferredAssets);
 	}
 
-	void FAnimationRetargetContext::Initialize(const TArray<UObject*>& AssetsToRetarget, bool bRetargetReferredAssets)
+	void FAnimationRetargetContext::Initialize(TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets)
 	{
 		for(auto Iter = AssetsToRetarget.CreateConstIterator(); Iter; ++Iter)
 		{
-			UObject* Asset = (*Iter);
+			UObject* Asset = (*Iter).Get();
 			if( UAnimSequence* AnimSeq = Cast<UAnimSequence>(Asset) )
 			{
 				AnimSequencesToRetarget.AddUnique(AnimSeq);
@@ -60,7 +60,7 @@ namespace EditorAnimUtils
 		if(AssetsToRetarget.Num() == 1)
 		{
 			//Only chose one object to retarget, keep track of it
-			SingleTargetObject = AssetsToRetarget[0];
+			SingleTargetObject = AssetsToRetarget[0].Get();
 		}
 
 		if(bRetargetReferredAssets)
@@ -224,7 +224,7 @@ namespace EditorAnimUtils
 	}
 
 	//////////////////////////////////////////////////////////////////
-	UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, const TArray<UObject*>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace)
+	UObject* RetargetAnimations(USkeleton * OldSkeleton, USkeleton* NewSkeleton, TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace)
 	{
 		FAnimationRetargetContext RetargetContext(AssetsToRetarget, bRetargetReferredAssets, bConvertSpace);
 		return RetargetAnimations(OldSkeleton, NewSkeleton, RetargetContext, bRetargetReferredAssets, bDuplicateAssetsBeforeRetarget);

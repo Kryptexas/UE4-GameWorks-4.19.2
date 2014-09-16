@@ -400,6 +400,7 @@ void SAnimationRemapSkeleton::Construct( const FArguments& InArgs )
 	bRemapReferencedAssets = true;
 	bConvertSpaces = false;
 	bShowOnlyCompatibleSkeletons = false;
+	OnRetargetAnimationDelegate = InArgs._OnRetargetDelegate;
 
 	TSharedRef<SVerticalBox> Widget = SNew(SVerticalBox);
 	if(InArgs._ShowRemapOption)
@@ -681,6 +682,11 @@ void SAnimationRemapSkeleton::OnAssetSelectedFromPicker(const FAssetData& AssetD
 
 FReply SAnimationRemapSkeleton::OnApply()
 {
+	if (OnRetargetAnimationDelegate.IsBound())
+	{
+		OnRetargetAnimationDelegate.Execute(OldSkeleton, NewSkeleton, bRemapReferencedAssets, bConvertSpaces);
+	}
+
 	CloseWindow();
 	return FReply::Handled();
 }
@@ -699,7 +705,7 @@ void SAnimationRemapSkeleton::CloseWindow()
 	}
 }
 
-bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool *bShowOnlyCompatibleSkeletons, bool * bConvertSpace, bool * bRemapReferencedAssets)
+void SAnimationRemapSkeleton::ShowWindow(USkeleton * OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate)
 {
 	static TSharedPtr<SWindow> DialogWindow;
 
@@ -724,28 +730,15 @@ bool SAnimationRemapSkeleton::ShowModal(USkeleton * OldSkeleton, USkeleton * & N
 			.CurrentSkeleton(OldSkeleton)
 			.WidgetWindow(DialogWindow)
 			.WarningMessage(WarningMessage)
-			.ShowRemapOption(bRemapReferencedAssets != NULL)
-			.ShowConvertSpacesOption(bConvertSpace != NULL)
-			.ShowCompatibleDisplayOption(bShowOnlyCompatibleSkeletons != NULL)
+			.ShowRemapOption(true)
+			.ShowConvertSpacesOption(OldSkeleton != NULL)
+			.ShowCompatibleDisplayOption(OldSkeleton != NULL)
+			.OnRetargetDelegate(RetargetDelegate)
 		];
 
 	DialogWindow->SetContent(DialogWrapper.ToSharedRef());
 
 	FSlateApplication::Get().AddWindow(DialogWindow.ToSharedRef());
-
-	NewSkeleton = DialogWidget.Get()->NewSkeleton;
-
-	if(bRemapReferencedAssets)
-	{
-		*bRemapReferencedAssets = DialogWidget.Get()->bRemapReferencedAssets;
-	}
-
-	if (bConvertSpace)
-	{
-		*bConvertSpace = DialogWidget.Get()->bConvertSpaces;
-	}
-
-	return (NewSkeleton != NULL && NewSkeleton != OldSkeleton);
 }
 
 ////////////////////////////////////////////////////
