@@ -608,7 +608,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 		// block anything else than just anim sequence
 		if( DroppedObjAsAnimationAsset != NULL )
 		{
-			if( ! DroppedObjAsAnimationAsset->IsA(UAnimSequence::StaticClass()) )
+			if( ! DroppedObjAsAnimationAsset->IsA(UAnimSequenceBase::StaticClass()) )
 			{
 				DroppedObjAsAnimationAsset = NULL;
 			}
