@@ -6092,7 +6092,7 @@ void UCharacterMovementComponent::SetAvoidanceEnabled(bool bEnable)
 	}
 }
 
-void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
+void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaSeconds )
 {
 	FCollisionQueryParams QueryParams;
 	QueryParams.bReturnFaceIndex = false;
@@ -6164,7 +6164,7 @@ void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 			}
 			
 			const float DistanceNow = (HitLoc - BodyLocation).SizeSquared2D();
-			const float DistanceLater = (HitLoc - (BodyLocation + BodyVelocity * DeltaTime)).SizeSquared2D();
+			const float DistanceLater = (HitLoc - (BodyLocation + BodyVelocity * DeltaSeconds)).SizeSquared2D();
 
 			if (BodyLocation.SizeSquared() > 0.1f && bHasHit && DistanceNow < StopBodyDistance && !bIsPenetrating)
 			{

@@ -951,10 +951,10 @@ public:
 	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
 
 	/** Applies repulsion force to all touched components. */
-	void ApplyRepulsionForce(float DeltaTime);
+	virtual void ApplyRepulsionForce(float DeltaSeconds);
 	
 	/** Applies momentum accumulated through AddImpulse() and AddForce(). */
-	void ApplyAccumulatedForces(float DeltaSeconds);	
+	virtual void ApplyAccumulatedForces(float DeltaSeconds);
 
 	/** 
 	 * Handle start swimming functionality
