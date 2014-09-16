@@ -113,8 +113,8 @@ public:
 					[
 						(SeverityImageName == NAME_None)
 							? SNullWidget::NullWidget
-							: SNew(SImage)
-								.Image(FEditorStyle::GetBrush(SeverityImageName))
+							: static_cast<TSharedRef<SWidget>>(SNew(SImage)
+								.Image(FEditorStyle::GetBrush(SeverityImageName)))
 					]
 			]
 
@@ -148,7 +148,7 @@ public:
 							[
 								!HasTokens
 									? SNullWidget::NullWidget
-									: SNew(SSeparator)
+									: static_cast<TSharedRef<SWidget>>(SNew(SSeparator))
 							]
 
 						+ SVerticalBox::Slot()
@@ -158,7 +158,7 @@ public:
 							[
 								!HasTokens
 									? SNullWidget::NullWidget
-									: TokenBox
+									: static_cast<TSharedRef<SWidget>>(TokenBox)
 							]
 					]
 			];
