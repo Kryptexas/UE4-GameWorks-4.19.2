@@ -536,12 +536,13 @@ public:
 	/**
 	 * Removes the variable nodes associated with the specified var name
 	 *
-	 * @param	Blueprint		The blueprint you want variable nodes removed from.
-	 * @param	VarName			Name of the variable to be removed.
-	 * @param	bForSelfOnly	True if you only want to delete variable nodes that represent ones owned by this blueprint,
-	 *							false if you just want everything with the specified name removed (variables from other classes too).
+	 * @param	Blueprint			The blueprint you want variable nodes removed from.
+	 * @param	VarName				Name of the variable to be removed.
+	 * @param	bForSelfOnly		True if you only want to delete variable nodes that represent ones owned by this blueprint,
+	 * @param	LocalGraphScope		Local scope graph of variables
+	 *								false if you just want everything with the specified name removed (variables from other classes too).
 	 */
-	static void RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly = true);
+	static void RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly = true, UEdGraph* LocalGraphScope = nullptr);
 
 	/**Rename a member variable*/
 	static void RenameMemberVariable(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);
@@ -783,7 +784,7 @@ public:
 	static bool IsVariableComponent(const FBPVariableDescription& Variable);
 
 	/** Indicates if the variable is used on any graphs in this Blueprint*/
-	static bool IsVariableUsed(const UBlueprint* Blueprint, const FName& Name);
+	static bool IsVariableUsed(const UBlueprint* Blueprint, const FName& Name, UEdGraph* LocalGraphScope = nullptr);
 
 	static void ImportKismetDefaultValueToProperty(UEdGraphPin* SourcePin, UProperty* DestinationProperty, uint8* DestinationAddress, UObject* OwnerObject);
 	

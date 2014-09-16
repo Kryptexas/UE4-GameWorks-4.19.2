@@ -3307,7 +3307,7 @@ void FBlueprintEditorUtils::BulkRemoveMemberVariables(UBlueprint* Blueprint, con
 	}
 }
 
-void FBlueprintEditorUtils::RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly)
+void FBlueprintEditorUtils::RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly, UEdGraph* LocalGraphScope)
 {
 	TArray<UEdGraph*> AllGraphs;
 	Blueprint->GetAllGraphs(AllGraphs);
@@ -3328,9 +3328,12 @@ void FBlueprintEditorUtils::RemoveVariableNodes(UBlueprint* Blueprint, const FNa
 
 			if ((SelfClass == VariableParent) || !bForSelfOnly)
 			{
-				if(VarName == CurrentNode->GetVarName())
+				if(LocalGraphScope == CurrentNode->GetGraph() || LocalGraphScope == nullptr)
 				{
-					CurrentNode->DestroyNode();
+					if(VarName == CurrentNode->GetVarName())
+					{
+						CurrentNode->DestroyNode();
+					}
 				}
 			}
 		}
@@ -3606,7 +3609,7 @@ void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const U
 			if(GraphNodes[0]->LocalVariables[VarIdx].VarName == InVarName)
 			{
 				GraphNodes[0]->LocalVariables.RemoveAt(VarIdx);
-				FBlueprintEditorUtils::RemoveVariableNodes(InBlueprint, InVarName);
+				FBlueprintEditorUtils::RemoveVariableNodes(InBlueprint, InVarName, true, ScopeGraph);
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 
 				bFoundLocalVariable = true;
@@ -3854,7 +3857,7 @@ bool FBlueprintEditorUtils::IsVariableComponent(const FBPVariableDescription& Va
 	return false;
 }
 
-bool FBlueprintEditorUtils::IsVariableUsed(const UBlueprint* Blueprint, const FName& Name )
+bool FBlueprintEditorUtils::IsVariableUsed(const UBlueprint* Blueprint, const FName& Name, UEdGraph* LocalGraphScope/* = nullptr*/ )
 {
 	TArray<UEdGraph*> AllGraphs;
 	Blueprint->GetAllGraphs(AllGraphs);
@@ -3862,15 +3865,18 @@ bool FBlueprintEditorUtils::IsVariableUsed(const UBlueprint* Blueprint, const FN
 	{
 		const UEdGraph* CurrentGraph = *it;
 
-		TArray<UK2Node_Variable*> GraphNodes;
-		CurrentGraph->GetNodesOfClass(GraphNodes);
-
-		for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt )
+		if(CurrentGraph == LocalGraphScope || LocalGraphScope == nullptr)
 		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-			if(Name == CurrentNode->GetVarName())
+			TArray<UK2Node_Variable*> GraphNodes;
+			CurrentGraph->GetNodesOfClass(GraphNodes);
+
+			for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt )
 			{
-				return true;
+				UK2Node_Variable* CurrentNode = *NodeIt;
+				if(Name == CurrentNode->GetVarName())
+				{
+					return true;
+				}
 			}
 		}
 	}
