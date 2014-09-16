@@ -240,7 +240,7 @@ public:
 	* @param LastLoadedMapName Name of the last loaded map (can be empty)
 	* @param the SandboxPlatformFile used during cook
 	*/
-	void FChunkManifestGenerator::AddPackageToChunkManifest(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile);
+	void AddPackageToChunkManifest(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile);
 
 
 

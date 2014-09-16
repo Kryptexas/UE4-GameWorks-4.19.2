@@ -470,7 +470,7 @@ private:
 	 *
 	 * @param	Obj		a pointer to the object that was encountered
 	 */
-	FArchive& FArchiveFindReferences::operator<<( UObject*& Obj )
+	FArchive& operator<<( UObject*& Obj )
 	{
 		if( Obj )
 		{
