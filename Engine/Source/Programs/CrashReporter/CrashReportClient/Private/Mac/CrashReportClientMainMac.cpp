@@ -76,6 +76,7 @@ static FString GSavedCommandLine;
     NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
     [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
 	
+	FPlatformMisc::ActivateApplication();
 	RunGameThread(self, @selector(runGameThread:));
 }
 
