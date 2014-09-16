@@ -19,6 +19,11 @@ public class UE4BuildUtils : CommandUtils
 	{
 		Log("Building BuildPatchTool");
 
+		if (Command == null)
+		{
+			Command = new UE4BuildUtilDummyBuildCommand();
+		}
+
 		var UE4Build = new UE4Build(Command);
 
 		var Agenda = new UE4Build.BuildAgenda();
@@ -32,5 +37,13 @@ public class UE4BuildUtils : CommandUtils
 
 		UE4Build.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true);
 		UE4Build.CheckBuildProducts(UE4Build.BuildProductFiles);
+	}
+
+	class UE4BuildUtilDummyBuildCommand : BuildCommand
+	{
+		public override void ExecuteBuild()
+		{
+			// noop
+		}
 	}
 }
