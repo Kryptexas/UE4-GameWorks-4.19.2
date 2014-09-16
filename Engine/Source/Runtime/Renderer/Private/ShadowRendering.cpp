@@ -3317,12 +3317,6 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 	return bAttenuationBufferDirty;
 }
 
-#if PLATFORM_IOS
-// 0: Regular operation, clear to zero (due to inverted Z) and don't store it
-// 1: For Shadow Maps, clear to 1.0f and save the render target
-int GMetalHackDepthActions = 0;
-#endif
-
 /**
  * Used by RenderLights to render shadows to the attenuation buffer.
  *
@@ -3395,17 +3389,9 @@ bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate
 	{
 		// Render the shadow depths.
 		SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque, DEC_SCENE_ITEMS);
-#if PLATFORM_IOS
-		// WILL BE FIXED WHEN WE HAVE SET & CLEAR RT IN THE SAME API! Also a way to tell it to be resolved!
-		GMetalHackDepthActions = 1;
-#endif
-		GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList);
-#if PLATFORM_IOS
-		// WILL BE FIXED WHEN WE HAVE SET & CLEAR RT IN THE SAME API!
-		GMetalHackDepthActions = 0;
-#endif
 
-		RHICmdList.Clear(false, FColor(255, 255, 255), true, 1.0f, false, 0, FIntRect());
+		// Clearin the render target happens inside the Begin function
+		GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList);
 
 		// render depth for each shadow
 		for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)

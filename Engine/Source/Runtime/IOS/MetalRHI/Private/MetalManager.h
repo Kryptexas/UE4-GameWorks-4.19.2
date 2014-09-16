@@ -100,7 +100,7 @@ public:
 	void SetBlendState(FMetalBlendState* BlendState);
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
 	void SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, uint32 MipIndex, uint32 ArraySliceIndex, MTLLoadAction LoadAction, MTLStoreAction StoreAction, int32 TotalNumRenderTargets);
-	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface);
+	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface, MTLLoadAction LoadAction, MTLStoreAction StoreAction, float ClearDepthValue);
 	
 	/**
 	 * Update the context with the current render targets
@@ -185,10 +185,18 @@ protected:
 		MTLLoadAction LoadAction;
 		MTLStoreAction StoreAction;
 	};
-	
+
+	struct FDepthRenderTargetViewInfo
+	{
+		float ClearDepthValue;
+		MTLLoadAction LoadAction;
+		MTLStoreAction StoreAction;
+	};
+
 	FRenderTargetViewInfo CurrentRenderTargetsViewInfo[MaxMetalRenderTargets], PreviousRenderTargetsViewInfo[MaxMetalRenderTargets];
 	uint32 CurrentNumRenderTargets, PreviousNumRenderTargets;
 	id<MTLTexture> CurrentColorRenderTextures[MaxMetalRenderTargets], PreviousColorRenderTextures[MaxMetalRenderTargets];
+	FDepthRenderTargetViewInfo CurrentDepthViewInfo, PreviousDepthViewInfo;
 	id<MTLTexture> CurrentDepthRenderTexture, PreviousDepthRenderTexture;
 	id<MTLTexture> CurrentMSAARenderTexture;
 	

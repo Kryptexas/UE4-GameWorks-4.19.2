@@ -282,6 +282,7 @@ FORCEINLINE MTLLoadAction GetMetalRTLoadAction(ERenderTargetLoadAction LoadActio
 	{
 		case ERenderTargetLoadAction::ENoAction: return MTLLoadActionDontCare;
 		case ERenderTargetLoadAction::ELoad: return MTLLoadActionLoad;
+		case ERenderTargetLoadAction::EClear: return MTLLoadActionClear;
 		default: return MTLLoadActionDontCare;
 	}
 }

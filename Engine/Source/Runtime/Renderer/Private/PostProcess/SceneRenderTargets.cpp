@@ -740,14 +740,17 @@ void FSceneRenderTargets::FinishRenderingPrePass(FRHICommandListImmediate& RHICm
 void FSceneRenderTargets::BeginRenderingShadowDepth(FRHICommandListImmediate& RHICmdList)
 {
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ShadowDepthZ);
-	if (GSupportsDepthRenderTargetWithoutColorRenderTarget)
+	FRHISetRenderTargetsInfo Info(0, nullptr, FRHIDepthRenderTargetView(GetShadowDepthZSurface(), ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+	Info.SetClearDepthStencil(true, 1.0f);
+	Info.ColorRenderTarget[0].StoreAction = ERenderTargetStoreAction::ENoAction;
+
+	if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
 	{
-		SetRenderTarget(RHICmdList, FTextureRHIRef(), GetShadowDepthZSurface());
+		Info.NumColorRenderTargets = 1;
+		Info.ColorRenderTarget[0].Texture = GetOptionalShadowDepthColorSurface();
 	}
-	else
-	{
-		SetRenderTarget(RHICmdList, GetOptionalShadowDepthColorSurface(), GetShadowDepthZSurface());
-	}
+
+	RHICmdList.SetRenderTargetsAndClear(Info);
 }
 
 void FSceneRenderTargets::BeginRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution)

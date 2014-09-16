@@ -36,10 +36,6 @@ static uint32 RTBitOffsets[] = { OFFSET_RENDER_TARGET_FORMAT0, OFFSET_RENDER_TAR
 	}
 #define GET_HASH(Offset, NumBits) ((Hash >> Offset) & ((1ULL << NumBits) - 1))
 
-//@todo-rco: HACK! This needs to exist until we merge SetRenderTargets()+Clear()
-extern int GMetalHackDepthActions;
-
-
 /*
 void FPipelineShadow::SetHash(uint64 InHash)
 {
@@ -211,6 +207,8 @@ FMetalManager::FMetalManager()
 	}
 	FMemory::MemSet(CurrentRenderTargetsViewInfo, 0);
 	FMemory::MemSet(PreviousRenderTargetsViewInfo, 0);
+	FMemory::MemSet(CurrentDepthViewInfo, 0);
+	FMemory::MemSet(PreviousDepthViewInfo, 0);
 
 	CommandQueue = [Device newCommandQueue];
 
@@ -519,16 +517,22 @@ void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 R
 	}
 }
 
-void FMetalManager::SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface)
+void FMetalManager::SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface, MTLLoadAction LoadAction, MTLStoreAction StoreAction, float ClearDepthValue)
 {
 	if (RenderSurface)
 	{
 		// @todo metal stencil: track stencil here
 		CurrentDepthRenderTexture = RenderSurface->Texture;
+		CurrentDepthViewInfo.LoadAction = LoadAction;
+		CurrentDepthViewInfo.StoreAction = StoreAction;
+		CurrentDepthViewInfo.ClearDepthValue = ClearDepthValue;
 	}
 	else
 	{
 		CurrentDepthRenderTexture = nil;
+		CurrentDepthViewInfo.LoadAction = MTLLoadActionClear;
+		CurrentDepthViewInfo.StoreAction = MTLStoreActionDontCare;
+		CurrentDepthViewInfo.ClearDepthValue = 0.0f;
 	}
 }
 
@@ -553,6 +557,8 @@ void FMetalManager::UpdateContext()
 		{
 			return;
 		}
+
+		//@todo-rco: Do we need to test changes in Load/Store actions (and/or clear values) for Color & Depth?
 	}
 
 	PreviousNumRenderTargets = CurrentNumRenderTargets;
@@ -628,19 +634,9 @@ void FMetalManager::UpdateContext()
 
 		// set up the depth attachment
 		DepthAttachment.texture = CurrentDepthRenderTexture;
-		[DepthAttachment setLoadAction:MTLLoadActionClear];
-		if (GMetalHackDepthActions == 1)
-		{
-			// For Shadow Maps, clear to 1.0f and save the render target
-			[DepthAttachment setStoreAction:MTLStoreActionStore];
-			[DepthAttachment setClearDepth:1.0f];
-		}
-		else if (GMetalHackDepthActions == 0)
-		{
-			// Regular operation, clear to zero (due to inverted Z) and don't store it
-			[DepthAttachment setStoreAction:MTLStoreActionDontCare];
-			[DepthAttachment setClearDepth:0.0f];
-		}
+		[DepthAttachment setLoadAction:CurrentDepthViewInfo.LoadAction];
+		[DepthAttachment setStoreAction : CurrentDepthViewInfo.StoreAction];
+		[DepthAttachment setClearDepth : CurrentDepthViewInfo.ClearDepthValue];
 
 		Pipeline.DepthTargetFormat = CurrentDepthRenderTexture.pixelFormat;
 		if (Pipeline.SampleCount == 0)
@@ -660,6 +656,7 @@ void FMetalManager::UpdateContext()
 	SET_HASH(OFFSET_DEPTH_TARGET_FORMAT, NUMBITS_DEPTH_TARGET_FORMAT, Pipeline.DepthTargetFormat);
 
 	// remember this for next time
+	PreviousDepthViewInfo = CurrentDepthViewInfo;
 	PreviousDepthRenderTexture = CurrentDepthRenderTexture;
 
 	SET_HASH(OFFSET_SAMPLE_COUNT, NUMBITS_SAMPLE_COUNT, Pipeline.SampleCount);
