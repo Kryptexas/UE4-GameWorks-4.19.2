@@ -6,7 +6,11 @@
 
 #include "Core.h"
 #include "HTML5Application.h"
+
+#if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
+#endif 
+
 #include <ctime>
 
 void FHTML5Misc::PlatformInit()
