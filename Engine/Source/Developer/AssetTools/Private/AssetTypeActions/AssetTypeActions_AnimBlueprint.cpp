@@ -160,10 +160,11 @@ void FAssetTypeActions_AnimBlueprint::RetargetAssets(const TArray<UObject*> InAn
 	}
 
 	bool bConvertSpaces = OldSkeleton != NULL;
+	bool bShowOnlyCompatibleSkeletons = OldSkeleton != NULL;
 
 	const FText Message = LOCTEXT("RemapSkeleton_Warning", "Select the skeleton to remap this asset to.");
 
-	if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, OldSkeleton ? &bConvertSpaces : NULL, &bRemapReferencedAssets))
+	if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, OldSkeleton? &bShowOnlyCompatibleSkeletons : NULL, OldSkeleton ? &bConvertSpaces : NULL, &bRemapReferencedAssets))
 	{
 		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, InAnimBlueprints, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
 	}

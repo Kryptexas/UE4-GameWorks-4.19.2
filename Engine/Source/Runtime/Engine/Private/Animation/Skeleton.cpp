@@ -20,6 +20,8 @@ const TCHAR USkeleton::AnimNotifyTagDelimiter = TEXT(';');
 
 const FName USkeleton::CurveTag = FName(TEXT("CurveUIDList"));
 const TCHAR USkeleton::CurveTagDelimiter = TEXT(';');
+
+const FName USkeleton::RigTag = FName(TEXT("Rig"));
 #endif 
 
 // Names of smartname containers for skeleton properties
@@ -1105,6 +1107,14 @@ void USkeleton::RefreshRigConfig()
 URig * USkeleton::GetRig() const
 {
 	return RigConfig.Rig;
+}
+
+void USkeleton::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	Super::GetAssetRegistryTags(OutTags);
+	FString RigFullName = (RigConfig.Rig)? RigConfig.Rig->GetFullName() : TEXT("");
+
+	OutTags.Add(FAssetRegistryTag(USkeleton::RigTag, RigFullName, FAssetRegistryTag::TT_Hidden));
 }
 #endif //WITH_EDITOR
 #undef LOCTEXT_NAMESPACE 

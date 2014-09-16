@@ -211,9 +211,6 @@ private:
 	/** Guid for skeleton */
 	FGuid Guid;
 
-	UPROPERTY()
-	FRigConfiguration RigConfig;
-
 	/** Conversion function. Remove when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
 	void ConvertToFReferenceSkeleton();
 
@@ -261,6 +258,12 @@ private:
 	/** @todo collection of graoup names for slot node available for this skeleton */
 	UPROPERTY()
 	TArray<FName> SlotGroupNames;
+
+	UPROPERTY()
+	FRigConfiguration RigConfig;
+
+	/** rig property will be saved separately */
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 public:
 
@@ -625,6 +628,7 @@ public:
 	ENGINE_API static const TCHAR CurveTagDelimiter;
 
 	// rig Configs
+	ENGINE_API static const FName RigTag;
 	ENGINE_API void SetRigConfig(URig * Rig);
 	ENGINE_API FName GetRigBoneMapping(const FName & NodeName) const;
 	ENGINE_API bool SetRigBoneMapping(const FName & NodeName, FName BoneName);
