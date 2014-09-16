@@ -272,7 +272,7 @@ public:
 			}
 		}
 	}
-	
+
 	/**  SWidget interface */
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
@@ -314,8 +314,11 @@ public:
 			float ScreenSpaceSize = FLevelCollectionModel::EditableAxisLength()*GetZoomAmount()*2.f;
 			FVector2D PaintSize = FVector2D(ScreenSpaceSize, ScreenSpaceSize);
 			FVector2D PaintPosition = GraphCoordToPanelCoord(FVector2D::ZeroVector) - (PaintSize*0.5f);
-			FPaintGeometry EditableArea = AllottedGeometry.ToPaintGeometry(PaintPosition, PaintSize);
-			EditableArea.DrawScale = 0.2f;
+			float Scale = 0.2f; // Scale down drawing border
+			FSlateLayoutTransform LayoutTransform(Scale, AllottedGeometry.GetAccumulatedLayoutTransform().GetTranslation() + PaintPosition);
+			FSlateRenderTransform RenderTransform(Scale, AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() + PaintPosition);
+			FPaintGeometry EditableArea(LayoutTransform, RenderTransform, PaintSize/Scale);
+
 			FLinearColor PaintColor = FLinearColor::Yellow;
 			PaintColor.A = 0.4f;
 

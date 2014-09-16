@@ -378,9 +378,13 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 		// Draw the node's selection.
 		if (bSelected)
 		{
-			FPaintGeometry SelectionGeometry = AllottedGeometry.ToInflatedPaintGeometry(FVector2D(4,4)/AllottedGeometry.Scale);
-			SelectionGeometry.DrawScale = 0.5;
-				
+			// Calculate selection box paint geometry 
+			const FVector2D InflateAmount = FVector2D(4, 4);
+			const float Scale = 0.5f; // Scale down image of the borders to make them thinner 
+			FSlateLayoutTransform LayoutTransform(Scale, AllottedGeometry.GetAccumulatedLayoutTransform().GetTranslation() - InflateAmount);
+			FSlateRenderTransform RenderTransform(Scale, AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() - InflateAmount);
+			FPaintGeometry SelectionGeometry(LayoutTransform, RenderTransform, (AllottedGeometry.GetLocalSize()*AllottedGeometry.Scale + InflateAmount*2)/Scale);
+										
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId + 1,
@@ -394,9 +398,6 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 		//const auto& PreviewStreamingLevels = WorldModel->GetPreviewStreamingLevels();
 		//if (PreviewStreamingLevels.Find(LevelModel->TileDetails->PackageName) != INDEX_NONE)
 		//{
-		//	FPaintGeometry SelectionGeometry = AllottedGeometry.ToInflatedPaintGeometry(FVector2D(4,4)/AllottedGeometry.Scale);
-		//	SelectionGeometry.DrawScale = 0.5;
-
 		//	FSlateDrawElement::MakeBox(
 		//		OutDrawElements,
 		//		LayerId + 1,
