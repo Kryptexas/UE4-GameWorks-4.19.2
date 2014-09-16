@@ -94,7 +94,7 @@ void FTargetDeviceService::HandlePingMessage(const FTargetDeviceServicePing& InM
 			Message->Name = DefaultDevice->GetName();
 			Message->Type = ETargetDeviceTypes::ToString(DefaultDevice->GetDeviceType());
 			Message->HostName = FPlatformProcess::ComputerName();
-			Message->HostUser = FPlatformProcess::UserName(false);
+			Message->HostUser = FPlatformProcess::UserName(true);
 			Message->Connected = DefaultDevice->IsConnected();
 			Message->Make = TEXT("@todo");
 			Message->Model = TEXT("@todo");
