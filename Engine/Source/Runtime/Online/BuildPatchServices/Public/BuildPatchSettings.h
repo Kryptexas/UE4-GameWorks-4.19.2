@@ -28,6 +28,8 @@ struct FBuildPatchSettings
 	FString PrereqArgs;
 	// The maximum age (in days) of existing data files which can be reused in this build
 	float DataAgeThreshold;
+	// Indicates whether data age threshold should be honored. If false, ALL data files can be reused
+	bool bShouldHonorReuseThreshold;
 	// Map of custom fields to add to the manifest
 	TMap<FString, FVariant> CustomFields;
 };

@@ -996,6 +996,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	const FString& PrereqPath = Settings.PrereqPath;
 	const FString& prereqArgs = Settings.PrereqArgs;
 	const float& DataAgeThreshold = Settings.DataAgeThreshold;
+	const bool& bShouldHonorReuseThreshold = Settings.bShouldHonorReuseThreshold;
 
 	// Output to log for builder info
 	GLog->Logf( TEXT( "Running Chunks Patch Generation for: %u:%s %s" ), InAppID, *AppName, *BuildVersion );
@@ -1004,7 +1005,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	FScopeLock SingleConcurrentBuild( &SingleConcurrentBuildCS );
 
 	// Create our chunk cache
-	const FDateTime Cutoff = FDateTime::UtcNow() - FTimespan::FromDays(DataAgeThreshold);
+	const FDateTime Cutoff = bShouldHonorReuseThreshold ? FDateTime::UtcNow() - FTimespan::FromDays(DataAgeThreshold) : FDateTime::MinValue();
 	FBuildGenerationChunkCache::Init(Cutoff);
 
 	// Create a manifest
@@ -1197,6 +1198,7 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 	const FString& LaunchCommand = Settings.LaunchCommand;
 	const FString& IgnoreListFile = Settings.IgnoreListFile;
 	const float& DataAgeThreshold = Settings.DataAgeThreshold;
+	const bool& bShouldHonorReuseThreshold = Settings.bShouldHonorReuseThreshold;
 
 	// Output to log for builder info
 	GLog->Logf( TEXT( "Running Files Patch Generation for: %u:%s %s" ), InAppID, *AppName, *BuildVersion );
@@ -1215,7 +1217,7 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 	BuildManifest->DestroyData(); 
 
 	// Declare a build processor
-	const FDateTime Cutoff = FDateTime::UtcNow() - FTimespan::FromDays(DataAgeThreshold);
+	const FDateTime Cutoff = bShouldHonorReuseThreshold ? FDateTime::UtcNow() - FTimespan::FromDays(DataAgeThreshold) : FDateTime::MinValue();
 	FBuildDataFileProcessor DataProcessor(BuildManifest, RootDirectory, Cutoff);
 
 	// Set the App details
