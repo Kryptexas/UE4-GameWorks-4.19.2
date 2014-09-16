@@ -774,8 +774,8 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		FIntPoint WinPosition((int32)PreferredWorkArea.Right, (int32)PreferredWorkArea.Top);
 		AdvanceWindowPositionsForNextPIEWindow(WinPosition.X, WinPosition.Y, FIntPoint(0,0));
 
-		// Do we need to spawn a server?
-		if (PlayInSettings->PlayNetMode == PIE_Client)
+		// We'll need to spawn a server if we're playing outside the editor or the editor wants to run as a client
+		if (bPlayOnLocalPcSession || PlayInSettings->PlayNetMode == PIE_Client)
 		{			
 			PlayStandaloneLocalPc(TEXT(""), &WinPosition, NumClients, true);
 			
@@ -786,6 +786,7 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			}
 		}
 		
+		// If we're playing in the editor
 		if (!bPlayOnLocalPcSession)
 		{
 			if (bStartMovieCapture)
@@ -805,7 +806,7 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		// Spawn number of clients
 		for (int32 i = NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
 		{
-			PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, NumClients + 1, false);
+			PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, i, false);
 		}
 	}
 	else
