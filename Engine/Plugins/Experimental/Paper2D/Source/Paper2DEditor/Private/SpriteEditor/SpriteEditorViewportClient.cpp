@@ -113,6 +113,8 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 			SpriteReinitParams.SetTextureAndFill(SourceSprite->SourceTexture);
 			TargetSprite->PixelsPerUnrealUnit = SourceSprite->PixelsPerUnrealUnit;
 			TargetSprite->InitializeSprite(SpriteReinitParams);
+
+			bDeferZoomToSprite = true;
 		}
 
 
