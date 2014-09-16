@@ -111,8 +111,8 @@ public:
 	/**	Notification that "view point" for streaming levels visibility preview was changed */
 	void UpdateStreamingPreview(FVector2D InPreviewLocation, bool bEnabled);
 
-	/** Returns list of visible streaming levels for curent preview location */
-	TArray<FName>& GetPreviewStreamingLevels();
+	/** Returns list of visible streaming levels for current preview location */
+	const TSet<FName>& GetPreviewStreamingLevels() const;
 		
 	/** Calculates snapped moving delta based on specified landscape tile */
 	FVector2D SnapTranslationDeltaLandscape(const TSharedPtr<FWorldTileModel>& LandscapeTile, 
@@ -250,7 +250,7 @@ private:
 	FLevelModelList						StaticTileList;	
 
 	/** Cached streaming tiles which are potentially visible from specified view point*/
-	TArray<FName>						PreviewVisibleTiles;
+	TSet<FName>							PreviewVisibleTiles;
 	
 	/** View point location for calculating potentially visible streaming tiles*/
 	FVector								PreviewLocation;

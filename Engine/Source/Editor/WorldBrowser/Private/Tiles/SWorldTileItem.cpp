@@ -374,9 +374,10 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 		LayerId = SNodePanel::SNode::OnPaint(Args, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 		
 		const bool bSelected = (IsItemSelected() || bAffectedByMarquee);
+		const bool bHighlighted = (WorldModel->GetPreviewStreamingLevels().Find(TileModel->TileDetails->PackageName) != nullptr);
 
-		// Draw the node's selection.
-		if (bSelected)
+		// Draw the node's selection/highlight.
+		if (bSelected || bHighlighted)
 		{
 			// Calculate selection box paint geometry 
 			const FVector2D InflateAmount = FVector2D(4, 4);
@@ -389,25 +390,12 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 				OutDrawElements,
 				LayerId + 1,
 				SelectionGeometry,
-				GetShadowBrush(bSelected),
-				ClippingRect
+				GetShadowBrush(bSelected || bHighlighted),
+				ClippingRect,
+				ESlateDrawEffect::None,
+				bHighlighted ? FLinearColor::Green : FLinearColor::White
 				);
 		}
-
-		// Highlight potentially visible streaming levels from current preview point
-		//const auto& PreviewStreamingLevels = WorldModel->GetPreviewStreamingLevels();
-		//if (PreviewStreamingLevels.Find(LevelModel->TileDetails->PackageName) != INDEX_NONE)
-		//{
-		//	FSlateDrawElement::MakeBox(
-		//		OutDrawElements,
-		//		LayerId + 1,
-		//		SelectionGeometry,
-		//		GetShadowBrush(true),
-		//		ClippingRect,
-		//		ESlateDrawEffect::None,
-		//		FLinearColor::Green
-		//		);
-		//}
 
 		// Draw progress bar if level is currently loading
 		if (TileModel->IsLoading())

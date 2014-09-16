@@ -204,7 +204,7 @@ public:
 		const bool bShowPotentiallyVisibleLevels = FSlateApplication::Get().GetModifierKeys().IsAltDown() && 
 													AllottedGeometry.IsUnderLocation(CursorPosition);
 	
-		//WorldModel->UpdateStreamingPreview(WorldMouseLocation, bShowPotentiallyVisibleLevels);
+		WorldModel->UpdateStreamingPreview(WorldMouseLocation, bShowPotentiallyVisibleLevels);
 			
 		// deffered scroll and zooming requests
 		if (bHasScrollToRequest || bHasScrollByRequest)

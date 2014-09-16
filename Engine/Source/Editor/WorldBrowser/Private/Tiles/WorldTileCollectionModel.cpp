@@ -856,7 +856,7 @@ void FWorldTileCollectionModel::DeselectLevels(const FWorldTileLayer& InLayer)
 	}
 }
 
-TArray<FName>& FWorldTileCollectionModel::GetPreviewStreamingLevels()
+const TSet<FName>& FWorldTileCollectionModel::GetPreviewStreamingLevels() const
 {
 	return PreviewVisibleTiles;
 }
