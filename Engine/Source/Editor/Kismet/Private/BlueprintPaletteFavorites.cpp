@@ -116,7 +116,7 @@ static FBlueprintNodeSpawnerSignature BlueprintPaletteFavoritesImpl::ConstructLe
 		}
 	}
 
-	FBlueprintNodeSpawnerSignature LegacySignatureSet(nullptr);
+	FBlueprintNodeSpawnerSignature LegacySignatureSet;
 	if (SignatureNodeClass != nullptr)
 	{
 		LegacySignatureSet.SetNodeClass(SignatureNodeClass);
