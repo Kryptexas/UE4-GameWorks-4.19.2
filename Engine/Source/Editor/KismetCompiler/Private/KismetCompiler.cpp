@@ -1814,133 +1814,32 @@ UK2Node_CallFunction* FKismetCompilerContext::CreateCallTimelineFunction(UK2Node
 /** Expand timeline nodes into necessary nodes */
 void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 {
+	// Timeline Pair helper
+	struct FTimelinePair
+	{
+	public:
+		FTimelinePair( UK2Node_Timeline* InNode, UTimelineTemplate* InTemplate )
+		: Node( InNode )
+		, Template( InTemplate )
+		{
+		}
+	public:
+		UK2Node_Timeline* const Node;
+		UTimelineTemplate* Template;
+	};
+
+	TArray<FName> TimelinePlayNodes;
+	TArray<FTimelinePair> Timelines;
+	// Extract timeline pairings and external play nodes
 	for (int32 ChildIndex = 0; ChildIndex < SourceGraph->Nodes.Num(); ++ChildIndex)
 	{
-		UK2Node_Timeline* TimelineNode = Cast<UK2Node_Timeline>( SourceGraph->Nodes[ChildIndex] );
-		if (TimelineNode != NULL)
+		if (UK2Node_Timeline* TimelineNode = Cast<UK2Node_Timeline>( SourceGraph->Nodes[ChildIndex]))
 		{
 			UTimelineTemplate* Timeline = Blueprint->FindTimelineTemplateByVariableName(TimelineNode->TimelineName);
 			if (Timeline != NULL)
 			{
-				const FString TimelineNameString = TimelineNode->TimelineName.ToString();
-
-				UEdGraphPin* PlayPin = TimelineNode->GetPlayPin();
-				bool bPlayPinConnected = (PlayPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* PlayFromStartPin = TimelineNode->GetPlayFromStartPin();
-				bool bPlayFromStartPinConnected = (PlayFromStartPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* StopPin = TimelineNode->GetStopPin();
-				bool bStopPinConnected = (StopPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* ReversePin = TimelineNode->GetReversePin();
-				bool bReversePinConnected = (ReversePin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* ReverseFromEndPin = TimelineNode->GetReverseFromEndPin();
-				bool bReverseFromEndPinConnected = (ReverseFromEndPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* SetTimePin = TimelineNode->GetSetNewTimePin();
-				bool bSetNewTimePinConnected = (SetTimePin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* UpdatePin = TimelineNode->GetUpdatePin();
-				bool bUpdatePinConnected = (UpdatePin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* FinishedPin = TimelineNode->GetFinishedPin();
-				bool bFinishedPinConnected = (FinishedPin->LinkedTo.Num() > 0);
-				
-
-				// Set the timeline template as wired/not wired for component pruning later
-				const bool bWiredIn = bPlayPinConnected || bPlayFromStartPinConnected || bStopPinConnected || bReversePinConnected || bReverseFromEndPinConnected || bSetNewTimePinConnected;
-				const bool bWiredOut = bUpdatePinConnected || bFinishedPinConnected;
-
-				Timeline->bValidatedAsWired = bWiredIn || ( Timeline->bAutoPlay && bWiredOut );
-
-				// Only create nodes for play/stop if they are actually connected - otherwise we get a 'unused node being pruned' warning
-				if(bWiredIn)
-				{
-					// First create 'get var' node to get the timeline object
-					UK2Node_VariableGet* GetTimelineNode = SpawnIntermediateNode<UK2Node_VariableGet>(TimelineNode, SourceGraph);
-					GetTimelineNode->VariableReference.SetSelfMember(TimelineNode->TimelineName);
-					GetTimelineNode->AllocateDefaultPins();
-
-					// Debug data: Associate the timeline node instance with the property that was created earlier
-					UProperty* AssociatedTimelineInstanceProperty = TimelineToMemberVariableMap.FindChecked(Timeline);
-					if (AssociatedTimelineInstanceProperty != NULL)
-					{
-						UObject* TrueSourceObject = MessageLog.FindSourceObject(TimelineNode);
-						NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, AssociatedTimelineInstanceProperty);
-					}
-
-					// Get the variable output pin
-					UEdGraphPin* TimelineVarPin = GetTimelineNode->FindPin(TimelineNameString);
-
-					// This might fail if this is the first compile after adding the timeline (property doesn't exist yet) - in that case, manually add the output pin
-					if(TimelineVarPin == NULL)
-					{
-						TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, TimelineNode->TimelineName.ToString());
-					}
-
-					if(bPlayPinConnected)
-					{
-						static FName PlayName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Play));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayName, TimelineVarPin, PlayPin);
-					}
-
-					if(bPlayFromStartPinConnected)
-					{
-						static FName PlayFromStartName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, PlayFromStart));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayFromStartName, TimelineVarPin, PlayFromStartPin);
-					}
-
-					if(bStopPinConnected)
-					{
-						static FName StopName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Stop));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, StopName, TimelineVarPin, StopPin);
-					}
-
-					if (bReversePinConnected)
-					{
-						static FName ReverseName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Reverse));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseName, TimelineVarPin, ReversePin);
-					}
-
-					if (bReverseFromEndPinConnected)
-					{
-						static FName ReverseFromEndName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, ReverseFromEnd));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseFromEndName, TimelineVarPin, ReverseFromEndPin);
-					}
-
-					if (bSetNewTimePinConnected)
-					{
-						UEdGraphPin* NewTimePin = TimelineNode->GetNewTimePin();
-
-						static FName SetNewTimeName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, SetNewTime));
-						UK2Node_CallFunction* CallNode = CreateCallTimelineFunction(TimelineNode, SourceGraph, SetNewTimeName, TimelineVarPin, SetTimePin);
-
-						if (CallNode && NewTimePin)
-						{
-							UEdGraphPin* InputPin = CallNode->FindPinChecked(TEXT("NewTime"));
-							MovePinLinksToIntermediate(*NewTimePin, *InputPin);
-						}
-					}
-				}
-
-				// Create event to call on each update
-				UFunction* EventSigFunc = UTimelineComponent::GetTimelineEventSignature();
-
-				// Create event nodes for any event tracks
-				for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
-				{
-					FName EventTrackName =  Timeline->EventTracks[EventTrackIdx].TrackName;
-					CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName.ToString(), EventSigFunc->GetFName());
-				}
-
-				// Generate Update Pin Event Node
-				CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetUpdateFunctionName(), TEXT("Update"), EventSigFunc->GetFName());
-
-				// Generate Finished Pin Event Node
-				CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetFinishedFunctionName(), TEXT("Finished"), EventSigFunc->GetFName());
-			}			
+				Timelines.Add(FTimelinePair( TimelineNode, Timeline ));
+			}
 		}
 		else if( UK2Node_VariableGet* VarNode = Cast<UK2Node_VariableGet>( SourceGraph->Nodes[ChildIndex] ))
 		{
@@ -1952,13 +1851,139 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 				UClass* ValueClass = ValuePin->PinType.PinSubCategoryObject.IsValid() ? Cast<UClass>( ValuePin->PinType.PinSubCategoryObject.Get() ) : nullptr;
 				if( ValueClass == UTimelineComponent::StaticClass() )
 				{
-					if( UTimelineTemplate* TimelineTemplate = Blueprint->FindTimelineTemplateByVariableName( FName( *ValuePin->PinName ) ))
+					const FName PinName( *ValuePin->PinName );
+					if( UTimelineTemplate* TimelineTemplate = Blueprint->FindTimelineTemplateByVariableName( PinName ))
 					{
-						TimelineTemplate->bValidatedAsWired = true;
+						TimelinePlayNodes.Add( PinName );
 					}
 				}
 			}
 		}
+	}
+	// Expand and validate timelines
+	for ( auto TimelinePair : Timelines )
+	{
+		UK2Node_Timeline* const TimelineNode = TimelinePair.Node;
+		UTimelineTemplate* Timeline = TimelinePair.Template;
+		const FString TimelineNameString = TimelineNode->TimelineName.ToString();
+
+		UEdGraphPin* PlayPin = TimelineNode->GetPlayPin();
+		bool bPlayPinConnected = (PlayPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* PlayFromStartPin = TimelineNode->GetPlayFromStartPin();
+		bool bPlayFromStartPinConnected = (PlayFromStartPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* StopPin = TimelineNode->GetStopPin();
+		bool bStopPinConnected = (StopPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* ReversePin = TimelineNode->GetReversePin();
+		bool bReversePinConnected = (ReversePin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* ReverseFromEndPin = TimelineNode->GetReverseFromEndPin();
+		bool bReverseFromEndPinConnected = (ReverseFromEndPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* SetTimePin = TimelineNode->GetSetNewTimePin();
+		bool bSetNewTimePinConnected = (SetTimePin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* UpdatePin = TimelineNode->GetUpdatePin();
+		bool bUpdatePinConnected = (UpdatePin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* FinishedPin = TimelineNode->GetFinishedPin();
+		bool bFinishedPinConnected = (FinishedPin->LinkedTo.Num() > 0);
+		
+
+		// Set the timeline template as wired/not wired for component pruning later
+		const bool bWiredIn = bPlayPinConnected || bPlayFromStartPinConnected || bStopPinConnected || bReversePinConnected || bReverseFromEndPinConnected || bSetNewTimePinConnected;
+		const bool bWiredOut = bUpdatePinConnected || bFinishedPinConnected;
+		const bool bPlayWired = Timeline->bAutoPlay || ( TimelinePlayNodes.Find( TimelineNode->TimelineName ) != INDEX_NONE );
+
+		Timeline->bValidatedAsWired = bWiredIn || ( bPlayWired && bWiredOut );
+
+		// Only create nodes for play/stop if they are actually connected - otherwise we get a 'unused node being pruned' warning
+		if(bWiredIn)
+		{
+			// First create 'get var' node to get the timeline object
+			UK2Node_VariableGet* GetTimelineNode = SpawnIntermediateNode<UK2Node_VariableGet>(TimelineNode, SourceGraph);
+			GetTimelineNode->VariableReference.SetSelfMember(TimelineNode->TimelineName);
+			GetTimelineNode->AllocateDefaultPins();
+
+			// Debug data: Associate the timeline node instance with the property that was created earlier
+			UProperty* AssociatedTimelineInstanceProperty = TimelineToMemberVariableMap.FindChecked(Timeline);
+			if (AssociatedTimelineInstanceProperty != NULL)
+			{
+				UObject* TrueSourceObject = MessageLog.FindSourceObject(TimelineNode);
+				NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, AssociatedTimelineInstanceProperty);
+			}
+
+			// Get the variable output pin
+			UEdGraphPin* TimelineVarPin = GetTimelineNode->FindPin(TimelineNameString);
+
+			// This might fail if this is the first compile after adding the timeline (property doesn't exist yet) - in that case, manually add the output pin
+			if(TimelineVarPin == NULL)
+			{
+				TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, TimelineNode->TimelineName.ToString());
+			}
+
+			if(bPlayPinConnected)
+			{
+				static FName PlayName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Play));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayName, TimelineVarPin, PlayPin);
+			}
+
+			if(bPlayFromStartPinConnected)
+			{
+				static FName PlayFromStartName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, PlayFromStart));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayFromStartName, TimelineVarPin, PlayFromStartPin);
+			}
+
+			if(bStopPinConnected)
+			{
+				static FName StopName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Stop));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, StopName, TimelineVarPin, StopPin);
+			}
+
+			if (bReversePinConnected)
+			{
+				static FName ReverseName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Reverse));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseName, TimelineVarPin, ReversePin);
+			}
+
+			if (bReverseFromEndPinConnected)
+			{
+				static FName ReverseFromEndName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, ReverseFromEnd));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseFromEndName, TimelineVarPin, ReverseFromEndPin);
+			}
+
+			if (bSetNewTimePinConnected)
+			{
+				UEdGraphPin* NewTimePin = TimelineNode->GetNewTimePin();
+
+				static FName SetNewTimeName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, SetNewTime));
+				UK2Node_CallFunction* CallNode = CreateCallTimelineFunction(TimelineNode, SourceGraph, SetNewTimeName, TimelineVarPin, SetTimePin);
+
+				if (CallNode && NewTimePin)
+				{
+					UEdGraphPin* InputPin = CallNode->FindPinChecked(TEXT("NewTime"));
+					MovePinLinksToIntermediate(*NewTimePin, *InputPin);
+				}
+			}
+		}
+
+		// Create event to call on each update
+		UFunction* EventSigFunc = UTimelineComponent::GetTimelineEventSignature();
+
+		// Create event nodes for any event tracks
+		for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
+		{
+			FName EventTrackName =  Timeline->EventTracks[EventTrackIdx].TrackName;
+			CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName.ToString(), EventSigFunc->GetFName());
+		}
+
+		// Generate Update Pin Event Node
+		CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetUpdateFunctionName(), TEXT("Update"), EventSigFunc->GetFName());
+
+		// Generate Finished Pin Event Node
+		CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetFinishedFunctionName(), TEXT("Finished"), EventSigFunc->GetFName());
 	}
 }
 
