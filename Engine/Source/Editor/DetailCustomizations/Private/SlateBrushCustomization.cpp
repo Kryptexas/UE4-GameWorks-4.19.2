@@ -950,17 +950,37 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedPtr<IPropertyHandle> InResourceObjectProperty )
+	void Construct(const FArguments& InArgs, TSharedPtr<IPropertyHandle> InResourceObjectProperty)
 	{
 		ResourceObjectProperty = InResourceObjectProperty;
 
 		ChildSlot
 		[
-			SNew(SBorder)
-			.BorderImage(this, &SSlateBrushStaticPreview::GetPropertyBrush)
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
 			[
-				SNew(SSpacer)
-				.Size(FVector2D(1,1))
+				SNew(SBorder)
+				.Visibility(this, &SSlateBrushStaticPreview::GetPreviewVisibilityBorder)
+				.BorderImage(this, &SSlateBrushStaticPreview::GetPropertyBrush)
+				[
+					SNew(SSpacer)
+					.Size(FVector2D(1, 1))
+				]
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.WidthOverride(18.0f)
+				.HeightOverride(18.0f)
+				[
+					SNew(SImage)
+					.Visibility(this, &SSlateBrushStaticPreview::GetPreviewVisibilityImage)
+					.Image(this, &SSlateBrushStaticPreview::GetPropertyBrush)
+				]
 			]
 		];
 	}
@@ -974,9 +994,21 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 		TemporaryBrush = *static_cast<FSlateBrush*>( RawData[0] );
 	}
 
+private:
+
 	const FSlateBrush* GetPropertyBrush() const
 	{
 		return &TemporaryBrush;
+	}
+
+	EVisibility GetPreviewVisibilityBorder() const
+	{
+		return TemporaryBrush.DrawAs == ESlateBrushDrawType::Image ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+
+	EVisibility GetPreviewVisibilityImage() const
+	{
+		return TemporaryBrush.DrawAs == ESlateBrushDrawType::Image ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 private:
