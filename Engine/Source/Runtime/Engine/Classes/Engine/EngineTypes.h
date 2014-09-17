@@ -2540,30 +2540,36 @@ enum EPhysicalSurface
 	SurfaceType_Max UMETA(Hidden)
 };
 
-/** Enum describing how often this component is allowed to move */
+/** Describes how often this component is allowed to move. */
 UENUM()
 namespace EComponentMobility
 {
 	enum Type
 	{
-		// A static object can't be changed in game.
-		// - Allows Baked Lighting
-		// - Fastest Rendering
+		/**
+		 * Static objects cannot be moved or changed in game.
+		 * - Allows baked lighting
+		 * - Fastest rendering
+		 */
 		Static,
 
-		// A stationary light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic.
-		// - Stationary only makes sense for light components
-		// - It can change color and intensity in game.
-		// - Can't Move
-		// - Allows Partial Baked Lighting
-		// - Dynamic Shadows
+		/**
+		 * A stationary light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic.
+		 * - Stationary only makes sense for light components
+		 * - It can change color and intensity in game.
+		 * - Can't move
+		 * - Allows partial baked lighting
+		 * - Dynamic shadows
+		 */
 		Stationary,
 
-		// Movable objects can be moved and changed in game
-		// - Totally Dynamic
-		// - Allows Dynamic Shadows
-		// - Slowest Rendering
-		Movable		
+		/**
+		 * Movable objects can be moved and changed in game.
+		 * - Totally dynamic
+		 * - Can cast dynamic shadows
+		 * - Slowest rendering
+		 */
+		Movable
 	};
 }
 

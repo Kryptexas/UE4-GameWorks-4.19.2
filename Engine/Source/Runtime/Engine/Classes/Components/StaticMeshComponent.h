@@ -106,7 +106,12 @@ struct TStructOpsTypeTraits<FStaticMeshComponentLODInfo> : public TStructOpsType
 	};
 };
 
-/** A StaticMeshComponent is a mesh that does not animate. */
+/**
+ * StaticMeshComponent is used to create an instance of a UStaticMesh.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/index.html
+ * @see UStaticMesh
+ */
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UStaticMeshComponent : public UMeshComponent
 {

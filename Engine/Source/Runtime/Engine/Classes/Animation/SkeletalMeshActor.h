@@ -4,6 +4,14 @@
 #include "Matinee/MatineeAnimInterface.h"
 #include "SkeletalMeshActor.generated.h"
 
+/**
+ * SkeletalMeshActor is an instance of a USkeletalMesh in the world.
+ * Skeletal meshes are deformable meshes that can be animated and change their geometry at run-time.
+ * Skeletal meshes dragged into the level from the Content Browser are automatically converted to StaticMeshActors.
+ * 
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/index.html
+ * @see USkeletalMesh
+ */
 UCLASS(ClassGroup=ISkeletalMeshes, Blueprintable, ConversionRoot, meta=(ChildCanTick))
 class ENGINE_API ASkeletalMeshActor : public AActor, public IMatineeAnimInterface
 {
