@@ -172,7 +172,7 @@ FPlayWorldCommands::FPlayWorldCommands()
 		{
 			PlayPlatformName = TEXT("WindowsNoEditor");
 		}
-		else if (RunningPlatformName == TEXT("Windows"))
+		else if (RunningPlatformName == TEXT("Mac"))
 		{
 			PlayPlatformName = TEXT("MacNoEditor");
 		}
