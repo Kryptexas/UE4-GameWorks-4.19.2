@@ -172,12 +172,13 @@ namespace BlueprintActionFilterImpl
 	 * Rejection test that checks to see if the node-spawner would produce a 
 	 * node type that isn't white-listed. 
 	 * 
-	 * @param  Filter			Holds the class context for this test.
-	 * @param  BlueprintAction	The action you wish to query.
-	 * @param  bMatchExplicitly When true, the node's class has to perfectly match a white-listed type (sub-classes don't count).
+	 * @param  Filter				Holds the class context for this test.
+	 * @param  BlueprintAction		The action you wish to query.
+	 * @param  bPermitChildClasses	When true, the node's class doesn't have to perfectly match a class to be passed (it can be a sub-class).
+	 * @param  bRejectChildClasses	When true, the node's class doesn't have to perfectly match a class to be rejected (it can be a sub-class).
 	 * @return True if the action would produce a non-whitelisted node.
 	 */
-	static bool IsFilteredNodeType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool const bMatchExplicitly = false);
+	static bool IsFilteredNodeType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool const bPermitChildClasses, bool const bRejectChildClasses);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner is tied to a 
@@ -662,7 +663,7 @@ static bool BlueprintActionFilterImpl::IsIncompatibleWithGraphType(FBlueprintAct
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool const bExcludeChildClasses)
+static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction, bool const bPermitChildClasses, bool const bRejectChildClasses)
 {
 	bool bIsFilteredOut = (Filter.PermittedNodeTypes.Num() > 0);
 
@@ -671,8 +672,8 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 	{
 		for (TSubclassOf<UEdGraphNode> AllowedClass : Filter.PermittedNodeTypes)
 		{
-			if ((NodeClass->IsChildOf(AllowedClass) && !bExcludeChildClasses) ||
-				(AllowedClass == NodeClass))
+			if ((AllowedClass == NodeClass) || 
+				(bPermitChildClasses && NodeClass->IsChildOf(AllowedClass)))
 			{
 				bIsFilteredOut = false;
 				break;
@@ -682,8 +683,8 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 		for (int32 ClassIndx = 0; !bIsFilteredOut && (ClassIndx < Filter.RejectedNodeTypes.Num()); ++ClassIndx)
 		{
 			TSubclassOf<UEdGraphNode> ExcludedClass = Filter.RejectedNodeTypes[ClassIndx];
-			if ((bExcludeChildClasses && (ExcludedClass == NodeClass)) ||
-				NodeClass->IsChildOf(ExcludedClass))
+			if ((ExcludedClass == NodeClass) ||
+				(bRejectChildClasses && NodeClass->IsChildOf(ExcludedClass)))
 			{
 				bIsFilteredOut = true;
 				break;
@@ -1205,7 +1206,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleImpureNode));
 	
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFieldCategoryHidden));
-	if (Flags & BPFILTER_RejectPersistentNonTargetFields)
+	if (Flags & BPFILTER_RejectGlobalFields)
 	{
 		AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsPersistentNonTargetField));
 	}
@@ -1223,8 +1224,8 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 		AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsDeprecated));
 	}
 
-	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFilteredNodeType, (Flags & BPFILTER_RejectPermittedNodeSubClasses) != 0));
-	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNonTargetMemeber, (Flags & BPFILTER_RejectPersistentNonTargetFields) == 0));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFilteredNodeType, !(Flags & BPFILTER_RejectPermittedSubClasses), !(Flags & BPFILTER_PermitRejectionSubClasses)));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNonTargetMemeber, !(Flags & BPFILTER_RejectGlobalFields)));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsUnBoundBindingSpawner));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsOutOfScopeLocalVariable));
 

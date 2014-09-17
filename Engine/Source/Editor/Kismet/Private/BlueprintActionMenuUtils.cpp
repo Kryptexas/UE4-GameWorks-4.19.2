@@ -6,7 +6,8 @@
 #include "BlueprintActionFilter.h"
 #include "BlueprintNodeSpawner.h"
 #include "KismetEditorUtilities.h"	// for CanPasteNodes()
-#include "K2Node_Variable.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_ActorBoundEvent.h"
 #include "K2Node_ComponentBoundEvent.h"
@@ -100,7 +101,7 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 	if (FilterClass != nullptr)
 	{
 		// make sure we exclude global and static library actions
-		FilterFlags = FBlueprintActionFilter::BPFILTER_RejectPersistentNonTargetFields;
+		FilterFlags |= FBlueprintActionFilter::BPFILTER_RejectGlobalFields;
 	}
 	
 	FBlueprintActionFilter MenuFilter(FilterFlags);
@@ -109,7 +110,8 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 	// self member variables can be accessed through the MyBluprint panel (even
 	// inherited ones)... external variables can be accessed through the context
 	// menu (don't want to clutter the palette, I guess?)
-	MenuFilter.RejectedNodeTypes.Add(UK2Node_Variable::StaticClass());
+	MenuFilter.RejectedNodeTypes.Add(UK2Node_VariableGet::StaticClass());
+	MenuFilter.RejectedNodeTypes.Add(UK2Node_VariableSet::StaticClass());
 	
 	if (FilterClass != nullptr)
 	{

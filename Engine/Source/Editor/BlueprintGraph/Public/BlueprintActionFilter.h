@@ -166,7 +166,7 @@ public:
 	enum EFlags // Flags, which configure certain rejection tests.
 	{
 		/** Deprecated class actions will not be filtered out*/
-		BPFILTER_PermitDeprecated				= 0x00000001,
+		BPFILTER_PermitDeprecated			= (1<<0),
 
 		/** 
 		 * Rejects actions associated with global/static ("persistent") fields.
@@ -174,14 +174,21 @@ public:
 		 * rejected by this (if TargetClasses is left empty, then all 
 		 * "persistent" fields are rejected).
 		 */
-		BPFILTER_RejectPersistentNonTargetFields= 0x00000002,
+		BPFILTER_RejectGlobalFields			= (1<<1),
 
 		/**
 		 * Makes PermittedNodeType tests more aggressive by rejecting node 
 		 * sub-classes, (actions would have to explicitly match a class listed
 		 * in PermittedNodeTypes). 
 		 */
-		BPFILTER_RejectPermittedNodeSubClasses	= 0x00000004,
+		BPFILTER_RejectPermittedSubClasses	= (1<<2),
+
+		/**
+		 * Makes RejectedNodeType tests less aggressive by permitting node 
+		 * sub-classes, (actions would have to explicitly match a class listed
+		 * in RejectedNodeTypes). 
+		 */
+		BPFILTER_PermitRejectionSubClasses	= (1<<3),
 	};
 	FBlueprintActionFilter(uint32 const Flags = 0x00);
 	
