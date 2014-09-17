@@ -3058,7 +3058,7 @@ bool FLevelEditorViewportClient::IsVolumeVisibleInViewport( const AActor& Volume
 
 void FLevelEditorViewportClient::SetWidgetMode( FWidget::EWidgetMode ActivatedMode )
 {
-	if( !GLevelEditorModeTools().IsTracking() )
+	if( !GLevelEditorModeTools().IsTracking() && !FSlateApplication::Get().IsUsingTrackpad() )
 	{
 		GLevelEditorModeTools().SetWidgetMode( ActivatedMode );
 
