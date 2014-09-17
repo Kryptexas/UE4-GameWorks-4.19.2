@@ -560,7 +560,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
 				Message->AddToken(FTextToken::Create(MessageLogText));
 				Message->AddToken(FTextToken::Create(MessageLogTextDetail));
-				Message->AddToken(FDocumentationToken::Create(NotInstalledDocLink));
+				Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
 
 				FMessageLog MessageLog("PackagingResults");
 				MessageLog.AddMessage(Message);
