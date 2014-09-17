@@ -4,17 +4,17 @@
 USE_ALTIVEC ?= 0
 
 # define to 1 to use sse instructions
-USE_SSE ?= 0
+USE_SSE ?= 1
 
 # default flags
-CXXFLAGS ?= -O2
+CXXFLAGS ?= -O3
 ifeq ($(USE_ALTIVEC),1)
 CPPFLAGS += -DSQUISH_USE_ALTIVEC=1
 CXXFLAGS += -maltivec
 endif
 ifeq ($(USE_SSE),1)
 CPPFLAGS += -DSQUISH_USE_SSE=1
-CXXFLAGS += -msse
+CXXFLAGS += -msse -msse2 -msse3
 endif
 
 # where should we install to

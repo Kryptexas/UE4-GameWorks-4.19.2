@@ -219,7 +219,7 @@ BuildnvTextureTools()
   cd src
   P4Open configure
   chmod +x ./configure
-  CXXFLAGS=-fPIC ./configure
+  CXXFLAGS=-fPIC ./configure --release
   make
 
   local LIB_DIR=../lib/Linux/$TARGET_ARCH
