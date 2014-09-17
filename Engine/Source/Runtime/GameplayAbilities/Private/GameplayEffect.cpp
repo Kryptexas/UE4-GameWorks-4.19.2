@@ -1146,24 +1146,36 @@ void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffe
 
 void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray)
 {
+	bool ShouldInvokeGameplayCueEvents = true;
+	if (PredictionKey.IsValidKey())
+	{
+		// PredictionKey will only be valid on the client that predicted it. So if this has a valid PredictionKey, we can assume we already predicted it and shouldn't invoke GameplayCues.
+		// We may need to do more bookkeeping here in the future. Possibly give the predicted gameplayeffect a chance to pass something off to the new replicated gameplay effect.
+
+		ShouldInvokeGameplayCueEvents = false;
+	}
+
 	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectAdded(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
 
 	static const int32 MAX_DELTA_TIME = 3;
 
-	InArray.Owner->InvokeGameplayCueEvent(Spec, EGameplayCueEvent::WhileActive);
+	if (ShouldInvokeGameplayCueEvents)
+	{
+		InArray.Owner->InvokeGameplayCueEvent(Spec, EGameplayCueEvent::WhileActive);
+	}
+
 	// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
 	float WorldTimeSeconds = InArray.GetWorldTime();
 	int32 GameStateTime = InArray.GetGameStateTime();
 
 	int32 DeltaGameStateTime = GameStateTime - StartGameStateTime;	// How long we think the effect has been playing (only 1 second precision!)
 
-	if (GameStateTime > 0 && FMath::Abs(DeltaGameStateTime) < MAX_DELTA_TIME)
+	if (ShouldInvokeGameplayCueEvents && GameStateTime > 0 && FMath::Abs(DeltaGameStateTime) < MAX_DELTA_TIME)
 	{
 		InArray.Owner->InvokeGameplayCueEvent(Spec, EGameplayCueEvent::OnActive);
 	}
 
 	// Set our local start time accordingly
-
 	StartWorldTime = WorldTimeSeconds - static_cast<float>(DeltaGameStateTime);
 }
 
@@ -1387,7 +1399,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
 
 		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
-		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(Spec);
+		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(Spec, QualifierContext.PredictionKey());
 	}
 
 }
@@ -1570,12 +1582,12 @@ void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 	}
 }
 
-FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, uint32 InPrevPredictionKey, uint32 InCurrPredictionKey)
+FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
 
 	FActiveGameplayEffectHandle NewHandle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
-	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPrevPredictionKey, InCurrPredictionKey);
+	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
 
 	// register callbacks with the timer manager
 	if (Owner)
@@ -1619,7 +1631,7 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 		NewEffect.Spec.Duration.Get()->OnDirty = FAggregator::FOnDirty::CreateRaw(this, &FActiveGameplayEffectsContainer::OnDurationAggregatorDirty, Owner, NewHandle);
 	}
 	
-	if (InCurrPredictionKey == 0 || IsNetAuthority())	// Clients predicting a GameplayEffect must not call MarkItemDirty
+	if (InPredictionKey.IsValidKey() == false || IsNetAuthority())	// Clients predicting a GameplayEffect must not call MarkItemDirty
 	{
 		MarkItemDirty(NewEffect);
 	}
@@ -1628,12 +1640,12 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 		// Clients predicting should call MarkArrayDirty to force the internal replication map to be rebuilt.
 		MarkArrayDirty();
 
-		UAbilitySystemComponent::FPredictionInfo PredictionInfo = Owner->GetPredictionKeyDelegate(InCurrPredictionKey);
+		UAbilitySystemComponent::FPredictionInfo& PredictionInfo = Owner->GetPredictionKeyDelegate(InPredictionKey.Current);
 		PredictionInfo.PredictionKeyClearDelegate.AddUObject(Owner, &UAbilitySystemComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
 
-		if (InPrevPredictionKey)
+		if (InPredictionKey.Base) // Fixme: this should happen at a higher level
 		{
-			PredictionInfo.DependentPredictionKeys.AddUnique(InCurrPredictionKey);
+			PredictionInfo.DependentPredictionKeys.AddUnique(InPredictionKey.Current);
 		}
 	}
 
@@ -1685,7 +1697,24 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 	if (ensure(Idx < GameplayEffects.Num()))
 	{
 		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
-		Owner->InvokeGameplayCueEvent(GameplayEffects[Idx].Spec, EGameplayCueEvent::Removed);
+
+		bool ShouldInvokeGameplayCueEvent = true;
+		if (Effect.PredictionKey.IsValidKey() && !IsNetAuthority())
+		{
+			// Don't invoke GameplayCue event if we still have another GameplayEffect that shares the same predictionkey
+			for (const FActiveGameplayEffect& OtherEffect : GameplayEffects)
+			{
+				if (OtherEffect.PredictionKey == Effect.PredictionKey && (&OtherEffect != &Effect))
+				{
+					ShouldInvokeGameplayCueEvent = false;
+				}
+			}
+		}
+
+		if (ShouldInvokeGameplayCueEvent)
+		{
+			Owner->InvokeGameplayCueEvent(GameplayEffects[Idx].Spec, EGameplayCueEvent::Removed);
+		}
 
 		InternalOnActiveGameplayEffectRemoved(Effect);
 

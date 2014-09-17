@@ -77,13 +77,9 @@ bool FGameplayAbilityActorInfo::IsNetAuthority() const
 	return false;
 }
 
-void FGameplayAbilityActivationInfo::GeneratePredictionKey(UAbilitySystemComponent * Component) const
-{
-	check(Component);
-	check(ActivationMode == EGameplayAbilityActivationMode::NonAuthority);
-
-	PrevPredictionKey = CurrPredictionKey;
-	CurrPredictionKey = Component->GetNextPredictionKey();
+void FGameplayAbilityActivationInfo::GenerateNewPredictionKey() const
+{	
+	PredictionKey.GenerateDependantPredictionKey();
 	ActivationMode = EGameplayAbilityActivationMode::Predicting;
 }
 
@@ -92,5 +88,7 @@ void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
 }
 
-
-
+void FGameplayAbilityActivationInfo::SetPredictionStale()
+{
+	PredictionKey.bIsStale = true;
+}

@@ -138,12 +138,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 */
 
 	UPROPERTY(ReplicatedUsing=OnRep_PredictionKey)
-	uint32	ReplicatedPredictionKey;
-
-	UPROPERTY(transient)
-	uint32	LocalPredictionKey;
-
-	uint32	GetNextPredictionKey();
+	FPredictionKey	ReplicatedPredictionKey;
 
 	UFUNCTION()
 	void OnRep_PredictionKey();
@@ -151,24 +146,21 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	struct FPredictionInfo
 	{
 		FAbilitySystemComponentPredictionKeyClear PredictionKeyClearDelegate;
-		TArray<uint32> DependentPredictionKeys;
+		TArray<FPredictionKey::KeyType> DependentPredictionKeys;
 	};
 
-	TArray<TPair<uint32, FPredictionInfo > > PredictionDelegates;
+	TArray<TPair<FPredictionKey::KeyType, FPredictionInfo > > PredictionDelegates;
 
-	FPredictionInfo &	GetPredictionKeyDelegate(uint32 PredictionKey);
+	FPredictionInfo&	GetPredictionKeyDelegate(FPredictionKey::KeyType PredictionKey);
 
 	struct FPendingAbilityInfo
 	{
 		bool operator==(const FPendingAbilityInfo& Other) const
 		{
-			return PrevPredictionKey == Other.PrevPredictionKey
-				&& CurrPredictionKey == Other.CurrPredictionKey
-				&& Handle == Other.Handle;
+			return PredictionKey == Other.PredictionKey	&& Handle == Other.Handle;
 		}
 
-		uint32 PrevPredictionKey;
-		uint32 CurrPredictionKey;
+		FPredictionKey	PredictionKey;
 		FGameplayAbilitySpecHandle Handle;
 	};
 
@@ -189,11 +181,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 		bool operator==(const FExecutingAbilityInfo& Other) const
 		{
-			return CurrPredictionKey == Other.CurrPredictionKey
-				&& State == Other.State;
+			return PredictionKey == Other.PredictionKey	&& State == Other.State;
 		}
 
-		uint32 CurrPredictionKey;
+		FPredictionKey PredictionKey;
 		EAbilityExecutionState State;
 		FGameplayAbilitySpecHandle Handle;
 	};
@@ -268,7 +259,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FModifierQualifier BaseQualifier = FModifierQualifier());
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
 	
 	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier = FModifierQualifier() );
@@ -316,24 +307,24 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// GameplayCues can come from GameplayEffectSpecs
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueExecuted_FromSpec(const FGameplayEffectSpec Spec);
+	void NetMulticast_InvokeGameplayCueExecuted_FromSpec(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey);
 
 	void InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType);
 
 	// GameplayCues can also come on their own. For now these will have no additional parameters (just a tag) though that it something we could
 	// support down the road if we wanted.
 
-	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag);
+	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
-	void AddGameplayCue(const FGameplayTag GameplayCueTag);
+	void AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 	
-	void RemoveGameplayCue(const FGameplayTag GameplayCueTag);
+	void RemoveGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag);
+	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag);
+	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
 	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType);
 
@@ -363,7 +354,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	FGameplayAbilitySpecHandle GiveAbility(FGameplayAbilitySpec AbilitySpec);
 
 	/** Attempts to activate the given ability */
-	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PrevPredictionKey = 0, uint32 CurrPredictionKey = 0, UGameplayAbility ** OutInstancedAbility = nullptr);
+	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey=FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr);
 
 	void TriggerAbilityFromGameplayEvent(FGameplayAbilitySpecHandle AbilityToTrigger, FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload, UAbilitySystemComponent& Component);
 
@@ -396,7 +387,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */
 
-	UPROPERTY(Replicated=OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
+	UPROPERTY(ReplicatedUsing=OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
 	TArray<FGameplayAbilitySpec>	ActivatableAbilities;
 
 	FGameplayAbilitySpec* FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle);
@@ -407,13 +398,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void	OnRep_ActivateAbilities();
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PrevPredictionKey, uint32 CurrPredictionKey);
+	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PredictionKey);
+	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate, uint32 PredictionKey);
+	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate,int16 PredictionKey);
 	
 
 	// ----------------------------------------------------------------------------------------------------------------
@@ -555,6 +546,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	FAbilityConfirmOrCancel	ReplicatedTargetDataCancelledDelegate;
 
 private:
+
+	bool HasNetworkAuthorityToApplyGameplayEffect(const FModifierQualifier QualifierContext) const;
 
 	void ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle);
 

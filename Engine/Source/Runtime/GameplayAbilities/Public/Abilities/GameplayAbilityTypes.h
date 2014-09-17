@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameplayEffect.h"
+#include "GameplayPrediction.h"
 #include "GameplayAbilityTypes.generated.h"
 
 class UGameplayEffect;
@@ -35,7 +36,7 @@ UENUM(BlueprintType)
 namespace EGameplayAbilityNetExecutionPolicy
 {
 	/**
-	 *	How does an ability execute on the network. Does a client "ask and predict", "ask and wait", "don't ask"
+	 *	How does an ability execute on the network. Does a client "ask and predict", "ask and wait", "don't ask (just do it)"
 	 */
 
 	enum Type
@@ -172,40 +173,53 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	FGameplayAbilityActivationInfo()
 		: ActivationMode(EGameplayAbilityActivationMode::Authority)
-		, PrevPredictionKey(0)
-		, CurrPredictionKey(0)
 	{
 
 	}
 
-	FGameplayAbilityActivationInfo(AActor * InActor, uint32 InPrevPredictionKey, uint32 InCurrPredictionKey)
-		: PrevPredictionKey(InPrevPredictionKey)
-		, CurrPredictionKey(InCurrPredictionKey)
+	FGameplayAbilityActivationInfo(AActor * InActor, FPredictionKey InPredictionKey)
+		: PredictionKey(InPredictionKey)
 	{
 		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
 		// NonAuthority essentially means 'I'm not sure what how I'm going to do this yet'.
 		ActivationMode = (InActor->Role == ROLE_Authority ? EGameplayAbilityActivationMode::Authority : EGameplayAbilityActivationMode::NonAuthority);
 	}
 
-	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, uint32 InPrevPredictionKey = 0, uint32 InCurrPredictionKey = 0)
+	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, FPredictionKey InPredictionKey = FPredictionKey())
 		: ActivationMode(InType)
-		, PrevPredictionKey(InPrevPredictionKey)
-		, CurrPredictionKey(InCurrPredictionKey)
+		, PredictionKey(InPredictionKey)
 	{
 	}
 
-	void GeneratePredictionKey(UAbilitySystemComponent * Component) const;
+	void GenerateNewPredictionKey() const;
 
 	void SetActivationConfirmed();
+
+	void SetPredictionStale();
+
+	FPredictionKey GetPredictionKeyForNewAction() const
+	{
+		return PredictionKey.IsStale() ? FPredictionKey() : PredictionKey;
+	}
+
+	FPredictionKey GetPredictionKey() const
+	{
+		return PredictionKey;
+	}
+
+	void SetPredictionKey(FPredictionKey NewKey) const
+	{
+		PredictionKey = NewKey;
+	}
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	mutable TEnumAsByte<EGameplayAbilityActivationMode::Type>	ActivationMode;
 
-	UPROPERTY()
-	mutable uint32 PrevPredictionKey;
+private:
 
 	UPROPERTY()
-	mutable uint32 CurrPredictionKey;
+	mutable FPredictionKey	PredictionKey;
+	
 };
 
 // ----------------------------------------------------
@@ -282,8 +296,6 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	FGameplayEventData()
 	: Instigator(NULL)
 	, Target(NULL)
-	, PrevPredictionKey(0)
-	, CurrPredictionKey(0)
 	{
 		// do nothing
 	}
@@ -299,8 +311,7 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	float Var3;
 
-	uint32 PrevPredictionKey;
-	uint32 CurrPredictionKey;
+	FPredictionKey PredictionKey;
 };
 
 /** 

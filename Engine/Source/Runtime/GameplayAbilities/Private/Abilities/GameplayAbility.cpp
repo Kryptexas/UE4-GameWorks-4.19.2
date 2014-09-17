@@ -80,9 +80,7 @@ void UGameplayAbility::SendGameplayEvent(FGameplayTag EventTag, FGameplayEventDa
 {
 	if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
 	{
-		check(CurrentActivationInfo.CurrPredictionKey != 0);
-		Payload.PrevPredictionKey = CurrentActivationInfo.PrevPredictionKey;
-		Payload.CurrPredictionKey = CurrentActivationInfo.CurrPredictionKey;
+		Payload.PredictionKey = CurrentActivationInfo.GetPredictionKeyForNewAction();
 	}
 
 	AActor *OwnerActor = Cast<AActor>(GetOuter());
@@ -208,7 +206,7 @@ bool UGameplayAbility::CommitAbility(const FGameplayAbilitySpecHandle Handle, co
 		return false;
 	}
 
-	CommitExecute(ActorInfo, ActivationInfo);
+	CommitExecute(Handle, ActorInfo, ActivationInfo);
 
 	// Fixme: Should we always call this or only if it is implemented? A noop may not hurt but could be bad for perf (storing a HasBlueprintCommit per instance isn't good either)
 	K2_CommitExecute();
@@ -242,14 +240,11 @@ bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, c
 	return true;
 }
 
-void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::CommitExecute(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (!ActorInfo->AbilitySystemComponent->IsNetSimulating() || ActivationInfo.CurrPredictionKey != 0)
-	{
-		ApplyCooldown(ActorInfo, ActivationInfo);
+	ApplyCooldown(Handle, ActorInfo, ActivationInfo);
 
-		ApplyCost(ActorInfo, ActivationInfo);
-	}
+	ApplyCost(Handle, ActorInfo, ActivationInfo);
 }
 
 void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -357,12 +352,11 @@ bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo)
 	return true;
 }
 
-void UGameplayAbility::ApplyCooldown(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	if (CooldownGameplayEffect)
 	{
-		check(ActorInfo->AbilitySystemComponent.IsValid());
-		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKeys(ActivationInfo.PrevPredictionKey, ActivationInfo.CurrPredictionKey));
+		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CooldownGameplayEffect, 1.f);
 	}
 }
 
@@ -376,12 +370,11 @@ bool UGameplayAbility::CheckCost(const FGameplayAbilityActorInfo* ActorInfo) con
 	return true;
 }
 
-void UGameplayAbility::ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	check(ActorInfo->AbilitySystemComponent.IsValid());
 	if (CostGameplayEffect)
 	{
-		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKeys(ActivationInfo.PrevPredictionKey, ActivationInfo.CurrPredictionKey));
+		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CostGameplayEffect, 1.f);
 	}
 }
 
@@ -558,28 +551,22 @@ void UGameplayAbility::TaskEnded(UAbilityTask* Task)
  *	work with the PredictionKey system.
  */
 
-void UGameplayAbility::ExecuteGameplayCue(FGameplayTag GameplayCueTag)
+void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag)
 {
-	if (ensure(CurrentActorInfo) && CurrentActorInfo->IsNetAuthority())
-	{
-		CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag);
-	}
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
 }
 
-void UGameplayAbility::AddGameplayCue(FGameplayTag GameplayCueTag)
+void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag)
 {
-	if (ensure(CurrentActorInfo) && CurrentActorInfo->IsNetAuthority())
-	{
-		CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag);
-	}
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
 }
 
-void UGameplayAbility::RemoveGameplayCue(FGameplayTag GameplayCueTag)
+void UGameplayAbility::K2_RemoveGameplayCue(FGameplayTag GameplayCueTag)
 {
-	if (ensure(CurrentActorInfo) && CurrentActorInfo->IsNetAuthority())
-	{
-		CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(GameplayCueTag);
-	}
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
 }
 
 int32 UGameplayAbility::GetAbilityLevel() const
@@ -610,4 +597,50 @@ bool UGameplayAbility::IsTriggered() const
 	// Assume that if there is triggered data, then we are triggered. 
 	// If we need to support abilities that can be both, this will need to be expanded.
 	return AbilityTriggers.Num() > 0;
+}
+
+// -------------------------------------------------------
+
+FActiveGameplayEffectHandle UGameplayAbility::K2_ApplyGameplayEffectToOwner(const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	check(CurrentActorInfo);
+	check(CurrentSpecHandle.IsValid());
+
+	//CurrentActivationInfo = GetCurrentAbilitySpec()->ActivationInfo;
+
+	return ApplyGameplayEffectToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, GameplayEffect, GameplayEffectLevel);
+}
+
+FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToOwner(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority || ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
+	{
+		return ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(GameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.GetPredictionKeyForNewAction()));
+	}
+
+	// We cannot apply GameplayEffects in this context. Return an empty handle.
+	return FActiveGameplayEffectHandle();
+}
+
+FActiveGameplayEffectHandle UGameplayAbility::K2_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle Target, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	return ApplyGameplayEffectToTarget(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, Target, GameplayEffect, GameplayEffectLevel);
+}
+
+FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FGameplayAbilityTargetDataHandle Target, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	FActiveGameplayEffectHandle EffectHandle;
+	for (auto Data : Target.Data)
+	{
+		TArray<FActiveGameplayEffectHandle> EffectHandles = Data->ApplyGameplayEffect(GameplayEffect, ActorInfo, (float)GameplayEffectLevel);
+		if (EffectHandles.Num() > 0)
+		{
+			EffectHandle = EffectHandles[0];
+			if (EffectHandles.Num() > 1)
+			{
+				ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on TargetData with multiple actor targets. %s"), *GetName());
+			}
+		}
+	}
+	return EffectHandle;
 }

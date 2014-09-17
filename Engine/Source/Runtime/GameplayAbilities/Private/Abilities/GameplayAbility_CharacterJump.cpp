@@ -59,11 +59,7 @@ bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySp
 void UGameplayAbility_CharacterJump::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	Super::CancelAbility(Handle, ActorInfo, ActivationInfo);
-
-	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority ||
-		ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
-	{
-		ACharacter * Character = CastChecked<ACharacter>(ActorInfo->Actor.Get());
-		Character->StopJumping();
-	}
+	
+	ACharacter * Character = CastChecked<ACharacter>(ActorInfo->Actor.Get());
+	Character->StopJumping();
 }

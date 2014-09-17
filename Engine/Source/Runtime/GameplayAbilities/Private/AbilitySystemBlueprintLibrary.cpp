@@ -20,59 +20,6 @@ UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemCompone
 	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
 }
 
-TArray<FActiveGameplayEffectHandle> UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level)
-{
-	TArray<FActiveGameplayEffectHandle> Handles;
-
-	if (GameplayEffect == nullptr)
-	{
-		return Handles;
-	}
-
-	for (auto Data : Target.Data)
-	{
-		if (Data.IsValid())
-		{
-			Handles.Append(Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo, (float)Level));
-		}
-	}
-
-	return Handles;
-}
-
-FActiveGameplayEffectHandle UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData_Single(FGameplayAbilityTargetDataHandle Target, UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level)
-{
-	FActiveGameplayEffectHandle Handle;
-
-	if (GameplayEffect == nullptr)
-	{
-		return Handle;
-	}
-
-	if (Target.Data.Num() != 1)
-	{
-		ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on invalid TargetDataHandle."));
-		return Handle;
-	}
-
-	
-	if (Target.Data[0].IsValid())
-	{
-		TArray<FActiveGameplayEffectHandle> Handles = Target.Data[0]->ApplyGameplayEffect(GameplayEffect, InstigatorInfo, (float)Level);
-		int32 Num = Handles.Num();
-		if (Num > 0)
-		{
-			Handle = Handles[0];
-			if (Num > 1)
-			{
-				ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on TargetData with multiple actor targets"));
-			}
-		}
-	}
-
-	return Handle;
-}
-
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd)
 {
 	TargetHandle.Append(&HandleToAdd);

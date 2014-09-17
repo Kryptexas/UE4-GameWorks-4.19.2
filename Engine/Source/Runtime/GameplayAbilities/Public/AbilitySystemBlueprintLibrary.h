@@ -26,13 +26,6 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	// -------------------------------------------------------------------------------
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
-	static TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level=1);
-
-	/** Applies GameplayEffect to TargetData and returns the handle of the  */
-	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
-	static FActiveGameplayEffectHandle ApplyGameplayEffectToTargetData_Single(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, int32 Level=1);
-
-	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")

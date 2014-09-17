@@ -22,6 +22,9 @@ class UAbilityTask_WaitGameplayEffectRemoved : public UAbilityTask
 	UPROPERTY(BlueprintAssignable)
 	FWaitGameplayEffectRemovedDelegate	OnRemoved;
 
+	UPROPERTY(BlueprintAssignable)
+	FWaitGameplayEffectRemovedDelegate	InvalidHandle;
+
 	virtual void Activate() override;
 
 	UFUNCTION()

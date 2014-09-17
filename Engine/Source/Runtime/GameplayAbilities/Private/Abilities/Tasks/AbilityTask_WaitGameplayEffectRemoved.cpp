@@ -22,6 +22,13 @@ UAbilityTask_WaitGameplayEffectRemoved* UAbilityTask_WaitGameplayEffectRemoved::
 
 void UAbilityTask_WaitGameplayEffectRemoved::Activate()
 {
+	if (Handle.IsValid() == false)
+	{
+		InvalidHandle.Broadcast();
+		EndTask();
+		return;;
+	}
+
 	UAbilitySystemComponent* EffectOwningAbilitySystemComponent = Handle.GetOwningAbilitySystemComponent();
 
 	if (EffectOwningAbilitySystemComponent)

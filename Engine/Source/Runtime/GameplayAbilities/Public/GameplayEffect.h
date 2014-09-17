@@ -788,8 +788,6 @@ struct FModifierQualifier
 
 	FModifierQualifier()
 		: MyType(EGameplayMod::Max)
-		, MyPrevPredictionKey(0)
-		, MyCurrPredictionKey(0)
 	{
 	}
 
@@ -808,30 +806,16 @@ struct FModifierQualifier
 
 	// ----------------------------------
 	// PredictionKey is used by networking/replication to specify that a GameplayEffect has been predictively created/added.
-
-	uint32 PreviousPredictionKey() const
+	
+	FModifierQualifier& PredictionKey(FPredictionKey InPredictionKey)
 	{
-		return MyPrevPredictionKey;
-	}
-
-	uint32 CurrentPredictionKey() const
-	{
-		return MyCurrPredictionKey;
-	}
-
-	FModifierQualifier& PredictionKey(uint32 InPredictionKey)
-	{
-		MyPrevPredictionKey = MyCurrPredictionKey;
-		MyCurrPredictionKey = InPredictionKey;
+		MyPredictionKey = InPredictionKey;
 		return *this;
 	}
 
-	// this has the same result as calling PredictionKey twice in a row to set both keys
-	FModifierQualifier& PredictionKeys(uint32 InPrevPredictionKey, uint32 InCurrPredictionKey)
+	FPredictionKey PredictionKey() const
 	{
-		MyPrevPredictionKey = InPrevPredictionKey;
-		MyCurrPredictionKey = InCurrPredictionKey;
-		return *this;
+		return MyPredictionKey;
 	}
 
 	// ----------------------------------
@@ -890,8 +874,7 @@ private:
 	EGameplayMod::Type	MyType;
 	FActiveGameplayEffectHandle MyIgnoreHandle;		// Do not modify this handle
 	FActiveGameplayEffectHandle MyExclusiveTargetHandle;	// Only modify this handle
-	uint32 MyPrevPredictionKey;
-	uint32 MyCurrPredictionKey;
+	FPredictionKey MyPredictionKey;
 };
 
 /**
@@ -1048,18 +1031,15 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	FActiveGameplayEffect()
 		: StartGameStateTime(0)
 		, StartWorldTime(0.f)
-		, PrevPredictionKey(0)
-		, CurrPredictionKey(0)
 	{
 	}
 
-	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, uint32 InPrevPredictionKey, uint32 InCurrPredictionKey)
+	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, FPredictionKey InPredictionKey)
 		: Handle(InHandle)
 		, Spec(InSpec)
 		, StartGameStateTime(InStartGameStateTime)
 		, StartWorldTime(CurrentWorldTime)
-		, PrevPredictionKey(InPrevPredictionKey)
-		, CurrPredictionKey(InCurrPredictionKey)
+		, PredictionKey(InPredictionKey)
 	{
 		for (FModifierSpec &Mod : Spec.Modifiers)
 		{
@@ -1071,6 +1051,9 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	UPROPERTY()
 	FGameplayEffectSpec Spec;
+
+	UPROPERTY()
+	FPredictionKey	PredictionKey;
 
 	/** Game time this started */
 	UPROPERTY()
@@ -1084,10 +1067,6 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	FTimerHandle PeriodHandle;
 
 	FTimerHandle DurationHandle;
-
-	/** Prediction keys used to sync between client and server. If CurrPredictionKey != 0 then this effect does not use prediction. */
-	uint32 PrevPredictionKey;
-	uint32 CurrPredictionKey;
 
 	float GetTimeRemaining(float WorldTime)
 	{
@@ -1119,7 +1098,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	}
 };
 
-/** Generic querying data structure for active GameplayEffects. Lets us ask things like:
+/** Generic querying data structure for active GameplayEffects. Lets us ask things like: ** 
  *		-Give me duration/magnitude of active gameplay effects with these tags
  *		-
  */
@@ -1163,7 +1142,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	UAbilitySystemComponent *Owner;
 	
-	FActiveGameplayEffect& CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, uint32 InPrevPredictionKey, uint32 InCurrPredictionKey);
+	FActiveGameplayEffect& CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey);
 
 	FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle);
 

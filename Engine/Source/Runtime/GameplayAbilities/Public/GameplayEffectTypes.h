@@ -4,6 +4,7 @@
 
 #include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"
+#include "GameplayPrediction.h"
 #include "GameplayEffectTypes.generated.h"
 
 #define SKILL_SYSTEM_AGGREGATOR_DEBUG 1

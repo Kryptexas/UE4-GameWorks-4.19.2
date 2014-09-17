@@ -7,13 +7,13 @@
 #include "AbilitySystemBlueprintLibrary.h"
 
 
-TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo, float Level)
+TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo* InstigatorInfo, float Level)
 {
 	// TODO: Improve relationship between InstigatorContext and FGameplayAbilityTargetData/FHitResult (or use something different between HitResult)
 
 
 	FGameplayEffectSpec	SpecToApply(GameplayEffect,					// The UGameplayEffect data asset
-		InstigatorInfo.Actor.Get(),		// The actor who instigated this
+		InstigatorInfo->Actor.Get(),		// The actor who instigated this
 		Level,							// FIXME: Leveling
 		NULL							// FIXME: CurveData override... should we just remove this?
 		);
@@ -38,7 +38,7 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 			UAbilitySystemComponent* TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor.Get());
 			if (TargetComponent)
 			{
-				AppliedHandles.Add( InstigatorInfo.AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent) );
+				AppliedHandles.Add( InstigatorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent) );
 			}
 		}
 	}
@@ -57,18 +57,21 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 	if (LocationType == EGameplayAbilityTargetingLocationType::Type::SocketTransform)
 	{
 		const FGameplayAbilityActorInfo* ActorInfo = Ability.IsValid() ? Ability.Get()->GetCurrentActorInfo() : NULL;
-		AActor* AISourceActor = ActorInfo ? (ActorInfo->Actor.IsValid() ? ActorInfo->Actor.Get() : NULL) : NULL;
-		UAnimInstance* AnimInstance = ActorInfo ? ActorInfo->AnimInstance.Get() : NULL;
-		USkeletalMeshComponent* AISourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
-
-		if (AISourceActor && AISourceComponent)
+		if (ActorInfo)
 		{
-			FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
-			ReturnData->SourceActor = AISourceActor;
-			ReturnData->SourceComponent = AISourceComponent;
-			ReturnData->SourceSocketName = SourceSocketName;
-			ReturnData->TargetPoint = HitResult.Location;
-			return FGameplayAbilityTargetDataHandle(ReturnData);
+			AActor* AISourceActor = ActorInfo->Actor.Get();
+			UAnimInstance* AnimInstance = ActorInfo->AnimInstance.Get();
+			USkeletalMeshComponent* AISourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
+
+			if (AISourceActor && AISourceComponent)
+			{
+				FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
+				ReturnData->SourceActor = AISourceActor;
+				ReturnData->SourceComponent = AISourceComponent;
+				ReturnData->SourceSocketName = SourceSocketName;
+				ReturnData->TargetPoint = HitResult.Location;
+				return FGameplayAbilityTargetDataHandle(ReturnData);
+			}
 		}
 	}
 

@@ -42,8 +42,7 @@ UAbilitySystemComponent::UAbilitySystemComponent(const class FPostConstructIniti
 	ActiveGameplayCues.Owner = this;
 
 	SetIsReplicated(true);
-	ReplicatedPredictionKey = 0;
-	LocalPredictionKey = 0;
+
 	UserAbilityActivationInhibited = false;
 }
 
@@ -155,6 +154,11 @@ bool UAbilitySystemComponent::IsOwnerActorAuthoritative() const
 	return !IsNetSimulating();
 }
 
+bool UAbilitySystemComponent::HasNetworkAuthorityToApplyGameplayEffect(const FModifierQualifier QualifierContext) const
+{
+	return (IsOwnerActorAuthoritative() || QualifierContext.PredictionKey().IsStale()==false);
+}
+
 void UAbilitySystemComponent::SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue)
 {
 	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
@@ -193,10 +197,13 @@ FGameplayEffectInstigatorContext UAbilitySystemComponent::GetInstigatorContext()
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FModifierQualifier BaseQualifier)
 {
 	check(GameplayEffect);
+	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
+	{
+		FGameplayEffectSpec	Spec(GameplayEffect, AbilityActorInfo->Actor.Get(), Level, GetCurveDataOverride());
+		return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
+	}
 
-	FGameplayEffectSpec	Spec(GameplayEffect, AbilityActorInfo->Actor.Get(), Level, GetCurveDataOverride());
-	
-	return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
+	return FActiveGameplayEffectHandle();
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
@@ -210,9 +217,13 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToSelf(c
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, GetCurveDataOverride());
+	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
+	{
+		FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, GetCurveDataOverride());
+		return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+	}
 
-	return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+	return FActiveGameplayEffectHandle();
 }
 
 float UAbilitySystemComponent::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, const FGameplayTag& InTag) const
@@ -289,11 +300,14 @@ void UAbilitySystemComponent::TEMP_ApplyActiveGameplayEffects()
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier)
 {
-	// Apply outgoing Effects to the Spec.
-	// Outgoing immunity may stop the outgoing effect from being applied to the target
-	if (ActiveGameplayEffects.ApplyActiveEffectsTo(Spec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::OutgoingGE)))
+	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
 	{
-		return Target->ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+		// Apply outgoing Effects to the Spec.
+		// Outgoing immunity may stop the outgoing effect from being applied to the target
+		if (ActiveGameplayEffects.ApplyActiveEffectsTo(Spec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::OutgoingGE)))
+		{
+			return Target->ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+		}
 	}
 
 	return FActiveGameplayEffectHandle();
@@ -303,10 +317,15 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 {
 	// Temp, only non instant, non periodic GEs can be predictive
 	// Effects with other effects may be a mix so go with non-predictive
-	check((BaseQualifier.CurrentPredictionKey() == 0) || (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+	check((BaseQualifier.PredictionKey().IsValidKey() == false) || (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+
+	if (!HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
+	{
+		return FActiveGameplayEffectHandle();
+	}
 
 	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
-	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && BaseQualifier.CurrentPredictionKey() != 0 && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
+	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && BaseQualifier.PredictionKey().IsValidKey() && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
 
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();
@@ -317,7 +336,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 	// Make sure we create our copy of the spec in the right place first...
 	FActiveGameplayEffectHandle	MyHandle;
-	bool bInvokeGameplayCueApplied = false;
+	bool bInvokeGameplayCueApplied = UGameplayEffect::INFINITE_DURATION == Spec.GetDuration();
 
 	FGameplayEffectSpec* OurCopyOfSpec = NULL;
 	TSharedPtr<FGameplayEffectSpec> StackSpec;
@@ -330,11 +349,9 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			{
 				ActiveGameplayEffects.StacksNeedToRecalculate();
 			}
-			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PreviousPredictionKey(), BaseQualifier.CurrentPredictionKey());
+			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PredictionKey());
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
-
-			bInvokeGameplayCueApplied = true;
 		}
 		
 		if (!OurCopyOfSpec)
@@ -404,6 +421,13 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	{
 		ExecuteGameplayEffect(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).IgnoreHandle(MyHandle));
 	}
+	else if (bTreatAsInfiniteDuration)
+	{
+		// This is an instant application but we are treating it as an infinite duration for prediction. We should still predict the execute GameplayCUE.
+		// (in non predictive case, this will happen inside ::ExecuteGameplayEffect)
+		InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::Executed);
+	}
+
 
 	if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD && Spec.TargetEffectSpecs.Num() > 0)
 	{
@@ -486,26 +510,26 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 	}
 }
 
-void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag)
+void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag);
+		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag, PredictionKey);
 	}
-	else
+	else if (PredictionKey.IsValidKey())
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
 	}
 }
 
-void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag)
+void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
 	if (IsOwnerActorAuthoritative())
 	{
 		ActiveGameplayCues.AddCue(GameplayCueTag);
-		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag);
+		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, PredictionKey);
 	}
-	else
+	else if (PredictionKey.IsValidKey())
 	{
 		// Allow for predictive gameplaycue events? Needs more thought
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
@@ -513,12 +537,15 @@ void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag)
 	}
 }
 
-void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTag)
+void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
-	InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	if (IsOwnerActorAuthoritative())
 	{
 		ActiveGameplayCues.RemoveCue(GameplayCueTag);
+	}
+	else if (PredictionKey.IsValidKey())
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	}
 }
 
@@ -539,19 +566,28 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag Gameplay
 	GameplayCueInterface->HandleGameplayCue(ActorOwner, GameplayCueTag, EventType, CueParameters);
 }
 
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec)
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)
 {
-	InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
+	if (PredictionKey.IsValidKey() == false)
+	{
+		InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
+	}
 }
 
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag)
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
-	InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+	if (PredictionKey.IsValidKey() == false)
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+	}
 }
 
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag)
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
-	InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+	if (PredictionKey.IsValidKey() == false)
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+	}
 }
 
 bool UAbilitySystemComponent::IsGameplayCueActive(const FGameplayTag GameplayCueTag) const
@@ -665,7 +701,7 @@ void UAbilitySystemComponent::OnRep_PredictionKey()
 	int32 idx = 0;
 	for ( ; idx < PredictionDelegates.Num(); ++idx)
 	{
-		if (PredictionDelegates[idx].Key <= ReplicatedPredictionKey)
+		if (PredictionDelegates[idx].Key <= ReplicatedPredictionKey.Current)
 		{
 			PredictionDelegates[idx].Value.PredictionKeyClearDelegate.Broadcast();
 		}
@@ -681,7 +717,7 @@ void UAbilitySystemComponent::OnRep_PredictionKey()
 	}
 }
 
-UAbilitySystemComponent::FPredictionInfo& UAbilitySystemComponent::GetPredictionKeyDelegate(uint32 PredictionKey)
+UAbilitySystemComponent::FPredictionInfo& UAbilitySystemComponent::GetPredictionKeyDelegate(FPredictionKey::KeyType PredictionKey)
 {
 	// See if we already have one for this key
 	for (auto & Item : PredictionDelegates)
@@ -693,17 +729,11 @@ UAbilitySystemComponent::FPredictionInfo& UAbilitySystemComponent::GetPrediction
 	}
 
 	// Create a new one
-	TPair<uint32, FPredictionInfo> NewPair;
+	TPair<FPredictionKey::KeyType, FPredictionInfo> NewPair;
 	NewPair.Key = PredictionKey;
 	
 	PredictionDelegates.Add(NewPair);
 	return PredictionDelegates.Last().Value;
-}
-
-uint32 UAbilitySystemComponent::GetNextPredictionKey()
-{
-	LocalPredictionKey = FMath::Max(LocalPredictionKey, ReplicatedPredictionKey);
-	return ++LocalPredictionKey;
 }
 
 // ---------------------------------------------------------------------------------------
