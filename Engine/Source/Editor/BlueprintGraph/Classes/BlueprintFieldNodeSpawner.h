@@ -33,7 +33,7 @@ public:
 	static UBlueprintFieldNodeSpawner* Create(TSubclassOf<UK2Node> NodeClass, UField const* const Field, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
-	virtual FBlueprintNodeSpawnerSignature GetSpawnerSignature() const override;
+	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	// End UBlueprintNodeSpawner interface
 

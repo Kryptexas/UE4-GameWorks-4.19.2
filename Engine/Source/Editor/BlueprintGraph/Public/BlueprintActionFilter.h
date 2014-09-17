@@ -94,13 +94,6 @@ struct BLUEPRINTGRAPH_API FBlueprintActionInfo
 	UClass const* GetNodeClass();
 
 	/**
-	 * 
-	 * 
-	 * @return 
-	 */
-	FGuid GetActionGuid();
-
-	/**
 	 * Certain actions are associated with specific member fields (a member 
 	 * function call, a variable get/set, etc.) This retrieves that member field 
 	 * if there is one (not all actions have an associated field).
@@ -143,9 +136,6 @@ private:
 	UField const*    CachedActionField;
 	UProperty const* CachedActionProperty;
 	UFunction const* CachedActionFunction;
-
-	/** */
-	FGuid CachedActionId;
 
 	/** */
 	IBlueprintNodeBinder::FBindingSet Bindings;

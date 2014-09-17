@@ -123,13 +123,14 @@ void UK2Node_InputAxisEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar& A
 		InputNode->Initialize(AxisName);
 	};
 
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+
 	for (FName const InputAxisName : AxisNames)
 	{
-		// actions get registered under specific object-keys; the idea is that 
-		// actions might have to be updated (or deleted) if their object-key is  
-		// mutated (or removed)... here we use the node's class (so if the node 
-		// type disappears, then the action should go with it)
-		UClass* ActionKey = GetClass();
 		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
 		// check to make sure that the registrar is looking for actions of this type
 		// (could be regenerating actions for a specific asset, and therefore the 
@@ -156,6 +157,14 @@ FText UK2Node_InputAxisEvent::GetMenuCategory() const
 		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Axis Events"));
 	}
 	return CachedCategory;
+}
+
+FBlueprintNodeSignature UK2Node_InputAxisEvent::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddKeyValue(InputAxisName.ToString());
+
+	return NodeSignature;
 }
 
 #undef LOCTEXT_NAMESPACE

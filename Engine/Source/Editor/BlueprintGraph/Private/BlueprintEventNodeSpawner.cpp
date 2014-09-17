@@ -89,13 +89,13 @@ UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(class FPostConstructIniti
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature UBlueprintEventNodeSpawner::GetSpawnerSignature() const
+FBlueprintNodeSignature UBlueprintEventNodeSpawner::GetSpawnerSignature() const
 {
-	FBlueprintNodeSpawnerSignature SpawnerSignature = Super::GetSpawnerSignature();
+	FBlueprintNodeSignature SpawnerSignature(NodeClass);
 	if (IsForCustomEvent() && !CustomEventName.IsNone())
 	{
 		static const FName CustomSignatureKey(TEXT("CustomEvent"));
-		SpawnerSignature.AddKeyValue(CustomSignatureKey, CustomEventName.ToString());
+		SpawnerSignature.AddNamedValue(CustomSignatureKey, CustomEventName.ToString());
 	}
 	else
 	{

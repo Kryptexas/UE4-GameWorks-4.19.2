@@ -30,12 +30,12 @@ UBlueprintBoundNodeSpawner::UBlueprintBoundNodeSpawner(class FPostConstructIniti
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature UBlueprintBoundNodeSpawner::GetSpawnerSignature() const
+FBlueprintNodeSignature UBlueprintBoundNodeSpawner::GetSpawnerSignature() const
 {
 	// explicit actions for binding (like this) cannot be reconstructed form a 
 	// signature (since this spawner does not own whatever it will be binding 
 	// to), therefore we return an empty (invalid) signature
-	return FBlueprintNodeSpawnerSignature();
+	return FBlueprintNodeSignature();
 }
 
 //------------------------------------------------------------------------------

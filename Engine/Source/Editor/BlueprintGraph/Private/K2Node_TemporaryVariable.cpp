@@ -155,7 +155,6 @@ void UK2Node_TemporaryVariable::GetMenuActions(FBlueprintActionDatabaseRegistrar
 			TempVarNode->bIsPersistent = bIsPersistent;
 		};
 
-		// @TODO: Need some kind of unique spawner so that this can generate a unique key
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, VarType, bIsPersistent);
 		return NodeSpawner;
 	};
@@ -190,7 +189,6 @@ void UK2Node_TemporaryVariable::GetMenuActions(FBlueprintActionDatabaseRegistrar
 	ActionRegistrar.AddBlueprintAction(ActionKey, MakeTempVarNodeSpawner(FEdGraphPinType(K2Schema->PC_Struct, TEXT("BlendSampleData"), BlendSampleStruct, /*bIsArray =*/ true, /*bIsReference =*/false), /*bIsPersistent =*/false));
 
 	// add persistent bool and int types (for macro graphs)
-	// @TODO: these should probably be filtered (for macro graphs only)
 	ActionRegistrar.AddBlueprintAction(ActionKey, MakeTempVarNodeSpawner(FEdGraphPinType(K2Schema->PC_Int, TEXT(""), nullptr, /*bIsArray =*/false, /*bIsReference =*/false), /*bIsPersistent =*/true));
 	ActionRegistrar.AddBlueprintAction(ActionKey, MakeTempVarNodeSpawner(FEdGraphPinType(K2Schema->PC_Boolean, TEXT(""), nullptr, /*bIsArray =*/false, /*bIsReference =*/false), /*bIsPersistent =*/true));
 }
@@ -198,4 +196,21 @@ void UK2Node_TemporaryVariable::GetMenuActions(FBlueprintActionDatabaseRegistrar
 FText UK2Node_TemporaryVariable::GetMenuCategory() const
 {
 	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Macro);
+}
+
+FBlueprintNodeSignature UK2Node_TemporaryVariable::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+
+	FString TypeString;
+	if (bIsPersistent)
+	{
+		TypeString = TEXT("Persistent ");
+	}
+	TypeString += UEdGraphSchema_K2::TypeToText(VariableType).ToString();
+
+	static const FName VarTypeSignatureKey(TEXT("VarType"));
+	NodeSignature.AddNamedValue(VarTypeSignatureKey, TypeString);
+
+	return NodeSignature;
 }

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
+#include "BlueprintNodeSignature.h"
 #include "K2Node.generated.h"
 
 class UBlueprintNodeSpawner;
@@ -312,6 +313,19 @@ class UK2Node : public UEdGraphNode
 	 * @return A localized category string (or an empty string if you want this node listed at the menu's root).
 	 */
 	virtual FText GetMenuCategory() const { return FText::GetEmpty(); }
+
+	/**
+	 * Retrieves a unique identifier for this node type. Built from the node's 
+	 * class, as well as other signature items (like functions for CallFunction
+	 * nodes).
+	 *
+	 * NOTE: This is not the same as a node identification GUID, two node 
+	 *       instances can have the same signature (if both call the same 
+	 *       function, etc.).
+	 * 
+	 * @return A signature struct, discerning this node from others.
+	 */
+	virtual FBlueprintNodeSignature GetSignature() const { return FBlueprintNodeSignature(GetClass()); }
 
 	BLUEPRINTGRAPH_API enum EBaseNodeRefreshPriority
 	{

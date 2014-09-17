@@ -23,7 +23,7 @@ public:
 	static UBlueprintBoundNodeSpawner* Create(TSubclassOf<UEdGraphNode> NodeClass, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
-	virtual FBlueprintNodeSpawnerSignature GetSpawnerSignature() const override;
+	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
 	// End UBlueprintNodeSpawner interface
 
 	// FBlueprintNodeBinder interface

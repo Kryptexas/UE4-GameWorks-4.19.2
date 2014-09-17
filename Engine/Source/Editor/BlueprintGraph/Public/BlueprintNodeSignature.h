@@ -2,12 +2,12 @@
 
 #pragma once
 
-struct BLUEPRINTGRAPH_API FBlueprintNodeSpawnerSignature
+struct BLUEPRINTGRAPH_API FBlueprintNodeSignature
 {
 public:
-	FBlueprintNodeSpawnerSignature() {}
-	FBlueprintNodeSpawnerSignature(FString const& UserString);
-	FBlueprintNodeSpawnerSignature(TSubclassOf<UEdGraphNode> NodeClass);
+	FBlueprintNodeSignature() {}
+	FBlueprintNodeSignature(FString const& UserString);
+	FBlueprintNodeSignature(TSubclassOf<UEdGraphNode> NodeClass);
 
 	/**
 	 * 
@@ -28,11 +28,19 @@ public:
 	/**
 	 * 
 	 * 
+	 * @param  Value	
+	 * @return 
+	 */
+	void AddKeyValue(FString const& KeyValue);
+
+	/**
+	 * 
+	 * 
 	 * @param  SignatureKey	
 	 * @param  Value	
 	 * @return 
 	 */
-	void AddKeyValue(FName SignatureKey, FString const& Value);
+	void AddNamedValue(FName SignatureKey, FString const& Value);
 
 	/**
 	 * 

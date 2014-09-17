@@ -27,6 +27,7 @@ class UK2Node_DynamicCast : public UK2Node
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End of UK2Node interface
 
 	/** Get the 'valid cast' exec pin */

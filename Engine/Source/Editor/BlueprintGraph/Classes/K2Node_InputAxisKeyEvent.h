@@ -38,6 +38,7 @@ class UK2Node_InputAxisKeyEvent : public UK2Node_Event
 	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End UK2Node interface
 
 	void Initialize(const FKey AxisKey);

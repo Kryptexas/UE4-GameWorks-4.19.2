@@ -96,6 +96,14 @@ void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuActions(FBlueprintActionDat
 	}
 }
 
+FBlueprintNodeSignature UAnimGraphNode_RotationOffsetBlendSpace::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddSubObject(Node.BlendSpace);
+
+	return NodeSignature;
+}
+
 void UAnimGraphNode_RotationOffsetBlendSpace::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (Node.BlendSpace == NULL)

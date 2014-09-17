@@ -100,9 +100,19 @@ void UBlueprintNodeSpawner::Prime()
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature UBlueprintNodeSpawner::GetSpawnerSignature() const
+FBlueprintNodeSignature UBlueprintNodeSpawner::GetSpawnerSignature() const
 {
-	return FBlueprintNodeSpawnerSignature(NodeClass);
+	FBlueprintNodeSignature SpawnerSignature;
+	if (UK2Node const* NodeTemplate = Cast<UK2Node>(GetTemplateNode()))
+	{
+		SpawnerSignature = NodeTemplate->GetSignature();
+	}
+
+	if (!SpawnerSignature.IsValid())
+	{
+		SpawnerSignature.SetNodeClass(NodeClass);
+	}
+	return SpawnerSignature;
 }
 
 //------------------------------------------------------------------------------

@@ -382,6 +382,12 @@ void UK2Node_InputKey::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionR
 		InputNode->InputKey = Key;
 	};
 
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+
 	for (FKey const Key : AllKeys)
 	{
 		// these will be handled by UK2Node_GetInputAxisKeyValue and UK2Node_GetInputVectorAxisValue respectively
@@ -390,11 +396,6 @@ void UK2Node_InputKey::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionR
 			continue;
 		}
 
-		// actions get registered under specific object-keys; the idea is that 
-		// actions might have to be updated (or deleted) if their object-key is  
-		// mutated (or removed)... here we use the node's class (so if the node 
-		// type disappears, then the action should go with it)
-		UClass* ActionKey = GetClass();
 		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
 		// check to make sure that the registrar is looking for actions of this type
 		// (could be regenerating actions for a specific asset, and therefore the 
@@ -448,6 +449,14 @@ FText UK2Node_InputKey::GetMenuCategory() const
 		CachedCategories[CategoryIndex] = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
 	}
 	return CachedCategories[CategoryIndex];
+}
+
+FBlueprintNodeSignature UK2Node_InputKey::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddKeyValue(InputKey.ToString());
+
+	return NodeSignature;
 }
 
 #undef LOCTEXT_NAMESPACE

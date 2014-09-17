@@ -444,5 +444,12 @@ FText UK2Node_MacroInstance::GetMenuCategory() const
 	return MenuCategory;
 }
 
+FBlueprintNodeSignature UK2Node_MacroInstance::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddSubObject(GetMacroGraph());
+
+	return NodeSignature;
+}
 
 #undef LOCTEXT_NAMESPACE

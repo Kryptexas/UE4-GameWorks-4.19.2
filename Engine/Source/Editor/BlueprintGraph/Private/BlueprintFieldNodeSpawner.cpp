@@ -27,9 +27,9 @@ UBlueprintFieldNodeSpawner::UBlueprintFieldNodeSpawner(class FPostConstructIniti
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature UBlueprintFieldNodeSpawner::GetSpawnerSignature() const
+FBlueprintNodeSignature UBlueprintFieldNodeSpawner::GetSpawnerSignature() const
 {
-	FBlueprintNodeSpawnerSignature SpawnerSignature = Super::GetSpawnerSignature();
+	FBlueprintNodeSignature SpawnerSignature(NodeClass);
 	SpawnerSignature.AddSubObject(Field);
 
 	return SpawnerSignature;

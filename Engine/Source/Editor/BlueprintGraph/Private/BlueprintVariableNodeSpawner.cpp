@@ -84,14 +84,14 @@ void UBlueprintVariableNodeSpawner::Prime()
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature UBlueprintVariableNodeSpawner::GetSpawnerSignature() const
+FBlueprintNodeSignature UBlueprintVariableNodeSpawner::GetSpawnerSignature() const
 {
-	FBlueprintNodeSpawnerSignature SpawnerSignature = Super::GetSpawnerSignature();
+	FBlueprintNodeSignature SpawnerSignature(NodeClass);
 	if (IsLocalVariable())
 	{
 		SpawnerSignature.AddSubObject(LocalVarOuter);
 		static const FName LocalVarSignatureKey(TEXT("LocalVarName"));
-		SpawnerSignature.AddKeyValue(LocalVarSignatureKey, LocalVarDesc.VarName.ToString());
+		SpawnerSignature.AddNamedValue(LocalVarSignatureKey, LocalVarDesc.VarName.ToString());
 	}
 	
 	return SpawnerSignature;

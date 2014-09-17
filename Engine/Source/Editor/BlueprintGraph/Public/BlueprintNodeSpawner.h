@@ -3,7 +3,7 @@
 #pragma once
 
 #include "BlueprintNodeBinder.h"
-#include "BlueprintNodeSpawnerSignature.h"
+#include "BlueprintNodeSignature.h"
 #include "BlueprintNodeSpawner.generated.h"
 
 // Forward declarations
@@ -88,7 +88,7 @@ public:
 	 * 
 	 * @return A set of object-paths/names that distinguish this spawner from others.
 	 */
-	virtual FBlueprintNodeSpawnerSignature GetSpawnerSignature() const;
+	virtual FBlueprintNodeSignature GetSpawnerSignature() const;
 
 	/**
 	 * Takes care of spawning a node for the specified graph. Looks to see if 

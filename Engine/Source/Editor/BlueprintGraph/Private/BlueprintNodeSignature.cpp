@@ -1,28 +1,53 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-#include "BlueprintNodeSpawnerSignature.h"
+#include "BlueprintNodeSignature.h"
 
 /*******************************************************************************
- * Static FBlueprintNodeSpawnerSignature Helpers
+ * Static FBlueprintNodeSignature Helpers
  ******************************************************************************/
 
-namespace BlueprintNodeSpawnerSignatureImpl
+namespace BlueprintNodeSignatureImpl
 {
 	static FString const SignatureOpeningStr("(");
 	static FString const SignatureElementDelim(",");
 	static FString const SignatureClosingStr(")");
 	static FString const SignatureKeyDelim("=");
+
+	static FName const LegacySubObjSignatureKey(TEXT("FieldName"));
+
+	/**
+	 * Iterates through the given KeyMap and looks for name collisions. Will 
+	 * append an incrementing value until a collision is not detected.
+	 * 
+	 * @param  BaseName	The base name you want some permutation of.
+	 * @param  KeyMap	The map you want the name key for.
+	 * @return A unique name key for the supplied map.
+	 */
+	static FName FindUniqueKeyName(FName BaseName, TMap<FName, FString>& KeyMap);
+}
+
+//------------------------------------------------------------------------------
+static FName BlueprintNodeSignatureImpl::FindUniqueKeyName(FName BaseName, TMap<FName, FString>& KeyMap)
+{
+	FName SingatureKey = BaseName;
+
+	int32 FNameIndex = 0;
+	while (KeyMap.Find(SingatureKey) != nullptr)
+	{
+		SingatureKey = FName(BaseName, ++FNameIndex);
+	}
+	return SingatureKey;
 }
 
 /*******************************************************************************
- * FBlueprintNodeSpawnerSignature
+ * FBlueprintNodeSignature
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature::FBlueprintNodeSpawnerSignature(FString const& UserString)
+FBlueprintNodeSignature::FBlueprintNodeSignature(FString const& UserString)
 {
-	using namespace BlueprintNodeSpawnerSignatureImpl;
+	using namespace BlueprintNodeSignatureImpl;
 
 	FString SanitizedSignature = UserString;
 	SanitizedSignature.RemoveFromStart(SignatureOpeningStr);
@@ -41,67 +66,71 @@ FBlueprintNodeSpawnerSignature::FBlueprintNodeSpawnerSignature(FString const& Us
 
 		SignatureValue.RemoveFromStart(TEXT("\""));
 		SignatureValue.RemoveFromEnd(TEXT("\""));
-		AddKeyValue(FName(*SignatureKey), SignatureValue);
+		AddNamedValue(FName(*SignatureKey), SignatureValue);
 	}
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature::FBlueprintNodeSpawnerSignature(TSubclassOf<UEdGraphNode> NodeClass)
+FBlueprintNodeSignature::FBlueprintNodeSignature(TSubclassOf<UEdGraphNode> NodeClass)
 {
 	SetNodeClass(NodeClass);
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintNodeSpawnerSignature::SetNodeClass(TSubclassOf<UEdGraphNode> NodeClass)
+void FBlueprintNodeSignature::SetNodeClass(TSubclassOf<UEdGraphNode> NodeClass)
 {
 	static const FName NodeClassSignatureKey(TEXT("NodeName"));
 
 	if (NodeClass != nullptr)
 	{
-		AddKeyValue(NodeClassSignatureKey, NodeClass->GetPathName());
-		MarkDirty();
+		AddNamedValue(NodeClassSignatureKey, NodeClass->GetPathName());
 	}
 	else
 	{
 		SignatureSet.Remove(NodeClassSignatureKey);
+		MarkDirty();
 	}
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintNodeSpawnerSignature::AddSubObject(UObject const* SignatureObj)
+void FBlueprintNodeSignature::AddSubObject(UObject const* SignatureObj)
 {
-	// not ideal for generic "objects", but we have to keep in sync with the 
+	// not ideal for generic "objects", but we have to keep in line with the 
 	// old favorites system (for backwards compatibility)
-	static FName const BaseSubObjectSignatureKey(TEXT("FieldName"));
-	FName SubObjectSignatureKey = BaseSubObjectSignatureKey;
+	using namespace BlueprintNodeSignatureImpl;
+	FName SubObjectSignatureKey = FindUniqueKeyName(LegacySubObjSignatureKey, SignatureSet);
 
-	int32 FNameIndex = 0;
-	while (SignatureSet.Find(SubObjectSignatureKey) != nullptr)
-	{
-		SubObjectSignatureKey = FName(BaseSubObjectSignatureKey, ++FNameIndex);
-	}
-
-	AddKeyValue(SubObjectSignatureKey, SignatureObj->GetPathName());
-	MarkDirty();
+	AddNamedValue(SubObjectSignatureKey, SignatureObj->GetPathName());
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintNodeSpawnerSignature::AddKeyValue(FName SignatureKey, FString const& Value)
+void FBlueprintNodeSignature::AddKeyValue(FString const& KeyValue)
+{
+	// not ideal for some arbitrary value, but we have to keep in line with the 
+	// old favorites system (for backwards compatibility)
+	using namespace BlueprintNodeSignatureImpl;
+	FName SignatureKey = FindUniqueKeyName(LegacySubObjSignatureKey, SignatureSet);
+
+	AddNamedValue(SignatureKey, KeyValue);
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNodeSignature::AddNamedValue(FName SignatureKey, FString const& Value)
 {
 	SignatureSet.Add(SignatureKey, Value);
 	MarkDirty();
 }
 
 //------------------------------------------------------------------------------
-bool FBlueprintNodeSpawnerSignature::IsValid() const
+bool FBlueprintNodeSignature::IsValid() const
 {
 	return (SignatureSet.Num() > 0);
 }
 
 //------------------------------------------------------------------------------
-FString const& FBlueprintNodeSpawnerSignature::ToString() const
+FString const& FBlueprintNodeSignature::ToString() const
 {
-	using namespace BlueprintNodeSpawnerSignatureImpl;
+	using namespace BlueprintNodeSignatureImpl;
 
 	if (CachedSignatureString.IsEmpty() && IsValid())
 	{
@@ -126,7 +155,7 @@ FString const& FBlueprintNodeSpawnerSignature::ToString() const
 }
 
 //------------------------------------------------------------------------------
-FGuid const& FBlueprintNodeSpawnerSignature::AsGuid() const
+FGuid const& FBlueprintNodeSignature::AsGuid() const
 {
 	static const int32 BytesPerMd5Hash = 16;
 	static const int32 BytesPerGuidVal =  4;
@@ -163,7 +192,7 @@ FGuid const& FBlueprintNodeSpawnerSignature::AsGuid() const
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintNodeSpawnerSignature::MarkDirty()
+void FBlueprintNodeSignature::MarkDirty()
 {
 	CachedSignatureGuid.Invalidate();
 	CachedSignatureString.Empty();

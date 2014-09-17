@@ -36,9 +36,9 @@ UBlueprintComponentNodeSpawner::UBlueprintComponentNodeSpawner(class FPostConstr
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNodeSpawnerSignature UBlueprintComponentNodeSpawner::GetSpawnerSignature() const
+FBlueprintNodeSignature UBlueprintComponentNodeSpawner::GetSpawnerSignature() const
 {
-	FBlueprintNodeSpawnerSignature SpawnerSignature = Super::GetSpawnerSignature();
+	FBlueprintNodeSignature SpawnerSignature(NodeClass);
 	SpawnerSignature.AddSubObject(ComponentClass);
 	return SpawnerSignature;
 }

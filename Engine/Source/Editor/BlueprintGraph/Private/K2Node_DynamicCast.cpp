@@ -175,4 +175,12 @@ FText UK2Node_DynamicCast::GetMenuCategory() const
 	return CachedCategory;
 }
 
+FBlueprintNodeSignature UK2Node_DynamicCast::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddSubObject(TargetType);
+
+	return NodeSignature;
+}
+
 #undef LOCTEXT_NAMESPACE

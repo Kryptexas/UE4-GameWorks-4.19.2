@@ -73,40 +73,6 @@ void UAnimGraphNode_BlendSpacePlayer::GetMenuEntries(FGraphContextMenuBuilder& C
 	GetBlendSpaceEntries(bWantAimOffsets, ContextMenuBuilder);
 }
 
-void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
-{
-	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UBlendSpaceBase> BlendSpace)
-	{
-		UAnimGraphNode_BlendSpacePlayer* BlendSpaceNode = CastChecked<UAnimGraphNode_BlendSpacePlayer>(NewNode);
-		BlendSpaceNode->Node.BlendSpace = BlendSpace.Get();		
-	};
-
-	for (TObjectIterator<UBlendSpaceBase> BlendSpaceIt; BlendSpaceIt; ++BlendSpaceIt)
-	{
-		UBlendSpaceBase* BlendSpace = *BlendSpaceIt;
-		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
-		// check to make sure that the registrar is looking for actions of this type
-		// (could be regenerating actions for a specific asset, and therefore the 
-		// registrar would only accept actions corresponding to that asset)
-		if (!ActionRegistrar.IsOpenForRegistration(BlendSpace))
-		{
-			continue;
-		}
-
-		bool const bIsAimOffset = BlendSpace->IsA(UAimOffsetBlendSpace::StaticClass()) || 
-			BlendSpace->IsA(UAimOffsetBlendSpace1D::StaticClass());
-		if (!bIsAimOffset)
-		{
-			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-			check(NodeSpawner != nullptr);
-			ActionRegistrar.AddBlueprintAction(BlendSpace, NodeSpawner);
-
-			TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
-			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BlendSpacePtr);
-		}
-	}
-}
-
 void UAnimGraphNode_BlendSpacePlayer::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (Node.BlendSpace == NULL)
@@ -143,6 +109,48 @@ void UAnimGraphNode_BlendSpacePlayer::GetContextMenuActions(const FGraphNodeCont
 		}
 		Context.MenuBuilder->EndSection();
 	}
+}
+
+void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UBlendSpaceBase> BlendSpace)
+	{
+		UAnimGraphNode_BlendSpacePlayer* BlendSpaceNode = CastChecked<UAnimGraphNode_BlendSpacePlayer>(NewNode);
+		BlendSpaceNode->Node.BlendSpace = BlendSpace.Get();
+	};
+
+	for (TObjectIterator<UBlendSpaceBase> BlendSpaceIt; BlendSpaceIt; ++BlendSpaceIt)
+	{
+		UBlendSpaceBase* BlendSpace = *BlendSpaceIt;
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(BlendSpace))
+		{
+			continue;
+		}
+
+		bool const bIsAimOffset = BlendSpace->IsA(UAimOffsetBlendSpace::StaticClass()) ||
+			BlendSpace->IsA(UAimOffsetBlendSpace1D::StaticClass());
+		if (!bIsAimOffset)
+		{
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			check(NodeSpawner != nullptr);
+			ActionRegistrar.AddBlueprintAction(BlendSpace, NodeSpawner);
+
+			TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BlendSpacePtr);
+		}
+	}
+}
+
+FBlueprintNodeSignature UAnimGraphNode_BlendSpacePlayer::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddSubObject(Node.BlendSpace);
+
+	return NodeSignature;
 }
 
 void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const

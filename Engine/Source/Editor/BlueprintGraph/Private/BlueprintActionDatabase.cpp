@@ -125,7 +125,6 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner
 	};
 
 	TWeakObjectPtr<UEdGraph> GraphPtr = MacroGraph;
-	// @TODO: Needs access to the MacroGraph to be favoritable...
 	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeMacroNodeLambda, GraphPtr);
 
 	return NodeSpawner;
@@ -505,7 +504,6 @@ static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* const Class
 		};
 
 		UBlueprintNodeSpawner* CastObjNodeSpawner = UBlueprintNodeSpawner::Create(UK2Node_DynamicCast::StaticClass());
-		// @TODO: Needs access to the Class to be favoritable...
 		CastObjNodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeCastNodeLambda, Class);
 		ActionListOut.Add(CastObjNodeSpawner);
 

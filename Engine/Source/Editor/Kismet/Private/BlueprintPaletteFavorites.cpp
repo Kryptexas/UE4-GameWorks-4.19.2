@@ -22,17 +22,17 @@ namespace BlueprintPaletteFavoritesImpl
 	/**
 	 * Before we refactored the blueprint menu system, signatures were manually
 	 * constructed based off node type, by combining a series of objects and 
-	 * names. Here we construct a new FBlueprintNodeSpawnerSignature from the 
+	 * names. Here we construct a new FBlueprintNodeSignature from the 
 	 * old code (so as to mirror functionality).
 	 * 
 	 * @param  PaletteAction	The action you want a signature for.
 	 * @return A signature object, distinguishing the palette action from others (could also be invalid).
 	 */
-	static FBlueprintNodeSpawnerSignature ConstructLegacySignature(TSharedPtr<FEdGraphSchemaAction> PaletteAction);
+	static FBlueprintNodeSignature ConstructLegacySignature(TSharedPtr<FEdGraphSchemaAction> PaletteAction);
 }
 
 //------------------------------------------------------------------------------
-static FBlueprintNodeSpawnerSignature BlueprintPaletteFavoritesImpl::ConstructLegacySignature(TSharedPtr<FEdGraphSchemaAction> InPaletteAction)
+static FBlueprintNodeSignature BlueprintPaletteFavoritesImpl::ConstructLegacySignature(TSharedPtr<FEdGraphSchemaAction> InPaletteAction)
 {
 	TSubclassOf<UEdGraphNode> SignatureNodeClass;
 	UObject const* SignatureSubObject = nullptr;
@@ -116,7 +116,7 @@ static FBlueprintNodeSpawnerSignature BlueprintPaletteFavoritesImpl::ConstructLe
 		}
 	}
 
-	FBlueprintNodeSpawnerSignature LegacySignatureSet;
+	FBlueprintNodeSignature LegacySignatureSet;
 	if (SignatureNodeClass != nullptr)
 	{
 		LegacySignatureSet.SetNodeClass(SignatureNodeClass);
@@ -126,8 +126,7 @@ static FBlueprintNodeSpawnerSignature BlueprintPaletteFavoritesImpl::ConstructLe
 		}
 		else if (SignatureSubObjName != NAME_None)
 		{
-			static FName const SubObjectSignatureKey("FieldName");
-			LegacySignatureSet.AddKeyValue(SubObjectSignatureKey, SignatureSubObjName.ToString());
+			LegacySignatureSet.AddKeyValue(SignatureSubObjName.ToString());
 		}
 	}
 
@@ -147,6 +146,8 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(FString const& Se
 //------------------------------------------------------------------------------
 FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGraphSchemaAction> InPaletteAction)
 {
+	using namespace BlueprintPaletteFavoritesImpl;
+
 	if (InPaletteAction.IsValid())
 	{
 		if (InPaletteAction->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
@@ -160,12 +161,12 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGra
 			ActionSignature = CollectionMenuItem->GetSampleAction()->GetSpawnerSignature();
 
 			// drag-n-drop menu items represent a collection of actions on the 
-			// same field (they spawn a submenu for the user to pick from)... so
+			// same field (they spawn a sub-menu for the user to pick from), so
 			// they don't have a single node class
 			ActionSignature.SetNodeClass(nullptr);
 
 			static const FName CollectionSignatureKey(TEXT("ActionCollection"));
-			ActionSignature.AddKeyValue(CollectionSignatureKey, TEXT("true"));
+			ActionSignature.AddNamedValue(CollectionSignatureKey, TEXT("true"));
 		}
 		else if (InPaletteAction->GetTypeId() == FBlueprintBoundMenuItem::StaticGetTypeId())
 		{
@@ -205,18 +206,6 @@ bool FFavoritedBlueprintPaletteItem::operator==(FFavoritedBlueprintPaletteItem c
 bool FFavoritedBlueprintPaletteItem::operator==(TSharedPtr<FEdGraphSchemaAction> PaletteAction) const
 {
 	return (*this == FFavoritedBlueprintPaletteItem(PaletteAction));
-}
-
-//------------------------------------------------------------------------------
-bool FFavoritedBlueprintPaletteItem::operator==(FBlueprintActionInfo& BlueprintAction) const
-{
-	return (BlueprintAction.GetActionGuid() == ActionSignature.AsGuid());
-}
-
-//------------------------------------------------------------------------------
-bool FFavoritedBlueprintPaletteItem::operator==(FGuid const& ActionGuid) const
-{
-	return (ActionGuid == ActionSignature.AsGuid());
 }
 
 //------------------------------------------------------------------------------
@@ -314,17 +303,7 @@ bool UBlueprintPaletteFavorites::IsFavorited(TSharedPtr<FEdGraphSchemaAction> Pa
 //------------------------------------------------------------------------------
 bool UBlueprintPaletteFavorites::IsFavorited(FBlueprintActionInfo& BlueprintAction) const
 {
-	bool bIsFavorited = false;
-
-	for (FFavoritedBlueprintPaletteItem const& Favorite : CurrentFavorites)
-	{
-		if (Favorite == BlueprintAction)
-		{
-			bIsFavorited = true;
-			break;
-		}
-	}
-	return bIsFavorited;
+	return IsFavorited(BlueprintAction.NodeSpawner);
 }
 
 //------------------------------------------------------------------------------
@@ -332,10 +311,10 @@ bool UBlueprintPaletteFavorites::IsFavorited(UBlueprintNodeSpawner const* Bluepr
 {
 	bool bIsFavorited = false;
 
-	FGuid ActionGuid = BlueprintAction->GetSpawnerSignature().AsGuid();
+	FFavoritedBlueprintPaletteItem ActionAsFavorite(BlueprintAction);
 	for (FFavoritedBlueprintPaletteItem const& Favorite : CurrentFavorites)
 	{
-		if (Favorite == ActionGuid)
+		if (Favorite == ActionAsFavorite)
 		{
 			bIsFavorited = true;
 			break;

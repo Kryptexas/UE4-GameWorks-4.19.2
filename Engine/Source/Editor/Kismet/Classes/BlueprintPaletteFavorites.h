@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "BlueprintNodeSpawnerSignature.h"
+#include "BlueprintNodeSignature.h"
 #include "BlueprintPaletteFavorites.generated.h"
 
 // Forward Declarations
@@ -70,22 +70,6 @@ public:
 	bool operator==(TSharedPtr<FEdGraphSchemaAction> PaletteAction) const;
 
 	/**
-	 * 
-	 * 
-	 * @param  BlueprintAction	
-	 * @return 
-	 */
-	bool operator==(FBlueprintActionInfo& BlueprintAction) const;
-
-	/**
-	 * 
-	 * 
-	 * @param  ActionGuid	
-	 * @return 
-	 */
-	bool operator==(FGuid const& ActionGuid) const;
-
-	/**
 	 * We want to be able to specify some of these in .ini files, so let we have
 	 * to have a readable string representation for them.
 	 * 
@@ -94,7 +78,7 @@ public:
 	FString const& ToString() const;
 
 private:
-	FBlueprintNodeSpawnerSignature ActionSignature;
+	FBlueprintNodeSignature ActionSignature;
 };
 
 /*******************************************************************************

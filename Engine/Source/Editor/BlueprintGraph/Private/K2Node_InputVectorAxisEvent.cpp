@@ -61,6 +61,12 @@ void UK2Node_InputVectorAxisEvent::GetMenuActions(FBlueprintActionDatabaseRegist
 		UK2Node_InputAxisKeyEvent* InputNode = CastChecked<UK2Node_InputAxisKeyEvent>(NewNode);
 		InputNode->Initialize(Key);
 	};
+
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
 	
 	for (FKey const Key : AllKeys)
 	{
@@ -69,11 +75,6 @@ void UK2Node_InputVectorAxisEvent::GetMenuActions(FBlueprintActionDatabaseRegist
 			continue;
 		}
 
-		// actions get registered under specific object-keys; the idea is that 
-		// actions might have to be updated (or deleted) if their object-key is  
-		// mutated (or removed)... here we use the node's class (so if the node 
-		// type disappears, then the action should go with it)
-		UClass* ActionKey = GetClass();
 		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
 		// check to make sure that the registrar is looking for actions of this type
 		// (could be regenerating actions for a specific asset, and therefore the 
