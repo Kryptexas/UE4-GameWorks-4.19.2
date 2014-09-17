@@ -22,14 +22,12 @@ class PAPER2D_API UPaperTerrainComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** The terrain material to apply to this component (set of rules for which sprites are used on different surfaces or the interior) */
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
 	class UPaperTerrainMaterial* TerrainMaterial;
 
 	UPROPERTY(Category = Sprite, EditAnywhere, BlueprintReadOnly)
 	bool bClosedSpline;
-
-	UPROPERTY(Category = Sprite, EditAnywhere, BlueprintReadOnly)
-	float TestScaleFactor;
 
 	UPROPERTY()
 	class UPaperTerrainSplineComponent* AssociatedSpline;
@@ -39,13 +37,21 @@ public:
 	int32 RandomSeed;
 
 protected:
-	// The color of the terrain (passed to the sprite material as a vertex color)
+	/** The color of the terrain (passed to the sprite material as a vertex color) */
 	UPROPERTY(Category=Sprite, BlueprintReadOnly, Interp)
 	FLinearColor TerrainColor;
 
 	/** Number of steps per spline segment to place in the reparameterization table */
-	UPROPERTY(EditAnywhere, Category=Sprite, meta=(ClampMin=4, UIMin=4))
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(ClampMin=4, UIMin=4), AdvancedDisplay)
 	int32 ReparamStepsPerSegment;
+
+	/** Collision domain (no collision, 2D (experimental), or 3D) */
+	UPROPERTY(Category=Collision, EditAnywhere)
+	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
+
+	/** The extrusion thickness of collision geometry when using a 3D collision domain */
+	UPROPERTY(Category=Collision, EditAnywhere)
+	float CollisionThickness;
 
 public:
 	// UObject interface
@@ -63,17 +69,22 @@ public:
 	// UPrimitiveComponent interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	virtual UBodySetup* GetBodySetup() override;
 	// End of UPrimitiveComponent interface
 
 	// Set color of the terrain
-	UFUNCTION(BlueprintCallable, Category = "Sprite")
+	UFUNCTION(BlueprintCallable, Category="Sprite")
 	void SetTerrainColor(FLinearColor NewColor);
 
 protected:
-	void SpawnSegment(const class UPaperSprite* NewSprite, float Position, float HorizontalScale);
+	void SpawnSegment(const class UPaperSprite* NewSprite, float Position, float HorizontalScale, float NominalWidth, const struct FPaperTerrainMaterialRule* Rule);
 	void SpawnFromPoly(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& FillDrawCall, const FVector2D& TextureSize, FPoly& Poly);
 
 	void OnSplineEdited();
+
+	/** Description of collision */
+	UPROPERTY(Transient, DuplicateTransient)
+	class UBodySetup* CachedBodySetup;
 
 	TArray<FPaperTerrainMaterialPair> GeneratedSpriteGeometry;
 	

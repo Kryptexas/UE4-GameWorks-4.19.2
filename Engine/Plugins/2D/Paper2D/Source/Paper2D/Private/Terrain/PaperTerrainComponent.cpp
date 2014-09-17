@@ -83,8 +83,10 @@ UPaperTerrainComponent::UPaperTerrainComponent(const FPostConstructInitializePro
 	: Super(PCIP)
 	, TerrainColor(FLinearColor::White)
 	, ReparamStepsPerSegment(8)
+	, SpriteCollisionDomain(ESpriteCollisionMode::Use3DPhysics)
+	, CollisionThickness(200.0f)
 {
-	TestScaleFactor = 1.0f;
+	bCanEverAffectNavigation = true;
 
 	static ConstructorHelpers::FObjectFinder<UPaperTerrainMaterial> DefaultMaterialRef(TEXT("/Paper2D/DefaultPaperTerrainMaterial"));
 	TerrainMaterial = DefaultMaterialRef.Object;
@@ -173,23 +175,26 @@ FBoxSphereBounds UPaperTerrainComponent::CalcBounds(const FTransform& LocalToWor
 	// Graphics bounds.
 	FBoxSphereBounds NewBounds = LocalRenderBounds.TransformBy(LocalToWorld);
 
-#if 0
 	// Add bounds of collision geometry (if present).
-	if (UBodySetup* BodySetup = GetBodySetup())
+	if (CachedBodySetup != nullptr)
 	{
-		const FBox AggGeomBox = BodySetup->AggGeom.CalcAABB(LocalToWorld);
+		const FBox AggGeomBox = CachedBodySetup->AggGeom.CalcAABB(LocalToWorld);
 		if (AggGeomBox.IsValid)
 		{
 			NewBounds = Union(NewBounds, FBoxSphereBounds(AggGeomBox));
 		}
 	}
-#endif
 
 	// Apply bounds scale
 	NewBounds.BoxExtent *= BoundsScale;
 	NewBounds.SphereRadius *= BoundsScale;
 
 	return NewBounds;
+}
+
+UBodySetup* UPaperTerrainComponent::GetBodySetup()
+{
+	return CachedBodySetup;
 }
 
 FTransform UPaperTerrainComponent::GetTransformAtDistance(float InDistance) const
@@ -231,6 +236,16 @@ FTransform UPaperTerrainComponent::GetTransformAtDistance(float InDistance) cons
 
 void UPaperTerrainComponent::OnSplineEdited()
 {
+	// Ensure we have the data structure for the desired collision method
+	if (SpriteCollisionDomain == ESpriteCollisionMode::Use3DPhysics)
+	{
+		CachedBodySetup = NewObject<UBodySetup>(this);
+	}
+	else
+	{
+		CachedBodySetup = nullptr;
+	}
+
 	const float SlopeAnalysisTimeRate = 10.0f;
 	const float FillRasterizationTimeRate = 100.0f;
 
@@ -461,7 +476,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 			// Convert stamps into geometry
 			for (const FSpriteStamp& Stamp : Segment.Stamps)
 			{
-				SpawnSegment(Stamp.Sprite, Stamp.Time, Stamp.Scale);
+				SpawnSegment(Stamp.Sprite, Stamp.Time, Stamp.Scale, Stamp.NominalWidth, Segment.Rule);
 			}
 		}
 
@@ -550,8 +565,32 @@ void UPaperTerrainComponent::OnSplineEdited()
 	RecreateRenderState_Concurrent();
 }
 
-void UPaperTerrainComponent::SpawnSegment(const UPaperSprite* NewSprite, float Position, float HorizontalScale)
+void UPaperTerrainComponent::SpawnSegment(const UPaperSprite* NewSprite, float Position, float HorizontalScale, float NominalWidth, const FPaperTerrainMaterialRule* Rule)
 {
+	if ((Rule->bEnableCollision) && (CachedBodySetup != nullptr))
+	{
+		const FTransform LocalTransformAtCenter(GetTransformAtDistance(Position));
+
+		FKBoxElem Box;
+
+		if (bClosedSpline)
+		{
+			//@TODO: Add proper support for this!
+			Box.SetTransform(LocalTransformAtCenter);
+			Box.X = NominalWidth * HorizontalScale;
+			Box.Y = CollisionThickness;
+			Box.Z = 30.0f;
+		}
+		else
+		{
+			Box.SetTransform(LocalTransformAtCenter);
+			Box.X = NominalWidth * HorizontalScale;
+			Box.Y = CollisionThickness;
+			Box.Z = FMath::Max<float>(1.0f, FMath::Abs<float>(Rule->CollisionOffset * 0.5f));
+		}
+		CachedBodySetup->AggGeom.BoxElems.Add(Box);
+	}
+
 	if (NewSprite)
 	{
 		FPaperTerrainMaterialPair& MaterialBatch = *new (GeneratedSpriteGeometry) FPaperTerrainMaterialPair(); //@TODO: Look up the existing one instead

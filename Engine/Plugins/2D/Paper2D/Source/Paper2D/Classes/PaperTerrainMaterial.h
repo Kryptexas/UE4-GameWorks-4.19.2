@@ -11,26 +11,35 @@ struct FPaperTerrainMaterialRule
 	GENERATED_USTRUCT_BODY()
 
 	// The sprite to use at the 'left' (closest to spline start) edge of the terrain segment
-	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"))
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail="true"))
 	UPaperSprite* StartCap;
 
 	// A set of sprites to randomly choose to fill up the interior space between the caps in a terrain segment
-	UPROPERTY(Category = Sprite, EditAnywhere, meta = (DisplayThumbnail = "true"))
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail="true"))
 	TArray<UPaperSprite*> Body;
 
 	// The sprite to use at the 'right' (closest to spline end) edge of the terrain segment
-	UPROPERTY(Category = Sprite, EditAnywhere, meta = (DisplayThumbnail = "true"))
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail="true"))
 	UPaperSprite* EndCap;
 
 	// Minimum slope angle (in degrees) to apply this rule
-	UPROPERTY(Category = Sprite, EditAnywhere)
+	UPROPERTY(Category=Sprite, EditAnywhere)
 	float MinimumAngle;
 
 	// Maximum slope angle (in degrees) to apply this rule
-	UPROPERTY(Category = Sprite, EditAnywhere)
+	UPROPERTY(Category=Sprite, EditAnywhere)
 	float MaximumAngle;
 
+	// If true, collision is enabled for sections matching this rule
+	UPROPERTY(Category=Sprite, EditAnywhere)
+	bool bEnableCollision;
+
+	// How much should the collision be lofted from the spline (positive values go out from the spline, negative values go in to the spline)
+	UPROPERTY(Category=Sprite, EditAnywhere)
+	float CollisionOffset;
+
 #if WITH_EDITORONLY_DATA
+	// Readable description for the rule (unused anywhere, just for clarity when editing the material)
 	UPROPERTY(Category = Sprite, EditAnywhere)
 	FText Description;
 #endif
@@ -40,6 +49,8 @@ struct FPaperTerrainMaterialRule
 		, EndCap(nullptr)
 		, MinimumAngle(0.0f)
 		, MaximumAngle(360.0f)
+		, bEnableCollision(true)
+		, CollisionOffset(0.0f)
 	{
 	}
 };
@@ -55,11 +66,11 @@ class PAPER2D_API UPaperTerrainMaterial : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"))
+	UPROPERTY(Category=Sprite, EditAnywhere)
 	TArray<FPaperTerrainMaterialRule> Rules;
 
 	// The sprite to use for an interior region fill
-	UPROPERTY(Category = Sprite, EditAnywhere, meta = (DisplayThumbnail = "true"))
+	UPROPERTY(Category = Sprite, EditAnywhere, meta=(DisplayThumbnail="true"))
 	UPaperSprite* InteriorFill;
 
 #if WITH_EDITOR
