@@ -1535,8 +1535,8 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** Delegate used by SavePackage() to check whether a package should be saved */
 	static FIsPackageOKToSaveDelegate IsPackageOKToSaveDelegate;
 
+	/** Delegate for replacing hot-reloaded classes that changed after hot-reload */
 	DECLARE_DELEGATE_TwoParams(FReplaceHotReloadClassDelegate, UClass*, UClass*);
-
 	static FReplaceHotReloadClassDelegate ReplaceHotReloadClassDelegate;
 };
 

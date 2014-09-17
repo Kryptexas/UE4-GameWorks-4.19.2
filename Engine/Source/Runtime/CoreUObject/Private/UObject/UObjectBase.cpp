@@ -568,21 +568,21 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	{
 		// Class exists, this can only happen during hot-reload
 		check(GIsHotReload);
+
+		// Get the native name
+		FString NameWithoutPrefix(Name);
+		NameWithoutPrefix = NameWithoutPrefix.Mid(1);
+		auto ExistingClass = FindObjectChecked<UClass>(ANY_PACKAGE, *NameWithoutPrefix);
+
 		if (ClassInfo->bHasChanged)
 		{
-			// Get the native name
-			FString NameWithoutPrefix(Name);
-			NameWithoutPrefix = NameWithoutPrefix.Mid(1);
-
 			// Rename the old class and move it to transient package
-			auto ExistingClass = FindObjectChecked<UClass>(ANY_PACKAGE, *NameWithoutPrefix);
 			ExistingClass->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
 			ExistingClass->GetDefaultObject()->ClearFlags(RF_RootSet | RF_Standalone | RF_Public);
 			const FName OldClassRename = MakeUniqueObjectName(GetTransientPackage(), ExistingClass->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), *NameWithoutPrefix));
 			ExistingClass->Rename(*OldClassRename.ToString(), GetTransientPackage());
 			ExistingClass->SetFlags(RF_Transient);
 			ExistingClass->AddToRoot();
-			ClassInfo->OldField = ExistingClass;
 
 			// Make sure enums de-register their names BEFORE we create the new class, otherwise there will be name conflicts
 			TArray<UObject*> ClassSubobjects;
@@ -594,9 +594,10 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 					Enum->RemoveNamesFromMasterList();
 				}
 			}
-
-			GetHotReloadClasses().Add(ClassInfo);
 		}
+		ClassInfo->OldField = ExistingClass;
+		GetHotReloadClasses().Add(ClassInfo);
+
 		*ExistingClassInfo = ClassInfo;
 	}
 	else
@@ -638,7 +639,14 @@ void UClassReplaceHotReloadClasses()
 	{	
 		for (auto Class : GetHotReloadClasses())
 		{
-			FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(CastChecked<UClass>(Class->OldField), CastChecked<UClass>(Class->Register()));
+			if (Class->bHasChanged)
+			{
+				FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(CastChecked<UClass>(Class->OldField), CastChecked<UClass>(Class->Register()));
+			}
+			else
+			{
+				FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(CastChecked<UClass>(Class->OldField), NULL);
+			}
 		}
 	}
 	GetHotReloadClasses().Empty();

@@ -1,15 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "HotReloadPrivatePCH.h"
-
-#if WITH_ENGINE
-#include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
-#include "EngineAnalytics.h"
-#endif
-
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "ScopedTimers.h"
 #include "DesktopPlatformModule.h"
+#if WITH_ENGINE
+#include "HotReloadClassReinstancer.h"
+#include "EngineAnalytics.h"
+#endif
 
 DEFINE_LOG_CATEGORY(LogHotReload);
 
@@ -749,10 +747,13 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 
 #if WITH_ENGINE
 void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass)
-{
-	UE_LOG(LogHotReload, Log, TEXT("Re-instancing %s after hot-reload."), *NewClass->GetName());
-	FBlueprintCompileReinstancer ReinstanceHelper(NewClass, OldClass);
-	ReinstanceHelper.ReinstanceObjects();
+{	
+	FHotReloadClassReinstancer ReinstanceHelper(NewClass, OldClass);
+	if (ReinstanceHelper.ClassNeedsReinstancing())
+	{
+		UE_LOG(LogHotReload, Log, TEXT("Re-instancing %s after hot-reload."), NewClass ? *NewClass->GetName() : *OldClass->GetName());
+		ReinstanceHelper.ReinstanceObjects();
+	}
 }
 #endif
 
