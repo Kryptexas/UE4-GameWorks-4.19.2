@@ -604,10 +604,8 @@ public:
 	uint32 bAlwaysCheckFloor:1;
 
 	/**
-	 * Performs floor checks as if the character is using a box collider.
-	 * This avoids the situation where characters slowly slide down a ledge (as their capsule 'balances' on the edge).
-	 * Note that sweep checks perfomed using the box collision are axis-aligned and use a bounding box that tightly 
-	 * encloses the capsule.
+	 * Performs floor checks as if the character is using a shape with a flat base.
+	 * This avoids the situation where characters slowly lower off the side of a ledge (as their capsule 'balances' on the edge).
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bUseFlatBaseForFloorChecks:1;
@@ -876,9 +874,8 @@ public:
 
 	/**
 	 * Compute new falling velocity from given velocity and gravity. Applies the limits of the current Physics Volume's TerminalVelocity.
-	 * Note: currently assumes Gravity points downward when enforcing terminal velocity.
 	 */
-	virtual FVector NewFallVelocity(FVector InitialVelocity, FVector Gravity, float DeltaTime) const;
+	virtual FVector NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity, float DeltaTime) const;
 
 	/* Determine how deep in water the character is immersed.
 	 * @return float in range 0.0 = not in water, 1.0 = fully immersed
@@ -886,7 +883,7 @@ public:
 	virtual float ImmersionDepth();
 
 	/** 
-	 * Updates Velocity and Acceleration based on the current state, applying the effects of friction and acceleration or deceleration. Does *not* apply gravity.
+	 * Updates Velocity and Acceleration based on the current state, applying the effects of friction and acceleration or deceleration. Does not apply gravity.
 	 * This is used internally during movement updates. Normally you don't need to call this from outside code, but you might want to use it for custom movement modes.
 	 *
 	 * @param	DeltaTime						time elapsed since last frame.
@@ -1231,7 +1228,7 @@ protected:
 	 * @param DeltaSeconds:			Time over which movement occurs
 	 * @param OutStepDownResult:	[Out] If non-null, and a floor check is performed, this will be updated to reflect that result.
 	 */
-	virtual void MoveAlongFloor(const FVector& InVelocity, const float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL);
+	virtual void MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL);
 
 	/**
 	 * Adjusts velocity when walking so that Z velocity is zero.
@@ -1322,6 +1319,29 @@ protected:
 	 */
 	virtual void ComputeFloorDist(const FVector& CapsuleLocation, float LineDistance, float SweepDistance, FFindFloorResult& OutFloorResult, float SweepRadius, const FHitResult* DownwardSweepResult = NULL) const;
 
+	/**
+	 * Sweep against the world and return the first blocking hit.
+	 * Intended for tests against the floor, because it may change the result of impacts on the lower area of the test (especially if bUseFlatBaseForFloorChecks is true).
+	 *
+	 * @param OutHit			First blocking hit found.
+	 * @param Start				Start location of the capsule.
+	 * @param End				End location of the capsule.
+	 * @param TraceChannel		The 'channel' that this trace is in, used to determine which components to hit.
+	 * @param CollisionShape	Capsule collision shape.
+	 * @param Params			Additional parameters used for the trace.
+	 * @param ResponseParam		ResponseContainer to be used for this trace.
+	 * @return True if OutHit contains a blocking hit entry.
+	 */
+	virtual bool FloorSweepTest(
+		struct FHitResult& OutHit,
+		const FVector& Start,
+		const FVector& End,
+		ECollisionChannel TraceChannel,
+		const struct FCollisionShape& CollisionShape,
+		const struct FCollisionQueryParams& Params,
+		const struct FCollisionResponseParams& ResponseParam
+		) const;
+
 	/** Verify that the supplied hit result is a valid landing spot when falling. */
 	virtual bool IsValidLandingSpot(const FVector& CapsuleLocation, const FHitResult& Hit) const;
 
@@ -1329,7 +1349,7 @@ protected:
 	 * Determine whether we should try to find a valid landing spot after an impact with an invalid one (based on the Hit result).
 	 * For example, landing on the lower portion of the capsule on the edge of geometry may be a walkable surface, but could have reported an unwalkable impact normal.
 	 */
-	virtual bool ShouldCheckForValidLandingSpot(const float DeltaTime, const FVector& Delta, const FHitResult& Hit) const;
+	virtual bool ShouldCheckForValidLandingSpot(float DeltaTime, const FVector& Delta, const FHitResult& Hit) const;
 
 	/**
 	 * Check if the result of a sweep test (passed in InHit) might be a valid location to perch, in which case we should use ComputePerchResult to validate the location.
