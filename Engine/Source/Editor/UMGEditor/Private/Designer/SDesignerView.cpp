@@ -142,6 +142,8 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddSP(this, &SDesignerView::OnBlueprintChanged);
 
+	FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled.AddSP( this, &SDesignerView::OnBlueprintCompiled );
+
 	BindCommands();
 
 	SDesignSurface::Construct(SDesignSurface::FArguments()
@@ -617,6 +619,15 @@ void SDesignerView::OnBlueprintChanged(UBlueprint* InBlueprint)
 	if ( InBlueprint )
 	{
 		
+	}
+}
+
+void SDesignerView::OnBlueprintCompiled(UBlueprint* InBlueprint)
+{
+	UBlueprint* BP = BlueprintEditor.Pin()->GetBlueprintObj();
+	if( BP == InBlueprint )
+	{
+		UpdatePreviewWidget();
 	}
 }
 

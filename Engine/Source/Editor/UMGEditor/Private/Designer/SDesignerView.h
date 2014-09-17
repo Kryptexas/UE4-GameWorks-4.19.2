@@ -101,6 +101,10 @@ private:
 
 	/** Called whenever the blueprint is structurally changed. */
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
+
+        /** Called whenever the blueprint is recompiled */
+	void OnBlueprintCompiled(UBlueprint* InBlueprint);
+
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	void CacheSelectedWidgetGeometry();

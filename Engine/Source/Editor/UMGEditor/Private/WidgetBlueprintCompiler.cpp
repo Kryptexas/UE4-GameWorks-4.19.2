@@ -9,6 +9,7 @@
 #include "MovieScene.h"
 #include "K2Node_FunctionEntry.h"
 
+FOnWidgetBlueprintCompiled FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled = FOnWidgetBlueprintCompiled();
 
 ///-------------------------------------------------------------
 
@@ -272,6 +273,8 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 void FWidgetBlueprintCompiler::Compile()
 {
 	Super::Compile();
+
+	OnWidgetBlueprintCompiled.Broadcast( WidgetBlueprint() );
 
 	WidgetToMemberVariableMap.Empty();
 }
