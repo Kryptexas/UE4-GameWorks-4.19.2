@@ -6,7 +6,16 @@
 
 #include "PaperSpriteComponent.generated.h"
 
-UCLASS(ShowCategories=(Mobility), ClassGroup=Paper2D, EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
+/**
+ * A component that handles rendering and collision for a single instance of a UPaperSprite asset.
+ *
+ * This component is created when you drag a sprite asset from the content browser into a Blueprint, or
+ * contained inside of the actor created when you drag one into the level.
+ *
+ * @see UPrimitiveComponent, UPaperSprite
+ */
+
+UCLASS(ShowCategories=(Mobility), ClassGroup=Paper2D, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperSpriteComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
