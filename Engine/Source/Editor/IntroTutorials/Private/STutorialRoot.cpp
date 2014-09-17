@@ -7,6 +7,8 @@
 #include "TutorialStateSettings.h"
 #include "AssetEditorManager.h"
 #include "ToolkitManager.h"
+#include "IToolkit.h"
+#include "IToolkitHost.h"
 
 #define LOCTEXT_NAMESPACE "STutorialRoot"
 
