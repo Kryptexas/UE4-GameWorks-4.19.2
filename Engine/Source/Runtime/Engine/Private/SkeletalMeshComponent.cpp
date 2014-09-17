@@ -395,6 +395,7 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		if ( PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED( FSingleAnimationPlayData, SavedPosition ))
 		{
 			AnimationData.ValidatePosition();
+			SetPosition(AnimationData.SavedPosition, false);
 		}
 	}
 }
