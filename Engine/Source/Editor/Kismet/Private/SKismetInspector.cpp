@@ -2,6 +2,8 @@
 
 
 #include "BlueprintEditorPrivatePCH.h"
+#include "Kismet/KismetStringLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "GraphEditor.h"
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"

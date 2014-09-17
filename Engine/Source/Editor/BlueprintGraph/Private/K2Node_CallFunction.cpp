@@ -6,6 +6,8 @@
 #include "CompilerResultsLog.h"
 #include "CallFunctionHandler.h"
 #include "K2Node_SwitchEnum.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetArrayLibrary.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

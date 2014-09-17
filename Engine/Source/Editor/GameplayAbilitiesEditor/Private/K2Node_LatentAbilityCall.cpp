@@ -2,6 +2,8 @@
 
 
 #include "AbilitySystemEditorPrivatePCH.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetArrayLibrary.h"
 #include "AbilityTask.h"
 #include "KismetCompiler.h"
 #include "BlueprintEditorUtils.h"

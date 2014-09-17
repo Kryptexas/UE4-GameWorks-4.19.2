@@ -8,6 +8,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "Engine/LevelScriptBlueprint.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetArrayLibrary.h"
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
 #include "ScopedTransaction.h"

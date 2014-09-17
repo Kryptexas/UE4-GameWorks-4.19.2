@@ -20,6 +20,7 @@
 #include "K2Node_EnumLiteral.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
 #include "Engine/DynamicBlueprintBinding.h"
+#include "Kismet/KismetMathLibrary.h"
 
 static bool bDebugPropertyPropagation = false;
 

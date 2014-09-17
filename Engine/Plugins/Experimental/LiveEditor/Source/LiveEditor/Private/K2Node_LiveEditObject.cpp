@@ -1,6 +1,7 @@
 
 #include "LiveEditorPrivatePCH.h"
 
+#include "Kismet/KismetMathLibrary.h"
 #include "BlueprintGraphDefinitions.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"

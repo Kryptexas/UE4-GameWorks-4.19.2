@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "CoreStats.h"
 
 /** Interpolate a linear alpha value using an ease mode and function, BlendExp used in cases where the easing is exponential */

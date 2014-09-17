@@ -12,6 +12,7 @@
 #include "KismetCompiler.h"
 #include "ScopedTransaction.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "Kismet/KismetMathLibrary.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_EaseFunction"
 
