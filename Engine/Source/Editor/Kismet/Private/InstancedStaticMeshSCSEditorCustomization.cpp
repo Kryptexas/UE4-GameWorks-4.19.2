@@ -75,7 +75,7 @@ bool FInstancedStaticMeshSCSEditorCustomization::HandleViewportDrag(class UScene
 	check(InstancedStaticMeshComponentScene->SelectedInstances.Num() == InstancedStaticMeshComponentScene->PerInstanceSMData.Num());
 	for(int32 InstanceIndex = 0; InstanceIndex < InstancedStaticMeshComponentScene->SelectedInstances.Num(); InstanceIndex++)
 	{
-		if(InstancedStaticMeshComponentScene->SelectedInstances[InstanceIndex])
+		if (InstancedStaticMeshComponentScene->SelectedInstances[InstanceIndex] && InstancedStaticMeshComponentTemplate->PerInstanceSMData.IsValidIndex(InstanceIndex))
 		{
 			FMatrix& MatrixScene = InstancedStaticMeshComponentScene->PerInstanceSMData[InstanceIndex].Transform;
 			FMatrix& MatrixTemplate = InstancedStaticMeshComponentTemplate->PerInstanceSMData[InstanceIndex].Transform;
