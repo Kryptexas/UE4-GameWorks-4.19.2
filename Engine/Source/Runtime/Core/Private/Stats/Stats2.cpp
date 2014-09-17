@@ -196,14 +196,8 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 
 	enum 
 	{
-		/**
-		 *	Increment between two successive long names. 
-		 *	@see TStatId
-		 */
-		STATID_INCREMENT = 3,
-
 		/** Number of stats pointer allocated per block. */
-		NUM_PER_BLOCK = 16384 * STATID_INCREMENT,
+		NUM_PER_BLOCK = 16384,
 	};
 
 
@@ -393,7 +387,7 @@ public:
 			FMemory::Memzero( PendingStatIds, NUM_PER_BLOCK * sizeof( TStatIdData ) );
 			PendingCount = NUM_PER_BLOCK;
 		}
-		PendingCount -= STATID_INCREMENT;
+		--PendingCount;
 		TStatIdData* Result = PendingStatIds;
 
 		// Get the wide stat description.
@@ -411,7 +405,7 @@ public:
 
 		MemoryCounter.Add( StatDescLen*(sizeof( ANSICHAR ) + sizeof( WIDECHAR )) );
 		
-		PendingStatIds += STATID_INCREMENT;
+		++PendingStatIds;
 
 		if (Found->CurrentEnable)
 		{
