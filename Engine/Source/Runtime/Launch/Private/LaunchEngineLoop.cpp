@@ -1734,7 +1734,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
 	// cooking needs this module too
 	bool bGameplayAbilitiesEnabled = false;
-	GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiedEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
+	GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
 	if (bGameplayAbilitiesEnabled)
 	{
 		FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));

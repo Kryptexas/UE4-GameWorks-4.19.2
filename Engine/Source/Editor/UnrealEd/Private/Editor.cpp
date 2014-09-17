@@ -587,7 +587,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		}
 
 		bool bGameplayAbilitiesEnabled = false;
-		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiedEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
+		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
 		if (bGameplayAbilitiesEnabled)
 		{
 			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
