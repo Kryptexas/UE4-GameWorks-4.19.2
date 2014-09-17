@@ -10,7 +10,7 @@
 
 FString FPaperStyle::InContent(const FString& RelativePath, const ANSICHAR* Extension)
 {
-	static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("Experimental/Paper2D/Content");
+	static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("2D/Paper2D/Content");
 	return (ContentDir / RelativePath) + Extension;
 }
 
