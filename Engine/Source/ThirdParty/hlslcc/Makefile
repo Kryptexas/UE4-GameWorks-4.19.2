@@ -26,7 +26,7 @@ all: main
 lib: $(LIB)
 main: $(MAIN)
 
-DEBUG = 1
+DEBUG = 0
 CC = clang
 CXX = clang++
 CPPFLAGS = -Wno-switch -fPIC -Wno-unused-value -I$(ROOT_DIR)/hlslcc_lib -fvisibility=hidden
@@ -34,7 +34,7 @@ CXXFLAGS = -std=c++11
 ifeq ($(DEBUG),1)
 CPPFLAGS += -g -O0
 else
-CPPFLAGS += -O2
+CPPFLAGS += -O3 -march=native -mtune=native
 endif
 
 %.o: %.cpp
