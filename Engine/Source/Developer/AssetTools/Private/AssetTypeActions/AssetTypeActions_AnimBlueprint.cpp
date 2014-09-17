@@ -11,7 +11,7 @@ void FAssetTypeActions_AnimBlueprint::GetActions( const TArray<UObject*>& InObje
 {
 	FAssetTypeActions_Blueprint::GetActions(InObjects, MenuBuilder);
 
-	auto AnimBlueprints = FObjectEditorUtils::GetTypedWeakObjectPtrs<UAnimBlueprint>(InObjects);
+	auto AnimBlueprints = GetTypedWeakObjectPtrs<UAnimBlueprint>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AnimBlueprint_FindSkeleton", "Find Skeleton"),

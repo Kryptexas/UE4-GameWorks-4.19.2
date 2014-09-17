@@ -11,7 +11,7 @@
 
 void FAssetTypeActions_AnimationAsset::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
-	auto AnimAssets = FObjectEditorUtils::GetTypedWeakObjectPtrs<UAnimationAsset>(InObjects);
+	auto AnimAssets = GetTypedWeakObjectPtrs<UAnimationAsset>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AnimSequenceBase_FindSkeleton", "Find Skeleton"),
