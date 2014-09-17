@@ -73,7 +73,7 @@ public:
 	// @param VelocityRT only valid if motion blur is supported
 	void Process(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 
-	void ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo& View, bool bUsedFramebufferFetch);
+	void ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo& View, bool bViewRectSource);
 };
 
 /** The global used for post processing. */

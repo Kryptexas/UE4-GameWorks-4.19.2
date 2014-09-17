@@ -1162,6 +1162,10 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 			}
 		}
 
+		FIntPoint PrePostSourceViewportSize = View.ViewRect.Size();
+		// ES2 preview uses a subsection of the scene RT, bUsedFramebufferFetch == true deals with this case.  
+		bool bViewRectSource = bUsedFramebufferFetch || GSceneRenderTargets.GetBufferSizeXY() != PrePostSourceViewportSize;
+
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
 		if( View.Family->EngineShowFlags.PostProcessing )
 		{
@@ -1181,7 +1185,6 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 			bUsePost &= GSupportsRenderTargetFormat_PF_FloatRGBA;
 			bUsePost &= IsMobileHDR();
 
-			FIntPoint PrePostSourceViewportSize = View.ViewRect.Size();
 
 			if(bUsePost)
 			{
@@ -1199,13 +1202,13 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 				{
 					if(bUseBloomSmall)
 					{
-						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomSetupSmallES2(PrePostSourceViewportSize, bUsedFramebufferFetch));
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomSetupSmallES2(PrePostSourceViewportSize, bViewRectSource));
 						Pass->SetInput(ePId_Input0, Context.FinalOutput);
 						PostProcessBloomSetup = FRenderingCompositeOutputRef(Pass);
 					}
 					else
 					{
-						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomSetupES2(PrePostSourceViewportSize, bUsedFramebufferFetch));
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomSetupES2(PrePostSourceViewportSize, bViewRectSource));
 						Pass->SetInput(ePId_Input0, Context.FinalOutput);
 						PostProcessBloomSetup = FRenderingCompositeOutputRef(Pass);
 					}
@@ -1226,7 +1229,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 					// Samples at full resolution, writes to 1/4 area.
 					FRenderingCompositeOutputRef PostProcessDofDown;
 					{
-						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDofDownES2(PrePostSourceViewportSize, bUsedFramebufferFetch));
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDofDownES2(PrePostSourceViewportSize, bViewRectSource));
 						Pass->SetInput(ePId_Input0, Context.FinalOutput);
 						Pass->SetInput(ePId_Input1, PostProcessNear);
 						PostProcessDofDown = FRenderingCompositeOutputRef(Pass);
@@ -1412,7 +1415,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 
 		// Composite editor primitives if we had any to draw and compositing is enabled
 		// TODO: Move FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives somewhere more generic
-		if (FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(View))
+		if (FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(View) && !DofOutput.IsValid())
 		{
 			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives());
 			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1421,7 +1424,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 		}
 
 		// Must run to blit to back buffer even if post processing is off.
-		FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(Context.View, bUsedFramebufferFetch));
+		FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(Context.View, bViewRectSource));
 		PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 		PostProcessTonemap->SetInput(ePId_Input1, BloomOutput);
 		PostProcessTonemap->SetInput(ePId_Input2, DofOutput);
@@ -1446,6 +1449,18 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 			PostProcessAa->SetInput(ePId_Input0, Context.FinalOutput);
 			PostProcessAa->SetInput(ePId_Input1, PostProcessPrior);
 			Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessAa);
+		}
+
+		{
+			// temporary work around for EditorPrimitives / Dof alpha issues.
+			if (FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(View) && DofOutput.IsValid())
+			{
+				// TODO: combine editor prims in tonemap pass or remove AA jitter
+				FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives());
+				EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+				//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
+				Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
+			}
 		}
 
 		if(View.Family->EngineShowFlags.ShaderComplexity)

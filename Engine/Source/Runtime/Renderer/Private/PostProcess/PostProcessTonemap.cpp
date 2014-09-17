@@ -1595,12 +1595,12 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
+	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
-
-	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	FIntPoint DstSize = DestRect.Size();
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
@@ -1669,8 +1669,8 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		View.ViewRect.Size(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		DstSize,
+		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 

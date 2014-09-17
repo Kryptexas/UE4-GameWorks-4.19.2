@@ -11,26 +11,26 @@
 class FRCPassPostProcessBloomSetupES2 : public TRenderingCompositePassBase<1, 1>
 {
 public:
-	FRCPassPostProcessBloomSetupES2(FIntPoint InPrePostSourceViewportSize, bool bInUsedFramebufferFetch) : PrePostSourceViewportSize(InPrePostSourceViewportSize), bUsedFramebufferFetch(bInUsedFramebufferFetch) { }
+	FRCPassPostProcessBloomSetupES2(FIntPoint InPrePostSourceViewportSize, bool bInUseViewRectSource) : PrePostSourceViewportSize(InPrePostSourceViewportSize), bUseViewRectSource(bInUseViewRectSource) { }
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 	virtual void Release() override { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	bool bUsedFramebufferFetch;
+	bool bUseViewRectSource;
 	void SetShader(const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessBloomSetupSmallES2 : public TRenderingCompositePassBase<1, 1>
 {
 public:
-	FRCPassPostProcessBloomSetupSmallES2(FIntPoint InPrePostSourceViewportSize, bool bInUsedFramebufferFetch) : PrePostSourceViewportSize(InPrePostSourceViewportSize), bUsedFramebufferFetch(bInUsedFramebufferFetch) { }
+	FRCPassPostProcessBloomSetupSmallES2(FIntPoint InPrePostSourceViewportSize, bool bInUseViewRectSource) : PrePostSourceViewportSize(InPrePostSourceViewportSize), bUseViewRectSource(bInUseViewRectSource) { }
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 	virtual void Release() override { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	bool bUsedFramebufferFetch;
+	bool bUseViewRectSource;
 	void SetShader(const FRenderingCompositePassContext& Context);
 };
 
@@ -49,13 +49,13 @@ private:
 class FRCPassPostProcessDofDownES2 : public TRenderingCompositePassBase<2, 1>
 {
 public:
-	FRCPassPostProcessDofDownES2(FIntPoint InPrePostSourceViewportSize, bool bInUsedFramebufferFetch) : PrePostSourceViewportSize(InPrePostSourceViewportSize), bUsedFramebufferFetch(bInUsedFramebufferFetch) { }
+	FRCPassPostProcessDofDownES2(FIntPoint InPrePostSourceViewportSize, bool bInUseViewRectSource) : PrePostSourceViewportSize(InPrePostSourceViewportSize), bUseViewRectSource(bInUseViewRectSource) { }
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	bool bUsedFramebufferFetch;
+	bool bUseViewRectSource;
 	void SetShader(const FRenderingCompositePassContext& Context);
 };
 

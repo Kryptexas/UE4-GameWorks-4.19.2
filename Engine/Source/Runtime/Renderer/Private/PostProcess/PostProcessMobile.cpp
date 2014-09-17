@@ -185,7 +185,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
-	if(bUsedFramebufferFetch)
+	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
 		const FSceneView& View = Context.View;
@@ -386,7 +386,7 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
-	if(bUsedFramebufferFetch)
+	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
 		const FSceneView& View = Context.View;
@@ -1965,7 +1965,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
-	if(bUsedFramebufferFetch)
+	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
 		const FSceneView& View = Context.View;
@@ -2158,6 +2158,9 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessDofNear, DEC_SCENE_ITEMS);
 
+	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+	FIntPoint SrcSize = InputDesc->Extent;
+
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
 
@@ -2191,7 +2194,7 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 		0, 0,
 		DstX, DstY,
 		SrcDstSize,
-		SrcDstSize,
+		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
@@ -2731,6 +2734,9 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessAa, DEC_SCENE_ITEMS);
 
+	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+	FIntPoint SrcSize = InputDesc->Extent;
+
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y);
 
@@ -2764,7 +2770,7 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 		0, 0,
 		DstX, DstY,
 		SrcDstSize,
-		SrcDstSize,
+		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
