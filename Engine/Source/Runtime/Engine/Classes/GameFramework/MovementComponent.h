@@ -152,7 +152,7 @@ public:
 	UFUNCTION()
 	virtual void PhysicsVolumeChanged(class APhysicsVolume* NewVolume);
 
-	/** add updated component to physics volume */
+	/** Assign the component we move and update. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")
 	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent);
 
