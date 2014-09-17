@@ -40,9 +40,12 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraCollision)
 	uint32 bDoCollisionTest:1;
 
-	/** If this component is placed on a pawn, should it use the view rotation of the pawn where possible? */
+	/**
+	 * If this component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
+	 * @see APawn::GetViewRotation()
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
-	uint32 bUsePawnViewRotation:1;
+	uint32 bUsePawnControlRotation:1;
 
 	/** Should we inherit pitch from parent component. Does nothing if using Absolute Rotation. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)

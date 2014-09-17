@@ -30,9 +30,12 @@ class UCameraComponent : public USceneComponent
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bConstrainAspectRatio:1;
 
-	/** If this camera component is placed on a pawn, should it use the view rotation of the pawn where possible? */
+	/**
+	 * If this camera component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
+	 * @see APawn::GetViewRotation()
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
-	uint32 bUsePawnViewRotation:1;
+	uint32 bUsePawnControlRotation:1;
 
 	// The type of camera
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
@@ -90,7 +93,7 @@ public:
 #endif
 
 public:
-	/** DEPRECATED: use bUsePawnViewRotation instead */
+	/** DEPRECATED: use bUsePawnControlRotation instead */
 	UPROPERTY()
 	uint32 bUseControllerViewRotation_DEPRECATED:1;
 };

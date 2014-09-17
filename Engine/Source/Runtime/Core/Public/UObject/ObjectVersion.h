@@ -615,6 +615,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_RENAME_CAMERA_COMPONENT_VIEW_ROTATION,
 	// Changed FName to be case preserving
 	VER_UE4_CASE_PRESERVING_FNAME,
+	// Rename USpringArmComponent::bUsePawnViewRotation to bUsePawnControlRotation
+	// Rename UCameraComponent::bUsePawnViewRotation to bUsePawnControlRotation
+	VER_UE4_RENAME_CAMERA_COMPONENT_CONTROL_ROTATION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

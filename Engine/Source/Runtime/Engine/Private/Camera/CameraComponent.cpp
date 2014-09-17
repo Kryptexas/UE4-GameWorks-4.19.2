@@ -26,8 +26,8 @@ UCameraComponent::UCameraComponent(const class FPostConstructInitializePropertie
 	OrthoWidth = 512.0f;
 	bConstrainAspectRatio = false;
 	PostProcessBlendWeight = 1.0f;
-	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnViewRotation replaced this var.
-	bUsePawnViewRotation = false;
+	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
+	bUsePawnControlRotation = false;
 	bAutoActivate = true;
 }
 
@@ -96,7 +96,7 @@ void UCameraComponent::PostLoad()
 
 	if (LinkerUE4Ver < VER_UE4_RENAME_CAMERA_COMPONENT_VIEW_ROTATION)
 	{
-		bUsePawnViewRotation = bUseControllerViewRotation_DEPRECATED;
+		bUsePawnControlRotation = bUseControllerViewRotation_DEPRECATED;
 	}
 }
 
@@ -144,7 +144,7 @@ void UCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bUsePawnViewRotation)
+	if (bUsePawnControlRotation)
 	{
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
 		{

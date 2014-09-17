@@ -274,7 +274,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual bool IsLocallyControlled() const;
 
-	/** @return the rotation the Pawn is looking */
+	/**
+	 * Get the view rotation of the Pawn (direction they are looking, normally Controller->ControlRotation).
+	 * @return The view rotation of the Pawn.
+	 */
 	virtual FRotator GetViewRotation() const;
 
 	/** @return	Pawn's eye location */
