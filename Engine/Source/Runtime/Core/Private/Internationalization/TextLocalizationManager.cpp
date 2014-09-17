@@ -752,5 +752,6 @@ void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath
 		MemoryReader.Close();
 	}
 
-	UpdateLiveTable(LocalizationEntryTrackers, true);
+	// Don't filter updates by table name, or we can't live preview strings that had no translation originally
+	UpdateLiveTable(LocalizationEntryTrackers);
 }
