@@ -236,6 +236,10 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	bool bIsStandalone;
 	
+	/** Asset to open & attach the tutorial to. Non-widget-bound content will appear in the asset's window */
+	UPROPERTY(EditAnywhere, Category="Tutorial")
+	FStringAssetReference AssetToUse;
+
 public:
 	/** Called when a tutorial stage is started */
 	void HandleTutorialStageStarted(FName StageName);
@@ -266,4 +270,11 @@ protected:
 	/** Begin a tutorial. Note that this will end the current tutorial that is in progress, if any */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")
 	static void BeginTutorial(UEditorTutorial* TutorialToStart, bool bRestart);
+
+	/** 
+	 * Open an asset for use by a tutorial
+	 * @param	Asset	The asset to open
+	 */
+	UFUNCTION(BlueprintCallable, Category="Tutorial")
+	static void OpenAsset(UObject* Asset);
 };

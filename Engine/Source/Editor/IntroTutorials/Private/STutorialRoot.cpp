@@ -5,6 +5,8 @@
 #include "SEditorTutorials.h"
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
+#include "AssetEditorManager.h"
+#include "ToolkitManager.h"
 
 #define LOCTEXT_NAMESPACE "STutorialRoot"
 
@@ -85,6 +87,24 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 
 		bool bHaveSeenTutorial = false;
 		CurrentTutorialStage = bInRestart ? 0 : GetDefault<UTutorialStateSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
+
+		// check if we should be launching this tutorial for an asset editor
+		if(InTutorial->AssetToUse.IsValid())
+		{
+			TArray<FString> AssetPaths;
+			AssetPaths.Add(InTutorial->AssetToUse.AssetLongPathname);
+			FAssetEditorManager::Get().OpenEditorsForAssets(AssetPaths);
+
+			UObject* Asset = InTutorial->AssetToUse.ResolveObject();
+			if(Asset != nullptr)
+			{
+				TSharedPtr<IToolkit> Toolkit = FToolkitManager::Get().FindEditorForAsset( Asset );
+				if(Toolkit.IsValid())
+				{
+					InNavigationWindow = FSlateApplication::Get().FindWidgetWindow(Toolkit->GetToolkitHost()->GetParentWidget());
+				}
+			}
+		}
 
 		// launch tutorial for all windows we wrap - any tutorial can display over any window
 		for(auto& TutorialWidget : TutorialWidgets)

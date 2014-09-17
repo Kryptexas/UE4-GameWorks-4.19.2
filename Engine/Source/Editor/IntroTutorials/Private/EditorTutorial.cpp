@@ -44,3 +44,8 @@ void UEditorTutorial::HandleTutorialStageEnded(FName StageName)
 }
 
 
+void UEditorTutorial::OpenAsset(UObject* Asset)
+{
+	FAssetEditorManager::Get().OpenEditorForAsset(Asset);
+}
+
