@@ -90,9 +90,9 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 		return false;
 	}
 
-	FMemberReference MemeberReference;
-	MemeberReference.SetDirect(SelectedFunctionName, SelectedFunctionGuid, ScopeClass, false);
-	const UFunction* FoundFunction = MemeberReference.ResolveMember<UFunction>((UClass*) NULL);
+	FMemberReference MemberReference;
+	MemberReference.SetDirect(SelectedFunctionName, SelectedFunctionGuid, ScopeClass, false);
+	const UFunction* FoundFunction = MemberReference.ResolveMember<UFunction>((UClass*) NULL);
 	if (!FoundFunction)
 	{
 		if (OutMsg)
