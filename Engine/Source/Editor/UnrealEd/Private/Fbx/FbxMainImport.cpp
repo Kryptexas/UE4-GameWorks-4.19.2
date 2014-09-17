@@ -83,6 +83,15 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			ImportUI->PhysicsAsset = NULL;
 		}
 
+		if(bForceImportType)
+		{
+			ImportUI->MeshTypeToImport = ImportType;
+			ImportUI->OriginalImportType = ImportType;
+		}
+
+		ImportUI->bImportAsSkeletal = ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;
+		ImportUI->bIsObjImport = bIsObjFormat;
+
 		TSharedPtr<SWindow> ParentWindow;
 
 		if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
@@ -172,23 +181,28 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
+
 	if ( ImportUI->MeshTypeToImport == FBXIT_StaticMesh )
 	{
-		InOutImportOptions.NormalImportMethod = ImportUI->StaticMeshImportData->NormalImportMethod;
+		UFbxStaticMeshImportData* StaticMeshData	= ImportUI->StaticMeshImportData;
+		InOutImportOptions.NormalImportMethod		= StaticMeshData->NormalImportMethod;
 	}
 	else if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 	{
-		InOutImportOptions.NormalImportMethod = ImportUI->SkeletalMeshImportData->NormalImportMethod;
+		UFbxSkeletalMeshImportData* SkeletalMeshData	= ImportUI->SkeletalMeshImportData;
+		InOutImportOptions.NormalImportMethod			= SkeletalMeshData->NormalImportMethod;
 	}
 	else
 	{
+		UFbxAnimSequenceImportData* AnimData	= ImportUI->AnimSequenceImportData;
 		InOutImportOptions.NormalImportMethod = FBXNIM_ComputeNormals;
 	}
+
 	// only re-sample if they don't want to use default sample rate
 	InOutImportOptions.bResample = ImportUI->bUseDefaultSampleRate==false;
 	InOutImportOptions.bImportMorph = ImportUI->SkeletalMeshImportData->bImportMorphTargets;
 	InOutImportOptions.bUpdateSkeletonReferencePose = ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose;
-	InOutImportOptions.bImportRigidMesh = ImportUI->bImportRigidMesh;
+	InOutImportOptions.bImportRigidMesh = ImportUI->OriginalImportType == FBXIT_StaticMesh && ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;
 	InOutImportOptions.bUseT0AsRefPose = ImportUI->SkeletalMeshImportData->bUseT0AsRefPose;
 	InOutImportOptions.bPreserveSmoothingGroups = ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 	InOutImportOptions.bKeepOverlappingVertices = ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;

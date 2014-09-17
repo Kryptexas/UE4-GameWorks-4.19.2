@@ -24,7 +24,7 @@ enum EFBXAnimationLengthImportType
  * Import data and options used when importing any mesh from FBX
  */
 UCLASS()
-class UFbxAnimSequenceImportData : public UFbxAssetImportData
+class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -33,20 +33,24 @@ class UFbxAnimSequenceImportData : public UFbxAssetImportData
 	TEnumAsByte<enum EFBXAnimationLengthImportType> AnimationLength;
 
 	/** Type of asset to import from the FBX file */
-	UPROPERTY(EditAnywhere, Category=ImportSettings, meta=(DisplayName = "Start Frame"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=ImportSettings, meta=(DisplayName = "Start Frame"))
 	int32	StartFrame;
+
 	/** Type of asset to import from the FBX file */
-	UPROPERTY(EditAnywhere, Category=ImportSettings, meta=(DisplayName = "End Frame"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=ImportSettings, meta=(DisplayName = "End Frame"))
 	int32	EndFrame;
 
 	/** Name of source animation that was imported, used to reimport correct animation from the FBX file*/
-	UPROPERTY(EditAnywhere, Category = ImportSettings, meta = (DisplayName = "Source Animation Name"))
+	UPROPERTY()
 	FString SourceAnimationName;
 
 	/** Import if custom attribute as a curve within the animation **/
-	UPROPERTY(EditAnywhere, config, Category = ImportSettings, meta = (DisplayName = "Import Custom Attribute"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings, meta = (DisplayName = "Import Custom Attribute"))
 	bool bImportCustomAttribute;
 
 	/** Gets or creates fbx import data for the specified anim sequence */
 	static UFbxAnimSequenceImportData* GetImportDataForAnimSequence(UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* TemplateForCreation);
+
+	virtual bool CanEditChange(const UProperty* InProperty) const;
+
 };

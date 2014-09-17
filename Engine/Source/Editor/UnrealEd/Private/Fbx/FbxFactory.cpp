@@ -104,6 +104,7 @@ bool UFbxFactory::DetectImportType(const FString& InFilename)
 	else
 	{
 		ImportUI->MeshTypeToImport = EFBXImportType(ImportType);
+		ImportUI->OriginalImportType = ImportUI->MeshTypeToImport;
 	}
 	
 	return true;
@@ -587,9 +588,20 @@ bool UFbxImportUI::CanEditChange( const UProperty* InProperty ) const
 	bool bIsMutable = Super::CanEditChange( InProperty );
 	if( bIsMutable && InProperty != NULL )
 	{
-		if( InProperty->GetFName() == TEXT( "AnimationName" ) )
+		FName PropName = InProperty->GetFName();
+
+		if(PropName == TEXT("StartFrame") || PropName == TEXT("EndFrame"))
 		{
-			bIsMutable = (MeshTypeToImport == FBXIT_SkeletalMesh);
+			bIsMutable = AnimSequenceImportData->AnimationLength == FBXALIT_SetRange && bImportAnimations;
+		}
+		else if(PropName == TEXT("bImportCustomAttribute") || PropName == TEXT("AnimationLength"))
+		{
+			bIsMutable = bImportAnimations;
+		}
+
+		if(bIsObjImport && InProperty->GetBoolMetaData(TEXT("OBJRestrict")))
+		{
+			bIsMutable = false;
 		}
 	}
 

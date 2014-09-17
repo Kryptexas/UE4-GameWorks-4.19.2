@@ -29,3 +29,15 @@ UFbxSkeletalMeshImportData* UFbxSkeletalMeshImportData::GetImportDataForSkeletal
 
 	return ImportData;
 }
+
+bool UFbxSkeletalMeshImportData::CanEditChange(const UProperty* InProperty) const
+{
+	bool bMutable = Super::CanEditChange(InProperty);
+	UObject* Outer = GetOuter();
+	if(Outer && bMutable)
+	{
+		// Let the FbxImportUi object handle the editability of our properties
+		bMutable = Outer->CanEditChange(InProperty);
+	}
+	return bMutable;
+}
