@@ -104,7 +104,7 @@ void FMacGraphicsSwitchingModule::StartupModule()
 	
 	// Register settings
 	ISettingsModule* SettingsModule = ISettingsModule::Get();
-	if( ensure( SettingsModule != nullptr ) )
+	if( SettingsModule != nullptr )
 	{
 		SettingsModule->RegisterSettings( "Editor", "Plugins", "MacGraphicsSwitching",
 										 LOCTEXT( "MacGraphicsSwitchingSettingsName", "Graphics Switching"),
