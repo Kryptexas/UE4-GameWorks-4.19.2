@@ -3230,6 +3230,17 @@ bool UClass::IsFunctionImplementedInBlueprint(FName InFunctionName) const
 	return false;
 }
 
+bool UClass::HasProperty(UProperty* InProperty) const
+{
+	if ( UClass* PropertiesClass = Cast<UClass>(InProperty->GetOuter()) )
+	{
+		return PropertiesClass->FindNearestCommonBaseClass(this) != nullptr;
+	}
+
+	return false;
+}
+
+
 /*-----------------------------------------------------------------------------
 	UClass constructors.
 -----------------------------------------------------------------------------*/

@@ -2132,6 +2132,12 @@ public:
 	 */
 	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const;
 
+	/**
+	 * Checks if the property exists on this class or a parent class.
+	 * @param InProperty	The property to check if it is contained in this or a parent class.
+	 * @return				True if the property exists on this or a parent class.
+	 */
+	virtual bool HasProperty(UProperty* InProperty) const;
 
 private:
 	// This signature intentionally hides the method declared in UObjectBaseUtility to make it private.
