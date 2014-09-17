@@ -32,7 +32,7 @@ TSharedRef<SWidget> UScaleBox::RebuildWidget()
 		Cast<UScaleBoxSlot>(GetContentSlot())->BuildSlot(MyScaleBox.ToSharedRef());
 	}
 
-	return MyScaleBox.ToSharedRef();
+	return BuildDesignTimeWidget( MyScaleBox.ToSharedRef() );
 }
 
 void UScaleBox::SynchronizeProperties()
