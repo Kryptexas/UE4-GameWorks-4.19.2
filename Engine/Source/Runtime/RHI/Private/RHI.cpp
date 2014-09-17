@@ -118,14 +118,16 @@ static TAutoConsoleVariable<int32> ResourceTableCachingCvar(
 	TEXT("If 1, the RHI will cache resource table contents within a frame. Otherwise resource tables are rebuilt for every draw call.")
 	);
 static TAutoConsoleVariable<int32> GSaveScreenshotAfterProfilingGPUCVar(
-	TEXT("RHI.SaveScreenshotAfterProfilingGPU"),
+	TEXT("r.ProfileGPU.Screenshot"),
 	1,
-	TEXT("Whether a screenshot should be taken when profiling the GPU."),
+	TEXT("Whether a screenshot should be taken when profiling the GPU. 0:off, 1:on (default)"),
 	ECVF_RenderThreadSafe);
 static TAutoConsoleVariable<int32> GShowProfilerAfterProfilingGPUCVar(
-	TEXT("RHI.ShowProfilerAfterProfilingGPU"),
+	TEXT("r.ProfileGPU.ShowUI"),
 	1,
-	TEXT("Whether the profiler should be displayed after profiling the GPU."),
+	TEXT("Whether the user interface profiler should be displayed after profiling the GPU.\n")
+	TEXT("The results will always go to the log/console\n")
+	TEXT("0:off, 1:on (default)"),
 	ECVF_RenderThreadSafe);
 static TAutoConsoleVariable<float> GGPUHitchThresholdCVar(
 	TEXT("RHI.GPUHitchThreshold"),

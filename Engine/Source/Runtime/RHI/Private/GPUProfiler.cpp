@@ -13,6 +13,16 @@
 #include "TaskGraphInterfaces.h"
 #endif
 
+static TAutoConsoleVariable<FString> GProfileGPUPatternCVar(
+	TEXT("r.ProfileGPU.Pattern"),
+	TEXT("*"),
+	TEXT("Allows to filter the entries when using ProfileGPU, the pattern match is case sensitive.\n")
+	TEXT("'*' can be used in the end to get all entries starting with the string.\n")
+	TEXT("    '*' without any leading characters disables the pattern matching and uses a time threshold instead (default).\n")
+	TEXT("'?' allows to ignore one character.\n")
+	TEXT("e.g. AmbientOcclusionSetup, AmbientOcclusion*, Ambient???lusion*, *"),
+	ECVF_Default);
+
 struct FNodeStatsCompare
 {
 	/** Sorts nodes by descending durations. */
@@ -196,11 +206,45 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 		// Log stats about the node histogram
 		UE_LOG(LogRHI, Warning, TEXT("Node histogram %u buckets"), EventHistogram.Num());
 
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ProfileGPU.Pattern"));
+
+		// bad: reading on render thread but we don't support ECVF_RenderThreadSafe on strings yet
+		// It's very unlikely to cause a problem as the cvar is only changes by the user.
+		FString WildcardString = CVar->GetString(); 
+
+		const float ThresholdInMS = 5.0f;
+
+		if(WildcardString == FString(TEXT("*")))
+		{
+			// disable Wildcard functionality
+			WildcardString.Empty();
+		}
+
+		if(WildcardString.IsEmpty())
+		{
+			UE_LOG(LogRHI, Warning, TEXT(" r.ProfileGPU.Pattern = '*' (using threshold of %g ms)"), ThresholdInMS);
+		}
+		else
+		{
+			UE_LOG(LogRHI, Warning, TEXT(" r.ProfileGPU.Pattern = '%s' (not using time threshold)"), *WildcardString);
+		}
+
+		FWildcardString Wildcard(WildcardString);
+
 		int32 NumNotShown = 0;
 		for (TMap<FString, FGPUProfilerEventNodeStats>::TIterator It(EventHistogram); It; ++It)
 		{
 			const FGPUProfilerEventNodeStats& NodeStats = It.Value();
-			if (NodeStats.TimingResult > RootResult * 1000.0f * .005f)
+
+			bool bDump = NodeStats.TimingResult > RootResult * ThresholdInMS;
+
+			if(!Wildcard.IsEmpty())
+			{
+				// if a Wildcard string was specified, we want to always dump all entries
+				bDump = Wildcard.IsMatch(*It.Key());
+			}
+
+			if (bDump)
 			{
 				UE_LOG(LogRHI, Warning, TEXT("   %.2fms   %s   Events %u   Draws %u"), NodeStats.TimingResult, *It.Key(), NodeStats.NumEvents, NodeStats.NumDraws);
 			}
