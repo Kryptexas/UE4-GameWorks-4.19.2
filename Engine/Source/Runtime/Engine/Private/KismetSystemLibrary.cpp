@@ -582,6 +582,18 @@ void UKismetSystemLibrary::SetTransformPropertyByName(UObject* Object, FName Pro
 	}
 }
 
+void UKismetSystemLibrary::Generic_SetStructurePropertyByName(UObject* OwnerObject, FName StructPropertyName, const void* SrcStructAddr)
+{
+	if (OwnerObject != NULL)
+	{
+		UStructProperty* StructProp = FindField<UStructProperty>(OwnerObject->GetClass(), StructPropertyName);
+		if (StructProp != NULL)
+		{
+			void* Dest = StructProp->ContainerPtrToValuePtr<void>(OwnerObject);
+			StructProp->CopyValuesInternal(Dest, SrcStructAddr, 1);
+		}
+	}
+}
 
 void UKismetSystemLibrary::GetActorListFromComponentList(const TArray<UPrimitiveComponent*>& ComponentList, UClass* ActorClassFilter, TArray<class AActor*>& OutActorList)
 {

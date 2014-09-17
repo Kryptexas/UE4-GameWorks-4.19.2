@@ -30,6 +30,8 @@ class UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
     UFUNCTION(BlueprintCallable, CustomThunk, Category = "DataTable", meta=(CustomStructureParam = "OutRow", BlueprintInternalUseOnly="true"))
     static bool GetDataTableRowFromName(UDataTable* Table, FName RowName, FTableRowBase& OutRow);
     
+	ENGINE_API static bool Generic_GetDataTableRowFromName(UDataTable* Table, FName RowName, void* OutRowPtr);
+
     /** Based on UDataTableFunctionLibrary::GetDataTableRow */
     DECLARE_FUNCTION(execGetDataTableRowFromName)
     {
@@ -41,24 +43,6 @@ class UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
         
         P_FINISH;
         
-        bool foundRow = false;
-        
-        if (OutRowPtr != NULL)
-        {
-            void* RowPtr = Table->FindRowUnchecked(RowName);
-            
-            if (RowPtr != NULL)
-            {
-                UScriptStruct* StructType = Table->RowStruct;
-                
-                if (StructType != NULL)
-                {
-                    StructType->CopyScriptStruct(OutRowPtr, RowPtr);
-                    foundRow = true;
-                }
-            }
-        }
-        
-        *(bool*)Result = foundRow;
+		*(bool*)Result = Generic_GetDataTableRowFromName(Table, RowName, OutRowPtr);
     }
 };

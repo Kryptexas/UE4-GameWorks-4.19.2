@@ -382,6 +382,8 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, CustomThunk, meta = (BlueprintInternalUseOnly = "true", CustomStructureParam = "Value"))
 	static void SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value);
 
+	ENGINE_API static void Generic_SetStructurePropertyByName(UObject* OwnerObject, FName StructPropertyName, const void* SrcStructAddr);
+
 	/** Based on UKismetArrayLibrary::execSetArrayPropertyByName */
 	DECLARE_FUNCTION(execSetStructurePropertyByName)
 	{
@@ -393,15 +395,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 		P_FINISH;
 
-		if (OwnerObject != NULL)
-		{
-			UStructProperty* StructProp = FindField<UStructProperty>(OwnerObject->GetClass(), StructPropertyName);
-			if (StructProp != NULL)
-			{
-				void* Dest = StructProp->ContainerPtrToValuePtr<void>(OwnerObject);
-				StructProp->CopyValuesInternal(Dest, SrcStructAddr, 1);
-			}
-		}
+		Generic_SetStructurePropertyByName(OwnerObject, StructPropertyName, SrcStructAddr);
 	}
 
 	// --- Collision functions ------------------------------

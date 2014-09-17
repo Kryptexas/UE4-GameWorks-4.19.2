@@ -157,20 +157,25 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	static void SetArrayPropertyByName(UObject* Object, FName PropertyName, const TArray<int32>& Value);
 
 	// Native functions that will be called by the below custom thunk layers, which read off the property address, and call the appropriate native handler
-	int32 GenericArray_Add(void* TargetArray, const UArrayProperty* ArrayProp, const int32& NewItem);
-	void GenericArray_Shuffle(void* TargetArray, const UArrayProperty* ArrayProp);
-	void GenericArray_Append(void* TargetArray, const UArrayProperty* TargetArrayProp, void* SourceArray, const UArrayProperty* SourceArrayProperty);
-	void GenericArray_Insert(void* TargetArray, const UArrayProperty* ArrayProp, const int32& NewItem, int32 Index);
-	void GenericArray_Remove(void* TargetArray, const UArrayProperty* ArrayProp, int32 IndexToRemove);
-	bool GenericArray_RemoveItem(void* TargetArray, const UArrayProperty* ArrayProp,const int32& Item);
-	void GenericArray_Clear(void* TargetArray, const UArrayProperty* ArrayProp);
-	void GenericArray_Resize(void* TargetArray, const UArrayProperty* ArrayProp, int32 Size);
-	int32 GenericArray_Length(void* TargetArray, const UArrayProperty* ArrayProp);
-	int32 GenericArray_LastIndex(void* TargetArray, const UArrayProperty* ArrayProp);
-	void GenericArray_Get(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, int32& Item);
-	void GenericArray_Set(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, const int32& NewItem, bool bSizeToFit);
-	int32 GenericArray_Find(void* TargetArray, const UArrayProperty* ArrayProperty, const int32& ItemToFind);
+	ENGINE_API static int32 GenericArray_Add(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem);
+	ENGINE_API static void GenericArray_Shuffle(void* TargetArray, const UArrayProperty* ArrayProp);
+	ENGINE_API static void GenericArray_Append(void* TargetArray, const UArrayProperty* TargetArrayProp, void* SourceArray, const UArrayProperty* SourceArrayProperty);
+	ENGINE_API static void GenericArray_Insert(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem, int32 Index);
+	ENGINE_API static void GenericArray_Remove(void* TargetArray, const UArrayProperty* ArrayProp, int32 IndexToRemove);
+	ENGINE_API static bool GenericArray_RemoveItem(void* TargetArray, const UArrayProperty* ArrayProp, const void* Item);
+	ENGINE_API static void GenericArray_Clear(void* TargetArray, const UArrayProperty* ArrayProp);
+	ENGINE_API static void GenericArray_Resize(void* TargetArray, const UArrayProperty* ArrayProp, int32 Size);
+	ENGINE_API static int32 GenericArray_Length(void* TargetArray, const UArrayProperty* ArrayProp);
+	ENGINE_API static int32 GenericArray_LastIndex(void* TargetArray, const UArrayProperty* ArrayProp);
+	ENGINE_API static void GenericArray_Get(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, void* Item);
+	ENGINE_API static void GenericArray_Set(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, const void* NewItem, bool bSizeToFit);
+	ENGINE_API static int32 GenericArray_Find(void* TargetArray, const UArrayProperty* ArrayProperty, const void* ItemToFind);
+	ENGINE_API static void GenericArray_SetArrayPropertyByName(UObject* OwnerObject, FName ArrayPropertyName, const void* SrcArrayAddr);
 
+private:
+	static void GenericArray_HandleBool(const UProperty* Property, void* ItemPtr);
+
+public:
 	// Helper function to get the last valid index of the array for error reporting, or 0 if the array is empty
 	static int32 GetLastIndex(const FScriptArrayHelper& ArrayHelper)
 	{
@@ -193,11 +198,11 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
  
  		Stack.MostRecentPropertyAddress = NULL;
  		Stack.StepCompiledIn<UProperty>(StorageSpace);
- 		int32& NewItem = (Stack.MostRecentPropertyAddress != NULL) ? *(int32*)(Stack.MostRecentPropertyAddress) : (*(int32*)StorageSpace);
+		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
  
  		P_FINISH;
  
- 		*(int32*)Result = GenericArray_Add(ArrayAddr, ArrayProperty, NewItem);
+		*(int32*)Result = GenericArray_Add(ArrayAddr, ArrayProperty, NewItemPtr);
  
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -247,12 +252,12 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.StepCompiledIn<UProperty>(StorageSpace);
-		int32& NewItem = (Stack.MostRecentPropertyAddress != NULL) ? *(int32*)(Stack.MostRecentPropertyAddress) : (*(int32*)StorageSpace);
+		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
 
 		P_GET_PROPERTY(UIntProperty, Index);
 		P_FINISH;
 
-		GenericArray_Insert(ArrayAddr, ArrayProperty, NewItem, Index);
+		GenericArray_Insert(ArrayAddr, ArrayProperty, NewItemPtr, Index);
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -284,23 +289,18 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.StepCompiledIn<UProperty>(StorageSpace);
-		int32& Item = (Stack.MostRecentPropertyAddress != NULL) ? *(int32*)(Stack.MostRecentPropertyAddress) : (*(int32*)StorageSpace);
+		void* ItemPtr = StorageSpace;
 
 		P_FINISH;
 
 		// Bools need to be processed internally by the property so that C++ bool value is properly set.
-		const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(InnerProp);
-		if (BoolProperty != NULL)
-		{
-			BoolProperty->SetPropertyValue(&Item, !!Item);
-		}
+		GenericArray_HandleBool(InnerProp, ItemPtr);
 		  
-		bool WasRemoved = GenericArray_RemoveItem(ArrayAddr, ArrayProperty, Item);
+		bool WasRemoved = GenericArray_RemoveItem(ArrayAddr, ArrayProperty, ItemPtr);
 		*(bool*)Result = WasRemoved; 
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
-
 	
 	DECLARE_FUNCTION(execArray_Clear)
 	{
@@ -363,11 +363,11 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.StepCompiledIn<UProperty>(StorageSpace);
-		int32& Item = (Stack.MostRecentPropertyAddress != NULL) ? *(int32*)(Stack.MostRecentPropertyAddress) : (*(int32*)StorageSpace);
+		void* ItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
 
 		P_FINISH;
 
-		GenericArray_Get(ArrayAddr, ArrayProperty, Index, Item);
+		GenericArray_Get(ArrayAddr, ArrayProperty, Index, ItemPtr);
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -388,13 +388,13 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.StepCompiledIn<UProperty>(StorageSpace);
-		int32& NewItem = (Stack.MostRecentPropertyAddress != NULL) ? *(int32*)(Stack.MostRecentPropertyAddress) : (*(int32*)StorageSpace);
+		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
 
 		P_GET_UBOOL(bSizeToFit);
 
 		P_FINISH;
 
-		GenericArray_Set(ArrayAddr, ArrayProperty, Index, NewItem, bSizeToFit);
+		GenericArray_Set(ArrayAddr, ArrayProperty, Index, NewItemPtr, bSizeToFit);
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -414,19 +414,15 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.StepCompiledIn<UProperty>(StorageSpace);
-		int32& ItemToFind = (Stack.MostRecentPropertyAddress != NULL) ? *(int32*)(Stack.MostRecentPropertyAddress) : (*(int32*)StorageSpace);
+		void* ItemToFindPtr = StorageSpace;
 
 		P_FINISH;
 
 		// Bools need to be processed internally by the property so that C++ bool value is properly set.
-		const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(InnerProp);
-		if (BoolProperty != NULL)
-		{
-			BoolProperty->SetPropertyValue(&ItemToFind, !!ItemToFind);
-		}
+		GenericArray_HandleBool(InnerProp, ItemToFindPtr);
 
 		// Perform the search
-		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFind);
+		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
 		*(int32*)Result = FoundIndex;
 
 		InnerProp->DestroyValue(StorageSpace);
@@ -447,19 +443,15 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.StepCompiledIn<UProperty>(StorageSpace);
-		int32& ItemToFind = (Stack.MostRecentPropertyAddress != NULL) ? *(int32*)(Stack.MostRecentPropertyAddress) : (*(int32*)StorageSpace);
+		void* ItemToFindPtr = StorageSpace;
 
 		P_FINISH;
 
 		// Bools need to be processed internally by the property so that C++ bool value is properly set.
-		const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(InnerProp);
-		if (BoolProperty != NULL)
-		{
-			BoolProperty->SetPropertyValue(&ItemToFind, !!ItemToFind);
-		}
+		GenericArray_HandleBool(InnerProp, ItemToFindPtr);
 
 		// Perform the search
-		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFind);
+		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
 		*(bool*)Result = (FoundIndex >= 0);
 
 		InnerProp->DestroyValue(StorageSpace);
@@ -475,14 +467,6 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 		P_FINISH;
 
-		if(OwnerObject != NULL)
-		{
-			UArrayProperty* ArrayProp = FindField<UArrayProperty>(OwnerObject->GetClass(), ArrayPropertyName);
-			if(ArrayProp != NULL)
-			{
-				void* Dest = ArrayProp->ContainerPtrToValuePtr<void>(OwnerObject);
-				ArrayProp->CopyValuesInternal(Dest, SrcArrayAddr, 1);
-			}
-		}
+		GenericArray_SetArrayPropertyByName(OwnerObject, ArrayPropertyName, SrcArrayAddr);
 	}
 };
