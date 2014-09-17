@@ -139,7 +139,6 @@ void FAndroidInputInterface::UpdateVibeMotors(FAndroidControllerData &State)
 		{
 			AndroidThunkCpp_Vibrate(0);
 			State.VibeIsOn = false;
-			UE_LOG(LogTemp, Display, TEXT("UpdateVibeMotors: OFF"));
 		}
 	}
 	else {
@@ -148,7 +147,6 @@ void FAndroidInputInterface::UpdateVibeMotors(FAndroidControllerData &State)
 			// Turn it on for 10 seconds (or until below threshold)
 			AndroidThunkCpp_Vibrate(10000);
 			State.VibeIsOn = true;
-			UE_LOG(LogTemp, Display, TEXT("UpdateVibeMotors: ON"));
 		}
 	}
 }
