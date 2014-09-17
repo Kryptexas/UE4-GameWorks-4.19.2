@@ -24,6 +24,11 @@ void UKismetSystemLibrary::StackTraceImpl(const FFrame& StackFrame)
 	UE_LOG(LogBlueprintUserMessages, Log, TEXT("\n%s"), *Trace);
 }
 
+bool UKismetSystemLibrary::IsValid(const UObject* Object)
+{
+	return ::IsValid(Object);
+}
+
 FString UKismetSystemLibrary::GetDisplayName(const UObject* Object)
 {
 #if WITH_EDITOR
