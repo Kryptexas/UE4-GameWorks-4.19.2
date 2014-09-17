@@ -152,12 +152,12 @@ public:
 
 	SListView( ETableViewMode::Type InListMode = ETableViewMode::List )
 		: STableViewBase( InListMode )
+		, WidgetGenerator(this)
 		, SelectorItem( NullableItemType(nullptr) )
 		, RangeSelectionStart( NullableItemType(nullptr) )
 		, ItemsSource( nullptr )
 		, ItemToScrollIntoView( NullableItemType(nullptr) )
 		, ItemToNotifyWhenInView( NullableItemType(nullptr) ) 
-		, WidgetGenerator( this )
 	{ }
 
 public:
