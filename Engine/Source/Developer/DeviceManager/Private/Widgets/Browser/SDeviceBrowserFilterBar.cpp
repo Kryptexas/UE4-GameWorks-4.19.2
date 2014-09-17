@@ -37,12 +37,12 @@ void SDeviceBrowserFilterBar::Construct( const FArguments& InArgs, FDeviceBrowse
 			[
 				// platform filter
 				SNew(SComboButton)
-					.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Style")
+					.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
 					.ForegroundColor(FLinearColor::White)
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+						.TextStyle(FEditorStyle::Get(), "Launcher.Filters.Text")
 						.Text(LOCTEXT("PlatformFiltersComboButtonText", "Platform Filters"))
 					]
 					.ContentPadding(0.0f)
