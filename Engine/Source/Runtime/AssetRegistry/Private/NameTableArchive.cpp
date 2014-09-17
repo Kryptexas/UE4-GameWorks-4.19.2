@@ -88,7 +88,7 @@ int64 FNameTableArchiveReader::TotalSize()
 
 FArchive& FNameTableArchiveReader::operator<<( FName& Name )
 {
-	NAME_INDEX NameIndex;
+	int32 NameIndex;
 	FArchive& Ar = *this;
 	Ar << NameIndex;
 
@@ -98,7 +98,8 @@ FArchive& FNameTableArchiveReader::operator<<( FName& Name )
 	}
 
 	// if the name wasn't loaded (because it wasn't valid in this context)
-	if (NameMap[NameIndex] == NAME_None)
+	const FName& MappedName = NameMap[NameIndex];
+	if (MappedName.IsNone())
 	{
 		int32 TempNumber;
 		Ar << TempNumber;
@@ -108,8 +109,8 @@ FArchive& FNameTableArchiveReader::operator<<( FName& Name )
 	{
 		int32 Number;
 		Ar << Number;
-		// simply create the name from the NameMap's name index and the serialized instance number
-		Name = FName((EName)NameMap[NameIndex].GetIndex(), Number);
+		// simply create the name from the NameMap's name and the serialized instance number
+		Name = FName(MappedName, Number);
 	}
 
 	return *this;
@@ -163,7 +164,7 @@ void FNameTableArchiveWriter::SerializeNameMap()
 		for ( int32 NameMapIdx = 0; NameMapIdx < NameCount; ++NameMapIdx )
 		{
 			// Read the name entry
-			*this << *const_cast<FNameEntry*>(FName::GetEntry( NameMap[NameMapIdx].GetIndex() ));
+			*this << *const_cast<FNameEntry*>(NameMap[NameMapIdx].GetDisplayNameEntry());
 		}
 	}
 }
@@ -199,8 +200,11 @@ FArchive& FNameTableArchiveWriter::operator<<( FName& Name )
 	int32 NameIndex = NameIndexPtr ? *NameIndexPtr : INDEX_NONE;
 	if ( NameIndex == INDEX_NONE )
 	{
-		NameIndex = NameMap.Add(Name);
-		NameMapLookup.Add(Name, NameIndex);
+		// We need to store the FName without the number, as the number is stored separately and we don't 
+		// want duplicate entries in the name table just because of the number
+		const FName NameNoNumber(Name, 0);
+		NameIndex = NameMap.Add(NameNoNumber);
+		NameMapLookup.Add(NameNoNumber, NameIndex);
 	}
 
 	FArchive& Ar = *this;

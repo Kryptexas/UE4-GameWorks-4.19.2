@@ -70,12 +70,22 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 	UObject* NameScopeOuter = (Flags & REN_ForceGlobalUnique) ? ANY_PACKAGE : NewOuter;
 
 	// find an object with the same name and same class in the new outer
+	bool bIsCaseOnlyChange = false;
 	if (InName)
 	{
 		UObject* ExistingObject = StaticFindObject(/*Class=*/ NULL, NameScopeOuter ? NameScopeOuter : GetOuter(), InName, true);
 		if (ExistingObject == this)
 		{
-			return true;
+			if (ExistingObject->GetName().Equals(InName, ESearchCase::CaseSensitive))
+			{
+				// The name is exactly the same - there's nothing to change
+				return true;
+			}
+			else
+			{
+				// This rename has only changed the case, so we need to allow it to continue, but won't create a redirector (since the internal FName comparison ignores case)
+				bIsCaseOnlyChange = true;
+			}
 		}
 		else if (ExistingObject)
 		{
@@ -130,12 +140,12 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 	if ( HasAnyFlags(RF_Public) )
 	{
 		const bool bUniquePathChanged	= ((NewOuter != NULL && OldOuter != NewOuter) || (OldName != NewName));
-		const bool bRootPackage		= GetClass() == UPackage::StaticClass() && OldOuter == NULL;
+		const bool bRootPackage			= GetClass() == UPackage::StaticClass() && OldOuter == NULL;
 		const bool bRedirectionAllowed = !FApp::IsGame() && ((Flags & REN_DontCreateRedirectors) == 0);
 
 		// We need to create a redirector if we changed the Outer or Name of an object that can be referenced from other packages
 		// [i.e. has the RF_Public flag] so that references to this object are not broken.
-		bCreateRedirector = bRootPackage == false && bUniquePathChanged == true && bRedirectionAllowed == true;
+		bCreateRedirector = bRootPackage == false && bUniquePathChanged == true && bRedirectionAllowed == true && bIsCaseOnlyChange == false;
 	}
 
 	if( NewOuter )

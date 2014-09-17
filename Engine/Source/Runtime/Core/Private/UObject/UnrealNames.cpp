@@ -25,7 +25,7 @@ const TCHAR* DebugFName(int32 Index)
 {
 	// Hardcoded static array. This function is only used inside the debugger so it should be fine to return it.
 	static TCHAR TempName[256];
-	FCString::Strcpy(TempName, *FName::SafeString((EName)Index));
+	FCString::Strcpy(TempName, *FName::SafeString(Index));
 	return TempName;
 }
 
@@ -40,7 +40,7 @@ const TCHAR* DebugFName(int32 Index, int32 Number)
 {
 	// Hardcoded static array. This function is only used inside the debugger so it should be fine to return it.
 	static TCHAR TempName[256];
-	FCString::Strcpy(TempName, *FName::SafeString((EName)Index, Number));
+	FCString::Strcpy(TempName, *FName::SafeString(Index, Number));
 	return TempName;
 }
 
@@ -54,7 +54,7 @@ const TCHAR* DebugFName(FName& Name)
 {
 	// Hardcoded static array. This function is only used inside the debugger so it should be fine to return it.
 	static TCHAR TempName[256];
-	FCString::Strcpy(TempName, *FName::SafeString((EName)Name.Index, Name.Number));
+	FCString::Strcpy(TempName, *FName::SafeString(Name.GetDisplayIndex(), Name.GetNumber()));
 	return TempName;
 }
 
@@ -97,21 +97,6 @@ void FNameEntry::AppendNameToString( FString& String ) const
 }
 
 /**
- * @return case insensitive hash of name
- */
-uint32 FNameEntry::GetNameHash() const
-{
-	if( IsWide() )
-	{
-		return FCrc::Strihash_DEPRECATED(WideName);
-	}
-	else
-	{
-		return FCrc::Strihash_DEPRECATED(AnsiName);
-	}
-}
-
-/**
  * @return length of name
  */
 int32 FNameEntry::GetNameLength() const
@@ -127,12 +112,12 @@ int32 FNameEntry::GetNameLength() const
 }
 
 /**
- * Compares name without looking at case.
+ * Compares name using the compare method provided.
  *
  * @param	InName	Name to compare to
  * @return	true if equal, false otherwise
  */
-bool FNameEntry::IsEqual( const ANSICHAR* InName ) const
+bool FNameEntry::IsEqual( const ANSICHAR* InName, const ENameCase CompareMethod ) const
 {
 	if( IsWide() )
 	{
@@ -141,17 +126,17 @@ bool FNameEntry::IsEqual( const ANSICHAR* InName ) const
 	}
 	else
 	{
-		return FCStringAnsi::Stricmp( AnsiName, InName ) == 0;
+		return ( (CompareMethod == ENameCase::CaseSensitive) ? FCStringAnsi::Strcmp( AnsiName, InName ) : FCStringAnsi::Stricmp( AnsiName, InName ) ) == 0;
 	}
 }
 
 /**
- * Compares name without looking at case.
+ * Compares name using the compare method provided.
  *
  * @param	InName	Name to compare to
  * @return	true if equal, false otherwise
  */
-bool FNameEntry::IsEqual( const WIDECHAR* InName ) const
+bool FNameEntry::IsEqual( const WIDECHAR* InName, const ENameCase CompareMethod ) const
 {
 	if( !IsWide() )
 	{
@@ -160,7 +145,7 @@ bool FNameEntry::IsEqual( const WIDECHAR* InName ) const
 	}
 	else
 	{
-		return FCStringWide::Stricmp( WideName, InName ) == 0;
+		return ( (CompareMethod == ENameCase::CaseSensitive) ? FCStringWide::Strcmp( WideName, InName ) : FCStringWide::Stricmp( WideName, InName ) ) == 0;
 	}
 }
 
@@ -415,7 +400,7 @@ FName::FName( ELinkerNameTableConstructor, const ANSICHAR* Name )
 	Init(Name, NAME_NO_NUMBER_INTERNAL, FNAME_Add, false);
 }
 
-FName::FName( enum EName HardcodedIndex, const TCHAR* Name )
+FName::FName( EName HardcodedIndex, const TCHAR* Name )
 {
 	check(HardcodedIndex >= 0);
 	Init(Name, NAME_NO_NUMBER_INTERNAL, FNAME_Add, false, HardcodedIndex);
@@ -431,10 +416,7 @@ bool FName::operator==( const TCHAR * Other ) const
 {
 	// Find name entry associated with this FName.
 	check( Other );
-	TNameEntryArray& Names = GetNames();
-	check( Index < Names.Num() );
-	FNameEntry const* Entry = Names[Index];
-	check( Entry );
+	const FNameEntry* const Entry = GetComparisonNameEntry();
 
 	// Temporary buffer to hold split name in case passed in name is of Name_Number format.
 	WIDECHAR TempBuffer[NAME_SIZE];
@@ -452,7 +434,7 @@ bool FName::operator==( const TCHAR * Other ) const
 
 	// Report a match if both the number and string portion match.
 	bool bAreNamesMatching = false;
-	if( InNumber == Number && !FCStringWide::Stricmp( WideOtherPtr, Entry->IsWide() ? Entry->GetWideName() : StringCast<WIDECHAR>(Entry->GetAnsiName()).Get() ) )
+	if( InNumber == GetNumber() && !FCStringWide::Stricmp( WideOtherPtr, Entry->IsWide() ? Entry->GetWideName() : StringCast<WIDECHAR>(Entry->GetAnsiName()).Get() ) )
 	{
 		bAreNamesMatching = true;
 	}
@@ -469,7 +451,7 @@ bool FName::operator==( const TCHAR * Other ) const
 int32 FName::Compare( const FName& Other ) const
 {
 	// Names match, check whether numbers match.
-	if( GetIndex() == Other.GetIndex() )
+	if( GetComparisonIndexFast() == Other.GetComparisonIndexFast() )
 	{
 		return GetNumber() - Other.GetNumber();
 	}
@@ -477,8 +459,8 @@ int32 FName::Compare( const FName& Other ) const
 	else
 	{
 		TNameEntryArray& Names = GetNames();
-		FNameEntry const* ThisEntry = Names[GetIndex()];
-		FNameEntry const* OtherEntry = Names[Other.GetIndex()];
+		const FNameEntry* const ThisEntry = GetComparisonNameEntry();
+		const FNameEntry* const OtherEntry = Other.GetComparisonNameEntry();
 
 		// Ansi/Wide mismatch, convert to wide
 		if( ThisEntry->IsWide() != OtherEntry->IsWide() )
@@ -528,7 +510,10 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 	if( !InName[0] )
 	{
 		check(HardcodeIndex < 1); // if this is hardcoded, it better be zero 
-		Index = NAME_None;
+		ComparisonIndex = NAME_None;
+#if WITH_CASE_PRESERVING_NAME
+		DisplayIndex = NAME_None;
+#endif
 		Number = NAME_NO_NUMBER_INTERNAL;
 		return;
 	}
@@ -536,26 +521,122 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 
 	//!!!! Caution, since these are set by static initializers from multiple threads, we must use local variables for this stuff until just before we return.
 
-	int32 OutIndex = HardcodeIndex;
+	bool bWasFoundOrAdded = true;
+	int32 OutComparisonIndex = HardcodeIndex;
+	int32 OutDisplayIndex = HardcodeIndex;
 
-	// set the number
-	int32 OutNumber = InNumber;
-
-	// Hash value of string. Depends on whether the name is going to be ansi or wide.
-	int32 iHash;
-
-	// Figure out whether we have a pure ansi name or not.
-	ANSICHAR AnsiName[NAME_SIZE];
-	bool bIsPureAnsi = FCStringWide::IsPureAnsi( InName );
-	if( bIsPureAnsi )
+	const bool bIsPureAnsi = FCStringWide::IsPureAnsi( InName );
+	if(bIsPureAnsi)
 	{
-		FCStringAnsi::Strncpy( AnsiName, StringCast<ANSICHAR>(InName).Get(), ARRAY_COUNT(AnsiName) );
-		iHash = FCrc::Strihash_DEPRECATED( AnsiName ) & (ARRAY_COUNT(NameHash)-1);
+		// Convert to an ansi display name
+		ANSICHAR AnsiDisplayName[NAME_SIZE];
+		FCStringAnsi::Strncpy(AnsiDisplayName, StringCast<ANSICHAR>(InName).Get(), ARRAY_COUNT(AnsiDisplayName));
+
+		bWasFoundOrAdded = InitInternal_FindOrAdd<ANSICHAR>(AnsiDisplayName, FindType, HardcodeIndex, OutComparisonIndex, OutDisplayIndex);
 	}
 	else
 	{
-		iHash = FCrc::Strihash_DEPRECATED( InName ) & (ARRAY_COUNT(NameHash)-1);
+		bWasFoundOrAdded = InitInternal_FindOrAdd<WIDECHAR>(InName, FindType, HardcodeIndex, OutComparisonIndex, OutDisplayIndex);
 	}
+
+	if(bWasFoundOrAdded)
+	{
+		ComparisonIndex = OutComparisonIndex;
+#if WITH_CASE_PRESERVING_NAME
+		DisplayIndex = OutDisplayIndex;
+#endif
+		Number = InNumber;
+	}
+	else
+	{
+		ComparisonIndex = NAME_None;
+#if WITH_CASE_PRESERVING_NAME
+		DisplayIndex = NAME_None;
+#endif
+		Number = NAME_NO_NUMBER_INTERNAL;
+	}
+}
+
+template <typename TCharType>
+struct FNameInitHelper
+{
+};
+
+template <>
+struct FNameInitHelper<ANSICHAR>
+{
+	static const bool IsAnsi = true;
+
+	static const ANSICHAR* GetNameString(const FNameEntry* const NameEntry)
+	{
+		return NameEntry->GetAnsiName();
+	}
+
+	static void SetNameString(FNameEntry* const DestNameEntry, const ANSICHAR* SrcName)
+	{
+		// Can't rely on the template override for static arrays since the safe crt version of strcpy will fill in
+		// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
+		FCStringAnsi::Strcpy(const_cast<ANSICHAR*>(DestNameEntry->GetAnsiName()), DestNameEntry->GetNameLength()+1, SrcName);
+	}
+};
+
+template <>
+struct FNameInitHelper<WIDECHAR>
+{
+	static const bool IsAnsi = false;
+
+	static const WIDECHAR* GetNameString(const FNameEntry* const NameEntry)
+	{
+		return NameEntry->GetWideName();
+	}
+
+	static void SetNameString(FNameEntry* const DestNameEntry, const WIDECHAR* SrcName)
+	{
+		// Can't rely on the template override for static arrays since the safe crt version of strcpy will fill in
+		// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
+		FCStringWide::Strcpy(const_cast<WIDECHAR*>(DestNameEntry->GetWideName()), DestNameEntry->GetNameLength()+1, SrcName);
+	}
+};
+
+template <typename TCharType>
+bool FName::InitInternal_FindOrAdd(const TCharType* InName, const EFindName FindType, const int32 HardcodeIndex, int32& OutComparisonIndex, int32& OutDisplayIndex)
+{
+	const bool bWasFoundOrAdded = InitInternal_FindOrAddNameEntry<TCharType>(InName, FindType, ENameCase::IgnoreCase, OutComparisonIndex);
+	
+#if WITH_CASE_PRESERVING_NAME
+	if(bWasFoundOrAdded && HardcodeIndex < 0)
+	{
+		TNameEntryArray& Names = GetNames();
+		const FNameEntry* const NameEntry = Names[OutComparisonIndex];
+
+		// If the string we got back doesn't match the case of the string we provided, also add a case variant version for display purposes
+		if(TCString<TCharType>::Strcmp(InName, FNameInitHelper<TCharType>::GetNameString(NameEntry)) != 0)
+		{
+			if(!InitInternal_FindOrAddNameEntry<TCharType>(InName, FindType, ENameCase::CaseSensitive, OutDisplayIndex))
+			{
+				// We don't consider failing to find/add the case variant a full failure
+				OutDisplayIndex = OutComparisonIndex;
+			}
+		}
+		else
+		{
+			OutDisplayIndex = OutComparisonIndex;
+		}
+	}
+	else
+#endif
+	{
+		OutDisplayIndex = OutComparisonIndex;
+	}
+
+	return bWasFoundOrAdded;
+}
+
+template <typename TCharType>
+bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, int32& OutIndex)
+{
+	// Hash value of string
+	const int32 iHash = ( (ComparisonMode == ENameCase::IgnoreCase) ? FCrc::Strihash_DEPRECATED( InName ) : FCrc::StrCrc32( InName ) ) & (ARRAY_COUNT(NameHash)-1);
 
 	if (OutIndex < 0)
 	{
@@ -563,9 +644,8 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 		for( FNameEntry* Hash=NameHash[iHash]; Hash; Hash=Hash->HashNext )
 		{
 			FPlatformMisc::Prefetch( Hash->HashNext );
-			// Compare the passed in string, either ANSI or TCHAR.
-			if( ( bIsPureAnsi && Hash->IsEqual( AnsiName )) 
-			||  (!bIsPureAnsi && Hash->IsEqual( InName )) )
+			// Compare the passed in string
+			if( Hash->IsEqual( InName, ComparisonMode ) )
 			{
 				// Found it in the hash.
 				OutIndex = Hash->GetIndex();
@@ -577,25 +657,15 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 				if (FindType == FNAME_Replace_Not_Safe_For_Threading)
 				{
 					check(IsInGameThread());
-					// This should be impossible due to the compare above
+
 					// This *must* be true, or we'll overwrite memory when the
 					// copy happens if it is longer
-					check(FCString::Strlen(InName) == Hash->GetNameLength());
-					// Can't rely on the template override for static arrays since the safe crt version of strcpy will fill in
-					// the remainder of the array of NAME_SIZE with 0xfd.  So, we have to pass in the length of the dynamically allocated array instead.
-					if( bIsPureAnsi )
-					{
-						FCStringAnsi::Strcpy(const_cast<ANSICHAR*>(Hash->GetAnsiName()),Hash->GetNameLength()+1,AnsiName);
-					}
-					else
-					{
-						FCStringWide::Strcpy(const_cast<WIDECHAR*>(Hash->GetWideName()),Hash->GetNameLength()+1,InName);
-					}
+					check(TCString<TCharType>::Strlen(InName) == Hash->GetNameLength());
+
+					FNameInitHelper<TCharType>::SetNameString(Hash, InName);
 				}
 				check(OutIndex >= 0);
-				Index = OutIndex;
-				Number = OutNumber;
-				return;
+				return true;
 			}
 		}
 
@@ -603,9 +673,7 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 		if( FindType==FNAME_Find )
 		{
 			// Not found.
-			Index = NAME_None;
-			Number = NAME_NO_NUMBER_INTERNAL;
-			return;
+			return false;
 		}
 	}
 	// acquire the lock
@@ -615,16 +683,13 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 		// Try to find the name in the hash. AGAIN...we might have been adding from a different thread and we just missed it
 		for( FNameEntry* Hash=NameHash[iHash]; Hash; Hash=Hash->HashNext )
 		{
-			// Compare the passed in string, either ANSI or TCHAR.
-			if( ( bIsPureAnsi && Hash->IsEqual( AnsiName )) 
-				||  (!bIsPureAnsi && Hash->IsEqual( InName )) )
+			// Compare the passed in string
+			if( Hash->IsEqual( InName, ComparisonMode ) )
 			{
 				// Found it in the hash.
 				OutIndex = Hash->GetIndex();
 				check(FindType == FNAME_Add);  // if this was a replace, well it isn't safe for threading. Find should have already been handled
-				Index = OutIndex;
-				Number = OutNumber;
-				return;
+				return true;
 			}
 		}
 	}
@@ -636,9 +701,9 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 	}
 	else
 	{
-		Names.AddZeroed(OutIndex + 1 - Names.Num());
+		check(OutIndex < Names.Num());
 	}
-	FNameEntry* NewEntry = AllocateNameEntry( bIsPureAnsi ? (void const*)AnsiName : (void const*)InName, OutIndex, OldHash, bIsPureAnsi );
+	FNameEntry* NewEntry = AllocateNameEntry( InName, OutIndex, OldHash, FNameInitHelper<TCharType>::IsAnsi );
 	if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Names[OutIndex], NewEntry, NULL) != NULL) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc
 	{
 		UE_LOG(LogUnrealNames, Fatal, TEXT("Hardcoded name '%s' at index %i was duplicated (or unexpected concurrency). Existing entry is '%s'."), *NewEntry->GetPlainNameString(), NewEntry->GetIndex(), *Names[OutIndex]->GetPlainNameString() );
@@ -648,10 +713,22 @@ void FName::Init(const WIDECHAR* InName, int32 InNumber, EFindName FindType, boo
 		check(0); // someone changed this while we were changing it
 	}
 	check(OutIndex >= 0);
-	Index = OutIndex;
-	Number = OutNumber;
+	return true;
 }
 
+const FNameEntry* FName::GetComparisonNameEntry() const
+{
+	TNameEntryArray& Names = GetNames();
+	const NAME_INDEX Index = GetComparisonIndex();
+	return Names[Index];
+}
+
+const FNameEntry* FName::GetDisplayNameEntry() const
+{
+	TNameEntryArray& Names = GetNames();
+	const NAME_INDEX Index = GetDisplayIndex();
+	return Names[Index];
+}
 
 FString FName::ToString() const
 {
@@ -662,26 +739,20 @@ FString FName::ToString() const
 
 void FName::ToString(FString& Out) const
 {
-	TNameEntryArray& Names = GetNames();
 	// a version of ToString that saves at least one string copy
-	checkName(Index < Names.Num());
-	checkName(Names[Index]);
-	FNameEntry const* NameEntry = Names[Index];
+	const FNameEntry* const NameEntry = GetDisplayNameEntry();
 	Out.Empty( NameEntry->GetNameLength() + 6);
 	AppendString(Out);
 }
 
 void FName::AppendString(FString& Out) const
 {
-	TNameEntryArray& Names = GetNames();
-	checkName(Index < Names.Num());
-	checkName(Names[Index]);
-	FNameEntry const* NameEntry = Names[Index];
+	const FNameEntry* const NameEntry = GetDisplayNameEntry();
 	NameEntry->AppendNameToString( Out );
-	if (Number != NAME_NO_NUMBER_INTERNAL)
+	if (GetNumber() != NAME_NO_NUMBER_INTERNAL)
 	{
 		Out += TEXT("_");
-		Out.AppendInt(NAME_INTERNAL_TO_EXTERNAL(Number));
+		Out.AppendInt(NAME_INTERNAL_TO_EXTERNAL(GetNumber()));
 	}
 }
 
@@ -707,6 +778,13 @@ void FName::StaticInit()
 	for (int32 HashIndex = 0; HashIndex < ARRAY_COUNT(FName::NameHash); HashIndex++)
 	{
 		NameHash[HashIndex] = NULL;
+	}
+
+	{
+		FScopeLock ScopeLock(GetCriticalSection());
+
+		TNameEntryArray& Names = GetNames();
+		Names.AddZeroed(NAME_MaxHardcodedNameIndex + 1);
 	}
 
 	{
@@ -865,17 +943,23 @@ bool FName::IsValidXName( FString InvalidChars/*=INVALID_NAME_CHARACTERS*/, FTex
 
 void FName::AutoTest()
 {
-	FName AutoTest_1("AutoTest_1");
-	FName autoTest_1("autoTest_1");
-	FName AutoTest_2(TEXT("AutoTest_2"));
-	FName AutoTestB_2(TEXT("AutoTestB_2"));
+	const FName AutoTest_1("AutoTest_1");
+	const FName autoTest_1("autoTest_1");
+	const FName autoTeSt_1("autoTeSt_1");
+	const FName AutoTest1Find("autoTEST_1", EFindName::FNAME_Find);
+	const FName AutoTest_2(TEXT("AutoTest_2"));
+	const FName AutoTestB_2(TEXT("AutoTestB_2"));
 
 	check(AutoTest_1 != AutoTest_2);
 	check(AutoTest_1 == autoTest_1);
+	check(AutoTest_1 == autoTeSt_1);
+#if WITH_CASE_PRESERVING_NAME
 	check(!FCString::Strcmp(*AutoTest_1.ToString(), TEXT("AutoTest_1")));
-	check(!FCString::Strcmp(*autoTest_1.ToString(), TEXT("AutoTest_1")));
+	check(!FCString::Strcmp(*autoTest_1.ToString(), TEXT("autoTest_1")));
+	check(!FCString::Strcmp(*autoTeSt_1.ToString(), TEXT("autoTeSt_1")));
 	check(!FCString::Strcmp(*AutoTestB_2.ToString(), TEXT("AutoTestB_2")));
-	check(autoTest_1.GetIndex() == AutoTest_2.GetIndex());
+#endif
+	check(autoTest_1.GetComparisonIndex() == AutoTest_2.GetComparisonIndex());
 	check(autoTest_1.GetPlainNameString() == AutoTest_1.GetPlainNameString());
 	check(autoTest_1.GetPlainNameString() == AutoTest_2.GetPlainNameString());
 	check(*AutoTestB_2.GetPlainNameString() != *AutoTest_2.GetPlainNameString());
@@ -1112,14 +1196,14 @@ static class FFNameExec: private FSelfRegisteringExec
 							check(Table[Index].NameNumber == Temp.GetNumber());
 							if (Table[Index].NameIndex == 0)
 							{
-								Table[Index].NameIndex = Temp.GetIndex();
+								Table[Index].NameIndex = Temp.GetComparisonIndex();
 							}
-							check(Table[Index].NameIndex == Temp.GetIndex());
+							check(Table[Index].NameIndex == Temp.GetComparisonIndex());
 
 							FName Temp2(*Table[Index].TheString);
 							check(Temp2.ToString() == Table[Index].TheString);
 							check(Table[Index].NameNumber == Temp2.GetNumber());
-							check(Table[Index].NameIndex == Temp2.GetIndex());
+							check(Table[Index].NameIndex == Temp2.GetComparisonIndex());
 							TestCounter.Increment();
 						}
 

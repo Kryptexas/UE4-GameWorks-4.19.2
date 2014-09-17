@@ -407,13 +407,13 @@ protected:
 	FORCEINLINE_STATS void WriteFName( FArchive& Ar, FStatNameAndInfo NameAndInfo )
 	{
 		FName RawName = NameAndInfo.GetRawName();
-		bool bSendFName = !FNamesSent.Contains( RawName.GetIndex() );
-		int32 Index = RawName.GetIndex();
+		bool bSendFName = !FNamesSent.Contains( RawName.GetComparisonIndex() );
+		int32 Index = RawName.GetComparisonIndex();
 		Ar << Index;
 		int32 Number = NameAndInfo.GetRawNumber();
 		if( bSendFName )
 		{
-			FNamesSent.Add( RawName.GetIndex() );
+			FNamesSent.Add( RawName.GetComparisonIndex() );
 			Number |= EStatMetaFlags::SendingFName << (EStatMetaFlags::Shift + EStatAllFields::StartShift);
 		}
 		Ar << Number;
@@ -581,7 +581,7 @@ public:
 				Ar << Name;
 
 				TheFName = FName( *Name );
-				FNamesIndexMap.Add( Index, TheFName.GetIndex() );
+				FNamesIndexMap.Add( Index, TheFName.GetComparisonIndex() );
 				Number &= ~(EStatMetaFlags::SendingFName << (EStatMetaFlags::Shift + EStatAllFields::StartShift));
 			}
 			else
@@ -589,7 +589,7 @@ public:
 				if( FNamesIndexMap.Contains( Index ) )
 				{
 					int32 MyIndex = FNamesIndexMap.FindChecked( Index );
-					TheFName = FName( EName( MyIndex ) );
+					TheFName = FName( MyIndex, MyIndex, 0 );
 				}
 				else
 				{
@@ -610,7 +610,7 @@ public:
 			if( FNamesIndexMap.Contains( Index ) )
 			{
 				int32 MyIndex = FNamesIndexMap.FindChecked( Index );
-				TheFName = FName( EName( MyIndex ) );
+				TheFName = FName( MyIndex, MyIndex, 0 );
 			}
 			else
 			{

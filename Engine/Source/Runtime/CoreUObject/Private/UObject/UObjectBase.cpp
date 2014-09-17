@@ -805,7 +805,7 @@ const TCHAR* DebugFName(UObject* Object)
 	// Hardcoded static array. This function is only used inside the debugger so it should be fine to return it.
 	static TCHAR TempName[256];
 	FName Name = Object->GetFName();
-	FCString::Strcpy(TempName,Object ? *FName::SafeString((EName)Name.GetIndex(), Name.GetNumber()) : TEXT("NULL"));
+	FCString::Strcpy(TempName,Object ? *FName::SafeString(Name.GetDisplayIndex(), Name.GetNumber()) : TEXT("NULL"));
 	return TempName;
 }
 

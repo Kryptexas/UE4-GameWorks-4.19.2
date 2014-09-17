@@ -93,7 +93,7 @@ void FBasicToken::SetConstFloat(float InFloat)
 void FBasicToken::SetConstName(FName InName)
 {
 	ConstantType = CPT_Name;
-	*(FName*)NameBytes = InName;
+	*(FScriptName*)NameBytes = NameToScriptName(InName);
 	TokenType = TOKEN_Const;
 }
 
@@ -126,7 +126,7 @@ FString FBasicToken::GetConstantValue() const
 		case CPT_Float:
 			return FString::Printf(TEXT("%f"), Float);
 		case CPT_Name:
-			return FString::Printf(TEXT("%s"), *(*(FName*)NameBytes).ToString());
+			return FString::Printf(TEXT("%s"), *ScriptNameToName(*(FScriptName*)NameBytes).ToString());
 		case CPT_String:
 			return String;
 

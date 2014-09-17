@@ -2967,27 +2967,14 @@ struct TFieldRange
 //
 // Find a typed field in a struct.
 //
-template <class T> T* FindField( const UStruct* Owner, const TCHAR* FieldName )
-{
-	// lookup the string name in the Name hash
-	FName Name(FieldName, FNAME_Find);
-	// If we didn't find it, we know the field won't exist in this Struct
-	if (Name == NAME_None)
-		return NULL;
-	// Search by comparing FNames (INTs), not strings
-	for( TFieldIterator<T>It( Owner ); It; ++It )
-	{
-		if( It->GetFName() == Name )
-		{
-			return *It;
-		}
-	}
-	// If we didn't find it, return no field
-	return NULL;
-}
-
 template <class T> T* FindField( const UStruct* Owner, FName FieldName )
 {
+	// We know that a "none" field won't exist in this Struct
+	if( FieldName.IsNone() )
+	{
+		return nullptr;
+	}
+
 	// Search by comparing FNames (INTs), not strings
 	for( TFieldIterator<T>It( Owner ); It; ++It )
 	{
@@ -2998,7 +2985,14 @@ template <class T> T* FindField( const UStruct* Owner, FName FieldName )
 	}
 
 	// If we didn't find it, return no field
-	return NULL;
+	return nullptr;
+}
+
+template <class T> T* FindField( const UStruct* Owner, const TCHAR* FieldName )
+{
+	// lookup the string name in the Name hash
+	FName Name(FieldName, FNAME_Find);
+	return FindField<T>(Owner, Name);
 }
 
 /**

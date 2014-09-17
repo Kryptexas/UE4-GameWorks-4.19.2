@@ -96,14 +96,14 @@ void ULinkerSave::BeginDestroy()
 
 int32 ULinkerSave::MapName(const FName& Name) const
 {
-	const int32* IndexPtr = NameIndices.Find(Name.GetIndex());
+	const int32* IndexPtr = NameIndices.Find(Name);
 
 	if (IndexPtr)
 	{
 		return *IndexPtr;
 	}
 
-	return 0;
+	return INDEX_NONE;
 }
 
 FPackageIndex ULinkerSave::MapObject( const UObject* Object ) const
@@ -134,6 +134,14 @@ void ULinkerSave::Serialize( void* V, int64 Length )
 	Saver->Serialize( V, Length );
 }
 	
+FArchive& ULinkerSave::operator<<( FName& InName )
+{
+	int32 Save = MapName(InName);
+	int32 Number = InName.GetNumber();
+	FArchive& Ar = *this;
+	return Ar << Save << Number;
+}
+
 FArchive& ULinkerSave::operator<<( UObject*& Obj )
 {
 	FPackageIndex Save;

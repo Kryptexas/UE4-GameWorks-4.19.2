@@ -469,7 +469,7 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 		if (FThreadStats::IsCollectingData(OtherStat) && Object)
 		{
 			TStatId StatId = Object->GetStatID();
-			if (!StatId->IsNone())
+			if (!StatId.IsNone())
 			{
 				Start(StatId);
 			}

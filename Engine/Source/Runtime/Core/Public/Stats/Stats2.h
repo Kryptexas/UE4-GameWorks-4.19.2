@@ -60,46 +60,56 @@ struct CORE_API FStats
 
 #if STATS
 
+struct TStatIdData
+{
+	FORCEINLINE TStatIdData()
+		: Name(NameToMinimalName(NAME_None))
+		, AnsiString(0)
+		, WideString(0)
+	{
+	}
+
+	FORCEINLINE bool IsNone() const
+	{
+		return MinimalNameToName(Name).IsNone();
+	}
+
+	/** Name of the active stat; stored as a minimal name to minimize the data size */
+	FMinimalName Name;
+
+	/** const ANSICHAR* pointer to a string; stored as a uint64 so it doesn't change size and affect TStatIdData alignment between 32 and 64-bit builds) */
+	uint64 AnsiString;
+
+	/** const WIDECHAR* pointer to a string; stored as a uint64 so it doesn't change size and affect TStatIdData alignment between 32 and 64-bit builds) */
+	uint64 WideString;
+};
+
 struct TStatId
 {
-	enum
-	{
-		/**
-		 *	Index of the long name.
-		 *	@see FStatGroupEnableManager
-		 */
-		INDEX_FNAME = 0,
-
-		/** Index of the stat desc as an ansi string. */
-		INDEX_ANSI_STRING = 1,
-
-		/** Index of the stat desc as a wide string. */
-		INDEX_WIDE_STRING = 2,
-	};
-
 	FORCEINLINE TStatId()
 		: StatIdPtr(&TStatId_NAME_None)
 	{
 	}
-	FORCEINLINE TStatId(FName const* InStatIdPtr)
+	FORCEINLINE TStatId(TStatIdData const* InStatIdPtr)
 		: StatIdPtr(InStatIdPtr)
 	{
-	}
-	FORCEINLINE FName operator*() const
-	{
-		return *StatIdPtr;
-	}
-	FORCEINLINE FName const* operator->() const
-	{
-		return StatIdPtr;
 	}
 	FORCEINLINE bool IsValidStat() const
 	{
 		return StatIdPtr != &TStatId_NAME_None;
 	}
-	FORCEINLINE FName const* GetRawPointer() const
+	FORCEINLINE bool IsNone() const
 	{
-		return &StatIdPtr[INDEX_FNAME];
+		return StatIdPtr->IsNone();
+	}
+	FORCEINLINE TStatIdData const* GetRawPointer() const
+	{
+		return StatIdPtr;
+	}
+
+	FORCEINLINE FName GetName() const
+	{
+		return MinimalNameToName(StatIdPtr->Name);
 	}
 
 	/**
@@ -109,7 +119,7 @@ struct TStatId
 	 */
 	FORCEINLINE const ANSICHAR* GetStatDescriptionANSI() const
 	{
-		return (ANSICHAR*)*(uint64*)(&StatIdPtr[INDEX_ANSI_STRING]);
+		return reinterpret_cast<const ANSICHAR*>(StatIdPtr->AnsiString);
 	}
 
 	/**
@@ -119,12 +129,12 @@ struct TStatId
 	 */
 	FORCEINLINE const WIDECHAR* GetStatDescriptionWIDE() const
 	{
-		return (WIDECHAR*)*(uint64*)(&StatIdPtr[INDEX_WIDE_STRING]);
+		return reinterpret_cast<const WIDECHAR*>(StatIdPtr->WideString);
 	}
 
 private:
 	/** NAME_None. */
-	CORE_API static FName TStatId_NAME_None;
+	CORE_API static TStatIdData TStatId_NAME_None;
 
 	/**
 	 *	Holds a pointer to the stat long name if enabled, or to the NAME_None if disabled.
@@ -135,7 +145,7 @@ private:
 	 *	Next pointer points to the wide string with a stat description
 	 *	@see FStatGroupEnableManager::GetHighPerformanceEnableForStat 
 	 */
-	FName const* StatIdPtr;
+	TStatIdData const* StatIdPtr;
 };
 
 /**
@@ -285,7 +295,7 @@ class FStatNameAndInfo
 	/**
 	 * An FName, but the high bits of the Number are used for other fields.
 	 */
-	FName NameAndInfo;
+	FMinimalName NameAndInfo;
 public:
 	FORCEINLINE_STATS FStatNameAndInfo()
 	{
@@ -305,15 +315,15 @@ public:
 	 * Build from a raw FName
 	 */
 	FORCEINLINE_STATS FStatNameAndInfo(FName Other, bool bAlreadyHasMeta)
-		: NameAndInfo(Other)
+		: NameAndInfo(NameToMinimalName(Other))
 	{
 		if (!bAlreadyHasMeta)
 		{
-			int32 Number = NameAndInfo.GetNumber();
+			int32 Number = NameAndInfo.Number;
 			// ok, you can't have numbered stat FNames too large
 			checkStats(!(Number >> EStatAllFields::StartShift));
 			Number |= EStatMetaFlags::DummyAlwaysOne << (EStatMetaFlags::Shift + EStatAllFields::StartShift);
-			NameAndInfo.SetNumber(Number);
+			NameAndInfo.Number = Number;
 		}
 		CheckInvariants();
 	}
@@ -322,13 +332,13 @@ public:
 	 * Build with stat metadata
 	 */
 	FORCEINLINE_STATS FStatNameAndInfo(FName InStatName, char const* InGroup, char const* InCategory, TCHAR const* InDescription, EStatDataType::Type InStatType, bool bShouldClearEveryFrame, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid)
-		: NameAndInfo(ToLongName(InStatName, InGroup, InCategory, InDescription))
+		: NameAndInfo(NameToMinimalName(ToLongName(InStatName, InGroup, InCategory, InDescription)))
 	{
-		int32 Number = NameAndInfo.GetNumber();
+		int32 Number = NameAndInfo.Number;
 		// ok, you can't have numbered stat FNames too large
 		checkStats(!(Number >> EStatAllFields::StartShift));
 		Number |= (EStatMetaFlags::DummyAlwaysOne | EStatMetaFlags::HasLongNameAndMetaInfo) << (EStatMetaFlags::Shift + EStatAllFields::StartShift);
-		NameAndInfo.SetNumber(Number);
+		NameAndInfo.Number = Number;
 
 		SetField<EStatDataType>(InStatType);
 		SetFlag(EStatMetaFlags::ShouldClearEveryFrame, bShouldClearEveryFrame);
@@ -347,7 +357,7 @@ public:
 	 */
 	FORCEINLINE_STATS void SetNumberDirect(int32 Number)
 	{
-		NameAndInfo.SetNumber(Number);
+		NameAndInfo.Number = Number;
 	}
 
 	/**
@@ -356,8 +366,7 @@ public:
 	FORCEINLINE_STATS int32 GetRawNumber() const
 	{
 		CheckInvariants();
-		int32 Number = NameAndInfo.GetNumber();
-		return Number;
+		return NameAndInfo.Number;
 	}
 
 	/**
@@ -368,10 +377,10 @@ public:
 		// ok, you can't have numbered stat FNames too large
 		checkStats(!(RawName.GetNumber() >> EStatAllFields::StartShift));
 		CheckInvariants();
-		int32 Number = NameAndInfo.GetNumber();
+		int32 Number = NameAndInfo.Number;
 		Number &= ~((1 << EStatAllFields::StartShift) - 1);
-		NameAndInfo = RawName;
-		NameAndInfo.SetNumber(Number | RawName.GetNumber());
+		NameAndInfo = NameToMinimalName(RawName);
+		NameAndInfo.Number = (Number | RawName.GetNumber());
 	}
 
 	/**
@@ -380,11 +389,11 @@ public:
 	FORCEINLINE_STATS FName GetRawName() const
 	{
 		CheckInvariants();
-		FName Result(NameAndInfo);
-		int32 Number = NameAndInfo.GetNumber();
+		FMinimalName Result(NameAndInfo);
+		int32 Number = NameAndInfo.Number;
 		Number &= ((1 << EStatAllFields::StartShift) - 1);
-		Result.SetNumber(Number);
-		return Result;
+		Result.Number = Number;
+		return MinimalNameToName(Result);
 	}
 
 	/**
@@ -393,7 +402,7 @@ public:
 	FORCEINLINE_STATS FName GetEncodedName() const
 	{
 		CheckInvariants();
-		return NameAndInfo;
+		return MinimalNameToName(NameAndInfo);
 	}
 
 	/**
@@ -437,8 +446,8 @@ public:
 	 */
 	FORCEINLINE_STATS void CheckInvariants() const
 	{
-		checkStats((NameAndInfo.GetNumber() & (EStatMetaFlags::DummyAlwaysOne << (EStatAllFields::StartShift + EStatMetaFlags::Shift)))
-			&& NameAndInfo.GetIndex());
+		checkStats((NameAndInfo.Number & (EStatMetaFlags::DummyAlwaysOne << (EStatAllFields::StartShift + EStatMetaFlags::Shift)))
+			&& NameAndInfo.Index);
 	}
 
 	/**
@@ -449,7 +458,7 @@ public:
 	typename TField::Type GetField() const
 	{
 		CheckInvariants();
-		int32 Number = NameAndInfo.GetNumber();
+		int32 Number = NameAndInfo.Number;
 		Number = (Number >> (EStatAllFields::StartShift + TField::Shift)) & TField::Mask;
 		checkStats(Number != TField::Invalid && Number < TField::Num);
 		return typename TField::Type(Number);
@@ -462,12 +471,12 @@ public:
 	template<typename TField>
 	void SetField(typename TField::Type Value)
 	{
-		int32 Number = NameAndInfo.GetNumber();
+		int32 Number = NameAndInfo.Number;
 		CheckInvariants();
 		checkStats(Value < TField::Num && Value != TField::Invalid);
 		Number &= ~(TField::Mask << (EStatAllFields::StartShift + TField::Shift));
 		Number |= Value << (EStatAllFields::StartShift + TField::Shift);
-		NameAndInfo.SetNumber(Number);
+		NameAndInfo.Number = Number;
 		CheckInvariants();
 	}
 
@@ -477,7 +486,7 @@ public:
 	 */
 	bool GetFlag(EStatMetaFlags::Type Bit) const
 	{
-		int32 Number = NameAndInfo.GetNumber();
+		int32 Number = NameAndInfo.Number;
 		CheckInvariants();
 		checkStats(Bit < EStatMetaFlags::Num && Bit != EStatMetaFlags::Invalid);
 		return !!((Number >> (EStatAllFields::StartShift + EStatMetaFlags::Shift)) & Bit);
@@ -490,7 +499,7 @@ public:
 	 */
 	void SetFlag(EStatMetaFlags::Type Bit, bool Value)
 	{
-		int32 Number = NameAndInfo.GetNumber();
+		int32 Number = NameAndInfo.Number;
 		CheckInvariants();
 		checkStats(Bit < EStatMetaFlags::Num && Bit != EStatMetaFlags::Invalid);
 		if (Value)
@@ -501,7 +510,7 @@ public:
 		{
 			Number &= ~(Bit << (EStatAllFields::StartShift + EStatMetaFlags::Shift));
 		}
-		NameAndInfo.SetNumber(Number);
+		NameAndInfo.Number = Number;
 		CheckInvariants();
 	}
 
@@ -697,17 +706,23 @@ struct FStatMessage
 		return *(double const*)&StatData;
 	}
 
-	FORCEINLINE_STATS FName& GetValue_FName()
+	FORCEINLINE_STATS FMinimalName& GetValue_FMinimalName()
 	{
-		static_assert(sizeof(FName) <= DATA_SIZE && ALIGNOF(FName) <= DATA_ALIGN, "Bad data for stat message.");
+		static_assert(sizeof(FMinimalName) <= DATA_SIZE && ALIGNOF(FMinimalName) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_FName);
-		return *(FName*)&StatData;
+		return *(FMinimalName*)&StatData;
+	}
+
+	FORCEINLINE_STATS FMinimalName GetValue_FMinimalName() const
+	{
+		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_FName);
+		return *(FMinimalName const*)&StatData;
 	}
 
 	FORCEINLINE_STATS FName GetValue_FName() const
 	{
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_FName);
-		return *(FName const*)&StatData;
+		return MinimalNameToName(*(FMinimalName const*)&StatData);
 	}
 };
 template<> struct TIsPODType<FStatMessage> { enum { Value = true }; };
@@ -1102,7 +1117,7 @@ public:
 	static FORCEINLINE_STATS bool IsCollectingData(TStatId StatId)
 	{
 		// we don't test StatId for NULL here because we assume it is non-null. If it is NULL, that indicates a problem with higher level code.
-		return !StatId->IsNone() && IsCollectingData();
+		return !StatId.IsNone() && IsCollectingData();
 	}
 
 	/** Return true if we are currently collecting data **/
@@ -1202,8 +1217,8 @@ public:
 	{
 		if( (bAlways && InStatId.IsValidStat()) || FThreadStats::IsCollectingData( InStatId ) )
 		{
-			StatId = *InStatId;
-			FThreadStats::AddMessage( *InStatId, EStatOperation::CycleScopeStart );
+			StatId = InStatId.GetName();
+			FThreadStats::AddMessage( StatId, EStatOperation::CycleScopeStart );
 
 			// Emit named event for active cycle stat.
 			if( GCycleStatsShouldEmitNamedEvents > 0 )
@@ -1314,7 +1329,7 @@ public:
 struct FThreadSafeStaticStatBase
 {
 protected:
-	mutable FName* HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
+	mutable TStatIdData* HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
 	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
 };
 
@@ -1332,7 +1347,7 @@ struct FThreadSafeStaticStatInner : public FThreadSafeStaticStatBase
 	}
 	FORCEINLINE FName GetStatFName() const
 	{
-		return *GetStatId();
+		return GetStatId().GetName();
 	}
 };
 

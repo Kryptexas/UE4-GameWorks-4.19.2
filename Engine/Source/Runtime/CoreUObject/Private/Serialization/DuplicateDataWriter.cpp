@@ -36,6 +36,17 @@ FDuplicateDataWriter::FDuplicateDataWriter( FUObjectAnnotationSparse<FDuplicated
 /**
  * I/O function
  */
+FArchive& FDuplicateDataWriter::operator<<(FName& N)
+{
+	NAME_INDEX ComparisonIndex = N.GetComparisonIndex();
+	NAME_INDEX DisplayIndex = N.GetDisplayIndex();
+	int32 Number = N.GetNumber();
+	ByteOrderSerialize(&ComparisonIndex, sizeof(ComparisonIndex));
+	ByteOrderSerialize(&DisplayIndex, sizeof(DisplayIndex));
+	ByteOrderSerialize(&Number, sizeof(Number));
+	return *this;
+}
+
 FArchive& FDuplicateDataWriter::operator<<(UObject*& Object)
 {
 	GetDuplicatedObject(Object);

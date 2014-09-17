@@ -141,13 +141,12 @@ void FActionMappingsNodeBuilder::AddActionMappingButton_OnClick()
 		InputSettings->Modify();
 		ActionMappingsPropertyHandle->NotifyPreChange();
 
-		EName BaseActionMappingIndex = (EName)BaseActionMappingName.GetIndex();
 		FName NewActionMappingName;
 		bool bFoundUniqueName;
 		do
 		{
 			// Create a numbered name and check whether it's already been used
-			NewActionMappingName = FName(BaseActionMappingIndex, ++NewMappingCount);
+			NewActionMappingName = FName(BaseActionMappingName, ++NewMappingCount);
 			bFoundUniqueName = true;
 			for (int32 Index = 0; Index < InputSettings->ActionMappings.Num(); ++Index)
 			{
@@ -444,13 +443,12 @@ void FAxisMappingsNodeBuilder::AddAxisMappingButton_OnClick()
 		InputSettings->Modify();
 		AxisMappingsPropertyHandle->NotifyPreChange();
 
-		EName BaseAxisMappingIndex = (EName)BaseAxisMappingName.GetIndex();
 		FName NewAxisMappingName;
 		bool bFoundUniqueName;
 		do
 		{
 			// Create a numbered name and check whether it's already been used
-			NewAxisMappingName = FName(BaseAxisMappingIndex, ++NewMappingCount);
+			NewAxisMappingName = FName(BaseAxisMappingName, ++NewMappingCount);
 			bFoundUniqueName = true;
 			for (int32 Index = 0; Index < InputSettings->AxisMappings.Num(); ++Index)
 			{

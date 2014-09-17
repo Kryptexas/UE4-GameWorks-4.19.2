@@ -85,7 +85,7 @@ void UpdateD3D11TextureStats(uint32 BindFlags, uint32 MiscFlags, int64 TextureSi
 
 	bool bCubeMap = (MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE) != 0;
 
-	INC_MEMORY_STAT_BY_FName(*GetD3D11StatEnum(BindFlags, bCubeMap, b3D), TextureSize);
+	INC_MEMORY_STAT_BY_FName(GetD3D11StatEnum(BindFlags, bCubeMap, b3D).GetName(), TextureSize);
 
 	if(TextureSize > 0)
 	{

@@ -1126,6 +1126,9 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 //------------------------------------------------------------------------------
 void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
 {
+	const FString NewNameString = NewText.ToString();
+	const FName NewName = *NewNameString;
+
 	if(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 	{
 		FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)ActionPtr.Pin().Get();
@@ -1145,12 +1148,11 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				}
 			}
 
-			// Make sure we aren't renaming the graph into something
-			UEdGraph* ExistingGraph = FindObject<UEdGraph>(Graph->GetOuter(), *NewText.ToString() );
-			if (ExistingGraph == NULL)
+			// Make sure we aren't renaming the graph into something that already exists
+			UEdGraph* ExistingGraph = FindObject<UEdGraph>(Graph->GetOuter(), *NewNameString );
+			if (ExistingGraph == NULL || ExistingGraph == Graph)
 			{
 				const FScopedTransaction Transaction( LOCTEXT( "Rename Function", "Rename Function" ) );
-				FString NewNameString = NewText.ToString();
 
 				// Search through all function entry nodes for local variables to update their scope name
 				TArray<UK2Node_Variable*> VariableNodes;
@@ -1165,7 +1167,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 					}
 				}
 
-				FBlueprintEditorUtils::RenameGraph(Graph, *NewNameString );
+				FBlueprintEditorUtils::RenameGraph(Graph, NewNameString );
 			}
 		}
 	}
@@ -1188,13 +1190,11 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				}
 			}
 
-			// Make sure we aren't renaming the graph into something
-			UEdGraph* ExistingGraph = FindObject<UEdGraph>(Graph->GetOuter(), *NewText.ToString() );
-			if (ExistingGraph == NULL)
+			// Make sure we aren't renaming the graph into something that already exists
+			UEdGraph* ExistingGraph = FindObject<UEdGraph>(Graph->GetOuter(), *NewNameString );
+			if (ExistingGraph == NULL || ExistingGraph == Graph)
 			{
 				const FScopedTransaction Transaction( LOCTEXT( "Rename Delegate", "Rename Event Dispatcher" ) );
-				const FString NewNameString = NewText.ToString();
-				const FName NewName = FName(*NewNameString);
 				const FName OldName =  Graph->GetFName();
 
 				UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
@@ -1212,7 +1212,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 					}
 				}
 
-				FBlueprintEditorUtils::RenameGraph(Graph, *NewNameString );
+				FBlueprintEditorUtils::RenameGraph(Graph, NewNameString );
 			}
 		}
 	}
@@ -1221,7 +1221,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)ActionPtr.Pin().Get();
 
 		// Check if the name is unchanged
-		if(NewText.ToString() == VarAction->GetVariableName().ToString())
+		if (NewName.IsEqual(VarAction->GetVariableName(), ENameCase::CaseSensitive))
 		{
 			return;
 		}
@@ -1229,8 +1229,6 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		const FScopedTransaction Transaction( LOCTEXT( "RenameVariable", "Rename Variable" ) );
 
 		BlueprintEditorPtr.Pin()->GetBlueprintObj()->Modify();
-
-		FName NewVarName = FName(*NewText.ToString());
 
 		// Double check we're not renaming a timeline disguised as a variable
 		bool bIsTimeline = false;
@@ -1248,11 +1246,11 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		// Rename as a timeline if required
 		if (bIsTimeline)
 		{
-			FBlueprintEditorUtils::RenameTimeline(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NewVarName);
+			FBlueprintEditorUtils::RenameTimeline(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NewName);
 		}
 		else
 		{
-			FBlueprintEditorUtils::RenameMemberVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NewVarName);
+			FBlueprintEditorUtils::RenameMemberVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NewName);
 		}
 	}
 	else if (ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
@@ -1260,7 +1258,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)ActionPtr.Pin().Get();
 
 		// Check if the name is unchanged
-		if(NewText.ToString() == LocalVarAction->GetVariableName().ToString())
+		if (NewName.IsEqual(LocalVarAction->GetVariableName(), ENameCase::CaseSensitive))
 		{
 			return;
 		}
@@ -1269,10 +1267,9 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 
 		BlueprintEditorPtr.Pin()->GetBlueprintObj()->Modify();
 
-		FName NewVarName = FName(*NewText.ToString());
-		FBlueprintEditorUtils::RenameLocalVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), NewVarName);
+		FBlueprintEditorUtils::RenameLocalVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), NewName);
 	}
-	BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->SelectItemByName(FName(*NewText.ToString()), ESelectInfo::OnMouseClick);
+	BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->SelectItemByName(NewName, ESelectInfo::OnMouseClick);
 }
 
 //------------------------------------------------------------------------------

@@ -204,6 +204,7 @@ REGISTER_NAME(500,PerformanceCapture)
 //
 
 #ifdef REGISTERING_ENUM
+	NAME_MaxHardcodedNameIndex,
 	};
 	#undef REGISTER_NAME
 	#undef REGISTERING_ENUM

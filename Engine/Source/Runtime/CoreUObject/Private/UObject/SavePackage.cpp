@@ -212,25 +212,29 @@ public:
 	 * Mark a FName as referenced.
 	 * @param Name name to mark as referenced
 	 */
-	void MarkNameAsReferenced(FName Name)
+	void MarkNameAsReferenced(const FName& Name)
 	{
-		ReferencedNames.Add(Name);
+		// We need to store the FName without the number, as the number is stored separately by ULinkerSave 
+		// and we don't want duplicate entries in the name table just because of the number
+		const FName NameNoNumber(Name, 0);
+		ReferencedNames.Add(NameNoNumber);
 	}
+
 	/** 
 	 * Add the marked names to a linker
 	 * @param Linker linker to save the marked names to
 	 */
 	void UpdateLinkerWithMarkedNames(ULinkerSave* Linker)
 	{
-		for (TSet<FName>::TIterator It(ReferencedNames); It; ++It)
+		Linker->NameMap.Reserve(Linker->NameMap.Num() + ReferencedNames.Num());
+		for (const FName& Name : ReferencedNames)
 		{
-			Linker->NameMap.Add(*It);
+			Linker->NameMap.Add(Name);
 		}
 	}
 
-
 private:
-	TSet<FName> ReferencedNames;
+	TSet<FName, FLinkerNamePairKeyFuncs> ReferencedNames;
 };
 
 static FSavePackageState* SavePackageState = NULL;
@@ -2982,8 +2986,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				Linker->Summary.NameCount = Linker->NameMap.Num();
 				for( int32 i=0; i<Linker->NameMap.Num(); i++ )
 				{
-					*Linker << *const_cast<FNameEntry*>(FName::GetEntry( Linker->NameMap[i].GetIndex() ));
-					Linker->NameIndices.Add(Linker->NameMap[i].GetIndex(), i);
+					*Linker << *const_cast<FNameEntry*>(Linker->NameMap[i].GetDisplayNameEntry());
+					Linker->NameIndices.Add(Linker->NameMap[i], i);
 				}
 
 				

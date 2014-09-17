@@ -326,7 +326,7 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& 
 	: Cells()
 	, DataSource( MakeShareable( new UObjectDataSource( InObject.Get() ) ) )
 	, Table( InTable )
-	, Id( FName( EName::NAME_None ) )
+	, Id( NAME_None )
 	, DisplayName()
 	, Width( 1.0f )
 	, bIsHidden( false )
@@ -342,7 +342,7 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& 
 	: Cells()
 	, DataSource( MakeShareable( new PropertyPathDataSource( InPropertyPath ) ) )
 	, Table( InTable )
-	, Id( FName( EName::NAME_None ) )
+	, Id( NAME_None )
 	, DisplayName()
 	, Width( 1.0f )
 	, bIsHidden( false )
@@ -358,7 +358,7 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< class IPropertyTab
 	: Cells()
 	, DataSource( MakeShareable( new UObjectDataSource( InObject.Get() ) ) )
 	, Table( InTable )
-	, Id( FName( EName::NAME_None ) )
+	, Id( NAME_None )
 	, DisplayName()
 	, Width( 1.0f )
 	, bIsHidden( false )
@@ -390,7 +390,7 @@ void FPropertyTableColumn::GenerateColumnId()
 	}
 	else
 	{
-		Id = FName( EName::NAME_None );
+		Id = NAME_None;
 	}
 }
 

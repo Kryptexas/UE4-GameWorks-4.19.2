@@ -1417,7 +1417,7 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		int32 iCode = 0;
 		while( iCode < This->Script.Num() )
 		{	
-			const_cast<UStruct*>(This)->SerializeExpr( iCode, ObjectReferenceCollector );
+			This->SerializeExpr( iCode, ObjectReferenceCollector );
 		}
 		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
 		{

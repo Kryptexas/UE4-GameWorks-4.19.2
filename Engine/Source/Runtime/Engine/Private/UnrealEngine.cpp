@@ -2831,7 +2831,7 @@ bool UEngine::HandleViewnamesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		for (int32 NameIndex = FMath::Max<int32>(FName::GetMaxNames() - NumNames, 0); NameIndex < FName::GetMaxNames(); NameIndex++)
 		{
-			Ar.Logf(TEXT("%d->%s"), NameIndex, *FName::SafeString(EName(NameIndex)));
+			Ar.Logf(TEXT("%d->%s"), NameIndex, *FName::SafeString(NameIndex));
 		}
 	}
 	return true;

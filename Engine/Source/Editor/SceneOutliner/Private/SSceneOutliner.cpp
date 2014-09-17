@@ -1537,7 +1537,7 @@ namespace SceneOutliner
 			auto ActorTreeItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem);
 			auto* Actor = ActorTreeItem->Actor.Get();
 
-			if (Actor && InLabel.ToString() != Actor->GetActorLabel() && Actor->IsActorLabelEditable())
+			if (Actor && Actor->IsActorLabelEditable() && !InLabel.ToString().Equals(Actor->GetActorLabel(), ESearchCase::CaseSensitive))
 			{
 				const FScopedTransaction Transaction( LOCTEXT( "SceneOutlinerRenameActorTransaction", "Rename Actor" ) );
 				Actor->SetActorLabel( InLabel.ToString() );
@@ -1551,7 +1551,7 @@ namespace SceneOutliner
 		else
 		{
 			auto FolderTreeItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
-			if (!InLabel.EqualTo(FText::FromName(FolderTreeItem->LeafName)))
+			if (!InLabel.ToString().Equals(FolderTreeItem->LeafName.ToString(), ESearchCase::CaseSensitive))
 			{
 				// Rename the item
 				FName NewPath = FolderTreeItem->GetParentPath();
@@ -1570,7 +1570,6 @@ namespace SceneOutliner
 				}
 			}
 		}
-		
 	}
 
 	bool SSceneOutliner::OnVerifyItemLabelChanged( const FText& InLabel, FText& OutErrorMessage, FOutlinerTreeItemPtr TreeItem )

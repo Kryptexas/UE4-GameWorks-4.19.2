@@ -950,7 +950,7 @@ struct FCompareUObjectByLinkerAndOffset
 			// Sort by linker name.
 			else
 			{
-				return LinkerA->GetFName().GetIndex() < LinkerB->GetFName().GetIndex();
+				return LinkerA->GetFName().GetComparisonIndex() < LinkerB->GetFName().GetComparisonIndex();
 			}
 		}
 		// Neither objects have a linker, don't do anything.
@@ -1221,7 +1221,6 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName BaseName/*=NAM
 	}
 
 	// cache the class's name's index for faster name creation later
-	EName BaseNameIndex = (EName)BaseName.GetIndex();
 	FName TestName;
 	if (!FPlatformProperties::HasEditorOnlyData() && GFastPathUniqueNameGeneration)
 	{
@@ -1242,7 +1241,7 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName BaseName/*=NAM
 		*   impossible.
 		*/
 		static int32 UniqueIndex = MAX_int32 - 1000;
-		TestName = FName(BaseNameIndex, --UniqueIndex);
+		TestName = FName(BaseName, --UniqueIndex);
 		checkSlow(Parent); 
 		checkSlow(Parent!=ANY_PACKAGE); 
 		checkSlow(!StaticFindObjectFastInternal( NULL, Parent, TestName ));
@@ -1254,7 +1253,7 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName BaseName/*=NAM
 		do
 		{
 			// create the next name in the sequence for this class
-			if (BaseNameIndex == NAME_Package)
+			if (BaseName.GetComparisonIndex() == NAME_Package)
 			{
 				if ( Parent == NULL )
 				{
@@ -1269,7 +1268,7 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName BaseName/*=NAM
 			}
 			else
 			{
-				TestName = FName(BaseNameIndex, ++Class->ClassUnique);
+				TestName = FName(BaseName, ++Class->ClassUnique);
 			}
 
 			if (Parent == ANY_PACKAGE)

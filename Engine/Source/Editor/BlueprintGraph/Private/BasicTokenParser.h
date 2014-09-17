@@ -108,12 +108,12 @@ public:
 	/* TOKEN_Const values */
 	union
 	{
-		uint8 Byte;							// If CPT_Byte.
-		int32 Int;							// If CPT_Int.
-		bool  NativeBool;					// If CPT_Bool
-		float Float;						// If CPT_Float.
-		uint8 NameBytes[sizeof(FName)];		// If CPT_Name.
-		TCHAR String[MAX_STRING_CONST_SIZE];// If CPT_String
+		uint8 Byte;								// If CPT_Byte.
+		int32 Int;								// If CPT_Int.
+		bool  NativeBool;						// If CPT_Bool
+		float Float;							// If CPT_Float.
+		uint8 NameBytes[sizeof(FScriptName)];	// If CPT_Name.
+		TCHAR String[MAX_STRING_CONST_SIZE];	// If CPT_String
 	};
 };
 

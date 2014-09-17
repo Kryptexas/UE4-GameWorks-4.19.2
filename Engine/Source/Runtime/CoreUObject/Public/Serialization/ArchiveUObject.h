@@ -842,17 +842,7 @@ private:
 
 	// FArchive interface.
 
-	virtual FArchive& operator<<(FName& N)
-	{
-		NAME_INDEX Name;
-		int32 Number;
-		ByteOrderSerialize(&Name, sizeof(Name));
-		ByteOrderSerialize(&Number, sizeof(Number));
-		// copy over the name with a name made from the name index and number
-		N = FName((EName)Name, Number);
-		return *this;
-	}
-
+	virtual FArchive& operator<<(FName& N);
 	virtual FArchive& operator<<(UObject*& Object);
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr);
 	virtual FArchive& operator<<(FAssetPtr& AssetPtr);
@@ -928,15 +918,7 @@ private:
 
 	// FArchive interface.
 
-	virtual FArchive& operator<<(FName& N)
-	{
-		NAME_INDEX Name = N.GetIndex();
-		int32 Number = N.GetNumber();
-		ByteOrderSerialize(&Name, sizeof(Name));
-		ByteOrderSerialize(&Number, sizeof(Number));
-		return *this;
-	}
-
+	virtual FArchive& operator<<(FName& N);
 	virtual FArchive& operator<<(UObject*& Object);
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr);
 	virtual FArchive& operator<<(FAssetPtr& AssetPtr);

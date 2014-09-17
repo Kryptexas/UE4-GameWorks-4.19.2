@@ -613,6 +613,8 @@ enum EUnrealEngineObjectUE4Version
 	// Rename USpringArmComponent::bUseControllerViewRotation to bUsePawnViewRotation,
 	// Rename UCameraComponent::bUseControllerViewRotation to bUsePawnViewRotation (and change the default value)
 	VER_UE4_RENAME_CAMERA_COMPONENT_VIEW_ROTATION,
+	// Changed FName to be case preserving
+	VER_UE4_CASE_PRESERVING_FNAME,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
@@ -636,7 +638,7 @@ enum EUnrealEngineObjectLicenseeUE4Version
 #define VER_LATEST_ENGINE_LICENSEEUE4   PREPROCESSOR_ENUM_PROTECT(VER_LIC_AUTOMATIC_VERSION)
 
 // Minimum package version that contains legal bytecode
-#define VER_MIN_SCRIPTVM_UE4									(VER_UE4_DISABLED_SCRIPT_LIMIT_BYTECODE)
+#define VER_MIN_SCRIPTVM_UE4									(VER_UE4_CASE_PRESERVING_FNAME)
 #define VER_MIN_SCRIPTVM_LICENSEEUE4							(VER_LIC_NONE)
 
 // Version access.

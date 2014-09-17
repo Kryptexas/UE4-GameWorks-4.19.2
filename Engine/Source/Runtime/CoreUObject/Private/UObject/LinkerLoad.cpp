@@ -295,7 +295,7 @@ static bool IgnoreMissingReferencedClass( FName ClassName )
 
 static inline int32 HashNames( FName A, FName B, FName C )
 {
-	return A.GetIndex() + 7 * B.GetIndex() + 31 * FPackageName::GetShortFName(C).GetIndex();
+	return A.GetComparisonIndex() + 7 * B.GetComparisonIndex() + 31 * FPackageName::GetShortFName(C).GetComparisonIndex();
 }
 
 static FORCEINLINE bool IsCoreUObjectPackage(const FName& PackageName)
@@ -3624,7 +3624,8 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 	}
 
 	// if the name wasn't loaded (because it wasn't valid in this context)
-	if (NameMap[NameIndex] == NAME_None)
+	const FName& MappedName = NameMap[NameIndex];
+	if (MappedName.IsNone())
 	{
 		int32 TempNumber;
 		Ar << TempNumber;
@@ -3634,12 +3635,12 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 	{
 		int32 Number;
 		Ar << Number;
-		// simply create the name from the NameMap's name index and the serialized instance number
+		// simply create the name from the NameMap's name and the serialized instance number
 #ifndef __clang__
-		Name = FName((EName)NameMap[NameIndex].GetIndex(), Number);
+		Name = FName(MappedName, Number);
 #else
 		// @todo-mobile: IOS crashes on the assignment; need to do a memcpy manually...
-		FName TempName = FName((EName)NameMap[NameIndex].GetIndex(), Number);
+		FName TempName = FName(MappedName, Number);
 		FMemory::Memcpy(&Name, &TempName, sizeof(FName));
 #endif
 	}

@@ -374,8 +374,8 @@ FArchive& FPackageReader::operator<<( FName& Name )
 	{
 		int32 Number;
 		Ar << Number;
-		// simply create the name from the NameMap's name index and the serialized instance number
-		Name = FName((EName)NameMap[NameIndex].GetIndex(), Number);
+		// simply create the name from the NameMap's name and the serialized instance number
+		Name = FName(NameMap[NameIndex], Number);
 	}
 
 	return *this;

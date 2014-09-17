@@ -306,7 +306,7 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output)
 	checkSlow(OutputHash != FSHAHash());
 
 	ShaderResourceIdMap.Add(GetId(), this);
-	INC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), Code.Num());
+	INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
 }
@@ -314,7 +314,7 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output)
 
 FShaderResource::~FShaderResource()
 {
-	DEC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), Code.Num());
+	DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	DEC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
 }
@@ -336,7 +336,7 @@ void FShaderResource::Serialize(FArchive& Ar)
 	
 	if (Ar.IsLoading())
 	{
-		INC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), (int64)Code.Num());
+		INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), (int64)Code.Num());
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	}
 }
@@ -470,7 +470,7 @@ void FShaderResource::InitRHI()
 
 	if (!FPlatformProperties::HasEditorOnlyData())
 	{
-		DEC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), Code.Num());
+		DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 		DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, Code.GetAllocatedSize());
 		Code.Empty();
 	}

@@ -729,7 +729,7 @@ struct FGroupSort
 				return false;
 			}
 			// otherwise, reverse order of definition
-			return A.NameAndInfo.GetRawName().GetIndex() > B.NameAndInfo.GetRawName().GetIndex();
+			return A.NameAndInfo.GetRawName().GetComparisonIndex() > B.NameAndInfo.GetRawName().GetComparisonIndex();
 		}
 		if (GroupA == NAME_None)
 		{
@@ -739,7 +739,7 @@ struct FGroupSort
 		{
 			return true;
 		}
-		return GroupA.GetIndex() > GroupB.GetIndex();
+		return GroupA.GetComparisonIndex() > GroupB.GetComparisonIndex();
 	}
 };
 

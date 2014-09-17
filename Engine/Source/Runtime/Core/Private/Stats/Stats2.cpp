@@ -133,7 +133,7 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Packets Received"),STAT_StatFramePacketsR
 DECLARE_MEMORY_STAT( TEXT( "Stats descriptions (ansi+wide)" ), STAT_StatDescMemory, STATGROUP_StatSystem );
 
 
-FName TStatId::TStatId_NAME_None;
+TStatIdData TStatId::TStatId_NAME_None;
 
 void FStartupMessages::AddThreadMetadata( const FName InThreadName, uint32 InThreadID )
 {
@@ -171,8 +171,8 @@ void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InS
 	// send meta data, we don't use normal messages because the stats thread might not be running yet
 	FStartupMessages::Get().AddMetadata(TempName, InStatDesc, InGroupName, InGroupCategory, InGroupDesc, bCanBeDisabled, InStatType, bCycleStat, InMemoryRegion);
 
-	FName const* LocalHighPerformanceEnable(IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(FName(InStatName), InGroupName, InGroupCategory, bDefaultEnable, bCanBeDisabled, InStatType, InStatDesc, bCycleStat, InMemoryRegion).GetRawPointer());
-	FName const* OldHighPerformanceEnable = (FName const*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&HighPerformanceEnable, (void*)LocalHighPerformanceEnable, NULL);
+	TStatIdData const* LocalHighPerformanceEnable(IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(FName(InStatName), InGroupName, InGroupCategory, bDefaultEnable, bCanBeDisabled, InStatType, InStatDesc, bCycleStat, InMemoryRegion).GetRawPointer());
+	TStatIdData const* OldHighPerformanceEnable = (TStatIdData const*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&HighPerformanceEnable, (void*)LocalHighPerformanceEnable, NULL);
 	check(!OldHighPerformanceEnable || HighPerformanceEnable == OldHighPerformanceEnable); // we are assigned two different groups?
 }
 
@@ -182,8 +182,8 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 {
 	struct FGroupEnable
 	{
-		TMap<FName, FName *> NamesInThisGroup;
-		TMap<FName, FName *> AlwaysEnabledNamesInThisGroup;
+		TMap<FName, TStatIdData *> NamesInThisGroup;
+		TMap<FName, TStatIdData *> AlwaysEnabledNamesInThisGroup;
 		bool DefaultEnable; 
 		bool CurrentEnable; 
 
@@ -200,10 +200,10 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 		 *	Increment between two successive long names. 
 		 *	@see TStatId
 		 */
-		FNAME_INCREMENT = 3,
+		STATID_INCREMENT = 3,
 
 		/** Number of stats pointer allocated per block. */
-		NUM_PER_BLOCK = 16384 * FNAME_INCREMENT,
+		NUM_PER_BLOCK = 16384 * STATID_INCREMENT,
 	};
 
 
@@ -213,7 +213,7 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 	FCriticalSection SynchronizationObject;
 	
 	/** Pointer to the long name in the names block. */
-	FName* PendingFNames;
+	TStatIdData* PendingStatIds;
 
 	/** Pending count of the name in the names block. */
 	int32 PendingCount;
@@ -226,32 +226,32 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 	bool EnableForNewGroups;
 	bool UseEnableForNewGroups;
 
-	void EnableStat(FName StatName, FName *DisablePtr)
+	void EnableStat(FName StatName, TStatIdData* DisablePtr)
 	{
 		// This is all complicated to ensure an atomic 8 byte write
-		static_assert(sizeof(FName) == sizeof(uint64), "FName should have the same size of uint64.");
-		check(UPTRINT(DisablePtr) % sizeof(FName) == 0);
+		static_assert(sizeof(FMinimalName) == sizeof(uint64), "FMinimalName should have the same size of uint64.");
+		check(UPTRINT(&DisablePtr->Name) % sizeof(FMinimalName) == 0);
 		MS_ALIGN(8) struct FAligner
 		{
-			FName Temp;
+			FMinimalName Temp;
 		} GCC_ALIGN(8);
 		FAligner Align;
-		check(UPTRINT(&Align.Temp) % sizeof(FName) == 0);
+		check(UPTRINT(&Align.Temp) % sizeof(FMinimalName) == 0);
 
-		Align.Temp = StatName;
-		*(uint64*)DisablePtr = *(uint64 const*)&Align.Temp;
+		Align.Temp = NameToMinimalName(StatName);
+		*(uint64*)&DisablePtr->Name = *(uint64 const*)&Align.Temp;
 	}
 
-	void DisableStat(FName *DisablePtr)
+	void DisableStat(TStatIdData* DisablePtr)
 	{
-		static_assert(sizeof(FName) == sizeof(uint64), "FName should have the same size of uint64.");
-		check(UPTRINT(DisablePtr) % sizeof(FName) == 0);
-		*(uint64*)DisablePtr = 0;
+		static_assert(sizeof(FMinimalName) == sizeof(uint64), "FMinimalName should have the same size of uint64.");
+		check(UPTRINT(&DisablePtr->Name) % sizeof(FMinimalName) == 0);
+		*(uint64*)&DisablePtr->Name = 0;
 	}
 
 public:
 	FStatGroupEnableManager()
-		: PendingFNames(NULL)
+		: PendingStatIds(NULL)
 		, PendingCount(0)
 		, EnableForNewGroups(false)
 		, UseEnableForNewGroups(false)
@@ -357,8 +357,8 @@ public:
 			{
 				UE_LOG(LogStatGroupEnableManager, Fatal, TEXT("Stat group %s was was defined both on and off by default."), *Group.ToString());
 			}
-			FName** StatFound = Found->NamesInThisGroup.Find(Stat);
-			FName** StatFoundAlways = Found->AlwaysEnabledNamesInThisGroup.Find(Stat);
+			TStatIdData** StatFound = Found->NamesInThisGroup.Find(Stat);
+			TStatIdData** StatFoundAlways = Found->AlwaysEnabledNamesInThisGroup.Find(Stat);
 			if (StatFound)
 			{
 				if (StatFoundAlways)
@@ -389,30 +389,29 @@ public:
 		}
 		if (PendingCount < 1)
 		{
-			PendingFNames = new FName[NUM_PER_BLOCK];
-			FMemory::Memzero( PendingFNames, NUM_PER_BLOCK *sizeof( FName ) );
+			PendingStatIds = new TStatIdData[NUM_PER_BLOCK];
+			FMemory::Memzero( PendingStatIds, NUM_PER_BLOCK * sizeof( TStatIdData ) );
 			PendingCount = NUM_PER_BLOCK;
 		}
-		PendingCount -= FNAME_INCREMENT;
-		FName* Result = &PendingFNames[TStatId::INDEX_FNAME];
+		PendingCount -= STATID_INCREMENT;
+		TStatIdData* Result = PendingStatIds;
 
 		// Get the wide stat description.
 		const int32 StatDescLen = FCString::Strlen( InDescription ) + 1;
 		// We are leaking this. @see STAT_StatDescMemory
 		WIDECHAR* StatDescWide = new WIDECHAR[StatDescLen];
 		TCString<WIDECHAR>::Strcpy( StatDescWide, StatDescLen, StringCast<WIDECHAR>( InDescription ).Get() );
+		Result->WideString = reinterpret_cast<uint64>(StatDescWide);
 
 		// Get the ansi stat description.
 		// We are leaking this. @see STAT_StatDescMemory
 		ANSICHAR* StatDescAnsi = new ANSICHAR[StatDescLen];
 		TCString<ANSICHAR>::Strcpy( StatDescAnsi, StatDescLen, StringCast<ANSICHAR>( InDescription ).Get() );
-
-		*(UPTRINT*)&PendingFNames[TStatId::INDEX_WIDE_STRING] = (UPTRINT)(UPTRINT*)StatDescWide;
-		*(UPTRINT*)&PendingFNames[TStatId::INDEX_ANSI_STRING] = (UPTRINT)(UPTRINT*)StatDescAnsi;
+		Result->AnsiString = reinterpret_cast<uint64>(StatDescAnsi);
 
 		MemoryCounter.Add( StatDescLen*(sizeof( ANSICHAR ) + sizeof( WIDECHAR )) );
 		
-		PendingFNames += FNAME_INCREMENT;
+		PendingStatIds += STATID_INCREMENT;
 
 		if (Found->CurrentEnable)
 		{

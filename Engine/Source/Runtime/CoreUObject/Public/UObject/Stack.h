@@ -338,7 +338,7 @@ inline VariableSizeType FFrame::ReadVariableSize( UField** ExpressionField/*=NUL
 			break;
 		case CPT_Double: Result = sizeof(double);
 			break;
-		case CPT_Name: Result = sizeof(FName);
+		case CPT_Name: Result = sizeof(FScriptName);
 			break;
 		case CPT_Vector: Result = sizeof(FVector);
 			break;
@@ -372,14 +372,14 @@ inline VariableSizeType FFrame::ReadVariableSize( UField** ExpressionField/*=NUL
 
 inline FName FFrame::ReadName()
 {
-	FName Result;
+	FScriptName Result;
 #ifdef REQUIRES_ALIGNED_ACCESS
-	FMemory::Memcpy(&Result, Code, sizeof(FName));
+	FMemory::Memcpy(&Result, Code, sizeof(FScriptName));
 #else
-	Result = *(FName*)Code;
+	Result = *(FScriptName*)Code;
 #endif
-	Code += sizeof(FName);
-	return Result;
+	Code += sizeof(FScriptName);
+	return ScriptNameToName(Result);
 }
 
 COREUOBJECT_API void GInitRunaway();

@@ -6,6 +6,16 @@
 	Definitions.
 ----------------------------------------------------------------------------*/
 
+/** 
+ * Do we want to support case-variants for FName?
+ * This will add an extra NAME_INDEX variable to FName, but means that ToString() will return you the exact same 
+ * string that FName::Init was called with (which is useful if your FNames are shown to the end user)
+ * Currently this is enabled for the Editor and any Programs (such as UHT), but not the Runtime
+ */
+#ifndef WITH_CASE_PRESERVING_NAME
+	#define WITH_CASE_PRESERVING_NAME WITH_EDITORONLY_DATA
+#endif
+
 /** Maximum size of name. */
 enum {NAME_SIZE	= 1024};
 
@@ -45,8 +55,11 @@ typedef int32 NAME_INDEX;
 /** These characters cannot be used in long package names */
 #define INVALID_LONGPACKAGE_CHARACTERS	TEXT("\\:*?\"<>|' ,.&!\n\r\t@#")
 
-
-
+enum class ENameCase : uint8
+{
+	CaseSensitive,
+	IgnoreCase,
+};
 
 namespace FNameDefs
 {
@@ -169,30 +182,25 @@ public:
 	void AppendNameToString( FString& String ) const;
 
 	/**
-	 * @return case insensitive hash of name
-	 */
-	uint32 GetNameHash() const;
-
-	/**
 	 * @return length of name
 	 */
 	int32 GetNameLength() const;
 
 	/**
-	 * Compares name without looking at case.
+	 * Compares name using the compare method provided.
 	 *
 	 * @param	InName	Name to compare to
 	 * @return	true if equal, false otherwise
 	 */
-	bool IsEqual( const ANSICHAR* InName ) const;
+	bool IsEqual( const ANSICHAR* InName, const ENameCase CompareMethod ) const;
 
 	/**
-	 * Compares name without looking at case.
+	 * Compares name using the compare method provided.
 	 *
 	 * @param	InName	Name to compare to
 	 * @return	true if equal, false otherwise
 	 */
-	bool IsEqual( const WIDECHAR* InName ) const;
+	bool IsEqual( const WIDECHAR* InName, const ENameCase CompareMethod ) const;
 
 	/**
 	 * @return direct access to ANSI name if stored in ANSI
@@ -369,16 +377,91 @@ public:
 typedef TStaticIndirectArrayThreadSafeRead<FNameEntry, 2 * 1024 * 1024 /* 2M unique FNames */, 16384 /* allocated in 64K/128K chunks */ > TNameEntryArray;
 
 /**
+ * The minimum amount of data required to reconstruct a name
+ * This is smaller than FName, but you lose the case-preserving behavior
+ */
+struct CORE_API FMinimalName
+{
+	FORCEINLINE FMinimalName()
+		: Index(0)
+		, Number(NAME_NO_NUMBER_INTERNAL)
+	{
+	}
+
+	FORCEINLINE FMinimalName(const EName N)
+		: Index(N)
+		, Number(NAME_NO_NUMBER_INTERNAL)
+	{
+	}
+
+	FORCEINLINE FMinimalName(const NAME_INDEX InIndex, const int32 InNumber)
+		: Index(InIndex)
+		, Number(InNumber)
+	{
+	}
+
+	/** Index into the Names array (used to find String portion of the string/number pair) */
+	NAME_INDEX		Index;
+	/** Number portion of the string/number pair (stored internally as 1 more than actual, so zero'd memory will be the default, no-instance case) */
+	int32			Number;
+};
+
+/**
+ * The full amount of data required to reconstruct a case-preserving name
+ * This will be the same size as FName when WITH_CASE_PRESERVING_NAME is 1, and is used to store an FName in cases where 
+ * the size of FName must be constant between build configurations (eg, blueprint bytecode)
+ */
+struct CORE_API FScriptName
+{
+	FORCEINLINE FScriptName()
+		: ComparisonIndex(0)
+		, DisplayIndex(0)
+		, Number(NAME_NO_NUMBER_INTERNAL)
+	{
+	}
+
+	FORCEINLINE FScriptName(const EName N)
+		: ComparisonIndex(N)
+		, DisplayIndex(N)
+		, Number(NAME_NO_NUMBER_INTERNAL)
+	{
+	}
+
+	FORCEINLINE FScriptName(const NAME_INDEX InComparisonIndex, const NAME_INDEX InDisplayIndex, const int32 InNumber)
+		: ComparisonIndex(InComparisonIndex)
+		, DisplayIndex(InDisplayIndex)
+		, Number(InNumber)
+	{
+	}
+
+	/** Index into the Names array (used to find String portion of the string/number pair used for comparison) */
+	NAME_INDEX		ComparisonIndex;
+	/** Index into the Names array (used to find String portion of the string/number pair used for display) */
+	NAME_INDEX		DisplayIndex;
+	/** Number portion of the string/number pair (stored internally as 1 more than actual, so zero'd memory will be the default, no-instance case) */
+	uint32			Number;
+};
+
+/**
  * Public name, available to the world.  Names are stored as a combination of
  * an index into a table of unique strings and an instance number.
- * Names are case-insensitive.
+ * Names are case-insensitive, but case-preserving (when WITH_CASE_PRESERVING_NAME is 1)
  */
-class CORE_API FName 
+class CORE_API FName
 {
 public:
 
-	FORCEINLINE NAME_INDEX GetIndex() const
+	FORCEINLINE NAME_INDEX GetComparisonIndex() const
 	{
+		const NAME_INDEX Index = GetComparisonIndexFast();
+		checkName(Index >= 0 && Index < GetNames().Num());
+		checkName(GetNames()[Index]);
+		return Index;
+	}
+
+	FORCEINLINE NAME_INDEX GetDisplayIndex() const
+	{
+		const NAME_INDEX Index = GetDisplayIndexFast();
 		checkName(Index >= 0 && Index < GetNames().Num());
 		checkName(GetNames()[Index]);
 		return Index;
@@ -389,7 +472,7 @@ public:
 		return Number;
 	}
 
-	FORCEINLINE void SetNumber(int32 NewNumber)
+	FORCEINLINE void SetNumber(const int32 NewNumber)
 	{
 		Number = NewNumber;
 	}
@@ -397,7 +480,7 @@ public:
 	/** Returns the pure name string without any trailing numbers */
 	FString GetPlainNameString() const
 	{
-		return GetNames()[Index]->GetPlainNameString();
+		return GetDisplayNameEntry()->GetPlainNameString();
 	}
 
 	/**
@@ -405,7 +488,7 @@ public:
 	 */
 	FORCEINLINE ANSICHAR const* GetPlainANSIString() const
 	{
-		return GetNames()[Index]->GetAnsiName();		
+		return GetDisplayNameEntry()->GetAnsiName();		
 	}
 
 	/**
@@ -413,8 +496,11 @@ public:
 	 */
 	FORCEINLINE WIDECHAR const* GetPlainWIDEString() const
 	{
-		return GetNames()[Index]->GetWideName();
+		return GetDisplayNameEntry()->GetWideName();
 	}
+
+	const FNameEntry* GetComparisonNameEntry() const;
+	const FNameEntry* GetDisplayNameEntry() const;
 
 	/**
 	 * Converts an FName to a readable format
@@ -426,7 +512,7 @@ public:
 	/**
 	 * Converts an FName to a readable format, in place
 	 * 
-	 * @param Out String to fill ot with the string representation of the name
+	 * @param Out String to fill with the string representation of the name
 	 */
 	void ToString(FString& Out) const;
 
@@ -437,13 +523,22 @@ public:
 	 */
 	void AppendString(FString& Out) const;
 
-	FORCEINLINE bool operator==(FName Other) const
+	/**
+	 * Check to see if this FName matches the other FName, potentially also checking for any case variations
+	 */
+	FORCEINLINE bool IsEqual(const FName& Other, const ENameCase CompareMethod = ENameCase::IgnoreCase, const bool bCompareNumber = true ) const
 	{
-		return Index == Other.Index && Number == Other.Number;
+		return ((CompareMethod == ENameCase::IgnoreCase) ? GetComparisonIndexFast() == Other.GetComparisonIndexFast() : GetDisplayIndexFast() == Other.GetDisplayIndexFast())
+			&& (!bCompareNumber || GetNumber() == Other.GetNumber());
 	}
-	FORCEINLINE bool operator!=(FName Other) const
+
+	FORCEINLINE bool operator==(const FName& Other) const
 	{
-		return Index != Other.Index || Number != Other.Number;
+		return IsEqual(Other, ENameCase::IgnoreCase);
+	}
+	FORCEINLINE bool operator!=(const FName& Other) const
+	{
+		return !IsEqual(Other, ENameCase::IgnoreCase);
 	}
 
 	/**
@@ -456,13 +551,14 @@ public:
 
 	FORCEINLINE bool IsNone() const
 	{
-		return Index == 0 && Number == 0;
+		return GetComparisonIndexFast() == 0 && GetNumber() == 0;
 	}
 
 	FORCEINLINE bool IsValid() const
 	{
 		TNameEntryArray& Names = GetNames();
-		return Index>=0 && Index<Names.Num() && Names[Index]!=NULL;
+		return GetComparisonIndexFast()>=0 && GetComparisonIndexFast()<Names.Num() && Names[GetComparisonIndexFast()]!=NULL
+			&& GetDisplayIndexFast()>=0 && GetDisplayIndexFast()<Names.Num() && Names[GetDisplayIndexFast()]!=NULL;
 	}
 
 	/**
@@ -470,7 +566,8 @@ public:
 	 */
 	FORCEINLINE bool IsValidIndexFast() const
 	{
-		return Index >= 0 && Index < GetNames().Num();
+		return GetComparisonIndexFast() >= 0 && GetComparisonIndexFast() < GetNames().Num()
+			&& GetDisplayIndexFast() >= 0 && GetDisplayIndexFast() < GetNames().Num();
 	}
 
 	/**
@@ -525,7 +622,10 @@ public:
 	// Assignment operator
 	FORCEINLINE FName& operator=(const FName& Other)
 	{
-		this->Index = Other.Index;
+		this->ComparisonIndex = Other.ComparisonIndex;
+#if WITH_CASE_PRESERVING_NAME
+		this->DisplayIndex = Other.DisplayIndex;
+#endif
 		this->Number = Other.Number;
 
 		return *this;
@@ -545,10 +645,15 @@ public:
 	 *
 	 * @param N The harcdcoded value the string portion of the name will have. The number portion will be NAME_NO_NUMBER
 	 */
-	FORCEINLINE FName( enum EName N )
-	: Index( N )
-	, Number( NAME_NO_NUMBER_INTERNAL )
-	{}
+	FORCEINLINE FName( EName N )
+		: ComparisonIndex( N )
+#if WITH_CASE_PRESERVING_NAME
+		, DisplayIndex( N )
+#endif
+		, Number( NAME_NO_NUMBER_INTERNAL )
+	{
+		check(N < NAME_MaxHardcodedNameIndex);
+	}
 
 	/**
 	 * Create an FName with a hardcoded string index and (instance).
@@ -556,9 +661,44 @@ public:
 	 * @param N The harcdcoded value the string portion of the name will have
 	 * @param InNumber The hardcoded value for the number portion of the name
 	 */
-	FORCEINLINE FName( enum EName N, int32 InNumber )
-	: Index( N )
-	, Number( InNumber )
+	FORCEINLINE FName( EName N, int32 InNumber )
+		: ComparisonIndex( N )
+#if WITH_CASE_PRESERVING_NAME
+		, DisplayIndex( N )
+#endif
+		, Number( InNumber )
+	{
+		// If this fires the enum was out of bounds - did you pass an index instead?
+		// If you want to clone an FName with a new number, FName( const FName& Other, int32 InNumber ) is the thing you want
+		check(N < NAME_MaxHardcodedNameIndex);
+		check(InNumber >= 0 && InNumber <= 0xffffff);
+	}
+
+	/**
+	 * Create an FName from an existing string, but with a different instance.
+	 *
+	 * @param Other The FName to take the string values from
+	 * @param InNumber The hardcoded value for the number portion of the name
+	 */
+	FORCEINLINE FName( const FName& Other, int32 InNumber )
+		: ComparisonIndex( Other.ComparisonIndex )
+#if WITH_CASE_PRESERVING_NAME
+		, DisplayIndex( Other.DisplayIndex )
+#endif
+		, Number( InNumber )
+	{
+	}
+
+	/**
+	 * Create an FName from its component parts
+	 * Only call this if you *really* know what you're doing
+	 */
+	FORCEINLINE FName( const NAME_INDEX InComparisonIndex, const NAME_INDEX InDisplayIndex, const int32 InNumber )
+		: ComparisonIndex( InComparisonIndex )
+#if WITH_CASE_PRESERVING_NAME
+		, DisplayIndex( InDisplayIndex )
+#endif
+		, Number( InNumber )
 	{
 	}
 
@@ -566,8 +706,11 @@ public:
 	 * Default constructor, initialized to None
 	 */
 	FORCEINLINE FName()
-		: Index( 0 )
-		, Number( 0 )
+		: ComparisonIndex( 0 )
+#if WITH_CASE_PRESERVING_NAME
+		, DisplayIndex( 0 )
+#endif
+		, Number( NAME_NO_NUMBER_INTERNAL )
 	{
 	}
 
@@ -614,13 +757,13 @@ public:
 	/**
 	 * Create an FName with a hardcoded string index.
 	 *
-	 * @param HardcodedIndex	The harcdcoded value the string portion of the name will have. 
-	 * @param Name				The harcdcoded name to intialize
+	 * @param HardcodedIndex	The hardcoded value the string portion of the name will have. 
+	 * @param Name				The hardcoded name to intialize
 	 */
-	explicit FName( enum EName HardcodedIndex, const TCHAR* Name );
+	explicit FName( EName HardcodedIndex, const TCHAR* Name );
 
 	/**
-	 * Comparision operator.
+	 * Comparison operator.
 	 *
 	 * @param	Other	String to compare this name to
 	 * @return true if name matches the string, false otherwise
@@ -629,12 +772,12 @@ public:
 
 	static void StaticInit();
 	static void DisplayHash( class FOutputDevice& Ar );
-	static FString SafeString( EName Index, int32 InstanceNumber=NAME_NO_NUMBER_INTERNAL )
+	static FString SafeString( int32 InDisplayIndex, int32 InstanceNumber=NAME_NO_NUMBER_INTERNAL )
 	{
 		TNameEntryArray& Names = GetNames();
 		return GetIsInitialized()
-			? (Names.IsValidIndex(Index) && Names[Index])
-				? FName(Index, InstanceNumber).ToString()
+			? (Names.IsValidIndex(InDisplayIndex) && Names[InDisplayIndex])
+				? FName(InDisplayIndex, InDisplayIndex, InstanceNumber).ToString()
 				: FString(TEXT("*INVALID*"))
 			: FString(TEXT("*UNINITIALIZED*"));
 	}
@@ -683,7 +826,7 @@ public:
 	 * returns true.
 	 *
 	 * @param OldName		Old-style name
-	 * @param NewName		Ouput string portion of the name/number pair
+	 * @param NewName		Output string portion of the name/number pair
 	 * @param NewNameLen	Size of NewName buffer (in TCHAR units)
 	 * @param NewNumber		Number portion of the name/number pair
 	 *
@@ -711,10 +854,14 @@ public:
 
 private:
 
-	/** Index into the Names array (used to find String portion of the string/number pair) */
-	NAME_INDEX	Index;
+	/** Index into the Names array (used to find String portion of the string/number pair used for comparison) */
+	NAME_INDEX		ComparisonIndex;
+#if WITH_CASE_PRESERVING_NAME
+	/** Index into the Names array (used to find String portion of the string/number pair used for display) */
+	NAME_INDEX		DisplayIndex;
+#endif
 	/** Number portion of the string/number pair (stored internally as 1 more than actual, so zero'd memory will be the default, no-instance case) */
-	int32		Number;
+	uint32			Number;
 
 	/** Name hash.												*/
 	static FNameEntry*						NameHash[ FNameDefs::NameHashBucketCount ];
@@ -762,6 +909,26 @@ private:
 		Init(StringCast<WIDECHAR>(InName).Get(), InNumber, FindType, bSplitName, HardcodeIndex);
 	}
 
+	template <typename TCharType>
+	static bool InitInternal_FindOrAdd(const TCharType* InName, const EFindName FindType, const int32 HardcodeIndex, int32& OutComparisonIndex, int32& OutDisplayIndex);
+
+	template <typename TCharType>
+	static bool InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, int32& OutIndex);
+
+	FORCEINLINE NAME_INDEX GetComparisonIndexFast() const
+	{
+		return ComparisonIndex;
+	}
+
+	FORCEINLINE NAME_INDEX GetDisplayIndexFast() const
+	{
+#if WITH_CASE_PRESERVING_NAME
+		return DisplayIndex;
+#else
+		return ComparisonIndex;
+#endif
+	}
+
 	/** Singleton to retrieve the critical section. */
 	static FCriticalSection* GetCriticalSection();
 
@@ -773,8 +940,31 @@ Expose_TNameOf(FName)
 
 inline uint32 GetTypeHash( const FName N )
 {
-	return N.GetIndex();
+	return N.GetComparisonIndex();
 }
+
+
+FORCEINLINE FMinimalName NameToMinimalName(const FName& InName)
+{
+	return FMinimalName(InName.GetComparisonIndex(), InName.GetNumber());
+}
+
+FORCEINLINE FName MinimalNameToName(const FMinimalName& InName)
+{
+	return FName(InName.Index, InName.Index, InName.Number);
+}
+
+
+FORCEINLINE FScriptName NameToScriptName(const FName& InName)
+{
+	return FScriptName(InName.GetComparisonIndex(), InName.GetDisplayIndex(), InName.GetNumber());
+}
+
+FORCEINLINE FName ScriptNameToName(const FScriptName& InName)
+{
+	return FName(InName.ComparisonIndex, InName.DisplayIndex, InName.Number);
+}
+
 
 /**
  * Comparison operator with TCHAR* on left hand side and FName on right hand side

@@ -670,7 +670,7 @@ private:
 				{
 					LogPossiblyInvalidSubsequentsTask(
 #if STATS
-						*Task.GetStatId()->ToString()
+						*Task.GetStatId().GetName().ToString()
 #else
 						TEXT("Unknown")
 #endif

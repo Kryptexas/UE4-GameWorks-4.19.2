@@ -3343,9 +3343,9 @@ void FBlueprintEditorUtils::RemoveVariableNodes(UBlueprint* Blueprint, const FNa
 void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint, USCS_Node* Node, const FName& NewName)
 {
 	// Should not allow renaming to "none" (UI should prevent this)
-	check(NewName != NAME_None);
+	check(!NewName.IsNone());
 
-	if (Node->VariableName != NewName)
+	if (!NewName.IsEqual(Node->VariableName, ENameCase::CaseSensitive))
 	{
 		Blueprint->Modify();
 		
@@ -3372,7 +3372,7 @@ void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint,
 
 void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FName& OldName, const FName& NewName)
 {
-	if ((OldName != NewName) && (NewName != NAME_None))
+	if (!NewName.IsNone() && !NewName.IsEqual(OldName, ENameCase::CaseSensitive))
 	{
 		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, OldName);
 		if (VarIndex != INDEX_NONE)
@@ -3677,17 +3677,19 @@ UEdGraph* FBlueprintEditorUtils::FindScopeGraph(const UBlueprint* InBlueprint, c
 
 void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InOldName, const FName& InNewName)
 {
-	if ((InOldName != InNewName) && (InNewName != NAME_None))
+	if (!InNewName.IsNone() && !InNewName.IsEqual(InOldName, ENameCase::CaseSensitive))
 	{
 		UK2Node_FunctionEntry* FunctionEntry = nullptr;
 		FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InScope, InOldName, &FunctionEntry);
+		const auto OldProperty = FindField<const UProperty>(InScope, InOldName);
 		const auto ExistingProperty = FindField<const UProperty>(InScope, InNewName);
-		if (ExistingProperty)
+		const bool bHasExistingProperty = ExistingProperty && ExistingProperty != OldProperty;
+		if (bHasExistingProperty)
 		{
 			UE_LOG(LogBlueprint, Warning, TEXT("Cannot name local variable '%s'. The name is already used."), *InNewName.ToString());
 		}
 
-		if (LocalVariable && !ExistingProperty)
+		if (LocalVariable && !bHasExistingProperty)
 		{
 			const FScopedTransaction Transaction( LOCTEXT("RenameVariable", "Rename Local Variable") );
 			InBlueprint->Modify();
@@ -3696,7 +3698,7 @@ void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const U
 			// Update the name
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 			LocalVariable->VarName = InNewName;
-			LocalVariable->FriendlyName = FName::NameToDisplayString( InNewName.ToString(), (LocalVariable->VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
+			LocalVariable->FriendlyName = FName::NameToDisplayString( InNewName.ToString(), LocalVariable->VarType.PinCategory == K2Schema->PC_Boolean );
 
 			// Update any existing references to the old name
 			FBlueprintEditorUtils::ReplaceVariableReferences(InBlueprint, InOldName, InNewName);
@@ -5094,10 +5096,10 @@ bool FBlueprintEditorUtils::RenameTimeline(UBlueprint* Blueprint, const FName& O
 	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
 	const bool bUniqueNameForTemplate = (EValidatorResult::Ok == NameValidator->IsValid(NewTemplateName));
 
-	UTimelineTemplate* Template = Blueprint->FindTimelineTemplateByVariableName(NewName);
-	if ((Template == NULL) && bUniqueNameForTemplate)
+	UTimelineTemplate* Template = Blueprint->FindTimelineTemplateByVariableName(OldName);
+	UTimelineTemplate* NewTemplate = Blueprint->FindTimelineTemplateByVariableName(NewName);
+	if ((!NewTemplate && bUniqueNameForTemplate) || NewTemplate == Template)
 	{
-		Template = Blueprint->FindTimelineTemplateByVariableName(OldName);
 		if (Template)
 		{
 			Blueprint->Modify();

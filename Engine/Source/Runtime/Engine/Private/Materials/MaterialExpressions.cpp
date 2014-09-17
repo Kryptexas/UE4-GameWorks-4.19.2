@@ -1487,7 +1487,7 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		}
 	}
 
-	if (!ParameterName.IsValid() || (ParameterName.GetIndex() == NAME_None))
+	if (!ParameterName.IsValid() || ParameterName.IsNone())
 	{
 		return UMaterialExpressionTextureSample::Compile(Compiler, OutputIndex, MultiplexIndex);
 	}
@@ -5514,7 +5514,7 @@ int32 UMaterialExpressionFontSampleParameter::Compile(class FMaterialCompiler* C
 {
 	int32 Result = -1;
 	if( !ParameterName.IsValid() || 
-		ParameterName.GetIndex() == NAME_None || 
+		ParameterName.IsNone() || 
 		!Font ||
 		!Font->Textures.IsValidIndex(FontTexturePage) )
 	{
@@ -8464,7 +8464,7 @@ int32 UMaterialExpressionAntialiasedTextureMask::Compile(class FMaterialCompiler
 
 	int32 TextureCodeIndex;
 
-	if (!ParameterName.IsValid() || (ParameterName.GetIndex() == NAME_None))
+	if (!ParameterName.IsValid() || ParameterName.IsNone())
 	{
 		TextureCodeIndex = Compiler->Texture(Texture);
 	}

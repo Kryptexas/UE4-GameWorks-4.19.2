@@ -3225,7 +3225,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 		const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(Item);
 
 		// Check if the name is different
-		if( NewName == ItemAsAsset->Data.AssetName.ToString() )
+		if( NewName.Equals(ItemAsAsset->Data.AssetName.ToString(), ESearchCase::CaseSensitive) )
 		{
 			RenamingAsset.Reset();
 			return;

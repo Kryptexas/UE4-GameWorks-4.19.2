@@ -36,17 +36,20 @@ public:
 		FMemory::Memcpy( &(ScriptBuffer[iStart]), V, Length );
 	}
 
-	FArchive& operator<<(class FName& Name)
+	FArchive& operator<<(FName& Name)
 	{
-		// We can't call Serialize directly as we need to store the data endian clean.
-		NAME_INDEX W = Name.GetIndex(); 
-		int32 Num = Name.GetNumber(); 
 		FArchive& Ar = *this;
-		Ar << W << Num;
+
+		// We can't call Serialize directly as we need to store the data endian clean.
+		FScriptName ScriptName = NameToScriptName(Name);
+		Ar << ScriptName.ComparisonIndex;
+		Ar << ScriptName.DisplayIndex;
+		Ar << ScriptName.Number;
+
 		return Ar;
 	}
 
-	FArchive& operator<<(class UObject*& Res)
+	FArchive& operator<<(UObject*& Res)
 	{
 		ScriptPointerType D = (ScriptPointerType)Res; 
 		FArchive& Ar = *this;
@@ -55,12 +58,12 @@ public:
 		return Ar;
 	}
 
-	FArchive& operator<<(class FLazyObjectPtr& LazyObjectPtr)
+	FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr)
 	{
 		return FArchive::operator<<(LazyObjectPtr);
 	}
 
-	FArchive& operator<<(class FAssetPtr& AssetPtr)
+	FArchive& operator<<(FAssetPtr& AssetPtr)
 	{
 		return FArchive::operator<<(AssetPtr);
 	}
@@ -76,7 +79,7 @@ public:
 		return *this;
 	}
 
-	FArchive& operator<<(enum EExprToken E)
+	FArchive& operator<<(EExprToken E)
 	{
 		checkSlow(E < 0xFF);
 
@@ -85,14 +88,14 @@ public:
 		return *this;
 	}
 
-	FArchive& operator<<(enum ECastToken E)
+	FArchive& operator<<(ECastToken E)
 	{
 		uint8 B = E; 
 		Serialize(&B, 1); 
 		return *this;
 	}
 
-	FArchive& operator<<(enum EPropertyType E)
+	FArchive& operator<<(EPropertyType E)
 	{
 		uint8 B = E; 
 		Serialize(&B, 1); 

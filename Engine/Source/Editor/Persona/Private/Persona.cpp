@@ -1946,17 +1946,16 @@ FName FPersona::GenerateUniqueSocketName( FName InName )
 {
 	USkeletalMesh* Mesh = GetMesh();
 
-	EName OriginalNameIndex = (EName)InName.GetIndex();
 	int32 NewNumber = InName.GetNumber();
 
 	// Increment NewNumber until we have a unique name (potential infinite loop if *all* int32 values are used!)
-	while ( DoesSocketAlreadyExist( NULL, FText::FromName( FName( OriginalNameIndex, NewNumber ) ), TargetSkeleton->Sockets ) ||
-		( Mesh ? DoesSocketAlreadyExist( NULL, FText::FromName( FName( OriginalNameIndex, NewNumber ) ), Mesh->GetMeshOnlySocketList() ) : false ) )
+	while ( DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), TargetSkeleton->Sockets ) ||
+		( Mesh ? DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), Mesh->GetMeshOnlySocketList() ) : false ) )
 	{
 		++NewNumber;
 	}
 
-	return FName( OriginalNameIndex, NewNumber );
+	return FName( InName, NewNumber );
 }
 
 bool FPersona::DoesSocketAlreadyExist( const USkeletalMeshSocket* InSocket, const FText& InSocketName, const TArray< USkeletalMeshSocket* >& InSocketArray ) const

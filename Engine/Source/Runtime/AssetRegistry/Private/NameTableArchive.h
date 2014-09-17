@@ -46,6 +46,6 @@ public:
 private:
 	FArrayWriter Writer;
 	TArray<FName> NameMap;
-	TMap<FName, int32> NameMapLookup;
+	TMap<FName, int32, FDefaultSetAllocator, TLinkerNameMapKeyFuncs<int32>> NameMapLookup;
 	int64 NameOffsetLoc;
 };

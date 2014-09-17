@@ -888,6 +888,41 @@ public:
 	}
 
 };
+
+
+struct FLinkerNamePairKeyFuncs : DefaultKeyFuncs<FName, false>
+{
+	static FORCEINLINE bool Matches(FName A, FName B)
+	{
+		// The linker requires that FNames preserve case, but the numeric suffix can be ignored since
+		// that is stored separately for each FName instance saved
+		return A.IsEqual(B, ENameCase::CaseSensitive, false/*bCompareNumber*/);
+	}
+
+	static FORCEINLINE uint32 GetKeyHash(FName Key)
+	{
+		return Key.GetComparisonIndex();
+	}
+};
+
+
+template<typename ValueType>
+struct TLinkerNameMapKeyFuncs : TDefaultMapKeyFuncs<FName, ValueType, false>
+{
+	static FORCEINLINE bool Matches(FName A, FName B)
+	{
+		// The linker requires that FNames preserve case, but the numeric suffix can be ignored since
+		// that is stored separately for each FName instance saved
+		return A.IsEqual(B, ENameCase::CaseSensitive, false/*bCompareNumber*/);
+	}
+
+	static FORCEINLINE uint32 GetKeyHash(FName Key)
+	{
+		return Key.GetComparisonIndex();
+	}
+};
+
+
 /*----------------------------------------------------------------------------
 	ULinker.
 ----------------------------------------------------------------------------*/
@@ -1815,7 +1850,7 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	TMap<UObject *,FPackageIndex> ObjectIndicesMap;
 
 	/** Index array - location of the name in the NameMap array for each FName is stored in the NameIndices array using the FName's Index */
-	TMap<int32, int32> NameIndices;
+	TMap<FName, int32, FDefaultSetAllocator, TLinkerNameMapKeyFuncs<int32>> NameIndices;
 
 	/** List of bulkdata that needs to be stored at the end of the file */
 	struct FBulkDataStorageInfo
@@ -1845,13 +1880,7 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	FPackageIndex MapObject(const UObject* Object) const;
 
 	// FArchive interface.
-	FArchive& operator<<(FName& InName)
-	{
-		int32 Save = MapName(InName);
-		int32 Number = InName.GetNumber();
-		FArchive& Ar = *this;
-		return Ar << Save << Number;
-	}
+	FArchive& operator<<( FName& InName );
 	FArchive& operator<<( UObject*& Obj );
 	FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );
 	FArchive& operator<<( FAssetPtr& AssetPtr );
