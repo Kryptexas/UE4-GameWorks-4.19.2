@@ -1037,9 +1037,9 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, FPredictionKey InPredictionKey)
 		: Handle(InHandle)
 		, Spec(InSpec)
+		, PredictionKey(InPredictionKey)
 		, StartGameStateTime(InStartGameStateTime)
 		, StartWorldTime(CurrentWorldTime)
-		, PredictionKey(InPredictionKey)
 	{
 		for (FModifierSpec &Mod : Spec.Modifiers)
 		{
