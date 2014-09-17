@@ -289,7 +289,9 @@ void SRetargetSourceWindow::OnRenameCommit( const FName & OldName,  const FStrin
 			Skeleton->Modify();
 
 			Skeleton->AnimRetargetSources.Remove(OldName);
-			Skeleton->AnimRetargetSources.Add(NewPoseName, NewPose);
+			Skeleton->AnimRetargetSources.Add(NewPoseName, NewPose);		
+			// push renamed info to the stack
+			RenamedPoseNameStack.Push(FPoseNameForUndo(OldName, NewPoseName));
 
 			// need to verify if these pose is used by anybody else
 			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -745,6 +747,30 @@ SRetargetSourceWindow::~SRetargetSourceWindow()
 
 void SRetargetSourceWindow::PostUndo()
 {
+	// handle renamed pose because currently adding old one without removing new one when the user did undo action
+	// As a result, both exist in the list so should remove new one 
+	if (RenamedPoseNameStack.Num() > 0 && Skeleton->AnimRetargetSources.Num() > 0)
+	{
+		FPoseNameForUndo& RenamedPoseName = RenamedPoseNameStack.Top();
+
+		int32 NumSources = Skeleton->AnimRetargetSources.Num();
+
+		FReferencePose * Pose = Skeleton->AnimRetargetSources.Find(RenamedPoseName.OldPoseName);
+		if (Pose)
+		{
+			FReferencePose * NewPose = Skeleton->AnimRetargetSources.Find(RenamedPoseName.NewPoseName);
+
+			// if both the old pose name and the new pose name exist 
+			if (NewPose)
+			{
+				Skeleton->Modify();
+				Skeleton->AnimRetargetSources.Remove(RenamedPoseName.NewPoseName);
+				// remove the last one because we handled it
+				RenamedPoseNameStack.Pop();
+			}
+		}
+	}
+
 	CreateRetargetSourceList();
 }
 

@@ -202,6 +202,20 @@ private:
 	/** Item to rename. Only valid for adding **/
 	mutable TSharedPtr<FDisplayedRetargetSourceInfo> ItemToRename;
 
+	/** data to handle renamed pose when undo action is executed */
+	struct FPoseNameForUndo
+	{
+		FName OldPoseName;
+		FName NewPoseName;
+
+		FPoseNameForUndo(FName OldName, FName NewName)
+			: OldPoseName(OldName), NewPoseName(NewName)
+		{}
+	};
+
+	/** stack for renamed poses for multiple undo actions **/
+	TArray<FPoseNameForUndo> RenamedPoseNameStack;
+
 	/** Rename committed. Called by Inline Widget **/
 	void OnRenameCommit( const FName & OldName,  const FString& NewName );
 	/** Verify Rename is legit or not **/
