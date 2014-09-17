@@ -155,6 +155,7 @@ void UK2Node_TemporaryVariable::GetMenuActions(FBlueprintActionDatabaseRegistrar
 			TempVarNode->bIsPersistent = bIsPersistent;
 		};
 
+		// @TODO: Need some kind of unique spawner so that this can generate a unique key
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, VarType, bIsPersistent);
 		return NodeSpawner;
 	};

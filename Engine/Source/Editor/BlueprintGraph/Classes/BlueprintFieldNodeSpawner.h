@@ -37,7 +37,7 @@ public:
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	// End UBlueprintNodeSpawner interface
 
-	/** */
+	/** Callback to define how the field should be applied to new nodes */
 	FSetNodeFieldDelegate SetNodeFieldDelegate;
 
 	/**

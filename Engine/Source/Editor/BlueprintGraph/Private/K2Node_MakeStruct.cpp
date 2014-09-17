@@ -3,7 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "MakeStructHandler.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
@@ -272,13 +272,10 @@ UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UE
 
 void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	auto CustomizeMakeNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UScriptStruct> StructPtr)
+	auto SetNodeStructLambda = [](UEdGraphNode* NewNode, UField const* /*StructField*/, TWeakObjectPtr<UScriptStruct> NonConstStructPtr)
 	{
 		UK2Node_MakeStruct* MakeNode = CastChecked<UK2Node_MakeStruct>(NewNode);
-		if (StructPtr.IsValid())
-		{
-			MakeNode->StructType = StructPtr.Get();
-		}
+		MakeNode->StructType = NonConstStructPtr.Get();
 	};
 
 	for (TObjectIterator<UScriptStruct> StructIt; StructIt; ++StructIt)
@@ -289,7 +286,7 @@ void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Actio
 			continue;
 		}
 
-		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
 		// check to make sure that the registrar is looking for actions of this type
 		// (could be regenerating actions for a specific asset, and therefore the 
 		// registrar would only accept actions corresponding to that asset)
@@ -298,15 +295,15 @@ void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Actio
 			continue;
 		}
 
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Struct);
 		check(NodeSpawner != nullptr);
+		TWeakObjectPtr<UScriptStruct> NonConstStructPtr = Struct;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeStructLambda, NonConstStructPtr);
+
 		// this struct could belong to a class, or is a user defined struct 
 		// (asset), that's why we want to make sure to register it along with 
 		// the action (so the action knows to refresh when the class/asset is).
 		ActionRegistrar.AddBlueprintAction(Struct, NodeSpawner);
-
-		TWeakObjectPtr<UScriptStruct> StructPtr = Struct;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeMakeNodeLambda, StructPtr);
 	}
 }
 
