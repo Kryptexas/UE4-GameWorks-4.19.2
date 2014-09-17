@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IMacGraphicsSwitchingModule.h"
+#include "PropertyHandle.h"
 #include "Slate.h"
 #include "SlateStyle.h"
 
