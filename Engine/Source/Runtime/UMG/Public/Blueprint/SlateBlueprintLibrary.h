@@ -14,7 +14,7 @@ class USlateBlueprintLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return true if the provided location in absolute coordinates is within the bounds of this geometry.
 	 */
-	UFUNCTION(BlueprintCallable, Category="User Interface|Geometry")
+	 UFUNCTION(BlueprintPure, Category="User Interface|Geometry")
 	static bool IsUnderLocation(const FGeometry& Geometry, const FVector2D& AbsoluteCoordinate);
 
 	/**
@@ -22,7 +22,7 @@ class USlateBlueprintLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return Transforms AbsoluteCoordinate into the local space of this Geometry.
 	 */
-	UFUNCTION(BlueprintCallable, Category="User Interface|Geometry")
+	UFUNCTION(BlueprintPure, Category="User Interface|Geometry")
 	static FVector2D AbsoluteToLocal(const FGeometry& Geometry, FVector2D AbsoluteCoordinate);
 
 	/**
@@ -32,6 +32,10 @@ class USlateBlueprintLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  Absolute coordinates
 	 */
-	UFUNCTION(BlueprintCallable, Category="User Interface|Geometry")
+	UFUNCTION(BlueprintPure, Category="User Interface|Geometry")
 	static FVector2D LocalToAbsolute(const FGeometry& Geometry, FVector2D LocalCoordinate);
+
+	/** @return the size of the geometry in local space. */
+	UFUNCTION(BlueprintPure, Category="User Interface|Geometry")
+	static FVector2D GetLocalSize(const FGeometry& Geometry);
 };

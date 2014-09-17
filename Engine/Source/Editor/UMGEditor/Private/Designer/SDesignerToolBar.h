@@ -25,6 +25,15 @@ public:
 	TSharedRef< SWidget > MakeToolBar( const TSharedPtr< FExtender > InExtenders );	
 
 private:
+	// Begin Grid Snapping
+	ESlateCheckBoxState::Type IsLocationGridSnapChecked() const;
+	void HandleToggleLocationGridSnap(ESlateCheckBoxState::Type InState);
+	FText GetLocationGridLabel() const;
+	TSharedRef<SWidget> FillLocationGridSnapMenu();
+	TSharedRef<SWidget> BuildLocationGridCheckBoxList(FName InExtentionHook, const FText& InHeading, const TArray<int32>& InGridSizes) const;
+	static void SetGridSize(int32 InGridSize);
+	static bool IsGridSizeChecked(int32 InGridSnapSize);
+	// End Grid Snapping
 
 	/** Command list */
 	TSharedPtr<FUICommandList> CommandList;

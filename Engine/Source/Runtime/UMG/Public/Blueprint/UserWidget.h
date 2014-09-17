@@ -97,11 +97,16 @@ public:
 	virtual void ReleaseNativeWidget() override;
 	// End of UVisual interface
 
-	/*  */
+	/**
+	 * Adds it to the game's viewport, defaults to filling the entire viewport area.
+	 * @param bModal If this dialog should steal keyboard/mouse focus and consume all input. Great for a fullscreen menu. Terrible for HUDs.
+	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
-	void AddToViewport(bool bModal = false, bool bShowCursor = false);
+	void AddToViewport(bool bModal = false);
 
-	/*  */
+	/**
+	 * Removes the widget from the viewport.
+	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
 	void RemoveFromViewport();
 
@@ -258,7 +263,7 @@ public:
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	/** Creates a fullscreen host widget, that wraps this widget. */
-	TSharedRef<SWidget> MakeViewportWidget(bool bModal, bool bShowCursor, TSharedPtr<SWidget>& UserSlateWidget);
+	TSharedRef<SWidget> MakeViewportWidget(TSharedPtr<SWidget>& UserSlateWidget);
 
 	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidgetComponent();

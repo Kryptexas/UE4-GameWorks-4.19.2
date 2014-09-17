@@ -25,6 +25,12 @@ public:
 	/** Render Mode */
 	TSharedPtr< FUICommandInfo > RenderTransform;
 
+	/** Enables or disables snapping to the grid when dragging objects around */
+	TSharedPtr< FUICommandInfo > LocationGridSnap;
+
+	/** Enables or disables snapping to a grid when rotating objects */
+	TSharedPtr< FUICommandInfo > RotationGridSnap;
+
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;

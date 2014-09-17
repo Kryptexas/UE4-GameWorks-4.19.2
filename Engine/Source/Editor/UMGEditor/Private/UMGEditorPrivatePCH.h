@@ -19,6 +19,8 @@
 
 #include "UMG.h"
 
+#include "WidgetDesignerSettings.h"
+
 #include "UMGEditorClasses.h"
 #include "WidgetBlueprint.h"
 

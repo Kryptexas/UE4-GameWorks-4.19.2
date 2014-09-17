@@ -93,6 +93,14 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 		ETransformMode::Type TransformMode = Designer->GetTransformMode();
 		if ( TransformMode == ETransformMode::Layout )
 		{
+			//FGeometry MyGeometry = Designer->GetWidgetGeometry(SelectedWidget);
+			//FGeometry ParentGeometry = Designer->GetWidgetParentGeometry(SelectedWidget);
+
+			//FVector2D LocalPosition = MyGeometry.Position;
+			//FVector2D LocalDragPosition = ParentGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+
+			//FVector2D NewSize = LocalDragPosition - LocalPosition;
+
 			FVector2D TranslateAmount = MouseEvent.GetCursorDelta() * ( 1.0f / Designer->GetPreviewScale() );
 
 			if ( Preview->Slot )
@@ -111,8 +119,17 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 
 			if ( Action == ETransformAction::Primary )
 			{
-				FVector2D ScaleDelta = MouseEvent.GetCursorDelta() * 0.05f;
-				RenderTransform.Scale += ScaleDelta;
+				FVector2D TranslateAmount = MouseEvent.GetCursorDelta() * ( 1.0f / Designer->GetPreviewScale() );
+
+				if ( Preview->Slot )
+				{
+					Preview->Slot->Resize(DragDirection, TranslateAmount);
+				}
+
+				if ( Template->Slot )
+				{
+					Template->Slot->Resize(DragDirection, TranslateAmount);
+				}
 			}
 			else
 			{
@@ -121,6 +138,7 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 			}
 
 			FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(Preview, "RenderTransform", RenderTransform);
+			FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(Template, "RenderTransform", RenderTransform);
 		}
 	}
 

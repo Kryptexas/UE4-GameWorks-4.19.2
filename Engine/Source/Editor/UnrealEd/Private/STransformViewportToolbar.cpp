@@ -5,6 +5,8 @@
 #include "STransformViewportToolbar.h"
 #include "SLevelViewport.h"
 #include "EditorViewportCommands.h"
+#include "SViewportToolBarIconMenu.h"
+#include "SViewportToolBarComboMenu.h"
 
 #define LOCTEXT_NAMESPACE "TransformToolBar"
 
@@ -16,360 +18,6 @@ namespace TransformViewportToolbarDefs
 	/** Size of the icon displayed on the toggle button of SGridSnapSettings */
 	const float ToggleImageScale = 16.0f;
 }
-
-/**
- * Custom widget to display a toggle/drop down menu. 
- *	Displayed as shown:
- * +--------+-------------+
- * | Toggle | Menu button |
- * +--------+-------------+
- */
-class SGridSnapSetting : public SCompoundWidget 
-{
-public:
-	SLATE_BEGIN_ARGS( SGridSnapSetting ) : _BlockLocation(EMultiBlockLocation::Start) {}
-	
-		/** We need to know about the toolbar we are in */
-		SLATE_ARGUMENT( TSharedPtr<class SViewportToolBar>, ParentToolBar );
-
-		/** Content for the drop down menu  */
-		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
-
-		/** Called upon state change with the value of the next state */
-		SLATE_EVENT( FOnCheckStateChanged, OnCheckStateChanged )
-			
-		/** Sets the current checked state of the checkbox */
-		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, IsChecked )
-
-		/** Icon shown on the toggle button */
-		SLATE_ATTRIBUTE( FSlateIcon, Icon )
-
-		/** Label shown on the menu button */
-		SLATE_ATTRIBUTE( FText, Label )
-
-		/** Overall style */
-		SLATE_ATTRIBUTE( FName, Style )
-
-		/** ToolTip shown on the menu button */
-		SLATE_ATTRIBUTE( FText, MenuButtonToolTip )
-
-		/** ToolTip shown on the toggle button */
-		SLATE_ATTRIBUTE( FText, ToggleButtonToolTip )
-
-		/** The button location */
-		SLATE_ARGUMENT( EMultiBlockLocation::Type, BlockLocation )
-
-	SLATE_END_ARGS( )
-
-	/**
-	 * Construct this widget
-	 *
-	 * @param	InArgs	The declaration data for this widget
-	 */
-	void Construct( const FArguments& InArgs )
-	{
-		FName ButtonStyle = FEditorStyle::Join(InArgs._Style.Get(), ".Button");
-		FName CheckboxStyle = FEditorStyle::Join(InArgs._Style.Get(), ".ToggleButton");
-	
-		const FSlateIcon& Icon = InArgs._Icon.Get();
-
-		ParentToolBar = InArgs._ParentToolBar;
-	
-		TSharedPtr<SCheckBox> ToggleControl;
-		{
-			ToggleControl = SNew(SCheckBox)
-			.Cursor( EMouseCursor::Default )
-			.Padding(FMargin( 4.0f ))
-			.Style(FEditorStyle::Get(), EMultiBlockLocation::ToName(CheckboxStyle, InArgs._BlockLocation))
-			.OnCheckStateChanged(InArgs._OnCheckStateChanged)
-			.ToolTipText(InArgs._ToggleButtonToolTip)
-			.IsChecked(InArgs._IsChecked)
-			.Content()
-			[
-				SNew( SBox )
-				.WidthOverride( TransformViewportToolbarDefs::ToggleImageScale )
-				.HeightOverride( TransformViewportToolbarDefs::ToggleImageScale )
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage)
-					.Image(Icon.GetIcon())
-				]
-			];
-		}
-
-		{
-			SAssignNew( MenuAnchor, SMenuAnchor )
-			.Placement( MenuPlacement_BelowAnchor )
-			[
-				SNew(SButton)
-				.ButtonStyle( FEditorStyle::Get(), EMultiBlockLocation::ToName(ButtonStyle,EMultiBlockLocation::End) )
-				.ContentPadding( FMargin( 5.0f, 0.0f ) )
-				.ToolTipText(InArgs._MenuButtonToolTip)
-				.OnClicked(this, &SGridSnapSetting::OnMenuClicked)
-				[
-					SNew(SVerticalBox)
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Top)
-					[
-						SNew(STextBlock)
-						.TextStyle( FEditorStyle::Get(), FEditorStyle::Join( InArgs._Style.Get(), ".Label" ) )
-						.Text(InArgs._Label)
-					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.VAlign(VAlign_Bottom)
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.FillWidth(1.0f)
-
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew( SBox )
-							.WidthOverride( TransformViewportToolbarDefs::DownArrowSize )
-							.HeightOverride( TransformViewportToolbarDefs::DownArrowSize )
-							[
-								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("ComboButton.Arrow"))
-								.ColorAndOpacity(FLinearColor::Black)
-							]
-						]
-
-						+SHorizontalBox::Slot()
-							.FillWidth(1.0f)
-					]
-				]
-			]
-			.OnGetMenuContent( InArgs._OnGetMenuContent );
-		}
-
-
-		ChildSlot
-		[
-			SNew(SHorizontalBox)
-
-			//Checkbox concept
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				ToggleControl->AsShared()
-			]
-
-			// Black Separator line
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SBorder)
-				.Padding(FMargin(1.0f, 0.0f, 0.0f, 0.0f))
-				.BorderImage(FEditorStyle::GetDefaultBrush())
-				.BorderBackgroundColor(FLinearColor::Black)
-			]
-
-			// Menu dropdown concept
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				MenuAnchor->AsShared()
-			]
-		];
-	}
-	
-private:
-	/**
-	 * Called when the menu button is clicked.  Will toggle the visibility of the menu content                   
-	 */
-	FReply OnMenuClicked()
-	{
-		// If the menu button is clicked toggle the state of the menu anchor which will open or close the menu
-		MenuAnchor->SetIsOpen( !MenuAnchor->IsOpen() );
-		ParentToolBar.Pin()->SetOpenMenu( MenuAnchor );
-		return FReply::Handled();
-	}
-
-	/**
-	 * Called when the mouse enters a menu button.  If there was a menu previously opened
-	 * we open this menu automatically
-	 */
-	void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-	{
-		// See if there is another menu on the same tool bar already open
-		TWeakPtr<SMenuAnchor> OpenedMenu = ParentToolBar.Pin()->GetOpenMenu();
-		if( OpenedMenu.IsValid() && OpenedMenu.Pin()->IsOpen() && OpenedMenu.Pin() != MenuAnchor )
-		{
-			// There is another menu open so we open this menu and close the other
-			ParentToolBar.Pin()->SetOpenMenu( MenuAnchor ); 
-			MenuAnchor->SetIsOpen( true );
-		}
-	}
-
-private:
-	/** Our menus anchor */
-	TSharedPtr<SMenuAnchor> MenuAnchor;
-
-	/** Parent tool bar for querying other open menus */
-	TWeakPtr<class SViewportToolBar> ParentToolBar;
-};
-
-/**
- * Custom widget to display an icon/drop down menu. 
- *	Displayed as shown:
- * +--------+-------------+
- * | Icon   | Menu button |
- * +--------+-------------+
- */
-class SCameraSpeedSetting : public SCompoundWidget 
-{
-public:
-	SLATE_BEGIN_ARGS( SCameraSpeedSetting ){}
-	
-		/** We need to know about the toolbar we are in */
-		SLATE_ARGUMENT( TSharedPtr<class SViewportToolBar>, ParentToolBar );
-
-		/** Content for the drop down menu  */
-		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
-
-		/** Icon shown */
-		SLATE_ATTRIBUTE( FSlateIcon, Icon )
-
-		/** Label shown on the menu button */
-		SLATE_ATTRIBUTE( FText, Label )
-
-		/** Overall style */
-		SLATE_ATTRIBUTE( FName, Style )
-
-	SLATE_END_ARGS( )
-
-	/**
-	 * Construct this widget
-	 *
-	 * @param	InArgs	The declaration data for this widget
-	 */
-	void Construct( const FArguments& InArgs )
-	{
-		ParentToolBar = InArgs._ParentToolBar;
-
-		const FName ButtonStyle = FEditorStyle::Join(InArgs._Style.Get(), ".Button");
-
-		const FSlateIcon& Icon = InArgs._Icon.Get();
-
-		SAssignNew( MenuAnchor, SMenuAnchor )
-		.Placement( MenuPlacement_BelowAnchor )
-		.OnGetMenuContent( InArgs._OnGetMenuContent )
-		[
-			SNew(SButton)
-			.ButtonStyle( FEditorStyle::Get(), ButtonStyle )
-			.ContentPadding( FMargin( 5.0f, 0.0f ) )
-			.OnClicked(this, &SCameraSpeedSetting::OnMenuClicked)
-			[
-				SNew(SHorizontalBox)
-
-				// Icon
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SBox)
-					.WidthOverride( TransformViewportToolbarDefs::ToggleImageScale )
-					.HeightOverride( TransformViewportToolbarDefs::ToggleImageScale )
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					[
-						SNew(SImage)
-						.Image(Icon.GetIcon())
-					]
-				]
-
-				// Spacer
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( FMargin( 4.0f, 0.0f ) )
-
-				// Menu dropdown
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SVerticalBox)
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Top)
-					[
-						SNew(STextBlock)
-						.TextStyle( FEditorStyle::Get(), FEditorStyle::Join( InArgs._Style.Get(), ".Label" ) )
-						.Text(InArgs._Label)
-					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.VAlign(VAlign_Bottom)
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.FillWidth(1.0f)
-
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew( SBox )
-							.WidthOverride( TransformViewportToolbarDefs::DownArrowSize )
-							.HeightOverride( TransformViewportToolbarDefs::DownArrowSize )
-							[
-								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("ComboButton.Arrow"))
-								.ColorAndOpacity(FLinearColor::Black)
-							]
-						]
-
-						+SHorizontalBox::Slot()
-						.FillWidth(1.0f)
-					]
-				]
-			]
-		];
-
-		ChildSlot
-		[
-			MenuAnchor.ToSharedRef()
-		];
-	}
-	
-private:
-	/**
-	 * Called when the menu button is clicked.  Will toggle the visibility of the menu content                   
-	 */
-	FReply OnMenuClicked()
-	{
-		// If the menu button is clicked toggle the state of the menu anchor which will open or close the menu
-		MenuAnchor->SetIsOpen( !MenuAnchor->IsOpen() );
-		ParentToolBar.Pin()->SetOpenMenu( MenuAnchor );
-		return FReply::Handled();
-	}
-
-	/**
-	 * Called when the mouse enters a menu button.  If there was a menu previously opened
-	 * we open this menu automatically
-	 */
-	void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-	{
-		// See if there is another menu on the same tool bar already open
-		TWeakPtr<SMenuAnchor> OpenedMenu = ParentToolBar.Pin()->GetOpenMenu();
-		if( OpenedMenu.IsValid() && OpenedMenu.Pin()->IsOpen() && OpenedMenu.Pin() != MenuAnchor )
-		{
-			// There is another menu open so we open this menu and close the other
-			ParentToolBar.Pin()->SetOpenMenu( MenuAnchor ); 
-			MenuAnchor->SetIsOpen( true );
-		}
-	}
-
-private:
-	/** Our menus anchor */
-	TSharedPtr<SMenuAnchor> MenuAnchor;
-
-	/** Parent tool bar for querying other open menus */
-	TWeakPtr<class SViewportToolBar> ParentToolBar;
-};
 
 void STransformViewportToolBar::Construct( const FArguments& InArgs )
 {
@@ -585,7 +233,7 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 		static FName PositionSnapName = FName(TEXT("PositionSnap"));
 
 		// Setup a GridSnapSetting with the UICommand
-		ToolbarBuilder.AddWidget(	SNew(SGridSnapSetting)
+		ToolbarBuilder.AddWidget(	SNew(SViewportToolBarComboMenu)
 									.Style(ToolBarStyle)
 									.BlockLocation(EMultiBlockLocation::Middle)
 									.Cursor( EMouseCursor::Default )
@@ -609,7 +257,7 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 		static FName RotationSnapName = FName(TEXT("RotationSnap"));
 
 		// Setup a GridSnapSetting with the UICommand
-		ToolbarBuilder.AddWidget(	SNew(SGridSnapSetting)
+		ToolbarBuilder.AddWidget(	SNew(SViewportToolBarComboMenu)
 									.Cursor( EMouseCursor::Default )
 									.Style(ToolBarStyle)
 									.IsChecked(this, &STransformViewportToolBar::IsRotationGridSnapChecked)
@@ -632,7 +280,7 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 		static FName ScaleSnapName = FName(TEXT("ScaleSnap"));
 
 		// Setup a GridSnapSetting with the UICommand
-		ToolbarBuilder.AddWidget(	SNew(SGridSnapSetting)
+		ToolbarBuilder.AddWidget(	SNew(SViewportToolBarComboMenu)
 									.Cursor( EMouseCursor::Default )
 									.Style(ToolBarStyle)
 									.IsChecked(this,&STransformViewportToolBar::IsScaleGridSnapChecked)
@@ -651,7 +299,7 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 	ToolbarBuilder.BeginBlockGroup();
 	{
 		// Camera speed 
-		ToolbarBuilder.AddWidget(	SNew(SCameraSpeedSetting)
+		ToolbarBuilder.AddWidget(	SNew(SViewportToolBarIconMenu)
 									.Cursor(EMouseCursor::Default)
 									.Style(ToolBarStyle)
 									.Label(this, &STransformViewportToolBar::GetCameraSpeedLabel)

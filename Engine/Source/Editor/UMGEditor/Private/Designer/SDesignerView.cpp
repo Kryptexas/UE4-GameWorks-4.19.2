@@ -334,7 +334,10 @@ void SDesignerView::BindCommands()
 
 void SDesignerView::SetTransformMode(ETransformMode::Type InTransformMode)
 {
-	TransformMode = InTransformMode;
+	if ( !InTransaction() )
+	{
+		TransformMode = InTransformMode;
+	}
 }
 
 bool SDesignerView::CanSetTransformMode(ETransformMode::Type InTransformMode) const
@@ -464,6 +467,45 @@ void SDesignerView::OnEditorSelectionChanged()
 	}
 
 	CreateExtensionWidgetsForSelection();
+}
+
+FGeometry SDesignerView::GetDesignerGeometry() const
+{
+	return CachedDesignerGeometry;
+}
+
+bool SDesignerView::GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const
+{
+	if ( UWidget* PreviewWidget = Widget.GetPreview() )
+	{
+		if ( UPanelWidget* Parent = PreviewWidget->GetParent() )
+		{
+			FWidgetReference ParentReference = BlueprintEditor.Pin()->GetReferenceFromPreview(Parent);
+			return GetWidgetGeometry(ParentReference, Geometry);
+		}
+	}
+
+	Geometry = GetDesignerGeometry();
+	return true;
+}
+
+bool SDesignerView::GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const
+{
+	if ( UWidget* PreviewWidget = Widget.GetPreview() )
+	{
+		TSharedPtr<SWidget> CachedPreviewWidget = PreviewWidget->GetCachedWidget();
+		if ( CachedPreviewWidget.IsValid() )
+		{
+			const FArrangedWidget* ArrangedWidget = CachedWidgetGeometry.Find(CachedPreviewWidget.ToSharedRef());
+			if ( ArrangedWidget )
+			{
+				Geometry = ArrangedWidget->Geometry;
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void SDesignerView::ClearExtensionWidgets()
@@ -713,10 +755,16 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
+			const bool bResolvePendingSelectionImmediately =
+				!SelectedWidget.IsValid() ||
+				!NewSelectedWidget.GetTemplate()->IsChildOf(SelectedWidget.GetTemplate()) ||
+				SelectedWidget.GetTemplate()->GetParent() == nullptr;
+
 			// If the newly clicked item is a child of the active selection, add it to the pending set of selected 
-			// widgets, if they begin dragging we can just move the parent, but if it's not part of the parent set, we want to immediately
-			// begin dragging it.
-			if ( !SelectedWidget.IsValid() || !NewSelectedWidget.GetTemplate()->IsChildOf(SelectedWidget.GetTemplate()) )
+			// widgets, if they begin dragging we can just move the parent, but if it's not part of the parent set, 
+			// we want to immediately begin dragging it.  Also if the currently selected widget is the root widget, 
+			// we won't be moving him so just resolve immediately.
+			if ( bResolvePendingSelectionImmediately )
 			{
 				ResolvePendingSelectedWidgets();
 			}
@@ -739,6 +787,8 @@ FReply SDesignerView::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointe
 		bMouseDown = false;
 		bMovingExistingWidget = false;
 		DesignerMessage = EDesignerMessage::None;
+
+		EndTransaction(false);
 	}
 	else if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
@@ -772,12 +822,37 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 	{
 		if ( SelectedWidget.IsValid() && !bMovingExistingWidget )
 		{
-			const bool bIsRootWidget = SelectedWidget.GetTemplate()->GetParent() == NULL;
-			if ( !bIsRootWidget )
+			if ( TransformMode == ETransformMode::Layout )
 			{
-				bMovingExistingWidget = true;
-				//Drag selected widgets
-				return FReply::Handled().DetectDrag(AsShared(), EKeys::LeftMouseButton);
+				const bool bIsRootWidget = SelectedWidget.GetTemplate()->GetParent() == NULL;
+				if ( !bIsRootWidget )
+				{
+					bMovingExistingWidget = true;
+					//Drag selected widgets
+					return FReply::Handled().DetectDrag(AsShared(), EKeys::LeftMouseButton);
+				}
+			}
+			else
+			{
+				checkSlow(TransformMode == ETransformMode::Render);
+				checkSlow(bMovingExistingWidget == false);
+
+				BeginTransaction(LOCTEXT("MoveWidgetRT", "Move Widget (Render Transform)"));
+
+				if ( UWidget* PreviewWidget = SelectedWidget.GetPreview() )
+				{
+					FGeometry ParentGeometry;
+					if ( GetWidgetParentGeometry(SelectedWidget, ParentGeometry) )
+					{
+						const FSlateRenderTransform& AbsoluteToLocalTransform = Inverse(ParentGeometry.GetAccumulatedRenderTransform());
+
+						FWidgetTransform RenderTransform = PreviewWidget->RenderTransform;
+						RenderTransform.Translation += AbsoluteToLocalTransform.TransformVector(MouseEvent.GetCursorDelta());
+
+						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(PreviewWidget, "RenderTransform", RenderTransform);
+						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(SelectedWidget.GetTemplate(), "RenderTransform", RenderTransform);
+					}
+				}
 			}
 		}
 	}
@@ -835,6 +910,21 @@ void SDesignerView::ShowContextMenu(const FGeometry& MyGeometry, const FPointerE
 	{
 		FVector2D SummonLocation = MouseEvent.GetScreenSpacePosition();
 		FSlateApplication::Get().PushMenu(AsShared(), MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+	}
+}
+
+void SDesignerView::PopulateWidgetGeometryCache(FArrangedWidget& Root)
+{
+	FArrangedChildren ArrangedChildren(EVisibility::All);
+	Root.Widget->ArrangeChildren(Root.Geometry, ArrangedChildren);
+
+	CachedWidgetGeometry.Add(Root.Widget, Root);
+
+	// A widget's children are implicitly Z-ordered from first to last
+	for ( int32 ChildIndex = ArrangedChildren.Num() - 1; ChildIndex >= 0; --ChildIndex )
+	{
+		FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
+		PopulateWidgetGeometryCache(SomeChild);
 	}
 }
 
@@ -977,6 +1067,7 @@ void SDesignerView::UpdatePreviewWidget()
 
 void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	CachedDesignerGeometry = AllottedGeometry;
 	HoverTime += InDeltaTime;
 
 	UpdatePreviewWidget();
@@ -1003,6 +1094,11 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 			HoveredSlateWidget.Reset();
 		}
 	}
+
+	// Perform an arrange children pass to cache the geometry of all widgets so that we can query it later.
+	CachedWidgetGeometry.Reset();
+	FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
+	PopulateWidgetGeometryCache(WindowWidgetGeometry);
 
 	CacheSelectedWidgetGeometry();
 
@@ -1114,6 +1210,8 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
 	FWidgetReference WidgetUnderCursor = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
 
+	FGeometry WidgetUnderCursorGeometry = ArrangedWidget.Geometry;
+
 	UWidget* Target = NULL;
 	if ( WidgetUnderCursor.IsValid() )
 	{
@@ -1177,7 +1275,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 			Widget->IsDesignTime(true);
 
 			// Determine local position inside the parent widget and add the widget to the slot.
-			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+			FVector2D LocalPosition = WidgetUnderCursorGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
 			if ( UPanelSlot* Slot = Parent->AddChild(Widget) )
 			{
 				// HACK UMG - This seems like a bad idea to call TakeWidget
@@ -1187,6 +1285,13 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 				static const FVector2D MinimumDefaultSize(100, 40);
 				FVector2D LocalSize = FVector2D(FMath::Max(WidgetDesiredSize.X, MinimumDefaultSize.X), FMath::Max(WidgetDesiredSize.Y, MinimumDefaultSize.Y));
+
+				const UWidgetDesignerSettings* DesignerSettings = GetDefault<UWidgetDesignerSettings>();
+				if ( DesignerSettings->GridSnapEnabled )
+				{
+					LocalPosition.X = ( (int32)LocalPosition.X ) - (( (int32)LocalPosition.X ) % DesignerSettings->GridSnapSize);
+					LocalPosition.Y = ( (int32)LocalPosition.Y ) - (( (int32)LocalPosition.Y ) % DesignerSettings->GridSnapSize);
+				}
 
 				Slot->SetDesiredPosition(LocalPosition);
 				Slot->SetDesiredSize(LocalSize);
@@ -1238,17 +1343,10 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 		{
 			DesignerMessage = EDesignerMessage::MoveFromParent;
 
-			if ( UPanelWidget* LockedPreviewParent = Cast<UPanelWidget>(SelectedDragDropOp->ParentWidget.GetPreview()) )
+			WidgetUnderCursorGeometry = GetDesignerGeometry();
+			if ( GetWidgetGeometry(SelectedDragDropOp->ParentWidget, WidgetUnderCursorGeometry) )
 			{
-				TSharedPtr<SWidget> NewParentWidget = LockedPreviewParent->GetCachedWidget();
-
-				if ( NewParentWidget.IsValid() )
-				{
-					Target = bIsPreview ? SelectedDragDropOp->ParentWidget.GetPreview() : SelectedDragDropOp->ParentWidget.GetTemplate();
-
-					const bool bSuccess = FDesignTimeUtils::GetArrangedWidget(NewParentWidget.ToSharedRef(), ArrangedWidget);
-					check(bSuccess);
-				}
+				Target = bIsPreview ? SelectedDragDropOp->ParentWidget.GetPreview() : SelectedDragDropOp->ParentWidget.GetTemplate();
 			}
 		}
 
@@ -1281,9 +1379,18 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 				Widget->GetParent()->RemoveChild(Widget);
 			}
 
-			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+			FVector2D LocalPosition = WidgetUnderCursorGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
 			if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
 			{
+				FVector2D NewPosition = LocalPosition - SelectedWidgetContextMenuLocation;
+
+				const UWidgetDesignerSettings* DesignerSettings = GetDefault<UWidgetDesignerSettings>();
+				if ( DesignerSettings->GridSnapEnabled )
+				{
+					NewPosition.X = ( (int32)NewPosition.X ) - ( ( (int32)NewPosition.X ) % DesignerSettings->GridSnapSize );
+					NewPosition.Y = ( (int32)NewPosition.Y ) - ( ( (int32)NewPosition.Y ) % DesignerSettings->GridSnapSize );
+				}
+
 				// HACK UMG: In order to correctly drop items into the canvas that have a non-zero anchor,
 				// we need to know the layout information after slate has performed a prepass.  So we have
 				// to rebase the layout and reinterpret the new position based on anchor point layout data.
@@ -1296,7 +1403,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
 
 						CanvasSlot->SaveBaseLayout();
-						Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
+						Slot->SetDesiredPosition(NewPosition);
 						CanvasSlot->RebaseLayout();
 
 						FWidgetBlueprintEditorUtils::ExportPropertiesToText(Slot, SelectedDragDropOp->ExportedSlotProperties);
@@ -1304,13 +1411,12 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 					else
 					{
 						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
-						//Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
 					}
 				}
 				else
 				{
 					FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
-					Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
+					Slot->SetDesiredPosition(NewPosition);
 				}
 
 				DropPreviewParent = NewParent;
@@ -1454,24 +1560,34 @@ TSharedRef<SWidget> SDesignerView::GetAspectMenu()
 
 void SDesignerView::BeginTransaction(const FText& SessionName)
 {
-	if ( ScopedTransaction == NULL )
+	if ( ScopedTransaction == nullptr )
 	{
 		ScopedTransaction = new FScopedTransaction(SessionName);
-	}
 
-	if ( SelectedWidget.IsValid() )
-	{
-		SelectedWidget.GetPreview()->Modify();
-		SelectedWidget.GetTemplate()->Modify();
+		if ( SelectedWidget.IsValid() )
+		{
+			SelectedWidget.GetPreview()->Modify();
+			SelectedWidget.GetTemplate()->Modify();
+		}
 	}
 }
 
-void SDesignerView::EndTransaction()
+bool SDesignerView::InTransaction() const
 {
-	if ( ScopedTransaction != NULL )
+	return ScopedTransaction != nullptr;
+}
+
+void SDesignerView::EndTransaction(bool bCancel)
+{
+	if ( ScopedTransaction != nullptr )
 	{
+		if ( bCancel )
+		{
+			ScopedTransaction->Cancel();
+		}
+
 		delete ScopedTransaction;
-		ScopedTransaction = NULL;
+		ScopedTransaction = nullptr;
 	}
 }
 

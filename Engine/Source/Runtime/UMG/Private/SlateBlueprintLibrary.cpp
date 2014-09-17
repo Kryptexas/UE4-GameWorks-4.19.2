@@ -30,4 +30,9 @@ FVector2D USlateBlueprintLibrary::LocalToAbsolute(const FGeometry& Geometry, FVe
 	return Geometry.LocalToAbsolute(LocalCoordinate);
 }
 
+FVector2D USlateBlueprintLibrary::GetLocalSize(const FGeometry& Geometry)
+{
+	return Geometry.GetLocalSize();
+}
+
 #undef LOCTEXT_NAMESPACE

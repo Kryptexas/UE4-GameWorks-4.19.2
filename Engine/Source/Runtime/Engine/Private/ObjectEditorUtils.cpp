@@ -94,7 +94,9 @@ namespace FObjectEditorUtils
 
 		if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) )
 		{
-			DestinationObject->PreEditChange(DestinationProperty);
+			FEditPropertyChain PropertyChain;
+			PropertyChain.AddHead(DestinationProperty);
+			DestinationObject->PreEditChange(PropertyChain);
 		}
 
 		// Set the value on the destination object.

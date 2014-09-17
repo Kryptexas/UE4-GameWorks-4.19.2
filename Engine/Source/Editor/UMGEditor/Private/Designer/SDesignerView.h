@@ -59,6 +59,9 @@ public:
 	virtual float GetPreviewScale() const override;
 	virtual FWidgetReference GetSelectedWidget() const override;
 	virtual ETransformMode::Type GetTransformMode() const override;
+	virtual FGeometry GetDesignerGeometry() const override;
+	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
+	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
 	// End of IUMGDesigner interface
 
 private:
@@ -107,6 +110,8 @@ private:
 
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
+	void PopulateWidgetGeometryCache(FArrangedWidget& Root);
+
 	void CacheSelectedWidgetGeometry();
 
 	/** @return Formatted text for the given resolution params */
@@ -122,7 +127,8 @@ private:
 	TSharedRef<SWidget> GetAspectMenu();
 
 	void BeginTransaction(const FText& SessionName);
-	void EndTransaction();
+	bool InTransaction() const;
+	void EndTransaction(bool bCancel);
 
 private:
 	FReply HandleZoomToFitClicked();
@@ -232,4 +238,10 @@ private:
 
 	/** */
 	ETransformMode::Type TransformMode;
+
+	/**  */
+	TMap<TSharedRef<SWidget>, FArrangedWidget> CachedWidgetGeometry;
+
+	/**  */
+	FGeometry CachedDesignerGeometry;
 };

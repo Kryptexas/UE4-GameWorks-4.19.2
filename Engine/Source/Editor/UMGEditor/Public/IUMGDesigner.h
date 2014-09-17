@@ -31,4 +31,13 @@ public:
 
 	/** @return Get the transform mode currently in use in the designer. */
 	virtual ETransformMode::Type GetTransformMode() const = 0;
+
+	/** @return The Geometry representing the designer area, useful for when you need to convert mouse into designer space. */
+	virtual FGeometry GetDesignerGeometry() const = 0;
+
+	/**  */
+	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const = 0;
+
+	/**  */
+	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const = 0;
 };
