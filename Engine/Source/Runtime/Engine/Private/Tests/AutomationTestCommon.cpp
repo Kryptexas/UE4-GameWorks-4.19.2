@@ -14,6 +14,8 @@ bool FPlayMatineeLatentCommand::Update()
 {
 	if (MatineeActor)
 	{
+		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("Triggering the matinee named: '%s'"), *MatineeActor->GetName())
+		
 		//force this matinee to not be looping so it doesn't infinitely loop
 		MatineeActor->bLooping = false;
 		MatineeActor->Play();
@@ -76,5 +78,44 @@ bool FEnqueuePerformanceCaptureCommands::Update()
 		}
 	}
 
+	return true;
+}
+
+
+bool FMatineePerformanceCaptureCommand::Update()
+{
+	//for every matinee actor in the level
+	for (TObjectIterator<AMatineeActor> It; It; ++It)
+	{
+		AMatineeActor* MatineeActor = *It;
+		FString MatineeFOOName = MatineeActor->GetName();
+		if (MatineeActor->GetName().Equals(MatineeName,ESearchCase::IgnoreCase))
+		{	
+			//add latent action to execute this matinee
+			ADD_LATENT_AUTOMATION_COMMAND(FPlayMatineeLatentCommand(MatineeActor));
+
+			//Run the Stat FPS Chart command
+			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StartFPSChart")));
+
+			//add action to wait until matinee is complete
+			ADD_LATENT_AUTOMATION_COMMAND(FWaitForMatineeToCompleteLatentCommand(MatineeActor));
+
+			//Stop the Stat FPS Chart command
+			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
+		}
+	}
+
+	return true;
+
+}
+
+
+bool FExecWorldStringLatentCommand::Update()
+{
+	check(GEngine->GetWorldContexts().Num() == 1);
+	check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
+
+	UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("Running Exec Command. '%s'"), *ExecCommand);
+	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *ExecCommand);
 	return true;
 }

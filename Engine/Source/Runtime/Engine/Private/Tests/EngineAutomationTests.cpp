@@ -351,25 +351,11 @@ bool FLoadGameMapCommand::Update()
 	return true;
 }
 
-/**
- * Latent command to run an exec command that also requires a UWorld.
- */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecWorldStringLatentCommand, FString, ExecCommand);
-
-bool FExecWorldStringLatentCommand::Update()
-{
-	check(GEngine->GetWorldContexts().Num() == 1);
-	check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
-
-	UE_LOG(LogEngineAutomationTests, Log, TEXT("Running Exec Command. '%s'"), *ExecCommand);
-	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *ExecCommand);
-	return true;
-}
 
 /**
  * Automation test to load a map and capture FPS performance charts
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FCinematicFPSPerfTest, "Engine.Cinematic FPS Perf Capture", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_NonNullRHI));
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FCinematicFPSPerfTest, "Maps.Cinematic FPS Perf Capture", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_NonNullRHI));
 
 void FCinematicFPSPerfTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
 {
@@ -378,40 +364,82 @@ void FCinematicFPSPerfTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray
 
 bool FCinematicFPSPerfTest::RunTest(const FString& Parameters)
 {
+	//Map to use for this test.
+	const FString MapName = Parameters;
+	
+	//The name of the matinee actor that will be triggered.
+	FString MatineeActorName;
+
 	//Check we are running from commandline
 	const FString CommandLine(FCommandLine::Get());
-	if( CommandLine.Contains(TEXT("AutomationTests")) )
+	if (CommandLine.Contains(TEXT("AutomationTests")))
 	{
-		//Get the name of the console event to trigger the cinematic
-		FString CinematicEventCommand;
-		if( !FParse::Value(*CommandLine, TEXT("CE="), CinematicEventCommand) )
+		//Get the name of the matinee to be used.
+		//If the game was not launched with the -MatineeName argument then this test will be ran based on time.
+		if (!FParse::Value(*CommandLine, TEXT("MatineeName="), MatineeActorName))
 		{
-			CinematicEventCommand = TEXT("CE Start");
-		}
+			UE_LOG(LogEngineAutomationTests, Log, TEXT("The matinee name was not specified.  Run the game with -MatineeName=\"Name of the matinee actor\"."));
+			
+			//Get the name of the console event to trigger the cinematic
+			FString CinematicEventCommand;
+			if (!FParse::Value(*CommandLine, TEXT("CE="), CinematicEventCommand))
+			{
+				UE_LOG(LogEngineAutomationTests, Log, TEXT("A console event command was not specified. Defaults to CE START.  Run the game with -CE=\"Command\"."));
+				CinematicEventCommand = TEXT("CE Start");
+			}
 
-		//Get the length of time to let the cinematic run
-		float RunTime;
-		if( !FParse::Value(*CommandLine, TEXT("RunTime="), RunTime) )
-		{
-			RunTime=5.f;
+			//Get the length of time the cinematic will run
+			float RunTime;
+			if (!FParse::Value(*CommandLine, TEXT("RunTime="), RunTime))
+			{
+				UE_LOG(LogEngineAutomationTests, Log, TEXT("A run time length in seconds was not specified. Defaults to 60 seconds. Run the game with -RunTime=###."));
+				RunTime = 60.f;
+			}
+
+			//Load map
+			ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+			ADD_LATENT_AUTOMATION_COMMAND(FLoadGameMapCommand(MapName));
+			ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+
+			//Start the matinee and perform the FPS Chart
+			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(CinematicEventCommand));
+			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StartFPSChart")));
+			ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(RunTime));
+			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
+			ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+
+			return true;
 		}
+		else
+		{
+			//Load map
+			ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+			ADD_LATENT_AUTOMATION_COMMAND(FLoadGameMapCommand(MapName));
+			ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+
+			//Start the matinee and perform the FPS Chart
+			ADD_LATENT_AUTOMATION_COMMAND(FMatineePerformanceCaptureCommand(MatineeActorName));
+			ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+			
+			return true;
+		}
+	}
+	else
+	{
+		//If the user is running from the UFE then we'll use the default values.
+		//@todo Give the end user a way to specify the values for this test.
+
+		UE_LOG(LogEngineAutomationTests, Log, TEXT("Running the FPS chart performance capturing for 60 seconds while in '%s'.\nThe default CE command won't be used at this time."), *MapName);
 
 		//Load map
-		const FString MapName = Parameters;
-		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
 		ADD_LATENT_AUTOMATION_COMMAND(FLoadGameMapCommand(MapName));
 		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
 
 		//Start the matinee and perform the FPS Chart
-		ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(CinematicEventCommand));
 		ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StartFPSChart")));
-		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(RunTime));
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(60.0f));
 		ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
-	}
-	else
-	{
-		UE_LOG(LogEngineAutomationTests, Warning, TEXT("FCinematicFPSPerfTest is a Commandline test.  Please use -AutomationTests=\"Engine.Cinematic FPS Perf Capture\""));
-		return false;
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
 	}
 
 	return true;
