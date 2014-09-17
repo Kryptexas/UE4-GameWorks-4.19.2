@@ -67,6 +67,7 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 		.RenderScaleOrigin(FVector2D(0.5f, 0.5f))
 		[
 			SNew(SOverlay)
+			.Visibility(this, &STutorialContent::GetVisibility)
 			+SOverlay::Slot()
 			[
 				SAssignNew(ContentWidget, SBorder)
@@ -74,7 +75,6 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 				// Add more padding if the content is to be displayed centrally (i.e. not on a widget)
 				.Padding(bIsStandalone ? TutorialConstants::BorderSizeStandalone : TutorialConstants::BorderSize)
 				.BorderImage(FEditorStyle::GetBrush("Tutorials.Border"))
-				.Visibility(this, &STutorialContent::GetVisibility)
 				.BorderBackgroundColor(this, &STutorialContent::GetBackgroundColor)
 				.ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 				[
