@@ -2651,7 +2651,15 @@ FText UEdGraphSchema_K2::GetCategoryText(const FString& Category, const bool bFo
 		}
 	}
 
-	return CategoryDescriptions.FindChecked(Category);
+	if (FText const* TypeDesc = CategoryDescriptions.Find(Category))
+	{
+		return *TypeDesc;
+	}
+	else
+	{
+		ensureMsgf(false, TEXT("Unhandled blueprint type ('%s'), failed to find type description."), *Category);
+		return FText::FromString(Category);
+	}
 }
 
 FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
