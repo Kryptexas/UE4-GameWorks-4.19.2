@@ -648,7 +648,33 @@ public:
 				FoundMetaData.Add(StaticCastSharedRef<MetaDataType>(MetaDataEntry));
 			}
 		}
-		return FoundMetaData;	
+		return FoundMetaData;
+	}
+
+private:
+	/**
+	 * Add metadata to the widget unless this type of metadata is already present.
+	 *
+	 * MIGHT BE REMOVED ! ! !
+	 *
+	 * Not sure we want to allow such mutation of metadata yet.
+	 * We might remove this method, so it is only exposed to the
+	 * one used case at the moment; thus the 'friend FTabManager'
+	 */
+	friend class FTabManager;
+
+	template<typename MetaDataType>
+	void AddMetadataIfMissing( const TSharedRef<MetaDataType>& AddMe )
+	{
+		const bool bMetadataAlreadyPresent = MetaData.ContainsByPredicate([]( const TSharedRef<ISlateMetaData>& Candidate )
+		{
+			return Candidate->IsOfType<MetaDataType>();
+		});
+
+		if (!bMetadataAlreadyPresent)
+		{
+			MetaData.Add( AddMe );
+		}		
 	}
 
 public:

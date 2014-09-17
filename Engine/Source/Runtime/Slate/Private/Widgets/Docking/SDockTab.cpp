@@ -290,7 +290,7 @@ TSharedPtr<SWindow> SDockTab::GetParentWindow() const
 }
 
 SDockTab::SDockTab()
-	: Content(SNullWidget::NullWidget)
+	: Content(SNew(SSpacer))
 	, TabWellContentLeft(SNullWidget::NullWidget)
 	, TabWellContentRight(SNullWidget::NullWidget)
 	, LayoutIdentifier(NAME_None)
