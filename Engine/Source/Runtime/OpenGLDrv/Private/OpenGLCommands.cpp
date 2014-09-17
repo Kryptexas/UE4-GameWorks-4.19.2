@@ -1295,9 +1295,7 @@ void FOpenGLDynamicRHI::SetPendingBlendStateForActiveRenderTargets( FOpenGLConte
 							);
 					}
 					
-#if PLATFORM_MAC
-					extern bool GIsRunningOnIntelCard;
-					if (GIsRunningOnIntelCard)
+					if (PLATFORM_MAC && IsRHIDeviceIntel())
 					{
 						// Flush the separate blend state changes through GL or on Intel cards under OS X the state change may be silently ignored.
 						if (CachedRenderTargetBlendState.ColorSourceBlendFactor != RenderTargetBlendState.ColorSourceBlendFactor
@@ -1310,7 +1308,6 @@ void FOpenGLDynamicRHI::SetPendingBlendStateForActiveRenderTargets( FOpenGLConte
 							FOpenGL::Flush();
 						}
 					}
-#endif
 				}
 				else
 				{
