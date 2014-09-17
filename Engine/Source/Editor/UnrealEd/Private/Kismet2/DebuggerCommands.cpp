@@ -187,7 +187,8 @@ FPlayWorldCommands::FPlayWorldCommands()
 
 				if (PlayDevice.IsValid())
 				{
-					PlaySettings->LastExecutedLaunchDevice = PlayDevice->GetName();
+					PlaySettings->LastExecutedLaunchDevice = PlayDevice->GetId().ToString();
+					PlaySettings->LastExecutedLaunchName = PlayDevice->GetName();
 					PlaySettings->SaveConfig();
 				}
 			}
