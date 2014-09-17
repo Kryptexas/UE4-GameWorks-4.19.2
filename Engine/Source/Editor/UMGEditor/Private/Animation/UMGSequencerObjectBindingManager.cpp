@@ -39,16 +39,25 @@ void FUMGSequencerObjectBindingManager::BindPossessableObject( const FGuid& Poss
 	PreviewObjectToGuidMap.Add( &PossessedObject, PossessableGuid );
 
 	FWidgetAnimationBinding NewBinding;
-	NewBinding.WidgetName = PossessedObject.GetFName();
-	if( PossessedObject.IsA<UPanelSlot>() )
-	{
-		// Save the name of the widget containing the slots.  This is the object to look up that contaisn the slot itself(the thing we are animating)
-		NewBinding.SlotWidgetName = PossessedObject.GetOuter()->GetFName();
-	}
-
 	NewBinding.AnimationGuid = PossessableGuid;
 
-	WidgetAnimation->AnimationBindings.Add( NewBinding );
+	UPanelSlot* Slot = Cast<UPanelSlot>( &PossessedObject );
+	if( Slot && Slot->Content )
+	{
+		// Save the name of the widget containing the slots.  This is the object to look up that contains the slot itself(the thing we are animating)
+		NewBinding.SlotWidgetName = Slot->GetFName();
+		NewBinding.WidgetName = Slot->Content->GetFName();
+
+
+		WidgetAnimation->AnimationBindings.Add(NewBinding);
+	}
+	else if( !Slot )
+	{
+		NewBinding.WidgetName = PossessedObject.GetFName();
+
+		WidgetAnimation->AnimationBindings.Add(NewBinding);
+	}
+
 }
 
 void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& PossessableGuid )
@@ -96,27 +105,10 @@ void FUMGSequencerObjectBindingManager::InitPreviewObjects()
 
 		for(const FWidgetAnimationBinding& Binding : WidgetAnimation->AnimationBindings)
 		{
-			FName ObjectName = Binding.WidgetName;
-			FName SlotWidgetName = Binding.SlotWidgetName;
-
-			FName NameToSearchFor = SlotWidgetName != NAME_None ? SlotWidgetName : ObjectName;
-
-			UObject* FoundObject = FindObject<UObject>(WidgetTree, *NameToSearchFor.ToString());
-			if(FoundObject)
+			UObject* FoundObject = Binding.FindRuntimeObject( *WidgetTree );
+			if( FoundObject )
 			{
-				if(SlotWidgetName == NAME_None)
-				{
-					PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
-				}
-				else
-				{
-					FoundObject = FindObject<UObject>(FoundObject, *ObjectName.ToString());
-					if(FoundObject)
-					{
-						PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
-					}
-				}
-
+				PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
 			}
 		}
 	}

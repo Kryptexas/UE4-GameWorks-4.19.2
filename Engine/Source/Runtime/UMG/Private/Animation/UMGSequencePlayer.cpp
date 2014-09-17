@@ -34,28 +34,12 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	// Bind to Runtime Objects
 	for (const FWidgetAnimationBinding& Binding : InAnimation.AnimationBindings)
 	{
-		FName ObjectName = Binding.WidgetName;
-		FName SlotWidgetName = Binding.SlotWidgetName;
+		UObject* FoundObject = Binding.FindRuntimeObject( *WidgetTree );
 
-		FName NameToSearchFor = SlotWidgetName != NAME_None ? SlotWidgetName : ObjectName;
-
-		UObject* FoundObject = FindObject<UObject>(WidgetTree, *NameToSearchFor.ToString());
-		if(FoundObject)
+		if( FoundObject )
 		{
-			if(SlotWidgetName == NAME_None)
-			{
-				TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
-				Objects.Add(FoundObject);
-			}
-			else
-			{
-				FoundObject = FindObject<UObject>(FoundObject, *ObjectName.ToString());
-				if(FoundObject)
-				{
-					TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
-					Objects.Add(FoundObject);
-				}
-			}
+			TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
+			Objects.Add(FoundObject);
 		}
 	}
 

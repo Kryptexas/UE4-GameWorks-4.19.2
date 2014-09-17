@@ -23,6 +23,13 @@ struct FWidgetAnimationBinding
 	UPROPERTY()
 	FGuid AnimationGuid;
 
+public:
+	/**
+	 * Locates a runtime object to animate from the provided tree of widgets
+	 * @return the runtime object to animate or null if not found 
+	 */
+	UMG_API UObject* FindRuntimeObject(UWidgetTree& WidgetTree) const;
+
 	bool operator==(const FWidgetAnimationBinding& Other) const
 	{
 		return WidgetName == Other.WidgetName && SlotWidgetName == Other.SlotWidgetName && AnimationGuid == Other.AnimationGuid;
