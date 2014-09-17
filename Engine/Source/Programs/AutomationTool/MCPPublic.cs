@@ -626,7 +626,7 @@ namespace EpicGames.MCP.Config
 		}
 		protected virtual bool UseV2BuildInfoService
 		{
-			get { return false; }
+			get { return true; }
 		}
     }
 
