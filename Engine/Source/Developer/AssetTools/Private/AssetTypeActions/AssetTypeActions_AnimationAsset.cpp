@@ -5,7 +5,6 @@
 #include "PersonaModule.h"
 #include "EditorAnimUtils.h"
 #include "SSkeletonWidget.h"
-#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

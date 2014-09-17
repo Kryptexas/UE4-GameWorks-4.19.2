@@ -6,7 +6,6 @@
 #include "Toolkits/IToolkit.h"
 #include "ISequencerModule.h"
 #include "MovieScene.h"
-#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
