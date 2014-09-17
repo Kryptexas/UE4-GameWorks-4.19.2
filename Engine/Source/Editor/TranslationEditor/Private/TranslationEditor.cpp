@@ -1144,6 +1144,7 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 		ExportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
 		ExportSettings->bExportLoc = true;
 		ExportSettings->bImportLoc = false;
+		ExportSettings->bUseCultureDirectory = false;
 
 		ExportSettings->DestinationPath = DefaultPath / DefaultFilename;
 
@@ -1292,6 +1293,7 @@ void FTranslationEditor::ImportFromPortableObjectFormat_Execute()
 		ImportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
 		ImportSettings->bExportLoc = false;
 		ImportSettings->bImportLoc = true;
+		ImportSettings->bUseCultureDirectory = false;
 
 		ImportSettings->SourcePath = DefaultPath / FPaths::GetBaseFilename(ManifestFilePath);
 

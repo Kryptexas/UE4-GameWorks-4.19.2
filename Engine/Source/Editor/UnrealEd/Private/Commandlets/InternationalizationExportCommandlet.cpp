@@ -1053,6 +1053,13 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		return false;
 	}
 
+	// Get culture directory setting, default to true if not specified (used to allow picking of export directory with windows file dialog from Translation Editor)
+	bool bUseCultureDirectory = true;
+	if (!(GetConfigBool(*SectionName, TEXT("bUseCultureDirectory"), bUseCultureDirectory, ConfigPath)))
+	{
+		bUseCultureDirectory = true;
+	}
+
 
 	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
 	// Load the manifest info
@@ -1143,7 +1150,15 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 				// Write out the Portable Object to .po file.
 				{
 					FString OutputString = PortableObj.ToString();
-					FString OutputFileName = DestinationPath / CultureName / Filename;
+					FString OutputFileName = "";
+					if (bUseCultureDirectory)
+					{
+						OutputFileName = DestinationPath / CultureName / Filename;
+					}
+					else
+					{
+						OutputFileName = DestinationPath / Filename;
+					}
 
 					if( SourceControlInfo.IsValid() )
 					{
@@ -1186,12 +1201,27 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 		return false;
 	}
 
+	// Get culture directory setting, default to true if not specified (used to allow picking of import directory with file open dialog from Translation Editor)
+	bool bUseCultureDirectory = true;
+	if (!(GetConfigBool(*SectionName, TEXT("bUseCultureDirectory"), bUseCultureDirectory, ConfigPath)))
+	{
+		bUseCultureDirectory = true;
+	}
+
 	// Process the desired cultures
 	for(int32 Culture = 0; Culture < CulturesToGenerate.Num(); Culture++)
 	{
 		// Load the Portable Object file if found
 		const FString CultureName = CulturesToGenerate[Culture];
-		const FString POFilePath = SourcePath / CultureName / Filename;
+		FString POFilePath = "";
+		if (bUseCultureDirectory)
+		{
+			POFilePath = SourcePath / CultureName / Filename;
+		}
+		else
+		{
+			POFilePath = SourcePath / Filename;
+		}
 
 		if( !FPaths::FileExists(POFilePath) )
 		{
