@@ -3,7 +3,7 @@
 #pragma once
 
 #include "UnrealEd.h"
-#include "SViewportToolBarIconMenu.h"
+#include "SViewportToolBarComboMenu.h"
 
 void SViewportToolBarComboMenu::Construct( const FArguments& InArgs )
 {
