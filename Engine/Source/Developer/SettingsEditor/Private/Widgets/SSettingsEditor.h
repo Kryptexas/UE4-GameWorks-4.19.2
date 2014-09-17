@@ -134,6 +134,9 @@ private:
 	// Callback for getting the enabled state of the 'Reset to Defaults' button.
 	bool HandleResetToDefaultsButtonEnabled( ) const;
 
+	// Callback for getting the visibility of options that are only visible when editing something that came from a non-default object
+	EVisibility EditingNonDefaultSettingsVisibility( ) const;
+
 	// Callback for navigating a settings section link.
 	void HandleSectionLinkNavigate( ISettingsSectionPtr Section );
 
@@ -169,6 +172,12 @@ private:
 
 	// Reports a preference changed event to the analytics system */
 	void RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const;
+
+	// Returns the cached config file name
+	FString GetCachedConfigFileName( ) const
+	{
+		return CachedConfigFileName;
+	}
 private:
 
 	// Holds the vertical box for settings categories.

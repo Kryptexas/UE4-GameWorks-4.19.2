@@ -510,6 +510,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	{
 		Set( "ToolPanel.GroupBorder", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
 		Set( "ToolPanel.DarkGroupBorder", new BOX_BRUSH( "Common/DarkGroupBorder", FMargin( 4.0f / 16.0f ) ) );
+		Set( "ToolPanel.LightGroupBorder", new BOX_BRUSH("Common/LightGroupBorder", FMargin(4.0f / 16.0f)) );
 	}
 
 	// Inline Editable Text Block

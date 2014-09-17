@@ -13,14 +13,15 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 {
 	CheckOutClickedDelegate = InArgs._OnCheckOutClicked;
 	bIsUnlocked = InArgs._Unlocked;
+	ConfigFilePath = InArgs._ConfigFilePath;
 	bLookingForSourceControlState = InArgs._LookingForSourceControlState;
 
 	// default configuration notice
 	ChildSlot
 	[
 		SNew(SBorder)
-			.BorderBackgroundColor(FLinearColor::Yellow)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderBackgroundColor(this, &SSettingsEditorCheckoutNotice::GetLockedOrUnlockedStatusBarColor)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.LightGroupBorder"))
 			.Padding(8.0f)
 			[
 				SNew(SWidgetSwitcher)
@@ -48,6 +49,9 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 							[
 								SNew(STextBlock)
 									.Text(this, &SSettingsEditorCheckoutNotice::HandleLockedStatusText)
+									.ColorAndOpacity(FLinearColor::White)
+									.ShadowColorAndOpacity(FLinearColor::Black)
+									.ShadowOffset(FVector2D::UnitVector)
 							]
 
 						// Check out button
@@ -93,6 +97,9 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 							[
 								SNew(STextBlock)
 									.Text(this, &SSettingsEditorCheckoutNotice::HandleUnlockedStatusText)
+									.ColorAndOpacity(FLinearColor::White)
+									.ShadowColorAndOpacity(FLinearColor::Black)
+									.ShadowOffset(FVector2D::UnitVector)
 							]
 					]
 			]
@@ -148,17 +155,27 @@ EVisibility SSettingsEditorCheckoutNotice::HandleCheckOutButtonVisibility( ) con
 
 FText SSettingsEditorCheckoutNotice::HandleLockedStatusText() const
 {
-	return ISourceControlModule::Get().IsEnabled() ? 
-		LOCTEXT("DefaultSettingsNotice_WithSourceControl", "These settings are always saved in the default configuration file, which is currently not checked out.") :
-		LOCTEXT("DefaultSettingsNotice_Source", "These settings are always saved in the default configuration file, which is currently not writable.");
+	FText ConfigFilename = FText::FromString(FPaths::GetCleanFilename(ConfigFilePath.Get()));
+
+	return FText::Format(ISourceControlModule::Get().IsEnabled() ?
+		LOCTEXT("DefaultSettingsNotice_WithSourceControl", "These settings are saved in {0}, which is not currently checked out.") :
+		LOCTEXT("DefaultSettingsNotice_Source", "These settings are saved {0}, which is not currently writable."), ConfigFilename);
 }
 
 FText SSettingsEditorCheckoutNotice::HandleUnlockedStatusText() const
 {
-	return ISourceControlModule::Get().IsEnabled() ? 
-		LOCTEXT("DefaultSettingsNotice_CheckedOut", "These settings are always saved in the default configuration file, which is currently checked out.") :
-		LOCTEXT("DefaultSettingsNotice_Writable", "These settings are always saved in the default configuration file, which is currently writable.");
+	FText ConfigFilename = FText::FromString(FPaths::GetCleanFilename(ConfigFilePath.Get()));
+	
+	return FText::Format(ISourceControlModule::Get().IsEnabled() ?
+		LOCTEXT("DefaultSettingsNotice_CheckedOut", "These settings are saved in {0}, which is currently checked out.") :
+		LOCTEXT("DefaultSettingsNotice_Writable", "These settings are saved in {0}, which is currently writable."), ConfigFilename);
 }
+
+FSlateColor SSettingsEditorCheckoutNotice::GetLockedOrUnlockedStatusBarColor() const
+{
+	return bIsUnlocked.Get() ? FLinearColor::Green : FLinearColor::Yellow;
+}
+
 
 EVisibility SSettingsEditorCheckoutNotice::HandleThrobberVisibility() const
 {

@@ -15,7 +15,10 @@ public:
 
 		/** Called to determine if the associated file is unlocked */
 		SLATE_ATTRIBUTE(bool, Unlocked)
-	
+
+		/** Called to get the filename of the config file for display */
+		SLATE_ATTRIBUTE(FString, ConfigFilePath)
+
 		/** Slot for this button's content (optional) */
 		SLATE_NAMED_SLOT(FArguments, LockedContent)
 
@@ -60,6 +63,9 @@ private:
 	// Callback for getting the status text when the config is unlocked
 	FText HandleUnlockedStatusText() const;
 
+	// Callback for getting the status color, which indicates if it is writeable or not
+	FSlateColor GetLockedOrUnlockedStatusBarColor() const;
+
 	// Callback for getting the visibility of the source control throbber
 	EVisibility HandleThrobberVisibility() const;
 
@@ -69,6 +75,8 @@ private:
 	FOnClicked CheckOutClickedDelegate;
 
 	TAttribute<bool> bIsUnlocked;
+
+	TAttribute<FString> ConfigFilePath;
 
 	TAttribute<bool> bLookingForSourceControlState;
 };

@@ -138,6 +138,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									[
 										// set as default button
 										SNew(SButton)
+											.Visibility(this, &SSettingsEditor::EditingNonDefaultSettingsVisibility)
 											.IsEnabled(this, &SSettingsEditor::HandleSetAsDefaultButtonEnabled)
 											.OnClicked(this, &SSettingsEditor::HandleSetAsDefaultButtonClicked)
 											.Text(LOCTEXT("SaveDefaultsButtonText", "Set as Default"))
@@ -180,6 +181,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									[
 										// reset defaults button
 										SNew(SButton)
+											.Visibility(this, &SSettingsEditor::EditingNonDefaultSettingsVisibility)
 											.IsEnabled(this, &SSettingsEditor::HandleResetToDefaultsButtonEnabled)
 											.OnClicked(this, &SSettingsEditor::HandleResetDefaultsButtonClicked)
 											.Text(LOCTEXT("ResetDefaultsButtonText", "Reset to Defaults"))
@@ -196,6 +198,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									.OnCheckOutClicked(this, &SSettingsEditor::HandleCheckOutButtonClicked)
 									.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
 									.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
+									.ConfigFilePath(this, &SSettingsEditor::GetCachedConfigFileName)
 									.LookingForSourceControlState(this, &SSettingsEditor::HandleLookingForSourceControlState)
 							]
 
@@ -732,6 +735,14 @@ bool SSettingsEditor::HandleResetToDefaultsButtonEnabled( ) const
 	}
 
 	return false;
+}
+
+
+EVisibility SSettingsEditor::EditingNonDefaultSettingsVisibility( ) const
+{
+	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
+
+	return (SelectedSection.IsValid() && SelectedSection->HasDefaultSettingsObject()) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 
