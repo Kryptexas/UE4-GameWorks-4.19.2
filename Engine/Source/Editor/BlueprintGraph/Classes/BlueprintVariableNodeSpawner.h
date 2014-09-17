@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "BlueprintVariableNodeSpawner.generated.h"
 
@@ -17,7 +17,7 @@ class UK2Node_Variable;
  * local function variables.
  */
 UCLASS(Transient)
-class BLUEPRINTGRAPH_API UBlueprintVariableNodeSpawner : public UBlueprintNodeSpawner
+class BLUEPRINTGRAPH_API UBlueprintVariableNodeSpawner : public UBlueprintFieldNodeSpawner
 {
 	GENERATED_UCLASS_BODY()
 
@@ -47,6 +47,7 @@ public:
 
 	// UBlueprintNodeSpawner interface
 	virtual void Prime() override;
+	virtual FBlueprintNodeSpawnerSignature GetSpawnerSignature() const override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
@@ -99,17 +100,13 @@ private:
 	 */
 	FText GetVariableName() const;
 
-	/** */
-	UPROPERTY()
-	TWeakObjectPtr<UProperty> MemberVariable;
-
 	/** The graph that the local variable belongs to (if this is a local variable spawner). */
 	UPROPERTY()
-	TWeakObjectPtr<UEdGraph>  LocalVarOuter;
+	UEdGraph* LocalVarOuter;
 
 	/** */
 	UPROPERTY()
-	FBPVariableDescription    LocalVarDesc;
+	FBPVariableDescription LocalVarDesc;
 
 	/** Constructing FText strings can be costly, so we cache the default menu name/category/tooltip */
 	FNodeTextCache CachedMenuName;

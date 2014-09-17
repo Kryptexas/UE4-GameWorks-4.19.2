@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEditorSettings.h"
 #include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
+#include "Editor/UnrealEd/Classes/Editor/EditorUserSettings.h"
 
 UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -13,4 +14,8 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructIni
 	// settings that were moved out of experimental...
 	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
 	bDrawMidpointArrowsInBlueprints = ExperimentalSettings->bDrawMidpointArrowsInBlueprints;
+
+	// settings that were moved out of editor-user settings...
+	UEditorUserSettings const* UserSettings = GetDefault<UEditorUserSettings>();
+	bShowActionMenuItemSignatures = UserSettings->bDisplayActionListItemRefIds;
 }

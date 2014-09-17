@@ -12,6 +12,8 @@
 #include "K2Node_ComponentBoundEvent.h"
 #include "EdGraphSchema_K2.h"		// for bUseLegacyActionMenus 
 #include "BlueprintEditorUtils.h"	// for DoesSupportComponents()
+#include "BlueprintPaletteFavorites.h"
+#include "K2ActionMenuBuilder.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuUtils"
 
@@ -22,19 +24,30 @@
 namespace BlueprintActionMenuUtilsImpl
 {
 	/**
+	 * Additional filter rejection test, for menu sections that only contain 
+	 * bound actions. Rejects any action that is not bound.
 	 * 
-	 * 
-	 * @param  Filter	
-	 * @param  BlueprintAction	
-	 * @return 
+	 * @param  Filter			The filter querying this rejection test.
+	 * @param  BlueprintAction	The action to test.
+	 * @return True if the spawner is unbound (and should be rejected), otherwise false.
 	 */
 	static bool IsUnBoundSpawner(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
+	 * Filter rejection test, for favorite menus. Rejects any actions that are 
+	 * not favorited by the user.
 	 * 
+	 * @param  Filter			The filter querying this rejection test.
+	 * @param  BlueprintAction	The action to test.
+	 * @return True if the spawner is not favorited (and should be rejected), otherwise false.
+	 */
+	static bool IsNonFavoritedAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
+	 * Utility function to find a common base class from a set of given classes.
 	 * 
-	 * @param  ClassSet	
-	 * @return 
+	 * @param  ClassSet	The set of classes that you want a single base class for.
+	 * @return A common base class for all the specified classes (fallsback to UObject's class).
 	 */
 	static UClass* FindCommonBaseClass(TArray<UClass*> const& ClassSet);
 }
@@ -43,6 +56,17 @@ namespace BlueprintActionMenuUtilsImpl
 static bool BlueprintActionMenuUtilsImpl::IsUnBoundSpawner(FBlueprintActionFilter const& /*Filter*/, FBlueprintActionInfo& BlueprintAction)
 {
 	return (BlueprintAction.GetBindings().Num() <= 0);
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionMenuUtilsImpl::IsNonFavoritedAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	UEditorUserSettings& EditorUserSettings = GEditor->AccessEditorUserSettings();
+	// grab the user's favorites
+	UBlueprintPaletteFavorites const* BlueprintFavorites = EditorUserSettings.BlueprintFavorites;
+	checkSlow(BlueprintFavorites != nullptr);
+
+	return !BlueprintFavorites->IsFavorited(BlueprintAction);
 }
 
 //------------------------------------------------------------------------------
@@ -246,6 +270,55 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 			MenuOut.AddAction(MsgAction);
 		}
 	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuUtils::MakeFavoritesMenu(FBlueprintActionContext const& Context, FBlueprintActionMenuBuilder& MenuOut)
+{
+	MenuOut.Empty();
+
+	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
+	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
+	{
+		FBlueprintActionFilter MenuFilter;
+		MenuFilter.Context = Context;
+		MenuFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(BlueprintActionMenuUtilsImpl::IsNonFavoritedAction));
+
+		MenuOut.AddMenuSection(MenuFilter);
+		MenuOut.RebuildActionList();
+	}
+	else
+	{
+		check(Context.Blueprints.Num() > 0);
+		FBlueprintPaletteListBuilder LegacyMenuBuilder(Context.Blueprints[0]);
+		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		FK2ActionMenuBuilder(K2Schema).GetPaletteActions(LegacyMenuBuilder, /*ClassFilter =*/nullptr);
+
+		UEditorUserSettings& EditorUserSettings = GEditor->AccessEditorUserSettings();
+		// grab the user's favorites
+		UBlueprintPaletteFavorites const* BlueprintFavorites = EditorUserSettings.BlueprintFavorites;
+		check(BlueprintFavorites != nullptr);
+
+		for (int32 ActionIndex = 0; ActionIndex < LegacyMenuBuilder.GetNumActions(); ++ActionIndex)
+		{
+			FGraphActionListBuilderBase::ActionGroup& ActionGroup = LegacyMenuBuilder.GetAction(ActionIndex);
+			if (!ensure(ActionGroup.Actions.Num() == 1))
+			{
+				continue;
+			}
+
+			TSharedPtr<FEdGraphSchemaAction> Action = ActionGroup.Actions[0];
+			if (!Action.IsValid())
+			{
+				continue;
+			}
+
+			if (BlueprintFavorites->IsFavorited(Action))
+			{
+				MenuOut.AddAction(Action);
+			}
+		}
+	} 	
 }
 
 #undef LOCTEXT_NAMESPACE

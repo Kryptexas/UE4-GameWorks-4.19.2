@@ -69,9 +69,9 @@ struct BLUEPRINTGRAPH_API FBlueprintActionInfo
 	UObject const* GetActionOwner();
 
 	/**
+	 * Retrieves any bindings that the action will apply to spawned nodes.
 	 * 
-	 * 
-	 * @return 
+	 * @return The set of bindings tied to this action.
 	 */
 	IBlueprintNodeBinder::FBindingSet const& GetBindings() const;
 
@@ -92,6 +92,13 @@ struct BLUEPRINTGRAPH_API FBlueprintActionInfo
 	 * @return The node type that the action will spawn.
 	 */
 	UClass const* GetNodeClass();
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	FGuid GetActionGuid();
 
 	/**
 	 * Certain actions are associated with specific member fields (a member 
@@ -133,12 +140,12 @@ private:
 	
 	/** */
 	UClass const*    CachedOwnerClass;
-	/** */
 	UField const*    CachedActionField;
-	/** */
 	UProperty const* CachedActionProperty;
-	/** */
 	UFunction const* CachedActionFunction;
+
+	/** */
+	FGuid CachedActionId;
 
 	/** */
 	IBlueprintNodeBinder::FBindingSet Bindings;

@@ -172,7 +172,7 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 		Outer = GetTransientPackage();
 	}
 	UBlueprintFunctionNodeSpawner* NodeSpawner = NewObject<UBlueprintFunctionNodeSpawner>(Outer);
-	NodeSpawner->Function = Function;
+	NodeSpawner->Field = Function;
 
 	if (NodeClass == nullptr)
 	{
@@ -183,13 +183,23 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 		NodeSpawner->NodeClass = NodeClass;
 	}
 
+	auto SetNodeFunctionLambda = [](UEdGraphNode* NewNode, UField const* Field)
+	{
+		// user could have changed the node class (to something like
+		// UK2Node_BaseAsyncTask, which also wraps a function)
+		if (UK2Node_CallFunction* FuncNode = Cast<UK2Node_CallFunction>(NewNode))
+		{
+			FuncNode->SetFromFunction(Cast<UFunction>(Field));
+		}
+	};
+	NodeSpawner->SetNodeFieldDelegate = FSetNodeFieldDelegate::CreateStatic(SetNodeFunctionLambda);
+
 	return NodeSpawner;
 }
 
 //------------------------------------------------------------------------------
 UBlueprintFunctionNodeSpawner::UBlueprintFunctionNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
 	: Super(PCIP)
-	, Function(nullptr)
 {
 }
 
@@ -206,31 +216,18 @@ void UBlueprintFunctionNodeSpawner::Prime()
 //------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* Function, FCustomizeNodeDelegate UserDelegate)
-	{
-		// user could have changed the node class (to something like
-		// UK2Node_BaseAsyncTask, which also wraps a function)
-		if (UK2Node_CallFunction* FuncNode = Cast<UK2Node_CallFunction>(NewNode))
-		{
-			FuncNode->SetFromFunction(Function);
-		}
-
-		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
-	};
-
 	// if this spawner was set up to spawn a bound node, reset this so the 
 	// bound nodes get positioned properly
 	BlueprintFunctionNodeSpawnerImpl::BindingOffset = FVector2D::ZeroVector;
 
-	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, Function, CustomizeNodeDelegate);
-	UEdGraphNode* SpawnedNode = Super::Invoke(ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
-
+	UEdGraphNode* SpawnedNode = Super::Invoke(ParentGraph, Bindings, Location);
 	return SpawnedNode;
 }
 
 //------------------------------------------------------------------------------
 FText UBlueprintFunctionNodeSpawner::GetDefaultMenuName() const
 {
+	UFunction const* Function = GetFunction();
 	check(Function != nullptr);
 	return FText::FromString(UK2Node_CallFunction::GetUserFacingFunctionName(Function));
 }
@@ -238,6 +235,7 @@ FText UBlueprintFunctionNodeSpawner::GetDefaultMenuName() const
 //------------------------------------------------------------------------------
 FText UBlueprintFunctionNodeSpawner::GetDefaultMenuCategory() const
 {
+	UFunction const* Function = GetFunction();
 	check(Function != nullptr);
 	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
 }
@@ -245,6 +243,7 @@ FText UBlueprintFunctionNodeSpawner::GetDefaultMenuCategory() const
 //------------------------------------------------------------------------------
 FText UBlueprintFunctionNodeSpawner::GetDefaultMenuTooltip() const
 {
+	UFunction const* Function = GetFunction();
 	check(Function != nullptr);
 
 	FText Tooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
@@ -258,6 +257,7 @@ FText UBlueprintFunctionNodeSpawner::GetDefaultMenuTooltip() const
 //------------------------------------------------------------------------------
 FString UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
 {
+	UFunction const* Function = GetFunction();
 	check(Function != nullptr);
 	
 	FString SearchKeywords = UK2Node_CallFunction::GetKeywordsForFunction(Function);
@@ -269,12 +269,13 @@ FString UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
 //------------------------------------------------------------------------------
 FName UBlueprintFunctionNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 {
-	return UK2Node_CallFunction::GetPaletteIconForFunction(Function, ColorOut);
+	return UK2Node_CallFunction::GetPaletteIconForFunction(GetFunction(), ColorOut);
 }
 
 //------------------------------------------------------------------------------
 bool UBlueprintFunctionNodeSpawner::CanBindMultipleObjects() const
 {
+	UFunction const* Function = GetFunction();
 	check(Function != nullptr);
 	return UK2Node_CallFunction::CanFunctionSupportMultipleTargets(Function);
 }
@@ -283,7 +284,7 @@ bool UBlueprintFunctionNodeSpawner::CanBindMultipleObjects() const
 bool UBlueprintFunctionNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
 	bool bCanBind = false;
-	if (Function != nullptr)
+	if (UFunction const* Function = GetFunction())
 	{
 		// @TODO: don't know exactly why we can only bind non-pure/const 
 		//        functions... this is mirrored after FK2ActionMenuBuilder::GetFunctionCallsOnSelectedActors()
@@ -318,7 +319,7 @@ bool UBlueprintFunctionNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Bind
 //------------------------------------------------------------------------------
 UFunction const* UBlueprintFunctionNodeSpawner::GetFunction() const
 {
-	return Function;
+	return Cast<UFunction>(GetField());
 }
 
 #undef LOCTEXT_NAMESPACE

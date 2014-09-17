@@ -30,6 +30,7 @@
 #include "BlueprintDragDropMenuItem.h"
 #include "BlueprintNodeSpawner.h"
 #include "TutorialMetaData.h"
+#include "BlueprintEditorSettings.h" // for bShowActionMenuItemSignatures
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 
@@ -995,7 +996,7 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 		InCreateData->OnRenameRequest->BindSP(InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
 	}
 
-	if (GEditor->EditorUserSettings->bDisplayActionListItemRefIds && ActionPtr.IsValid())
+	if (GetDefault<UBlueprintEditorSettings>()->bShowActionMenuItemSignatures && ActionPtr.IsValid())
 	{
 		check(InlineRenameWidget.IsValid());
 		TSharedPtr<IToolTip> ExistingToolTip = InlineRenameWidget->GetToolTip();

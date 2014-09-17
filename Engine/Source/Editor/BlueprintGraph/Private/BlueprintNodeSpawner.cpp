@@ -100,6 +100,12 @@ void UBlueprintNodeSpawner::Prime()
 }
 
 //------------------------------------------------------------------------------
+FBlueprintNodeSpawnerSignature UBlueprintNodeSpawner::GetSpawnerSignature() const
+{
+	return FBlueprintNodeSpawnerSignature(NodeClass);
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	return Invoke(ParentGraph, Bindings, Location, CustomizeNodeDelegate);

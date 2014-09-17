@@ -47,6 +47,9 @@ public:
 	 */
 	FSlateBrush const* GetMenuIcon(FSlateColor& ColorOut);
 
+	/** @return */
+	UBlueprintNodeSpawner const* GetRawAction() const;
+
 private:
 	/** Brush that should be used for the icon on this menu item. */
 	FSlateBrush const* IconBrush;

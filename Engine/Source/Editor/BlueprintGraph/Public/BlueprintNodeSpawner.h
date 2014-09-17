@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintNodeBinder.h"
+#include "BlueprintNodeSpawnerSignature.h"
 #include "BlueprintNodeSpawner.generated.h"
 
 // Forward declarations
@@ -80,6 +81,16 @@ public:
 	virtual void Prime();
 
 	/**
+	 * We want to be able to compare spawners, and have a signature that is 
+	 * rebuildable on subsequent runs. So, what makes each spawner unique is the 
+	 * type of node that it spawns, and any fields the node would be initialized 
+	 * with; that is what this returns.
+	 * 
+	 * @return A set of object-paths/names that distinguish this spawner from others.
+	 */
+	virtual FBlueprintNodeSpawnerSignature GetSpawnerSignature() const;
+
+	/**
 	 * Takes care of spawning a node for the specified graph. Looks to see if 
 	 * the supplied graph is transient, and if so, spawns a NOT fully formed
 	 * node (intended for template use).
@@ -94,10 +105,7 @@ public:
 	 * @param  Location     Where you want the new node positioned in the graph.
 	 * @return Null if it failed to spawn a node, otherwise a newly spawned node or possibly one that already existed.
 	 */
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const;
-	
-	// @TODO: for favorites, generated for the spawner type + data (function, property, node, etc.)
-	//virtual FGuid GetActionHash() const;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const;	
 	
 	/**
 	 * To save on performance, certain sub-classes can concoct menu names from

@@ -5,7 +5,6 @@
 // Forward declarations
 class UBlueprintNodeSpawner;
 
-
 struct FBlueprintNodeSpawnerUtils
 {
 	/**
@@ -18,7 +17,7 @@ struct FBlueprintNodeSpawnerUtils
 	static UField const* GetAssociatedField(UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
-	 * Certain node-spawners are associated with specific UFunction (call-
+	 * Certain node-spawners are associated with specific UFunctions (call-
 	 * function, and event spawners). This attempts to retrieve the function 
 	 * from the spawner.
 	 * 
@@ -28,10 +27,12 @@ struct FBlueprintNodeSpawnerUtils
 	static UFunction const* GetAssociatedFunction(UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
+	 * Certain node-spawners are associated with specific UProperties (get/set 
+	 * nodes, delegates, etc.). This attempts to retrieve a property from the
+	 * the spawner.
 	 * 
-	 * 
-	 * @param  BlueprintAction	
-	 * @return 
+	 * @param  BlueprintAction	The node-spawner you want an associated property for.
+	 * @return The action's associated property (null if it doesn't have one).
 	 */
 	static UProperty const* GetAssociatedProperty(UBlueprintNodeSpawner const* BlueprintAction);
 };

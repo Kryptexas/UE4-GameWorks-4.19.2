@@ -24,7 +24,7 @@ class UEditorUserSettings : public UObject
 	uint32 bDisplayDocumentationLink:1;
 
 	/** If enabled, tooltips on SGraphPaletteItems will show the associated action's string id */
-	UPROPERTY(EditAnywhere, config, Category=DeveloperTools)
+	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=DeveloperTools*/)
 	uint32 bDisplayActionListItemRefIds:1;
 	
 	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */

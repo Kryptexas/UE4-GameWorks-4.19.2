@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "BlueprintDelegateNodeSpawner.generated.h"
 
 // Forward declarations
@@ -14,7 +14,7 @@ class UK2Node_BaseMCDelegate;
  * FEdGraphSchemaAction_K2Delegate, FEdGraphSchemaAction_K2AssignDelegate, etc.
  */
 UCLASS(Transient)
-class BLUEPRINTGRAPH_API UBlueprintDelegateNodeSpawner : public UBlueprintNodeSpawner
+class BLUEPRINTGRAPH_API UBlueprintDelegateNodeSpawner : public UBlueprintFieldNodeSpawner
 {
 	GENERATED_UCLASS_BODY()
 
@@ -32,7 +32,6 @@ public:
 	static UBlueprintDelegateNodeSpawner* Create(TSubclassOf<UK2Node_BaseMCDelegate> NodeClass, UMulticastDelegateProperty const* const Property, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const override;
@@ -45,9 +44,4 @@ public:
 	 * @return The delegate property that this was initialized with.
 	 */
 	UMulticastDelegateProperty const* GetProperty() const;
-	
-private:
-	/** */
-	UPROPERTY()
-	TWeakObjectPtr<UMulticastDelegateProperty> Property;
 };

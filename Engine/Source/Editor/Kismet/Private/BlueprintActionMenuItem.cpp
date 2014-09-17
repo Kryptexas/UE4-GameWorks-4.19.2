@@ -174,4 +174,10 @@ FSlateBrush const* FBlueprintActionMenuItem::GetMenuIcon(FSlateColor& ColorOut)
 	return IconBrush;
 }
 
+//------------------------------------------------------------------------------
+UBlueprintNodeSpawner const* FBlueprintActionMenuItem::GetRawAction() const
+{
+	return Action;
+}
+
 #undef LOCTEXT_NAMESPACE

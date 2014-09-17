@@ -89,6 +89,22 @@ UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(class FPostConstructIniti
 }
 
 //------------------------------------------------------------------------------
+FBlueprintNodeSpawnerSignature UBlueprintEventNodeSpawner::GetSpawnerSignature() const
+{
+	FBlueprintNodeSpawnerSignature SpawnerSignature = Super::GetSpawnerSignature();
+	if (IsForCustomEvent() && !CustomEventName.IsNone())
+	{
+		static const FName CustomSignatureKey(TEXT("CustomEvent"));
+		SpawnerSignature.AddKeyValue(CustomSignatureKey, CustomEventName.ToString());
+	}
+	else
+	{
+		SpawnerSignature.AddSubObject(EventFunc);
+	}
+	return SpawnerSignature;
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	check(ParentGraph != nullptr);

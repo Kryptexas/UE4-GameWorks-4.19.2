@@ -51,7 +51,10 @@ public:
 	 * @param  ColorOut	An output parameter that's filled in with the color to tint the brush with.
 	 * @return An slate brush to be used for this menu item in the action menu.
 	 */
-	FSlateBrush const* GetMenuIcon(FSlateColor& ColorOut);	
+	FSlateBrush const* GetMenuIcon(FSlateColor& ColorOut);
+
+	/** @return   */
+	UBlueprintNodeSpawner const* GetBoundAction() const;
 
 private:
 	/** Instanced node-spawner, that comprises the action portion of this menu entry. */

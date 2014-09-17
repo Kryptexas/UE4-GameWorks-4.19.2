@@ -59,7 +59,7 @@ public:
 	 * @param  SampleAction	One of the (possibly) many node-spawners that this menu item is set to represent.
 	 * @return A newly allocated FBlueprintActionMenuItem (which wraps the supplied action).
 	 */
-	TSharedPtr<FEdGraphSchemaAction> MakeDragDropMenuItem(UBlueprintNodeSpawner const* SampleAction);
+	TSharedPtr<FBlueprintDragDropMenuItem> MakeDragDropMenuItem(UBlueprintNodeSpawner const* SampleAction);
 
 	/**
 	 * 
@@ -168,7 +168,7 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeActionMenu
 }
 
 //------------------------------------------------------------------------------
-TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeDragDropMenuItem(UBlueprintNodeSpawner const* SampleAction)
+TSharedPtr<FBlueprintDragDropMenuItem> FBlueprintActionMenuItemFactory::MakeDragDropMenuItem(UBlueprintNodeSpawner const* SampleAction)
 {
 	// FBlueprintDragDropMenuItem takes care of its own menu MenuDescription, etc.
 	FBlueprintDragDropMenuItem* NewMenuItem = new FBlueprintDragDropMenuItem(Context, SampleAction, MenuGrouping);
@@ -405,7 +405,7 @@ namespace FBlueprintActionMenuBuilderImpl
 		/** In charge of spawning menu items for this section (holds category/ordering information)*/
 		FBlueprintActionMenuItemFactory ItemFactory;
 		/** Tracks the properties that we've already consolidated and passed (when using the ConsolidatePropertyActions flag)*/
-		TSet<UProperty const*> ConsolidatedProperties;
+		TMap<UProperty const*, TSharedPtr<FBlueprintDragDropMenuItem>> ConsolidatedProperties;
 	};
 	
 	/**
@@ -510,9 +510,9 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDe
 //------------------------------------------------------------------------------
 TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::MakeMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo& DatabaseAction)
 {	
+	TSharedPtr<FEdGraphSchemaAction> MenuEntry;
 	bool bPassedFilter = !Filter.IsFiltered(DatabaseAction);
 
-	bool bCreateDragDropItem = false;
 	// if the caller wants to consolidate all property actions, then we have to 
 	// check and see if this is one of those that needs consolidating (needs 
 	// a FBlueprintDragDropMenuItem instead of a FBlueprintActionMenuItem)
@@ -521,37 +521,37 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDe
 		UProperty const* ActionProperty = nullptr;
 		if (UBlueprintVariableNodeSpawner const* VariableSpawner = Cast<UBlueprintVariableNodeSpawner>(DatabaseAction.NodeSpawner))
 		{
-			bCreateDragDropItem = true;
 			ActionProperty = VariableSpawner->GetVarProperty();
 			bPassedFilter = (ActionProperty != nullptr);
 		}
 		else if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner>(DatabaseAction.NodeSpawner))
 		{
-			bCreateDragDropItem = true;
 			ActionProperty = DelegateSpawner->GetProperty();
 			bPassedFilter = (ActionProperty != nullptr);
 		}
 
 		if (ActionProperty != nullptr)
 		{
-			// @TODO: could be added as a filter test instead
-			bool const bAlreadyConsolidated = ConsolidatedProperties.Contains(ActionProperty);
-			bPassedFilter = !bAlreadyConsolidated;
-			ConsolidatedProperties.Add(ActionProperty);
+			if (TSharedPtr<FBlueprintDragDropMenuItem>* ConsolidatedMenuItem = ConsolidatedProperties.Find(ActionProperty))
+			{
+				(*ConsolidatedMenuItem)->AppendAction(DatabaseAction.NodeSpawner);
+				// this menu entry has already been returned, don't need to 
+				// create/insert a new one
+				bPassedFilter = false;
+			}
+			else
+			{
+				TSharedPtr<FBlueprintDragDropMenuItem> NewMenuItem = ItemFactory.MakeDragDropMenuItem(DatabaseAction.NodeSpawner);
+				ConsolidatedProperties.Add(ActionProperty, NewMenuItem);
+				MenuEntry = NewMenuItem;
+			}
 		}
 	}
 
-	TSharedPtr<FEdGraphSchemaAction> MenuEntry;
-	if (bPassedFilter)
+	
+	if (!MenuEntry.IsValid() && bPassedFilter)
 	{
-		if (bCreateDragDropItem)
-		{
-			MenuEntry = ItemFactory.MakeDragDropMenuItem(DatabaseAction.NodeSpawner);
-		}
-		else
-		{
-			MenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, DatabaseAction.NodeSpawner);
-		}
+		MenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, DatabaseAction.NodeSpawner);
 	}
 
 	return MenuEntry;

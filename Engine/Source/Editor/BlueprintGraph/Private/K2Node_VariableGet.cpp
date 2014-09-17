@@ -105,7 +105,7 @@ void UK2Node_VariableGet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 	}
 }
 
-FText UK2Node_VariableGet::GetPropertyTooltip(UProperty* VariableProperty)
+FText UK2Node_VariableGet::GetPropertyTooltip(UProperty const* VariableProperty)
 {
 	FName VarName = NAME_None;
 	if (VariableProperty != nullptr)

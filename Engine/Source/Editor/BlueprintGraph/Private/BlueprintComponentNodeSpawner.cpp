@@ -36,6 +36,14 @@ UBlueprintComponentNodeSpawner::UBlueprintComponentNodeSpawner(class FPostConstr
 }
 
 //------------------------------------------------------------------------------
+FBlueprintNodeSpawnerSignature UBlueprintComponentNodeSpawner::GetSpawnerSignature() const
+{
+	FBlueprintNodeSpawnerSignature SpawnerSignature = Super::GetSpawnerSignature();
+	SpawnerSignature.AddSubObject(ComponentClass);
+	return SpawnerSignature;
+}
+
+//------------------------------------------------------------------------------
 // Evolved from a combination of FK2ActionMenuBuilder::CreateAddComponentAction()
 // and FEdGraphSchemaAction_K2AddComponent::PerformAction().
 UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const

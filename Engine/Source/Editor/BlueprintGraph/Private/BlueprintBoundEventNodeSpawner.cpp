@@ -35,6 +35,15 @@ UBlueprintBoundEventNodeSpawner::UBlueprintBoundEventNodeSpawner(class FPostCons
 }
 
 //------------------------------------------------------------------------------
+FBlueprintNodeSpawnerSignature UBlueprintBoundEventNodeSpawner::GetSpawnerSignature() const
+{
+	// explicit actions for binding (like this) cannot be reconstructed form a 
+	// signature (since this spawner does not own whatever it will be binding 
+	// to), therefore we return an empty (invalid) signature
+	return FBlueprintNodeSpawnerSignature();
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintBoundEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
 	UK2Node_Event* EventNode = nullptr;
@@ -127,7 +136,7 @@ bool UBlueprintBoundEventNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Bi
 	{
 		if (UObjectProperty const* BoundProperty = Cast<UObjectProperty>(Binding))
 		{
-			EventNode->InitializeComponentBoundEventParams(BoundProperty, EventDelegate.Get());
+			EventNode->InitializeComponentBoundEventParams(BoundProperty, EventDelegate);
 			bWasBound = true;
 			Node->ReconstructNode();
 		}
@@ -136,7 +145,7 @@ bool UBlueprintBoundEventNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Bi
 	{
 		if (AActor* BoundActor = Cast<AActor>(Binding))
 		{
-			EventNode->InitializeActorBoundEventParams(BoundActor, EventDelegate.Get());
+			EventNode->InitializeActorBoundEventParams(BoundActor, EventDelegate);
 			bWasBound = true;
 			Node->ReconstructNode();
 		}
@@ -147,7 +156,7 @@ bool UBlueprintBoundEventNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Bi
 //------------------------------------------------------------------------------
 UMulticastDelegateProperty const* UBlueprintBoundEventNodeSpawner::GetEventDelegate() const
 {
-	return EventDelegate.Get();
+	return EventDelegate;
 }
 
 #undef LOCTEXT_NAMESPACE

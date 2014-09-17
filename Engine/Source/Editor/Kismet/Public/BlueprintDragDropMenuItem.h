@@ -34,7 +34,7 @@ struct FBlueprintDragDropMenuItem : public FEdGraphSchemaAction
 public:
 	static FName StaticGetTypeId() { static FName const TypeId("FBlueprintDragDropMenuItem"); return TypeId; }
 	/** Default constructor for USTRUCT() purposes. */
-	FBlueprintDragDropMenuItem() : SampleAction(nullptr) {}
+	FBlueprintDragDropMenuItem() {}
 
 	/**
 	 * Sole constructor, which ensures that the RepresentativeAction member is
@@ -61,6 +61,15 @@ public:
 	 */
 	FSlateBrush const* GetMenuIcon(FSlateColor& ColorOut);
 
+	/** */
+	void AppendAction(UBlueprintNodeSpawner const* Action);
+
+	/** @return   */
+	UBlueprintNodeSpawner const* GetSampleAction() const;
+
+	/** @return   */
+	TSet<UBlueprintNodeSpawner const*> const& GetActionSet() const;
+
 	/**
 	 * Attempts to create a certain drag/drop action with respect to the 
 	 * set UBlueprintNodeSpawner.
@@ -72,5 +81,5 @@ public:
 
 private:
 	/** An arbitrary member of the node-spawner subset that this menu entry represents. */
-	UBlueprintNodeSpawner const* SampleAction;
+	TSet<UBlueprintNodeSpawner const*> ActionSet;
 };

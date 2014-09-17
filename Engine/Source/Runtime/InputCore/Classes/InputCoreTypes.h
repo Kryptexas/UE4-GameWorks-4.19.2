@@ -37,6 +37,7 @@ struct INPUTCORE_API FKey
 	bool IsBindableInBlueprints() const;
 	FText GetDisplayName() const;
 	FString ToString() const;
+	FName GetFName() const;
 
 	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
 	bool ExportTextItem(FString& ValueStr, FKey const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;

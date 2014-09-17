@@ -21,9 +21,9 @@
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintDragDropMenuItem, Log, All);
 
 //------------------------------------------------------------------------------
-FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* SampleActionIn, int32 MenuGrouping/* = 0*/)
-	: SampleAction(SampleActionIn)
+FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* SampleAction, int32 MenuGrouping/* = 0*/)
 {
+	AppendAction(SampleAction);
 	check(SampleAction != nullptr);
 	Grouping  = MenuGrouping;
 
@@ -87,7 +87,7 @@ FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext c
 UEdGraphNode* FBlueprintDragDropMenuItem::PerformAction(UEdGraph* ParentGraph, UEdGraphPin* FromPin, FVector2D const Location, bool bSelectNewNode/* = true*/)
 {
 	// we shouldn't get here (this should just be used for drag/drop ops), but just in case we do...
-	FBlueprintActionMenuItem BlueprintActionItem(SampleAction, nullptr, FSlateColor(FLinearColor::White));
+	FBlueprintActionMenuItem BlueprintActionItem(GetSampleAction(), nullptr, FSlateColor(FLinearColor::White));
 	return BlueprintActionItem.PerformAction(ParentGraph, FromPin, Location, bSelectNewNode);
 }
 
@@ -117,7 +117,16 @@ void FBlueprintDragDropMenuItem::AddReferencedObjects(FReferenceCollector& Colle
 	
 	// these don't get saved to disk, but we want to make sure the objects don't
 	// get GC'd while the action array is around
-	Collector.AddReferencedObject(SampleAction);
+	for (UBlueprintNodeSpawner const* Action : ActionSet)
+	{
+		Collector.AddReferencedObject(Action);
+	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintDragDropMenuItem::AppendAction(UBlueprintNodeSpawner const* Action)
+{
+	ActionSet.Add(Action);
 }
 
 //------------------------------------------------------------------------------
@@ -126,6 +135,7 @@ FSlateBrush const* FBlueprintDragDropMenuItem::GetMenuIcon(FSlateColor& ColorOut
 	FSlateBrush const* IconBrush = nullptr;
 	ColorOut = FSlateColor(FLinearColor::White);
 
+	UBlueprintNodeSpawner const* SampleAction = GetSampleAction();
 	if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner const>(SampleAction))
 	{
 		IconBrush = FEditorStyle::GetBrush(TEXT("GraphEditor.Delegate_16x"));
@@ -142,10 +152,24 @@ FSlateBrush const* FBlueprintDragDropMenuItem::GetMenuIcon(FSlateColor& ColorOut
 }
 
 //------------------------------------------------------------------------------
+UBlueprintNodeSpawner const* FBlueprintDragDropMenuItem::GetSampleAction() const
+{
+	check(ActionSet.Num() > 0);
+	return *ActionSet.CreateConstIterator();
+}
+
+//------------------------------------------------------------------------------
+TSet<UBlueprintNodeSpawner const*> const& FBlueprintDragDropMenuItem::GetActionSet() const
+{
+	return ActionSet;
+}
+
+//------------------------------------------------------------------------------
 TSharedPtr<FDragDropOperation> FBlueprintDragDropMenuItem::OnDragged(FNodeCreationAnalytic AnalyticsDelegate) const
 {
 	TSharedPtr<FDragDropOperation> DragDropAction = nullptr;
 
+	UBlueprintNodeSpawner const* SampleAction = GetSampleAction();
 	if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner const>(SampleAction))
 	{
 		if (UMulticastDelegateProperty const* Property = DelegateSpawner->GetProperty())

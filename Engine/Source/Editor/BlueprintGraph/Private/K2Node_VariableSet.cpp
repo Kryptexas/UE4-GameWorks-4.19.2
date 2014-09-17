@@ -28,7 +28,7 @@ namespace K2Node_VariableSetImpl
 	 * @param  VariableProperty	The variable property you wish to check.
 	 * @return True if the specified variable RepNotify AND is defined in a blueprint.
 	 */
-	static bool PropertyHasLocalRepNotify(UProperty* VariableProperty);
+	static bool PropertyHasLocalRepNotify(UProperty const* VariableProperty);
 }
 
 static FText K2Node_VariableSetImpl::GetBaseTooltip(FName VarName)
@@ -40,7 +40,7 @@ static FText K2Node_VariableSetImpl::GetBaseTooltip(FName VarName)
 
 }
 
-static bool K2Node_VariableSetImpl::PropertyHasLocalRepNotify(UProperty* VariableProperty)
+static bool K2Node_VariableSetImpl::PropertyHasLocalRepNotify(UProperty const* VariableProperty)
 {
 	if (VariableProperty != nullptr)
 	{
@@ -113,7 +113,7 @@ void UK2Node_VariableSet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 
 
 
-FText UK2Node_VariableSet::GetPropertyTooltip(UProperty* VariableProperty)
+FText UK2Node_VariableSet::GetPropertyTooltip(UProperty const* VariableProperty)
 {
 	FText TextFormat;
 	FFormatNamedArguments Args;

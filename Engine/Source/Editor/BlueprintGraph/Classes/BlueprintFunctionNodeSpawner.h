@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.generated.h"
 
 // Forward declarations
@@ -13,7 +13,7 @@ class UK2Node_CallFunction;
  * "action" portion of certain FBlueprintActionMenuItems. 
  */
 UCLASS(Transient)
-class BLUEPRINTGRAPH_API UBlueprintFunctionNodeSpawner : public UBlueprintNodeSpawner
+class BLUEPRINTGRAPH_API UBlueprintFunctionNodeSpawner : public UBlueprintFieldNodeSpawner
 {
 	GENERATED_UCLASS_BODY()
 
@@ -64,9 +64,4 @@ public:
 	 * @return The function that this class was initialized with.
 	 */
 	UFunction const* GetFunction() const;
-
-private:
-	/** The function to configure new nodes with. */
-	UPROPERTY()
-	UFunction const* Function;
 };

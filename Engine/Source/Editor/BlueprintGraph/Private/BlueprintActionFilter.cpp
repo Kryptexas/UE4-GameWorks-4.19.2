@@ -1047,6 +1047,7 @@ namespace EBlueprintActionInfoFlags
 		CachedField    = (1 << 1),
 		CachedProperty = (1 << 2),
 		CachedFunction = (1 << 3),
+		CachedGuid     = (1 << 4),
 	};
 }
 
@@ -1115,6 +1116,17 @@ UClass const* FBlueprintActionInfo::GetNodeClass()
 	UClass const* NodeClass = NodeSpawner->NodeClass;
 	checkSlow(NodeClass != nullptr);
 	return NodeClass;
+}
+
+//------------------------------------------------------------------------------
+FGuid FBlueprintActionInfo::GetActionGuid()
+{
+	if ((CacheFlags & EBlueprintActionInfoFlags::CachedGuid) == 0)
+	{
+		CachedActionId = NodeSpawner->GetSpawnerSignature().AsGuid();
+		CacheFlags |= EBlueprintActionInfoFlags::CachedGuid;
+	}
+	return CachedActionId;
 }
 
 //------------------------------------------------------------------------------

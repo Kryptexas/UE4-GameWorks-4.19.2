@@ -24,22 +24,13 @@ UBlueprintDelegateNodeSpawner* UBlueprintDelegateNodeSpawner::Create(TSubclassOf
 	}
 
 	UBlueprintDelegateNodeSpawner* NodeSpawner = NewObject<UBlueprintDelegateNodeSpawner>(Outer);
-	NodeSpawner->Property  = Property;
+	NodeSpawner->Field     = Property;
 	NodeSpawner->NodeClass = NodeClass;
-	return NodeSpawner;
-}
 
-//------------------------------------------------------------------------------
-UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
-{
-}
-
-//------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintDelegateNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
-{
-	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UMulticastDelegateProperty const* Property, FCustomizeNodeDelegate UserDelegate)
+	auto SetDelegateLambda = [](UEdGraphNode* NewNode, UField const* Field)
 	{
+		UMulticastDelegateProperty const* Property = Cast<UMulticastDelegateProperty>(Field);
+
 		UK2Node_BaseMCDelegate* DelegateNode = Cast<UK2Node_BaseMCDelegate>(NewNode);
 		if ((DelegateNode != nullptr) && (Property != nullptr))
 		{
@@ -49,11 +40,16 @@ UEdGraphNode* UBlueprintDelegateNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 
 			DelegateNode->SetFromProperty(Property, bIsSelfContext);
 		}
-		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
 	};
+	NodeSpawner->SetNodeFieldDelegate = FSetNodeFieldDelegate::CreateStatic(SetDelegateLambda);
 
-	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, GetProperty(), CustomizeNodeDelegate);
-	return Super::Invoke(ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
+	return NodeSpawner;
+}
+
+//------------------------------------------------------------------------------
+UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
+	: Super(PCIP)
+{
 }
 
 //------------------------------------------------------------------------------
@@ -108,8 +104,7 @@ FName UBlueprintDelegateNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) 
 //------------------------------------------------------------------------------
 UMulticastDelegateProperty const* UBlueprintDelegateNodeSpawner::GetProperty() const
 {
-	// Get() does IsValid() checks for us
-	return Property.Get();
+	return Cast<UMulticastDelegateProperty>(GetField());
 }
 
 #undef LOCTEXT_NAMESPACE

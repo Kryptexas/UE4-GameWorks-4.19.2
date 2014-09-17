@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "BlueprintNodeSpawnerSignature.h"
 #include "BlueprintPaletteFavorites.generated.h"
+
+// Forward Declarations
+class  UBlueprintNodeSpawner;
+struct FBlueprintActionInfo;
 
 /*******************************************************************************
 * FFavoritedPaletteItem
@@ -29,7 +34,15 @@ public:
 	 * 
 	 * @param  PaletteAction	The action you wish to favorite.
 	 */
-	FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGraphSchemaAction> PaletteAction = NULL);
+	FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGraphSchemaAction> PaletteAction = nullptr);
+
+	/**
+	 * 
+	 * 
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	FFavoritedBlueprintPaletteItem(UBlueprintNodeSpawner const* BlueprintAction);
 
 	/**
 	 * Sometimes we're not able to construct favorites from specified actions, 
@@ -57,44 +70,31 @@ public:
 	bool operator==(TSharedPtr<FEdGraphSchemaAction> PaletteAction) const;
 
 	/**
+	 * 
+	 * 
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	bool operator==(FBlueprintActionInfo& BlueprintAction) const;
+
+	/**
+	 * 
+	 * 
+	 * @param  ActionGuid	
+	 * @return 
+	 */
+	bool operator==(FGuid const& ActionGuid) const;
+
+	/**
 	 * We want to be able to specify some of these in .ini files, so let we have
 	 * to have a readable string representation for them.
 	 * 
 	 * @return A string representation of this item.
 	 */
-	FString ToString() const;
+	FString const& ToString() const;
 
 private:
-
-	/**
-	 * Blueprint palette actions are used to place new nodes. So to uniquely 
-	 * identify the action, we specify the node that they generate (this is the 
-	 * node's type name).
-	 */
-	UPROPERTY()
-	FString  NodeClassName;
-
-	/**
-	 * Multiple node types could share the same name, so to ensure we get the 
-	 * right one we track its outer as well.
-	 */
-	UPROPERTY()
-	UObject* NodeClassOuter;
-	
-	/** 
-	 * Sometimes a node has multiple permutations (like UK2Node_CallFunction), so
-	 * you need a more granular way of identifying it (like the function itself). 
-	 * This could be empty, or filled in if we need that additional granularity.
-	 */
-	UPROPERTY()
-	FString  FieldName;
-
-	/** 
-	 * Like FieldName, this is used to more granularly identify UK2Nodes (could
-	 * be null if it's not needed).
-	 */
-	UPROPERTY()
-	UObject* FieldOuter;
+	FBlueprintNodeSpawnerSignature ActionSignature;
 };
 
 /*******************************************************************************
@@ -129,6 +129,22 @@ public:
 	 * @return True if this action is already favorited, false if it not.
 	 */
 	bool IsFavorited(TSharedPtr<FEdGraphSchemaAction> PaletteAction) const;
+
+	/**
+	 * 
+	 * 
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	bool IsFavorited(FBlueprintActionInfo& BlueprintAction) const;
+
+	/**
+	 * 
+	 * 
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	bool IsFavorited(UBlueprintNodeSpawner const* BlueprintAction) const;
 
 	/**
 	 * Adds the specified action to the current favorites list (fails if the action
@@ -234,7 +250,7 @@ public:
 	/** 
 	 * A list of strings that are used to identify specific palette actions. 
 	 * This is what gets saved out when the user has customized their own set, 
-	 * and is not updated untile PreSave().
+	 * and is not updated until PreSave().
 	 */
 	UPROPERTY(config)
 	TArray<FString> CustomFavorites;
