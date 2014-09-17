@@ -4,7 +4,6 @@
 #include "EditorTutorialFactory.h"
 #include "EditorTutorial.h"
 #include "KismetEditorUtilities.h"
-#include "SEditorTutorialImporter.h"
 #include "IAssetTypeActions.h"
 
 #define LOCTEXT_NAMESPACE "UEditorTutorialFactory"
@@ -17,37 +16,9 @@ UEditorTutorialFactory::UEditorTutorialFactory(const class FPostConstructInitial
 	SupportedClass = UBlueprint::StaticClass();
 }
 
-bool UEditorTutorialFactory::ConfigureProperties()
-{
-	// show import dialog
-	TSharedRef<SWindow> Window = SNew(SWindow)
-			.Title(LOCTEXT("WindowTitle", "Import Tutorial"))
-			.SupportsMaximize(false)
-			.SupportsMinimize(false)
-			.SizingRule(ESizingRule::Autosized);	
-
-	ImporterDialog = SNew(SEditorTutorialImporter)
-		.ParentWindow(Window);
-
-	Window->SetContent(ImporterDialog.ToSharedRef());
-
-	TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-	FSlateApplication::Get().AddModalWindow(Window, RootWindow);
-
-	return true;
-}
-
 UObject* UEditorTutorialFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UBlueprint* NewBlueprint = FKismetEditorUtilities::CreateBlueprint(UEditorTutorial::StaticClass(), InParent, Name, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), NAME_None);
-	
-	if(ImporterDialog.IsValid() && !ImporterDialog->GetImportPath().IsEmpty())
-	{
-		ImporterDialog->Import(CastChecked<UEditorTutorial>(NewBlueprint->GeneratedClass->GetDefaultObject()));
-		ImporterDialog = nullptr;
-	}
-
-	return NewBlueprint;
+	return FKismetEditorUtilities::CreateBlueprint(UEditorTutorial::StaticClass(), InParent, Name, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), NAME_None);
 }
 
 uint32 UEditorTutorialFactory::GetMenuCategories() const

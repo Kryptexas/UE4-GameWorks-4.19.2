@@ -240,6 +240,10 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	FStringAssetReference AssetToUse;
 
+	/** The path this tutorial was imported from, if any. */
+	UPROPERTY()
+	FString ImportPath;
+
 public:
 	/** Called when a tutorial stage is started */
 	void HandleTutorialStageStarted(FName StageName);
