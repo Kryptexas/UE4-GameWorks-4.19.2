@@ -1159,7 +1159,11 @@ public:
 
 static TAutoConsoleVariable<int32> CVarParallelInitViews(
 	TEXT("r.ParallelInitViews"),
+#if WITH_EDITOR
 	0,  
+#else
+	1,  
+#endif
 	TEXT("Toggles parallel init views.\n"),
 	ECVF_RenderThreadSafe
 	);
