@@ -623,7 +623,7 @@ AActor* FActorFactoryAssetProxy::AddActorFromSelection( UClass* ActorClass, cons
 	{
 		UObject* TargetObject = GEditor->GetSelectedObjects()->GetTop<UObject>();
 
-		if( ActorFactory->CanCreateActorFrom( FAssetData(TargetObject), ErrorMessage ) )
+		if( TargetObject && ActorFactory->CanCreateActorFrom( FAssetData(TargetObject), ErrorMessage ) )
 		{
 			// Attempt to add the actor
 			Result = PrivateAddActor( TargetObject, ActorFactory, SelectActor, ObjectFlags );
