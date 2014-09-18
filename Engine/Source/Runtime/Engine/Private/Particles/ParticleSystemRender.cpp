@@ -1453,7 +1453,7 @@ int32 FDynamicSpriteEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy,
 
 	const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
 	check(SourceData);
-	FParticleSpriteVertexFactory* SpriteVertexFactory = (FParticleSpriteVertexFactory*)VertexFactory;
+	FParticleSpriteVertexFactory* SpriteVertexFactory = (FParticleSpriteVertexFactory*)GetVertexFactory(Proxy);
 
 	int32 NumDraws = 0;
 	if (SourceData->EmitterRenderMode == ERM_Normal)
@@ -1561,23 +1561,13 @@ int32 FDynamicSpriteEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy,
 }
 
 
+FParticleVertexFactoryBase* FDynamicSpriteEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
+{
+	return GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite, InOwnerProxy->GetScene()->GetFeatureLevel());
+}
 
-/**
- *	Create the render thread resources for this emitter data
- *
- *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
- *
- *	@return	bool			true if successful, false if failed
- */
 void FDynamicSpriteEmitterData::UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	// Create the vertex factory...
-	if (VertexFactory == NULL)
-	{
-		VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite, InOwnerProxy->GetScene()->GetFeatureLevel());
-		check(VertexFactory);
-	}
-
 	// Generate the uniform buffer.
 	const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
 	if( SourceData )
@@ -1784,23 +1774,15 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 	Source.MaterialInterface = NULL;
 }
 
-/**
- *	Create the render thread resources for this emitter data
- *
- *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
- *
- *	@return	bool			true if successful, false if failed
- */
+FParticleVertexFactoryBase* FDynamicMeshEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
+{
+	FParticleVertexFactoryBase* VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh, InOwnerProxy->GetScene()->GetFeatureLevel());
+	SetupVertexFactory((FMeshParticleVertexFactory*)VertexFactory, StaticMesh->RenderData->LODResources[0]);
+	return VertexFactory;
+}
+
 void FDynamicMeshEmitterData::UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	// Create the vertex factory
-	if (VertexFactory == NULL)
-	{
-		VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh, InOwnerProxy->GetScene()->GetFeatureLevel());
-		check(VertexFactory);
-		SetupVertexFactory((FMeshParticleVertexFactory*)VertexFactory, StaticMesh->RenderData->LODResources[0]);
-	}
-
 	// Generate the uniform buffer.
 	const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
 	if( SourceData )
@@ -2043,7 +2025,7 @@ int32 FDynamicMeshEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy, F
 		// Only unsorted instance data will exist for unsorted emitters and must be used for all views being rendered. 
 		const int32 InstanceBufferIndex = ((Source.SortMode == PSORTMODE_None) ? 0 : ViewIndex);
 
-		FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
+		FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)GetVertexFactory(Proxy);
 
 		if(bInstanced)
 		{
@@ -2167,7 +2149,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 	}
 
 	// Setup the vertex factory.
-	FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
+	FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)GetVertexFactory(Proxy);
 	MeshVertexFactory->SetUniformBuffer( UniformBuffer );
 
 	// Update the primitive uniform buffer
@@ -2200,7 +2182,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 					FMeshBatch& Mesh = *MeshPtr;
 					Mesh.Elements.Reset();
 					FMeshBatchElement& BatchElement = *new(Mesh.Elements) FMeshBatchElement();
-					Mesh.VertexFactory = VertexFactory;
+					Mesh.VertexFactory = GetVertexFactory(Proxy);
 					Mesh.DynamicVertexData = NULL;
 					Mesh.LCI = NULL;
 					Mesh.UseDynamicData = false;
@@ -2893,22 +2875,9 @@ void FDynamicBeam2EmitterData::Init( bool bInSelected )
 	Source.MaterialInterface = NULL;
 }
 
-/**
- *	Create the render thread resources for this emitter data
- *
- *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
- *
- *	@return	bool			true if successful, false if failed
- */
-void FDynamicBeam2EmitterData::UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
+FParticleVertexFactoryBase* FDynamicBeam2EmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	// Create the vertex factory...
-	//@todo. Cache these??
-	if (VertexFactory == NULL)
-	{
-		VertexFactory = (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
-		check(VertexFactory);
-	}
+	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
 }
 
 /** Perform the actual work of filling the buffer, often called from another thread 
@@ -3122,7 +3091,7 @@ int32 FDynamicBeam2EmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy, 
 			}
 
 			// Create and set the uniform buffer for this emitter.
-			FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = (FParticleBeamTrailVertexFactory*)VertexFactory;
+			FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = (FParticleBeamTrailVertexFactory*)GetVertexFactory(Proxy);
 			BeamTrailVertexFactory->SetBeamTrailUniformBuffer( CreateBeamTrailUniformBuffer( Proxy, &Source, View ) );			
 
 			if( Allocation && IndexAllocation && Allocation->IsValid() && IndexAllocation->IsValid() )
@@ -5849,21 +5818,9 @@ void FDynamicTrailsEmitterData::Init(bool bInSelected)
 	SourcePointer->MaterialInterface = NULL;
 }
 
-/**
- *	Create the render thread resources for this emitter data
- *
- *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
- *
- *	@return	bool			true if successful, false if failed
- */
-void FDynamicTrailsEmitterData::UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
+FParticleVertexFactoryBase* FDynamicTrailsEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	// Create the vertex factory...
-	if (VertexFactory == NULL)
-	{
-		VertexFactory = (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
-		check(VertexFactory);
-	}
+	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
 }
 
 void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const
@@ -6038,7 +5995,7 @@ int32 FDynamicTrailsEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy,
 		if ( Allocation && IndexAllocation && Allocation->IsValid() && IndexAllocation->IsValid() && (!bUsesDynamicParameter || (DynamicParameterAllocation && DynamicParameterAllocation->IsValid())) )
 		{
 			// Create and set the uniform buffer for this emitter.
-			FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = (FParticleBeamTrailVertexFactory*)VertexFactory;
+			FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = (FParticleBeamTrailVertexFactory*)GetVertexFactory(Proxy);
 			BeamTrailVertexFactory->SetBeamTrailUniformBuffer( CreateBeamTrailUniformBuffer( Proxy, SourcePointer, View ) );
 			BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()) );
 			BeamTrailVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation ? DynamicParameterAllocation->VertexBuffer : NULL, DynamicParameterAllocation ? DynamicParameterAllocation->VertexOffset : 0, GetDynamicParameterVertexStride() );

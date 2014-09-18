@@ -3513,7 +3513,7 @@ bool FParticleMeshEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase
 
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)
 	: bSelected(false)
-	, VertexFactory(NULL)
+	, ParticleVertexFactory(nullptr)
 {
 }
 

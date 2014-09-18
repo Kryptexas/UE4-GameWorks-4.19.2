@@ -1292,19 +1292,28 @@ struct FDynamicEmitterDataBase
 	 *	Create the render thread resources for this emitter data
 	 *
 	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
 	 */
 	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
 	{
 	}
 
 	/**
+	 *	Get the vertex factory for this emitter data, possibly creating it
+	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
+	 */
+	FParticleVertexFactoryBase* GetVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
+	{
+		if (!ParticleVertexFactory)
+		{
+			ParticleVertexFactory = BuildVertexFactory(InOwnerProxy);
+		}
+		return ParticleVertexFactory;
+	}
+
+	/**
 	 *	Release the render thread resources for this emitter data
 	 *
 	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
 	 */
 	virtual void ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
 	{
@@ -1353,8 +1362,18 @@ struct FDynamicEmitterDataBase
 	/** true if this emitter has valid rendering data */
 	uint32	bValid:1;
 
+protected:
+	/**
+	 *	Create the vertex factory for this emitter data
+	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
+	 */
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
+	{
+		return nullptr;
+	}
+
 	/** The vertex factory used for rendering */
-	FParticleVertexFactoryBase* VertexFactory; // RENDER-THREAD USAGE ONLY!!!
+	FParticleVertexFactoryBase* ParticleVertexFactory; // RENDER-THREAD USAGE ONLY!!!
 
 private:
 
@@ -1363,10 +1382,10 @@ private:
 	 */
 	void ReturnVertexFactory()
 	{
-		if (VertexFactory != NULL)
+		if (ParticleVertexFactory != NULL)
 		{
-			GParticleVertexFactoryPool.ReturnParticleVertexFactory(VertexFactory);
-			VertexFactory = NULL;
+			GParticleVertexFactoryPool.ReturnParticleVertexFactory(ParticleVertexFactory);
+			ParticleVertexFactory = NULL;
 		}
 	}
 };
@@ -1704,6 +1723,8 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 */
 	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy);
 
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
+
 	/**
 	 *	Release the render thread resources for this emitter data
 	 *
@@ -1799,6 +1820,8 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@return	bool			true if successful, false if failed
 	 */
 	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy);
+
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
 
 	/**
 	 *	Release the render thread resources for this emitter data
@@ -2105,16 +2128,10 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
 
-	/**
-	 *	Create the render thread resources for this emitter data
-	 *
-	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
-	 */
-	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy);
 
 	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+	
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
 
 	/**
 	 *	Render thread only draw call
@@ -2276,14 +2293,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
 
-	/**
-	 *	Create the render thread resources for this emitter data
-	 *
-	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
-	 */
-	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy);
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
 
 	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
 

@@ -134,10 +134,20 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 		}
 		if(NumBones)
 		{
-			float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
-			checkSlow(Data);
-			FMemory::Memcpy(Data, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
-			RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
+#if PLATFORM_SUPPORTS_RHI_THREAD
+			check(VectorArraySize == NumBones * sizeof(BoneMatrices[0]));
+			if (GRHIThread)
+			{
+				GRHICommandList.GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
+			}
+			else
+#endif
+			{
+				float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
+				checkSlow(Data);
+				FMemory::Memcpy(Data, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
+				RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
+			}
 		}
 	}
 	else
@@ -165,7 +175,7 @@ float* FBoneDataVertexBuffer::LockData()
 	check(IsInRenderingThread() && GetSizeX() && IsValidRef(BoneBuffer));
 	check(!AllocSize && !AllocBlock);
 	AllocSize = ComputeMemorySize();
-	AllocBlock = FMemory::Malloc(((AllocSize + 15) / 16) * 16, 16);
+	AllocBlock = FMemory::Malloc(AllocSize + 15, 16);
 	float* Data = (float*)AllocBlock;
 	check(AllocSize && AllocBlock);
 	check(Data);
@@ -177,7 +187,7 @@ void FBoneDataVertexBuffer::UnlockData()
 	check(IsValidRef(BoneBuffer));
 	check(IsInRenderingThread() && AllocBlock && AllocSize);
 	FRHICommandListExecutor::GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, AllocBlock, AllocSize);
-	// UpdateVertexBuffer will free the block after the update
+	FMemory::Free(AllocBlock);
 	AllocBlock = nullptr;
 	AllocSize = 0;
 }

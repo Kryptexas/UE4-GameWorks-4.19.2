@@ -373,7 +373,6 @@ void FRHICommandUpdateVertexBuffer::Execute()
 	void* Data = INTERNAL_DECORATOR(LockVertexBuffer)(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
 	FMemory::Memcpy(Data, Buffer, BufferSize);
 	INTERNAL_DECORATOR(UnlockVertexBuffer)(VertexBuffer);
-	FMemory::Free((void*)Buffer);
 }
 
 void FRHICommandBeginFrame::Execute()

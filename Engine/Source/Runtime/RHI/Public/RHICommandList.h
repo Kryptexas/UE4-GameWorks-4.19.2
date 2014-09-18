@@ -1663,10 +1663,11 @@ public:
 			void* Data = LockVertexBuffer_Internal(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
 			FMemory::Memcpy(Data, Buffer, BufferSize);
 			UnlockVertexBuffer_Internal(VertexBuffer);
-			FMemory::Free((void*)Buffer);
 			return;
 		}
-		new (AllocCommand<FRHICommandUpdateVertexBuffer>()) FRHICommandUpdateVertexBuffer(VertexBuffer, Buffer, BufferSize);
+		void* Data = Alloc(BufferSize, 16);
+		FMemory::Memcpy(Data, Buffer, BufferSize);
+		new (AllocCommand<FRHICommandUpdateVertexBuffer>()) FRHICommandUpdateVertexBuffer(VertexBuffer, Data, BufferSize);
 	}
 	FORCEINLINE_DEBUGGABLE void BeginRenderQuery(FRenderQueryRHIParamRef RenderQuery)
 	{

@@ -1876,7 +1876,7 @@ DEFINE_RHIMETHOD_3(
 	uint32,ColorBitMask,
 	,
 	);
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,SetRenderTargetsAndClear,
 	const FRHISetRenderTargetsInfo&, RenderTargetsInfo,
 	,
