@@ -73,7 +73,14 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) {}
 
-	
+	/** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
+	virtual void ExternalConfirm(bool bEndTask);
+
+	/** Called when the ability is asked to cancel from an outside node. What this means depends on the individual task. By default, this does nothing other than ending the task. */
+	virtual void ExternalCancel();
+
+	/** Return debug string describing task */
+	virtual FString GetDebugString() const;
 	
 	/** GameplayAbility that created us */
 	TWeakObjectPtr<UGameplayAbility> Ability;
@@ -104,14 +111,6 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 
 	/** Called explicitly to end the task (usually by the task itself). Calls OnDestroy. */
 	void EndTask();
-
-	/** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
-	virtual void ExternalConfirm(bool bEndTask);
-
-	/** Called when the ability is asked to cancel from an outside node. What this means depends on the individual task. By default, this does nothing other than ending the task. */
-	virtual void ExternalCancel();
-
-public:
 
 	/** This name allows us to find the task later so that we can end it. */
 	UPROPERTY()

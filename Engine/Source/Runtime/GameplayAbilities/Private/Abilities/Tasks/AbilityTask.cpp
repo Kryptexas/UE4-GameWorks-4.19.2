@@ -98,3 +98,8 @@ void UAbilityTask::OnDestroy(bool AbilityIsEnding)
 
 	MarkPendingKill();
 }
+
+FString UAbilityTask::GetDebugString() const
+{
+	return FString::Printf(TEXT("Generic %s"), *GetName());
+}

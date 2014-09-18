@@ -59,3 +59,18 @@ void UAbilityTask_PlayMontageAndWait::OnDestroy(bool AbilityEnded)
 
 	Super::OnDestroy(AbilityEnded);
 }
+
+FString UAbilityTask_PlayMontageAndWait::GetDebugString() const
+{
+	UAnimMontage* PlayingMontage = nullptr;
+	if (Ability.IsValid())
+	{
+		const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
+		if (ActorInfo->AnimInstance.IsValid())
+		{
+			PlayingMontage = ActorInfo->AnimInstance->GetCurrentActiveMontage();
+		}
+	}
+
+	return FString::Printf(TEXT("PlayMontageAndWait. MontageToPlay: %s  (Currently Playing): %s"), *GetNameSafe(MontageToPlay), *GetNameSafe(PlayingMontage));
+}
