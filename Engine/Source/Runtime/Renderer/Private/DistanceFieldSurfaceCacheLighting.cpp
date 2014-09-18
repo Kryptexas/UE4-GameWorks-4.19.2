@@ -2190,9 +2190,10 @@ void PostProcessBentNormalAO(
 	}
 }
 
-class FDistanceFieldAOUpsamplePS : public FGlobalShader
+template<bool bOutputBentNormal>
+class TDistanceFieldAOUpsamplePS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FDistanceFieldAOUpsamplePS, Global);
+	DECLARE_SHADER_TYPE(TDistanceFieldAOUpsamplePS, Global);
 public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
@@ -2203,13 +2204,14 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
+		OutEnvironment.SetDefine(TEXT("OUTPUT_BENT_NORMAL"), bOutputBentNormal ? TEXT("1") : TEXT("0"));
 	}
 
 	/** Default constructor. */
-	FDistanceFieldAOUpsamplePS() {}
+	TDistanceFieldAOUpsamplePS() {}
 
 	/** Initialization constructor. */
-	FDistanceFieldAOUpsamplePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	TDistanceFieldAOUpsamplePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		DeferredParameters.Bind(Initializer.ParameterMap);
@@ -2243,9 +2245,10 @@ private:
 	FShaderResourceParameter BentNormalAOSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(,FDistanceFieldAOUpsamplePS,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("AOUpsamplePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldAOUpsamplePS<true>,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("AOUpsamplePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldAOUpsamplePS<false>,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("AOUpsamplePS"),SF_Pixel);
 
-void UpsampleBentNormalAO(FRHICommandList& RHICmdList, const TArray<FViewInfo>& Views, TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal)
+void UpsampleBentNormalAO(FRHICommandList& RHICmdList, const TArray<FViewInfo>& Views, TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal, bool bOutputBentNormal)
 {
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -2259,13 +2262,21 @@ void UpsampleBentNormalAO(FRHICommandList& RHICmdList, const TArray<FViewInfo>& 
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 		TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
-		TShaderMapRef<FDistanceFieldAOUpsamplePS> PixelShader(View.ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-		PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal);
+		if (bOutputBentNormal)
+		{
+			TShaderMapRef<TDistanceFieldAOUpsamplePS<true> > PixelShader(View.ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal);
+		}
+		else
+		{
+			TShaderMapRef<TDistanceFieldAOUpsamplePS<false> > PixelShader(View.ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal);
+		}
 
 		DrawRectangle( 
 			RHICmdList,
@@ -3017,7 +3028,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 				}
 
 				// Upsample to full resolution, write to output
-				UpsampleBentNormalAO(RHICmdList, Views, AOOutput);
+				UpsampleBentNormalAO(RHICmdList, Views, AOOutput, !bApplyToSceneColor);
 
 				return true;
 			}
