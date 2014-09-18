@@ -32,7 +32,7 @@ void UTextBlock::ReleaseNativeWidget()
 	MyTextBlock.Reset();
 }
 
-void UTextBlock::SetColorAndOpacity(FLinearColor InColorAndOpacity)
+void UTextBlock::SetColorAndOpacity(FSlateColor InColorAndOpacity)
 {
 	ColorAndOpacity = InColorAndOpacity;
 	if( MyTextBlock.IsValid() )

@@ -17,7 +17,7 @@ public:
 	 * @param InColorAndOpacity		The new text color and opacity
 	 */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
+	void SetColorAndOpacity(FSlateColor InColorAndOpacity);
 
 	/**  
 	 * Sets the color and opacity of the text drop shadow
@@ -54,7 +54,7 @@ public:
 
 	/** The color of the text */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FLinearColor ColorAndOpacity;
+	FSlateColor ColorAndOpacity;
 
 	/** A bindable delegate for the ColorAndOpacity. */
 	UPROPERTY()
