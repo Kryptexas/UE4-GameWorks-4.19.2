@@ -770,29 +770,13 @@ namespace APIDocTool
 			}
 			Writer.WriteParam("icons", ItemIcons);
 
-			// If the function is overloaded, format the display name with a list of arguments
-			string DisplayName = Markdown.EscapeText(Name);
-			if (Parent is APIFunctionGroup)
-			{
-				string ArgumentList = String.Format("&#40;{0}&#41;", String.Join(", ", Parameters.Select(x => x.TypeText)));
-
-				int MaxArgumentListLength = Math.Max(50 - DisplayName.Length, 10);
-				if (ArgumentList.Length > MaxArgumentListLength + 4)
-				{
-					ArgumentList = Markdown.Truncate(ArgumentList, MaxArgumentListLength, "...");
-				}
-
-				DisplayName += ArgumentList;
-			}
-			DisplayName = DisplayName.Replace(" ", "&nbsp;");
-
 			// Write the name
-			Writer.WriteParam("name", DisplayName);
+			Writer.WriteParam("name", Name);
 			Writer.WriteParam("link", "[RELATIVE:" + LinkPath + "]");
 
 			// Add the parameter section if need be
 			Writer.EnterParam("arguments");
-			if (Parameters.Count > 0 && false)
+			if (Parameters.Count > 0)
 			{
 				Writer.WriteEscapedLine("(  ");
 				for (int Idx = 0; Idx < Parameters.Count; Idx++)
