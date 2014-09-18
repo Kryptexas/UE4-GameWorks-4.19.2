@@ -135,6 +135,25 @@ EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, con
 
 }
 
+extern void AndroidThunkCpp_KeepScreenOn(bool Enable);
+
+bool FAndroidMisc::ControlScreensaver(EScreenSaverAction Action)
+{
+	switch (Action)
+	{
+		case EScreenSaverAction::Disable:
+			// Prevent display sleep.
+			AndroidThunkCpp_KeepScreenOn(true);
+			break;
+
+		case EScreenSaverAction::Enable:
+			// Stop preventing display sleep now that we are done.
+			AndroidThunkCpp_KeepScreenOn(false);
+			break;
+	}
+	return true;
+}
+
 bool FAndroidMisc::AllowRenderThread()
 {
 	// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 

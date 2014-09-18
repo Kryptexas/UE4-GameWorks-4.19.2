@@ -433,6 +433,32 @@ public class GameActivity extends NativeActivity
 		}
 	}
 
+	public void AndroidThunkJava_KeepScreenOn(boolean Enable)
+	{
+		if (Enable)
+		{
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					_activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+				}
+			});
+		}
+		else
+		{
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					_activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+				}
+			});
+		}
+	}
+
 	public void AndroidThunkJava_Vibrate(long Duration)
 	{
 		Vibrator vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);

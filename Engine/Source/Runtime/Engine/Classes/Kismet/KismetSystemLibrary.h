@@ -1162,7 +1162,14 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer);
 
-	/** 
+	/**
+	 * Allows or inhibits screensaver
+	 * @param	bAllowScreenSaver		If false, don't allow screensaver if possible, otherwise allow default behavior
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void ControlScreensaver(bool bAllowScreenSaver);
+
+	/**
 	 * Sets the state of the transition message rendered by the viewport. (The blue text displayed when the game is paused and so forth.)
 	 *
 	 * @param WorldContextObject	World context

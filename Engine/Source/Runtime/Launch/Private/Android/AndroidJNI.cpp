@@ -105,6 +105,7 @@ JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
 
 //Declare all the static members of the class defs 
 jclass JDef_GameActivity::ClassID;
+jmethodID JDef_GameActivity::AndroidThunkJava_KeepScreenOn;
 jmethodID JDef_GameActivity::AndroidThunkJava_Vibrate;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput;
@@ -140,6 +141,15 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 
 		GError->HandleError();
 		FPlatformMisc::RequestExit(true);
+	}
+}
+
+void AndroidThunkCpp_KeepScreenOn(bool Enable)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		// call the java side
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_KeepScreenOn, Enable);
 	}
 }
 
@@ -348,6 +358,8 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::ClassID = env->FindClass("com/epicgames/ue4/GameActivity");
 	CHECK_JNI_RESULT( JDef_GameActivity::ClassID );
 
+	JDef_GameActivity::AndroidThunkJava_KeepScreenOn = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_KeepScreenOn", "(Z)V");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_KeepScreenOn);
 	JDef_GameActivity::AndroidThunkJava_Vibrate = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_Vibrate", "(J)V");
 	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_Vibrate);
 	JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V");

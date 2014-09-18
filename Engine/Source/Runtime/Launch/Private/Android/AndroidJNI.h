@@ -19,6 +19,7 @@ public:
 	static jclass ClassID;
 
 	// Nonstatic methods
+	static jmethodID AndroidThunkJava_KeepScreenOn;
 	static jmethodID AndroidThunkJava_Vibrate;
 	static jmethodID AndroidThunkJava_ShowConsoleWindow;
 	static jmethodID AndroidThunkJava_ShowVirtualKeyboardInput;

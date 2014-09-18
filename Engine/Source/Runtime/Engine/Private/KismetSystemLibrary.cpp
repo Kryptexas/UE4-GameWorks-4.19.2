@@ -2694,6 +2694,11 @@ void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName Pro
 	check(0);
 }
 
+void UKismetSystemLibrary::ControlScreensaver(bool bAllowScreenSaver)
+{
+	FPlatformMisc::ControlScreensaver(bAllowScreenSaver ? FPlatformMisc::EScreenSaverAction::Enable : FPlatformMisc::EScreenSaverAction::Disable);
+}
+
 void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
