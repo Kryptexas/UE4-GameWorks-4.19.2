@@ -1737,7 +1737,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 	if (bRayTracedDistanceFieldShadow)
 	{
-		RenderRayTracedDistanceFieldProjection(RHICmdList, ViewIndex, *View);
+		RenderRayTracedDistanceFieldProjection(RHICmdList, *View);
 		return;
 	}
 
@@ -2271,7 +2271,6 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 	const float InvBufferResolutionY = 1.0f / (float)ShadowBufferResolution.Y;
 	const float ShadowResolutionFractionY = 0.5f * (float)ResolutionY * InvBufferResolutionY;
 	// Calculate the matrix to transform a screenspace position into shadow map space
-	// Translucent preshadows start from post projection space since the position was not derived off of the depth buffer like deferred shadows
 	FMatrix ScreenToShadow = 
 		// Z of the position being transformed is actually view space Z, 
 		// Transform it into post projection space by applying the projection matrix,
@@ -2280,10 +2279,7 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 			FPlane(1,0,0,0),
 			FPlane(0,1,0,0),
 			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[2][2],1),
-			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)
-		);
-
-	ScreenToShadow *=
+			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)) * 
 		// Transform the post projection space position into translated world space
 		// Translated world space is normal world space translated to the view's origin, 
 		// Which prevents floating point imprecision far from the world origin.
@@ -2571,6 +2567,7 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 		{
 			INC_DWORD_STAT(STAT_WholeSceneShadows);
 
+			if (!ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque, DEC_SCENE_ITEMS);
 				GSceneRenderTargets.BeginRenderingCubeShadowDepth(RHICmdList, ProjectedShadowInfo->ResolutionX);
@@ -2594,14 +2591,21 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 
 					// Set the device viewport for the view.
 					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-
-					ProjectedShadowInfo->RenderOnePassPointLightProjection(RHICmdList, ViewIndex, View);
+					
+					if (ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
+					{
+						ProjectedShadowInfo->RenderRayTracedDistanceFieldProjection(RHICmdList, View);
+					}
+					else
+					{
+						ProjectedShadowInfo->RenderOnePassPointLightProjection(RHICmdList, ViewIndex, View);
+					}
 				}
 			}
 
 			// Don't inject shadowed lighting with whole scene shadows used for previewing a light with static shadows,
 			// Since that would cause a mismatch with the built lighting
-			if (!LightSceneInfo->Proxy->HasStaticShadowing())
+			if (!LightSceneInfo->Proxy->HasStaticShadowing() && !ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 			{
 				bInjectedTranslucentVolume = true;
 				SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume, DEC_SCENE_ITEMS);

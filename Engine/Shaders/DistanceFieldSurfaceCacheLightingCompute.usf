@@ -8,6 +8,7 @@
 #include "DeferredShadingCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
 #include "DistanceFieldLightingShared.usf"
+#include "DistanceFieldAOShared.usf"
 
 /** Min and Max depth for this tile. */
 groupshared uint IntegerTileMinZ;

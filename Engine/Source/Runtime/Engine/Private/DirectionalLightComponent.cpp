@@ -89,6 +89,9 @@ public:
 	/** If greater than WholeSceneDynamicShadowRadius, a cascade will be created to support ray traced distance field shadows covering up to this distance. */
 	float DistanceFieldShadowDistance;
 
+	/** Light source angle in degrees. */
+	float LightSourceAngle;
+
 	/** Initialization constructor. */
 	FDirectionalLightSceneProxy(const UDirectionalLightComponent* Component):
 		FLightSceneProxy(Component),
@@ -101,7 +104,8 @@ public:
 		CascadeTransitionFraction(Component->CascadeTransitionFraction),
 		ShadowDistanceFadeoutFraction(Component->ShadowDistanceFadeoutFraction),
 		bUseInsetShadowsForMovableObjects(Component->bUseInsetShadowsForMovableObjects),
-		DistanceFieldShadowDistance(Component->bUseDistanceFieldShadows ? Component->DistanceFieldShadowDistance : 0)
+		DistanceFieldShadowDistance(Component->bUseRayTracedDistanceFieldShadows ? Component->DistanceFieldShadowDistance : 0),
+		LightSourceAngle(Component->LightSourceAngle)
 	{
 		LightShaftOverrideDirection.Normalize();
 
@@ -145,6 +149,11 @@ public:
 		LightSourceRadius = 0.0f;
 		LightSourceLength = 0.0f;
 		LightMinRoughness = MinRoughness;
+	}
+
+	virtual float GetLightSourceAngle() const override
+	{
+		return LightSourceAngle;
 	}
 
 	virtual bool GetLightShaftOcclusionParameters(float& OutOcclusionMaskDarkness, float& OutOcclusionDepthRange) const override
@@ -627,7 +636,8 @@ UDirectionalLightComponent::UDirectionalLightComponent(const class FPostConstruc
 	DynamicShadowDistanceMovableLight = 20000.0f;
 	DynamicShadowDistanceStationaryLight = 0.f;
 
-	DistanceFieldShadowDistance = 40000.0f;
+	DistanceFieldShadowDistance = 30000.0f;
+	LightSourceAngle = 1;
 
 	DynamicShadowCascades = 3;
 	CascadeDistributionExponent = 3.0f;
@@ -686,17 +696,11 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 					|| DynamicShadowDistanceStationaryLight > 0 && Mobility == EComponentMobility::Stationary);
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, bUseDistanceFieldShadows)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, DistanceFieldShadowDistance))
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, DistanceFieldShadowDistance)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, LightSourceAngle))
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
-			bool bCanEdit = CastShadows && CastDynamicShadows && Mobility != EComponentMobility::Static && CVar->GetValueOnGameThread() != 0;
-
-			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, DistanceFieldShadowDistance))
-			{
-				bCanEdit = bCanEdit && bUseDistanceFieldShadows;
-			}
-
+			bool bCanEdit = CastShadows && CastDynamicShadows && bUseRayTracedDistanceFieldShadows && Mobility != EComponentMobility::Static && CVar->GetValueOnGameThread() != 0;
 			return bCanEdit;
 		}
 

@@ -539,7 +539,7 @@ public:
 	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
 	bool bOnePassPointLightShadow;
 
-	/** Whether the shadow is a directional light cascade that will be computed by ray tracing the distance field. */
+	/** Whether the shadow will be computed by ray tracing the distance field. */
 	bool bRayTracedDistanceFieldShadow;
 
 	FWholeSceneProjectedShadowInitializer()
@@ -610,6 +610,7 @@ public:
 	virtual float GetOuterConeAngle() const { return 0.0f; }
 	virtual float GetSourceRadius() const { return 0.0f; }
 	virtual bool IsInverseSquared() const { return false; }
+	virtual float GetLightSourceAngle() const { return 0.0f; }
 
 	virtual FVector2D GetLightShaftConeParams() const
 	{
@@ -691,6 +692,12 @@ public:
 	// @param OutCascadeSettings can be 0
 	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 SplitIndex, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 
+	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View) const
+	{
+		ScissorRect = View.ViewRect;
+		return false;
+	}
+
 	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View) const
 	{
 	}
@@ -726,6 +733,7 @@ public:
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
 	inline bool AffectsTranslucentLighting() const { return bAffectTranslucentLighting; }
+	inline bool UseRayTracedDistanceFieldShadows() const { return bUseRayTracedDistanceFieldShadows; }
 	inline uint8 GetLightType() const { return LightType; }
 	inline FName GetComponentName() const { return ComponentName; }
 	inline FName GetLevelName() const { return LevelName; }
@@ -839,6 +847,9 @@ protected:
 	/** Does the light have dynamic GI? */
 	const uint32 bAffectDynamicIndirectLighting : 1;
 	const uint32 bHasReflectiveShadowMap : 1;
+
+	/** Whether to use ray traced distance field area shadows. */
+	const uint32 bUseRayTracedDistanceFieldShadows : 1;
 
 	/** The light type (ELightComponentType) */
 	const uint8 LightType;

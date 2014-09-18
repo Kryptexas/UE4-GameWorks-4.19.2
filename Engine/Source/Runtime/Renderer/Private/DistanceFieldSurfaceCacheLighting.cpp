@@ -11,8 +11,8 @@
 #include "PostProcessing.h"
 #include "SceneFilterRendering.h"
 #include "ScreenRendering.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
 #include "DistanceFieldLightingShared.h"
+#include "DistanceFieldSurfaceCacheLighting.h"
 #include "PostProcessAmbientOcclusion.h"
 #include "RHICommandList.h"
 #include "SceneUtils.h"
@@ -250,8 +250,38 @@ TGlobalResource<FCircleVertexBuffer> GCircleVertexBuffer;
 // Must match equivalent shader defines
 int32 FDistanceFieldObjectBuffers::ObjectDataStride = 8;
 int32 FDistanceFieldObjectBuffers::ObjectData2Stride = 4;
+int32 FDistanceFieldObjectBuffers::ObjectBoxBoundsStride = 5;
 
-TGlobalResource<FDistanceFieldObjectBuffers> GAOObjectBuffers;
+class FDistanceFieldObjectBufferResource : public FRenderResource
+{
+public:
+	FDistanceFieldObjectBuffers Buffers;
+
+	virtual void InitDynamicRHI()  override
+	{
+		Buffers.Initialize();
+	}
+
+	virtual void ReleaseDynamicRHI() override
+	{
+		Buffers.Release();
+	}
+};
+
+TGlobalResource<FDistanceFieldObjectBufferResource> GAOObjectBuffers;
+
+void FTileIntersectionResources::InitDynamicRHI()
+{
+	TileConeAxisAndCos.Initialize(sizeof(float)* 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
+	TileConeDepthRanges.Initialize(sizeof(float)* 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
+
+	TileHeadDataUnpacked.Initialize(sizeof(uint32), TileDimensions.X * TileDimensions.Y * 4, PF_R32_UINT, BUF_Static);
+	TileHeadData.Initialize(sizeof(uint32)* 4, TileDimensions.X * TileDimensions.Y, PF_R32G32B32A32_UINT, BUF_Static);
+
+	//@todo - handle max exceeded
+	TileArrayData.Initialize(sizeof(uint16), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y * 3, PF_R16_UINT, BUF_Static);
+	TileArrayNextAllocation.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
+}
 
 void FSceneViewState::DestroyAOTileResources()
 {
@@ -410,7 +440,7 @@ public:
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 		
-		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers.Buffers, NumObjects);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
 		const int32 NumRings = StencilingGeometry::GLowPolyStencilSphereVertexBuffer.GetNumRings();
@@ -576,7 +606,7 @@ public:
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
-		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers.Buffers, NumObjects);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
 		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
@@ -704,7 +734,7 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers.Buffers, NumObjects);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
@@ -788,7 +818,7 @@ public:
 
 		DistanceFieldNormal.SetTexture(RHICmdList, ShaderRHI, DistanceFieldNormalValue.ShaderResourceTexture, DistanceFieldNormalValue.UAV);
 
-		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers.Buffers, NumObjects);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
@@ -1425,7 +1455,7 @@ public:
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
-		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers.Buffers, NumObjects);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 		AOLevelParameters.Set(RHICmdList, ShaderRHI, View, DownsampleFactorValue);
 
@@ -2746,26 +2776,27 @@ void UpdateVisibleObjectBuffers(const FScene* Scene, const FDistanceFieldAOParam
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateObjectBuffers);
 
-		if (NumObjects > GAOObjectBuffers.MaxObjects)
+		if (NumObjects > GAOObjectBuffers.Buffers.MaxObjects)
 		{
 			// Allocate with slack
-			GAOObjectBuffers.MaxObjects = NumObjects * 5 / 4;
-			GAOObjectBuffers.UpdateRHI();
+			GAOObjectBuffers.Buffers.MaxObjects = NumObjects * 5 / 4;
+			GAOObjectBuffers.Buffers.Release();
+			GAOObjectBuffers.Buffers.Initialize();
 		}
 
 		checkSlow(NumObjects < MAX_uint16);
 
-		void* LockedBuffer = RHILockVertexBuffer(GAOObjectBuffers.ObjectData.Bounds, 0, GAOObjectBuffers.ObjectData.Bounds->GetSize(), RLM_WriteOnly);
+		void* LockedBuffer = RHILockVertexBuffer(GAOObjectBuffers.Buffers.ObjectData.Bounds, 0, GAOObjectBuffers.Buffers.ObjectData.Bounds->GetSize(), RLM_WriteOnly);
 		FPlatformMemory::Memcpy(LockedBuffer, ObjectBoundsData.GetData(), ObjectBoundsData.GetTypeSize() * ObjectBoundsData.Num());
-		RHIUnlockVertexBuffer(GAOObjectBuffers.ObjectData.Bounds);
+		RHIUnlockVertexBuffer(GAOObjectBuffers.Buffers.ObjectData.Bounds);
 
-		LockedBuffer = RHILockVertexBuffer(GAOObjectBuffers.ObjectData.Data, 0, GAOObjectBuffers.ObjectData.Data->GetSize(), RLM_WriteOnly);
+		LockedBuffer = RHILockVertexBuffer(GAOObjectBuffers.Buffers.ObjectData.Data, 0, GAOObjectBuffers.Buffers.ObjectData.Data->GetSize(), RLM_WriteOnly);
 		FPlatformMemory::Memcpy(LockedBuffer, ObjectData.GetData(), ObjectData.GetTypeSize() * ObjectData.Num());
-		RHIUnlockVertexBuffer(GAOObjectBuffers.ObjectData.Data);
+		RHIUnlockVertexBuffer(GAOObjectBuffers.Buffers.ObjectData.Data);
 
-		LockedBuffer = RHILockVertexBuffer(GAOObjectBuffers.ObjectData.Data2, 0, GAOObjectBuffers.ObjectData.Data2->GetSize(), RLM_WriteOnly);
+		LockedBuffer = RHILockVertexBuffer(GAOObjectBuffers.Buffers.ObjectData.Data2, 0, GAOObjectBuffers.Buffers.ObjectData.Data2->GetSize(), RLM_WriteOnly);
 		FPlatformMemory::Memcpy(LockedBuffer, ObjectData2.GetData(), ObjectData2.GetTypeSize() * ObjectData2.Num());
-		RHIUnlockVertexBuffer(GAOObjectBuffers.ObjectData.Data2);
+		RHIUnlockVertexBuffer(GAOObjectBuffers.Buffers.ObjectData.Data2);
 	}
 }
 
@@ -3042,7 +3073,7 @@ public:
 
 		VisualizeMeshDistanceFields.SetTexture(RHICmdList, ShaderRHI, VisualizeMeshDistanceFieldsValue.ShaderResourceTexture, VisualizeMeshDistanceFieldsValue.UAV);
 
-		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOObjectBuffers.Buffers, NumObjects);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 

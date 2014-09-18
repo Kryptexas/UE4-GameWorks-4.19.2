@@ -148,15 +148,15 @@ public:
 		return true;
 	}
 
-	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View) const override
+	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View) const override
 	{
+		ScissorRect = View.ViewRect;
+
 		// Calculate a scissor rectangle for the light's radius.
 		if((GetLightToWorld().GetOrigin() - View.ViewMatrices.ViewOrigin).Size() > Radius)
 		{
 			FVector LightVector = View.ViewMatrices.ViewMatrix.TransformPosition(GetLightToWorld().GetOrigin());
 
-			int32 ScissorMinX = View.ViewRect.Min.X;
-			int32 ScissorMaxX = View.ViewRect.Max.X;
 			if(!GetPointLightBounds(
 				LightVector.X,
 				LightVector.Z,
@@ -166,10 +166,10 @@ public:
 				View,
 				View.ViewRect.Min.X,
 				View.ViewRect.Width(),
-				ScissorMinX,
-				ScissorMaxX))
+				ScissorRect.Min.X,
+				ScissorRect.Max.X))
 			{
-				return;
+				return false;
 			}
 
 			int32 ScissorMinY = View.ViewRect.Min.Y;
@@ -183,13 +183,27 @@ public:
 				View,
 				View.ViewRect.Min.Y,
 				View.ViewRect.Height(),
-				ScissorMinY,
-				ScissorMaxY))
+				ScissorRect.Min.Y,
+				ScissorRect.Max.Y))
 			{
-				return;
+				return false;
 			}
 
-			RHICmdList.SetScissorRect(true, ScissorMinX, ScissorMinY, ScissorMaxX, ScissorMaxY);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View) const override
+	{
+		FIntRect ScissorRect;
+
+		if (FPointLightSceneProxyBase::GetScissorRect(ScissorRect, View))
+		{
+			RHICmdList.SetScissorRect(true, ScissorRect.Min.X, ScissorRect.Min.Y, ScissorRect.Max.X, ScissorRect.Max.Y);
 		}
 		else
 		{

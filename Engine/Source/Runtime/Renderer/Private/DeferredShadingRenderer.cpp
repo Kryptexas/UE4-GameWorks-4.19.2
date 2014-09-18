@@ -17,7 +17,7 @@
 #include "LightPropagationVolume.h"
 #include "DeferredShadingRenderer.h"
 #include "SceneUtils.h"
-#include "DistanceFieldLightingShared.h"
+#include "DistanceFieldSurfaceCacheLighting.h"
 #include "PostProcess/PostProcessing.h"
 
 TAutoConsoleVariable<int32> CVarEarlyZPass(
