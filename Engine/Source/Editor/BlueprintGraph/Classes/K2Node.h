@@ -187,6 +187,11 @@ class UK2Node : public UEdGraphNode
 	/** Return tooltip text that explains the result of an active breakpoint on this node */
 	BLUEPRINTGRAPH_API virtual FText GetActiveBreakpointToolTipText() const;
 
+	/**
+	 * Determine if the node of this type should be filtered in the actions menu
+	 */
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) { return false; }
+
 	/** Should draw as a bead with no location of it's own */
 	virtual bool ShouldDrawAsBead() const { return false; }
 

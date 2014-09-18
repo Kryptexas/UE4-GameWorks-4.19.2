@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Slate.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionFilter.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MacroInstance"
 
@@ -20,6 +21,23 @@ void UK2Node_MacroInstance::Serialize(FArchive& Ar)
 	{
 		MacroGraphReference.SetGraph(MacroGraph_DEPRECATED);
 	}
+}
+
+bool UK2Node_MacroInstance::IsActionFilteredOut(FBlueprintActionFilter const& Filter)
+{
+	bool bIsFilteredOut = false;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+
+	for (UEdGraph* Graph : FilterContext.Graphs)
+	{
+		// Macro Instances are not allowed in it's own graph, nor in Function graphs if the macro has latent functions in it
+		if (Graph == GetMacroGraph() || (Graph->GetSchema()->GetGraphType(Graph) == GT_Function && FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(GetMacroGraph())) )
+		{
+			bIsFilteredOut = true;
+			break;
+		}
+	}
+	return bIsFilteredOut;
 }
 
 void UK2Node_MacroInstance::PostPasteNode()
