@@ -66,6 +66,9 @@ public:
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
 	// End of FEditorViewportClient interface
 
+	// Process marquee selection, return true of a selection has been performed
+	bool ProcessMarquee(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, bool bMarqueeStartModifierPressed);
+
 	void ToggleShowSockets() { bShowSockets = !bShowSockets; Invalidate(); }
 	bool IsShowSocketsChecked() const { return bShowSockets; }
 
@@ -224,13 +227,16 @@ private:
 	void UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite);
 	
 	// Selection handling
-	void SelectPolygon(const int PolygonIndex);
-	void AddPointToGeometry(const FVector2D& TextureSpacePoint, const int SelectedPolygonIndex = -1);
+	void SelectPolygon(const int32 PolygonIndex);
+	void AddPolygonVertexToSelection(const int32 PolygonIndex, const int32 VertexIndex);
+	bool IsPolygonVertexSelected(const int32 PolygonIndex, const int32 VertexIndex) const;
+	void AddPointToGeometry(const FVector2D& TextureSpacePoint, const int32 SelectedPolygonIndex = -1);
 	void ClearSelectionSet();
 
 
 	void ResetMarqueeTracking();
 	bool ConvertMarqueeToSourceTextureSpace(/*out*/FVector2D& OutStartPos, /*out*/FVector2D& OutDimension);
+	void SelectVerticesInMarquee(bool bAddToSelection);
 	
 	// Can return null
 	FSpritePolygonCollection* GetGeometryBeingEdited() const;
