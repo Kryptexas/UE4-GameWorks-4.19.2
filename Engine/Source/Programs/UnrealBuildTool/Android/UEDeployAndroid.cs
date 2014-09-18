@@ -301,6 +301,15 @@ namespace UnrealBuildTool.Android
 			File.Copy(SourceSTLSOName, FinalSTLSOName);
 		}
 
+		//@TODO: To enable the NVIDIA Gfx Debugger
+		private static void CopyGfxDebugger(string UE4BuildPath, string UE4Arch)
+		{
+//			string Arch = GetNDKArch(UE4Arch);
+//			Directory.CreateDirectory(UE4BuildPath + "/libs/" + Arch);
+//			File.Copy("E:/Dev2/UE4-Clean/Engine/Source/ThirdParty/NVIDIA/TegraGfxDebugger/libNvPmApi.Core.so", UE4BuildPath + "/libs/" + Arch + "/libNvPmApi.Core.so");
+//			File.Copy("E:/Dev2/UE4-Clean/Engine/Source/ThirdParty/NVIDIA/TegraGfxDebugger/libTegra_gfx_debugger.so", UE4BuildPath + "/libs/" + Arch + "/libTegra_gfx_debugger.so");
+		}
+
 		private void MakeApk(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks)
 		{
 			// cache some tools paths
@@ -315,47 +324,51 @@ namespace UnrealBuildTool.Android
 			string GameBuildFilesPath = Path.Combine(ProjectDirectory, "Build/Android");
 	
 			string[] Arches = AndroidToolChain.GetAllArchitectures();
-			int NumArches = Arches.Length;
+			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			int NumArches = Arches.Length * GPUArchitectures.Length;
 
 			// first check if all .so's are up to date
 			bool bAllInputsCurrent = true;
 			foreach (string Arch in Arches)
 			{
-				string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch);
-				// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
-				string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
-				string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
-
-				// if we making multiple Apks, we need to put the architecture into the name
-				if (bMakeSeparateApks)
+				foreach (string GPUArch in GPUArchitectures)
 				{
-					DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch);
-				}
-
-				// check to see if it's out of date before trying the slow make apk process (look at .so and all Engine and Project build files to be safe)
-				List<String> InputFiles = new List<string>();
-				InputFiles.Add(SourceSOName);
-				InputFiles.AddRange(Directory.EnumerateFiles(UE4BuildFilesPath, "*.*", SearchOption.AllDirectories));
-				if (Directory.Exists(GameBuildFilesPath))
-				{
-					InputFiles.AddRange(Directory.EnumerateFiles(GameBuildFilesPath, "*.*", SearchOption.AllDirectories));
-				}
-
-				// look for any newer input file
-				DateTime ApkTime = File.GetLastWriteTimeUtc(DestApkName);
-				foreach (var InputFileName in InputFiles)
-				{
-					// skip .log files
-					if (Path.GetExtension(InputFileName) == ".log")
+					string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch, GPUArch);
+					// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
+					string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
+					string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
+	
+					// if we making multiple Apks, we need to put the architecture into the name
+					if (bMakeSeparateApks)
 					{
-						continue;
+							DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch, GPUArch);
 					}
-					DateTime InputFileTime = File.GetLastWriteTimeUtc(InputFileName);
-					if (InputFileTime.CompareTo(ApkTime) > 0)
+
+					// check to see if it's out of date before trying the slow make apk process (look at .so and all Engine and Project build files to be safe)
+					List<String> InputFiles = new List<string>();
+					InputFiles.Add(SourceSOName);
+					InputFiles.AddRange(Directory.EnumerateFiles(UE4BuildFilesPath, "*.*", SearchOption.AllDirectories));
+					if (Directory.Exists(GameBuildFilesPath))
 					{
-						bAllInputsCurrent = false;
-						Log.TraceInformation("{0} is out of date due to newer input file {1}", DestApkName, InputFileName);
-						break;
+						InputFiles.AddRange(Directory.EnumerateFiles(GameBuildFilesPath, "*.*", SearchOption.AllDirectories));
+					}
+
+					// look for any newer input file
+					DateTime ApkTime = File.GetLastWriteTimeUtc(DestApkName);
+					foreach (var InputFileName in InputFiles)
+					{
+						// skip .log files
+						if (Path.GetExtension(InputFileName) == ".log")
+						{
+							continue;
+						}
+						DateTime InputFileTime = File.GetLastWriteTimeUtc(InputFileName);
+						if (InputFileTime.CompareTo(ApkTime) > 0)
+						{
+							bAllInputsCurrent = false;
+							Log.TraceInformation("{0} is out of date due to newer input file {1}", DestApkName, InputFileName);
+							break;	
+						}
 					}
 				}
 			}
@@ -421,11 +434,13 @@ namespace UnrealBuildTool.Android
 			string FinalNdkBuildABICommand = "";
 
 			// now make the apk(s)
-			for (int ArchIndex = 0; ArchIndex < NumArches; ArchIndex++)
+			for (int ArchIndex = 0; ArchIndex < Arches.Length; ArchIndex++)
 			{
 				string Arch = Arches[ArchIndex];
-
-				string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch);
+				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Length; GPUArchIndex++)
+				{
+					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
+					string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch, GPUArchitecture);
 				// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
 				string ApkFilename = Path.GetFileNameWithoutExtension(OutputPath).Replace("UE4Game", ProjectName);
 				string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + ApkFilename + ".apk";
@@ -433,7 +448,7 @@ namespace UnrealBuildTool.Android
 				// if we making multiple Apks, we need to put the architecture into the name
 				if (bMakeSeparateApks)
 				{
-					DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch);
+						DestApkName = AndroidToolChain.InlineArchName(DestApkName, Arch, GPUArchitecture);
 				}
 
 				// code in here will run once per .apk (or once if merged apk)
@@ -582,12 +597,14 @@ namespace UnrealBuildTool.Android
 					if (bMakeSeparateApks)
 					{
 						CopySTL(UE4BuildPath, Arch);
+							CopyGfxDebugger(UE4BuildPath, Arch);
 					}
 					else
 					{
 						foreach (string InnerArch in Arches)
 						{
 							CopySTL(UE4BuildPath, InnerArch);
+								CopyGfxDebugger(UE4BuildPath, InnerArch);
 						}
 					}
 
@@ -631,6 +648,7 @@ namespace UnrealBuildTool.Android
 					}
 				}
 			}
+		}
 		}
 
 		private void SignApk(string ConfigFilePath, string SourceApk, string DestApk)

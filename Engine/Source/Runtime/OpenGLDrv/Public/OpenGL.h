@@ -24,8 +24,8 @@ struct FPlatformOpenGLContext;
 #ifndef OPENGL_ES2
 #define OPENGL_ES2	0
 #endif
-#ifndef OPENGL_ES3
-#define OPENGL_ES3	0
+#ifndef OPENGL_ES31
+#define OPENGL_ES31	0
 #endif
 #ifndef OPENGL_GL3
 #define OPENGL_GL3	0
@@ -136,11 +136,14 @@ public:
 	static FORCEINLINE bool SupportsClientStorage()						{ return false; }
 	static FORCEINLINE bool SupportsTextureRange()						{ return false; }
 	static FORCEINLINE bool SupportsTextureNPOT()						{ return true; }
+	static FORCEINLINE bool SupportsBindlessTexture()					{ return false; }
+	static FORCEINLINE bool SupportsTextureSwizzle()					{ return false; }
 	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval()			{ return false; }
 	static FORCEINLINE bool AmdWorkaround()								{ return false; }
 
 
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }
+	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT; }
 
 	static FORCEINLINE GLint GetMaxTextureImageUnits()			{ check(MaxTextureImageUnits != -1); return MaxTextureImageUnits; }
 	static FORCEINLINE GLint GetMaxVertexTextureImageUnits()	{ check(MaxVertexTextureImageUnits != -1); return MaxVertexTextureImageUnits; }
@@ -183,7 +186,7 @@ public:
 	static FORCEINLINE void ReadBuffer(GLenum Mode) UGL_OPTIONAL_VOID
 	static FORCEINLINE void DrawBuffer(GLenum Mode) UGL_OPTIONAL_VOID
 	static FORCEINLINE void DeleteSync(UGLsync Sync) UGL_OPTIONAL_VOID
-	static FORCEINLINE UGLsync FenceSync(GLenum Condition, GLbitfield Flags) UGL_OPTIONAL(0)
+	static FORCEINLINE UGLsync FenceSync(GLenum Condition, GLbitfield Flags) UGL_OPTIONAL(UGLsync())
 	static FORCEINLINE bool IsSync(UGLsync Sync) UGL_OPTIONAL(false)
 	static FORCEINLINE EFenceResult ClientWaitSync(UGLsync Sync, GLbitfield Flags, GLuint64 Timeout) UGL_OPTIONAL(FR_WaitFailed)
 	static FORCEINLINE void GenSamplers(GLsizei Count, GLuint *Samplers) UGL_OPTIONAL_VOID
@@ -292,7 +295,12 @@ public:
 	static FORCEINLINE void BufferStorage(GLenum Target, GLsizeiptr Size, const void *Data, GLbitfield Flags) UGL_REQUIRED_VOID
 	static FORCEINLINE void DepthBounds(GLfloat Min, GLfloat Max) UGL_REQUIRED_VOID
 	static FORCEINLINE void TextureRange(GLenum Target, GLsizei Length, const GLvoid *Pointer) UGL_OPTIONAL_VOID
-	static FORCEINLINE void Flush() UGL_REQUIRED_VOID
+
+	static FORCEINLINE GLuint64 GetTextureSamplerHandle(GLuint Texture, GLuint Sampler) UGL_REQUIRED(0)
+	static FORCEINLINE GLuint64 GetTextureHandle(GLuint Texture) UGL_REQUIRED(0)
+	static FORCEINLINE void MakeTextureHandleResident(GLuint64 TextureHandle) UGL_REQUIRED_VOID
+	static FORCEINLINE void MakeTextureHandleNonResident(GLuint64 TextureHandle) UGL_REQUIRED_VOID
+	static FORCEINLINE void UniformHandleui64(GLint Location, GLuint64 Value) UGL_REQUIRED_VOID
 
 	static FPlatformOpenGLDevice*	CreateDevice() UGL_REQUIRED(NULL)
 	static FPlatformOpenGLContext*	CreateContext( FPlatformOpenGLDevice* Device, void* WindowHandle ) UGL_REQUIRED(NULL)
@@ -312,6 +320,23 @@ public:
 		}
 #endif 
 	}
+
+	static FORCEINLINE void DeleteBuffers(GLsizei Number, const GLuint* Buffers)
+	{
+		glDeleteBuffers(Number, Buffers);
+	}
+
+	static FORCEINLINE void DeleteTextures(GLsizei Number, const GLuint* Textures)
+	{
+		glDeleteTextures(Number, Textures);
+	}
+
+	static FORCEINLINE void Flush()
+	{
+		glFlush();
+	}
+
+	static FORCEINLINE bool TimerQueryDisjoint()									{ return false; }
 
 protected:
 	static GLint MaxTextureImageUnits;
@@ -553,8 +578,14 @@ protected:
 #ifndef GL_RED
 #define GL_RED										0x1903
 #endif
+#ifndef GL_BLUE
+#define GL_BLUE										0x1905
+#endif
 #ifndef GL_STENCIL_INDEX
 #define GL_STENCIL_INDEX							0x1901
+#endif
+#ifndef GL_RGBA_INTEGER
+#define GL_RGBA_INTEGER								0x8D99
 #endif
 
 #if PLATFORM_HTML5

@@ -58,12 +58,9 @@
 DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All); 
 
 
-
+#define VALIDATE_GLSL_WITH_DRIVER		0
 #define ENABLE_IMAGINATION_COMPILER		1
-
-#define MAX_SAMPLERS_PER_SHADER_GLSL_150 16
-#define MAX_SAMPLERS_PER_SHADER_GLSL_430 32
-
+ 
   
 static FORCEINLINE bool IsES2Platform(GLSLVersion Version)
 {
@@ -1132,6 +1129,7 @@ static void OpenGLVersionFromGLSLVersion(GLSLVersion InVersion, int& OutMajorVer
 			OutMajorVersion = 3;
 			OutMinorVersion = 2;
 			break;
+		case GLSL_310_ES_EXT:
 		case GLSL_430:
 			OutMajorVersion = 4;
 			OutMinorVersion = 3;
@@ -1448,6 +1446,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 		case HSF_DomainShader:
 			FrequencySwitch = TEXT(" -ds");
 			break;
+
 		case HSF_ComputeShader:
 			FrequencySwitch = TEXT(" -cs");
 			break;
@@ -1473,6 +1472,10 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 
 		case GLSL_150_ES2:
 			VersionSwitch = TEXT(" -gl3 -flattenub -flattenubstruct");
+			break;
+
+		case GLSL_310_ES_EXT:
+			VersionSwitch = TEXT(" -es31ext");
 			break;
 
 		case GLSL_430:
@@ -1508,6 +1511,13 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	EHlslCompileTarget HlslCompilerTarget = HCT_InvalidTarget;
 	switch (Version)
 	{
+		case GLSL_310_ES_EXT:
+			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
+			AdditionalDefines.SetDefine(TEXT("ES31_AEP_PROFILE"), 1);
+			AdditionalDefines.SetDefine(TEXT("GL4_PROFILE"), 1);
+			HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
+			break;
+
 		case GLSL_430:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL4_PROFILE"), 1);
@@ -1569,14 +1579,16 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		char* GlslShaderSource = NULL;
 		char* ErrorLog = NULL;
 
+		const bool bIsSM5 = Version == GLSL_430 || Version == GLSL_310_ES_EXT;
+
 		const EHlslShaderFrequency FrequencyTable[] =
 		{
 			HSF_VertexShader,
-			Version == GLSL_430 ? HSF_HullShader : HSF_InvalidFrequency,
-			Version == GLSL_430 ? HSF_DomainShader : HSF_InvalidFrequency,
+			bIsSM5 ? HSF_HullShader : HSF_InvalidFrequency,
+			bIsSM5 ? HSF_DomainShader : HSF_InvalidFrequency,
 			HSF_PixelShader,
 			IsES2Platform(Version) ? HSF_InvalidFrequency : HSF_GeometryShader,
-			Version == GLSL_430 ? HSF_ComputeShader : HSF_InvalidFrequency
+			bIsSM5 ? HSF_ComputeShader : HSF_InvalidFrequency
 		};
 
 		const EHlslShaderFrequency Frequency = FrequencyTable[Input.Target.Frequency];
@@ -1681,14 +1693,6 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			PrecompileShader(Output, Input, GlslShaderSource, Version, Frequency);
 			if (Output.bSucceeded == false)
 			{
-#if DUMP_HLSCLCC_SHADERS
-				DumpFile.SetFilename( *DumpGLSL);
-				for(int i = 0; i < Output.Errors.Num(); ++i)
-				{
-					DumpFile.Logf(TEXT("%s"), *Output.Errors[i].GetErrorString());
-				}
-				DumpFile.Flush();
-#endif
 			}
 #else // VALIDATE_GLSL_WITH_DRIVER
 			int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);

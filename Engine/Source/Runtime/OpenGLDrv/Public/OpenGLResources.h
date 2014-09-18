@@ -24,12 +24,13 @@ extern bool IsUniformBufferBound( GLuint Buffer );
 namespace OpenGLConsoleVariables
 {
 	extern int32 bUseMapBuffer;
-	extern int32 bPrereadStaging;
 	extern int32 bUseVAB;
 	extern int32 MaxSubDataSize;
+	extern int32 bUseStagingBuffer;
+	extern int32 bBindlessTexture;
 };
 
-#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS || PLATFORM_ANDROIDES31
 #define RESTRICT_SUBDATA_SIZE 1
 #endif
 
@@ -74,7 +75,18 @@ class TOpenGLBuffer : public BaseType
 		{
 			glBufferSubData( Type, InOffset, InSize, InData);
 		}
+	}
 
+	GLenum GetAccess()
+	{
+		GLenum Access = GL_STATIC_DRAW;
+
+		if (!OpenGLConsoleVariables::bUseStagingBuffer)
+		{
+			Access = bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+		}
+		
+		return Access;
 	}
 public:
 
@@ -114,15 +126,15 @@ public:
 #if !RESTRICT_SUBDATA_SIZE
 					if( InData == NULL || RealSize <= InSize )
 					{
-						glBufferData(Type, RealSize, InData, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
+						glBufferData(Type, RealSize, InData, GetAccess());
 					}
 					else
 					{
-						glBufferData(Type, RealSize, NULL, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
+						glBufferData(Type, RealSize, NULL, GetAccess());
 						glBufferSubData(Type, 0, InSize, InData);
 					}
 #else
-					glBufferData(Type, RealSize, NULL, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
+					glBufferData(Type, RealSize, NULL, GetAccess());
 					if ( InData != NULL )
 					{
 						LoadData( 0, FMath::Min<uint32>(InSize,RealSize), InData);
@@ -168,7 +180,7 @@ public:
 
 	uint8 *Lock(uint32 InOffset, uint32 InSize, bool bReadOnly, bool bDiscard)
 	{
-		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLMapBufferTime);
+		//SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLMapBufferTime);
 		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		check(InOffset + InSize <= this->GetSize());
 		//check( LockBuffer == NULL );	// Only one outstanding lock is allowed at a time!
@@ -182,11 +194,12 @@ public:
 		uint8 *Data = NULL;
 
 		// If we're able to discard the current data, do so right away
-		if ( bDiscard )
+		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
+		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
 		{
 			if (BaseType::GLSupportsType())
 			{
-				glBufferData( Type, RealSize, NULL, IsDynamic() ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+				glBufferData( Type, RealSize, NULL, GetAccess());
 			}
 		}
 
@@ -217,7 +230,7 @@ public:
 
 	uint8 *LockWriteOnlyUnsynchronized(uint32 InOffset, uint32 InSize, bool bDiscard)
 	{
-		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLMapBufferTime);
+		//SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLMapBufferTime);
 		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		check(InOffset + InSize <= this->GetSize());
 		//check( LockBuffer == NULL );	// Only one outstanding lock is allowed at a time!
@@ -231,9 +244,10 @@ public:
 		uint8 *Data = NULL;
 
 		// If we're able to discard the current data, do so right away
-		if ( bDiscard )
+		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
+		if (bDiscard && !OpenGLConsoleVariables::bBindlessTexture)
 		{
-			glBufferData( Type, RealSize, NULL, IsDynamic() ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+			glBufferData( Type, RealSize, NULL, GetAccess());
 		}
 
 		if ( FOpenGL::SupportsMapBuffer() && OpenGLConsoleVariables::bUseMapBuffer)
@@ -261,7 +275,7 @@ public:
 
 	void Unlock()
 	{
-		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLUnmapBufferTime);
+		//SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLUnmapBufferTime);
 		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		VERIFY_GL_SCOPE();
 		if (bIsLocked)
@@ -289,7 +303,7 @@ public:
 					// Check for the typical, optimized case
 					if( LockSize == RealSize )
 					{
-						glBufferData(Type, RealSize, LockBuffer, IsDynamic() ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+						glBufferData(Type, RealSize, LockBuffer, GetAccess());
 						check( LockBuffer != NULL );
 					}
 					else
@@ -794,7 +808,7 @@ public:
 		return bIsPowerOfTwo != 0;
 	}
 
-#if PLATFORM_MAC // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
 	GLuint GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels);
 #endif
 
@@ -1238,7 +1252,7 @@ public:
 	/** Initialization constructor. */
 	FOpenGLEventQuery(class FOpenGLDynamicRHI* InOpenGLRHI)
 		: OpenGLRHI(InOpenGLRHI)
-		, Sync(NULL)
+		, Sync(UGLsync())
 	{
 	}
 

@@ -324,5 +324,12 @@ private:
 	/** Scratch CPU memory block for uploading packed uniforms. */
 	uint8* PackedUniformsScratch[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
+	/** in bytes */
 	int32 GlobalUniformArraySize;
+};
+
+struct FOpenGLBindlessSamplerInfo
+{
+	GLuint Slot;	// Texture unit
+	GLuint Handle;	// Sampler slot
 };

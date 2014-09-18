@@ -33,9 +33,7 @@ protected:
 public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		// Opaque and modulated materials shouldn't apply fog volumes in their base pass.
-		const EBlendMode BlendMode = Material->GetBlendMode();
-		return LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		return LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)

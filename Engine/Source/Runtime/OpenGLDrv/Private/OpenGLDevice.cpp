@@ -111,6 +111,7 @@ bool IsUniformBufferBound( GLuint Buffer )
 }
 
 extern void BeginFrame_UniformBufferPoolCleanup();
+extern void BeginFrame_VertexBufferCleanup();
 
 FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext()
 {
@@ -130,6 +131,7 @@ void FOpenGLDynamicRHI::RHIBeginFrame()
 {
 	RHIPrivateBeginFrame();
 	BeginFrame_UniformBufferPoolCleanup();
+	BeginFrame_VertexBufferCleanup();
 	GPUProfilingData.BeginFrame(this);
 
 #if PLATFORM_ANDROID //adding #if since not sure if this is required for any other platform.
@@ -170,7 +172,7 @@ void FOpenGLDynamicRHI::RHIEndScene()
 
 bool GDisableOpenGLDebugOutput = false;
 
-#ifdef GL_ARB_debug_output
+#if defined(GL_ARB_debug_output) || defined(GL_KHR_debug)
 
 /**
  * Map GL_DEBUG_SOURCE_*_ARB to a human-readable string.
@@ -257,7 +259,15 @@ static const TCHAR* GetOpenGLDebugSeverityStringARB(GLenum Severity)
 /**
  * OpenGL debug message callback. Conforms to GLDEBUGPROCARB.
  */
+#if PLATFORM_ANDROID && !PLATFORM_ANDROIDGL4
+
+#ifndef GL_APIENTRY
+#define GL_APIENTRY APIENTRY
+#endif
+static void GL_APIENTRY OpenGLDebugMessageCallbackARB(
+#else
 static void APIENTRY OpenGLDebugMessageCallbackARB(
+#endif
 	GLenum Source,
 	GLenum Type,
 	GLuint Id,
@@ -399,14 +409,21 @@ void InitDebugContext()
 	// Set the debug output callback if the driver supports it.
 	VERIFY_GL(__FUNCTION__);
 	bool bDebugOutputInitialized = false;
-#ifdef GL_ARB_debug_output
+#if defined(GL_ARB_debug_output)
 	if (glDebugMessageCallbackARB)
 	{
 		glDebugMessageCallbackARB(GLDEBUGPROCARB(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
 		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
 	}
-#endif // GL_ARB_debug_output
-#ifdef GL_AMD_debug_output
+#elif defined(GL_KHR_debug)
+	// OpenGLES names the debug functions differently, but they behave the same
+	if (glDebugMessageCallbackKHR)
+	{
+		glDebugMessageCallbackKHR(GLDEBUGPROCKHR(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
+		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
+	}
+#endif // GL_ARB_debug_output / GL_KHR_debug
+#if defined(GL_AMD_debug_output)
 	if (glDebugMessageCallbackAMD && !bDebugOutputInitialized)
 	{
 		glDebugMessageCallbackAMD(OpenGLDebugMessageCallbackAMD, /*UserParam=*/ NULL);
@@ -419,12 +436,24 @@ void InitDebugContext()
 	}
 
 	// this is to suppress feeding back of the debug markers and groups to the log, since those originate in the app anyways...
-#if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug
+#if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ES31
 	if(glDebugMessageControlARB && bDebugOutputInitialized)
 	{
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_APPLICATION_ARB, GL_DEBUG_TYPE_MARKER, GL_DONT_CARE, 0, NULL, GL_FALSE);
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_APPLICATION_ARB, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_APPLICATION_ARB, GL_DEBUG_TYPE_POP_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
+#ifdef GL_KHR_debug
+		glDebugMessageControlARB(GL_DEBUG_SOURCE_API_ARB, GL_DEBUG_TYPE_OTHER_ARB, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+#endif
+		UE_LOG(LogRHI,Warning,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
+	}
+#elif ENABLE_OPENGL_DEBUG_GROUPS && !defined(GL_ARB_debug_output) && GL_KHR_debug
+	if(glDebugMessageControlKHR)
+	{
+		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_MARKER, GL_DONT_CARE, 0, NULL, GL_FALSE);
+		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
+		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_POP_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
+		glDebugMessageControlKHR(GL_DEBUG_SOURCE_API_KHR, GL_DEBUG_TYPE_OTHER_KHR, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 		UE_LOG(LogRHI,Warning,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
 	}
 #endif
@@ -463,33 +492,17 @@ static void InitRHICapabilitiesForGL()
 	bool bWindowsSwapControlExtensionPresent = false;
 #endif
 	{
-		GLint ExtensionCount = 0;
-		FString ExtensionsString = TEXT("");
-		if ( FOpenGL::SupportsIndexedExtensions() )
-		{
-			glGetIntegerv(GL_NUM_EXTENSIONS, &ExtensionCount);
-			for (int32 ExtensionIndex = 0; ExtensionIndex < ExtensionCount; ++ExtensionIndex)
-			{
-				const ANSICHAR* ExtensionString = FOpenGL::GetStringIndexed(GL_EXTENSIONS, ExtensionIndex);
+		extern void GetExtensionsString( FString& ExtensionsString);
+		FString ExtensionsString;
+
+		GetExtensionsString(ExtensionsString);
+
 #if PLATFORM_WINDOWS
-				if (strcmp(ExtensionString, "WGL_EXT_swap_control") == 0)
+		if (ExtensionsString.Contains(TEXT("WGL_EXT_swap_control")))
 				{
 					bWindowsSwapControlExtensionPresent = true;
 				}
 #endif
-				ExtensionsString += TEXT(" ");
-				ExtensionsString += ANSI_TO_TCHAR(ExtensionString);
-			}
-		}
-		else
-		{
-			const ANSICHAR* GlGetStringOutput = (const ANSICHAR*) glGetString( GL_EXTENSIONS );
-			if (GlGetStringOutput)
-			{
-				ExtensionsString += GlGetStringOutput;
-				ExtensionsString += TEXT(" ");
-			}
-		}
 
 		// Log supported GL extensions
 		UE_LOG(LogRHI, Log, TEXT("OpenGL Extensions:"));
@@ -530,9 +543,9 @@ static void InitRHICapabilitiesForGL()
 
 	// Log and get various limits.
 #if !defined(__GNUC__) && !defined(__clang__)
-	#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
+#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum = Default; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum); glGetError();} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
 #else
-	#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)
+#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum = Default; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum); glGetError();} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)
 #endif
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_TEXTURE_SIZE, 0);
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_CUBE_MAP_TEXTURE_SIZE, 0);
@@ -620,6 +633,13 @@ static void InitRHICapabilitiesForGL()
 	FString ShaderPlatformName = LegacyShaderPlatformToShaderFormat(GMaxRHIShaderPlatform).ToString();
 
 	UE_LOG(LogRHI, Log, TEXT("OpenGL MajorVersion = %d, MinorVersion = %d, ShaderPlatform = %s, FeatureLevel = %s"), MajorVersion, MinorVersion, *ShaderPlatformName, *FeatureLevelName);
+#if PLATFORM_ANDROIDGL4
+	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROIDGL4"));
+#elif PLATFORM_ANDROIDES31
+	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROIDES31"));
+#elif PLATFORM_ANDROID
+	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROID"));
+#endif
 
 	GMaxTextureMipCount = FMath::CeilLogTwo(Value_GL_MAX_TEXTURE_SIZE) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
@@ -648,7 +668,7 @@ static void InitRHICapabilitiesForGL()
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GRHIShaderPlatform : SP_OPENGL_PCES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = PLATFORM_MAC ? SP_OPENGL_SM4_MAC : SP_OPENGL_SM4;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_OPENGL_SM5;
+ 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = OPENGL_ES31 ? SP_OPENGL_ES31_EXT : SP_OPENGL_SM5;
 
 	// Set to same values as in DX11, as for the time being clip space adjustment are done entirely
 	// in HLSLCC-generated shader code and OpenGLDrv.
@@ -673,138 +693,154 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat(EPixelFormat(PF), FOpenGLTextureFormat());
 	}
 
-	GLenum depthFormat = FOpenGL::GetDepthFormat();
+	GLenum DepthFormat = FOpenGL::GetDepthFormat();
 
-	// Initialize the platform pixel format map.					 InternalFormat						InternalFormatSRGB							Format				Type								bCompressed
-	SetupTextureFormat( PF_Unknown,				FOpenGLTextureFormat());
-	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat(GL_RGBA32F,						GL_NONE,									GL_RGBA,				GL_FLOAT,							false));
-	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat());
-#if PLATFORM_IOS || PLATFORM_ANDROID
-	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat(GL_DEPTH_COMPONENT,				GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
-#else
-	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat(GL_DEPTH_COMPONENT16,				GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
-#endif
-	SetupTextureFormat( PF_A16B16G16R16,		FOpenGLTextureFormat(GL_RGBA16,							GL_RGBA16,									GL_RGBA,				GL_UNSIGNED_SHORT,					false));
-	SetupTextureFormat( PF_D24,					FOpenGLTextureFormat(depthFormat,						GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
-	SetupTextureFormat( PF_A1,					FOpenGLTextureFormat());
-	SetupTextureFormat( PF_R16G16B16A16_UINT,	FOpenGLTextureFormat(GL_RGBA16UI,						GL_NONE,									GL_RGBA,				GL_UNSIGNED_SHORT,					false));
-	SetupTextureFormat( PF_R16G16B16A16_SINT,	FOpenGLTextureFormat(GL_RGBA16I,						GL_NONE,									GL_RGBA,				GL_SHORT,							false));
-	SetupTextureFormat( PF_R5G6B5_UNORM,		FOpenGLTextureFormat());
-#if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4
-	SetupTextureFormat( PF_B8G8R8A8,			FOpenGLTextureFormat(GL_RGBA8,							GL_SRGB8_ALPHA8,							GL_BGRA,				GL_UNSIGNED_INT_8_8_8_8_REV,		false));
-	SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_R8,								GL_SRGB8,									GL_RED,					GL_UNSIGNED_BYTE,					false));
-	SetupTextureFormat( PF_G16,					FOpenGLTextureFormat(GL_R16,							GL_R16,										GL_RED,					GL_UNSIGNED_SHORT,					false)); // Not supported for rendering.
-	SetupTextureFormat( PF_DepthStencil,		FOpenGLTextureFormat(GL_DEPTH24_STENCIL8,				GL_NONE,									GL_DEPTH_STENCIL,		GL_UNSIGNED_INT_24_8,				false));
-	SetupTextureFormat( PF_R32_FLOAT,			FOpenGLTextureFormat(GL_R32F,							GL_R32F,									GL_RED,					GL_FLOAT,							false));
-	SetupTextureFormat( PF_G16R16,				FOpenGLTextureFormat(GL_RG16,							GL_RG16,									GL_RG,					GL_UNSIGNED_SHORT,					false));
-	SetupTextureFormat( PF_G16R16F,				FOpenGLTextureFormat(GL_RG16F,							GL_RG16F,									GL_RG,					GL_HALF_FLOAT,						false));
-	SetupTextureFormat( PF_G16R16F_FILTER,		FOpenGLTextureFormat(GL_RG16F,							GL_RG16F,									GL_RG,					GL_HALF_FLOAT,						false));
-	SetupTextureFormat( PF_G32R32F,				FOpenGLTextureFormat(GL_RG32F,							GL_RG32F,									GL_RG,					GL_FLOAT,							false));
-	SetupTextureFormat( PF_A2B10G10R10,			FOpenGLTextureFormat(GL_RGB10_A2,						GL_RGB10_A2,								GL_RGBA,				GL_UNSIGNED_INT_2_10_10_10_REV,		false));
-	SetupTextureFormat( PF_R16F,				FOpenGLTextureFormat(GL_R16F,							GL_R16F,									GL_RED,					GL_HALF_FLOAT,						false));
-	SetupTextureFormat( PF_R16F_FILTER,			FOpenGLTextureFormat(GL_R16F,							GL_R16F,									GL_RED,					GL_HALF_FLOAT,						false));
-	SetupTextureFormat( PF_FloatRGB,			FOpenGLTextureFormat(GL_R11F_G11F_B10F,					GL_R11F_G11F_B10F,							GL_RGB,					GL_UNSIGNED_INT_10F_11F_11F_REV,	false));
-	SetupTextureFormat( PF_V8U8,				FOpenGLTextureFormat(GL_RG8_SNORM,						GL_NONE,									GL_RG,					GL_BYTE,							false));
-	SetupTextureFormat( PF_R8G8,				FOpenGLTextureFormat(GL_RG8,							GL_NONE,									GL_RG,					GL_UNSIGNED_BYTE,					false));
-	SetupTextureFormat( PF_BC5,					FOpenGLTextureFormat(GL_COMPRESSED_RG_RGTC2,			GL_COMPRESSED_RG_RGTC2,						GL_RG,					GL_UNSIGNED_BYTE,					true));
-	SetupTextureFormat( PF_A8,					FOpenGLTextureFormat(GL_R8,								GL_NONE,									GL_RED,					GL_UNSIGNED_BYTE,					false));
-	SetupTextureFormat( PF_R32_UINT,			FOpenGLTextureFormat(GL_R32UI,							GL_NONE,									GL_RED,					GL_UNSIGNED_INT,					false));
-	SetupTextureFormat( PF_R32_SINT,			FOpenGLTextureFormat(GL_R32I,							GL_NONE,									GL_RED,					GL_INT,								false));
-	SetupTextureFormat( PF_R16_UINT,			FOpenGLTextureFormat(GL_R16UI,							GL_NONE,									GL_RED,					GL_UNSIGNED_SHORT,					false));
-	SetupTextureFormat( PF_R16_SINT,			FOpenGLTextureFormat(GL_R16I,							GL_NONE,									GL_RED,					GL_SHORT,							false));
-	SetupTextureFormat( PF_R8G8B8A8,			FOpenGLTextureFormat(GL_RGBA8,							GL_SRGB8_ALPHA8,							GL_RGBA,				GL_UNSIGNED_INT_8_8_8_8_REV,		false));
-	SetupTextureFormat( PF_FloatRGBA,			FOpenGLTextureFormat(GL_RGBA16F,						GL_RGBA16F,									GL_RGBA,				GL_HALF_FLOAT,						false));
-	SetupTextureFormat( PF_FloatR11G11B10,		FOpenGLTextureFormat(GL_R11F_G11F_B10F,					GL_R11F_G11F_B10F,							GL_RGB,					GL_UNSIGNED_INT,					false));
-#else
-	GLuint BGRA8888 = FOpenGL::SupportsBGRA8888() ? GL_BGRA_EXT : GL_RGBA;
-	GLuint RGBA8 = FOpenGL::SupportsRGBA8() ? GL_RGBA8_OES : GL_RGBA;
-	#if PLATFORM_ANDROID
-		SetupTextureFormat( PF_B8G8R8A8,			FOpenGLTextureFormat(GL_BGRA,			FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : GL_BGRA,		BGRA8888,				GL_UNSIGNED_BYTE,					false));
-	#else
-		SetupTextureFormat( PF_B8G8R8A8,			FOpenGLTextureFormat(GL_RGBA,			FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : GL_RGBA,		GL_BGRA8_EXT,			FOpenGL::SupportsSRGB() ? GL_SRGB8_ALPHA8_EXT : GL_BGRA8_EXT,		BGRA8888,				GL_UNSIGNED_BYTE,					false));
-	#endif
-	SetupTextureFormat( PF_R8G8B8A8,			FOpenGLTextureFormat(RGBA8,				FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : RGBA8,		GL_RGBA8,				FOpenGL::SupportsSRGB() ? GL_SRGB8_ALPHA8_EXT : GL_RGBA8,			GL_RGBA,				GL_UNSIGNED_BYTE,					false));
-	#if PLATFORM_IOS
-		SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_LUMINANCE,		GL_LUMINANCE,		GL_LUMINANCE8_EXT,			GL_LUMINANCE8_EXT,							GL_LUMINANCE,			GL_UNSIGNED_BYTE,					false));
-		SetupTextureFormat( PF_A8,					FOpenGLTextureFormat(GL_ALPHA,			GL_ALPHA,			GL_ALPHA8_EXT,				GL_ALPHA8_EXT,								GL_ALPHA,				GL_UNSIGNED_BYTE,					false));
-	#else
-		SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_LUMINANCE,		GL_LUMINANCE,		GL_LUMINANCE,				GL_LUMINANCE	,							GL_LUMINANCE,			GL_UNSIGNED_BYTE,					false));
-		SetupTextureFormat( PF_A8,					FOpenGLTextureFormat(GL_ALPHA,			GL_ALPHA,			GL_ALPHA,					GL_ALPHA,									GL_ALPHA,				GL_UNSIGNED_BYTE,					false));
-	#endif
-
-#if PLATFORM_ANDROID
-	bool bNeedFloatRGBAtoRGBA8 = true;
-#endif
-	if (GSupportsRenderTargetFormat_PF_FloatRGBA)
+	// Initialize the platform pixel format map.					InternalFormat				InternalFormatSRGB		Format				Type							bCompressed		bBGRA
+	SetupTextureFormat( PF_Unknown,				FOpenGLTextureFormat( ));
+	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat( GL_RGBA32F,				GL_NONE,				GL_RGBA,			GL_FLOAT,						false,			false));
+	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat( ));
+	//@todo: ES2 requires GL_OES_depth_texture extension to support depth textures of any kind.
+	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
+	SetupTextureFormat( PF_D24,					FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
+	SetupTextureFormat( PF_A16B16G16R16,		FOpenGLTextureFormat( GL_RGBA16,				GL_RGBA16,				GL_RGBA,			GL_UNSIGNED_SHORT,				false,			false));
+	SetupTextureFormat( PF_A1,					FOpenGLTextureFormat( ));
+	SetupTextureFormat( PF_R16G16B16A16_UINT,	FOpenGLTextureFormat( GL_RGBA16UI,				GL_NONE,				GL_RGBA_INTEGER,	GL_UNSIGNED_SHORT,				false,			false));
+	SetupTextureFormat( PF_R16G16B16A16_SINT,	FOpenGLTextureFormat( GL_RGBA16I,				GL_NONE,				GL_RGBA_INTEGER,	GL_SHORT,						false,			false));
+	SetupTextureFormat( PF_R5G6B5_UNORM,		FOpenGLTextureFormat( ));
+#if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+	if (PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
-		if (FOpenGL::SupportsTextureHalfFloat())
+		// Not supported for rendering:
+		SetupTextureFormat( PF_G16,				FOpenGLTextureFormat( GL_R16,					GL_R16,					GL_RED,			GL_UNSIGNED_SHORT,					false,	false));
+
+		SetupTextureFormat( PF_G8,				FOpenGLTextureFormat( GL_R8,					GL_R8,					GL_RED,			GL_UNSIGNED_BYTE,					false,	false));
+		SetupTextureFormat( PF_R32_FLOAT,		FOpenGLTextureFormat( GL_R32F,					GL_R32F,				GL_RED,			GL_FLOAT,							false,	false));
+		SetupTextureFormat( PF_G16R16F,			FOpenGLTextureFormat( GL_RG16F,					GL_RG16F,				GL_RG,			GL_HALF_FLOAT,						false,	false));
+		SetupTextureFormat( PF_G16R16F_FILTER,	FOpenGLTextureFormat( GL_RG16F,					GL_RG16F,				GL_RG,			GL_HALF_FLOAT,						false,	false));
+		SetupTextureFormat( PF_G32R32F,			FOpenGLTextureFormat( GL_RG32F,					GL_RG32F,				GL_RG,			GL_FLOAT,							false,	false));
+		SetupTextureFormat( PF_A2B10G10R10,		FOpenGLTextureFormat( GL_RGB10_A2,				GL_RGB10_A2,			GL_RGBA,		GL_UNSIGNED_INT_2_10_10_10_REV,		false,	false));
+		SetupTextureFormat( PF_R16F,			FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
+		SetupTextureFormat( PF_R16F_FILTER,		FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
+		SetupTextureFormat( PF_FloatRGB,		FOpenGLTextureFormat( GL_R11F_G11F_B10F,		GL_R11F_G11F_B10F,		GL_RGB,			GL_UNSIGNED_INT_10F_11F_11F_REV,	false,	false));
+		SetupTextureFormat( PF_V8U8,			FOpenGLTextureFormat( GL_RG8_SNORM,				GL_NONE,				GL_RG,			GL_BYTE,							false,	false));
+		SetupTextureFormat( PF_R8G8,			FOpenGLTextureFormat( GL_RG8,					GL_NONE,				GL_RG,			GL_UNSIGNED_BYTE,					false,	false));
+		SetupTextureFormat( PF_BC5,				FOpenGLTextureFormat( GL_COMPRESSED_RG_RGTC2,	GL_COMPRESSED_RG_RGTC2,	GL_RG,			GL_UNSIGNED_BYTE,					true,	false));
+		SetupTextureFormat( PF_A8,				FOpenGLTextureFormat( GL_R8,					GL_NONE,				GL_RED,			GL_UNSIGNED_BYTE,					false,	false));
+		SetupTextureFormat( PF_R32_UINT,		FOpenGLTextureFormat( GL_R32UI,					GL_NONE,				GL_RED_INTEGER,	GL_UNSIGNED_INT,					false,	false));
+		SetupTextureFormat( PF_R32_SINT,		FOpenGLTextureFormat( GL_R32I,					GL_NONE,				GL_RED_INTEGER,	GL_INT,								false,	false));
+		SetupTextureFormat( PF_R16_UINT,		FOpenGLTextureFormat( GL_R16UI,					GL_NONE,				GL_RED_INTEGER,	GL_UNSIGNED_SHORT,					false,	false));
+		SetupTextureFormat( PF_R16_SINT,		FOpenGLTextureFormat( GL_R16I,					GL_NONE,				GL_RED_INTEGER,	GL_SHORT,							false,	false));
+		SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat( GL_RGBA16F,				GL_RGBA16F,				GL_RGBA,		GL_HALF_FLOAT,						false,	false));
+		SetupTextureFormat( PF_FloatR11G11B10,	FOpenGLTextureFormat( GL_R11F_G11F_B10F,		GL_R11F_G11F_B10F,		GL_RGB,			GL_UNSIGNED_INT_10F_11F_11F_REV,	false,	false));
+		if (FOpenGL::GetShaderPlatform() == EShaderPlatform::SP_OPENGL_ES31_EXT)
 		{
-#if PLATFORM_ANDROID && !PLATFORM_ANDROIDGL4
-			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA16F_EXT,				GL_RGBA16F_EXT,								GL_RGBA,				GL_HALF_FLOAT_OES,					false));
-			bNeedFloatRGBAtoRGBA8 = false;
-#else
-			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,							GL_RGBA,									GL_RGBA,				GL_HALF_FLOAT_OES,					false));
-#endif
-#if PLATFORM_ANDROID
-			bNeedFloatRGBAtoRGBA8 = false;
-#endif
-		}
-	}
-#if PLATFORM_ANDROID
-	if (bNeedFloatRGBAtoRGBA8)
-	{
-		SetupTextureFormat( PF_FloatRGBA,			FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA,					GL_UNSIGNED_BYTE,					false));
-	}
-#endif
-
-	if (FOpenGL::SupportsPackedDepthStencil())
-	{
-		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_STENCIL_OES,				GL_NONE,									GL_DEPTH_STENCIL_OES,	GL_UNSIGNED_INT_24_8_OES,			false));
-	}
-	else
-	{
-		// @todo android: This is cheating by not setting a stencil anywhere, need that! And Shield is still rendering black scene
-		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_COMPONENT,				GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
-	}
-#endif
-
-	if ( FOpenGL::SupportsDXT() )
-	{
-		// WebGL does not support SRGB versions of DXTn texture formats! Run with SRGB formats disabled.  Will need to make sure
-		// sRGB is always emulated if it's needed.
-		if (!FOpenGL::SupportsSRGB())
-		{
-			SetupTextureFormat( PF_DXT1,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,	GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,		GL_RGBA,				GL_UNSIGNED_BYTE,					true));
-			SetupTextureFormat( PF_DXT3,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,	GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,		GL_RGBA,				GL_UNSIGNED_BYTE,					true));
-			SetupTextureFormat( PF_DXT5,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,	GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,		GL_RGBA,				GL_UNSIGNED_BYTE,					true));
+			UE_LOG(LogRHI, Log, TEXT("FOpenGL::GetShaderPlatform() == SP_OPENGL_ES31_EXT"));
+			SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(GL_RGBA8, GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, false, true));
+			SetupTextureFormat(PF_R8G8B8A8, FOpenGLTextureFormat(GL_RGBA8, GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
+			// GL_RG16 is not supported in OpenGL ES. There is currently no extension for it either. The user should check for support and implement a fallback.
+//			SetupTextureFormat(PF_G16R16, FOpenGLTextureFormat(GL_RG16, GL_RG16, GL_RG, GL_UNSIGNED_SHORT, false, false));
 		}
 		else
 		{
-			SetupTextureFormat( PF_DXT1,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,	GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,		GL_RGBA,				GL_UNSIGNED_BYTE,					true));
-			SetupTextureFormat( PF_DXT3,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,	GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,		GL_RGBA,				GL_UNSIGNED_BYTE,					true));
-			SetupTextureFormat( PF_DXT5,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,	GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,		GL_RGBA,				GL_UNSIGNED_BYTE,					true));
+			UE_LOG(LogRHI, Log, TEXT("FOpenGL::GetShaderPlatform() != SP_OPENGL_ES31_EXT"));
+			SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(GL_RGBA8, GL_SRGB8_ALPHA8, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, false, false));
+			SetupTextureFormat(PF_R8G8B8A8, FOpenGLTextureFormat(GL_RGBA8, GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, false, false));
+			SetupTextureFormat(PF_G16R16, FOpenGLTextureFormat(GL_RG16, GL_RG16, GL_RG, GL_UNSIGNED_SHORT, false, false));
+		}
+		if (FOpenGL::SupportsPackedDepthStencil())
+		{
+			SetupTextureFormat(PF_DepthStencil, FOpenGLTextureFormat(GL_DEPTH24_STENCIL8, GL_NONE, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, false, false));
+		}
+		else
+		{
+			// @todo android: This is cheating by not setting a stencil anywhere, need that! And Shield is still rendering black scene
+			SetupTextureFormat(PF_DepthStencil, FOpenGLTextureFormat(DepthFormat, GL_NONE, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, false, false));
+		}
+	}
+	else
+#endif // PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+	{
+#if !PLATFORM_DESKTOP && !PLATFORM_ANDROIDGL4
+		// ES2-based cases
+		GLuint BGRA8888 = FOpenGL::SupportsBGRA8888() ? GL_BGRA_EXT : GL_RGBA;
+		GLuint RGBA8 = FOpenGL::SupportsRGBA8() ? GL_RGBA8_OES : GL_RGBA;
+
+	#if PLATFORM_ANDROID
+		SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(GL_BGRA, FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : GL_BGRA, BGRA8888, GL_UNSIGNED_BYTE, false, false));
+	#else
+		SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(GL_RGBA, FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : GL_RGBA, GL_BGRA8_EXT, FOpenGL::SupportsSRGB() ? GL_SRGB8_ALPHA8_EXT : GL_BGRA8_EXT, BGRA8888, GL_UNSIGNED_BYTE, false, false));
+	#endif
+		SetupTextureFormat(PF_R8G8B8A8, FOpenGLTextureFormat(RGBA8, FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : RGBA8, GL_RGBA8, FOpenGL::SupportsSRGB() ? GL_SRGB8_ALPHA8_EXT : GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
+	#if PLATFORM_IOS
+		SetupTextureFormat(PF_G8, FOpenGLTextureFormat(GL_LUMINANCE, GL_LUMINANCE, GL_LUMINANCE8_EXT, GL_LUMINANCE8_EXT, GL_LUMINANCE, GL_UNSIGNED_BYTE, false, false));
+		SetupTextureFormat(PF_A8, FOpenGLTextureFormat(GL_ALPHA, GL_ALPHA, GL_ALPHA8_EXT, GL_ALPHA8_EXT, GL_ALPHA, GL_UNSIGNED_BYTE, false, false));
+	#else
+		SetupTextureFormat(PF_G8, FOpenGLTextureFormat(GL_LUMINANCE, GL_LUMINANCE, GL_LUMINANCE, GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE, false, false));
+		SetupTextureFormat(PF_A8, FOpenGLTextureFormat(GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_UNSIGNED_BYTE, false, false));
+	#endif
+
+		if (GSupportsRenderTargetFormat_PF_FloatRGBA && FOpenGL::SupportsTextureHalfFloat())
+		{
+#if PLATFORM_ANDROID
+			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA16F_EXT, GL_RGBA16F_EXT, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
+#else
+			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
+#endif
+		}
+		else
+		{
+			SetupTextureFormat( PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
+		}
+
+		if (FOpenGL::SupportsPackedDepthStencil())
+		{
+			SetupTextureFormat(PF_DepthStencil, FOpenGLTextureFormat(GL_DEPTH_STENCIL_OES, GL_NONE, GL_DEPTH_STENCIL_OES, GL_UNSIGNED_INT_24_8_OES, false, false));
+		}
+		else
+		{
+			// @todo android: This is cheating by not setting a stencil anywhere, need that! And Shield is still rendering black scene
+			SetupTextureFormat(PF_DepthStencil, FOpenGLTextureFormat(GL_DEPTH_COMPONENT, GL_NONE, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, false, false));
+		}
+#endif // !PLATFORM_DESKTOP
+	}
+
+	if (FOpenGL::SupportsDXT())
+	{
+		if ( FOpenGL::SupportsSRGB() )
+		{
+			SetupTextureFormat( PF_DXT1,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,	GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+			SetupTextureFormat( PF_DXT3,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,	GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+			SetupTextureFormat( PF_DXT5,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,	GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+		}
+		else
+		{
+			// WebGL does not support SRGB versions of DXTn texture formats! Run with SRGB formats disabled.  Will need to make sure
+			// sRGB is always emulated if it's needed.
+			SetupTextureFormat( PF_DXT1,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,	GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,		GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+			SetupTextureFormat( PF_DXT3,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,	GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,		GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+			SetupTextureFormat( PF_DXT5,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,	GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,		GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
 		}
 	}
 	if ( FOpenGL::SupportsPVRTC() )
 	{
-		SetupTextureFormat( PF_PVRTC2,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG,	GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG,	GL_RGBA,				GL_UNSIGNED_BYTE,					true));
-		SetupTextureFormat( PF_PVRTC4,			FOpenGLTextureFormat(GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG,	GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG,	GL_RGBA,				GL_UNSIGNED_BYTE,					true));
+		SetupTextureFormat( PF_PVRTC2,		FOpenGLTextureFormat(GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG, GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+		SetupTextureFormat( PF_PVRTC4,		FOpenGLTextureFormat(GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG, GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
 	}
 	if ( FOpenGL::SupportsATITC() )
 	{
-		SetupTextureFormat( PF_ATC_RGB,			FOpenGLTextureFormat(GL_ATC_RGB_AMD,						GL_ATC_RGB_AMD,							GL_RGBA,				GL_UNSIGNED_BYTE,					true));
-		SetupTextureFormat( PF_ATC_RGBA_E,		FOpenGLTextureFormat(GL_ATC_RGBA_EXPLICIT_ALPHA_AMD,		GL_ATC_RGBA_EXPLICIT_ALPHA_AMD,			GL_RGBA,				GL_UNSIGNED_BYTE,					true));
-		SetupTextureFormat( PF_ATC_RGBA_I,		FOpenGLTextureFormat(GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD,	GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD,		GL_RGBA,				GL_UNSIGNED_BYTE,					true));
+		SetupTextureFormat( PF_ATC_RGB,		FOpenGLTextureFormat(GL_ATC_RGB_AMD,					 GL_ATC_RGB_AMD,						GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+		SetupTextureFormat( PF_ATC_RGBA_E,	FOpenGLTextureFormat(GL_ATC_RGBA_EXPLICIT_ALPHA_AMD,	 GL_ATC_RGBA_EXPLICIT_ALPHA_AMD,		GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
+		SetupTextureFormat( PF_ATC_RGBA_I,	FOpenGLTextureFormat(GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD, GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
 	}
 	if ( FOpenGL::SupportsETC1() )
 	{
-		SetupTextureFormat( PF_ETC1,			FOpenGLTextureFormat(GL_ETC1_RGB8_OES,						GL_ETC1_RGB8_OES,						GL_RGBA,				GL_UNSIGNED_BYTE,					true));
+		SetupTextureFormat( PF_ETC1,		FOpenGLTextureFormat(GL_ETC1_RGB8_OES,					GL_ETC1_RGB8_OES,						GL_RGBA,	GL_UNSIGNED_BYTE,	true,	false));
 	}
-#if ANDROID
+#if PLATFORM_ANDROID
 	if ( FOpenGL::SupportsETC2() )
 	{
-		SetupTextureFormat( PF_ETC2_RGB,		FOpenGLTextureFormat(GL_COMPRESSED_RGB8_ETC2,		FOpenGL::SupportsSRGB() ? GL_COMPRESSED_SRGB8_ETC2 : GL_COMPRESSED_RGB8_ETC2,					GL_RGBA,	GL_UNSIGNED_BYTE,	true));
-		SetupTextureFormat( PF_ETC2_RGBA,		FOpenGLTextureFormat(GL_COMPRESSED_RGBA8_ETC2_EAC,	FOpenGL::SupportsSRGB() ? GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC : GL_COMPRESSED_RGBA8_ETC2_EAC,	GL_RGBA,	GL_UNSIGNED_BYTE,	true));
+		SetupTextureFormat( PF_ETC2_RGB,	FOpenGLTextureFormat(GL_COMPRESSED_RGB8_ETC2,		FOpenGL::SupportsSRGB() ? GL_COMPRESSED_SRGB8_ETC2 : GL_COMPRESSED_RGB8_ETC2,					GL_RGBA,	GL_UNSIGNED_BYTE,	true,			false));
+		SetupTextureFormat( PF_ETC2_RGBA,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA8_ETC2_EAC,	FOpenGL::SupportsSRGB() ? GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC : GL_COMPRESSED_RGBA8_ETC2_EAC,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,			false));
 	}
 #endif
 
@@ -898,6 +934,91 @@ static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode, bool I
 }
 #endif
 
+static void CheckTextureCubeLodSupport()
+{
+#if PLATFORM_ANDROID
+	if (IsES2Platform(GRHIShaderPlatform))
+	{
+		UE_LOG(LogRHI, Display, TEXT("Testing for shader compiler compatibility"));
+		// This code creates a sample program and finds out which hacks are required to compile it
+		const ANSICHAR* TestFragmentProgram = "\n"
+			"#version 100\n"
+			"#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
+			"#extension GL_EXT_shader_texture_lod : enable\n"
+			"#endif\n"
+			"precision mediump float;\n"
+			"precision mediump int;\n"
+			"#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n"
+			"precision mediump sampler2D;\n"
+			"precision mediump samplerCube;\n"
+			"#endif\n"
+			"varying vec3 TexCoord;\n"
+			"uniform samplerCube Texture;\n"
+			"void main()\n"
+			"{\n"
+			"	gl_FragColor = textureCubeLodEXT(Texture,TexCoord, 4.0);\n"
+			"}\n";
+
+		/*TArray<uint8> Code;
+		Code.Add( strlen( TestFragmentProgram ) + 1 );
+		FMemory::Memcpy( Code.GetData(), TestFragmentProgram, Code.Num() );*/
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+
+		FOpenGLCodeHeader Header;
+		Header.FrequencyMarker = 0x5053;
+		Header.GlslMarker = 0x474c534c;
+		TArray<uint8> Code;
+		{
+			FMemoryWriter Writer(Code);
+			Writer << Header;
+			Writer.Serialize((void*)(TestFragmentProgram), strlen(TestFragmentProgram) + 1);
+			Writer.Close();
+		}
+		// try to compile without any hacks
+		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if (VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
+		{
+			UE_LOG(LogRHI, Display, TEXT("Shaders compile fine no need to enable hacks"));
+			// we are done
+			return;
+		}
+		
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = true;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+
+		// second most number of devices fall into this hack category
+		// try to compile without using precision for texture samplers 
+		// Samsung Galaxy Express	Samsung Galaxy S3	Samsung Galaxy S3 mini	Samsung Galaxy Tab GT-P1000	Samsung Galaxy Tab 2
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if (VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Enabling shader compiler hack to remove precision modifiers for texture samplers"));
+
+			// we are done
+			return;
+		}
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = true;
+
+		// third most likely Samsung Galaxy Tab GT-P1000
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if (VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod"));
+			// we are done
+			return;
+		}
+		
+		UE_LOG(LogRHI, Warning, TEXT("Unable to find a test shader that compiles try running anyway"));
+	}
+#endif
+}
 
 void FOpenGLDynamicRHI::Init()
 {
@@ -956,101 +1077,10 @@ void FOpenGLDynamicRHI::Init()
 
 	FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "OpenGL" ) );
 
-	if(FOpenGL::SupportsSeamlessCubeMap())
-	{
-		PendingState.bSeamlessCubemapEnabled = true;
-	}
-
 	// Set the RHI initialized flag.
 	GIsRHIInitialized = true;
 
-	
-#if PLATFORM_ANDROID
-	{
-		UE_LOG(LogRHI,Display,TEXT("Testing for shader compiler compatibility"));
-		// This code creates a sample program and finds out which hacks are required to compile it
-		const ANSICHAR* TestFragmentProgram = "\n"
-			"#version 100\n"
-			"#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
-			"#extension GL_EXT_shader_texture_lod : enable\n"
-			"#endif\n"
-			"precision mediump float;\n"
-			"precision mediump int;\n"
-			"#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n"
-			"precision mediump sampler2D;\n"
-			"precision mediump samplerCube;\n"
-			"#endif\n"
-			"varying vec3 TexCoord;\n"
-			"uniform samplerCube Texture;\n"
-			"void main()\n"
-			"{\n"
-			"	gl_FragColor = textureCubeLodEXT(Texture,TexCoord, 4.0);\n"
-			"}\n";
-
-		/*TArray<uint8> Code;
-		Code.Add( strlen( TestFragmentProgram ) + 1 );
-		FMemory::Memcpy( Code.GetData(), TestFragmentProgram, Code.Num() );*/
-
-		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
-		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
-
-
-		FOpenGLCodeHeader Header;
-		Header.FrequencyMarker = 0x5053;
-		Header.GlslMarker = 0x474c534c;
-		TArray<uint8> Code;
-		{
-			FMemoryWriter Writer(Code );
-			Writer << Header;
-			Writer.Serialize( (void*)(TestFragmentProgram), strlen(TestFragmentProgram)+1);
-			Writer.Close();
-		}
-		// try to compile without any hacks
-		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
-
-		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
-		{
-			UE_LOG(LogRHI,Display,TEXT("Shaders compile fine no need to enable hacks"));
-			// we are done
-			return;
-		}
-		
-
-
-		FOpenGLES2::bRequiresDontEmitPrecisionForTextureSamplers = true;
-		FOpenGLES2::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
-
-		// second most number of devices fall into this hack category
-		// try to compile without using precision for texture samplers 
-		// Samsung Galaxy Express	Samsung Galaxy S3	Samsung Galaxy S3 mini	Samsung Galaxy Tab GT-P1000	Samsung Galaxy Tab 2
-		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
-
-		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
-		{
-			UE_LOG(LogRHI,Warning,TEXT("Enabling shader compiler hack to remove precision modifiers for texture samplers"));
-
-			// we are done
-			return;
-		}
-
-
-		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
-		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = true;
-
-		// third most likely Samsung Galaxy Tab GT-P1000
-		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
-
-		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
-		{
-			UE_LOG(LogRHI,Warning,TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod"));
-			// we are done
-			return;
-		}
-		
-		UE_LOG(LogRHI, Warning, TEXT("Unable to find a test shader that compiles try running anyway"));
-
-	}
-#endif
+	CheckTextureCubeLodSupport();
 }
 
 void FOpenGLDynamicRHI::Shutdown()
@@ -1165,13 +1195,13 @@ void* FOpenGLDynamicRHI::RHIGetNativeDevice()
 void FOpenGLDynamicRHI::InvalidateQueries( void )
 {
 	{
-	FScopeLock Lock(&QueriesListCriticalSection);
-	PendingState.RunningOcclusionQuery = 0;
-	for( int32 Index = 0; Index < Queries.Num(); ++Index )
-	{
-		Queries[Index]->bInvalidResource = true;
+		FScopeLock Lock(&QueriesListCriticalSection);
+		PendingState.RunningOcclusionQuery = 0;
+		for( int32 Index = 0; Index < Queries.Num(); ++Index )
+		{
+			Queries[Index]->bInvalidResource = true;
+		}
 	}
-}
 
 	{
 		FScopeLock Lock(&TimerQueriesListCriticalSection);
@@ -1187,4 +1217,3 @@ bool FOpenGLDynamicRHIModule::IsSupported()
 {
 	return PlatformInitOpenGL();
 }
-

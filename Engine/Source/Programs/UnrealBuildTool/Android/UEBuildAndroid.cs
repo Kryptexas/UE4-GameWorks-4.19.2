@@ -236,6 +236,8 @@ namespace UnrealBuildTool
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
+//                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
+                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                         }
 					}
 					else if (InModule.ToString() == "UnrealEd")
@@ -264,6 +266,8 @@ namespace UnrealBuildTool
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
+//                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
+                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                 }
 
 				if (bBuildShaderFormats)
@@ -319,6 +323,10 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
 
+			//@TODO: Tegra Gfx Debugger
+//			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/TegraGfxDebugger");
+//			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("Tegra_gfx_debugger");
+
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gnustl_shared");
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("z");
@@ -352,12 +360,16 @@ namespace UnrealBuildTool
 		public override string[] FinalizeBinaryPaths(string BinaryName)
 		{
 			string[] Architectures = AndroidToolChain.GetAllArchitectures();
+			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
 
 			// make multiple output binaries
 			List<string> AllBinaries = new List<string>();
 			foreach (string Architecture in Architectures)
 			{
-				AllBinaries.Add(AndroidToolChain.InlineArchName(BinaryName, Architecture));
+				foreach (string GPUArchitecture in GPUArchitectures)
+				{
+					AllBinaries.Add(AndroidToolChain.InlineArchName(BinaryName, Architecture, GPUArchitecture));
+				}
 			}
 
 			return AllBinaries.ToArray();

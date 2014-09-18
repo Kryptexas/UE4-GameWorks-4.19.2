@@ -2202,7 +2202,7 @@ struct _mesa_glsl_parse_state *state)
 			texop->offset = NULL;
 		}
 	}
-	else if (!is_multisample && is_shadow && num_params >= 3 && strncmp(method, "GatherCmp", 9) == 0 && state->language_version >= 430)
+	else if (!is_multisample && is_shadow && num_params >= 3 && strncmp(method, "GatherCmp", 9) == 0 && state->language_version >= 310)
 	{
 		const char* extension = method + 9;
 		ir_texture_channel channel = get_channel(extension);
@@ -2232,7 +2232,7 @@ struct _mesa_glsl_parse_state *state)
 			texop->channel = channel;
 		}
 	}
-	else if (!is_multisample && !is_shadow && num_params >= 2 && strncmp(method, "Gather", 6) == 0 && state->language_version >= 430)
+	else if (!is_multisample && !is_shadow && num_params >= 2 && strncmp(method, "Gather", 6) == 0 && state->language_version >= 310)
 	{
 		const char* extension = method + 6;
 		ir_texture_channel channel = get_channel(extension);
@@ -2339,7 +2339,7 @@ struct _mesa_glsl_parse_state *state)
 			instructions->push_tail(new(ctx)ir_assignment(lhs, rhs));
 		}
 
-		if (state->language_version >= 430 && num_params == dimensions + 2)
+		if (state->language_version >= 310 && num_params == dimensions + 2)
 		{
 			// generate one extra txm instruction to query levels and assign
 			ir_texture *query = new(ctx)ir_texture(ir_txm, SourceLocation);
@@ -2484,6 +2484,53 @@ struct _mesa_glsl_parse_state *state)
 			{
 				struct YYLTYPE location = expr->get_location();
 				apply_type_conversion(OffsetType[sampler->type->sampler_dimensionality], texop->offset,
+					instructions, state, false, &location);
+			}
+		}
+
+		if (texop->op == ir_txb)
+		{
+			// bias parameters must always be scalar floats
+			struct YYLTYPE location = expr->get_location();
+			apply_type_conversion(glsl_type::float_type,texop->lod_info.bias, instructions, state,
+				false, &location);
+		}
+
+		if (texop->op == ir_txl)
+		{
+			// lod parameters must always be scalar floats
+			struct YYLTYPE location = expr->get_location();
+			apply_type_conversion(glsl_type::float_type,texop->lod_info.lod, instructions, state,
+				false, &location);
+		}
+
+		if (texop->shadow_comparitor)
+		{
+			//shadow comparitors must always be scalar floats
+			struct YYLTYPE location = expr->get_location();
+			apply_type_conversion(glsl_type::float_type,texop->shadow_comparitor, instructions, state,
+				false, &location);
+		}
+
+		if (texop->op == ir_txd)
+		{
+			// Properly converts gradients to floating point values matching dimensionality
+			const glsl_type* OffsetType[GLSL_SAMPLER_DIM_EXTERNAL] =
+			{
+				glsl_type::float_type,
+				glsl_type::vec2_type,
+				glsl_type::vec3_type,
+				glsl_type::vec3_type,
+				nullptr,//GLSL_SAMPLER_DIM_RECT,
+				nullptr,//GLSL_SAMPLER_DIM_BUF,
+			};
+
+			if (OffsetType[sampler->type->sampler_dimensionality])
+			{
+				struct YYLTYPE location = expr->get_location();
+				apply_type_conversion(OffsetType[sampler->type->sampler_dimensionality], texop->lod_info.grad.dPdx,
+					instructions, state, false, &location);
+				apply_type_conversion(OffsetType[sampler->type->sampler_dimensionality], texop->lod_info.grad.dPdy,
 					instructions, state, false, &location);
 			}
 		}

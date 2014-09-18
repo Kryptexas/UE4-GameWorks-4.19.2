@@ -22,8 +22,10 @@
 #include "Linux/OpenGLLinux.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSOpenGL.h"
+#elif PLATFORM_ANDROIDES31
+#include "Android/AndroidES31OpenGL.h"
 #elif PLATFORM_ANDROIDGL4
-#include "AndroidGL4/AndroidGL4OpenGL.h"
+#include "Android/AndroidGL4OpenGL.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidOpenGL.h"
 #elif PLATFORM_HTML5
@@ -155,6 +157,7 @@ public:
 private:
 	bool	bIsResultValid;
 	GLuint	DisjointQuery;
+	uint64	Context;
 
 	FOpenGLDynamicRHI* OpenGLRHI;
 };
@@ -288,7 +291,7 @@ class FOpenGLDynamicRHI : public FDynamicRHI
 public:
 
 	friend class FOpenGLViewport;
-#if PLATFORM_MAC // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
 	friend class FOpenGLTextureBase;
 #endif
 
@@ -439,6 +442,8 @@ private:
 	void SetupVertexArrays(FOpenGLContextState& ContextCache, uint32 BaseVertexIndex, FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices);
 	void SetupVertexArraysVAB(FOpenGLContextState& ContextCache, uint32 BaseVertexIndex, FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices);
 	void SetupVertexArraysUP(FOpenGLContextState& ContextState, void* Buffer, uint32 Stride);
+
+	void SetupBindlessTextures( FOpenGLContextState& ContextState, const TArray<FOpenGLBindlessSamplerInfo> &Samplers );
 
 	/** needs to be called before each draw call */
 	void BindPendingFramebuffer( FOpenGLContextState& ContextState );

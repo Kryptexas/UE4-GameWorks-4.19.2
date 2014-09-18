@@ -95,8 +95,6 @@ const EGLint Attributes[] = {
 	EGL_NONE
 };
 
-const int ContextAttributes[] ={ EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-
 
 EGLConfigParms::EGLConfigParms(const EGLConfigParms& Parms)
 {
@@ -129,6 +127,9 @@ validConfig (0)
 }
 
 AndroidEGL::AndroidEGL()
+:	bSupportsKHRCreateContext(false)
+,	bSupportsKHRSurfacelessContext(false)
+,	ContextAttributes(nullptr)
 {
 	PImplData = new AndroidESPImpl();
 }
@@ -168,18 +169,43 @@ EGLBoolean AndroidEGL::SetCurrentContext(EGLContext InContext, EGLSurface InSurf
 {
 	//context can be null.so can surface from PlatformNULLContextSetup
 	EGLBoolean Result = EGL_FALSE;
+	EGLContext CurrentContext = GetCurrentContext();
 
 	// activate the context
-	if( GetCurrentContext() != InContext)
+	if( CurrentContext != InContext)
 	{
-		glFlush();
+		if (CurrentContext !=EGL_NO_CONTEXT )
+		{
+			glFlush();
+		}
 		if(InContext == EGL_NO_CONTEXT && InSurface == EGL_NO_SURFACE)
 		{
 			ResetDisplay();
 		}
 		else
 		{
-			Result = eglMakeCurrent(PImplData->eglDisplay, InSurface, InSurface, InContext);
+			//if we have a valid context, and no surface then create a tiny pbuffer and use that temporarily
+			EGLSurface Surface = InSurface;
+			if (!bSupportsKHRSurfacelessContext && InContext != EGL_NO_CONTEXT && InSurface == EGL_NO_SURFACE)
+			{
+				checkf(PImplData->auxSurface == EGL_NO_SURFACE, TEXT("ERROR: PImplData->auxSurface already in use. PBuffer surface leak!"));
+				EGLint PBufferAttribs[] =
+				{
+					EGL_WIDTH, 1,
+					EGL_HEIGHT, 1,
+					EGL_TEXTURE_TARGET, EGL_NO_TEXTURE,
+					EGL_TEXTURE_FORMAT, EGL_NO_TEXTURE,
+					EGL_NONE
+				};
+				PImplData->auxSurface = eglCreatePbufferSurface(PImplData->eglDisplay, PImplData->eglConfigParam, PBufferAttribs);
+				if (PImplData->auxSurface == EGL_NO_SURFACE)
+				{
+					checkf(PImplData->auxSurface != EGL_NO_SURFACE, TEXT("eglCreatePbufferSurface error : 0x%x"), eglGetError());
+				}
+				Surface = PImplData->auxSurface;
+			}
+
+			Result = eglMakeCurrent(PImplData->eglDisplay, Surface, Surface, InContext);
 			checkf(Result == EGL_TRUE, TEXT("ERROR: SetCurrentSharedContext eglMakeCurrent failed : 0x%x"), eglGetError());
 		}
 	}
@@ -257,7 +283,7 @@ void AndroidEGL::CreateEGLSurface(ANativeWindow* InWindow)
 }
 
 
-void AndroidEGL::InitEGL()
+void AndroidEGL::InitEGL(APIVariant API)
 {
 	// make sure we only do this once (it's optionally done early for cooker communication)
 	static bool bAlreadyInitialized = false;
@@ -274,7 +300,27 @@ void AndroidEGL::InitEGL()
 	EGLBoolean  result = 	eglInitialize(PImplData->eglDisplay, 0 , 0);
 	checkf( result == EGL_TRUE, TEXT("elgInitialize error: 0x%x "), eglGetError());
 
-	result = eglBindAPI(EGL_OPENGL_ES_API);
+	// Get the EGL Extension list to determine what is supported
+	FString Extensions = ANSI_TO_TCHAR( eglQueryString( PImplData->eglDisplay, EGL_EXTENSIONS));
+
+	FPlatformMisc::LowLevelOutputDebugStringf( TEXT("EGL Extensions: \n%s" ), *Extensions );
+
+	bSupportsKHRCreateContext = Extensions.Contains(TEXT("EGL_KHR_create_context"));
+	bSupportsKHRSurfacelessContext = Extensions.Contains(TEXT("EGL_KHR_surfaceless_context"));
+
+	if (API == AV_OpenGLES)
+	{
+		result = eglBindAPI(EGL_OPENGL_ES_API);
+	}
+	else if (API == AV_OpenGLCore)
+	{
+		result = eglBindAPI(EGL_OPENGL_API);
+	}
+	else
+	{
+		checkf( 0, TEXT("Attempt to initialize EGL with unedpected API type"));
+	}
+
 	checkf( result == EGL_TRUE, TEXT("eglBindAPI error: 0x%x "), eglGetError());
 
 #if ENABLE_CONFIG_FILTER
@@ -459,9 +505,48 @@ void AndroidEGL::ReInit()
 	InitSurface(false);
 }
 
-void AndroidEGL::Init()
+void AndroidEGL::Init(APIVariant API, uint32 MajorVersion, uint32 MinorVersion, bool bDebug)
 {
-	InitEGL();
+
+	if (PImplData->Initalized)
+	{
+		return;
+	}
+	InitEGL(API);
+
+	if (bSupportsKHRCreateContext)
+	{
+		const uint32 MaxElements = 13;
+		uint32 Flags = 0;
+
+		Flags |= bDebug ? EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR : 0;
+
+		ContextAttributes = new int[MaxElements];
+		uint32 Element = 0;
+		
+		ContextAttributes[Element++] = EGL_CONTEXT_MAJOR_VERSION_KHR;
+		ContextAttributes[Element++] = MajorVersion;
+		ContextAttributes[Element++] = EGL_CONTEXT_MINOR_VERSION_KHR;
+		ContextAttributes[Element++] = MinorVersion;
+		if (API == AV_OpenGLCore)
+		{
+			ContextAttributes[Element++] = EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR;
+			ContextAttributes[Element++] = EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR;
+		}
+		ContextAttributes[Element++] = EGL_CONTEXT_FLAGS_KHR;
+		ContextAttributes[Element++] = Flags;
+		ContextAttributes[Element++] = EGL_NONE;
+
+		checkf( Element < MaxElements, TEXT("Too many elements in config list"));
+	}
+	else
+	{
+		// Fall back to the least common denominator
+		ContextAttributes = new int[3];
+		ContextAttributes[0] = EGL_CONTEXT_CLIENT_VERSION;
+		ContextAttributes[1] = 2;
+		ContextAttributes[2] = EGL_NONE;
+	}
 
 	InitContexts();
 	PImplData->Initalized   = true;
@@ -471,6 +556,7 @@ void AndroidEGL::Init()
 AndroidEGL::~AndroidEGL()
 {
 	delete PImplData;
+	delete []ContextAttributes;
 }
 
 void AndroidEGL::GetDimensions(uint32& OutWidth, uint32& OutHeight)
@@ -526,11 +612,6 @@ bool AndroidEGL::SwapBuffers()
 	}
 
 	return true;
-}
-
-void FAndroidAppEntry::PlatformInit()
-{
-	AndroidEGL::GetInstance()->Init();
 }
 
 bool AndroidEGL::IsInitialized()
@@ -591,6 +672,25 @@ void AndroidEGL::SetCurrentSharedContext()
 	}
 }
 
+void AndroidEGL::SetSharedContext()
+{
+	check(IsInGameThread());
+	PImplData->CurrentContextType = CONTEXT_Shared;
+
+	SetCurrentContext(PImplData->SharedContext.eglContext, PImplData->SharedContext.eglSurface);
+}
+
+void AndroidEGL::SetSingleThreadRenderingContext()
+{
+	PImplData->CurrentContextType = CONTEXT_Rendering;
+	SetCurrentContext(PImplData->SingleThreadedContext.eglContext, PImplData->SingleThreadedContext.eglSurface);
+}
+
+void AndroidEGL::SetMultithreadRenderingContext()
+{
+	PImplData->CurrentContextType = CONTEXT_Rendering;
+	SetCurrentContext(PImplData->RenderingContext.eglContext, PImplData->RenderingContext.eglSurface);
+}
 
 void AndroidEGL::SetCurrentRenderingContext()
 {

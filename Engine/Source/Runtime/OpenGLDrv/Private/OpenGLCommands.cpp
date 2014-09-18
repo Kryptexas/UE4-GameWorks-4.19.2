@@ -46,7 +46,7 @@ namespace OpenGLConsoleVariables
 		TEXT("If true, don't issue dispatch work.")
 		);
 
-	int32 bUseVAB = 0;
+	int32 bUseVAB = 1;
 	static FAutoConsoleVariableRef CVarUseVAB(
 		TEXT("OpenGL.UseVAB"),
 		bUseVAB,
@@ -63,6 +63,14 @@ namespace OpenGLConsoleVariables
 		TEXT("OpenGL.MaxSubDataSize"),
 		MaxSubDataSize,
 		TEXT("Maximum amount of data to send to glBufferSubData in one call"),
+		ECVF_ReadOnly
+		);
+
+	int32 bBindlessTexture = 0;
+	static FAutoConsoleVariableRef CVarBindlessTexture(
+		TEXT("OpenGL.BindlessTexture"),
+		bBindlessTexture,
+		TEXT("If true, use GL_ARB_bindless_texture over traditional glBindTexture/glBindSampler."),
 		ECVF_ReadOnly
 		);
 };
@@ -599,23 +607,14 @@ inline void FOpenGLDynamicRHI::ApplyTextureStage(FOpenGLContextState& ContextSta
 template <typename StateType>
 void FOpenGLDynamicRHI::SetupTexturesForDraw( FOpenGLContextState& ContextState, const StateType ShaderState, int32 MaxTexturesNeeded )
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLTextureBindTime);
 	// Texture must be bound first
 	const bool bNeedsSetupSamplerStage = !FOpenGL::SupportsSamplerObjects();
-
-	if(FOpenGL::SupportsSeamlessCubeMap())
+	
+	// Skip texture setup when running bindless texture, it is done with program setup
+	if (OpenGLConsoleVariables::bBindlessTexture && FOpenGL::SupportsBindlessTexture())
 	{
-		if(ContextState.bSeamlessCubemapEnabled != PendingState.bSeamlessCubemapEnabled)
-		{
-			if(PendingState.bSeamlessCubemapEnabled)
-			{
-				glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-			}
-			else
-			{
-				glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-			}
-			ContextState.bSeamlessCubemapEnabled = PendingState.bSeamlessCubemapEnabled;
-		}
+		return;
 	}
 
 	const int32 MaxProgramTexture = ShaderState->MaxTextureStageUsed();
@@ -906,7 +905,14 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FVertexShaderRHIParamRef VertexShade
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	if (FOpenGL::SupportsSamplerObjects())
 	{
-		FOpenGL::BindSampler(FOpenGL::GetFirstVertexTextureUnit() + SamplerIndex, NewState->Resource);
+		if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+		{
+			FOpenGL::BindSampler(FOpenGL::GetFirstVertexTextureUnit() + SamplerIndex, NewState->Resource);
+		}
+		else
+		{
+			PendingState.SamplerStates[FOpenGL::GetFirstVertexTextureUnit() + SamplerIndex] = NewState;
+		}
 	}
 	else
 	{
@@ -923,7 +929,14 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FHullShaderRHIParamRef HullShaderRHI
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	if (FOpenGL::SupportsSamplerObjects())
 	{
-		FOpenGL::BindSampler(FOpenGL::GetFirstHullTextureUnit() + SamplerIndex, NewState->Resource);
+		if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+		{
+			FOpenGL::BindSampler(FOpenGL::GetFirstHullTextureUnit() + SamplerIndex, NewState->Resource);
+		}
+		else
+		{
+			PendingState.SamplerStates[FOpenGL::GetFirstHullTextureUnit() + SamplerIndex] = NewState;
+		}
 	}
 	else
 	{
@@ -939,7 +952,14 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FDomainShaderRHIParamRef DomainShade
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	if (FOpenGL::SupportsSamplerObjects())
 	{
-		FOpenGL::BindSampler(FOpenGL::GetFirstDomainTextureUnit() + SamplerIndex, NewState->Resource);
+		if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+		{
+			FOpenGL::BindSampler(FOpenGL::GetFirstDomainTextureUnit() + SamplerIndex, NewState->Resource);
+		}
+		else
+		{
+			PendingState.SamplerStates[FOpenGL::GetFirstDomainTextureUnit() + SamplerIndex] = NewState;
+		}
 	}
 	else
 	{
@@ -955,7 +975,14 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FGeometryShaderRHIParamRef GeometryS
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	if (FOpenGL::SupportsSamplerObjects())
 	{
-		FOpenGL::BindSampler(FOpenGL::GetFirstGeometryTextureUnit() + SamplerIndex, NewState->Resource);
+		if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+		{
+			FOpenGL::BindSampler(FOpenGL::GetFirstGeometryTextureUnit() + SamplerIndex, NewState->Resource);
+		}
+		else
+		{
+			PendingState.SamplerStates[FOpenGL::GetFirstGeometryTextureUnit() + SamplerIndex] = NewState;
+		}
 	}
 	else
 	{
@@ -979,7 +1006,14 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FPixelShaderRHIParamRef PixelShaderR
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	if ( FOpenGL::SupportsSamplerObjects() )
 	{
-		FOpenGL::BindSampler(FOpenGL::GetFirstPixelTextureUnit() + SamplerIndex, NewState->Resource);
+		if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+		{
+			FOpenGL::BindSampler(FOpenGL::GetFirstPixelTextureUnit() + SamplerIndex, NewState->Resource);
+		}
+		else
+		{
+			PendingState.SamplerStates[FOpenGL::GetFirstPixelTextureUnit() + SamplerIndex] = NewState;
+		}
 	}
 	else
 	{
@@ -1022,7 +1056,14 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FComputeShaderRHIParamRef ComputeSha
 	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
-	FOpenGL::BindSampler(FOpenGL::GetFirstComputeTextureUnit() + SamplerIndex, NewState->Resource);
+	if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+	{
+		FOpenGL::BindSampler(FOpenGL::GetFirstComputeTextureUnit() + SamplerIndex, NewState->Resource);
+	}
+	else
+	{
+		PendingState.SamplerStates[FOpenGL::GetFirstComputeTextureUnit() + SamplerIndex] = NewState;
+	}
 }
 
 void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelShaderRHI,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
@@ -1728,6 +1769,7 @@ void FOpenGLDynamicRHI::FreeZeroStrideBuffers()
 
 void FOpenGLDynamicRHI::SetupVertexArrays(FOpenGLContextState& ContextState, uint32 BaseVertexIndex, FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices)
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLVBOSetupTime);
 	if (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB)
 {
 		SetupVertexArraysVAB(ContextState, BaseVertexIndex, Streams, NumStreams, MaxVertices);
@@ -2285,11 +2327,13 @@ void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexI
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, VertexCount * NumInstances);
 	if (NumInstances == 1)
 	{
+		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
 		glDrawArrays(DrawMode, 0, NumElements);
 		REPORT_GL_DRAW_ARRAYS_EVENT_FOR_FRAME_DUMP( DrawMode, 0, NumElements );
 	}
 	else
 	{
+		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
 		check( FOpenGL::SupportsInstancing() );
 		FOpenGL::DrawArraysInstanced(DrawMode, 0, NumElements, NumInstances);
 		REPORT_GL_DRAW_ARRAYS_INSTANCED_EVENT_FOR_FRAME_DUMP( DrawMode, 0, NumElements, NumInstances );
@@ -2442,12 +2486,14 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumElements * NumInstances);
 	if (NumInstances > 1)
 	{
+		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
 		check( FOpenGL::SupportsInstancing() );
 		FOpenGL::DrawElementsInstanced(DrawMode, NumElements, IndexType, INDEX_TO_VOID(StartIndex), NumInstances);
 		REPORT_GL_DRAW_ELEMENTS_INSTANCED_EVENT_FOR_FRAME_DUMP(DrawMode, NumElements, IndexType, (void *)StartIndex, NumInstances);
 	}
 	else
 	{
+		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveDriverTime);
 		if ( FOpenGL::SupportsDrawIndexOffset() )
 		{
 			FOpenGL::DrawRangeElements(DrawMode, MinIndex, MinIndex + NumVertices, NumElements, IndexType, INDEX_TO_VOID(StartIndex));
@@ -3132,10 +3178,6 @@ void FOpenGLDynamicRHI::RHISetComputeShader(FComputeShaderRHIParamRef ComputeSha
 		check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 
 		PendingState.CurrentComputeShader = ComputeShaderRHI;
-
-		DYNAMIC_CAST_OPENGLRESOURCE(ComputeShader,ComputeShader);
-		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();		
-		BindPendingComputeShaderState(ContextState, ComputeShader);
 	}
 	else
 	{
@@ -3163,7 +3205,9 @@ void FOpenGLDynamicRHI::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint3
 
 		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
 
-		GPUProfilingData.RegisterGPUWork(1);		
+		GPUProfilingData.RegisterGPUWork(1);
+
+		BindPendingComputeShaderState(ContextState, ComputeShader);
 		CommitComputeResourceTables(ComputeShader);
 		SetupTexturesForDraw(ContextState, ComputeShader, FOpenGL::GetMaxComputeTextureImageUnits());
 		SetupUAVsForDraw(ContextState, ComputeShader, OGL_MAX_COMPUTE_STAGE_UAV_UNITS);
@@ -3195,6 +3239,8 @@ void FOpenGLDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRe
 		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
 
 		GPUProfilingData.RegisterGPUWork(1);
+
+		BindPendingComputeShaderState(ContextState, ComputeShader);
 
 		SetupTexturesForDraw(ContextState, ComputeShader, FOpenGL::GetMaxComputeTextureImageUnits());
 

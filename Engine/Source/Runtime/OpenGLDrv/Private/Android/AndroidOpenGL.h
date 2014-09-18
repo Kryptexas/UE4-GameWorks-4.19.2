@@ -7,6 +7,7 @@
 
 
 #if PLATFORM_ANDROID
+#if !PLATFORM_ANDROIDGL4
 #include "AndroidEGL.h"
 
 #include <EGL/eglext.h>
@@ -18,14 +19,25 @@ typedef EGLSyncKHR UGLsync;
 typedef khronos_int64_t GLint64;
 typedef khronos_uint64_t GLuint64;
 #define GL_CLAMP		GL_CLAMP_TO_EDGE
+
+#ifndef GL_WRITE_ONLY
 #define GL_WRITE_ONLY	GL_WRITE_ONLY_OES
+#endif
+
 #define glTexEnvi(...)
+
+#ifndef GL_RGBA8
 #define GL_RGBA8		GL_RGBA // or GL_RGBA8_OES ?
+#endif
+
 #define GL_BGRA			GL_BGRA_EXT 
 #define GL_UNSIGNED_INT_8_8_8_8_REV	GL_UNSIGNED_BYTE
 #define glMapBuffer		glMapBufferOES
 #define glUnmapBuffer	glUnmapBufferOES
+
+#ifndef GL_HALF_FLOAT
 #define GL_HALF_FLOAT	GL_HALF_FLOAT_OES
+#endif
 
 #define GL_COMPRESSED_RGB8_ETC2           0x9274
 #define GL_COMPRESSED_SRGB8_ETC2          0x9275
@@ -85,6 +97,17 @@ extern PFNGLLABELOBJECTEXTPROC			glLabelObjectEXT;
 extern PFNGLGETOBJECTLABELEXTPROC		glGetObjectLabelEXT;
 extern PFNGLPOPGROUPMARKEREXTPROC 		glPopGroupMarkerEXT;
 extern PFNGLTEXSTORAGE2DPROC			glTexStorage2D;
+extern PFNGLDEBUGMESSAGECONTROLKHRPROC	glDebugMessageControlKHR;
+extern PFNGLDEBUGMESSAGEINSERTKHRPROC	glDebugMessageInsertKHR;
+extern PFNGLDEBUGMESSAGECALLBACKKHRPROC	glDebugMessageCallbackKHR;
+extern PFNGLGETDEBUGMESSAGELOGKHRPROC	glDebugMessageLogKHR;
+extern PFNGLGETPOINTERVKHRPROC			glGetPointervKHR;
+extern PFNGLPUSHDEBUGGROUPKHRPROC		glPushDebugGroupKHR;
+extern PFNGLPOPDEBUGGROUPKHRPROC		glPopDebugGroupKHR;
+extern PFNGLOBJECTLABELKHRPROC			glObjectLabelKHR;
+extern PFNGLGETOBJECTLABELKHRPROC		glGetObjectLabelKHR;
+extern PFNGLOBJECTPTRLABELKHRPROC		glObjectPtrLabelKHR;
+extern PFNGLGETOBJECTPTRLABELKHRPROC	glGetObjectPtrLabelKHR;
 
 #include "OpenGLES2.h"
 
@@ -134,7 +157,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	static FORCEINLINE UGLsync FenceSync(GLenum Condition, GLbitfield Flags)
 	{
-		check( Condition == GL_SYNC_GPU_COMMANDS_COMPLETE && Flags == 0 );
+		check(Condition == GL_SYNC_GPU_COMMANDS_COMPLETE && Flags == 0);
 		return GUseThreadedRendering ? eglCreateSyncKHR( AndroidEGL::GetInstance()->GetDisplay(), EGL_SYNC_FENCE_KHR, NULL ) : 0;
 	}
 	
@@ -174,7 +197,6 @@ struct FAndroidOpenGL : public FOpenGLES2
 	// Required:
 	static FORCEINLINE void BlitFramebuffer(GLint SrcX0, GLint SrcY0, GLint SrcX1, GLint SrcY1, GLint DstX0, GLint DstY0, GLint DstX1, GLint DstY1, GLbitfield Mask, GLenum Filter)
 	{
-
 		if(glBlitFramebufferNV)
 		{
 			glBlitFramebufferNV(SrcX0, SrcY0, SrcX1, SrcY1, DstX0, DstY0, DstX1, DstY1, Mask, Filter);
@@ -217,5 +239,11 @@ typedef FAndroidOpenGL FOpenGL;
 #define UGL_DRAW_FRAMEBUFFER	GL_DRAW_FRAMEBUFFER_NV
 #undef UGL_READ_FRAMEBUFFER
 #define UGL_READ_FRAMEBUFFER	GL_READ_FRAMEBUFFER_NV
+
+#else // !PLATFORM_ANDROIDGL4
+
+#include "../AndroidGL4/AndroidGL4OpenGL.h"
+
+#endif
 
 #endif // PLATFORM_ANDROID

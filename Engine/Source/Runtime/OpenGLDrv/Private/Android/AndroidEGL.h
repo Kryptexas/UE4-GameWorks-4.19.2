@@ -8,7 +8,14 @@
 #if PLATFORM_ANDROID
 
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
+
+#if !PLATFORM_ANDROIDGL4
 #include <GLES2/gl2.h>
+#else
+#include <GL/glcorearb.h>
+#include <GL/glext.h>
+#endif
 
 struct AndroidESPImpl;
 struct ANativeWindow;
@@ -21,6 +28,7 @@ struct FPlatformOpenGLContext
 	EGLContext	eglContext;
 	GLuint		ViewportFramebuffer;
 	EGLSurface	eglSurface;
+	GLuint		DefaultVertexArrayObject;
 
 	FPlatformOpenGLContext()
 	{
@@ -32,6 +40,7 @@ struct FPlatformOpenGLContext
 		eglContext = EGL_NO_CONTEXT;
 		eglSurface = EGL_NO_SURFACE;
 		ViewportFramebuffer = 0;
+		DefaultVertexArrayObject = 0;
 	}
 };
 
@@ -39,13 +48,19 @@ struct FPlatformOpenGLContext
 class AndroidEGL
 {
 public:
+	enum APIVariant
+	{
+		AV_OpenGLES,
+		AV_OpenGLCore
+	};
+
 	static AndroidEGL* GetInstance();
 	~AndroidEGL();	
 
 	bool IsInitialized();
 	void InitBackBuffer();
 	void DestroyBackBuffer();
-	void Init();
+	void Init( APIVariant API, uint32 MajorVersion, uint32 MinorVersion, bool bDebug);
 	void ReInit();
 	void UnBind();
 	bool SwapBuffers();
@@ -62,6 +77,9 @@ public:
 	bool IsCurrentContextValid();
 	EGLContext  GetCurrentContext(  );
 	void SetCurrentSharedContext();
+	void SetSharedContext();
+	void SetSingleThreadRenderingContext();
+	void SetMultithreadRenderingContext();
 	void SetCurrentRenderingContext();
 	uint32_t GetCurrentContextType();
 	FPlatformOpenGLContext* GetRenderingContext();
@@ -71,7 +89,7 @@ protected:
 	static AndroidEGL* Singleton ;
 
 private:
-	void InitEGL();
+	void InitEGL(APIVariant API);
 	void TerminateEGL();
 
 	void CreateEGLSurface(ANativeWindow* InWindow);
@@ -86,6 +104,11 @@ private:
 
 	void ResetInternal();
 	void LogConfigInfo(EGLConfig  EGLConfigInfo);
+
+	bool bSupportsKHRCreateContext;
+	bool bSupportsKHRSurfacelessContext;
+
+	int *ContextAttributes;
 };
 
 #endif

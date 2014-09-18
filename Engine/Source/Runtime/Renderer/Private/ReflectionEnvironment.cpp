@@ -39,6 +39,20 @@ static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
 	TEXT("Whether to render the reflection environment feature, which implements local reflections through Reflection Capture actors."),
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 #endif 
+static TAutoConsoleVariable<int32> CVarHalfResReflections(
+	TEXT("r.HalfResReflections"),
+	0,
+	TEXT("Compute ReflectionEnvironment samples at half resolution.\n")
+	TEXT(" 0 is off (default), 1 is on"),
+	ECVF_RenderThreadSafe);
+
+// NoTiledReflections option, useful to fall back to SM4 style reflections on some SM5 HW
+static TAutoConsoleVariable<int32> CVarNoTiledReflections(
+	TEXT("r.NoTiledReflections"),
+	0,
+	TEXT("Use SM4 style PS reflections on SM5 HW.\n")
+	TEXT(" 0 is off (default), 1 is on"),
+	ECVF_ReadOnly);
 
 int32 GNumCapturesBeforeUsingTiledDeferred = 0;
 static FAutoConsoleVariableRef CVarNumCapturesBeforeUsingTiledDeferred(
@@ -369,7 +383,7 @@ private:
 	FDistanceFieldAOSpecularOcclusionParameters SpecularOcclusionParameters;
 };
 
-template< uint32 bUseLightmaps >
+template< uint32 bUseLightmaps, uint32 bHalfRes >
 class TReflectionEnvironmentTiledDeferredCS : public FReflectionEnvironmentTiledDeferredCS
 {
 	DECLARE_SHADER_TYPE(TReflectionEnvironmentTiledDeferredCS, Global);
@@ -385,11 +399,19 @@ public:
 	{
 		FReflectionEnvironmentTiledDeferredCS::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_LIGHTMAPS"), bUseLightmaps);
+		OutEnvironment.SetDefine(TEXT("HALF_RESOLUTION"), bHalfRes);
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TReflectionEnvironmentTiledDeferredCS<0>,TEXT("ReflectionEnvironmentComputeShaders"),TEXT("ReflectionEnvironmentTiledDeferredMain"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TReflectionEnvironmentTiledDeferredCS<1>,TEXT("ReflectionEnvironmentComputeShaders"),TEXT("ReflectionEnvironmentTiledDeferredMain"),SF_Compute);
+// Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
+#define IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(A, B) \
+	typedef TReflectionEnvironmentTiledDeferredCS<A,B> TReflectionEnvironmentTiledDeferredCS##A##B; \
+	IMPLEMENT_SHADER_TYPE(template<>,TReflectionEnvironmentTiledDeferredCS##A##B,TEXT("ReflectionEnvironmentComputeShaders"),TEXT("ReflectionEnvironmentTiledDeferredMain"),SF_Compute)
+
+IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(0,0);
+IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(0,1);
+IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(1,0);
+IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(1,1);
 
 template< uint32 bSSR, uint32 bReflectionEnv, uint32 bSkylight >
 class FReflectionApplyPS : public FGlobalShader
@@ -589,7 +611,7 @@ public:
 		}
 		else
 		{
-			SetTextureParameter(RHICmdList, ShaderRHI, ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SortData.SM4FullHDRCubemap->TextureRHI);
+		SetTextureParameter(RHICmdList, ShaderRHI, ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SortData.SM4FullHDRCubemap->TextureRHI);
 		}
 
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
@@ -681,6 +703,7 @@ bool FDeferredShadingSceneRenderer::ShouldDoReflectionEnvironment() const
 void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
 {
 	const uint32 bUseLightmaps = CVarDiffuseFromCaptures.GetValueOnRenderThread() == 0;
+	const uint32 bHalfRes = CVarHalfResReflections.GetValueOnRenderThread() != 0;
 
 	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 	{
@@ -714,20 +737,36 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
 			FReflectionEnvironmentTiledDeferredCS* ComputeShader = NULL;
-			if( bUseLightmaps )
+			uint32 AdjustedReflectionTileSizeX = GReflectionEnvironmentTileSizeX;
+			if ( bHalfRes)
 			{
-				ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<1> >(View.ShaderMap);
+				if( bUseLightmaps )
+				{
+					ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<1,1> >( View.ShaderMap );
+				}
+				else
+				{
+					ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<0,1> >( View.ShaderMap );
+				}
+				AdjustedReflectionTileSizeX *= 2;
 			}
 			else
 			{
-				ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<0> >(View.ShaderMap);
+			if( bUseLightmaps )
+			{
+					ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<1,0> >( View.ShaderMap );
+			}
+			else
+			{
+					ComputeShader = *TShaderMapRef< TReflectionEnvironmentTiledDeferredCS<0,0> >( View.ShaderMap );
+				}
 			}
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
 			ComputeShader->SetParameters(RHICmdList, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, NewSceneColor->GetRenderTargetItem().UAV, DynamicBentNormalAO);
 
-			uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
+			uint32 GroupSizeX = (View.ViewRect.Size().X + AdjustedReflectionTileSizeX - 1) / AdjustedReflectionTileSizeX;
 			uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
 			DispatchComputeShader(RHICmdList, ComputeShader, GroupSizeX, GroupSizeY, 1);
 
@@ -947,8 +986,15 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 bool ShouldUseTiledDeferredReflectionEnvironment(FScene* Scene)
 {
+	// command line option: -NoTiledReflections
+	// useful to test this code path and to run the potentially more efficient path (PS vs CS) on SM5 hardware
+	// not a cvar as it also needs to change the data when loading the captures
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NoTiledReflections"));
+	check(CVar);
+	const bool bNoTiledReflections = (CVar->GetValueOnAnyThread() == 1);
+
 	const ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
-	return FeatureLevel >= ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() > GNumCapturesBeforeUsingTiledDeferred;
+	return FeatureLevel >= ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() > GNumCapturesBeforeUsingTiledDeferred && !bNoTiledReflections;
 }
 
 void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)

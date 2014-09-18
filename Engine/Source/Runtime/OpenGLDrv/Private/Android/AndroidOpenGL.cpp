@@ -1,9 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#if !PLATFORM_ANDROIDGL4 && !PLATFORM_ANDROIDES31
+
 #include "OpenGLDrvPrivate.h"
 #include "OpenGLES2.h"
 #include "AndroidWindow.h"
-
+#include "AndroidOpenGLPrivate.h"
 
 PFNEGLGETSYSTEMTIMENVPROC eglGetSystemTimeNV;
 PFNEGLCREATESYNCKHRPROC eglCreateSyncKHR = NULL;
@@ -37,6 +39,19 @@ PFNGLUNMAPBUFFEROESPROC					glUnmapBufferOES = NULL;
 
 PFNGLTEXSTORAGE2DPROC					glTexStorage2D = NULL;
 
+// KHR_debug
+PFNGLDEBUGMESSAGECONTROLKHRPROC			glDebugMessageControlKHR = NULL;
+PFNGLDEBUGMESSAGEINSERTKHRPROC			glDebugMessageInsertKHR = NULL;
+PFNGLDEBUGMESSAGECALLBACKKHRPROC		glDebugMessageCallbackKHR = NULL;
+PFNGLGETDEBUGMESSAGELOGKHRPROC			glDebugMessageLogKHR = NULL;
+PFNGLGETPOINTERVKHRPROC					glGetPointervKHR = NULL;
+PFNGLPUSHDEBUGGROUPKHRPROC				glPushDebugGroupKHR = NULL;
+PFNGLPOPDEBUGGROUPKHRPROC				glPopDebugGroupKHR = NULL;
+PFNGLOBJECTLABELKHRPROC					glObjectLabelKHR = NULL;
+PFNGLGETOBJECTLABELKHRPROC				glGetObjectLabelKHR = NULL;
+PFNGLOBJECTPTRLABELKHRPROC				glObjectPtrLabelKHR = NULL;
+PFNGLGETOBJECTPTRLABELKHRPROC			glGetObjectPtrLabelKHR = NULL;
+
 struct FPlatformOpenGLDevice
 {
 
@@ -65,15 +80,21 @@ FPlatformOpenGLDevice::FPlatformOpenGLDevice()
 
 void FPlatformOpenGLDevice::Init()
 {
+	extern void InitDebugContext();
+
 	AndroidEGL::GetInstance()->InitSurface(false);
 	PlatformRenderingContextSetup(this);
+
+	LoadEXT();
+
 	InitDefaultGLContextState();
+	InitDebugContext();
 
 	PlatformSharedContextSetup(this);
 	InitDefaultGLContextState();
+	InitDebugContext();
 
 	AndroidEGL::GetInstance()->InitBackBuffer(); //can be done only after context is made current.
-	LoadEXT();
 }
 
 FPlatformOpenGLDevice* PlatformCreateOpenGLDevice()
@@ -107,11 +128,6 @@ void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)
 
 void PlatformFlushIfNeeded()
 {
-}
-
-void PlatformFlush()
-{
-	glFlush();
 }
 
 void PlatformRebindResources(FPlatformOpenGLDevice* Device)
@@ -169,6 +185,18 @@ void FPlatformOpenGLDevice::LoadEXT()
 	eglCreateSyncKHR = (PFNEGLCREATESYNCKHRPROC)((void*)eglGetProcAddress("eglCreateSyncKHR"));
 	eglDestroySyncKHR = (PFNEGLDESTROYSYNCKHRPROC)((void*)eglGetProcAddress("eglDestroySyncKHR"));
 	eglClientWaitSyncKHR = (PFNEGLCLIENTWAITSYNCKHRPROC)((void*)eglGetProcAddress("eglClientWaitSyncKHR"));
+
+	glDebugMessageControlKHR = (PFNGLDEBUGMESSAGECONTROLKHRPROC)((void*)eglGetProcAddress("glDebugMessageControlKHR"));
+	glDebugMessageInsertKHR = (PFNGLDEBUGMESSAGEINSERTKHRPROC)((void*)eglGetProcAddress("glDebugMessageInsertKHR"));
+	glDebugMessageCallbackKHR = (PFNGLDEBUGMESSAGECALLBACKKHRPROC)((void*)eglGetProcAddress("glDebugMessageCallbackKHR"));
+	glDebugMessageLogKHR = (PFNGLGETDEBUGMESSAGELOGKHRPROC)((void*)eglGetProcAddress("glDebugMessageLogKHR"));
+	glGetPointervKHR = (PFNGLGETPOINTERVKHRPROC)((void*)eglGetProcAddress("glGetPointervKHR"));
+	glPushDebugGroupKHR = (PFNGLPUSHDEBUGGROUPKHRPROC)((void*)eglGetProcAddress("glPushDebugGroupKHR"));
+	glPopDebugGroupKHR = (PFNGLPOPDEBUGGROUPKHRPROC)((void*)eglGetProcAddress("glPopDebugGroupKHR"));
+	glObjectLabelKHR = (PFNGLOBJECTLABELKHRPROC)((void*)eglGetProcAddress("glObjectLabelKHR"));
+	glGetObjectLabelKHR = (PFNGLGETOBJECTLABELKHRPROC)((void*)eglGetProcAddress("glGetObjectLabelKHR"));
+	glObjectPtrLabelKHR = (PFNGLOBJECTPTRLABELKHRPROC)((void*)eglGetProcAddress("glObjectPtrLabelKHR"));
+	glGetObjectPtrLabelKHR = (PFNGLGETOBJECTPTRLABELKHRPROC)((void*)eglGetProcAddress("glGetObjectPtrLabelKHR"));
 }
 
 FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Device, void* InWindowHandle)
@@ -273,7 +301,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
 	FOpenGLES2::ProcessExtensions(ExtensionsString);
 
-	const bool bES30Support = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION))).Contains(TEXT("OpenGL ES 3.0"));
+	const bool bES30Support = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION))).Contains(TEXT("OpenGL ES 3."));
 
 	// Get procedures
 	if (bSupportsOcclusionQueries || bSupportsDisjointTimeQueries)
@@ -292,6 +320,16 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	{
 		glQueryCounterEXT			= (PFNGLQUERYCOUNTEREXTPROC)		((void*)eglGetProcAddress("glQueryCounterEXT"));
 		glGetQueryObjectui64vEXT	= (PFNGLGETQUERYOBJECTUI64VEXTPROC)	((void*)eglGetProcAddress("glGetQueryObjectui64vEXT"));
+
+		// If EXT_disjoint_timer_query wasn't found, NV_timer_query might be available
+		if (glQueryCounterEXT == NULL)
+		{
+			glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC)eglGetProcAddress("glQueryCounterNV");
+		}
+		if (glGetQueryObjectui64vEXT == NULL)
+		{
+			glGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)eglGetProcAddress("glGetQueryObjectui64vNV");
+		}
 	}
 
 	glDiscardFramebufferEXT = (PFNGLDISCARDFRAMEBUFFEREXTPROC)((void*)eglGetProcAddress("glDiscardFramebufferEXT"));
@@ -339,74 +377,6 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	}
 }
 
-class FAndroidGPUInfo
-{
-public:
-	static FAndroidGPUInfo& Get()
-	{
-		static FAndroidGPUInfo This;
-		return This;
-	}
-
-	FString GPUFamily;
-	FString GLVersion;
-	bool bSupportsFloatingPointRenderTargets;
-	TArray<FString> TargetPlatformNames;
-
-private:
-	FAndroidGPUInfo()
-	{
-		// this is only valid in the game thread, make sure we are initialized there before being called on other threads!
-		check(IsInGameThread())
-
-		// make sure GL is started so we can get the supported formats
-		AndroidEGL* EGL = AndroidEGL::GetInstance();
-		EGL->Init();
-		EGL->InitSurface(true);
-		EGL->SetCurrentSharedContext();
-
-		// get extensions
-		const ANSICHAR* GlGetStringOutput = (const ANSICHAR*) glGetString(GL_EXTENSIONS);
-
-		// process them (will happen again, but that's okay)
-		FAndroidOpenGL::ProcessExtensions(FString(GlGetStringOutput));
-
-		GPUFamily = (const ANSICHAR*)glGetString(GL_RENDERER);
-		check(!GPUFamily.IsEmpty());
-
-		GLVersion = (const ANSICHAR*)glGetString(GL_VERSION);
-
-		// highest priority is the per-texture version
-		if (FAndroidOpenGL::SupportsASTC())
-		{
-			TargetPlatformNames.Add(TEXT("Android_ASTC"));
-		}
-		if (FAndroidOpenGL::SupportsDXT())
-		{
-			TargetPlatformNames.Add(TEXT("Android_DXT"));
-		}
-		if (FAndroidOpenGL::SupportsATITC())
-		{
-			TargetPlatformNames.Add(TEXT("Android_ATC"));
-		}
-		if (FAndroidOpenGL::SupportsPVRTC())
-		{
-			TargetPlatformNames.Add(TEXT("Android_PVRTC"));
-		}
-		if (FAndroidOpenGL::SupportsETC2())
-		{
-			TargetPlatformNames.Add(TEXT("Android_ETC2"));
-		}
-
-		// all devices support ETC
-		TargetPlatformNames.Add(TEXT("Android_ETC1"));
-
-		// finally, generic Android
-		TargetPlatformNames.Add(TEXT("Android"));
-
-		bSupportsFloatingPointRenderTargets = FAndroidOpenGL::SupportsColorBufferHalfFloat();
-	}
-};
 
 FString FAndroidMisc::GetGPUFamily()
 {
@@ -428,3 +398,9 @@ void FAndroidMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 	TargetPlatformNames = FAndroidGPUInfo::Get().TargetPlatformNames;
 }
 
+void FAndroidAppEntry::PlatformInit()
+{
+	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
+}
+
+#endif

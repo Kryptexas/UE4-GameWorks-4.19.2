@@ -55,9 +55,14 @@ DEFINE_STAT(STAT_OpenGLNumFreeUniformBuffers);
 
 #if OPENGLRHI_DETAILED_STATS
 DEFINE_STAT(STAT_OpenGLDrawPrimitiveTime);
+DEFINE_STAT(STAT_OpenGLDrawPrimitiveDriverTime);
 DEFINE_STAT(STAT_OpenGLDrawPrimitiveUPTime);
 DEFINE_STAT(STAT_OpenGLMapBufferTime);
 DEFINE_STAT(STAT_OpenGLUnmapBufferTime);
+DEFINE_STAT(STAT_OpenGLShaderBindTime);
+DEFINE_STAT(STAT_OpenGLTextureBindTime);
+DEFINE_STAT(STAT_OpenGLUniformBindTime);
+DEFINE_STAT(STAT_OpenGLVBOSetupTime);
 #endif
 
 void IncrementBufferMemory(GLenum Type, bool bStructuredBuffer, uint32 NumBytes)

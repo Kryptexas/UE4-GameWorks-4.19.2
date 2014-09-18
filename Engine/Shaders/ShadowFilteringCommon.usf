@@ -97,75 +97,48 @@ float PCF3x3(float2 Fraction, float4 Values0, float4 Values1, float4 Values2, fl
 // @param Values3 right bottom
 float PCF3x3gather(float2 Fraction, float4 Values0, float4 Values1, float4 Values2, float4 Values3)
 {
-	// mostly vectorized
-	float4 PCFResult0 = float4(lerp(Values0.wx, Values0.zy, Fraction.xx), lerp(Values2.wx, Values2.zy, Fraction.x));
-	float4 PCFResult1 = float4(lerp(Values0.zy, Values1.wx, Fraction.xx), lerp(Values2.zy, Values3.wx, Fraction.x));
-	float4 PCFResult2 = float4(lerp(Values1.wx, Values1.zy, Fraction.xx), lerp(Values3.wx, Values3.zy, Fraction.x));
+	float4 Results;
 
-	float4 PCFResult012 = PCFResult0 + PCFResult1 + PCFResult2;
+	Results.x = Values0.w * (1.0 - Fraction.x);
+	Results.y = Values0.x * (1.0 - Fraction.x);
+	Results.z = Values2.w * (1.0 - Fraction.x);
+	Results.w = Values2.x * (1.0 - Fraction.x);
+	Results.x += Values0.z;
+	Results.y += Values0.y;
+	Results.z += Values2.z;
+	Results.w += Values2.y;
+	Results.x += Values1.w;
+	Results.y += Values1.x;
+	Results.z += Values3.w;
+	Results.w += Values3.x;
+	Results.x += Values1.z * Fraction.x;
+	Results.y += Values1.y * Fraction.x;
+	Results.z += Values3.z * Fraction.x;
+	Results.w += Values3.y * Fraction.x;
 
-	float3 PCFResults = lerp(PCFResult012.xyz, PCFResult012.yzw, Fraction.y);
-
-	return dot(PCFResults, 1.0f / 9.0f);
+	return dot( Results, float4( 1.0 - Fraction.y, 1.0, 1.0, Fraction.y) * ( 1.0 / 9.0) );
 }
 
-float PCF5x2(float2 Fraction, float4 Values00, float4 Values20, float4 Values40, float4 Values02, float4 Values22, float4 Values42)
+// horizontal PCF, input 6x2
+float2 HorizontalPCF5x2(float2 Fraction, float4 Values00, float4 Values20, float4 Values40)
 {
-	float4 Results0;
-	float2 Results1;
-	float2 HorizontalLerp00 = lerp(float2(Values00.w, Values00.x), float2(Values00.z, Values00.y), Fraction.xx);
-	Results0.x = lerp(HorizontalLerp00.x, HorizontalLerp00.y, Fraction.y);
+	float Results0;
+	float Results1;
 
-	float2 HorizontalLerp10 = lerp(float2(Values00.z, Values00.y), float2(Values20.w, Values20.x), Fraction.xx);
-	Results0.y = lerp(HorizontalLerp10.x, HorizontalLerp10.y, Fraction.y);
+	Results0 = Values00.w * (1.0 - Fraction.x);
+	Results1 = Values00.x * (1.0 - Fraction.x);
+	Results0 += Values00.z;
+	Results1 += Values00.y;
+	Results0 += Values20.w;
+	Results1 += Values20.x;
+	Results0 += Values20.z;
+	Results1 += Values20.y;
+	Results0 += Values40.w;
+	Results1 += Values40.x;
+	Results0 += Values40.z * Fraction.x;
+	Results1 += Values40.y * Fraction.x;
 
-	float2 HorizontalLerp20 = lerp(float2(Values20.w, Values20.x), float2(Values20.z, Values20.y), Fraction.xx);
-	Results0.z = lerp(HorizontalLerp20.x, HorizontalLerp20.y, Fraction.y);
-
-	float2 HorizontalLerp30 = lerp(float2(Values20.z, Values20.y), float2(Values40.w, Values40.x), Fraction.xx);
-	Results0.w = lerp(HorizontalLerp30.x, HorizontalLerp30.y, Fraction.y);
-
-	float2 HorizontalLerp40 = lerp(float2(Values40.w, Values40.x), float2(Values40.z, Values40.y), Fraction.xx);
-	Results1.x = lerp(HorizontalLerp40.x, HorizontalLerp40.y, Fraction.y);
-
-	float4 Results2;
-	float2 HorizontalLerp01 = lerp(float2(Values00.x, Values02.w), float2(Values00.y, Values02.z), Fraction.xx);
-	Results2.x = lerp(HorizontalLerp01.x, HorizontalLerp01.y, Fraction.y);
-
-	float2 HorizontalLerp11 = lerp(float2(Values00.y, Values02.z), float2(Values20.x, Values22.w), Fraction.xx);
-	Results2.y = lerp(HorizontalLerp11.x, HorizontalLerp11.y, Fraction.y);
-
-	float2 HorizontalLerp21 = lerp(float2(Values20.x, Values22.w), float2(Values20.y, Values22.z), Fraction.xx);
-	Results2.z = lerp(HorizontalLerp21.x, HorizontalLerp21.y, Fraction.y);
-
-	float2 HorizontalLerp31 = lerp(float2(Values20.y, Values22.z), float2(Values40.x, Values42.w), Fraction.xx);
-	Results2.w = lerp(HorizontalLerp31.x, HorizontalLerp31.y, Fraction.y);
-
-	float2 HorizontalLerp41 = lerp(float2(Values40.x, Values42.w), float2(Values40.y, Values42.z), Fraction.xx);
-	Results1.y = lerp(HorizontalLerp41.x, HorizontalLerp41.y, Fraction.y);
-
-	return dot(Results0, .04f) + dot(Results1, .04f) + dot(Results2, .04f);
-}
-
-float PCF5x1(float2 Fraction, float4 Values00, float4 Values20, float4 Values40)
-{
-	float4 Results0;
-	float2 HorizontalLerp00 = lerp(float2(Values00.w, Values00.x), float2(Values00.z, Values00.y), Fraction.xx);
-	Results0.x = lerp(HorizontalLerp00.x, HorizontalLerp00.y, Fraction.y);
-
-	float2 HorizontalLerp10 = lerp(float2(Values00.z, Values00.y), float2(Values20.w, Values20.x), Fraction.xx);
-	Results0.y = lerp(HorizontalLerp10.x, HorizontalLerp10.y, Fraction.y);
-
-	float2 HorizontalLerp20 = lerp(float2(Values20.w, Values20.x), float2(Values20.z, Values20.y), Fraction.xx);
-	Results0.z = lerp(HorizontalLerp20.x, HorizontalLerp20.y, Fraction.y);
-
-	float2 HorizontalLerp30 = lerp(float2(Values20.z, Values20.y), float2(Values40.w, Values40.x), Fraction.xx);
-	Results0.w = lerp(HorizontalLerp30.x, HorizontalLerp30.y, Fraction.y);
-
-	float2 HorizontalLerp40 = lerp(float2(Values40.w, Values40.x), float2(Values40.z, Values40.y), Fraction.xx);
-	float Results1 = lerp(HorizontalLerp40.x, HorizontalLerp40.y, Fraction.y);
-
-	return dot(Results0, .04f) + Results1 * .04f;
+	return float2(Results0, Results1);
 }
 
 // lowest quality ith PCF
@@ -338,26 +311,30 @@ float ManualPCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
 		float2 TexelCenter = floor(TexelPos);
 		float2 SamplePos = (TexelCenter + 0.5f) * Settings.ShadowBufferSize.zw;	// bias to get reliable texel center content
 
-		float3 Results;
+		float Results;
 
 		float4 Values00 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(-2, -2)), Settings);
 		float4 Values20 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(0, -2)), Settings);
 		float4 Values40 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(2, -2)), Settings);
 
+		float2 Row0 = HorizontalPCF5x2(Fraction, Values00, Values20, Values40);
+		Results = Row0.x * (1.0f - Fraction.y) + Row0.y;
+
 		float4 Values02 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(-2, 0)), Settings);
 		float4 Values22 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(0, 0)), Settings);
 		float4 Values42 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(2, 0)), Settings);
 
-		Results.x = PCF5x2(Fraction, Values00, Values20, Values40, Values02, Values22, Values42);
+		float2 Row1 = HorizontalPCF5x2(Fraction, Values02, Values22, Values42);
+		Results += Row1.x + Row1.y;
 
 		float4 Values04 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(-2, 2)), Settings);
 		float4 Values24 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(0, 2)), Settings);
 		float4 Values44 = CalculateOcclusion(Settings.ShadowDepthTexture.Gather(Settings.ShadowDepthTextureSampler, SamplePos, int2(2, 2)), Settings);
 
-		Results.y = PCF5x2(Fraction, Values02, Values22, Values42, Values04, Values24, Values44);
-		Results.z = PCF5x1(Fraction, Values04, Values24, Values44);
+		float2 Row2 = HorizontalPCF5x2(Fraction, Values04, Values24, Values44);
+		Results += Row2.x + Row2.y * Fraction.y;
 
-		return dot(Results, 1);
+		return 0.04f * Results;
 	}
 
 #else // FEATURE_GATHER4

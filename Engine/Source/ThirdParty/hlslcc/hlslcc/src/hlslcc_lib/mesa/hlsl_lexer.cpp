@@ -1925,12 +1925,12 @@ KEYWORD(130, 130, NOPERSPECTIVE);
 case 77:
 YY_RULE_SETUP
 #line 290 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, GLOBALLYCOHERENT);
+KEYWORD(100, 310, GLOBALLYCOHERENT);
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
 #line 291 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, SHARED);
+KEYWORD(100, 310, SHARED);
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
@@ -1990,7 +1990,7 @@ return TEXTURECUBE;
 case 90:
 YY_RULE_SETUP
 #line 305 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, TEXTURECUBE_ARRAY);
+KEYWORD(100, 310, TEXTURECUBE_ARRAY);
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
@@ -2005,32 +2005,32 @@ return SAMPLERSTATE_CMP;
 case 93:
 YY_RULE_SETUP
 #line 309 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, RWBUFFER);
+KEYWORD(100, 310, RWBUFFER);
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
 #line 310 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, RWTEXTURE1D);
+KEYWORD(100, 310, RWTEXTURE1D);
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
 #line 311 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, RWTEXTURE1D_ARRAY);
+KEYWORD(100, 310, RWTEXTURE1D_ARRAY);
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
 #line 312 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, RWTEXTURE2D);
+KEYWORD(100, 310, RWTEXTURE2D);
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
 #line 313 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, RWTEXTURE2D_ARRAY);
+KEYWORD(100, 310, RWTEXTURE2D_ARRAY);
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
 #line 314 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_lexer.ll"
-KEYWORD(100, 430, RWTEXTURE3D);
+KEYWORD(100, 310, RWTEXTURE3D);
 	YY_BREAK
 case 99:
 YY_RULE_SETUP

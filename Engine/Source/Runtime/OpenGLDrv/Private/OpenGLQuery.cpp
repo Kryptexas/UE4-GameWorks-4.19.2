@@ -251,7 +251,7 @@ void FOpenGLEventQuery::IssueEvent()
 	if(Sync)
 	{
 		FOpenGL::DeleteSync(Sync);
-		Sync = 0;
+		Sync = UGLsync();
 	}
 	Sync = FOpenGL::FenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	FOpenGL::Flush();
@@ -576,6 +576,7 @@ uint64 FOpenGLBufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 FOpenGLDisjointTimeStampQuery::FOpenGLDisjointTimeStampQuery(class FOpenGLDynamicRHI* InOpenGLRHI)
 :	bIsResultValid(false)
 ,	DisjointQuery(0)
+,	Context(0)
 ,	OpenGLRHI(InOpenGLRHI)
 {
 }
@@ -585,9 +586,14 @@ void FOpenGLDisjointTimeStampQuery::StartTracking()
 	VERIFY_GL_SCOPE();
 	if (IsSupported())
 	{
+
+		if (!PlatformContextIsCurrent(Context))
+		{
+			PlatformReleaseRenderQuery(DisjointQuery, Context);
+			PlatformGetNewRenderQuery(&DisjointQuery, &Context);
+		}
 		// Dummy query to reset the driver's internal disjoint status
-		GLint WasDisjoint = 0;
-		glGetIntegerv( GL_GPU_DISJOINT_EXT, &WasDisjoint );
+		FOpenGL::TimerQueryDisjoint();
 		FOpenGL::BeginQuery(UGL_TIME_ELAPSED, DisjointQuery);
 	}
 }
@@ -602,9 +608,7 @@ void FOpenGLDisjointTimeStampQuery::EndTracking()
 
 		// Check if the GPU changed clock frequency since the last time GL_GPU_DISJOINT_EXT was checked.
 		// If so, any timer query will be undefined.
-		GLint WasDisjoint = 0;
-		glGetIntegerv( GL_GPU_DISJOINT_EXT, &WasDisjoint );
-		bIsResultValid = WasDisjoint != 0;
+		bIsResultValid = !FOpenGL::TimerQueryDisjoint();
 	}
 
 }
@@ -651,7 +655,7 @@ void FOpenGLDisjointTimeStampQuery::InitDynamicRHI()
 	VERIFY_GL_SCOPE();
 	if ( IsSupported() )
 	{
-		FOpenGL::GenQueries( 1, &DisjointQuery);
+		PlatformGetNewRenderQuery(&DisjointQuery, &Context);
 	}
 }
 
@@ -660,6 +664,6 @@ void FOpenGLDisjointTimeStampQuery::ReleaseDynamicRHI()
 	VERIFY_GL_SCOPE();
 	if ( IsSupported() )
 	{
-		FOpenGL::DeleteQueries( 1, &DisjointQuery);
+		PlatformReleaseRenderQuery(DisjointQuery, Context);
 	}
 }

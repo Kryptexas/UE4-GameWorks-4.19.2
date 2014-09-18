@@ -342,8 +342,33 @@
 	EnumMacro(PFNGLTEXSTORAGE2DMULTISAMPLEPROC, glTexStorage2DMultisample)\
 	EnumMacro(PFNGLDRAWELEMENTSINDIRECTPROC, glDrawElementsIndirect)\
 	EnumMacro(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect)\
-	EnumMacro(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT)
-
+	EnumMacro(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT)\
+	EnumMacro(PFNGLGETTEXTUREHANDLENVPROC, glGetTextureHandleARB)\
+	EnumMacro(PFNGLGETTEXTURESAMPLERHANDLENVPROC, glGetTextureSamplerHandleARB)\
+	EnumMacro(PFNGLMAKETEXTUREHANDLERESIDENTNVPROC, glMakeTextureHandleResidentARB)\
+	EnumMacro(PFNGLUNIFORMHANDLEUI64NVPROC, glUniformHandleui64ARB)\
+	EnumMacro(PFNGLMAKETEXTUREHANDLENONRESIDENTNVPROC, glMakeTextureHandleNonResidentARB)\
+	EnumMacro(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroupKHR)\
+	EnumMacro(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroupKHR)\
+	EnumMacro(PFNGLOBJECTLABELPROC, glObjectLabelKHR)\
+	EnumMacro(PFNGLOBJECTLABELPROC, glObjectPtrLabelKHR)\
+	EnumMacro(PFNGLDEBUGMESSAGECALLBACKARBPROC,glDebugMessageCallbackKHR) \
+	EnumMacro(PFNGLDEBUGMESSAGECONTROLARBPROC,glDebugMessageControlKHR) \
+	EnumMacro(PFNGLPATCHPARAMETERIPROC, glPatchParameteriEXT)\
+	EnumMacro(PFNGLTEXTUREVIEWPROC, glTextureViewEXT)\
+	EnumMacro(PFNGLBLENDEQUATIONIPROC, glBlendEquationiEXT) \
+	EnumMacro(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparateiEXT) \
+	EnumMacro(PFNGLBLENDFUNCIPROC, glBlendFunciEXT) \
+	EnumMacro(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparateiEXT)\
+	EnumMacro(PFNGLCOLORMASKIPROC,glColorMaskiEXT) \
+	EnumMacro(PFNGLDISABLEIPROC,glDisableiEXT) \
+	EnumMacro(PFNGLENABLEIPROC,glEnableiEXT) \
+	EnumMacro(PFNGLFRAMEBUFFERTEXTUREPROC,glFramebufferTextureEXT) \
+	EnumMacro(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubDataEXT) \
+	EnumMacro(PFNGLTEXBUFFERPROC,glTexBufferEXT) \
+	EnumMacro(PFNGLDEPTHRANGEFPROC,glDepthRangef) \
+	EnumMacro(PFNGLCLEARDEPTHFPROC,glClearDepthf) \
+	EnumMacro(PFNGLGETSHADERPRECISIONFORMATPROC, glGetShaderPrecisionFormat)
 
 /** List of all OpenGL entry points. */
 #define ENUM_GL_ENTRYPOINTS_ALL(EnumMacro) \
@@ -358,7 +383,10 @@ ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
 /** This function is handled separately because it is used to get a real context. */
 extern PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
+// Set to 1 to enable creating an ES 3.1 context and use ES 3.1 shaders on Windows
+#define EMULATE_ES31 0
 
+#if !EMULATE_ES31
 #include "OpenGL4.h"
 
 
@@ -462,6 +490,11 @@ struct FWindowsOpenGL : public FOpenGL4
 		return glDepthBoundsEXT != NULL;
 	}
 
+	static FORCEINLINE bool SupportsBindlessTexture()
+	{
+		return glGetTextureSamplerHandleARB != NULL;
+	}
+
 	static FORCEINLINE void BufferStorage(GLenum Target, GLsizeiptr Size, const void *Data, GLbitfield Flags)
 	{
 		glBufferStorage(Target, Size, Data, Flags);
@@ -472,6 +505,143 @@ struct FWindowsOpenGL : public FOpenGL4
 		glDepthBoundsEXT( Min, Max);
 	}
 
+	static FORCEINLINE GLuint64 GetTextureSamplerHandle(GLuint Texture, GLuint Sampler)
+	{
+		return glGetTextureSamplerHandleARB( Texture, Sampler);
+	}
+
+	static FORCEINLINE GLuint64 GetTextureHandle(GLuint Texture)
+	{
+		return glGetTextureHandleARB(Texture);
+	}
+
+	static FORCEINLINE void MakeTextureHandleResident(GLuint64 TextureHandle)
+	{
+		glMakeTextureHandleResidentARB(TextureHandle);
+	}
+
+	static FORCEINLINE void MakeTextureHandleNonResident(GLuint64 TextureHandle)
+	{
+		glMakeTextureHandleNonResidentARB(TextureHandle);
+	}
+
+	static FORCEINLINE void UniformHandleui64(GLint Location, GLuint64 Value)
+	{
+		glUniformHandleui64ARB( Location, Value);
+	}
+
 };
+
+#else
+
+//fix-up naming differences between OpenGL and OpenGL ES
+#define glMapBufferOES glMapBuffer
+#define glUnmapBufferOES glUnmapBuffer
+#define GL_CLAMP_TO_BORDER_EXT GL_CLAMP_TO_BORDER
+#define GL_WRITE_ONLY_OES GL_WRITE_ONLY
+#define GL_ANY_SAMPLES_PASSED_EXT GL_ANY_SAMPLES_PASSED
+#define GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS_EXT		GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS
+#define GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS_EXT	GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS
+#define GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS_EXT		GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS
+#define GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS_EXT	GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS
+#define GL_DEBUG_SOURCE_API_KHR				GL_DEBUG_SOURCE_API
+#define GL_DEBUG_SOURCE_OTHER_KHR			GL_DEBUG_SOURCE_OTHER
+#define GL_DEBUG_SOURCE_API_KHR				GL_DEBUG_SOURCE_API
+#define GL_DEBUG_TYPE_ERROR_KHR				GL_DEBUG_TYPE_ERROR
+#define GL_DEBUG_TYPE_OTHER_KHR				GL_DEBUG_TYPE_OTHER
+#define GL_DEBUG_TYPE_ERROR_KHR				GL_DEBUG_TYPE_ERROR
+#define GL_DEBUG_TYPE_MARKER_KHR			GL_DEBUG_TYPE_MARKER
+#define GL_DEBUG_TYPE_POP_GROUP_KHR			GL_DEBUG_TYPE_POP_GROUP
+#define GL_DEBUG_TYPE_MARKER_KHR			GL_DEBUG_TYPE_MARKER
+#define GL_DEBUG_SEVERITY_HIGH_KHR			GL_DEBUG_SEVERITY_HIGH
+#define GL_DEBUG_SEVERITY_LOW_KHR			GL_DEBUG_SEVERITY_LOW
+#define GL_DEBUG_SEVERITY_HIGH_KHR			GL_DEBUG_SEVERITY_HIGH
+#define GL_DEBUG_SEVERITY_NOTIFICATION_KHR	GL_DEBUG_SEVERITY_NOTIFICATION
+#define GL_DEBUG_TYPE_ERROR_KHR				GL_DEBUG_TYPE_ERROR
+#define GL_DEBUG_SEVERITY_HIGH_KHR			GL_DEBUG_SEVERITY_HIGH
+
+#include "OpenGLES31.h"
+
+struct FWindowsOpenGL : public FOpenGLES31
+{
+	static FORCEINLINE void InitDebugContext()
+	{
+		bDebugContext = glIsEnabled( GL_DEBUG_OUTPUT) != GL_FALSE;
+	}
+
+	static FORCEINLINE void LabelObject(GLenum Type, GLuint Object, const ANSICHAR* Name)
+	{
+		if (glObjectLabelKHR && bDebugContext)
+		{
+			glObjectLabelKHR(Type, Object, -1, Name);
+		}
+	}
+
+	static FORCEINLINE void PushGroupMarker(const ANSICHAR* Name)
+	{
+		if (glPushDebugGroupKHR && bDebugContext)
+		{
+			glPushDebugGroupKHR( GL_DEBUG_SOURCE_APPLICATION, 1, -1,Name);
+		}
+	}
+
+	static FORCEINLINE void PopGroupMarker()
+	{
+		if (glPopDebugGroupKHR && bDebugContext)
+		{
+			glPopDebugGroupKHR();
+		}
+	}
+
+	static FORCEINLINE bool TexStorage2D(GLenum Target, GLint Levels, GLint InternalFormat, GLsizei Width, GLsizei Height, GLenum Format, GLenum Type, uint32 Flags)
+	{
+		if( glTexStorage2D != NULL )
+		{
+			glTexStorage2D(Target, Levels, InternalFormat, Width, Height);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	static FORCEINLINE void TexStorage3D(GLenum Target, GLint Levels, GLint InternalFormat, GLsizei Width, GLsizei Height, GLsizei Depth, GLenum Format, GLenum Type)
+	{
+		if (glTexStorage3D)
+		{
+			glTexStorage3D( Target, Levels, InternalFormat, Width, Height, Depth);
+		}
+		else
+		{
+			const bool bArrayTexture = Target == GL_TEXTURE_2D_ARRAY || Target == GL_TEXTURE_CUBE_MAP_ARRAY;
+
+			for(uint32 MipIndex = 0; MipIndex < uint32(Levels); MipIndex++)
+			{
+				glTexImage3D(
+					Target,
+					MipIndex,
+					InternalFormat,
+					FMath::Max<uint32>(1,(Width >> MipIndex)),
+					FMath::Max<uint32>(1,(Height >> MipIndex)),
+					(bArrayTexture) ? Depth : FMath::Max<uint32>(1,(Depth >> MipIndex)),
+					0,
+					Format,
+					Type,
+					NULL
+					);
+			}
+		}
+	}
+
+	static FORCEINLINE void CopyImageSubData(GLuint SrcName, GLenum SrcTarget, GLint SrcLevel, GLint SrcX, GLint SrcY, GLint SrcZ, GLuint DstName, GLenum DstTarget, GLint DstLevel, GLint DstX, GLint DstY, GLint DstZ, GLsizei Width, GLsizei Height, GLsizei Depth)
+	{
+		glCopyImageSubDataEXT( SrcName, SrcTarget, SrcLevel, SrcX, SrcY, SrcZ, DstName, DstTarget, DstLevel, DstX, DstY, DstZ, Width, Height, Depth);
+	}
+};
+
+
+
+#endif
 
 typedef FWindowsOpenGL FOpenGL;

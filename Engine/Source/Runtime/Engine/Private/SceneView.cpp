@@ -107,6 +107,27 @@ static TAutoConsoleVariable<int32> CVarDefaultAntiAliasing(
 	TEXT(" 1: FXAA (faster than TemporalAA but much more shimmering for non static cases)\n")
 	TEXT(" 2: TemporalAA (default)"));
 
+static TAutoConsoleVariable<float> CVarMotionBlurScale(
+	TEXT("r.MotionBlur.Scale"),
+	1.0f,
+	TEXT("Allows to scale the postprocess intensity/amount setting in the postprocess.\n")
+	TEXT("1: don't do any scaling (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarMotionBlurMax(
+	TEXT("r.MotionBlur.Max"),
+	-1.0f,
+	TEXT("Allows to clamp the postprocess setting (max distortion caused by motion blur, in percent of the screen width)\n")
+	TEXT("-1: don't clamp (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarSceneColorFringeMax(
+	TEXT("r.SceneColorFringe.Max"),
+	-1.0f,
+	TEXT("Allows to clamp the postprocess setting (in percent, Scene chromatic aberration / color fringe to simulate an artifact that happens in real-world lens, mostly visible in the image corners)\n")
+	TEXT("-1: don't clamp (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
 
@@ -1053,7 +1074,31 @@ void FSceneView::EndFinalPostprocessSettings()
 		FinalPostProcessSettings.AmbientOcclusionDistance *= Scale;
 	}
 
-	if(!Family->EngineShowFlags.Lighting || !Family->EngineShowFlags.GlobalIllumination)
+	{
+		float Value = FMath::Clamp(CVarMotionBlurScale.GetValueOnGameThread(), 0.0f, 50.0f);
+
+		FinalPostProcessSettings.MotionBlurAmount *= Value;
+	}
+
+	{
+		float Value = CVarMotionBlurMax.GetValueOnGameThread();
+
+		if(Value >= 0.0f)
+		{
+			FinalPostProcessSettings.MotionBlurMax = FMath::Min(FinalPostProcessSettings.MotionBlurMax, Value);
+		}
+	}
+
+	{
+		float Value = CVarSceneColorFringeMax.GetValueOnGameThread();
+
+		if (Value >= 0.0f)
+		{
+			FinalPostProcessSettings.SceneFringeIntensity = FMath::Min(FinalPostProcessSettings.SceneFringeIntensity, Value);
+		}
+	}
+
+	if (!Family->EngineShowFlags.Lighting || !Family->EngineShowFlags.GlobalIllumination)
 	{
 		FinalPostProcessSettings.IndirectLightingColor = FLinearColor(0,0,0,0);
 		FinalPostProcessSettings.IndirectLightingIntensity = 0.0f;

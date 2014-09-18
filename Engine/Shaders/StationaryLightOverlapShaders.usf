@@ -43,7 +43,7 @@ void OverlapRadialPixelMain(
 	float2 ScreenUV = InScreenPosition.xy / InScreenPosition.w * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 	
 	FGBufferData GBuffer = GetGBufferData(ScreenUV);
-
+	
 	// Only light pixels marked as using deferred shading
 	BRANCH if( GBuffer.ShadingModelID > 0 )
 	{

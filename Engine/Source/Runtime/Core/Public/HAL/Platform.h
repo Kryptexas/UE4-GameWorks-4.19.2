@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,12 @@
 #endif
 #if !defined(PLATFORM_ANDROID)
 	#define PLATFORM_ANDROID 0
+#endif
+#if !defined(PLATFORM_ANDROIDGL4)
+	#define PLATFORM_ANDROIDGL4 0
+#endif
+#if !defined(PLATFORM_ANDROIDES31)
+	#define PLATFORM_ANDROIDES31 0
 #endif
 #if !defined(PLATFORM_WINRT)
 	#define PLATFORM_WINRT 0

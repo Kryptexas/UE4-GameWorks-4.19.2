@@ -334,6 +334,11 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX,uint32 SizeY,bo
 		{
 			glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
 		}
+		if (FOpenGL::SupportsTextureSwizzle() && GLFormat.bBGRA && !(Flags & TexCreate_RenderTargetable))
+		{
+			glTexParameteri(Target, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+			glTexParameteri(Target, GL_TEXTURE_SWIZZLE_B, GL_RED);
+		}
 
 		if (bArrayTexture)
 		{
@@ -562,7 +567,7 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX,uint32 SizeY,bo
 	return Texture;
 }
 
-#if PLATFORM_MAC // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
 GLuint FOpenGLTextureBase::GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels)
 {
 	GLuint FBO = 0;
@@ -641,8 +646,11 @@ void TOpenGLTexture<RHIResourceType>::Resolve(uint32 MipIndex,uint32 ArrayIndex)
 	OpenGLRHI->CachedSetupTextureStage(ContextState, FOpenGL::GetMaxCombinedTextureImageUnits() - 1, Target, Resource, -1, this->GetNumMips());
 	
 	glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
+
+	UE_LOG(LogRHI,Warning,TEXT("Attempting ReadPixels with Format = %x Type = %x Attachement = %x"),GLFormat.Format,GLFormat.Type,Attachment);
+
 	
-#if PLATFORM_MAC // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
 	if(Attachment == GL_COLOR_ATTACHMENT0 && !GLFormat.bCompressed)
 	{
 		GLuint SourceFBO = GetOpenGLFramebuffer(ArrayIndex, MipIndex);
@@ -656,6 +664,7 @@ void TOpenGLTexture<RHIResourceType>::Resolve(uint32 MipIndex,uint32 ArrayIndex)
 	}
 	else
 #endif
+	{
 		if( this->GetSizeZ() )
 		{
 			// apparently it's not possible to retrieve compressed image from GL_TEXTURE_2D_ARRAY in OpenGL for compressed images
@@ -683,6 +692,7 @@ void TOpenGLTexture<RHIResourceType>::Resolve(uint32 MipIndex,uint32 ArrayIndex)
 				glPixelStorei(GL_PACK_ALIGNMENT, 4);
 			}
 		}
+	}
 	
 	glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
 	
@@ -1237,7 +1247,7 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 				
 				glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
 				
-#if PLATFORM_MAC // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
 				if(Attachment == GL_COLOR_ATTACHMENT0 && !GLFormat.bCompressed)
 				{
 					GLuint SourceFBO = Src->GetOpenGLFramebuffer(ArrayIndex, SrcMipIndex);
@@ -1270,7 +1280,7 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 			}
 			
 			// copy the texture data
-			// Upload directly into Dst to avoid out-of-band synchronisation caused by glMapBuffer!
+			// Upload directly into Dst to avoid out-of-band synchronization caused by glMapBuffer!
 			{
 				CachedBindPixelUnpackBuffer( PixelBuffer->Resource );
 				
@@ -1698,7 +1708,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 		else
 		{
 			// PF_X24_G8 doesn't correspond to a real format under OpenGL
-			// The solution is to create a view with the original format, and convertit to return the stencil index
+			// The solution is to create a view with the original format, and convert it to return the stencil index
 			// To match component locations, texture swizzle needs to be setup too
 			const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Texture2D->GetFormat()];
 

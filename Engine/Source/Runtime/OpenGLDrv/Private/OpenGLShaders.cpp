@@ -312,120 +312,128 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 #endif
 
 		Resource = glCreateShader(TypeEnum);
-#if PLATFORM_ANDROID || PLATFORM_HTML5
-		//Here is some code to add in a #define for textureCubeLodEXT
-
-		//#version 100 has to be the first line in the file, so it has to be added before anything else.
+#if (PLATFORM_ANDROID || PLATFORM_HTML5)
 		ANSICHAR* VersionString = new ANSICHAR[18];
-		memset((void*)VersionString, '\0', 18*sizeof(ANSICHAR));
-		if (FOpenGL::UseES30ShadingLanguage())
+		memset((void*)VersionString, '\0', 18 * sizeof(ANSICHAR));
+
+		if (IsES2Platform(GRHIShaderPlatform))
 		{
-			strcpy(VersionString, "#version 300 es");
-			strcat(VersionString, "\n");
-		}
-		else 
-		{
-			strcpy(VersionString, "#version 100");
-			strcat(VersionString, "\n");
-		}
-		
-		//remove "#version 100" line,  if found in existing GlslCode. 
-		static const ANSICHAR *Version100String = "#version 100";
-		ANSICHAR* VersionCodePointer = const_cast<ANSICHAR*>(GlslCode);
-		VersionCodePointer = strstr(VersionCodePointer, Version100String);
-		if(VersionCodePointer != NULL)
-		{
-			for(int index=0; index < strlen( Version100String ); index++)
+			//#version 100 has to be the first line in the file, so it has to be added before anything else.
+			if (FOpenGL::UseES30ShadingLanguage())
 			{
-				VersionCodePointer[index] = ' ';
+				strcpy(VersionString, "#version 300 es");
+				strcat(VersionString, "\n");
+			}
+			else 
+			{
+				strcpy(VersionString, "#version 100");
+				strcat(VersionString, "\n");
+			}
+		
+			//remove "#version 100" line,  if found in existing GlslCode. 
+			static const ANSICHAR *Version100String = "#version 100";
+			ANSICHAR* VersionCodePointer = const_cast<ANSICHAR*>(GlslCode);
+			VersionCodePointer = strstr(VersionCodePointer, Version100String);
+			if(VersionCodePointer != NULL)
+			{
+				for(int index=0; index < strlen( Version100String ); index++)
+				{
+					VersionCodePointer[index] = ' ';
+				}
 			}
 		}
 #endif
 
 #if PLATFORM_ANDROID 
-
-		const ANSICHAR* ExtensionString = "";
+		if (IsES2Platform(GRHIShaderPlatform))
+		{
+			//Here is some code to add in a #define for textureCubeLodEXT
+			const ANSICHAR* ExtensionString = "";
 		
-		//This #define fixes compiler errors on Android (which doesnt seem to support textureCubeLodEXT)
-		const ANSICHAR* Prologue = NULL; 
-		if (FOpenGL::UseES30ShadingLanguage())
-		{
-			if (TypeEnum == GL_VERTEX_SHADER)
+			//This #define fixes compiler errors on Android (which doesnt seem to support textureCubeLodEXT)
+			const ANSICHAR* Prologue = NULL; 
+			if (FOpenGL::UseES30ShadingLanguage())
 			{
-				Prologue = "#define texture2D texture				\n"
-					"#define texture2DProj textureProj		\n"
-					"#define texture2DLod textureLod			\n"
-					"#define texture2DProjLod textureProjLod \n"
-					"#define textureCube texture				\n"
-					"#define textureCubeLod textureLod		\n"
-					"#define textureCubeLodEXT textureLod	\n";
-
-				ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "attribute", "in");
-				ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "varying", "out");
-			} 
-			else if (TypeEnum == GL_FRAGMENT_SHADER)
-			{
-				Prologue = "\n"
-					"#define texture2D texture				\n"
-					"#define texture2DProj textureProj		\n"
-					"#define texture2DLod textureLod			\n"
-					"#define texture2DProjLod textureProjLod \n"
-					"#define textureCube texture				\n"
-					"#define textureCubeLod textureLod		\n"
-					"#define textureCubeLodEXT textureLod	\n"
-					"\n"
-					"#define gl_FragColor out_FragColor	\n"
-					"out mediump vec4 out_FragColor;\n";
-
-				// See if we need to skip any #extension string
-				ANSICHAR* Temp = SkipShaderExtensionText(const_cast<ANSICHAR*>(GlslCode));
-				if (Temp)
+				if (TypeEnum == GL_VERTEX_SHADER)
 				{
-					ExtensionString = GlslCode;
-					GlslCode = Temp;
+					Prologue = "#define texture2D texture				\n"
+						"#define texture2DProj textureProj		\n"
+						"#define texture2DLod textureLod			\n"
+						"#define texture2DProjLod textureProjLod \n"
+						"#define textureCube texture				\n"
+						"#define textureCubeLod textureLod		\n"
+						"#define textureCubeLodEXT textureLod	\n";
+
+					ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "attribute", "in");
+					ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "varying", "out");
+				} 
+				else if (TypeEnum == GL_FRAGMENT_SHADER)
+				{
+					Prologue = "\n"
+						"#define texture2D texture				\n"
+						"#define texture2DProj textureProj		\n"
+						"#define texture2DLod textureLod			\n"
+						"#define texture2DProjLod textureProjLod \n"
+						"#define textureCube texture				\n"
+						"#define textureCubeLod textureLod		\n"
+						"#define textureCubeLodEXT textureLod	\n"
+						"\n"
+						"#define gl_FragColor out_FragColor	\n"
+						"out mediump vec4 out_FragColor;\n";
+
+					// See if we need to skip any #extension string
+					ANSICHAR* Temp = SkipShaderExtensionText(const_cast<ANSICHAR*>(GlslCode));
+					if (Temp)
+					{
+						ExtensionString = GlslCode;
+						GlslCode = Temp;
+					}
+
+					ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "varying", "in");
 				}
-
-				ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "varying", "in");
 			}
-		}
-		else if ( (TypeEnum == GL_FRAGMENT_SHADER) &&
-			FOpenGL::RequiresDontEmitPrecisionForTextureSamplers() )
-		{
-			// Daniel: This device has some shader compiler compatibility issues force them to be disabled
-			//			The cross compiler will put the DONTEMITEXTENSIONSHADERTEXTURELODENABLE define around incompatible sections of code
-			Prologue = "#define DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
-				"#define DONTEMITSAMPLERDEFAULTPRECISION\n"
-				"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
+			else if ( (TypeEnum == GL_FRAGMENT_SHADER) &&
+				FOpenGL::RequiresDontEmitPrecisionForTextureSamplers() )
+			{
+				// Daniel: This device has some shader compiler compatibility issues force them to be disabled
+				//			The cross compiler will put the DONTEMITEXTENSIONSHADERTEXTURELODENABLE define around incompatible sections of code
+				Prologue = "#define DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
+					"#define DONTEMITSAMPLERDEFAULTPRECISION\n"
+					"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
 				"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
+			}
+			else if ( ( TypeEnum == GL_FRAGMENT_SHADER) && 
+				FOpenGL::RequiresTextureCubeLodEXTToTextureCubeLodDefine() )
+			{
+				Prologue = "#define textureCubeLodEXT textureCubeLod \n";
+			}
+			else if(!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
+			{
+				Prologue = 	"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
+							"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
+			}
+			else 
+			{
+				Prologue = "";
+			}
+
+			//UE_LOG(LogRHI, Display,TEXT("Prologue is %s"), ANSI_TO_TCHAR( Prologue ));
+
+			//Assemble the source strings into an array to pass into the compiler.
+			const GLchar* ShaderSourceStrings[4] = { VersionString, ExtensionString, Prologue, GlslCode };
+			const GLint ShaderSourceLen[4] = { (GLint)(strlen(VersionString)), (GLint)(strlen(ExtensionString)), (GLint)(strlen(Prologue)), (GLint)(strlen(GlslCode)) };
+			glShaderSource(Resource, 4, (const GLchar**)&ShaderSourceStrings, ShaderSourceLen);		
+			glCompileShader(Resource);
 		}
-		else if ( ( TypeEnum == GL_FRAGMENT_SHADER) && 
-			FOpenGL::RequiresTextureCubeLodEXTToTextureCubeLodDefine() )
+		else
 		{
-			Prologue = "#define textureCubeLodEXT textureCubeLod \n";
-		}
-		else if(!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
-		{
-			Prologue = 	"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
-						"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
-		}
-		else 
-		{
-			Prologue = "";
+			glShaderSource(Resource, 1, (const GLchar**)&GlslCode, &GlslCodeLength);
+			glCompileShader(Resource);
 		}
 
-		//UE_LOG(LogRHI, Display,TEXT("Prologue is %s"), ANSI_TO_TCHAR( Prologue ));
+#elif PLATFORM_HTML5
 
-		//Assemble the source strings into an array to pass into the compiler.
-		const GLchar* ShaderSourceStrings[4] = { VersionString, ExtensionString, Prologue, GlslCode };
-		const GLint ShaderSourceLen[4] = { (GLint)(strlen(VersionString)), (GLint)(strlen(ExtensionString)), (GLint)(strlen(Prologue)), (GLint)(strlen(GlslCode)) };
-		glShaderSource(Resource, 4, (const GLchar**)&ShaderSourceStrings, ShaderSourceLen);		
-		glCompileShader(Resource);
-#endif 
-
-
-	// HTML5 use case is much simpler, use a separate chunk of code from android. 
-#if PLATFORM_HTML5
-
+		// HTML5 use case is much simpler, use a separate chunk of code from android. 
 		ANSICHAR Prologue[1024] = ""; 
 
 		if (!FOpenGL::SupportsShaderTextureLod()) 
@@ -441,12 +449,13 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		glShaderSource(Resource, 3, (const GLchar**)&ShaderSourceStrings, ShaderSourceLen);		
 		glCompileShader(Resource);
 
-#endif 
+#else
 
-#if !PLATFORM_HTML5 && !PLATFORM_ANDROID
 		glShaderSource(Resource, 1, (const GLchar**)&GlslCode, &GlslCodeLength);
 		glCompileShader(Resource);
-#endif // !PLATFORM_ANDROID && !PLATFORM_HTML5
+
+#endif
+
 		GetOpenGLCompiledShaderCache().Add(Key,Resource);
 	}
 
@@ -538,7 +547,8 @@ static void MarkShaderParameterCachesDirty(FOpenGLShaderParameterCache* ShaderPa
 
 void FOpenGLDynamicRHI::BindUniformBufferBase(FOpenGLContextState& ContextState, int32 NumUniformBuffers, FUniformBufferRHIRef* BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate)
 {
-	check(IsInRenderingThread());
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLUniformBindTime);
+	checkSlow(IsInRenderingThread());
 	for (int32 BufferIndex = 0; BufferIndex < NumUniformBuffers; ++BufferIndex)
 	{
 		GLuint Buffer = 0;
@@ -658,6 +668,8 @@ public:
 	TBitArray<>	TextureStageNeeds;
 	TBitArray<>	UAVStageNeeds;
 	int32		MaxTextureStage;
+
+	TArray<FOpenGLBindlessSamplerInfo> Samplers;
 
 	FOpenGLLinkedProgram()
 	: Program(0), bUsingTessellation(false), MaxTextureStage(-1)
@@ -855,9 +867,21 @@ void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformB
 
 		if (Location != -1)
 		{
+			if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+			{
+				// Non-bindless, setup the unit info
 			glUniform1i(Location, FirstTextureUnit[Stage] + SamplerIndex);
 			TextureStageNeeds[ FirstTextureUnit[Stage] + SamplerIndex ] = true;
 			MaxTextureStage = FMath::Max( MaxTextureStage, FirstTextureUnit[Stage] + SamplerIndex);
+		}
+			else
+			{
+				//Bindless, save off the slot information
+				FOpenGLBindlessSamplerInfo Info;
+				Info.Handle = Location;
+				Info.Slot = FirstTextureUnit[Stage] + SamplerIndex;
+				Samplers.Add(Info);
+			}
 		}
 	}
 
@@ -893,7 +917,9 @@ void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformB
 
 		if (Location != -1)
 		{
-			glUniform1i(Location, FirstUAVUnit[Stage] + UAVIndex);
+			// compute shaders have layout(binding) for images 
+			// glUniform1i(Location, FirstUAVUnit[Stage] + UAVIndex);
+			
 			UAVStageNeeds[ FirstUAVUnit[Stage] + UAVIndex ] = true;
 		}
 	}
@@ -1084,12 +1110,18 @@ static void VerifyUniformBufferLayouts(GLuint Program)
 
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER, &ReferencedByVS);
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER, &ReferencedByPS);
+#ifdef GL_UNIFORM_BLOCK_REFERENCED_BY_GEOMETRY_SHADER
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_GEOMETRY_SHADER, &ReferencedByGS);
+#endif
 			if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 			{
+#ifdef GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_CONTROL_SHADER
 				glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_CONTROL_SHADER, &ReferencedByHS);
 				glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_EVALUATION_SHADER, &ReferencedByDS);
+#endif
+#ifdef GL_UNIFORM_BLOCK_REFERENCED_BY_COMPUTE_SHADER 
 				glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_COMPUTE_SHADER, &ReferencedByCS);
+#endif
 			}
 
 			if(ReferencedByVS) {ReferencedBy += TEXT("V");}
@@ -1205,59 +1237,63 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 		glAttachShader(Program, Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Resource);
 	}
 	
-	// Bind attribute indices.
-	if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)
+	// E.g. GLSL_430 uses layout(location=xx) instead of having to call glBindAttribLocation and glBindFragDataLocation
+	if (OpenGLShaderPlatformNeedsBindLocation(GRHIShaderPlatform))
 	{
-		uint32 Mask = Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.InOutMask;
-		uint32 Index = 0;
-		FCStringAnsi::Strcpy(Buf, "in_ATTRIBUTE");
-		while (Mask)
+		// Bind attribute indices.
+		if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)
 		{
-			if (Mask & 0x1)
+			uint32 Mask = Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.InOutMask;
+			uint32 Index = 0;
+			FCStringAnsi::Strcpy(Buf, "in_ATTRIBUTE");
+			while (Mask)
 			{
-				if (Index < 10)
+				if (Mask & 0x1)
 				{
-					Buf[12] = '0' + Index;
-					Buf[13] = 0;
+					if (Index < 10)
+					{
+						Buf[12] = '0' + Index;
+						Buf[13] = 0;
+					}
+					else
+					{
+						Buf[12] = '1';
+						Buf[13] = '0' + (Index % 10);
+						Buf[14] = 0;
+					}
+				glBindAttribLocation(Program, Index, Buf);
 				}
-				else
-				{
-					Buf[12] = '1';
-					Buf[13] = '0' + (Index % 10);
-					Buf[14] = 0;
-				}
-			glBindAttribLocation(Program, Index, Buf);
+				Index++;
+				Mask >>= 1;
 			}
-			Index++;
-			Mask >>= 1;
 		}
-	}
 
-	// Bind frag data locations.
-	if (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource)
-	{
-		uint32 Mask = (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings.InOutMask) & 0x7fff; // mask out the depth bit
-		uint32 Index = 0;
-		FCStringAnsi::Strcpy(Buf, "out_Target");
-		while (Mask)
+		// Bind frag data locations.
+		if (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource)
 		{
-			if (Mask & 0x1)
+			uint32 Mask = (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings.InOutMask) & 0x7fff; // mask out the depth bit
+			uint32 Index = 0;
+			FCStringAnsi::Strcpy(Buf, "out_Target");
+			while (Mask)
 			{
-				if (Index < 10)
+				if (Mask & 0x1)
 				{
-					Buf[10] = '0' + Index;
-					Buf[11] = 0;
+					if (Index < 10)
+					{
+						Buf[10] = '0' + Index;
+						Buf[11] = 0;
+					}
+					else
+					{
+						Buf[10] = '1';
+						Buf[11] = '0' + (Index % 10);
+						Buf[12] = 0;
+					}
+					FOpenGL::BindFragDataLocation(Program, Index, Buf);
 				}
-				else
-				{
-					Buf[10] = '1';
-					Buf[11] = '0' + (Index % 10);
-					Buf[12] = 0;
-				}
-				FOpenGL::BindFragDataLocation(Program, Index, Buf);
+				Index++;
+				Mask >>= 1;
 			}
-			Index++;
-			Mask >>= 1;
 		}
 	}
 
@@ -1595,8 +1631,74 @@ void DestroyShadersAndPrograms()
 	ShaderCache.Empty();
 }
 
+struct FSamplerPair
+{
+	GLuint Texture;
+	GLuint Sampler;
+
+	friend bool operator ==(const FSamplerPair& A,const FSamplerPair& B)
+	{
+		return A.Texture == B.Texture && A.Sampler == B.Sampler;
+	}
+
+	friend uint32 GetTypeHash(const FSamplerPair &Key)
+	{
+		return Key.Texture ^ (Key.Sampler << 18);
+	}
+};
+
+static TMap<FSamplerPair, GLuint64> BindlessSamplerMap;
+
+void FOpenGLDynamicRHI::SetupBindlessTextures( FOpenGLContextState& ContextState, const TArray<FOpenGLBindlessSamplerInfo> &Samplers )
+{
+	if ( OpenGLConsoleVariables::bBindlessTexture == 0 || !FOpenGL::SupportsBindlessTexture())
+	{
+		return;
+	}
+
+	// Bind all textures via Bindless
+	for (int32 Texture = 0; Texture < Samplers.Num(); Texture++)
+	{
+		const FOpenGLBindlessSamplerInfo &Sampler = Samplers[Texture];
+
+		GLuint64 BindlessSampler = 0xffffffff;
+		FSamplerPair Pair;
+		Pair.Texture = PendingState.Textures[Sampler.Slot].Resource;
+		Pair.Sampler = (PendingState.SamplerStates[Sampler.Slot] != NULL) ? PendingState.SamplerStates[Sampler.Slot]->Resource : 0;
+
+		if (Pair.Texture)
+		{
+			// Find Sampler pair
+			if ( BindlessSamplerMap.Contains(Pair))
+			{
+				BindlessSampler = BindlessSamplerMap[Pair];
+			}
+			else
+			{
+				// if !found, create
+
+				if (Pair.Sampler)
+				{
+					BindlessSampler = FOpenGL::GetTextureSamplerHandle( Pair.Texture, Pair.Sampler);
+				}
+				else
+				{
+					BindlessSampler = FOpenGL::GetTextureHandle( Pair.Texture);
+				}
+
+				FOpenGL::MakeTextureHandleResident( BindlessSampler);
+
+				BindlessSamplerMap.Add( Pair, BindlessSampler);
+			}
+
+			FOpenGL::UniformHandleui64( Sampler.Handle, BindlessSampler);
+		}
+	}
+}
+
 void FOpenGLDynamicRHI::BindPendingShaderState( FOpenGLContextState& ContextState )
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLShaderBindTime);
 	VERIFY_GL_SCOPE();
 
 	bool ForceUniformBindingUpdate = false;
@@ -1669,6 +1771,8 @@ void FOpenGLDynamicRHI::BindPendingShaderState( FOpenGLContextState& ContextStat
 				ForceUniformBindingUpdate);
 			NextUniformBufferIndex += NumDomainUniformBuffers;
 		}
+
+		SetupBindlessTextures( ContextState, PendingState.BoundShaderState->LinkedProgram->Samplers );
 	}
 }
 
@@ -1762,6 +1866,7 @@ void FOpenGLDynamicRHI::BindPendingComputeShaderState(FOpenGLContextState& Conte
 			PendingState.BoundUniformBuffers[SF_Compute],
 			OGL_FIRST_UNIFORM_BUFFER,
 			ForceUniformBindingUpdate);
+		SetupBindlessTextures( ContextState, ComputeShader->LinkedProgram->Samplers );
 	}
 }
 

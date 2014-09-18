@@ -45,7 +45,11 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE uint32 MaxGpuSkinBones( )
 	{
+#if PLATFORM_ANDROIDES31 || PLATFORM_ANDROIDGL4
+		return 256;
+#else
 		return 20;
+#endif
 	}
 
 	static FORCEINLINE bool RequiresCookedData( )
@@ -65,12 +69,20 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool SupportsHighQualityLightmaps()
 	{
+#if PLATFORM_ANDROIDES31 || PLATFORM_ANDROIDGL4
+		return true;
+#else
 		return false;
+#endif
 	}
 
 	static FORCEINLINE bool SupportsLowQualityLightmaps()
 	{
+#if PLATFORM_ANDROIDGL4
+		return false;
+#else
 		return true;
+#endif
 	}
 
 	static FORCEINLINE bool SupportsDistanceFieldShadows()
@@ -85,7 +97,11 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool SupportsVertexShaderTextureSampling()
 	{
+#if PLATFORM_ANDROIDES31 || PLATFORM_ANDROIDGL4
+		return true;
+#else
 		return false;
+#endif
 	}
 
 	static FORCEINLINE bool SupportsMinimize()
@@ -149,3 +165,18 @@ struct FAndroid_ETC2PlatformProperties : public FAndroidPlatformProperties
 	}
 };
 
+struct FAndroid_GL4PlatformProperties : public FAndroidPlatformProperties
+{
+	static FORCEINLINE const char* PlatformName()
+	{
+		return "Android_GL4";
+	}
+};
+
+struct FAndroid_ES31PlatformProperties : public FAndroidPlatformProperties
+{
+	static FORCEINLINE const char* PlatformName()
+	{
+		return "Android_ES31";
+	}
+};

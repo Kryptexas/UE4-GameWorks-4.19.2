@@ -24,7 +24,7 @@ public class AndroidPlatform : Platform
 		return Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), DecoratedExeName) + ".so";
 	}
 
-	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game, string Architecture)
+	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game, string Architecture, string GPUArchitecture)
 	{
 		string ProjectDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath)), "Binaries/Android");
 
@@ -34,7 +34,7 @@ public class AndroidPlatform : Platform
 		}
 
 		// Apk's go to project location, not necessarily where the .so is (content only packages need to output to their directory)
-		string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + Architecture + ".apk";
+		string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + Architecture + GPUArchitecture + ".apk";
 
 		// if the source binary was UE4Game, handle using it or switching to project name
 		if (Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename) == "UE4Game")
@@ -92,20 +92,23 @@ public class AndroidPlatform : Platform
 		return "/mnt/sdcard/obb/" + PackageName + "/" + Path.GetFileName(ObbName);
 	}
 
-	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture)
+	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture)
 	{
-		return Path.Combine(Path.GetDirectoryName(ApkName), "Install_" + Params.ShortProjectName + "_" + Params.ClientConfigsToBuild[0].ToString() + Architecture + ".bat");
+		return Path.Combine(Path.GetDirectoryName(ApkName), "Install_" + Params.ShortProjectName + "_" + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + ".bat");
 	}
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
 		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
+		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
 
 		foreach (string Architecture in Architectures)
 		{
-			string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "");
-			string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "");
+			foreach (string GPUArchitecture in GPUArchitectures)
+			{
+				string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
+				string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
 
 			// packaging just takes a pak file and makes it the .obb
 			UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
@@ -174,6 +177,7 @@ public class AndroidPlatform : Platform
 			};
 			File.WriteAllLines(BatchName, BatchLines);
 		}
+		}
 
 		PrintRunTime();
 	}
@@ -188,13 +192,16 @@ public class AndroidPlatform : Platform
 		}
 
 		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
+		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
 
 		foreach (string Architecture in Architectures)
 		{
-			string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "");
+			foreach (string GPUArchitecture in GPUArchitectures)
+			{
+				string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
 			string ObbName = GetFinalObbName(ApkName);
-			string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "");
+				string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
 
 			// verify the files exist
 			if (!FileExists(ApkName))
@@ -218,6 +225,7 @@ public class AndroidPlatform : Platform
 
 			SC.ArchiveFiles(Path.GetDirectoryName(BatchName), Path.GetFileName(BatchName));
 		}
+	}
 	}
 
 	private string GetAdbCommand(ProjectParams Params)
@@ -316,9 +324,10 @@ public class AndroidPlatform : Platform
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
 	{
 		string DeviceArchitecture = GetBestDeviceArchitecture(Params);
+		string GPUArchitecture = "";
 
 		string AdbCommand = GetAdbCommand(Params);
-		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture);
+		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture, GPUArchitecture);
 
 		// make sure APK is up to date (this is fast if so)
 		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
@@ -660,11 +669,12 @@ public class AndroidPlatform : Platform
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		string DeviceArchitecture = GetBestDeviceArchitecture(Params);
+		string GPUArchitecture = "";
 
 		string ApkName = ClientApp + DeviceArchitecture + ".apk";
 		if (!File.Exists(ApkName))
 		{
-			ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true, DeviceArchitecture);
+			ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true, DeviceArchitecture, GPUArchitecture);
 		}
 
 		Console.WriteLine("Apk='{0}', ClientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.ProjectGameExeFilename);

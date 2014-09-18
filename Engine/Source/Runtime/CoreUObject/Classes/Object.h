@@ -126,6 +126,11 @@ enum EPixelFormat
 	PF_ETC2_RGBA,
 	PF_R32G32B32A32_UINT,
 	PF_R16G16_UINT,
+	PF_ASTC_4x4,	// 8.00 bpp
+	PF_ASTC_6x6,	// 3.56 bpp
+	PF_ASTC_8x8,	// 2.00 bpp
+	PF_ASTC_10x10,	// 1.28 bpp
+	PF_ASTC_12x12,	// 0.89 bpp
 	PF_MAX,
 };
 

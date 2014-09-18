@@ -73,6 +73,7 @@ static const _mesa_glsl_parser_targets FrequencyTable[] =
 static const int VersionTable[HCT_InvalidTarget] =
 {
 	150,
+	310,
 	430,
 	150,
 	150,
@@ -159,11 +160,13 @@ int HlslCrossCompile(
 		return 0;
 	}
 
-	if ((InShaderFrequency == HSF_HullShader || InShaderFrequency == HSF_DomainShader) && InCompileTarget < HCT_FeatureLevelSM5)
+	if ((InShaderFrequency == HSF_HullShader || InShaderFrequency == HSF_DomainShader) && 
+			InCompileTarget <= HCT_FeatureLevelSM4)
 	{
 		return 0;
 	}
-	if (InShaderFrequency == HSF_ComputeShader && (InCompileTarget < HCT_FeatureLevelSM5 || InCompileTarget == HCT_FeatureLevelES2))
+
+	if (InShaderFrequency == HSF_ComputeShader && (InCompileTarget < HCT_FeatureLevelES3_1Ext || InCompileTarget == HCT_FeatureLevelES2))
 	{
 		return 0;
 	}
@@ -189,7 +192,7 @@ int HlslCrossCompile(
 	ParseState->adjust_clip_space_dx11_to_opengl = (InFlags & HLSLCC_DX11ClipSpace) != 0;
 	ParseState->bFlattenUniformBuffers = bFlattenUniformBuffers;
 	ParseState->bGenerateES = bIsES;
-	ParseState->bGenerateLayoutLocations = InCompileTarget >= HCT_FeatureLevelSM5;
+	ParseState->bGenerateLayoutLocations = (InCompileTarget == HCT_FeatureLevelSM5) || (InCompileTarget == HCT_FeatureLevelES3_1Ext);
 
 	if (bPreprocess)
 	{
@@ -344,7 +347,7 @@ int HlslCrossCompile(
 	}
 
 	// pass over the shader to tag image accesses
-	TrackImageAccess(ir);
+	TrackImageAccess(ir, ParseState);
 
 	// Just run validation once at the end to make sure it is OK in release mode
 	if (!InShaderBackEnd->Validate(ir, ParseState))

@@ -127,6 +127,7 @@ struct FDeferredAndroidMessage
 		{
 			int32 keyId;
 			int32 unichar;
+			uint32 modifier;
 			bool  isRepeat;
 		}
 		KeyEventData;

@@ -64,7 +64,8 @@ static FAutoConsoleVariableRef CVarHZBOcclusion(
 	GHZBOcclusion,
 	TEXT("Defines which occlusion system is used.\n")
 	TEXT(" 0: Hardware occlusion queries\n")
-	TEXT(" 1: Use HZB occlusion system (default, less GPU and CPU cost, more conservative results)"),
+	TEXT(" 1: Use HZB occlusion system (default, less GPU and CPU cost, more conservative results)")
+	TEXT(" 2: Force HZB occlusion system (overrides rendering platform preferences)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -336,7 +337,8 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	
 	// Disable HZB on OpenGL platforms to avoid rendering artefacts
-	bool bHZBOcclusion = !IsOpenGLPlatform(GShaderPlatformForFeatureLevel[Scene->GetFeatureLevel()]) && GHZBOcclusion;
+	// It can be forced on by setting HZBOcclusion to 2
+	bool bHZBOcclusion = (!IsOpenGLPlatform(GShaderPlatformForFeatureLevel[Scene->GetFeatureLevel()]) && GHZBOcclusion) || (GHZBOcclusion == 2);
 
 	// Use precomputed visibility data if it is available.
 	if (View.PrecomputedVisibilityData)

@@ -391,7 +391,6 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 				Mask,
 				GL_NEAREST
 				);
-
 		}
 		else
 		{
@@ -643,12 +642,39 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 
 		FMemory::Free( FloatBGRAData );
 	}
+#if PLATFORM_ANDROID
+	else
+	{
+		// OpenGL ES is limited in what it can do with ReadPixels
+		int32 PixelComponentCount = 4 * SizeX * SizeY;
+		int32 RGBADataSize = sizeof(GLubyte)* PixelComponentCount;
+		GLubyte* RGBAData = (GLubyte*)FMemory::Malloc(RGBADataSize);
+
+		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_UNSIGNED_BYTE, RGBAData);
+		
+		GLubyte* DataPtr = RGBAData;
+		uint8* TargetPtr = TargetBuffer;
+		for (int32 PixelIndex = 0; PixelIndex < PixelComponentCount / 4; ++PixelIndex)
+		{
+			TargetPtr[0] = DataPtr[2];
+			TargetPtr[1] = DataPtr[1];
+			TargetPtr[2] = DataPtr[0];
+			TargetPtr[3] = DataPtr[3];
+			DataPtr += 4;
+			TargetPtr += 4;
+		}
+
+		FMemory::Free(RGBAData);
+
+	}
+#else
 	else
 	{
 		// It's a simple int format. OpenGL converts them internally to what we want.
 		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_BGRA, UGL_ABGR8, TargetBuffer );
 		// @to-do HTML5. 
 	}
+#endif
 
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 

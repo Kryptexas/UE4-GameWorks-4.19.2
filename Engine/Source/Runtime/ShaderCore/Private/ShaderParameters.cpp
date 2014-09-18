@@ -315,13 +315,14 @@ FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBuf
 {
 	switch(Platform)
 	{
-	default:
-	case SP_PCD3D_SM5:
-		return CreateHLSLUniformBufferDeclaration(Name,UniformBufferStruct, true);
-	case SP_OPENGL_SM4:
-	case SP_OPENGL_SM4_MAC:
-	case SP_OPENGL_SM5:
-		return CreateHLSLUniformBufferDeclaration(Name,UniformBufferStruct, false);
+		case SP_OPENGL_ES31_EXT:
+		case SP_OPENGL_SM4:
+		case SP_OPENGL_SM4_MAC:
+		case SP_OPENGL_SM5:
+			return CreateHLSLUniformBufferDeclaration(Name, UniformBufferStruct, false);
+		case SP_PCD3D_SM5:
+		default:
+			return CreateHLSLUniformBufferDeclaration(Name, UniformBufferStruct, true);
 	}
 }
 

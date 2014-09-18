@@ -42,8 +42,9 @@ enum EShaderPlatform
 	SP_OPENGL_ES2_IOS	= 10,
 	SP_METAL			= 11,
 	SP_OPENGL_SM4_MAC	= 12,
+	SP_OPENGL_ES31_EXT	= 13,
 
-	SP_NumPlatforms		= 13,
+	SP_NumPlatforms		= 14,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -556,7 +557,8 @@ inline bool IsMobilePlatform(const EShaderPlatform Platform)
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS;
+	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS
+		|| SP_OPENGL_ES31_EXT;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -572,6 +574,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_SM5:
 	case SP_PS4:
 	case SP_XBOXONE:
+	case SP_OPENGL_ES31_EXT:
 		return ERHIFeatureLevel::SM5;
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
@@ -621,6 +624,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL: 
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
+	case SP_OPENGL_ES31_EXT:
+		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	default:
 		return false;
 	}	
@@ -630,7 +635,7 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
 	{
-		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5));
+		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT));
 	}
 	return false;
 }

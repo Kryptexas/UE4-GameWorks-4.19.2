@@ -107,12 +107,14 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsShaderTextureLod()					{ return bSupportsShaderTextureLod; }
 	static FORCEINLINE bool SupportsShaderTextureCubeLod()				{ return bSupportsShaderTextureCubeLod; }
 	static FORCEINLINE bool SupportsCopyTextureLevels()					{ return bSupportsCopyTextureLevels; }
+	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT; }
 
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
 	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
 
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
+	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT_OES; }
 
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data
 	// is the slow path (they both hit GPU sync and data cache flush in driver according to profiling in driver symbols).
@@ -338,19 +340,18 @@ struct FOpenGLES2 : public FOpenGLBase
 		glGenTextures( n, textures);
 	}
 	
-	static FORCEINLINE void DeleteBuffers(GLsizei Number, const GLuint* Buffers)
+	static FORCEINLINE bool TimerQueryDisjoint()
 	{
-		glDeleteBuffers(Number, Buffers);
-	}
-	
-	static FORCEINLINE void DeleteTextures(GLsizei Number, const GLuint* Textures)
-	{
-		glDeleteTextures(Number, Textures);
-	}
-	
-	static FORCEINLINE void Flush()
-	{
-		glFlush();
+		bool Disjoint = false;
+
+		if (bTimerQueryCanBeDisjoint)
+		{
+			GLint WasDisjoint = 0;
+			glGetIntegerv(GL_GPU_DISJOINT_EXT, &WasDisjoint);
+			Disjoint = (WasDisjoint != 0);
+		}
+
+		return Disjoint;
 	}
 
 protected:
@@ -368,6 +369,9 @@ protected:
 
 	/** GL_EXT_disjoint_timer_query */
 	static bool bSupportsDisjointTimeQueries;
+
+	/** Some timer query implementations are never disjoint */
+	static bool bTimerQueryCanBeDisjoint;
 
 	/** GL_OES_rgb8_rgba8 */
 	static bool bSupportsRGBA8;
@@ -687,6 +691,44 @@ public:
 #ifndef GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT
 #define GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT 0x8A34
 #endif
+
+// Normalize debug macros due to naming differences across GL versions
+#if GL_KHR_debug
+#define GL_DEBUG_SOURCE_OTHER_ARB GL_DEBUG_SOURCE_OTHER_KHR
+#define GL_DEBUG_SOURCE_API_ARB GL_DEBUG_SOURCE_API_KHR
+#define GL_DEBUG_TYPE_ERROR_ARB GL_DEBUG_TYPE_ERROR_KHR
+#define GL_DEBUG_TYPE_OTHER_ARB GL_DEBUG_TYPE_OTHER_KHR
+#define GL_DEBUG_TYPE_MARKER GL_DEBUG_TYPE_MARKER_KHR
+#define GL_DEBUG_TYPE_PUSH_GROUP GL_DEBUG_TYPE_PUSH_GROUP_KHR
+#define GL_DEBUG_TYPE_POP_GROUP GL_DEBUG_TYPE_POP_GROUP_KHR
+#define GL_DEBUG_SEVERITY_HIGH_ARB GL_DEBUG_SEVERITY_HIGH_KHR
+#define GL_DEBUG_SEVERITY_LOW_ARB GL_DEBUG_SEVERITY_LOW_KHR
+#define GL_DEBUG_SEVERITY_NOTIFICATION GL_DEBUG_SEVERITY_NOTIFICATION_KHR
+#endif
+
+// These are forced to 0 to prevent the generation of glErrors at query initialization
+#ifdef GL_MAX_3D_TEXTURE_SIZE
+#undef GL_MAX_3D_TEXTURE_SIZE
+#endif
+#ifdef GL_MAX_COLOR_ATTACHMENTS
+#undef GL_MAX_COLOR_ATTACHMENTS
+#endif
+#ifdef GL_MAX_SAMPLES
+#undef GL_MAX_SAMPLES
+#endif
+#ifdef GL_MAX_COLOR_TEXTURE_SAMPLES
+#undef GL_MAX_COLOR_TEXTURE_SAMPLES
+#endif
+#ifdef GL_MAX_COLOR_TEXTURE_SAMPLES
+#undef GL_MAX_COLOR_TEXTURE_SAMPLES
+#endif
+#ifdef GL_MAX_DEPTH_TEXTURE_SAMPLES
+#undef GL_MAX_DEPTH_TEXTURE_SAMPLES
+#endif
+#ifdef GL_MAX_INTEGER_SAMPLES
+#undef GL_MAX_INTEGER_SAMPLES
+#endif
+
 #define GL_RG8I 0x8237
 #define GL_RG8UI 0x8238
 #define GL_RG16I 0x8239

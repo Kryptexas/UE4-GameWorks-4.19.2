@@ -1006,7 +1006,14 @@ void UReflectionCaptureComponent::PostLoad()
 		// Don't need encoded HDR data for rendering on this feature level
 		INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, FullHDRDerivedData->CompressedCapturedData.GetAllocatedSize());
 
-		if ((GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
+		// command line option: -NoTiledReflections
+		// useful to test this code path and to run the potentially more efficient path (PS vs CS) on SM5 hardware
+		// not a cvar as it also needs to change the data when loading the captures
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NoTiledReflections"));
+		check(CVar);
+		const bool bNoTiledReflections = (CVar->GetValueOnAnyThread() == 1);
+
+		if ((GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData || bNoTiledReflections))
 		{
 			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
 			SM4FullHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_FloatRGBA, &FullHDRDerivedData->GetCapturedDataForSM4Load());

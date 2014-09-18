@@ -205,7 +205,14 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 
 bool FVelocityDrawingPolicy::SupportsVelocity() const
 {
-	return (VertexShader && PixelShader) ? VertexShader->SupportsVelocity() : false;
+	if (VertexShader && PixelShader && VertexShader->SupportsVelocity() && GPixelFormats[PF_G16R16].Supported)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void FVelocityDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* SceneView, const ContextDataType PolicyContext) const
@@ -616,7 +623,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 		bNeedsVelocity |= bMotionBlur || bTemporalAA;
 	}
-	if( !bNeedsVelocity )
+	if( !bNeedsVelocity || GPixelFormats[PF_G16R16].Supported == false )
 	{
 		return;
 	}
@@ -630,7 +637,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	GRenderTargetPool.FindFreeElement(Desc, VelocityRT, TEXT("Velocity"));
 
 	GPrevPerBoneMotionBlur.LockData();
-	
+
 	SetRenderTarget(RHICmdList, VelocityRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
 	
 	// Clear the velocity buffer (0.0f means "use static background velocity").
@@ -644,7 +651,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 		const uint32 MinY = View.ViewRect.Min.Y * VelocityBufferSize.Y / BufferSize.Y;
 		const uint32 MaxX = View.ViewRect.Max.X * VelocityBufferSize.X / BufferSize.X;
 		const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
-		
+
 		RHICmdList.SetViewport(MinX, MinY, 0.0f, MaxX, MaxY, 1.0f);
 
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());

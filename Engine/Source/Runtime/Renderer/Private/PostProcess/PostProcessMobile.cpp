@@ -1518,7 +1518,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeVS_ES2,TEXT("PostProcessMobile"),TEXT
 
 
 template <uint32 UseSunBloom>
-static void SunMerge_SetShader(const FRenderingCompositePassContext& Context)
+FShader* SunMerge_SetShader(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessSunMergeVS_ES2> VertexShader(Context.GetShaderMap());
 	TShaderMapRef<FPostProcessSunMergePS_ES2<UseSunBloom> > PixelShader(Context.GetShaderMap());
@@ -1530,9 +1530,11 @@ static void SunMerge_SetShader(const FRenderingCompositePassContext& Context)
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
+
+	return *VertexShader;
 }
 
-void FRCPassPostProcessSunMergeES2::SetShader(const FRenderingCompositePassContext& Context)
+FShader* FRCPassPostProcessSunMergeES2::SetShader(const FRenderingCompositePassContext& Context)
 {
 	const FSceneView& View = Context.View;
 	uint32 UseBloom = (View.FinalPostProcessSettings.BloomIntensity > 0.0f) ? 1 : 0;
@@ -1541,11 +1543,14 @@ void FRCPassPostProcessSunMergeES2::SetShader(const FRenderingCompositePassConte
 
 	switch(UseSunBloom)
 	{
-	case 0: SunMerge_SetShader<0>(Context); break;
-	case 1: SunMerge_SetShader<1>(Context); break;
-	case 2: SunMerge_SetShader<2>(Context); break;
-	case 3: SunMerge_SetShader<3>(Context); break;
+		case 0: return SunMerge_SetShader<0>(Context);
+		case 1: return SunMerge_SetShader<1>(Context);
+		case 2: return SunMerge_SetShader<2>(Context);
+		case 3: return SunMerge_SetShader<3>(Context);
 	}
+
+	check(false);
+	return NULL;
 }
 
 void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Context)
@@ -1573,10 +1578,9 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	SetShader(Context);
+	FShader* VertexShader = SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunMergeVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -1586,7 +1590,7 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
+		VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

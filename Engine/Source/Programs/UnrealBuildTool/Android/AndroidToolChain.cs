@@ -15,6 +15,7 @@ namespace UnrealBuildTool
 
 		// public so that AndroidPlatform can get to it
 		static private string[] Arches = null;
+		static private string[] GPUArchitectures = null;
 
 		static private Dictionary<string, string[]> AllArchNames = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { "armv7", "armeabi-v7a", } }, 
@@ -60,6 +61,22 @@ namespace UnrealBuildTool
 			}
 
 			Arches = ProjectArches.ToArray();
+
+			// Parse selected GPU architectures
+			List<string> ProjectGPUArches = new List<string>();
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild)
+			{
+				ProjectGPUArches.Add("-es31");
+			}
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild)
+			{
+				ProjectGPUArches.Add("-gl4");
+			}
+			if (ProjectGPUArches.Count == 0 || (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild))
+			{
+				ProjectGPUArches.Add("-es2");
+			}
+			GPUArchitectures = ProjectGPUArches.ToArray();
 		}
 
 		public override void SetUpGlobalEnvironment()
@@ -77,6 +94,16 @@ namespace UnrealBuildTool
 			}
 
 			return Arches;
+		}
+
+		static public string[] GetAllGPUArchitectures()
+		{
+			if (GPUArchitectures == null)
+			{
+				ParseArchitectures();
+			}
+
+			return GPUArchitectures;
 		}
 
 		static public string GetNdkApiLevel()
@@ -560,136 +587,148 @@ namespace UnrealBuildTool
 			CPPOutput Result = new CPPOutput();
 			foreach (string Arch in Arches)
 			{
-				// which toolchain to use
-				string Arguments = GetCLArguments_Global(CompileEnvironment, Arch) + BaseArguments;
-				
-				// which PCH file to include
-				string PCHArguments = "";
-				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
+				foreach (string GPUArchitecture in GPUArchitectures)
 				{
-					// Add the precompiled header file's path to the include path so Clang can find it.
-					// This needs to be before the other include paths to ensure Clang uses it instead of the source header file.
-					PCHArguments += string.Format(" -include \"{0}\"", InlineArchName(BasePCHName, Arch));
-				}
+					// which toolchain to use
+					string Arguments = GetCLArguments_Global(CompileEnvironment, Arch) + BaseArguments;
 
-				// Add include paths to the argument list (filtered by architecture)
-				foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
-				{
-					if (IsDirectoryForArch(IncludePath, Arch))
+					if (GPUArchitecture == "-gl4")
 					{
-						Arguments += string.Format(" -I\"{0}\"", IncludePath);
+						Arguments += " -DPLATFORM_ANDROIDGL4=1";
 					}
-				}
-				foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
-				{
-					if (IsDirectoryForArch(IncludePath, Arch))
+					else if (GPUArchitecture == "-es31")
 					{
-						Arguments += string.Format(" -I\"{0}\"", IncludePath);
-					}
-				}
-
-				foreach (FileItem SourceFile in SourceFiles)
-				{
-					Action CompileAction = new Action(ActionType.Compile);
-					string FileArguments = "";
-					bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
-
-					// should we disable optimizations on this file?
-					// @todo android - We wouldn't need this if we could disable optimizations per function (via pragma)
-					bool bDisableOptimizations = false;// SourceFile.AbsolutePath.ToUpperInvariant().IndexOf("\\SLATE\\") != -1;
-					if (bDisableOptimizations && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
-					{
-						Log.TraceWarning("Disabling optimizations on {0}", SourceFile.AbsolutePath);
+						Arguments += " -DPLATFORM_ANDROIDES31=1";
 					}
 
-					bDisableOptimizations = bDisableOptimizations || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug;
-
-					// Add C or C++ specific compiler arguments.
-					if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+					// which PCH file to include
+					string PCHArguments = "";
+					if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 					{
-						FileArguments += GetCompileArguments_PCH(bDisableOptimizations);
-					}
-					else if (bIsPlainCFile)
-					{
-						FileArguments += GetCompileArguments_C(bDisableOptimizations);
-					}
-					else
-					{
-						FileArguments += GetCompileArguments_CPP(bDisableOptimizations);
-
-						// only use PCH for .cpp files
-						FileArguments += PCHArguments;
+						// Add the precompiled header file's path to the include path so Clang can find it.
+						// This needs to be before the other include paths to ensure Clang uses it instead of the source header file.
+						PCHArguments += string.Format(" -include \"{0}\"", InlineArchName(BasePCHName, Arch, GPUArchitecture));
 					}
 
-					// Add the C++ source file and its included files to the prerequisite item list.
-					AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
-
-					if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+					// Add include paths to the argument list (filtered by architecture)
+					foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
 					{
-						// Add the precompiled header file to the produced item list.
-						FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
-							Path.Combine(
-								CompileEnvironment.Config.OutputDirectory,
-								Path.GetFileName(InlineArchName(SourceFile.AbsolutePath, Arch) + PCHExtension)
-								)
-							);
-
-						CompileAction.ProducedItems.Add(PrecompiledHeaderFile);
-						Result.PrecompiledHeaderFile = PrecompiledHeaderFile;
-
-						// Add the parameters needed to compile the precompiled header file to the command-line.
-						FileArguments += string.Format(" -o \"{0}\"", PrecompiledHeaderFile.AbsolutePath, false);
-					}
-					else
-					{
-						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
+						if (IsDirectoryForArch(IncludePath, Arch))
 						{
-							CompileAction.bIsUsingPCH = true;
-							FileItem ArchPrecompiledHeaderFile = FileItem.GetItemByPath(InlineArchName(BasePCHName, Arch) + PCHExtension);
-							CompileAction.PrerequisiteItems.Add(ArchPrecompiledHeaderFile);
+							Arguments += string.Format(" -I\"{0}\"", IncludePath);
+						}
+					}
+					foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
+					{
+						if (IsDirectoryForArch(IncludePath, Arch))
+						{
+							Arguments += string.Format(" -I\"{0}\"", IncludePath);
+						}
+					}
+
+					foreach (FileItem SourceFile in SourceFiles)
+					{
+						Action CompileAction = new Action(ActionType.Compile);
+						string FileArguments = "";
+						bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
+
+						// should we disable optimizations on this file?
+						// @todo android - We wouldn't need this if we could disable optimizations per function (via pragma)
+						bool bDisableOptimizations = false;// SourceFile.AbsolutePath.ToUpperInvariant().IndexOf("\\SLATE\\") != -1;
+						if (bDisableOptimizations && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+						{
+							Log.TraceWarning("Disabling optimizations on {0}", SourceFile.AbsolutePath);
 						}
 
-						var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Android].GetBinaryExtension(UEBuildBinaryType.Object);
+						bDisableOptimizations = bDisableOptimizations || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug;
 
-						// Add the object file to the produced item list.
-						FileItem ObjectFile = FileItem.GetItemByPath(
-							Path.Combine(
-								CompileEnvironment.Config.OutputDirectory,
-								Path.GetFileName(SourceFile.AbsolutePath) + Arch + ObjectFileExtension
-								)
-							);
-						CompileAction.ProducedItems.Add(ObjectFile);
-						Result.ObjectFiles.Add(ObjectFile);
+						// Add C or C++ specific compiler arguments.
+						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+						{
+							FileArguments += GetCompileArguments_PCH(bDisableOptimizations);
+						}
+						else if (bIsPlainCFile)
+						{
+							FileArguments += GetCompileArguments_C(bDisableOptimizations);
+						}
+						else
+						{
+							FileArguments += GetCompileArguments_CPP(bDisableOptimizations);
 
-						FileArguments += string.Format(" -o \"{0}\"", ObjectFile.AbsolutePath, false);
+							// only use PCH for .cpp files
+							FileArguments += PCHArguments;
+						}
+
+						// Add the C++ source file and its included files to the prerequisite item list.
+						AddPrerequisiteSourceFile(Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
+
+						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+						{
+							// Add the precompiled header file to the produced item list.
+							FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
+								Path.Combine(
+									CompileEnvironment.Config.OutputDirectory,
+									Path.GetFileName(InlineArchName(SourceFile.AbsolutePath, Arch, GPUArchitecture) + PCHExtension)
+									)
+								);
+
+							CompileAction.ProducedItems.Add(PrecompiledHeaderFile);
+							Result.PrecompiledHeaderFile = PrecompiledHeaderFile;
+
+							// Add the parameters needed to compile the precompiled header file to the command-line.
+							FileArguments += string.Format(" -o \"{0}\"", PrecompiledHeaderFile.AbsolutePath, false);
+						}
+						else
+						{
+							if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
+							{
+								CompileAction.bIsUsingPCH = true;
+								FileItem ArchPrecompiledHeaderFile = FileItem.GetItemByPath(InlineArchName(BasePCHName, Arch, GPUArchitecture) + PCHExtension);
+								CompileAction.PrerequisiteItems.Add(ArchPrecompiledHeaderFile);
+							}
+
+							var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Android].GetBinaryExtension(UEBuildBinaryType.Object);
+
+							// Add the object file to the produced item list.
+							FileItem ObjectFile = FileItem.GetItemByPath(
+								InlineArchName( Path.Combine(
+									CompileEnvironment.Config.OutputDirectory,
+									Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension), Arch, GPUArchitecture
+									)
+								);
+							CompileAction.ProducedItems.Add(ObjectFile);
+							Result.ObjectFiles.Add(ObjectFile);
+
+							FileArguments += string.Format(" -o \"{0}\"", ObjectFile.AbsolutePath, false);
+						}
+
+						// Add the source file path to the command-line.
+						FileArguments += string.Format(" \"{0}\"", SourceFile.AbsolutePath);
+
+						// Build a full argument list
+						string AllArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+						AllArguments = ActionThread.ExpandEnvironmentVariables(AllArguments);
+						AllArguments = AllArguments.Replace("\\", "/");
+
+						// Create the response file
+						string ResponseFileName = CompileAction.ProducedItems[0].AbsolutePath + ".response";
+						string ResponseArgument = string.Format("@\"{0}\"", ResponseFile.Create(ResponseFileName, new List<string> { AllArguments }));
+
+						CompileAction.WorkingDirectory = Path.GetFullPath(".");
+						CompileAction.CommandPath = ClangPath;
+						CompileAction.CommandArguments = ResponseArgument;
+						CompileAction.StatusDescription = string.Format("{0} [{1}-{2}]", Path.GetFileName(SourceFile.AbsolutePath), Arch.Replace("-", ""), GPUArchitecture.Replace("-", ""));
+
+						CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
+
+						// VC++ always outputs the source file name being compiled, so we don't need to emit this ourselves
+						CompileAction.bShouldOutputStatusDescription = true;
+
+						// Don't farm out creation of pre-compiled headers as it is the critical path task.
+						CompileAction.bCanExecuteRemotely =
+							CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
+							BuildConfiguration.bAllowRemotelyCompiledPCHs;
 					}
-
-					// Add the source file path to the command-line.
-					FileArguments += string.Format(" \"{0}\"", SourceFile.AbsolutePath);
-
-					// Build a full argument list
-					string AllArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
-					AllArguments = ActionThread.ExpandEnvironmentVariables(AllArguments);
-					AllArguments = AllArguments.Replace("\\", "/");
-
-					// Create the response file
-					string ResponseFileName = CompileAction.ProducedItems[0].AbsolutePath + ".response";
-					string ResponseArgument = string.Format("@\"{0}\"", ResponseFile.Create(ResponseFileName, new List<string> { AllArguments }));
-
-					CompileAction.WorkingDirectory = Path.GetFullPath(".");
-					CompileAction.CommandPath = ClangPath;
-					CompileAction.CommandArguments = ResponseArgument;
-					CompileAction.StatusDescription = string.Format("{0} [{1}]", Path.GetFileName(SourceFile.AbsolutePath), Arch.Replace("-", ""));
-
-					CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
-
-					// VC++ always outputs the source file name being compiled, so we don't need to emit this ourselves
-					CompileAction.bShouldOutputStatusDescription = true;
-
-					// Don't farm out creation of pre-compiled headers as it is the critical path task.
-					CompileAction.bCanExecuteRemotely =
-						CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
-						BuildConfiguration.bAllowRemotelyCompiledPCHs;
 				}
 			}
 
@@ -701,9 +740,9 @@ namespace UnrealBuildTool
 			return null;
 		}
 
-		static public string InlineArchName(string Pathname, string Arch)
+		static public string InlineArchName(string Pathname, string Arch, string GPUArchitecture)
 		{
-			return Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileNameWithoutExtension(Pathname) + Arch + Path.GetExtension(Pathname));
+			return Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileNameWithoutExtension(Pathname) + Arch + GPUArchitecture + Path.GetExtension(Pathname));
 		}
 
 		static public string RemoveArchName(string Pathname)
@@ -711,7 +750,10 @@ namespace UnrealBuildTool
 			// remove all architecture names
 			foreach (string Arch in Arches)
 			{
-				Pathname = Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileName(Pathname).Replace(Arch, ""));
+				foreach (string GPUArchitecture in GPUArchitectures)
+				{
+					Pathname = Path.Combine(Path.GetDirectoryName(Pathname), Path.GetFileName(Pathname).Replace(Arch+GPUArchitecture, ""));
+				}
 			}
 			return Pathname;
 		}
@@ -723,119 +765,124 @@ namespace UnrealBuildTool
 			for (int ArchIndex = 0; ArchIndex < Arches.Length; ArchIndex++)
 			{
 				string Arch = Arches[ArchIndex];
-
-				// Android will have an array of outputs
-				if (LinkEnvironment.Config.OutputFilePaths.Length < ArchIndex || 
-					!Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePaths[ArchIndex]).EndsWith(Arch))
+				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Length; GPUArchIndex++)
 				{
-					throw new BuildException("The OutputFilePaths array didn't match the Arches array in AndroidToolChain.LinkAllFiles");
-				}
+					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
+					int OutputPathIndex = ArchIndex * GPUArchitectures.Length + GPUArchIndex;
 
-				// Create an action that invokes the linker.
-				Action LinkAction = new Action(ActionType.Link);
-				LinkAction.WorkingDirectory = Path.GetFullPath(".");
-
-				if (LinkEnvironment.Config.bIsBuildingLibrary)
-				{
-					LinkAction.CommandPath = Arch == "-armv7" ? ArPathArm : ArPathx86;
-				}
-				else
-				{
-					LinkAction.CommandPath = ClangPath;
-				}
-
-				string LinkerPath = LinkAction.WorkingDirectory;
-
-				LinkAction.WorkingDirectory = LinkEnvironment.Config.IntermediateDirectory;
-
-				// Get link arguments.
-				LinkAction.CommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArArguments(LinkEnvironment) : GetLinkArguments(LinkEnvironment, Arch);
-
-				// Add the output file as a production of the link action.
-				FileItem OutputFile;
-				OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePaths[ArchIndex]);
-				Outputs.Add(OutputFile);
-				LinkAction.ProducedItems.Add(OutputFile);
-				LinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(OutputFile.AbsolutePath));
-
-				// LinkAction.bPrintDebugInfo = true;
-
-				// Add the output file to the command-line.
-				if (LinkEnvironment.Config.bIsBuildingLibrary)
-				{
-					LinkAction.CommandArguments += string.Format(" \"{0}\"", OutputFile.AbsolutePath);
-				}
-				else
-				{
-					LinkAction.CommandArguments += string.Format(" -o \"{0}\"", OutputFile.AbsolutePath);
-				}
-
-				// Add the input files to a response file, and pass the response file on the command-line.
-				List<string> InputFileNames = new List<string>();
-				foreach (FileItem InputFile in LinkEnvironment.InputFiles)
-				{
-					// make sure its for curent Arch
-					if (Path.GetFileNameWithoutExtension(InputFile.AbsolutePath).EndsWith(Arch))
+					// Android will have an array of outputs
+					if (LinkEnvironment.Config.OutputFilePaths.Length < OutputPathIndex ||
+						!Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePaths[OutputPathIndex]).EndsWith(Arch + GPUArchitecture))
 					{
-						string AbsolutePath = InputFile.AbsolutePath.Replace("\\", "/");
-
-						AbsolutePath = AbsolutePath.Replace(LinkEnvironment.Config.IntermediateDirectory.Replace("\\", "/"), "");
-						AbsolutePath = AbsolutePath.TrimStart(new char[] { '/' });
-
-						InputFileNames.Add(string.Format("\"{0}\"", AbsolutePath));
-						LinkAction.PrerequisiteItems.Add(InputFile);
+						throw new BuildException("The OutputFilePaths array didn't match the Arches array in AndroidToolChain.LinkAllFiles");
 					}
-				}
 
-				string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
-				LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
+					// Create an action that invokes the linker.
+					Action LinkAction = new Action(ActionType.Link);
+					LinkAction.WorkingDirectory = Path.GetFullPath(".");
 
-				// libs don't link in other libs
-				if (!LinkEnvironment.Config.bIsBuildingLibrary)
-				{
-					// Add the library paths to the argument list.
-					foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
+					if (LinkEnvironment.Config.bIsBuildingLibrary)
 					{
-						// LinkerPaths could be relative or absolute
-						string AbsoluteLibraryPath = ActionThread.ExpandEnvironmentVariables(LibraryPath);
-						if (IsDirectoryForArch(AbsoluteLibraryPath, Arch))
+						LinkAction.CommandPath = Arch == "-armv7" ? ArPathArm : ArPathx86;
+					}
+					else
+					{
+						LinkAction.CommandPath = ClangPath;
+					}
+
+					string LinkerPath = LinkAction.WorkingDirectory;
+
+					LinkAction.WorkingDirectory = LinkEnvironment.Config.IntermediateDirectory;
+
+					// Get link arguments.
+					LinkAction.CommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArArguments(LinkEnvironment) : GetLinkArguments(LinkEnvironment, Arch);
+
+					// Add the output file as a production of the link action.
+					FileItem OutputFile;
+					OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePaths[OutputPathIndex]);
+					Outputs.Add(OutputFile);
+					LinkAction.ProducedItems.Add(OutputFile);
+					LinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(OutputFile.AbsolutePath));
+
+					// LinkAction.bPrintDebugInfo = true;
+
+					// Add the output file to the command-line.
+					if (LinkEnvironment.Config.bIsBuildingLibrary)
+					{
+						LinkAction.CommandArguments += string.Format(" \"{0}\"", OutputFile.AbsolutePath);
+					}
+					else
+					{
+						LinkAction.CommandArguments += string.Format(" -o \"{0}\"", OutputFile.AbsolutePath);
+					}
+
+					// Add the input files to a response file, and pass the response file on the command-line.
+					List<string> InputFileNames = new List<string>();
+					foreach (FileItem InputFile in LinkEnvironment.InputFiles)
+					{
+						// make sure it's for current Arch
+						if (Path.GetFileNameWithoutExtension(InputFile.AbsolutePath).EndsWith(Arch + GPUArchitecture))
 						{
-							// environment variables aren't expanded when using the $( style
-							if (Path.IsPathRooted(AbsoluteLibraryPath) == false)
-							{
-								AbsoluteLibraryPath = Path.Combine(LinkerPath, AbsoluteLibraryPath);
-							}
-							LinkAction.CommandArguments += string.Format(" -L\"{0}\"", AbsoluteLibraryPath);
+							string AbsolutePath = InputFile.AbsolutePath.Replace("\\", "/");
+
+							AbsolutePath = AbsolutePath.Replace(LinkEnvironment.Config.IntermediateDirectory.Replace("\\", "/"), "");
+							AbsolutePath = AbsolutePath.TrimStart(new char[] { '/' });
+
+							InputFileNames.Add(string.Format("\"{0}\"", AbsolutePath));
+							LinkAction.PrerequisiteItems.Add(InputFile);
 						}
 					}
 
-					// add libraries in a library group
-					LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
-					foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
+					string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+					LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
+
+					// libs don't link in other libs
+					if (!LinkEnvironment.Config.bIsBuildingLibrary)
 					{
-						if (!ShouldSkipLib(AdditionalLibrary, Arch))
+						// Add the library paths to the argument list.
+						foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
 						{
-							if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
+							// LinkerPaths could be relative or absolute
+							string AbsoluteLibraryPath = ActionThread.ExpandEnvironmentVariables(LibraryPath);
+							if (IsDirectoryForArch(AbsoluteLibraryPath, Arch))
 							{
-								LinkAction.CommandArguments += string.Format(" \"-l{0}\"", AdditionalLibrary);
-							}
-							else
-							{
-								// full pathed libs are compiled by us, so we depend on linking them
-								LinkAction.CommandArguments += string.Format(" \"{0}\"", AdditionalLibrary);
-								LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
+								// environment variables aren't expanded when using the $( style
+								if (Path.IsPathRooted(AbsoluteLibraryPath) == false)
+								{
+									AbsoluteLibraryPath = Path.Combine(LinkerPath, AbsoluteLibraryPath);
+								}
+								LinkAction.CommandArguments += string.Format(" -L\"{0}\"", AbsoluteLibraryPath);
 							}
 						}
+
+						// add libraries in a library group
+						LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
+						foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
+						{
+							if (!ShouldSkipLib(AdditionalLibrary, Arch))
+							{
+								if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
+								{
+									LinkAction.CommandArguments += string.Format(" \"-l{0}\"", AdditionalLibrary);
+								}
+								else
+								{
+									// full pathed libs are compiled by us, so we depend on linking them
+									LinkAction.CommandArguments += string.Format(" \"{0}\"", AdditionalLibrary);
+									LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
+								}
+							}
+						}
+						LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
 					}
-					LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
+
+					// Add the additional arguments specified by the environment.
+					LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
+					LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
+
+					// Only execute linking on the local PC.
+					LinkAction.bCanExecuteRemotely = false;
 				}
-
-				// Add the additional arguments specified by the environment.
-				LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
-				LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
-
-				// Only execute linking on the local PC.
-				LinkAction.bCanExecuteRemotely = false;
 			}
 
 			return Outputs.ToArray();

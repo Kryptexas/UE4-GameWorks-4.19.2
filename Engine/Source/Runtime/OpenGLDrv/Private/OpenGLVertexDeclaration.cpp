@@ -60,7 +60,7 @@ struct FOpenGLVertexDeclarationKey
 				case VET_Half2:
 					if (FOpenGL::SupportsVertexHalfFloat())
 					{
-						SetupGLElement(GLElement, GL_HALF_FLOAT, 2, false, true);
+						SetupGLElement(GLElement, FOpenGL::GetVertexHalfFloatFormat(), 2, false, true);
 					}
 					else
 					{
@@ -71,7 +71,7 @@ struct FOpenGLVertexDeclarationKey
 				case VET_Half4:
 					if (FOpenGL::SupportsVertexHalfFloat())
 					{
-						SetupGLElement(GLElement, GL_HALF_FLOAT, 4, false, true);
+						SetupGLElement(GLElement, FOpenGL::GetVertexHalfFloatFormat(), 4, false, true);
 					}
 					else
 					{

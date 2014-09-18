@@ -512,8 +512,38 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 	#endif
 }
 
+void GetExtensionsString( FString& ExtensionsString)
+{
+	GLint ExtensionCount = 0;
+	ExtensionsString = TEXT("");
+	if ( FOpenGL::SupportsIndexedExtensions() )
+	{
+		glGetIntegerv(GL_NUM_EXTENSIONS, &ExtensionCount);
+		for (int32 ExtensionIndex = 0; ExtensionIndex < ExtensionCount; ++ExtensionIndex)
+		{
+			const ANSICHAR* ExtensionString = FOpenGL::GetStringIndexed(GL_EXTENSIONS, ExtensionIndex);
+
+			ExtensionsString += TEXT(" ");
+			ExtensionsString += ANSI_TO_TCHAR(ExtensionString);
+		}
+	}
+	else
+	{
+		const ANSICHAR* GlGetStringOutput = (const ANSICHAR*) glGetString( GL_EXTENSIONS );
+		if (GlGetStringOutput)
+		{
+			ExtensionsString += GlGetStringOutput;
+			ExtensionsString += TEXT(" ");
+		}
+	}
+}
+
 void InitDefaultGLContextState(void)
 {
+	// NOTE: This function can be called before capabilities setup, so extensions need to be checked directly
+	FString ExtensionsString;
+	GetExtensionsString(ExtensionsString);
+
 	// Intel HD4000 under <= 10.8.4 requires GL_DITHER disabled or dithering will occur on any channel < 8bits.
 	// No other driver does this but we don't need GL_DITHER on anyway.
 	glDisable(GL_DITHER);
@@ -522,5 +552,11 @@ void InitDefaultGLContextState(void)
 	{
 		// Render targets with TexCreate_SRGB should do sRGB conversion like in D3D11
 		glEnable(GL_FRAMEBUFFER_SRGB);
+	}
+
+	// Engine always expects seamless cubemap, so enable it if available
+	if (ExtensionsString.Contains(TEXT("GL_ARB_seamless_cube_map")))
+	{
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	}
 }

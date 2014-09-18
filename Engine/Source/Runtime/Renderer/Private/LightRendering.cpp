@@ -13,9 +13,19 @@
 #include "LightPropagationVolume.h"
 #include "SceneUtils.h"
 
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,TEXT("DeferredLightUniforms"));
 
 extern int32 GUseTranslucentLightingVolumes;
+
+
+static int32 bAllowDepthBoundsTest = 1;
+static FAutoConsoleVariableRef CVarAllowDepthBoundsTest(
+	TEXT("r.AllowDepthBoundsTest"),
+	bAllowDepthBoundsTest,
+	TEXT("If true, use enable depth bounds test when rendering defered lights.")
+	);
+
 
 // Implement a version for directional lights, and a version for point / spot lights
 IMPLEMENT_SHADER_TYPE(template<>,TDeferredLightVS<false>,TEXT("DeferredLightVertexShaders"),TEXT("DirectionalVertexMain"),SF_Vertex);
@@ -705,6 +715,37 @@ static void SetShaderTemplLightingSimple(
 	}
 }
 
+// Use DBT to allow work culling on shadow lights
+void CalculateLightNearFarDepthFromBounds(const FViewInfo& View, const FSphere &LightBounds, float &NearDepth, float &FarDepth)
+{
+	const FMatrix ViewProjection = View.ViewMatrices.GetViewProjMatrix();
+	const FVector ViewDirection = View.GetViewDirection();
+	
+	// push camera relative bounds center along view vec by its radius
+	const FVector FarPoint = LightBounds.Center + LightBounds.W * ViewDirection;
+	const FVector4 FarPoint4 = FVector4(FarPoint, 1.f);
+	const FVector4 FarPoint4Clip = ViewProjection.TransformFVector4(FarPoint4);
+	FarDepth = FarPoint4Clip.Z / FarPoint4Clip.W;
+
+	// pull camera relative bounds center along -view vec by its radius
+	const FVector NearPoint = LightBounds.Center - LightBounds.W * ViewDirection;
+	const FVector4 NearPoint4 = FVector4(NearPoint, 1.f);
+	const FVector4 NearPoint4Clip = ViewProjection.TransformFVector4(NearPoint4);
+	NearDepth = NearPoint4Clip.Z / NearPoint4Clip.W;
+
+	// negative means behind view, but we use a NearClipPlane==1.f depth	
+
+	if (NearPoint4Clip.W < 0)
+		NearDepth = 1;
+
+	if (FarPoint4Clip.W < 0)
+		FarDepth = 1;
+
+	NearDepth = FMath::Clamp(NearDepth, 0.0f, 1.0f);
+	FarDepth = FMath::Clamp(FarDepth, 0.0f, 1.0f);
+
+}
+
 /**
  * Used by RenderLights to render a light to the scene color buffer.
  *
@@ -817,6 +858,18 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 
 			VertexShader->SetParameters(RHICmdList, View, LightSceneInfo);
 
+			// NUse DBT to allow work culling on shadow lights
+			if (bAllowDepthBoundsTest != 0)
+			{
+				// Can use the depth bounds test to skip work for pixels which won't be touched by the light (i.e outside the depth range)
+				float NearDepth = 1.f;
+				float FarDepth = 0.f;
+				CalculateLightNearFarDepthFromBounds(View,LightBounds,NearDepth,FarDepth);
+
+				// UE4 uses reversed depth, so far < near
+				RHICmdList.EnableDepthBoundsTest(true,FarDepth,NearDepth);
+			}
+
 			if (LightSceneInfo->Proxy->GetLightType() == LightType_Point)
 			{
 				// Apply the point or spot light with some approximately bounding geometry, 
@@ -826,6 +879,13 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 			else if (LightSceneInfo->Proxy->GetLightType() == LightType_Spot)
 			{
 				StencilingGeometry::DrawCone(RHICmdList);
+			}
+
+			// Use DBT to allow work culling on shadow lights
+			if (bAllowDepthBoundsTest != 0)
+			{
+				// Turn DBT back off
+				RHICmdList.EnableDepthBoundsTest(false, 0, 1);
 			}
 		}
 	}

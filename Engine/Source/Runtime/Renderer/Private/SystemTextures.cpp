@@ -215,7 +215,7 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 		for(int32 Pos = 0; Pos < 16; ++Pos)
 		{
 			// distribute rotations over 4x4 pattern
-			//					int32 Reorder[16] = { 0, 8, 2, 10, 12, 6, 14, 4, 3, 11, 1, 9, 15, 5, 13, 7 };
+//			int32 Reorder[16] = { 0, 8, 2, 10, 12, 6, 14, 4, 3, 11, 1, 9, 15, 5, 13, 7 };
 			int32 Reorder[16] = { 0, 11, 7, 3, 10, 4, 15, 12, 6, 8, 1, 14, 13, 2, 9, 5 };
 			int32 w = Reorder[Pos];
 
@@ -253,11 +253,15 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 			// for testing, with 128x128 R8G8 we are very close to the reference (if lower res is needed we might have to add an offset to counter the 0.5f texel shift)
 			const bool bReference = false;
 
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), PF_R8G8, TexCreate_FastVRAM, TexCreate_None, false));
-
+			EPixelFormat Format = PF_R8G8;
 			// for low roughness we would get banding with PF_R8G8 but for low spec it could be used, for now we don't do this optimization
-			Desc.Format = PF_G16R16;
-			//Desc.Format = PF_A16B16G16R16;
+			if (GPixelFormats[PF_G16R16].Supported)
+			{
+				Format = PF_G16R16;
+			}
+			//Format = PF_A16B16G16R16;
+
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), Format, TexCreate_FastVRAM, TexCreate_None, false));
 
 			if (bReference)
 			{
@@ -358,8 +362,8 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 					else if (Desc.Format == PF_G16R16)
 					{
 						uint16* Dest = (uint16*)(DestBuffer + x * 4 + y * DestStride);
-						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 65535.0f + 0.5f);
-						Dest[1] = (int32)(FMath::Clamp(B, 0.0f, 1.0f) * 65535.0f + 0.5f);
+ 						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 65535.0f + 0.5f);
+ 						Dest[1] = (int32)(FMath::Clamp(B, 0.0f, 1.0f) * 65535.0f + 0.5f);
 					}
 					else
 					{

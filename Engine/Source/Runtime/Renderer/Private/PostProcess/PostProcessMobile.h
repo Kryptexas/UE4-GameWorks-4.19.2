@@ -141,7 +141,7 @@ public:
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	void SetShader(const FRenderingCompositePassContext& Context);
+	FShader* SetShader(const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessSunMergeSmallES2 : public TRenderingCompositePassBase<2, 1>

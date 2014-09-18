@@ -50,6 +50,18 @@
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
 
+static TAutoConsoleVariable<int32> CVarUseMobileBloom(
+	TEXT("r.UseMobileBloom"),
+	0,
+	TEXT("HACK: Set to 1 to use mobile bloom."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarDepthOfFieldMaxSize(
+	TEXT("r.DepthOfField.MaxSize"),
+	100.0f,
+	TEXT("Allows to clamp the gaussian depth of field radius (for better performance), default: 100"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarRenderTargetSwitchWorkaround(
 	TEXT("r.RenderTargetSwitchWorkaround"),
 	0,
@@ -252,15 +264,20 @@ static void AddPostProcessDepthOfFieldBokeh(FPostprocessContext& Context, FRende
 	Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 }
 
-
-static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context)
+static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDepthOfFieldStats& Out)
 {
 	float FarSize = Context.View.FinalPostProcessSettings.DepthOfFieldFarBlurSize;
 	float NearSize = Context.View.FinalPostProcessSettings.DepthOfFieldNearBlurSize;
 	
-	bool bNearBlurEnabled = NearSize >= GetCachedScalabilityCVars().GaussianDOFNearThreshold;
+	float MaxSize = CVarDepthOfFieldMaxSize.GetValueOnRenderThread();
 
-	if(FarSize <= 0 && NearSize <= 0)
+	FarSize = FMath::Min(FarSize, MaxSize);
+	NearSize = FMath::Min(NearSize, MaxSize);
+
+	Out.bFar = FarSize >= 0.01f;
+	Out.bNear = NearSize >= GetCachedScalabilityCVars().GaussianDOFNearThreshold;
+
+	if(!Out.bFar && !Out.bNear)
 	{
 		return;
 	}
@@ -271,7 +288,7 @@ static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context)
 		return;
 	}
 
-	FRenderingCompositePass* DOFSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDOFSetup(bNearBlurEnabled));
+	FRenderingCompositePass* DOFSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDOFSetup(Out.bNear));
 	DOFSetup->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 	// We need the depth to create the near and far mask
 	DOFSetup->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
@@ -306,18 +323,18 @@ static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context)
 	FRenderingCompositeOutputRef Near; // Don't need to bind a dummy here as we use a different permutation which doesn't read from this input when near DOF is disabled
 
 	// far
-	if(FarSize >= 0.01f)
+	if (Out.bFar)
 	{
 		Far = RenderGaussianBlur(Context, TEXT("FarDOFBlurX"), TEXT("FarDOFBlurY"), FRenderingCompositeOutputRef(DOFInputPass, ePId_Output0), FarSize);
 	}
 
 	// near
-	if(bNearBlurEnabled)
+	if (Out.bNear)
 	{
 		Near = RenderGaussianBlur(Context, TEXT("NearDOFBlurX"), TEXT("NearDOFBlurY"), FRenderingCompositeOutputRef(DOFSetup, ePId_Output1), NearSize);
 	}
 
-	FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDOFRecombine(bNearBlurEnabled));
+	FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDOFRecombine(Out.bNear));
 	NodeRecombined->SetInput(ePId_Input0, Context.FinalOutput);
 	NodeRecombined->SetInput(ePId_Input1, Far);
 	NodeRecombined->SetInput(ePId_Input2, Near);
@@ -782,9 +799,11 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			check(CVar)
 			bool bDepthOfField = View.Family->EngineShowFlags.DepthOfField && CVar->GetValueOnRenderThread() > 0;
 
+			FDepthOfFieldStats DepthOfFieldStat;
+
 			if(bDepthOfField && View.FinalPostProcessSettings.DepthOfFieldMethod != DOFM_BokehDOF)
 			{
-				AddPostProcessDepthOfFieldGaussian(Context);
+				AddPostProcessDepthOfFieldGaussian(Context, DepthOfFieldStat);
 			}
 
 			bool bBokehDOF = bDepthOfField
@@ -935,9 +954,101 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 			if(View.Family->EngineShowFlags.Bloom)
 			{
-				FRenderingCompositeOutputRef HalfResBloomThreshold = RenderHalfResBloomThreshold(Context, SceneColorHalfRes, EyeAdaptation);
+				if (CVarUseMobileBloom.GetValueOnRenderThread() == 0)
+				{
+					FRenderingCompositeOutputRef HalfResBloomThreshold = RenderHalfResBloomThreshold(Context, SceneColorHalfRes, EyeAdaptation);
+					BloomOutputCombined = AddBloom(Context, HalfResBloomThreshold);
+				}
+				else
+				{
+					FIntPoint PrePostSourceViewportSize = View.ViewRect.Size();
 
-				BloomOutputCombined = AddBloom(Context, HalfResBloomThreshold);
+					// Bloom.
+					FRenderingCompositeOutputRef PostProcessDownsample2;
+					FRenderingCompositeOutputRef PostProcessDownsample3;
+					FRenderingCompositeOutputRef PostProcessDownsample4;
+					FRenderingCompositeOutputRef PostProcessDownsample5;
+					FRenderingCompositeOutputRef PostProcessUpsample4;
+					FRenderingCompositeOutputRef PostProcessUpsample3;
+					FRenderingCompositeOutputRef PostProcessUpsample2;
+					FRenderingCompositeOutputRef PostProcessSunMerge;
+
+					float DownScale = 0.66f * 4.0f;
+					// Downsample by 2
+					{
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomDownES2(PrePostSourceViewportSize/4, DownScale));
+						Pass->SetInput(ePId_Input0, SceneColorHalfRes);
+						PostProcessDownsample2 = FRenderingCompositeOutputRef(Pass);
+					}
+
+					// Downsample by 2
+					{
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomDownES2(PrePostSourceViewportSize/8, DownScale));
+						Pass->SetInput(ePId_Input0, PostProcessDownsample2);
+						PostProcessDownsample3 = FRenderingCompositeOutputRef(Pass);
+					}
+
+					// Downsample by 2
+					{
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomDownES2(PrePostSourceViewportSize/16, DownScale));
+						Pass->SetInput(ePId_Input0, PostProcessDownsample3);
+						PostProcessDownsample4 = FRenderingCompositeOutputRef(Pass);
+					}
+
+					// Downsample by 2
+					{
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomDownES2(PrePostSourceViewportSize/32, DownScale));
+						Pass->SetInput(ePId_Input0, PostProcessDownsample4);
+						PostProcessDownsample5 = FRenderingCompositeOutputRef(Pass);
+					}
+
+					const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
+
+					float UpScale = 0.66f * 2.0f;
+					// Upsample by 2
+					{
+						FVector4 TintA = FVector4(Settings.Bloom4Tint.R, Settings.Bloom4Tint.G, Settings.Bloom4Tint.B, 0.0f);
+						FVector4 TintB = FVector4(Settings.Bloom5Tint.R, Settings.Bloom5Tint.G, Settings.Bloom5Tint.B, 0.0f);
+						TintA *= View.FinalPostProcessSettings.BloomIntensity;
+						TintB *= View.FinalPostProcessSettings.BloomIntensity;
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomUpES2(PrePostSourceViewportSize/32, FVector2D(UpScale, UpScale), TintA, TintB));
+						Pass->SetInput(ePId_Input0, PostProcessDownsample4);
+						Pass->SetInput(ePId_Input1, PostProcessDownsample5);
+						PostProcessUpsample4 = FRenderingCompositeOutputRef(Pass);
+					}
+
+					// Upsample by 2
+					{
+						FVector4 TintA = FVector4(Settings.Bloom3Tint.R, Settings.Bloom3Tint.G, Settings.Bloom3Tint.B, 0.0f);
+						TintA *= View.FinalPostProcessSettings.BloomIntensity;
+						FVector4 TintB = FVector4(1.0f, 1.0f, 1.0f, 0.0f);
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomUpES2(PrePostSourceViewportSize/16, FVector2D(UpScale, UpScale), TintA, TintB));
+						Pass->SetInput(ePId_Input0, PostProcessDownsample3);
+						Pass->SetInput(ePId_Input1, PostProcessUpsample4);
+						PostProcessUpsample3 = FRenderingCompositeOutputRef(Pass);
+					}
+
+					// Upsample by 2
+					{
+						FVector4 TintA = FVector4(Settings.Bloom2Tint.R, Settings.Bloom2Tint.G, Settings.Bloom2Tint.B, 0.0f);
+						TintA *= View.FinalPostProcessSettings.BloomIntensity;
+						// Scaling Bloom2 by extra factor to match filter area difference between PC default and mobile.
+						TintA *= 0.5;
+						FVector4 TintB = FVector4(1.0f, 1.0f, 1.0f, 0.0f);
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomUpES2(PrePostSourceViewportSize/8, FVector2D(UpScale, UpScale), TintA, TintB));
+						Pass->SetInput(ePId_Input0, PostProcessDownsample2);
+						Pass->SetInput(ePId_Input1, PostProcessUpsample3);
+						PostProcessUpsample2 = FRenderingCompositeOutputRef(Pass);
+					}
+
+					{
+						FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSunMergeES2(PrePostSourceViewportSize));
+						Pass->SetInput(ePId_Input1, SceneColorHalfRes);
+						Pass->SetInput(ePId_Input2, PostProcessUpsample2);
+						PostProcessSunMerge = FRenderingCompositeOutputRef(Pass);
+						BloomOutputCombined = PostProcessSunMerge;
+					}
+				}
 			}
 
 			HDRColor = Context.FinalOutput;
@@ -954,7 +1065,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			
 			if(bDepthOfField && Context.View.Family->EngineShowFlags.VisualizeDOF)
 			{
-				FRenderingCompositePass* VisualizeNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeDOF());
+				FRenderingCompositePass* VisualizeNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeDOF(DepthOfFieldStat));
 				VisualizeNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
 				// PassThrough is needed to upscale the half res texture
