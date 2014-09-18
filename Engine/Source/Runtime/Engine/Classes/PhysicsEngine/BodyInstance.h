@@ -103,6 +103,7 @@ struct ENGINE_API FBodyInstance
 {
 	GENERATED_USTRUCT_BODY()
 
+
 	/** 
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
 	 *	Is INDEX_NONE if a single body component
@@ -670,6 +671,15 @@ protected:
 	class b2Body* BodyInstancePtr;
 
 #endif	//WITH_BOX2D
+};
+
+template<>
+struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 
