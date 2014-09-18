@@ -10,7 +10,6 @@
 #include "ShaderParameters.h"
 #include "PostProcessing.h"
 #include "SceneFilterRendering.h"
-#include "ScreenRendering.h"
 #include "DistanceFieldLightingShared.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "PostProcessAmbientOcclusion.h"
