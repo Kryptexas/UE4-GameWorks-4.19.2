@@ -39,6 +39,16 @@ FBlueprintNodeSignature UBlueprintBoundNodeSpawner::GetSpawnerSignature() const
 }
 
 //------------------------------------------------------------------------------
+FText UBlueprintBoundNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
+{
+	if( OnGenerateMenuDescriptionDelegate.IsBound() )
+	{
+		return OnGenerateMenuDescriptionDelegate.Execute(Bindings);
+	}
+	return UBlueprintNodeSpawner::GetDefaultMenuName( Bindings );
+}
+
+//------------------------------------------------------------------------------
 bool UBlueprintBoundNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
 	if(CanBindObjectDelegate.IsBound())

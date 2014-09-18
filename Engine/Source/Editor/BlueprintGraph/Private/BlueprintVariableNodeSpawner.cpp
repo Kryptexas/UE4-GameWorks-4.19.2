@@ -78,7 +78,8 @@ void UBlueprintVariableNodeSpawner::Prime()
 
 	// all of these perform expensive FText::Format() operations and cache the 
 	// results...
-	GetDefaultMenuName();
+	FBindingSet EmptyContext;
+	GetDefaultMenuName(EmptyContext);
 	GetDefaultMenuCategory();
 	GetDefaultMenuTooltip();
 }
@@ -129,7 +130,7 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintVariableNodeSpawner::GetDefaultMenuName() const
+FText UBlueprintVariableNodeSpawner::GetDefaultMenuName(const FBindingSet& Bindings) const
 {	
 	if (CachedMenuName.IsOutOfDate())
 	{

@@ -53,9 +53,9 @@ UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(class FPostConstruc
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintDelegateNodeSpawner::GetDefaultMenuName() const
+FText UBlueprintDelegateNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
 {	
-	FText MenuName = Super::GetDefaultMenuName();
+	FText MenuName = Super::GetDefaultMenuName(Bindings);
 
 	UMulticastDelegateProperty const* Property = GetProperty();
 	if ((NodeClass == nullptr) && (Property != nullptr))

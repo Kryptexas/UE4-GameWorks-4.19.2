@@ -44,7 +44,7 @@ public:
 	// UBlueprintNodeSpawner interface
 	virtual void Prime() override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
-	virtual FText GetDefaultMenuName() const override;
+	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FText GetDefaultMenuTooltip() const override;
 	virtual FString GetDefaultSearchKeywords() const override;

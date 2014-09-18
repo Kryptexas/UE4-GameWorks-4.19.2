@@ -116,7 +116,7 @@ public:
 	 *
 	 * @return An empty text string (could be a localized name for sub-classes).
 	 */
-	virtual FText GetDefaultMenuName() const;
+	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const;
 	
 	/**
 	 * To save on performance, certain sub-classes can concoct menu categories
@@ -189,6 +189,7 @@ public:
 	// IBlueprintNodeBinder interface
 	virtual bool   IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }
 	virtual bool   CanBindMultipleObjects() const override { return false; }
+
 protected:
 	virtual bool   BindToNode(UEdGraphNode* Node, UObject* Binding) const override { return false; }
 	// End IBlueprintNodeBinder interface

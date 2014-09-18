@@ -26,6 +26,7 @@ class UK2Node_MatineeController : public UK2Node
 	virtual bool IsNodeSafeToIgnore() const override { return true; }
 	virtual AActor* GetReferencedLevelActor() const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End UK2Node interface
 
 	// Begin UObject interface

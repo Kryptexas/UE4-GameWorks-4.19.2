@@ -15,6 +15,7 @@ class BLUEPRINTGRAPH_API UBlueprintBoundNodeSpawner : public UBlueprintNodeSpawn
 	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FCanBindObjectDelegate, UObject const*);
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBindObjectDelegate, UEdGraphNode*, UObject*);
+	DECLARE_DELEGATE_RetVal_OneParam(FText, FOnGenerateMenuDescriptionDelegate, const IBlueprintNodeBinder::FBindingSet& );
 
 public:
 	/**
@@ -24,6 +25,7 @@ public:
 
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
+	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
 	// End UBlueprintNodeSpawner interface
 
 	// FBlueprintNodeBinder interface
@@ -41,4 +43,9 @@ public:
 	 * A delegate to perform specialized node setup during binding
 	 */
 	FOnBindObjectDelegate OnBindObjectDelegate;
+
+	/**
+	 * A delegate to generate a description for the menu item. Executed any time bindings change
+	 */
+	FOnGenerateMenuDescriptionDelegate OnGenerateMenuDescriptionDelegate;
 };

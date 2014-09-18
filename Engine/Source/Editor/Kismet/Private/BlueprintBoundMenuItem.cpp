@@ -169,6 +169,13 @@ void FBlueprintBoundMenuItem::AddBindings(IBlueprintNodeBinder::FBindingSet cons
 {
 	BoundObjects.Append(BindingSet);
 	Category = BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(BoundSpawner, BoundObjects).ToString();
+
+	// Allow the binding to generate a menu description:
+	FText NewMenuDescription = BoundSpawner->GetDefaultMenuName(BoundObjects);
+	if(!NewMenuDescription.IsEmpty())
+	{
+		MenuDescription = NewMenuDescription;
+	}
 }
 
 //------------------------------------------------------------------------------

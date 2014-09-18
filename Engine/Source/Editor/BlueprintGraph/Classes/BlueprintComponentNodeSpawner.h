@@ -34,7 +34,7 @@ public:
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
-	virtual FText GetDefaultMenuName() const override;
+	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const override;
 	// End UBlueprintNodeSpawner interface

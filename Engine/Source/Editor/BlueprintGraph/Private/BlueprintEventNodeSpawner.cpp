@@ -154,7 +154,7 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultMenuName() const
+FText UBlueprintEventNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
 {
 	if (CachedMenuName.IsOutOfDate())
 	{

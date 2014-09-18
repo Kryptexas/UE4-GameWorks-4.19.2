@@ -5,15 +5,16 @@
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintNodeSpawner.h"
-#include "KismetEditorUtilities.h"	// for CanPasteNodes()
-#include "K2Node_VariableGet.h"
-#include "K2Node_VariableSet.h"
-#include "K2Node_CallFunction.h"
-#include "K2Node_ActorBoundEvent.h"
-#include "K2Node_ComponentBoundEvent.h"
-#include "EdGraphSchema_K2.h"		// for bUseLegacyActionMenus 
 #include "BlueprintEditorUtils.h"	// for DoesSupportComponents()
 #include "BlueprintPaletteFavorites.h"
+#include "EdGraphSchema_K2.h"		// for bUseLegacyActionMenus 
+#include "K2Node_ActorBoundEvent.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_MatineeController.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+#include "KismetEditorUtilities.h"	// for CanPasteNodes()
 #include "K2ActionMenuBuilder.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuUtils"
@@ -147,6 +148,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
 	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_ActorBoundEvent::StaticClass());
 	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_Literal::StaticClass());
+	LevelActorsFilter.PermittedNodeTypes.Add(UK2Node_MatineeController::StaticClass());
 	// only want bound actions for this menu section
 	LevelActorsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
 

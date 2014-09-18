@@ -32,7 +32,7 @@ public:
 	static UBlueprintDelegateNodeSpawner* Create(TSubclassOf<UK2Node_BaseMCDelegate> NodeClass, UMulticastDelegateProperty const* const Property, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
-	virtual FText GetDefaultMenuName() const override;
+	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
 	virtual FText GetDefaultMenuCategory() const override;
 	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const override;
 	// End UBlueprintNodeSpawner interface

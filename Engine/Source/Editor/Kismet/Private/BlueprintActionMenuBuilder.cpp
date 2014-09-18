@@ -50,7 +50,7 @@ public:
 	 * @param  Action			The node-spawner that the new menu item should wrap.
 	 * @return A newly allocated FBlueprintActionMenuItem (which wraps the supplied action).
 	 */
-	TSharedPtr<FEdGraphSchemaAction> MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action);
+	TSharedPtr<FEdGraphSchemaAction> MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
 
 	/**
 	 * Spawns a new FBlueprintDragDropMenuItem with the node-spawner. Constructs
@@ -67,7 +67,7 @@ public:
 	 * @param  BoundAction	
 	 * @return 
 	 */
-	TSharedPtr<FBlueprintBoundMenuItem> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action, IBlueprintNodeBinder::FBindingSet const& Bindings);
+	TSharedPtr<FBlueprintBoundMenuItem> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
 	
 private:
 	/**
@@ -79,7 +79,7 @@ private:
 	 * @param  Action		The action you want to suss name information from.
 	 * @return A name for the menu item wrapping this action.
 	 */
-	FText GetMenuNameForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action);
+	FText GetMenuNameForAction(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
 
 	/**
 	 * Attempts to pull a menu category from the supplied spawner. If one isn't 
@@ -152,13 +152,15 @@ FBlueprintActionMenuItemFactory::FBlueprintActionMenuItemFactory(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action)
+TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
 {
+	UBlueprintNodeSpawner const* Action = ActionInfo.NodeSpawner;
+
 	FLinearColor IconTint = FLinearColor::White;
 	FName IconBrushName = GetMenuIconForAction(EditorContext, Action, IconTint);
 
 	FBlueprintActionMenuItem * NewMenuItem = new FBlueprintActionMenuItem(Action, FEditorStyle::GetBrush(IconBrushName), IconTint, MenuGrouping);
-	NewMenuItem->MenuDescription    = GetMenuNameForAction(EditorContext, Action);
+	NewMenuItem->MenuDescription    = GetMenuNameForAction(EditorContext, ActionInfo);
 	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, Action).ToString();
 	NewMenuItem->Category           = GetCategoryForAction(EditorContext, Action).ToString();
 	NewMenuItem->Keywords           = GetSearchKeywordsForAction(EditorContext, Action);
@@ -178,15 +180,17 @@ TSharedPtr<FBlueprintDragDropMenuItem> FBlueprintActionMenuItemFactory::MakeDrag
 }
 
 //------------------------------------------------------------------------------
-TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action, IBlueprintNodeBinder::FBindingSet const& Bindings)
+TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
 {
+	IBlueprintNodeBinder::FBindingSet const& Bindings = ActionInfo.GetBindings();
+	UBlueprintNodeSpawner const* Action = ActionInfo.NodeSpawner;
 	FBlueprintBoundMenuItem* NewMenuItem = new FBlueprintBoundMenuItem(Action, MenuGrouping);
+	NewMenuItem->MenuDescription = GetMenuNameForAction(EditorContext, ActionInfo);
+
 	NewMenuItem->AddBindings(Bindings);
 
 	// FBlueprintBoundMenuItem takes care of its own menu category
 	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
-
-	NewMenuItem->MenuDescription = GetMenuNameForAction(EditorContext, Action);
 	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, Action).ToString();
 	NewMenuItem->Keywords = GetSearchKeywordsForAction(EditorContext, Action);
 
@@ -194,11 +198,12 @@ TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMe
 }
 
 //------------------------------------------------------------------------------
-FText FBlueprintActionMenuItemFactory::GetMenuNameForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action)
+FText FBlueprintActionMenuItemFactory::GetMenuNameForAction(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
 {
+	UBlueprintNodeSpawner const* Action = ActionInfo.NodeSpawner;
 	check(Action != nullptr);
 	// give the action the chance to save on performance (to keep from having to spawn a template node)
-	FText MenuName = Action->GetDefaultMenuName();
+	FText MenuName = Action->GetDefaultMenuName(ActionInfo.GetBindings());
 	
 	if (MenuName.IsEmpty())
 	{
@@ -486,7 +491,7 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDe
 				{
 					if (!MenuItem.IsValid())
 					{
-						MenuItem = ItemFactory.MakeBoundMenuItem(EditorContext, DatabaseAction, CompatibleBindingsToFilter);
+						MenuItem = ItemFactory.MakeBoundMenuItem(EditorContext, BoundActionInfo);
 					}
 					else
 					{
@@ -551,7 +556,7 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDe
 	
 	if (!MenuEntry.IsValid() && bPassedFilter)
 	{
-		MenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, DatabaseAction.NodeSpawner);
+		MenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, DatabaseAction);
 	}
 
 	return MenuEntry;

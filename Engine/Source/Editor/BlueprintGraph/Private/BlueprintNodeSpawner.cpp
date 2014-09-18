@@ -94,7 +94,8 @@ void UBlueprintNodeSpawner::Prime()
 	}
 
 	// in case any of these cache FText::Format() operations
-	GetDefaultMenuName();
+	FBindingSet EmptyContext;
+	GetDefaultMenuName(EmptyContext);
 	GetDefaultMenuCategory();
 	GetDefaultMenuTooltip();
 }
@@ -122,7 +123,7 @@ UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet c
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintNodeSpawner::GetDefaultMenuName() const
+FText UBlueprintNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
 {
 	// DO NOT make a template node and query it here (the separate ui building
 	// code can do that if it likes)... this is meant to be an overridable

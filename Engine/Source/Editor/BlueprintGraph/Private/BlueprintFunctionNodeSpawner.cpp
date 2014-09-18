@@ -225,7 +225,7 @@ UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultMenuName() const
+FText UBlueprintFunctionNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
 {
 	UFunction const* Function = GetFunction();
 	check(Function != nullptr);
@@ -249,7 +249,8 @@ FText UBlueprintFunctionNodeSpawner::GetDefaultMenuTooltip() const
 	FText Tooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
 	if (Tooltip.IsEmpty())
 	{
-		Tooltip = GetDefaultMenuName();
+		FBindingSet EmptyContext;
+		Tooltip = GetDefaultMenuName(EmptyContext);
 	}
 	return Tooltip;
 }
