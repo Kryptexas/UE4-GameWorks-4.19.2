@@ -73,6 +73,7 @@ private:
 
 	// Bone tree widget delegates
 	void OnBoneSelectionChanged(FName Name);
+	FReply OnClearButtonClicked();
 	FName GetSelectedBone() const;
 
 	FOnBoneMappingChanged OnBoneMappingChanged;
@@ -130,13 +131,36 @@ TSharedRef< SWidget > SBoneMappingListRow::GenerateWidgetForColumn( const FName&
 			.Padding( 0.0f, 1.0f )
 			.VAlign( VAlign_Center )
 			[
-				SNew(SBoneSelectionWidget)
-				.Skeleton( Item->Skeleton )
-				.Tooltip( FText::Format( LOCTEXT( "BoneSelectinWidget",  "Select Bone for node {0}" ), FText::FromString( Item->GetDisplayName() ) ))
-				.OnBoneSelectionChanged(this, &SBoneMappingListRow::OnBoneSelectionChanged)
-				.OnGetSelectedBone(this, &SBoneMappingListRow::GetSelectedBone)
+				SNew(SHorizontalBox)
+
+				+SHorizontalBox::Slot()
+				[
+					SNew(SBoneSelectionWidget)
+					.Skeleton(Item->Skeleton)
+					.Tooltip(FText::Format(LOCTEXT("BoneSelectinWidget", "Select Bone for node {0}"), FText::FromString(Item->GetDisplayName())))
+					.OnBoneSelectionChanged(this, &SBoneMappingListRow::OnBoneSelectionChanged)
+					.OnGetSelectedBone(this, &SBoneMappingListRow::GetSelectedBone)
+				]
+
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.OnClicked(FOnClicked::CreateSP(this, &SBoneMappingListRow::OnClearButtonClicked))
+					.Text(FText::FromString(TEXT("x")))
+				]
 			];
 	}
+}
+
+FReply SBoneMappingListRow::OnClearButtonClicked()
+{
+	if(OnBoneMappingChanged.IsBound())
+	{
+		OnBoneMappingChanged.Execute(Item->GetNodeName(), NAME_None);
+	}
+
+	return FReply::Handled();
 }
 
 void SBoneMappingListRow::OnBoneSelectionChanged(FName Name)
@@ -145,9 +169,6 @@ void SBoneMappingListRow::OnBoneSelectionChanged(FName Name)
 	{
 		OnBoneMappingChanged.Execute(Item->GetNodeName(), Name);
 	}
-
-	// @todo delete?
-//	Item->BoneName = Name;
 }
 
 FName SBoneMappingListRow::GetSelectedBone() const

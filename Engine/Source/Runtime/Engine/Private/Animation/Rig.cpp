@@ -123,12 +123,12 @@ bool URig::AddRigConstraint(FName NodeName, EControlConstraint::Type ConstraintT
 		ParentSpace = WorldNodeName;
 	}
 
-	int32 Index = FindRigControlByNodeName(NodeName);
+	int32 Index = FindTransformBaseByNodeName(NodeName);
 
 	if (Index == INDEX_NONE)
 	{
-		FRigControl NewRigControl;
-		NewRigControl.Node = NodeName;
+		FTransformBase NewTransformBase;
+		NewTransformBase.Node = NodeName;
 
 		if (ConstraintType < EControlConstraint::Max)
 		{
@@ -137,19 +137,19 @@ bool URig::AddRigConstraint(FName NodeName, EControlConstraint::Type ConstraintT
 			NewTransformConstraint.ParentSpace = ParentSpace;
 			NewTransformConstraint.Weight = Weight;
 
-			NewRigControl.Constraints[ConstraintType].TransformConstraints.Add(NewTransformConstraint);
+			NewTransformBase.Constraints[ConstraintType].TransformConstraints.Add(NewTransformConstraint);
 
-			RigControls.Add(NewRigControl);
+			TransformBases.Add(NewTransformBase);
 		}
 	}
 	else
 	{
 		// it exists already, need to make sure we don't have different constraint types
-		FRigControl & RigControl = RigControls[Index];
+		FTransformBase & TransformBase = TransformBases[Index];
 
 		if (ConstraintType < EControlConstraint::Max)
 		{
-			FRigControlConstraint & ControlConstraint = RigControl.Constraints[ConstraintType];
+			FTransformBaseConstraint & ControlConstraint = TransformBase.Constraints[ConstraintType];
 
 			FRigTransformConstraint NewTransformConstraint;
 			NewTransformConstraint.TranformType = TransformType;
@@ -169,28 +169,28 @@ int32 URig::GetNodeNum() const
 	return Nodes.Num();
 }
 
-int32 URig::GetRigControlNum() const
+int32 URig::GetTransformBaseNum() const
 {
-	return RigControls.Num();
+	return TransformBases.Num();
 }
 
-const FRigControl * URig::GetRigControl(int32 ControlIndex) const
+const FTransformBase * URig::GetTransformBase(int32 ControlIndex) const
 {
-	if (RigControls.IsValidIndex(ControlIndex))
+	if (TransformBases.IsValidIndex(ControlIndex))
 	{
-		return &RigControls[ControlIndex];
+		return &TransformBases[ControlIndex];
 	}
 
 	return NULL;
 }
 
-const FRigControl * URig::GetRigControlByNodeName(FName NodeName) const
+const FTransformBase * URig::GetTransformBaseByNodeName(FName NodeName) const
 {
-	int32 ControlIndex = FindRigControlByNodeName(NodeName);
+	int32 ControlIndex = FindTransformBaseByNodeName(NodeName);
 
 	if (ControlIndex != INDEX_NONE)
 	{
-		return &RigControls[ControlIndex];
+		return &TransformBases[ControlIndex];
 	}
 
 	return NULL;
@@ -200,18 +200,18 @@ int32 URig::FindTransformParentNode(int32 NodeIndex, bool bTranslate, int32 Inde
 {
 	if (Nodes.IsValidIndex(NodeIndex))
 	{
-		const FRigControl * RigControl = GetRigControlByNodeName(Nodes[NodeIndex].Name);
+		const FTransformBase * TransformBase = GetTransformBaseByNodeName(Nodes[NodeIndex].Name);
 
-		if(RigControl)
+		if(TransformBase)
 		{
 			FName ParentNodeName = NAME_None;
 			if(bTranslate)
 			{
-				ParentNodeName = RigControl->Constraints[EControlConstraint::Type::Translation].TransformConstraints[Index].ParentSpace;
+				ParentNodeName = TransformBase->Constraints[EControlConstraint::Type::Translation].TransformConstraints[Index].ParentSpace;
 			}
 			else
 			{
-				ParentNodeName = RigControl->Constraints[EControlConstraint::Type::Orientation].TransformConstraints[Index].ParentSpace;
+				ParentNodeName = TransformBase->Constraints[EControlConstraint::Type::Orientation].TransformConstraints[Index].ParentSpace;
 			}
 
 			if(ParentNodeName != NAME_None)
@@ -224,13 +224,13 @@ int32 URig::FindTransformParentNode(int32 NodeIndex, bool bTranslate, int32 Inde
 	return INDEX_NONE;
 }
 
-int32 URig::FindRigControlByNodeName(FName NodeName) const
+int32 URig::FindTransformBaseByNodeName(FName NodeName) const
 {
 	int32 Index=0;
 
-	for (auto RigControl : RigControls)
+	for (auto TransformBase : TransformBases)
 	{
-		if (RigControl.Node == NodeName)
+		if (TransformBase.Node == NodeName)
 		{
 			return Index;
 		}
@@ -297,13 +297,13 @@ void URig::CreateFromSkeleton(const USkeleton * Skeleton, const TMap<int32, int3
 /*
 void URig::CalculateComponentSpace(int32 NodeIndex, const FTransform & LocalTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutComponentSpaceTransform) const
 {
-	int32 ConstraintIndex = FindRigControlByNodeName(Nodes[NodeIndex].Name);
+	int32 ConstraintIndex = FindTransformBaseByNodeName(Nodes[NodeIndex].Name);
 
 	if (ConstraintIndex != INDEX_NONE)
 	{
 		// now find transform constraint data
 		{
-			const FRigControlConstraint & Constraints = RigControls[ConstraintIndex].Constraints[EControlConstraint::Type::Orientation];
+			const FTransformBaseConstraint & Constraints = TransformBases[ConstraintIndex].Constraints[EControlConstraint::Type::Orientation];
 
 			// for now we only care for the first one
 			const FName ParentName = Constraints.TransformConstraints[0].ParentSpace;
@@ -327,7 +327,7 @@ void URig::CalculateComponentSpace(int32 NodeIndex, const FTransform & LocalTran
 
 		// same thing for translation
 		{
-			const FRigControlConstraint & Constraints = RigControls[ConstraintIndex].Constraints[EControlConstraint::Type::Translation];
+			const FTransformBaseConstraint & Constraints = TransformBases[ConstraintIndex].Constraints[EControlConstraint::Type::Translation];
 
 			// for now we only care for the first one
 			const FName ParentName = Constraints.TransformConstraints[0].ParentSpace;
@@ -355,13 +355,13 @@ void URig::CalculateComponentSpace(int32 NodeIndex, const FTransform & LocalTran
 
 void URig::CalculateLocalSpace(int32 NodeIndex, const FTransform & ComponentTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutLocalSpaceTransform) const
 {
-	int32 ConstraintIndex = FindRigControlByNodeName(Nodes[NodeIndex].Name);
+	int32 ConstraintIndex = FindTransformBaseByNodeName(Nodes[NodeIndex].Name);
 
 	if(ConstraintIndex != INDEX_NONE)
 	{
 		// now find transform constraint data
 		{
-			const FRigControlConstraint & Constraints = RigControls[ConstraintIndex].Constraints[EControlConstraint::Type::Orientation];
+			const FTransformBaseConstraint & Constraints = TransformBases[ConstraintIndex].Constraints[EControlConstraint::Type::Orientation];
 
 			// for now we only care for the first one
 			const FName ParentName = Constraints.TransformConstraints[0].ParentSpace;
@@ -385,7 +385,7 @@ void URig::CalculateLocalSpace(int32 NodeIndex, const FTransform & ComponentTran
 
 		// same thing for translation
 		{
-			const FRigControlConstraint & Constraints = RigControls[ConstraintIndex].Constraints[EControlConstraint::Type::Translation];
+			const FTransformBaseConstraint & Constraints = TransformBases[ConstraintIndex].Constraints[EControlConstraint::Type::Translation];
 
 			// for now we only care for the first one
 			const FName ParentName = Constraints.TransformConstraints[0].ParentSpace;
@@ -414,7 +414,7 @@ void URig::CalculateLocalSpace(int32 NodeIndex, const FTransform & ComponentTran
 
 void URig::SetAllConstraintsToParents()
 {
-	for(auto & Control : RigControls)
+	for(auto & Control : TransformBases)
 	{
 		FName ParentNode = GetParentNode(Control.Node);
 
@@ -424,7 +424,7 @@ void URig::SetAllConstraintsToParents()
 }
 void URig::SetAllConstraintsToWorld()
 {
-	for (auto & Control : RigControls)
+	for (auto & Control : TransformBases)
 	{
 		Control.Constraints[EControlConstraint::Type::Translation].TransformConstraints[0].ParentSpace = WorldNodeName;
 		Control.Constraints[EControlConstraint::Type::Orientation].TransformConstraints[0].ParentSpace = WorldNodeName;

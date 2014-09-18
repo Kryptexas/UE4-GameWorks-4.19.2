@@ -35,6 +35,7 @@ public:
 
 private:
 	FReply OnViewRetargetBasePose();
+	FReply OnResetRetargetBasePose();
 	FReply OnSaveRetargetBasePose();
 
 	/** Pointer back to the Persona that owns us */

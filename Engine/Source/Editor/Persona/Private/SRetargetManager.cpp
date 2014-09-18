@@ -169,10 +169,23 @@ void SRetargetManager::Construct(const FArguments& InArgs)
 			.HAlign(HAlign_Center)
 			[
 				SNew(SButton)
+				.OnClicked(FOnClicked::CreateSP(this, &SRetargetManager::OnResetRetargetBasePose))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Text(LOCTEXT("ResetRetargetBasePose_Label", "Reset Pose"))
+				.ToolTipText(LOCTEXT("ResetRetargetBasePose_Tooltip", "Restore Retarget Base Pose to Mesh Refeference Pose"))
+			]
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Center)
+			[
+				SNew(SButton)
 				.OnClicked(FOnClicked::CreateSP(this, &SRetargetManager::OnViewRetargetBasePose))
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
 				.Text(this, &SRetargetManager::GetToggleRetargetBasePose)
+				.ToolTipText(LOCTEXT("ViewRetargetBasePose_Tooltip", "Toggle to View/Edit Retarget Base Pose"))
 			]
 
 			+SHorizontalBox::Slot()
@@ -183,7 +196,8 @@ void SRetargetManager::Construct(const FArguments& InArgs)
 				.OnClicked(FOnClicked::CreateSP(this, &SRetargetManager::OnSaveRetargetBasePose))
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
-				.Text(LOCTEXT("SaveRetargetBasePose_Label", "Save Current Pose to Retarget Base Pose"))
+				.Text(LOCTEXT("SaveRetargetBasePose_Label", "Save Pose"))
+				.ToolTipText(LOCTEXT("SaveRetargetBasePose_Tooltip", "Save Current Pose to Retarget Base Pose"))
 			]
 		]
 	];
@@ -261,8 +275,38 @@ FReply SRetargetManager::OnSaveRetargetBasePose()
 
 			// Clear PreviewMeshComp bone modified, they're baked now
 			PreviewMeshComp->PreviewInstance->ResetModifiedBone();
+			// turn off the retarget base pose if you're looking at it
+			PreviewMeshComp->PreviewInstance->bForceRetargetBasePose = false;
 		}
 	}
+	return FReply::Handled();
+}
+
+FReply SRetargetManager::OnResetRetargetBasePose()
+{
+	const FText Message = LOCTEXT("ResetRetargetBasePose_Confirm", "This will reset current Retarget Base Pose to the Reference Pose of current preview mesh. Would you like to continue?");
+	EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::OkCancel, Message);
+	if(Response == EAppReturnType::Ok)
+	{
+		UDebugSkelMeshComponent * PreviewMeshComp = PersonaPtr.Pin()->GetPreviewMeshComponent();
+		if(PreviewMeshComp && PreviewMeshComp->SkeletalMesh)
+		{
+			USkeletalMesh * PreviewMesh = PreviewMeshComp->SkeletalMesh;
+
+			check(Skeleton == PreviewMesh->Skeleton);
+
+			if(PreviewMesh)
+			{
+				const FScopedTransaction Transaction(LOCTEXT("ResetRetargetBasePose_Action", "Reset Retarget Base Pose"));
+				PreviewMesh->Modify();
+				// reset to original ref pose
+				PreviewMesh->RetargetBasePose = PreviewMesh->RefSkeleton.GetRefBonePose();
+				// turn off the retarget base pose if you're looking at it
+				PreviewMeshComp->PreviewInstance->bForceRetargetBasePose = true;
+			}
+		}
+	}
+
 	return FReply::Handled();
 }
 
@@ -277,15 +321,15 @@ FText SRetargetManager::GetToggleRetargetBasePose() const
 	{
 		if (PreviewMeshComp->PreviewInstance->bForceRetargetBasePose)
 		{
-			return LOCTEXT("HideRetargetBasePose_Label", "Hide Current Retarget Base Pose");
+			return LOCTEXT("HideRetargetBasePose_Label", "Hide Pose");
 		}
 		else
 		{
-			return LOCTEXT("ViewRetargetBasePose_Label", "View/Edit Current Retarget Base Pose");
+			return LOCTEXT("ViewRetargetBasePose_Label", "View Pose");
 		}
 	}
 
-	return LOCTEXT("InvalidRetargetBasePose_Label", "No Mesh for Retarget Base Pose");
+	return LOCTEXT("InvalidRetargetBasePose_Label", "No Mesh for Base Pose");
 }
 #undef LOCTEXT_NAMESPACE
 

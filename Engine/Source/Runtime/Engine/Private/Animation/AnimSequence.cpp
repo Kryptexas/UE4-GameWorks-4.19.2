@@ -1578,10 +1578,12 @@ void FillUpTransformBasedOnRig(const USkeleton * Skeleton, TArray<FTransform> & 
 
 	const URig * Rig = Skeleton->GetRig();
 
-	if (Rig && Rig->GetNodeNum() > 0)
-	{
-		int32 NodeNum = Rig->GetNodeNum();
+	// this one has to collect all Nodes in Rig data
+	// since we're comparing two of them together. 
+	int32 NodeNum = Rig->GetNodeNum();
 
+	if (Rig && NodeNum > 0)
+	{
 		NodeSpaceBases.Empty(NodeNum);
 		NodeSpaceBases.AddUninitialized(NodeNum);
 
@@ -1593,30 +1595,30 @@ void FillUpTransformBasedOnRig(const USkeleton * Skeleton, TArray<FTransform> & 
 
 		for ( int32 Index = 0; Index < NodeNum; ++Index )
 		{
-			const FName & NodeName = Rig->GetNodeName(Index);
+			const FName NodeName = Rig->GetNodeName(Index);
 			const FName & BoneName = Skeleton->GetRigBoneMapping(NodeName);
 			const int32 & BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(BoneName);
 
 			if (BoneIndex == INDEX_NONE)
 			{
-				// initialize with SpaceBases - assuming World Based
-				NodeSpaceBases[Index] = FTransform::Identity;
-				Rotations[Index] = FTransform::Identity;
-				Translations[Index] = FTransform::Identity;
+				// add identity
+				NodeSpaceBases[Index].SetIdentity();
+				Rotations[Index].SetIdentity();
+				Translations[Index].SetIdentity();
 			}
-			else 
+			else
 			{
 				// initialize with SpaceBases - assuming World Based
 				NodeSpaceBases[Index] = SpaceBases[BoneIndex];
 				Rotations[Index] = SpaceBases[BoneIndex];
 				Translations[Index] = SpaceBases[BoneIndex];
 
-				const FRigControl * RigControl = Rig->GetRigControlByNodeName(NodeName);
+				const FTransformBase * TransformBase = Rig->GetTransformBaseByNodeName(NodeName);
 
-				if (RigControl != NULL)
+				if (TransformBase != NULL)
 				{
 					// orientation constraint			
-					const auto & RotConstraint = RigControl->Constraints[EControlConstraint::Type::Orientation];
+					const auto & RotConstraint = TransformBase->Constraints[EControlConstraint::Type::Orientation];
 
 					if (RotConstraint.TransformConstraints.Num() > 0)
 					{
@@ -1630,7 +1632,7 @@ void FillUpTransformBasedOnRig(const USkeleton * Skeleton, TArray<FTransform> & 
 					}
 
 					// translation constraint
-					const auto & TransConstraint = RigControl->Constraints[EControlConstraint::Type::Translation];
+					const auto & TransConstraint = TransformBase->Constraints[EControlConstraint::Type::Translation];
 
 					if (TransConstraint.TransformConstraints.Num() > 0)
 					{
@@ -1648,6 +1650,22 @@ void FillUpTransformBasedOnRig(const USkeleton * Skeleton, TArray<FTransform> & 
 		}
 	}
 }
+
+int32 FindValidTransformParentTrack(const URig * Rig, int32 NodeIndex, bool bTranslate, const TArray<FName>& ValidNodeNames)
+{
+	int32 ParentIndex = Rig->FindTransformParentNode(NodeIndex, bTranslate);
+
+	// verify if it exists in ValidNodeNames
+	if (ParentIndex != INDEX_NONE)
+	{
+		FName NodeName = Rig->GetNodeName(ParentIndex);
+
+		return ValidNodeNames.Find(NodeName);
+	}
+
+	return INDEX_NONE;
+}
+
 
 void UAnimSequence::RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bConvertSpaces )
 {
@@ -1685,6 +1703,7 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bCon
 				//			P2 - parent transform in component space for new skeleton
 				//			R2 - local space of the current bone for new skeleton
 				// what we're looking for is theta, so that we can apply that to animated transform
+				// this has to have all of nodes since comparing two skeletons, that might have different configuration
 				int32 NumNodes = Rig->GetNodeNum();
 				// saves the theta data per node
 				RelativeToNewSpaceBases.AddUninitialized(NumNodes);
@@ -1697,10 +1716,6 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bCon
 				{
 					// theta (RelativeToNewTransform) = (P1*R1)^(-1) * P2*R2 where theta => P1*R1*theta = P2*R2
 					RelativeToNewSpaceBases[NodeIndex] = NewSpaceBases[NodeIndex].GetRelativeTransform(OldSpaceBases[NodeIndex]); 
-// 					UE_LOG(LogAnimation, Warning, TEXT("NodeName : %s"), *Rig->GetNodeName(NodeIndex).ToString());
-// 					UE_LOG(LogAnimation, Warning, TEXT("Old Translation : %s"), *OldSpaceBases[NodeIndex].ToString());
-// 					UE_LOG(LogAnimation, Warning, TEXT("New Translation : %s"), *NewSpaceBases[NodeIndex].ToString());
-// 					UE_LOG(LogAnimation, Warning, TEXT("Diff Translation : %s"), *RelativeToNewSpaceBases[NodeIndex].ToString());
 
 					// also savees the translation difference between old to new
 					FVector OldTranslation = OldTranslations[NodeIndex].GetTranslation();
@@ -1717,103 +1732,113 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bCon
 			// now convert animation data to rig data
 			ConvertAnimationDataToRiggingData(RawRiggingAnimationData);
 
+			// here we have to watch out the index
+			// The RawRiggingAnimationData will contain only the nodes that are mapped to source skeleton
+			// and here we convert everything that is in RawRiggingAnimationData which means based on source data
+			// when mapped back to new skeleton, it will discard results that are not mapped to target skeleton
+			
+			TArray<FName> SrcValidNodeNames;
+			int32 SrcNumTracks = OldSkeleton->GetMappedValidNodes(SrcValidNodeNames);
+
 			// now convert to space bases animation 
-			int32 NumNodes = Rig->GetNodeNum();
 			TArray< TArray<FTransform> > ComponentSpaceAnimations, ConvertedLocalSpaceAnimations, ConvertedSpaceAnimations;
-			ComponentSpaceAnimations.AddZeroed(NumNodes);
-			ConvertedSpaceAnimations.AddZeroed(NumNodes);
-			ConvertedLocalSpaceAnimations.AddZeroed(NumNodes);
+			ComponentSpaceAnimations.AddZeroed(SrcNumTracks);
+			ConvertedSpaceAnimations.AddZeroed(SrcNumTracks);
+			ConvertedLocalSpaceAnimations.AddZeroed(SrcNumTracks);
 
 			int32 NumKeys = NumFrames;
 			float Interval = (NumKeys)? SequenceLength/NumKeys : 0.f;
 
 			// allocate arrays
-			for(int32 NodeIndex=0; NodeIndex<NumNodes; ++NodeIndex)
+			for(int32 SrcTrackIndex=0; SrcTrackIndex<SrcNumTracks; ++SrcTrackIndex)
 			{
-				ComponentSpaceAnimations[NodeIndex].AddUninitialized(NumKeys);
-				ConvertedLocalSpaceAnimations[NodeIndex].AddUninitialized(NumKeys);
-				ConvertedSpaceAnimations[NodeIndex].AddUninitialized(NumKeys);
+				ComponentSpaceAnimations[SrcTrackIndex].AddUninitialized(NumKeys);
+				ConvertedLocalSpaceAnimations[SrcTrackIndex].AddUninitialized(NumKeys);
+				ConvertedSpaceAnimations[SrcTrackIndex].AddUninitialized(NumKeys);
 			}
 
-
-			for (int32 NodeIndex=0; NodeIndex<NumNodes; ++NodeIndex)		
+			for (int32 SrcTrackIndex=0; SrcTrackIndex<SrcNumTracks; ++SrcTrackIndex)		
 			{
-				auto & RawAnimation = RawRiggingAnimationData[NodeIndex];
+				int32 NodeIndex = Rig->FindNode(SrcValidNodeNames[SrcTrackIndex]);
+				check (NodeIndex != INDEX_NONE);
+				auto & RawAnimation = RawRiggingAnimationData[SrcTrackIndex];
 
 				// find rotation parent node
-				int32 RotParentNodeIndex = Rig->FindTransformParentNode(NodeIndex, false);
-				int32 TransParentNodeIndex = Rig->FindTransformParentNode(NodeIndex, true);
+				int32 RotParentTrackIndex = FindValidTransformParentTrack(Rig, NodeIndex, false, SrcValidNodeNames);
+				int32 TransParentTrackIndex = FindValidTransformParentTrack(Rig, NodeIndex, true, SrcValidNodeNames);
 				// fill up keys - calculate PK1 * K1
 				for(int32 Key=0; Key<NumKeys; ++Key)
 				{
 					FTransform AnimatedLocalKey;
-					ExtractBoneTransform(RawRiggingAnimationData, AnimatedLocalKey, NodeIndex, Interval*Key);
+					ExtractBoneTransform(RawRiggingAnimationData, AnimatedLocalKey, SrcTrackIndex, Interval*Key);
 
 					AnimatedLocalKey.ScaleTranslation(OldToNewTranslationRatio[NodeIndex]);
 
-					if(RotParentNodeIndex != INDEX_NONE)
+					if(RotParentTrackIndex != INDEX_NONE)
 					{
-						FQuat ComponentSpaceRotation = ComponentSpaceAnimations[RotParentNodeIndex][Key].GetRotation() * AnimatedLocalKey.GetRotation();
-						ComponentSpaceAnimations[NodeIndex][Key].SetRotation(ComponentSpaceRotation);
+						FQuat ComponentSpaceRotation = ComponentSpaceAnimations[RotParentTrackIndex][Key].GetRotation() * AnimatedLocalKey.GetRotation();
+						ComponentSpaceAnimations[SrcTrackIndex][Key].SetRotation(ComponentSpaceRotation);
 					}
 					else
 					{
-						ComponentSpaceAnimations[NodeIndex][Key].SetRotation(AnimatedLocalKey.GetRotation());
+						ComponentSpaceAnimations[SrcTrackIndex][Key].SetRotation(AnimatedLocalKey.GetRotation());
 					}
 
-					if (TransParentNodeIndex != INDEX_NONE)
+					if (TransParentTrackIndex != INDEX_NONE)
 					{
-						FVector ComponentSpaceTranslation = ComponentSpaceAnimations[TransParentNodeIndex][Key].TransformPosition(AnimatedLocalKey.GetTranslation());
-						ComponentSpaceAnimations[NodeIndex][Key].SetTranslation(ComponentSpaceTranslation);
-						ComponentSpaceAnimations[NodeIndex][Key].SetScale3D(AnimatedLocalKey.GetScale3D());
+						FVector ComponentSpaceTranslation = ComponentSpaceAnimations[TransParentTrackIndex][Key].TransformPosition(AnimatedLocalKey.GetTranslation());
+						ComponentSpaceAnimations[SrcTrackIndex][Key].SetTranslation(ComponentSpaceTranslation);
+						ComponentSpaceAnimations[SrcTrackIndex][Key].SetScale3D(AnimatedLocalKey.GetScale3D());
 					}
 					else
 					{
-						ComponentSpaceAnimations[NodeIndex][Key].SetTranslation(AnimatedLocalKey.GetTranslation());
-						ComponentSpaceAnimations[NodeIndex][Key].SetScale3D(AnimatedLocalKey.GetScale3D());
+						ComponentSpaceAnimations[SrcTrackIndex][Key].SetTranslation(AnimatedLocalKey.GetTranslation());
+						ComponentSpaceAnimations[SrcTrackIndex][Key].SetScale3D(AnimatedLocalKey.GetScale3D());
 					}
 				}
 			}
 
 			// now animation is converted to component space
 			TArray<struct FRawAnimSequenceTrack> NewRawAnimationData = RawRiggingAnimationData;
-			for (int32 NodeIndex=0; NodeIndex<NumNodes; ++NodeIndex)
+			for (int32 SrcTrackIndex=0; SrcTrackIndex<SrcNumTracks; ++SrcTrackIndex)
 			{
+				int32 NodeIndex = Rig->FindNode(SrcValidNodeNames[SrcTrackIndex]);
 				// find rotation parent node
-				int32 RotParentNodeIndex = Rig->FindTransformParentNode(NodeIndex, false);
-				int32 TransParentNodeIndex = Rig->FindTransformParentNode(NodeIndex, true);
+				int32 RotParentTrackIndex = FindValidTransformParentTrack(Rig, NodeIndex, false, SrcValidNodeNames);
+				int32 TransParentTrackIndex = FindValidTransformParentTrack(Rig, NodeIndex, true, SrcValidNodeNames);
+
+				// clear translation;
+				RelativeToNewSpaceBases[NodeIndex].SetTranslation(FVector::ZeroVector);
 
 				for(int32 Key=0; Key<NumKeys; ++Key)
 				{
 					// now convert to the new space and save to local spaces
-					// clear translation;
-					RelativeToNewSpaceBases[NodeIndex].SetTranslation(FVector::ZeroVector);
-					ConvertedSpaceAnimations[NodeIndex][Key] = RelativeToNewSpaceBases[NodeIndex] * ComponentSpaceAnimations[NodeIndex][Key];
+					ConvertedSpaceAnimations[SrcTrackIndex][Key] = RelativeToNewSpaceBases[NodeIndex] * ComponentSpaceAnimations[SrcTrackIndex][Key];
 
-					if(RotParentNodeIndex != INDEX_NONE)
+					if(RotParentTrackIndex != INDEX_NONE)
 					{
-						FQuat LocalRotation = ConvertedSpaceAnimations[RotParentNodeIndex][Key].GetRotation().Inverse() * ConvertedSpaceAnimations[NodeIndex][Key].GetRotation();
-						ConvertedLocalSpaceAnimations[NodeIndex][Key].SetRotation(LocalRotation);
+						FQuat LocalRotation = ConvertedSpaceAnimations[RotParentTrackIndex][Key].GetRotation().Inverse() * ConvertedSpaceAnimations[SrcTrackIndex][Key].GetRotation();
+						ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].SetRotation(LocalRotation);
 					}
 					else
 					{
-						ConvertedLocalSpaceAnimations[NodeIndex][Key].SetRotation(ConvertedSpaceAnimations[NodeIndex][Key].GetRotation());
+						ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].SetRotation(ConvertedSpaceAnimations[SrcTrackIndex][Key].GetRotation());
 					}
 
-					if(TransParentNodeIndex != INDEX_NONE)
+					if(TransParentTrackIndex != INDEX_NONE)
 					{
-						FVector LocalTranslation = ConvertedSpaceAnimations[NodeIndex][Key].GetRelativeTransform(ConvertedSpaceAnimations[TransParentNodeIndex][Key]).GetTranslation();
-						ConvertedLocalSpaceAnimations[NodeIndex][Key].SetTranslation(LocalTranslation);
-						ConvertedLocalSpaceAnimations[NodeIndex][Key].SetScale3D(ConvertedSpaceAnimations[NodeIndex][Key].GetScale3D());
+						FVector LocalTranslation = ConvertedSpaceAnimations[SrcTrackIndex][Key].GetRelativeTransform(ConvertedSpaceAnimations[TransParentTrackIndex][Key]).GetTranslation();
+						ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].SetTranslation(LocalTranslation);
+						ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].SetScale3D(ConvertedSpaceAnimations[SrcTrackIndex][Key].GetScale3D());
 					}
 					else
 					{
-						ConvertedLocalSpaceAnimations[NodeIndex][Key].SetTranslation(ConvertedSpaceAnimations[NodeIndex][Key].GetTranslation());
-						ConvertedLocalSpaceAnimations[NodeIndex][Key].SetScale3D(ConvertedSpaceAnimations[NodeIndex][Key].GetScale3D());
+						ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].SetTranslation(ConvertedSpaceAnimations[SrcTrackIndex][Key].GetTranslation());
+						ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].SetScale3D(ConvertedSpaceAnimations[SrcTrackIndex][Key].GetScale3D());
 					}
 				}
 
-				auto & RawAnimation = NewRawAnimationData[NodeIndex];
+				auto & RawAnimation = NewRawAnimationData[SrcTrackIndex];
 				RawAnimation.PosKeys.Empty(NumKeys);
 				RawAnimation.PosKeys.AddUninitialized(NumKeys);
 				RawAnimation.RotKeys.Empty(NumKeys);
@@ -1823,13 +1848,48 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bCon
 
 				for(int32 Key=0; Key<NumKeys; ++Key)
 				{
-					RawAnimation.PosKeys[Key] = ConvertedLocalSpaceAnimations[NodeIndex][Key].GetLocation();
-					RawAnimation.RotKeys[Key] = ConvertedLocalSpaceAnimations[NodeIndex][Key].GetRotation();
-					RawAnimation.ScaleKeys[Key] = ConvertedLocalSpaceAnimations[NodeIndex][Key].GetScale3D();
+					RawAnimation.PosKeys[Key] = ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].GetLocation();
+					RawAnimation.RotKeys[Key] = ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].GetRotation();
+					RawAnimation.ScaleKeys[Key] = ConvertedLocalSpaceAnimations[SrcTrackIndex][Key].GetScale3D();
+				}
+			}
+
+			// now add missing tracsk, before converting back to rigging data, we need whole nodes to be mapped
+			// @Todo fix this to do this earlier, just like to avoid confusion of so many index
+			if (SrcNumTracks  != Rig->GetNodeNum())
+			{
+				// if not all entries are filled up
+				// insert nodes
+				int32 NumNodes = Rig->GetNodeNum();
+				for (int32 NodeIndex=0; NodeIndex < NumNodes; ++NodeIndex)
+				{
+					FName NodeName = Rig->GetNodeName(NodeIndex);
+					// if not found
+					if (SrcValidNodeNames.Contains(NodeName) == false)
+					{
+						NewRawAnimationData.InsertZeroed(NodeIndex);
+
+						auto & RawAnimation = NewRawAnimationData[NodeIndex];
+						RawAnimation.PosKeys.Empty(NumKeys);
+						RawAnimation.PosKeys.AddUninitialized(NumKeys);
+						RawAnimation.RotKeys.Empty(NumKeys);
+						RawAnimation.RotKeys.AddUninitialized(NumKeys);
+						RawAnimation.ScaleKeys.Empty(NumKeys);
+						RawAnimation.ScaleKeys.AddUninitialized(NumKeys);
+
+						for(int32 Key=0; Key<NumKeys; ++Key)
+						{
+							RawAnimation.PosKeys[Key] = FVector::ZeroVector;
+							RawAnimation.RotKeys[Key] = FQuat::Identity;
+							RawAnimation.ScaleKeys[Key] = FVector(1.f);
+						}
+					}
 				}
 			}
 
 			RawRiggingAnimationData = NewRawAnimationData;
+			// here RawRiggingAnimationData always should contain # of nodes of entries
+			check (RawRiggingAnimationData.Num() == Rig->GetNodeNum());
 
 			// set new skeleton
 			SetSkeleton(NewSkeleton);
@@ -2306,11 +2366,11 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & A
 		// @Todo sort rig control by parent -> child, so that we can calculate parent first before child
 		// but that depends on each skeleton
 
-		const TArray<FRigControl> & RigControls = Rig->GetRigControls();
+		const TArray<FTransformBase> & TransformBases = Rig->GetTransformBases();
 		// first put all the component space
-		for (const auto & RigControl : RigControls)
+		for (const auto & TransformBase : TransformBases)
 		{
-			const FName & NodeName = RigControl.Node;
+			const FName & NodeName = TransformBase.Node;
 			const int32 & NodeIndex = Rig->FindNode(NodeName);
 			const FName & BoneName = Skeleton->GetRigBoneMapping(NodeName);
 			const int32 & BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
@@ -2318,7 +2378,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & A
 			if (BoneIndex != INDEX_NONE)
 			{
 				// now calculate the component space
-				const TArray<FRigTransformConstraint>	& RotTransformConstraints = RigControl.Constraints[EControlConstraint::Type::Orientation].TransformConstraints;
+				const TArray<FRigTransformConstraint>	& RotTransformConstraints = TransformBase.Constraints[EControlConstraint::Type::Orientation].TransformConstraints;
 
 				FQuat ComponentRotation;
 				FTransform ComponentTranslation;
@@ -2354,7 +2414,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & A
 					bCompleteComponentSpaces[BoneIndex] = true;
 				}
 
-				const TArray<FRigTransformConstraint>	& PosTransformConstraints = RigControl.Constraints[EControlConstraint::Type::Translation].TransformConstraints;
+				const TArray<FRigTransformConstraint>	& PosTransformConstraints = TransformBase.Constraints[EControlConstraint::Type::Translation].TransformConstraints;
 
 				//if (PosTransformConstraints.Num() > 0)
 				{
@@ -2471,7 +2531,8 @@ bool UAnimSequence::ConvertAnimationDataToRiggingData(TArray<struct FRawAnimSequ
 	if (Skeleton && Skeleton->GetRig())
 	{
 		const URig * Rig = Skeleton->GetRig();
-		const int32 & NumNodes = Rig->GetNodeNum();
+		TArray<FName> ValidNodeNames;
+		int32 NumNodes = Skeleton->GetMappedValidNodes(ValidNodeNames);
 		TArray< TArray<FTransform> > AnimationDataInComponentSpace;
 		int32 NumBones = GetSpaceBasedAnimationData(AnimationDataInComponentSpace, NULL);
 
@@ -2484,24 +2545,24 @@ bool UAnimSequence::ConvertAnimationDataToRiggingData(TArray<struct FRawAnimSequ
 			for (int32 NodeIndex = 0; NodeIndex < NumNodes; ++NodeIndex)
 			{
 				struct FRawAnimSequenceTrack & Track = RawRiggingAnimationData[NodeIndex];
-				const FName & NodeName = Rig->GetNodeName(NodeIndex);
+				const FName & NodeName = ValidNodeNames[NodeIndex];
 				const FName & BoneName = Skeleton->GetRigBoneMapping(NodeName);
 				const int32 & BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(BoneName);
 
-				Track.PosKeys.Empty(NumFrames);
-				Track.RotKeys.Empty(NumFrames);
-				Track.ScaleKeys.Empty(NumFrames);
-				Track.PosKeys.AddUninitialized(NumFrames);
-				Track.RotKeys.AddUninitialized(NumFrames);
-				Track.ScaleKeys.AddUninitialized(NumFrames);
-
-				if (BoneIndex != INDEX_NONE)
+				if (ensure(BoneIndex != INDEX_NONE))
 				{
-					int32 RigConstraintIndex = Rig->FindRigControlByNodeName(NodeName);
+					Track.PosKeys.Empty(NumFrames);
+					Track.RotKeys.Empty(NumFrames);
+					Track.ScaleKeys.Empty(NumFrames);
+					Track.PosKeys.AddUninitialized(NumFrames);
+					Track.RotKeys.AddUninitialized(NumFrames);
+					Track.ScaleKeys.AddUninitialized(NumFrames);
+
+					int32 RigConstraintIndex = Rig->FindTransformBaseByNodeName(NodeName);
 
 					if (RigConstraintIndex != INDEX_NONE)
 					{
-						const auto * RigConstraint = Rig->GetRigControl(RigConstraintIndex);
+						const auto * RigConstraint = Rig->GetTransformBase(RigConstraintIndex);
 
 						// apply orientation - for now only one
 						const TArray<FRigTransformConstraint> & RotationTransformConstraint = RigConstraint->Constraints[EControlConstraint::Type::Orientation].TransformConstraints;
@@ -2587,16 +2648,6 @@ bool UAnimSequence::ConvertAnimationDataToRiggingData(TArray<struct FRawAnimSequ
 						}
 					}
 				}
-				else
-				{
-					// if no bone index, we still put identity
-					for (int32 KeyIndex = 0; KeyIndex < NumFrames; ++KeyIndex)
-					{
-						Track.PosKeys[KeyIndex] = FVector::ZeroVector;
-						Track.RotKeys[KeyIndex] = FQuat::Identity;
-						Track.ScaleKeys[KeyIndex] = FVector(1.f);
-					}
-				}
 			}
 		}
 
@@ -2613,22 +2664,23 @@ bool UAnimSequence::ConvertRiggingDataToAnimationData(TArray<struct FRawAnimSequ
 		TArray< TArray<FTransform> > AnimationDataInComponentSpace;
 		int32 NumBones = GetSpaceBasedAnimationData(AnimationDataInComponentSpace, &RawRiggingAnimationData);
 
+		USkeleton * Skeleton = GetSkeleton();
 		TArray<FRawAnimSequenceTrack> OldAnimationData = RawAnimationData;
 		TArray<FName> OldAnimationTrackNames = AnimationTrackNames;
-		int32 NumNodes = RawRiggingAnimationData.Num();
+		TArray<FName> ValidNodeNames;
+		int32 ValidNumNodes = Skeleton->GetMappedValidNodes(ValidNodeNames);
 		// get local spaces
 		// add all tracks?
-		AnimationTrackNames.Empty(NumNodes);
-		AnimationTrackNames.AddUninitialized(NumNodes);
-		RawAnimationData.Empty(NumNodes);
-		RawAnimationData.AddZeroed(NumNodes);
+		AnimationTrackNames.Empty(ValidNumNodes);
+		AnimationTrackNames.AddUninitialized(ValidNumNodes);
+		RawAnimationData.Empty(ValidNumNodes);
+		RawAnimationData.AddZeroed(ValidNumNodes);
 
-		USkeleton * Skeleton = GetSkeleton();
 		const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
 		const URig * Rig = Skeleton->GetRig();
-		for (int32 NodeIndex = 0; NodeIndex < NumNodes; ++NodeIndex)
+		for (int32 NodeIndex = 0; NodeIndex < ValidNumNodes; ++NodeIndex)
 		{
-			FName BoneName = Skeleton->GetRigBoneMapping(Rig->GetNodeName(NodeIndex));
+			FName BoneName = Skeleton->GetRigBoneMapping(ValidNodeNames[NodeIndex]);
 			int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
 
 			if (BoneIndex != INDEX_NONE)

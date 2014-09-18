@@ -1066,17 +1066,18 @@ bool USkeleton::SetRigBoneMapping(const FName & NodeName, FName BoneName)
 	// but it might be annoying to do that right now since the tool is ugly
 	// so for now it lets you set everything, but in the future
 	// we'll have to add verification
-	if ( BoneIndex != INDEX_NONE )
+	if ( BoneIndex == INDEX_NONE )
 	{
-		int32 Index = FindRigBoneMapping(NodeName);
-
-		if(Index != INDEX_NONE)
-		{
-			RigConfig.BoneMappingTable[Index].BoneName = BoneName;
-			return true;
-		}
+		BoneName = NAME_None;
 	}
 
+	int32 Index = FindRigBoneMapping(NodeName);
+
+	if(Index != INDEX_NONE)
+	{
+		RigConfig.BoneMappingTable[Index].BoneName = BoneName;
+		return true;
+	}
 
 	return false;
 }

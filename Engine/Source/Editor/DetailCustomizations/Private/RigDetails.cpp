@@ -34,9 +34,9 @@ void FRigDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	ItemBeingEdited = Objects[0];
 
 	IDetailCategoryBuilder& NodeCategory = DetailBuilder.EditCategory("Node");
-	IDetailCategoryBuilder& RigControlCategory = DetailBuilder.EditCategory("Constraint Setup");
+	IDetailCategoryBuilder& TransformBaseCategory = DetailBuilder.EditCategory("Constraint Setup");
 
-	RigControlsPropertyHandle = DetailBuilder.GetProperty("RigControls");
+	TransformBasesPropertyHandle = DetailBuilder.GetProperty("TransformBases");
 	NodesPropertyHandle = DetailBuilder.GetProperty("Nodes");
 
 	// since now we can't really resize the array, we'll just allocate everything here
@@ -49,7 +49,7 @@ void FRigDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		DisplayNameTextBoxes.AddZeroed(NumElement);
 	}
 
-	check (FPropertyAccess::Fail != RigControlsPropertyHandle->AsArray()->GetNumElements(NumElement));
+	check (FPropertyAccess::Fail != TransformBasesPropertyHandle->AsArray()->GetNumElements(NumElement));
 	if ( NumElement > 0 )
 	{
 		ParentSpaceOptionList.AddZeroed(NumElement);
@@ -62,13 +62,13 @@ void FRigDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 
 	NodeCategory.AddCustomBuilder( NodeArrayBuilder, false );
 
-	TSharedRef<FDetailArrayBuilder> RigControlArrayBuilder = MakeShareable(new FDetailArrayBuilder(RigControlsPropertyHandle.ToSharedRef()));
-	RigControlArrayBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FRigDetails::GenerateRigControlArrayElementWidget, &DetailBuilder));
+	TSharedRef<FDetailArrayBuilder> TransformBaseArrayBuilder = MakeShareable(new FDetailArrayBuilder(TransformBasesPropertyHandle.ToSharedRef()));
+	TransformBaseArrayBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FRigDetails::GenerateTransformBaseArrayElementWidget, &DetailBuilder));
 
 	// add custom menu
 	// -> set all to world
 	// -> set all to default parent
-	RigControlCategory.AddCustomRow(TEXT(""))
+	TransformBaseCategory.AddCustomRow(TEXT(""))
 	[
 		// two button 1. view 2. save to base pose
 		SNew(SHorizontalBox)
@@ -98,7 +98,7 @@ void FRigDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		]
 	];
 
-	RigControlCategory.AddCustomBuilder( RigControlArrayBuilder, false );
+	TransformBaseCategory.AddCustomBuilder( TransformBaseArrayBuilder, false );
 }
 
 void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder, IDetailLayoutBuilder* DetailLayout)
@@ -106,6 +106,7 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 	TSharedRef<IPropertyHandle> DisplayNameProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNode, DisplayName)).ToSharedRef();
 	TSharedRef<IPropertyHandle> NodeNameProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNode, Name)).ToSharedRef();
 	TSharedRef<IPropertyHandle> ParentNameProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNode, ParentName)).ToSharedRef();
+	TSharedRef<IPropertyHandle> AdvancedProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FNode, bAdvanced)).ToSharedRef();
 
 	TSharedPtr<SEditableTextBox> DisplayTextBox;
 
@@ -159,7 +160,7 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 
 		+SHorizontalBox::Slot()
 		.Padding(5, 2)
-		.FillWidth(1)
+		.AutoWidth()
 		.HAlign(HAlign_Left)
 		[
 			SNew(SBox)
@@ -172,6 +173,30 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 				.OnTextChanged(this, &FRigDetails::OnDisplayNameChanged, DisplayNameProp, ArrayIndex)
 				.OnTextCommitted(this, &FRigDetails::OnDisplayNameCommitted, DisplayNameProp, ArrayIndex)
 				.MinDesiredWidth(200)
+			]
+		]
+
+		+SHorizontalBox::Slot()
+		.Padding(5, 2)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(FString(TEXT("Advanced")))
+			.Font(DetailLayout->GetDetailFontBold())
+		]
+
+		+SHorizontalBox::Slot()
+		.Padding(5, 2)
+		.FillWidth(1)
+		.HAlign(HAlign_Left)
+		[
+			SNew(SBox)
+			.WidthOverride(250)
+			.Content()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &FRigDetails::AdvancedCheckBoxIsChecked, AdvancedProp)
+				.OnCheckStateChanged(this, &FRigDetails::OnAdvancedCheckBoxStateChanged, AdvancedProp)
 			]
 		]
 	];
@@ -233,17 +258,17 @@ void FRigDetails::OnDisplayNameCommitted(const FText& Text, ETextCommit::Type Co
 	DisplayNameProp->SetValueFromFormattedString(Text.ToString());
 }
 
-void FRigDetails::GenerateRigControlArrayElementWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder, IDetailLayoutBuilder* DetailLayout)
+void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder, IDetailLayoutBuilder* DetailLayout)
 {
-	TSharedRef<IPropertyHandle> NodeNameProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRigControl, Node)).ToSharedRef();
-	TSharedPtr<IPropertyHandleArray> ConstraintsProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRigControl, Constraints))->AsArray();
+	TSharedRef<IPropertyHandle> NodeNameProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTransformBase, Node)).ToSharedRef();
+	TSharedPtr<IPropertyHandleArray> ConstraintsProp = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTransformBase, Constraints))->AsArray();
 
 	// translation
-	TSharedPtr<IPropertyHandleArray> TransformConstraintsProp_T = ConstraintsProp->GetElement(0)->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRigControlConstraint, TransformConstraints))->AsArray();
+	TSharedPtr<IPropertyHandleArray> TransformConstraintsProp_T = ConstraintsProp->GetElement(0)->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTransformBaseConstraint, TransformConstraints))->AsArray();
 	TSharedRef<IPropertyHandle> ParentNameProp_T = TransformConstraintsProp_T->GetElement(0)->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRigTransformConstraint, ParentSpace)).ToSharedRef();
 
 	// orientation
-	TSharedPtr<IPropertyHandleArray> TransformConstraintsProp_R = ConstraintsProp->GetElement(1)->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRigControlConstraint, TransformConstraints))->AsArray();
+	TSharedPtr<IPropertyHandleArray> TransformConstraintsProp_R = ConstraintsProp->GetElement(1)->GetChildHandle(GET_MEMBER_NAME_CHECKED(FTransformBaseConstraint, TransformConstraints))->AsArray();
 	TSharedRef<IPropertyHandle> ParentNameProp_R = TransformConstraintsProp_R->GetElement(0)->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRigTransformConstraint, ParentSpace)).ToSharedRef();
 
 	// the interface will be node [display name] [parent node]
@@ -398,9 +423,12 @@ void FRigDetails::GenerateRigControlArrayElementWidget(TSharedRef<IPropertyHandl
 
 void FRigDetails::OnParentSpaceSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo, TSharedRef<IPropertyHandle> ParentSpacePropertyHandle)
 {
-	if (SelectedItem.IsValid())
+	if (SelectInfo == ESelectInfo::OnKeyPress || SelectInfo == ESelectInfo::OnMouseClick)
 	{
-		check (ParentSpacePropertyHandle->SetValueFromFormattedString(*SelectedItem.Get()) != FPropertyAccess::Fail);
+		if(SelectedItem.IsValid())
+		{
+			check(ParentSpacePropertyHandle->SetValueFromFormattedString(*SelectedItem.Get()) != FPropertyAccess::Fail);
+		}
 	}
 }
 
@@ -470,4 +498,18 @@ void FRigDetails::OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpaceProp
 	ComboBox->SetSelectedItem(SelectedItem);
 }
 
+void FRigDetails::OnAdvancedCheckBoxStateChanged(ESlateCheckBoxState::Type NewState, TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	bool bValue = (NewState == ESlateCheckBoxState::Checked)? true : false;
+	check (PropertyHandle->SetValue(bValue) != FPropertyAccess::Fail);
+}
+
+ESlateCheckBoxState::Type FRigDetails::AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const
+{
+	bool bValue;
+	// multi value doesn't work in array, so i'm not handling multi value
+	check(PropertyHandle->GetValue(bValue) != FPropertyAccess::Fail);
+
+	return (bValue)? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+}
 #undef LOCTEXT_NAMESPACE

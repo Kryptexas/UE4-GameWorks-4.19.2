@@ -35,9 +35,13 @@ struct FNode
 	UPROPERTY(EditAnywhere, Category="FNode")
 	FString DisplayName;
 
+	UPROPERTY(EditAnywhere, Category="FNode")
+	bool bAdvanced;
+
 	FNode()
 		: Name(NAME_None)
 		, ParentName(NAME_None)
+		, bAdvanced(false)
 	{
 	}
 
@@ -46,7 +50,7 @@ struct FNode
 		, ParentName(InParentName)
 		, Transform(InTransform)
 		, DisplayName(InNodeName.ToString())
-
+		, bAdvanced(false)
 	{
 	}
 };
@@ -85,41 +89,41 @@ struct FRigTransformConstraint
 	GENERATED_USTRUCT_BODY()
 
 	/** What transform type **/
-	UPROPERTY(/*EditAnywhere, Category="FRigControlConstraint"*/)
+	UPROPERTY(/*EditAnywhere, Category="FTransformBaseConstraint"*/)
 	TEnumAsByte<EConstraintTransform::Type>	TranformType;
 
 	/** Parent space that are define **/
-	UPROPERTY(EditAnywhere, Category="FRigControlConstraint")
+	UPROPERTY(EditAnywhere, Category="FTransformBaseConstraint")
 	FName	ParentSpace;
 
 	/** Weight of the influence - for future*/
-	UPROPERTY(/*EditAnywhere, Category="FRigControlConstraint"*/)
+	UPROPERTY(/*EditAnywhere, Category="FTransformBaseConstraint"*/)
 	float	Weight;
 };
 
 /** This defines what constraint it is defined */
 USTRUCT()
-struct FRigControlConstraint
+struct FTransformBaseConstraint
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** What transform type **/
-	UPROPERTY(EditAnywhere, Category="FRigControlConstraint")
+	UPROPERTY(EditAnywhere, Category="FTransformBaseConstraint")
 	TArray<FRigTransformConstraint>			TransformConstraints;
 };
 
 
 /** This is a mapping table between bone in a particular skeletal mesh and bone of this skeleton set. */
 USTRUCT()
-struct FRigControl
+struct FTransformBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category="FRigControl")
+	UPROPERTY(EditAnywhere, Category="FTransformBase")
 	FName					Node;
 
-	UPROPERTY(EditAnywhere, Category="FRigControl")
-	FRigControlConstraint	Constraints[EControlConstraint::Type::Max];
+	UPROPERTY(EditAnywhere, Category="FTransformBase")
+	FTransformBaseConstraint	Constraints[EControlConstraint::Type::Max];
 };
 
 DECLARE_DELEGATE_RetVal_OneParam(int32, FGetParentIndex, FName);
@@ -138,7 +142,7 @@ private:
 
 	/** Skeleton bone tree - each contains name and parent index**/
 	UPROPERTY(EditAnywhere, Category = Rig, EditFixedSize)
-	TArray<FRigControl> RigControls;
+	TArray<FTransformBase> TransformBases;
 
 	/** Skeleton bone tree - each contains name and parent index**/
 	UPROPERTY(EditAnywhere, Category=Rig, EditFixedSize)
@@ -165,11 +169,11 @@ public:
 	ENGINE_API void SetAllConstraintsToWorld();
 
 	// rig control related
-	int32 GetRigControlNum() const;
-	const TArray<FRigControl> & GetRigControls() const { return RigControls; }
-	const FRigControl * GetRigControl(int32 ControlIndex) const;
-	const FRigControl * GetRigControlByNodeName(FName NodeName) const;
-	int32 FindRigControlByNodeName(FName NodeName) const;
+	int32 GetTransformBaseNum() const;
+	const TArray<FTransformBase> & GetTransformBases() const { return TransformBases; }
+	const FTransformBase * GetTransformBase(int32 ControlIndex) const;
+	const FTransformBase * GetTransformBaseByNodeName(FName NodeName) const;
+	int32 FindTransformBaseByNodeName(FName NodeName) const;
 	int32 FindTransformParentNode(int32 NodeIndex, bool bTranslate, int32 Index=0) const;
 #endif
 
@@ -188,7 +192,7 @@ private:
 #endif // WITH_EDITOR
 	
 	// not useful so far
-	void CalculateComponentSpace(int32 NodeIndex, const FTransform & LocalTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutComponentSpaceTransform) const;
-	void CalculateLocalSpace(int32 NodeIndex, const FTransform & ComponentTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutLocalSpaceTransform) const;
+//	void CalculateComponentSpace(int32 NodeIndex, const FTransform & LocalTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutComponentSpaceTransform) const;
+//	void CalculateLocalSpace(int32 NodeIndex, const FTransform & ComponentTransform, const TArray<FTransform> & TransformBuffer, const FGetParentIndex& DelegateToGetParentIndex, FTransform & OutLocalSpaceTransform) const;
 };
 

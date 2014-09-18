@@ -17,10 +17,10 @@ private:
 
 	/** Generate a widget for a movie array element */
 	void GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder, IDetailLayoutBuilder* DetailLayout);
-	void GenerateRigControlArrayElementWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder, IDetailLayoutBuilder* DetailLayout);
+	void GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder, IDetailLayoutBuilder* DetailLayout);
 
 	TSharedPtr<IPropertyHandle> NodesPropertyHandle;
-	TSharedPtr<IPropertyHandle> RigControlsPropertyHandle;
+	TSharedPtr<IPropertyHandle> TransformBasesPropertyHandle;
 
 	// array custom boxes - these will stay around as long as this window is up
 	TArray<TSharedPtr<SEditableTextBox>>	DisplayNameTextBoxes;
@@ -40,9 +40,13 @@ private:
 	void OnParentSpaceSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo, TSharedRef<IPropertyHandle> ParentSpacePropertyHandle);
 	/** Called to create a widget for each string */
 	TSharedRef<SWidget> MakeItemWidget(TSharedPtr<FString> StringItem);
-	/** Helper method to get the text for a given item in the combo box */
+	// Helper method to get the text for a given item in the combo box 
 	FString GetSelectedTextLabel(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle) const;
 	void OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle, int32 ArrayIndex, bool bTranslation);
+	// check box handler
+	// Callback for changing this row's Share check box state.
+	void OnAdvancedCheckBoxStateChanged(ESlateCheckBoxState::Type NewState, TSharedRef<IPropertyHandle> PropertyHandle);
+	ESlateCheckBoxState::Type AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	// button handlers
 	FReply OnSetAllToWorld();
