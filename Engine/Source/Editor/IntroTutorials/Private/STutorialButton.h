@@ -41,6 +41,12 @@ private:
 	/** Launch tutorial from the context menu */
 	void LaunchTutorial();
 
+	/** Refresh internal status of flags, tutorials, filters etc.*/
+	void RefreshStatus();
+
+	/** Handle tutorial exiting/finishing */
+	void HandleTutorialExited();
+
 private:
 	/** Flag to defer tutorial open until the first Tick() */
 	bool bDeferTutorialOpen;
@@ -68,4 +74,13 @@ private:
 
 	/**	The name of the tutorial we will launch */
 	FText TutorialTitle;
+
+	/** Cached attract tutorial */
+	UEditorTutorial* CachedAttractTutorial;
+
+	/** Cached launch tutorial */
+	UEditorTutorial* CachedLaunchTutorial;
+
+	/** Cached browser filter */
+	FString CachedBrowserFilter;
 };
