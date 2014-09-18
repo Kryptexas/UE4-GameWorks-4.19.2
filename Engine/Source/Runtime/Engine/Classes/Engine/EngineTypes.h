@@ -2330,18 +2330,35 @@ struct FRepAttachment
 };
 
 
-/** Enum controlling behavior of FWalkableSlopeOverride */
+/**
+ * Controls behavior of WalkableSlopeOverride, determining how to affect walkability of surfaces for Characters.
+ * @see FWalkableSlopeOverride
+ */
 UENUM(BlueprintType)
 enum EWalkableSlopeBehavior
 {
-	// Don't affect the walkable slope
-	WalkableSlope_Default	UMETA(DisplayName="Unchanged"),
+	/** Don't affect the walkable slope. */
+	WalkableSlope_Default		UMETA(DisplayName="Unchanged"),
 
-	// Increase walkable slope.
-	WalkableSlope_Increase	UMETA(DisplayName="Increase Walkable Slope"),
+	/**
+	 * Increase walkable slope.
+	 * Makes it easier to walk up a surface, by allowing traversal over higher-than-usual angles.
+	 * @see FWalkableSlopeOverride::WalkableSlopeAngle
+	 */
+	WalkableSlope_Increase		UMETA(DisplayName="Increase Walkable Slope"),
 
-	// Decrease walkable slope.
-	WalkableSlope_Decrease	UMETA(DisplayName="Decrease Walkable Slope"),
+	/**
+	 * Decrease walkable slope.
+	 * Makes it harder to walk up a surface, by restricting traversal to lower-than-usual angles.
+	 * @see FWalkableSlopeOverride::WalkableSlopeAngle
+	 */
+	WalkableSlope_Decrease		UMETA(DisplayName="Decrease Walkable Slope"),
+
+	/**
+	 * Make surface unwalkable.
+	 * Note: WalkableSlopeAngle will be ignored.
+	 */
+	WalkableSlope_Unwalkable	UMETA(DisplayName="Unwalkable"),
 	
 	WalkableSlope_Max		UMETA(Hidden),
 };
@@ -2389,6 +2406,12 @@ struct FWalkableSlopeOverride
 			{
 				const float Angle = FMath::DegreesToRadians(WalkableSlopeAngle);
 				return FMath::Max(InWalkableFloorZ, FMath::Cos(Angle));
+			}
+
+			case WalkableSlope_Unwalkable:
+			{
+				// Z component of a normal will always be less than this, so this will be unwalkable.
+				return 2.0f;
 			}
 
 			default:
