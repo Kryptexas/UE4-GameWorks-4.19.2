@@ -60,10 +60,8 @@ void FPaperStyle::Initialize()
 		StyleSet->Set("SpriteEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
 		StyleSet->Set("SpriteEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
 
-		StyleSet->Set("SpriteEditor.AddPolygon", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon40x40));
-		StyleSet->Set("SpriteEditor.AddPolygon.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon20x20));
-		StyleSet->Set("SpriteEditor.AddSubtractivePolygon", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddSubtractivePolygon_40x"), Icon40x40));
-		StyleSet->Set("SpriteEditor.AddSubtractivePolygon.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddSubtractivePolygon_40x"), Icon20x20));
+		StyleSet->Set("SpriteEditor.ToggleAddPolygonMode", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon40x40));
+		StyleSet->Set("SpriteEditor.ToggleAddPolygonMode.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_AddPolygon_40x"), Icon20x20));
 
 		StyleSet->Set("SpriteEditor.SnapAllVertices", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon40x40));
 		StyleSet->Set("SpriteEditor.SnapAllVertices.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Paper2D_SnapToPixelGrid_40x"), Icon20x20));

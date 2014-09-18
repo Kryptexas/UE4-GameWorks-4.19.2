@@ -78,11 +78,11 @@ public:
 	void ToggleShowMeshEdges();
 	bool IsShowMeshEdgesChecked() const;
 
-	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; ResetMarqueeTracking(); }
-	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; ResetMarqueeTracking(); UpdateRelatedSpritesList(); }
-	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; ResetMarqueeTracking(); }
-	void EnterRenderingEditMode() { CurrentMode = ESpriteEditorMode::EditRenderingGeomMode; ResetMarqueeTracking(); }
-	void EnterAddSpriteMode() { CurrentMode = ESpriteEditorMode::AddSpriteMode; ResetMarqueeTracking(); }
+	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
+	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; ResetMarqueeTracking(); UpdateRelatedSpritesList(); ResetAddPolyonMode(); }
+	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
+	void EnterRenderingEditMode() { CurrentMode = ESpriteEditorMode::EditRenderingGeomMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
+	void EnterAddSpriteMode() { CurrentMode = ESpriteEditorMode::AddSpriteMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
 
 	bool IsInViewMode() const { return CurrentMode == ESpriteEditorMode::ViewMode; }
 	bool IsInSourceRegionEditMode() const { return CurrentMode == ESpriteEditorMode::EditSourceRegionMode; }
@@ -106,8 +106,9 @@ public:
 	void SplitEdge();
 	bool CanSplitEdge() const { return IsEditingGeometry(); } //@TODO: Need an edge
 
-	void AddPolygon();
-	void AddSubtractivePolygon();
+	void ResetAddPolyonMode() { bIsAddingPolygon = false; }
+	void ToggleAddPolygonMode();
+	bool IsAddingPolygon() const { return bIsAddingPolygon; }
 	bool CanAddPolygon() const { return IsEditingGeometry(); }
 	bool CanAddSubtractivePolygon() const { return CanAddPolygon() && IsInRenderingEditMode(); }
 
@@ -156,6 +157,9 @@ private:
 	// Selection set of vertices
 	TSet< TSharedPtr<FSelectedItem> > SelectionSet;
 
+	// Set of selected vertices
+	TSet<int32> SelectedVertexSet;
+
 	// The current transaction for undo/redo
 	class FScopedTransaction* ScopedTransaction;
 
@@ -176,6 +180,12 @@ private:
 
 	// Should we show related sprites in the source texture?
 	bool bShowRelatedSprites;
+
+	// Is waiting to add geometry
+	bool bIsAddingPolygon;
+
+	// The polygon index being added to, -1 if we don't have a polygon yet
+	int AddingPolygonIndex;
 
 	// Marquee tracking
 	bool bIsMarqueeTracking;
