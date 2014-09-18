@@ -37,6 +37,7 @@ FName FUMGStyle::GetStyleSetName()
 
 const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
+const FVector2D Icon40x40(40.0f, 40.0f);
 
 TSharedRef< FSlateStyleSet > FUMGStyle::Create()
 {
@@ -80,6 +81,17 @@ TSharedRef< FSlateStyleSet > FUMGStyle::Create()
 	Style->Set("Widget.Grid", new IMAGE_BRUSH(TEXT("Grid"), Icon16x16));
 
 	Style->Set("Widget.UserWidget", new IMAGE_BRUSH(TEXT("UserWidget"), Icon16x16));
+
+	Style->Set("UMGEditor.Tabs.Animations", new IMAGE_BRUSH(TEXT("Animations_16x"), Icon16x16));
+	Style->Set("UMGEditor.Tabs.Designer", new IMAGE_BRUSH(TEXT("Designer_16x"), Icon16x16));
+	Style->Set("UMGEditor.Tabs.Palette", new IMAGE_BRUSH(TEXT("Palette_16x"), Icon16x16));
+	Style->Set("UMGEditor.Tabs.Timeline", new IMAGE_BRUSH(TEXT("Timeline_16x"), Icon16x16));
+
+	Style->Set("UMGEditor.Icons.Animations", new IMAGE_BRUSH(TEXT("Animations_40x"), Icon40x40));
+	Style->Set("UMGEditor.Icons.Designer", new IMAGE_BRUSH(TEXT("Designer_40x"), Icon40x40));
+	Style->Set("UMGEditor.Icons.Palette", new IMAGE_BRUSH(TEXT("Palette_40x"), Icon40x40));
+	Style->Set("UMGEditor.Icons.Timeline", new IMAGE_BRUSH(TEXT("Timeline_40x"), Icon40x40));
+
 
 	return Style;
 }

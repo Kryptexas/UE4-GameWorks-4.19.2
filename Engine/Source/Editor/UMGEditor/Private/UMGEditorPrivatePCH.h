@@ -18,6 +18,7 @@
 #include "ObjectEditorUtils.h"
 
 #include "UMG.h"
+#include "UMGStyle.h"
 
 #include "WidgetDesignerSettings.h"
 

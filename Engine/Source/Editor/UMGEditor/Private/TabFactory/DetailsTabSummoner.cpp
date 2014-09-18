@@ -14,7 +14,7 @@ FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FWidgetBlueprintEditor
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("WidgetDetails_TabLabel", "Details");
-	//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.Details");
 
 	bIsSingleton = true;
 
