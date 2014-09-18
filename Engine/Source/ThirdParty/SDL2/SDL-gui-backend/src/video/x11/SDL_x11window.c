@@ -359,6 +359,12 @@ X11_CreateWindow(_THIS, SDL_Window * window)
     Atom _NET_WM_BYPASS_COMPOSITOR;
     Atom _NET_WM_WINDOW_TYPE;
     Atom _NET_WM_WINDOW_TYPE_NORMAL;
+    /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    Atom _NET_WM_WINDOW_TYPE_UTILITY;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    /* EG END */
+    
     Atom _NET_WM_PID;
     Atom XdndAware, xdnd_version = 5;
     Uint32 fevent = 0;
@@ -532,9 +538,21 @@ X11_CreateWindow(_THIS, SDL_Window * window)
     /* Let the window manager know we're a "normal" window */
     _NET_WM_WINDOW_TYPE = X11_XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
     _NET_WM_WINDOW_TYPE_NORMAL = X11_XInternAtom(display, "_NET_WM_WINDOW_TYPE_NORMAL", False);
-    X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
-                    PropModeReplace,
-                    (unsigned char *)&_NET_WM_WINDOW_TYPE_NORMAL, 1);
+    /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    if (window->flags & SDL_WINDOW_UTILITY) {
+        _NET_WM_WINDOW_TYPE_UTILITY = X11_XInternAtom(display, "_NET_WM_WINDOW_TYPE_UTILITY", False);
+        X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
+                            PropModeReplace,
+                            (unsigned char *)&_NET_WM_WINDOW_TYPE_UTILITY, 1);
+    } else
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    {
+        X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
+                        PropModeReplace,
+                        (unsigned char *)&_NET_WM_WINDOW_TYPE_NORMAL, 1);
+    }
+    /* EG END */
 
     _NET_WM_BYPASS_COMPOSITOR = X11_XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False);
     X11_XChangeProperty(display, w, _NET_WM_BYPASS_COMPOSITOR, XA_CARDINAL, 32,

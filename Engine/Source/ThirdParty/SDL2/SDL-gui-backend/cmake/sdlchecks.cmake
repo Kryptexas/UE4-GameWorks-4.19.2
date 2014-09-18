@@ -505,6 +505,19 @@ macro(CheckX11)
   endif(VIDEO_X11)
 endmacro(CheckX11)
 
+# EG BEGIN
+# disable/enable Epic extensions - currently for X11 only
+macro(EnableEpicExtensions)
+  if(EPIC_EXTENSIONS AND HAVE_VIDEO_X11)
+    set(HAVE_EPIC_EXTENSIONS 1)
+    set(SDL_WITH_EPIC_EXTENSIONS TRUE)
+    message(STATUS "Compiling with Epic extensions")
+  else(EPIC_EXTENSIONS AND HAVE_VIDEO_X11)
+    message(STATUS "Compiling vanilla library without Epic extensions")
+  endif(EPIC_EXTENSIONS AND HAVE_VIDEO_X11)
+endmacro(EnableEpicExtensions)
+# EG END
+
 macro(CheckMir)
 # !!! FIXME: hook up dynamic loading here.
     if(VIDEO_MIR)

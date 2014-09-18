@@ -12,6 +12,9 @@ set -e
 MAKE_ARGS=-j4
 TARGET_ARCH=x86_64-unknown-linux-gnu
 
+SDL_DIR=SDL-gui-backend
+SDL_BUILD_DIR=build-$SDL_DIR
+
 # Open files for edit using p4 command line.
 # Does nothing if the file is already writable (which is case for external
 # github developers).
@@ -241,23 +244,18 @@ BuildSDL2()
 {
   echo "building SDL2"
   set -x
-  cd Source/ThirdParty/SDL2/SDL-gui-backend/build
-  # always do it here for now, since there's no UpdateDeps step for builds from Perforce (binaries are part of the repo).
-  tar xjf *tar.bz2
-  cd SDL-gui-backend
-  chmod +x configure
-  chmod +x autogen.sh
-  chmod +x Android.mk
-  CFLAGS=-fPIC ./configure
-  make $MAKE_ARGS
-  local LIB_DIR=../../lib/Linux/$TARGET_ARCH
-  mkdir -p $LIB_DIR
-  P4Open $LIB_DIR/libSDL2.a
-  P4Open $LIB_DIR/libSDL2.so
-  P4Open ${TOP_DIR}/Binaries/Linux/libSDL2-2.0.so.0
-  cp --remove-destination build/.libs/libSDL2.a $LIB_DIR/libSDL2.a
-  cp --remove-destination build/.libs/libSDL2.so $LIB_DIR/libSDL2.so
-  cp --remove-destination build/.libs/libSDL2.so ${TOP_DIR}/Binaries/Linux/libSDL2-2.0.so.0
+  cd Source/ThirdParty/SDL2/
+  rm -rf $SDL_BUILD_DIR
+  mkdir -p $SDL_BUILD_DIR
+  cd $SDL_BUILD_DIR
+
+  cmake ../$SDL_DIR
+  make
+  P4Open ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2.a
+  P4Open ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2_fPIC.a
+  
+  cp --remove-destination libSDL2.a ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2.a
+  cp --remove-destination libSDL2_fPIC.a ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2_fPIC.a
   set +x
 }
 

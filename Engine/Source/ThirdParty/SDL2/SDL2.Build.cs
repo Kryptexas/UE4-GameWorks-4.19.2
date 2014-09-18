@@ -11,6 +11,8 @@ public class SDL2 : ModuleRules
 		string SDL2LibPath = SDL2Path + "lib/";
 
 		PublicIncludePaths.Add(SDL2Path + "include");
+		// assume SDL to be built with extensions
+		Definitions.Add("SDL_WITH_EPIC_EXTENSIONS=1");
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
@@ -20,9 +22,7 @@ public class SDL2 : ModuleRules
             }
             else
             {
-                PublicLibraryPaths.Add(SDL2LibPath + "Linux/" + Target.Architecture);
-                PublicAdditionalLibraries.Add("SDL2");
-                PublicAdditionalLibraries.Add("dl");
+                PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2_fPIC.a");
             }
 		}
 	}

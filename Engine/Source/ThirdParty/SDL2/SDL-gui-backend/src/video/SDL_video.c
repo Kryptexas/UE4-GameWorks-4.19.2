@@ -1182,8 +1182,15 @@ SDL_UpdateFullscreenMode(SDL_Window * window, SDL_bool fullscreen)
     window->last_fullscreen_flags = window->flags;
 }
 
-#define CREATE_FLAGS \
-    (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    #define CREATE_FLAGS \
+        (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_UTILITY)
+#else
+    #define CREATE_FLAGS \
+        (SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 static void
 SDL_FinishWindowCreation(SDL_Window *window, Uint32 flags)

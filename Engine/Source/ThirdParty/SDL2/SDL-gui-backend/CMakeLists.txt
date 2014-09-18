@@ -246,6 +246,9 @@ endforeach()
 set_option(VIDEO_COCOA         "Use Cocoa video driver" ${APPLE})
 set_option(DIRECTX             "Use DirectX for Windows audio/video" ${WINDOWS})
 set_option(RENDER_D3D          "Enable the Direct3D render driver" ${WINDOWS})
+# EG BEGIN
+set_option(EPIC_EXTENSIONS     "Enable Epic extensions for Unreal Engine" ON)
+# EG END
 
 # TODO: We should (should we?) respect cmake's ${BUILD_SHARED_LIBS} flag here
 # The options below are for compatibility to configure's default behaviour.
@@ -1075,6 +1078,11 @@ elseif(HAIKU)
 
   CheckPTHREAD()
 endif()
+
+# EG BEGIN
+# conditionally enable extensions for Unreal Engine
+EnableEpicExtensions()
+# EG END
 
 # Dummies
 # configure.in does it differently:
