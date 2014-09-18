@@ -794,6 +794,16 @@ struct SLATECORE_API FSliderStyle : public FSlateWidgetStyle
 
 	static const FSliderStyle& GetDefault();
 
+	/** Image to use when the slider bar is in its normal state */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FSlateBrush NormalBarImage;
+	FSliderStyle& SetNormalBarImage(const FSlateBrush& InNormalBarImage){ NormalBarImage = InNormalBarImage; return *this; }
+
+	/** Image to use when the slider bar is in its disabled state */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush DisabledBarImage;
+	FSliderStyle& SetDisabledBarImage(const FSlateBrush& InDisabledBarImage){ DisabledBarImage = InDisabledBarImage; return *this; }
+
 	/** Image to use when the slider thumb is in its normal state */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush NormalThumbImage;
@@ -1036,6 +1046,16 @@ struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush OddRowBackgroundBrush;
 	FTableRowStyle& SetOddRowBackgroundBrush( const FSlateBrush& InOddRowBackgroundBrush ){ OddRowBackgroundBrush = InOddRowBackgroundBrush; return *this; }
+
+	/** Brush used when drawing the drag-drop indicator lines above and below rows */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush DragDropLineIndicatorBrush;
+	FTableRowStyle& SetDragDropLineIndicatorBrush(const FSlateBrush& InDragDropLineIndicatorBrush){ DragDropLineIndicatorBrush = InDragDropLineIndicatorBrush; return *this; }
+
+	/** Brush used when drawing the drag-drop indicator border around a row */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush DragDropBorderIndicatorBrush;
+	FTableRowStyle& SetDragDropBorderIndicatorBrush(const FSlateBrush& InDragDropBorderIndicatorBrush){ DragDropBorderIndicatorBrush = InDragDropBorderIndicatorBrush; return *this; }
 
 	/** Text color used for all rows */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)

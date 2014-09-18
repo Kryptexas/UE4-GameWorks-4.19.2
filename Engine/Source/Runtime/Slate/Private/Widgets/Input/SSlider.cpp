@@ -76,28 +76,25 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 			MyClippingRect);
 	}
 
-
-	// draw slider bar
-	TArray<FVector2D> LinePoints;
-	LinePoints.Add(SliderStartPoint);
-	LinePoints.Add(SliderEndPoint);
-
 	const bool bEnabled = ShouldBeEnabled(bParentEnabled);
 	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-	FSlateDrawElement::MakeLines( 
+	// draw slider bar
+	auto BarTopLeft = FVector2D(SliderStartPoint.X, SliderStartPoint.Y - 1);
+	auto BarSize = FVector2D(SliderEndPoint.X - SliderStartPoint.X, 2);
+	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId,
-		SliderGeometry.ToPaintGeometry(),
-		LinePoints,
+		SliderGeometry.ToPaintGeometry(BarTopLeft, BarSize),
+		LockedAttribute.Get() ? &Style->DisabledBarImage : &Style->NormalBarImage,
 		RotatedClippingRect,
 		DrawEffects,
 		SliderBarColor.Get().GetColor(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
-	);
+		);
 
 	++LayerId;
 
-	// draw slider handle
+	// draw slider thumb
 	FSlateDrawElement::MakeBox( 
 		OutDrawElements,
 		LayerId,

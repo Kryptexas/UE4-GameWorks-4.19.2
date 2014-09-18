@@ -358,13 +358,14 @@ const FSearchBoxStyle& FSearchBoxStyle::GetDefault()
 	return Default;
 }
 
-
 FSliderStyle::FSliderStyle()
 {
 }
 
 void FSliderStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) const
 {
+	OutBrushes.Add( &NormalBarImage );
+	OutBrushes.Add( &DisabledBarImage );
 	OutBrushes.Add( &NormalThumbImage );
 	OutBrushes.Add( &DisabledThumbImage );
 }

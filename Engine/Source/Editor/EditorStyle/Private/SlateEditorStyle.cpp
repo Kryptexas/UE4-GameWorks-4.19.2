@@ -1322,6 +1322,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	// Slider and Volume Control
 	{
 		FSliderStyle SliderStyle = FSliderStyle()
+			.SetNormalBarImage(FSlateColorBrush(FColor::White))
+			.SetDisabledBarImage(FSlateColorBrush(FLinearColor::Gray))
 			.SetNormalThumbImage( BOX_BRUSH( "Common/Button", 8.0f/32.0f ) )
 			.SetDisabledThumbImage( BOX_BRUSH( "Common/Button_Disabled", 8.0f/32.0f ) );
 		Set( "Slider", SliderStyle );
