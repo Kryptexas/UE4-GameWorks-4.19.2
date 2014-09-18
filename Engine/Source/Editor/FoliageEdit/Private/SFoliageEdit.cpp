@@ -7,9 +7,9 @@
 #include "FoliageEdMode.h"
 #include "Foliage/FoliageType.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
-
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
+#include "Editor/IntroTutorials/Public/IIntroTutorials.h"
 
 #include "SFoliageEditMeshDisplayItem.h"
 
@@ -101,7 +101,6 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.HAlign(HAlign_Center)
 			.Padding(StandardPadding)
 			[
 				BuildToolBar()
@@ -461,19 +460,34 @@ TSharedRef<SWidget> SFoliageEdit::BuildToolBar()
 		Toolbar.AddToolBarButton(FFoliageEditCommands::Get().SetPaintBucket);
 	}
 
+	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
+
 	return
 		SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
-		.AutoWidth()
 		.Padding(4, 0)
 		[
-			SNew(SBorder)
-			.Padding(0)
-			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+			SNew(SOverlay)
+			+ SOverlay::Slot()
 			[
-				Toolbar.MakeWidget()
+				SNew(SBorder)
+				.HAlign(HAlign_Center)
+				.Padding(0)
+				.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+				.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+				[
+					Toolbar.MakeWidget()
+				]
+			]
+
+			// Tutorial link
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Bottom)
+			.Padding(4)
+			[
+				IntroTutorials.CreateTutorialsWidget(TEXT("FoliageMode"))
 			]
 		];
 }
