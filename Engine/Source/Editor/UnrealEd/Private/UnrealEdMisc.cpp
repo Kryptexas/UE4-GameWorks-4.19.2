@@ -650,8 +650,6 @@ void FUnrealEdMisc::OnExit()
 
 		FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.WindowCounts"), TabsAttribs);
 		
-		FSlateApplication::Get().GetPlatformApplication()->SendAnalytics(&FEngineAnalytics::GetProvider());
-
 		// Report asset updates (to reflect forward progress made by the user)
 		TArray<FAnalyticsEventAttribute> AssetUpdateCountAttribs;
 		for (auto& UpdatedAssetPair : NumUpdatesByAssetName)
@@ -660,6 +658,7 @@ void FUnrealEdMisc::OnExit()
 		}
 		FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.AssetsSaved"), AssetUpdateCountAttribs);
 
+		FSlateApplication::Get().GetPlatformApplication()->SendAnalytics(&FEngineAnalytics::GetProvider());
 		FEditorViewportStats::SendUsageData();
 	}
 
