@@ -205,7 +205,12 @@ void ProcessGameThreadEvents(void)
 	SCOPED_AUTORELEASE_POOL;
 	while( NSEvent *Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: true] )
 	{
-		[NSApp sendEvent: Event];
+		// Either the windowNumber is 0 or the window must be valid for the event to be processed.
+		// Processing events with a windowNumber but no window will crash inside sendEvent as it will try to send to a destructed window.
+		if ([Event windowNumber] == 0 || [Event window] != nil)
+		{
+			[NSApp sendEvent: Event];
+		}
 	}
 #endif
 }

@@ -14,7 +14,10 @@ FMacWindow::~FMacWindow()
 	// So instead we release the window here.
 	if(WindowHandle)
 	{
-		[WindowHandle release];
+		NSWindow* Window = WindowHandle;
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[Window release];
+		});
 		WindowHandle = nil;
 	}
 }
@@ -90,6 +93,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		
 		if( WindowHandle != nullptr )
 		{
+			[WindowHandle setReleasedWhenClosed:NO];
 			[WindowHandle setWindowMode: WindowMode];
 			[WindowHandle setAcceptsInput: Definition->AcceptsInput];
 			[WindowHandle setDisplayReconfiguring: false];
@@ -270,18 +274,19 @@ void FMacWindow::Destroy()
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
 			// This FMacWindow may have been destructed by now & so the WindowHandle will probably be invalid memory.
+			bool const bIsKey = [Window isKeyWindow];
 			
 			// Then change the focus to something useful, either the previous in the stack
 			TSharedPtr<FMacWindow> KeyWindow = MacApplication->GetKeyWindow();
-			if( KeyWindow.IsValid() && [Window isKeyWindow] && KeyWindow->GetOSWindowHandle() && ![(FCocoaWindow*)KeyWindow->GetOSWindowHandle() isMiniaturized] )
+			if( KeyWindow.IsValid() && bIsKey && KeyWindow->GetOSWindowHandle() && ![(FCocoaWindow*)KeyWindow->GetOSWindowHandle() isMiniaturized] )
 			{
 				// Activate specified previous window if still present, provided it isn't minimized
 				KeyWindow->SetWindowFocus();
 			}
 			
+			// Close the window
 			MainThreadCall(^{
 				[Window performClose:nil];
-				WindowHandle = nil;
 			}, UE4CloseEventMode, true);
 		}
 	}
