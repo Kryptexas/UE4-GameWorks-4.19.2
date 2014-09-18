@@ -245,7 +245,8 @@ FText UField::GetToolTipText() const
 		}
 		else
 		{
-			if (NativeToolTip.Split(TEXT("@see"), &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))
+			static const FString DoxygenSee(TEXT("@see"));
+			if (NativeToolTip.Split(DoxygenSee, &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))
 			{
 				NativeToolTip.TrimTrailing();
 			}

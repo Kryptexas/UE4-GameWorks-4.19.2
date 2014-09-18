@@ -321,15 +321,21 @@ FText UEnum::GetDisplayNameText(int32 NameIndex) const
 FText UEnum::GetToolTipText(int32 NameIndex) const
 {
 	FText LocalizedToolTip;
-	const FString NativeToolTip = GetMetaData( TEXT("ToolTip"), NameIndex );
+	FString NativeToolTip = GetMetaData( TEXT("ToolTip"), NameIndex );
 
-	FString Namespace = TEXT("UObjectToolTips");
+	static const FString Namespace = TEXT("UObjectToolTips");
 	FString Key =	NameIndex == INDEX_NONE
 		?			GetFullGroupName(true) + TEXT(".") + GetName()
 		:			GetFullGroupName(true) + TEXT(".") + GetName() + TEXT(".") + GetEnumName(NameIndex);
 		
 	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
 	{
+		static const FString DoxygenSee(TEXT("@see"));
+		if (NativeToolTip.Split(DoxygenSee, &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))
+		{
+			NativeToolTip.TrimTrailing();
+		}
+
 		LocalizedToolTip = FText::FromString(NativeToolTip);
 	}
 

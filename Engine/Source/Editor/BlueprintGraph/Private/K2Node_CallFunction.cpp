@@ -849,12 +849,16 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 
 	if (!Tooltip.IsEmpty())
 	{
-		// Strip off the @param nastiness
-		Tooltip.Split(TEXT("@param"), &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-		Tooltip.Split(TEXT("@return"), &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
-		Tooltip.Split(TEXT("@see"), &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		// Strip off the doxygen nastiness
+		static const FString DoxygenParam(TEXT("@param"));
+		static const FString DoxygenReturn(TEXT("@return"));
+		static const FString DoxygenSee(TEXT("@see"));
+
+		Tooltip.Split(DoxygenParam, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.Split(DoxygenReturn, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.Split(DoxygenSee, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		Tooltip.Trim();
-		while (Tooltip.RemoveFromEnd(TEXT("\n"))) ;
+		Tooltip.TrimTrailing();
 
 		return Tooltip;
 	}

@@ -1912,7 +1912,7 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 				TSharedPtr< FString > EnumStr( new FString( EnumValueName ) );
 				OutOptionStrings.Add( EnumStr );
 
-				FString EnumValueToolTip = bIsRestricted ? RestrictionTooltip.ToString() : Enum->GetMetaData(TEXT("ToolTip"), EnumIndex);
+				FString EnumValueToolTip = bIsRestricted ? RestrictionTooltip.ToString() : Enum->GetToolTipText(EnumIndex).ToString();
 				TSharedPtr< FString > ToolTipStr( new FString( EnumValueToolTip ) );
 				OutToolTips.Add( ToolTipStr );
 			}

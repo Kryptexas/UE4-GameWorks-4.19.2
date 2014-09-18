@@ -152,7 +152,7 @@ void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
 
 		Value = Enum->GetEnumName(Index);
 
-		ToolTipValue = Enum->GetMetaData( TEXT("ToolTip"), Index );
+		ToolTipValue = Enum->GetToolTipText(Index).ToString();
 		FString ToolTipText = Property->GetToolTipText().ToString();
 		if (ToolTipValue.Len() > 0)
 		{
