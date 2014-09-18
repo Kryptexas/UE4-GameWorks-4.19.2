@@ -1463,7 +1463,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	FUnrealEdMisc::Get().TickAssetAnalytics();
 
-	FUnrealEdMisc::Get().TickPerformanceSurvey();
+	FUnrealEdMisc::Get().TickPerformanceAnalytics();
 
 	// If the fadeout animation has completed for the undo/redo notification item, allow it to be deleted
 	if(UndoRedoNotificationItem.IsValid() && UndoRedoNotificationItem->GetCompletionState() == SNotificationItem::CS_None)

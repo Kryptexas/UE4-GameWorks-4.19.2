@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 /**
  * Helper class for a calculating a moving average. This works by maintaining an accumulator which is then sampled at regular intervals into the "Samples" array.
  */
@@ -19,7 +21,7 @@ struct FMovingAverage
 	}
 	
 	/** Check if this data is reliable or not. Returns false if the sampler is not populated with enough data */
-	inline float IsReliable() const
+	inline bool IsReliable() const
 	{
 		return SampleSize != 0 && Samples.Num() == SampleSize;
 	}
@@ -34,6 +36,12 @@ struct FMovingAverage
 	inline float GetAverage() const
 	{
 		return SampleAverage;
+	}
+
+	/** Get the current number of available samples */
+	inline int32 GetSampleCount() const
+	{
+		return Samples.Num();
 	}
 
 	/** Allow this sampler to tick the frame time, and potentially save a new sample */

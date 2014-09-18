@@ -35,14 +35,108 @@
 #include "ShaderCompiler.h"
 #include "NavigationBuildingNotification.h"
 #include "HotReloadInterface.h"
+#include "PerformanceMonitor.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdMisc, Log, All);
 
+namespace
+{
+	static const FName LevelEditorName("LevelEditor");
+	static const FName AssetRegistryName("AssetRegistry");
+}
+
+/**
+ * Manages the stats needed by the analytics heartbeat
+ * This is very similar to FStatUnitData, however it's not tied to a single viewport, 
+ * nor does it rely on the stats being active to be updated
+ */
+class FPerformanceAnalyticsStats
+{
+public:
+	FPerformanceAnalyticsStats()
+		: AverageFrameTime(SampleSize)
+		, AverageGameThreadTime(SampleSize)
+		, AverageRenderThreadTime(SampleSize)
+		, AverageGPUFrameTime(SampleSize)
+	{
+	}
+
+	/** Get the average number of milliseconds in total over the frames that have been sampled */
+	float GetAverageFrameTime() const
+	{
+		return AverageFrameTime.GetAverage();
+	}
+
+	/** Get the average number of milliseconds the gamethread was used over the frames that have been sampled */
+	float GetAverageGameThreadTime() const
+	{
+		return AverageGameThreadTime.GetAverage();
+	}
+
+	/** Get the average number of milliseconds the renderthread was used over the frames that have been sampled */
+	float GetAverageRenderThreadTime() const
+	{
+		return AverageRenderThreadTime.GetAverage();
+	}
+
+	/** Get the average number of milliseconds the GPU was busy over the frames that have been sampled */
+	float GetAverageGPUFrameTime() const
+	{
+		return AverageGPUFrameTime.GetAverage();
+	}
+
+	/** Have we taken enough samples to get a reliable average? */
+	bool IsReliable() const
+	{
+		return AverageFrameTime.IsReliable();
+	}
+
+	/** Update the samples based on what happened last frame */
+	void Update()
+	{
+		const double CurrentTime = FApp::GetCurrentTime();
+		const double DeltaTime = CurrentTime - FApp::GetLastTime();
+
+		// Number of milliseconds in total last frame
+		const double RawFrameTime = DeltaTime * 1000.0;
+		AverageFrameTime.Tick(CurrentTime, static_cast<float>(RawFrameTime));
+
+		// Number of milliseconds the gamethread was used last frame
+		const double RawGameThreadTime = FPlatformTime::ToMilliseconds(GGameThreadTime);
+		AverageGameThreadTime.Tick(CurrentTime, static_cast<float>(RawGameThreadTime));
+
+		// Number of milliseconds the renderthread was used last frame
+		const double RawRenderThreadTime = FPlatformTime::ToMilliseconds(GRenderThreadTime);
+		AverageRenderThreadTime.Tick(CurrentTime, static_cast<float>(RawRenderThreadTime));
+
+		// Number of milliseconds the GPU was busy last frame
+		const uint32 GPUCycles = RHIGetGPUFrameCycles();
+		const double RawGPUFrameTime = FPlatformTime::ToMilliseconds(GPUCycles);
+		AverageGPUFrameTime.Tick(CurrentTime, static_cast<float>(RawGPUFrameTime));
+	}
+
+private:
+	/** Samples for the total frame time */
+	FMovingAverage AverageFrameTime;
+
+	/** Samples for the gamethread time */
+	FMovingAverage AverageGameThreadTime;
+
+	/** Samples for the renderthread time */
+	FMovingAverage AverageRenderThreadTime;
+
+	/** Samples for the GPU busy time */
+	FMovingAverage AverageGPUFrameTime;
+
+	/** Number of samples to average over */
+	static const int32 SampleSize = 10;
+};
+
 namespace PerformanceSurveyDefs
 {
-	const static int NumFrameRateSamples = 10;
+	const static int32 NumFrameRateSamples = 10;
 	const static FTimespan FrameRateSampleInterval(0, 0, 1);	// 1 second intervals
 }
 
@@ -53,6 +147,7 @@ FUnrealEdMisc::FUnrealEdMisc() :
 	bSaveLayoutOnClose( true ),
 	bDeletePreferences( false ),
 	bIsAssetAnalyticsPending( false ),
+	PerformanceAnalyticsStats(new FPerformanceAnalyticsStats()),
 	NavigationBuildingNotificationHandler(NULL)
 {
 }
@@ -422,8 +517,18 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	// Did the user interact since the last heartbeat
 	bool bIdle = LastInteractionTime < LastHeartbeatTime;
 	
+	extern ENGINE_API float GAverageFPS;
+
 	TArray< FAnalyticsEventAttribute > Attributes;
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("Idle"), bIdle));
+	if(PerformanceAnalyticsStats->IsReliable())
+	{
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageFPS"), GAverageFPS));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageFrameTime"), PerformanceAnalyticsStats->GetAverageFrameTime()));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageGameThreadTime"), PerformanceAnalyticsStats->GetAverageGameThreadTime()));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageRenderThreadTime"), PerformanceAnalyticsStats->GetAverageRenderThreadTime()));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageGPUFrameTime"), PerformanceAnalyticsStats->GetAverageGPUFrameTime()));
+	}
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
@@ -433,7 +538,7 @@ void FUnrealEdMisc::TickAssetAnalytics()
 {
 	if( bIsAssetAnalyticsPending )
 	{
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
 
 		if( !AssetRegistryModule.Get().IsLoadingAssets())
 		{
@@ -1116,7 +1221,7 @@ FString FUnrealEdMisc::GenerateURL(const FString& InUDNPage)
 
 void FUnrealEdMisc::OnGotoAsset(const FString& InAssetPath) const
 {
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	FAssetData AssetData = AssetRegistry.GetAssetByObjectPath( *InAssetPath );
 	if ( AssetData.IsValid() )
@@ -1275,7 +1380,7 @@ void FUnrealEdMisc::BeginPerformanceSurvey()
 	}
 
 	// Tell the level editor we want to be notified when selection changes
-	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
+	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( LevelEditorName );
 	LevelEditor.OnMapChanged().AddRaw( this, &FUnrealEdMisc::OnMapChanged );
 
 	// Initialize survey variables
@@ -1284,13 +1389,8 @@ void FUnrealEdMisc::BeginPerformanceSurvey()
 	FrameRateSamples.Empty();
 }
 
-void FUnrealEdMisc::TickPerformanceSurvey()
+void FUnrealEdMisc::TickPerformanceAnalytics()
 {
-	if (!bIsSurveyingPerformance)
-	{
-		return;
-	}
-
 	// Don't run if we've not yet loaded a project
 	if( !FApp::HasGameName() )
 	{
@@ -1298,7 +1398,7 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 	}
 
 	// Before beginning the survey wait for the asset registry to load and make sure Slate is ready
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
 	if (AssetRegistryModule.Get().IsLoadingAssets() || !FSlateApplication::IsInitialized())
 	{
 		return;
@@ -1314,6 +1414,15 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 	// Don't run the test if we are throttling (due to minimized or not in foreground) as this will 
 	// greatly affect the framerate
 	if( GEditor->ShouldThrottleCPUUsage() )
+	{
+		return;
+	}
+
+	// Update the stats needed by the analytics heartbeat
+	PerformanceAnalyticsStats->Update();
+
+	// Also check to see if we need to run the performance survey
+	if (!bIsSurveyingPerformance)
 	{
 		return;
 	}
@@ -1354,7 +1463,7 @@ void FUnrealEdMisc::CancelPerformanceSurvey()
 	bIsSurveyingPerformance = false;
 	FrameRateSamples.Empty();
 
-	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
+	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( LevelEditorName );
 	LevelEditor.OnMapChanged().RemoveRaw( this, &FUnrealEdMisc::OnMapChanged );
 }
 

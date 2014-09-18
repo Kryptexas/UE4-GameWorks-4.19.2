@@ -2,6 +2,8 @@
 
 #pragma once
 
+class FPerformanceAnalyticsStats;
+
 namespace EMapChangeType
 {
 	enum Type
@@ -181,8 +183,8 @@ public:
 	/** Restarts the editor, reopening the current project, if any */
 	void RestartEditor(bool bWarn = true);
 
-	/** Ticks the performance survey if it's running */
-	void TickPerformanceSurvey();
+	/** Ticks the performance analytics used by the analytics heartbeat */
+	void TickPerformanceAnalytics();
 
 	/** Triggers asset analytics if it hasn't been run yet */
 	void TickAssetAnalytics();
@@ -309,6 +311,9 @@ private:
 
 	/** An array of frame rate samples used by the performance survey */
 	TArray<float> FrameRateSamples;
+
+	/** Statistical information needed by the analytics to report editor performance */
+	TUniquePtr<FPerformanceAnalyticsStats> PerformanceAnalyticsStats;
 
 	/** handler to notify about navigation building process */
 	TSharedPtr<FTickableEditorObject> NavigationBuildingNotificationHandler;
