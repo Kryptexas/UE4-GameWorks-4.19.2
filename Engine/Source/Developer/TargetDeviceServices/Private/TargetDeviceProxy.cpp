@@ -90,6 +90,11 @@ int32 FTargetDeviceProxy::GetVariants(TArray<FName>& OutVariants) const
 	return TargetDeviceVariants.GetKeys(OutVariants);
 }
 
+bool FTargetDeviceProxy::HasVariant(FName InVariant) const
+{
+	return TargetDeviceVariants.Contains(InVariant);
+}
+
 FName FTargetDeviceProxy::GetTargetDeviceVariant(const FString& InDeviceId) const
 {
 	for (TMap<FName, FTargetDeviceProxyVariant>::TConstIterator ItVariant(TargetDeviceVariants); ItVariant; ++ItVariant)

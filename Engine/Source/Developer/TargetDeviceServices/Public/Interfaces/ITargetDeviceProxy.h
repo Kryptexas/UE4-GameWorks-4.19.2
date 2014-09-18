@@ -98,6 +98,14 @@ public:
 	virtual int32 GetVariants(TArray<FName>& OutVariants) const = 0;
 
 	/**
+	 * Checks whether this device proxy contains a variant
+	 *
+	 * @param InVariant Variant to check for.
+	 * @return true is this variant is found.
+	 */
+	virtual bool HasVariant(FName InVariant) const = 0;
+
+	/**
 	 * Gets the variant name of the target device.
 	 *
 	 * @param InDeviceId target device id to get the variant for.

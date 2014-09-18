@@ -92,6 +92,8 @@ public:
 
 	virtual int32 GetVariants(TArray<FName>& OutVariants) const override;
 
+	virtual bool HasVariant(FName InVariant) const override;
+
 	virtual FName GetTargetDeviceVariant(const FString& InDeviceId) const override;
 
 	virtual bool HasDeviceId(const FString& InDeviceId) const override;

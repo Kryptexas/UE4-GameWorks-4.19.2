@@ -331,9 +331,20 @@ private:
 
 	void UpdateProfile()
 	{
-		LaunchProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::FileServer);
+		check(DeviceProxy.IsValid());
 
 		FName Variant = SimpleProfile->GetDeviceVariant();
+		
+		// If the profile refers to a variant no longer supported by this device fall back to the default.
+		if (!DeviceProxy->HasVariant(Variant))
+		{
+			Variant = NAME_None;
+			SimpleProfile->SetDeviceVariant(Variant);
+		}
+
+		// Setup the Profile
+		LaunchProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::FileServer);
+
 		ILauncherDeviceGroupRef NewGroup = Model->GetProfileManager()->CreateUnmanagedDeviceGroup();
 		NewGroup->AddDevice(DeviceProxy->GetTargetDeviceId(Variant));
 		LaunchProfile->SetDeployedDeviceGroup(NewGroup);
