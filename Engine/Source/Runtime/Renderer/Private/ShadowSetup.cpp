@@ -961,6 +961,7 @@ void FDeferredShadingSceneRenderer::UpdatePreshadowCache()
 {
 	if (ShouldUseCachePreshadows() && !Views[0].bIsSceneCapture)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_UpdatePreshadowCache);
 		if (Scene->PreshadowCacheLayout.GetSizeX() == 0)
 		{
 			// Initialize the texture layout if necessary
@@ -1060,6 +1061,9 @@ void FDeferredShadingSceneRenderer::SetupInteractionShadows(
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows)
 {
+	// too high on hit count to leave on
+	// SCOPE_CYCLE_COUNTER(STAT_SetupInteractionShadows);
+
 	FPrimitiveSceneInfo* PrimitiveSceneInfo = Interaction->GetPrimitiveSceneInfo();
 	FLightSceneProxy* LightProxy = Interaction->GetLight()->Proxy;
 	extern bool GUseTranslucencyShadowDepths;
@@ -1433,6 +1437,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
  */
 void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CreateWholeSceneProjectedShadow);
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
 	// Try to create a whole-scene projected shadow initializer for the light.
@@ -1582,6 +1587,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 
 void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList)
 {
+	SCOPE_CYCLE_COUNTER(STAT_InitProjectedShadowVisibility);
 	// Initialize the views' ProjectedShadowVisibilityMaps and remove shadows without subjects.
 	for(TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights);LightIt;++LightIt)
 	{
@@ -1931,6 +1937,8 @@ void FSceneRenderer::GatherShadowPrimitives(
 
 void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, FVisibleLightInfo& VisibleLightInfo, FLightSceneInfo& LightSceneInfo)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AddViewDependentWholeSceneShadowsForView);
+
 	// Allow each view to create a whole scene view dependent shadow
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -2117,6 +2125,9 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate&
 		{
 			const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 			FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+
+			FScopeCycleCounter Context(LightSceneInfo->Proxy->GetStatId());
+
 			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
 			// Only consider lights that may have shadows.
