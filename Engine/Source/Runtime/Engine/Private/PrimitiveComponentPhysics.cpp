@@ -615,7 +615,7 @@ void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /
 void UPrimitiveComponent::UnWeldFromParent()
 {
 	FBodyInstance * NewRootBI = GetBodyInstance(NAME_None, false);
-	if (NewRootBI == NULL || NewRootBI->bWelded == false)
+	if (NewRootBI == NULL || NewRootBI->bWelded == false || IsPendingKill())
 	{
 		return;
 	}
