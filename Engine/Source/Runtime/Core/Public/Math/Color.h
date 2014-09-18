@@ -514,6 +514,12 @@ FORCEINLINE uint32 GetTypeHash( const FColor& Color )
 	return Color.DWColor();
 }
 
+FORCEINLINE uint32 GetTypeHash( const FLinearColor& Color )
+{
+	return GetTypeHash(FColor(Color));
+}
+
+
 /** Computes a brightness and a fixed point color from a floating point color. */
 extern CORE_API void ComputeAndFixedColorAndIntensity(const FLinearColor& InLinearColor,FColor& OutColor,float& OutIntensity);
 
