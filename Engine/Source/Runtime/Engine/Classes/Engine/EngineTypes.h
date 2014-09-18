@@ -2162,6 +2162,7 @@ namespace EEndPlayReason
 		LevelTransition,	// When the world is being unloaded for a level transition
 		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
 		RemovedFromWorld,	// When the level it is a member of is streamed out
+		Quit,			// When the application is being exited
 	};
 
 }

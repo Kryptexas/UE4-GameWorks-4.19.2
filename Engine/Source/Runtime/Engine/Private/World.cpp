@@ -1833,7 +1833,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 			AActor* Actor = Level->Actors[ActorIdx];
 			if (Actor != NULL)
 			{
-				Actor->EndPlay(EEndPlayReason::RemovedFromWorld);
+				Actor->RouteEndPlay(EEndPlayReason::RemovedFromWorld);
+
 				if (NetDriver)
 				{
 					NetDriver->NotifyActorLevelUnloaded(Actor);
@@ -4405,10 +4406,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 						UE_LOG(LogWorld, Warning, TEXT("Actor '%s' was indicated to be kept but exists in level '%s', not the persistent level.  Actor will not travel."), *TheActor->GetName(), *TheActor->GetLevel()->GetOutermost()->GetName());
 					}
 
-					if (TheActor->bActorInitialized)
-					{
-						TheActor->EndPlay(EEndPlayReason::LevelTransition);
-					}
+					TheActor->RouteEndPlay(EEndPlayReason::LevelTransition);
 
 					// otherwise, set to be deleted
 					KeepAnnotation.Clear(TheActor);

@@ -650,6 +650,11 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 		// Shut down any existing game connections
 		ShutdownWorldNetDriver(World);
+
+		for (FActorIterator ActorIt(World); ActorIt; ++ActorIt)
+		{
+			ActorIt->RouteEndPlay(EEndPlayReason::Quit);
+		}
 	}
 
 	Ar.Log( TEXT("Closing by request") );
