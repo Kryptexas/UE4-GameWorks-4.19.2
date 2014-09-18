@@ -150,6 +150,17 @@ public:
 		return bPassesFilter && bPassesCategory;
 	}
 
+	FString GetTitleString() const override
+	{
+		const FString Title = !Category.Title.IsEmpty() ? Category.Title.ToString() : CategoryName;
+		return Title;
+	}
+
+	bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const override
+	{
+		return GetTitleString() < OtherEntry->GetTitleString();
+	}
+
 	void AddSubCategory(TSharedPtr<FTutorialListEntry_Category> InSubCategory)
 	{
 		SubCategories.Add(InSubCategory);
@@ -346,6 +357,16 @@ public:
 		const bool bPassesCategory = InCategoryFilter.IsEmpty() || Tutorial->Category.StartsWith(InCategoryFilter);
 
 		return bPassesFilter && bPassesCategory;
+	}
+
+	FString GetTitleString() const override
+	{
+		return Tutorial->Title.ToString();
+	}
+
+	bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const override
+	{
+		return GetTitleString() < OtherEntry->GetTitleString();
 	}
 
 	FReply OnClicked(bool bRestart) const
@@ -767,6 +788,17 @@ void STutorialsBrowser::FilterTutorials()
 
 		CurrentCategoryPtr = CurrentCategory;
 	}
+
+	FilteredEntries.Sort(
+		[](TSharedPtr<ITutorialListEntry> EntryA, TSharedPtr<ITutorialListEntry> EntryB)->bool
+		{
+			if(EntryA.IsValid() && EntryB.IsValid())
+			{
+				return EntryA->SortAgainst(EntryB.ToSharedRef());
+			}
+			return false;
+		}
+	);
 
 	TutorialList->RequestListRefresh();
 }

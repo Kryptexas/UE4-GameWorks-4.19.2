@@ -14,6 +14,15 @@ struct ITutorialListEntry
 
 	/** Whether this entry passes the current filter criteria */
 	virtual bool PassesFilter(const FString& InCategoryFilter, const FString& InFilter) const = 0;
+
+	/** Get the string representation of this item's title */
+	virtual FString GetTitleString() const = 0;
+
+	/** 
+	 * Sort this entry against another entry
+	 * @return true if this < OtherEntry 
+	 */
+	virtual bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const = 0;
 };
 
 class FTutorialListEntry_Category;
