@@ -75,6 +75,10 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 					CVar->Set(FloatProperty->GetPropertyValue_InContainer(this));
 				}
 			}
+			else
+			{
+				UE_LOG(LogInit, Warning, TEXT("CVar named '%s' marked up in URenderingSettings was not found or is set to read-only"), *CVarName);
+			}
 		}
 	}
 }
