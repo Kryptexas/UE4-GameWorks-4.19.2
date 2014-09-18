@@ -13,7 +13,7 @@ typedef TSharedRef<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpoint
 /**
  * DEPRECATED: Delegate type for error notifications.
  *
- * The first parameter is the  context of the sent message.
+ * The first parameter is the context of the sent message.
  * The second parameter is the error string.
  */
 DECLARE_DELEGATE_TwoParams(FOnMessageEndpointError, const IMessageContextRef&, const FString&);
@@ -32,7 +32,7 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMessageEndpointReceiveMessage, const I
  *
  * This class provides a convenient implementation of the IRecieveMessages and ISendMessages interfaces,
  * which allow consumers to send and receive messages on a message bus. The endpoint allows for receiving
- * messages synchronously as they arrive, as well as asynchronously through an inbox that can be polled.
+ * messages asynchronously as they arrive, as well as synchronously through an inbox that can be polled.
  *
  * By default, messages are received synchronously on the thread that the endpoint was created on.
  * If the message consumer is thread-safe, a more efficient message dispatch can be enabled by calling
@@ -41,8 +41,6 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMessageEndpointReceiveMessage, const I
  * Endpoints that are destroyed or receive messages on non-Game threads should use the static function
  * FMessageEndpoint::SafeRelease() to dispose of the endpoint. This will ensure that there are no race
  * conditions between endpoint destruction and the receiving of messages.
- *
- * @todo gmp: Messaging reloadability; figure out how to auto-reconnect endpoints
  */
 class FMessageEndpoint
 	: public TSharedFromThis<FMessageEndpoint, ESPMode::ThreadSafe>

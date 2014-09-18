@@ -5,6 +5,8 @@
 
 /**
  * Implements a message attachment whose data is held in a file.
+ *
+ * WARNING: Message attachments do not work yet for out of process messages.
  */
 class FFileMessageAttachment
 	: public IMessageAttachment

@@ -13,7 +13,7 @@ public:
 	/**
 	 * Creates and initializes a new builder using the default message bus.
 	 *
-	 * WARNING: This constructor must be called from the main thread.
+	 * WARNING: This constructor must be called from the Game thread.
 	 *
 	 * @param InName The endpoint's name (for debugging purposes).
 	 * @param InBus The message bus to attach the endpoint to.
