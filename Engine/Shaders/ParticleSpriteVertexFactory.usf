@@ -471,6 +471,9 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	{
 		SetUV(Interpolants, CoordinateIndex, CustomizedUVs[CoordinateIndex]);
 	}
+#elif LIGHTMAP_UV_ACCESS || USE_PARTICLE_SUBUVS
+	SetUV(Interpolants, 0, Intermediates.TexCoord.xy);
+	SetUV(Interpolants, 1, Intermediates.TexCoord.zw);
 #endif
 
 #if NEEDS_TANGENT_BASIS

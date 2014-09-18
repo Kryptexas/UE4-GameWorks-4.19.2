@@ -504,6 +504,9 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS( FVertexFact
 	{
 		SetUV(Interpolants, CoordinateIndex, CustomizedUVs[CoordinateIndex]);
 	}
+#elif USE_PARTICLE_SUBUVS
+	SetUV(Interpolants, 0, Intermediates.TexCoord.xy);
+	SetUV(Interpolants, 1, Intermediates.TexCoord.zw);
 #endif
 
 	Interpolants.Misc.x = Intermediates.SubImageLerp;
