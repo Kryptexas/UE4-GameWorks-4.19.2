@@ -348,6 +348,16 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None, true>::GetRHI());
 				}
 
+				if (RenderBatch.ScissorRect.IsSet())
+				{
+					RHICmdList.SetScissorRect(true, RenderBatch.ScissorRect.GetValue().Left, RenderBatch.ScissorRect.GetValue().Top, RenderBatch.ScissorRect.GetValue().Right, RenderBatch.ScissorRect.GetValue().Bottom);
+				}
+				else
+				{
+					RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+				}
+
+
 				FTexture2DRHIRef TextureRHI;
 				if(ShaderResource)
 				{

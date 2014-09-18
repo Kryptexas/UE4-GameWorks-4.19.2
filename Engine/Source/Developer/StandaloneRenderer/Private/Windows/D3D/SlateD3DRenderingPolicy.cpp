@@ -238,7 +238,21 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 		}
 		else
 		{
-			GD3DDeviceContext->RSSetState( NormalRasterState  );
+			if (RenderBatch.ScissorRect.IsSet())
+			{
+				D3D11_RECT R;
+				FShortRect ScissorRect = RenderBatch.ScissorRect.GetValue();
+				R.left = ScissorRect.Left;
+				R.top = ScissorRect.Top;
+				R.bottom = ScissorRect.Bottom;
+				R.right = ScissorRect.Right;
+				GD3DDeviceContext->RSSetScissorRects(1, &R);
+				GD3DDeviceContext->RSSetState(ScissorRasterState);
+			}
+			else
+			{
+				GD3DDeviceContext->RSSetState(NormalRasterState);
+			}
 		}
 	
 

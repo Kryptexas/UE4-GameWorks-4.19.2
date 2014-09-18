@@ -322,8 +322,11 @@ public:
 	const FSlateRect& GetClippingRect() const { return ClippingRect; }
 	const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
 	uint32 GetDrawEffects() const { return DrawEffects; }
+	const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
 
 private:
+	void Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects);
+
 
 	static FVector2D GetRotationPoint( const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace );
 
@@ -337,6 +340,7 @@ private:
 	uint32 Layer;
 	uint32 DrawEffects;
 	EElementType ElementType;
+	TOptional<FShortRect> ScissorRect;
 };
 
 /**
@@ -372,8 +376,8 @@ struct FShaderParams
 class FSlateElementBatch
 {
 public: 
-	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags )
-		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags )
+	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect )
+		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect )
 		, ShaderResource(InShaderResource)
 		, VertexOffset(0)
 		, IndexOffset(0)
@@ -384,8 +388,8 @@ public:
 		, IndexArrayIndex(INDEX_NONE)
 	{}
 
-	FSlateElementBatch( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer )
-		: BatchKey( InCustomDrawer )
+	FSlateElementBatch( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer, const TOptional<FShortRect>& ScissorRect )
+		: BatchKey( InCustomDrawer, ScissorRect )
 		, ShaderResource( nullptr )
 		, VertexOffset(0)
 		, IndexOffset(0)
@@ -413,48 +417,62 @@ public:
 	ESlateDrawPrimitive::Type GetPrimitiveType() const { return BatchKey.DrawPrimitiveType; }
 	ESlateShader::Type GetShaderType() const { return BatchKey.ShaderType; } 
 	ESlateDrawEffect::Type GetDrawEffects() const { return BatchKey.DrawEffects; }
+	const TOptional<FShortRect>& GetScissorRect() const { return BatchKey.ScissorRect; }
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> GetCustomDrawer() const { return BatchKey.CustomDrawer; }
 private:
 	struct FBatchKey
 	{
-		const FShaderParams ShaderParams;
 		const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
+		const FShaderParams ShaderParams;
 		const ESlateBatchDrawFlag::Type DrawFlags;	
 		const ESlateShader::Type ShaderType;
 		const ESlateDrawPrimitive::Type DrawPrimitiveType;
 		const ESlateDrawEffect::Type DrawEffects;
+		const TOptional<FShortRect> ScissorRect;
 
-		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags )
+		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect )
 			: ShaderParams( InShaderParams )
 			, DrawFlags( InDrawFlags )
 			, ShaderType( InShaderType )
 			, DrawPrimitiveType( InDrawPrimitiveType )
 			, DrawEffects( InDrawEffects )
+			, ScissorRect( InScissorRect )
 		{
 		}
 
-		FBatchKey( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer )
-			: ShaderParams()
-			, CustomDrawer( InCustomDrawer )
+		FBatchKey( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer, const TOptional<FShortRect>& InScissorRect )
+			: CustomDrawer( InCustomDrawer )
+			, ShaderParams()
 			, DrawFlags( ESlateBatchDrawFlag::None )
 			, ShaderType( ESlateShader::Default )
 			, DrawPrimitiveType( ESlateDrawPrimitive::TriangleList )
 			, DrawEffects( ESlateDrawEffect::None )
+			, ScissorRect( InScissorRect )
 		{}
 
-		FORCEINLINE bool operator==( const FBatchKey& Other ) const
+		bool operator==( const FBatchKey& Other ) const
 		{
 			return DrawFlags == Other.DrawFlags
 				&& ShaderType == Other.ShaderType
 				&& DrawPrimitiveType == Other.DrawPrimitiveType
 				&& DrawEffects == Other.DrawEffects
-			    && ShaderParams == Other.ShaderParams
-			   	&& CustomDrawer == Other.CustomDrawer;
+				&& ShaderParams == Other.ShaderParams
+				&& ScissorRect == Other.ScissorRect
+				&& CustomDrawer == Other.CustomDrawer
+				;
 		}
 
+		/** Compute an efficient hash for this type for use in hash containers. */
 		friend uint32 GetTypeHash( const FBatchKey& InBatchKey )
 		{
-			return FCrc::MemCrc32(&InBatchKey.ShaderParams, sizeof(FShaderParams)) ^ ((InBatchKey.ShaderType << 16) | (InBatchKey.DrawFlags+InBatchKey.ShaderType+InBatchKey.DrawPrimitiveType+InBatchKey.DrawEffects));
+			// NOTE: Assumes these enum types are 8 bits.
+			uint32 RunningHash = (uint32)InBatchKey.DrawFlags << 24 | (uint32)InBatchKey.ShaderType << 16 | (uint32)InBatchKey.DrawPrimitiveType << 8 | (uint32)InBatchKey.DrawEffects << 0;
+			RunningHash = InBatchKey.CustomDrawer.IsValid() ? PointerHash(InBatchKey.CustomDrawer.Pin().Get(), RunningHash) : RunningHash;
+			RunningHash = HashCombine(GetTypeHash(InBatchKey.ShaderParams.PixelParams), RunningHash);
+			// NOTE: Assumes this type is 64 bits, no padding.
+			RunningHash = InBatchKey.ScissorRect.IsSet() ? HashCombine(GetTypeHash(*reinterpret_cast<const uint64*>(&InBatchKey.ScissorRect.GetValue())), RunningHash) : RunningHash;
+			return RunningHash;
+			//return FCrc::MemCrc32(&InBatchKey.ShaderParams, sizeof(FShaderParams)) ^ ((InBatchKey.ShaderType << 16) | (InBatchKey.DrawFlags+InBatchKey.ShaderType+InBatchKey.DrawPrimitiveType+InBatchKey.DrawEffects));
 		}
 	};
 
@@ -491,6 +509,7 @@ public:
 		, ShaderType( InBatch.GetShaderType() )
 		, DrawPrimitiveType( InBatch.GetPrimitiveType() )
 		, DrawEffects( InBatch.GetDrawEffects() )
+		, ScissorRect( InBatch.GetScissorRect() )
 		, VertexOffset( InBatch.VertexOffset )
 		, IndexOffset( InBatch.IndexOffset )
 		, NumVertices( InBatch.NumVertices )
@@ -512,6 +531,8 @@ public:
 	const ESlateDrawPrimitive::Type DrawPrimitiveType;
 
 	const ESlateDrawEffect::Type DrawEffects;
+
+	const TOptional<FShortRect> ScissorRect;
 
 	/** How far into the vertex buffer is this batch*/
 	const uint32 VertexOffset;

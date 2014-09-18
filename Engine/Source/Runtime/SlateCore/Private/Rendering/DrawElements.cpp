@@ -2,19 +2,25 @@
 
 #include "SlateCorePrivatePCH.h"
 
+void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects)
+{
+	RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
+	Position = PaintGeometry.DrawPosition;
+	LocalSize = PaintGeometry.GetLocalSize();
+	ClippingRect = InClippingRect;
+	Layer = InLayer;
+	Scale = PaintGeometry.DrawScale;
+	DrawEffects = InDrawEffects;
+	extern TOptional<FShortRect> GSlateScissorRect;
+	ScissorRect = GSlateScissorRect;
+}
 
 void FSlateDrawElement::MakeDebugQuad( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect)
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, ESlateDrawEffect::None);
 	DrawElt.ElementType = ET_DebugQuad;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = ESlateDrawEffect::None;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 
@@ -29,15 +35,9 @@ void FSlateDrawElement::MakeBox(
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = (InBrush->DrawAs == ESlateBrushDrawType::Border) ? ET_Border : ET_Box;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetBoxPayloadProperties( InBrush, InTint );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 void FSlateDrawElement::MakeRotatedBox( 
@@ -54,14 +54,8 @@ void FSlateDrawElement::MakeRotatedBox(
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = (InBrush->DrawAs == ESlateBrushDrawType::Border) ? ET_Border : ET_Box;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 
 	FVector2D RotationPoint = GetRotationPoint( PaintGeometry, InRotationPoint, RotationSpace );
 	DrawElt.DataPayload.SetRotatedBoxPayloadProperties( InBrush, Angle, RotationPoint, InTint );
@@ -72,15 +66,9 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetTextPayloadProperties( FString( EndIndex - StartIndex, *InText + StartIndex ), InFontInfo, InTint );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 
@@ -88,15 +76,9 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetTextPayloadProperties( InText, InFontInfo, InTint );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 
@@ -104,30 +86,18 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetTextPayloadProperties( InText.ToString(), InFontInfo, InTint );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, bool bGammaCorrect )
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Gradient;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetGradientPayloadProperties( InGradientStops, InGradientType, bGammaCorrect );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 
@@ -135,15 +105,9 @@ void FSlateDrawElement::MakeSpline( FSlateWindowElementList& ElementList, uint32
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Spline;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetSplinePayloadProperties( InStart, InStartDir, InEnd, InEndDir, InThickness, InTint );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 
@@ -157,15 +121,9 @@ void FSlateDrawElement::MakeLines( FSlateWindowElementList& ElementList, uint32 
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Line;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetLinesPayloadProperties( Points, InTint, bAntialias, ESlateLineJoinType::Sharp );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 
@@ -173,26 +131,19 @@ void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint
 {
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Viewport;
-	DrawElt.RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
-	DrawElt.Position = PaintGeometry.DrawPosition;
-	DrawElt.LocalSize = PaintGeometry.GetLocalSize();
-	DrawElt.ClippingRect = InClippingRect;
 	DrawElt.DataPayload.SetViewportPayloadProperties( Viewport, InTint, bGammaCorrect, bAllowBlending );
-	DrawElt.Layer = InLayer;
-	DrawElt.DrawEffects = InDrawEffects;
-	DrawElt.Scale = PaintGeometry.DrawScale;
 }
 
 
 void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer )
 {
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, FPaintGeometry(), FSlateRect(1,1,1,1), ESlateDrawEffect::None);
 	DrawElt.RenderTransform = FSlateRenderTransform();
 	DrawElt.ElementType = ET_Custom;
-	DrawElt.Layer = InLayer;
 	DrawElt.DataPayload.SetCustomDrawerPayloadProperties( CustomDrawer );
-	DrawElt.ClippingRect = FSlateRect(1,1,1,1);
 }
 
 FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace)

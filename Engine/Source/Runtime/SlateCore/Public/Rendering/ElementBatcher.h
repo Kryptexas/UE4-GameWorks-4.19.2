@@ -114,7 +114,8 @@ private:
 											 ESlateDrawPrimitive::Type PrimitiveType, 
 											 ESlateShader::Type ShaderType, 
 											 ESlateDrawEffect::Type DrawEffects, 
-											 ESlateBatchDrawFlag::Type DrawFlags = ESlateBatchDrawFlag::None);
+											 ESlateBatchDrawFlag::Type DrawFlags,
+											 const TOptional<FShortRect>& ScissorRect);
 
 	void AddVertices( TArray<FSlateVertex>& OutVertices, FSlateElementBatch& ElementBatch, const TArray<FSlateVertex>& VertexBatch );
 

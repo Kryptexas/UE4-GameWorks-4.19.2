@@ -179,6 +179,29 @@ struct FSlateVertex
 
 template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };
 
+/** Stores an aligned rect as shorts. */
+struct FShortRect
+{
+	FShortRect() : Left(0), Top(0), Right(0), Bottom(0) {}
+	FShortRect(uint16 InLeft, uint16 InTop, uint16 InRight, uint16 InBottom) : Left(InLeft), Top(InTop), Right(InRight), Bottom(InBottom) {}
+	explicit FShortRect(const FSlateRect& Rect) : Left((uint16)Rect.Left), Top((uint16)Rect.Top), Right((uint16)Rect.Right), Bottom((uint16)Rect.Bottom) {}
+	bool operator==(const FShortRect& RHS) const { return Left == RHS.Left && Top == RHS.Top && Right == RHS.Right && Bottom == RHS.Bottom; }
+	bool operator!=(const FShortRect& RHS) const { return !(*this == RHS); }
+	bool DoesIntersect( const FShortRect& B ) const
+	{
+		const bool bDoNotOverlap =
+			B.Right < Left || Right < B.Left ||
+			B.Bottom < Top || Bottom < B.Top;
+
+		return ! bDoNotOverlap;
+	}
+
+	uint16 Left;
+	uint16 Top;
+	uint16 Right;
+	uint16 Bottom;
+};
+
 /**
  * Viewport implementation interface that is used by SViewport when it needs to draw and processes input.                   
  */
