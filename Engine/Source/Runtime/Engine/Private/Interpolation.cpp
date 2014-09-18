@@ -3962,8 +3962,8 @@ void UInterpTrackMove::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, 
 	// If using 'look at' rotation, compute that and apply in world space
 	else if(RotMode == IMR_LookAtGroup)
 	{		
-		FRotator WorldLookAtRot = GetLookAtRotation(TrInst);
 		Actor->GetRootComponent()->SetRelativeLocation(RelativeSpacePos);
+		FRotator WorldLookAtRot = GetLookAtRotation(TrInst);
 		Actor->GetRootComponent()->SetWorldRotation(WorldLookAtRot);
 	}
 	// Setting relative rotation and translation from track
