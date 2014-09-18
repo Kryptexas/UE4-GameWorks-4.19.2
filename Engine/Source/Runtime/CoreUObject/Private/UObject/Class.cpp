@@ -243,6 +243,13 @@ FText UField::GetToolTipText() const
 		{
 			NativeToolTip = FDisplayNameHelper::Get(*this);
 		}
+		else
+		{
+			if (NativeToolTip.Split(TEXT("@see"), &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))
+			{
+				NativeToolTip.TrimTrailing();
+			}
+		}
 		LocalizedToolTip = FText::FromString(NativeToolTip);
 	}
 
