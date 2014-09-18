@@ -48,6 +48,7 @@ public class UnrealEd : ModuleRules
 				"SourceCodeAccess",
 				"ReferenceViewer",
                 "IntroTutorials",
+                "SuperSearch",
 				"OutputLog"
 			}
 		);
@@ -159,6 +160,7 @@ public class UnrealEd : ModuleRules
 				"ImageWrapper",
 				"Blutility",
 				"IntroTutorials",
+                "SuperSearch",
 				"DesktopPlatform",
 				"WorkspaceMenuStructure",
 				"BspMode",

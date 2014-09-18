@@ -123,6 +123,12 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 	TSharedPtr<SWidget> RestoredUI = MyTabManager->RestoreFrom( NewLayout, ParentWindow );
 
 	checkf(RestoredUI.IsValid(), TEXT("The layout must have a primary dock area") );
+
+#if !PLATFORM_MAC
+	FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+	TSharedPtr< SEditableTextBox > ExposedEditableTextBox;
+	TSharedRef<SWidget> SuperSearchWidget = SuperSearchModule.MakeSearchBox(ExposedEditableTextBox);
+#endif
 	
 	this->ChildSlot
 	[
@@ -146,9 +152,22 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 					+SOverlay::Slot()
 					.HAlign(HAlign_Right)
 					[
-						SAssignNew(MenuOverlayWidgetContent, SBorder)
-						.Padding(0)
-						.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						[
+							SAssignNew(MenuOverlayWidgetContent, SBorder)
+							.Padding(0)
+							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+						]
+
+#if !PLATFORM_MAC
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(FMargin(2.f, 0, 2.f, 0))
+						[
+							SuperSearchWidget
+						]
+#endif						
 					]
 				]
 			// Viewport/Document/Docking area

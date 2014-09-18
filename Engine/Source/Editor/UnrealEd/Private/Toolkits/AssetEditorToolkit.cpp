@@ -13,6 +13,7 @@
 #include "IDocumentation.h"
 #include "ReferenceViewer.h"
 #include "IIntroTutorials.h"
+#include "SuperSearchModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
@@ -100,6 +101,12 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 			FGlobalTabmanager::Get()->InsertNewDocumentTab( AssetEditorToolkitTab, FTabManager::ESearchPreference::PreferLiveTab, NewMajorTab.ToSharedRef() );
 		}
 
+#if PLATFORM_MAC
+		FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+		TSharedPtr< SEditableTextBox > ExposedEditableTextBox;
+		TSharedRef<SWidget> SuperSearchWidget = SuperSearchModule.MakeSearchBox(ExposedEditableTextBox);
+#endif
+
 		IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));
 		TSharedRef<SWidget> UserFeedbackWidget = UserFeedback.CreateFeedbackWidget(GetBaseToolkitName());
 
@@ -108,13 +115,22 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 
 		NewMajorTab->SetRightContent(
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
+				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
 				.VAlign(VAlign_Center)
 				[
 					UserFeedbackWidget
 				]
+#if PLATFORM_MAC
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					SuperSearchWidget
+				]
+#endif
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(8.0f, 0.0f, 8.0f, 0.0f)
