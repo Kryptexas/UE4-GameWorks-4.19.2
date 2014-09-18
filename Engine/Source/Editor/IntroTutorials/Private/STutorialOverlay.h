@@ -84,4 +84,6 @@ private:
 	/** Delegate used to inform widgets of the current window size, so they can auto-adjust layout */
 	FOnCacheWindowSize OnCacheWindowSize;
 
+	/** Flag to see if we have valid content (this widget is created to also supply picker overlays) */
+	bool bHasValidContent;
 };
