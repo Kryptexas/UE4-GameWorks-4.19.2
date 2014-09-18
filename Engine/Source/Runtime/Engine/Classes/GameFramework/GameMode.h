@@ -48,7 +48,7 @@ struct FGameClassShortName
 // C++ UGameEngine::LoadMap().  The class of this GameMode actor is determined by
 // (in order) either the URL ?game=xxx, or the
 // DefaultGameMode entry in the game's .ini file (in the /Script/Engine.Engine section).
-// The GameMode used can be overridden in the GameMode function SetGameMode(), called
+// The GameMode used can be overridden in the GameMode function GetGameModeClass(), called
 // on the game class picked by the above process.
 //
 //=============================================================================
@@ -354,15 +354,19 @@ public:
 	/** 
 	 * @return the full path to the optimal GameMode class to use for the specified map and options
 	 * this is used for preloading cooked packages, etc. and therefore doesn't need to include any fallbacks
-	 * as SetGameMode() will be called later to actually find/load the desired class
+	 * as GetGameModeClass() will be called later to actually find/load the desired class
 	 */
-	FString GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal);
+	virtual FString GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal) const;
 
 	/** 
 	 * @return the class of GameMode to spawn for the game on the specified map and the specified options
 	 * this function should include any fallbacks in case the desired class can't be found
 	 */
+	virtual TSubclassOf<AGameMode> GetGameModeClass(const FString& MapName, const FString& Options, const FString& Portal) const;
+
+	DEPRECATED(4.5, "AGameMode::SetGameMode renamed AGameMode::GetGameModeClass")
 	TSubclassOf<AGameMode> SetGameMode(const FString& MapName, const FString& Options, const FString& Portal);
+
 
 	/** @return GameSession class to use for this game  */
 	virtual TSubclassOf<class AGameSession> GetGameSessionClass() const;

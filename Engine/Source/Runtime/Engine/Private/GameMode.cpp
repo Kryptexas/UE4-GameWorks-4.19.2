@@ -1212,15 +1212,19 @@ int32 AGameMode::GetIntOption( const FString& Options, const FString& ParseStrin
 	return CurrentValue;
 }
 
-FString AGameMode::GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal)
+FString AGameMode::GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal) const
 {
 	return GetClass()->GetPathName();
 }
 
+TSubclassOf<AGameMode> AGameMode::GetGameModeClass(const FString& MapName, const FString& Options, const FString& Portal) const
+{
+	return GetClass();
+}
 
 TSubclassOf<AGameMode> AGameMode::SetGameMode(const FString& MapName, const FString& Options, const FString& Portal)
 {
-	return GetClass();
+	return GetGameModeClass(MapName, Options, Portal);
 }
 
 TSubclassOf<AGameSession> AGameMode::GetGameSessionClass() const
