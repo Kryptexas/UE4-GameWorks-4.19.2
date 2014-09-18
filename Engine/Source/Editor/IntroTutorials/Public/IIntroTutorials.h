@@ -37,6 +37,13 @@ public:
 	}
 
 	/**
+	 * Launch a tutorial with the specified asset.
+	 *
+	 * @param TutorialAssetName The name of the tutorial asset.
+	 */
+	virtual void LaunchTutorial(const FString& TutorialAssetName) = 0;
+
+	/**
 	 * Launch a tutorial immediately, bypassing the tutorial browser.
 	 * 
 	 * @param	Tutorial	The tutorial to launch

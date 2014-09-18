@@ -27,13 +27,14 @@ namespace EMessageToken
 	enum Type
 	{
 		Action,
-		Text,
-		Image,
-		Severity,
-		Object,
-		URL,
 		AssetName,
 		Documentation,
+		Image,
+		Object,
+		Severity,
+		Text,
+		Tutorial,
+		URL,
 	};
 }
 
@@ -498,4 +499,43 @@ private:
 
 	/** The action's description text. */
 	const FText ActionDescription;
+};
+
+
+class FTutorialToken
+	: public IMessageToken
+{
+public:
+
+	/** Factory method, tokens can only be constructed as shared refs */
+	CORE_API static TSharedRef<FTutorialToken> Create( const FString& TutorialAssetName )
+	{
+		return MakeShareable(new FTutorialToken(TutorialAssetName));
+	}
+
+public:
+
+	// IMessageToken interface
+
+	virtual EMessageToken::Type GetType() const override
+	{
+		return EMessageToken::Tutorial;
+	}
+
+	/** Get the tutorial asset name stored in this token. */
+	const FString& GetTutorialAssetName() const
+	{
+		return TutorialAssetName;
+	}
+
+protected:
+	/** Protected constructor */
+	FTutorialToken( const FString& InTutorialAssetName )
+		: TutorialAssetName(InTutorialAssetName)
+	{ }
+
+private:
+
+	/** The name of the tutorial asset. */
+	FString TutorialAssetName;
 };

@@ -28,9 +28,10 @@ public class MessageLog : ModuleRules
 
 		if (UEBuildConfiguration.bBuildEditor)
 		{
-			PrivateDependencyModuleNames.AddRange(
+			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Documentation",
+					"IntroTutorials",
 				}
 			);		
 		}

@@ -188,7 +188,6 @@ FDocumentationToken::FDocumentationToken( const FString& InDocumentationLink, co
 	: DocumentationLink(InDocumentationLink)
 	, PreviewExcerptLink(InPreviewExcerptLink)
 	, PreviewExcerptName(InPreviewExcerptName)
-{
-}
+{ }
 
 #undef LOCTEXT_NAMESPACE

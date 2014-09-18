@@ -6,6 +6,7 @@
 
 #if WITH_EDITOR
 	#include "IDocumentation.h"
+	#include "IIntroTutorials.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "SMessageLogMessageListRow"
@@ -249,9 +250,9 @@ protected:
 			}
 			break;
 
+#if WITH_EDITOR
 		case EMessageToken::Documentation:
 			{
-#if WITH_EDITOR
 				const TSharedRef<FDocumentationToken> DocumentationToken = StaticCastSharedRef<FDocumentationToken>(InMessageToken);
 
 				IconBrushName = FName("MessageLog.Docs");
@@ -265,9 +266,22 @@ protected:
 					)
 					.TextStyle(FEditorStyle::Get(), "MessageLog")
 					.OnNavigate(this, &SMessageLogMessageListRow::HandleDocsHyperlinkNavigate, DocumentationToken->GetDocumentationLink());
-#endif
 			}
 			break;
+
+		case EMessageToken::Tutorial:
+			{
+				const TSharedRef<FTutorialToken> TutorialToken = StaticCastSharedRef<FTutorialToken>(InMessageToken);
+
+				IconBrushName = FName("MessageLog.Tutorial");
+				Content = SNew(SHyperlink)
+					.Text(LOCTEXT("TutorialLabel", "Tutorial"))
+					.ToolTipText(LOCTEXT("TutorialTokenToolTip", "Click to open tutorial"))
+					.TextStyle(FEditorStyle::Get(), "MessageLog")
+					.OnNavigate(this, &SMessageLogMessageListRow::HandleTutorialHyperlinkNavigate, TutorialToken->GetTutorialAssetName());
+			}
+			break;
+#endif
 		}
 
 		if (Content.IsValid() && (IconBrushName != NAME_None))
@@ -306,13 +320,6 @@ private:
 		ActionToken->ExecuteAction();
 	}
 
-#if WITH_EDITOR
-	void HandleDocsHyperlinkNavigate( FString DocumentationLink )
-	{
-		IDocumentation::Get()->Open(DocumentationLink);
-	}
-#endif
-
 	void HandleHyperlinkNavigate( TSharedRef<IMessageToken> InMessageToken )
 	{
 		InMessageToken->GetOnMessageTokenActivated().ExecuteIfBound(InMessageToken);
@@ -325,6 +332,18 @@ private:
 		OnTokenClicked.ExecuteIfBound(Message, InMessageToken);
 		return FReply::Handled();
 	}
+
+#if WITH_EDITOR
+	void HandleDocsHyperlinkNavigate( FString DocumentationLink )
+	{
+		IDocumentation::Get()->Open(DocumentationLink);
+	}
+
+	void HandleTutorialHyperlinkNavigate( FString TutorialAssetName )
+	{
+		IIntroTutorials::Get().LaunchTutorial(TutorialAssetName);
+	}
+#endif
 
 protected:
 

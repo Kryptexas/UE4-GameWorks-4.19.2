@@ -328,9 +328,9 @@ void FIntroTutorials::OnNewProjectDialogOpened()
 void FIntroTutorials::HandleCompilerNotFound()
 {
 #if PLATFORM_WINDOWS
-	LaunchTutorial( TEXT( "Engine/Tutorial/Installation/InstallingVisualStudioTutorial.InstallingVisualStudioTutorial" ) );
+	LaunchTutorialByName( TEXT( "Engine/Tutorial/Installation/InstallingVisualStudioTutorial.InstallingVisualStudioTutorial" ) );
 #elif PLATFORM_MAC
-	LaunchTutorial( TEXT( "Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial" ) );
+	LaunchTutorialByName( TEXT( "Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial" ) );
 #else
 	STUBBED("FIntroTutorials::HandleCompilerNotFound");
 #endif
@@ -338,7 +338,7 @@ void FIntroTutorials::HandleCompilerNotFound()
 
 void FIntroTutorials::HandleSDKNotInstalled(const FString& PlatformName, const FString& InTutorialAsset)
 {
-	LaunchTutorial( InTutorialAsset );
+	LaunchTutorialByName( InTutorialAsset );
 }
 
 EVisibility FIntroTutorials::GetHomeButtonVisibility() const
@@ -364,7 +364,12 @@ void FIntroTutorials::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FS
 	}
 }
 
-void FIntroTutorials::LaunchTutorial(const FString& InAssetPath, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate OnTutorialClosed, FSimpleDelegate OnTutorialExited)
+void FIntroTutorials::LaunchTutorial(const FString& TutorialAssetName)
+{
+	LaunchTutorialByName(TutorialAssetName);
+}
+
+void FIntroTutorials::LaunchTutorialByName(const FString& InAssetPath, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate OnTutorialClosed, FSimpleDelegate OnTutorialExited)
 {
 	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *InAssetPath);
 	if (Blueprint && Blueprint->GeneratedClass)
