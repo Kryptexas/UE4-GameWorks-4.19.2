@@ -1151,8 +1151,11 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 	{
 		// PredictionKey will only be valid on the client that predicted it. So if this has a valid PredictionKey, we can assume we already predicted it and shouldn't invoke GameplayCues.
 		// We may need to do more bookkeeping here in the future. Possibly give the predicted gameplayeffect a chance to pass something off to the new replicated gameplay effect.
-
-		ShouldInvokeGameplayCueEvents = false;
+		
+		if (InArray.HasPredictedEffectWithPredictedKey(PredictionKey))
+		{
+			ShouldInvokeGameplayCueEvents = false;
+		}
 	}
 
 	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectAdded(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
@@ -1582,7 +1585,7 @@ void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 	}
 }
 
-FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey)
+FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
 
@@ -1640,13 +1643,8 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 		// Clients predicting should call MarkArrayDirty to force the internal replication map to be rebuilt.
 		MarkArrayDirty();
 
-		UAbilitySystemComponent::FPredictionInfo& PredictionInfo = Owner->GetPredictionKeyDelegate(InPredictionKey.Current);
-		PredictionInfo.PredictionKeyClearDelegate.AddUObject(Owner, &UAbilitySystemComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
-
-		if (InPredictionKey.Base) // Fixme: this should happen at a higher level
-		{
-			PredictionInfo.DependentPredictionKeys.AddUnique(InPredictionKey.Current);
-		}
+		// Once replicated state has caught up to this prediction key, we must remove this gameplay effect.
+		InPredictionKey.NewCaughtUpDelegate().BindUObject(Owner, &UAbilitySystemComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
 	}
 
 	InternalOnActiveGameplayEffectAdded(NewEffect);	
@@ -1699,15 +1697,12 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
 
 		bool ShouldInvokeGameplayCueEvent = true;
-		if (Effect.PredictionKey.IsValidKey() && !IsNetAuthority())
+		if (!IsNetAuthority() && Effect.PredictionKey.IsValidKey() && Effect.PredictionKey.WasReceived() == false)
 		{
-			// Don't invoke GameplayCue event if we still have another GameplayEffect that shares the same predictionkey
-			for (const FActiveGameplayEffect& OtherEffect : GameplayEffects)
+			// This was an effect that we predicted. Don't invoke GameplayCue event if we have another GameplayEffect that shares the same predictionkey and was received from the server
+			if (HasReceivedEffectWithPredictedKey(Effect.PredictionKey))
 			{
-				if (OtherEffect.PredictionKey == Effect.PredictionKey && (&OtherEffect != &Effect))
-				{
-					ShouldInvokeGameplayCueEvent = false;
-				}
+				ShouldInvokeGameplayCueEvent = false;
 			}
 		}
 
@@ -2008,7 +2003,7 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 
 	TArray<float>	ReturnList;
 
-	for (const FActiveGameplayEffect &Effect : GameplayEffects)
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
 	{
 		if (Query.TagContainer)
 		{
@@ -2036,6 +2031,32 @@ FOnGameplayEffectTagCountChanged& FActiveGameplayEffectsContainer::RegisterGamep
 FOnGameplayAttributeChange& FActiveGameplayEffectsContainer::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
 {
 	return AttributeChangeDelegates.FindOrAdd(Attribute);
+}
+
+bool FActiveGameplayEffectsContainer::HasReceivedEffectWithPredictedKey(FPredictionKey PredictionKey) const
+{
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		if (Effect.PredictionKey == PredictionKey && Effect.PredictionKey.WasReceived() == true)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FActiveGameplayEffectsContainer::HasPredictedEffectWithPredictedKey(FPredictionKey PredictionKey) const
+{
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		if (Effect.PredictionKey == PredictionKey && Effect.PredictionKey.WasReceived() == false)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------

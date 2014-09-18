@@ -156,7 +156,7 @@ bool UAbilitySystemComponent::IsOwnerActorAuthoritative() const
 
 bool UAbilitySystemComponent::HasNetworkAuthorityToApplyGameplayEffect(const FModifierQualifier QualifierContext) const
 {
-	return (IsOwnerActorAuthoritative() || QualifierContext.PredictionKey().IsStale()==false);
+	return (IsOwnerActorAuthoritative() || QualifierContext.PredictionKey().IsValidForMorePrediction());
 }
 
 void UAbilitySystemComponent::SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue)
@@ -702,42 +702,7 @@ void UAbilitySystemComponent::OnRep_GameplayEffects()
 void UAbilitySystemComponent::OnRep_PredictionKey()
 {
 	// Every predictive action we've done up to and including the current value of ReplicatedPredictionKey needs to be wiped
-	int32 idx = 0;
-	for ( ; idx < PredictionDelegates.Num(); ++idx)
-	{
-		if (PredictionDelegates[idx].Key <= ReplicatedPredictionKey.Current)
-		{
-			PredictionDelegates[idx].Value.PredictionKeyClearDelegate.Broadcast();
-		}
-		else
-		{
-			break;
-		}
-	}
-	if (idx > 0)
-	{
-		// Remove everyone we called Broadcast on in one call
-		PredictionDelegates.RemoveAt(0, idx);
-	}
-}
-
-UAbilitySystemComponent::FPredictionInfo& UAbilitySystemComponent::GetPredictionKeyDelegate(FPredictionKey::KeyType PredictionKey)
-{
-	// See if we already have one for this key
-	for (auto & Item : PredictionDelegates)
-	{
-		if (Item.Key == PredictionKey)
-		{
-			return Item.Value;
-		}
-	}
-
-	// Create a new one
-	TPair<FPredictionKey::KeyType, FPredictionInfo> NewPair;
-	NewPair.Key = PredictionKey;
-	
-	PredictionDelegates.Add(NewPair);
-	return PredictionDelegates.Last().Value;
+	FPredictionKeyDelegates::CatchUpTo(ReplicatedPredictionKey.Current);
 }
 
 // ---------------------------------------------------------------------------------------

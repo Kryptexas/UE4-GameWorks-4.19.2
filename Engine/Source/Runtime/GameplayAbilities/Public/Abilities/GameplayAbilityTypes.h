@@ -199,7 +199,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	FPredictionKey GetPredictionKeyForNewAction() const
 	{
-		return PredictionKey.IsStale() ? FPredictionKey() : PredictionKey;
+		return PredictionKey.IsValidForMorePrediction() ? PredictionKey : FPredictionKey();
 	}
 
 	FPredictionKey GetPredictionKey() const

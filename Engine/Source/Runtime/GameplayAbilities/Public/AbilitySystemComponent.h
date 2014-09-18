@@ -143,16 +143,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION()
 	void OnRep_PredictionKey();
 
-	struct FPredictionInfo
-	{
-		FAbilitySystemComponentPredictionKeyClear PredictionKeyClearDelegate;
-		TArray<FPredictionKey::KeyType> DependentPredictionKeys;
-	};
-
-	TArray<TPair<FPredictionKey::KeyType, FPredictionInfo > > PredictionDelegates;
-
-	FPredictionInfo&	GetPredictionKeyDelegate(FPredictionKey::KeyType PredictionKey);
-
 	struct FPendingAbilityInfo
 	{
 		bool operator==(const FPendingAbilityInfo& Other) const
@@ -402,6 +392,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
+
+	void	OnClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey::KeyType PredictionKey);
 
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate,int16 PredictionKey);

@@ -388,8 +388,13 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
 		ActivationInfo.GenerateNewPredictionKey();
 
+		FPredictionKey ThisPredictionKey = ActivationInfo.GetPredictionKeyForNewAction();
+		
 		// This must be called immediately after GeneratePredictionKey to prevent problems with recursively activating abilities
-		ServerTryActivateAbility(Handle, ActivationInfo.GetPredictionKeyForNewAction());
+		ServerTryActivateAbility(Handle, ThisPredictionKey);
+
+		// If this PredictionKey is rejected, we will call OnClientActivateAbilityFailed.
+		ThisPredictionKey.NewRejectedDelegate().BindUObject(this, &UAbilitySystemComponent::OnClientActivateAbilityFailed, Handle, ThisPredictionKey.Current);
 
 		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -408,7 +413,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 			}
 			else
 			{
-				ensure(false);
+				ABILITY_LOG(Error, TEXT("TryActivateAbility called on ability %s that is InstancePerExecution and Replicated. This is an invalid configuration."), *Ability->GetName() );
 			}
 		}
 		else
@@ -460,19 +465,10 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 			{
 				switch(ExecutingAbilityInfo.State)
 				{
-					case EAbilityExecutionState::Executing:
-					{
-						FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(ExecutingAbilityInfo.Handle);
-						if (Spec)
-						{
-							// This feels wrong? We are changing the PredictionKey state on another ability?
-							Spec->ActivationInfo.SetPredictionKey(PredictionKey);
-						}
-						break;
-					}
 					case EAbilityExecutionState::Failed:
 						ClientActivateAbilityFailed(Handle, PredictionKey.Current);
 						break;
+					case EAbilityExecutionState::Executing:
 					case EAbilityExecutionState::Succeeded:
 						ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
 						break;
@@ -520,38 +516,39 @@ bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbility
 	return true;
 }
 
+static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");
+
 void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGameplayAbilitySpecHandle Handle, int16 PredictionKey)
 {
+	// If this was predicted, we must use the PredictionKey system to end the ability
 	if (PredictionKey > 0)
 	{
-		for (int32 idx = 0; idx < PredictionDelegates.Num(); ++idx)
-		{
-			FPredictionKey::KeyType Key = PredictionDelegates[idx].Key;
-			if (Key == PredictionKey)
-			{
-				ABILITY_LOG(Warning, TEXT("Failed ActivateAbility, clearing prediction data %d"), PredictionKey);
-				PredictionDelegates[idx].Value.PredictionKeyClearDelegate.Broadcast();
+		FPredictionKeyDelegates::BroadcastRejectedDelegate(PredictionKey);
+	}
 
-				// Find the actual UGameplayAbility
-				FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
-				if (Spec)
-				{
-					UGameplayAbility* AbilityToActivate = Spec->Ability;
-					for (FPredictionKey::KeyType DependentKey : PredictionDelegates[idx].Value.DependentPredictionKeys)
-					{
-						ClientActivateAbilityFailed(Handle, DependentKey);
-					}
-				}
-				PredictionDelegates.RemoveAt(idx);
-				break;
-			}
-			else if(Key >= PredictionKey)
-			{
-				break;
-			}
+	// If this was not predicted... there is not much to do right now. We may need to keep track on the AbilitySpec if we are waiting on a confirm in these cases.
+}
+
+void UAbilitySystemComponent::OnClientActivateAbilityFailed(FGameplayAbilitySpecHandle Handle, FPredictionKey::KeyType PredictionKey)
+{
+	// Find the actual UGameplayAbility		
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+
+	ABILITY_LOG(Warning, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey :%d"), PredictionKey);
+
+	TArray<UGameplayAbility*> Instances = Spec->GetAbilityInstances();
+	for (UGameplayAbility* Ability : Instances)
+	{
+		if (Ability->CurrentActivationInfo.GetPredictionKey().Current == PredictionKey)
+		{
+			ABILITY_LOG(Warning, TEXT("Ending Ability %s"), *Ability->GetName());
+			Ability->K2_EndAbility();
 		}
 	}
 }
+
+
+static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilitySucceed_Implementation");
 
 void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGameplayAbilitySpecHandle Handle, int16 PredictionKey)
 {

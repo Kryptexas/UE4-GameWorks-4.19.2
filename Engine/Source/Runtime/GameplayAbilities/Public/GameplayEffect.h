@@ -1222,6 +1222,10 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
 
+	bool HasReceivedEffectWithPredictedKey(FPredictionKey PredictionKey) const;
+
+	bool HasPredictedEffectWithPredictedKey(FPredictionKey PredictionKey) const;
+
 private:
 
 	FTimerHandle StackHandle;
