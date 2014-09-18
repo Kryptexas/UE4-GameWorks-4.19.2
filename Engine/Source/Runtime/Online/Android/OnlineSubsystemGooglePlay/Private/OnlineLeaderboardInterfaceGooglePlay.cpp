@@ -3,19 +3,33 @@
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "OnlineLeaderboardInterfaceGooglePlay.h"
 #include "Online.h"
+#include "OnlineAsyncTaskGooglePlayReadLeaderboard.h"
+
+#include "gpg/leaderboard_manager.h"
 
 FOnlineLeaderboardsGooglePlay::FOnlineLeaderboardsGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem)
+	: Subsystem(InSubsystem)
 {
+	check(Subsystem);
 }
 
 bool FOnlineLeaderboardsGooglePlay::ReadLeaderboards(const TArray< TSharedRef<FUniqueNetId> >& Players, FOnlineLeaderboardReadRef& ReadObject)
 {
-	TriggerOnLeaderboardReadCompleteDelegates(false);
-	return false;
+	ReadObject->ReadState = EOnlineAsyncTaskState::InProgress;
+	ReadObject->Rows.Empty();
+
+	auto ReadTask = new FOnlineAsyncTaskGooglePlayReadLeaderboard(
+		Subsystem,
+		ReadObject,
+		GetLeaderboardID(ReadObject->LeaderboardName.ToString()));
+	Subsystem->QueueAsyncTask(ReadTask);
+
+	return true;
 }
 
 bool FOnlineLeaderboardsGooglePlay::ReadLeaderboardsForFriends(int32 LocalUserNum, FOnlineLeaderboardReadRef& ReadObject)
 {
+	UE_LOG(LogOnline, Warning, TEXT("ReadLeaderboardsForFriends is not supported on Google Play."));
 	TriggerOnLeaderboardReadCompleteDelegates(false);
 	return false;
 }
@@ -86,13 +100,17 @@ bool FOnlineLeaderboardsGooglePlay::FlushLeaderboards(const FName& SessionName)
 	UE_LOG_ONLINE(Display, TEXT("flush leaderboards session name :%s"), *SessionName.ToString());
 
 	bool Success = true;
-	//@todo android: make ansynchronous?
+
 	for(int32 Index = 0; Index < UnreportedScores.Num(); ++Index)
 	{
 		UE_LOG_ONLINE(Display, TEXT("Submitting an unreported score to %s. Value: %d "), *UnreportedScores[Index].LeaderboardName);
 
-		extern void AndroidThunkCpp_WriteLeaderboardValue(const FString&, int64_t);
-		AndroidThunkCpp_WriteLeaderboardValue(GetLeaderboardID(UnreportedScores[Index].LeaderboardName), UnreportedScores[Index].Score);
+		const FString GoogleId = GetLeaderboardID(UnreportedScores[Index].LeaderboardName);
+
+		auto ConvertedId = FOnlineSubsystemGooglePlay::ConvertFStringToStdString(GoogleId);
+		Subsystem->GetGameServices()->Leaderboards().SubmitScore(
+			ConvertedId,
+			UnreportedScores[Index].Score);
 	}
 
 	UnreportedScores.Empty();
@@ -113,7 +131,7 @@ FString FOnlineLeaderboardsGooglePlay::GetLeaderboardID(const FString& Leaderboa
 	auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
 	for(const auto& Mapping : DefaultSettings->LeaderboardMap)
 	{
-		if(Mapping.Name == LeaderboardName)
+		if(Mapping.Name.Equals(LeaderboardName))
 		{
 			return Mapping.LeaderboardID;
 		}

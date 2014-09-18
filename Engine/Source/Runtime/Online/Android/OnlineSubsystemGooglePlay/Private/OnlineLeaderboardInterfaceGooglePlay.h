@@ -27,6 +27,9 @@ public:
 	virtual bool WriteOnlinePlayerRatings(const FName& SessionName, int32 LeaderboardId, const TArray<FOnlinePlayerScore>& PlayerScores) override;
 
 private:
+	/** Pointer to owning subsystem */
+	FOnlineSubsystemGooglePlay* Subsystem;
+
 	/**
 	 * Helper function to get the platform- and game-specific leaderboard ID from the JSON config file.
 	 *

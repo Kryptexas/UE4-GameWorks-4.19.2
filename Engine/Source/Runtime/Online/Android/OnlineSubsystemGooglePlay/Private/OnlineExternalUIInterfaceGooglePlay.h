@@ -6,6 +6,8 @@
 #include "OnlineExternalUIInterface.h"
 #include "OnlineSubsystemGooglePlayPackage.h"
 
+class FOnlineSubsystemGooglePlay;
+
 /** 
  * Interface definition for the online services external UIs
  * Any online service that provides extra UI overlays will implement the relevant functions
@@ -13,9 +15,11 @@
 class FOnlineExternalUIGooglePlay :
 	public IOnlineExternalUI
 {
+private:
+	FOnlineSubsystemGooglePlay* Subsystem;
 
 public:
-	FOnlineExternalUIGooglePlay();
+	FOnlineExternalUIGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem);
 
 	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate) override;
 	virtual bool ShowFriendsUI(int32 LocalUserNum) override;

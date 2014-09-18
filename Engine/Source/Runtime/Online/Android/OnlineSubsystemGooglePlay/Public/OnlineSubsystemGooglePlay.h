@@ -10,6 +10,11 @@
 #include "OnlineExternalUIInterfaceGooglePlay.h"
 #include "UniquePtr.h"
 
+#include "gpg/game_services.h"
+
+class FOnlineAsyncTaskGooglePlayLogin;
+class FRunnableThread;
+
 /**
  * OnlineSubsystemGooglePlay - Implementation of the online subsystem for Google Play services
  */
@@ -68,10 +73,34 @@ PACKAGE_SCOPE:
 	/** Return the async task manager owned by this subsystem */
 	class FOnlineAsyncTaskManagerGooglePlay* GetAsyncTaskManager() { return OnlineAsyncTaskThreadRunnable.Get(); }
 
+	/**
+	 * Add an async task onto the task queue for processing
+	 * @param AsyncTask - new heap allocated task to process on the async task thread
+	 */
+	void QueueAsyncTask(class FOnlineAsyncTask* AsyncTask);
+
+	/** Returns a pointer to the Google API entry point */
+	gpg::GameServices* GetGameServices() const { return GameServicesPtr.Get(); }
+
+	/** Utility function, useful for Google APIs that take a std::string but we only have an FString */
+	static std::string ConvertFStringToStdString(const FString& InString);
+
+	/** Returns the Google Play-specific version of Identity, useful to avoid unnecessary casting */
+	FOnlineIdentityGooglePlayPtr GetIdentityGooglePlay() const { return IdentityInterface; }
+
+	/** Returns the Google Play-specific version of Achievements, useful to avoid unnecessary casting */
+	FOnlineAchievementsGooglePlayPtr GetAchievementsGooglePlay() const { return AchievementsInterface; }
+
 private:
+
+	/** Google callback when auth is complete */
+	void OnAuthActionFinished(gpg::AuthOperation Op, gpg::AuthStatus Status);
 
 	/** Online async task runnable */
 	TUniquePtr<class FOnlineAsyncTaskManagerGooglePlay> OnlineAsyncTaskThreadRunnable;
+
+	/** Online async task thread */
+	TUniquePtr<FRunnableThread> OnlineAsyncTaskThread;
 
 	/** Interface to the online identity system */
 	FOnlineIdentityGooglePlayPtr IdentityInterface;
@@ -84,6 +113,12 @@ private:
 
 	/** Interface to the external UI services */
 	FOnlineExternalUIGooglePlayPtr ExternalUIInterface;
+
+	/** Pointer to the main entry point for the Google API */
+	TUniquePtr<gpg::GameServices> GameServicesPtr;
+
+	/** Track the current login task (if any) so callbacks can notify it */
+	FOnlineAsyncTaskGooglePlayLogin* CurrentLoginTask;
 };
 
 typedef TSharedPtr<FOnlineSubsystemGooglePlay, ESPMode::ThreadSafe> FOnlineSubsystemGooglePlayPtr;

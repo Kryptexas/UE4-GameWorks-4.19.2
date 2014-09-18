@@ -109,13 +109,7 @@ jmethodID JDef_GameActivity::AndroidThunkJava_Vibrate;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput;
 jmethodID JDef_GameActivity::AndroidThunkJava_LaunchURL;
-jmethodID JDef_GameActivity::AndroidThunkJava_ShowLeaderboard;
-jmethodID JDef_GameActivity::AndroidThunkJava_ShowAchievements;
-jmethodID JDef_GameActivity::AndroidThunkJava_QueryAchievements;
 jmethodID JDef_GameActivity::AndroidThunkJava_ResetAchievements;
-jmethodID JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue;
-jmethodID JDef_GameActivity::AndroidThunkJava_GooglePlayConnect;
-jmethodID JDef_GameActivity::AndroidThunkJava_WriteAchievement;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_HideAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_CloseAdBanner;
@@ -124,10 +118,6 @@ jmethodID JDef_GameActivity::AndroidThunkJava_Minimize;
 jmethodID JDef_GameActivity::AndroidThunkJava_ForceQuit;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetFontDirectory;
 jmethodID JDef_GameActivity::AndroidThunkJava_IsMusicActive;
-
-jclass JDef_GameActivity::JavaAchievementClassID;
-jfieldID JDef_GameActivity::AchievementIDField;
-jfieldID JDef_GameActivity::AchievementProgressField;
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -240,24 +230,6 @@ void AndroidThunkCpp_LaunchURL(const FString& URL)
 	}
 }
 
-void AndroidThunkCpp_ShowLeaderboard(const FString& CategoryName)
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		jstring Argument = Env->NewStringUTF(TCHAR_TO_UTF8(*CategoryName));
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowLeaderboard, Argument);
-		Env->DeleteLocalRef(Argument);
-	}
-}
-
-void AndroidThunkCpp_ShowAchievements()
-{
- 	if (JNIEnv* Env = GetJavaEnv())
- 	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowAchievements);
- 	}
-}
-
 void AndroidThunkCpp_ResetAchievements()
 {
 	if (JNIEnv* Env = GetJavaEnv())
@@ -265,43 +237,6 @@ void AndroidThunkCpp_ResetAchievements()
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ResetAchievements);
 	}
 }
-
-void AndroidThunkCpp_WriteLeaderboardValue(const FString& LeaderboardName, int64_t Value)
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		jstring LeaderboardNameArg = Env->NewStringUTF(TCHAR_TO_UTF8(*LeaderboardName));
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue, LeaderboardNameArg, Value);
-		Env->DeleteLocalRef(LeaderboardNameArg);
-	}
-}
-
-void AndroidThunkCpp_GooglePlayConnect()
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GooglePlayConnect);
-	}
-}
-
-void AndroidThunkCpp_WriteAchievement(const FString& AchievementID, float PercentComplete)
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		jstring AchievementIDArg = Env->NewStringUTF(TCHAR_TO_UTF8(*AchievementID));
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_WriteAchievement, AchievementIDArg, PercentComplete);
-		Env->DeleteLocalRef(AchievementIDArg);
-	}
-}
-
-void AndroidThunkCpp_QueryAchievements()
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_QueryAchievements);
-	}
-}
-
 
 void AndroidThunkCpp_ShowAdBanner(const FString& AdUnitID, bool bShowOnBottomOfScreen)
 {
@@ -421,19 +356,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput );
 	JDef_GameActivity::AndroidThunkJava_LaunchURL = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V");
 	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_LaunchURL );
-	JDef_GameActivity::AndroidThunkJava_ShowLeaderboard = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowLeaderboard", "(Ljava/lang/String;)V");
-	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowLeaderboard );
-	JDef_GameActivity::AndroidThunkJava_ShowAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAchievements", "()V");
-	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowAchievements );
-	JDef_GameActivity::AndroidThunkJava_QueryAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_QueryAchievements", "()V");
-	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_QueryAchievements );
 	JDef_GameActivity::AndroidThunkJava_ResetAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ResetAchievements", "()V");
-	JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteLeaderboardValue", "(Ljava/lang/String;J)V");
-	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue );
-	JDef_GameActivity::AndroidThunkJava_GooglePlayConnect = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GooglePlayConnect", "()V");
-	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GooglePlayConnect );
-	JDef_GameActivity::AndroidThunkJava_WriteAchievement = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteAchievement", "(Ljava/lang/String;F)V");
-	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_WriteAchievement );
 	JDef_GameActivity::AndroidThunkJava_ShowAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAdBanner", "(Ljava/lang/String;Z)V");
 	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowAdBanner );
 	JDef_GameActivity::AndroidThunkJava_HideAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_HideAdBanner", "()V");
@@ -452,16 +375,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GetFontDirectory );
 	
 	JDef_GameActivity::AndroidThunkJava_IsMusicActive = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IsMusicActive", "()Z");
-	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_IsMusicActive );
-
-	// Set up achievement query IDs
-	JDef_GameActivity::JavaAchievementClassID = env->FindClass("com/epicgames/ue4/GameActivity$JavaAchievement");
-	CHECK_JNI_RESULT( JDef_GameActivity::JavaAchievementClassID );
-	JDef_GameActivity::AchievementIDField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "ID", "Ljava/lang/String;");
-	CHECK_JNI_RESULT( JDef_GameActivity::AchievementIDField );
-	JDef_GameActivity::AchievementProgressField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "Progress", "D");
-	CHECK_JNI_RESULT( JDef_GameActivity::AchievementProgressField );
-	
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_IsMusicActive );	
 
 	// hook signals
 #if UE_BUILD_DEBUG

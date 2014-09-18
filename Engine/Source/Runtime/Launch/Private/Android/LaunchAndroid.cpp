@@ -290,13 +290,6 @@ int32 AndroidMain(struct android_app* state)
 
 	UE_LOG(LogAndroid, Log, TEXT("Passed GEngineLoop.Init()"));
 
-	// Hack to initialize Google Play if enabled until we get the full subsystem online.
-	// GConfig should be valid here.
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GooglePlayConnect);
-	}
-
 	// tick until done
 	while (!GIsRequestingExit)
 	{
@@ -404,9 +397,14 @@ static void AndroidProcessEvents(struct android_app* state)
 
 pthread_t G_AndroidEventThread;
 
+struct android_app* GNativeAndroidApp = NULL;
+
 void android_main(struct android_app* state)
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"Entering native app glue main function");
+	
+	GNativeAndroidApp = state;
+	check(GNativeAndroidApp);
 
 	pthread_attr_t otherAttr; 
 	pthread_attr_init(&otherAttr);

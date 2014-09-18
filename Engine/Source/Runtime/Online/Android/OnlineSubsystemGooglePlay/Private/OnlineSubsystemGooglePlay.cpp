@@ -5,11 +5,22 @@
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "AndroidApplication.h"
 #include "OnlineAsyncTaskManagerGooglePlay.h"
+#include "OnlineAsyncTaskGooglePlayLogin.h"
+
+#include <android_native_app_glue.h>
+
+#include "gpg/android_initialization.h"
+#include "gpg/android_platform_configuration.h"
+#include "gpg/builder.h"
+#include "gpg/debug.h"
+
+using namespace gpg;
 
 FOnlineSubsystemGooglePlay::FOnlineSubsystemGooglePlay()
 	: IdentityInterface(nullptr)
 	, LeaderboardsInterface(nullptr)
 	, AchievementsInterface(nullptr)
+	, CurrentLoginTask(nullptr)
 {
 
 }
@@ -97,11 +108,36 @@ bool FOnlineSubsystemGooglePlay::Init()
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemAndroid::Init"));
 	
 	OnlineAsyncTaskThreadRunnable.Reset(new FOnlineAsyncTaskManagerGooglePlay);
+	OnlineAsyncTaskThread.Reset(FRunnableThread::Create(OnlineAsyncTaskThreadRunnable.Get(), TEXT("OnlineAsyncTaskThread")));
 
 	IdentityInterface = MakeShareable(new FOnlineIdentityGooglePlay(this));
 	LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsGooglePlay(this));
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
-	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay());
+	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay(this));
+
+	extern struct android_app* GNativeAndroidApp;
+	check(GNativeAndroidApp != nullptr);
+	AndroidInitialization::android_main(GNativeAndroidApp);
+
+	extern jobject GJavaGlobalNativeActivity;
+	AndroidPlatformConfiguration PlatformConfiguration;
+	PlatformConfiguration.SetActivity(GNativeAndroidApp->activity->clazz);
+
+	// Queue up a task for the login so that other tasks execute after it.
+	check(CurrentLoginTask == nullptr);
+	CurrentLoginTask = new FOnlineAsyncTaskGooglePlayLogin(this, 0);
+	QueueAsyncTask(CurrentLoginTask);
+
+	// Create() returns a std::unqiue_ptr, but we convert it to a TUniquePtr.
+	GameServicesPtr.Reset( GameServices::Builder()
+		.SetDefaultOnLog(LogLevel::VERBOSE)
+		.SetOnAuthActionStarted([](AuthOperation op) {
+			UE_LOG(LogOnline, Log, TEXT("GPG sign in started"));
+		})
+		.SetOnAuthActionFinished([this](AuthOperation Op, AuthStatus Status) {
+			OnAuthActionFinished(Op, Status);
+		})
+		.Create(PlatformConfiguration).release() );
 
 	return true;
 }
@@ -135,6 +171,7 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 	DESTRUCT_INTERFACE(IdentityInterface);
 #undef DESTRUCT_INTERFACE
 
+	OnlineAsyncTaskThread.Reset();
 	OnlineAsyncTaskThreadRunnable.Reset();
 
 	return true;
@@ -158,4 +195,46 @@ bool FOnlineSubsystemGooglePlay::IsEnabled(void)
 	bool bEnabled = true;
 	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni);
 	return bEnabled;
+}
+
+void FOnlineSubsystemGooglePlay::QueueAsyncTask(FOnlineAsyncTask* AsyncTask)
+{
+	check(OnlineAsyncTaskThreadRunnable);
+	OnlineAsyncTaskThreadRunnable->AddToInQueue(AsyncTask);
+}
+
+void FOnlineSubsystemGooglePlay::OnAuthActionFinished(AuthOperation Op, AuthStatus Status)
+{
+	FString OpString(DebugString(Op).c_str());
+	FString StatusString(DebugString(Status).c_str());
+	UE_LOG(LogOnline, Log, TEXT("FOnlineSubsystemGooglePlay::OnAuthActionFinished, Op: %s, Status: %s"), *OpString, *StatusString);
+
+	if (Op == AuthOperation::SIGN_IN)
+	{
+		if (CurrentLoginTask == nullptr)
+		{
+			UE_LOG(LogOnline, Warning, TEXT("FOnlineSubsystemGooglePlay::OnAuthActionFinished: sign-in operation with a null CurrentLoginTask"));
+			return;
+		}
+
+		CurrentLoginTask->OnAuthActionFinished(Op, Status);
+
+		if (CurrentLoginTask->bIsComplete)
+		{
+			// Async task manager owns the task now and is responsible for cleaning it up.
+			CurrentLoginTask = nullptr;
+		}
+	}
+}
+
+std::string FOnlineSubsystemGooglePlay::ConvertFStringToStdString(const FString& InString)
+{
+	int32 SrcLen  = InString.Len() + 1;
+	int32 DestLen = FPlatformString::ConvertedLength<ANSICHAR>(*InString, SrcLen);
+	TArray<ANSICHAR> Converted;
+	Converted.AddUninitialized(DestLen);
+	
+	FPlatformString::Convert(Converted.GetTypedData(), DestLen, *InString, SrcLen);
+
+	return std::string(Converted.GetTypedData());
 }

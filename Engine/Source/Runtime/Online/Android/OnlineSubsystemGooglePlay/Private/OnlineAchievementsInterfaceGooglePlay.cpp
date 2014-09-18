@@ -4,117 +4,21 @@
 #include "OnlineAsyncTaskManagerGooglePlay.h"
 #include "Online.h"
 #include "Android/AndroidJNI.h"
+#include "OnlineAsyncTaskGooglePlayQueryAchievements.h"
 
-FOnlineAchievementsGooglePlay::FPendingAchievementQuery FOnlineAchievementsGooglePlay::PendingAchievementQuery;
-
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements)
-{
-	TArray<FOnlineAchievement> GooglePlayAchievements;
-
-	auto ArrayLength = LocalJNIEnv->GetArrayLength(Achievements);
-
-	for(jsize i = 0; i < ArrayLength; ++i)
-	{
-		jobject Entry = LocalJNIEnv->GetObjectArrayElement(Achievements, i);
-
-		jobject StringID = LocalJNIEnv->GetObjectField(Entry, JDef_GameActivity::AchievementIDField);
-		jdouble Progress = LocalJNIEnv->GetDoubleField(Entry, JDef_GameActivity::AchievementProgressField);
-
-		FOnlineAchievement NewAchievement;
-
-		const char* StringIDChars = LocalJNIEnv->GetStringUTFChars((jstring)StringID, nullptr);
-		NewAchievement.Id = FString(StringIDChars);
-		LocalJNIEnv->ReleaseStringUTFChars((jstring)StringID, StringIDChars);
-
-		NewAchievement.Progress = Progress;
-
-		GooglePlayAchievements.Add(NewAchievement);
-	}
-
-	// Do the final copy of new achievements on the game thread
-	auto AchievementsInterface = FOnlineAchievementsGooglePlay::PendingAchievementQuery.AchievementsInterface;
-	
-	if(!AchievementsInterface ||
-	   !AchievementsInterface->AndroidSubsystem ||
-	   !AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager())
-	{
-		// We should call the delegate with a false parameter here, but if we don't have
-		// the async task manager we're not going to call it on the game thread.
-		return;
-	}
-
-	AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager()->AddGenericToOutQueue([GooglePlayAchievements]()
-	{
-		auto& PendingQuery = FOnlineAchievementsGooglePlay::PendingAchievementQuery;
-
-		PendingQuery.AchievementsInterface->Achievements = GooglePlayAchievements;
-
-		// Must convert the Google Play IDs to the names specified by the game.
-		auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
-		for(auto& Achievement : PendingQuery.AchievementsInterface->Achievements)
-		{
-			for(const auto& Mapping : DefaultSettings->AchievementMap)
-			{
-				if(Mapping.AchievementID == Achievement.Id)
-				{
-					Achievement.Id = Mapping.Name;
-					break;
-				}
-			}
-		}
-
-		PendingQuery.Delegate.ExecuteIfBound( PendingQuery.PlayerID, true );
-		PendingQuery.Delegate.Unbind();
-		PendingQuery.IsQueryPending = false;
-	});
-}
-
-
-
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz )
-{
-	auto AchievementsInterface = FOnlineAchievementsGooglePlay::PendingAchievementQuery.AchievementsInterface;
-
-	if(!AchievementsInterface ||
-		!AchievementsInterface->AndroidSubsystem ||
-		!AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager())
-	{
-		// We should call the delegate with a false parameter here, but if we don't have
-		// the async task manager we're not going to call it on the game thread.
-		return;
-	}
-
-	AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager()->AddGenericToOutQueue([]()
-	{
-		auto& PendingQuery = FOnlineAchievementsGooglePlay::PendingAchievementQuery;
-
-		PendingQuery.Delegate.ExecuteIfBound( PendingQuery.PlayerID, false );
-		PendingQuery.Delegate.Unbind();
-		PendingQuery.IsQueryPending = false;
-	});
-}
+using namespace gpg;
 
 FOnlineAchievementsGooglePlay::FOnlineAchievementsGooglePlay( FOnlineSubsystemGooglePlay* InSubsystem )
 	: AndroidSubsystem(InSubsystem)
 {
-	PendingAchievementQuery.AchievementsInterface = this;
+	// Make sure the Google achievement cache is initialized to an invalid status so we know to query it first
+	GoogleAchievements.status = ResponseStatus::ERROR_TIMEOUT;
 }
 
 void FOnlineAchievementsGooglePlay::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
-	if(PendingAchievementQuery.IsQueryPending)
-	{
-		UE_LOG(LogOnline, Warning, TEXT("FOnlineAchievementsGooglePlay::QueryAchievements: Cannot start a new query while one is in progress."));
-		Delegate.ExecuteIfBound(PlayerId, false);
-		return;
-	}
-
-	PendingAchievementQuery.Delegate = Delegate;
-	PendingAchievementQuery.PlayerID = FUniqueNetIdString(PlayerId);
-	PendingAchievementQuery.IsQueryPending = true;
-
-	extern void AndroidThunkCpp_QueryAchievements();
-	AndroidThunkCpp_QueryAchievements();
+	auto QueryTask = new FOnlineAsyncTaskGooglePlayQueryAchievements(AndroidSubsystem, FUniqueNetIdString(PlayerId), Delegate);
+	AndroidSubsystem->QueueAsyncTask(QueryTask);
 }
 
 
@@ -125,15 +29,29 @@ void FOnlineAchievementsGooglePlay::QueryAchievementDescriptions(const FUniqueNe
 	QueryAchievements( PlayerId, Delegate );
 }
 
-void FOnlineAchievementsGooglePlay::WriteAchievements( const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate )
+void FOnlineAchievementsGooglePlay::FinishAchievementWrite(
+	const FUniqueNetId& PlayerId,
+	const bool bWasSuccessful,
+	FOnlineAchievementsWriteRef WriteObject,
+	FOnAchievementsWrittenDelegate Delegate)
 {
+	// If the Google achievement cache is invalid, we can't do anything here - need to
+	// be able to get achievement type and max steps for incremental achievements.
+	if (GoogleAchievements.status != ResponseStatus::VALID && GoogleAchievements.status != ResponseStatus::VALID_BUT_STALE)
+	{
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
+	}
+
+	auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
+
 	for (FStatPropertyArray::TConstIterator It(WriteObject->Properties); It; ++It)
 	{
 		// Access the stat and the value.
 		const FVariantData& Stat = It.Value();
 
 		// Create an achievement object which should be reported to the server.
-		const FString AchievementName(It.Key().ToString());
+		const FString UnrealAchievementId(It.Key().ToString());
 		float PercentComplete = 0.0f;
 
 		// Setup the percentage complete with the value we are writing from the variant type
@@ -160,41 +78,120 @@ void FOnlineAchievementsGooglePlay::WriteAchievements( const FUniqueNetId& Playe
 			}
 		}
 
-		// Find the ID in the mapping
-		auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
-
-		for(const auto& Mapping : DefaultSettings->AchievementMap)
+		const auto GoogleAchievement = GetGoogleAchievementFromUnrealId(UnrealAchievementId);
+		
+		if (!GoogleAchievement.Valid())
 		{
-			if(Mapping.Name == AchievementName)
+			continue;
+		}
+
+		const FString GoogleId(GoogleAchievement.Id().c_str());
+
+		UE_LOG(LogOnline, Log, TEXT("Writing achievement name: %s, Google id: %s, progress: %.0f"),
+			*UnrealAchievementId, *GoogleId, PercentComplete);
+		
+		switch(GoogleAchievement.Type())
+		{
+			case gpg::AchievementType::INCREMENTAL:
 			{
-				UE_LOG(LogOnline, Log, TEXT("Writing achievement name: %s, id: %s, progress: %.0f"),
-					*Mapping.Name, *Mapping.AchievementID, PercentComplete);
-				extern void AndroidThunkCpp_WriteAchievement(const FString& AchievementID, float PercentComplete);
-				AndroidThunkCpp_WriteAchievement(Mapping.AchievementID, PercentComplete);
+				float StepFraction = (PercentComplete / 100.0f) * GoogleAchievement.TotalSteps();
+				int RoundedSteps =  FMath::RoundToInt(StepFraction);
+
+				if(RoundedSteps > 0)
+				{
+					UE_LOG(LogOnline, Log, TEXT("  Incremental: setting progress to %d"), RoundedSteps);
+					AndroidSubsystem->GetGameServices()->Achievements().SetStepsAtLeast(GoogleAchievement.Id(), RoundedSteps);
+				}
+				else
+				{
+					UE_LOG(LogOnline, Log, TEXT("  Incremental: not setting progress to %d"), RoundedSteps);
+				}
+				break;
+			}
+
+			case gpg::AchievementType::STANDARD:
+			{
+				// Standard achievements only unlock if the progress is at least 100%.
+				if (PercentComplete >= 100.0f)
+				{
+					UE_LOG(LogOnline, Log, TEXT("  Standard: unlocking"));
+					AndroidSubsystem->GetGameServices()->Achievements().Unlock(GoogleAchievement.Id());
+				}
 				break;
 			}
 		}
+	}
+
+	Delegate.ExecuteIfBound(PlayerId, true);
+}
+
+void FOnlineAchievementsGooglePlay::WriteAchievements( const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate )
+{
+	// @todo: verify the PlayerId passed in is the currently signed in player
+		
+	// We need valid data from Google first because we use the achievement type to convert Unreal progress
+	// (percentage) to Google progress (binary locked/unlocked or integer number of arbitrary steps).
+	// Kick off a query if we don't have valid data.
+	if (GoogleAchievements.status != ResponseStatus::VALID)
+	{
+		auto QueryTask = new FOnlineAsyncTaskGooglePlayQueryAchievements(AndroidSubsystem, FUniqueNetIdString(PlayerId),
+			FOnQueryAchievementsCompleteDelegate::CreateRaw(
+				this,
+				&FOnlineAchievementsGooglePlay::FinishAchievementWrite,
+				WriteObject,
+				Delegate));
+		AndroidSubsystem->QueueAsyncTask(QueryTask);
+	}
+	else
+	{
+		FinishAchievementWrite(PlayerId, true, WriteObject, Delegate);
 	}
 }
 
 EOnlineCachedResult::Type FOnlineAchievementsGooglePlay::GetCachedAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement>& OutAchievements)
 {
-	// look up achievements for player
-	OutAchievements = Achievements;
+	// @todo: verify the PlayerId passed in is the currently signed in player
 
-	// did we have them cached?
-	return OutAchievements.Num() > 0 ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
+	OutAchievements.Empty();
+
+	if (GoogleAchievements.status != ResponseStatus::VALID)
+	{
+		return EOnlineCachedResult::NotFound;
+	}
+
+	auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
+
+	for (auto& CurrentAchievement : GoogleAchievements.data)
+	{
+		const auto UnrealAchievement = GetUnrealAchievementFromGoogleAchievement(DefaultSettings, CurrentAchievement);
+		if (UnrealAchievement.Id.IsEmpty())
+		{
+			// Empty id means the achievement wasn't found.
+			continue;
+		}
+
+		OutAchievements.Add(UnrealAchievement);
+	}
+
+	return EOnlineCachedResult::Success;
 }
 
 
 EOnlineCachedResult::Type FOnlineAchievementsGooglePlay::GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
 {
-	FOnlineAchievementDesc* FoundDesc = AchievementDescriptions.Find( AchievementId );
-	if( FoundDesc != NULL )
+	auto FoundAchievement = GetGoogleAchievementFromUnrealId(AchievementId);
+	if (!FoundAchievement.Valid())
 	{
-		OutAchievementDesc = *FoundDesc;
+		return EOnlineCachedResult::NotFound;
 	}
-	return FoundDesc != NULL ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
+
+	OutAchievementDesc.Title = FText::FromString(FString(FoundAchievement.Name().c_str()));
+	OutAchievementDesc.LockedDesc = FText::FromString(FString(FoundAchievement.Description().c_str()));
+	OutAchievementDesc.UnlockedDesc = FText::FromString(FString(FoundAchievement.Description().c_str()));
+	OutAchievementDesc.bIsHidden = FoundAchievement.State() == AchievementState::HIDDEN;
+	OutAchievementDesc.UnlockTime = FDateTime(0); // @todo: this
+
+	return EOnlineCachedResult::Success;
 }
 
 #if !UE_BUILD_SHIPPING
@@ -211,14 +208,113 @@ bool FOnlineAchievementsGooglePlay::ResetAchievements( const FUniqueNetId& Playe
 
 EOnlineCachedResult::Type FOnlineAchievementsGooglePlay::GetCachedAchievement( const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement )
 {
-	for(auto& CurrentAchievement : Achievements)
+	// @todo: verify the PlayerId passed in is the currently signed in player
+
+	auto FoundAchievement = GetGoogleAchievementFromUnrealId(AchievementId);
+	if (!FoundAchievement.Valid())
 	{
-		if(CurrentAchievement.Id == AchievementId)
+		return EOnlineCachedResult::NotFound;
+	}
+
+	OutAchievement.Id = AchievementId;
+	OutAchievement.Progress = GetProgressFromGoogleAchievement(FoundAchievement);
+
+	return EOnlineCachedResult::Success;
+}
+
+Achievement FOnlineAchievementsGooglePlay::GetGoogleAchievementFromUnrealId(const FString& UnrealId) const
+{
+	auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
+
+	FString TargetGoogleId;
+
+	for(const auto& Mapping : DefaultSettings->AchievementMap)
+	{
+		if(Mapping.Name.Equals(UnrealId))
 		{
-			OutAchievement = CurrentAchievement;
-			return EOnlineCachedResult::Success;
+			TargetGoogleId = Mapping.AchievementID;
+			break;
 		}
 	}
 
-	return EOnlineCachedResult::NotFound;
+	for (auto& CurrentAchievement : GoogleAchievements.data)
+	{
+		if (!CurrentAchievement.Valid())
+		{
+			continue;
+		}
+
+		const FString CurrentGoogleId = CurrentAchievement.Id().c_str();
+
+		if (CurrentGoogleId.Equals(TargetGoogleId))
+		{
+			return CurrentAchievement;
+		}
+	}
+
+	// Not found, return empty achievement, Valid() will return false for this one.
+	return Achievement();
+}
+
+FString FOnlineAchievementsGooglePlay::GetUnrealIdFromGoogleId(const UAndroidRuntimeSettings* Settings, const FString& GoogleId)
+{
+	for(const auto& Mapping : Settings->AchievementMap)
+	{
+		if(Mapping.AchievementID.Equals(GoogleId))
+		{
+			return Mapping.Name;
+		}
+	}
+
+	return FString();
+}
+
+void FOnlineAchievementsGooglePlay::UpdateCache(const AchievementManager::FetchAllResponse& Results)
+{
+	GoogleAchievements = Results;
+}
+
+void FOnlineAchievementsGooglePlay::ClearCache()
+{
+	GoogleAchievements.status = ResponseStatus::ERROR_TIMEOUT; // Is there a better error to use here?
+	GoogleAchievements.data.clear();
+}
+
+double FOnlineAchievementsGooglePlay::GetProgressFromGoogleAchievement(const Achievement& InAchievement)
+{
+	if (!InAchievement.Valid())
+	{
+		return 0.0f;
+	}
+
+	if (InAchievement.State() == AchievementState::UNLOCKED)
+	{
+		return 100.0;
+	}
+
+	if (InAchievement.Type() == AchievementType::INCREMENTAL)
+	{
+		double Fraction = (double)InAchievement.CurrentSteps() / (double)InAchievement.TotalSteps();
+		return Fraction * 100.0;
+	}
+	
+	return 0.0;
+}
+
+FOnlineAchievement FOnlineAchievementsGooglePlay::GetUnrealAchievementFromGoogleAchievement(const UAndroidRuntimeSettings* Settings, const gpg::Achievement& GoogleAchievement)
+{
+	FOnlineAchievement OutAchievement;
+
+	if (!GoogleAchievement.Valid())
+	{
+		OutAchievement.Progress = 0.0;
+		return OutAchievement;
+	}
+
+	const FString GoogleId = GoogleAchievement.Id().c_str();
+
+	OutAchievement.Id = GetUnrealIdFromGoogleId(Settings, GoogleId);
+	OutAchievement.Progress = GetProgressFromGoogleAchievement(GoogleAchievement);
+
+	return OutAchievement;
 }

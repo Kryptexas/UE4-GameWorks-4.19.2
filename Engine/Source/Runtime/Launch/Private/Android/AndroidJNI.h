@@ -23,13 +23,7 @@ public:
 	static jmethodID AndroidThunkJava_ShowConsoleWindow;
 	static jmethodID AndroidThunkJava_ShowVirtualKeyboardInput;
 	static jmethodID AndroidThunkJava_LaunchURL;
-	static jmethodID AndroidThunkJava_ShowLeaderboard;
-	static jmethodID AndroidThunkJava_ShowAchievements;
-	static jmethodID AndroidThunkJava_QueryAchievements;
 	static jmethodID AndroidThunkJava_ResetAchievements;
-	static jmethodID AndroidThunkJava_WriteLeaderboardValue;
-	static jmethodID AndroidThunkJava_GooglePlayConnect;
-	static jmethodID AndroidThunkJava_WriteAchievement;
 	static jmethodID AndroidThunkJava_ShowAdBanner;
 	static jmethodID AndroidThunkJava_HideAdBanner;
 	static jmethodID AndroidThunkJava_CloseAdBanner;
@@ -41,11 +35,6 @@ public:
 	static jmethodID AndroidThunkJava_GetFontDirectory;
 
 	static jmethodID AndroidThunkJava_IsMusicActive;
-
-	// IDs related to achievement query
-	static jclass JavaAchievementClassID;
-	static jfieldID AchievementIDField;
-	static jfieldID AchievementProgressField;
 };
 
 // Returns the java environment

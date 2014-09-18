@@ -5,29 +5,6 @@
 #include "Android/AndroidJNI.h"
 FOnlineIdentityGooglePlay::FPendingConnection FOnlineIdentityGooglePlay::PendingConnectRequest;
 
-// Java interface to deal with callbacks
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeCompletedConnection(JNIEnv* LocalJNIEnv, jobject LocalThiz, jint userID, jint errorCode)
-{
-	auto ConnectionInterface = FOnlineIdentityGooglePlay::PendingConnectRequest.ConnectionInterface;
-
-	if (!ConnectionInterface ||
-		!ConnectionInterface->MainSubsystem ||
-		!ConnectionInterface->MainSubsystem->GetAsyncTaskManager())
-	{
-		// We should call the delegate with a false parameter here, but if we don't have
-		// the async task manager we're not going to call it on the game thread.
-		return;
-	}
-
-	ConnectionInterface->MainSubsystem->GetAsyncTaskManager()->AddGenericToOutQueue([errorCode, userID]()
-	{
-		auto& PendingConnection = FOnlineIdentityGooglePlay::PendingConnectRequest;		
-
-		PendingConnection.ConnectionInterface->OnLoginCompleted(userID, errorCode);
-	});
-
-}
-
 FOnlineIdentityGooglePlay::FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem)
 	: bPrevLoggedIn(false)
 	, bLoggedIn(false)
@@ -187,15 +164,15 @@ void FOnlineIdentityGooglePlay::Tick(float DeltaTime)
 {
 }
 
-void FOnlineIdentityGooglePlay::OnLoginCompleted(const int playerID, const int errorCode)
+void FOnlineIdentityGooglePlay::OnLoginCompleted(const int playerID, const gpg::AuthStatus errorCode)
 {
 	static const int32 MAX_TEXT_LINE_LEN = 32;
 	TCHAR Line[MAX_TEXT_LINE_LEN + 1] = { 0 };
 	int32 Len = FCString::Snprintf(Line, MAX_TEXT_LINE_LEN, TEXT("%d"), playerID);
 
 	UniqueNetId = MakeShareable(new FUniqueNetIdString(Line));
-	bLoggedIn = errorCode == 0;
-	TriggerOnLoginCompleteDelegates(playerID, errorCode == 0, *UniqueNetId, TEXT(""));
+	bLoggedIn = errorCode == gpg::AuthStatus::VALID;
+	TriggerOnLoginCompleteDelegates(playerID, bLoggedIn, *UniqueNetId, TEXT(""));
 
 	PendingConnectRequest.IsConnectionPending = false;
 }

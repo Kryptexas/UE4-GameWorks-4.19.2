@@ -46,12 +46,7 @@ import android.media.AudioManager;
 
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.games.achievement.*;
-import com.google.android.gms.games.Games;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
@@ -77,7 +72,7 @@ import com.epicgames.ue4.JavaBuildSettings;
 //  Java libraries at the startup of the program and store references 
 //  to them in this class.
 
-public class GameActivity extends NativeActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
+public class GameActivity extends NativeActivity
 {
 	public static Logger Log = new Logger("UE4");
 	
@@ -99,11 +94,6 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	private AssetManager			AssetManagerReference;
 	
 	private GoogleApiClient googleClient;
-	private boolean bResolvingGoogleServicesError = false;
-	private int dialogError = 0;
-
-	/** Flag indicating that we successfully connected to Google Play. */
-	private boolean bHaveConnectedToGooglePlay = false;
 
 	/** AdMob support */
 	private PopupWindow adPopupWindow;
@@ -131,49 +121,12 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	/** Unique ID to identify Google Play Services error dialog */
 	private static final int PLAY_SERVICES_DIALOG_ID = 1;
 
-	/** Arbitrary ID for leaderboard display */
-	private static final int REQUEST_LEADERBOARDS = 0;
-	
-	/** Arbitrary ID for achievement display */
-	private static final int REQUEST_ACHIEVEMENTS = 1;
-
-	/** Stores the minimum amount of data we need to set achievement progress */
-	private class BasicAchievementData
-	{
-		public BasicAchievementData()
-		{
-			Type = Achievement.TYPE_STANDARD;
-			MaxSteps = 1;
-		}
-
-		public BasicAchievementData(int InMaxSteps)
-		{
-			Type = Achievement.TYPE_INCREMENTAL;
-			MaxSteps = InMaxSteps;
-		}
-
-		public int Type;
-		public int MaxSteps;
-	}
-
-	/**
-	 * Store achievement data upon login so that we can convert the percentage values from the game to
-	 * integer steps for Google Play
-	 */
-	private Map<String, BasicAchievementData> CachedAchievements = new HashMap<String, BasicAchievementData>();
-
 	@Override
 	public void onStart()
 	{
 		super.onStart();
 		
 		Log.debug("==================================> Inside onStart function in GameActivity");
-
-		// Reconnect to Google Play if we were connected before
-		if(bHaveConnectedToGooglePlay)
-		{
-			googleClient.connect();
-		}
 	}
 
 	public int getDeviceDefaultOrientation() 
@@ -426,16 +379,6 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		});
 		virtualKeyboardAlert = builder.create();
 
-		// Connect to Google Play Services
-		googleClient = new GoogleApiClient.Builder(this)
-		 .addConnectionCallbacks(this)
-		 .addOnConnectionFailedListener(this)
-		 .addApi(Games.API)
-		 .addScope(Games.SCOPE_GAMES)
-		 .addApi(Plus.API, null)
-		 .addScope(Plus.SCOPE_PLUS_PROFILE)
-		 .build();
-
 		// Now okay for event handler to be set up on native side
 		nativeResumeMainInit();
 		
@@ -449,189 +392,6 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	public void onStop()
 	{
 		super.onStop();
-
-		googleClient.disconnect();
-	}
-
-	/** Callback that fills in CachedAchievements when the load operation completes. */
-	private class AchievementsResultStartupCallback implements ResultCallback<Achievements.LoadAchievementsResult>
-	{
-		@Override
-		public void onResult(Achievements.LoadAchievementsResult result)
-		{
-			Log.debug("Google Play Services: Loaded achievements with status " + result.getStatus().toString());
-
-			AchievementBuffer Achievements = result.getAchievements();
-
-			CachedAchievements.clear();
-			for(int i = 0; i < Achievements.getCount(); ++i)
-			{
-				Achievement CurrentAchievement = Achievements.get(i);
-
-				if(CurrentAchievement.getType() == Achievement.TYPE_STANDARD)
-				{
-					CachedAchievements.put(new String(CurrentAchievement.getAchievementId()), new BasicAchievementData());
-				}
-				else if(CurrentAchievement.getType() == Achievement.TYPE_INCREMENTAL)
-				{
-					CachedAchievements.put(new String(CurrentAchievement.getAchievementId()),
-						new BasicAchievementData(CurrentAchievement.getTotalSteps()));
-				}
-			}
-
-			Achievements.close();
-			result.release();
-		}
-	}
-
-	/** Class that holds achievement data to pass back to C++ through JNI */
-	public class JavaAchievement
-	{
-		public String ID;
-		public double Progress;
-	}
-
-	/** Callback that returns queried achievement data back to C++ */
-	private class QueryAchievementsResultCallback implements ResultCallback<Achievements.LoadAchievementsResult>
-	{
-		@Override
-		public void onResult(Achievements.LoadAchievementsResult result)
-		{
-			Log.debug("Google Play Services: queried achievements with status " + result.getStatus().toString());
-
-			AchievementBuffer Achievements = result.getAchievements();
-			
-			JavaAchievement[] SimpleAchievements = new JavaAchievement[Achievements.getCount()];
-
-			for(int i = 0; i < Achievements.getCount(); ++i)
-			{
-				Achievement CurrentAchievement = Achievements.get(i);
-
-				SimpleAchievements[i] = new JavaAchievement();
-				SimpleAchievements[i].ID = CurrentAchievement.getAchievementId();
-				
-				if(CurrentAchievement.getState() == Achievement.STATE_UNLOCKED)
-				{
-					SimpleAchievements[i].Progress = 100.0;
-					continue;
-				}
-
-				if(CurrentAchievement.getType() == Achievement.TYPE_INCREMENTAL)
-				{
-					double Fraction = (double)CurrentAchievement.getCurrentSteps() / (double)CurrentAchievement.getTotalSteps();
-					SimpleAchievements[i].Progress = Fraction * 100.0;
-				}
-				else
-				{
-					SimpleAchievements[i].Progress = 0.0;
-				}
-			}
-
-			nativeUpdateAchievements(SimpleAchievements);
-
-			Achievements.close();
-			result.release();
-		}
-	}
-
-	// Callbacks to handle connections with Google Play
-	 @Override
-    public void onConnected(Bundle connectionHint)
-	{
-        Log.debug("Connected to Google Play Services.");
-
-		// Set the flag that we successfully connected. Checked in onStart to re-establish the connection.
-		bHaveConnectedToGooglePlay = true;
-
-		nativeCompletedConnection(0, RESULT_OK);
-
-		// Load achievements. Since games are expected to pass in achievement progress as a percentage,
-		// we need to know what the maximum steps are in order to convert the percentage to an integer
-		// number of steps.
-		PendingResult<Achievements.LoadAchievementsResult> loadAchievementsResult = Games.Achievements.load(googleClient, false);
-		loadAchievementsResult.setResultCallback(new AchievementsResultStartupCallback());
-    }
-
-    @Override
-    public void onConnectionSuspended(int cause)
-	{
-        // The connection has been interrupted.
-        // TODO: Disable any UI components that depend on Google APIs
-        // until onConnected() is called.
-		Log.debug("Google Play Services connection suspended.");
-    }
-	
-    @Override
-    public void onConnectionFailed(ConnectionResult result)
-	{
-		Log.debug("Google Play Services connection failed: " + result.toString());
-
-		if (bResolvingGoogleServicesError)
-		{
-			// Already attempting to resolve an error.
-			Log.debug("... and already trying to resolve an error.");
-			return;
-		}
-		else if (result.hasResolution())
-		{
-            try
-			{
-				Log.debug("Starting Google Play Services connection resolution");
-                bResolvingGoogleServicesError = true;
-                result.startResolutionForResult(this, GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR);
-            }
-			catch (SendIntentException e)
-			{
-                // There was an error with the resolution intent. Try again.
-                googleClient.connect();
-            }
-        }
-		else
-		{
-            // Show dialog using GooglePlayServicesUtil.getErrorDialog()
-			dialogError = result.getErrorCode();
-			showDialog(PLAY_SERVICES_DIALOG_ID);
-
-            bResolvingGoogleServicesError = true;
-        }
-    }
-
-	@Override
-	protected Dialog onCreateDialog(int id)
-	{
-		if(id == PLAY_SERVICES_DIALOG_ID)
-		{
-			Dialog dialog = GooglePlayServicesUtil.getErrorDialog(dialogError, this, GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR);
-			dialog.show();
-		}
-
-		return super.onCreateDialog(id);
-	}
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data)
-	{
-		if (requestCode == GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR)
-		{
-			Log.debug("Google Play Services connection resolution finished with resultCode " + resultCode);
-			
-			bResolvingGoogleServicesError = false;
-
-			if (resultCode == RESULT_OK) // -1
-			{
-				// Make sure the app is not already connected or attempting to connect
-				if (!googleClient.isConnecting() &&	!googleClient.isConnected())
-				{
-					googleClient.connect();
-				}
-			}
-			else
-			{
-				// translate result code? 
-				// 0 if we cancel out the attempt to error recover...
-				nativeCompletedConnection(0, resultCode);
-			}
-		}
 	}
 
 	// handle ad popup visibility and requests
@@ -754,124 +514,6 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		}
 	}
 
-	public void AndroidThunkJava_GooglePlayConnect()
-	{
-		if ( !nativeIsGooglePlayEnabled() ) 
-		{
-			return;
-		}
-		
-		int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
-		
-		// check if google play services is available on this device, or is available with an update
-		if ((status != ConnectionResult.SUCCESS) && (status != ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED))
-		{
-			nativeCompletedConnection(0, status);
-			return;
-		}
-
-		if ( !googleClient.isConnected() && !googleClient.isConnecting() )
-		{
-			googleClient.connect();
-		}
-	}
-
-	public void AndroidThunkJava_ShowLeaderboard(String LeaderboardID)
-	{
-		Log.debug("In AndroidThunkJava_ShowLeaderboard, ID is " + LeaderboardID);
-		if(!googleClient.isConnected())
-		{
-			Log.debug("Not connected to Google Play, can't show leaderboards UI.");
-			return;
-		}
-
-		startActivityForResult(Games.Leaderboards.getLeaderboardIntent(googleClient, LeaderboardID), REQUEST_LEADERBOARDS);
-	}
-
-	public void AndroidThunkJava_ShowAchievements()
-	{
-		Log.debug("In AndroidThunkJava_ShowAchievements");
-		if(!googleClient.isConnected())
-		{
-			Log.debug("Not connected to Google Play, can't show achievements UI.");
-			return;
-		}
-		
-		startActivityForResult(Games.Achievements.getAchievementsIntent(googleClient), REQUEST_ACHIEVEMENTS);
-	}
-
-	public void AndroidThunkJava_WriteLeaderboardValue(String LeaderboardID, long Value)
-	{
-		Log.debug("In AndroidThunkJava_WriteLeaderboardValue, ID is " + LeaderboardID + ", value is " + Value);
-		if(googleClient.isConnected())
-		{
-			Games.Leaderboards.submitScore(googleClient, LeaderboardID, Value);
-		}
-	}
-
-	public void AndroidThunkJava_WriteAchievement(String AchievementID, float Percentage)
-	{
-		BasicAchievementData Data = CachedAchievements.get(AchievementID);
-
-		if(Data == null)
-		{
-			Log.debug("Couldn't find cached achievement for ID " + AchievementID + ", not setting progress.");
-			return;
-		}
-
-		if(!googleClient.isConnected())
-		{
-			Log.debug("Not connected to Google Play, can't set achievement progress.");
-			return;
-		}
-
-		// Found the one to unlock.
-		switch(Data.Type)
-		{
-			case Achievement.TYPE_INCREMENTAL:
-			{
-				float StepFraction = (Percentage / 100.0f) * Data.MaxSteps;
-				int RoundedSteps = Math.round(StepFraction);
-
-				if(RoundedSteps > 0)
-				{
-					Log.debug("Incremental achievement ID " + AchievementID + ": setting progress to " + RoundedSteps);
-					Games.Achievements.setSteps(googleClient, AchievementID, RoundedSteps);
-				}
-				else
-				{
-					Log.debug("Incremental achievement ID " + AchievementID + ": not setting progress to " + RoundedSteps);
-				}
-				break;
-			}
-
-			case Achievement.TYPE_STANDARD:
-			{
-				// Standard achievements only unlock if the progress is at least 100%.
-				if(Percentage >= 100.0f)
-				{
-					Log.debug("Standard achievement ID " + AchievementID + ": unlocking");
-					Games.Achievements.unlock(googleClient, AchievementID);
-				}
-				break;
-			}
-		}
-	}
-
-	public void AndroidThunkJava_QueryAchievements()
-	{
-		//Log.debug("Incremental achievement ID " + AchievementID + ": not setting progress to " + RoundedSteps);
-		if ( googleClient.isConnected() )
-		{
-			PendingResult<Achievements.LoadAchievementsResult> loadAchievementsResult = Games.Achievements.load(googleClient, false);
-			loadAchievementsResult.setResultCallback(new QueryAchievementsResultCallback());		
-		}
-		else
-		{
-			nativeFailedUpdateAchievements();
-		}
-	}
-
 	public void AndroidThunkJava_ResetAchievements()
 	{
 		try
@@ -897,9 +539,6 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 			{
 				urlConnection.disconnect();
 			}
-
-			// Kick off a update to the native side achievements
-			AndroidThunkJava_QueryAchievements();
         }
         catch(Exception e)
         {
@@ -1105,8 +744,6 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	public native void nativeSetGlobalActivity();
 	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
 	public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);
-	public native void nativeUpdateAchievements(JavaAchievement[] Achievements);
-	public native void nativeFailedUpdateAchievements();
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel, String OSLanguage );
 
 	public native void nativeConsoleCommand(String commandString);
