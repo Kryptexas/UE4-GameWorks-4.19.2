@@ -96,10 +96,7 @@ void DebugPrintVisitor::visit(ir_variable* ir)
 	}
 	PrintType(ir->type);
 	irdump_printf(" %s", GetVarName(ir).c_str());
-	if (bIsGlobalScope)
-	{
-		irdump_printf(";\n");
-	}
+	irdump_printf(";\n");
 }
 
 void DebugPrintVisitor::visit(ir_function_signature* ir)
@@ -131,7 +128,6 @@ void DebugPrintVisitor::visit(ir_function_signature* ir)
 		ir_instruction *const inst = (ir_instruction *) iter.get();
 		Indent();
 		inst->accept(this);
-		irdump_printf(";\n");
 	}
 	Indentation--;
 	irdump_printf("}\n");
@@ -180,7 +176,7 @@ void DebugPrintVisitor::visit(ir_expression* ir)
 			irdump_printf("%s", ir->operator_string());
 			for (int i = 0; i < ir->get_num_operands(); ++i)
 			{
-				irdump_printf("%s", (i == 0) ? "" : ", " );
+				irdump_printf("%s", (i == 0) ? "" : ", ");
 				ir->operands[i]->accept(this);
 			}
 		}
@@ -489,7 +485,7 @@ void DebugPrintVisitor::visit(ir_call* ir)
 		ir_instruction *const inst = (ir_instruction *) iter.get();
 		inst->accept(this);
 	}
-	irdump_printf(")");
+	irdump_printf(");\n");
 }
 
 void DebugPrintVisitor::visit(ir_return* ir)
@@ -502,6 +498,7 @@ void DebugPrintVisitor::visit(ir_return* ir)
 		irdump_printf(" ");
 		value->accept(this);
 	}
+	irdump_printf(";\n");
 }
 
 void DebugPrintVisitor::visit(ir_discard* ir)
@@ -512,7 +509,7 @@ void DebugPrintVisitor::visit(ir_discard* ir)
 	{
 		ir->condition->accept(this);
 	}
-	irdump_printf(")");
+	irdump_printf(");\n");
 }
 
 void DebugPrintVisitor::visit(ir_if* ir)
@@ -570,7 +567,7 @@ void DebugPrintVisitor::visit(ir_atomic* ir)
 	check(0);
 }
 
-void DebugPrintVisitor::PrintID( ir_instruction * ir )
+void DebugPrintVisitor::PrintID(ir_instruction * ir)
 {
 	irdump_printf("/*%d*/", ir ? ir->id : -1);
 }
@@ -583,12 +580,12 @@ void DebugPrintVisitor::Indent()
 	}
 }
 
-void DebugPrintVisitor::PrintType( const glsl_type* Type )
+void DebugPrintVisitor::PrintType(const glsl_type* Type)
 {
 	irdump_printf("%s", Type->name);
 }
 
-std::string DebugPrintVisitor::GetVarName( ir_variable* var )
+std::string DebugPrintVisitor::GetVarName(ir_variable* var)
 {
 	std::string s("");
 	if (var->name)
@@ -664,7 +661,7 @@ std::string DebugPrintVisitor::GetVarName( ir_variable* var )
 	return s;
 }
 
-void DebugPrintVisitor::Dump( exec_list* List, _mesa_glsl_parse_state* State )
+void DebugPrintVisitor::Dump(exec_list* List, _mesa_glsl_parse_state* State)
 {
 	DebugPrintVisitor Visitor;
 
@@ -681,7 +678,7 @@ void DebugPrintVisitor::Dump( exec_list* List, _mesa_glsl_parse_state* State )
 				irdump_printf(" %s", s->fields.structure[j].name);
 				if (s->fields.structure[j].semantic)
 				{
-					irdump_printf(" : %s", s->fields.structure[j].semantic );
+					irdump_printf(" : %s", s->fields.structure[j].semantic);
 				}
 				irdump_printf(";\n");
 			}
@@ -692,7 +689,7 @@ void DebugPrintVisitor::Dump( exec_list* List, _mesa_glsl_parse_state* State )
 	visit_exec_list(List, &Visitor);
 }
 
-void DebugPrintVisitor::PrintBlockWithScope( exec_list& ir )
+void DebugPrintVisitor::PrintBlockWithScope(exec_list& ir)
 {
 	Indent();
 	irdump_printf("{\n");
@@ -711,21 +708,21 @@ void DebugPrintVisitor::PrintBlockWithScope( exec_list& ir )
 }
 
 
-void IRDump( exec_list* ir, _mesa_glsl_parse_state* State, const char* S) 
+void IRDump(exec_list* ir, _mesa_glsl_parse_state* State, const char* S) 
 {
-	irdump_printf( "###########################################################################\n");
-	irdump_printf( "## Begin IR dump: %s\n", S);
+	irdump_printf("###########################################################################\n");
+	irdump_printf("## Begin IR dump: %s\n", S);
 	DebugPrintVisitor::Dump(ir, State);
-	irdump_printf( "###########################################################################\n");
+	irdump_printf("###########################################################################\n");
 }
 
-void IRDump( ir_instruction* ir )
+void IRDump(ir_instruction* ir)
 {
 	DebugPrintVisitor Visitor(true);
 	ir->accept(&Visitor);
 }
 
-void IRDump( ir_instruction* IRFirst, ir_instruction* IRLast )
+void IRDump(ir_instruction* IRFirst, ir_instruction* IRLast)
 {
 	DebugPrintVisitor Visitor;
 	VisitRange(&Visitor, IRFirst, IRLast);
