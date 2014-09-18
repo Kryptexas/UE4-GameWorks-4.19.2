@@ -20,7 +20,7 @@ static void HandleNSEvent(NSEvent* Event)
 	const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
 									  || [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
 									  || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp
-									  || [Event type] == NSKeyDown || [Event type] == NSKeyUp;
+									  || [Event type] == NSKeyDown || ([Event type] == NSKeyUp && !([Event modifierFlags] & NSCommandKeyMask));
 
 	if (MacApplication)
 	{
