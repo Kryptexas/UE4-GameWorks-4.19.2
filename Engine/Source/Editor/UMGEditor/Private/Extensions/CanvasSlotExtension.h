@@ -57,7 +57,7 @@ private:
 
 	void PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
 
-	void PoximitySnapValue(float SnapFrequency, float SnapProximity, float& Value);
+	void ProximitySnapValue(float SnapFrequency, float SnapProximity, float& Value);
 
 private:
 

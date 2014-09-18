@@ -117,8 +117,8 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 		{
 			FWidgetTransform RenderTransform = Preview->RenderTransform;
 
-			if ( Action == ETransformAction::Primary )
-			{
+			//if ( Action == ETransformAction::Primary )
+			//{
 				FVector2D TranslateAmount = MouseEvent.GetCursorDelta() * ( 1.0f / Designer->GetPreviewScale() );
 
 				if ( Preview->Slot )
@@ -130,12 +130,12 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 				{
 					Template->Slot->Resize(DragDirection, TranslateAmount);
 				}
-			}
-			else
-			{
-				FVector2D RotationDelta = MouseEvent.GetCursorDelta();
-				RenderTransform.Angle += RotationDelta.Size();
-			}
+			//}
+			//else
+			//{
+			//	FVector2D RotationDelta = MouseEvent.GetCursorDelta();
+			//	RenderTransform.Angle += RotationDelta.Size();
+			//}
 
 			static const FName RenderTransformName(TEXT("RenderTransform"));
 
@@ -157,8 +157,8 @@ FCursorReply STransformHandle::OnCursorQuery(const FGeometry& MyGeometry, const 
 
 	ETransformMode::Type TransformMode = Designer->GetTransformMode();
 
-	if ( TransformMode == ETransformMode::Layout || CurrentAction == ETransformAction::Primary )
-	{
+	//if ( TransformMode == ETransformMode::Layout || CurrentAction == ETransformAction::Primary )
+	//{
 		switch ( TransformDirection )
 		{
 		case ETransformDirection::TopLeft:
@@ -174,11 +174,11 @@ FCursorReply STransformHandle::OnCursorQuery(const FGeometry& MyGeometry, const 
 		case ETransformDirection::CenterRight:
 			return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
 		}
-	}
-	else
-	{
-		return FCursorReply::Cursor(EMouseCursor::EyeDropper);
-	}
+	//}
+	//else
+	//{
+	//	return FCursorReply::Cursor(EMouseCursor::EyeDropper);
+	//}
 
 	return FCursorReply::Unhandled();
 }
