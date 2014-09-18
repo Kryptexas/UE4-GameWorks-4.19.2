@@ -90,6 +90,11 @@ public:
 	 */
 	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) = 0;
 
+	/**
+	 * Saves all the device groups to a config file
+	 */
+	virtual void SaveDeviceGroups() = 0;
+
 public:
 
 	/**

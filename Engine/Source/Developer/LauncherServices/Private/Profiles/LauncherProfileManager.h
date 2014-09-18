@@ -77,6 +77,8 @@ public:
 
 	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) override;
 
+	virtual void SaveDeviceGroups() override;
+
 	virtual void RemoveSimpleProfile(const ILauncherSimpleProfileRef& SimpleProfile) override;
 
 	virtual void RemoveProfile( const ILauncherProfileRef& Profile ) override;
@@ -115,11 +117,6 @@ protected:
 	 * @return The new device group object.
 	 */
 	ILauncherDeviceGroupPtr ParseDeviceGroup( const FString& GroupString );
-
-	/**
-	 * Saves all the device groups to a config file
-	 */
-	void SaveDeviceGroups();
 
 	/*
 	* Saves all simple profiles to disk.
