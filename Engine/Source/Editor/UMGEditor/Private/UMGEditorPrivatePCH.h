@@ -51,3 +51,4 @@
 
 #include "WidgetBlueprintLibrary.h"
 
+#include "WidgetBlueprintCompiler.h"
