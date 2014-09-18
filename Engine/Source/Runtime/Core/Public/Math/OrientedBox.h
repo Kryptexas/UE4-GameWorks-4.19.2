@@ -8,7 +8,7 @@
 
 
 /**
- * Structure for arbitrarily oriented boxes (i.e. not necessarily axis-aligned).
+ * Structure for arbitrarily oriented boxes (not necessarily axis-aligned).
  */
 struct FOrientedBox
 {

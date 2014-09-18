@@ -411,7 +411,7 @@ protected:
 public:
 
 	/**
-	 * True if jump is actively providing a force; i.e. jump key is held and the time it has been held is less than JumpMaxHoldTime.
+	 * True if jump is actively providing a force, such as when the jump key is held and the time it has been held is less than JumpMaxHoldTime.
 	 * @see CharacterMovement->IsFalling
 	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
