@@ -12,7 +12,7 @@
 void SEditorTutorials::Construct(const FArguments& InArgs)
 {
 	bBrowserVisible = false;
-	bShowNavigation = false;
+	bIsNavigationWindow = false;
 	ParentWindow = InArgs._ParentWindow;
 	OnNextClicked = InArgs._OnNextClicked;
 	OnBackClicked = InArgs._OnBackClicked;
@@ -82,7 +82,7 @@ void SEditorTutorials::Construct(const FArguments& InArgs)
 
 void SEditorTutorials::LaunchTutorial(bool bInIsNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
 {
-	bShowNavigation = bInIsNavigationWindow;
+	bIsNavigationWindow = bInIsNavigationWindow;
 	OnTutorialClosed = InOnTutorialClosed;
 	OnTutorialExited = InOnTutorialExited;
 
@@ -100,12 +100,12 @@ void SEditorTutorials::HideContent()
 {
 	HandleHomeClicked();
 	bBrowserVisible = false;
-	bShowNavigation = false;
+	bIsNavigationWindow = false;
 }
 
 bool SEditorTutorials::IsNavigationVisible() const
 {
-	return bShowNavigation;
+	return bIsNavigationWindow;
 }
 
 EVisibility SEditorTutorials::GetBrowserVisibility() const
@@ -195,7 +195,7 @@ void SEditorTutorials::RebuildCurrentContent()
 			.OnClosed(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleCloseClicked))
 			.IsStandalone(CurrentTutorial->bIsStandalone)
 			.ParentWindow(ParentWindow)
-			.AllowNonWidgetContent(bShowNavigation)
+			.AllowNonWidgetContent(bIsNavigationWindow)
 			.OnBackClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleBackClicked))
 			.OnHomeClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleHomeClicked))
 			.OnNextClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleNextClicked))

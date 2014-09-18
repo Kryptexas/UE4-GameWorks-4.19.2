@@ -79,7 +79,8 @@ void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 						.IsHomeEnabled(InArgs._IsHomeEnabled)
 						.IsNextEnabled(InArgs._IsNextEnabled)
 						.WrapTextAt(WidgetContent.ContentWidth)
-						.Anchor(WidgetContent.WidgetAnchor);
+						.Anchor(WidgetContent.WidgetAnchor)
+						.AllowNonWidgetContent(InArgs._AllowNonWidgetContent);
 					
 					PerformWidgetInteractions(WidgetContent); 					
 

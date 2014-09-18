@@ -108,7 +108,7 @@ private:
 	bool bBrowserVisible;
 
 	/** Whether we should display navigation */
-	bool bShowNavigation;
+	bool bIsNavigationWindow;
 
 	/** Delegate fired when next button is clicked */
 	FOnNextClicked OnNextClicked;

@@ -56,6 +56,9 @@ class STutorialContent : public SCompoundWidget
 	/** Anchor if required */
 	SLATE_ARGUMENT(FTutorialContentAnchor, Anchor)
 
+	/** Whether we can show full window content in this overlay (i.e. in the same window as the navigation controls) */
+	SLATE_ARGUMENT(bool, AllowNonWidgetContent)
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UEditorTutorial* InTutorial, const FTutorialContent& InContent);
@@ -203,4 +206,7 @@ private:
 
 	/** Next button widget */
 	TSharedPtr<SWidget> NextButton;
+
+	/** Whether we can show full window content in this overlay (i.e. in the same window as the navigation controls) */
+	bool bAllowNonWidgetContent;
 };
