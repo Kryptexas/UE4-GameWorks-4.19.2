@@ -163,7 +163,7 @@ public:
 			AverageBrightnessTexture, 
 			AverageBrightnessSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-			GSceneRenderTargets.ReflectionBrightness->GetRenderTargetItem().ShaderResourceTexture);
+			GSceneRenderTargets.GetReflectionBrightnessTarget()->GetRenderTargetItem().ShaderResourceTexture);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -275,7 +275,7 @@ IMPLEMENT_SHADER_TYPE(,FComputeBrightnessPS,TEXT("ReflectionEnvironmentShaders")
 /** Computes the average brightness of the given reflection capture and stores it in the scene. */
 void ComputeAverageBrightness(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel)
 {
-	SetRenderTarget(RHICmdList, GSceneRenderTargets.ReflectionBrightness->GetRenderTargetItem().TargetableTexture, NULL);
+	SetRenderTarget(RHICmdList, GSceneRenderTargets.GetReflectionBrightnessTarget()->GetRenderTargetItem().TargetableTexture, NULL);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());

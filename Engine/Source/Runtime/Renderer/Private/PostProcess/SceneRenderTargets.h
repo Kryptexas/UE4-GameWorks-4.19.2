@@ -126,9 +126,19 @@ protected:
 		CurrentTranslucencyLightingVolumeDim(64),
 		CurrentMobile32bpp(0),
 		bCurrentLightPropagationVolume(false),
-		CurrentFeatureLevel(ERHIFeatureLevel::Num)
-		{}
+		CurrentFeatureLevel(ERHIFeatureLevel::Num),
+		CurrentShadingPath(EShadingPath::Num)
+		{
+		}
 public:
+
+	enum class EShadingPath
+	{
+		Forward,
+		Deferred,
+
+		Num,
+	};
 
 	/**
 	 * Checks that scene render targets are ready for rendering a view family of the given dimensions.
@@ -235,7 +245,6 @@ public:
 
 
 	// FRenderResource interface.
-	virtual void InitDynamicRHI() override;
 	virtual void ReleaseDynamicRHI() override;
 
 	// Texture Accessors -----------
@@ -409,10 +418,13 @@ public:
 
 	void AllocLightAttenuation();
 
+	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
+
 private: // Get...() methods instead of direct access
 
-	// 0 before BeginRenderingSceneColor and after tone mapping, for ES2 it's not released during the frame
-	TRefCountPtr<IPooledRenderTarget> SceneColor;
+	// 0 before BeginRenderingSceneColor and after tone mapping in deferred shading
+	// Permanently allocated for forward shading
+	TRefCountPtr<IPooledRenderTarget> SceneColor[(int32)EShadingPath::Num];
 	// also used as LDR scene color
 	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
 public:
@@ -468,8 +480,11 @@ public:
 	/** Temporary storage during SH irradiance map generation. */
 	TRefCountPtr<IPooledRenderTarget> SkySHIrradianceMap;
 
-	/** Temporary storage, used during reflection capture filtering. */
-	TRefCountPtr<IPooledRenderTarget> ReflectionBrightness;
+	/** Temporary storage, used during reflection capture filtering. 
+	  * 0 - R32 version for > ES2
+	  * 1 - RGBAF version for ES2
+	  */
+	TRefCountPtr<IPooledRenderTarget> ReflectionBrightness[2];
 
 	/** Volume textures used for lighting translucency. */
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeAmbient[NumTranslucentVolumeRenderTargetSets];
@@ -519,7 +534,13 @@ private:
 	/** Allocates render targets for use with the deferred shading path. */
 	void AllocateDeferredShadingPathRenderTargets();
 
+	/** Allocates render targets for use with the current shading path. */
+	void AllocateRenderTargets();
+
 	void AllocateReflectionTargets();
+
+	/** Allocates common depth render targets that are used by both forward and deferred rendering paths */
+	void AllocateCommonDepthTargets();
 
 	/** Determine the appropriate render target dimensions. */
 	FIntPoint GetSceneRenderTargetSize(const FSceneViewFamily & ViewFamily) const;
@@ -533,6 +554,16 @@ private:
 	void ReleaseAllTargets();
 
 	EPixelFormat GetSceneColorFormat() const;
+
+	/** Get the current scene color target based on our current shading path. Will return a null ptr if there is no valid scene color target  */
+	const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
+	TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
+
+	/** Determine whether the render targets for a particular shading path have been allocated */
+	bool AreShadingPathRenderTargetsAllocated(EShadingPath InShadingPath) const;
+
+	/** Determine whether the render targets for any shading path have been allocated */
+	bool AreAnyShadingPathRenderTargetsAllocated() const { return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) || AreShadingPathRenderTargetsAllocated(EShadingPath::Forward); }
 
 private:
 	/** Uniform buffer containing GBuffer resources. */
@@ -565,6 +596,8 @@ private:
 	bool bCurrentLightPropagationVolume;
 	/** Feature level we were initialized for */
 	ERHIFeatureLevel::Type CurrentFeatureLevel;
+	/** Shading path that we are currently drawing through. Set when calling Allocate at the start of a scene render. */
+	EShadingPath CurrentShadingPath;
 };
 
 /** The global render targets used for scene rendering. */
