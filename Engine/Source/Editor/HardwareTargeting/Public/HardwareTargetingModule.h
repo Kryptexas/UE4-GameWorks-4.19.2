@@ -18,6 +18,9 @@ public:
 	/** Apply the current hardware targeting settings if they have changed */
 	virtual void ApplyHardwareTargetingSettings() = 0;
 
+	/** Queries what the the current hardware targeting settings would like to change */
+	virtual FText QueryReadableDescriptionOfHardwareTargetingSettings() = 0;
+
 	/** Make a new combo box for choosing a hardware class target */
 	virtual TSharedRef<SWidget> MakeHardwareClassTargetCombo(FOnHardwareClassChanged OnChanged, TAttribute<EHardwareClass::Type> SelectedEnum) = 0;
 

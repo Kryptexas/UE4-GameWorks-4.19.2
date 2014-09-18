@@ -22,6 +22,7 @@ public class HardwareTargeting : ModuleRules
 				"EditorStyle",
 				"UnrealEd",
 				"Settings",
+				"EngineSettings",
 			}
 		);
 	}

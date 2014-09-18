@@ -27,29 +27,46 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 			return Settings->HasPendingChanges() ? EVisibility::Visible : EVisibility::Collapsed;
 		})
 		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("RestartMessage", "These changes will be applied when this project is reopened."))
-			]
+				SNew(SHorizontalBox)
 
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(6)
-			[
-				SNew(SButton)
-				.Text(LOCTEXT("ApplyNow", "Apply Now"))
-				.OnClicked_Static([](){
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("RestartMessage", "The following changes will be applied when this project is reopened."))
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(6)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ApplyNow", "Apply Now"))
+					.OnClicked_Static([](){
 				
-					IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
-					Module.ApplyHardwareTargetingSettings();
+						IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
+						Module.ApplyHardwareTargetingSettings();
 
-					return FReply::Handled();
-				})
+						return FReply::Handled();
+					})
+				]
+			]
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SNew(SRichTextBlock)
+				.AutoWrapText(true)
+				.Justification(ETextJustify::Left)
+				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic([](){
+					return IHardwareTargetingModule::Get().QueryReadableDescriptionOfHardwareTargetingSettings();
+				})))
+				.TextStyle(FEditorStyle::Get(), "HardwareTargets.Normal")
+ 				.DecoratorStyleSet(&FEditorStyle::Get())
 			]
 		]
 	];

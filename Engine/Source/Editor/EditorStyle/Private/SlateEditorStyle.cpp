@@ -1401,7 +1401,29 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		Set("Credits.Hyperlink", HoverOnlyHyperlink);
 	}
-#endif // WITH_EDITOR || IS_PROGRAM
+#endif // WITH_EDITOR
+
+	// Hardware target settings
+#if WITH_EDITOR
+	{
+		FLinearColor EditorOrange = FLinearColor(0.728f, 0.364f, 0.003f);
+
+		FTextBlockStyle TargetSettingsNormal = FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 12))
+			.SetShadowOffset(FVector2D::UnitVector);
+
+		Set("HardwareTargets.Normal", TargetSettingsNormal);
+
+ 		Set("HardwareTargets.Strong", FTextBlockStyle(TargetSettingsNormal)
+ 			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 12))
+ 			.SetShadowOffset(FVector2D::UnitVector));
+
+		Set("HardwareTargets.H1", FTextBlockStyle(TargetSettingsNormal)
+			.SetColorAndOpacity(EditorOrange)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 16))
+			.SetShadowOffset(FVector2D::UnitVector));
+	}
+#endif
 
 	// New Level Dialog
 #if WITH_EDITOR || IS_PROGRAM
