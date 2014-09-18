@@ -57,6 +57,7 @@ protected:
 	UScriptStruct* RotatorStruct;
 	UScriptStruct* TransformStruct;
 	UScriptStruct* LatentInfoStruct;
+	UScriptStruct* LinearColorStruct;
 public:
 	FStringOutputDevice Header;
 	FStringOutputDevice Body;
@@ -80,6 +81,7 @@ public:
 		VectorStruct = Z_Construct_UScriptStruct_UObject_FVector();
 		RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
 		TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
+		LinearColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
 		LatentInfoStruct = FLatentActionInfo::StaticStruct();
 	}
 
