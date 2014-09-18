@@ -768,6 +768,9 @@ bool FSCSEditorViewportClient::GetIsSimulateEnabled()
 
 void FSCSEditorViewportClient::ToggleIsSimulateEnabled() 
 {
+	// Must destroy existing actors before we toggle the world state
+	DestroyPreview();
+
 	bIsSimulateEnabled = !bIsSimulateEnabled;
 	PreviewScene->GetWorld()->bBegunPlay = bIsSimulateEnabled;
 	PreviewScene->GetWorld()->bShouldSimulatePhysics = bIsSimulateEnabled;
@@ -877,7 +880,7 @@ void FSCSEditorViewportClient::EndTransaction()
 AActor* FSCSEditorViewportClient::GetPreviewActor() const
 {
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
-	if(PreviewActorPtr.IsStale(true))
+	if(PreviewActorPtr.IsStale(true) && PreviewBlueprint)
 	{
 		UWorld* PreviewWorld = PreviewScene->GetWorld();
 		for(TActorIterator<AActor> It(PreviewWorld); It; ++It)
