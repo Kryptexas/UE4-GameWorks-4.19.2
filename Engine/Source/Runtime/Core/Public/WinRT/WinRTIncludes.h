@@ -24,6 +24,8 @@
 #include "WinRT/WinRTSurvey.h"
 #include "WinRT/WinRTHttp.h"
 
+typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
+
 typedef FGenericPlatformAffinity FPlatformAffinity;
 
 // include platform properties and typedef it for the runtime

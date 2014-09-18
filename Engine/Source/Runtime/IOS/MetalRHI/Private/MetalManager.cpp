@@ -145,43 +145,7 @@ void FMetalManager::ReleaseObject(id Object)
 	FMetalManager::Get()->DelayedFreeLists[FMetalManager::Get()->WhichFreeList].Add(Object);
 }
 
-
-@interface MetalFramePacer : NSObject
-{
-@public
-	FEvent *FramePacerEvent;
-}
-
--(void)run:(id)param;
--(void)signal:(id)param;
-
-@end
-
-@implementation MetalFramePacer
-
--(void)run:(id)param
-{
-	NSRunLoop *runloop = [NSRunLoop currentRunLoop];
-	CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(signal:)];
-	displayLink.frameInterval = 2;
-	
-	[NSThread currentThread].name = @"FramePacerThread";
-	FramePacerEvent	= new FLocalEvent();
-	FramePacerEvent->Create(false);
-		
-	[displayLink addToRunLoop:runloop forMode:NSDefaultRunLoopMode];
-	[runloop run];
-}
-
--(void)signal:(id)param
-{
-	FramePacerEvent->Trigger();
-}
-
-@end
-
-MetalFramePacer *FramePacer;
-
+ 
 FMetalManager::FMetalManager()
 	: Device([IOSAppDelegate GetDelegate].IOSView->MetalDevice)
 	, CurrentCommandBuffer(nil)
@@ -228,10 +192,9 @@ FMetalManager::FMetalManager()
 
 	AutoReleasePoolTLSSlot = FPlatformTLS::AllocTlsSlot();
 
-	// Create display link thread
-	FramePacer = [[MetalFramePacer alloc] init];
-	[NSThread detachNewThreadSelector:@selector(run:) toTarget:FramePacer withObject:nil];
-	
+    FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+    FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 2 );
+    
 	InitFrame();
 }
 
@@ -359,9 +322,9 @@ void FMetalManager::EndFrame(bool bPresent)
 	 {
 		dispatch_semaphore_signal(CommandBufferSemaphore);
 	 }];
-	
+    
 	// Wait until at least 2 VBlanks has passed since last time
-//	FramePacer->FramePacerEvent->Wait();
+    FrameReadyEvent->Wait();
 
 	// Commit before waiting to avoid leaving the gpu idle
 	[CurrentCommandBuffer commit];

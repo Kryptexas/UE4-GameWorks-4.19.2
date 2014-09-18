@@ -69,6 +69,8 @@ struct RECT
 #include "Linux/LinuxPlatformSurvey.h"
 #include "Linux/LinuxPlatformHttp.h"
 
+typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
+
 typedef FGenericPlatformAffinity FPlatformAffinity;
 
 // include platform properties and typedef it for the runtime

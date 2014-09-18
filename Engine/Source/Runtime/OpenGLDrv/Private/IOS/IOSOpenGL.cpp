@@ -115,8 +115,23 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 	return (void*)Context->Context;
 }
 
+
+// Event for coordinating pausing of render thread to keep inline with the ios display link.
+static FEvent* FrameReadyEvent = NULL;
+
 bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
+    if( FIOSPlatformRHIFramePacer::IsEnabled() )
+    {
+        if( FrameReadyEvent == NULL )
+        {
+            FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+            FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 2 );
+        }
+    
+        FrameReadyEvent->Wait();
+    }
+    
 	FPlatformOpenGLContext* const Context = Viewport.GetGLContext();
 
 	// @todo-mobile

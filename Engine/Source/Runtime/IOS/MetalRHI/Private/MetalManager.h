@@ -244,6 +244,8 @@ protected:
 
 	void CommitNonComputeShaderConstants();
 
+private:
+    FEvent* FrameReadyEvent;
 };
 
 // Stats
