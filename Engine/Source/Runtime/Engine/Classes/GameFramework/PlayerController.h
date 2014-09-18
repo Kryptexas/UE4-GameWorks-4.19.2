@@ -63,7 +63,7 @@ struct FDynamicForceFeedbackDetails
  * orientation of the controlled Pawn.
  *
  * In networked games, PlayerControllers exist on the server for every player-controlled pawn,
- * and also on the controlling client's machine. They do *not* exist on a client's
+ * and also on the controlling client's machine. They do NOT exist on a client's
  * machine for pawns controlled by remote players elsewhere on the network.
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/PlayerController/

@@ -8,7 +8,7 @@
  * Static meshes are geometry that do not animate or otherwise deform, and are more efficient to render than other types of geometry.
  * Static meshes dragged into the level from the Content Browser are automatically converted to StaticMeshActors.
  *
- * @see https://docs.unrealengine.com/latest/INT/Engine/Actors/StaticMeshActor/index.html
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Actors/StaticMeshActor/
  * @see UStaticMesh
  */
 UCLASS(hidecategories=(Input), showcategories=("Input|MouseInput", "Input|TouchInput"), ConversionRoot, meta=(ChildCanTick))

@@ -163,14 +163,16 @@ private:
 public:
 	
 	/**
-	 * Actor's current movement mode (walking, falling, etc). This is automatically replicated through the Character owner and for client-server movement functions.
+	 * Actor's current movement mode (walking, falling, etc).
+	 * This is automatically replicated through the Character owner and for client-server movement functions.
 	 * @see SetMovementMode()
 	 */
 	UPROPERTY(Category=MovementMode, BlueprintReadOnly)
 	TEnumAsByte<enum EMovementMode> MovementMode;
 
 	/**
-	 * Current custom sub-mode if MovementMode is set to Custom. This is automatically replicated through the Character owner and for client-server movement functions.
+	 * Current custom sub-mode if MovementMode is set to Custom.
+	 * This is automatically replicated through the Character owner and for client-server movement functions.
 	 * @see SetMovementMode()
 	 */
 	UPROPERTY(Category=MovementMode, BlueprintReadOnly)
@@ -187,7 +189,8 @@ public:
 	float GravityScale;
 
 	/**
-	 * Coefficient of friction. This property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Coefficient of friction.
+	 * This property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
 	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
 	 * @see BrakingDecelerationWalking
 	 */

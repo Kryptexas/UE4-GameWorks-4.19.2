@@ -9,7 +9,7 @@
  * Skeletal meshes are deformable meshes that can be animated and change their geometry at run-time.
  * Skeletal meshes dragged into the level from the Content Browser are automatically converted to StaticMeshActors.
  * 
- * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/index.html
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
  * @see USkeletalMesh
  */
 UCLASS(ClassGroup=ISkeletalMeshes, Blueprintable, ConversionRoot, meta=(ChildCanTick))

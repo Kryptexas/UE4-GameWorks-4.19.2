@@ -22,8 +22,8 @@ class UPrimitiveComponent;
 
 /** 
  * Pawn is the base class of all actors that can be possessed by players or AI.
- * Pawns are the physical representations of players and creatures in a level.
- * They are responsible for all physical interaction between the player or AI and the world.
+ * They are the physical representations of players and creatures in a level.
+ *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/
  */
 UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))

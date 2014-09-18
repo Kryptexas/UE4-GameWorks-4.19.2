@@ -188,9 +188,9 @@ typedef FBasedMovementInfo FRepRelativeMovement;
 
 
 /**
- * Characters are Pawns that have a mesh, collision, and default movement logic. They are responsible for all
- * physical interaction between the player or AI and the world, and also have implementations of basic networking and input models.
- * They are designed for a vertically-oriented player representation that can walk, run, jump, fly, and swim through the world using CharacterMovementComponent.
+ * Characters are Pawns that have a mesh, collision, and built-in movement logic.
+ * They are responsible for all physical interaction between the player or AI and the world, and also implement basic networking and input models.
+ * They are designed for a vertically-oriented player representation that can walk, jump, fly, and swim through the world using CharacterMovementComponent.
  *
  * @see APawn, UCharacterMovementComponent
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/Character/
@@ -210,7 +210,7 @@ class ENGINE_API ACharacter : public APawn
 	TSubobjectPtr<class UArrowComponent> ArrowComponent;
 #endif
 
-	/** CharacterMovement component used by walking/running/flying avatars not using rigid body physics */
+	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCharacterMovementComponent> CharacterMovement;
 
@@ -227,7 +227,7 @@ class ENGINE_API ACharacter : public APawn
 	/** Name of the CapsuleComponent. */
 	static FName CapsuleComponentName;
 
-	/** Sets the MovementBase used by CharacterMovement walking movement. */
+	/** Sets the component the Character is walking on, used by CharacterMovement walking movement to be able to follow dynamic objects. */
 	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
 	 
 protected:

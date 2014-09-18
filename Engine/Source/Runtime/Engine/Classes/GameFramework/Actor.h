@@ -46,11 +46,12 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnProcessEvent, AActor*, UFunction*, 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GetComponentsTime"),STAT_GetComponentsTime,STATGROUP_Engine,ENGINE_API);
 
 /**
- * Actor is the base class for a UObject that can be placed or spawned in a level.
- * Actors may contain a collection of UActorComponents, which can be used to control how actors move, how they are rendered, etc.
+ * Actor is the base class for an Object that can be placed or spawned in a level.
+ * Actors may contain a collection of ActorComponents, which can be used to control how actors move, how they are rendered, etc.
  * The other main function of an Actor is the replication of properties and function calls across the network during play.
  * 
- * @see https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Actors/index.html
+ * @see https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Actors/
+ * @see UActorComponent
  */
 UCLASS(abstract, BlueprintType, Blueprintable, config=Engine)
 class ENGINE_API AActor : public UObject
@@ -72,7 +73,7 @@ public:
 	/**
 	 * Primary Actor tick function, which calls TickActor().
 	 * Tick functions can be configured to control whether ticking is enabled, at what time during a frame the update occurs, and to set up tick dependencies.
-	 * @see https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Engine/FTickFunction/index.html
+	 * @see https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Engine/FTickFunction/
 	 * @see AddTickPrerequisiteActor(), AddTickPrerequisiteComponent()
 	 */
 	UPROPERTY()
@@ -114,7 +115,7 @@ public:
 	 * If true, replicate movement/location related properties.
 	 * Actor must also be set to replicate.
 	 * @see SetReplicates()
-	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/index.html
+	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
 	 */
 	UPROPERTY(Replicated, Category=Replication, EditDefaultsOnly)
 	uint32 bReplicateMovement:1;    
@@ -202,7 +203,7 @@ public:
 	 * Properties flagged for replication will update on clients if they change on the server.
 	 * Internally changes the RemoteRole property and handles the cases where the actor needs to be added to the network actor list.
 	 * @param bInReplicates Whether this Actor replicates to network clients.
-	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/index.html
+	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Replication")
 	void SetReplicates(bool bInReplicates);

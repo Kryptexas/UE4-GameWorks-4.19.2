@@ -318,7 +318,7 @@ struct FAssetEditorOrbitCameraPosition
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
  * to render than other types of geometry such as USkeletalMesh, and they are often the basic building block of levels created in the engine.
  *
- * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/index.html
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/
  * @see AStaticMeshActor, UStaticMeshComponent
  */
 UCLASS(collapsecategories, hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
