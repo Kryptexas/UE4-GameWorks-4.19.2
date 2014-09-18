@@ -17,6 +17,10 @@ namespace ECompilationResult
 {
 	enum Type
 	{
+		/** All targets were up to date, used only with -canskiplink */
+		UpToDate = -2,
+		/** Build was canceled, this is used on the engine side only */
+		Canceled = -1,
 		/** Compilation succeeded */
 		Succeeded = 0,
 		/** Compilation failed because generated code changed which was not supported */
@@ -36,6 +40,10 @@ namespace ECompilationResult
 	{
 		switch (Result)
 		{
+		case ECompilationResult::UpToDate:
+			return TEXT("UpToDate");
+		case ECompilationResult::Canceled:
+			return TEXT("Canceled");
 		case ECompilationResult::Succeeded:
 			return TEXT("Succeeded");
 		case ECompilationResult::FailedDueToHeaderChange:
@@ -46,5 +54,13 @@ namespace ECompilationResult
 			return TEXT("Unsupported");
 		};
 		return TEXT("Unknown");
+	}
+
+	/**
+	* Returns false if the provided Result is either UpToDate or Succeeded.
+	*/
+	static FORCEINLINE bool Failed(ECompilationResult::Type Result)
+	{
+		return !(Result == ECompilationResult::Succeeded || Result == ECompilationResult::UpToDate);
 	}
 }

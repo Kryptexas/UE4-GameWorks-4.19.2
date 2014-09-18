@@ -18,6 +18,10 @@ namespace UnrealBuildTool
 	// processes valid.
 	public enum ECompilationResult
 	{
+		/** All targets were up to date, used only with -canskiplink */
+		UpToDate = -2,
+		/** Build was canceled, this is used on the engine side only */
+		Canceled = -1,
 		/** Compilation succeeded */
 		Succeeded = 0,
 		/** Compilation failed because generated code changed which was not supported */
@@ -28,6 +32,13 @@ namespace UnrealBuildTool
 		Unsupported,
 		/** Unknown error */
 		Unknown
+	}
+	public static class CompilationResultExtensions
+	{
+		public static bool Succeeded(this ECompilationResult Result)
+		{
+			return Result == ECompilationResult.Succeeded || Result == ECompilationResult.UpToDate;
+		}
 	}
 
 	/** Information about a module that needs to be passed to UnrealHeaderTool for code generation */

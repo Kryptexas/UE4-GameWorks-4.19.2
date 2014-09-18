@@ -183,6 +183,9 @@ namespace UnrealBuildTool
 		/** True if performing hot-reload from IDE */
 		public static bool bHotReloadFromIDE;
 
+		/** When true, the targets won't execute their link actions if there was nothing to compile */
+		public static bool bSkipLinkingWhenNothingToCompile;
+
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
@@ -222,6 +225,7 @@ namespace UnrealBuildTool
 			bCompileForSize = false;
 			bHotReloadFromIDE = false;
 			bAllowHotReloadFromIDE = true;
+			bSkipLinkingWhenNothingToCompile = false;
 		}
 
 		/// <summary>

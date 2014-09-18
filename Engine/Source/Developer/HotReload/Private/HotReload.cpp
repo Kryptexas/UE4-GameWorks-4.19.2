@@ -116,12 +116,12 @@ private:
 	/**
 	 * Does the actual hot-reload, unloads old modules, loads new ones
 	 */
-	ECompilationResult::Type DoHotReloadInternal(bool bRecompileFinished, bool bRecompileSucceeded, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
+	ECompilationResult::Type DoHotReloadInternal(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
 
 	/**
 	* Callback for async ompilation
 	*/
-	void DoHotReloadCallback(bool bRecompileFinished, bool bRecompileSucceeded, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
+	void DoHotReloadCallback(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray<FName> InDependentModules, FOutputDevice &HotReloadAr);
 
 	/**
 	 * Gets all currently loaded game module names.
@@ -171,7 +171,7 @@ private:
 	 * The first argument signals whether compilation has finished.
 	 * The second argument shows whether compilation was successful or not.
 	 */
-	DECLARE_DELEGATE_TwoParams( FRecompileModulesCallback, bool, bool );
+	DECLARE_DELEGATE_TwoParams( FRecompileModulesCallback, bool, ECompilationResult::Type );
 
 	/**
 	 * Tries to recompile the specified modules in the background.  When recompiling finishes, the specified callback
@@ -422,7 +422,6 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 	const bool bUseRollingModuleNames = bWasModuleLoaded;
 
 	bool bWasSuccessful = true;
-	FString NewModuleFileNameOnSuccess = FModuleManager::Get().GetModuleFilename(InModuleName);
 	if( bUseRollingModuleNames )
 	{
 		// First, try to compile the module.  If the module is already loaded, we won't unload it quite yet.  Instead
@@ -432,10 +431,6 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 		FString UniqueSuffix;
 		FString UniqueModuleFileName;
 		FModuleManager::Get().MakeUniqueModuleFilename( InModuleName, UniqueSuffix, UniqueModuleFileName );
-
-		// If the recompile succeeds, we'll update our cached file name to use the new unique file name
-		// that we setup for the module
-		NewModuleFileNameOnSuccess = UniqueModuleFileName;
 
 		TArray< FModuleToRecompile > ModulesToRecompile;
 		FModuleToRecompile ModuleToRecompile;
@@ -523,16 +518,16 @@ void FHotReloadModule::DoHotReloadFromEditor()
 	RecordAnalyticsEvent(TEXT("Editor"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
 }
 
-void FHotReloadModule::DoHotReloadCallback(bool bRecompileFinished, bool bRecompileSucceeded, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
+void FHotReloadModule::DoHotReloadCallback(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
 {
-	DoHotReloadInternal(bRecompileFinished, bRecompileSucceeded, Packages, InDependentModules, HotReloadAr);
+	DoHotReloadInternal(bRecompileFinished, CompilationResult, Packages, InDependentModules, HotReloadAr);
 }
 
-ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFinished, bool bRecompileSucceeded, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
+ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
 #if WITH_HOT_RELOAD
-	if (bRecompileSucceeded)
+	if (CompilationResult == ECompilationResult::Succeeded)
 	{
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
 		ErrorsFC.Errors.Empty();
@@ -643,7 +638,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 		const bool bWasTriggeredAutomatically = !bIsHotReloadingFromEditor;
 		BroadcastHotReload( bWasTriggeredAutomatically );
 	}
-	else if (bRecompileFinished)
+	else if (ECompilationResult::Failed(CompilationResult) && bRecompileFinished)
 	{
 		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, recompile failed"));
 		Result = ECompilationResult::OtherCompilationError;
@@ -904,8 +899,8 @@ void FHotReloadModule::DoHotReloadFromIDE()
 		check(PackagesToRebind.Num() || DependentModules.Num())
 		{
 			const bool bRecompileFinished = true;
-			const bool bRecompileSucceeded = true;
-			Result = DoHotReloadInternal(bRecompileFinished, bRecompileSucceeded, PackagesToRebind, DependentModules, *GLog);
+			const ECompilationResult::Type RecompileResult = ECompilationResult::Succeeded;
+			Result = DoHotReloadInternal(bRecompileFinished, RecompileResult, PackagesToRebind, DependentModules, *GLog);
 		}
 
 		GWarn->EndSlowTask();
@@ -1107,7 +1102,8 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 	}
 
 	// Shared PCH does no work with hot-reloading modules as we don't scan all modules for them.
-	ExtraArg += TEXT("-nosharedpch ");
+	// Also, if there's nothing to compile, don't bother linking the DLLs as the old ones are up-to-date
+	ExtraArg += TEXT("-nosharedpch -canskiplink ");
 
 	FString TargetName = GameName;
 
@@ -1135,7 +1131,7 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 
 		// Fire task completion delegate 
 		
-		RecompileModulesCallback.ExecuteIfBound( false, false );
+		RecompileModulesCallback.ExecuteIfBound( false, ECompilationResult::OtherCompilationError );
 		RecompileModulesCallback.Unbind();
 	}
 
@@ -1237,8 +1233,12 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 		int32 ReturnCode = -1;
 		while (bCompileStillInProgress)
 		{
-			if( FPlatformProcess::GetProcReturnCode( ModuleCompileProcessHandle, &ReturnCode ) )
+			// Store the return code in a temp variable for now because it still gets overwritten
+			// when the process is running.
+			int32 ProcReturnCode = -1;
+			if( FPlatformProcess::GetProcReturnCode( ModuleCompileProcessHandle, &ProcReturnCode ) )
 			{
+				ReturnCode = ProcReturnCode;
 				bCompileStillInProgress = false;
 			}
 			
@@ -1274,12 +1274,13 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 			// Compilation finished, now we need to grab all of the text from the output pipe
 			ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
 
-			// The ReturnCode is -1 only if compilation was cancelled.
-			CompilationResult = ReturnCode != -1 ? (ECompilationResult::Type)ReturnCode : ECompilationResult::OtherCompilationError;
+			// This includes 'canceled' (-1) and 'up-to-date' (-2)
+			CompilationResult = (ECompilationResult::Type)ReturnCode;
 
 			// If compilation succeeded for all modules, go back to the modules and update their module file names
 			// in case we recompiled the modules to a new unique file name.  This is needed so that when the module
-			// is reloaded after the recompile, we load the new DLL file name, not the old one
+			// is reloaded after the recompile, we load the new DLL file name, not the old one.
+			// Note that we don't want to do anything in case the build was canceled or source code has not changed.
 			if(CompilationResult == ECompilationResult::Succeeded)
 			{
 				for( int32 CurModuleIndex = 0; CurModuleIndex < ModulesThatWereBeingRecompiled.Num(); ++CurModuleIndex )
@@ -1293,9 +1294,8 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 						OnModuleCompileSucceeded(FName(*CurModule.ModuleName), CurModule.NewModuleFilename);
 					}
 				}
-
-				ModulesThatWereBeingRecompiled.Empty();
 			}
+			ModulesThatWereBeingRecompiled.Empty();
 
 			// We're done with the process handle now
 			ModuleCompileProcessHandle.Close();
@@ -1315,7 +1315,7 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 			// No longer compiling modules
 			ModulesBeingCompiled.Empty();
 
-			bCompileSucceeded = CompilationResult == ECompilationResult::Succeeded;
+			bCompileSucceeded = !ECompilationResult::Failed(CompilationResult);
 
 			if ( bFireEvents )
 			{
@@ -1323,7 +1323,7 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 				ModuleCompilerFinishedEvent.Broadcast(FinalOutput, CompilationResult, !bCompileSucceeded || bShowLogOnSuccess);
 
 				// Fire task completion delegate 
-				RecompileModulesCallback.ExecuteIfBound( true, bCompileSucceeded );
+				RecompileModulesCallback.ExecuteIfBound( true, CompilationResult );
 				RecompileModulesCallback.Unbind();
 			}
 		}

@@ -760,7 +760,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 		{
 			TArray< FAnalyticsEventAttribute > CompileAttribs;
 			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration)));
-			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed")));
+			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Result"), ECompilationResult::ToString(CompilationResult)));
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Modules.Recompile"), CompileAttribs);
 		}
 	}
@@ -769,11 +769,11 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 
 	if (NotificationItem.IsValid())
 	{
-		if (CompilationResult == ECompilationResult::Succeeded)
+		if (!ECompilationResult::Failed(CompilationResult))
 		{
 			GEditor->PlayPreviewSound(CompileSuccessSound);
 			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileComplete", "Compile Complete!"));
-			NotificationItem->SetExpireDuration( 1.5f );
+			NotificationItem->SetExpireDuration( 5.0f );
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
 		}
 		else
@@ -792,6 +792,10 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 			{
 				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailedDueToHeaderChange", "Compile failed due to the header changes. Close the editor and recompile project in IDE to apply changes."));
 			}
+			else if (CompilationResult == ECompilationResult::Canceled)
+			{
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Canceled!"));
+			}
 			else
 			{
 				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Failed!"));
@@ -799,6 +803,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 			
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 			NotificationItem->SetHyperlink(FSimpleDelegate::CreateStatic(&Local::ShowCompileLog));
+			NotificationItem->SetExpireDuration(30.0f);
 		}
 
 		NotificationItem->ExpireAndFadeout();

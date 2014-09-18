@@ -932,7 +932,11 @@ namespace UnrealBuildTool
                         else if (LowercaseArg == "-progress")
                         {
                             ProgressWriter.bWriteMarkup = true;
-                        }                        
+                        }
+						else if (LowercaseArg == "-canskiplink")
+						{
+							UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
+						}
                         else if (CheckPlatform.ToString().ToLowerInvariant() == LowercaseArg)
                         {
                             // It's the platform set...
@@ -1487,6 +1491,8 @@ namespace UnrealBuildTool
                     UEBuildConfiguration.bHotReloadFromIDE = UEBuildConfiguration.bAllowHotReloadFromIDE && !Target.bEditorRecompile && ShouldDoHotReload(Target);
                     if (UEBuildConfiguration.bHotReloadFromIDE)
                     {
+						// Don't produce new DLLs if there's been no code changes
+						UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
                         Log.TraceInformation("Compiling game modules for hot reload");
                     }
 
@@ -1642,7 +1648,7 @@ namespace UnrealBuildTool
                             }
                         }
 
-                        if( BuildResult == ECompilationResult.Succeeded )
+                        if( BuildResult.Succeeded() )
                         { 
                             // Make sure any old DLL files from in-engine recompiles aren't lying around.  Must be called after the action graph is finalized.
                             ActionGraph.DeleteStaleHotReloadDLLs();
@@ -1680,6 +1686,10 @@ namespace UnrealBuildTool
                                 {
                                     ToolChain.PostBuildSync(Target);
                                 }
+								if (ActionsToExecute.Count == 0 && UEBuildConfiguration.bSkipLinkingWhenNothingToCompile)
+								{
+									BuildResult = ECompilationResult.UpToDate;
+								}
                             }
                             else
                             {

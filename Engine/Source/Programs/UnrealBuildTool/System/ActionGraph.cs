@@ -259,12 +259,23 @@ namespace UnrealBuildTool
 
 			// Build a list of actions that are both needed for this target and outdated.
 			List<Action> ActionsToExecute = new List<Action>();
+			bool bHasOutdatedNonLinkActions = false;
 			foreach (Action Action in AllActions)
 			{
 				if (Action.CommandPath != null && IsActionOutdatedMap.ContainsKey(Action) && OutdatedActionDictionary[Action])
 				{
 					ActionsToExecute.Add(Action);
+					if (Action.ActionType != ActionType.Link)
+					{
+						bHasOutdatedNonLinkActions = true;
+					}
 				}
+			}
+
+			// Remove link actions if asked to
+			if (UEBuildConfiguration.bSkipLinkingWhenNothingToCompile && !bHasOutdatedNonLinkActions)
+			{
+				ActionsToExecute.Clear();
 			}
 
 			if( BuildConfiguration.bPrintPerformanceInfo )
