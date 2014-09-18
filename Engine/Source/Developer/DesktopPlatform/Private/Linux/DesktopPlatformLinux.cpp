@@ -360,6 +360,13 @@ bool FDesktopPlatformLinux::RunUnrealBuildTool(const FText& Description, const F
 	return FFeedbackContextMarkup::PipeProcessOutput(Description, TEXT("/usr/bin/mono"), CmdLineParams, Warn, &ExitCode) && ExitCode == 0;
 }
 
+bool FDesktopPlatformLinux::IsUnrealBuildToolRunning()
+{
+	// For now assume that if mono application is running, we're running UBT
+	// @todo: we need to get the commandline for the mono process and check if UBT.exe is in there.
+	return FPlatformProcess::IsApplicationRunning(TEXT("mono"));
+}
+
 FFeedbackContext* FDesktopPlatformLinux::GetNativeFeedbackContext()
 {
 	//unimplemented();

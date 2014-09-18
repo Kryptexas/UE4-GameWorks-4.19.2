@@ -28,6 +28,7 @@ public:
 	virtual bool OpenProject(const FString &ProjectFileName) override;
 
 	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) override;
+	virtual bool IsUnrealBuildToolRunning() override;
 
 	virtual FFeedbackContext* GetNativeFeedbackContext() override;
 

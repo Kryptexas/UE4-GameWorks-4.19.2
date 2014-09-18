@@ -362,6 +362,14 @@ public:
 	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) = 0;
 
 	/**
+	* Checks if an instance of UnrealBuildTool is running.
+	*
+	* @return true if an instance of UnrealBuildTool is running.
+	*/
+	virtual bool IsUnrealBuildToolRunning() = 0;
+
+
+	/**
 	* Gets the path to the solution for the current project
 	*
 	* @param OutSolutionPath	Receives the string 

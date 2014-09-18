@@ -838,7 +838,7 @@ bool FHotReloadModule::Tick(float DeltaTime)
 	if (NewModules.Num())
 	{
 		// We have new modules in the queue, but make sure UBT has finished compiling all of them
-		if (!FPlatformProcess::IsApplicationRunning(TEXT("UnrealBuildTool")))
+		if (!FDesktopPlatformModule::Get()->IsUnrealBuildToolRunning())
 		{
 			DoHotReloadFromIDE();
 			NewModules.Empty();

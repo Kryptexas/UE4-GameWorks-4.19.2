@@ -9,6 +9,9 @@
 	#include <shellapi.h>
 	#include <shlobj.h>
 	#include <Winver.h>
+	#include <LM.h>
+	#include <tlhelp32.h>
+	#include <Psapi.h>
 #include "HideWindowsPlatformTypes.h"
 
 #pragma comment( lib, "version.lib" )
@@ -539,6 +542,34 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 	// Spawn UBT
 	int32 ExitCode = 0;
 	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
+}
+
+bool FDesktopPlatformWindows::IsUnrealBuildToolRunning()
+{
+	FString UBTPath = GetUnrealBuildToolExecutableFilename();
+	FPaths::MakePlatformFilename(UBTPath);
+
+	HANDLE SnapShot = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (SnapShot != INVALID_HANDLE_VALUE)
+	{
+		PROCESSENTRY32 Entry;
+		Entry.dwSize = sizeof(PROCESSENTRY32);
+
+		if (::Process32First(SnapShot, &Entry))
+		{
+			do
+			{
+				const FString EntryFullPath = FPlatformProcess::GetApplicationName(Entry.th32ProcessID);
+				if (EntryFullPath == UBTPath)
+				{
+					::CloseHandle(SnapShot);
+					return true;
+				}
+			} while (::Process32Next(SnapShot, &Entry));
+		}
+	}
+	::CloseHandle(SnapShot);
+	return false;
 }
 
 FFeedbackContext* FDesktopPlatformWindows::GetNativeFeedbackContext()
