@@ -23,6 +23,7 @@ void STutorialButton::Construct(const FArguments& InArgs)
 	bTutorialCompleted = false;
 	bTutorialDismissed = false;
 	bDeferTutorialOpen = true;
+	AlertStartTime = 0.0f;
 
 	PulseAnimation.AddCurve(0.0f, TutorialButtonConstants::PulseAnimationLength, ECurveEaseFunction::Linear);
 	PulseAnimation.Play();
@@ -61,6 +62,11 @@ void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCur
 			FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 			const bool bRestart = true;
 			IntroTutorials.LaunchTutorial(AttractTutorial, bRestart, ContextWindow);
+		}
+
+		if(ShouldShowAlert())
+		{
+			AlertStartTime = FPlatformTime::Seconds();
 		}
 	}
 	bDeferTutorialOpen = false;
@@ -138,6 +144,16 @@ FReply STutorialButton::HandleButtonClicked()
 
 	if(ContextWindow.IsValid())
 	{
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Context"), Context.ToString()));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeSinceAlertStarted"), (AlertStartTime != 0.0f && ShouldShowAlert()) ? (FPlatformTime::Seconds() - AlertStartTime) : -1.0f));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LaunchedBrowser"), ShouldLaunchBrowser());
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.ClickedContextButton"), EventAttributes );
+		}
+
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 		if(ShouldLaunchBrowser())
 		{
@@ -191,9 +207,18 @@ void STutorialButton::DismissAlert()
 	UEditorTutorial* AttractTutorial = nullptr;
 	UEditorTutorial* LaunchTutorial = nullptr;
 	FString BrowserFilter;
-	GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(Context, AttractTutorial, LaunchTutorial,BrowserFilter);
+	GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(Context, AttractTutorial, LaunchTutorial, BrowserFilter);
 	if (AttractTutorial != nullptr)
 	{
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Context"), Context.ToString()));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeSinceAlertStarted"), (AlertStartTime != 0.0f && ShouldShowAlert()) ? (FPlatformTime::Seconds() - AlertStartTime) : -1.0f));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.DismissedTutorialAlert"), EventAttributes );
+		}
+
 		const bool bDismissAcrossSessions = true;
 		GetMutableDefault<UTutorialStateSettings>()->DismissTutorial(AttractTutorial, bDismissAcrossSessions);
 		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();

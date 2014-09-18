@@ -59,4 +59,7 @@ private:
 
 	/** Animation curve for displaying pulse */
 	FCurveSequence PulseAnimation;
+
+	/** Start time we began playing the alert animation */
+	float AlertStartTime;
 };

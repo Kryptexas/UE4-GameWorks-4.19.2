@@ -41,6 +41,9 @@ class UTutorialStateSettings : public UObject
 	/** UObject interface */
 	virtual void PostInitProperties() override;
 
+	/** Reset the progress and completion sate of all tutorials */
+	void ClearProgress();
+
 	/** Get the recorded progress of the pass-in tutorial */
 	int32 GetProgress(UEditorTutorial* InTutorial, bool& bOutHaveSeenTutorial) const;
 

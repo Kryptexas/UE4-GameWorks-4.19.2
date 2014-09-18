@@ -62,6 +62,7 @@ class STutorialContent : public SCompoundWidget
 
 	/** SWidget implementation */
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	/** Helper function to generate widgets from an FTutorialContent struct */
 	static TSharedRef<SWidget> GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, TSharedPtr<IDocumentationPage>& OutDocumentationPage);
@@ -112,6 +113,9 @@ private:
 
 	/** Delegate handler for going to the previous stage of the tutorial */
 	void HandleBackSelected();
+
+	/** Delegate handler for going to the next stage of the tutorial */
+	void HandleNextSelected();
 
 	/** Delegate handler for restarting the tutorial */
 	void HandleRestartSelected();

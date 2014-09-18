@@ -46,14 +46,17 @@ public:
 	void GoToNextStage(TWeakPtr<SWindow> InNavigationWindow);
 
 private:
-	/** Handle when the next button is clicked - forward navigation to other overlays */
+	/** Handle when the next button is clicked */
 	void HandleNextClicked(TWeakPtr<SWindow> InNavigationWindow);
 
-	/** Handle when the back button is clicked - forward navigation to other overlays */
+	/** Handle when the back button is clicked */
 	void HandleBackClicked();
 
-	/** Handle when the home button is clicked - forward navigation to other overlays */
+	/** Handle when the home button is clickeds */
 	void HandleHomeClicked();
+
+	/** Handle when the close button is clicked */
+	void HandleCloseClicked();
 
 	/** Handle retrieving the current tutorial */
 	UEditorTutorial* HandleGetCurrentTutorial();
@@ -73,4 +76,7 @@ private:
 
 	/** Current stage of tutorial */
 	int32 CurrentTutorialStage;
+
+	/** Start time of the current tutorial, if any */
+	float CurrentTutorialStartTime;
 };

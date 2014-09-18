@@ -5,6 +5,8 @@
 #include "STutorialEditableText.h"
 #include "IntroTutorials.h"
 #include "TutorialText.h"
+#include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "STutorialContent"
 
@@ -217,6 +219,17 @@ int32 STutorialContent::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 	}
 
 	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+}
+
+FReply STutorialContent::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if (!bIsStandalone && MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		FSlateApplication::Get().PushMenu(AsShared(), HandleGetMenuContent(), MouseEvent.GetScreenSpacePosition(), FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+		return FReply::Handled();
+	}
+	
+	return FReply::Unhandled();
 }
 
 /** Helper function to generate title widget, if any */
@@ -461,6 +474,19 @@ TSharedRef<SWidget> STutorialContent::HandleGetMenuContent()
 			)
 		);
 
+		if(IsNextEnabled.Get())
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("NextLabel", "Next"),
+				GetNextButtonTooltip(),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &STutorialContent::HandleNextSelected),
+					FCanExecuteAction()
+				)
+			);
+		}
+
 		if(IsBackEnabled.Get())
 		{
 			MenuBuilder.AddMenuEntry(
@@ -507,6 +533,11 @@ void STutorialContent::HandleExitSelected()
 	OnClosed.ExecuteIfBound();
 }
 
+void STutorialContent::HandleNextSelected()
+{
+	OnNextClicked.ExecuteIfBound();
+}
+
 void STutorialContent::HandleBackSelected()
 {
 	OnBackClicked.ExecuteIfBound();
@@ -518,12 +549,25 @@ void STutorialContent::HandleRestartSelected()
 	{
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 		const bool bRestart = true;
-		IntroTutorials.LaunchTutorial(Tutorial.Get(), bRestart, FSlateApplication::Get().FindWidgetWindow(AsShared()));		
+		IntroTutorials.LaunchTutorial(Tutorial.Get(), bRestart, FSlateApplication::Get().FindWidgetWindow(AsShared()));
+
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			FEngineAnalytics::GetProvider().RecordEvent( FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT("Rocket.Tutorials.Restarted"), Tutorial.Get()) );
+		}
 	}
 }
 
 void STutorialContent::HandleBrowseSelected()
 {
+	if( FEngineAnalytics::IsAvailable() && Tutorial.IsValid())
+	{
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("FromTutorial"), FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT(""), Tutorial.Get())));
+
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.OpenedBrowser"), EventAttributes );
+	}
+
 	OnHomeClicked.ExecuteIfBound();
 }
 

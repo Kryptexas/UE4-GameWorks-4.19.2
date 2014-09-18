@@ -118,3 +118,11 @@ void UTutorialStateSettings::SaveProgress()
 
 	SaveConfig();
 }
+
+void UTutorialStateSettings::ClearProgress()
+{
+	ProgressMap.Empty();
+	TutorialsProgress.Empty();
+
+	SaveConfig();
+}

@@ -489,6 +489,9 @@ public:
 	/** Checks to see if the provided graph is contained within the current blueprint */
 	bool IsGraphInCurrentBlueprint(UEdGraph* InGraph) const;
 
+	/** Get the context to use from the Blueprint type */
+	static FName GetContextFromBlueprintType(EBlueprintType InType);
+
 protected:
 	/** Called during initialization of the blueprint editor to register any application modes. */
 	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);

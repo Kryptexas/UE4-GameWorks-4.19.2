@@ -76,7 +76,7 @@ ITargetDevicePtr FIOSTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId 
 }
 
 
-bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
+bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const
 {
 	bool biOSSDKInstalled = true; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
 #if PLATFORM_MAC
@@ -90,7 +90,7 @@ bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocume
 		unsigned long pathSize = 256;
 		if (lRes != ERROR_SUCCESS || RegQueryValueEx(hKey, TEXT("iTunesMobileDeviceDLL"), 0, NULL, (BYTE*)dllPath, &pathSize) != ERROR_SUCCESS || IFileManager::Get().FileSize(*FString(dllPath)) == INDEX_NONE)
 		{
-			OutDocumentationPath = FString("Shared/Tutorials/InstallingiTunesTutorial");
+			OutTutorialPath = FString("/Engine/Tutorial/Mobile/InstallingiTunesTutorial.InstallingiTunesTutorial");
 			biOSSDKInstalled = false;
 		}
 	}
@@ -106,24 +106,24 @@ static void OnOutput(FString Message)
 	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
 }
 
-int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const
+int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
 {
 	int bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
-	if (!IsSdkInstalled(bProjectHasCode, OutDocumentationPath))
+	if (!IsSdkInstalled(bProjectHasCode, OutTutorialPath))
 	{
 		bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
 	}
 #if PLATFORM_MAC
-	OutDocumentationPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
+	OutTutorialPath = FString("/Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial");
 #else
 	if (bProjectHasCode && FRocketSupport::IsRocket())
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/iOSonPCRestrictions");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCRestrictions.iOSonPCRestrictions");
 		bReadyToBuild |= ETargetPlatformReadyStatus::CodeUnsupported;
 	}
 	if (FRocketSupport::IsRocket() && IProjectManager::Get().IsNonDefaultPluginEnabled())
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/iOSonPCValidPlugins");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCValidPlugins.iOSonPCValidPlugins");
 		bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
 	}
 
@@ -141,23 +141,23 @@ int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool 
 	int RetCode = IPPProcess->GetReturnCode();
 	if (RetCode == 14)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingInfoPlist");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingInfoPlist.CreatingInfoPlist");
 		bReadyToBuild |= ETargetPlatformReadyStatus::ManifestNotFound;
 	}
 	else if (RetCode == 13)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::SigningKeyNotFound;
 		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
 	}
 	else if (RetCode == 12)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::SigningKeyNotFound;
 	}
 	else if (RetCode == 11)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
 	}
 #endif

@@ -83,8 +83,8 @@ public:
 		return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
 	}
 
-	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override;
-	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override;
+	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const override;
+	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const override;
 
 
 #if WITH_ENGINE

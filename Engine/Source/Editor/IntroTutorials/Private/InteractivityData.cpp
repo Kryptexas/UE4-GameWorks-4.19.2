@@ -541,7 +541,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(FIntroTutorials::InEditorTutorialPath, FBindInteractivityData::CreateStatic(&FInEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(FIntroTutorials::InEditorTutorialPath, FBindInteractivityData::CreateStatic(&FInEditorTutorial::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -833,7 +833,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorial_2"), FBindInteractivityData::CreateStatic(&FProofOfConceptTutorial_2::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorial_2"), FBindInteractivityData::CreateStatic(&FProofOfConceptTutorial_2::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1449,7 +1449,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(FIntroTutorials::InEditorGamifiedTutorialPath, FBindInteractivityData::CreateStatic(&FGamifiedTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(FIntroTutorials::InEditorGamifiedTutorialPath, FBindInteractivityData::CreateStatic(&FGamifiedTutorial::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 	// Force Save
@@ -1471,7 +1471,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorialManipulation"), FBindInteractivityData::CreateStatic(&FManipulationTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorialManipulation"), FBindInteractivityData::CreateStatic(&FManipulationTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1510,7 +1510,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/BlueprintInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintInterfaceTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/BlueprintInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintInterfaceTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1539,7 +1539,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/BlueprintMacroLibInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintMacroLibInterfaceTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/BlueprintMacroLibInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintMacroLibInterfaceTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1566,7 +1566,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/LevelBlueprintInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FLevelBlueprintInterfaceTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/LevelBlueprintInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FLevelBlueprintInterfaceTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1588,7 +1588,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/BlueprintInterfacesInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintInterfacesInterfaceTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/BlueprintInterfacesInterfaceTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintInterfacesInterfaceTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1662,7 +1662,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TestHighlight"), FBindInteractivityData::CreateStatic(&FTestHighlightTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TestHighlight"), FBindInteractivityData::CreateStatic(&FTestHighlightTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1703,7 +1703,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/EditingObjects"), FBindInteractivityData::CreateStatic(&FEditingObjectsTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/EditingObjects"), FBindInteractivityData::CreateStatic(&FEditingObjectsTutorial::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1716,7 +1716,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TestCase"), FBindInteractivityData::CreateStatic(&FTestCaseTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TestCase"), FBindInteractivityData::CreateStatic(&FTestCaseTutorial::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1728,7 +1728,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(FIntroTutorials::HomePath, FBindInteractivityData::CreateStatic(&FTutorialHome::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(FIntroTutorials::HomePath, FBindInteractivityData::CreateStatic(&FTutorialHome::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1757,7 +1757,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(FIntroTutorials::UE4WelcomeTutorial.TutorialPath, FBindInteractivityData::CreateStatic(&FWelcomeTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(FIntroTutorials::UE4WelcomeTutorial.TutorialPath, FBindInteractivityData::CreateStatic(&FWelcomeTutorial::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1769,7 +1769,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorialCamera"), FBindInteractivityData::CreateStatic(&FCameraTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorialCamera"), FBindInteractivityData::CreateStatic(&FCameraTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1783,7 +1783,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InTextureEditorTutorial"), FBindInteractivityData::CreateStatic(&FInTextureEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InTextureEditorTutorial"), FBindInteractivityData::CreateStatic(&FInTextureEditorTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1797,7 +1797,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InMaterialEditorTutorial"), FBindInteractivityData::CreateStatic(&FInMaterialEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InMaterialEditorTutorial"), FBindInteractivityData::CreateStatic(&FInMaterialEditorTutorial::BindInteractivityData));
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1812,7 +1812,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InParticleSystemEditorTutorial"), FBindInteractivityData::CreateStatic(&FInParticleSystemEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InParticleSystemEditorTutorial"), FBindInteractivityData::CreateStatic(&FInParticleSystemEditorTutorial::BindInteractivityData));
 
 
 
@@ -1828,7 +1828,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InPersonaAnimEditorTutorial"), FBindInteractivityData::CreateStatic(&FInPersonaAnimEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InPersonaAnimEditorTutorial"), FBindInteractivityData::CreateStatic(&FInPersonaAnimEditorTutorial::BindInteractivityData));
 
 	
 
@@ -1844,7 +1844,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InPersonaAnimBlueprintEditorTutorial"), FBindInteractivityData::CreateStatic(&FInPersonaAnimBlueprintEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InPersonaAnimBlueprintEditorTutorial"), FBindInteractivityData::CreateStatic(&FInPersonaAnimBlueprintEditorTutorial::BindInteractivityData));
 
 
 
@@ -1860,7 +1860,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InDestructibleMeshEditorTutorial"), FBindInteractivityData::CreateStatic(&FInDestructibleMeshEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InDestructibleMeshEditorTutorial"), FBindInteractivityData::CreateStatic(&FInDestructibleMeshEditorTutorial::BindInteractivityData));
 
 
 
@@ -1876,7 +1876,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InSkeletalMeshEditorTutorial"), FBindInteractivityData::CreateStatic(&FInSkeletalMeshEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InSkeletalMeshEditorTutorial"), FBindInteractivityData::CreateStatic(&FInSkeletalMeshEditorTutorial::BindInteractivityData));
 
 
 
@@ -1892,7 +1892,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InStaticMeshEditorTutorial"), FBindInteractivityData::CreateStatic(&FInStaticMeshEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InStaticMeshEditorTutorial"), FBindInteractivityData::CreateStatic(&FInStaticMeshEditorTutorial::BindInteractivityData));
 
 
 
@@ -1908,7 +1908,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InSoundCueEditorTutorial"), FBindInteractivityData::CreateStatic(&FInSoundCueEditorTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InSoundCueEditorTutorial"), FBindInteractivityData::CreateStatic(&FInSoundCueEditorTutorial::BindInteractivityData));
 
 
 
@@ -1926,7 +1926,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorialPlacement"), FBindInteractivityData::CreateStatic(&FPlacementTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/inEditorTutorialPlacement"), FBindInteractivityData::CreateStatic(&FPlacementTutorial::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1938,7 +1938,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InBlueprintEditorTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintSplash::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/InBlueprintEditorTutorial"), FBindInteractivityData::CreateStatic(&FBlueprintSplash::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1950,7 +1950,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/AddCodeToProjectTutorial"), FBindInteractivityData::CreateStatic(&FAddCodeToProjectTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/AddCodeToProjectTutorial"), FBindInteractivityData::CreateStatic(&FAddCodeToProjectTutorial::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1977,7 +1977,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/ContentBrowserWalkthrough"), FBindInteractivityData::CreateStatic(&FContentBrowserWalkthrough::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/ContentBrowserWalkthrough"), FBindInteractivityData::CreateStatic(&FContentBrowserWalkthrough::BindInteractivityData));
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -1989,7 +1989,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TemplateTutorials/TemplateOverview"), FBindInteractivityData::CreateStatic(&FTemplateOverview::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TemplateTutorials/TemplateOverview"), FBindInteractivityData::CreateStatic(&FTemplateOverview::BindInteractivityData));
 	
 	//////////////////////////////////////////////////////////////////////////
 
@@ -2021,7 +2021,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 		}
 	};
 
-	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TemplateTutorials/FirstPerson"), FBindInteractivityData::CreateStatic(&FFirstPersonTemplateTutorial::BindInteractivityData));
+//	InteractiveTutorials->BindInteractivityData(TEXT("Shared/Tutorials/TemplateTutorials/FirstPerson"), FBindInteractivityData::CreateStatic(&FFirstPersonTemplateTutorial::BindInteractivityData));
 
 }
 

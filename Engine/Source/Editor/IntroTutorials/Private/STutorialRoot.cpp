@@ -9,6 +9,8 @@
 #include "ToolkitManager.h"
 #include "IToolkit.h"
 #include "IToolkitHost.h"
+#include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "STutorialRoot"
 
@@ -16,6 +18,7 @@ void STutorialRoot::Construct(const FArguments& InArgs)
 {
 	CurrentTutorial = nullptr;
 	CurrentTutorialStage = 0;
+	CurrentTutorialStartTime = FPlatformTime::Seconds();
 
 	ChildSlot
 	[
@@ -44,6 +47,7 @@ void STutorialRoot::MaybeAddOverlay(TSharedRef<SWindow> InWindow)
 					.OnNextClicked(FOnNextClicked::CreateSP(this, &STutorialRoot::HandleNextClicked))
 					.OnBackClicked(FSimpleDelegate::CreateSP(this, &STutorialRoot::HandleBackClicked))
 					.OnHomeClicked(FSimpleDelegate::CreateSP(this, &STutorialRoot::HandleHomeClicked))
+					.OnCloseClicked(FSimpleDelegate::CreateSP(this, &STutorialRoot::HandleCloseClicked))
 					.OnGetCurrentTutorial(FOnGetCurrentTutorial::CreateSP(this, &STutorialRoot::HandleGetCurrentTutorial))
 					.OnGetCurrentTutorialStage(FOnGetCurrentTutorialStage::CreateSP(this, &STutorialRoot::HandleGetCurrentTutorialStage))
 					.OnLaunchTutorial(FOnLaunchTutorial::CreateSP(this, &STutorialRoot::LaunchTutorial))
@@ -108,6 +112,8 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 			}
 		}
 
+		CurrentTutorialStartTime = FPlatformTime::Seconds();
+
 		// launch tutorial for all windows we wrap - any tutorial can display over any window
 		for(auto& TutorialWidget : TutorialWidgets)
 		{
@@ -155,6 +161,15 @@ void STutorialRoot::HandleNextClicked(TWeakPtr<SWindow> InNavigationWindow)
 
 void STutorialRoot::HandleBackClicked()
 {
+	if( FEngineAnalytics::IsAvailable() && CurrentTutorial != nullptr)
+	{
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Context.Tutorial"), FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT(""), CurrentTutorial)));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Context.StageIndex"), CurrentTutorialStage));
+
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.ClickedBackButton"), EventAttributes );
+	}
+
 	GoToPreviousStage();
 
 	for(auto& TutorialWidget : TutorialWidgets)
@@ -258,6 +273,32 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 		{
 			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
 		}
+	}
+}
+
+void STutorialRoot::HandleCloseClicked()
+{
+	// submit analytics data
+	if( FEngineAnalytics::IsAvailable() && CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num() )
+	{
+		UEditorTutorial* AttractTutorial = nullptr;
+		UEditorTutorial* LaunchTutorial = nullptr;
+		FString BrowserFilter;
+		GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(TEXT("LevelEditor"), AttractTutorial, LaunchTutorial, BrowserFilter);
+
+		// prepare and send analytics data
+		bool const bClosedInitialAttract = (CurrentTutorial == AttractTutorial);
+
+		FString const CurrentExcerptTitle = bClosedInitialAttract ? TEXT("InitialAttract") : CurrentTutorial->Stages[CurrentTutorialStage].Name.ToString();
+		int32 const CurrentExcerptIndex = bClosedInitialAttract ? -1 : CurrentTutorialStage;
+		float const CurrentPageElapsedTime = bClosedInitialAttract ? 0.f : (float)(FPlatformTime::Seconds() - CurrentTutorialStartTime);
+
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LastStageIndex"), CurrentExcerptIndex));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LastStageTitle"), CurrentExcerptTitle));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeSpentInTutorial"), CurrentPageElapsedTime));
+			
+		FEngineAnalytics::GetProvider().RecordEvent( FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT("Rocket.Tutorials.Closed"), CurrentTutorial), EventAttributes );
 	}
 }
 

@@ -5947,21 +5947,27 @@ FName FBlueprintEditor::GetToolkitFName() const
 	return FName("BlueprintEditor");
 }
 
+FName FBlueprintEditor::GetContextFromBlueprintType(EBlueprintType InType)
+{
+	switch (InType)
+	{
+	default:
+	case BPTYPE_Normal:
+		return FName("BlueprintEditor");
+	case BPTYPE_MacroLibrary:
+		return FName("BlueprintEditor.MacroLibrary");
+	case BPTYPE_Interface:
+		return FName("BlueprintEditor.Interface");
+	case BPTYPE_LevelScript:
+		return FName("BlueprintEditor.LevelScript");
+	}
+}
+
 FName FBlueprintEditor::GetToolkitContextFName() const
 {
 	if(GetBlueprintObj())
 	{
-		switch (GetBlueprintObj()->BlueprintType)
-		{
-		case BPTYPE_Normal:
-			return FName("BlueprintEditor");
-		case BPTYPE_MacroLibrary:
-			return FName("BlueprintEditor.MacroLibrary");
-		case BPTYPE_Interface:
-			return FName("BlueprintEditor.Interface");
-		case BPTYPE_LevelScript:
-			return FName("BlueprintEditor.LevelScript");
-		}
+		return GetContextFromBlueprintType(GetBlueprintObj()->BlueprintType);
 	}
 
 	return FName("BlueprintEditor");

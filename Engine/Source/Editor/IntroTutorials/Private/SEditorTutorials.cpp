@@ -17,13 +17,14 @@ void SEditorTutorials::Construct(const FArguments& InArgs)
 	OnNextClicked = InArgs._OnNextClicked;
 	OnBackClicked = InArgs._OnBackClicked;
 	OnHomeClicked = InArgs._OnHomeClicked;
+	OnCloseClicked = InArgs._OnCloseClicked;
 	OnGetCurrentTutorial = InArgs._OnGetCurrentTutorial;
 	OnGetCurrentTutorialStage = InArgs._OnGetCurrentTutorialStage;
 
 	TutorialHome = SNew(STutorialsBrowser)
 		.Visibility(this, &SEditorTutorials::GetBrowserVisibility)
-		.OnLaunchTutorial(InArgs._OnLaunchTutorial)
 		.OnClosed(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleCloseClicked))
+		.OnLaunchTutorial(InArgs._OnLaunchTutorial)
 		.ParentWindow(InArgs._ParentWindow);
 
 	NavigationWidget = SNew(STutorialNavigation)
@@ -119,9 +120,11 @@ EVisibility SEditorTutorials::GetNavigationVisibility() const
 
 void SEditorTutorials::HandleCloseClicked()
 {
+	OnCloseClicked.ExecuteIfBound();
+	OnTutorialClosed.ExecuteIfBound();
+
 	HandleHomeClicked();
 	bBrowserVisible = false;
-	OnTutorialClosed.ExecuteIfBound();
 }
 
 void SEditorTutorials::HandleBackClicked()

@@ -68,7 +68,7 @@ void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 						.VAlign(WidgetContent.VerticalAlignment)
 						.Offset(WidgetContent.Offset)
 						.IsStandalone(bIsStandalone)
-						.OnClosed(OnClosed)
+						.OnClosed(InArgs._OnClosed)
 						.OnNextClicked(InArgs._OnNextClicked)
 						.OnHomeClicked(InArgs._OnHomeClicked)
 						.OnBackClicked(InArgs._OnBackClicked)

@@ -10,6 +10,8 @@
 #include "EditorTutorial.h"
 #include "SourceCodeNavigation.h"
 #include "TutorialImageDecorator.h"
+#include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "TutorialText"
 
@@ -61,6 +63,14 @@ static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
 	const FString* Url = Metadata.Find(TEXT("href"));
 	if(Url)
 	{
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("BrowserLink"), *Url));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.BrowserLinkClicked"), EventAttributes );
+		}
+
 		FPlatformProcess::LaunchURL(**Url, nullptr, nullptr);
 	}
 }
@@ -70,6 +80,14 @@ static void OnDocLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
 	const FString* Url = Metadata.Find(TEXT("href"));
 	if(Url)
 	{
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DocLink"), *Url));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.DocLinkClicked"), EventAttributes );
+		}
+
 		IDocumentation::Get()->Open(*Url);
 	}
 }
@@ -83,6 +101,14 @@ static void ParseTutorialLink(const FString &InternalLink)
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		const bool bRestart = true;
 		IntroTutorials.LaunchTutorial(Blueprint->GeneratedClass->GetDefaultObject<UEditorTutorial>(), bRestart, MainFrameModule.GetParentWindow());
+
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TutorialLink"), InternalLink));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.TutorialLinkClicked"), EventAttributes );
+		}
 	}
 }
 
@@ -146,6 +172,14 @@ static void ParseCodeLink(const FString &InternalLink)
 	Path = FPaths::ConvertRelativePathToFull(Path);
 
 	SourceCodeAccessor.OpenFileAtLine(Path, Line, Col);
+
+	if( FEngineAnalytics::IsAvailable() )
+	{
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("CodeLink"), InternalLink));
+
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.CodeLinkClicked"), EventAttributes );
+	}
 }
 
 static void OnCodeLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
@@ -172,6 +206,14 @@ static void ParseAssetLink(const FString& InternalLink, const FString* Action)
 		else
 		{
 			FAssetEditorManager::Get().OpenEditorForAsset(RequiredObject);
+		}
+
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AssetLink"), InternalLink));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.AssetLinkClicked"), EventAttributes );
 		}
 	}
 }

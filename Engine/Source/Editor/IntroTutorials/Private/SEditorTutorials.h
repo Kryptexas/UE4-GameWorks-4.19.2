@@ -26,7 +26,7 @@ class SEditorTutorials : public SCompoundWidget
 		_Visibility = EVisibility::SelfHitTestInvisible;
 	}
 
-	SLATE_ARGUMENT(FSimpleDelegate, OnClosed)
+	SLATE_ARGUMENT(FSimpleDelegate, OnCloseClicked)
 	SLATE_ARGUMENT(TWeakPtr<SWindow>, ParentWindow)
 	SLATE_ARGUMENT(FOnNextClicked, OnNextClicked)
 	SLATE_ARGUMENT(FSimpleDelegate, OnBackClicked)
@@ -118,6 +118,9 @@ private:
 
 	/** Delegate fired when home button is clicked */
 	FSimpleDelegate OnHomeClicked;
+
+	/** Delegate fired when close button is clicked */
+	FSimpleDelegate OnCloseClicked;
 
 	/** Delegate fired to retrive the current tutorial */
 	FOnGetCurrentTutorial OnGetCurrentTutorial;

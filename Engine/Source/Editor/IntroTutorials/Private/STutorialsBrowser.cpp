@@ -8,6 +8,8 @@
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
 #include "AssetRegistryModule.h"
+#include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "TutorialsBrowser"
 
@@ -693,6 +695,14 @@ FSlateColor STutorialsBrowser::GetBackButtonColor() const
 
 void STutorialsBrowser::OnTutorialSelected(UEditorTutorial* InTutorial, bool bRestart)
 {
+	if( FEngineAnalytics::IsAvailable() && InTutorial != nullptr )
+	{
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Restarted"), bRestart));
+
+		FEngineAnalytics::GetProvider().RecordEvent( FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT("Rocket.Tutorials.LaunchedFromBrowser"), InTutorial), EventAttributes );
+	}
+
 	OnLaunchTutorial.ExecuteIfBound(InTutorial, bRestart, ParentWindow, FSimpleDelegate(), FSimpleDelegate());
 }
 
