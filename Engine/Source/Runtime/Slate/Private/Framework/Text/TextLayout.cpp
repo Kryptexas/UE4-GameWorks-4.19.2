@@ -901,7 +901,31 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 			check(RunIsAfterInsertLocation == false);
 			RunIsAfterInsertLocation = true;
 
-			RunModel.SetTextRange( FTextRange( RunRange.BeginIndex, RunRange.EndIndex + 1 ) );
+			if ((RunModel.GetRun()->GetRunAttributes() & ERunAttributes::SupportsText) != ERunAttributes::None)
+			{
+				RunModel.SetTextRange( FTextRange( RunRange.BeginIndex, RunRange.EndIndex + 1 ) );
+			}
+			else
+			{
+				// Non-text runs are supposed to have a single dummy character in them
+				check(RunRange.Len() == 1);
+
+				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
+				const bool bIsInsertingToTheLeft = InsertLocation == RunRange.BeginIndex;
+				if (bIsInsertingToTheLeft)
+				{
+					// Insert the new text run to the left of the non-text run
+					TSharedRef<IRun> NewTextRun = CreateDefaultTextRun( LineModel.Text, FTextRange( RunRange.BeginIndex, RunRange.BeginIndex + 1 ) );
+					RunModel.SetTextRange( FTextRange( RunRange.BeginIndex + 1, RunRange.EndIndex + 1 ) );
+					LineModel.Runs.Insert( NewTextRun, RunIndex++ );
+				}
+				else
+				{
+					// Insert the new text run to the right of the non-text run
+					TSharedRef<IRun> NewTextRun = CreateDefaultTextRun( LineModel.Text, FTextRange( RunRange.EndIndex, RunRange.EndIndex + 1 ) );
+					LineModel.Runs.Insert( NewTextRun, ++RunIndex );
+				}
+			}
 		}
 		else if (RunIsAfterInsertLocation)
 		{
@@ -942,7 +966,31 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, const FString& Text)
 			check(RunIsAfterInsertLocation == false);
 			RunIsAfterInsertLocation = true;
 
-			RunModel.SetTextRange( FTextRange( RunRange.BeginIndex, RunRange.EndIndex + Text.Len() ) );
+			if ((RunModel.GetRun()->GetRunAttributes() & ERunAttributes::SupportsText) != ERunAttributes::None)
+			{
+				RunModel.SetTextRange( FTextRange( RunRange.BeginIndex, RunRange.EndIndex + Text.Len() ) );
+			}
+			else
+			{
+				// Non-text runs are supposed to have a single dummy character in them
+				check(RunRange.Len() == 1);
+
+				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
+				const bool bIsInsertingToTheLeft = InsertLocation == RunRange.BeginIndex;
+				if (bIsInsertingToTheLeft)
+				{
+					// Insert the new text run to the left of the non-text run
+					TSharedRef<IRun> NewTextRun = CreateDefaultTextRun( LineModel.Text, FTextRange( RunRange.BeginIndex, RunRange.BeginIndex + Text.Len() ) );
+					RunModel.SetTextRange( FTextRange( RunRange.BeginIndex + 1, RunRange.EndIndex + Text.Len() ) );
+					LineModel.Runs.Insert( NewTextRun, RunIndex++ );
+				}
+				else
+				{
+					// Insert the new text run to the right of the non-text run
+					TSharedRef<IRun> NewTextRun = CreateDefaultTextRun( LineModel.Text, FTextRange( RunRange.EndIndex, RunRange.EndIndex + Text.Len() ) );
+					LineModel.Runs.Insert( NewTextRun, ++RunIndex );
+				}
+			}
 		}
 		else if (RunIsAfterInsertLocation)
 		{
@@ -986,27 +1034,59 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun
 			check(RunIsAfterInsertLocation == false);
 			RunIsAfterInsertLocation = true;
 
-			// This run contains the insertion point, so we need to split it
-			const TSharedRef<IRun> LeftRun = Run;
-			const TSharedRef<IRun> RightRun = Run->Clone();
-
-			// Update the text ranges for all of the runs
 			const int32 InsertLocationEnd = InsertLocation + NewRunText.Len();
-			LeftRun->SetTextRange( FTextRange( RunRange.BeginIndex, InsertLocation ) );
-			InRun->Move( LineModel.Text, FTextRange( InsertLocation, InsertLocationEnd ) );
-			RightRun->SetTextRange( FTextRange( InsertLocationEnd, RunRange.EndIndex + NewRunText.Len() ) );
+
+			// This run contains the insertion point, so we need to split it
+			TSharedPtr<IRun> LeftRun;
+			TSharedPtr<IRun> RightRun;
+			if ((Run->GetRunAttributes() & ERunAttributes::SupportsText) != ERunAttributes::None)
+			{
+				LeftRun = Run->Clone();
+				LeftRun->SetTextRange(FTextRange(RunRange.BeginIndex, InsertLocation));
+
+				RightRun = Run;
+				RightRun->SetTextRange(FTextRange(InsertLocationEnd, RunRange.EndIndex + NewRunText.Len()));
+			}
+			else
+			{
+				// Non-text runs are supposed to have a single dummy character in them
+				check(RunRange.Len() == 1);
+
+				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
+				const bool bIsInsertingToTheLeft = InsertLocation == RunRange.BeginIndex;
+				if (bIsInsertingToTheLeft)
+				{
+					// Insert the new text run to the left of the non-text run
+					LeftRun = CreateDefaultTextRun(LineModel.Text, FTextRange(RunRange.BeginIndex, InsertLocation));
+				
+					RightRun = Run;
+					RightRun->SetTextRange(FTextRange(InsertLocationEnd, RunRange.EndIndex + NewRunText.Len()));
+				}
+				else
+				{
+					// Insert the new text run to the right of the non-text run
+					LeftRun = Run;
+
+					RightRun = CreateDefaultTextRun(LineModel.Text, FTextRange(InsertLocationEnd, RunRange.EndIndex + NewRunText.Len()));
+				}
+			}
+
+			InRun->Move(LineModel.Text, FTextRange(InsertLocation, InsertLocationEnd));
+
+			// Remove the old run (it may get re-added again as the right hand run)
+			LineModel.Runs.RemoveAt(RunIndex--);
 
 			// Insert the new runs at the correct place, and then skip over these new array entries
 			const bool LeftRunHasText = !LeftRun->GetTextRange().IsEmpty();
 			const bool RightRunHasText = !RightRun->GetTextRange().IsEmpty();
-			if (!LeftRunHasText)
+			if (LeftRunHasText)
 			{
-				LineModel.Runs.RemoveAt(RunIndex--);
+				LineModel.Runs.Insert(LeftRun.ToSharedRef(), ++RunIndex);
 			}
 			LineModel.Runs.Insert(InRun, ++RunIndex);
 			if (RightRunHasText || bAlwaysKeepRightRun)
 			{
-				LineModel.Runs.Insert(RightRun, ++RunIndex);
+				LineModel.Runs.Insert(RightRun.ToSharedRef(), ++RunIndex);
 			}
 		}
 		else if (RunIsAfterInsertLocation)
@@ -1097,14 +1177,43 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 			check(RunIsToTheLeftOfTheBreakLocation == true);
 			RunIsToTheLeftOfTheBreakLocation = false;
 
-			const TSharedRef<IRun> LeftRun = Run;
-			const TSharedRef<IRun> RightRun = Run->Clone();
-			
-			LeftRun->Move(LeftLineModel.Text, FTextRange(RunRange.BeginIndex, LeftLineModel.Text->Len()));
-			RightRun->Move(RightLineModel.Text, FTextRange(0, RunRange.EndIndex - LeftLineModel.Text->Len()));
+			TSharedPtr<IRun> LeftRun;
+			TSharedPtr<IRun> RightRun;
+			if ((Run->GetRunAttributes() & ERunAttributes::SupportsText) != ERunAttributes::None)
+			{
+				LeftRun = Run->Clone();
+				LeftRun->Move(LeftLineModel.Text, FTextRange(RunRange.BeginIndex, LeftLineModel.Text->Len()));
+				
+				RightRun = Run;
+				RightRun->Move(RightLineModel.Text, FTextRange(0, RunRange.EndIndex - LeftLineModel.Text->Len()));
+			}
+			else
+			{
+				// Non-text runs are supposed to have a single dummy character in them
+				check(RunRange.Len() == 1);
 
-			LeftLineModel.Runs.Add(FRunModel(LeftRun));
-			RightLineModel.Runs.Add(FRunModel(RightRun));
+				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
+				const bool bIsInsertingToTheLeft = BreakLocation == RunRange.BeginIndex;
+				if (bIsInsertingToTheLeft)
+				{
+					// Insert the new text run to the left of the non-text run
+					LeftRun = CreateDefaultTextRun(LeftLineModel.Text, FTextRange(RunRange.BeginIndex, LeftLineModel.Text->Len()));
+				
+					RightRun = Run;
+					RightRun->Move(RightLineModel.Text, FTextRange(0, RunRange.EndIndex - LeftLineModel.Text->Len()));
+				}
+				else
+				{
+					// Insert the new text run to the right of the non-text run
+					LeftRun = Run;
+					LeftRun->Move(LeftLineModel.Text, FTextRange(RunRange.BeginIndex, LeftLineModel.Text->Len()));
+
+					RightRun = CreateDefaultTextRun(RightLineModel.Text, FTextRange(0, RunRange.EndIndex - LeftLineModel.Text->Len()));
+				}
+			}
+
+			LeftLineModel.Runs.Add(FRunModel(LeftRun.ToSharedRef()));
+			RightLineModel.Runs.Add(FRunModel(RightRun.ToSharedRef()));
 		}
 		else if (RunIsToTheLeftOfTheBreakLocation)
 		{
@@ -1161,7 +1270,7 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 		const FTextRange RunRange = RunModel.GetTextRange();
 
 		const FTextRange IntersectedRangeToRemove = RunRange.Intersect(RemoveTextRange);
-		if (IntersectedRangeToRemove.IsEmpty() && RunRange.EndIndex > RemoveTextRange.EndIndex)
+		if (IntersectedRangeToRemove.IsEmpty() && RunRange.BeginIndex >= RemoveTextRange.EndIndex)
 		{
 			// The whole run is contained to the right of the removal range, just adjust its range by the amount of text that was removed
 			FTextRange NewRange = RunRange;

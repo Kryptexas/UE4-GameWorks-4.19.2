@@ -414,6 +414,11 @@ protected:
 	*/
 	virtual void EndLayout();
 
+	/**
+	 * Called to generate a new empty text run for this text layout
+	 */
+	virtual TSharedRef<IRun> CreateDefaultTextRun(const TSharedRef<FString>& NewText, const FTextRange& NewRange) const = 0;
+
 private:
 
 	void FlowLayout();

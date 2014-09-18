@@ -70,6 +70,8 @@ protected:
 
 	EVisibility GetExcerptVisibility() const;
 
+	FReply HandleImageButtonClicked();
+
 protected:
 	TSharedPtr<SMultiLineEditableTextBox> RichEditableTextBox;
 

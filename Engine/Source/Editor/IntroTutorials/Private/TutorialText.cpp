@@ -9,6 +9,7 @@
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "EditorTutorial.h"
 #include "SourceCodeNavigation.h"
+#include "TutorialImageDecorator.h"
 
 #define LOCTEXT_NAMESPACE "TutorialText"
 
@@ -265,6 +266,7 @@ void FTutorialText::GetRichTextDecorators(TArray< TSharedRef< class ITextDecorat
 	}
 
 	OutDecorators.Add(FTextStyleDecorator::Create());
+	OutDecorators.Add(FTutorialImageDecorator::Create());
 }
 
 void FTutorialText::Initialize()

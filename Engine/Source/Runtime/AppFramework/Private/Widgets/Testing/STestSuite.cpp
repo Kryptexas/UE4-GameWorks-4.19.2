@@ -2381,8 +2381,7 @@ public:
 		// The rich-text marshaller will be used with the rich-text editor...
 		TSharedRef<FRichTextLayoutMarshaller> RichTextMarshaller = FRichTextLayoutMarshaller::Create(
 			TArray<TSharedRef<ITextDecorator>>(), 
-			&FTestStyle::Get(), 
-			FTestStyle::Get().GetWidgetStyle<FTextBlockStyle>("RichText.Editor.Text")
+			&FTestStyle::Get()
 			);
 
 		// ... so we also need to add some decorators to handle the things we want to demo

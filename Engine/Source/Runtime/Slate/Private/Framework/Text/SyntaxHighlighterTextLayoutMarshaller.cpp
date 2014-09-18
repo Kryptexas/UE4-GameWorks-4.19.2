@@ -39,9 +39,8 @@ bool FSyntaxHighlighterTextLayoutMarshaller::IsSyntaxHighlightingEnabled() const
 	return bSyntaxHighlightingEnabled;
 }
 
-FSyntaxHighlighterTextLayoutMarshaller::FSyntaxHighlighterTextLayoutMarshaller(TSharedPtr< FSyntaxTokenizer > InTokenizer, FTextBlockStyle InDefaultTextStyle)
-	: FPlainTextLayoutMarshaller(MoveTemp(InDefaultTextStyle))
-	, Tokenizer(MoveTemp(InTokenizer))
+FSyntaxHighlighterTextLayoutMarshaller::FSyntaxHighlighterTextLayoutMarshaller(TSharedPtr< FSyntaxTokenizer > InTokenizer)
+	: Tokenizer(MoveTemp(InTokenizer))
 	, bSyntaxHighlightingEnabled(true)
 {
 }
@@ -174,7 +173,7 @@ void FRichTextSyntaxHighlighterTextLayoutMarshaller::ParseTokens(const FString& 
 }
 
 FRichTextSyntaxHighlighterTextLayoutMarshaller::FRichTextSyntaxHighlighterTextLayoutMarshaller(TSharedPtr< FSyntaxTokenizer > InTokenizer, const FSyntaxTextStyle& InSyntaxTextStyle)
-	: FSyntaxHighlighterTextLayoutMarshaller(MoveTemp(InTokenizer), InSyntaxTextStyle.NormalTextStyle)
+	: FSyntaxHighlighterTextLayoutMarshaller(MoveTemp(InTokenizer))
 	, SyntaxTextStyle(InSyntaxTextStyle)
 {
 }

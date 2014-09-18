@@ -6,16 +6,17 @@
 
 #include "SlateTextLayout.h"
 
-TSharedRef< FSlateTextLayout > FSlateTextLayout::Create()
+TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaultTextStyle)
 {
-	TSharedRef< FSlateTextLayout > Layout = MakeShareable( new FSlateTextLayout() );
+	TSharedRef< FSlateTextLayout > Layout = MakeShareable( new FSlateTextLayout(MoveTemp(InDefaultTextStyle)) );
 	Layout->AggregateChildren();
 
 	return Layout;
 }
 
-FSlateTextLayout::FSlateTextLayout()
+FSlateTextLayout::FSlateTextLayout(FTextBlockStyle InDefaultTextStyle)
 	: Children()
+	, DefaultTextStyle(MoveTemp(InDefaultTextStyle))
 {
 
 }
@@ -40,7 +41,7 @@ void FSlateTextLayout::ArrangeChildren( const FGeometry& AllottedGeometry, FArra
 	}
 }
 
-int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FTextBlockStyle& DefaultTextStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
 	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -133,6 +134,16 @@ void FSlateTextLayout::EndLayout()
 	AggregateChildren();
 }
 
+void FSlateTextLayout::SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle)
+{
+	DefaultTextStyle = MoveTemp(InDefaultTextStyle);
+}
+
+const FTextBlockStyle& FSlateTextLayout::GetDefaultTextStyle() const
+{
+	return DefaultTextStyle;
+}
+
 void FSlateTextLayout::AggregateChildren()
 {
 	Children.Empty();
@@ -155,5 +166,9 @@ void FSlateTextLayout::AggregateChildren()
 	}
 }
 
+TSharedRef<IRun> FSlateTextLayout::CreateDefaultTextRun(const TSharedRef<FString>& NewText, const FTextRange& NewRange) const
+{
+	return FSlateTextRun::Create(FRunInfo(), NewText, DefaultTextStyle, NewRange);
+}
 
 #endif //WITH_FANCY_TEXT

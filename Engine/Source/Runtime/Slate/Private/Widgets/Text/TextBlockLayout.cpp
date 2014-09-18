@@ -3,18 +3,18 @@
 #include "SlatePrivatePCH.h"
 #include "TextBlockLayout.h"
 #include "SlateTextLayout.h"
-#include "SlateTextLayoutMarshaller.h"
+#include "BaseTextLayoutMarshaller.h"
 #include "SlateTextHighlightRunRenderer.h"
 
 #if WITH_FANCY_TEXT
 
-TSharedRef<FTextBlockLayout> FTextBlockLayout::Create(TSharedRef<FSlateTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
+TSharedRef<FTextBlockLayout> FTextBlockLayout::Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
 {
-	return MakeShareable(new FTextBlockLayout(InMarshaller, InLineBreakPolicy));
+	return MakeShareable(new FTextBlockLayout(MoveTemp(InDefaultTextStyle), InMarshaller, InLineBreakPolicy));
 }
 
-FTextBlockLayout::FTextBlockLayout(TSharedRef<FSlateTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
-	: TextLayout(FSlateTextLayout::Create())
+FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
+	: TextLayout(FSlateTextLayout::Create(MoveTemp(InDefaultTextStyle)))
 	, Marshaller(InMarshaller)
 	, TextHighlighter(FSlateTextHighlightRunRenderer::Create())
 	, CachedSize(ForceInitToZero)
@@ -33,7 +33,8 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 	// Has the style used for this text block changed?
 	if(!IsStyleUpToDate(InTextStyle))
 	{
-		Marshaller->SetDefaultTextStyle(InTextStyle); // will make marshaller dirty
+		TextLayout->SetDefaultTextStyle(InTextStyle);
+		Marshaller->MakeDirty(); // will regenerate the text using the new default style
 	}
 
 	{
@@ -87,7 +88,7 @@ int32 FTextBlockLayout::OnPaint(const FWidgetArgs& InWidgetArgs, const FPaintArg
 
 	TextLayout->UpdateIfNeeded();
 
-	return TextLayout->OnPaint(InPaintArgs, Marshaller->GetDefaultTextStyle(), InAllottedGeometry, InClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	return TextLayout->OnPaint(InPaintArgs, InAllottedGeometry, InClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
 void FTextBlockLayout::DirtyLayout()
@@ -152,7 +153,7 @@ void FTextBlockLayout::UpdateTextHighlights(const FText& InHighlightText)
 
 bool FTextBlockLayout::IsStyleUpToDate(const FTextBlockStyle& NewStyle) const
 {
-	const FTextBlockStyle& CurrentStyle = Marshaller->GetDefaultTextStyle();
+	const FTextBlockStyle& CurrentStyle = TextLayout->GetDefaultTextStyle();
 
 	return (CurrentStyle.Font == NewStyle.Font)
 		&& (CurrentStyle.ColorAndOpacity == NewStyle.ColorAndOpacity)

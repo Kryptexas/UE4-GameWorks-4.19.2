@@ -2,12 +2,13 @@
 
 #include "SlatePrivatePCH.h"
 #include "PlainTextLayoutMarshaller.h"
+#include "SlateTextLayout.h"
 
 #if WITH_FANCY_TEXT
 
-TSharedRef< FPlainTextLayoutMarshaller > FPlainTextLayoutMarshaller::Create(FTextBlockStyle InDefaultTextStyle)
+TSharedRef< FPlainTextLayoutMarshaller > FPlainTextLayoutMarshaller::Create()
 {
-	return MakeShareable(new FPlainTextLayoutMarshaller(MoveTemp(InDefaultTextStyle)));
+	return MakeShareable(new FPlainTextLayoutMarshaller());
 }
 
 FPlainTextLayoutMarshaller::~FPlainTextLayoutMarshaller()
@@ -16,6 +17,8 @@ FPlainTextLayoutMarshaller::~FPlainTextLayoutMarshaller()
 
 void FPlainTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout& TargetTextLayout)
 {
+	const FTextBlockStyle& DefaultTextStyle = static_cast<FSlateTextLayout&>(TargetTextLayout).GetDefaultTextStyle();
+
 	TArray<FTextRange> LineRanges;
 	FTextRange::CalculateLineRangesFromString(SourceString, LineRanges);
 
@@ -35,8 +38,7 @@ void FPlainTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayou
 	SourceTextLayout.GetAsText(TargetString);
 }
 
-FPlainTextLayoutMarshaller::FPlainTextLayoutMarshaller(FTextBlockStyle InDefaultTextStyle)
-	: FSlateTextLayoutMarshaller(MoveTemp(InDefaultTextStyle))
+FPlainTextLayoutMarshaller::FPlainTextLayoutMarshaller()
 {
 }
 

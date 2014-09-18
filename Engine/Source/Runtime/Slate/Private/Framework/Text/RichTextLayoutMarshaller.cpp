@@ -3,17 +3,18 @@
 #include "SlatePrivatePCH.h"
 #include "RichTextLayoutMarshaller.h"
 #include "RichTextMarkupProcessing.h"
+#include "SlateTextLayout.h"
 
 #if WITH_FANCY_TEXT
 
-TSharedRef< FRichTextLayoutMarshaller > FRichTextLayoutMarshaller::Create(TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet, FTextBlockStyle InDefaultTextStyle)
+TSharedRef< FRichTextLayoutMarshaller > FRichTextLayoutMarshaller::Create(TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet)
 {
-	return MakeShareable(new FRichTextLayoutMarshaller(FDefaultRichTextMarkupParser::Create(), FDefaultRichTextMarkupWriter::Create(), MoveTemp(InDecorators), InDecoratorStyleSet, MoveTemp(InDefaultTextStyle)));
+	return MakeShareable(new FRichTextLayoutMarshaller(FDefaultRichTextMarkupParser::Create(), FDefaultRichTextMarkupWriter::Create(), MoveTemp(InDecorators), InDecoratorStyleSet));
 }
 
-TSharedRef< FRichTextLayoutMarshaller > FRichTextLayoutMarshaller::Create(TSharedPtr< IRichTextMarkupParser > InParser, TSharedPtr< IRichTextMarkupWriter > InWriter, TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet, FTextBlockStyle InDefaultTextStyle)
+TSharedRef< FRichTextLayoutMarshaller > FRichTextLayoutMarshaller::Create(TSharedPtr< IRichTextMarkupParser > InParser, TSharedPtr< IRichTextMarkupWriter > InWriter, TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet)
 {
-	return MakeShareable(new FRichTextLayoutMarshaller(MoveTemp(InParser), MoveTemp(InWriter), MoveTemp(InDecorators), InDecoratorStyleSet, MoveTemp(InDefaultTextStyle)));
+	return MakeShareable(new FRichTextLayoutMarshaller(MoveTemp(InParser), MoveTemp(InWriter), MoveTemp(InDecorators), InDecoratorStyleSet));
 }
 
 FRichTextLayoutMarshaller::~FRichTextLayoutMarshaller()
@@ -22,6 +23,8 @@ FRichTextLayoutMarshaller::~FRichTextLayoutMarshaller()
 
 void FRichTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout& TargetTextLayout)
 {
+	const FTextBlockStyle& DefaultTextStyle = static_cast<FSlateTextLayout&>(TargetTextLayout).GetDefaultTextStyle();
+
 	TArray<FTextLineParseResults> LineParseResultsArray;
 	FString ProcessedString;
 	Parser->Process(LineParseResultsArray, SourceString, ProcessedString);
@@ -102,9 +105,8 @@ void FRichTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout
 	Writer->Write(WriterLines, TargetString);
 }
 
-FRichTextLayoutMarshaller::FRichTextLayoutMarshaller(TSharedPtr< IRichTextMarkupParser > InParser, TSharedPtr< IRichTextMarkupWriter > InWriter, TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet, FTextBlockStyle InDefaultTextStyle)
-	: FSlateTextLayoutMarshaller(MoveTemp(InDefaultTextStyle))
-	, Parser(MoveTemp(InParser))
+FRichTextLayoutMarshaller::FRichTextLayoutMarshaller(TSharedPtr< IRichTextMarkupParser > InParser, TSharedPtr< IRichTextMarkupWriter > InWriter, TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet)
+	: Parser(MoveTemp(InParser))
 	, Writer(MoveTemp(InWriter))
 	, Decorators(MoveTemp(InDecorators))
 	, InlineDecorators()

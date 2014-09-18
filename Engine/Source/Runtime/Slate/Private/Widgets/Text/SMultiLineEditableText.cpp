@@ -265,13 +265,13 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	Marshaller = InArgs._Marshaller;
 	if (!Marshaller.IsValid())
 	{
-		Marshaller = FPlainTextLayoutMarshaller::Create(TextStyle);
+		Marshaller = FPlainTextLayoutMarshaller::Create();
 	}
 
 	CursorLineHighlighter = FCursorLineHighlighter::Create(&CursorInfo);
 	TextCompositionHighlighter = FTextCompositionHighlighter::Create();
 	TextSelectionRunRenderer = FTextSelectionRunRenderer::Create();
-	TextLayout = FSlateTextLayout::Create();
+	TextLayout = FSlateTextLayout::Create(TextStyle);
 
 	BoundText = InArgs._Text;
 
@@ -2127,7 +2127,7 @@ int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
 	CachedSize = AllottedGeometry.Size;
 
-	LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+	LayerId = TextLayout->OnPaint( Args.WithNewParent(this), AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 	return LayerId;
 }

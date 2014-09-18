@@ -46,6 +46,8 @@ public:
 
 	virtual const FRunInfo& GetRunInfo() const override;
 
+	virtual ERunAttributes GetRunAttributes() const override;
+
 private:
 
 	FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle );

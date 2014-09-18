@@ -201,6 +201,11 @@ const FRunInfo& FSlateTextRun::GetRunInfo() const
 	return RunInfo;
 }
 
+ERunAttributes FSlateTextRun::GetRunAttributes() const
+{
+	return ERunAttributes::SupportsText;
+}
+
 FSlateTextRun::FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle ) 
 	: RunInfo( InRunInfo )
 	, Text( InText )

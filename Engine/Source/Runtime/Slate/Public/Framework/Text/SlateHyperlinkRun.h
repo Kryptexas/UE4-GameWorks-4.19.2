@@ -75,6 +75,8 @@ public:
 
 	virtual const FRunInfo& GetRunInfo() const override;
 
+	virtual ERunAttributes GetRunAttributes() const override;
+
 private:
 
 	FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate );

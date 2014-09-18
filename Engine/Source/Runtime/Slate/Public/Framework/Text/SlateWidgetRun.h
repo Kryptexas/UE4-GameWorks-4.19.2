@@ -68,6 +68,8 @@ public:
 
 	virtual const FRunInfo& GetRunInfo() const override;
 
+	virtual ERunAttributes GetRunAttributes() const override;
+
 private:
 
 	FSlateWidgetRun(const TSharedRef<class FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo);

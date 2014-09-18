@@ -31,13 +31,13 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 			Parser = FDefaultRichTextMarkupParser::Create();
 		}
 
-		TSharedRef<FRichTextLayoutMarshaller> Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet, TextStyle);
+		TSharedRef<FRichTextLayoutMarshaller> Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet);
 		for ( const TSharedRef< ITextDecorator >& Decorator : InArgs.InlineDecorators )
 		{
 			Marshaller->AppendInlineDecorator( Decorator );
 		}
 
-		TextLayoutCache = FTextBlockLayout::Create(Marshaller, nullptr);
+		TextLayoutCache = FTextBlockLayout::Create(TextStyle, Marshaller, nullptr);
 	}
 }
 

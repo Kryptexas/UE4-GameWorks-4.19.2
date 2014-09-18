@@ -32,7 +32,7 @@ void STextBlock::Construct( const FArguments& InArgs )
 #if WITH_FANCY_TEXT
 
 	// We use a dummy style here (as it may not be safe to call the delegates used to compute the style), but the correct style is set by ComputeDesiredSize
-	TextLayoutCache = FTextBlockLayout::Create(FPlainTextLayoutMarshaller::Create(FTextBlockStyle::GetDefault()), InArgs._LineBreakPolicy);
+	TextLayoutCache = FTextBlockLayout::Create(FTextBlockStyle::GetDefault(), FPlainTextLayoutMarshaller::Create(), InArgs._LineBreakPolicy);
 
 #endif//WITH_FANCY_TEXT
 }

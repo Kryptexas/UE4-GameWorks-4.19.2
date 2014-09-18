@@ -27,7 +27,7 @@ protected:
 
 	virtual void ParseTokens(const FString& SourceString, FTextLayout& TargetTextLayout, TArray<FSyntaxTokenizer::FTokenizedLine> TokenizedLines) = 0;
 
-	FSyntaxHighlighterTextLayoutMarshaller(TSharedPtr< FSyntaxTokenizer > InTokenizer, FTextBlockStyle InDefaultTextStyle);
+	FSyntaxHighlighterTextLayoutMarshaller(TSharedPtr< FSyntaxTokenizer > InTokenizer);
 
 	/** Tokenizer used to style the text */
 	TSharedPtr< FSyntaxTokenizer > Tokenizer;

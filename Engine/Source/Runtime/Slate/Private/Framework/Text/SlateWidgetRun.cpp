@@ -38,6 +38,11 @@ int16 FSlateWidgetRun::GetMaxHeight( float Scale ) const
 
 FVector2D FSlateWidgetRun::Measure( int32 StartIndex, int32 EndIndex, float Scale ) const 
 {
+	if ( EndIndex - StartIndex == 0 )
+	{
+		return FVector2D( 0, GetMaxHeight( Scale ) );
+	}
+
 	return Info.Size.Get( Info.Widget->GetDesiredSize() ) * Scale;
 }
 
@@ -89,7 +94,34 @@ void FSlateWidgetRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, 
 
 int32 FSlateWidgetRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale, ETextHitPoint* const OutHitPoint ) const
 {
-	return INDEX_NONE;
+	// A widget should always contain a single character (a breaking space)
+	check(Range.Len() == 1);
+
+	const FVector2D& BlockOffset = Block->GetLocationOffset();
+	const FVector2D& BlockSize = Block->GetSize();
+
+	const float Left = BlockOffset.X;
+	const float Top = BlockOffset.Y;
+	const float Right = BlockOffset.X + BlockSize.X;
+	const float Bottom = BlockOffset.Y + BlockSize.Y;
+
+	const bool ContainsPoint = Location.X >= Left && Location.X < Right && Location.Y >= Top && Location.Y < Bottom;
+
+	if ( !ContainsPoint )
+	{
+		return INDEX_NONE;
+	}
+
+	const FVector2D ScaledWidgetSize = Info.Widget->GetDesiredSize() * Scale;
+	const int32 Index = (Location.X <= (Left + (ScaledWidgetSize.X * 0.5f))) ? Range.BeginIndex : Range.EndIndex;
+	
+	if (OutHitPoint)
+	{
+		const FTextRange BlockRange = Block->GetTextRange();
+		*OutHitPoint = (Index == BlockRange.EndIndex) ? ETextHitPoint::RightGutter : ETextHitPoint::WithinText;
+	}
+
+	return Index;
 }
 
 FVector2D FSlateWidgetRun::GetLocationAt( const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale ) const
@@ -110,18 +142,25 @@ TSharedRef<IRun> FSlateWidgetRun::Clone() const
 
 void FSlateWidgetRun::AppendTextTo(FString& AppendToText) const
 {
-	//Do nothing
+	AppendToText.Append(**Text + Range.BeginIndex, Range.Len());
 }
 
 void FSlateWidgetRun::AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const
 {
 	check(Range.BeginIndex <= PartialRange.BeginIndex);
 	check(Range.EndIndex >= PartialRange.EndIndex);
+
+	AppendToText.Append(**Text + PartialRange.BeginIndex, PartialRange.Len());
 }
 
 const FRunInfo& FSlateWidgetRun::GetRunInfo() const
 {
 	return RunInfo;
+}
+
+ERunAttributes FSlateWidgetRun::GetRunAttributes() const
+{
+	return ERunAttributes::None;
 }
 
 FSlateWidgetRun::FSlateWidgetRun(const TSharedRef<class FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo)

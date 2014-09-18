@@ -26,6 +26,16 @@ TSharedRef< FSlateImageRun > FSlateImageRun::Create( const FRunInfo& InRunInfo, 
 	return MakeShareable( new FSlateImageRun( InRunInfo, InText, InImage, InBaseline, InRange ) );
 }
 
+TSharedRef< FSlateImageRun > FSlateImageRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, FName InDynamicBrushName, int16 InBaseline )
+{
+	return MakeShareable( new FSlateImageRun( InRunInfo, InText, InDynamicBrushName, InBaseline ) );
+}
+
+TSharedRef< FSlateImageRun > FSlateImageRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, FName InDynamicBrushName, int16 InBaseline, const FTextRange& InRange )
+{
+	return MakeShareable( new FSlateImageRun( InRunInfo, InText, InDynamicBrushName, InBaseline, InRange ) );
+}
+
 FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline, const FTextRange& InRange ) 
 	: RunInfo( InRunInfo )
 	, Text( InText )
@@ -46,6 +56,30 @@ FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< con
 	check( Image != nullptr);
 }
 
+FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, FName InDynamicBrushName, int16 InBaseline ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
+	, Range( 0, Text->Len() )
+	, Image( nullptr )
+	, Baseline( InBaseline )
+{
+	FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(InDynamicBrushName);
+	DynamicBrush = MakeShareable(new FSlateDynamicImageBrush( InDynamicBrushName, FVector2D(Size.X, Size.Y) ) );
+	Image = DynamicBrush.Get();
+}
+
+FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, FName InDynamicBrushName, int16 InBaseline, const FTextRange& InRange ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
+	, Range( InRange )
+	, Image( nullptr )
+	, Baseline( InBaseline )
+{
+	FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(InDynamicBrushName);
+	DynamicBrush = MakeShareable(new FSlateDynamicImageBrush( InDynamicBrushName, FVector2D(Size.X, Size.Y) ) );
+	Image = DynamicBrush.Get();
+}
+
 const TArray< TSharedRef<SWidget> >& FSlateImageRun::GetChildren() 
 {
 	static TArray< TSharedRef<SWidget> > NoChildren;
@@ -59,7 +93,34 @@ void FSlateImageRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, c
 
 int32 FSlateImageRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale, ETextHitPoint* const OutHitPoint ) const
 {
-	return INDEX_NONE;
+	// An image should always contain a single character (a breaking space)
+	check(Range.Len() == 1);
+
+	const FVector2D& BlockOffset = Block->GetLocationOffset();
+	const FVector2D& BlockSize = Block->GetSize();
+
+	const float Left = BlockOffset.X;
+	const float Top = BlockOffset.Y;
+	const float Right = BlockOffset.X + BlockSize.X;
+	const float Bottom = BlockOffset.Y + BlockSize.Y;
+
+	const bool ContainsPoint = Location.X >= Left && Location.X < Right && Location.Y >= Top && Location.Y < Bottom;
+
+	if ( !ContainsPoint )
+	{
+		return INDEX_NONE;
+	}
+
+	const FVector2D ScaledImageSize = Image->ImageSize * Scale;
+	const int32 Index = (Location.X <= (Left + (ScaledImageSize.X * 0.5f))) ? Range.BeginIndex : Range.EndIndex;
+	
+	if (OutHitPoint)
+	{
+		const FTextRange BlockRange = Block->GetTextRange();
+		*OutHitPoint = (Index == BlockRange.EndIndex) ? ETextHitPoint::RightGutter : ETextHitPoint::WithinText;
+	}
+
+	return Index;
 }
 
 FVector2D FSlateImageRun::GetLocationAt( const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale ) const
@@ -102,7 +163,11 @@ int8 FSlateImageRun::GetKerning( int32 CurrentIndex, float Scale ) const
 
 FVector2D FSlateImageRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale ) const 
 {
-	check( BeginIndex == Range.BeginIndex && EndIndex == Range.EndIndex );
+	if ( EndIndex - BeginIndex == 0 )
+	{
+		return FVector2D( 0, GetMaxHeight( Scale ) );
+	}
+
 	return Image->ImageSize * Scale;
 }
 
@@ -134,23 +199,35 @@ void FSlateImageRun::Move(const TSharedRef<FString>& NewText, const FTextRange& 
 
 TSharedRef<IRun> FSlateImageRun::Clone() const
 {
-	return FSlateImageRun::Create(RunInfo, Text, Image, Baseline, Range);
+	TSharedRef<FSlateImageRun> NewRun = FSlateImageRun::Create(RunInfo, Text, Image, Baseline, Range);
+
+	// make sure we copy the dynamic brush so it doesnt get released
+	NewRun->DynamicBrush = DynamicBrush;
+
+	return NewRun;
 }
 
-void FSlateImageRun::AppendTextTo(FString& Text) const
+void FSlateImageRun::AppendTextTo(FString& AppendToText) const
 {
-	// Do nothing
+	AppendToText.Append(**Text + Range.BeginIndex, Range.Len());
 }
 
 void FSlateImageRun::AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const
 {
 	check(Range.BeginIndex <= PartialRange.BeginIndex);
 	check(Range.EndIndex >= PartialRange.EndIndex);
+
+	AppendToText.Append(**Text + PartialRange.BeginIndex, PartialRange.Len());
 }
 
 const FRunInfo& FSlateImageRun::GetRunInfo() const
 {
 	return RunInfo;
+}
+
+ERunAttributes FSlateImageRun::GetRunAttributes() const
+{
+	return ERunAttributes::None;
 }
 
 #endif //WITH_FANCY_TEXT

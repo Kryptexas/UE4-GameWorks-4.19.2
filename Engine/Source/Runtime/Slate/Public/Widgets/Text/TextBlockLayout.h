@@ -3,7 +3,7 @@
 #pragma once
 
 class FSlateTextLayout;
-class FSlateTextLayoutMarshaller;
+class FBaseTextLayoutMarshaller;
 class ISlateRunRenderer;
 
 #if WITH_FANCY_TEXT
@@ -42,7 +42,7 @@ public:
 		const TAttribute<ETextJustify::Type>& Justification;
 	};
 
-	static TSharedRef<FTextBlockLayout> Create(TSharedRef<FSlateTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	static TSharedRef<FTextBlockLayout> Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/**
 	 * Get the computed desired size for this layout, updating the internal cache as required
@@ -82,13 +82,13 @@ private:
 	/** Calculate the wrapping width based on the given fixed wrap width, and whether we're auto-wrapping */
 	float CalculateWrappingWidth(const FWidgetArgs& InWidgetArgs) const;
 
-	FTextBlockLayout(TSharedRef<FSlateTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/** In control of the layout and wrapping of the text */
 	TSharedPtr<FSlateTextLayout> TextLayout;
 
 	/** The marshaller used to get/set the text to/from the text layout. */
-	TSharedPtr<FSlateTextLayoutMarshaller> Marshaller;
+	TSharedPtr<FBaseTextLayoutMarshaller> Marshaller;
 
 	/** Used to render the current highlights in the text layout */
 	TSharedPtr<ISlateRunRenderer> TextHighlighter;

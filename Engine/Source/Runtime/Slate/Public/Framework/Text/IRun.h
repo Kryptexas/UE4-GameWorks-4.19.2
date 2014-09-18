@@ -20,6 +20,22 @@ struct SLATE_API FRunInfo
 	TMap< FString, FString > MetaData;
 };
 
+/** Attributes that a run can have */
+enum class ERunAttributes : uint8
+{
+	/**
+	 * This run has no special attributes
+	 */
+	None = 0,
+
+	/**
+	 * This run supports text, and can have new text inserted into it
+	 * Note that even a run which doesn't support text may contain text (likely a breaking space character), however that text should be considered immutable
+	 */
+	SupportsText = 1<<0,
+};
+ENUM_CLASS_FLAGS(ERunAttributes);
+
 class SLATE_API IRun
 {
 public:
@@ -49,5 +65,7 @@ public:
 	virtual void AppendTextTo(FString& Text, const FTextRange& Range) const = 0;
 
 	virtual const FRunInfo& GetRunInfo() const = 0;
+
+	virtual ERunAttributes GetRunAttributes() const = 0;
 
 };

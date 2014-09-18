@@ -4,6 +4,8 @@
 #include "STutorialEditableText.h"
 #include "RichTextLayoutMarshaller.h"
 #include "TutorialText.h"
+#include "TutorialImageDecorator.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "STutorialEditableText"
 
@@ -27,8 +29,7 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 
 	TSharedRef<FRichTextLayoutMarshaller> RichTextMarshaller = FRichTextLayoutMarshaller::Create(
 		TArray<TSharedRef<ITextDecorator>>(), 
-		&FEditorStyle::Get(), 
-		FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Content.Text")
+		&FEditorStyle::Get()
 		);
 
 
@@ -234,6 +235,22 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 								]
 							]
 						]
+					]
+				]
+
+				+SHorizontalBox::Slot()
+				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.ToolTipText(LOCTEXT("ImageButtonTooltip", "Insert Image"))
+					.ButtonStyle(FEditorStyle::Get(), "TutorialEditableText.Toolbar.Button")
+					.OnClicked(this, &STutorialEditableText::HandleImageButtonClicked)
+					.ContentPadding(1.0f)
+					.Content()
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::Get().GetBrush("TutorialEditableText.Toolbar.ImageImage"))
 					]
 				]
 			]
@@ -545,6 +562,53 @@ ESlateCheckBoxState::Type STutorialEditableText::IsOpenAssetChecked() const
 EVisibility STutorialEditableText::GetExcerptVisibility() const
 {
 	return CurrentHyperlinkType.IsValid() && CurrentHyperlinkType->Type == EHyperlinkType::UDN ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+FReply STutorialEditableText::HandleImageButtonClicked()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if ( DesktopPlatform )
+	{
+		TArray<FString> OutFiles;
+		const FString Extension(TEXT("png"));
+		const FString Filter = FString::Printf(TEXT("%s files (*.%s)|*.%s"), *Extension, *Extension, *Extension);
+		const FString DefaultPath = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_IMPORT);
+
+		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
+
+		if (DesktopPlatform->OpenFileDialog(ParentWindowHandle, FText::Format(LOCTEXT("ImagePickerDialogTitle", "Choose a {0} file"), FText::FromString(Extension)).ToString(), DefaultPath, TEXT(""), Filter, EFileDialogFlags::None, OutFiles))
+		{
+			check(OutFiles.Num() == 1);
+
+			FRunInfo RunInfo(TEXT("img"));
+
+			// the path to the image needs to be stored either as a 'long package name' version of itself
+			// (minus png extension) or as a literal (base dir relative) path.
+			FString ContentPath;
+			if(FPackageName::TryConvertFilenameToLongPackageName(OutFiles[0], ContentPath))
+			{
+				RunInfo.MetaData.Add(TEXT("src"), ContentPath);
+			}
+			else
+			{
+				RunInfo.MetaData.Add(TEXT("src"), OutFiles[0]);
+			}
+			
+			TSharedRef<FSlateImageRun> ImageRun = FSlateImageRun::Create(
+				RunInfo, 
+				MakeShareable(new FString(TEXT("\x200B"))), // Zero-Width Breaking Space
+				FName(*FTutorialImageDecorator::GetPathToImage(OutFiles[0])),
+				0
+				);
+
+			RichEditableTextBox->InsertRunAtCursor(ImageRun);
+
+			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_IMPORT, FPaths::GetPath(OutFiles[0]));	
+		}
+	}
+
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

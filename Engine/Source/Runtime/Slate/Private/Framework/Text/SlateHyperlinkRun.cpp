@@ -184,6 +184,11 @@ const FRunInfo& FSlateHyperlinkRun::GetRunInfo() const
 	return RunInfo;
 }
 
+ERunAttributes FSlateHyperlinkRun::GetRunAttributes() const
+{
+	return ERunAttributes::SupportsText;
+}
+
 FSlateHyperlinkRun::FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate ) 
 	: RunInfo( InRunInfo )
 	, Text( InText )
