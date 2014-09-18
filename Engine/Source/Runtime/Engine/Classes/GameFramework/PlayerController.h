@@ -12,7 +12,10 @@
 #include "GameFramework/Controller.h"
 #include "Engine/LatentActionManager.h"
 #include "GenericPlatform/IForceFeedbackSystem.h"
+#include "SlateCore.h"
+
 #include "PlayerController.generated.h"
+
 
 class FPrimitiveComponentId;
 
@@ -23,6 +26,17 @@ DECLARE_DELEGATE_RetVal(bool, FCanUnpause);
 DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVector& /*ProjFront*/, FVector& /*ProjRight*/);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPlayerController, Log, All);
+
+UENUM()
+namespace EInputMode
+{
+	enum Type
+	{
+		UIOnly,
+		UIAndGame,
+		GameOnly,
+	};
+}
 
 UENUM()
 namespace EDynamicForceFeedbackAction
@@ -957,6 +971,11 @@ public:
 	virtual void SetVirtualJoystickVisibility(bool bVisible);
 
 public:
+	/** Set the Input Mode. */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void SetInputMode(EInputMode::Type Mode);
+
+public:
 	/**
 	 * Change Camera mode
 	 * @param	New camera mode to set
@@ -1399,4 +1418,10 @@ public:
 	/** The value of SeamlessTravelCount, upon the last call to GameMode::HandleSeamlessTravelPlayer; used to detect seamless travel */
 	UPROPERTY()
 	uint16		LastCompletedSeamlessTravelCount;
+
+	/** Stores the last input mode set */
+	//EInputMode  InputMode; right now we don't save this as it could be a half truth.
+
+	/** FReply used to defer some slate operations. */
+	FReply		SlateOperations;
 };

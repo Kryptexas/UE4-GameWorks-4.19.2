@@ -130,6 +130,12 @@ public:
 	 */
 	static void AppExit( );
 
+private:
+	/**
+	 * Utility function that processes Slate operations
+	 */
+	void ProcessPlayerControllersSlateOperations() const;
+
 protected:
 
 	/**

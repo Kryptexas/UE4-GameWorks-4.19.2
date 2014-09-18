@@ -623,6 +623,19 @@ extern ENGINE_API bool IsAltDown(FViewport* Viewport);
 extern ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap, const FIntRect& ViewRect = FIntRect());
 extern ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask);
 
+namespace EMouseCaptureMode
+{
+	enum Type
+	{
+		/** Do not capture the mouse at all */
+		NoCapture,
+		/** Capture the mouse permanently when the viewport is clicked */
+		CapturePermanently,
+		/** Capture the mouse during a mouse down, releases on mouse up */
+		CaptureDuringMouseDown
+	};
+}
+
 /**
  * An abstract interface to a viewport's client.
  * The viewport's client processes input received by the viewport, and draws the viewport.
@@ -854,6 +867,16 @@ public:
 	 * Set the sound stat flags enabled for this viewport
 	 */
 	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) {}
+
+	/**
+	 * Check whether we should ignore input.
+	 */
+	virtual bool IgnoreInput() { return false; }
+
+	/**
+	 * Gets the mouse capture behavior when the viewport is clicked
+	 */
+	virtual EMouseCaptureMode::Type CaptureMouseOnClick() { return EMouseCaptureMode::CapturePermanently; }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */

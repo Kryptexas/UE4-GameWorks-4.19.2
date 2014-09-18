@@ -39,6 +39,7 @@ const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 
 APlayerController::APlayerController(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, SlateOperations(FReply::Unhandled())
 {
 	NetPriority = 3.0f;
 	CheatClass = UCheatManager::StaticClass();
@@ -4242,6 +4243,44 @@ void APlayerController::SetVirtualJoystickVisibility(bool bVisible)
 	if (VirtualJoystick.IsValid())
 	{
 		VirtualJoystick->SetJoystickVisibility(bVisible, false);
+	}
+}
+
+void APlayerController::SetInputMode(EInputMode::Type Mode)
+{
+	UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
+	if (GameViewportClient != nullptr)
+	{
+		TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
+		if (ViewportWidget.IsValid())
+		{
+			switch (Mode)
+			{
+			case EInputMode::UIOnly:
+				SlateOperations.ReleaseMouseCapture();
+				SlateOperations.ReleaseJoystickCapture();
+				SlateOperations.ReleaseMouseLock();
+				GameViewportClient->SetIgnoreInput(true);
+				GameViewportClient->SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
+				break;
+			case EInputMode::UIAndGame:
+				SlateOperations.ReleaseMouseCapture();
+				SlateOperations.ReleaseJoystickCapture();
+				SlateOperations.ReleaseMouseLock();
+				GameViewportClient->SetIgnoreInput(false);
+				GameViewportClient->SetCaptureMouseOnClick(EMouseCaptureMode::CaptureDuringMouseDown);
+				break;
+			case EInputMode::GameOnly:
+				TSharedRef<SViewport> pViewportWidgetRef = ViewportWidget.ToSharedRef();
+				SlateOperations.CaptureMouse(pViewportWidgetRef);
+				SlateOperations.CaptureJoystick(pViewportWidgetRef);
+				SlateOperations.LockMouseToWidget(pViewportWidgetRef);
+				SlateOperations.SetKeyboardFocus(pViewportWidgetRef, EKeyboardFocusCause::SetDirectly);
+				GameViewportClient->SetIgnoreInput(false);
+				GameViewportClient->SetCaptureMouseOnClick(EMouseCaptureMode::CapturePermanently);
+				break;
+			}
+		}
 	}
 }
 

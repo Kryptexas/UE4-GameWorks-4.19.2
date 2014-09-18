@@ -82,6 +82,8 @@ UGameViewportClient::UGameViewportClient(const class FPostConstructInitializePro
 	, EngineShowFlags(ESFIM_Game)
 	, CurrentBufferVisualizationMode(NAME_None)
 	, HighResScreenshotDialog(NULL)
+	, bIgnoreInput(false)
+	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
@@ -175,6 +177,17 @@ FSceneViewport* UGameViewportClient::GetGameViewport()
 	return static_cast<FSceneViewport*>(Viewport);
 }
 
+TSharedPtr<class SViewport> UGameViewportClient::GetGameViewportWidget()
+{
+	FSceneViewport* SceneViewport = GetGameViewport();
+	if (SceneViewport != nullptr)
+	{
+		TWeakPtr<SViewport> WeakViewportWidget = SceneViewport->GetViewportWidget();
+		TSharedPtr<SViewport> ViewportWidget = WeakViewportWidget.Pin();
+		return ViewportWidget;
+	}
+	return nullptr;
+}
 
 void UGameViewportClient::Tick( float DeltaTime )
 {
@@ -209,6 +222,11 @@ UGameInstance* UGameViewportClient::GetGameInstance() const
 
 bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
@@ -248,6 +266,11 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 
 bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	bool bResult = false;
 
 	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
@@ -298,6 +321,11 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 
 bool UGameViewportClient::InputChar(FViewport* InViewport, int32 ControllerId, TCHAR Character)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	// should probably just add a ctor to FString that takes a TCHAR
 	FString CharacterString;
 	CharacterString += Character;
@@ -316,6 +344,11 @@ bool UGameViewportClient::InputChar(FViewport* InViewport, int32 ControllerId, T
 
 bool UGameViewportClient::InputTouch(FViewport* InViewport, int32 ControllerId, uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	// route to subsystems that care
 	bool bResult = (ViewportConsole ? ViewportConsole->InputTouch(ControllerId, Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex) : false);
 	if (!bResult)
@@ -332,6 +365,11 @@ bool UGameViewportClient::InputTouch(FViewport* InViewport, int32 ControllerId, 
 
 bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId, const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	// route to subsystems that care
 	bool bResult = false;
 

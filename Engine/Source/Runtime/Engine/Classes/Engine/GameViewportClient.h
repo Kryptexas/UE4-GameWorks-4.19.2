@@ -248,6 +248,8 @@ public:
 
 	class FSceneViewport* GetGameViewport();
 
+	TSharedPtr<class SViewport> GetGameViewportWidget();
+
 	UGameInstance* GetGameInstance() const;
 
 	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance);
@@ -635,6 +637,38 @@ public:
 		SoundShowFlags = InSoundShowFlags;
 	}
 
+	/**
+	 * Set whether to ignore input.
+	 */
+	void SetIgnoreInput(bool Ignore)
+	{
+		bIgnoreInput = Ignore;
+	}
+
+	/**
+	 * Check whether we should ignore input.
+	 */
+	virtual bool IgnoreInput() override
+	{
+		return bIgnoreInput;
+	}
+
+	/**
+	 * Set the mouse capture behavior when the viewport is clicked
+	 */
+	void SetCaptureMouseOnClick(EMouseCaptureMode::Type Mode)
+	{
+		MouseCaptureMode = Mode;
+	}
+
+	/**
+	 * Gets the mouse capture behavior when the viewport is clicked
+	 */
+	virtual EMouseCaptureMode::Type CaptureMouseOnClick() override
+	{
+		return MouseCaptureMode;
+	}
+
 private:
 	/**
 	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
@@ -714,6 +748,12 @@ private:
 
 	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
 	bool bDisableSplitScreenOverride;
+
+	/** Whether or not to ignore input */
+	bool bIgnoreInput;
+
+	/** Mouse capture behavior when the viewport is clicked */
+	EMouseCaptureMode::Type MouseCaptureMode;
 };
 
 

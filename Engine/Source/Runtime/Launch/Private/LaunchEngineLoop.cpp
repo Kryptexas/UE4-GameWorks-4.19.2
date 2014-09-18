@@ -13,7 +13,6 @@
 #include "TaskGraphInterfaces.h"
 #include "Runtime/Core/Public/Modules/ModuleVersion.h"
 
-
 #include "Projects.h"
 #include "UProjectInfo.h"
 #include "EngineVersion.h"
@@ -1976,6 +1975,41 @@ void FEngineLoop::Exit()
 	FIOSystem::Shutdown();
 }
 
+void FEngineLoop::ProcessPlayerControllersSlateOperations() const
+{
+	FSlateApplication& SlateApp = FSlateApplication::Get();
+
+	// For all the game worlds drill down to the player controller for each game viewport and process it's slate operation
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		UWorld* CurWorld = Context.World();
+		if (CurWorld != nullptr && CurWorld->IsGameWorld())
+		{
+			ULocalPlayer* LocalPlayer = CurWorld->GetFirstLocalPlayerFromController();
+			UGameViewportClient* GameViewportClient = CurWorld->GetGameViewport();
+			if (LocalPlayer != nullptr && GameViewportClient != nullptr)
+			{
+				TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
+				if (ViewportWidget.IsValid())
+				{
+					APlayerController* PlayerController = LocalPlayer->PlayerController;
+					if (PlayerController != nullptr)
+					{
+						FReply& TheReply = PlayerController->SlateOperations;
+
+						FWidgetPath PathToWidget;
+						SlateApp.GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), PathToWidget);
+
+						SlateApp.ProcessReply(PathToWidget, TheReply, NULL, NULL);
+
+						TheReply = FReply::Unhandled();
+					}
+				}
+			}
+		}
+	}
+}
+
 bool FEngineLoop::ShouldUseIdleMode() const
 {
 	static const auto CVarIdleWhenNotForeground = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("t.IdleWhenNotForeground"));
@@ -2104,6 +2138,9 @@ void FEngineLoop::Tick()
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			check(!IsRunningDedicatedServer());
+			
+			// Process slate operations accumulated in the world ticks.
+			ProcessPlayerControllersSlateOperations();
 
 			// Tick Slate application
 			FSlateApplication::Get().Tick();

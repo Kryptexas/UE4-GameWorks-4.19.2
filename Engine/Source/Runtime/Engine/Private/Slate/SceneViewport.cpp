@@ -351,15 +351,34 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
-	}
 
-	// Mouse down should focus viewport for keyboard input
-	CurrentReplyState.SetKeyboardFocus( ViewportWidget.Pin().ToSharedRef(), EKeyboardFocusCause::Mouse );
-	CurrentReplyState.UseHighPrecisionMouseMovement( ViewportWidget.Pin().ToSharedRef() );
+		if (ViewportClient->CaptureMouseOnClick() != EMouseCaptureMode::NoCapture && !ViewportClient->IgnoreInput())
+		{
+			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
+
+			// Mouse down should focus viewport for keyboard input
+			CurrentReplyState.SetKeyboardFocus(ViewportWidgetRef, EKeyboardFocusCause::Mouse);
+			
+			UWorld* World = ViewportClient->GetWorld();
+			if (World && World->IsGameWorld() && World->GetFirstPlayerController())
+			{
+				CurrentReplyState.CaptureMouse(ViewportWidgetRef);
+				CurrentReplyState.LockMouseToWidget(ViewportWidgetRef);
+				if (!World->GetFirstPlayerController()->ShouldShowMouseCursor())
+				{
+					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+				}
+			}
+			else
+			{
+				CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+			}
+		}
+	}
 	
 	// Re-set prevent throttling here as it can get reset when inside of InputKey()
 	CurrentReplyState.PreventThrottling();
-	
+
 	return CurrentReplyState;
 }
 
@@ -375,22 +394,28 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 
 	// Switch to the viewport clients world before processing input
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-	bool bIsCursorForcedVisible = true;
+	bool bIsCursorVisible = true;
+	bool bReleaseMouse = true;
 	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
 	{
 		if( !ViewportClient->InputKey(this,0,InMouseEvent.GetEffectingButton(), IE_Released ) )
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
-		bIsCursorForcedVisible = ViewportClient->GetCursor( this, GetMouseX(), GetMouseY() ) != EMouseCursor::None;
+		bIsCursorVisible = ViewportClient->GetCursor(this, GetMouseX(), GetMouseY()) != EMouseCursor::None;
+		bReleaseMouse = bIsCursorVisible || ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown;
 	}
-	if( !( ( FApp::IsGame() && !GIsEditor ) || bIsPlayInEditorViewport ) || bIsCursorForcedVisible )
+	if (!((FApp::IsGame() && !GIsEditor) || bIsPlayInEditorViewport) || bReleaseMouse)
 	{
 		// On mouse up outside of the game (editor viewport) or if the cursor is visible in game, we should make sure the mouse is no longer captured
 		// as long as the left or right mouse buttons are not still down
 		if( !InMouseEvent.IsMouseButtonDown( EKeys::RightMouseButton ) && !InMouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
 		{
 			CurrentReplyState.ReleaseMouseCapture();
+			if (bIsCursorVisible)
+			{
+				CurrentReplyState.ReleaseMouseLock();
+			}
 		}
 	}
 	return CurrentReplyState;
