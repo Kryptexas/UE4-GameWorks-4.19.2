@@ -11,6 +11,7 @@
 #include "IToolkitHost.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 
 #define LOCTEXT_NAMESPACE "STutorialRoot"
 
@@ -76,8 +77,15 @@ void STutorialRoot::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	}
 }
 
-void STutorialRoot::SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter)
+void STutorialRoot::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
 {
+	// Use main frame if non specified
+	if (!InWindow.IsValid())
+	{
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		InWindow = MainFrameModule.GetParentWindow();
+	}
+
 	TWeakPtr<SEditorTutorials>* FoundWidget = TutorialWidgets.Find(InWindow);
 	if(FoundWidget != nullptr && FoundWidget->IsValid())
 	{

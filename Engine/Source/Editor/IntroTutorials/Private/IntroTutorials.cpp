@@ -356,7 +356,7 @@ FOnIsPicking& FIntroTutorials::OnIsPicking()
 	return OnIsPickingDelegate;
 }
 
-void FIntroTutorials::SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter)
+void FIntroTutorials::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
 {
 	if(TutorialRoot.IsValid())
 	{

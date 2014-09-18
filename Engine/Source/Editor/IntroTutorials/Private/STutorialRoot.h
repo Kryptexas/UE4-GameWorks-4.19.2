@@ -34,7 +34,7 @@ public:
 	void CloseAllTutorialContent();
 
 	/** Summon the browser widget for the specified window */
-	void SummonTutorialBrowser(TSharedRef<SWindow> InWindow, const FString& InFilter = TEXT(""));
+	void SummonTutorialBrowser(TWeakPtr<SWindow> InWindow = nullptr, const FString& InFilter = TEXT(""));
 
 	/** Reload tutorials that we know about */
 	void ReloadTutorials();
