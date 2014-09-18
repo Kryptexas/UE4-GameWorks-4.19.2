@@ -137,10 +137,11 @@ void FIntroTutorials::StartupModule()
 	PropertyEditorModule.RegisterCustomPropertyTypeLayout("TutorialContentAnchor", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTutorialContentAnchorCustomization::MakeInstance));
 	PropertyEditorModule.RegisterCustomClassLayout("EditorTutorial", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorTutorialDetailsCustomization::MakeInstance));
 
-	ContentIntroCurve = LoadObject<UCurveFloat>(nullptr, TEXT("/Engine/Tutorial/ContentIntroCurve.ContentIntroCurve"));
-	if(ContentIntroCurve)
+	UCurveFloat* ContentIntroCurveAsset = LoadObject<UCurveFloat>(nullptr, TEXT("/Engine/Tutorial/ContentIntroCurve.ContentIntroCurve"));
+	if(ContentIntroCurveAsset)
 	{
-		ContentIntroCurve->AddToRoot();
+		ContentIntroCurveAsset->AddToRoot();
+		ContentIntroCurve = ContentIntroCurveAsset;
 	}
 }
 
@@ -182,9 +183,9 @@ void FIntroTutorials::ShutdownModule()
 		PropertyEditorModule.UnregisterCustomClassLayout("EditorTutorial");
 	}
 
-	if(ContentIntroCurve)
+	if(ContentIntroCurve.IsValid())
 	{
-		ContentIntroCurve->RemoveFromRoot();
+		ContentIntroCurve.Get()->RemoveFromRoot();
 		ContentIntroCurve = nullptr;
 	}
 }
@@ -419,9 +420,9 @@ TSharedRef<SWidget> FIntroTutorials::CreateTutorialsWidget(FName InContext, TWea
 
 float FIntroTutorials::GetIntroCurveValue(float InTime)
 {
-	if(ContentIntroCurve)
+	if(ContentIntroCurve.IsValid())
 	{
-		return ContentIntroCurve->GetFloatValue(InTime);
+		return ContentIntroCurve.Get()->GetFloatValue(InTime);
 	}
 
 	return 1.0f;

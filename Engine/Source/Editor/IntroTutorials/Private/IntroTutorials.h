@@ -113,5 +113,5 @@ private:
 	TSharedPtr<STutorialRoot> TutorialRoot;
 
 	/** Curve asset for intros */
-	UCurveFloat* ContentIntroCurve;
+	TWeakObjectPtr<UCurveFloat> ContentIntroCurve;
 };
