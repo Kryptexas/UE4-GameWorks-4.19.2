@@ -18,6 +18,9 @@ public partial class Project : CommandUtils
 		{
 			return;
 		}
+
+		Log("********** DEPLOY COMMAND STARTED **********");
+		
 		if (!Params.NoClient)
 		{
 			var DeployContextList = CreateDeploymentContext(Params, false, false);
@@ -64,6 +67,8 @@ public partial class Project : CommandUtils
 				SC.StageTargetPlatform.Deploy(ServerParams, SC);
 			}
 		}
+
+		Log("********** DEPLOY COMMAND COMPLETED **********");
 	}
 
 	#endregion

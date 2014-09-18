@@ -30,7 +30,12 @@ public partial class Project : CommandUtils
 	/// <summary>
 	/// Thread used to read client log file.
 	/// </summary>
-	private static Thread ClientLogReaderThread;
+	private static Thread ClientLogReaderThread = null;
+
+	/// <summary>
+	/// Process for the server, can be set by the cook command when a cook on the fly server is used
+	/// </summary>
+	public static ProcessResult ServerProcess;
 
 	#endregion
 
@@ -88,8 +93,10 @@ public partial class Project : CommandUtils
 			return;
 		}
 
+		Log("********** RUN COMMAND STARTED **********");
+
 		var LogFolderOutsideOfSandbox = GetLogFolderOutsideOfSandbox();
-		if (!GlobalCommandLine.Installed)
+		if (!GlobalCommandLine.Installed && ServerProcess == null)
 		{
 			// In the installed runs, this is the same folder as CmdEnv.LogFolder so delete only in not-installed
 			DeleteDirectory(LogFolderOutsideOfSandbox);
@@ -110,26 +117,14 @@ public partial class Project : CommandUtils
 		{
 			CopyLogsBackToLogFolder();
 		}
+
+		Log("********** RUN COMMAND COMPLETED **********");
 	}
 
 	private static void RunInternal(ProjectParams Params, string ServerLogFile, string ClientLogFile)
 	{
 		// Setup server process if required.
-		ProcessResult ServerProcess = null;
-		if (Params.CookOnTheFly && !Params.SkipServer)
-		{
-			if (Params.ClientTargetPlatforms.Count > 0)
-			{
-				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];
-				string TargetCook = ClientPlatformInst.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
-				ServerProcess = RunCookOnTheFlyServer(Params.RawProjectPath, Params.NoClient ? "" : ServerLogFile, TargetCook, Params.RunCommandline);
-			}
-			else
-			{
-				throw new AutomationException("Failed to run, client target platform not specified");
-			}
-		}
-		else if (Params.DedicatedServer && !Params.SkipServer)
+		if (Params.DedicatedServer && !Params.SkipServer)
 		{
 			if (Params.ServerTargetPlatforms.Count > 0)
 			{
@@ -175,7 +170,7 @@ public partial class Project : CommandUtils
 			// Run the client.
 			if (ServerProcess != null)
 			{
-				RunClientWithServer(ServerLogFile, ServerProcess, ClientApp, ClientCmdLine, ClientRunFlags, ClientLogFile, Params);
+				RunClientWithServer(SC, ServerLogFile, ServerProcess, ClientApp, ClientCmdLine, ClientRunFlags, ClientLogFile, Params);
 			}
 			else
 			{
@@ -340,7 +335,7 @@ public partial class Project : CommandUtils
 		}
 	}
 
-	private static void RunClientWithServer(string ServerLogFile, ProcessResult ServerProcess, string ClientApp, string ClientCmdLine, ERunOptions ClientRunFlags, string ClientLogFile, ProjectParams Params)
+	private static void RunClientWithServer(List<DeploymentContext> DeployContextList, string ServerLogFile, ProcessResult ServerProcess, string ClientApp, string ClientCmdLine, ERunOptions ClientRunFlags, string ClientLogFile, ProjectParams Params)
 	{
 		ProcessResult ClientProcess = null;
 		var OtherClients = new List<ProcessResult>();
@@ -500,13 +495,16 @@ public partial class Project : CommandUtils
 					if (ClientProcess == null && (AllClientOutput.Contains("Game Engine Initialized") || AllClientOutput.Contains("Unreal Network File Server is ready")))
 					{
 						Log("Starting Client....");
-						ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+						var SC = DeployContextList[0];
+						ClientProcess = SC.StageTargetPlatform.RunClient(ClientRunFlags | ERunOptions.NoWaitForExit, ClientApp, ClientCmdLine, Params);
+//						ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 						if (NumClients > 1 && NumClients < 9)
 						{
 							for (int i = 1; i < NumClients; i++)
 							{
 								Log("Starting Extra Client....");
-								OtherClients.Add(Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit));
+								ProcessResult NewClient = SC.StageTargetPlatform.RunClient(ClientRunFlags | ERunOptions.NoWaitForExit, ClientApp, ClientCmdLine, Params);
+								OtherClients.Add(NewClient);
 							}
 						}
 					}
@@ -526,7 +524,10 @@ public partial class Project : CommandUtils
 				{
 
 					Log("Client exited, stopping server....");
-					ServerProcess.StopProcess();
+					if (!GlobalCommandLine.NoKill)
+					{
+						ServerProcess.StopProcess();
+					}
 					bKeepReading = false;
 				}
 
@@ -602,7 +603,7 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible && IP.UnicastAddresses[Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 								{
-									if (Params.Port != null)
+									if (!IsNullOrEmpty(Params.Port))
 									{
 										foreach (var Port in Params.Port)
 										{
@@ -626,7 +627,13 @@ public partial class Project : CommandUtils
 									}
                                     else
                                     {
-                                        // use default port
+										if (!FirstParam)
+										{
+											TempCmdLine += "+";
+										}
+										FirstParam = false;
+										
+										// use default port
                                         TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
                                     }
 								}
@@ -646,7 +653,7 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible)
 								{
-									if (Params.Port != null)
+									if (!IsNullOrEmpty(Params.Port))
 									{
 										foreach (var Port in Params.Port)
 										{
@@ -670,7 +677,13 @@ public partial class Project : CommandUtils
 									}
                                     else
                                     {
-                                        // use default port
+										if (!FirstParam)
+										{
+											TempCmdLine += "+";
+										}
+										FirstParam = false;
+										
+										// use default port
                                         TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
                                     }
 								}
@@ -706,7 +719,13 @@ public partial class Project : CommandUtils
 				}
                 else
                 {
-                    // use default port
+					if (!FirstParam)
+					{
+						TempCmdLine += "+";
+					}
+					FirstParam = false;
+					
+					// use default port
                     TempCmdLine += LocalHost;
                 }
 				TempCmdLine += " ";

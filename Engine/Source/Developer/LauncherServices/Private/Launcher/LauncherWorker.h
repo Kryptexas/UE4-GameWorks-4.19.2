@@ -3,6 +3,13 @@
 #pragma once
 
 
+struct FCommandDesc
+{
+	FString Name;
+	FString Desc;
+	FString EndText;
+};
+
 /**
  * Implements the launcher's worker thread.
  */
@@ -84,6 +91,8 @@ protected:
 	void OnTaskStarted(const FString& TaskName);
 	void OnTaskCompleted(const FString& TaskName);
 
+	FString CreateUATCommand( const ILauncherProfileRef& InProfile, const TArray<FString>& InPlatforms, TArray<FCommandDesc>& OutCommands, FString& CommandStart );
+
 private:
 
 	// Holds a critical section to lock access to selected properties.
@@ -101,9 +110,10 @@ private:
 	// Holds the first task in the task chain.
 	TSharedPtr<FLauncherTask> TaskChain;
 
-	// holds the read and write pipes
+	// holds the read and write pipes and the running UAT process
 	void* ReadPipe;
 	void* WritePipe;
+	FProcHandle ProcHandle;
 
 	double StageStartTime;
 	double LaunchStartTime;

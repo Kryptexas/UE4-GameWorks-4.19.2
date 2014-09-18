@@ -37,13 +37,7 @@
 // launcher worker
 #include "LauncherTaskChainState.h"
 #include "LauncherTask.h"
-#include "LauncherUATCommand.h"
 #include "LauncherUATTask.h"
-#include "LauncherBuildCommands.h"
-#include "LauncherCookCommands.h"
-#include "LauncherDeployCommands.h"
-#include "LauncherLaunchCommands.h"
-#include "LauncherPackageCommands.h"
 #include "LauncherVerifyProfileTask.h"
 #include "LauncherWorker.h"
 #include "Launcher.h"

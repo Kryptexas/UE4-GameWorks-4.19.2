@@ -250,6 +250,7 @@ public:
 	 */
 	virtual void SetDefaults() = 0;
 
+
 public:
 
 	/**

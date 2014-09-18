@@ -920,6 +920,11 @@ public class IOSPlatform : Platform
 		get { return false; }
 	}
 
+	public override bool RequiresPackageToDeploy
+	{
+		get { return true; }
+	}
+
 	#region Hooks
 
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)

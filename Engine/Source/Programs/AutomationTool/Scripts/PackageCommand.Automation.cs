@@ -14,52 +14,34 @@ public partial class Project : CommandUtils
 	public static void Package(ProjectParams Params, int WorkingCL=-1)
 	{
 		Params.ValidateAndLog();
-		if (!Params.Package)
+/*		if (!Params.Package)
 		{
 			return;
-		}
+		}*/
+
+		bool NeedsPackage = Params.Package;
+		List<DeploymentContext> DeployContextList = new List<DeploymentContext>();
 		if (!Params.NoClient)
 		{
-			var DeployContextList = CreateDeploymentContext(Params, false, false);
-			foreach ( var SC in DeployContextList )
+			DeployContextList.AddRange(CreateDeploymentContext(Params, false, false));
+		}
+		if (Params.DedicatedServer)
+		{
+			DeployContextList.AddRange(CreateDeploymentContext(Params, true, false));
+		}
+		if (DeployContextList.Count > 0)
+		{
+			Log("********** PACKAGE COMMAND STARTED **********");
+
+			foreach (var SC in DeployContextList)
 			{
-				if (SC.StageTargetPlatform.PackageViaUFE)
-				{
-					string ClientCmdLine = "-run=Package ";
-					ClientCmdLine += "-Targetplatform=" + SC.StageTargetPlatform.PlatformType.ToString() + " ";
-					ClientCmdLine += "-SourceDir=" + CombinePaths(Params.BaseStageDirectory, SC.StageTargetPlatform.PlatformType.ToString()) + " ";
-					string ClientApp = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealFrontend.exe");
-
-					Log("Packaging via UFE:");
-					Log("\tClientCmdLine: " + ClientCmdLine + "");
-
-					//@todo UAT: Consolidate running of external applications like UFE (See 'RunProjectCommand' for other instances)
-					PushDir(Path.GetDirectoryName(ClientApp));
-					// Always start client process and don't wait for exit.
-					ProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ERunOptions.NoWaitForExit);
-					PopDir();
-					if (ClientProcess != null)
-					{
-						do
-						{
-							Thread.Sleep(100);
-						}
-						while (ClientProcess.HasExited == false);
-					}
-				}
-				else
+				if (Params.Package || (SC.StageTargetPlatform.RequiresPackageToDeploy && Params.Deploy))
 				{
 					SC.StageTargetPlatform.Package(Params, SC, WorkingCL);
 				}
 			}
-		}
-		if (Params.DedicatedServer)
-		{
-			var DeployContextList = CreateDeploymentContext(Params, true, false);
-			foreach (var SC in DeployContextList)
-			{
-				SC.StageTargetPlatform.Package(Params, SC, WorkingCL);
-			}
+
+			Log("********** PACKAGE COMMAND COMPLETED **********");
 		}
 	}
 

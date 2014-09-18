@@ -713,11 +713,11 @@ namespace AutomationTool
 				Result.WaitForExit();
 				var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
 				AddRunTime(App, (int)(BuildDuration));
-                if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
+				Result.ExitCode = Proc.ExitCode;
+				if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
                 {
                     Log(SpewVerbosity,"Run: Took {0}s to run {1}, ExitCode={2}", BuildDuration / 1000, Path.GetFileName(App), Result.ExitCode);
                 }
-				Result.ExitCode = Proc.ExitCode;
 				Result.OnProcessExited();
                 Result.DisposeProcess();
 			}
@@ -967,7 +967,7 @@ namespace AutomationTool
 						}
 					}
 
-					while (LogReader.EndOfStream && !LogProcess.HasExited)
+					while (LogReader.EndOfStream && !LogProcess.HasExited && bKeepReading)
 					{
 						Thread.Sleep(250);
 						// Tick the callback so that it can respond to external events

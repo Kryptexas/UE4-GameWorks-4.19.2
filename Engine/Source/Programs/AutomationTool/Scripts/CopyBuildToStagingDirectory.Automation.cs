@@ -276,6 +276,7 @@ public partial class Project : CommandUtils
 
 			if (SC.StageTargetPlatform.StageMovies)
 			{
+				SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.LocalRoot, "Engine/Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Engine/Content/Movies"), true, !Params.Pak);
 				SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, !Params.Pak);
 			}
 
@@ -719,7 +720,7 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible && IP.UnicastAddresses[Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 								{
-                                    if (Params.Port != null)
+                                    if (!IsNullOrEmpty(Params.Port))
                                     {
                                         foreach (var Port in Params.Port)
                                         {
@@ -744,7 +745,13 @@ public partial class Project : CommandUtils
                                     }
                                     else
                                     {
-                                        // use default port
+										if (!FirstParam)
+										{
+											FileHostParams += "+";
+										}
+										FirstParam = false;
+										
+										// use default port
                                         FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
                                     }
 
@@ -765,7 +772,7 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible)
 								{
-									if (Params.Port != null)
+									if (!IsNullOrEmpty(Params.Port))
 									{
 										foreach (var Port in Params.Port)
 										{
@@ -789,7 +796,13 @@ public partial class Project : CommandUtils
 									}
                                     else
                                     {
-                                        // use default port
+										if (!FirstParam)
+										{
+											FileHostParams += "+";
+										}
+										FirstParam = false;
+										
+										// use default port
                                         FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
                                     }
 
@@ -799,7 +812,7 @@ public partial class Project : CommandUtils
 					}
 				}
 				const string LocalHost = "127.0.0.1";
-				if (Params.Port != null)
+				if (!IsNullOrEmpty(Params.Port))
 				{
 					foreach (var Port in Params.Port)
 					{
@@ -824,7 +837,13 @@ public partial class Project : CommandUtils
 				}
                 else
                 {
-                    // use default port
+					if (!FirstParam)
+					{
+						FileHostParams += "+";
+					}
+					FirstParam = false;
+					
+					// use default port
                     FileHostParams += LocalHost;
                 }
 				FileHostParams += " ";
@@ -954,6 +973,8 @@ public partial class Project : CommandUtils
 		{
 			Params.ValidateAndLog();
 
+			Log("********** STAGE COMMAND STARTED **********");
+
 			if (!Params.NoClient)
 			{
 				var DeployContextList = CreateDeploymentContext(Params, false, true);
@@ -975,6 +996,7 @@ public partial class Project : CommandUtils
 					ApplyStagingManifest(Params, SC);
 				}
 			}
+			Log("********** STAGE COMMAND COMPLETED **********");
 		}
 	}
 

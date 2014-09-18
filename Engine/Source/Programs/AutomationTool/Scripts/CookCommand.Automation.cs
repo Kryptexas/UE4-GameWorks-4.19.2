@@ -21,11 +21,13 @@ public partial class Project : CommandUtils
 
 	public static void Cook(ProjectParams Params)
 	{
-		if (!Params.Cook || Params.SkipCook)
+		if ((!Params.Cook && !(Params.CookOnTheFly && !Params.SkipServer)) || Params.SkipCook)
 		{
 			return;
 		}
 		Params.ValidateAndLog();
+
+		Log("********** COOK COMMAND STARTED **********");
 
 		string UE4EditorExe = HostPlatform.Current.GetUE4ExePath(Params.UE4Exe);
 		if (!FileExists(UE4EditorExe))
@@ -33,77 +35,109 @@ public partial class Project : CommandUtils
 			throw new AutomationException("Missing " + UE4EditorExe + " executable. Needs to be built first.");
 		}
 
-		var PlatformsToCook = new HashSet<string>();
-
-		if (!Params.NoClient)
+		if (Params.CookOnTheFly && !Params.SkipServer)
 		{
-			foreach (var ClientPlatform in Params.ClientTargetPlatforms)
+			if (Params.ClientTargetPlatforms.Count > 0)
 			{
-				// Use the data platform, sometimes we will copy another platform's data
-				var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
-				PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor));
+				var LogFolderOutsideOfSandbox = GetLogFolderOutsideOfSandbox();
+				if (!GlobalCommandLine.Installed)
+				{
+					// In the installed runs, this is the same folder as CmdEnv.LogFolder so delete only in not-installed
+					DeleteDirectory(LogFolderOutsideOfSandbox);
+					CreateDirectory(LogFolderOutsideOfSandbox);
+				}
+				var ServerLogFile = CombinePaths(LogFolderOutsideOfSandbox, "Server.log");
+				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];
+				string TargetCook = ClientPlatformInst.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
+				ServerProcess = RunCookOnTheFlyServer(Params.RawProjectPath, Params.NoClient ? "" : ServerLogFile, TargetCook, Params.RunCommandline);
+
+				if (ServerProcess != null)
+				{
+					Log("Waiting a few seconds for the server to start...");
+					Thread.Sleep(5000);
+				}
+			}
+			else
+			{
+				throw new AutomationException("Failed to run, client target platform not specified");
 			}
 		}
-		if (Params.DedicatedServer)
+		else
 		{
-			foreach (var ServerPlatform in Params.ServerTargetPlatforms)
+			var PlatformsToCook = new HashSet<string>();
+
+			if (!Params.NoClient)
 			{
-				// Use the data platform, sometimes we will copy another platform's data
-				var DataPlatform = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
-				PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(true, false, Params.CookFlavor));
+				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
+				{
+					// Use the data platform, sometimes we will copy another platform's data
+					var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
+					PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor));
+				}
+			}
+			if (Params.DedicatedServer)
+			{
+				foreach (var ServerPlatform in Params.ServerTargetPlatforms)
+				{
+					// Use the data platform, sometimes we will copy another platform's data
+					var DataPlatform = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
+					PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(true, false, Params.CookFlavor));
+				}
+			}
+
+			if (Params.Clean.HasValue && Params.Clean.Value && !Params.IterativeCooking)
+			{
+				Log("Cleaning cooked data.");
+				CleanupCookedData(PlatformsToCook.ToList(), Params);
+			}
+
+			// cook the set of maps, or the run map, or nothing
+			string[] Maps = null;
+			if (Params.HasMapsToCook)
+			{
+				Maps = Params.MapsToCook.ToArray();
+			}
+
+			string[] Dirs = null;
+			if (Params.HasDirectoriesToCook)
+			{
+				Dirs = Params.DirectoriesToCook.ToArray();
+			}
+
+			string[] Cultures = null;
+			if (Params.HasCulturesToCook)
+			{
+				Cultures = Params.CulturesToCook.ToArray();
+			}
+
+			try
+			{
+				var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
+				if (Params.UseDebugParamForEditorExe)
+				{
+					CommandletParams += " -debug";
+				}
+				if (Params.Manifests)
+				{
+					CommandletParams += " -manifests";
+				}
+				if (Params.IterativeCooking)
+				{
+					CommandletParams += " -iterate";
+				}
+				CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
+			}
+			catch (Exception Ex)
+			{
+				// Delete cooked data (if any) as it may be incomplete / corrupted.
+				Log("Cook failed. Deleting cooked data.");
+				CleanupCookedData(PlatformsToCook.ToList(), Params);
+				AutomationTool.ErrorReporter.Error("Cook failed.", (int)AutomationTool.ErrorCodes.Error_UnknownCookFailure);
+				throw Ex;
 			}
 		}
 
-		if (Params.Clean.HasValue && Params.Clean.Value && !Params.IterativeCooking)
-		{
-			Log("Cleaning cooked data.");
-			CleanupCookedData(PlatformsToCook.ToList(), Params);
-		}
-
-		// cook the set of maps, or the run map, or nothing
-		string[] Maps = null;
-		if (Params.HasMapsToCook)
-		{
-			Maps = Params.MapsToCook.ToArray();
-		}
-
-		string[] Dirs = null;
-		if (Params.HasDirectoriesToCook)
-		{
-			Dirs = Params.DirectoriesToCook.ToArray();
-		}
-
-        string[] Cultures = null;
-        if (Params.HasCulturesToCook)
-        {
-            Cultures = Params.CulturesToCook.ToArray();
-        }
-
-		try
-		{
-			var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
-			if (Params.UseDebugParamForEditorExe)
-			{
-				CommandletParams += " -debug";
-			}
-			if (Params.Manifests)
-			{
-				CommandletParams += " -manifests";
-			}
-			if (Params.IterativeCooking)
-			{
-				CommandletParams += " -iterate";
-			}
-			CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
-		}
-		catch (Exception Ex)
-		{
-			// Delete cooked data (if any) as it may be incomplete / corrupted.
-			Log("Cook failed. Deleting cooked data.");
-			CleanupCookedData(PlatformsToCook.ToList(), Params);
-			AutomationTool.ErrorReporter.Error("Cook failed.", (int)AutomationTool.ErrorCodes.Error_UnknownCookFailure);
-			throw Ex;
-		}
+		Log("********** COOK COMMAND COMPLETED **********");
 	}
 
 	private static void CleanupCookedData(List<string> PlatformsToCook, ProjectParams Params)
