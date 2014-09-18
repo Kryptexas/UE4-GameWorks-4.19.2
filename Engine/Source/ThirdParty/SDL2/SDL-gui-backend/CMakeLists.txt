@@ -249,7 +249,7 @@ set_option(RENDER_D3D          "Enable the Direct3D render driver" ${WINDOWS})
 
 # TODO: We should (should we?) respect cmake's ${BUILD_SHARED_LIBS} flag here
 # The options below are for compatibility to configure's default behaviour.
-set(SDL_SHARED ON CACHE BOOL "Build a shared version of the library")
+set(SDL_SHARED OFF CACHE BOOL "Build a shared version of the library")
 set(SDL_STATIC ON CACHE BOOL "Build a static version of the library")
 
 # General source files
@@ -1271,6 +1271,19 @@ if(SDL_STATIC)
   # libraries - do we need to consider this?
   set(_INSTALL_LIBS "SDL2-static" ${_INSTALL_LIBS})
   target_link_libraries(SDL2-static ${EXTRA_LIBS} ${EXTRA_LDFLAGS})
+
+  add_library(SDL2-static-pic STATIC ${SOURCE_FILES})
+  set_target_properties(SDL2-static-pic PROPERTIES OUTPUT_NAME "SDL2_fPIC")
+  set_target_properties(SDL2-static-pic PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+  if(MSVC)
+    set_target_properties(SDL2-static-pic PROPERTIES LINK_FLAGS_RELEASE "/NODEFAULTLIB")
+    set_target_properties(SDL2-static-pic PROPERTIES LINK_FLAGS_DEBUG "/NODEFAULTLIB")
+    set_target_properties(SDL2-static-pic PROPERTIES STATIC_LIBRARY_FLAGS "/NODEFAULTLIB")
+  endif()
+  # TODO: Win32 platforms keep the same suffix .lib for import and static
+  # libraries - do we need to consider this?
+  set(_INSTALL_LIBS "SDL2-static-pic" ${_INSTALL_LIBS})
+  target_link_libraries(SDL2-static-pic ${EXTRA_LIBS} ${EXTRA_LDFLAGS})
 endif()
 
 ##### Installation targets #####
