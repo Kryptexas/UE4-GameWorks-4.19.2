@@ -182,6 +182,12 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		{
 			if (FSlateApplication::IsInitialized())
 			{
+				// Break out of the loop if the main window is closed during the movie.
+				if ( !FSlateApplication::Get().GetActiveTopLevelWindow().IsValid() )
+				{
+					break;
+				}
+
 				FPlatformMisc::PumpMessages(true);
 				FSlateApplication::Get().Tick();
 				
