@@ -160,6 +160,21 @@ void UPanelWidget::ClearChildren()
 	}
 }
 
+void UPanelWidget::SetIsDesignTime(bool bInDesignTime)
+{
+	Super::SetIsDesignTime(bInDesignTime);
+
+	// Also mark all children as design time widgets.
+	int32 Children = GetChildrenCount();
+	for ( int32 SlotIndex = 0; SlotIndex < Children; SlotIndex++ )
+	{
+		if ( Slots[SlotIndex]->Content != NULL )
+		{
+			Slots[SlotIndex]->Content->SetIsDesignTime(bInDesignTime);
+		}
+	}
+}
+
 void UPanelWidget::PostLoad()
 {
 	Super::PostLoad();

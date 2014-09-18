@@ -90,6 +90,8 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			const FVector2D Alignment = CurChild.AlignmentAttr.Get();
 			const FAnchors Anchors = CurChild.AnchorsAttr.Get();
 
+			const bool AutoSize = CurChild.AutoSizeAttr.Get();
+
 			const FMargin AnchorPixels =
 				FMargin(Anchors.Minimum.X * AllottedGeometry.Size.X,
 						Anchors.Minimum.Y * AllottedGeometry.Size.Y,
@@ -99,7 +101,10 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			const bool bIsHorizontalStretch = Anchors.Minimum.X != Anchors.Maximum.X;
 			const bool bIsVerticalStretch = Anchors.Minimum.Y != Anchors.Maximum.Y;
 			
-			const FVector2D Size = FVector2D(Offset.Right, Offset.Bottom);
+			const FVector2D SlotSize = FVector2D(Offset.Right, Offset.Bottom);
+			const FVector2D WidgetDesiredSize = CurChild.GetWidget()->GetDesiredSize();
+
+			const FVector2D Size = AutoSize ? WidgetDesiredSize : SlotSize;
 			
 			// Calculate the offset based on the pivot position.
 			FVector2D AlignmentOffset = Size * Alignment;

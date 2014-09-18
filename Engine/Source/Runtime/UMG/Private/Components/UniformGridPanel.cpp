@@ -69,6 +69,11 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyUniformGridPanel.ToSharedRef() );
 }
 
+UUniformGridSlot* UUniformGridPanel::AddChildToUniformGrid(UWidget* Content)
+{
+	return Cast<UUniformGridSlot>(Super::AddChild(Content));
+}
+
 void UUniformGridPanel::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();

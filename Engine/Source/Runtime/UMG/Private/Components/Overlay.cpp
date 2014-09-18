@@ -23,6 +23,11 @@ void UOverlay::ReleaseNativeWidget()
 	MyOverlay.Reset();
 }
 
+UOverlaySlot* UOverlay::AddChildToOverlay(UWidget* Content)
+{
+	return Cast<UOverlaySlot>(Super::AddChild(Content));
+}
+
 UClass* UOverlay::GetSlotClass() const
 {
 	return UOverlaySlot::StaticClass();

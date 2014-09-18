@@ -849,8 +849,10 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 						FWidgetTransform RenderTransform = PreviewWidget->RenderTransform;
 						RenderTransform.Translation += AbsoluteToLocalTransform.TransformVector(MouseEvent.GetCursorDelta());
 
-						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(PreviewWidget, "RenderTransform", RenderTransform);
-						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(SelectedWidget.GetTemplate(), "RenderTransform", RenderTransform);
+						static const FName RenderTransformName(TEXT("RenderTransform"));
+
+						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(PreviewWidget, RenderTransformName, RenderTransform);
+						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(SelectedWidget.GetTemplate(), RenderTransformName, RenderTransform);
 					}
 				}
 			}
@@ -1238,7 +1240,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 			// Add it to the root if there are no other widgets to add it to.
 			UWidget* Widget = TemplateDragDropOp->Template->Create(BP->WidgetTree);
-			Widget->IsDesignTime(true);
+			Widget->SetIsDesignTime(true);
 
 			BP->WidgetTree->RootWidget = Widget;
 
@@ -1272,7 +1274,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 			// Construct the widget and mark it for design time rendering.
 			UWidget* Widget = TemplateDragDropOp->Template->Create(BP->WidgetTree);
-			Widget->IsDesignTime(true);
+			Widget->SetIsDesignTime(true);
 
 			// Determine local position inside the parent widget and add the widget to the slot.
 			FVector2D LocalPosition = WidgetUnderCursorGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
@@ -1368,77 +1370,81 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 			}
 
 			UWidget* Widget = bIsPreview ? SelectedDragDropOp->Widget.GetPreview() : SelectedDragDropOp->Widget.GetTemplate();
+			check(Widget);
 
-			if ( Widget->GetParent() )
+			if ( Widget )
 			{
-				if ( !bIsPreview )
+				if ( Widget->GetParent() )
 				{
-					Widget->GetParent()->Modify();
-				}
-
-				Widget->GetParent()->RemoveChild(Widget);
-			}
-
-			FVector2D LocalPosition = WidgetUnderCursorGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-			if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
-			{
-				FVector2D NewPosition = LocalPosition - SelectedWidgetContextMenuLocation;
-
-				const UWidgetDesignerSettings* DesignerSettings = GetDefault<UWidgetDesignerSettings>();
-				if ( DesignerSettings->GridSnapEnabled )
-				{
-					NewPosition.X = ( (int32)NewPosition.X ) - ( ( (int32)NewPosition.X ) % DesignerSettings->GridSnapSize );
-					NewPosition.Y = ( (int32)NewPosition.Y ) - ( ( (int32)NewPosition.Y ) % DesignerSettings->GridSnapSize );
-				}
-
-				// HACK UMG: In order to correctly drop items into the canvas that have a non-zero anchor,
-				// we need to know the layout information after slate has performed a prepass.  So we have
-				// to rebase the layout and reinterpret the new position based on anchor point layout data.
-				// This should be pulled out into an extension of some kind so that this can be fixed for
-				// other widgets as well that may need to do work like this.
-				if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot) )
-				{
-					if ( bIsPreview )
+					if ( !bIsPreview )
 					{
-						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+						Widget->GetParent()->Modify();
+					}
 
-						CanvasSlot->SaveBaseLayout();
-						Slot->SetDesiredPosition(NewPosition);
-						CanvasSlot->RebaseLayout();
+					Widget->GetParent()->RemoveChild(Widget);
+				}
 
-						FWidgetBlueprintEditorUtils::ExportPropertiesToText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+				FVector2D LocalPosition = WidgetUnderCursorGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+				if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
+				{
+					FVector2D NewPosition = LocalPosition - SelectedWidgetContextMenuLocation;
+
+					const UWidgetDesignerSettings* DesignerSettings = GetDefault<UWidgetDesignerSettings>();
+					if ( DesignerSettings->GridSnapEnabled )
+					{
+						NewPosition.X = ( (int32)NewPosition.X ) - ( ( (int32)NewPosition.X ) % DesignerSettings->GridSnapSize );
+						NewPosition.Y = ( (int32)NewPosition.Y ) - ( ( (int32)NewPosition.Y ) % DesignerSettings->GridSnapSize );
+					}
+
+					// HACK UMG: In order to correctly drop items into the canvas that have a non-zero anchor,
+					// we need to know the layout information after slate has performed a prepass.  So we have
+					// to rebase the layout and reinterpret the new position based on anchor point layout data.
+					// This should be pulled out into an extension of some kind so that this can be fixed for
+					// other widgets as well that may need to do work like this.
+					if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot) )
+					{
+						if ( bIsPreview )
+						{
+							FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+
+							CanvasSlot->SaveBaseLayout();
+							Slot->SetDesiredPosition(NewPosition);
+							CanvasSlot->RebaseLayout();
+
+							FWidgetBlueprintEditorUtils::ExportPropertiesToText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+						}
+						else
+						{
+							FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+						}
 					}
 					else
 					{
 						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+						Slot->SetDesiredPosition(NewPosition);
 					}
+
+					DropPreviewParent = NewParent;
+
+					if ( bIsPreview )
+					{
+						Transaction.Cancel();
+					}
+
+					return Widget;
 				}
 				else
 				{
-					FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
-					Slot->SetDesiredPosition(NewPosition);
-				}
+					SelectedDragDropOp->SetCursorOverride(EMouseCursor::SlashedCircle);
 
-				DropPreviewParent = NewParent;
+					// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
+					//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
+				}
 
 				if ( bIsPreview )
 				{
 					Transaction.Cancel();
 				}
-
-				return Widget;
-			}
-			else
-			{
-				SelectedDragDropOp->SetCursorOverride(EMouseCursor::SlashedCircle);
-
-				// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
-				//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
-			}
-
-			if ( bIsPreview )
-			{
-				Transaction.Cancel();
 			}
 		}
 		else

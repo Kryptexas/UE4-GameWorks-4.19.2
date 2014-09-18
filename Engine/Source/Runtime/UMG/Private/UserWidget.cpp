@@ -201,6 +201,16 @@ UWorld* UUserWidget::GetWorld() const
 	return nullptr;
 }
 
+void UUserWidget::SetIsDesignTime(bool bInDesignTime)
+{
+	Super::SetIsDesignTime(bInDesignTime);
+
+	for ( UWidget* Widget : Components )
+	{
+		Widget->SetIsDesignTime(bInDesignTime);
+	}
+}
+
 void UUserWidget::Construct_Implementation()
 {
 
@@ -456,6 +466,8 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 
 UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 {
+	//return WidgetTree->FindWidget(Name);
+
 	for ( UWidget* Widget : Components )
 	{
 		if ( Widget->GetName().Equals(Name, ESearchCase::IgnoreCase) )
@@ -464,7 +476,7 @@ UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )

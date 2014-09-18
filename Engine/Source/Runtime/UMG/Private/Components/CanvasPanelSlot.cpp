@@ -12,6 +12,7 @@ UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCI
 	LayoutData.Offsets = FMargin(0, 0, 100, 30);
 	LayoutData.Anchors = FAnchors(0.0f, 0.0f);
 	LayoutData.Alignment = FVector2D(0.0f, 0.0f);
+	bAutoSize = false;
 	ZOrder = 0;
 }
 
@@ -172,6 +173,15 @@ void UCanvasPanelSlot::SetAlignment(FVector2D InAlignment)
 	}
 }
 
+void UCanvasPanelSlot::SetAutoSize(bool InbAutoSize)
+{
+	bAutoSize = InbAutoSize;
+	if ( Slot )
+	{
+		Slot->AutoSize(InbAutoSize);
+	}
+}
+
 void UCanvasPanelSlot::SetZOrder(int32 InZOrder)
 {
 	ZOrder = InZOrder;
@@ -186,12 +196,13 @@ void UCanvasPanelSlot::SynchronizeProperties()
 	SetOffsets(LayoutData.Offsets);
 	SetAnchors(LayoutData.Anchors);
 	SetAlignment(LayoutData.Alignment);
+	SetAutoSize(bAutoSize);
 	SetZOrder(ZOrder);
 }
 
 #if WITH_EDITOR
 
-void UCanvasPanelSlot::PreEditChange(UProperty* PropertyAboutToChange)
+void UCanvasPanelSlot::PreEditChange(class FEditPropertyChain& PropertyAboutToChange)
 {
 	Super::PreEditChange(PropertyAboutToChange);
 

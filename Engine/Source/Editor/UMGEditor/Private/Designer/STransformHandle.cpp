@@ -137,8 +137,10 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 				RenderTransform.Angle += RotationDelta.Size();
 			}
 
-			FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(Preview, "RenderTransform", RenderTransform);
-			FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(Template, "RenderTransform", RenderTransform);
+			static const FName RenderTransformName(TEXT("RenderTransform"));
+
+			FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(Preview, RenderTransformName, RenderTransform);
+			FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(Template, RenderTransformName, RenderTransform);
 		}
 	}
 

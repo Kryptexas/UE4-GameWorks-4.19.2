@@ -167,6 +167,16 @@ void UWidget::ForceLayoutPrepass()
 	}
 }
 
+FVector2D UWidget::GetDesiredSize() const
+{
+	if ( MyWidget.IsValid() )
+	{
+		return MyWidget.Pin()->GetDesiredSize();
+	}
+
+	return FVector2D(0, 0);
+}
+
 UPanelWidget* UWidget::GetParent() const
 {
 	if ( Slot )
@@ -174,7 +184,7 @@ UPanelWidget* UWidget::GetParent() const
 		return Slot->Parent;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UWidget::RemoveFromParent()
@@ -335,7 +345,7 @@ void UWidget::Select()
 	OnSelected();
 
 	UWidget* Parent = GetParent();
-	while ( Parent != NULL )
+	while ( Parent != nullptr )
 	{
 		Parent->OnDescendantSelected(this);
 		Parent = Parent->GetParent();
@@ -347,7 +357,7 @@ void UWidget::Deselect()
 	OnDeselected();
 
 	UWidget* Parent = GetParent();
-	while ( Parent != NULL )
+	while ( Parent != nullptr )
 	{
 		Parent->OnDescendantDeselected(this);
 		Parent = Parent->GetParent();
@@ -362,7 +372,9 @@ bool UWidget::Modify(bool bAlwaysMarkDirty)
 	bool Modified = Super::Modify(bAlwaysMarkDirty);
 
 	if ( Slot )
+	{
 		Modified &= Slot->Modify(bAlwaysMarkDirty);
+	}
 
 	return Modified;
 }
@@ -370,7 +382,7 @@ bool UWidget::Modify(bool bAlwaysMarkDirty)
 bool UWidget::IsChildOf(UWidget* PossibleParent)
 {
 	UPanelWidget* Parent = GetParent();
-	if ( Parent == NULL )
+	if ( Parent == nullptr )
 	{
 		return false;
 	}
@@ -421,12 +433,12 @@ bool UWidget::IsDesignTime() const
 	return bDesignTime;
 }
 
-void UWidget::IsDesignTime(bool bInDesignTime)
+void UWidget::SetIsDesignTime(bool bInDesignTime)
 {
 	bDesignTime = bInDesignTime;
 }
 
-EVisibility UWidget::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input)
+EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input)
 {
 	switch ( Input )
 	{
@@ -441,12 +453,12 @@ EVisibility UWidget::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisi
 	case ESlateVisibility::SelfHitTestInvisible:
 		return EVisibility::SelfHitTestInvisible;
 	default:
-		check(false);
+		//check(false);
 		return EVisibility::Visible;
 	}
 }
 
-TEnumAsByte<ESlateVisibility::Type> UWidget::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
+ESlateVisibility::Type UWidget::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
 {
 	if ( Input == EVisibility::Visible )
 	{
@@ -470,7 +482,7 @@ TEnumAsByte<ESlateVisibility::Type> UWidget::ConvertRuntimeToSerializedVisiblity
 	}
 	else
 	{
-		check(false);
+		//check(false);
 		return ESlateVisibility::Visible;
 	}
 }
@@ -485,6 +497,8 @@ FSizeParam UWidget::ConvertSerializedSizeParamToRuntime(const FSlateChildSize& I
 	case ESlateSizeRule::Fill:
 		return FStretch(Input.Value);
 	}
+
+	return FAuto();
 }
 
 void UWidget::GatherChildren(UWidget* Root, TSet<UWidget*>& Children)
@@ -519,7 +533,7 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 {
 	UWidget* Parent = Descendant->GetParent();
 
-	while ( Parent != NULL )
+	while ( Parent != nullptr )
 	{
 		// If the Descendant's parent is the root, then the child containing the descendant is the descendant.
 		if ( Parent == Root )
@@ -531,5 +545,5 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 		Parent = Parent->GetParent();
 	}
 
-	return NULL;
+	return nullptr;
 }

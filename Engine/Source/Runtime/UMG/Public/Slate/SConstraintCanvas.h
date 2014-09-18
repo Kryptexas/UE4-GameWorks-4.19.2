@@ -35,6 +35,12 @@ public:
 			return *this;
 		}
 
+		FSlot& AutoSize(const TAttribute<bool>& InAutoSize)
+		{
+			AutoSizeAttr = InAutoSize;
+			return *this;
+		}
+
 		FSlot& ZOrder(const TAttribute<int32>& InZOrder)
 		{
 			ZOrderAttr = InZOrder;
@@ -56,7 +62,10 @@ public:
 		/** Size */
 		TAttribute<FVector2D> AlignmentAttr;
 
-		/** Size */
+		/** Auto-Size */
+		TAttribute<bool> AutoSizeAttr;
+
+		/** Z-Order */
 		TAttribute<int32> ZOrderAttr;
 
 		/** Default values for a slot. */
@@ -65,6 +74,7 @@ public:
 			, OffsetAttr( FMargin( 0, 0, 1, 1 ) )
 			, AnchorsAttr( FAnchors( 0.0f, 0.0f ) )
 			, AlignmentAttr( FVector2D( 0.5f, 0.5f ) )
+			, AutoSizeAttr( false )
 			, ZOrderAttr( 0 )
 		{ }
 	};

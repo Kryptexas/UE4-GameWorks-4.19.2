@@ -8,9 +8,166 @@
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
 
+#include "SConstraintCanvas.h"
+
 #include "CanvasSlotCustomization.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
+
+class SAnchorPreviewWidget : public SCompoundWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(SAnchorPreviewWidget) {}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, 
+		TSharedPtr<IPropertyHandle> AnchorsHandle,
+		TSharedPtr<IPropertyHandle> AlignmentHandle,
+		TSharedPtr<IPropertyHandle> OffsetsHandle,
+		FText LabelText,
+		FAnchors Anchors)
+	{
+		ResizeCurve = FCurveSequence(0, 0.40f);
+
+		ChildSlot
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "SimpleSharpButton")
+			//.ButtonColorAndOpacity(FLinearColor(FColor(64, 64, 64)))
+			.ButtonColorAndOpacity(FLinearColor(FColor(48, 48, 48)))
+			.OnClicked(this, &SAnchorPreviewWidget::OnAnchorClicked, AnchorsHandle, AlignmentHandle, OffsetsHandle, Anchors)
+			.ContentPadding(FMargin(2.0f, 2.0f))
+			[
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SBox)
+					.WidthOverride(64)
+					.HeightOverride(64)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SBox)
+						.WidthOverride(this, &SAnchorPreviewWidget::GetCurrentWidth)
+						.HeightOverride(this, &SAnchorPreviewWidget::GetCurrentHeight)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							.Padding(1)
+							[
+								SNew(SConstraintCanvas)
+
+								+ SConstraintCanvas::Slot()
+								.Anchors(Anchors)
+								.Offset(FMargin(0, 0, Anchors.IsStretchedHorizontal() ? 0 : 15, Anchors.IsStretchedVertical() ? 0 : 15))
+								.Alignment(FVector2D(Anchors.IsStretchedHorizontal() ? 0 : Anchors.Minimum.X, Anchors.IsStretchedVertical() ? 0 : Anchors.Minimum.Y))
+								[
+									SNew(SImage)
+									.Image(FEditorStyle::Get().GetBrush("UMGEditor.AnchoredWidget"))
+								]
+
+								//+ SConstraintCanvas::Slot()
+								//.Anchors(Anchors)
+								//.Offset(FMargin(0, 0, 8, 8))
+								//.Alignment(FVector2D(Anchors.IsStretchedHorizontal() ? 0 : Anchors.Minimum.X, Anchors.IsStretchedVertical() ? 0 : Anchors.Minimum.Y))
+								//[
+								//	SNew(SImage)
+								//	.Image(FEditorStyle::Get().GetBrush("UMGEditor.AnchoredWidgetAlignment"))
+								//]
+							]
+						]
+					]
+				]
+
+				//+ SVerticalBox::Slot()
+				//.AutoHeight()
+				//.HAlign(HAlign_Center)
+				//.Padding(0,2,0,0)
+				//[
+				//	SNew(STextBlock)
+				//	.Text(LabelText)
+				//]
+			]
+		];
+	}
+
+	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+	{
+		if ( AllottedGeometry.IsUnderLocation(FSlateApplication::Get().GetCursorPos()) )
+		{
+			if ( !ResizeCurve.IsPlaying() )
+			{
+				if ( ResizeCurve.IsAtStart() )
+				{
+					ResizeCurve.Play();
+				}
+				else if ( ResizeCurve.IsAtEnd() )
+				{
+					ResizeCurve.PlayReverse();
+				}
+			}
+		}
+		else
+		{
+			if ( !ResizeCurve.IsAtStart() && ((!ResizeCurve.IsInReverse() && ResizeCurve.IsPlaying()) || !ResizeCurve.IsPlaying()) )
+			{
+				ResizeCurve.PlayReverse();
+			}
+		}
+	}
+
+private:
+
+	FOptionalSize GetCurrentWidth() const
+	{
+		return 48 + ( 16 * ResizeCurve.GetLerp() );
+	}
+
+	FOptionalSize GetCurrentHeight() const
+	{
+		return 48 + ( 16 * ResizeCurve.GetLerp() );
+	}
+
+	FReply OnAnchorClicked(
+		TSharedPtr<IPropertyHandle> AnchorsHandle,
+		TSharedPtr<IPropertyHandle> AlignmentHandle,
+		TSharedPtr<IPropertyHandle> OffsetsHandle,
+		FAnchors Anchors)
+	{
+		FScopedTransaction Transaction(LOCTEXT("ChangeAnchors", "Changed Anchors"));
+
+		FString Value = FString::Printf(TEXT("(Minimum=(X=%f,Y=%f),Maximum=(X=%f,Y=%f))"), Anchors.Minimum.X, Anchors.Minimum.Y, Anchors.Maximum.X, Anchors.Maximum.Y);
+		AnchorsHandle->SetValueFromFormattedString(Value);
+
+		if ( FSlateApplication::Get().GetModifierKeys().IsShiftDown() )
+		{
+			FString Value = FString::Printf(TEXT("(X=%f,Y=%f)"), Anchors.IsStretchedHorizontal() ? 0 : Anchors.Minimum.X, Anchors.IsStretchedVertical() ? 0 : Anchors.Minimum.Y);
+			AlignmentHandle->SetValueFromFormattedString(Value);
+		}
+
+		if ( FSlateApplication::Get().GetModifierKeys().IsControlDown() )
+		{
+			TArray<void*> RawOffsetData;
+			OffsetsHandle->AccessRawData(RawOffsetData);
+			FMargin* Offsets = reinterpret_cast<FMargin*>( RawOffsetData[0] );
+
+			FString Value = FString::Printf(TEXT("(Left=%f,Top=%f,Right=%f,Bottom=%f)"), 0, 0, Anchors.IsStretchedHorizontal() ? 0 : Offsets->Right, Anchors.IsStretchedVertical() ? 0 : Offsets->Bottom);
+			OffsetsHandle->SetValueFromFormattedString(Value);
+		}
+
+		// Close the menu
+		FSlateApplication::Get().DismissAllMenus();
+
+		return FReply::Handled();
+	}
+
+private:
+	FCurveSequence ResizeCurve;
+};
+
 
 // FCanvasSlotCustomization
 ////////////////////////////////////////////////////////////////////////////////
@@ -140,217 +297,161 @@ FText FCanvasSlotCustomization::GetOffsetLabel(TSharedPtr<IPropertyHandle> Prope
 void FCanvasSlotCustomization::CustomizeAnchors(TSharedPtr<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
 	TSharedPtr<IPropertyHandle> AnchorsHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnchorData, Anchors));
+	TSharedPtr<IPropertyHandle> AlignmentHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnchorData, Alignment));
+	TSharedPtr<IPropertyHandle> OffsetsHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnchorData, Offsets));
 
 	AnchorsHandle->MarkHiddenByCustomization();
 
 	IDetailPropertyRow& AnchorsPropertyRow = ChildBuilder.AddChildProperty(AnchorsHandle.ToSharedRef());
 
+	const float FillDividePadding = 1;
+
 	AnchorsPropertyRow.CustomWidget(/*bShowChildren*/ true)
 		.NameContent()
 		[
-			SNew(STextBlock)
+			SNew( STextBlock )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("Anchors", "Anchors"))
+			.Text( LOCTEXT("Anchors", "Anchors") )
 		]
 		.ValueContent()
 		[
-			SNew(SHorizontalBox)
-					
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
+			SNew(SComboButton)
+			.ButtonContent()
 			[
-				SNew(SComboButton)
-				.ButtonContent()
+				SNew(STextBlock)
+				.Text(LOCTEXT("AnchorsText", "Anchors"))
+			]
+			.MenuContent()
+			[
+				SNew(SBorder)
+				//.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))FEditorStyle::GetBrush("WhiteBrush")/*FEditorStyle::GetBrush("ToolPanel.GroupBorder")*/)
+				.Padding(5)
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("AnchorsText", "Anchors"))
-				]
-				.MenuContent()
-				[
-					SNew(SUniformGridPanel)
-
-					// Top Row
-					+ SUniformGridPanel::Slot(0, 0)
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+					.BorderBackgroundColor(FLinearColor(FColor(66, 139, 202)))
+					.Padding(0)
 					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 0, 0, 0))
+						SNew(SVerticalBox)
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.TopLeft"))
+							SNew(SHorizontalBox)
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SUniformGridPanel)
+
+								// Top Row
+								+ SUniformGridPanel::Slot(0, 0)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("TopLeft", "Top/Left"), FAnchors(0, 0, 0, 0))
+								]
+
+								+ SUniformGridPanel::Slot(1, 0)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("TopCenter", "Top/Center"), FAnchors(0.5, 0, 0.5, 0))
+								]
+
+								+ SUniformGridPanel::Slot(2, 0)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("TopRight", "Top/Right"), FAnchors(1, 0, 1, 0))
+								]
+
+								// Center Row
+								+ SUniformGridPanel::Slot(0, 1)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("CenterLeft", "Center/Left"), FAnchors(0, 0.5, 0, 0.5))
+								]
+
+								+ SUniformGridPanel::Slot(1, 1)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("CenterCenter", "Center/Center"), FAnchors(0.5, 0.5, 0.5, 0.5))
+								]
+
+								+ SUniformGridPanel::Slot(2, 1)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("CenterRight", "Center/Right"), FAnchors(1, 0.5, 1, 0.5))
+								]
+
+								// Bottom Row
+								+ SUniformGridPanel::Slot(0, 2)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("BottomLeft", "Bottom/Left"), FAnchors(0, 1, 0, 1))
+								]
+
+								+ SUniformGridPanel::Slot(1, 2)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("BottomCenter", "Bottom/Center"), FAnchors(0.5, 1, 0.5, 1))
+								]
+
+								+ SUniformGridPanel::Slot(2, 2)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("BottomRight", "Bottom/Right"), FAnchors(1, 1, 1, 1))
+								]
+							]
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(FillDividePadding, 0, 0, 0)
+							[
+								SNew(SUniformGridPanel)
+
+								+ SUniformGridPanel::Slot(0, 0)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("TopFill", "Top/Fill"), FAnchors(0, 0, 1, 0))
+								]
+
+								+ SUniformGridPanel::Slot(0, 1)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("CenterFill", "Center/Fill"), FAnchors(0, 0.5f, 1, 0.5f))
+								]
+
+								+ SUniformGridPanel::Slot(0, 2)
+								[
+									SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("BottomFill", "Bottom/Fill"), FAnchors(0, 1, 1, 1))
+								]
+							]
 						]
-					]
 
-					+ SUniformGridPanel::Slot(1, 0)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0.5, 0, 0.5, 0))
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, FillDividePadding, 0, 0)
 						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.TopCenter"))
-						]
-					]
+							SNew(SHorizontalBox)
 
-					+ SUniformGridPanel::Slot(2, 0)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(1, 0, 1, 0))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.TopRight"))
-						]
-					]
+							// Fill Row
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("FillLeft", "Fill/Left"), FAnchors(0, 0, 0, 1))
+							]
 
-					+ SUniformGridPanel::Slot(3, 0)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 0, 1, 0))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.TopFill"))
-						]
-					]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("FillCenter", "Fill/Center"), FAnchors(0.5, 0, 0.5, 1))
+							]
 
-					// Center Row
-					+ SUniformGridPanel::Slot(0, 1)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 0.5, 0, 0.5))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.CenterLeft"))
-						]
-					]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("FillRight", "Fill/Right"), FAnchors(1, 0, 1, 1))
+							]
 
-					+ SUniformGridPanel::Slot(1, 1)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0.5, 0.5, 0.5, 0.5))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.CenterCenter"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(2, 1)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(1, 0.5, 1, 0.5))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.CenterRight"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(3, 1)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 0.5f, 1, 0.5f))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.CenterFill"))
-						]
-					]
-
-					// Bottom Row
-					+ SUniformGridPanel::Slot(0, 2)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 1, 0, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.BottomLeft"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(1, 2)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0.5, 1, 0.5, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.BottomCenter"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(2, 2)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(1, 1, 1, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.BottomRight"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(3, 2)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 1, 1, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.BottomFill"))
-						]
-					]
-
-					// Fill Row
-					+ SUniformGridPanel::Slot(0, 3)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 0, 0, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.FillLeft"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(1, 3)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0.5, 0, 0.5, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.FillCenter"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(2, 3)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(1, 0, 1, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.FillRight"))
-						]
-					]
-
-					+ SUniformGridPanel::Slot(3, 3)
-					[
-						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 0, 1, 1))
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::Get().GetBrush("UMGEditor.FillFill"))
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(FillDividePadding, 0, 0, 0)
+							[
+								SNew(SAnchorPreviewWidget, AnchorsHandle, AlignmentHandle, OffsetsHandle, LOCTEXT("FillFill", "Fill/Fill"), FAnchors(0, 0, 1, 1))
+							]
 						]
 					]
 				]
 			]
 		];
-}
-
-FReply FCanvasSlotCustomization::OnAnchorClicked(TSharedPtr<IPropertyHandle> AnchorsHandle, FAnchors Anchors)
-{
-	//TODO UMG Group under single undo transaction.
-
-	FString Value = FString::Printf(TEXT("(Minimum=(X=%f,Y=%f),Maximum=(X=%f,Y=%f))"), Anchors.Minimum.X, Anchors.Minimum.Y, Anchors.Maximum.X, Anchors.Maximum.Y);
-	AnchorsHandle->SetValueFromFormattedString(Value);
-
-	//TODO UMG Reset position, pivot.
-	//TODO UMG Moving the anchors shouldn't change the position of the widget, unless stretched.  But maybe that too should be based off current position and size.
-	//         Either way need access to cached geometry of the slot in the preview world...
-	
-	FSlateApplication::Get().DismissAllMenus();
-
-	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

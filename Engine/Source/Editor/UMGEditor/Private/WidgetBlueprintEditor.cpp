@@ -58,7 +58,7 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	if ( Blueprint->WidgetTree->RootWidget == NULL )
 	{
 		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		RootWidget->IsDesignTime(true);
+		RootWidget->SetIsDesignTime(true);
 		Blueprint->WidgetTree->RootWidget = RootWidget;
 	}
 
@@ -630,11 +630,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		PreviewActor->SetFlags(RF_Transactional);
 		
 		// Configure all the widgets to be set to design time.
-		PreviewActor->IsDesignTime(true);
-		for(UWidget* SubPreviewWidget : PreviewActor->Components)
-		{
-			SubPreviewWidget->IsDesignTime(true);
-		}
+		PreviewActor->SetIsDesignTime(true);
 
 		// Store a reference to the preview actor.
 		PreviewWidgetPtr = PreviewActor;

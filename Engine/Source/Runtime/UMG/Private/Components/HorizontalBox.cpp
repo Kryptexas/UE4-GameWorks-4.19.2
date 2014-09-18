@@ -50,14 +50,9 @@ void UHorizontalBox::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)
+UHorizontalBoxSlot* UHorizontalBox::AddChildToHorizontalBox(UWidget* Content)
 {
 	return Cast<UHorizontalBoxSlot>( Super::AddChild(Content) );
-}
-
-UHorizontalBoxSlot* UHorizontalBox::HorizontalBoxSlot(UWidget* Child)
-{
-	return Cast<UHorizontalBoxSlot>(Child->Slot);
 }
 
 TSharedRef<SWidget> UHorizontalBox::RebuildWidget()

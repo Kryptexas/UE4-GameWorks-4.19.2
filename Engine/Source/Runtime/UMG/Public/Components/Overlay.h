@@ -11,6 +11,10 @@ class UMG_API UOverlay : public UPanelWidget
 
 	virtual void ReleaseNativeWidget() override;
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	UOverlaySlot* AddChildToOverlay(UWidget* Content);
+
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;

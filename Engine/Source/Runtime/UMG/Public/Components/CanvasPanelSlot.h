@@ -36,6 +36,10 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)")
 	FAnchorData LayoutData;
 
+	/** When AutoSize is true we use the widget's desired size */
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)", AdvancedDisplay)
+	bool bAutoSize;
+
 	/** The order priority this widget is rendered in.  Higher values are rendered last (and so they will appear to be on top). */
 	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)")
 	int32 ZOrder;
@@ -70,6 +74,10 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetAlignment(FVector2D InAlignment);
 
+	/** Sets the slot to be auto-sized */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	void SetAutoSize(bool InbAutoSize);
+
 	/** Sets the z-order on the slot */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetZOrder(int32 InZOrder);
@@ -82,7 +90,7 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 
 #if WITH_EDITOR
 	// UObject interface
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange);
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent);
 	// End of UObject interface
 

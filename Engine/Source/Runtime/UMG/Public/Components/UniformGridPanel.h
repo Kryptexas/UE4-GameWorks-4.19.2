@@ -26,6 +26,12 @@ public:
 
 public:
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	UUniformGridSlot* AddChildToUniformGrid(UWidget* Content);
+
+public:
+
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface

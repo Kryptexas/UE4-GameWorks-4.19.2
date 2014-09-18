@@ -67,6 +67,9 @@ public:
 		return bCanHaveMultipleChildren;
 	}
 
+	/** Sets that this widget is being designed sets it on all children as well. */
+	virtual void SetIsDesignTime(bool bInDesignTime) override;
+
 	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR

@@ -266,6 +266,17 @@ FReply FCanvasSlotExtension::HandleAnchorEndDrag(const FGeometry& Geometry, cons
 	return FReply::Handled().ReleaseMouseCapture();
 }
 
+void FCanvasSlotExtension::PoximitySnapValue(float SnapFrequency, float SnapProximity, float& Value)
+{
+	float MajorAnchorDiv = Value / SnapFrequency;
+	float SubAnchorLinePos = MajorAnchorDiv - FMath::Round(MajorAnchorDiv);
+
+	if ( FMath::Abs(SubAnchorLinePos) <= SnapProximity )
+	{
+		Value = FMath::Round(MajorAnchorDiv) * SnapFrequency;
+	}
+}
+
 FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType)
 {
 	if ( bMovingAnchor && !Event.GetCursorDelta().IsZero() )
@@ -288,17 +299,19 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 					FVector2D LocalPositionDelta = NewLocalPosition - StartLocalPosition;
 
 					FVector2D AnchorDelta = LocalPositionDelta / CanvasGeometry.Size;
+
+					const FAnchorData OldLayoutData = PreviewCanvasSlot->LayoutData;
+					FAnchorData LayoutData = OldLayoutData;
 					
-					PreviewCanvasSlot->SaveBaseLayout();
 					switch ( AnchorType )
 					{
 					case EAnchorWidget::Center:
-						PreviewCanvasSlot->LayoutData.Anchors.Maximum = BeginAnchors.Maximum + AnchorDelta;
-						PreviewCanvasSlot->LayoutData.Anchors.Minimum = BeginAnchors.Minimum + AnchorDelta;
-						PreviewCanvasSlot->LayoutData.Anchors.Minimum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.X, 0.0f, 1.0f);
-						PreviewCanvasSlot->LayoutData.Anchors.Maximum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.X, 0.0f, 1.0f);
-						PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y, 0.0f, 1.0f);
-						PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y, 0.0f, 1.0f);
+						LayoutData.Anchors.Maximum = BeginAnchors.Maximum + AnchorDelta;
+						LayoutData.Anchors.Minimum = BeginAnchors.Minimum + AnchorDelta;
+						LayoutData.Anchors.Minimum.X = FMath::Clamp(LayoutData.Anchors.Minimum.X, 0.0f, 1.0f);
+						LayoutData.Anchors.Maximum.X = FMath::Clamp(LayoutData.Anchors.Maximum.X, 0.0f, 1.0f);
+						LayoutData.Anchors.Minimum.Y = FMath::Clamp(LayoutData.Anchors.Minimum.Y, 0.0f, 1.0f);
+						LayoutData.Anchors.Maximum.Y = FMath::Clamp(LayoutData.Anchors.Maximum.Y, 0.0f, 1.0f);
 						break;
 					}
 
@@ -307,8 +320,8 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 					case EAnchorWidget::Left:
 					case EAnchorWidget::TopLeft:
 					case EAnchorWidget::BottomLeft:
-						PreviewCanvasSlot->LayoutData.Anchors.Minimum.X = BeginAnchors.Minimum.X + AnchorDelta.X;
-						PreviewCanvasSlot->LayoutData.Anchors.Minimum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.X, 0.0f, PreviewCanvasSlot->LayoutData.Anchors.Maximum.X);
+						LayoutData.Anchors.Minimum.X = BeginAnchors.Minimum.X + AnchorDelta.X;
+						LayoutData.Anchors.Minimum.X = FMath::Clamp(LayoutData.Anchors.Minimum.X, 0.0f, LayoutData.Anchors.Maximum.X);
 						break;
 					}
 
@@ -317,8 +330,8 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 					case EAnchorWidget::Right:
 					case EAnchorWidget::TopRight:
 					case EAnchorWidget::BottomRight:
-						PreviewCanvasSlot->LayoutData.Anchors.Maximum.X = BeginAnchors.Maximum.X + AnchorDelta.X;
-						PreviewCanvasSlot->LayoutData.Anchors.Maximum.X = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.X, PreviewCanvasSlot->LayoutData.Anchors.Minimum.X, 1.0f);
+						LayoutData.Anchors.Maximum.X = BeginAnchors.Maximum.X + AnchorDelta.X;
+						LayoutData.Anchors.Maximum.X = FMath::Clamp(LayoutData.Anchors.Maximum.X, LayoutData.Anchors.Minimum.X, 1.0f);
 						break;
 					}
 
@@ -327,8 +340,8 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 					case EAnchorWidget::Top:
 					case EAnchorWidget::TopLeft:
 					case EAnchorWidget::TopRight:
-						PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y = BeginAnchors.Minimum.Y + AnchorDelta.Y;
-						PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y, 0.0f, PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y);
+						LayoutData.Anchors.Minimum.Y = BeginAnchors.Minimum.Y + AnchorDelta.Y;
+						LayoutData.Anchors.Minimum.Y = FMath::Clamp(LayoutData.Anchors.Minimum.Y, 0.0f, LayoutData.Anchors.Maximum.Y);
 						break;
 					}
 
@@ -337,19 +350,62 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 					case EAnchorWidget::Bottom:
 					case EAnchorWidget::BottomLeft:
 					case EAnchorWidget::BottomRight:
-						PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y = BeginAnchors.Maximum.Y + AnchorDelta.Y;
-						PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y = FMath::Clamp(PreviewCanvasSlot->LayoutData.Anchors.Maximum.Y, PreviewCanvasSlot->LayoutData.Anchors.Minimum.Y, 1.0f);
+						LayoutData.Anchors.Maximum.Y = BeginAnchors.Maximum.Y + AnchorDelta.Y;
+						LayoutData.Anchors.Maximum.Y = FMath::Clamp(LayoutData.Anchors.Maximum.Y, LayoutData.Anchors.Minimum.Y, 1.0f);
 						break;
 					}
 
-					PreviewCanvasSlot->RebaseLayout();
+					// Major percentage snapping
+					{
+						const float MajorAnchorLine = 0.1f;
+						const float MajorAnchorLineSnapDistance = 0.1f;
 
+						if ( LayoutData.Anchors.Minimum.X != OldLayoutData.Anchors.Minimum.X )
+						{
+							PoximitySnapValue(MajorAnchorLine, MajorAnchorLineSnapDistance, LayoutData.Anchors.Minimum.X);
+						}
 
-					// Update the Template widget to match
+						if ( LayoutData.Anchors.Minimum.Y != OldLayoutData.Anchors.Minimum.Y )
+						{
+							PoximitySnapValue(MajorAnchorLine, MajorAnchorLineSnapDistance, LayoutData.Anchors.Minimum.Y);
+						}
+
+						if ( LayoutData.Anchors.Maximum.X != OldLayoutData.Anchors.Maximum.X )
+						{
+							PoximitySnapValue(MajorAnchorLine, MajorAnchorLineSnapDistance, LayoutData.Anchors.Maximum.X);
+						}
+
+						if ( LayoutData.Anchors.Maximum.Y != OldLayoutData.Anchors.Maximum.Y )
+						{
+							PoximitySnapValue(MajorAnchorLine, MajorAnchorLineSnapDistance, LayoutData.Anchors.Maximum.Y);
+						}
+					}
+
+					// Rebase the layout and restore the old value after calculating the new final layout
+					// result.
+					{
+						PreviewCanvasSlot->SaveBaseLayout();
+						PreviewCanvasSlot->LayoutData = LayoutData;
+						PreviewCanvasSlot->RebaseLayout();
+
+						LayoutData = PreviewCanvasSlot->LayoutData;
+						PreviewCanvasSlot->LayoutData = OldLayoutData;
+					}
+
+					// If control is pressed reset all positional offset information
+					if ( FSlateApplication::Get().GetModifierKeys().IsControlDown() )
+					{
+						FMargin NewOffsets = FMargin(0, 0, LayoutData.Anchors.IsStretchedHorizontal() ? 0 : LayoutData.Offsets.Right, LayoutData.Anchors.IsStretchedVertical() ? 0 : LayoutData.Offsets.Bottom);
+						LayoutData.Offsets = NewOffsets;
+					}
+
 					UWidget* TemplateWidget = Selection.GetTemplate();
-					UCanvasPanelSlot* TemplateSlot = CastChecked<UCanvasPanelSlot>(TemplateWidget->Slot);
+					UCanvasPanelSlot* TemplateCanvasSlot = CastChecked<UCanvasPanelSlot>(TemplateWidget->Slot);
 
-					TemplateSlot->LayoutData = PreviewCanvasSlot->LayoutData;
+					static const FName LayoutDataName(TEXT("LayoutData"));
+
+					FObjectEditorUtils::SetPropertyValue<UCanvasPanelSlot, FAnchorData>(PreviewCanvasSlot, LayoutDataName, LayoutData);
+					FObjectEditorUtils::SetPropertyValue<UCanvasPanelSlot, FAnchorData>(TemplateCanvasSlot, LayoutDataName, LayoutData);
 				}
 			};
 

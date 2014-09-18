@@ -97,6 +97,9 @@ public:
 	virtual void ReleaseNativeWidget() override;
 	// End of UVisual interface
 
+	/** Sets that this widget is being designed sets it on all children as well. */
+	virtual void SetIsDesignTime(bool bInDesignTime) override;
+
 	/**
 	 * Adds it to the game's viewport, defaults to filling the entire viewport area.
 	 * @param bModal If this dialog should steal keyboard/mouse focus and consume all input. Great for a fullscreen menu. Terrible for HUDs.

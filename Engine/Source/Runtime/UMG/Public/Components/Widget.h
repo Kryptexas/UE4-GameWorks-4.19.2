@@ -192,6 +192,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ForceLayoutPrepass();
 
+	/**
+	 * Gets the widgets desired size.
+	 * NOTE: The underlying Slate widget must exist and be valid, also a at least one pre-pass must
+	 *       have occurred before this value will be of any use.
+	 * 
+	 * @return The widget's desired size
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	FVector2D GetDesiredSize() const;
+
 	/** Gets the parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	class UPanelWidget* GetParent() const;
@@ -221,7 +231,7 @@ public:
 	bool IsDesignTime() const;
 	
 	/** Sets that this widget is being designed */
-	void IsDesignTime(bool bInDesignTime);
+	virtual void SetIsDesignTime(bool bInDesignTime);
 
 	/** Mark this object as modified, also mark the slot as modified. */
 	virtual bool Modify(bool bAlwaysMarkDirty = true);
@@ -272,8 +282,8 @@ public:
 
 	// Utility methods
 	//@TODO UMG: Should move elsewhere
-	static EVisibility ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input);
-	static TEnumAsByte<ESlateVisibility::Type> ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
+	static EVisibility ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input);
+	static ESlateVisibility::Type ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
 
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
@@ -294,7 +304,8 @@ protected:
 	// Conversion functions
 	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
 	{
-		return ConvertSerializedVisibilityToRuntime(SerializedType.Get());
+		ESlateVisibility::Type SlateVisibility = SerializedType.Get();
+		return ConvertSerializedVisibilityToRuntime(SlateVisibility);
 	}
 
 	TOptional<float> ConvertFloatToOptionalFloat(TAttribute<float> InFloat) const
