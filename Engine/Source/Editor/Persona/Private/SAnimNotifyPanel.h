@@ -18,6 +18,7 @@ DECLARE_DELEGATE( FRefreshOffsetsRequest )
 DECLARE_DELEGATE( FDeleteNotify )
 DECLARE_DELEGATE( FDeselectAllNotifies )
 DECLARE_DELEGATE( FCopyNotifies )
+DECLARE_DELEGATE_OneParam( FOnGetBlueprintNotifyData, TArray<FAssetData>& )
 
 class SAnimNotifyNode;
 class SAnimNotifyTrack;
@@ -251,6 +252,18 @@ private:
 	// Binds the UI commands for this widget to delegates
 	void BindCommands();
 
+	/** Populates the given class array with all classes deriving from those originally present
+	 * @param InAssetsToSearch Assets to search to detect child classes
+	 * @param InOutAllowedClassNames Classes to allow, this will be expanded to cover all derived classes of those originally present
+	 */
+	void PopulateNotifyBlueprintClasses(TArray<FString>& InOutAllowedClasses);
+
+	/** Find blueprints matching allowed classes and all derived blueprints 
+	 * @param OutNotifyData Asset data matching allowed classes and their children
+	 * @param InOutAllowedClassNames Classes to allow, this will be expanded to cover all derived classes of those originally present
+	 */
+	void OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyData, TArray<FString>* InOutAllowedClassNames);
+
 	/** Persona reference **/
 	TWeakPtr<FPersona> PersonaPtr;
 
@@ -259,4 +272,10 @@ private:
 
 	/** UI commands for this widget */
 	TSharedPtr<FUICommandList> UICommandList;
+
+	/** Classes that are known to be derived from blueprint notifies */
+	TArray<FString> NotifyClassNames;
+
+	/** Classes that are known to be derived from blueprint state notifies */
+	TArray<FString> NotifyStateClassNames;
 };
