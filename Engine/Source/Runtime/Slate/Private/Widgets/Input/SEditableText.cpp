@@ -20,7 +20,8 @@ SEditableText::SEditableText()
 	  bHasDragSelectedSinceMouseDown( false ),
 	  CurrentUndoLevel( INDEX_NONE ),
 	  bIsChangingText( false ),
-	  UICommandList( new FUICommandList() )
+	  UICommandList( new FUICommandList() ),
+	  bTextChangedByVirtualKeyboard(false)
 {
 	// Setup springs
 	FFloatSpring1D::FSpringConfig SpringConfig;
@@ -79,6 +80,7 @@ void SEditableText::Construct( const FArguments& InArgs )
 	OnTextCommitted = InArgs._OnTextCommitted;
 	MinDesiredWidth = InArgs._MinDesiredWidth;
 	SelectAllTextOnCommit = InArgs._SelectAllTextOnCommit;
+	VirtualKeyboardType = IsPassword.Get() ? EKeyboardType::Keyboard_Password : InArgs._VirtualKeyboardType;
 
 	// Map UI commands to delegates which are called when the command should be executed
 	UICommandList->MapAction( FGenericCommands::Get().Undo,
@@ -121,7 +123,6 @@ void SEditableText::Construct( const FArguments& InArgs )
 	}
 }
 
-
 /**
  * Sets the text string currently being edited 
  *
@@ -129,33 +130,57 @@ void SEditableText::Construct( const FArguments& InArgs )
  */
 void SEditableText::SetText( const TAttribute< FText >& InNewText )
 {
-	const bool HasTextChanged = HasKeyboardFocus() ? !InNewText.Get().EqualTo( EditedText ) : !InNewText.Get().EqualTo( Text.Get() );
-
 	// NOTE: This will unbind any getter that is currently assigned to the Text attribute!  You should only be calling
 	//       SetText() if you know what you're doing.
 	Text = InNewText;
 
-	// Update the edited text, if the user isn't already editing it
-	if( HasKeyboardFocus() && !InNewText.Get().EqualTo(EditedText))
+	const bool bHasTextChanged = HasKeyboardFocus() ? !InNewText.Get().EqualTo(EditedText) : !InNewText.Get().EqualTo(Text.Get());
+
+	if (bHasTextChanged)
 	{
-		ClearSelection();
-		EditedText = FText();
+		// Update the edited text, if the user isn't already editing it
+		if (HasKeyboardFocus())
+		{
+			// Update the edited text, if the user isn't already editing it
+			ClearSelection();
+			EditedText = FText();
 
-		// Load the new text
-		LoadText();
+			// Load the new text
+			LoadText();
 
-		// Move the cursor to the end of the string
-		SetCaretPosition( EditedText.ToString().Len() );
+			// Move the cursor to the end of the string
+			SetCaretPosition(EditedText.ToString().Len());
 
-	}
-
-	if( HasTextChanged )
-	{
-		// Let outsiders know that the text content has been changed
-		OnTextChanged.ExecuteIfBound( HasKeyboardFocus() ? EditedText : Text.Get() );
+			// Let outsiders know that the text being edited has been changed
+			OnTextChanged.ExecuteIfBound(EditedText);
+		}
+		else
+		{
+			// Let outsiders know that the text content has been changed
+			OnTextChanged.ExecuteIfBound(Text.Get());
+		}
 	}
 }
 
+void SEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
+{
+	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
+	// If it is bound, we'll assume that OnTextCommitted will handle the update.
+	if (!Text.IsBound())
+	{
+		Text.Set(InNewText);
+	}
+
+	if (!InNewText.EqualTo(EditedText))
+	{
+		EditedText = InNewText;
+
+		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
+		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
+		// fired on the game thread in Tick.
+		bTextChangedByVirtualKeyboard = true;
+	}
+}
 
 void SEditableText::RestoreOriginalText()
 {
@@ -169,7 +194,6 @@ void SEditableText::RestoreOriginalText()
 		OnTextChanged.ExecuteIfBound( EditedText );
 	}
 }
-
 
 bool SEditableText::HasTextChangedFromOriginal() const
 {
@@ -194,6 +218,14 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 {
 	// Call parent implementation.
 	SLeafWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
+
+	// Poll to see if the text has been updated by a virtual keyboard
+	if (bTextChangedByVirtualKeyboard)
+	{
+		//OnTextChanged.ExecuteIfBound(EditedText);
+		OnEnter();
+		bTextChangedByVirtualKeyboard = false;
+	}
 
 	if(TextInputMethodChangeNotifier.IsValid() && TextInputMethodContext.IsValid() && TextInputMethodContext->CachedGeometry != AllottedGeometry)
 	{
@@ -1467,13 +1499,12 @@ bool SEditableText::SupportsKeyboardFocus() const
 	return true;
 }
 
-
 FReply SEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
 {
 	// Skip the focus received code if it's due to the context menu closing
 	if ( !ContextMenuWindow.IsValid() )
 	{
-		// Don't unselect text with focus is set because another widget lost focus, as that may be in response to a
+		// Don't unselect text when focus is set because another widget lost focus, as that may be in response to a
 		// dismissed context menu where the user clicked an option to select text.
 		if( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::OtherWidgetLostFocus )
 		{
@@ -1512,10 +1543,19 @@ FReply SEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, cons
 			}
 		}
 
-		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if(TextInputMethodSystem)
+		FSlateApplication& SlateApplication = FSlateApplication::Get();
+		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
+			// @TODO: Create ITextInputMethodSystem derivations for mobile
+			SlateApplication.ShowVirtualKeyboard(true, SharedThis(this));
+		}
+		else
+		{
+			ITextInputMethodSystem* const TextInputMethodSystem = SlateApplication.GetTextInputMethodSystem();
+			if (TextInputMethodSystem)
+			{
+				TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
+			}
 		}
 	}
 
@@ -1528,18 +1568,29 @@ void SEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFo
 	// Skip the focus lost code if it's due to the context menu opening
 	if ( !ContextMenuWindow.IsValid() )
 	{
-		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if(TextInputMethodSystem)
+		FSlateApplication& SlateApplication = FSlateApplication::Get();
+		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			SlateApplication.ShowVirtualKeyboard(false);
+		}
+		else
+		{
+			ITextInputMethodSystem* const TextInputMethodSystem = SlateApplication.GetTextInputMethodSystem();
+			if (TextInputMethodSystem)
+			{
+				TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			}
 		}
 
-		// When focus is lost let anyone who is interested that text was committed
-		if( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::WindowActivate  ) //Don't clear selection when activating a new window or cant copy and paste on right click )
+		// Clear selection unless activating a new window (otherwise can't copy and past on right click)
+		if (InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::WindowActivate)
 		{
 			ClearSelection();
-		}	
+		}
 
+		//Always clear the local undo chain on commit.
+		ClearUndoStates();
+		
 		// See if user explicitly tabbed away or moved focus
 		ETextCommit::Type TextAction;
 		switch ( InKeyboardFocusEvent.GetCause() )
@@ -1558,9 +1609,7 @@ void SEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFo
 			break;
 		}
 
-		//Always clear the local undo chain on commit.
-		ClearUndoStates();
-
+		// When focus is lost let anyone who is interested know that text was committed
 		OnTextCommitted.ExecuteIfBound( EditedText, TextAction);
 	}
 }

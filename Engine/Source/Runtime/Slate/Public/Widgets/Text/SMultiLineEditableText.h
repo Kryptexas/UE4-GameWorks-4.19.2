@@ -5,12 +5,13 @@
 #if WITH_FANCY_TEXT
 
 #include "ITextEditorWidget.h"
+#include "IVirtualKeyboardEntry.h"
 #include "ITextInputMethodSystem.h"
 #include "ITextLayoutMarshaller.h"
 #include "SScrollBar.h"
 
 /** An editable text widget that supports multiple lines and soft word-wrapping. */
-class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget
+class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget, public IVirtualKeyboardEntry
 {
 public:
 	/** Called when the cursor is moved within the text area */
@@ -88,14 +89,6 @@ public:
 	virtual ~SMultiLineEditableText();
 
 	void Construct( const FArguments& InArgs );
-
-	/**
-	 * Gets the text assigned to this text block
-	 */
-	const FText& GetText() const
-	{
-		return BoundText.Get();
-	}
 
 	/**
 	 * Sets the text for this text block
@@ -397,6 +390,30 @@ private:
 	virtual void LoadText() override;
 	// END ITextEditorWidget interface
 
+public:
+	// BEGIN IVirtualKeyboardEntry interface
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+
+	virtual const FText& GetText() const override
+	{
+		return BoundText.Get();
+	}
+
+	virtual const FText GetHintText() const override
+	{
+		return FText();
+	}
+
+	virtual EKeyboardType GetVirtualKeyboardType() const override
+	{
+		return EKeyboardType::Keyboard_Default;
+	}
+
+	virtual bool IsMultilineEntry() const override
+	{
+		return true;
+	}
+	// END IVirtualKeyboardEntry interface
 
 private:
 	// BEGIN SWidget interface
@@ -623,6 +640,9 @@ private:
 
 	/** Notification interface object for text input method systems. */
 	TSharedPtr<ITextInputMethodChangeNotifier> TextInputMethodChangeNotifier;
+
+	/** Whether the text has been changed by a virtual keyboard */
+	bool bTextChangedByVirtualKeyboard;
 };
 
 

@@ -202,6 +202,7 @@ SMultiLineEditableText::SMultiLineEditableText()
 	, bIsChangingText(false)
 	, IsReadOnly(false)
 	, UICommandList(new FUICommandList())
+	, bTextChangedByVirtualKeyboard(false)
 {
 	
 }
@@ -356,6 +357,25 @@ void SMultiLineEditableText::SetText(const TAttribute< FText >& InText)
 	}
 }
 
+void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
+{
+	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
+	// If it is bound, we'll assume that OnTextCommitted will handle the update.
+	if (!BoundText.IsBound())
+	{
+		BoundText.Set(InNewText);
+	}
+
+	// Update the internal editable text
+	if (SetEditableText(InNewText))
+	{
+		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
+		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
+		// fired on the game thread in Tick.
+		bTextChangedByVirtualKeyboard = true;
+	}
+}
+
 bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool bForce)
 {
 	const FText EditedText = GetEditableText();
@@ -428,11 +448,21 @@ FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeome
 	// Skip the focus received code if it's due to the context menu closing
 	if ( !ContextMenuWindow.IsValid() )
 	{
-		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if(TextInputMethodSystem)
+		FSlateApplication& SlateApplication = FSlateApplication::Get();
+		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
+			// @TODO: Create ITextInputMethodSystem derivations for mobile
+			SlateApplication.ShowVirtualKeyboard(true, SharedThis(this));
 		}
+		else
+		{
+			ITextInputMethodSystem* const TextInputMethodSystem = SlateApplication.GetTextInputMethodSystem();
+			if (TextInputMethodSystem)
+			{
+				TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
+			}
+		}
+
 
 		UpdateCursorHighlight();
 		return SWidget::OnKeyboardFocusReceived( MyGeometry, InKeyboardFocusEvent );
@@ -446,10 +476,18 @@ void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InK
 	// Skip the focus lost code if it's due to the context menu opening
 	if (!ContextMenuWindow.IsValid())
 	{
-		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if (TextInputMethodSystem)
+		FSlateApplication& SlateApplication = FSlateApplication::Get();
+		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			SlateApplication.ShowVirtualKeyboard(false);
+		}
+		else
+		{
+			ITextInputMethodSystem* const TextInputMethodSystem = SlateApplication.GetTextInputMethodSystem();
+			if (TextInputMethodSystem)
+			{
+				TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			}
 		}
 
 		// When focus is lost let anyone who is interested that text was committed
@@ -2018,6 +2056,13 @@ void SMultiLineEditableText::LoadText()
 
 void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	if (bTextChangedByVirtualKeyboard)
+	{
+		// Let outsiders know that the text content has been changed
+		OnTextCommitted.ExecuteIfBound(GetEditableText(), ETextCommit::OnUserMovedFocus);
+		bTextChangedByVirtualKeyboard = false;
+	}
+
 	if(TextInputMethodChangeNotifier.IsValid() && TextInputMethodContext.IsValid() && TextInputMethodContext->CachedGeometry != AllottedGeometry)
 	{
 		TextInputMethodContext->CachedGeometry = AllottedGeometry;

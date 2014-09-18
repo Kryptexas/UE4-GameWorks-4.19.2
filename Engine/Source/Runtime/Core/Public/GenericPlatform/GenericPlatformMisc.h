@@ -908,6 +908,13 @@ public:
 
 	/** @return Memory representing a true type or open type font provided by the platform as a default font for unreal to consume; empty array if the default font failed to load. */
 	static TArray<uint8> GetSystemFontBytes();
+	/**
+	* Returns whether the platform wants to use a touch screen for a virtual keyboard.
+	*/
+	static bool GetRequiresVirtualKeyboard()
+	{
+		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
+	}
 
 	/**
 	 * Returns whether the given platform feature is currently available (for instance, Metal is only available in IOS8 and with A7 devices)

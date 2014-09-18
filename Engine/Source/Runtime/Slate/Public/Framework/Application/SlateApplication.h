@@ -580,8 +580,9 @@ public:
 	 * Shows or hides an onscreen keyboard
 	 *
 	 * @param bShow	true to show the keyboard, false to hide it
+	 * @param TextEntryWidget The widget that will receive the input from the virtual keyboard
 	 */
-	void ShowKeyboard( bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget = NULL );
+	void ShowVirtualKeyboard( bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget = nullptr );
 
 	/** Get the work area that has the largest intersection with the specified rectangle */
 	FSlateRect GetWorkArea( const FSlateRect& InRect ) const;

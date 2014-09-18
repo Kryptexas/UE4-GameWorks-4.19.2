@@ -4,12 +4,12 @@
 
 #include "ITextEditorWidget.h"
 #include "ITextInputMethodSystem.h"
-
+#include "IVirtualKeyboardEntry.h"
 
 /**
  * Editable text widget
  */
-class SLATE_API SEditableText : public SLeafWidget, public ITextEditorWidget
+class SLATE_API SEditableText : public SLeafWidget, public ITextEditorWidget, public IVirtualKeyboardEntry
 {
 
 public:
@@ -32,6 +32,7 @@ public:
 		, _ClearKeyboardFocusOnCommit(true)
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
+		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
 		{}
 
 		/** Sets the text content for this editable text widget */
@@ -102,6 +103,9 @@ public:
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )
 
+		/** The type of virtual keyboard to use on mobile devices */
+		SLATE_ATTRIBUTE( EKeyboardType, VirtualKeyboardType)
+
 	SLATE_END_ARGS()
 
 	/** Constructor */
@@ -114,16 +118,6 @@ public:
 	 * @param	InArgs	The declaration data for this widget
 	 */
 	void Construct( const FArguments& InArgs );
-
-	/**
-	 * Returns the text.
-	 *
-	 * @return  Text
-	 */
-	const FText& GetText() const
-	{
-		return Text.Get();
-	}
 
 	/**
 	 * Sets the text currently being edited 
@@ -280,7 +274,7 @@ protected:
 		{
 		}
 	};
-
+	
 public:
 	// BEGIN ITextEditorWidget interface
 	virtual void StartChangingText() override;
@@ -320,6 +314,31 @@ public:
 	virtual void SummonContextMenu( const FVector2D& InLocation ) override;
 	virtual void LoadText() override;
 	// END ITextEditorWidget interface
+
+public:
+	// BEGIN IVirtualKeyboardEntry interface
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+
+	virtual const FText& GetText() const override
+	{
+		return Text.Get();
+	}
+
+	virtual const FText GetHintText() const override
+	{
+		return HintText.Get();
+	}
+
+	virtual EKeyboardType GetVirtualKeyboardType() const override
+	{
+		return VirtualKeyboardType.Get();
+	}
+
+	virtual bool IsMultilineEntry() const override
+	{
+		return false;
+	}
+	// END IVirtualKeyboardEntry interface
 
 protected:
 	// BEGIN SWidget interface
@@ -461,7 +480,7 @@ private:
 	/** The text content for this editable text widget */
 	TAttribute< FText > Text;
 
-	/** The text content fot watermark/hinting what text to type here */
+	/** The text content for watermark/hinting what text to type here */
 	TAttribute< FText > HintText;
 
 	/** The font used to draw the text */
@@ -583,4 +602,10 @@ private:
 
 	/** Notification interface object for text input method systems. */
 	TSharedPtr<ITextInputMethodChangeNotifier> TextInputMethodChangeNotifier;
+
+	/** The type of virtual keyboard to use for editing this text on mobile */
+	TAttribute<EKeyboardType> VirtualKeyboardType;
+
+	/** Whether the text has been changed by a virtual keyboard */
+	bool bTextChangedByVirtualKeyboard;
 };

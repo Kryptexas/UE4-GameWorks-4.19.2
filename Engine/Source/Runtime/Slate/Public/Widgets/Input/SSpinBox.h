@@ -157,16 +157,17 @@ public:
 				.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
 				.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
-			]
+				.VirtualKeyboardType(EKeyboardType::Keyboard_Number)
+			]			
 
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.HAlign(HAlign_Fill) 
 			.VAlign(VAlign_Center) 
 			[
 				SNew(SImage)
 				.Image( &InArgs._Style->ArrowsImage )
-				.ColorAndOpacity(FSlateColor::UseForeground())
+				.ColorAndOpacity( FSlateColor::UseForeground())
 			]
 		];
 	}

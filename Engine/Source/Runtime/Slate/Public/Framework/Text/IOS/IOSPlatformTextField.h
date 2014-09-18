@@ -14,7 +14,7 @@ public:
 	FIOSPlatformTextField();
 	virtual ~FIOSPlatformTextField();
 
-	virtual void ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget) override;
+	virtual void ShowVirtualKeyboard(bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget) override;
 
 private:
 	SlateTextField* TextField;
@@ -25,9 +25,9 @@ typedef FIOSPlatformTextField FPlatformTextField;
 
 @interface SlateTextField : NSObject<UIAlertViewDelegate>
 {
-	TSharedPtr<SVirtualKeyboardEntry> TextWidget;
+	TSharedPtr<IVirtualKeyboardEntry> TextWidget;
 }
 
--(void)show:(TSharedPtr<SVirtualKeyboardEntry>)InTextWidget;
+-(void)show:(TSharedPtr<IVirtualKeyboardEntry>)InTextWidget;
 
 @end

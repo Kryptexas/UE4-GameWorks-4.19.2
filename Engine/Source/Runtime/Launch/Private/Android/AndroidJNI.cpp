@@ -15,7 +15,7 @@ JavaVM* GJavaVM;
 jobject GJavaGlobalThis = NULL;
 
 // Pointer to target widget for virtual keyboard contents
-static SVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
+static IVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 
 extern FString GFilePathBase;
 extern FString GFontPathBase;
@@ -194,7 +194,7 @@ void AndroidThunkCpp_ShowConsoleWindow()
 	}
 }
 
-void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<SVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
+void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
 {
 	if (JNIEnv* Env = GetJavaEnv())
 	{
@@ -219,7 +219,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 		if (VirtualKeyboardWidget != NULL)
 		{
 			const char* javaChars = jenv->GetStringUTFChars(contents, 0);
-			VirtualKeyboardWidget->SetText(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
+			VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
 
 			//Release the string
 			jenv->ReleaseStringUTFChars(contents, javaChars);
