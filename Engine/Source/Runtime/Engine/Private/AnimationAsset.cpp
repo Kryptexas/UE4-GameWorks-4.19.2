@@ -61,6 +61,10 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 	{
 		// get all sequences that need to change
 		TArray<UAnimSequence*> AnimSeqsToReplace;
+		if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(this))
+		{
+			AnimSeqsToReplace.AddUnique(AnimSequence);
+		}
 		if (GetAllAnimationSequencesReferred(AnimSeqsToReplace))
 		{
 			for (auto Iter = AnimSeqsToReplace.CreateIterator(); Iter; ++Iter)

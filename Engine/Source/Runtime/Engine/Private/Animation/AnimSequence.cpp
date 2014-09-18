@@ -2258,9 +2258,23 @@ void UAnimSequence::RemoveTrack(int32 TrackIndex)
 
 bool UAnimSequence::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
 {
-	AnimationSequences.Add(this);
+	if (RefPoseSeq)
+	{
+		AnimationSequences.AddUnique(RefPoseSeq);
+	}
+	return AnimationSequences.Num() > 0;
+}
 
-	return true;
+void UAnimSequence::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
+{
+	if (RefPoseSeq)
+	{
+		UAnimSequence* const* ReplacementAsset = (UAnimSequence*const*)ReplacementMap.Find(RefPoseSeq);
+		if (ReplacementAsset)
+		{
+			RefPoseSeq = *ReplacementAsset;
+		}
+	}
 }
 
 bool UAnimSequence::AddLoopingInterpolation()

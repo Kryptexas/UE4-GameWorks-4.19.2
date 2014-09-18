@@ -74,6 +74,13 @@ namespace EditorAnimUtils
 			{
 				GetAllAnimationSequencesReferredInBlueprint( (*Iter), ComplexAnimsToRetarget, AnimSequencesToRetarget);
 			}
+
+			int SequenceIndex = 0;
+			while (SequenceIndex < AnimSequencesToRetarget.Num())
+			{
+				UAnimSequence* Seq = AnimSequencesToRetarget[SequenceIndex++];
+				Seq->GetAllAnimationSequencesReferred(AnimSequencesToRetarget);
+			}
 		}
 	}
 
@@ -175,6 +182,7 @@ namespace EditorAnimUtils
 				NewNameMapping->AddName(Curve.LastObservedName, Curve.CurveUid);
 			}
 
+			AssetToRetarget->ReplaceReferredAnimations(DuplicatedSequences);
 			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
 		}
 
