@@ -179,7 +179,7 @@ void ConvertToBuildIncludePath(UPackage* Package, FString& LocalPath)
  *
  *	@return	bool			true if found, false if not
  */
-bool MakeCommandlet_FindPackageLocation(const TCHAR* InPackage, FString& OutLocation, FString& OutHeaderLocation)
+bool FindPackageLocation(const TCHAR* InPackage, FString& OutLocation, FString& OutHeaderLocation)
 {
 	// Mapping of processed packages to their locations
 	// An empty location string means it was processed but not found
@@ -2019,7 +2019,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( FClass* Class, bool 
 
 	FString PkgDir;
 	FString GeneratedIncludeDirectory;
-	if (MakeCommandlet_FindPackageLocation(*PkgName, PkgDir, GeneratedIncludeDirectory) == false)
+	if (FindPackageLocation(*PkgName, PkgDir, GeneratedIncludeDirectory) == false)
 	{
 		UE_LOG(LogCompile, Error, TEXT("Failed to find path for package %s"), *PkgName);
 	}
@@ -3877,7 +3877,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 	{
 		FString PkgDir;
 		FString GeneratedIncludeDirectory;
-		if (MakeCommandlet_FindPackageLocation(*PackageName, PkgDir, GeneratedIncludeDirectory) == false)
+		if (FindPackageLocation(*PackageName, PkgDir, GeneratedIncludeDirectory) == false)
 		{
 			UE_LOG(LogCompile, Error, TEXT("Failed to find path for package %s"), *PackageName);
 		}
@@ -4221,7 +4221,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedProto()
 		FString PkgName = FPackageName::GetShortName(Package);
 		FString PkgDir;
 		FString GeneratedIncludeDirectory;
-		if (MakeCommandlet_FindPackageLocation(*PkgName, PkgDir, GeneratedIncludeDirectory) == false)
+		if (FindPackageLocation(*PkgName, PkgDir, GeneratedIncludeDirectory) == false)
 		{
 			UE_LOG(LogCompile, Error, TEXT("Failed to find path for package %s"), *PkgName);
 		}
@@ -4254,7 +4254,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedMCP()
 		FString PkgName = FPackageName::GetShortName(Package);
 		FString PkgDir;
 		FString GeneratedIncludeDirectory;
-		if (MakeCommandlet_FindPackageLocation(*PkgName, PkgDir, GeneratedIncludeDirectory) == false)
+		if (FindPackageLocation(*PkgName, PkgDir, GeneratedIncludeDirectory) == false)
 		{
 			UE_LOG(LogCompile, Error, TEXT("Failed to find path for package %s"), *PkgName);
 		}

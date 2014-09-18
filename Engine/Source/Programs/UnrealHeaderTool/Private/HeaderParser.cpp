@@ -4313,7 +4313,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 		{
 			FError::Throwf(TEXT("The dependsOn specifier is deprecated. Please use proper #include instead."));
 
-			// Make sure the syntax matches but don't do anything with it; that's handled in MakeCommandlet.cpp
+			// Make sure the syntax matches but don't do anything with it;
 			RequireSpecifierValue(PropSpecifier);
 		}
 		else if (Specifier == TEXT("MinimalAPI"))
@@ -4743,7 +4743,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 
 		if (Specifier == TEXT("DependsOn"))
 		{
-			// Make sure the syntax matches but don't do anything with it; that's handled in MakeCommandlet.cpp
+			// Make sure the syntax matches but don't do anything with it
 			RequireSpecifierValue(*SpecifierIt);
 		}
 		else if (Specifier == TEXT("MinimalAPI"))

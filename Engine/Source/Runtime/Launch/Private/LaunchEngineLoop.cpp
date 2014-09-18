@@ -952,25 +952,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
-	if (!bHasEditorToken)
-	{
-		if ((Token == TEXT("MAKE") || Token == TEXT("MAKECOMMANDLET")))
-		{
-			//@todo this is too early to localize
-			const FText Message = NSLOCTEXT("Engine", "MakeRunNoLongerUsed", "The make/run commandlet/arguments are no longer used.");
-			if (!FParse::Param(CmdLine,TEXT("BUILDMACHINE")))
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, Message );
-			}
-			else
-			{
-				UE_LOG(LogInit, Fatal, TEXT("%s"), *Message.ToString());
-			}
-			GGameName[0] = 0; // this disables part of the crash reporter to avoid writing log files to a bogus directory
-			exit(0);
-		}
-	}
-
 	if (GIsUCCMakeStandaloneHeaderGenerator)
 	{
 		// Rebuilding script requires some hacks in the engine so we flag that.
