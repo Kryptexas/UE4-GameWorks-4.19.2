@@ -145,6 +145,9 @@ private:
 	/** Current text typed into NameFilterBox */
 	FText FilterText;
 
+	/** show advanced? */
+	bool bDisplayAdvanced;
+
 	/** Delegate for undo/redo transaction **/
 	void PostUndo();
 
@@ -161,4 +164,7 @@ private:
 
 	void OnBoneMappingChanged( FName NodeName, FName BoneName );
 	FName GetBoneMapping( FName NodeName );
+
+	FReply OnToggleAdvanced();
+	FString GetAdvancedButtonText() const;
 };

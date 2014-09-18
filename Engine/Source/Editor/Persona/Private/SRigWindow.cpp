@@ -191,6 +191,7 @@ void SRigWindow::Construct(const FArguments& InArgs)
 {
 	PersonaPtr = InArgs._Persona;
 	Skeleton = NULL;
+	bDisplayAdvanced = false;
 
 	if ( PersonaPtr.IsValid() )
 	{
@@ -238,6 +239,17 @@ void SRigWindow::Construct(const FArguments& InArgs)
 				.OnSetReference(this, &SRigWindow::OnAssetSelected)
 				.AssetPickerSizeOverride(FVector2D(250, 700))
 				.InitialAssetViewType(EAssetViewType::List)
+			]
+
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Right)
+			[
+				SNew(SButton)
+				.OnClicked(FOnClicked::CreateSP(this, &SRigWindow::OnToggleAdvanced))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Text(this, &SRigWindow::GetAdvancedButtonText)
+				.ToolTipText(LOCTEXT("ToggleAdvanced_Tooltip", "Toggle Base/Advanced configuration"))
 			]
 		]
 
@@ -325,25 +337,28 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 			const FString & DisplayName = Node.DisplayName;
 			const FName & BoneName = Skeleton->GetRigBoneMapping(Name);
 
-			if ( bDoFiltering )
+			if (Node.bAdvanced == bDisplayAdvanced)
 			{
-				if (!Name.ToString().Contains( SearchText ))
+				if(bDoFiltering)
 				{
-					continue; // Skip items that don't match our filter
+					if(!Name.ToString().Contains(SearchText))
+					{
+						continue; // Skip items that don't match our filter
+					}
+					if(!DisplayName.Contains(SearchText))
+					{
+						continue;
+					}
+					if(!BoneName.ToString().Contains(SearchText))
+					{
+						continue;
+					}
 				}
-				if (!DisplayName.Contains( SearchText ))
-				{
-					continue;
-				}
-				if (!BoneName.ToString().Contains( SearchText ))
-				{
-					continue;
-				}
+
+				TSharedRef<FDisplayedBoneMappingInfo> Info = FDisplayedBoneMappingInfo::Make(Name, DisplayName, Skeleton);
+
+				BoneMappingList.Add(Info);
 			}
-
-			TSharedRef<FDisplayedBoneMappingInfo> Info = FDisplayedBoneMappingInfo::Make( Name, DisplayName, Skeleton );
-
-			BoneMappingList.Add( Info );
 		}
 	}
 
@@ -401,5 +416,23 @@ FName SRigWindow::GetBoneMapping(FName NodeName)
 	return Skeleton->GetRigBoneMapping(NodeName);
 }
 
+FReply SRigWindow::OnToggleAdvanced()
+{
+	bDisplayAdvanced = !bDisplayAdvanced;
+
+	CreateBoneMappingList();
+
+	return FReply::Handled();
+}
+
+FString SRigWindow::GetAdvancedButtonText() const
+{
+	if (bDisplayAdvanced)
+	{
+		return TEXT("Show Base");
+	}
+
+	return TEXT("Show Advanced");
+}
 #undef LOCTEXT_NAMESPACE
 
