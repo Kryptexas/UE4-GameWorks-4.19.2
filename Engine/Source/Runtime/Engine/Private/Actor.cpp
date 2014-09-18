@@ -1477,11 +1477,22 @@ void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 Cine
 
 void AActor::OnRep_Instigator() {}
 
+void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (bActorInitialized)
+	{
+		UninitializeComponents();
+
+		UWorld* World = GetWorld();
+		if (World && World->HasBegunPlay())
+		{
+			EndPlay(EndPlayReason);
+		}
+	}
+}
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	UninitializeComponents();
-
 	// Dispatch the blueprint events
 	ReceiveEndPlay(EndPlayReason);
 	OnEndPlay.Broadcast(EndPlayReason);
@@ -1547,10 +1558,8 @@ FTransform AActor::GetTransform() const
 
 void AActor::Destroyed()
 {
-	if (bActorInitialized)
-	{
-		EndPlay(EEndPlayReason::ActorDestroyed);
-	}
+	RouteEndPlay(EEndPlayReason::ActorDestroyed);
+
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast();
 	GetWorld()->RemoveNetworkActor(this);

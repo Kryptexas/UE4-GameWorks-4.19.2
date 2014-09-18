@@ -445,7 +445,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	// Go through and let all the PlayWorld Actor's know they are being destroyed
 	for (FActorIterator ActorIt(PlayWorld); ActorIt; ++ActorIt)
 	{
-		ActorIt->EndPlay(EEndPlayReason::EndPlayInEditor);
+		ActorIt->RouteEndPlay(EEndPlayReason::EndPlayInEditor);
 	}
 
 	// Move blueprint debugging pointers back to the objects in the editor world

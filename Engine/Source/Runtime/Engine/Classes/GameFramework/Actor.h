@@ -1737,7 +1737,10 @@ public:
 	/**	Do anything needed to clear out cross level references; Called from ULevel::PreSave	 */
 	virtual void ClearCrossLevelReferences();
 	
-	/** Called whenever this actor is being removed from a level */
+	/** Non-virtual function to evaluate which portions of the EndPlay process should be dispatched for each actor */
+	void RouteEndPlay(const EEndPlayReason::Type EndPlayReason);
+
+	/** Overridable function called whenever this actor is being removed from a level */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 	/** iterates up the Base chain to see whether or not this Actor is based on the given Actor
