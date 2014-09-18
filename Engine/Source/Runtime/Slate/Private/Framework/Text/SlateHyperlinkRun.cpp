@@ -82,6 +82,10 @@ TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, in
 		.ToolTip( ToolTip )
 		.ToolTipText( ToolTipText )
 		.OnNavigate( this, &FSlateHyperlinkRun::OnNavigate );
+	
+	// We need to do a prepass here as CreateBlock can be called after the main Slate prepass has been run, 
+	// which can result in the hyperlink widget not being correctly setup before it is painted
+	Widget->SlatePrepass();
 
 	Children.Add( Widget );
 
