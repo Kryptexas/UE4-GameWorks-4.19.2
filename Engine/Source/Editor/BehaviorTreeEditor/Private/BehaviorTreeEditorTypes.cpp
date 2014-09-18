@@ -173,8 +173,12 @@ FClassBrowseHelper::~FClassBrowseHelper()
 		}
 	
 		// Unregister to have Populate called when a Blueprint is compiled.
-		GEditor->OnBlueprintCompiled().RemoveAll(this);
-		GEditor->OnClassPackageLoadedOrUnloaded().RemoveAll(this);
+		if ( UObjectInitialized() )
+		{
+			// GEditor can't have been destructed before we call this or we'll crash.
+			GEditor->OnBlueprintCompiled().RemoveAll(this);
+			GEditor->OnClassPackageLoadedOrUnloaded().RemoveAll(this);
+		}
 	}
 }
 
