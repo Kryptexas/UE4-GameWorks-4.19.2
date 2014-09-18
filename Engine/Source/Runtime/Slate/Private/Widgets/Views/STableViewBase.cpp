@@ -364,7 +364,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 
 			// The mouse moved enough that we're now dragging the view. Capture the mouse
 			// so the user does not have to stay within the bounds of the list while dragging.
-			if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
+			if(this->HasMouseCapture() == false)
 			{
 				Reply.CaptureMouse( AsShared() ).UseHighPrecisionMouseMovement( AsShared() );
 				SoftwareCursorPosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
@@ -388,7 +388,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 void STableViewBase::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	bStartedTouchInteraction = false;
-	if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
+	if(this->HasMouseCapture() == false)
 	{
 		// No longer scrolling (unless we have mouse capture)
 		AmountScrolledWhileRightMouseDown = 0;

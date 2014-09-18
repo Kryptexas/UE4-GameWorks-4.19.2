@@ -25,6 +25,7 @@ public:
  */
 class SLATECORE_API FSlateApplicationBase
 {
+	friend class SWidget;
 public:
 
 	/**
@@ -100,11 +101,18 @@ public:
 	virtual const double GetCurrentTime( ) const = 0;
 
 	/**
-	 * Gets the last known position of the cursor.
+	 * Gets the current position of the cursor.
 	 *
 	 * @return Cursor position.
 	 */
 	virtual FVector2D GetCursorPos( ) const = 0;
+
+	/**
+	* Gets the last known position of the cursor.
+	*
+	* @return Cursor position.
+	*/
+	virtual FVector2D GetLastCursorPos( ) const = 0;
 
 	/**
 	 * Gets the size of the cursor..
@@ -128,11 +136,11 @@ public:
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
 	/**
-	 * Gets the Widget that currently captures the mouse.
+	 * Gets whether or not a widget has captured the mouse.
 	 *
-	 * @return The captor widget, or nullptr if no widget captured the mouse.
+	 * @return True if one or more widgets have capture, otherwise false.
 	 */
-	virtual TSharedPtr< SWidget > GetMouseCaptor( ) const = 0;
+	virtual bool HasAnyMouseCaptor( ) const = 0;
 
 	/**
 	 * Gets the platform application.
@@ -241,6 +249,7 @@ public:
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EKeyboardFocusCause::Type InCause ) = 0;
 
 public:
+	const static uint32 CursorPointerIndex;
 
 	/**
 	 * Returns the current instance of the application. The application should have been initialized before
@@ -263,6 +272,15 @@ public:
 	{
 		return CurrentBaseApplication.IsValid();
 	}
+
+protected:
+
+	/**
+	* Gets whether or not a particular widget has mouse capture.
+	*
+	* @return True if the widget has mouse capture, otherwise false.
+	*/
+	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const = 0;
 
 protected:
 

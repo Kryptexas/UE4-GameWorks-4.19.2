@@ -477,7 +477,7 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 			FReply Reply = FReply::Handled();
 
 			// Capture the mouse if we need to
-			if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
+			if(this->HasMouseCapture() == false)
 			{
 				Reply.CaptureMouse( AsShared() ).UseHighPrecisionMouseMovement( AsShared() );
 				SoftwareCursorPosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
@@ -499,7 +499,7 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 
 void SScrollBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
-	if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
+	if(this->HasMouseCapture() == false)
 	{
 		// No longer scrolling (unless we have mouse capture)
 		AmountScrolledWhileRightMouseDown = 0;

@@ -8,3 +8,4 @@
 
 TSharedPtr<FSlateApplicationBase> FSlateApplicationBase::CurrentBaseApplication = nullptr;
 TSharedPtr<GenericApplication> FSlateApplicationBase::PlatformApplication = nullptr;
+const uint32 FSlateApplicationBase::CursorPointerIndex = 1000;

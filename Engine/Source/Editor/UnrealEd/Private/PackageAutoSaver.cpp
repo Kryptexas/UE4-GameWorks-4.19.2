@@ -372,7 +372,7 @@ bool FPackageAutoSaver::CanAutoSave() const
 	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;
 	const bool bAnyMenusVisible	= FSlateApplication::Get().AnyMenusVisible();
 	const bool bAutomationTesting = GIsAutomationTesting;
-	const bool bIsInteratcting = FSlateApplication::Get().GetMouseCaptor().IsValid() || GUnrealEd->IsUserInteracting() || bDidTypeInATextBlockRecently;
+	const bool bIsInteratcting = FSlateApplication::Get().HasAnyMouseCaptor() || GUnrealEd->IsUserInteracting() || bDidTypeInATextBlockRecently;
 	const bool bHasGameOrProjectLoaded = FApp::HasGameName();
 
 	return (bAutosaveEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible && !bAutomationTesting && !bIsInteratcting && !GIsDemoMode && bHasGameOrProjectLoaded);

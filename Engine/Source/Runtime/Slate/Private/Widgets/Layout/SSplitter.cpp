@@ -777,7 +777,7 @@ FReply SSplitter2x2::OnMouseMove( const FGeometry& MyGeometry, const FPointerEve
 {
 	const FVector2D LocalMousePos = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
 
-	if ( bIsResizing && FSlateApplication::Get().GetMouseCaptor() == AsShared() )
+	if ( bIsResizing && this->HasMouseCapture() )
 	{	
 		TArray<FLayoutGeometry> LayoutChildren = ArrangeChildrenForLayout(MyGeometry);
 		ResizeChildren( MyGeometry, LayoutChildren, LocalMousePos );

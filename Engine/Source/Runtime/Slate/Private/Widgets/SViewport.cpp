@@ -79,6 +79,7 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 		// @todo Slate: why are we calling OnCursorQuery in here?
 		FCursorReply Reply = ViewportInterfacePin->OnCursorQuery( AllottedGeometry,
 			FPointerEvent(
+				FSlateApplicationBase::CursorPointerIndex,
 				CursorPosScreenSpace,
 				CursorPosScreenSpace,
 				FVector2D::ZeroVector,

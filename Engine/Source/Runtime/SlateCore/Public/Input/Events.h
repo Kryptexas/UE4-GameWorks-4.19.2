@@ -447,6 +447,7 @@ public:
 
 	/** Events are immutable once constructed. */
 	FPointerEvent(
+		uint32 InPointerIndex,
 		const FVector2D& InScreenSpacePosition,
 		const FVector2D& InLastScreenSpacePosition,
 		const TSet<FKey>& InPressedButtons,
@@ -461,7 +462,7 @@ public:
 		, PressedButtons(InPressedButtons)
 		, EffectingButton(InEffectingButton)
 		, UserIndex(0)
-		, PointerIndex(0)
+		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(0)
 		, bIsTouchEvent(false)
 		, GestureType(EGestureEvent::None)
@@ -470,6 +471,7 @@ public:
 
 	/** A constructor for raw mouse events */
 	FPointerEvent(
+		uint32 InPointerIndex,
 		const FVector2D& InScreenSpacePosition,
 		const FVector2D& InLastScreenSpacePosition,
 		const FVector2D& InDelta,
@@ -482,7 +484,7 @@ public:
 		, CursorDelta(InDelta)
 		, PressedButtons(InPressedButtons)
 		, UserIndex(0)
-		, PointerIndex(0)
+		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(0)
 		, bIsTouchEvent(false)
 		, GestureType(EGestureEvent::None)

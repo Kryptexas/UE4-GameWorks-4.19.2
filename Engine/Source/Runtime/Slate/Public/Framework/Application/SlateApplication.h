@@ -628,6 +628,8 @@ public:
 
 protected:
 
+	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
+
 	/** 
 	 * Ticks a slate window and all of its children
 	 *
@@ -937,11 +939,13 @@ public:
 
 	virtual FVector2D GetCursorPos( ) const override;
 
+	virtual FVector2D GetLastCursorPos( ) const override;
+
 	virtual FVector2D GetCursorSize( ) const override;
 	
 	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget( ) const override;
 
-	virtual TSharedPtr<SWidget> GetMouseCaptor( ) const override;
+	virtual bool HasAnyMouseCaptor( ) const override;
 
 	virtual FSlateRect GetPreferredWorkArea( ) const override;
 
@@ -1073,6 +1077,7 @@ private:
 	FSlateApplication();
 
 private:
+
 	/**
 	 * Will be invoked when the size of the geometry of the virtual
 	 * desktop changes (e.g. resolution change or monitors re-arranged)
@@ -1120,45 +1125,67 @@ private:
 	class MouseCaptorHelper
 	{
 	public:
-		/** Returns true if the weak path is valid (i.e. more than zero widgets) */
-		bool IsValid() const;
+		/**
+		 * Returns whether or not there are any active pointer captures.
+		 */
+		bool HasCapture() const;
 
 		/**
-		 * Sets a new mouse captor widget, invalidating the previous one if any and calling
+		 * Returns whether or not the particular PointerIndex has capture.
+		 */
+		bool HasCaptureForPointerIndex(uint32 PointerIndex) const;
+
+		/**
+		 * Sets a new mouse captor widget for a specific pointer index, invalidating the previous one if any and calling
 		 * its OnMouseCaptureLost() handler.
 		 *
-		 * @param EventPath	The path to the event.
-		 * @param Widget	The widget that wants to capture the mouse.
+		 * @param PointerIndex	The index of the pointer which initiated the capture.
+		 * @param EventPath		The path to the event.
+		 * @param Widget		The widget that wants to capture the mouse.
 		 */
-		void SetMouseCaptor( const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
+		void SetMouseCaptor(uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
 
-		/** Invalidates the current mouse captor. Calls OnMouseCaptureLost() on the current mouse captor if one exists */
-		void Invalidate();
+		/** Invalidates all current mouse captors. Calls OnMouseCaptureLost() on the current mouse captor if one exists */
+		void InvalidateCaptureForAllPointers();
+
+		/** Invalidates a specific mouse captor. Calls OnMouseCaptureLost() on the specific mouse captor if one exists */
+		void InvalidateCaptureForPointer(uint32 PointIndex);
 
 		/**
-		 * Retrieves a resolved FWidgetPath from the current, internal weak path, if possible.
+		 * Retrieves a resolved FWidgetPath for a specific pointer index, if possible.
 		 * If the path is invalid or truncated (i.e. the widget is no longer relevant) then the current mouse captor's
 		 * OnMouseCaptureLost() handler is called and the path is invalidated.
 		 *
+		 * @param PointerIndex				The index of the pointer which has capture.
 		 * @param InterruptedPathHandling	How to handled incomplete paths. "Truncate" will return a partial path, "ReturnInvalid" will return an empty path.
 		 */
-		FWidgetPath ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
+		FWidgetPath ToWidgetPath(uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
 
-		/** Retrieves the currently set weak path to the current mouse captor */
-		FWeakWidgetPath ToWeakPath() const;
+		/**
+		 * Retrieves an array of the resolved widget paths for any active captures.
+		 */
+		TArray<FWidgetPath> ToWidgetPaths();
 
-		/* Walks the weak path and retrieves the widget that is set as the current mouse captor */
-		TSharedPtr< SWidget > ToSharedWidget() const;
+		/** Retrieves the weak path for a current mouse captor with a specific pointer index */
+		FWeakWidgetPath ToWeakPath(uint32 PointerIndex) const;
 
-		/* Walks the weak path and retrieves the window that the current mouse captor widget belongs to */
-		TSharedPtr< SWidget > ToSharedWindow();
+		/* Walks the weak path and retrieves the widget that is set as the current mouse captor with a specific pointer index */
+		TSharedPtr< SWidget > ToSharedWidget(uint32 PointerIndex) const;
+
+		/*
+		 * Retrieves an array of shared widget pointers for the active mouse captures.
+		 */
+		TArray<TSharedRef<SWidget>> ToSharedWidgets() const;
+
+		/* Walks the weak path and retrieves the window for the widget belonging to the mouse captor with the specified pointer index */
+		TSharedPtr< SWidget > ToSharedWindow(uint32 PointerIndex);
 
 	protected:
-		/** If there is a current mouse captor, will call its OnMouseCaptureLost() handler */
-		void InformCurrentCaptorOfCaptureLoss() const;
+		/** Call the OnMouseCaptureLost() handler for the widget captured by the specific pointer index */
+		void InformCurrentCaptorOfCaptureLoss(uint32 PointerIndex) const;
 
-		/** The weak pointer path to the current mouse captor */
-		FWeakWidgetPath MouseCaptorWeakPath;
+		/** A map of pointer idices to weak widget paths for the active mouse captures */
+		TMap<uint32, FWeakWidgetPath> PointerIndexToMouseCaptorWeakPathMap;
 	};
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;
@@ -1334,7 +1361,7 @@ private:
 	/** When an drag and drop is happening, we keep track of whether slate knew what to do with the payload on last mouse move */
 	bool DragIsHandled;
 
-	FVector2D LastCursorPosition;
+	TMap<uint32, FVector2D> PointerIndexLastPositionMap;
 
 	/**
 	 * Virtual keyboard text field

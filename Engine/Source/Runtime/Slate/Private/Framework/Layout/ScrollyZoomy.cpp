@@ -118,7 +118,7 @@ FReply FScrollyZoomy::OnMouseMove( const TSharedRef<SWidget> MyWidget, IScrollab
 			FReply Reply = FReply::Handled();
 
 			// Capture the mouse if we need to
-			if (FSlateApplication::Get().GetMouseCaptor() != MyWidget)
+			if (MyWidget->HasMouseCapture() == false)
 			{
 				Reply.CaptureMouse( MyWidget ).UseHighPrecisionMouseMovement( MyWidget );
 				SoftwareCursorPosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
@@ -141,7 +141,7 @@ FReply FScrollyZoomy::OnMouseMove( const TSharedRef<SWidget> MyWidget, IScrollab
 
 void FScrollyZoomy::OnMouseLeave( const TSharedRef<SWidget> MyWidget, const FPointerEvent& MouseEvent )
 {
-	if (FSlateApplication::Get().GetMouseCaptor() != MyWidget)
+	if (MyWidget->HasMouseCapture() == false)
 	{
 		// No longer scrolling (unless we have mouse capture)
 		AmountScrolledWhileRightMouseDown = 0;

@@ -44,7 +44,7 @@ FSceneViewport::~FSceneViewport()
 
 bool FSceneViewport::HasMouseCapture() const
 {
-	return FSlateApplication::Get().GetMouseCaptor() == ViewportWidget.Pin();
+	return ViewportWidget.IsValid() && ViewportWidget.Pin()->HasMouseCapture();
 }
 
 bool FSceneViewport::HasFocus() const

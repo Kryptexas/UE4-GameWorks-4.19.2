@@ -320,7 +320,7 @@ bool SWidget::HasFocusedDescendants() const
 
 bool SWidget::HasMouseCapture() const
 {
-	return (FSlateApplicationBase::Get().GetMouseCaptor().Get() == this);
+	return FSlateApplicationBase::Get().HasMouseCapture(SharedThis(this));
 }
 
 
