@@ -271,6 +271,29 @@ FText UK2Node_Select::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("Select", "Select");
 }
 
+UK2Node::ERedirectType UK2Node_Select::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
+{
+	// Check to see if the new pin name matches the old pin name (case insensitive - since the base uses Stricmp() to compare pin names, we also ignore case here).
+	if(Enum != nullptr && NewPinIndex < NumOptionPins && !NewPin->PinName.Equals(OldPin->PinName, ESearchCase::IgnoreCase))
+	{
+		// The names don't match, so check for an enum redirect from the old pin name.
+		int32 EnumIndex = UEnum::FindEnumRedirects(Enum, FName(*OldPin->PinName));
+		if(EnumIndex != INDEX_NONE)
+		{
+			// Found a redirect. Attempt to match it to the new pin name.
+			FString NewPinName = Enum->GetEnumName(EnumIndex);
+			if(NewPinName.Equals(NewPin->PinName, ESearchCase::IgnoreCase))
+			{
+				// The redirect is a match, so we can reconstruct this pin using the old pin's state.
+				return UK2Node::ERedirectType_Name;
+			}
+		}
+	}
+
+	// Fall back to base class functionality for all other cases.
+	return Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
+}
+
 void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	Super::ReallocatePinsDuringReconstruction(OldPins);

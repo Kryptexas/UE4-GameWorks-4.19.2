@@ -47,6 +47,7 @@ class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
+	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	virtual void PostReconstructNode() override;
 	virtual bool IsNodeSafeToIgnore() const override { return true; }
