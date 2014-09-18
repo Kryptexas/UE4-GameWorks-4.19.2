@@ -36,12 +36,12 @@ class STutorialsBrowser : public SCompoundWidget
 	/** Set the current filter string. Filters are used to only show the specifed category of tutorials (e.g. only Blueprint tutorials) */
 	void SetFilter(const FString& InFilter);
 
+	/** Reload all tutorials that we know about */
+	void ReloadTutorials();
+
 protected:
 	/** Handle generating a table row in the browser */
 	TSharedRef<ITableRow> OnGenerateTutorialRow(TSharedPtr<ITutorialListEntry> InItem, const TSharedRef<STableViewBase>& OwnerTable) const;
-
-	/** Reload all tutorials that we know about */
-	void ReloadTutorials();
 
 	/** Handle closing the browser */
 	FReply OnCloseButtonClicked();

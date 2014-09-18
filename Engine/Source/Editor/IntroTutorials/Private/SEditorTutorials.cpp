@@ -139,6 +139,7 @@ void SEditorTutorials::HandleHomeClicked()
 
 	ContentBox->ClearChildren();
 	bBrowserVisible = true;
+	TutorialHome->ReloadTutorials();
 	OnTutorialExited.ExecuteIfBound();
 }
 

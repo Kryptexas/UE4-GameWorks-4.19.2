@@ -38,6 +38,9 @@ private:
 	/** Get the tooltip for the tutorials button */
 	FText GetButtonToolTip() const;
 
+	/** Launch tutorial from the context menu */
+	void LaunchTutorial();
+
 private:
 	/** Flag to defer tutorial open until the first Tick() */
 	bool bDeferTutorialOpen;
@@ -62,4 +65,7 @@ private:
 
 	/** Start time we began playing the alert animation */
 	float AlertStartTime;
+
+	/**	The name of the tutorial we will launch */
+	FText TutorialTitle;
 };

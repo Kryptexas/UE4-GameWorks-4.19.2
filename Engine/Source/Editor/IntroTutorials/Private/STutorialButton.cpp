@@ -68,6 +68,11 @@ void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCur
 		{
 			AlertStartTime = FPlatformTime::Seconds();
 		}
+
+		if(LaunchTutorial != nullptr)
+		{
+			TutorialTitle = LaunchTutorial->Title;
+		}
 	}
 	bDeferTutorialOpen = false;
 }
@@ -171,33 +176,40 @@ FReply STutorialButton::HandleButtonClicked()
 
 FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if(!ShouldLaunchBrowser())
+	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
-		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+		const bool bInShouldCloseWindowAfterMenuSelection = true;
+		FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, nullptr);
+
+		if(ShouldShowAlert())
 		{
-			const bool bInShouldCloseWindowAfterMenuSelection = true;
-			FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, nullptr);
-
-			if(ShouldShowAlert())
-			{
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("DismissReminder", "Dismiss Alert"),
-					LOCTEXT("DismissReminderTooltip", "Don't show me this alert again"),
-					FSlateIcon(),
-					FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAlert))
-					);
-			}
-
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("LaunchBrowser", "Show Available Tutorials"),
-				LOCTEXT("LaunchBrowserTooltip", "Display the tutorials browser"),
+				LOCTEXT("DismissReminder", "Dismiss Alert"),
+				LOCTEXT("DismissReminderTooltip", "Don't show me this alert again"),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::LaunchBrowser))
+				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAlert))
 				);
-
-
-			FSlateApplication::Get().PushMenu(SharedThis(this), MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect::ContextMenu);
 		}
+
+		if(bTutorialAvailable)
+		{
+			MenuBuilder.AddMenuEntry(
+				FText::Format(LOCTEXT("LaunchTutorialPattern", "Open Tutorial: {0}"), TutorialTitle),
+				LOCTEXT("LaunchTutorialTooltip", "Launch this tutorial"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::LaunchTutorial))
+				);
+		}
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("LaunchBrowser", "Show Available Tutorials"),
+			LOCTEXT("LaunchBrowserTooltip", "Display the tutorials browser"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::LaunchBrowser))
+			);
+
+
+		FSlateApplication::Get().PushMenu(SharedThis(this), MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect::ContextMenu);
 	}
 	return FReply::Handled();
 }
@@ -227,6 +239,11 @@ void STutorialButton::DismissAlert()
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 		IntroTutorials.CloseAllTutorialContent();
 	}
+}
+
+void STutorialButton::LaunchTutorial()
+{
+	HandleButtonClicked();
 }
 
 void STutorialButton::LaunchBrowser()
@@ -259,8 +276,12 @@ FText STutorialButton::GetButtonToolTip() const
 	{
 		return LOCTEXT("TutorialLaunchBrowserToolTip", "Show Available Tutorials");
 	}
-
-	return LOCTEXT("TutorialLaunchToolTip", "Launch Tutorial (right-click for more options)");
+	else if(bTutorialAvailable)
+	{
+		return FText::Format(LOCTEXT("TutorialLaunchToolTipPattern", "Open: {0}\nRight-Click for More Options"), TutorialTitle);
+	}
+	
+	return LOCTEXT("TutorialToolTip", "Take Tutorial");
 }
 
 #undef LOCTEXT_NAMESPACE
