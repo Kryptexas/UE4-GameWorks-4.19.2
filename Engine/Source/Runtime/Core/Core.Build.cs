@@ -20,6 +20,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Public/Delegates",
 				"Runtime/Core/Public/GenericPlatform",
 				"Runtime/Core/Public/HAL",
+				"Runtime/Core/Public/Logging",
 				"Runtime/Core/Public/Math",
 				"Runtime/Core/Public/Misc",
 				"Runtime/Core/Public/Modules",
