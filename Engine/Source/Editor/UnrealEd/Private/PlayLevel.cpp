@@ -2895,6 +2895,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	PlayWorldPackage->PackageFlags |= PKG_PlayInEditor;
 	PlayWorldPackage->PIEInstanceID = WorldContext.PIEInstance;
 	PlayWorldPackage->FileName = InPackage->FileName;
+	PlayWorldPackage->SetGuid( InPackage->GetGuid() );
 
 	check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
 	GPlayInEditorID = WorldContext.PIEInstance;
