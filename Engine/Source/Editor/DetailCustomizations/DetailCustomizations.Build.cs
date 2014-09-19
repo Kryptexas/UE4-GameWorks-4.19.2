@@ -41,6 +41,7 @@ public class DetailCustomizations : ModuleRules
                 "Media",
                 "MediaAssets",
                 "HardwareTargeting",
+				"SharedSettingsWidgets"
 			}
 		);
 

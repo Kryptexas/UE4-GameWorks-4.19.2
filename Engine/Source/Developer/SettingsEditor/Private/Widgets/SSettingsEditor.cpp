@@ -26,9 +26,6 @@ SSettingsEditor::~SSettingsEditor( )
 void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditorModelRef& InModel )
 {
 	Model = InModel;
-	DefaultConfigCheckOutTimer = 0.0f;
-	DefaultConfigCheckOutNeeded = false;
-	DefaultConfigQueryInProgress = false;
 	SettingsContainer = InModel->GetSettingsContainer();
 
 	// initialize settings view
@@ -48,6 +45,12 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	SettingsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor").CreateDetailView(DetailsViewArgs);
 	SettingsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SSettingsEditor::HandleSettingsViewVisibility)));
 	SettingsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SSettingsEditor::HandleSettingsViewEnabled));
+
+	// Create the watcher widget for the default config file (checks file status / SCC state)
+	FileWatcherWidget =
+		SNew(SSettingsEditorCheckoutNotice)
+		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
+		.ConfigFilePath(this, &SSettingsEditor::GetConfigFileName);
 
 	ChildSlot
 	[
@@ -194,12 +197,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 							.AutoHeight()
 							.Padding(0.0f, 16.0f, 0.0f, 16.0f)
 							[
-								// checkout notice
-								SNew(SSettingsEditorCheckoutNotice)
-									.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
-									.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
-									.ConfigFilePath(this, &SSettingsEditor::GetCachedConfigFileName)
-									.LookingForSourceControlState(this, &SSettingsEditor::HandleLookingForSourceControlState)
+								FileWatcherWidget.ToSharedRef()
 							]
 
 						+ SVerticalBox::Slot()
@@ -227,58 +225,6 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 	ReloadCategories();
 }
-
-
-/* SCompoundWidget interface
- *****************************************************************************/
-
-void SSettingsEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	// cache selected settings object's configuration file state
-	DefaultConfigCheckOutTimer += InDeltaTime;
-
-	if (DefaultConfigCheckOutTimer >= 1.0f)
-	{
-		TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
-
-		if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
-		{
-			CachedConfigFileName = GetDefaultConfigFilePath(SettingsObject);
-			bool NewCheckOutNeeded = false;
-			if(ISourceControlModule::Get().IsEnabled())
-			{
-				// note: calling QueueStatusUpdate often does not spam status updates as an internal timer prevents this
-				ISourceControlModule::Get().QueueStatusUpdate(CachedConfigFileName);
-
-				ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-				FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(CachedConfigFileName, EStateCacheUsage::Use);
-				NewCheckOutNeeded = SourceControlState.IsValid() && SourceControlState->CanCheckout();
-				DefaultConfigQueryInProgress = SourceControlState.IsValid() && SourceControlState->IsUnknown();
-			}
-			else
-			{
-				NewCheckOutNeeded = (FPaths::FileExists(CachedConfigFileName) && IFileManager::Get().IsReadOnly(*CachedConfigFileName));
-			}
-
-			// file has been checked in or reverted
-			if ((NewCheckOutNeeded == true) && (DefaultConfigCheckOutNeeded == false))
-			{
-				SettingsObject->ReloadConfig();
-			}
-
-			DefaultConfigCheckOutNeeded = NewCheckOutNeeded;
-		}
-		else
-		{
-			DefaultConfigCheckOutNeeded = false;
-		}
-
-		DefaultConfigCheckOutTimer = 0.0f;
-	}
-}
-
 
 /* FNotifyHook interface
  *****************************************************************************/
@@ -516,20 +462,6 @@ void SSettingsEditor::ShowNotification( const FText& Text, SNotificationItem::EC
 /* SSettingsEditor callbacks
  *****************************************************************************/
 
-FReply SSettingsEditor::HandleCheckOutButtonClicked( )
-{
-	if (ISourceControlModule::Get().IsEnabled())
-	{
-		CheckOutDefaultConfigFile();
-	}
-	else
-	{
-		MakeDefaultConfigFileWritable();
-	}
-
-	return FReply::Handled();
-}
-
 
 void SSettingsEditor::HandleCultureChanged( )
 {
@@ -537,15 +469,6 @@ void SSettingsEditor::HandleCultureChanged( )
 }
 
 
-bool SSettingsEditor::HandleConfigNoticeUnlocked( ) const
-{
-	return !DefaultConfigCheckOutNeeded && !DefaultConfigQueryInProgress;
-}
-
-bool SSettingsEditor::HandleLookingForSourceControlState() const
-{
-	return DefaultConfigQueryInProgress;
-}
 
 void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const
 {
@@ -559,6 +482,20 @@ void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr Sele
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyName"), ChangedProperty->GetName()));
 
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PreferencesChanged"), EventAttributes);
+	}
+}
+
+FString SSettingsEditor::GetConfigFileName() const
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		return GetDefaultConfigFilePath(SettingsObject);
+	}
+	else
+	{
+		return FString();
 	}
 }
 
@@ -656,7 +593,7 @@ bool SSettingsEditor::HandleImportButtonEnabled( ) const
 
 	if (SelectedSection.IsValid())
 	{
-		return (SelectedSection->CanEdit() && SelectedSection->CanImport() && !DefaultConfigCheckOutNeeded);
+		return SelectedSection->CanEdit() && SelectedSection->CanImport() && !IsDefaultConfigCheckOutNeeded();
 	}
 
 	return false;
@@ -708,7 +645,7 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 		SettingsView->SetObject(nullptr);
 	}
 
-	DefaultConfigCheckOutTimer = 1.0f;
+	FileWatcherWidget->Invalidate();
 }
 
 
@@ -769,7 +706,7 @@ FReply SSettingsEditor::HandleSetAsDefaultButtonClicked( )
 
 	if (SelectedSection.IsValid())
 	{
-		if (DefaultConfigCheckOutNeeded)
+		if (IsDefaultConfigCheckOutNeeded())
 		{
 			if (ISourceControlModule::Get().IsEnabled())
 			{
@@ -862,7 +799,7 @@ bool SSettingsEditor::HandleSettingsViewEnabled( ) const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
-	return (SelectedSection.IsValid() && SelectedSection->CanEdit() && (!SelectedSection->HasDefaultSettingsObject() || (!DefaultConfigCheckOutNeeded && !DefaultConfigQueryInProgress)));
+	return (SelectedSection.IsValid() && SelectedSection->CanEdit() && (!SelectedSection->HasDefaultSettingsObject() || FileWatcherWidget->IsUnlocked()));
 }
 
 
@@ -878,5 +815,19 @@ EVisibility SSettingsEditor::HandleSettingsViewVisibility( ) const
 	return EVisibility::Hidden;
 }
 
+
+// Do we need to edit the default config file?
+bool SSettingsEditor::IsDefaultConfigCheckOutNeeded() const
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		return !FileWatcherWidget->IsUnlocked();
+	}
+	else
+	{
+		return false;
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

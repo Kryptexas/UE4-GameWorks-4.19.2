@@ -36,6 +36,19 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
+	// SWidget interface
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	// End of SWidget interface
+
+	// Return true if the watched file can be modified (as of the last update)
+	bool IsUnlocked() const;
+
+	// Force an update on the next tick
+	void Invalidate()
+	{
+		DefaultConfigCheckOutTimer = 1.0f;
+	}
+
 private:
 
 	// Callback for clicking the 'Check Out' button.
@@ -53,7 +66,7 @@ private:
 	// Callback for getting the widget index for the notice switcher.
 	int32 HandleNoticeSwitcherWidgetIndex( ) const
 	{
-		return bIsUnlocked.Get() ? 1 : 0;
+		return IsUnlocked() ? 1 : 0;
 	}
 
 	// Callback for getting the status text when the config is locked
@@ -73,9 +86,15 @@ private:
 	// Holds a delegate that is executed when the 'Check Out' button has been clicked.
 	FOnClicked CheckOutClickedDelegate;
 
-	TAttribute<bool> bIsUnlocked;
-
+	// The current file being watched
 	TAttribute<FString> ConfigFilePath;
 
-	TAttribute<bool> bLookingForSourceControlState;
+	// Holds a flag indicating whether the section's configuration file needs to be checked out.
+	bool DefaultConfigCheckOutNeeded;
+
+	// Holds a flag indicating whether the section's configuration file has a source control status request in progress.
+	bool DefaultConfigQueryInProgress;
+
+	// Holds a timer for checking whether the section's configuration file needs to be checked out.
+	float DefaultConfigCheckOutTimer;
 };

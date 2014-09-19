@@ -15,9 +15,11 @@
 void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 {
 	CheckOutClickedDelegate = InArgs._OnCheckOutClicked;
-	bIsUnlocked = InArgs._Unlocked;
 	ConfigFilePath = InArgs._ConfigFilePath;
-	bLookingForSourceControlState = InArgs._LookingForSourceControlState;
+
+	DefaultConfigCheckOutTimer = 0.0f;
+	DefaultConfigCheckOutNeeded = false;
+	DefaultConfigQueryInProgress = false;
 
 	// default configuration notice
 	ChildSlot
@@ -171,12 +173,11 @@ FText SSettingsEditorCheckoutNotice::HandleCheckOutButtonToolTip( ) const
 	return LOCTEXT("MakeWritableTooltip", "Make the default configuration file that holds these settings writable.");
 }
 
-
 EVisibility SSettingsEditorCheckoutNotice::HandleCheckOutButtonVisibility( ) const
 {
 	if (ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable())
 	{
-		return !bLookingForSourceControlState.Get() ? EVisibility::Visible : EVisibility::Collapsed;
+		return !DefaultConfigQueryInProgress ? EVisibility::Visible : EVisibility::Hidden;
 	}
 
 	return EVisibility::Collapsed;
@@ -202,7 +203,7 @@ FText SSettingsEditorCheckoutNotice::HandleUnlockedStatusText() const
 
 FSlateColor SSettingsEditorCheckoutNotice::GetLockedOrUnlockedStatusBarColor() const
 {
-	return bIsUnlocked.Get() ? FLinearColor::Green : FLinearColor::Yellow;
+	return IsUnlocked() ? FLinearColor::Green : FLinearColor::Yellow;
 }
 
 
@@ -210,9 +211,64 @@ EVisibility SSettingsEditorCheckoutNotice::HandleThrobberVisibility() const
 {
 	if(ISourceControlModule::Get().IsEnabled())
 	{
-		return bLookingForSourceControlState.Get() ? EVisibility::Visible : EVisibility::Collapsed;
+		return DefaultConfigQueryInProgress ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 	return EVisibility::Collapsed;
+}
+
+
+void SSettingsEditorCheckoutNotice::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	// cache selected settings object's configuration file state
+	DefaultConfigCheckOutTimer += InDeltaTime;
+
+	if (DefaultConfigCheckOutTimer >= 1.0f)
+	{
+		bool NewCheckOutNeeded = false;
+
+		DefaultConfigQueryInProgress = false;
+		FString CachedConfigFileName = ConfigFilePath.Get();
+		if (!CachedConfigFileName.IsEmpty())
+		{
+			if (ISourceControlModule::Get().IsEnabled())
+			{
+				// note: calling QueueStatusUpdate often does not spam status updates as an internal timer prevents this
+				ISourceControlModule::Get().QueueStatusUpdate(CachedConfigFileName);
+
+				ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+				FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(CachedConfigFileName, EStateCacheUsage::Use);
+				NewCheckOutNeeded = SourceControlState.IsValid() && SourceControlState->CanCheckout();
+				DefaultConfigQueryInProgress = SourceControlState.IsValid() && SourceControlState->IsUnknown();
+			}
+			else
+			{
+				NewCheckOutNeeded = (FPaths::FileExists(CachedConfigFileName) && IFileManager::Get().IsReadOnly(*CachedConfigFileName));
+			}
+
+			// file has been checked in or reverted
+			if ((NewCheckOutNeeded == true) && (DefaultConfigCheckOutNeeded == false))
+			{
+				// 				TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+				// 
+				// 				if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+				// 				{
+				// 					//@TODO: This thing!
+				// 					SettingsObject->ReloadConfig();
+				// 				}
+			}
+		}
+
+		DefaultConfigCheckOutNeeded = NewCheckOutNeeded;
+		DefaultConfigCheckOutTimer = 0.0f;
+	}
+}
+
+
+bool SSettingsEditorCheckoutNotice::IsUnlocked() const
+{
+	return !DefaultConfigCheckOutNeeded && !DefaultConfigQueryInProgress;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -5,6 +5,7 @@
 #include "HardwareTargetingSettingsDetails.h"
 #include "HardwareTargetingModule.h"
 #include "ISourceControlModule.h"
+#include "SSettingsEditorCheckoutNotice.h"
 
 #define LOCTEXT_NAMESPACE "FHardwareTargetingSettingsDetails"
 
@@ -123,9 +124,9 @@ public:
 
 	bool CanApply() const
 	{
-		for (const auto& Pair : WritableStatus)
+		for (const auto& Watcher : FileWatcherWidgets)
 		{
-			if (Pair.Value != EWritableStatus::Writable)
+			if (!Watcher->IsUnlocked())
 			{
 				return false;
 			}
@@ -139,72 +140,9 @@ public:
 		return FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *Settings->GetClass()->ClassConfigName.ToString()));
 	}
 
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-	{
-		if (!ISourceControlModule::Get().IsEnabled())
-		{
-			return;
-		}
-
-		const double CheckStatusIntervalS = 2;
-		if (InCurrentTime - LastStatusUpdate > CheckStatusIntervalS)
-		{
-			LastStatusUpdate = InCurrentTime;
-
-			for (auto& Pair : WritableStatus)
-			{
-				if (Pair.Key.IsValid() && Pair.Value == EWritableStatus::Unknown)
-				{
-					ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(GetDefaultConfigPath(Pair.Key.Get()), EStateCacheUsage::Use);
-					if (SourceControlState.IsValid())
-					{
-						Pair.Value = SourceControlState->IsCheckedOut() ? EWritableStatus::Writable : EWritableStatus::NotWritable;
-					}
-				}
-			}
-		}
-	}
-
-	bool AreSettingsWritable(TWeakObjectPtr<UObject> Settings) const
-	{
-		if (auto* Status = WritableStatus.Find(Settings))
-		{
-			if (*Status == EWritableStatus::Writable)
-			{
-				return true;
-			}
-		}
-		return false;
-	}
-
-	EVisibility GetWritableHintVisibility(TWeakObjectPtr<UObject> Settings) const
-	{
-		if (const auto* Status = WritableStatus.Find(Settings))
-		{
-			if (*Status == EWritableStatus::NotWritable)
-			{
-				return EVisibility::Visible;
-			}
-		}
-		return EVisibility::Collapsed;
-	}
-
-	EVisibility GetWritableThrobberVisibility(TWeakObjectPtr<UObject> Settings) const
-	{
-		if (const auto* Status = WritableStatus.Find(Settings))
-		{
-			if (*Status == EWritableStatus::Unknown)
-			{
-				return EVisibility::Visible;
-			}
-		}
-		return EVisibility::Collapsed;
-	}
-
 	void Update()
 	{
-		WritableStatus.Empty();
+		FileWatcherWidgets.Reset();
 		SettingsDescriptions->ClearChildren();
 
 		IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
@@ -226,85 +164,28 @@ public:
 				continue;
 			}
 			
-			EWritableStatus& Status = WritableStatus.Add(Settings.SettingsObject, EWritableStatus::Unknown);
+
 			FString ConfigFile = GetDefaultConfigPath(Settings.SettingsObject.Get());
 
 			if (!SeenConfigFiles.Contains(ConfigFile))
 			{
 				SeenConfigFiles.Add(ConfigFile);
 
-				if (ISourceControlModule::Get().IsEnabled())
-				{
-					ISourceControlModule::Get().QueueStatusUpdate(ConfigFile);
-
-					ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFile, EStateCacheUsage::Use);
-					if (SourceControlState.IsValid())
-					{
-						Status = SourceControlState->IsCheckedOut() ? EWritableStatus::Writable : EWritableStatus::NotWritable;
-					}
-				}
-				else
-				{
-					const bool bIsWritable = !FPaths::FileExists(ConfigFile) || !IFileManager::Get().IsReadOnly(*ConfigFile);
-					Status = bIsWritable ? EWritableStatus::Writable : EWritableStatus::NotWritable;
-				}
+				TSharedRef<SSettingsEditorCheckoutNotice> FileWatcherWidget =
+					SNew(SSettingsEditorCheckoutNotice)
+					.ConfigFilePath(ConfigFile);
+				FileWatcherWidgets.Add(FileWatcherWidget);
 
 				SettingsDescriptions->AddSlot(0, SlotIndex)
 				[
-					SNew(SVerticalBox)
-
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(STextBlock)
-						.Text(FPaths::GetCleanFilename(ConfigFile))
-					]
-				 
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(STextBlock)
-						.Visibility(this, &SRequiredDefaultConfig::GetWritableHintVisibility, Settings.SettingsObject)
-						.Text(LOCTEXT("NotWritable", "This file is not writable"))
-					]
-				 
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SBorder)
-						.Visibility(this, &SRequiredDefaultConfig::GetWritableThrobberVisibility, Settings.SettingsObject)
-						.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-						.Padding(0)
-						[
-							SNew(SHorizontalBox)
-
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								SNew(SThrobber)
-
-							]
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								SNew(STextBlock)
-								.Text(LOCTEXT("CheckingFileStatus", "Checking file status"))
-							]
-						]
-					]
+					FileWatcherWidget
 				];
+				SlotIndex++;
 			}
-
-			++SlotIndex;
 		}
 	}
-	
-	enum class EWritableStatus
-	{
-		Unknown, Writable, NotWritable
-	};
-	TMap<TWeakObjectPtr<UObject>, EWritableStatus> WritableStatus;
+
+	TArray<TSharedPtr<SSettingsEditorCheckoutNotice>> FileWatcherWidgets;
 
 	TSharedPtr<SUniformGridPanel> SettingsDescriptions;
 
