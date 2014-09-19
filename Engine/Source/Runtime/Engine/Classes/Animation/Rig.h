@@ -171,7 +171,7 @@ public:
 	// rig control related
 	int32 GetTransformBaseNum() const;
 	const TArray<FTransformBase> & GetTransformBases() const { return TransformBases; }
-	const FTransformBase * GetTransformBase(int32 ControlIndex) const;
+	const FTransformBase * GetTransformBase(int32 TransformBaseIndex) const;
 	const FTransformBase * GetTransformBaseByNodeName(FName NodeName) const;
 	int32 FindTransformBaseByNodeName(FName NodeName) const;
 	int32 FindTransformParentNode(int32 NodeIndex, bool bTranslate, int32 Index=0) const;

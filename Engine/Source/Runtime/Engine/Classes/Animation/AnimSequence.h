@@ -114,6 +114,45 @@ struct FRawAnimSequenceTrack
 };
 
 /**
+ * These two always should go together, but it is not right now. 
+ * I wonder in the future, we change all compressed to be inside as well, so they all stay together
+ * When remove tracks, it should be handled together
+ */
+USTRUCT()
+struct FAnimSequenceTrackContainer
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	TArray<struct FRawAnimSequenceTrack> AnimationTracks;
+
+	UPROPERTY()
+	TArray<FName>						TrackNames;
+
+	// @todo expand this struct to work better and assign data better
+	void Initialize(int32 NumNode)
+	{
+		AnimationTracks.Empty(NumNode);
+		AnimationTracks.AddZeroed(NumNode);
+		TrackNames.Empty(NumNode);
+		TrackNames.AddZeroed(NumNode);
+	}
+
+	void Initialize(TArray<FName> InTrackNames)
+	{
+		TrackNames = InTrackNames;
+		int32 NumNode = TrackNames.Num();
+		AnimationTracks.Empty(NumNode);
+		AnimationTracks.AddZeroed(NumNode);
+	}
+
+	int32 GetNum() const
+	{
+		check (TrackNames.Num() == AnimationTracks.Num());
+		return (AnimationTracks.Num());
+	}
+};
+/**
  *	@note we have plan to support skeleton hierarchy. 
  *	when that happens, we'd like to keep skeleton indexing
  */
@@ -727,9 +766,9 @@ private:
 	void RemoveNaNTracks();
 
 	/** Retargeting functions */
-	bool ConvertAnimationDataToRiggingData(TArray<struct FRawAnimSequenceTrack> & RawRiggingAnimationData);
-	bool ConvertRiggingDataToAnimationData(TArray<struct FRawAnimSequenceTrack> & RawRiggingAnimationData);
-	int32 GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & AnimationDataInComponentSpace, TArray<struct FRawAnimSequenceTrack> * RawRiggingAnimationData) const;
+	bool ConvertAnimationDataToRiggingData(FAnimSequenceTrackContainer & RiggingAnimationData);
+	bool ConvertRiggingDataToAnimationData(FAnimSequenceTrackContainer & RiggingAnimationData);
+	int32 GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & AnimationDataInComponentSpace, FAnimSequenceTrackContainer * RiggingAnimationData) const;
 #endif
 
 	/**

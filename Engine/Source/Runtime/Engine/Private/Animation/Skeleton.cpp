@@ -1042,6 +1042,19 @@ FName USkeleton::GetRigBoneMapping(const FName & NodeName) const
 	return NAME_None;
 }
 
+FName USkeleton::GetRigNodeNameFromBoneName(const FName & BoneName) const
+{
+	for(const auto & NameMap : RigConfig.BoneMappingTable)
+	{
+		if(NameMap.BoneName == BoneName)
+		{
+			return NameMap.NodeName;
+		}
+	}
+
+	return NAME_None;
+}
+
 int32 USkeleton::GetMappedValidNodes(TArray<FName> &OutValidNodeNames)
 {
 	OutValidNodeNames.Empty();

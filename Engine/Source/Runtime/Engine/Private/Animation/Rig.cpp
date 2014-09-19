@@ -174,11 +174,11 @@ int32 URig::GetTransformBaseNum() const
 	return TransformBases.Num();
 }
 
-const FTransformBase * URig::GetTransformBase(int32 ControlIndex) const
+const FTransformBase * URig::GetTransformBase(int32 TransformBaseIndex) const
 {
-	if (TransformBases.IsValidIndex(ControlIndex))
+	if (TransformBases.IsValidIndex(TransformBaseIndex))
 	{
-		return &TransformBases[ControlIndex];
+		return &TransformBases[TransformBaseIndex];
 	}
 
 	return NULL;
@@ -186,11 +186,11 @@ const FTransformBase * URig::GetTransformBase(int32 ControlIndex) const
 
 const FTransformBase * URig::GetTransformBaseByNodeName(FName NodeName) const
 {
-	int32 ControlIndex = FindTransformBaseByNodeName(NodeName);
+	int32 TransformBaseIndex = FindTransformBaseByNodeName(NodeName);
 
-	if (ControlIndex != INDEX_NONE)
+	if (TransformBaseIndex != INDEX_NONE)
 	{
-		return &TransformBases[ControlIndex];
+		return &TransformBases[TransformBaseIndex];
 	}
 
 	return NULL;
