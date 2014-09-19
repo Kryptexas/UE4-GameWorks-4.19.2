@@ -353,21 +353,29 @@ namespace UnrealBuildTool.Android
 						InputFiles.AddRange(Directory.EnumerateFiles(GameBuildFilesPath, "*.*", SearchOption.AllDirectories));
 					}
 
+					// rebuild if .ini files change
+					// @todo android: programmatically determine if any .ini setting changed?
+					InputFiles.Add(Path.Combine(EngineDirectory, "Config\\BaseEngine.ini"));
+					InputFiles.Add(Path.Combine(ProjectDirectory, "Config\\DefaultEngine.ini"));
+
 					// look for any newer input file
 					DateTime ApkTime = File.GetLastWriteTimeUtc(DestApkName);
 					foreach (var InputFileName in InputFiles)
 					{
-						// skip .log files
-						if (Path.GetExtension(InputFileName) == ".log")
+						if (File.Exists(InputFileName))
 						{
-							continue;
-						}
-						DateTime InputFileTime = File.GetLastWriteTimeUtc(InputFileName);
-						if (InputFileTime.CompareTo(ApkTime) > 0)
-						{
-							bAllInputsCurrent = false;
-							Log.TraceInformation("{0} is out of date due to newer input file {1}", DestApkName, InputFileName);
-							break;	
+							// skip .log files
+							if (Path.GetExtension(InputFileName) == ".log")
+							{
+								continue;
+							}
+							DateTime InputFileTime = File.GetLastWriteTimeUtc(InputFileName);
+							if (InputFileTime.CompareTo(ApkTime) > 0)
+							{
+								bAllInputsCurrent = false;
+								Log.TraceInformation("{0} is out of date due to newer input file {1}", DestApkName, InputFileName);
+								break;	
+							}
 						}
 					}
 				}
