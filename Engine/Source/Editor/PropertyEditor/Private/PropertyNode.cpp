@@ -1594,8 +1594,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		{
 			// Call PostEditchange on all the objects
 			// Assume reset to default, can change topology
-			const bool bTopologyChange = true;
-			FPropertyChangedEvent ChangeEvent( TheProperty, bTopologyChange );
+			FPropertyChangedEvent ChangeEvent( TheProperty );
 			NotifyPostChange( ChangeEvent, InNotifyHook );
 		}
 
@@ -1902,7 +1901,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 					if (CurProperty != InPropertyChangedEvent.Property)
 					{
 						//parent object node property.  Reset other internals and leave the event type as unspecified
-						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.bChangesTopology, InPropertyChangedEvent.ChangeType);
+						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.ChangeType);
 					}
 					ChangedEvent.ObjectIteratorIndex = CurrentObjectIndex;
 					Object->PostEditChangeProperty( ChangedEvent );
@@ -1913,7 +1912,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 					if (CurProperty != InPropertyChangedEvent.Property)
 					{
 						//parent object node property.  Reset other internals and leave the event type as unspecified
-						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.bChangesTopology, InPropertyChangedEvent.ChangeType);
+						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.ChangeType);
 					}
 					FPropertyChangedChainEvent ChainEvent(*PropertyChain, ChangedEvent);
 					ChainEvent.ObjectIteratorIndex = CurrentObjectIndex;

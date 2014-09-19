@@ -946,7 +946,7 @@ namespace EditorBuildPromotionTestUtils
 
 			TargetObject->PreEditChange(FoundProperty);
 			FoundProperty->ImportText(*NewValueString, FoundProperty->ContainerPtrToValuePtr<uint8>(TargetObject), 0, TargetObject);
-			FPropertyChangedEvent PropertyChangedEvent(FoundProperty, false, EPropertyChangeType::ValueSet);
+			FPropertyChangedEvent PropertyChangedEvent(FoundProperty, EPropertyChangeType::ValueSet);
 			TargetObject->PostEditChangeProperty(PropertyChangedEvent);
 		}
 	}

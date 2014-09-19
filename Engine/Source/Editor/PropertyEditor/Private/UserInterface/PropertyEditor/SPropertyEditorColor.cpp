@@ -234,7 +234,7 @@ void SPropertyEditorColor::SetColor(FLinearColor NewColor)
 			}
 		}
 
-		FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ValueSet);
 		PropertyNode->NotifyPostChange( ChangeEvent, PropertyUtilities->GetNotifyHook() );
 
 		GEditor->EndTransaction();		
@@ -273,7 +273,7 @@ void SPropertyEditorColor::OnColorPickerCancelled( FLinearColor OriginalColor )
 			}
 		}
 
-		FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ValueSet);
 		PropertyNode->NotifyPostChange( ChangeEvent, PropertyUtilities->GetNotifyHook() );
 	}
 

@@ -243,7 +243,7 @@ void UObject::PreEditChange( FEditPropertyChain& PropertyAboutToChange )
 
 void UObject::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	FPropertyChangedEvent PropertyEvent(PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue(), PropertyChangedEvent.bChangesTopology, PropertyChangedEvent.ChangeType);
+	FPropertyChangedEvent PropertyEvent(PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue(), PropertyChangedEvent.ChangeType);
 
 	if( PropertyChangedEvent.PropertyChain.GetActiveMemberNode() )
 	{

@@ -326,8 +326,7 @@ void FPropertyEditor::SetEditConditionState( bool bShouldEnable )
 		}
 	}
 
-	const bool bTopologyChange = true;
-	FPropertyChangedEvent ChangeEvent(PropertyNode->GetProperty(), bTopologyChange);
+	FPropertyChangedEvent ChangeEvent(PropertyNode->GetProperty());
 	PropertyNode->NotifyPostChange( ChangeEvent, PropertyUtilities->GetNotifyHook() );
 }
 
@@ -402,9 +401,7 @@ void FPropertyEditor::OnCustomResetToDefault( FSimpleDelegate OnCustomResetToDef
 		OnCustomResetToDefaultDelegate.Execute();
 
 		// Call PostEditchange on all the objects
-		// Assume reset to default, can change topology
-		const bool bTopologyChange = true;
-		FPropertyChangedEvent ChangeEvent( PropertyNode->GetProperty(), bTopologyChange );
+		FPropertyChangedEvent ChangeEvent( PropertyNode->GetProperty() );
 		PropertyNode->NotifyPostChange( ChangeEvent, PropertyUtilities->GetNotifyHook() );
 	}
 }

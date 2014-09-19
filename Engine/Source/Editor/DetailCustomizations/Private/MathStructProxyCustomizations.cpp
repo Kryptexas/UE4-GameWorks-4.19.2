@@ -455,8 +455,7 @@ bool FTransformStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> Prope
 
 	if(PropertyUtilities.IsValid() && !bIsUsingSlider)
 	{
-		const bool bTopologyChange = false;
-		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), EPropertyChangeType::ValueSet);
 		PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);
 	}
 

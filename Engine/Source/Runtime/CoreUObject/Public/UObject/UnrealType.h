@@ -2710,17 +2710,32 @@ namespace EPropertyChangeType
 struct FPropertyChangedEvent
 {
 	//default constructor
-	FPropertyChangedEvent(UProperty* InProperty, const bool bInChangesTopology=false, EPropertyChangeType::Type InChangeType=EPropertyChangeType::Unspecified)
+	FPropertyChangedEvent(UProperty* InProperty)
+		: Property(InProperty)
+		, MemberProperty(InProperty)
+		, ChangeType(EPropertyChangeType::Unspecified)
+		, ObjectIteratorIndex(INDEX_NONE)
+		, ArrayIndicesPerObject(nullptr)
 	{
-		Property = InProperty;
-		MemberProperty = InProperty;
-		bChangesTopology = bInChangesTopology;
-		ChangeType = InChangeType;
+	}
 
-		//default to out of bounds/unused
-		ObjectIteratorIndex = -1;
-		//default to no array index knowledge
-		ArrayIndicesPerObject = NULL;
+	FPropertyChangedEvent(UProperty* InProperty, EPropertyChangeType::Type InChangeType)
+		: Property(InProperty)
+		, MemberProperty(InProperty)
+		, ChangeType(InChangeType)
+		, ObjectIteratorIndex(INDEX_NONE)
+		, ArrayIndicesPerObject(nullptr)
+	{
+	}
+
+	//@TODO: DEPRECATED(4.6, "The bInChangesTopology parameter has been removed, use the two-argument constructor of FPropertyChangedEvent instead")
+	FPropertyChangedEvent(UProperty* InProperty, const bool /*bInChangesTopology*/, EPropertyChangeType::Type InChangeType)
+		: Property(InProperty)
+		, MemberProperty(InProperty)
+		, ChangeType(InChangeType)
+		, ObjectIteratorIndex(INDEX_NONE)
+		, ArrayIndicesPerObject(nullptr)
+	{
 	}
 
 	void SetActiveMemberProperty( UProperty* InActiveMemberProperty )
@@ -2740,7 +2755,7 @@ struct FPropertyChangedEvent
 	 * Gets the Array Index of the "current object" based on a particular name
 	 * InName - Name of the property to find the array index for
 	 */
-	int32 GetArrayIndex (const FString& InName)
+	int32 GetArrayIndex(const FString& InName)
 	{
 		//default to unknown index
 		int32 Retval = -1;
@@ -2766,10 +2781,11 @@ struct FPropertyChangedEvent
 	 */
 	UProperty* MemberProperty;
 
-	bool bChangesTopology;
+	// The kind of change event that occurred
 	EPropertyChangeType::Type ChangeType;
-	//Used by the param system to say which object is receiving the event in the case of multi-select
-	int32                       ObjectIteratorIndex;
+
+	// Used by the param system to say which object is receiving the event in the case of multi-select
+	int32 ObjectIteratorIndex;
 private:
 	//In the property window, multiple objects can be selected at once.  In the case of adding/inserting to an array, each object COULD have different indices for the new entries in the array
 	const TArray< TMap<FString,int32> >* ArrayIndicesPerObject;

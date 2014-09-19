@@ -87,7 +87,7 @@ void FStreamingLevelModel::SetLevelColor(FLinearColor InColor)
 
 		LevelStreaming.Get()->LevelColor = InColor;
 
-		FPropertyChangedEvent PropertyChangedEvent(DrawColorProperty, false, EPropertyChangeType::ValueSet);
+		FPropertyChangedEvent PropertyChangedEvent(DrawColorProperty, EPropertyChangeType::ValueSet);
 		LevelStreaming->PostEditChangeProperty(PropertyChangedEvent);
 	}
 }

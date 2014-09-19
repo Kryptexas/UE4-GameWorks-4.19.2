@@ -216,7 +216,7 @@ void SDetailsViewBase::SetColorPropertyFromColorPicker(FLinearColor NewColor)
 
 			PinnedColorPropertyNode->NotifyPreChange(Property, GetNotifyHook());
 
-			FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
+			FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ValueSet);
 			PinnedColorPropertyNode->NotifyPostChange(ChangeEvent, GetNotifyHook());
 		}
 	}
@@ -230,7 +230,7 @@ void SDetailsViewBase::OnColorPickerWindowClosed(const TSharedRef<SWindow>& Wind
 		UProperty* Property = PinnedColorPropertyNode->GetProperty();
 		if (Property && PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ArrayAdd);
+			FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ArrayAdd);
 			PinnedColorPropertyNode->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);
 		}

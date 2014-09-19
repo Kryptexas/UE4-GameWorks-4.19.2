@@ -1173,7 +1173,7 @@ void FComponentTransformDetails::OnSetRotation( float NewValue, bool bCommitted,
 							PropagateTransformPropertyChange(Object, RelativeRotationProperty, OldRelativeRotation, RelativeRotation);
 						}
 
-						FPropertyChangedEvent PropertyChangedEvent( RelativeRotationProperty, false, !bCommitted && bEditingRotationInUI ? EPropertyChangeType::Interactive : EPropertyChangeType::ValueSet );
+						FPropertyChangedEvent PropertyChangedEvent( RelativeRotationProperty, !bCommitted && bEditingRotationInUI ? EPropertyChangeType::Interactive : EPropertyChangeType::ValueSet );
 
 						if( NotifyHook )
 						{
@@ -1401,7 +1401,7 @@ void FComponentTransformDetails::ScaleObject( float NewValue, int32 Axis, bool b
 					}
 					PropertyChain.AddHead(RelativeScale3DProperty);
 
-					FPropertyChangedEvent PropertyChangedEvent(RelativeScale3DProperty, false, EPropertyChangeType::ValueSet);
+					FPropertyChangedEvent PropertyChangedEvent(RelativeScale3DProperty, EPropertyChangeType::ValueSet);
 					FPropertyChangedChainEvent PropertyChangedChainEvent(PropertyChain, PropertyChangedEvent);
 					Object->PostEditChangeChainProperty( PropertyChangedChainEvent );
 
