@@ -946,6 +946,8 @@ public:
 	
 	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget( ) const override;
 
+	virtual TSharedPtr< SWidget > GetMouseCaptor() const override;
+
 	virtual bool HasAnyMouseCaptor( ) const override;
 
 	virtual FSlateRect GetPreferredWorkArea( ) const override;

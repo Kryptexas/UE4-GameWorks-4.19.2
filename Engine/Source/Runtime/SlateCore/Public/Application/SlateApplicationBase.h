@@ -136,6 +136,14 @@ public:
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
 	/**
+	* Gets the Widget that currently captures the mouse.
+	*
+	* @return The captor widget, or nullptr if no widget captured the mouse.
+	*/
+	DEPRECATED(4.5, "This API is no longer supported.  You can check if a specific widget has capture using the SWidget::HasMouseCapture() API")
+	virtual TSharedPtr< SWidget > GetMouseCaptor() const = 0;
+
+	/**
 	 * Gets whether or not a widget has captured the mouse.
 	 *
 	 * @return True if one or more widgets have capture, otherwise false.
