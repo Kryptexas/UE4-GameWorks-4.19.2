@@ -16,7 +16,7 @@ CurrentlyInstalledFilename=UeSdksRoot + "\HostWin64\Linux_x64\CurrentlyInstalled
 rem WScript.StdOut.WriteLine(CurrentlyInstalledFilename)
 
 Set CurrentlyInstalledFile = CreateObject("Scripting.FileSystemObject").OpenTextFile(CurrentlyInstalledFilename,1)
-CurrentlyInstalled = CurrentlyInstalledFile.ReadAll()
+CurrentlyInstalled = CurrentlyInstalledFile.ReadLine()
 CurrentlyInstalledFile.Close()
 
 CurrentlyInstalled=Replace(CurrentlyInstalled, vbCrLf, "")

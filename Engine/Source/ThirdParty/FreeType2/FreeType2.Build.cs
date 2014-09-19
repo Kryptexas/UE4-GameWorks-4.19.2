@@ -69,8 +69,7 @@ public class FreeType2 : ModuleRules
             }
             else
             {
-                PublicLibraryPaths.Add(FreeType2LibPath + "Linux/" + Target.Architecture);
-                PublicAdditionalLibraries.Add("freetype");
+                PublicAdditionalLibraries.Add(FreeType2LibPath + "Linux/" + Target.Architecture + "/libfreetype2412_fPIC.a");
             }
         }
        else if (Target.Platform == UnrealTargetPlatform.HTML5)

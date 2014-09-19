@@ -4,7 +4,7 @@
 
 RM_F=del /S 
 
-CFLAGS= -g -c -O3 -m64 -ffunction-sections -funwind-tables -fno-strict-aliasing -fno-exceptions -fno-short-enums -x c
+CFLAGS= -fPIC -g -c -O3 -m64 -ffunction-sections -funwind-tables -fno-strict-aliasing -fno-exceptions -fno-short-enums -x c
 CPPFLAGS= -I../include/ -DFT2_BUILD_LIBRARY -DNDEBUG -target x86_64-unknown-linux-gnu -Wno-null-conversion
 
 OBJS = winfonts/winfnt.o \
@@ -48,7 +48,7 @@ OBJS = winfonts/winfnt.o \
 	autofit/autofit.o
 
 
-LIBFREETYPE = libfreetype2412.a
+LIBFREETYPE = libfreetype2412_fPIC.a
 
 all: $(LIBFREETYPE)
 

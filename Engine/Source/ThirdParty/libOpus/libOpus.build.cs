@@ -53,9 +53,7 @@ public class libOpus : ModuleRules
             }
             else
             {
-                LibraryPath += "Linux/" + Target.Architecture;
-                PublicLibraryPaths.Add(LibraryPath);
-                PublicAdditionalLibraries.Add("opus");
+                PublicAdditionalLibraries.Add(LibraryPath + "Linux/" + Target.Architecture + "/libopus_fPIC.a");
             }
 		}
 	}

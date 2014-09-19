@@ -71,8 +71,7 @@ public class UEOgg : ModuleRules
             }
             else
             {
-                PublicLibraryPaths.Add(OggLibPath + "Linux/" + Target.Architecture);
-                PublicAdditionalLibraries.Add("ogg");
+                PublicAdditionalLibraries.Add(OggLibPath + "Linux/" + Target.Architecture + "/libogg_fPIC.a");
             }
 		}
 	}
