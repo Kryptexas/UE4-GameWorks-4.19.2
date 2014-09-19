@@ -50,6 +50,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	FileWatcherWidget =
 		SNew(SSettingsEditorCheckoutNotice)
 		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
+		.OnFileProbablyModifiedExternally(this, &SSettingsEditor::ReloadConfigObject)
 		.ConfigFilePath(this, &SSettingsEditor::GetConfigFileName);
 
 	ChildSlot
@@ -195,7 +196,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 						+ SVerticalBox::Slot()
 							.AutoHeight()
-							.Padding(0.0f, 16.0f, 0.0f, 16.0f)
+							.Padding(0.0f, 16.0f, 0.0f, 0.0f)
 							[
 								FileWatcherWidget.ToSharedRef()
 							]
@@ -827,6 +828,16 @@ bool SSettingsEditor::IsDefaultConfigCheckOutNeeded() const
 	else
 	{
 		return false;
+	}
+}
+
+void SSettingsEditor::ReloadConfigObject()
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		SettingsObject->ReloadConfig();
 	}
 }
 

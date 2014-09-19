@@ -163,6 +163,9 @@ private:
 
 	// Do we need to edit the default config file?
 	bool IsDefaultConfigCheckOutNeeded() const;
+
+	void ReloadConfigObject();
+
 private:
 
 	// Watcher widget for the default config file (checks file status / SCC state)

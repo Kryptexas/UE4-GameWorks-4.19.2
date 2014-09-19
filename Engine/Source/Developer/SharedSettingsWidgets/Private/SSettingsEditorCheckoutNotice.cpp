@@ -14,7 +14,7 @@
 
 void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 {
-	CheckOutClickedDelegate = InArgs._OnCheckOutClicked;
+	OnFileProbablyModifiedExternally = InArgs._OnFileProbablyModifiedExternally;
 	ConfigFilePath = InArgs._ConfigFilePath;
 
 	DefaultConfigCheckOutTimer = 0.0f;
@@ -143,11 +143,6 @@ FReply SSettingsEditorCheckoutNotice::HandleCheckOutButtonClicked()
 		}
 	}
 
-	if (CheckOutClickedDelegate.IsBound())
-	{
-		return CheckOutClickedDelegate.Execute();
-	}
-
 	return FReply::Handled();
 }
 
@@ -180,7 +175,7 @@ EVisibility SSettingsEditorCheckoutNotice::HandleCheckOutButtonVisibility( ) con
 		return !DefaultConfigQueryInProgress ? EVisibility::Visible : EVisibility::Hidden;
 	}
 
-	return EVisibility::Collapsed;
+	return EVisibility::Hidden;
 }
 
 FText SSettingsEditorCheckoutNotice::HandleLockedStatusText() const
@@ -250,13 +245,7 @@ void SSettingsEditorCheckoutNotice::Tick(const FGeometry& AllottedGeometry, cons
 			// file has been checked in or reverted
 			if ((NewCheckOutNeeded == true) && (DefaultConfigCheckOutNeeded == false))
 			{
-				// 				TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
-				// 
-				// 				if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
-				// 				{
-				// 					//@TODO: This thing!
-				// 					SettingsObject->ReloadConfig();
-				// 				}
+				OnFileProbablyModifiedExternally.ExecuteIfBound();
 			}
 		}
 

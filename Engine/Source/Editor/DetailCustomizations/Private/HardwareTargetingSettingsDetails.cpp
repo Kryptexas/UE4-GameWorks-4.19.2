@@ -120,6 +120,8 @@ public:
 					EditPropertiesBlock
 				];
 		}
+
+		Update();
 	}
 
 	bool CanApply() const

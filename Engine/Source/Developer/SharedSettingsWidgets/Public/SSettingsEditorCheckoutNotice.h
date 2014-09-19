@@ -12,20 +12,11 @@ public:
 
 	SLATE_BEGIN_ARGS(SSettingsEditorCheckoutNotice) { }
 
-		/** Called to determine if the associated file is unlocked */
-		SLATE_ATTRIBUTE(bool, Unlocked)
-
 		/** Called to get the filename of the config file for display */
 		SLATE_ATTRIBUTE(FString, ConfigFilePath)
 
-		/** Slot for this button's content (optional) */
-		SLATE_NAMED_SLOT(FArguments, LockedContent)
-
-		/** Called when the 'Check Out' button is clicked */
-		SLATE_EVENT(FOnClicked, OnCheckOutClicked)
-
-		/** Called to determine if we are currently looking for the source control state of the file */
-		SLATE_ATTRIBUTE(bool, LookingForSourceControlState)
+		/** Called when the the file was probably modified externally (only detects files that were 'ready to go' and are now not, e.g., reverted/checked in or files with the read-only flag edited outside) */
+		SLATE_EVENT(FSimpleDelegate, OnFileProbablyModifiedExternally)
 
 	SLATE_END_ARGS()
 
@@ -83,8 +74,8 @@ private:
 
 private:
 
-	// Holds a delegate that is executed when the 'Check Out' button has been clicked.
-	FOnClicked CheckOutClickedDelegate;
+	// Called when the file was modified externally
+	FSimpleDelegate OnFileProbablyModifiedExternally;
 
 	// The current file being watched
 	TAttribute<FString> ConfigFilePath;
