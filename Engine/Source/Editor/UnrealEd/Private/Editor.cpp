@@ -139,6 +139,7 @@ FEditorDelegates::FOnDollyPerspectiveCamera				FEditorDelegates::OnDollyPerspect
 FEditorDelegates::FOnBlueprintContextMenuCreated		FEditorDelegates::OnBlueprintContextMenuCreated;
 FSimpleMulticastDelegate								FEditorDelegates::OnShutdownPostPackagesSaved;
 FEditorDelegates::FOnAssetsPreDelete					FEditorDelegates::OnAssetsPreDelete;
+FEditorDelegates::FOnAssetsDeleted						FEditorDelegates::OnAssetsDeleted;
 
 /*-----------------------------------------------------------------------------
 	Globals.

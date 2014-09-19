@@ -15,6 +15,11 @@
 
 #include "WidgetTemplate.h"
 #include "WidgetTemplateClass.h"
+#include "WidgetTemplateBlueprintClass.h"
+
+#include "Developer/HotReload/Public/IHotReload.h"
+
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -75,12 +80,12 @@ public:
 	{
 	}
 
-	virtual FText GetName() const
+	virtual FText GetName() const override
 	{
 		return Template->Name;
 	}
 
-	virtual FString GetFilterString() const
+	virtual FString GetFilterString() const override
 	{
 		return Template->Name.ToString();
 	}
@@ -89,6 +94,7 @@ public:
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
 			.Padding(2.0f)
+			.Style(FEditorStyle::Get(), "UMGEditor.PaletteItem")
 			.OnDragDetected(this, &FWidgetTemplateViewModel::OnDraggingWidgetTemplateItem)
 			[
 				SNew(SPaletteViewItem, Template)
@@ -112,12 +118,12 @@ public:
 	{
 	}
 
-	virtual FText GetName() const
+	virtual FText GetName() const override
 	{
 		return GroupName;
 	}
 
-	virtual FString GetFilterString() const
+	virtual FString GetFilterString() const override
 	{
 		// Headers should never be included in filtering to avoid showing a header with all of
 		// it's widgets filtered out, so return an empty filter string.
@@ -127,12 +133,14 @@ public:
 	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) override
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
-		.Style( FEditorStyle::Get(), "UMGEditor.PaletteHeader" )
+			.Style( FEditorStyle::Get(), "UMGEditor.PaletteHeader" )
 			.Padding(2.0f)
 			.ShowSelection(false)
 			[
 				SNew(STextBlock)
 				.Text(GroupName)
+				.Font(FEditorStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
+				.ShadowOffset(FVector2D(1.0f, 1.0f))
 			];
 	}
 
@@ -150,10 +158,15 @@ public:
 
 void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor)
 {
-	BlueprintEditor = InBlueprintEditor;
-
+	// Register for events that can trigger a palette rebuild
+	FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled.AddSP(this, &SPaletteView::HandleOnBlueprintCompiled);
+	FEditorDelegates::OnAssetsDeleted.AddSP(this, &SPaletteView::HandleOnAssetsDeleted);
+	IHotReloadModule::Get().OnHotReload().AddSP(this, &SPaletteView::HandleOnHotReload);
+	
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddRaw(this, &SPaletteView::OnObjectsReplaced);
+
+	BlueprintEditor = InBlueprintEditor;
 
 	UBlueprint* BP = InBlueprintEditor->GetBlueprintObj();
 
@@ -166,10 +179,12 @@ void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 	FilterHandler->SetGetChildrenDelegate(PaletteFilterHandler::FOnGetChildren::CreateRaw(this, &SPaletteView::OnGetChildren));
 
 	SAssignNew(WidgetTemplatesView, STreeView< TSharedPtr<FWidgetViewModel> >)
-	.SelectionMode(ESelectionMode::Single)
-	.OnGenerateRow(this, &SPaletteView::OnGenerateWidgetTemplateItem)
-	.OnGetChildren(FilterHandler.ToSharedRef(), &PaletteFilterHandler::OnGetFilteredChildren)
-	.TreeItemsSource(&TreeWidgetViewModels);
+		.ItemHeight(1.0f)
+		.SelectionMode(ESelectionMode::Single)
+		.OnGenerateRow(this, &SPaletteView::OnGenerateWidgetTemplateItem)
+		.OnGetChildren(FilterHandler.ToSharedRef(), &PaletteFilterHandler::OnGetFilteredChildren)
+		.TreeItemsSource(&TreeWidgetViewModels);
+		
 
 	FilterHandler->SetTreeView(WidgetTemplatesView.Get());
 
@@ -199,9 +214,9 @@ void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 	bRefreshRequested = true;
 
 	BuildWidgetList();
-	LoadItemExpanssion();
+	LoadItemExpansion();
 
-	bRebuildRquested = false;
+	bRebuildRequested = false;
 }
 
 SPaletteView::~SPaletteView()
@@ -214,7 +229,11 @@ SPaletteView::~SPaletteView()
 		FilterHandler->RefreshAndFilterTree();
 	}
 
+	FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled.RemoveAll(this);
+	FEditorDelegates::OnAssetsDeleted.RemoveAll(this);
+	IHotReloadModule::Get().OnHotReload().RemoveAll(this);
 	GEditor->OnObjectsReplaced().RemoveAll( this );
+	
 
 	SaveItemExpansion();
 }
@@ -232,7 +251,7 @@ FText SPaletteView::GetSearchText() const
 	return SearchText;
 }
 
-void SPaletteView::LoadItemExpanssion()
+void SPaletteView::LoadItemExpansion()
 {
 	// Restore the expansion state of the widget groups.
 	for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
@@ -303,31 +322,75 @@ void SPaletteView::BuildClassWidgetList()
 {
 	static const FName DevelopmentStatusKey(TEXT("DevelopmentStatus"));
 
-	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+	TMap<FName, TSubclassOf<UUserWidget>> LoadedWidgetBlueprintClassesByName;
+
+	auto ActiveWidgetBlueprintClass = GetBlueprint()->GeneratedClass;
+	FName ActiveWidgetBlueprintClassName = ActiveWidgetBlueprintClass->GetFName();
+
+	// Locate all UWidget classes from code and loaded widget BPs
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
 		UClass* WidgetClass = *ClassIt;
+
 		if ( WidgetClass->IsChildOf(UWidget::StaticClass()) )
-		{
-			// We don't want to include experimental widget classes, so filter those out.
+		{	
+			// We aren't interested in classes that are experimental or cannot be instantiated
 			bool bIsExperimental, bIsEarlyAccess;
 			FObjectEditorUtils::GetClassDevelopmentStatus(WidgetClass, bIsExperimental, bIsEarlyAccess);
+			bool bIsInstantiable = !WidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
+			if ( !(bIsExperimental || bIsEarlyAccess || bIsInstantiable) )
+			{
+				continue;
+			}
 
-			// Don't include skeleton classes of widgets.
-			const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
-			const bool bIsValidClass =
-				!( WidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) || bIsSkeletonClass || bIsExperimental );
-			const bool bIsSameClass = WidgetClass->GetFName() == GetBlueprint()->GeneratedClass->GetFName();
+			if (WidgetClass->IsChildOf(UUserWidget::StaticClass()))
+			{
+				// Don't include skeleton classes or the same class as the widget being edited
+				const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+				const bool bIsSameClass = WidgetClass->GetFName() == ActiveWidgetBlueprintClassName;
 
-			//TODO UMG does not prevent deep nested circular references
-
-			// Only use non-(abstract/deprecated/old) classes and don't include the current widget blueprint class.
-			if ( bIsValidClass && !bIsSameClass )
+				// Check that the asset that generated this class is valid (necessary b/c of a larger issue wherein force delete does not wipe the generated class object)
+				if ( !(bIsSkeletonClass || bIsSameClass) && WidgetClass->ClassGeneratedBy )
+				{
+					// Track the widget blueprint classes that are already loaded
+					LoadedWidgetBlueprintClassesByName.Add(WidgetClass->ClassGeneratedBy->GetFName()) = WidgetClass;
+				}
+			}
+			else
 			{
 				TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
 
 				AddWidgetTemplate(Template);
 			}
+
+			//TODO UMG does not prevent deep nested circular references
 		}
+	}
+
+	// Locate all widget BP assets (include unloaded)
+	const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	TArray<FAssetData> AllWidgetBPsAssetData;
+	AssetRegistryModule.Get().GetAssetsByClass(UWidgetBlueprint::StaticClass()->GetFName(), AllWidgetBPsAssetData, true);
+
+	FName ActiveWidgetBlueprintName = ActiveWidgetBlueprintClass->ClassGeneratedBy->GetFName();
+	for (auto& WidgetBPAssetData : AllWidgetBPsAssetData)
+	{
+		if (WidgetBPAssetData.AssetName == ActiveWidgetBlueprintName)
+		{
+			continue;
+		}
+
+		// If the blueprint generated class was found earlier, pass it to the template
+		TSubclassOf<UUserWidget> WidgetBPClass = nullptr;
+		auto LoadedWidgetBPClass = LoadedWidgetBlueprintClassesByName.Find(WidgetBPAssetData.AssetName);
+		if (LoadedWidgetBPClass)
+		{
+			WidgetBPClass = *LoadedWidgetBPClass;
+		}
+
+		auto Template = MakeShareable(new FWidgetTemplateBlueprintClass(WidgetBPAssetData, WidgetBPClass));
+
+		AddWidgetTemplate(Template);
 	}
 }
 
@@ -358,8 +421,10 @@ TSharedRef<ITableRow> SPaletteView::OnGenerateWidgetTemplateItem(TSharedPtr<FWid
 
 void SPaletteView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if ( bRebuildRquested )
+	if ( bRebuildRequested )
 	{
+		bRebuildRequested = false;
+
 		// Save the old expanded items temporarily
 		TSet<TSharedPtr<FWidgetViewModel>> ExpandedItems;
 		WidgetTemplatesView->GetExpandedItems(ExpandedItems);
@@ -394,7 +459,35 @@ void SPaletteView::TransformWidgetViewModelToString(TSharedPtr<FWidgetViewModel>
 void SPaletteView::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
 {
 	//bRefreshRequested = true;
-	//bRebuildRquested = true;
+	//bRebuildRequested = true;
+}
+
+void SPaletteView::HandleOnBlueprintCompiled(UBlueprint* Blueprint)
+{
+	if (Blueprint->IsA<UWidgetBlueprint>())
+	{
+		bRebuildRequested = true;
+		bRefreshRequested = true;
+	}
+}
+
+void SPaletteView::HandleOnHotReload(bool bWasTriggeredAutomatically)
+{
+	bRebuildRequested = true;
+	bRefreshRequested = true;
+}
+
+void SPaletteView::HandleOnAssetsDeleted(const TArray<UClass*>& DeletedAssetClasses)
+{
+	for (auto DeletedAssetClass : DeletedAssetClasses)
+	{
+		if (DeletedAssetClass->IsChildOf(UWidgetBlueprint::StaticClass()))
+		{
+			bRebuildRequested = true;
+			bRefreshRequested = true;
+		}
+	}
+	
 }
 
 #undef LOCTEXT_NAMESPACE

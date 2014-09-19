@@ -1651,11 +1651,15 @@ namespace ObjectTools
 		// Update the browser if something was actually deleted.
 		if ( bSawSuccessfulDelete )
 		{
+			TArray<UClass*> DeletedObjectClasses;
 			TArray<UPackage*> PotentialPackagesToDelete;
 			for ( int32 ObjIdx = 0; ObjIdx < ObjectsDeletedSuccessfully.Num(); ++ObjIdx )
 			{
+				DeletedObjectClasses.AddUnique(ObjectsDeletedSuccessfully[ObjIdx]->GetClass());
 				PotentialPackagesToDelete.AddUnique( ObjectsDeletedSuccessfully[ObjIdx]->GetOutermost() );
 			}
+			// Broadcast the classes of the successfully deleted objects (before cleanup)
+			FEditorDelegates::OnAssetsDeleted.Broadcast(DeletedObjectClasses);
 
 			bool bPerformReferenceCheck = false;
 			CleanupAfterSuccessfulDelete( PotentialPackagesToDelete, bPerformReferenceCheck );
