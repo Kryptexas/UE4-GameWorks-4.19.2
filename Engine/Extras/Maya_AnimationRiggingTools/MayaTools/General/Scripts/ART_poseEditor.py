@@ -253,10 +253,11 @@ class PoseEditor_UI():
 	for node in selectNodes:
 	    attrs = cmds.listAttr(node, string = "space_*")
 	    
-	    for attr in attrs:
-		if cmds.getAttr(node + "." + attr) != 0:
-		    if not attr in safeAttrs:
-			warningNodes.append(node + "." + attr)
+	    if attrs != None:
+		for attr in attrs:
+		    if cmds.getAttr(node + "." + attr) != 0:
+			if not attr in safeAttrs:
+			    warningNodes.append(node + "." + attr)
 		    
 	#if length of warning nodes is greater than 0, warn user that cannot save poses with spaces
 	if len(warningNodes) > 0:

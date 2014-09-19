@@ -1122,6 +1122,8 @@ class AutoRigger():
 		    twistJoint = child
 	    
 	    topSpineJointConstraint = cmds.pointConstraint(topJoint, twistJoint, mo = True)[0]
+	    topSpineBone = twistJoint.partition("twist_")[2]
+	    cmds.pointConstraint(topSpineBone, twistJoint)[0]
 		    
 		    
 	    #connect attr on top spine joint constraint
@@ -4515,7 +4517,7 @@ class AutoRigger():
 
 	#skin ribbon
 	cmds.select([ribbon, topSkinJoint, bottomSkinJoint])
-	skin = cmds.skinCluster(tsb = True, mi = 2, omi = True, dr = 5, bm = 0, sm = 0)
+	skin = cmds.skinCluster(tsb = True, mi = 2, omi = True, dr = 5, sm = 0)
 	
 	
 	#position the joints, thus moving the ribbon
@@ -4643,7 +4645,7 @@ class AutoRigger():
 	for joint in skinJoints:
 	    cmds.select(joint, add = True)
 	    
-	skin = cmds.skinCluster(tsb = True, mi = 2, omi = True, dr = 5, bm = 0, sm = 0)
+	skin = cmds.skinCluster(tsb = True, mi = 2, omi = True, dr = 5, sm = 0)
 	
 	
 	#orient roll grp to both fk/ik arm joints and set driven keys between them

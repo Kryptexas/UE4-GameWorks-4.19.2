@@ -24,7 +24,7 @@ class AddCharacter_UI():
         if cmds.window("addCharacter_UI", exists = True):
             cmds.deleteUI("addCharacter_UI")
             
-        self.widgets["window"] = cmds.window("addCharacter_UI", title = "Add Character", w = 430, h = 260, sizeable = False, mxb = False, mnb = False)
+        self.widgets["window"] = cmds.window("addCharacter_UI", title = "Add Character", w = 430, h = 260, sizeable = True, mxb = False, mnb = False)
         
         #create the main layout
 	main = cmds.columnLayout(w = 430)

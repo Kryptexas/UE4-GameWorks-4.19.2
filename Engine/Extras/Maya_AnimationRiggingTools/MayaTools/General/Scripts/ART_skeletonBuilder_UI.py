@@ -159,7 +159,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("SkelBuilder_window", exists = True):
 	    cmds.deleteUI("SkelBuilder_window")
 	    
-        self.widgets["window"] = cmds.window("SkelBuilder_window", title = "Skeleton Builder", titleBarMenu = False, sizeable = False)
+        self.widgets["window"] = cmds.window("SkelBuilder_window", title = "Skeleton Builder", titleBarMenu = False, sizeable = True)
         
         #create layout
         self.widgets["mainLayout"] = cmds.columnLayout(rs = 5)
@@ -2373,7 +2373,7 @@ class SkeletonBuilder_UI():
 	    cmds.deleteUI("extraJointInfo_UI")
 	    
 	#create the window and the layouts
-	window = cmds.window("extraJointInfo_UI", w = 300, h = 150, title = "Joint Info", tbm = False, sizeable = False)
+	window = cmds.window("extraJointInfo_UI", w = 300, h = 150, title = "Joint Info", tbm = False, sizeable = True)
 	mainLayout = cmds.columnLayout(w = 300, h = 150)
 	formLayout = cmds.formLayout(w = 300, h = 150, parent = mainLayout)
 	
@@ -2426,7 +2426,7 @@ class SkeletonBuilder_UI():
 	    cmds.deleteUI("dynamicJointInfo_UI")
 	    
 	#create the window and the layouts
-	window = cmds.window("dynamicJointInfo_UI", w = 300, h = 200, title = "Joint Info", tbm = False, sizeable = False)
+	window = cmds.window("dynamicJointInfo_UI", w = 300, h = 200, title = "Joint Info", tbm = False, sizeable = True)
 	mainLayout = cmds.columnLayout(w = 300, h = 200)
 	formLayout = cmds.formLayout(w = 300, h = 200, parent = mainLayout)
 	
@@ -3219,7 +3219,7 @@ class SkeletonBuilder_UI():
         if cmds.window("loadTemplateUI", exists = True):
             cmds.deleteUI("loadTemplateUI")
             
-        window = cmds.window("loadTemplateUI", w = 300, h = 200, title = "Load Template", titleBarMenu = False, sizeable = False)
+        window = cmds.window("loadTemplateUI", w = 300, h = 200, title = "Load Template", titleBarMenu = False, sizeable = True)
         mainLayout = cmds.columnLayout(w = 300, h = 300)
         menuBarLayout = cmds.menuBarLayout(h = 30, w = 300, ebg = True, bgc = [.1, .1, .1], parent = mainLayout)
         cmds.menu(label = "File")
@@ -6280,7 +6280,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("rigPoseCreationUI", exists = True):
 	    cmds.deleteUI("rigPoseCreationUI", window = True)
 	    
-	window = cmds.window("rigPoseCreationUI", w = 200, h = 130, sizeable = False, titleBar = True, titleBarMenu = True, mnb = False, mxb = False, title = "Create Rig Pose")
+	window = cmds.window("rigPoseCreationUI", w = 200, h = 130, sizeable = True, titleBar = True, titleBarMenu = True, mnb = False, mxb = False, title = "Create Rig Pose")
 	layout = cmds.columnLayout(w = 200, h = 130, bgc = [0,0,0])
 	
 	#banner
@@ -6690,7 +6690,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("skinProxyGeo_UI_question", exists = True):
 	    cmds.deleteUI("skinProxyGeo_UI_question")
 	    
-	window = cmds.window("skinProxyGeo_UI_question", title = "Skin Proxy Mesh", w = 500, h = 225, sizeable = False, titleBarMenu = False)
+	window = cmds.window("skinProxyGeo_UI_question", title = "Skin Proxy Mesh", w = 500, h = 225, sizeable = True, titleBarMenu = False)
 	mainLayout = cmds.formLayout()
 	
 	imagePath = self.mayaToolsDir + "/General/Icons/ART/"
@@ -6774,7 +6774,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("createRigPoseConfirmationUI", exists = True):
 	    cmds.deleteUI("createRigPoseConfirmationUI")
 	    
-	window = cmds.window("createRigPoseConfirmationUI", title = "Create Rig Pose", w = 500, h = 305, sizeable = False, titleBarMenu = False)
+	window = cmds.window("createRigPoseConfirmationUI", title = "Create Rig Pose", w = 500, h = 305, sizeable = True, titleBarMenu = False)
 	mainLayout = cmds.formLayout()
 	
 	#image
@@ -7602,7 +7602,7 @@ class SkeletonBuilder_UI():
 	    cmds.deleteUI("publishResultsInterface")
 
 	#create window
-	self.widgets["publishResultsWindow"] = cmds.window("publishResultsInterface", title = "Character Published!", w = 480, h = 200, mnb = False, mxb = False, sizeable = False)
+	self.widgets["publishResultsWindow"] = cmds.window("publishResultsInterface", title = "Character Published!", w = 480, h = 200, mnb = False, mxb = False, sizeable = True)
 	
 	#widgets
 	self.widgets["publishResults_mainLayout"] = cmds.columnLayout(rs = 10)
@@ -7815,7 +7815,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("publish_ui_window", exists = True):
 	    cmds.deleteUI("publish_ui_window")
 	    
-	self.widgets["publishUIWindow"] = cmds.window("publish_ui_window", w = 300, h = 310, mxb = False, mnb = False, sizeable = False, title = "Publish Character")
+	self.widgets["publishUIWindow"] = cmds.window("publish_ui_window", w = 300, h = 310, mxb = False, mnb = False, sizeable = True, title = "Publish Character")
 	self.widgets["publishUIMainLayout"] = cmds.columnLayout(w = 300, h =310, co = ["both", 5])
 	
 	#banner image
@@ -8190,7 +8190,7 @@ class SkeletonBuilder_UI():
 		    
 		    #Create a window with a model editor 
 	    
-		    self.widgets["screenshotWindow"] =  cmds.window(title = "Character Thumbnail Creator", w = 400, h = 350, sizeable = False, titleBar = False)
+		    self.widgets["screenshotWindow"] =  cmds.window(title = "Character Thumbnail Creator", w = 400, h = 350, sizeable = True, titleBar = False)
 		    self.widgets["screenshotFormLayout"] = cmds.formLayout()
 		    self.widgets["screenshot_modelEditor"] = cmds.modelEditor(parent = self.widgets["screenshotFormLayout"])
 		    self.widgets["screenshot_button_frame"] = cmds.frameLayout(h = 488, borderStyle = "etchedIn", lv = False, collapsable = False,  parent = self.widgets["screenshotFormLayout"])
@@ -8333,7 +8333,7 @@ class SkeletonBuilder_UI():
 	    
 	    #Create a window with a model editor 
     
-	    self.widgets["screenshotWindow"] =  cmds.window(title = "Character Thumbnail Creator", w = 400, h = 350, sizeable = False, titleBar = False)
+	    self.widgets["screenshotWindow"] =  cmds.window(title = "Character Thumbnail Creator", w = 400, h = 350, sizeable = True, titleBar = False)
 	    self.widgets["screenshotFormLayout"] = cmds.formLayout()
 	    self.widgets["screenshot_modelEditor"] = cmds.modelEditor(parent = self.widgets["screenshotFormLayout"])
 	    self.widgets["screenshot_button_frame"] = cmds.frameLayout(h = 488, borderStyle = "etchedIn", lv = False, collapsable = False,  parent = self.widgets["screenshotFormLayout"])
@@ -9203,7 +9203,7 @@ class SkeletonBuilder_UI():
         if cmds.window("loadTemplateUI", exists = True):
             cmds.deleteUI("loadTemplateUI")
             
-        window = cmds.window("loadTemplateUI", w = 300, h = 200, title = "Load Template", titleBarMenu = False, sizeable = False)
+        window = cmds.window("loadTemplateUI", w = 300, h = 200, title = "Load Template", titleBarMenu = False, sizeable = True)
         mainLayout = cmds.columnLayout(w = 300, h = 300)
         menuBarLayout = cmds.menuBarLayout(h = 30, w = 300, ebg = True, bgc = [.1, .1, .1], parent = mainLayout)
         cmds.menu(label = "File")
@@ -9320,7 +9320,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("rangeOfMotion_UI", exists = True):
 	    cmds.deleteUI("rangeOfMotion_UI")
 	    
-	self.widgets["rom_window"] = cmds.window("rangeOfMotion_UI", w = 600, h = 400, title = "Range Of Motion Generator", mxb = False, mnb = False, sizeable = False)
+	self.widgets["rom_window"] = cmds.window("rangeOfMotion_UI", w = 600, h = 400, title = "Range Of Motion Generator", mxb = False, mnb = False, sizeable = True)
 	
 	#create the main layout
 	self.widgets["rom_formLayout"] = cmds.formLayout(w = 600, h = 400)
@@ -10148,7 +10148,7 @@ class SkeletonBuilder_UI():
 	    if cmds.window("paintWeightsMoveInfsUI", exists = True):
 		cmds.deleteUI("paintWeightsMoveInfsUI")
 		
-	    window = cmds.window("paintWeightsMoveInfsUI", w = 300, h = 60, title = "Move Influences", titleBarMenu = False, sizeable = False)
+	    window = cmds.window("paintWeightsMoveInfsUI", w = 300, h = 60, title = "Move Influences", titleBarMenu = False, sizeable = True)
 	    mainLayout = cmds.columnLayout(w = 300, h = 60)
 	    
 	    cmds.separator(h = 10)
@@ -10448,7 +10448,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("paintWeightsAddInf", exists = True):
 	    cmds.deleteUI("paintWeightsAddInf")
 	    
-	window = cmds.window("paintWeightsAddInf", t = "Add Influence", tbm = False, w = 300, h = 300, sizeable = False)
+	window = cmds.window("paintWeightsAddInf", t = "Add Influence", tbm = False, w = 300, h = 300, sizeable = True)
 	
 	mainLayout = cmds.columnLayout(w = 300, h = 300)
 	widgetLayout = cmds.rowColumnLayout(w = 300, h = 300, nc = 2, cw = [(1, 200), (2, 100)])
@@ -10526,7 +10526,7 @@ class SkeletonBuilder_UI():
 	if cmds.window("paintWeightsRemoveInf", exists = True):
 	    cmds.deleteUI("paintWeightsRemoveInf")
 	    
-	window = cmds.window("paintWeightsRemoveInf", t = "Remove Influence", tbm = False, w = 300, h = 300, sizeable = False)
+	window = cmds.window("paintWeightsRemoveInf", t = "Remove Influence", tbm = False, w = 300, h = 300, sizeable = True)
 	
 	mainLayout = cmds.columnLayout(w = 300, h = 300)
 	widgetLayout = cmds.rowColumnLayout(w = 300, h = 300, nc = 2, cw = [(1, 200), (2, 100)])
