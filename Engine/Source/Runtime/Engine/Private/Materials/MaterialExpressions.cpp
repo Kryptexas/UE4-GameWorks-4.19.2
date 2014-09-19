@@ -436,28 +436,12 @@ void UMaterialExpression::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 
-	if (Ar.UE4Ver() < VER_UE4_CHANGED_MATERIAL_REFACTION_TYPE)
+	const TArray<FExpressionInput*> Inputs = GetInputs();
+	for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
 	{
-		const TArray<FExpressionInput*> Inputs = GetInputs();
-		for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
-		{
-			FExpressionInput* Input = Inputs[InputIndex];
-			if (Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING)
-			{
-				DoMaterialAttributeReorder(Input);
-			}
-			if (Input->Expression
-				&& Input->OutputIndex == 13
-				&& Input->Expression->IsA(UMaterialExpressionBreakMaterialAttributes::StaticClass())
-				&& Input->MaskB)
-			{
-				Input->Mask = 1;
-				Input->MaskR = 1;
-				Input->MaskG = 1;
-				Input->MaskB = 0;
-				Input->MaskA = 0;
-			}
-		}
+		FExpressionInput* Input = Inputs[InputIndex];
+
+		DoMaterialAttributeReorder(Input, Ar.UE4Ver());
 	}
 }
 
@@ -3273,9 +3257,9 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	Outputs.Add(FExpressionOutput(TEXT("ClearCoat"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("ClearCoatRoughness"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("AmbientOcclusion"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 1, 0));
 
-	for (int32 UVIndex = 0; UVIndex < MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
+	for (int32 UVIndex = 0; UVIndex <= MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
 	{
 		Outputs.Add(FExpressionOutput(*FString::Printf(TEXT("CustomizedUV%u"), UVIndex), 1, 1, 1, 0, 0));
 	}

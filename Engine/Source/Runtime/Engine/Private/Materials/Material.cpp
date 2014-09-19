@@ -1716,25 +1716,22 @@ void UMaterial::Serialize(FArchive& Ar)
 	}
 #endif // #if WITH_EDITOR
 
-	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
-	{
-		DoMaterialAttributeReorder(&DiffuseColor);
-		DoMaterialAttributeReorder(&SpecularColor);
-		DoMaterialAttributeReorder(&BaseColor);
-		DoMaterialAttributeReorder(&Metallic);
-		DoMaterialAttributeReorder(&Specular);
-		DoMaterialAttributeReorder(&Roughness);
-		DoMaterialAttributeReorder(&Normal);
-		DoMaterialAttributeReorder(&EmissiveColor);
-		DoMaterialAttributeReorder(&Opacity);
-		DoMaterialAttributeReorder(&OpacityMask);
-		DoMaterialAttributeReorder(&WorldPositionOffset);
-		DoMaterialAttributeReorder(&WorldDisplacement);
-		DoMaterialAttributeReorder(&TessellationMultiplier);
-		DoMaterialAttributeReorder(&SubsurfaceColor);
-		DoMaterialAttributeReorder(&AmbientOcclusion);
-		DoMaterialAttributeReorder(&Refraction);
-	}
+	DoMaterialAttributeReorder(&DiffuseColor,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&SpecularColor,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&BaseColor,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Metallic,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Specular,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Roughness,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Normal,					Ar.UE4Ver());
+	DoMaterialAttributeReorder(&EmissiveColor,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Opacity,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&OpacityMask,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&WorldPositionOffset,	Ar.UE4Ver());
+	DoMaterialAttributeReorder(&WorldDisplacement,		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&TessellationMultiplier,	Ar.UE4Ver());
+	DoMaterialAttributeReorder(&SubsurfaceColor,		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&AmbientOcclusion,		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Refraction,				Ar.UE4Ver());
 }
 
 void UMaterial::PostDuplicate(bool bDuplicateForPIE)

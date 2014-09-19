@@ -111,7 +111,7 @@ int32 FColorMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler,
 		}
 	}
 
-	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
+	return Compiler->ForceCast(GetDefaultExpressionForMaterialProperty(Compiler, Property), MCT_Float3);
 }
 
 int32 FScalarMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
@@ -129,7 +129,7 @@ int32 FScalarMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler
 		}
 	}
 
-	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
+	return Compiler->ForceCast(GetDefaultExpressionForMaterialProperty(Compiler, Property), MCT_Float1);
 }
 
 int32 FVectorMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
@@ -146,7 +146,7 @@ int32 FVectorMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler
 			return ResultIndex;
 		}
 	}
-	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
+	return Compiler->ForceCast(GetDefaultExpressionForMaterialProperty(Compiler, Property), MCT_Float3);
 }
 
 int32 FVector2MaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
@@ -164,7 +164,7 @@ int32 FVector2MaterialInput::CompileWithDefault(class FMaterialCompiler* Compile
 		}
 	}
 
-	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
+	return Compiler->ForceCast(GetDefaultExpressionForMaterialProperty(Compiler, Property), MCT_Float2);
 }
 
 int32 FMaterialAttributesInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
@@ -2277,20 +2277,38 @@ int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterial
 	}
 }
 
-/** TODO - This can be removed whenever VER_UE4_MATERIAL_ATTRIBUTES_REORDERING is no longer relevant. */
-void DoMaterialAttributeReorder(FExpressionInput* Input)
+void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver)
 {
 	if( Input && Input->Expression && Input->Expression->IsA(UMaterialExpressionBreakMaterialAttributes::StaticClass()) )
 	{
-		switch(Input->OutputIndex)
+		if( UE4Ver < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
 		{
-		case 4: Input->OutputIndex = 7; break;
-		case 5: Input->OutputIndex = 4; break;
-		case 6: Input->OutputIndex = 5; break;
-		case 7: Input->OutputIndex = 6; break;
+			switch(Input->OutputIndex)
+			{
+			case 4: Input->OutputIndex = 7; break;
+			case 5: Input->OutputIndex = 4; break;
+			case 6: Input->OutputIndex = 5; break;
+			case 7: Input->OutputIndex = 6; break;
+			}
+		}
+		
+		if( UE4Ver < VER_UE4_CHANGED_MATERIAL_REFACTION_TYPE && Input->OutputIndex == 13 )
+		{
+			Input->Mask = 1;
+			Input->MaskR = 1;
+			Input->MaskG = 1;
+			Input->MaskB = 1;
+			Input->MaskA = 0;
+		}
+
+		// closest version to the clear coat change
+		if( UE4Ver < VER_UE4_ADD_ROOTCOMPONENT_TO_FOLIAGEACTOR && Input->OutputIndex >= 12 )
+		{
+			Input->OutputIndex += 2;
 		}
 	}
 }
+
 FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()
 	:bOverride_OpacityMaskClipValue(false)
 	,bOverride_BlendMode(false)
