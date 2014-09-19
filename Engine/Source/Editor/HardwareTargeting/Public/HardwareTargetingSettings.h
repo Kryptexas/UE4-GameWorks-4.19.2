@@ -41,4 +41,19 @@ class HARDWARETARGETING_API UHardwareTargetingSettings
 
 	/** Check if these settings have any pending changes that require action */
 	bool HasPendingChanges() const;
+
+#if WITH_EDITOR
+public:
+	/** Returns an event delegate that is executed when a setting has changed. */
+	DECLARE_EVENT(UHardwareTargetingSettings, FSettingChangedEvent);
+	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
+
+protected:
+	/** Called when a property on this object is changed */
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
+
+private:
+	/** Holds an event delegate that is executed when a setting has changed. */
+	FSettingChangedEvent SettingChangedEvent;
+#endif
 };

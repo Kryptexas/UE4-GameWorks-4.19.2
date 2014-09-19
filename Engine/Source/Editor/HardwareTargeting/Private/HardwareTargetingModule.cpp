@@ -16,38 +16,47 @@
 
 struct FMetaSettingGatherer
 {
-	TSet<UObject*> DirtyObjects;
 	FTextBuilder DescriptionBuffer;
+
+	TMap<UObject*, FTextBuilder> DescriptionBuffers;
+	TMap<UObject*, FText> CategoryNames;
 
 	// Are we just displaying what would change, or actually changing things?
 	bool bReadOnly;
 
+	bool bIncludeUnmodifiedProperties;
+
 	FMetaSettingGatherer()
 		: bReadOnly(false)
+		, bIncludeUnmodifiedProperties(false)
 	{
 	}
 
 	void AddEntry(UObject* SettingsObject, UProperty* Property, FText NewValue, bool bModified)
 	{
-		if (bModified && !bReadOnly)
+		if (bModified || bIncludeUnmodifiedProperties)
 		{
-			DirtyObjects.Add(SettingsObject);
+			FTextBuilder& DescriptionBuffer = DescriptionBuffers.FindOrAdd(SettingsObject);
 
-			FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
-			SettingsObject->PostEditChangeProperty(ChangeEvent);
-		}
+			if (!bReadOnly)
+			{
+				FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
+				SettingsObject->PostEditChangeProperty(ChangeEvent);
+			}
+			else
+			{
+				FText SettingDisplayName = Property->GetDisplayNameText();
 
-		if (bReadOnly)
-		{
-			FText SettingDisplayName = Property->GetDisplayNameText();
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("SettingName"), SettingDisplayName);
+				Args.Add(TEXT("SettingValue"), NewValue);
 
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("SettingName"), SettingDisplayName);
-			Args.Add(TEXT("SettingValue"), NewValue);
+				FText FormatString = bModified ?
+					LOCTEXT("MetaSettingDisplayStringModified", "{SettingName} is {SettingValue} <HardwareTargets.Strong>(modified)</>") :
+					LOCTEXT("MetaSettingDisplayStringUnmodified", "{SettingName} is {SettingValue}");
 
-			FText FormatString = bModified ? LOCTEXT("MetaSettingDisplayStringUnmodified", "{SettingName} is {SettingValue} <HardwareTargets.Strong>(modified)</>") : LOCTEXT("MetaSettingDisplayStringUnmodified", "{SettingName} is {SettingValue}");
-
-			DescriptionBuffer.AppendLine(FText::Format(FormatString, Args));
+				DescriptionBuffer.AppendLine(FText::Format(FormatString, Args));
+			}
 		}
 	}
 
@@ -57,26 +66,10 @@ struct FMetaSettingGatherer
 	void Finalize()
 	{
 		check(!bReadOnly);
-		for (UObject* SettingsObject : DirtyObjects)
-		{
-			SettingsObject->UpdateDefaultConfigFile();
-		}
-	}
 
-	void StartSection(FText SectionHeading)
-	{
-		if (bReadOnly)
+		for (auto& Pair : DescriptionBuffers)
 		{
-			DescriptionBuffer.AppendLine(SectionHeading);
-			DescriptionBuffer.Indent();
-		}
-	}
-
-	void EndSection()
-	{
-		if (bReadOnly)
-		{
-			DescriptionBuffer.Unindent();
+			Pair.Key->UpdateDefaultConfigFile();
 		}
 	}
 };
@@ -126,7 +119,7 @@ public:
 	
 	// IHardwareTargetingModule interface
 	virtual void ApplyHardwareTargetingSettings() override;
-	virtual FText QueryReadableDescriptionOfHardwareTargetingSettings() override;
+	virtual TArray<FModifiedDefaultConfig> GetPendingSettingsChanges() override;
 	virtual TSharedRef<SWidget> MakeHardwareClassTargetCombo(FOnHardwareClassChanged OnChanged, TAttribute<EHardwareClass::Type> SelectedEnum) override;
 	virtual TSharedRef<SWidget> MakeGraphicsPresetTargetCombo(FOnGraphicsPresetChanged OnChanged, TAttribute<EGraphicsPreset::Type> SelectedEnum) override;
 	// End of IHardwareTargetingModule interface
@@ -153,20 +146,40 @@ void FHardwareTargetingModule::ShutdownModule()
 {
 }
 
-FText FHardwareTargetingModule::QueryReadableDescriptionOfHardwareTargetingSettings()
+TArray<FModifiedDefaultConfig> FHardwareTargetingModule::GetPendingSettingsChanges()
 {
 	// Gather and stringify the modified settings
 	FMetaSettingGatherer Gatherer;
 	Gatherer.bReadOnly = true;
+	Gatherer.bIncludeUnmodifiedProperties = true;
 	GatherSettings(Gatherer);
 
-	return Gatherer.DescriptionBuffer.ToText();
-}
+	TArray<FModifiedDefaultConfig> OutArray;
+	for (auto& Pair : Gatherer.DescriptionBuffers)
+	{
+		FModifiedDefaultConfig ModifiedConfig;
+		ModifiedConfig.SettingsObject = Pair.Key;
+		ModifiedConfig.Description = Pair.Value.ToText();
+		ModifiedConfig.CategoryHeading = Gatherer.CategoryNames.FindChecked(Pair.Key);
 
+		OutArray.Add(ModifiedConfig);
+	}
+	return OutArray;
+}
 	
 void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 {
 	UHardwareTargetingSettings* Settings = GetMutableDefault<UHardwareTargetingSettings>();
+
+
+	if (Builder.bReadOnly)
+	{
+		// Force the category order and give nice descriptions
+		Builder.CategoryNames.Add(GetMutableDefault<URendererSettings>(), LOCTEXT("RenderingCategoryHeader", "Engine - Rendering"));
+		Builder.CategoryNames.Add(GetMutableDefault<UInputSettings>(), LOCTEXT("InputCategoryHeader", "Engine - Input"));
+		Builder.CategoryNames.Add(GetMutableDefault<UGameMapsSettings>(), LOCTEXT("MapsAndModesCategoryHeader", "Project - Maps & Modes"));
+	}
+
 
 	const bool bLowEndMobile = (Settings->TargetedHardwareClass == EHardwareClass::Mobile) && (Settings->DefaultGraphicsPerformance == EGraphicsPreset::Scalable);
 	const bool bAnyMobile = (Settings->TargetedHardwareClass == EHardwareClass::Mobile);
@@ -175,8 +188,6 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 	const bool bHighEndPC = (Settings->TargetedHardwareClass == EHardwareClass::Desktop) && (Settings->DefaultGraphicsPerformance == EGraphicsPreset::Maximum);
 
 	{
-		Builder.StartSection(LOCTEXT("RenderingHeading", "<HardwareTargets.H1>Default Rendering Settings</>"));
-
 		// Based roughly on https://docs.unrealengine.com/latest/INT/Platforms/Mobile/PostProcessEffects/index.html
 		UE_META_SETTING_ENTRY(Builder, URendererSettings, bMobileHDR, !bLowEndMobile);
 
@@ -196,27 +207,17 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 		//@TODO: DOF setting doesn't exist yet
 		// UE_META_SETTING_ENTRY(Builder, URendererSettings, bDefaultFeatureDepthOfField, bHighEndPC);
 		UE_META_SETTING_ENTRY(Builder, URendererSettings, DefaultFeatureAntiAliasing, bHighEndPC ? EAntiAliasingMethodUI::AAM_TemporalAA : EAntiAliasingMethodUI::AAM_None);
-
-		Builder.EndSection();
 	}
 
 	{
-		Builder.StartSection(LOCTEXT("InputHeading", "<HardwareTargets.H1>Default Input Settings</>"));
-
 		// Mobile uses touch
 		UE_META_SETTING_ENTRY(Builder, UInputSettings, bUseMouseForTouch, bAnyMobile);
 		//@TODO: Use bAlwaysShowTouchInterface (sorta implied by bUseMouseForTouch)?
-
-		Builder.EndSection();
 	}
 
 	{
-		Builder.StartSection(LOCTEXT("GameHeading", "<HardwareTargets.H1>Default Game Settings</>"));
-		
 		// Tablets or phones are usually shared-screen multiplayer instead of split-screen
 		UE_META_SETTING_ENTRY(Builder, UGameMapsSettings, bUseSplitscreen, bAnyPC);
-
-		Builder.EndSection();
 	}
 }
 

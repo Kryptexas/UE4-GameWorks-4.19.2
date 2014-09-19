@@ -4,6 +4,7 @@
 
 #include "HardwareTargetingSettingsDetails.h"
 #include "HardwareTargetingModule.h"
+#include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "FHardwareTargetingSettingsDetails"
 
@@ -12,21 +13,38 @@ TSharedRef<IDetailCustomization> FHardwareTargetingSettingsDetails::MakeInstance
 	return MakeShareable(new FHardwareTargetingSettingsDetails);
 }
 
-void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
-{	
-	IDetailCategoryBuilder& HardwareTargetingCategory = DetailBuilder.EditCategory(TEXT("Hardware Targeting"));
+class SRequiredDefaultConfig : public SCompoundWidget
+{
+public:
 	
-	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
-	HardwareTargetingCategory.AddCustomRow(FString())
-	[
-		SNew(SBorder)
-		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-		.Padding(0)
-		.Visibility_Static([]()->EVisibility{
-			auto* Settings = GetMutableDefault<UHardwareTargetingSettings>();
-			return Settings->HasPendingChanges() ? EVisibility::Visible : EVisibility::Collapsed;
-		})
+	SLATE_BEGIN_ARGS(SRequiredDefaultConfig) {}
+
+	SLATE_END_ARGS()
+
+	~SRequiredDefaultConfig()
+	{
+		GetMutableDefault<UHardwareTargetingSettings>()->OnSettingChanged().RemoveAll(this);
+	}
+	
+public:
+
+	TMap<TWeakObjectPtr<UObject>, TSharedPtr<SRichTextBlock>> SettingRegions;
+
+	void Construct(const FArguments& InArgs)
+	{
+		LastStatusUpdate = 0;
+		GetMutableDefault<UHardwareTargetingSettings>()->OnSettingChanged().AddRaw(this, &SRequiredDefaultConfig::Update);
+
+		auto ApplyNow = []{
+			IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
+			Module.ApplyHardwareTargetingSettings();
+
+			return FReply::Handled();
+		};
+
+		ChildSlot
 		[
+
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -47,92 +65,366 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 				[
 					SNew(SButton)
 					.Text(LOCTEXT("ApplyNow", "Apply Now"))
-					.OnClicked_Static([](){
-				
-						IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
-						Module.ApplyHardwareTargetingSettings();
-
-						return FReply::Handled();
-					})
+					.IsEnabled(this, &SRequiredDefaultConfig::CanApply)
+					.OnClicked_Static(ApplyNow)
 				]
 			]
+			
 			+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
+			.AutoHeight()
 			[
+				SAssignNew(SettingsDescriptions, SUniformGridPanel)
+			]
+		];
+	}
+
+	static EVisibility GetAnyPendingChangesVisibility()
+	{
+		return GetMutableDefault<UHardwareTargetingSettings>()->HasPendingChanges() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	void Initialize(IDetailLayoutBuilder& DetailBuilder, IDetailCategoryBuilder& PendingChangesCategory)
+	{
+		auto IsVisible = []()->EVisibility{
+			auto* Settings = GetMutableDefault<UHardwareTargetingSettings>();
+			return Settings->HasPendingChanges() ? EVisibility::Visible : EVisibility::Collapsed;
+		};
+
+		FText CategoryHeaderTooltip = LOCTEXT("CategoryHeaderTooltip", "List of properties modified in this project setting category");
+
+		IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
+		for (const FModifiedDefaultConfig& Settings : Module.GetPendingSettingsChanges())
+		{
+			TSharedRef<SRichTextBlock> EditPropertiesBlock =
 				SNew(SRichTextBlock)
-				.AutoWrapText(true)
+				.AutoWrapText(false)
 				.Justification(ETextJustify::Left)
-				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic([](){
-					return IHardwareTargetingModule::Get().QueryReadableDescriptionOfHardwareTargetingSettings();
-				})))
 				.TextStyle(FEditorStyle::Get(), "HardwareTargets.Normal")
- 				.DecoratorStyleSet(&FEditorStyle::Get())
+				.DecoratorStyleSet(&FEditorStyle::Get());
+
+			SettingRegions.Add(Settings.SettingsObject, EditPropertiesBlock);
+
+			FDetailWidgetRow& CategoryRow = PendingChangesCategory.AddCustomRow(Settings.CategoryHeading.ToString())
+				.Visibility(TAttribute<EVisibility>::Create(&SRequiredDefaultConfig::GetAnyPendingChangesVisibility))
+				.NameContent()
+				[
+					SNew(STextBlock)
+					.Text(Settings.CategoryHeading)
+					.ToolTipText(CategoryHeaderTooltip)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+				.ValueContent()
+				.MaxDesiredWidth(300.0f)
+				[
+					EditPropertiesBlock
+				];
+		}
+	}
+
+	bool CanApply() const
+	{
+		for (const auto& Pair : WritableStatus)
+		{
+			if (Pair.Value != EWritableStatus::Writable)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	FString GetDefaultConfigPath(UObject* Settings) const
+	{
+		return FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *Settings->GetClass()->ClassConfigName.ToString()));
+	}
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+	{
+		if (!ISourceControlModule::Get().IsEnabled())
+		{
+			return;
+		}
+
+		const double CheckStatusIntervalS = 2;
+		if (InCurrentTime - LastStatusUpdate > CheckStatusIntervalS)
+		{
+			LastStatusUpdate = InCurrentTime;
+
+			for (auto& Pair : WritableStatus)
+			{
+				if (Pair.Key.IsValid() && Pair.Value == EWritableStatus::Unknown)
+				{
+					ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(GetDefaultConfigPath(Pair.Key.Get()), EStateCacheUsage::Use);
+					if (SourceControlState.IsValid())
+					{
+						Pair.Value = SourceControlState->IsCheckedOut() ? EWritableStatus::Writable : EWritableStatus::NotWritable;
+					}
+				}
+			}
+		}
+	}
+
+	bool AreSettingsWritable(TWeakObjectPtr<UObject> Settings) const
+	{
+		if (auto* Status = WritableStatus.Find(Settings))
+		{
+			if (*Status == EWritableStatus::Writable)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	EVisibility GetWritableHintVisibility(TWeakObjectPtr<UObject> Settings) const
+	{
+		if (const auto* Status = WritableStatus.Find(Settings))
+		{
+			if (*Status == EWritableStatus::NotWritable)
+			{
+				return EVisibility::Visible;
+			}
+		}
+		return EVisibility::Collapsed;
+	}
+
+	EVisibility GetWritableThrobberVisibility(TWeakObjectPtr<UObject> Settings) const
+	{
+		if (const auto* Status = WritableStatus.Find(Settings))
+		{
+			if (*Status == EWritableStatus::Unknown)
+			{
+				return EVisibility::Visible;
+			}
+		}
+		return EVisibility::Collapsed;
+	}
+
+	void Update()
+	{
+		WritableStatus.Empty();
+		SettingsDescriptions->ClearChildren();
+
+		IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
+		int32 SlotIndex = 0;
+
+		// Run thru the settings and push changes to the existing settings, as well as build a list of inis that will need to be edited
+		TSet<FString> SeenConfigFiles;
+		for (const FModifiedDefaultConfig& Settings : Module.GetPendingSettingsChanges())
+		{
+			if (!Settings.SettingsObject.IsValid())
+			{
+				continue;
+			}
+
+			SettingRegions.FindChecked(Settings.SettingsObject)->SetText(Settings.Description);
+
+			if (!Settings.SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+			{
+				continue;
+			}
+			
+			EWritableStatus& Status = WritableStatus.Add(Settings.SettingsObject, EWritableStatus::Unknown);
+			FString ConfigFile = GetDefaultConfigPath(Settings.SettingsObject.Get());
+
+			if (!SeenConfigFiles.Contains(ConfigFile))
+			{
+				SeenConfigFiles.Add(ConfigFile);
+
+				if (ISourceControlModule::Get().IsEnabled())
+				{
+					ISourceControlModule::Get().QueueStatusUpdate(ConfigFile);
+
+					ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFile, EStateCacheUsage::Use);
+					if (SourceControlState.IsValid())
+					{
+						Status = SourceControlState->IsCheckedOut() ? EWritableStatus::Writable : EWritableStatus::NotWritable;
+					}
+				}
+				else
+				{
+					const bool bIsWritable = !FPaths::FileExists(ConfigFile) || !IFileManager::Get().IsReadOnly(*ConfigFile);
+					Status = bIsWritable ? EWritableStatus::Writable : EWritableStatus::NotWritable;
+				}
+
+				SettingsDescriptions->AddSlot(0, SlotIndex)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(FPaths::GetCleanFilename(ConfigFile))
+					]
+				 
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Visibility(this, &SRequiredDefaultConfig::GetWritableHintVisibility, Settings.SettingsObject)
+						.Text(LOCTEXT("NotWritable", "This file is not writable"))
+					]
+				 
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.Visibility(this, &SRequiredDefaultConfig::GetWritableThrobberVisibility, Settings.SettingsObject)
+						.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+						.Padding(0)
+						[
+							SNew(SHorizontalBox)
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SThrobber)
+
+							]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("CheckingFileStatus", "Checking file status"))
+							]
+						]
+					]
+				];
+			}
+
+			++SlotIndex;
+		}
+	}
+	
+	enum class EWritableStatus
+	{
+		Unknown, Writable, NotWritable
+	};
+	TMap<TWeakObjectPtr<UObject>, EWritableStatus> WritableStatus;
+
+	TSharedPtr<SUniformGridPanel> SettingsDescriptions;
+
+	double LastStatusUpdate;
+};
+
+void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
+{	
+	IDetailCategoryBuilder& HardwareTargetingCategory = DetailBuilder.EditCategory(TEXT("Hardware Targeting"));
+	IDetailCategoryBuilder& PendingChangesCategory = DetailBuilder.EditCategory(TEXT("Pending Changes"));
+
+	auto AnyPendingChangesVisible = []()->EVisibility{
+		auto* Settings = GetMutableDefault<UHardwareTargetingSettings>();
+		return Settings->HasPendingChanges() ? EVisibility::Visible : EVisibility::Collapsed;
+	};
+	auto NoPendingChangesVisible = []()->EVisibility{
+		auto* Settings = GetMutableDefault<UHardwareTargetingSettings>();
+		return Settings->HasPendingChanges() ? EVisibility::Collapsed : EVisibility::Visible;
+	};
+	//auto ModifiedText = []{
+	//	return IHardwareTargetingModule::Get().QueryReadableDescriptionOfHardwareTargetingSettings();
+	//};
+
+	TSharedRef<SRequiredDefaultConfig> ConfigWidget = SNew(SRequiredDefaultConfig);
+	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
+	PendingChangesCategory.AddCustomRow(FString())
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		[
+			SNew(SBox)
+			.Visibility_Static(AnyPendingChangesVisible)
+			[
+				ConfigWidget
+			]
+		]
+		+SVerticalBox::Slot()
+		[
+			SNew(SBox)
+			.Visibility_Static(NoPendingChangesVisible)
+			[
+				SNew(STextBlock)
+				.Font(DetailBuilder.GetDetailFont())
+				.Text(LOCTEXT("NoPendingChangesMessage", "There are no pending settings changes."))
 			]
 		]
 	];
 
+	ConfigWidget->Initialize(DetailBuilder, PendingChangesCategory);
 
 	auto PropertyName = GET_MEMBER_NAME_CHECKED(UHardwareTargetingSettings, TargetedHardwareClass);
 	DetailBuilder.HideProperty(PropertyName);
 
 	TSharedRef<IPropertyHandle> Property = DetailBuilder.GetProperty(PropertyName);
-	HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:").ToString())
-	.NameContent()
-	[
-		SNew(STextBlock)
-		.Text(FText::FromString(Property->GetPropertyDisplayName()))
-		.Font(DetailBuilder.GetDetailFont())
-	]
-	.ValueContent()
-	[
-		SNew(SHorizontalBox)
+	{
+		auto SetPropertyValue = [](EHardwareClass::Type NewValue, TSharedRef<IPropertyHandle> Property){
+			Property->SetValue(uint8(NewValue));
+		};
+		auto GetPropertyValue = [](TSharedRef<IPropertyHandle> Property){
+			uint8 Value = 0;
+			Property->GetValue(Value);
+			return EHardwareClass::Type(Value);
+		};
 
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
+		HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:").ToString())
+		.NameContent()
 		[
-			HardwareTargeting.MakeHardwareClassTargetCombo(
-				FOnHardwareClassChanged::CreateStatic([](EHardwareClass::Type NewValue, TSharedRef<IPropertyHandle> Property){
-					Property->SetValue(uint8(NewValue));
-				}, Property),
-				TAttribute<EHardwareClass::Type>::Create(TAttribute<EHardwareClass::Type>::FGetter::CreateStatic([](TSharedRef<IPropertyHandle> Property){
-					uint8 Value = 0;
-					Property->GetValue(Value);
-					return EHardwareClass::Type(Value);
-				}, Property))
-			)
+			SNew(STextBlock)
+			.Text(FText::FromString(Property->GetPropertyDisplayName()))
+			.Font(DetailBuilder.GetDetailFont())
 		]
-	];
+		.ValueContent()
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				HardwareTargeting.MakeHardwareClassTargetCombo(
+					FOnHardwareClassChanged::CreateStatic(SetPropertyValue, Property),
+					TAttribute<EHardwareClass::Type>::Create(TAttribute<EHardwareClass::Type>::FGetter::CreateStatic(GetPropertyValue, Property))
+				)
+			]
+		];
+	}
 
 	PropertyName = GET_MEMBER_NAME_CHECKED(UHardwareTargetingSettings, DefaultGraphicsPerformance);
 	DetailBuilder.HideProperty(PropertyName);
 
 	Property = DetailBuilder.GetProperty(PropertyName);
-	HardwareTargetingCategory.AddCustomRow(LOCTEXT("GraphicsPreferenceOption", "Graphics Preference:").ToString())
-	.NameContent()
-	[
-		SNew(STextBlock)
-		.Text(FText::FromString(Property->GetPropertyDisplayName()))
-		.Font(DetailBuilder.GetDetailFont())
-	]
-	.ValueContent()
-	[
-		SNew(SHorizontalBox)
-
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
+	{
+		auto SetPropertyValue = [](EGraphicsPreset::Type NewValue, TSharedRef<IPropertyHandle> Property){
+			Property->SetValue(uint8(NewValue));
+		};
+		auto GetPropertyValue = [](TSharedRef<IPropertyHandle> Property){
+			uint8 Value = 0;
+			Property->GetValue(Value);
+			return EGraphicsPreset::Type(Value);
+		};
+		HardwareTargetingCategory.AddCustomRow(LOCTEXT("GraphicsPreferenceOption", "Graphics Preference:").ToString())
+		.NameContent()
 		[
-			HardwareTargeting.MakeGraphicsPresetTargetCombo(
-				FOnGraphicsPresetChanged::CreateStatic([](EGraphicsPreset::Type NewValue, TSharedRef<IPropertyHandle> Property){
-					Property->SetValue(uint8(NewValue));
-				}, Property),
-				TAttribute<EGraphicsPreset::Type>::Create(TAttribute<EGraphicsPreset::Type>::FGetter::CreateStatic([](TSharedRef<IPropertyHandle> Property){
-					uint8 Value = 0;
-					Property->GetValue(Value);
-					return EGraphicsPreset::Type(Value);
-				}, Property))
-			)
+			SNew(STextBlock)
+			.Text(FText::FromString(Property->GetPropertyDisplayName()))
+			.Font(DetailBuilder.GetDetailFont())
 		]
-	];
+		.ValueContent()
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				HardwareTargeting.MakeGraphicsPresetTargetCombo(
+					FOnGraphicsPresetChanged::CreateStatic(SetPropertyValue, Property),
+					TAttribute<EGraphicsPreset::Type>::Create(TAttribute<EGraphicsPreset::Type>::FGetter::CreateStatic(GetPropertyValue, Property))
+				)
+			]
+		];
+	}
 
 }
 

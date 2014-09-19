@@ -13,7 +13,7 @@ UHardwareTargetingSettings::UHardwareTargetingSettings(const FPostConstructIniti
 	, DefaultGraphicsPerformance(EGraphicsPreset::Maximum)
 {
 }
-	
+
 bool UHardwareTargetingSettings::HasPendingChanges() const
 {
 	UHardwareTargetingSettings* Settings = GetMutableDefault<UHardwareTargetingSettings>();
@@ -37,4 +37,9 @@ bool UHardwareTargetingSettings::HasPendingChanges() const
 	}
 
 	return false;
+}
+
+void UHardwareTargetingSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
+{
+	SettingChangedEvent.Broadcast();
 }

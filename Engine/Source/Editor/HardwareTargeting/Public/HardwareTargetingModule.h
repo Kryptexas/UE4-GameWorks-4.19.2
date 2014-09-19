@@ -8,6 +8,19 @@
 DECLARE_DELEGATE_OneParam(FOnHardwareClassChanged, EHardwareClass::Type)
 DECLARE_DELEGATE_OneParam(FOnGraphicsPresetChanged, EGraphicsPreset::Type)
 
+/** Struct specifying pending changes to a settings object */
+struct FModifiedDefaultConfig
+{
+	/** The settings object to which the description relates */
+	TWeakObjectPtr<UObject> SettingsObject;
+
+	/** Heading describing the name of the category */
+	FText CategoryHeading;
+
+	/** Text describing the pending changes to the settings */
+	FText Description;
+};
+
 class IHardwareTargetingModule : public IModuleInterface
 {
 public:
@@ -18,8 +31,8 @@ public:
 	/** Apply the current hardware targeting settings if they have changed */
 	virtual void ApplyHardwareTargetingSettings() = 0;
 
-	/** Queries what the the current hardware targeting settings would like to change */
-	virtual FText QueryReadableDescriptionOfHardwareTargetingSettings() = 0;
+	/** Gets a list of objects that are required to be writable in order to apply the settings */
+	virtual TArray<FModifiedDefaultConfig> GetPendingSettingsChanges() = 0;
 
 	/** Make a new combo box for choosing a hardware class target */
 	virtual TSharedRef<SWidget> MakeHardwareClassTargetCombo(FOnHardwareClassChanged OnChanged, TAttribute<EHardwareClass::Type> SelectedEnum) = 0;
