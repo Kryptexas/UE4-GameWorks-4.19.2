@@ -81,7 +81,7 @@ public:
 	 * 
 	 * @param  AssetObject	The asset entry you want rebuilt.
 	 */
-	void RefreshAssetActions(UObject const* const AssetObject);
+	void RefreshAssetActions(UObject* const AssetObject);
 
 	/**
 	 * Finds the database entry for the specified class and wipes it. The entry 
@@ -89,7 +89,7 @@ public:
 	 * 
 	 * @param  AssetObject	
 	 */
-	void ClearAssetActions(UObject const* const AssetObject);
+	void ClearAssetActions(UObject* const AssetObject);
 	
 	/**
 	 * 
