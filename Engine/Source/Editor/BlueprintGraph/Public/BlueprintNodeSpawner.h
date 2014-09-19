@@ -187,24 +187,54 @@ public:
 	UEdGraphNode* GetTemplateNode(ENoInit) const;
 
 	// IBlueprintNodeBinder interface
-	virtual bool   IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }
-	virtual bool   CanBindMultipleObjects() const override { return false; }
-
+	virtual bool IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }
+	virtual bool CanBindMultipleObjects() const override { return false; }
 protected:
-	virtual bool   BindToNode(UEdGraphNode* Node, UObject* Binding) const override { return false; }
+	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const override { return false; }
 	// End IBlueprintNodeBinder interface
 
 	/**
-	 * Protected Invoke() that let's sub-classes specify their own post-spawn
-	 * delegate. Creates a new node based off of the set NodeClass.
+	 * Protected SpawnNode() that let's sub-classes specify their own post-spawn
+	 * delegate and node class.
 	 * 
+	 * @param  NodeClass			The type of node you want spawned.
 	 * @param  ParentGraph			The graph you want the node spawned into.
-	 * @param  Bindings				
+	 * @param  Bindings				The bindings to apply to the node (post spawn).
 	 * @param  Location				Where you want the new node positioned in the graph.
 	 * @param  PostSpawnDelegate	A delegate to run after spawning the node, but prior to allocating the node's pins.
 	 * @return Null if it failed to spawn a node (if NodeClass is null), otherwise a newly spawned node.
 	 */
-	UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
+	template <class NodeType = UEdGraphNode>
+	NodeType* SpawnNode(TSubclassOf<UEdGraphNode> NodeClass, UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
+
+	/**
+	 * Simplified version of the other SpawnNode(), that just let's sub-classes 
+	 * specify their own post-spawn delegate (the node class is comes directly 
+	 * from the template parameter).
+	 * 
+	 * @param  ParentGraph			The graph you want the node spawned into.
+	 * @param  Bindings				The bindings to apply to the node (post spawn).
+	 * @param  Location				Where you want the new node positioned in the graph.
+	 * @param  PostSpawnDelegate	A delegate to run after spawning the node, but prior to allocating the node's pins.
+	 * @return Null if it failed to spawn a node (if NodeClass is null), otherwise a newly spawned node.
+	 */
+	template <class NodeType>
+	NodeType* SpawnNode(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
+
+private:
+	/**
+	 * Does the actual node spawning. Creates a new node (of the specified type),
+	 * sets the node's position, calls PostSpawnDelegate on the new node, and
+	 * finally applies any bindings that were passed to it.
+	 * 
+	 * @param  NodeClass			The type of node you want spawned.
+	 * @param  ParentGraph			The graph you want the node spawned into.
+	 * @param  Bindings				The bindings to apply to the node (post spawn).
+	 * @param  Location				Where you want the new node positioned in the graph.
+	 * @param  PostSpawnDelegate	A delegate to run after spawning the node, but prior to allocating the node's pins.
+	 * @return Null if it failed to spawn a node (if NodeClass is null), otherwise a newly spawned node.
+	 */
+	UEdGraphNode* SpawnEdGraphNode(TSubclassOf<UEdGraphNode> NodeClass, UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const;
 };
 
 /*******************************************************************************
@@ -216,4 +246,18 @@ template<class NodeType>
 UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(UObject* Outer, FCustomizeNodeDelegate PostSpawnDelegate)
 {
 	return Create(NodeType::StaticClass(), Outer, PostSpawnDelegate);
+}
+
+//------------------------------------------------------------------------------
+template <class NodeType>
+NodeType* UBlueprintNodeSpawner::SpawnNode(TSubclassOf<UEdGraphNode> NodeClass, UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
+{
+	return CastChecked<NodeType>(SpawnEdGraphNode(NodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate));
+}
+
+//------------------------------------------------------------------------------
+template <class NodeType>
+NodeType* UBlueprintNodeSpawner::SpawnNode(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
+{
+	return SpawnNode<NodeType>(NodeType::StaticClass(), ParentGraph, Bindings, Location, PostSpawnDelegate);
 }

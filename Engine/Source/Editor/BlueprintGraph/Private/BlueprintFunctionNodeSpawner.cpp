@@ -56,8 +56,17 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 	{
 		if (UProperty const* BoundProperty = Cast<UProperty>(BoundObject))
 		{
-			UBlueprintNodeSpawner* TempNodeSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), BoundProperty);
-			bSuccessfulBinding = BindFunctionNode<UK2Node_VariableGet>(NewNode, TempNodeSpawner);
+			if (UK2Node_CallFunctionOnMember* CallOnMemberNode = Cast<UK2Node_CallFunctionOnMember>(NewNode))
+			{
+				CallOnMemberNode->MemberVariableToCallOn.SetFromField<UProperty>(BoundProperty, NewNode);
+				bSuccessfulBinding = true;
+				CallOnMemberNode->ReconstructNode();
+			}
+			else
+			{
+				UBlueprintNodeSpawner* TempNodeSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), BoundProperty);
+				bSuccessfulBinding = BindFunctionNode<UK2Node_VariableGet>(NewNode, TempNodeSpawner);
+			}
 		}
 		else if (AActor* BoundActor = Cast<AActor>(BoundObject))
 		{
@@ -149,9 +158,7 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(UFunction c
 	{
 		NodeClass = UK2Node_CallDataTableFunction::StaticClass();
 	}
-	// @TODO:
-	//   else if CallOnMember => UK2Node_CallFunctionOnMember
-	//   else if bIsParentContext => UK2Node_CallParentFunction
+	// @TODO: else if bIsParentContext => UK2Node_CallParentFunction
 	else if (bHasArrayPointerParms)
 	{
 		NodeClass = UK2Node_CallArrayFunction::StaticClass();
@@ -216,12 +223,23 @@ void UBlueprintFunctionNodeSpawner::Prime()
 //------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* Function, FSetNodeFieldDelegate SetFieldDelegate, FCustomizeNodeDelegate UserDelegate)
+	{
+		SetFieldDelegate.ExecuteIfBound(NewNode, Function);
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+	};
+	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, GetFunction(), SetNodeFieldDelegate, CustomizeNodeDelegate);
+
+	UClass* SpawnClass = NodeClass;
+	if ((Bindings.Num() == 1) && (*Bindings.CreateConstIterator())->IsA<UObjectProperty>())
+	{
+		SpawnClass = UK2Node_CallFunctionOnMember::StaticClass();
+	}
 	// if this spawner was set up to spawn a bound node, reset this so the 
 	// bound nodes get positioned properly
 	BlueprintFunctionNodeSpawnerImpl::BindingOffset = FVector2D::ZeroVector;
 
-	UEdGraphNode* SpawnedNode = Super::Invoke(ParentGraph, Bindings, Location);
-	return SpawnedNode;
+	return Super::SpawnNode(SpawnClass, ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
 }
 
 //------------------------------------------------------------------------------
@@ -229,7 +247,19 @@ FText UBlueprintFunctionNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindi
 {
 	UFunction const* Function = GetFunction();
 	check(Function != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetUserFacingFunctionName(Function));
+	FString FunctionName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+
+	if (Bindings.Num() == 1)
+	{
+		UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(Bindings.CreateConstIterator()->Get());
+		if (ObjectProperty != nullptr)
+		{
+			// @TODO: this should probably be an FText::Format()
+			FunctionName = FString::Printf(TEXT("%s (%s)"), *FunctionName, *ObjectProperty->GetName());
+		}
+	}
+
+	return FText::FromString(FunctionName);
 }
 
 //------------------------------------------------------------------------------
@@ -285,29 +315,22 @@ bool UBlueprintFunctionNodeSpawner::CanBindMultipleObjects() const
 bool UBlueprintFunctionNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
 	bool bCanBind = false;
-	if (UFunction const* Function = GetFunction())
+
+	UFunction const* Function = GetFunction();
+	if ((Function != nullptr) && (NodeClass == UK2Node_CallFunction::StaticClass()))
 	{
-		// @TODO: don't know exactly why we can only bind non-pure/const 
-		//        functions... this is mirrored after FK2ActionMenuBuilder::GetFunctionCallsOnSelectedActors()
-		//        and FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents(),
-		//        where we make the same stipulation
-		bool const bIsImperative = !Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
-		bool const bIsConstFunc  =  Function->HasAnyFunctionFlags(FUNC_Const);
-
-		if (bIsImperative || bIsConstFunc)
+		UClass* BindingClass = BindingCandidate->GetClass();
+		if (UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(BindingCandidate))
 		{
-			UClass* BindingClass = BindingCandidate->GetClass();
-			if (UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(BindingCandidate))
-			{
-				BindingClass = ObjectProperty->PropertyClass;
-			}
+			BindingClass = ObjectProperty->PropertyClass;
+		}
 
-			if (UClass const* FuncOwner = Function->GetOwnerClass())
-			{
-				bCanBind = BindingClass->IsChildOf(FuncOwner);
-			}
+		if (UClass const* FuncOwner = Function->GetOwnerClass())
+		{
+			bCanBind = BindingClass->IsChildOf(FuncOwner);
 		}
 	}
+
 	return bCanBind;
 }
 

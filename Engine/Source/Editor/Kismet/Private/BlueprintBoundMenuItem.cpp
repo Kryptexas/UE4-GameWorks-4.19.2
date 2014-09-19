@@ -17,47 +17,10 @@ namespace BlueprintBoundMenuItemImpl
 	/**
 	 * 
 	 * 
-	 * @param  BoundSpawner	
-	 * @return 
-	 */
-	static FText GetMenuCategoryFromAction(UBlueprintNodeSpawner const* BoundSpawner, IBlueprintNodeBinder::FBindingSet const& Bindings);
-
-	/**
-	 * 
-	 * 
 	 * @param  ObjectsList	
 	 * @return 
 	 */
 	static UClass* FindCommonBaseClass(IBlueprintNodeBinder::FBindingSet const& ObjectsList);
-}
-
-//------------------------------------------------------------------------------
-static FText BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(UBlueprintNodeSpawner const* BoundSpawner, IBlueprintNodeBinder::FBindingSet const& Bindings)
-{
-	check(Bindings.Num() > 0);
-
-	FText BoundObjectName;
-	if (Bindings.Num() > 1)
-	{
-		UClass* CommonBaseClass = FindCommonBaseClass(Bindings);
-		BoundObjectName = FText::Format(LOCTEXT("MultipleBindingsCategoryPostfix", "Selected {0}s"), CommonBaseClass->GetDisplayNameText());
-	}
-	else if (UObject const* BoundObject = Bindings.CreateConstIterator()->Get())
-	{
-		BoundObjectName = FText::FromName(BoundObject->GetFName());
-	}
-
-	FText MenuCategory = BoundSpawner->GetDefaultMenuCategory();
-	if (BoundSpawner->NodeClass->IsChildOf<UK2Node_Event>())
-	{
-		MenuCategory = FText::Format(LOCTEXT("ComponentEventCategory", "Add Event for {0}|{1}"), BoundObjectName, MenuCategory);
-	}
-	else if (BoundSpawner->NodeClass->IsChildOf<UK2Node_CallFunction>())
-	{
-		MenuCategory = FText::Format(LOCTEXT("ComponentEventCategory", "Call Function on {0}|{1}"), BoundObjectName, MenuCategory);
-	}
-
-	return MenuCategory;
 }
 
 //------------------------------------------------------------------------------
@@ -98,7 +61,6 @@ FBlueprintBoundMenuItem::FBlueprintBoundMenuItem(UBlueprintNodeSpawner const* Bo
 	: BoundSpawner(BoundSpawnerIn) 
 {
 	Grouping = MenuGrouping;
-	// category will be generated as we add bindings
 }
 
 //------------------------------------------------------------------------------
@@ -168,7 +130,6 @@ void FBlueprintBoundMenuItem::AddReferencedObjects(FReferenceCollector& Collecto
 void FBlueprintBoundMenuItem::AddBindings(IBlueprintNodeBinder::FBindingSet const& BindingSet)
 {
 	BoundObjects.Append(BindingSet);
-	Category = BlueprintBoundMenuItemImpl::GetMenuCategoryFromAction(BoundSpawner, BoundObjects).ToString();
 
 	// Allow the binding to generate a menu description:
 	FText NewMenuDescription = BoundSpawner->GetDefaultMenuName(BoundObjects);
