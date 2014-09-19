@@ -618,6 +618,8 @@ enum EUnrealEngineObjectUE4Version
 	// Rename USpringArmComponent::bUsePawnViewRotation to bUsePawnControlRotation
 	// Rename UCameraComponent::bUsePawnViewRotation to bUsePawnControlRotation
 	VER_UE4_RENAME_CAMERA_COMPONENT_CONTROL_ROTATION,
+	// Fix bad refraction material attribute masks
+	VER_UE4_FIX_REFRACTION_INPUT_MASKING,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
