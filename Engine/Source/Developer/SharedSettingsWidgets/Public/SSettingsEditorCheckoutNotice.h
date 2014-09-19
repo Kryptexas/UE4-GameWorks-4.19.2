@@ -6,8 +6,7 @@
 /**
  * Implements a widget that provides a notice for files that need to be checked out.
  */
-class SSettingsEditorCheckoutNotice
-	: public SCompoundWidget
+class SHAREDSETTINGSWIDGETS_API SSettingsEditorCheckoutNotice : public SCompoundWidget
 {
 public:
 

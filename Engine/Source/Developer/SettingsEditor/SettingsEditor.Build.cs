@@ -29,6 +29,7 @@ public class SettingsEditor : ModuleRules
 				"SlateCore",
 				"SourceControl",
 				"Analytics",
+				"SharedSettingsWidgets",
 				"Engine",
             }
         );

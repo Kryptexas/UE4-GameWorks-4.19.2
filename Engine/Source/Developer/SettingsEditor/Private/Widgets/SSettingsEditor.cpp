@@ -4,6 +4,7 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
+#include "SSettingsEditorCheckoutNotice.h"
 
 #define LOCTEXT_NAMESPACE "SSettingsEditor"
 
@@ -195,7 +196,6 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 							[
 								// checkout notice
 								SNew(SSettingsEditorCheckoutNotice)
-									.OnCheckOutClicked(this, &SSettingsEditor::HandleCheckOutButtonClicked)
 									.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
 									.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
 									.ConfigFilePath(this, &SSettingsEditor::GetCachedConfigFileName)

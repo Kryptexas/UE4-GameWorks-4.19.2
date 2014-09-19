@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SettingsEditorPrivatePCH.h"
+#include "SharedSettingsWidgetsPrivatePCH.h"
+#include "EditorStyle.h"
+#include "SSettingsEditorCheckoutNotice.h"
+#include "ISourceControlModule.h"
 
 
 #define LOCTEXT_NAMESPACE "SSettingsEditorCheckoutNotice"
@@ -110,8 +113,34 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 /* SSettingsEditorCheckoutNotice callbacks
  *****************************************************************************/
 
-FReply SSettingsEditorCheckoutNotice::HandleCheckOutButtonClicked( )
+FReply SSettingsEditorCheckoutNotice::HandleCheckOutButtonClicked()
 {
+	FString TargetFilePath = ConfigFilePath.Get();
+
+	if (ISourceControlModule::Get().IsEnabled())
+	{
+		FText ErrorMessage;
+
+		if (!SourceControlHelpers::CheckoutOrMarkForAdd(TargetFilePath, FText::FromString(TargetFilePath), NULL, ErrorMessage))
+		{
+			FNotificationInfo Info(ErrorMessage);
+			Info.ExpireDuration = 3.0f;
+			FSlateNotificationManager::Get().AddNotification(Info);
+		}
+	}
+	else
+	{
+		if (!FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*TargetFilePath, false))
+		{
+			FText NotificationErrorText = FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(TargetFilePath));
+
+			FNotificationInfo Info(NotificationErrorText);
+			Info.ExpireDuration = 3.0f;
+
+			FSlateNotificationManager::Get().AddNotification(Info);
+		}
+	}
+
 	if (CheckOutClickedDelegate.IsBound())
 	{
 		return CheckOutClickedDelegate.Execute();
