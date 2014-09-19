@@ -408,7 +408,9 @@ void DistanceFieldShadowingCS(
 				float3 WorldRayStart = OpaqueWorldPosition + LightVector / LightVectorLength * RayStartOffset;
 				float3 WorldRayEnd = LightPositionAndInvRadius.xyz;
 				float MaxRayTime = LightVectorLength;
-				float TanLightAngle = LightSourceRadius / LightVectorLength;
+				float MaxAngle = tan(10 * PI / 180.0f);
+				// Comparing tangents instead of angles, but tangent is always increasing in this range
+				float TanLightAngle = min(LightSourceRadius / LightVectorLength, MaxAngle);
 
 			#else
 

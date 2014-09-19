@@ -217,7 +217,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, ComponentName(InLightComponent->GetOwner() ? InLightComponent->GetOwner()->GetFName() : InLightComponent->GetFName())
 	, LevelName(InLightComponent->GetOutermost()->GetFName())
 	, StatId(InLightComponent->GetStatID(true))
-	{
+{
 	// Brightness in Lumens
 	float LightBrightness = InLightComponent->ComputeLightBrightness();
 

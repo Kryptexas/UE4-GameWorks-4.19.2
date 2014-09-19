@@ -417,21 +417,16 @@ void AOCombinePS2(
 		OutColor.a = -SceneDepth;
 	}
 
-	BRANCH
+	float BentNormalLength = length(OutColor.rgb);
+	// Fade to unoccluded in the distance
+	float FadeAlpha = saturate(.001f * (.95f * AOMaxViewDistance - SceneDepth));
+	OutColor.rgb = normalize(OutColor.rgb) * lerp(1, BentNormalLength, FadeAlpha);
+
+	FLATTEN
 	if (SceneDepth > AOMaxViewDistance)
 	{
-		float BentNormalLength = length(OutColor.rgb);
-		// Fade to unoccluded in the distance
-		float FadeAlpha = saturate(.001f * (.95f * AOMaxViewDistance - SceneDepth));
-		OutColor.rgb = lerp(DistanceFieldNormalValue.xyz, OutColor.rgb, FadeAlpha);
-		OutColor.rgb = normalize(OutColor.rgb) * lerp(1, BentNormalLength, FadeAlpha);
-
-		FLATTEN
-		if (SceneDepth > AOMaxViewDistance)
-		{
-			// Mark as valid for the gap filling pass, so we don't get overwritten
-			OutColor.a = abs(OutColor.a);
-		}
+		// Mark as valid for the gap filling pass, so we don't get overwritten
+		OutColor.a = abs(OutColor.a);
 	}
 
 #endif
