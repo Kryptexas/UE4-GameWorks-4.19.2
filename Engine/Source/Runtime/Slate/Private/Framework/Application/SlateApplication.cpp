@@ -2348,6 +2348,10 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSize() );
 
 			// Update the tool tip window positioning
+			// SetCachedScreenPosition is a hack (issue tracked as TTP #347070) which is needed because code in TickWindowAndChildren()/DrawPrepass()
+			// assumes GetPositionInScreen() to correspond to the new window location in the same tick. This is true on Windows, but other
+			// OSes (Linux in particular) may not update cached screen position until next time events are polled.
+			PinnedToolTipWindow->SetCachedScreenPosition( WindowLocation );
 			PinnedToolTipWindow->MoveWindowTo( WindowLocation );
 		}
 	}

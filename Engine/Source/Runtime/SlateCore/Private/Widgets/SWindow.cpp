@@ -697,8 +697,6 @@ void SWindow::MoveWindowTo( FVector2D NewPosition )
 	if (NativeWindow.IsValid())
 	{
 		NativeWindow->MoveWindowTo( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y) );
-		// cache position immediately since the "windows moved" event may be delayed until next frame.
-		SetCachedScreenPosition(NewPosition);
 	}
 	else
 	{
