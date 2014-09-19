@@ -2879,7 +2879,7 @@ TSharedPtr< SWidget > FSlateApplication::GetKeyboardFocusedWidget() const
 	return TSharedPtr< SWidget >();
 }
 
-TSharedPtr<SWidget> FSlateApplication::GetMouseCaptor() const
+TSharedPtr<SWidget> FSlateApplication::GetMouseCaptorImpl() const
 {
 	return MouseCaptor.ToSharedWidget(CursorPointerIndex);
 }

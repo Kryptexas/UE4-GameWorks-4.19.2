@@ -141,8 +141,20 @@ public:
 	* @return The captor widget, or nullptr if no widget captured the mouse.
 	*/
 	DEPRECATED(4.5, "This API is no longer supported.  You can check if a specific widget has capture using the SWidget::HasMouseCapture() API")
-	virtual TSharedPtr< SWidget > GetMouseCaptor() const = 0;
+	inline TSharedPtr< SWidget > GetMouseCaptor() const
+	{
+		return GetMouseCaptorImpl();
+	}
 
+protected:
+	/**
+	 * Implementation of GetMouseCaptor which can be overriden without warnings.
+	 * 
+	 * @return Widget with the mouse capture
+	 */
+	virtual TSharedPtr< SWidget > GetMouseCaptorImpl() const = 0;
+
+public:
 	/**
 	 * Gets whether or not a widget has captured the mouse.
 	 *
