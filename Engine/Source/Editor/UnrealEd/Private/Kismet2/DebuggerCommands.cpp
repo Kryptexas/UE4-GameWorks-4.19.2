@@ -202,7 +202,7 @@ FPlayWorldCommands::FPlayWorldCommands()
 void FPlayWorldCommands::RegisterCommands()
 {
 	// SIE
-	UI_COMMAND( Simulate, "Simulate", "Start simulating the game", EUserInterfaceActionType::ToggleButton, FInputGesture( EKeys::S, EModifierKey::Alt ) );
+	UI_COMMAND( Simulate, "Simulate", "Start simulating the game", EUserInterfaceActionType::Check, FInputGesture( EKeys::S, EModifierKey::Alt ) );
 
 	// PIE
 	UI_COMMAND( RepeatLastPlay, "Play", "Launches a game preview session in the same mode as the last game preview session launched from the Game Preview Modes dropdown next to the Play button on the level editor toolbar", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt ) )
@@ -245,7 +245,7 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 	ActionList.MapAction( Commands.Simulate,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::Simulate_Clicked ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::Simulate_CanExecute ),
-		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::Simulate_IsChecked ),
+		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_Simulate ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
 		);
 
@@ -386,9 +386,6 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 
 void FPlayWorldCommands::BuildToolbar( FToolBarBuilder& ToolbarBuilder, bool bIncludeLaunchButtonAndOptions )
 {
-	// Simulate
-	ToolbarBuilder.AddToolBarButton(FPlayWorldCommands::Get().Simulate, NAME_None, TAttribute<FText>(), TAttribute<FText>(), TAttribute<FSlateIcon>(), FName(TEXT("LevelToolbarSimulate")));
-
 	// Play
 	ToolbarBuilder.AddToolBarButton( 
 		FPlayWorldCommands::Get().RepeatLastPlay, 
@@ -489,6 +486,10 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 			case PlayMode_InViewPort:
 				PlayModeCommand = FPlayWorldCommands::Get().PlayInViewport;
 				break;
+
+			case PlayMode_Simulate:
+				PlayModeCommand = FPlayWorldCommands::Get().Simulate;
+				break;
 			}
 
 			if (PlayModeCommand.IsValid())
@@ -505,9 +506,10 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 	MenuBuilder.BeginSection("LevelEditorPlayModes", LOCTEXT("PlayButtonModesSection", "Modes"));
 	{
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InViewPort);
+		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InMobilePreview);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InEditorFloating);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InNewProcess);
-		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InMobilePreview);
+		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_Simulate);
 	}
 	MenuBuilder.EndSection();
 
@@ -893,6 +895,14 @@ FSlateIcon FInternalPlayWorldCommandCallbacks::GetPossessEjectImage()
 }
 
 
+void SetLastExecutedPlayMode(EPlayModeType PlayMode)
+{
+	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	PlaySettings->LastExecutedPlayModeType = PlayMode;
+	PlaySettings->SaveConfig();
+}
+
+
 void FInternalPlayWorldCommandCallbacks::Simulate_Clicked()
 {
 	// Is a simulation session already running?  If so, do nothing
@@ -900,6 +910,8 @@ void FInternalPlayWorldCommandCallbacks::Simulate_Clicked()
 	{
 		return;
 	}
+
+	SetLastExecutedPlayMode( PlayMode_Simulate );
 
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
 
@@ -961,18 +973,13 @@ const TSharedRef < FUICommandInfo > GetLastPlaySessionCommand()
 	case PlayMode_InNewProcess:
 		Command = Commands.PlayInNewProcess.ToSharedRef();
 		break;
+	case PlayMode_Simulate:
+		Command = Commands.Simulate.ToSharedRef();
 	}
 
 	return Command;
 }
 
-
-void SetLastExecutedPlayMode( EPlayModeType PlayMode )
-{
-	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
-	PlaySettings->LastExecutedPlayModeType = PlayMode;
-	PlaySettings->SaveConfig();
-}
 
 
 /** Report PIE usage to engine analytics */
@@ -1018,6 +1025,10 @@ void RecordLastExecutedPlayMode()
 
 		case PlayMode_InNewProcess:
 			PlayModeString = TEXT("InNewProcess");
+			break;
+
+		case PlayMode_Simulate:
+			PlayModeString = TEXT("Simulate");
 			break;
 
 		default:

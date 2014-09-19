@@ -58,6 +58,9 @@ enum EPlayModeType
 	/** Runs in a new process. */
 	PlayMode_InNewProcess,
 
+	/** Simulates in viewport without possessing the player */
+	PlayMode_Simulate,
+
 	/** The number of different Play Modes */
 	PlayMode_Count,
 };
