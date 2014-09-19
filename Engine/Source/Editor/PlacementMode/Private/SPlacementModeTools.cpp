@@ -19,10 +19,10 @@ namespace EPlacementTab
 	enum Type
 	{
 		RecentlyPlaced = 0,
-		Geometry,
+		Basic,
 		Lights,
 		Visual,
-		Basic,
+		Geometry,
 		Volumes,
 		AllClasses,
 	};
@@ -347,13 +347,14 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 			]
 		]
 
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( SBox )
-			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMGeometry")))
+			SNew(SBox)
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMBasic")))
 			[
-				CreatePlacementGroupTab( (int32)EPlacementTab::Geometry, NSLOCTEXT( "PlacementMode", "Geometry", "Geometry" ), false )
+				CreatePlacementGroupTab((int32)EPlacementTab::Basic, NSLOCTEXT("PlacementMode", "Basic", "Basic"), false)
 			]
 		]
 
@@ -377,13 +378,14 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 			]
 		]
 
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( SBox )
-			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMBasic")))
+			SNew(SBox)
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMGeometry")))
 			[
-				CreatePlacementGroupTab( (int32)EPlacementTab::Basic, NSLOCTEXT( "PlacementMode", "Basic", "Basic" ), false )
+				CreatePlacementGroupTab((int32)EPlacementTab::Geometry, NSLOCTEXT("PlacementMode", "BSP", "BSP"), false)
 			]
 		]
 
@@ -423,7 +425,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 			.BorderImage( FEditorStyle::GetBrush( "ToolPanel.DarkGroupBorder" ) )
 			[
 				SAssignNew( WidgetSwitcher, SWidgetSwitcher )
-				.WidgetIndex( (int32)EPlacementTab::Geometry )
+				.WidgetIndex( (int32)EPlacementTab::Basic )
 
 				// Recently Placed
 				+ SWidgetSwitcher::Slot()
@@ -436,10 +438,15 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 					]
 				]
 
-				// Geometry
+				// Basics
 				+ SWidgetSwitcher::Slot()
 				[
-					FModuleManager::LoadModuleChecked<IBspModeModule>("BspMode").CreateBspModeWidget()
+					SNew(SScrollBox)
+
+					+ SScrollBox::Slot()
+					[
+						BuildBasicWidget()
+					]
 				]
 
 				// Lights
@@ -464,15 +471,10 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 					]
 				]
 
-				// Basics
-				+ SWidgetSwitcher::Slot()
+				// Geometry
+				+SWidgetSwitcher::Slot()
 				[
-					SNew( SScrollBox )
-
-					+ SScrollBox::Slot()
-					[
-						BuildBasicWidget()
-					]
+					FModuleManager::LoadModuleChecked<IBspModeModule>("BspMode").CreateBspModeWidget()
 				]
 
 				// Volumes
@@ -674,6 +676,13 @@ TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 		BuildDraggableAssetWidget( UActorFactoryPlayerStart::StaticClass() )
 	]
 
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		BuildDraggableAssetWidget(UActorFactoryPointLight::StaticClass())
+	]
+
+
 	// Triggers
 	+ SVerticalBox::Slot()
 	.AutoHeight()
@@ -693,12 +702,6 @@ TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 		BuildDraggableAssetWidget( UActorFactoryTriggerCapsule::StaticClass() )
 	]
 
-	// Misc
-	+ SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		BuildDraggableAssetWidget( UActorFactoryNote::StaticClass() )
-	]
 
 	+ SVerticalBox::Slot()
 	.AutoHeight()
