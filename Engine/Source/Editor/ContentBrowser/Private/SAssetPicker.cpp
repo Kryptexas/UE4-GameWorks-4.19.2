@@ -294,16 +294,19 @@ FText SAssetPicker::GetHighlightedText() const
 
 void SAssetPicker::SetSearchBoxText(const FText& InSearchText)
 {
-	TextFilter->SetRawFilterText(InSearchText);
-	if (InSearchText.IsEmpty())
+	if ( !InSearchText.EqualToCaseIgnored(TextFilter->GetRawFilterText()) )
 	{
-		FrontendFilters->Remove(TextFilter);
-		AssetViewPtr->SetUserSearching(false);
-	}
-	else
-	{
-		FrontendFilters->Add(TextFilter);
-		AssetViewPtr->SetUserSearching(true);
+		TextFilter->SetRawFilterText(InSearchText);
+		if (InSearchText.IsEmpty())
+		{
+			FrontendFilters->Remove(TextFilter);
+			AssetViewPtr->SetUserSearching(false);
+		}
+		else
+		{
+			FrontendFilters->Add(TextFilter);
+			AssetViewPtr->SetUserSearching(true);
+		}
 	}
 }
 

@@ -176,6 +176,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 	}
 
 	bPendingSortFilteredItems = false;
+	bQuickFrontendListRefreshRequested = false;
+	bSlowFullListRefreshRequested = false;
 	LastSortTime = 0;
 	SortDelaySeconds = 8;
 
