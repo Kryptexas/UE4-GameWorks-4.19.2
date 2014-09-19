@@ -105,6 +105,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	PreClothTickFunction.bCanEverTick = true;
 	PreClothTickFunction.bStartWithTickEnabled = true;
 
+
 #if WITH_APEX_CLOTHING
 	ClothMaxDistanceScale = 1.0f;
 	ClothTeleportMode = FClothingActor::Continuous;
@@ -126,7 +127,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 
 	DefaultPlayRate_DEPRECATED = 1.0f;
 	bDefaultPlaying_DEPRECATED = true;
-	bEnablePhysicsOnDedicatedServer = false;
+	bEnablePhysicsOnDedicatedServer = UPhysicsSettings::Get()->bSimulateSkeletalMeshOnDedicatedServer;
 	bEnableUpdateRateOptimizations = false;
 
 	bTickInEditor = true;

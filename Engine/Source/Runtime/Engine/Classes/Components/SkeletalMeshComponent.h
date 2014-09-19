@@ -335,9 +335,11 @@ public:
 	UPROPERTY(transient)
 	uint32 bBlendPhysics:1;
 
-	/** temporary variable to enable/disable skeletalmeshcomponent physics SIM/blending in dedicated server 
-	 * @todo this should move to more global option **/
-	UPROPERTY()
+	/**
+	 *  If true, simulate physics for this component on a dedicated server.
+	 *  This should be set if simulating physics and replicating with a dedicated server.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
 	uint32 bEnablePhysicsOnDedicatedServer:1;
 
 	/**

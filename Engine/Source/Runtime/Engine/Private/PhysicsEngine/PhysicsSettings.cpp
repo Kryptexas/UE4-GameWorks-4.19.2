@@ -9,6 +9,7 @@ UPhysicsSettings::UPhysicsSettings(const class FPostConstructInitializePropertie
 	, DefaultFluidFriction(0.3f)
 	, bEnableAsyncScene(false)
 	, bEnable2DPhysics(false)
+	, bSimulateSkeletalMeshOnDedicatedServer(true)
 	, MaxPhysicsDeltaTime(1.f / 30.f)
 	, bSubstepping(false)
 	, MaxSubstepDeltaTime(1.f / 60.f)
