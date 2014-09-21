@@ -52,14 +52,7 @@
 # Ignore various other dependencies that are never checked in
 /Engine/Content/**
 /Engine/Documentation/**
-
-# Ignore all binary types in the extras folder
-/Engine/Extras/*/**
-!/Engine/Extras/Maya_AnimationRiggingTools/**
-/Engine/Extras/Maya_AnimationRiggingTools/**/*.pdf
-/Engine/Extras/Maya_AnimationRiggingTools/**/*.pyd
-/Engine/Extras/Maya_AnimationRiggingTools/MayaTools/General/ART/**
-/Engine/Extras/Maya_AnimationRiggingTools/MayaTools/General/Icons/**
+/Engine/Extras/**
 
 # Ignore any saved local files
 /Engine/Saved/**
