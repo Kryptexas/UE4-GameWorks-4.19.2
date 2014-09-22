@@ -41,6 +41,8 @@ public:
 
 	FString GetName() const;
 
+	static FString GetCanonicalName(const FString& Name);
+
 	static FString GetParentName(const FString& CultureName);
 	
 	FString GetNativeName() const;

@@ -23,27 +23,6 @@
 
 #define LOCTEXT_NAMESPACE "Internationalization"
 
-namespace
-{
-
-FString GetCanonicalName(const FString& Name)
-{
-#if UE_ENABLE_ICU
-	static const int32 MaximumNameLength = 64;
-	const int32 NameLength = Name.Len();
-	check(NameLength < MaximumNameLength);
-	char CanonicalName[MaximumNameLength];
-
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	uloc_canonicalize(TCHAR_TO_ANSI( *Name ), CanonicalName, MaximumNameLength, &ICUStatus);
-	return CanonicalName;
-#else
-	return Name;
-#endif
-}
-
-}
-
 FInternationalization* FInternationalization::Instance;
 
 FInternationalization& FInternationalization::Get()
@@ -120,7 +99,7 @@ FCulturePtr FInternationalization::GetCulture(const FString& Name) const
 
 int32 FInternationalization::GetCultureIndex(const FString& Name) const
 {
-	const FString CanonicalName = GetCanonicalName(Name);
+	const FString CanonicalName = FCulture::GetCanonicalName(Name);
 
 	const int32 CultureCount = AllCultures.Num();
 	int32 i;
@@ -589,7 +568,7 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 				{
 					// UE localization resource folders use "en-US" style while ICU uses "en_US"
 					const FString LocalizationFolder = FPaths::GetCleanFilename(FilenameOrDirectory);
-					const FString CanonicalName = GetCanonicalName(LocalizationFolder);
+					const FString CanonicalName = FCulture::GetCanonicalName(LocalizationFolder);
 					LocalizationFolders.AddUnique(CanonicalName);
 				}
 

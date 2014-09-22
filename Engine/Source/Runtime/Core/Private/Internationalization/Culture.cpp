@@ -49,6 +49,11 @@ FString FCulture::GetName() const
 	return Implementation->GetName();
 }
 
+FString FCulture::GetCanonicalName(const FString& Name)
+{
+	return FImplementation::GetCanonicalName(Name);
+}
+
 FString FCulture::GetParentName(const FString& CultureName)
 {
 	return FImplementation::GetParentName(CultureName);

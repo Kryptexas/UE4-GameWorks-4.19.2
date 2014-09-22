@@ -43,6 +43,11 @@ FString FCulture::FLegacyCultureImplementation::GetName() const
 	return Name;
 }
 
+FString FCulture::FLegacyCultureImplementation::GetCanonicalName(const FString& Name)
+{
+	return Name;
+}
+
 FString FCulture::FLegacyCultureImplementation::GetParentName(const FString& CultureName)
 {
 	FString Result;
