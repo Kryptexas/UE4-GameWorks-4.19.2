@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SocketsBSD.cpp: Implements the FSocketBSD class.
-=============================================================================*/
-
 #include "SocketsPrivatePCH.h"
 
 #if PLATFORM_HAS_BSD_SOCKETS

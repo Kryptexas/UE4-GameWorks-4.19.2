@@ -1,11 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FriendsAndChatStyle.h: Declares the FFriendsAndChatStyle interface.
-=============================================================================*/
 #pragma once
 
 #include "FriendsAndChatStyle.generated.h"
+
 
 /**
  * Interface for the services manager.
@@ -17,16 +15,15 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	GENERATED_USTRUCT_BODY()
 
 	// Default Constructor
-	FFriendsAndChatStyle(){}
+	FFriendsAndChatStyle() { }
 
 	// Default Destructor
-	virtual ~FFriendsAndChatStyle() {}
+	virtual ~FFriendsAndChatStyle() { }
 
 	/**
 	 * Override widget style function.
 	 */
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override
-	{}
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override { }
 
 	// Holds the widget type name
 	static const FName TypeName;

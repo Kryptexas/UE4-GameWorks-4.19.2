@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealEdMessagesModule.cpp: Implements the FUnrealEdMessagesModule class.
-=============================================================================*/
-
 #include "UnrealEdMessagesPrivatePCH.h"
-
 
 
 /**
@@ -16,8 +11,9 @@ class FUnrealEdMessagesModule
 {
 public:
 
-	virtual void StartupModule( ) override { }
+	// IModuleInterface interface
 
+	virtual void StartupModule( ) override { }
 	virtual void ShutdownModule( ) override { }
 
 	virtual bool SupportsDynamicReloading( ) override
@@ -25,12 +21,6 @@ public:
 		return true;
 	}
 };
-
-
-// Dummy class initialization
-UAssetEditorMessages::UAssetEditorMessages( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
-{ }
 
 
 IMPLEMENT_MODULE(FUnrealEdMessagesModule, UnrealEdMessages);

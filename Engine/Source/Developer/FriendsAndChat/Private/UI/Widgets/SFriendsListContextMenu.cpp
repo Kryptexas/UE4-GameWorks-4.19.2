@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SFriendsListContextMenu.cpp: Implements the SFriendsListContextMenu class.
-=============================================================================*/
-
 #include "FriendsAndChatPrivatePCH.h"
 
+
 #define LOCTEXT_NAMESPACE "SFriendsListContextMenu"
+
 
 void SFriendsListContextMenu::Construct( const FArguments& InArgs )
 {
@@ -17,6 +15,7 @@ void SFriendsListContextMenu::Construct( const FArguments& InArgs )
 		MakeContextMenu()
 	];
 }
+
 
 TSharedRef<SWidget> SFriendsListContextMenu::MakeContextMenu( )
 {
@@ -78,6 +77,7 @@ TSharedRef<SWidget> SFriendsListContextMenu::MakeContextMenu( )
 	return MenuBuilder.MakeWidget();
 }
 
+
 void SFriendsListContextMenu::OnAddFriendClicked()
 {
 	if ( FriendItem.IsValid() )
@@ -85,6 +85,7 @@ void SFriendsListContextMenu::OnAddFriendClicked()
 		FFriendsAndChatManager::Get()->RequestFriend( FText::FromString( FriendItem->GetName() ) );
 	}
 }
+
 
 void SFriendsListContextMenu::OnChatClicked()
 {
@@ -94,6 +95,7 @@ void SFriendsListContextMenu::OnChatClicked()
 	}
 }
 
+
 void SFriendsListContextMenu::OnRemoveFriendClicked()
 {
 	if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
@@ -101,6 +103,7 @@ void SFriendsListContextMenu::OnRemoveFriendClicked()
 		FFriendsAndChatManager::Get()->DeleteFriend( FriendItem );
 	}
 }
+
 
 void SFriendsListContextMenu::OnInviteToGameClicked()
 {
@@ -110,6 +113,7 @@ void SFriendsListContextMenu::OnInviteToGameClicked()
 	}
 }
 
+
 void SFriendsListContextMenu::OnJoinGameClicked()
 {
 	if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
@@ -117,6 +121,7 @@ void SFriendsListContextMenu::OnJoinGameClicked()
 		FFriendsMessageManager::Get()->RequestJoinAGame( FriendItem->GetOnlineFriend()->GetUserId() );
 	}
 }
+
 
 void SFriendsListContextMenu::OnAcceptFriendClicked()
 {
@@ -126,6 +131,7 @@ void SFriendsListContextMenu::OnAcceptFriendClicked()
 	}
 }
 
+
 void SFriendsListContextMenu::OnRejectFriendClicked()
 {
 	if ( FriendItem.IsValid() && FriendItem->GetOnlineUser().IsValid() )
@@ -133,4 +139,6 @@ void SFriendsListContextMenu::OnRejectFriendClicked()
 		FFriendsAndChatManager::Get()->RejectFriend( FriendItem );
 	}
 }
+
+
 #undef LOCTEXT_NAMESPACE

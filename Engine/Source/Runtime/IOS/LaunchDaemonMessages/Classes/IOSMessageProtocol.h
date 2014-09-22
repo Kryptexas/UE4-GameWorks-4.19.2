@@ -4,6 +4,7 @@
 
 #include "IOSMessageProtocol.generated.h"
 
+
 USTRUCT()
 struct FIOSLaunchDaemonPing
 {
@@ -20,6 +21,7 @@ struct TStructOpsTypeTraits<FIOSLaunchDaemonPing> : public TStructOpsTypeTraitsB
 		WithMessageHandling = true
 	};
 };
+
 
 USTRUCT()
 struct FIOSLaunchDaemonPong
@@ -69,6 +71,7 @@ struct TStructOpsTypeTraits<FIOSLaunchDaemonPong> : public TStructOpsTypeTraitsB
 	};
 };
 
+
 USTRUCT()
 struct FIOSLaunchDaemonLaunchApp
 {
@@ -95,16 +98,4 @@ struct TStructOpsTypeTraits<FIOSLaunchDaemonLaunchApp> : public TStructOpsTypeTr
 	{
 		WithMessageHandling = true
 	};
-};
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class UIOSMessageProtocol
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
 };

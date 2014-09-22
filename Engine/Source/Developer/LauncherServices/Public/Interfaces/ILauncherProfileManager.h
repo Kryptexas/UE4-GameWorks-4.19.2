@@ -49,7 +49,7 @@ public:
 	/**
 	 * Adds the given device group.
 	 *
-	 * @param DeviceGroup - The group to add.
+	 * @param DeviceGroup The group to add.
 	 */
 	virtual void AddDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) = 0;
 
@@ -77,22 +77,19 @@ public:
 	/**
 	 * Gets the device group with the specified identifier.
 	 *
-	 * @param GroupId - The unique identifier of the group to get.
-	 *
-	 * @return A shared pointer to the group, or NULL if the group was not found.
+	 * @param GroupId The unique identifier of the group to get.
+	 * @return A shared pointer to the group, or nullptr if the group was not found.
 	 */
 	virtual ILauncherDeviceGroupPtr GetDeviceGroup( const FGuid& GroupId ) const = 0;
 
 	/** 
 	 * Deletes the specified device group.
 	 *
-	 *( @param DeviceGroup - The group to remove.
+	 * @param DeviceGroup The group to remove.
 	 */
 	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) = 0;
 
-	/**
-	 * Saves all the device groups to a config file
-	 */
+	/** Saves all the device groups to a config file */
 	virtual void SaveDeviceGroups() = 0;
 
 public:
@@ -100,8 +97,7 @@ public:
 	/**
 	 * Finds or Adds then returns a simple profile for the specified Device
 	 *
-	 * @param DeviceName - The name of the device we want the simple profile for.
-	 *
+	 * @param DeviceName The name of the device we want the simple profile for.
 	 * @return The simple profile for the specified device.
 	 */
 	virtual ILauncherSimpleProfilePtr FindOrAddSimpleProfile(const FString& DeviceName) = 0;
@@ -109,16 +105,15 @@ public:
 	/**
 	 * Gets the simple profile for the specified device.
 	 *
-	 * @param DeviceName - The name of the device we want the simple profile for.
-	 *
-	 * @return The simple profile for the specified device, or NULL if the simple profile doesn't exist.
+	 * @param DeviceName The name of the device we want the simple profile for.
+	 * @return The simple profile for the specified device, or nullptr if the simple profile doesn't exist.
 	 */
 	virtual ILauncherSimpleProfilePtr FindSimpleProfile(const FString& DeviceName) = 0;
 
 	/**
 	 * Deletes the given simple profile.
 	 *
-	 * @param Profile - The simple profile to delete.
+	 * @param Profile The simple profile to delete.
 	 */
 	virtual void RemoveSimpleProfile(const ILauncherSimpleProfileRef& SimpleProfile) = 0;
 
@@ -134,8 +129,7 @@ public:
 	/**
 	 * Creates a new profile but does not add it to the internal tracking.
 	 *
-	 * @param ProfileName - The name of the profile to create.
-	 *
+	 * @param ProfileName The name of the profile to create.
 	 * @return The new profile created.
 	 */
 	virtual ILauncherProfileRef CreateUnsavedProfile(FString ProfileName) = 0;
@@ -146,17 +140,15 @@ public:
 	 * If a profile with the same identifier already exists in the profile
 	 * collection, it will be deleted before the given profile is added.
 	 *
-	 * @param Profile - The profile to add.
+	 * @param Profile The profile to add.
 	 */
 	virtual void AddProfile( const ILauncherProfileRef& Profile ) = 0;
 
 	/**
 	 * Gets the profile with the specified name.
 	 *
-	 * @param ProfileName - The name of the profile to get.
-	 *
-	 * @return The profile, or NULL if the profile doesn't exist.
-	 *
+	 * @param ProfileName The name of the profile to get.
+	 * @return The profile, or nullptr if the profile doesn't exist.
 	 * @see GetProfile
 	 */
 	virtual ILauncherProfilePtr FindProfile( const FString& ProfileName ) = 0;
@@ -173,10 +165,8 @@ public:
 	/**
 	 * Gets the profile with the specified identifier.
 	 *
-	 * @param ProfileId - The identifier of the profile to get.
-	 *
-	 * @return The profile, or NULL if the profile doesn't exist.
-	 *
+	 * @param ProfileId The identifier of the profile to get.
+	 * @return The profile, or nullptr if the profile doesn't exist.
 	 * @see FindProfile
 	 */
 	virtual ILauncherProfilePtr GetProfile( const FGuid& ProfileId ) const = 0;
@@ -187,28 +177,24 @@ public:
 	 * The loaded profile is NOT automatically added to the profile manager.
 	 * Use AddProfile() to add it to the collection.
 	 *
-	 * @param Archive - The archive to load from.
-	 *
-	 * @return The loaded profile, or NULL if loading failed.
-	 *
-	 * @see AddProfile
-	 * @see SaveProfile
+	 * @param Archive The archive to load from.
+	 * @return The loaded profile, or nullptr if loading failed.
+	 * @see AddProfile, SaveProfile
 	 */
 	virtual ILauncherProfilePtr LoadProfile( FArchive& Archive ) = 0;
 
 	/**
 	 * Deletes the given profile.
 	 *
-	 * @param Profile - The profile to delete.
+	 * @param Profile The profile to delete.
 	 */
 	virtual void RemoveProfile( const ILauncherProfileRef& Profile ) = 0;
 
 	/**
 	 * Saves the given profile to the specified archive.
 	 *
-	 * @param Profile - The profile to save.
-	 * @param Archive - The archive to save to.
-	 *
+	 * @param Profile The profile to save.
+	 * @param Archive The archive to save to.
 	 * @see LoadProfile
 	 */
 	virtual void SaveProfile(const ILauncherProfileRef& Profile) = 0;
@@ -249,7 +235,6 @@ public:
 	 * Gets the full path to the Unreal project to use.
 	 *
 	 * @return The path.
-	 *
 	 * @see SetProjectPath
 	 */
 	virtual FString GetProjectPath() const = 0;
@@ -257,8 +242,7 @@ public:
 	/**
 	 * Sets the path to the Unreal project to use.
 	 *
-	 * @param Path - The full path to the project.
-	 *
+	 * @param Path The full path to the project.
 	 * @see GetProjectPath
 	 */
 	virtual void SetProjectPath(const FString& InProjectPath) = 0;
@@ -295,8 +279,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ILauncherProfileManager( ) { }
 };

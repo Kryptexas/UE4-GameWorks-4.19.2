@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================
-	SDeviceProfileDetailsPanel.h: Declares the SDeviceProfileDetailsPanel class.
-=============================================================================*/
-
 #pragma once
 
 #include "PropertyEditing.h"
+
 
 class UDeviceProfile;
 
@@ -25,7 +21,6 @@ public:
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 	SLATE_END_ARGS()
 
-
 	/**
 	 * Constructs this widget with InArgs
 	 */
@@ -39,24 +34,20 @@ public:
 	 */
 	void UpdateUIForProfile( const TWeakObjectPtr< UDeviceProfile > InProfile );
 
-
 private:
 
-	/**
-	 * Refresh the UI of the details panel.
-	 */
+	/** Refresh the UI of the details panel. */
 	void RefreshUI();
 
-
 private:
 
-	// The profile this panel is showing details for
+	/** The profile this panel is showing details for. */
 	TWeakObjectPtr< UDeviceProfile > ViewingProfile;
 
-	// The widget which hosts the details content if a profile is provided
+	/** The widget which hosts the details content if a profile is provided. */
 	TSharedPtr< SVerticalBox > DetailsViewBox;
 
-	// Holds the details view.
+	/** Holds the details view. */
 	TSharedPtr<IDetailsView> SettingsView;
 };
 

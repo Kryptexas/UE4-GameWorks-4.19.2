@@ -1,14 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorGeometry.h: Support for the geometry editing mode in UnrealEd.
-
-=============================================================================*/
-
 #pragma once
+
 
 class FGeomObject;
 class FPoly;
+
 
 /**
  * Base class for all classes that support storing and editing of geometry.

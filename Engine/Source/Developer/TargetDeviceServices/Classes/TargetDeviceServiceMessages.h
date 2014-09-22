@@ -897,16 +897,3 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceRunFinished> : public TStructOps
 		WithMessageHandling = true
 	};
 };
-
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class UTargetDeviceServiceMessages
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
-};

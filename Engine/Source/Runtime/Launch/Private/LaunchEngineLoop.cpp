@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LaunchEngineLoop.cpp: Implements the main engine loop.
-=============================================================================*/
-
 #include "LaunchPrivatePCH.h"
 #include "Internationalization/Internationalization.h"
 #include "Ticker.h"

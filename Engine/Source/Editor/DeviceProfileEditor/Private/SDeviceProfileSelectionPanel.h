@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================
-	SDeviceProfileSelectionPanel.h: Declares the SDeviceProfileSelectionPanel class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,7 +19,8 @@ DECLARE_DELEGATE_OneParam( FOnDeviceProfileViewAlone, const TWeakObjectPtr< UDev
 /**
  * Slate widget to allow users to select device profiles
  */
-class SDeviceProfileSelectionPanel : public SCompoundWidget
+class SDeviceProfileSelectionPanel
+	: public SCompoundWidget
 {
 public:
 
@@ -41,54 +37,47 @@ public:
 	SLATE_END_ARGS()
 
 
-	/** Constructs this widget with InArgs */
+	/** Constructs this widget with InArgs. */
 	void Construct( const FArguments& InArgs, TWeakObjectPtr< UDeviceProfileManager > InDeviceProfileManager );
 
-
-	/** Destructor */
+	/** Destructor. */
 	~SDeviceProfileSelectionPanel();
-
 
 	/**
 	 * Handle generating the device profile widget.
 	 *
-	 * @param InDeviceProfile - The selected device profile.
-	 * @param OwnerTable - The Owner table.
-	 *
-	 * @return The generated widget
+	 * @param InDeviceProfile The selected device profile.
+	 * @param OwnerTable The Owner table.
+	 * @return The generated widget.
 	 */
 	TSharedRef<ITableRow> OnGenerateWidgetForDeviceProfile( TWeakObjectPtr<UDeviceProfile> InDeviceProfile, const TSharedRef< STableViewBase >& OwnerTable );
 
-
 protected:
 
-	/**
-	* Regenerate the list view widget when the device profiles are recreated
-	*/
+	/** Regenerate the list view widget when the device profiles are recreated */
 	void RegenerateProfileList();
-
 
 private:
 
-	// Holds the device profile manager
+	/** Holds the device profile manager. */
 	TWeakObjectPtr< UDeviceProfileManager > DeviceProfileManager;
 
-	// The collection of device profile ptrs for the selection process
+	/** The collection of device profiles for the selection process. */
 	TArray< TWeakObjectPtr<UDeviceProfile> > DeviceProfiles;
 
-	// Hold the widget that contains the list view of device profiles
+	/** Hold the widget that contains the list view of device profiles. */
 	TSharedPtr< SVerticalBox > ListWidget;
 
-	// Delegate for handling a profile being pinned to the grid
+	/** Delegate for handling a profile being pinned to the grid. */
 	FOnDeviceProfilePinned OnDeviceProfilePinned;
 
-	// Delegate for handling a profile being unpinned from the grid
+	/** Delegate for handling a profile being unpinned from the grid. */
 	FOnDeviceProfileUnpinned OnDeviceProfileUnpinned;
 
-	// Delegate for handling a request to view the profile in it's own editor
+	/** Delegate for handling a request to view the profile in it's own editor. */
 	FOnDeviceProfileViewAlone OnDeviceProfileViewAlone;
 
-	// The profile selected from the current list
+	/** The profile selected from the current list. */
 	TWeakObjectPtr< UDeviceProfile > SelectedProfile;
 };
 

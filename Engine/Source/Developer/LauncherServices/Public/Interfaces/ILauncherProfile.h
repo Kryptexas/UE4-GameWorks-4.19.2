@@ -181,7 +181,6 @@ public:
 	 * Gets the device variant to use when deploying and launching.
 	 *
 	 * @return Device Variant name.
-	 *
 	 * @see SetDeviceVariant
 	 */
 	virtual FName GetDeviceVariant() const = 0;
@@ -190,7 +189,6 @@ public:
 	 * Gets the name of the build configuration.
 	 *
 	 * @return Build configuration name.
-	 *
 	 * @see SetBuildConfigurationName
 	 */
 	virtual EBuildConfigurations::Type GetBuildConfiguration() const = 0;
@@ -205,15 +203,14 @@ public:
 	/**
 	 * Updates the device name.
 	 *
-	 * @param InDeviceName - The new device name.
+	 * @param InDeviceName The new device name.
 	 */
 	virtual void SetDeviceName(const FString& InDeviceName) = 0;
 
 	/**
 	 * Sets the device variant.
 	 *
-	 * @param InVariant - The variant to set.
-	 *
+	 * @param InVariant The variant to set.
 	 * @see GetDeviceVariant
 	 */
 	virtual void SetDeviceVariant(FName InVariant) = 0;
@@ -221,8 +218,7 @@ public:
 	/**
 	 * Sets the build configuration.
 	 *
-	 * @param InConfiguration - The build configuration name to set.
-	 *
+	 * @param InConfiguration The build configuration name to set.
 	 * @see GetBuildConfigurationName
 	 */
 	virtual void SetBuildConfiguration(EBuildConfigurations::Type InConfiguration) = 0;
@@ -230,8 +226,7 @@ public:
 	/**
 	 * Sets the cook mode.
 	 *
-	 * @param InMode - The cook mode.
-	 *
+	 * @param InMode The cook mode.
 	 * @see GetCookMode
 	 */
 	virtual void SetCookMode(ELauncherProfileCookModes::Type InMode) = 0;
@@ -239,17 +234,13 @@ public:
 	/**
 	 * Serializes the simple profile from or into the specified archive.
 	 *
-	 * @param Archive - The archive to serialize from or into.
-	 *
+	 * @param Archive The archive to serialize from or into.
 	 * @return true if the profile was serialized, false otherwise.
 	 */
 	virtual bool Serialize(FArchive& Archive) = 0;
 
-	/**
-	 * Sets all profile settings to their defaults.
-	 */
+	/** Sets all profile settings to their defaults. */
 	virtual void SetDefaults() = 0;
-
 
 public:
 
@@ -266,6 +257,7 @@ typedef TSharedPtr<class ILauncherProfile> ILauncherProfilePtr;
 /** Type definition for shared references to instances of ILauncherProfile. */
 typedef TSharedRef<class ILauncherProfile> ILauncherProfileRef;
 
+
 /**
  * Delegate type for changing the device group to deploy to.
  *
@@ -280,6 +272,7 @@ DECLARE_MULTICAST_DELEGATE(FOnProfileProjectChanged);
  *	Used when cooking from the editor.  Specific cook task will wait for the cook to be finished by the editor
  */
 DECLARE_DELEGATE_RetVal(bool, FIsCookFinishedDelegate);
+
 
 /**
  * Interface for launcher profile.
@@ -319,8 +312,7 @@ public:
 	/**
 	 * Checks whether the last validation yielded the specified error.
 	 *
-	 * @param Error - The validation error to check for.
-	 *
+	 * @param Error The validation error to check for.
 	 * @return true if the error is present, false otherwise.
 	 */
 	virtual bool HasValidationError( ELauncherProfileValidationErrors::Type Error ) const = 0;
@@ -338,8 +330,7 @@ public:
 	 * Whether a platform is deployable depends on the current profile settings.
 	 * The right combination of build, cook and package settings must be present.
 	 *
-	 * @param PlatformName - The name of the platform to deploy.
-	 *
+	 * @param PlatformName The name of the platform to deploy.
 	 * @return true if the platform is deployable, false otherwise.
 	 */
 	virtual bool IsDeployablePlatform( const FString& PlatformName ) = 0;
@@ -354,43 +345,41 @@ public:
 	/**
 	 * Serializes the profile from or into the specified archive.
 	 *
-	 * @param Archive - The archive to serialize from or into.
-	 *
+	 * @param Archive The archive to serialize from or into.
 	 * @return true if the profile was serialized, false otherwise.
 	 */
 	virtual bool Serialize( FArchive& Archive ) = 0;
 
-	/**
-	 * Sets all profile settings to their defaults.
-	 */
+	/** Sets all profile settings to their defaults. */
 	virtual void SetDefaults( ) = 0;
 
 	/**
 	 * Updates the name of the profile.
 	 *
-	 * @param NewName - The new name of the profile.
+	 * @param NewName The new name of the profile.
 	 */
 	virtual void SetName( const FString& NewName ) = 0;
 
 	/**
 	 * Updates the description of the profile.
 	 *
-	 * @param NewDescription - The new description of the profile.
+	 * @param NewDescription The new description of the profile.
 	 */
 	virtual void SetDescription(const FString& NewDescription) = 0;
 
 	/**
-	 * Returns the cook delegate which can be used to query if the cook is finished
-	 *  Used by cook by the book in the editor
+	 * Returns the cook delegate which can be used to query if the cook is finished.
+	 *
+	 * Used by cook by the book in the editor.
 	 */
 	virtual FIsCookFinishedDelegate& OnIsCookFinished() = 0;
+
 public:
 
 	/**
 	 * Gets the name of the build configuration.
 	 *
 	 * @return Build configuration name.
-	 *
 	 * @see SetBuildConfigurationName
 	 */
 	virtual EBuildConfigurations::Type GetBuildConfiguration( ) const = 0;
@@ -399,7 +388,6 @@ public:
 	 * Gets the build configuration name of the cooker.
 	 *
 	 * @return Cook configuration name.
-	 *
 	 * @see SetCookConfigurationName
 	 */
 	virtual EBuildConfigurations::Type GetCookConfiguration( ) const = 0;
@@ -422,10 +410,7 @@ public:
 	 * Gets the list of cooked culture.
 	 *
 	 * @return Collection of culture names.
-	 *
-	 * @see AddCookedCulture
-	 * @see ClearCookedCultures
-	 * @see RemoveCookedCulture
+	 * @see AddCookedCulture, ClearCookedCultures, RemoveCookedCulture
 	 */
 	virtual const TArray<FString>& GetCookedCultures( ) const = 0;
 
@@ -434,9 +419,7 @@ public:
 	 *
 	 * @return Collection of map names.
 	 *
-	 * @see AddCookedMap
-	 * @see ClearCookedMaps
-	 * @see RemoveCookedMap
+	 * @see AddCookedMap, ClearCookedMaps, RemoveCookedMap
 	 */
 	virtual const TArray<FString>& GetCookedMaps( ) const = 0;
 
@@ -445,9 +428,7 @@ public:
 	 *
 	 * @return Read-only collection of platform names.
 	 *
-	 * @see AddCookedPlatform
-	 * @see ClearCookedPlatforms
-	 * @see RemoveCookedPlatform
+	 * @see AddCookedPlatform, ClearCookedPlatforms, RemoveCookedPlatform
 	 */
 	virtual const TArray<FString>& GetCookedPlatforms( ) const = 0;
 
@@ -462,7 +443,6 @@ public:
 	 * Gets the device group to deploy to.
 	 *
 	 * @return The device group, or NULL if none was configured.
-	 *
 	 * @see SetDeployedDeviceGroup
 	 */
 	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) const = 0;
@@ -471,7 +451,6 @@ public:
 	 * Gets the deployment mode.
 	 *
 	 * @return The deployment mode.
-	 *
 	 * @see SetDeploymentMode
 	 */
 	virtual ELauncherProfileDeploymentModes::Type GetDeploymentMode( ) const = 0;
@@ -479,8 +458,7 @@ public:
     /**
      * Gets the close mode for the cook on the fly server
      *
-     * @return the close mode
-     *
+     * @return The close mode.
      * @see SetForceClose
      */
     virtual bool GetForceClose() const = 0;
@@ -489,7 +467,6 @@ public:
 	 * Gets the launch mode.
 	 *
 	 * @return The launch mode.
-	 *
 	 * @see SetLaunchMode
 	 */
 	virtual ELauncherProfileLaunchModes::Type GetLaunchMode( ) const = 0;
@@ -498,17 +475,15 @@ public:
 	 * Gets the profile's collection of launch roles.
 	 *
 	 * @return A read-only collection of launch roles.
-	 *
-	 * @see CreateLaunchRole
-	 * @see RemoveLaunchRole
+	 * @see CreateLaunchRole, RemoveLaunchRole
 	 */
 	virtual const TArray<ILauncherProfileLaunchRolePtr>& GetLaunchRoles( ) const = 0;
 
 	/**
 	 * Gets the launch roles assigned to the specified device.
 	 *
-	 * @param DeviceId - The identifier of the device.
-	 * @param OutRoles - Will hold the assigned roles, if any.
+	 * @param DeviceId The identifier of the device.
+	 * @param OutRoles Will hold the assigned roles, if any.
 	 */
 	virtual const int32 GetLaunchRolesFor( const FString& DeviceId, TArray<ILauncherProfileLaunchRolePtr>& OutRoles ) = 0;
 
@@ -516,7 +491,6 @@ public:
 	 * Gets the packaging mode.
 	 *
 	 * @return The packaging mode.
-	 *
 	 * @see SetPackagingMode
 	 */
 	virtual ELauncherProfilePackagingModes::Type GetPackagingMode( ) const = 0;
@@ -525,7 +499,6 @@ public:
 	 * Gets the packaging directory.
 	 *
 	 * @return The packaging directory.
-	 *
 	 * @see SetPackageDirectory
 	 */
 	virtual FString GetPackageDirectory( ) const = 0;
@@ -552,16 +525,14 @@ public:
 	 * Gets the full path to the Unreal project to use.
 	 *
 	 * @return The path.
-	 *
 	 * @see SetRocketProjactPath
 	 */
 	virtual FString GetProjectPath( ) const = 0;
 
     /**
-     * Gets the timeout time for the cook on the fly server
+     * Gets the timeout time for the cook on the fly server.
      *
-     * @return timeout time
-     *
+     * @return The timeout time.
      * @see SetTimeout
      */
     virtual uint32 GetTimeout() const = 0;
@@ -570,7 +541,6 @@ public:
 	 * Checks whether the game should be built.
 	 *
 	 * @return true if building the game, false otherwise.
-	 *
 	 * @see SetBuildGame
 	 */
 	virtual bool IsBuilding() const = 0;
@@ -579,7 +549,6 @@ public:
 	 * Checks whether incremental cooking is enabled.
 	 *
 	 * @return true if cooking incrementally, false otherwise.
-	 *
 	 * @see SetIncrementalCooking
 	 */
 	virtual bool IsCookingIncrementally( ) const = 0;
@@ -588,7 +557,6 @@ public:
 	 * Checks whether unversioned cooking is enabled.
 	 *
 	 * @return true if cooking unversioned, false otherwise.
-	 *
 	 * @see SetUnversionedCooking
 	 */
 	virtual bool IsCookingUnversioned( ) const = 0;
@@ -597,7 +565,6 @@ public:
 	 * Checks whether the file server's console window should be hidden.
 	 *
 	 * @return true if the file server should be hidden, false otherwise.
-	 *
 	 * @see SetHideFileServer
 	 */
 	virtual bool IsFileServerHidden( ) const = 0;
@@ -606,7 +573,6 @@ public:
 	 * Checks whether the file server is a streaming file server.
 	 *
 	 * @return true if the file server is streaming, false otherwise.
-	 *
 	 * @see SetStreamingFileServer
 	 */
 	virtual bool IsFileServerStreaming( ) const = 0;
@@ -615,7 +581,6 @@ public:
 	 * Checks whether packaging with UnrealPak is enabled.
 	 *
 	 * @return true if UnrealPak is used, false otherwise.
-	 *
 	 * @see SetPackageWithUnrealPak
 	 */
 	virtual bool IsPackingWithUnrealPak( ) const = 0;
@@ -646,60 +611,48 @@ public:
 	/**
 	 * Adds a culture to cook (only used if cooking by the book).
 	 *
-	 * @param CultureName - The name of the culture to cook.
+	 * @param CultureName The name of the culture to cook.
 	 *
-	 * @see ClearCookedCultures
-	 * @see GetCookedCultures
-	 * @see RemoveCookedCulture
+	 * @see ClearCookedCultures, GetCookedCultures, RemoveCookedCulture
 	 */
 	virtual void AddCookedCulture( const FString& CultureName ) = 0;
 
 	/**
 	 * Adds a map to cook (only used if cooking by the book).
 	 *
-	 * @param MapName - The name of the map to cook.
+	 * @param MapName The name of the map to cook.
 	 *
-	 * @see ClearCookedMaps
-	 * @see GetCookedMaps
-	 * @see RemoveCookedMap
+	 * @see ClearCookedMaps, GetCookedMaps, RemoveCookedMap
 	 */
 	virtual void AddCookedMap( const FString& MapName ) = 0;
 
 	/**
 	 * Adds a platform to cook (only used if cooking by the book).
 	 *
-	 * @param PlatformName - The name of the platform to add.
+	 * @param PlatformName The name of the platform to add.
 	 *
-	 * @see ClearCookedPlatforms
-	 * @see GetCookedPlatforms
-	 * @see RemoveCookedPlatform
+	 * @see ClearCookedPlatforms, GetCookedPlatforms, RemoveCookedPlatform
 	 */
 	virtual void AddCookedPlatform( const FString& PlatformName ) = 0;
 
 	/**
 	 * Removes all cooked cultures.
 	 *
-	 * @see AddCookedCulture
-	 * @see GetCookedCulture
-	 * @see RemoveCookedCulture
+	 * @see AddCookedCulture, GetCookedCulture, RemoveCookedCulture
 	 */
 	virtual void ClearCookedCultures( ) = 0;
 
 	/**
 	 * Removes all cooked maps.
 	 *
-	 * @see AddCookedMap
-	 * @see GetCookedMap
-	 * @see RemoveCookedMap
+	 * @see AddCookedMap, GetCookedMap, RemoveCookedMap
 	 */
 	virtual void ClearCookedMaps( ) = 0;
 
 	/**
 	 * Removes all cooked platforms.
 	 *
-	 * @see AddCookedPlatform
-	 * @see GetCookedPlatforms
-	 * @see RemoveCookedPlatform
+	 * @see AddCookedPlatform, GetCookedPlatforms, RemoveCookedPlatform
 	 */
 	virtual void ClearCookedPlatforms( ) = 0;
 
@@ -707,60 +660,46 @@ public:
 	 * Creates a new launch role and adds it to the profile.
 	 *
 	 * @return The created role.
-	 *
-	 * @see GetLaunchRoles
-	 * @see RemoveLaunchRole
+	 * @see GetLaunchRoles, RemoveLaunchRole
 	 */
 	virtual ILauncherProfileLaunchRolePtr CreateLaunchRole( ) = 0;
 
 	/**
 	 * Removes a cooked culture.
 	 *
-	 * @param CultureName - The name of the culture to remove.
-	 *
-	 * @see AddCookedCulture
-	 * @see ClearCookedCultures
-	 * @see GetCookedCultures
+	 * @param CultureName The name of the culture to remove.
+	 * @see AddCookedCulture, ClearCookedCultures, GetCookedCultures
 	 */
 	virtual void RemoveCookedCulture( const FString& CultureName ) = 0;
 
 	/**
 	 * Removes a cooked map.
 	 *
-	 * @param MapName - The name of the map to remove.
-	 *
-	 * @see AddCookedMap
-	 * @see ClearCookedMaps
-	 * @see GetCookedMaps
+	 * @param MapName The name of the map to remove.
+	 * @see AddCookedMap, ClearCookedMaps, GetCookedMaps
 	 */
 	virtual void RemoveCookedMap( const FString& MapName ) = 0;
 
 	/**
 	 * Removes a platform from the cook list.
 	 *
-	 * @param PlatformName - The name of the platform to remove.
-	 *
-	 * @see AddBuildPlatform
-	 * @see ClearCookedPlatforms
-	 * @see GetBuildPlatforms
+	 * @param PlatformName The name of the platform to remove.
+	 * @see AddBuildPlatform, ClearCookedPlatforms, GetBuildPlatforms
 	 */
 	virtual void RemoveCookedPlatform( const FString& PlatformName ) = 0;
 
 	/**
 	 * Removes the given launch role from the profile.
 	 *
-	 * @param Role - The role to remove.
-	 *
-	 * @see CreateLaunchRole
-	 * @see GetLaunchRoles
+	 * @param Role The role to remove.
+	 * @see CreateLaunchRole, GetLaunchRoles
 	 */
 	virtual void RemoveLaunchRole( const ILauncherProfileLaunchRoleRef& Role ) = 0;
 
 	/**
 	 * Sets whether to build the game.
 	 *
-	 * @param Build - Whether the game should be built.
-	 *
+	 * @param Build Whether the game should be built.
 	 * @see IsBuilding
 	 */
 	virtual void SetBuildGame( bool Build ) = 0;
@@ -768,8 +707,7 @@ public:
 	/**
 	 * Sets the build configuration.
 	 *
-	 * @param ConfigurationName - The build configuration name to set.
-	 *
+	 * @param ConfigurationName The build configuration name to set.
 	 * @see GetBuildConfigurationName
 	 */
 	virtual void SetBuildConfiguration( EBuildConfigurations::Type Configuration ) = 0;
@@ -777,8 +715,7 @@ public:
 	/**
 	 * Sets the build configuration of the cooker.
 	 *
-	 * @param Configuration - The cooker's build configuration to set.
-	 *
+	 * @param Configuration The cooker's build configuration to set.
 	 * @see GetBuildConfigurationName
 	 */
 	virtual void SetCookConfiguration( EBuildConfigurations::Type Configuration ) = 0;
@@ -786,8 +723,7 @@ public:
 	/**
 	 * Sets the cook mode.
 	 *
-	 * @param Mode - The cook mode.
-	 *
+	 * @param Mode The cook mode.
 	 * @see GetCookMode
 	 */
 	virtual void SetCookMode( ELauncherProfileCookModes::Type Mode ) = 0;
@@ -795,8 +731,7 @@ public:
 	/**
 	 * Sets the cook options.
 	 *
-	 * @param Options - The cook options.
-	 *
+	 * @param Options The cook options.
 	 * @see GetCookOptions
 	 */
 	virtual void SetCookOptions(const FString& Options) = 0;
@@ -804,8 +739,7 @@ public:
 	/**
 	 * Sets whether to pack with UnrealPak.
 	 *
-	 * @param UseUnrealPak - Whether UnrealPak should be used.
-	 *
+	 * @param UseUnrealPak Whether UnrealPak should be used.
 	 * @see IsPackingWithUnrealPak
 	 */
 	virtual void SetDeployWithUnrealPak( bool UseUnrealPak ) = 0;
@@ -813,8 +747,7 @@ public:
 	/**
 	 * Sets the device group to deploy to.
 	 *
-	 * @param DeviceGroup - The device group, or NULL to reset this setting.
-	 *
+	 * @param DeviceGroup The device group, or NULL to reset this setting.
 	 * @see GetDeployedDeviceGroup
 	 */
 	virtual void SetDeployedDeviceGroup( const ILauncherDeviceGroupPtr& DeviceGroup ) = 0;
@@ -822,8 +755,7 @@ public:
 	/**
 	 * Sets the deployment mode.
 	 *
-	 * @param Mode - The deployment mode to set.
-	 *
+	 * @param Mode The deployment mode to set.
 	 * @see GetDeploymentMode
 	 */
 	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) = 0;
@@ -831,8 +763,7 @@ public:
     /**
      * Sets the cook on the fly close mode
      *
-     * @param Close - the close mode to set
-     *
+     * @param Close the close mode to set.
      * @see GetForceClose
      */
     virtual void SetForceClose( bool Close ) = 0;
@@ -840,8 +771,7 @@ public:
 	/**
 	 * Sets whether to hide the file server's console window.
 	 *
-	 * @param Hide - Whether to hide the window.
-	 *
+	 * @param Hide Whether to hide the window.
 	 * @see GetHideFileServerWindow
 	 */
 	virtual void SetHideFileServerWindow( bool Hide ) = 0;
@@ -849,8 +779,7 @@ public:
 	/**
 	 * Sets incremental cooking.
 	 *
-	 * @param Incremental - Whether cooking should be incremental.
-	 *
+	 * @param Incremental Whether cooking should be incremental.
 	 * @see IsCookingIncrementally
 	 */
 	virtual void SetIncrementalCooking( bool Incremental ) = 0;
@@ -858,8 +787,7 @@ public:
 	/**
 	 * Sets the launch mode.
 	 *
-	 * @param Mode - The launch mode to set.
-	 *
+	 * @param Mode The launch mode to set.
 	 * @see GetLaunchMode
 	 */
 	virtual void SetLaunchMode( ELauncherProfileLaunchModes::Type Mode ) = 0;
@@ -867,8 +795,7 @@ public:
 	/**
 	 * Sets the packaging mode.
 	 *
-	 * @param Mode - The packaging mode to set.
-	 *
+	 * @param Mode The packaging mode to set.
 	 * @see GetPackagingMode
 	 */
 	virtual void SetPackagingMode( ELauncherProfilePackagingModes::Type Mode ) = 0;
@@ -876,8 +803,7 @@ public:
 	/**
 	 * Sets the packaging directory.
 	 *
-	 * @param Dir - The packaging directory to set.
-	 *
+	 * @param Dir The packaging directory to set.
 	 * @see GetPackageDirectory
 	 */
 	virtual void SetPackageDirectory( const FString& Dir ) = 0;
@@ -885,20 +811,17 @@ public:
 	/**
 	 * Sets whether this profile specifies the a project.
 	 *
-	 * @param Specified - Whether a project is specified.
+	 * @param Specified Whether a project is specified.
 	 */
 	virtual void SetProjectSpecified(bool Specified) = 0;
 
-	/**
-	* Notifies the profile that the fallback project path changed.
-	*/
+	/** Notifies the profile that the fallback project path changed. */
 	virtual void FallbackProjectUpdated() = 0;
 
 	/**
 	 * Sets the path to the Rocket project to use.
 	 *
-	 * @param Path - The full path to the project.
-	 *
+	 * @param Path The full path to the project.
 	 * @see GetRocketProjectPath
 	 */
 	virtual void SetProjectPath( const FString& Path ) = 0;
@@ -906,8 +829,7 @@ public:
 	/**
 	 * Sets whether to use a streaming file server.
 	 *
-	 * @param Streaming - Whether a streaming server should be used.
-	 *
+	 * @param Streaming Whether a streaming server should be used.
 	 * @see GetStreamingFileServer
 	 */
 	virtual void SetStreamingFileServer( bool Streaming ) = 0;
@@ -915,8 +837,7 @@ public:
     /**
      * Sets the cook on the fly server timeout
      *
-     * @param InTime - amount of time to wait before timing out
-     *
+     * @param InTime Amount of time to wait before timing out.
      * @see GetTimeout
      */
     virtual void SetTimeout(uint32 InTime) = 0;
@@ -924,22 +845,20 @@ public:
 	/**
 	 * Sets unversioned cooking.
 	 *
-	 * @param Unversioned - Whether cooking is unversioned.
-	 *
+	 * @param Unversioned Whether cooking is unversioned.
 	 * @see IsCookingUnversioned
 	 */
 	virtual void SetUnversionedCooking( bool Unversioned ) = 0;
 
-
 	/**
-	 * Accesses delegate used when the project changes
+	 * Accesses delegate used when the project changes.
+	 *
+	 * @return The delegate.
 	 */
 	virtual FOnProfileProjectChanged& OnProjectChanged() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ILauncherProfile( ) { }
 };

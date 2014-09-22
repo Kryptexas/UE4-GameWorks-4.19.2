@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AssetEditorMessages.h: Declares message types used by asset editor.
-=============================================================================*/
-
 #pragma once
 
 #include "AssetEditorMessages.generated.h"
@@ -45,17 +41,4 @@ struct TStructOpsTypeTraits<FAssetEditorRequestOpenAsset> : public TStructOpsTyp
 	{
 		WithMessageHandling = true
 	};
-};
-
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class UAssetEditorMessages
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
 };

@@ -1,11 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================
-	SDeviceProfileEditor.cpp: Implements the SDeviceProfileEditor class.
-=============================================================================*/
-
-
 #include "DeviceProfileEditorPCH.h"
 
 #include "DeviceProfiles/DeviceProfileManager.h"
@@ -21,11 +15,10 @@
 static const FName DeviceProfileEditorTabName("DeviceProfiles");
 
 
-
 /** Source control for the default device profile config saves */
-class SDeviceProfileSourceControl : public SCompoundWidget
+class SDeviceProfileSourceControl
+	: public SCompoundWidget
 {
-
 public:
 
 	SLATE_BEGIN_ARGS(SDeviceProfileSourceControl) {}
@@ -33,13 +26,11 @@ public:
 	SLATE_END_ARGS()
 
 
-	/** Constructs this widget with InArgs */
+	/** Constructs this widget with InArgs. */
 	void Construct(const FArguments& InArgs);
 
-	
-	/** Destructor */
+	/** Destructor. */
 	~SDeviceProfileSourceControl();
-
 
 	/**
 	 * Indicate which SWidgetSwitcher slot should be used to show the user of the source control status
@@ -49,45 +40,44 @@ public:
 		return bIsDefaultConfigCheckOutNeeded ? 1 : 0;
 	}
 
-
 	/**
-	 * Take action to check out the default device profile configuration file when requested
+	 * Take action to check out the default device profile configuration file when requested.
 	 *
-	 * @return - Whether we handled the event
+	 * @return Whether we handled the event.
 	 */
 	FReply HandleSaveDefaultsButtonPressed();
 
-
 	/**
-	* Take action to check out the default device profile configuration file when requested
+	* Take action to check out the default device profile configuration file when requested.
 	*
-	* @return - Whether we handled the event
+	* @return Whether we handled the event.
 	*/
 	FReply HandleCheckoutButtonPressed();
 
 
 	/**
 	 * Check whether the SCC is enabled for the Checkout button to become available.
+	 *
+	 * @return true if SCC is enabled, false otherwise.
 	 */
 	bool IsCheckOutAvailable() const;
 
 
 public:
 
-	// Begin SCompoundWidget interface
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	// End SCompoundWidget interface
+	// SCompoundWidget interface
 
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 private:
 
-	// Holds a timer for checking whether the device profile configuration file needs to be checked out.
+	/** Holds a timer for checking whether the device profile configuration file needs to be checked out. */
 	float DefaultConfigCheckOutTimer;
 
-	// Holds a flag indicating whether the section's configuration file needs to be checked out.
+	/** Holds a flag indicating whether the section's configuration file needs to be checked out. */
 	bool bIsDefaultConfigCheckOutNeeded;
 
-	// The direct path to the default device profile config file
+	/** The direct path to the default device profile config file. */
 	FString AbsoluteConfigFilePath;
 };
 

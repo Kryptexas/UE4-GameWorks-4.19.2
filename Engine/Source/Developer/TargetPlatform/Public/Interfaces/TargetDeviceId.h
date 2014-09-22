@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceId.h: Declares the FRemoteDeviceUri class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,9 +10,7 @@ class FTargetDeviceId
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceId( ) { }
 
 	/**
@@ -137,9 +131,9 @@ public:
 
 private:
 
-	// Holds the name of the device's target platform.
+	/** Holds the name of the device's target platform. */
 	FString PlatformName;
 
-	// Holds the name of the target device.
+	/** Holds the name of the target device. */
 	FString DeviceName;
 };

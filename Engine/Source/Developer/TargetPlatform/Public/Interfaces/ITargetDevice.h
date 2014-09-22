@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetDevice.h: Declares the ITargetDevice interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -381,8 +377,6 @@ public:
 
 public:
 	
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ITargetDevice( ) { }
 };

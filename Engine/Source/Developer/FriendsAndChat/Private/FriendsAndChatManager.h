@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FriendsAndChatManager.h: Declares the FFriendsAndChatManager interface.
-=============================================================================*/
-
 #pragma once
+
 
 // Enum holding the state of the Friends manager
 namespace EFriendsAndManagerState
@@ -23,10 +20,10 @@ namespace EFriendsAndManagerState
 	};
 };
 
-/**
- * Delegate type for FriendsList updated.
- */
+
+/** Delegate type for FriendsList updated. */
 DECLARE_MULTICAST_DELEGATE(FOnFriendsUpdated)
+
 
 /**
  * Implement the Friend and Chat manager
@@ -36,124 +33,129 @@ class FFriendsAndChatManager
 {
 public:
 
-	/**
-	 * Default constructor
-	 */
+	/** Default constructor. */
 	FFriendsAndChatManager( );
 	
-	/**
-	 * Default destructor
-	 */
+	/** Destructor. */
 	~FFriendsAndChatManager( );
 
 public:
 
-	/**
-	 * Default constructor
-	 */
+	/** */
 	void StartupManager();
 
 	/**
-	 * Init the manager
-	 * @param Notification delegate - the delegate for message notifications
+	 * Init the manager.
+	 *
+	 * @param Notification delegate The delegate for message notifications.
 	 */
 	void Init( FOnFriendsNotification& NotificationDelegate );
 
-	/**
-	 * Logout - close any Friends windows.
-	 */
+	/** Logout and close any Friends windows. */
 	void Logout();
 
 	/**
-	 * Create the friends list window
-	 * @param ParentWindow - the holding window
-	 * @param InStyle - the style used to create the widgets
+	 * Create the friends list window.
+	 *
+	 * @param ParentWindow The holding window.
+	 * @param InStyle The style used to create the widgets.
 	 */
 	void GenerateFriendsWindow( TSharedPtr< const SWidget > ParentWidget, const FFriendsAndChatStyle* InStyle );
 
 	/**
-	 * Set if the player is in a session
-	 * @param bInSession - If we are in a game session
+	 * Set if the player is in a session.
+	 *
+	 * @param bInSession Whether we are in a game session.
 	 */
 	void SetInSession( bool bInSession );
 
 	/**
-	 * Get if the player is in a session
-	 * @return True if we are in a game session
+	 * Get if the player is in a session.
+	 *
+	 * @return True if we are in a game session.
 	 */
 	bool IsInSession();
 
 	/**
 	 * Create the friends list widget without a holder
-	 * @param InStyle - the style used to create the widgets
+	 *
+	 * @param InStyle The style used to create the widgets.
 	 * @return The generated widget.
 	 */
 	TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle );
 
 	/**
 	 * Create the friends list window.
-	 * @param FriendItem - The friend to start a chat with.
+	 *
+	 * @param FriendItem The friend to start a chat with.
 	 */
 	void GenerateChatWindow( TSharedPtr< FFriendStuct > FriendItem );
 
 	/**
-	 * Accept a friend request
-	 * @param FriendItem - The friend to accept
+	 * Accept a friend request.
+	 *
+	 * @param FriendItem The friend to accept.
 	 */
 	void AcceptFriend( TSharedPtr< FFriendStuct > FriendItem );
 
 	/**
-	 * Reject a friend request
-	 * @param FriendItem - The friend to reject.
+	 * Reject a friend request.
+	 *
+	 * @param FriendItem The friend to reject.
 	 */
 	void RejectFriend( TSharedPtr< FFriendStuct > FriendItem );
 
 	/**
 	 * Clear any existing notifications
-	 * @param FriendItem - The friend related to the notification message.
+	 *
+	 * @param FriendItem The friend related to the notification message.
 	 */
 	void ClearNotification( TSharedPtr< FFriendStuct > FriendItem );
 
 	/**
-	 * Get the friends filtered list of friends
-	 * @param OutFriendsList  - array of friends to fill in
-	 * @return the friend list count
+	 * Get the friends filtered list of friends.
+	 *
+	 * @param OutFriendsList  Array of friends to fill in.
+	 * @return the friend list count.
 	 */
 	int32 GetFilteredFriendsList( TArray< TSharedPtr< FFriendStuct > >& OutFriendsList );
 
 	/**
 	 * Get outgoing request list.
-	 * @param OutFriendsList  - array of friends to fill in
-	 * @return the friend list count
+	 *
+	 * @param OutFriendsList  Array of friends to fill in.
+	 * @return The friend list count.
 	 */
 	int32 GetFilteredOutgoingFriendsList( TArray< TSharedPtr< FFriendStuct > >& OutFriendsList );
 
 	/**
-	 * Get the friends count
-	 * @return The amount of friends
+	 * Gets the friends count.
+	 *
+	 * @return The amount of friends.
 	 */
 	int32 GetFriendCount();
 
-	/**
-	 * Calculate the new friends count after an update
-	 */
+	/** Calculates the new friends count after an update. */
 	void GenerateFriendsCount();
 
 	/**
-	 * Request a friend be added
-	 * @param FriendName - The friend name
+	 * Request a friend be added.
+	 *
+	 * @param FriendName The friend name.
 	 */
 	void RequestFriend( const FText& FriendName );
 
 	/**
-	 * Request a friend to be deleted
-	 * @param FriendItem - The friend item to delete
+	 * Request a friend to be deleted.
+	 *
+	 * @param FriendItem The friend item to delete.
 	 */
 	void DeleteFriend( TSharedPtr< FFriendStuct > FriendItem );
 
 	/**
 	 * Accessor for the Friends List updated delegate.
-	 * @return The delegate
+	 *
+	 * @return The delegate.
 	 */
 	FOnFriendsUpdated& OnFriendsListUpdated()
 	{
@@ -162,213 +164,201 @@ public:
 
 	/**
 	 * Get the manager state.
-	 * @return The manager state
+	 *
+	 * @return The manager state.
 	 */
 	EFriendsAndManagerState::Type GetManagerState();
 
 	/**
 	 * Get the manager state.
-	 * @param bListSelectType -The list select type.
+	 *
+	 * @param bListSelectType The list select type.
 	 */
 	void SetListSelect( EFriendsDisplayLists::Type ListSelectType );
 
 	/**
 	 * Find a user ID.
-	 * @param InUserName -The user name to find.
+	 *
+	 * @param InUserName The user name to find.
 	 * @return The unique ID.
 	 */
 	TSharedPtr< FUniqueNetId > FindUserID( const FString& InUsername );
 
 	/**
 	 * Is this user pending an invite.
-	 * @param InUserName -The user name to find.
+	 *
+	 * @param InUserName The user name to find.
 	 * @return True if pending an invite.
 	 */	
 	bool IsPendingInvite( const FString& InUsername );
 
 	/**
-	 * Find a user
-	 * @param InUserName -The user name to find.
-	 * @param ListName -The list name.
+	 * Find a user.
+	 *
+	 * @param InUserName The user name to find.
+	 * @param ListName The list name.
 	 * @return The Friend ID.
 	 */
 	TSharedPtr< FFriendStuct > FindUser( TSharedRef<FUniqueNetId> InUserID, const FString& ListName );
 
 private:
 
-	/**
-	 * Process the friends list to send out invites
-	 */
+	/** Process the friends list to send out invites */
 	void SendFriendRequests();
 
-	/**
-	 * Refresh the data lists
-	 */
+	/** Refresh the data lists */
 	void RefreshList();
 
-	/**
-	 * Build the friends list used in the UI.
-	 */
+	/** Build the friends list used in the UI. */
 	void BuildFriendsList();
 
-	/**
-	 * Build the recent player list used in the UI.
-	 */
+	/** Build the recent player list used in the UI. */
 	void BuildRecentPlayersList();
 
-	/**
-	 * Build the incomming request list
-	 */
+	/** Build the incomming request list */
 	void BuildRequestIncomingPlayersList();
 
-	/**
-	 * Build the outgoing request list
-	 */
+	/** Build the outgoing request list */
 	void BuildRequestOutgoingPlayersList();
 
 	/**
-	 * Set the manager state
-	 * @param NewState - The new manager state
+	 * Set the manager state.
+	 *
+	 * @param NewState The new manager state.
 	 */
 	void SetState( EFriendsAndManagerState::Type NewState );
 
-	/**
-	 * Send a friend invite notification
-	 */
+	/** Send a friend invite notification. */
 	void SendFriendInviteNotification();
 
-	/**
-	 * Called when singleton is released
-	 */
+	/** Called when singleton is released. */
 	void ShutdownManager();
 
 	/**
-	 * Delegate used when the friends read request has completed
+	 * Delegate used when the friends read request has completed.
 	 *
-	 * @param LocalPlayer		- the controller number of the associated user that made the request
-	 * @param bWasSuccessful	- true if the async action completed without error, false if there was an error
-	 * @param ListName			- name of the friends list that was operated on
-	 * @param ErrorStr			- string representing the error condition
+	 * @param LocalPlayer		The controller number of the associated user that made the request.
+	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error.
+	 * @param ListName			Name of the friends list that was operated on.
+	 * @param ErrorStr			String representing the error condition.
 	 */
 	void OnReadFriendsComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr );
 
 	/**
-	 * Delegate used when an invite accept request has completed
+	 * Delegate used when an invite accept request has completed.
 	 *
-	 * @param LocalPlayer		- the controller number of the associated user that made the request
-	 * @param bWasSuccessful	- true if the async action completed without error, false if there was an error
-	 * @param FriendId			- player that invited us
-	 * @param ListName			- name of the friends list that was operated on
-	 * @param ErrorStr			- string representing the error condition
+	 * @param LocalPlayer		The controller number of the associated user that made the request
+	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error
+	 * @param FriendId			Player that invited us
+	 * @param ListName			Name of the friends list that was operated on
+	 * @param ErrorStr			String representing the error condition
 	 */
 	void OnAcceptInviteComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& FriendId, const FString& ListName, const FString& ErrorStr );
 
 	/**
-	 * Delegate used when an invite send request has completed
+	 * Delegate used when an invite send request has completed.
 	 *
-	 * @param LocalPlayer		- the controller number of the associated user that made the request
-	 * @param bWasSuccessful	- true if the async action completed without error, false if there was an error
-	 * @param FriendId			- player that was invited
-	 * @param ListName			- name of the friends list that was operated on
-	 * @param ErrorStr			- string representing the error condition
+	 * @param LocalPlayer		The controller number of the associated user that made the request.
+	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error.
+	 * @param FriendId			Player that was invited.
+	 * @param ListName			Name of the friends list that was operated on.
+	 * @param ErrorStr			String representing the error condition.
 	 */
 	void OnSendInviteComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& FriendId, const FString& ListName, const FString& ErrorStr );
 
 	/**
-	 * Delegate used when the friends list delete request has completed
+	 * Delegate used when the friends list delete request has completed.
 	 *
-	 * @param LocalPlayer		- the controller number of the associated user that made the request
-	 * @param bWasSuccessful	- true if the async action completed without error, false if there was an error
-	 * @param ListName			- name of the friends list that was operated on
-	 * @param ErrorStr			- string representing the error condition
+	 * @param LocalPlayer		The controller number of the associated user that made the request.
+	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error.
+	 * @param ListName			Name of the friends list that was operated on.
+	 * @param ErrorStr			String representing the error condition.
      */
 	void OnDeleteFriendsListComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr );
 
 	/**
-	 * Delegate used when the friends delete request has completed
+	 * Delegate used when the friends delete request has completed.
 	 *
-	 * @param LocalPlayer		- the controller number of the associated user that made the request
-	 * @param bWasSuccessful	- true if the async action completed without error, false if there was an error
-	 * @param DeletedFriendID	- the ID of the deleted friend
-	 * @param ListName			- name of the friends list that was operated on
-	 * @param ErrorStr			- string representing the error condition
+	 * @param LocalPlayer		The controller number of the associated user that made the request.
+	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error.
+	 * @param DeletedFriendID	The ID of the deleted friend.
+	 * @param ListName			Name of the friends list that was operated on.
+	 * @param ErrorStr			String representing the error condition.
 	 */
 	void OnDeleteFriendComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& DeletedFriendID, const FString& ListName, const FString& ErrorStr );
 
 	/**
-	 * Delegate used when a friend ID request has completed
+	 * Delegate used when a friend ID request has completed.
 	 *
-	 * @param bWasSuccessful		- true if the async action completed without error, false if there was an error
-	 * @param RequestingUserId		- the ID of the user making the request
-	 * @param DisplayName	- The string ID of the friend found
-	 * @param IdentifiedUserId		- The net ID of the found friend
-	 * @param ErrorStr				- string representing the error condition
+	 * @param bWasSuccessful		true if the async action completed without error, false if there was an error.
+	 * @param RequestingUserId		The ID of the user making the request.
+	 * @param DisplayName			The string ID of the friend found.
+	 * @param IdentifiedUserId		The net ID of the found friend.
+	 * @param ErrorStr				String representing the error condition.
 	 */
 	void OnQueryUserIdFromDisplayNameComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error);
 
 	/**
-	 * Delegate used when a query user info request has completed
+	 * Delegate used when a query user info request has completed.
 	 *
-	 * @param LocalPlayer		- the controller number of the associated user that made the request
-	 * @param bWasSuccessful	- true if the async action completed without error, false if there was an error
-	 * @param UserIds An array	- of user IDs filled out with info
-	 * @param ErrorStr			- string representing the error condition
+	 * @param LocalPlayer		The controller number of the associated user that made the request.
+	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error.
+	 * @param UserIds			An array of user IDs filled out with info.
+	 * @param ErrorStr			String representing the error condition.
 	 */
 	void OnQueryUserInfoComplete( int32 LocalPlayer, bool bWasSuccessful, const TArray< TSharedRef<class FUniqueNetId> >& UserIds, const FString& ErrorStr );
 
 	/**
-	 * Handle an accept message accepted from a notification
+	 * Handle an accept message accepted from a notification.
 	 *
-	 * @param MessageNotification 	- The message responded to
- 	 * @param ResponseTpe 	- The response from the message request
+	 * @param MessageNotification The message responded to.
+ 	 * @param ResponseTpe The response from the message request.
 	 */
 	FReply HandleMessageAccepted( TSharedPtr< FFriendsAndChatMessage > MessageNotification, EFriendsResponseType::Type ResponseType );
 
 	/**
 	 * Validate friend list after a refresh. Check if the list has changed.
-	 * @return True if the list has changes and the UI needs refreshing
+	 *
+	 * @return True if the list has changes and the UI needs refreshing.
+	 * @see UpdateRecentPlayerList
 	 */
 	bool UpdateFriendsList();
 
 	/**
 	 * Validate recent player list after a refresh. Check if the list has changed.
+	 *
 	 * @return True if the list has changes and the UI needs refreshing
+	 * @see UpdateFriendsList
 	 */
 	bool UpdateRecentPlayerList();
 
 	/**
 	 * A ticker used to perform updates on the main thread.
-	 * @param Delta		The tick delta
-	 * @return	true to continue ticking
+	 *
+	 * @param Delta The tick delta.
+	 * @return true to continue ticking.
 	 */
 	bool Tick( float Delta );
 
 	// UI functions
 
-	/**
-	 * Close button clicked
-	 */
+	/** Close button clicked. */
 	FReply OnCloseClicked();
 
-	/**
-	 * Minimize button clicked
-	 */
+	/** Minimize button clicked. */
 	FReply OnMinimizeClicked();
 
-	/**
-	 * Close button clicked
-	 */
+	/** Close button clicked. */
 	FReply OnChatCloseClicked();
 
-	/**
-	 * Minimize button clicked
-	 */
+	/** Minimize button clicked. */
 	FReply OnChatMinimizeClicked();
 
 private:
 
 	/* Lists used to keep track of Friends
 	*****************************************************************************/
+
 	// Holds the list of user names to query add as friends 
 	TArray< FString > FriendByNameRequests;
 	// Holds the list of user names to send invites to. 
@@ -402,6 +392,7 @@ private:
 
 	/* Delegates
 	*****************************************************************************/
+
 	// Holds the ticker delegate
 	FTickerDelegate UpdateFriendsTickerDelegate;
 	// Delegate when friend list has been read
@@ -425,6 +416,7 @@ private:
 
 	/* Identity stuff
 	*****************************************************************************/
+
 	// Holds the Online identity
 	IOnlineIdentityPtr OnlineIdentity;
 	// Holds the Friends Interface
@@ -434,6 +426,7 @@ private:
 
 	/* Manger state
 	*****************************************************************************/
+
 	// Holds the manager state
 	EFriendsAndManagerState::Type ManagerState;
 	// Holds the update interval
@@ -443,6 +436,7 @@ private:
 
 	/* UI
 	*****************************************************************************/
+
 	// Holds the parent window
 	TSharedPtr< const SWidget > ParentWidget;
 	// Holds the main Friends List window
@@ -462,11 +456,12 @@ private:
 	// Holds if the Friends list is inited
 	bool bIsInited;
 
-/* Here we have static access for the singleton
-*****************************************************************************/
 public:
+
 	static TSharedRef< FFriendsAndChatManager > Get();
 	static void Shutdown();
+
 private:
+
 	static TSharedPtr< FFriendsAndChatManager > SingletonInstance;
 };

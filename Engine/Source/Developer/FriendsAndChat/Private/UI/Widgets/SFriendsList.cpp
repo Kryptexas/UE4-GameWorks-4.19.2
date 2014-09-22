@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SFriendsList.cpp: Implements the SFriendsList class.
-	Displays the list of friends
-=============================================================================*/
-
 #include "FriendsAndChatPrivatePCH.h"
 
+
 #define LOCTEXT_NAMESPACE "SFriendsList"
+
 
 void SFriendsList::Construct( const FArguments& InArgs )
 {

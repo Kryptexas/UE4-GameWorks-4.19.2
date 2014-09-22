@@ -2,7 +2,9 @@
 
 #include "AutomationWindowPrivatePCH.h"
 
+
 #define LOCTEXT_NAMESPACE "AutomationExportMenu"
+
 
 SAutomationExportMenu::SAutomationExportMenu()
 {
@@ -281,5 +283,6 @@ FReply SAutomationExportMenu::SpawnNotification()
 	NotificationListPtr->AddNotification( FNotificationInfo( LOCTEXT("ReportGeneratedSuccessfullyNotification", "Report Generated Successfully!" )) );
 	return FReply::Handled();
 }
+
 
 #undef LOCTEXT_NAMESPACE

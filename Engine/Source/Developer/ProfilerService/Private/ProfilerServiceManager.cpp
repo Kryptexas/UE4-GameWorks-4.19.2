@@ -1,15 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerServiceModule.cpp: Implements the FProfilerServiceModule class.
-=============================================================================*/
-
 #include "ProfilerServicePrivatePCH.h"
 
 #include "StatsData.h"
 #include "SecureHash.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogProfile, Log, All);
+
 
 /** 
  * Thread used to read, prepare and send files through the message bus.

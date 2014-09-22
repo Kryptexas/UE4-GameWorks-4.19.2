@@ -1,15 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
-/*=============================================================================
-	SAutomationExportMenu.h: Declares the AutomationExortMenu class.
-=============================================================================*/
+
 
 class SAutomationExportMenu : public SCompoundWidget
 {
-
 public:
 
-	// Constructors
+	/** Default constructor. */
 	SAutomationExportMenu();
 
 	SLATE_BEGIN_ARGS( SAutomationExportMenu ){}
@@ -25,53 +23,49 @@ public:
 private:
 
 	/**
-	* Have the reports been generated
-	*
-	* @return true if the reports have been generated
-	*/
+	 * Have the reports been generated
+	 *
+	 * @return true if the reports have been generated
+	 */
 	bool AreReportsGenerated() const;
 
 	/** 
-	* Build the menu items.
-	*
-	* @param In Name - menu item name
-	* @param InType - menu item type
-	*/
+	 * Build the menu items.
+	 *
+	 * @param InName The menu item name.
+	 * @param InType The menu item type.
+	 */
 	void BuildMenuItems( const FText& InName, EFileExportType::Type InType );
 
-	/**
-	* Create the menu widgets.
-	*/
+	/** Create the menu widgets. */
 	void CreateMenu( );
 
 	/**
-	* Set all the available export options to checked.
-	*/
+	 * Set all the available export options to checked.
+	 */
 	void EnableAvailableReports();
 
 	/**
-	* Get the export button tooltip
-	*
-	* @return true export report is ready
-	*/
+	 * Get the export button tooltip.
+	 *
+	 * @return true export report is ready.
+	 */
 	FText GetExportButtonTooltip() const;
 
 	/**
-	* Get the export combo button tooltop
-	*
-	* @return true export report is ready
-	*/
+	 * Get the export combo button tooltip.
+	 *
+	 * @return true export report is ready.
+	 */
 	FText GetExportComboButtonTooltip() const;
 
-	/**
-	* Get the test result summary from the manager.
-	*/
+	/** Get the test result summary from the manager. */
 	void GetResults( );
 
 	/** 
 	* Export the report data when clicked.
 	*
-	* @return handled if the report has been handled
+	* @return handled if the report has been handled.
 	*/
 	FReply HandleExportDataClicked();
 
@@ -81,41 +75,41 @@ private:
 	void HandleMenuOpen();
 
 	/** 
-	* Should the export checkboxes be enabled.
-	*
-	* @param CheckType - the menu item type
-	* @return - True if the checkbox is enabled 
-	*/
+	 * Should the export checkboxes be enabled.
+	 *
+	 * @param CheckType The menu item type.
+	 * @return true if the checkbox is enabled .
+	 */
 	bool IsCheckBoxEnabled( EFileExportType::Type CheckType ) const;
 
 	/**
-	* Is an export report ready
+	* Is an export report ready.
 	*
-	* @return true export report is ready
+	* @return true export report is ready.
 	*/
 	bool IsExportReady() const;
 
 	/** 
-	* Check box has changed, update the export data mask 
-	*
-	* @param The new state, checked or unchecked
-	* @param The type of checkbox set
-	*/
+	 * Check box has changed, update the export data mask .
+	 *
+	 * @param The new state, checked or unchecked.
+	 * @param The type of checkbox set.
+	 */
 	void OnDisplayCheckStateChanged( ESlateCheckBoxState::Type InNewState, EFileExportType::Type CheckType );
 
 	/** 
-	* Gets the display state to send to a display filter check box
-	*
-	* @param - the type of checkbox
-	* @return - The desired checkbox state
-	*/
+	 * Gets the display state to send to a display filter check box
+	 *
+	 * @param The type of checkbox.
+	 * @return The desired checkbox state.
+	 */
 	ESlateCheckBoxState::Type OnGetDisplayCheckState( EFileExportType::Type CheckType ) const;
 
 	/**
-	* Add a notification when the file is exported
-	*
-	* @return true export report is ready
-	*/
+	 * Add a notification when the file is exported.
+	 *
+	 * @return true export report is ready.
+	 */
 	FReply SpawnNotification();
 
 private:

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GraphEditorSettings.h: Declares the UGraphEditorSettings class.
-=============================================================================*/
-
 #pragma once
+
 #include "Runtime/SlateCore/Public/Layout/Margin.h"
 #include "GraphEditorSettings.generated.h"
 
@@ -22,8 +19,8 @@ public:
 
 #if WITH_EDITOR
 	// UObject interface
+
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End of UObject interface
 #endif
 
 public:
@@ -65,6 +62,7 @@ public:
 	FVector2D GetShadowDeltaSize() const;
 
 public:
+
 	/** The maximum value to clamp the absolute value of the horizontal distance between endpoints when calculating tangents (when the wire is moving forward) */
 	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)
 	float ForwardSplineHorizontalDeltaRange;
@@ -99,6 +97,7 @@ public:
 
 	/** Compute a tangent given the start and end points of the spline */
 	FVector2D ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const;
+
 public:
 
 	/** The default color is used only for types not specifically defined below.  Generally if it's seen, it means another type needs to be defined so that the wire in question can have an appropriate color. */

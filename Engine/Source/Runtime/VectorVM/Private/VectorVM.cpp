@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*==============================================================================
-	VectorVM.cpp: Implementation of the vector virtual machine.
-==============================================================================*/
-
 #include "VectorVMPrivate.h"
 #include "ModuleManager.h"
+
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
 

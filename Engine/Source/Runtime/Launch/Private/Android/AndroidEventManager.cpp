@@ -1,6 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #include "LaunchPrivatePCH.h"
 #include "AndroidEventManager.h"
 #include "AndroidApplication.h"
@@ -11,8 +10,8 @@
 
 DEFINE_LOG_CATEGORY(LogAndroidEvents);
 
-
 FAppEventManager* FAppEventManager::sInstance = NULL;
+
 
 FAppEventManager* FAppEventManager::GetInstance()
 {
@@ -127,6 +126,7 @@ void FAppEventManager::Tick()
 	}
 }
 
+
 FAppEventManager::FAppEventManager():
 	FirstInitialized(false)
 	,bCreateWindow(false)
@@ -142,6 +142,7 @@ FAppEventManager::FAppEventManager():
 	pthread_mutex_init(&MainMutex, NULL);
 	pthread_mutex_init(&QueueMutex, NULL);
 }
+
 
 void FAppEventManager::HandleWindowCreated(void* InWindow)
 {
@@ -173,10 +174,12 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 	}
 }
 
+
 void FAppEventManager::SetEventHandlerEvent(FEvent* InEventHandlerEvent)
 {
 	EventHandlerEvent = InEventHandlerEvent;
 }
+
 
 void FAppEventManager::PauseRendering()
 {
@@ -193,6 +196,7 @@ void FAppEventManager::PauseRendering()
 	}
 }
 
+
 void FAppEventManager::ResumeRendering()
 {
 	if( GUseThreadedRendering )
@@ -208,6 +212,7 @@ void FAppEventManager::ResumeRendering()
 	}
 }
 
+
 void FAppEventManager::ExecWindowCreated()
 {
 	UE_LOG(LogAndroidEvents, Display, TEXT("ExecWindowCreated"));
@@ -218,6 +223,7 @@ void FAppEventManager::ExecWindowCreated()
 	
 	FAndroidAppEntry::ReInitWindow();
 }
+
 
 void FAppEventManager::ExecWindowChanged()
 {
@@ -230,6 +236,7 @@ void FAppEventManager::ExecWindowChanged()
 	}
 }
 
+
 void FAppEventManager::PauseAudio()
 {
 	bAudioPaused = true;
@@ -240,6 +247,7 @@ void FAppEventManager::PauseAudio()
 	}
 }
 
+
 void FAppEventManager::ResumeAudio()
 {
 	bAudioPaused = false;
@@ -249,6 +257,7 @@ void FAppEventManager::ResumeAudio()
 		GEngine->GetAudioDevice()->Suspend(true);
 	}
 }
+
 
 void FAppEventManager::EnqueueAppEvent(EAppEventState InState, void* InData)
 {
@@ -265,6 +274,7 @@ void FAppEventManager::EnqueueAppEvent(EAppEventState InState, void* InData)
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("LogAndroidEvents: EnqueueAppEvent : %u, %u"), InState, (uintptr_t)InData);
 }
 
+
 FAppEventData FAppEventManager::DequeueAppEvent()
 {
 	int rc = pthread_mutex_lock(&QueueMutex);
@@ -280,6 +290,7 @@ FAppEventData FAppEventManager::DequeueAppEvent()
 
 	return OutData;
 }
+
 
 bool FAppEventManager::IsGamePaused()
 {

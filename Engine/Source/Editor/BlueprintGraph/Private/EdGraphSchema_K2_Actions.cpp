@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EdGraphSchema_K2.cpp
-=============================================================================*/
-
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "GraphEditorActions.h"
@@ -13,7 +9,9 @@
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
 
+
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
+
 
 namespace 
 {
@@ -26,6 +24,7 @@ namespace
 	// The height of a literal reference node
 	const float NodeLiteralHeight = 48.0f;
 }
+
 
 /////////////////////////////////////////////////////
 // FK2SchemaActionUtils

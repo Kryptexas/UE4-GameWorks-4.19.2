@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MultichannelTcpSender.h: Declares the FMultichannelTcpSender class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,20 +20,17 @@ class FMultichannelTcpSender
 {
 	enum
 	{
-		/**
-		 * Defines the maximum ayload size per packet (in bytes).
-		 */
+		/** Defines the maximum payload size per packet (in bytes). */
 		MaxPacket = 128 * 1024 - 8
 	};
-
 
 public:
 
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSocket - The socket to send to.
-	 * @param InOkToSendDelegate - Delegate to ask if it is ok to send a packet.
+	 * @param InSocket The socket to send to.
+	 * @param InOkToSendDelegate Delegate to ask if it is ok to send a packet.
 	 */
 	FMultichannelTcpSender( FSocket* InSocket, const FOnMultichannelTcpOkToSend& InOkToSendDelegate )
 		: Socket(InSocket)
@@ -46,9 +39,7 @@ public:
 		Thread = FRunnableThread::Create(this, TEXT("FMultichannelTCPSender"), 8 * 1024, TPri_AboveNormal);
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMultichannelTcpSender(  )
 	{
 		if (Thread)
@@ -58,12 +49,9 @@ public:
 		}
 	}
 
-
 public:
 
-	/**
-	 * Call when bandwidth tests should be retried, possibly sending data if there is available bandwidth.
-	 **/
+	/** Call when bandwidth tests should be retried, possibly sending data if there is available bandwidth. */
 	void AttemptResumeSending( )
 	{
 		FScopeLock ScopeLock(&SendBuffersCriticalSection);
@@ -83,8 +71,8 @@ public:
 	 *
 	 * This method does not block on bandwidth and never fails.
 	 *
-	 * @param Data - The buffer containing the data to send.
-	 * @param Count - The number of bytes to send from the buffer.
+	 * @param Data The buffer containing the data to send.
+	 * @param Count The number of bytes to send from the buffer.
 	 */
 	void Send( const uint8* Data, int32 Count, uint32 Channel )
 	{
@@ -108,10 +96,9 @@ public:
 		AttemptResumeSendingInternal();
 	}
 
-
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
 	virtual bool Init( )
 	{
@@ -213,14 +200,9 @@ public:
 		}
 	}
 
-	// End FRunnable interface
-
-
 protected:
 
-	/**
-	 * Internal call similar to AttemptResumeSending, but does not do the requisite lock.
-	 */
+	/** Internal call similar to AttemptResumeSending, but does not do the requisite lock. */
 	void AttemptResumeSendingInternal( )
 	{
 		if (EventToRestart)
@@ -231,30 +213,28 @@ protected:
 		}
 	}
 
-
 private:
 
-	// Holds the total number of payload bytes sent to the socket.
+	/** Holds the total number of payload bytes sent to the socket. */
 	int32 BytesSent;
 
-	// Holds an event to trigger when bandwidth has freed up.
+	/** Holds an event to trigger when bandwidth has freed up. */
 	FScopedEvent* EventToRestart;
 
-	// Holds the buffers to hold pending per-channel data.
+	/** Holds the buffers to hold pending per-channel data. */
 	TMap<uint32, TArray<uint8>*> SendBuffers;
 
-	// Holds the critical section to guard the send buffers.
+	/** Holds the critical section to guard the send buffers. */
 	FCriticalSection SendBuffersCriticalSection;
 
-	// Holds the socket to use.
+	/** Holds the socket to use. */
 	FSocket* Socket;
 
-	// Holds the thread that is running this instance.
+	/** Holds the thread that is running this instance. */
 	FRunnableThread* Thread;
-
 
 private:
 
-	// Holds a delegate to be invoked when checking if there is sufficient bandwidth to send.
+	/** Holds a delegate to be invoked when checking if there is sufficient bandwidth to send. */
 	FOnMultichannelTcpOkToSend OkToSendDelegate;
 };

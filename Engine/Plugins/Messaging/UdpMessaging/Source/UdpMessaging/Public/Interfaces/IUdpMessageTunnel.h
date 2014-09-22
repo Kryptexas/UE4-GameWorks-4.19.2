@@ -78,13 +78,13 @@ public:
 
 	/**
 	 * Gets a delegate that is executed when the list of incoming connections changed.
+	 *
+	 * @return The delegate.
 	 */
 	virtual FSimpleDelegate& OnConnectionsChanged( ) = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IUdpMessageTunnel( ) { }
 };

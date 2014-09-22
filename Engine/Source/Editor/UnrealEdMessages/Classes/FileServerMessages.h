@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FileServerMessages.h: Declares message types used by file server commandlets.
-=============================================================================*/
-
 #pragma once
 
 #include "FileServerMessages.generated.h"

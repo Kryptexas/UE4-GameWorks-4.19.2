@@ -17,9 +17,7 @@ class FReassembledUdpMessage
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FReassembledUdpMessage( ) { }
 
 	/**
@@ -40,9 +38,7 @@ public:
 		Data.AddUninitialized(MessageSize);
 	}
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~FReassembledUdpMessage( ) { }
 
 public:
@@ -173,27 +169,27 @@ public:
 
 private:
 
-	// Holds the message data.
+	/** Holds the message data. */
 	TArray<uint8> Data;
 
-	// Holds the time at which the last segment was received.
+	/** Holds the time at which the last segment was received. */
 	FDateTime LastSegmentTime;
 
-	// Holds an array of bits that indicate which segments still need to be received.
+	/** Holds an array of bits that indicate which segments still need to be received. */
 	TBitArray<> PendingSegments;
 
-	// Holds the number of segments that haven't been received yet.
+	/** Holds the number of segments that haven't been received yet. */
 	uint16 PendingSegmentsCount;
 
-	// Holds the number of bytes received so far.
+	/** Holds the number of bytes received so far. */
 	int32 ReceivedBytes;
 
-	// Holds the number of retransmit requests that were sent since the last segment was received.
+	/** Holds the number of retransmit requests that were sent since the last segment was received. */
 	int32 RetransmitRequestsCount;
 
-	// Holds the sender.
+	/** Holds the sender. */
 	FIPv4Endpoint Sender;
 
-	// Holds the message sequence.
+	/** Holds the message sequence. */
 	uint64 Sequence;
 };

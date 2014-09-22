@@ -1,12 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LinuxPlatformProcess.cpp: Linux implementations of Process functions
-=============================================================================*/
-
 #include "Core.h"
 #include "LinuxPlatformRunnableThread.h"
-#include "../../Public/Modules/ModuleVersion.h"
+#include "Public/Modules/ModuleVersion.h"
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>

@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FriendListItems.cpp: Implements classes and struct for the FFriendsAndChatModule.
-=============================================================================*/
-
 #include "FriendsAndChatPrivatePCH.h"
 
+
 #define LOCTEXT_NAMESPACE "FriendListItems"
+
 
 // FFriendStruct implementation
 

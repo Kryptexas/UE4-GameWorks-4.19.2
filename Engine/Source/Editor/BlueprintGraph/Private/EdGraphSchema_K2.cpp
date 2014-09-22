@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EdGraphSchema_K2.cpp
-=============================================================================*/
-
-
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "Engine/LevelScriptBlueprint.h"
@@ -35,6 +30,7 @@
 #include "K2Node_GetEnumeratorNameAsString.h"
 #include "K2Node_Tunnel.h"
 #include "K2Node_SetFieldsInStruct.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintMetadata

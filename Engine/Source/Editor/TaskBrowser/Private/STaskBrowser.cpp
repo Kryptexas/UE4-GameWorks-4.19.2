@@ -5,8 +5,8 @@
 #include "STaskColumn.h"
 #include "STaskComplete.h"
 #include "STaskSettings.h"
-#include "../Public/TaskDatabase.h"
-#include "../Public/TaskDataManager.h"
+#include "Public/TaskDatabase.h"
+#include "Public/TaskDataManager.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -31,7 +31,6 @@
 
 #define LOCTEXT_NAMESPACE "STaskBrowser"
 DEFINE_LOG_CATEGORY_STATIC( LogTaskBrowser, Log, All );
-
 
 
 /**

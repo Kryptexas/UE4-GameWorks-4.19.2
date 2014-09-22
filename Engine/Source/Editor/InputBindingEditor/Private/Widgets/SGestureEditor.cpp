@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SGestureEditor.cpp: Implements the SGestureEditor class.
-=============================================================================*/
-
 #include "InputBindingEditorPrivatePCH.h"
 
 
@@ -39,8 +35,8 @@ void SGestureEditor::Construct( const FArguments& InArgs, TSharedPtr<FGestureTre
 }
 
 
-
 TWeakPtr<SGestureEditor> SGestureEditor::GestureBeingEdited;
+
 
 FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
@@ -77,15 +73,18 @@ FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 	return FReply::Unhandled();
 }
 
+
 FReply SGestureEditor::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
 	return FReply::Unhandled();
 }
 
+
 FReply SGestureEditor::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
 	return FReply::Unhandled();
 }
+
 
 FReply SGestureEditor::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent )
 {
@@ -98,16 +97,19 @@ FReply SGestureEditor::OnMouseButtonDown( const FGeometry& MyGeometry, const FPo
 	return FReply::Unhandled();
 }
 
+
 FReply SGestureEditor::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
 	return FReply::Handled();
 }
+
 
 void SGestureEditor::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
 {
 	// Notify a listener that we lost focus so they can determine if we should still be in edit mode
 	OnEditBoxLostFocus.ExecuteIfBound();
 }
+
 
 FText SGestureEditor::OnGetGestureInputText() const
 {
@@ -124,6 +126,7 @@ FText SGestureEditor::OnGetGestureInputText() const
 		return FText::GetEmpty();
 	}
 }
+
 
 FText SGestureEditor::OnGetGestureInputHintText() const
 {
@@ -144,6 +147,7 @@ FText SGestureEditor::OnGetGestureInputHintText() const
 	return FText::GetEmpty();
 }
 
+
 void SGestureEditor::CommitNewGesture()
 {
 	if( EditingInputGesture.IsValidGesture() )
@@ -152,10 +156,12 @@ void SGestureEditor::CommitNewGesture()
 	}
 }
 
+
 void SGestureEditor::RemoveActiveGesture()
 {
 	CommandInfo->RemoveActiveGesture();
 }
+
 
 void SGestureEditor::StartEditing()
 {
@@ -173,6 +179,7 @@ void SGestureEditor::StartEditing()
 	OnEditingStarted.ExecuteIfBound();
 }
 
+
 void SGestureEditor::StopEditing()
 {
 	if( GestureBeingEdited.IsValid() && GestureBeingEdited.Pin().Get() == this )
@@ -187,6 +194,7 @@ void SGestureEditor::StopEditing()
 	EditingInputGesture = FInputGesture( EKeys::Invalid, EModifierKey::None );
 	NotificationMessage = FText::GetEmpty();
 }
+
 
 void SGestureEditor::OnGestureTyped( const FInputGesture& NewGesture )
 {
@@ -213,6 +221,7 @@ void SGestureEditor::OnGestureTyped( const FInputGesture& NewGesture )
 
 	OnGestureChanged.ExecuteIfBound();
 }
+
 
 void SGestureEditor::OnGestureCommitted( const FInputGesture& NewGesture )
 {

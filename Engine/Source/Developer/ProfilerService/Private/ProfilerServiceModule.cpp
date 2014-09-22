@@ -1,12 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerServiceModule.cpp: Implements the FProfilerServiceModule class.
-=============================================================================*/
-
 #include "ProfilerServicePrivatePCH.h"
-
 #include "ModuleManager.h"
+
 
 /**
  * Implements the ProfilerService module

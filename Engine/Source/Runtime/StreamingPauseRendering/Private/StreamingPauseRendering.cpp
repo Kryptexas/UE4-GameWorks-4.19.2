@@ -1,15 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-StreamingPauseRendering.cpp: Streaming pause implementation.
-=============================================================================*/
-
 #include "Engine.h"
 #include "StreamingPauseRendering.h"
 #include "SceneViewport.h"
 #include "MoviePlayer.h"
 
+
 IMPLEMENT_MODULE(FStreamingPauseRenderingModule, StreamingPauseRendering);
+
 
 static TAutoConsoleVariable<int32> CVarRenderLastFrameInStreamingPause(
 	TEXT("r.RenderLastFrameInStreamingPause"),
@@ -17,12 +15,13 @@ static TAutoConsoleVariable<int32> CVarRenderLastFrameInStreamingPause(
 	TEXT("If 1 the previous frame is displayed during streaming pause. If zero the screen is left black."),
 	ECVF_RenderThreadSafe);
 
+
 FStreamingPauseRenderingModule::FStreamingPauseRenderingModule()
-: Viewport(NULL)
-, ViewportWidget(NULL)
-, ViewportClient(NULL)
-{
-}
+	: Viewport(nullptr)
+	, ViewportWidget(nullptr)
+	, ViewportClient(nullptr)
+{ }
+
 
 void FStreamingPauseRenderingModule::StartupModule()
 {
@@ -33,18 +32,19 @@ void FStreamingPauseRenderingModule::StartupModule()
 	GEngine->RegisterEndStreamingPauseRenderingDelegate(&EndDelegate);
 }
 
+
 void FStreamingPauseRenderingModule::ShutdownModule()
 {
 	BeginDelegate.Unbind();
 	EndDelegate.Unbind();
 	if( GEngine )
 	{
-		GEngine->RegisterBeginStreamingPauseRenderingDelegate(NULL);
-		GEngine->RegisterEndStreamingPauseRenderingDelegate(NULL);
+		GEngine->RegisterBeginStreamingPauseRenderingDelegate(nullptr);
+		GEngine->RegisterEndStreamingPauseRenderingDelegate(nullptr);
 	}
 }
 
-/** Enqueue the streaming pause to suspend rendering during blocking load. */
+
 void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewport )
 {
 	//Create the viewport widget and add a throbber.
@@ -77,7 +77,7 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 
 		Viewport->EnqueueBeginRenderFrame();
 
-		FCanvas Canvas(Viewport.Get(), NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
+		FCanvas Canvas(Viewport.Get(), nullptr, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
 		{
 			ViewportClient->Draw(Viewport.Get(), &Canvas);
 		}
@@ -103,15 +103,15 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 	GetMoviePlayer()->PlayMovie();
 }
 
-/** Enqueue the streaming pause to resume rendering after blocking load is completed. */
+
 void FStreamingPauseRenderingModule::EndStreamingPause()
 {
 	//Stop rendering the loading screen and resume
 	GetMoviePlayer()->WaitForMovieToFinish();
 
-	ViewportWidget = NULL;
-	Viewport = NULL;
-	ViewportClient = NULL;
+	ViewportWidget = nullptr;
+	Viewport = nullptr;
+	ViewportClient = nullptr;
 	
 	FlushRenderingCommands();
 }

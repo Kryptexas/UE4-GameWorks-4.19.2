@@ -16,9 +16,7 @@ public:
 
 public:
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~SProjectLauncherBuildPage( );
 
 public:
@@ -44,38 +42,38 @@ protected:
 
 private:
 
-	// Callback for changing the checked state of a platform menu check box. 
+	/** Callback for changing the checked state of a platform menu check box. */
 	void HandleBuildCheckedStateChanged( ESlateCheckBoxState::Type CheckState );
 
-	// Callback for determining whether a platform menu entry is checked.
+	/** Callback for determining whether a platform menu entry is checked. */
 	ESlateCheckBoxState::Type HandleBuildIsChecked() const;
 
-	// Callback for changing the selected profile in the profile manager.
+	/** Callback for changing the selected profile in the profile manager. */
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
 
-	// Callback for determining if the build platform list should be displayed
+	/** Callback for determining if the build platform list should be displayed. */
 	EVisibility HandleBuildPlatformVisibility( ) const;
 
-    // Callback for pressing the Advanced Setting - Generate DSYM button.
+    /** Callback for pressing the Advanced Setting - Generate DSYM button. */
     FReply HandleGenDSYMClicked();
 
-	// Callback for getting the enabled state of the Generate DSYM button.
+	/** Callback for getting the enabled state of the Generate DSYM button. */
     bool HandleGenDSYMButtonEnabled() const;
 
-	// Callback for determining if the build configuration should be shown
+	/** Callback for determining if the build configuration should be shown */
 	EVisibility ShowBuildConfiguration() const;
 
-	// Callback for selecting a build configuration.
+	/** Callback for selecting a build configuration. */
 	void HandleBuildConfigurationSelectorConfigurationSelected(EBuildConfigurations::Type Configuration);
 
-	// Callback for getting the content text of the build configuration selector.
+	/** Callback for getting the content text of the build configuration selector. */
 	FString HandleBuildConfigurationSelectorText() const;
 
-	// Callback for determining the visibility of a validation error icon.
+	/** Callback for determining the visibility of a validation error icon. */
 	EVisibility HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const;
 
 private:
 
-	// Holds a pointer to the data model.
+	/** Holds a pointer to the data model. */
 	FProjectLauncherModelPtr Model;
 };

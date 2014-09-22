@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SGestureEditor.cpp: Implements the SGestureEditor class.
-=============================================================================*/
-
 #include "InputBindingEditorPrivatePCH.h"
+
 
 #define LOCTEXT_NAMESPACE "SInputBindingEditorPanel"
 
@@ -95,6 +92,7 @@ void SInputBindingEditorPanel::Construct(const FArguments& InArgs)
 	GestureTree->RequestTreeRefresh();
 }
 
+
 static bool StringPassesFilter( const FText& Text, const TArray<FString>& FilterStrings)
 {
 	//@todo Use localization safe comparison methods [10/11/2013 justin.sargent]
@@ -116,6 +114,7 @@ static bool StringPassesFilter( const FText& Text, const TArray<FString>& Filter
 	return bAcceptable;
 }
 
+
 void SInputBindingEditorPanel::OnSearchChanged( const FText& NewSearch )
 {
 	FilterStrings.Empty();
@@ -129,6 +128,7 @@ void SInputBindingEditorPanel::OnSearchChanged( const FText& NewSearch )
 	FilterVisibleContextList();
 }
 
+
 FReply SInputBindingEditorPanel::OnBindingColumnClicked()
 {
 	static bool bSortUp = false;
@@ -140,6 +140,7 @@ FReply SInputBindingEditorPanel::OnBindingColumnClicked()
 	GestureTree->RequestTreeRefresh();
 	return FReply::Handled();
 }
+
 
 FReply SInputBindingEditorPanel::OnNameColumnClicked()
 {
@@ -153,6 +154,7 @@ FReply SInputBindingEditorPanel::OnNameColumnClicked()
 
 	return FReply::Handled();
 }
+
 
 void SInputBindingEditorPanel::UpdateContextMasterList()
 {
@@ -183,8 +185,8 @@ void SInputBindingEditorPanel::UpdateContextMasterList()
 	}
 
 	ContextVisibleList = ContextMasterList;
-
 }
+
 
 void SInputBindingEditorPanel::FilterVisibleContextList()
 {
@@ -233,12 +235,14 @@ void SInputBindingEditorPanel::FilterVisibleContextList()
 	GestureTree->RequestTreeRefresh();
 }
 
+
 void SInputBindingEditorPanel::OnCommandsChanged()
 {
 	UpdateContextMasterList();
 
 	FilterVisibleContextList();
 }
+
 
 TSharedRef< ITableRow > SInputBindingEditorPanel::OnGenerateWidgetForTreeItem( TSharedPtr<FGestureTreeItem> InTreeItem, const TSharedRef<STableViewBase>& OwnerTable )
 {
@@ -304,10 +308,12 @@ void SInputBindingEditorPanel::OnGetChildrenForTreeItem( TSharedPtr<FGestureTree
 	}
 }
 
+
 bool SInputBindingEditorPanel::SupportsKeyboardFocus() const
 {
 	return SearchBox->SupportsKeyboardFocus();
 }
+
 
 FReply SInputBindingEditorPanel::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
 {
@@ -320,5 +326,6 @@ FReply SInputBindingEditorPanel::OnKeyboardFocusReceived( const FGeometry& MyGeo
 
 	return Reply;
 }
+
 
 #undef LOCTEXT_NAMESPACE

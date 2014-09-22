@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationDeviceClusterManager.cpp: Implements the FAutomationDeviceClusterManager class.
-=============================================================================*/
-
 #include "AutomationControllerPrivatePCH.h"
 
 void FAutomationDeviceClusterManager::Reset()
@@ -59,6 +55,7 @@ void FAutomationDeviceClusterManager::Remove(const FMessageAddress& MessageAddre
 	}
 }
 
+
 FString FAutomationDeviceClusterManager::GetGroupNameForDevice(const FDeviceState& DeviceState, const uint32 DeviceGroupFlags)
 {
 	FString OutGroupName;
@@ -112,6 +109,7 @@ FString FAutomationDeviceClusterManager::GetGroupNameForDevice(const FDeviceStat
 	return OutGroupName;
 }
 
+
 void FAutomationDeviceClusterManager::ReGroupDevices( const uint32 GroupFlags )
 {
 	//Get all the devices
@@ -152,6 +150,7 @@ void FAutomationDeviceClusterManager::ReGroupDevices( const uint32 GroupFlags )
 	}
 }
 
+
 int32 FAutomationDeviceClusterManager::GetNumClusters() const
 {
 	return Clusters.Num();
@@ -175,6 +174,7 @@ int32 FAutomationDeviceClusterManager::GetNumDevicesInCluster(const int32 Cluste
 	return Clusters[ClusterIndex].Devices.Num();
 }
 
+
 int32 FAutomationDeviceClusterManager::GetNumActiveDevicesInCluster(const int32 ClusterIndex) const
 {
 	check((ClusterIndex >= 0) && (ClusterIndex < Clusters.Num()));
@@ -189,11 +189,13 @@ int32 FAutomationDeviceClusterManager::GetNumActiveDevicesInCluster(const int32 
 	return ActiveDevices;
 }
 
+
 FString FAutomationDeviceClusterManager::GetClusterGroupName(const int32 ClusterIndex) const
 {
 	check((ClusterIndex >= 0) && (ClusterIndex < Clusters.Num()));
 	return Clusters[ClusterIndex].ClusterName;
 }
+
 
 FString FAutomationDeviceClusterManager::GetClusterDeviceType(const int32 ClusterIndex) const
 {
@@ -201,12 +203,14 @@ FString FAutomationDeviceClusterManager::GetClusterDeviceType(const int32 Cluste
 	return Clusters[ClusterIndex].DeviceTypeName;
 }
 
+
 FString FAutomationDeviceClusterManager::GetClusterDeviceName(const int32 ClusterIndex, const int32 DeviceIndex) const
 {
 	check((ClusterIndex >= 0) && (ClusterIndex < Clusters.Num()));
 	check((DeviceIndex >= 0) && (DeviceIndex < Clusters[ClusterIndex].Devices.Num()));
 	return Clusters[ClusterIndex].Devices[DeviceIndex].GameInstanceName;
 }
+
 
 bool FAutomationDeviceClusterManager::FindDevice(const FMessageAddress& MessageAddress, int32& OutClusterIndex, int32& OutDeviceIndex)
 {

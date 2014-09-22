@@ -1,23 +1,22 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetPlatformManagerModule.cpp: Implements the FTargetPlatformManagerModule class.
-=============================================================================*/
-
 #include "TargetPlatformPrivatePCH.h"
 #include "PlatformInfo.h"
 #include "DesktopPlatformModule.h"
 #include "IPhysXFormatModule.h"
 #include "IPhysXFormat.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);
+
 
 // autosdks only function properly on windows right now.
 #if !IS_MONOLITHIC && (PLATFORM_WINDOWS)
-#define AUTOSDKS_ENABLED 1
+	#define AUTOSDKS_ENABLED 1
 #else
-#define AUTOSDKS_ENABLED 0
+	#define AUTOSDKS_ENABLED 0
 #endif
+
 
 /**
  * Module for the target platform manager
@@ -27,13 +26,10 @@ class FTargetPlatformManagerModule
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetPlatformManagerModule()
 		: bRestrictFormatsToRuntimeOnly(false), bForceCacheUpdate(true)
 	{
-
 #if AUTOSDKS_ENABLED		
 		
 		// AutoSDKs only enabled if UE_SDKS_ROOT is set.
@@ -73,17 +69,17 @@ public:
 		bForceCacheUpdate = false;
 
 		FModuleManager::Get().OnModulesChanged().AddRaw(this, &FTargetPlatformManagerModule::ModulesChangesCallback);
-
-
 	}
 
+	/** Destructor. */
 	virtual ~FTargetPlatformManagerModule()
 	{
 		FModuleManager::Get().OnModulesChanged().RemoveAll(this);
 	}
 
-
 public:
+
+	// ITargetPlatformManagerModule interface
 
 	virtual void Invalidate()
 	{
@@ -113,12 +109,12 @@ public:
 	{
 		ITargetPlatform* Platform = FindTargetPlatform(DeviceId.GetPlatformName());
 
-		if (Platform != NULL)
+		if (Platform != nullptr)
 		{
 			return Platform->GetDevice(DeviceId);
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual ITargetPlatform* FindTargetPlatform(FString Name) override
@@ -133,7 +129,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual const TArray<ITargetPlatform*>& GetCookingTargetPlatforms() override
@@ -248,12 +244,12 @@ public:
 	virtual ITargetPlatform* GetRunningTargetPlatform() override
 	{
 		static bool bInitialized = false;
-		static ITargetPlatform* Result = NULL;
+		static ITargetPlatform* Result = nullptr;
 
 		if (!bInitialized || bForceCacheUpdate)
 		{
 			bInitialized = true;
-			Result = NULL;
+			Result = nullptr;
 
 			const TArray<ITargetPlatform*>& TargetPlatforms = GetTargetPlatforms();	
 
@@ -262,7 +258,7 @@ public:
 				if (TargetPlatforms[Index]->IsRunningPlatform())
 				{
 					 // we should not have two running platforms
-					checkf((Result == NULL),
+					checkf((Result == nullptr),
 						TEXT("Found multiple running platforms.\n\t%s\nand\n\t%s"),
 						*Result->PlatformName(),
 						*TargetPlatforms[Index]->PlatformName()
@@ -300,7 +296,7 @@ public:
 				if (Module)
 				{
 					IAudioFormat* Format = Module->GetAudioFormat();
-					if (Format != NULL)
+					if (Format != nullptr)
 					{
 						Results.Add(Format);
 					}
@@ -330,7 +326,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual const TArray<const ITextureFormat*>& GetTextureFormats() override
@@ -358,7 +354,7 @@ public:
 				if (Module)
 				{
 					ITextureFormat* Format = Module->GetTextureFormat();
-					if (Format != NULL)
+					if (Format != nullptr)
 					{
 						Results.Add(Format);
 					}
@@ -388,7 +384,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual const TArray<const IShaderFormat*>& GetShaderFormats() override
@@ -416,7 +412,7 @@ public:
 				if (Module)
 				{
 					IShaderFormat* Format = Module->GetShaderFormat();
-					if (Format != NULL)
+					if (Format != nullptr)
 					{
 						Results.Add(Format);
 					}
@@ -445,7 +441,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual uint16 ShaderFormatVersion(FName Name) override
@@ -492,7 +488,7 @@ public:
 				if (Module)
 				{
 					IPhysXFormat* Format = Module->GetPhysXFormat();
-					if (Format != NULL)
+					if (Format != nullptr)
 					{
 						Results.Add(Format);
 					}
@@ -522,12 +518,16 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
-
 
 protected:
 
+	/**
+	 * Checks whether the AutoDesk software development kit (SDK) is enabled.
+	 *
+	 * @return true if the SDK is enabled, false otherwise.
+	 */
 	bool IsAutoSDKsEnabled()
 	{
 		static const FString SDKRootEnvFar(TEXT("UE_SDKS_ROOT"));
@@ -543,9 +543,7 @@ protected:
 		return false;
 	}
 
-	/**
-	 * Discovers the available target platforms.
-	 */
+	/** Discovers the available target platforms. */
 	void DiscoverAvailablePlatforms( )
 	{
 		Platforms.Empty(Platforms.Num());
@@ -568,7 +566,7 @@ protected:
 			if (Module)
 			{
 				ITargetPlatform* Platform = Module->GetTargetPlatform();
-				if (Platform != NULL)
+				if (Platform != nullptr)
 				{
 					// would like to move this check to GetActiveTargetPlatforms, but too many things cache this result
 					// this setup will become faster after TTP 341897 is complete.					
@@ -914,6 +912,8 @@ private:
 #endif
 };
 
+
 FString FTargetPlatformManagerModule::SDKStatusMessage = TEXT("");
+
 
 IMPLEMENT_MODULE(FTargetPlatformManagerModule, TargetPlatform);

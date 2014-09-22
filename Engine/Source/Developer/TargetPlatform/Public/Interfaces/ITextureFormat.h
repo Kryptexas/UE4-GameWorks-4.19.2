@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITextureFormat.h: Declares the ITextureFormat interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -60,25 +56,24 @@ public:
 	/**
 	 * Gets the list of supported formats.
 	 *
-	 * @param OutFormats - Will hold the list of formats.
+	 * @param OutFormats Will hold the list of formats.
 	 */
 	virtual void GetSupportedFormats( TArray<FName>& OutFormats ) const = 0;
 
 	/**
 	* Gets the capabilities of the texture compressor.
 	*
-	* @param OutCaps - filled with capability properties of texture format compressor.
+	* @param OutCaps Filled with capability properties of texture format compressor.
 	*/
 	virtual FTextureFormatCompressorCaps GetFormatCapabilities( ) const = 0;
 
 	/**
 	 * Compresses a single image.
 	 *
-	 * @param Image - The input image.
-	 * @param BuildSettings - Build settings.
-	 * @param bImageHasAlphaChannel - true if the image has a non-white alpha channel.
-	 * @param OutCompressedMip - The compressed image.
-	 *
+	 * @param Image The input image.
+	 * @param BuildSettings Build settings.
+	 * @param bImageHasAlphaChannel true if the image has a non-white alpha channel.
+	 * @param OutCompressedMip The compressed image.
 	 * @returns true on success, false otherwise.
 	 */
 	virtual bool CompressImage(
@@ -91,8 +86,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ITextureFormat( ) { }
 };

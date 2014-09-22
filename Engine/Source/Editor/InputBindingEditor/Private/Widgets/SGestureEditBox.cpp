@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SGestureEditBox.cpp: Implements the SGestureEditBox class.
-=============================================================================*/
-
 #include "InputBindingEditorPrivatePCH.h"
 
 

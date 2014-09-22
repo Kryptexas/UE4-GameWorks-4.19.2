@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IAutomationControllerModule.h: Declares the IAutomationControllerModule interface.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Interface for AutomationController modules.
@@ -21,10 +18,9 @@ public:
 	 */
 	virtual IAutomationControllerManagerRef GetAutomationController( ) = 0;
 
-	/** Init message bus usage */
+	/** Init message bus usage. */
 	virtual void Init() = 0;
 
-	/** Tick function that will execute enabled tests for different device clusters */
+	/** Tick function that will execute enabled tests for different device clusters. */
 	virtual void Tick() = 0;
-
 };

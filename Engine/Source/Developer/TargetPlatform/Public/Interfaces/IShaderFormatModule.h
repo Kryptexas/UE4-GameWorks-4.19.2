@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IShaderFormatModule.h: Declares the IShaderFormatModule interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,13 +13,13 @@ public:
 
 	/**
 	 * Gets the shader format.
+	 *
+	 * @return The shader format interface.
 	 */
 	virtual IShaderFormat* GetShaderFormat( ) = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	~IShaderFormatModule( ) { }
 };

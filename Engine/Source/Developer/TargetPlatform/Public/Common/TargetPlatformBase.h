@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TTargetPlatformBase.h: Declares the TTargetPlatformBase template class.
-=============================================================================*/
-
 #pragma once
 
 #include "PlatformInfo.h"
+
 
 /**
  * Base class for target platforms.
@@ -38,7 +35,6 @@ public:
 	{
 		OutFormats.Add(FName(TEXT("FullHDR")));
 	}
-
 
 #ifdef TEXTURERESOURCE_H_INCLUDED // defined in TextureResource.h, this way we know if UTexture is available, needed for Clang
 	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
@@ -217,7 +213,7 @@ protected:
 /**
  * Template for target platforms.
  *
- * @param TPlatformProperties - Type of platform properties.
+ * @param TPlatformProperties Type of platform properties.
  */
 template<typename TPlatformProperties>
 class TTargetPlatformBase
@@ -225,9 +221,7 @@ class TTargetPlatformBase
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	TTargetPlatformBase( )
 		: FTargetPlatformBase( PlatformInfo::FindPlatformInfo(TPlatformProperties::PlatformName()) )
 	{
@@ -237,7 +231,7 @@ public:
 
 public:
 
-	// Begin ITargetPlatform interface
+	// ITargetPlatform interface
 
 	virtual bool HasEditorOnlyData( ) const override
 	{
@@ -338,6 +332,4 @@ public:
 		return FName(TPlatformProperties::GetPhysicsFormat());
 	}
 #endif // WITH_ENGINE
-
-	// End ITargetPlatform interface
 };

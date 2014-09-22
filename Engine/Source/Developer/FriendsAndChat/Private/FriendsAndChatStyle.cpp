@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FriendsAndChatStyle.cpp: Implements the FFriendsAndChatStyle class.
-=============================================================================*/
-
 #include "FriendsAndChatPrivatePCH.h"
 
+
 const FName FFriendsAndChatStyle::TypeName( TEXT("FFriendsAndChatStyle") );
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetCloseButtonStyle( const FButtonStyle& InButtonStyle)
 {
@@ -14,11 +12,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetCloseButtonStyle( const FButtonSt
 	return *this; 
 }
 
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetMinimizeStyle( const FButtonStyle& InButtonStyle)
 {
 	MinimizeButtonStyle = InButtonStyle; 
 	return *this;
 }
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetSearchButtonStyle( const FButtonStyle& InButtonStyle)
 {
@@ -26,11 +26,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetSearchButtonStyle( const FButtonS
 	return *this; 
 }
 
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetOfflineBrush(const FSlateBrush& InOffLine)
 {
 	OfflineBrush = InOffLine; 
 	return *this; 
 }
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetOnlineBrush(const FSlateBrush& InOnLine)
 {
@@ -38,11 +40,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetOnlineBrush(const FSlateBrush& In
 	return *this; 
 }
 
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetBackgroundBrush(const FSlateBrush& InBackground)
 {
 	Background = InBackground;
 	return *this;
 }
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetTextStyle(const FTextBlockStyle& InTextStle)
 {
@@ -50,11 +54,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetTextStyle(const FTextBlockStyle& 
 	return *this;
 }
 
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyle(const FSlateFontInfo& InFontStyle)
 {
 	FriendsFontStyle = InFontStyle;
 	return *this;
 }
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetCheckboxToggleStyle(const FCheckBoxStyle& InCheckboxStyle)
 {
@@ -62,11 +68,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetCheckboxToggleStyle(const FCheckB
 	return *this;
 }
 
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetMenuSetColor(const FLinearColor& InSetColor)
 {
 	MenuSetColor = InSetColor;
 	return *this;
 }
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetMenuUnsetColor(const FLinearColor& InUnsetColor)
 {
@@ -74,11 +82,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetMenuUnsetColor(const FLinearColor
 	return *this;
 }
 
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendItemStyle(const FComboButtonStyle& InFriendItemStyle)
 {
 	FriendItemStyle = InFriendItemStyle;
 	return *this;
 }
+
 
 const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 {

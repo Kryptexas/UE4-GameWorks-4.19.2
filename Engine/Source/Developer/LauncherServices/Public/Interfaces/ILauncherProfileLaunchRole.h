@@ -78,7 +78,6 @@ public:
 	 * Gets optional command line parameters to launch with.
 	 *
 	 * @return The command line string.
-	 *
 	 * @see SetCommandLine
 	 */
 	virtual const FString& GetCommandLine( ) const = 0;
@@ -87,7 +86,6 @@ public:
 	 * Gets the initial culture to launch with.
 	 *
 	 * @return Culture name.
-	 *
 	 * @see SetInitialCulture
 	 */
 	virtual const FString& GetInitialCulture( ) const = 0;
@@ -96,7 +94,6 @@ public:
 	 * Gets the initial map to launch with.
 	 *
 	 * @return Map name.
-	 *
 	 * @see SetInitialMap
 	 */
 	virtual const FString& GetInitialMap( ) const = 0;
@@ -119,7 +116,6 @@ public:
 	 * Checks whether vertical sync is enabled.
 	 *
 	 * @return true if VSync is enabled, false otherwise.
-	 *
 	 * @see SetVsyncEnabled
 	 */
 	virtual bool IsVsyncEnabled( ) const = 0;
@@ -127,15 +123,14 @@ public:
 	/**
 	 * Serializes the role from or into the specified archive.
 	 *
-	 * @param Archive - The archive to serialize from or into.
+	 * @param Archive The archive to serialize from or into.
 	 */
 	virtual void Serialize( FArchive& Archive ) = 0;
 
 	/**
 	 * Sets optional command line parameters to launch with.
 	 *
-	 * @param NewCommandLine - Command line string.
-	 *
+	 * @param NewCommandLine Command line string.
 	 * @see GetCommandLine
 	 */
 	virtual void SetCommandLine( const FString& NewCommandLine ) = 0;
@@ -143,8 +138,7 @@ public:
 	/**
 	 * Sets the initial culture to launch with.
 	 *
-	 * @param CultureName - The culture name.
-	 *
+	 * @param CultureName The culture name.
 	 * @see GetInitialCulture
 	 */
 	virtual void SetInitialCulture( const FString& CultureName ) = 0;
@@ -152,8 +146,7 @@ public:
 	/**
 	 * Sets the initial map to launch with.
 	 *
-	 * @param MapName - The name of the map.
-	 *
+	 * @param MapName The name of the map.
 	 * @see GetInitialMap
 	 */
 	virtual void SetInitialMap( const FString& MapName ) = 0;
@@ -161,15 +154,14 @@ public:
 	/**
 	 * Sets the role instance type (i.e. client, server, etc).
 	 *
-	 * @param InInstanceType - The instance type to set.
+	 * @param InInstanceType The instance type to set.
 	 */
 	virtual void SetInstanceType( ELauncherProfileRoleInstanceTypes::Type InInstanceType ) = 0;
 
 	/**
 	 * Sets the name of this role.
 	 *
-	 * @param NewName - The name to set.
-	 *
+	 * @param NewName The name to set.
 	 * @see GetName
 	 */
 	virtual void SetName( const FString& NewName ) = 0;
@@ -177,16 +169,13 @@ public:
 	/**
 	 * Sets whether vertical sync should be enabled.
 	 *
-	 * @param Enabled - Whether VSync is enabled.
-	 *
+	 * @param Enabled Whether VSync is enabled.
 	 * @see IsVsyncEnabled
 	 */
 	virtual void SetVsyncEnabled( bool Enabled ) = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ILauncherProfileLaunchRole( ) { }
 };

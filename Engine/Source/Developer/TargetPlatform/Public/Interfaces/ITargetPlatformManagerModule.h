@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetPlatformManagerModule.h: Declares the ITargetPlatformManagerModule interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -62,7 +58,6 @@ public:
 	 * @return The target platform, or nullptr if not found.
 	 */
 	virtual ITargetPlatform* FindTargetPlatform( FString Name ) = 0;
-
 
 	/**
 	 * Return the list of platforms which we need to support when cooking (only set when actually cooking)
@@ -147,8 +142,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	~ITargetPlatformManagerModule() { }
 };

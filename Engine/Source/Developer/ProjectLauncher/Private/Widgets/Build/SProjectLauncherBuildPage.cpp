@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SProjectLauncherCookPage.cpp: Implements the SProjectLauncherCookPage class.
-=============================================================================*/
-
 #include "ProjectLauncherPrivatePCH.h"
 
 
@@ -154,8 +150,6 @@ bool SProjectLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectNa
 /* SProjectLauncherBuildPage callbacks
  *****************************************************************************/
 
-
-// Callback for changing the checked state of a platform menu check box. 
 void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged( ESlateCheckBoxState::Type CheckState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -166,7 +160,7 @@ void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged( ESlateCheckBoxSt
 	}
 }
 
-// Callback for determining whether a platform menu entry is checked.
+
 ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleBuildIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -182,10 +176,12 @@ ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleBuildIsChecked() cons
 	return ESlateCheckBoxState::Unchecked;
 }
 
+
 void SProjectLauncherBuildPage::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
 {
 	// reload settings
 }
+
 
 EVisibility SProjectLauncherBuildPage::HandleBuildPlatformVisibility( ) const
 {
@@ -202,7 +198,7 @@ EVisibility SProjectLauncherBuildPage::HandleBuildPlatformVisibility( ) const
 	return EVisibility::Collapsed;
 }
 
-// Callback for pressing the Advanced Setting - Generate DSYM button.
+
 FReply SProjectLauncherBuildPage::HandleGenDSYMClicked()
 {
     ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -221,6 +217,7 @@ FReply SProjectLauncherBuildPage::HandleGenDSYMClicked()
     return FReply::Handled();
 }
 
+
 bool SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled() const
 {
     ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -236,6 +233,7 @@ bool SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled() const
     return false;
 }
 
+
 EVisibility SProjectLauncherBuildPage::ShowBuildConfiguration() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -250,6 +248,7 @@ EVisibility SProjectLauncherBuildPage::ShowBuildConfiguration() const
 	}
 }
 
+
 void SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSelected(EBuildConfigurations::Type Configuration)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -259,6 +258,7 @@ void SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSel
 		SelectedProfile->SetBuildConfiguration(Configuration);
 	}
 }
+
 
 FString SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText() const
 {
@@ -271,6 +271,7 @@ FString SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText() const
 
 	return FString();
 }
+
 
 EVisibility SProjectLauncherBuildPage::HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const
 {
@@ -286,5 +287,6 @@ EVisibility SProjectLauncherBuildPage::HandleValidationErrorIconVisibility(ELaun
 
 	return EVisibility::Hidden;
 }
+
 
 #undef LOCTEXT_NAMESPACE

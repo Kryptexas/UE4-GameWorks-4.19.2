@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceProfileSelectionPanel.cpp: Implements the SDeviceProfileSelectionPanel class.
-=============================================================================*/
-
-
 #include "DeviceProfileEditorPCH.h"
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
@@ -17,7 +12,8 @@
 /**
  * Slate widget for each selection row in the selection list
  */
-class SDeviceProfileSelectionRow : public SMultiColumnTableRow< TWeakObjectPtr< UDeviceProfile > >
+class SDeviceProfileSelectionRow
+	: public SMultiColumnTableRow<TWeakObjectPtr<UDeviceProfile>>
 {
 public:
 
@@ -41,18 +37,17 @@ public:
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
-
 public:
 
 	/**
-	 * Handle a state change in the device profile pinning
+	 * Handle a state change in the device profile pinning.
 	 *
-	 * @return Whether the event was handled
+	 * @return Whether the event was handled.
 	 */
 	FReply HandleDeviceProfilePinStateChanged();
 
@@ -60,14 +55,14 @@ public:
 	/**
 	* Handle the view single profile button pressed.
 	*
-	* @return Whether the event was handled
+	* @return Whether the event was handled.
 	*/
 	FReply ViewSingleProfile();
 
 	/**
-	 * Get the image for the pin of this item
+	 * Get the image for the pin of this item.
 	 *
-	 * @return If the profile is pinned we want to indicate this by providing a different angle for the pin
+	 * @return If the profile is pinned we want to indicate this by providing a different angle for the pin.
 	 */
 	const FSlateBrush* GetPinnedImage() const;
 
@@ -75,40 +70,37 @@ public:
 	/**
 	 * Get the display profile name.
 	 *
-	 * @return The profile display name
+	 * @return The profile display name.
 	 */
 	FString GetProfileDisplayName() const;
 
-
 private:
 
-	// Holds the selected device profile
+	/** Holds the selected device profile. */
 	TWeakObjectPtr< UDeviceProfile > SelectedDeviceProfile;
 
-	// Delegate executed when a profile is unpinned
+	/** Delegate executed when a profile is unpinned. */
 	FOnDeviceProfileUnpinned OnDeviceProfileUnpinned;
 
-	// Delegate executed when a profile is pinned
+	/** Delegate executed when a profile is pinned. */
 	FOnDeviceProfilePinned OnDeviceProfilePinned;
 
-	// Delegate executed when requesting that a profile be viewed alone.
+	/** Delegate executed when requesting that a profile be viewed alone. */
 	FOnDeviceProfileViewAlone OnDeviceProfileViewAlone;
 
-	// A reference to the profiles pin button
+	/** A reference to the profiles pin button. */
 	TSharedPtr< SButton > PinProfileButton;
 
-	// A reference to the profiles view button
+	/** A reference to the profiles view button. */
 	TSharedPtr< SButton > ViewProfileButton;
 
-	// Whether this profile selection is pinned.
+	/** Whether this profile selection is pinned. */
 	bool bIsPinned;
 };
 
 
-/*=============================================================================
-	SDeviceProfileSelectionRow Implementation
-=============================================================================*/
-
+/* SDeviceProfileSelectionRow implementation
+ *****************************************************************************/
 
 void SDeviceProfileSelectionRow::Construct( const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView )
 {
@@ -213,10 +205,8 @@ FString SDeviceProfileSelectionRow::GetProfileDisplayName() const
 }
 
 
-/*=============================================================================
-	SDeviceProfileSelectionPanel Implementation
-=============================================================================*/
-
+/* SDeviceProfileSelectionPanel implementation
+ *****************************************************************************/
 
 void SDeviceProfileSelectionPanel::Construct( const FArguments& InArgs, TWeakObjectPtr< UDeviceProfileManager > InDeviceProfileManager )
 {

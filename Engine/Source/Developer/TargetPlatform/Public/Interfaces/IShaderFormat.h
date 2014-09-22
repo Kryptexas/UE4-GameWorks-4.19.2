@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITextureFormatModule.h: Declares the ITextureFormatModule interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -45,8 +41,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IShaderFormat( ) { }
 };

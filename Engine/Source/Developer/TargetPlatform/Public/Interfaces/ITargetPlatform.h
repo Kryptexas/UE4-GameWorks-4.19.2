@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetPlatform.h: Declares the ITargetPlatform interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -154,7 +150,7 @@ public:
 	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const = 0;
 
 	/**
-	 * Gets the platform's ini name (so an offline tool can load the ini for the given target platform)
+	 * Gets the platform's INI name (so an offline tool can load the INI for the given target platform).
 	 *
 	 * @see PlatformName
 	 */
@@ -182,9 +178,9 @@ public:
 	/** 
 	 * Generates a platform specific asset manifest given an array of FAssetData.
 	 *
-	 * @param ChunkMap A map of asset path to ChunkIDs for all of the assets
-	 * @param ChunkIDsInUse A set of all ChunkIDs used by this set of assets
-	 * @return true if the manifest was successfully generated, or if the platform doesn't need a manifest 
+	 * @param ChunkMap A map of asset path to ChunkIDs for all of the assets.
+	 * @param ChunkIDsInUse A set of all ChunkIDs used by this set of assets.
+	 * @return true if the manifest was successfully generated, or if the platform doesn't need a manifest .
 	 */
 	virtual bool GenerateStreamingInstallManifest( const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse ) const = 0;
 
@@ -267,7 +263,7 @@ public:
 	/**
 	 * Checks whether this platform supports the specified build target, i.e. Game or Editor.
 	 *
-	 * @param BuildTarget - The build target to check.
+	 * @param BuildTarget The build target to check.
 	 * @return true if the build target is supported, false otherwise.
 	 */
 	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const = 0;
@@ -280,7 +276,7 @@ public:
 	/**
 	 * Checks whether the target platform supports the specified feature.
 	 *
-	 * @param Feature - The feature to check.
+	 * @param Feature The feature to check.
 	 * @return true if the feature is supported, false otherwise.
 	 */
 	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const = 0;
@@ -420,8 +416,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ITargetPlatform() { }
 };

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorStyle.cpp: Implements the FSlateEditorStyle class.
-=============================================================================*/
-
 #include "EditorStylePrivatePCH.h"
 
 #if (WITH_EDITOR || (IS_PROGRAM && PLATFORM_DESKTOP))

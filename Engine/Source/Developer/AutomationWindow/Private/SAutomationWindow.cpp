@@ -6,7 +6,9 @@
 #include "AutomationPresetManager.h"
 #include "SAutomationWindow.h"
 
+
 #define LOCTEXT_NAMESPACE "AutomationTest"
+
 
 //////////////////////////////////////////////////////////////////////////
 // FAutomationWindowCommands
@@ -838,7 +840,7 @@ void SAutomationWindow::HandlePresetTextCommited( const FText& CommittedText, ET
 		if( bAddingTestPreset )
 		{
 			bAddingTestPreset = false;
-			SelectedPreset = NULL;
+			SelectedPreset = nullptr;
 			PresetComboBox->ClearSelection();
 			PresetTextBox->SetText(FText());
 		}
@@ -900,7 +902,7 @@ FReply SAutomationWindow::HandleRemovePresetClicked()
 	if(SelectedPreset.IsValid())
 	{
 		TestPresetManager->RemovePreset(SelectedPreset.ToSharedRef());
-		SelectedPreset = NULL;
+		SelectedPreset = nullptr;
 		PresetComboBox->ClearSelection();
 	}
 	return FReply::Handled();
@@ -933,7 +935,7 @@ TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( TWeakP
 	}
 
 	//Return empty menu
-	FMenuBuilder MenuBuilder( true, NULL );
+	FMenuBuilder MenuBuilder( true, nullptr );
 	MenuBuilder.BeginSection("AutomationWindowGroupOptions", LOCTEXT("DeviceGroupOptions", "Device Group Options"));
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
@@ -1000,7 +1002,7 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( TWeakP
 	}
 
 	//Return empty menu
-	FMenuBuilder MenuBuilder( true, NULL );
+	FMenuBuilder MenuBuilder( true, nullptr );
 	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
@@ -1089,7 +1091,7 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent(TWeakPtr
 	}
 
 	//Return empty menu
-	FMenuBuilder MenuBuilder(true, NULL);
+	FMenuBuilder MenuBuilder(true, nullptr);
 	MenuBuilder.BeginSection("AutomationWindowTestHistory", LOCTEXT("AutomationWindowTestHistory", "Settings"));
 	MenuBuilder.EndSection();
 	return MenuBuilder.MakeWidget();
@@ -1177,7 +1179,7 @@ TSharedPtr<SWidget> SAutomationWindow::HandleAutomationListContextMenuOpening()
 		}
 	}		
 
-	return NULL;
+	return nullptr;
 }
 #endif
 

@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LinuxUnrealFrontendMain.cpp: Implements the main entry point for Linux.
-=============================================================================*/
-
 #include "UnrealFrontendMain.h"
 
+
 static FString GSavedCommandLine;
+
 
 int main( int argc, char *argv[] )
 {

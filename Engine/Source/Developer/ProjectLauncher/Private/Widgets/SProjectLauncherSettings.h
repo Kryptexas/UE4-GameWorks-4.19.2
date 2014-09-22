@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SProjectLauncherSettings.h: Declares the SProjectLauncherCookPage class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -50,16 +46,12 @@ public:
 
 public:
 
-	/**
-	* Default constructor.
-	*/
+	/** Default constructor. */
 	SProjectLauncherSettings()
 		: CommandList(new FUICommandList())
 	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~SProjectLauncherSettings();
 
 public:
@@ -76,62 +68,62 @@ public:
 
 private:
 
-	// Create the menu command list
+	/** Create the menu command list. */
 	void CreateCommands();
 
-	// Make a Toolbar using the command list
+	/** Make a Toolbar using the command list. */
 	TSharedRef<SWidget> MakeToolbar(const TSharedRef<FUICommandList>& InCommandList);
 
 private:
 
-	// Callback for getting the launch profile we are currently editing.
+	/** Callback for getting the launch profile we are currently editing. */
 	ILauncherProfilePtr GetLaunchProfile()const;
 
-	// Callback for getting the visibility of the 'Select Profile' text block.
+	/** Callback for getting the visibility of the 'Select Profile' text block. */
 	EVisibility HandleSelectProfileTextBlockVisibility() const;
 
-	// Callback for getting the visibility of the settings scroll box.
+	/** Callback for getting the visibility of the settings scroll box. */
 	EVisibility HandleSettingsScrollBoxVisibility() const;
 
-	// Callback to get the name of the launch profile.
+	/** Callback to get the name of the launch profile. */
 	FText OnGetNameText() const;
 
-	// Callback to set the name of the launch profile.
+	/** Callback to set the name of the launch profile. */
 	void OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 
-	// Callback to get the description of the launch profile.
+	/** Callback to get the description of the launch profile. */
 	FText OnGetDescriptionText() const;
 
-	// Callback to set the description of the launch profile.
+	/** Callback to set the description of the launch profile. */
 	void OnDescriptionTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 
-	// Callbacks for executing the 'Close' action.
+	/** Callbacks for executing the 'Close' action. */
 	void HandleCloseActionExecute();
 	bool HandleCloseActionIsChecked() const;
 	bool HandleCloseActionCanExecute() const;
 
-	// Callbacks for executing the 'Delete' action.
+	/** Callbacks for executing the 'Delete' action. */
 	void HandleDeleteActionExecute();
 	bool HandleDeleteActionIsChecked() const;
 	bool HandleDeleteActionCanExecute() const;
 
 private:
 
-	// Holds a pointer to the data model.
+	/** Holds a pointer to the data model. */
 	FProjectLauncherModelPtr Model;
 
-	// Holds the list of UI commands for the profile settings.
+	/** Holds the list of UI commands for the profile settings. */
 	TSharedRef<FUICommandList> CommandList;
 
-	// Holds a delegate to be invoked when this panel is closed
+	/** Holds a delegate to be invoked when this panel is closed. */
 	FOnClicked OnCloseClicked;
 
-	// Holds a delegate to be invoked when a rerun of the profile is requested
+	/** Holds a delegate to be invoked when a rerun of the profile is requested. */
 	FOnClicked OnRerunClicked;
 
-	// Holds a delegate to be invoked when this profile is deleted
+	/** Holds a delegate to be invoked when this profile is deleted. */
 	FOnProfileRun OnDeleteClicked;
 
-	// Hold a pointer to the launch profile name edit box.
+	/** Hold a pointer to the launch profile name edit box. */
 	TSharedPtr<SInlineEditableTextBlock> NameEditBox;
 };

@@ -17,9 +17,7 @@ class IUdpMessageTunnelConnection
 {
 public:
 
-	/**
-	 * Closes this connection.
-	 */
+	/** Closes this connection. */
 	virtual void Close( ) = 0;
 
 	/**
@@ -59,8 +57,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IUdpMessageTunnelConnection( ) { }
 };

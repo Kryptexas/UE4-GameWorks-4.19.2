@@ -2,7 +2,7 @@
 
 #pragma once 
 
-#include "../../Public/AI/NavDataGenerator.h"
+#include "AI/NavDataGenerator.h"
 
 /**
  * Class that handles generation of the ANavigationGraph data

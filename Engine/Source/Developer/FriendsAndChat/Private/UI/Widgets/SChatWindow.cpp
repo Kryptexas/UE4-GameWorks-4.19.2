@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SChatWindow.cpp: Implements the SChatWindow class.
-	Displays the chat window
-=============================================================================*/
-
 #include "FriendsAndChatPrivatePCH.h"
 
+
 #define LOCTEXT_NAMESPACE "SChatWindow"
+
 
 void SChatWindow::Construct( const FArguments& InArgs )
 {

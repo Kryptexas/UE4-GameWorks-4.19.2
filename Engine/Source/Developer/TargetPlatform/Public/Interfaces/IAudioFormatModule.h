@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IAudioFormatModule.h: Declares the IAudioFormatModule interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,13 +13,13 @@ public:
 
 	/**
 	 * Gets the audio format.
+	 *
+	 * @return The audio format interface.
 	 */
 	virtual IAudioFormat* GetAudioFormat( ) = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	~IAudioFormatModule( ) { }
 };

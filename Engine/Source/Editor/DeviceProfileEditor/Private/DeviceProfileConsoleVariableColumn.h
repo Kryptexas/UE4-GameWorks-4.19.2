@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceProfileConsoleVariableColumn.h: Declares the FDeviceProfileConsoleVariableColumn class.
-=============================================================================*/
-
 #pragma once
-
 
 #include "IPropertyTableCustomColumn.h"
 
@@ -23,16 +18,20 @@ class FDeviceProfileConsoleVariableColumn : public IPropertyTableCustomColumn
 public:
 	FDeviceProfileConsoleVariableColumn();
 
-	/** Begin IPropertyTableCustomColumn interface */
+public:
+
+	// IPropertyTableCustomColumn interface
+
 	virtual bool Supports( const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities ) const override;
 	virtual TSharedPtr< SWidget > CreateColumnLabel( const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities, const FName& Style ) const override;
 	virtual TSharedPtr< IPropertyTableCellPresenter > CreateCellPresenter( const TSharedRef< IPropertyTableCell >& Cell, const TSharedRef< IPropertyTableUtilities >& Utilities, const FName& Style ) const override;
-	/** End IPropertyTableCustomColumn interface */
+
+public:
 
 	/**
-	 * Delegate used to notify listeners that an edit request was triggered from the property table
+	 * Delegate used to notify listeners that an edit request was triggered from the property table.
 	 *
-	 * @return - Access to the delegate
+	 * @return The delegate.
 	 */
 	FOnEditDeviceProfileCVarsRequestDelegate& OnEditCVarsRequest()
 	{
@@ -41,7 +40,7 @@ public:
 
 private:
 
-	/** Delegate triggered when user opts to edit CVars **/
+	/** Delegate triggered when user opts to edit CVars. **/
 	FOnEditDeviceProfileCVarsRequestDelegate OnEditCVarsRequestDelegate;
 };
 

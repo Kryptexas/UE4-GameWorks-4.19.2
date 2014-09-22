@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NullRHI.cpp: Null RHI implementation.
-=============================================================================*/
-
 #include "NullDrvPrivate.h"
 #include "RHI.h"
 
@@ -12,10 +8,12 @@
 #include "NullRHI.h"
 #include "RenderResource.h"
 
+
 FNullDynamicRHI::FNullDynamicRHI()
 {
 	GMaxRHIShaderPlatformValue = ShaderFormatToLegacyShaderPlatform(FName(FPlatformMisc::GetNullRHIShaderFormat()));
 }
+
 
 void FNullDynamicRHI::Init()
 {
@@ -47,9 +45,11 @@ void FNullDynamicRHI::Init()
 	GIsRHIInitialized = true;
 }
 
+
 void FNullDynamicRHI::Shutdown()
 {
 }
+
 
 /**
  * Return a shared large static buffer that can be used to return from any 
@@ -67,13 +67,16 @@ void* FNullDynamicRHI::GetStaticBuffer()
 	return Buffer;
 }
 
+
 /** Value between 0-100 that determines the percentage of the vertical scan that is allowed to pass while still allowing us to swap when VSYNC'ed.
 This is used to get the same behavior as the old *_OR_IMMEDIATE present modes. */
 uint32 GPresentImmediateThreshold = 100;
 
-#else
+
+#else //USE_DYNAMIC_RHI
+
 
 // Suppress linker warning "warning LNK4221: no public symbols found; archive member will be inaccessible"
 int32 NullRHILinkerHelper;
 
-#endif // USE_DYNAMIC_RHI
+#endif //USE_DYNAMIC_RHI

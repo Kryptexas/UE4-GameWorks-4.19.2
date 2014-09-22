@@ -1,12 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*==============================================================================
-	VectorVM.h: Public interface to the vector virtual machine.
-==============================================================================*/
-
 #pragma once
-#include "Core.h"
 
+#include "Core.h"
 
 
 namespace VectorVM
@@ -23,7 +19,6 @@ namespace VectorVM
 		FirstConstantRegister = FirstOutputRegister + MaxOutputRegisters,
 		MaxRegisters = NumTempRegisters + MaxInputRegisters + MaxOutputRegisters + MaxConstants
 	};
-
 
 	/** List of opcodes supported by the VM. */
 	namespace EOp

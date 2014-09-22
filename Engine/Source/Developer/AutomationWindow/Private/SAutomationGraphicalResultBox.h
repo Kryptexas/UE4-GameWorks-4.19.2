@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationGraphicalResultBox.h: Declares the SAutomationGraphicalResultBox class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * The different supported items we can display on the test item
@@ -17,6 +14,7 @@ namespace EAutomationGrapicalDisplayType
 		DisplayTime
 	};
 }
+
 
 /**
  * Implements the automation graphical results box widget.
@@ -35,32 +33,29 @@ public:
 public:
 
 	/**
-	 * Construct this widget
+	 * Construct this widget.
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InAutomationController - Reference to the automation controller
+	 * @param InArgs The declaration data for this widget.
+	 * @param InAutomationController Reference to the automation controller.
 	 */
 	void Construct( const FArguments& InArgs, const IAutomationControllerManagerRef& InAutomationController);
 
-	/**
-	 * Clears the current results and any widgets that were created
-	 */
+	/** Clears the current results and any widgets that were created */
 	void ClearResults();
 
-	/**
-	 * Returns if there are any results available to display
-	 */
+	/** Returns if there are any results available to display. */
 	bool HasResults() const;
 
-	/**
-	 * Returns the current display type
-	 */
+	/** Returns the current display type. */
 	EAutomationGrapicalDisplayType::Type GetDisplayType() const;
 
 	/**
 	 * Sets the current display type
+	 *
+	 * @param NewDisplayType The display type to set.
 	 */
 	void SetDisplayType(EAutomationGrapicalDisplayType::Type NewDisplayType);
+
 private:
 
 	/** Holds information on a single test result */
@@ -148,56 +143,50 @@ private:
 	};
 
 	/**
-	 * Returns if there are any results available to display
+	 * Returns if there are any results available to display.
 	 *
-	 * @param InReport - The report to recursively check for enabled tests.
-	 * @param OutReports - The list of enabled test reports
+	 * @param InReport The report to recursively check for enabled tests.
+	 * @param OutReports The list of enabled test reports.
 	 */
 	void GetEnabledReports(TSharedPtr<IAutomationReport> InReport, TArray< TSharedPtr< IAutomationReport > >& OutReports);
 
-	/**
-	 * Populates the ClusterResults with test data pulled from the automation controller
-	 */
+	/** Populates the ClusterResults with test data pulled from the automation controller */
 	void PopulateData();
 
-	/**
-	 * Creates all the slate widgets to display the test results
-	 */
+	/** Creates all the slate widgets to display the test results */
 	void CreateWidgets();
 
-	/**
-	 * This is called when the tests are complete so we can update the widget
-	 */
+	/** This is called when the tests are complete so we can update the widget */
 	void OnFillResults();
 
 	/**
-	 * Gets the color for a test based off the test state and if it has any warnings
+	 * Gets the color for a test based off the test state and if it has any warnings.
 	 *
-	 * @param - TestState - The test state from the automation report (Success, Fail, NotRun, etc.)
-	 * @param - bHasWarnings - If the test had any warning logs.
+	 * @param TestState The test state from the automation report (Success, Fail, NotRun, etc.)
+	 * @param bHasWarnings If the test had any warning logs.
 	 */
 	FSlateColor GetColorForTestState(const EAutomationState::Type TestState, const bool bHasWarnings) const;
 
 	/**
-	 * Gets the text to display for this test item based off the current DisplayType
+	 * Gets the text to display for this test item based off the current DisplayType.
 	 *
-	 * @param - TestName - The name of the test
-	 * @param - TestTime - The duration of the test
+	 * @param TestName The name of the test.
+	 * @param TestTime The duration of the test.
 	 */
 	FText GetTestDisplayText(const FString TestName, const float TestTime) const;
 
-	/** Stores what information should be displayed on the test widgets */
+	/** Stores what information should be displayed on the test widgets. */
 	EAutomationGrapicalDisplayType::Type DisplayType;
 
-	/** The test results grouped by cluster */
+	/** The test results grouped by cluster. */
 	TArray<FClusterResults> ClusterResults;
 
-	/** The time of the longest cluster */
+	/** The time of the longest cluster. */
 	float TotalTestDuration;
 
-	/** Pointer to the root widget that contains all the reslut widgets */
+	/** Pointer to the root widget that contains all the result widgets. */
 	TSharedPtr< SVerticalBox > RootBox;
 
-	/** Pointer to the automation controller so we can get the test results */
+	/** Pointer to the automation controller so we can get the test results. */
 	IAutomationControllerManagerPtr AutomationController;
 };

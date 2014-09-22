@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IWidgetReflector.h: Declares the IWidgetReflector class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,9 +14,7 @@ class IWidgetReflector
 {
 public:
 
-	/**
-	 * Called when the user has picked a widget to observe.
-	 */
+	/** Called when the user has picked a widget to observe. */
 	virtual void OnWidgetPicked( ) = 0;
 
 	/**
@@ -77,8 +71,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IWidgetReflector( ) { }
 };

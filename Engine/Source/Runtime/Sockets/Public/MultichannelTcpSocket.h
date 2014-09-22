@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MultichannelTcpSocket.h: Declares the FMultichannelTcpSocket class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,14 +22,13 @@ class FMultichannelTcpSocket
 		ControlChannel = 0
 	};
 
-
 public:
 
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSocket - The underlying socket to use.
-	 * @param InBandwidthLatencyProduct - The maximum amount of unacknowledged data to send.
+	 * @param InSocket The underlying socket to use.
+	 * @param InBandwidthLatencyProduct The maximum amount of unacknowledged data to send.
 	 */
 	FMultichannelTcpSocket( FSocket* InSocket, uint64 InBandwidthLatencyProduct )
 		: BandwidthLatencyProduct(InBandwidthLatencyProduct)
@@ -42,7 +37,6 @@ public:
 		, Socket(InSocket)
 	{ }
 
-
 public:
 
 	/**
@@ -50,9 +44,9 @@ public:
 	 *
 	 * Can be called from any thread, but not multiple threads for one channel at once.
 	 *
-	 * @param Data - The buffer to fill.
-	 * @param Count - The number of bytes to receive.
-	 * @param Channel - The channel to receive on.
+	 * @param Data The buffer to fill.
+	 * @param Count The number of bytes to receive.
+	 * @param Channel The channel to receive on.
 	 */
 	int32 BlockingReceive( uint8* Data, int32 Count, uint32 Channel )
 	{
@@ -111,8 +105,7 @@ public:
 	 *
 	 * Can be called from any thread, but realize that if this returns > 0, another thread could steal the data.
 	 *
-	 * @param Channel - The channel to check.
-	 *
+	 * @param Channel The channel to check.
 	 * @return The number of bytes in the receive buffer.
 	 */
 	int32 DataAvailable( uint32 Channel )
@@ -130,10 +123,9 @@ public:
 	 * Can be called from any thread, but realize that multiple threads hammering
 	 * a channel at once is unlikely to give useful results.
 	 *
-	 * @param Data - The buffer to hold the results, if any.
-	 * @param MaxCount - the number of bytes in the receive buffer.
-	 * @param Channel, - The channel to check.
-	 *
+	 * @param Data The buffer to hold the results, if any.
+	 * @param MaxCount the number of bytes in the receive buffer.
+	 * @param Channel The channel to check.
 	 * @return The number of bytes written into Data.
 	 */
 	int32 PollingReceive( uint8* Data, int32 MaxCount, uint32 Channel )
@@ -173,16 +165,15 @@ public:
 	 * Can be called from any thread, but if you are calling from multiple threads,
 	 * make sure you are sending an atomic unit.
 	 *
-	 * @param Data - The buffer containing the data to send.
-	 * @param Count - The number of bytes to send.
-	 * @param Channel - The channel to send on.
+	 * @param Data The buffer containing the data to send.
+	 * @param Count The number of bytes to send.
+	 * @param Channel The channel to send on.
 	 */
 	void Send( const uint8* Data, int32 Count, uint32 Channel )
 	{
 		check((Channel != ControlChannel) && Data && Count); // Channel 0 is reserved, must have data
 		Sender.Send(Data, Count, Channel);
 	}
-
 
 private:
 
@@ -204,7 +195,6 @@ private:
 			, EventToResumeWhenDataIsReady(NULL)
 		{ }
 	};
-
 
 	// Callback for receiving data from the receiver thread.
 	void HandleReceiverReceive( const TArray<uint8>& Payload, uint32 Channel, bool bForceByteswapping )
@@ -255,7 +245,7 @@ private:
 		}
 	}
 
-	// Callback for checking if the sender thread is permitted to send a packet.
+	/** Callback for checking if the sender thread is permitted to send a packet. */
 	bool HandleSenderOkToSend( int32 PayloadSize, uint32 Channel )
 	{
 		if (Channel == ControlChannel)
@@ -268,27 +258,26 @@ private:
 		return Result;
 	}
 
-
 private:
 
-	// Holds the maximum amount of unacknowledged data to send.
+	/** Holds the maximum amount of unacknowledged data to send. */
 	uint64 BandwidthLatencyProduct;
 
-	// Holds the buffers for incoming per-channel data.
+	/** Holds the buffers for incoming per-channel data. */
 	TMap<uint32, FReceiveBuffer*> ReceiveBuffers;
 
-	// Holds a critical section to guard the receive buffers.
+	/** Holds a critical section to guard the receive buffers. */
 	FCriticalSection ReceiveBuffersCriticalSection;
 
-	// Holds the receiver thread.
+	/** Holds the receiver thread. */
 	FMultichannelTcpReceiver Receiver;
 
-	// Holds the total number of bytes received by the client (comes from an 'Ack' on the control channel).
+	/** Holds the total number of bytes received by the client (comes from an 'Ack' on the control channel). */
 	int64 RemoteReceiverBytesReceived;
 
-	// Holds the sender thread.
+	/** Holds the sender thread. */
 	FMultichannelTcpSender Sender;
 
-	// Holds the socket used for actual transfers.
+	/** Holds the socket used for actual transfers. */
 	FSocket* Socket;
 };

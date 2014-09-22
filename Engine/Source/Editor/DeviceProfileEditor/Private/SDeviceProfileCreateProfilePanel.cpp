@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceProfileCreateProfilePanel.cpp: Implements the SDeviceProfileCreateProfilePanel class.
-=============================================================================*/
-
-
 #include "DeviceProfileEditorPCH.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "DeviceProfiles/DeviceProfile.h"
@@ -14,11 +9,13 @@
 
 #define LOCTEXT_NAMESPACE "DeviceProfileCreateProfilePanel"
 
+
 /** Panel layout constants */
 namespace DeviceProfileCreateProfileUIConstants
 {
 	const FMargin ListElementPadding(10.0f, 2.0f);
 }
+
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SDeviceProfileCreateProfilePanel::Construct( const FArguments& InArgs, TWeakObjectPtr< UDeviceProfileManager > InDeviceProfileManager )

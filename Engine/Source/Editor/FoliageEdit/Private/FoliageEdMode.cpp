@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	FoliageEdMode.cpp: Foliage editing mode
-================================================================================*/
-
 #include "UnrealEd.h"
 #include "StaticMeshResources.h"
 #include "ObjectTools.h"

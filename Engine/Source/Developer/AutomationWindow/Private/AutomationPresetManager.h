@@ -2,18 +2,16 @@
 
 #pragma once
 
-/**
- * Type definition for shared pointers to instances of FAutomationTestPreset.
- */
+
+/** Type definition for shared pointers to instances of FAutomationTestPreset. */
 typedef TSharedPtr<class FAutomationTestPreset> AutomationPresetPtr;
 
-/**
- * Type definition for shared references to instances of FAutomationTestPreset.
- */
+/** Type definition for shared references to instances of FAutomationTestPreset. */
 typedef TSharedRef<class FAutomationTestPreset> AutomationPresetRef;
 
 //Increment this number if the Preset serialization changes.
 #define AUTOMATION_PRESETVERSION 1
+
 
 /**
  * Class that holds preset data for the automation window
@@ -22,21 +20,19 @@ class FAutomationTestPreset
 {
 public:
 
-	/**
-	 * Constructor.
-	 */
+	/** Default constructor. */
 	FAutomationTestPreset() :
 		Id(FGuid::NewGuid())
-	{
-	}
+	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	virtual ~FAutomationTestPreset( ) { }
 
 	/**
-	 * Gets the GUid for this preset
+	 * Gets the GUid for this preset.
+	 *
+	 * @return The preset's unique identifier.
+	 * @see GetPresetName
 	 */
 	const FGuid GetID()
 	{
@@ -44,7 +40,10 @@ public:
 	}
 
 	/**
-	 * Gets the name for this preset
+	 * Gets the name for this preset.
+	 *
+	 * @return The preset's name.
+	 * @see GetID, SetPresetName
 	 */
 	const FString& GetPresetName( ) const
 	{
@@ -52,7 +51,10 @@ public:
 	}
 
 	/**
-	 * Sets the name for this preset
+	 * Sets the name for this preset.
+	 *
+	 * @param InPresetName The name to set.
+	 * @see GetPresetName
 	 */
 	void SetPresetName(const FString& InPresetName)
 	{
@@ -60,7 +62,10 @@ public:
 	}
 
 	/**
-	 * Returns the list of enabled tests
+	 * Returns the list of enabled tests.
+	 *
+	 * @return Collection of tests.
+	 * @see SetEnabledTests
 	 */
 	const TArray<FString>& GetEnabledTests() const
 	{
@@ -68,7 +73,10 @@ public:
 	}
 
 	/**
-	 * Sets the list of enabled tests
+	 * Sets the list of enabled tests.
+	 *
+	 * @param NewEnableDtests The collection of tests to enable.
+	 * @see GetEnabledTests
 	 */
 	void SetEnabledTests(TArray<FString> NewEnabledTests)
 	{
@@ -76,7 +84,9 @@ public:
 	}
 
 	/**
-	 * Handles saving / loading the preset data to an archive (file)
+	 * Handles saving / loading the preset data to an archive (file).
+	 *
+	 * @param Archive The archive to serialize from/to.
 	 */
 	virtual bool Serialize( FArchive& Archive )
 	{
@@ -97,72 +107,82 @@ public:
 	}
 
 private:
-	// A unique ID for this preset. (Used for the filename because the PresetName may have invalid characters)
+
+	/** A unique ID for this preset. (Used for the filename because the PresetName may have invalid characters). */
 	FGuid Id;
 
-	// The name of this preset
+	/** The name of this preset. */
 	FString PresetName;
 
-	// The list of enabled test names
+	/** The list of enabled test names. */
 	TArray<FString> EnabledTests;
 };
+
 
 class FAutomationTestPresetManager
 {
 public:
-	/**
-	 * Constructor.
-	 */
+
+	/** Default constructor. */
 	FAutomationTestPresetManager();
 
-	virtual ~FAutomationTestPresetManager() {}
+	/** Virtual destructor. */
+	virtual ~FAutomationTestPresetManager() { }
 
 	/**
-	 * Creates a new empty preset
+	 * Creates a new empty preset.
 	 */
 	virtual AutomationPresetRef AddNewPreset( );
 
 	/**
-	 * Creates a new preset with the given name and enabled tests
-	 * @param PresetName - The name of the new preset
-	 * @param SelectedTests - The list of enabled tests
+	 * Creates a new preset with the given name and enabled tests.
+	 * @param PresetName The name of the new preset.
+	 * @param SelectedTests The list of enabled tests.
 	 */
 	virtual AutomationPresetRef AddNewPreset( const FString& PresetName, const TArray<FString>& SelectedTests );
 
 	/**
-	 * Returns a reference to the list that holds the presets
+	 * Returns a reference to the list that holds the presets.
 	 */
 	virtual TArray<AutomationPresetPtr>& GetAllPresets( );
 
 	/**
-	 * Removes the selected preset from the preset list and deletes the file on disk
-	 * @param Preset - The preset to remove
+	 * Removes the selected preset from the preset list and deletes the file on disk.
+	 *
+	 * @param Preset The preset to remove.
+	 * @see LoadPresets, SavePreset
 	 */
 	void RemovePreset( const AutomationPresetRef Preset );
 
 	/**
-	 * Saves the passed in preset to disk
-	 * @param Preset - The preset to save
+	 * Saves the passed in preset to disk.
+	 *
+	 * @param Preset The preset to save.
+	 * @see RemovePreset, LoadPresets
 	 */
 	void SavePreset( const AutomationPresetRef Preset);
 
 	/**
-	* Load all Presets from disk.
-	*/
+	 * Load all Presets from disk.
+	 *
+	 * @see RemovePreset, SavePreset
+	 */
 	void LoadPresets( );
 
 protected:
 
 	/**
-	 * Creates a new preset and loads it with data from the archive
-	 * @param Archive - The stream to read the preset data from
+	 * Creates a new preset and loads it with data from the archive.
+	 *
+	 * @param Archive The stream to read the preset data from.
 	 */
 	AutomationPresetPtr LoadPreset( FArchive& Archive );
 
 	/**
-	 * Writes the Preset data to the archive
-	 * @param Preset - The preset to serialize
-	 * @param Archive - The stream to write the preset data to
+	 * Writes the Preset data to the archive.
+	 *
+	 * @param Preset The preset to serialize.
+	 * @param Archive The stream to write the preset data to.
 	 */
 	void SavePreset( const AutomationPresetRef Preset, FArchive& Archive );
 
@@ -178,6 +198,6 @@ protected:
 
 private:
 
-	// Holds the collection of automation presets.
+	/** Holds the collection of automation presets. */
 	TArray<AutomationPresetPtr> Presets;
 };

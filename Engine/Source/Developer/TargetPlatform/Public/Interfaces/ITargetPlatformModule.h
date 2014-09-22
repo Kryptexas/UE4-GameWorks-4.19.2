@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetPlatformModule.h: Declares the ITargetPlatformModule interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -22,8 +18,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	~ITargetPlatformModule( ) { }
 };

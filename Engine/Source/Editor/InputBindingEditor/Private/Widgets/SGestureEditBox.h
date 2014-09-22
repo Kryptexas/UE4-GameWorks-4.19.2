@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SGestureEditBox.h: Declares the SGestureEditBox class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,16 +14,14 @@ public:
 	SLATE_BEGIN_ARGS( SGestureEditBox ){}
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
+	 * @param InArgs The Slate argument list.
 	 */
 	void Construct( const FArguments& InArgs, TSharedPtr<struct FGestureTreeItem> InputCommand );
-
 
 private:
 
@@ -64,19 +58,23 @@ private:
 	EVisibility GetNotificationVisibility() const; 
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent );
 
-
 private:
 
 	/** The gesture editor for this box */
 	TSharedPtr<class SGestureEditor> GestureEditor;
+	
 	/** Menu anchor where the conflict pop-up is shown */
 	TSharedPtr<SMenuAnchor> ConflictPopup;
+	
 	/** The button for committing gesture */
 	mutable TSharedPtr<SButton> GestureAcceptButton;
+	
 	/** Styling: border image to draw when not hovered or focused */
 	const FSlateBrush* BorderImageNormal;
+	
 	/** Styling: border image to draw when hovered */
 	const FSlateBrush* BorderImageHovered;
+	
 	/** Styling: border image to draw when focused */
 	const FSlateBrush* BorderImageFocused;
 };

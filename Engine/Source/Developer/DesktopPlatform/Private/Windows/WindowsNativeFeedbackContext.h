@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsNativeFeedbackContext.h: Unreal Windows user interface interaction.
-=============================================================================*/
-
 #pragma once
 
 #include "AllowWindowsPlatformTypes.h"
 #include <CommCtrl.h>
+
 
 /**
  * Feedback context implementation for windows.

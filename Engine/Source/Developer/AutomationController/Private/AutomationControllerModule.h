@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationControllerModule.h: Declares the FAutomationControllerModule class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,32 +11,22 @@ class FAutomationControllerModule
 {
 public:
 
-	// Begin IAutomationControllerModule Interface
+	// IAutomationControllerModule interface
 
 	virtual IAutomationControllerManagerRef GetAutomationController( ) override;
-
 	virtual void Init() override;
-
 	virtual void Tick() override;
-
-	// End IAutomationControllerModule Interface
-
 
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
 	virtual void StartupModule() override;
-
 	virtual void ShutdownModule() override;
-
 	virtual bool SupportsDynamicReloading() override;
-
-	// End IModuleInterface interface
-
 
 private:
 
-	// Holds the automation controller singleton.
+	/** Holds the automation controller singleton. */
 	static IAutomationControllerManagerPtr AutomationControllerSingleton;
 };

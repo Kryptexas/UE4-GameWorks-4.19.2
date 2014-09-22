@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceProfileServicesModule.cpp: Implements the FDeviceProfileServicesModule module.
-=============================================================================*/
-
 #include "DeviceProfileServicesPCH.h"
+
 
 /**
  * Implements the DeviceProfileServices module.
@@ -14,21 +11,22 @@ class FDeviceProfileServicesModule
 {
 public:
 
-		// Begin IDeviceProfileServicesModule interface
-		virtual IDeviceProfileServicesUIManagerRef GetProfileServicesManager( ) override
-		{
-			if (!DeviceProfileServicesUIManagerSingleton.IsValid())
-			{
-				DeviceProfileServicesUIManagerSingleton = MakeShareable(new FDeviceProfileServicesUIManager());
-			}
+	// IDeviceProfileServicesModule interface
 
-			return DeviceProfileServicesUIManagerSingleton.ToSharedRef();
+	virtual IDeviceProfileServicesUIManagerRef GetProfileServicesManager( ) override
+	{
+		if (!DeviceProfileServicesUIManagerSingleton.IsValid())
+		{
+			DeviceProfileServicesUIManagerSingleton = MakeShareable(new FDeviceProfileServicesUIManager());
 		}
-		// End IDeviceProfileServicesModule interface
+
+		return DeviceProfileServicesUIManagerSingleton.ToSharedRef();
+	}
 
 protected:
-		// Holds the session manager singleton.
-		static IDeviceProfileServicesUIManagerPtr DeviceProfileServicesUIManagerSingleton;
+
+	// Holds the session manager singleton.
+	static IDeviceProfileServicesUIManagerPtr DeviceProfileServicesUIManagerSingleton;
 };
 
 

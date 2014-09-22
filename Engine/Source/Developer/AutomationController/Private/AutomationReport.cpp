@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationTestStatus.cpp: Implements the AutomationTestStatus class.
-=============================================================================*/
-
 #include "AutomationControllerPrivatePCH.h"
 
 
@@ -86,6 +82,7 @@ int32 FAutomationReport::GetTotalNumChildren() const
 	return Total;
 }
 
+
 void FAutomationReport::GetEnabledTestNames(TArray<FString>& OutEnabledTestNames, FString CurrentPath) const
 {
 	//if this is a leaf and this test is enabled
@@ -109,6 +106,7 @@ void FAutomationReport::GetEnabledTestNames(TArray<FString>& OutEnabledTestNames
 	}
 	return;
 }
+
 
 void FAutomationReport::SetEnabledTests(const TArray<FString>& EnabledTests, FString CurrentPath)
 {
@@ -140,7 +138,7 @@ void FAutomationReport::SetEnabledTests(const TArray<FString>& EnabledTests, FSt
 	}
 }
 
-/** Recursively gets the number of enabled tests */
+
 int32 FAutomationReport::GetEnabledTestsNum() const
 {
 	int32 Total = 0;

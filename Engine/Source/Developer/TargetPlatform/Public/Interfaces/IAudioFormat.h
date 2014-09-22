@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetPlatform.h: Declares the ITargetPlatform interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -101,19 +97,16 @@ public:
 	virtual int32 Recompress( FName Format, const TArray<uint8>& SrcBuffer, FSoundQualityInfo& QualityInfo, TArray<uint8>& OutBuffer ) const = 0;
 
 	/**
-	 * Splits compressed data into chunks suitable for streaming audio
+	 * Splits compressed data into chunks suitable for streaming audio.
 	 *
-	 * @param	SrcBuffer	pre-compressed data as an array of bytes
-	 * @param	OutBuffers	Array of buffers that contain the chunks the original data was split into
-	 *
-	 * @return	bool	Whether bulk data could be split for streaming
+	 * @param SrcBuffer Pre-compressed data as an array of bytes.
+	 * @param OutBuffers Array of buffers that contain the chunks the original data was split into.
+	 * @return Whether bulk data could be split for streaming.
 	 */
 	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const {return false;}
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IAudioFormat() { }
 };

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SAutomationTestTreeView.h: Declares the SAutomationTestTreeView class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Implements the automation test tree view.  Same slate interface as STreeView but adds the ability to clear the internal widget cache.

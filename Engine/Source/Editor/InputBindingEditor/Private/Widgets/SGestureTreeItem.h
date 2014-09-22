@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SGestureTreeItem.h: Declares the SGestureTreeItem class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,7 +23,7 @@ typedef STreeView< TSharedPtr<FGestureTreeItem> > SGestureTree;
 
 
 /**
- * A widget which visualizes a command info                    
+ * A widget which visualizes a command info      .              
  */
 class SGestureTreeItem
 	: public SMultiColumnTableRow< TSharedPtr< FGestureTreeItem > >
@@ -37,15 +33,14 @@ public:
 	SLATE_BEGIN_ARGS( SGestureTreeItem ){}
 	SLATE_END_ARGS()
 
-
  public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InOwnerTable - The table that owns this tree item.
-	 * @param InItem - The actual item to be displayed.
+	 * @param InArgs The Slate argument list.
+	 * @param InOwnerTable The table that owns this tree item.
+	 * @param InItem The actual item to be displayed.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FGestureTreeItem> InItem )
 	{
@@ -55,9 +50,9 @@ public:
 	}
 
 	/**
-	 * Called to generate a widget for each column
+	 * Called to generate a widget for each column.
 	 *
-	 * @param ColumnName	The name of the column that needs a widget
+	 * @param ColumnName The name of the column that needs a widget.
 	 */
 	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName )
 	{
@@ -113,7 +108,10 @@ public:
 		}
 	}
 
-	/** SWidget Interface*/
+public:
+
+	// SWidget interface
+
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && FMultiBoxSettings::IsInToolbarEditMode() )
@@ -133,8 +131,9 @@ public:
 
 		return FReply::Handled().BeginDragDrop( FUICommandDragDropOp::New( TreeItem->CommandInfo.ToSharedRef(), NAME_None, TempBuilder.MakeWidget(), FVector2D::ZeroVector ) );
 	}
+
 private:
 
-	// Holds the tree item being visualized.
+	/** Holds the tree item being visualized. */
 	TSharedPtr<FGestureTreeItem> TreeItem;
 };

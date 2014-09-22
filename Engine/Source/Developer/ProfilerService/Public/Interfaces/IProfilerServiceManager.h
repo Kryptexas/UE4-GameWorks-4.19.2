@@ -1,20 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IProfilerServiceManager.h: Declares the IProfileServiceManager interface.
-=============================================================================*/
-
 #pragma once
 
-/**
- * Type definition for shared pointers to instances of IProfilerServiceManager.
- */
+
+/** Type definition for shared pointers to instances of IProfilerServiceManager. */
 typedef TSharedPtr<class IProfilerServiceManager> IProfilerServiceManagerPtr;
 
-/**
- * Type definition for shared references to instances of IProfilerService.
- */
+/** Type definition for shared references to instances of IProfilerService. */
 typedef TSharedRef<class IProfilerServiceManager> IProfilerServiceManagerRef;
+
 
 /**
  * Type definition for the profiler data packet.
@@ -33,17 +27,20 @@ public:
 	uint32 CallsPerFrame;
 };
 
+
 struct FProfilerFloatAccumulator
 {
 	int32 StatId;
 	float Value;
 };
 
+
 struct FProfilerCountAccumulator
 {
 	int32 StatId;
 	uint32 Value;
 };
+
 
 struct FProfilerCycleGraph
 {
@@ -55,6 +52,7 @@ public:
 	uint32 CallsPerFrame;
 	TArray<FProfilerCycleGraph> Children;
 };
+
 
 FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerCycleCounter& Data)
 {
@@ -70,6 +68,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerCycleCounter& Data)
 
 	return Ar;
 }
+
 	
 FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerFloatAccumulator& Data)
 {
@@ -79,6 +78,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerFloatAccumulator& Data)
 	return Ar;
 }
 
+
 FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerCountAccumulator& Data)
 {
 	Ar << Data.StatId;
@@ -86,6 +86,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerCountAccumulator& Data)
 
 	return Ar;
 }
+
 
 FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerCycleGraph& Data)
 {
@@ -99,6 +100,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerCycleGraph& Data)
 
 	return Ar;
 }
+
 
 /**
  * Type definition for a frame profiler data
@@ -125,6 +127,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FProfilerDataFrame& Data)
 
 	return Ar;
 }
+
 
 struct FStatDescription
 {
@@ -219,6 +222,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FStatMetaData& Data)
 
 	return Ar;
 }
+
 
 /**
  * Profiler file type
@@ -354,6 +358,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FStatMessage& Data)
 }
 #endif
 
+
 /**
  * Profiler service request type
  */
@@ -375,6 +380,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FProfilerDataDelegate, const FGuid&, const 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FProfilerData2Delegate, const FGuid&, TArray<FStatMessage>& );
 #endif
 
+
 /** Enumerates profiler file chunk types. */
 namespace EProfilerFileChunkType
 {
@@ -390,6 +396,7 @@ namespace EProfilerFileChunkType
 		NotUsed,
 	};
 }
+
 
 /** Class that describes basic information about one file chunk. */
 struct FProfilerFileChunkHeader
@@ -467,63 +474,55 @@ class IProfilerServiceManager
 public:
 
 	/**
-	 * Sends profiler cycle counter to registered clients
+	 * Sends profiler cycle counter to registered clients.
 	 *
-	 * @param Data - The profiler data to be sent
+	 * @param Data The profiler data to be sent.
 	 */
 	virtual void SendData(FProfilerCycleCounter& Data) = 0;
 
 	/**
-	 * Sends profiler float accumulator to registered clients
+	 * Sends profiler float accumulator to registered clients.
 	 *
-	 * @param Data - The profiler data to be sent
+	 * @param Data The profiler data to be sent.
 	 */
 	virtual void SendData(FProfilerFloatAccumulator& Data) = 0;
 
 	/**
-	 * Sends profiler count accumulator to registered clients
+	 * Sends profiler count accumulator to registered clients.
 	 *
-	 * @param Data - The profiler data to be sent
+	 * @param Data The profiler data to be sent.
 	 */
 	virtual void SendData(FProfilerCountAccumulator& Data) = 0;
 
 	/**
-	 * Sends profiler cycle graph to registered clients
+	 * Sends profiler cycle graph to registered clients.
 	 *
-	 * @param Data - The profiler data to be sent
+	 * @param Data The profiler data to be sent.
 	 */
 	virtual void SendData(FProfilerCycleGraph& Data) = 0;
 
 	/**
-	 * Determines if we are capturing data for clients
+	 * Determines if we are capturing data for clients.
 	 */
 	virtual bool IsCapturing() const = 0;
 
-	/**
-	 * Starts a file capture
-	 */
+	/** Starts a file capture. */
 	virtual void StartCapture() = 0;
 
-	/**
-	 * Stops a file capture
-	 */
+	/** Stops a file capture. */
 	virtual void StopCapture() = 0;
 
-	/**
-	 * Updates the meta data
-	 */
+	/** Updates the meta data. */
 	virtual void UpdateMetaData() = 0;
 
-	/**
-	 * Starts a new frame of data and sends the previous if it exists
-	 */
+	/** Starts a new frame of data and sends the previous if it exists. */
 	virtual void StartFrame(uint32 FrameNumber, double FrameStart) = 0;
 
 	/**
-	 * Gets the description for the given stat id
+	 * Gets the description for the given stat id.
 	 *
-	 * @param StatId - id of the statistic description to retrieve
-	 * @return the FStatMetaData struct with the description
+	 * @param StatId IDd of the statistic description to retrieve.
+	 * @return the FStatMetaData struct with the description.
 	 */
 	virtual FStatMetaData& GetStatMetaData() = 0;
 
@@ -535,8 +534,7 @@ public:
 	virtual FProfilerDataDelegate& OnProfilerData() = 0;
 
 public:
-	/**
-	 * Virtual destructor
-	 */
+
+	/** Virtual destructor. */
 	virtual ~IProfilerServiceManager() { }
 };

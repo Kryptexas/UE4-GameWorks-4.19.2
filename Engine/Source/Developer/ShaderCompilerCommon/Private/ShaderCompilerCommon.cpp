@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ShaderCompilerCommon.cpp: Common functionality for platform Shader Compilers.
-=============================================================================*/
-
 #include "ShaderCompilerCommon.h"
 #include "ModuleManager.h"
 
+
 IMPLEMENT_MODULE(FDefaultModuleImpl, ShaderCompilerCommon);
+
 
 int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT)
 {
@@ -61,6 +59,7 @@ void BuildResourceTableTokenStream(const TArray<uint32>& InResourceMap, int32 Ma
 		OutTokenStream.Add(FRHIResourceTableEntry::GetEndOfStreamToken());
 	}
 }
+
 
 void BuildResourceTableMapping(
 	const TMap<FString,FResourceTableEntry>& ResourceTableMap,
@@ -128,6 +127,7 @@ void BuildResourceTableMapping(
 	OutSRT.MaxBoundResourceTable = MaxBoundResourceTable;
 }
 
+
 bool RemoveUniformBuffersFromSource(FString& SourceCode)
 {
 	static const FString StaticStructToken(TEXT("static const struct"));
@@ -181,6 +181,7 @@ bool RemoveUniformBuffersFromSource(FString& SourceCode)
 
 	return true;
 }
+
 
 FString CreateCrossCompilerBatchFileContents(const FString& ShaderFile, const FString& OutputFile, const FString& FrequencySwitch, const FString& EntryPoint, const FString& VersionSwitch, const FString& ExtraArguments)
 {

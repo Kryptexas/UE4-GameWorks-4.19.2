@@ -1,18 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceProfileEditorModule.cpp: Implements the FDeviceProfileEditorModule class.
-=============================================================================*/
-
 #include "DeviceProfileEditorPCH.h"
 #include "WorkspaceMenuStructureModule.h"
 
 
 #define LOCTEXT_NAMESPACE "DeviceProfileEditor"
 
-
 IMPLEMENT_MODULE(FDeviceProfileEditorModule, DeviceProfileEditor);
-
 
 static const FName DeviceProfileEditorName("DeviceProfileEditor");
 

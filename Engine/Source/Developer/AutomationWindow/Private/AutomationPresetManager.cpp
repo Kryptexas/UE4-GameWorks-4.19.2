@@ -2,9 +2,11 @@
 
 #include "AutomationWindowPrivatePCH.h"
 
+
 FAutomationTestPresetManager::FAutomationTestPresetManager()
 {
 }
+
 
 AutomationPresetRef FAutomationTestPresetManager::AddNewPreset( )
 {
@@ -12,6 +14,7 @@ AutomationPresetRef FAutomationTestPresetManager::AddNewPreset( )
 	Presets.Add(NewPreset);
 	return NewPreset.ToSharedRef();
 }
+
 
 AutomationPresetRef FAutomationTestPresetManager::AddNewPreset( const FString& PresetName, const TArray<FString>& SelectedTests )
 {
@@ -22,10 +25,12 @@ AutomationPresetRef FAutomationTestPresetManager::AddNewPreset( const FString& P
 	return NewPreset;
 }
 
+
 TArray<AutomationPresetPtr>& FAutomationTestPresetManager::GetAllPresets( )
 {
 	return Presets;
 }
+
 
 AutomationPresetPtr FAutomationTestPresetManager::LoadPreset( FArchive& Archive )
 {
@@ -38,8 +43,9 @@ AutomationPresetPtr FAutomationTestPresetManager::LoadPreset( FArchive& Archive 
 
 	delete NewPreset;
 
-	return NULL;
+	return nullptr;
 }
+
 
 void FAutomationTestPresetManager::RemovePreset( const AutomationPresetRef Preset )
 {
@@ -53,12 +59,13 @@ void FAutomationTestPresetManager::RemovePreset( const AutomationPresetRef Prese
 	}
 }
 
+
 void FAutomationTestPresetManager::SavePreset( const AutomationPresetRef Preset )
 {
 	FString PresetFileName = GetPresetFolder() / Preset->GetID().ToString() + TEXT(".uap");
 	FArchive* PresetFileWriter = IFileManager::Get().CreateFileWriter(*PresetFileName);
 
-	if (PresetFileWriter != NULL)
+	if (PresetFileWriter != nullptr)
 	{
 		SavePreset(Preset, *PresetFileWriter);
 
@@ -66,10 +73,12 @@ void FAutomationTestPresetManager::SavePreset( const AutomationPresetRef Preset 
 	}
 }
 
+
 void FAutomationTestPresetManager::SavePreset( const AutomationPresetRef Preset, FArchive& Archive )
 {
 	Preset->Serialize(Archive);
 }
+
 
 void FAutomationTestPresetManager::LoadPresets( )
 {
@@ -82,7 +91,7 @@ void FAutomationTestPresetManager::LoadPresets( )
 		FString PresetFilePath = GetPresetFolder() / *It;
 		FArchive* PresetFileReader = IFileManager::Get().CreateFileReader(*PresetFilePath);
 
-		if (PresetFileReader != NULL)
+		if (PresetFileReader != nullptr)
 		{
 			AutomationPresetPtr LoadedPreset = LoadPreset(*PresetFileReader);
 
