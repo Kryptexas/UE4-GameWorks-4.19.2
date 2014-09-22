@@ -1736,6 +1736,11 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	}
 }
 
+FString UObject::GetDefaultConfigFilename() const
+{
+	return FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
+}
+
 // @todo ini: Verify per object config objects
 void UObject::UpdateDefaultConfigFile()
 {
@@ -1743,7 +1748,7 @@ void UObject::UpdateDefaultConfigFile()
 	FConfigCacheIni Config;
 
 	// add an empty file to the config so it doesn't read in the original file (see FConfigCacheIni.Find())
-	FString DefaultIniName = FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
+	FString DefaultIniName = GetDefaultConfigFilename();
 	FConfigFile& NewFile = Config.Add(DefaultIniName, FConfigFile());
 
 	// save the object properties to this file

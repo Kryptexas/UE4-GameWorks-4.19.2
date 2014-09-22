@@ -308,8 +308,7 @@ bool SSettingsEditor::CheckOutDefaultConfigFile( )
 
 FString SSettingsEditor::GetDefaultConfigFilePath( const TWeakObjectPtr<UObject>& SettingsObject ) const
 {
-	FString RelativeConfigFilePath = FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *SettingsObject->GetClass()->ClassConfigName.ToString());
-
+	FString RelativeConfigFilePath = SettingsObject->GetDefaultConfigFilename();
 	return FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
 }
 

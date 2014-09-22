@@ -74,7 +74,7 @@ public:
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SAssignNew(SettingsDescriptions, SUniformGridPanel)
+				SAssignNew(CheckoutNotices, SVerticalBox)
 			]
 		];
 	}
@@ -137,15 +137,10 @@ public:
 		return true;
 	}
 
-	FString GetDefaultConfigPath(UObject* Settings) const
-	{
-		return FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *Settings->GetClass()->ClassConfigName.ToString()));
-	}
-
 	void Update()
 	{
 		FileWatcherWidgets.Reset();
-		SettingsDescriptions->ClearChildren();
+		CheckoutNotices->ClearChildren();
 
 		IHardwareTargetingModule& Module = IHardwareTargetingModule::Get();
 		int32 SlotIndex = 0;
@@ -167,7 +162,7 @@ public:
 			}
 			
 
-			FString ConfigFile = GetDefaultConfigPath(Settings.SettingsObject.Get());
+			FString ConfigFile = FPaths::ConvertRelativePathToFull(Settings.SettingsObject->GetDefaultConfigFilename());
 
 			if (!SeenConfigFiles.Contains(ConfigFile))
 			{
@@ -178,7 +173,8 @@ public:
 					.ConfigFilePath(ConfigFile);
 				FileWatcherWidgets.Add(FileWatcherWidget);
 
-				SettingsDescriptions->AddSlot(0, SlotIndex)
+				CheckoutNotices->AddSlot()
+				.Padding(FMargin(0.f, 0.f, 12.f, 5.f))
 				[
 					FileWatcherWidget
 				];
@@ -189,7 +185,7 @@ public:
 
 	TArray<TSharedPtr<SSettingsEditorCheckoutNotice>> FileWatcherWidgets;
 
-	TSharedPtr<SUniformGridPanel> SettingsDescriptions;
+	TSharedPtr<SVerticalBox> CheckoutNotices;
 
 	double LastStatusUpdate;
 };
@@ -207,9 +203,6 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 		auto* Settings = GetMutableDefault<UHardwareTargetingSettings>();
 		return Settings->HasPendingChanges() ? EVisibility::Collapsed : EVisibility::Visible;
 	};
-	//auto ModifiedText = []{
-	//	return IHardwareTargetingModule::Get().QueryReadableDescriptionOfHardwareTargetingSettings();
-	//};
 
 	TSharedRef<SRequiredDefaultConfig> ConfigWidget = SNew(SRequiredDefaultConfig);
 	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
@@ -238,11 +231,14 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 
 	ConfigWidget->Initialize(DetailBuilder, PendingChangesCategory);
 
-	auto PropertyName = GET_MEMBER_NAME_CHECKED(UHardwareTargetingSettings, TargetedHardwareClass);
-	DetailBuilder.HideProperty(PropertyName);
+	TSharedPtr<SWidget> HardwareClassCombo, GraphicsPresetCombo;
 
-	TSharedRef<IPropertyHandle> Property = DetailBuilder.GetProperty(PropertyName);
+	// Setup the hardware class combo
 	{
+		auto PropertyName = GET_MEMBER_NAME_CHECKED(UHardwareTargetingSettings, TargetedHardwareClass);
+		DetailBuilder.HideProperty(PropertyName);
+
+		TSharedRef<IPropertyHandle> Property = DetailBuilder.GetProperty(PropertyName);
 		auto SetPropertyValue = [](EHardwareClass::Type NewValue, TSharedRef<IPropertyHandle> Property){
 			Property->SetValue(uint8(NewValue));
 		};
@@ -251,34 +247,19 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 			Property->GetValue(Value);
 			return EHardwareClass::Type(Value);
 		};
-
-		HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:").ToString())
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(Property->GetPropertyDisplayName()))
-			.Font(DetailBuilder.GetDetailFont())
-		]
-		.ValueContent()
-		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				HardwareTargeting.MakeHardwareClassTargetCombo(
-					FOnHardwareClassChanged::CreateStatic(SetPropertyValue, Property),
-					TAttribute<EHardwareClass::Type>::Create(TAttribute<EHardwareClass::Type>::FGetter::CreateStatic(GetPropertyValue, Property))
-				)
-			]
-		];
+		
+		HardwareClassCombo = HardwareTargeting.MakeHardwareClassTargetCombo(
+			FOnHardwareClassChanged::CreateStatic(SetPropertyValue, Property),
+			TAttribute<EHardwareClass::Type>::Create(TAttribute<EHardwareClass::Type>::FGetter::CreateStatic(GetPropertyValue, Property))
+		);
 	}
 
-	PropertyName = GET_MEMBER_NAME_CHECKED(UHardwareTargetingSettings, DefaultGraphicsPerformance);
-	DetailBuilder.HideProperty(PropertyName);
-
-	Property = DetailBuilder.GetProperty(PropertyName);
+	// Setup the graphics preset combo
 	{
+		auto PropertyName = GET_MEMBER_NAME_CHECKED(UHardwareTargetingSettings, DefaultGraphicsPerformance);
+		DetailBuilder.HideProperty(PropertyName);
+
+		TSharedRef<IPropertyHandle> Property = DetailBuilder.GetProperty(PropertyName);
 		auto SetPropertyValue = [](EGraphicsPreset::Type NewValue, TSharedRef<IPropertyHandle> Property){
 			Property->SetValue(uint8(NewValue));
 		};
@@ -287,28 +268,38 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 			Property->GetValue(Value);
 			return EGraphicsPreset::Type(Value);
 		};
-		HardwareTargetingCategory.AddCustomRow(LOCTEXT("GraphicsPreferenceOption", "Graphics Preference:").ToString())
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(Property->GetPropertyDisplayName()))
-			.Font(DetailBuilder.GetDetailFont())
-		]
-		.ValueContent()
-		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				HardwareTargeting.MakeGraphicsPresetTargetCombo(
-					FOnGraphicsPresetChanged::CreateStatic(SetPropertyValue, Property),
-					TAttribute<EGraphicsPreset::Type>::Create(TAttribute<EGraphicsPreset::Type>::FGetter::CreateStatic(GetPropertyValue, Property))
-				)
-			]
-		];
+		GraphicsPresetCombo = HardwareTargeting.MakeGraphicsPresetTargetCombo(
+			FOnGraphicsPresetChanged::CreateStatic(SetPropertyValue, Property),
+			TAttribute<EGraphicsPreset::Type>::Create(TAttribute<EGraphicsPreset::Type>::FGetter::CreateStatic(GetPropertyValue, Property))
+		);
 	}
 
+	HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:").ToString())
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("OptimizeProjectFor", "Optimize project settings for:"))
+		.Font(DetailBuilder.GetDetailFont())
+	]
+	.ValueContent()
+	.MaxDesiredWidth(0)
+	[
+		SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.Padding(FMargin(10.f, 0.f))
+		.AutoWidth()
+		[
+			HardwareClassCombo.ToSharedRef()
+		]
+
+		+ SHorizontalBox::Slot()
+		.Padding(FMargin(0.f, 0.f, 10.f, 0.f))
+		.AutoWidth()
+		[
+			GraphicsPresetCombo.ToSharedRef()
+		]
+	];
 }
 
 #undef LOCTEXT_NAMESPACE

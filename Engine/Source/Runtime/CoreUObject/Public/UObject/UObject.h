@@ -627,6 +627,11 @@ public:
 	void UpdateDefaultConfigFile();
 
 	/**
+	 * Get the default config filename for the specified UObject
+	 */
+	FString GetDefaultConfigFilename() const;
+
+	/**
 	 * Imports property values from an .ini file.
 	 *
 	 * @param	Class				the class to use for determining which section of the ini to retrieve text values from
