@@ -1051,7 +1051,7 @@ bool FRepLayout::ReadProperty(
 		Cmd.Property->NetSerializeItem( ReaderState.Bunch, ReaderState.Bunch.PackageMap, Data + SwappedCmd.Offset );
 
 		// Check to see if this property changed
-		if ( !PropertiesAreIdentical( Cmd, StoredData + Cmd.Offset, Data + SwappedCmd.Offset ) )
+		if (Parent.RepNotifyCondition == REPNOTIFY_Always || !PropertiesAreIdentical(Cmd, StoredData + Cmd.Offset, Data + SwappedCmd.Offset))
 		{
 			ReaderState.RepState->RepNotifies.AddUnique( Parent.Property );
 		}
@@ -1157,7 +1157,7 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 
 	const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
 
-	if ( Array->Num() != ArrayNum && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+	if ( Array->Num() != ArrayNum && (Parent.RepNotifyCondition == REPNOTIFY_Always || Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) ) )
 	{
 		ReaderState.RepState->RepNotifies.AddUnique( Parent.Property );
 	}
@@ -1323,7 +1323,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 
 			UObject * OldObject = ObjProperty->GetObjectPropertyValue( Data + AbsOffset );
 
-			if ( OldObject != Object )
+			if (Parent.RepNotifyCondition == REPNOTIFY_Always || OldObject != Object)
 			{
 				if ( !bOutSomeObjectsWereMapped )
 				{
@@ -1756,7 +1756,7 @@ void FRepLayout::DiffProperties_r(
 		const FRepLayoutCmd & SwappedCmd = Cmd;//Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
 
 		// Make the shadow state match the actual state at the time of send
-		if ( !PropertiesAreIdentical( Cmd, (const void*)( Data + SwappedCmd.Offset ), (const void*)( StoredData + Cmd.Offset ) ) )
+		if ( Parent.RepNotifyCondition == REPNOTIFY_Always || !PropertiesAreIdentical( Cmd, (const void*)( Data + SwappedCmd.Offset ), (const void*)( StoredData + Cmd.Offset ) ) )
 		{
 			bOutDifferent = true;
 
@@ -2107,6 +2107,7 @@ void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 		{
 			// Store the condition on the parent in case we need it
 			Parents[LifetimeProps[i].RepIndex].Condition = LifetimeProps[i].Condition;
+			Parents[LifetimeProps[i].RepIndex].RepNotifyCondition = LifetimeProps[i].RepNotifyCondition;
 
 			if ( Parents[LifetimeProps[i].RepIndex].Flags & PARENT_IsCustomDelta )
 			{

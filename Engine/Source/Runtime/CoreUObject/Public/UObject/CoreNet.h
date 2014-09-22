@@ -182,6 +182,12 @@ enum ELifetimeCondition
 	COND_Max				= 9,
 };
 
+enum ELifetimeRepNotifyCondition
+{
+	REPNOTIFY_OnChanged		= 0,		// Only call the property's RepNotify function if it changes from the local value
+	REPNOTIFY_Always		= 1,		// Always Call the property's RepNotify function when it is received from the server
+};
+
 /** FLifetimeProperty
  *	This class is used to track a property that is marked to be replicated for the lifetime of the actor channel.
  *  This doesn't mean the property will necessarily always be replicated, it just means:
@@ -193,16 +199,18 @@ class FLifetimeProperty
 public:
 	uint16				RepIndex;
 	ELifetimeCondition	Condition;
+	ELifetimeRepNotifyCondition RepNotifyCondition;
 
-	FLifetimeProperty() : RepIndex( 0 ), Condition( COND_None ) {}
-	FLifetimeProperty( int32 InRepIndex ) : RepIndex( InRepIndex ), Condition( COND_None ) { check( InRepIndex <= 65535 ); }
-	FLifetimeProperty( int32 InRepIndex, ELifetimeCondition InCondition ) : RepIndex( InRepIndex ), Condition( InCondition ) { check( InRepIndex <= 65535 ); }
+	FLifetimeProperty() : RepIndex( 0 ), Condition( COND_None ), RepNotifyCondition(REPNOTIFY_OnChanged) {}
+	FLifetimeProperty( int32 InRepIndex ) : RepIndex( InRepIndex ), Condition( COND_None ), RepNotifyCondition(REPNOTIFY_OnChanged) { check( InRepIndex <= 65535 ); }
+	FLifetimeProperty(int32 InRepIndex, ELifetimeCondition InCondition, ELifetimeRepNotifyCondition InRepNotifyCondition=REPNOTIFY_OnChanged) : RepIndex(InRepIndex), Condition(InCondition), RepNotifyCondition(InRepNotifyCondition) { check(InRepIndex <= 65535); }
 
 	inline bool operator==( const FLifetimeProperty & Other ) const
 	{
 		if ( RepIndex == Other.RepIndex )
 		{
 			check( Condition == Other.Condition );		// Can't have different conditions if the RepIndex matches, doesn't make sense
+			check( RepNotifyCondition == Other.RepNotifyCondition);
 			return true;
 		}
 

@@ -178,6 +178,7 @@ public:
 		CmdEnd( 0 ), 
 		RoleSwapIndex( -1 ), 
 		Condition( COND_None ),
+		RepNotifyCondition(REPNOTIFY_OnChanged),
 		Flags( 0 )
 	{}
 
@@ -187,6 +188,7 @@ public:
 	uint16				CmdEnd;
 	int32				RoleSwapIndex;
 	ELifetimeCondition	Condition;
+	ELifetimeRepNotifyCondition	RepNotifyCondition;
 
 	uint32				Flags;
 };

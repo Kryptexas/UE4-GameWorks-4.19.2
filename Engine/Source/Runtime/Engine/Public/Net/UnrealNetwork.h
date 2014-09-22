@@ -94,6 +94,16 @@ static UProperty* GetReplicatedProperty(UClass* CallingClass, UClass* PropClass,
 	}																					\
 }
 
+/** Allows gamecode to specify RepNotify condition: REPNOTIFY_OnChanged (default) or REPNOTIFY_Always for when repnotify function is called  */
+#define DOREPLIFETIME_CONDITION_NOTIFY(c,v,cond, rncond) \
+{ \
+	static UProperty* sp##v = GetReplicatedProperty(StaticClass(), c::StaticClass(),GET_MEMBER_NAME_CHECKED(c,v)); \
+	for ( int32 i = 0; i < sp##v->ArrayDim; i++ )										\
+	{																					\
+		OutLifetimeProps.AddUnique( FLifetimeProperty( sp##v->RepIndex + i, cond, rncond) );	\
+	}																					\
+}
+
 #define DOREPLIFETIME_ACTIVE_OVERRIDE(c,v,active)	\
 {													\
 	static UProperty* sp##v = GetReplicatedProperty(StaticClass(), c::StaticClass(),GET_MEMBER_NAME_CHECKED(c,v)); \

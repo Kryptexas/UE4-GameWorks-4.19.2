@@ -494,14 +494,6 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 				TArray<uint8>	MetaData;
 				PTRINT Offset = 0;
 
-				// Copy current value over to Recent for comparison
-				if ( DestRecent )
-				{
-					Offset = ReplicatedProp->ContainerPtrToValuePtr<uint8>(DestRecent, Element) - DestRecent;
-					check( Offset >= 0 && Offset < RepState->StaticBuffer.Num() ); //@todo if we move properties outside of the memory block, then this will not work anyway
-					ReplicatedProp->CopySingleValue( DestRecent + Offset, Data );
-				}
-
 				// Receive custom delta property.
 				UStructProperty * StructProperty = Cast< UStructProperty >( ReplicatedProp );
 
@@ -545,26 +537,11 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 					return false;
 				}
 
-				// See if it changed from our local value
-				bool PropertyChanged = true;
-
-				if ( DestRecent )
-				{
-					// POD types can do a memcmp with a call to Identical
-					if ( ReplicatedProp->Identical( DestRecent + Offset, Data ) )
-					{
-						PropertyChanged = false;
-					}
-				}
-
 				// Successfully received it.
-				UE_LOG( LogNetTraffic, Log, TEXT( " %s - %s - Change: %d" ), *Object->GetName(), *ReplicatedProp->GetName(), PropertyChanged );
+				UE_LOG( LogNetTraffic, Log, TEXT( " %s - %s" ), *Object->GetName(), *ReplicatedProp->GetName());
 
 				// Notify the Object if this var is RepNotify
-				if ( PropertyChanged )
-				{
-					QueuePropertyRepNotify( Object, ReplicatedProp, Element, MetaData );
-				}
+				QueuePropertyRepNotify( Object, ReplicatedProp, Element, MetaData );
 			}	
 			
 			// Next.
