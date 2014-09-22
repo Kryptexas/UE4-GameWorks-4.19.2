@@ -499,6 +499,21 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 						if (UProperty* Field = FindField<UProperty>(AssetClass, TagIt.Key()))
 						{
 							DisplayName = Field->GetDisplayNameText();
+
+							// Strip off enum prefixes if they exist
+							if (UByteProperty* ByteProperty = Cast<UByteProperty>(Field))
+							{
+								if (ByteProperty->Enum)
+								{
+									const FString EnumPrefix = ByteProperty->Enum->GenerateEnumPrefix();
+									if (EnumPrefix.Len() && ValueString.StartsWith(EnumPrefix))
+									{
+										ValueString = ValueString.RightChop(EnumPrefix.Len() + 1);	// +1 to skip over the underscore
+									}
+								}
+
+								ValueString = FName::NameToDisplayString(ValueString, false);
+							}
 						}
 						else
 						{
