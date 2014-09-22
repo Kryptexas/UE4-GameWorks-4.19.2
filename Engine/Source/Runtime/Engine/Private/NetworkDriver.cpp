@@ -149,7 +149,7 @@ void UNetDriver::AssertValid()
 
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
-	if ( IsServer() )
+	if ( IsServer() && ClientConnections.Num() > 0 && ClientConnections[0]->InternalAck == false )
 	{
 		// Update all clients.
 #if WITH_SERVER_CODE

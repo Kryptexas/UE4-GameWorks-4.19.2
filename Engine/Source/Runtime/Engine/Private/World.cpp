@@ -34,6 +34,7 @@
 #include "AI/AISystemBase.h"
 #include "SceneInterface.h"
 #include "Camera/CameraActor.h"
+#include "Engine/DemoNetDriver.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
@@ -189,6 +190,7 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 
 		Collector.AddReferencedObject( This->CurrentLevel, This );
 		Collector.AddReferencedObject( This->NetDriver, This );
+		Collector.AddReferencedObject( This->DemoNetDriver, This );
 		Collector.AddReferencedObject( This->LineBatcher, This );
 		Collector.AddReferencedObject( This->PersistentLineBatcher, This );
 		Collector.AddReferencedObject( This->ForegroundLineBatcher, This );
@@ -2574,6 +2576,18 @@ bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{		
 		return HandleLogActorCountsCommand( Cmd, Ar, InWorld );
 	}
+	else if (FParse::Command(&Cmd, TEXT("DEMOREC")))
+	{		
+		return HandleDemoRecordCommand( Cmd, Ar, InWorld );
+	}
+	else if( FParse::Command( &Cmd, TEXT("DEMOPLAY") ) )
+	{		
+		return HandleDemoPlayCommand( Cmd, Ar, InWorld );
+	}
+	else if( FParse::Command( &Cmd, TEXT("DEMOSTOP") ) )
+	{		
+		return HandleDemoStopCommand( Cmd, Ar, InWorld );
+	}
 	else if( ExecPhysCommands( Cmd, &Ar, InWorld ) )
 	{
 		return HandleLogActorCountsCommand( Cmd, Ar, InWorld );
@@ -2604,6 +2618,152 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 	return true;
 }
 
+bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
+{
+	// Attempt to make the dir if it doesn't exist.
+	const FString DemoDir = FPaths::GameSavedDir() + TEXT( "Demos" );
+
+	IFileManager::Get().MakeDirectory( *DemoDir, true );
+
+	FURL DemoURL;
+	FString DemoName;
+
+	if ( !FParse::Token( Cmd, DemoName, 0 ) )
+	{
+		Ar.Logf( TEXT( "Missing demo name." ) );
+		return true;
+	}
+
+	int32 Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec;
+	FPlatformTime::SystemTime( Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec );
+
+	DemoName.ReplaceInline( TEXT( "%td" ), *FDateTime::Now().ToString() );
+	DemoName.ReplaceInline( TEXT( "%d" ), *FString::Printf( TEXT( "%i-%i-%i" ), Month, Day, Year ) );
+	DemoName.ReplaceInline( TEXT( "%t" ), *FString::Printf( TEXT( "%i" ), ( ( Hour * 3600 ) + ( Min * 60 ) + Sec ) * 1000 + MSec ) );
+	DemoName.ReplaceInline( TEXT( "%v" ), *FString::Printf( TEXT( "%i" ), GEngineVersion.GetChangelist() ) );
+
+	// replace bad characters with underscores
+	DemoName.ReplaceInline( TEXT( "\\" ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( "/" ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( "." ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( " " ),	TEXT( "_" ) );
+	DemoName.ReplaceInline( TEXT( "%" ),	TEXT( "_" ) );
+
+	// replace the current URL's map with a demo extension
+	DemoURL.Map = DemoDir + TEXT( "/" ) + DemoName + TEXT( ".demo" );
+
+	DestroyDemoNetDriver();
+
+	const FName NAME_DemoNetDriver( TEXT( "DemoNetDriver" ) );
+
+	if ( !GEngine->CreateNamedNetDriver( this, NAME_DemoNetDriver, NAME_DemoNetDriver ) )
+	{
+		Ar.Logf( TEXT( "Failed to create demo net driver!" ) );
+		return true;
+	}
+
+	DemoNetDriver = Cast< UDemoNetDriver >( GEngine->FindNamedNetDriver( this, NAME_DemoNetDriver ) );
+
+	check( DemoNetDriver != NULL );
+
+	DemoNetDriver->SetWorld( this );
+
+	FString Error;
+
+	if ( !DemoNetDriver->InitListen( this, DemoURL, false, Error ) )
+	{
+		Ar.Logf( TEXT( "Demo recording failed: %s" ), *Error );
+		DemoNetDriver = NULL;
+	}
+	else
+	{
+		Ar.Logf( TEXT( "Num Network Actors: %i" ), InWorld->NetworkActors.Num() );
+	}
+
+	return true;
+}
+
+bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
+{
+	FString Temp;
+
+	if ( FParse::Token( Cmd, Temp, 0 ) )
+	{
+		DestroyDemoNetDriver();
+
+		FURL DemoURL;
+		UE_LOG( LogWorld, Log, TEXT( "Attempting to play demo %s" ), *Temp );
+
+		const FString DemoDir = FPaths::GameSavedDir() + TEXT( "Demos" );
+
+		DemoURL.Map = DemoDir + TEXT( "/" ) + Temp + TEXT( ".demo" );
+
+#if 0
+		UPendingNetGame * NewPendingNetGame = new UDemoPendingNetGame( FPostConstructInitializeProperties(), DemoURL );
+
+		if ( !NewPendingNetGame->DemoNetDriver )
+		{
+			Ar.Logf( TEXT( "Demo playback failed: %s" ), *NewPendingNetGame->ConnectionError );
+			NewPendingNetGame = NULL;
+		}
+
+		GEngine->CancelPending( InWorld, NewPendingNetGame );
+#else
+		const FName NAME_DemoNetDriver( TEXT( "DemoNetDriver" ) );
+
+		if ( !GEngine->CreateNamedNetDriver( this, NAME_DemoNetDriver, NAME_DemoNetDriver ) )
+		{
+			Ar.Logf( TEXT( "Failed to create demo net driver!" ) );
+			return true;
+		}
+
+		DemoNetDriver = Cast< UDemoNetDriver >( GEngine->FindNamedNetDriver( this, NAME_DemoNetDriver ) );
+
+		check( DemoNetDriver != NULL );
+
+		DemoNetDriver->SetWorld( this );
+
+		FString Error;
+
+		if ( !DemoNetDriver->InitConnect( this, DemoURL, Error ) )
+		{
+			Ar.Logf( TEXT( "Demo playback failed: %s" ), *Error );
+			DestroyDemoNetDriver();
+		}
+#endif
+	}
+	else
+	{
+		Ar.Log( TEXT( "You must specify a filename" ) );
+	}
+
+	return true;
+}
+
+bool UWorld::HandleDemoStopCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
+{
+	DestroyDemoNetDriver();
+	return true;
+}
+
+void UWorld::DestroyDemoNetDriver()
+{
+	if ( DemoNetDriver != NULL )
+	{
+		const FName DemoNetDriverName = DemoNetDriver->NetDriverName;
+
+		check( GEngine->FindNamedNetDriver( this, DemoNetDriverName ) == DemoNetDriver );
+
+		DemoNetDriver->StopDemo();
+		DemoNetDriver->SetWorld( NULL );
+
+		GEngine->DestroyNamedNetDriver( this, DemoNetDriverName );
+
+		check( GEngine->FindNamedNetDriver( this, DemoNetDriverName ) == NULL );
+
+		DemoNetDriver = NULL;
+	}
+}
 
 bool UWorld::SetGameMode(const FURL& InURL)
 {

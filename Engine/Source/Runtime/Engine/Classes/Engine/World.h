@@ -539,6 +539,10 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	class ULevel*								CurrentLevelPendingVisibility;
 	
+	/** Fake NetDriver for capturing network traffic to record demos															*/
+	UPROPERTY()
+	class UDemoNetDriver*						DemoNetDriver;
+
 	/** Particle event manager **/
 	UPROPERTY()
 	class AParticleEventManager*				MyParticleEventManager;
@@ -2008,7 +2012,13 @@ public:
 	bool HandleTraceTagCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleFlushPersistentDebugLinesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
-	
+	bool HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
+	bool HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
+	bool HandleDemoStopCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
+
+	// Destroys the current demo net driver
+	void DestroyDemoNetDriver();
+
 	// Start listening for connections.
 	bool Listen( FURL& InURL );
 

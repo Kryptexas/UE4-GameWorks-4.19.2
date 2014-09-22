@@ -7410,6 +7410,9 @@ void UEngine::ShutdownWorldNetDriver( UWorld * World )
 			DestroyNamedNetDriver(World, NetDriver->NetDriverName);
 		}
 
+		// Take care of the demo net driver specifically (so the world can clear the DemoNetDriver property)
+		World->DestroyDemoNetDriver();
+
 		// Also disconnect any net drivers that have this set as their world, to avoid GC issues
 		FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(World);
 
@@ -7423,7 +7426,6 @@ void UEngine::ShutdownWorldNetDriver( UWorld * World )
 				Index--;
 			}
 		}
-
 	}
 }
 

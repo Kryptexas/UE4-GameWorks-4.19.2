@@ -3732,7 +3732,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 	else if (Role > ROLE_SimulatedProxy)
 	{
 		// Process PlayerTick with input.
-		if (!PlayerInput)
+		if (!PlayerInput && (Player == NULL || Cast<ULocalPlayer>( Player ) != NULL))
 		{
 			InitInputSystem();
 		}
