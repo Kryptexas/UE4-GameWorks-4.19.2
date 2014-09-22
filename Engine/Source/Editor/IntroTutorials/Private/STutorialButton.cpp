@@ -5,6 +5,7 @@
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
 #include "TutorialMetaData.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "STutorialButton"
 
@@ -18,6 +19,8 @@ void STutorialButton::Construct(const FArguments& InArgs)
 {
 	Context = InArgs._Context;
 	ContextWindow = InArgs._ContextWindow;
+
+	bTestAlerts = FParse::Param(FCommandLine::Get(), TEXT("TestTutorialAlerts"));
 
 	bTutorialAvailable = false;
 	bTutorialCompleted = false;
@@ -257,7 +260,7 @@ bool STutorialButton::ShouldLaunchBrowser() const
 
 bool STutorialButton::ShouldShowAlert() const
 {
-	return (bTutorialAvailable && !(bTutorialCompleted || bTutorialDismissed));
+	return ((bTestAlerts || !FEngineBuildSettings::IsInternalBuild()) && bTutorialAvailable && !(bTutorialCompleted || bTutorialDismissed));
 }
 
 FText STutorialButton::GetButtonToolTip() const

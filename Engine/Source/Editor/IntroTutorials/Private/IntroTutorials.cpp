@@ -30,6 +30,7 @@
 #include "STutorialButton.h"
 #include "ToolkitManager.h"
 #include "BlueprintEditor.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
@@ -286,27 +287,30 @@ void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset, bool bForceWel
 
 bool FIntroTutorials::MaybeOpenWelcomeTutorial()
 {
-	// try editor startup tutorial
-	TSubclassOf<UEditorTutorial> EditorStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UEditorTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
-	if(EditorStartupTutorialClass != nullptr)
+	if(FParse::Param(FCommandLine::Get(), TEXT("TestTutorialAlerts")) || !FEngineBuildSettings::IsInternalBuild())
 	{
-		UEditorTutorial* Tutorial = EditorStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-		if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+		// try editor startup tutorial
+		TSubclassOf<UEditorTutorial> EditorStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UEditorTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+		if(EditorStartupTutorialClass != nullptr)
 		{
-			LaunchTutorial(Tutorial);
-			return true;
+			UEditorTutorial* Tutorial = EditorStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+			{
+				LaunchTutorial(Tutorial);
+				return true;
+			}
 		}
-	}
 
-	// Try project startup tutorial
-	TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
-	if(ProjectStartupTutorialClass != nullptr)
-	{
-		UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-		if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+		// Try project startup tutorial
+		TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+		if(ProjectStartupTutorialClass != nullptr)
 		{
-			LaunchTutorial(Tutorial);
-			return true;
+			UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+			{
+				LaunchTutorial(Tutorial);
+				return true;
+			}
 		}
 	}
 
