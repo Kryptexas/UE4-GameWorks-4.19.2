@@ -4,13 +4,15 @@
 
 #include "EditorTutorial.h"
 
-class STutorialContent;
-
 /** Delegate used when drawing/arranging widgets */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPaintNamedWidget, TSharedRef<SWidget> /*InWidget*/, const FGeometry& /*InGeometry*/);
 
 /** Delegate used to inform widgets of the current window size, so they can auto-adjust layout */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCacheWindowSize, const FVector2D& /*InWindowSize*/);
+
+/** Delegates for registering & querying whether a widget was drawn */
+DECLARE_DELEGATE_OneParam(FOnWidgetWasDrawn, const FName& /*InName*/);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnWasWidgetDrawn, const FName& /*InName*/);
 
 /**
  * The widget which displays multiple 'floating' pieces of content overlaid onto the editor
@@ -30,17 +32,21 @@ public:
 	SLATE_ARGUMENT(bool, IsStandalone)
 
 	/** Delegate fired when the close button is clicked */
-	SLATE_ARGUMENT(FSimpleDelegate, OnClosed)
+	SLATE_EVENT(FSimpleDelegate, OnClosed)
 
-	SLATE_ARGUMENT(FSimpleDelegate, OnBackClicked)
-	SLATE_ARGUMENT(FSimpleDelegate, OnHomeClicked)
-	SLATE_ARGUMENT(FSimpleDelegate, OnNextClicked)
+	SLATE_EVENT(FSimpleDelegate, OnBackClicked)
+	SLATE_EVENT(FSimpleDelegate, OnHomeClicked)
+	SLATE_EVENT(FSimpleDelegate, OnNextClicked)
 	SLATE_ATTRIBUTE(bool, IsBackEnabled)
 	SLATE_ATTRIBUTE(bool, IsHomeEnabled)
 	SLATE_ATTRIBUTE(bool, IsNextEnabled)
 
 	/** Whether we can show full window content in this overlay (i.e. in the same window as the navigation controls) */
 	SLATE_ARGUMENT(bool, AllowNonWidgetContent)
+
+	/** Delegates for registering & querying whether a widget was drawn */
+	SLATE_EVENT(FOnWidgetWasDrawn, OnWidgetWasDrawn)
+	SLATE_EVENT(FOnWasWidgetDrawn, OnWasWidgetDrawn)
 
 	SLATE_END_ARGS()
 
@@ -86,4 +92,7 @@ private:
 
 	/** Flag to see if we have valid content (this widget is created to also supply picker overlays) */
 	bool bHasValidContent;
+
+	/** Delegate for querying whether a widget was drawn */
+	FOnWidgetWasDrawn OnWidgetWasDrawn;
 };

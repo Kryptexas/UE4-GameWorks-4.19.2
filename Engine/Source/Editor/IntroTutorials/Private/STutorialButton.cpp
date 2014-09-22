@@ -150,7 +150,7 @@ FReply STutorialButton::HandleButtonClicked()
 	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 	if(ShouldLaunchBrowser())
 	{
-		IntroTutorials.SummonTutorialBrowser(ContextWindow.Pin().ToSharedRef(), CachedBrowserFilter);
+		IntroTutorials.SummonTutorialBrowser(nullptr, CachedBrowserFilter);
 	}
 	else if (CachedLaunchTutorial != nullptr)
 	{
@@ -244,13 +244,10 @@ void STutorialButton::LaunchTutorial()
 
 void STutorialButton::LaunchBrowser()
 {
-	if(ContextWindow.IsValid())
-	{
-		RefreshStatus();
+	RefreshStatus();
 
-		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-		IntroTutorials.SummonTutorialBrowser(ContextWindow.Pin().ToSharedRef(), CachedBrowserFilter);
-	}
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.SummonTutorialBrowser(nullptr, CachedBrowserFilter);
 }
 
 bool STutorialButton::ShouldLaunchBrowser() const

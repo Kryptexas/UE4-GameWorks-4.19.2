@@ -3,9 +3,7 @@
 #pragma once
 
 #include "STutorialsBrowser.h"
-
-class STutorialsBrowser;
-class STutorialOverlay;
+#include "STutorialOverlay.h"
 
 /** Delegate fired when next button is clicked */
 DECLARE_DELEGATE_OneParam(FOnNextClicked, TWeakPtr<SWindow> /*InNavigationWindow*/);
@@ -26,14 +24,16 @@ class SEditorTutorials : public SCompoundWidget
 		_Visibility = EVisibility::SelfHitTestInvisible;
 	}
 
-	SLATE_ARGUMENT(FSimpleDelegate, OnCloseClicked)
+	SLATE_EVENT(FSimpleDelegate, OnCloseClicked)
 	SLATE_ARGUMENT(TWeakPtr<SWindow>, ParentWindow)
-	SLATE_ARGUMENT(FOnNextClicked, OnNextClicked)
-	SLATE_ARGUMENT(FSimpleDelegate, OnBackClicked)
-	SLATE_ARGUMENT(FSimpleDelegate, OnHomeClicked)
-	SLATE_ARGUMENT(FOnGetCurrentTutorial, OnGetCurrentTutorial)
-	SLATE_ARGUMENT(FOnGetCurrentTutorialStage, OnGetCurrentTutorialStage)
-	SLATE_ARGUMENT(FOnLaunchTutorial, OnLaunchTutorial)
+	SLATE_EVENT(FOnNextClicked, OnNextClicked)
+	SLATE_EVENT(FSimpleDelegate, OnBackClicked)
+	SLATE_EVENT(FSimpleDelegate, OnHomeClicked)
+	SLATE_EVENT(FOnGetCurrentTutorial, OnGetCurrentTutorial)
+	SLATE_EVENT(FOnGetCurrentTutorialStage, OnGetCurrentTutorialStage)
+	SLATE_EVENT(FOnLaunchTutorial, OnLaunchTutorial)
+	SLATE_EVENT(FOnWidgetWasDrawn, OnWidgetWasDrawn)
+	SLATE_EVENT(FOnWasWidgetDrawn, OnWasWidgetDrawn)
 
 	SLATE_END_ARGS()
 
@@ -131,4 +131,8 @@ private:
 	/** External delegates used to report user interaction */
 	FSimpleDelegate OnTutorialClosed;
 	FSimpleDelegate OnTutorialExited;
+
+	/** Delegates for registering & querying whether a widget was drawn */
+	FOnWidgetWasDrawn OnWidgetWasDrawn;
+	FOnWasWidgetDrawn OnWasWidgetDrawn;
 };

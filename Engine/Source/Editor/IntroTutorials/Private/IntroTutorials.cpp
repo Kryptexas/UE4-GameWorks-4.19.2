@@ -249,8 +249,7 @@ void FIntroTutorials::MainFrameLoad(TSharedPtr<SWindow> InRootWindow, bool bIsNe
 
 void FIntroTutorials::SummonTutorialHome()
 {
-	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
-	SummonTutorialBrowser(LevelEditorModule.GetLevelEditorTab()->GetParentWindow().ToSharedRef());
+	SummonTutorialBrowser();
 }
 
 void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset, bool bForceWelcome)

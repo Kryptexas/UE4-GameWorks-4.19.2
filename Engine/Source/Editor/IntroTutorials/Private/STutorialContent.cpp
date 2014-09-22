@@ -43,6 +43,7 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 	IsNextEnabled = InArgs._IsNextEnabled;
 	Anchor = InArgs._Anchor;
 	bAllowNonWidgetContent = InArgs._AllowNonWidgetContent;
+	OnWasWidgetDrawn = InArgs._OnWasWidgetDrawn;
 
 	BorderIntroAnimation.AddCurve(0.0f, TutorialConstants::BorderIntroAnimationLength, ECurveEaseFunction::CubicOut);
 	BorderPulseAnimation.AddCurve(0.0f, TutorialConstants::BorderPulseAnimationLength, ECurveEaseFunction::Linear);
@@ -336,7 +337,15 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 
 FVector2D STutorialContent::GetPosition() const
 {
-	const bool bNonVisibleWidgetBound = bAllowNonWidgetContent && !bIsVisible && Anchor.Type == ETutorialAnchorIdentifier::NamedWidget;
+	bool bNonVisibleWidgetBound = bAllowNonWidgetContent && !bIsVisible && Anchor.Type == ETutorialAnchorIdentifier::NamedWidget;
+	if(bNonVisibleWidgetBound)
+	{
+		if(OnWasWidgetDrawn.IsBound())
+		{
+			bNonVisibleWidgetBound &= !OnWasWidgetDrawn.Execute(Anchor.WrapperIdentifier);
+		}
+	}
+
 	if(bNonVisibleWidgetBound)
 	{
 		// fallback: center on cached window
@@ -445,7 +454,14 @@ EVisibility STutorialContent::GetVisibility() const
 	const bool bNonWidgetBound =  Anchor.Type == ETutorialAnchorIdentifier::None;
 
 	// fallback if widget is not drawn - we should display this content anyway
-	const bool bNonVisibleWidgetBound = bAllowNonWidgetContent && !bIsVisible && Anchor.Type == ETutorialAnchorIdentifier::NamedWidget;
+	bool bNonVisibleWidgetBound = bAllowNonWidgetContent && !bIsVisible && Anchor.Type == ETutorialAnchorIdentifier::NamedWidget;
+	if(bNonVisibleWidgetBound)
+	{
+		if(OnWasWidgetDrawn.IsBound())
+		{
+			bNonVisibleWidgetBound &= !OnWasWidgetDrawn.Execute(Anchor.WrapperIdentifier);
+		}	
+	}
 
 	return (bVisibleWidgetBound || bNonWidgetBound || bNonVisibleWidgetBound) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 }
