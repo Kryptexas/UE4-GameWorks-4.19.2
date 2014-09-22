@@ -23,6 +23,8 @@ public:
 
 	FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
 
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+
 private:
 
 	virtual void OnTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );
@@ -38,6 +40,8 @@ private:
 	TSharedPtr< class FPropertyEditor > PropertyEditor;
 
 	TSharedPtr< class SWidget > PrimaryWidget;
+
+	TOptional< float > PreviousHeight;
 
 	/** Cached flag as we would like multi-line text widgets to be slightly larger */
 	bool bIsMultiLine;

@@ -412,6 +412,11 @@ bool FPropertyEditor::IsPropertyEditingEnabled() const
 		(EditConditionProperty == NULL || IsEditConditionMet( EditConditionProperty, PropertyEditConditions ));
 }
 
+void FPropertyEditor::RequestRefresh()
+{
+	PropertyUtilities->RequestRefresh();
+}
+
 bool FPropertyEditor::HasEditCondition() const 
 { 
 	return EditConditionProperty != NULL; 
