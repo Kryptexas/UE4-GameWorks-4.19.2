@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Styling/WidgetStyle.h"
 #include "SlateColor.generated.h"
 
@@ -34,7 +35,7 @@ namespace ESlateColorStylingMode
  * A Slate color can be a directly specified value, or the color can be pulled from a WidgetStyle.
  */
 USTRUCT(BlueprintType)
-struct FSlateColor
+struct SLATECORE_API FSlateColor
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -170,6 +171,9 @@ public:
 		return FSlateColor( ESlateColorStylingMode::UseColor_Foreground_Subdued );
 	}
 
+	/** Used to upgrade an FColor or FLinearColor property to an FSlateColor property */
+	bool SerializeFromMismatchedTag( const struct FPropertyTag& Tag, FArchive& Ar );
+
 protected:
 	
 	// Private constructor to prevent construction of invalid FSlateColors
@@ -192,4 +196,14 @@ private:
 
 	// A shared pointer to the linked color value, if any.
 	TSharedPtr<FLinearColor> LinkedSpecifiedColor;
+};
+
+template<>
+struct TStructOpsTypeTraits<FSlateColor>
+	: public TStructOpsTypeTraitsBase
+{
+	enum 
+	{
+		WithSerializeFromMismatchedTag = true,
+	};
 };
