@@ -18,15 +18,18 @@ UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UPanelWidget::ReleaseNativeWidget()
+void UPanelWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
+	if ( bReleaseChildren )
 	{
-		if ( Slots[SlotIndex]->Content != NULL )
+		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
 		{
-			Slots[SlotIndex]->ReleaseNativeWidget();
+			if ( Slots[SlotIndex]->Content != NULL )
+			{
+				Slots[SlotIndex]->ReleaseSlateResources(bReleaseChildren);
+			}
 		}
 	}
 }

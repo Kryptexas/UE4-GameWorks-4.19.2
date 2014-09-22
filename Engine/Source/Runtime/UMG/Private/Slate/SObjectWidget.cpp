@@ -18,7 +18,12 @@ SObjectWidget::~SObjectWidget(void)
 {
 	if ( UObjectInitialized() && WidgetObject )
 	{
-		WidgetObject->ReleaseNativeWidget();
+		// NOTE: When the SObjectWidget gets released we know that the User Widget has
+		// been removed from the slate widget hierarchy.  When this occurs, we need to 
+		// immediately release all slate widget widgets to deletion from taking n-frames
+		// due to widget nesting.
+		const bool bReleaseChildren = true;
+		WidgetObject->ReleaseSlateResources(bReleaseChildren);
 	}
 }
 
@@ -34,7 +39,6 @@ void SObjectWidget::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		return WidgetObject->NativeTick(AllottedGeometry, InDeltaTime);
 	}
 }
-
 
 int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {

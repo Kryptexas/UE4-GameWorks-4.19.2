@@ -46,8 +46,8 @@ void UScrollBoxSlot::SynchronizeProperties()
 	SetHorizontalAlignment(HorizontalAlignment);
 }
 
-void UScrollBoxSlot::ReleaseNativeWidget()
+void UScrollBoxSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 	Slot = nullptr;
 }

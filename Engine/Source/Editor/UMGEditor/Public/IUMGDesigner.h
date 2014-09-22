@@ -35,9 +35,13 @@ public:
 	/** @return The Geometry representing the designer area, useful for when you need to convert mouse into designer space. */
 	virtual FGeometry GetDesignerGeometry() const = 0;
 
-	/**  */
+	/**
+	 * Gets the previous frames widget geometry.
+	 */
 	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const = 0;
 
-	/**  */
+	/**
+	 * Gets the previous frames widget geometry of the parent of the provided widget.
+	 */
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const = 0;
 };

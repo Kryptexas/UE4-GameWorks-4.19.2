@@ -68,7 +68,7 @@ public:
 	// End of UWidget interface
 
 	// UVisual interface
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	// End of UVisual interface
 
 	// Begin UObject interface

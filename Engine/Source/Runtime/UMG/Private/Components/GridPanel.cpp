@@ -16,9 +16,9 @@ UGridPanel::UGridPanel(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UGridPanel::ReleaseNativeWidget()
+void UGridPanel::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyGridPanel.Reset();
 }

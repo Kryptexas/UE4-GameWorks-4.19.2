@@ -139,9 +139,6 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	Register(MakeShareable(new FUniformGridSlotExtension()));
 	Register(MakeShareable(new FGridSlotExtension()));
 
-	UWidgetBlueprint* Blueprint = GetBlueprint();
-	Blueprint->OnChanged().AddSP(this, &SDesignerView::OnBlueprintChanged);
-
 	FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled.AddSP( this, &SDesignerView::OnBlueprintCompiled );
 
 	BindCommands();
@@ -656,31 +653,16 @@ void SDesignerView::Register(TSharedRef<FDesignerExtension> Extension)
 	DesignerExtensions.Add(Extension);
 }
 
-void SDesignerView::OnBlueprintChanged(UBlueprint* InBlueprint)
-{
-	if ( InBlueprint )
-	{
-		
-	}
-}
-
 void SDesignerView::OnBlueprintCompiled(UBlueprint* InBlueprint)
 {
 	UBlueprint* BP = BlueprintEditor.Pin()->GetBlueprintObj();
 	if( BP == InBlueprint )
 	{
-		UpdatePreviewWidget();
-	}
-}
+		CachedWidgetGeometry.Reset();
 
-void SDesignerView::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
-{
-	if ( !ensure(ObjectBeingModified) )
-	{
-		return;
+		const bool bForceUpdate = true;
+		UpdatePreviewWidget(bForceUpdate);
 	}
-
-	//UpdatePreview(InBlueprint);
 }
 
 FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
@@ -1022,11 +1004,11 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 	return LayerId;
 }
 
-void SDesignerView::UpdatePreviewWidget()
+void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 {
 	UUserWidget* LatestPreviewWidget = BlueprintEditor.Pin()->GetPreview();
 
-	if ( LatestPreviewWidget != PreviewWidget )
+	if ( LatestPreviewWidget != PreviewWidget || bForceUpdate )
 	{
 		PreviewWidget = LatestPreviewWidget;
 		if ( PreviewWidget )
@@ -1070,7 +1052,8 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	CachedDesignerGeometry = AllottedGeometry;
 	HoverTime += InDeltaTime;
 
-	UpdatePreviewWidget();
+	const bool bForceUpdate = false;
+	UpdatePreviewWidget(bForceUpdate);
 
 	// Update the selected widget to match the selected template.
 	if ( PreviewWidget )

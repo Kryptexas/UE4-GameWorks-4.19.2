@@ -15,9 +15,9 @@ UBorderSlot::UBorderSlot(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Fill;
 }
 
-void UBorderSlot::ReleaseNativeWidget()
+void UBorderSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Border.Reset();
 }

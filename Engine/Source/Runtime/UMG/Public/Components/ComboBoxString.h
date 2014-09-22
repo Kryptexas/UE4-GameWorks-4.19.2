@@ -80,7 +80,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ComboBox")
 	FString GetSelectedOption() const;
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;

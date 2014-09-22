@@ -16,9 +16,9 @@ UVerticalBox::UVerticalBox(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity( Defaults._Visibility.Get() );
 }
 
-void UVerticalBox::ReleaseNativeWidget()
+void UVerticalBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyVerticalBox.Reset();
 }

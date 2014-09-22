@@ -14,9 +14,9 @@ UButtonSlot::UButtonSlot(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Center;
 }
 
-void UButtonSlot::ReleaseNativeWidget()
+void UButtonSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Button.Reset();
 }

@@ -21,9 +21,9 @@ UThrobber::UThrobber(const FPostConstructInitializeProperties& PCIP)
 	bAnimateOpacity = (DefaultArgs._Animate & SThrobber::Opacity) != 0;
 }
 
-void UThrobber::ReleaseNativeWidget()
+void UThrobber::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyThrobber.Reset();
 }

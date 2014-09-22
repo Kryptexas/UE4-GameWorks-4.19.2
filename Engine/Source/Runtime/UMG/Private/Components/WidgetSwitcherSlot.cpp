@@ -13,9 +13,9 @@ UWidgetSwitcherSlot::UWidgetSwitcherSlot(const FPostConstructInitializePropertie
 	VerticalAlignment = VAlign_Fill;
 }
 
-void UWidgetSwitcherSlot::ReleaseNativeWidget()
+void UWidgetSwitcherSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }

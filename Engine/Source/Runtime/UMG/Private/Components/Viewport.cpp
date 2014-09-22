@@ -499,9 +499,9 @@ UViewport::UViewport(const FPostConstructInitializeProperties& PCIP)
 	////ParentArgs.RenderDirectlyToWindow(true);
 }
 
-void UViewport::ReleaseNativeWidget()
+void UViewport::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	ViewportWidget.Reset();
 }

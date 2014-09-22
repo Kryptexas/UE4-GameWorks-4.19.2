@@ -52,7 +52,7 @@ public:
 	///** @return Whether this menu has open submenus */
 	//bool HasOpenSubMenus() const;
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;

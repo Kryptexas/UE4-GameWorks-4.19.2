@@ -19,9 +19,9 @@ UProgressBar::UProgressBar(const FPostConstructInitializeProperties& PCIP)
 	FillColorAndOpacity = FLinearColor::White;
 }
 
-void UProgressBar::ReleaseNativeWidget()
+void UProgressBar::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyProgressBar.Reset();
 }

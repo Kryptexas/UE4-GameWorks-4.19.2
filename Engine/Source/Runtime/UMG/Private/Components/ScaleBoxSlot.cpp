@@ -14,9 +14,9 @@ UScaleBoxSlot::UScaleBoxSlot(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Center;
 }
 
-void UScaleBoxSlot::ReleaseNativeWidget()
+void UScaleBoxSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	ScaleBox.Reset();
 }

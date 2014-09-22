@@ -16,9 +16,9 @@ UOverlay::UOverlay(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UOverlay::ReleaseNativeWidget()
+void UOverlay::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyOverlay.Reset();
 }

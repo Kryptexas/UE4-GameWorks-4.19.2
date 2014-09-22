@@ -11,113 +11,6 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-/**
- * This class holds onto the widget when it's placed into the viewport.
- */
-class SViewportWidgetHost : public SCompoundWidget
-{
-	SLATE_BEGIN_ARGS(SViewportWidgetHost)
-	{
-		_Visibility = EVisibility::SelfHitTestInvisible;
-	}
-
-		SLATE_DEFAULT_SLOT(FArguments, Content)
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs, TSharedPtr<SWidget> InUserWidget, bool bInModal)
-	{
-		bModal = bInModal;
-		UserWidget = InUserWidget;
-
-		SetVisibility(bModal ? EVisibility::Visible : EVisibility::SelfHitTestInvisible);
-
-		ChildSlot
-		[
-			InArgs._Content.Widget
-		];
-	}
-
-	virtual bool SupportsKeyboardFocus() const override
-	{
-		return bModal ? true : false;
-	}
-
-	FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent) override
-	{
-		// if we support focus, release the focus captures and lock the focus to this widget 
-		if ( bModal )
-		{
-			return FReply::Handled();// .ReleaseMouseCapture().ReleaseJoystickCapture();// .LockMouseToWidget(SharedThis(this));
-		}
-		else
-		{
-			return FReply::Unhandled();
-		}
-	}
-
-	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override
-	{
-		// If we support focus, show the default mouse cursor 
-		if ( SupportsKeyboardFocus() )
-		{
-			return FCursorReply::Cursor(EMouseCursor::Default);
-		}
-		else
-		{
-			return SCompoundWidget::OnCursorQuery(MyGeometry, CursorEvent);
-		}
-	}
-
-	virtual FReply OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent) override
-	{
-		return bModal ? FReply::Handled() : FReply::Unhandled();
-	}
-
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
-	{
-		return bModal ? FReply::Handled() : FReply::Unhandled();
-	}
-	
-	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
-	{
-		return bModal ? FReply::Handled() : FReply::Unhandled();
-	}
-
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
-	{
-		return bModal ? FReply::Handled().CaptureMouse(AsShared()).CaptureJoystick(AsShared()) : FReply::Unhandled();
-	}
-
-	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
-	{
-		return bModal ? FReply::Handled().ReleaseMouseCapture().ReleaseJoystickCapture() : FReply::Unhandled();
-	}
-
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
-	{
-		return bModal ? FReply::Handled() : FReply::Unhandled();
-	}
-
-	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
-	{
-		return bModal ? FReply::Handled() : FReply::Unhandled();
-	}
-
-	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
-	{
-		return bModal ? FReply::Handled() : FReply::Unhandled();
-	}
-
-	bool IsModal() const { return bModal; }
-
-protected:
-	bool bModal;
-
-	TSharedPtr<SWidget> UserWidget;
-};
-
-
 /////////////////////////////////////////////////////
 // UUserWidget
 
@@ -159,14 +52,14 @@ void UUserWidget::PostDuplicate(bool bDuplicateForPIE)
 	Initialize();
 }
 
-void UUserWidget::ReleaseNativeWidget()
+void UUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	UWidget* RootWidget = GetRootWidgetComponent();
 	if ( RootWidget )
 	{
-		RootWidget->ReleaseNativeWidget();
+		RootWidget->ReleaseSlateResources(bReleaseChildren);
 	}
 }
 
@@ -535,19 +428,19 @@ UWidget* UUserWidget::GetRootWidgetComponent()
 	return NULL;
 }
 
-void UUserWidget::AddToViewport(bool bModal)
+void UUserWidget::AddToViewport()
 {
 	if ( !FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> OutUserSlateWidget;
 		TSharedRef<SWidget> RootWidget = MakeViewportWidget(OutUserSlateWidget);
 
-		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, OutUserSlateWidget, bModal)
-			[
-				RootWidget
-			];
+		//TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, OutUserSlateWidget)
+		//	[
+		//		RootWidget
+		//	];
 
-		FullScreenWidget = WidgetHost;
+		FullScreenWidget = OutUserSlateWidget;
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -555,25 +448,25 @@ void UUserWidget::AddToViewport(bool bModal)
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				ViewportClient->AddViewportWidgetContent(WidgetHost);
+				ViewportClient->AddViewportWidgetContent(OutUserSlateWidget.ToSharedRef());
 
-				//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
-				// the Widget stack, and the dialog stack.
-				if ( bModal )
-				{
-					if ( FSceneViewport* SceneViewport = ViewportClient->GetGameViewport() )
-					{
-						TWeakPtr<SViewport> GameViewportWidget = SceneViewport->GetViewportWidget();
+				////TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+				//// the Widget stack, and the dialog stack.
+				//if ( bModal )
+				//{
+				//	if ( FSceneViewport* SceneViewport = ViewportClient->GetGameViewport() )
+				//	{
+				//		TWeakPtr<SViewport> GameViewportWidget = SceneViewport->GetViewportWidget();
 
-						if ( GameViewportWidget.IsValid() )
-						{
-							GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(OutUserSlateWidget);
+				//		if ( GameViewportWidget.IsValid() )
+				//		{
+				//			GameViewportWidget.Pin()->SetWidgetToFocusOnActivate(OutUserSlateWidget);
 
-							FSlateApplication::Get().SetFocusToGameViewport();
-							FSlateApplication::Get().SetJoystickCaptorToGameViewport();
-						}
-					}
-				}
+				//			FSlateApplication::Get().SetFocusToGameViewport();
+				//			FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+				//		}
+				//	}
+				//}
 			}
 		}
 	}
@@ -583,7 +476,7 @@ void UUserWidget::RemoveFromViewport()
 {
 	if ( FullScreenWidget.IsValid() )
 	{
-		TSharedPtr<SViewportWidgetHost> WidgetHost = FullScreenWidget.Pin();
+		TSharedPtr<SWidget> WidgetHost = FullScreenWidget.Pin();
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -593,24 +486,24 @@ void UUserWidget::RemoveFromViewport()
 			{
 				ViewportClient->RemoveViewportWidgetContent(WidgetHost.ToSharedRef());
 
-				if ( WidgetHost->IsModal() )
-				{
-					if ( FSceneViewport* SceneViewport = ViewportClient->GetGameViewport() )
-					{
-						TWeakPtr<SViewport> GameViewportWidget = SceneViewport->GetViewportWidget();
+				//if ( WidgetHost->IsModal() )
+				//{
+				//	if ( FSceneViewport* SceneViewport = ViewportClient->GetGameViewport() )
+				//	{
+				//		TWeakPtr<SViewport> GameViewportWidget = SceneViewport->GetViewportWidget();
 
-						if ( GameViewportWidget.IsValid() )
-						{
-							//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
-							// the Widget stack, and the dialog stack.
-							GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
-							FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+				//		if ( GameViewportWidget.IsValid() )
+				//		{
+				//			//TODO UMG this isn't what should manage focus, a higher level window controller, probably the viewport needs to understand
+				//			// the Widget stack, and the dialog stack.
+				//			GameViewportWidget.Pin()->ClearWidgetToFocusOnActivate();
+				//			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
 
-							FSlateApplication::Get().SetFocusToGameViewport();
-							FSlateApplication::Get().SetJoystickCaptorToGameViewport();
-						}
-					}
-				}
+				//			FSlateApplication::Get().SetFocusToGameViewport();
+				//			FSlateApplication::Get().SetJoystickCaptorToGameViewport();
+				//		}
+				//	}
+				//}
 			}
 		}
 	}

@@ -44,7 +44,7 @@ public:
 	/** Builds the underlying slot for the slate ScaleBox. */
 	void BuildSlot(TSharedRef<SScaleBox> InScaleBox);
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 private:
 

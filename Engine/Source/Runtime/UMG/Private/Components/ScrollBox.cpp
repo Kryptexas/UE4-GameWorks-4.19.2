@@ -21,9 +21,9 @@ UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
 	WidgetBarStyle = *Defaults._ScrollBarStyle;
 }
 
-void UScrollBox::ReleaseNativeWidget()
+void UScrollBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyScrollBox.Reset();
 }

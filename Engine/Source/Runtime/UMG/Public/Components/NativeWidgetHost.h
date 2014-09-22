@@ -15,7 +15,7 @@ class UMG_API UNativeWidgetHost : public UWidget
 
 	void SetContent(TSharedRef<SWidget> InContent);
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;

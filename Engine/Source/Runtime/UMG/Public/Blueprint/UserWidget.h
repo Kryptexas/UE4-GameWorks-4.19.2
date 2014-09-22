@@ -94,7 +94,7 @@ public:
 	void Initialize();
 
 	//UVisual interface
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	// End of UVisual interface
 
 	/** Sets that this widget is being designed sets it on all children as well. */
@@ -105,7 +105,7 @@ public:
 	 * @param bModal If this dialog should steal keyboard/mouse focus and consume all input. Great for a fullscreen menu. Terrible for HUDs.
 	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
-	void AddToViewport(bool bModal = false);
+	void AddToViewport();
 
 	/**
 	 * Removes the widget from the viewport.
@@ -323,7 +323,7 @@ private:
 	FVector2D ViewportAlignment;
 	int32 ViewportZOrder;
 
-	TWeakPtr<class SViewportWidgetHost> FullScreenWidget;
+	TWeakPtr<SWidget> FullScreenWidget;
 
 	FLocalPlayerContext PlayerContext;
 

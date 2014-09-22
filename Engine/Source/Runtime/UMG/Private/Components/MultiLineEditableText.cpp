@@ -17,9 +17,9 @@ UMultiLineEditableText::UMultiLineEditableText(const FPostConstructInitializePro
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
 }
 
-void UMultiLineEditableText::ReleaseNativeWidget()
+void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyMultiLineEditableText.Reset();
 }

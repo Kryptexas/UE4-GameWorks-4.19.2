@@ -20,7 +20,7 @@ class UMG_API UHorizontalBox : public UPanelWidget
 	// End UWidget interface
 #endif
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 protected:
 

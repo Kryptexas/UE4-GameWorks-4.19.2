@@ -16,9 +16,9 @@ UGridSlot::UGridSlot(const FPostConstructInitializeProperties& PCIP)
 	Nudge = FVector2D(0, 0);
 }
 
-void UGridSlot::ReleaseNativeWidget()
+void UGridSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }

@@ -31,9 +31,9 @@ USpinBox::USpinBox(const FPostConstructInitializeProperties& PCIP)
 	ForegroundColor = FSlateColor(FLinearColor::Black);
 }
 
-void USpinBox::ReleaseNativeWidget()
+void USpinBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MySpinBox.Reset();
 }

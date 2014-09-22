@@ -32,7 +32,7 @@ public:
 
 	virtual bool CanMove() const;
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 	/** Applies all properties to the live slot if possible. */
 	virtual void SynchronizeProperties()
