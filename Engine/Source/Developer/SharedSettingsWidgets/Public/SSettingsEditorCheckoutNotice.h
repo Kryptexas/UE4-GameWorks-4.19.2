@@ -66,9 +66,6 @@ private:
 	// Callback for getting the status text when the config is unlocked
 	FText HandleUnlockedStatusText() const;
 
-	// Callback for getting the status color, which indicates if it is writeable or not
-	FSlateColor GetLockedOrUnlockedStatusBarColor() const;
-
 	// Callback for getting the visibility of the source control throbber
 	EVisibility HandleThrobberVisibility() const;
 
