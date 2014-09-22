@@ -44,6 +44,14 @@ void FMaterialInstanceParameterDetails::OnValueCommitted(float NewValue, ETextCo
 
 void FMaterialInstanceParameterDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
+	// Create a new category for a custom layout for the MIC parameters at the very top
+	FName GroupsCategoryName = TEXT("ParameterGroups");
+	IDetailCategoryBuilder& GroupsCategory = DetailLayout.EditCategory(GroupsCategoryName, NSLOCTEXT("MaterialEditor", "MICParamGroupsTitle", "Parameter Groups").ToString());
+	TSharedRef<IPropertyHandle> ParameterGroupsProperty = DetailLayout.GetProperty("ParameterGroups");
+
+	CreateGroupsWidget(ParameterGroupsProperty, GroupsCategory);
+
+	// Create default category for class properties
 	FName DefaultCategoryName = NAME_None;
 	IDetailCategoryBuilder& DefaultCategory = DetailLayout.EditCategory(DefaultCategoryName);
 
@@ -70,13 +78,6 @@ void FMaterialInstanceParameterDetails::CustomizeDetails( IDetailLayoutBuilder& 
 		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
 	}
 
-	// Create a new category for a custom layout for the MIC parameters
-	FName GroupsCategoryName = TEXT("ParameterGroups");
-	IDetailCategoryBuilder& GroupsCategory = DetailLayout.EditCategory(GroupsCategoryName, NSLOCTEXT("MaterialEditor", "MICParamGroupsTitle", "Parameter Groups").ToString());
-	TSharedRef<IPropertyHandle> ParameterGroupsProperty = DetailLayout.GetProperty("ParameterGroups");
-
-	CreateGroupsWidget(ParameterGroupsProperty, GroupsCategory);
-
 	//////////////////////////////////////////////////////////////////////////
 	DetailLayout.HideProperty("BasePropertyOverrides");
 	IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory(TEXT("MaterialOverrides"), NSLOCTEXT("MaterialEditor", "MICMaterialOverridesTitle", "Material Overrides").ToString());
@@ -92,7 +93,7 @@ void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyH
 	{
 		FEditorParameterGroup& ParameterGroup = MaterialEditorInstance->ParameterGroups[GroupIdx];
 
-		IDetailGroup& DetailGroup = GroupsCategory.AddGroup( ParameterGroup.GroupName, ParameterGroup.GroupName.ToString() );
+		IDetailGroup& DetailGroup = GroupsCategory.AddGroup( ParameterGroup.GroupName, ParameterGroup.GroupName.ToString(), false, true );
 
 		CreateSingleGroupWidget( ParameterGroup, ParameterGroupsProperty->GetChildHandle(GroupIdx), DetailGroup );
 	}

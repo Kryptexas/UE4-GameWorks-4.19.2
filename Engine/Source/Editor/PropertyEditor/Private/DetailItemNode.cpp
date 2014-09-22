@@ -109,13 +109,19 @@ void FDetailItemNode::InitGroup()
 {
 	Customization.DetailGroup->OnItemNodeInitialized( AsShared(), ParentCategory.Pin().ToSharedRef(), IsParentEnabled );
 
-	// Restore saved expansion state
-	FName GroupName = Customization.DetailGroup->GetGroupName();
-	if( GroupName != NAME_None )
+	if (Customization.DetailGroup->ShouldStartExpanded())
 	{
-		bIsExpanded = ParentCategory.Pin()->GetSavedExpansionState( *this );
+		bIsExpanded = true;
 	}
-
+	else
+	{
+		// Restore saved expansion state
+		FName GroupName = Customization.DetailGroup->GetGroupName();
+		if (GroupName != NAME_None)
+		{
+			bIsExpanded = ParentCategory.Pin()->GetSavedExpansionState(*this);
+		}
+	}
 }
 
 bool FDetailItemNode::HasMultiColumnWidget() const

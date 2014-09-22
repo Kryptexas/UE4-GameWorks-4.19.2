@@ -121,10 +121,10 @@ void FDetailCategoryImpl::AddCustomBuilder( TSharedRef<IDetailCustomNodeBuilder>
 	AddCustomLayout( NewCustomization, bForAdvanced );
 }
 
-IDetailGroup& FDetailCategoryImpl::AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced )
+IDetailGroup& FDetailCategoryImpl::AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced, bool bStartExpanded )
 {
 	FDetailLayoutCustomization NewCustomization;
-	NewCustomization.DetailGroup = MakeShareable( new FDetailGroup( GroupName, AsShared(), LocalizedDisplayName ) );
+	NewCustomization.DetailGroup = MakeShareable( new FDetailGroup( GroupName, AsShared(), LocalizedDisplayName, bStartExpanded ) );
 
 	AddCustomLayout( NewCustomization, bForAdvanced );
 
