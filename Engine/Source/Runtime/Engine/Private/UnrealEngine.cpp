@@ -5890,7 +5890,10 @@ float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 		{
 			if( DeltaTime < 0.0f )
 			{
-#if (UE_BUILD_SHIPPING && WITH_EDITOR)
+#if PLATFORM_ANDROID
+				UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
+				DeltaTime = 0.01;
+#elif (UE_BUILD_SHIPPING && WITH_EDITOR)
 				// End users don't have access to the secure parts of UDN. The localized string points to the release notes,
 				// which should include a link to the AMD CPU drivers download site.
 				UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("CPU time drift detected! Please consult release notes on how to address this."));
