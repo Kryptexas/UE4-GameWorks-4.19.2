@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.IO;
-using System.Linq; 
+using System.Linq;
 
 namespace UnrealBuildTool
 {
@@ -14,6 +14,32 @@ namespace UnrealBuildTool
 		// cache the location of SDK tools
 		static string EMCCPath;
 		static string PythonPath;
+        static string EmscriptenSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "/.emscripten");
+
+        Dictionary<string, string> ReadEmscriptenSettings()
+        {
+            // Check HTML5Platform.Automation.cs
+            if (!System.IO.File.Exists(EmscriptenSettingsPath))
+            {
+                return new Dictionary<string, string>();
+            }
+
+            Dictionary<string, string> Settings = new Dictionary<string, string>();
+            System.IO.StreamReader SettingFile = new System.IO.StreamReader(EmscriptenSettingsPath);
+            string EMLine = SettingFile.ReadToEnd();
+            string Pattern = @"(\w+)\s*=\s*['\[]((?:[^'\\]|\\.^)*)['\]]";
+            Regex Rgx = new Regex(Pattern, RegexOptions.IgnoreCase);
+            MatchCollection Matches = Rgx.Matches(EMLine);
+            foreach (Match Matched in Matches)
+            {
+                if (Matched.Groups.Count == 3 && Matched.Groups[2].ToString() != "")
+                {
+                    Settings[Matched.Groups[1].ToString()] = Matched.Groups[2].ToString();
+                }
+            }
+
+            return Settings;
+        }
 
 		public override void RegisterToolChain()
 		{
@@ -25,9 +51,17 @@ namespace UnrealBuildTool
 				BaseSDKPath = BaseSDKPath.Replace("\"", "");
 				if (!String.IsNullOrEmpty(BaseSDKPath))
                 {
+                    var EmscriptenSettings = ReadEmscriptenSettings();
 					EMCCPath = Path.Combine(BaseSDKPath, "emcc");
 					// also figure out where python lives (if no envvar, assume it's in the path)
-					PythonPath = Environment.GetEnvironmentVariable("PYTHON");
+                    if (EmscriptenSettings.ContainsKey("PYTHON"))
+                    {
+                        PythonPath = EmscriptenSettings["PYTHON"];
+                    }
+                    else
+                    {
+                        PythonPath = Environment.GetEnvironmentVariable("PYTHON");
+                    }
 
                     string PythonExeName = Utils.IsRunningOnMono ? "python" : "python.exe";
 
