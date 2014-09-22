@@ -5919,7 +5919,7 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 
 	const FTextBlockStyle NoAnimationFont =
 		FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 20))
+		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 18))
 		.SetColorAndOpacity(FSlateColor::UseForeground())
 		.SetShadowOffset(FVector2D(1, 1))
 		.SetShadowColorAndOpacity(FLinearColor::Black);
@@ -5927,6 +5927,8 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 
 	Set("UMGEditor.AddAnimationIcon", new IMAGE_BRUSH("Icons/PlusSymbol_12x", Icon12x12, FLinearColor(.05,.05,.05) ) );
 	Set("UMGEditor.NoAnimationFont", NoAnimationFont);
+
+	Set("UMGEditor.SelectionOutline", new BORDER_BRUSH("UMG/SelectionBorder", FMargin(.2f) ));
 }
 
 void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()
