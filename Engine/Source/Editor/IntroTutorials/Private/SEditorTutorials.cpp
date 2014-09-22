@@ -20,6 +20,8 @@ void SEditorTutorials::Construct(const FArguments& InArgs)
 	OnCloseClicked = InArgs._OnCloseClicked;
 	OnGetCurrentTutorial = InArgs._OnGetCurrentTutorial;
 	OnGetCurrentTutorialStage = InArgs._OnGetCurrentTutorialStage;
+	OnWidgetWasDrawn = InArgs._OnWidgetWasDrawn;
+	OnWasWidgetDrawn = InArgs._OnWasWidgetDrawn;
 
 	TutorialHome = SNew(STutorialsBrowser)
 		.Visibility(this, &SEditorTutorials::GetBrowserVisibility)
@@ -93,7 +95,10 @@ void SEditorTutorials::LaunchTutorial(bool bInIsNavigationWindow, FSimpleDelegat
 void SEditorTutorials::ShowBrowser(const FString& InFilter)
 {
 	TutorialHome->SetFilter(InFilter);
-	HandleHomeClicked();
+	OnHomeClicked.ExecuteIfBound();
+	ContentBox->ClearChildren();
+	OnTutorialExited.ExecuteIfBound();
+	bBrowserVisible = true;
 }
 
 void SEditorTutorials::HideContent()
@@ -136,11 +141,11 @@ void SEditorTutorials::HandleBackClicked()
 void SEditorTutorials::HandleHomeClicked()
 {
 	OnHomeClicked.ExecuteIfBound();
-
 	ContentBox->ClearChildren();
-	bBrowserVisible = true;
-	TutorialHome->ReloadTutorials();
 	OnTutorialExited.ExecuteIfBound();
+
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.SummonTutorialBrowser();
 }
 
 void SEditorTutorials::HandleNextClicked()
@@ -202,6 +207,8 @@ void SEditorTutorials::RebuildCurrentContent()
 			.IsBackEnabled(this, &SEditorTutorials::IsBackButtonEnabled)
 			.IsHomeEnabled(this, &SEditorTutorials::IsHomeButtonEnabled)
 			.IsNextEnabled(this, &SEditorTutorials::IsNextButtonEnabled)
+			.OnWidgetWasDrawn(OnWidgetWasDrawn)
+			.OnWasWidgetDrawn(OnWasWidgetDrawn)
 		];
 	}
 	else

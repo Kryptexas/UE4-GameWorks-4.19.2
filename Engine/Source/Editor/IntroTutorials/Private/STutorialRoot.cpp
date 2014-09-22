@@ -52,6 +52,8 @@ void STutorialRoot::MaybeAddOverlay(TSharedRef<SWindow> InWindow)
 					.OnGetCurrentTutorial(FOnGetCurrentTutorial::CreateSP(this, &STutorialRoot::HandleGetCurrentTutorial))
 					.OnGetCurrentTutorialStage(FOnGetCurrentTutorialStage::CreateSP(this, &STutorialRoot::HandleGetCurrentTutorialStage))
 					.OnLaunchTutorial(FOnLaunchTutorial::CreateSP(this, &STutorialRoot::LaunchTutorial))
+					.OnWasWidgetDrawn(FOnWasWidgetDrawn::CreateSP(this, &STutorialRoot::WasWidgetDrawn))
+					.OnWidgetWasDrawn(FOnWidgetWasDrawn::CreateSP(this, &STutorialRoot::WidgetWasDrawn))
 				]
 			];
 
@@ -75,6 +77,11 @@ void STutorialRoot::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	{
 		MaybeAddOverlay(Window);
 	}
+
+	// empty array but leave us the slack (we dont want to reallocate all the time, and this array should never grow too large)
+	PreviouslyDrawnWidgets.Empty(PreviouslyDrawnWidgets.Max());
+	PreviouslyDrawnWidgets.Append(MoveTemp(DrawnWidgets));
+	DrawnWidgets.Empty(DrawnWidgets.Max());
 }
 
 void STutorialRoot::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
@@ -314,6 +321,24 @@ void STutorialRoot::HandleCloseClicked()
 			
 		FEngineAnalytics::GetProvider().RecordEvent( FIntroTutorials::AnalyticsEventNameFromTutorial(TEXT("Rocket.Tutorials.Closed"), CurrentTutorial), EventAttributes );
 	}
+}
+
+bool STutorialRoot::WasWidgetDrawn(const FName& InName) const
+{
+	for(const auto& WidgetName : PreviouslyDrawnWidgets)
+	{
+		if(InName == WidgetName)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void STutorialRoot::WidgetWasDrawn(const FName& InName)
+{
+	DrawnWidgets.Add(InName);
 }
 
 #undef LOCTEXT_NAMESPACE

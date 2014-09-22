@@ -5,6 +5,7 @@
 #include "IDocumentation.h"
 #include "IDocumentationPage.h"
 #include "EditorTutorial.h"
+#include "STutorialOverlay.h"
 
 /**
  * The widget which displays 'floating' content 
@@ -30,16 +31,16 @@ class STutorialContent : public SCompoundWidget
 	SLATE_ARGUMENT(bool, IsStandalone)
 
 	/** Delegate fired when the close button is clicked */
-	SLATE_ARGUMENT(FSimpleDelegate, OnClosed)
+	SLATE_EVENT(FSimpleDelegate, OnClosed)
 
 	/** Delegate fired when the back button is clicked */
-	SLATE_ARGUMENT(FSimpleDelegate, OnBackClicked)
+	SLATE_EVENT(FSimpleDelegate, OnBackClicked)
 
 	/** Delegate fired when the home button is clicked */
-	SLATE_ARGUMENT(FSimpleDelegate, OnHomeClicked)
+	SLATE_EVENT(FSimpleDelegate, OnHomeClicked)
 
 	/** Delegate fired when the next button is clicked */
-	SLATE_ARGUMENT(FSimpleDelegate, OnNextClicked)
+	SLATE_EVENT(FSimpleDelegate, OnNextClicked)
 
 	/** Attribute controlling enabled state of back functionality */
 	SLATE_ATTRIBUTE(bool, IsBackEnabled)
@@ -58,6 +59,9 @@ class STutorialContent : public SCompoundWidget
 
 	/** Whether we can show full window content in this overlay (i.e. in the same window as the navigation controls) */
 	SLATE_ARGUMENT(bool, AllowNonWidgetContent)
+
+	/** Delegate for querying whether a widget was drawn */
+	SLATE_EVENT(FOnWasWidgetDrawn, OnWasWidgetDrawn)
 
 	SLATE_END_ARGS()
 
@@ -209,4 +213,7 @@ private:
 
 	/** Whether we can show full window content in this overlay (i.e. in the same window as the navigation controls) */
 	bool bAllowNonWidgetContent;
+
+	/** Delegate for querying whether a widget was drawn */
+	FOnWasWidgetDrawn OnWasWidgetDrawn;
 };

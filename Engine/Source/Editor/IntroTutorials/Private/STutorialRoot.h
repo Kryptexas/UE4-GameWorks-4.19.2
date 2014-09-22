@@ -45,6 +45,12 @@ public:
 	/** Got to the next stage in the current tutorial */
 	void GoToNextStage(TWeakPtr<SWindow> InNavigationWindow);
 
+	/** Has this named widget been raw anywhere this frame? */
+	bool WasWidgetDrawn(const FName& InName) const;
+
+	/** Register that this widget was drawn this frame */
+	void WidgetWasDrawn(const FName& InName);
+
 private:
 	/** Handle when the next button is clicked */
 	void HandleNextClicked(TWeakPtr<SWindow> InNavigationWindow);
@@ -79,4 +85,8 @@ private:
 
 	/** Start time of the current tutorial, if any */
 	float CurrentTutorialStartTime;
+
+	/** Current drawn widgets for the last frame */
+	TArray<FName> DrawnWidgets;
+	TArray<FName> PreviouslyDrawnWidgets;
 };

@@ -18,6 +18,7 @@ void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 	bIsStandalone = InArgs._IsStandalone;
 	OnClosed = InArgs._OnClosed;
 	bHasValidContent = InStage != nullptr;
+	OnWidgetWasDrawn = InArgs._OnWidgetWasDrawn;
 
 	TSharedPtr<SOverlay> Overlay;
 
@@ -80,7 +81,8 @@ void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 						.IsNextEnabled(InArgs._IsNextEnabled)
 						.WrapTextAt(WidgetContent.ContentWidth)
 						.Anchor(WidgetContent.WidgetAnchor)
-						.AllowNonWidgetContent(InArgs._AllowNonWidgetContent);
+						.AllowNonWidgetContent(InArgs._AllowNonWidgetContent)
+						.OnWasWidgetDrawn(InArgs._OnWasWidgetDrawn);
 					
 					PerformWidgetInteractions(WidgetContent); 					
 
@@ -132,6 +134,7 @@ int32 STutorialOverlay::TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeo
 	{
 		// we are a named widget - ask it to draw
 		OnPaintNamedWidget.Broadcast(InWidget, InGeometry);
+		OnWidgetWasDrawn.ExecuteIfBound(Tag);
 
 		// if we are picking, we need to draw an outline here
 		FName WidgetNameToHighlight = NAME_None;
