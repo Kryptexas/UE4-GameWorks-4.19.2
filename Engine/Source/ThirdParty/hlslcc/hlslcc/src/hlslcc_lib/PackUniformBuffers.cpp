@@ -7,6 +7,7 @@
 #include "mesa/ir_rvalue_visitor.h"
 #include "PackUniformBuffers.h"
 #include "IRDump.h"
+#include "mesa/ast.h"
 //@todo-rco: Remove STL!
 #include <algorithm>
 #include <sstream>
@@ -79,18 +80,18 @@ struct SFixSimpleArrayDereferencesVisitor : ir_rvalue_visitor
 						TVarVarMap::iterator itFound = UniformMap.find(ArrayVar);
 						if (itFound != UniformMap.end())
 						{
-							ir_variable* NewLocal = new(ParseState)ir_variable(ArrayElementType, ralloc_asprintf(ParseState, "ar%d", TempID++), ir_var_auto);
-							*RValuePointer = new(ParseState)ir_dereference_variable(NewLocal);
+							ir_variable* NewLocal = new(ParseState) ir_variable(ArrayElementType, ralloc_asprintf(ParseState, "ar%d", TempID++), ir_var_auto);
+							*RValuePointer = new(ParseState) ir_dereference_variable(NewLocal);
 
 							SUniformVarEntry& Entry = itFound->second;
 
 							ir_constant* ArrayBaseOffset = (DerefArray->array_index->type->base_type == GLSL_TYPE_UINT) ?
-								new(ParseState)ir_constant((unsigned)Entry.Vec4Start) :
-								new(ParseState)ir_constant(Entry.Vec4Start);
-							ir_expression* NewArrayIndex = new(ParseState)ir_expression(ir_binop_add, ArrayBaseOffset, DerefArray->array_index);
-							ir_dereference_array* NewDerefArray = new(ParseState)ir_dereference_array(new(ParseState)ir_dereference_variable(Entry.UniformArrayVar), NewArrayIndex);
+								new(ParseState) ir_constant((unsigned)Entry.Vec4Start) :
+								new(ParseState) ir_constant(Entry.Vec4Start);
+							ir_expression* NewArrayIndex = new(ParseState) ir_expression(ir_binop_add, ArrayBaseOffset, DerefArray->array_index);
+							ir_dereference_array* NewDerefArray = new(ParseState) ir_dereference_array(new(ParseState) ir_dereference_variable(Entry.UniformArrayVar), NewArrayIndex);
 
-							ir_swizzle* NewSwizzle = new(ParseState)ir_swizzle(
+							ir_swizzle* NewSwizzle = new(ParseState) ir_swizzle(
 								NewDerefArray,
 								MIN2(Entry.Components + 0, 3),
 								MIN2(Entry.Components + 1, 3),
@@ -99,7 +100,7 @@ struct SFixSimpleArrayDereferencesVisitor : ir_rvalue_visitor
 								ArrayElementType->vector_elements
 								);
 
-							ir_assignment* NewLocalInitializer = new(ParseState)ir_assignment(new(ParseState)ir_dereference_variable(NewLocal), NewSwizzle);
+							ir_assignment* NewLocalInitializer = new(ParseState) ir_assignment(new(ParseState) ir_dereference_variable(NewLocal), NewSwizzle);
 							base_ir->insert_before(NewLocalInitializer);
 							NewLocalInitializer->insert_before(NewLocal);
 						}
@@ -113,8 +114,8 @@ struct SFixSimpleArrayDereferencesVisitor : ir_rvalue_visitor
 						TVarVarMap::iterator itFound = UniformMap.find(ArrayVar);
 						if (itFound != UniformMap.end())
 						{
-							ir_variable* NewLocal = new(ParseState)ir_variable(ArrayElementType, ralloc_asprintf(ParseState, "ar%d", TempID++), ir_var_auto);
-							*RValuePointer = new(ParseState)ir_dereference_variable(NewLocal);
+							ir_variable* NewLocal = new(ParseState) ir_variable(ArrayElementType, ralloc_asprintf(ParseState, "ar%d", TempID++), ir_var_auto);
+							*RValuePointer = new(ParseState) ir_dereference_variable(NewLocal);
 
 							SUniformVarEntry& Entry = itFound->second;
 
@@ -126,19 +127,19 @@ struct SFixSimpleArrayDereferencesVisitor : ir_rvalue_visitor
 							{
 								// Offset baking in matrix column
 								ir_constant* ArrayBaseOffset = (DerefArray->array_index->type->base_type == GLSL_TYPE_UINT) ?
-									new(ParseState)ir_constant((unsigned)(Entry.Vec4Start + i)) :
-									new(ParseState)ir_constant((int)(Entry.Vec4Start + i));
+									new(ParseState) ir_constant((unsigned)(Entry.Vec4Start + i)) :
+									new(ParseState) ir_constant((int)(Entry.Vec4Start + i));
 								// Scale index by matrix columns
 								ir_constant* ArrayScale = (DerefArray->array_index->type->base_type == GLSL_TYPE_UINT) ?
-									new(ParseState)ir_constant((unsigned)(ArrayElementType->matrix_columns)) :
-									new(ParseState)ir_constant((int)(ArrayElementType->matrix_columns));
+									new(ParseState) ir_constant((unsigned)(ArrayElementType->matrix_columns)) :
+									new(ParseState) ir_constant((int)(ArrayElementType->matrix_columns));
 								ir_rvalue* BaseIndex = DerefArray->array_index->clone(ParseState, NULL);
-								ir_expression* NewArrayScale = new(ParseState)ir_expression(ir_binop_mul, BaseIndex, ArrayScale);
+								ir_expression* NewArrayScale = new(ParseState) ir_expression(ir_binop_mul, BaseIndex, ArrayScale);
 								// Compute final matrix address
-								ir_expression* NewArrayIndex = new(ParseState)ir_expression(ir_binop_add, ArrayBaseOffset, NewArrayScale);
-								ir_dereference_array* NewDerefArray = new(ParseState)ir_dereference_array(new(ParseState)ir_dereference_variable(Entry.UniformArrayVar), NewArrayIndex);
+								ir_expression* NewArrayIndex = new(ParseState) ir_expression(ir_binop_add, ArrayBaseOffset, NewArrayScale);
+								ir_dereference_array* NewDerefArray = new(ParseState) ir_dereference_array(new(ParseState) ir_dereference_variable(Entry.UniformArrayVar), NewArrayIndex);
 
-								ir_swizzle* NewSwizzle = new(ParseState)ir_swizzle(
+								ir_swizzle* NewSwizzle = new(ParseState) ir_swizzle(
 									NewDerefArray,
 									MIN2(Entry.Components + 0, 3),
 									MIN2(Entry.Components + 1, 3),
@@ -147,7 +148,7 @@ struct SFixSimpleArrayDereferencesVisitor : ir_rvalue_visitor
 									ArrayElementType->vector_elements
 									);
 
-								ir_assignment* NewLocalInitializer = new(ParseState)ir_assignment(new(ParseState)ir_dereference_array(NewLocal, new(ParseState)ir_constant(i)), NewSwizzle);
+								ir_assignment* NewLocalInitializer = new(ParseState) ir_assignment(new(ParseState) ir_dereference_array(NewLocal, new(ParseState) ir_constant(i)), NewSwizzle);
 								instructions.push_tail(NewLocalInitializer);
 							}
 							base_ir->insert_before(&instructions);
@@ -220,7 +221,7 @@ struct SConvertStructMemberToUniform : ir_rvalue_visitor
 					{
 						TStringIRVarMap::iterator FoundMember = FoundStructIter->second.find(DerefStruct->field);
 						check(FoundMember != FoundStructIter->second.end());
-						*RValuePointer = new(ParseState)ir_dereference_variable(FoundMember->second);
+						*RValuePointer = new(ParseState) ir_dereference_variable(FoundMember->second);
 					}
 				}
 			}
@@ -364,7 +365,7 @@ void FlattenUniformBufferStructures(exec_list* Instructions, _mesa_glsl_parse_st
 				// Go through each member and add a new entry on the uniform buffer
 				for (unsigned StructMemberIndex = 0; StructMemberIndex < var->type->length; ++StructMemberIndex)
 				{
-					ir_variable* NewLocal = new (ParseState)ir_variable(var->type->fields.structure[StructMemberIndex].type, ralloc_asprintf(ParseState, "%s_%s", var->name, var->type->fields.structure[StructMemberIndex].name), ir_var_uniform);
+					ir_variable* NewLocal = new (ParseState) ir_variable(var->type->fields.structure[StructMemberIndex].type, ralloc_asprintf(ParseState, "%s_%s", var->name, var->type->fields.structure[StructMemberIndex].name), ir_var_uniform);
 					NewLocal->semantic = var->semantic; // alias semantic to specify the uniform block.
 					NewLocal->read_only = true;
 
@@ -652,7 +653,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 					{
 						const glsl_type* ArrayElementType = glsl_type::get_instance(array_base_type, 4, 1);
 						int NumElementsAligned = (PUInfo.UniformArrays[ArrayType].SizeInFloats + 3) / 4;
-						UniformArrayVar = new(ctx)ir_variable(
+						UniformArrayVar = new(ctx) ir_variable(
 							glsl_type::get_array_instance(ArrayElementType, NumElementsAligned),
 							ralloc_asprintf(ParseState, "%s", UniformArrayName.c_str()),
 							ir_var_uniform
@@ -701,13 +702,13 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 				{
 					int SrcIndex = NumElements / 4;
 					int SrcComponents = NumElements % 4;
-					ir_rvalue* Src = new(ctx)ir_dereference_array(
-						new(ctx)ir_dereference_variable(UniformArrayVar),
-						new(ctx)ir_constant(SrcIndex)
+					ir_rvalue* Src = new(ctx) ir_dereference_array(
+						new(ctx) ir_dereference_variable(UniformArrayVar),
+						new(ctx) ir_constant(SrcIndex)
 						);
 					if (type->is_numeric() || type->is_boolean())
 					{
-						Src = new(ctx)ir_swizzle(
+						Src = new(ctx) ir_swizzle(
 							Src,
 							MIN2(SrcComponents + 0, 3),
 							MIN2(SrcComponents + 1, 3),
@@ -718,24 +719,24 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 					}
 					if (type->is_boolean())
 					{
-						Src = new(ctx)ir_expression(ir_unop_u2b, Src);
+						Src = new(ctx) ir_expression(ir_unop_u2b, Src);
 					}
-					ir_dereference* Dest = new(ctx)ir_dereference_variable(var);
+					ir_dereference* Dest = new(ctx) ir_dereference_variable(var);
 					if (NumRows > 1 || var->type->is_array())
 					{
 						if (var->type->is_array() && var->type->fields.array->matrix_columns > 1)
 						{
 							int MatrixNum = RowIndex / var->type->fields.array->matrix_columns;
 							int MatrixRow = RowIndex - (var->type->fields.array->matrix_columns * MatrixNum);
-							Dest = new(ctx)ir_dereference_array(Dest, new(ctx)ir_constant(MatrixNum));
-							Dest = new(ctx)ir_dereference_array(Dest, new(ctx)ir_constant(MatrixRow));
+							Dest = new(ctx) ir_dereference_array(Dest, new(ctx) ir_constant(MatrixNum));
+							Dest = new(ctx) ir_dereference_array(Dest, new(ctx) ir_constant(MatrixRow));
 						}
 						else
 						{
-							Dest = new(ctx)ir_dereference_array(Dest, new(ctx)ir_constant(RowIndex));
+							Dest = new(ctx) ir_dereference_array(Dest, new(ctx) ir_constant(RowIndex));
 						}
 					}
-					var->insert_after(new(ctx)ir_assignment(Dest, Src));
+					var->insert_after(new(ctx) ir_assignment(Dest, Src));
 					NumElements += Stride;
 				}
 				var->mode = ir_var_auto;
@@ -914,11 +915,11 @@ struct SExpandArrayAssignment : public ir_hierarchical_visitor
 
 			for (int i = 0; i < Var->type->array_size(); ++i)
 			{
-				ir_dereference_array* NewLHS = new(ParseState)ir_dereference_array(ir->lhs->clone(ParseState, NULL), new(ParseState)ir_constant(i));
+				ir_dereference_array* NewLHS = new(ParseState) ir_dereference_array(ir->lhs->clone(ParseState, NULL), new(ParseState) ir_constant(i));
 				NewLHS->type = Var->type->element_type();
-				ir_dereference_array* NewRHS = new(ParseState)ir_dereference_array(ir->rhs->clone(ParseState, NULL), new(ParseState)ir_constant(i));
+				ir_dereference_array* NewRHS = new(ParseState) ir_dereference_array(ir->rhs->clone(ParseState, NULL), new(ParseState) ir_constant(i));
 				NewRHS->type = Var->type->element_type();
-				ir_assignment* NewCopy = new(ParseState)ir_assignment(NewLHS, NewRHS);
+				ir_assignment* NewCopy = new(ParseState) ir_assignment(NewLHS, NewRHS);
 				ir->insert_before(NewCopy);
 			}
 
@@ -955,11 +956,11 @@ struct SExpandArrayAssignment : public ir_hierarchical_visitor
 				auto& Member = DerefStruct->record->type->fields.structure[FoundMember->second];
 				for (int i = 0; i < Member.type->length; ++i)
 				{
-					ir_dereference_array* NewLHS = new(ParseState)ir_dereference_array(DerefStruct->clone(ParseState, NULL), new(ParseState)ir_constant(i));
+					ir_dereference_array* NewLHS = new(ParseState) ir_dereference_array(DerefStruct->clone(ParseState, NULL), new(ParseState) ir_constant(i));
 					NewLHS->type = DerefStruct->type->element_type();
-					ir_dereference_array* NewRHS = new(ParseState)ir_dereference_array(ir->rhs->clone(ParseState, NULL), new(ParseState)ir_constant(i));
+					ir_dereference_array* NewRHS = new(ParseState) ir_dereference_array(ir->rhs->clone(ParseState, NULL), new(ParseState) ir_constant(i));
 					NewRHS->type = ir->rhs->type->element_type();
-					ir_assignment* NewCopy = new(ParseState)ir_assignment(NewLHS, NewRHS);
+					ir_assignment* NewCopy = new(ParseState) ir_assignment(NewLHS, NewRHS);
 					ir->insert_before(NewCopy);
 				}
 
@@ -1193,9 +1194,9 @@ namespace ArraysToMatrices
 			auto* ArraySubIndex = DerefArray->array->as_dereference_array();
 			if (ArraySubIndex)
 			{
-				auto* ArrayIndexMultiplier = new(ParseState)ir_constant(FoundIter->second);
-				auto* ArrayIndexMulExpression = new(ParseState)ir_expression(ir_binop_mul, ArraySubIndex->array_index, ArrayIndexMultiplier);
-				DerefArray->array_index = new(ParseState)ir_expression(ir_binop_add, ArrayIndexMulExpression, DerefArray->array_index);
+				auto* ArrayIndexMultiplier = new(ParseState) ir_constant(FoundIter->second);
+				auto* ArrayIndexMulExpression = new(ParseState)ir_expression(ir_binop_mul,ArraySubIndex->array_index,convert_component(ArrayIndexMultiplier,ArraySubIndex->array_index->type));
+				DerefArray->array_index = new(ParseState) ir_expression(ir_binop_add, convert_component(ArrayIndexMulExpression, DerefArray->array_index->type), DerefArray->array_index);
 				DerefArray->array = ArraySubIndex->array;
 			}
 
@@ -1243,23 +1244,23 @@ namespace ArraysToMatrices
 				}
 			}
 
-			auto* NewTemporary = new(ParseState)ir_variable(Expression->type, NULL, ir_var_temporary);
+			auto* NewTemporary = new(ParseState) ir_variable(Expression->type, NULL, ir_var_temporary);
 			base_ir->insert_before(NewTemporary);
 
 			for (int i = 0; i < Expression->type->matrix_columns; ++i)
 			{
-				auto* NewLHS = new(ParseState)ir_dereference_array(NewTemporary, new(ParseState)ir_constant(i));
+				auto* NewLHS = new(ParseState) ir_dereference_array(NewTemporary, new(ParseState) ir_constant(i));
 				auto* NewRHS = Expression->clone(ParseState, NULL);
 				for (int j = 0; j < Expression->get_num_operands(); ++j)
 				{
-					NewRHS->operands[j] = new(ParseState)ir_dereference_array(NewRHS->operands[j], new(ParseState)ir_constant(i));
+					NewRHS->operands[j] = new(ParseState) ir_dereference_array(NewRHS->operands[j], new(ParseState) ir_constant(i));
 				}
 				NewRHS->type = Expression->type->column_type();
-				auto* NewAssign = new(ParseState)ir_assignment(NewLHS, NewRHS);
+				auto* NewAssign = new(ParseState) ir_assignment(NewLHS, NewRHS);
 				base_ir->insert_before(NewAssign);
 			}
 
-			*RValue = new(ParseState)ir_dereference_variable(NewTemporary);
+			*RValue = new(ParseState) ir_dereference_variable(NewTemporary);
 		}
 	};
 }

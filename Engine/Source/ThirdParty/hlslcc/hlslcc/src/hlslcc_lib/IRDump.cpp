@@ -55,7 +55,7 @@ static void PrintType(void *)
 
 DebugPrintVisitor::DebugPrintVisitor(bool bSingleEntry) :
 	Indentation(0),
-	bIsGlobalScope(!bSingleEntry),
+	bIRVarEOL(!bSingleEntry),
 	ID(0),
 	bDumpBuiltInFunctions(false)
 {
@@ -96,12 +96,18 @@ void DebugPrintVisitor::visit(ir_variable* ir)
 	}
 	PrintType(ir->type);
 	irdump_printf(" %s", GetVarName(ir).c_str());
-	irdump_printf(";\n");
+	if (bIRVarEOL)
+	{
+		if (ir->semantic)
+		{
+			irdump_printf(" : %s", ir->semantic);
+		}
+		irdump_printf(";\n");
+	}
 }
 
 void DebugPrintVisitor::visit(ir_function_signature* ir)
 {
-	bIsGlobalScope = false;
 	PrintType(ir->return_type);
 	irdump_printf(" %s(", ir->function_name());
 
@@ -117,7 +123,10 @@ void DebugPrintVisitor::visit(ir_function_signature* ir)
 		{
 			irdump_printf(", ");
 		}
+		bool bPrevEOL = bIRVarEOL;
+		bIRVarEOL = false;
 		inst->accept(this);
+		bIRVarEOL = bPrevEOL;
 	}
 
 	irdump_printf(")\n{\n");
@@ -131,7 +140,6 @@ void DebugPrintVisitor::visit(ir_function_signature* ir)
 	}
 	Indentation--;
 	irdump_printf("}\n");
-	bIsGlobalScope = true;
 }
 
 void DebugPrintVisitor::visit(ir_function* ir)
@@ -330,10 +338,6 @@ void DebugPrintVisitor::visit(ir_dereference_variable* ir)
 	PrintID(ir);
 	ir_variable *var = ir->variable_referenced();
 	irdump_printf("%s", GetVarName(var).c_str());
-	if (bIsGlobalScope)
-	{
-		irdump_printf(";\n");
-	}
 }
 
 void DebugPrintVisitor::visit(ir_dereference_array* ir)
