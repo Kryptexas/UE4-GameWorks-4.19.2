@@ -8,6 +8,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"
 
 static FString TargetVarPinName(TEXT("Target"));
 static FString VarValuePinName(TEXT("Value"));
@@ -143,6 +144,23 @@ FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SetRefVarNodeTitle_Typed", "Set {PinType}"), Args);
 	}
 	return CachedNodeTitle;
+}
+
+bool UK2Node_VariableSetRef::IsActionFilteredOut(class FBlueprintActionFilter const& Filter)
+{
+	// Default to filtering this node out unless dragging off of a reference output pin
+	bool bIsFilteredOut = true;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+
+	for (UEdGraphPin* Pin : FilterContext.Pins)
+	{
+		if(Pin->Direction == EGPD_Output && Pin->PinType.bIsReference == true)
+		{
+			bIsFilteredOut = false;
+			break;
+		}
+	}
+	return bIsFilteredOut;
 }
 
 void UK2Node_VariableSetRef::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
