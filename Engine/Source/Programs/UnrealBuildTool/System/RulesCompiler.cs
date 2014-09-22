@@ -648,7 +648,14 @@ namespace UnrealBuildTool
         {
             return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development };
         }
-
+		/// <summary>
+		/// Return true if target should include a NonUnity test
+		/// </summary>
+		/// <returns>true if this target should include a NonUnity test
+		public virtual bool GUBP_IncludeNonUnityToolTest()
+		{
+			return false;
+		}
         /// <summary>
         /// Return true if this target should use a platform specific pass
         /// </summary>
