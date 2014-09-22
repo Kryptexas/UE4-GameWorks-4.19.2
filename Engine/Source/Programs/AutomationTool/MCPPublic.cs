@@ -217,6 +217,31 @@ namespace EpicGames.MCP.Automation
             CloudDirRelativePath = CommandUtils.CombinePaths(stagingDirRelativePath, "CloudDir");
             CloudDir = CommandUtils.CombinePaths(BuildRootPath, CloudDirRelativePath);
         }
+
+		/// <summary>
+		/// Basic constructor with staging dir suffix override, basically to avoid having platform concatenated
+		/// </summary>
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform platform, string stagingDirRelativePath, string stagingDirSuffix)
+			: this(InOwnerCommand, InAppName, InMcpConfigKey, InAppID, InBuildVersion, ToMCPPlatform(platform), stagingDirRelativePath, stagingDirSuffix)
+		{
+		}
+
+		/// <summary>
+		/// Basic constructor with staging dir suffix override, basically to avoid having platform concatenated
+		/// </summary>
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform platform, string stagingDirRelativePath, string stagingDirSuffix)
+		{
+			OwnerCommand = InOwnerCommand;
+			AppName = InAppName;
+			McpConfigKey = InMcpConfigKey;
+			AppID = InAppID;
+			BuildVersion = InBuildVersion;
+			Platform = platform;
+			var BuildRootPath = GetBuildRootPath();
+			StagingDir = CommandUtils.CombinePaths(BuildRootPath, stagingDirRelativePath, BuildVersion, stagingDirSuffix);
+			CloudDirRelativePath = CommandUtils.CombinePaths(stagingDirRelativePath, "CloudDir");
+			CloudDir = CommandUtils.CombinePaths(BuildRootPath, CloudDirRelativePath);
+		}
     }
 
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
@@ -35,7 +36,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 		FEnvQueryContextData* CachedData = ContextCache.Find(ContextClass);
 		if (CachedData == NULL)
 		{
-			UEnvQueryContext* ContextOb = ContextClass->GetDefaultObject<UEnvQueryContext>();
+			UEnvQueryManager* QueryManager = UEnvQueryManager::GetCurrent(World);
+			UEnvQueryContext* ContextOb = QueryManager->PrepareLocalContext(ContextClass);
+
 			ContextOb->ProvideContext(*this, ContextData);
 
 			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, GetContextAllocatedSize());
@@ -55,7 +58,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 		UE_LOG(LogEQS, Log, TEXT("Query [%s] is missing values for context [%s], skipping test %d:%d [%s]"),
 			*QueryName, *UEnvQueryTypes::GetShortTypeName(ContextClass).ToString(),
 			OptionIndex, CurrentTest,
-			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].GetTestObject(CurrentTest)).ToString() : TEXT("Generator")
+			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].Tests[CurrentTest]).ToString() : TEXT("Generator")
 			);
 
 		return false;
@@ -185,7 +188,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime, CurrentTest < 0);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime, CurrentTest >= 0);
 
-	const bool bDoingLastTest = (CurrentTest == OptionItem.TestsToPerform.Num() - 1);
+	const bool bDoingLastTest = (CurrentTest == OptionItem.Tests.Num() - 1);
 	bool bStepDone = true;
 	TimeLimit = InTimeLimit;
 
@@ -206,12 +209,32 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	}
 	else
 	{
-//		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].GetTestObject(CurrentTest)).ToString(), nullptr);
+//		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].Tests[CurrentTest]).ToString(), nullptr);
 
-		UEnvQueryTest* TestObject = OptionItem.GetTestObject(CurrentTest);
+		UEnvQueryTest* TestObject = OptionItem.Tests[CurrentTest];
 
 		// item generator uses this flag to alter the scoring behavior
 		bPassOnSingleResult = (bDoingLastTest && Mode == EEnvQueryRunMode::SingleResult && TestObject->CanRunAsFinalCondition());
+
+		if (bPassOnSingleResult)
+		{
+			// Since we know we're the last test that is a final condition, if we were scoring previously we should sort the tests now before we test them
+			bool bSortTests = false;
+			for (int32 TestIndex = 0; TestIndex < OptionItem.Tests.Num() - 1; ++TestIndex)
+			{
+				if (OptionItem.Tests[TestIndex]->TestPurpose != EEnvTestPurpose::Filter)
+				{
+					// Found one.  We should sort.
+					bSortTests = true;
+					break;
+				}
+			}
+
+			if (bSortTests)
+			{
+				SortScores();
+			}
+		}
 
 		const int32 ItemsAlreadyProcessed = CurrentTestStartingItem;
 		TestObject->RunTest(*this);
@@ -240,7 +263,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 
 	// sort results or switch to next option when all tests are performed
 	if (Status == EEnvQueryStatus::Processing &&
-		(OptionItem.TestsToPerform.Num() == CurrentTest || NumValidItems <= 0))
+		(OptionItem.Tests.Num() == CurrentTest || NumValidItems <= 0))
 	{
 		if (NumValidItems > 0)
 		{
@@ -528,7 +551,7 @@ void FEnvQueryInstance::FinalizeQuery()
 void FEnvQueryInstance::FinalizeGeneration()
 {
 	FEnvQueryOptionInstance& OptionInstance = Options[OptionIndex];
-	const int32 NumTests = OptionInstance.TestsToPerform.Num();
+	const int32 NumTests = OptionInstance.Tests.Num();
 
 	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, ItemDetails.GetAllocatedSize());
 	INC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
@@ -558,13 +581,13 @@ void FEnvQueryInstance::FinalizeGeneration()
 void FEnvQueryInstance::FinalizeTest()
 {
 	FEnvQueryOptionInstance& OptionInstance = Options[OptionIndex];
-	const int32 NumTests = OptionInstance.TestsToPerform.Num();
+	const int32 NumTests = OptionInstance.Tests.Num();
 
-	UEnvQueryTest* DefTestOb = OptionInstance.GetTestObject(CurrentTest);
+	UEnvQueryTest* TestOb = OptionInstance.Tests[CurrentTest];
 #if USE_EQS_DEBUGGER
 	if (bStoreDebugInfo)
 	{
-		DebugData.PerformedTestNames.Add(UEnvQueryTypes::GetShortTypeName(DefTestOb).ToString());
+		DebugData.PerformedTestNames.Add(UEnvQueryTypes::GetShortTypeName(TestOb).ToString());
 	}
 #endif
 
@@ -572,7 +595,7 @@ void FEnvQueryInstance::FinalizeTest()
 	if (IsInSingleItemFinalSearch() == false)
 	{
 		// do regular normalization
-		DefTestOb->NormalizeItemScores(*this);
+		TestOb->NormalizeItemScores(*this);
 	}
 	else
 	{

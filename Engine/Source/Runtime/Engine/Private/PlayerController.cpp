@@ -49,6 +49,7 @@ APlayerController::APlayerController(const class FPostConstructInitializePropert
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	PrimaryActorTick.bTickEvenWhenPaused = true;
 	bShouldPerformFullTickWhenPaused = false;
+	bSpeaking = false;
 	LastRetryPlayerTime = 0.f;
 	DefaultMouseCursor = EMouseCursor::Default;
 	DefaultClickTraceChannel = ECollisionChannel::ECC_Visibility;
@@ -2978,8 +2979,14 @@ void APlayerController::StopTalking()
 	ToggleSpeaking(false);
 }
 
+bool APlayerController::IsTalking()
+{
+	return bSpeaking;
+}
+
 void APlayerController::ToggleSpeaking(bool bSpeaking)
 {
+	this->bSpeaking = bSpeaking;
 	ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
 	if (LP != NULL)
 	{

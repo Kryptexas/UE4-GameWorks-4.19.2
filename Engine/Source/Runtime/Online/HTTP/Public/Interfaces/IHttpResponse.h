@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "IHttpBase.h"
+
 namespace EHttpResponseCodes
 {
 	/**

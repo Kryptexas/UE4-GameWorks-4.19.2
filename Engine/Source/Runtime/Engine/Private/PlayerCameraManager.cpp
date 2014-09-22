@@ -218,7 +218,7 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 	{
 		UCameraAnimInst* const AnimInst = ActiveAnims[Idx];
 
-		if (!AnimInst->bFinished)
+		if (AnimCameraActor && !AnimInst->bFinished)
 		{
 			// clear out animated camera actor
 			InitTempCameraActor(AnimCameraActor, AnimInst);
@@ -637,6 +637,7 @@ void APlayerCameraManager::Destroyed()
 	if (AnimCameraActor)
 	{
 		AnimCameraActor->Destroy();
+		AnimCameraActor = NULL;
 	}
 	Super::Destroyed();
 }

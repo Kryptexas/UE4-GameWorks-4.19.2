@@ -371,7 +371,10 @@ FReply FDefaultGameMoviePlayer::OnLoadingScreenMouseButtonDown(const FGeometry& 
 		if (LoadingScreenAttributes.bMoviesAreSkippable)
 		{
 			MovieStreamingIsDone.Set(1);
-			MovieStreamer->ForceCompletion();
+			if (MovieStreamer.IsValid())
+			{
+				MovieStreamer->ForceCompletion();
+			}
 		}
 
 		if (IsMovieStreamingFinished())

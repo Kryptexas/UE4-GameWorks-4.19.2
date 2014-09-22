@@ -17,6 +17,9 @@ void UEnvironmentQueryGraphNode_Test::PostPlacedNewNode()
 		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
 		NodeInstance = ConstructObject<UEnvQueryTest>(EnvQueryNodeClass, Query);
 		NodeInstance->SetFlags(RF_Transactional);
+
+		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(NodeInstance);
+		TestInstance->UpdateTestVersion();
 	}
 
 	if (ParentNode)

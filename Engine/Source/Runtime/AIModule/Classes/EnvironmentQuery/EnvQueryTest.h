@@ -152,6 +152,9 @@ public:
 
 	virtual void PostLoad() override;
 
+	/** update to latest version after spawning */
+	void UpdateTestVersion();
+
 #if WITH_EDITOR && USE_EQS_DEBUGGER
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif //WITH_EDITOR && USE_EQS_DEBUGGER

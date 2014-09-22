@@ -16,7 +16,7 @@ DEFINE_STAT(STAT_VisualLog);
 //----------------------------------------------------------------------//
 FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<UObject> >* Children)
 {
-	if (InActor->IsPendingKill() == false)
+	if (InActor && InActor->IsPendingKill() == false)
 	{
 		TimeStamp = InActor->GetWorld()->TimeSeconds;
 		Location = InActor->GetActorLocation();
@@ -555,8 +555,13 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 
 FVisLogEntry*  FVisualLog::GetEntryToWrite(const class AActor* Actor)
 {
-	const class AActor* LogOwner = GetVisualLogRedirection(Actor);
-	check(Actor && Actor->GetWorld() && LogOwner);
+	const class AActor* RedirectionActor = GetVisualLogRedirection(Actor);
+	const class AActor* LogOwner = RedirectionActor ? RedirectionActor : Actor;
+	ensure(Actor && Actor->GetWorld() && LogOwner);
+	if (!LogOwner)
+	{
+		return NULL;
+	}
 	const float TimeStamp = Actor->GetWorld()->TimeSeconds;
 	TSharedPtr<FActorsVisLog> Log = GetLog(LogOwner);
 	const int32 LastIndex = Log->Entries.Num() - 1;
@@ -588,6 +593,10 @@ void FVisualLog::Cleanup(bool bReleaseMemory)
 
 const class AActor* FVisualLog::GetVisualLogRedirection(const class UObject* Source)
 {
+	if (!Source)
+	{
+		return NULL;
+	}
 	for (auto Iterator = RedirectsMap.CreateConstIterator(); Iterator; ++Iterator)
 	{
 		const auto& Children = (*Iterator).Value;
@@ -632,7 +641,6 @@ void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 		return;
 	}
 
-	// this should log to OldRedirect
 	UE_VLOG(Source, LogVisual, Display, TEXT("Binding %s to log %s"), *Source->GetName(), *NewRedirection->GetName());
 
 	TArray<TWeakObjectPtr<UObject> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
@@ -657,6 +665,9 @@ void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 			RedirectsMap.Remove(SourceAsActor);
 		}
 	}
+
+	UE_CVLOG(OldRedirect != NULL, OldRedirect, LogVisual, Display, TEXT("Binding %s to log %s"), *Source->GetName(), *NewRedirection->GetName());
+	UE_CVLOG(NewRedirection != NULL, NewRedirection, LogVisual, Display, TEXT("Binding %s to log %s"), *Source->GetName(), *NewRedirection->GetName());
 }
 
 void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData, FName TagName)

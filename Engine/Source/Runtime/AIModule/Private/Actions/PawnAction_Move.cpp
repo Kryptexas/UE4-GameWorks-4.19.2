@@ -7,6 +7,7 @@ UPawnAction_Move::UPawnAction_Move(const class FPostConstructInitializePropertie
 	: Super(PCIP)
 	, GoalLocation(FAISystem::InvalidLocation)
 	, AcceptableRadius(30.f)
+	, bFinishOnOverlap(true)
 	, bUsePathfinding(true)
 	, bProjectGoalToNavigation(false)
 	, bUpdatePathToGoal(true)
@@ -77,14 +78,14 @@ EPathFollowingRequestResult::Type UPawnAction_Move::RequestMove(AAIController* C
 	{
 		const bool bAtGoal = CheckAlreadyAtGoal(Controller, GoalActor, AcceptableRadius);
 		RequestResult = bAtGoal ? EPathFollowingRequestResult::AlreadyAtGoal : 
-			bUpdatePathToGoal ? Controller->MoveToActor(GoalActor, AcceptableRadius, true, bUsePathfinding, bAllowStrafe, FilterClass) :
-			Controller->MoveToLocation(GoalActor->GetActorLocation(), AcceptableRadius, true, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe);
+			bUpdatePathToGoal ? Controller->MoveToActor(GoalActor, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bAllowStrafe, FilterClass) :
+			Controller->MoveToLocation(GoalActor->GetActorLocation(), AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe);
 	}
 	else if (FAISystem::IsValidLocation(GoalLocation))
 	{
 		const bool bAtGoal = CheckAlreadyAtGoal(Controller, GoalLocation, AcceptableRadius);
 		RequestResult = bAtGoal ? EPathFollowingRequestResult::AlreadyAtGoal :
-			Controller->MoveToLocation(GoalLocation, AcceptableRadius, true, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe, FilterClass);
+			Controller->MoveToLocation(GoalLocation, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe, FilterClass);
 	}
 	else
 	{
@@ -239,11 +240,17 @@ void UPawnAction_Move::SetPath(FNavPathSharedRef InPath)
 
 void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event)
 {
-	UE_VLOG(GetController(), LogPawnAction, Log, TEXT("%s> Path updated!"), *GetName());
+	const AController* MyOwner = GetController();
+	if (MyOwner == NULL)
+	{
+		return;
+	}
+
+	UE_VLOG(MyOwner, LogPawnAction, Log, TEXT("%s> Path updated!"), *GetName());
 	
 	if (bAbortChildActionOnPathChange && GetChildAction())
 	{
-		UE_VLOG(GetController(), LogPawnAction, Log, TEXT(">> aborting child action: %s"), *GetNameSafe(GetChildAction()));
+		UE_VLOG(MyOwner, LogPawnAction, Log, TEXT(">> aborting child action: %s"), *GetNameSafe(GetChildAction()));
 		GetChildAction()->Abort(EAIForceParam::Force);
 	}
 

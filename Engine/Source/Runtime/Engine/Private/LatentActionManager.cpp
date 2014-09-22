@@ -16,6 +16,16 @@ FString FPendingLatentAction::GetDescription() const
 /////////////////////////////////////////////////////
 // FLatentActionManager
 
+void FLatentActionManager::AddNewAction(UObject* InActionObject, int32 UUID, FPendingLatentAction* NewAction)
+{
+	auto& ObjectActionListPtr = ObjectToActionListMap.FindOrAdd(InActionObject);
+	if (!ObjectActionListPtr.Get())
+	{
+		ObjectActionListPtr = MakeShareable(new FActionList());
+	}
+	ObjectActionListPtr->Add(UUID, NewAction);
+}
+
 void FLatentActionManager::RemoveActionsForObject(TWeakObjectPtr<UObject> InObject)
 {
 	ObjectsToRemove.Add(InObject);
@@ -27,7 +37,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 	{
 		for (const auto Key : ObjectsToRemove)
 		{
-			FActionList* const ObjectActionList = ObjectToActionListMap.Find(Key);
+			FActionList* const ObjectActionList = GetActionListForObject(InObject);
 			if (ObjectActionList)
 			{
 				for (TMultiMap<int32, FPendingLatentAction*>::TConstIterator It(*ObjectActionList); It; ++It)
@@ -49,7 +59,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 	{
 		if (!ProcessedThisFrame.Contains(InObject))
 		{
-			if (FActionList* ObjectActionList = ObjectToActionListMap.Find(InObject))
+			if (FActionList* ObjectActionList = GetActionListForObject(InObject))
 			{
 				TickLatentActionForObject(DeltaTime, *ObjectActionList, InObject);
 				ProcessedThisFrame.Add(InObject);
@@ -60,8 +70,11 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 	{
 		for (FObjectToActionListMap::TIterator ObjIt(ObjectToActionListMap); ObjIt; ++ObjIt)
 		{	
-			UObject* Object = ObjIt.Key().Get();
-			FActionList& ObjectActionList = ObjIt.Value();
+			TWeakObjectPtr<UObject> WeakPtr = ObjIt.Key();
+			UObject* Object = WeakPtr.Get();
+			auto ObjectActionListPtr = ObjIt.Value().Get();
+			check(ObjectActionListPtr);
+			FActionList& ObjectActionList = *ObjectActionListPtr;
 
 			if (Object != NULL)
 			{
@@ -71,6 +84,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 					if (!ProcessedThisFrame.Contains(Object))
 					{
 						TickLatentActionForObject(DeltaTime, ObjectActionList, Object);
+						ensure(ObjectActionListPtr == ObjIt.Value().Get());
 						ProcessedThisFrame.Add(Object);
 					}
 				}

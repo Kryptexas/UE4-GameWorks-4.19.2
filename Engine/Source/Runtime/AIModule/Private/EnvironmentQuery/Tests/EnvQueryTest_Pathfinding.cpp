@@ -197,6 +197,13 @@ void UEnvQueryTest_Pathfinding::PostEditChangeProperty(struct FPropertyChangedEv
 }
 #endif
 
+void UEnvQueryTest_Pathfinding::PostLoad()
+{
+	Super::PostLoad();
+	
+	SetWorkOnFloatValues(TestMode != EEnvTestPathfinding::PathExist);
+}
+
 bool UEnvQueryTest_Pathfinding::TestPathFrom(const FVector& ItemPos, const FVector& ContextPos, EPathFindingMode::Type Mode, const ANavigationData* NavData, UNavigationSystem* NavSys, const UObject* PathOwner) const
 {
 	const bool bPathExists = NavSys->TestPathSync(FPathFindingQuery(PathOwner, NavData, ItemPos, ContextPos), Mode);

@@ -202,6 +202,7 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
+	DOREPLIFETIME(UGameplayDebuggingComponent, AllEQSName);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -841,11 +842,36 @@ FORCEINLINE bool LineInCorrectDistance(const FVector& PlayerLoc, const FVector& 
 	return true;
 }
 
+#if WITH_RECAST
+ARecastNavMesh* UGameplayDebuggingComponent::GetNavData()
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys == NULL)
+	{
+		return NULL;
+	}
+
+	// Try to get the correct nav-mesh relative to the selected actor.
+	APawn* TargetPawn = Cast<APawn>(TargetActor);
+	if (TargetPawn != NULL)
+	{
+		const FNavAgentProperties* NavAgentProperties = TargetPawn->GetNavAgentProperties();
+		if (NavAgentProperties != NULL)
+		{
+			return Cast<ARecastNavMesh>(NavSys->GetNavDataForProps(*NavAgentProperties));
+		}
+	}
+
+	// If it wasn't found, just get the main nav-mesh data.
+	return Cast<ARecastNavMesh>(NavSys->GetMainNavData(FNavigationSystem::DontCreate));
+}
+#endif
+
 void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVector_NetQuantize10 TargetLocation)
 {
 #if WITH_RECAST
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	ARecastNavMesh* NavData = NavSys ? Cast<ARecastNavMesh>(NavSys->GetMainNavData(FNavigationSystem::DontCreate)) : NULL;
+	ARecastNavMesh* NavData = GetNavData();
 	if (NavData == NULL)
 	{
 		NavmeshRepData.Empty();

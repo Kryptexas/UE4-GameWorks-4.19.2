@@ -62,7 +62,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
 				, (ActorValue->GetActorLocation() - PawnLocation).SafeNormal2D());
 			
-			if (AngleDifference > PrecisionDot)
+			if (AngleDifference >= PrecisionDot)
 			{
 				Result = EBTNodeResult::Succeeded;
 			}
@@ -84,7 +84,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
 				, (KeyValue - PawnLocation).SafeNormal2D());
 
-			if (AngleDifference > PrecisionDot)
+			if (AngleDifference >= PrecisionDot)
 			{
 				Result = EBTNodeResult::Succeeded;
 			}
@@ -105,7 +105,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 			const FVector DirectionVector = KeyValue.Vector();
 			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector(), DirectionVector);
 
-			if (AngleDifference > PrecisionDot)
+			if (AngleDifference >= PrecisionDot)
 			{
 				Result = EBTNodeResult::Succeeded;
 			}
@@ -137,7 +137,7 @@ void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent* OwnerComp, ui
 		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();				
 		const FVector FocalPoint = AIController->GetFocalPoint(EAIFocusPriority::Gameplay);
 
-		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).SafeNormal2D()) > PrecisionDot)
+		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).SafeNormal2D()) >= PrecisionDot)
 		{
 			CleanUp(*AIController, NodeMemory);
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);

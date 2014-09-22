@@ -205,7 +205,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI")
 	virtual FVector GetFocalPoint() const;
 
-	FORCEINLINE FVector GetFocalPoint(EAIFocusPriority::Type Priority) const {  return FocusInformation.Priorities.IsValidIndex(Priority) ? *FocusInformation.Priorities[Priority].Position : FAISystem::InvalidLocation; }
+	FVector GetFocalPoint(EAIFocusPriority::Type Priority) const;
 	FORCEINLINE FFocusKnowledge::FFocusItem GetFocusItem(EAIFocusPriority::Type Priority) const { return FocusInformation.Priorities.IsValidIndex(Priority) ? FocusInformation.Priorities[Priority] : FFocusKnowledge::FFocusItem(); }
 	
 	/** Set FocalPoint as absolute position or offset from base. */

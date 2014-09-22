@@ -13,6 +13,7 @@ class AIMODULE_API UEnvQueryGenerator : public UObject
 	FString OptionName;
 
 	/** type of generated items */
+	UPROPERTY()
 	TSubclassOf<class UEnvQueryItemType> ItemType;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }

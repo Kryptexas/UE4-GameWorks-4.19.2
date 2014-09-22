@@ -78,7 +78,13 @@ const AActor* FPerceptionListener::GetBodyActor() const
 const IGenericTeamAgentInterface* FPerceptionListener::GetTeamAgent() const
 {
 	const UAIPerceptionComponent* PercComponent = Listener.Get();
-	check(PercComponent);
+	if (PercComponent == NULL)
+	{	// This could be NULL if the Listener is pending kill; in order to get the pointer ANYWAY, we'd need to use
+		// Listener.Get(true) instead.  This issue was hit when using KillPawns cheat at the same moment that pawns
+		// were spawning into the world.
+		return NULL;
+	}
+
 	const AActor* OwnerActor = PercComponent->GetOwner();
 	const IGenericTeamAgentInterface* OwnerTeamAgent = InterfaceCast<const IGenericTeamAgentInterface>(OwnerActor);
 	return OwnerTeamAgent != NULL ? OwnerTeamAgent : InterfaceCast<const IGenericTeamAgentInterface>(PercComponent->GetBodyActor());

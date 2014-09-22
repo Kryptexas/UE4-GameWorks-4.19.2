@@ -26,6 +26,9 @@ struct FBTNodeExecutionInfo
 	/** index of first task allowed to be executed */
 	FBTNodeIndex SearchStart;
 
+	/** index of last task allowed to be executed */
+	FBTNodeIndex SearchEnd;
+
 	/** node to be executed */
 	UBTCompositeNode* ExecuteNode;
 
@@ -42,6 +45,18 @@ struct FBTNodeExecutionInfo
 	uint8 bIsRestart : 1;
 
 	FBTNodeExecutionInfo() : ExecuteNode(NULL), bTryNextChild(false), bIsRestart(false) { }
+};
+
+struct FBTPendingExecutionInfo
+{
+	/** next task to execute */
+	UBTTaskNode* NextTask;
+
+	/** if set, tree ran out of nodes */
+	uint32 bOutOfNodes : 1;
+
+	FBTPendingExecutionInfo() : NextTask(NULL), bOutOfNodes(false) {}
+	bool IsSet() const { return NextTask || bOutOfNodes; }
 };
 
 UCLASS()
@@ -176,8 +191,11 @@ protected:
 	/** search data being currently used */
 	FBehaviorTreeSearchData SearchData;
 
-	/** execution request, will be applied when current task finish execution/aborting */
+	/** execution request, search will be performed when current task finish execution/aborting */
 	FBTNodeExecutionInfo ExecutionRequest;
+
+	/** result of ExecutionRequest, will be applied when current task finish aborting */
+	FBTPendingExecutionInfo PendingExecution;
 
 	/** message observers mapped by instance & execution index */
 	TMultiMap<FBTNodeIndex,FAIMessageObserverHandle> TaskMessageObservers;
@@ -221,6 +239,12 @@ protected:
 	/** remove instanced nodes, known subtree instances and safely clears their persistent memory */
 	void RemoveAllInstances();
 
+	/** copy memory block from running instances to persistent memory */
+	void CopyInstanceMemoryToPersistent();
+
+	/** copy memory block from persistent memory to running instances (rollback) */
+	void CopyInstanceMemoryFromPersistent();
+
 	/** find next task to execute */
 	UBTTaskNode* FindNextTask(UBTCompositeNode* ParentNode, uint16 ParentInstanceIdx, EBTNodeResult::Type LastResult);
 
@@ -228,10 +252,13 @@ protected:
 	void OnTreeFinished();
 
 	/** apply pending node updates from SearchData */
-	void ApplySearchData(UBTNode* NewActiveNode, int32 UpToIdx = -1);
+	void ApplySearchData(UBTNode* NewActiveNode);
+
+	/** apply pending node updates required for discarded search */
+	void ApplyDiscardedSearch();
 
 	/** apply updates from specific list */
-	void ApplySearchUpdates(const TArray<FBehaviorTreeSearchUpdate>& UpdateList, int32 UpToIdx, int32 NewNodeExecutionIndex, bool bPostUpdate = false);
+	void ApplySearchUpdates(const TArray<FBehaviorTreeSearchUpdate>& UpdateList, int32 NewNodeExecutionIndex, bool bPostUpdate = false);
 
 	/** abort currently executed task */
 	void AbortCurrentTask();
@@ -244,6 +271,9 @@ protected:
 
 	/** update state of aborting tasks */
 	void UpdateAbortingTasks();
+
+	/** apply pending execution from last task search */
+	void ProcessPendingExecution();
 
 	/** make a snapshot for debugger */
 	void StoreDebuggerExecutionStep(EBTExecutionSnap::Type SnapType);

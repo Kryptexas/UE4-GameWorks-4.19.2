@@ -717,7 +717,10 @@ FVector UCrowdFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 	if (!bAllowStrafe && MovementComp && bEnableCrowdSimulation)
 	{
 		const FVector AgentLoc = MovementComp->GetActorLocation();
-		const FVector ForwardDir = CrowdAgentMoveDirection.IsNearlyZero() && MovementComp && MovementComp->GetOwner() ?
+
+		// if we're not moving, falling, or don't have a crowd agent move direction, set our focus to ahead of the rotation of our owner to keep the same rotation,
+		// otherwise use the Crowd Agent Move Direction to move in the direction we're supposed to be going
+		const FVector ForwardDir = MovementComp->GetOwner() && ((Status != EPathFollowingStatus::Moving) || (CharacterMovement && (CharacterMovement->MovementMode == MOVE_Falling)) || CrowdAgentMoveDirection.IsNearlyZero()) ?
 			MovementComp->GetOwner()->GetActorRotation().Vector() :
 			CrowdAgentMoveDirection;
 

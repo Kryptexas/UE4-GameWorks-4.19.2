@@ -5702,6 +5702,11 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 				}
 			}
 
+			// preserve settings in navcollision subobject
+			UNavCollision* NavCollision = Mesh->NavCollision ? 
+				(UNavCollision*)StaticDuplicateObject(Mesh->NavCollision, GetTransientPackage(), nullptr) :
+				nullptr;
+
 			if (FFbxImporter->ReimportStaticMesh(Mesh, ImportData))
 			{
 				UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
@@ -5711,6 +5716,12 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 				{
 					UserDataCopy[Idx]->Rename(nullptr, Mesh, REN_DontCreateRedirectors | REN_DoNotDirty);
 					Mesh->AddAssetUserData(UserDataCopy[Idx]);
+				}
+
+				if (NavCollision)
+				{
+					Mesh->NavCollision = NavCollision;
+					NavCollision->Rename(NULL, Mesh, REN_DontCreateRedirectors | REN_DoNotDirty);
 				}
 
 				// Try to find the outer package so we can dirty it up

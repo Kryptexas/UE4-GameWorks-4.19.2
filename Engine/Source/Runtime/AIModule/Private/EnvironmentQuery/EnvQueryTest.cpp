@@ -295,6 +295,11 @@ void UEnvQueryTest::PostLoad()
 			break;
 	}
 
+	UpdateTestVersion();
+}
+
+void UEnvQueryTest::UpdateTestVersion()
+{
 	bFormatUpdated = true;
 }
 

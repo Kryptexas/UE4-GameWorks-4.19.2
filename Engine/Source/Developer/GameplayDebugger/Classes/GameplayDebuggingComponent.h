@@ -183,6 +183,9 @@ protected:
 	void SelectTargetToDebug();
 
 	//APlayerController* PlayerOwner;
+#if WITH_RECAST
+	ARecastNavMesh* GetNavData();
+#endif
 
 protected:
 	virtual void CollectPathData();

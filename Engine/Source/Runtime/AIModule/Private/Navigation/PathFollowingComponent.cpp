@@ -746,6 +746,12 @@ void UPathFollowingComponent::UpdatePathSegment()
 			OnSegmentFinished();
 			OnPathFinished(EPathFollowingResult::Success);
 		}
+		else if (HasReachedDestination(CurrentLocation))
+		{
+			// always check for destination, acceptance radius may cause it to pass before reaching last segment
+			OnSegmentFinished();
+			OnPathFinished(EPathFollowingResult::Success);
+		}
 		else if (bFollowingLastSegment)
 		{
 			// use goal actor for end of last path segment
@@ -757,16 +763,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 				CurrentDestination.Set(NULL, GoalLocation);
 			}
 
-			// include goal actor in reach test only for last segment 
-			if (HasReachedDestination(CurrentLocation))
-			{
-				OnSegmentFinished();
-				OnPathFinished(EPathFollowingResult::Success);
-			}
-			else
-			{
-				UpdateMoveFocus();
-			}
+			UpdateMoveFocus();
 		}
 		else
 		{
@@ -810,24 +807,14 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 	}
 
 	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
+	const FVector CurrentTarget = GetCurrentTargetLocation();
+	FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
 
-	// check if already at acceptance radius
-	if (HasReachedDestination(CurrentLocation))
-	{
-		OnSegmentFinished();
-		OnPathFinished(EPathFollowingResult::Success);
-	}
-	else
-	{
-		const FVector CurrentTarget = GetCurrentTargetLocation();
-		FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
+	const int32 LastSegmentStartIndex = Path->GetPathPoints().Num() - 2;
+	const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
 
-		const int32 LastSegmentStartIndex = Path->GetPathPoints().Num() - 2;
-		const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
-
-		PostProcessMove.ExecuteIfBound(this, MoveVelocity);
-		MovementComp->RequestDirectMove(MoveVelocity, bNotFollowingLastSegment);
-	}
+	PostProcessMove.ExecuteIfBound(this, MoveVelocity);
+	MovementComp->RequestDirectMove(MoveVelocity, bNotFollowingLastSegment);
 }
 
 bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAcceptanceRadius, bool bExactSpot) const

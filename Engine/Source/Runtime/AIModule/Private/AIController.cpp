@@ -112,7 +112,7 @@ void AAIController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Debug
 void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
 {
 	FVisLogEntry::FStatusCategory MyCategory;
-	MyCategory.Category = TEXT("AI Contoller");
+	MyCategory.Category = TEXT("AI Controller");
 	MyCategory.Add(TEXT("Pawn"), GetNameSafe(GetPawn()));
 	AActor* FocusActor = GetFocusActor();
 	MyCategory.Add(TEXT("Focus"), GetDebugName(FocusActor));
@@ -185,6 +185,27 @@ void AAIController::SetFocalPoint( FVector FP, bool bOffsetFromBase, uint8 InPri
 	}
 
 	Focusitem.Actor = NULL;
+}
+
+FVector AAIController::GetFocalPoint(EAIFocusPriority::Type Priority) const
+{	
+	FBasedPosition FocalPointForPriority;
+
+	const FFocusKnowledge::FFocusItem& FocusItem = GetFocusItem(Priority);
+
+	if (FocusItem.Actor.IsValid())
+	{
+		const AActor* Focus = FocusItem.Actor.Get();
+		UPrimitiveComponent* MyBase = GetPawn() ? GetPawn()->GetMovementBase() : NULL;
+		const bool bRequestedFocusIsBased = MyBase && Cast<const APawn>(Focus) && (Cast<const APawn>(Focus)->GetMovementBase() == MyBase);
+		FocalPointForPriority.Set(bRequestedFocusIsBased && MyBase ? MyBase->GetOwner() : NULL, Focus->GetActorLocation());
+	}
+	else if (!(*FocusItem.Position).IsZero())
+	{
+		FocalPointForPriority = FocusItem.Position;
+	}
+
+	return *FocalPointForPriority;
 }
 
 FVector AAIController::GetFocalPoint() const
@@ -542,7 +563,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 		bCanRequestMove = false;
 	}
 
-	if (bCanRequestMove && PathFollowingComponent && PathFollowingComponent->HasReached(GoalLocation, AcceptanceRadius, !bStopOnOverlap))
+	if (bCanRequestMove && PathFollowingComponent && PathFollowingComponent->HasReached(GoalLocation, AcceptanceRadius, bStopOnOverlap))
 	{
 		UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: already at goal!"));
 

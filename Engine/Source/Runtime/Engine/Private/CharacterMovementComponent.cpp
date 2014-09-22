@@ -3036,7 +3036,6 @@ bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float Ti
 		InitCollisionParams(CapsuleQuery, ResponseParam);
 		const FVector CapsuleLocation = UpdatedComponent->GetComponentLocation();
 		const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
-
 		if (FloorSweepTest(OutHitResult, CapsuleLocation, CapsuleLocation + TestWalk, UpdatedComponent->GetCollisionObjectType(), CapsuleShape, CapsuleQuery, ResponseParam))
 		{
 			return true;
@@ -3240,6 +3239,13 @@ FVector UCharacterMovementComponent::ComputeGroundMovementDelta(const FVector& D
 	return Delta;
 }
 
+void UCharacterMovementComponent::OnCharacterStuckInGeometry()
+{
+	UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move!"), *CharacterOwner->GetName());
+
+	// Don't update velocity based on our (failed) change in position this update since we're stuck.
+	bJustTeleported = true;
+}
 
 void UCharacterMovementComponent::MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDownResult)
 {
@@ -3258,10 +3264,7 @@ void UCharacterMovementComponent::MoveAlongFloor(const FVector& InVelocity, floa
 	
 	if (Hit.bStartPenetrating)
 	{
-		UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move!"), *CharacterOwner->GetName());
-		
-		// Don't update velocity based on our (failed) change in position this update since we're stuck.
-		bJustTeleported = true;
+		OnCharacterStuckInGeometry();
 	}
 
 	if (Hit.IsValidBlockingHit())

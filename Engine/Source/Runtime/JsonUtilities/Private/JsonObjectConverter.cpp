@@ -227,10 +227,14 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			// set the property values
 			for (int32 i=0;i<ArrLen;++i)
 			{
-				if (!FJsonObjectConverter::JsonValueToUProperty(ArrayValue[i], ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags))
+				const TSharedPtr<FJsonValue>& ArrayValueItem = ArrayValue[i];
+				if (ArrayValueItem.IsValid() && !ArrayValueItem->IsNull())
 				{
-					UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize array element [%d]"), i);
-					return false;
+					if (!FJsonObjectConverter::JsonValueToUProperty(ArrayValueItem, ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags))
+					{
+						UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize array element [%d]"), i);
+						return false;
+					}
 				}
 			}
 		}
@@ -242,6 +246,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 	}
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
+		static const FName NAME_DateTime(TEXT("DateTime"));
 		if (JsonValue->Type == EJson::Object)
 		{
 			TSharedPtr<FJsonObject> Obj = JsonValue->AsObject();
@@ -256,6 +261,14 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			else
 			{
 				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import UStruct from an invalid object JSON key"));
+				return false;
+			}
+		}
+		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_DateTime)
+		{
+			if (!FDateTime::ParseIso8601(*JsonValue->AsString(), *(FDateTime*)OutValue))
+			{
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to import FDateTime from Iso8601 String"));
 				return false;
 			}
 		}
@@ -306,19 +319,18 @@ bool FJsonObjectConverter::JsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue
 		return ConvertScalarJsonValueToUProperty(JsonValue, Property, OutValue, CheckFlags, SkipFlags);
 	}
 
-	// We're deserializing a JSON array
-	const auto& ArrayValue = JsonValue->AsArray();
-
-	if (Property->ArrayDim < ArrayValue.Num())
-	{
-		UE_LOG(LogJson, Warning, TEXT("Ignoring excess properties when deserializing %s"), *Property->GetName());
-	}
-
 	// In practice, the ArrayDim == 1 check ought to be redundant, since nested arrays of UPropertys are not supported
 	if (bArrayProperty && Property->ArrayDim == 1)
 	{
 		// Read into TArray
 		return ConvertScalarJsonValueToUProperty(JsonValue, Property, OutValue, CheckFlags, SkipFlags);
+	}
+
+	// We're deserializing a JSON array
+	const auto& ArrayValue = JsonValue->AsArray();
+	if (Property->ArrayDim < ArrayValue.Num())
+	{
+		UE_LOG(LogJson, Warning, TEXT("Ignoring excess properties when deserializing %s"), *Property->GetName());
 	}
 
 	// Read into native array
@@ -367,7 +379,7 @@ bool FJsonObjectConverter::JsonAttributesToUStruct(const TMap< FString, TSharedP
 				break;
 			}
 		}
-		if (!JsonValue.IsValid())
+		if (!JsonValue.IsValid() || JsonValue->IsNull())
 		{
 			// we allow values to not be found since this mirrors the typical UObject mantra that all the fields are optional when deserializing
 			continue;

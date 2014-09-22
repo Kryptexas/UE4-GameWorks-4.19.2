@@ -8,10 +8,18 @@ namespace FAISystem
 {
 	static const FRotator InvalidRotation(FLT_MAX);
 	static const FVector InvalidLocation = FVector(FLT_MAX);
+	static const FVector InvalidDirection = FVector::ZeroVector;
 
 	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
 	{
-		return TestLocation != InvalidLocation;
+		return -InvalidLocation.X < TestLocation.X && TestLocation.X < InvalidLocation.X
+			&& -InvalidLocation.Y < TestLocation.Y && TestLocation.Y < InvalidLocation.Y
+			&& -InvalidLocation.Z < TestLocation.Z && TestLocation.Z < InvalidLocation.Z;
+	}
+
+	FORCEINLINE bool IsValidDirection(const FVector& TestVector)
+	{
+		return IsValidLocation(TestVector) == true && TestVector.IsZero() == false;
 	}
 
 	FORCEINLINE bool IsValidRotation(const FRotator& TestRotation)

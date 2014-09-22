@@ -82,12 +82,12 @@ void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQ
 		EQSLocalData.Items.Add(ItemInfo);
 	}
 
-	const int32 NumAllTests = Query->Options[Query->OptionIndex].TestsToPerform.Num();
+	const int32 NumAllTests = Query->Options[Query->OptionIndex].Tests.Num();
 	for (int32 TestIdx = 0; TestIdx < NumAllTests; TestIdx++)
 	{
 		EQSDebug::FTestData TestInfo;
 
-		UEnvQueryTest* TestOb = Query->Options[Query->OptionIndex].GetTestObject(TestIdx);
+		UEnvQueryTest* TestOb = Query->Options[Query->OptionIndex].Tests[TestIdx];
 		TestInfo.ShortName = TestOb->GetDescriptionTitle();
 		TestInfo.Detailed = TestOb->GetDescriptionDetails().ToString().Replace(TEXT("\n"), TEXT(", "));
 

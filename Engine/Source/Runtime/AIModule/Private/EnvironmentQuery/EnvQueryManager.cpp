@@ -6,6 +6,7 @@
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryOption.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
+#include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #if WITH_EDITOR
@@ -366,7 +367,7 @@ UEnvQuery* UEnvQueryManager::FindQueryTemplate(const FString& QueryName) const
 {
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceCache.Num(); InstanceIndex++)
 	{
-		const UEnvQuery* QueryTemplate = InstanceCache[InstanceIndex].Template.Get();
+		const UEnvQuery* QueryTemplate = InstanceCache[InstanceIndex].Template;
 
 		if (QueryTemplate != NULL && QueryTemplate->GetName() == QueryName)
 		{
@@ -396,7 +397,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 	FEnvQueryInstance* InstanceTemplate = NULL;
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceCache.Num(); InstanceIndex++)
 	{
-		if (InstanceCache[InstanceIndex].Template == Template &&
+		if (InstanceCache[InstanceIndex].Template->GetFName() == Template->GetFName() &&
 			InstanceCache[InstanceIndex].Instance.Mode == RunMode)
 		{
 			InstanceTemplate = &InstanceCache[InstanceIndex].Instance;
@@ -409,27 +410,35 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_LoadTime);
 		
+		// duplicate template in manager's world for BP based nodes
+		UEnvQuery* LocalTemplate = (UEnvQuery*)StaticDuplicateObject(Template, this, *Template->GetName());
+
 		{
 			// memory stat tracking: temporary variable will exist only inside this section
 			FEnvQueryInstanceCache NewCacheEntry;
-			NewCacheEntry.Template = Template;
-			NewCacheEntry.Instance.QueryName = Template->GetName();
+			NewCacheEntry.Template = LocalTemplate;
+			NewCacheEntry.Instance.QueryName = LocalTemplate->GetName();
 			NewCacheEntry.Instance.Mode = RunMode;
 
 			const int32 Idx = InstanceCache.Add(NewCacheEntry);
 			InstanceTemplate = &InstanceCache[Idx].Instance;
 		}
 
-		for (int32 OptionIndex = 0; OptionIndex < Template->Options.Num(); OptionIndex++)
+		for (int32 OptionIndex = 0; OptionIndex < LocalTemplate->Options.Num(); OptionIndex++)
 		{
-			UEnvQueryOption* MyOption = Template->Options[OptionIndex];
+			UEnvQueryOption* MyOption = LocalTemplate->Options[OptionIndex];
 			if (MyOption == NULL || MyOption->Generator == NULL)
 			{
 				UE_LOG(LogEQS, Error, TEXT("Trying to spawn a query with broken Template (empty generator): %s, option %d"),
-					*GetNameSafe(Template), OptionIndex);
+					*GetNameSafe(LocalTemplate), OptionIndex);
 
 				continue;
 			}
+
+			UEnvQueryOption* LocalOption = (UEnvQueryOption*)StaticDuplicateObject(MyOption, this, TEXT("None"));
+			UEnvQueryGenerator* LocalGenerator = (UEnvQueryGenerator*)StaticDuplicateObject(MyOption->Generator, this, TEXT("None"));
+			LocalTemplate->Options[OptionIndex] = LocalOption;
+			LocalOption->Generator = LocalGenerator;
 
 			EEnvTestCost::Type HighestCost(EEnvTestCost::Low);
 			TArray<UEnvQueryTest*> SortedTests = MyOption->Tests;
@@ -440,7 +449,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 				if (TestOb == NULL || !TestOb->IsSupportedItem(GeneratedType))
 				{
 					UE_LOG(LogEQS, Warning, TEXT("Query [%s] can't use test [%s] in option %d [%s], removing it"),
-						*GetNameSafe(Template), *GetNameSafe(TestOb), OptionIndex, *MyOption->Generator->OptionName);
+						*GetNameSafe(LocalTemplate), *GetNameSafe(TestOb), OptionIndex, *MyOption->Generator->OptionName);
 
 					SortedTests.RemoveAt(TestIndex);
 				}
@@ -449,6 +458,16 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 					HighestCost = TestOb->Cost;
 				}
 			}
+
+			LocalOption->Tests.Reset(SortedTests.Num());
+			for (int32 TestIdx = 0; TestIdx < SortedTests.Num(); TestIdx++)
+			{
+				UEnvQueryTest* LocalTest = (UEnvQueryTest*)StaticDuplicateObject(SortedTests[TestIdx], this, TEXT("None"));
+				LocalOption->Tests.Add(LocalTest);
+			}
+
+			// use locally referenced duplicates
+			SortedTests = LocalOption->Tests;
 
 			if (SortedTests.Num())
 			{
@@ -466,17 +485,17 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 					{
 						UEnum* RunModeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEnvQueryRunMode"));
 						UE_LOG(LogEQS, Warning, TEXT("Query [%s] can't be sorted for RunMode: %d [%s]"),
-							*GetNameSafe(Template), (int32)RunMode, RunModeEnum ? *RunModeEnum->GetEnumName(RunMode) : TEXT("??"));
+							*GetNameSafe(LocalTemplate), (int32)RunMode, RunModeEnum ? *RunModeEnum->GetEnumName(RunMode) : TEXT("??"));
 					}
 				}
 			}
 
-			CreateOptionInstance(MyOption, SortedTests, *InstanceTemplate);
+			CreateOptionInstance(LocalOption, SortedTests, *InstanceTemplate);
 		}
 
 		if (InstanceTemplate->Options.Num() == 0)
 		{
-			UE_LOG(LogEQS, Warning, TEXT("Query [%s] doesn't have any valid options!"), *GetNameSafe(Template));
+			UE_LOG(LogEQS, Warning, TEXT("Query [%s] doesn't have any valid options!"), *GetNameSafe(LocalTemplate));
 			return NULL;
 		}
 	}
@@ -493,11 +512,11 @@ void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, con
 	OptionInstance.ItemType = OptionTemplate->Generator->ItemType;
 	OptionInstance.bShuffleItems = true;
 
-	OptionInstance.TestsToPerform.AddZeroed(SortedTests.Num());
+	OptionInstance.Tests.AddZeroed(SortedTests.Num());
 	for (int32 TestIndex = 0; TestIndex < SortedTests.Num(); TestIndex++)
 	{
-		const UEnvQueryTest* TestOb = SortedTests[TestIndex];
-		OptionInstance.TestsToPerform[TestIndex] = TestOb;
+		UEnvQueryTest* TestOb = SortedTests[TestIndex];
+		OptionInstance.Tests[TestIndex] = TestOb;
 
 		// HACK!  TODO: Is this the correct replacement here?  or should it check just if SCORING ONLY?
 		// always randomize when asking for single result
@@ -515,6 +534,20 @@ void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, con
 
 	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Instance.Options.GetAllocatedSize() + Instance.Options[AddedIdx].GetAllocatedSize());
 }
+
+UEnvQueryContext* UEnvQueryManager::PrepareLocalContext(TSubclassOf<UEnvQueryContext> ContextClass)
+{
+	UEnvQueryContext* LocalContext = LocalContextMap.FindRef(ContextClass->GetFName());
+	if (LocalContext == NULL)
+	{
+		LocalContext = (UEnvQueryContext*)StaticDuplicateObject(ContextClass.GetDefaultObject(), this, TEXT("None"));
+		LocalContexts.Add(LocalContext);
+		LocalContextMap.Add(ContextClass->GetFName(), LocalContext);
+	}
+
+	return LocalContext;
+}
+
 
 //----------------------------------------------------------------------//
 // FEQSDebugger

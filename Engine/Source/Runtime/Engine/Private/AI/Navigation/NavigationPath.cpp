@@ -546,6 +546,14 @@ void FNavMeshPath::ApplyFlags(int32 NavDataFlags)
 	}
 }
 
+void AppendPathPointsHelper(TArray<FNavPathPoint>& PathPoints, const TArray<FPathPointInfo>& SourcePoints, int32 Index)
+{
+	if (SourcePoints.IsValidIndex(Index) && SourcePoints[Index].Point.NodeRef != 0)
+	{
+		PathPoints.Add(SourcePoints[Index].Point);
+	}
+}
+
 void FNavMeshPath::OffsetFromCorners(float Distance)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_OffsetFromCorners);
@@ -701,8 +709,8 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 
 			if (StartPointFlags.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) 
 			{
-				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex+1].Point );
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex + 1);
 
 				StartPointIndex++;
 				LastVisiblePointIndex = StartPointIndex;
@@ -741,7 +749,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 				if (bVisible) 
 				{ 
 #if PATH_OFFSET_KEEP_VISIBLE_POINTS
-					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
+					AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
 					LastVisiblePointIndex = TestedPointIndex;
 					StartPointIndex = LastVisiblePointIndex;
 					TestedPointIndex++;
@@ -752,7 +760,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 				} 
 				else
 				{ 
-					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
+					AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
 					StartPointIndex = LastVisiblePointIndex;
 					TestedPointIndex = LastVisiblePointIndex + 1;
 				} 
@@ -760,9 +768,9 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 
 			// if reached end of path, add current and last points to close it and leave loop
 			if (TestedPointIndex > LastPointIndex) 
-			{ 
-				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-				DestinationPathPoints.Add( FirstPassPoints[LastPointIndex].Point );
+			{
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, StartPointIndex);
+				AppendPathPointsHelper(DestinationPathPoints, FirstPassPoints, LastPointIndex);
 				break; 
 			} 
 		} 
@@ -845,7 +853,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 		return Super::DoesIntersectBox(Box, StartingIndex, IntersectingSegmentIndex);
 	}
 
-	// note that it's a big simplified. It works
+	// note that it's a bit simplified. It works
 
 	bool bIntersects = false;
 	int32 PortalIndex = INDEX_NONE;

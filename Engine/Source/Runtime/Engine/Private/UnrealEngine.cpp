@@ -7403,8 +7403,24 @@ void UEngine::ShutdownWorldNetDriver( UWorld * World )
 		if (NetDriver)
 		{
 			UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
+			World->SetNetDriver(NULL);
 			DestroyNamedNetDriver(World, NetDriver->NetDriverName);
 		}
+
+		// Also disconnect any net drivers that have this set as their world, to avoid GC issues
+		FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(World);
+
+		for (int32 Index = 0; Index < Context.ActiveNetDrivers.Num(); Index++)
+		{
+			NetDriver = Context.ActiveNetDrivers[Index].NetDriver;
+			if (NetDriver && NetDriver->GetWorld() == World)
+			{
+				UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
+				DestroyNamedNetDriver(World, NetDriver->NetDriverName);
+				Index--;
+			}
+		}
+
 	}
 }
 
@@ -7428,6 +7444,7 @@ void UEngine::ShutdownAllNetDrivers()
 				}
 				NetDriver->SetWorld(NULL);
 				DestroyNamedNetDriver(It->World(), NetDriver->NetDriverName);
+				Index--;
 			}
 		}
 

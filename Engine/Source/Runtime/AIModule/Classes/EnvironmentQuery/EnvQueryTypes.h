@@ -33,8 +33,8 @@ namespace EEnvTestPurpose
 {
 	enum Type
 	{
-		Filter,
-		Score,
+		Filter UMETA(DisplayName="Filter Only"),
+		Score UMETA(DisplayName="Score Only"),
 		FilterAndScore UMETA(DisplayName="Filter and Score")
 	};
 }
@@ -517,11 +517,11 @@ struct AIMODULE_API FEnvQueryContextData
 
 struct AIMODULE_API FEnvQueryOptionInstance
 {
-	/** generator's delegate */
-	TWeakObjectPtr<UEnvQueryGenerator> Generator;
+	/** generator object, raw pointer can be used safely because it will be always referenced by EnvQueryManager */
+	UEnvQueryGenerator* Generator;
 
-	/** tests' delegates */
-	TArray<TWeakObjectPtr<UEnvQueryTest> > TestsToPerform;
+	/** test objects, raw pointer can be used safely because it will be always referenced by EnvQueryManager */
+	TArray<UEnvQueryTest*> Tests;
 
 	/** type of generated items */
 	TSubclassOf<UEnvQueryItemType> ItemType;
@@ -529,9 +529,7 @@ struct AIMODULE_API FEnvQueryOptionInstance
 	/** if set, items will be shuffled after tests */
 	bool bShuffleItems;
 
-	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + TestsToPerform.GetAllocatedSize(); }
-
-	UEnvQueryTest* GetTestObject(int32 TestIndex) { check(TestsToPerform.IsValidIndex(TestIndex)); return TestsToPerform[TestIndex].Get(); }
+	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + Tests.GetAllocatedSize(); }
 };
 
 #if NO_LOGGING

@@ -26,7 +26,7 @@ class AIMODULE_API UBTTask_MoveDirectlyToward : public UBTTask_BlackboardBase
 	 *	case where goal is an Actor that can change 
 	 *	his location while task is being performed */
 	UPROPERTY(Category=Node, EditAnywhere)
-	uint32 bForceMoveToLocation:1;
+	uint32 bDisablePathUpdateOnGoalLocationChange : 1;
 
 	UPROPERTY(Category=Node, EditAnywhere)
 	uint32 bProjectVectorGoalToNavigation:1;

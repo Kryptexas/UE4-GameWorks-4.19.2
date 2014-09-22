@@ -455,6 +455,9 @@ public:
 	/** Disable voice chat transmission	 */
 	void StopTalking();
 
+	/** Is this player talking? */
+	bool IsTalking();
+
 	/** 
 	 * Toggle voice chat on and off
 	 * @param bSpeaking enable or disable voice chat
@@ -1020,6 +1023,9 @@ protected:
 private:
 	/* Whether the PlayerController's input handling is enabled. */
 	uint32 bInputEnabled:1;
+
+	/** Whether the PlayerController's voice chat is enabled. */
+	bool bSpeaking;
 
 protected:
 

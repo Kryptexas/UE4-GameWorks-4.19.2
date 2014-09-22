@@ -1627,7 +1627,10 @@ FStaticMeshComponentLODInfo::FStaticMeshComponentLODInfo(const FStaticMeshCompon
 /** Destructor */
 FStaticMeshComponentLODInfo::~FStaticMeshComponentLODInfo()
 {
-	ReleaseOverrideVertexColorsAndBlock();
+	// Note: OverrideVertexColors had BeginReleaseResource called in UStaticMeshComponent::BeginDestroy, 
+	// And waits on a fence for that command to complete in UStaticMeshComponent::IsReadyForFinishDestroy,
+	// So we know it is safe to delete OverrideVertexColors here (RT can't be referencing it anymore)
+	CleanUp();
 }
 
 void FStaticMeshComponentLODInfo::CleanUp()

@@ -1233,6 +1233,9 @@ protected:
 	 */
 	virtual void MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL);
 
+	/** Notification that the character is stuck in geometry.  Only called during walking movement. */
+	virtual void OnCharacterStuckInGeometry();
+
 	/**
 	 * Adjusts velocity when walking so that Z velocity is zero.
 	 * When bMaintainHorizontalGroundVelocity is false, also rescales the velocity vector to maintain the original magnitude, but in the horizontal direction.

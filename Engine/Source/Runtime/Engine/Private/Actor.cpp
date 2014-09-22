@@ -70,6 +70,7 @@ AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
 	bBlockInput = false;
 	bCanBeDamaged = true;
+	bPendingKillPending = false;
 	bFindCameraComponentWhenViewTarget = true;
 	bAllowReceiveTickEventOnDedicatedServer = true;
 	AnimUpdateRateShiftTag = 0;
