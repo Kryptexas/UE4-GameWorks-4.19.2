@@ -41,45 +41,6 @@ UCLASS()
 class UCookOnTheFlyServer : public UObject, public FTickableEditorObject
 {
 	GENERATED_UCLASS_BODY()
-
-private:
-	/** Current cook mode the cook on the fly server is running in */
-	ECookMode::Type CurrentCookMode;
-	
-	//////////////////////////////////////////////////////////////////////////
-	// Cook by the book options
-	struct FCookByTheBookOptions
-	{
-	public:
-		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
-			bRunning(false),
-			CookTime( 0.0f )
-		{ }
-
-		/** Should we generate streaming install manifests (only valid option in cook by the book) */
-		bool bGenerateStreamingInstallManifests;
-		/** Is cook by the book currently running */
-		bool bRunning;
-		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
-		TSet<FWeakObjectPtr> LastGCItems;
-		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
-		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
-		double CookTime;
-	};
-	FCookByTheBookOptions* CookByTheBookOptions;
-	
-
-	//////////////////////////////////////////////////////////////////////////
-	// Cook on the fly options
-	/** Cook on the fly server uses the NetworkFileServer */
-	TArray<class INetworkFileServer*> NetworkFileServers;
-
-	//////////////////////////////////////////////////////////////////////////
-	// General cook options
-	ECookInitializationFlags CookFlags;
-	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
-	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
-
 private:
 
 	/** Array which has been made thread safe :) */
@@ -140,6 +101,12 @@ private:
 		{
 			ScopeLockType ScopeLock( &SynchronizationObject );
 			return Items.Num();
+		}
+
+		void Empty() 
+		{
+			ScopeLockType ScopeLock( &SynchronizationObject );
+			Items.Empty();
 		}
 	};
 
@@ -402,6 +369,30 @@ private:
 			return true;
 			// return FilesProcessed.Contains(Filename);
 		}
+		// two versions of this function so I don't have to create temporary FFIleplatformRequest in some cases to call the exists function
+		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames )
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+
+			const FFilePlatformRequest* OurRequest = FilesProcessed.Find( Filename );
+
+			if (!OurRequest)
+			{
+				return false;
+			}
+
+			// make sure all the platforms are completed
+			for ( const auto& Platform : PlatformNames )
+			{
+				if ( !OurRequest->GetPlatformnames().Contains( Platform ) )
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		bool GetCookedPlatforms( const FName& Filename, TArray<FName>& PlatformList )
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -418,6 +409,11 @@ private:
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			return FilesProcessed.Remove( Filename );
+		}
+		void Empty()
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			FilesProcessed.Empty();
 		}
 	};
 
@@ -471,6 +467,34 @@ private:
 			}
 			return false;
 		}
+
+		void DequeueAllRequests( TArray<FFilePlatformRequest>& RequestArray )
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			if ( Queue.Num() )
+			{
+				for ( const auto& Request : PlatformList )
+				{
+					RequestArray.Add( FFilePlatformRequest( Request.Key, Request.Value ) );
+				}
+				PlatformList.Empty();
+				Queue.Empty();
+			}
+		}
+
+		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames ) const 
+		{
+			const TArray<FName>* Platforms = PlatformList.Find( Filename );
+			if ( Platforms == NULL )
+				return false;
+
+			for ( const auto& PlatformName : PlatformNames )
+			{
+				if ( !Platforms->Contains( PlatformName ) )
+					return false;
+			}
+			return true;
+		}
 		
 		bool HasItems() const
 		{
@@ -482,6 +506,14 @@ private:
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			return Queue.Num();
+		}
+
+
+		void Empty()  
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			Queue.Empty();
+			PlatformList.Empty();
 		}
 	};
 
@@ -516,7 +548,54 @@ private:
 				}
 			}
 		}
+		void Empty()
+		{
+			FScopeLock S( &SyncObject );
+			CookedPackages.Empty();
+		}
 	};
+private:
+	/** Current cook mode the cook on the fly server is running in */
+	ECookMode::Type CurrentCookMode;
+	
+	//////////////////////////////////////////////////////////////////////////
+	// Cook by the book options
+	struct FCookByTheBookOptions
+	{
+	public:
+		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
+			bRunning(false),
+			CookTime( 0.0f )
+		{ }
+
+		/** Should we generate streaming install manifests (only valid option in cook by the book) */
+		bool bGenerateStreamingInstallManifests;
+		/** Is cook by the book currently running */
+		bool bRunning;
+		/** Cancel has been queued will be processed next tick */
+		bool bCancel;
+		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
+		TSet<FWeakObjectPtr> LastGCItems;
+		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
+		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
+		/** If a cook is cancelled next cook will need to resume cooking */ 
+		TArray<FFilePlatformRequest> PreviousCookRequests; 
+		double CookTime;
+	};
+	FCookByTheBookOptions* CookByTheBookOptions;
+	
+
+	//////////////////////////////////////////////////////////////////////////
+	// Cook on the fly options
+	/** Cook on the fly server uses the NetworkFileServer */
+	TArray<class INetworkFileServer*> NetworkFileServers;
+
+	//////////////////////////////////////////////////////////////////////////
+	// General cook options
+	ECookInitializationFlags CookFlags;
+	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
+	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
+
 
 	FThreadSafeQueue<struct FRecompileRequest*> RecompileRequests;
 	FFilenameQueue CookRequests; // list of requested files
@@ -577,6 +656,16 @@ public:
 	 */
 	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections );
 
+	/**
+	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
+	 */
+	void QueueCancelCookByTheBook();
+
+	/**
+	 * Cancel the currently running cook by the book (needs to be called from the game thread)
+	 */
+	void CancelCookByTheBook();
+
 	bool IsCookByTheBookRunning() const;
 
 	/**
@@ -588,9 +677,14 @@ public:
 	 */
 	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount );
 	
+	/**
+	 * Force stop whatever pending cook requests are going on and clear all the cooked data
+	 * Note cook on the side / cook on the fly clients may not be able to recover from this if they are waiting on a cook request to complete
+	 */
+	void StopAndClearCookedData();
+
 	/** 
 	 * Process any shader recompile requests
-	 *
 	 */
 	void TickRecompileShaderRequests();
 

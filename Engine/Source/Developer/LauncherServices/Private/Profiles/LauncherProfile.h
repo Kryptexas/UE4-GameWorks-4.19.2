@@ -705,6 +705,11 @@ public:
 		return IsCookFinishedDelegate;
 	}
 
+	virtual FCookCanceledDelegate& OnCookCanceled() override
+	{
+		return CookCanceledDelegate;
+	}
+
 	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) override
 	{
 		if (DeploymentMode != Mode)
@@ -1144,7 +1149,9 @@ private:
 
 private:
 
+	// cook in the editor callbacks (not valid for any other cook mode)
 	FIsCookFinishedDelegate IsCookFinishedDelegate;
+	FCookCanceledDelegate CookCanceledDelegate;
 
 	// Holds a delegate to be invoked when changing the device group to deploy to.
 	FOnLauncherProfileDeployedDeviceGroupChanged DeployedDeviceGroupChangedDelegate;

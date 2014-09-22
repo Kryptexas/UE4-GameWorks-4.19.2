@@ -1326,7 +1326,11 @@ void UEditorEngine::PlayUsingLauncher()
 
 			FIsCookFinishedDelegate &CookerFinishedDelegate = LauncherProfile->OnIsCookFinished();
 
-			CookerFinishedDelegate.BindUObject(this, &UEditorEngine::IsCookByTheBookInEditorFinished);   // AddUObject(this, &UEditorEngine::IsCookByTheBookInEditorFinished);
+			CookerFinishedDelegate.BindUObject(this, &UEditorEngine::IsCookByTheBookInEditorFinished);
+
+			FCookCanceledDelegate &CookCancelledDelegate = LauncherProfile->OnCookCanceled();
+
+			CookCancelledDelegate.BindUObject(this, &UEditorEngine::CancelCookByTheBookInEditor);
 		}
 
 		ILauncherPtr Launcher = LauncherServicesModule.CreateLauncher();

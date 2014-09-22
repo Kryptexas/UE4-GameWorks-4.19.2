@@ -524,13 +524,18 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 		class FWaitForCookInEditorToFinish : public FLauncherTask
 		{
 		public:
-			FWaitForCookInEditorToFinish() : FLauncherTask( FString(TEXT("CookByTheBookInEditor")), FString(TEXT("CookByTheBookInEditorDesk")), NULL, NULL)
+			FWaitForCookInEditorToFinish() : FLauncherTask( FString(TEXT("Cooking in the editor")), FString(TEXT("Prepairing content to run on device")), NULL, NULL)
 			{
 			}
 			virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
 			{
 				while ( !ChainState.Profile->OnIsCookFinished().Execute() )
 				{
+					if (GetStatus() == ELauncherTaskStatus::Canceling)
+					{
+						ChainState.Profile->OnCookCanceled().Execute();
+						return false;
+					}
 					FPlatformProcess::Sleep( 0.1f );
 				}
 				return true;

@@ -81,14 +81,15 @@ public:
 	FScopeTimer( const FString &InName, bool IncrementScope = false )
 	{
 		DecrementScope = IncrementScope;
-		if( DecrementScope)
-		{
-			++GScopeDepth;
-		}
+		
 		FString Name = InName;
 		for ( int i =0; i < GScopeDepth; ++i )
 		{
 			Name = FString(TEXT("  ")) + Name;
+		}
+		if( DecrementScope)
+		{
+			++GScopeDepth;
 		}
 		Index = GTimerInfo.Emplace(MoveTemp(Name), 0.0);
 		Started = false;
@@ -270,9 +271,9 @@ public:
 	FName StandardFileFName;
 };
 
-static TMap<FString, FCachedPackageFilename> PackageFilenameCache;
+static TMap<FName, FCachedPackageFilename> PackageFilenameCache;
 
-static const FCachedPackageFilename &Cache(const FString &PackageName)
+static const FCachedPackageFilename &Cache(const FName& PackageName)
 {
 	FCachedPackageFilename *Cached = PackageFilenameCache.Find( PackageName );
 	if ( Cached != NULL )
@@ -280,12 +281,11 @@ static const FCachedPackageFilename &Cache(const FString &PackageName)
 		return *Cached;
 	}
 
-
 	FString Filename;
 	FString PackageFilename;
 	FString StandardFilename;
 	FName StandardFileFName = NAME_None;
-	if (FPackageName::DoesPackageExist(PackageName, NULL, &Filename))
+	if (FPackageName::DoesPackageExist(PackageName.ToString(), NULL, &Filename))
 	{
 		StandardFilename = PackageFilename = FPaths::ConvertRelativePathToFull(Filename);
 		
@@ -309,35 +309,53 @@ static const FCachedPackageFilename &Cache(const FString &PackageName)
 	return Filename;
 }*/
 
-static FString GetCachedPackageFilename( const FString &PackageName )
+static FString GetCachedPackageFilename( const FName& PackageName )
 {
 	return Cache( PackageName ).PackageFilename;
 }
 
-static FString GetCachedStandardPackageFilename( const FString &PackageName )
+static FString GetCachedStandardPackageFilename( const FName& PackageName )
 {
 	return Cache( PackageName ).StandardFilename;
 }
 
-static FName GetCachedStandardPackageFileFName( const FString &PackageName )
+static FName GetCachedStandardPackageFileFName( const FName& PackageName )
 {
 	return Cache( PackageName ).StandardFileFName;
 }
 
 
-static FString GetCachedPackageFilename( UPackage *Package )
+static FString GetCachedPackageFilename( UPackage* Package )
 {
-	return Cache( Package->GetName() ).PackageFilename;
+	check( Package->GetName() == Package->GetFName().ToString() );
+	return Cache( Package->GetFName() ).PackageFilename;
 }
 
 static FString GetCachedStandardPackageFilename( UPackage* Package )
 {
-	return Cache( Package->GetName() ).StandardFilename;
+	check( Package->GetName() == Package->GetFName().ToString() );
+	return Cache( Package->GetFName() ).StandardFilename;
 }
 
-static FName GetCachedStandardPackageFileFName( UPackage *Package )
+static FName GetCachedStandardPackageFileFName( UPackage* Package )
 {
-	return Cache( Package->GetName() ).StandardFileFName;
+	check( Package->GetName() == Package->GetFName().ToString() );
+	return Cache( Package->GetFName() ).StandardFileFName;
+}
+
+
+static const FString& GetCachedSandboxFilename( UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile )
+{
+	FName PackageFName = Package->GetFName();
+	static TMap<FName, FString> CachedSandboxFilenames;
+	FString* CachedSandboxFilename = CachedSandboxFilenames.Find(PackageFName);
+	if ( CachedSandboxFilename )
+		return *CachedSandboxFilename;
+
+	const FString& PackageFilename = GetCachedPackageFilename(Package);
+	FString SandboxFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*PackageFilename );
+
+	return CachedSandboxFilenames.Add( PackageFName, MoveTemp(SandboxFilename) );
 }
 
 /* helper structs
@@ -411,8 +429,6 @@ TStatId UCookOnTheFlyServer::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UCookServer, STATGROUP_Tickables);
 }
-
-
 
 bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 {
@@ -781,6 +797,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			break;
 		}
 
+		if ( IsCookByTheBookMode() )
+		{
+			check( CookByTheBookOptions );
+			if ( CookByTheBookOptions->bCancel )
+			{
+				CancelCookByTheBook();
+			}
+		}
 
 		FFilePlatformRequest ToBuild;
 
@@ -990,12 +1014,10 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			PackageNames.Empty(ObjectsInOuter.Num());
 			{
 				SCOPE_TIMER(GeneratePackageNames);
+				ACCUMULATE_TIMER(UnsolicitedPackageAlreadyCooked);
 				ACCUMULATE_TIMER(PackageCast);
 				ACCUMULATE_TIMER(AddUnassignedPackageToManifest);
-				ACCUMULATE_TIMER(ConvertToAbsolutePath);
-				ACCUMULATE_TIMER(ManifestAddUnassignedPackage);
-				ACCUMULATE_TIMER(CookedPackagesExists);
-				ACCUMULATE_TIMER(PackagesToSaveAdd);
+				ACCUMULATE_TIMER(GetCachedName);
 				for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
 				{
 					ACCUMULATE_TIMER_START(PackageCast);
@@ -1004,6 +1026,17 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 					if (Package)
 					{
+						FName StandardPackageFName = GetCachedStandardPackageFileFName(Package);
+						if ( StandardPackageFName == NAME_None )
+							continue;
+
+						ACCUMULATE_TIMER_START(UnsolicitedPackageAlreadyCooked);
+						// package is already cooked don't care about processing it again here
+						if ( CookRequests.Exists( StandardPackageFName, AllTargetPlatformNames) )
+							continue;
+						if ( CookedPackages.Exists(StandardPackageFName,AllTargetPlatformNames) )
+							continue;
+						ACCUMULATE_TIMER_STOP(UnsolicitedPackageAlreadyCooked);
 						// this has been replaced to use the GenerateDependencies call
 						/*if ( CookByTheBookOptions && CookByTheBookOptions->ManifestGenerator != NULL )
 						{
@@ -1030,37 +1063,22 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 								if (!Filename.IsEmpty())
 								{
 									// Populate streaming install manifests
-									ACCUMULATE_TIMER_START(ConvertToAbsolutePath);
-									FString SandboxFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*Filename);
-									ACCUMULATE_TIMER_STOP(ConvertToAbsolutePath);
-									ACCUMULATE_TIMER_START(ManifestAddUnassignedPackage);
+									// FString SandboxFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*Filename);
+									const FString& SandboxFilename = GetCachedSandboxFilename( Package, SandboxFile );
 									Manifest->AddUnassignedPackageToManifest(Package, SandboxFilename);
-									ACCUMULATE_TIMER_STOP(ManifestAddUnassignedPackage);
 								}
 							}
 							ACCUMULATE_TIMER_STOP(AddUnassignedPackageToManifest);
 						}
 
-
+						ACCUMULATE_TIMER_START(GetCachedName);
 						FName StandardFilename = GetCachedStandardPackageFileFName(Package);
 						if ( StandardFilename != NAME_None ) // if we have name none that means we are in core packages or something...
 						{
 							// check if the package has already been saved
-							bool bShouldSave = false;
-
-							ACCUMULATE_TIMER_START(CookedPackagesExists);
-							if ( !CookedPackages.Exists(FFilePlatformRequest(StandardFilename, TargetPlatformNames)))
-							{
-								bShouldSave = true;
-							}
-							ACCUMULATE_TIMER_STOP(CookedPackagesExists);
-							ACCUMULATE_TIMER_START(PackagesToSaveAdd);
-							if ( bShouldSave )
-							{
-								PackagesToSave.AddUnique( Package );
-							}
-							ACCUMULATE_TIMER_STOP(PackagesToSaveAdd);
+							PackagesToSave.AddUnique( Package );
 						}
+						ACCUMULATE_TIMER_STOP(GetCachedName);
 					}
 				}
 			}
@@ -1100,6 +1118,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 					if ( bShouldFinishTick )
 					{
+						SCOPE_TIMER(EnqueueUnsavedPackages);
 						// don't save these packages because we have a real request
 						// enqueue all the packages which we were about to save
 						if (CurrentCookMode==ECookMode::CookByTheBookFromTheEditor)
@@ -1291,6 +1310,7 @@ void UCookOnTheFlyServer::EndNetworkFileServer()
 		delete NetworkFileServer;
 		NetworkFileServer = NULL;
 	}
+	NetworkFileServers.Empty();
 }
 
 void UCookOnTheFlyServer::BeginDestroy()
@@ -2021,6 +2041,7 @@ void UCookOnTheFlyServer::SaveGlobalShaderMapFiles(const TArray<ITargetPlatform*
 
 void UCookOnTheFlyServer::CookByTheBookFinished()
 {
+	check( IsInGameThread() );
 	check( IsCookByTheBookMode() );
 	check( CookByTheBookOptions->bRunning == true );
 
@@ -2046,13 +2067,51 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 	UE_LOG(LogCookOnTheFly, Display, TEXT("Cook by the book total time %fs"), CookByTheBookOptions->CookTime);
 
-
-
 	CookByTheBookOptions->bRunning = false;
+}
+
+void UCookOnTheFlyServer::QueueCancelCookByTheBook()
+{
+	if ( IsCookByTheBookMode() )
+	{
+		check( CookByTheBookOptions != NULL );
+		CookByTheBookOptions->bCancel = true;
+	}
+}
+
+void UCookOnTheFlyServer::CancelCookByTheBook()
+{
+	if ( IsCookByTheBookMode() && CookByTheBookOptions->bRunning )
+	{
+		check(CookByTheBookOptions);
+		check( IsInGameThread() );
+
+		// save the cook requests 
+		CookRequests.DequeueAllRequests(CookByTheBookOptions->PreviousCookRequests);
+		CookByTheBookOptions->bRunning = false;
+	}	
+}
+
+void UCookOnTheFlyServer::StopAndClearCookedData()
+{
+	if ( IsCookByTheBookMode() )
+	{
+		check( CookByTheBookOptions != NULL );
+		check( CookByTheBookOptions->bRunning == false );
+		CancelCookByTheBook();
+		CookByTheBookOptions->PreviousCookRequests.Empty();
+	}
+
+	RecompileRequests.Empty();
+	CookRequests.Empty();
+	UnsolicitedCookedPackages.Empty();
+	CookedPackages.Empty(); // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
 }
 
 void UCookOnTheFlyServer::StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections )
 {
+	check( IsInGameThread() );
+
 	// can transition from cook on the fly to cook by the book from the editor
 	check( IsCookByTheBookMode() );
 
@@ -2085,6 +2144,7 @@ void UCookOnTheFlyServer::StartCookByTheBook(const TArray<ITargetPlatform*>& Tar
 	*/
 
 	CookByTheBookOptions->bRunning = true;
+	CookByTheBookOptions->bCancel = false;
 	CookByTheBookOptions->CookTime = 0.0f;
 
 	bool bCookAll = false;
@@ -2143,21 +2203,27 @@ void UCookOnTheFlyServer::StartCookByTheBook(const TArray<ITargetPlatform*>& Tar
 	GenerateLongPackageNames(FilesInPath);
 
 	// add all the files for the requested platform to the cook list
-	for ( auto FileName : FilesInPath )
+	for ( const auto& FileName : FilesInPath )
 	{
-		FName FileFName = GetCachedStandardPackageFileFName(FileName);
+		FName FileFName = FName(*FileName);
+		FName PackageFileFName = GetCachedStandardPackageFileFName(FileFName);
 		
-		if (FileFName != NAME_None)
+		if (PackageFileFName != NAME_None)
 		{
-			CookRequests.EnqueueUnique( MoveTemp( FFilePlatformRequest( FileFName, TargetPlatformNames ) ) );
+			CookRequests.EnqueueUnique( MoveTemp( FFilePlatformRequest( PackageFileFName, TargetPlatformNames ) ) );
 		}
 		else
 		{
 			LogCookerMessage( FString::Printf(TEXT("Unable to find package for cooking %s"), *FileName), EMessageSeverity::Warning );
 			UE_LOG(LogCookOnTheFly, Warning, TEXT("Unable to find package for cooking %s"), *FileName)
-		}
-		
+		}	
 	}
+
+	for ( const auto& PreviousRequest : CookByTheBookOptions->PreviousCookRequests )
+	{
+		CookRequests.EnqueueUnique( MoveTemp( PreviousRequest ) );
+	}
+	CookByTheBookOptions->PreviousCookRequests.Empty();
 
 }
 

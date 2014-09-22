@@ -553,6 +553,12 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	virtual bool IsCookByTheBookInEditorFinished() const override;
 
 
+	/**
+	 * cancels the current cook by the book in editor
+	 */
+	virtual void CancelCookByTheBookInEditor() override;
+
+
 
 	// Hook replacements.
 	void ShowActorProperties();

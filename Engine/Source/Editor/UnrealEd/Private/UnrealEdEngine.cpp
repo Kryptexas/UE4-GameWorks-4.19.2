@@ -148,6 +148,11 @@ bool UUnrealEdEngine::IsCookByTheBookInEditorFinished() const
 	return !CookServer->IsCookByTheBookRunning();
 }
 
+void UUnrealEdEngine::CancelCookByTheBookInEditor()
+{
+	CookServer->QueueCancelCookByTheBook();
+}
+
 void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSortedSpriteInfo) const
 {
 	struct Local

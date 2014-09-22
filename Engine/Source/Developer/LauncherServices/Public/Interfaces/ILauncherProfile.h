@@ -273,6 +273,11 @@ DECLARE_MULTICAST_DELEGATE(FOnProfileProjectChanged);
  */
 DECLARE_DELEGATE_RetVal(bool, FIsCookFinishedDelegate);
 
+/**
+ * Delegate type used to callback if the cook has been canceled
+ * only used for cook by the book in editor
+ */
+DECLARE_DELEGATE(FCookCanceledDelegate);
 
 /**
  * Interface for launcher profile.
@@ -373,6 +378,12 @@ public:
 	 * Used by cook by the book in the editor.
 	 */
 	virtual FIsCookFinishedDelegate& OnIsCookFinished() = 0;
+
+	/**
+	 * Returns the cook delegate which should be called if the cook is canceled
+	 *  Used by cook by the book in the editor
+	 */
+	virtual FCookCanceledDelegate& OnCookCanceled() = 0;
 
 public:
 

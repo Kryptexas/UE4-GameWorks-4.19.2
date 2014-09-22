@@ -1480,6 +1480,11 @@ public:
 	 */
 	virtual bool IsCookByTheBookInEditorFinished() const { return true; }
 
+	/**
+	 * Cancels the current cook by the book in editor
+	 */
+	virtual void CancelCookByTheBookInEditor() { }
+
 
 	/**
 	 * Makes a request to start a play from a Slate editor session
