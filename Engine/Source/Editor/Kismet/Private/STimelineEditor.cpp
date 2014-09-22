@@ -219,8 +219,11 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 					SAssignNew(TrackWidget, SCurveEditor)
 					.ViewMinInput(TimelineRef, &STimelineEditor::GetViewMinInput)
 					.ViewMaxInput(TimelineRef, &STimelineEditor::GetViewMaxInput)
+					.ViewMinOutput(TimelineRef, &STimelineEditor::GetViewMinOutput)
+					.ViewMaxOutput(TimelineRef, &STimelineEditor::GetViewMaxOutput)
 					.TimelineLength(TimelineRef, &STimelineEditor::GetTimelineLength)
 					.OnSetInputViewRange(TimelineRef, &STimelineEditor::SetInputViewRange)
+					.OnSetOutputViewRange(TimelineRef, &STimelineEditor::SetOutputViewRange)
 					.DesiredSize(TimelineRef, &STimelineEditor::GetTimelineDesiredSize)
 					.DrawCurve(bDrawCurve)
 					.HideUI(false)
@@ -655,6 +658,8 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 	// Leave these uninitialized at first.  We'll zoom to fit the tracks which will set the correct values
 	ViewMinInput = 0.f;
 	ViewMaxInput = 0.f;
+	ViewMinOutput = 0.f;
+	ViewMaxOutput = 0.f;
 
 	CommandList = MakeShareable( new FUICommandList );
 
@@ -897,6 +902,16 @@ float STimelineEditor::GetViewMinInput() const
 	return ViewMinInput;
 }
 
+float STimelineEditor::GetViewMaxOutput() const
+{
+	return ViewMaxOutput;
+}
+
+float STimelineEditor::GetViewMinOutput() const
+{
+	return ViewMinOutput;
+}
+
 float STimelineEditor::GetTimelineLength() const
 {
 	return (TimelineObj != NULL) ? TimelineObj->TimelineLength : 0.f;
@@ -906,6 +921,12 @@ void STimelineEditor::SetInputViewRange(float InViewMinInput, float InViewMaxInp
 {
 	ViewMaxInput = InViewMaxInput;
 	ViewMinInput = InViewMinInput;
+}
+
+void STimelineEditor::SetOutputViewRange(float InViewMinOutput, float InViewMaxOutput)
+{
+	ViewMaxOutput = InViewMaxOutput;
+	ViewMinOutput = InViewMinOutput;
 }
 
 TSharedRef<ITableRow> STimelineEditor::MakeTrackWidget( TSharedPtr<FTimelineEdTrack> Track, const TSharedRef<STableViewBase>& OwnerTable )

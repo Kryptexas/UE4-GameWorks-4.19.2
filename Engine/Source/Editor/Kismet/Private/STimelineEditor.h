@@ -171,6 +171,12 @@ private:
 	/** Maximum input shown for tracks */
 	float ViewMaxInput;
 
+	/** Minimum output shown for tracks */
+	float ViewMinOutput;
+
+	/** Maximum output shown for tracks */
+	float ViewMaxOutput;
+
 	/** The default name of the last track created, used to identify which track needs to be renamed. */
 	FName NewTrackPendingRename;
 
@@ -193,11 +199,15 @@ public:
 
 	float GetViewMinInput() const;
 	float GetViewMaxInput() const;
+	float GetViewMinOutput() const;
+	float GetViewMaxOutput() const;
 
 	/** Return length of timeline */
 	float GetTimelineLength() const;
 
 	void SetInputViewRange(float InViewMinInput, float InViewMaxInput);
+	void SetOutputViewRange(float InViewMinOutput, float InViewMaxOutput);
+
 	/** When user attempts to commit the name of a track*/
 	bool OnVerifyTrackNameCommit(const FText& TrackName, FText& OutErrorMessage, FTTTrackBase* TrackBase, STimelineEdTrack* Track );
 	/** When user commits the name of a track*/

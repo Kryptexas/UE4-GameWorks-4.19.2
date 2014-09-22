@@ -257,8 +257,10 @@ void SAnimCurveEd::Construct(const FArguments& InArgs)
 
 void SAnimCurveEd::SetDefaultOutput(const float MinZoomRange)
 {
-	ViewMinOutput = (ViewMinOutput);
-	ViewMaxOutput = (ViewMaxOutput + (MinZoomRange));
+	const float NewMinOutput = (ViewMinOutput.Get());
+	const float NewMaxOutput = (ViewMaxOutput.Get() + MinZoomRange);
+
+	SetOutputMinMax(NewMinOutput, NewMaxOutput);
 }
 //////////////////////////////////////////////////////////////////////////
 //  SCurveEd Track : each track for curve editing 
