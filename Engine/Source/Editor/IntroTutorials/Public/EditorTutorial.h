@@ -244,6 +244,10 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	UPROPERTY()
 	FString ImportPath;
 
+	/** Hide this tutorial in the tutorials browser */
+	UPROPERTY(EditAnywhere, Category="Tutorial")
+	bool bHideInBrowser;
+
 public:
 	/** Called when a tutorial stage is started */
 	void HandleTutorialStageStarted(FName StageName);
