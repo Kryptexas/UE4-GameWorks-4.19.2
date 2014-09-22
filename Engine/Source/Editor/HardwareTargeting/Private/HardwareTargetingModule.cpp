@@ -64,14 +64,23 @@ struct FMetaSettingGatherer
 	template <typename ValueType>
 	static FText ValueToString(ValueType Value);
 
-	void Finalize()
+	bool Finalize()
 	{
 		check(!bReadOnly);
 
+		bool bSuccess = true;
 		for (auto& Pair : DescriptionBuffers)
 		{
+			const FString Filename = Pair.Key->GetDefaultConfigFilename();
+			const FDateTime BeforeTime = IFileManager::Get().GetTimeStamp(*Filename);
+
 			Pair.Key->UpdateDefaultConfigFile();
+
+			const FDateTime AfterTime = IFileManager::Get().GetTimeStamp(*Filename);
+			bSuccess = BeforeTime != AfterTime && bSuccess;
 		}
+
+		return bSuccess;
 	}
 };
 
@@ -233,12 +242,22 @@ void FHardwareTargetingModule::ApplyHardwareTargetingSettings()
 		FMetaSettingGatherer Builder;
 		Builder.bReadOnly = false;
 		GatherSettings(Builder);
-		Builder.Finalize();
+
+		const bool bSuccess = Builder.Finalize();
 
 		// Write out the 'did we apply' values
-		GConfig->SetInt(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedDefaultGraphicsPerformance"), Settings->DefaultGraphicsPerformance, GEditorIni);
-		GConfig->SetInt(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedTargetedHardwareClass"), Settings->TargetedHardwareClass, GEditorIni);
-		GConfig->Flush(false, GEditorIni);
+		if (bSuccess)
+		{
+			UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGraphicsPreset"), true);
+			check(Enum);
+			GConfig->SetString(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedDefaultGraphicsPerformance"), *Enum->GetEnumName(Settings->DefaultGraphicsPerformance), GEditorIni);
+
+			Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EHardwareClass"), true);
+			check(Enum);
+			GConfig->SetString(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedTargetedHardwareClass"), *Enum->GetEnumName(Settings->TargetedHardwareClass), GEditorIni);
+
+			GConfig->Flush(false, GEditorIni);
+		}
 	}
 }
 

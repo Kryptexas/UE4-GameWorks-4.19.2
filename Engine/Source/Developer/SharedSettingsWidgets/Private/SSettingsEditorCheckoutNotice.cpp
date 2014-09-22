@@ -19,7 +19,7 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 
 	DefaultConfigCheckOutTimer = 0.0f;
 	DefaultConfigCheckOutNeeded = false;
-	DefaultConfigQueryInProgress = false;
+	DefaultConfigQueryInProgress = true;
 
 	// default configuration notice
 	ChildSlot
@@ -223,7 +223,7 @@ void SSettingsEditorCheckoutNotice::Tick(const FGeometry& AllottedGeometry, cons
 	{
 		bool NewCheckOutNeeded = false;
 
-		DefaultConfigQueryInProgress = false;
+		DefaultConfigQueryInProgress = true;
 		FString CachedConfigFileName = ConfigFilePath.Get();
 		if (!CachedConfigFileName.IsEmpty())
 		{
@@ -240,6 +240,7 @@ void SSettingsEditorCheckoutNotice::Tick(const FGeometry& AllottedGeometry, cons
 			else
 			{
 				NewCheckOutNeeded = (FPaths::FileExists(CachedConfigFileName) && IFileManager::Get().IsReadOnly(*CachedConfigFileName));
+				DefaultConfigQueryInProgress = false;
 			}
 
 			// file has been checked in or reverted
