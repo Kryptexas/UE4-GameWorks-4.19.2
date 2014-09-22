@@ -305,7 +305,7 @@ typedef uint64 EClassCastFlags;
 //#define CPF_    							DECLARE_UINT64(0x0000000000800000)		// 
 #define CPF_SaveGame						DECLARE_UINT64(0x0000000001000000)		// Property should be serialized for save games
 #define CPF_NoClear							DECLARE_UINT64(0x0000000002000000)		// Hide clear (and browse) button.
-#define CPF_EditInline						DECLARE_UINT64(0x0000000004000000)		// Edit this object reference inline.
+#define CPF_EditInline						DECLARE_UINT64(0x0000000004000000)		// Edit this object reference inline. Property must have also CPF_InstancedReference. The sub-object instance will be persistent.
 #define CPF_ReferenceParm					DECLARE_UINT64(0x0000000008000000)		// Value is passed by reference; CPF_OutParam and CPF_Param should also be set.
 #define CPF_BlueprintAssignable				DECLARE_UINT64(0x0000000010000000)		// MC Delegates only.  Property should be exposed for assigning in blueprint code
 #define CPF_Deprecated  					DECLARE_UINT64(0x0000000020000000)		// Property is deprecated.  Read it from an archive, but don't save it.

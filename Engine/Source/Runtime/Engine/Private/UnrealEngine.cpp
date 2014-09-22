@@ -9671,7 +9671,7 @@ struct FFindInstancedReferenceSubobjectHelper
 		check(ContainerAddress);
 		for (UProperty* Prop = (Struct ? Struct->RefLink : NULL); Prop; Prop = Prop->NextRef)
 		{
-			if (Prop->HasAnyPropertyFlags(CPF_InstancedReference))
+			if (Prop->HasAllPropertyFlags(CPF_InstancedReference | CPF_EditInline))
 			{
 				auto ObjectProperty = Cast<const UObjectProperty>(Prop);
 				if (ObjectProperty)
