@@ -242,6 +242,20 @@ const TCHAR* FLinuxPlatformProcess::ExecutableName(bool bRemoveExtension)
 	return CachedResult;
 }
 
+
+FString FLinuxPlatformProcess::GenerateApplicationPath( const FString& AppName, EBuildConfigurations::Type BuildConfiguration)
+{
+	FString PlatformName = GetBinariesSubdirectory();
+	FString ExecutablePath = FString::Printf(TEXT("../%s/%s"), *PlatformName, *AppName);
+	
+	if (BuildConfiguration != EBuildConfigurations::Development && BuildConfiguration != EBuildConfigurations::DebugGame)
+	{
+		ExecutablePath += FString::Printf(TEXT("-%s-%s"), *PlatformName, EBuildConfigurations::ToString(BuildConfiguration));
+	}
+	return ExecutablePath;
+}
+
+
 FString FLinuxPlatformProcess::GetApplicationName( uint32 ProcessId )
 {
 	FString Output = TEXT("");
