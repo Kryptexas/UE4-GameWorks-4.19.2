@@ -21,9 +21,9 @@ UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 	BorderBackgroundColor = FLinearColor::White;
 }
 
-void UCheckBox::ReleaseNativeWidget()
+void UCheckBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyCheckbox.Reset();
 }

@@ -14,9 +14,9 @@ UVerticalBoxSlot::UVerticalBoxSlot(const FPostConstructInitializeProperties& PCI
 	Size = FSlateChildSize(ESlateSizeRule::Automatic);
 }
 
-void UVerticalBoxSlot::ReleaseNativeWidget()
+void UVerticalBoxSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }

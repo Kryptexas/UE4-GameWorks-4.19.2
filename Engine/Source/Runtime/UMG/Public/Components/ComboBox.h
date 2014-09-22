@@ -22,7 +22,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FGenerateWidgetForObject OnGenerateWidgetEvent;
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;

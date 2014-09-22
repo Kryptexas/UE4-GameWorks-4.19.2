@@ -29,9 +29,9 @@ UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
-void UEditableText::ReleaseNativeWidget()
+void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyEditableText.Reset();
 }

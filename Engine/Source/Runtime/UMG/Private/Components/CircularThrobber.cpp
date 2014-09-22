@@ -19,9 +19,9 @@ UCircularThrobber::UCircularThrobber(const FPostConstructInitializeProperties& P
 	Radius = DefaultArgs._Radius;
 }
 
-void UCircularThrobber::ReleaseNativeWidget()
+void UCircularThrobber::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyCircularThrobber.Reset();
 }

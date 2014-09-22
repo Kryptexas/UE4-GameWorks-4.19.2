@@ -25,9 +25,9 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 	bShowEffectWhenDisabled = true;
 }
 
-void UBorder::ReleaseNativeWidget()
+void UBorder::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyBorder.Reset();
 }

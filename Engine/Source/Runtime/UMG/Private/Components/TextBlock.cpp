@@ -12,8 +12,7 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
-	STextBlock::FArguments Defaults;
-	WidgetStyle = *Defaults._TextStyle;
+	WidgetStyle = *UTextBlock::GetDefaultStyle();
 
 	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 	ShadowOffset = FVector2D(1.0f, 1.0f);
@@ -25,11 +24,16 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
 }
 
-void UTextBlock::ReleaseNativeWidget()
+void UTextBlock::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
-	MyTextBlock.Reset();
+	if ( MyTextBlock.IsValid() )
+	{
+		MyTextBlock->SetTextStyle(UTextBlock::GetDefaultStyle());
+
+		MyTextBlock.Reset();
+	}
 }
 
 void UTextBlock::SetColorAndOpacity(FSlateColor InColorAndOpacity)
@@ -44,7 +48,7 @@ void UTextBlock::SetColorAndOpacity(FSlateColor InColorAndOpacity)
 void UTextBlock::SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity)
 {
 	ShadowColorAndOpacity = InShadowColorAndOpacity;
-	if(MyTextBlock.IsValid())
+	if( MyTextBlock.IsValid() )
 	{
 		MyTextBlock->SetShadowColorAndOpacity(InShadowColorAndOpacity);
 	}
@@ -53,7 +57,7 @@ void UTextBlock::SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity)
 void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 {
 	ShadowOffset = InShadowOffset;
-	if(MyTextBlock.IsValid())
+	if( MyTextBlock.IsValid() )
 	{
 		MyTextBlock->SetShadowOffset(ShadowOffset);
 	}
@@ -73,7 +77,7 @@ void UTextBlock::SynchronizeProperties()
 
 	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
 
-	if ( !FPaths::FileExists(FontPath) )
+	if( !FPaths::FileExists(FontPath) )
 	{
 		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 	}
@@ -131,6 +135,12 @@ void UTextBlock::PostLoad()
 			Style_DEPRECATED = nullptr;
 		}
 	}
+}
+
+const FTextBlockStyle* UTextBlock::GetDefaultStyle()
+{
+	static const STextBlock::FArguments Defaults;
+	return Defaults._TextStyle;
 }
 
 #if WITH_EDITOR

@@ -48,7 +48,7 @@ public:
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SOverlay> InOverlay);
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 private:
 	//TODO UMG Slots should hold weak or shared refs to slots.

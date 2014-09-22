@@ -14,9 +14,9 @@ USizeBox::USizeBox(const FPostConstructInitializeProperties& PCIP)
 	bIsVariable = false;
 }
 
-void USizeBox::ReleaseNativeWidget()
+void USizeBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MySizeBox.Reset();
 }

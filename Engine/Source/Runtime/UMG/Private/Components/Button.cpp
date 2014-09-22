@@ -22,9 +22,9 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	IsFocusable = true;
 }
 
-void UButton::ReleaseNativeWidget()
+void UButton::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyButton.Reset();
 }

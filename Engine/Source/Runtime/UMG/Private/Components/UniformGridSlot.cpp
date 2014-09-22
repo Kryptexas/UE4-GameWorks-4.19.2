@@ -13,9 +13,9 @@ UUniformGridSlot::UUniformGridSlot(const FPostConstructInitializeProperties& PCI
 	VerticalAlignment = VAlign_Top;
 }
 
-void UUniformGridSlot::ReleaseNativeWidget()
+void UUniformGridSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }

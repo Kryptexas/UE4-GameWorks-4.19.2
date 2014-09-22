@@ -47,7 +47,7 @@ public:
 	/** Builds the underlying slot for the slate border. */
 	void BuildSlot(TSharedRef<SBorder> InBorder);
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 public:
 

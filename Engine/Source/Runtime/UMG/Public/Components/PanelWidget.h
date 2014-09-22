@@ -70,7 +70,7 @@ public:
 	/** Sets that this widget is being designed sets it on all children as well. */
 	virtual void SetIsDesignTime(bool bInDesignTime) override;
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual bool LockToPanelOnDrag() const

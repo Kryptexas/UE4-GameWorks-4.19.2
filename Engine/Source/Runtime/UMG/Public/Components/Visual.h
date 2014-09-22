@@ -11,5 +11,9 @@ class UMG_API UVisual : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	virtual void ReleaseNativeWidget();
+	virtual void ReleaseSlateResources(bool bReleaseChildren);
+
+	// Begin UObject interface
+	virtual void BeginDestroy() override;
+	// End UObject interface
 };

@@ -18,9 +18,9 @@ void UNativeWidgetHost::SetContent(TSharedRef<SWidget> InContent)
 	MyWidget = InContent;
 }
 
-void UNativeWidgetHost::ReleaseNativeWidget()
+void UNativeWidgetHost::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyWidget.Reset();
 }

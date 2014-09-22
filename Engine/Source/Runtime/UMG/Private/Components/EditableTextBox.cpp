@@ -32,9 +32,9 @@ UEditableTextBox::UEditableTextBox(const FPostConstructInitializeProperties& PCI
 	WidgetStyle = *Defaults._Style;
 }
 
-void UEditableTextBox::ReleaseNativeWidget()
+void UEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyEditableTextBlock.Reset();
 }

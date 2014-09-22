@@ -22,9 +22,9 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FPostConstructInitial
 	TextStyle = *Defaults._TextStyle;
 }
 
-void UMultiLineEditableTextBox::ReleaseNativeWidget()
+void UMultiLineEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyEditableTextBlock.Reset();
 }

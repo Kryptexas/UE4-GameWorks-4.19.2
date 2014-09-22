@@ -18,9 +18,9 @@ UComboBoxString::UComboBoxString(const FPostConstructInitializeProperties& PCIP)
 	HasDownArrow = true;
 }
 
-void UComboBoxString::ReleaseNativeWidget()
+void UComboBoxString::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyComboBox.Reset();
 	ComoboBoxContent.Reset();

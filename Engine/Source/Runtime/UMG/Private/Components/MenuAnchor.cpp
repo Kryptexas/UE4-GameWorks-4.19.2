@@ -13,9 +13,9 @@ UMenuAnchor::UMenuAnchor(const FPostConstructInitializeProperties& PCIP)
 	Placement = MenuPlacement_ComboBox;
 }
 
-void UMenuAnchor::ReleaseNativeWidget()
+void UMenuAnchor::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyMenuAnchor.Reset();
 }

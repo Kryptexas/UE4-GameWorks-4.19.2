@@ -16,9 +16,9 @@ UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCI
 	ZOrder = 0;
 }
 
-void UCanvasPanelSlot::ReleaseNativeWidget()
+void UCanvasPanelSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }

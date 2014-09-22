@@ -16,9 +16,9 @@ UUniformGridPanel::UUniformGridPanel(const FPostConstructInitializeProperties& P
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UUniformGridPanel::ReleaseNativeWidget()
+void UUniformGridPanel::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyUniformGridPanel.Reset();
 }

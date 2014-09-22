@@ -42,7 +42,7 @@ public:
 	/** Builds the underlying slot for the slate button. */
 	void BuildSlot(TSharedRef<SButton> InButton);
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 private:
 

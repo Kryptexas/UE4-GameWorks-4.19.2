@@ -32,7 +32,7 @@ public:
 	/** Builds the underlying slot for the slate SizeBox. */
 	void BuildSlot(TSharedRef<SBox> InSizeBox);
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 protected:
 	/** The padding area between the slot and the content it contains. */

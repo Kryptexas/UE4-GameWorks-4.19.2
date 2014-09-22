@@ -16,9 +16,9 @@ UScaleBox::UScaleBox(const FPostConstructInitializeProperties& PCIP)
 	Stretch = EStretch::ScaleToFit;
 }
 
-void UScaleBox::ReleaseNativeWidget()
+void UScaleBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyScaleBox.Reset();
 }

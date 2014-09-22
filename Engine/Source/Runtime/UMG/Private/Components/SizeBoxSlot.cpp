@@ -16,9 +16,9 @@ USizeBoxSlot::USizeBoxSlot(const FPostConstructInitializeProperties& PCIP)
 	SBox::FArguments SizeBoxDefaults;
 }
 
-void USizeBoxSlot::ReleaseNativeWidget()
+void USizeBoxSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	SizeBox.Reset();
 }

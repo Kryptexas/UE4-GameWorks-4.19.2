@@ -9,7 +9,7 @@ class UMG_API UOverlay : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")

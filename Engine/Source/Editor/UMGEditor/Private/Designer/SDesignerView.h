@@ -83,7 +83,7 @@ private:
 	void ResolvePendingSelectedWidgets();
 
 	/** Updates the designer to display the latest preview widget */
-	void UpdatePreviewWidget();
+	void UpdatePreviewWidget(bool bForceUpdate);
 
 	void ClearExtensionWidgets();
 	void CreateExtensionWidgetsForSelection();
@@ -102,13 +102,8 @@ private:
 	/** Gets the blueprint being edited by the designer */
 	UWidgetBlueprint* GetBlueprint() const;
 
-	/** Called whenever the blueprint is structurally changed. */
-	void OnBlueprintChanged(UBlueprint* InBlueprint);
-
-        /** Called whenever the blueprint is recompiled */
+	/** Called whenever the blueprint is recompiled */
 	void OnBlueprintCompiled(UBlueprint* InBlueprint);
-
-	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	void PopulateWidgetGeometryCache(FArrangedWidget& Root);
 

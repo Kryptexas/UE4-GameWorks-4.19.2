@@ -25,9 +25,9 @@ void UImage::PostLoad()
 	}
 }
 
-void UImage::ReleaseNativeWidget()
+void UImage::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyImage.Reset();
 }
