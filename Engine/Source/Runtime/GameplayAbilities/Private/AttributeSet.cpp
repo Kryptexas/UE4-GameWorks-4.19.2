@@ -254,7 +254,8 @@ void FAttributeSetInitter::PreloadAttributeSetData(UCurveTable* CurveData)
 		TSubclassOf<UAttributeSet> Set = FindBestAttributeClass(ClassList, SetName);
 		if (!Set)
 		{
-			ABILITY_LOG(Warning, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match AttributeSet from %s (row: %s)"), *SetName, *RowName);
+			// This is ok, we may have rows in here that don't correspond directly to attributes
+			ABILITY_LOG(Verbose, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match AttributeSet from %s (row: %s)"), *SetName, *RowName);
 			continue;
 		}
 

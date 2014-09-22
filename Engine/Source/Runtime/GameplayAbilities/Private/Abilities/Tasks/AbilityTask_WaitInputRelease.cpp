@@ -1,6 +1,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
+#include "GameplayPrediction.h"
 
 UAbilityTask_WaitInputRelease::UAbilityTask_WaitInputRelease(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -13,10 +14,12 @@ void UAbilityTask_WaitInputRelease::OnReleaseCallback(UGameplayAbility* InAbilit
 {
 	float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
 
+	FScopedPredictionWindow	ScopedPrediction(InAbility);
+
 	if (Ability->GetCurrentActivationInfo().ActivationMode != EGameplayAbilityActivationMode::Authority)
 	{
 		// Tell the server we released.
-		AbilitySystemComponent->ServerInputRelease(Ability->GetCurrentAbilitySpecHandle());
+		AbilitySystemComponent->ServerInputRelease(Ability->GetCurrentAbilitySpecHandle(), ScopedPrediction.ScopedPredictionKey);
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages

@@ -630,15 +630,20 @@ FActiveGameplayEffectHandle UGameplayAbility::K2_ApplyGameplayEffectToTarget(FGa
 FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FGameplayAbilityTargetDataHandle Target, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
 {
 	FActiveGameplayEffectHandle EffectHandle;
-	for (auto Data : Target.Data)
+
+
+	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority || ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
 	{
-		TArray<FActiveGameplayEffectHandle> EffectHandles = Data->ApplyGameplayEffect(GameplayEffect, ActorInfo, (float)GameplayEffectLevel);
-		if (EffectHandles.Num() > 0)
+		for (auto Data : Target.Data)
 		{
-			EffectHandle = EffectHandles[0];
-			if (EffectHandles.Num() > 1)
+			TArray<FActiveGameplayEffectHandle> EffectHandles = Data->ApplyGameplayEffect(GameplayEffect, ActorInfo, (float)GameplayEffectLevel, FModifierQualifier().PredictionKey(ActivationInfo.GetPredictionKeyForNewAction()));
+			if (EffectHandles.Num() > 0)
 			{
-				ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on TargetData with multiple actor targets. %s"), *GetName());
+				EffectHandle = EffectHandles[0];
+				if (EffectHandles.Num() > 1)
+				{
+					ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on TargetData with multiple actor targets. %s"), *GetName());
+				}
 			}
 		}
 	}

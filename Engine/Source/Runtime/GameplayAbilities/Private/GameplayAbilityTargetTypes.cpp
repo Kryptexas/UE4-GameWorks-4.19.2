@@ -7,7 +7,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 
 
-TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo* InstigatorInfo, float Level)
+TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo* InstigatorInfo, float Level, FModifierQualifier Qualifier)
 {
 	// TODO: Improve relationship between InstigatorContext and FGameplayAbilityTargetData/FHitResult (or use something different between HitResult)
 
@@ -38,7 +38,7 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 			UAbilitySystemComponent* TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor.Get());
 			if (TargetComponent)
 			{
-				AppliedHandles.Add( InstigatorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent) );
+				AppliedHandles.Add( InstigatorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent, Qualifier) );
 			}
 		}
 	}

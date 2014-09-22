@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "Abilities/Tasks/AbilityTask.h"
+#include "GameplayPrediction.h"
 
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
@@ -896,13 +897,15 @@ void UAbilitySystemComponent::InputCancel()
 	CancelCallbacks.Broadcast();
 }
 
-bool UAbilitySystemComponent::ServerInputRelease_Validate(FGameplayAbilitySpecHandle Handle)
+bool UAbilitySystemComponent::ServerInputRelease_Validate(FGameplayAbilitySpecHandle Handle, FPredictionKey ScopedPedictionKey)
 {
 	return true;
 }
 
-void UAbilitySystemComponent::ServerInputRelease_Implementation(FGameplayAbilitySpecHandle Handle)
+void UAbilitySystemComponent::ServerInputRelease_Implementation(FGameplayAbilitySpecHandle Handle, FPredictionKey ScopedPedictionKey)
 {
+	FScopedPredictionWindow ScopedPrediction(this, ScopedPedictionKey);
+
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (Spec)
 	{

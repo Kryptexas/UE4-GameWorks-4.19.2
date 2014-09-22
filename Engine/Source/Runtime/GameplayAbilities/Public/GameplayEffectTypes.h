@@ -20,6 +20,16 @@ class UAbilitySystemComponent;
 struct FGameplayEffectSpec;
 struct FGameplayEffectModCallbackData;
 
+FString EGameplayModOpToString(int32 Type);
+
+FString EGameplayModToString(int32 Type);
+
+FString EGameplayModEffectToString(int32 Type);
+
+FString EGameplayEffectCopyPolicyToString(int32 Type);
+
+FString EGameplayEffectStackingPolicyToString(int32 Type);
+
 UENUM(BlueprintType)
 namespace EGameplayModOp
 {
@@ -271,6 +281,118 @@ struct TStructOpsTypeTraits< FGameplayEffectInstigatorContext > : public TStruct
 
 // -----------------------------------------------------------
 
+/** 
+ * Qualification context for applying modifiers.
+ *	For example a Modifier may be setup in data to only apply to OutgoingGE mods.
+ *	The FModifierQualifier is the data structure to hold the 'what type of modifier are we applying' data.
+ *
+ *  This should ideally only hold data that is outside of FGameplayEffectSpec or FGameplayModifierSpec.
+ *	For example, specs know what they can and can't modify. We don't need to duplicate that there. 
+ *  FModifierQualifier is meant to hold the data that comes from the calling context that is not intrinsic 
+ *  to the existing data structures.
+ *
+ *	This class uses an optional initialization idiom such that you can do things like:
+ *		FModifierQualifier().Handle(InHandle).(InType).etc...
+ */
+USTRUCT(BlueprintType)
+struct FModifierQualifier
+{
+	GENERATED_USTRUCT_BODY()
+
+	FModifierQualifier()
+		: MyType(EGameplayMod::Max)
+	{
+	}
+
+	// ----------------------------------
+
+	FModifierQualifier& Type(EGameplayMod::Type InType)
+	{
+		MyType = InType;
+		return *this;
+	}
+
+	EGameplayMod::Type Type() const
+	{
+		return MyType;
+	}
+
+	// ----------------------------------
+	// PredictionKey is used by networking/replication to specify that a GameplayEffect has been predictively created/added.
+	
+	FModifierQualifier& PredictionKey(FPredictionKey InPredictionKey)
+	{
+		MyPredictionKey = InPredictionKey;
+		return *this;
+	}
+
+	FPredictionKey PredictionKey() const
+	{
+		return MyPredictionKey;
+	}
+
+	// ----------------------------------
+	// IgnoreHandle - ignore this handle completely. For example when executing an active gameplay effect, we never
+	// want to apply it to itself (either as IncomingGE or activeGE). It is ignored in all contexts.
+	//
+
+	FModifierQualifier& IgnoreHandle(FActiveGameplayEffectHandle InHandle)
+	{
+		MyIgnoreHandle = InHandle;
+		return *this;
+	}
+
+	FActiveGameplayEffectHandle IgnoreHandle() const
+	{
+		return MyIgnoreHandle;
+	}
+
+	// ----------------------------------
+	// ExclusiveTarget - sometimes we need to only apply a modifier to a specific active gameplay effect.
+	// We may only be able to use the handle if there are multiple instances of the same gameplay effect.
+	// This only applies in the context of applying/executing to a target. 'We only modify this active effect'.
+	// ExclusiveTarget is not checked in the context of applying outgoing/incoming GE modifiers to the spec.
+	//
+
+	FModifierQualifier& ExclusiveTarget(FActiveGameplayEffectHandle InHandle)
+	{
+		MyExclusiveTargetHandle = InHandle;
+		return *this;
+	}
+
+	FActiveGameplayEffectHandle ExclusiveTarget() const
+	{
+		return MyExclusiveTargetHandle;
+	}
+
+	// ----------------------------------
+
+	bool TestTarget(FActiveGameplayEffectHandle InHandle) const
+	{
+		if (MyIgnoreHandle.IsValid() && MyIgnoreHandle == InHandle)
+			return false;
+
+		if (MyExclusiveTargetHandle.IsValid() && MyExclusiveTargetHandle != InHandle)
+			return false;
+
+		return true;
+	}
+
+	FString ToString() const
+	{
+		return EGameplayModToString(MyType);
+	}
+
+private:
+	EGameplayMod::Type	MyType;
+	FActiveGameplayEffectHandle MyIgnoreHandle;		// Do not modify this handle
+	FActiveGameplayEffectHandle MyExclusiveTargetHandle;	// Only modify this handle
+	FPredictionKey MyPredictionKey;
+};
+
+// -----------------------------------------------------------
+
+
 USTRUCT(BlueprintType)
 struct FGameplayCueParameters
 {
@@ -297,17 +419,6 @@ namespace EGameplayCueEvent
 		Removed			// Called when GameplayCue is removed
 	};
 }
-
-FString EGameplayModOpToString(int32 Type);
-
-FString EGameplayModToString(int32 Type);
-
-FString EGameplayModEffectToString(int32 Type);
-
-FString EGameplayEffectCopyPolicyToString(int32 Type);
-
-FString EGameplayEffectStackingPolicyToString(int32 Type);
-
 
 DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData&);
 

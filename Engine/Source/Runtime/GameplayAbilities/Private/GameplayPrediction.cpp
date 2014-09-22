@@ -183,3 +183,59 @@ void FPredictionKeyDelegates::AddDependancy(FPredictionKey::KeyType ThisKey, FPr
 	NewRejectedDelegate(DependsOn).BindStatic(&FPredictionKeyDelegates::Reject, ThisKey);
 	NewCaughtUpDelegate(DependsOn).BindStatic(&FPredictionKeyDelegates::CaughtUp, ThisKey);
 }
+
+// -------------------------------------
+
+FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey)
+{
+	Owner = AbilitySystemComponent;
+	Owner->ScopedPedictionKey = InPredictionKey;
+	ClearScopedPredictionKey = true;
+
+}
+
+FScopedPredictionWindow::FScopedPredictionWindow(UGameplayAbility* GameplayAbilityInstance)
+{
+	Ability = GameplayAbilityInstance;
+	check(Ability);
+
+	Owner = GameplayAbilityInstance->GetCurrentActorInfo()->AbilitySystemComponent.Get();
+	check(Owner);
+
+	ClearScopedPredictionKey = false;
+
+	FGameplayAbilityActivationInfo& ActivationInfo = Ability->GetCurrentActivationInfoRef();
+
+
+	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority)
+	{
+		ActivationInfo.SetPredictionKey(Owner->ScopedPedictionKey);
+	}
+	else
+	{
+		ClientPrevActivationMode = static_cast<int8>(ActivationInfo.ActivationMode);
+
+		ActivationInfo.GenerateNewPredictionKey();
+		ScopedPredictionKey = ActivationInfo.GetPredictionKeyForNewAction();
+	}
+}
+
+FScopedPredictionWindow::~FScopedPredictionWindow()
+{
+	if (Ability)
+	{
+		// Restore old activation info settings
+		FGameplayAbilityActivationInfo& ActivationInfo = Ability->GetCurrentActivationInfoRef();
+		if (ActivationInfo.ActivationMode != EGameplayAbilityActivationMode::Authority)
+		{
+			ActivationInfo.ActivationMode = static_cast< TEnumAsByte<EGameplayAbilityActivationMode::Type> > (ClientPrevActivationMode);
+		}
+
+		ActivationInfo.SetPredictionStale();
+	}
+
+	if (ClearScopedPredictionKey && Owner)
+	{
+		Owner->ScopedPedictionKey = FPredictionKey();
+	}
+}

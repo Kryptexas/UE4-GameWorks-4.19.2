@@ -151,6 +151,12 @@ public:
 		return CurrentActivationInfo;
 	}
 
+	FGameplayAbilityActivationInfo& GetCurrentActivationInfoRef()
+	{
+		check(IsInstantiated());
+		return CurrentActivationInfo;
+	}
+
 	/** Gets the current AbilitySpecHandle- can only be called on instanced abilities. */
 	FGameplayAbilitySpecHandle GetCurrentAbilitySpecHandle() const
 	{

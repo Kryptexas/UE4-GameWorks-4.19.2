@@ -140,6 +140,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UPROPERTY(ReplicatedUsing=OnRep_PredictionKey)
 	FPredictionKey	ReplicatedPredictionKey;
 
+	FPredictionKey	ScopedPedictionKey;
+
 	UFUNCTION()
 	void OnRep_PredictionKey();
 
@@ -430,7 +432,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	/** Sent by abilities when they *need* to tell server when activation input is released. (Not sent by defauly only sent when using AbilityTask_WaitInputRelease) */
 	UFUNCTION(Server, reliable, WithValidation)
-	void ServerInputRelease(FGameplayAbilitySpecHandle AbilityToActivate);
+	void ServerInputRelease(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey ScopedPedictionKey);
 
 	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputConfirm();

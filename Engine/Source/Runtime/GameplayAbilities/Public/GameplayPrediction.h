@@ -182,3 +182,34 @@ private:
 
 	static void CaughtUp(FPredictionKey::KeyType Key);
 };
+
+
+// -----------------------------------------------------------------
+
+class UAbilitySystemComponent;
+class UGameplayAbility;
+
+/**
+ *	A structure for allowing scoped prediction windows.
+ */
+
+struct FScopedPredictionWindow
+{
+	/** To be called on server when a new prediction key is received from the client (In an RPC). */
+	FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey);
+
+	/** To be called in the callsite where the predictive code will take place. This generates a new PredictionKey and acts as a synchonization point between client and server for that key.  */
+	FScopedPredictionWindow(UGameplayAbility* GameplayAbilityInstance);
+
+	~FScopedPredictionWindow();
+
+	FPredictionKey	ScopedPredictionKey;
+
+private:
+
+	UAbilitySystemComponent* Owner;
+	UGameplayAbility* Ability;
+
+	int8 ClientPrevActivationMode;
+	bool ClearScopedPredictionKey;
+};
