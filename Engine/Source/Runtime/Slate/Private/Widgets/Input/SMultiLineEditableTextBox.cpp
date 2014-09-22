@@ -33,6 +33,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 		HScrollBar = SNew(SScrollBar)
 			.Style(&InArgs._Style->ScrollBarStyle)
 			.Orientation(Orient_Horizontal)
+			.AlwaysShowScrollbar(InArgs._AlwaysShowScrollbars)
 			.Thickness(FVector2D(5.0f, 5.0f));
 		HScrollBarWidget = HScrollBar;
 	}
@@ -50,6 +51,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 		VScrollBar = SNew(SScrollBar)
 			.Style(&InArgs._Style->ScrollBarStyle)
 			.Orientation(Orient_Vertical)
+			.AlwaysShowScrollbar(InArgs._AlwaysShowScrollbars)
 			.Thickness(FVector2D(5.0f, 5.0f));
 		VScrollBarWidget = VScrollBar;
 	}

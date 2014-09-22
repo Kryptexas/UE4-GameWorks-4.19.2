@@ -111,35 +111,36 @@ public:
 	{
 		const float Width = AllottedGeometry.Size.X;
 		const float Height = AllottedGeometry.Size.Y;
-
-		FTrackSizeInfo TrackSizeInfo = this->GetTrackSizeInfo(AllottedGeometry);
-
-		// Arrange top half of the track
-		FVector2D ChildSize = (Orientation == Orient_Horizontal)
-			? FVector2D(TrackSizeInfo.ThumbStart, Height)
-			: FVector2D(Width, TrackSizeInfo.ThumbStart);
-
-		FVector2D ChildPos(0, 0);
-		ArrangedChildren.AddWidget(			
-			AllottedGeometry.MakeChild( Children[TOP_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
-		);
-
-		// Arrange bottom half of the track
-		ChildPos = (Orientation == Orient_Horizontal)
-			? FVector2D(TrackSizeInfo.GetThumbEnd(), 0)
-			: FVector2D(0, TrackSizeInfo.GetThumbEnd());
-
-		ChildSize = (Orientation == Orient_Horizontal)
-			? FVector2D(AllottedGeometry.Size.X - TrackSizeInfo.GetThumbEnd(), Height)
-			: FVector2D(Width, AllottedGeometry.Size.Y - TrackSizeInfo.GetThumbEnd());
-
-		ArrangedChildren.AddWidget( 
-			AllottedGeometry.MakeChild( Children[BOTTOM_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
-		);
 		
-		// Arrange the thumb; only show it in enabled scrollbars
+		// We only need to show all three children when the thumb is visible, otherwise we only need to show the track
 		if ( IsNeeded() )
 		{
+			FTrackSizeInfo TrackSizeInfo = this->GetTrackSizeInfo(AllottedGeometry);
+
+			// Arrange top half of the track
+			FVector2D ChildSize = (Orientation == Orient_Horizontal)
+				? FVector2D(TrackSizeInfo.ThumbStart, Height)
+				: FVector2D(Width, TrackSizeInfo.ThumbStart);
+
+			FVector2D ChildPos(0, 0);
+			ArrangedChildren.AddWidget(			
+				AllottedGeometry.MakeChild( Children[TOP_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
+			);
+
+			// Arrange bottom half of the track
+			ChildPos = (Orientation == Orient_Horizontal)
+				? FVector2D(TrackSizeInfo.GetThumbEnd(), 0)
+				: FVector2D(0, TrackSizeInfo.GetThumbEnd());
+
+			ChildSize = (Orientation == Orient_Horizontal)
+				? FVector2D(AllottedGeometry.Size.X - TrackSizeInfo.GetThumbEnd(), Height)
+				: FVector2D(Width, AllottedGeometry.Size.Y - TrackSizeInfo.GetThumbEnd());
+
+			ArrangedChildren.AddWidget( 
+				AllottedGeometry.MakeChild( Children[BOTTOM_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
+			);
+
+			// Arrange the thumb
 			ChildPos = (Orientation == Orient_Horizontal)
 				? FVector2D(TrackSizeInfo.ThumbStart, 0)
 				: FVector2D(0, TrackSizeInfo.ThumbStart);
@@ -150,6 +151,13 @@ public:
 
 			ArrangedChildren.AddWidget(
 				AllottedGeometry.MakeChild( Children[THUMB_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
+			);
+		}
+		else
+		{
+			// No thumb is visible, so just show the top half of the track at the current width/height
+			ArrangedChildren.AddWidget(			
+				AllottedGeometry.MakeChild( Children[TOP_SLOT_INDEX].GetWidget(), FVector2D(0, 0), FVector2D(Width, Height) )
 			);
 		}
 

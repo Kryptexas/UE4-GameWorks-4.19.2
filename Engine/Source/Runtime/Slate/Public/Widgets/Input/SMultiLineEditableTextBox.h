@@ -29,6 +29,7 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit( true )
+		, _AlwaysShowScrollbars( false )
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
 		, _SelectAllTextOnCommit( false )
@@ -85,6 +86,9 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
+
+		/** Should we always show the scrollbars (only affects internally created scroll bars) */
+		SLATE_ARGUMENT(bool, AlwaysShowScrollbars)
 
 		/** The horizontal scroll bar widget, or null to create one internally */
 		SLATE_ARGUMENT( TSharedPtr< SScrollBar >, HScrollBar )
