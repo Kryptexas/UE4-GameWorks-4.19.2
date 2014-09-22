@@ -4,14 +4,31 @@
 
 #include "EdGraph/EdGraphNode_Documentation.h"
 
-/** Variable replication states */
+/**
+ * Variable network replication options.
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
+ */
 namespace EVariableReplication
 {
 	enum Type
 	{
+		/**
+		 * Not replicated.
+		 */
 		None,
+
+		/**
+		 * Replicated from server to client.
+		 * As values change on the server, client automatically receives new values, if Actor is set to replicate.
+		 */
 		Replicated,
+
+		/**
+		 * Replicated from server to client, with a notification function called on clients when a new value arrives.
+		 * An event with the name "On Rep <VariableName>" is created.
+		 */
 		RepNotify,
+
 		MAX
 	};
 }
