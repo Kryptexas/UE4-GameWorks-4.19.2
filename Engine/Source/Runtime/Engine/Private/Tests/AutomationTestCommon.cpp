@@ -88,7 +88,7 @@ bool FMatineePerformanceCaptureCommand::Update()
 	for (TObjectIterator<AMatineeActor> It; It; ++It)
 	{
 		AMatineeActor* MatineeActor = *It;
-		FString MatineeFOOName = MatineeActor->GetName();
+
 		if (MatineeActor->GetName().Equals(MatineeName,ESearchCase::IgnoreCase))
 		{	
 			//add latent action to execute this matinee
