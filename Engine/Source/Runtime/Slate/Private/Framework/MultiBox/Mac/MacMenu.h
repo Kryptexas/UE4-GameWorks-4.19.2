@@ -4,8 +4,9 @@
 
 #include "MultiBox.h"
 #include "SMenuEntryBlock.h"
+#include "CocoaMenu.h"
 
-@interface FMacMenu : NSMenu <NSMenuDelegate>
+@interface FMacMenu : FCocoaMenu <NSMenuDelegate>
 @property (assign) TSharedPtr<const FMenuEntryBlock> MenuEntryBlock;
 @property (assign) TSharedPtr<const FMultiBox> MultiBox;
 @end

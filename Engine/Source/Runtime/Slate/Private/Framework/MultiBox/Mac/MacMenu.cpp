@@ -20,7 +20,11 @@
 
 - (void)performAction
 {
-	FSlateMacMenu::ExecuteMenuItemAction(self.MenuEntryBlock.ToSharedRef());
+	FCocoaMenu* CocoaMenu = [[self menu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[self menu] : nil;
+	if ( !CocoaMenu || ![CocoaMenu isHighlightingKeyEquivalent] )
+	{
+		FSlateMacMenu::ExecuteMenuItemAction(self.MenuEntryBlock.ToSharedRef());
+	}
 }
 
 @end

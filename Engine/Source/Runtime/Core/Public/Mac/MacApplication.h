@@ -109,6 +109,12 @@ public:
 	static void ProcessEvent(FMacEvent const* const Event);
 
 private:
+	enum FMacApplicationEventTypes
+	{
+		ResentEvent = 0x0f00
+	};
+
+	static NSEvent* HandleNSEvent(NSEvent* Event);
 	static void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo);
 
 	FMacApplication();
@@ -117,6 +123,7 @@ private:
 	TCHAR ConvertChar( TCHAR Character );
 	TCHAR TranslateCharCode( TCHAR CharCode, uint32 KeyCode );
 
+	void ResendEvent( NSEvent* Event );
 	FCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
 	TSharedPtr<FGenericWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
 
