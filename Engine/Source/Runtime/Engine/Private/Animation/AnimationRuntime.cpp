@@ -1067,8 +1067,11 @@ void FAnimationRuntime::ConvertCSTransformToBoneSpace
 		case BCS_ParentBoneSpace :
 			{
 				const int32 ParentIndex = MeshBases.GetParentBoneIndex(BoneIndex);
-				const FTransform ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
-				CSBoneTM.SetToRelativeTransform(ParentTM);
+				if (ParentIndex != INDEX_NONE)
+				{
+					const FTransform ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+					CSBoneTM.SetToRelativeTransform(ParentTM);
+				}
 			}
 			break;
 
