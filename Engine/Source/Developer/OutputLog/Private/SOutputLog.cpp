@@ -659,6 +659,9 @@ FOutputLogTextLayoutMarshaller::FOutputLogTextLayoutMarshaller(TArray< TSharedPt
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SOutputLog::Construct( const FArguments& InArgs )
 {
+	// Force scroll in the first Tick() once we've been sized and populated correctly
+	bPendingForceScroll = true;
+
 	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(MoveTemp(InArgs._Messages));
 
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
@@ -666,6 +669,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 		.TextStyle(FEditorStyle::Get(), "Log.Normal")
 		.Marshaller(MessagesTextMarshaller)
 		.IsReadOnly(true)
+		.AlwaysShowScrollbars(true)
 		.ContextMenuExtender(this, &SOutputLog::ExtendTextBoxMenu);
 
 	ChildSlot
@@ -684,6 +688,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
 			[
 				SNew( SConsoleInputBox )
+				.OnConsoleCommandExecuted(this, &SOutputLog::OnConsoleCommandExecuted)
 
 				// Always place suggestions above the input line for the output log widget
 				.SuggestionListPlacement( MenuPlacement_AboveAnchor )
@@ -691,12 +696,6 @@ void SOutputLog::Construct( const FArguments& InArgs )
 	];
 	
 	GLog->AddOutputDevice(this);
-
-	// If there's already been messages logged, scroll down to the last one
-	if (MessagesTextMarshaller->GetNumMessages() > 0)
-	{
-		MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
-	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -706,6 +705,16 @@ SOutputLog::~SOutputLog()
 	{
 		GLog->RemoveOutputDevice(this);
 	}
+}
+
+void SOutputLog::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	if(bPendingForceScroll && MessagesTextMarshaller->GetNumMessages() > 0)
+	{
+		MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
+	}
+
+	bPendingForceScroll = false;
 }
 
 bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, TArray< TSharedPtr<FLogMessage> >& OutMessages )
@@ -765,7 +774,8 @@ void SOutputLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const
 	if ( MessagesTextMarshaller->AppendMessage(V, Verbosity, Category) )
 	{
 		// Don't scroll to the bottom automatically when the user is scrolling the view or has scrolled it away from the bottom.
-		if( MessagesTextBox->GetVScrollBar()->DistanceFromBottom() <= 0.f )
+		const float DistanceFromBottom = MessagesTextBox->GetVScrollBar()->DistanceFromBottom();
+		if( DistanceFromBottom <= KINDA_SMALL_NUMBER )
 		{
 			// Force a refresh so that the message has been added before we try and jump to it
 			//MessagesTextBox->Refresh();
@@ -802,4 +812,9 @@ void SOutputLog::OnClearLog()
 bool SOutputLog::CanClearLog() const
 {
 	return MessagesTextMarshaller->GetNumMessages() > 0;
+}
+
+void SOutputLog::OnConsoleCommandExecuted()
+{
+	RequestForceScroll();
 }

@@ -886,8 +886,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		const FTextBlockStyle NormalLogText = FTextBlockStyle(NormalText)
 			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 9 ) )
 			.SetColorAndOpacity( FLinearColor(FColor(0xffaaaaaa)) )
-			//.SetSelectedBackgroundColor( SelectionColor );
-			.SetSelectedBackgroundColor( FLinearColor(FColor(0xffeeeeee)) );
+			.SetSelectedBackgroundColor( FLinearColor(FColor(0xff666666)) );
 
 		Set("Log.Normal", NormalLogText );
 
