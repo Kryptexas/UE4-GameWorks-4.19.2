@@ -183,3 +183,16 @@ struct TStructOpsTypeTraits<FSessionServiceLogUnsubscribe> : public TStructOpsTy
 		WithMessageHandling = true
 	};
 };
+
+
+/* Dummy class
+ *****************************************************************************/
+
+UCLASS()
+class USessionServiceMessages
+	: public UObject
+{
+public:
+
+	GENERATED_UCLASS_BODY()
+};

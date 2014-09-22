@@ -345,3 +345,15 @@ struct TStructOpsTypeTraits<FSwarmQuitMessage> : public TStructOpsTypeTraitsBase
 		WithMessageHandling = true
 	};
 };
+
+/* Dummy class
+ *****************************************************************************/
+
+UCLASS()
+class USwarmMessages
+	: public UObject
+{
+public:
+
+	GENERATED_UCLASS_BODY()
+};

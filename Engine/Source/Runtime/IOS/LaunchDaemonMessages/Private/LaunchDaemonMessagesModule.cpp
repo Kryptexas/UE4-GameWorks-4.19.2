@@ -21,5 +21,9 @@ public:
 	}
 };
 
+// Dummy class initialization
+UIOSMessageProtocol::UIOSMessageProtocol( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
 
 IMPLEMENT_MODULE(FLaunchDaemonMessagesModule, LaunchDaemonMessages);

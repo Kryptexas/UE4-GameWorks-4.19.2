@@ -16,5 +16,9 @@ public:
 	virtual void ShutdownModule() override { }
 };
 
+// Dummy class initialization
+USwarmMessages::USwarmMessages( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
 
 IMPLEMENT_MODULE(FSwarmInterfaceModule, SwarmInterface);

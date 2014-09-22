@@ -99,3 +99,15 @@ struct TStructOpsTypeTraits<FIOSLaunchDaemonLaunchApp> : public TStructOpsTypeTr
 		WithMessageHandling = true
 	};
 };
+
+/* Dummy class
+ *****************************************************************************/
+
+UCLASS()
+class UIOSMessageProtocol
+	: public UObject
+{
+public:
+
+	GENERATED_UCLASS_BODY()
+};

@@ -45,5 +45,9 @@ private:
 	ITargetDeviceServiceManagerPtr DeviceServiceManagerSingleton;
 };
 
+// Dummy class initialization
+UTargetDeviceServiceMessages::UTargetDeviceServiceMessages( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
 
 IMPLEMENT_MODULE(FTargetDeviceServicesModule, TargetDeviceServices);

@@ -251,3 +251,15 @@ struct TStructOpsTypeTraits<FEngineServiceNotification> : public TStructOpsTypeT
 		WithMessageHandling = true
 	};
 };
+
+/* Dummy class
+ *****************************************************************************/
+
+UCLASS()
+class UEngineServiceMessages
+	: public UObject
+{
+public:
+
+	GENERATED_UCLASS_BODY()
+};

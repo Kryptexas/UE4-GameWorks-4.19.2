@@ -22,5 +22,9 @@ public:
 	}
 };
 
+// Dummy class initialization
+UAssetEditorMessages::UAssetEditorMessages( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
 
 IMPLEMENT_MODULE(FUnrealEdMessagesModule, UnrealEdMessages);

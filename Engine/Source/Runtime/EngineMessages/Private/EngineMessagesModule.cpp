@@ -22,5 +22,9 @@ public:
 	}
 };
 
+// Dummy class initialization
+UEngineServiceMessages::UEngineServiceMessages( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
 
 IMPLEMENT_MODULE(FEngineMessagesModule, EngineMessages);

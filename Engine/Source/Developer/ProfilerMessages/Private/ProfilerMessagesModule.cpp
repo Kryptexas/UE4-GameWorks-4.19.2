@@ -21,5 +21,9 @@ public:
 	}
 };
 
+// Dummy class initialization
+UProfilerServiceMessages::UProfilerServiceMessages( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
 
 IMPLEMENT_MODULE(FProfilerMessagesModule, ProfilerMessages);
