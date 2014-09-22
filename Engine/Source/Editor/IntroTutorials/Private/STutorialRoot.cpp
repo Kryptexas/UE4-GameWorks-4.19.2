@@ -116,6 +116,12 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 				if(Toolkit.IsValid())
 				{
 					InNavigationWindow = FSlateApplication::Get().FindWidgetWindow(Toolkit->GetToolkitHost()->GetParentWidget());
+
+					// make sure we have a valid tutorial overlay
+					if(InNavigationWindow.IsValid())
+					{
+						MaybeAddOverlay(InNavigationWindow.Pin().ToSharedRef());
+					}
 				}
 			}
 		}
