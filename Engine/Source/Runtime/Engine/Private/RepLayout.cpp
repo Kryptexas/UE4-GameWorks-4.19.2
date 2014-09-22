@@ -1157,7 +1157,7 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 
 	const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
 
-	if ( Array->Num() != ArrayNum && (Parent.RepNotifyCondition == REPNOTIFY_Always || Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) ) )
+	if ( (Array->Num() != ArrayNum || Parent.RepNotifyCondition == REPNOTIFY_Always) && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 	{
 		ReaderState.RepState->RepNotifies.AddUnique( Parent.Property );
 	}
