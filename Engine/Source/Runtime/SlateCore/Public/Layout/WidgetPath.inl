@@ -53,7 +53,7 @@ bool FWidgetPath::SearchForWidgetRecursively_Reverse( const MatchRuleType& Match
 			OutReversedPath.AddWidget( SomeChild );
 			return true;
 		}
-		else if ( SearchForWidgetRecursively( MatchRule, SomeChild, OutReversedPath, VisibilityFilter) )
+		else if ( SearchForWidgetRecursively_Reverse( MatchRule, SomeChild, OutReversedPath, VisibilityFilter) )
 		{
 			OutReversedPath.AddWidget( SomeChild );
 			return true;
