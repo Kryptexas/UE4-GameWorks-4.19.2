@@ -247,29 +247,6 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				]
 			]
 
-			// Info Bar, displays heads up information about some actions.
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Bottom)
-			.Padding(FMargin(0, 0, 0, 200))
-			[
-				SNew(SDisappearingBar)
-				[
-					SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-					.BorderBackgroundColor(FLinearColor(1, 1, 1, 0.75))
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.Padding(FMargin(0, 5))
-					.Visibility(this, &SDesignerView::GetInfoBarVisibility)
-					[
-						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
-						.Text(this, &SDesignerView::GetInfoBarText)
-					]
-				]
-			]
-
 			// Bottom bar to show current resolution & AR
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Fill)
@@ -284,6 +261,28 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
 					.Text(this, &SDesignerView::GetCurrentResolutionText)
 					.ColorAndOpacity(this, &SDesignerView::GetResolutionTextColorAndOpacity)
+				]
+			]
+
+			// Info Bar, displays heads up information about some actions.
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			[
+				SNew(SDisappearingBar)
+				[
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+					.BorderBackgroundColor(FLinearColor(0.10, 0.10, 0.10, 0.75))
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(0, 5))
+					.Visibility(this, &SDesignerView::GetInfoBarVisibility)
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+						.Text(this, &SDesignerView::GetInfoBarText)
+					]
 				]
 			]
 		]
