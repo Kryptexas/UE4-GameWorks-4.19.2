@@ -23,6 +23,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UPROPERTY(config)
 	FString DebugComponentHUDClassName;
 
+	UPROPERTY(config)
+	int32 MaxEQSQueries;
+
 	UPROPERTY(Replicated, Transient)
 	UGameplayDebuggingComponent* DebugComponent;
 

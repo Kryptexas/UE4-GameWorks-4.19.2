@@ -85,9 +85,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	
 	/** Begin EQS replication data */
 
-	UPROPERTY(Replicated)
-	TArray<FString> AllEQSName;
-
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
 	TArray<uint8> EQSRepData;
 	

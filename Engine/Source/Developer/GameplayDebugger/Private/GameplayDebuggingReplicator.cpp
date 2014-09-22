@@ -18,6 +18,7 @@ FOnSelectionChanged AGameplayDebuggingReplicator::OnSelectionChangedDelegate;
 
 AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, MaxEQSQueries(5)
 	, bIsGlobalInWorld(true)
 	, LastDrawAtFrame(0)
 	, PlayerControllersUpdateDelay(0)

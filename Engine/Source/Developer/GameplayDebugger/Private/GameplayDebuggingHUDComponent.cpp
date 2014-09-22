@@ -347,22 +347,22 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 	PrintString(DefaultContext, TEXT("\n{green}EQS {white}[Use + key to switch query]\n"));
 
-	if (DebugComponent->AllEQSName.Num() == 0)
+	if (DebugComponent->EQSLocalData.Num() == 0)
 	{
 		return;
 	}
 
-	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
-	if (!DebugComponent->AllEQSName.IsValidIndex(EQSIndex))
+	const int32 EQSIndex = DebugComponent->EQSLocalData.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->EQSLocalData.Num() - 1) : INDEX_NONE;
+	if (!DebugComponent->EQSLocalData.IsValidIndex(EQSIndex))
 	{
 		return;
 	}
-	const FString SelecterEQSName = DebugComponent->AllEQSName[EQSIndex];
 
+	int32 Index = 0;
 	PrintString(DefaultContext, TEXT("{white}Queries: "));
 	for (auto CurrentQuery : DebugComponent->EQSLocalData)
 	{
-		if (SelecterEQSName == CurrentQuery.Name)
+		if (EQSIndex == Index)
 		{
 			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQuery.Name));
 		}
@@ -370,6 +370,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 		{
 			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQuery.Name));
 		}
+		Index++;
 	}
 	PrintString(DefaultContext, TEXT("\n"));
 
@@ -515,7 +516,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 	const float PosY = DefaultContext.CursorY + 1.0f;
 	float PosX = DefaultContext.CursorX;
 
-	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+	const int32 EQSIndex = DebugComponent->EQSLocalData.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->EQSLocalData.Num() - 1) : INDEX_NONE;
 	auto& CurrentLocalData = DebugComponent->EQSLocalData[EQSIndex];
 	const EQSDebug::FItemData& ItemData = CurrentLocalData.Items[ItemIdx];
 

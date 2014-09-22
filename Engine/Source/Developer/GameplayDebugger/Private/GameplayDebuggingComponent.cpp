@@ -202,7 +202,6 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
-	DOREPLIFETIME(UGameplayDebuggingComponent, AllEQSName);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -227,7 +226,6 @@ void UGameplayDebuggingComponent::SetActorToDebug(AActor* Actor)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	TargetActor = Actor;
 	EQSLocalData.Reset();
-	AllEQSName.Reset();
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -558,7 +556,7 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 void UGameplayDebuggingComponent::OnChangeEQSQuery()
 {
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
-	if (++CurrentEQSIndex >= AllEQSName.Num())
+	if (++CurrentEQSIndex >= EQSLocalData.Num())
 	{
 		CurrentEQSIndex = 0;
 	}
@@ -615,6 +613,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	UWorld* World = GetWorld();
 	UEnvQueryManager* QueryManager = World ? UEnvQueryManager::GetCurrent(World) : NULL;
 	const AActor* Owner = GetSelectedActor();
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 
 	if (QueryManager == NULL || Owner == NULL)
 	{
@@ -628,36 +627,33 @@ void UGameplayDebuggingComponent::CollectEQSData()
 		const auto& AllControllerQueries = QueryManager->GetDebugger().GetAllQueriesForOwner(OwnerAsPawn->GetController());
 		AllQueries.Append(AllControllerQueries);
 	}
-	for (int32 Index = 0; Index < AllQueries.Num(); ++Index)
+	struct FEnvQueryInfoSort
+	{
+		FORCEINLINE bool operator()(const FEQSDebugger::FEnvQueryInfo& A, const FEQSDebugger::FEnvQueryInfo& B) const
+		{
+			return (A.Timestamp < B.Timestamp);
+		}
+	};
+	TArray<FEQSDebugger::FEnvQueryInfo> QueriesToSort = AllQueries;
+	QueriesToSort.Sort(FEnvQueryInfoSort()); //sort queries by timestamp
+	QueriesToSort.SetNum(FMath::Min<int32>(Replicator->MaxEQSQueries, AllQueries.Num()));
+
+	for (int32 Index = AllQueries.Num() - 1; Index >= 0; --Index)
+	{
+		auto &CurrentQuery = AllQueries[Index];
+		if (QueriesToSort.Find(CurrentQuery) == INDEX_NONE)
+		{
+			AllQueries.RemoveAt(Index);
+		}
+	}
+
+
+	EQSLocalData.Reset();
+	for (int32 Index = 0; Index < FMath::Min<int32>(Replicator->MaxEQSQueries, AllQueries.Num()); ++Index)
 	{
 		EQSDebug::FQueryData* CurrentLocalData = NULL;
 		CachedQueryInstance = AllQueries[Index].Instance;
-		float CachedTimestamp = AllQueries[Index].Timestamp;
-		AllEQSName.AddUnique(CachedQueryInstance->QueryName);
-
-		 //find corresponding query
-		bool bSkipToNext = false;
-		for (int32 Idx = 0; Idx < EQSLocalData.Num(); ++Idx)
-		{
-			if (EQSLocalData[Idx].Name == CachedQueryInstance->QueryName)
-			{
-				if (EQSLocalData[Idx].Id == CachedQueryInstance->QueryID)
-				{
-					if (EQSLocalData[Idx].Timestamp == CachedTimestamp)
-					{
-						bSkipToNext = true;
-						break;
-					}
-				}
-				CurrentLocalData = &EQSLocalData[Index];;
-				break;
-			}
-		}
-
-		if (bSkipToNext)
-		{
-			continue;
-		}
+		const float CachedTimestamp = AllQueries[Index].Timestamp;
 
 		if (!CurrentLocalData)
 		{
@@ -1143,7 +1139,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 #if USE_EQS_DEBUGGER
 	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled())
 	{
-		const int32 EQSIndex = AllEQSName.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, AllEQSName.Num() - 1) : INDEX_NONE;
+		const int32 EQSIndex = EQSLocalData.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, EQSLocalData.Num() - 1) : INDEX_NONE;
 		if (EQSLocalData.IsValidIndex(EQSIndex))
 		{
 			CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
