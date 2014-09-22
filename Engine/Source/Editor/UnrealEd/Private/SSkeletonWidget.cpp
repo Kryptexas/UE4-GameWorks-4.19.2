@@ -327,6 +327,8 @@ void SSkeletonSelectorWindow::ConstructWindow()
 		];
 }
 
+TSharedPtr<SWindow> SAnimationRemapSkeleton::DialogWindow;
+
 bool SAnimationRemapSkeleton::OnShouldFilterAsset(const class FAssetData& AssetData)
 {
 	USkeleton * AssetSkeleton = NULL;
@@ -690,11 +692,18 @@ FReply SAnimationRemapSkeleton::OnApply()
 	CloseWindow();
 	return FReply::Handled();
 }
+
 FReply SAnimationRemapSkeleton::OnCancel()
 {
 	NewSkeleton = NULL;
 	CloseWindow();
 	return FReply::Handled();
+}
+
+void SAnimationRemapSkeleton::OnRemapDialogClosed(const TSharedRef<SWindow>& Window)
+{
+	NewSkeleton = NULL;
+	DialogWindow = nullptr;
 }
 
 void SAnimationRemapSkeleton::CloseWindow()
@@ -707,8 +716,6 @@ void SAnimationRemapSkeleton::CloseWindow()
 
 void SAnimationRemapSkeleton::ShowWindow(USkeleton * OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate)
 {
-	static TSharedPtr<SWindow> DialogWindow;
-
 	if(DialogWindow.IsValid())
 	{
 		FSlateApplication::Get().DestroyWindowImmediately(DialogWindow.ToSharedRef());
@@ -736,6 +743,7 @@ void SAnimationRemapSkeleton::ShowWindow(USkeleton * OldSkeleton, const FText& W
 			.OnRetargetDelegate(RetargetDelegate)
 		];
 
+	DialogWindow->SetOnWindowClosed(FRequestDestroyWindowOverride::CreateSP(DialogWidget.Get(), &SAnimationRemapSkeleton::OnRemapDialogClosed));
 	DialogWindow->SetContent(DialogWrapper.ToSharedRef());
 
 	FSlateApplication::Get().AddWindow(DialogWindow.ToSharedRef());

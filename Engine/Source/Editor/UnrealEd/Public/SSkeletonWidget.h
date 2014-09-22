@@ -383,6 +383,9 @@ private:
 
 	void CloseWindow();
 
+	/** Handler for dialog window close button */
+	void OnRemapDialogClosed(const TSharedRef<SWindow>& Window);
+
 	/**
 	 * Handler for when asset is selected
 	 */
@@ -402,6 +405,8 @@ public:
 	 * @return true if successfully selected new skeleton
 	 */
 	static UNREALED_API void ShowWindow(USkeleton * OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate);
+
+	static TSharedPtr<SWindow> DialogWindow;
 };
 
 ////////////////////////////////////////////////////
