@@ -7,6 +7,7 @@
 #include "Toolkits/SStandaloneAssetEditorToolkitHost.h"
 #include "Toolkits/SAssetEditorCommon.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "SuperSearchModule.h"
 #include "MainFrame.h"
 
 #define LOCTEXT_NAMESPACE "StandaloneAssetEditorToolkit"
