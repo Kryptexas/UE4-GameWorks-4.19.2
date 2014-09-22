@@ -18,6 +18,7 @@
 #include "Engine/LevelScriptBlueprint.h"
 #include "Settings.h"
 #include "DesktopPlatformModule.h"
+#include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
 #include "KismetEditorUtilities.h"
 #include "ISourceControlModule.h"
