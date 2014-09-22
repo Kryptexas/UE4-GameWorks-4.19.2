@@ -1438,6 +1438,8 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			FMessageLog MessageLog("PackagingResults");
 			MessageLog.AddMessage(Message);
 			MessageLog.Open();
+
+			return false;
 		}
 
 		// report to main frame
