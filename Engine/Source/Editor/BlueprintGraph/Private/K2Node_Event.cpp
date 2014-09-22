@@ -94,7 +94,7 @@ FText UK2Node_Event::GetTooltipText() const
 	UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName);
 	if (CachedTooltip.IsOutOfDate() && (Function != nullptr))
 	{
-		CachedTooltip = Function->GetToolTipText();
+		CachedTooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
 
 		if (bOverrideFunction || (CustomFunctionName == NAME_None))
 		{
