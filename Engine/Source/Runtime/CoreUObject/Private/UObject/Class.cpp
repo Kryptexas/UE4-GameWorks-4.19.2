@@ -190,6 +190,7 @@ struct FDisplayNameHelper
 		if (Class && !Class->HasAnyClassFlags(CLASS_Native))
 		{
 			Name.RemoveFromEnd(TEXT("_C"));
+			Name.RemoveFromStart(TEXT("SKEL_"));
 		}
 		return Name;
 	}
