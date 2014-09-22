@@ -52,8 +52,10 @@ struct FVertexFactoryInterpolantsVSToPS
 {
 #if NUM_MATERIAL_TEXCOORDS
 	float4	TexCoords[(NUM_MATERIAL_TEXCOORDS + 1) / 2]	: TEXCOORD0;
-#elif USE_PARTICLE_SUBUVS
-	float4	TexCoords[1]	: TEXCOORD0;
+#endif
+
+#if USE_PARTICLE_SUBUVS
+	float4 ParticleSubUVs : PARTICLE_SUBUVS;
 #endif
 
 	/** X: SubImageLerp Y:RelativeTime Z:MotionBlurFade */
@@ -302,7 +304,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	return Intermediates;
 }
 
-#if NUM_MATERIAL_TEXCOORDS || USE_PARTICLE_SUBUVS
+#if NUM_MATERIAL_TEXCOORDS
 float2 GetUV(FVertexFactoryInterpolantsVSToPS Interpolants, int UVIndex)
 {
 	float4 UVVector = Interpolants.TexCoords[UVIndex / 2];
@@ -379,8 +381,8 @@ FMaterialPixelParameters GetMaterialPixelParameters( FVertexFactoryInterpolantsV
 #endif
 
 #if USE_PARTICLE_SUBUVS
-	Result.Particle.SubUVCoords[0] = GetUV(Interpolants, 0);
-	Result.Particle.SubUVCoords[1] = GetUV(Interpolants, 1);
+	Result.Particle.SubUVCoords[0] = Interpolants.ParticleSubUVs.xy;
+	Result.Particle.SubUVCoords[1] = Interpolants.ParticleSubUVs.zw;
 	Result.Particle.SubUVLerp = Interpolants.Misc.xx;
 #endif
 
@@ -434,6 +436,11 @@ FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input
 #endif	// >= 2
 #endif	// >= 1
 #endif	//NUM_MATERIAL_TEXCOORDS
+
+#if USE_PARTICLE_SUBUVS
+		Result.Particle.SubUVCoords[0] = Intermediates.TexCoord.xy;
+		Result.Particle.SubUVCoords[1] = Intermediates.TexCoord.zw;
+#endif
 
 #if USE_PARTICLE_SIZE
 	Result.Particle.Size = Intermediates.ParticleSize;
@@ -504,9 +511,11 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS( FVertexFact
 	{
 		SetUV(Interpolants, CoordinateIndex, CustomizedUVs[CoordinateIndex]);
 	}
-#elif USE_PARTICLE_SUBUVS
-	SetUV(Interpolants, 0, Intermediates.TexCoord.xy);
-	SetUV(Interpolants, 1, Intermediates.TexCoord.zw);
+#endif
+
+#if USE_PARTICLE_SUBUVS
+	Interpolants.ParticleSubUVs.xy = VertexParameters.Particle.SubUVCoords[0];
+	Interpolants.ParticleSubUVs.zw = VertexParameters.Particle.SubUVCoords[1];
 #endif
 
 	Interpolants.Misc.x = Intermediates.SubImageLerp;
