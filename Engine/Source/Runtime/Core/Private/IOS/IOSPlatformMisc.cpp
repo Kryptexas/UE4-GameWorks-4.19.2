@@ -450,9 +450,22 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		{
 			DeviceType = IOS_IPhone5;
 		}
-		else if (Major >= 6)
+		else if (Major == 6)
 		{
 			DeviceType = IOS_IPhone5S;
+		}
+		else if (Major >= 7)
+		{
+			// this could just check the minor where 1 == 6Plus, and 2 == 6, but that won't help going forward (7/7+?)
+			// so treat devices with a scale > 2.5 to be 6Plus type devices, < 2.5 to be 6 type devices
+			if ([UIScreen mainScreen].scale > 2.5f)
+			{
+				DeviceType = IOS_IPhone6Plus;
+			}
+			else
+			{
+				DeviceType = IOS_IPhone6;
+			}
 		}
 	}
 	// simulator
