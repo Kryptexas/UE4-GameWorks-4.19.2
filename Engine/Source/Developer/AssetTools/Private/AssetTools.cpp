@@ -572,6 +572,14 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 		}
 		else
 		{
+			if(FEngineAnalytics::IsAvailable())
+			{
+				TArray<FAnalyticsEventAttribute> Attribs;
+				Attribs.Add(FAnalyticsEventAttribute(TEXT("FileExtension"), FileExtension));
+
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.ImportFailed"), Attribs);
+			}
+
 			const FText Message = FText::Format( LOCTEXT("ImportFailed_UnknownExtension", "Failed to import '{0}'. Unknown extension '{1}'."), FText::FromString( Filename ), FText::FromString( FileExtension ) );
 			FNotificationInfo Info(Message);
 			Info.ExpireDuration = 3.0f;
