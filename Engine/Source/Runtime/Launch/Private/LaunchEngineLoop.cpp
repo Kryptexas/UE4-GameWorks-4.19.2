@@ -1616,6 +1616,7 @@ void FEngineLoop::LoadPreInitModules()
 
 	FModuleManager::Get().LoadModule(TEXT("Renderer"));
 
+	FPlatformMisc::LoadPreInitModules();
 	
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer() )
@@ -1624,8 +1625,7 @@ void FEngineLoop::LoadPreInitModules()
 		FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer");
 	}
 #endif
-
-	FPlatformMisc::LoadPreInitModules();
+	
 	// Initialize ShaderCore before loading or compiling any shaders,
 	// But after Renderer and any other modules which implement shader types.
 	FModuleManager::Get().LoadModule(TEXT("ShaderCore"));
