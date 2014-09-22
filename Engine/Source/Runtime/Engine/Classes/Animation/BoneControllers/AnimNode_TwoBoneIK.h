@@ -23,7 +23,7 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	FVector EffectorLocation;
 
 	/** Joint Target Location. Location used to orient Joint bone. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=JointTarget, meta=(PinShownByDefault))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = JointTarget, meta=(PinShownByDefault))
 	FVector JointTargetLocation;
 
 	/** Limits to use if stretching is allowed. */
@@ -47,7 +47,7 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	uint32 bAllowStretching:1;
 	
 	/** Reference frame of Effector Location. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = IK)
 	TEnumAsByte<enum EBoneControlSpace> EffectorLocationSpace;
 
 	/** Reference frame of Joint Target Location. */
