@@ -716,14 +716,6 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 			}
 		}
 
-		for( int32 HitIdx = 0; HitIdx < Overlaps.Num(); HitIdx++ )
-		{
-			if ( Overlaps[HitIdx].Component.IsValid() && (Overlaps[HitIdx].Component.Get()->GetCollisionResponseToChannel(BlockingChannel) == ECR_Block) )
-			{
-				bFoundBlockingHit = true;
-				break;
-			}
-		}
 		if ( !bFoundBlockingHit )
 		{
 			return false;
