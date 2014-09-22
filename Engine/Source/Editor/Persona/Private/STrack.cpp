@@ -777,6 +777,11 @@ FCursorReply STrack::OnCursorQuery( const FGeometry& MyGeometry, const FPointerE
 		return FCursorReply::Cursor( EMouseCursor::ResizeLeftRight );
 	}
 
+	if (ViewInputMin.Get() > TrackMinValue.Get() || ViewInputMax.Get() < TrackMaxValue.Get())
+	{
+		return FCursorReply::Cursor(EMouseCursor::GrabHand);
+	}
+
 	return FCursorReply::Unhandled();
 }
 

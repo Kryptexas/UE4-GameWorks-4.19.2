@@ -137,6 +137,7 @@ protected:
 	// SWidget interface
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	// SWidget interface
 
 	// SCurveEditor interface
@@ -231,6 +232,16 @@ FReply SAnimCurveEd::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEve
 	}
 
 	return FReply::Handled();
+}
+
+FCursorReply SAnimCurveEd::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
+{
+	if (ViewMinInput.Get() > 0.f || ViewMaxInput.Get() < TimelineLength.Get())
+	{
+		return FCursorReply::Cursor(EMouseCursor::GrabHand);
+	}
+
+	return FCursorReply::Unhandled();
 }
 
 void SAnimCurveEd::Construct(const FArguments& InArgs)
