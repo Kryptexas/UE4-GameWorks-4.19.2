@@ -105,6 +105,16 @@ FReply SPropertyEditorText::OnKeyboardFocusReceived( const FGeometry& MyGeometry
 	return FReply::Handled().SetKeyboardFocus( PrimaryWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
 }
 
+void SPropertyEditorText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	const float CurrentHeight = AllottedGeometry.GetLocalSize().Y;
+	if (bIsMultiLine && PreviousHeight.IsSet() && PreviousHeight.GetValue() != CurrentHeight)
+	{
+		PropertyEditor->RequestRefresh();
+	}
+	PreviousHeight = CurrentHeight;
+}
+
 bool SPropertyEditorText::CanEdit() const
 {
 	return PropertyEditor.IsValid() ? !PropertyEditor->IsEditConst() : true;

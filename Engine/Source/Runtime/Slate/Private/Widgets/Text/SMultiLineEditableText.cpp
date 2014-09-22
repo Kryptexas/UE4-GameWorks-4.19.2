@@ -238,12 +238,14 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	HScrollBar = InArgs._HScrollBar;
 	if (HScrollBar.IsValid())
 	{
+		HScrollBar->SetUserVisibility(EVisibility::Collapsed);
 		HScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SMultiLineEditableText::OnHScrollBarMoved));
 	}
 
 	VScrollBar = InArgs._VScrollBar;
 	if (VScrollBar.IsValid())
 	{
+		VScrollBar->SetUserVisibility(EVisibility::Collapsed);
 		VScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SMultiLineEditableText::OnVScrollBarMoved));
 	}
 
@@ -2081,6 +2083,10 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
 	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
+	// If we're auto-wrapping, we need to hide the scrollbars until the first valid auto-wrap has been performed
+	// If we don't do this, then we can get some nasty layout shuffling as the scrollbars appear for one frame and then vanish again
+	const EVisibility ScrollBarVisiblityOverride = (AutoWrapText.Get() && CachedSize != AllottedGeometry.Size) ? EVisibility::Collapsed : EVisibility::Visible;
+
 	// Try and make sure that the line containing the cursor is in view
 	if (PositionToScrollIntoView.IsSet())
 	{
@@ -2133,6 +2139,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 		if (HScrollBar.IsValid())
 		{
 			HScrollBar->SetState(ViewOffset, ViewFraction);
+			HScrollBar->SetUserVisibility(ScrollBarVisiblityOverride);
 			if (!HScrollBar->IsNeeded())
 			{
 				// We cannot scroll, so ensure that there is no offset
@@ -2155,6 +2162,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 		if (VScrollBar.IsValid())
 		{
 			VScrollBar->SetState(ViewOffset, ViewFraction);
+			VScrollBar->SetUserVisibility(ScrollBarVisiblityOverride);
 			if (!VScrollBar->IsNeeded())
 			{
 				// We cannot scroll, so ensure that there is no offset

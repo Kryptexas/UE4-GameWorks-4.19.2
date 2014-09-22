@@ -33,6 +33,8 @@ public:
 
 	bool IsPropertyEditingEnabled() const;
 
+	void RequestRefresh();
+
 	bool SupportsEditConditionToggle() const;
 
 	/**	@return Whether the property is editconst */
