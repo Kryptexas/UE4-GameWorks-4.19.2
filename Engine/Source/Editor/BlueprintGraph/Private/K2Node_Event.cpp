@@ -57,7 +57,7 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
 		{
-			FunctionName = UEdGraphSchema_K2::GetFriendlySignitureName(Function);
+			FunctionName = UEdGraphSchema_K2::GetFriendlySignatureName(Function);
 		}
 
 		FFormatNamedArguments Args;

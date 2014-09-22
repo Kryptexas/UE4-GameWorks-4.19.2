@@ -226,7 +226,7 @@ void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLo
 				MessageLog.Error(*FString::Printf(*LOCTEXT("NonCustomEventOverride", "@@ name conflicts with a '%s' function").ToString(), *FuncOwner->GetName()), this);
 			}
 			// else, we assume the user was attempting to override the parent's custom-event
-			// the signitures could still be off, but FKismetCompilerContext::PrecompileFunction() should catch that
+			// the signatures could still be off, but FKismetCompilerContext::PrecompileFunction() should catch that
 		}		
 	}
 }

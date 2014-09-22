@@ -653,8 +653,8 @@ public:
 	/** Can this function be overridden by kismet (either placed as event or new function graph created) */
 	static bool CanKismetOverrideFunction(const UFunction* Function);
 
-	/** returns friendly signiture name if possible or Removes any mangling to get the unmangled signature name of the function */
-	static FString GetFriendlySignitureName(const UFunction* Function);
+	/** returns friendly signature name if possible or Removes any mangling to get the unmangled signature name of the function */
+	static FString GetFriendlySignatureName(const UFunction* Function);
 
 	static bool IsAllowableBlueprintVariableType(const class UEnum* InEnum);
 	static bool IsAllowableBlueprintVariableType(const class UClass* InClass);

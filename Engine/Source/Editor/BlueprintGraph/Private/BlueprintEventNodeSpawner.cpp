@@ -2,7 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEventNodeSpawner.h"
-#include "EdGraphSchema_K2.h" // for GetFriendlySignitureName()
+#include "EdGraphSchema_K2.h" // for GetFriendlySignatureName()
 
 #define LOCTEXT_NAMESPACE "BlueprintEventNodeSpawner"
 
@@ -161,7 +161,7 @@ FText UBlueprintEventNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings
 		FText EventName;
 		if (EventFunc != nullptr)
 		{
-			EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignitureName(EventFunc));
+			EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignatureName(EventFunc));
 		}
 		else if (!CustomEventName.IsNone())
 		{
