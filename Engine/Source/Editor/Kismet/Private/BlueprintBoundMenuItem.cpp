@@ -142,7 +142,22 @@ void FBlueprintBoundMenuItem::AddBindings(IBlueprintNodeBinder::FBindingSet cons
 //------------------------------------------------------------------------------
 FSlateBrush const* FBlueprintBoundMenuItem::GetMenuIcon(FSlateColor& ColorOut)
 {
-	// @TODO: 
+	FLinearColor IconTint = FLinearColor::White;
+
+	FName BrushName = BoundSpawner->GetDefaultMenuIcon(IconTint);
+	if (BrushName == NAME_None)
+	{
+		if (UEdGraphNode* TemplateNode = BoundSpawner->GetTemplateNode())
+		{
+			BrushName = TemplateNode->GetPaletteIcon(IconTint);
+		}
+	}
+	
+	if (BrushName != NAME_None)
+	{
+		ColorOut = FSlateColor(IconTint);
+		return FEditorStyle::GetBrush(BrushName);
+	}
 	return nullptr;
 }
 
