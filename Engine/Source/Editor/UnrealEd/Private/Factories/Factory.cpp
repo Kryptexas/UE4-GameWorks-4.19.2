@@ -309,24 +309,6 @@ UObject* UFactory::StaticImportObject
 }
 
 
-bool UFactory::ValidForCurrentGame()
-{
-	if( ValidGameNames.Num() > 0 )
-	{
-		for( int32 Idx = 0; Idx < ValidGameNames.Num(); Idx++ )
-		{
-			if( FCString::Stricmp( FApp::GetGameName(), *ValidGameNames[Idx] ) == 0 )
-			{
-				return 1;
-			}
-		}
-
-		return 0;
-	}
-
-	return 1;
-}
-
 void UFactory::GetSupportedFileExtensions(TArray<FString>& OutExtensions) const
 {
 	for ( int32 FormatIdx = 0; FormatIdx < Formats.Num(); ++FormatIdx )

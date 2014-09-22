@@ -48,10 +48,6 @@ public:
 	UPROPERTY()
 	int32 AutoPriority;
 
-	/** List of game names that this factory can be used for (if empty, all games valid) */
-	UPROPERTY()
-	TArray<FString> ValidGameNames;
-
 	static FString GetCurrentFilename() { return CurrentFilename; }
 
 	static FString CurrentFilename;
@@ -148,17 +144,6 @@ public:
 	// @todo document
 	static UObject* StaticImportObject( UClass* Class, UObject* InOuter, FName Name, EObjectFlags Flags, const TCHAR* Filename=TEXT(""), UObject* Context=NULL, UFactory* Factory=NULL, const TCHAR* Parms=NULL, FFeedbackContext* Warn=GWarn, int32 MaxImportFileSize = 0xC100000 );
 	static UObject* StaticImportObject( UClass* Class, UObject* InOuter, FName Name, EObjectFlags Flags, bool& bOutOperationCanceled, const TCHAR* Filename=TEXT(""), UObject* Context=NULL, UFactory* Factory=NULL, const TCHAR* Parms=NULL, FFeedbackContext* Warn=GWarn, int32 MaxImportFileSize = 0xC100000 );
-
-	/**
-	 * UFactory::ValidForCurrentGame
-	 *
-	 * Search through list of valid game names
-	 * If list is empty or current game name is in the list - return true
-	 * Otherwise, name wasn't found in the list - return false
-	 *
-	 * author: superville
-	 */
-	bool ValidForCurrentGame();
 
 	/** Creates a list of file extensions supported by this factory */
 	void GetSupportedFileExtensions( TArray<FString>& OutExtensions ) const;

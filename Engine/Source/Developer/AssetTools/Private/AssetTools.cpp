@@ -326,7 +326,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 		if( CurrentClass->IsChildOf(UFactory::StaticClass()) && !(CurrentClass->HasAnyClassFlags(CLASS_Abstract)) )
 		{
 			UFactory* Factory = Cast<UFactory>( CurrentClass->GetDefaultObject() );
-			if( Factory->bEditorImport && Factory->ValidForCurrentGame() )
+			if( Factory->bEditorImport )
 			{
 				Factories.Add( Factory );
 			}
@@ -446,7 +446,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 			if( (*ClassIt)->IsChildOf(UFactory::StaticClass()) && !((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)) )
 			{
 				UFactory* Factory = Cast<UFactory>( (*ClassIt)->GetDefaultObject() );
-				if( Factory->bEditorImport && Factory->ValidForCurrentGame() )
+				if( Factory->bEditorImport )
 				{
 					TArray<FString> FactoryExtensions;
 					Factory->GetSupportedFileExtensions(FactoryExtensions);
@@ -491,7 +491,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	}
 	else
 	{
-		if( SpecifiedFactory->bEditorImport && SpecifiedFactory->ValidForCurrentGame() )
+		if( SpecifiedFactory->bEditorImport )
 		{
 			TArray<FString> FactoryExtensions;
 			SpecifiedFactory->GetSupportedFileExtensions(FactoryExtensions);
