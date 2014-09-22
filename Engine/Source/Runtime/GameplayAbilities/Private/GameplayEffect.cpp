@@ -175,7 +175,7 @@ void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveDat
 		ModifierLevel->ApplyNewDef(ModInfo.LevelInfo, NewLevelSpec);
 
 		// This creates a new FModifierSpec that we own.
-		Modifiers.Emplace(FModifierSpec(ModInfo, NewLevelSpec, CurveData, Owner, Level));
+		new (Modifiers)FModifierSpec(ModInfo, NewLevelSpec, CurveData, Owner, Level);
 	}	
 }
 
@@ -185,6 +185,11 @@ void FGameplayEffectSpec::MakeUnique()
 	{
 		ModSpec.Aggregator.MakeUnique();
 	}
+
+	Duration.MakeUnique();
+	Period.MakeUnique();
+	ChanceToApplyToTarget.MakeUnique();
+	ChanceToExecuteOnGameplayEffect.MakeUnique();
 }
 
 int32 FGameplayEffectSpec::ApplyModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext)
@@ -1146,6 +1151,12 @@ void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffe
 
 void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray)
 {
+	if (Spec.Def == nullptr)
+	{
+		ABILITY_LOG(Error, TEXT("Received ReplicatedGameplayEffect with no UGameplayEffect def."));
+		return;
+	}
+
 	bool ShouldInvokeGameplayCueEvents = true;
 	if (PredictionKey.IsValidKey())
 	{
@@ -1404,7 +1415,6 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
 		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(Spec, QualifierContext.PredictionKey());
 	}
-
 }
 
 void FActiveGameplayEffectsContainer::ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle)
@@ -1453,6 +1463,18 @@ FAggregatorRef & FActiveGameplayEffectsContainer::FindOrCreateAttributeAggregato
 	NewPropertyAggregator->OnDirty = FAggregator::FOnDirty::CreateRaw(this, &FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty, Attribute);
 
 	return OngoingPropertyEffects.Add(Attribute, FAggregatorRef(NewPropertyAggregator));
+}
+
+void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float BaseValue)
+{
+	FAggregatorRef* RefPtr = OngoingPropertyEffects.Find(Attribute);
+	if (RefPtr && RefPtr->IsValid())
+	{
+		check(RefPtr->Get()->BaseData.Magnitude.IsStatic());
+		RefPtr->Get()->BaseData.Magnitude.SetValue(BaseValue);
+		RefPtr->Get()->MarkDirty();
+		OnPropertyAggregatorDirty(RefPtr->Get(), Attribute);
+	}
 }
 
 float FActiveGameplayEffectsContainer::GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const
@@ -1644,7 +1666,8 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 		MarkArrayDirty();
 
 		// Once replicated state has caught up to this prediction key, we must remove this gameplay effect.
-		InPredictionKey.NewCaughtUpDelegate().BindUObject(Owner, &UAbilitySystemComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
+		InPredictionKey.NewRejectOrCaughtUpDelegate(FPredictionKeyEvent::CreateUObject(Owner, &UAbilitySystemComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle));
+		
 	}
 
 	InternalOnActiveGameplayEffectAdded(NewEffect);	

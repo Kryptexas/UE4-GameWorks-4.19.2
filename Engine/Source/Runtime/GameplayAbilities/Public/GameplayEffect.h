@@ -484,7 +484,7 @@ struct FAggregatorRef
 		WeakPtr = SharedPtr;
 	}
 
-	FAggregatorRef(struct FAggregatorRef *Src)
+	FAggregatorRef(const FAggregatorRef *Src)
 	{
 		SetSoftRef(Src);
 	}
@@ -500,7 +500,7 @@ struct FAggregatorRef
 		SharedPtr.Reset();
 	}
 
-	void SetSoftRef(FAggregatorRef *Src)
+	void SetSoftRef(const FAggregatorRef *Src)
 	{
 		check(!SharedPtr.IsValid());
 		WeakPtr = Src->SharedPtr;
@@ -543,7 +543,8 @@ struct TStructOpsTypeTraits< FAggregatorRef > : public TStructOpsTypeTraitsBase
 {
 	enum
 	{
-		WithNetSerializer = true
+		WithNetSerializer = true,
+		WithCopy = false
 	};
 };
 
@@ -1225,6 +1226,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	bool HasReceivedEffectWithPredictedKey(FPredictionKey PredictionKey) const;
 
 	bool HasPredictedEffectWithPredictedKey(FPredictionKey PredictionKey) const;
+		
+	void SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float BaseBalue);
 
 private:
 

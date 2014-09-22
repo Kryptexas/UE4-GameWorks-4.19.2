@@ -494,20 +494,19 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	if (TryActivateAbility(Handle, PredictionKey, &InstancedAbility))
 	{
 		ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
-
-		// Update our ReplicatedPredictionKey. When the client gets value, he will know his state (actor+all components/subobjects) are up to do date and he can
-		// remove any necessary predictive work.
-
-		if (PredictionKey.IsValidKey())
-		{
-			ensure(PredictionKey.Current > ReplicatedPredictionKey.Current);
-			ReplicatedPredictionKey = PredictionKey;
-		}
 	}
 	else
 	{
 		Spec->InputPressed = false;
 		ClientActivateAbilityFailed(Handle, PredictionKey.Current);
+	}
+
+	// Update our ReplicatedPredictionKey. When the client gets value, he will know his state (actor+all components/subobjects) are up to do date and he can
+	// remove any necessary predictive work.
+	if (PredictionKey.IsValidKey())
+	{
+		ensure(PredictionKey.Current > ReplicatedPredictionKey.Current);
+		ReplicatedPredictionKey = PredictionKey;
 	}
 }
 

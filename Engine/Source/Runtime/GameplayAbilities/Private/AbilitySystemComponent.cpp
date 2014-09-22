@@ -606,6 +606,11 @@ void UAbilitySystemComponent::AddDependancyToAttribute(FGameplayAttribute Attrib
 	ActiveGameplayEffects.AddDependancyToAttribute(Attribute, InDependant);
 }
 
+void UAbilitySystemComponent::SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute)
+{
+	ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue);
+}
+
 bool UAbilitySystemComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
 {
 	return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, Instigator);

@@ -4,6 +4,7 @@
 #include "AttributeSet.h"
 #include "AbilitySystemComponent.h"
 #include "HAL/OutputDevices.h"
+#include "AbilitySystemGlobals.h"
 
 #include "ComponentReregisterContext.h"	
 
@@ -79,6 +80,11 @@ void UAttributeSet::ClampFromMetaDataTable(const UDataTable *DataTable)
 	}
 
 	PrintDebug();
+}
+
+UAbilitySystemComponent* UAttributeSet::GetOwningAbilitySystemComponent() const
+{
+	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CastChecked<AActor>(GetOuter()));
 }
 
 void UAttributeSet::PrintDebug()

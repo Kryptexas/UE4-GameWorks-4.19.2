@@ -83,6 +83,11 @@ FPredictionKeyEvent& FPredictionKey::NewCaughtUpDelegate()
 	return FPredictionKeyDelegates::NewCaughtUpDelegate(Current);
 }
 
+void FPredictionKey::NewRejectOrCaughtUpDelegate(FPredictionKeyEvent Event)
+{
+	FPredictionKeyDelegates::NewRejectOrCaughtUpDelegate(Current, Event);
+}
+
 // -------------------------------------
 
 FPredictionKeyDelegates& FPredictionKeyDelegates::Get()
@@ -103,7 +108,13 @@ FPredictionKeyEvent& FPredictionKeyDelegates::NewCaughtUpDelegate(FPredictionKey
 	TArray<FPredictionKeyEvent>& DelegateList = Get().DelegateMap.FindOrAdd(Key).CaughtUpDelegates;
 	DelegateList.Add(FPredictionKeyEvent());
 	return DelegateList.Top();
+}
 
+void FPredictionKeyDelegates::NewRejectOrCaughtUpDelegate(FPredictionKey::KeyType Key, FPredictionKeyEvent NewEvent)
+{
+	FDelegates& Delegates = Get().DelegateMap.FindOrAdd(Key);
+	Delegates.CaughtUpDelegates.Add(NewEvent);
+	Delegates.RejectedDelegates.Add(NewEvent);
 }
 
 void FPredictionKeyDelegates::BroadcastRejectedDelegate(FPredictionKey::KeyType Key)
@@ -134,7 +145,7 @@ void FPredictionKeyDelegates::Reject(FPredictionKey::KeyType Key)
 			Delegate.ExecuteIfBound();
 		}
 
-		DelPtr->RejectedDelegates.Empty();
+		Get().DelegateMap.Remove(Key);
 	}
 }
 

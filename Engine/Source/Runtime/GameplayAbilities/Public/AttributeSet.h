@@ -85,6 +85,8 @@ public:
 
 	void ClampFromMetaDataTable(const UDataTable *DataTable);
 
+	UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
+
 	virtual void PrintDebug();
 };
 
@@ -295,3 +297,18 @@ private:
 
 	TMap<FName, FAttributeSetDefaulsCollection>	Defaults;
 };
+
+/**
+ *	This is a helper macro that can be used in RepNotify functions to handle attributes that will be predictively modified by clients.
+ *	
+ *	void UMyHealthSet::OnRep_Health()
+ *	{
+ *		GAMEPLAYATTRIBUTE_REPNOTIFY(UMyHealthSet, Health);
+ *	}
+ */
+
+#define GAMEPLAYATTRIBUTE_REPNOTIFY(C, P) \
+{ \
+	static UProperty* ThisProperty = FindFieldChecked<UProperty>(C::StaticClass(), GET_MEMBER_NAME_CHECKED(C, P)); \
+	GetOwningAbilitySystemComponent()->SetBaseAttributeValueFromReplication(P, FGameplayAttribute(ThisProperty)); \
+}

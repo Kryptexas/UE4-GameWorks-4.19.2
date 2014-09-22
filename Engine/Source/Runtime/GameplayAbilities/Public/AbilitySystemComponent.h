@@ -258,6 +258,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
 
+	void SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute);
+
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
 

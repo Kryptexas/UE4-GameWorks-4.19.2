@@ -6,6 +6,32 @@
 
 DECLARE_DELEGATE(FPredictionKeyEvent);
 
+/**
+ *	FPredictionKey is a generic way of supporting Clientside Prediction in the GameplayAbility system.
+ *	A FPredictionKey is essentially an ID for indentifying predictive actions and side effects that are
+ *	done on a client. UAbilitySystemComponent supports syncrhonization of the predicton key and its side effects
+ *	between client and server.
+ *	
+ *	Essentially, anything can be associated with a PredictionKey, for example activating an Ability.
+ *	The client can generates a fresh PredictionKey and sends it to the server in his ServerTryActivateAbility call.
+ *	The server can confirm or reject this call (ClientActivateAbilitySucceed/Failed). 
+ *	
+ *	While the client is predictiving his ability, he is creating side effects (GameplayEffects, TriggeredEvents, Animations, etc).
+ *	As the client predicts these side effects, he associates each one with the prediction key generated at the start of the ability
+ *	activation.
+ *	
+ *	If the ability activation is rejected, the client can immediately revert these side effects. 
+ *	If the ability activation is accepted, the client must wait until the replicated side effects are sent to the server.
+ *		(the ClientActivatbleAbilitySucceed RPC will be immediately sent. Property replication may happen a few frames later).
+ *		Once replication of the server created side effects is finished, the client can undo his locally predictive side effects.
+ *		
+ *	The main things FPredictionKey itself provides are:
+ *		-Unique ID and a system for having dependant chains of Prediction Keys ("Current" and "Base" integers)
+ *		-A special implementation of ::NetSerialize *** which only serializes the prediction key to the predicting client ***
+ *			-This is important as it allows us to serializez prediction keys in replicated state, knowing that only clients that gave the server the prediction key will actually see them!
+ *	
+ */
+
 USTRUCT()
 struct GAMEPLAYABILITIES_API FPredictionKey
 {
@@ -19,55 +45,6 @@ struct GAMEPLAYABILITIES_API FPredictionKey
 
 	}
 
-	bool IsValidKey() const
-	{
-		return Current > 0;
-	}
-
-	/**
-	 *	Stale means that a prediction key may be valid but is not usable for further prediction actions.
-	 *	E.g., we did predictive action A and are waiting for confirmation/rejection from server, we cannot
-	 *	then create a new predictive action B that is associated on the same key.
-	 */
-	bool IsValidForMorePrediction() const
-	{
-		return Current > 0 && bIsStale == false;
-	}
-
-	bool WasReceived() const
-	{
-		return PredictiveConnection != nullptr;
-	}
-
-	bool operator==(const FPredictionKey& Other) const
-	{
-		return Current == Other.Current && Base == Other.Base;
-	}
-
-	bool DependsOn(KeyType Key)
-	{
-		return (Current == Key || Base == Key);
-	}
-
-	FString ToString() const
-	{
-		return FString::Printf(TEXT("[%d/%d]"), Current, Base);
-	}
-
-	friend uint32 GetTypeHash(const FPredictionKey& InKey)
-	{
-		return ((InKey.Current << 16) | InKey.Base);
-	}
-	
-	/** Construct a new prediction key with no dependancies */
-	static FPredictionKey CreateNewPredictionKey();
-
-	/** Create a new dependant prediction key: keep our existing base or use the current key as the base. */
-	void GenerateDependantPredictionKey();
-
-	FPredictionKeyEvent& NewRejectedDelegate();
-	FPredictionKeyEvent& NewCaughtUpDelegate();
-
 	UPROPERTY()
 	int16	Current;
 
@@ -80,13 +57,63 @@ struct GAMEPLAYABILITIES_API FPredictionKey
 	UPROPERTY(NotReplicated)
 	bool bIsStale;
 
+	/** Construct a new prediction key with no dependancies */
+	static FPredictionKey CreateNewPredictionKey();
+
+	/** Create a new dependant prediction key: keep our existing base or use the current key as the base. */
+	void GenerateDependantPredictionKey();
+
+	/** Creates new delegate called only when this key is rejected. */
+	FPredictionKeyEvent& NewRejectedDelegate();
+
+	/** Creates new delegate called only when replicated state catches up to this key. */
+	FPredictionKeyEvent& NewCaughtUpDelegate();
+	
+	/** Add a new delegate that is called if the key is rejected or caught up to. */
+	void NewRejectOrCaughtUpDelegate(FPredictionKeyEvent Event);
+	
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	bool IsValidKey() const
+	{
+		return Current > 0;
+	}
+
+	/** Can this key be used for more predictive actions, or has it already been sent off to the server? */
+	bool IsValidForMorePrediction() const
+	{
+		return Current > 0 && bIsStale == false;
+	}
+
+	/** Was this PredictoinKey received from a NetSerialize or created locallay? */
+	bool WasReceived() const
+	{
+		return PredictiveConnection != nullptr;
+	}
+
+	bool DependsOn(KeyType Key)
+	{
+		return (Current == Key || Base == Key);
+	}
+
+	bool operator==(const FPredictionKey& Other) const
+	{
+		return Current == Other.Current && Base == Other.Base;
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("[%d/%d]"), Current, Base);
+	}
+
+	friend uint32 GetTypeHash(const FPredictionKey& InKey)
+	{
+		return ((InKey.Current << 16) | InKey.Base);
+	}
 
 private:
 
 	void GenerateNewPredictionKey();
-
-	
 
 	FPredictionKey(int32 Key)
 		: Current(Key), Base(0), PredictiveConnection(nullptr)
@@ -113,6 +140,11 @@ struct TStructOpsTypeTraits<FPredictionKey> : public TStructOpsTypeTraitsBase
 
 // -----------------------------------------------------------------
 
+/**
+ *	This is a data structure for registering delegates associated with prediction key rejection and replicated state 'catching up'.
+ *	Delegates should be registered that revert side effects created with prediction keys.
+ *	
+ */
 
 struct FPredictionKeyDelegates
 {
@@ -136,6 +168,7 @@ public:
 
 	static FPredictionKeyEvent&	NewRejectedDelegate(FPredictionKey::KeyType Key);
 	static FPredictionKeyEvent&	NewCaughtUpDelegate(FPredictionKey::KeyType Key);
+	static void NewRejectOrCaughtUpDelegate(FPredictionKey::KeyType Key, FPredictionKeyEvent NewEvent);
 
 	static void	BroadcastRejectedDelegate(FPredictionKey::KeyType Key);
 	static void	BroadcastCaughtUpDelegate(FPredictionKey::KeyType Key);
