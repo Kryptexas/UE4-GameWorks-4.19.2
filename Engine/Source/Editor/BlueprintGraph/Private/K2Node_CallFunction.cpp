@@ -150,7 +150,7 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	if (UFunction* Function = GetTargetFunction())
 	{
 		RPCString = UK2Node_Event::GetLocalizedNetString(Function->FunctionFlags, true);
-		FunctionName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+		FunctionName = GetUserFacingFunctionName(Function);
 		ContextString = GetFunctionContextString();
 	}
 	else
@@ -388,7 +388,7 @@ void UK2Node_CallFunction::DetermineWantsEnumToExecExpansion(const UFunction* Fu
 	}
 }
 
-void UK2Node_CallFunction::GeneratePinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const
+void UK2Node_CallFunction::GeneratePinTooltip(UEdGraphPin& Pin) const
 {
 	ensure(Pin.GetOwningNode() == this);
 
@@ -398,119 +398,20 @@ void UK2Node_CallFunction::GeneratePinHoverText(const UEdGraphPin& Pin, FString&
 
 	if (K2Schema == NULL)
 	{
-		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), HoverTextOut);
+		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), Pin.PinToolTip);
 		return;
 	}
 	
-	// figure what tag we should be parsing for (is this a return-val pin, or a parameter?)
-	FString ParamName;
-	FString TagStr = TEXT("@param");
-	if (Pin.PinName == K2Schema->PN_ReturnValue)
-	{
-		TagStr = TEXT("@return");
-	}
-	else
-	{
-		ParamName = Pin.PinName.ToLower();
-	}
-
 	// get the class function object associated with this node
 	UFunction* Function = GetTargetFunction();
 	if (Function == NULL)
 	{
-		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), HoverTextOut);
+		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), Pin.PinToolTip);
 		return;
 	}
-
-	// grab the the function's comment block for us to parse
-	FString FunctionToolTipText = Function->GetToolTipText().ToString();
 	
-	int32 CurStrPos = INDEX_NONE;
-	int32 FullToolTipLen = FunctionToolTipText.Len();
-	// parse the full function tooltip text, looking for tag lines
-	do 
-	{
-		CurStrPos = FunctionToolTipText.Find(TagStr, ESearchCase::IgnoreCase, ESearchDir::FromStart, CurStrPos);
-		if (CurStrPos == INDEX_NONE) // if the tag wasn't found
-		{
-			break;
-		}
 
-		// advance past the tag
-		CurStrPos += TagStr.Len();
-
-		// advance past whitespace
-		while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-		{
-			++CurStrPos;
-		}
-
-		// if this is a parameter pin
-		if (!ParamName.IsEmpty())
-		{
-			FString TagParamName;
-
-			// copy the parameter name
-			while (CurStrPos < FullToolTipLen && !FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-			{
-				TagParamName.AppendChar(FunctionToolTipText[CurStrPos++]);
-			}
-
-			// if this @param tag doesn't match the param we're looking for
-			if (TagParamName != ParamName)
-			{
-				continue;
-			}
-		}
-
-		// advance past whitespace (get to the meat of the comment)
-		while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-		{
-			++CurStrPos;
-		}
-
-
-		FString ParamDesc;
-		// collect the param/return-val description
-		while (CurStrPos < FullToolTipLen && FunctionToolTipText[CurStrPos] != TEXT('@'))
-		{
-			// advance past newline
-			while(CurStrPos < FullToolTipLen && FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
-			{
-				++CurStrPos;
-
-				// advance past whitespace at the start of a new line
-				while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-				{
-					++CurStrPos;
-				}
-
-				// replace the newline with a single space
-				if(!FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
-				{
-					ParamDesc.AppendChar(TEXT(' '));
-				}
-			}
-
-			if (FunctionToolTipText[CurStrPos] != TEXT('@'))
-			{
-				ParamDesc.AppendChar(FunctionToolTipText[CurStrPos++]);
-			}
-		}
-
-		// trim any trailing whitespace from the descriptive text
-		ParamDesc.TrimTrailing();
-
-		// if we came up with a valid description for the param/return-val
-		if (!ParamDesc.IsEmpty())
-		{
-			HoverTextOut += ParamDesc;
-			break; // we found a match, so there's no need to continue
-		}
-
-	} while (CurStrPos < FullToolTipLen);
-
-	Schema->ConstructBasicPinTooltip(Pin, FText::FromString(HoverTextOut), HoverTextOut);
+	GeneratePinTooltipFromFunction(Pin, Function);
 }
 
 bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
@@ -533,7 +434,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	SelfPin->PinFriendlyName =  LOCTEXT("Target", "Target");
 
 	// fill out the self-pin's default tool-tip
-	GeneratePinHoverText(*SelfPin, SelfPin->PinToolTip);
+	GeneratePinTooltip(*SelfPin);
 
 	const bool bIsProtectedFunc = Function->GetBoolMetaData(FBlueprintMetadata::MD_Protected);
 	const bool bIsStaticFunc = Function->HasAllFunctionFlags(FUNC_Static);
@@ -586,7 +487,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			K2Schema->SetPinDefaultValue(Pin, Function, Param);
 
 			// setup the default tool-tip text for this pin
-			GeneratePinHoverText(*Pin, Pin->PinToolTip);
+			GeneratePinTooltip(*Pin);
 			
 			if (PinsToHide.Contains(Pin->PinName))
 			{
@@ -825,6 +726,111 @@ FText UK2Node_CallFunction::GetTooltipText() const
 		}
 	}
 	return CachedTooltip;
+}
+
+void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, const UFunction* Function)
+{
+	// figure what tag we should be parsing for (is this a return-val pin, or a parameter?)
+	FString ParamName;
+	FString TagStr = TEXT("@param");
+	if (Pin.PinName == UEdGraphSchema_K2::PN_ReturnValue)
+	{
+		TagStr = TEXT("@return");
+	}
+	else
+	{
+		ParamName = Pin.PinName.ToLower();
+	}
+
+	// grab the the function's comment block for us to parse
+	FString FunctionToolTipText = Function->GetToolTipText().ToString();
+	
+	int32 CurStrPos = INDEX_NONE;
+	int32 FullToolTipLen = FunctionToolTipText.Len();
+	// parse the full function tooltip text, looking for tag lines
+	do 
+	{
+		CurStrPos = FunctionToolTipText.Find(TagStr, ESearchCase::IgnoreCase, ESearchDir::FromStart, CurStrPos);
+		if (CurStrPos == INDEX_NONE) // if the tag wasn't found
+		{
+			break;
+		}
+
+		// advance past the tag
+		CurStrPos += TagStr.Len();
+
+		// advance past whitespace
+		while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
+		{
+			++CurStrPos;
+		}
+
+		// if this is a parameter pin
+		if (!ParamName.IsEmpty())
+		{
+			FString TagParamName;
+
+			// copy the parameter name
+			while (CurStrPos < FullToolTipLen && !FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
+			{
+				TagParamName.AppendChar(FunctionToolTipText[CurStrPos++]);
+			}
+
+			// if this @param tag doesn't match the param we're looking for
+			if (TagParamName != ParamName)
+			{
+				continue;
+			}
+		}
+
+		// advance past whitespace (get to the meat of the comment)
+		while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
+		{
+			++CurStrPos;
+		}
+
+
+		FString ParamDesc;
+		// collect the param/return-val description
+		while (CurStrPos < FullToolTipLen && FunctionToolTipText[CurStrPos] != TEXT('@'))
+		{
+			// advance past newline
+			while(CurStrPos < FullToolTipLen && FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
+			{
+				++CurStrPos;
+
+				// advance past whitespace at the start of a new line
+				while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
+				{
+					++CurStrPos;
+				}
+
+				// replace the newline with a single space
+				if(!FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
+				{
+					ParamDesc.AppendChar(TEXT(' '));
+				}
+			}
+
+			if (FunctionToolTipText[CurStrPos] != TEXT('@'))
+			{
+				ParamDesc.AppendChar(FunctionToolTipText[CurStrPos++]);
+			}
+		}
+
+		// trim any trailing whitespace from the descriptive text
+		ParamDesc.TrimTrailing();
+
+		// if we came up with a valid description for the param/return-val
+		if (!ParamDesc.IsEmpty())
+		{
+			Pin.PinToolTip += ParamDesc;
+			break; // we found a match, so there's no need to continue
+		}
+
+	} while (CurStrPos < FullToolTipLen);
+
+	GetDefault<UEdGraphSchema_K2>()->ConstructBasicPinTooltip(Pin, FText::FromString(Pin.PinToolTip), Pin.PinToolTip);
 }
 
 FString UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)

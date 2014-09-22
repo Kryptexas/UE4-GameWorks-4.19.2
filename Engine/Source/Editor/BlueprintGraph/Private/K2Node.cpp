@@ -69,6 +69,8 @@ bool UK2Node::CreatePinsForFunctionEntryExit(const UFunction* Function, bool bFo
 			const bool bPinGood = K2Schema->ConvertPropertyToPinType(Param, /*out*/ Pin->PinType);
 			K2Schema->SetPinDefaultValueBasedOnType(Pin);
 			
+			UK2Node_CallFunction::GeneratePinTooltipFromFunction(*Pin, Function);
+
 			bAllPinsGood = bAllPinsGood && bPinGood;
 		}
 	}

@@ -135,6 +135,8 @@ public:
 	/** Gets the user-facing name for the function */
 	static FString GetUserFacingFunctionName(const UFunction* Function);
 
+	/** Set up a pins tooltip from a function's tooltip */
+	static void GeneratePinTooltipFromFunction(UEdGraphPin& Pin, const UFunction* Function);
 	/** Gets the non-specific tooltip for the function */
 	static FString GetDefaultTooltipForFunction(const UFunction* Function);
 	/** Get default category for this function in action menu */
@@ -182,9 +184,8 @@ private:
 	 * Creates hover text for the specified pin.
 	 * 
 	 * @param   Pin				The pin you want hover text for (should belong to this node)
-	 * @param   HoverTextOut	This will get filled out with the generated text
 	 */
-	void GeneratePinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const;
+	void GeneratePinTooltip(UEdGraphPin& Pin) const;
 
 protected:
 	/** Helper function to ensure function is called in our context */
