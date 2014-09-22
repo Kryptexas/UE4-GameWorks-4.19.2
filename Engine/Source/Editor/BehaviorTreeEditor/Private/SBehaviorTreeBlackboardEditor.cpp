@@ -157,7 +157,13 @@ TSharedRef<SWidget> SBehaviorTreeBlackboardEditor::HandleCreateNewEntryMenu() co
 
 	FOnClassPicked OnPicked( FOnClassPicked::CreateRaw( this, &SBehaviorTreeBlackboardEditor::HandleKeyClassPicked ) );
 
-	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
+	return 
+		SNew(SBox)
+		.HeightOverride(240.0f)
+		.WidthOverride(200.0f)
+		[
+			FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked)
+		];
 }
 
 void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)
