@@ -130,11 +130,11 @@ void SEditableText::Construct( const FArguments& InArgs )
  */
 void SEditableText::SetText( const TAttribute< FText >& InNewText )
 {
+	const bool bHasTextChanged = HasKeyboardFocus() ? !InNewText.Get().EqualTo(EditedText) : !InNewText.Get().EqualTo(Text.Get());
+
 	// NOTE: This will unbind any getter that is currently assigned to the Text attribute!  You should only be calling
 	//       SetText() if you know what you're doing.
 	Text = InNewText;
-
-	const bool bHasTextChanged = HasKeyboardFocus() ? !InNewText.Get().EqualTo(EditedText) : !InNewText.Get().EqualTo(Text.Get());
 
 	if (bHasTextChanged)
 	{
