@@ -25,7 +25,9 @@ public:
 	};
 
 	SLATE_BEGIN_ARGS(SScissorRectBox)
-	{}
+	{
+		_Visibility = EVisibility::SelfHitTestInvisible;
+	}
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 	SLATE_END_ARGS()
 
