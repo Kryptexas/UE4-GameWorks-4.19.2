@@ -4820,7 +4820,7 @@ public class GUBP : BuildCommand
             var FilteredActivePlatforms = new List<UnrealTargetPlatform>();
             foreach (var Plat in ActivePlatforms)
             {
-                if (
+                if (Plat != UnrealTargetPlatform.HTML5 && 
                     Plat != UnrealTargetPlatform.Linux &&
                     (Plat != UnrealTargetPlatform.PS4 || ParseParam("WithPS4")) &&
                     Plat != UnrealTargetPlatform.WinRT &&
