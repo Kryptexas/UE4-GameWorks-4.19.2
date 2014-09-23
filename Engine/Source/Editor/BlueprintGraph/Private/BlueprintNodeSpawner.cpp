@@ -187,12 +187,6 @@ UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(ENoInit) const
 {
 	return BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, NoInit);
 }
-// 
-// //------------------------------------------------------------------------------
-// UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
-// {
-// 	return SpawnNode(NodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate);
-// }
 
 //------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::SpawnEdGraphNode(TSubclassOf<UEdGraphNode> InNodeClass, UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const

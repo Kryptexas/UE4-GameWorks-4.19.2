@@ -58,7 +58,10 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 		{
 			if (UK2Node_CallFunctionOnMember* CallOnMemberNode = Cast<UK2Node_CallFunctionOnMember>(NewNode))
 			{
-				CallOnMemberNode->MemberVariableToCallOn.SetFromField<UProperty>(BoundProperty, NewNode);
+				// force bIsConsideredSelfContext to false, else the target 
+				// could end up being the skeleton class (and functionally, 
+				// there is no difference)
+				CallOnMemberNode->MemberVariableToCallOn.SetFromField<UProperty>(BoundProperty, /*bIsConsideredSelfContext =*/false);
 				bSuccessfulBinding = true;
 				CallOnMemberNode->ReconstructNode();
 			}
