@@ -24,7 +24,6 @@ public:
 	/** The button style used at runtime */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
 	FButtonStyle WidgetStyle;
-	/*ShowOnlyInnerProperties,*/
 	
 	/** The color multiplier for the button content */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )
@@ -105,7 +104,4 @@ protected:
 protected:
 	/** Cached pointer to the underlying slate button owned by this UWidget */
 	TSharedPtr<SButton> MyButton;
-
-	/** Stores the style set by users dynamically. */
-	TOptional<FButtonStyle> MyStyle;
 };

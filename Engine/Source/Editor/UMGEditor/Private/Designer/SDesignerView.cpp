@@ -659,8 +659,12 @@ void SDesignerView::OnBlueprintCompiled(UBlueprint* InBlueprint)
 	{
 		CachedWidgetGeometry.Reset();
 
-		const bool bForceUpdate = true;
-		UpdatePreviewWidget(bForceUpdate);
+		PreviewWidget = NULL;
+		PreviewSurface->SetContent(SNullWidget::NullWidget);
+		//PreviewWidget.ReleaseNativeWidget()
+
+		//const bool bForceUpdate = true;
+		//UpdatePreviewWidget(bForceUpdate);
 	}
 }
 
