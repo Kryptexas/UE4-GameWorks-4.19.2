@@ -36,6 +36,34 @@ void FSlateOpenGLTexture::Init( GLuint TextureID )
 	ShaderResource = TextureID;
 }
 
+void FSlateOpenGLTexture::ResizeTexture(uint32 Width, uint32 Height)
+{
+	SizeX = Width;
+	SizeY = Height;
+}
+
+void FSlateOpenGLTexture::UpdateTexture(const TArray<uint8>& Bytes)
+{
+	// Ensure texturing is enabled before setting texture properties
+#if !PLATFORM_USES_ES2 && !PLATFORM_LINUX
+	glEnable(GL_TEXTURE_2D);
+#endif
+	glBindTexture(GL_TEXTURE_2D, ShaderResource);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#if !PLATFORM_LINUX
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+#endif
+
+	// Upload the texture data
+#if !PLATFORM_USES_ES2
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, SizeX, SizeY, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, Bytes.GetData());
+#else
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8_EXT, SizeX, SizeY, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, Bytes.GetData());
+#endif
+	CHECK_GL_ERRORS;
+}
+
 FSlateFontTextureOpenGL::FSlateFontTextureOpenGL( uint32 Width, uint32 Height )
 	: FSlateFontAtlas( Width, Height ) 
 	, Texture(NULL)

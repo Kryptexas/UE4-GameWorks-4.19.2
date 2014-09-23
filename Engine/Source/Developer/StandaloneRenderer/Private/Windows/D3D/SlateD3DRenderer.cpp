@@ -120,6 +120,18 @@ void FSlateD3DRenderer::LoadStyleResources( const ISlateStyle& Style )
 	}
 }
 
+FSlateUpdatableTexture* FSlateD3DRenderer::CreateUpdatableTexture(uint32 Width, uint32 Height)
+{
+	FSlateD3DTexture* NewTexture = new FSlateD3DTexture(Width, Height);
+	NewTexture->Init(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, NULL, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	return NewTexture;
+}
+
+void FSlateD3DRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
+{
+	delete Texture;
+}
+
 void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, const FVector2D &WindowSize )
 {
 	TSharedRef< FGenericWindow > NativeWindow = InWindow->GetNativeWindow().ToSharedRef();

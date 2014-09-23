@@ -1143,6 +1143,35 @@ void FSlateRHIRenderer::SetColorVisionDeficiencyType( uint32 Type )
 	GSlateShaderColorVisionDeficiencyType = Type;
 }
 
+FSlateUpdatableTexture* FSlateRHIRenderer::CreateUpdatableTexture(uint32 Width, uint32 Height)
+{
+	const bool bCreateEmptyTexture = true;
+	FSlateTexture2DRHIRef* NewTexture = new FSlateTexture2DRHIRef(Width, Height, PF_B8G8R8A8, nullptr, TexCreate_Dynamic, bCreateEmptyTexture);
+	if (IsInRenderingThread())
+	{
+		NewTexture->InitResource();
+	}
+	else
+	{
+		BeginInitResource(NewTexture);
+	}
+	return NewTexture;
+}
+
+void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
+{
+	if (IsInRenderingThread())
+	{
+		Texture->GetRenderResource()->InitResource();
+	}
+	else
+	{
+		BeginReleaseResource(Texture->GetRenderResource());
+		FlushRenderingCommands();
+	}
+	delete Texture;
+}
+
 bool FSlateRHIRenderer::AreShadersInitialized() const
 {
 #if WITH_EDITORONLY_DATA

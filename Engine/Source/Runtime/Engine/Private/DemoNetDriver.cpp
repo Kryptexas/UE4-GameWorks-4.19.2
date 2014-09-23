@@ -8,6 +8,8 @@
 #include "Engine/DemoNetDriver.h"
 #include "Engine/DemoNetConnection.h"
 #include "Engine/DemoPendingNetGame.h"
+#include "Engine/ActorChannel.h"
+#include "RepLayout.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 

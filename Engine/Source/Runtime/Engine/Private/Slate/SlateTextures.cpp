@@ -119,7 +119,49 @@ void FSlateTexture2DRHIRef::ClearTextureData()
 	TextureData.Reset();
 }
 
+void FSlateTexture2DRHIRef::ResizeTexture(uint32 Width, uint32 Height)
+{
+	if (GetWidth() != Width || GetHeight() != Height)
+	{
+		if (IsInRenderingThread())
+		{
+			Resize(Width, Height);
+		}
+		else
+		{
+			FIntPoint Dimensions(Width, Height);
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(ResizeSlateTexture,
+			FSlateTexture2DRHIRef*, TextureRHIRef, this,
+			FIntPoint, InDimensions, Dimensions,
+			{
+				TextureRHIRef->Resize(InDimensions.X, InDimensions.Y);
+			});
+		}
+	}
+}
 
+void FSlateTexture2DRHIRef::UpdateTexture(const TArray<uint8>& Bytes)
+{
+	if (IsInRenderingThread())
+	{
+		uint32 Stride = 0;
+		void* TextureBuffer = RHILockTexture2D(GetTypedResource(), 0, RLM_WriteOnly, Stride, false);
+		FMemory::Memcpy(TextureBuffer, Bytes.GetData(), Bytes.Num());
+		RHIUnlockTexture2D(GetTypedResource(), 0, false);
+	}
+	else
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(UpdateSlateTexture,
+		FSlateTexture2DRHIRef*, TextureRHIRef, this,
+		const TArray<uint8>&, TextureData, Bytes,
+		{
+			uint32 Stride = 0;
+			void* TextureBuffer = RHILockTexture2D(TextureRHIRef->GetTypedResource(), 0, RLM_WriteOnly, Stride, false);
+			FMemory::Memcpy(TextureBuffer, TextureData.GetData(), TextureData.Num());
+			RHIUnlockTexture2D(TextureRHIRef->GetTypedResource(), 0, false);
+		});
+	}
+}
 
 void FSlateRenderTargetRHI::SetRHIRef( FTexture2DRHIRef InRenderTargetTexture, uint32 InWidth, uint32 InHeight )
 {

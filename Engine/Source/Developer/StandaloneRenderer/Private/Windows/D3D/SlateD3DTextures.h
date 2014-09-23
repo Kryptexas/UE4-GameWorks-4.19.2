@@ -6,7 +6,7 @@
 /**
  * Encapsulates a D3D11 texture that can be accessed by a shader                   
  */
-class FSlateD3DTexture : public TSlateTexture< TRefCountPtr<ID3D11ShaderResourceView> >
+class FSlateD3DTexture : public TSlateTexture< TRefCountPtr<ID3D11ShaderResourceView> >, public FSlateUpdatableTexture
 {
 public:
 	FSlateD3DTexture( uint32 InSizeX, uint32 InSizeY )
@@ -28,6 +28,11 @@ public:
 	uint32 GetHeight() const { return SizeY; }
 
 	TRefCountPtr<ID3D11Texture2D> GetTextureResource() const { return D3DTexture; }
+
+	// FSlateUpdatableTexture interface
+	virtual FSlateShaderResource* GetSlateResource() override {return this;}
+	virtual void ResizeTexture( uint32 Width, uint32 Height ) override;
+	virtual void UpdateTexture(const TArray<uint8>& Bytes) override;
 private:
 	/** Actual texture.  In D3D the SRV is used by the shader so our parent class holds that */
 	TRefCountPtr<ID3D11Texture2D> D3DTexture;

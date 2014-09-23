@@ -35,6 +35,26 @@ void FSlateD3DTexture::Init( DXGI_FORMAT InFormat, D3D11_SUBRESOURCE_DATA* Inita
 	check( SUCCEEDED(Hr) );
 }
 
+void FSlateD3DTexture::ResizeTexture(uint32 Width, uint32 Height)
+{
+	// Seems only way to resize d3d texture is recreate it
+	SizeX = Width;
+	SizeY = Height;
+	Init(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, NULL, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+}
+
+void FSlateD3DTexture::UpdateTexture(const TArray<uint8>& Bytes)
+{
+	// TODO: Improve the memory copying here, have tried using UpdateSubresource but it doesn't seem to work
+	D3D11_MAPPED_SUBRESOURCE Resource;
+	GD3DDeviceContext->Map(D3DTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &Resource);
+	for (uint32 Row = 0; Row < SizeY; ++Row)
+	{
+		FMemory::Memcpy((uint8*)Resource.pData + Row * Resource.RowPitch, Bytes.GetTypedData() + Row * SizeX*4, SizeX*4);
+	}
+	GD3DDeviceContext->Unmap(D3DTexture, 0);
+}
+
 FSlateTextureAtlasD3D::FSlateTextureAtlasD3D( uint32 Width, uint32 Height, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle )
 	: FSlateTextureAtlas( Width, Height, StrideBytes, PaddingStyle )
 	, AtlasTexture( new FSlateD3DTexture( Width, Height ) )

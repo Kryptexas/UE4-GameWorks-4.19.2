@@ -102,6 +102,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 // Textures
 #include "SlateShaderResource.h"
 #include "SlateTextureData.h"
+#include "SlateUpdatableTexture.h"
 #include "TextureAtlas.h"
 #include "TextureManager.h"
 
