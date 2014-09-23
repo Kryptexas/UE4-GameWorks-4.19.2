@@ -1,6 +1,10 @@
 # Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #
 # Makefile for building hlslcc on Linux.
+#
+# We have to build this library with -fvisibility=hidden to avoid symbol
+# conflicts with any version of mesa that might get loaded by the GL
+# drivers.
 
 ROOT_DIR = ../../src
 TEST_SRCS = $(ROOT_DIR)/hlslcc_test/main.cpp
@@ -22,15 +26,15 @@ all: lib main
 lib: $(LIB)
 main: $(MAIN)
 
-DEBUG = 1
+DEBUG = 0
 CC = clang
 CXX = clang++
-CPPFLAGS = -fPIC -Wno-switch -Wno-unused-value -I$(ROOT_DIR)/hlslcc_lib
+CPPFLAGS = -fPIC -Wno-switch -Wno-unused-value -I$(ROOT_DIR)/hlslcc_lib -fvisibility=hidden
 CXXFLAGS = -std=c++11
 ifeq ($(DEBUG),1)
 CPPFLAGS += -g -O0
 else
-CPPFLAGS += -O2
+CPPFLAGS += -O3 -march=native -mtune=native
 endif
 
 
@@ -41,12 +45,10 @@ endif
 	$(CC) -x c++ $(CPPFLAGS) -o $@ -c $^
 
 $(LIB): $(LIB_OBJS)
-	mkdir -p $(dir $@)
 	ar cr $@ $^
 
 $(MAIN): $(MAIN_OBJS) $(LIB)
-	mkdir -p $(dir $@)
-	$(CXX) -o $@ $^ -L../../lib/Linux -lhlslcc
+	$(CXX) $(CPPFLAGS) $^ -L../../lib/Linux -lhlslcc -o $@ 
 
 clean:
 	rm -f $(LIB_OBJS) $(MAIN_OBJS) $(LIB) $(MAIN)

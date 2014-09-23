@@ -19,4 +19,10 @@ pushd hlslcc\projects
 	msbuild hlslcc.sln /target:Clean,hlslcc_lib /p:Platform=x64;Configuration="Debug"
 	msbuild hlslcc.sln /target:Clean,hlslcc_lib /p:Platform=x64;Configuration="Release"
 	popd
+
+	REM Linux
+	pushd Linux
+	CrossCompile.bat
+	popd
+
 popd
