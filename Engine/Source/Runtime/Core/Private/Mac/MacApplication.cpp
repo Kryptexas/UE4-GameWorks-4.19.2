@@ -11,7 +11,7 @@
 #include "HIDInputInterface.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
-
+#include "CocoaThread.h"
 #include "ModuleManager.h"
 
 static NSString* NSWindowDraggingFinished = @"NSWindowDraggingFinished";
