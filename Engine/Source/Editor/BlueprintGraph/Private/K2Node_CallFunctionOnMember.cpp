@@ -71,8 +71,10 @@ void UK2Node_CallFunctionOnMember::ExpandNode(class FKismetCompilerContext& Comp
 				GetVarNode->VariableReference.SetSelfMember(MemberVariableToCallOn.GetMemberName());
 				GetVarNode->AllocateDefaultPins();
 
-				UEdGraphPin* ValuePin = GetVarNode->GetValuePin();
-				ValuePin->MakeLinkTo(CallFuncSelfPin);
+				if (UEdGraphPin* ValuePin = GetVarNode->GetValuePin())
+				{
+					ValuePin->MakeLinkTo(CallFuncSelfPin);
+				}
 			}
 			else
 			{
