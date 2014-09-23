@@ -100,7 +100,7 @@ BuildHLSLCC()
   cd Source/ThirdParty/hlslcc
   P4Open hlslcc/bin/Linux/hlslcc_64
   P4Open hlslcc/lib/Linux/libhlslcc.a
-  cd projects/Linux
+  cd hlslcc/projects/Linux
   make $MAKE_ARGS
   set +x
 }
