@@ -1135,6 +1135,17 @@ void USceneComponent::SetMobility(EComponentMobility::Type NewMobility)
 	{
 		FComponentReregisterContext ReregisterContext(this);
 		Mobility = NewMobility;
+
+		if (Mobility == EComponentMobility::Movable)	//if we're now movable all children should be updated as having static children is invalid
+		{
+			for (USceneComponent* ChildComponent : AttachChildren)
+			{
+				if (ChildComponent)
+				{
+					ChildComponent->SetMobility(NewMobility);
+				}
+			}
+		}
 	}
 }
 
