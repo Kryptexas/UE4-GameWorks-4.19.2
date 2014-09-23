@@ -3408,24 +3408,38 @@ protected:
 			case MCT_Float:
 			case MCT_Float1:
 				InputParamDecl += TEXT("MaterialFloat ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Float2:
 				InputParamDecl += TEXT("MaterialFloat2 ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Float3:
 				InputParamDecl += TEXT("MaterialFloat3 ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Float4:
 				InputParamDecl += TEXT("MaterialFloat4 ");
+				InputParamDecl += Custom->Inputs[i].InputName;
 				break;
 			case MCT_Texture2D:
-				InputParamDecl += TEXT("sampler2D ");
+				InputParamDecl += TEXT("Texture2D ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT("Sampler ");
+				break;
+			case MCT_TextureCube:
+				InputParamDecl += TEXT("TextureCube ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += Custom->Inputs[i].InputName;
+				InputParamDecl += TEXT("Sampler ");
 				break;
 			default:
 				return Errorf(TEXT("Bad type %s for %s input %s"),DescribeType(GetParameterType(CompiledInputs[i])), *Custom->Description, *Custom->Inputs[i].InputName);
 				break;
 			}
-			InputParamDecl += Custom->Inputs[i].InputName;
 		}
 		int32 CustomExpressionIndex = CustomExpressionImplementations.Num();
 		FString Code = Custom->Code;
@@ -3446,8 +3460,18 @@ protected:
 			{
 				continue;
 			}
+
+			FString ParamCode = GetParameterCode(CompiledInputs[i]);
+			EMaterialValueType ParamType = GetParameterType(CompiledInputs[i]);
+
 			CodeChunk += TEXT(",");
-			CodeChunk += *GetParameterCode(CompiledInputs[i]);
+			CodeChunk += *ParamCode;
+			if (ParamType == MCT_Texture2D || ParamType == MCT_TextureCube)
+			{
+				CodeChunk += TEXT(",");
+				CodeChunk += *ParamCode;
+				CodeChunk += TEXT("Sampler");
+			}
 		}
 		CodeChunk += TEXT(")");
 

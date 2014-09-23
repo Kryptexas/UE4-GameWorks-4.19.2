@@ -11,7 +11,6 @@
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
-#include "Materials/MaterialExpressionCustomTexture.h"
 #include "Materials/MaterialExpressionFontSample.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
@@ -711,10 +710,6 @@ bool UMaterialGraphNode::UsesVectorColour(UMaterialExpression* Expression)
 bool UMaterialGraphNode::UsesObjectColour(UMaterialExpression* Expression)
 {
 	if (Expression->IsA<UMaterialExpressionTextureBase>())
-	{
-		return true;
-	}
-	else if (Expression->IsA<UMaterialExpressionCustomTexture>())
 	{
 		return true;
 	}

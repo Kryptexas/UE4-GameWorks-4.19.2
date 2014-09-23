@@ -29,7 +29,6 @@
 #include "Materials/MaterialExpressionCosine.h"
 #include "Materials/MaterialExpressionCrossProduct.h"
 #include "Materials/MaterialExpressionCustom.h"
-#include "Materials/MaterialExpressionCustomTexture.h"
 #include "Materials/MaterialExpressionDDX.h"
 #include "Materials/MaterialExpressionDDY.h"
 #include "Materials/MaterialExpressionDepthFade.h"
@@ -6031,121 +6030,6 @@ uint32 UMaterialExpressionCustom::GetOutputType(int32 OutputIndex)
 		return MCT_Float4;
 	default:
 		return MCT_Unknown;
-	}
-}
-#endif // WITH_EDITOR
-
-///////////////////////////////////////////////////////////////////////////////
-// UMaterialExpressionCustomTexture
-///////////////////////////////////////////////////////////////////////////////
-UMaterialExpressionCustomTexture::UMaterialExpressionCustomTexture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FString NAME_Custom;
-		FConstructorStatics()
-			: NAME_Custom(LOCTEXT( "Custom", "Custom" ).ToString())
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-	MenuCategories.Add(ConstructorStatics.NAME_Custom);
-	bCollapsed = false;
-}
-
-int32 UMaterialExpressionCustomTexture::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
-{
-#if PLATFORM_EXCEPTIONS_DISABLED
-	// if we can't throw the error below, attempt to thwart the error by using the default texture
-	// @todo: handle missing cubemaps and 3d textures?
-	if (!Texture)
-	{
-		UE_LOG(LogMaterial, Log, TEXT("Using default texture instead of real texture!"));
-		Texture = GEngine->DefaultTexture;
-	}
-#endif
-
-	if (Texture)
-	{
-		return  Compiler->Texture(Texture);
-	}
-	else
-	{
-		if (Desc.Len() > 0)
-		{
-			return Compiler->Errorf(TEXT("%s> Missing input texture"), *Desc);
-		}
-		else
-		{
-			return Compiler->Errorf(TEXT("CustomTexture> Missing input texture"));
-		}
-	}
-}
-
-int32 UMaterialExpressionCustomTexture::CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
-{
-#if PLATFORM_EXCEPTIONS_DISABLED
-	// if we can't throw the error below, attempt to thwart the error by using the default texture
-	// @todo: handle missing cubemaps and 3d textures?
-	if (!Texture)
-	{
-		UE_LOG(LogMaterial, Log, TEXT("Using default texture instead of real texture!"));
-		Texture = GEngine->DefaultTexture;
-	}
-#endif
-
-	if (Texture)
-	{
-		// Preview just returns the sampled texture rather than the texture sampler.
-		int32 TextureCodeIndex = Compiler->Texture(Texture);
-		return Compiler->TextureSample(TextureCodeIndex, Compiler->TextureCoordinate(0, false, false), SAMPLERTYPE_Color);
-	}
-	else
-	{
-		if (Desc.Len() > 0)
-		{
-			return Compiler->Errorf(TEXT("%s> Missing input texture"), *Desc);
-		}
-		else
-		{
-			return Compiler->Errorf(TEXT("CustomTexture> Missing input texture"));
-		}
-	}
-}
-
-int32 UMaterialExpressionCustomTexture::GetWidth() const
-{
-	return ME_STD_THUMBNAIL_SZ+(ME_STD_BORDER*2);
-}
-
-void UMaterialExpressionCustomTexture::GetCaption(TArray<FString>& OutCaptions) const
-{
-	OutCaptions.Add(TEXT("Custom Texture"));
-}
-
-bool UMaterialExpressionCustomTexture::MatchesSearchQuery( const TCHAR* SearchQuery )
-{
-	if( Texture!=NULL && Texture->GetName().Contains(SearchQuery) )
-	{
-		return true;
-	}
-
-	return Super::MatchesSearchQuery(SearchQuery);
-}
-
-#if WITH_EDITOR
-uint32 UMaterialExpressionCustomTexture::GetOutputType(int32 OutputIndex)
-{
-	if (Cast<UTextureCube>(Texture) != NULL)
-	{
-		return MCT_TextureCube;
-	}
-	else
-	{
-		return MCT_Texture2D;
 	}
 }
 #endif // WITH_EDITOR
