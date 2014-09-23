@@ -312,13 +312,13 @@ struct FCompiledInDefer
 /**
  * Stashes the singleton function that builds a compiled in struct (StaticStruct). Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)());
+COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName);
 
 struct FCompiledInDeferStruct
 {
-	FCompiledInDeferStruct(class UScriptStruct *(*InRegister)())
+	FCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName)
 	{
-		UObjectCompiledInDeferStruct(InRegister);
+		UObjectCompiledInDeferStruct(InRegister, PackageName);
 	}
 };
 
@@ -330,13 +330,13 @@ COREUOBJECT_API class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRe
 /**
  * Stashes the singleton function that builds a compiled in enum. Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)());
+COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName);
 
 struct FCompiledInDeferEnum
 {
-	FCompiledInDeferEnum(class UEnum *(*InRegister)())
+	FCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName)
 	{
-		UObjectCompiledInDeferEnum(InRegister);
+		UObjectCompiledInDeferEnum(InRegister, PackageName);
 	}
 };
 
