@@ -56,8 +56,8 @@ class GroupIconResource
 		{
 			BinaryReader Reader = new BinaryReader(Stream);
 
-			ushort Reserved = Reader.ReadUInt16();
-			ushort Type = Reader.ReadUInt16();
+			Reader.ReadUInt16(); // Reserved
+			Reader.ReadUInt16(); // Type
 			ushort Count = Reader.ReadUInt16();
 
 			IconResource[] Icons = new IconResource[Count];
