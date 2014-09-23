@@ -510,6 +510,12 @@ void FUnrealEdMisc::InitEngineAnalytics()
 
 void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 {
+	// Don't attempt to send the heartbeat if analytics isn't available
+	if(!FEngineAnalytics::IsAvailable())
+	{
+		return;
+	}
+
 	static double LastHeartbeatTime = FPlatformTime::Seconds();
 	
 	double LastInteractionTime = FSlateApplication::Get().GetLastUserInteractionTime();
