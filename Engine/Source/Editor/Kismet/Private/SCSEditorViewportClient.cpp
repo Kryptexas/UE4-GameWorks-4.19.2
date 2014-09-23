@@ -68,40 +68,6 @@ namespace
 		} 
 	}
 
-	template<typename T>
-	bool PropagateTransformPropertyChange(AActor* InOwner, USceneComponent* InSceneComponent, T& CurrentValue, const T& OldDefaultValue, const T& NewDefaultValue)
-	{
-		check(InSceneComponent);
-
-		// Only propagate the change if the current value matches the previous default value
-		if(NewDefaultValue != OldDefaultValue && CurrentValue == OldDefaultValue)
-		{
-			// Ensure that this instance will be included in any undo/redo operations, and record it into the transaction buffer.
-			// Note: We don't do this for components that originate from script, because they will be re-instanced from the template after an undo, so there is no need to record them.
-			if(!InSceneComponent->bCreatedByConstructionScript)
-			{
-				InSceneComponent->SetFlags(RF_Transactional);
-				InSceneComponent->Modify();
-			}
-
-			// We must also modify the owner, because we'll need script components to be reconstructed as part of an undo operation.
-			if(InOwner != NULL)
-			{
-				InOwner->Modify();
-			}
-
-			// Modify the value
-			CurrentValue = NewDefaultValue;
-
-			// Re-register the component with the scene so that transforms are updated for display
-			InSceneComponent->ReregisterComponent();
-
-			return true;
-		}
-
-		return false;
-	}
-
 	// Determine whether or not the given node has a parent node that is not the root node, is movable and is selected
 	bool IsMovableParentNodeSelected(const FSCSEditorTreeNodePtrType& NodePtr, const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
 	{
@@ -419,7 +385,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 								}
 							}
 
-							FComponentEditorUtils::FTransformData OldTransform(*SelectedTemplate);
+							FComponentEditorUtils::FTransformData OldDefaultTransform(*SelectedTemplate);
 
 							TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(SceneComp);
 							if(Customization.IsValid() && Customization->HandleViewportDrag(SceneComp, SelectedTemplate, Drag, Rot, ModifiedScale, GetWidgetLocation()))
@@ -450,13 +416,13 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 								UpdatedComponents.Add(SelectedTemplate);
 							}
 
-							FComponentEditorUtils::FTransformData NewTransform(*SelectedTemplate);
+							FComponentEditorUtils::FTransformData NewDefaultTransform(*SelectedTemplate);
 
 							if (SelectedNodePtr->IsNative())
 							{
 								if (ensure(SelectedTemplate->HasAnyFlags(RF_DefaultSubObject)))
 								{
-									FComponentEditorUtils::PropagateTransformPropertyChange(SelectedTemplate, OldTransform, NewTransform, UpdatedComponents);
+									FComponentEditorUtils::PropagateTransformPropertyChange(SelectedTemplate, OldDefaultTransform, NewDefaultTransform, UpdatedComponents);
 								}
 							}
 
@@ -501,11 +467,11 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 										{
 											const bool bIsProcessingPreviewActor = (ArchetypeInstance == PreviewActor);
 											SceneComp = Cast<USceneComponent>(SelectedNodePtr->FindComponentInstanceInActor(ArchetypeInstance, bIsProcessingPreviewActor));
-											if(!bIsProcessingPreviewActor && SceneComp != NULL)
+											if(!bIsProcessingPreviewActor && SceneComp != nullptr && !UpdatedComponents.Contains(SceneComp))
 											{
-												PropagateTransformPropertyChange(ArchetypeInstance, SceneComp, SceneComp->RelativeLocation, OldRelativeLocation, SelectedTemplate->RelativeLocation);
-												PropagateTransformPropertyChange(ArchetypeInstance, SceneComp, SceneComp->RelativeRotation, OldRelativeRotation, SelectedTemplate->RelativeRotation);
-												PropagateTransformPropertyChange(ArchetypeInstance, SceneComp, SceneComp->RelativeScale3D, OldRelativeScale3D, SelectedTemplate->RelativeScale3D);
+												FComponentEditorUtils::PropagateTransformPropertyChange(SceneComp, SceneComp->RelativeLocation, OldRelativeLocation, SelectedTemplate->RelativeLocation, UpdatedComponents);
+												FComponentEditorUtils::PropagateTransformPropertyChange(SceneComp, SceneComp->RelativeRotation, OldRelativeRotation, SelectedTemplate->RelativeRotation, UpdatedComponents);
+												FComponentEditorUtils::PropagateTransformPropertyChange(SceneComp, SceneComp->RelativeScale3D,  OldRelativeScale3D,  SelectedTemplate->RelativeScale3D,  UpdatedComponents);
 											}
 										}
 									}

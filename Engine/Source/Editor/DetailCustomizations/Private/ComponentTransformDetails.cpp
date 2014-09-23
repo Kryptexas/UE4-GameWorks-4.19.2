@@ -46,41 +46,18 @@ private:
 template<typename T>
 static void PropagateTransformPropertyChange(UObject* InObject, UProperty* InProperty, const T& OldValue, const T& NewValue)
 {
-	check(InObject != NULL);
-	check(InProperty != NULL);
+	check(InObject != nullptr);
+	check(InProperty != nullptr);
 
 	TArray<UObject*> ArchetypeInstances;
+	TSet<USceneComponent*> UpdatedComponents;
 	FComponentEditorUtils::GetArchetypeInstances(InObject, ArchetypeInstances);
 	for(int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
 	{
 		USceneComponent* InstancedSceneComponent = FComponentEditorUtils::GetSceneComponent(ArchetypeInstances[InstanceIndex], InObject);
-		if(InstancedSceneComponent != NULL)
+		if(InstancedSceneComponent != nullptr && !UpdatedComponents.Contains(InstancedSceneComponent))
 		{
-			// Propagate the change only if the current instanced value matches the previous default value
-			T* CurValue = InProperty->ContainerPtrToValuePtr<T>(InstancedSceneComponent);
-			if(CurValue != NULL && *CurValue == OldValue)
-			{
-				// Ensure that this instance will be included in any undo/redo operations, and record it into the transaction buffer.
-				// Note: We don't do this for components that originate from script, because they will be re-instanced from the template after an undo, so there is no need to record them.
-				if(!InstancedSceneComponent->bCreatedByConstructionScript)
-				{
-					InstancedSceneComponent->SetFlags(RF_Transactional);
-					InstancedSceneComponent->Modify();
-				}
-
-				// We must also modify the owner, because we'll need script components to be reconstructed as part of an undo operation.
-				AActor* Owner = InstancedSceneComponent->GetOwner();
-				if(Owner != NULL)
-				{
-					Owner->Modify();
-				}
-
-				// Change the property value
-				*CurValue = NewValue;
-
-				// Re-register the component with the scene so that transforms are updated for display
-				InstancedSceneComponent->ReregisterComponent();
-			}
+			FComponentEditorUtils::PropagateTransformPropertyChange(InstancedSceneComponent, InProperty, OldValue, NewValue, UpdatedComponents);
 		}
 	}
 }
@@ -96,23 +73,6 @@ FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjec
 {
 	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
 
-	// Capture selected actor rotations so that we can adjust them without worrying about the Quat conversions affecting the raw values
-	for( int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex )
-	{
-		TWeakObjectPtr<UObject> ObjectPtr = InSelectedObjects[ObjectIndex];
-		if( ObjectPtr.IsValid() )
-		{
-			UObject* Object = ObjectPtr.Get();
-			
-			USceneComponent* RootComponent = FComponentEditorUtils::GetSceneComponent( Object );
-
-			if( RootComponent )
-			{
-				FRotator& RelativeRotation = ObjectToRelativeRotationMap.FindOrAdd(Object);
-				RelativeRotation = RootComponent->RelativeRotation;
-			}
-		}
-	}
 }
 
 TSharedRef<SWidget> FComponentTransformDetails::BuildTransformFieldLabel( ETransformField::Type TransformField )
@@ -941,7 +901,7 @@ void FComponentTransformDetails::CacheTransform()
 			if( RootComponent )
 			{
 				Loc = RootComponent->RelativeLocation;
-				Rot = bEditingRotationInUI ? ObjectToRelativeRotationMap.FindOrAdd(Object) : RootComponent->RelativeRotation;
+				Rot = (bEditingRotationInUI && !Object->HasAnyFlags(RF_ClassDefaultObject|RF_DefaultSubObject)) ? ObjectToRelativeRotationMap.FindOrAdd(Object) : RootComponent->RelativeRotation;
 				Scale = RootComponent->RelativeScale3D;
 
 				if( ObjectIndex == 0 )
@@ -1100,12 +1060,14 @@ void FComponentTransformDetails::OnSetRotation( float NewValue, bool bCommitted,
 				USceneComponent* RootComponent = FComponentEditorUtils::GetSceneComponent( Object );
 				if( RootComponent )
 				{
-					FRotator& RelativeRotation = ObjectToRelativeRotationMap.FindOrAdd(Object);
+					const bool bIsEditingTemplateObject = Object->HasAnyFlags(RF_ClassDefaultObject|RF_DefaultSubObject);
+
+					FRotator& RelativeRotation = (bEditingRotationInUI && !bIsEditingTemplateObject) ? ObjectToRelativeRotationMap.FindOrAdd(Object) : RootComponent->RelativeRotation;
 					FRotator OldRelativeRotation = RelativeRotation;
 
 					float& ValueToChange = Axis == 0 ? RelativeRotation.Roll : Axis == 1 ? RelativeRotation.Pitch : RelativeRotation.Yaw;
 
-					if( bCommitted || ValueToChange != NewValue )
+					if( ValueToChange != NewValue )
 					{
 						if( !bBeganTransaction && bCommitted )
 						{
@@ -1150,25 +1112,28 @@ void FComponentTransformDetails::OnSetRotation( float NewValue, bool bCommitted,
 
 						ValueToChange = NewValue;
 
-						if( SelectedActorInfo.NumSelected == 0 )
+						if(!bIsEditingTemplateObject)
 						{
-							// HACK: Set directly if no actors are selected since this causes Rot->Quat->Rot conversion issues
-							// (recalculates relative rotation from quat which can give an equivalent but different value than the user typed)
-							RootComponent->RelativeRotation = RelativeRotation;
-						}
-						else
-						{
-							RootComponent->SetRelativeRotation( RelativeRotation );
+							if( SelectedActorInfo.NumSelected == 0 )
+							{
+								// HACK: Set directly if no actors are selected since this causes Rot->Quat->Rot conversion issues
+								// (recalculates relative rotation from quat which can give an equivalent but different value than the user typed)
+								RootComponent->RelativeRotation = RelativeRotation;
+							}
+							else
+							{
+								RootComponent->SetRelativeRotation( RelativeRotation );
+							}
 						}
 
 						AActor* ObjectAsActor = Cast<AActor>( Object );
-						if( ObjectAsActor && !ObjectAsActor->HasAnyFlags(RF_ClassDefaultObject) )
+						if( ObjectAsActor && !bIsEditingTemplateObject )
 						{
 							ObjectAsActor->ReregisterAllComponents();
 						}
 
 						// If this is a default object or subobject, propagate the change out to any current instances of this object
-						if(Object->HasAnyFlags(RF_ClassDefaultObject|RF_DefaultSubObject))
+						if(bIsEditingTemplateObject)
 						{
 							PropagateTransformPropertyChange(Object, RelativeRotationProperty, OldRelativeRotation, RelativeRotation);
 						}
@@ -1187,7 +1152,7 @@ void FComponentTransformDetails::OnSetRotation( float NewValue, bool bCommitted,
 								Object->PostEditChangeProperty( PropertyChangedEvent );	
 							}
 					
-							if (!Object->HasAnyFlags(RF_ClassDefaultObject|RF_DefaultSubObject))
+							if (!bIsEditingTemplateObject)
 							{
 								// The actor is done moving
 								GEditor->BroadcastEndObjectMovement( *Object );
@@ -1257,6 +1222,9 @@ void FComponentTransformDetails::OnBeginRotatonSlider()
 
 				UProperty* RelativeRotationProperty = FindField<UProperty>( USceneComponent::StaticClass(), "RelativeRotation" );
 				Object->PreEditChange( RelativeRotationProperty );
+
+				// Add/update cached rotation value prior to slider interaction
+				ObjectToRelativeRotationMap.FindOrAdd(Object) = RootComponent->RelativeRotation;
 			}
 		}
 	}
