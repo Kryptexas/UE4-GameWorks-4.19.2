@@ -1,77 +1,18 @@
 REM PhysX
 setlocal
 
-REM we need to move all the way out to the PhysX branch - we assume it's next to UE4 as it is in p4
-pushd ..\..\..\..\..\PhysX\Epic\PhysX_32
+REM Sync the PhysX branch (external to UE4)
+p4 set
 
-	pushd PhysX_3.3
-	
-		p4 edit %THIRD_PARTY_CHANGELIST% Lib\...
-		p4 edit %THIRD_PARTY_CHANGELIST% Bin\...
+p4 sync //depot/PhysX/...
 
-		REM generate PhysX project files
-		pushd Source\compiler\xpj
-			call create_projects.cmd
-		popd
+pause 
 
-		REM now build PhysX libs
+REM PhysX root is always next to UE4, since that's how p4 is structured, and we know that we are always in UE4\Engine\Source\ThirdParty\PhysX
+REM This batch file wouldn't work otherwise
+set PhysXRoot=..\..\..\..\..\PhysX
 
-		msbuild Source\compiler\vc11win32\PhysX.sln /target:Clean,Build,PhysX /p:Platform=Win32;Configuration=debug
-		msbuild Source\compiler\vc11win32\PhysX.sln /target:Clean,Build,PhysX /p:Platform=Win32;Configuration=release
-		msbuild Source\compiler\vc11win32\PhysX.sln /target:Clean,Build,PhysX /p:Platform=Win32;Configuration=profile
-
-		msbuild Source\compiler\vc11win64\PhysX.sln /target:Clean,Build,PhysX /p:Platform=x86;Configuration=debug
-		msbuild Source\compiler\vc11win64\PhysX.sln /target:Clean,Build,PhysX /p:Platform=x86;Configuration=release
-		msbuild Source\compiler\vc11win64\PhysX.sln /target:Clean,Build,PhysX /p:Platform=x86;Configuration=profile
-
-		msbuild Source\compiler\vc11xboxone\PhysX.sln /target:Clean,Build /p:Platform=Durango;Configuration=debug
-		msbuild Source\compiler\vc11xboxone\PhysX.sln /target:Clean,Build /p:Platform=Durango;Configuration=release
-		msbuild Source\compiler\vc11xboxone\PhysX.sln /target:Clean,Build /p:Platform=Durango;Configuration=profile
-
-		msbuild Source\compiler\vc10ps4\PhysX.sln /target:Clean,Build /p:Platform=ORBIS;Configuration=debug
-		msbuild Source\compiler\vc10ps4\PhysX.sln /target:Clean,Build /p:Platform=ORBIS;Configuration=release
-		msbuild Source\compiler\vc10ps4\PhysX.sln /target:Clean,Build /p:Platform=ORBIS;Configuration=profile
-
-		msbuild Source\compiler\vc10android9\PhysX.sln /target:Clean,Build /p:Platform=Android;Configuration=debug
-		msbuild Source\compiler\vc10android9\PhysX.sln /target:Clean,Build /p:Platform=Android;Configuration=release
-		msbuild Source\compiler\vc10android9\PhysX.sln /target:Clean,Build /p:Platform=Android;Configuration=profile
-			
-	 	msbuild Source\compiler\html5win32\PhysX.sln /target:Clean,Build /p:Platform=EMSCRIPTEN;Configuration=debug;PlatformToolset=emcc
-	 	msbuild Source\compiler\html5win32\PhysX.sln /target:Clean,Build /p:Platform=EMSCRIPTEN;Configuration=release;PlatformToolset=emcc
-	 	msbuild Source\compiler\html5win32\PhysX.sln /target:Clean,Build /p:Platform=EMSCRIPTEN;Configuration=profile;PlatformToolset=emcc
-
-	popd
-
-
-	pushd APEX_1.3_vs_PhysX_3.3
-		
-		p4 edit %THIRD_PARTY_CHANGELIST% lib\...
-		p4 edit %THIRD_PARTY_CHANGELIST% bin\...
-
-		REM generate Apex project files
-		pushd compiler\xpj
-			call create_projects.cmd
-		popd
-
-		REM now build Apex libs
-
-		msbuild compiler\vc11win32-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=Win32;Configuration=debug
-		msbuild compiler\vc11win32-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=Win32;Configuration=release
-		msbuild compiler\vc11win32-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=Win32;Configuration=profile
-
-		msbuild compiler\vc11win64-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=x86;Configuration=debug
-		msbuild compiler\vc11win64-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=x86;Configuration=release
-		msbuild compiler\vc11win64-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=x86;Configuration=profile
-
-		msbuild compiler\vc11xboxone-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=Durango;Configuration=debug
-		msbuild compiler\vc11xboxone-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=Durango;Configuration=release
-		msbuild compiler\vc11xboxone-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=Durango;Configuration=profile
-
-		msbuild compiler\vc10ps4-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=ORBIS;Configuration=debug
-		msbuild compiler\vc10ps4-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=ORBIS;Configuration=release
-		msbuild compiler\vc10ps4-PhysX_3.3\APEX.sln /target:Clean,Build /p:Platform=ORBIS;Configuration=profile
-		
-	popd
-
+REM Go to the branch
+pushd %PhysXRoot%
+call UE4_BuildThirdPartyLib.bat %THIRD_PARTY_CHANGELIST% -submit -config debug -config profile -platformPhysx vc11win32;Win32 -platformPhysx vc11win64;x64 -platformPhysx vc12win32;Win32 -platformPhysx vc12win64;x64 -platformPhysx vc10ps4;ORBIS -platformAPEX vc11win32-PhysX_3.3;Win32 -platformAPEX vc11win64-PhysX_3.3;x64 -platformAPEX vc12win32-PhysX_3.3;Win32 -platformAPEX vc12win64-PhysX_3.3;x64 -platformAPEX vc10ps4-PhysX_3.3;ORBIS
 popd
-
