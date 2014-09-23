@@ -29,13 +29,13 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 	CommandList->MapAction(
 		FBTBlackboardCommands::Get().DeleteEntry,
 		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleDeleteEntry),
-		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::CanDeleteEntry)
 		);
 
 	CommandList->MapAction(
 		FGenericCommands::Get().Rename,
 		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleRenameEntry),
-		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::CanRenameEntry)
 		);
 
 	InCommandList->Append(CommandList);
@@ -92,8 +92,9 @@ void SBehaviorTreeBlackboardEditor::HandleDeleteEntry()
 
 	if(!IsDebuggerActive())
 	{
-		FBlackboardEntry* BlackboardEntry = GetSelectedEntry();
-		if(BlackboardEntry != nullptr)
+		bool bIsInherited = false;
+		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);
+		if(BlackboardEntry != nullptr && !bIsInherited)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryDeleteTransaction", "Delete Blackboard Entry"));
 			BlackboardData->SetFlags(RF_Transactional);
@@ -126,6 +127,36 @@ void SBehaviorTreeBlackboardEditor::HandleRenameEntry()
 	{
 		GraphActionMenu->OnRequestRenameOnActionNode();
 	}
+}
+
+bool SBehaviorTreeBlackboardEditor::CanDeleteEntry() const
+{
+	if(!IsDebuggerActive())
+	{
+		bool bIsInherited = false;
+		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);
+		if(BlackboardEntry != nullptr)
+		{
+			return !bIsInherited;
+		}
+	}
+
+	return false;
+}
+
+bool SBehaviorTreeBlackboardEditor::CanRenameEntry() const
+{
+	if(!IsDebuggerActive())
+	{
+		bool bIsInherited = false;
+		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);
+		if(BlackboardEntry != nullptr)
+		{
+			return !bIsInherited;
+		}
+	}
+
+	return false;
 }
 
 class FBlackboardEntryClassFilter : public IClassViewerFilter

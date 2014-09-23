@@ -48,4 +48,10 @@ private:
 
 	/** Delegate handler that disallows creating a new entry while the debugger is running */
 	bool CanCreateNewEntry() const;
+
+	/** Check whether the 'Delete' operation can be performed on the selected item  */
+	bool CanDeleteEntry() const;
+
+	/** Check whether the 'Rename' operation can be performed on the selected item  */
+	bool CanRenameEntry() const;
 };
