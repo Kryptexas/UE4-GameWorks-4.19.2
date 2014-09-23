@@ -478,7 +478,7 @@ struct CORE_API IConsoleManager
 	
 	/**
 	 */
-	virtual void GetConsoleHistory(TArray<FString>& Out) const = 0; 
+	virtual void GetConsoleHistory(TArray<FString>& Out) = 0; 
 
 	/**
 	 * Check if a name (command or variable) has been registered with the console manager

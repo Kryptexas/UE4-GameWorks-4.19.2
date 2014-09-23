@@ -7,6 +7,7 @@ ConsoleManager.cpp: console command handling
 #include "Core.h"
 #include "ConsoleManager.h"
 #include "ModuleManager.h"
+#include "RemoteConfigIni.h"
 
 DEFINE_LOG_CATEGORY(LogConsoleResponse);
 DEFINE_LOG_CATEGORY_STATIC(LogConsoleManager, Log, All);
@@ -753,6 +754,60 @@ void FConsoleManager::UnregisterConsoleObject(const TCHAR* Name, bool bKeepState
 	}
 }
 
+void FConsoleManager::LoadHistoryIfNeeded()
+{
+	if(bHistoryWasLoaded)
+	{
+		return;
+	}
+
+	bHistoryWasLoaded = true;
+
+	HistoryEntries.Empty();
+
+	FConfigFile Ini;
+
+	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
+	ProcessIniContents(*ConfigPath, *ConfigPath, &Ini, false, false, false);
+
+	const FString History = TEXT("History");
+
+	FConfigSection* Section = Ini.Find(TEXT("ConsoleHistory"));
+
+	if(Section)
+	{
+		for (auto It : *Section)
+		{
+			const FString& Key = It.Key.ToString();
+
+			if(Key == History)
+			{
+				HistoryEntries.Add(It.Value);
+			}
+		}
+	}
+}
+
+void FConsoleManager::SaveHistory()
+{
+	const FName History = TEXT("History");
+
+	FConfigFile Ini;
+
+	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
+
+	FConfigSection& Section = Ini.Add(TEXT("ConsoleHistory"));
+
+	for(auto It : HistoryEntries)
+	{
+		Section.Add(History, It);
+	}
+
+	Ini.Dirty = true;
+	Ini.Write(ConfigPath);
+}
+
+
 void FConsoleManager::ForEachConsoleObject(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
 {
 	check(Visitor.IsBound());
@@ -1058,11 +1113,23 @@ void IConsoleManager::SetupSingleton()
 
 void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Input)
 {
+	LoadHistoryIfNeeded();
+
+	// limit size to avoid a ever growing file
+	while(HistoryEntries.Num() > 64)
+	{
+		HistoryEntries.RemoveAt(0);
+	}
+
 	HistoryEntries.Add(FString(Input));
+
+	SaveHistory();
 }
 
-void FConsoleManager::GetConsoleHistory(TArray<FString>& Out) const
+void FConsoleManager::GetConsoleHistory(TArray<FString>& Out)
 {
+	LoadHistoryIfNeeded();
+
 	Out = HistoryEntries;
 }
 
