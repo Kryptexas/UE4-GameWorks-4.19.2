@@ -32,7 +32,7 @@
 #include "Engine/GameInstance.h"
 #include "EditorAnalytics.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
-
+#include "SScissorRectBox.h"
 #include "Online.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
@@ -2431,9 +2431,12 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 						.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 						.EnableGammaCorrection( false )// Gamma correction in the game is handled in post processing in the scene renderer
 						[
-							SAssignNew(PIEDPIScaler, SDPIScaler)
+							SNew(SScissorRectBox)
 							[
-								ViewportOverlayWidgetRef
+								SAssignNew(PIEDPIScaler, SDPIScaler)
+								[
+									ViewportOverlayWidgetRef
+								]
 							]
 						];
 

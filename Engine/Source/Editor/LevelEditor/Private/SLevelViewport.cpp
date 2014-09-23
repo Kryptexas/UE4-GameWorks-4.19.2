@@ -30,6 +30,7 @@
 #include "BufferVisualizationData.h"
 #include "EditorViewportCommands.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "SScissorRectBox.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -169,10 +170,13 @@ void SLevelViewport::ConstructViewportOverlayContent()
 #if ALLOW_PLAY_IN_VIEWPORT_GAMEUI
 		ViewportOverlay->AddSlot( SlotIndex )
 		[
-			SNew(SDPIScaler)
-			.DPIScale(this, &SLevelViewport::GetGameViewportDPIScale)
+			SNew( SScissorRectBox )
 			[
-				PIEViewportOverlayWidget.ToSharedRef()
+				SNew(SDPIScaler)
+				.DPIScale(this, &SLevelViewport::GetGameViewportDPIScale)
+				[
+					PIEViewportOverlayWidget.ToSharedRef()
+				]
 			]
 		];
 
