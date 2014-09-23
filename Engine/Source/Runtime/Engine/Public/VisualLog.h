@@ -167,6 +167,7 @@ struct ENGINE_API FVisLogEntry
 
 
 	FVisLogEntry(const class AActor* Actor, TArray<TWeakObjectPtr<UObject> >* Children);
+	FVisLogEntry(float TimeStamp, FVector Location, const UObject* Object, TArray<TWeakObjectPtr<UObject> >* Children);
 	FVisLogEntry(TSharedPtr<FJsonValue> FromJson);
 	
 	TSharedPtr<FJsonValue> ToJson() const;
@@ -213,18 +214,16 @@ struct ENGINE_API FVisLogEntry
 #define REDIRECT_TO_VLOG(Dest) FVisualLog::Get().RedirectToVisualLog(this, Dest)
 #define REDIRECT_OBJECT_TO_VLOG(Src, Dest) FVisualLog::Get().RedirectToVisualLog(Src, Dest)
 
+#define CONNECT_WITH_VLOG(Dest)
+#define CONNECT_OBJECT_WITH_VLOG(Src, Dest)
+
 #define UE_VLOG(Object, CategoryName, Verbosity, Format, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		const AActor* MyOwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
-		ensure(MyOwnerActor != NULL); \
-		if (MyOwnerActor) \
-		{  \
-			FVisualLog::Get().LogLine(MyOwnerActor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
-		} \
+		FVisualLog::Get().LogLine(Object, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
 	} \
 	if (UE_LOG_CHECK_COMPILEDIN_VERBOSITY(CategoryName, Verbosity)) \
 	{ \
@@ -246,12 +245,7 @@ struct ENGINE_API FVisLogEntry
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
-		ensure(OwnerActor != NULL); \
-		if (OwnerActor) \
-		{  \
-			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
-		} \
+		FVisualLog::Get().GetEntryToWrite(Object)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
 	} \
 }
 
@@ -264,12 +258,7 @@ struct ENGINE_API FVisLogEntry
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
-		ensure(OwnerActor != NULL); \
-		if (OwnerActor) \
-		{  \
-			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
-		} \
+		FVisualLog::Get().GetEntryToWrite(Object)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
 	} \
 }
 
@@ -279,12 +268,7 @@ struct ENGINE_API FVisLogEntry
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
-		ensure(OwnerActor != NULL); \
-		if (OwnerActor) \
-		{  \
-			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
-		} \
+		FVisualLog::Get().GetEntryToWrite(Object)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
 	} \
 }
 
@@ -294,12 +278,7 @@ struct ENGINE_API FVisLogEntry
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
-		ensure(OwnerActor != NULL); \
-		if (OwnerActor) \
-		{  \
-			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddHistogramData(Data, CategoryName.GetCategoryName(), GraphName, DataName); \
-		} \
+		FVisualLog::Get().GetEntryToWrite(Object)->AddHistogramData(Data, CategoryName.GetCategoryName(), GraphName, DataName); \
 	} \
 }
 
@@ -342,7 +321,7 @@ struct ENGINE_API FActorsVisLog
 	FString FullName;
 	TArray<TSharedPtr<FVisLogEntry> > Entries;
 
-	FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<UObject> >* Children);
+	FActorsVisLog(const class UObject* Object, TArray<TWeakObjectPtr<UObject> >* Children);
 	FActorsVisLog(TSharedPtr<FJsonValue> FromJson);
 
 	TSharedPtr<FJsonValue> ToJson() const;
@@ -363,7 +342,7 @@ struct FVisualLogExtensionInterface
 class ENGINE_API FVisualLog : public FOutputDevice
 {
 public:
-	typedef TMap<const class AActor*, TSharedPtr<FActorsVisLog> > FLogsMap;
+	typedef TMap<const class UObject*, TSharedPtr<FActorsVisLog> > FLogsMap;
 	typedef TMap<const class AActor*, TArray<TWeakObjectPtr<UObject> > > FLogRedirectsMap;
 
 	DECLARE_DELEGATE_TwoParams(FOnNewLogCreatedDelegate, const AActor*, TSharedPtr<FActorsVisLog>);
@@ -380,12 +359,10 @@ public:
 	void Cleanup(bool bReleaseMemory = false);
 
 	void Redirect(class UObject* Source, const class AActor* NewRedirection);
-	
+	void RedirectToVisualLog(const class UObject* Src, const class AActor* Dest);
 	const class AActor* GetVisualLogRedirection(const class UObject* Source);
 
-	void RedirectToVisualLog(const class UObject* Src, const class AActor* Dest);
-
-	void LogLine(const class AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData = 0, FName TagName = NAME_Name);
+	void LogLine(const class UObject* Object, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData = 0, FName TagName = NAME_Name);
 
 	const FLogsMap* GetLogs() const { return &LogsMap; }
 
@@ -406,7 +383,7 @@ public:
 
 	FArchive* FileAr;
 
-	FVisLogEntry* GetEntryToWrite(const class AActor* Actor);
+	FVisLogEntry* GetEntryToWrite(const class UObject* Object);
 
 	/** highly encouradged to use FVisualLogFilenameGetterDelegate::CreateUObject with this */
 	void SetLogFileNameGetter(const FVisualLogFilenameGetterDelegate& InLogFileNameGetter) { LogFileNameGetter = InLogFileNameGetter; }
@@ -424,12 +401,13 @@ protected:
 
 	void LogElementImpl(FVisLogSelfDrawingElement* Element);
 
-	FORCEINLINE_DEBUGGABLE TSharedPtr<FActorsVisLog> GetLog(const class AActor* Actor)
+	FORCEINLINE_DEBUGGABLE TSharedPtr<FActorsVisLog> GetLog(const class UObject* Object)
 	{
-		TSharedPtr<FActorsVisLog>* Log = LogsMap.Find(Actor);
+		TSharedPtr<FActorsVisLog>* Log = LogsMap.Find(Object);
 		if (Log == NULL)
 		{
-			Log = &(LogsMap.Add(Actor, MakeShareable(new FActorsVisLog(Actor, RedirectsMap.Find(Actor)))));
+			const class AActor* Actor = GetVisualLogRedirection(Object);
+			Log = &(LogsMap.Add(Object, MakeShareable(new FActorsVisLog(Object, RedirectsMap.Find(Actor)))));
 			OnNewLogCreated.ExecuteIfBound(Actor, *Log);
 		}
 		return *Log;
@@ -465,4 +443,6 @@ private:
 	#define UE_VLOG_HISTOGRAM(Actor, CategoryName, Verbosity, GraphName, DataName, Data)
 	#define REDIRECT_TO_VLOG(Dest)
 	#define REDIRECT_OBJECT_TO_VLOG(Src, Destination) 
+	#define CONNECT_WITH_VLOG(Dest)
+	#define CONNECT_OBJECT_WITH_VLOG(Src, Dest)
 #endif //ENABLE_VISUAL_LOG

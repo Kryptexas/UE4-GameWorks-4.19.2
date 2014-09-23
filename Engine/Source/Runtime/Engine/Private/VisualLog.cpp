@@ -26,13 +26,34 @@ FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<UO
 			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
 			for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
 			{
-				if (WeakActorPtr->IsValid() )
+				if (WeakActorPtr->IsValid())
 				{
 					const AActor* ChildActor = Cast<AActor>(WeakActorPtr->Get());
 					if (ChildActor)
 					{
 						ChildActor->GrabDebugSnapshot(this);
 					}
+				}
+			}
+		}
+	}
+}
+
+FVisLogEntry::FVisLogEntry(float InTimeStamp, FVector InLocation, const UObject* Object, TArray<TWeakObjectPtr<UObject> >* Children)
+{
+	TimeStamp = InTimeStamp;
+	Location = InLocation;
+	if (Children != NULL)
+	{
+		TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
+		for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
+		{
+			if (WeakActorPtr->IsValid())
+			{
+				const AActor* ChildActor = Cast<AActor>(WeakActorPtr->Get());
+				if (ChildActor)
+				{
+					ChildActor->GrabDebugSnapshot(this);
 				}
 			}
 		}
@@ -374,12 +395,24 @@ void FVisLogEntry::AddDataBlock(const FString& TagName, const TArray<uint8>& Blo
 //----------------------------------------------------------------------//
 // FActorsVisLog
 //----------------------------------------------------------------------//
-FActorsVisLog::FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<UObject> >* Children)
-	: Name(Actor->GetFName())
-	, FullName(Actor->GetFullName())
+FActorsVisLog::FActorsVisLog(const class UObject* Object, TArray<TWeakObjectPtr<UObject> >* Children)
+	: Name(Object->GetFName())
+	, FullName(Object->GetFullName())
 {
+	const class AActor* AsActor = FVisualLog::Get().GetVisualLogRedirection(Object);
+
 	Entries.Reserve(VisLogInitialSize);
-	Entries.Add(MakeShareable(new FVisLogEntry(Actor, Children)));
+	if (!AsActor)
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		check(World);
+
+		Entries.Add(MakeShareable(new FVisLogEntry(World->GetTimeSeconds(), FVector(), Object, Children)));
+	}
+	else
+	{
+		Entries.Add(MakeShareable(new FVisLogEntry(AsActor, Children)));
+	}
 }
 
 FActorsVisLog::FActorsVisLog(TSharedPtr<FJsonValue> FromJson)
@@ -553,24 +586,29 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 	}
 }
 
-FVisLogEntry*  FVisualLog::GetEntryToWrite(const class AActor* Actor)
+FVisLogEntry*  FVisualLog::GetEntryToWrite(const class UObject* Object)
 {
-	const class AActor* RedirectionActor = GetVisualLogRedirection(Actor);
-	const class AActor* LogOwner = RedirectionActor ? RedirectionActor : Actor;
-	ensure(Actor && Actor->GetWorld() && LogOwner);
-	if (!LogOwner)
-	{
-		return NULL;
-	}
-	const float TimeStamp = Actor->GetWorld()->TimeSeconds;
-	TSharedPtr<FActorsVisLog> Log = GetLog(LogOwner);
+	const class AActor* RedirectionActor = GetVisualLogRedirection(Object);
+
+	UWorld* World = RedirectionActor ? RedirectionActor->GetWorld() : GEngine->GetWorldFromContextObject(Object);
+	ensure(World);
+
+	const float TimeStamp = World->TimeSeconds;
+	TSharedPtr<FActorsVisLog> Log = GetLog(RedirectionActor ? RedirectionActor : Object);
 	const int32 LastIndex = Log->Entries.Num() - 1;
 	FVisLogEntry* Entry = Log->Entries.Num() > 0 ? Log->Entries[LastIndex].Get() : NULL;
 
 	if (Entry == NULL || Entry->TimeStamp < TimeStamp)
 	{
 		// create new entry
-		Entry = Log->Entries[Log->Entries.Add( MakeShareable(new FVisLogEntry(LogOwner, RedirectsMap.Find(LogOwner))) )].Get();
+		if (RedirectionActor)
+		{
+			Entry = Log->Entries[Log->Entries.Add(MakeShareable(new FVisLogEntry(RedirectionActor, RedirectsMap.Find(RedirectionActor))))].Get();
+		}
+		else
+		{
+			Entry = Log->Entries[Log->Entries.Add(MakeShareable(new FVisLogEntry(TimeStamp, FVector(), Object, RedirectsMap.Find(RedirectionActor))))].Get();
+		}
 	}
 
 	check(Entry);
@@ -611,7 +649,7 @@ const class AActor* FVisualLog::GetVisualLogRedirection(const class UObject* Sou
 
 void FVisualLog::RedirectToVisualLog(const class UObject* Src, const class AActor* Dest)
 {
-	Redirect( const_cast<class UObject*>(Src), Dest);
+	Redirect(const_cast<class UObject*>(Src), Dest);
 }
 
 void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
@@ -641,8 +679,6 @@ void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 		return;
 	}
 
-	UE_VLOG(Source, LogVisual, Display, TEXT("Binding %s to log %s"), *Source->GetName(), *NewRedirection->GetName());
-
 	TArray<TWeakObjectPtr<UObject> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
 
 	NewTargetChildren.AddUnique(Source);
@@ -670,14 +706,14 @@ void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 	UE_CVLOG(NewRedirection != NULL, NewRedirection, LogVisual, Display, TEXT("Binding %s to log %s"), *Source->GetName(), *NewRedirection->GetName());
 }
 
-void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData, FName TagName)
+void FVisualLog::LogLine(const UObject* Object, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData, FName TagName)
 {
-	if (IsRecording() == false || Actor == NULL || Actor->IsPendingKill() || (IsAllBlocked() && !InWhitelist(CategoryName)))
+	if (IsRecording() == false || Object == NULL || Object->IsPendingKill() || (IsAllBlocked() && !InWhitelist(CategoryName)))
 	{
 		return;
 	}
 	
-	FVisLogEntry* Entry = GetEntryToWrite(Actor);
+	FVisLogEntry* Entry = GetEntryToWrite(Object);
 
 	if (Entry != NULL)
 	{
