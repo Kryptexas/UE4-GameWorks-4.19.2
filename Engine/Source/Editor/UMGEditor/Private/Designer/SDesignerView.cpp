@@ -950,6 +950,7 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 		Ext->Paint(Selected, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 
+	static const FName SelectionOutlineName("UMGEditor.SelectionOutline");
 	// Don't draw the hovered effect if it's also the selected widget
 	if ( HoveredSlateWidget.IsValid() && HoveredSlateWidget != SelectedSlateWidget )
 	{
@@ -962,16 +963,13 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 		// Azure = 0x007FFF
 		const FLinearColor HoveredTint(0, 0.5, 1, FMath::Clamp(HoverTime / HoveredAnimationTime, 0.0f, 1.0f));
 
-		FPaintGeometry HoveredGeometry(
-			ArrangedWidget.Geometry.AbsolutePosition,
-			ArrangedWidget.Geometry.Size * ArrangedWidget.Geometry.Scale,
-			ArrangedWidget.Geometry.Scale);
+		FPaintGeometry HoveredGeometry = ArrangedWidget.Geometry.ToPaintGeometry();
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId,
 			HoveredGeometry,
-			FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
+			FEditorStyle::Get().GetBrush(SelectionOutlineName),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			HoveredTint
@@ -995,7 +993,7 @@ int32 SDesignerView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 			OutDrawElements,
 			LayerId,
 			SelectionGeometry,
-			FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
+			FEditorStyle::Get().GetBrush(SelectionOutlineName),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint
