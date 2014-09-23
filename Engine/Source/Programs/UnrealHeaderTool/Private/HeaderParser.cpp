@@ -3638,6 +3638,11 @@ UProperty* FHeaderParser::GetVarNameAndDim
 				if ( DoesAnythingInHierarchyHaveDefaultToInstanced( VarProperty.PropertyClass ) )
 				{
 					VarProperty.PropertyFlags |= CPF_InstancedReference;
+
+					if (0 != (VarProperty.PropertyFlags & CPF_Edit))
+					{
+						VarProperty.PropertyFlags |= CPF_EditInline;
+					}
 				}
 				NewProperty = new(NewScope,PropertyName,ObjectFlags)UObjectProperty(FPostConstructInitializeProperties());
 			}
