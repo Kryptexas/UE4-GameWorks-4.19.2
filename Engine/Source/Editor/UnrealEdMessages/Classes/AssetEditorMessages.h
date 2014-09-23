@@ -42,15 +42,3 @@ struct TStructOpsTypeTraits<FAssetEditorRequestOpenAsset> : public TStructOpsTyp
 		WithMessageHandling = true
 	};
 };
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class UAssetEditorMessages
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
-};

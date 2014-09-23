@@ -564,16 +564,3 @@ struct TStructOpsTypeTraits<FProfilerServiceRequest> : public TStructOpsTypeTrai
 		WithMessageHandling = true
 	};
 };
-
-
-/* Dummy class
- *****************************************************************************/
-
-UCLASS()
-class UProfilerServiceMessages
-	: public UObject
-{
-public:
-
-	GENERATED_UCLASS_BODY()
-};

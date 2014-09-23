@@ -22,9 +22,5 @@ public:
 	}
 };
 
-// Dummy class initialization
-USessionServiceMessages::USessionServiceMessages( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
-{ }
 
 IMPLEMENT_MODULE(FSessionMessagesModule, SessionMessages);
