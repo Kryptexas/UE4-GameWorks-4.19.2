@@ -82,6 +82,14 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetZOrder(int32 InZOrder);
 
+	/** Sets the anchors on the slot */
+	UFUNCTION()
+	void SetMinimum(FVector2D InMinimumAnchors);
+
+	/** Sets the anchors on the slot */
+	UFUNCTION()
+	void SetMaximum(FVector2D InMaximumAnchors);
+
 	// UPanelSlot interface
 	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
