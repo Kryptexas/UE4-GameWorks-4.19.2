@@ -271,6 +271,14 @@ namespace BlueprintActionDatabaseImpl
 	static void AddComponentClassActions(TSubclassOf<UActorComponent> const ComponentClass, FActionList& ActionListOut);
 
 	/**
+	 * Adds custom actions to operate on the provided skeleton. Used primarily
+	 * to find AnimNotify event vocabulary
+	 *
+	 * @Param Skeleton	The skeleton that may have anim notifies defined on it.
+	 */
+	static void AddSkeletonActions( const USkeleton& Skeleton, FActionList& ActionListOut);
+
+	/**
 	 * If the associated class is a blueprint generated class, then this will
 	 * loop over the blueprint's graphs and create any node-spawners associated
 	 * with those graphs (like UK2Node_MacroInstance spawners for macro graphs).
@@ -525,6 +533,19 @@ static void BlueprintActionDatabaseImpl::AddComponentClassActions(TSubclassOf<UA
 }
 
 //------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::AddSkeletonActions(const USkeleton& Skeleton, FActionList& ActionListOut)
+{
+	for (int32 I = 0; I < Skeleton.AnimationNotifies.Num(); ++I)
+	{
+		FName NotifyName = Skeleton.AnimationNotifies[I];
+		FString Label = NotifyName.ToString();
+
+		FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
+		ActionListOut.Add(UBlueprintEventNodeSpawner::Create(UK2Node_Event::StaticClass(), FName(*SignatureName)));
+	}
+}
+
+//------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint const* const Blueprint, FActionList& ActionListOut)
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeMacroNodeSpawner()
@@ -552,7 +573,7 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint con
 				ActionListOut.Add(SetVarSpawner);
 			}
 		}
-	}	
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -796,6 +817,12 @@ void FBlueprintActionDatabase::RefreshAll()
 		UClass* const Class = (*ClassIt);
 		RefreshClassActions(Class);
 	}
+	// this handles creating entries for skeletons that were loaded before the database was alive:
+	for( TObjectIterator<USkeleton> SkeletonIt; SkeletonIt; ++SkeletonIt )
+	{
+		FActionList& ClassActionList = ActionRegistry.FindOrAdd(*SkeletonIt);
+		BlueprintActionDatabaseImpl::AddSkeletonActions(**SkeletonIt, ClassActionList);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -905,6 +932,11 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	bool const bHadExistingEntry = ActionRegistry.Contains(AssetObject);
 	FActionList& AssetActionList = ActionRegistry.FindOrAdd(AssetObject);
 	AssetActionList.Empty();
+
+	if(const USkeleton* Skeleton = Cast<USkeleton>(AssetObject))
+	{
+		AddSkeletonActions(*Skeleton, AssetActionList);
+	}
 
 	UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject);
 	if (BlueprintAsset != nullptr)

@@ -288,6 +288,15 @@ namespace BlueprintActionFilterImpl
 	 */
 	static bool IsNodeTemplateSelfFiltered(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
+	/**
+	 * Rejection test that checks if the skeleton associated with the current blueprint
+	 * will raise any of the available anim notification events
+	 * 
+	 * @param  Filter			Holds the graph context for this test.
+	 * @param  BlueprintAction	The action you wish to query.
+	 * @return true if the action is an animnotification that is incompatible with the current skeleton
+	 */
+	static bool IsIncompatibleAnimNotification( FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction); 
 };
 
 //------------------------------------------------------------------------------
@@ -1134,6 +1143,41 @@ static bool BlueprintActionFilterImpl::IsNodeTemplateSelfFiltered(FBlueprintActi
 	return bIsFilteredOut;
 }
 
+static bool BlueprintActionFilterImpl::IsIncompatibleAnimNotification(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+
+	if ( BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_Event>() )
+	{
+		if( const USkeleton* SkeletonOwningEvent = Cast<USkeleton>(BlueprintAction.GetActionOwner()) )
+		{
+			// The event is owned by a skeleton. Only show if it the current anim blueprint is targetting
+			// that skeleton:
+			FBlueprintActionContext const& FilterContext = Filter.Context;
+			bool bFoundInAllBlueprints = true;
+
+			for (const UBlueprint* Blueprint : FilterContext.Blueprints)
+			{
+				bool bFoundInCurrentBlueprint = false;
+				if (const UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+				{
+					if( AnimBlueprint->TargetSkeleton == SkeletonOwningEvent )
+					{
+						bFoundInCurrentBlueprint = true;
+						break;
+					}
+				}
+				bFoundInAllBlueprints &= bFoundInCurrentBlueprint;
+			}
+			// If all of the blueprints selected aren't animblueprints targetting this skeleton then we need to 
+			// filter it out:
+			bIsFilteredOut = !bFoundInAllBlueprints; 
+		}
+	}
+
+	return bIsFilteredOut;
+}
+
 /*******************************************************************************
  * FBlueprintActionInfo
  ******************************************************************************/
@@ -1287,6 +1331,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	//
 	// this test in-particular spawns a template-node and then calls 
 	// AllocateDefaultPins() which is costly, so it should be very last!
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleAnimNotification));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNodeTemplateSelfFiltered));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsMissingMatchingPinParam));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsMissmatchedPropertyType));
