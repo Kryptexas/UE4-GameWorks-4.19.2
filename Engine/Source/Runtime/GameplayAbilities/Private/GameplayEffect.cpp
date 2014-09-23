@@ -819,6 +819,8 @@ void FAggregator::RegisterLevelDependancies()
 
 const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 {
+	SCOPE_CYCLE_COUNTER(STAT_AggregatorEvaluate);
+
 	ABILITY_LOG_SCOPE(TEXT("Aggregator Evaluate %s"), *ToSimpleString());
 
 	if (!CachedData.IsValid)

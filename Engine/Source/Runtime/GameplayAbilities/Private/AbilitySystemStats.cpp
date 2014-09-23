@@ -16,5 +16,6 @@ DEFINE_STAT(STAT_GetOutgoingSpec);
 DEFINE_STAT(STAT_InitAttributeSetDefaults);
 DEFINE_STAT(STAT_TickAbilityTasks);
 DEFINE_STAT(STAT_FindAbilitySpecFromHandle);
+DEFINE_STAT(STAT_AggregatorEvaluate);
 
 
