@@ -4602,7 +4602,7 @@ bool UEditorEngine::SplitActorLabel( FString& InOutLabel, int32& OutIdx ) const
 	return false;
 }
 
-void UEditorEngine::SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel ) const
+void UEditorEngine::SetActorLabelUnique(AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels) const
 {
 	check( Actor );
 
@@ -4610,38 +4610,33 @@ void UEditorEngine::SetActorLabelUnique( AActor* Actor, const FString& NewActorL
 	FString ModifiedActorLabel = NewActorLabel;
 	int32   LabelIdx           = 0;
 
-	for (;;)
+	FCachedActorLabels ActorLabels;
+	if (!InExistingActorLabels)
 	{
-		// Check for a duplicate actor name
-		bool Duplicate = false;
-		for (FActorIterator It(Actor->GetWorld()); It; ++It)
+		InExistingActorLabels = &ActorLabels;
+
+		TSet<AActor*> IgnoreActors;
+		IgnoreActors.Add(Actor);
+		ActorLabels.Populate(Actor->GetWorld(), IgnoreActors);
+	}
+
+
+	if (InExistingActorLabels->Contains(ModifiedActorLabel))
+	{
+		// See if the current label ends in a number, and try to create a new label based on that
+		if (!SplitActorLabel( Prefix, LabelIdx ))
 		{
-			if (Actor != *It && It->GetActorLabel() == ModifiedActorLabel)
-			{
-				Duplicate = true;
-				break;
-			}
+			// If there wasn't a number on there, append an underscore and start the numbering from 2 (1 before incrementing below)
+			Prefix += TEXT('_');
+			LabelIdx = 1;
 		}
 
-		// If there wasn't one, we can stop looping
-		if (!Duplicate)
+		// Update the actor label until we find one that doesn't already exist
+		while (InExistingActorLabels->Contains(ModifiedActorLabel))
 		{
-			break;
+			++LabelIdx;
+			ModifiedActorLabel = FString::Printf(TEXT("%s%d"), *Prefix, LabelIdx);
 		}
-
-		if (LabelIdx == 0)
-		{
-			// See if the current label ends in a number, and try to create a new label based on that
-			if (!SplitActorLabel( Prefix, LabelIdx ))
-			{
-				// If there wasn't a number on there, append an underscore and start the numbering from 2 (1 before incrementing below)
-				Prefix += TEXT('_');
-				LabelIdx = 1;
-			}
-		}
-
-		++LabelIdx;
-		ModifiedActorLabel = FString::Printf(TEXT("%s%d"), *Prefix, LabelIdx);
 	}
 
 	Actor->SetActorLabel( ModifiedActorLabel );
@@ -7369,4 +7364,28 @@ UWorld::InitializationValues UEditorEngine::GetEditorWorldInitializationValues()
 	return UWorld::InitializationValues()
 		.ShouldSimulatePhysics(false)
 		.EnableTraceCollision(true);
+}
+
+FCachedActorLabels::FCachedActorLabels()
+{
+	
+}
+
+FCachedActorLabels::FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors)
+{
+	Populate(World, IgnoredActors);
+}
+
+void FCachedActorLabels::Populate(UWorld* World, const TSet<AActor*>& IgnoredActors)
+{
+	ActorLabels.Empty();
+
+	for (FActorIterator It(World); It; ++It)
+	{
+		if (!IgnoredActors.Contains(*It))
+		{
+			ActorLabels.Add(It->GetActorLabel());
+		}
+	}
+	ActorLabels.Shrink();
 }

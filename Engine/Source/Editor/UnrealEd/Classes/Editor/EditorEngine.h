@@ -170,6 +170,33 @@ struct FCopySelectedInfo
 	}
 };
 
+/** A cache of actor labels */
+struct FCachedActorLabels
+{
+	/** Default constructor - does not populate the array */
+	FCachedActorLabels();
+
+	/** Constructor that populates the set of actor names */
+	explicit FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
+
+	/** Populate the set of actor names */
+	void Populate(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
+
+	/** Add a new label to this set */
+	FORCEINLINE void Add(const FString& InLabel)
+	{
+		ActorLabels.Add(InLabel);
+	}
+
+	/** Check if the specified label exists */
+	FORCEINLINE bool Contains(const FString& InLabel) const
+	{
+		return ActorLabels.Contains(InLabel);
+	}
+
+private:
+	TSet<FString> ActorLabels;
+};
 
 UCLASS(config=Engine, transient)
 class UNREALED_API UEditorEngine : public UEngine
@@ -2195,11 +2222,11 @@ public:
 	/**
 	 * Assigns a new label to an actor. If the name exists it will be appended with a number to make it unique. Actor labels are only available in development builds.
 	 *
-	 * @param	Actor			The actor to change the label of
-	 * @param	NewActorLabel	The new label string to assign to the actor.  If empty, the actor will have a default label.
+	 * @param	Actor					The actor to change the label of
+	 * @param	NewActorLabel			The new label string to assign to the actor.  If empty, the actor will have a default label.
+	 * @param	InExistingActorLabels	(optional) Pointer to a set of actor labels that are currently in use
 	 */
-	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel ) const;
-
+	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr ) const;
 
 	/**
 	 * Gets the user-friendly, localized (if exists) name of a property

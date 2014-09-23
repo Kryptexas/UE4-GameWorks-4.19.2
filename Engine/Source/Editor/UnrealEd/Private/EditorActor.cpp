@@ -234,6 +234,8 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 	// Create a location offset.
 	const FVector LocationOffset = CreateLocationOffset( bDuplicate, bOffsetLocations );
 
+	FCachedActorLabels ActorLabels(InWorld);
+
 	// Transact the current selection set.
 	USelection* SelectedActors = GetSelectedActors();
 	SelectedActors->Modify();
@@ -273,8 +275,9 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 		Actor->TeleportTo(Actor->GetActorLocation() + ActorLocationOffset, Actor->GetActorRotation(), false, true);
 
 		// Re-label duplicated actors so that labels become unique
-		GEditor->SetActorLabelUnique(Actor, Actor->GetActorLabel());
-		
+		GEditor->SetActorLabelUnique(Actor, Actor->GetActorLabel(), &ActorLabels);
+		ActorLabels.Add(Actor->GetActorLabel());
+
 		GEditor->Layers->InitializeNewActorLayers( Actor );
 
 			// Ensure any layers this actor belongs to are visible
