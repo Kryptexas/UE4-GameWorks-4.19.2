@@ -42,6 +42,9 @@ private:
 	/** Callback for changing the selected item in the categories list. */
 	void HandleCategoriesListSelectionChanged( IMessageLogListingPtr Selection, ESelectInfo::Type SelectInfo );
 
+	/** Handles the broadcast message sent the current log listing is changed */
+	void HandleSelectionUpdated();
+
 private:	
 
 	/** Holds the log categories list view widget. */

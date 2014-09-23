@@ -16,7 +16,7 @@
 
 SMessageLog::~SMessageLog()
 {
-	//ViewModel->OnSelectionChanged().RemoveAll(this);
+	ViewModel->OnSelectionChanged().RemoveAll(this);
 }
 
 
@@ -90,10 +90,19 @@ void SMessageLog::Construct( const FArguments& InArgs, const TSharedRef<FMessage
 		CategoriesListView->SetSelection(DefaultViewModel, ESelectInfo::Direct);
 	}
 
-//	ViewModel->OnSelectionChanged().AddSP(this, &SMessageLog::OnSelectionUpdated);
+	ViewModel->OnSelectionChanged().AddSP(this, &SMessageLog::HandleSelectionUpdated);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+void SMessageLog::HandleSelectionUpdated()
+{
+	TSharedPtr<FMessageLogListingViewModel> LogListingViewModel = ViewModel->GetCurrentListingViewModel();
+
+	if ( LogListingViewModel.IsValid() )
+	{
+		CategoriesListView->SetSelection(LogListingViewModel, ESelectInfo::Direct);
+	}
+}
 
 /* SWidget overrides
  *****************************************************************************/
