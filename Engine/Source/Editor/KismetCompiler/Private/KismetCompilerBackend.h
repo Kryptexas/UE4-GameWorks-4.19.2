@@ -62,7 +62,7 @@ public:
 	FStringOutputDevice Header;
 	FStringOutputDevice Body;
 protected:
-	FString TermToText(FBPTerminal* Term, UProperty* SourceProperty = NULL);
+	FString TermToText(const FBPTerminal* Term, const UProperty* SourceProperty = NULL);
 	FString LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel);
 
 	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
