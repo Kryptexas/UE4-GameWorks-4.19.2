@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #define check(x)	assert(x)
+//#define check(x) do{if (!(x)) __debugbreak();}while(0)
 
 // We can't use static_assert in .c files as this is a C++(11) feature
 #if __cplusplus && !__clang__

@@ -95,3 +95,14 @@ struct FBuffers
 };
 
 const glsl_type* PromoteHalfToFloatType(_mesa_glsl_parse_state* state, const glsl_type* type);
+
+namespace MetalUtils
+{
+	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState, const char* InputSemantic,
+		const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions);
+
+	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState, const char* OutputSemantic,
+		const glsl_type* OutputType, exec_list* DeclInstructions, exec_list* PreCallInstructions, exec_list* PostCallInstructions);
+}
+
+const int MAX_SIMULTANEOUS_RENDER_TARGETS = 8;

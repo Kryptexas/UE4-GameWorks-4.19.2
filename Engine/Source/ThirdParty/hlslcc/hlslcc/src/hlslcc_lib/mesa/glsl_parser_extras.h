@@ -509,5 +509,6 @@ extern void _mesa_destroy_shader_compiler(void);
 extern void _mesa_destroy_shader_compiler_caches(void);
 
 #define FRAMEBUFFER_FETCH_ES2	"FramebufferFetchES2"
+#define FRAMEBUFFER_FETCH_MRT	"FramebufferFetchMRT"
 
 #endif /* GLSL_PARSER_EXTRAS_H */

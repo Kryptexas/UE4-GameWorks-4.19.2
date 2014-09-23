@@ -3229,7 +3229,7 @@ static FSystemValue ComputeSystemValueTable[] =
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false, false }
 };
 
-FSystemValue* SystemValueTable[] =
+FSystemValue* SystemValueTable[HSF_FrequencyCount] =
 {
 	VertexSystemValueTable,
 	PixelSystemValueTable,
@@ -4405,7 +4405,7 @@ static void GenerateAppendFunctionBody(
 	sig->body.push_tail(new(ParseState)ir_call(emitVertexSig, NULL, &actual_parameter));
 }
 
-void FGlslCodeBackend::GenerateMain(
+bool FGlslCodeBackend::GenerateMain(
 	EHlslShaderFrequency Frequency,
 	const char* EntryPoint,
 	exec_list* Instructions,
@@ -4424,7 +4424,7 @@ void FGlslCodeBackend::GenerateMain(
 		}
 	}
 
-	ir_function_signature* EntryPointSig = FindAndMarkEntryPointFunction(Instructions, ParseState, EntryPoint);
+	ir_function_signature* EntryPointSig = FindEntryPointFunction(Instructions, ParseState, EntryPoint);
 	if (EntryPointSig)
 	{
 		void* TempMemContext = ralloc_context(NULL);
@@ -4744,6 +4744,8 @@ void FGlslCodeBackend::GenerateMain(
 		_mesa_glsl_error(ParseState, "shader entry point '%s' not "
 			"found", EntryPoint);
 	}
+
+	return true;
 }
 ir_function_signature*  FGlslCodeBackend::FindPatchConstantFunction(exec_list* Instructions, _mesa_glsl_parse_state* ParseState)
 {

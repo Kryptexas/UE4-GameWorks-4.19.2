@@ -270,8 +270,12 @@ int HlslCrossCompile(
 		ParseState->language_version = 100;
 	}
 
-	InShaderBackEnd->GenerateMain(InShaderFrequency, InEntryPoint, ir, ParseState);
+	if (!InShaderBackEnd->GenerateMain(InShaderFrequency, InEntryPoint, ir, ParseState))
+	{
+		goto done;
+	}
 	TIMER(gen_main);
+
 	if (!InShaderBackEnd->OptimizeAndValidate(ir, ParseState))
 	{
 		goto done;
@@ -549,7 +553,7 @@ bool FCodeBackend::Validate(exec_list* Instructions, _mesa_glsl_parse_state* Par
 	return true;
 }
 
-ir_function_signature* FCodeBackend::FindAndMarkEntryPointFunction(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, const char* EntryPoint)
+ir_function_signature* FCodeBackend::FindEntryPointFunction(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, const char* EntryPoint)
 {
 	ir_function_signature* EntryPointSig = nullptr;
 	foreach_iter(exec_list_iterator, Iter, *Instructions)

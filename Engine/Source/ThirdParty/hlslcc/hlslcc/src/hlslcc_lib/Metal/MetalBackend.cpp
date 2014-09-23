@@ -513,13 +513,6 @@ protected:
 			{
 				ralloc_asprintf_append(buffer, "packed_%s", t->HlslName);
 			}
-/*
-			else if (bIsFunctionSig)
-			{
-				std::string Name = AdjustHlslTypeUsingPrecision(t->HlslName);
-				ralloc_asprintf_append(buffer, "%s", Name.c_str());
-			}
-*/
 			else
 			{
 				ralloc_asprintf_append(buffer, "%s", t->HlslName);
@@ -594,17 +587,6 @@ protected:
 
 	virtual void visit(ir_variable *var) override
 	{
-/*
-		const char * const centroid_str[] = { "", "centroid " };
-		const char * const invariant_str[] = { "", "invariant " };
-		const char * const patch_constant_str[] = { "", "patch " };
-		const char * const ESVSmode_str[] = { "", "uniform ", "attribute ", "varying ", "inout ", "in ", "", "shared " };
-		const char * const ESFSmode_str[] = { "", "uniform ", "varying ", "attribute ", "", "in ", "", "shared " };
-		const char * const interp_str[] = { "", "smooth ", "flat ", "noperspective " };
-		const char * const layout_str[] = { "", "layout(origin_upper_left) ", "layout(pixel_center_integer) ", "layout(origin_upper_left,pixel_center_integer) " };
-		const char * const * mode_str = (bIsVS ? ESVSmode_str : ESFSmode_str);
-*/
-
 		// Check for an initialized const variable
 		// If var is read-only and initialized, set it up as an initialized const
 		bool constInit = false;
@@ -617,56 +599,11 @@ protected:
 		if (scope_depth == 0)
 		{
 			check(0);
-			/*
-			glsl_base_type base_type = var->type->base_type;
-			if (base_type == GLSL_TYPE_ARRAY)
-			{
-				base_type = var->type->fields.array->base_type;
-			}
-
-			if (var->mode == ir_var_in)
-			{
-				input_variables.push_tail(new(mem_ctx) extern_var(var));
-			}
-			else if (var->mode == ir_var_out)
-			{
-				output_variables.push_tail(new(mem_ctx) extern_var(var));
-			}
-			else if (var->mode == ir_var_uniform && var->type->is_sampler())
-			{
-				sampler_variables.push_tail(new(mem_ctx) extern_var(var));
-			}
-			else if (var->mode == ir_var_uniform && var->type->is_image())
-			{
-				image_variables.push_tail(new(mem_ctx) extern_var(var));
-			}
-			else if (var->mode == ir_var_uniform && base_type == GLSL_TYPE_SAMPLER_STATE)
-			{
-				// ignore sampler state uniforms
-			}
-			else if (var->mode == ir_var_uniform && var->semantic == NULL)
-			{
-				uniform_variables.push_tail(new(mem_ctx) extern_var(var));
-			}
-*/
 		}
 
-		/*if (var->name && strncmp(var->name, "gl_", 3) == 0 &&
-			var->centroid == 0 && var->interpolation == 0 &&
-			var->invariant == 0 && var->origin_upper_left == 0 &&
-			var->pixel_center_integer == 0)
-		{
-			// Don't emit builtin GL variable declarations.
-//			needs_semicolon = false;
-			check(!strcmp(var->name, "gl_FragColor"));
-		}
-		else*/ if (scope_depth == 0 && var->mode == ir_var_temporary)
+		if (scope_depth == 0 && var->mode == ir_var_temporary)
 		{
 			check(0);
-			/*
-			global_instructions.push_tail(new(mem_ctx) global_ir(var));
-			needs_semicolon = false;
-			*/
 		}
 		else
 		{
@@ -679,72 +616,10 @@ protected:
 			   var->is_interface_block)
 			{
 				check(0);
-				/*
-				// Hack to display our fake structs as what they are supposed to be - interface blocks
-
-				// 'in' or 'out' variable qualifier becomes interface block declaration start,
-				// structure name becomes block name,
-				// we add information about block contents, taking type from sole struct member type, and
-				// struct variable name becomes block instance name.
-
-				ralloc_asprintf_append(
-					buffer,
-					"%s%s%s%s%s",
-					layout_str[layout_bits],
-					centroid_str[var->centroid],
-					invariant_str[var->invariant],
-					patch_constant_str[var->is_patch_constant],
-					mode_str[var->mode]
-					);
-				print_type_pre(var->type);
-
-				const glsl_type* inner_type = var->type;
-				if (inner_type->is_array())
-				{
-					inner_type = inner_type->fields.array;
-				}
-				check(inner_type->is_record());
-				check(inner_type->length==1);
-				const glsl_struct_field* field = &inner_type->fields.structure[0];
-				check(strcmp(field->name,"Data")==0);
-				ralloc_asprintf_append(buffer, " { %s", interp_str[var->interpolation]);
-				print_type_pre(field->type);
-				ralloc_asprintf_append(buffer, " Data");
-				print_type_post(field->type);
-				ralloc_asprintf_append(buffer, "; }");
-				*/
 			}
 			else if (var->type->is_image())
 			{
 				check(0);
-				/*
-				const char * const coherent_str[] = { "", "coherent " };
-				const char * const writeonly_str[] = { "", "writeonly " };
-				const char * const type_str[] ={ "ui", "i", "f"};
-				const int writeonly = var->image_write && !(var->image_read);
-
-				check( var->type->inner_type->base_type >= GLSL_TYPE_UINT &&
-						var->type->inner_type->base_type <= GLSL_TYPE_FLOAT );
-
-				ralloc_asprintf_append(
-					buffer,
-					"%s%s%s%s",
-					invariant_str[var->invariant],
-					mode_str[var->mode],
-					coherent_str[var->coherent],
-					writeonly_str[writeonly]
-					);
-				if ( writeonly == 0 )
-				{
-					//should check here on base type
-					ralloc_asprintf_append(
-						buffer,
-						"layout(r32%s) ",
-						type_str[var->type->inner_type->base_type]
-					);
-				}
-				print_type_pre(var->type);
-				*/
 			}
 			else
 			{
@@ -823,7 +698,7 @@ protected:
 							" [[ front_facing ]]"
 							);
 					}
-					else if (!strcmp(var->name, "gl_LastFragData"))
+					else if (var->semantic && !strncmp(var->semantic, "[[ color(", 9))
 					{
 						check(var->type->is_vector() && var->type->vector_elements == 4);
 						print_type_pre(var->type);
@@ -831,31 +706,20 @@ protected:
 						print_type_post(var->type);
 						ralloc_asprintf_append(
 							buffer,
-							" [[ color(0) ]]"
+							" %s",
+							var->semantic
 							);
 					}
-					else if (!strcmp(var->name, "gl_VertexID"))
+					else if(var->semantic && !strncmp(var->semantic,"[[", 2))
 					{
-						//@todo-rco: FIX ME! Right now it's int, should be uint!
-						check(var->type->is_integer());
-						print_type_pre(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1));
-						ralloc_asprintf_append(buffer, " %s", unique_name(var));
+						check(!var->type->is_record());
+						print_type_pre(var->type);
+						ralloc_asprintf_append(buffer," %s",unique_name(var));
 						print_type_post(var->type);
 						ralloc_asprintf_append(
 							buffer,
-							" [[ vertex_id ]]"
-							);
-					}
-					else if (!strcmp(var->name, "gl_InstanceID"))
-					{
-						//@todo-rco: FIX ME! Right now it's int, should be uint!
-						check(var->type->is_integer());
-						print_type_pre(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1));
-						ralloc_asprintf_append(buffer, " %s", unique_name(var));
-						print_type_post(var->type);
-						ralloc_asprintf_append(
-							buffer,
-							" [[ instance_id ]]"
+							" %s",
+							var->semantic
 							);
 					}
 					else
@@ -879,27 +743,9 @@ protected:
 					print_type_pre(PtrType);
 					ralloc_asprintf_append(buffer, " %s", unique_name(var));
 					print_type_post(PtrType);
-/*
-//@todo-rco
-					ralloc_asprintf_append(
-						buffer,
-						bIsVS ? "" : " [[ color(0) ]]"
-						);
-*/
 				}
 				else
 				{
-/*
-					ralloc_asprintf_append(
-						buffer,
-						"%s%s%s%s%s%s",
-						layout_str[layout_bits],
-						centroid_str[var->centroid],
-						invariant_str[var->invariant],
-						patch_constant_str[var->is_patch_constant],
-						mode_str[var->mode],
-						interp_str[var->interpolation]
-						);*/
 					print_type_pre(var->type);
 					ralloc_asprintf_append(buffer, " %s", unique_name(var));
 					print_type_post(var->type);
@@ -1985,34 +1831,17 @@ protected:
 //@todo-rco
 					if (s->fields.structure[j].semantic)
 					{
-						if (!strcmp(s->fields.structure[j].semantic, "SV_POSITION") || !strcmp(s->fields.structure[j].semantic, "gl_Position") || !strcmp(s->fields.structure[j].semantic, "gl_FragCoord"))
-						{
-							ralloc_asprintf_append(buffer, " [[ position ]]");
-						}
-/*
-						else if (strcmp(s->fields.structure[j].semantic, "gl_VertexID") == 0)
-						{
-							ralloc_asprintf_append(buffer, " [[ vertex_id ]]");
-						}
-						else if (strcmp(s->fields.structure[j].semantic, "gl_InstanceID") == 0)
-						{
-							ralloc_asprintf_append(buffer, " [[ instance_id ]]");
-						}*/
-						else if (!strncmp(s->fields.structure[j].semantic, "var_", 4))
-						{
-							ralloc_asprintf_append(buffer, " [[ user(%s) ]]", s->fields.structure[j].semantic + 4);
-						}
-						else if (!strncmp(s->fields.structure[j].semantic, "ATTRIBUTE", 9))
+						if (!strncmp(s->fields.structure[j].semantic, "ATTRIBUTE", 9))
 						{
 							ralloc_asprintf_append(buffer, " [[ attribute(%s) ]]", s->fields.structure[j].semantic + 9);
-						}
-						else if (!strncmp(s->fields.structure[j].semantic, "gl_FragColor", 12))
-						{
-							ralloc_asprintf_append(buffer, " [[ color(0) ]]");
 						}
 						else if (!strncmp(s->fields.structure[j].semantic, "gl_FragDepth", 12))
 						{
 							ralloc_asprintf_append(buffer, " [[ depth(any) ]]");
+						}
+						else if (!strncmp(s->fields.structure[j].semantic, "[[", 2))
+						{
+							ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].semantic);
 						}
 						else
 						{
@@ -2100,42 +1929,7 @@ protected:
 
 			bNeedsComma = true;
 		}
-/*
-		for (TStringToSetMap::iterator Iter = state->TextureToSamplerMap.begin(); Iter != state->TextureToSamplerMap.end(); ++Iter)
-		{
-			const std::string& Texture = Iter->first;
-			TStringSet& Samplers = Iter->second;
-			if (!Samplers.empty())
-			{
-				if (bFirstTexture)
-		{
-					bFirstTexture = false;
-				}
-				else
-			{
-					ralloc_asprintf_append(buffer, ",");
-			}
-
-				ralloc_asprintf_append(buffer, "%s(", Texture.c_str());
-				bool bFirstSampler = true;
-				for (TStringSet::iterator IterSamplers = Samplers.begin(); IterSamplers != Samplers.end(); ++IterSamplers)
-			{
-					if (bFirstSampler)
-				{
-						bFirstSampler = false;
-				}
-					else
-			{
-						ralloc_asprintf_append(buffer, ",");
-			}
-
-					ralloc_asprintf_append(buffer, "%s", IterSamplers->c_str());
-			}
-				ralloc_asprintf_append(buffer, ")");
-		}
 	}
-	 */
-		}
 
 	bool PrintPackedUniforms(bool bPrintArrayType, char ArrayType, _mesa_glsl_parse_state::TUniformList& Uniforms, bool bFlattenUniformBuffers, bool NeedsComma)
 		{
@@ -2509,32 +2303,10 @@ protected:
 				wg_size_y, wg_size_z );
 		}
 
-/*
-		if(state->target == tessellation_control_shader)
-		{
-			ralloc_asprintf_append(buffer, "/ * FINISHME tessellation_control_shader * /layout(vertices = %d) out;\n", tessellation.outputcontrolpoints);
-		}
-		if(state->target == tessellation_evaluation_shader)
-		{
-			ralloc_asprintf_append(buffer, "/ * FINISHME tessellation_evaluation_shader * /layout( %s) in;\n",
-				DomainStrings[tessellation.domain]
-			);
-		}*/
-
 		if(state->target == tessellation_evaluation_shader || state->target == tessellation_control_shader)
 		{
 			check(0);
-/*			ralloc_asprintf_append(buffer, "/ * DEBUG DUMP\n");
-
-			ralloc_asprintf_append(buffer, "tessellation.domain =  %s \n",  DomainStrings[tessellation.domain] );
-			ralloc_asprintf_append(buffer, "tessellation.outputtopology =  %s \n", OutputTopologyStrings[tessellation.outputtopology] );
-			ralloc_asprintf_append(buffer, "tessellation.partitioning =  %s \n", PartitioningStrings[tessellation.partitioning]);
-			ralloc_asprintf_append(buffer, "tessellation.maxtessfactor =  %f \n", tessellation.maxtessfactor );
-			ralloc_asprintf_append(buffer, "tessellation.outputcontrolpoints =  %d \n", tessellation.outputcontrolpoints );
-			ralloc_asprintf_append(buffer, "tessellation.patchconstantfunc =  %s \n", tessellation.patchconstantfunc);
-			ralloc_asprintf_append(buffer, " * /\n");*/
 		}
-		
 	}
 
 public:
@@ -2603,8 +2375,7 @@ public:
 		buffer = 0;
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC %d.%d\n%s\n#include <metal_stdlib>\n\nusing namespace metal;\n\n%s%s%s",
-			HLSLCC_VersionMajor, HLSLCC_VersionMinor,
+			"// Compiled by HLSLCC\n%s\n#include <metal_stdlib>\nusing namespace metal;\n\n%s%s%s",
 			signature,
 			layout,
 			decl_buffer,
@@ -2778,44 +2549,99 @@ bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructio
 	return true;
 }
 
-
-void FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState)
+bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState)
 {
-	FGlslCodeBackend GlslGen(0);
-	GlslGen.GenerateMain(Frequency, EntryPoint, Instructions, ParseState);
+	auto* EntryPointSig = FindEntryPointFunction(Instructions, ParseState, EntryPoint);
+	if (!EntryPointSig)
+	{
+		_mesa_glsl_error(ParseState, "shader entry point '%s' not found", EntryPoint);
+		return false;
+	}
+
+	exec_list DeclInstructions;
+	exec_list PreCallInstructions;
+	exec_list ArgInstructions;
+	exec_list PostCallInstructions;
+
+	ParseState->symbols->push_scope();
+
+	// Find all system semantics and generate in/out globals
+	foreach_iter(exec_list_iterator, Iter, EntryPointSig->parameters)
+	{
+		const ir_variable* Variable = (ir_variable*)Iter.get();
+		if (Variable->semantic != NULL || Variable->type->is_record())
+		{
+			ir_dereference_variable* ArgVarDeref = NULL;
+			switch (Variable->mode)
+			{
+			case ir_var_in:
+				ArgVarDeref = MetalUtils::GenerateInput(
+					Frequency,
+					ParseState,
+					Variable->semantic,
+					Variable->type,
+					&DeclInstructions,
+					&PreCallInstructions
+					);
+				break;
+			case ir_var_out:
+				ArgVarDeref = MetalUtils::GenerateOutput(
+					Frequency,
+					ParseState,
+					Variable->semantic,
+					Variable->type,
+					&DeclInstructions,
+					&PreCallInstructions,
+					&PostCallInstructions
+					);
+				break;
+			default:
+			   _mesa_glsl_error(
+				   ParseState,
+				   "entry point parameter '%s' must be an input or output",
+				   Variable->name
+				   );
+			}
+			
+			ArgInstructions.push_tail(ArgVarDeref);
+		}
+	}
+
+
+	// The function's return value should have an output semantic if it's not void.
+	ir_dereference_variable* EntryPointReturn = nullptr;
+	if (!EntryPointSig->return_type->is_void())
+	{
+		EntryPointReturn = MetalUtils::GenerateOutput(Frequency, ParseState, EntryPointSig->return_semantic, EntryPointSig->return_type, &DeclInstructions, &PreCallInstructions, &PostCallInstructions);
+	}
+
+	ParseState->symbols->pop_scope();
+
+	// Generate the Main() function signature
+	ir_function_signature* MainSig = new(ParseState) ir_function_signature(glsl_type::void_type);
+	MainSig->is_defined = true;
+	MainSig->is_main = true;
+	MainSig->body.append_list(&PreCallInstructions);
+	// Call the original EntryPoint
+	MainSig->body.push_tail(new(ParseState) ir_call(EntryPointSig, EntryPointReturn, &ArgInstructions));
+	MainSig->body.append_list(&PostCallInstructions);
+
+	// Generate the Main() function
+	auto* MainFunction = new(ParseState)ir_function("Main");
+	MainFunction->add_signature(MainSig);
+	// Adds uniforms as globals
+	Instructions->append_list(&DeclInstructions);
+	Instructions->push_tail(MainFunction);
+
+	// Now that we have a proper Main(), move global setup to Main().
+	MoveGlobalInstructionsToMain(Instructions);
+//IRDump(Instructions);
+	return true;
 }
 
 FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags) :
 	FCodeBackend(InHlslCompileFlags)
 {
-}
-
-void FMetalCodeBackend::RenameMain(exec_list* Instructions)
-{
-	ir_function_signature* EntryPointSig = nullptr;
-	foreach_iter(exec_list_iterator, Iter, *Instructions)
-	{
-		ir_instruction *ir = (ir_instruction *)Iter.get();
-		ir_function *Function = ir->as_function();
-		if (Function)
-		{
-			int NumSigs = 0;
-			foreach_iter(exec_list_iterator, SigIter, *Function)
-			{
-				if (++NumSigs == 1)
-				{
-					EntryPointSig = (ir_function_signature *)SigIter.get();
-				}
-			}
-			if (NumSigs == 1 && EntryPointSig->is_main)
-			{
-				if (!strcmp(Function->name, "main"))
-				{
-					((char*)Function->name)[0] = 'M';
-				}
-			}
-		}
-	}
 }
 
 void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)
@@ -2824,5 +2650,45 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 	{
 		// Leave original fb ES2 fetch function as that's what the hlsl expects
 		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_HALF, 0, 4, 4);
+
+		// MRTs; first make intrinsics for each MRT, then a non-intrinsic version to use that (helps when converting to Metal)
+		for (int i = 0; i < MAX_SIMULTANEOUS_RENDER_TARGETS; ++i)
+		{
+			char FunctionName[32];
+			sprintf(FunctionName, "%s%d", FRAMEBUFFER_FETCH_MRT, i);
+			make_intrinsic_genType(ir, State, FunctionName, ir_invalid_opcode, IR_INTRINSIC_HALF, 0, 4, 4);
+		}
+
+		const auto* ReturnType = glsl_type::get_instance(GLSL_TYPE_HALF, 4, 1);
+		ir_function* Func = new(State)ir_function(FRAMEBUFFER_FETCH_MRT);
+		ir_function_signature* Sig = new(State) ir_function_signature(ReturnType);
+		//Sig->is_builtin = true;
+		Sig->is_defined = true;
+		ir_variable* MRTIndex = new(State) ir_variable(glsl_type::int_type, "Arg0", ir_var_in);
+		Sig->parameters.push_tail(MRTIndex);
+
+		for (int i = 0; i < MAX_SIMULTANEOUS_RENDER_TARGETS; ++i)
+		{
+			// Inject:
+			//	if (Arg0 == i) FRAMEBUFFER_FETCH_MRT#i();
+			auto* Condition = new(State) ir_expression(ir_binop_equal, new(State) ir_dereference_variable((ir_variable*)Sig->parameters.get_head()), new(State) ir_constant(i));
+			auto* If = new(State) ir_if(Condition);
+			char FunctionName[32];
+			sprintf(FunctionName, "%s%d", FRAMEBUFFER_FETCH_MRT, i);
+			auto* IntrinsicSig = FCodeBackend::FindEntryPointFunction(ir, State, FunctionName);
+			auto* ReturnValue = new(State) ir_variable(ReturnType, nullptr, ir_var_temporary);
+            exec_list Empty;
+			auto* Call = new(State) ir_call(IntrinsicSig, new(State) ir_dereference_variable(ReturnValue), &Empty);
+			Call->use_builtin = true;
+			If->then_instructions.push_tail(ReturnValue);
+			If->then_instructions.push_tail(Call);
+			If->then_instructions.push_tail(new(State) ir_return(new(State) ir_dereference_variable(ReturnValue)));
+			Sig->body.push_tail(If);
+		}
+
+		Func->add_signature(Sig);
+
+		State->symbols->add_global_function(Func);
+		ir->push_tail(Func);
 	}
 }

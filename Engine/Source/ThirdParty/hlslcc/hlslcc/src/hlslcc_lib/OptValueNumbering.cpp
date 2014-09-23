@@ -402,19 +402,16 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_enter(ir_dereference_record *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_return *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_discard *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
@@ -429,19 +426,16 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_enter(ir_atomic *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_loop *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 
 	virtual ir_visitor_status visit_enter(ir_function_signature *) override
 	{
-		check(0);
 		return visit_continue_with_parent;
 	}
 

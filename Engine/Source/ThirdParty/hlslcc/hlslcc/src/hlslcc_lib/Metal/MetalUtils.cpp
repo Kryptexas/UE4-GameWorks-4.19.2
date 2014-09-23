@@ -19,6 +19,11 @@
 #include <algorithm>
 
 
+// Returns 5 for GetStaticStrLen("Hello") at compile time!
+template<typename T, int N>
+char (&GetStaticStrLenHelper(T(&array)[N]))[N];
+#define GetStaticStrLen(array) (sizeof(GetStaticStrLenHelper(array)))
+
 const bool bExpandVSInputsToFloat4 = false;
 const bool bGenerateVSInputDummies = false;
 
@@ -61,7 +66,7 @@ static int GetAttributeIndex(const char* Semantic)
 
 static int GetInAttributeIndex(const char* Semantic)
 {
-	return GetIndexSuffix("in_ATTRIBUTE", 12, Semantic);
+	return GetIndexSuffix("IN_ATTRIBUTE", 12, Semantic);
 }
 
 const glsl_type* PromoteHalfToFloatType(_mesa_glsl_parse_state* state, const glsl_type* type)
@@ -156,7 +161,8 @@ const glsl_type* GetFragColorTypeFromMetalOutputStruct(const glsl_type* OutputTy
 		{
 			if (OutputType->fields.structure[j].semantic)
 			{
-				if (!strncmp(OutputType->fields.structure[j].semantic, "gl_FragColor", 12))
+				//@todo-rco: MRTs?
+				if (!strncmp(OutputType->fields.structure[j].semantic, "[[ color(", 9))
 				{
 					FragColorType = OutputType->fields.structure[j].type;
 					break;
@@ -167,20 +173,430 @@ const glsl_type* GetFragColorTypeFromMetalOutputStruct(const glsl_type* OutputTy
 	return FragColorType;
 }
 
+namespace MetalUtils
+{
+	/** Information on system values. */
+	struct FSystemValue
+	{
+		const char* HlslSemantic;
+		const glsl_type* Type;
+		const char* MetalName;
+		ir_variable_mode Mode;
+		const char* MetalSemantic;
+	};
+
+	/** Vertex shader system values. */
+	static FSystemValue VertexSystemValueTable[] =
+	{
+		{"SV_VertexID", glsl_type::uint_type, "IN_VertexID", ir_var_in, "[[ vertex_id ]]"},
+		{"SV_InstanceID", glsl_type::uint_type, "IN_InstanceID", ir_var_in, "[[ instance_id ]]"},
+		{"SV_Position", glsl_type::vec4_type, "Position", ir_var_out, "[[ position ]]"},
+		{NULL, NULL, NULL, ir_var_auto, nullptr}
+	};
+
+	/** Pixel shader system values. */
+	static FSystemValue PixelSystemValueTable[] =
+	{
+		{"SV_Depth", glsl_type::float_type, "FragDepth", ir_var_out, "[[ depth(any) ]]"},
+		{"SV_Position", glsl_type::vec4_type, "IN_FragCoord", ir_var_in, "[[ position ]]"},
+		{"SV_IsFrontFace", glsl_type::bool_type, "IN_FrontFacing", ir_var_in, "[[ front_facing ]]"},
+		//{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveID", ir_var_in, "[[  ]]"},
+		//{"SV_RenderTargetArrayIndex", glsl_type::int_type, "IN_Layer", ir_var_in, nullptr},
+		{"SV_Target0", glsl_type::half4_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
+		{"SV_Target1", glsl_type::half4_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
+		{"SV_Target2", glsl_type::half4_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
+		{"SV_Target3", glsl_type::half4_type, "FragColor3", ir_var_out, "[[ color(3) ]]"},
+		{"SV_Target4", glsl_type::half4_type, "FragColor4", ir_var_out, "[[ color(4) ]]"},
+		{"SV_Target5", glsl_type::half4_type, "FragColor5", ir_var_out, "[[ color(5) ]]"},
+		{"SV_Target6", glsl_type::half4_type, "FragColor6", ir_var_out, "[[ color(6) ]]"},
+		{"SV_Target7", glsl_type::half4_type, "FragColor7", ir_var_out, "[[ color(7) ]]"},
+		{NULL, NULL, NULL, ir_var_auto, nullptr}
+	};
+
+	/** Geometry shader system values. */
+	static FSystemValue GeometrySystemValueTable[] =
+	{
+/*
+		{"SV_VertexID", glsl_type::int_type, "IN_VertexID", ir_var_in, false, false, false, false},
+		{"SV_InstanceID", glsl_type::int_type, "IN_InstanceID", ir_var_in, false, false, false, false},
+		{"SV_Position", glsl_type::vec4_type, "IN_Position", ir_var_in, false, true, true, false},
+		{"SV_Position", glsl_type::vec4_type, "OUT_Position", ir_var_out, false, false, true, false},
+		{"SV_RenderTargetArrayIndex", glsl_type::int_type, "OUT_Layer", ir_var_out, false, false, false, false},
+		{"SV_PrimitiveID", glsl_type::int_type, "OUT_PrimitiveID", ir_var_out, false, false, false, false},
+		{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveIDIn", ir_var_in, false, false, false, false},
+*/
+		{NULL, NULL, NULL, ir_var_auto, nullptr}
+	};
+
+
+	/** Hull shader system values. */
+	static FSystemValue HullSystemValueTable[] =
+	{
+/*
+		{"SV_OutputControlPointID", glsl_type::int_type, "gl_InvocationID", ir_var_in, false, false, false, false},
+*/
+		{NULL, NULL, NULL, ir_var_auto, nullptr}
+	};
+
+	/** Domain shader system values. */
+	static FSystemValue DomainSystemValueTable[] =
+	{
+/*
+		// TODO : SV_DomainLocation has types float2 or float3 depending on the input topology
+		{"SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_in, false, true, true, false},
+		{"SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_out, false, false, true, false},
+		{"SV_DomainLocation", glsl_type::vec3_type, "gl_TessCoord", ir_var_in, false, false, false, false},
+*/
+		{NULL, NULL, NULL, ir_var_auto, nullptr}
+	};
+
+	/** Compute shader system values. */
+	static FSystemValue ComputeSystemValueTable[] =
+	{
+/*
+		{"SV_DispatchThreadID", glsl_type::uvec3_type, "gl_GlobalInvocationID", ir_var_in, false, false, false, false},
+		{"SV_GroupID", glsl_type::uvec3_type, "gl_WorkGroupID", ir_var_in, false, false, false, false},
+		{"SV_GroupIndex", glsl_type::uint_type, "gl_LocalInvocationIndex", ir_var_in, false, false, false, false},
+		{"SV_GroupThreadID", glsl_type::uvec3_type, "gl_LocalInvocationID", ir_var_in, false, false, false, false},
+*/
+		{NULL, NULL, NULL, ir_var_auto, nullptr}
+	};
+
+	FSystemValue* SystemValueTable[HSF_FrequencyCount] =
+	{
+		VertexSystemValueTable,
+		PixelSystemValueTable,
+		GeometrySystemValueTable,
+		HullSystemValueTable,
+		DomainSystemValueTable,
+		ComputeSystemValueTable
+	};
+
+
+	static ir_rvalue* GenerateInputFromSemantic(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+		const char* Semantic, const glsl_type* Type, exec_list* DeclInstructions)
+	{
+		if (!Semantic)
+		{
+			//todo-rco: More info!
+			_mesa_glsl_error(ParseState, "Missing input semantic!", Semantic);
+			return nullptr;
+		}
+
+		ir_variable* Variable = NULL;
+		if (strnicmp(Semantic, "SV_", 3) == 0)
+		{
+			FSystemValue* SystemValues = SystemValueTable[Frequency];
+			for (int i = 0; SystemValues[i].HlslSemantic != NULL; ++i)
+			{
+				if (SystemValues[i].Mode == ir_var_in && stricmp(SystemValues[i].HlslSemantic, Semantic) == 0)
+				{
+					ir_variable* Variable = new(ParseState)ir_variable(
+						SystemValues[i].Type, SystemValues[i].MetalName, ir_var_in);
+					Variable->semantic = SystemValues[i].MetalSemantic;
+					Variable->read_only = true;
+					Variable->origin_upper_left = false;
+					DeclInstructions->push_tail(Variable);
+					ParseState->symbols->add_variable(Variable);
+					ir_dereference_variable* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
+
+					return VariableDeref;
+				}
+			}
+		}
+
+		// If we're here, no built-in variables matched.
+		if (strnicmp(Semantic, "SV_", 3) == 0)
+		{
+			_mesa_glsl_warning(ParseState, "unrecognized system value input '%s'", Semantic);
+		}
+
+		Variable = new(ParseState)ir_variable(
+			Type,
+			ralloc_asprintf(ParseState, "IN_%s", Semantic),
+			ir_var_in);
+		if (Frequency == HSF_VertexShader)
+		{
+			if (!strnicmp(Semantic, "ATTRIBUTE", 9))
+			{
+				Variable->semantic = ralloc_asprintf(ParseState, "[[ attribute(%s) ]]", Semantic);
+			}
+			else
+			{
+				_mesa_glsl_warning(ParseState, "Unrecognized input attribute '%s'", Semantic);
+			}
+		}
+
+		if (!Variable->semantic)
+		{
+			Variable->semantic = ralloc_asprintf(ParseState, "[[ user(%s) ]]", Semantic);
+		}
+		Variable->read_only = true;
+		DeclInstructions->push_tail(Variable);
+		ParseState->symbols->add_variable(Variable);
+		ir_dereference_variable* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
+		return VariableDeref;
+	}
+
+	static void GenerateInputForVariable(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+		const char* InputSemantic, ir_dereference* InputVariableDeref, exec_list* DeclInstructions, exec_list* PreCallInstructions)
+	{
+		const glsl_type* InputType = InputVariableDeref->type;
+		if (InputType->is_record())
+		{
+			for (int i = 0; i < InputType->length; ++i)
+			{
+				const char* Semantic = nullptr;
+				const char* FieldSemantic = InputType->fields.structure[i].semantic;
+				if (InputSemantic && FieldSemantic)
+				{
+					_mesa_glsl_warning(ParseState, "semantic '%s' of field '%s' will be overridden by enclosing types' semantic '%s'",
+						InputType->fields.structure[i].semantic,
+						InputType->fields.structure[i].name,
+						InputSemantic);
+					FieldSemantic = nullptr;
+				}
+				else if (InputSemantic && !FieldSemantic)
+				{
+					Semantic = ralloc_asprintf(ParseState, "%s%d", InputSemantic, i);
+					_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, InputType->fields.structure[i].name);
+				}
+				else if (!InputSemantic && FieldSemantic)
+				{
+					Semantic = FieldSemantic;
+				}
+				else
+				{
+					Semantic = nullptr;
+				}
+
+				if (InputType->fields.structure[i].type->is_record() || Semantic)
+				{
+					ir_dereference_record* FieldDeref = new(ParseState)ir_dereference_record(
+						InputVariableDeref->clone(ParseState, NULL),
+						InputType->fields.structure[i].name);
+					GenerateInputForVariable(Frequency, ParseState, Semantic, FieldDeref, DeclInstructions, PreCallInstructions);
+				}
+				else
+				{
+					_mesa_glsl_error(
+						ParseState,
+						"field '%s' in input structure '%s' does not specify a semantic",
+						InputType->fields.structure[i].name,
+						InputType->name
+						);
+				}
+			}
+		}
+		else
+		{
+			if (InputType->is_array())
+			{
+				int BaseIndex = 0;
+				const char* Semantic = 0;
+				check(InputSemantic);
+				ParseSemanticAndIndex(ParseState, InputSemantic, &Semantic, &BaseIndex);
+				check(BaseIndex >= 0);
+				for (unsigned i = 0; i < InputType->length; ++i)
+				{
+					ir_dereference_array* ArrayDeref = new(ParseState)ir_dereference_array(
+						InputVariableDeref->clone(ParseState, NULL),
+						new(ParseState)ir_constant((unsigned)i)
+						);
+					GenerateInputForVariable(
+						Frequency,
+						ParseState,
+						ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
+						ArrayDeref,
+						DeclInstructions,
+						PreCallInstructions);
+				}
+			}
+			else
+			{
+				ir_rvalue* SrcValue = GenerateInputFromSemantic(Frequency, ParseState, InputSemantic, InputType, DeclInstructions);
+				if (SrcValue)
+				{
+					YYLTYPE loc;
+					apply_type_conversion(InputType, SrcValue, PreCallInstructions, ParseState, true, &loc);
+					PreCallInstructions->push_tail(
+						new(ParseState) ir_assignment(InputVariableDeref->clone(ParseState, NULL),SrcValue));
+				}
+			}
+		}
+	}
+
+	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState, const char* InputSemantic, const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions)
+	{
+		ir_variable* TempVariable = new(ParseState)ir_variable(InputType, nullptr, ir_var_temporary);
+		ir_dereference_variable* TempVariableDeref = new(ParseState)ir_dereference_variable(TempVariable);
+		PreCallInstructions->push_tail(TempVariable);
+		GenerateInputForVariable(Frequency, ParseState, InputSemantic, TempVariableDeref, DeclInstructions, PreCallInstructions);
+		return TempVariableDeref;
+	}
+
+	static ir_rvalue* GenerateOutputFromSemantic(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+		const char* Semantic, const glsl_type* Type, exec_list* DeclInstructions, const glsl_type** DestVariableType)
+	{
+		ir_variable* Variable = NULL;
+
+		if (!Variable && strnicmp(Semantic, "SV_", 3) == 0)
+		{
+			FSystemValue* SystemValues = SystemValueTable[Frequency];
+			for (int i = 0; SystemValues[i].HlslSemantic != nullptr; ++i)
+			{
+				if (SystemValues[i].Mode == ir_var_out && stricmp(SystemValues[i].HlslSemantic, Semantic) == 0)
+				{
+					Variable = new(ParseState) ir_variable(SystemValues[i].Type, SystemValues[i].MetalName, ir_var_out);
+					Variable->semantic = SystemValues[i].MetalSemantic;
+					break;
+				}
+			}
+		}
+
+		if (Semantic && strnicmp(Semantic, "SV_", 3) == 0 && !Variable)
+		{
+			_mesa_glsl_warning(ParseState, "unrecognized system value output '%s'", Semantic);
+		}
+
+		if (!Variable)
+		{
+			Variable = new(ParseState)ir_variable(Type, ralloc_asprintf(ParseState, "OUT_%s", Semantic), ir_var_out);
+			Variable->semantic = ralloc_asprintf(ParseState, "[[ user(%s) ]]", Semantic);
+		}
+
+		*DestVariableType = Variable->type;
+		DeclInstructions->push_tail(Variable);
+		ParseState->symbols->add_variable(Variable);
+		ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
+		return VariableDeref;
+	}
+
+	static void GenerateOutputForVariable(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+		const char* OutputSemantic, ir_dereference* OutputVariableDeref, exec_list* DeclInstructions, exec_list* PostCallInstructions
+		/*int SemanticArraySize,int SemanticArrayIndex*/)
+	{
+		const glsl_type* OutputType = OutputVariableDeref->type;
+		if (OutputType->is_record())
+		{
+			for (int i = 0; i < OutputType->length; ++i)
+			{
+				const char* FieldSemantic = OutputType->fields.structure[i].semantic;
+				const char* Semantic = nullptr;
+				if (OutputSemantic && FieldSemantic)
+				{
+					_mesa_glsl_warning(ParseState, "semantic '%s' of field '%s' will be overridden by enclosing types' semantic '%s'",
+						OutputType->fields.structure[i].semantic,
+						OutputType->fields.structure[i].name,
+						OutputSemantic);
+					FieldSemantic = nullptr;
+				}
+				else if (OutputSemantic && !FieldSemantic)
+				{
+					Semantic = ralloc_asprintf(ParseState, "%s%d", OutputSemantic, i);
+					_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, OutputType->fields.structure[i].name);
+				}
+				else if (!OutputSemantic && FieldSemantic)
+				{
+					Semantic = FieldSemantic;
+				}
+				else
+				{
+					Semantic = nullptr;
+				}
+
+				if (OutputType->fields.structure[i].type->is_record() || Semantic)
+				{
+					// Dereference the field and generate shader outputs for the field.
+					ir_dereference* FieldDeref = new(ParseState)ir_dereference_record(
+						OutputVariableDeref->clone(ParseState, NULL),
+						OutputType->fields.structure[i].name);
+					GenerateOutputForVariable(Frequency, ParseState, Semantic, FieldDeref, DeclInstructions, PostCallInstructions);
+				}
+				else
+				{
+					_mesa_glsl_error(
+						ParseState,
+						"field '%s' in output structure '%s' does not specify a semantic",
+						OutputType->fields.structure[i].name,
+						OutputType->name
+						);
+				}
+			}
+		}
+		else
+		{
+			if (!OutputSemantic)
+			{
+				_mesa_glsl_error(ParseState, "Entry point does not specify a semantic for its return value");
+			}
+			else
+			{
+				if (OutputType->is_array())
+				{
+					int BaseIndex = 0;
+					const char* Semantic = 0;
+
+					ParseSemanticAndIndex(ParseState, OutputSemantic, &Semantic, &BaseIndex);
+
+					for (unsigned i = 0; i < OutputType->length; ++i)
+					{
+						ir_dereference_array* ArrayDeref = new(ParseState)ir_dereference_array(
+							OutputVariableDeref->clone(ParseState, NULL),
+							new(ParseState) ir_constant((unsigned)i)
+							);
+						GenerateOutputForVariable(Frequency, ParseState,
+							ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
+							ArrayDeref, DeclInstructions, PostCallInstructions);
+					}
+				}
+				else
+				{
+					YYLTYPE loc;
+					ir_rvalue* Src = OutputVariableDeref->clone(ParseState, NULL);
+					const glsl_type* DestVariableType = NULL;
+					ir_rvalue* DestVariableDeref = GenerateOutputFromSemantic(Frequency, ParseState, OutputSemantic,
+						OutputType, DeclInstructions, &DestVariableType);
+
+					apply_type_conversion(DestVariableType, Src, PostCallInstructions, ParseState, true, &loc);
+					PostCallInstructions->push_tail(new(ParseState)ir_assignment(DestVariableDeref, Src));
+				}
+			}
+		}
+	}
+
+	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, _mesa_glsl_parse_state* ParseState,
+		const char* OutputSemantic, const glsl_type* OutputType, exec_list* DeclInstructions, exec_list* PreCallInstructions, exec_list* PostCallInstructions)
+	{
+		// Generate a local variable to hold the output.
+		ir_variable* TempVariable = new(ParseState) ir_variable(OutputType, nullptr, ir_var_temporary);
+		ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
+		PreCallInstructions->push_tail(TempVariable);
+
+		GenerateOutputForVariable(Frequency, ParseState, OutputSemantic, TempVariableDeref, DeclInstructions, PostCallInstructions);
+
+		return TempVariableDeref;
+	}
+}
+
 struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state* State;
 	bool bUsesFramebufferFetchES2;
+	int MRTFetchMask;
 	ir_variable* DestColorVar;
 	const glsl_type* DestColorType;
+	ir_variable* DestMRTColorVar[MAX_SIMULTANEOUS_RENDER_TARGETS];
 
 	FFixIntrinsicsVisitor(_mesa_glsl_parse_state* InState, ir_function_signature* InMainSig) :
 		State(InState),
 		bUsesFramebufferFetchES2(false),
+		MRTFetchMask(0),
 		DestColorVar(nullptr),
 		DestColorType(glsl_type::error_type)
 	{
 		DestColorType = GetFragColorTypeFromMetalOutputStruct(InMainSig->return_type);
+		memset(DestMRTColorVar, 0, sizeof(DestMRTColorVar));
 	}
 
 	//ir_visitor_status visit_leave(ir_expression* expr) override
@@ -223,26 +639,50 @@ struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 
 	virtual ir_visitor_status visit_leave(ir_call* IR) override
 	{
-		if (IR->use_builtin && !strcmp(IR->callee_name(), FRAMEBUFFER_FETCH_ES2))
+		if (IR->use_builtin)
 		{
-			// 'Upgrade' framebuffer fetch
-			check(IR->actual_parameters.is_empty());
-			bUsesFramebufferFetchES2 = true;
-			if (!DestColorVar)
+			const char* CalleeName = IR->callee_name();
+			static auto ES2Len = strlen(FRAMEBUFFER_FETCH_ES2);
+			static auto MRTLen = strlen(FRAMEBUFFER_FETCH_MRT);
+			if (!strncmp(CalleeName, FRAMEBUFFER_FETCH_ES2, ES2Len))
 			{
-				// Generate new input variable for Metal semantics
-				DestColorVar = new(State)ir_variable(glsl_type::get_instance(DestColorType->base_type, 4, 1), "gl_LastFragData", ir_var_in);
-				DestColorVar->semantic = "gl_LastFragData";
-			}
+				// 'Upgrade' framebuffer fetch
+				check(IR->actual_parameters.is_empty());
+				bUsesFramebufferFetchES2 = true;
+				if (!DestColorVar)
+				{
+					// Generate new input variable for Metal semantics
+					DestColorVar = new(State)ir_variable(glsl_type::get_instance(DestColorType->base_type, 4, 1), "gl_LastFragData", ir_var_in);
+					DestColorVar->semantic = "[[ color(0) ]]";
+				}
 
-			ir_rvalue* DestColor = new(State)ir_dereference_variable(DestColorVar);
-			if (IR->return_deref->type->base_type != DestColor->type->base_type)
-			{
-				DestColor = convert_component(DestColor, IR->return_deref->type);
+				ir_rvalue* DestColor = new(State)ir_dereference_variable(DestColorVar);
+				if (IR->return_deref->type->base_type != DestColor->type->base_type)
+				{
+					DestColor = convert_component(DestColor, IR->return_deref->type);
+				}
+				auto* Assignment = new (State)ir_assignment(IR->return_deref, DestColor);
+				IR->insert_before(Assignment);
+				IR->remove();
 			}
-			auto* Assignment = new (State)ir_assignment(IR->return_deref, DestColor);
-			IR->insert_before(Assignment);
-			IR->remove();
+			else if (!strncmp(CalleeName, FRAMEBUFFER_FETCH_MRT, MRTLen))
+			{
+				int Index = atoi(CalleeName + MRTLen);
+				if (!DestMRTColorVar[Index])
+				{
+					DestMRTColorVar[Index] = new(State)ir_variable(glsl_type::get_instance(DestColorType->base_type, 4, 1), CalleeName, ir_var_in);
+					DestMRTColorVar[Index]->semantic = ralloc_asprintf(State, "[[ color(%d) ]]", Index);
+				}
+
+				ir_rvalue* DestColor = new(State) ir_dereference_variable(DestMRTColorVar[Index]);
+				if (IR->return_deref->type->base_type != DestColor->type->base_type)
+				{
+					DestColor = convert_component(DestColor, IR->return_deref->type);
+				}
+				auto* Assignment = new (State) ir_assignment(IR->return_deref, DestColor);
+				IR->insert_before(Assignment);
+				IR->remove();
+			}
 		}
 
 		return visit_continue;
@@ -261,6 +701,14 @@ void FMetalCodeBackend::FixIntrinsics(exec_list* ir, _mesa_glsl_parse_state* sta
 	{
 		check(Visitor.DestColorVar);
 		MainSig->parameters.push_tail(Visitor.DestColorVar);
+	}
+
+	for (int i = 0; i < MAX_SIMULTANEOUS_RENDER_TARGETS; ++i)
+	{
+		if (Visitor.DestMRTColorVar[i])
+		{
+			MainSig->parameters.push_tail(Visitor.DestMRTColorVar[i]);
+		}
 	}
 }
 
@@ -467,6 +915,17 @@ void FMetalCodeBackend::PromoteInputsAndOutputsGlobalHalfToFloat(exec_list* Inst
 
 static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask, TIRVarList& OutFunctionArguments)
 {
+	// Don't move variables that are system values into the input structures
+	const auto* SystemValues = MetalUtils::SystemValueTable[Frequency];
+	for(int i = 0; SystemValues[i].MetalSemantic != nullptr; ++i)
+	{
+		if (SystemValues[i].Mode == ir_var_in && stricmp(SystemValues[i].MetalSemantic, Variable->semantic) == 0)
+		{
+			return true;
+		}
+	}
+
+
 	if (Frequency == HSF_VertexShader)
 	{
 		// Generate an uber struct
@@ -580,7 +1039,7 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslSha
 					glsl_struct_field OutMember;
 					OutMember.type = Variable->type;
 					OutMember.semantic = ralloc_asprintf(ParseState, "ATTRIBUTE%d", AttributeIndex);
-					OutMember.name = ralloc_asprintf(ParseState, "in_ATTRIBUTE%d", AttributeIndex);
+					OutMember.name = ralloc_asprintf(ParseState, "IN_ATTRIBUTE%d", AttributeIndex);
 
 					if (OutVertexAttributesMask)
 					{
@@ -891,162 +1350,6 @@ static ir_rvalue* GenShaderInputSemantic(
 	}
 }
 
-
-
-/**
-* Generate an input semantic.
-* @param Frequency - The shader frequency.
-* @param ParseState - Parse state.
-* @param InputSemantic - The semantic name to generate.
-* @param InputQualifier - Qualifiers applied to the semantic.
-* @param InputVariableDeref - Deref for the argument variable.
-* @param DeclInstructions - IR to which declarations may be added.
-* @param PreCallInstructions - IR to which instructions may be added before the
-*                              entry point is called.
-*/
-static void GenShaderInputForVariable(
-	EHlslShaderFrequency Frequency,
-	_mesa_glsl_parse_state* ParseState,
-	const char* InputSemantic,
-	ir_dereference* InputVariableDeref,
-	exec_list* DeclInstructions,
-	exec_list* PreCallInstructions,
-	int SemanticArraySize,
-	int SemanticArrayIndex
-	)
-{
-	const glsl_type* InputType = InputVariableDeref->type;
-	if (InputType->is_record())
-	{
-		check(0);
-		/*
-		for (int i = 0; i < InputType->length; ++i)
-		{
-		const char* FieldSemantic = InputType->fields.structure[i].semantic;
-		const char* Semantic = 0;
-
-		if (InputSemantic && FieldSemantic)
-		{
-
-		_mesa_glsl_warning(ParseState, "semantic '%s' of field '%s' will be overridden by enclosing types' semantic '%s'",
-		InputType->fields.structure[i].semantic,
-		InputType->fields.structure[i].name,
-		InputSemantic);
-
-
-		FieldSemantic = 0;
-		}
-
-		if (InputSemantic && !FieldSemantic)
-		{
-		Semantic = ralloc_asprintf(ParseState, "%s%d", InputSemantic, i);
-		_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, InputType->fields.structure[i].name);
-		}
-		else if (!InputSemantic && FieldSemantic)
-		{
-		Semantic = FieldSemantic;
-		}
-		else
-		{
-		Semantic = 0;
-		}
-
-		if (InputType->fields.structure[i].type->is_record() ||
-		Semantic)
-		{
-		FSemanticQualifier Qualifier = InputQualifier;
-		if (Qualifier.Packed == 0)
-		{
-		Qualifier.Fields.bCentroid = InputType->fields.structure[i].centroid;
-		Qualifier.Fields.InterpolationMode = InputType->fields.structure[i].interpolation;
-		Qualifier.Fields.bIsPatchConstant = InputType->fields.structure[i].patchconstant;
-		}
-
-		ir_dereference_record* FieldDeref = new(ParseState)ir_dereference_record(
-		InputVariableDeref->clone(ParseState, NULL),
-		InputType->fields.structure[i].name);
-		GenShaderInputForVariable(
-		Frequency,
-		ParseState,
-		Semantic,
-		Qualifier,
-		FieldDeref,
-		DeclInstructions,
-		PreCallInstructions,
-		SemanticArraySize,
-		SemanticArrayIndex
-		);
-		}
-		else
-		{
-		_mesa_glsl_error(
-		ParseState,
-		"field '%s' in input structure '%s' does not specify a semantic",
-		InputType->fields.structure[i].name,
-		InputType->name
-		);
-		}
-		}
-		*/
-	}
-	else if (InputType->is_array())// || InputType->is_inputpatch() || InputType->is_outputpatch())
-	{
-		check(0);
-		/*
-
-		int BaseIndex = 0;
-		const char* Semantic = 0;
-		check(InputSemantic);
-		ParseSemanticAndIndex(ParseState, InputSemantic, &Semantic, &BaseIndex);
-		check(BaseIndex >= 0);
-		check(InputType->is_array() || InputType->is_inputpatch() || InputType->is_outputpatch());
-		const unsigned ElementCount = InputType->is_array() ? InputType->length : InputType->patch_length;
-
-		{
-		//check(!InputQualifier.Fields.bIsPatchConstant);
-		InputQualifier.Fields.bIsPatchConstant = false;
-		}
-
-		for (unsigned i = 0; i < ElementCount; ++i)
-		{
-		ir_dereference_array* ArrayDeref = new(ParseState)ir_dereference_array(
-		InputVariableDeref->clone(ParseState, NULL),
-		new(ParseState)ir_constant((unsigned)i)
-		);
-		GenShaderInputForVariable(
-		Frequency,
-		ParseState,
-		ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
-		InputQualifier,
-		ArrayDeref,
-		DeclInstructions,
-		PreCallInstructions,
-		SemanticArraySize,
-		SemanticArrayIndex
-		);
-		}*/
-	}
-	else
-	{
-		check(!InputType->is_inputpatch() && !InputType->is_outputpatch());
-		ir_rvalue* SrcValue = GenShaderInputSemantic(Frequency, ParseState, InputSemantic,
-			InputType, DeclInstructions, SemanticArraySize,
-			SemanticArrayIndex);
-		if (SrcValue)
-		{
-			YYLTYPE loc = {0};
-			apply_type_conversion(InputType, SrcValue, PreCallInstructions, ParseState, true, &loc);
-			PreCallInstructions->push_tail(
-				new(ParseState)ir_assignment(
-				InputVariableDeref->clone(ParseState, NULL),
-				SrcValue
-				)
-				);
-		}
-	}
-}
-
-
 /**
 * Generate a shader input.
 * @param Frequency - The shader frequency.
@@ -1071,19 +1374,23 @@ static ir_dereference_variable* GenerateShaderInput(
 		InputType,
 		NULL,
 		ir_var_temporary);
-	ir_dereference_variable* TempVariableDeref = new(ParseState)ir_dereference_variable(TempVariable);
+	ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
 	PreCallInstructions->push_tail(TempVariable);
 
-	GenShaderInputForVariable(
-		Frequency,
-		ParseState,
-		InputSemantic,
-		TempVariableDeref,
-		DeclInstructions,
-		PreCallInstructions,
-		0,
-		0
-		);
+	check(!InputType->is_inputpatch() && !InputType->is_outputpatch());
+	ir_rvalue* SrcValue = MetalUtils::GenerateInputFromSemantic(Frequency, ParseState, InputSemantic, InputType, DeclInstructions);
+	if(SrcValue)
+	{
+		YYLTYPE loc ={0};
+		apply_type_conversion(InputType,SrcValue,PreCallInstructions,ParseState,true,&loc);
+		PreCallInstructions->push_tail(
+			new(ParseState)ir_assignment(
+			TempVariableDeref->clone(ParseState,NULL),
+			SrcValue
+			)
+			);
+	}
+
 	return TempVariableDeref;
 }
 
@@ -1116,13 +1423,6 @@ static ir_rvalue* GenShaderOutputSemantic(
 				&& stricmp(SystemValues[i].Semantic, Semantic) == 0)
 			{
 				check(0);
-				/*
-				Variable = new(ParseState)ir_variable(
-				SystemValues[i].Type,
-				SystemValues[i].GlslName,
-				ir_var_out
-				);
-				Variable->origin_upper_left = SystemValues[i].bOriginUpperLeft;*/
 			}
 		}
 	}
@@ -1135,13 +1435,6 @@ static ir_rvalue* GenShaderOutputSemantic(
 			&& Semantic[PrefixLength] <= '9')
 		{
 			check(0);
-			/*
-			int OutputIndex = Semantic[15] - '0';
-			Variable = new(ParseState)ir_variable(
-			glsl_type::float_type,
-			ralloc_asprintf(ParseState, "gl_ClipDistance[%d]", OutputIndex),
-			ir_var_out
-			);*/
 		}
 	}
 
@@ -1240,106 +1533,11 @@ void GenShaderOutputForVariable(
 	if (OutputType->is_record())
 	{
 		check(0);
-		/*
-		for (int i = 0; i < OutputType->length; ++i)
-		{
-		const char* FieldSemantic = OutputType->fields.structure[i].semantic;
-		const char* Semantic = 0;
-
-		if (OutputSemantic && FieldSemantic)
-		{
-
-		_mesa_glsl_warning(ParseState, "semantic '%s' of field '%s' will be overridden by enclosing types' semantic '%s'",
-		OutputType->fields.structure[i].semantic,
-		OutputType->fields.structure[i].name,
-		OutputSemantic);
-
-
-		FieldSemantic = 0;
-		}
-
-		if (OutputSemantic && !FieldSemantic)
-		{
-		Semantic = ralloc_asprintf(ParseState, "%s%d", OutputSemantic, i);
-		_mesa_glsl_warning(ParseState, "  creating semantic '%s' for struct field '%s'", Semantic, OutputType->fields.structure[i].name);
-		}
-		else if (!OutputSemantic && FieldSemantic)
-		{
-		Semantic = FieldSemantic;
-		}
-		else
-		{
-		Semantic = 0;
-		}
-
-		if (OutputType->fields.structure[i].type->is_record() ||
-		Semantic
-		)
-		{
-		// Dereference the field and generate shader outputs for the field.
-		ir_dereference* FieldDeref = new(ParseState)ir_dereference_record(
-		OutputVariableDeref->clone(ParseState, NULL),
-		OutputType->fields.structure[i].name);
-		GenShaderOutputForVariable(
-		Frequency,
-		ParseState,
-		Semantic,
-		FieldDeref,
-		DeclInstructions,
-		PostCallInstructions,
-		SemanticArraySize,
-		SemanticArrayIndex
-		);
-		}
-		else
-		{
-		_mesa_glsl_error(
-		ParseState,
-		"field '%s' in output structure '%s' does not specify a semantic",
-		OutputType->fields.structure[i].name,
-		OutputType->name
-		);
-		}
-		}
-		*/
 	}
 	// TODO clean this up!!
 	else if (OutputType->is_array())// || OutputType->is_outputpatch()))
 	{
 		check(0);
-		/*
-		if (OutputSemantic)
-		{
-		int BaseIndex = 0;
-		const char* Semantic = 0;
-
-		ParseSemanticAndIndex(ParseState, OutputSemantic, &Semantic, &BaseIndex);
-
-		const unsigned ElementCount = OutputType->is_array() ? OutputType->length : (OutputType->patch_length);
-
-		for (unsigned i = 0; i < ElementCount; ++i)
-		{
-		ir_dereference_array* ArrayDeref = new(ParseState)ir_dereference_array(
-		OutputVariableDeref->clone(ParseState, NULL),
-		new(ParseState)ir_constant((unsigned)i)
-		);
-		GenShaderOutputForVariable(
-		Frequency,
-		ParseState,
-		ralloc_asprintf(ParseState, "%s%d", Semantic, BaseIndex + i),
-		ArrayDeref,
-		DeclInstructions,
-		PostCallInstructions,
-		SemanticArraySize,
-		SemanticArrayIndex
-		);
-		}
-		}
-		else
-		{
-		_mesa_glsl_error(ParseState, "entry point does not specify a semantic for its return value");
-		}
-		*/
 	}
 	else
 	{
@@ -1457,16 +1655,10 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				{
 				case ir_var_out:
 					{
-						/*
-						if (!VerifyVariableHasSemantics(ParseState, Variable))
-						{
-						return;
-						}
-						*/
 						glsl_struct_field Member;
 						Member.type = Variable->type;
 						Member.name = ralloc_strdup(ParseState, Variable->name);
-						Member.semantic = Variable->name;
+						Member.semantic = ralloc_strdup(ParseState, Variable->semantic ? Variable->semantic : Variable->name);;
 						VSOutMembers.Add(Member);
 						VSOutVariables.insert(Variable);
 					}
@@ -1542,18 +1734,6 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				YYLTYPE loc = {0};
 				_mesa_glsl_error(&loc, ParseState, "struct '%s' previously defined", Type->name);
 			}
-			/*
-			else
-			{
-			const glsl_type **NewList = reralloc(ParseState, ParseState->user_structures,
-			const glsl_type *,
-			ParseState->num_user_structures + 1);
-			check(NewList);
-			NewList[ParseState->num_user_structures] = Type;
-			ParseState->user_structures = NewList;
-			ParseState->num_user_structures++;
-			}
-			*/
 		}
 
 		if (VSOutMembers.Num())
@@ -1568,18 +1748,6 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				YYLTYPE loc = {0};
 				_mesa_glsl_error(&loc, ParseState, "struct '%s' previously defined", Type->name);
 			}
-			/*
-			else
-			{
-			const glsl_type **NewList = reralloc(ParseState, ParseState->user_structures,
-			const glsl_type *,
-			ParseState->num_user_structures + 1);
-			check(NewList);
-			NewList[ParseState->num_user_structures] = Type;
-			ParseState->user_structures = NewList;
-			ParseState->num_user_structures++;
-			}
-			*/
 		}
 	}
 	else if (Frequency == HSF_PixelShader)
@@ -1604,23 +1772,10 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 						glsl_struct_field Member;
 						Member.type = Variable->type;
 						Member.name = ralloc_strdup(ParseState, Variable->name);
-						Member.semantic = Variable->name;
+						Member.semantic = ralloc_strdup(ParseState, Variable->semantic ? Variable->semantic : Variable->name);
 						PSOutMembers.Add(Member);
 						PSOutVariables.insert(Variable);
 					}
-/*
-					if (!strcmp(Variable->name, "gl_FragColor"))
-					{
-						check(!PSOut);
-						check(!Variable->type->is_record());
-						PSOut = Variable;// new(ParseState)ir_variable(Variable->type, "gl_FragColor", ir_var_temporary);
-					}
-					else if (!strcmp(Variable->name, "gl_FragDepth"))
-					{
-						check(!DepthOut);
-						check(!Variable->type->is_record());
-						DepthOut = Variable;
-					}*/
 					break;
 
 				case ir_var_in:
@@ -1649,21 +1804,6 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				YYLTYPE loc = {0};
 				_mesa_glsl_error(&loc, ParseState, "struct '%s' previously defined", Type->name);
 			}
-			/*
-			if (!ParseState->symbols->add_type(Type->name, Type))
-			{
-			}
-			else
-			{
-			const glsl_type **NewList = reralloc(ParseState, ParseState->user_structures,
-			const glsl_type *,
-			ParseState->num_user_structures + 1);
-			check(NewList);
-			NewList[ParseState->num_user_structures] = Type;
-			ParseState->user_structures = NewList;
-			ParseState->num_user_structures++;
-			}
-			*/
 		}
 
 		if (PSOutMembers.Num())
@@ -1678,12 +1818,6 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				YYLTYPE loc = {0};
 				_mesa_glsl_error(&loc, ParseState, "struct '%s' previously defined", Type->name);
 			}
-
-/*
-			PSOut->remove();
-			PreCallInstructions.push_tail(PSOut);
-			ParseState->symbols->add_variable(PSOut);
-*/
 		}
 	}
 
@@ -1734,6 +1868,8 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				}
 				else
 				{
+					// At this point this should be a built-in system value
+					check(Variable->semantic);
 					ArgVarDeref = GenerateShaderInput(
 						Frequency,
 						ParseState,
@@ -1752,10 +1888,6 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					ir_dereference* DeRefMember = new(ParseState)ir_dereference_record(VSOut, Variable->name);
 					auto* Assign = new(ParseState)ir_assignment(DeRefMember, new(ParseState)ir_dereference_variable(Variable));
 					PostCallInstructions.push_tail(Assign);
-					/*
-					ir_variable* TempVariable = new(ParseState)ir_variable(Variable->type, nullptr, ir_var_temporary);
-					PreCallInstructions.push_tail(TempVariable);
-					ArgVarDeref = new(ParseState)ir_dereference_variable(TempVariable);*/
 				}
 				else if (PSOutVariables.find(Variable) != PSOutVariables.end())
 				{
@@ -1763,16 +1895,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					ir_dereference* DeRefMember = new(ParseState)ir_dereference_record(PSOut, Variable->name);
 					auto* Assign = new(ParseState)ir_assignment(DeRefMember, new(ParseState)ir_dereference_variable(Variable));
 					PostCallInstructions.push_tail(Assign);
-					/*
-					ir_variable* TempVariable = new(ParseState)ir_variable(Variable->type, nullptr, ir_var_temporary);
-					PreCallInstructions.push_tail(TempVariable);
-					ArgVarDeref = new(ParseState)ir_dereference_variable(TempVariable);*/
-				}/*
-				else if (PSOut)
-				{
-					ArgVarDeref = new(ParseState)ir_dereference_variable(PSOut);
 				}
-*/
 				else
 				{
 					ArgVarDeref = GenerateShaderOutput(
@@ -1853,9 +1976,6 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 		PostCallInstructions.push_tail(new(ParseState)ir_return(new(ParseState)ir_dereference_variable(PSOut)));
 		EntryPointSig->return_type = ReturnType;
 	}
-
-	// main is a reserved keyword...
-	RenameMain(Instructions);
 
 	for (auto* Var : VarsToMoveToBody)
 	{
@@ -2016,6 +2136,11 @@ struct FConvertHalfToFloatUniformAndSamples : public ir_rvalue_visitor
 			{
 				// Promote to float
 				Texture->coordinate = new(State)ir_expression(ir_unop_h2f, Texture->coordinate);
+			}
+			else if (Texture->coordinate && Texture->coordinate->type->base_type == GLSL_TYPE_INT)
+			{
+				// convert int to uint
+				Texture->coordinate = new(State)ir_expression(ir_unop_i2u, Texture->coordinate);
 			}
 		}
 		// Skip swizzles, textures, etc

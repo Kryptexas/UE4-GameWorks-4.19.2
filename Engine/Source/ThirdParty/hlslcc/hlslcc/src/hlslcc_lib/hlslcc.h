@@ -8,7 +8,7 @@
 enum
 {
 	HLSLCC_VersionMajor = 0,
-	HLSLCC_VersionMinor = 55,
+	HLSLCC_VersionMinor = 56,
 };
 
 /**
@@ -93,7 +93,8 @@ public:
 	// Returns false if there were restrictions that made compilation fail
 	virtual bool ApplyAndVerifyPlatformRestrictions(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) { return true; }
 
-	virtual void GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState) {}
+	// Returns false if any issues
+	virtual bool GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState) { return false; }
 
 	// Returns false if any issues. This should be called after every specialized step that might modify IR.
 	inline bool OptimizeAndValidate(exec_list* Instructions, _mesa_glsl_parse_state* ParseState)
@@ -108,9 +109,9 @@ public:
 	bool Optimize(exec_list* Instructions, _mesa_glsl_parse_state* ParseState);
 	bool Validate(exec_list* Instructions, _mesa_glsl_parse_state* ParseState);
 
-protected:
-	ir_function_signature* FindAndMarkEntryPointFunction(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, const char* EntryPoint);
+	static ir_function_signature* FindEntryPointFunction(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, const char* EntryPoint);
 
+protected:
 	ir_function_signature* GetMainFunction(exec_list* Instructions);
 };
 
