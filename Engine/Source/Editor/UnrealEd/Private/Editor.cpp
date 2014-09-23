@@ -1473,7 +1473,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 }
 
-float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
+float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing ) const
 {
 	float MaxTickRate = 0.0f;
 	if( !ShouldThrottleCPUUsage() )

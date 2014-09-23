@@ -696,7 +696,7 @@ void UGameEngine::PostLoadMap()
 {
 }
 
-float UGameEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
+float UGameEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) const
 {
 	float MaxTickRate = 0.f;
 

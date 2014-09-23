@@ -1711,7 +1711,13 @@ public:
 	void TickDeferredCommands();
 
 	/** Get tick rate limiter. */
-	virtual float GetMaxTickRate( float /*DeltaTime*/, bool bAllowFrameRateSmoothing = true );
+	virtual float GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing = true) const;
+
+	/** Updates the running average delta time */
+	virtual void UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRateSmoothing = true);
+
+	/** Whether we're allowed to do frame rate smoothing */
+	bool IsAllowedFramerateSmoothing(bool bAllowFrameRateSmoothing) const;
 
 	/**
 	 * Pauses / un-pauses the game-play when focus of the game's window gets lost / gained.
@@ -2154,6 +2160,13 @@ protected:
 	 * Loads all Engine object references from their corresponding config entries.
 	 */
 	virtual void InitializeObjectReferences();
+
+	/** 
+	 * Initializes the running average delta to some good initial framerate 
+	 */
+	virtual void InitializeRunningAverageDeltaTime();
+
+	float RunningAverageDeltaTime;
 
 	/** Broadcasts when a world is added. */
 	FWorldAddedEvent			WorldAddedEvent;
