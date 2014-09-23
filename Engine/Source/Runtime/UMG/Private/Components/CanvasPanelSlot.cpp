@@ -191,6 +191,24 @@ void UCanvasPanelSlot::SetZOrder(int32 InZOrder)
 	}
 }
 
+void UCanvasPanelSlot::SetMinimum(FVector2D InMinimumAnchors)
+{
+	LayoutData.Anchors.Minimum = InMinimumAnchors;
+	if ( Slot )
+	{
+		Slot->Anchors(LayoutData.Anchors);
+	}
+}
+
+void UCanvasPanelSlot::SetMaximum(FVector2D InMaximumAnchors)
+{
+	LayoutData.Anchors.Maximum = InMaximumAnchors;
+	if ( Slot )
+	{
+		Slot->Anchors(LayoutData.Anchors);
+	}
+}
+
 void UCanvasPanelSlot::SynchronizeProperties()
 {
 	SetOffsets(LayoutData.Offsets);
