@@ -408,23 +408,30 @@ namespace UnrealBuildTool
             {
                 // Explicitly exclude the MS C++ runtime libraries we're not using, to ensure other libraries we link with use the same
                 // runtime library as the engine.
-                if (InBuildTarget.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
-                {
-                    InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCRT");
-                    InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCPRT");
-                }
-                else
-                {
-                    InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCRTD");
-                    InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCPRTD");
-                }
+				bool bUseDebugCRT = InBuildTarget.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT;
+				if(!InBuildTarget.Rules.bUseStaticCRT || bUseDebugCRT)
+				{
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMT");
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCPMT");
+				}
+				if(!InBuildTarget.Rules.bUseStaticCRT || !bUseDebugCRT)
+				{
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMTD");
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCPMTD");
+				}
+				if (InBuildTarget.Rules.bUseStaticCRT || bUseDebugCRT)
+				{
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCRT");
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCPRT");
+				}
+				if(InBuildTarget.Rules.bUseStaticCRT || !bUseDebugCRT)
+				{
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCRTD");
+					InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("MSVCPRTD");
+				}
                 InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBC");
-                InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMT");
-                InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCPMT");
                 InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCP");
                 InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCD");
-                InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMTD");
-                InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCPMTD");
                 InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCPD");
 
                 //@todo ATL: Currently, only VSAccessor requires ATL (which is only used in editor builds)

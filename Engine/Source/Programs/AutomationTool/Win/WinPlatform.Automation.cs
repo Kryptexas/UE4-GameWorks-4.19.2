@@ -100,26 +100,22 @@ public abstract class BaseWinPlatform : Platform
 
 			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
 			{
-				// remap the project root. For Rocket executables, rename the executable to the game name.
-				if (!Params.IsCodeBasedProject && Exe == Exes[0])
+				// remap the project root.
+				string SourceFile = CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir, Path.GetFileName(Exe));
+				StageExecutable("exe", SC, Path.GetDirectoryName(SourceFile), Path.GetFileNameWithoutExtension(SourceFile) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType);
+				if(Exe == Exes[0])
 				{
-					StageExecutable("exe", SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
-				}
-				else
-				{
-					StageExecutable("exe", SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType);
+					StageBootstrapExecutable(SC, SourceFile, CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exe)), "");
 				}
 			}
 			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
 			{
-				// Move the executable for non-code rocket projects into the game directory, using the game name, so it can figure out the UProject to look for and is consitent with code projects.
-				if (!Params.IsCodeBasedProject && Exe == Exes[0])
+				// keep it in the engine directory.
+				string SourceFile = CombinePaths(SC.LocalRoot, "Engine", "Binaries", SC.PlatformDir, Path.GetFileName(Exe));
+				StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(SourceFile) + ".", true, null, null, false, WorkingFileType);
+				if(Exe == Exes[0])
 				{
-					StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
-				}
-				else
-				{
-					StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, null, false, WorkingFileType);
+					StageBootstrapExecutable(SC, SourceFile, CombinePaths("Engine", "Binaries", SC.PlatformDir, Path.GetFileName(Exe)), String.Format("..\\..\\..\\{0}\\{0}.uproject", SC.ShortProjectName));
 				}
 			}
 			else
@@ -130,6 +126,54 @@ public abstract class BaseWinPlatform : Platform
 			WorkingFileType = StagedFileType.DebugNonUFS;
 		}
 
+		if(Params.Prereqs)
+		{
+			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup.msi", false, null, InstallerRelativePath);
+		}
+	}
+
+	void StageBootstrapExecutable(DeploymentContext SC, string TargetFile, string StagedRelativeTargetPath, string StagedArguments)
+	{
+		string InputFile = CombinePaths(SC.LocalRoot, "Engine", "Binaries", SC.PlatformDir, String.Format("BootstrapPackagedGame-{0}-Shipping.exe", SC.PlatformDir));
+		if(InternalUtils.SafeFileExists(InputFile))
+		{
+			// Create the new bootstrap program
+			string ExeName = String.Format("{0}.exe", SC.ShortProjectName);
+
+			string IntermediateDir = CombinePaths(SC.ProjectRoot, "Intermediate", "Staging");
+			InternalUtils.SafeCreateDirectory(IntermediateDir);
+
+			string IntermediateFile = CombinePaths(IntermediateDir, ExeName);
+			File.Copy(InputFile, IntermediateFile, true);
+	
+			// Get the icon from the build directory if possible
+			GroupIconResource GroupIcon = null;
+			if(InternalUtils.SafeFileExists(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico")))
+			{
+				GroupIcon = GroupIconResource.FromIco(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico"));
+			}
+			if(GroupIcon == null)
+			{
+				GroupIcon = GroupIconResource.FromExe(TargetFile);
+			}
+
+			// Update the resources in the new file
+			using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile, true))
+			{
+				const int IconResourceId = 101;
+				if(GroupIcon != null) Update.SetIcons(IconResourceId, GroupIcon);
+
+				const int ExecFileResourceId = 201;
+				Update.SetData(ExecFileResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedRelativeTargetPath));
+
+				const int ExecArgsResourceId = 202;
+				Update.SetData(ExecArgsResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedArguments));
+			}
+
+			// Copy it to the staging directory
+			SC.StageFiles(StagedFileType.NonUFS, IntermediateDir, ExeName, false, null, "");
+		}
 	}
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)

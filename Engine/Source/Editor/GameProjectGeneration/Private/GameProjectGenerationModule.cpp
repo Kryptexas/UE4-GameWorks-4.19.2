@@ -97,13 +97,6 @@ void FGameProjectGenerationModule::GetProjectSourceDirectoryInfo(int32& OutNumFi
 	GameProjectUtils::GetProjectSourceDirectoryInfo(OutNumFiles, OutDirectorySize);
 }
 
-bool FGameProjectGenerationModule::UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
-{
-	const FString GameModuleSourcePath = FPaths::GetPath(FPaths::GetProjectFilePath()) / TEXT("Source") / FApp::GetGameName();
-	return GameProjectUtils::GenerateGameResourceFiles(GameModuleSourcePath, FApp::GetGameName(), OutCreatedFiles, OutFailReason);
-}
-
-
 void FGameProjectGenerationModule::CheckAndWarnProjectFilenameValid()
 {
 	GameProjectUtils::CheckAndWarnProjectFilenameValid();

@@ -61,6 +61,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;
 
+	/** Specifies whether to include prerequisites of packaged games, such as redistributable operating system components, whenever possible. */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool IncludePrerequisites;
+
 	/** If enabled, on Android platforms, .pak files are placed inside the APK. */
 	UPROPERTY(config, EditAnywhere, Category = Packaging)
 	bool UseOBB_InAPK;

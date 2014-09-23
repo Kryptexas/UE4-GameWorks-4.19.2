@@ -269,6 +269,7 @@ namespace AutomationTool
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.Distribution = InParams.Distribution;
+			this.Prereqs = InParams.Prereqs;
             this.OBBinAPK = InParams.OBBinAPK;
             this.Prebuilt = InParams.Prebuilt;
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
@@ -329,7 +330,8 @@ namespace AutomationTool
 			bool? NoXGE = null,
 			bool? Package = null,
 			bool? Pak = null,
-			bool? SignedPak = null,
+			bool? Prereqs = null,
+            bool? SignedPak = null,
             bool? NullRHI = null,
             bool? FakeClient = null,
             bool? EditorTest = null,
@@ -448,6 +450,7 @@ namespace AutomationTool
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
+			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
             this.OBBinAPK = GetParamValueIfNotSpecified(Command, OBBinAPK, this.OBBinAPK, "obbinapk");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
@@ -1096,7 +1099,10 @@ namespace AutomationTool
 		[Help("distribution", "package for distribution the project")]
 		public bool Distribution { get; set; }
 
-        [Help("obbinapk", "package with OBB data in APK assets directory")]
+		[Help("prereqs", "stage prerequisites along with the project")]
+		public bool Prereqs { get; set; }
+
+		[Help("obbinapk", "package with OBB data in APK assets directory")]
         public bool OBBinAPK {get; set; }
 
         [Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
@@ -1720,6 +1726,7 @@ namespace AutomationTool
 				CommandUtils.Log("Distribution={0}", Distribution);
                 CommandUtils.Log("OBBinAPK={0}", OBBinAPK);
                 CommandUtils.Log("Prebuilt={0}", Prebuilt);
+				CommandUtils.Log("Prereqs={0}", Prereqs);
 				CommandUtils.Log("RawProjectPath={0}", RawProjectPath);
 				CommandUtils.Log("Rocket={0}", Rocket);
 				CommandUtils.Log("Run={0}", Run);

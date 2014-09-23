@@ -641,6 +641,11 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	  }
 	}
 
+	if (PackagingSettings->IncludePrerequisites)
+	{
+		OptionalParams += TEXT(" -prereqs");
+	}
+
 	if (PackagingSettings->ForDistribution)
 	{
 		OptionalParams += TEXT(" -distribution");

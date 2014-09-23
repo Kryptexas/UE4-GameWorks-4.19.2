@@ -328,13 +328,27 @@ namespace UnrealBuildTool
 			}
 
 			// Specify the appropriate runtime library based on the platform and config.
-			if( CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
+			if( CompileEnvironment.Config.bUseStaticCRT )
 			{
-				Arguments.Append(" /MDd");
+				if( CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
+				{
+					Arguments.Append(" /MTd");
+				}
+				else
+				{
+					Arguments.Append(" /MT");
+				}
 			}
 			else
 			{
-				Arguments.Append(" /MD");
+				if( CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
+				{
+					Arguments.Append(" /MDd");
+				}
+				else
+				{
+					Arguments.Append(" /MD");
+				}
 			}
 		}
 

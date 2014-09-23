@@ -839,7 +839,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// Generate basic source code files
-		if ( !GenerateBasicSourceCode(NewProjectFolder / TEXT("Source"), NewProjectName, StartupModuleNames, CreatedFiles, OutFailReason) )
+		if ( !GenerateBasicSourceCode(NewProjectFolder / TEXT("Source"), NewProjectName, NewProjectFolder, StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
 			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
@@ -1248,16 +1248,16 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		CreatedFiles.Add(InProjectInfo.ProjectFilename);
 	}
 
+	// Copy resources
+	const FString GameModuleSourcePath = DestFolder / TEXT("Source") / ProjectName;
+	if (GenerateGameResourceFiles(GameModuleSourcePath, ProjectName, DestFolder, InProjectInfo.bShouldGenerateCode, CreatedFiles, OutFailReason) == false)
+	{
+		DeleteCreatedFiles(DestFolder, CreatedFiles);
+		return false;
+	}
+
 	if ( InProjectInfo.bShouldGenerateCode )
 	{
-		// resource folder
-		const FString GameModuleSourcePath = DestFolder / TEXT("Source") / ProjectName;
-		if (GenerateGameResourceFiles(GameModuleSourcePath, ProjectName, CreatedFiles, OutFailReason) == false)
-		{
-			DeleteCreatedFiles(DestFolder, CreatedFiles);
-			return false;
-		}
-
 		// Generate project files
 		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason) )
 		{
@@ -1501,7 +1501,7 @@ bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectI
 	return true;
 }
 
-bool GameProjectUtils::GenerateBasicSourceCode(const FString& NewProjectSourcePath, const FString& NewProjectName, TArray<FString>& OutGeneratedStartupModuleNames, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
+bool GameProjectUtils::GenerateBasicSourceCode(const FString& NewProjectSourcePath, const FString& NewProjectName, const FString& NewProjectRoot, TArray<FString>& OutGeneratedStartupModuleNames, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
 {
 	const FString GameModulePath = NewProjectSourcePath / NewProjectName;
 	const FString EditorName = NewProjectName + TEXT("Editor");
@@ -1527,7 +1527,7 @@ bool GameProjectUtils::GenerateBasicSourceCode(const FString& NewProjectSourcePa
 	}
 
 	// MyGame resource folder
-	if (GenerateGameResourceFiles(GameModulePath, NewProjectName, OutCreatedFiles, OutFailReason) == false)
+	if (GenerateGameResourceFiles(GameModulePath, NewProjectName, NewProjectRoot, true, OutCreatedFiles, OutFailReason) == false)
 	{
 		return false;
 	}
@@ -2268,63 +2268,60 @@ bool GameProjectUtils::GenerateGameModuleTargetFile(const FString& NewBuildFileN
 	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
 }
 
-bool GameProjectUtils::GenerateGameResourceFile(const FString& NewResourceFolderName, const FString& TemplateFilename, const FString& GameName, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
+bool GameProjectUtils::GenerateGameResourceFiles(const FString& NewResourceFolderName, const FString& GameName, const FString& GameRoot, bool bShouldGenerateCode, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
 {
-	FString Template;
-	if (!ReadTemplateFile(TemplateFilename, Template, OutFailReason))
+#if PLATFORM_WINDOWS
+	// Copy the icon if it doesn't already exist. If we're upgrading a content-only project to code, it will already have one unless it was created before content-only project icons were supported.
+	FString IconFileName = GameRoot / TEXT("Build/Windows/Application.ico");
+	if(!FPaths::FileExists(IconFileName))
 	{
-		return false;
-	}
-
-	FString FinalOutput = Template.Replace(TEXT("%GAME_NAME%"), *GameName, ESearchCase::CaseSensitive);
-	
-	FString OutputFilename = TemplateFilename.Replace(TEXT("_GAME_NAME_"), *GameName);
-	FString FullOutputFilename = NewResourceFolderName / OutputFilename;
-
-	struct Local
-	{
-		static bool WriteFile(const FString& InDestFile, const FText& InFileDescription, FText& OutFailureReason, FString* InFileContents, TArray<FString>* OutCreatedFileList)
+		if(!SourceControlHelpers::CopyFileUnderSourceControl(IconFileName, FPaths::EngineContentDir() / TEXT("Editor/Templates/Resources/Windows/_GAME_NAME_.ico"), LOCTEXT("IconFileDescription", "icon"), OutFailReason))
 		{
-			if (WriteOutputFile(InDestFile, *InFileContents, OutFailureReason))
-			{
-				OutCreatedFileList->Add(InDestFile);
-				return true;
-			}
-
 			return false;
 		}
-	};
-
-	return SourceControlHelpers::CheckoutOrMarkForAdd(FullOutputFilename, LOCTEXT("ResourceFileDescription", "resource"), FOnPostCheckOut::CreateStatic(&Local::WriteFile, &FinalOutput, &OutCreatedFiles), OutFailReason);
-}
-
-bool GameProjectUtils::GenerateGameResourceFiles(const FString& NewResourceFolderName, const FString& GameName, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
-{
-	bool bSucceeded = true;
-	FString TemplateFilename;
-
-#if PLATFORM_WINDOWS
-	FString IconPartialName = TEXT("_GAME_NAME_");
-
-	// Icon (just copy this)
-	TemplateFilename = FString::Printf(TEXT("Resources/Windows/%s.ico"), *IconPartialName);
-	FString FullTemplateFilename = FPaths::EngineContentDir() / TEXT("Editor") / TEXT("Templates") / TemplateFilename;
-	FString OutputFilename = TemplateFilename.Replace(*IconPartialName, *GameName);
-	FString FullOutputFilename = NewResourceFolderName / OutputFilename;
-	bSucceeded &= SourceControlHelpers::CopyFileUnderSourceControl(FullOutputFilename, FullTemplateFilename, LOCTEXT("IconFileDescription", "icon"), OutFailReason);
-	if(bSucceeded)
-	{
-		OutCreatedFiles.Add(FullOutputFilename);
+		OutCreatedFiles.Add(IconFileName);
 	}
+	
+	// Generate a RC script if it's a code project
+	if(bShouldGenerateCode)
+	{
+		FString OutputFilename = NewResourceFolderName / FString::Printf(TEXT("Resources/Windows/%s.rc"), *GameName);
 
-	// RC
-	TemplateFilename = TEXT("Resources/Windows/_GAME_NAME_.rc");
-	bSucceeded &= GenerateGameResourceFile(NewResourceFolderName, TemplateFilename, GameName, OutCreatedFiles, OutFailReason);
+		FString TemplateText;
+		if (!ReadTemplateFile(TEXT("Resources/Windows/_GAME_NAME_.rc"), TemplateText, OutFailReason))
+		{
+			return false;
+		}
+
+		FString RelativeIconPath = IconFileName;
+		FPaths::MakePathRelativeTo(RelativeIconPath, *OutputFilename);
+		TemplateText = TemplateText.Replace(TEXT("%ICON_PATH%"), *RelativeIconPath, ESearchCase::CaseSensitive);
+		TemplateText = TemplateText.Replace(TEXT("%GAME_NAME%"), *GameName, ESearchCase::CaseSensitive);
+
+		struct Local
+		{
+			static bool WriteFile(const FString& InDestFile, const FText& InFileDescription, FText& OutFailureReason, FString* InFileContents, TArray<FString>* OutCreatedFileList)
+			{
+				if (WriteOutputFile(InDestFile, *InFileContents, OutFailureReason))
+				{
+					OutCreatedFileList->Add(InDestFile);
+					return true;
+				}
+
+				return false;
+			}
+		};
+
+		if(!SourceControlHelpers::CheckoutOrMarkForAdd(OutputFilename, LOCTEXT("ResourceFileDescription", "resource"), FOnPostCheckOut::CreateStatic(&Local::WriteFile, &TemplateText, &OutCreatedFiles), OutFailReason))
+		{
+			return false;
+		}
+	}
 #elif PLATFORM_MAC
 	//@todo MAC: Implement MAC version of these files...
 #endif
 
-	return bSucceeded;
+	return true;
 }
 
 bool GameProjectUtils::GenerateEditorModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason)
@@ -2615,7 +2612,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		const FString GameModuleName = FApp::GetGameName();
 
 		TArray<FString> StartupModuleNames;
-		if ( GenerateBasicSourceCode(SourceDir, GameModuleName, StartupModuleNames, CreatedFiles, OutFailReason) )
+		if ( GenerateBasicSourceCode(SourceDir, GameModuleName, FPaths::GameDir(), StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
 			UpdateProject(&StartupModuleNames);
 		}
