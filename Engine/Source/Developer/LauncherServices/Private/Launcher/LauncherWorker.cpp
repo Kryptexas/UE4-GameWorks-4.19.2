@@ -309,6 +309,8 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		}
 	}
 
+	UATCommand  += MapList; 
+
 	// build
 	if (InProfile->IsBuilding())
 	{
