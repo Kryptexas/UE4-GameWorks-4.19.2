@@ -670,7 +670,7 @@ static void DrawWindowPrepass( TSharedRef<SWindow> WindowToDraw )
 
 void FSlateApplication::DrawPrepass( TSharedPtr<SWindow> DrawOnlyThisWindow )
 {
-	SCOPE_CYCLE_COUNTER(STAT_SlateDrawWindowTime);
+
 
 	TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
 
