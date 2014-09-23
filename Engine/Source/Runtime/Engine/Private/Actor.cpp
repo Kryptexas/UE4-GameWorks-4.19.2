@@ -1208,15 +1208,15 @@ void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent,
 		GetComponents(Components);
 
 		for (int32 Index = 0; Index < Components.Num(); ++Index)
-			{
+		{
 			USceneComponent* SceneComp = Components[Index];
-				if (SceneComp->GetAttachParent() == InParentComponent)
-				{
-					SceneComp->DetachFromParent(bMaintainWorldPosition);
-				}
+			if (SceneComp->GetAttachParent() == InParentComponent)
+			{
+				SceneComp->DetachFromParent(bMaintainWorldPosition);
 			}
 		}
 	}
+}
 
 AActor* AActor::GetAttachParentActor() const
 {
