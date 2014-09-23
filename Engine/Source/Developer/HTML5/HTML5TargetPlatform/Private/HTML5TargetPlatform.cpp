@@ -34,7 +34,7 @@ FHTML5TargetPlatform::FHTML5TargetPlatform( )
 		const FString& BrowserName = It.Key.ToString();
 		const FString& BrowserPath = It.Value;
 		if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*It.Value))
-			LocalDevice.Add(MakeShareable(new FHTML5TargetDevice(*this, It.Key.ToString())));
+			LocalDevice.Add(MakeShareable(new FHTML5TargetDevice(*this, FString::Printf(TEXT("%s on %s"), *It.Key.ToString(), FPlatformProcess::ComputerName()))));
 	}
 
 #if WITH_ENGINE
