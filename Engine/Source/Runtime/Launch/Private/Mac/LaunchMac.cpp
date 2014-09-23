@@ -71,10 +71,13 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 {
 	if(!bHasFinishedLaunching && (GSavedCommandLine.IsEmpty() || GSavedCommandLine.Contains(FString(filename))))
 	{
-		Filename = filename;
+		if ([[NSFileManager defaultManager] fileExistsAtPath:filename])
+		{
+			Filename = filename;
+		}
 		return YES;
 	}
-	else
+	else if ([[NSFileManager defaultManager] fileExistsAtPath:filename])
 	{
 		NSString* ProjectName = [[filename stringByDeletingPathExtension] lastPathComponent];
 		
@@ -87,6 +90,10 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 		NSRunningApplication* NewInstance = [[NSWorkspace sharedWorkspace] launchApplicationAtURL:BundleURL options:(NSWorkspaceLaunchOptions)(NSWorkspaceLaunchAsync|NSWorkspaceLaunchNewInstance) configuration:Configuration error:&Error];
 		
 		return (NewInstance != nil);
+	}
+	else
+	{
+		return YES;
 	}
 }
 #endif
