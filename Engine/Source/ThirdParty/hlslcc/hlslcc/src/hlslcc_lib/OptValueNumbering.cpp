@@ -421,6 +421,8 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 	virtual ir_visitor_status visit_enter(ir_if* IR) override
 	{
 		IR->condition->accept(this);
+		check(ExpressionNumberStack.size() == 1);
+		ExpressionNumberStack.pop();
 		// Skip Then/Else
 		return visit_continue_with_parent;
 	}
@@ -574,7 +576,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_enter(ir_assignment* IR) override
 	{
-		printf("* Assignment @ %d\n", IR->id);
+		printf("* Assignment @ %d (stack size %d)\n", IR->id, ExpressionNumberStack.size());
 
 		// Handle LHS
 		printf("\tLHS\n");
