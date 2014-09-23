@@ -144,8 +144,6 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 	/**
 	 * Creates FLogMessage objects from FOutputDevice log callback
 	 *
@@ -157,12 +155,6 @@ public:
 	 * @return true if any messages have been created, false otherwise
 	 */
 	static bool CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, TArray< TSharedPtr<FLogMessage> >& OutMessages );
-
-	/** Request we force scroll to the bottom of the log on the next Tick() */
-	void RequestForceScroll()
-	{
-		bPendingForceScroll = true;
-	}
 
 protected:
 
@@ -187,12 +179,12 @@ private:
 	/** Called when a console command is entered for this output log */
 	void OnConsoleCommandExecuted();
 
+	/** Request we immediately force scroll to the bottom of the log */
+	void RequestForceScroll();
+
 	/** Converts the array of messages into something the text box understands */
 	TSharedPtr< FOutputLogTextLayoutMarshaller > MessagesTextMarshaller;
 
 	/** The editable text showing all log messages */
 	TSharedPtr< SMultiLineEditableTextBox > MessagesTextBox;
-
-	/** Are we pending a force scroll to the bottom of the log? */
-	bool bPendingForceScroll;
 };

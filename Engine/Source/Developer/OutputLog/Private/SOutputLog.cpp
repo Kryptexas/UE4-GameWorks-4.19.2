@@ -659,9 +659,6 @@ FOutputLogTextLayoutMarshaller::FOutputLogTextLayoutMarshaller(TArray< TSharedPt
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SOutputLog::Construct( const FArguments& InArgs )
 {
-	// Force scroll in the first Tick() once we've been sized and populated correctly
-	bPendingForceScroll = true;
-
 	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(MoveTemp(InArgs._Messages));
 
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
@@ -696,6 +693,8 @@ void SOutputLog::Construct( const FArguments& InArgs )
 	];
 	
 	GLog->AddOutputDevice(this);
+
+	RequestForceScroll();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -705,16 +704,6 @@ SOutputLog::~SOutputLog()
 	{
 		GLog->RemoveOutputDevice(this);
 	}
-}
-
-void SOutputLog::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	if(bPendingForceScroll && MessagesTextMarshaller->GetNumMessages() > 0)
-	{
-		MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
-	}
-
-	bPendingForceScroll = false;
 }
 
 bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, TArray< TSharedPtr<FLogMessage> >& OutMessages )
@@ -817,4 +806,12 @@ bool SOutputLog::CanClearLog() const
 void SOutputLog::OnConsoleCommandExecuted()
 {
 	RequestForceScroll();
+}
+
+void SOutputLog::RequestForceScroll()
+{
+	if(MessagesTextMarshaller->GetNumMessages() > 0)
+	{
+		MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
+	}
 }
