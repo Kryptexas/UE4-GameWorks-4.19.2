@@ -1410,7 +1410,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 		}
 	}
 
-	if (InvokeGameplayCueExecute)
+	if (InvokeGameplayCueExecute && Spec.Def->GameplayCues.Num())
 	{
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
 
@@ -1769,13 +1769,20 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(cons
 {
 	Effect.OnRemovedDelegate.Broadcast();
 
-	// Update gameplaytag count and broadcast delegate if we are at 0
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, -1);
-
-	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
+	if (Effect.Spec.Def)
 	{
-		UpdateTagMap(Cue.GameplayCueTags, -1);
+		// Update gameplaytag count and broadcast delegate if we are at 0
+		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+		UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, -1);
+
+		for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
+		{
+			UpdateTagMap(Cue.GameplayCueTags, -1);
+		}
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("InternalOnActiveGameplayEffectRemoved called with no GameplayEffect: %s"), *Effect.Handle.ToString());
 	}
 }
 

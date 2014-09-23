@@ -482,12 +482,18 @@ float UAbilitySystemComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectH
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType)
 {
+	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
+	if (!Spec.Def)
+	{
+		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent Actor %s that has no gameplay effect!"), ActorOwner ? *ActorOwner->GetName() : TEXT("NULL"));
+		return;
+	}
+
 	if (DebugGameplayCues)
 	{
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
 	}
 
-	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
 	IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
 	{
