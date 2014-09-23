@@ -321,16 +321,16 @@ if [ -z "$1" ]; then
   # use bundled Run BuildOpus
   # use bundled Run BuildOgg
   # use bundled Run BuildVorbis
-  Run BuildHLSLCC
-  Run BuildMcpp
+  # use bundled Run BuildHLSLCC
+  # use bundled Run BuildMcpp
   # use bundled Run BuildFreeType
   Run BuildLND
-  Run BuildForsythTriOO
-  Run BuildnvTriStrip
-  Run BuildnvTextureTools
-  Run BuildSDL2
-  Run Buildcoremod
-  Run FixICU
+  # use bundled Run BuildForsythTriOO
+  # use bundled Run BuildnvTriStrip
+  # use bundled Run BuildnvTextureTools
+  # use bundled Run BuildSDL2
+  # use bundled Run Buildcoremod
+  #Run FixICU
 else
   Run $1
 fi
