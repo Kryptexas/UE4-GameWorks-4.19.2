@@ -63,15 +63,14 @@ private:
 	// Callback for getting the text in the 'Entries' column.
 	FText HandleNameColumnText( ) const
 	{
-		const FText CategoryName = FText::FromString(LogListing->GetName().ToString());
 		int32 NumMessages = LogListing->GetFilteredMessages().Num();
 
 		if (NumMessages == 0)
 		{
-			return FText::Format(LOCTEXT("ColumnNameFormat", "{0}"), CategoryName);
+			return LogListing->GetLabel();
 		}
 
-		return FText::Format(LOCTEXT("ColumnNameCountFormat", "{0} ({1})"), CategoryName, FText::AsNumber(NumMessages));		
+		return FText::Format(LOCTEXT("ColumnNameCountFormat", "{0} ({1})"), LogListing->GetLabel(), FText::AsNumber(NumMessages));		
 	}
 
 	// Callback for getting the text color.
