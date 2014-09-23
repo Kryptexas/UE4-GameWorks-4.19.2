@@ -28,12 +28,7 @@ void UTextBlock::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
-	if ( MyTextBlock.IsValid() )
-	{
-		MyTextBlock->SetTextStyle(UTextBlock::GetDefaultStyle());
-
-		MyTextBlock.Reset();
-	}
+	MyTextBlock.Reset();
 }
 
 void UTextBlock::SetColorAndOpacity(FSlateColor InColorAndOpacity)
