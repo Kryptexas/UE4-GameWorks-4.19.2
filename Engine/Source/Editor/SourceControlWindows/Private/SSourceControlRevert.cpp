@@ -422,9 +422,14 @@ bool FSourceControlWindows::PromptForRevert( const TArray<FString>& InPackageNam
 
 				if (PackagesToUnload.Num() == 0 || PackageTools::UnloadPackages(PackagesToUnload))
 				{
-					for (auto PackageIter(PackagesToUnload.CreateIterator()); PackageIter; ++PackageIter)
+					// Iterate over the names again, the UPackage*'s may be invalid if they have been GC'd
+					for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
 					{
-						(*PackageIter)->ClearFlags(RF_WasLoaded);
+						UPackage* Package = FindPackage(NULL, **PackageIter);
+						if (Package != NULL)
+						{
+							Package->ClearFlags(RF_WasLoaded);
+						}
 					}
 
 					SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlHelpers::PackageFilenames(PackagesToRevert));
