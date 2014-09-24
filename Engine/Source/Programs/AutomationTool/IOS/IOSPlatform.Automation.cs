@@ -833,6 +833,11 @@ public class IOSPlatform : Platform
 		return false;
 	}
 
+    public override PakType RequiresPak(ProjectParams Params)
+    {
+        return PakType.Always;
+    }
+
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{
 		// we shouldn't modify the case on files like Info.plist or the icons

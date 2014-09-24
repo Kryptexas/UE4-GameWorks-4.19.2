@@ -390,7 +390,7 @@ public partial class Project : CommandUtils
 			CopyManifestFilesToStageDir(SC.NonUFSStagingFilesDebug, SC.StageDirectory, "DebugFiles");
 		}
 
-		bool bStageUnrealFileSystemFiles = !Params.CookOnTheFly && !Params.Pak && !Params.FileServer;
+        bool bStageUnrealFileSystemFiles = !Params.CookOnTheFly && !ShouldCreatePak(Params) && !Params.FileServer;
 		if (bStageUnrealFileSystemFiles)
 		{
 			CopyManifestFilesToStageDir(SC.UFSStagingFiles, SC.StageDirectory, "UFSFiles");
@@ -646,12 +646,46 @@ public partial class Project : CommandUtils
 
 	private static bool ShouldCreatePak(ProjectParams Params, DeploymentContext SC)
 	{
-		return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak) || SC.StageTargetPlatform.RequiresPak(Params)) && !Params.SkipPak;
+        Platform.PakType Pak = SC.StageTargetPlatform.RequiresPak(Params);
+
+        // we may care but we don't want. 
+        if (Params.SkipPak)
+            return false; 
+
+        if (Pak == Platform.PakType.Always)
+        {
+            return true;
+        }
+        else if (Pak == Platform.PakType.Never)
+        {
+            return false;
+        }
+        else // DontCare
+        {
+            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+        }
 	}
 
 	private static bool ShouldCreatePak(ProjectParams Params)
 	{
-		return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak) || Params.ClientTargetPlatformInstances[0].RequiresPak(Params)) && !Params.SkipPak;
+        Platform.PakType Pak = Params.ClientTargetPlatformInstances[0].RequiresPak(Params);
+
+        // we may care but we don't want. 
+        if (Params.SkipPak)
+            return false; 
+
+        if (Pak == Platform.PakType.Always)
+        {
+            return true;
+        }
+        else if (Pak == Platform.PakType.Never)
+        {
+            return false;
+        }
+        else // DontCare
+        {
+            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+        }
 	}
 
 	public static void ApplyStagingManifest(ProjectParams Params, DeploymentContext SC)

@@ -410,6 +410,11 @@ public class HTML5Platform : Platform
 		return false;
 	}
 
+    public override PakType RequiresPak(ProjectParams Params)
+    {
+        return PakType.Never;
+    }
+
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{
 		return false;

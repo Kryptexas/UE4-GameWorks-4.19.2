@@ -813,11 +813,11 @@ public class AndroidPlatform : Platform
 		return Dest;
 	}
 
-	public override bool RequiresPak(ProjectParams Params)
+	public override PakType RequiresPak(ProjectParams Params)
 	{
-		return Params.Package;
+		return PakType.Always;
 	}
-
+    
 	#region Hooks
 
 	public override void PostBuildTarget(UE4Build Build, string ProjectName, string UProjectPath, string Config)
