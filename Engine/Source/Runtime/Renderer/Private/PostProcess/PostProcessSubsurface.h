@@ -16,7 +16,8 @@
 class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 1>
 {
 public:
-	FRCPassPostProcessSubsurfaceSetup(bool bInVisualize);
+	// @param bInHalfRes if the output shoudl be half resolution to scene color
+	FRCPassPostProcessSubsurfaceSetup(bool bInVisualize, bool bInHalfRes = false);
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
@@ -24,6 +25,8 @@ public:
 	virtual void Release() override { delete this; }
 
 	bool bVisualize;
+	// if the output shoudl be half resolution to scene color
+	bool bHalfRes;
 };
 
 
@@ -37,7 +40,7 @@ public:
 	// constructor
 	// @param Pass 0:horizontal/1:vertical
 	// @param InRadius in pixels in the full res image
-	FRCPassPostProcessSubsurface(uint32 Pass, float InRadius);
+	FRCPassPostProcessSubsurface(uint32 Pass, float InRadius, bool bInHalfRes = false);
 
 	// interface FRenderingCompositePass ---------
 
@@ -50,4 +53,6 @@ private:
 	float Radius;
 	// 0:horizontal/1:vertical
 	uint32 Pass;
+	// if the output should be half resolution to scene color
+	bool bHalfRes;
 };

@@ -45,10 +45,19 @@ float GetSubsurfaceStrength(float2 UV)
 	#define SETUP_MODE 0
 #endif
 
+
 #if SETUP_MODE == 0
 	#define SSSS_SPECULAR_CORRECTION 0
+	#define SETUP_HALF_RES 0
 #elif SETUP_MODE == 1
 	#define SSSS_SPECULAR_CORRECTION 1
+	#define SETUP_HALF_RES 0
+#elif SETUP_MODE == 3
+	#define SSSS_SPECULAR_CORRECTION 0
+	#define SETUP_HALF_RES 1
+#elif SETUP_MODE == 4
+	#define SSSS_SPECULAR_CORRECTION 1
+	#define SETUP_HALF_RES 1
 #else
 	// doesn't matter
 	#define SSSS_SPECULAR_CORRECTION 0
@@ -104,6 +113,27 @@ bool InUnitBox(float2 UV)
 	return UV.x >= 0 && UV.y >= 0 && UV.y < 1 && UV.y < 1;
 }
 
+float3 SetupSubsurfaceForOnePixel(float2 UV)
+{
+	float3 Ret = 0;
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+
+	FLATTEN if (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE)
+	{
+		float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+
+#if SSSS_SPECULAR_CORRECTION == 1
+		// we take out the specular highlights
+		Ret = LightAccumulator_ReconstructDiffuseLighting(SceneColor4);
+#else
+		Ret = SceneColor4.rgb;
+#endif
+	}
+
+	return Ret;
+}
+
 void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
@@ -113,21 +143,16 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 	// if not VisualizeSSS
 	if (SETUP_MODE != 2)
 	{
-		FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+#if SETUP_HALF_RES
+		OutColor.rgb += SetupSubsurfaceForOnePixel(UV + float2(-0.5, -0.5f) * PostprocessInput0Size.zw);
+		OutColor.rgb += SetupSubsurfaceForOnePixel(UV + float2( 0.5, -0.5f) * PostprocessInput0Size.zw);
+		OutColor.rgb += SetupSubsurfaceForOnePixel(UV + float2(-0.5,  0.5f) * PostprocessInput0Size.zw);
+		OutColor.rgb += SetupSubsurfaceForOnePixel(UV + float2( 0.5,  0.5f) * PostprocessInput0Size.zw);
 
-		FLATTEN if (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE)
-		{
-			float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
-
-#if SSSS_SPECULAR_CORRECTION == 1
-			// we take out the specular highlights
-			float3 Lighting = LightAccumulator_ReconstructDiffuseLighting(SceneColor4);
+		OutColor *= 0.25f;
 #else
-			float3 Lighting = SceneColor4.rgb;
+		OutColor.rgb = SetupSubsurfaceForOnePixel(UV);
 #endif
-
-			OutColor.rgb = Lighting;
-		}
 	}
 	else
 	{
@@ -136,7 +161,7 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 
 		int2 PixelPos = (int2)(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
 
-		float2 ViewLocalUV = (PixelPos - View.ViewRectMin) / View.ViewSizeAndSceneTexelSize;
+		float2 ViewLocalUV = (PixelPos - View.ViewRectMin.xy) * View.ViewSizeAndSceneTexelSize.zw;
 
 
 		float2 IDAreaLocalUV = ViewLocalUV * 2 - 1.0f;
@@ -204,6 +229,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 
+
 	// call into "SeparableSSS.usf"
 
 	// in world units, *0.01 to scale from units(cm) to m
@@ -229,11 +255,15 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 #if SSS_METHOD > 0
 	// on second pass we recombine with the scene color
 
-	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+	// can be optimized
+	float2 PixelPos = UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw;
+	float2 UVSceneColor = (PixelPos + 0.5f) * View.ViewSizeAndSceneTexelSize.zw;
+
+	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor);
 
 	float4 SSSColor = OutColor;
 
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UVSceneColor);
 
 	SSSColor.a = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE);
 

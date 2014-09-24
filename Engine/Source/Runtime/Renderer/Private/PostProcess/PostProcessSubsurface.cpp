@@ -25,7 +25,7 @@ static TAutoConsoleVariable<int32> CVarSSSSampleSet(
 
 /**
  * Encapsulates the post processing ambient occlusion pixel shader.
- * @param SetupMode 0:without specular correction, 1: with specular correction, 2:visualize
+ * @param SetupMode 0:without specular correction, 1: with specular correction, 2:visualize, 3: half res without specular correction, 4:half res with specular correction
  */
 template <uint32 SetupMode>
 class FPostProcessSubsurfaceSetupPS : public FGlobalShader
@@ -94,7 +94,7 @@ public:
 #define VARIATION1(A) typedef FPostProcessSubsurfaceSetupPS<A> FPostProcessSubsurfaceSetupPS##A; \
 	IMPLEMENT_SHADER_TYPE2(FPostProcessSubsurfaceSetupPS##A, SF_Pixel);
 
-	VARIATION1(0) VARIATION1(1) VARIATION1(2)
+	VARIATION1(0) VARIATION1(1) VARIATION1(2) VARIATION1(3) VARIATION1(4)
 
 #undef VARIATION1
 
@@ -137,8 +137,9 @@ static bool DoSpecularCorrection()
 	return CVarState && (SceneColorFormat >= 4);
 }
 
-FRCPassPostProcessSubsurfaceSetup::FRCPassPostProcessSubsurfaceSetup(bool bInVisualize)
+FRCPassPostProcessSubsurfaceSetup::FRCPassPostProcessSubsurfaceSetup(bool bInVisualize, bool bInHalfRes)
 	: bVisualize(bInVisualize)
+	, bHalfRes(bInHalfRes)
 {
 	if (bVisualize)
 	{
@@ -148,7 +149,7 @@ FRCPassPostProcessSubsurfaceSetup::FRCPassPostProcessSubsurfaceSetup(bool bInVis
 
 void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSubsurfaceSetup, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, SubsurfaceSetup, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -168,7 +169,13 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 	uint32 ScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / SrcSize.X;
 
 	FIntRect SrcRect = View.ViewRect / ScaleFactor;
-	FIntRect DestRect = SrcRect;
+	FIntRect DestRect = bHalfRes ? FIntRect::DivideAndRoundUp(SrcRect, 2) : SrcRect;
+
+	if(bHalfRes)
+	{
+		// upscale rectangle to not slightly scale
+		SrcRect = DestRect * 2;
+	}
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -191,15 +198,30 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 	}
 	else
 	{
-		if (DoSpecularCorrection())
+		// reconstruct specular and add it in final pass
+		bool bSpecularCorrection = DoSpecularCorrection();
+
+		if(bHalfRes)
 		{
-			// with separate specular
-			SetSubsurfaceSetupShader<1>(Context);
+			if(bSpecularCorrection)
+			{
+				SetSubsurfaceSetupShader<4>(Context);
+			}
+			else
+			{
+				SetSubsurfaceSetupShader<3>(Context);
+			}
 		}
 		else
 		{
-			// no separate specular
-			SetSubsurfaceSetupShader<0>(Context);
+			if(bSpecularCorrection)
+			{
+				SetSubsurfaceSetupShader<1>(Context);
+			}
+			else
+			{
+				SetSubsurfaceSetupShader<0>(Context);
+			}
 		}
 	}
 
@@ -278,6 +300,14 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPa
 	Ret.DebugName = TEXT("SubsurfaceSetup");
 	// we don't need alpha any more
 	Ret.Format = PF_FloatRGB;
+
+	if(bHalfRes)
+	{
+		Ret.Extent  = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
+
+		Ret.Extent.X = FMath::Max(1, Ret.Extent.X);
+		Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
+	}
 
 	return Ret;
 }
@@ -382,9 +412,10 @@ public:
 #undef VARIATION2
 
 
-FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InPass, float InRadius)
+FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InPass, float InRadius, bool bInHalfRes)
 	: Radius(InRadius)
 	, Pass(InPass) 
+	, bHalfRes(bInHalfRes) 
 {
 }
 
@@ -436,13 +467,13 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
-	FIntPoint DestSize = SrcSize;
+	FIntPoint DestSize = (Pass == 0) ? PassOutputs[0].RenderTargetDesc.Extent : GSceneRenderTargets.GetBufferSizeXY();
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
 	uint32 ScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / SrcSize.X;
 
 	FIntRect SrcRect = View.ViewRect / ScaleFactor;
-	FIntRect DestRect = SrcRect;
+	FIntRect DestRect = bHalfRes ? SrcRect : View.ViewRect;
 
 	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 
@@ -476,7 +507,10 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
-	SCOPED_DRAW_EVENT(Context.RHICmdList, SubsurfacePass, DEC_SCENE_ITEMS);
+	const TCHAR* PassNames[] = { TEXT("X"), TEXT("Y") };
+	check(Pass < sizeof(PassNames) / sizeof(PassNames[0]));
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, SubsurfacePass, DEC_SCENE_ITEMS, PassNames[Pass]);
 
 	uint32 SampleSet = FMath::Clamp(CVarSSSSampleSet.GetValueOnRenderThread(), 0, 2);
 
@@ -533,6 +567,16 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurface::ComputeOutputDesc(EPassOut
 
 	Ret.Reset();
 	Ret.DebugName = (Pass == 0) ? TEXT("SubsurfaceTemp") : TEXT("SceneColor");
+	// the setup was done in half res but the actual sampling happens in full resolution
+	Ret.Extent = GSceneRenderTargets.GetBufferSizeXY();
+
+	if(bHalfRes)
+	{
+		Ret.Extent  = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
+
+		Ret.Extent.X = FMath::Max(1, Ret.Extent.X);
+		Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
+	}
 
 	return Ret;
 }

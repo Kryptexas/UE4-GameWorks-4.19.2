@@ -39,6 +39,14 @@ static TAutoConsoleVariable<float> CVarSSSScale(
 	TEXT(">1: scale scatter radius up (for testing)"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarSSSHalfRes(
+	TEXT("r.SSS.HalfRes"),
+	2,
+	TEXT("0: full quality (default)\n")
+	TEXT("1: half resolution setup, low quality but faster (currently minor shift from SubsurfaceSetup to SubsurfaceTemp)\n")
+	TEXT("2: also half horizontal during first blurring step, lower quality, even faster"),
+	ECVF_RenderThreadSafe  | ECVF_Scalability);
+
 static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 {
 	FScene* Scene = (FScene*)Context.View.Family->Scene;
@@ -357,10 +365,12 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
 			{
-				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(false));
+				int32 HalfRes = CVarSSSHalfRes.GetValueOnRenderThread();
+
+				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(false, HalfRes > 0));
 				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
-				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius));
+				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius, HalfRes > 1));
 				Pass0->SetInput(ePId_Input1, PassSetup);
 
 				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, Radius));
