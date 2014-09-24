@@ -3,8 +3,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_Object.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Object"))
-class UBlackboardKeyType_Object : public UBlackboardKeyType
+UCLASS(EditInlineNew, meta=(DisplayName="Object"))
+class AIMODULE_API UBlackboardKeyType_Object : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 

@@ -9,7 +9,7 @@
  * A sequence node runs each child in turn until one fails, in which case the sequence succeeds.
  */
 UCLASS()
-class UBTComposite_Sequence : public UBTCompositeNode
+class AIMODULE_API UBTComposite_Sequence : public UBTCompositeNode
 {
 	GENERATED_UCLASS_BODY()
 

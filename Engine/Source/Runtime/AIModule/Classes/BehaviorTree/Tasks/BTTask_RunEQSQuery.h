@@ -14,8 +14,8 @@ struct FBTEnvQueryTaskMemory
  * Run Environment Query System Query task node.
  * Runs the specified environment query when executed.
  */
-UCLASS(MinimalAPI)
-class UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
+UCLASS()
+class AIMODULE_API UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
 {
 	GENERATED_UCLASS_BODY()
 

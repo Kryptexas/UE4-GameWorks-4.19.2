@@ -3,8 +3,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_Enum.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Enum"))
-class UBlackboardKeyType_Enum : public UBlackboardKeyType
+UCLASS(EditInlineNew, meta=(DisplayName="Enum"))
+class AIMODULE_API UBlackboardKeyType_Enum : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 

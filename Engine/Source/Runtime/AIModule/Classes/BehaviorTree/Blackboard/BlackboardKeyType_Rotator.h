@@ -2,8 +2,8 @@
 #pragma once
 #include "BlackboardKeyType_Rotator.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Rotator"))
-class UBlackboardKeyType_Rotator : public UBlackboardKeyType
+UCLASS(EditInlineNew, meta=(DisplayName="Rotator"))
+class AIMODULE_API UBlackboardKeyType_Rotator : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
