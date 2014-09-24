@@ -4500,8 +4500,8 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 
 		Set( "PlayWorld.RepeatLastPlay", new IMAGE_BRUSH( "Icons/icon_simulate_40x", Icon40x40 ) );
 		Set( "PlayWorld.RepeatLastPlay.Small", new IMAGE_BRUSH( "Icons/icon_simulate_40x", Icon20x20 ) );
-		Set( "PlayWorld.PlayInViewport", new IMAGE_BRUSH( "Icons/icon_simulate_40x", Icon40x40 ) );
-		Set( "PlayWorld.PlayInViewport.Small", new IMAGE_BRUSH( "Icons/icon_simulate_40x", Icon20x20 ) );
+		Set( "PlayWorld.PlayInViewport", new IMAGE_BRUSH("Icons/icon_playInSelectedViewport_40x", Icon40x40 ) );
+		Set( "PlayWorld.PlayInViewport.Small", new IMAGE_BRUSH("Icons/icon_playInSelectedViewport_40x", Icon20x20 ) );
 		Set( "PlayWorld.PlayInEditorFloating", new IMAGE_BRUSH( "Icons/icon_playInWindow_40x", Icon40x40 ) );
 		Set( "PlayWorld.PlayInEditorFloating.Small", new IMAGE_BRUSH( "Icons/icon_playInWindow_40x", Icon20x20 ) );
 		Set( "PlayWorld.PlayInMobilePreview", new IMAGE_BRUSH( "Icons/icon_PlayMobilePreview_40x", Icon40x40 ) );
