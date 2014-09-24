@@ -217,8 +217,16 @@ FScopedPredictionWindow::FScopedPredictionWindow(UGameplayAbility* GameplayAbili
 	{
 		ClientPrevActivationMode = static_cast<int8>(ActivationInfo.ActivationMode);
 
-		ActivationInfo.GenerateNewPredictionKey();
-		ScopedPredictionKey = ActivationInfo.GetPredictionKeyForNewAction();
+		if (Owner->ScopedPedictionKey.IsValidKey())
+		{
+			ActivationInfo.SetPredictionKey(Owner->ScopedPedictionKey);
+			ActivationInfo.ActivationMode = EGameplayAbilityActivationMode::Predicting;
+		}
+		else
+		{
+			ActivationInfo.GenerateNewPredictionKey();
+			ScopedPredictionKey = ActivationInfo.GetPredictionKeyForNewAction();
+		}
 	}
 }
 

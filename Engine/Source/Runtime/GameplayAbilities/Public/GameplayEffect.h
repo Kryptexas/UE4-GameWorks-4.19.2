@@ -366,6 +366,11 @@ public:
 	TSubclassOf<class UGameplayEffectStackingExtension> StackingExtension;
 
 
+	/** Hack! Fixes issues in PIE when you create a dataasset and it cant be used in networking until you reload the editor */
+	bool IsNameStableForNetworking() const override
+	{
+		return true;
+	}
 
 protected:
 	void ValidateStacking();
@@ -982,7 +987,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	void PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray);
 	void PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray);
-	void PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray) { }
+	void PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray);
 
 	bool operator==(const FActiveGameplayEffect& Other)
 	{

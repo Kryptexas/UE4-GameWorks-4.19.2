@@ -1201,6 +1201,14 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 	StartWorldTime = WorldTimeSeconds - static_cast<float>(DeltaGameStateTime);
 }
 
+void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray)
+{
+	if (Spec.Def == nullptr)
+	{
+		ABILITY_LOG(Error, TEXT("Received ReplicatedGameplayEffect with no UGameplayEffect def."));
+	}
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	FActiveGameplayEffectsContainer

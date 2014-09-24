@@ -517,10 +517,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 */
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void ServerSetReplicatedConfirm(bool Confirmed);
+	void ServerSetReplicatedConfirm(bool Confirmed, FPredictionKey PredictionKey);
 
 	UFUNCTION(Server, reliable, WithValidation)
-	void ServerSetReplicatedTargetData(FGameplayAbilityTargetDataHandle ReplicatedTargetData);
+	void ServerSetReplicatedTargetData(FGameplayAbilityTargetDataHandle ReplicatedTargetData, FPredictionKey PredictionKey);
 
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedTargetDataCancelled();
@@ -563,8 +563,7 @@ private:
 		return (GlobalCurveDataOverride.Overrides.Num() > 0 ? &GlobalCurveDataOverride : NULL);
 	}
 
-	FGlobalCurveDataOverride	GlobalCurveDataOverride;
-	
+	FGlobalCurveDataOverride	GlobalCurveDataOverride;	
 
 	// --------------------------------------------
 	

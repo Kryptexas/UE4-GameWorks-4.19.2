@@ -17,7 +17,7 @@ public:
 	bool StaticTargetFunction;
 
 	/** The TargetData this class produces can be entirely generated on the server. We don't require the client to send us full or partial TargetData (possibly just a 'confirm') */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Advanced)
 	bool ShouldProduceTargetDataOnServer;
 
 	/** Describes where the targeting action starts, usually the player character or a socket on the player character. */

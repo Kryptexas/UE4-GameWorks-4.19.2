@@ -877,10 +877,13 @@ void UAbilitySystemComponent::AbilitySpectInputReleased(FGameplayAbilitySpec& Sp
 
 void UAbilitySystemComponent::InputConfirm()
 {
+	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+	FScopedPredictionWindow ScopedPrediction(this, NewKey);
+
 	if (GetOwnerRole() != ROLE_Authority && ConfirmCallbacks.IsBound())
 	{
 		// Tell the server we confirmed input.
-		ServerSetReplicatedConfirm(true);
+		ServerSetReplicatedConfirm(true, NewKey);
 	}
 	
 	ConfirmCallbacks.Broadcast();
@@ -888,10 +891,13 @@ void UAbilitySystemComponent::InputConfirm()
 
 void UAbilitySystemComponent::InputCancel()
 {
+	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+	FScopedPredictionWindow ScopedPrediction(this, NewKey);
+
 	if (GetOwnerRole() != ROLE_Authority && CancelCallbacks.IsBound())
 	{
 		// Tell the server we confirmed input.
-		ServerSetReplicatedConfirm(false);
+		ServerSetReplicatedConfirm(false, NewKey);
 	}
 
 	CancelCallbacks.Broadcast();
@@ -941,8 +947,10 @@ void UAbilitySystemComponent::TargetCancel()
 
 // --------------------------------------------------------------------------
 
-void UAbilitySystemComponent::ServerSetReplicatedConfirm_Implementation(bool Confirmed)
+void UAbilitySystemComponent::ServerSetReplicatedConfirm_Implementation(bool Confirmed, FPredictionKey PredictionKey)
 {
+	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
+
 	if (Confirmed)
 	{
 		ReplicatedConfirmAbility = true;
@@ -955,20 +963,22 @@ void UAbilitySystemComponent::ServerSetReplicatedConfirm_Implementation(bool Con
 	}
 }
 
-bool UAbilitySystemComponent::ServerSetReplicatedConfirm_Validate(bool Confirmed)
+bool UAbilitySystemComponent::ServerSetReplicatedConfirm_Validate(bool Confirmed, FPredictionKey PredictionKey)
 {
 	return true;
 }
 
 // -------
 
-void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGameplayAbilityTargetDataHandle Confirmed)
+void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGameplayAbilityTargetDataHandle Confirmed, FPredictionKey PredictionKey)
 {
+	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
+
 	ReplicatedTargetData = Confirmed;
 	ReplicatedTargetDataDelegate.Broadcast(ReplicatedTargetData);
 }
 
-bool UAbilitySystemComponent::ServerSetReplicatedTargetData_Validate(FGameplayAbilityTargetDataHandle Confirmed)
+bool UAbilitySystemComponent::ServerSetReplicatedTargetData_Validate(FGameplayAbilityTargetDataHandle Confirmed, FPredictionKey PredictionKey)
 {
 	return true;
 }

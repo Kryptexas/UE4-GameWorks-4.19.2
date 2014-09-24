@@ -340,7 +340,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 	// Make sure we create our copy of the spec in the right place first...
 	FActiveGameplayEffectHandle	MyHandle;
-	bool bInvokeGameplayCueApplied = UGameplayEffect::INFINITE_DURATION == Spec.GetDuration();
+	bool bInvokeGameplayCueApplied = UGameplayEffect::INSTANT_APPLICATION != Spec.GetDuration(); // Cache this now before possibly modifying predictive instant effect to infinite duration effect.
 
 	FGameplayEffectSpec* OurCopyOfSpec = NULL;
 	TSharedPtr<FGameplayEffectSpec> StackSpec;
@@ -578,7 +578,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag Gameplay
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)
 {
-	if (PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
 		InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
 	}
@@ -586,7 +586,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Im
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
-	if (PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
 	}
@@ -594,7 +594,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementat
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
-	if (PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
 	}
