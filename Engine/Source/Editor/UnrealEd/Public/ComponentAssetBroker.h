@@ -42,7 +42,7 @@ class UNREALED_API FComponentAssetBrokerage
 {
 public:
 	/** Find set of components that support this asset */
-	static TArray< TSubclassOf<UActorComponent> > GetComponentsForAsset(UObject* InAsset);
+	static TArray< TSubclassOf<UActorComponent> > GetComponentsForAsset(const UObject* InAsset);
 
 	/** Get the primary component for this asset*/
 	static TSubclassOf<UActorComponent> GetPrimaryComponentForAsset(UClass* InAssetClass);

@@ -35,10 +35,17 @@ public:
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
+	virtual FText GetDefaultMenuTooltip() const;
 	virtual FText GetDefaultMenuCategory() const override;
+	virtual FString GetDefaultSearchKeywords() const override;
 	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const override;
 	// End UBlueprintNodeSpawner interface
 	
+	// IBlueprintNodeBinder interface
+	virtual bool IsBindingCompatible(UObject const* BindingCandidate) const override;
+	virtual bool BindToNode(UEdGraphNode* Node, UObject* Binding) const override;
+	// End IBlueprintNodeBinder interface
+
 	/**
 	 * Retrieves the component class that this configures spawned nodes with.
 	 *

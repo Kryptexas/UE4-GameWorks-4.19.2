@@ -25,9 +25,10 @@
 
 namespace BlueprintActionMenuUtilsImpl
 {
-	static int32 const MainMenuSectionGroup   = 000;
-	static int32 const ComponentsSectionGroup = 100;
 	static int32 const LevelActorSectionGroup = 101;
+	static int32 const ComponentsSectionGroup = 100;
+	static int32 const BoundAddComponentGroup = 002;
+	static int32 const MainMenuSectionGroup   = 000;
 
 	/**
 	 * Additional filter rejection test, for menu sections that only contain 
@@ -49,8 +50,22 @@ namespace BlueprintActionMenuUtilsImpl
 	 */
 	static bool IsNonFavoritedAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
 	static bool IsPureNonConstAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
 	static bool IsUnexposedMemberAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
@@ -406,6 +421,20 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		}
 	}
 
+	FBlueprintActionFilter AddComponentFilter;
+	AddComponentFilter.Context = MainMenuFilter.Context;
+	AddComponentFilter.PermittedNodeTypes.Add(UK2Node_AddComponent::StaticClass());
+	AddComponentFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
+
+	for (FSelectionIterator SelectionIt(*GEditor->GetSelectedObjects()); SelectionIt; ++SelectionIt)
+	{
+		UObject* PerspectiveAsset = *SelectionIt;
+		if (PerspectiveAsset->IsAsset())
+		{
+			AddComponentFilter.Context.SelectedObjects.Add(PerspectiveAsset);
+		}
+	}
+
 	//--------------------------------------
 	// Defining Menu Sections
 	//--------------------------------------	
@@ -418,7 +447,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	}
 	// for legacy purposes, we have to add the main menu section first (when 
 	// reconstructing the legacy menu, we pull the first menu system)
-	MenuOut.AddMenuSection(MainMenuFilter);
+	MenuOut.AddMenuSection(MainMenuFilter, FText::GetEmpty(), MainMenuSectionGroup);
 
 	bool const bAddComponentsSection = bIsContextSensitive && bCanHaveActorComponents && (ComponentsFilter.Context.SelectedObjects.Num() > 0);
 	// add the components section to the menu (if we don't have any components
@@ -437,7 +466,8 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	if (bIsContextSensitive)
 	{
-		MenuOut.AddMenuSection(CallOnMemberFilter);
+		MenuOut.AddMenuSection(CallOnMemberFilter, FText::GetEmpty(), MainMenuSectionGroup);
+		MenuOut.AddMenuSection(AddComponentFilter, FText::GetEmpty(), BoundAddComponentGroup);
 	}	
 
 	//--------------------------------------

@@ -243,7 +243,7 @@ bool FComponentAssetBrokerage::bShutSystemDown = false;
 // FComponentAssetBrokerageage
 
 /** Find set of components that support this asset */
-FComponentClassList FComponentAssetBrokerage::GetComponentsForAsset(UObject* InAsset)
+FComponentClassList FComponentAssetBrokerage::GetComponentsForAsset(const UObject* InAsset)
 {
 	InitializeMap();
 	FComponentClassList OutClasses;

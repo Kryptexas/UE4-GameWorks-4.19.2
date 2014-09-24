@@ -5,6 +5,7 @@
 #include "K2Node_AddComponent.h"
 #include "ClassIconFinder.h" // for FindIconNameForClass()
 #include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
+#include "ComponentAssetBroker.h" // for GetComponentsForAsset()/AssignAssetToComponent()
 
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"
 
@@ -51,18 +52,26 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 	check(ComponentClass != nullptr);
 	
 	auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FCustomizeNodeDelegate UserDelegate)
-	{
-		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
-		
+	{		
 		UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(NewNode);
 		UBlueprint* Blueprint = AddCompNode->GetBlueprint();
 		
 		UFunction* AddComponentFunc = FindFieldChecked<UFunction>(AActor::StaticClass(), UK2Node_AddComponent::GetAddComponentFunctionName());
 		AddCompNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, FBlueprintEditorUtils::IsActorBased(Blueprint));
+
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
 	};
+
 	FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, CustomizeNodeDelegate);
-	
-	UK2Node_AddComponent* NewNode = Super::SpawnNode<UK2Node_AddComponent>(NodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate);
+	// let SpawnNode() allocate default pins (so we can modify them)
+	UK2Node_AddComponent* NewNode = Super::SpawnNode<UK2Node_AddComponent>(NodeClass, ParentGraph, FBindingSet(), Location, PostSpawnDelegate);
+
+	// set the return type to be the type of the template
+	UEdGraphPin* ReturnPin = NewNode->GetReturnValuePin();
+	if (ReturnPin != nullptr)
+	{
+		ReturnPin->PinType.PinSubCategoryObject = *ComponentClass;
+	}
 
 	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
 	if (!bIsTemplateNode)
@@ -79,22 +88,10 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 		{
 			TemplateNamePin->DefaultValue = ComponentTemplate->GetName();
 		}
-
-		// set the return type to be the type of the template
-		UEdGraphPin* ReturnPin = NewNode->GetReturnValuePin();
-		if (ReturnPin != nullptr)
-		{
-			ReturnPin->PinType.PinSubCategoryObject = *ComponentClass;
-		}
-
-		// @TODO:
-// 		if (ComponentAsset != NULL)
-// 		{
-// 			FComponentAssetBrokerage::AssignAssetToComponent(ComponentTemplate, ComponentAsset);
-// 		}
-
-		NewNode->ReconstructNode();
 	}
+
+	// apply bindings, after we've setup the template pin
+	ApplyBindings(NewNode, Bindings);
 
 	return NewNode;
 }
@@ -108,7 +105,29 @@ FText UBlueprintComponentNodeSpawner::GetDefaultMenuName(FBindingSet const& Bind
 		// FText::Format() is slow, so we cache this to save on performance
 		CachedMenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), FText::FromName(ComponentClass->GetFName()));
 	}
-	return CachedMenuName;
+	FText MenuName = CachedMenuName.GetCachedText();
+
+	if (Bindings.Num() > 0)
+	{
+		FText AssetName;
+		if (UObject* AssetBinding = Bindings.CreateConstIterator()->Get())
+		{
+			AssetName = FText::FromName(AssetBinding->GetFName());
+		}
+
+		FText const ComponentTypeName = FText::FromName(ComponentClass->GetFName());
+		MenuName = FText::Format(LOCTEXT("AddBoundComponentMenuName", "Add {0} (as {1})"), AssetName, ComponentTypeName);
+	}
+	return MenuName;
+}
+
+//------------------------------------------------------------------------------
+FText UBlueprintComponentNodeSpawner::GetDefaultMenuTooltip() const
+{
+	FText const ComponentTypeName = FText::FromName(ComponentClass->GetFName());
+	// @TODO: consider caching this, and provide a separate tooltip for when the
+	//        node would be bound ("Spawn a {0} using {1}").
+	return FText::Format(LOCTEXT("AddComponentTooltip", "Spawn a {0}"), ComponentTypeName);
 }
 
 //------------------------------------------------------------------------------
@@ -139,10 +158,46 @@ FText UBlueprintComponentNodeSpawner::GetDefaultMenuCategory() const
 }
 
 //------------------------------------------------------------------------------
+FString UBlueprintComponentNodeSpawner::GetDefaultSearchKeywords() const
+{
+	FString SearchKeywords = ComponentClass->GetMetaData(FBlueprintMetadata::MD_FunctionKeywords);
+	// add at least one character, so that the menu item doesn't attempt to
+	// ping a template node
+	return SearchKeywords.AppendChar(TEXT(' '));
+}
+
+//------------------------------------------------------------------------------
 FName UBlueprintComponentNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 {
 	check(ComponentClass != nullptr);
 	return FClassIconFinder::FindIconNameForClass(ComponentClass);
+}
+
+//------------------------------------------------------------------------------
+bool UBlueprintComponentNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
+{
+	bool bCanBindWith = false;
+	if (BindingCandidate->IsAsset())
+	{
+		TArray< TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(BindingCandidate);
+		bCanBindWith = ComponentClasses.Contains(ComponentClass);
+	}
+	return bCanBindWith;
+}
+
+//------------------------------------------------------------------------------
+bool UBlueprintComponentNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Binding) const
+{
+	bool bSuccessfulBinding = false;
+	UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(Node);
+
+	UActorComponent* ComponentTemplate = AddCompNode->GetTemplateFromNode();
+	if (ComponentTemplate != nullptr)
+	{
+		bSuccessfulBinding = FComponentAssetBrokerage::AssignAssetToComponent(ComponentTemplate, Binding);
+		AddCompNode->ReconstructNode();
+	}
+	return bSuccessfulBinding;
 }
 
 //------------------------------------------------------------------------------
