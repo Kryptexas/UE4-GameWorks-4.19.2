@@ -8,7 +8,7 @@
  * Selector composite node.
  * A selector node runs each child in turn until the first child node succeeds, in which case the selector fails.
  */
-UCLASS(MinimalAPI)
+UCLASS()
 class UBTComposite_Selector : public UBTCompositeNode
 {
 	GENERATED_UCLASS_BODY()

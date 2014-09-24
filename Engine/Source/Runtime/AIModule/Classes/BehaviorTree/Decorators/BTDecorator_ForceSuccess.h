@@ -13,7 +13,7 @@
  * - selector = would allow executing multiple nodes, turning it into a sequence...
  */
 
-UCLASS(MinimalAPI, HideCategories = (Condition))
+UCLASS(HideCategories=(Condition))
 class UBTDecorator_ForceSuccess : public UBTDecorator
 {
 	GENERATED_UCLASS_BODY()

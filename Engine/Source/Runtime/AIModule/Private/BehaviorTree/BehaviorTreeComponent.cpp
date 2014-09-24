@@ -168,9 +168,10 @@ void UBehaviorTreeComponent::StopTree()
 	PendingExecution = FBTPendingExecutionInfo();
 	ActiveInstanceIdx = 0;
 
-	if (IsRegistered() && GetWorld())
+	if (IsRegistered())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest);
+		check(GetOwner() != NULL);
+		GetOwner()->GetWorldTimerManager().ClearTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest);
 	}
 
 	// make sure to allow new execution requests since we just removed last request timer
@@ -518,7 +519,7 @@ void UBehaviorTreeComponent::ScheduleExecutionUpdate()
 	{
 		bRequestedFlowUpdate = true;
 
-		GetWorld()->GetTimerManager().SetTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest, 0.001f, false);
+		GetOwner()->GetWorldTimerManager().SetTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest, 0.001f, false);
 	}
 }
 
@@ -531,7 +532,7 @@ void UBehaviorTreeComponent::RequestExecution(class UBTCompositeNode* RequestedO
 		*UBehaviorTreeTypes::DescribeNodeHelper(RequestedBy),
 		*UBehaviorTreeTypes::DescribeNodeResult(ContinueWithResult));
 
-	if (!bIsRunning || (GetOwner() && GetOwner()->IsPendingKillPending()))
+	if (!bIsRunning || GetOwner() == NULL || GetOwner()->IsPendingKillPending())
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("> skip: tree is not running"));
 		return;
