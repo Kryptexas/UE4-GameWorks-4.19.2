@@ -157,6 +157,13 @@ public class HTML5Platform : Platform
 		PrintRunTime();
 	}
 
+
+    public override bool RequiresPackageToDeploy
+    {
+        get { return true; }
+    }
+
+
 	protected void GenerateFileFromTemplate(string InTemplateFile, string InOutputFile, string InGameName, string InGameConfiguration, string InArguments, bool IsContentOnly, ulong HeapSize)
 	{
 		StringBuilder outputContents = new StringBuilder();
