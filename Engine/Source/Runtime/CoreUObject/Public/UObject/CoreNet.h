@@ -278,7 +278,7 @@ class INetSerializeCB
 public:
 	INetSerializeCB() { }
 
-	virtual void NetSerializeStruct( UStruct * Struct, FArchive & Ar, UPackageMap *	Map, void * Data, bool & bHasUnmapped ) = 0;
+	virtual void NetSerializeStruct( UScriptStruct* Struct, FArchive& Ar, UPackageMap* Map, void* Data, bool& bHasUnmapped ) = 0;
 };
 
 class IRepChangedPropertyTracker

@@ -370,7 +370,7 @@ struct FFastArraySerializer
 template< typename Type, typename SerializerType >
 bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms, SerializerType& ArraySerializer )
 {
-	UStruct* InnerStruct = Type::StaticStruct();
+	UScriptStruct* InnerStruct = Type::StaticStruct();
 
 	if (Parms.OutBunch)
 	{

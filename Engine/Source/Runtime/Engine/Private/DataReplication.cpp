@@ -18,11 +18,23 @@ public:
 
 	FNetSerializeCB( UNetDriver * InNetDriver ) : Driver( InNetDriver ) { }
 
-	virtual void NetSerializeStruct( UStruct * Struct, FArchive & Ar, UPackageMap *	Map, void * Data, bool & bHasUnmapped )
+	virtual void NetSerializeStruct( UScriptStruct* Struct, FArchive& Ar, UPackageMap* Map, void* Data, bool& bHasUnmapped )
 	{
-		TSharedPtr<FRepLayout> RepLayout = Driver->GetStructRepLayout( Struct );
-
-		RepLayout->SerializePropertiesForStruct( Struct, Ar, Map, Data, bHasUnmapped );
+		if (Struct->StructFlags & STRUCT_NetSerializeNative)
+		{
+			UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
+			check(CppStructOps); // else should not have STRUCT_NetSerializeNative
+			check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_NetSerializeNative
+			if (!CppStructOps->NetSerialize(Ar, Map, bHasUnmapped, Data))
+			{
+				UE_LOG(LogNet, Warning, TEXT("NetSerializeStruct: Native NetSerialize %s failed."), *Struct->GetFullName());
+			}
+		}
+		else
+		{
+			TSharedPtr<FRepLayout> RepLayout = Driver->GetStructRepLayout(Struct);
+			RepLayout->SerializePropertiesForStruct(Struct, Ar, Map, Data, bHasUnmapped);
+		}
 	}
 
 	UNetDriver * Driver;
