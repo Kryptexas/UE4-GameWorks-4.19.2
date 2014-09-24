@@ -16,3 +16,4 @@
 #include "Tests/AITestsCommon.h"
 
 #include "MockAI.h"
+#include "MockAI_BT.h"
