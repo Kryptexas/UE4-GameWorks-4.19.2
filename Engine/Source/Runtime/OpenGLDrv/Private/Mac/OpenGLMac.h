@@ -119,10 +119,6 @@ struct FMacOpenGL : public FOpenGL3
 		}
 	}
 	
-	static void GenBuffers( GLsizei n, GLuint *buffers);
-	
-	static void DeleteBuffers(GLsizei Number, const GLuint* Buffers);
-	
 	static void DeleteTextures(GLsizei Number, const GLuint* Textures);
 
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return bSupportsDrawBuffersBlend; }
