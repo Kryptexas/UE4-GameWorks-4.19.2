@@ -136,7 +136,7 @@ public:
 		 * Add functions / functionality to the FUnsynchronizedQueue
 		 */
 	};
-
+	
 	template<typename Type>
 	struct FQueue : public FUnsynchronizedQueue<Type, FDummyCriticalSection, FDummyScopeLock>
 	{
@@ -146,7 +146,8 @@ public:
 		 */
 	};
 
-	template<typename Type>
+	// pending delete: don't think I need this anymore
+	/*template<typename Type>
 	struct FLookupQueue
 	{
 	private:
@@ -199,7 +200,7 @@ public:
 			return Queue.Num();
 		}
 
-	};
+	};*/
 
 public:
 	/** cooked file requests which includes platform which file is requested for */

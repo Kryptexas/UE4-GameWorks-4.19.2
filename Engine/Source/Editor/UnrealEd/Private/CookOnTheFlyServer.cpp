@@ -1782,7 +1782,6 @@ void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& 
 		}
 	}
 	UE_LOG(LogCookOnTheFly, Display, TEXT("Done creating registry. It took %5.2fs."), GenerateAssetRegistryTime);
-	
 }
 
 void UCookOnTheFlyServer::GenerateLongPackageNames(TArray<FString>& FilesInPath)
@@ -2054,12 +2053,17 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 		FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
 		FString SandboxRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*RegistryFilename);
 		// the registry filename will be modified when we call save asset registry
+		
+		FString CookedAssetRegistry = FPaths::GameDir() / TEXT("CookedAssetRegistry.json");
+		FString SandboxCookedAssetRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry);
 
 		for ( auto& Manifest : CookByTheBookOptions->ManifestGenerators )
 		{
 			// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
 			Manifest.Value->SaveManifests(SandboxFile.GetOwnedPointer());
 			Manifest.Value->SaveAssetRegistry(SandboxRegistryFilename);
+
+			Manifest.Value->SaveCookedPackageAssetRegistry(SandboxCookedAssetRegistryFilename, true);
 		}
 	}
 

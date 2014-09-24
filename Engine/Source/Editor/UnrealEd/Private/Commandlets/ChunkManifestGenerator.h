@@ -232,19 +232,6 @@ public:
 	void AddUnassignedPackageToManifest(UPackage* Package, const FString& PackageSandboxPath );
 
 	/**
-	* Adds a package to chunk manifest
-	*
-	* @param PackageFName Package name (Package->GetFName())
-	* @param PackagePathName Package path name (Package->GetPathName())
-	* @param SandboxFilename Cooked sandbox path of the package to add to a manifest
-	* @param LastLoadedMapName Name of the last loaded map (can be empty)
-	* @param the SandboxPlatformFile used during cook
-	*/
-	void AddPackageToChunkManifest(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile);
-
-
-
-	/**
 	 * Collects all the packages loaded 
 	 *
 	 * @param Package Package which was loaded 
@@ -272,5 +259,15 @@ public:
 	* Saves generated asset registry data for each platform.
 	*/
 	bool SaveAssetRegistry(const FString& SandboxPath);
+
+
+	/**
+	 * Saves cooked package and asset information about all the cooked packages and assets contained within for stats purposes
+	 * in json format
+	 *
+	 * @param Sandbox path to save the registry to
+	 * @param Append to the previous registry if there is one
+	 */
+	bool SaveCookedPackageAssetRegistry( const FString& SandboxPath, const bool Append );
 
 };
