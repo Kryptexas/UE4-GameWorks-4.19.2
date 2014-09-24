@@ -101,44 +101,44 @@ namespace Agent
 			return Constants.SUCCESS;
 		}
 
-		private bool RequestDependency( Connection RequestingConnection, string Dependency, bool bIsRequired )
+		private bool RequestDependency(Connection RequestingConnection, string Dependency, bool bIsRequired)
 		{
 			Hashtable InParameters = new Hashtable();
 			InParameters["Version"] = ESwarmVersionValue.VER_1_0;
 			InParameters["ChannelName"] = Dependency;
 			Hashtable OutParameters = null;
-			if( Manager.TestChannel( RequestingConnection.Handle, InParameters, ref OutParameters ) < 0 )
+			if (Manager.TestChannel(RequestingConnection.Handle, InParameters, ref OutParameters) < 0)
 			{
-				if( RequestingConnection is RemoteConnection )
+				if (RequestingConnection is RemoteConnection)
 				{
 					// For remote connection misses, try to pull the file from the instigator
-					Manager.Log( EVerbosityLevel.Verbose, ELogColour.Green, "[Job] Attempting to pull file from remote Agent: " + Dependency );
-					if( Manager.PullChannel( RequestingConnection as RemoteConnection, Dependency, null ) == false )
+					Manager.Log(EVerbosityLevel.Verbose, ELogColour.Green, "[Job] Attempting to pull file from remote Agent: " + Dependency);
+					if (Manager.PullChannel(RequestingConnection as RemoteConnection, Dependency, null, 5) == false)
 					{
-						if( bIsRequired )
+						if (bIsRequired)
 						{
-							Manager.Log( EVerbosityLevel.Informative, ELogColour.Red, "[Job] Error: Failed to pull a required file from remote Agent: " + Dependency );
+							Manager.Log(EVerbosityLevel.Informative, ELogColour.Red, "[Job] Error: Failed to pull a required file from remote Agent: " + Dependency);
 							return false;
 						}
 						else
 						{
-							Manager.Log( EVerbosityLevel.Verbose, ELogColour.Orange, "[Job] Warning: Failed to pull an optional file from remote Agent: " + Dependency );
+							Manager.Log(EVerbosityLevel.Verbose, ELogColour.Orange, "[Job] Warning: Failed to pull an optional file from remote Agent: " + Dependency);
 						}
 					}
 				}
 				else
 				{
-					Debug.Assert( RequestingConnection is LocalConnection );
+					Debug.Assert(RequestingConnection is LocalConnection);
 
-					if( bIsRequired )
+					if (bIsRequired)
 					{
 						// Always fail on local connection misses
-						Manager.Log( EVerbosityLevel.Informative, ELogColour.Red, "[Job] Error: Failed to find required file: " + Dependency );
+						Manager.Log(EVerbosityLevel.Informative, ELogColour.Red, "[Job] Error: Failed to find required file: " + Dependency);
 						return false;
 					}
 					else
 					{
-						Manager.Log( EVerbosityLevel.Verbose, ELogColour.Orange, "[Job] Warning: Failed to find an optional file: " + Dependency );
+						Manager.Log(EVerbosityLevel.Verbose, ELogColour.Orange, "[Job] Warning: Failed to find an optional file: " + Dependency);
 					}
 				}
 			}
