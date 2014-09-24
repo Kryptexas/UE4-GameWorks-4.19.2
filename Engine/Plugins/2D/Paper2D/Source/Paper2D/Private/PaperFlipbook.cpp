@@ -20,7 +20,7 @@ UPaperFlipbook::UPaperFlipbook(const FPostConstructInitializeProperties& PCIP)
 	DefaultMaterial = MaskedMaterialRef.Object;
 }
 
-int32 UPaperFlipbook::GetFramesPerSecond() const
+float UPaperFlipbook::GetFramesPerSecond() const
 {
 	return FramesPerSecond;
 }
