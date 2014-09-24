@@ -39,4 +39,5 @@ PACKAGE_SCOPE:
 private:
 	int PlayerId;
 	gpg::AuthStatus Status;
+	int RetryCount;
 };
