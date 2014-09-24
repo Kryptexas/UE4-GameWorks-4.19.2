@@ -2,8 +2,6 @@
 
 #pragma once
 
-//@todo-rco: Temp check to see if we're compiling from UE
-#ifndef CPP
 #include "../hlslcc.h"
 
 inline std::string FixVecPrefix(std::string Type)
@@ -109,4 +107,3 @@ namespace MetalUtils
 }
 
 const int MAX_SIMULTANEOUS_RENDER_TARGETS = 8;
-#endif	// CPP
