@@ -78,6 +78,13 @@ FText UBlueprintBoundEventNodeSpawner::GetDefaultMenuCategory() const
 }
 
 //------------------------------------------------------------------------------
+FName UBlueprintBoundEventNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
+{
+	ColorOut = FLinearColor::White;
+	return TEXT("GraphEditor.Event_16x");
+}
+
+//------------------------------------------------------------------------------
 UK2Node_Event const* UBlueprintBoundEventNodeSpawner::FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& Bindings) const
 {
 	UK2Node_Event const* PreExistingEvent = nullptr;

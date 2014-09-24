@@ -201,6 +201,13 @@ FString UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
 }
 
 //------------------------------------------------------------------------------
+FName UBlueprintEventNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
+{
+	ColorOut = FLinearColor::White;
+	return (IsForCustomEvent() && CustomEventName.IsNone()) ? TEXT("GraphEditor.CustomEvent_16x") : TEXT("GraphEditor.Event_16x");
+}
+
+//------------------------------------------------------------------------------
 UFunction const* UBlueprintEventNodeSpawner::GetEventFunction() const
 {
 	return EventFunc;
