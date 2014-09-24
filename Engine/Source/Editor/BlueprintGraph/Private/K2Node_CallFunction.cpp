@@ -1196,8 +1196,17 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 	UFunction *Function = GetTargetFunction();
 	if (Function == NULL)
 	{
-		UClass* FuncOwnerClass = FunctionReference.GetMemberParentClass(GetBlueprint()->GeneratedClass);
-		FString const OwnerName = FuncOwnerClass->GetName();
+		FString OwnerName;
+
+		UBlueprint* Blueprint = GetBlueprint();
+		if (Blueprint != nullptr)
+		{
+			OwnerName = Blueprint->GetName();
+			if (UClass* FuncOwnerClass = FunctionReference.GetMemberParentClass(Blueprint->GeneratedClass))
+			{
+				OwnerName = FuncOwnerClass->GetName();
+			}
+		}
 		FString const FunctName = FunctionReference.GetMemberName().ToString();
 
 		FText const WarningFormat = LOCTEXT("FunctionNotFound", "Could not find a function named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
