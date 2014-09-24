@@ -394,7 +394,7 @@ struct INPUTCORE_API EKeys
 
 	static const FKey Invalid;
 
-	static const int32 NUM_TOUCH_KEYS = 10;
+	static const int32 NUM_TOUCH_KEYS = 11;
 	static const FKey TouchKeys[NUM_TOUCH_KEYS];
 
 	static EConsoleForGamepadLabels::Type ConsoleForGamepadLabels;

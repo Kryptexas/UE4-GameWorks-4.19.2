@@ -8,4 +8,5 @@
 
 TSharedPtr<FSlateApplicationBase> FSlateApplicationBase::CurrentBaseApplication = nullptr;
 TSharedPtr<GenericApplication> FSlateApplicationBase::PlatformApplication = nullptr;
-const uint32 FSlateApplicationBase::CursorPointerIndex = 1000;
+// TODO: Identifier the cursor index in a smarter way.
+const uint32 FSlateApplicationBase::CursorPointerIndex = EKeys::NUM_TOUCH_KEYS - 1;
