@@ -361,6 +361,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
 			.Text(LOCTEXT("Resolution", "Overall Resolution"))
+			.ToolTipText(TAttribute<FText>(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetOverallResolutionTooltip))
 		]
 	]
 	.ValueContent()
@@ -418,6 +419,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
 			.Text(LOCTEXT("TotalComponents", "Total Components"))
+			.ToolTipText(LOCTEXT("NewLandscape_TotalComponents", "The total number of components that will be created for this landscape."))
 		]
 	]
 	.ValueContent()
@@ -478,6 +480,13 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+FText FLandscapeEditorDetailCustomization_NewLandscape::GetOverallResolutionTooltip() const
+{
+	return (GetEditorMode() && GetEditorMode()->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
+	? LOCTEXT("ImportLandscape_OverallResolution", "Overall final resolution of the imported landscape in vertices")
+	: LOCTEXT("NewLandscape_OverallResolution", "Overall final resolution of the new landscape in vertices");
+}
 
 void FLandscapeEditorDetailCustomization_NewLandscape::SetScale(float NewValue, ETextCommit::Type, TSharedRef<IPropertyHandle> PropertyHandle)
 {
