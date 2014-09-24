@@ -63,6 +63,9 @@ public:
 	// UActorComponent interface
 	virtual void SendRenderDynamicData_Concurrent() override;
 	virtual const UObject* AdditionalStatObject() const override;
+#if WITH_EDITOR
+	virtual void CheckForErrors() override;
+#endif
 	// End of UActorComponent interface
 
 	// USceneComponent interface

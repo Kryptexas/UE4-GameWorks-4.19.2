@@ -6,6 +6,11 @@
 #include "PaperCustomVersion.h"
 #include "Runtime/Engine/Public/Net/UnrealNetwork.h"
 #include "Runtime/Engine/Public/ContentStreaming.h"
+#include "Runtime/Core/Public/Logging/MessageLog.h"
+#include "Runtime/Core/Public/Misc/MapErrors.h"
+#include "Runtime/CoreUObject/Public/Misc/UObjectToken.h"
+
+#define LOCTEXT_NAMESPACE "Paper2D"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookComponent
@@ -595,3 +600,31 @@ void UPaperFlipbookComponent::QuerySupportedSockets(TArray<FComponentSocketDescr
 		return SourceFlipbook->QuerySupportedSockets(OutSockets);
 	}
 }
+
+#if WITH_EDITOR
+void UPaperFlipbookComponent::CheckForErrors()
+{
+	Super::CheckForErrors();
+
+	AActor* Owner = GetOwner();
+
+	for (int32 MaterialIndex = 0; MaterialIndex < GetNumMaterials(); ++MaterialIndex)
+	{
+		if (UMaterialInterface* Material = GetMaterial(MaterialIndex))
+		{
+			if (!Material->IsTwoSided())
+			{
+				FMessageLog("MapCheck").Warning()
+					->AddToken(FUObjectToken::Create(Owner))
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_PaperFlipbookMaterialNotTwoSided", "The material applied to the flipbook component is not marked as two-sided, which may cause lighting artifacts.")))
+					->AddToken(FUObjectToken::Create(Material))
+					->AddToken(FMapErrorToken::Create(FName(TEXT("PaperFlipbookMaterialNotTwoSided"))));
+			}
+		}
+	}
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE
