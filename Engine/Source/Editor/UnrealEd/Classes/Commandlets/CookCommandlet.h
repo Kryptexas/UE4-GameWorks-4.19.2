@@ -144,5 +144,12 @@ private:
 	/**	Process deferred commands */
 	void ProcessDeferredCommands();
 
-
+	/** Adds a unique package filename to cook. Rejects script packages. */
+	FORCEINLINE void AddFileToCook(TArray<FString>& InOutFilesToCook, const FString& InFilename) const
+	{
+		if (!FPackageName::IsScriptPackage(InFilename))
+		{
+			InOutFilesToCook.AddUnique(InFilename);
+		}
+	}
 };
