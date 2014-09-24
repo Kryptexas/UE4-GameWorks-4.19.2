@@ -26,7 +26,8 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
+			.BorderBackgroundColor(this, &SSettingsEditorCheckoutNotice::HandleBorderBackgroundColor)
 			[
 				SNew(SWidgetSwitcher)
 					.WidgetIndex(this, &SSettingsEditorCheckoutNotice::HandleNoticeSwitcherWidgetIndex)
@@ -44,7 +45,6 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 							[
 								SNew(SImage)
 								.Image(FEditorStyle::GetBrush("GenericLock"))
-								.ColorAndOpacity(FColor(255, 168, 0))
 							]
 
 						// Locked notice
@@ -56,6 +56,8 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 								SNew(STextBlock)
 									.Text(this, &SSettingsEditorCheckoutNotice::HandleLockedStatusText)
 									.Font(FEditorStyle::GetFontStyle("PropertyWindow.NormalFont"))
+									.ShadowColorAndOpacity(FLinearColor::Black.CopyWithNewOpacity(0.3f))
+									.ShadowOffset(FVector2D::UnitVector)
 							]
 
 						// Check out button
@@ -95,7 +97,6 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 							[
 								SNew(SImage)
 								.Image(FEditorStyle::GetBrush("GenericUnlock"))
-								.ColorAndOpacity(FLinearColor::Green)
 							]
 
 						// Unlocked notice
@@ -208,6 +209,11 @@ EVisibility SSettingsEditorCheckoutNotice::HandleThrobberVisibility() const
 	return EVisibility::Collapsed;
 }
 
+FSlateColor SSettingsEditorCheckoutNotice::HandleBorderBackgroundColor() const
+{
+	static FColor Orange(166, 137, 0);
+	return IsUnlocked() || DefaultConfigQueryInProgress ? FColor(60, 60, 60) : Orange;
+}
 
 void SSettingsEditorCheckoutNotice::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {

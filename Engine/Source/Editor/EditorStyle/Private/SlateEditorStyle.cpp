@@ -5751,6 +5751,8 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		// Settings editor
 		Set("SettingsEditor.GoodIcon", new IMAGE_BRUSH("Settings/Settings_Good", Icon40x40));
 		Set("SettingsEditor.WarningIcon", new IMAGE_BRUSH("Settings/Settings_Warning", Icon40x40));
+
+		Set( "SettingsEditor.CheckoutWarningBorder", new BOX_BRUSH( "Common/GroupBorderLight", FMargin(4.0f/16.0f) ) );
 	}
 
 	{
