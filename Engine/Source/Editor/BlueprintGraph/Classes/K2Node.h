@@ -465,6 +465,11 @@ public:
 		bSelfContext = bIsConsideredSelfContext;
 		bWasDeprecated = false;
 
+		if (MemberParentClass != nullptr)
+		{
+			MemberParentClass = MemberParentClass->GetAuthoritativeClass();
+		}
+
 		MemberGuid.Invalidate();
 		if (InField->GetOwnerClass())
 		{
@@ -645,11 +650,15 @@ public:
 				MemberGuid.Invalidate();
 				UBlueprint::GetGuidFromClassByFieldName<TFieldType>(TargetScope, MemberName, MemberGuid);
 
-				// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
-				if(MemberParentClass != NULL && SelfScope != NULL)
+				if (MemberParentClass != nullptr)
 				{
-					SetGivenSelfScope(MemberName, MemberGuid, MemberParentClass, SelfScope);
-				}
+					MemberParentClass = MemberParentClass->GetAuthoritativeClass();
+					// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
+					if (SelfScope != NULL)
+					{
+						SetGivenSelfScope(MemberName, MemberGuid, MemberParentClass, SelfScope);
+					}
+				}	
 			}
 			else if(TargetScope != NULL)
 			{

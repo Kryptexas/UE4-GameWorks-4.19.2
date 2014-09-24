@@ -197,6 +197,24 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 		}
 	}
 
+	if (Function == nullptr)
+	{
+		if (!FunctionReference.IsSelfContext())
+		{
+			UClass* FunctionClass = FunctionReference.GetMemberParentClass(MyBlueprint->GeneratedClass);
+			if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(FunctionClass))
+			{
+				// this function could currently only be a part of some skeleton 
+				// class (the blueprint has not be compiled with it yet), so let's 
+				// check the skeleton class as well, see if we can pull pin data 
+				// from there...
+				UBlueprint* FunctionBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+				Function = FindField<UFunction>(FunctionBlueprint->SkeletonGeneratedClass, FunctionReference.GetMemberName());
+			}
+		}
+	}
+
+
 	if (Function == NULL)
 	{
 		// The function no longer exists in the stored scope
@@ -281,9 +299,15 @@ UEdGraphPin* UK2Node_CallFunction::CreateSelfPin(const UFunction* Function)
 
 	// Create the self pin
 	UClass* FunctionClass = CastChecked<UClass>(FirstDeclaredFunction->GetOuter());
+	// we don't want blueprint-function target pins to be formed from the
+	// skeleton class (otherwise, they could be incompatible with other pins
+	// that represent the same type)... this here could lead to a compiler 
+	// warning (the GeneratedClass could not have the function yet), but in
+	// that, the user would be reminded to compile the other blueprint
+	FunctionClass = FunctionClass->GetAuthoritativeClass();
 
 	UEdGraphPin* SelfPin = NULL;
-	if ((FunctionClass == GetBlueprint()->GeneratedClass) || (FunctionClass == GetBlueprint()->SkeletonGeneratedClass))
+	if (FunctionClass == GetBlueprint()->GeneratedClass)
 	{
 		// This means the function is defined within the blueprint, so the pin should be a true "self" pin
 		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
@@ -1172,7 +1196,12 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 	UFunction *Function = GetTargetFunction();
 	if (Function == NULL)
 	{
-		MessageLog.Warning(*FString::Printf(*LOCTEXT("FunctionNotFound", "Unable to find function with name '%s' for @@").ToString(), *FunctionReference.GetMemberName().ToString()), this);
+		UClass* FuncOwnerClass = FunctionReference.GetMemberParentClass(GetBlueprint()->GeneratedClass);
+		FString const OwnerName = FuncOwnerClass->GetName();
+		FString const FunctName = FunctionReference.GetMemberName().ToString();
+
+		FText const WarningFormat = LOCTEXT("FunctionNotFound", "Could not find a function named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+		MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *FunctName, *OwnerName, *OwnerName), this);
 	}
 	else if (Function->HasMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs) && bWantsEnumToExecExpansion == false)
 	{

@@ -59,7 +59,12 @@ struct FKCHandlerDelegateHelper
 
 		if (!BoundProperty)
 		{
-			MessageLog.Error(*LOCTEXT("NoDelegateProperty", "Event Dispatcher has no property @@").ToString(), DelegateNode);
+			FString const OwnerName = PropertyOwnerClass->GetName();
+			FString const PropName  = DelegateNode->GetPropertyName().ToString();
+
+			FText const ErrorFormat = LOCTEXT("DelegateNotFound", "Could not find an event-dispatcher named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+			MessageLog.Error(*FString::Printf(*ErrorFormat.ToString(), *PropName, *OwnerName, *OwnerName), DelegateNode);
+
 			return NULL;
 		}
 

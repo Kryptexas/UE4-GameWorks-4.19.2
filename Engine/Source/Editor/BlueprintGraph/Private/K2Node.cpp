@@ -1235,7 +1235,7 @@ void UK2Node::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) con
 void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass)
 {
 	MemberName = InMemberName;
-	MemberParentClass = InMemberParentClass;
+	MemberParentClass = (InMemberParentClass != nullptr) ? InMemberParentClass->GetAuthoritativeClass() : nullptr;
 	MemberScope.Empty();
 	bSelfContext = false;
 	bWasDeprecated = false;
@@ -1264,7 +1264,7 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 {
 	MemberName = InMemberName;
 	MemberGuid = InMemberGuid;
-	MemberParentClass = InMemberParentClass;
+	MemberParentClass = (InMemberParentClass != nullptr) ? InMemberParentClass->GetAuthoritativeClass() : nullptr;
 	MemberScope.Empty();
 	bSelfContext = (SelfScope->IsChildOf(InMemberParentClass)) || (SelfScope->ClassGeneratedBy == InMemberParentClass->ClassGeneratedBy);
 	bWasDeprecated = false;

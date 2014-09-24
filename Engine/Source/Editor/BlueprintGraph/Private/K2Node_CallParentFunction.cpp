@@ -49,13 +49,16 @@ void UK2Node_CallParentFunction::SetFromFunction(const UFunction* Function)
 		bIsPureFunc = Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
 		bIsConstFunc = Function->HasAnyFunctionFlags(FUNC_Const);
 
+		UClass* OwnerClass = Function->GetOwnerClass();
+
 		FGuid FunctionGuid;
-		if (Function->GetOwnerClass())
+		if (OwnerClass != nullptr)
 		{
-			UBlueprint::GetGuidFromClassByFieldName<UFunction>(Function->GetOwnerClass(), Function->GetFName(), FunctionGuid);
+			OwnerClass = OwnerClass->GetAuthoritativeClass();
+			UBlueprint::GetGuidFromClassByFieldName<UFunction>(OwnerClass, Function->GetFName(), FunctionGuid);
 		}
 
-		FunctionReference.SetDirect(Function->GetFName(), FunctionGuid, Function->GetOwnerClass(), false);
+		FunctionReference.SetDirect(Function->GetFName(), FunctionGuid, OwnerClass, /*bIsConsideredSelfContext =*/false);
 	}
 }
 

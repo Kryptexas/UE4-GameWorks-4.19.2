@@ -60,6 +60,23 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UProperty* VariableProperty = GetPropertyForVariable();
+	if (VariableProperty == nullptr)
+	{
+		if (!VariableReference.IsSelfContext())
+		{
+			UClass* VariableClass = VariableReference.GetMemberParentClass(GetBlueprint()->GeneratedClass);
+			if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(VariableClass))
+			{
+				// this variable could currently only be a part of some skeleton 
+				// class (the blueprint has not be compiled with it yet), so let's 
+				// check the skeleton class as well, see if we can pull pin data 
+				// from there...
+				UBlueprint* VariableBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+				VariableProperty = FindField<UProperty>(VariableBlueprint->SkeletonGeneratedClass, VariableReference.GetMemberName());
+			}
+		}
+	}
+
 	if (VariableProperty != NULL)
 	{
 		// Create the pin
@@ -298,7 +315,12 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 	{
 		if (!VariableReference.IsDeprecated())
 		{
-			MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableNotFound", "Unable to find variable with name '%s' for @@").ToString(), *VariableReference.GetMemberName().ToString()), this);
+			UClass* VarOwnerClass = VariableReference.GetMemberParentClass(GetBlueprint()->GeneratedClass);
+			FString const OwnerName = VarOwnerClass->GetName();
+			FString const VarName = VariableReference.GetMemberName().ToString();
+
+			FText const WarningFormat = LOCTEXT("VariableNotFound", "Could not find a variable named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+			MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *VarName, *OwnerName, *OwnerName), this);
 		}
 		else
 		{

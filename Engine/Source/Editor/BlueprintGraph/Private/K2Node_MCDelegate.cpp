@@ -63,11 +63,14 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
-	const auto Property = DelegateReference.ResolveMember<UMulticastDelegateProperty>(this);
-	const auto PropertyOwnerClass = (Property ? Property->GetOwnerClass() : NULL);
+	UClass* PropertyOwnerClass = DelegateReference.GetMemberParentClass(this);
+	if (PropertyOwnerClass != nullptr)
+	{
+		PropertyOwnerClass = PropertyOwnerClass->GetAuthoritativeClass();
+	}
 	const auto Blueprint = GetBlueprint();
 	
-	const bool bUseSelf = Blueprint && (PropertyOwnerClass == Blueprint->GeneratedClass || PropertyOwnerClass == Blueprint->SkeletonGeneratedClass);
+	const bool bUseSelf = Blueprint && (PropertyOwnerClass == Blueprint->GeneratedClass);
 
 	UEdGraphPin* SelfPin = NULL;
 	if (bUseSelf)
@@ -87,22 +90,28 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 
 UFunction* UK2Node_BaseMCDelegate::GetDelegateSignature(bool bForceNotFromSkelClass) const
 {
-	FMemberReference ReferenceToUse;
+	UClass* OwnerClass = DelegateReference.GetMemberParentClass(this);
+	if (bForceNotFromSkelClass)
+	{
+		OwnerClass = (OwnerClass != nullptr) ? OwnerClass->GetAuthoritativeClass() : nullptr;
+	}
+	else if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(OwnerClass))
+	{
+		UBlueprint* DelegateBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+		// favor the skeleton class, because the generated class may not 
+		// have the delegate yet (hasn't been compiled with it), or it could 
+		// be out of date
+		OwnerClass = DelegateBlueprint->SkeletonGeneratedClass;
+	}
 
-	if(!bForceNotFromSkelClass)
+	FMemberReference ReferenceToUse;
+	FGuid DelegateGuid;
+
+	if (OwnerClass != nullptr)
 	{
-		ReferenceToUse = DelegateReference;
+		UBlueprint::GetGuidFromClassByFieldName<UFunction>(OwnerClass, DelegateReference.GetMemberName(), DelegateGuid);
 	}
-	else
-	{
-		UClass* OwnerClass = DelegateReference.GetMemberParentClass(this);
-		FGuid DelegateGuid;
-		if (OwnerClass)
-		{
-			UBlueprint::GetGuidFromClassByFieldName<UFunction>(OwnerClass, DelegateReference.GetMemberName(), DelegateGuid);
-		}
-		ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateGuid, OwnerClass ? OwnerClass->GetAuthoritativeClass() : NULL, false);
-	}
+	ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateGuid, OwnerClass, /*bIsConsideredSelfContext =*/false);
 
 	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>(this);
 	return (DelegateProperty != NULL) ? DelegateProperty->SignatureFunction : NULL;
