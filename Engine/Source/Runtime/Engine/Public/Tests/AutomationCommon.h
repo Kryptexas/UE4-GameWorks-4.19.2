@@ -8,11 +8,12 @@
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
 
 /** Common automation functions */
 namespace AutomationCommon
 {
-	/** Get a string conatins the render mode we are currently in */
+	/** Get a string contains the render mode we are currently in */
 	static FString GetRenderDetailsString()
 	{
 		FString HardwareDetailsString;
