@@ -2,6 +2,8 @@
 
 #pragma once
 
+//@todo-rco: Temp check to see if we're compiling from UE
+#ifndef CPP
 #include "../hlslcc.h"
 #include "../LanguageSpec.h"
 
@@ -49,3 +51,4 @@ struct FMetalCodeBackend : public FCodeBackend
 	void ConvertHalfToFloatUniformsAndSamples(exec_list* ir, _mesa_glsl_parse_state* State, bool bConvertUniforms, bool bConvertSamples);
 	void BreakPrecisionChangesVisitor(exec_list* ir, _mesa_glsl_parse_state* State);
 };
+#endif	// CPP
