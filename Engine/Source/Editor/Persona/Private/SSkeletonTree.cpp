@@ -1757,6 +1757,9 @@ void SSkeletonTree::OnAddSocket()
 
 		TargetSkeleton->Sockets.Add( NewSocket );
 
+		FSelectedSocketInfo SocketInfo(NewSocket, true);
+		PersonaPtr.Pin()->SetSelectedSocket(SocketInfo, false);
+
 		CreateFromSkeleton( TargetSkeleton->GetBoneTree(), NewSocket );
 	}
 }
