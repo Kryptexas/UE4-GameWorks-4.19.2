@@ -640,7 +640,7 @@ namespace UnrealBuildTool
 
 					if (UHTResult != ECompilationResult.Succeeded)
 					{
-						Log.TraceInformation("Error: Failed to generate code for {0} - error code: {1}", ActualTargetName, (int) UHTResult);
+						Log.TraceInformation("Error: Failed to generate code for {0} - error code: {2} ({1})", ActualTargetName, (int) UHTResult, UHTResult.ToString());
 						return false;
 					}
 
