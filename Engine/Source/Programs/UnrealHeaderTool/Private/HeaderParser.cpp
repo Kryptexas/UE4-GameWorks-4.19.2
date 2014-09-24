@@ -343,6 +343,11 @@ namespace
 			FError::Throwf(TEXT("SealedEvent cannot be used on Blueprint events"));
 		}
 	}
+
+	void AddEditInlineMetaData(TMap<FName, FString>& MetaData)
+	{
+		MetaData.Add(TEXT("EditInline"), TEXT("true"));
+	}
 }
 	
 /////////////////////////////////////////////////////
@@ -2555,7 +2560,8 @@ bool FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("Instanced"))
 			{
-				Flags |= CPF_EditInline | CPF_ExportObject | CPF_InstancedReference;
+				Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
+				AddEditInlineMetaData(MetaDataFromNewStyle);
 			}
 			else if (Specifier == TEXT("BlueprintAssignable"))
 			{
@@ -2660,13 +2666,6 @@ bool FHeaderParser::GetVarType
 	else
 	{
 		FError::Throwf(TEXT("Unknown access level"));
-	}
-
-
-	if ((Flags & CPF_EditInline) && (Flags & CPF_ExportObject) && !(Flags & CPF_InstancedReference))
-	{
-		Flags |= CPF_InstancedReference;
-		FError::Throwf(TEXT("Properties with 'editinline export' should instead use 'instanced' for clarity ") );
 	}
 
 	// Get variable type.
@@ -3273,7 +3272,7 @@ bool FHeaderParser::GetVarType
 	}
 
 	// Perform some more specific validation on the property flags
-	if ((VarProperty.PropertyFlags & CPF_EditInline) && VarProperty.Type != CPT_ObjectReference)
+	if ((VarProperty.PropertyFlags & CPF_PersistentInstance) && VarProperty.Type != CPT_ObjectReference)
 	{
 		FError::Throwf(TEXT("'Instanced' is only allowed on object property (or array of objects)"));
 	}
@@ -3638,11 +3637,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 				if ( DoesAnythingInHierarchyHaveDefaultToInstanced( VarProperty.PropertyClass ) )
 				{
 					VarProperty.PropertyFlags |= CPF_InstancedReference;
-
-					if (0 != (VarProperty.PropertyFlags & CPF_Edit))
-					{
-						VarProperty.PropertyFlags |= CPF_EditInline;
-					}
+					AddEditInlineMetaData(VarProperty.MetaData);
 				}
 				NewProperty = new(NewScope,PropertyName,ObjectFlags)UObjectProperty(FPostConstructInitializeProperties());
 			}
@@ -3730,7 +3725,14 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			if (NewProperty->PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference))
 			{
 				VarProperty.PropertyFlags |= CPF_ContainsInstancedReference;
-				VarProperty.PropertyFlags &= ~CPF_InstancedReference; //this was propagated to the inner
+				VarProperty.PropertyFlags &= ~(CPF_InstancedReference | CPF_PersistentInstance); //this was propagated to the inner
+
+				if (0 != (NewProperty->PropertyFlags & CPF_PersistentInstance))
+				{
+					TMap<FName, FString> MetaData;
+					AddEditInlineMetaData(MetaData);
+					AddMetaDataToClassData(NewProperty, VarProperty.MetaData);
+				}
 			}
 			NewProperty = Array;
 		}
@@ -6635,7 +6637,6 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn)
 	LegalVariableSpecifiers.Add(TEXT("DuplicateTransient"));
 	LegalVariableSpecifiers.Add(TEXT("Ref"));
 	LegalVariableSpecifiers.Add(TEXT("Export"));
-	LegalVariableSpecifiers.Add(TEXT("EditInline"));
 	LegalVariableSpecifiers.Add(TEXT("NoClear"));
 	LegalVariableSpecifiers.Add(TEXT("EditFixedSize"));
 	LegalVariableSpecifiers.Add(TEXT("Replicated"));

@@ -312,7 +312,7 @@ struct FEmitProperyHelper
 			HANDLE_CPF_TAG(TEXT("RepRetry"), CPF_RepRetry)
 			HANDLE_CPF_TAG(TEXT("Interp"), CPF_Edit | CPF_BlueprintVisible | CPF_Interp)
 			HANDLE_CPF_TAG(TEXT("NonTransactional"), CPF_NonTransactional)
-			HANDLE_CPF_TAG(TEXT("Instanced"), CPF_EditInline | CPF_ExportObject | CPF_InstancedReference)
+			HANDLE_CPF_TAG(TEXT("Instanced"), CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference)
 			HANDLE_CPF_TAG(TEXT("BlueprintAssignable"), CPF_BlueprintAssignable)
 			HANDLE_CPF_TAG(TEXT("BlueprintCallable"), CPF_BlueprintCallable)
 			HANDLE_CPF_TAG(TEXT("BlueprintAuthorityOnly"), CPF_BlueprintAuthorityOnly)

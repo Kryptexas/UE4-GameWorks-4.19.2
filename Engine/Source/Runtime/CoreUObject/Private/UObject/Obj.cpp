@@ -2349,7 +2349,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("0x0000000000800000"),
 		TEXT("CPF_SaveGame"),	
 		TEXT("CPF_NoClear"),
-		TEXT("CPF_EditInline"),
+		TEXT("0x0000000004000000"),
 		TEXT("CPF_ReferenceParm"),
 		TEXT("CPF_BlueprintAssignable"),
 		TEXT("CPF_Deprecated"),
@@ -2372,6 +2372,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("CPF_TextExportTransient"),
 		TEXT("CPF_NonPIEDuplicateTransient"),
 		TEXT("CPF_ExposeOnSpawn"),
+		TEXT("CPF_PersistentInstance"),
 	};
 
 	for (const TCHAR* FlagName : PropertyFlags)

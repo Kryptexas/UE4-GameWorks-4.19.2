@@ -129,7 +129,7 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 
 		// true if the property can be expanded into the property window; that is, instead of seeing
 		// a pointer to the object, you see the object's properties.
-		const bool bEditInline = ( (MyProperty->PropertyFlags&CPF_EditInline) && bIsObjectOrInterface && GotReadAddresses );
+		const bool bEditInline = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(TEXT("EditInline"));
 		SetNodeFlags(EPropertyNodeFlags::EditInline, bEditInline);
 
 		//Get the property max child depth
@@ -555,20 +555,6 @@ bool FPropertyNode::IsEditConst() const
 						bIsEditConst = true;
 						break;
 					}
-					/*else
-					{
-						// If 
-						if ( const FPropertyNode* ObjectParentNode = ObjectPropertyNode->GetParentNode() )
-						{
-							if ( const UProperty* ParentProperty = ObjectParentNode->GetProperty() )
-							{
-								if ( ParentProperty->PropertyFlags & CPF_EditInline )
-								{
-									return ObjectParentNode->IsEditConst();
-								}
-							}
-						}
-					}*/
 				}
 			}
 		}
@@ -1026,7 +1012,7 @@ struct FPropertyItemComponentCollector
 	{
 		if ( Property != NULL )
 		{
-			bContainsEditInlineNew |= (Property->PropertyFlags&CPF_EditInline) != 0 && (Property->PropertyFlags & CPF_EditConst) == 0;
+			bContainsEditInlineNew |= Property->HasMetaData(TEXT("EditInline")) && ((Property->PropertyFlags & CPF_EditConst) == 0);
 
 			if ( ProcessObjectProperty(Cast<UObjectPropertyBase>(Property), PropertyValueAddress) )
 			{

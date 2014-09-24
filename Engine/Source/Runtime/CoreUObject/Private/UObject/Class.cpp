@@ -3757,7 +3757,6 @@ void UFunction::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction) const
 {
-	// The script compiler pointlessly sets CPF_EditInline on components passed as arguments
 	const uint64 IgnoreFlags = UFunction::GetDefaultIgnoredSignatureCompatibilityFlags();
 
 	return IsSignatureCompatibleWith(OtherFunction, IgnoreFlags);
