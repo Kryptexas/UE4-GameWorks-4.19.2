@@ -205,9 +205,6 @@ public:
 	/** set to disable world rendering */
 	uint32 bDisableWorldRendering:1;
 
-	/** Whether the mouse is currently over this game viewport */
-	uint32 bMouseOverViewport:1;
-
 protected:
 	/**
 	 * The splitscreen type that is actually being used; takes into account the number of players and other factors (such as cinematic mode)
