@@ -1385,23 +1385,26 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 template<typename RHIResourceType>
 TOpenGLTexture<RHIResourceType>::~TOpenGLTexture()
 {
-	VERIFY_GL_SCOPE();
-
-	OpenGLTextureDeleted( this );
-
-	if( Resource != 0 )
+	if ( GIsRHIInitialized )
 	{
-		OpenGLRHI->InvalidateTextureResourceInCache( Resource );
-		FOpenGL::DeleteTextures( 1, &Resource );
-	}
-	
-	if(TextureRange)
-	{
-		delete [] TextureRange;
-		TextureRange = nullptr;
-	}
+		VERIFY_GL_SCOPE();
 
-	ReleaseOpenGLFramebuffers(OpenGLRHI,this);
+		OpenGLTextureDeleted( this );
+
+		if( Resource != 0 )
+		{
+			OpenGLRHI->InvalidateTextureResourceInCache( Resource );
+			FOpenGL::DeleteTextures( 1, &Resource );
+		}
+		
+		if(TextureRange)
+		{
+			delete [] TextureRange;
+			TextureRange = nullptr;
+		}
+
+		ReleaseOpenGLFramebuffers(OpenGLRHI,this);
+	}
 }
 
 /*-----------------------------------------------------------------------------
