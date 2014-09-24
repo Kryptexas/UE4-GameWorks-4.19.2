@@ -376,11 +376,14 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// determines if the platform needs to be pak'd when packaged
+		/// Tri-state - The intent is to override command line parameters for pak if needed per platform.
 		/// </summary>
-		public virtual bool RequiresPak(ProjectParams Params)
+        /// 
+        public enum PakType { Always, Never, DontCare };
+
+        public virtual PakType RequiresPak(ProjectParams Params)
 		{
-			return false;
+            return PakType.DontCare;
 		}
 
         /// <summary>
