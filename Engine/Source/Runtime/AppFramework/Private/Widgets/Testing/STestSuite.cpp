@@ -4331,7 +4331,7 @@ namespace
 /**
  * Global access here because we need other translation units to access this function.
  */
-FSlateRenderTransform GetTestRenderTransform()
+TOptional<FSlateRenderTransform> GetTestRenderTransform()
 {
 	return TransformCast<FSlateRenderTransform>(Concatenate(Shear, Scale, Rot));
 }
@@ -4482,8 +4482,6 @@ static TSharedPtr<FTabManager> TestSuite1TabManager;
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 {
-	extern FSlateRenderTransform GetTestRenderTransform();
-	extern FVector2D GetTestRenderTransformPivot();
 	if (TabIdentifier == FName(TEXT("AnimationTestTab")))
 	{
 		return SNew(SDockTab)

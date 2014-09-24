@@ -1009,7 +1009,7 @@ struct TSlateBaseNamedArgs
 	, _Cursor( TOptional<EMouseCursor::Type>() )
 	, _IsEnabled( true )
 	, _Visibility( EVisibility::Visible )
-	, _RenderTransform( FSlateRenderTransform() )
+	, _RenderTransform( )
 	, _RenderTransformPivot( FVector2D::ZeroVector )
 	{
 	}
@@ -1048,7 +1048,7 @@ struct TSlateBaseNamedArgs
 	SLATE_ATTRIBUTE( TOptional<EMouseCursor::Type>, Cursor )
 	SLATE_ATTRIBUTE( bool, IsEnabled )
 	SLATE_ATTRIBUTE( EVisibility, Visibility )
-	SLATE_ATTRIBUTE( FSlateRenderTransform, RenderTransform )
+	SLATE_ATTRIBUTE( TOptional<FSlateRenderTransform>, RenderTransform )
 	SLATE_ATTRIBUTE( FVector2D, RenderTransformPivot )
 	SLATE_ARGUMENT( FName, Tag )
 

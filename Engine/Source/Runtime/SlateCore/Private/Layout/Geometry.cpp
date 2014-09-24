@@ -106,7 +106,16 @@ FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, con
 
 FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
 {
-	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform(), ChildWidget->GetRenderTransformPivot()));
+	// If there is no render transform set, use the simpler MakeChild call that doesn't bother concatenating the render transforms.
+	// This saves a significant amount of overhead since every widget does this, and most children don't have a render transform.
+	if (ChildWidget->GetRenderTransform().IsSet())
+	{
+		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform().GetValue(), ChildWidget->GetRenderTransformPivot()));
+	}
+	else
+	{
+		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform));
+	}
 }
 
 FGeometry FGeometry::MakeChild( const FVector2D& ChildOffset, const FVector2D& LocalSize, float LocalScale ) const
@@ -120,7 +129,7 @@ FArrangedWidget FGeometry::MakeChild( const TSharedRef<SWidget>& ChildWidget, co
 {
 	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
 	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
-	return FArrangedWidget(ChildWidget, MakeChild(LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)), ChildWidget->GetRenderTransform(), ChildWidget->GetRenderTransformPivot()));
+	return MakeChild(ChildWidget, LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)));
 }
 
 FPaintGeometry FGeometry::ToPaintGeometry() const

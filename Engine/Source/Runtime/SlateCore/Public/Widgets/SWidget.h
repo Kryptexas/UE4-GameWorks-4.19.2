@@ -72,7 +72,7 @@ public:
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
-		const TAttribute<FSlateRenderTransform>& InTransform,
+		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
@@ -82,7 +82,7 @@ public:
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
-		const TAttribute<FSlateRenderTransform>& InTransform,
+		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
@@ -565,13 +565,13 @@ public:
 	}
 
 	/** @return the render transform of the widget. */
-	const FSlateRenderTransform& GetRenderTransform() const
+	const TOptional<FSlateRenderTransform>& GetRenderTransform() const
 	{
 		return RenderTransform.Get();
 	}
 
-	/** @param InTransform the render transform to set for the widget (tranforms from widget's local space). */
-	void SetRenderTransform( TAttribute<FSlateRenderTransform> InTransform )
+	/** @param InTransform the render transform to set for the widget (tranforms from widget's local space). TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
+	void SetRenderTransform( TAttribute<TOptional<FSlateRenderTransform>> InTransform )
 	{
 		RenderTransform = InTransform;
 	}
@@ -817,8 +817,8 @@ protected:
 	/** Is this widget visible, hidden or collapsed */
 	TAttribute< EVisibility > Visibility;
 
-	/** Render transform of this widget */
-	TAttribute< FSlateRenderTransform > RenderTransform;
+	/** Render transform of this widget. TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
+	TAttribute< TOptional<FSlateRenderTransform> > RenderTransform;
 
 	/** Render transform pivot of this widget (in normalized local space) */
 	TAttribute< FVector2D > RenderTransformPivot;

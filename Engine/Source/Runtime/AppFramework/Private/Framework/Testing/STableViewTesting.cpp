@@ -1102,7 +1102,7 @@ protected:
 
 TSharedRef<SWidget> MakeTableViewTesting()
 {
-	extern FSlateRenderTransform GetTestRenderTransform();
+	extern TOptional<FSlateRenderTransform> GetTestRenderTransform();
 	extern FVector2D GetTestRenderTransformPivot();
 	return
 		SNew(STableViewTesting)

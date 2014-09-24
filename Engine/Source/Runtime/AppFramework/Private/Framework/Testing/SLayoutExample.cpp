@@ -380,7 +380,7 @@ public:
 
 APPFRAMEWORK_API TSharedRef<SWidget> MakeLayoutExample()
 {
-	extern FSlateRenderTransform GetTestRenderTransform();
+	extern TOptional<FSlateRenderTransform> GetTestRenderTransform();
 	extern FVector2D GetTestRenderTransformPivot();
 	return
 		SNew(SExampleLayout)

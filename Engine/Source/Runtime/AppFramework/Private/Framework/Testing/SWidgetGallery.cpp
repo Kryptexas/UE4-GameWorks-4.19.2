@@ -1123,7 +1123,7 @@ private:
  */
 TSharedRef<SWidget> MakeWidgetGallery()
 {
-	extern FSlateRenderTransform GetTestRenderTransform();
+	extern TOptional<FSlateRenderTransform> GetTestRenderTransform();
 	extern FVector2D GetTestRenderTransformPivot();
 	return
 		SNew(SWidgetGallery)
