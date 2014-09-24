@@ -1146,6 +1146,12 @@ bool FActiveGameplayEffect::CanBeStacked(const FActiveGameplayEffect& Other) con
 
 void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray)
 {
+	if (Spec.Def == nullptr)
+	{
+		ABILITY_LOG(Error, TEXT("Received PreReplicatedRemove with no UGameplayEffect def."));
+		return;
+	}
+
 	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectRemoved(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
 	
 	InArray.Owner->InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Removed);
@@ -1276,7 +1282,8 @@ void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGam
 /** This is the main function that executes a GameplayEffect on Attributes and ActiveGameplayEffects */
 void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
-	bool InvokeGameplayCueExecute = false;
+	// If there are no modifiers, we always want to apply the GameplayCue. If there are modifiers, we only want to invoke the GameplayCue if one of them went through (coudl be blocked by immunity or % chance roll)
+	bool InvokeGameplayCueExecute = (Spec.Modifiers.Num() == 0);
 
 	// check if this is a stacking effect and if it is the active stacking effect.
 	if (Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited)
@@ -1409,7 +1416,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 			}
 		}
 	}
-
+	
 	if (InvokeGameplayCueExecute && Spec.Def->GameplayCues.Num())
 	{
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
@@ -1475,7 +1482,6 @@ void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGame
 		check(RefPtr->Get()->BaseData.Magnitude.IsStatic());
 		RefPtr->Get()->BaseData.Magnitude.SetValue(BaseValue);
 		RefPtr->Get()->MarkDirty();
-		OnPropertyAggregatorDirty(RefPtr->Get(), Attribute);
 	}
 }
 
