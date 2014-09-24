@@ -78,6 +78,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 			[
 				SNew( SComboButton )
 				.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
+				.ForegroundColor(FLinearColor::White)
 				.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
 				.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
 				.HasDownArrow( true )
