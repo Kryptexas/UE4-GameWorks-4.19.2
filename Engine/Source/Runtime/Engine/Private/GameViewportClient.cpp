@@ -409,8 +409,6 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 {
 	Super::MouseEnter(InViewport, x, y);
 
-	bMouseOverViewport = true;
-
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
@@ -420,8 +418,6 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 void UGameViewportClient::MouseLeave(FViewport* InViewport)
 {
 	Super::MouseLeave(InViewport);
-
-	bMouseOverViewport = false;
 
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
@@ -439,12 +435,15 @@ bool UGameViewportClient::GetMousePosition(FVector2D& MousePosition) const
 {
 	bool bGotMousePosition = false;
 
-	if (Viewport && bMouseOverViewport && FSlateApplication::Get().IsMouseAttached())
+	if (Viewport && FSlateApplication::Get().IsMouseAttached())
 	{
 		FIntPoint MousePos;
 		Viewport->GetMousePos(MousePos);
-		MousePosition = FVector2D(MousePos);
-		bGotMousePosition = true;
+		if (MousePos.X >= 0 && MousePos.Y >= 0)
+		{
+			MousePosition = FVector2D(MousePos);
+			bGotMousePosition = true;
+		}
 	}
 
 	return bGotMousePosition;
