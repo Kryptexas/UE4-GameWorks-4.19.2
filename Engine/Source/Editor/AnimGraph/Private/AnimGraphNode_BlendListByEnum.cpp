@@ -36,7 +36,10 @@ FText UAnimGraphNode_BlendListByEnum::GetNodeTitle(ENodeTitleType::Type TitleTyp
 	{
 		return LOCTEXT("AnimGraphNode_BlendListByEnum_TitleError", "ERROR: Blend Poses (by missing enum)");
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the BoundEnum won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));

@@ -52,7 +52,9 @@ FText UAnimGraphNode_TwoBoneIK::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	{
 		return GetControllerDescription();
 	}
-	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());

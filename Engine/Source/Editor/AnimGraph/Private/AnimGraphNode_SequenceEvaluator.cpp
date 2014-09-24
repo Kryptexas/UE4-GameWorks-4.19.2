@@ -48,7 +48,10 @@ FText UAnimGraphNode_SequenceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleT
 	{
 		return LOCTEXT("EvaluateSequence_TitleNONE", "Evaluate (None)");
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the CacheName won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
 	{
 		const FText SequenceName = FText::FromString(Node.Sequence->GetName());
 

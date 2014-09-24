@@ -142,6 +142,8 @@ void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 			}
 		}
 
+		CachedNodeTitle.MarkDirty();
+
 		UClass* UseSpawnClass = GetClassToSpawn();
 		if(UseSpawnClass != NULL)
 		{

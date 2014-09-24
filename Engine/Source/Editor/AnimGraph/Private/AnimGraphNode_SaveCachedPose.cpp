@@ -55,7 +55,10 @@ FText UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType
 	{
 		return LOCTEXT("NewSaveCachedPose", "New Save cached pose...");
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the CacheName won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("NodeTitle"), FText::FromString(CacheName));

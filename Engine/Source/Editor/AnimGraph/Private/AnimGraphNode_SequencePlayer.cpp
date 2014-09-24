@@ -81,7 +81,9 @@ FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType
 	{
 		return LOCTEXT("SequenceNullTitle", "Play (None)");
 	}
-	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
 		if(SyncGroup.GroupName == NAME_None)
 		{
