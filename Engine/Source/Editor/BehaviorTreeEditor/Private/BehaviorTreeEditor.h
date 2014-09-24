@@ -184,6 +184,9 @@ public:
 	/** Delegate handler for when a blackboard key changes (added, removed, renamed) */
 	void HandleBlackboardKeyChanged(UBlackboardData* InBlackboardData, FBlackboardEntry* const InKey);
 
+	/** Check whether blackboard mode is current */
+	bool HandleIsBlackboardModeActive() const;
+
 	/** Get the currently selected blackboard entry */
 	void GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const;
 

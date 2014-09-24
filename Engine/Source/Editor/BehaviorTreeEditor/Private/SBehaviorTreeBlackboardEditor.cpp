@@ -23,6 +23,7 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 	OnIsDebuggerPaused = InArgs._OnIsDebuggerPaused;
 	OnGetDebugTimeStamp = InArgs._OnGetDebugTimeStamp;
 	OnGetDisplayCurrentState = InArgs._OnGetDisplayCurrentState;
+	OnIsBlackboardModeActive = InArgs._OnIsBlackboardModeActive;
 
 	TSharedRef<FUICommandList> CommandList = MakeShareable(new FUICommandList);
 
@@ -131,7 +132,9 @@ void SBehaviorTreeBlackboardEditor::HandleRenameEntry()
 
 bool SBehaviorTreeBlackboardEditor::CanDeleteEntry() const
 {
-	if(!IsDebuggerActive())
+	const bool bModeActive = OnIsBlackboardModeActive.IsBound() && OnIsBlackboardModeActive.Execute();
+
+	if(!IsDebuggerActive() && bModeActive)
 	{
 		bool bIsInherited = false;
 		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);
@@ -146,7 +149,9 @@ bool SBehaviorTreeBlackboardEditor::CanDeleteEntry() const
 
 bool SBehaviorTreeBlackboardEditor::CanRenameEntry() const
 {
-	if(!IsDebuggerActive())
+	const bool bModeActive = OnIsBlackboardModeActive.IsBound() && OnIsBlackboardModeActive.Execute();
+
+	if(!IsDebuggerActive() && bModeActive)
 	{
 		bool bIsInherited = false;
 		FBlackboardEntry* BlackboardEntry = GetSelectedEntry(bIsInherited);

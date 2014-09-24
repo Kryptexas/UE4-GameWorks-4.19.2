@@ -248,7 +248,8 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 				.OnIsDebuggerPaused(this, &FBehaviorTreeEditor::IsDebuggerPaused)
 				.OnGetDebugTimeStamp(this, &FBehaviorTreeEditor::HandleGetDebugTimeStamp)
 				.OnGetDisplayCurrentState(this, &FBehaviorTreeEditor::HandleGetDisplayCurrentState)
-				.OnBlackboardKeyChanged(this, &FBehaviorTreeEditor::HandleBlackboardKeyChanged);
+				.OnBlackboardKeyChanged(this, &FBehaviorTreeEditor::HandleBlackboardKeyChanged)
+				.OnIsBlackboardModeActive(this, &FBehaviorTreeEditor::HandleIsBlackboardModeActive);
 	}
 	else
 	{
@@ -395,6 +396,11 @@ void FBehaviorTreeEditor::HandleBlackboardKeyChanged(UBlackboardData* InBlackboa
 		// re-set object in blackboard view to keep it up to date
 		BlackboardView->SetObject(InBlackboardData);
 	}
+}
+
+bool FBehaviorTreeEditor::HandleIsBlackboardModeActive() const
+{
+	return GetCurrentMode() == BlackboardMode;
 }
 
 void FBehaviorTreeEditor::GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const
