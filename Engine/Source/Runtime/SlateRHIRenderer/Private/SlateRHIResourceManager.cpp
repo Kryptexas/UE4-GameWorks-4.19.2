@@ -130,7 +130,10 @@ FSlateRHIResourceManager::FSlateRHIResourceManager()
 
 FSlateRHIResourceManager::~FSlateRHIResourceManager()
 {
-	DeleteResources();
+	if ( GIsRHIInitialized )
+	{
+		DeleteResources();
+	}
 }
 
 void FSlateRHIResourceManager::CreateTextures( const TArray< const FSlateBrush* >& Resources )
