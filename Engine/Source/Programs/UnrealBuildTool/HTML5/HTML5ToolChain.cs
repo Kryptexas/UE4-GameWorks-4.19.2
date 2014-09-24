@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 
         Dictionary<string, string> ReadEmscriptenSettings()
         {
-            // Check HTML5Platform.Automation.cs
+            // Check HTML5ToolChain.cs for duplicate
             if (!System.IO.File.Exists(EmscriptenSettingsPath))
             {
                 return new Dictionary<string, string>();
@@ -26,15 +26,19 @@ namespace UnrealBuildTool
 
             Dictionary<string, string> Settings = new Dictionary<string, string>();
             System.IO.StreamReader SettingFile = new System.IO.StreamReader(EmscriptenSettingsPath);
-            string EMLine = SettingFile.ReadToEnd();
-            string Pattern = @"(\w+)\s*=\s*['\[]((?:[^'\\]|\\.^)*)['\]]";
-            Regex Rgx = new Regex(Pattern, RegexOptions.IgnoreCase);
-            MatchCollection Matches = Rgx.Matches(EMLine);
-            foreach (Match Matched in Matches)
+            string EMLine = null;
+            while ((EMLine = SettingFile.ReadLine()) != null)
             {
-                if (Matched.Groups.Count == 3 && Matched.Groups[2].ToString() != "")
+                EMLine = EMLine.Split('#')[0];
+                string Pattern1 = @"(\w*)\s*=\s*['\[]?([^'\]\r\n]*)['\]]?";
+                Regex Rgx = new Regex(Pattern1, RegexOptions.IgnoreCase);
+                MatchCollection Matches = Rgx.Matches(EMLine);
+                foreach (Match Matched in Matches)
                 {
-                    Settings[Matched.Groups[1].ToString()] = Matched.Groups[2].ToString();
+                    if (Matched.Groups.Count == 3 && Matched.Groups[2].ToString() != "")
+                    {
+                        Settings[Matched.Groups[1].ToString()] = Matched.Groups[2].ToString();
+                    }
                 }
             }
 
