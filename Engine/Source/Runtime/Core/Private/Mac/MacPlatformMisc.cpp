@@ -324,6 +324,7 @@ void FMacPlatformMisc::UpdateWindowMenu()
 	[WindowMenu addItem:CloseItem];
 	[WindowMenu addItem:[NSMenuItem separatorItem]];
 	[WindowMenu addItem:BringAllToFrontItem];
+	[WindowMenu addItem:[NSMenuItem separatorItem]];
 }
 
 void FMacPlatformMisc::ActivateApplication()
