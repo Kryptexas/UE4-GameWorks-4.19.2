@@ -2,6 +2,8 @@
 
 #include "AITestSuitePrivatePCH.h"
 
+DEFINE_LOG_CATEGORY(LogAITestSuite);
+DEFINE_LOG_CATEGORY(LogBehaviorTreeTest);
 
 class FAITestSuite : public IAITestSuite
 {

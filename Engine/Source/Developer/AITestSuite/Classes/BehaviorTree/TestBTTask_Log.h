@@ -1,0 +1,34 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+#pragma once
+
+#include "BehaviorTree/BTTaskNode.h"
+#include "TestBTTask_Log.generated.h"
+
+struct FBTLogTaskMemory
+{
+	/** time left */
+	float RemainingWaitTime;
+};
+
+UCLASS()
+class UTestBTTask_Log : public UBTTaskNode
+{
+	GENERATED_UCLASS_BODY()
+
+	UPROPERTY()
+	int32 LogIndex;
+
+	UPROPERTY()
+	float ExecutionTime;
+
+	UPROPERTY()
+	TEnumAsByte<EBTNodeResult::Type> LogResult;
+
+	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual uint16 GetInstanceMemorySize() const override;
+
+	void LogExecution(class UBehaviorTreeComponent* OwnerComp);
+
+protected:
+	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+};
