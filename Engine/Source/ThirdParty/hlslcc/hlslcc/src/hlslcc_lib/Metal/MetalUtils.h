@@ -1,9 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
 #include "../hlslcc.h"
-
-//@todo-rco: Remove STL!
-#include <vector>
 
 inline std::string FixVecPrefix(std::string Type)
 {
@@ -57,7 +55,7 @@ struct FBuffers
 	void SortBuffers()
 	{
 		TArray<ir_instruction*> AllBuffers;
-		AllBuffers.Resize(Buffers.Num(), nullptr);
+		AllBuffers.AddZeroed(Buffers.Num());
 		TIRVarList CBuffers;
 		// Put packed UB's into their location (h=0, m=1, etc); leave holes if not using a packed define
 		// and group the regular CBuffers in another list
@@ -70,7 +68,9 @@ struct FBuffers
 				int Index = ConvertArrayTypeToIndex((EArrayType)Var->semantic[0]);
 				if (AllBuffers.Num() <= Index)
 				{
-					AllBuffers.Resize(Index + 1, nullptr);
+					int32 Count = Index + 1 - AllBuffers.Num();
+					AllBuffers.AddZeroed(Count);
+					//AllBuffers.Resize(Index + 1, nullptr);
 				}
 				AllBuffers[Index] = Var;
 			}

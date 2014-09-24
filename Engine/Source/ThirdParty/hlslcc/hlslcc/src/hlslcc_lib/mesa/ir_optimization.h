@@ -4,6 +4,8 @@
 // http://mesa3d.org/
 // The license for the original code follows:
 
+#pragma once
+
 /*
  * Copyright © 2010 Intel Corporation
  *
@@ -46,8 +48,8 @@
 bool do_optimization_pass(exec_list *ir, _mesa_glsl_parse_state* state, bool bPerformGlobalDeadCodeRemoval);
 
 bool do_common_optimization(exec_list *ir, bool linked,
-			    bool uniform_locations_assigned,
-			    unsigned max_unroll_iterations);
+				bool uniform_locations_assigned,
+				unsigned max_unroll_iterations);
 
 bool do_algebraic(_mesa_glsl_parse_state* State, exec_list *instructions);
 bool do_constant_folding(exec_list *instructions);
@@ -77,7 +79,7 @@ bool lower_discard(exec_list *instructions);
 bool lower_instructions(exec_list *instructions, unsigned what_to_lower);
 bool lower_noise(exec_list *instructions);
 bool lower_variable_index_to_cond_assign(exec_list *instructions,
-    bool lower_input, bool lower_output, bool lower_temp, bool lower_uniform);
+	bool lower_input, bool lower_output, bool lower_temp, bool lower_uniform);
 bool lower_quadop_vector(exec_list *instructions, bool dont_lower_swz);
 bool lower_clip_distance(exec_list *instructions);
 void lower_output_reads(exec_list *instructions);
@@ -86,4 +88,4 @@ bool optimize_split_arrays(exec_list *instructions, bool linked);
 
 ir_rvalue *
 compare_index_block(exec_list *instructions, ir_variable *index,
-		    unsigned base, unsigned components, void *mem_ctx);
+			unsigned base, unsigned components, void *mem_ctx);

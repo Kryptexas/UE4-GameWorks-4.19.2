@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
 // The license for the original code follows:

@@ -1003,7 +1003,7 @@ protected:
 		}
 		else
 		{
-			const bool is_constant = swizzle->val->as_constant();
+			const bool is_constant = swizzle->val->as_constant() != nullptr;
 			if (is_constant)
 			{
 				ralloc_asprintf_append(buffer, "(");
@@ -1336,7 +1336,7 @@ protected:
 			{
 				value->accept(this);
 			}
-			for (int i = 1; i < constant->type->length; i++)
+			for (uint32 i = 1; i < constant->type->length; i++)
 			{
 				check(value);
 				value = (ir_constant*)value->next;
@@ -1353,7 +1353,7 @@ protected:
 			print_type_full(constant->type);
 			ralloc_asprintf_append(buffer, "(");
 			constant->get_array_element(0)->accept(this);
-			for (int i = 1; i < constant->type->length; ++i)
+			for (uint32 i = 1; i < constant->type->length; ++i)
 			{
 				ralloc_asprintf_append(buffer, ",");
 				constant->get_array_element(i)->accept(this);
@@ -2677,7 +2677,7 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 			sprintf(FunctionName, "%s%d", FRAMEBUFFER_FETCH_MRT, i);
 			auto* IntrinsicSig = FCodeBackend::FindEntryPointFunction(ir, State, FunctionName);
 			auto* ReturnValue = new(State) ir_variable(ReturnType, nullptr, ir_var_temporary);
-            exec_list Empty;
+			exec_list Empty;
 			auto* Call = new(State) ir_call(IntrinsicSig, new(State) ir_dereference_variable(ReturnValue), &Empty);
 			Call->use_builtin = true;
 			If->then_instructions.push_tail(ReturnValue);

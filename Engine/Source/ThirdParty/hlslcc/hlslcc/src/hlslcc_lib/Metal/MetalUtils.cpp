@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "../ShaderCompilerCommon.h"
-//@todo-rco: Remove STL!
 #include "../hlslcc.h"
 #include "../hlslcc_private.h"
 #include "../Metal/MetalBackend.h"
@@ -16,6 +15,7 @@
 #include "../OptValueNumbering.h"
 #include "../mesa/ir_optimization.h"
 #include "../Metal/MetalUtils.h"
+//@todo-rco: Remove STL!
 #include <algorithm>
 
 
@@ -116,7 +116,7 @@ void CreateNewAssignmentsFloat2Half(_mesa_glsl_parse_state* State, exec_list& Ne
 {
 	if (NewVar->type->is_matrix())
 	{
-		for (int i = 0; i < NewVar->type->matrix_columns; ++i)
+		for (uint32 i = 0; i < NewVar->type->matrix_columns; ++i)
 		{
 			auto* NewF2H = new(State)ir_expression(ir_unop_f2h, new(State)ir_dereference_array(RValue, new(State)ir_constant(i)));
 			auto* NewAssignment = new(State)ir_assignment(new(State)ir_dereference_array(NewVar, new(State)ir_constant(i)), NewF2H);
@@ -136,7 +136,7 @@ static void CreateNewAssignmentsHalf2Float(_mesa_glsl_parse_state* State, exec_l
 {
 	if (NewVar->type->is_matrix())
 	{
-		for (int i = 0; i < NewVar->type->matrix_columns; ++i)
+		for (uint32 i = 0; i < NewVar->type->matrix_columns; ++i)
 		{
 			auto* NewF2H = new(State)ir_expression(ir_unop_h2f, new(State)ir_dereference_array(RValue, new(State)ir_constant(i)));
 			auto* NewAssignment = new(State)ir_assignment(new(State)ir_dereference_array(NewVar, new(State)ir_constant(i)), NewF2H);
@@ -344,7 +344,7 @@ namespace MetalUtils
 		const glsl_type* InputType = InputVariableDeref->type;
 		if (InputType->is_record())
 		{
-			for (int i = 0; i < InputType->length; ++i)
+			for (uint32 i = 0; i < InputType->length; ++i)
 			{
 				const char* Semantic = nullptr;
 				const char* FieldSemantic = InputType->fields.structure[i].semantic;
@@ -479,7 +479,7 @@ namespace MetalUtils
 		const glsl_type* OutputType = OutputVariableDeref->type;
 		if (OutputType->is_record())
 		{
-			for (int i = 0; i < OutputType->length; ++i)
+			for (uint32 i = 0; i < OutputType->length; ++i)
 			{
 				const char* FieldSemantic = OutputType->fields.structure[i].semantic;
 				const char* Semantic = nullptr;
@@ -622,7 +622,7 @@ struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 			check(expr->operands[0]->type == expr->operands[1]->type);
 			auto* NewTemp = new(State)ir_variable(expr->operands[0]->type, nullptr, ir_var_temporary);
 			base_ir->insert_before(NewTemp);
-			for (int Index = 0; Index < expr->operands[0]->type->matrix_columns; ++Index)
+			for (uint32 Index = 0; Index < expr->operands[0]->type->matrix_columns; ++Index)
 			{
 				auto* NewMul = new(State)ir_expression(ir_binop_mul,
 					new(State)ir_dereference_array(expr->operands[0], new(State)ir_constant(Index)),
@@ -758,7 +758,7 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 	TStringIRVarMap CBVarMap;
 
 	// Now make a new struct type and global variable per uniform buffer
-	for (int i = 0; i < state->num_uniform_blocks; ++i)
+	for (uint32 i = 0; i < state->num_uniform_blocks; ++i)
 		//	for (auto& CB : state->CBuffersOriginal)
 	{
 		auto* CBP = state->FindCBufferByName(false, state->uniform_blocks[i]->name);
@@ -767,7 +767,7 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 		if (!CB.Members.empty())
 		{
 			glsl_struct_field* Fields = ralloc_array(state, glsl_struct_field, (unsigned)CB.Members.size());
-			int Index = 0;
+			uint32 Index = 0;
 			for (auto& Member : CB.Members)
 			{
 				check(Member.Var);
@@ -815,7 +815,7 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 			ProcessedTypes.insert(Type);
 			((glsl_type*)Type)->HlslName = "__PACKED__";
 
-			for (int i = 0; i < Type->length; ++i)
+			for (uint32 i = 0; i < Type->length; ++i)
 			{
 				if (Type->fields.structure[i].type->is_record())
 				{
@@ -1019,7 +1019,7 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslSha
 				if (Variable->type->is_array())
 				{
 					check(Variable->type->element_type()->is_vector());
-					for (int i = 0; i < Variable->type->length; ++i, ++AttributeIndex)
+					for (uint32 i = 0; i < Variable->type->length; ++i, ++AttributeIndex)
 					{
 						glsl_struct_field OutMember;
 						OutMember.type = Variable->type->element_type();
@@ -2294,7 +2294,7 @@ struct FDeReferencePackedVarsVisitor : public ir_rvalue_visitor
 
 	virtual ir_visitor_status visit_leave(ir_expression* ir) override
 	{
-		for (int i = 0; i < ir->get_num_operands(); ++i)
+		for (uint32 i = 0; i < ir->get_num_operands(); ++i)
 		{
 			auto* Operand = ir->operands[i];
 			auto* DerefRecord = Operand->as_dereference_record();
