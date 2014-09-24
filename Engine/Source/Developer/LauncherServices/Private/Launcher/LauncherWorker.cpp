@@ -331,6 +331,8 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		{
 			UATCommand += TEXT(" -cook");
 
+			UATCommand += MapList;
+
 			if (InProfile->IsCookingIncrementally())
 			{
 				UATCommand += TEXT(" -iterate");
