@@ -69,6 +69,8 @@ private:
 	// Callback for getting the visibility of the source control throbber
 	EVisibility HandleThrobberVisibility() const;
 
+	// Callback to get the background color of the checkout wanring
+	FSlateColor HandleBorderBackgroundColor() const;
 private:
 
 	// Called when the file was modified externally
