@@ -467,6 +467,13 @@ FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeome
 
 
 		UpdateCursorHighlight();
+
+		// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
+		// gain focus since it can cause the scroll position to jump unexpectedly
+		// If we gained focus via a mouse click that moved the cursor, then MoveCursor will already take care
+		// of making sure that gets scrolled into view
+		PositionToScrollIntoView = TOptional<FScrollInfo>();
+
 		return SWidget::OnKeyboardFocusReceived( MyGeometry, InKeyboardFocusEvent );
 	}
 
@@ -2052,8 +2059,13 @@ void SMultiLineEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 
 void SMultiLineEditableText::LoadText()
 {
-	SetText(BoundText);
-	TextLayout->UpdateIfNeeded();
+	// We only need to do this if we're bound to a delegate, otherwise the text layout will already be up-to-date
+	// either from Construct, or a call to SetText
+	if (BoundText.IsBound())
+	{
+		SetText(BoundText);
+		TextLayout->UpdateIfNeeded();
+	}
 }
 
 void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

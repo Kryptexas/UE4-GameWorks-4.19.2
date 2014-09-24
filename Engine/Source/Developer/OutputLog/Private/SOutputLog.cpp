@@ -591,6 +591,7 @@ void FOutputLogTextLayoutMarshaller::SetText(const FString& SourceString, FTextL
 
 void FOutputLogTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout& SourceTextLayout)
 {
+	SourceTextLayout.GetAsText(TargetString);
 }
 
 bool FOutputLogTextLayoutMarshaller::AppendMessage(const TCHAR* InText, const ELogVerbosity::Type InVerbosity, const FName& InCategory)
