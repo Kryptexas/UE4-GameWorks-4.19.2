@@ -6,6 +6,11 @@
 #include "PaperCustomVersion.h"
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup2D.h"
 #include "Runtime/Engine/Public/ContentStreaming.h"
+#include "Runtime/Core/Public/Logging/MessageLog.h"
+#include "Runtime/Core/Public/Misc/MapErrors.h"
+#include "Runtime/CoreUObject/Public/Misc/UObjectToken.h"
+
+#define LOCTEXT_NAMESPACE "Paper2D"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteComponent
@@ -297,3 +302,31 @@ const UObject* UPaperSpriteComponent::AdditionalStatObject() const
 {
 	return SourceSprite;
 }
+
+#if WITH_EDITOR
+void UPaperSpriteComponent::CheckForErrors()
+{
+	Super::CheckForErrors();
+
+	AActor* Owner = GetOwner();
+
+	for (int32 MaterialIndex = 0; MaterialIndex < GetNumMaterials(); ++MaterialIndex)
+	{
+		if (UMaterialInterface* Material = GetMaterial(MaterialIndex))
+		{
+			if (!Material->IsTwoSided())
+			{
+				FMessageLog("MapCheck").Warning()
+					->AddToken(FUObjectToken::Create(Owner))
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_PaperSpriteMaterialNotTwoSided", "The material applied to the sprite component is not marked as two-sided, which may cause lighting artifacts.")))
+					->AddToken(FUObjectToken::Create(Material))
+					->AddToken(FMapErrorToken::Create(FName(TEXT("PaperSpriteMaterialNotTwoSided"))));
+			}
+		}
+	}
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

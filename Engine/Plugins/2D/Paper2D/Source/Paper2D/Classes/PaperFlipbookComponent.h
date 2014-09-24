@@ -162,6 +162,9 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 	virtual const UObject* AdditionalStatObject() const override;
+#if WITH_EDITOR
+	virtual void CheckForErrors() override;
+#endif
 	// End of UActorComponent interface
 
 	// USceneComponent interface

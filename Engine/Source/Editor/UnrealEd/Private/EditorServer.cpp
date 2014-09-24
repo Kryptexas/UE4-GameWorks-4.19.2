@@ -3477,6 +3477,10 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			{
 				MapCheckLog.Notify(LOCTEXT("MapCheckGenErrors", "Map check generated errors!"));
 			}
+			else if (WarningCount > 0)
+			{
+				MapCheckLog.Notify(LOCTEXT("MapCheckGenWarnings", "Map check generated warnings!"));
+			}
 		}
 		else
 		{
@@ -3486,9 +3490,13 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			}
 			else if(Notification == EMapCheckNotification::NotifyOfResults)
 			{				
-				if(WarningCount > 0)
+				if (ErrorCount > 0)
 				{
 					MapCheckLog.Notify(LOCTEXT("MapCheckFoundErrors", "Map Check found some errors!"));
+				}
+				else if (WarningCount > 0)
+				{
+					MapCheckLog.Notify(LOCTEXT("MapCheckFoundWarnings", "Map Check found some issues!"));
 				}
 				else
 				{
