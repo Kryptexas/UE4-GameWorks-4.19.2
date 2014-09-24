@@ -309,8 +309,6 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		}
 	}
 
-	UATCommand  += MapList; 
-
 	// build
 	if (InProfile->IsBuilding())
 	{
@@ -332,6 +330,8 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	case ELauncherProfileCookModes::ByTheBook:
 		{
 			UATCommand += TEXT(" -cook");
+
+			UATCommand += MapList;
 
 			if (InProfile->IsCookingIncrementally())
 			{
