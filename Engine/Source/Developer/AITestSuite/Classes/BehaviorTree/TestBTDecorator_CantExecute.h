@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTDecorator.h"
 #include "TestBTDecorator_CantExecute.generated.h"
 
-UCLASS()
+UCLASS(meta=(HiddenNode))
 class UTestBTDecorator_CantExecute : public UBTDecorator
 {
 	GENERATED_UCLASS_BODY()

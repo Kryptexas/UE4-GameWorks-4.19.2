@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "TestBTTask_SetFlag.generated.h"
 
-UCLASS()
+UCLASS(meta=(HiddenNode))
 class UTestBTTask_SetFlag : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()

@@ -10,7 +10,7 @@ struct FBTLogTaskMemory
 	float RemainingWaitTime;
 };
 
-UCLASS()
+UCLASS(meta=(HiddenNode))
 class UTestBTTask_Log : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
