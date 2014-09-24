@@ -373,6 +373,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 						"#define texture2D texture				\n"
 						"#define texture2DProj textureProj		\n"
 						"#define texture2DLod textureLod			\n"
+						"#define texture2DLodEXT textureLod \n"
 						"#define texture2DProjLod textureProjLod \n"
 						"#define textureCube texture				\n"
 						"#define textureCubeLod textureLod		\n"
