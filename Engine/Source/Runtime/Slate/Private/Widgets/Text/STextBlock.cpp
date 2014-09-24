@@ -16,8 +16,6 @@ void STextBlock::Construct( const FArguments& InArgs )
 	Justification = InArgs._Justification;
 	MinDesiredWidth = InArgs._MinDesiredWidth;
 
-	CachedScale = 1.0f;
-
 	Font = InArgs._Font;
 	ColorAndOpacity = InArgs._ColorAndOpacity;
 	ShadowOffset = InArgs._ShadowOffset;
@@ -101,9 +99,6 @@ int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_STextBlock );
 #endif
 
-	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
-	CachedScale = AllottedGeometry.Scale;
-
 #if WITH_FANCY_TEXT
 
 	// OnPaint will also update the text layout cache if required
@@ -182,12 +177,12 @@ FVector2D STextBlock::ComputeDesiredSize() const
 #if WITH_FANCY_TEXT
 
 	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
-	const float Scale = CachedScale;
+	//const float Scale = CachedScale;
 
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
 		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
-		Scale, GetComputedTextStyle()
+		/*Scale, */GetComputedTextStyle()
 		);
 
 #else//WITH_FANCY_TEXT
