@@ -1526,7 +1526,7 @@ void FBehaviorTreeEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 	if (MyNode && MyNode->bInjectedNode)
 	{
 		UBTTask_RunBehavior* SubtreeTask = MyNode->ParentNode ? Cast<UBTTask_RunBehavior>(MyNode->ParentNode->NodeInstance) : NULL;
-		if (SubtreeTask)
+		if (SubtreeTask && SubtreeTask->GetSubtreeAsset())
 		{
 			FAssetEditorManager::Get().OpenEditorForAsset(SubtreeTask->GetSubtreeAsset());
 
@@ -1600,8 +1600,10 @@ void FBehaviorTreeEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 		UPackage* Pkg = NodeClass->GetOuterUPackage();
 		FString ClassName = NodeClass->GetName().LeftChop(2);
 		UBlueprint* BlueprintOb = FindObject<UBlueprint>(Pkg, *ClassName);
-
-		FAssetEditorManager::Get().OpenEditorForAsset(BlueprintOb);
+		if(BlueprintOb)
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(BlueprintOb);
+		}
 	}
 }
 
