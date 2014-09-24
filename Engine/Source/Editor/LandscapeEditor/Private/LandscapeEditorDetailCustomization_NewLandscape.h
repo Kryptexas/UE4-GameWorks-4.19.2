@@ -71,6 +71,8 @@ public:
 	FReply OnFitImportDataButtonClicked();
 	void ChooseBestComponentSizeForImport(FEdModeLandscape* LandscapeEdMode);
 
+	FText GetOverallResolutionTooltip() const;
+
 	// Import layers
 	EVisibility GetMaterialTipVisibility() const;
 

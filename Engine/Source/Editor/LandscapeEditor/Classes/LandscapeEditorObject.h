@@ -390,28 +390,38 @@ class ULandscapeEditorObject : public UObject
 
 	// New Landscape "Tool"
 
-	// Material initially applied to the landscape. Setting a material here exposes properties for setting up layer info based on the landscape blend nodes in the material
+	// Material initially applied to the landscape. Setting a material here exposes properties for setting up layer info based on the landscape blend nodes in the material.
 	UPROPERTY(Category="New Landscape", EditAnywhere, meta=(DisplayName="Material", ShowForTools="NewLandscape"))
 	TWeakObjectPtr<UMaterialInterface> NewLandscape_Material;
 
+	// The number of quads in a single landscape section. One section is the unit of LOD transition for landscape rendering.
 	UPROPERTY(Category="New Landscape", EditAnywhere, meta=(DisplayName="Section Size", ShowForTools="NewLandscape"))
 	int32 NewLandscape_QuadsPerSection;
+
+	// The number of sections in a single landscape component. This along with the section size determines the size of each landscape component. A component is the base unit of rendering and culling.
 	UPROPERTY(Category="New Landscape", EditAnywhere, meta=(DisplayName="Sections Per Component", ShowForTools="NewLandscape"))
 	int32 NewLandscape_SectionsPerComponent;
+
+	// The number of components in the X and Y direction, determining the overall size of the landscape.
 	UPROPERTY(Category="New Landscape", EditAnywhere, meta=(DisplayName="Number of Components", ShowForTools="NewLandscape"))
 	FIntPoint NewLandscape_ComponentCount;
 
+	// The location of the new landscape
 	UPROPERTY(Category="New Landscape", EditAnywhere, meta=(DisplayName="Location", ShowForTools="NewLandscape"))
 	FVector NewLandscape_Location;
+
+	// The rotation of the new landscape
 	UPROPERTY(Category="New Landscape", EditAnywhere, meta=(DisplayName="Rotation", ShowForTools="NewLandscape"))
 	FRotator NewLandscape_Rotation;
+
+	// The scale of the new landscape. This is the distance between each vertex on the landscape, defaulting to 100 units.
 	UPROPERTY(Category="New Landscape", EditAnywhere, meta=(DisplayName="Scale", ShowForTools="NewLandscape"))
 	FVector NewLandscape_Scale;
 
-	// Import
-
 	UPROPERTY(Category="New Landscape", VisibleAnywhere, NonTransactional, meta=(ShowForTools="NewLandscape"))
 	TEnumAsByte<ELandscapeImportHeightmapError::Type> ImportLandscape_HeightmapError;
+
+	// Specify a height map file in 16-bit RAW or PNG format
 	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, meta=(DisplayName="Heightmap File", ShowForTools="NewLandscape"))
 	FString ImportLandscape_HeightmapFilename;
 	UPROPERTY(NonTransactional)
@@ -421,6 +431,7 @@ class ULandscapeEditorObject : public UObject
 	UPROPERTY(NonTransactional)
 	TArray<uint16> ImportLandscape_Data;
 
+	// The landscape layers that will be created. Only layer names referenced in the material assigned above are shown here. Modify the material to add more layers.
 	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, EditFixedSize, meta=(DisplayName="Layers", ShowForTools="NewLandscape"))
 	TArray<FLandscapeImportLayer> ImportLandscape_Layers;
 
