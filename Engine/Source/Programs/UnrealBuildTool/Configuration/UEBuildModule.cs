@@ -883,14 +883,14 @@ namespace UnrealBuildTool
 		{
 			public class BuildInfoClass
 			{
-				/** The filename of the *.generated.cpp file which was generated for the module */
-				public readonly string Filename;
+				/** The wildcard of the *.generated.cpp file which was generated for the module */
+				public readonly string FileWildcard;
 
-				public BuildInfoClass(string InFilename)
+				public BuildInfoClass(string InWildcard)
 				{
-					Debug.Assert(InFilename != null);
+					Debug.Assert(InWildcard != null);
 
-					Filename = InFilename;
+					FileWildcard = InWildcard;
 				}
 			}
 
@@ -1471,12 +1471,16 @@ namespace UnrealBuildTool
 
 			if (AutoGenerateCppInfo != null && AutoGenerateCppInfo.BuildInfo != null && !CPPCompileEnvironment.bHackHeaderGenerator)
 			{
-				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateCppInfo.BuildInfo.Filename );
+				string[] GeneratedFiles = Directory.GetFiles(Path.GetDirectoryName(AutoGenerateCppInfo.BuildInfo.FileWildcard), Path.GetFileName(AutoGenerateCppInfo.BuildInfo.FileWildcard));
+				foreach (string GeneratedFilename in GeneratedFiles)
+				{
+					var GeneratedCppFileItem = FileItem.GetItemByPath(GeneratedFilename);
 
-				CachePCHUsageForModuleSourceFile( this.Target, CPPCompileEnvironment, GeneratedCppFileItem );
+					CachePCHUsageForModuleSourceFile(this.Target, CPPCompileEnvironment, GeneratedCppFileItem);
 
-				// @todo fastubt: Check for ALL other places where we might be injecting .cpp or .rc files for compiling without caching CachedCPPIncludeInfo first (anything platform specfic?)
-				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( Target, new List<FileItem>{ GeneratedCppFileItem }, Name ).ObjectFiles );
+					// @todo fastubt: Check for ALL other places where we might be injecting .cpp or .rc files for compiling without caching CachedCPPIncludeInfo first (anything platform specfic?)
+					LinkInputFiles.AddRange(CPPCompileEnvironment.CompileFiles(Target, new List<FileItem> { GeneratedCppFileItem }, Name).ObjectFiles);
+				}
 			}
 
 			// Compile C files directly.

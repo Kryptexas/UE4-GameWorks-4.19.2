@@ -1001,7 +1001,7 @@ namespace UnrealBuildTool
 					if (AppBinCPP != null)
 					{
 						// Collect all modules used by this binary.
-						Log.TraceVerbose("\tProcessing AppBinary " + AppBin.Config.OutputFilePath);
+						Log.TraceVerbose("\tProcessing AppBinary " + AppBin.Config.OutputFilePaths[0]);
 						foreach (string ModuleName in AppBinCPP.ModuleNames)
 						{					
 							if (ModuleList.Contains(ModuleName) == false)
@@ -1017,7 +1017,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						Log.TraceVerbose("\t********* Skipping " + AppBin.Config.OutputFilePath);
+						Log.TraceVerbose("\t********* Skipping " + AppBin.Config.OutputFilePaths[0]);
 					}
 				}
 
@@ -1454,7 +1454,7 @@ namespace UnrealBuildTool
 							UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(this, UHTModuleInfo.ModuleDirectory, UHTModuleInfo.ModuleName), UHTModuleInfo.ModuleName ) + ".generated";
 							if (DependencyModuleCPP.SourceFilesToBuild.Count != 0)
 							{
-								BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + ".cpp" );
+								BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + "*.cpp" );
 							}
 
 							DependencyModuleCPP.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass(BuildInfo);

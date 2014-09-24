@@ -4376,7 +4376,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 		}
 
 		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + (GeneratedFunctionBodyTextSplit.Num() > 1 ? *FString::Printf(TEXT(".%d.cpp"), FileIdx + 1) : TEXT(".cpp"));
-		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + ((GeneratedFunctionBodyTextSplit.Num() > 1) ? FString() : GeneratedLinkerFixupFunction) + FileText + GeneratedCPPEpilogue));
+		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + ((FileIdx > 0) ? FString() : GeneratedLinkerFixupFunction) + FileText + GeneratedCPPEpilogue));
 
 		if (GeneratedFunctionBodyTextSplit.Num() > 1)
 		{
@@ -4384,18 +4384,14 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 		}
 	}
 
-	if (GeneratedFunctionBodyTextSplit.Num() > 1)
-	{
-		FStringOutputDevice FileText;
-
-		for (int32 i=0; i < NumberedHeaderNames.Num(); ++i)
-		{
-			FileText.Logf(TEXT("#include \"%s\"") LINE_TERMINATOR, *NumberedHeaderNames[i]);
-		}
-
-		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
-		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedLinkerFixupFunction + FileText + GeneratedCPPEpilogue));
-	}
+	// delete the old .cpp file that will cause link errors if it's left around (Engine.generated.cpp and Engine.generated.1.cpp will 
+	// conflict now that we no longer use Engine.generated.cpp to #include Engine.generated.1.cpp, and UBT would compile all 3)
+	// @todo: This is a temp measure so we don't force everyone to require a Clean
+ 	if (GeneratedFunctionBodyTextSplit.Num() > 1)
+ 	{
+ 		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
+		IFileManager::Get().Delete(*CppPath);
+ 	}
 
 	FString InlPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".inl");
 	SaveHeaderIfChanged(*InlPath, *(GeneratedCPPPreamble + GeneratedINLText));

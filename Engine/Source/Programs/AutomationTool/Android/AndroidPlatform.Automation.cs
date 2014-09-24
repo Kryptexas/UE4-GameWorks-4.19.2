@@ -195,6 +195,7 @@ public class AndroidPlatform : Platform
 		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
 
+		bool bAddedOBB = false;
 		foreach (string Architecture in Architectures)
 		{
 			foreach (string GPUArchitecture in GPUArchitectures)
@@ -218,8 +219,9 @@ public class AndroidPlatform : Platform
             }
 
 			SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
-			if (!Params.OBBinAPK)
+			if (!Params.OBBinAPK && !bAddedOBB)
 			{
+				bAddedOBB = true;
 				SC.ArchiveFiles(Path.GetDirectoryName(ObbName), Path.GetFileName(ObbName));
 			}
 
