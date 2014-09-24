@@ -2181,6 +2181,9 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 					CurrentX += GraphWidth + XGraphSpacing;
 					HistogramGraph->SetAxesMinMax(FVector2D(TimeStampWindow.X, It->Value.Min.Y), FVector2D(TimeStampWindow.Y, It->Value.Max.Y));
 					
+					HistogramGraph->DrawCursorOnGraph(true);
+					HistogramGraph->UseTinyFont(CollectedGraphs.Num() >= 5);
+					HistogramGraph->SetCursorLocation(Entry->TimeStamp);
 					HistogramGraph->SetNumThresholds(0);
 					HistogramGraph->SetStyles(EGraphAxisStyle::Grid, EGraphDataStyle::Lines);
 					HistogramGraph->SetBackgroundColor( FColor(0,0,0, 200) );

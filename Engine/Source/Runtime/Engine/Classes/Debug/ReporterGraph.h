@@ -185,6 +185,14 @@ public:
 	 */
 	bool IsOffsetForDataSetsEnabled() { return !!bOffsetDataSets; }
 
+	/** Sets cursor location on line graph to show value at specyfic place */
+	void SetCursorLocation(float InValue) { CursorLocation = InValue; }
+
+	/** setter to force tiny font instead of small font */
+	void UseTinyFont(bool InUseTinyFont) { bUseTinyFont = InUseTinyFont;  }
+
+	/** setter to enable or disable cursor for line graphs */
+	void DrawCursorOnGraph(bool InDrawCursorOnGraph) { bDrawCursorOnGraph = InDrawCursorOnGraph;  }
 protected:
 
 	/** Draw background under graph
@@ -234,6 +242,9 @@ protected:
 	*/
 	FVector2D DataToNormalized(const FVector2D& InVector);
 
+	/** Returns default font used to print texts */
+	UFont* GetDefaultFont();
+
 	/** The screen size of the graph */
 	FRect GraphScreenSize;
 
@@ -269,6 +280,16 @@ protected:
 	/** Background color to draw under graph */
 	FColor BackgroundColor;
 
+	/** Current location for cursor on line graphs */
+	float CursorLocation;
+
+	/** if set it enables small offset for graphs to better visualize overlapping data sets  */
 	int32 bOffsetDataSets : 1;
+
+	/** if set it forces tinyt font for texts */
+	int32 bUseTinyFont : 1;
+
+	/** if set it enables cursor for line graphs */
+	int32 bDrawCursorOnGraph : 1;
 };
 
