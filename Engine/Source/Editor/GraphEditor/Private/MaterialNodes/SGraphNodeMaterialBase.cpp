@@ -108,7 +108,7 @@ void FPreviewViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const 
 	if (PreviewElement->BeginRenderingCanvas( CanvasRect, ClippingRect, MaterialNode->GetExpressionPreview(), bIsRealtime ))
 	{
 		// Draw above everything else
-		uint32 PreviewLayer = MAX_uint32;//LayerId+1;//
+		uint32 PreviewLayer = LayerId+1;
 		FSlateDrawElement::MakeCustom( OutDrawElements, PreviewLayer, PreviewElement );
 	}
 }
