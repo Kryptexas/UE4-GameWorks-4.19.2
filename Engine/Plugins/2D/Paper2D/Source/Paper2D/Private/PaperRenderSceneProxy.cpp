@@ -164,7 +164,6 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
 	WireframeColor = FLinearColor::White;
-	bWillEverBeLit = false;
 }
 
 FPaperRenderSceneProxy::~FPaperRenderSceneProxy()
