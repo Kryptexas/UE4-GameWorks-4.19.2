@@ -583,6 +583,12 @@ bool FGenerateEditorPerformanceCharts::Update()
 	TArray<FString> MemoryUsedPeakVirtualArray = CreateArrayFromFile(MemoryUsedPeakVirtualFileLocation);
 	TArray<FString> TimeStampArray = CreateArrayFromFile(TimeStampFileLocation);
 
+	//If the map load time doesn't exist then we give add a '0' to the Map Load time array.
+	if (IFileManager::Get().FileSize(MapLoadTimeFileLocation.GetCharArray().GetData()) <= 0)
+	{
+		MapLoadTimeRawArray.Add(TEXT("0"));
+	}
+
 	//Variable that will hold the old performance csv file data.
 	FString OldPerformanceCSVFile;
 

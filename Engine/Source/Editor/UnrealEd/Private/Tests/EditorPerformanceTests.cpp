@@ -33,6 +33,14 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 		
 		for (int32 indexloop = 0; indexloop < PerformanceMapName.Num(); ++indexloop)
 		{
+
+			if (PerformanceMapName[indexloop].Equals(TEXT("CurrentLevel")))
+			{
+				OutBeautifiedNames.Add(TEXT("CurrentLevel"));
+				OutTestCommands.Add(TEXT("CurrentLevel"));
+				continue;
+			}
+		
 			//Get the location of the map being used.
 			FString Filename = FPaths::ConvertRelativePathToFull(PerformanceMapName[indexloop]);
 
@@ -44,8 +52,8 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 				{
 					FString ShortName = FPaths::GetBaseFilename(Filename);
 					FString PathName = FPaths::GetPath(Filename);
-					OutBeautifiedNames.Add(ShortName);
 					FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+					OutBeautifiedNames.Add(ShortName);
 					OutTestCommands.Add(AssetName);
 				}
 				else
@@ -61,8 +69,8 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 				{
 					FString ShortName = FPaths::GetBaseFilename(Filename);
 					FString PathName = FPaths::GetPath(Filename);
-					OutBeautifiedNames.Add(ShortName);
 					FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+					OutBeautifiedNames.Add(ShortName);
 					OutTestCommands.Add(AssetName);
 				}
 				else
@@ -71,33 +79,40 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 				}
 			}
 		}
-
 	}
+
 }
 
-/*
-*
-*
-*/ 
 bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 {
 	//Get the map name from the parameters.
 	FString MapName = Parameters;
-	//Get the base filename for the map that will be used.
-	FString ShortMapName = FPaths::GetBaseFilename(MapName);
-	
+
+	//Gets the main frame module to get the name of our current level.
+	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked< IMainFrameModule >("MainFrame");
+	FString ShortMapName = MainFrameModule.GetLoadedLevelName();
+
+	//Duration variable will be used to indicate how long the test will run for.  Defaults to a minute.
+	float Duration = 0;
+
+	if (!MapName.Equals(TEXT("CurrentLevel")))
+	{
+		//Get the base filename for the map that will be used.
+		ShortMapName = FPaths::GetBaseFilename(MapName);
+
+		//Load Map and get the time it took to take to load the map.
+		ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
+	}
+
 	//This gets the info we need from the automation test settings in the engine.ini.
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
 	check(AutomationTestSettings);
-
-	//Duration variable will be used to indicate how long the test will run for.
-	float Duration = 0.0f;
 
 	//Now we find the test timer(aka duration) for our test.
 	for (auto Iter = AutomationTestSettings->EditorPerformanceTestMaps.CreateConstIterator(); Iter; ++Iter)
 	{
 		FString IterMapName = FPaths::GetBaseFilename(Iter->PerformanceTestmap.FilePath);
-		if (IterMapName == ShortMapName)
+		if ((IterMapName == ShortMapName) || (IterMapName == TEXT("CurrentLevel")))
 		{
 			Duration = ((Iter->TestTimer));
 			//If the duration is equal to 0 then we simply warn the user that they need to set the test timer option for the performance test.
@@ -115,13 +130,11 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 		}
 	}
 
+
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Running the performance capture test for %.0f seconds on %s"), Duration, *ShortMapName);
-
-	//Load Map and get the time it took to take to load the map.
-	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
-
+	
 	//Grab the performance numbers based on the duration.
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
 	ADD_LATENT_AUTOMATION_COMMAND(FEditorPerformanceCommand(Duration));
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
 
