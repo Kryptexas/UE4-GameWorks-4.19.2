@@ -70,8 +70,6 @@
 #ifndef LIST_CONTAINER_H
 #define LIST_CONTAINER_H
 
-#include "../ShaderCompilerCommon.h"
-
 #include "ralloc.h"
 
 struct exec_node {

@@ -2440,8 +2440,8 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 
 struct FMetalUnsupportedSamplerVisitor : public ir_hierarchical_visitor
 {
-	const bool bIsVertexShader;
 	_mesa_glsl_parse_state* ParseState;
+	const bool bIsVertexShader;
 	FMetalUnsupportedSamplerVisitor(_mesa_glsl_parse_state* InParseState, bool bInIsVertexShader) :
 		ParseState(InParseState),
 		bIsVertexShader(bInIsVertexShader)

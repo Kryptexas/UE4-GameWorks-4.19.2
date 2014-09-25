@@ -36,6 +36,7 @@
 * \author Ian Romanick <ian.d.romanick@intel.com>
 */
 
+#include "../ShaderCompilerCommon.h"
 #include "imports.h"
 #include "simple_list.h"
 #include "hash_table.h"
@@ -239,4 +240,23 @@ int
 hash_table_pointer_compare(const void *key1, const void *key2)
 {
 	return key1 == key2 ? 0 : 1;
+}
+
+void string_to_uint_map::put(unsigned value, const char *key)
+{
+	/* The low-level hash table structure returns NULL if key is not in the
+	   * hash table.  However, users of this map might want to store zero as a
+	   * valid value in the table.  Bias the value by +1 so that a
+	   * user-specified zero is stored as 1.  This enables ::get to tell the
+	   * difference between a user-specified zero (returned as 1 by
+	   * hash_table_find) and the key not in the table (returned as 0 by
+	   * hash_table_find).
+	   *
+	   * The net effect is that we can't store UINT_MAX in the table.  This is
+	   * because UINT_MAX+1 = 0.
+	   */
+	check(value != UINT_MAX);
+	hash_table_replace(this->ht,
+		(void *)(intptr_t)(value + 1),
+		strdup(key));
 }

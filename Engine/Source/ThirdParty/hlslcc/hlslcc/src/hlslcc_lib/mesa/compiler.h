@@ -41,7 +41,6 @@
 #define COMPILER_H
 
 
-#include "../ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
 #include <ctype.h>
 #include <stdarg.h>

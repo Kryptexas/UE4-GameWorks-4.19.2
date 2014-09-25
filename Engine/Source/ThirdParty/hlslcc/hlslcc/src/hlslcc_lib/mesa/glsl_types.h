@@ -32,7 +32,6 @@
 #ifndef GLSL_TYPES_H
 #define GLSL_TYPES_H
 
-#include "../ShaderCompilerCommon.h"
 #include <string>
 
 	struct _mesa_glsl_parse_state;
