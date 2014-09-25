@@ -64,6 +64,7 @@ public:
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
+		, _AllowOverscroll(EAllowOverscroll::Yes)
 	{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -91,6 +92,8 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
 
 		SLATE_ATTRIBUTE( EVisibility, ScrollbarVisibility)
+		
+		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
 
 		SLATE_END_ARGS()
 
@@ -112,6 +115,8 @@ public:
 		this->SelectionMode = InArgs._SelectionMode;
 
 		this->bClearSelectionOnClick = InArgs._ClearSelectionOnClick;
+
+		this->AllowOverscroll = InArgs._AllowOverscroll;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -1139,18 +1144,14 @@ protected:
 		}
 	}
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll InAllowOverscroll ) override
 	{
 		float AbsScrollByAmount = FMath::Abs( ScrollByAmountInSlateUnits );
 		int32 StartingItemIndex = (int32)ScrollOffset;
 		double NewScrollOffset = ScrollOffset;
 
 		const bool bWholeListVisible = ScrollOffset == 0 && bWasAtEndOfList;
-		if (bWholeListVisible)
-		{
-			return 0;
-		}
-		else if ( AllowOverscroll == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll( ScrollOffset == 0, bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		if ( InAllowOverscroll == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll( ScrollOffset == 0, bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
 		{
 			const float UnclampedScrollDelta = FMath::Sign(ScrollByAmountInSlateUnits) * AbsScrollByAmount;				
 			const float ActuallyScrolledBy = Overscroll.ScrollBy( UnclampedScrollDelta );
@@ -1160,7 +1161,7 @@ protected:
 			}
 			return ActuallyScrolledBy;
 		}
-		else
+		else if (!bWholeListVisible)
 		{
 			// We know how far we want to scroll in SlateUnits, but we store scroll offset in "number of widgets".
 			// Challenge: each widget can be a different height.
@@ -1266,6 +1267,8 @@ protected:
 
 			return ScrollTo( NewScrollOffset );
 		}
+
+		return 0;
 	}
 
 protected:

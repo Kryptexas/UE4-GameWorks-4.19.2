@@ -352,6 +352,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 		.ListItemsSource(&Category->FilteredProjectItemsSource)
 		.SelectionMode(ESelectionMode::Single)
 		.ClearSelectionOnClick(false)
+		.AllowOverscroll(EAllowOverscroll::No)
 		.OnGenerateTile(this, &SProjectBrowser::MakeProjectViewWidget)
 		.OnContextMenuOpening(this, &SProjectBrowser::OnGetContextMenuContent)
 		.OnMouseButtonDoubleClick(this, &SProjectBrowser::HandleProjectItemDoubleClick)

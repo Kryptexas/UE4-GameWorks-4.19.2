@@ -106,7 +106,7 @@ protected:
 	 *
 	 * @return The amount actually scrolled in items
 	 */
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount, EAllowOverscroll AllowOverscroll );
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount, EAllowOverscroll InAllowOverscroll );
 
 	/**
 	 * Scroll the view to an offset
@@ -292,6 +292,9 @@ protected:
 		/** How much we've over-scrolled above/below the beginning/end of the list. */
 		float OverscrollAmount;
 	} Overscroll;
+
+	/** Whether to permit overscroll on this list view */
+	EAllowOverscroll AllowOverscroll;
 
 private:
 	

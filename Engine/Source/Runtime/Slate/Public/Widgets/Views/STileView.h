@@ -32,6 +32,7 @@ public:
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
 		, _ScrollbarVisibility(EVisibility::Visible)
+		, _AllowOverscroll(EAllowOverscroll::Yes)
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
@@ -58,6 +59,8 @@ public:
 
 		SLATE_ATTRIBUTE(EVisibility, ScrollbarVisibility)
 
+		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
+
 	SLATE_END_ARGS()
 
 	/**
@@ -77,6 +80,8 @@ public:
 		this->SelectionMode = InArgs._SelectionMode;
 
 		this->bClearSelectionOnClick = InArgs._ClearSelectionOnClick;
+
+		this->AllowOverscroll = InArgs._AllowOverscroll;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -266,18 +271,14 @@ public:
 
 protected:
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll InAllowOverscroll ) override
 	{
 		// Working around a CLANG bug, where all the base class
 		// members require an explicit namespace resolution.
 		typedef STableViewBase S;
 
 		const bool bWholeListVisible = S::ScrollOffset == 0 && S::bWasAtEndOfList;
-		if (bWholeListVisible)
-		{
-			return 0;
-		}
-		else if ( AllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		if ( InAllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
 		{
 			const float UnclampedScrollDelta = ScrollByAmountInSlateUnits / GetNumItemsWide();
 			const float ActuallyScrolledBy = S::Overscroll.ScrollBy( UnclampedScrollDelta );
@@ -287,13 +288,15 @@ protected:
 			}
 			return ActuallyScrolledBy;
 		}
-		else
+		else if (!bWholeListVisible)
 		{
 			const float ItemHeight = this->GetItemHeight();
 			const double NewScrollOffset = this->ScrollOffset + ( ( ScrollByAmountInSlateUnits * GetNumItemsWide() ) / ItemHeight );
 
 			return this->ScrollTo( NewScrollOffset );
 		}
+
+		return 0;
 	}
 
 	virtual int32 GetNumItemsWide() const override
