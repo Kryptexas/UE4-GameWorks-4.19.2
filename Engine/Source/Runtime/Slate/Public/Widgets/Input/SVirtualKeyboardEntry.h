@@ -70,6 +70,13 @@ public:
 	bool HasTextChangedFromOriginal() const;
 
 	/**
+	* Sets the text currently being edited
+	*
+	* @param  InNewText  The new text
+	*/
+	void SetText(const TAttribute< FText >& InNewText);
+
+	/**
 	 * Sets the font used to draw the text
 	 *
 	 * @param  InNewFont	The new font to use

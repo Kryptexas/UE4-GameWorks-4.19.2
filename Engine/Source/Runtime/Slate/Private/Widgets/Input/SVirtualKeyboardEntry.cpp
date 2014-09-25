@@ -31,11 +31,21 @@ void SVirtualKeyboardEntry::Construct( const FArguments& InArgs )
 	KeyboardType = InArgs._KeyboardType;
 }
 
-/**
- * Sets the text string currently being edited 
- *
- * @param  InNewText  The new text string
- */
+void SVirtualKeyboardEntry::SetText(const TAttribute< FText >& InNewText)
+{
+	EditedText = InNewText.Get();
+
+	// Don't set text if the text attribute has a 'getter' binding on it, otherwise we'd blow away
+	// that binding.  If there is a getter binding, then we'll assume it will provide us with
+	// updated text after we've fired our 'text changed' callbacks
+	if (!Text.IsBound())
+	{
+		Text.Set(EditedText);
+	}
+
+	bNeedsUpdate = true;
+}
+
 void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard( const FText& InNewText )
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
