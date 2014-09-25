@@ -103,6 +103,7 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	GameThreadCall(^{
 		if (GEngine)
 		{
+			FPlatformMisc::UpdateCachedMacMenuState = nullptr;
 			if (GIsEditor)
 			{
 				if (IsRunningCommandlet())

@@ -200,6 +200,9 @@ struct MacApplicationInfo
 };
 static MacApplicationInfo GMacAppInfo;
 
+UpdateCachedMacMenuStateProc FMacPlatformMisc::UpdateCachedMacMenuState = nullptr;
+bool FMacPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+
 void FMacPlatformMisc::PlatformPreInit()
 {
 	// Increase the maximum number of simultaneously open files
@@ -459,6 +462,12 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 	if( bFromMainLoop )
 	{
 		ProcessGameThreadEvents();
+
+		if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate && IsInGameThread())
+		{
+			UpdateCachedMacMenuState();
+			bChachedMacMenuStateNeedsUpdate = false;
+		}
 	}
 }
 

@@ -35,6 +35,7 @@ static FString GSavedCommandLine;
 	if(!GIsRequestingExit)
 	{
 		GIsRequestingExit = true;
+		FPlatformMisc::UpdateCachedMacMenuState = nullptr;
 		return NSTerminateCancel;
 	}
 	return NSTerminateNow;
