@@ -129,6 +129,9 @@ public:
 		/** If true, this color picker will be a stripped down version of the full color picker */
 		SLATE_ARGUMENT(bool, DisplayInlineVersion)
 
+		/** If true, the Advanced section will be expanded, regardless of the remembered state */
+		SLATE_ARGUMENT(bool, ExpandAdvancedSection)
+
 	SLATE_END_ARGS()
 	
 	/** A default window size for the color picker which looks nice */
@@ -448,6 +451,9 @@ struct FColorPickerArgs
 	/** Whether to disable the refresh until the picker closes. */
 	bool bOnlyRefreshOnOk;
 
+	/** Whether to automatically expand the Advanced section. */
+	bool bExpandAdvancedSection;
+
 	/** The current display gamma used to correct colors picked from the display. */
 	TAttribute<float> DisplayGamma;
 
@@ -487,6 +493,7 @@ struct FColorPickerArgs
 		, bUseAlpha(false)
 		, bOnlyRefreshOnMouseUp(false)
 		, bOnlyRefreshOnOk(false)
+		, bExpandAdvancedSection(false)
 		, DisplayGamma(2.2f)
 		, ColorArray(nullptr)
 		, LinearColorArray(nullptr)

@@ -3808,6 +3808,7 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 			PickerArgs.ParentWidget = GraphEditor;//AsShared();
 			PickerArgs.bUseAlpha = Constant4Expression != NULL || VectorExpression != NULL;
 			PickerArgs.bOnlyRefreshOnOk = true;
+			PickerArgs.bExpandAdvancedSection = true;
 			PickerArgs.DisplayGamma = TAttribute<float>::Create( TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma) );
 			PickerArgs.ColorChannelsArray = &Channels;
 			PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &FMaterialEditor::OnColorPickerCommitted);

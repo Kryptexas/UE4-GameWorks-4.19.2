@@ -74,7 +74,7 @@ void SColorPicker::Construct( const FArguments& InArgs )
 
 	bool bAdvancedSectionExpanded = false;
 
-	if (FPaths::FileExists(GEditorUserSettingsIni))
+	if (!FPaths::FileExists(GEditorUserSettingsIni))
 	{
 		bool WheelMode = true;
 
@@ -84,6 +84,8 @@ void SColorPicker::Construct( const FArguments& InArgs )
 
 		CurrentMode = WheelMode ? EColorPickerModes::Wheel : EColorPickerModes::Spectrum;
 	}
+
+	bAdvancedSectionExpanded |= InArgs._ExpandAdvancedSection;
 
 	if (bColorPickerIsInlineVersion)
 	{
@@ -1546,6 +1548,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 		.TargetLinearColors(Args.LinearColorArray ? *Args.LinearColorArray : TArray<FLinearColor*>())
 		.TargetColorChannels(Args.ColorChannelsArray ? *Args.ColorChannelsArray : TArray<FColorChannels>())
 		.UseAlpha(Args.bUseAlpha)
+		.ExpandAdvancedSection(Args.bExpandAdvancedSection)
 		.OnlyRefreshOnMouseUp(Args.bOnlyRefreshOnMouseUp && !Args.bIsModal)
 		.OnlyRefreshOnOk(Args.bOnlyRefreshOnOk || Args.bIsModal)
 		.OnColorCommitted(Args.OnColorCommitted)
