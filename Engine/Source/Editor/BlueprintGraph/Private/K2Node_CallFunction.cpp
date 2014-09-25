@@ -179,7 +179,26 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 void UK2Node_CallFunction::AllocateDefaultPins()
 {
 	UBlueprint* MyBlueprint = GetBlueprint();
+	
 	UFunction* Function = GetTargetFunction();
+	// favor the skeleton function if possible (in case the signature has 
+	// changed, and not yet compiled).
+	if (!FunctionReference.IsSelfContext())
+	{
+		UClass* FunctionClass = FunctionReference.GetMemberParentClass(MyBlueprint->GeneratedClass);
+		if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(FunctionClass))
+		{
+			// this function could currently only be a part of some skeleton 
+			// class (the blueprint has not be compiled with it yet), so let's 
+			// check the skeleton class as well, see if we can pull pin data 
+			// from there...
+			UBlueprint* FunctionBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+			if (UFunction* SkelFunction = FindField<UFunction>(FunctionBlueprint->SkeletonGeneratedClass, FunctionReference.GetMemberName()))
+			{
+				Function = SkelFunction;
+			}
+		}
+	}
 
 	// First try remap table
 	if (Function == NULL)
@@ -196,24 +215,6 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 			}
 		}
 	}
-
-	if (Function == nullptr)
-	{
-		if (!FunctionReference.IsSelfContext())
-		{
-			UClass* FunctionClass = FunctionReference.GetMemberParentClass(MyBlueprint->GeneratedClass);
-			if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(FunctionClass))
-			{
-				// this function could currently only be a part of some skeleton 
-				// class (the blueprint has not be compiled with it yet), so let's 
-				// check the skeleton class as well, see if we can pull pin data 
-				// from there...
-				UBlueprint* FunctionBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
-				Function = FindField<UFunction>(FunctionBlueprint->SkeletonGeneratedClass, FunctionReference.GetMemberName());
-			}
-		}
-	}
-
 
 	if (Function == NULL)
 	{

@@ -60,19 +60,21 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UProperty* VariableProperty = GetPropertyForVariable();
-	if (VariableProperty == nullptr)
+	// favor the skeleton property if possible (in case the property type has 
+	// been changed, and not yet compiled).
+	if (!VariableReference.IsSelfContext())
 	{
-		if (!VariableReference.IsSelfContext())
+		UClass* VariableClass = VariableReference.GetMemberParentClass(GetBlueprint()->GeneratedClass);
+		if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(VariableClass))
 		{
-			UClass* VariableClass = VariableReference.GetMemberParentClass(GetBlueprint()->GeneratedClass);
-			if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(VariableClass))
+			// this variable could currently only be a part of some skeleton 
+			// class (the blueprint has not be compiled with it yet), so let's 
+			// check the skeleton class as well, see if we can pull pin data 
+			// from there...
+			UBlueprint* VariableBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+			if (UProperty* SkelProperty = FindField<UProperty>(VariableBlueprint->SkeletonGeneratedClass, VariableReference.GetMemberName()))
 			{
-				// this variable could currently only be a part of some skeleton 
-				// class (the blueprint has not be compiled with it yet), so let's 
-				// check the skeleton class as well, see if we can pull pin data 
-				// from there...
-				UBlueprint* VariableBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
-				VariableProperty = FindField<UProperty>(VariableBlueprint->SkeletonGeneratedClass, VariableReference.GetMemberName());
+				VariableProperty = SkelProperty;
 			}
 		}
 	}
