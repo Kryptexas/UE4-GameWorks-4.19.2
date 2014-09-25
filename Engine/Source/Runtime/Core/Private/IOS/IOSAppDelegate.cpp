@@ -405,37 +405,64 @@ void InstallSignalHandlers()
     UIImageOrientation orient = UIImageOrientationUp;
     NSMutableString* ImageString = [[NSMutableString alloc]init];
     [ImageString appendString:@"Default"];
-    if (MainFrame.size.height == 320 && !self.bDeviceInPortraitMode)
-    {
-        [ImageString appendString:@"-568h"];
-        orient = UIImageOrientationLeft;
-    }
-    else if (MainFrame.size.height == 568)
-    {
-        [ImageString appendString:@"-568h"];
-    }
-    else if (MainFrame.size.height == 1024 && !self.bDeviceInPortraitMode)
-    {
-        [ImageString appendString:@"-Landscape"];
-        orient = UIImageOrientationRight;
-    }
-    else if (MainFrame.size.height == 1024)
-    {
-        [ImageString appendString:@"-Portrait"];
-    }
-    else if (MainFrame.size.height == 768 && !self.bDeviceInPortraitMode)
-    {
-        [ImageString appendString:@"-Landscape"];
-    }
 
-    if (NativeScale > 1.0f)
-    {
-        [ImageString appendString:@"@2x.png"];
-    }
-    else
-    {
-        [ImageString appendString:@".png"];
-    }
+	FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
+
+	// iphone6 has specially named files
+	if (Device == FPlatformMisc::IOS_IPhone6)
+	{
+		[ImageString appendString:@"-IPhone6"];
+		if (!self.bDeviceInPortraitMode)
+		{
+			orient = UIImageOrientationLeft;
+		}
+	}
+	else if (Device == FPlatformMisc::IOS_IPhone6Plus)
+	{
+		[ImageString appendString : @"-IPhone6Plus"];
+		if (!self.bDeviceInPortraitMode)
+		{
+			[ImageString appendString : @"-Landscape"];
+		}
+		else
+		{
+			[ImageString appendString : @"-Portrait"];
+		}
+	}
+	else
+	{
+		if (MainFrame.size.height == 320 && !self.bDeviceInPortraitMode)
+		{
+			[ImageString appendString:@"-568h"];
+			orient = UIImageOrientationLeft;
+		}
+		else if (MainFrame.size.height == 568)
+		{
+			[ImageString appendString:@"-568h"];
+		}
+		else if (MainFrame.size.height == 1024 && !self.bDeviceInPortraitMode)
+		{
+			[ImageString appendString:@"-Landscape"];
+			orient = UIImageOrientationRight;
+		}
+		else if (MainFrame.size.height == 1024)
+		{
+			[ImageString appendString:@"-Portrait"];
+		}
+		else if (MainFrame.size.height == 768 && !self.bDeviceInPortraitMode)
+		{
+			[ImageString appendString:@"-Landscape"];
+		}
+
+		if (NativeScale > 1.0f)
+		{
+			[ImageString appendString:@"@2x.png"];
+		}
+		else
+		{
+			[ImageString appendString:@".png"];
+		}
+	}
 
     [path setString: [path stringByAppendingPathComponent:ImageString]];
     UIImage* image = [[UIImage alloc] initWithContentsOfFile: path];
