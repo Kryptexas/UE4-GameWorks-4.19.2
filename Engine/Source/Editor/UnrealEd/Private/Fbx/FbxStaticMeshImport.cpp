@@ -1200,6 +1200,10 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			SrcModel.BuildSettings.DstLightmapIndex = FirstOpenUVChannel;
 			StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
 		}
+		else
+		{
+			SrcModel.BuildSettings.bGenerateLightmapUVs = false;
+		}
 
 		StaticMesh->LODGroup = ImportOptions->StaticMeshLODGroup;
 		StaticMesh->Build(false);
