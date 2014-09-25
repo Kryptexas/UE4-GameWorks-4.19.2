@@ -1960,6 +1960,7 @@ enum ECollisionResponse AActor::GetComponentsCollisionResponseToChannel(enum ECo
 
 void AActor::AddOwnedComponent(UActorComponent* Component)
 {
+	check(Component->GetOwner() == this);
 	OwnedComponents.AddUnique(Component);
 }
 
