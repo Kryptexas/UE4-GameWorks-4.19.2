@@ -524,9 +524,9 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 	bool bIsEditable = Super::CanEditChange( InProperty );
 	if (bIsEditable && InProperty)
 	{
-		const FString PropertyName = InProperty->GetName();
+		const FName PropertyName = InProperty->GetFName();
 
-		if (PropertyName == TEXT("bLightAsIfStatic"))
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bLightAsIfStatic))
 		{
 			// Disable editing bLightAsIfStatic on static components, since it has no effect
 			return Mobility != EComponentMobility::Static;
@@ -537,9 +537,30 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
 		}
 
-		if (PropertyName == TEXT("IndirectLightingCacheQuality"))
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, IndirectLightingCacheQuality))
 		{
 			return Mobility == EComponentMobility::Movable;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow))
+		{
+			// Look for any lit materials
+			bool bHasAnyLitMaterials = false;
+			const int32 NumMaterials = GetNumMaterials();
+			for (int32 MaterialIndex = 0; (MaterialIndex < NumMaterials) && !bHasAnyLitMaterials; ++MaterialIndex)
+			{
+				if (UMaterialInterface* Material = GetMaterial(MaterialIndex))
+				{
+					if (Material->GetShadingModel() != MSM_Unlit)
+					{
+						bHasAnyLitMaterials = true;
+					}
+				}
+			}
+
+			// If there's at least one lit section it could cast shadows, so let the property be edited.
+			// The 0 materials catch is in case any components aren't properly implementing the GetMaterial API, they might or might not work with shadows.
+			return (NumMaterials == 0) || bHasAnyLitMaterials;
 		}
 	}
 
