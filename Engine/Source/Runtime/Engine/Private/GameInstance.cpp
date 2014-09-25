@@ -59,7 +59,7 @@ bool UGameInstance::InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 
 	// Establish World Context for PIE World
 	WorldContext->LastURL.Map = WorldPackageName;
-	WorldContext->PIEPrefix = UWorld::BuildPIEPackagePrefix(PIEInstance);
+	WorldContext->PIEPrefix = WorldContext->PIEInstance != INDEX_NONE ? UWorld::BuildPIEPackagePrefix(WorldContext->PIEInstance) : FString();
 
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 

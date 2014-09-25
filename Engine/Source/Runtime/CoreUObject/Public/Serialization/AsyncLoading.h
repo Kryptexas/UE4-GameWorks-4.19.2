@@ -36,6 +36,7 @@ struct FAsyncPackage : public FGCObject
 	,	LastTypeOfWorkPerformed		( NULL					)
 	,	LoadStartTime				( 0.0					)
 	,	LoadPercentage				( 0						)
+	,	PackageFlags				( 0						)
 #if WITH_EDITOR
 	,	PIEInstanceID				( INDEX_NONE			)
 #endif	
@@ -123,11 +124,11 @@ struct FAsyncPackage : public FGCObject
 	}
 
 	/**
-	 *	Sets PIE instance ID this package belongs to, INDEX_NONE otherwise
-	 *  Will also mark loading package as PKG_PlayInEditor
+	 *	Sets the flags and PIE ID for the package
 	 */
-	void SetPIEInstanceID(int32 InPIEInstanceID)
+	void SetPackageData(uint32 InPackageFlags, int32 InPIEInstanceID)
 	{
+		PackageFlags = InPackageFlags;
 #if WITH_EDITOR
 		PIEInstanceID = InPIEInstanceID;
 #endif
@@ -196,7 +197,8 @@ private:
 	double						LoadStartTime;
 	/** Estimated load percentage.																		*/
 	float						LoadPercentage;
-	
+	/** The flags that should be applied to the package */
+	uint32						PackageFlags;
 #if WITH_EDITOR
 	/** Editor only: PIE instance ID this package belongs to, INDEX_NONE otherwise */
 	int32						PIEInstanceID;

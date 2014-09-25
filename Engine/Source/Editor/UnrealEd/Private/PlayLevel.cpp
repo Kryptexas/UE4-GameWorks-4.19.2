@@ -1935,8 +1935,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone && !bSupportsOnlinePIE) || !PlayInSettings->RunUnderOneProcess)
 	{
-		// Only spawning 1 PIE instance under this process
-		UGameInstance* const GameInstance = CreatePIEGameInstance(0, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
+		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
+		const int32 PIEInstance = ( !PlayInSettings->RunUnderOneProcess && PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
+		UGameInstance* const GameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
 
 		if (bInSimulateInEditor)
 		{

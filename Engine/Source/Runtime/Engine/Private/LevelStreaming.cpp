@@ -386,6 +386,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		}
 	}
 
+	uint32 PackageFlags = 0;
 	int32 PIEInstanceID = INDEX_NONE;
 
 	// copy streaming level on demand if we are in PIE
@@ -393,6 +394,10 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	if ( PersistentWorld->IsPlayInEditor() )
 	{
 #if WITH_EDITOR
+		if ((PersistentWorld->GetOutermost()->PackageFlags & PKG_PlayInEditor) != 0)
+		{
+			PackageFlags |= PKG_PlayInEditor;
+		}
 		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
 #endif
 		const FString PrefixedLevelName = DesiredPackageName.ToString();
@@ -450,8 +455,9 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			{
 				// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
 				// callback as we always kick off another async IO for the level below.
-				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), NULL, NAME_None, *LocalizedPackageName)
-					.SetPIEInstanceID(PIEInstanceID);
+				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), 
+					NULL, NAME_None, *LocalizedPackageName
+					).SetPackageData(PackageFlags, PIEInstanceID);
 			}
 		}
 
@@ -466,7 +472,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			LoadPackageAsync(*DesiredPackageName.ToString(), 
 				FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelStreaming::AsyncLevelLoadComplete), 
 				NULL, NAME_None, *PackageNameToLoadFrom
-				).SetPIEInstanceID(PIEInstanceID);
+				).SetPackageData(PackageFlags, PIEInstanceID);
 
 			// streamingServer: server loads everything?
 			// Editor immediately blocks on load and we also block if background level streaming is disabled.

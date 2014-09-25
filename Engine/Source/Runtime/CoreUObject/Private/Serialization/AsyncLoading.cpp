@@ -296,13 +296,10 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 		UPackage* Package = CreatePackage( NULL, *PackageName );
 		FScopeCycleCounterUObject ConstructorScope(Package, GET_STATID(STAT_FAsyncPackage_CreateLinker));
 
-		// Mark PIE package
+		// Set package specific data 
+		Package->PackageFlags |= PackageFlags;
 #if WITH_EDITOR
-		if (PIEInstanceID != INDEX_NONE)
-		{
-			Package->PackageFlags |= PKG_PlayInEditor;
-			Package->PIEInstanceID = PIEInstanceID;
-		}
+		Package->PIEInstanceID = PIEInstanceID;
 #endif
 
 		// Always store package filename we loading from
