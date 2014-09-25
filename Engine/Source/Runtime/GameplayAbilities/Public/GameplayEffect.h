@@ -995,9 +995,12 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	}
 };
 
-/** Generic querying data structure for active GameplayEffects. Lets us ask things like: ** 
- *		-Give me duration/magnitude of active gameplay effects with these tags
- *		-
+/**
+ *	Generic querying data structure for active GameplayEffects. Lets us ask things like:
+ *		Give me duration/magnitude of active gameplay effects with these tags
+ *		Give me handles to all activate gameplay effects modifying this attribute.
+ *		
+ *	Any requirements specified in the query are required: must meet "all" not "one".
  */
 USTRUCT()
 struct FActiveGameplayEffectQuery
@@ -1009,12 +1012,18 @@ struct FActiveGameplayEffectQuery
 	{
 	}
 
-	FActiveGameplayEffectQuery(const FGameplayTagContainer * InTagContainer)
+	FActiveGameplayEffectQuery(const FGameplayTagContainer* InTagContainer, FGameplayAttribute InModifyingAttribute = FGameplayAttribute())
 		: TagContainer(InTagContainer)
+		, ModifyingAttribute(InModifyingAttribute)
 	{
 	}
 
-	const FGameplayTagContainer *	TagContainer;
+	bool Matches(const FActiveGameplayEffect& Effect) const;
+
+	const FGameplayTagContainer* TagContainer;
+
+	/** Matches on GameplayEffects which modify given attribute */
+	FGameplayAttribute ModifyingAttribute;
 };
 
 /**
@@ -1110,6 +1119,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
+
+	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query);
 
 	int32 GetGameStateTime() const;
 

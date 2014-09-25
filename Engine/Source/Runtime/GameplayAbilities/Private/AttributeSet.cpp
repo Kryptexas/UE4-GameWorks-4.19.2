@@ -12,6 +12,7 @@ void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAtt
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
 	void * ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Dest);
+	Dest->PreAttributeSet(*this, NewValue);
 	NumericProperty->SetFloatingPointPropertyValue(ValuePtr, NewValue);
 }
 
@@ -45,36 +46,6 @@ void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
 			{
 				void *Data = NumericProperty->ContainerPtrToValuePtr<void>(this);
 				NumericProperty->SetFloatingPointPropertyValue(Data, MetaData->BaseValue);
-			}
-		}
-	}
-
-	PrintDebug();
-}
-
-void UAttributeSet::ClampFromMetaDataTable(const UDataTable *DataTable)
-{
-	// Looking up a datatable row everytime a value changes in order to apply clamping pretty much sucks.
-	static const FString Context = FString(TEXT("UAttribute::BindToMetaDataTable"));
-
-	UE_LOG(LogActorComponent, Warning, TEXT("UAttribute::ClampFromMetaDataTable. UAttribute %s from UDataTable %s"), *GetName(), *DataTable->GetName());
-
-	for( TFieldIterator<UProperty> It(GetClass(), EFieldIteratorFlags::IncludeSuper) ; It ; ++It )
-	{
-		UProperty *Property = *It;
-		UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property);
-		if (NumericProperty)
-		{
-			FString RowNameStr = FString::Printf(TEXT("%s.%s"), *Property->GetOuter()->GetName(), *Property->GetName());
-			FAttributeMetaData * MetaData = DataTable->FindRow<FAttributeMetaData>(FName(*RowNameStr), Context, false);
-			if (MetaData)
-			{
-				float CurrentValue = NumericProperty->GetFloatingPointPropertyValue(this);
-				CurrentValue = FMath::Clamp(CurrentValue, MetaData->MinValue, MetaData->MaxValue);
-
-				UE_LOG(LogActorComponent, Warning, TEXT("   Found Row for %s. Clamping: %.2f <%.2f, %.2f>"), *RowNameStr, CurrentValue, MetaData->MinValue, MetaData->MaxValue );
-
-				NumericProperty->SetFloatingPointPropertyValue(NumericProperty->ContainerPtrToValuePtr<void>(this), CurrentValue);
 			}
 		}
 	}

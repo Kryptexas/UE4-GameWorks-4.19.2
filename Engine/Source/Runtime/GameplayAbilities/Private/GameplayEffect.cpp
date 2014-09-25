@@ -1350,9 +1350,6 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 				continue;
 			}
 
-			// Todo: Tags/application checks here - make sure we can still apply
-			InvokeGameplayCueExecute = true;
-
 			ABILITY_LOG_SCOPE(TEXT("Executing Attribute Mod %s"), *Mod.ToSimpleString());
 
 			// First, evaluate all of our data 
@@ -1364,8 +1361,16 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 			/** This should apply 'gameplay effect specific' rules, such as life steal, shields, etc */
 			Mod.Aggregator.Get()->PreEvaluate(ExecuteData);
 
-			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
-			AttributeSet->PreAttributeModify(ExecuteData);
+			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc 
+			 *	PreAttributeModify can return false to 'throw out' this modification.
+			 */
+			if (AttributeSet->PreGameplayEffectExecute(ExecuteData) == false)
+			{
+				continue;
+			}
+
+			// Todo: Tags/application checks here - make sure we can still apply
+			InvokeGameplayCueExecute = true;
 
 			// Do we have active GE's that are already modifying this?
 			FAggregatorRef *RefPtr = OngoingPropertyEffects.Find(Mod.Info.Attribute);
@@ -1391,7 +1396,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 			Mod.Aggregator.Get()->PostEvaluate(ExecuteData);
 
 			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
-			AttributeSet->PostAttributeModify(ExecuteData);
+			AttributeSet->PostGameplayEffectExecute(ExecuteData);
 			
 		}
 		else if(Mod.Info.ModifierType == EGameplayMod::ActiveGE)
@@ -1597,6 +1602,8 @@ void FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty(FAggregator* Agg
 	float NewValue = Aggregator->Evaluate().Magnitude;
 
 	InternalUpdateNumericalAttribute(Attribute, NewValue, nullptr);
+
+	
 }
 
 void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData)
@@ -2051,12 +2058,9 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 
 	for (const FActiveGameplayEffect& Effect : GameplayEffects)
 	{
-		if (Query.TagContainer)
+		if (!Query.Matches(Effect))
 		{
-			if (!Effect.Spec.Def->OwnedTagsContainer.MatchesAny(*Query.TagContainer, false))
-			{
-				continue;
-			}
+			continue;
 		}
 
 		float Elapsed = CurrentTime - Effect.StartWorldTime;
@@ -2077,12 +2081,9 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FA
 
 	for (const FActiveGameplayEffect &Effect : GameplayEffects)
 	{
-		if (Query.TagContainer)
+		if (!Query.Matches(Effect))
 		{
-			if (!Effect.Spec.Def->OwnedTagsContainer.MatchesAny(*Query.TagContainer, false))
-			{
-				continue;
-			}
+			continue;
 		}
 
 		ReturnList.Add(Effect.GetDuration());
@@ -2090,6 +2091,19 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FA
 
 	// Note: keep one return location to avoid copy operation.
 	return ReturnList;
+}
+
+void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query)
+{
+	for (int32 idx=0; idx < GameplayEffects.Num(); ++idx)
+	{
+		const FActiveGameplayEffect& Effect = GameplayEffects[idx];
+		if (Query.Matches(Effect))
+		{
+			InternalRemoveActiveGameplayEffect(idx);
+			idx--;
+		}
+	}
 }
 
 FOnGameplayEffectTagCountChanged& FActiveGameplayEffectsContainer::RegisterGameplayTagEvent(FGameplayTag Tag)
@@ -2346,4 +2360,34 @@ void FGameplayTagCountContainer::UpdateTagMap(const FGameplayTagContainer& Conta
 }
 
 
+// -----------------------------------------------------------------
 
+bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
+{
+	if (TagContainer)
+	{
+		if (!Effect.Spec.Def->OwnedTagsContainer.MatchesAny(*TagContainer, false))
+		{
+			return false;
+		}
+	}	
+	
+	if (ModifyingAttribute.IsValid())
+	{
+		bool FailedModifyingAttributeCheck = true;
+		for (const FModifierSpec& Modifier : Effect.Spec.Modifiers)
+		{
+			if (Modifier.Info.Attribute == ModifyingAttribute && Modifier.Info.ModifierType == EGameplayMod::Attribute)
+			{
+				FailedModifyingAttributeCheck = false;
+				break;
+			}
+		}
+		if (FailedModifyingAttributeCheck)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}

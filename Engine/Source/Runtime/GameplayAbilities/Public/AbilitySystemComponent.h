@@ -275,6 +275,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 
+	/** Removes all active effects that match given query */
+	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query);
+
 	void OnRestackGameplayEffects();
 
 	// --------------------------------------------

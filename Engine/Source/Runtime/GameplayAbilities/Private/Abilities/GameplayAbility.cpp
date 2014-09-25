@@ -639,8 +639,6 @@ FActiveGameplayEffectHandle UGameplayAbility::K2_ApplyGameplayEffectToOwner(cons
 	check(CurrentActorInfo);
 	check(CurrentSpecHandle.IsValid());
 
-	//CurrentActivationInfo = GetCurrentAbilitySpec()->ActivationInfo;
-
 	return ApplyGameplayEffectToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, GameplayEffect, GameplayEffectLevel);
 }
 
