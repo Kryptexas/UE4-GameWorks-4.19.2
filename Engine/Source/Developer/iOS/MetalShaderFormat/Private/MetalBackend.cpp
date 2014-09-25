@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalShaderFormat.h"
+#include "Core.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
 #include "MetalBackend.h"
@@ -15,6 +16,10 @@
 #include "mesa/ir_optimization.h"
 #include "MetalUtils.h"
 
+#if !PLATFORM_WINDOWS
+#define _stricmp stricmp
+#define _strnicmp strnicmp
+#endif
 
 /**
  * This table must match the ir_expression_operation enum.

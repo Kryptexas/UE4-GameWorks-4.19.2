@@ -38,7 +38,7 @@ struct extern_var : public exec_node
 
 struct FBuffers
 {
-	TArray<ir_instruction*> Buffers;
+	TArray<class ir_instruction*> Buffers;
 
 	int GetIndex(ir_variable* Var)
 	{
@@ -55,7 +55,7 @@ struct FBuffers
 
 	void SortBuffers()
 	{
-		TArray<ir_instruction*> AllBuffers;
+		TArray<class ir_instruction*> AllBuffers;
 		AllBuffers.AddZeroed(Buffers.Num());
 		TIRVarList CBuffers;
 		// Put packed UB's into their location (h=0, m=1, etc); leave holes if not using a packed define

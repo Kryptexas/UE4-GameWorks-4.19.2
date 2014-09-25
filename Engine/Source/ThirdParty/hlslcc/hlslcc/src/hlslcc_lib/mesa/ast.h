@@ -519,9 +519,9 @@ class ast_type_specifier : public ast_node
 public:
 	/** Construct a type specifier from a type name */
 	ast_type_specifier(const char *name)
-		: type_name(name), inner_type(NULL), structure(NULL), texture_ms_num_samples(1),
-		is_array(false), is_unsized_array(0), array_size(NULL), precision(ast_precision_none),
-		is_precision_statement(false), patch_size(0)
+		: type_name(name), inner_type(NULL), structure(NULL), texture_ms_num_samples(1), patch_size(0),
+		is_array(false), is_unsized_array(0), array_size(NULL),
+		is_precision_statement(false), precision(ast_precision_none)
 	{
 		/* empty */
 	}
@@ -529,9 +529,9 @@ public:
 
 	/** Construct a type specifier from a type name with an internal sampler type. */
 	ast_type_specifier(const char *name, const char *inner_type_name)
-		: type_name(name), inner_type(inner_type_name), structure(NULL), texture_ms_num_samples(1),
-		is_array(false), is_unsized_array(0), array_size(NULL), precision(ast_precision_none),
-		is_precision_statement(false), patch_size(0)
+		: type_name(name), inner_type(inner_type_name), structure(NULL), texture_ms_num_samples(1), patch_size(0),
+		is_array(false), is_unsized_array(0), array_size(NULL),
+		is_precision_statement(false), precision(ast_precision_none)
 	{
 		/* empty */
 	}
@@ -539,9 +539,9 @@ public:
 
 	/** Construct a type specifier from a structure definition */
 	ast_type_specifier(ast_struct_specifier *s)
-		: type_name(s->name), inner_type(NULL), structure(s), texture_ms_num_samples(1),
-		is_array(false), is_unsized_array(0), array_size(NULL), precision(ast_precision_none),
-		is_precision_statement(false), patch_size(0)
+		: type_name(s->name), inner_type(NULL), structure(s), texture_ms_num_samples(1), patch_size(0),
+		is_array(false), is_unsized_array(0), array_size(NULL),
+		is_precision_statement(false), precision(ast_precision_none)
 	{
 		/* empty */
 	}

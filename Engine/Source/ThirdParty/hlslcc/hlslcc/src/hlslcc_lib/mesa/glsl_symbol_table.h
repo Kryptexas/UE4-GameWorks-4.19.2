@@ -60,7 +60,7 @@ public:
       void *table;
 
       table = ralloc_size(ctx, size);
-      check(table != NULL);
+      //check(table != NULL);
 
       ralloc_set_destructor(table, (void (*)(void*)) _glsl_symbol_table_destructor);
 

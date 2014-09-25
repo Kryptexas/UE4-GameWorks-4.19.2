@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalShaderFormat.h"
+#include "Core.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
 #include "MetalBackend.h"
@@ -15,6 +16,11 @@
 #include "OptValueNumbering.h"
 #include "mesa/ir_optimization.h"
 #include "MetalUtils.h"
+
+#if !PLATFORM_WINDOWS
+#define _stricmp stricmp
+#define _strnicmp strnicmp
+#endif
 
 const bool bExpandVSInputsToFloat4 = false;
 const bool bGenerateVSInputDummies = false;

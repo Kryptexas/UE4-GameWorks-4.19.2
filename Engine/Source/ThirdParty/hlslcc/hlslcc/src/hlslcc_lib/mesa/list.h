@@ -84,7 +84,7 @@ struct exec_node {
       void *node;
 
       node = ralloc_size(ctx, size);
-      check(node != nullptr);
+      //check(node != nullptr);
 
       return node;
    }
@@ -306,7 +306,7 @@ struct exec_list {
       void *node;
 
       node = ralloc_size(ctx, size);
-      check(node != nullptr);
+      //check(node != nullptr);
 
       return node;
    }
@@ -385,7 +385,7 @@ struct exec_list {
 
    void push_degenerate_list_at_head(exec_node *n)
    {
-      check(n->prev->next == n);
+      //check(n->prev->next == n);
 
       n->prev->next = head;
       head->prev = n->prev;

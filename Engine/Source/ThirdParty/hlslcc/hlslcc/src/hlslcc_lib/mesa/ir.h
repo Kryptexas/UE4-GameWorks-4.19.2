@@ -693,27 +693,7 @@ public:
 
 	virtual ir_visitor_status accept(ir_hierarchical_visitor *) override;
 
-	void add_signature(ir_function_signature *sig)
-	{
-		sig->_function = this;
-
-		// Use this as an opportunity to check if there are any out parameters in the signature
-		bool bHasOut = false;
-		foreach_list_const(Node, &sig->parameters)
-		{
-			ir_variable* Parameter = (ir_variable*)Node;
-			if (Parameter->mode == ir_var_out || Parameter->mode == ir_var_inout)
-			{
-				bHasOut = true;
-				break;
-			}
-		}
-		// Assert if somehow it was marked as out and now it's not
-		check(!sig->has_output_parameters || bHasOut);
-		sig->has_output_parameters |= bHasOut;
-
-		this->signatures.push_tail(sig);
-	}
+	void add_signature(ir_function_signature *sig);
 
 	/**
 	* Get an iterator for the set of function signatures
@@ -1276,14 +1256,7 @@ class ir_call : public ir_instruction
 public:
 	ir_call(ir_function_signature *callee,
 		ir_dereference_variable *return_deref,
-		exec_list *actual_parameters)
-		: return_deref(return_deref), callee(callee)
-	{
-		ir_type = ir_type_call;
-		check(callee->return_type != NULL);
-		actual_parameters->move_nodes_to(&this->actual_parameters);
-		this->use_builtin = callee->is_builtin;
-	}
+		exec_list *actual_parameters);
 
 	virtual ir_call *clone(void *mem_ctx, struct hash_table *ht) const override;
 
@@ -2055,16 +2028,7 @@ public:
 		ir_dereference *target,
 		ir_rvalue *arg0,
 		ir_rvalue *arg1
-		)
-		: memory_ref(target), lhs(result), operation(op)
-	{
-		ir_type = ir_type_atomic;
-		check(target != NULL);
-		check(arg1 == NULL || op == ir_atomic_cmp_swap);
-		check(op < ir_atomic_count);
-		operands[0] = arg0;
-		operands[1] = arg1;
-	}
+		);
 
 	virtual ir_atomic *clone(void *mem_ctx, struct hash_table *ht) const override;
 

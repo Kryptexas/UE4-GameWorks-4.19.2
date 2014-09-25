@@ -132,13 +132,13 @@ struct glsl_type
 		if (glsl_type::mem_ctx == NULL)
 		{
 			glsl_type::mem_ctx = ralloc_context(NULL);
-			check(glsl_type::mem_ctx != NULL);
+			//check(glsl_type::mem_ctx != NULL);
 		}
 
 		void *type;
 
 		type = ralloc_size(glsl_type::mem_ctx, size);
-		check(type != NULL);
+		//check(type != NULL);
 
 		return type;
 	}

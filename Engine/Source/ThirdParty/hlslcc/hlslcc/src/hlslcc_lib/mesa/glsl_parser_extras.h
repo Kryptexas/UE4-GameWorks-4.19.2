@@ -146,7 +146,7 @@ static inline int ConvertArrayTypeToIndex(EArrayType Type)
 	case EArrayType_Image:
 		return EArrayType_Index_Image;
 	default:
-		check(0);
+		/*check(0)*/;
 	}
 
 	return EArrayType_Index_FloatHighp;
@@ -178,7 +178,7 @@ static inline int GetArrayCharFromPrecisionType(glsl_base_type Type, bool bAsser
 
 	if (bAssertIfNotFound)
 	{
-		check(0);
+		//check(0);
 	}
 
 	return 0;
@@ -229,7 +229,7 @@ inline const char* glsl_variable_tag_from_parser_target(const _mesa_glsl_parser_
 	case tessellation_control_shader: return "h";    // to avoid collision with 'c'ompute, using DX 'h'ull shader
 	case tessellation_evaluation_shader: return "d"; // to avoid collision with 'c'ompute, using DX 'd'omain shader
 	case compute_shader: return "c";
-	default:check(false); return "invalid_parser_target";
+	default:/*check(false);*/ return "invalid_parser_target";
 	}
 }
 
@@ -264,7 +264,7 @@ struct _mesa_glsl_parse_state
 	static void* operator new(size_t size, void *ctx)
 	{
 		void *mem = rzalloc_size(ctx, size);
-		check(mem != NULL);
+		//check(mem != NULL);
 
 		return mem;
 	}
