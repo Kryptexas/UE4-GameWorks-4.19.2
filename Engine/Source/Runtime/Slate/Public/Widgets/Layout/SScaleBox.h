@@ -39,7 +39,7 @@ namespace EStretch
  * you needed to have a background image scale to fill an area but not become distorted with different aspect ratios, or if you need
  * to auto fit some text to an area, this is the control for you.
  */
-class UMG_API SScaleBox : public SCompoundWidget
+class SLATE_API SScaleBox : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SScaleBox)
@@ -52,8 +52,10 @@ public:
 		/** Slot for this designers content (optional) */
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 
+		/** The horizontal alignment of the content */
 		SLATE_ARGUMENT(EHorizontalAlignment, HAlign)
 
+		/** The vertical alignment of the content */
 		SLATE_ARGUMENT(EVerticalAlignment, VAlign)
 		
 		/** Controls in what direction content can be scaled */
@@ -66,8 +68,10 @@ public:
 
 	void Construct(const FArguments& InArgs);
 	
+	// SWidget interface
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	// End SWidget of interface
 
 	/** See Content slot */
 	void SetContent(TSharedRef<SWidget> InContent);
@@ -85,6 +89,9 @@ public:
 	void SetStretch(EStretch::Type InStretch);
 	
 private:
+	/** The allowed direction of stretching of the content */
 	TAttribute<EStretchDirection::Type> StretchDirection;
+
+	/** The method of scaling that is applied to the content. */
 	TAttribute<EStretch::Type> Stretch;
 };
