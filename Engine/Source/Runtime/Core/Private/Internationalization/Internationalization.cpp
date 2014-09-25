@@ -738,6 +738,11 @@ FInternationalization::FICUCachedFileData::FICUCachedFileData(const int64 FileSi
 {
 }
 
+FInternationalization::FICUCachedFileData::FICUCachedFileData(const FICUCachedFileData& Source)
+{
+	checkf(false, TEXT("Cached file data for ICU may not be copy constructed. Something is trying to copy construct FICUCachedFileData."));
+}
+
 FInternationalization::FICUCachedFileData::FICUCachedFileData(FICUCachedFileData&& Source)
 	: ReferenceCount(Source.ReferenceCount)
 	, Buffer( Source.Buffer )
