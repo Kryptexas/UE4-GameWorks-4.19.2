@@ -2022,28 +2022,6 @@ ir_function::has_user_signature()
 	return false;
 }
 
-void ir_function::add_signature(ir_function_signature *sig)
-{
-	sig->_function = this;
-
-	// Use this as an opportunity to check if there are any out parameters in the signature
-	bool bHasOut = false;
-	foreach_list_const(Node, &sig->parameters)
-	{
-		ir_variable* Parameter = (ir_variable*)Node;
-		if (Parameter->mode == ir_var_out || Parameter->mode == ir_var_inout)
-		{
-			bHasOut = true;
-			break;
-		}
-	}
-	// Assert if somehow it was marked as out and now it's not
-	check(!sig->has_output_parameters || bHasOut);
-	sig->has_output_parameters |= bHasOut;
-
-	this->signatures.push_tail(sig);
-}
-
 const char *
 ir_atomic::operator_string()
 {
@@ -2080,16 +2058,6 @@ bool ir_atomic::IsEquivalent(ir_atomic* IR)
 	}
 
 	return AreEquivalent(operands[0], IR->operands[0]) && AreEquivalent(operands[1], IR->operands[1]);
-}
-
-ir_atomic::ir_atomic(ir_atomic_op op, ir_dereference *result, ir_dereference *target, ir_rvalue *arg0, ir_rvalue *arg1) : memory_ref(target), lhs(result), operation(op)
-{
-	ir_type = ir_type_atomic;
-	check(target != NULL);
-	check(arg1 == NULL || op == ir_atomic_cmp_swap);
-	check(op < ir_atomic_count);
-	operands[0] = arg0;
-	operands[1] = arg1;
 }
 
 
@@ -2234,12 +2202,4 @@ else IF_TEST(as_dereference_image)
 	}
 
 	return false;
-}
-
-ir_call::ir_call(ir_function_signature *callee, ir_dereference_variable *return_deref, exec_list *actual_parameters) : return_deref(return_deref), callee(callee)
-{
-	ir_type = ir_type_call;
-	check(callee->return_type != NULL);
-	actual_parameters->move_nodes_to(&this->actual_parameters);
-	this->use_builtin = callee->is_builtin;
 }
