@@ -11,7 +11,7 @@ UBTTask_RunBehavior::UBTTask_RunBehavior(const class FPostConstructInitializePro
 
 EBTNodeResult::Type UBTTask_RunBehavior::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
-	const bool bPushed = OwnerComp->PushInstance(BehaviorAsset);
+	const bool bPushed = OwnerComp->PushInstance(*BehaviorAsset);
 	return bPushed ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
 }
 
@@ -154,7 +154,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 			for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 			{
 				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
-				InstancedOb->InitializeFromAsset(BehaviorAsset);
+				InstancedOb->InitializeFromAsset(*BehaviorAsset);
 				InstancedOb->InitializeDecorator(ChildIdx);
 
 				if (!bAlreadyInjected)

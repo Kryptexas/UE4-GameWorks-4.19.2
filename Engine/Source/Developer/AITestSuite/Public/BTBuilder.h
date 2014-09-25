@@ -53,7 +53,7 @@ struct FBTBuilder
 	static UBTComposite_Selector& AddSelector(UBehaviorTree& TreeOb)
 	{
 		UBTComposite_Selector* NodeOb = NewObject<UBTComposite_Selector>(&TreeOb);
-		NodeOb->InitializeFromAsset(&TreeOb);
+		NodeOb->InitializeFromAsset(TreeOb);
 		TreeOb.RootNode = NodeOb;
 		return *NodeOb;
 	}
@@ -61,7 +61,7 @@ struct FBTBuilder
 	static UBTComposite_Selector& AddSelector(UBTCompositeNode& ParentNode)
 	{
 		UBTComposite_Selector* NodeOb = NewObject<UBTComposite_Selector>(ParentNode.GetTreeAsset());
-		NodeOb->InitializeFromAsset(ParentNode.GetTreeAsset());
+		NodeOb->InitializeFromAsset(*ParentNode.GetTreeAsset());
 
 		const int32 ChildIdx = ParentNode.Children.AddZeroed(1);
 		ParentNode.Children[ChildIdx].ChildComposite = NodeOb;
@@ -72,7 +72,7 @@ struct FBTBuilder
 	static UBTComposite_Sequence& AddSequence(UBehaviorTree& TreeOb)
 	{
 		UBTComposite_Sequence* NodeOb = NewObject<UBTComposite_Sequence>(&TreeOb);
-		NodeOb->InitializeFromAsset(&TreeOb);
+		NodeOb->InitializeFromAsset(TreeOb);
 		TreeOb.RootNode = NodeOb;
 		return *NodeOb;
 	}
@@ -80,7 +80,7 @@ struct FBTBuilder
 	static UBTComposite_Sequence& AddSequence(UBTCompositeNode& ParentNode)
 	{
 		UBTComposite_Sequence* NodeOb = NewObject<UBTComposite_Sequence>(ParentNode.GetTreeAsset());
-		NodeOb->InitializeFromAsset(ParentNode.GetTreeAsset());
+		NodeOb->InitializeFromAsset(*ParentNode.GetTreeAsset());
 
 		const int32 ChildIdx = ParentNode.Children.AddZeroed(1);
 		ParentNode.Children[ChildIdx].ChildComposite = NodeOb;
@@ -92,7 +92,7 @@ struct FBTBuilder
 	{
 		UBTComposite_SimpleParallel* NodeOb = NewObject<UBTComposite_SimpleParallel>(&TreeOb);
 		NodeOb->FinishMode = Mode;
-		NodeOb->InitializeFromAsset(&TreeOb);
+		NodeOb->InitializeFromAsset(TreeOb);
 		TreeOb.RootNode = NodeOb;
 		return *NodeOb;
 	}
@@ -101,7 +101,7 @@ struct FBTBuilder
 	{
 		UBTComposite_SimpleParallel* NodeOb = NewObject<UBTComposite_SimpleParallel>(ParentNode.GetTreeAsset());
 		NodeOb->FinishMode = Mode;
-		NodeOb->InitializeFromAsset(ParentNode.GetTreeAsset());
+		NodeOb->InitializeFromAsset(*ParentNode.GetTreeAsset());
 
 		const int32 ChildIdx = ParentNode.Children.AddZeroed(1);
 		ParentNode.Children[ChildIdx].ChildComposite = NodeOb;

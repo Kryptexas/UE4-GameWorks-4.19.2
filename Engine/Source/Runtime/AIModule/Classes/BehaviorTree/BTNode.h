@@ -6,6 +6,8 @@
 #include "BehaviorTreeTypes.h"
 #include "BTNode.generated.h"
 
+class UBehaviorTree;
+
 struct FBTInstancedNodeMemory
 {
 	int32 NodeIdx;
@@ -22,7 +24,7 @@ class AIMODULE_API UBTNode : public UObject
 	void InitializeNode(class UBTCompositeNode* InParentNode, uint16 InExecutionIndex, uint16 InMemoryOffset, uint8 InTreeDepth);
 
 	/** initialize any asset related data */
-	virtual void InitializeFromAsset(class UBehaviorTree* Asset);
+	virtual void InitializeFromAsset(UBehaviorTree& Asset);
 	
 	/** initialize memory block */
 	virtual void InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const;

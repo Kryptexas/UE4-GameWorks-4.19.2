@@ -738,7 +738,7 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 		}
 
 		check(BTComp != NULL);
-		BTComp->StartTree(BTAsset, EBTExecutionMode::Looped);
+		BTComp->StartTree(*BTAsset, EBTExecutionMode::Looped);
 	}
 
 	return bSuccess;

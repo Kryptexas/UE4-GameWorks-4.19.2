@@ -13,7 +13,7 @@
 // UBehaviorTreeComponent
 //----------------------------------------------------------------------//
 
-UBehaviorTreeComponent::UBehaviorTreeComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeComponent::UBehaviorTreeComponent(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ActiveInstanceIdx = 0;
 	bLoopExecution = false;
@@ -105,12 +105,12 @@ bool UBehaviorTreeComponent::IsPaused() const
 	return bIsPaused;
 }
 
-bool UBehaviorTreeComponent::StartTree(class UBehaviorTree* TreeAsset, EBTExecutionMode::Type ExecuteMode)
+bool UBehaviorTreeComponent::StartTree(UBehaviorTree& Asset, EBTExecutionMode::Type ExecuteMode /*= EBTExecutionMode::Looped*/)
 {
 	// clear instance stack, start should always run new tree from root
-	class UBehaviorTree* CurrentRoot = GetRootTree();
+	UBehaviorTree* CurrentRoot = GetRootTree();
 	
-	if (CurrentRoot == TreeAsset && TreeHasBeenStarted())
+	if (CurrentRoot == &Asset && TreeHasBeenStarted())
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Skipping behavior start request - it's already running"));
 		return true;
@@ -118,7 +118,7 @@ bool UBehaviorTreeComponent::StartTree(class UBehaviorTree* TreeAsset, EBTExecut
 	else if (CurrentRoot)
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Abandoning behavior %s to start new one (%s)"),
-			*GetNameSafe(CurrentRoot), *GetNameSafe(TreeAsset));
+			*GetNameSafe(CurrentRoot), *Asset.GetName());
 	}
 
 	StopTree();
@@ -138,7 +138,7 @@ bool UBehaviorTreeComponent::StartTree(class UBehaviorTree* TreeAsset, EBTExecut
 	}
 
 	// push new instance
-	const bool bPushed = PushInstance(TreeAsset);
+	const bool bPushed = PushInstance(Asset);
 	return bPushed;
 }
 
@@ -199,7 +199,7 @@ void UBehaviorTreeComponent::Cleanup()
 	NodeInstances.Reset();
 }
 
-void UBehaviorTreeComponent::OnTaskFinished(const class UBTTaskNode* TaskNode, EBTNodeResult::Type TaskResult)
+void UBehaviorTreeComponent::OnTaskFinished(const UBTTaskNode* TaskNode, EBTNodeResult::Type TaskResult)
 {
 	if (TaskNode == NULL || InstanceStack.Num() == 0 || IsPendingKill())
 	{
@@ -285,7 +285,7 @@ void UBehaviorTreeComponent::OnTreeFinished()
 	}
 }
 
-bool UBehaviorTreeComponent::IsExecutingBranch(const class UBTNode* Node, int32 ChildIndex) const
+bool UBehaviorTreeComponent::IsExecutingBranch(const UBTNode* Node, int32 ChildIndex) const
 {
 	const int32 TestInstanceIdx = FindInstanceContainingNode(Node);
 	if (TestInstanceIdx == INDEX_NONE || InstanceStack[TestInstanceIdx].ActiveNode == NULL)
@@ -325,7 +325,7 @@ bool UBehaviorTreeComponent::IsExecutingBranch(const class UBTNode* Node, int32 
 	return (ActiveExecutionIndex >= Node->GetExecutionIndex()) && (ActiveExecutionIndex < NextChildExecutionIndex);
 }
 
-bool UBehaviorTreeComponent::IsAuxNodeActive(const class UBTAuxiliaryNode* AuxNode) const
+bool UBehaviorTreeComponent::IsAuxNodeActive(const UBTAuxiliaryNode* AuxNode) const
 {
 	if (AuxNode == NULL)
 	{
@@ -363,7 +363,7 @@ bool UBehaviorTreeComponent::IsAuxNodeActive(const class UBTAuxiliaryNode* AuxNo
 	return false;
 }
 
-EBTTaskStatus::Type UBehaviorTreeComponent::GetTaskStatus(const class UBTTaskNode* TaskNode) const
+EBTTaskStatus::Type UBehaviorTreeComponent::GetTaskStatus(const UBTTaskNode* TaskNode) const
 {
 	EBTTaskStatus::Type Status = EBTTaskStatus::Inactive;
 	const int32 InstanceIdx = FindInstanceContainingNode(TaskNode);
@@ -401,7 +401,7 @@ EBTTaskStatus::Type UBehaviorTreeComponent::GetTaskStatus(const class UBTTaskNod
 	return Status;
 }
 
-void UBehaviorTreeComponent::RequestExecution(const class UBTDecorator* RequestedBy)
+void UBehaviorTreeComponent::RequestExecution(const UBTDecorator* RequestedBy)
 {
 	// search range depends on decorator's FlowAbortMode:
 	//
@@ -454,15 +454,15 @@ void UBehaviorTreeComponent::RequestExecution(EBTNodeResult::Type LastResult)
 }
 
 static void FindCommonParent(const TArray<FBehaviorTreeInstance>& Instances, const TArray<FBehaviorTreeInstanceId>& KnownInstances,
-							 class UBTCompositeNode* InNodeA, uint16 InstanceIdxA,
-							 class UBTCompositeNode* InNodeB, uint16 InstanceIdxB,
-							 class UBTCompositeNode*& CommonParentNode, uint16& CommonInstanceIdx)
+							 UBTCompositeNode* InNodeA, uint16 InstanceIdxA,
+							 UBTCompositeNode* InNodeB, uint16 InstanceIdxB,
+							 UBTCompositeNode*& CommonParentNode, uint16& CommonInstanceIdx)
 {
 	// find two nodes in the same instance (choose lower index = closer to root)
 	CommonInstanceIdx = (InstanceIdxA <= InstanceIdxB) ? InstanceIdxA : InstanceIdxB;
 
-	class UBTCompositeNode* NodeA = (CommonInstanceIdx == InstanceIdxA) ? InNodeA : Instances[CommonInstanceIdx].ActiveNode->GetParentNode();
-	class UBTCompositeNode* NodeB = (CommonInstanceIdx == InstanceIdxB) ? InNodeB : Instances[CommonInstanceIdx].ActiveNode->GetParentNode();
+	UBTCompositeNode* NodeA = (CommonInstanceIdx == InstanceIdxA) ? InNodeA : Instances[CommonInstanceIdx].ActiveNode->GetParentNode();
+	UBTCompositeNode* NodeB = (CommonInstanceIdx == InstanceIdxB) ? InNodeB : Instances[CommonInstanceIdx].ActiveNode->GetParentNode();
 
 	// special case: node was taken from CommonInstanceIdx, but it had ActiveNode set to root (no parent)
 	if (NodeA == NULL && CommonInstanceIdx != InstanceIdxA)
@@ -523,7 +523,7 @@ void UBehaviorTreeComponent::ScheduleExecutionUpdate()
 	}
 }
 
-void UBehaviorTreeComponent::RequestExecution(class UBTCompositeNode* RequestedOn, int32 InstanceIdx, const class UBTNode* RequestedBy,
+void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int32 InstanceIdx, const UBTNode* RequestedBy,
 											  int32 RequestedByChildIndex, EBTNodeResult::Type ContinueWithResult, bool bStoreForDebugger)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_SearchTime);
@@ -775,7 +775,7 @@ void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<struct FBehaviorTre
 	}
 }
 
-void UBehaviorTreeComponent::ApplySearchData(class UBTNode* NewActiveNode)
+void UBehaviorTreeComponent::ApplySearchData(UBTNode* NewActiveNode)
 {
 	const int32 NewNodeExecutionIndex = NewActiveNode ? NewActiveNode->GetExecutionIndex() : 0;
 
@@ -1059,7 +1059,7 @@ void UBehaviorTreeComponent::ProcessPendingExecution()
 	}
 }
 
-bool UBehaviorTreeComponent::DeactivateUpTo(class UBTCompositeNode* Node, uint16 NodeInstanceIdx, EBTNodeResult::Type& NodeResult)
+bool UBehaviorTreeComponent::DeactivateUpTo(UBTCompositeNode* Node, uint16 NodeInstanceIdx, EBTNodeResult::Type& NodeResult)
 {
 	UBTNode* DeactivatedChild = InstanceStack[ActiveInstanceIdx].ActiveNode;
 	bool bDeactivateRoot = true;
@@ -1187,7 +1187,7 @@ void UBehaviorTreeComponent::AbortCurrentTask()
 	}
 }
 
-void UBehaviorTreeComponent::RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType)
+void UBehaviorTreeComponent::RegisterMessageObserver(const UBTTaskNode* TaskNode, FName MessageType)
 {
 	if (TaskNode)
 	{
@@ -1204,7 +1204,7 @@ void UBehaviorTreeComponent::RegisterMessageObserver(const class UBTTaskNode* Ta
 	}
 }
 
-void UBehaviorTreeComponent::RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, FAIRequestID RequestID)
+void UBehaviorTreeComponent::RegisterMessageObserver(const UBTTaskNode* TaskNode, FName MessageType, FAIRequestID RequestID)
 {
 	if (TaskNode)
 	{
@@ -1231,7 +1231,7 @@ void UBehaviorTreeComponent::UnregisterMessageObserversFrom(const FBTNodeIndex& 
 	}
 }
 
-void UBehaviorTreeComponent::UnregisterMessageObserversFrom(const class UBTTaskNode* TaskNode)
+void UBehaviorTreeComponent::UnregisterMessageObserversFrom(const UBTTaskNode* TaskNode)
 {
 	if (TaskNode)
 	{
@@ -1255,7 +1255,7 @@ void UBehaviorTreeComponent::UnregisterMessageObserversFrom(const class UBTTaskN
 #define AUX_NODE_WRAPPER(cmd) cmd;
 #endif // STATS
 
-void UBehaviorTreeComponent::RegisterParallelTask(const class UBTTaskNode* TaskNode)
+void UBehaviorTreeComponent::RegisterParallelTask(const UBTTaskNode* TaskNode)
 {
 	FBehaviorTreeInstance& InstanceInfo = InstanceStack[ActiveInstanceIdx];
 	AUX_NODE_WRAPPER(InstanceInfo.ParallelTasks.Add( FBehaviorTreeParallelTask(TaskNode, EBTTaskStatus::Active) ));
@@ -1270,7 +1270,7 @@ void UBehaviorTreeComponent::RegisterParallelTask(const class UBTTaskNode* TaskN
 	}
 }
 
-void UBehaviorTreeComponent::UnregisterParallelTask(const class UBTTaskNode* TaskNode, uint16 InstanceIdx)
+void UBehaviorTreeComponent::UnregisterParallelTask(const UBTTaskNode* TaskNode, uint16 InstanceIdx)
 {
 	bool bShouldUpdate = false;
 	if (InstanceStack.IsValidIndex(InstanceIdx))
@@ -1318,18 +1318,13 @@ void UBehaviorTreeComponent::UpdateAbortingTasks()
 	}
 }
 
-bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
+bool UBehaviorTreeComponent::PushInstance(UBehaviorTree& TreeAsset)
 {
-	if (TreeAsset == NULL)
-	{
-		return false;
-	}
-
 	// check if blackboard class match
-	if (TreeAsset->BlackboardAsset && BlackboardComp && !BlackboardComp->IsCompatibleWith(TreeAsset->BlackboardAsset))
+	if (TreeAsset.BlackboardAsset && BlackboardComp && !BlackboardComp->IsCompatibleWith(TreeAsset.BlackboardAsset))
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to execute tree %s: blackboard %s is not compatibile with current: %s!"),
-			*GetNameSafe(TreeAsset), *GetNameSafe(TreeAsset->BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));
+			*TreeAsset.GetName(), *GetNameSafe(TreeAsset.BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));
 
 		return false;
 	}
@@ -1337,7 +1332,7 @@ bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
 	UBehaviorTreeManager* BTManager = UBehaviorTreeManager::GetCurrent(GetWorld());
 	if (BTManager == NULL)
 	{
-		UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to execute tree %s: behavior tree manager not found!"), *GetNameSafe(TreeAsset));
+		UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to execute tree %s: behavior tree manager not found!"), *TreeAsset.GetName());
 		return false;
 	}
 
@@ -1353,7 +1348,7 @@ bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
 		if (!bIsAllowed)
 		{
 			UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to execute tree %s: parent of active node does not allow it! (%s)"),
-				*GetNameSafe(TreeAsset), *UBehaviorTreeTypes::DescribeNodeHelper(ActiveParent));
+				*TreeAsset.GetName(), *UBehaviorTreeTypes::DescribeNodeHelper(ActiveParent));
 			return false;
 		}
 	}
@@ -1365,7 +1360,7 @@ bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
 	if (bLoaded)
 	{
 		FBehaviorTreeInstance NewInstance;
-		NewInstance.InstanceIdIndex = UpdateInstanceId(TreeAsset, ActiveNode, InstanceStack.Num() - 1);
+		NewInstance.InstanceIdIndex = UpdateInstanceId(&TreeAsset, ActiveNode, InstanceStack.Num() - 1);
 		NewInstance.RootNode = RootNode;
 		NewInstance.ActiveNode = NULL;
 		NewInstance.ActiveNodeType = EBTActiveNode::Composite;
@@ -1398,7 +1393,7 @@ bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
 			ServiceNode->WrappedOnBecomeRelevant(this, NodeMemory);
 		}
 
-		FBehaviorTreeDelegates::OnTreeStarted.Broadcast(this, TreeAsset);
+		FBehaviorTreeDelegates::OnTreeStarted.Broadcast(this, &TreeAsset);
 
 		// start new task
 		RequestExecution(RootNode, ActiveInstanceIdx, RootNode, 0, EBTNodeResult::InProgress);
@@ -1408,7 +1403,7 @@ bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
 	return false;
 }
 
-uint8 UBehaviorTreeComponent::UpdateInstanceId(class UBehaviorTree* TreeAsset, const UBTNode* OriginNode, int32 OriginInstanceIdx)
+uint8 UBehaviorTreeComponent::UpdateInstanceId(UBehaviorTree* TreeAsset, const UBTNode* OriginNode, int32 OriginInstanceIdx)
 {
 	FBehaviorTreeInstanceId InstanceId;
 	InstanceId.TreeAsset = TreeAsset;
@@ -1475,7 +1470,7 @@ int32 UBehaviorTreeComponent::FindInstanceContainingNode(const UBTNode* Node) co
 	return InstanceIdx;
 }
 
-class UBTNode* UBehaviorTreeComponent::FindTemplateNode(const class UBTNode* Node) const
+UBTNode* UBehaviorTreeComponent::FindTemplateNode(const UBTNode* Node) const
 {
 	if (Node == NULL || !Node->IsInstanced() || Node->GetParentNode() == NULL)
 	{
@@ -1797,7 +1792,7 @@ void UBehaviorTreeComponent::StoreDebuggerRemovedInstance(uint16 InstanceIdx) co
 #endif
 }
 
-void UBehaviorTreeComponent::StoreDebuggerSearchStep(const class UBTNode* Node, uint16 InstanceIdx, EBTNodeResult::Type NodeResult) const
+void UBehaviorTreeComponent::StoreDebuggerSearchStep(const UBTNode* Node, uint16 InstanceIdx, EBTNodeResult::Type NodeResult) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (Node && NodeResult != EBTNodeResult::InProgress && NodeResult != EBTNodeResult::Aborted)
@@ -1819,7 +1814,7 @@ void UBehaviorTreeComponent::StoreDebuggerSearchStep(const class UBTNode* Node, 
 #endif
 }
 
-void UBehaviorTreeComponent::StoreDebuggerSearchStep(const class UBTNode* Node, uint16 InstanceIdx, bool bPassed) const
+void UBehaviorTreeComponent::StoreDebuggerSearchStep(const UBTNode* Node, uint16 InstanceIdx, bool bPassed) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (Node && !bPassed)
@@ -1838,7 +1833,7 @@ void UBehaviorTreeComponent::StoreDebuggerSearchStep(const class UBTNode* Node, 
 #endif
 }
 
-void UBehaviorTreeComponent::StoreDebuggerRestart(const class UBTNode* Node, uint16 InstanceIdx, bool bAllowed)
+void UBehaviorTreeComponent::StoreDebuggerRestart(const UBTNode* Node, uint16 InstanceIdx, bool bAllowed)
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (Node)
@@ -1858,7 +1853,7 @@ void UBehaviorTreeComponent::StoreDebuggerRestart(const class UBTNode* Node, uin
 #endif
 }
 
-void UBehaviorTreeComponent::StoreDebuggerRuntimeValues(TArray<FString>& RuntimeDescriptions, class UBTNode* RootNode, uint16 InstanceIdx) const
+void UBehaviorTreeComponent::StoreDebuggerRuntimeValues(TArray<FString>& RuntimeDescriptions, UBTNode* RootNode, uint16 InstanceIdx) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (!InstanceStack.IsValidIndex(InstanceIdx))
@@ -1893,7 +1888,7 @@ void UBehaviorTreeComponent::StoreDebuggerRuntimeValues(TArray<FString>& Runtime
 #endif
 }
 
-void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const class UBTTaskNode* TaskNode, uint16 InstanceIdx) const
+void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const UBTTaskNode* TaskNode, uint16 InstanceIdx) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	FBehaviorTreeExecutionStep& CurrentStep = DebuggerSteps.Last();

@@ -18,6 +18,11 @@ UBehaviorTreeGraph::UBehaviorTreeGraph(const class FPostConstructInitializePrope
 void UBehaviorTreeGraph::UpdateBlackboardChange()
 {
 	UBehaviorTree* BTAsset = Cast<UBehaviorTree>(GetOuter());
+	if (BTAsset == nullptr)
+	{
+		return;
+	}
+
 	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
 	{
 		UBehaviorTreeGraphNode* MyNode = Cast<UBehaviorTreeGraphNode>(Nodes[Index]);
@@ -27,7 +32,7 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 			UBTNode* MyNodeInstance = Cast<UBTNode>(MyNode->NodeInstance);
 			if (MyNodeInstance)
 			{
-				MyNodeInstance->InitializeFromAsset(BTAsset);
+				MyNodeInstance->InitializeFromAsset(*BTAsset);
 			}
 		}
 
@@ -36,7 +41,7 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 			UBTNode* MyNodeInstance = MyNode->Decorators[iDecorator] ? Cast<UBTNode>(MyNode->Decorators[iDecorator]->NodeInstance) : NULL;
 			if (MyNodeInstance)
 			{
-				MyNodeInstance->InitializeFromAsset(BTAsset);
+				MyNodeInstance->InitializeFromAsset(*BTAsset);
 			}
 
 			UBehaviorTreeGraphNode_CompositeDecorator* CompDecoratorNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(MyNode->Decorators[iDecorator]);
@@ -51,7 +56,7 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 			UBTNode* MyNodeInstance = MyNode->Services[iService] ? Cast<UBTNode>(MyNode->Services[iService]->NodeInstance) : NULL;
 			if (MyNodeInstance)
 			{
-				MyNodeInstance->InitializeFromAsset(BTAsset);
+				MyNodeInstance->InitializeFromAsset(*BTAsset);
 			}
 		}
 	}

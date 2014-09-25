@@ -49,7 +49,7 @@ public:
 
 	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
 	virtual FString GetStaticDescription() const override;
-	virtual void InitializeFromAsset(class UBehaviorTree* Asset) override;
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

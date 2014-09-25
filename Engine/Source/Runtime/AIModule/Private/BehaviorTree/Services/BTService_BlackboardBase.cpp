@@ -10,7 +10,7 @@ UBTService_BlackboardBase::UBTService_BlackboardBase(const class FPostConstructI
 	// empty KeySelector = allow everything
 }
 
-void UBTService_BlackboardBase::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTService_BlackboardBase::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 	BlackboardKey.CacheSelectedKey(GetBlackboardAsset());

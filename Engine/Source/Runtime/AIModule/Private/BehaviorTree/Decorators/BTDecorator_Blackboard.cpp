@@ -223,7 +223,7 @@ void UBTDecorator_Blackboard::PostEditChangeProperty(FPropertyChangedEvent& Prop
 	BuildDescription();
 }
 
-void UBTDecorator_Blackboard::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_Blackboard::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 	BuildDescription();

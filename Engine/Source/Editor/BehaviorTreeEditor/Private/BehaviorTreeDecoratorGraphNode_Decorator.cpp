@@ -22,13 +22,18 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::PostPlacedNewNode()
 	if (NodeClass != NULL)
 	{
 		UBehaviorTreeGraphNode_CompositeDecorator* OwningNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GetDecoratorGraph()->GetOuter());
-		UBehaviorTree* BT = OwningNode ? Cast<UBehaviorTree>(OwningNode->GetOuter()->GetOuter()) : NULL;
-		
-		UBTDecorator* MyDecorator = ConstructObject<UBTDecorator>(NodeClass, BT);
-		MyDecorator->InitializeFromAsset(BT);
-		OwningNode->InitializeDecorator(MyDecorator);
+		if (OwningNode)
+		{
+			UBehaviorTree* BT = Cast<UBehaviorTree>(OwningNode->GetOuter()->GetOuter());
+			if (BT)
+			{
+				UBTDecorator* MyDecorator = ConstructObject<UBTDecorator>(NodeClass, BT);
+				MyDecorator->InitializeFromAsset(*BT);
+				OwningNode->InitializeDecorator(MyDecorator);
 
-		NodeInstance = MyDecorator;
+				NodeInstance = MyDecorator;
+			}
+		}
 	}
 }
 
@@ -64,13 +69,18 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::PostEditImport()
 	if (NodeInstance)
 	{
 		UBehaviorTreeGraphNode_CompositeDecorator* OwningNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GetDecoratorGraph()->GetOuter());
-		UBehaviorTree* BT = OwningNode ? Cast<UBehaviorTree>(OwningNode->GetOuter()->GetOuter()) : NULL;
+		if (OwningNode)
+		{
+			UBehaviorTree* BT = Cast<UBehaviorTree>(OwningNode->GetOuter()->GetOuter());
+			if (BT)
+			{
+				UBTDecorator* MyDecorator = (UBTDecorator*)NodeInstance;
+				MyDecorator->InitializeFromAsset(*BT);
+				MyDecorator->InitializeNode(NULL, MAX_uint16, 0, 0);
 
-		UBTDecorator* MyDecorator = (UBTDecorator*)NodeInstance;
-		MyDecorator->InitializeFromAsset(BT);
-		MyDecorator->InitializeNode(NULL, MAX_uint16, 0, 0);
-
-		OwningNode->InitializeDecorator(MyDecorator);
+				OwningNode->InitializeDecorator(MyDecorator);
+			}
+		}
 	}
 }
 

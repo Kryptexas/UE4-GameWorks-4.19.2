@@ -167,7 +167,7 @@ void UBehaviorTreeGraphNode_CompositeDecorator::OnBlackboardUpdate()
 			UBTNode* MyNodeInstance = MyNode ? Cast<UBTNode>(MyNode->NodeInstance) : NULL;
 			if (MyNodeInstance)
 			{
-				MyNodeInstance->InitializeFromAsset(BTAsset);
+				MyNodeInstance->InitializeFromAsset(*BTAsset);
 			}
 		}
 	}

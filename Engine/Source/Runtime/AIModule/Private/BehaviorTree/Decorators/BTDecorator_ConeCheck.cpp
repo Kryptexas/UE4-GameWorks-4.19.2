@@ -26,7 +26,7 @@ UBTDecorator_ConeCheck::UBTDecorator_ConeCheck(const class FPostConstructInitial
 	ConeHalfAngle = 45.0f;
 }
 
-void UBTDecorator_ConeCheck::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_ConeCheck::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 

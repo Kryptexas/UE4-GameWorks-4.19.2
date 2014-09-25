@@ -108,9 +108,9 @@ void UBTNode::InitializeExecutionOrder(class UBTNode* NextNode)
 }
 #endif
 
-void UBTNode::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTNode::InitializeFromAsset(UBehaviorTree& Asset)
 {
-	TreeAsset = Asset;
+	TreeAsset = &Asset;
 }
 
 UBlackboardData* UBTNode::GetBlackboardAsset() const

@@ -13,7 +13,7 @@ class AIMODULE_API UBTTask_BlackboardBase : public UBTTaskNode
 	GENERATED_UCLASS_BODY()
 
 	/** initialize any asset related data */
-	virtual void InitializeFromAsset(UBehaviorTree* Asset) override;
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 
 	/** get name of selected blackboard key */
 	FName GetSelectedBlackboardKey() const;

@@ -86,9 +86,9 @@ FAITest_SimpleBT::~FAITest_SimpleBT()
 
 void FAITest_SimpleBT::SetUp()
 {
-	if (AIBTUser)
+	if (AIBTUser && BTAsset)
 	{
-		AIBTUser->RunBT(BTAsset, EBTExecutionMode::SingleRun);
+		AIBTUser->RunBT(*BTAsset, EBTExecutionMode::SingleRun);
 		AIBTUser->SetEnableTicking(true);
 	}
 }

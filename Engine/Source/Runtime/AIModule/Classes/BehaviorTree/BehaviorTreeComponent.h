@@ -84,7 +84,7 @@ public:
 	// End UObject overrides
 
 	/** starts execution from root */
-	bool StartTree(UBehaviorTree* Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
+	bool StartTree(UBehaviorTree& Asset, EBTExecutionMode::Type ExecuteMode = EBTExecutionMode::Looped);
 
 	/** stops execution */
 	void StopTree();
@@ -231,7 +231,7 @@ protected:
 
 	/** push behavior tree instance on execution stack
 	 *	@NOTE: should never be called out-side of BT execution, meaning only BT tasks can push another BT instance! */
-	bool PushInstance(UBehaviorTree* TreeAsset);
+	bool PushInstance(UBehaviorTree& TreeAsset);
 
 	/** add unique Id of newly created subtree to KnownInstances list and return its index */
 	uint8 UpdateInstanceId(UBehaviorTree* TreeAsset, const UBTNode* OriginNode, int32 OriginInstanceIdx);

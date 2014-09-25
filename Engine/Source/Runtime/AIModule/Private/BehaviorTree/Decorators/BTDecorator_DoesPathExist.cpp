@@ -27,7 +27,7 @@ UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FPostConstructIniti
 	PathQueryType = EPathExistanceQueryType::HierarchicalQuery;
 }
 
-void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree* Asset)
+void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 

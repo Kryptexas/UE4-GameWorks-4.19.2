@@ -26,7 +26,7 @@ UBTDecorator_KeepInCone::UBTDecorator_KeepInCone(const class FPostConstructIniti
 	ConeHalfAngle = 45.0f;
 }
 
-void UBTDecorator_KeepInCone::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_KeepInCone::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 

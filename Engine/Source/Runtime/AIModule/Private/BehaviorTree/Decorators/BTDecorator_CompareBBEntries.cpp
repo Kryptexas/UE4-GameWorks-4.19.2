@@ -19,7 +19,7 @@ void UBTDecorator_CompareBBEntries::PostInitProperties()
 	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_CompareBBEntries::OnBlackboardChange);
 }
 
-void UBTDecorator_CompareBBEntries::InitializeFromAsset(class UBehaviorTree* Asset)
+void UBTDecorator_CompareBBEntries::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
