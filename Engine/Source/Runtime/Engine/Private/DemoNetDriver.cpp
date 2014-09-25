@@ -114,7 +114,13 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	World->DemoNetDriver = NULL;
 	SetWorld( NULL );
 
-	if ( !GEngine->LoadMap( *WorldContext, DemoURL, NULL, LoadMapError ) )
+	UDemoPendingNetGame * NewPendingNetGame = new UDemoPendingNetGame( FPostConstructInitializeProperties() );
+
+	NewPendingNetGame->DemoNetDriver = this;
+
+	WorldContext->PendingNetGame = NewPendingNetGame;
+
+	if ( !GEngine->LoadMap( *WorldContext, DemoURL, NewPendingNetGame, LoadMapError ) )
 	{
 		Error = LoadMapError;
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: LoadMap failed: failed: %s" ), *Error );
@@ -123,6 +129,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 
 	SetWorld( WorldContext->World() );
 	WorldContext->World()->DemoNetDriver = this;
+	WorldContext->PendingNetGame = NULL;
 #endif
 
 	DemoDeltaTime = 0;

@@ -84,7 +84,7 @@
 #include "Engine/GameInstance.h"
 #include "HotReloadInterface.h"
 #include "STestSuite.h"
-
+#include "Engine/DemoNetDriver.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -9036,6 +9036,13 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 		// The pending net driver is renamed to the current "game net driver"
 		NetDriver->NetDriverName = NAME_GameNetDriver;
 		NetDriver->SetWorld(Context.World());
+	}
+
+	// Attach the DemoNetDriver to the world if there is one
+	if ( Context.PendingNetGame->DemoNetDriver != NULL )
+	{
+		Context.PendingNetGame->DemoNetDriver->SetWorld( Context.World() );
+		Context.World()->DemoNetDriver = Context.PendingNetGame->DemoNetDriver;
 	}
 
 	// Reset the Navigation System

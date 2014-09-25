@@ -75,6 +75,13 @@ class UPendingNetGame :
 	UPROPERTY()
 	class UNetDriver*		NetDriver;
 
+	/** 
+	 * Demo Net driver created for loading demos, but we need to go through pending net game
+	 * Transferred to world on successful connection
+	 */
+	UPROPERTY()
+	class UDemoNetDriver*	DemoNetDriver;
+
 public:
 	/** URL associated with this level. */
 	FURL					URL;

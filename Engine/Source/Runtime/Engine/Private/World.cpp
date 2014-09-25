@@ -4022,8 +4022,17 @@ bool UWorld::IsClient()
 
 bool UWorld::IsServer()
 {
-	// @todo ONLINE move this into net driver since there will no longer be one netdriver
-	return (!NetDriver || NetDriver->IsServer());
+	if ( NetDriver != NULL )
+	{
+		return NetDriver->IsServer();
+	}
+
+	if ( DemoNetDriver != NULL )
+	{
+		return DemoNetDriver->IsServer();
+	}
+
+	return true;
 }
 
 void UWorld::PrepareMapChange(const TArray<FName>& LevelNames)
@@ -5203,7 +5212,17 @@ ULevel* UWorld::GetCurrentLevel() const
 
 ENetMode UWorld::GetNetMode() const
 {
-	return NetDriver ? NetDriver->GetNetMode() : NM_Standalone;
+	if ( NetDriver != NULL )
+	{
+		return NetDriver->GetNetMode();
+	}
+
+	if ( DemoNetDriver )
+	{
+		return DemoNetDriver->GetNetMode();
+	}
+
+	return NM_Standalone;
 }
 
 void UWorld::CopyGameState(AGameMode* FromGameMode, AGameState* FromGameState)
