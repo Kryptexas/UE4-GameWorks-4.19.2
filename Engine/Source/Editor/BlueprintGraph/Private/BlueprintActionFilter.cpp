@@ -365,7 +365,8 @@ static bool BlueprintActionFilterImpl::IsImpure(FBlueprintActionInfo& BlueprintA
 
 		// TODO: why are some of these "impure"?... we shouldn't have hardcoded 
 		//       node types here (game modules cannot add their node types here,
-		//       so we should find another way of identifying "pure" node types)
+		//       so we should find another way of identifying "pure" node types
+		//       ... maybe look for an exec pin?)
 		bIsImpure = (NodeClass == UK2Node_IfThenElse::StaticClass()) ||
 			(NodeClass == UK2Node_MultiGate::StaticClass()) ||
 			(NodeClass == UK2Node_MakeArray::StaticClass()) ||
@@ -1400,27 +1401,6 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNonTargetMember, !(Flags & BPFILTER_RejectGlobalFields)));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsUnBoundBindingSpawner));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsOutOfScopeLocalVariable));
-
-	// @TODO: account for all K2ActionMenuBuilder checks...
-	//    NodeCDO->CanCreateUnderSpecifiedSchema(this)
-	//    FBlueprintEditorUtils::DoesSupportTimelines()
-	//    FKismetEditorUtilities::IsClassABlueprintInterface()
-	//    FK2ActionMenuBuilder::GetPaletteActions()
-	//       is allowed in level-script?
-	//       is allowed in non-actor?
-	//       is allowed in actor?
-	//    FK2ActionMenuBuilder::GetAllActionsForClass()
-	//       show variables?
-	//       show protected?
-	//       show delegates?
-	//    FK2ActionMenuBuilder::GetFuncNodesForClass()
-	//       show inherited?
-	//    FK2ActionMenuBuilder::GetContextAllowedNodeTypes()
-	//       impure funcs?
-	//       construction script?
-	//    UEdGraphSchema_K2::CanFunctionBeUsedInClass()
-
-	// @TODO: account for implemented interface methods
 }
 
 //------------------------------------------------------------------------------

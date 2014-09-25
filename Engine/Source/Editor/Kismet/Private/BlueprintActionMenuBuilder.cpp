@@ -789,23 +789,6 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 	{
 		AppendLegacyItems(*MenuSections[0], BlueprintEditorPtr, *this);
 	}
-
-	// @TODO: account for all K2ActionMenuBuilder action types...
-	// - FEdGraphSchemaAction_K2AddTimeline
-	// - FEdGraphSchemaAction_K2ViewNode
-	// - FEdGraphSchemaAction_K2AddCustomEvent
-	//   FEdGraphSchemaAction_EventFromFunction
-	// - FEdGraphSchemaAction_K2Var
-	// - FEdGraphSchemaAction_K2Delegate
-	// - FEdGraphSchemaAction_K2AssignDelegate
-	// - FEdGraphSchemaAction_K2AddComment
-	// - FEdGraphSchemaAction_K2PasteHere
-	// - FEdGraphSchemaAction_K2NewNode
-	// - FEdGraphSchemaAction_Dummy
-	//   FEdGraphSchemaAction_K2AddCallOnActor
-	//   FEdGraphSchemaAction_K2AddCallOnVariable
-	// - FEdGraphSchemaAction_K2AddComponent
-	// - FEdGraphSchemaAction_K2AddComment
 }
 
 #undef LOCTEXT_NAMESPACE

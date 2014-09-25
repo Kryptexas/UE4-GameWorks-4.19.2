@@ -936,20 +936,6 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 			ActionRegistry.Remove(Class);
 		}
 	}
-
-	// @TODO: account for all K2ActionMenuBuilder methods...
-	//   GetLiteralsFromActorSelection() - UK2Node_Literal
-	//   GetAnimNotifyMenuItems()
-	//   GetMatineeControllers() - UK2Node_MatineeController
-	//   GetEventDispatcherNodesForClass()
-	//   GetBoundEventsFromActorSelection() - handle with filter
-	//   GetFunctionCallsOnSelectedActors() - handle with filter
-	//   GetAddComponentActionsUsingSelectedAssets() 
-	//   GetFunctionCallsOnSelectedComponents() - handle with filter
-	//   GetBoundEventsFromComponentSelection() - handle with filter 
-	//   GetPinAllowedMacros()
-	//   GetFuncNodesWithPinType()
-	//   GetVariableGettersSettersForClass()
 }
 
 //------------------------------------------------------------------------------
