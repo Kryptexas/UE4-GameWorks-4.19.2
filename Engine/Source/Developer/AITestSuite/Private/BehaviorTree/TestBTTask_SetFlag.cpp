@@ -8,11 +8,12 @@ UTestBTTask_SetFlag::UTestBTTask_SetFlag(const class FPostConstructInitializePro
 {
 	NodeName = "Log";
 	TaskResult = EBTNodeResult::Succeeded;
+	KeyName = TEXT("Bool1");
 	bValue = true;
 }
 
 EBTNodeResult::Type UTestBTTask_SetFlag::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
-	OwnerComp->GetBlackboardComponent()->SetValueAsBool(TEXT("Bool1"), bValue);
+	OwnerComp->GetBlackboardComponent()->SetValueAsBool(KeyName, bValue);
 	return TaskResult;
 }

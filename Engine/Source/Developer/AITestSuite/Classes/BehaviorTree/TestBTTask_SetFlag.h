@@ -10,6 +10,9 @@ class UTestBTTask_SetFlag : public UBTTaskNode
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
+	FName KeyName;
+
+	UPROPERTY()
 	bool bValue;
 
 	UPROPERTY()

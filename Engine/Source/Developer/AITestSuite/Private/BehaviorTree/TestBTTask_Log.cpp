@@ -9,6 +9,7 @@ UTestBTTask_Log::UTestBTTask_Log(const class FPostConstructInitializeProperties&
 	NodeName = "Log";
 	ExecutionTime = 5.0f;
 	LogIndex = 0;
+	LogFinished = -1;
 	LogResult = EBTNodeResult::Succeeded;
 
 	bNotifyTick = true;
@@ -19,9 +20,9 @@ EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(class UBehaviorTreeComponent* O
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
 	MyMemory->RemainingWaitTime = ExecutionTime;
 
+	LogExecution(OwnerComp, LogIndex);
 	if (ExecutionTime <= 0.0f)
 	{
-		LogExecution(OwnerComp);
 		return LogResult;
 	}
 
@@ -35,8 +36,7 @@ void UTestBTTask_Log::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* N
 
 	if (MyMemory->RemainingWaitTime <= 0.0f)
 	{
-		// continue execution from this node
-		LogExecution(OwnerComp);
+		LogExecution(OwnerComp, LogFinished);
 		FinishLatentTask(OwnerComp, LogResult);
 	}
 }
@@ -46,7 +46,10 @@ uint16 UTestBTTask_Log::GetInstanceMemorySize() const
 	return sizeof(FBTLogTaskMemory);
 }
 
-void UTestBTTask_Log::LogExecution(class UBehaviorTreeComponent* OwnerComp)
+void UTestBTTask_Log::LogExecution(UBehaviorTreeComponent* OwnerComp, int32 LogNumber)
 {
-	UMockAI_BT::ExecutionLog.Add(LogIndex);
+	if (LogNumber >= 0)
+	{
+		UMockAI_BT::ExecutionLog.Add(LogNumber);
+	}
 }

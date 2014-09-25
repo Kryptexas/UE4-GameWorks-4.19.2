@@ -3,6 +3,7 @@
 #pragma once
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BehaviorTree/BTDecorator.h"
+#include "BTDecorator_BlackboardBase.h"
 #include "BTDecorator_Blackboard.generated.h"
 
 /**
