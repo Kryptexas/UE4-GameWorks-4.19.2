@@ -371,6 +371,28 @@ void FVisLogEntry::AddElement(const FBox& Box, const FName& CategoryName, const 
 	ElementsToDraw.Add(Element);
 }
 
+void FVisLogEntry::AddElement(const FVector& Orgin, const FVector& Direction, float Length, float AngleWidth, float AngleHeight, const FName& CategoryName, const FColor& Color, const FString& Description, uint16 Thickness)
+{
+	FElementToDraw Element(Description, Color, Thickness, CategoryName);
+	Element.Points.Reserve(3);
+	Element.Points.Add(Orgin);
+	Element.Points.Add(Direction);
+	Element.Points.Add(FVector(Length, AngleWidth, AngleHeight));
+	Element.Type = FElementToDraw::Cone;
+	ElementsToDraw.Add(Element);
+}
+
+void FVisLogEntry::AddElement(const FVector& Start, const FVector& End, float Radius, const FName& CategoryName, const FColor& Color, const FString& Description, uint16 Thickness)
+{
+	FElementToDraw Element(Description, Color, Thickness, CategoryName);
+	Element.Points.Reserve(3);
+	Element.Points.Add(Start);
+	Element.Points.Add(End);
+	Element.Points.Add(FVector(Radius, Thickness, 0));
+	Element.Type = FElementToDraw::Cylinder;
+	ElementsToDraw.Add(Element);
+}
+
 void FVisLogEntry::AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, const FName& GraphName, const FName& DataName)
 {
 	FHistogramSample Sample;
@@ -390,6 +412,17 @@ void FVisLogEntry::AddDataBlock(const FString& TagName, const TArray<uint8>& Blo
 	DataBlock.Data = BlobDataArray;
 
 	DataBlocks.Add(DataBlock);
+}
+
+void FVisLogEntry::AddCapsule(FVector const& Center, float HalfHeight, float Radius, const FQuat & Rotation, const FName& CategoryName, const FColor& Color, const FString& Description)
+{
+	FElementToDraw Element(Description, Color, 0, CategoryName);
+	Element.Points.Reserve(3);
+	Element.Points.Add(Center);
+	Element.Points.Add(FVector(HalfHeight, Radius, Rotation.X));
+	Element.Points.Add(FVector(Rotation.Y, Rotation.Z, Rotation.W));
+	Element.Type = FElementToDraw::Capsule;
+	ElementsToDraw.Add(Element);
 }
 
 //----------------------------------------------------------------------//

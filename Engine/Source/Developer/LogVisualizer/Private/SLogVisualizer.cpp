@@ -2332,6 +2332,60 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
+				case FVisLogEntry::FElementToDraw::Cone:
+					{
+						const float Thickness = float(ElementToDraw->Thicknes);
+						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
+						for (int32 Index = 0; Index + 2 < ElementToDraw->Points.Num(); Index += 3)
+						{
+							const FVector Orgin = ElementToDraw->Points[Index];
+							const FVector Direction = ElementToDraw->Points[Index + 1];
+							const FVector Angles = ElementToDraw->Points[Index + 2];
+							DrawDebugCone(World, Orgin, Direction, Angles.X, Angles.Y, Angles.Z, 16, Color);
+							if (bDrawLabel)
+							{
+								const FVector ScreenLoc = Canvas->Project(Orgin);
+								Canvas->DrawText(Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), ScreenLoc.X, ScreenLoc.Y);
+							}
+						}
+					}
+					break;
+				case FVisLogEntry::FElementToDraw::Cylinder:
+					{
+						const float Thickness = float(ElementToDraw->Thicknes);
+						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
+						for (int32 Index = 0; Index + 2 < ElementToDraw->Points.Num(); Index += 3)
+						{
+							const FVector Start = ElementToDraw->Points[Index];
+							const FVector End = ElementToDraw->Points[Index + 1];
+							const FVector OtherData = ElementToDraw->Points[Index + 2];
+							DrawDebugCylinder(World, Start, End, OtherData.X, 16, Color);
+							if (bDrawLabel)
+							{
+								const FVector ScreenLoc = Canvas->Project(Start);
+								Canvas->DrawText(Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), ScreenLoc.X, ScreenLoc.Y);
+							}
+						}
+					}
+					break;
+				case FVisLogEntry::FElementToDraw::Capsule:
+					{
+						const float Thickness = float(ElementToDraw->Thicknes);
+						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
+						for (int32 Index = 0; Index + 2 < ElementToDraw->Points.Num(); Index += 3)
+						{
+							const FVector Center = ElementToDraw->Points[Index];
+							const FVector FirstData = ElementToDraw->Points[Index + 1];
+							const FVector SecondData = ElementToDraw->Points[Index + 2];
+							DrawDebugCapsule(World, Center, FirstData.X, FirstData.Y, FQuat(FirstData.Z, SecondData.X, SecondData.Y, SecondData.Z), Color);
+							if (bDrawLabel)
+							{
+								const FVector ScreenLoc = Canvas->Project(Center);
+								Canvas->DrawText(Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), ScreenLoc.X, ScreenLoc.Y);
+							}
+						}
+					}
+					break;
 				}
 			}
 		}

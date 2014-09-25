@@ -81,6 +81,9 @@ struct ENGINE_API FVisLogEntry
 			Segment, // pairs of points 
 			Path,	// sequence of point
 			Box,
+			Cone,
+			Cylinder,
+			Capsule,
 			// note that in order to remain backward compatibility in terms of log
 			// serialization new enum values need to be added at the end
 		};
@@ -181,11 +184,20 @@ struct ENGINE_API FVisLogEntry
 	// box
 	void AddElement(const FBox& Box, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 
+	// Cone
+	void AddElement(const FVector& Orgin, const FVector& Direction, float Length, float AngleWidth, float AngleHeight, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+
+	// Cylinder
+	void AddElement(const FVector& Start, const FVector& End, float Radius, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+
 	// histogram sample
 	void AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, const FName& GraphName, const FName& DataName);
 
 	// Custom data block
 	void AddDataBlock(const FString& TagName, const TArray<uint8>& BlobDataArray, const FName& CategoryName);
+
+	// capsule
+	void AddCapsule(FVector const& Center, float HalfHeight, float Radius, const FQuat & Rotation, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""));
 
 	// find index of status category
 	FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)
@@ -272,6 +284,36 @@ struct ENGINE_API FVisLogEntry
 	} \
 }
 
+#define UE_VLOG_CONE(Object, CategoryName, Verbosity, Orgin, Direction, Length, Angle, Color, DescriptionFormat, ...) \
+{ \
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
+	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName())) && Object && !Object->HasAnyFlags(RF_ClassDefaultObject)) \
+			{ \
+		FVisualLog::Get().GetEntryToWrite(Object)->AddElement(Orgin, Direction, Length, Angle, Angle, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+			} \
+}
+
+#define UE_VLOG_CYLINDER(Object, CategoryName, Verbosity, Start, End, Radius, Color, DescriptionFormat, ...) \
+{ \
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
+	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName())) && Object && !Object->HasAnyFlags(RF_ClassDefaultObject)) \
+	{ \
+		FVisualLog::Get().GetEntryToWrite(Object)->AddElement(Start, End, Radius, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+	} \
+}
+
+#define UE_VLOG_CAPSULE(Object, CategoryName, Verbosity, Center, HalfHeight, Radius, Rotation, Color, DescriptionFormat, ...) \
+{ \
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
+	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName())) && Object && !Object->HasAnyFlags(RF_ClassDefaultObject)) \
+					{ \
+		FVisualLog::Get().GetEntryToWrite(Object)->AddCapsule(Center, HalfHeight, Radius, Rotation, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+					} \
+}
+
 #define UE_VLOG_HISTOGRAM(Object, CategoryName, Verbosity, GraphName, DataName, Data) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
@@ -301,6 +343,7 @@ namespace VisualLogJson
 	static const FString TAG_ELEMENTSTODRAW = TEXT("ElementsToDraw");
 	static const FString TAG_TAGNAME = TEXT("DataBlockTagName");
 	static const FString TAG_USERDATA = TEXT("UserData");
+	static const FString TAG_CAPSULESTODRAW = TEXT("CapsulesToDraw");
 
 	static const FString TAG_HISTOGRAMSAMPLES = TEXT("HistogramSamples");
 	static const FString TAG_HISTOGRAMSAMPLE = TEXT("Sample");
