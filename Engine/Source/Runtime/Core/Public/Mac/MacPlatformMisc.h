@@ -6,6 +6,8 @@
 
 #pragma once
 
+typedef void (*UpdateCachedMacMenuStateProc)(void);
+
 /**
 * Mac implementation of the misc OS functions
 **/
@@ -135,6 +137,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	static void UpdateWindowMenu();
 
+	static UpdateCachedMacMenuStateProc UpdateCachedMacMenuState;
+
 	static void ActivateApplication();
 
 	/**
@@ -146,6 +150,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	 * Returns whether the Mac OS X version is 10.9.x or not.
 	 */
 	static bool IsRunningOnMavericks();
+
+	static bool bChachedMacMenuStateNeedsUpdate;
 };
 
 #ifdef __OBJC__

@@ -637,6 +637,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 					MessageHandler->OnCursorSet();
 				}
 			}
+			FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
 			break;
 		}
 
@@ -783,6 +784,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 			{
 				ResendEvent(Event);
 			}
+			FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
 			break;
 		}
 	}

@@ -17,6 +17,7 @@ public:
 
 	static void UpdateWithMultiBox(const TSharedRef<FMultiBox>& MultiBox);
 	static void UpdateMenu(FMacMenu* Menu);
+	static void UpdateCachedState();
 	static void ExecuteMenuItemAction(const TSharedRef<const FMenuEntryBlock>& Block);
 
 private:
