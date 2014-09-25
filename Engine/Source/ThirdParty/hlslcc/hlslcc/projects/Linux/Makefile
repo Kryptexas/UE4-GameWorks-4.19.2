@@ -21,7 +21,7 @@ MAIN_OBJS = $(MAIN_SRCS:.cpp=.o)
 LIB = ../../lib/Linux/libhlslcc.a
 MAIN = ../../bin/Linux/hlslcc_64
 
-all: lib main
+all: lib 
 lib: $(LIB)
 main: $(MAIN)
 
