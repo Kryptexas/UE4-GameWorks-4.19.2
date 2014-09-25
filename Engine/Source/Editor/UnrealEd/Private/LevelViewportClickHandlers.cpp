@@ -952,7 +952,7 @@ namespace ClickHandlers
 				}
 				else
 				{
-					GEditor->ParentActors(SocketProxy->Actor, Actor, SocketProxy->SocketName);
+					GEditor->ParentActors(SocketProxy->Actor, Actor, SocketProxy->SocketName, SocketProxy->SceneComponent);
 				}
 			}
 		}

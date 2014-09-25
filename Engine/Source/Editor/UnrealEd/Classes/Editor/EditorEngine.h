@@ -2124,8 +2124,9 @@ public:
 	 * @param ParentActor	Actor to parent the child to
 	 * @param ChildActor	Actor being parented
 	 * @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	 * @param Component		Actual Component included in the ParentActor which is a usually blueprint actor
 	 */
-	void ParentActors( AActor* ParentActor, AActor* ChildActor, const FName SocketName );
+	void ParentActors( AActor* ParentActor, AActor* ChildActor, const FName SocketName, USceneComponent* Component=NULL );
 
 	/**
 	 * Detaches selected actors from there parents
@@ -2428,14 +2429,34 @@ public:
 
 private:
 	/**
+	* snap a child actor to a named socket in a specific SkeletalMeshComponent
+	*
+	* @param ParentActor	Actor to parent the child to
+	* @param ChildActor	Actor being parented
+	* @param SkeletalMeshComponent	Component which has the Socket
+	* @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	* @return true if successful, false otherwise
+	*/
+	bool AttachActorToComponent(AActor* ParentActor, AActor* ChildActor, USkeletalMeshComponent* SkeletalMeshComponent, const FName SocketName);
+	/**
+	* snap a child actor to a named socket in a specific StaticMeshComponent
+	*
+	* @param ChildActor	Actor being parented
+	* @param StaticMeshComponent	Component which has the Socket
+	* @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	* @return true if successful, false otherwise
+	*/
+	bool AttachActorToComponent(AActor* ChildActor, UStaticMeshComponent* StaticMeshComponent, const FName SocketName);
+	/**
 	 * Utility method to try and snap a child actor to a named socket in the parent
 	 *
 	 * @param ParentActor	Actor to parent the child to
 	 * @param ChildActor	Actor being parented
 	 * @param SocketName	An optional socket name to attach to in the parent (use NAME_None when there is no socket)
+	 * @param Component		Actual Component which has the Socket, this component will be used when ParentActor is a blueprint actor
 	 * @return true if successful, false otherwise
 	 */
-	bool SnapToSocket( AActor* ParentActor, AActor* ChildActor, const FName SocketName );
+	bool SnapToSocket( AActor* ParentActor, AActor* ChildActor, const FName SocketName, USceneComponent* Component=NULL );
 
 	/**
 	 * Delegate definition for the execute function that follows
