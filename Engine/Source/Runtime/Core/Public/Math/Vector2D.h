@@ -8,22 +8,22 @@
 
 
 /**
- * A 2x1 of FLOATs.
+ * A vector in 2-D space composed of components (X, Y) with floating point precision.
  */
 struct FVector2D 
 {
-	/** Holds the vector's X-component. */
+	/** Vector's X component. */
 	float X;
 
-	/** Holds the vector's Y-component. */
+	/** Vector's Y component. */
 	float Y;
 
 public:
 
-	/** Global 2D zero vector constant */
+	/** Global 2D zero vector constant (0,0) */
 	static CORE_API const FVector2D ZeroVector;
 
-	/** Global 2D unit vector constant */
+	/** Global 2D unit vector constant (1,1) */
 	static CORE_API const FVector2D UnitVector;
 
 public:
@@ -34,7 +34,7 @@ public:
 	FORCEINLINE FVector2D( ) { }
 
 	/**
-	 * Constructor
+	 * Constructor using initial values for each component.
 	 *
 	 * @param InX X coordinate.
 	 * @param InY Y coordinate.
@@ -42,21 +42,22 @@ public:
 	FORCEINLINE FVector2D( float InX,float InY );
 
 	/**
-	 * Constructor
+	 * Constructs a vector from an FIntPoint.
 	 *
 	 * @param InPos Integer point used to set this vector.
 	 */
 	FORCEINLINE FVector2D( FIntPoint InPos );
 
 	/**
-	 * Constructor
+	 * Constructor which initializes all components to zero.
 	 *
 	 * @param EForceInit Force init enum
 	 */
 	explicit FORCEINLINE FVector2D( EForceInit );
 
 	/**
-	 * Copy Constructor
+	 * Constructs a vector from an FVector.
+	 * Copies the X and Y components from the FVector.
 	 *
 	 * @param V Vector to copy from.
 	 */
@@ -75,23 +76,23 @@ public:
 	/**
 	 * Gets the result of subtracting a vector from this one.
 	 *
-	 * @param V The other vector to subtract.
+	 * @param V The other vector to subtract from this.
 	 * @return The result of the subtraction.
 	 */
 	FORCEINLINE FVector2D operator-( const FVector2D& V ) const;
 
 	/**
-	 * Gets the result of scaling this vector.
+	 * Gets the result of scaling the vector (multiplying each component by a value).
 	 *
-	 * @param Scale What to scale the vector by.
+	 * @param Scale How much to scale the vector by.
 	 * @return The result of scaling this vector.
 	 */
 	FORCEINLINE FVector2D operator*( float Scale ) const;
 
 	/**
-	 * Gets the result of dividing this vector.
+	 * Gets the result of dividing each component of the vector by a value.
 	 *
-	 * @param Scale What to divide the vector by.
+	 * @param Scale How much to divide the vector by.
 	 * @return The result of division on this vector.
 	 */
 	FVector2D operator/( float Scale ) const;
@@ -99,21 +100,21 @@ public:
 	/**
 	 * Gets the result of this vector + float A.
 	 *
-	 * @param A		Float to add.
+	 * @param A		Float to add to each component.
 	 * @return		The result of this vector + float A.
 	 */
 	FORCEINLINE FVector2D operator+( float A ) const;
 
 	/**
-	 * Gets the result of this vector - float A
+	 * Gets the result of subtracting from each component of the vector.
 	 *
-	 * @param A		Float to subtract
+	 * @param A		Float to subtract from each component
 	 * @return		The result of this vector - float A.
 	 */
 	FORCEINLINE FVector2D operator-( float A ) const;
 
 	/**
-	 * Gets the result of multiplying this vector by another.
+	 * Gets the result of component-wise multiplication of this vector by another.
 	 *
 	 * @param V The other vector to multiply this by.
 	 * @return The result of the multiplication.
@@ -121,7 +122,7 @@ public:
 	FORCEINLINE FVector2D operator*( const FVector2D& V ) const;
 
 	/**
-	 * Gets the result of dividing this vector by another.
+	 * Gets the result of component-wise division of this vector by another.
 	 *
 	 * @param V The other vector to divide this by.
 	 * @return The result of the division.
@@ -129,18 +130,18 @@ public:
 	FVector2D operator/( const FVector2D& V ) const;
 
 	/**
-	 * Calculates Dot product of this vector and another.
+	 * Calculates dot product of this vector and another.
 	 *
 	 * @param V The other vector.
-	 * @return The Dot product.
+	 * @return The dot product.
 	 */
 	FORCEINLINE float operator|( const FVector2D& V) const;
 
 	/**
-	 * Calculates Cross product of this vector and another.
+	 * Calculates cross product of this vector and another.
 	 *
 	 * @param V The other vector.
-	 * @return The Cross product.
+	 * @return The cross product.
 	 */
 	FORCEINLINE float operator^( const FVector2D& V) const;
 
@@ -163,7 +164,7 @@ public:
 	bool operator!=( const FVector2D& V ) const;
 
 	/**
-	 * Checks whether the components of this vector are less than another.
+	 * Checks whether both components of this vector are less than another.
 	 *
 	 * @param Other The vector to compare against.
 	 * @return true if this is the smaller vector, otherwise false.
@@ -171,7 +172,7 @@ public:
 	bool operator<( const FVector2D& Other ) const;
 
 	/**
-	 * Checks whether the components of this vector are greater than another.
+	 * Checks whether both components of this vector are greater than another.
 	 *
 	 * @param Other The vector to compare against.
 	 * @return true if this is the larger vector, otherwise false.
@@ -179,7 +180,7 @@ public:
 	bool operator>( const FVector2D& Other ) const;
 
 	/**
-	 * Checks whether the components of this vector are less than or equal to another.
+	 * Checks whether both components of this vector are less than or equal to another.
 	 *
 	 * @param Other The vector to compare against.
 	 * @return true if this vector is less than or equal to the other vector, otherwise false.
@@ -187,7 +188,7 @@ public:
 	bool operator<=( const FVector2D& Other ) const;
 
 	/**
-	 * Checks whether the components of this vector are greater than or equal to another.
+	 * Checks whether both components of this vector are greater than or equal to another.
 	 *
 	 * @param Other The vector to compare against.
 	 * @return true if this vector is greater than or equal to the other vector, otherwise false.
@@ -234,7 +235,7 @@ public:
 	FVector2D operator/=( float V );
 
 	/**
-	 * Multiplies this vector with another vector.
+	 * Multiplies this vector with another vector, using component-wise multiplication.
 	 *
 	 * @param V The vector to multiply with.
 	 * @return Copy of the vector after multiplication.
@@ -242,7 +243,7 @@ public:
 	FVector2D operator*=( const FVector2D& V );
 
 	/**
-	 * Divides this vector by another vector.
+	 * Divides this vector by another vector, using component-wise division.
 	 *
 	 * @param V The vector to divide by.
 	 * @return Copy of the vector after division.
@@ -265,14 +266,30 @@ public:
 	 */
 	float operator[]( int32 Index ) const;
 
+	/**
+	* Gets a specific component of the vector.
+	*
+	* @param Index The index of the component required.
+	* @return Reference to the specified component.
+	*/
+	float& Component(int32 Index);
+
+	/**
+	* Gets a specific component of the vector.
+	*
+	* @param Index The index of the component required.
+	* @return Copy of the specified component.
+	*/
+	float Component(int32 Index) const;
+
 public:
 
 	/**
-	 * Calculates the Dot product of two vectors.
+	 * Calculates the dot product of two vectors.
 	 *
 	 * @param A The first vector.
 	 * @param B The second vector.
-	 * @return The Dot product.
+	 * @return The dot product.
 	 */
 	FORCEINLINE static float DotProduct( const FVector2D& A, const FVector2D& B );
 
@@ -295,11 +312,11 @@ public:
 	FORCEINLINE static float Distance( const FVector2D& V1, const FVector2D& V2 );
 
 	/**
-	 * Calculate the Cross product of two vectors.
+	 * Calculate the cross product of two vectors.
 	 *
 	 * @param A The first vector.
 	 * @param B The second vector.
-	 * @return The Cross product.
+	 * @return The cross product.
 	 */
 	FORCEINLINE static float CrossProduct(const FVector2D& A, const FVector2D& B);
 
@@ -321,28 +338,28 @@ public:
 	void Set( float InX, float InY );
 
 	/**
-	 * Get the maximum of the vectors coordinates.
+	 * Get the maximum value of the vector's components.
 	 *
-	 * @return The maximum of the vectors coordinates.
+	 * @return The maximum value of the vector's components.
 	 */
 	float GetMax( ) const;
 
 	/**
-	 * Get the absolute maximum of the vectors coordinates.
+	 * Get the maximum absolute value of the vector's components.
 	 *
-	 * @return The absolute maximum of the vectors coordinates.
+	 * @return The maximum absolute value of the vector's components.
 	 */
 	float GetAbsMax( ) const;
 
 	/**
-	 * Get the minimum of the vectors coordinates.
+	 * Get the minimum value of the vector's components.
 	 *
-	 * @return The minimum of the vectors coordinates.
+	 * @return The minimum value of the vector's components.
 	 */
 	float GetMin( ) const;
 
 	/**
-	 * Get the length of this vector.
+	 * Get the length (magnitude) of this vector.
 	 *
 	 * @return The length of this vector.
 	 */
@@ -356,7 +373,8 @@ public:
 	float SizeSquared( ) const;
 
 	/**
-	 * Get a normalized copy of this vector if it is large enough.
+	 * Gets a normalized copy of the vector, checking it is safe to do so based on the length.
+	 * Returns zero vector if vector length is too small to safely normalize.
 	 *
 	 * @param Tolerance Minimum squared length of vector for normalization.
 	 * @return A normalized copy of the vector if safe, (0,0) otherwise.
@@ -364,9 +382,10 @@ public:
 	FVector2D SafeNormal( float Tolerance=SMALL_NUMBER ) const;
 
 	/**
-	 * Normalize this vector if it is large enough, set it to (0,0) otherwise.
+	 * Normalize this vector in-place if it is large enough, set it to (0,0) otherwise.
 	 *
 	 * @param Tolerance Minimum squared length of vector for normalization.
+	 * @see SafeNormal()
 	 */
 	void Normalize( float Tolerance=SMALL_NUMBER );
 
@@ -379,27 +398,11 @@ public:
 	bool IsNearlyZero( float Tolerance=KINDA_SMALL_NUMBER ) const;
 
 	/**
-	 * Checks whether vector is exactly zero.
+	 * Checks whether all components of the vector are exactly zero.
 	 *
 	 * @return true if vector is exactly zero, otherwise false.
 	 */
 	bool IsZero( ) const;
-
-	/**
-	 * Gets a specific component of the vector.
-	 *
-	 * @param Index The index of the component required.
-	 * @return Reference to the specified component.
-	 */
-	float& Component( int32 Index );
-
-	/**
-	 * Gets a specific component of the vector.
-	 *
-	 * @param Index The index of the component required.
-	 * @return Copy of the specified component.
-	 */
-	float Component( int32 Index ) const;
 
 	/**
 	 * Get this vector as an Int Point.
@@ -464,9 +467,13 @@ public:
 			FMath::IsNaN(Y) || !FMath::IsFinite(Y));
 	}
 
+	/**
+	 * Network serialization function.
+	 * FVectors NetSerialize without quantization (ie exact values are serialized).
+	 */
 	CORE_API bool NetSerialize( FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess );
 
-	/** Converts spherical coordinates on the unit sphere into a cartesian unit length vector. */
+	/** Converts spherical coordinates on the unit sphere into a Cartesian unit length vector. */
 	inline FVector SphericalToUnitCartesian( ) const;
 };
 
