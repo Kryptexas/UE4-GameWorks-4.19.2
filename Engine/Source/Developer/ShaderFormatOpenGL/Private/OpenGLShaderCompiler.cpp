@@ -17,7 +17,7 @@
 #include "ShaderPreprocessor.h"
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
-#include "glsl/ir_gen_glsl.h"
+#include "ir_gen_glsl.h"
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
 	#include <GL/glcorearb.h>
@@ -1496,7 +1496,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 	}
 
 	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, false, ApplyCSE);
+	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
 }
 
 /**

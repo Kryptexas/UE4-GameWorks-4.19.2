@@ -5,7 +5,7 @@
 #include "CrossCompilerTool.h"
 #include "hlslcc.h"
 #include "MetalBackEnd.h"
-#include "glsl/ir_gen_glsl.h"
+#include "ir_gen_glsl.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 

@@ -10,12 +10,14 @@ public class CrossCompilerTool : ModuleRules
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
 		PrivateIncludePaths.Add("Developer/iOS/MetalShaderFormat/Private");		// For Metal includes
+		PrivateIncludePaths.Add("Developer/ShaderFormatOpenGL/Private");		// For GLSL includes
 
 		PrivateDependencyModuleNames.AddRange(new string []
 			{
 				"Core",
 				"Projects",
-				"MetalShaderFormat"
+				"MetalShaderFormat",
+				"ShaderFormatOpenGL",
 			});
 
 		AddThirdPartyPrivateStaticDependencies(Target,
