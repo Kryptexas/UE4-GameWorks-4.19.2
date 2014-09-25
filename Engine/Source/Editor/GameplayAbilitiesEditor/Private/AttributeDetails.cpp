@@ -47,7 +47,14 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 			{
 				UProperty *Property = *PropertyIt;
 
+				// Allow properties to be filtered by specific meta strings
 				if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
+				{
+					continue;
+				}
+
+				// Allow properties to be filtered globally (never show up)
+				if (Property->HasMetaData(TEXT("HideInDetailsView")))
 				{
 					continue;
 				}
@@ -131,13 +138,18 @@ void FAttributePropertyDetails::OnChangeProperty(TSharedPtr<FString> ItemSelecte
 			UProperty *Property = FindField<UProperty>(FoundClass, *PropertyName);
 			if (Property)
 			{
-				const UObject *ObjPtr = Property;
+				const UObject* ObjPtr = Property;
 				MyProperty->SetValue(ObjPtr);
 				
 				return;
 			}
 		}
+
+		const UObject* nullObj = nullptr;
+		MyProperty->SetValue(nullObj);
 	}
+
+	
 }
 
 // ------------------------------------------------------------------------------------
