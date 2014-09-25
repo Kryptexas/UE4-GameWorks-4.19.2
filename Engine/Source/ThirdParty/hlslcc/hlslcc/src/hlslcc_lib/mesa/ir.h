@@ -1543,9 +1543,9 @@ class ir_texture : public ir_rvalue
 {
 public:
 	ir_texture(enum ir_texture_opcode op, const SSourceLocation& InSourceLocation)
-		: sampler(NULL), coordinate(NULL), op(op),
-		projector(NULL), shadow_comparitor(NULL), offset(NULL),
-		channel(ir_channel_none), SamplerState(NULL)
+		: op(op), sampler(nullptr), coordinate(nullptr), 
+		projector(nullptr), shadow_comparitor(nullptr), offset(nullptr),
+		channel(ir_channel_none), SamplerState(nullptr)
 	{
 		SourceLocation = InSourceLocation;
 		this->ir_type = ir_type_texture;
