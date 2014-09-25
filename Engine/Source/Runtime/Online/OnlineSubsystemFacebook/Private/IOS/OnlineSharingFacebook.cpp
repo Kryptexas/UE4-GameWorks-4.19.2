@@ -29,23 +29,17 @@ void FOnlineSharingFacebook::SetupPermissionMaps()
 	ReadPermissionsMap.Add( EOnlineSharingReadCategory::Posts, [[NSArray alloc] 
 		initWithObjects:@"read_stream", nil] );
 
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::Friends, [[NSArray alloc] 
-		initWithObjects:@"friends_about_me", @"friends_activities", @"friends_birthday", @"friends_checkins", 
-						@"friends_education_history", @"friends_groups", @"friends_hometown", @"friends_interests", @"friends_likes",
-						@"friends_notes", @"friends_interests", @"friends_likes", @"friends_notes", @"friends_online_presence", 
-						@"friends_religion_politics", @"friends_videos", @"friends_status", @"friends_subscriptions", @"friends_online_presence",
-						@"friends_events", @"friends_website", @"friends_work_history", @"read_friendlists", nil] );
+	ReadPermissionsMap.Add( EOnlineSharingReadCategory::Friends, [[NSArray alloc]
+        initWithObjects:@"user_friends", nil] );
 
 	ReadPermissionsMap.Add( EOnlineSharingReadCategory::Mailbox, [[NSArray alloc] 
 		initWithObjects:@"read_mailbox", nil] );
 
 	ReadPermissionsMap.Add( EOnlineSharingReadCategory::OnlineStatus, [[NSArray alloc] 
 		initWithObjects:@"user_status", @"user_online_presence", nil] );
-
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::ProfileInfo, [[NSArray alloc] 
-		initWithObjects:@"user_about_me", @"user_birthday", @"user_education_history", @"user_likes", @"user_work_history", 
-						@"user_activities", @"user_interests", @"user_notes", @"user_videos", @"user_website", @"user_religion_politics",
-						@"user_subscriptions", @"user_events", @"user_groups", @"read_requests", nil] );
+    
+	ReadPermissionsMap.Add( EOnlineSharingReadCategory::ProfileInfo, [[NSArray alloc]
+        initWithObjects:@"public_profile", nil] );
 
 	ReadPermissionsMap.Add( EOnlineSharingReadCategory::LocationInfo, [[NSArray alloc] 
 		initWithObjects:@"user_checkins", @"user_hometown", nil] );
@@ -54,7 +48,7 @@ void FOnlineSharingFacebook::SetupPermissionMaps()
 	///////////////////////////////////////////////
 	// Publish Permissions
 	PublishPermissionsMap.Add( EOnlineSharingPublishingCategory::Posts, [[NSArray alloc] 
-		initWithObjects:@"publish_actions", @"publish_stream", nil] );
+		initWithObjects:@"publish_actions", nil] );
 	
 	PublishPermissionsMap.Add( EOnlineSharingPublishingCategory::Friends, [[NSArray alloc] 
 		initWithObjects:@"manage_friendlists", nil] );
@@ -80,25 +74,41 @@ bool FOnlineSharingFacebook::RequestNewReadPermissions(int32 LocalUserNum, EOnli
 				// Here we iterate over each category, adding each individual permission linked with it in the ::SetupPermissionMaps
 				NSMutableArray* Permissions = [[NSMutableArray alloc] init];
 
+                
+                // Flag that dictates whether we need to reauthorize for permissions
+                bool bRequiresPermissionRequest = false;
+                
 				for(FReadPermissionsMap::TIterator It(ReadPermissionsMap); It; ++It)
 				{
 					if((NewPermissions & It.Key()) != 0)
 					{
-						UE_LOG(LogOnline, Display, TEXT("ReadPermissionsMap[%i] - [%i]"), (int32)It.Key(), [It.Value() count]);
-						for( NSString* RequestPermission in It.Value() )
-						{
-							[Permissions addObject:RequestPermission];
-						}
+                        UE_LOG(LogOnline, Verbose, TEXT("ReadPermissionsMap[%i] - [%i]"), (int32)It.Key(), [It.Value() count]);
+                        for( NSString* RequestPermission in It.Value() )
+                        {
+                            if( [[FBSession.activeSession permissions] indexOfObject:RequestPermission] == NSNotFound )
+                            {
+                                bRequiresPermissionRequest = true;
+                                [Permissions addObject:RequestPermission];
+                            }
+                        }
 					}
 				}
-
-				// Kick off the server request
-				[FBSession.activeSession requestNewReadPermissions:Permissions
-					completionHandler:^(FBSession *session, NSError *error)
-					{
-						TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, error==nil);
-					}
-				];
+                
+                if( bRequiresPermissionRequest )
+                {
+                    // Kick off the server request
+                    [FBSession.activeSession requestNewReadPermissions:Permissions
+                                                     completionHandler:^(FBSession *session, NSError *error)
+                        {
+                            TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, error==nil);
+                        }
+                     ];
+                }
+                else
+                {
+                    // All permissions were already granted, no need to reauthorize
+                    TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, true);
+                }
 			}
 		);
 	}
@@ -126,40 +136,54 @@ bool FOnlineSharingFacebook::RequestNewPublishPermissions(int32 LocalUserNum, EO
 				// Here we iterate over each category, adding each individual permission linked with it in the ::SetupPermissionMaps
 				NSMutableArray* Permissions = [[NSMutableArray alloc] init];
 
+                // Flag that dictates whether we need to reauthorize for permissions
+                bool bRequiresPermissionRequest = false;
+                
 				for(FPublishPermissionsMap::TIterator It(PublishPermissionsMap); It; ++It)
 				{
 					if((NewPermissions & It.Key()) != 0)
 					{
-						UE_LOG(LogOnline, Display, TEXT("PublishPermissionsMap[%i] - [%i]"), (int32)It.Key(), [It.Value() count]);
+						UE_LOG(LogOnline, Verbose, TEXT("PublishPermissionsMap[%i] - [%i]"), (int32)It.Key(), [It.Value() count]);
 						for( NSString* RequestPermission in It.Value() )
 						{
-							[Permissions addObject:RequestPermission];
+                            if( [[FBSession.activeSession permissions] indexOfObject:RequestPermission] == NSNotFound )
+                            {
+                                [Permissions addObject:RequestPermission];
+                                bRequiresPermissionRequest = true;
+                            }
 						}
 					}
 				}
 
-				
-				FBSessionDefaultAudience DefaultAudience = FBSessionDefaultAudienceNone;
-				switch (Privacy)
-				{
-				case EOnlineStatusUpdatePrivacy::OnlyMe:
-					DefaultAudience = FBSessionDefaultAudienceOnlyMe;
-					break;
-				case EOnlineStatusUpdatePrivacy::OnlyFriends:
-					DefaultAudience = FBSessionDefaultAudienceFriends;
-					break;
-				case EOnlineStatusUpdatePrivacy::Everyone:
-					DefaultAudience = FBSessionDefaultAudienceEveryone;
-					break;
-				}
-
-				// Kick off the server request
-				[FBSession.activeSession requestNewPublishPermissions:Permissions defaultAudience:FBSessionDefaultAudienceOnlyMe 
-					completionHandler:^(FBSession *session, NSError *error)
-					{
-						TriggerOnRequestNewPublishPermissionsCompleteDelegates(LocalUserNum, error==nil);
-					}
-				];
+                if( bRequiresPermissionRequest )
+                {
+                    FBSessionDefaultAudience DefaultAudience = FBSessionDefaultAudienceNone;
+                    switch (Privacy)
+                    {
+                        case EOnlineStatusUpdatePrivacy::OnlyMe:
+                            DefaultAudience = FBSessionDefaultAudienceOnlyMe;
+                            break;
+                        case EOnlineStatusUpdatePrivacy::OnlyFriends:
+                            DefaultAudience = FBSessionDefaultAudienceFriends;
+                            break;
+                        case EOnlineStatusUpdatePrivacy::Everyone:
+                            DefaultAudience = FBSessionDefaultAudienceEveryone;
+                            break;
+                    }
+                    
+                    // Kick off the server request
+                    [FBSession.activeSession requestNewPublishPermissions:Permissions defaultAudience:DefaultAudience
+                                                        completionHandler:^(FBSession *session, NSError *error)
+                        {
+                            TriggerOnRequestNewPublishPermissionsCompleteDelegates(LocalUserNum, error==nil);
+                        }
+                     ];
+                }
+                else
+                {
+                    // All permissions were already granted, no need to reauthorize
+                    TriggerOnRequestNewPublishPermissionsCompleteDelegates(LocalUserNum, true);
+                }
 			}
 		);
 	}
@@ -194,7 +218,7 @@ bool FOnlineSharingFacebook::ShareStatusUpdate(int32 LocalUserNum, const FOnline
 
 				// Setup the image if one was added to the post
 				UIImage* SharingImage = nil;
-				if( StatusUpdate.Image != NULL )
+				if( StatusUpdate.Image != nil )
 				{
 					// We are posting this as a photo.
 					GraphPath = @"me/photos";
