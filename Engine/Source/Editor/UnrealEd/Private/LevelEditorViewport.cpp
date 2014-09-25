@@ -4197,11 +4197,6 @@ void FLevelEditorViewportClient::UpdateLinkedOrthoViewports( bool bInvalidate )
 //	FLevelEditorViewportClient::GetScene
 //
 
-FSceneInterface* FLevelEditorViewportClient::GetScene() const
-{
-	return GWorld != NULL ? GWorld->Scene : NULL;
-}
-
 FLinearColor FLevelEditorViewportClient::GetBackgroundColor() const
 {
 	return IsPerspective() ? GEditor->C_WireBackground : GEditor->C_OrthoBackground;
@@ -4370,7 +4365,12 @@ void FLevelEditorViewportClient::SetAllSpriteCategoryVisibility( bool bVisible )
 
 UWorld* FLevelEditorViewportClient::GetWorld() const
 {
-	if (World)
+	if (bIsSimulateInEditorViewport)
+	{
+		// TODO: Find a proper way to get this
+		return GWorld;
+	}
+	else if (World)
 	{
 		return World;
 	}

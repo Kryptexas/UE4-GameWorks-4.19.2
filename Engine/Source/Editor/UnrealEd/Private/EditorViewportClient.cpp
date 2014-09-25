@@ -2474,7 +2474,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	float RealTimeSeconds;
 	float DeltaTimeSeconds;
 
-	UWorld* World = GWorld;
+	UWorld* World = GetWorld();
 	if (( GetScene() != World->Scene) || (IsRealtime() == true))
 	{
 		// Use time relative to start time to avoid issues with float vs double
