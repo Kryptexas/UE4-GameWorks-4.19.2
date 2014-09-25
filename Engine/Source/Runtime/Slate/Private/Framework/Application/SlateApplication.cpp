@@ -2522,19 +2522,17 @@ bool FSlateApplication::IsWindowInDestroyQueue(TSharedRef<SWindow> Window) const
 
 void FSlateApplication::SynthesizeMouseMove()
 {
-	for (auto IndexLocationPairIterator = PointerIndexLastPositionMap.CreateIterator(); IndexLocationPairIterator; ++IndexLocationPairIterator)
-	{
-		// @TODO umg: Use correct user index instead of 0.
-		FPointerEvent MouseEvent
-		(
-			0,
-			IndexLocationPairIterator.Key(),
-			(IndexLocationPairIterator.Key() == CursorPointerIndex) ? FSlateApplication::GetCursorPos() : IndexLocationPairIterator.Value(),
-			IndexLocationPairIterator.Value(), 
-			false
+	FPointerEvent MouseEvent(
+		CursorPointerIndex,
+		GetCursorPos(),
+		GetLastCursorPos(),
+		PressedMouseButtons,
+		EKeys::Invalid,
+		0,
+		PlatformApplication->GetModifierKeys()
 		);
-		ProcessMouseMoveEvent(MouseEvent);
-	}
+
+	ProcessMouseMoveEvent(MouseEvent);
 }
 
 void FSlateApplication::OnLogSlateEvent(EEventLog::Type Elovent, const FString& AdditionalContent)
