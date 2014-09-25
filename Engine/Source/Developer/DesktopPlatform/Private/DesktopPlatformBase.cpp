@@ -6,8 +6,11 @@
 #include "EngineVersion.h"
 #include "ModuleManager.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Json.h"
+
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
+
 
 FDesktopPlatformBase::FDesktopPlatformBase()
 {
