@@ -34,6 +34,8 @@ struct FCommonEditorCategory
 		Utilities,
 		FlowControl,
 		UserInterface,
+		AnimNotify,
+		BranchPoint,
 
 		// Type library categories:
 		String,
@@ -171,4 +173,15 @@ namespace FEditorCategoryUtils
 	 * @param  DocExcerpt	[OUT] A category path that you want to check.
 	 */
 	UNREALED_API void GetCategoryTooltipInfo(const FString& Category, FText& Tooltip, FString& DocLink, FString& DocExcerpt);
+
+	/**
+	 * Returns the set of categories that should be hidden, categories that are both
+	 * explicitly hidden and explicitly shown will not be included in this list (current
+	 * behavior is that such categories should be shown). This occurs when you show
+	 * a class that your parent has hidden.
+	 * 
+	 * @param  Class		The class you want to query.
+	 * @return  The set of categories that should be hidden.
+	 */
+	UNREALED_API TSet<FString> GetHiddenCategories(UClass const* Class);
 };

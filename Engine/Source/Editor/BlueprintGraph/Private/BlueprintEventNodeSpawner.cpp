@@ -82,6 +82,22 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(TSubclassOf<UK2No
 }
 
 //------------------------------------------------------------------------------
+UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::CreateWithDelegate(FName CustomEventName, FCustomizeNodeDelegate CustomizeNodeDelegate, FText CustomCategory /*= FText()*/, UObject* Outer /*= nullptr*/)
+{
+	if (Outer == nullptr)
+	{
+		Outer = GetTransientPackage();
+	}
+
+	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(Outer);
+	NodeSpawner->NodeClass		= UK2Node_Event::StaticClass();
+	NodeSpawner->CustomCategory = CustomCategory;
+	NodeSpawner->CustomEventName = CustomEventName;
+	NodeSpawner->CustomizeNodeDelegate = CustomizeNodeDelegate;
+	return NodeSpawner;
+}
+
+//------------------------------------------------------------------------------
 UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
 	: Super(PCIP)
 	, EventFunc(nullptr)
@@ -186,7 +202,7 @@ FText UBlueprintEventNodeSpawner::GetDefaultMenuCategory() const
 	// certain events can have specialized categories (like input events), so 
 	// we choose to leave this in the node's hands (returns an empty text string
 	// so that the menu builder polls the node instead).
-	return UBlueprintNodeSpawner::GetDefaultMenuCategory();
+	return CustomCategory;
 }
 
 //------------------------------------------------------------------------------

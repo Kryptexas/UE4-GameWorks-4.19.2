@@ -84,6 +84,8 @@ FEditorCategoryUtilsImpl::FCategoryInfoMap& FEditorCategoryUtilsImpl::GetCategor
 		RegisterCategoryKey("Delegates", LOCTEXT("DelegatesCategory", "Event Dispatchers"));
 		RegisterCategoryKey("Variables", LOCTEXT("VariablesCategory", "Variables"));
 		RegisterCategoryKey("UserInterface", LOCTEXT("UserInterfaceCategory", "User Interface"));
+		RegisterCategoryKey("AnimNotify", LOCTEXT("AnimNotifyCategory", "Add AnimNotify Event"));
+		RegisterCategoryKey("BranchPoint", LOCTEXT("BranchPointCategory", "Add Montage Branching Point Event"));
 
 		// Utilities sub categories
 		RegisterCategoryKey("FlowControl", BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("FlowControlCategory", "Flow Control")));
@@ -195,6 +197,8 @@ FText const& FEditorCategoryUtils::GetCommonCategory(const FCommonEditorCategory
 		CommonCategoryKeys.Add(FCommonEditorCategory::Delegates, "Delegates");
 		CommonCategoryKeys.Add(FCommonEditorCategory::Variables, "Variables");
 		CommonCategoryKeys.Add(FCommonEditorCategory::UserInterface, "UserInterface");
+		CommonCategoryKeys.Add(FCommonEditorCategory::AnimNotify, "AnimNotify");
+		CommonCategoryKeys.Add(FCommonEditorCategory::BranchPoint, "BranchPoint");
 
 		CommonCategoryKeys.Add(FCommonEditorCategory::FlowControl, "FlowControl");
 		CommonCategoryKeys.Add(FCommonEditorCategory::Transformation, "Transformation");
@@ -391,6 +395,20 @@ void FEditorCategoryUtils::GetCategoryTooltipInfo(const FString& Category, FText
 		DocExcerpt = Category;
 		Tooltip = FEditorCategoryUtilsImpl::GetTooltipForCategory(GetCategoryDisplayString(Category), DocLink, DocExcerpt);
 	}
+}
+
+//------------------------------------------------------------------------------
+TSet<FString> FEditorCategoryUtils::GetHiddenCategories(UClass const* Class)
+{
+	TArray<FString> ClassHiddenCategories;
+	GetClassHideCategories(Class, ClassHiddenCategories);
+	TArray<FString> ClassForceVisibleCategories;
+	GetClassShowCategories(Class, ClassForceVisibleCategories);
+
+	const TSet<FString> ClassHiddenCategoriesSet(ClassHiddenCategories);
+	const TSet<FString> ClassForceVisibleCategoriesSet(ClassForceVisibleCategories);
+
+	return ClassHiddenCategoriesSet.Difference(ClassForceVisibleCategoriesSet);
 }
 
 #undef LOCTEXT_NAMESPACE

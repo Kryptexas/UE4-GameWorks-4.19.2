@@ -33,7 +33,7 @@ public:
 	static UBlueprintEventNodeSpawner* Create(UFunction const* const EventFunc, UObject* Outer = nullptr);
 
 	/**
-	 * Creates a new UBlueprintEventNodeSpawner for custom events. The 
+	 * Creates a new UBlueprintEventNodeSpawner for custom events. The
 	 * CustomEventName can be left blank if the node will pick one itself on
 	 * instantiation.
 	 *
@@ -43,6 +43,18 @@ public:
 	 * @return A newly allocated instance of this class.
 	 */
 	static UBlueprintEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName, UObject* Outer = nullptr);
+
+	/**
+	  * Creates a new UBlueprintEventNodeSpawner for custom events. The
+	  * CustomEventName can be left blank if the node will pick one itself on
+	  * instantiation.
+	  *
+	  * @param CustomEventName			The name you want assigned to the event.
+	  * @param CustomizeNodeDelegate	Delegate that will be executed once the node spawner has spawned a node
+	  * @param Outer					Optional outer for the new spawner (if left null, the transient package will be used).
+	  * @return A newly allocated instance of this class.
+	  */
+	static UBlueprintEventNodeSpawner* CreateWithDelegate(FName CustomEventName, FCustomizeNodeDelegate CustomizeNodeDelegate, FText CustomCategory = FText(), UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
@@ -80,6 +92,10 @@ protected:
 	FNodeTextCache CachedMenuName;
 
 private:
+	/** Custom category to place nodes in: */
+	UPROPERTY()
+	FText CustomCategory;
+
 	/** The function to configure new nodes with. */
 	UPROPERTY()
     UFunction const* EventFunc;

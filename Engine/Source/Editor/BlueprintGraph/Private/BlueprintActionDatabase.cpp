@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintActionDatabase.h"
 #include "EdGraphSchema_K2.h"       // for CanUserKismetCallFunction()
+#include "EditorCategoryUtils.h"
 #include "KismetEditorUtilities.h"	// for IsClassABlueprintSkeleton(), IsClassABlueprintInterface(), GetBoundsForSelectedNodes(), etc.
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.h"
@@ -103,6 +104,15 @@ namespace FBlueprintNodeSpawnerFactory
 	 * @return 
 	 */
 	static UBlueprintNodeSpawner* MakeActorBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty);
+
+	/**
+	 * Constructs UK2Node_Event spawner that is owned by UAnimInstance. Used for Anim Notificatios and montage 
+	 * branching points.
+	 *
+	 * @param EventName
+	 * @return A new node-spawner, set up to spawn UK2Node_Event
+	 */
+	static UBlueprintNodeSpawner* MakeAnimOwnedEventSpawner(FName SignatureName, FText CustomCategory);
 };
 
 //------------------------------------------------------------------------------
@@ -198,6 +208,18 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeComponentBoundEv
 static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeActorBoundEventSpawner(UMulticastDelegateProperty* DelegateProperty)
 {
 	return UBlueprintBoundEventNodeSpawner::Create(UK2Node_ActorBoundEvent::StaticClass(), DelegateProperty);
+}
+
+//------------------------------------------------------------------------------
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName SignatureName, FText CustomCategory)
+{
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/)
+	{
+		UK2Node_Event* ActorRefNode = CastChecked<UK2Node_Event>(NewNode);
+		ActorRefNode->EventSignatureClass = UAnimInstance::StaticClass();
+	};
+
+	return UBlueprintEventNodeSpawner::CreateWithDelegate(SignatureName, UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic( PostSpawnSetupLambda ), CustomCategory );
 }
 
 /*******************************************************************************
@@ -553,7 +575,32 @@ static void BlueprintActionDatabaseImpl::AddSkeletonActions(const USkeleton& Ske
 		FString Label = NotifyName.ToString();
 
 		FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
-		ActionListOut.Add(UBlueprintEventNodeSpawner::Create(UK2Node_Event::StaticClass(), FName(*SignatureName)));
+		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName), FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AnimNotify)));
+	}
+
+	// @todo anim: fix this to be same as notifies, save same list in the 
+	// add montage menus
+	// find all montages that uses current target skeleton
+	TArray<FName> BranchingPointHandlers;
+
+	for (FObjectIterator Iter(UAnimMontage::StaticClass()); Iter; ++Iter)
+	{
+		UAnimMontage * Montage = CastChecked<UAnimMontage>(*Iter);
+		if (Montage && Montage->GetSkeleton() == &Skeleton)
+		{
+			// now add event handler if exists
+			for (int32 I = 0; I < Montage->BranchingPoints.Num(); ++I)
+			{
+				BranchingPointHandlers.AddUnique(Montage->BranchingPoints[I].EventName);
+			}
+		}
+	}
+
+	for( auto NotifyName: BranchingPointHandlers )
+	{
+		FString Label = NotifyName.ToString();
+		FString SignatureName = FString::Printf(TEXT("MontageBranchingPoint_%s"), *Label);
+		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName),  FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::BranchPoint)));
 	}
 }
 
@@ -599,9 +646,8 @@ static void BlueprintActionDatabaseImpl::AddAnimBlueprintGraphActions(UAnimBluep
 			if (NotifyName != NAME_None)
 			{
 				FString Label = NotifyName.ToString();
-
 				FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
-				ActionListOut.Add(UBlueprintEventNodeSpawner::Create(UK2Node_Event::StaticClass(), FName(*SignatureName)));
+				ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName), FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AnimNotify)));
 			}
 		}
 	}
