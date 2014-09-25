@@ -1496,7 +1496,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 	}
 
 	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
+	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, false, ApplyCSE);
 }
 
 /**

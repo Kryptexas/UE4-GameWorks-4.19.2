@@ -70,4 +70,5 @@ extern SHADERCOMPILERCOMMON_API FString CreateCrossCompilerBatchFileContents(
 											const FString& FrequencySwitch,
 											const FString& EntryPoint,
 											const FString& VersionSwitch,
+											bool bUseCCT,
 											const FString& ExtraArguments = TEXT(""));

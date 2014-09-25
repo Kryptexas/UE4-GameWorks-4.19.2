@@ -4,7 +4,7 @@
 
 #include "CrossCompilerTool.h"
 #include "hlslcc.h"
-#include "metal/MetalBackEnd.h"
+#include "MetalBackEnd.h"
 #include "glsl/ir_gen_glsl.h"
 
 #include "RequiredProgramMainCPPInclude.h"
@@ -17,7 +17,6 @@ namespace CCT
 {
 	static int32 Run(const FRunInfo& RunInfo)
 	{
-
 		ILanguageSpec* Language = nullptr;
 		FCodeBackend* Backend = nullptr;
 
@@ -54,7 +53,7 @@ namespace CCT
 			return 1;
 		}
 
-		ANSICHAR* GLSLShaderSource = 0;
+		ANSICHAR* ShaderSource = 0;
 		ANSICHAR* ErrorLog = 0;
 
 		int Result = HlslCrossCompile(
@@ -66,11 +65,27 @@ namespace CCT
 			Language,
 			Flags,
 			RunInfo.Target,
-			&GLSLShaderSource,
+			&ShaderSource,
 			&ErrorLog
 			);
 
-		free(GLSLShaderSource);
+		if (ErrorLog)
+		{
+			FString OutError(ANSI_TO_TCHAR(ErrorLog));
+			UE_LOG(LogCrossCompilerTool, Warning, TEXT("%s"), *OutError);
+		}
+
+		if (ShaderSource)
+		{
+			FString OutSource(ANSI_TO_TCHAR(ShaderSource));
+			UE_LOG(LogCrossCompilerTool, Display, TEXT("%s"), *OutSource);
+			if (RunInfo.OutputFile.Len() > 0)
+			{
+				FFileHelper::SaveStringToFile(OutSource, *RunInfo.OutputFile);
+			}
+		}
+
+		free(ShaderSource);
 		free(ErrorLog);
 
 		return 0;
@@ -80,7 +95,6 @@ namespace CCT
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	GEngineLoop.PreInit(ArgC, ArgV, TEXT("-NOPACKAGECACHE -Multiprocess"));
-	UE_LOG(LogCrossCompilerTool,Display,TEXT("Hello World"));
 
 	TArray<FString> Tokens, Switches;
 	FCommandLine::Parse(FCommandLine::Get(), Tokens, Switches);

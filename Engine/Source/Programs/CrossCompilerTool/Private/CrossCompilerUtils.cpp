@@ -225,7 +225,7 @@ namespace CCT
 				}
 				else
 				{
-					OutputFile = Switch.Right(2);
+					OutputFile = Switch.Mid(2);
 				}
 			}
 			else if (Switch.StartsWith(TEXT("entry=")))
@@ -236,7 +236,7 @@ namespace CCT
 				}
 				else
 				{
-					Entry = Switch.Right(6);
+					Entry = Switch.Mid(6);
 				}
 			}
 			else if (Switch.StartsWith(TEXT("nocpp")))
