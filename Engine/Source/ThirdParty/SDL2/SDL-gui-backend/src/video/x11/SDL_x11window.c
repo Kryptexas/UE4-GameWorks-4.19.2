@@ -896,6 +896,48 @@ X11_SetWindowSize(_THIS, SDL_Window * window)
     X11_XFlush(display);
 }
 
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+int
+X11_GetWindowBordersSize(_THIS, SDL_Window * window, SDL_Rect * borders)
+{
+    SDL_WindowData *data = (SDL_WindowData *)window->driverdata;
+    SDL_DisplayData *displaydata =
+        (SDL_DisplayData *) SDL_GetDisplayForWindow(window)->driverdata;
+    Display *display = data->videodata->display;
+    int result = -1;
+
+    /* assume that the caller sanitized the parameters */
+    SDL_assert(borders);
+    SDL_assert(borders->x == 0);
+    SDL_assert(borders->y == 0);
+    SDL_assert(borders->w == 0);
+    SDL_assert(borders->h == 0);
+    
+    if (data->xwindow) {
+        Atom _net_frame_extents = X11_XInternAtom(display, "_NET_FRAME_EXTENTS", 0);
+        Atom type;
+        int format;
+        unsigned long nitems, bytes_after;
+        unsigned char *property;
+        if (X11_XGetWindowProperty(display, data->xwindow,
+                _net_frame_extents, 0, 16, 0,
+                XA_CARDINAL, &type, &format,
+                &nitems, &bytes_after, &property) == Success) {
+            if (type != None && nitems == 4)
+            {
+                borders->x = ((long*)property)[0];
+                borders->w = ((long*)property)[1];
+                borders->y = ((long*)property)[2];
+                borders->h = ((long*)property)[3];
+                result = 0;
+            }
+            X11_XFree(property);
+        }
+    }
+    return result;
+}
+#endif // SDL_WITH_EPIC_EXTENSIONS
+
 void
 X11_SetWindowBordered(_THIS, SDL_Window * window, SDL_bool bordered)
 {

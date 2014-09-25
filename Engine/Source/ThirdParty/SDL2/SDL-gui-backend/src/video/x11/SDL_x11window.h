@@ -79,6 +79,9 @@ extern void X11_SetWindowIcon(_THIS, SDL_Window * window, SDL_Surface * icon);
 extern void X11_SetWindowPosition(_THIS, SDL_Window * window);
 extern void X11_SetWindowMinimumSize(_THIS, SDL_Window * window);
 extern void X11_SetWindowMaximumSize(_THIS, SDL_Window * window);
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+extern int X11_GetWindowBordersSize(_THIS, SDL_Window * window, SDL_Rect * borders);
+#endif // SDL_WITH_EPIC_EXTENSIONS
 extern void X11_SetWindowSize(_THIS, SDL_Window * window);
 extern void X11_ShowWindow(_THIS, SDL_Window * window);
 extern void X11_HideWindow(_THIS, SDL_Window * window);

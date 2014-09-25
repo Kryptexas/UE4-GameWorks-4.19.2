@@ -63,6 +63,13 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 			const FVector2D WindowSize = PopupWindow->GetSizeInScreen();
 			if ( NewPosition != WindowPosition || NewSize != WindowSize )
 			{
+#if PLATFORM_LINUX
+				// @FIXME: for some reason, popups reshaped here do not trigger OnWindowMoved() callback,
+				// so we manually set cached position to where we expect it to be. Note the order of operations - (before Reshape) - 
+				// still giving the callback a chance to change it.
+				// This needs to be investigated (tracked as TTP #347674).
+				PopupWindow->SetCachedScreenPosition( NewPosition );
+#endif // PLATFORM_LINUX
 				PopupWindow->ReshapeWindow( NewShape );
 			}
 		}
