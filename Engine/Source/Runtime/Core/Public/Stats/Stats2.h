@@ -1261,7 +1261,7 @@ public:
 	void AddThreadMetadata( const FName InThreadFName, uint32 InThreadID );
 
 	/** Adds a regular metadata. */
-	void AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion = FPlatformMemory::MCR_Invalid );
+	void AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion = FPlatformMemory::MCR_Invalid );
 
 	/** Access the singleton. */
 	static FStartupMessages& Get();
@@ -1287,10 +1287,10 @@ public:
 	 * @param InGroup, group to look up
 	 * @param InCategory, the category the group belongs to
 	 * @param bDefaultEnable, If this is the first time this group has been set up, this sets the default enable value for this group.
-	 * @param bCanBeDisabled, If this is true, this is a memory counter or something and can never be disabled
+	 * @param bShouldClearEveryFrame, If this is true, this is a memory counter or an accumulator
 	 * @return a pointer to a FName (valid forever) that determines if this group is active
 	 */
-	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) = 0;
+	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) = 0;
 
 	/**
 	 * Enables or disabled a particular group of stats
@@ -1330,7 +1330,7 @@ struct FThreadSafeStaticStatBase
 {
 protected:
 	mutable TStatIdData* HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
-	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
+	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
 };
 
 template<class TStatData, bool TCompiledIn>
