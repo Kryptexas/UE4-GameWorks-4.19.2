@@ -12,9 +12,6 @@
     <Filter Include="Source Files\mesa">
       <UniqueIdentifier>{b7a379a8-7c37-47f6-8f5c-86b2cdc32e21}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\glsl">
-      <UniqueIdentifier>{dfad4158-be71-418d-8d2d-330130ae9787}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlslcc.h">
@@ -124,9 +121,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\OptValueNumbering.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.h">
-      <Filter>Source Files\glsl</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.h">
       <Filter>Header Files</Filter>
@@ -351,9 +345,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\OptValueNumbering.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.cpp">
-      <Filter>Source Files\glsl</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.cpp">
       <Filter>Source Files</Filter>

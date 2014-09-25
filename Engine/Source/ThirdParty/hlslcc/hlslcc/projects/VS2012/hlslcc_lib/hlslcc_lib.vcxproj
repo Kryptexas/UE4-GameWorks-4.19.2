@@ -22,7 +22,6 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlslcc.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlslcc_private.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\IRDump.h" />
-    <ClInclude Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_track_image_access.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\mesa\ast.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\mesa\builtin_types.h" />
@@ -61,7 +60,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\hlslcc_lib\hlslcc.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\IRDump.cpp" />
-    <ClCompile Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\ir_track_image_access.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\ast_expr.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\ast_function.cpp" />

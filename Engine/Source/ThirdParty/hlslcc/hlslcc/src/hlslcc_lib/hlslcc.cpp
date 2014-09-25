@@ -9,7 +9,6 @@
 #include "mesa/loop_analysis.h"
 #include "mesa/macros.h"
 #include "ir_track_image_access.h"
-#include "glsl/ir_gen_glsl.h"
 #include "mesa/ir_print_visitor.h"
 #include "mesa/ir_rvalue_visitor.h"
 #include "PackUniformBuffers.h"

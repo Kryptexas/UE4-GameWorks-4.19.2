@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		167F26B118DB430E00778E55 /* ir_gen_glsl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 167F26AF18DB430E00778E55 /* ir_gen_glsl.cpp */; };
-		167F26B218DB430E00778E55 /* ir_gen_glsl.h in Headers */ = {isa = PBXBuildFile; fileRef = 167F26B018DB430E00778E55 /* ir_gen_glsl.h */; };
 		168A4E4019706C5B00611B10 /* glcpp-lex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E3E19706C5B00611B10 /* glcpp-lex.cpp */; };
 		168A4E4119706C5B00611B10 /* glcpp-parse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E3F19706C5B00611B10 /* glcpp-parse.cpp */; };
 		168A4E4619706C7400611B10 /* pp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4219706C7400611B10 /* pp.cpp */; };
@@ -146,8 +144,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		167F26AF18DB430E00778E55 /* ir_gen_glsl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ir_gen_glsl.cpp; sourceTree = "<group>"; };
-		167F26B018DB430E00778E55 /* ir_gen_glsl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ir_gen_glsl.h; sourceTree = "<group>"; };
 		168A4E3E19706C5B00611B10 /* glcpp-lex.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "glcpp-lex.cpp"; sourceTree = "<group>"; };
 		168A4E3F19706C5B00611B10 /* glcpp-parse.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "glcpp-parse.cpp"; sourceTree = "<group>"; };
 		168A4E4219706C7400611B10 /* pp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pp.cpp; sourceTree = "<group>"; };
@@ -286,15 +282,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		167F26AE18DB430E00778E55 /* glsl */ = {
-			isa = PBXGroup;
-			children = (
-				167F26AF18DB430E00778E55 /* ir_gen_glsl.cpp */,
-				167F26B018DB430E00778E55 /* ir_gen_glsl.h */,
-			);
-			path = glsl;
-			sourceTree = "<group>";
-		};
 		90438DBA1610829E00C0D669 = {
 			isa = PBXGroup;
 			children = (
@@ -317,7 +304,6 @@
 			isa = PBXGroup;
 			children = (
 				30FF2A171963396C00409BF3 /* ShaderCompilerCommon.h */,
-				167F26AE18DB430E00778E55 /* glsl */,
 				9063D4A41743B03D00540C43 /* IRDump.cpp */,
 				9063D4A51743B03D00540C43 /* IRDump.h */,
 				9063D4A61743B03D00540C43 /* PackUniformBuffers.cpp */,
@@ -468,7 +454,6 @@
 				90438E4D1610833400C0D669 /* glsl_parser_extras.h in Headers */,
 				90438E4F1610833400C0D669 /* glsl_symbol_table.h in Headers */,
 				DACBA84E18226C0300CBD9D0 /* OptValueNumbering.h in Headers */,
-				167F26B218DB430E00778E55 /* ir_gen_glsl.h in Headers */,
 				90438E511610833400C0D669 /* glsl_types.h in Headers */,
 				90438E531610833400C0D669 /* hash_table.h in Headers */,
 				90438E571610833400C0D669 /* hlsl_parser.h in Headers */,
@@ -611,7 +596,6 @@
 				90438E7A1610833400C0D669 /* lower_clip_distance.cpp in Sources */,
 				90438E7B1610833400C0D669 /* lower_discard.cpp in Sources */,
 				90438E7C1610833400C0D669 /* lower_if_to_cond_assign.cpp in Sources */,
-				167F26B118DB430E00778E55 /* ir_gen_glsl.cpp in Sources */,
 				90438E7D1610833400C0D669 /* lower_instructions.cpp in Sources */,
 				90438E7E1610833400C0D669 /* lower_jumps.cpp in Sources */,
 				90438E7F1610833400C0D669 /* lower_mat_op_to_vec.cpp in Sources */,
