@@ -915,7 +915,7 @@ void UObject::CollectDefaultSubobjects( TArray<UObject*>& OutSubobjectArray, boo
 
 /**
  * FSubobjectReferenceFinder.
- * Helper class used to collect default subobjects of other objecets than the referencing object.
+ * Helper class used to collect default subobjects of other objects than the referencing object.
  */
 class FSubobjectReferenceFinder : public FReferenceCollector
 {
@@ -1841,6 +1841,9 @@ void StaticShutdownAfterError()
 		}
 		Shutdown = 1;
 		UE_LOG(LogExit, Log, TEXT("Executing StaticShutdownAfterError") );
+
+		ShutdownAfterErrorAnnotation.Reserve( GUObjectArray.GetObjectArrayNum() );
+
 		for ( FRawObjectIterator It; It; ++It )
 		{
 			It->ConditionalShutdownAfterError();
@@ -2388,6 +2391,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 	return Results;
 }
 
+// @TODO yrx 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
 bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	const TCHAR *Str = Cmd;
