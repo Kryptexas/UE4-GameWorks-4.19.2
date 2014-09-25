@@ -150,6 +150,22 @@ public:
 	/** Ctor. initialize from a 2D vector representing a set of shears parallel to the X and Y axis, respectively. */
 	explicit FShear2D(const FVector2D& InShear) :Shear(InShear) {}
 	
+	/**
+	 * Generates a shear structure based on angles instead of slope.
+	 * @param InShearAngles The angles of shear.
+	 * @return the sheare structure.
+	 */
+	static FShear2D FromShearAngles(const FVector2D& InShearAngles)
+	{
+		// Compute the M (Shear Slot) = CoTan(90 - SlopeAngle)
+
+		// 0 is a special case because Tan(90) == infinity
+		float ShearX = InShearAngles.X == 0 ? 0 : ( 1.0f / FMath::Tan(FMath::DegreesToRadians(90 - FMath::Clamp(InShearAngles.X, -89.0f, 89.0f))) );
+		float ShearY = InShearAngles.Y == 0 ? 0 : ( 1.0f / FMath::Tan(FMath::DegreesToRadians(90 - FMath::Clamp(InShearAngles.Y, -89.0f, 89.0f))) );
+
+		return FShear2D(ShearX, ShearY);
+	}
+
 	/** 
 	 * Transform 2D Point 
 	 * [X Y] * [1 YY] == [X+Y*XX Y+X*YY]

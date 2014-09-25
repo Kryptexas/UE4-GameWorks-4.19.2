@@ -51,11 +51,7 @@ void UWidget::UpdateRenderTransform()
 	{
 		if (!RenderTransform.IsIdentity())
 		{
-			// Compute the M (Shear Slot) = CoTan(90 - SlopeAngle)
-			float ShearX = 1.0f / FMath::Tan(FMath::DegreesToRadians(90 - FMath::Clamp(RenderTransform.Shear.X, -89.0f, 89.0f)));
-			float ShearY = 1.0f / FMath::Tan(FMath::DegreesToRadians(90 - FMath::Clamp(RenderTransform.Shear.Y, -89.0f, 89.0f)));
-
-			FSlateRenderTransform Transform2D = ::Concatenate(FScale2D(RenderTransform.Scale), FShear2D(ShearX, ShearY), FQuat2D(FMath::DegreesToRadians(RenderTransform.Angle)), FVector2D(RenderTransform.Translation));
+			FSlateRenderTransform Transform2D = ::Concatenate(FScale2D(RenderTransform.Scale), FShear2D::FromShearAngles(RenderTransform.Shear), FQuat2D(FMath::DegreesToRadians(RenderTransform.Angle)), FVector2D(RenderTransform.Translation));
 			MyWidget.Pin()->SetRenderTransform(Transform2D);
 		}
 		else
