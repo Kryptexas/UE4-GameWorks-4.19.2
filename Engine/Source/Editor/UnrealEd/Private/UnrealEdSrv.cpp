@@ -34,6 +34,9 @@
 #include "Landscape/LandscapeComponent.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "ComponentReregisterContext.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 
@@ -42,6 +45,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 //@hack: this needs to be cleaned up!
 static TCHAR TempStr[MAX_EDCMD], TempName[MAX_EDCMD], Temp[MAX_EDCMD];
 static uint16 Word1, Word4;
+
 
 /**
  * Dumps a set of selected objects to debugf.
@@ -760,7 +764,10 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		FString ConfigFilePath;
 		if(FParse::Value(Str,TEXT("REGENLOC="), ConfigFilePath))
 		{
-			FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath);
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+			FJsonInternationalizationManifestSerializer ManifestSerializer;
+
+			FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
 		}
 	}
 #endif
@@ -2976,7 +2983,10 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 	FString ConfigFilePath;
 	if( FParse::Value(Str,TEXT("REGENLOC="), ConfigFilePath) )
 	{
-		FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath);
+		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
+
+		FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
 	}
 #endif
 

@@ -11,6 +11,7 @@ public class PaperTiledImporter : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"Json",
 				"Paper2D",
 				"UnrealEd",
 				"Paper2DEditor"

@@ -8,7 +8,12 @@ public class DesktopPlatform : ModuleRules
 	{
 		PrivateIncludePaths.Add("Developer/DesktopPlatform/Private");
 
-		PrivateDependencyModuleNames.Add("Core");
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"Json",
+			}
+		);
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{

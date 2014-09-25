@@ -17,6 +17,7 @@ public class NewsFeed : ModuleRules
 				"HTTP",
 				"ImageWrapper",
                 "InputCore",
+				"Json",
 				"OnlineSubsystem",
 				"Slate",
 				"SlateCore",

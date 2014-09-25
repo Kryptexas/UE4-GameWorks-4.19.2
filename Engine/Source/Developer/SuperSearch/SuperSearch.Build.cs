@@ -12,6 +12,7 @@ public class SuperSearch : ModuleRules
 				"CoreUObject", // @todo Mac: for some reason it's needed to link in debug on Mac
 				"Engine",
                 "InputCore",
+				"Json",
 				"UnrealEd",
 				"Slate",
 				"SlateCore",

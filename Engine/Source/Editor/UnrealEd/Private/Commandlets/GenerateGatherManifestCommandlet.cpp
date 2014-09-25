@@ -2,9 +2,9 @@
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
-#include "Json.h"
 #include "Internationalization/InternationalizationManifest.h"
-#include "InternationalizationManifestJsonSerializer.h"
+#include "Json.h"
+#include "JsonInternationalizationManifestSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateManifestCommandlet, Log, All);
 
@@ -126,7 +126,7 @@ bool UGenerateGatherManifestCommandlet::WriteManifest( const TSharedPtr<FInterna
 	{
 		return false;
 	}
-	FInternationalizationManifestJsonSerializer ManifestSerializer;
+	FJsonInternationalizationManifestSerializer ManifestSerializer;
 	TSharedRef<FJsonObject> JsonManifestObj = MakeShareable( new FJsonObject );
 	
 	bool bSuccess = ManifestSerializer.SerializeManifest( InManifest.ToSharedRef(), JsonManifestObj );

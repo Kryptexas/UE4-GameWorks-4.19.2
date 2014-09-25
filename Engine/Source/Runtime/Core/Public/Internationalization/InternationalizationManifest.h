@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-;class FLocMetadataObject;
+
+class FLocMetadataObject;
+
 
 struct CORE_API FContext
 {
@@ -18,9 +20,8 @@ public:
 	inline bool operator!=(const FContext& Other) const { return !(*this == Other); }
 	bool operator<(const FContext& Other) const;
 
-
-
 public:
+
 	FString Key;
 	FString SourceLocation;
 	bool bIsOptional;
@@ -37,8 +38,7 @@ public:
 	FLocItem( const FString& InSourceText )
 		: Text( InSourceText )
 		, MetadataObj( NULL )
-	{
-	}
+	{ }
 
 	/** Copy ctor */
 	FLocItem( const FLocItem& Other );
@@ -54,6 +54,7 @@ public:
 	FString Text;
 	TSharedPtr<FLocMetadataObject> MetadataObj;
 };
+
 
 class FManifestEntry
 {
@@ -172,7 +173,6 @@ public:
 	}
 
 	friend class IInternationalizationManifestSerializer;
-	friend class FInternationalizationManifestJsonSerializer;
 
 private:
 
@@ -180,6 +180,3 @@ private:
 	TManifestEntryBySourceTextContainer EntriesBySourceText;
 	TManifestEntryByContextIdContainer EntriesByContextId;
 };
-
-
-

@@ -75,7 +75,8 @@ namespace Obsolete
 	UProperty* FindProperty( const FJsonStructReadState& State, const FString& Identifier )
 	{
 		UArrayProperty* ArrayProperty = Cast<UArrayProperty>( State.Property );
-		if ( ArrayProperty )
+
+		if (ArrayProperty != nullptr)
 		{
 			return ArrayProperty->Inner;
 		}
@@ -126,12 +127,12 @@ namespace Obsolete
 			FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->template ContainerPtrToValuePtr<void>(State.Data));
 			int32 Index = ArrayHelper.AddValue();
 		
-			ValuePtr = (PropertyType*)ArrayHelper.GetRawPtr( Index );
+			ValuePtr = (PropertyType*)ArrayHelper.GetRawPtr(Index);
 		}
 		else
 		{
-			UPropertyType* TypedProperty = Cast<UPropertyType>( Property );
-			check( TypedProperty )
+			UPropertyType* TypedProperty = Cast<UPropertyType>(Property);
+			check(TypedProperty)
 
 			ValuePtr = TypedProperty->template ContainerPtrToValuePtr<PropertyType>(State.Data);
 		}
@@ -149,18 +150,19 @@ namespace Obsolete
 	}
 
 
-	bool ReadExpectedArrayValue( const TSharedRef< TJsonReader<UCS2CHAR> >& Reader, const EJsonNotation::Type ExpectNotation, const FString& ErrorMessage )
+	bool ReadExpectedArrayValue( const TSharedRef<TJsonReader<UCS2CHAR>>& Reader, const EJsonNotation ExpectNotation, const FString& ErrorMessage )
 	{
 		bool ReadCorrectValue = true;
 
-		EJsonNotation::Type Notation;
-		if ( !Reader->ReadNext( Notation ) || Notation != ExpectNotation )
+		EJsonNotation Notation;
+
+		if (!Reader->ReadNext(Notation) || (Notation != ExpectNotation))
 		{
 			ReadCorrectValue = false;
 
-			UE_LOG( LogJson, Log, TEXT("%s Line: %u Ch: %u"), *ErrorMessage, Reader->GetLineNumber(), Reader->GetCharacterNumber() );
+			UE_LOG(LogJson, Log, TEXT("%s Line: %u Ch: %u"), *ErrorMessage, Reader->GetLineNumber(), Reader->GetCharacterNumber());
 		
-			if ( Notation != EJsonNotation::ArrayEnd )
+			if (Notation != EJsonNotation::ArrayEnd)
 			{
 				Reader->SkipArray();
 			}
@@ -242,7 +244,7 @@ bool FJsonMessageSerializer::DeserializeStruct( IMutableMessageContextRef& OutCo
 	CurrentState.Property = nullptr;
 	CurrentState.TypeInfo = nullptr;
 
-	EJsonNotation::Type Notation;
+	EJsonNotation Notation;
 
 	while (Reader->ReadNext(Notation))
 	{

@@ -6,12 +6,18 @@ public class JsonUtilities : ModuleRules
 {
 	public JsonUtilities( TargetInfo Target )
 	{
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				"Json",
+			}
+		);
 		PrivateDependencyModuleNames.AddRange(
 			new string[] 
-			{ 
-				"Core",
+			{ 			
 				"CoreUObject",
 			}
-			);
+		);
 	}
 }

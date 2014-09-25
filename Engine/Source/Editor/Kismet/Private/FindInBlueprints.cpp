@@ -438,7 +438,7 @@ bool FFindInBlueprintsGraphNode::ExtractContent(TSharedPtr< FJsonObject > InJson
 {
 	// Very important to get the schema first, other bits of data depend on it
 	FString SchemaName;
-	TSharedPtr< FJsonValue > SchemaNameValue = InJsonNode->GetField< EJson::Type::String >(FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_SchemaName));
+	TSharedPtr< FJsonValue > SchemaNameValue = InJsonNode->GetField< EJson::String >(FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_SchemaName));
 	if(SchemaNameValue.IsValid())
 	{
 		SchemaName = FFindInBlueprintSearchManager::ConvertHexStringToFText(SchemaNameValue->AsString()).ToString();

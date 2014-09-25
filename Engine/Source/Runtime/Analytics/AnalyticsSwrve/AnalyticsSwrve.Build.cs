@@ -12,9 +12,10 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Analytics",
-					"HTTP"
+					"HTTP",
+					"Json",
 				}
-				);
+			);
 		}
 	}
 }

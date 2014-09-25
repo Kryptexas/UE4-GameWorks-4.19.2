@@ -2,10 +2,8 @@
 
 #include "Core.h"
 #include "InternationalizationManifest.h"
-#include "Json.h"
-#include "JsonDocumentObjectModel.h"
 #include "TextLocalizationResourceGenerator.h"
-#include "InternationalizationManifestJsonSerializer.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextLocalizationManager, Log, All);
 
@@ -653,34 +651,8 @@ void FTextLocalizationManager::FindKeyNamespaceFromDisplayString(TSharedRef<FStr
 	}
 }
 
-namespace
-{
-	TSharedPtr<FJsonObject> ReadJSONTextFile(const FString& InFilePath)
-	{
-		//read in file as string
-		FString FileContents;
-		if ( !FFileHelper::LoadFileToString(FileContents, *InFilePath) )
-		{
-			UE_LOG(LogTextLocalizationManager, Error,TEXT("Failed to load file %s."), *InFilePath);
-			return NULL;
-		}
 
-		//parse as JSON
-		TSharedPtr<FJsonObject> JSONObject;
-
-		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( FileContents );
-
-		if( !FJsonSerializer::Deserialize( Reader, JSONObject ) || !JSONObject.IsValid())
-		{
-			UE_LOG(LogTextLocalizationManager, Error,TEXT("Invalid JSON in file %s."), *InFilePath);
-			return NULL;
-		}
-
-		return JSONObject;
-	}
-}
-
-void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath)
+void FTextLocalizationManager::RegenerateResources( const FString& ConfigFilePath, IInternationalizationArchiveSerializer& ArchiveSerializer, IInternationalizationManifestSerializer& ManifestSerializer )
 {
 	// Add one to the revision index, so all FText's refresh.
 	++HeadCultureRevisionIndex;
@@ -765,20 +737,21 @@ void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath
 		// Read the manifest file from the source path.
 		FString ManifestFilePath = (SourcePath / ManifestName);
 		ManifestFilePath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
-		TSharedPtr<FJsonObject> ManifestJSONObject = ReadJSONTextFile(ManifestFilePath);
-		if( !(ManifestJSONObject.IsValid()) )
+		FArchive* ManifestFile = IFileManager::Get().CreateFileReader(*ManifestFilePath);
+
+		if (ManifestFile == nullptr)
 		{
 			UE_LOG(LogTextLocalizationManager, Error, TEXT("No manifest found at %s."), *ManifestFilePath);
 			return;
 		}
+
 		TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
 		{
-			FInternationalizationManifestJsonSerializer ManifestSerializer;
-			ManifestSerializer.DeserializeManifest(ManifestJSONObject.ToSharedRef(), InternationalizationManifest);
+			ManifestSerializer.DeserializeManifest(*ManifestFile, InternationalizationManifest);
 		}
 
 		// Write resource.
-		FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, LocaleNames[i], &(MemoryWriter));
+		FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, LocaleNames[i], &(MemoryWriter), ArchiveSerializer);
 
 		MemoryWriter.Close();
 	}

@@ -3,8 +3,8 @@
 #include "UnrealEd.h"
 #include "Internationalization/InternationalizationArchive.h"
 #include "Internationalization/InternationalizationManifest.h"
-#include "InternationalizationArchiveJsonSerializer.h"
-#include "InternationalizationManifestJsonSerializer.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
 #include "ConfigCacheIni.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationConditioningCommandlet, Log, All);
@@ -336,7 +336,7 @@ bool UInternationalizationConditioningCommandlet::ProcessManifest( const FString
 
 	// First we want to see if there is an existing manifest.  If so we will load it up and add our entries there
 	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
-	FInternationalizationManifestJsonSerializer ManifestSerializer;
+	FJsonInternationalizationManifestSerializer ManifestSerializer;
 
 	FString ExistingManifestFileName = DestinationPath / ManifestName;
 
@@ -448,7 +448,7 @@ bool UInternationalizationConditioningCommandlet::ProcessArchive( const FString&
 		}
 
 		TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
-		FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 
 		const FString DestinationArchiveFileName = DestinationPath / TargetSubfolder / ArchiveName;
 

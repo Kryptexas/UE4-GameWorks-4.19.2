@@ -22,9 +22,10 @@ public class BuildPatchServices : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 		new string[] {
-				"HTTP",
 				"Analytics",
 				"AnalyticsET",
+				"HTTP",
+				"Json",
 			}
 		);
 

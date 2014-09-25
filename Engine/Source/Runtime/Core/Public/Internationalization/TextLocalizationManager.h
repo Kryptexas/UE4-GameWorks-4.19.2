@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "IInternationalizationArchiveSerializer.h"
+#include "IInternationalizationManifestSerializer.h"
+
+
 namespace ELocalizationResourceSource
 {
 	enum Type
@@ -87,7 +91,7 @@ public:
 	 */
 	void CORE_API FindKeyNamespaceFromDisplayString(TSharedRef<FString, ESPMode::ThreadSafe> InDisplayString, TSharedPtr<FString, ESPMode::ThreadSafe>& OutNamespace, TSharedPtr<FString, ESPMode::ThreadSafe>& OutKey);
 
-	void CORE_API RegenerateResources(const FString& ConfigFilePath);
+	void CORE_API RegenerateResources( const FString& ConfigFilePath, IInternationalizationArchiveSerializer& ArchiveSerializer, IInternationalizationManifestSerializer& ManifestSerializer );
 
 	/** Returns the current culture revision index */
 	int CORE_API GetHeadCultureRevision() const { return HeadCultureRevisionIndex; }

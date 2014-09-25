@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 #include "Culture.h"
-#include "InternationalizationManifestJsonSerializer.h"
-#include "InternationalizationArchiveJsonSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
+#include "JsonInternationalizationArchiveSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationExportCommandlet, Log, All);
 
@@ -1079,7 +1079,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 			return false;
 		}
 
-		FInternationalizationManifestJsonSerializer ManifestSerializer;
+		FJsonInternationalizationManifestSerializer ManifestSerializer;
 		ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
 	}
 
@@ -1097,7 +1097,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 		{
 			ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
 
-			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 			TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
 
@@ -1261,7 +1261,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 		TSharedPtr< FJsonObject > ArchiveJsonObject = NULL;
 		ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
 
-		FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 		TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 		ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
 

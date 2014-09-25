@@ -22,6 +22,8 @@ public class TranslationEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
                 "InputCore",
+				"Internationalization",
+				"Json",
                 "PropertyEditor",
 				"Slate",
 				"SlateCore",

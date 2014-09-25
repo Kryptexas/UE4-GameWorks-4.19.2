@@ -4,15 +4,17 @@
 #include "TranslationEditor.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "TranslationUnit.h"
-#include "InternationalizationManifestJsonSerializer.h"
-#include "InternationalizationArchiveJsonSerializer.h"
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
 #include "TextLocalizationManager.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "TranslationDataManager"
+
 
 FTranslationDataManager::FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath )
 : ManifestFilePath(InManifestFilePath)
@@ -50,7 +52,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 				GWarn->StatusUpdate(NumManifestEntriesParsed, ManifestEntriesCount, FText::Format(LOCTEXT("LoadingCurrentManifestEntries", "Loading Entry {0} of {1} from Current Translation Manifest..."), FText::AsNumber(NumManifestEntriesParsed), FText::AsNumber(ManifestEntriesCount)));
 				const TSharedRef<FManifestEntry> ManifestEntry = ManifestItr.Value();
 				UTranslationUnit* TranslationUnit = NewObject<UTranslationUnit>();
-				check(TranslationUnit != NULL);
+				check(TranslationUnit != nullptr);
 				// We want Undo/Redo support
 				TranslationUnit->SetFlags(RF_Transactional);
 				TranslationUnit->HasBeenReviewed = false;
@@ -131,7 +133,7 @@ TSharedPtr< FInternationalizationArchive > FTranslationDataManager::ReadArchive(
 	if ( !ArchiveJsonObject.IsValid() )
 	{
 		UE_LOG(LogTranslationEditor, Error, TEXT("Could not read archive file %s."), *ArchiveFilePath);
-		return NULL;
+		return nullptr;
 	}
 
 	TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
@@ -148,7 +150,7 @@ TSharedPtr<FJsonObject> FTranslationDataManager::ReadJSONTextFile(const FString&
 	if ( !FFileHelper::LoadFileToString(FileContents, *InFilePath) )
 	{
 		UE_LOG(LogTranslationEditor, Error,TEXT("Failed to load file %s."), *InFilePath);
-		return NULL;
+		return nullptr;
 	}
 
 	//parse as JSON
@@ -159,7 +161,7 @@ TSharedPtr<FJsonObject> FTranslationDataManager::ReadJSONTextFile(const FString&
 	if( !FJsonSerializer::Deserialize( Reader, JSONObject ) || !JSONObject.IsValid())
 	{
 		UE_LOG(LogTranslationEditor, Error,TEXT("Invalid JSON in file %s."), *InFilePath);
-		return NULL;
+		return nullptr;
 	}
 
 	return JSONObject;
@@ -174,14 +176,14 @@ bool FTranslationDataManager::WriteTranslationData(bool bForceWrite /*= false*/)
 
 	for (UTranslationUnit* TranslationUnit : Untranslated)
 	{
-		if (TranslationUnit != NULL)
+		if (TranslationUnit != nullptr)
 		{
 			const FLocItem SearchSource(TranslationUnit->Source);
-			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
 			FString TranslationToWrite = TranslationUnit->Translation;
 			if (!TranslationToWrite.Equals(OldTranslation))
 			{
-				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
+				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
 				bNeedsWrite = true;
 			}
 		}
@@ -189,14 +191,14 @@ bool FTranslationDataManager::WriteTranslationData(bool bForceWrite /*= false*/)
 
 	for (UTranslationUnit* TranslationUnit : Review)
 	{
-		if (TranslationUnit != NULL)
+		if (TranslationUnit != nullptr)
 		{
 			const FLocItem SearchSource(TranslationUnit->Source);
-			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
 			FString TranslationToWrite = TranslationUnit->Translation;
 			if (TranslationUnit->HasBeenReviewed && !TranslationToWrite.Equals(OldTranslation))
 			{
-				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
+				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
 				bNeedsWrite = true;
 			}
 		}
@@ -204,14 +206,14 @@ bool FTranslationDataManager::WriteTranslationData(bool bForceWrite /*= false*/)
 
 	for (UTranslationUnit* TranslationUnit : Complete)
 	{
-		if (TranslationUnit != NULL)
+		if (TranslationUnit != nullptr)
 		{
 			const FLocItem SearchSource(TranslationUnit->Source);
-			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
 			FString TranslationToWrite = TranslationUnit->Translation;
 			if (!TranslationToWrite.Equals(OldTranslation))
 			{
-				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
+				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
 				bNeedsWrite = true;
 			}
 		}
@@ -410,7 +412,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 
 					for (UTranslationUnit* TranslationUnit : TranslationUnits)
 					{
-						if(TranslationUnit != NULL && TranslationUnit->Contexts.Num() > 0)
+						if(TranslationUnit != nullptr && TranslationUnit->Contexts.Num() > 0)
 						{
 							for (FTranslationContextInfo& ContextInfo : TranslationUnit->Contexts)
 							{
@@ -434,7 +436,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 								// Always add first instance of this string, and then add any versions that changed since
 								if (ContextInfo.Changes.Num() == 0 || !OldManifestEntryPtr->Source.Text.Equals(PreviousSourceText))
 								{
-									TSharedPtr< FArchiveEntry > OldArchiveEntry = ArchivePtr->FindEntryBySource(OldManifestEntryPtr->Namespace, OldManifestEntryPtr->Source, NULL);
+									TSharedPtr< FArchiveEntry > OldArchiveEntry = ArchivePtr->FindEntryBySource(OldManifestEntryPtr->Namespace, OldManifestEntryPtr->Source, nullptr);
 									if (OldArchiveEntry.IsValid())
 									{
 										FTranslationChange Change;
@@ -502,7 +504,10 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor()
 
 	FString ConfigFilePath = ConfigDirectory / "Localization" / "Regenerate" + FPaths::GetBaseFilename(ManifestFilePath) + ".ini";
 
-	FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath);
+	FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+	FJsonInternationalizationManifestSerializer ManifestSerializer;
+
+	FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
 }
 
 void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& SearchFilter)
@@ -511,7 +516,7 @@ void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& Se
 
 	for (UTranslationUnit* TranslationUnit : AllTranslations)
 	{
-		if (TranslationUnit != NULL)
+		if (TranslationUnit != nullptr)
 		{
 			bool bAdded = false;
 			if (TranslationUnit->Source.Contains(SearchFilter) ||
@@ -562,7 +567,7 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 		for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
 		{
 			UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
-			if (TranslationUnit != NULL)
+			if (TranslationUnit != nullptr)
 			{
 				if (!TranslationUnit->IsRooted())
 				{
@@ -573,7 +578,7 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 				GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
 
 				const FLocItem SourceSearch(TranslationUnit->Source);
-				TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, NULL);
+				TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, nullptr);
 				if (ArchiveEntry.IsValid())
 				{
 					const FString PreviousTranslation = TranslationUnit->Translation;

@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 
 /**
  * Template for Json writers.
  *
- * @param CharType - The type of characters to print, i.e. TCHAR or ANSICHAR.
- * @param PrintPolicy - The print policy to use when writing the output string (default = TPrettyJsonPrintPolicy).
+ * @param CharType The type of characters to print, i.e. TCHAR or ANSICHAR.
+ * @param PrintPolicy The print policy to use when writing the output string (default = TPrettyJsonPrintPolicy).
  */
 template <class CharType = TCHAR, class PrintPolicy = TPrettyJsonPrintPolicy<CharType> >
 class TJsonWriter
@@ -18,10 +19,9 @@ public:
 		return MakeShareable( new TJsonWriter< CharType, PrintPolicy >( Stream, InitialIndentLevel ) );
 	}
 
-
 public:
 
-	virtual ~TJsonWriter() {}
+	virtual ~TJsonWriter() { }
 
 	FORCEINLINE int32 GetIndentLevel() const { return IndentLevel; }
 
@@ -288,15 +288,18 @@ public:
 
 protected:
 
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InStream An archive containing the input.
+	 * @param InitialIndentLevel The initial indentation level.
+	 */
 	TJsonWriter( FArchive* const InStream, int32 InitialIndentLevel )
 		: Stream( InStream )
 		, Stack()
-		, PreviousTokenWritten( EJsonToken::None )
-		, IndentLevel( InitialIndentLevel )
-	{
-
-	}
-
+		, PreviousTokenWritten(EJsonToken::None)
+		, IndentLevel(InitialIndentLevel)
+	{ }
 
 protected:
 
@@ -367,37 +370,38 @@ protected:
 		PrintPolicy::WriteString(Stream, OutString);
 	}
 
-
 protected:
 
 	FArchive* const Stream;
-	TArray< EJson::Type > Stack;
-	EJsonToken::Type PreviousTokenWritten;
+	TArray<EJson> Stack;
+	EJsonToken PreviousTokenWritten;
 	int32 IndentLevel;
 };
 
-template < class PrintPolicy = TPrettyJsonPrintPolicy<TCHAR> >
-class TJsonStringWriter : public TJsonWriter<TCHAR, PrintPolicy>
+
+template <class PrintPolicy = TPrettyJsonPrintPolicy<TCHAR>>
+class TJsonStringWriter
+	: public TJsonWriter<TCHAR, PrintPolicy>
 {
 public:
 
-	static TSharedRef< TJsonStringWriter > Create( FString* const InStream, int32 InitialIndent = 0 )
+	static TSharedRef<TJsonStringWriter> Create( FString* const InStream, int32 InitialIndent = 0 )
 	{
-		return MakeShareable( new TJsonStringWriter( InStream, InitialIndent ) );
+		return MakeShareable(new TJsonStringWriter(InStream, InitialIndent));
 	}
-
 
 public:
 
 	virtual ~TJsonStringWriter()
 	{
-		check( this->Stream->Close() );
+		check(this->Stream->Close());
 		delete this->Stream;
 	}
 
 	virtual bool Close() override
 	{
 		FString Out;
+
 		for (int32 i = 0; i < Bytes.Num(); i+=sizeof(TCHAR))
 		{
 			TCHAR* Char = static_cast<TCHAR*>(static_cast<void*>(&Bytes[i]));
@@ -405,19 +409,17 @@ public:
 		}
 
 		*OutString = Out;
+
 		return TJsonWriter<TCHAR, PrintPolicy>::Close();
 	}
-
 
 protected:
 
 	TJsonStringWriter( FString* const InOutString, int32 InitialIndent )
-		: TJsonWriter<TCHAR, PrintPolicy>( new FMemoryWriter(Bytes), InitialIndent )
+		: TJsonWriter<TCHAR, PrintPolicy>(new FMemoryWriter(Bytes), InitialIndent)
 		, Bytes()
-		, OutString( InOutString )
-	{
-	}
-
+		, OutString(InOutString)
+	{ }
 
 private:
 
@@ -425,18 +427,19 @@ private:
 	FString* OutString;
 };
 
-template <class CharType = TCHAR, class PrintPolicy = TPrettyJsonPrintPolicy<CharType> >
+
+template <class CharType = TCHAR, class PrintPolicy = TPrettyJsonPrintPolicy<CharType>>
 class TJsonWriterFactory
 {
 public:
 
-	static TSharedRef< TJsonWriter<CharType, PrintPolicy> > Create( FArchive* const Stream, int32 InitialIndent = 0 )
+	static TSharedRef<TJsonWriter<CharType, PrintPolicy>> Create( FArchive* const Stream, int32 InitialIndent = 0 )
 	{
-		return TJsonWriter< CharType, PrintPolicy >::Create( Stream, InitialIndent );
+		return TJsonWriter< CharType, PrintPolicy >::Create(Stream, InitialIndent);
 	}
 
-	static TSharedRef< TJsonWriter<TCHAR, PrintPolicy> > Create( FString* const Stream, int32 InitialIndent = 0 )
+	static TSharedRef<TJsonWriter<TCHAR, PrintPolicy>> Create( FString* const Stream, int32 InitialIndent = 0 )
 	{
-		return StaticCastSharedRef< TJsonWriter< TCHAR, PrintPolicy > >( TJsonStringWriter<PrintPolicy>::Create( Stream, InitialIndent ) );
+		return StaticCastSharedRef<TJsonWriter<TCHAR, PrintPolicy>>(TJsonStringWriter<PrintPolicy>::Create(Stream, InitialIndent));
 	}
 };

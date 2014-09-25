@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "Internationalization/InternationalizationMetadataJsonSerializer.h"
-#include "Json.h"
+#include "InternationalizationPrivatePCH.h"
 #include "Internationalization/InternationalizationMetadata.h"
+#include "Json.h"
 
 
 struct FCompareLocMetadataValue
@@ -21,6 +20,7 @@ struct FCompareLocMetadataValue
 		return false;
 	}
 };
+
 
 TSharedPtr<FLocMetadataValue> JSonValueToLocMetaDataValue( const TSharedRef< FJsonValue > JsonValue )
 {
@@ -163,24 +163,25 @@ TSharedPtr<FJsonValue> LocMetaDataValueToJsonValue( const TSharedRef< FLocMetada
 }
 
 
-void FInternationalizationMetaDataJsonSerializer::DeserializeMetadata( const TSharedRef< FJsonObject > JsonObj, TSharedPtr< FLocMetadataObject >& OutMetaDataObj )
+void FJsonInternationalizationMetaDataSerializer::DeserializeMetadata( const TSharedRef< FJsonObject > JsonObj, TSharedPtr< FLocMetadataObject >& OutMetaDataObj )
 {
 	OutMetaDataObj = JSonValueToLocMetaDataValue( MakeShareable( new FJsonValueObject( JsonObj ) ) )->AsObject();
 }
 
 
-void FInternationalizationMetaDataJsonSerializer::SerializeMetadata( const TSharedRef< FLocMetadataObject > MetaData, TSharedPtr< FJsonObject >& OutJsonObj )
+void FJsonInternationalizationMetaDataSerializer::SerializeMetadata( const TSharedRef< FLocMetadataObject > MetaData, TSharedPtr< FJsonObject >& OutJsonObj )
 {
 	OutJsonObj = LocMetaDataValueToJsonValue( MakeShareable( new FLocMetadataValueObject( MetaData ) ) )->AsObject();
 }
 
-FString FInternationalizationMetaDataJsonSerializer::MetadataToString( const TSharedPtr<FLocMetadataObject> Metadata )
+
+FString FJsonInternationalizationMetaDataSerializer::MetadataToString( const TSharedPtr<FLocMetadataObject> Metadata )
 {
 	FString StringMetadata = TEXT("");
 	if( Metadata.IsValid() )
 	{
 		TSharedPtr< FJsonObject > JsonKeyMetadata;
-		FInternationalizationMetaDataJsonSerializer::SerializeMetadata( Metadata.ToSharedRef(), JsonKeyMetadata );
+		FJsonInternationalizationMetaDataSerializer::SerializeMetadata( Metadata.ToSharedRef(), JsonKeyMetadata );
 
 		if( JsonKeyMetadata.IsValid() )
 		{
@@ -197,4 +198,3 @@ FString FInternationalizationMetaDataJsonSerializer::MetadataToString( const TSh
 	}
 	return StringMetadata;
 }
-

@@ -2,36 +2,12 @@
 
 #include "Core.h"
 #include "InternationalizationManifest.h"
-#include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchive.h"
-#include "InternationalizationArchiveJsonSerializer.h"
 #include "TextLocalizationResourceGenerator.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextLocalizationResourceGenerator, Log, All);
 
-TSharedPtr<FJsonObject> FTextLocalizationResourceGenerator::ReadJSONTextFile(const FString& InFilePath)
-{
-	//read in file as string
-	FString FileContents;
-	if ( !FFileHelper::LoadFileToString(FileContents, *InFilePath) )
-	{
-		UE_LOG(LogTextLocalizationResourceGenerator, Error,TEXT("Failed to load file %s."), *InFilePath);
-		return NULL;
-	}
-
-	//parse as JSON
-	TSharedPtr<FJsonObject> JSONObject;
-
-	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( FileContents );
-
-	if( !FJsonSerializer::Deserialize( Reader, JSONObject ) || !JSONObject.IsValid())
-	{
-		UE_LOG(LogTextLocalizationResourceGenerator, Error,TEXT("Invalid JSON in file %s."), *InFilePath);
-		return NULL;
-	}
-
-	return JSONObject;
-}
 
 void FTextLocalizationResourceGenerator::FLocalizationEntryTracker::ReportCollisions() const
 {
@@ -164,7 +140,7 @@ bool FTextLocalizationResourceGenerator::FLocalizationEntryTracker::WriteToArchi
 	return WasSuccessful;
 }
 
-bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, const TSharedRef<FInternationalizationManifest>& InternationalizationManifest, const FString& CultureToGenerate, FArchive* const DestinationArchive)
+bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, const TSharedRef<FInternationalizationManifest>& InternationalizationManifest, const FString& CultureToGenerate, FArchive* const DestinationArchive, IInternationalizationArchiveSerializer& ArchiveSerializer)
 {
 	FLocalizationEntryTracker LocalizationEntryTracker;
 
@@ -188,16 +164,17 @@ bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, con
 		// Read each archive file from the culture-named directory in the source path.
 		FString ArchiveFilePath = CulturePath / ArchiveName;
 		ArchiveFilePath = FPaths::ConvertRelativePathToFull(ArchiveFilePath);
-		TSharedPtr<FJsonObject> ArchiveJSONObject = ReadJSONTextFile(ArchiveFilePath);
-		if( !(ArchiveJSONObject.IsValid()) )
+		FArchive* ArchiveFile = IFileManager::Get().CreateFileReader(*ArchiveFilePath);
+
+		if (ArchiveFile == nullptr)
 		{
 			UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("No archive found at %s."), *ArchiveFilePath);
 			continue;
 		}
+
 		TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 		{
-			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
-			ArchiveSerializer.DeserializeArchive(ArchiveJSONObject.ToSharedRef(), InternationalizationArchive);
+			ArchiveSerializer.DeserializeArchive(*ArchiveFile, InternationalizationArchive);
 		}
 
 		// Generate text localization resource from manifest and archive entries.

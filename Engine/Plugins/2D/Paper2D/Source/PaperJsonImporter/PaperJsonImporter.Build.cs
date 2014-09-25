@@ -10,6 +10,7 @@ public class PaperJsonImporter : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+				"Json",
 				"Slate",
 				"SlateCore",
 				"Engine",

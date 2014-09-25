@@ -14,8 +14,9 @@ public class OnlineSubsystemFacebook : ModuleRules
             new string[] { 
                 "Core", 
                 "HTTP",
+				"ImageCore",
+				"Json",
                 "OnlineSubsystem", 
-                "ImageCore",
             }
             );
 

@@ -42,6 +42,7 @@ public class Engine : ModuleRules
 			new string[] { 
 				"Core",
 				"CoreUObject",
+				"Json",
 				"Slate",
 				"InputCore",
 				"Messaging",

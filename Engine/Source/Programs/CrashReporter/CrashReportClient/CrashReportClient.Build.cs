@@ -21,6 +21,7 @@ public class CrashReportClient : ModuleRules
 				"Core",
 				"CrashDebugHelper",
 				"HTTP",
+				"Json",
 				"Projects",
 				"XmlParser",
 				"Analytics",

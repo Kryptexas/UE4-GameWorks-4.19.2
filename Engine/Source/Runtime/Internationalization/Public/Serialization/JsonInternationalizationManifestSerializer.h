@@ -3,6 +3,7 @@
 
 #include "IInternationalizationManifestSerializer.h"
 
+
 struct FStructuredEntry
 {
 public:
@@ -17,18 +18,23 @@ public:
 	TArray< TSharedPtr< class FManifestEntry > > ManifestEntries;
 };
 
+
 class FJsonObject;
 
-class CORE_API FInternationalizationManifestJsonSerializer : public IInternationalizationManifestSerializer
+
+class INTERNATIONALIZATION_API FJsonInternationalizationManifestSerializer
+	: public IInternationalizationManifestSerializer
 {
 public:
-	FInternationalizationManifestJsonSerializer() { }
+
+	/** Default constructor. */
+	FJsonInternationalizationManifestSerializer() { }
 
 	/**
 	 * Deserializes a Internationalization manifest from archive.
 	 *
-	 * @param Archive - The archive to serialize from.
-	 * @param Manifest - The populated Internationalization manifest.
+	 * @param Archive The archive to serialize from.
+	 * @param Manifest The populated Internationalization manifest.
 	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
@@ -37,8 +43,8 @@ public:
 	/**
 	 * Deserializes a Internationalization manifest from a string.
 	 *
-	 * @param InStr - The string to serialize from.
-	 * @param Manifest - The populated Internationalization manifest.
+	 * @param InStr The string to serialize from.
+	 * @param Manifest The populated Internationalization manifest.
 	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
@@ -47,8 +53,8 @@ public:
 	/**
 	 * Deserializes a Internationalization manifest from a JSON object.
 	 *
-	 * @param InJsonObj - The JSON object to serialize from.
-	 * @param Manifest - The populated Internationalization manifest.
+	 * @param InJsonObj The JSON object to serialize from.
+	 * @param Manifest The populated Internationalization manifest.
 	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
@@ -57,8 +63,8 @@ public:
 	/**
 	 * Serializes a Internationalization manifest into an archive.
 	 *
-	 * @param Manifest - The Internationalization manifest data to serialize.
-	 * @param Archive - The archive to serialize into.
+	 * @param Manifest The Internationalization manifest data to serialize.
+	 * @param Archive The archive to serialize into.
 	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
@@ -67,8 +73,8 @@ public:
 	/**
 	 * Serializes a Internationalization manifest to a string.
 	 *
-	 * @param Manifest - The Internationalization manifest data to serialize.
-	 * @param Str - The string to serialize into.
+	 * @param Manifest The Internationalization manifest data to serialize.
+	 * @param Str The string to serialize into.
 	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
@@ -77,8 +83,8 @@ public:
 	/**
 	 * Serializes a Internationalization manifest to a JSON object.
 	 *
-	 * @param Manifest - The Internationalization manifest data to serialize.
-	 * @param JsonObj - The JSON object to serialize into.
+	 * @param Manifest The Internationalization manifest data to serialize.
+	 * @param JsonObj The JSON object to serialize into.
 	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
@@ -89,8 +95,8 @@ protected:
 	/**
 	 * Convert a JSON object to a Internationalization manifest.
 	 *
-	 * @param InJsonObj - The JSON object to serialize from.
-	 * @param Manifest - The Internationalization manifest that will store the data.
+	 * @param InJsonObj The JSON object to serialize from.
+	 * @param Manifest The Internationalization manifest that will store the data.
 	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
@@ -99,8 +105,8 @@ protected:
 	/**
 	 * Convert a Internationalization manifest to a JSON object.
 	 *
-	 * @param InManifest - The Internationalization manifest object to serialize from.
-	 * @param JsonObj - The Json object that will store the data.
+	 * @param InManifest The Internationalization manifest object to serialize from.
+	 * @param JsonObj The Json object that will store the data.
 	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
@@ -109,9 +115,9 @@ protected:
 	/**
 	 * Recursive function that will traverse the JSON object and populate a Internationalization manifest.
 	 *
-	 * @param InJsonObj - The JSON object.
-	 * @param InNamespace - The namespace of the parent JSON object.
-	 * @param Manifest - The Internationalization manifest that will store the data.
+	 * @param InJsonObj The JSON object.
+	 * @param InNamespace The namespace of the parent JSON object.
+	 * @param Manifest The Internationalization manifest that will store the data.
 	 *
 	 * @return true if successful, false otherwise.
 	 */
@@ -120,27 +126,25 @@ protected:
 	/**
 	 * Takes a Internationalization manifest and arranges the data into a hierarchy based on namespace.
 	 *
-	 * @param InManifest - The Internationalization manifest.
-	 * @param RootElement - The root element of the structured data.
+	 * @param InManifest The Internationalization manifest.
+	 * @param RootElement The root element of the structured data.
 	 */
 	void GenerateStructuredData( TSharedRef< const FInternationalizationManifest > InManifest, TSharedPtr< FStructuredEntry > RootElement );
 
 	/**
 	 * Goes through the structured, hierarchy based, manifest data and does a non-culture specific sort on namespaces, default text, and key.
 	 *
-	 * @param RootElement - The root element of the structured data.
+	 * @param RootElement The root element of the structured data.
 	 */
 	void SortStructuredData( TSharedPtr< FStructuredEntry > InElement );
 
 	/**
 	 * Populates a JSON object from Internationalization manifest data that has been structured based on namespace.
 	 *
-	 * @param InElement - Internationalization manifest data structured based on namespace.
-	 * @param JsonObj - JSON object to be populated.
+	 * @param InElement Internationalization manifest data structured based on namespace.
+	 * @param JsonObj JSON object to be populated.
 	 */
 	void StructuredDataToJsonObj( TSharedPtr< const FStructuredEntry> InElement, TSharedRef< FJsonObject > JsonObj );
-
-
 
 public:
 
@@ -160,4 +164,3 @@ public:
 	static const FString TAG_METADATA_KEY;
 	static const FString NAMESPACE_DELIMITER;
 };
-

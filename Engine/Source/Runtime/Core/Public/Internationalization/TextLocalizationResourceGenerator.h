@@ -5,12 +5,10 @@
 class FTextLocalizationResourceGenerator
 {
 public:
-	CORE_API static bool Generate(const FString& SourcePath, const TSharedRef<FInternationalizationManifest>& InternationalizationManifest, const FString& CultureToGenerate, FArchive* const DestinationArchive);
+	CORE_API static bool Generate(const FString& SourcePath, const TSharedRef<FInternationalizationManifest>& InternationalizationManifest, const FString& CultureToGenerate, FArchive* const DestinationArchive, IInternationalizationArchiveSerializer& ArchiveSerializer);
 
 private:
-	static TSharedPtr<FJsonObject> ReadJSONTextFile(const FString& InFilePath);
 
-private:
 	struct FLocalizationEntryTracker
 	{
 		struct FEntry

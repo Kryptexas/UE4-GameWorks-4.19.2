@@ -13,8 +13,9 @@ public class OnlineSubsystemAmazon : ModuleRules
 			new string[] {
 				"Core", 
 				"HTTP",
+				"Json",
                 "OnlineSubsystem", 
 			}
-			);
+		);
 	}
 }

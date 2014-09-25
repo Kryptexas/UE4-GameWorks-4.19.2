@@ -6,20 +6,23 @@
 #include "Json.h"
 #include "Manifest.h"
 
+
 namespace
 {
 	template <typename T> struct TJsonFieldType;
-	template <>           struct TJsonFieldType<double>                         { static const EJson::Type Value = EJson::Number;  };
-	template <>           struct TJsonFieldType<FString>                        { static const EJson::Type Value = EJson::String;  };
-	template <>           struct TJsonFieldType<bool>                           { static const EJson::Type Value = EJson::Boolean; };
-	template <>           struct TJsonFieldType<TArray<TSharedPtr<FJsonValue>>> { static const EJson::Type Value = EJson::Array;   };
-	template <>           struct TJsonFieldType<TSharedPtr<FJsonObject>>        { static const EJson::Type Value = EJson::Object;  };
+	template <>           struct TJsonFieldType<double>                         { static const EJson Value = EJson::Number;  };
+	template <>           struct TJsonFieldType<FString>                        { static const EJson Value = EJson::String;  };
+	template <>           struct TJsonFieldType<bool>                           { static const EJson Value = EJson::Boolean; };
+	template <>           struct TJsonFieldType<TArray<TSharedPtr<FJsonValue>>> { static const EJson Value = EJson::Array;   };
+	template <>           struct TJsonFieldType<TSharedPtr<FJsonObject>>        { static const EJson Value = EJson::Object;  };
 
 	template <typename T>
 	void GetJsonValue(T& OutVal, const TSharedPtr<FJsonValue>& JsonValue, const TCHAR* Outer)
 	{
 		if (JsonValue->Type != TJsonFieldType<T>::Value)
+		{
 			FError::Throwf(TEXT("'%s' is the wrong type"), Outer);
+		}
 
 		JsonValue->AsArgumentType(OutVal);
 	}
@@ -28,11 +31,16 @@ namespace
 	void GetJsonFieldValue(T& OutVal, const TSharedPtr<FJsonObject>& JsonObject, const TCHAR* FieldName, const TCHAR* Outer)
 	{
 		auto JsonValue = JsonObject->Values.Find(FieldName);
+
 		if (!JsonValue)
+		{
 			FError::Throwf(TEXT("Unable to find field '%s' in '%s'"), FieldName, Outer);
+		}
 
 		if ((*JsonValue)->Type != TJsonFieldType<T>::Value)
+		{
 			FError::Throwf(TEXT("Field '%s' in '%s' is the wrong type"), Outer);
+		}
 
 		(*JsonValue)->AsArgumentType(OutVal);
 	}
@@ -46,20 +54,25 @@ namespace
 	}
 }
 
+
 FManifest FManifest::LoadFromFile(const FString& Filename)
 {
 	FManifest Result;
-
 	FString FilenamePath = FPaths::GetPath(Filename);
-
 	FString Json;
+
 	if (!FFileHelper::LoadFileToString(Json, *Filename))
+	{
 		FError::Throwf(TEXT("Unable to load manifest: %s"), *Filename);
+	}
 
 	auto RootObject = TSharedPtr<FJsonObject>();
-	auto Reader     = TJsonReaderFactory<TCHAR>::Create(Json);
+	auto Reader = TJsonReaderFactory<TCHAR>::Create(Json);
+
 	if (!FJsonSerializer::Deserialize(Reader, RootObject))
+	{
 		FError::Throwf(TEXT("Manifest is malformed: %s"), *Filename);
+	}
 
 	TArray<TSharedPtr<FJsonValue>> ModulesArray;
 
@@ -80,10 +93,18 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 	Result.RootBuildPath = FPaths::ConvertRelativePathToFull(FilenamePath, Result.RootBuildPath);
 
 	// Ensure directories end with a slash, because this aids their use with FPaths::MakePathRelativeTo.
-	if (!Result.RootLocalPath.EndsWith(TEXT("/"))) { Result.RootLocalPath += TEXT("/"); }
-	if (!Result.RootBuildPath.EndsWith(TEXT("/"))) { Result.RootBuildPath += TEXT("/"); }
+	if (!Result.RootLocalPath.EndsWith(TEXT("/")))
+	{
+		Result.RootLocalPath += TEXT("/");
+	}
+
+	if (!Result.RootBuildPath.EndsWith(TEXT("/")))
+	{
+		Result.RootBuildPath += TEXT("/");
+	}
 
 	int32 ModuleIndex = 0;
+
 	for (auto Module : ModulesArray)
 	{
 		auto ModuleObj = Module->AsObject();

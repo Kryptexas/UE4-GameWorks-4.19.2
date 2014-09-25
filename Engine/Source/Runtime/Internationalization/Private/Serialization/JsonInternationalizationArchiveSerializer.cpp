@@ -1,26 +1,29 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "InternationalizationArchive.h"
-#include "InternationalizationArchiveJsonSerializer.h"
-#include "Internationalization/InternationalizationMetadataJsonSerializer.h"
+#include "InternationalizationPrivatePCH.h"
+#include "Internationalization/InternationalizationArchive.h"
 #include "Internationalization/InternationalizationMetadata.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationMetadataSerializer.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationArchiveSerializer, Log, All);
 
-const FString FInternationalizationArchiveJsonSerializer::TAG_FORMATVERSION = TEXT("FormatVersion");
-const FString FInternationalizationArchiveJsonSerializer::TAG_NAMESPACE = TEXT("Namespace");
-const FString FInternationalizationArchiveJsonSerializer::TAG_CHILDREN = TEXT("Children");
-const FString FInternationalizationArchiveJsonSerializer::TAG_SUBNAMESPACES = TEXT("Subnamespaces");
-const FString FInternationalizationArchiveJsonSerializer::TAG_DEPRECATED_DEFAULTTEXT = TEXT("DefaultText");
-const FString FInternationalizationArchiveJsonSerializer::TAG_DEPRECATED_TRANSLATEDTEXT = TEXT("TranslatedText");
-const FString FInternationalizationArchiveJsonSerializer::TAG_OPTIONAL = TEXT("Optional");
-const FString FInternationalizationArchiveJsonSerializer::TAG_SOURCE = TEXT("Source");
-const FString FInternationalizationArchiveJsonSerializer::TAG_SOURCE_TEXT = TEXT("Text");
-const FString FInternationalizationArchiveJsonSerializer::TAG_TRANSLATION = TEXT("Translation");
-const FString FInternationalizationArchiveJsonSerializer::TAG_TRANSLATION_TEXT = FInternationalizationArchiveJsonSerializer::TAG_SOURCE_TEXT;
-const FString FInternationalizationArchiveJsonSerializer::TAG_METADATA_KEY = TEXT("Key");
-const FString FInternationalizationArchiveJsonSerializer::NAMESPACE_DELIMITER = TEXT(".");
+
+const FString FJsonInternationalizationArchiveSerializer::TAG_FORMATVERSION = TEXT("FormatVersion");
+const FString FJsonInternationalizationArchiveSerializer::TAG_NAMESPACE = TEXT("Namespace");
+const FString FJsonInternationalizationArchiveSerializer::TAG_CHILDREN = TEXT("Children");
+const FString FJsonInternationalizationArchiveSerializer::TAG_SUBNAMESPACES = TEXT("Subnamespaces");
+const FString FJsonInternationalizationArchiveSerializer::TAG_DEPRECATED_DEFAULTTEXT = TEXT("DefaultText");
+const FString FJsonInternationalizationArchiveSerializer::TAG_DEPRECATED_TRANSLATEDTEXT = TEXT("TranslatedText");
+const FString FJsonInternationalizationArchiveSerializer::TAG_OPTIONAL = TEXT("Optional");
+const FString FJsonInternationalizationArchiveSerializer::TAG_SOURCE = TEXT("Source");
+const FString FJsonInternationalizationArchiveSerializer::TAG_SOURCE_TEXT = TEXT("Text");
+const FString FJsonInternationalizationArchiveSerializer::TAG_TRANSLATION = TEXT("Translation");
+const FString FJsonInternationalizationArchiveSerializer::TAG_TRANSLATION_TEXT = FJsonInternationalizationArchiveSerializer::TAG_SOURCE_TEXT;
+const FString FJsonInternationalizationArchiveSerializer::TAG_METADATA_KEY = TEXT("Key");
+const FString FJsonInternationalizationArchiveSerializer::NAMESPACE_DELIMITER = TEXT(".");
+
 
 struct FCompareArchiveEntryBySourceAndKey
 {
@@ -46,6 +49,7 @@ struct FCompareArchiveEntryBySourceAndKey
 	}
 };
 
+
 struct FCompareStructuredArchiveEntryByNamespace
 {
 	FORCEINLINE bool operator()( TSharedPtr< FStructuredArchiveEntry > A, TSharedPtr< FStructuredArchiveEntry > B ) const
@@ -55,7 +59,7 @@ struct FCompareStructuredArchiveEntryByNamespace
 };
 
 
-bool FInternationalizationArchiveJsonSerializer::DeserializeArchive( FArchive& Archive, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
+bool FJsonInternationalizationArchiveSerializer::DeserializeArchive( FArchive& Archive, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
 {
 	TSharedPtr< FJsonObject > JsonArchiveObj;
 	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( &Archive );
@@ -69,7 +73,8 @@ bool FInternationalizationArchiveJsonSerializer::DeserializeArchive( FArchive& A
 	return bExecSuccessful;
 }
 
-bool FInternationalizationArchiveJsonSerializer::DeserializeArchive( const FString& InStr, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
+
+bool FJsonInternationalizationArchiveSerializer::DeserializeArchive( const FString& InStr, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
 {
 	TSharedPtr< FJsonObject > JsonArchiveObj;
 	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InStr );
@@ -83,12 +88,14 @@ bool FInternationalizationArchiveJsonSerializer::DeserializeArchive( const FStri
 	return bExecSuccessful;
 }
 
-bool FInternationalizationArchiveJsonSerializer::DeserializeArchive( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
+
+bool FJsonInternationalizationArchiveSerializer::DeserializeArchive( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
 {
 	return DeserializeInternal( InJsonObj, InternationalizationArchive );
 }
 
-bool FInternationalizationArchiveJsonSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FArchive& Archive )
+
+bool FJsonInternationalizationArchiveSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FArchive& Archive )
 {
 	TSharedRef< FJsonObject > JsonArchiveObj = MakeShareable( new FJsonObject );
 	bool bExecSuccessful = SerializeInternal( InternationalizationArchive, JsonArchiveObj );
@@ -102,7 +109,8 @@ bool FInternationalizationArchiveJsonSerializer::SerializeArchive( TSharedRef< c
 	return bExecSuccessful;
 }
 
-bool FInternationalizationArchiveJsonSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FString& Str )
+
+bool FJsonInternationalizationArchiveSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FString& Str )
 {
 	TSharedRef< FJsonObject > JsonArchiveObj = MakeShareable( new FJsonObject );
 	bool bExecSuccessful = SerializeInternal( InternationalizationArchive, JsonArchiveObj );
@@ -116,26 +124,30 @@ bool FInternationalizationArchiveJsonSerializer::SerializeArchive( TSharedRef< c
 	return bExecSuccessful;
 }
 
-bool FInternationalizationArchiveJsonSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, TSharedRef< FJsonObject > JsonObj )
+
+bool FJsonInternationalizationArchiveSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, TSharedRef< FJsonObject > JsonObj )
 {
 	return SerializeInternal( InternationalizationArchive, JsonObj );
 }
 
-bool FInternationalizationArchiveJsonSerializer::DeserializeInternal( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
+
+bool FJsonInternationalizationArchiveSerializer::DeserializeInternal( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
 {
 	if( InJsonObj->HasField( TAG_FORMATVERSION ) )
 	{
-		InternationalizationArchive->FormatVersion = static_cast<int>(InJsonObj->GetNumberField( TAG_FORMATVERSION ));
+		const int32 FormatVersion = static_cast<int>(InJsonObj->GetNumberField( TAG_FORMATVERSION ));
+		InternationalizationArchive->SetFormatVersion(static_cast<FInternationalizationArchive::EFormatVersion>(FormatVersion));
 	}
 	else
 	{
-		InternationalizationArchive->FormatVersion = FInternationalizationArchive::EFormatVersion::Initial;
+		InternationalizationArchive->SetFormatVersion(FInternationalizationArchive::EFormatVersion::Initial);
 	}
 
 	return JsonObjToArchive( InJsonObj, TEXT(""), InternationalizationArchive );
 }
 
-bool FInternationalizationArchiveJsonSerializer::SerializeInternal( TSharedRef< const FInternationalizationArchive > InInternationalizationArchive, TSharedRef< FJsonObject > JsonObj )
+
+bool FJsonInternationalizationArchiveSerializer::SerializeInternal( TSharedRef< const FInternationalizationArchive > InInternationalizationArchive, TSharedRef< FJsonObject > JsonObj )
 {
 	TSharedPtr< FStructuredArchiveEntry > RootElement = MakeShareable( new FStructuredArchiveEntry( TEXT("") ) );
 
@@ -148,14 +160,15 @@ bool FInternationalizationArchiveJsonSerializer::SerializeInternal( TSharedRef< 
 	JsonObj->Values.Empty();
 
 	// Set format version.
-	JsonObj->SetNumberField(TAG_FORMATVERSION, static_cast<double>(InInternationalizationArchive->FormatVersion));
+	JsonObj->SetNumberField(TAG_FORMATVERSION, static_cast<double>(InInternationalizationArchive->GetFormatVersion()));
 
 	// Setup the JSON object using the structured data created
 	StructuredDataToJsonObj( RootElement, JsonObj );
 	return true;
 }
 
-bool FInternationalizationArchiveJsonSerializer::JsonObjToArchive( TSharedRef< FJsonObject > InJsonObj, FString ParentNamespace, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
+
+bool FJsonInternationalizationArchiveSerializer::JsonObjToArchive( TSharedRef< FJsonObject > InJsonObj, FString ParentNamespace, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
 {
 	bool bConvertSuccess = true;
 	FString AccumulatedNamespace = ParentNamespace;
@@ -201,7 +214,7 @@ bool FInternationalizationArchiveJsonSerializer::JsonObjToArchive( TSharedRef< F
 					if( SourceJSONObject->Values.Num() > 1 )
 					{
 						// We load in the entire source object as metadata and just remove the source text.
-						FInternationalizationMetaDataJsonSerializer::DeserializeMetadata( SourceJSONObject.ToSharedRef(), SourceMetadata );
+						FJsonInternationalizationMetaDataSerializer::DeserializeMetadata( SourceJSONObject.ToSharedRef(), SourceMetadata );
 						if( SourceMetadata.IsValid() )
 						{
 							SourceMetadata->Values.Remove( TAG_SOURCE_TEXT );
@@ -235,7 +248,7 @@ bool FInternationalizationArchiveJsonSerializer::JsonObjToArchive( TSharedRef< F
 					if( TranslationJSONObject->Values.Num() > 1 )
 					{
 						// We load in the entire source object as metadata and remove the source text
-						FInternationalizationMetaDataJsonSerializer::DeserializeMetadata( TranslationJSONObject.ToSharedRef(), TranslationMetadata );
+						FJsonInternationalizationMetaDataSerializer::DeserializeMetadata( TranslationJSONObject.ToSharedRef(), TranslationMetadata );
 						if( TranslationJSONObject.IsValid() )
 						{
 							TranslationJSONObject->Values.Remove( TAG_TRANSLATION_TEXT );
@@ -270,7 +283,7 @@ bool FInternationalizationArchiveJsonSerializer::JsonObjToArchive( TSharedRef< F
 				if( ChildJSONObject->HasTypedField< EJson::Object >( TAG_METADATA_KEY ) )
 				{
 					const TSharedPtr< FJsonObject > MetaDataKeyJSONObject = ChildJSONObject->GetObjectField( TAG_METADATA_KEY );
-					FInternationalizationMetaDataJsonSerializer::DeserializeMetadata( MetaDataKeyJSONObject.ToSharedRef(), MetadataNode );
+					FJsonInternationalizationMetaDataSerializer::DeserializeMetadata( MetaDataKeyJSONObject.ToSharedRef(), MetadataNode );
 				}
 
 				bool bAddSuccessful = InternationalizationArchive->AddEntry( AccumulatedNamespace, Source, Translation, MetadataNode, bIsOptional );
@@ -303,7 +316,7 @@ bool FInternationalizationArchiveJsonSerializer::JsonObjToArchive( TSharedRef< F
 }
 
 
-void FInternationalizationArchiveJsonSerializer::GenerateStructuredData( TSharedRef< const FInternationalizationArchive > InInternationalizationArchive, TSharedPtr<FStructuredArchiveEntry> RootElement )
+void FJsonInternationalizationArchiveSerializer::GenerateStructuredData( TSharedRef< const FInternationalizationArchive > InInternationalizationArchive, TSharedPtr<FStructuredArchiveEntry> RootElement )
 {
 	//Loop through all the unstructured archive entries and build up our structured hierarchy
 	for(TArchiveEntryContainer::TConstIterator It( InInternationalizationArchive->GetEntryIterator() ); It; ++It)
@@ -343,7 +356,8 @@ void FInternationalizationArchiveJsonSerializer::GenerateStructuredData( TShared
 	}
 }
 
-void FInternationalizationArchiveJsonSerializer::SortStructuredData( TSharedPtr< FStructuredArchiveEntry > InElement )
+
+void FJsonInternationalizationArchiveSerializer::SortStructuredData( TSharedPtr< FStructuredArchiveEntry > InElement )
 {
 	if( !InElement.IsValid() )
 	{
@@ -365,7 +379,8 @@ void FInternationalizationArchiveJsonSerializer::SortStructuredData( TSharedPtr<
 	}
 }
 
-void FInternationalizationArchiveJsonSerializer::StructuredDataToJsonObj( TSharedPtr< const FStructuredArchiveEntry > InElement, TSharedRef< FJsonObject > OutJsonObj )
+
+void FJsonInternationalizationArchiveSerializer::StructuredDataToJsonObj( TSharedPtr< const FStructuredArchiveEntry > InElement, TSharedRef< FJsonObject > OutJsonObj )
 {
 	OutJsonObj->SetStringField( TAG_NAMESPACE, InElement->Namespace );
 
@@ -384,7 +399,7 @@ void FInternationalizationArchiveJsonSerializer::StructuredDataToJsonObj( TShare
 		TSharedPtr< FJsonObject > SourceNode;
 		if( Entry->Source.MetadataObj.IsValid() )
 		{
-			FInternationalizationMetaDataJsonSerializer::SerializeMetadata( Entry->Source.MetadataObj.ToSharedRef(), SourceNode );
+			FJsonInternationalizationMetaDataSerializer::SerializeMetadata( Entry->Source.MetadataObj.ToSharedRef(), SourceNode );
 		}
 
 		if( !SourceNode.IsValid() )
@@ -398,7 +413,7 @@ void FInternationalizationArchiveJsonSerializer::StructuredDataToJsonObj( TShare
 		TSharedPtr< FJsonObject > TranslationNode;
 		if( Entry->Translation.MetadataObj.IsValid() )
 		{
-			FInternationalizationMetaDataJsonSerializer::SerializeMetadata( Entry->Translation.MetadataObj.ToSharedRef(), TranslationNode );
+			FJsonInternationalizationMetaDataSerializer::SerializeMetadata( Entry->Translation.MetadataObj.ToSharedRef(), TranslationNode );
 		}
 
 		if( !TranslationNode.IsValid() )
@@ -412,7 +427,7 @@ void FInternationalizationArchiveJsonSerializer::StructuredDataToJsonObj( TShare
 		if( Entry->KeyMetadataObj.IsValid() )
 		{
 			TSharedPtr< FJsonObject > KeyDataNode;
-			FInternationalizationMetaDataJsonSerializer::SerializeMetadata( Entry->KeyMetadataObj.ToSharedRef(), KeyDataNode );
+			FJsonInternationalizationMetaDataSerializer::SerializeMetadata( Entry->KeyMetadataObj.ToSharedRef(), KeyDataNode );
 			if( KeyDataNode.IsValid() )
 			{
 				EntryNode->SetObjectField( TAG_METADATA_KEY, KeyDataNode );
@@ -451,4 +466,3 @@ void FInternationalizationArchiveJsonSerializer::StructuredDataToJsonObj( TShare
 		OutJsonObj->SetArrayField( TAG_SUBNAMESPACES, NamespaceArray );
 	}
 }
-

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "IDesktopPlatform.h"
-#include "Runtime/Core/Public/Serialization/Json/Json.h"
+#include "Json.h"
 #include "UProjectInfo.h"
 
 class FDesktopPlatformBase : public IDesktopPlatform

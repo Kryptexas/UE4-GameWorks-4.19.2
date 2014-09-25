@@ -563,7 +563,7 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		const TArray< TSharedPtr<FJsonValue> > Array = (*ArrayValue)->AsArray();
 		check(Array.Num() == 8);
 
-		EJson::Type ValueTypes[] = {EJson::Array, EJson::String, EJson::String, EJson::Null,
+		EJson ValueTypes[] = {EJson::Array, EJson::String, EJson::String, EJson::Null,
 			EJson::Boolean, EJson::Boolean, EJson::Number, EJson::Object};
 		for (int32 i = 0; i < Array.Num(); ++i)
 		{
@@ -638,7 +638,7 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 			TEXT("}");
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputString );
 
-		EJsonNotation::Type Notation = EJsonNotation::Null;
+		EJsonNotation Notation = EJsonNotation::Null;
 		check( Reader->ReadNext( Notation ) && Notation == EJsonNotation::ObjectStart );
 		check( Reader->GetLineNumber() == 1 && Reader->GetCharacterNumber() == 1 );
 

@@ -25,6 +25,7 @@ public class LogVisualizer : ModuleRules
 				"Core",
 				"CoreUObject",
                 "InputCore",
+				"Json",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",

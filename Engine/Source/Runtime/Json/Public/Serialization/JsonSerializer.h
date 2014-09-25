@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
 
 class FJsonSerializer
 {
@@ -20,6 +22,7 @@ public:
 		}
 
 		OutArray = State.Array;
+
 		return true;
 	}
 
@@ -38,6 +41,7 @@ public:
 		}
 
 		OutObject = State.Object;
+
 		return true;
 	}
 
@@ -61,43 +65,36 @@ public:
 		TSharedRef< FElement > StartingElement = MakeShareable( new FElement( Identifier, Value ) );
 		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer );
 	}
-	
 
 private:
 
 	struct StackState
 	{
-		EJson::Type Type;
+		EJson Type;
 		FString Identifier;
-		TArray< TSharedPtr<FJsonValue> > Array;
-		TSharedPtr< FJsonObject > Object;
+		TArray<TSharedPtr<FJsonValue>> Array;
+		TSharedPtr<FJsonObject> Object;
 	};
 
 	struct FElement
 	{
-		FElement( const TSharedPtr< FJsonValue >& InValue )
+		FElement( const TSharedPtr<FJsonValue>& InValue )
 			: Identifier()
-			, Value( InValue )
-			, HasBeenProcessed( false )
-		{
+			, Value(InValue)
+			, HasBeenProcessed(false)
+		{ }
 
-		}
-
-		FElement( const TSharedRef< FJsonObject >& Object )
+		FElement( const TSharedRef<FJsonObject>& Object )
 			: Identifier()
-			, Value( MakeShareable( new FJsonValueObject( Object ) ) )
+			, Value(MakeShareable(new FJsonValueObject(Object)))
 			, HasBeenProcessed( false )
-		{
+		{ }
 
-		}
-
-		FElement( const TArray< TSharedPtr<FJsonValue> >& Array )
+		FElement( const TArray<TSharedPtr<FJsonValue>>& Array )
 			: Identifier()
-			, Value( MakeShareable( new FJsonValueArray( Array ) ) )
-			, HasBeenProcessed( false )
-		{
-
-		}
+			, Value( MakeShareable(new FJsonValueArray(Array)))
+			, HasBeenProcessed(false)
+		{ }
 
 		FElement( const FString& InIdentifier, const TSharedPtr< FJsonValue >& InValue )
 			: Identifier( InIdentifier )
@@ -117,12 +114,13 @@ private:
 	template <class CharType>
 	static bool Deserialize( const TSharedRef< TJsonReader<CharType> >& Reader, StackState& OutStackState )
 	{
-		TArray< TSharedRef< StackState > > ScopeStack; 
-		TSharedPtr< StackState > CurrentState;
+		TArray<TSharedRef<StackState>> ScopeStack; 
+		TSharedPtr<StackState> CurrentState;
 
 		TSharedPtr<FJsonValue> NewValue;
-		EJsonNotation::Type Notation;
-		while( Reader->ReadNext( Notation ) )
+		EJsonNotation Notation;
+
+		while (Reader->ReadNext(Notation))
 		{
 			FString Identifier = Reader->GetIdentifier();
 			NewValue.Reset();
@@ -131,24 +129,24 @@ private:
 			{
 			case EJsonNotation::ObjectStart:
 				{
-					if ( CurrentState.IsValid() )
+					if (CurrentState.IsValid())
 					{
-						ScopeStack.Push( CurrentState.ToSharedRef() );
+						ScopeStack.Push(CurrentState.ToSharedRef());
 					}
 
-					CurrentState = MakeShareable( new StackState() );
+					CurrentState = MakeShareable(new StackState());
 					CurrentState->Type = EJson::Object;
 					CurrentState->Identifier = Identifier;
-					CurrentState->Object = MakeShareable( new FJsonObject() );
+					CurrentState->Object = MakeShareable(new FJsonObject());
 				}
 				break;
 
 			case EJsonNotation::ObjectEnd:
 				{
-					if ( ScopeStack.Num() > 0 )
+					if (ScopeStack.Num() > 0)
 					{
 						Identifier = CurrentState->Identifier;
-						NewValue = MakeShareable( new FJsonValueObject( CurrentState->Object ) );
+						NewValue = MakeShareable(new FJsonValueObject(CurrentState->Object));
 						CurrentState = ScopeStack.Pop();
 					}
 				}
@@ -156,12 +154,12 @@ private:
 
 			case EJsonNotation::ArrayStart:
 				{
-					if ( CurrentState.IsValid() )
+					if (CurrentState.IsValid())
 					{
-						ScopeStack.Push( CurrentState.ToSharedRef() );
+						ScopeStack.Push(CurrentState.ToSharedRef());
 					}
 
-					CurrentState = MakeShareable( new StackState() );
+					CurrentState = MakeShareable(new StackState());
 					CurrentState->Type = EJson::Array;
 					CurrentState->Identifier = Identifier;
 				}
@@ -169,29 +167,29 @@ private:
 
 			case EJsonNotation::ArrayEnd:
 				{
-					if ( ScopeStack.Num() > 0 )
+					if (ScopeStack.Num() > 0)
 					{
 						Identifier = CurrentState->Identifier;
-						NewValue = MakeShareable( new FJsonValueArray( CurrentState->Array ) );
+						NewValue = MakeShareable(new FJsonValueArray(CurrentState->Array));
 						CurrentState = ScopeStack.Pop();
 					}
 				}
 				break;
 
 			case EJsonNotation::Boolean:
-				NewValue = MakeShareable( new FJsonValueBoolean( Reader->GetValueAsBoolean() ) );
+				NewValue = MakeShareable(new FJsonValueBoolean(Reader->GetValueAsBoolean()));
 				break;
 
 			case EJsonNotation::String:
-				NewValue = MakeShareable( new FJsonValueString( Reader->GetValueAsString() ) );
+				NewValue = MakeShareable(new FJsonValueString(Reader->GetValueAsString()));
 				break;
 
 			case EJsonNotation::Number:
-				NewValue = MakeShareable( new FJsonValueNumber( Reader->GetValueAsNumber() ) );
+				NewValue = MakeShareable(new FJsonValueNumber(Reader->GetValueAsNumber()));
 				break;
 
 			case EJsonNotation::Null:
-				NewValue = MakeShareable( new FJsonValueNull() );
+				NewValue = MakeShareable(new FJsonValueNull());
 				break;
 
 			case EJsonNotation::Error:
@@ -199,118 +197,119 @@ private:
 				break;
 			}
 
-			if ( NewValue.IsValid() && CurrentState.IsValid() )
+			if (NewValue.IsValid() && CurrentState.IsValid())
 			{
-				if ( CurrentState->Type == EJson::Object )
+				if (CurrentState->Type == EJson::Object)
 				{
-					CurrentState->Object->SetField( Identifier, NewValue );
+					CurrentState->Object->SetField(Identifier, NewValue);
 				}
 				else
 				{
-					CurrentState->Array.Add( NewValue );
+					CurrentState->Array.Add(NewValue);
 				}
 			}
 		}
 
-		if ( !CurrentState.IsValid() || !Reader->GetErrorMessage().IsEmpty() )
+		if (!CurrentState.IsValid() || !Reader->GetErrorMessage().IsEmpty())
 		{
 			return false;
 		}
 
 		OutStackState = *CurrentState.Get();
+
 		return true;
 	}
 
-	template <class CharType, class PrintPolicy >
-	static bool Serialize( const TSharedRef< FElement >& StartingElement, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer )
+	template <class CharType, class PrintPolicy>
+	static bool Serialize( const TSharedRef<FElement>& StartingElement, const TSharedRef<TJsonWriter<CharType, PrintPolicy>>& Writer )
 	{
-		TArray< TSharedRef< FElement > > ElementStack;
-		ElementStack.Push( StartingElement );
+		TArray<TSharedRef<FElement>> ElementStack;
+		ElementStack.Push(StartingElement);
 
-		while( ElementStack.Num() > 0 )
+		while (ElementStack.Num() > 0)
 		{
-			TSharedRef< FElement > Element = ElementStack.Pop();
+			TSharedRef<FElement> Element = ElementStack.Pop();
 			check(Element->Value->Type != EJson::None);
 
 			switch (Element->Value->Type)
 			{
 			case EJson::Number:	
 				{
-					if ( Element->Identifier.IsEmpty() )
+					if (Element->Identifier.IsEmpty())
 					{
-						Writer->WriteValue( Element->Value->AsNumber() );	
+						Writer->WriteValue(Element->Value->AsNumber());
 					}
 					else
 					{
-						Writer->WriteValue( Element->Identifier, Element->Value->AsNumber() );	
+						Writer->WriteValue(Element->Identifier, Element->Value->AsNumber());
 					}
 				}
 				break;
 
 			case EJson::Boolean:					
 				{
-					if ( Element->Identifier.IsEmpty() )
+					if (Element->Identifier.IsEmpty())
 					{
-						Writer->WriteValue( Element->Value->AsBool() );	
+						Writer->WriteValue(Element->Value->AsBool());
 					}
 					else
 					{
-						Writer->WriteValue( Element->Identifier, Element->Value->AsBool() );	
+						Writer->WriteValue(Element->Identifier, Element->Value->AsBool());
 					}
 				}
 				break;
 
 			case EJson::String:
 				{
-					if ( Element->Identifier.IsEmpty() )
+					if (Element->Identifier.IsEmpty())
 					{
-						Writer->WriteValue( Element->Value->AsString() );	
+						Writer->WriteValue(Element->Value->AsString());
 					}
 					else
 					{
-						Writer->WriteValue( Element->Identifier, Element->Value->AsString() );	
+						Writer->WriteValue(Element->Identifier, Element->Value->AsString());
 					}
 				}
 				break;
 
 			case EJson::Null:
 				{
-					if ( Element->Identifier.IsEmpty() )
+					if (Element->Identifier.IsEmpty())
 					{
 						Writer->WriteNull();	
 					}
 					else
 					{
-						Writer->WriteNull( Element->Identifier );	
+						Writer->WriteNull(Element->Identifier);
 					}
 				}
 				break;
 
 			case EJson::Array:
 				{
-					if ( Element->HasBeenProcessed )
+					if (Element->HasBeenProcessed)
 					{
 						Writer->WriteArrayEnd();
 					}
 					else
 					{
 						Element->HasBeenProcessed = true;
-						ElementStack.Push( Element );
+						ElementStack.Push(Element);
 
-						if ( Element->Identifier.IsEmpty() )
+						if (Element->Identifier.IsEmpty())
 						{
 							Writer->WriteArrayStart();
 						}
 						else
 						{
-							Writer->WriteArrayStart( Element->Identifier );
+							Writer->WriteArrayStart(Element->Identifier);
 						}
 
-						TArray< TSharedPtr<FJsonValue> > Values = Element->Value->AsArray();
+						TArray<TSharedPtr<FJsonValue>> Values = Element->Value->AsArray();
 
-						for( int Index = Values.Num() - 1; Index >= 0; --Index )
+						for (int Index = Values.Num() - 1; Index >= 0; --Index)
 						{
-							ElementStack.Push( MakeShareable( new FElement( Values[ Index ] ) ) );
+							ElementStack.Push(MakeShareable(new FElement(Values[Index])));
 						}
 					}
 				}
@@ -318,35 +317,35 @@ private:
 
 			case EJson::Object:
 				{
-					if ( Element->HasBeenProcessed )
+					if (Element->HasBeenProcessed)
 					{
 						Writer->WriteObjectEnd();
 					}
 					else
 					{
 						Element->HasBeenProcessed = true;
-						ElementStack.Push( Element );
+						ElementStack.Push(Element);
 
-						if ( Element->Identifier.IsEmpty() )
+						if (Element->Identifier.IsEmpty())
 						{
 							Writer->WriteObjectStart();
 						}
 						else
 						{
-							Writer->WriteObjectStart( Element->Identifier );
+							Writer->WriteObjectStart(Element->Identifier);
 						}
 
 						TArray<FString> Keys; 
-						TArray< TSharedPtr<FJsonValue> > Values;
-						TSharedPtr< FJsonObject > ElementObject = Element->Value->AsObject();
+						TArray<TSharedPtr<FJsonValue>> Values;
+						TSharedPtr<FJsonObject> ElementObject = Element->Value->AsObject();
 						ElementObject->Values.GenerateKeyArray(Keys);
 						ElementObject->Values.GenerateValueArray(Values);
 
 						check(Keys.Num() == Values.Num());
 
-						for( int Index = Values.Num() - 1; Index >= 0; --Index )
+						for (int Index = Values.Num() - 1; Index >= 0; --Index)
 						{
-							ElementStack.Push( MakeShareable( new FElement( Keys[ Index ], Values[ Index ] ) ) );
+							ElementStack.Push(MakeShareable(new FElement(Keys[Index], Values[Index ])));
 						}
 					}
 				}

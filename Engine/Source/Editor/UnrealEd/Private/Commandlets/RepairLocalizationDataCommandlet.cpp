@@ -3,9 +3,9 @@
 #include "UnrealEd.h"
 #include "Commandlets/RepairLocalizationDataCommandlet.h"
 #include "InternationalizationManifest.h"
-#include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchive.h"
-#include "InternationalizationArchiveJsonSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
+#include "JsonInternationalizationArchiveSerializer.h"
 #include "Regex.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogRepairLocalizationDataCommandlet, Log, All);
@@ -241,7 +241,7 @@ int32 URepairLocalizationDataCommandlet::Main(const FString& Params)
 		UE_LOG(LogRepairLocalizationDataCommandlet, Error, TEXT("Could not read manifest file %s."), *ManifestFilePath);
 		return -1;
 	}
-	FInternationalizationManifestJsonSerializer ManifestSerializer;
+	FJsonInternationalizationManifestSerializer ManifestSerializer;
 	const TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
 	ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
 
@@ -261,7 +261,7 @@ int32 URepairLocalizationDataCommandlet::Main(const FString& Params)
 				UE_LOG(LogRepairLocalizationDataCommandlet, Error, TEXT("Could not read archive file %s."), *ArchiveFilePath);
 				return -1;
 			}
-			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 			const TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
 			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
 
@@ -288,7 +288,7 @@ int32 URepairLocalizationDataCommandlet::Main(const FString& Params)
 		for (const TSharedRef<FInternationalizationArchive>& InternationalizationArchive : InternationalizationArchives)
 		{
 			TSharedRef< FJsonObject > OutputArchiveJsonObj = MakeShareable( new FJsonObject );
-			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 			ArchiveSerializer.SerializeArchive( InternationalizationArchive, OutputArchiveJsonObj );
 
 			int32 Culture = 0;
