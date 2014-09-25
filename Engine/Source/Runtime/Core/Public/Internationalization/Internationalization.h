@@ -108,6 +108,24 @@ private:
 	TSharedPtr< FCulture, ESPMode::ThreadSafe > InvariantCulture;
 
 	TArray< void* > DLLHandles;
+
+#if UE_ENABLE_ICU
+	friend struct FICUDataCallbacks;
+
+	// Tidy class for storing the count of references for an ICU data file and the file's data itself.
+	struct FICUCachedFileData
+	{
+		FICUCachedFileData(const int64 FileSize);
+		FICUCachedFileData(FICUCachedFileData&& Source);
+		~FICUCachedFileData();
+
+		uint32 ReferenceCount;
+		void* Buffer;
+	};
+
+	// Map for associating ICU data file paths with cached file data, to prevent multiple copies of immutable ICU data files from residing in memory.
+	TMap<FString, FICUCachedFileData> PathToCachedFileDataMap;
+#endif
 };
 
 #undef LOC_DEFINE_REGION
