@@ -19,7 +19,7 @@
 #endif
 #include "ShaderPreprocessor.h"
 #include "hlslcc.h"
-#include "Metal/MetalBackend.h"
+#include "MetalBackend.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMetalShaderCompiler, Log, All); 
 
