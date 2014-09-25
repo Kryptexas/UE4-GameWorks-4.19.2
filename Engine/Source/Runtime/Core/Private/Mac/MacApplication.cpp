@@ -6,6 +6,7 @@
 #include "MacWindow.h"
 #include "MacCursor.h"
 #include "MacEvent.h"
+#include "CocoaMenu.h"
 #include "GenericApplicationMessageHandler.h"
 #include "HIDInputInterface.h"
 #include "AnalyticsEventAttribute.h"
@@ -14,28 +15,6 @@
 #include "ModuleManager.h"
 
 static NSString* NSWindowDraggingFinished = @"NSWindowDraggingFinished";
-
-static void HandleNSEvent(NSEvent* Event)
-{
-	const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
-									  || [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
-									  || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp
-									  || [Event type] == NSKeyDown || ([Event type] == NSKeyUp && !([Event modifierFlags] & NSCommandKeyMask));
-
-	if (MacApplication)
-	{
-		if (!bIsMouseClickOrKeyEvent || [Event window] == NULL)
-		{
-			FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
-		}
-
-		if ([Event type] == NSLeftMouseUp)
-		{
-			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDraggingFinished object:[Event window]];
-			FMacEvent::SendToGameRunLoop(Notification, [Event window], EMacEventSendMethod::Async);
-		}
-	}
-}
 
 FMacApplication* MacApplication = NULL;
 
@@ -61,6 +40,41 @@ FMacApplication* FMacApplication::CreateMacApplication()
 {
 	MacApplication = new FMacApplication();
 	return MacApplication;
+}
+
+NSEvent* FMacApplication::HandleNSEvent(NSEvent* Event)
+{
+	NSEvent* ReturnEvent = Event;
+	const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
+		|| [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
+		|| [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp;
+	const bool bIsResentEvent = [Event type] == NSApplicationDefined && [Event subtype] == FMacApplication::ResentEvent;
+	
+	if (MacApplication)
+	{
+		if ( bIsResentEvent )
+		{
+			ReturnEvent = (NSEvent*)[Event data1];
+		}
+		
+		if ( !bIsResentEvent && ( !bIsMouseClickOrKeyEvent || [Event window] == NULL ) )
+		{
+			FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
+			
+			if ( [Event type] == NSKeyDown || [Event type] == NSKeyUp )
+			{
+				ReturnEvent = nil;
+			}
+		}
+		
+		if ([Event type] == NSLeftMouseUp)
+		{
+			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDraggingFinished object:[Event window]];
+			FMacEvent::SendToGameRunLoop(Notification, [Event window], EMacEventSendMethod::Async);
+		}
+	}
+	
+	return ReturnEvent;
 }
 
 void FMacApplication::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo)
@@ -102,8 +116,8 @@ FMacApplication::FMacApplication()
 	
 	EventMonitor = (void*)[NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* IncomingEvent)
 	{
-		HandleNSEvent(IncomingEvent);
-		return IncomingEvent;
+		NSEvent* ReturnEvent = HandleNSEvent(IncomingEvent);
+		return ReturnEvent;
 	}];
 
 #if WITH_EDITOR
@@ -713,9 +727,11 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 		case NSKeyDown:
 		{
 			NSString *Characters = [Event characters];
+			bool bHandled = false;
 			if( [Characters length] && CurrentEventWindow.IsValid() )
 			{
-				if(!CurrentEventWindow->OnIMKKeyDown(Event))
+				bHandled = CurrentEventWindow->OnIMKKeyDown(Event);
+				if(!bHandled)
 				{
 					const bool IsRepeat = [Event isARepeat];
 					const TCHAR Character = ConvertChar( [Characters characterAtIndex:0] );
@@ -723,7 +739,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 					const uint32 KeyCode = [Event keyCode];
 					const bool IsPrintable = IsPrintableKey( Character );
 					
-					MessageHandler->OnKeyDown( KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat );
+					bHandled = MessageHandler->OnKeyDown( KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat );
 					
 					// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
 					
@@ -734,12 +750,25 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 					}
 				}
 			}
+			if (bHandled)
+			{
+				FCocoaMenu* MainMenu = [[NSApp mainMenu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[NSApp mainMenu]: nil;
+				if ( MainMenu )
+				{
+					[MainMenu highlightKeyEquivalent:Event];
+				}
+			}
+			else
+			{
+				ResendEvent(Event);
+			}
 			break;
 		}
 
 		case NSKeyUp:
 		{
 			NSString *Characters = [Event characters];
+			bool bHandled = false;
 			if( [Characters length] && CurrentEventWindow.IsValid() )
 			{
 				const bool IsRepeat = [Event isARepeat];
@@ -748,7 +777,11 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 				const uint32 KeyCode = [Event keyCode];
 				const bool IsPrintable = IsPrintableKey( Character );
 
-				MessageHandler->OnKeyUp( KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat );
+				bHandled = MessageHandler->OnKeyUp( KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat );
+			}
+			if (!bHandled)
+			{
+				ResendEvent(Event);
 			}
 			break;
 		}
@@ -767,6 +800,15 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 	FMacCursor* MacCursor = (FMacCursor*)Cursor.Get();
 	
 	ProcessNSEvent(Event, CurrentEventWindow, MacCursor->GetPosition());
+}
+
+void FMacApplication::ResendEvent(NSEvent* Event)
+{
+	MainThreadCall(^{
+		NSEvent* Wrapper = [NSEvent otherEventWithType:NSApplicationDefined location:[Event locationInWindow] modifierFlags:[Event modifierFlags] timestamp:[Event timestamp] windowNumber:[Event windowNumber] context:[Event context] subtype:FMacApplication::ResentEvent data1:(NSInteger)Event data2:0];
+		
+		[NSApp sendEvent:Wrapper];
+	}, NSDefaultRunLoopMode, true);
 }
 
 FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )

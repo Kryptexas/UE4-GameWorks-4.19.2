@@ -310,18 +310,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)keyDown:(NSEvent *)Event
 {
-	if(self.bForwardEvents)
-	{
-		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
-	}
+	// @note Deliberately empty - we don't want OS X to handle keyboard input as it will recursively re-add events we aren't handling
 }
 
 - (void)keyUp:(NSEvent *)Event
 {
-	if(self.bForwardEvents)
-	{
-		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
-	}
+	// @note Deliberately empty - we don't want OS X to handle keyboard input as it will recursively re-add events we aren't handling
 }
 
 - (void)windowWillEnterFullScreen:(NSNotification *)notification

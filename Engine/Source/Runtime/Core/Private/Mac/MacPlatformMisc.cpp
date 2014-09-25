@@ -10,6 +10,7 @@
 #include "VarargsHelper.h"
 #include "MacApplication.h"
 #include "MacCursor.h"
+#include "CocoaMenu.h"
 #include "CocoaThread.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "EngineVersion.h"
@@ -269,12 +270,12 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 		NSMenuItem* QuitItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", AppName] action:RequestQuitSelector keyEquivalent:@"q"] autorelease];
 
 		NSMenuItem* ServicesItem = [[NSMenuItem new] autorelease];
-		NSMenu* ServicesMenu = [[NSMenu new] autorelease];
+		FCocoaMenu* ServicesMenu = [[FCocoaMenu new] autorelease];
 		[ServicesItem setTitle:@"Services"];
 		[ServicesItem setSubmenu:ServicesMenu];
 		[NSApp setServicesMenu:ServicesMenu];
 
-		NSMenu* AppMenu = [[NSMenu new] autorelease];
+		FCocoaMenu* AppMenu = [[FCocoaMenu new] autorelease];
 		[AppMenu addItem:AboutItem];
 		[AppMenu addItem:[NSMenuItem separatorItem]];
 		if (PreferencesItem)
@@ -290,7 +291,7 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 		[AppMenu addItem:[NSMenuItem separatorItem]];
 		[AppMenu addItem:QuitItem];
 
-		NSMenu* MenuBar = [[NSMenu new] autorelease];
+		FCocoaMenu* MenuBar = [[FCocoaMenu new] autorelease];
 		NSMenuItem* AppMenuItem = [[NSMenuItem new] autorelease];
 		[MenuBar addItem:AppMenuItem];
 		[NSApp setMainMenu:MenuBar];
@@ -305,7 +306,7 @@ void FMacPlatformMisc::UpdateWindowMenu()
 	NSMenu* WindowMenu = [NSApp windowsMenu];
 	if (!WindowMenu)
 	{
-		WindowMenu = [[NSMenu new] autorelease];
+		WindowMenu = [[FCocoaMenu new] autorelease];
 		[WindowMenu setTitle:@"Window"];
 		NSMenuItem* WindowMenuItem = [[NSMenuItem new] autorelease];
 		[WindowMenuItem setSubmenu:WindowMenu];
