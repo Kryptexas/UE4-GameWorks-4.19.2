@@ -6,8 +6,10 @@
 =============================================================================*/
 
 #pragma once
-#include "NetSerialization.generated.h"
 
+#include "CoreNet.h"
+#include "CoreUObject.h"
+#include "NetSerialization.generated.h"
 
 /**
  *	===================== NetSerialize and NetDeltaSerialize customization. =====================

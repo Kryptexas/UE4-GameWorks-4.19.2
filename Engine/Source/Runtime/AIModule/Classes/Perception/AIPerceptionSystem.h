@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AIPerceptionTypes.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "AIPerceptionSystem.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAIPerception, Warning, All);

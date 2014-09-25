@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
+#include "EngineGlobals.h"
+#include "Engine.h"
 
 bool FAITestCommand_WaitSeconds::Update()
 {

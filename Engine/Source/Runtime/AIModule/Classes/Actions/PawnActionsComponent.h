@@ -2,9 +2,9 @@
 
 #pragma once
 #include "Components/ActorComponent.h"
+#include "GameFramework/Pawn.h"
 #include "PawnActionsComponent.generated.h"
 
-class APawn;
 class UPawnAction;
 
 USTRUCT()
