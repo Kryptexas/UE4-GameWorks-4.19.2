@@ -299,7 +299,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Source)
 	TEnumAsByte<enum EMediaPlayerStreamModes> StreamMode;
 
-	/** The URL to the media file to be played. */
+	/** The path or URL to the media file to be played. */
 	UPROPERTY(EditAnywhere, Category=Source)
 	FString URL;
 

@@ -34,7 +34,10 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 					+ SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							UrlProperty->CreatePropertyNameWidget()
+							SNew(STextBlock)
+								.Font(IDetailLayoutBuilder::GetDetailFont())
+								.Text(LOCTEXT("FileOrUrlPropertyName", "File or URL"))
+								.ToolTipText(UrlProperty->GetToolTipText())
 						]
 
 					+ SHorizontalBox::Slot()
