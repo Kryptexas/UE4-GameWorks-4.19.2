@@ -3281,6 +3281,9 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 			FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( MouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
 			MouseEvent.SetEventPath(WidgetsUnderCursor);
 
+#if PLATFORM_MAC
+			NSWindow* ActiveWindow = [NSApp keyWindow];
+#endif
 			PopupSupport.SendNotifications( WidgetsUnderCursor );
 
 			// Switch worlds widgets in the current path
@@ -3342,11 +3345,11 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 				}
 
 #if PLATFORM_MAC
-				if (WidgetsUnderCursor.TopLevelWindow.IsValid() && !DragDetector.DetectDragForWidget.IsValid() && MenuStack.GetNumStackLevels() == 0)
+				if (WidgetsUnderCursor.TopLevelWindow.IsValid() && !DragDetector.DetectDragForWidget.IsValid() && ActiveWindow == [NSApp keyWindow])
 				{
 					MouseCaptorHelper Captor = MouseCaptor;
-					WidgetsUnderCursor.TopLevelWindow->BringToFront(true);
 					FPlatformMisc::ActivateApplication();
+					WidgetsUnderCursor.TopLevelWindow->BringToFront(true);
 					MouseCaptor = Captor;
 				}
 #endif
@@ -3486,6 +3489,13 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 				Reply = MouseCaptorWidget.Widget->OnMouseButtonUp( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
 			}
 			ProcessReply(MouseCaptorPath, Reply, &MouseCaptorPath, &MouseEvent);
+#if PLATFORM_MAC
+			TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
+			if (MouseCaptorPath.TopLevelWindow.IsValid() && ActiveWindow != MouseCaptorPath.TopLevelWindow)
+			{
+				MouseCaptorPath.TopLevelWindow->BringToFront(true);
+			}
+#endif
 			LOG_EVENT( EEventLog::MouseButtonUp, Reply );
 		}
 	}

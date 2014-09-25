@@ -60,6 +60,8 @@
 	{
 		[CocoaWindow mouseDown:theEvent];
 	}
+
+	[NSApp preventWindowOrdering];
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent
