@@ -18,13 +18,13 @@ FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRe
 	, Marshaller(InMarshaller)
 	, TextHighlighter(FSlateTextHighlightRunRenderer::Create())
 	, CachedSize(ForceInitToZero)
+	, CachedDesiredSize(ForceInitToZero)
 {
 	TextLayout->SetLineBreakIterator(InLineBreakPolicy);
 }
 
-FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, const float InScale, const FTextBlockStyle& InTextStyle)
+FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs/*, const float InScale*/, const FTextBlockStyle& InTextStyle)
 {
-	TextLayout->SetScale(InScale);
 	TextLayout->SetWrappingWidth(CalculateWrappingWidth(InWidgetArgs));
 	TextLayout->SetMargin(InWidgetArgs.Margin.Get());
 	TextLayout->SetJustification(InWidgetArgs.Justification.Get());
@@ -74,16 +74,31 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 		}
 	}
 
-	TextLayout->UpdateIfNeeded();
+	// We need to update our cached desired size if the text layout has become dirty
+	// todo: jdale - This is a hack until we can perform accurate measuring in ComputeDesiredSize
+	if(TextLayout->IsLayoutDirty())
+	{
+		// The desired size must always have a scale of 1, OnPaint will make sure the scale is set correctly for painting
+		TextLayout->SetScale(1.0f);
+		TextLayout->UpdateIfNeeded();
 
-	return TextLayout->GetSize();
+		CachedDesiredSize = TextLayout->GetSize();
+	}
+	else
+	{
+		// This logic may look odd, but IsLayoutDirty() only checks that we've made a change that might affect the layout (which in turn might affect the 
+		// desired size), however there's also highlight changes, which don't affect the size, but still require a call to UpdateIfNeeded() to be applied
+		TextLayout->UpdateIfNeeded();
+	}
+
+	return CachedDesiredSize;
 }
 
 int32 FTextBlockLayout::OnPaint(const FWidgetArgs& InWidgetArgs, const FPaintArgs& InPaintArgs, const FGeometry& InAllottedGeometry, const FSlateRect& InClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
 {
 	CachedSize = InAllottedGeometry.Size;
 
-	TextLayout->SetWrappingWidth(CalculateWrappingWidth(InWidgetArgs));
+	TextLayout->SetScale(InAllottedGeometry.Scale);
 	TextLayout->SetVisibleRegion(InAllottedGeometry.Size, FVector2D::ZeroVector);
 
 	TextLayout->UpdateIfNeeded();

@@ -161,9 +161,6 @@ private:
 
 	/** How the text should be aligned with the margin. */
 	TAttribute< float > LineHeightPercentage;
-
-	/** todo: jdale - The scale needs to be passed to ComputeDesiredSize */
-	mutable float CachedScale;
 };
 
 #endif //WITH_FANCY_TEXT

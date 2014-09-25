@@ -615,6 +615,11 @@ void FTextLayout::DirtyLayout()
 	ClearWrappingCache();
 }
 
+bool FTextLayout::IsLayoutDirty() const
+{
+	return !!(DirtyFlags & EDirtyState::Layout);
+}
+
 void FTextLayout::ClearRunRenderers()
 {
 	for (int32 Index = 0; Index < LineModels.Num(); Index++)

@@ -247,7 +247,4 @@ private:
 
 	/** The delegate to execute when this text is double clicked */
 	FOnClicked OnDoubleClicked;
-
-	/** todo: jdale - The scale needs to be passed to ComputeDesiredSize */
-	mutable float CachedScale;
 };

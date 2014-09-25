@@ -345,6 +345,8 @@ public:
 
 	void DirtyLayout();
 
+	bool IsLayoutDirty() const;
+
 	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck);
 
 	/**

@@ -22,8 +22,6 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
 
-	CachedScale = 1.0f;
-
 	{
 		TSharedPtr<IRichTextMarkupParser> Parser = InArgs._Parser;
 		if ( !Parser.IsValid() )
@@ -45,9 +43,6 @@ int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& Allotted
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SRichTextBlock );
 
-	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
-	CachedScale = AllottedGeometry.Scale;
-
 	// OnPaint will also update the text layout cache if required
 	LayerId = TextLayoutCache->OnPaint(
 		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
@@ -60,12 +55,12 @@ int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& Allotted
 FVector2D SRichTextBlock::ComputeDesiredSize() const
 {
 	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
-	const float Scale = CachedScale;
+	//const float Scale = CachedScale;
 
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
 		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
-		Scale, TextStyle
+		/*Scale, */TextStyle
 		);
 
 	return TextSize;
