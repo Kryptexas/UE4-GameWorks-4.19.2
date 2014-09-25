@@ -105,7 +105,7 @@ protected:
 
 public:
 	// Baked physics data.
-	UPROPERTY() //@TODO: Is anything in this worth exposing to edit? Category=Physics, EditAnywhere, EditInline
+	UPROPERTY(EditAnywhere, Category=NeverShown)
 	class UBodySetup* BodySetup;
 
 #if WITH_EDITORONLY_DATA

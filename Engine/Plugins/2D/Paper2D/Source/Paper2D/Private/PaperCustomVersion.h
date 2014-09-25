@@ -40,6 +40,9 @@ struct FPaperCustomVersion
 		// Converted UPaperFlipbookComponent to be derived from UMeshComponent
 		ConvertPaperFlipbookComponentToBeMeshComponent = 10,
 
+		// Add default BodyInstance setup in the sprite asset
+		AddDefaultCollisionProfileInSpriteAsset = 11,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

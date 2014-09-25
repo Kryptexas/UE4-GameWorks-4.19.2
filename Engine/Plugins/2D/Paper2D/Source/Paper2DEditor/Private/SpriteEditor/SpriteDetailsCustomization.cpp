@@ -146,6 +146,34 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 	CollisionCategory.AddProperty(DetailLayout.GetProperty(*CollisionGeometryPolygonsPropertyPath), EPropertyLocation::Advanced)
 		.DisplayName(LOCTEXT("CollisionPolygons", "Collision Polygons").ToString())
 		.Visibility(ParticipatesInPhysics);
+
+	// Show the default body instance (and only it) from the body setup (if it exists)
+	DetailLayout.HideProperty("BodySetup");
+	IDetailPropertyRow& BodySetupDefaultInstance = CollisionCategory.AddProperty("BodySetup.DefaultInstance");
+	
+	TArray<TWeakObjectPtr<UObject>> SpritesBeingEdited;
+	DetailLayout.GetObjectsBeingCustomized(/*out*/ SpritesBeingEdited);
+
+	TArray<UObject*> BodySetupList;
+	for (auto WeakSpritePtr : SpritesBeingEdited)
+	{
+		if (UPaperSprite* Sprite = Cast<UPaperSprite>(WeakSpritePtr.Get()))
+		{
+			if (UBodySetup* BodySetup = Sprite->BodySetup)
+			{
+				BodySetupList.Add(BodySetup);
+			}
+		}
+	}
+	
+	if (BodySetupList.Num() > 0)
+	{
+		IDetailPropertyRow* DefaultInstanceRow = CollisionCategory.AddExternalProperty(BodySetupList, GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance));
+		if (DefaultInstanceRow != nullptr)
+		{
+			DefaultInstanceRow->Visibility(ParticipatesInPhysics);
+		}
+	}
 }
 
 EVisibility FSpriteDetailsCustomization::PhysicsModeMatches(TSharedPtr<IPropertyHandle> Property, ESpriteCollisionMode::Type DesiredMode) const

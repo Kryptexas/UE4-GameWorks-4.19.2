@@ -25,6 +25,12 @@ void UPaperSpriteActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 
 		RenderComponent->UnregisterComponent();
 		RenderComponent->SetSprite(Sprite);
+
+		if (Sprite->BodySetup != nullptr)
+		{
+			RenderComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&(Sprite->BodySetup->DefaultInstance));
+		}
+
 		RenderComponent->RegisterComponent();
 	}
 }
@@ -39,6 +45,11 @@ void UPaperSpriteActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 			check(RenderComponent);
 
 			RenderComponent->SetSprite(Sprite);
+
+			if (Sprite->BodySetup != nullptr)
+			{
+				RenderComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&(Sprite->BodySetup->DefaultInstance));
+			}
 		}
 	}
 }
