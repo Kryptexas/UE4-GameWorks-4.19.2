@@ -43,8 +43,6 @@ void AGameplayAbilityTargetActor_Trace::StartTargeting(UGameplayAbility* InAbili
 	Super::StartTargeting(InAbility);
 	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
 	
-	bDebug = true;
-
 	ReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle>(ReticleClass, GetActorLocation(), GetActorRotation());
 	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())
 	{

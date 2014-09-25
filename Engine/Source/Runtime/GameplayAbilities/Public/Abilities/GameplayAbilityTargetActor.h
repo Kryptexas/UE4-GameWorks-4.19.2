@@ -70,6 +70,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;
 
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
+	/** Draw the debug information (if applicable) for this targeting actor. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (ExposeOnSpawn = true), Category = Targeting)
 	bool bDebug;
 };
