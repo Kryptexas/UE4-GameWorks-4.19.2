@@ -368,7 +368,7 @@ FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter( ) const
 		AllFilters += TEXT("|") + Format.Value.ToString() + TEXT(" (*.") + Format.Key + TEXT(")|*.") + Format.Key;
 	}
 
-	Filter += TEXT("|All movie files (") + AllExtensions + TEXT(")|") + AllExtensions + AllFilters;
+	Filter = TEXT("All movie files (") + AllExtensions + TEXT(")|") + AllExtensions + TEXT("|") + Filter + AllFilters;
 
 	return Filter;
 }
