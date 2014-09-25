@@ -101,13 +101,28 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 			[WindowHandle setDelegate: WindowHandle];
 
 			// @todo: We really need a window type in tab manager to know what window level to use and whether or not a window should hide on deactivate
-			if(Definition->IsRegularWindow && (!InParent.IsValid() || Definition->IsModalWindow || (!Definition->SupportsMaximize && !Definition->SupportsMinimize)))
+			if (Definition->IsModalWindow)
 			{
-				[WindowHandle setLevel: NSNormalWindowLevel];
+				[WindowHandle setLevel: NSModalPanelWindowLevel];
+			}
+			else if (Definition->IsRegularWindow)
+			{
+				if (InParent.IsValid())
+				{
+					[WindowHandle setLevel: NSFloatingWindowLevel];
+				}
+				else
+				{
+					[WindowHandle setLevel: NSNormalWindowLevel];
+				}
+			}
+			else if (!Definition->SupportsMaximize && !Definition->SupportsMinimize)
+			{
+				[WindowHandle setLevel: NSFloatingWindowLevel];
 			}
 			else
 			{
-				[WindowHandle setLevel: NSFloatingWindowLevel];
+				[WindowHandle setLevel: NSModalPanelWindowLevel];
 				[WindowHandle setHidesOnDeactivate: YES];
 			}
 			
