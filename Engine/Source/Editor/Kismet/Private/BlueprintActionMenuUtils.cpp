@@ -7,7 +7,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintEditorUtils.h"	// for DoesSupportComponents()
 #include "BlueprintPaletteFavorites.h"
-#include "EdGraphSchema_K2.h"		// for bUseLegacyActionMenus 
+#include "EdGraphSchema_K2.h"		// for PC_Object/PC_Interface 
 #include "K2Node_ActorBoundEvent.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_ComponentBoundEvent.h"
@@ -16,6 +16,7 @@
 #include "K2Node_VariableSet.h"
 #include "KismetEditorUtilities.h"	// for CanPasteNodes()
 #include "K2ActionMenuBuilder.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuUtils"
 
@@ -344,7 +345,8 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		LevelActorsFilter.Context.SelectedObjects.AddUnique(LevelActor);
 	}
 
-	bool const bAddTargetContext  = bIsContextSensitive;
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	bool const bAddTargetContext  = bIsContextSensitive && BlueprintSettings->bUseTargetContextForNodeMenu;
 	bool bCanOperateOnLevelActors = bIsContextSensitive;
 	bool bCanHaveActorComponents  = bIsContextSensitive;
 	// determine if we can operate on certain object selections (level actors, 

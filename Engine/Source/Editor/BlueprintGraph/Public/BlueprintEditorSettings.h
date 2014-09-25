@@ -24,6 +24,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserExperience)
 	bool bShowGraphInstructionText;
 
+	/** If enabled, will use the blueprint's (or output pin's) class to narrow down context menu results. */
+	UPROPERTY(EditAnywhere, config, Category=UserExperience)
+	bool bUseTargetContextForNodeMenu;
+
 // Developer Settings
 public:
 	/** If enabled, tooltips on action menu items will show the associated action's signature id (can be used to setup custom favorites menus).*/
