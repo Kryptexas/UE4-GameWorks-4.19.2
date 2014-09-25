@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagsModule.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayAbility.h"
 
 //----------------------------------------------------------------------
 
