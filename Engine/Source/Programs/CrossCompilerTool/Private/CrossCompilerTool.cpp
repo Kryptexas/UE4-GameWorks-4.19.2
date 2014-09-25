@@ -4,8 +4,8 @@
 
 #include "CrossCompilerTool.h"
 #include "hlslcc.h"
-#include "MetalBackEnd.h"
-#include "ir_gen_glsl.h"
+#include "MetalBackend.h"
+#include "GlslBackend.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 

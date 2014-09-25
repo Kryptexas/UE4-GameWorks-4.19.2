@@ -33,7 +33,7 @@
 #include "Core.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
-#include "ir_gen_glsl.h"
+#include "GlslBackend.h"
 #include "mesa/compiler.h"
 #include "mesa/glsl_parser_extras.h"
 #include "mesa/hash_table.h"

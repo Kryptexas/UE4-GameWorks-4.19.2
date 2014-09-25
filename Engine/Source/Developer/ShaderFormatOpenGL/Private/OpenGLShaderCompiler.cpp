@@ -17,7 +17,7 @@
 #include "ShaderPreprocessor.h"
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
-#include "ir_gen_glsl.h"
+#include "GlslBackend.h"
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
 	#include <GL/glcorearb.h>
