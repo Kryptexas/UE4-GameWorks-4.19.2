@@ -74,6 +74,12 @@ FString UEdGraphNode_Comment::GetDocumentationExcerptName() const
 	return TEXT("UEdGraphNode_Comment");
 }
 
+FName UEdGraphNode_Comment::GetPaletteIcon(FLinearColor& OutColor) const
+{
+	OutColor = FLinearColor::White;
+	return TEXT("GraphEditor.Comment_16x");
+}
+
 FText UEdGraphNode_Comment::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if(TitleType == ENodeTitleType::MenuTitle)
