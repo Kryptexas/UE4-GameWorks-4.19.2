@@ -18,6 +18,7 @@
 
 - (bool)isHighlightingKeyEquivalent
 {
+	SCOPED_AUTORELEASE_POOL;
 	FCocoaMenu* SuperMenu = [[self supermenu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[self supermenu] : nil;
 	if ( SuperMenu )
 	{
@@ -31,6 +32,7 @@
 
 - (bool)highlightKeyEquivalent:(NSEvent *)Event
 {
+	SCOPED_AUTORELEASE_POOL;
 	bHighlightingKeyEquivalent = true;
 	bool bHighlighted = [super performKeyEquivalent:Event];
 	bHighlightingKeyEquivalent = false;

@@ -51,6 +51,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (NSRect)openGLFrame
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(self.TargetWindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::Fullscreen)
 	{
 		return self.PreFullScreenRect;
@@ -68,6 +69,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (NSView*)openGLView
 {
+	SCOPED_AUTORELEASE_POOL;
 	if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
 		NSView* SuperView = [[self contentView] superview];
@@ -95,6 +97,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	
 	if(bDeferOrderFront)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		if(!(bDeferSetFrame || bDeferSetOrigin))
 		{
 			bDeferOrderFront = false;
@@ -111,7 +114,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(bRenderInitialised && (bDeferSetFrame || bDeferSetOrigin))
 	{
+		SCOPED_AUTORELEASE_POOL;
 		dispatch_block_t Block = ^{
+			SCOPED_AUTORELEASE_POOL;
 			if(!bDeferSetFrame && bDeferSetOrigin)
 			{
 				DeferFrame.size = [self frame].size;
@@ -136,6 +141,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)orderWindow:(NSWindowOrderingMode)OrderingMode relativeTo:(NSInteger)OtherWindowNumber
 {
+	SCOPED_AUTORELEASE_POOL;
 	bool bModal = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask;
 	if(OrderingMode == NSWindowOut || bModal)
 	{
@@ -164,6 +170,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)redrawContents
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(bNeedsRedraw && bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
 	{
 		NSNotification* Notification = [NSNotification notificationWithName:NSWindowRedrawContents object:self];
@@ -189,6 +196,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)orderFrontAndMakeMain:(bool)bMain andKey:(bool)bKey
 {
+	SCOPED_AUTORELEASE_POOL;
 	if ([NSApp isHidden] == NO)
 	{
 		bool bBringToFront = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask;
@@ -211,17 +219,20 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 // Following few methods overload NSWindow's methods from Cocoa API, so have to use Cocoa's BOOL (signed char), not bool (unsigned int)
 - (BOOL)canBecomeMainWindow
 {
+	SCOPED_AUTORELEASE_POOL;
 	bool bNoModalOrCurrent = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self;
 	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask) && bNoModalOrCurrent;
 }
 
 - (BOOL)canBecomeKeyWindow
 {
+	SCOPED_AUTORELEASE_POOL;
 	return bAcceptsInput && ![self ignoresMouseEvents];
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)MenuItem
 {
+	SCOPED_AUTORELEASE_POOL;
 	// Borderless windows we use do not automatically handle first responder's actions, so we force it here
 	return ([MenuItem action] == @selector(performClose:) || [MenuItem action] == @selector(performMiniaturize:) || [MenuItem action] == @selector(performZoom:)) ? YES : [super validateMenuItem:MenuItem];
 }
@@ -235,6 +246,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 	else
 	{
+		SCOPED_AUTORELEASE_POOL;
 		if([self isVisible] && WindowAlpha > 0.0f)
 		{
 			[self performDeferredSetFrame];
@@ -245,6 +257,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)orderOut:(id)Sender
 {
+	SCOPED_AUTORELEASE_POOL;
 	bDeferOrderFront = false;
 	
 	[super orderOut:Sender];
@@ -252,6 +265,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)performClose:(id)Sender
 {
+	SCOPED_AUTORELEASE_POOL;
 	bDeferOrderFront = false;
 	
 	[self close];
@@ -259,17 +273,20 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)performMiniaturize:(id)Sender
 {
+	SCOPED_AUTORELEASE_POOL;
 	[self miniaturize: self];
 }
 
 - (void)performZoom:(id)Sender
 {
+	SCOPED_AUTORELEASE_POOL;
 	bZoomed = !bZoomed;
 	[self zoom: self];
 }
 
 - (void)setFrame:(NSRect)FrameRect display:(BOOL)Flag
 {
+	SCOPED_AUTORELEASE_POOL;
 	NSSize Size = [self frame].size;
 	NSSize NewSize = FrameRect.size;
 	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1 || NewSize.width > 1 || NewSize.height > 1)))
@@ -291,10 +308,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)setFrameOrigin:(NSPoint)Point
 {
+	SCOPED_AUTORELEASE_POOL;
 	NSSize Size = [self frame].size;
 	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1)))
 	{
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[super setFrameOrigin:Point];
 		});
 		bDeferSetOrigin = false;
@@ -349,6 +368,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)windowDidBecomeKey:(NSNotification *)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	if([NSApp isHidden] == NO)
 	{
 		if(FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask)
@@ -369,6 +389,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)windowDidResignKey:(NSNotification *)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	[self setMovable: YES];
 	[self setMovableByWindowBackground: NO];
 	
@@ -388,6 +409,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)windowDidMove:(NSNotification *)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
 	
 	NSView* OpenGLView = [self openGLView];
@@ -407,6 +429,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	// It does however, work fine for handling display arrangement changes that cause a window to go offscreen.
 	if(bDisplayReconfiguring)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSScreen* Screen = [self screen];
 		NSRect Frame = [self frame];
 		NSRect VisibleFrame = [Screen visibleFrame];
@@ -464,6 +487,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)windowDidResize:(NSNotification *)Notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
 	if(self.bForwardEvents)
 	{
@@ -474,6 +498,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)windowWillClose:(NSNotification *)notification
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(self.bForwardEvents && MacApplication)
 	{
 		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4CloseEventMode ]));
@@ -494,6 +519,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	// Really we shouldn't be doing this - on OS X only left-click changes focus,
 	// but for the moment it is easier than changing Slate.
+	SCOPED_AUTORELEASE_POOL;
 	if([self canBecomeKeyWindow])
 	{
 		[self makeKeyWindow];
@@ -546,6 +572,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSDraggingExited object:Sender];
 		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
@@ -555,6 +582,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSDraggingUpdated object:Sender];
 		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
@@ -565,6 +593,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSPrepareForDragOperation object:Sender];
 		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
@@ -575,6 +604,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		NSNotification* Notification = [NSNotification notificationWithName:NSPerformDragOperation object:Sender];
 		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async);
 	}
@@ -583,6 +613,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (BOOL)isMovable
 {
+	SCOPED_AUTORELEASE_POOL;
 	BOOL Movable = [super isMovable];
 	if(Movable && bRenderInitialised && MacApplication)
 	{

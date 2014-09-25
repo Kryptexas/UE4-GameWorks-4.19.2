@@ -164,6 +164,7 @@ static FCriticalSection GRunLoopModesLock;
 
 NSString* InGameRunLoopMode(NSArray* AllowedModes)
 {
+	SCOPED_AUTORELEASE_POOL;
 	NSString* Mode = [[NSRunLoop gameRunLoop] intendedMode];
 	if(Mode == nil || ![AllowedModes containsObject:Mode])
 	{
@@ -189,6 +190,7 @@ void GameThreadCall(dispatch_block_t Block, NSString* SendMode, bool const bWait
 
 void RunGameThread(id Target, SEL Selector)
 {
+	SCOPED_AUTORELEASE_POOL;
 #if MAC_SEPARATE_GAME_THREAD
 	// Create a separate game thread and set it to the stack size to be the same as the main thread default of 8MB ( http://developer.apple.com/library/mac/#qa/qa1419/_index.html )
 	FCocoaGameThread* GameThread = [[FCocoaGameThread alloc] initWithTarget:Target selector:Selector object:nil];
@@ -201,12 +203,12 @@ void RunGameThread(id Target, SEL Selector)
 
 void ProcessGameThreadEvents(void)
 {
+	SCOPED_AUTORELEASE_POOL;
 #if MAC_SEPARATE_GAME_THREAD
 	// Make one pass through the loop, processing all events
 	CFRunLoopRef RunLoop = CFRunLoopGetCurrent();
 	CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, false);
 #else
-	SCOPED_AUTORELEASE_POOL;
 	while( NSEvent *Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: true] )
 	{
 		// Either the windowNumber is 0 or the window must be valid for the event to be processed.

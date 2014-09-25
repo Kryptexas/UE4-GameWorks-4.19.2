@@ -9,6 +9,7 @@
 
 - (id)initWithFrame:(NSRect)frame
 {
+	SCOPED_AUTORELEASE_POOL;
     self = [super initWithFrame:frame];
     if (self)
 	{
@@ -22,6 +23,7 @@
 
 - (void)drawRect:(NSRect)dirtyRect
 {
+	SCOPED_AUTORELEASE_POOL;
 	[super drawRect:dirtyRect];
 	
     // Drawing code here.
@@ -31,6 +33,7 @@
 {
 	if (IMMContext.IsValid())
 	{
+		SCOPED_AUTORELEASE_POOL;
 		reallyHandledEvent = true;
 		return [[self inputContext] handleEvent:theEvent] && reallyHandledEvent;
 	}
@@ -50,6 +53,7 @@
 
 - (void)mouseDown:(NSEvent *)theEvent
 {
+	SCOPED_AUTORELEASE_POOL;
 	if (IMMContext.IsValid())
 	{
 		[[self inputContext] handleEvent:theEvent];
@@ -66,12 +70,14 @@
 {
 	if (IMMContext.IsValid())
 	{
+		SCOPED_AUTORELEASE_POOL;
 		[[self inputContext] handleEvent:theEvent];
 	}
 }
 
 - (void)mouseUp:(NSEvent *)theEvent
 {
+	SCOPED_AUTORELEASE_POOL;
 	if (IMMContext.IsValid())
 	{
 		[[self inputContext] handleEvent:theEvent];
@@ -86,6 +92,7 @@
 
 - (void)rightMouseDown:(NSEvent*)Event
 {
+	SCOPED_AUTORELEASE_POOL;
 	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
 	if (CocoaWindow)
 	{
@@ -99,6 +106,7 @@
 
 - (void)otherMouseDown:(NSEvent*)Event
 {
+	SCOPED_AUTORELEASE_POOL;
 	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
 	if (CocoaWindow)
 	{
@@ -112,6 +120,7 @@
 
 - (void)rightMouseUp:(NSEvent*)Event
 {
+	SCOPED_AUTORELEASE_POOL;
 	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
 	if (CocoaWindow)
 	{
@@ -125,6 +134,7 @@
 
 - (void)otherMouseUp:(NSEvent*)Event
 {
+	SCOPED_AUTORELEASE_POOL;
 	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
 	if (CocoaWindow)
 	{
@@ -145,6 +155,7 @@
 
 - (void)activateInputMethod:(const TSharedRef<ITextInputMethodContext>&)InContext
 {
+	SCOPED_AUTORELEASE_POOL;
 	if (IMMContext.IsValid())
 	{
 		[self unmarkText];
@@ -157,6 +168,7 @@
 
 - (void)deactivateInputMethod
 {
+	SCOPED_AUTORELEASE_POOL;
 	[self unmarkText];
 	IMMContext = NULL;
 	[[self inputContext] deactivate];
@@ -174,6 +186,7 @@
  */
 - (void)insertText:(id)aString replacementRange:(NSRange)replacementRange
 {
+	SCOPED_AUTORELEASE_POOL;
 	if (IMMContext.IsValid() && [self hasMarkedText])
 	{
 		__block uint32 SelectionLocation;
@@ -210,6 +223,7 @@
 		}
 		
 		GameThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			FString TheFString(TheString);
 			IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
 			IMMContext->SetSelectionRange(SelectionLocation+TheFString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
@@ -237,6 +251,7 @@
 {
 	if (IMMContext.IsValid())
 	{
+		SCOPED_AUTORELEASE_POOL;
 		__block uint32 SelectionLocation;
 		__block uint32 SelectionLength;
 		if (replacementRange.location == NSNotFound)
@@ -310,6 +325,7 @@
 			}
 			
 			GameThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				FString TheFString(TheString);
 				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
 				IMMContext->UpdateCompositionRange(CompositionRange.location, CompositionRange.length);
@@ -386,6 +402,7 @@
  */
 - (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)aRange actualRange:(NSRangePointer)actualRange
 {
+	// Deliberately no autorelease pool here - relies on the OS setting one up beforehand, otherwise the returned object won't be properly ref-counted
 	NSAttributedString* AttributedString = nil;
 	if (IMMContext.IsValid())
 	{
@@ -414,7 +431,8 @@
     // We only allow these attributes to be set on our marked text (plus standard attributes)
     // NSMarkedClauseSegmentAttributeName is important for CJK input, among other uses
     // NSGlyphInfoAttributeName allows alternate forms of characters
-    return [NSArray arrayWithObjects:NSMarkedClauseSegmentAttributeName, NSGlyphInfoAttributeName, nil];
+	// Deliberately no autorelease pool here - relies on the OS setting one up beforehand, otherwise the returned object won't be properly ref-counted
+return [NSArray arrayWithObjects:NSMarkedClauseSegmentAttributeName, NSGlyphInfoAttributeName, nil];
 }
 
 /* Returns the first logical rectangular area for aRange. The return value is in the screen coordinate. The size value can be negative if the text flows to the left. If non-NULL, actuallRange contains the character range corresponding to the returned area.
@@ -423,6 +441,7 @@
 {
 	if (IMMContext.IsValid())
 	{
+		SCOPED_AUTORELEASE_POOL;
 		__block FVector2D Position;
 		__block FVector2D Size;
 		GameThreadCall(^{
@@ -471,6 +490,7 @@
  */
 - (NSInteger)windowLevel
 {
+	SCOPED_AUTORELEASE_POOL;
 	return [[self window] level];
 }
 

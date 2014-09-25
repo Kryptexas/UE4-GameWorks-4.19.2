@@ -16,6 +16,7 @@ FMacWindow::~FMacWindow()
 	{
 		NSWindow* Window = WindowHandle;
 		dispatch_async(dispatch_get_main_queue(), ^{
+			SCOPED_AUTORELEASE_POOL;
 			[Window release];
 		});
 		WindowHandle = nil;
@@ -89,6 +90,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	}
 
 	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
 		WindowHandle = [[FCocoaWindow alloc] initWithContentRect: ViewRect styleMask: WindowStyle backing: NSBackingStoreBuffered defer: NO];
 		
 		if( WindowHandle != nullptr )
@@ -217,6 +219,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 		if(WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)
 		{
 			MainThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
 				
 				const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
@@ -280,6 +283,7 @@ void FMacWindow::Destroy()
 {
 	if( WindowHandle )
 	{
+		SCOPED_AUTORELEASE_POOL;
 		FCocoaWindow* Window = WindowHandle;
 		if(Definition->IsModalWindow)
 		{
@@ -301,6 +305,7 @@ void FMacWindow::Destroy()
 			
 			// Close the window
 			MainThreadCall(^{
+				SCOPED_AUTORELEASE_POOL;
 				[Window performClose:nil];
 			}, UE4CloseEventMode, true);
 		}
@@ -357,6 +362,7 @@ void FMacWindow::Show()
 		bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
 		
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
 		}, UE4ShowEventMode, true);
 		
@@ -390,6 +396,7 @@ void FMacWindow::Hide()
 			RemoveModalWindow(WindowHandle);
 		}
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderOut:nil];
 		}, UE4CloseEventMode, false);
 	}
@@ -423,6 +430,7 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		WindowHandle.TargetWindowMode = NewWindowMode;
 		
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle setCollectionBehavior: Behaviour];
 			[WindowHandle toggleFullScreen:nil];
 		}, UE4FullscreenEventMode, true);
@@ -453,11 +461,13 @@ bool FMacWindow::IsMaximized() const
 
 bool FMacWindow::IsMinimized() const
 {
+	SCOPED_AUTORELEASE_POOL;
 	return [WindowHandle isMiniaturized];
 }
 
 bool FMacWindow::IsVisible() const
 {
+	SCOPED_AUTORELEASE_POOL;
 	return bIsVisible && [NSApp isHidden] == false;
 }
 
@@ -552,9 +562,9 @@ bool FMacWindow::IsForegroundWindow() const
 
 void FMacWindow::SetText(const TCHAR* const Text)
 {
-	SCOPED_AUTORELEASE_POOL;
 	CFStringRef CFName = FPlatformString::TCHARToCFString( Text );
 	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
 		[WindowHandle setTitle: (NSString*)CFName];
 		if(IsRegularWindow())
 		{
@@ -579,6 +589,7 @@ void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayCh
 	if(WindowHandle)
 	{
 		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 			if(Flags & kCGDisplayBeginConfigurationFlag)
 			{
 				[WindowHandle setMovable: YES];
@@ -599,6 +610,7 @@ bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
 	if(WindowHandle && [WindowHandle openGLView])
 	{
 		return MainThreadReturn(^{
+			SCOPED_AUTORELEASE_POOL;
 			FCocoaTextView* View = (FCocoaTextView*)[WindowHandle openGLView];
 			return View && [View imkKeyDown:Event];
 		}, UE4IMEEventMode);

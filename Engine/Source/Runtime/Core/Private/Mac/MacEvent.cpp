@@ -9,6 +9,7 @@
 FMacEvent::FMacEvent(NSEvent* const Event)
 : EventData(Event)
 {
+	SCOPED_AUTORELEASE_POOL;
 	check(Event);
 	[Event retain];
 	
@@ -27,6 +28,7 @@ FMacEvent::FMacEvent(NSEvent* const Event)
 FMacEvent::FMacEvent(NSNotification* const Notification, NSWindow* const Window)
 : EventData(Notification)
 {
+	SCOPED_AUTORELEASE_POOL;
 	check(Notification);
 	[Notification retain];
 	
@@ -44,6 +46,7 @@ FMacEvent::FMacEvent(NSNotification* const Notification, NSWindow* const Window)
 
 void FMacEvent::SendToGameRunLoop(FMacEvent const* const Event, EMacEventSendMethod SendMethod, NSString* SendMode)
 {
+	SCOPED_AUTORELEASE_POOL;
 	NSThread* GameThread = [NSThread gameThread];
 	check(GameThread);
 	
@@ -78,6 +81,7 @@ FMacEvent::~FMacEvent(void)
 {
 	if(EventData)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		[EventData release];
 		EventData = nil;
 	}
@@ -85,6 +89,7 @@ FMacEvent::~FMacEvent(void)
 
 NSEvent* FMacEvent::GetEvent(void) const
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(EventData && [EventData isKindOfClass:[NSEvent class]])
 	{
 		return (NSEvent*)EventData;
@@ -97,6 +102,7 @@ NSEvent* FMacEvent::GetEvent(void) const
 
 NSNotification* FMacEvent::GetNotification(void) const
 {
+	SCOPED_AUTORELEASE_POOL;
 	if(EventData && [EventData isKindOfClass:[NSNotification class]])
 	{
 		return (NSNotification*)EventData;
