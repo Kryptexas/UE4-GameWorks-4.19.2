@@ -31,6 +31,7 @@
 #include "ToolkitManager.h"
 #include "BlueprintEditor.h"
 #include "EngineBuildSettings.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
@@ -341,7 +342,15 @@ void FIntroTutorials::HandleCompilerNotFound()
 
 void FIntroTutorials::HandleSDKNotInstalled(const FString& PlatformName, const FString& InTutorialAsset)
 {
-	LaunchTutorialByName( InTutorialAsset );
+	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *InTutorialAsset);
+	if(Blueprint)
+	{
+		LaunchTutorialByName( InTutorialAsset );
+	}
+	else
+	{
+		IDocumentation::Get()->Open( InTutorialAsset );
+	}
 }
 
 EVisibility FIntroTutorials::GetHomeButtonVisibility() const
