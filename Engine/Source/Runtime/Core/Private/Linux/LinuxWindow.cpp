@@ -157,7 +157,14 @@ SDL_HitTestResult FLinuxWindow::HitTest( SDL_Window *SDLwin, const SDL_Point *po
 /** Native windows should implement MoveWindowTo by relocating the platform-specific window to (X,Y). */
 void FLinuxWindow::MoveWindowTo( int32 X, int32 Y )
 {
-	SDL_SetWindowPosition( HWnd, X, Y );
+	// we are passed coordinates of a client area, so account for decorations
+	SDL_Rect Borders;
+	if (SDL_GetWindowBordersSize(HWnd, &Borders) == 0)
+	{
+		X -= Borders.x;
+		Y -= Borders.y;
+	}
+    SDL_SetWindowPosition( HWnd, X, Y );
 }
 
 /** Native windows should implement BringToFront by making this window the top-most window (i.e. focused).
@@ -300,6 +307,16 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 
 		case EWindowMode::Windowed:
 		{
+			if (Definition->HasOSWindowBorder)
+			{
+				// we are passed coordinates of a client area, so account for decorations
+				SDL_Rect Borders;
+				if (SDL_GetWindowBordersSize(HWnd, &Borders) == 0)
+				{
+					NewX -= Borders.x;
+					NewY -= Borders.y;
+				}
+			}
 			SDL_SetWindowPosition( HWnd, NewX, NewY );
 			SDL_SetWindowSize( HWnd, NewWidth, NewHeight );
 

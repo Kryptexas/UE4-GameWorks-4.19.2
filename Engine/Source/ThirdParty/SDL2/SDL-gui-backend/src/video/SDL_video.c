@@ -1746,6 +1746,26 @@ SDL_SetWindowMinimumSize(SDL_Window * window, int min_w, int min_h)
     }
 }
 
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+int
+SDL_GetWindowBordersSize(SDL_Window * window, SDL_Rect * borders)
+{
+    CHECK_WINDOW_MAGIC(window, );
+    /* Always initialize, so applications don't have to care */
+    if (borders) {
+        borders->x = 0;
+        borders->y = 0;
+        borders->w = 0;
+        borders->h = 0;
+        
+        if (_this->GetWindowBordersSize) {
+            return _this->GetWindowBordersSize(_this, window, borders);
+        }        
+    }
+    return -1;
+}
+#endif // SDL_WITH_EPIC_EXTENSIONS
+
 void
 SDL_GetWindowMinimumSize(SDL_Window * window, int *min_w, int *min_h)
 {

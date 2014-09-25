@@ -442,6 +442,9 @@ X11_CreateDevice(int devindex)
     device->SetWindowSize = X11_SetWindowSize;
     device->SetWindowMinimumSize = X11_SetWindowMinimumSize;
     device->SetWindowMaximumSize = X11_SetWindowMaximumSize;
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    device->GetWindowBordersSize = X11_GetWindowBordersSize;
+#endif // SDL_WITH_EPIC_EXTENSIONS
     device->ShowWindow = X11_ShowWindow;
     device->HideWindow = X11_HideWindow;
     device->RaiseWindow = X11_RaiseWindow;

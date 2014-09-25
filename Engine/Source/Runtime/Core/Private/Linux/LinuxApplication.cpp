@@ -173,6 +173,43 @@ bool FLinuxApplication::GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDow
 		(Sym != SDLK_DOWN && Sym != SDLK_LEFT && Sym != SDLK_RIGHT && Sym != SDLK_UP && Sym != SDLK_DELETE);
 }
 
+void FLinuxApplication::TrackActivationChanges(const TSharedPtr<FLinuxWindow> Window, EWindowActivation::Type Event)
+{
+	bool bNeedToNotify = (Window != CurrentlyActiveWindow) || Event == EWindowActivation::Deactivate;
+	
+	UE_LOG(LogLinuxWindow, Log, TEXT("TrackActivationChanges: %s (Window: %p, CurrentlyActiveWindow: %p, Event: %d)"),
+		bNeedToNotify ? TEXT("true") : TEXT("false"),
+		Window.Get(),
+		CurrentlyActiveWindow.Get(),
+		static_cast<int32>(Event));
+	
+	if (bNeedToNotify)
+	{
+		// see if previous window needs to be deactivated
+		if (CurrentlyActiveWindow.IsValid())
+		{
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("TrackActivationChanges: Deactivating previous window %p"), CurrentlyActiveWindow.Get());
+			MessageHandler->OnWindowActivationChanged(CurrentlyActiveWindow.ToSharedRef(), EWindowActivation::Deactivate);
+		}
+			
+		if (Event != EWindowActivation::Deactivate)
+		{
+			CurrentlyActiveWindow = Window;
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("TrackActivationChanges: New active window is %p, notifying it"), CurrentlyActiveWindow.Get());
+			
+			if (CurrentlyActiveWindow.IsValid())
+			{
+				MessageHandler->OnWindowActivationChanged(CurrentlyActiveWindow.ToSharedRef(), EWindowActivation::Deactivate);
+			}
+		}
+		else
+		{
+			CurrentlyActiveWindow = nullptr;
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("TrackActivationChanges: don't have any active window"));
+		}
+	}
+}
+
 void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 {
 	// This function can be reentered when entering a modal tick loop.
@@ -303,6 +340,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 			else
 			{
+				TrackActivationChanges(CurrentEventWindow, EWindowActivation::ActivateByMouse);
 				if (buttonEvent.clicks == 2)
 				{
 					MessageHandler->OnMouseDoubleClick(CurrentEventWindow, button);
@@ -616,7 +654,19 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_MOVED:
 					{
-						MessageHandler->OnMovedWindow(CurrentEventWindow.ToSharedRef(), windowEvent.data1, windowEvent.data2);
+						int32 ClientScreenX = windowEvent.data1;
+						int32 ClientScreenY = windowEvent.data2;
+						SDL_Rect Borders;
+						if (SDL_GetWindowBordersSize(NativeWindow, &Borders) == 0)
+						{
+							ClientScreenX += Borders.x;
+							ClientScreenY += Borders.y;
+						}
+						else
+						{
+							UE_LOG(LogLinuxWindow, Verbose, TEXT("Could not get Window border sizes!"));
+						}
+						MessageHandler->OnMovedWindow(CurrentEventWindow.ToSharedRef(), ClientScreenX, windowEvent.data2);
 					}
 					break;
 
@@ -637,7 +687,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 						if (CurrentEventWindow.IsValid())
 						{
 							MessageHandler->OnCursorSet();
-							MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::ActivateByMouse);
 						}
 					}
 					break;
@@ -647,7 +696,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 						if (CurrentEventWindow.IsValid() && GetCapture() != NULL)
 						{
 							UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
-							MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::Deactivate);
 						}
 					}
 					break;
@@ -656,7 +704,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					{
 						if (CurrentEventWindow.IsValid())
 						{
-							MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::Activate);
+							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Activate);                            
 						}
 					}
 					break;
@@ -665,7 +713,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					{
 						if (CurrentEventWindow.IsValid())
 						{
-							MessageHandler->OnWindowActivationChanged(CurrentEventWindow.ToSharedRef(), EWindowActivation::Deactivate);
+							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Deactivate);
 						}
 					}
 				break;
