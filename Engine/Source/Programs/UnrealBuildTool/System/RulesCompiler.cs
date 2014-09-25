@@ -852,6 +852,21 @@ namespace UnrealBuildTool
 #endif
             return Result;
         }
+		/// <summary>
+		/// Return additional parameters to cook commandlet
+		/// </summary>
+		public virtual string GUBP_AdditionalCookParameters(UnrealTargetPlatform HostPlatform, string Platform)
+		{
+			return "";
+		}
+
+		/// <summary>
+		/// Return additional parameters to package commandlet
+		/// </summary>
+		public virtual string GUBP_AdditionalPackageParameters(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+		{
+			return "";
+		}
 	}
 
 
