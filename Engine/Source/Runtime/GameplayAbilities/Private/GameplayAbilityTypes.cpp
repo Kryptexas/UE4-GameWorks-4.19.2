@@ -92,3 +92,13 @@ void FGameplayAbilityActivationInfo::SetPredictionStale()
 {
 	PredictionKey.bIsStale = true;
 }
+
+bool FGameplayAbilitySpec::IsActive() const
+{
+	if (Ability && Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
+	{
+		return true;
+	}
+
+	return ActiveInstanceCount > 0;
+}

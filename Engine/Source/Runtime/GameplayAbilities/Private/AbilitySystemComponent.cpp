@@ -627,6 +627,11 @@ TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActi
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
 }
 
+TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const
+{
+	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
+}
+
 void UAbilitySystemComponent::OnRestackGameplayEffects()
 {
 	ActiveGameplayEffects.RecalculateStacking();

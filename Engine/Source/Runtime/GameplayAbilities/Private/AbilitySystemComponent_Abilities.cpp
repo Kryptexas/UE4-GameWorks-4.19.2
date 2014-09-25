@@ -227,7 +227,7 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 		AnimatingAbility = NULL;
 	}
 
-	Spec->IsActive = false;
+	Spec->ActiveInstanceCount--;
 	
 	/** If this is instanced per execution, mark pending kill and remove it from our instanced lists if we are the authority */
 	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
@@ -255,7 +255,7 @@ void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContaine
 {
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
 	{
-		if (Spec.IsActive && Spec.Ability && Spec.Ability->AbilityTags.MatchesAny(Tags, false))
+		if (Spec.IsActive() && Spec.Ability && Spec.Ability->AbilityTags.MatchesAny(Tags, false))
 		{
 			if (Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 			{
@@ -272,7 +272,7 @@ void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContaine
 			else
 			{
 				Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, ActivationInfo);
-				check(!Spec.IsActive);
+				check(!Spec.IsActive() || Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced);
 			}
 		}
 	}
@@ -348,13 +348,13 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		return false;
 	}
 
-	if (Spec->IsActive && Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+	if (Spec->IsActive() && Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
 	{
 		// Don't have a great solution for ending non instanced abilities on the server. So only warn if this was instanced.
 		ABILITY_LOG(Warning, TEXT("TryActivateAbility called when ability was already active. NetMode: %d. Ability: %s"), (int32)NetMode, *Ability->GetName());
 	}
 	
-	Spec->IsActive = true;
+	Spec->ActiveInstanceCount++;
 
 	// Setup a fresh ActivationInfo for this AbilitySpec.
 	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->Actor.Get(), InPredictionKey);
@@ -813,10 +813,10 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 			if (Spec.Ability)
 			{
 				Spec.InputPressed = true;
-				if (Spec.IsActive)
+				if (Spec.IsActive())
 				{
 					// The ability is active, so just pipe the input event to it
-					if (Spec.Ability->GetInstancingPolicy() ==  EGameplayAbilityInstancingPolicy::NonInstanced)
+					if (Spec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 					{
 						Spec.Ability->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
 					}
@@ -848,19 +848,19 @@ void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 		{
 			if (Spec.Ability)
 			{
-				AbilitySpectInputReleased(Spec);
+				AbilitySpecInputReleased(Spec);
 			}
 		}
 	}
 }
 
-void UAbilitySystemComponent::AbilitySpectInputReleased(FGameplayAbilitySpec& Spec)
+void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spec)
 {
 	Spec.InputPressed = false;
-	if (Spec.IsActive)
+	if (Spec.IsActive())
 	{
 		// The ability is active, so just pipe the input event to it
-		if (Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
+		if (Spec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
 			Spec.Ability->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
 		}
@@ -915,7 +915,7 @@ void UAbilitySystemComponent::ServerInputRelease_Implementation(FGameplayAbility
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (Spec)
 	{
-		AbilitySpectInputReleased(*Spec);
+		AbilitySpecInputReleased(*Spec);
 	}
 }
 

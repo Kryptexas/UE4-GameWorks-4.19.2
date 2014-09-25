@@ -387,13 +387,46 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	{
 		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGameplayEffect->OwnedTagsContainer));
 		if (Durations.Num() > 0)
-		{
+			{
 			Durations.Sort();
 			return Durations[Durations.Num()-1];
-		}
-	}
+				}
+			}
 
 	return 0.f;
+}
+
+void UGameplayAbility::GetCooldownTimeRemainingAndDuration(const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& CooldownDuration) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemainingAndDuration);
+
+	check(ActorInfo->AbilitySystemComponent.IsValid());
+
+	TimeRemaining = 0.f;
+	CooldownDuration = 0.f;
+
+	if (CooldownGameplayEffect)
+	{
+		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGameplayEffect->OwnedTagsContainer));
+		if (DurationRemaining.Num() > 0)
+		{
+			TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsDuration(FActiveGameplayEffectQuery(&CooldownGameplayEffect->OwnedTagsContainer));
+			check(Durations.Num() == DurationRemaining.Num());
+			int32 BestIdx = 0;
+			float LongestTime = DurationRemaining[0];
+			for (int32 Idx = 1; Idx < DurationRemaining.Num(); ++Idx)
+			{
+				if (DurationRemaining[Idx] > LongestTime)
+				{
+					LongestTime = DurationRemaining[Idx];
+					BestIdx = Idx;
+				}
+			}
+
+			TimeRemaining = DurationRemaining[BestIdx];
+			CooldownDuration = Durations[BestIdx];
+		}
+	}
 }
 
 FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo() const

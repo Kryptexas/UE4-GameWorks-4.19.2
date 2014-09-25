@@ -273,6 +273,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 
+	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
+
 	void OnRestackGameplayEffects();
 
 	// --------------------------------------------
@@ -428,7 +430,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void AbilityInputReleased(int32 InputID);
 
-	void AbilitySpectInputReleased(FGameplayAbilitySpec& Spec);
+	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
 
 	/** Sent by abilities when they *need* to tell server when activation input is released. (Not sent by defauly only sent when using AbilityTask_WaitInputRelease) */
 	UFUNCTION(Server, reliable, WithValidation)

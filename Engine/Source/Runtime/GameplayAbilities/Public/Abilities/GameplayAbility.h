@@ -120,7 +120,11 @@ public:
 	/** Returns true if this ability can be triggered right now. Has no side effects */
 	virtual bool ShouldAbilityRespondToEvent(FGameplayTag EventTag, const FGameplayEventData* Payload) const;
 	
+	/** Returns the time in seconds remaining on the currently active cooldown. */
 	float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const;
+
+	/** Returns the time in seconds remaining on the currently active cooldown and the original duration for this cooldown. */
+	void GetCooldownTimeRemainingAndDuration(const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& CooldownDuration) const;
 		
 	EGameplayAbilityInstancingPolicy::Type GetInstancingPolicy() const
 	{

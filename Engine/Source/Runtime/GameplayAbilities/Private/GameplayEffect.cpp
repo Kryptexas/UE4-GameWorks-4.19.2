@@ -2043,7 +2043,7 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 
 TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsData);
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsTimeRemaining);
 
 	float CurrentTime = GetWorldTime();
 
@@ -2063,6 +2063,29 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 		float Duration = Effect.GetDuration();
 
 		ReturnList.Add(Duration - Elapsed);
+	}
+
+	// Note: keep one return location to avoid copy operation.
+	return ReturnList;
+}
+
+TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsDuration);
+
+	TArray<float>	ReturnList;
+
+	for (const FActiveGameplayEffect &Effect : GameplayEffects)
+	{
+		if (Query.TagContainer)
+		{
+			if (!Effect.Spec.Def->OwnedTagsContainer.MatchesAny(*Query.TagContainer, false))
+			{
+				continue;
+			}
+		}
+
+		ReturnList.Add(Effect.GetDuration());
 	}
 
 	// Note: keep one return location to avoid copy operation.

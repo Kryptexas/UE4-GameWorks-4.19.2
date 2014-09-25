@@ -110,6 +110,11 @@ struct FGameplayAbilitySpecHandle
 		return Handle != Other.Handle;
 	}
 
+	friend uint32 GetTypeHash(const FGameplayAbilitySpecHandle& SpecHandle)
+	{
+		return ::GetTypeHash(SpecHandle.Handle);
+	}
+
 private:
 
 	UPROPERTY()
@@ -230,13 +235,13 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
-	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), IsActive(false)
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), ActiveInstanceCount(0)
 	{
 		
 	}
 
 	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE)
-	: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), IsActive(false)
+		: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), ActiveInstanceCount(0)
 	{
 		Handle.GenerateNewHandle();
 	}
@@ -261,9 +266,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	UPROPERTY(NotReplicated)
 	bool	InputPressed;
 
-	/** Is this ability active? (Literally: has EndAbility been called on it since ActivateAbility was called on it */
+	/** The number of currently active instances of this ability */
 	UPROPERTY()
-	bool	IsActive;
+	uint8	ActiveInstanceCount;
 
 	/** Activation state of this ability. This is not replicated since it needs to be overwritten locally on clients during prediction. */
 	UPROPERTY(NotReplicated)
@@ -284,6 +289,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 		Abilities.Append(NonReplicatedInstances);
 		return Abilities;
 	}
+
+	bool IsActive() const;
 };
 
 // ----------------------------------------------------

@@ -1109,6 +1109,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 
+	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
+
 	int32 GetGameStateTime() const;
 
 	float GetWorldTime() const;
