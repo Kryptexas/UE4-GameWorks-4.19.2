@@ -54,8 +54,6 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\mesa\simple_list.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\mesa\strtod.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\mesa\symbol_table.h" />
-    <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalBackend.h" />
-    <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\OptValueNumbering.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\PackUniformBuffers.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.h" />
@@ -133,8 +131,6 @@
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\ralloc.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\strtod.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\symbol_table.cpp" />
-    <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalBackend.cpp" />
-    <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\OptValueNumbering.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\PackUniformBuffers.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.cpp" />

@@ -16,10 +16,6 @@
 		168A4E4819706C7400611B10 /* strtod.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4419706C7400611B10 /* strtod.cpp */; };
 		168A4E4919706C7400611B10 /* symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4519706C7400611B10 /* symbol_table.cpp */; };
 		168A4E4B19706CF600611B10 /* hash_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4A19706CF600611B10 /* hash_table.cpp */; };
-		16AE93B71946467D001EF3E3 /* MetalBackend.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16AE93B31946467D001EF3E3 /* MetalBackend.cpp */; };
-		16AE93B81946467D001EF3E3 /* MetalBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = 16AE93B41946467D001EF3E3 /* MetalBackend.h */; };
-		16AE93B91946467D001EF3E3 /* MetalUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16AE93B51946467D001EF3E3 /* MetalUtils.cpp */; };
-		16AE93BA1946467D001EF3E3 /* MetalUtils.h in Headers */ = {isa = PBXBuildFile; fileRef = 16AE93B61946467D001EF3E3 /* MetalUtils.h */; };
 		30FF2A1819633B8D00409BF3 /* ShaderCompilerCommon.h in Headers */ = {isa = PBXBuildFile; fileRef = 30FF2A171963396C00409BF3 /* ShaderCompilerCommon.h */; };
 		90438DDB1610831A00C0D669 /* hlslcc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DD81610831A00C0D669 /* hlslcc.cpp */; };
 		90438E401610833400C0D669 /* ast_expr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DDE1610833400C0D669 /* ast_expr.cpp */; };
@@ -159,10 +155,6 @@
 		168A4E4419706C7400611B10 /* strtod.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = strtod.cpp; sourceTree = "<group>"; };
 		168A4E4519706C7400611B10 /* symbol_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = symbol_table.cpp; sourceTree = "<group>"; };
 		168A4E4A19706CF600611B10 /* hash_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hash_table.cpp; sourceTree = "<group>"; };
-		16AE93B31946467D001EF3E3 /* MetalBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MetalBackend.cpp; sourceTree = "<group>"; };
-		16AE93B41946467D001EF3E3 /* MetalBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetalBackend.h; sourceTree = "<group>"; };
-		16AE93B51946467D001EF3E3 /* MetalUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MetalUtils.cpp; sourceTree = "<group>"; };
-		16AE93B61946467D001EF3E3 /* MetalUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetalUtils.h; sourceTree = "<group>"; };
 		30FF2A171963396C00409BF3 /* ShaderCompilerCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderCompilerCommon.h; sourceTree = "<group>"; };
 		90438DC51610829E00C0D669 /* libhlslccd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libhlslccd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		90438DD81610831A00C0D669 /* hlslcc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hlslcc.cpp; sourceTree = "<group>"; };
@@ -303,17 +295,6 @@
 			path = glsl;
 			sourceTree = "<group>";
 		};
-		16AE93B21946467D001EF3E3 /* Metal */ = {
-			isa = PBXGroup;
-			children = (
-				16AE93B31946467D001EF3E3 /* MetalBackend.cpp */,
-				16AE93B41946467D001EF3E3 /* MetalBackend.h */,
-				16AE93B51946467D001EF3E3 /* MetalUtils.cpp */,
-				16AE93B61946467D001EF3E3 /* MetalUtils.h */,
-			);
-			path = Metal;
-			sourceTree = "<group>";
-		};
 		90438DBA1610829E00C0D669 = {
 			isa = PBXGroup;
 			children = (
@@ -336,7 +317,6 @@
 			isa = PBXGroup;
 			children = (
 				30FF2A171963396C00409BF3 /* ShaderCompilerCommon.h */,
-				16AE93B21946467D001EF3E3 /* Metal */,
 				167F26AE18DB430E00778E55 /* glsl */,
 				9063D4A41743B03D00540C43 /* IRDump.cpp */,
 				9063D4A51743B03D00540C43 /* IRDump.h */,
@@ -492,7 +472,6 @@
 				90438E511610833400C0D669 /* glsl_types.h in Headers */,
 				90438E531610833400C0D669 /* hash_table.h in Headers */,
 				90438E571610833400C0D669 /* hlsl_parser.h in Headers */,
-				16AE93BA1946467D001EF3E3 /* MetalUtils.h in Headers */,
 				90438E581610833400C0D669 /* imports.h in Headers */,
 				90438E5A1610833400C0D669 /* ir_basic_block.h in Headers */,
 				90438E5E1610833400C0D669 /* ir_expression_flattening.h in Headers */,
@@ -515,7 +494,6 @@
 				90438E9F1610833400C0D669 /* strtod.h in Headers */,
 				90438EA11610833400C0D669 /* symbol_table.h in Headers */,
 				90F7E6DA171A1CE300B562D0 /* hlslcc.h in Headers */,
-				16AE93B81946467D001EF3E3 /* MetalBackend.h in Headers */,
 				90F7E6DC171A1CE300B562D0 /* ir_track_image_access.h in Headers */,
 				9063D4A91743B03D00540C43 /* IRDump.h in Headers */,
 				9063D4AB1743B03D00540C43 /* PackUniformBuffers.h in Headers */,
@@ -616,7 +594,6 @@
 				90438E621610833400C0D669 /* ir_function.cpp in Sources */,
 				DACBA84D18226C0300CBD9D0 /* OptValueNumbering.cpp in Sources */,
 				90438E631610833400C0D669 /* ir_hierarchical_visitor.cpp in Sources */,
-				16AE93B71946467D001EF3E3 /* MetalBackend.cpp in Sources */,
 				90438E651610833400C0D669 /* ir_hv_accept.cpp in Sources */,
 				90438E661610833400C0D669 /* ir_import_prototypes.cpp in Sources */,
 				168A4E4919706C7400611B10 /* symbol_table.cpp in Sources */,
@@ -630,7 +607,6 @@
 				90438E731610833400C0D669 /* ir.cpp in Sources */,
 				90438E761610833400C0D669 /* loop_analysis.cpp in Sources */,
 				90438E781610833400C0D669 /* loop_controls.cpp in Sources */,
-				16AE93B91946467D001EF3E3 /* MetalUtils.cpp in Sources */,
 				90438E791610833400C0D669 /* loop_unroll.cpp in Sources */,
 				90438E7A1610833400C0D669 /* lower_clip_distance.cpp in Sources */,
 				90438E7B1610833400C0D669 /* lower_discard.cpp in Sources */,

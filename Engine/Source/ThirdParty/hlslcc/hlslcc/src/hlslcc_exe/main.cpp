@@ -11,13 +11,11 @@
 #endif
 #include "hlslcc.h"
 #include "glsl/ir_gen_glsl.h"
-#include "Metal/MetalBackend.h"
 #include "ShaderCompilerCommon.h"
 
 enum EHlslccBackend
 {
 	HB_Glsl,
-	HB_Metal,
 	HB_Invalid,
 };
 
@@ -146,11 +144,6 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			else if (!strcmp(*argv, "-mac"))
 			{
 				// Ignore...
-			}
-			else if (!strcmp(*argv, "-metal"))
-			{
-				OutOptions.Target = HCT_FeatureLevelES3_1;
-				OutOptions.Backend = HB_Metal;
 			}
 			else if (!strncmp(*argv, "-entry=", 7))
 			{
@@ -309,14 +302,8 @@ int main( int argc, char** argv)
 
 	FCodeBackend* CodeBackend = &GlslCodeBackend;
 	ILanguageSpec* LanguageSpec = &GlslLanguageSpec;
-	FMetalCodeBackend MetalCodeBacked(Flags);
-	FMetalLanguageSpec MetalLanguageSpec;
 	switch (Options.Backend)
 	{
-	case HB_Metal:
-		CodeBackend = &MetalCodeBacked;
-		LanguageSpec = &MetalLanguageSpec;
-		break;
 	case HB_Glsl:
 	default:
 		CodeBackend = &GlslCodeBackend;

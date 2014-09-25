@@ -9,7 +9,7 @@ public class CrossCompilerTool : ModuleRules
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
-		PrivateIncludePaths.Add("MetalShaderFormat/Private");		// For Metal includes
+		PrivateIncludePaths.Add("Developer/iOS/MetalShaderFormat/Private");		// For Metal includes
 
 		PrivateDependencyModuleNames.AddRange(new string []
 			{

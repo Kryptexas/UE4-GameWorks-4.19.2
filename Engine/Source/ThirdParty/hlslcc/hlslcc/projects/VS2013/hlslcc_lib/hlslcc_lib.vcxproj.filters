@@ -15,9 +15,6 @@
     <Filter Include="Source Files\glsl">
       <UniqueIdentifier>{438ef568-46be-4761-a670-fd4ea36f1e3a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Metal">
-      <UniqueIdentifier>{f0a9ef9c-eb15-4f8c-97c8-9143a0a64a22}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlslcc.h">
@@ -136,12 +133,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\LanguageSpec.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalBackend.h">
-      <Filter>Source Files\Metal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.h">
-      <Filter>Source Files\Metal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.h">
       <Filter>Header Files</Filter>
@@ -369,12 +360,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.cpp">
       <Filter>Source Files\glsl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalBackend.cpp">
-      <Filter>Source Files\Metal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.cpp">
-      <Filter>Source Files\Metal</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.cpp">
       <Filter>Source Files</Filter>
