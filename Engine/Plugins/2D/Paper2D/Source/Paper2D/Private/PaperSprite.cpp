@@ -374,6 +374,8 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 void UPaperSprite::RebuildCollisionData()
 {
+	UBodySetup* OldBodySetup = BodySetup;
+
 	// Ensure we have the data structure for the desired collision method
 	switch (SpriteCollisionDomain)
 	{
@@ -422,6 +424,16 @@ void UPaperSprite::RebuildCollisionData()
 		default:
 			check(false); // unknown mode
 		};
+
+		// Copy across or initialize the only editable property we expose on the body setup
+		if (OldBodySetup != nullptr)
+		{
+			BodySetup->DefaultInstance.CopyBodyInstancePropertiesFrom(&(OldBodySetup->DefaultInstance));
+		}
+		else
+		{
+			BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+		}
 	}
 }
 
@@ -1345,6 +1357,11 @@ void UPaperSprite::PostLoad()
 	else if (PaperVer < FPaperCustomVersion::FixTypoIn3DConvexHullCollisionGeneration)
 	{
 		bRebuildCollision = true;
+	}
+	
+	if ((PaperVer < FPaperCustomVersion::AddDefaultCollisionProfileInSpriteAsset) && (BodySetup != nullptr))
+	{
+		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 	}
 
 	if (bRebuildCollision)

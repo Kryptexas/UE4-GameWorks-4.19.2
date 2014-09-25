@@ -17,13 +17,19 @@ public:
 
 	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
-		if (UPaperSpriteComponent* RenderComp = Cast<UPaperSpriteComponent>(InComponent))
+		if (UPaperSpriteComponent* RenderComponent = Cast<UPaperSpriteComponent>(InComponent))
 		{
 			UPaperSprite* Sprite = Cast<UPaperSprite>(InAsset);
 
-			if ((Sprite != NULL) || (InAsset == NULL))
+			if ((Sprite != nullptr) || (InAsset == nullptr))
 			{
-				RenderComp->SetSprite(Sprite);
+				RenderComponent->SetSprite(Sprite);
+
+				if (Sprite->BodySetup != nullptr)
+				{
+					RenderComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&(Sprite->BodySetup->DefaultInstance));
+				}
+
 				return true;
 			}
 		}
@@ -33,11 +39,11 @@ public:
 
 	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
-		if (UPaperSpriteComponent* RenderComp = Cast<UPaperSpriteComponent>(InComponent))
+		if (UPaperSpriteComponent* RenderComponent = Cast<UPaperSpriteComponent>(InComponent))
 		{
-			return RenderComp->GetSprite();
+			return RenderComponent->GetSprite();
 		}
-		return NULL;
+		return nullptr;
 	}
 };
 
