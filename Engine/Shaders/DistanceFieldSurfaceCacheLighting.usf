@@ -261,7 +261,6 @@ struct FIrradianceCacheSplatVertexOutput
 	nointerpolation float4 PositionRadius : TEXCOORD0;
 	nointerpolation float3 Normal : TEXCOORD1;
 	nointerpolation float3 BentNormal : TEXCOORD2;
-	nointerpolation uint RecordIndex : TEXCOORD3;
 #if USE_SCREENVECTOR_WORLD_POSITION
 	float3 ScreenVector : TEXCOORD4;
 #endif
@@ -324,6 +323,8 @@ void IrradianceCacheSplatVS(
 	VirtualRadius += HackExpand * ViewToCenterLength * 4;
 #endif
 
+	float3 RecordNormal = DecodeNormalForAO(IrradianceCacheNormal.Load(JobIndex).xyz);
+
 	float2 CornerUVs = InUV;
 	float3 CornerPosition = VirtualPosition + (View.ViewRight * CornerUVs.x + View.ViewUp * CornerUVs.y) * VirtualRadius;
 
@@ -337,9 +338,8 @@ void IrradianceCacheSplatVS(
 	Output.Position.xy += NormalizedOffsetToPixelCenter * Output.Position.w;
 
 	Output.PositionRadius = PositionAndRadius; 
-	Output.Normal = DecodeNormalForAO(IrradianceCacheNormal.Load(JobIndex).xyz);
+	Output.Normal = RecordNormal;
 	Output.BentNormal = DecodeNormalForAO(IrradianceCacheBentNormal.Load(JobIndex).xyz);
-	Output.RecordIndex = JobIndex;
 } 
 
 float InterpolationAngleNormalization; 
@@ -373,6 +373,7 @@ void IrradianceCacheSplatPS(
 	
 	float Distance = length(OpaqueWorldPosition - Input.PositionRadius.xyz);
 	float DistanceError = saturate(Distance / Input.PositionRadius.w);
+	float Weight = 0;
 
 	BRANCH
 	if (DistanceError < 1 && SceneW < AOMaxViewDistance)
@@ -391,7 +392,7 @@ void IrradianceCacheSplatPS(
 		float PointBehindPlaneError = min(max(PlaneDistance * InvMinCosPointBehindPlane, 0.0f), DistanceToVertex / 3.0f);
 
 		float PrecisionScale = .1f;
-		float Weight = saturate(PrecisionScale * (1 - max(DistanceError, max(NormalError, PointBehindPlaneError))));
+		Weight = saturate(PrecisionScale * (1 - max(DistanceError, max(NormalError, PointBehindPlaneError))));
 		//float Weight = saturate(PrecisionScale * (1 - max(DistanceError, NormalError)));
 		//float Weight = saturate(PrecisionScale * (1 - DistanceError));
 		//float Weight = saturate(PrecisionScale * (1 - NormalError));
@@ -405,7 +406,7 @@ void IrradianceCacheSplatPS(
 	#if VISUALIZE_SPLAT_OVERDRAW && FINAL_INTERPOLATION_PASS
 		OutColor.rgb = 0;
 		//OutColor.a = Input.Position.w <= SceneW ? .01f : 0.0f;
-		OutColor.a = .005f;
+		OutColor.a = .005f + (Weight > .001f ? .01f : 0);
 	#endif
 
 	#define VISUALIZE_RECORD_POINTS 0
