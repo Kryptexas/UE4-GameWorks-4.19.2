@@ -10,7 +10,11 @@ namespace EHardwareClass
 {
 	enum Type
 	{
-		Desktop, Mobile
+		// Desktop or console
+		Desktop,
+		
+		// Mobile or tablet
+		Mobile
 	};
 }
 
@@ -20,14 +24,17 @@ namespace EGraphicsPreset
 {
 	enum Type
 	{
-		Maximum, Scalable
+		// Maximum quality - High-end features default to enabled
+		Maximum,
+		
+		// Scalable quality - Some features are disabled by default but can be enabled based on the actual hardware
+		Scalable
 	};
 }
 
 /** Hardware targeting settings, stored in default config, per-project */
 UCLASS(config=Editor, defaultconfig)
-class HARDWARETARGETING_API UHardwareTargetingSettings
-	: public UObject
+class HARDWARETARGETING_API UHardwareTargetingSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
