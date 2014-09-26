@@ -195,13 +195,12 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	FString CommandLine = FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
 		*InitialMap);
 
-	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s\""),
+	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"%s -SessionId=%s -SessionOwner=%s -SessionName='%s'\""),
 		*InitialMap,
-		*InstanceId.ToString(),
+//		*InstanceId.ToString(),
 		*SessionId.ToString(),
 		FPlatformProcess::UserName(false),
-		*InProfile->GetName(),
-		InProfile->GetLaunchRoles().Num() > 0 ? (InProfile->GetLaunchRoles()[0]->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT("")) : TEXT(""));
+		*InProfile->GetName());
 
 	// staging directory
 	FString StageDirectory = TEXT("");
@@ -219,35 +218,37 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	FString OptionalParams = TEXT("");
 	for (int32 PlatformIndex = 0; PlatformIndex < InPlatforms.Num(); ++PlatformIndex)
 	{
+		// Platform info for the given platform
+		const PlatformInfo::FPlatformInfo* PlatformInfo = PlatformInfo::FindPlatformInfo(FName(*InPlatforms[PlatformIndex]));
+
 		// switch server and no editor platforms to the proper type
-		if (InPlatforms[PlatformIndex] == TEXT("LinuxServer"))
+		if (PlatformInfo->TargetPlatformName == FName("LinuxServer"))
 		{
 			ServerPlatforms += TEXT("+Linux");
 		}
-		else if (InPlatforms[PlatformIndex] == TEXT("WindowsServer"))
+		else if (PlatformInfo->TargetPlatformName == FName("WindowsServer"))
 		{
 			ServerPlatforms += TEXT("+Win64");
 		}
-		else if (InPlatforms[PlatformIndex] == TEXT("LinuxNoEditor"))
+		else if (PlatformInfo->TargetPlatformName == FName("LinuxNoEditor"))
 		{
 			Platforms += TEXT("+Linux");
 		}
-		else if (InPlatforms[PlatformIndex] == TEXT("WindowsNoEditor") || InPlatforms[PlatformIndex] == TEXT("Windows"))
+		else if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") || PlatformInfo->TargetPlatformName == FName("Windows"))
 		{
 			Platforms += TEXT("+Win64");
 		}
-		else if (InPlatforms[PlatformIndex] == TEXT("MacNoEditor"))
+		else if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
 		{
 			Platforms += TEXT("+Mac");
 		}
 		else
 		{
 			Platforms += TEXT("+");
-			Platforms += InPlatforms[PlatformIndex];
+			Platforms += PlatformInfo->TargetPlatformName.ToString();
 		}
 
 		// Append any extra UAT flags specified for this platform flavor
-		const PlatformInfo::FPlatformInfo* PlatformInfo = PlatformInfo::FindPlatformInfo(FName(*InPlatforms[PlatformIndex]));
 		if (!PlatformInfo->UATCommandLine.IsEmpty())
 		{
 			OptionalParams += TEXT(" ");
@@ -266,14 +267,18 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 	UATCommand += PlatformCommand;
 	UATCommand += ServerCommand;
+	UATCommand += OptionalParams;
 
 	// device list
 	FString DeviceNames = TEXT("");
 	FString DeviceCommand = TEXT("");
+	FString RoleCommands = TEXT("");
 	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();
 	if (DeviceGroup.IsValid())
 	{
 		const TArray<FString>& Devices = DeviceGroup->GetDeviceIDs();
+		bool bVsyncAdded = false;
+
 		// for each deployed device...
 		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
 		{
@@ -285,6 +290,19 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			{
 				// add the platform
 				DeviceNames += TEXT("+\"") + DeviceId + TEXT("\"");
+				TArray<ILauncherProfileLaunchRolePtr> Roles;
+				if (InProfile->GetLaunchRolesFor(DeviceId, Roles) > 0)
+				{
+					for (int32 RoleIndex = 0; RoleIndex < Roles.Num(); RoleIndex++)
+					{
+						if (!bVsyncAdded && Roles[RoleIndex]->IsVsyncEnabled())
+						{
+							RoleCommands += TEXT(" -vsync");
+							bVsyncAdded = true;
+						}
+						RoleCommands += *(TEXT(" ") + Roles[RoleIndex]->GetCommandLine());
+					}
+				}
 			}			
 		}
 	}
@@ -428,6 +446,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		if (InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch)
 		{
 			UATCommand += TEXT(" -run");
+			UATCommand += RoleCommands;
 
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherRunDesc", "Launching on {0}"), FText::FromString(DeviceNames.RightChop(1)));
