@@ -433,7 +433,7 @@ bool FJsonMessageSerializer::DeserializeStruct( IMutableMessageContextRef& OutCo
 
 						FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(CurrentState.Data));
 						const int32 ArrayIndex = ArrayHelper.AddValue();
-						NewState.Property = CurrentState.Property;
+						NewState.Property = ArrayProperty->Inner;
 						NewState.Data = ArrayHelper.GetRawPtr(ArrayIndex);
 					}
 					else
