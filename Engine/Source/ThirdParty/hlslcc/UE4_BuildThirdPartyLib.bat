@@ -20,9 +20,14 @@ pushd hlslcc\projects
 	msbuild hlslcc.sln /target:Clean,hlslcc_lib /p:Platform=x64;Configuration="Release"
 	popd
 
-	REM Linux
+	REM Linux (only if LINUX_ROOT is defined)
+	set CheckLINUX_ROOT=%LINUX_ROOT%
+	if "%CheckLINUX_ROOT%"=="" goto SkipLinux
+
 	pushd Linux
 	CrossCompile.bat
 	popd
+
+:SkipLinux
 
 popd
