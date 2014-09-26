@@ -3408,7 +3408,7 @@ void FRecastNavMeshGenerator::SetUpGeneration(float CellSize, float CellHeight, 
 	}
 	
 	// expand bounds a bit to support later inclusion tests
-	NavBounds.ExpandBy(CellSize);
+	NavBounds = NavBounds.ExpandBy(CellSize);
 
 	bool bAdjust = false;
 	bool bClampBounds = false;
