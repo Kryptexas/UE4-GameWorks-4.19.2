@@ -198,6 +198,7 @@ FMacWindow::FMacWindow()
 	: WindowHandle(NULL)
 	, WindowMode(EWindowMode::Windowed)
 	, bIsVisible(false)
+	, bIsClosed(false)
 {
 	PreFullscreenWindowRect.origin.x = PreFullscreenWindowRect.origin.y = PreFullscreenWindowRect.size.width = PreFullscreenWindowRect.size.height = 0.0f;
 }
@@ -270,7 +271,7 @@ void FMacWindow::MoveWindowTo( int32 X, int32 Y )
 
 void FMacWindow::BringToFront( bool bForce )
 {
-	if (bIsVisible)
+	if (!bIsClosed && bIsVisible)
 	{
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
@@ -289,6 +290,8 @@ void FMacWindow::Destroy()
 		{
 			RemoveModalWindow(Window);
 		}
+		
+		bIsClosed = true;
 		
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
@@ -352,7 +355,7 @@ void FMacWindow::Restore()
 void FMacWindow::Show()
 {
 	SCOPED_AUTORELEASE_POOL;
-	if (!bIsVisible)
+	if (!bIsClosed && !bIsVisible)
 	{
 		if(Definition->IsModalWindow)
 		{

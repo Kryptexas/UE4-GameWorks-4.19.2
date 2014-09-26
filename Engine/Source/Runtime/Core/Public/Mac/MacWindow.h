@@ -115,4 +115,5 @@ private:
 	NSRect PreFullscreenWindowRect;
 
 	bool bIsVisible : 1;
+	bool bIsClosed : 1;
 };
