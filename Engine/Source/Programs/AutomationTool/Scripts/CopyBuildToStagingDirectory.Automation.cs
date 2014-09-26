@@ -133,11 +133,11 @@ public partial class Project : CommandUtils
 			SC.NonUFSStagingFiles = ConvertToLower(SC.NonUFSStagingFiles);
 			SC.NonUFSStagingFilesDebug = ConvertToLower(SC.NonUFSStagingFilesDebug);
 		}
-		if (Params.Pak && BuildPlatform.DeployPakInternalLowerCaseFilenames())
+		if (Params.UsePak(SC.StageTargetPlatform) && BuildPlatform.DeployPakInternalLowerCaseFilenames())
 		{
 			SC.UFSStagingFiles = ConvertToLower(SC.UFSStagingFiles);
 		}
-		else if (!Params.Pak && BuildPlatform.DeployLowerCaseFilenames(true))
+		else if (!Params.UsePak(SC.StageTargetPlatform) && BuildPlatform.DeployLowerCaseFilenames(true))
 		{
 			SC.UFSStagingFiles = ConvertToLower(SC.UFSStagingFiles);
 		}
@@ -203,32 +203,32 @@ public partial class Project : CommandUtils
             }
 
 			// Engine ufs (content)
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.Pak); // TODO: Exclude localization data generation config files.
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
 
 			if (Params.bUsesSlate)
 			{
 				if (Params.bUsesSlateEditorStyle)
 				{
-					SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Editor/Slate"), "*", true, null, null, false, !Params.Pak);
+					SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Editor/Slate"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 				}
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"), "*", true, null, null, false, !Params.Pak);
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.Pak);
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.UsePak(SC.StageTargetPlatform));
 
 			}
             foreach (string Culture in CulturesToStage)
             {
-                SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine", Culture), "*.locres", true, null, null, true, !Params.Pak);
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine", Culture), "*.locres", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
             }
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Plugins"), "*.uplugin", true, null, null, true, !Params.Pak);
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Plugins"), "*.uplugin", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
 
 			// Game ufs (content)
-            
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot), "*.uproject", false, null, CombinePaths(SC.RelativeProjectRootForStage), true, !Params.Pak);
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Config"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Config"), true, !Params.Pak); // TODO: Exclude localization data generation config files.
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins"), "*.uplugin", true, null, null, true, !Params.Pak);
+
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot), "*.uproject", false, null, CombinePaths(SC.RelativeProjectRootForStage), true, !Params.UsePak(SC.StageTargetPlatform));
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Config"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Config"), true, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins"), "*.uplugin", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
 			foreach (string Culture in CulturesToStage)
 			{
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Localization/Game", Culture), "*.locres", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game", Culture), true, !Params.Pak);
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Localization/Game", Culture), "*.locres", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game", Culture), true, !Params.UsePak(SC.StageTargetPlatform));
 			}
 
 			// Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
@@ -246,7 +246,7 @@ public partial class Project : CommandUtils
 						if (PathParts.Length == 3)
 						{
 							var RelativePath = PathParts[1];
-							SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.Pak);
+							SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
 						}
 					}
 				}
@@ -276,12 +276,12 @@ public partial class Project : CommandUtils
 
 			if (SC.StageTargetPlatform.StageMovies)
 			{
-				SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.LocalRoot, "Engine/Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Engine/Content/Movies"), true, !Params.Pak);
-				SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, !Params.Pak);
+				SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.LocalRoot, "Engine/Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Engine/Content/Movies"), true, !Params.UsePak(SC.StageTargetPlatform));
+				SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, !Params.UsePak(SC.StageTargetPlatform));
 			}
 
 			// eliminate the sand box
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, null, "", true, !Params.Pak);
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, null, "", true, !Params.UsePak(SC.StageTargetPlatform));
 
 			// CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
 			// @todo Make CrashReportClient more portable so we don't have to do this
@@ -710,7 +710,7 @@ public partial class Project : CommandUtils
 		{
 			return;
 		}
-		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "FinalCopy" + (SC.DedicatedServer ? "_Server" : "")), !Params.Pak);
+		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "FinalCopy" + (SC.DedicatedServer ? "_Server" : "")), !Params.UsePak(SC.StageTargetPlatform));
 		CopyUsingStagingManifest(Params, SC);
 
 		var ThisPlatform = SC.StageTargetPlatform;

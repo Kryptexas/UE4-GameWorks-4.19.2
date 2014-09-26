@@ -741,7 +741,7 @@ public class IOSPlatform : Platform
 		}
 
 		// stage required icu files
-		SC.StageFiles (StagedFileType.UFS, CombinePaths (SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
+		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)

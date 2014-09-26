@@ -684,6 +684,14 @@ namespace AutomationTool
 		public bool Pak { private set; get; }
 
 		/// <summary>
+		/// 
+		/// </summary>
+		public bool UsePak(Platform PlatformToCheck)
+		{
+			return Pak || PlatformToCheck.RequiresPak(this) == Platform.PakType.Always;
+		}
+
+		/// <summary>
 		/// Shared: Encryption keys used for signing the pak file.
 		/// </summary>
 		[Help("signpak=keys", "sign the generated pak file with the specified key, i.e. -signpak=C:\\Encryption.keys. Also implies -signedpak.")]

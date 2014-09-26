@@ -770,7 +770,7 @@ public class AndroidPlatform : Platform
 
 		if (!Params.CookOnTheFly && !Params.SkipCookOnTheFly) // only stage the UFS files if we are not using cook on the fly
 		{
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 		}
 	}
 
@@ -815,7 +815,8 @@ public class AndroidPlatform : Platform
 
 	public override PakType RequiresPak(ProjectParams Params)
 	{
-		return PakType.Always;
+		// if packaging is enabled, always create a pak, otherwise use the Params.Pak value
+		return Params.Package ? PakType.Always : PakType.DontCare;
 	}
     
 	#region Hooks
