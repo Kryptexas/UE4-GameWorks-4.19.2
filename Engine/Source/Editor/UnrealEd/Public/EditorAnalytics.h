@@ -97,7 +97,8 @@ public:
 	*/
 	UNREALED_API static void ReportBuildRequirementsFailure(FString EventName, FString PlatformName, bool bHasCode, int32 Requirements);
 
-private:
+public:
+
 	/* Translates the error code to something human readable */
 	static FString TranslateErrorCode(int32 ErrorCode);
 };

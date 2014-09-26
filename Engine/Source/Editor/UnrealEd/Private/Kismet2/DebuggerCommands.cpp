@@ -1409,17 +1409,17 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		switch (Result)
 		{
 			case ETargetPlatformReadyStatus::SDKNotFound:
-				MessageLogText = LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not be found");
+				MessageLogText = LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found.");
 				MessageLogTextDetail = FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName());
 				break;
 
 			case ETargetPlatformReadyStatus::ProvisionNotFound:
-				MessageLogText = LOCTEXT("ProvisionNotFoundMessage", "Provision not found");
+				MessageLogText = LOCTEXT("ProvisionNotFoundMessage", "Provision not found.");
 				MessageLogTextDetail = LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.");
 				break;
 
 			case ETargetPlatformReadyStatus::SigningKeyNotFound:
-				MessageLogText = LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found");
+				MessageLogText = LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found.");
 				MessageLogTextDetail = LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.");
 				break;
 
