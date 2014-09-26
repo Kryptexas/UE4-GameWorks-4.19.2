@@ -900,3 +900,65 @@ public:
 
 	ENGINE_API void DrawHighResScreenshotCaptureRegion(FCanvas& Canvas);
 };
+
+
+/**
+ * Minimal viewport for assisting with taking screenshots (also used within a plugin)
+ * @todo: This should be refactored
+ */
+class FDummyViewport : public FViewport
+{
+public:
+	ENGINE_API FDummyViewport(FViewportClient* InViewportClient);
+
+	virtual ~FDummyViewport();
+
+	// Begin FViewport interface
+	virtual void BeginRenderFrame(FRHICommandListImmediate& RHICmdList) override
+	{
+		check( IsInRenderingThread() );
+		SetRenderTarget(RHICmdList,  RenderTargetTextureRHI,  FTexture2DRHIRef() );
+	};
+
+	virtual void EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync) override
+	{
+		check( IsInRenderingThread() );
+	}
+
+	virtual void*	GetWindow() { return 0; }
+	virtual void	MoveWindow(int32 NewPosX, int32 NewPosY, int32 NewSizeX, int32 NewSizeY) {}
+	virtual void	Destroy() {}
+	virtual bool	CaptureJoystickInput(bool Capture) { return false; }
+	virtual bool	KeyState(FKey Key) const { return false; }
+	virtual int32	GetMouseX() const { return 0; }
+	virtual int32	GetMouseY() const { return 0; }
+	virtual void	GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) { MousePosition = FIntPoint(0, 0); }
+	virtual void	SetMouse(int32 x, int32 y) { }
+	virtual void	ProcessInput( float DeltaTime ) { }
+	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const override { return FVector2D::ZeroVector; }
+	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const override { return FIntPoint::ZeroValue; }
+	virtual void InvalidateDisplay() { }
+	virtual void DeferInvalidateHitProxy() { }
+	virtual FViewportFrame* GetViewportFrame() { return 0; }
+	virtual FCanvas* GetDebugCanvas() { return DebugCanvas; }
+	// End FViewport interface
+
+	// Begin FRenderResource interface
+	virtual void InitDynamicRHI()
+	{
+		FTexture2DRHIRef ShaderResourceTextureRHI;
+
+		FRHIResourceCreateInfo CreateInfo;
+		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
+	}
+
+	// @todo UE4 DLL: Without these functions we get unresolved linker errors with FRenderResource
+	virtual void InitRHI() override{}
+	virtual void ReleaseRHI() override{}
+	virtual void InitResource() override{ FViewport::InitResource(); }
+	virtual void ReleaseResource() override { FViewport::ReleaseResource(); }
+	virtual FString GetFriendlyName() const { return FString(TEXT("FDummyViewport"));}
+	// End FRenderResource interface
+private:
+	FCanvas* DebugCanvas;
+};
