@@ -3593,11 +3593,9 @@ void ASkeletalMeshActor::CheckForErrors()
 
 		if (SkeletalMeshComponent->SkeletalMesh == NULL)
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SkeletalMeshNull", "{ActorName} : Skeletal mesh actor has NULL SkeletalMesh property" ), Arguments ) ))
+				->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_SkeletalMeshNull", "Skeletal mesh actor has NULL SkeletalMesh property")))
 				->AddToken(FMapErrorToken::Create(FMapErrors::SkeletalMeshNull));
 		}
 	}
@@ -3607,7 +3605,7 @@ void ASkeletalMeshActor::CheckForErrors()
 		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SkeletalMeshComponent", "{ActorName} : Skeletal mesh actor has NULL SkeletalMeshComponent property" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_SkeletalMeshComponent", "Skeletal mesh actor has NULL SkeletalMeshComponent property")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::SkeletalMeshComponent));
 	}
 }

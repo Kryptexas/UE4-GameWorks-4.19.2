@@ -277,11 +277,9 @@ void AEmitter::CheckForErrors()
 	{
 		if ( !ParticleSystemComponent.IsValid() )
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("EmitterName"), FText::FromString(GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_ParticleSystemComponentNull", "{EmitterName} : Emitter actor has NULL ParticleSystemComponent property - please delete" ), Arguments ) ))
+				->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_ParticleSystemComponentNull", "Emitter actor has NULL ParticleSystemComponent property - please delete")))
 				->AddToken(FMapErrorToken::Create(FMapErrors::ParticleSystemComponentNull));
 		}
 	}

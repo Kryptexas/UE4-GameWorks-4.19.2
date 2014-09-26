@@ -50,6 +50,8 @@ public:
 		);
 	}
 
+public:
+
 	/** @return Widget for this log listing item*/
 	virtual TSharedRef<SWidget> GenerateWidget()
 	{
@@ -57,48 +59,40 @@ public:
 		const TArray<TSharedRef<IMessageToken>>& MessageTokens = Message->GetMessageTokens();
 
 		// Create the horizontal box and add the icon
-		TSharedRef<SVerticalBox> DetailBox = SNew(SVerticalBox);
-		TSharedRef<SHorizontalBox> TokenBox = SNew(SHorizontalBox);
+		TSharedRef<SHorizontalBox> MessageBox = SNew(SHorizontalBox);
+		TSharedRef<SHorizontalBox> LinkBox = SNew(SHorizontalBox);
 		FName SeverityImageName = NAME_None;
-		bool HasTokens = false;
-		FText TitleText;
+		bool HasLinks = false;
 
 		// Iterate over parts of the message and create widgets for them
 		for (auto TokenIt = MessageTokens.CreateConstIterator(); TokenIt; ++TokenIt)
 		{
 			const TSharedRef<IMessageToken>& Token = *TokenIt;
 
-			if (Token->GetType() == EMessageToken::Severity)
+			switch (Token->GetType())
 			{
-				if (SeverityImageName == NAME_None)
+			case EMessageToken::Severity:
 				{
-					const TSharedRef<FSeverityToken> SeverityToken = StaticCastSharedRef<FSeverityToken>(Token);
-					SeverityImageName = FTokenizedMessage::GetSeverityIconName(SeverityToken->GetSeverity());
+					if (SeverityImageName == NAME_None)
+					{
+						const TSharedRef<FSeverityToken> SeverityToken = StaticCastSharedRef<FSeverityToken>(Token);
+						SeverityImageName = FTokenizedMessage::GetSeverityIconName(SeverityToken->GetSeverity());
+					}
 				}
+				break;
+
+			case EMessageToken::Documentation:
+			case EMessageToken::Tutorial:
+				{
+					CreateMessage(LinkBox, Token, 10.0f);
+					HasLinks = true;
+				}
+				break;
+
+			default:
+				CreateMessage(MessageBox, Token, 2.0f);
+				break;
 			}
-			else if (Token->GetType() == EMessageToken::Text)
-			{
-				if (TitleText.IsEmpty())
-				{
-					TitleText = Token->ToText();
-				}
-				else
-				{
-					DetailBox->AddSlot()
-						.AutoHeight()
-						.Padding(0.0f, 0.0f, 0.0f, 6.0f)
-						[
-							SNew(STextBlock)
-								.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-								.Text(Token->ToText())
-						];
-				}
-			}
-			else
-			{
-				CreateMessage(TokenBox, Token);
-				HasTokens = true;
-			}		
 		}
 
 		return SNew(SHorizontalBox)
@@ -106,11 +100,11 @@ public:
 
 		+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
 			[
 				SNew(SBox)
 					.Padding(2.0f)
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Top)
 					[
 						(SeverityImageName == NAME_None)
 							? SNullWidget::NullWidget
@@ -121,47 +115,25 @@ public:
 
 		+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
-			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			.VAlign(VAlign_Center)
 			[
-				SNew(SBox)
-					.Padding(2.0f)
-					[
-						SNew(SVerticalBox)
+				MessageBox
+			]
 
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							.VAlign(VAlign_Center)
-							[
-								SNew(STextBlock)
-									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9))
-									.Text(TitleText)
-							]
-
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-							[
-								DetailBox
-							]
-
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							[
-								!HasTokens
-									? SNullWidget::NullWidget
-									: static_cast<TSharedRef<SWidget>>(SNew(SSeparator))
-							]
-
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							.HAlign(HAlign_Right)
-							.Padding(0.0f, 2.0f, 0.0f, 12.0f)
-							[
-								!HasTokens
-									? SNullWidget::NullWidget
-									: static_cast<TSharedRef<SWidget>>(TokenBox)
-							]
-					]
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			.Padding(1.0f)
+			[
+				!HasLinks
+					? SNullWidget::NullWidget
+					: static_cast<TSharedRef<SWidget>>(SNew(SBorder)
+						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						.Padding(FMargin(0.0f, 1.0f, 10.0f, 1.0f))
+						[
+							LinkBox
+						])
 			];
 	}
 
@@ -176,13 +148,13 @@ protected:
 			.OnNavigate(this, &SMessageLogMessageListRow::HandleHyperlinkNavigate, InMessageToken);
 	}
 
-	void CreateMessage( const TSharedRef<SHorizontalBox>& InHorzBox, const TSharedRef<IMessageToken>& InMessageToken )
+	void CreateMessage( const TSharedRef<SHorizontalBox>& InHorzBox, const TSharedRef<IMessageToken>& InMessageToken, float Padding )
 	{
 		TSharedPtr<SWidget> Content;
 		FName IconBrushName;
 
 		switch(InMessageToken->GetType())
-		{/*
+		{
 		case EMessageToken::Image:
 			{
 				const TSharedRef<FImageToken> ImageToken = StaticCastSharedRef<FImageToken>(InMessageToken);
@@ -207,7 +179,7 @@ protected:
 				}
 			}
 			break;
-*/
+
 		case EMessageToken::Object:
 			{
 				const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(InMessageToken);
@@ -269,6 +241,14 @@ protected:
 			}
 			break;
 
+		case EMessageToken::Text:
+			{
+				Content = SNew(STextBlock)
+					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+					.Text(InMessageToken->ToText());
+			}
+			break;
+
 		case EMessageToken::Tutorial:
 			{
 				const TSharedRef<FTutorialToken> TutorialToken = StaticCastSharedRef<FTutorialToken>(InMessageToken);
@@ -284,12 +264,12 @@ protected:
 #endif
 		}
 
-		if (Content.IsValid() && (IconBrushName != NAME_None))
+		if (Content.IsValid())
 		{
 			InHorzBox->AddSlot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
-				.Padding(16.f, 0.0f, 0.0f, 0.0f)
+				.Padding(Padding, 0.0f, 0.0f, 0.0f)
 				[
 					SNew(SHorizontalBox)
 
@@ -297,9 +277,11 @@ protected:
 						.AutoWidth()
 						.VAlign(VAlign_Center)
 						[
-							SNew(SImage)
-								.ColorAndOpacity(FSlateColor::UseForeground())
-								.Image(FEditorStyle::GetBrush(IconBrushName))
+							(IconBrushName == NAME_None)
+								? SNullWidget::NullWidget
+								: static_cast<TSharedRef<SWidget>>(SNew(SImage)
+									.ColorAndOpacity(FSlateColor::UseForeground())
+									.Image(FEditorStyle::GetBrush(IconBrushName)))
 						]
 
 					+ SHorizontalBox::Slot()
