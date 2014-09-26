@@ -148,12 +148,6 @@ public abstract class BaseWinPlatform : Platform
 				WorkingFileType = StagedFileType.DebugNonUFS;
 			}
 		}
-		
-		if(Params.Prereqs)
-		{
-			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup.msi", false, null, InstallerRelativePath);
-		}
 	}
 
 	void StageBootstrapExecutable(DeploymentContext SC, string TargetFile, string StagedRelativeTargetPath, string StagedArguments)
@@ -188,10 +182,10 @@ public abstract class BaseWinPlatform : Platform
 				if(GroupIcon != null) Update.SetIcons(IconResourceId, GroupIcon);
 
 				const int ExecFileResourceId = 201;
-				Update.SetData(ExecFileResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedRelativeTargetPath));
+				Update.SetData(ExecFileResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedRelativeTargetPath + "\0"));
 
 				const int ExecArgsResourceId = 202;
-				Update.SetData(ExecArgsResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedArguments));
+				Update.SetData(ExecArgsResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedArguments + "\0"));
 			}
 
 			// Copy it to the staging directory
@@ -323,6 +317,17 @@ public class Win64Platform : BaseWinPlatform
 	}
 
 	public override bool IsSupported { get { return true; } }
+
+	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
+	{
+		base.GetFilesToDeployOrStage(Params, SC);
+		
+		if(Params.Prereqs)
+		{
+			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x64.exe", false, null, InstallerRelativePath);
+		}
+	}
 }
 
 public class Win32Platform : BaseWinPlatform
@@ -333,4 +338,15 @@ public class Win32Platform : BaseWinPlatform
 	}
 
 	public override bool IsSupported { get { return true; } }
+
+	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
+	{
+		base.GetFilesToDeployOrStage(Params, SC);
+		
+		if(Params.Prereqs)
+		{
+			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x86.exe", false, null, InstallerRelativePath);
+		}
+	}
 }
