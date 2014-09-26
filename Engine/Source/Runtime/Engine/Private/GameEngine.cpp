@@ -431,7 +431,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		
 		GameInstance = ConstructObject<UGameInstance>(GameInstanceClass, this);
 
-		GameInstance->Init();
+		GameInstance->InitializeStandalone();
 	}
  
 //  	// Creates the initial world context. For GameEngine, this should be the only WorldContext that ever gets created.
@@ -655,6 +655,8 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		{
 			ActorIt->RouteEndPlay(EEndPlayReason::Quit);
 		}
+
+		World->GetGameInstance()->Shutdown();
 	}
 
 	Ar.Log( TEXT("Closing by request") );

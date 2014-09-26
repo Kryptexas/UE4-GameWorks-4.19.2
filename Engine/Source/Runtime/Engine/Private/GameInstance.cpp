@@ -31,15 +31,27 @@ UEngine* UGameInstance::GetEngine() const
 
 void UGameInstance::Init()
 {
-	UEngine* const Engine = GetEngine();
+	ReceiveInit();
+}
+
+void UGameInstance::Shutdown()
+{
+	ReceiveShutdown();
+}
+
+void UGameInstance::InitializeStandalone()
+{
+	UGameEngine* const Engine = CastChecked<UGameEngine>(GetEngine());
 
 	// Creates the world context. This should be the only WorldContext that ever gets created for this GameInstance.
 	WorldContext = &Engine->CreateNewWorldContext(EWorldType::Game);
 	WorldContext->OwningGameInstance = this;
+
+	Init();
 }
 
 #if WITH_EDITOR
-bool UGameInstance::InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance)
+bool UGameInstance::InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 {
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
 
@@ -97,6 +109,8 @@ bool UGameInstance::InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 	// make sure we can clean up this world!
 	NewWorld->ClearFlags(RF_Standalone);
 	NewWorld->bKismetScriptError = bAnyBlueprintErrors;
+
+	Init();
 
 	return true;
 }

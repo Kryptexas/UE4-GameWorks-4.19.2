@@ -55,11 +55,25 @@ public:
 	virtual class UWorld* GetWorld() const override;
 	// End UObject Interface
 
-	/** Gives GameInstance an opportunity to set up what it needs */
+	/** virtual function to allow custom GameInstances an opportunity to set up what it needs */
 	virtual void Init();
 
+	/** Opportunity for blueprints to handle the game instance being initialized. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Init"))
+	virtual void ReceiveInit();
+
+	/** virtual function to allow custom GameInstances an opportunity to do cleanup when shutting down */
+	virtual void Shutdown();
+
+	/** Opportunity for blueprints to handle the game instance being shutdown. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Shutdown"))
+	virtual void ReceiveShutdown();
+
+	/* Called to initialize the game instance for standalone instances of the game */
+	void InitializeStandalone();
 #if WITH_EDITOR
-	virtual bool InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance);
+	/* Called to initialize the game instance for PIE instances of the game */
+	bool InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance);
 
 	bool StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
 #endif

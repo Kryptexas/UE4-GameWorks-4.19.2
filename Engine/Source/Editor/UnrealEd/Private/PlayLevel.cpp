@@ -448,6 +448,8 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 		ActorIt->RouteEndPlay(EEndPlayReason::EndPlayInEditor);
 	}
 
+	PieWorldContext.OwningGameInstance->Shutdown();
+
 	// Move blueprint debugging pointers back to the objects in the editor world
 	PlayWorld->TransferBlueprintDebugReferences(EditorWorld);
 
@@ -2251,7 +2253,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	// We need to temporarily add the GameInstance to the root because the InitPIE call can do garbage collection wiping out the GameInstance
 	GameInstance->AddToRoot();
 
-	bool bSuccess = GameInstance->InitPIE(bAnyBlueprintErrors, PIEInstance);
+	bool bSuccess = GameInstance->InitializePIE(bAnyBlueprintErrors, PIEInstance);
 	if (!bSuccess)
 	{
 		FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
