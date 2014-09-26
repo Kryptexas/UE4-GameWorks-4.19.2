@@ -147,8 +147,17 @@ public:
 	}
 
 	/** Comparison operator to test if a render target can be reused */
-	bool operator==(const FPooledRenderTargetDesc& rhs) const
+	bool Compare(const FPooledRenderTargetDesc& rhs, bool bExact) const
 	{
+		auto LhsFlags = Flags;
+		auto RhsFlags = rhs.Flags;
+
+		if(!bExact)
+		{
+			LhsFlags &= (~TexCreate_FastVRAM);
+			RhsFlags &= (~TexCreate_FastVRAM);
+		}
+		
 		return Extent == rhs.Extent
 			&& Depth == rhs.Depth
 			&& bIsArray == rhs.bIsArray
@@ -156,7 +165,7 @@ public:
 			&& NumMips == rhs.NumMips
 			&& NumSamples == rhs.NumSamples
 			&& Format == rhs.Format
-			&& Flags == rhs.Flags
+			&& LhsFlags == RhsFlags
 			&& TargetableFlags == rhs.TargetableFlags
 			&& bForceSeparateTargetAndShaderResource == rhs.bForceSeparateTargetAndShaderResource;
 	}
