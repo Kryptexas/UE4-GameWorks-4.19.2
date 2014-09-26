@@ -60,9 +60,10 @@ static UObject const* BlueprintActionDatabaseRegistrarImpl::ResolveActionKey(UOb
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionDatabaseRegistrar::FBlueprintActionDatabaseRegistrar(FActionRegistry& Database, FPrimingQueue& PrimingQueue, TSubclassOf<UEdGraphNode> DefaultKey)
+FBlueprintActionDatabaseRegistrar::FBlueprintActionDatabaseRegistrar(FActionRegistry& Database, FUnloadedActionRegistry& UnloadedDatabase, FPrimingQueue& PrimingQueue, TSubclassOf<UEdGraphNode> DefaultKey)
 	: GeneratingClass(DefaultKey)
 	, ActionDatabase(Database)
+	, UnloadedActionDatabase(UnloadedDatabase)
 	, ActionKeyFilter(nullptr)
 	, ActionPrimingQueue(PrimingQueue)
 {
@@ -137,6 +138,29 @@ bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(UObject const* AssetO
 	// refresh/rebuild corresponding actions when that happens).
 	check(AssetOwner->IsAsset());
 	return AddActionToDatabase(AssetOwner, NodeSpawner);
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintActionDatabaseRegistrar::AddBlueprintAction(FAssetData const& AssetDataOwner, UBlueprintNodeSpawner* NodeSpawner)
+{
+	bool bReturnResult = false;
+
+	// @TODO: assert that AddBlueprintAction(UBlueprintNodeSpawner* NodeSpawner) 
+	//        wouldn't come up with a different key (besides GeneratingClass)
+	if(AssetDataOwner.IsAssetLoaded())
+	{
+		bReturnResult = AddBlueprintAction(AssetDataOwner.GetAsset(), NodeSpawner);
+	}
+	else
+	{
+		bReturnResult = AddBlueprintAction(NodeSpawner->NodeClass, NodeSpawner);
+		if(bReturnResult)
+		{
+			TArray<UBlueprintNodeSpawner*>& ActionList = UnloadedActionDatabase.FindOrAdd(AssetDataOwner.ObjectPath);
+			ActionList.Add(NodeSpawner);
+		}
+	}
+	return bReturnResult;
 }
 
 //------------------------------------------------------------------------------

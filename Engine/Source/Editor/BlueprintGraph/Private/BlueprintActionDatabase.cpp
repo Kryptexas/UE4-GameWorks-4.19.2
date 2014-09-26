@@ -376,6 +376,14 @@ namespace BlueprintActionDatabaseImpl
 	static void OnAssetRemoved(FAssetData const& AssetInfo);
 
 	/**
+	 * Callback to refresh the database when an object has been renamed (to clear 
+	 * any related classes that were stored in the database under the old name) 
+	 * 
+	 * @param  AssetInfo	Data regarding the freshly removed asset.
+	 */
+	static void OnAssetRenamed(FAssetData const& AssetInfo, const FString& InOldName);
+
+	/**
 	 * Callback to clear all levels from the database when a world is destroyed 
 	 * 
 	 * @param  DestroyedWorld	The world that was destroyed
@@ -750,6 +758,21 @@ static void BlueprintActionDatabaseImpl::OnAssetRemoved(FAssetData const& AssetI
 		// the delete went through, so we don't need to track these for re-add
 		PendingDelete.Remove(AssetObject);
 	}
+	else
+	{
+		ActionDatabase.ClearUnloadedAssetActions(AssetInfo.ObjectPath);
+	}
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnAssetRenamed(FAssetData const& AssetInfo, const FString& InOldName)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+
+	if (!AssetInfo.IsAssetLoaded())
+	{
+		ActionDatabase.MoveUnloadedAssetActions(*InOldName, AssetInfo.ObjectPath);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -805,6 +828,7 @@ FBlueprintActionDatabase::FBlueprintActionDatabase()
 	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
 	AssetRegistry.OnAssetAdded().AddStatic(&BlueprintActionDatabaseImpl::OnAssetAdded);
 	AssetRegistry.OnAssetRemoved().AddStatic(&BlueprintActionDatabaseImpl::OnAssetRemoved);
+	AssetRegistry.OnAssetRenamed().AddStatic(&BlueprintActionDatabaseImpl::OnAssetRenamed);
 
 	FEditorDelegates::OnAssetsPreDelete.AddStatic(&BlueprintActionDatabaseImpl::OnAssetsPendingDelete);
 
@@ -943,7 +967,7 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 			ClassActionList.Empty();
 		}
 
-		FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, ActionPrimingQueue, Class);
+		FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, UnloadedActionRegistry, ActionPrimingQueue, Class);
 		if (!bIsInitializing)
 		{
 			// if this a call to RefreshClassActions() from somewhere other than 
@@ -967,7 +991,7 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 			// if we're only refreshing this class (and not init'ing the whole 
 			// database), then we have to reach out to individual nodes in case 
 			// they'd add entries for this as well
-			FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, ActionPrimingQueue);
+			FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, UnloadedActionRegistry, ActionPrimingQueue);
 			Registrar.ActionKeyFilter = Class; // only want actions for this class
 
 			RegisterAllNodeActions(Registrar);
@@ -1023,10 +1047,13 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 		}
 	}
 
-	FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, ActionPrimingQueue);
+	FBlueprintActionDatabaseRegistrar Registrar(ActionRegistry, UnloadedActionRegistry, ActionPrimingQueue);
 	Registrar.ActionKeyFilter = AssetObject; // make sure actions only associated with this asset get added
 	// nodes may have actions they wish to add actions for this asset
 	RegisterAllNodeActions(Registrar);
+
+	// Will clear up any unloaded asset actions associated with this object, if any
+	ClearUnloadedAssetActions(*AssetObject->GetPathName());
 
 	if (AssetActionList.Num() > 0)
 	{
@@ -1052,6 +1079,41 @@ void FBlueprintActionDatabase::ClearAssetActions(UObject* const AssetObject)
 	if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject))
 	{
 		BlueprintAsset->OnChanged().RemoveStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::ClearUnloadedAssetActions(FName ObjectPath)
+{
+	// Check if the asset can be found in the unloaded action registry, if it can, we need to remove it
+	if(TArray<UBlueprintNodeSpawner*>* UnloadedActionList = UnloadedActionRegistry.Find(ObjectPath))
+	{
+		for(UBlueprintNodeSpawner* NodeSpawner : *UnloadedActionList)
+		{
+			FActionList* ActionList = ActionRegistry.Find(NodeSpawner->NodeClass);
+
+			// Remove the NodeSpawner from the main registry, it will be replaced with the loaded version of the action
+			ActionList->Remove(NodeSpawner);
+		}
+
+		// Remove the asset's path from the unloaded registry, it is no longer needed
+		UnloadedActionRegistry.Remove(ObjectPath);
+	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::MoveUnloadedAssetActions(FName SourceObjectPath, FName TargetObjectPath)
+{
+	// Check if the asset can be found in the unloaded action registry, if it can, we need to remove it and re-add under the new name
+	if(TArray<UBlueprintNodeSpawner*>* UnloadedActionList = UnloadedActionRegistry.Find(SourceObjectPath))
+	{
+		check(!UnloadedActionRegistry.Find(TargetObjectPath));
+
+		// Add the entire array to the database under the new path
+		UnloadedActionRegistry.Add(TargetObjectPath, *UnloadedActionList);
+
+		// Remove the old asset's path from the unloaded registry, it is no longer needed
+		UnloadedActionRegistry.Remove(SourceObjectPath);
 	}
 }
 

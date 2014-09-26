@@ -7,6 +7,11 @@
 #include "GraphEditorActions.h"
 #include "AssetRegistryModule.h"
 #include "AnimationGraphSchema.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"
+#include "EditorCategoryUtils.h"
+#include "BlueprintUnloadedAssetNodeSpawner.h"
+
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
 /////////////////////////////////////////////////////
@@ -168,6 +173,121 @@ void UAnimGraphNode_SequencePlayer::GetMenuEntries(FGraphContextMenuBuilder& Con
 			}
 		}
 	}
+}
+
+FText UAnimGraphNode_SequencePlayer::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Animation);
+}
+
+void UAnimGraphNode_SequencePlayer::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto CustomizeSequencePlayerNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, const FAssetData SequenceAsset)
+	{
+		UAnimGraphNode_SequencePlayer* SequencePlayerNode = CastChecked<UAnimGraphNode_SequencePlayer>(NewNode);
+		if(!bIsTemplateNode || SequenceAsset.IsAssetLoaded())
+		{
+			UAnimSequence* Sequence = Cast<UAnimSequence>(SequenceAsset.GetAsset());
+			check(Sequence);
+
+			SequencePlayerNode->Node.Sequence = Sequence;
+			SequencePlayerNode->UnloadedSkeletonName.Empty();
+		}
+		else
+		{
+			if( const FString* SkeletonTag = SequenceAsset.TagsAndValues.Find(TEXT("Skeleton")) )
+			{
+				SequencePlayerNode->UnloadedSkeletonName = *SkeletonTag;
+			}
+		}
+	};
+
+	// Load the asset registry module
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	FARFilter Filter;
+	Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
+	Filter.bRecursiveClasses = true;
+
+	// Find matching assets and add an entry for each one
+	TArray<FAssetData> SequenceList;
+	AssetRegistryModule.Get().GetAssets(Filter, /*out*/ SequenceList);
+
+	for (auto AssetIt = SequenceList.CreateConstIterator(); AssetIt; ++AssetIt)
+	{
+		const FAssetData& Asset = *AssetIt;
+
+		UBlueprintNodeSpawner* NodeSpawner = nullptr;
+
+		if(!Asset.IsAssetLoaded())
+		{
+			// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+			// check to make sure that the registrar is looking for actions of this type
+			// (could be regenerating actions for a specific asset, and therefore the 
+			// registrar would only accept actions corresponding to that asset)
+			if (!ActionRegistrar.IsOpenForRegistration(GetClass()))
+			{
+				continue;
+			}
+
+			NodeSpawner = UBlueprintUnloadedAssetNodeSpawner::Create(GetClass(), Asset, UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), false));
+		}
+		else
+		{
+			// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+			// check to make sure that the registrar is looking for actions of this type
+			// (could be regenerating actions for a specific asset, and therefore the 
+			// registrar would only accept actions corresponding to that asset)
+			if (!ActionRegistrar.IsOpenForRegistration(Asset.GetAsset()))
+			{
+				continue;
+			}
+
+			NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		}
+
+		check(NodeSpawner != nullptr);
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintUnloadedAssetNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeSequencePlayerNodeLambda, Asset);
+		ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
+	}
+}
+
+bool UAnimGraphNode_SequencePlayer::IsActionFilteredOut(class FBlueprintActionFilter const& Filter)
+{
+	bool bIsFilteredOut = false;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+
+	for (UBlueprint* Blueprint : FilterContext.Blueprints)
+	{
+		if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+		{
+			if(Node.Sequence)
+			{
+				if(Node.Sequence->GetSkeleton() != AnimBlueprint->TargetSkeleton)
+				{
+					// Sequence does not use the same skeleton as the Blueprint, cannot use
+					bIsFilteredOut = true;
+					break;
+				}
+			}
+			else 
+			{
+				FAssetData SkeletonData(AnimBlueprint->TargetSkeleton);
+				if(UnloadedSkeletonName != SkeletonData.GetExportTextName())
+				{
+					bIsFilteredOut = true;
+					break;
+				}
+			}
+		}
+		else
+		{
+			// Not an animation Blueprint, cannot use
+			bIsFilteredOut = true;
+			break;
+		}
+	}
+	return bIsFilteredOut;
 }
 
 void UAnimGraphNode_SequencePlayer::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
