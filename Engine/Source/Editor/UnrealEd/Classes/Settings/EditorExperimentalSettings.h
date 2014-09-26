@@ -72,6 +72,15 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Feature Level Preview"))
 	bool bFeatureLevelPreview;
 
+	/** Enable cook in the editor (overrides cook on the side setting) */
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Cook In The Editor (cooks from launchon will be run inside the main editor process instead of starting a new editor)"))
+	bool bCookInTheEditor;
+
+	/** Enable cook on the side */
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Cook On The Side (Run a cook on the fly server in the background of the editor)"))
+	bool bCookOnTheSide;
+
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
