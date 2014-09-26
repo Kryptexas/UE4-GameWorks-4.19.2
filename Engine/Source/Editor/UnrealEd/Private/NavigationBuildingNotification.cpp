@@ -74,6 +74,11 @@ void FNavigationBuildingNotificationImpl::BuildFinished()
 		}
 	}
 
+	if (EEngine && EEngine->IsAnyViewportRealtime() == false)
+	{
+		EEngine->RedrawLevelEditingViewports();
+	}
+
 	FEditorBuildUtils::PathBuildingFinished();
 }
 
