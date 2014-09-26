@@ -188,11 +188,9 @@ void AVolume::CheckForErrors()
 
 	if (GetRootComponent() == NULL)
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_VolumeActorCollisionComponentNULL", "{ActorName} : Volume actor has NULL collision component - please delete" ), Arguments) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_VolumeActorCollisionComponentNULL", "Volume actor has NULL collision component - please delete")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::VolumeActorCollisionComponentNULL));
 	}
 	else
@@ -203,7 +201,7 @@ void AVolume::CheckForErrors()
 			Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_VolumeActorZeroRadius", "{ActorName} : Volume actor has a collision component with 0 radius - please delete" ), Arguments) ));
+				->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_VolumeActorZeroRadius", "Volume actor has a collision component with 0 radius - please delete")));
 		}
 	}
 }
@@ -218,7 +216,7 @@ void ALight::CheckForErrors()
 		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_LightComponentNull", "{ActorName} : Light actor has NULL LightComponent property - please delete!" ), Arguments) ))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_LightComponentNull", "Light actor has NULL LightComponent property - please delete!")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::LightComponentNull));
 	}
 }
