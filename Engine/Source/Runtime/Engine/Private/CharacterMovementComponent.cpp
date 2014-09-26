@@ -3037,7 +3037,7 @@ bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float Ti
 		const FVector CapsuleLocation = UpdatedComponent->GetComponentLocation();
 		const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
 
-		if (FloorSweepTest(OutHitResult, CapsuleLocation, CapsuleLocation + TestWalk, UpdatedComponent->GetCollisionObjectType(), CapsuleShape, CapsuleQuery, ResponseParam))
+		if (GetWorld()->SweepSingle(OutHitResult, CapsuleLocation, CapsuleLocation + TestWalk, FQuat::Identity, UpdatedComponent->GetCollisionObjectType(), CapsuleShape, CapsuleQuery, ResponseParam))
 		{
 			return true;
 		}
