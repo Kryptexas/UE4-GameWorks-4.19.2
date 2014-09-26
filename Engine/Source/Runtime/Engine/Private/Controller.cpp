@@ -508,7 +508,7 @@ FName AController::GetStateName() const
 	return StateName;
 }
 
-bool AController::IsInState(FName InStateName)
+bool AController::IsInState(FName InStateName) const
 {
 	return (StateName == InStateName);
 }
