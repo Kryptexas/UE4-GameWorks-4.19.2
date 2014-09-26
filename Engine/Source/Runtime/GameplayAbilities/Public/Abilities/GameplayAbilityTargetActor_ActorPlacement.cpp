@@ -29,15 +29,20 @@ void AGameplayAbilityTargetActor_ActorPlacement::EndPlay(const EEndPlayReason::T
 void AGameplayAbilityTargetActor_ActorPlacement::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);
+	if (AActor *TurretActor = GetWorld()->SpawnActor(TurretClass))
+	{
+		TurretReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle_ActorVisualization>();
+		TurretReticleActor->InitializeReticleTurretInformation(TurretActor, TurretMaterial);
+		GetWorld()->DestroyActor(TurretActor);
+	}
 	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())
 	{
-		if (AActor *TurretActor = GetWorld()->SpawnActor(TurretClass))
-		{
-			TurretReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle_ActorVisualization>();
-			TurretReticleActor->AttachRootComponentToActor(CachedReticleActor);
-			TurretReticleActor->InitializeReticleTurretInformation(TurretActor, TurretMaterial);
-			GetWorld()->DestroyActor(TurretActor);
-		}
+		TurretReticleActor->AttachRootComponentToActor(CachedReticleActor);
+	}
+	else
+	{
+		ReticleActor = TurretReticleActor;
+		TurretReticleActor = nullptr;
 	}
 }
 
