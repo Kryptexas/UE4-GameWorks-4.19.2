@@ -2356,7 +2356,7 @@ void APlayerController::PreProcessInput(const float DeltaTime, const bool bGameP
 
 void APlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
 {
-	if( IgnoreLookInput )
+	if( IsLookInputIgnored() )
 	{
 		// zero look inputs
 		RotationInput = FRotator::ZeroRotator;
