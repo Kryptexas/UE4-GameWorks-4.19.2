@@ -300,7 +300,9 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 
 		BestCluster->ClusterComponent->AttachTo(InIFA->GetRootComponent());
 		BestCluster->ClusterComponent->RegisterComponent();
-		BestCluster->ClusterComponent->SetWorldTransform(InstanceToWorld);
+		
+		// Use only instance translation as a component transform
+		BestCluster->ClusterComponent->SetWorldTransform(FTransform(InstanceToWorld.GetTranslation()));
 	}
 	else
 	{
