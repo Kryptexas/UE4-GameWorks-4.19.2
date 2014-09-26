@@ -122,7 +122,7 @@ FRenderTargetPool::FRenderTargetPool()
 
 static void LogVRamUsage(FPooledRenderTarget& Ref, FTextureRHIParamRef TexRef)
 {
-	if(IsValidRef(TexRef))
+	if(TexRef)
 	{
 		FRHIResourceInfo Info;
 
