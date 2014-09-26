@@ -221,6 +221,7 @@ FScopedPredictionWindow::FScopedPredictionWindow(UGameplayAbility* GameplayAbili
 		{
 			ActivationInfo.SetPredictionKey(Owner->ScopedPedictionKey);
 			ActivationInfo.ActivationMode = EGameplayAbilityActivationMode::Predicting;
+			ScopedPredictionKey = Owner->ScopedPedictionKey;
 		}
 		else
 		{
