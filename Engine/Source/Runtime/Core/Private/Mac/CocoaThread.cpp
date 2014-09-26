@@ -138,6 +138,7 @@ private:
 		
 		// Register for default modes
 		Register(kCFRunLoopDefaultMode);
+		Register((CFStringRef)NSModalPanelRunLoopMode);
 		Register((CFStringRef)UE4NilEventMode);
 		Register((CFStringRef)UE4ShowEventMode);
 		Register((CFStringRef)UE4ResizeEventMode);
@@ -394,7 +395,7 @@ void MainThreadCall(dispatch_block_t Block, NSString* WaitMode, bool const bWait
 	if ( [NSThread mainThread] != [NSThread currentThread] )
 	{
 		FCocoaRunLoopSource& MainRunLoopSource = FCocoaRunLoopSource::GetMainRunLoopSource();
-		PerformBlockOnThread(MainRunLoopSource, Block, @[ NSDefaultRunLoopMode ], WaitMode, bWait);
+		PerformBlockOnThread(MainRunLoopSource, Block, @[ NSDefaultRunLoopMode, NSModalPanelRunLoopMode ], WaitMode, bWait);
 	}
 	else
 	{
