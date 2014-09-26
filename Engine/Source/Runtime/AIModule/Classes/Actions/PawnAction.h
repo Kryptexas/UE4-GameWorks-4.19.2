@@ -30,7 +30,7 @@ class AIMODULE_API UPawnAction : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	friend class UPawnActionsComponent;
+	friend UPawnActionsComponent;
 	friend struct FPawnActionStack;
 
 private:
@@ -117,6 +117,7 @@ public:
 	FORCEINLINE bool IsFinished() const { return FinishResult != EPawnActionResult::InProgress; }
 	FORCEINLINE bool WantsTick() const { return bWantsTick; }
 
+protected:
 	FORCEINLINE void TickAction(float DeltaTime)
 	{ 
 		// tick ChildAction 
@@ -131,21 +132,18 @@ public:
 		}
 	}
 
-	///void HandleChildActionFinished(UPawnAction* Action);
-
 	/** triggers aborting of an Action
 	 *	@param bForce
 	 *	@return current state of task abort
 	 *	@NOTE do not make this virtual! Contains some essential logic. */
 	EPawnActionAbortState::Type Abort(EAIForceParam::Type ShouldForce = EAIForceParam::DoNotForce);
 	
-	/** called when */
-	//virtual void OnActionFinished();
-
+	FORCEINLINE UPawnActionsComponent* GetOwnerComponent() { return OwnerComponent; }
+public:
 	FORCEINLINE EAIRequestPriority::Type GetPriority() const { return ExecutionPriority; }
 	FORCEINLINE EPawnActionResult::Type GetResult() const { return FinishResult; }
 	FORCEINLINE EPawnActionAbortState::Type GetAbortState() const { return AbortState; }
-	FORCEINLINE class UPawnActionsComponent* GetOwnerComponent() const { return OwnerComponent; }
+	FORCEINLINE UPawnActionsComponent* GetOwnerComponent() const { return OwnerComponent; }
 	FORCEINLINE UObject* GetInstigator() const { return Instigator; }
 	class APawn* GetPawn();
 	class AController* GetController();
@@ -193,7 +191,7 @@ protected:
 
 	void StopWaitingForMessages();
 
-	void SetOwnerComponent(class UPawnActionsComponent* Component);
+	void SetOwnerComponent(UPawnActionsComponent* Component);
 
 	void SetInstigator(UObject* const InInstigator);
 
@@ -222,7 +220,7 @@ protected:
 	 *	@return only valid return values here are LatendAbortInProgress and AbortDone */
 	virtual EPawnActionAbortState::Type PerformAbort(EAIForceParam::Type ShouldForce) { return EPawnActionAbortState::AbortDone; }
 
-	bool HasBeenStarted() const { return bHasBeenStarted;  }
+	FORCEINLINE bool HasBeenStarted() const { return bHasBeenStarted;  }
 
 private:
 	/** called when this action is put on a stack. Does not indicate action will be started soon

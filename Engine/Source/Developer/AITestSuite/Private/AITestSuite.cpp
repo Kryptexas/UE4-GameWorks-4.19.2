@@ -28,5 +28,3 @@ void FAITestSuite::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
-
-

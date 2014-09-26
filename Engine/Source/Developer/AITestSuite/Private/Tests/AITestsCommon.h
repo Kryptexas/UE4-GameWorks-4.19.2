@@ -4,6 +4,8 @@
 
 #include "Misc/AutomationTest.h"
 
+#define ENSURE_FAILED_TESTS 1
+
 class UBehaviorTree;
 class UMockAI_BT;
 
@@ -27,11 +29,45 @@ private:
 namespace FAITestHelpers
 {
 	UWorld* GetWorld();
+	static const float TickInterval = 1.f / 30;
 }
 
 struct FAITestBase
 {
-	virtual ~FAITestBase(){}
+private:
+	// internals
+	TArray<UObject*> SpawnedObjects;	
+protected:
+	FAutomationTestBase* TestRunner;
+
+	FAITestBase() : TestRunner(nullptr)
+	{}
+
+	template<typename ClassToSpawn>
+	ClassToSpawn* NewAutoDestroyObject()
+	{
+		ClassToSpawn* ObjectInstance = NewObject<ClassToSpawn>();
+		ObjectInstance->AddToRoot();
+		SpawnedObjects.Add(ObjectInstance);
+		return ObjectInstance;
+	}
+
+	UWorld& GetWorld() const
+	{
+		UWorld* World = FAITestHelpers::GetWorld();
+		check(World);
+		return *World;
+	}
+
+	// loggin helper
+	void Test(const FString& Description, bool bValue);
+
+public:
+
+	void SetTestInstance(FAutomationTestBase& AutomationTestInstance) { TestRunner = &AutomationTestInstance; }
+
+	// interface
+	virtual ~FAITestBase();
 	virtual void SetUp() {}
 	virtual bool Update() { return true; }
 	virtual void TearDown() {}
@@ -41,12 +77,14 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_SetUpTest, FAITest
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_PerformTest, FAITestBase*, AITest);
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_TearDownTest, FAITestBase*, AITest);
 
+// @note that TestClass needs to derive from FAITestBase
 #define IMPLEMENT_AI_TEST(TestClass, PrettyName) \
 	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##Runner, PrettyName, (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)) \
 	bool TestClass##Runner::RunTest(const FString& Parameters) \
 	{ \
 		/* spawn test instance. Setup should be done in test's constructor */ \
 		TestClass* TestInstance = new TestClass(); \
+		TestInstance->SetTestInstance(*this); \
 		/* set up */ \
 		ADD_LATENT_AUTOMATION_COMMAND(FAITestCommand_SetUpTest(TestInstance)); \
 		/* run latent command to update */ \
@@ -67,9 +105,20 @@ struct FAITest_SimpleBT : public FAITestBase
 	UMockAI_BT* AIBTUser;
 
 	FAITest_SimpleBT();	
-	virtual ~FAITest_SimpleBT();
+	
 	virtual void SetUp() override;
 	virtual bool Update() override;
 	
 	virtual void VerifyResults();
+};
+
+struct FAITest_SimpleActionsTest : public FAITestBase
+{
+	FTestLogger<int32> Logger;
+	UPawnActionsComponent* ActionsComponent;
+
+	FAITest_SimpleActionsTest();
+	virtual ~FAITest_SimpleActionsTest();
+	virtual void SetUp() override;
+	//virtual bool Update() override;
 };

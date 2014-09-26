@@ -1,6 +1,23 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#include "Core.h"
+#include "CoreUObject.h"
+#include "InputCore.h"
+#include "EngineDefines.h"
+#include "EngineSettings.h"
+#include "EngineStats.h"
+#include "EngineLogs.h"
+#include "EngineGlobals.h"
+
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Engine.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+
 #include "AITestSuite.h"
+
+#include "TestLogger.h"
 
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 #include "BehaviorTree/BlackboardData.h"
@@ -14,6 +31,8 @@
 #include "BTBuilder.h"
 
 #include "Tests/AITestsCommon.h"
+
+#include "Actions/TestPawnAction_Log.h"
 
 #include "MockAI.h"
 #include "MockAI_BT.h"

@@ -4,7 +4,7 @@
 #include "BehaviorTree/TestBTTask_Log.h"
 #include "MockAI_BT.h"
 
-UTestBTTask_Log::UTestBTTask_Log(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UTestBTTask_Log::UTestBTTask_Log(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NodeName = "Log";
 	ExecutionTime = 5.0f;
@@ -15,7 +15,7 @@ UTestBTTask_Log::UTestBTTask_Log(const class FPostConstructInitializeProperties&
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
 	MyMemory->RemainingWaitTime = ExecutionTime;
@@ -29,7 +29,7 @@ EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(class UBehaviorTreeComponent* O
 	return EBTNodeResult::InProgress;
 }
 
-void UTestBTTask_Log::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UTestBTTask_Log::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
 	MyMemory->RemainingWaitTime -= DeltaSeconds;

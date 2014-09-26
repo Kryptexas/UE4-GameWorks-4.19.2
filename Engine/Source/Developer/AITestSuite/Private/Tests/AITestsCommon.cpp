@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
-#include "EngineGlobals.h"
-#include "Engine.h"
 
 bool FAITestCommand_WaitSeconds::Update()
 {
@@ -64,24 +62,37 @@ namespace FAITestHelpers
 }
 
 //----------------------------------------------------------------------//
+// FAITestBase
+//----------------------------------------------------------------------//
+FAITestBase::~FAITestBase()
+{
+	for (auto AutoDestroyedObject : SpawnedObjects)
+	{
+		AutoDestroyedObject->RemoveFromRoot();
+	}
+	SpawnedObjects.Reset();
+}
+
+void FAITestBase::Test(const FString& Description, bool bValue)
+{
+	if (TestRunner)
+	{
+		TestRunner->TestTrue(Description, bValue);
+	}
+#if ENSURE_FAILED_TESTS
+	ensure(bValue);
+#endif // ENSURE_FAILED_TESTS
+}
+
+//----------------------------------------------------------------------//
 // FAITest_SimpleBT
 //----------------------------------------------------------------------//
 FAITest_SimpleBT::FAITest_SimpleBT()
 {
-	AIBTUser = NewObject<UMockAI_BT>();
-	AIBTUser->AddToRoot();
+	AIBTUser = NewAutoDestroyObject<UMockAI_BT>();
 	BTAsset = &FBTBuilder::CreateBehaviorTree();
 
 	UMockAI_BT::ExecutionLog.Reset();
-}
-
-FAITest_SimpleBT::~FAITest_SimpleBT()
-{
-	if (AIBTUser)
-	{
-		AIBTUser->RemoveFromRoot();
-		AIBTUser = nullptr;
-	}
 }
 
 void FAITest_SimpleBT::SetUp()
@@ -121,4 +132,23 @@ void FAITest_SimpleBT::VerifyResults()
 
 		UE_LOG(LogBehaviorTreeTest, Error, TEXT("Results are not matching!\nExecution log: %s"), *Desc);
 	}
+}
+
+//----------------------------------------------------------------------//
+// FAITest_SimpleActionsTest
+//----------------------------------------------------------------------//
+FAITest_SimpleActionsTest::FAITest_SimpleActionsTest()
+{
+	ActionsComponent = NewAutoDestroyObject<UPawnActionsComponent>();
+}
+
+FAITest_SimpleActionsTest::~FAITest_SimpleActionsTest()
+{
+	Test(TEXT("Not all expected values has been logged"), Logger.ExpectedValues.Num() == 0 || Logger.ExpectedValues.Num() == Logger.LoggedValues.Num());
+}
+
+void FAITest_SimpleActionsTest::SetUp()
+{
+	UWorld* World = FAITestHelpers::GetWorld();
+	ActionsComponent->RegisterComponentWithWorld(World);	
 }

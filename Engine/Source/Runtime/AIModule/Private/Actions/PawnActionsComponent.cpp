@@ -86,7 +86,10 @@ void FPawnActionStack::PushAction(UPawnAction* NewTopAction)
 {
 	if (TopAction != NULL)
 	{
-		TopAction->Pause(NewTopAction);
+		if (TopAction->IsPaused() == false && TopAction->HasBeenStarted() == true)
+		{
+			TopAction->Pause(NewTopAction);
+		}
 		ensure(TopAction->ChildAction == NULL);
 		TopAction->ChildAction = NewTopAction;
 		NewTopAction->ParentAction = TopAction;
@@ -119,7 +122,7 @@ void FPawnActionStack::PopAction(UPawnAction* ActionToPop)
 		while (ActionBeingRemoved != StopAction)
 		{
 			UPawnAction* NextAction = ActionBeingRemoved->ParentAction;
-			
+
 			if (ActionBeingRemoved->IsBeingAborted() == false && ActionBeingRemoved->IsFinished() == false)
 			{
 				// forcing abort to make sure it happens instantly. We don't have time for delayed finish here.
@@ -135,6 +138,18 @@ void FPawnActionStack::PopAction(UPawnAction* ActionToPop)
 
 		TopAction = StopAction;
 	}
+}
+
+int32 FPawnActionStack::GetStackSize() const
+{
+	int32 Size = 0;
+	const UPawnAction* TempAction = TopAction;
+	while (TempAction != nullptr)
+	{
+		TempAction = TempAction->GetParentAction();
+		++Size;
+	}
+	return Size;
 }
 
 //----------------------------------------------------------------------//
@@ -211,6 +226,7 @@ void UPawnActionsComponent::UpdateCurrentAction()
 	UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Picking new current actions. Old CurrentAction %s")
 		, *GetActionSignature(CurrentAction));
 
+	// find the highest priority action available
 	UPawnAction* NewCurrentAction = NULL;
 	int32 Priority = EAIRequestPriority::MAX - 1;
 	do 
@@ -219,6 +235,7 @@ void UPawnActionsComponent::UpdateCurrentAction()
 
 	} while (NewCurrentAction == NULL && --Priority >= 0);
 
+	// if it's a new Action then enable it
 	if (CurrentAction != NewCurrentAction)
 	{
 		UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("New action: %s")
@@ -306,6 +323,17 @@ bool UPawnActionsComponent::AbortAction(UPawnAction* ActionToAbort)
 	return true;
 }
 
+bool UPawnActionsComponent::ForceAbortAction(UPawnAction* ActionToAbort)
+{
+	if (ActionToAbort == NULL)
+	{
+		return false;
+	}
+
+	ActionToAbort->Abort(EAIForceParam::Force);
+	return true;
+}
+
 uint32 UPawnActionsComponent::AbortActionsInstigatedBy(UObject* const Instigator, EAIRequestPriority::Type Priority)
 {
 	uint32 AbortedActionsCount = 0;
@@ -337,14 +365,21 @@ uint32 UPawnActionsComponent::AbortActionsInstigatedBy(UObject* const Instigator
 
 bool UPawnActionsComponent::PushAction(UPawnAction* NewAction, EAIRequestPriority::Type Priority, UObject* const Instigator)
 {
-	NewAction->ExecutionPriority = Priority;
-	NewAction->SetOwnerComponent(this);
-	NewAction->SetInstigator(Instigator);
-	return OnEvent(NewAction, EPawnActionEventType::Push);
+	if (NewAction->HasBeenStarted() == false)
+	{
+		NewAction->ExecutionPriority = Priority;
+		NewAction->SetOwnerComponent(this);
+		NewAction->SetInstigator(Instigator);
+		return OnEvent(NewAction, EPawnActionEventType::Push);
+	}
+
+	return false;
 }
 
 bool UPawnActionsComponent::OnEvent(UPawnAction* Action, EPawnActionEventType::Type Event)
 {
+	const FPawnActionEvent ActionEvent(Action, Event, ActionEventIndex++);
+
 	if (Action == NULL || Event == EPawnActionEventType::Invalid)
 	{
 		// ignore
@@ -352,15 +387,23 @@ bool UPawnActionsComponent::OnEvent(UPawnAction* Action, EPawnActionEventType::T
 			, *GetNameSafe(Action), *GetEventName(Event));
 		return false;
 	}
-	ActionEvents.Add(FPawnActionEvent(Action, Event, ActionEventIndex++));
-
-	// if it's a first even enable tick
-	if (ActionEvents.Num() == 1)
+	else if (ActionEvents.Find(ActionEvent) == INDEX_NONE)
 	{
-		SetComponentTickEnabled(true);
+		ActionEvents.Add(ActionEvent);
+
+		// if it's a first even enable tick
+		if (ActionEvents.Num() == 1)
+		{
+			SetComponentTickEnabled(true);
+		}
+
+		return true;
 	}
 
-	return true;
+	UE_VLOG(ControlledPawn, LogPawnAction, Warning, TEXT("Ignoring duplicate Action Event: Action %s Event %s")
+		, *GetNameSafe(Action), *GetEventName(Event));
+
+	return false;
 }
 
 void UPawnActionsComponent::SetControlledPawn(APawn* NewPawn)

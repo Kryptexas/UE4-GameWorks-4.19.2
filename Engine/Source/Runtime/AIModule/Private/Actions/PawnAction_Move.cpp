@@ -251,7 +251,8 @@ void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent
 	if (bAbortChildActionOnPathChange && GetChildAction())
 	{
 		UE_VLOG(MyOwner, LogPawnAction, Log, TEXT(">> aborting child action: %s"), *GetNameSafe(GetChildAction()));
-		GetChildAction()->Abort(EAIForceParam::Force);
+		//GetChildAction()->Abort(EAIForceParam::Force);
+		GetOwnerComponent()->AbortAction(GetChildAction());
 	}
 
 	if (Event == ENavPathEvent::Invalidated)

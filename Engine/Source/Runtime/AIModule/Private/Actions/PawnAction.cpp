@@ -210,7 +210,7 @@ bool UPawnAction::Activate()
 		, bHasBeenStarted ? TEXT("NO") : TEXT("YES")
 		, IsPaused() ? TEXT("YES") : TEXT("NO"));
 
-	if (bHasBeenStarted == true && IsPaused())
+	if (HasBeenStarted() && IsPaused())
 	{
 		bResult = Resume();
 	}
@@ -252,12 +252,10 @@ bool UPawnAction::Pause(const UPawnAction* PausedBy)
 	// parent should be paused anyway
 	ensure(ParentAction == NULL || ParentAction->IsPaused() == true);
 
-	// don't pause twice
-	if (bPaused)
-	{
-		return false;
-	}
-	else if (AbortState == EPawnActionAbortState::LatentAbortInProgress || AbortState == EPawnActionAbortState::AbortDone)
+	// don't pause twice, this should be guaranteed by the PawnActionsComponent
+	ensure(bPaused == false);
+	
+	if (AbortState == EPawnActionAbortState::LatentAbortInProgress || AbortState == EPawnActionAbortState::AbortDone)
 	{
 		UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Not pausing due to being in unpausable aborting state")
 			, *GetName(), *ChildAction->GetName());

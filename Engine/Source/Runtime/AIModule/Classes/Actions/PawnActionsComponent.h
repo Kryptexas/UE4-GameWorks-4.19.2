@@ -26,6 +26,8 @@ struct FPawnActionEvent
 	{}
 
 	FPawnActionEvent(UPawnAction* Action, EPawnActionEventType::Type EventType, uint32 Index);
+
+	bool operator==(const FPawnActionEvent& Other) const { return (Action == Other.Action) && (EventType == Other.EventType) && (Priority == Other.Priority); }
 };
 
 USTRUCT()
@@ -52,6 +54,11 @@ public:
 	FORCEINLINE UPawnAction* GetTop() { return TopAction; }
 	FORCEINLINE const UPawnAction* GetTop() const { return TopAction; }
 	FORCEINLINE bool IsEmpty() const { return TopAction == NULL; }
+
+	//----------------------------------------------------------------------//
+	// Debugging-testing purposes 
+	//----------------------------------------------------------------------//
+	int32 GetStackSize() const;
 };
 
 UCLASS()
@@ -107,6 +114,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = PawnAction)
 	bool AbortAction(UPawnAction* ActionToAbort);
 
+	/** Aborts given action instance */
+	UFUNCTION(BlueprintCallable, Category = PawnAction)
+	bool ForceAbortAction(UPawnAction* ActionToAbort);
+
 	/** removes all actions instigated with Priority by Instigator
 	 *	@param Priority if equal to EAIRequestPriority::MAX then all priority queues will be searched. 
 	 *		This is less efficient so use with caution 
@@ -120,6 +131,12 @@ public:
 #if ENABLE_VISUAL_LOG
 	void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
+
+	//----------------------------------------------------------------------//
+	// Debugging-testing purposes 
+	//----------------------------------------------------------------------//
+	int32 GetActionStackSize(EAIRequestPriority::Type Priority) const { return ActionStacks[Priority].GetStackSize(); }
+	int32 GetActionEventsQueueSize() const { return ActionEvents.Num(); }
 
 protected:
 	/** Finds the action that should be running. If it's different from CurrentAction
