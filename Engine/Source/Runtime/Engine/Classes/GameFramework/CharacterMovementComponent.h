@@ -324,7 +324,7 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, AdvancedDisplay)
 	uint32 bEnableScopedMovementUpdates:1;
 
-	/** Ignores Acceleration component, and forces max acceleration to drive APawn at full velocity. */
+	/** Ignores size of acceleration component, and forces max acceleration to drive character at full velocity. */
 	UPROPERTY()
 	uint32 bForceMaxAccel:1;    
 
@@ -621,7 +621,11 @@ public:
 	UPROPERTY(Category="Avoidance", EditAnywhere, BlueprintReadOnly)
 	uint32 bUseRVOAvoidance:1;
 
-	/** Should use acceleration for path following? */
+	/**
+	 * Should use acceleration for path following?
+	 * If true, acceleration is applied when path following to reach the target velocity.
+	 * If false, path following velocity is set directly, disregarding acceleration.
+	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bRequestedMoveUseAcceleration:1;
 
@@ -869,8 +873,21 @@ public:
 	  */
 	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation);
 
-	/** use velocity requested by path following */
-	virtual bool ApplyRequestedMove(FVector& NewAcceleration, float DeltaTime, float MaxAccel, float MaxSpeed, float& OutRequestedSpeed);
+	/**
+	 * Use velocity requested by path following to compute a requested acceleration and speed.
+	 * This does not affect the Acceleration member variable, as that is used to indicate input acceleration.
+	 * This may directly affect current Velocity.
+	 *
+	 * @param DeltaTime				Time slice for this operation
+	 * @param MaxAccel				Max acceleration allowed in OutAcceleration result.
+	 * @param MaxSpeed				Max speed allowed when computing OutRequestedSpeed.
+	 * @param Friction				Current friction.
+	 * @param BrakingDeceleration	Current braking deceleration.
+	 * @param OutAcceleration		Acceleration computed based on requested velocity.
+	 * @param OutRequestedSpeed		Speed of resulting velocity request, which can affect the max speed allowed by movement.
+	 * @return Whether there is a requested velocity and acceleration, resulting in valid OutAcceleration and OutRequestedSpeed values.
+	 */
+	virtual bool ApplyRequestedMove(float DeltaTime, float MaxAccel, float MaxSpeed, float Friction, float BrakingDeceleration, FVector& OutAcceleration, float& OutRequestedSpeed);
 
 	/** Called if bNotifyApex is true and character has just passed the apex of its jump. */
 	virtual void NotifyJumpApex();
