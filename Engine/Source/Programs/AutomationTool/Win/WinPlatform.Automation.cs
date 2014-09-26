@@ -90,44 +90,67 @@ public abstract class BaseWinPlatform : Platform
 
 		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
 
-		List<string> Exes = GetExecutableNames(SC);
+        if (Params.StageNonMonolithic)
+        {
+            if (SC.DedicatedServer)
+            {
+                StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "UE4Server.");
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "UE4Server-*.");
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Plugins"), "UE4Server-*.", true);
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4Server-*.");
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.ProjectRoot, "Plugins"), "UE4Server-*.", true);
 
-		// the first exe is the "main" one, the rest are marked as debug files
-		StagedFileType WorkingFileType = StagedFileType.NonUFS;
-
-		foreach (var Exe in Exes)
-		{
-
-			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
-			{
-				// remap the project root. For Rocket executables, rename the executable to the game name.
-				if (!Params.IsCodeBasedProject && Exe == Exes[0])
-				{
-					StageExecutable("exe", SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
-				}
-				else
-				{
-					StageExecutable("exe", SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType);
-				}
-			}
-			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
-			{
-				// Move the executable for non-code rocket projects into the game directory, using the game name, so it can figure out the UProject to look for and is consitent with code projects.
-				if (!Params.IsCodeBasedProject && Exe == Exes[0])
-				{
-					StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
-				}
-				else
-				{
-					StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, null, false, WorkingFileType);
-				}
-			}
-			else
-			{
-				throw new AutomationException("Can't stage the exe {0} because it doesn't start with {1} or {2}", Exe, CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir), CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir));
-			}
-			// the first exe is the "main" one, the rest are marked as debug files
-			WorkingFileType = StagedFileType.DebugNonUFS;
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU/icu4c-53_1", SC.PlatformDir, "VS2013"), "*.");
+            }
+            else
+            {
+                StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "UE4.");
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "UE4-*.");
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Plugins"), "UE4-*.", true);
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "UE4-*.");
+                StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.ProjectRoot, "Plugins"), "UE4-*.", true);
+            }
+        }
+        else
+        {
+		    List<string> Exes = GetExecutableNames(SC);
+    
+		    // the first exe is the "main" one, the rest are marked as debug files
+		    StagedFileType WorkingFileType = StagedFileType.NonUFS;
+    
+		    foreach (var Exe in Exes)
+		    {
+			    if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
+			    {
+				    // remap the project root. For Rocket executables, rename the executable to the game name.
+				    if (!Params.IsCodeBasedProject && Exe == Exes[0])
+				    {
+					    StageExecutable("exe", SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
+				    }
+				    else
+				    {
+					    StageExecutable("exe", SC, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType);
+				    }
+			    }
+			    else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
+			    {
+				    // Move the executable for non-code rocket projects into the game directory, using the game name, so it can figure out the UProject to look for and is consitent with code projects.
+				    if (!Params.IsCodeBasedProject && Exe == Exes[0])
+				    {
+					    StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType, SC.ShortProjectName + ".");
+				    }
+				    else
+				    {
+					    StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe) + ".", true, null, null, false, WorkingFileType);
+				    }
+			    }
+			    else
+			    {
+				    throw new AutomationException("Can't stage the exe {0} because it doesn't start with {1} or {2}", Exe, CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir), CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir));
+			    }
+			    // the first exe is the "main" one, the rest are marked as debug files
+			    WorkingFileType = StagedFileType.DebugNonUFS;
+		    }
 		}
 
 	}
