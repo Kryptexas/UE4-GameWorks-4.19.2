@@ -7,7 +7,7 @@
 UTestBTTask_Log::UTestBTTask_Log(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NodeName = "Log";
-	ExecutionTime = 5.0f;
+	ExecutionTicks = 0;
 	LogIndex = 0;
 	LogFinished = -1;
 	LogResult = EBTNodeResult::Succeeded;
@@ -18,10 +18,10 @@ UTestBTTask_Log::UTestBTTask_Log(const FPostConstructInitializeProperties& PCIP)
 EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
-	MyMemory->RemainingWaitTime = ExecutionTime;
+	MyMemory->EndFrameIdx = ExecutionTicks + GFrameCounter;
 
 	LogExecution(OwnerComp, LogIndex);
-	if (ExecutionTime <= 0.0f)
+	if (ExecutionTicks == 0)
 	{
 		return LogResult;
 	}
@@ -32,9 +32,8 @@ EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(UBehaviorTreeComponent* OwnerCo
 void UTestBTTask_Log::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
-	MyMemory->RemainingWaitTime -= DeltaSeconds;
 
-	if (MyMemory->RemainingWaitTime <= 0.0f)
+	if (GFrameCounter >= MyMemory->EndFrameIdx)
 	{
 		LogExecution(OwnerComp, LogFinished);
 		FinishLatentTask(OwnerComp, LogResult);

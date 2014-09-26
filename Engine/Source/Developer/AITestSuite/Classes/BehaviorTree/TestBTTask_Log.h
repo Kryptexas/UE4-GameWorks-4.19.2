@@ -6,8 +6,7 @@
 
 struct FBTLogTaskMemory
 {
-	/** time left */
-	float RemainingWaitTime;
+	uint64 EndFrameIdx;
 };
 
 UCLASS(meta=(HiddenNode))
@@ -22,7 +21,7 @@ class UTestBTTask_Log : public UBTTaskNode
 	int32 LogFinished;
 
 	UPROPERTY()
-	float ExecutionTime;
+	int32 ExecutionTicks;
 
 	UPROPERTY()
 	TEnumAsByte<EBTNodeResult::Type> LogResult;
