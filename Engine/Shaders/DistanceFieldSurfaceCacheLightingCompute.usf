@@ -336,6 +336,7 @@ void DistanceFieldAOBuildTileListMain(
 
 /** View rect min in xy, max in zw. */
 float2 ThreadToCulledTile;
+uint NumCircleSections;
 
 RWBuffer<float4> RWIrradianceCachePositionRadius;
 RWBuffer<float4> RWIrradianceCacheNormal;
@@ -384,6 +385,7 @@ void PopulateCacheCS(
 
 	BRANCH
 	if (GBufferData.ShadingModelID > 0
+		&& GBufferData.HasDistanceFieldRepresentation > 0
 		&& IrradianceCacheSplat.w < .0001f 
 		&& all(DispatchThreadId.xy < AOBufferSize))
 	{
@@ -439,7 +441,7 @@ void PopulateCacheCS(
 	if (all(DispatchThreadId == 0))
 	{
 		// VertexCountPerInstance
-		RWScatterDrawParameters[0] = 8 * 3;
+		RWScatterDrawParameters[0] = NumCircleSections * 3;
 		// StartVertexLocation
 		RWScatterDrawParameters[2] = 0;
 		// StartInstanceLocation
@@ -466,7 +468,7 @@ RWBuffer<float4> RWIrradianceCacheBentNormal;
 // Have to disable surface caching dependencies for this to work
 #define VISUALIZE_ONE_CONE 0
 
-#define FINAL_GATHER_THREADGROUP_SIZE 256
+#define FINAL_GATHER_THREADGROUP_SIZE 64
 
 #if USE_CONE_TRACING
 	// Enforce one thread per cone direction

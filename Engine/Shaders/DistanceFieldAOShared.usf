@@ -62,9 +62,9 @@ uint2 TileListGroupSize;
 
 #define UNPACKED_TILE_HEAD 1
 #define COHERENT_OBJECT_LIST_WRITES 1
-
-uint4 GetTileHead(uint2 TileCoordinate)
-{
+ 
+uint4 GetTileHead(uint2 TileCoordinate) 
+{ 
 	uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
 #if UNPACKED_TILE_HEAD
 	return uint4(

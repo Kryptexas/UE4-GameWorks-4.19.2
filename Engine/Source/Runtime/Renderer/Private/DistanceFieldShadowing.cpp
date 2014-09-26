@@ -728,8 +728,8 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
 
 				{
-					const FIntPoint ExpandedBufferSize = GetBufferSizeForAO();
-					FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ExpandedBufferSize / GAODownsampleFactor, PF_G16R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+					const FIntPoint BufferSize = GetBufferSizeForAO();
+					FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G16R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
 					GRenderTargetPool.FindFreeElement(Desc, RayTracedShadowsRT, TEXT("RayTracedShadows"));
 				}
 
@@ -815,7 +815,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 						ScissorRect.Min.X / GAODownsampleFactor, ScissorRect.Min.Y / GAODownsampleFactor, 
 						ScissorRect.Width() / GAODownsampleFactor, ScissorRect.Height() / GAODownsampleFactor,
 						FIntPoint(ScissorRect.Width(), ScissorRect.Height()),
-						GetBufferSizeForAO() / GAODownsampleFactor,
+						GetBufferSizeForAO(),
 						*VertexShader);
 				}
 			}
