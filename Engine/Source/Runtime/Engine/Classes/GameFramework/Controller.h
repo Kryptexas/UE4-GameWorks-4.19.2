@@ -126,7 +126,7 @@ public:
 	 * @param StateName the name of the state to test against
 	 * @return true if current state is StateName
 	 */
-	bool IsInState(FName InStateName);
+	bool IsInState(FName InStateName) const;
 	
 	/** @return the name of the current state */
 	FName GetStateName() const;
