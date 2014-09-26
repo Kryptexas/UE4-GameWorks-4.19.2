@@ -326,5 +326,6 @@ protected:
 	TWeakPtr<SWidget> MyGCWidget;
 	
 	/** Is this widget being displayed on a designer surface */
+	UPROPERTY(Transient)
 	bool bDesignTime;
 };
