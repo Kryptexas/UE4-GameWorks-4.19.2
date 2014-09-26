@@ -1839,7 +1839,7 @@ bool GameProjectUtils::GetClassLocation(const FString& InPath, const FModuleCont
 	return true;
 }
 
-bool GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile )
+GameProjectUtils::EProjectDuplicateResult GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile, FString& OutNewProjectFile )
 {
 	IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
@@ -1914,31 +1914,41 @@ bool GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile,
 
 	// Copy everything
 	bool bCopySucceeded = true;
-	GWarn->BeginSlowTask(LOCTEXT("CreatingCopyOfProject", "Creating copy of project..."), true);
+	bool bUserCanceled = false;
+	GWarn->BeginSlowTask(LOCTEXT("CreatingCopyOfProject", "Creating copy of project..."), true, true);
 	for(int32 Idx = 0; Idx < SourceDirectories.Num() && bCopySucceeded; Idx++)
 	{
 		FString TargetDirectory = NewDirectoryName + SourceDirectories[Idx].Mid(OldDirectoryName.Len());
-		bCopySucceeded = PlatformFile.CreateDirectory(*TargetDirectory);
+		bUserCanceled = GWarn->ReceivedUserCancel();
+		bCopySucceeded = !bUserCanceled && PlatformFile.CreateDirectory(*TargetDirectory);
 		GWarn->UpdateProgress(Idx + 1, SourceDirectories.Num() + SourceFiles.Num());
 	}
 	for(int32 Idx = 0; Idx < SourceFiles.Num() && bCopySucceeded; Idx++)
 	{
 		FString TargetFile = NewDirectoryName + SourceFiles[Idx].Mid(OldDirectoryName.Len());
-		bCopySucceeded = PlatformFile.CopyFile(*TargetFile, *SourceFiles[Idx]);
+		bUserCanceled = GWarn->ReceivedUserCancel();
+		bCopySucceeded =  !bUserCanceled && PlatformFile.CopyFile(*TargetFile, *SourceFiles[Idx]);
 		GWarn->UpdateProgress(SourceDirectories.Num() + Idx + 1, SourceDirectories.Num() + SourceFiles.Num());
 	}
 	GWarn->EndSlowTask();
 
-	// Wipe the directory if we couldn't update
+	// Wipe the directory if the user canceled or we couldn't update
 	if(!bCopySucceeded)
 	{
 		PlatformFile.DeleteDirectoryRecursively(*NewDirectoryName);
-		return false;
+		if(bUserCanceled)
+		{
+			return EProjectDuplicateResult::UserCanceled;
+		}
+		else
+		{
+			return EProjectDuplicateResult::Failed;
+		}
 	}
 
 	// Otherwise fixup the output project filename
 	OutNewProjectFile = NewDirectoryName / FPaths::GetCleanFilename(InProjectFile);
-	return true;
+	return EProjectDuplicateResult::Succeeded;
 }
 
 void GameProjectUtils::UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported)

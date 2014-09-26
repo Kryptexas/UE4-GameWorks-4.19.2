@@ -146,6 +146,19 @@ public:
 		const UClass* BaseClass;
 	};
 
+	/** Used as a function return result when a project is duplicated when upgrading project's version in Convert project dialog - Open a copy */
+	enum class EProjectDuplicateResult : uint8
+	{
+		/** Function has successfully duplicated all project files */
+		Succeeded,
+
+		/** There were errors while duplicating project files */
+		Failed,
+		 
+		/** User has canceled project duplication process */
+		UserCanceled
+	};
+
 	/** Returns true if the project filename is properly formed and does not conflict with another project */
 	static bool IsValidProjectFileForCreation(const FString& ProjectFile, FText& OutFailReason);
 
@@ -246,7 +259,7 @@ public:
 	static bool GetClassLocation(const FString& InPath, const FModuleContextInfo& ModuleInfo, EClassLocation& OutClassLocation, FText* const OutFailReason = nullptr);
 
 	/** Creates a copy of a project directory in order to upgrade it. */
-	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );
+	static EProjectDuplicateResult DuplicateProjectForUpgrade( const FString& InProjectFile, FString& OutNewProjectFile );
 
 	/**
 	 * Update the list of supported target platforms based upon the parameters provided

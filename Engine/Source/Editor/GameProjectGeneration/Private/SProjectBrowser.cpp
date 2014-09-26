@@ -1003,11 +1003,18 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 		if(Selection == OpenCopyButton)
 		{
 			FString NewProjectFile;
-			if(!GameProjectUtils::DuplicateProjectForUpgrade(ProjectFile, NewProjectFile))
+			GameProjectUtils::EProjectDuplicateResult DuplicateResult = GameProjectUtils::DuplicateProjectForUpgrade(ProjectFile, NewProjectFile);
+
+			if (DuplicateResult == GameProjectUtils::EProjectDuplicateResult::UserCanceled)
+			{
+				return false;
+			}
+			else if (DuplicateResult == GameProjectUtils::EProjectDuplicateResult::Failed)
 			{
 				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCopyFailed", "Couldn't copy project. Check you have sufficient hard drive space and write access to the project folder.") );
 				return false;
 			}
+
 			ProjectFile = NewProjectFile;
 		}
 		if(Selection == OpenExistingButton)
