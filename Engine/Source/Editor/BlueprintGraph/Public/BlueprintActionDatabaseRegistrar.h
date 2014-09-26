@@ -56,6 +56,12 @@ public:
 	 */
 	bool IsOpenForRegistration(UObject const* OwnerKey);
 
+	/** Returns the current key the registrar is being filtered using */
+	UObject const* GetActionKeyFilter() const
+	{
+		return ActionKeyFilter;
+	}
+
 private:
 	typedef FBlueprintActionDatabase::FActionRegistry			FActionRegistry;
 	typedef FBlueprintActionDatabase::FUnloadedActionRegistry	FUnloadedActionRegistry;
