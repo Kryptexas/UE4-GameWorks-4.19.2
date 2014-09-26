@@ -379,10 +379,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 	// Initialize the file manager
 	IFileManager::Get().ProcessCommandLineOptions();
-	
-	// Populate cultures for localization (used by BuildPatch progress info)
-	BeginInitTextLocalization();
-	FInternationalization I18N = FInternationalization::Get();
 
 	// Load the BuildPatchServices Module
 	TSharedPtr<IBuildPatchServicesModule> BuildPatchServicesModule = StaticCastSharedPtr<IBuildPatchServicesModule>( FModuleManager::Get().LoadModule( TEXT( "BuildPatchServices" ) ) );
