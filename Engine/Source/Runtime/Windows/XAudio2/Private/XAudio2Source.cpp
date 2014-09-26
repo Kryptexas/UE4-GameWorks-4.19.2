@@ -1380,15 +1380,6 @@ void FSpatializationHelper::DumpSpatializationState() const
 	FLocal::DumpChannelArray(TEXT("  "), TEXT("MatrixCoefficients"), ARRAY_COUNT(MatrixCoefficients), MatrixCoefficients);
 }
 
-/**
- * Calculates the spatialized volumes for each channel.
- *
- * @param	OrientFront				The listener's facing direction.
- * @param	ListenerPosition		The position of the listener.
- * @param	EmitterPosition			The position of the emitter.
- * @param	OutVolumes				An array of floats with one volume for each output channel.
- * @param	OutReverbLevel			The reverb volume
- */
 void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float OmniRadius, float* OutVolumes  )
 {
 	uint32 CalculateFlags = X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER | X3DAUDIO_CALCULATE_REVERB;

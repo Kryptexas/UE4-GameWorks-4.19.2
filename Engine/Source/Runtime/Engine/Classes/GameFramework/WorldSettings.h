@@ -2,7 +2,7 @@
 
 #pragma once
 #include "GameFramework/Info.h"
-#include "Sound/ReverbVolume.h"
+#include "Sound/AudioVolume.h"
 #include "WorldSettings.generated.h"
 
 UENUM()
@@ -324,11 +324,11 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 
 	/************************************/
 	/** AUDIO SETTINGS **/
-	/** Default reverb settings used by reverb volumes.													*/
+	/** Default reverb settings used by audio volumes.													*/
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	struct FReverbSettings DefaultReverbSettings;
 
-	/** Default interior settings used by reverb volumes.												*/
+	/** Default interior settings used by audio volumes.												*/
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	struct FInteriorSettings DefaultAmbientZoneSettings;
 

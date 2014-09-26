@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Sound/ReverbVolume.h"
+#include "Sound/AudioVolume.h"
 #include "Sound/SoundAttenuation.h"
 
 struct ENGINE_API FActiveSound
@@ -109,7 +109,7 @@ public:
 	/** cache what volume settings we had last time so we don't have to search again if we didn't move */
 	FInteriorSettings LastInteriorSettings;
 
-	class AReverbVolume* LastReverbVolume;
+	class AAudioVolume* LastAudioVolume;
 
 	// To remember where the volumes are interpolating to and from
 	double LastUpdateTime; 

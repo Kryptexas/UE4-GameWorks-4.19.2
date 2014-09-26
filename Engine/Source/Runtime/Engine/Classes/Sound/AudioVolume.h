@@ -2,15 +2,17 @@
 
 /**
  *
- * Used to affect reverb settings in the game and editor.
+ * Used to affect audio settings in the game and editor.
  */
 
 #pragma once
 #include "GameFramework/Volume.h"
-#include "ReverbVolume.generated.h"
+#include "AudioVolume.generated.h"
 
 /**
+ * DEPRECATED: Exists for backwards compatibility
  * Indicates a reverb preset to use.
+ *
  */
 UENUM()
 enum ReverbPreset
@@ -98,36 +100,43 @@ struct FInteriorSettings
 {
 	GENERATED_USTRUCT_BODY()
 
+	// Whether these interior settings are the default values for the world
 	UPROPERTY()
 	uint32 bIsWorldSettings:1;
 
+	// The desired volume of sounds outside the volume when the player is inside the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float ExteriorVolume;
 
+	// The time over which to interpolate from the current volume to the desired volume of sounds outside the volume when the player enters the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float ExteriorTime;
 
+	// The desired LPF of sounds outside the volume when the player is inside the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float ExteriorLPF;
 
+	// The time over which to interpolate from the current LPF to the desired LPF of sounds outside the volume when the player enters the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float ExteriorLPFTime;
 
+	// The desired volume of sounds inside the volume when the player is inside the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float InteriorVolume;
 
+	// The time over which to interpolate from the current volume to the desired volume of sounds inside the volume when the player enters the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float InteriorTime;
 
+	// The desired LPF of sounds inside  the volume when the player is inside the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float InteriorLPF;
 
+	// The time over which to interpolate from the current LPF to the desired LPF of sounds inside the volume when the player enters the volume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float InteriorLPFTime;
 
-
-
-		FInteriorSettings()
+	FInteriorSettings()
 		: bIsWorldSettings(false)
 		, ExteriorVolume(1.0f)
 		, ExteriorTime(0.5f)
@@ -143,7 +152,7 @@ struct FInteriorSettings
 };
 
 UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume))
-class AReverbVolume : public AVolume
+class AAudioVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
 
@@ -151,24 +160,24 @@ class AReverbVolume : public AVolume
 	 * Priority of this volume. In the case of overlapping volumes the one with the highest priority
 	 * is chosen. The order is undefined if two or more overlapping volumes have the same priority.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReverbVolume)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AudioVolume)
 	float Priority;
 
 	/** whether this volume is currently enabled and able to affect sounds */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, replicated, Category=Toggle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, replicated, Category=AudioVolume)
 	uint32 bEnabled:1;
 
 	/** Reverb settings to use for this volume. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReverbVolume)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Reverb)
 	struct FReverbSettings Settings;
 
 	/** Interior settings used for this volume */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReverbVolume)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AmbientZone)
 	struct FInteriorSettings AmbientZoneSettings;
 
 	/** Next volume in linked listed, sorted by priority in descending order. */
 	UPROPERTY(transient)
-	class AReverbVolume* NextLowerPriorityVolume;
+	class AAudioVolume* NextLowerPriorityVolume;
 
 
 

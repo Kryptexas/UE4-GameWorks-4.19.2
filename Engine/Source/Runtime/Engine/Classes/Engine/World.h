@@ -846,8 +846,8 @@ public:
 	/** An array of post processing volumes, sorted in ascending order of priority.					*/
 	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
 
-	/** Linked list of reverb volumes, sorted in descending order of priority.							*/
-	TAutoWeakObjectPtr<class AReverbVolume> HighestPriorityReverbVolume;
+	/** Pointer to the higest priority audio volumes, each volume has a reference to the next lower priority volume creating a linked list of prioritized audio volumes in descending order */
+	TAutoWeakObjectPtr<class AAudioVolume> HighestPriorityAudioVolume;
 
 	/** Time in FPlatformTime::Seconds unbuilt time was last encountered. 0 means not yet.							*/
 	double LastTimeUnbuiltLightingWasEncountered;
@@ -2268,15 +2268,15 @@ public:
 	/*****************************************************************************************************/
 
 	/**
-	 * Finds the reverb settings to use for a given view location, taking into account the world's default
-	 * settings and the reverb volumes in the world.
+	 * Finds the audio settings to use for a given view location, taking into account the world's default
+	 * settings and the audio volumes in the world.
 	 *
 	 * @param	ViewLocation			Current view location.
 	 * @param	OutReverbSettings		[out] Upon return, the reverb settings for a camera at ViewLocation.
 	 * @param	OutInteriorSettings		[out] Upon return, the interior settings for a camera at ViewLocation.
-	 * @return							If the settings came from a reverb volume, the reverb volume's object index is returned.
+	 * @return							If the settings came from an audio volume, the audio volume object is returned.
 	 */
-	class AReverbVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
+	class AAudioVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
 
 	/** Return the URL of this level on the local machine. */
 	virtual FString GetLocalURL() const;

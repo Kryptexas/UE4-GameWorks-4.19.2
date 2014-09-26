@@ -758,7 +758,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
 	bool bReverbSettingsFound = false;
 	FReverbSettings ReverbSettings;
-	class AReverbVolume* ReverbVolume = NULL;
+	class AAudioVolume* AudioVolume = nullptr;
 
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
@@ -841,16 +841,16 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 								FReverbSettings PlayerReverbSettings;
 								FInteriorSettings PlayerInteriorSettings;
-								class AReverbVolume* PlayerReverbVolume = GetWorld()->GetAudioSettings( ViewLocation, &PlayerReverbSettings, &PlayerInteriorSettings );
+								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings( ViewLocation, &PlayerReverbSettings, &PlayerInteriorSettings );
 
-								if (ReverbVolume == NULL || (PlayerReverbVolume != NULL && PlayerReverbVolume->Priority > ReverbVolume->Priority))
+								if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
 								{
-									ReverbVolume = PlayerReverbVolume;
+									AudioVolume = PlayerAudioVolume;
 									ReverbSettings = PlayerReverbSettings;
 								}
 
 								uint32 ViewportIndex = PlayerViewMap.Num()-1;
-								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerReverbVolume, PlayerInteriorSettings);
+								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
 							}
 					
 						}
@@ -866,7 +866,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	if (bReverbSettingsFound)
 	{
-		AudioDevice->SetReverbSettings( ReverbVolume, ReverbSettings );
+		AudioDevice->SetReverbSettings( AudioVolume, ReverbSettings );
 	}
 
 	// Update level streaming.

@@ -10995,14 +10995,14 @@ int32 UEngine::RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Can
 			ULocalPlayer* LocalPlayer = GetFirstGamePlayer(World);
 			if (LocalPlayer)
 			{
-				const AReverbVolume* ReverbVolume = AudioDevice->CurrentReverbVolume;
-				if (ReverbVolume && ReverbVolume->Settings.ReverbEffect)
+				const AAudioVolume* AudioVolume = AudioDevice->CurrentAudioVolume;
+				if (AudioVolume && AudioVolume->Settings.ReverbEffect)
 				{
-					TheString = FString::Printf(TEXT("  Reverb Volume Effect: %s (Priority: %g Volume Name: %s)"), *ReverbVolume->Settings.ReverbEffect->GetName(), ReverbVolume->Priority, *ReverbVolume->GetName());
+					TheString = FString::Printf(TEXT("  Audio Volume Reverb Effect: %s (Priority: %g Volume Name: %s)"), *AudioVolume->Settings.ReverbEffect->GetName(), AudioVolume->Priority, *AudioVolume->GetName());
 				}
 				else
 				{
-					TheString = TEXT("  Reverb Volume: None");
+					TheString = TEXT("  Audio Volume Reverb Effect: None");
 				}
 				Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FLinearColor::White);
 				Y += 12;

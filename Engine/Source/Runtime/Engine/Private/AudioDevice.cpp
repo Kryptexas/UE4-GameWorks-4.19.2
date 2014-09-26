@@ -30,7 +30,7 @@ FAudioDevice::FAudioDevice()
 	, BaseSoundMix(NULL)
 	, DefaultBaseSoundMix(NULL)
 	, Effects(NULL)
-	, CurrentReverbVolume(NULL)
+	, CurrentAudioVolume(NULL)
 	, HighestPriorityReverb(NULL)
 {
 }
@@ -1339,7 +1339,7 @@ void FAudioDevice::InvalidateCachedInteriorVolumes() const
 	}
 }
 
-void FListener::ApplyInteriorSettings( class AReverbVolume* InVolume, const FInteriorSettings& Settings )
+void FListener::ApplyInteriorSettings( class AAudioVolume* InVolume, const FInteriorSettings& Settings )
 {
 	if( InVolume != Volume )
 	{
@@ -1356,7 +1356,7 @@ void FListener::ApplyInteriorSettings( class AReverbVolume* InVolume, const FInt
 }
 
 
-void FAudioDevice::SetListener( const int32 InViewportIndex, const FTransform& InListenerTransform, const float InDeltaSeconds, class AReverbVolume* Volume, const FInteriorSettings& InteriorSettings )
+void FAudioDevice::SetListener( const int32 InViewportIndex, const FTransform& InListenerTransform, const float InDeltaSeconds, class AAudioVolume* Volume, const FInteriorSettings& InteriorSettings )
 {
 	FTransform ListenerTransform = InListenerTransform;
 	
@@ -1556,7 +1556,7 @@ void FAudioDevice::DeactivateReverbEffect(FName TagName)
 	}
 }
 
-void FAudioDevice::SetReverbSettings( class AReverbVolume* Volume, const FReverbSettings& ReverbSettings )
+void FAudioDevice::SetReverbSettings( class AAudioVolume* Volume, const FReverbSettings& ReverbSettings )
 {
 	const FReverbSettings* ActivatedReverb = &ReverbSettings;
 	if (HighestPriorityReverb && (!Volume || HighestPriorityReverb->Priority > Volume->Priority))

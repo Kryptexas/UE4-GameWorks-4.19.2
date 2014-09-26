@@ -896,21 +896,12 @@ void UWorld::RefreshStreamingLevels()
 #endif // WITH_EDITOR
 
 
-/**
- * Finds the reverb settings to use for a given view location, taking into account the world's default
- * settings and the reverb volumes in the world.
- *
- * @param	ViewLocation			Current view location.
- * @param	OutReverbSettings		[out] Upon return, the reverb settings for a camera at ViewLocation.
- * @param	OutInteriorSettings		[out] Upon return, the interior settings for a camera at ViewLocation.
- * @return							If the settings came from a reverb volume, the reverb volume's object index is returned.
- */
-AReverbVolume* UWorld::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* OutReverbSettings, FInteriorSettings* OutInteriorSettings )
+AAudioVolume* UWorld::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* OutReverbSettings, FInteriorSettings* OutInteriorSettings )
 {
 	// Find the highest priority volume encompassing the current view location. This is made easier by the linked
 	// list being sorted by priority. @todo: it remains to be seen whether we should trade off sorting for constant
 	// time insertion/ removal time via e.g. TLinkedList.
-	AReverbVolume* Volume = HighestPriorityReverbVolume;
+	AAudioVolume* Volume = HighestPriorityAudioVolume;
 	while( Volume )
 	{
 		// Volume encompasses, break out of loop.

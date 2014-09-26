@@ -94,7 +94,7 @@ struct FEngineShowFlags
 			LocNames.Add(TEXT("PostProcessVolume"), LOCTEXT("PostProcessVolumeSF", "Post Process"));
 			LocNames.Add(TEXT("PrecomputedVisibilityOverrideVolume"), LOCTEXT("PrecomputedVisibilityOverrideVolumeSF", "Precomputed Visibility Override"));
 			LocNames.Add(TEXT("PrecomputedVisibilityVolume"), LOCTEXT("PrecomputedVisibilityVolumeSF", "Precomputed Visibility"));
-			LocNames.Add(TEXT("ReverbVolume"), LOCTEXT("ReverbVolumeSF", "Reverb"));
+			LocNames.Add(TEXT("AudioVolume"), LOCTEXT("AudioVolumeSF", "Audio"));
 			LocNames.Add(TEXT("TriggerVolume"), LOCTEXT("TriggerVolumeSF", "Trigger"));
 			LocNames.Add(TEXT("VisualizeAO"), LOCTEXT("VisualizeAOSF", "Ambient Occlusion"));
 		}

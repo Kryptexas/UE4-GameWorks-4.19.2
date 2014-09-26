@@ -40,7 +40,7 @@
 #include "GameFramework/PainCausingVolume.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
 #include "Engine/PostProcessVolume.h"
-#include "Sound/ReverbVolume.h"
+#include "Sound/AudioVolume.h"
 #include "Engine/TriggerVolume.h"
 #include "Camera/CameraActor.h"
 #include "AI/Navigation/NavAgentInterface.h"

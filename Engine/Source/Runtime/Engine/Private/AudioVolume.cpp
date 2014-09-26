@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ReverbVolume.cpp: Used to affect reverb settings in the game and editor.
+	AudioVolume.cpp: Used to affect audio settings in the game and editor.
 =============================================================================*/
 
 #include "EnginePrivate.h"
@@ -119,7 +119,7 @@ void FReverbSettings::PostSerialize(const FArchive& Ar)
 	}
 }
 
-AReverbVolume::AReverbVolume(const class FPostConstructInitializeProperties& PCIP)
+AAudioVolume::AAudioVolume(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -133,13 +133,13 @@ AReverbVolume::AReverbVolume(const class FPostConstructInitializeProperties& PCI
 	bEnabled = true;
 }
 
-void AReverbVolume::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
+void AAudioVolume::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-	DOREPLIFETIME( AReverbVolume, bEnabled );
+	DOREPLIFETIME( AAudioVolume, bEnabled );
 }
 
-void AReverbVolume::PostUnregisterAllComponents( void )
+void AAudioVolume::PostUnregisterAllComponents( void )
 {
 	// Route clear to super first.
 	Super::PostUnregisterAllComponents();
@@ -147,8 +147,8 @@ void AReverbVolume::PostUnregisterAllComponents( void )
 	// World will be NULL during exit purge.
 	if( GetWorld() )
 	{
-		AReverbVolume* CurrentVolume = GetWorld()->HighestPriorityReverbVolume;
-		AReverbVolume* PreviousVolume = NULL;
+		AAudioVolume* CurrentVolume = GetWorld()->HighestPriorityAudioVolume;
+		AAudioVolume* PreviousVolume = NULL;
 
 		// Iterate over linked list, removing this volume if found.
 		while( CurrentVolume )
@@ -164,7 +164,7 @@ void AReverbVolume::PostUnregisterAllComponents( void )
 				else
 				{
 					// Special case removal from first entry.
-					GetWorld()->HighestPriorityReverbVolume = NextLowerPriorityVolume;
+					GetWorld()->HighestPriorityAudioVolume = NextLowerPriorityVolume;
 				}
 
 				break;
@@ -185,13 +185,13 @@ void AReverbVolume::PostUnregisterAllComponents( void )
 	}
 }
 
-void AReverbVolume::PostRegisterAllComponents()
+void AAudioVolume::PostRegisterAllComponents()
 {
 	// Route update to super first.
 	Super::PostRegisterAllComponents();
 
-	AReverbVolume* CurrentVolume = GetWorld()->HighestPriorityReverbVolume;
-	AReverbVolume* PreviousVolume = NULL;
+	AAudioVolume* CurrentVolume = GetWorld()->HighestPriorityAudioVolume;
+	AAudioVolume* PreviousVolume = NULL;
 
 	// Find where to insert in sorted linked list.
 	if( CurrentVolume )
@@ -211,7 +211,7 @@ void AReverbVolume::PostRegisterAllComponents()
 				else
 				{
 					// Special case for insertion at the beginning.
-					GetWorld()->HighestPriorityReverbVolume = this;
+					GetWorld()->HighestPriorityAudioVolume = this;
 				}
 
 				// Point to current volume, finalizing insertion.
@@ -235,7 +235,7 @@ void AReverbVolume::PostRegisterAllComponents()
 	else
 	{
 		// First volume in the world info.
-		GetWorld()->HighestPriorityReverbVolume = this;
+		GetWorld()->HighestPriorityAudioVolume = this;
 		NextLowerPriorityVolume	= NULL;
 	}
 
@@ -246,7 +246,7 @@ void AReverbVolume::PostRegisterAllComponents()
 }
 
 #if WITH_EDITOR
-void AReverbVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void AAudioVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
