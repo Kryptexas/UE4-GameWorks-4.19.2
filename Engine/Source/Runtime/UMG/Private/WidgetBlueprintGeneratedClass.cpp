@@ -79,6 +79,8 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 		}
 
+		UserWidget->Components.Reset();
+
 		for ( UWidget* Widget : ClonedWidgets )
 		{
 			// Not fatal if NULL, but shouldn't happen
