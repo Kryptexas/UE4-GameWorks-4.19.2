@@ -49,6 +49,11 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	return NewSelf;
 }
 
+- (void)dealloc
+{
+	[super dealloc];
+}
+
 - (NSRect)openGLFrame
 {
 	SCOPED_AUTORELEASE_POOL;
@@ -174,7 +179,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if(bNeedsRedraw && bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
 	{
 		NSNotification* Notification = [NSNotification notificationWithName:NSWindowRedrawContents object:self];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Sync, InGameRunLoopMode(@[ UE4NilEventMode, UE4ShowEventMode, UE4ResizeEventMode, UE4FullscreenEventMode, UE4CloseEventMode, UE4IMEEventMode ]));
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4NilEventMode, UE4ShowEventMode, UE4ResizeEventMode, UE4FullscreenEventMode, UE4CloseEventMode, UE4IMEEventMode ]);
 	}
 	bNeedsRedraw = false;
 }
@@ -301,7 +306,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		if(self.bForwardEvents)
 		{
 			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDidResizeNotification object:self];
-			FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4ResizeEventMode, UE4ShowEventMode ]));
+			FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode ]);
 		}
 	}
 }
@@ -323,7 +328,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		bDeferSetOrigin = true;
 		DeferFrame.origin = Point;
 		NSNotification* Notification = [NSNotification notificationWithName:NSWindowDidMoveNotification object:self];
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4ResizeEventMode, UE4ShowEventMode ]));
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode ]);
 	}
 }
 
@@ -352,7 +357,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	WindowMode = self.TargetWindowMode;
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4FullscreenEventMode ]));
+		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
 	}
 }
 
@@ -362,7 +367,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	self.TargetWindowMode = EWindowMode::Windowed;
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4FullscreenEventMode ]));
+		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
 	}
 }
 
@@ -383,7 +388,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]));
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
@@ -395,7 +400,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]));
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
@@ -403,7 +408,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]));
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
@@ -417,7 +422,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]));
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 	}
 }
 
@@ -491,7 +496,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bZoomed = [self isZoomed];
 	if(self.bForwardEvents)
 	{
-		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]));
+		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 	}
 	bNeedsRedraw = true;
 }
@@ -501,7 +506,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	SCOPED_AUTORELEASE_POOL;
 	if(self.bForwardEvents && MacApplication)
 	{
-		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, InGameRunLoopMode(@[ UE4CloseEventMode ]));
+		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4CloseEventMode ]);
 	}
 	self.bForwardEvents = false;
 	[self setDelegate:nil];
@@ -617,7 +622,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	BOOL Movable = [super isMovable];
 	if(Movable && bRenderInitialised && MacApplication)
 	{
-		Movable &= (BOOL)(GameThreadReturn(^{ return MacApplication->IsWindowMovable(self, NULL); }, InGameRunLoopMode(@[ UE4NilEventMode, UE4ShowEventMode, UE4ResizeEventMode, UE4FullscreenEventMode, UE4CloseEventMode, UE4IMEEventMode ])));
+		Movable &= (BOOL)(GameThreadReturn(^{ return MacApplication->IsWindowMovable(self, NULL); }, @[ NSDefaultRunLoopMode, UE4NilEventMode, UE4ShowEventMode, UE4ResizeEventMode, UE4FullscreenEventMode, UE4CloseEventMode, UE4IMEEventMode ]));
 	}
 	return Movable;
 }

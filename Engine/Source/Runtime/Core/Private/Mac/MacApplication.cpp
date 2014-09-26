@@ -44,33 +44,38 @@ FMacApplication* FMacApplication::CreateMacApplication()
 
 NSEvent* FMacApplication::HandleNSEvent(NSEvent* Event)
 {
-	NSEvent* ReturnEvent = Event;
-	const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
-		|| [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
-		|| [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp;
-	const bool bIsResentEvent = [Event type] == NSApplicationDefined && [Event subtype] == FMacApplication::ResentEvent;
+	NSEvent* ReturnEvent = nil;
 	
-	if (MacApplication)
+	if ([Event windowNumber] == 0 || [Event window] != nil)
 	{
-		if ( bIsResentEvent )
-		{
-			ReturnEvent = (NSEvent*)[Event data1];
-		}
+		ReturnEvent = Event;
+		const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
+			|| [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
+			|| [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp;
+		const bool bIsResentEvent = [Event type] == NSApplicationDefined && [Event subtype] == FMacApplication::ResentEvent;
 		
-		if ( !bIsResentEvent && ( !bIsMouseClickOrKeyEvent || [Event window] == NULL ) )
+		if (MacApplication)
 		{
-			FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
-			
-			if ( [Event type] == NSKeyDown || [Event type] == NSKeyUp )
+			if ( bIsResentEvent )
 			{
-				ReturnEvent = nil;
+				ReturnEvent = (NSEvent*)[Event data1];
 			}
-		}
-		
-		if ([Event type] == NSLeftMouseUp)
-		{
-			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDraggingFinished object:[Event window]];
-			FMacEvent::SendToGameRunLoop(Notification, [Event window], EMacEventSendMethod::Async);
+			
+			if ( !bIsResentEvent && ( !bIsMouseClickOrKeyEvent || [Event window] == NULL ) )
+			{
+				FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
+				
+				if ( [Event type] == NSKeyDown || [Event type] == NSKeyUp )
+				{
+					ReturnEvent = nil;
+				}
+			}
+			
+			if ([Event type] == NSLeftMouseUp)
+			{
+				NSNotification* Notification = [NSNotification notificationWithName:NSWindowDraggingFinished object:[Event window]];
+				FMacEvent::SendToGameRunLoop(Notification, [Event window], EMacEventSendMethod::Async);
+			}
 		}
 	}
 	
