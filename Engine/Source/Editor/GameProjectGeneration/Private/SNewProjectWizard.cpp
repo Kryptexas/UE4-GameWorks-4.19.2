@@ -527,32 +527,69 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 											+ SHorizontalBox::Slot()
 											.AutoWidth()
 											[
-												SNew(SButton)
-												.Visibility(StarterContentVisiblity)
-												.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-												.ForegroundColor(FSlateColor::UseForeground())
-												.ContentPadding(6.f)
-												.ToolTipText( LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."))
-												.OnClicked(this, &SNewProjectWizard::OnCopyStarterContentClicked)
+												SNew(SOverlay)
+												+SOverlay::Slot()
 												[
-													SNew(SVerticalBox)
+													SNew(SButton)
+													.Visibility(StarterContentVisiblity)
+													.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+													.ForegroundColor(FSlateColor::UseForeground())
+													.ContentPadding(6.f)
+													.ToolTipText( LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."))
+													.OnClicked(this, &SNewProjectWizard::OnCopyStarterContentClicked)
+													[
+														SNew(SVerticalBox)
 
-													+ SVerticalBox::Slot()
-													.AutoHeight()
-													.HAlign(HAlign_Center)
+														+ SVerticalBox::Slot()
+														.AutoHeight()
+														.HAlign(HAlign_Center)
+														[
+															SNew(SImage)
+															.Image(this, &SNewProjectWizard::GetStartContentIcon)
+														]
+
+														+ SVerticalBox::Slot()
+														.AutoHeight()
+														.Padding(4)
+														.HAlign(HAlign_Center)
+														[
+															SNew(STextBlock)
+															.Text(this, &SNewProjectWizard::GetStartContentText)
+														]
+													]
+												]
+
+												// Fake combo-button down arrow to make it look more interactive
+												+SOverlay::Slot()
+												.VAlign(VAlign_Center)
+												[
+													SNew(SHorizontalBox)
+													+ SHorizontalBox::Slot()
+													.FillWidth(1.0f)
+													[
+														SNew(SSpacer)
+													]
+													+SHorizontalBox::Slot()
+													.AutoWidth()
+													.Padding(FMargin(8, 0))
 													[
 														SNew(SImage)
-														.Image(this, &SNewProjectWizard::GetStartContentIcon)
+														.Visibility(EVisibility::HitTestInvisible)
+														.Image(&(FCoreStyle::Get().GetWidgetStyle<FComboButtonStyle>("ComboButton").DownArrowImage))
 													]
+												]
 
-													+ SVerticalBox::Slot()
-													.AutoHeight()
-													.Padding(4)
-													.HAlign(HAlign_Center)
-													[
-														SNew(STextBlock)
-														.Text(this, &SNewProjectWizard::GetStartContentText)
-													]
+												// Warning when enabled for mobile, since the current starter content is bad for mobile
+												+SOverlay::Slot()
+												//.Visibility(EVisibility::SelfHitTestInvisible)
+												.HAlign(HAlign_Right)
+												.VAlign(VAlign_Top)
+												.Padding(4)
+												[
+													SNew(SImage)
+													.Image(FEditorStyle::GetBrush("Icons.Warning"))
+													.ToolTipText(this, &SNewProjectWizard::GetStarterContentWarningTooltip)
+													.Visibility(this, &SNewProjectWizard::GetStarterContentWarningVisibility)
 												]
 											]
 										]
@@ -742,6 +779,23 @@ FReply SNewProjectWizard::OnCopyStarterContentClicked()
 {
 	bCopyStarterContent = !bCopyStarterContent;
 	return FReply::Handled();
+}
+
+EVisibility SNewProjectWizard::GetStarterContentWarningVisibility() const
+{
+	return (bCopyStarterContent && (SelectedHardwareClassTarget == EHardwareClass::Mobile)) ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+FText SNewProjectWizard::GetStarterContentWarningTooltip() const
+{
+	if (SelectedGraphicsPreset == EGraphicsPreset::Maximum)
+	{
+		return LOCTEXT("StarterContentMobileWarning_Maximum", "Note: Starter content can increase the packaged size significantly, removing the example maps will result in only packaging content that is actually used");
+	}
+	else
+	{
+		return LOCTEXT("StarterContentMobileWarning_Scalable", "Warning: Starter content is not optimized for scalable mobile projects");
+	}
 }
 
 void SNewProjectWizard::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

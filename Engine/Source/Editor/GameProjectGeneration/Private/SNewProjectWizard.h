@@ -115,6 +115,11 @@ private:
 	/** Handler for when the "copy starter content" checkbox changes state */
 	FReply OnCopyStarterContentClicked();
 
+	/** Returns the visibility of the starter content warning */
+	EVisibility GetStarterContentWarningVisibility() const;
+
+	/** Returns the tooltip text (actual warning) of the starter content warning */
+	FText GetStarterContentWarningTooltip() const;
 private:
 
 	EHardwareClass::Type SelectedHardwareClassTarget;
