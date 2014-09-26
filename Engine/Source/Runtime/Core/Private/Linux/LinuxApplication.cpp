@@ -666,7 +666,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 						{
 							UE_LOG(LogLinuxWindow, Verbose, TEXT("Could not get Window border sizes!"));
 						}
-						MessageHandler->OnMovedWindow(CurrentEventWindow.ToSharedRef(), ClientScreenX, windowEvent.data2);
+						MessageHandler->OnMovedWindow(CurrentEventWindow.ToSharedRef(), ClientScreenX, ClientScreenY);
 					}
 					break;
 
