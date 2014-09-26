@@ -12,7 +12,7 @@ void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAtt
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
 	void * ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Dest);
-	Dest->PreAttributeSet(*this, NewValue);
+	Dest->PreAttributeChange(*this, NewValue);
 	NumericProperty->SetFloatingPointPropertyValue(ValuePtr, NewValue);
 }
 

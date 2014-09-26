@@ -104,7 +104,7 @@ public:
 	 *	There is no additional context provided here since anything can trigger this. Executed effects, duration based effects, effects being removed, immunity being applied, stacking rules changing, etc.
 	 *	This function is meant to enforce things like "Health = Clamp(Health, 0, MaxHealth)" and NOT things like "trigger this extra thing if damage is applied, etc".
 	 */
-	virtual void PreAttributeSet(const FGameplayAttribute& Attribute, float NewValue) { }
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float NewValue) { }
 
 	void InitFromMetaDataTable(const UDataTable* DataTable);
 
