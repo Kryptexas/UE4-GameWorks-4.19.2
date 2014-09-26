@@ -45,7 +45,7 @@ public:
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** The text to display */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category=Content, meta=(MultiLine="true"))
 	FText Text;
 	
 	/** A bindable delegate to allow logic to drive the text of the widget */

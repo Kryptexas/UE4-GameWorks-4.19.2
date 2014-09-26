@@ -29,7 +29,7 @@ public:
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** The text content for this editable text box widget */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category=Content, meta=(MultiLine="true"))
 	FText Text;
 
 	/** The justification of the text in the multilinebox */
