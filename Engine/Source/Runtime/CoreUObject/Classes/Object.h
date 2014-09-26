@@ -184,7 +184,7 @@ namespace EMouseCursor
 }
 
 // A globally unique identifier.
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FGuid
 {
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
