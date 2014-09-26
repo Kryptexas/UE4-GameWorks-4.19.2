@@ -3,6 +3,7 @@
 #include "InternationalizationPrivatePCH.h"
 #include "Internationalization/InternationalizationMetadata.h"
 #include "Json.h"
+#include "JsonInternationalizationMetadataSerializer.h"
 
 
 struct FCompareLocMetadataValue
