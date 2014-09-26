@@ -502,6 +502,59 @@ FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProces
 	}
 }
 
+
+static FRenderingCompositePass* AddSinglePostProcessMaterial(FPostprocessContext& Context, EBlendableLocation InLocation)
+{
+	if(!Context.View.Family->EngineShowFlags.PostProcessing || !Context.View.Family->EngineShowFlags.PostProcessMaterial)
+	{
+		return 0;
+	}
+
+	FBlendableEntry* Iterator = 0;
+	FPostProcessMaterialNode PPNode;
+
+	while(FPostProcessMaterialNode* Data = IteratePostProcessMaterialNodes(Context.View.FinalPostProcessSettings, InLocation, Iterator))
+	{
+		check(Data->GetMaterialInterface());
+
+		if(PPNode.IsValid())
+		{
+			FPostProcessMaterialNode::FCompare Dummy;
+
+			// take the one with the highest priority
+			if(!Dummy.operator()(PPNode, *Data))
+			{
+				continue;
+			}
+		}
+
+		PPNode = *Data;
+	}
+
+	if(UMaterialInterface* MaterialInterface = PPNode.GetMaterialInterface())
+	{
+		FMaterialRenderProxy* Proxy = MaterialInterface->GetRenderProxy(false);
+
+		check(Proxy);
+
+		const FMaterial* Material = Proxy->GetMaterial(Context.View.GetFeatureLevel());
+
+		check(Material);
+
+		if(Material->NeedsGBuffer())
+		{
+			// AdjustGBufferRefCount(-1) call is done when the pass gets executed
+			GSceneRenderTargets.AdjustGBufferRefCount(1);
+		}
+
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(MaterialInterface));
+
+		return Node;
+	}
+
+	return 0;
+}
+
 static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocation InLocation, FRenderingCompositeOutputRef SeparateTranslucency)
 {
 	if(!Context.View.Family->EngineShowFlags.PostProcessing || !Context.View.Family->EngineShowFlags.PostProcessMaterial)
@@ -514,9 +567,6 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 	FBlendableEntry* Iterator = 0;
 	FPostProcessMaterialNode PPNodes[MAX_PPMATERIALNODES];
 	uint32 PPNodeCount = 0;
-
-	static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
-	static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
 
 	if(Context.View.Family->EngineShowFlags.VisualizeBuffer)
 	{	
@@ -1055,7 +1105,25 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 			if(bAllowTonemapper && FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
-				AddTonemapper(Context, BloomOutputCombined, EyeAdaptation);
+				auto Node = AddSinglePostProcessMaterial(Context, BL_ReplacingTonemapper);
+
+				if(Node)
+				{
+					// a custom tonemapper is provided
+					Node->SetInput(ePId_Input0, Context.FinalOutput);
+
+					// We are binding separate translucency here because the post process SceneTexture node can reference 
+					// the separate translucency buffers through ePId_Input1. 
+					// TODO: Check if material actually uses this texture and only bind if needed.
+					Node->SetInput(ePId_Input1, SeparateTranslucency);
+					Node->SetInput(ePId_Input2, BloomOutputCombined);
+					Node->SetInput(ePId_Input3, EyeAdaptation);
+					Context.FinalOutput = Node;
+				}
+				else
+				{
+					AddTonemapper(Context, BloomOutputCombined, EyeAdaptation);
+				}
 			}
 
 			if(AntiAliasingMethod == AAM_FXAA)

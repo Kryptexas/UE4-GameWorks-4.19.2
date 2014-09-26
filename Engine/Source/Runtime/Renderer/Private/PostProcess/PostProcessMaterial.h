@@ -9,9 +9,11 @@
 #include "RenderingCompositionGraph.h"
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
-// ePId_Input0: SceneColor
-// ePId_Input1: SeparateTranslucency
-class FRCPassPostProcessMaterial : public TRenderingCompositePassBase<2,1>
+// ePId_Input0: former pass
+// ePId_Input1: optional, depends on EBlendableLocation
+// ePId_Input2: optional, depends on EBlendableLocation 
+// ePId_Input3: optional, depends on EBlendableLocation
+class FRCPassPostProcessMaterial : public TRenderingCompositePassBase<4,1>
 {
 public:
 	// constructor
