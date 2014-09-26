@@ -269,9 +269,9 @@ void FInternationalization::Terminate()
 #endif //IS_PROGRAM || !IS_MONOLITHIC
 #endif //UE_ENABLE_ICU
 
+	bIsInitialized = false;
 	delete Instance;
 	Instance = nullptr;
-	bIsInitialized = false;
 }
 
 #if UE_ENABLE_ICU && (IS_PROGRAM || !IS_MONOLITHIC)
