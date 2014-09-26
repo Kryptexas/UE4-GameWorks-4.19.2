@@ -3465,7 +3465,7 @@ UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type Incl
 
 		for (auto& Inter : SearchClass->Interfaces)
 		{
-			if (UFunction* Result = Inter.Class->FuncMap.FindRef(InName))
+			if (UFunction* Result = Inter.Class->FindFunctionByName(InName))
 				return Result;
 		}
 	}
