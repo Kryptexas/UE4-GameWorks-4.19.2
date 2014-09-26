@@ -1070,12 +1070,12 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Settings)
 	float NearClipPlane;
 
-	/** Should the engine analytics provider be initialized on startup?  Note: The engine/editor must be restarted for changes to take effect. */
+	/** Can the editor report usage analytics (types of assets being spawned, etc...) back to Epic in order for us to improve the editor user experience?  Note: The editor must be restarted for changes to take effect. */
 	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
-	uint32 bEngineAnalyticsProviderEnabled:1;
+	uint32 bEditorAnalyticsEnabled:1;
 
-	/** Can the game/application report anonymous hardware survey statistics back to Epic?  (such as display resolution and GPU model) */
-	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay, meta=(EditCondition="bEngineAnalyticsProviderEnabled"))
+	/** Can a runtime game/application report anonymous hardware survey statistics (such as display resolution and GPU model) back to Epic? */
+	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
 	uint32 bHardwareSurveyEnabled:1;
 
 	/** Flag for completely disabling subtitles for localized sounds. */
