@@ -15,6 +15,7 @@
 
 #if UE_ENABLE_ICU
 #include "ICUUtilities.h"
+#include "ICUBreakIterator.h"
 #include <unicode/locid.h>
 #include <unicode/timezone.h>
 #include <unicode/uclean.h>
@@ -239,6 +240,8 @@ void FInternationalization::Initialize()
 
 	u_setDataFileFunctions(nullptr, &FICUDataCallbacks::OpenDataFile, &FICUDataCallbacks::CloseDataFile, &(ICUStatus));
 	u_init(&(ICUStatus));
+
+	FICUBreakIteratorManager::Create();
 #endif /*UE_ENABLE_ICU*/
 
 	PopulateAllCultures();
@@ -263,6 +266,7 @@ void FInternationalization::Terminate()
 	AllCultures.Empty();
 
 #if UE_ENABLE_ICU
+	FICUBreakIteratorManager::Destroy();
 	u_cleanup();
 #if IS_PROGRAM || !IS_MONOLITHIC
 	UnloadDLLs();

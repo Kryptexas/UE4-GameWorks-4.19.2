@@ -10,20 +10,11 @@ class FICUWordBreakIterator : public FICUBreakIterator
 {
 public:
 	FICUWordBreakIterator();
-
-private:
-	static TSharedRef<icu::BreakIterator> CreateInternalWordBreakIterator();
 };
 
 FICUWordBreakIterator::FICUWordBreakIterator()
-	: FICUBreakIterator(CreateInternalWordBreakIterator())
+	: FICUBreakIterator(FICUBreakIteratorManager::Get().CreateWordBreakIterator())
 {
-}
-
-TSharedRef<icu::BreakIterator> FICUWordBreakIterator::CreateInternalWordBreakIterator()
-{
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	return MakeShareable(icu::BreakIterator::createWordInstance(icu::Locale::getDefault(), ICUStatus));
 }
 
 TSharedRef<IBreakIterator> FBreakIterator::CreateWordBreakIterator()

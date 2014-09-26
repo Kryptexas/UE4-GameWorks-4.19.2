@@ -10,20 +10,11 @@ class FICUCharacterBoundaryIterator : public FICUBreakIterator
 {
 public:
 	FICUCharacterBoundaryIterator();
-
-private:
-	static TSharedRef<icu::BreakIterator> CreateInternalGraphemeBreakIterator();
 };
 
 FICUCharacterBoundaryIterator::FICUCharacterBoundaryIterator()
-	: FICUBreakIterator(CreateInternalGraphemeBreakIterator())
+	: FICUBreakIterator(FICUBreakIteratorManager::Get().CreateCharacterBoundaryIterator())
 {
-}
-
-TSharedRef<icu::BreakIterator> FICUCharacterBoundaryIterator::CreateInternalGraphemeBreakIterator()
-{
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	return MakeShareable(icu::BreakIterator::createCharacterInstance(icu::Locale::getDefault(), ICUStatus));
 }
 
 TSharedRef<IBreakIterator> FBreakIterator::CreateCharacterBoundaryIterator()
