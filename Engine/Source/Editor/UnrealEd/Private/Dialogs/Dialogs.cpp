@@ -233,6 +233,10 @@ private:
 	FReply HandleButtonClicked( EAppReturnType::Type InResponse )
 	{
 		Response = InResponse;
+
+		ResultCallback.ExecuteIfBound(ParentWindow.ToSharedRef(), Response);
+
+
 		ParentWindow->RequestDestroyWindow();
 
 		return FReply::Handled();
@@ -244,6 +248,9 @@ private:
 		CopyMessageToClipboard();
 	}
 		
+public:
+	/** Callback delegate that is triggered, when the dialog is run in non-modal mode */
+	FOnMsgDlgResult ResultCallback;
 
 private:
 
@@ -253,27 +260,51 @@ private:
 };
 
 
-EAppReturnType::Type OpenMsgDlgInt( EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle )
+void CreateMsgDlgWindow(TSharedPtr<SWindow>& OutWindow, TSharedPtr<SChoiceDialog>& OutDialog, EAppMsgType::Type InMessageType,
+						const FText& InMessage, const FText& InTitle, FOnMsgDlgResult ResultCallback=NULL)
 {
-	auto ModalWindow = SNew(SWindow)
-		.Title( InTitle )
-		.SizingRule( ESizingRule::Autosized )
+	OutWindow = SNew(SWindow)
+		.Title(InTitle)
+		.SizingRule(ESizingRule::Autosized)
 		.AutoCenter(EAutoCenter::PreferredWorkArea)
-		.SupportsMinimize(false) .SupportsMaximize(false);
+		.SupportsMinimize(false).SupportsMaximize(false);
 
-	auto MessageBox = SNew(SChoiceDialog)
-		.ParentWindow(ModalWindow)
-		.Message( InMessage.ToString() )
+	OutDialog = SNew(SChoiceDialog)
+		.ParentWindow(OutWindow)
+		.Message(InMessage.ToString())
 		.WrapMessageAt(512.0f)
 		.MessageType(InMessageType);
 
-	ModalWindow->SetContent( MessageBox );
+	OutDialog->ResultCallback = ResultCallback;
 
-	GEditor->EditorAddModalWindow(ModalWindow);
+	OutWindow->SetContent(OutDialog.ToSharedRef());
+}
 
-	EAppReturnType::Type Response = MessageBox->GetResponse();
+EAppReturnType::Type OpenMsgDlgInt(EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle)
+{
+	TSharedPtr<SWindow> MsgWindow = NULL;
+	TSharedPtr<SChoiceDialog> MsgDialog = NULL;
+
+	CreateMsgDlgWindow(MsgWindow, MsgDialog, InMessageType, InMessage, InTitle);
+
+	GEditor->EditorAddModalWindow(MsgWindow.ToSharedRef());
+
+	EAppReturnType::Type Response = MsgDialog->GetResponse();
 
 	return Response;
+}
+
+TSharedRef<SWindow> OpenMsgDlgInt_NonModal(EAppMsgType::Type InMessageType, const FText& InMessage, const FText& InTitle,
+							FOnMsgDlgResult ResultCallback)
+{
+	TSharedPtr<SWindow> MsgWindow = NULL;
+	TSharedPtr<SChoiceDialog> MsgDialog = NULL;
+
+	CreateMsgDlgWindow(MsgWindow, MsgDialog, InMessageType, InMessage, InTitle, ResultCallback);
+
+	FSlateApplication::Get().AddWindow(MsgWindow.ToSharedRef());
+
+	return MsgWindow.ToSharedRef();
 }
 
 class SModalDialog : public SCompoundWidget
