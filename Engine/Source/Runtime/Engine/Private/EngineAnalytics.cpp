@@ -119,10 +119,22 @@ void FEngineAnalytics::Initialize()
 	checkf(!bIsInitialized, TEXT("FEngineAnalytics::Initialize called more than once."));
 
 	// Never use analytics when running a commandlet tool
-	check(GEngine);
-	const bool bShouldInitAnalytics = !IsRunningCommandlet() && GEngine->bEngineAnalyticsProviderEnabled;
+	bool bShouldInitAnalytics = !IsRunningCommandlet();
 
-	if( bShouldInitAnalytics )
+	check(GEngine);
+#if WITH_EDITORONLY_DATA
+	if (GIsEditor)
+	{
+		bShouldInitAnalytics = bShouldInitAnalytics && GEngine->bEditorAnalyticsEnabled;
+	}
+	else
+#endif
+	{
+		// Outside of the editor, the only engine analytics usage is the hardware survey
+		bShouldInitAnalytics = bShouldInitAnalytics && GEngine->bHardwareSurveyEnabled;
+	}
+
+	if (bShouldInitAnalytics)
 	{
 #if DEBUG_ANALYTICS
 		// Dummy analytics provider just logs events locally

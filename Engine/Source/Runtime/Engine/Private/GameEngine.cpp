@@ -393,7 +393,7 @@ UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
 	SelectionHighlightIntensityBillboards = 0.25f;
 
 	bUseSound = true;
-	bEngineAnalyticsProviderEnabled = true;
+	bEditorAnalyticsEnabled = true;
 	bHardwareSurveyEnabled = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;
