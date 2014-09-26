@@ -235,13 +235,13 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
-	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), ActiveInstanceCount(0)
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), ActiveCount(0)
 	{
 		
 	}
 
 	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE)
-		: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), ActiveInstanceCount(0)
+		: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), ActiveCount(0)
 	{
 		Handle.GenerateNewHandle();
 	}
@@ -266,9 +266,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	UPROPERTY(NotReplicated)
 	bool	InputPressed;
 
-	/** The number of currently active instances of this ability */
+	/** A count of the number of times this ability has been activated minus the number of times it has been ended. For instanced abilities this will be the number of currently active instances. */
 	UPROPERTY()
-	uint8	ActiveInstanceCount;
+	uint8	ActiveCount;
 
 	/** Activation state of this ability. This is not replicated since it needs to be overwritten locally on clients during prediction. */
 	UPROPERTY(NotReplicated)

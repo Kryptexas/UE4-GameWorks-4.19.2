@@ -96,10 +96,5 @@ void FGameplayAbilityActivationInfo::SetPredictionStale()
 
 bool FGameplayAbilitySpec::IsActive() const
 {
-	if (Ability && Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
-	{
-		return true;
-	}
-
-	return ActiveInstanceCount > 0;
+	return ActiveCount > 0;
 }

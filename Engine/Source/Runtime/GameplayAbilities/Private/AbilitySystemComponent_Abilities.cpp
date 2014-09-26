@@ -227,7 +227,7 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 		AnimatingAbility = NULL;
 	}
 
-	Spec->ActiveInstanceCount--;
+	Spec->ActiveCount--;
 	
 	/** If this is instanced per execution, mark pending kill and remove it from our instanced lists if we are the authority */
 	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
@@ -354,7 +354,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		ABILITY_LOG(Warning, TEXT("TryActivateAbility called when ability was already active. NetMode: %d. Ability: %s"), (int32)NetMode, *Ability->GetName());
 	}
 	
-	Spec->ActiveInstanceCount++;
+	Spec->ActiveCount++;
 
 	// Setup a fresh ActivationInfo for this AbilitySpec.
 	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->Actor.Get(), InPredictionKey);
