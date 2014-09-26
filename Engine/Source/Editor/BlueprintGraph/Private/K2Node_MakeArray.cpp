@@ -34,9 +34,7 @@ public:
 		FNodeHandlingFunctor::RegisterNets(Context, Node);
 
 		// Create a local term to drop the array into
- 		FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
- 		Term->CopyFromPin(OutputPin, Context.NetNameMap->MakeValidName(OutputPin));
-		Term->bIsLocal = true;
+		FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(OutputPin, Context.NetNameMap->MakeValidName(OutputPin));
 		Term->bPassedByReference = false;
 		Term->Source = Node;
  		Context.NetMap.Add(OutputPin, Term);

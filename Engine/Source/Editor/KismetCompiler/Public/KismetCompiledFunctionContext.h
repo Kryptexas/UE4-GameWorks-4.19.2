@@ -19,6 +19,13 @@ namespace KismetCompilerDebugOptions
 	enum { EmitNodeComments = DebuggingCompiler };
 }
 
+enum ETerminalSpecification
+{
+	TS_Unspecified,
+	TS_Literal,
+	TS_ForcedShared,
+};
+
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
@@ -528,6 +535,9 @@ public:
 			}
 		}
 	}
+
+	KISMETCOMPILER_API FBPTerminal* CreateLocalTerminalFromPinAutoChooseScope(UEdGraphPin* Net, const FString& NewName);
+	KISMETCOMPILER_API FBPTerminal* CreateLocalTerminal(ETerminalSpecification Spec = ETerminalSpecification::TS_Unspecified);
 };
 
 //////////////////////////////////////////////////////////////////////////

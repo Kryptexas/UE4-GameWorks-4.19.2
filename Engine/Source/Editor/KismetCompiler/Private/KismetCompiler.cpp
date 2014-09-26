@@ -44,6 +44,7 @@ DEFINE_STAT(EKismetCompilerStats_PostcompileFunction);
 DEFINE_STAT(EKismetCompilerStats_FinalizationWork);
 DEFINE_STAT(EKismetCompilerStats_CodeGenerationTime);
 DEFINE_STAT(EKismetCompilerStats_UpdateBlueprintGeneratedClass);
+DEFINE_STAT(EKismetCompilerStats_ChooseTerminalScope);
 		
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
@@ -585,6 +586,11 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 				continue;
 			}
 			MessageLog.Warning(*FString::Printf(*LOCTEXT("AssociatedVarProperty_Error", "AssociatedVarProperty property overriden %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()), Term.Source);
+		}
+
+		if (Term.bIsLiteral)
+		{
+			MessageLog.Error(*FString::Printf(*LOCTEXT("PropertyForLiteral_Error", "Cannot create property for a literal: %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()), Term.Source);
 		}
 
 		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog);

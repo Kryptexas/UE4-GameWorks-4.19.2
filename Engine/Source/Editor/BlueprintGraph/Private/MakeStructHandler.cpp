@@ -71,8 +71,7 @@ void FKCHandler_MakeStruct::RegisterNets(FKismetFunctionContext& Context, UEdGra
 
 void FKCHandler_MakeStruct::RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net)
 {
-	FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-	Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+	FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 	Context.NetMap.Add(Net, Term);
 }
 
@@ -103,7 +102,7 @@ void FKCHandler_MakeStruct::Compile(FKismetFunctionContext& Context, UEdGraphNod
 			UProperty* BoundProperty = FindField<UProperty>(Node->StructType, *(Pin->PinName));
 			check(NULL != BoundProperty);
 
-			FBPTerminal* DstTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+			FBPTerminal* DstTerm = Context.CreateLocalTerminal();
 			DstTerm->CopyFromPin(Pin, Context.NetNameMap->MakeValidName(Pin));
 			DstTerm->AssociatedVarProperty = BoundProperty;
 			DstTerm->Context = OutputStructTerm;

@@ -31,16 +31,15 @@ public:
 		// Create the net for the return value manually as it's a special case Output Direction pin
 		UK2Node_Select* SelectNode = Cast<UK2Node_Select>(Node);
 		UEdGraphPin* ReturnPin = SelectNode->GetReturnValuePin();
-		FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-		Term->CopyFromPin(ReturnPin, Context.NetNameMap->MakeValidName(ReturnPin));
+
+		FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(ReturnPin, Context.NetNameMap->MakeValidName(ReturnPin));
 		Context.NetMap.Add(SelectNode->GetReturnValuePin(), Term);
 
 		// Create a term to determine if the compare was successful or not
-		FBPTerminal* BoolTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* BoolTerm = Context.CreateLocalTerminal();
 		BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 		BoolTerm->Source = Node;
 		BoolTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_CmpSuccess");
-		BoolTerm->bIsLocal = true;
 		BoolTermMap.Add(Node, BoolTerm);
 	}
 
@@ -91,8 +90,7 @@ public:
 				// The condition passed into the Select node
 				Statement.RHS.Add(*ConditionTerm);
 				// Create a local int for use in the equality call function below (LiteralTerm = the right hand side of the EqualEqual_IntInt or NotEqual_BoolBool statement)
-				FBPTerminal* LiteralTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-				LiteralTerm->bIsLocal = true;
+				FBPTerminal* LiteralTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 				LiteralTerm->bIsLiteral = true;
 				LiteralTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 				LiteralTerm->Name = FString::Printf(TEXT("%d"), OptionIdx);
@@ -144,8 +142,7 @@ public:
 					PrintStatement.bIsParentContext = false;
 
 					// Create a local int for use in the equality call function below (LiteralTerm = the right hand side of the EqualEqual_IntInt or NotEqual_BoolBool statement)
-					FBPTerminal* LiteralStringTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-					LiteralStringTerm->bIsLocal = true;
+					FBPTerminal* LiteralStringTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 					LiteralStringTerm->bIsLiteral = true;
 					LiteralStringTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_String;
 

@@ -13,18 +13,16 @@ void FKCHandler_DynamicCast::RegisterNets(FKismetFunctionContext& Context, UEdGr
 	FNodeHandlingFunctor::RegisterNets(Context, Node);
 
 	// Create a term to determine if the cast was successful or not
-	FBPTerminal* BoolTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+	FBPTerminal* BoolTerm = Context.CreateLocalTerminal();
 	BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 	BoolTerm->Source = Node;
 	BoolTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_CastSuccess");
-	BoolTerm->bIsLocal = true;
 	BoolTermMap.Add(Node, BoolTerm);
 }
 
 void FKCHandler_DynamicCast::RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net)
 {
-	FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-	Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+	FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 	Context.NetMap.Add(Net, Term);
 }
 
@@ -85,7 +83,7 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	}
 
 	// Create a literal term from the class specified in the node
-	FBPTerminal* ClassTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+	FBPTerminal* ClassTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 	ClassTerm->Name = DynamicCastNode->TargetType->GetName();
 	ClassTerm->bIsLiteral = true;
 	ClassTerm->Source = Node;

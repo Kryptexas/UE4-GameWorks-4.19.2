@@ -28,12 +28,11 @@ public:
 			CompilerContext.MessageLog.Warning(*FString(*LOCTEXT("DeprecatedDelegateSet_Warning", "DelegateSet node @@ is Deprecated. It should be replaced by an EventCaller Bind node").ToString()), DelegateNode);
 
 			// Create a term to store the locally created delegate that we'll use to add to the MC delegate
-			FBPTerminal* DelegateTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+			FBPTerminal* DelegateTerm = Context.CreateLocalTerminal();
 			DelegateTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Delegate;
 			FMemberReference::FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature(), DelegateTerm->Type.PinSubCategoryMemberReference);
 			DelegateTerm->Source = Node;
 			DelegateTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_TempBindingDelegate");
-			DelegateTerm->bIsLocal = true;
 			LocalDelegateMap.Add(Node, DelegateTerm);
 
 			// The only net we need to register for this node is the delegate's target (self) pin, since the others are expanded to their own event node
@@ -100,7 +99,7 @@ public:
 		FBPTerminal** pDelegateOwnerTerm = DelegateOwnerPin ? Context.NetMap.Find(DelegateOwnerPin) : NULL;
 
 		// Create a delegate name term
-		FBPTerminal* DelegateNameTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
+		FBPTerminal* DelegateNameTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		DelegateNameTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Name;
 		DelegateNameTerm->Name = DelegateNode->GetDelegateTargetEntryPointName().ToString();
 		DelegateNameTerm->bIsLiteral = true;

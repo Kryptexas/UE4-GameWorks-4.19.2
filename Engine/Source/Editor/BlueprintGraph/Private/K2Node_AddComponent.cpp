@@ -37,9 +37,8 @@ public:
 			{
 				check(CompilerContext.UbergraphContext->NetNameMap);
 				// If there's no term, add a dummy identity transform here.  Term is defined in the event graph's scope, because a default value needs to be set
-				FBPTerminal* TransformTerm = new (Context.EventGraphLocals) FBPTerminal();
+				FBPTerminal* TransformTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_ForcedShared);
 				TransformTerm->CopyFromPin(TransformPin, FString::Printf(TEXT("%s_AddComponentDefaultTransform"), *CompilerContext.UbergraphContext->NetNameMap->MakeValidName(TransformPin)));
-				TransformTerm->bIsLocal = true;
 				TransformTerm->bIsConst = true;
 				TransformTerm->PropertyDefault = TEXT("");
 

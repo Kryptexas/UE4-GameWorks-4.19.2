@@ -59,8 +59,7 @@ public:
 			// standard register net
 			else
 			{
-				Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-				Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
+				Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
 			}
 			Context.NetMap.Add(Net, Term);
 		}
@@ -79,8 +78,7 @@ public:
 
 		if (BoundProperty != NULL)
 		{
-			FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-			Term->CopyFromPin(Net, Net->PinName);
+			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Net->PinName);
 			Term->AssociatedVarProperty = BoundProperty;
 			Context.NetMap.Add(Net, Term);
 			Term->Context = ContextTerm;
