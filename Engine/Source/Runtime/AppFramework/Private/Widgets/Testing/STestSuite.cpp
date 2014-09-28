@@ -2289,16 +2289,16 @@ struct FTextStyles
  * This is a custom decorator used to allow arbitrary styling of text within a rich-text editor
  * This is required since normal text styling can only work with known styles from a given Slate style-set
  */
-class FTextStyleDecorator : public ITextDecorator
+class FTextStyleDecoratorTest : public ITextDecorator
 {
 public:
 
-	static TSharedRef<FTextStyleDecorator> Create(FTextStyles* const InTextStyles)
+	static TSharedRef<FTextStyleDecoratorTest> Create(FTextStyles* const InTextStyles)
 	{
-		return MakeShareable(new FTextStyleDecorator(InTextStyles));
+		return MakeShareable(new FTextStyleDecoratorTest(InTextStyles));
 	}
 
-	virtual ~FTextStyleDecorator()
+	virtual ~FTextStyleDecoratorTest()
 	{
 	}
 
@@ -2325,7 +2325,7 @@ public:
 
 private:
 
-	FTextStyleDecorator(FTextStyles* const InTextStyles)
+	FTextStyleDecoratorTest(FTextStyles* const InTextStyles)
 		: TextStyles(InTextStyles)
 	{
 	}
@@ -2388,7 +2388,7 @@ public:
 		// ... so we also need to add some decorators to handle the things we want to demo
 		OnHyperlinkClicked = FSlateHyperlinkRun::FOnClick::CreateStatic(&RichTextHelper::OnBrowserLinkClicked, AsShared());
 		RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("browser"), OnHyperlinkClicked));
-		RichTextMarshaller->AppendInlineDecorator(FTextStyleDecorator::Create(&TextStyles));
+		RichTextMarshaller->AppendInlineDecorator(FTextStyleDecoratorTest::Create(&TextStyles));
 
 		// The syntax highlighter marshaller is self contained, so doesn't need any extra configuration
 		SyntaxHighlighterMarshaller = FRichTextSyntaxHighlighterTextLayoutMarshaller::Create(
