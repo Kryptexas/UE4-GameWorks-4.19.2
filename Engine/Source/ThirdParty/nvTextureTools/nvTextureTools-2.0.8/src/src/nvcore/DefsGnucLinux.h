@@ -58,8 +58,17 @@ typedef signed short        int16;
 typedef unsigned int        uint32;
 typedef signed int          int32;
 
+
+// Debian patch for bug in nvtexturetools (https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=689642)
+#ifdef __LP64__
+// Avoid clash with libtiff
+typedef unsigned long       uint64;
+typedef signed long         int64;
+#else
 typedef unsigned long long  uint64;
 typedef signed long long    int64;
+#endif
+
 
 // Aliases
 typedef uint32              uint;
