@@ -142,6 +142,31 @@ FMacApplication::FMacApplication()
 	}
 
 	AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+								// Change modal window levels
+								NSWindow* BaseWindow = nil;
+								for( auto Window : Windows )
+								{
+									NSWindow* CocoaWindow = (NSWindow*)Window->GetOSWindowHandle();
+									if ( CocoaWindow && Window->IsVisible() && [CocoaWindow level] == NSModalPanelWindowLevel )
+									{
+										BaseWindow = CocoaWindow;
+										break;
+									}
+								}
+							 
+							 	for( auto Window : Windows )
+								{
+									NSWindow* CocoaWindow = (NSWindow*)Window->GetOSWindowHandle();
+									if ( CocoaWindow && Window->GetDefinition().IsModalWindow )
+									{
+										[CocoaWindow setLevel:NSModalPanelWindowLevel];
+										if ( BaseWindow )
+										{
+											[CocoaWindow orderWindow:NSWindowBelow relativeTo:[BaseWindow windowNumber]];
+										}
+									}
+								}
+							 
 								// If editor thread doesn't have the focus, don't suck up too much CPU time.
 								if( GIsEditor )
 								{
@@ -157,6 +182,35 @@ FMacApplication::FMacApplication()
 							}];
 
 	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidResignActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+									// Change modal window levels
+									if (Windows.Num() > 0)
+									{
+										NSWindow* BaseWindow = nil;
+										for( auto Window : Windows )
+										{
+											NSWindow* CocoaWindow = (NSWindow*)Window->GetOSWindowHandle();
+											if ( CocoaWindow && Window->IsVisible() && [CocoaWindow level] == NSNormalWindowLevel )
+											{
+												BaseWindow = CocoaWindow;
+											}
+										}
+										
+										check(BaseWindow);
+										
+										for( auto Window : Windows )
+										{
+											NSWindow* CocoaWindow = (NSWindow*)Window->GetOSWindowHandle();
+											if ( CocoaWindow && Window->GetDefinition().IsModalWindow )
+											{
+												[CocoaWindow setLevel:NSNormalWindowLevel];
+												[CocoaWindow orderWindow:NSWindowAbove relativeTo:[BaseWindow windowNumber]];
+												BaseWindow = CocoaWindow;
+											}
+										}
+									}
+							   
+									CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true);
+							   
 									// If editor thread doesn't have the focus, don't suck up too much CPU time.
 									if( GIsEditor )
 									{
