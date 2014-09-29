@@ -231,7 +231,6 @@ namespace AutomationTool
 					break;
 				case TargetRules.TargetType.Client:
 				case TargetRules.TargetType.Game:
-				case TargetRules.TargetType.RocketGame:
 					if (!bIsCodeBasedProject)
 					{
 						BinPath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries");

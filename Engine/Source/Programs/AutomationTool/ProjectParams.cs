@@ -1201,11 +1201,6 @@ namespace AutomationTool
 						EditorTarget = TargetData.TargetName;
 					}
 
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.RocketGame, out TargetData))
-					{
-						GameTarget = TargetData.TargetName;
-					}
-
 					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Program, out TargetData))
 					{
 						ProgramTarget = TargetData.TargetName;
@@ -1255,7 +1250,6 @@ namespace AutomationTool
 				var ValidGameTargetTypes = new TargetRules.TargetType[]
 				{
 					GameTargetType,
-					TargetRules.TargetType.RocketGame,
 					TargetRules.TargetType.Program		
 				};
 
