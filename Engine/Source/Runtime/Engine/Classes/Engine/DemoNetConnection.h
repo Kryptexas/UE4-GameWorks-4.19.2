@@ -7,6 +7,11 @@
 #pragma once
 #include "DemoNetConnection.generated.h"
 
+struct FQueuedDemoPacket
+{
+	TArray< uint8 > Data;
+};
+
 UCLASS(transient, config=Engine)
 class UDemoNetConnection : public UNetConnection
 {
@@ -25,6 +30,8 @@ class UDemoNetConnection : public UNetConnection
 
 	/** @return The DemoRecording driver object */
 	FORCEINLINE class UDemoNetDriver* GetDriver() { return (UDemoNetDriver*)Driver; }
+
+	TArray< FQueuedDemoPacket > QueuedDemoPackets;
 };
 
 

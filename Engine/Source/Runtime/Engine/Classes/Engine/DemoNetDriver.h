@@ -30,6 +30,9 @@ class UDemoNetDriver : public UNetDriver
 	/** during playback, set to total number of frames recorded in the demo */
 	int32			PlaybackTotalFrames;
 
+	/** True if we're in the middle of recording a frame */
+	bool			bIsRecordingDemoFrame;
+
 	UPROPERTY( config )
 	FString			DemoSpectatorClass;
 

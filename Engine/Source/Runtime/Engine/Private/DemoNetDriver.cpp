@@ -32,9 +32,10 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 {
 	if ( Super::InitBase( bInitAsClient, InNotify, URL, bReuseAddressAndPort, Error ) )
 	{
-		DemoFilename	= URL.Map;
-		Time			= 0;
-		DemoFrameNum	= 0;
+		DemoFilename			= URL.Map;
+		Time					= 0;
+		DemoFrameNum			= 0;
+		bIsRecordingDemoFrame	= false;
 
 		return true;
 	}
@@ -400,6 +401,18 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	// Make sure we don't have anything in the buffer for this new frame
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
+	bIsRecordingDemoFrame = true;
+
+	// Dump any queued packets
+	UDemoNetConnection * ClientDemoConnection = CastChecked< UDemoNetConnection >( ClientConnections[0] );
+
+	for ( int32 i = 0; i < ClientDemoConnection->QueuedDemoPackets.Num(); i++ )
+	{
+		ClientDemoConnection->LowLevelSend( (char*)&ClientDemoConnection->QueuedDemoPackets[i].Data[0], ClientDemoConnection->QueuedDemoPackets[i].Data.Num() );
+	}
+
+	ClientDemoConnection->QueuedDemoPackets.Empty();
+
 	const bool IsNetClient = ( GetWorld()->GetNetDriver() != NULL && GetWorld()->GetNetDriver()->GetNetMode() == NM_Client );
 
 	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], IsNetClient );
@@ -416,6 +429,8 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	ClientConnections[0]->FlushNet();
 
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
+
+	bIsRecordingDemoFrame = false;
 
 	// Write a count of 0 to signal the end of the frame
 	int32 EndCount = 0;
@@ -623,6 +638,15 @@ void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 
 	if ( !GetDriver()->ServerConnection && GetDriver()->FileAr )
 	{
+		// If we're outside of an official demo frame, we need to queue this up or it will throw off the stream
+		if ( !GetDriver()->bIsRecordingDemoFrame )
+		{
+			FQueuedDemoPacket & B = *( new( QueuedDemoPackets )FQueuedDemoPacket );
+			B.Data.AddUninitialized( Count );
+			FMemory::Memcpy( B.Data.GetData(), Data, Count );
+			return;
+		}
+
 		*GetDriver()->FileAr << Count;
 		GetDriver()->FileAr->Serialize( Data, Count );
 		
