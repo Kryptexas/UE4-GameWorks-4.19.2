@@ -330,12 +330,12 @@ public:
 			{
 			case MP_EmissiveColor:
 				// Emissive is ALWAYS returned...
-				return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_EmissiveColor),MCT_Float3,true,true);
+				return Compiler->Max(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_EmissiveColor),MCT_Float3,true,true), Compiler->Constant3(0, 0, 0));
 			case MP_DiffuseColor:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, DiffuseInput),MCT_Float3,true,true);
+					return Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, DiffuseInput),MCT_Float3,true,true));
 				}
 				break;
 			case MP_SpecularColor: 
@@ -343,8 +343,8 @@ public:
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
 					return Compiler->AppendVector(
-						Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, MP_SpecularColor),MCT_Float3,true,true), 
-						Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_Roughness),MCT_Float1));
+						Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, MP_SpecularColor),MCT_Float3,true,true)), 
+						Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_Roughness),MCT_Float1)));
 				}
 				break;
 			case MP_Normal:
@@ -372,7 +372,7 @@ public:
 					}
 					else
 					{
-						return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true);
+						return Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true));
 					}
 				}
 				else if ((BlendMode == BLEND_Translucent) || (BlendMode == BLEND_Additive))
@@ -384,9 +384,9 @@ public:
 					}
 					else
 					{
-						ColoredOpacity = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true);
+						ColoredOpacity = Compiler->Saturate(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true));
 					}
-					return Compiler->Lerp(Compiler->Constant3(1.0f, 1.0f, 1.0f), ColoredOpacity, Compiler->ForceCast( MaterialInterface->CompileProperty(&ProxyCompiler,MP_Opacity), MCT_Float1));
+					return Compiler->Lerp(Compiler->Constant3(1.0f, 1.0f, 1.0f), ColoredOpacity, Compiler->Saturate(Compiler->ForceCast( MaterialInterface->CompileProperty(&ProxyCompiler,MP_Opacity), MCT_Float1)));
 				}
 				break;
 			default:

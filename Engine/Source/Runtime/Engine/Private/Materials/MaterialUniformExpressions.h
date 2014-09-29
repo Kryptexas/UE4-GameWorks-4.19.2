@@ -785,6 +785,51 @@ private:
 
 /**
  */
+class FMaterialUniformExpressionSaturate: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSaturate);
+public:
+
+	FMaterialUniformExpressionSaturate() {}
+	FMaterialUniformExpressionSaturate(FMaterialUniformExpression* InInput):
+		Input(InInput)
+	{}
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar)
+	{
+		Ar << Input;
+	}
+	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
+	{
+		FLinearColor ValueInput = FLinearColor::Black;
+		Input->GetNumberValue(Context, ValueInput);
+
+		OutValue.R = FMath::Clamp<float>(ValueInput.R, 0, 1);
+		OutValue.G = FMath::Clamp<float>(ValueInput.G, 0, 1);
+		OutValue.B = FMath::Clamp<float>(ValueInput.B, 0, 1);
+		OutValue.A = FMath::Clamp<float>(ValueInput.A, 0, 1);
+	}
+	virtual bool IsConstant() const
+	{
+		return Input->IsConstant();
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+		FMaterialUniformExpressionSaturate* OtherClamp = (FMaterialUniformExpressionSaturate*)OtherExpression;
+		return Input->IsIdentical(OtherClamp->Input);
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> Input;
+};
+
+/**
+ */
 class FMaterialUniformExpressionFloor: public FMaterialUniformExpression
 {
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFloor);

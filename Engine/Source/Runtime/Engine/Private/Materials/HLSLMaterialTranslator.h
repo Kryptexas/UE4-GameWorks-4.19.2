@@ -2819,6 +2819,23 @@ protected:
 		}
 	}
 
+	virtual int32 Saturate(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionSaturate(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("saturate(%s)"),*GetParameterCode(X));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("saturate(%s)"),*GetParameterCode(X));
+		}
+	}
+
 	virtual int32 ComponentMask(int32 Vector,bool R,bool G,bool B,bool A) override
 	{
 		if(Vector == INDEX_NONE)

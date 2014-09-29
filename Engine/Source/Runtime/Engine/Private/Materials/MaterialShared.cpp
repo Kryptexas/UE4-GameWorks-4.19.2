@@ -2104,6 +2104,8 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 
 EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 {
+	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
+
 	switch(Index)
 	{
 	case 0: return MP_BaseColor;
@@ -2142,6 +2144,8 @@ EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 
 int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 {
+	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
+
 	switch(Property)
 	{
 	case MP_BaseColor: return 0;
