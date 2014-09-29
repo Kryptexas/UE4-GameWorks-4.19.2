@@ -301,7 +301,7 @@ void FSessionManager::HandleSessionPongMessage( const FSessionServicePong& Messa
 
 bool FSessionManager::HandleTicker( float DeltaTime )
 {
-	FDateTime Now = FDateTime::UtcNow();
+	FDateTime Now = FDateTime::Now();
 
 //	FindExpiredSessions(Now);
 
