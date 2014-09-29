@@ -1349,6 +1349,7 @@ public:
 	virtual void RemoveExponentialHeightFog(UExponentialHeightFogComponent* FogComponent);
 	virtual void AddAtmosphericFog(UAtmosphericFogComponent* FogComponent);
 	virtual void RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent);
+	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() override { return AtmosphericFog; }
 	virtual void AddWindSource(UWindDirectionalSourceComponent* WindComponent);
 	virtual void RemoveWindSource(UWindDirectionalSourceComponent* WindComponent);
 	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const;

@@ -2070,7 +2070,7 @@ public:
 	virtual void RemoveExponentialHeightFog(class UExponentialHeightFogComponent* FogComponent){}
 	virtual void AddAtmosphericFog(class UAtmosphericFogComponent* FogComponent) {}
 	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) {}
-
+	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() override { return NULL; }
 	virtual void AddWindSource(class UWindDirectionalSourceComponent* WindComponent) {}
 	virtual void RemoveWindSource(class UWindDirectionalSourceComponent* WindComponent) {}
 	virtual const TArray<class FWindSourceSceneProxy*>& GetWindSources_RenderThread() const
