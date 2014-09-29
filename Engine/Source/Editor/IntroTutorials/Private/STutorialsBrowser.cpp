@@ -349,7 +349,7 @@ public:
 						+SVerticalBox::Slot()
 						.FillHeight(1.0f)
 						[
-							STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, 500.0f, DocumentationPage)
+							STutorialContent::GenerateContentWidget(Tutorial->SummaryContent, 500.0f, DocumentationPage, HighlightText)
 						]
 					]
 				]
@@ -799,27 +799,66 @@ void STutorialsBrowser::FilterTutorials()
 {
 	FilteredEntries.Empty();
 
-	TSharedPtr<FTutorialListEntry_Category> CurrentCategory = FindCategory_Recursive(RootEntry);
-
-	if(CurrentCategory.IsValid())
+	if(SearchFilter.IsEmpty())
 	{
-		for(const auto& SubCategory : CurrentCategory->SubCategories)
-		{
-			if(SubCategory->PassesFilter(CategoryFilter, SearchFilter.ToString()))
-			{
-				FilteredEntries.Add(SubCategory);
-			}
-		}
+		TSharedPtr<FTutorialListEntry_Category> CurrentCategory = FindCategory_Recursive(RootEntry);
 
-		for(const auto& Tutorial : CurrentCategory->Tutorials)
+		if(CurrentCategory.IsValid())
 		{
-			if(Tutorial->PassesFilter(CategoryFilter, SearchFilter.ToString()))
+			for(const auto& SubCategory : CurrentCategory->SubCategories)
 			{
-				FilteredEntries.Add(Tutorial);
+				if(SubCategory->PassesFilter(CategoryFilter, SearchFilter.ToString()))
+				{
+					FilteredEntries.Add(SubCategory);
+				}
 			}
-		}
 
-		CurrentCategoryPtr = CurrentCategory;
+			for(const auto& Tutorial : CurrentCategory->Tutorials)
+			{
+				if(Tutorial->PassesFilter(CategoryFilter, SearchFilter.ToString()))
+				{
+					FilteredEntries.Add(Tutorial);
+				}
+			}
+
+			CurrentCategoryPtr = CurrentCategory;
+		}
+	}
+	else
+	{
+		struct Local
+		{
+			static void AddSubCategory_Recursive(const FString& InCategoryFilter, const FString& InSearchFilter, TSharedPtr<FTutorialListEntry_Category> InCategory, TArray<TSharedPtr<ITutorialListEntry>>& InOutFilteredEntries)
+			{
+				if(InCategory.IsValid())
+				{
+					for(const auto& SubCategory : InCategory->SubCategories)
+					{
+						if(SubCategory->PassesFilter(InCategoryFilter, InSearchFilter))
+						{
+							InOutFilteredEntries.Add(SubCategory);
+						}
+
+						AddSubCategory_Recursive(InCategoryFilter, InSearchFilter, StaticCastSharedPtr<FTutorialListEntry_Category>(SubCategory), InOutFilteredEntries);
+					}
+
+					for(const auto& Tutorial : InCategory->Tutorials)
+					{
+						if(Tutorial->PassesFilter(InCategoryFilter, InSearchFilter))
+						{
+							InOutFilteredEntries.Add(Tutorial);
+						}
+					}
+				}
+			};
+		};
+
+		TSharedPtr<FTutorialListEntry_Category> CurrentCategory = FindCategory_Recursive(RootEntry);
+		if(CurrentCategory.IsValid())
+		{
+			Local::AddSubCategory_Recursive(CategoryFilter, SearchFilter.ToString(), CurrentCategory, FilteredEntries);
+			CurrentCategoryPtr = CurrentCategory;
+		}
 	}
 
 	FilteredEntries.Sort(

@@ -2467,10 +2467,12 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 		const FLinearColor TutorialSelectionColor = FLinearColor(0.19f, 0.33f, 0.72f);
 
 		const FTextBlockStyle TutorialText = FTextBlockStyle(DocumentationText)
-			.SetColorAndOpacity(FLinearColor::Black);
+			.SetColorAndOpacity(FLinearColor::Black)
+			.SetHighlightColor(TutorialSelectionColor);
 
 		const FTextBlockStyle TutorialHeaderText = FTextBlockStyle(DocumentationHeaderText)
-			.SetColorAndOpacity(FLinearColor::Black);
+			.SetColorAndOpacity(FLinearColor::Black)
+			.SetHighlightColor(TutorialSelectionColor);
 
 		Set( "Tutorials.Border", new BOX_BRUSH( "Tutorials/OverlayFrame", FMargin(18.0f/64.0f), FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) ) );
 		Set( "Tutorials.Browser.WelcomeHeader", FTextBlockStyle(TutorialHeaderText)
