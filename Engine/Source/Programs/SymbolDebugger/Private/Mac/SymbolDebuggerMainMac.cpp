@@ -31,13 +31,16 @@ static FString GSavedCommandLine;
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)Sender;
 {
-	if(!GIsRequestingExit)
+	if(!GIsRequestingExit || ([NSThread gameThread] && [NSThread gameThread] != [NSThread mainThread]))
 	{
 		GIsRequestingExit = true;
 		FPlatformMisc::UpdateCachedMacMenuState = nullptr;
-		return NSTerminateCancel;
+		return NSTerminateLater;
 	}
-	return NSTerminateNow;
+	else
+	{
+		return NSTerminateNow;
+	}
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification

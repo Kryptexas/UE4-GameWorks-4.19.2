@@ -157,12 +157,18 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)Sender;
 {
-	if(!GIsRequestingExit)
+	if(!GIsRequestingExit || ([NSThread gameThread] && [NSThread gameThread] != [NSThread mainThread]))
 	{
-		[self requestQuit:self];
-		return NSTerminateCancel;
+		if (!GIsRequestingExit)
+		{
+			[self requestQuit:self];
+		}
+		return NSTerminateLater;
 	}
-	return NSTerminateNow;
+	else
+	{
+		return NSTerminateNow;
+	}
 }
 
 - (void) runGameThread:(id)Arg

@@ -356,6 +356,15 @@ FCocoaRunLoopSource* FCocoaRunLoopSource::GameRunLoopSource = nullptr;
 	FCocoaRunLoopSource::RegisterGameRunLoop([GameRunLoop getCFRunLoop]);
 	
 	[super main];
+	
+	if (GIsRequestingExit)
+	{
+		MainThreadCall(^{
+			[NSApp replyToApplicationShouldTerminate:YES];
+		}, NSDefaultRunLoopMode, false);
+	}
+	
+	[self release];
 }
 
 @end
@@ -429,6 +438,11 @@ void RunGameThread(id Target, SEL Selector)
 	[GameThread start];
 #else
 	[Target performSelector:Selector withObject:nil];
+	
+	if (GIsRequestingExit)
+	{
+		[NSApp replyToApplicationShouldTerminate:YES];
+	}
 #endif
 }
 
