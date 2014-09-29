@@ -673,10 +673,11 @@ public:
 	 * Called by the native application in response to a mouse move. Routs the event to Slate Widgets.
 	 *
 	 * @param  InMouseEvent  Mouse event
+	 * @param  bIsSynthetic  True when the even is synthesized by slate.
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessMouseMoveEvent( FPointerEvent& MouseEvent );
+	bool ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool bIsSynthetic = false );
 
 	/**
 	 * Called by the native application in response to a mouse button press. Routs the event to Slate Widgets.
