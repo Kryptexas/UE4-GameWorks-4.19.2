@@ -2473,12 +2473,16 @@ private:
 	void ExecuteCommandForAllLevelModels( UWorld* InWorld, FSelectCommand InSelectCommand, const FText& TransDesription );
 	void ExecuteCommandForAllLevelModels( UWorld* InWorld, FSelectInWorldCommand InSelectCommand, const FText& TransDesription );
 	
+public:
+
 	/**
 	 * Utility method call ModifySelectedSurfs for each level model in the worlds level list.
 	 *
 	 * @param InWorld			World containing the levels
 	 */
 	 void FlagModifyAllSelectedSurfacesInLevels( UWorld* InWorld );
+	 
+private:
 
 	/**
 	 * This destroys the given world.

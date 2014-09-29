@@ -2,6 +2,8 @@
 
 #pragma once
 
+class IMaterialListBuilder;
+
 /**
  * Creates details for the level editor details view that are not specific to any selected actor type
  */
@@ -19,5 +21,15 @@ private:
 	 * Adds a section for selected surface details
 	 */
 	void AddSurfaceDetails( class IDetailLayoutBuilder& DetailLayout );
+
+	/**
+	 * Populate the specified material list with the materials used on the currently selected BSP surfaces
+	 */
+	void GetSelectedSurfaceMaterials(IMaterialListBuilder& MaterialList) const;
+
+	/**
+	 * Called when the material should be changed on all selected BSP surfaces
+	 */
+	void OnMaterialChanged( UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll );
 };
 

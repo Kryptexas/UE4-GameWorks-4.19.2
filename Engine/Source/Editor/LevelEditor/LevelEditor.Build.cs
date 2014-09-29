@@ -51,6 +51,7 @@ public class LevelEditor : ModuleRules
 				"Projects",
 				"TargetPlatform",
 				"EngineSettings",
+				"PropertyEditor",
 			}
 		);
 
