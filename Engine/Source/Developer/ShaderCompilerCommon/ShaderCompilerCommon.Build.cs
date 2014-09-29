@@ -12,9 +12,5 @@ public class ShaderCompilerCommon : ModuleRules
 				"ShaderCore",
 			}
 			);
-
-		AddThirdPartyPrivateStaticDependencies(Target,
-			"HLSLCC"
-		);
 	}
 }

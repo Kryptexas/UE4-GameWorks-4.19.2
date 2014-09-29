@@ -16,7 +16,6 @@
 #endif
 #include "ShaderPreprocessor.h"
 #include "ShaderCompilerCommon.h"
-#include "CrossCompiler.h"
 #include "hlslcc.h"
 #include "GlslBackend.h"
 #if PLATFORM_WINDOWS
@@ -1577,6 +1576,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 	if (PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 	{
+		char* GlslShaderSource = NULL;
 		char* ErrorLog = NULL;
 
 		const bool bIsSM5 = Version == GLSL_430 || Version == GLSL_310_ES_EXT;
@@ -1643,24 +1643,25 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
-		FString GlslShaderSource(TEXT(""));
+
 		FGlslCodeBackend GlslBackEnd(CCFlags);
 		FGlslLanguageSpec GlslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
 		int32 Result = HlslCrossCompile(
-			Input.SourceFilename,
-			PreprocessedShader,
-			Input.EntryPointName,
-			(EShaderFrequency)Input.Target.Frequency,
+			TCHAR_TO_ANSI(*Input.SourceFilename),
+			TCHAR_TO_ANSI(*PreprocessedShader),
+			TCHAR_TO_ANSI(*Input.EntryPointName),
+			Frequency,
 			&GlslBackEnd,
 			&GlslLanguageSpec,
 			CCFlags,
 			HlslCompilerTarget,
-			GlslShaderSource,
+			&GlslShaderSource,
 			&ErrorLog
 			);
 
 		if (Result != 0)
 		{
+			int32 GlslSourceLen = GlslShaderSource ? FCStringAnsi::Strlen(GlslShaderSource) : 0;
 			if (bDumpDebugInfo)
 			{
 				const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
@@ -1676,9 +1677,15 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 					FFileHelper::SaveStringToFile(NDABatchFileContents, *(Input.DumpDebugInfoPath / TEXT("NDAGLSLCompile.bat")));
 				}
 
-				if (GlslShaderSource.Len() > 0)
+				if (GlslSourceLen > 0)
 				{
-					FFileHelper::SaveStringToFile(GlslShaderSource, *(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".glsl")));
+					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".glsl")));
+					if (FileWriter)
+					{
+						FileWriter->Serialize(GlslShaderSource,GlslSourceLen+1);
+						FileWriter->Close();
+						delete FileWriter;
+					}
 				}
 			}
 
@@ -1688,8 +1695,9 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			{
 			}
 #else // VALIDATE_GLSL_WITH_DRIVER
+			int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);
 			Output.Target = Input.Target;
-			BuildShaderOutput(Output, Input, TCHAR_TO_ANSI(*GlslShaderSource), GlslShaderSource.Len(), Version);
+				BuildShaderOutput(Output, Input, GlslShaderSource, SourceLen, Version);
 #endif // VALIDATE_GLSL_WITH_DRIVER
 		}
 		else
@@ -1715,6 +1723,10 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			}
 		}
 
+		if (GlslShaderSource)
+		{
+			free(GlslShaderSource);
+		}
 		if (ErrorLog)
 		{
 			free(ErrorLog);

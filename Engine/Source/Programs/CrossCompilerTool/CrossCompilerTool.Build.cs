@@ -18,7 +18,6 @@ public class CrossCompilerTool : ModuleRules
 				"Projects",
 				"MetalShaderFormat",
 				"ShaderFormatOpenGL",
-				"ShaderCompilerCommon",
 			});
 
 		AddThirdPartyPrivateStaticDependencies(Target,

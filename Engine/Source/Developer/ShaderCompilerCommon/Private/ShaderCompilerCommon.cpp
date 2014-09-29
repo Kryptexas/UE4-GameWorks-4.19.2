@@ -2,9 +2,8 @@
 // .
 
 #include "ShaderCompilerCommon.h"
-#include "CrossCompiler.h"
 #include "ModuleManager.h"
-#include "hlslcc.h"
+
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, ShaderCompilerCommon);
 
@@ -189,79 +188,9 @@ FString CreateCrossCompilerBatchFileContents(const FString& ShaderFile, const FS
 {
 	FString BatchFile = TEXT("@echo off");
 	BatchFile += TEXT("\nif defined ue.hlslcc GOTO DONE\nset ue.hlslcc=");
-	BatchFile += FPaths::RootDir() / TEXT("Engine\\Binaries\\Win64\\CrossCompilerTool.exe");
+	BatchFile += FPaths::RootDir() / TEXT("Engine\\Source\\Binaries\\Win64\\CrossCompilerTool.exe");
 	BatchFile += TEXT("\n\n:DONE\n%ue.hlslcc% ");
 	BatchFile += FString::Printf(TEXT("\"%s\" -o=\"%s\" %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
 	BatchFile += TEXT("\npause\n");
 	return BatchFile;
-}
-
-int32 HlslCrossCompile(
-	const FString& InSourceFilename, 
-	const FString& InShaderSource,
-	const FString& InEntryPoint,
-	EShaderFrequency InShaderFrequency,
-	class FCodeBackend* InShaderBackEnd,
-	struct ILanguageSpec* InLanguageSpec,
-	unsigned int InFlags,
-	int32/*EHlslCompileTarget*/ InCompileTarget,
-	FString& OutShaderSource,
-	char** OutErrorLog)
-{
-	EHlslShaderFrequency Frequency = HSF_InvalidFrequency;
-	switch (InShaderFrequency)
-	{
-	case SF_Vertex:
-		Frequency = HSF_VertexShader;
-		break;
-	case SF_Pixel:
-		Frequency = HSF_PixelShader;
-		break;
-	case SF_Compute:
-		Frequency = HSF_ComputeShader;
-		break;
-	case SF_Geometry:
-		Frequency = HSF_GeometryShader;
-		break;
-	case SF_Hull:
-		Frequency = HSF_HullShader;
-		break;
-	case SF_Domain:
-		Frequency = HSF_DomainShader;
-		break;
-	default:
-		checkf(0, TEXT("Invalid Shader Frequency %d for CrossCompiler"), InShaderFrequency);
-		return 0;
-	}
-
-	check(InCompileTarget < HCT_InvalidTarget);
-	checkf(HLSLCC_VersionMajor == FCrossCompiler::GetVersionMajor(), TEXT("hlslcc library major version mismatch! Runtime expects %d and Library has %d"), HLSLCC_VersionMajor, FCrossCompiler::GetVersionMajor());
-	checkf(HLSLCC_VersionMinor == FCrossCompiler::GetVersionMinor(), TEXT("hlslcc library minor version mismatch! Runtime expects %d and Library has %d"), HLSLCC_VersionMinor, FCrossCompiler::GetVersionMinor());
-
-	char* ShaderSource = nullptr;
-
-	if (FParse::Param(FCommandLine::Get(), TEXT("noshaderworker")))
-	{
-		InFlags |= HLSLCC_DumpIROnError;
-	}
-	FCrossCompiler CrossCompiler(InFlags);
-	int32 Result = CrossCompiler.Run(
-		TCHAR_TO_ANSI(*InSourceFilename),
-		TCHAR_TO_ANSI(*InShaderSource),
-		TCHAR_TO_ANSI(*InEntryPoint),
-		Frequency,
-		InShaderBackEnd,
-		InLanguageSpec,
-		(EHlslCompileTarget)InCompileTarget,
-		&ShaderSource,
-		OutErrorLog
-		);
-
-	if (ShaderSource)
-	{
-		OutShaderSource = ANSI_TO_TCHAR(ShaderSource);
-		free(ShaderSource);
-	}
-
-	return Result;
 }

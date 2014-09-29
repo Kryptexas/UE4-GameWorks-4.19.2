@@ -52,8 +52,6 @@ enum EHlslCompileFlag
 	HLSLCC_ApplyCommonSubexpressionElimination = 0x100,
 	// Expand subexpressions/obfuscate (to workaround certain drivers who can't deal with long nested expressions)
 	HLSLCC_ExpandSubexpressions = 0x200,
-	// If this ends in error, call IRDump()
-	HLSLCC_DumpIROnError = 0x400,
 };
 
 /**
@@ -117,52 +115,31 @@ protected:
 	ir_function_signature* GetMainFunction(exec_list* Instructions);
 };
 
-class FCrossCompiler
-{
-public:
-	FCrossCompiler(uint32 HLSLCCFlags);
-	~FCrossCompiler();
-
-	/**
-	 * Cross compile HLSL shader code to GLSL.
-	 * @param InSourceFilename - The filename of the shader source code. This file
-	 *                           is referenced when generating compile errors.
-	 * @param InShaderSource - HLSL shader source code.
-	 * @param InEntryPoint - The name of the entry point.
-	 * @param InShaderFrequency - The shader frequency.
-	 * @param InFlags - Flags, see the EHlslCompileFlag enum.
-	 * @param InCompileTarget - Cross compilation target.
-	 * @param OutShaderSource - Upon return contains GLSL shader source.
-	 * @param OutErrorLog - Upon return contains the error log, if any.
-	 * @returns 0 if compilation failed, non-zero otherwise.
-	 */
-	int Run(
-		const char* InSourceFilename,
-		const char* InShaderSource,
-		const char* InEntryPoint,
-		EHlslShaderFrequency InShaderFrequency,
-		FCodeBackend* InShaderBackEnd,
-		struct ILanguageSpec* InLanguageSpec,
-		EHlslCompileTarget InCompileTarget,
-		char** OutShaderSource,
-		char** OutErrorLog
-		);
-
-	// Utilities for tracking down library mismatches
-	static int32 GetVersionMajor()
-	{
-		return VersionMajor;
-	}
-
-	static int32 GetVersionMinor()
-	{
-		return VersionMinor;
-	}
-
-protected:
-	uint32 Flags;
-
-	bool ParseAndGenerateAST(struct _mesa_glsl_parse_state* ParseState, const char* InShaderSource);
-
-	static int32 VersionMajor, VersionMinor;
-};
+/**
+ * Cross compile HLSL shader code to GLSL.
+ * @param InSourceFilename - The filename of the shader source code. This file
+ *                           is referenced when generating compile errors.
+ * @param InShaderSource - HLSL shader source code.
+ * @param InEntryPoint - The name of the entry point.
+ * @param InShaderFrequency - The shader frequency.
+ * @param InFlags - Flags, see the EHlslCompileFlag enum.
+ * @param InCompileTarget - Cross compilation target.
+ * @param OutShaderSource - Upon return contains GLSL shader source.
+ * @param OutErrorLog - Upon return contains the error log, if any.
+ * @returns 0 if compilation failed, non-zero otherwise.
+ */
+#ifdef __GNUC__
+__attribute__ ((visibility("default")))
+#endif // __GNUC__
+int HlslCrossCompile(
+	const char* InSourceFilename,
+	const char* InShaderSource,
+	const char* InEntryPoint,
+	EHlslShaderFrequency InShaderFrequency,
+	FCodeBackend* InShaderBackEnd,
+	struct ILanguageSpec* InLanguageSpec,
+	unsigned int InFlags,
+	EHlslCompileTarget InCompileTarget,
+	char** OutShaderSource,
+	char** OutErrorLog
+	);

@@ -6,14 +6,13 @@
 namespace CCT
 {
 	FRunInfo::FRunInfo() :
-		Frequency(SF_NumFrequencies),
+		Frequency(HSF_InvalidFrequency),
 		Target(HCT_InvalidTarget),
 		Entry(""),
 		InputFile(""),
 		OutputFile(""),
 		BackEnd(BE_Invalid),
-		bRunCPP(true),
-		bCSE(false)
+		bRunCPP(true)
 	{
 	}
 
@@ -26,7 +25,6 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-entry=function\tMain entry point (defaults to Main())"));
 		//UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cpp\tOnly run C preprocessor"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-nocpp\tDo not run C preprocessor"));
-		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cse\tPerform Common Subexpression Elimination"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tProfiles:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-vs\tCompile as a Vertex Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-ps\tCompile as a Pixel Shader"));
@@ -41,78 +39,78 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl4\tCompile for OpenGL 4.3"));
 	}
 
-	static EShaderFrequency ParseFrequency(TArray<FString>& InOutSwitches)
+	EHlslShaderFrequency FRunInfo::ParseFrequency(TArray<FString>& InOutSwitches)
 	{
 		TArray<FString> OutSwitches;
-		EShaderFrequency Frequency = SF_NumFrequencies;
+		EHlslShaderFrequency Frequency = HSF_InvalidFrequency;
 
 		// Validate profile and target
 		for(FString& Switch : InOutSwitches)
 		{
 			if (Switch == "vs")
 			{
-				if (Frequency != SF_NumFrequencies)
+				if (Frequency != HSF_InvalidFrequency)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -vs!"));
 				}
 				else
 				{
-					Frequency = SF_Vertex;
+					Frequency = HSF_VertexShader;
 				}
 			}
 			else if (Switch == "ps")
 			{
-				if (Frequency != SF_NumFrequencies)
+				if (Frequency != HSF_InvalidFrequency)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -ps!"));
 				}
 				else
 				{
-					Frequency = SF_Pixel;
+					Frequency = HSF_PixelShader;
 				}
 			}
 			else if (Switch == "cs")
 			{
-				if (Frequency != SF_NumFrequencies)
+				if (Frequency != HSF_InvalidFrequency)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -cs!"));
 				}
 				else
 				{
-					Frequency = SF_Compute;
+					Frequency = HSF_ComputeShader;
 				}
 			}
 			else if (Switch == "gs")
 			{
-				if (Frequency != SF_NumFrequencies)
+				if (Frequency != HSF_InvalidFrequency)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -gs!"));
 				}
 				else
 				{
-					Frequency = SF_Geometry;
+					Frequency = HSF_GeometryShader;
 				}
 			}
 			else if (Switch == "hs")
 			{
-				if (Frequency != SF_NumFrequencies)
+				if (Frequency != HSF_InvalidFrequency)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -hs!"));
 				}
 				else
 				{
-					Frequency = SF_Hull;
+					Frequency = HSF_HullShader;
 				}
 			}
 			else if (Switch == "ds")
 			{
-				if (Frequency != SF_NumFrequencies)
+				if (Frequency != HSF_InvalidFrequency)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -ds!"));
 				}
 				else
 				{
-					Frequency = SF_Domain;
+					Frequency = HSF_HullShader;
 				}
 			}
 			else
@@ -122,10 +120,10 @@ namespace CCT
 		}
 
 		// Default to PS
-		if (Frequency == SF_NumFrequencies)
+		if (Frequency == HSF_InvalidFrequency)
 		{
 			UE_LOG(LogCrossCompilerTool, Warning, TEXT("No profile given, assuming Pixel Shader (-ps)!"));
-			Frequency = SF_Pixel;
+			Frequency = HSF_PixelShader;
 		}
 
 		Swap(InOutSwitches, OutSwitches);
@@ -241,13 +239,9 @@ namespace CCT
 					Entry = Switch.Mid(6);
 				}
 			}
-			else if (Switch == TEXT("nocpp"))
+			else if (Switch.StartsWith(TEXT("nocpp")))
 			{
 				bRunCPP = false;
-			}
-			else if (Switch == TEXT("cse"))
-			{
-				bCSE = true;
 			}
 		}
 
@@ -255,7 +249,7 @@ namespace CCT
 		if (Entry == TEXT(""))
 		{
 			UE_LOG(LogCrossCompilerTool, Warning, TEXT("No entry point given, assuming Main (-entry=Main)!"));
-			Entry = TEXT("Main");
+			Target = HCT_FeatureLevelSM5;
 		}
 
 		return true;
