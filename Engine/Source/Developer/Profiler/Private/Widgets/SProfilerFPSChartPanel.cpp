@@ -7,14 +7,6 @@
 class SProfilerFPSStatisticsPanel : public SCompoundWidget
 {
 public:
-	/** Default constructor. */
-	SProfilerFPSStatisticsPanel()
-	{}
-
-	/** Virtual destructor */
-	virtual ~SProfilerFPSStatisticsPanel()
-	{}
-
 	SLATE_BEGIN_ARGS( SProfilerFPSStatisticsPanel )
 	{}
 		SLATE_ARGUMENT( TSharedPtr<FFPSAnalyzer>, FPSAnalyzer )
@@ -137,15 +129,6 @@ protected:
 	TSharedPtr<FFPSAnalyzer> FPSAnalyzer;
 };
 
-SProfilerFPSChartPanel::SProfilerFPSChartPanel()
-{
-	RestoreDefaultState();
-}
-
-SProfilerFPSChartPanel::~SProfilerFPSChartPanel()
-{
-}
-
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SProfilerFPSChartPanel::Construct( const FArguments& InArgs )
 {
@@ -174,13 +157,5 @@ void SProfilerFPSChartPanel::Construct( const FArguments& InArgs )
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-void SProfilerFPSChartPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-}
-
-void SProfilerFPSChartPanel::RestoreDefaultState()
-{
-}
 
 #undef LOCTEXT_NAMESPACE
