@@ -14,6 +14,35 @@
 #include <StoreKit/SKPaymentQueue.h>
 
 
+/**
+ * The resulting state of an iap transaction
+ */
+namespace EInAppPurchaseResult
+{
+    enum Type
+    {
+        Succeeded = 0,
+        RestoredFromServer,
+        Failed,
+        Cancelled,
+    };
+}
+
+/**
+ * IOS implementation of the Platform Purchase receipt. For this we provide an identifier and the encrypted data.
+ */
+class FIOSPurchaseReceipt : public IPlatformPurchaseReceipt
+{
+public:
+    // Product identifier
+    FString Identifier;
+    
+    // The encrypted receipt data
+    FString Data;
+};
+
+
+
 /** Helper class, which allows us to manage IAP product information requests, AND transactions */
 @interface FStoreKitHelper : NSObject<SKProductsRequestDelegate, SKPaymentTransactionObserver>
 {

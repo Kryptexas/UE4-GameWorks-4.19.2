@@ -22,6 +22,15 @@ namespace EInAppPurchaseState
 }
 
 /**
+ * Platform derivitive for their own interpretation of product receipts.
+ * Each Store implementation should provide their own receipt type extended from this.
+ */
+class IPlatformPurchaseReceipt
+{
+};
+
+
+/**
  * Delegate fired when a session create request has completed
  *
  * @param SessionName the name of the session this callback is for
@@ -36,7 +45,7 @@ typedef FOnQueryForAvailablePurchasesComplete::FDelegate FOnQueryForAvailablePur
  * @param SessionName the name of the session the that has transitioned to started
  * @param bWasSuccessful true if the async action completed without error, false if there was an error
  */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnInAppPurchaseComplete, EInAppPurchaseState::Type);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInAppPurchaseComplete, EInAppPurchaseState::Type, const IPlatformPurchaseReceipt*);
 typedef FOnInAppPurchaseComplete::FDelegate FOnInAppPurchaseCompleteDelegate;
 
 
@@ -145,5 +154,5 @@ public:
 	/**
 	 * Delegate which is executed when a Purchase completes
 	 */
-	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnInAppPurchaseComplete, EInAppPurchaseState::Type);
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnInAppPurchaseComplete, EInAppPurchaseState::Type, const IPlatformPurchaseReceipt*);
 };

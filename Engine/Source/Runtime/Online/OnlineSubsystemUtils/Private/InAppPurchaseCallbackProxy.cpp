@@ -10,6 +10,7 @@ UInAppPurchaseCallbackProxy::UInAppPurchaseCallbackProxy(const class FPostConstr
 {
 	PurchaseRequest = nullptr;
 	WorldPtr = nullptr;
+    SavedPurchaseReceipt = nullptr;
 }
 
 
@@ -18,7 +19,7 @@ void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, c
 	bFailedToEvenSubmit = true;
 
 	WorldPtr = (PlayerController != nullptr) ? PlayerController->GetWorld() : nullptr;
-	if (APlayerState* PlayerState = (PlayerController != NULL) ? PlayerController->PlayerState : nullptr)
+	if (APlayerState* PlayerState = (PlayerController != nullptr) ? PlayerController->PlayerState : nullptr)
 	{
 		if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
 		{
@@ -58,36 +59,44 @@ void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, c
 }
 
 
-void UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState)
+void UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState, const IPlatformPurchaseReceipt* ProductReceipt)
 {
 	RemoveDelegate();
-
 	SavedPurchaseState = CompletionState;
-
-	if (SavedPurchaseState == EInAppPurchaseState::Success && PurchaseRequest.IsValid())
-	{
-		SavedProductInformation = PurchaseRequest->ProvidedProductInformation;
-	}
-
+    SavedPurchaseReceipt = ProductReceipt;
+    
 	if (UWorld* World = WorldPtr.Get())
 	{
 		World->GetTimerManager().SetTimer(this, &UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete_Delayed, 0.001f, false);
-	}
-
-	PurchaseRequest = NULL;
+    }
+    else
+    {
+        PurchaseRequest = nullptr;
+    }
 }
 
 
 void UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete_Delayed()
 {
+    /** Cached product details of the purchased product */
+    FInAppPurchaseProductInfo ProductInformation;
+    
+    if (SavedPurchaseState == EInAppPurchaseState::Success && PurchaseRequest.IsValid())
+    {
+        ProductInformation = PurchaseRequest->ProvidedProductInformation;
+    }
+    
 	if (SavedPurchaseState == EInAppPurchaseState::Success)
 	{
-		OnSuccess.Broadcast(SavedPurchaseState, SavedProductInformation);
+		OnSuccess.Broadcast(SavedPurchaseState, ProductInformation);
 	}
 	else
 	{
-		OnFailure.Broadcast(SavedPurchaseState, SavedProductInformation);
+		OnFailure.Broadcast(SavedPurchaseState, ProductInformation);
 	}
+    
+    SavedPurchaseReceipt = nullptr;
+    PurchaseRequest = nullptr;
 }
 
 
