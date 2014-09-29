@@ -24,6 +24,7 @@ namespace CCT
 		int32 Flags = 0;
 
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
+		Flags |= RunInfo.bCSE ? HLSLCC_ApplyCommonSubexpressionElimination : 0;
 
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags);
@@ -87,7 +88,7 @@ namespace CCT
 
 		free(ErrorLog);
 
-		return 0;
+		return Result;
 	}
 }
 

@@ -52,6 +52,8 @@ enum EHlslCompileFlag
 	HLSLCC_ApplyCommonSubexpressionElimination = 0x100,
 	// Expand subexpressions/obfuscate (to workaround certain drivers who can't deal with long nested expressions)
 	HLSLCC_ExpandSubexpressions = 0x200,
+	// If this ends in error, call IRDump()
+	HLSLCC_DumpIROnError = 0x400,
 };
 
 /**

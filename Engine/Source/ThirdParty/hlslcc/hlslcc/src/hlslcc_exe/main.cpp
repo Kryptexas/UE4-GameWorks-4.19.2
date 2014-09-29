@@ -9,9 +9,10 @@
 #include <stdarg.h>
 #include <syslog.h>
 #endif
-#include "hlslcc.h"
-#include "glsl/ir_gen_glsl.h"
 #include "ShaderCompilerCommon.h"
+#include "hlslcc.h"
+#include "LanguageSpec.h"
+//#include "glsl/ir_gen_glsl.h"
 
 enum EHlslccBackend
 {
@@ -59,6 +60,34 @@ static void dprintf(const char* Format, ...)
 #endif
 	fprintf(stdout, "%s", Buf);
 }
+
+struct FGlslCodeBackend : public FCodeBackend
+{
+	FGlslCodeBackend(unsigned int InHlslCompileFlags) : FCodeBackend(InHlslCompileFlags) {}
+
+
+	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) 
+	{
+		return 0;
+	}
+};
+#define FRAMEBUFFER_FETCH_ES2	"FramebufferFetchES2"
+#include "mesa/ir.h"
+
+struct FGlslLanguageSpec : public ILanguageSpec
+{
+	virtual bool SupportsDeterminantIntrinsic() const {return false;}
+	virtual bool SupportsTransposeIntrinsic() const {return false;}
+	virtual bool SupportsIntegerModulo() const {return false;}
+
+	// half3x3 <-> float3x3
+	virtual bool SupportsMatrixConversions() const {return false;}
+	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)
+	{
+		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
+	}
+};
+
 
 char* LoadShaderFromFile(const char* Filename);
 
@@ -298,7 +327,7 @@ int main( int argc, char** argv)
 	Flags |= Options.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
 
 	FGlslCodeBackend GlslCodeBackend(Flags);
-	FGlslLanguageSpec GlslLanguageSpec(Options.Target == HCT_FeatureLevelES2);
+	FGlslLanguageSpec GlslLanguageSpec;//(Options.Target == HCT_FeatureLevelES2);
 
 	FCodeBackend* CodeBackend = &GlslCodeBackend;
 	ILanguageSpec* LanguageSpec = &GlslLanguageSpec;
@@ -311,15 +340,15 @@ int main( int argc, char** argv)
 		Flags |= HLSLCC_DX11ClipSpace;
 		break;
 	}
-
-	int Result = HlslCrossCompile(
+	Flags = 0x16c;
+	FCrossCompiler CC(Flags);
+	int Result = CC.Run(
 		Options.ShaderFilename,
 		HLSLShaderSource,
 		Options.Entry,
 		Options.Frequency,
 		CodeBackend,
 		LanguageSpec,
-		Flags,
 		Options.Target,
 		&GLSLShaderSource,
 		&ErrorLog

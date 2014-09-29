@@ -24,6 +24,7 @@ namespace CCT
 		FString OutputFile;
 		EBackend BackEnd;
 		bool bRunCPP;
+		bool bCSE;
 		//bool bCPPOnly;
 
 		FRunInfo();

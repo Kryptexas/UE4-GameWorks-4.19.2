@@ -360,6 +360,10 @@ done:
 	if (ParseState->info_log && ParseState->info_log[0] != 0)
 	{
 		*OutErrorLog = strdup(ParseState->info_log);
+		if ((Flags & HLSLCC_DumpIROnError) &&  ir)
+		{
+			IRDump(ir, ParseState, "ERROR DUMP");
+		}
 	}
 	ralloc_free(MemContext);
 	_mesa_glsl_release_types();

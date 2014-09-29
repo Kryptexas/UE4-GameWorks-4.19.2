@@ -12,7 +12,8 @@ namespace CCT
 		InputFile(""),
 		OutputFile(""),
 		BackEnd(BE_Invalid),
-		bRunCPP(true)
+		bRunCPP(true),
+		bCSE(false)
 	{
 	}
 
@@ -25,6 +26,7 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-entry=function\tMain entry point (defaults to Main())"));
 		//UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cpp\tOnly run C preprocessor"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-nocpp\tDo not run C preprocessor"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cse\tPerform Common Subexpression Elimination"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tProfiles:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-vs\tCompile as a Vertex Shader"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-ps\tCompile as a Pixel Shader"));
@@ -239,9 +241,13 @@ namespace CCT
 					Entry = Switch.Mid(6);
 				}
 			}
-			else if (Switch.StartsWith(TEXT("nocpp")))
+			else if (Switch == TEXT("nocpp"))
 			{
 				bRunCPP = false;
+			}
+			else if (Switch == TEXT("cse"))
+			{
+				bCSE = true;
 			}
 		}
 
@@ -249,7 +255,7 @@ namespace CCT
 		if (Entry == TEXT(""))
 		{
 			UE_LOG(LogCrossCompilerTool, Warning, TEXT("No entry point given, assuming Main (-entry=Main)!"));
-			Target = HCT_FeatureLevelSM5;
+			Entry = TEXT("Main");
 		}
 
 		return true;
