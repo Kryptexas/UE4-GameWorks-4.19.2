@@ -30,7 +30,7 @@ FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext c
 	UProperty const* SampleProperty = nullptr;
 	if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner const>(SampleAction))
 	{
-		SampleProperty = DelegateSpawner->GetProperty();
+		SampleProperty = DelegateSpawner->GetDelegateProperty();
 	}
 	else if (UBlueprintVariableNodeSpawner const* VariableSpawner = Cast<UBlueprintVariableNodeSpawner const>(SampleAction))
 	{
@@ -87,7 +87,7 @@ FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext c
 UEdGraphNode* FBlueprintDragDropMenuItem::PerformAction(UEdGraph* ParentGraph, UEdGraphPin* FromPin, FVector2D const Location, bool bSelectNewNode/* = true*/)
 {
 	// we shouldn't get here (this should just be used for drag/drop ops), but just in case we do...
-	FBlueprintActionMenuItem BlueprintActionItem(GetSampleAction(), nullptr, FSlateColor(FLinearColor::White));
+	FBlueprintActionMenuItem BlueprintActionItem(GetSampleAction());
 	return BlueprintActionItem.PerformAction(ParentGraph, FromPin, Location, bSelectNewNode);
 }
 
@@ -172,7 +172,7 @@ TSharedPtr<FDragDropOperation> FBlueprintDragDropMenuItem::OnDragged(FNodeCreati
 	UBlueprintNodeSpawner const* SampleAction = GetSampleAction();
 	if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner const>(SampleAction))
 	{
-		if (UMulticastDelegateProperty const* Property = DelegateSpawner->GetProperty())
+		if (UMulticastDelegateProperty const* Property = DelegateSpawner->GetDelegateProperty())
 		{
 			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
 			TSharedRef<FDragDropOperation> DragDropOpRef = FKismetDelegateDragDropAction::New(Property->GetFName(), PropertyOwner, AnalyticsDelegate);

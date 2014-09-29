@@ -10,6 +10,35 @@
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"
 
 /*******************************************************************************
+ * Static UBlueprintComponentNodeSpawner Helpers
+ ******************************************************************************/
+
+namespace BlueprintComponentNodeSpawnerImpl
+{
+	static FText GetDefaultMenuCategory(TSubclassOf<UActorComponent> const ComponentClass);
+}
+
+//------------------------------------------------------------------------------
+static FText BlueprintComponentNodeSpawnerImpl::GetDefaultMenuCategory(TSubclassOf<UActorComponent> const ComponentClass)
+{
+	FText ClassGroup;
+	TArray<FString> ClassGroupNames;
+	ComponentClass->GetClassGroupNames(ClassGroupNames);
+
+	static FText const DefaultClassGroup(LOCTEXT("DefaultClassGroup", "Common"));
+	// 'Common' takes priority over other class groups
+	if (ClassGroupNames.Contains(DefaultClassGroup.ToString()) || (ClassGroupNames.Num() == 0))
+	{
+		ClassGroup = DefaultClassGroup;
+	}
+	else
+	{
+		ClassGroup = FText::FromString(ClassGroupNames[0]);
+	}
+	return FText::Format(LOCTEXT("ComponentCategory", "Add Component|{0}"), ClassGroup);
+}
+
+/*******************************************************************************
  * UBlueprintComponentNodeSpawner
  ******************************************************************************/
 
@@ -26,6 +55,17 @@ UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(TSubclass
 	UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(Outer);
 	NodeSpawner->ComponentClass = ComponentClass;
 	NodeSpawner->NodeClass      = UK2Node_AddComponent::StaticClass();
+
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	FText const ComponentTypeName = FText::FromName(ComponentClass->GetFName());
+	MenuSignature.MenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), ComponentTypeName);
+	MenuSignature.Category = BlueprintComponentNodeSpawnerImpl::GetDefaultMenuCategory(ComponentClass);
+	MenuSignature.Tooltip  = FText::Format(LOCTEXT("AddComponentTooltip", "Spawn a {0}"), ComponentTypeName);
+	MenuSignature.Keywords = ComponentClass->GetMetaData(FBlueprintMetadata::MD_FunctionKeywords);
+	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+	// attempt to query the template node
+	MenuSignature.Keywords.AppendChar(TEXT(' '));
+	MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(ComponentClass);
 
 	return NodeSpawner;
 }
@@ -97,15 +137,10 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintComponentNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
+FBlueprintActionUiSpec UBlueprintComponentNodeSpawner::GetUiSpec(FBlueprintActionContext const& Context, FBindingSet const& Bindings) const
 {
-	check(ComponentClass != nullptr);
-	if (CachedMenuName.IsOutOfDate())
-	{
-		// FText::Format() is slow, so we cache this to save on performance
-		CachedMenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), FText::FromName(ComponentClass->GetFName()));
-	}
-	FText MenuName = CachedMenuName.GetCachedText();
+	UEdGraph* TargetGraph = (Context.Graphs.Num() > 0) ? Context.Graphs[0] : nullptr;
+	FBlueprintActionUiSpec MenuSignature = PrimeDefaultUiSpec(TargetGraph);
 
 	if (Bindings.Num() > 0)
 	{
@@ -116,61 +151,11 @@ FText UBlueprintComponentNodeSpawner::GetDefaultMenuName(FBindingSet const& Bind
 		}
 
 		FText const ComponentTypeName = FText::FromName(ComponentClass->GetFName());
-		MenuName = FText::Format(LOCTEXT("AddBoundComponentMenuName", "Add {0} (as {1})"), AssetName, ComponentTypeName);
+		MenuSignature.MenuName = FText::Format(LOCTEXT("AddBoundComponentMenuName", "Add {0} (as {1})"), AssetName, ComponentTypeName);
+		MenuSignature.Tooltip  = FText::Format(LOCTEXT("AddBoundComponentTooltip", "Spawn {0} using {1}"), ComponentTypeName, AssetName);
 	}
-	return MenuName;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintComponentNodeSpawner::GetDefaultMenuTooltip() const
-{
-	FText const ComponentTypeName = FText::FromName(ComponentClass->GetFName());
-	// @TODO: consider caching this, and provide a separate tooltip for when the
-	//        node would be bound ("Spawn a {0} using {1}").
-	return FText::Format(LOCTEXT("AddComponentTooltip", "Spawn a {0}"), ComponentTypeName);
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintComponentNodeSpawner::GetDefaultMenuCategory() const
-{
-	check(ComponentClass != nullptr);
-
-	if (CachedCategory.IsOutOfDate())
-	{
-		FText ClassGroup;
-		TArray<FString> ClassGroupNames;
-		ComponentClass->GetClassGroupNames(ClassGroupNames);
-
-		static FText const DefaultClassGroup(LOCTEXT("DefaultClassGroup", "Common"));
-		// 'Common' takes priority over other class groups
-		if (ClassGroupNames.Contains(DefaultClassGroup.ToString()) || (ClassGroupNames.Num() == 0))
-		{
-			ClassGroup = DefaultClassGroup;
-		}
-		else
-		{
-			ClassGroup = FText::FromString(ClassGroupNames[0]);
-		}
-		// FText::Format() is slow, so we cache this to save on performance
-		CachedCategory = FText::Format(LOCTEXT("ComponentCategory", "Add Component|{0}"), ClassGroup);
-	}
-	return CachedCategory;
-}
-
-//------------------------------------------------------------------------------
-FString UBlueprintComponentNodeSpawner::GetDefaultSearchKeywords() const
-{
-	FString SearchKeywords = ComponentClass->GetMetaData(FBlueprintMetadata::MD_FunctionKeywords);
-	// add at least one character, so that the menu item doesn't attempt to
-	// ping a template node
-	return SearchKeywords.AppendChar(TEXT(' '));
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintComponentNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	check(ComponentClass != nullptr);
-	return FClassIconFinder::FindIconNameForClass(ComponentClass);
+	DynamicUiSignatureGetter.ExecuteIfBound(Context, Bindings, &MenuSignature);
+	return MenuSignature;
 }
 
 //------------------------------------------------------------------------------

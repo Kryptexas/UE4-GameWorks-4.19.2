@@ -4,7 +4,6 @@
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintDragDropMenuItem.h"
-#include "BlueprintBoundMenuItem.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintActionDatabase.h"
 #include "BlueprintNodeSpawner.h"
@@ -50,7 +49,7 @@ public:
 	 * @param  Action			The node-spawner that the new menu item should wrap.
 	 * @return A newly allocated FBlueprintActionMenuItem (which wraps the supplied action).
 	 */
-	TSharedPtr<FEdGraphSchemaAction> MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
+	TSharedPtr<FBlueprintActionMenuItem> MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
 
 	/**
 	 * Spawns a new FBlueprintDragDropMenuItem with the node-spawner. Constructs
@@ -67,64 +66,9 @@ public:
 	 * @param  BoundAction	
 	 * @return 
 	 */
-	TSharedPtr<FBlueprintBoundMenuItem> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
+	TSharedPtr<FBlueprintActionMenuItem> MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
 	
 private:
-	/**
-	 * Attempts to pull a menu name from the supplied spawner. If one isn't 
-	 * provided, then it spawns a temporary node and pulls one from that node's 
-	 * title.
-	 * 
-	 * @param  EditorContext
-	 * @param  Action		The action you want to suss name information from.
-	 * @return A name for the menu item wrapping this action.
-	 */
-	FText GetMenuNameForAction(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
-
-	/**
-	 * Attempts to pull a menu category from the supplied spawner. If one isn't 
-	 * provided, then it spawns a temporary node and pulls one from that node.
-	 * 
-	 * @param  EditorContext
-	 * @param  Action		The action you want to suss category information from.
-	 * @return A category for the menu item wrapping this action.
-	 */
-	FText GetCategoryForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action);
-
-	/**
-	 * Attempts to pull a menu tooltip from the supplied spawner. If one isn't 
-	 * provided, then it spawns a temporary node and pulls one from that node.
-	 * 
-	 * @param  EditorContext
-	 * @param  Action		The action you want to suss tooltip information from.
-	 * @return A tooltip for the menu item wrapping this action.
-	 */
-	FText GetTooltipForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action);
-
-	/**
-	 * Attempts to pull a keywords from the supplied spawner. If one isn't 
-	 * provided, then it spawns a temporary node and pulls them from that.
-	 * 
-	 * @TODO: Should search keywords be localized? Probably. 
-	 *
-	 * @param  EditorContext
-	 * @param  Action		The action you want to suss keyword information from.
-	 * @return A keyword text string for the menu item wrapping this action.
-	 */
-	FString GetSearchKeywordsForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action);
-
-	/**
-	 * Attempts to pull a menu icon information from the supplied spawner. If
-	 * info isn't provided, then it spawns a temporary node and pulls data from 
-	 * that node.
-	 * 
-	 * @param  EditorContext
-	 * @param  Action		The action you want to suss icon information from.
-	 * @param  ColorOut		The color to tint the icon with.
-	 * @return Name of the brush to use (use FEditorStyle::GetBrush() to resolve).
-	 */
-	FName GetMenuIconForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action, FLinearColor& ColorOut);
-
 	/**
 	 * Utility getter function that retrieves the blueprint context for the menu
 	 * items being made.
@@ -136,11 +80,19 @@ private:
 	/**
 	 * 
 	 * 
-	 * @param  Action	
 	 * @param  EditorContext	
 	 * @return 
 	 */
-	UEdGraphNode* GetTemplateNode(UBlueprintNodeSpawner const* Action, TWeakPtr<FBlueprintEditor> EditorContext) const;	
+	UEdGraph* GetTargetGraph(TWeakPtr<FBlueprintEditor> EditorContext) const;
+
+	/**
+	 *
+	 *
+	 * @param  EditorContext
+	 * @param  ActionInfo
+	 * @return
+	 */
+	FBlueprintActionUiSpec GetActionUiSignature(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo);
 };
 
 //------------------------------------------------------------------------------
@@ -152,20 +104,16 @@ FBlueprintActionMenuItemFactory::FBlueprintActionMenuItemFactory(FBlueprintActio
 }
 
 //------------------------------------------------------------------------------
-TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
+TSharedPtr<FBlueprintActionMenuItem> FBlueprintActionMenuItemFactory::MakeActionMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
 {
+	FBlueprintActionUiSpec UiSignature = GetActionUiSignature(EditorContext, ActionInfo);
+
 	UBlueprintNodeSpawner const* Action = ActionInfo.NodeSpawner;
+	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, UiSignature);
 
-	FLinearColor IconTint = FLinearColor::White;
-	FName IconBrushName = GetMenuIconForAction(EditorContext, Action, IconTint);
+	NewMenuItem->Grouping = MenuGrouping;
+	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
 
-	FBlueprintActionMenuItem * NewMenuItem = new FBlueprintActionMenuItem(Action, FEditorStyle::GetBrush(IconBrushName), IconTint, MenuGrouping);
-	NewMenuItem->MenuDescription    = GetMenuNameForAction(EditorContext, ActionInfo);
-	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, Action).ToString();
-	NewMenuItem->Category           = GetCategoryForAction(EditorContext, Action).ToString();
-	NewMenuItem->Keywords           = GetSearchKeywordsForAction(EditorContext, Action);
-
-	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);	
 	return MakeShareable(NewMenuItem);
 }
 
@@ -180,200 +128,17 @@ TSharedPtr<FBlueprintDragDropMenuItem> FBlueprintActionMenuItemFactory::MakeDrag
 }
 
 //------------------------------------------------------------------------------
-TSharedPtr<FBlueprintBoundMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
+TSharedPtr<FBlueprintActionMenuItem> FBlueprintActionMenuItemFactory::MakeBoundMenuItem(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
 {
-	IBlueprintNodeBinder::FBindingSet const& Bindings = ActionInfo.GetBindings();
+	FBlueprintActionUiSpec UiSignature = GetActionUiSignature(EditorContext, ActionInfo);
+
 	UBlueprintNodeSpawner const* Action = ActionInfo.NodeSpawner;
+	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, UiSignature, ActionInfo.GetBindings());
 
-	FBlueprintBoundMenuItem* NewMenuItem = new FBlueprintBoundMenuItem(Action, MenuGrouping);
-
-	// AddBindings() updates the MenuDescription, everytime a binding is added, 
-	// so set the default menu name before it
-	NewMenuItem->MenuDescription = GetMenuNameForAction(EditorContext, ActionInfo);
-	NewMenuItem->AddBindings(Bindings);
-
-	NewMenuItem->TooltipDescription = GetTooltipForAction(EditorContext, Action).ToString();
-	NewMenuItem->Category           = GetCategoryForAction(EditorContext, Action).ToString();
-	NewMenuItem->Keywords           = GetSearchKeywordsForAction(EditorContext, Action);
-
+	NewMenuItem->Grouping = MenuGrouping;
 	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
+
 	return MakeShareable(NewMenuItem);
-}
-
-//------------------------------------------------------------------------------
-FText FBlueprintActionMenuItemFactory::GetMenuNameForAction(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
-{
-	UBlueprintNodeSpawner const* Action = ActionInfo.NodeSpawner;
-	check(Action != nullptr);
-	// give the action the chance to save on performance (to keep from having to spawn a template node)
-	FText MenuName = Action->GetDefaultMenuName(ActionInfo.GetBindings());
-	
-	if (MenuName.IsEmpty())
-	{
-		if (UEdGraphNode* NodeTemplate = GetTemplateNode(Action, EditorContext))
-		{
-			MenuName = NodeTemplate->GetNodeTitle(ENodeTitleType::MenuTitle);
-		}
-		else
-		{
-			// need to give it some name, this is as good as any I guess
-			MenuName = FText::FromName(Action->GetFName());
-		}
-	}
-	
-	return MenuName;
-}
-
-//------------------------------------------------------------------------------
-FText FBlueprintActionMenuItemFactory::GetCategoryForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action)
-{
-	check(Action != nullptr);
-	// give the action the chance to save on performance (to keep from having to spawn a template node)
-	FText MenuCategory = Action->GetDefaultMenuCategory();
-	
-	if (MenuCategory.IsEmpty())
-	{
-		// put uncategorized function calls in a member function category
-		// (sorted by their respective classes)
-		if (UBlueprintFunctionNodeSpawner const* FuncSpawner = Cast<UBlueprintFunctionNodeSpawner>(Action))
-		{
-			UFunction const* Function = FuncSpawner->GetFunction();
-			check(Function != nullptr);
-			UClass* FuncOwner = Function->GetOuterUClass();
-
-			UBlueprint* Blueprint = GetTargetBlueprint();
-			check(Blueprint != nullptr);
-			UClass* BlueprintClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
-
-			// if this is NOT a self function call (self function calls
-			// don't get nested any deeper)
-			if (!BlueprintClass->IsChildOf(FuncOwner))
-			{
-				MenuCategory = FuncOwner->GetDisplayNameText();
-			}
-			MenuCategory = FText::Format(LOCTEXT("MemberFunctionsCategory", "{0}|Call Function"), MenuCategory);
-		}
-		else if (UBlueprintNodeSpawner const* NodeSpawner = Cast<UBlueprintNodeSpawner>(Action))
-		{
-			// Only for macro instances do we want to mess with the category to put it into a category
-			// named after the Blueprint if no other category is specified
-			if(NodeSpawner->NodeClass == UK2Node_MacroInstance::StaticClass())
-			{
-				UK2Node_MacroInstance* MacroInstance = Cast<UK2Node_MacroInstance>(NodeSpawner->GetTemplateNode());
-				if(UEdGraph* MacroGraph = MacroInstance->GetMacroGraph())
-				{
-					// Check if the MacroGraph has a category
-					FKismetUserDeclaredFunctionMetadata* MacroGraphMetadata = UK2Node_MacroInstance::GetAssociatedGraphMetadata(MacroGraph);
-					if ((MacroGraphMetadata != nullptr) && MacroGraphMetadata->Category.IsEmpty())
-					{
-						MenuCategory = MacroInstance->GetMenuCategory();
-
-						UBlueprint* MacroBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(MacroGraph);
-						if(MacroBlueprint != GetTargetBlueprint())
-						{
-							FText BlueprintDisplayName = MacroBlueprint->GeneratedClass->GetDisplayNameText();
-							FFormatNamedArguments Args;
-							Args.Add(TEXT("BlueprintDisplayName"), BlueprintDisplayName);
-							Args.Add(TEXT("MacroCategory"), MenuCategory);
-
-							MenuCategory = FText::Format(LOCTEXT("MemberMacroCategory", "{BlueprintDisplayName}|{MacroCategory}"), Args);
-						}
-					}
-				}
-			}
-		}
-
-		// If the menu category is still empty, fill it in with the node template's defined category
-		if(MenuCategory.IsEmpty())
-		{
-			// @TODO: consider moving GetMenuCategory() up into UEdGraphNode
-			if (UK2Node* NodeTemplate = Cast<UK2Node>(GetTemplateNode(Action, EditorContext)))
-			{
-				MenuCategory = NodeTemplate->GetMenuCategory();
-			}
-		}
-	}
-	else
-	{
-		if (UBlueprintVariableNodeSpawner const* VarSpawner = Cast<UBlueprintVariableNodeSpawner>(Action))
-		{
-			UProperty const* Property = VarSpawner->GetVarProperty();
-			if(Property)
-			{
-				check(Property != nullptr);
-				UClass* PropertyOwner = Property->GetTypedOuter<UClass>();
-
-				UBlueprint* Blueprint = GetTargetBlueprint();
-				check(Blueprint != nullptr);
-				UClass* BlueprintClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
-
-				// if this is NOT a self function call (self function calls
-				// don't get nested any deeper)
-				if (!BlueprintClass->IsChildOf(PropertyOwner))
-				{
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("PropertyDisplayName"), PropertyOwner->GetDisplayNameText());
-					Args.Add(TEXT("VariableCategory"), MenuCategory);
-					MenuCategory = FText::Format(LOCTEXT("MemberVariablesCategory", "{PropertyDisplayName}|{VariableCategory}"), Args);
-				}
-			}
-		}
-	}
-	
-	return MenuCategory;
-}
-
-//------------------------------------------------------------------------------
-FText FBlueprintActionMenuItemFactory::GetTooltipForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action)
-{
-	check(Action != nullptr);
-	// give the action the chance to save on performance (to keep from having to spawn a template node)
-	FText Tooltip = Action->GetDefaultMenuTooltip();
-	
-	if (Tooltip.IsEmpty())
-	{
-		if (UEdGraphNode* NodeTemplate = GetTemplateNode(Action, EditorContext))
-		{
-			Tooltip = NodeTemplate->GetTooltipText();
-		}
-	}
-	
-	return Tooltip;
-}
-
-//------------------------------------------------------------------------------
-FString FBlueprintActionMenuItemFactory::GetSearchKeywordsForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action)
-{
-	check(Action != nullptr);
-	// give the action the chance to save on performance (to keep from having to 
-	// spawn a template node)
-	//
-	// @TODO: Should search keywords be localized? Probably.
-	FString SearchKeywords = Action->GetDefaultSearchKeywords();
-	
-	if (SearchKeywords.IsEmpty())
-	{
-		if (UEdGraphNode* NodeTemplate = GetTemplateNode(Action, EditorContext))
-		{
-			SearchKeywords = NodeTemplate->GetKeywords();
-		}
-	}
-	
-	return SearchKeywords;
-}
-
-//------------------------------------------------------------------------------
-FName FBlueprintActionMenuItemFactory::GetMenuIconForAction(TWeakPtr<FBlueprintEditor> EditorContext, UBlueprintNodeSpawner const* Action, FLinearColor& ColorOut)
-{
-	FName BrushName = Action->GetDefaultMenuIcon(ColorOut);
-	if (BrushName.IsNone())
-	{
-		if (UEdGraphNode* NodeTemplate = GetTemplateNode(Action, EditorContext))
-		{
-			BrushName = NodeTemplate->GetPaletteIcon(ColorOut);
-		}
-	}
-	return BrushName;
 }
 
 //------------------------------------------------------------------------------
@@ -388,7 +153,7 @@ UBlueprint* FBlueprintActionMenuItemFactory::GetTargetBlueprint() const
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* FBlueprintActionMenuItemFactory::GetTemplateNode(UBlueprintNodeSpawner const* Action, TWeakPtr<FBlueprintEditor> EditorContext) const
+UEdGraph* FBlueprintActionMenuItemFactory::GetTargetGraph(TWeakPtr<FBlueprintEditor> EditorContext) const
 {
 	UEdGraph* TargetGraph = nullptr;
 	if (Context.Graphs.Num() > 0)
@@ -409,10 +174,20 @@ UEdGraphNode* FBlueprintActionMenuItemFactory::GetTemplateNode(UBlueprintNodeSpa
 			TargetGraph = EditorContext.Pin()->GetFocusedGraph();
 		}
 	}
-
-	check(Action != nullptr);
-	return Action->GetTemplateNode(TargetGraph);
+	return TargetGraph;
 }
+
+//------------------------------------------------------------------------------
+FBlueprintActionUiSpec FBlueprintActionMenuItemFactory::GetActionUiSignature(TWeakPtr<FBlueprintEditor> EditorContext, FBlueprintActionInfo const& ActionInfo)
+{
+	UBlueprintNodeSpawner const* Action = ActionInfo.NodeSpawner;
+
+	UEdGraph* TargetGraph = GetTargetGraph(EditorContext);
+	Action->PrimeDefaultUiSpec(TargetGraph);
+
+	return Action->GetUiSpec(Context, ActionInfo.GetBindings());
+}
+
 
 /*******************************************************************************
  * Static FBlueprintActionMenuBuilder Helpers
@@ -526,7 +301,7 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::AddBoundMenuItems(
 {
 	UBlueprintNodeSpawner const* DatabaseAction = DatabaseActionInfo.NodeSpawner;
 
-	TSharedPtr<FBlueprintBoundMenuItem> LastMadeMenuItem;
+	TSharedPtr<FBlueprintActionMenuItem> LastMadeMenuItem;
 	bool const bConsolidate = (Flags & FBlueprintActionMenuBuilder::ConsolidateBoundActions) != 0;
 	
 	IBlueprintNodeBinder::FBindingSet CompatibleBindings;
@@ -545,12 +320,6 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::AddBoundMenuItems(
 			// add bindings before filtering (in case tests accept/reject based off of this)
 			CompatibleBindings.Add(BindingObj);
 		}
-// 		else if (bConsolidate)
-// 		{
-// 			MadeMenuItems.Empty();
-// 			LastMadeMenuItem.Reset();
-// 			break;
-// 		}
 
 		// if BoundAction is now "full" (meaning it can take any more 
 		// bindings), or if this is the last binding to test...
@@ -577,7 +346,7 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::AddBoundMenuItems(
 				{
 					// move these bindings over to the menu item (so we can 
 					// test the next set)
-					LastMadeMenuItem->AddBindings(CompatibleBindings);
+					LastMadeMenuItem->AppendBindings(Filter.Context, CompatibleBindings);
 				}
 			}
 			CompatibleBindings.Empty(); // do before we copy back over cached fields for DatabaseActionInfo
@@ -608,7 +377,7 @@ FBlueprintActionMenuBuilderImpl::MenuItemList FBlueprintActionMenuBuilderImpl::F
 		}
 		else if (UBlueprintDelegateNodeSpawner const* DelegateSpawner = Cast<UBlueprintDelegateNodeSpawner>(DatabaseAction.NodeSpawner))
 		{
-			ActionProperty = DelegateSpawner->GetProperty();
+			ActionProperty = DelegateSpawner->GetDelegateProperty();
 			bPassedFilter = (ActionProperty != nullptr);
 		}
 

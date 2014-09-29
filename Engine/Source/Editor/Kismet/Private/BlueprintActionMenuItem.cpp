@@ -23,6 +23,18 @@ namespace FBlueprintMenuActionItemImpl
 	 * @param  SpawnedNode	The node that was just added to the blueprint.
 	 */
 	static void DirtyBlueprintFromNewNode(UEdGraphNode* SpawnedNode);
+
+	/**
+	 * 
+	 * 
+	 * @param  Action			The action you wish to invoke.
+	 * @param  ParentGraph		The graph you want the action to spawn a node into.
+	 * @param  Location			The position in the graph that you want the node spawned.
+	 * @param  Bindings			Any bindings you want applied after the node has been spawned.
+	 * @param  bSelectNewNode	Determines if the new node should be selected after it have been spawned.
+	 * @return The spawned node (could be an existing one if the event was already placed).
+	 */
+	static UEdGraphNode* InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings, bool bSelectNewNode);
 }
 
 //------------------------------------------------------------------------------
@@ -48,28 +60,55 @@ static void FBlueprintMenuActionItemImpl::DirtyBlueprintFromNewNode(UEdGraphNode
 	}
 }
 
+//------------------------------------------------------------------------------
+static UEdGraphNode* FBlueprintMenuActionItemImpl::InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings, bool bSelectNewNode)
+{
+	// this could return an existing node
+	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Bindings, Location);
+
+	// if a returned node hasn't been added to the graph yet (it must have been freshly spawned)
+	if (ParentGraph->Nodes.Find(SpawnedNode) == INDEX_NONE)
+	{
+		check(SpawnedNode != nullptr);
+
+		// @TODO: Move Modify()/AddNode() into UBlueprintNodeSpawner and pull 
+		//        selection functionality out to FBlueprintActionMenuItem::PerformAction()
+		ParentGraph->Modify();
+		ParentGraph->AddNode(SpawnedNode, /*bFromUI =*/true, bSelectNewNode);
+		// @TODO: if this spawned multiple nodes, then we should be selecting all of them
+
+		SpawnedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
+
+		FBlueprintEditorUtils::AnalyticsTrackNewNode(SpawnedNode);
+		DirtyBlueprintFromNewNode(SpawnedNode);
+	}
+	// if this node already existed, then we just want to focus on that node...
+	// some node types are only allowed one instance per blueprint (like events)
+	else if (SpawnedNode != nullptr)
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(SpawnedNode);
+	}
+
+	return SpawnedNode;
+}
+
 /*******************************************************************************
  * FBlueprintMenuActionItem
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTintIn, int32 MenuGrouping/* = 0*/)
-	: IconBrush(MenuIcon)
-	, IconTint(IconTintIn)
-	, Action(NodeSpawner)
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& Bindings)
+	: Action(NodeSpawner)
+	, IconTint(UiSpec.IconTint)
+	, IconBrush(FEditorStyle::GetBrush(UiSpec.IconName))
+	, Bindings(Bindings)
 {
 	check(Action != nullptr);
-	Grouping  = MenuGrouping;
-}
 
-//------------------------------------------------------------------------------
-FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, IBlueprintNodeBinder::FBindingSet const& InBindings)
-	: IconBrush(nullptr)
-	, IconTint(FLinearColor::White)
-	, Action(NodeSpawner)
-	, Bindings(InBindings)
-{
-	check(Action != nullptr);
+	MenuDescription = UiSpec.MenuName;
+	Category = UiSpec.Category.ToString();
+	TooltipDescription = UiSpec.Tooltip.ToString();
+	Keywords = UiSpec.Keywords;
 }
 
 //------------------------------------------------------------------------------
@@ -95,47 +134,39 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 				ModifiedLocation.X = FromNodeX - MinNodeDistance;
 			}
 		}
+
+		// modify before the call to AutowireNewNode() below
+		FromPin->Modify();
 	}
 
-	// this could return an existing node
-	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Bindings, Location);
-	
-	// if a returned node hasn't been added to the graph yet (it must have been freshly spawned)
-	if (ParentGraph->Nodes.Find(SpawnedNode) == INDEX_NONE)
+	UEdGraphNode* LastSpawnedNode = nullptr;
+	auto BoundObjIt = Bindings.CreateConstIterator();
+	do
 	{
-		check(SpawnedNode != nullptr);
+		IBlueprintNodeBinder::FBindingSet BindingsSubset;
+		for (; BoundObjIt && (Action->CanBindMultipleObjects() || (BindingsSubset.Num() == 0)); ++BoundObjIt)
+		{
+			if (BoundObjIt->IsValid())
+			{
+				BindingsSubset.Add(BoundObjIt->Get());
+			}
+		}
 
-		// @TODO: Move Modify()/AddNode() into UBlueprintNodeSpawner and pull selection functionality out here
-		ParentGraph->Modify();
-		ParentGraph->AddNode(SpawnedNode, /*bFromUI =*/true, bSelectNewNode);
-		// @TODO: if this spawned multiple nodes, then we should be selecting all of them
-
-		SpawnedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
-		
+		LastSpawnedNode = InvokeAction(Action, ParentGraph, ModifiedLocation, BindingsSubset, bSelectNewNode);
 		if (FromPin != nullptr)
 		{
-			// modify before the call to AutowireNewNode() below
-			FromPin->Modify();
 			// make sure to auto-wire after we position the new node (in case
 			// the auto-wire creates a conversion node to put between them)
-			SpawnedNode->AutowireNewNode(FromPin);
+			LastSpawnedNode->AutowireNewNode(FromPin);
 		}
-		
-		FBlueprintEditorUtils::AnalyticsTrackNewNode(SpawnedNode);
-		DirtyBlueprintFromNewNode(SpawnedNode);
-	}
-	// if this node already existed, then we just want to focus on that node...
-	// some node types are only allowed one instance per blueprint (like events)
-	else if (SpawnedNode != nullptr)
-	{
-		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(SpawnedNode);
-		if (FromPin != nullptr)
-		{
-			SpawnedNode->AutowireNewNode(FromPin);
-		}
-	}
+
+		// Increase the node location a safe distance so follow-up nodes are not stacked
+		ModifiedLocation.Y += UEdGraphSchema_K2::EstimateNodeHeight(LastSpawnedNode);
+
+	} while (BoundObjIt);
+	// @TODO: select ALL spawned nodes
 	
-	return SpawnedNode;
+	return LastSpawnedNode;
 }
 
 //------------------------------------------------------------------------------
@@ -165,6 +196,23 @@ void FBlueprintActionMenuItem::AddReferencedObjects(FReferenceCollector& Collect
 	// these don't get saved to disk, but we want to make sure the objects don't
 	// get GC'd while the action array is around
 	Collector.AddReferencedObject(Action);
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuItem::AppendBindings(const FBlueprintActionContext& Context, IBlueprintNodeBinder::FBindingSet const& BindingSet)
+{
+	Bindings.Append(BindingSet);
+
+	FBlueprintActionUiSpec UiSpec = Action->GetUiSpec(Context, Bindings);
+	// ui signature could be dynamic, and change as bindings change
+	MenuDescription = UiSpec.MenuName;
+	// @TODO: would invalidate any category pre-pending that was done at the 
+	//        MenuBuilder level
+	//Category  = UiSpec.Category.ToString();
+	TooltipDescription = UiSpec.Tooltip.ToString();
+	Keywords  = UiSpec.Keywords;	
+	IconBrush = FEditorStyle::GetBrush(UiSpec.IconName);
+	IconTint  = UiSpec.IconTint;
 }
 
 //------------------------------------------------------------------------------

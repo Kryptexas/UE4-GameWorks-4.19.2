@@ -28,7 +28,6 @@
 #include "AnimationTransitionGraph.h"
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintDragDropMenuItem.h"
-#include "BlueprintBoundMenuItem.h"
 #include "BlueprintNodeSpawner.h"
 #include "TutorialMetaData.h"
 #include "BlueprintEditorSettings.h" // for bShowActionMenuItemSignatures
@@ -369,11 +368,6 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 	{
 		FBlueprintDragDropMenuItem* DragDropAction = (FBlueprintDragDropMenuItem*)ActionIn.Get();
 		BrushOut = DragDropAction->GetMenuIcon(ColorOut);
-	}
-	else if (ActionIn->GetTypeId() == FBlueprintBoundMenuItem::StaticGetTypeId())
-	{
-		FBlueprintBoundMenuItem* BoundAction = (FBlueprintBoundMenuItem*)ActionIn.Get();
-		BrushOut = BoundAction->GetMenuIcon(ColorOut);
 	}
 	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2AddDocumentation::StaticGetTypeId())
 	{

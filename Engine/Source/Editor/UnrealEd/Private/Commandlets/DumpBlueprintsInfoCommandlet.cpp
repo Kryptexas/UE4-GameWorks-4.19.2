@@ -1161,7 +1161,7 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 				}
 				SpawnerInfo.TotalPrimingTime += (TotalPrimingTime - OldPrimingTime);
 
-				if (UEdGraphNode* TemplateNode = BpAction->GetTemplateNode(NoInit))
+				if (UEdGraphNode* TemplateNode = BpAction->GetCachedTemplateNode())
 				{
 					UObject* TemplateOuter = TemplateNode->GetOuter();
 					while ((TemplateOuter != nullptr) && (Cast<UBlueprint>(TemplateOuter) == nullptr))

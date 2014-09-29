@@ -46,6 +46,7 @@ struct FCommonEditorCategory
 		Macro,
 		Delegates,
 
+		Class,
 		Variables,
 	};
 };

@@ -44,25 +44,9 @@ public:
 	 */
 	static UBlueprintEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName, UObject* Outer = nullptr);
 
-	/**
-	  * Creates a new UBlueprintEventNodeSpawner for custom events. The
-	  * CustomEventName can be left blank if the node will pick one itself on
-	  * instantiation.
-	  *
-	  * @param CustomEventName			The name you want assigned to the event.
-	  * @param CustomizeNodeDelegate	Delegate that will be executed once the node spawner has spawned a node
-	  * @param Outer					Optional outer for the new spawner (if left null, the transient package will be used).
-	  * @return A newly allocated instance of this class.
-	  */
-	static UBlueprintEventNodeSpawner* CreateWithDelegate(FName CustomEventName, FCustomizeNodeDelegate CustomizeNodeDelegate, FText CustomCategory = FText(), UObject* Outer = nullptr);
-
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
-	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
-	virtual FText GetDefaultMenuCategory() const override;
-	virtual FString GetDefaultSearchKeywords() const override;
-	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const;
 	// End UBlueprintNodeSpawner interface
 
 	/**
@@ -87,15 +71,7 @@ public:
 	 */
 	virtual UK2Node_Event const* FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& Bindings) const;
 
-protected:
-	/** Constructing FText strings can be costly, so we cache the default menu name */
-	FNodeTextCache CachedMenuName;
-
 private:
-	/** Custom category to place nodes in: */
-	UPROPERTY()
-	FText CustomCategory;
-
 	/** The function to configure new nodes with. */
 	UPROPERTY()
     UFunction const* EventFunc;

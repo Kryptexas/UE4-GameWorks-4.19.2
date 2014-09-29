@@ -63,6 +63,15 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* 
 	NodeSpawner->EventFunc = EventFunc;
 	NodeSpawner->NodeClass = UK2Node_Event::StaticClass();
 
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	FString const FuncName = UEdGraphSchema_K2::GetFriendlySignatureName(EventFunc);
+	MenuSignature.MenuName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), FText::FromString(FuncName));
+	FString const FuncCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(EventFunc, TEXT(""));
+	MenuSignature.Category = FText::FromString(LOCTEXT("AddEventCategory", "Add Event").ToString() + TEXT("|") + FuncCategory);
+	//MenuSignature.Tooltip, will be pulled from the node template
+	MenuSignature.Keywords = UK2Node_CallFunction::GetKeywordsForFunction(EventFunc).AppendChar(TEXT(' '));
+	MenuSignature.IconName = TEXT("GraphEditor.Event_16x");
+
 	return NodeSpawner;
 }
 
@@ -78,22 +87,22 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(TSubclassOf<UK2No
 	NodeSpawner->NodeClass       = NodeClass;
 	NodeSpawner->CustomEventName = CustomEventName;
 
-	return NodeSpawner;
-}
-
-//------------------------------------------------------------------------------
-UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::CreateWithDelegate(FName CustomEventName, FCustomizeNodeDelegate CustomizeNodeDelegate, FText CustomCategory /*= FText()*/, UObject* Outer /*= nullptr*/)
-{
-	if (Outer == nullptr)
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	if (CustomEventName.IsNone())
 	{
-		Outer = GetTransientPackage();
+		MenuSignature.MenuName = LOCTEXT("AddCustomEvent", "Add Custom Event...");
+		MenuSignature.IconName = TEXT("GraphEditor.CustomEvent_16x");
 	}
+	else
+	{
+		FText const EventName = FText::FromName(CustomEventName);
+		MenuSignature.MenuName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
+		MenuSignature.IconName = TEXT("GraphEditor.Event_16x");
+	}
+	//MenuSignature.Category, will be pulled from the node template
+	//MenuSignature.Tooltip,  will be pulled from the node template 
+	//MenuSignature.Keywords, will be pulled from the node template
 
-	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(Outer);
-	NodeSpawner->NodeClass		= UK2Node_Event::StaticClass();
-	NodeSpawner->CustomCategory = CustomCategory;
-	NodeSpawner->CustomEventName = CustomEventName;
-	NodeSpawner->CustomizeNodeDelegate = CustomizeNodeDelegate;
 	return NodeSpawner;
 }
 
@@ -167,60 +176,6 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 	// (the FBlueprintActionMenuItem should detect this and focus in on it).
 
 	return EventNode;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
-{
-	if (CachedMenuName.IsOutOfDate())
-	{
-		FText EventName;
-		if (EventFunc != nullptr)
-		{
-			EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignatureName(EventFunc));
-		}
-		else if (!CustomEventName.IsNone())
-		{
-			EventName = FText::FromName(CustomEventName);
-		}
-		else
-		{
-			CachedMenuName = LOCTEXT("AddCustomEvent", "Add Custom Event...");
-		}
-
-		if(CachedMenuName.IsOutOfDate())
-		{
-			CachedMenuName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
-		}
-	}
-	return CachedMenuName;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultMenuCategory() const
-{
-	// certain events can have specialized categories (like input events), so 
-	// we choose to leave this in the node's hands (returns an empty text string
-	// so that the menu builder polls the node instead).
-	return CustomCategory;
-}
-
-//------------------------------------------------------------------------------
-FString UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
-{
-	FString Keywords;
-	if (EventFunc != nullptr)
-	{
-		Keywords = UK2Node_CallFunction::GetKeywordsForFunction(EventFunc);
-	}
-	return Keywords;
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintEventNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	ColorOut = FLinearColor::White;
-	return (IsForCustomEvent() && CustomEventName.IsNone()) ? TEXT("GraphEditor.CustomEvent_16x") : TEXT("GraphEditor.Event_16x");
 }
 
 //------------------------------------------------------------------------------

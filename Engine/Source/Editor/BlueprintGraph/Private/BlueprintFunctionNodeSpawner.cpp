@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
+#include "BlueprintActionFilter.h" // for FBlueprintActionContext
+#include "EditorCategoryUtils.h" // for BuildCategoryString()
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 
@@ -17,6 +19,7 @@
 namespace BlueprintFunctionNodeSpawnerImpl
 {
 	FVector2D BindingOffset = FVector2D::ZeroVector;
+	static const FText FallbackCategory = LOCTEXT("UncategorizedFallbackCategory", "Call Function");
 
 	/**
 	 * 
@@ -181,6 +184,11 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 	{
 		Outer = GetTransientPackage();
 	}
+
+	//--------------------------------------
+	// Constructing the Spawner
+	//--------------------------------------
+
 	UBlueprintFunctionNodeSpawner* NodeSpawner = NewObject<UBlueprintFunctionNodeSpawner>(Outer);
 	NodeSpawner->Field = Function;
 
@@ -193,6 +201,32 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 		NodeSpawner->NodeClass = NodeClass;
 	}
 
+	//--------------------------------------
+	// Default UI Signature
+	//--------------------------------------
+
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	MenuSignature.MenuName = FText::FromString( UK2Node_CallFunction::GetUserFacingFunctionName(Function) );
+	MenuSignature.Category = FText::FromString( UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")) );
+	MenuSignature.Tooltip  = FText::FromString( UK2Node_CallFunction::GetDefaultTooltipForFunction(Function) );
+	// add at least one character, so that PrimeDefaultMenuSignature() doesn't attempt to query the template node
+	MenuSignature.Keywords = UK2Node_CallFunction::GetKeywordsForFunction(Function).AppendChar(TEXT(' '));
+	MenuSignature.IconName = UK2Node_CallFunction::GetPaletteIconForFunction(Function, MenuSignature.IconTint);
+
+	if (MenuSignature.Category.IsEmpty())
+	{
+		MenuSignature.Category = BlueprintFunctionNodeSpawnerImpl::FallbackCategory;
+	}
+
+	if (MenuSignature.Tooltip.IsEmpty())
+	{
+		MenuSignature.Tooltip = MenuSignature.MenuName;
+	}
+
+	//--------------------------------------
+	// Post-Spawn Setup
+	//--------------------------------------
+
 	auto SetNodeFunctionLambda = [](UEdGraphNode* NewNode, UField const* Field)
 	{
 		// user could have changed the node class (to something like
@@ -203,6 +237,7 @@ UBlueprintFunctionNodeSpawner* UBlueprintFunctionNodeSpawner::Create(TSubclassOf
 		}
 	};
 	NodeSpawner->SetNodeFieldDelegate = FSetNodeFieldDelegate::CreateStatic(SetNodeFunctionLambda);
+
 
 	return NodeSpawner;
 }
@@ -218,9 +253,56 @@ void UBlueprintFunctionNodeSpawner::Prime()
 {
 	// we expect that you don't need a node template to construct menu entries
 	// from this, so we choose not to pre-cache one here
+}
 
-	// we don't have any expensive FText::Format() constructed strings to cache
-	// either
+//------------------------------------------------------------------------------
+FBlueprintActionUiSpec UBlueprintFunctionNodeSpawner::GetUiSpec(FBlueprintActionContext const& Context, FBindingSet const& Bindings) const
+{
+	UEdGraph* TargetGraph = (Context.Graphs.Num() > 0) ? Context.Graphs[0] : nullptr;
+	FBlueprintActionUiSpec MenuSignature = PrimeDefaultUiSpec(TargetGraph);
+
+	FString const CategoryString = MenuSignature.Category.ToString();
+	// FText compares are slow, so let's use FString compares
+	bool const bIsUncategorized = (CategoryString == BlueprintFunctionNodeSpawnerImpl::FallbackCategory.ToString());
+	if (bIsUncategorized)
+	{
+		checkSlow(Context.Blueprints.Num() > 0);
+		UBlueprint* TargetBlueprint = Context.Blueprints[0];
+
+		// @TODO: this is duplicated in a couple places, move it to some shared resource
+		UClass const* TargetClass = (TargetBlueprint->GeneratedClass != nullptr) ? TargetBlueprint->GeneratedClass : TargetBlueprint->ParentClass;
+		for (UEdGraphPin* Pin : Context.Pins)
+		{
+			if ((Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) &&
+				Pin->PinType.PinSubCategoryObject.IsValid())
+			{
+				TargetClass = CastChecked<UClass>(Pin->PinType.PinSubCategoryObject.Get());
+			}
+		}
+		
+		UFunction const* WrappedFunction = GetFunction();
+		checkSlow(WrappedFunction != nullptr);
+		UClass* FunctionClass = WrappedFunction->GetOwnerClass()->GetAuthoritativeClass();
+
+		if (!TargetClass->IsChildOf(FunctionClass))
+		{
+			MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Class, 
+				FText::FromString(FunctionClass->GetDisplayNameText().ToString() + TEXT("|") + CategoryString));
+		}
+	}
+
+	if (Bindings.Num() == 1)
+	{
+		UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(Bindings.CreateConstIterator()->Get());
+		if (ObjectProperty != nullptr)
+		{
+			FString BoundFunctionName = FString::Printf(TEXT("%s (%s)"), *MenuSignature.MenuName.ToString(), *ObjectProperty->GetName());
+			// @TODO: this should probably be an FText::Format()
+			MenuSignature.MenuName = FText::FromString(BoundFunctionName);
+		}
+	}
+	DynamicUiSignatureGetter.ExecuteIfBound(Context, Bindings, &MenuSignature);
+	return MenuSignature;
 }
 
 //------------------------------------------------------------------------------
@@ -243,67 +325,6 @@ UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 	BlueprintFunctionNodeSpawnerImpl::BindingOffset = FVector2D::ZeroVector;
 
 	return Super::SpawnNode(SpawnClass, ParentGraph, Bindings, Location, PostSpawnSetupDelegate);
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-	FString FunctionName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
-
-	if (Bindings.Num() == 1)
-	{
-		UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(Bindings.CreateConstIterator()->Get());
-		if (ObjectProperty != nullptr)
-		{
-			// @TODO: this should probably be an FText::Format()
-			FunctionName = FString::Printf(TEXT("%s (%s)"), *FunctionName, *ObjectProperty->GetName());
-		}
-	}
-
-	return FText::FromString(FunctionName);
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultMenuCategory() const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintFunctionNodeSpawner::GetDefaultMenuTooltip() const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-
-	FText Tooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
-	if (Tooltip.IsEmpty())
-	{
-		FBindingSet EmptyContext;
-		Tooltip = GetDefaultMenuName(EmptyContext);
-	}
-	return Tooltip;
-}
-
-//------------------------------------------------------------------------------
-FString UBlueprintFunctionNodeSpawner::GetDefaultSearchKeywords() const
-{
-	UFunction const* Function = GetFunction();
-	check(Function != nullptr);
-	
-	FString SearchKeywords = UK2Node_CallFunction::GetKeywordsForFunction(Function);
-	// add at least one character, so that the menu item doesn't attempt to
-	// ping a template node
-	return SearchKeywords.AppendChar(TEXT(' '));
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintFunctionNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	return UK2Node_CallFunction::GetPaletteIconForFunction(GetFunction(), ColorOut);
 }
 
 //------------------------------------------------------------------------------

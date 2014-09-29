@@ -7,34 +7,46 @@
 #include "BlueprintNodeSpawner.generated.h"
 
 // Forward declarations
-class UEdGraph;
-class UEdGraphNode;
-class FBlueprintNodeTemplateCache;
+class  UEdGraph;
+class  UEdGraphNode;
+struct FBlueprintActionContext;
 
 /*******************************************************************************
-* UBlueprintNodeSpawner Declaration
-******************************************************************************/
+ * FBlueprintActionUiSpec
+ ******************************************************************************/
+
+struct FBlueprintActionUiSpec
+{
+	FBlueprintActionUiSpec()
+		: IconTint(FLinearColor::White)
+	{}
+
+	FText   MenuName;
+	FText   Category;
+	FText   Tooltip;
+	FString Keywords;
+	FName   IconName;
+	FLinearColor IconTint;
+};
+
+/*******************************************************************************
+ * UBlueprintNodeSpawner
+ ******************************************************************************/
 
 /**
  * Intended to be wrapped and used by FBlueprintActionMenuItem. Rather than 
  * sub-classing the menu item, we choose to subclass this instead (for 
  * different node types). That way, we get the type inference that comes with  
  * UObjects (and we don't have to continuously compare identification strings). 
- *
- * Additionally, this decouples the "action" from ui settings (like the tooltip,
- * menu category, etc.). It gives us more leeway in how we choose to present 
- * these "actions".
  */
 UCLASS(Transient)
 class BLUEPRINTGRAPH_API UBlueprintNodeSpawner : public UObject, public IBlueprintNodeBinder
 {
 	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_TwoParams(FCustomizeNodeDelegate, UEdGraphNode*, bool);
+	DECLARE_DELEGATE_ThreeParams(FUiSpecOverrideDelegate, FBlueprintActionContext const&, FBindingSet const&, FBlueprintActionUiSpec*);
 
 public:
-	/** */
-	virtual ~UBlueprintNodeSpawner();
-
 	/**
 	 * Creates a new UBlueprintNodeSpawner for the specified node class. Sets
 	 * the allocated spawner's NodeClass and CustomizeNodeDelegate fields from
@@ -58,20 +70,22 @@ public:
 	template<class NodeType>
 	static UBlueprintNodeSpawner* Create(UObject* Outer = nullptr, FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate());
 	
-	/**
-	 * Holds the class of node to spawn. May be null for sub-classes that know
-	 * specifically what node types to spawn (if null for an instance of this 
-	 * class, then nothing will be spawned).
-	 */
+public:
+	/** */
+	virtual ~UBlueprintNodeSpawner();
+
+	/** Holds the node type that this spawner will instantiate. */
 	UPROPERTY()
 	TSubclassOf<UEdGraphNode> NodeClass;
-	
-	/**
-	 * A delegate to perform specialized node setup post-spawn (so we don't have
-	 * to sub-class this for every node type, and so we don't have to spawn a
-	 * template node for each to hold on to).
-	 */
-	FCustomizeNodeDelegate CustomizeNodeDelegate;
+
+	/** Defines how this spawner is presented in the ui */
+	FBlueprintActionUiSpec  DefaultMenuSignature;
+
+	/** A delegate to perform specialized node setup post-spawn (so you don't have to sub-class this for every node type). */
+	FCustomizeNodeDelegate  CustomizeNodeDelegate;
+
+	/** Provides a way to override DefaultMenuSignature based off blueprint/graph/menu context */
+	FUiSpecOverrideDelegate DynamicUiSignatureGetter;
 
 	/**
 	 * Not required, but intended to passively help speed up menu building 
@@ -79,6 +93,15 @@ public:
 	 * any expensive text strings, to avoid constructing them all on demand.
 	 */
 	virtual void Prime();
+
+	/**
+	 * Takes the FBlueprintActionUiSpec that this was spawned with and attempts 
+	 * to fill in any missing fields (by polling a template node).
+	 * 
+	 * @param  TargetGraph	Optional context for helping spawn the template node. 
+	 * @return This spawner's default ui spec.
+	 */
+	FBlueprintActionUiSpec const& PrimeDefaultUiSpec(UEdGraph* TargetGraph = nullptr) const;
 
 	/**
 	 * We want to be able to compare spawners, and have a signature that is 
@@ -89,6 +112,16 @@ public:
 	 * @return A set of object-paths/names that distinguish this spawner from others.
 	 */
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const;
+
+	/**
+	 * Takes the default FBlueprintActionUiSpec and modifies it dynamically to 
+	 * accommodate the current context.
+	 * 
+	 * @param  Context		Context that this spawner will be presented under.
+	 * @param  Bindings		Bindings that will be applied to the node post-spawn.
+	 * @return A ui spec, detailing how to present this action in the menu.
+	 */
+	virtual FBlueprintActionUiSpec GetUiSpec(FBlueprintActionContext const& Context, FBindingSet const& Bindings) const;
 
 	/**
 	 * Takes care of spawning a node for the specified graph. Looks to see if 
@@ -106,65 +139,14 @@ public:
 	 * @return Null if it failed to spawn a node, otherwise a newly spawned node or possibly one that already existed.
 	 */
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const;	
-	
-	/**
-	 * To save on performance, certain sub-classes can concoct menu names from
-	 * static data (like function names, etc.). This unfortunately doesn't 
-	 * completely decouple these spawners from the ui we sought to separate 
-	 * from. However, this can be thought of as a suggestion that the ui 
-	 * building code is free to do with as it pleases.
-	 *
-	 * @return An empty text string (could be a localized name for sub-classes).
-	 */
-	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const;
-	
-	/**
-	 * To save on performance, certain sub-classes can concoct menu categories
-	 * from static data (like function metadata, etc.). This unfortunately
-	 * doesn't completely decouple these spawners from the ui we sought to
-	 * separate from. However, this can be thought of as a suggestion that the
-	 * ui building code is free to do with as it pleases (like concatenate with 
-	 * parent categories, etc.).
-	 *
-	 * @return An empty text string (could be a localized category for sub-classes).
-	 */
-	virtual FText GetDefaultMenuCategory() const;
-	
-	/**
-	 * To save on performance, certain sub-classes can construct tooltips from
-	 * static data (like function metadata, etc.). This unfortunately doesn't
-	 * completely decouple these spawners from the ui we sought to separate
-	 * them from. However, this can be thought of as a suggestion that the ui
-	 * building code is free to do with as it pleases.
-	 *
-	 * @return An empty text string (could be a localized tooltip for sub-classes).
-	 */
-	virtual FText GetDefaultMenuTooltip() const;
-	
-	/**
-	 * To save on performance, certain sub-classes can pull search keywords from
-	 * static data (like function metadata, etc.). This unfortunately doesn't
-	 * completely decouple these spawners from the ui we sought to separate
-	 * them from. Although, this can be thought of as a suggestion that the ui
-	 * building code is free to do with as it pleases (doesn't have to use it).
-	 *
-	 * @TODO: Should search keywords be localized? Probably.
-	 *
-	 * @return An empty text string (could be a localized keywords for sub-classes).
-	 */
-	virtual FString GetDefaultSearchKeywords() const;
 
 	/**
-	 * To save on performance, certain sub-classes can pull icons info from
-	 * static data (like function metadata, etc.). This unfortunately doesn't
-	 * completely decouple these spawners from the ui we sought to separate
-	 * them from. Although, this can be thought of as a suggestion that the ui
-	 * building code is free to do with as it pleases (doesn't have to use it).
+	 * Retrieves a cached template for the node that this is set to spawn. Will
+	 * NOT spawn one if it is not already cached.
 	 *
-	 * @param  ColorOut		The color to tint the icon with.
-	 * @return Name of the brush to use (use FEditorStyle::GetBrush() to resolve).
+	 * @return The cached template-node (if one already exists for this spawner).
 	 */
-	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const;
+	UEdGraphNode* GetCachedTemplateNode() const;
 
 	/**
 	 * Retrieves a cached template for the node that this is set to spawn. Will
@@ -177,14 +159,6 @@ public:
 	 * @return Should return a new/cached template-node (but could be null, or some pre-existing node... depends on the sub-class's Invoke() method).
 	 */
 	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr, FBindingSet const& Bindings = FBindingSet()) const;
-
-	/**
-	 * Retrieves a cached template for the node that this is set to spawn. Will
-	 * NOT spawn one if it is not already cached.
-	 *
-	 * @return The cached template-node (if one already exists for this spawner).
-	 */
-	UEdGraphNode* GetTemplateNode(ENoInit) const;
 
 	// IBlueprintNodeBinder interface
 	virtual bool IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }

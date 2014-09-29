@@ -142,19 +142,21 @@ void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar
 		return false;
 	};
 
-	auto MenuCategoryDescription = []( const IBlueprintNodeBinder::FBindingSet& BindingContext ) -> FText
+	auto UiSpecOverride = [](const FBlueprintActionContext& /*Context*/, const IBlueprintNodeBinder::FBindingSet& Bindings, FBlueprintActionUiSpec* UiSpecOut)
 	{
-		if( BindingContext.Num() == 1 )
+		if (Bindings.Num() == 1)
 		{
-			return FText::Format(NSLOCTEXT("K2Node", "MatineeeControllerTitle", "Create a Matinee Controller for {0}"), FText::FromString( (*(BindingContext.CreateConstIterator()))->GetName()) );
+			UiSpecOut->MenuName = FText::Format(NSLOCTEXT("K2Node", "MatineeeControllerTitle", "Create a Matinee Controller for {0}"),
+				FText::FromString((*(Bindings.CreateConstIterator()))->GetName()));
 		}
-		else if( BindingContext.Num() > 1 )
+		else if (Bindings.Num() > 1)
 		{
-			return FText::Format(NSLOCTEXT("K2Node", "MultipleMatineeeControllerTitle", "Create Matinee Controllers for {0} selected MatineeActors"), FText::AsNumber(BindingContext.Num()) );
+			UiSpecOut->MenuName = FText::Format(NSLOCTEXT("K2Node", "MultipleMatineeeControllerTitle", "Create Matinee Controllers for {0} selected MatineeActors"),
+				FText::AsNumber(Bindings.Num()));
 		}
 		else
 		{
-			return NSLOCTEXT("K2Node", "FallbackMatineeeControllerTitle", "Error: No MatineeActors in Context");
+			UiSpecOut->MenuName = NSLOCTEXT("K2Node", "FallbackMatineeeControllerTitle", "Error: No MatineeActors in Context");
 		}
 	};
 
@@ -167,8 +169,8 @@ void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar
 
 	UBlueprintBoundNodeSpawner* NodeSpawner = UBlueprintBoundNodeSpawner::Create(GetClass());
 	NodeSpawner->CanBindObjectDelegate = UBlueprintBoundNodeSpawner::FCanBindObjectDelegate::CreateStatic(CanBindObjectLambda);
-	NodeSpawner->OnBindObjectDelegate = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
-	NodeSpawner->OnGenerateMenuDescriptionDelegate = UBlueprintBoundNodeSpawner::FOnGenerateMenuDescriptionDelegate::CreateStatic(MenuCategoryDescription);
+	NodeSpawner->OnBindObjectDelegate  = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
+	NodeSpawner->DynamicUiSignatureGetter = UBlueprintBoundNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(UiSpecOverride);
 	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 

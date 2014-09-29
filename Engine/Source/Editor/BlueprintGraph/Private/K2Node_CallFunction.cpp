@@ -1616,7 +1616,11 @@ void UK2Node_CallFunction::GetNodeAttributes( TArray<TKeyValuePair<FString, FStr
 FText UK2Node_CallFunction::GetMenuCategory() const
 {
 	UFunction* TargetFunction = GetTargetFunction();
-	return FText::FromString(GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+	if (TargetFunction != nullptr)
+	{
+		return FText::FromString(GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+	}
+	return FText::GetEmpty();
 }
 
 bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const

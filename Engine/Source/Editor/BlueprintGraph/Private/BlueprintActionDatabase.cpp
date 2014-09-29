@@ -18,6 +18,7 @@
 #include "AssetRegistryModule.h"	// for OnAssetAdded()/OnAssetRemoved()
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
 
 // used below in FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner()
 #include "K2Node_MacroInstance.h"
@@ -79,6 +80,13 @@ namespace FBlueprintNodeSpawnerFactory
 	 */
 	template <class DocNodeType>
 	static UBlueprintNodeSpawner* MakeDocumentationNodeSpawner();
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	static UBlueprintNodeSpawner* MakeCommentNodeSpawner();
 
 	/**
 	 * Constructs a delegate binding node along with a connected event that is  
@@ -191,6 +199,28 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeDocumentationNod
 }
 
 //------------------------------------------------------------------------------
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawner()
+{
+	UBlueprintNodeSpawner* NodeSpawner = MakeDocumentationNodeSpawner<UEdGraphNode_Comment>();
+	NodeSpawner->DefaultMenuSignature.MenuName = LOCTEXT("AddCommentActionMenuName", "Add Comment...");
+
+	auto OverrideMenuNameLambda = [](FBlueprintActionContext const& Context, IBlueprintNodeBinder::FBindingSet const& /*Bindings*/, FBlueprintActionUiSpec* UiSpecOut)
+	{
+		for (UBlueprint* Blueprint : Context.Blueprints)
+		{
+			if (FKismetEditorUtilities::GetNumberOfSelectedNodes(Blueprint) > 0)
+			{
+				UiSpecOut->MenuName = LOCTEXT("AddCommentFromSelectionMenuName", "Add Comment to Selection");
+				break;
+			}
+		}
+	};
+	NodeSpawner->DynamicUiSignatureGetter = UBlueprintNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(OverrideMenuNameLambda);
+
+	return NodeSpawner;
+}
+
+//------------------------------------------------------------------------------
 static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAssignDelegateNodeSpawner(UMulticastDelegateProperty* DelegateProperty)
 {
 	// @TODO: it'd be awesome to have both nodes spawned by this available for 
@@ -219,7 +249,11 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSp
 		ActorRefNode->EventSignatureClass = UAnimInstance::StaticClass();
 	};
 
-	return UBlueprintEventNodeSpawner::CreateWithDelegate(SignatureName, UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic( PostSpawnSetupLambda ), CustomCategory );
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(UK2Node_Event::StaticClass(), SignatureName);
+	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda);
+	NodeSpawner->DefaultMenuSignature.Category = CustomCategory;
+
+	return NodeSpawner;
 }
 
 /*******************************************************************************
@@ -664,7 +698,7 @@ static void BlueprintActionDatabaseImpl::AddAnimBlueprintGraphActions(UAnimBluep
 //------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::GetNodeSpecificActions(TSubclassOf<UEdGraphNode const> const NodeClass, FBlueprintActionDatabaseRegistrar& Registrar)
 {
-	using namespace FBlueprintNodeSpawnerFactory; // for MakeDocumentationNodeSpawner()
+	using namespace FBlueprintNodeSpawnerFactory; // for MakeCommentNodeSpawner()/MakeDocumentationNodeSpawner()
 
 	if (NodeClass->IsChildOf<UK2Node>() && !NodeClass->HasAnyClassFlags(CLASS_Abstract))
 	{
@@ -680,7 +714,7 @@ static void BlueprintActionDatabaseImpl::GetNodeSpecificActions(TSubclassOf<UEdG
 	//        with a better (more generalized) solution.
 	else if (NodeClass == UEdGraphNode_Comment::StaticClass())
 	{
-		Registrar.AddBlueprintAction(MakeDocumentationNodeSpawner<UEdGraphNode_Comment>());
+		Registrar.AddBlueprintAction(MakeCommentNodeSpawner());
 	}
 	else if (NodeClass == UEdGraphNode_Documentation::StaticClass())
 	{

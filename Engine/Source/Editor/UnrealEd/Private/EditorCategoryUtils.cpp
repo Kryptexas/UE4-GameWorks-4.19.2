@@ -83,6 +83,7 @@ FEditorCategoryUtilsImpl::FCategoryInfoMap& FEditorCategoryUtilsImpl::GetCategor
 		RegisterCategoryKey("Utilities", LOCTEXT("UtilitiesCategory", "Utilities"));
 		RegisterCategoryKey("Delegates", LOCTEXT("DelegatesCategory", "Event Dispatchers"));
 		RegisterCategoryKey("Variables", LOCTEXT("VariablesCategory", "Variables"));
+		RegisterCategoryKey("Class", LOCTEXT("ClassCategory", "Class"));
 		RegisterCategoryKey("UserInterface", LOCTEXT("UserInterfaceCategory", "User Interface"));
 		RegisterCategoryKey("AnimNotify", LOCTEXT("AnimNotifyCategory", "Add AnimNotify Event"));
 		RegisterCategoryKey("BranchPoint", LOCTEXT("BranchPointCategory", "Add Montage Branching Point Event"));
@@ -196,6 +197,7 @@ FText const& FEditorCategoryUtils::GetCommonCategory(const FCommonEditorCategory
 		CommonCategoryKeys.Add(FCommonEditorCategory::Utilities, "Utilities");
 		CommonCategoryKeys.Add(FCommonEditorCategory::Delegates, "Delegates");
 		CommonCategoryKeys.Add(FCommonEditorCategory::Variables, "Variables");
+		CommonCategoryKeys.Add(FCommonEditorCategory::Class, "Class");
 		CommonCategoryKeys.Add(FCommonEditorCategory::UserInterface, "UserInterface");
 		CommonCategoryKeys.Add(FCommonEditorCategory::AnimNotify, "AnimNotify");
 		CommonCategoryKeys.Add(FCommonEditorCategory::BranchPoint, "BranchPoint");
@@ -233,6 +235,8 @@ FText FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::EValue Ro
 	}
 	else
 	{
+		// @TODO: FText::Format() is expensive, since this is category 
+		//        concatenation, we could just do FString concatenation
 		ConstructedCategory = FText::Format(LOCTEXT("ConcatedCategory", "{0}|{1}"), RootCategory, SubCategory);
 	}
 	return ConstructedCategory;

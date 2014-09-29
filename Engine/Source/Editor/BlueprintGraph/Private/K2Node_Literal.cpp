@@ -171,26 +171,28 @@ void UK2Node_Literal::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRe
  		return true;
 	};
 
-	auto MenuDescriptionLambda = []( const IBlueprintNodeBinder::FBindingSet& BindingContext ) -> FText
+	auto UiSpecOverride = [](const FBlueprintActionContext& /*Context*/, const IBlueprintNodeBinder::FBindingSet& Bindings, FBlueprintActionUiSpec* UiSpecOut)
 	{
-		if (BindingContext.Num() == 1)
+		if (Bindings.Num() == 1)
 		{
-			return FText::Format(NSLOCTEXT("K2Node", "LiteralTitle", "Create a Reference to {0}"), FText::FromString((*(BindingContext.CreateConstIterator()))->GetName()));
+			UiSpecOut->MenuName = FText::Format(NSLOCTEXT("K2Node", "LiteralTitle", "Create a Reference to {0}"), 
+				FText::FromString( (*(Bindings.CreateConstIterator()))->GetName() ));
 		}
-		else if (BindingContext.Num() > 1)
+		else if (Bindings.Num() > 1)
 		{
-			return FText::Format(NSLOCTEXT("K2Node", "FallbackLiteralTitle", "Create References to {0} selected Actors"), FText::AsNumber(BindingContext.Num()));
+			UiSpecOut->MenuName = FText::Format(NSLOCTEXT("K2Node", "FallbackLiteralTitle", "Create References to {0} selected Actors"), 
+				FText::AsNumber(Bindings.Num()));
 		}
 		else
 		{
-			return NSLOCTEXT("K2Node", "FallbackLiteralTitle", "Error: No Actors in Context");
+			UiSpecOut->MenuName = NSLOCTEXT("K2Node", "FallbackLiteralTitle", "Error: No Actors in Context");
 		}
 	};
 
 	UBlueprintBoundNodeSpawner* NodeSpawner = UBlueprintBoundNodeSpawner::Create(GetClass());
 	NodeSpawner->CanBindObjectDelegate = UBlueprintBoundNodeSpawner::FCanBindObjectDelegate::CreateStatic(CanBindObjectLambda);
 	NodeSpawner->OnBindObjectDelegate = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
-	NodeSpawner->OnGenerateMenuDescriptionDelegate = UBlueprintBoundNodeSpawner::FOnGenerateMenuDescriptionDelegate::CreateStatic(MenuDescriptionLambda);
+	NodeSpawner->DynamicUiSignatureGetter = UBlueprintBoundNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(UiSpecOverride);
 	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 

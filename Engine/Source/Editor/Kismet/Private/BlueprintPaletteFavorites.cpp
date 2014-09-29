@@ -6,7 +6,6 @@
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintActionFilter.h"  // for FBlueprintActionInfo
 #include "BlueprintDragDropMenuItem.h"
-#include "BlueprintBoundMenuItem.h"
 
 /*******************************************************************************
  * Static UBlueprintPaletteFavorites Helpers
@@ -167,15 +166,6 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGra
 
 			static const FName CollectionSignatureKey(TEXT("ActionCollection"));
 			ActionSignature.AddNamedValue(CollectionSignatureKey, TEXT("true"));
-		}
-		else if (InPaletteAction->GetTypeId() == FBlueprintBoundMenuItem::StaticGetTypeId())
-		{
-			FBlueprintBoundMenuItem* BoundMenuItem = (FBlueprintBoundMenuItem*)InPaletteAction.Get();
-			// this is the bare action with out any bindings, you cannot 
-			// favorite actions with bindings (mainly because the database 
-			// actions are alway unbound, binding is done externally at menu 
-			// build time)
-			ActionSignature = BoundMenuItem->GetBoundAction()->GetSpawnerSignature();
 		}
 		else
 		{

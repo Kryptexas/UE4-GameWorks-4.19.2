@@ -9,6 +9,36 @@
 #define LOCTEXT_NAMESPACE "BlueprintBoundEventNodeSpawner"
 
 /*******************************************************************************
+ * Static UBlueprintBoundEventNodeSpawner Helpers
+ ******************************************************************************/
+
+namespace BlueprintBoundEventNodeSpawnerImpl
+{
+	static FText GetDefaultMenuName(UMulticastDelegateProperty const* Delegate);
+	static FText GetDefaultMenuCategory(UMulticastDelegateProperty const* Delegate);
+}
+
+//------------------------------------------------------------------------------
+static FText BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuName(UMulticastDelegateProperty const* Delegate)
+{
+	bool const bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
+	FText const DelegateName = bShowFriendlyNames ? FText::FromString(UEditorEngine::GetFriendlyName(Delegate)) : FText::FromName(Delegate->GetFName());
+
+	return FText::Format(LOCTEXT("ComponentEventName", "Add {0}"), DelegateName);
+}
+
+//------------------------------------------------------------------------------
+static FText BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuCategory(UMulticastDelegateProperty const* Delegate)
+{
+	FText DelegateCategory = FText::FromString(FObjectEditorUtils::GetCategory(Delegate));
+	if (DelegateCategory.IsEmpty())
+	{
+		DelegateCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
+	}
+	return DelegateCategory;
+}
+
+/*******************************************************************************
  * UBlueprintBoundEventNodeSpawner
  ******************************************************************************/
 
@@ -23,6 +53,13 @@ UBlueprintBoundEventNodeSpawner* UBlueprintBoundEventNodeSpawner::Create(TSubcla
 	UBlueprintBoundEventNodeSpawner* NodeSpawner = NewObject<UBlueprintBoundEventNodeSpawner>(Outer);
 	NodeSpawner->NodeClass     = NodeClass;
 	NodeSpawner->EventDelegate = EventDelegate;
+
+	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
+	MenuSignature.MenuName = BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuName(EventDelegate);
+	MenuSignature.Category = BlueprintBoundEventNodeSpawnerImpl::GetDefaultMenuCategory(EventDelegate);
+	//MenuSignature.Tooltip,  will be pulled from the node template
+	//MenuSignature.Keywords, will be pulled from the node template
+	MenuSignature.IconName = TEXT("GraphEditor.Event_16x");
 
 	return NodeSpawner;
 }
@@ -52,36 +89,6 @@ UEdGraphNode* UBlueprintBoundEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBi
 		EventNode = CastChecked<UK2Node_Event>(Super::Invoke(ParentGraph, Bindings, Location));
 	}
 	return EventNode;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintBoundEventNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
-{
-	if (CachedMenuName.IsOutOfDate())
-	{
-		FText const DelegateName = FText::FromName(EventDelegate->GetFName());
-		// FText::Format() is slow, so we cache this to save on performance
-		CachedMenuName = FText::Format(LOCTEXT("ComponentEventName", "Add {0}"), DelegateName);
-	}
-	return CachedMenuName;
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintBoundEventNodeSpawner::GetDefaultMenuCategory() const
-{
-	FText DelegateCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
-	if (UMulticastDelegateProperty const* Delegate = GetEventDelegate())
-	{
-		DelegateCategory = FText::FromString(FObjectEditorUtils::GetCategory(Delegate));
-	}
-	return DelegateCategory;
-}
-
-//------------------------------------------------------------------------------
-FName UBlueprintBoundEventNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
-{
-	ColorOut = FLinearColor::White;
-	return TEXT("GraphEditor.Event_16x");
 }
 
 //------------------------------------------------------------------------------
