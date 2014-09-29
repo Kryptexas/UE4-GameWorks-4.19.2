@@ -126,7 +126,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
         if( FrameReadyEvent == NULL )
         {
             FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
-            FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 2 );
+            FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 1 );
         }
     
         FrameReadyEvent->Wait();
