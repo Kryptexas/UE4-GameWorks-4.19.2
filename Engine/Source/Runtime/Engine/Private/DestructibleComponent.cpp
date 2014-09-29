@@ -929,8 +929,8 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 				{
 					Shapes.AddUninitialized(ShapesCount - Shapes.Num());
 				}
-				const PxU32 RetrievedShapesCount = PActor->getShapes(Shapes.GetTypedData(), Shapes.Num());
-				PxShape* const* ShapePtr = Shapes.GetTypedData();
+				const PxU32 RetrievedShapesCount = PActor->getShapes(Shapes.GetData(), Shapes.Num());
+				PxShape* const* ShapePtr = Shapes.GetData();
 				for (PxU32 ShapeIndex = 0; ShapeIndex < RetrievedShapesCount; ++ShapeIndex, ++ShapePtr)
 				{
 					if (*ShapePtr != NULL)
@@ -1160,7 +1160,7 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 		TArray<PxShape*> Shapes;
 		Shapes.AddUninitialized(Actor->getNbShapes());
 
-		int ShapeCount = Actor->getShapes(Shapes.GetTypedData(), Shapes.Num());
+		int ShapeCount = Actor->getShapes(Shapes.GetData(), Shapes.Num());
 
 		for (int32 i=0; i < ShapeCount; ++i)
 		{

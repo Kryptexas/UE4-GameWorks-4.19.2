@@ -589,7 +589,7 @@ FBoxSphereBounds UBrushComponent::CalcBounds(const FTransform & LocalToWorld) co
 				Points.Add(Brush->Polys->Element[i].Vertices[j]);
 			}
 		}
-		return FBoxSphereBounds( Points.GetTypedData(), Points.Num() ).TransformBy(LocalToWorld);
+		return FBoxSphereBounds( Points.GetData(), Points.Num() ).TransformBy(LocalToWorld);
 	}
 	else 
 #endif // WITH_EDITOR

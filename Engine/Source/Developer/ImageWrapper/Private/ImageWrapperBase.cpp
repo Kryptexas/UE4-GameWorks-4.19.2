@@ -74,7 +74,7 @@ bool FImageWrapperBase::SetCompressed( const void* InCompressedData, int32 InCom
 
 	CompressedData.Empty( InCompressedSize );
 	CompressedData.AddUninitialized( InCompressedSize );
-	FMemory::Memcpy( CompressedData.GetTypedData(), InCompressedData, InCompressedSize );
+	FMemory::Memcpy(CompressedData.GetData(), InCompressedData, InCompressedSize);
 
 	return true;
 }
@@ -92,7 +92,7 @@ bool FImageWrapperBase::SetRaw( const void* InRawData, int32 InRawSize, const in
 
 	RawData.Empty(InRawSize);
 	RawData.AddUninitialized(InRawSize);
-	FMemory::Memcpy(RawData.GetTypedData(), InRawData, InRawSize);
+	FMemory::Memcpy(RawData.GetData(), InRawData, InRawSize);
 
 	RawFormat = InFormat;
 	RawBitDepth = InBitDepth;

@@ -51,7 +51,7 @@ FString InternetTranslateError(::DWORD GetLastErrorResult)
 		ExtLength = ExtLength+1;
 		TArray<TCHAR> ExtErrMsg;
 		ExtErrMsg.AddUninitialized(ExtLength);
-		if (!InternetGetLastResponseInfo(&InetError, ExtErrMsg.GetTypedData(), &ExtLength))
+		if (!InternetGetLastResponseInfo(&InetError, ExtErrMsg.GetData(), &ExtLength))
 		{
 			ErrorStr += FString::Printf(TEXT("Call to InternetGetLastResponseInfo() failed: %08X. "), 
 				(uint32) GetLastError());
@@ -419,7 +419,7 @@ void FHttpRequestWinInet::SetContentAsString(const FString& ContentString)
 {
 	FTCHARToUTF8 Converter(*ContentString);
 	RequestPayload.SetNumUninitialized(Converter.Length());
-	FMemory::Memcpy(RequestPayload.GetTypedData(), (const uint8*)Converter.Get(), RequestPayload.Num());
+	FMemory::Memcpy(RequestPayload.GetData(), (const uint8*)Converter.Get(), RequestPayload.Num());
 }
 
 void FHttpRequestWinInet::SetHeader(const FString& HeaderName, const FString& HeaderValue)
@@ -595,7 +595,7 @@ bool FHttpRequestWinInet::StartRequest()
 		RequestHandle, 
 		*Headers, 
 		Headers.Len(), 
-		RequestPayload.Num() > 0 ? RequestPayload.GetTypedData() : NULL,
+		RequestPayload.Num() > 0 ? RequestPayload.GetData() : NULL,
 		RequestPayload.Num());
 
 	if (!bSentRequest &&
@@ -1009,13 +1009,13 @@ void FHttpResponseWinInet::ProcessResponseHeaders()
 		}
 		TArray<TCHAR> HeaderBuffer;
 		HeaderBuffer.AddUninitialized(HeaderSize/sizeof(TCHAR));
-		if (!HttpQueryInfo(Request.RequestHandle, HTTP_QUERY_RAW_HEADERS_CRLF, HeaderBuffer.GetTypedData(), &HeaderSize, NULL))
+		if (!HttpQueryInfo(Request.RequestHandle, HTTP_QUERY_RAW_HEADERS_CRLF, HeaderBuffer.GetData(), &HeaderSize, NULL))
 		{
 			UE_LOG(LogHttp, Warning, TEXT("HttpQueryInfo for all headers failed: %s. %p"), 
 				*InternetTranslateError(GetLastError()), &Request);
 		}
 		// parse all the key/value pairs
-		const TCHAR* HeaderPtr = HeaderBuffer.GetTypedData();
+		const TCHAR* HeaderPtr = HeaderBuffer.GetData();
 		// don't count the terminating NULL character as one to search.
 		const TCHAR* EndPtr = HeaderPtr + HeaderBuffer.Num()-1;
 		while (HeaderPtr < EndPtr)

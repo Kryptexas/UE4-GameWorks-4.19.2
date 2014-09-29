@@ -383,7 +383,7 @@ float UTexture2D::GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale
 		int32 SizeY = Source.GetSizeY();
 		double PixelSum = 0.0f;
 		int32 Divisor = SizeX * SizeY;
-		FColor* ColorData = (FColor*)RawData.GetTypedData();
+		FColor* ColorData = (FColor*)RawData.GetData();
 		FLinearColor CurrentColor;
 		for (int32 Y = 0; Y < SizeY; Y++)
 		{

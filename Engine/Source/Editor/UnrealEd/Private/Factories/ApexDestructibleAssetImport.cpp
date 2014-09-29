@@ -507,20 +507,20 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 		const PxI32 NormalBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::NORMAL));
 		TArray<FVector> Normals;
 		Normals.AddUninitialized(SubmeshVertexCount);
-		const bool bHaveNormals = VB.getBufferData(Normals.GetTypedData(), physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), NormalBufferIndex, 0, SubmeshVertexCount);
+		const bool bHaveNormals = VB.getBufferData(Normals.GetData(), physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), NormalBufferIndex, 0, SubmeshVertexCount);
 		if (!bHaveNormals)
 		{
-			FMemory::Memset(Normals.GetTypedData(), 0, SubmeshVertexCount*sizeof(FVector));	// Fill with zeros
+			FMemory::Memset(Normals.GetData(), 0, SubmeshVertexCount*sizeof(FVector));	// Fill with zeros
 		}
 
 		// Tangents
 		const PxI32 TangentBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::TANGENT));
 		TArray<FVector> Tangents;
 		Tangents.AddUninitialized(SubmeshVertexCount);
-		const bool bHaveTangents = VB.getBufferData(Tangents.GetTypedData(), physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), TangentBufferIndex, 0, SubmeshVertexCount);
+		const bool bHaveTangents = VB.getBufferData(Tangents.GetData(), physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), TangentBufferIndex, 0, SubmeshVertexCount);
 		if (!bHaveTangents)
 		{
-			FMemory::Memset(Tangents.GetTypedData(), 0, SubmeshVertexCount*sizeof(FVector));	// Fill with zeros
+			FMemory::Memset(Tangents.GetData(), 0, SubmeshVertexCount*sizeof(FVector));	// Fill with zeros
 		}
 
 		// Update bHaveAllNormals and bHaveAllTangents
@@ -531,7 +531,7 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 		const PxI32 BinormalBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::BINORMAL));
 		TArray<FVector> Binormals;
 		Binormals.AddUninitialized(SubmeshVertexCount);
-		bool bHaveBinormals = VB.getBufferData(Binormals.GetTypedData(), physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), BinormalBufferIndex, 0, SubmeshVertexCount);
+		bool bHaveBinormals = VB.getBufferData(Binormals.GetData(), physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), BinormalBufferIndex, 0, SubmeshVertexCount);
 		if (!bHaveBinormals)
 		{
 			bHaveBinormals = bHaveNormals && bHaveTangents;
@@ -545,10 +545,10 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 		const PxI32 ColorBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::COLOR));
 		TArray<FColor> Colors;
 		Colors.AddUninitialized(SubmeshVertexCount);
-		const bool bHaveColors = VB.getBufferData(Colors.GetTypedData(), physx::NxRenderDataFormat::B8G8R8A8, sizeof(FColor), ColorBufferIndex, 0, SubmeshVertexCount);
+		const bool bHaveColors = VB.getBufferData(Colors.GetData(), physx::NxRenderDataFormat::B8G8R8A8, sizeof(FColor), ColorBufferIndex, 0, SubmeshVertexCount);
 		if (!bHaveColors)
 		{
-			FMemory::Memset(Colors.GetTypedData(), 0xFF, SubmeshVertexCount*sizeof(FColor));	// Fill with 0xFF
+			FMemory::Memset(Colors.GetData(), 0xFF, SubmeshVertexCount*sizeof(FColor));	// Fill with 0xFF
 		}
 
 		// UVs
@@ -829,7 +829,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 	DestructibleMesh.LODInfo[0].LODHysteresis = 0.02f;
 
 	// Create initial bounding box based on expanded version of reference pose for meshes without physics assets. Can be overridden by artist.
-	FBox BoundingBox( SkelMeshImportDataPtr->Points.GetTypedData(), SkelMeshImportDataPtr->Points.Num() );
+	FBox BoundingBox(SkelMeshImportDataPtr->Points.GetData(), SkelMeshImportDataPtr->Points.Num());
 	FBox Temp = BoundingBox;
 	FVector MidMesh		= 0.5f*(Temp.Min + Temp.Max);
 	BoundingBox.Min		= Temp.Min + 1.0f*(Temp.Min - MidMesh);

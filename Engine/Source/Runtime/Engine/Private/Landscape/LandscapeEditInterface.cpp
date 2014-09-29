@@ -3576,7 +3576,7 @@ void FLandscapeEditDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int
 		DataInterface.GetHeightmapTextureData(Heightmap);
 
 		uint8* DestTextureData = (uint8*)DestDataInfo->GetMipData(MipIdx) + ChannelOffsets[DestChannel];
-		uint8* SrcTextureData = (uint8*)Heightmap.GetTypedData() + ChannelOffsets[SrcChannel];
+		uint8* SrcTextureData = (uint8*)Heightmap.GetData() + ChannelOffsets[SrcChannel];
 
 		for( int32 i=0;i<FMath::Square(MipSize);i++ )
 		{

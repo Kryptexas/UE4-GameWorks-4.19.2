@@ -32,7 +32,7 @@ void UDebugDrawService::Unregister(const FDebugDrawDelegate& DelegateToRemove)
 {
 	check(IsInGameThread());
 
-	TArray<FDebugDrawDelegate>* DelegatesArray = Delegates.GetTypedData();
+	TArray<FDebugDrawDelegate>* DelegatesArray = Delegates.GetData();
 	for (int32 Flag = 0; Flag < Delegates.Num(); ++Flag, ++DelegatesArray)
 	{
 		check(DelegatesArray); //it shouldn't happen, but to be sure

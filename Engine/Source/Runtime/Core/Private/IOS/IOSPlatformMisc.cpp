@@ -152,8 +152,8 @@ void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 	{
 		TArray<TCHAR> Ch;
 		Ch.AddUninitialized([CocoaString length] + 1);
-		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetTypedData());
-		Result = Ch.GetTypedData();
+		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetData());
+		Result = Ch.GetData();
 	}
 	else
 	{
@@ -664,7 +664,7 @@ void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
 		OutBytes.AddZeroed( TotalSize );
 
 		// Start copying the table data into our buffer
-		uint8* DataStart = OutBytes.GetTypedData();
+		uint8* DataStart = OutBytes.GetData();
 		uint8* DataPtr = DataStart;
 
 		// Compute font header entries

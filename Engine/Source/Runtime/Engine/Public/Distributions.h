@@ -128,7 +128,7 @@ struct FDistributionLookupTable
 		if ( EntryCount > 0 )
 		{
 			const int32 ValuesPerEntry = GetValuesPerEntry();
-			const float* Entry = Values.GetTypedData();
+			const float* Entry = Values.GetData();
 
 			// Initialize to the first entry in the table.
 			for ( int32 ValueIndex = 0; ValueIndex < ValuesPerEntry; ++ValueIndex )

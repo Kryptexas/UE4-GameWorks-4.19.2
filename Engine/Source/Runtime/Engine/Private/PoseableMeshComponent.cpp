@@ -87,8 +87,8 @@ void UPoseableMeshComponent::FillSpaceBases()
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 	// Build in 3 passes.
-	FTransform* LocalTransformsData = LocalAtoms.GetTypedData(); 
-	FTransform* SpaceBasesData = SpaceBases.GetTypedData();
+	FTransform* LocalTransformsData = LocalAtoms.GetData(); 
+	FTransform* SpaceBasesData = SpaceBases.GetData();
 	
 	SpaceBases[0] = LocalAtoms[0];
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)

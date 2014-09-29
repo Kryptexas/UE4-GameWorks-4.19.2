@@ -80,7 +80,7 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 		}
 	}
 
-	FEnvQueryItemDetails* DetailInfo = QueryInstance.ItemDetails.GetTypedData();
+	FEnvQueryItemDetails* DetailInfo = QueryInstance.ItemDetails.GetData();
 	if ((ClampMinType == EEnvQueryTestClamping::None) ||
 		(ClampMaxType == EEnvQueryTestClamping::None)
 	   )
@@ -108,7 +108,7 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 		}
 	}
 
-	DetailInfo = QueryInstance.ItemDetails.GetTypedData();
+	DetailInfo = QueryInstance.ItemDetails.GetData();
 	if (bNormalizeFromZero && MinScore > 0.0f)
 	{
 		MinScore = 0.0f;
@@ -184,21 +184,21 @@ bool UEnvQueryTest::IsContextPerItem(TSubclassOf<UEnvQueryContext> CheckContext)
 FVector UEnvQueryTest::GetItemLocation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeVectorCDO ?
-		QueryInstance.ItemTypeVectorCDO->GetLocation(QueryInstance.RawData.GetTypedData() + QueryInstance.Items[ItemIndex].DataOffset) :
+		QueryInstance.ItemTypeVectorCDO->GetLocation(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIndex].DataOffset) :
 		FVector::ZeroVector;
 }
 
 FRotator UEnvQueryTest::GetItemRotation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeVectorCDO ?
-		QueryInstance.ItemTypeVectorCDO->GetRotation(QueryInstance.RawData.GetTypedData() + QueryInstance.Items[ItemIndex].DataOffset) :
+		QueryInstance.ItemTypeVectorCDO->GetRotation(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIndex].DataOffset) :
 		FRotator::ZeroRotator;
 }
 
 AActor* UEnvQueryTest::GetItemActor(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeActorCDO ?
-		QueryInstance.ItemTypeActorCDO->GetActor(QueryInstance.RawData.GetTypedData() + QueryInstance.Items[ItemIndex].DataOffset) :
+		QueryInstance.ItemTypeActorCDO->GetActor(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIndex].DataOffset) :
 		NULL;
 }
 

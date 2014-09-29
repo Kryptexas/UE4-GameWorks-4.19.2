@@ -181,7 +181,7 @@ public:
 
 			// Write the indices to the index buffer.
 			void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
-			FMemory::Memcpy(Buffer, Indices.GetTypedData(), Indices.Num() * sizeof(int32));
+			FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
 			RHIUnlockIndexBuffer(IndexBufferRHI);
 		}
 	}
@@ -202,7 +202,7 @@ public:
 
 			// Copy the vertex data into the vertex buffer.
 			void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-			FMemory::Memcpy(VertexBufferData, Vertices.GetTypedData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
+			FMemory::Memcpy(VertexBufferData, Vertices.GetData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
 			RHIUnlockVertexBuffer(VertexBufferRHI);
 		}
 	}
@@ -678,7 +678,7 @@ public:
 		Canvas->SetDrawColor(FColor::White);
 		const FSceneView* View = Canvas->SceneView;
 		UFont* Font = GEngine->GetSmallFont();
-		const FNavMeshSceneProxyData::FDebugText* DebugText = ProxyData.DebugLabels.GetTypedData();
+		const FNavMeshSceneProxyData::FDebugText* DebugText = ProxyData.DebugLabels.GetData();
 		for (int32 i = 0 ; i < ProxyData.DebugLabels.Num(); ++i, ++DebugText)
 		{
 			if (PointInView(DebugText->Location, View))
@@ -739,7 +739,7 @@ FORCEINLINE void AppendGeometry(TNavStatArray<FVector>& OutVertexBuffer, TArray<
 
 	const int32 FirstNewFaceVertexIndex = OutIndexBuffer.Num();
 	OutIndexBuffer.AddUninitialized(NumFaces * 3);
-	int32* DestFaceVertIndex = OutIndexBuffer.GetTypedData() + FirstNewFaceVertexIndex;
+	int32* DestFaceVertIndex = OutIndexBuffer.GetData() + FirstNewFaceVertexIndex;
 	const int32* SrcFaceVertIndex = Faces;
 	// copy with offset
 	for (int32 Index = 0; Index < NumFaces * 3; ++Index, ++DestFaceVertIndex, ++SrcFaceVertIndex)

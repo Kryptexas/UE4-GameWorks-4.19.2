@@ -464,7 +464,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 			uint32 ExtendXWithMSAA = Bitmap.Num() / Extent.Y;
 
 			// Save the contents of the array to a bitmap file. (24bit only so alpha channel is dropped)
-			FFileHelper::CreateBitmap(*ScreenFileName, ExtendXWithMSAA, Extent.Y, Bitmap.GetTypedData());	
+			FFileHelper::CreateBitmap(*ScreenFileName, ExtendXWithMSAA, Extent.Y, Bitmap.GetData());	
 
 			UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *FPaths::ScreenShotDir());
 		}

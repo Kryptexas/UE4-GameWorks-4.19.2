@@ -123,7 +123,7 @@ public:
 			{
 				// Read samples
 				uint32 BytesToRead = FMath::Min( SAMPLES_TO_READ * QualityInfo.NumChannels * SAMPLE_SIZE, QualityInfo.SampleDataSize - BufferOffset );
-				FMemory::Memcpy( ReadBuffer, SrcBuffer.GetTypedData() + BufferOffset, BytesToRead );
+				FMemory::Memcpy( ReadBuffer, SrcBuffer.GetData() + BufferOffset, BytesToRead );
 				BufferOffset += BytesToRead;
 
 				if( BytesToRead == 0)
@@ -308,7 +308,7 @@ public:
 					uint32 i = 0;
 					for( j = 0; j < ChannelOrder.Num(); j++ )
 					{
-						short* ReadBuffer = ( short* )( SrcBuffers[ChannelOrder[j]].GetTypedData() + BufferOffset );
+						short* ReadBuffer = (short*)(SrcBuffers[ChannelOrder[j]].GetData() + BufferOffset);
 						for( i = 0; i < BytesToRead / SAMPLE_SIZE; i++ )
 						{
 							buffer[j][i] = ( ReadBuffer[i] ) / 32768.0f;
@@ -421,7 +421,7 @@ public:
 		}
 
 		// Parse the audio header for the relevant information
-		if (!AudioInfo.ReadCompressedInfo(CompressedDataStore.GetTypedData(), CompressedDataStore.Num(), &QualityInfo))
+		if (!AudioInfo.ReadCompressedInfo(CompressedDataStore.GetData(), CompressedDataStore.Num(), &QualityInfo))
 		{
 			return 0;
 		}
@@ -429,7 +429,7 @@ public:
 		// Decompress all the sample data
 		OutBuffer.Empty(QualityInfo.SampleDataSize);
 		OutBuffer.AddZeroed(QualityInfo.SampleDataSize);
-		AudioInfo.ExpandFile(OutBuffer.GetTypedData(), &QualityInfo);
+		AudioInfo.ExpandFile(OutBuffer.GetData(), &QualityInfo);
 
 		return CompressedDataStore.Num();
 	}

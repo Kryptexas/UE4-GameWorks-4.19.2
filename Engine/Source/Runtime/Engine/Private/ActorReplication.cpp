@@ -273,7 +273,7 @@ void AActor::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList
 		}
 	};
 
-	Sort( ObjList.GetTypedData(), ObjList.Num(), FCompareComponentNames() );
+	Sort( ObjList.GetData(), ObjList.Num(), FCompareComponentNames() );
 }
 
 void AActor::OnSubobjectCreatedFromReplication(UObject *NewSubobject)

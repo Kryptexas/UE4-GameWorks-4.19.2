@@ -3487,7 +3487,7 @@ namespace ThumbnailTools
 
 					// Copy the contents of the remote texture to system memory
 					// NOTE: OutRawImageData must be a preallocated buffer!
-					RenderTargetResource->ReadPixelsPtr((FColor*)OutData.GetTypedData(), FReadSurfaceDataFlags(), InSrcRect);
+					RenderTargetResource->ReadPixelsPtr((FColor*)OutData.GetData(), FReadSurfaceDataFlags(), InSrcRect);
 				}
 			}
 		}

@@ -82,7 +82,7 @@ static bool CompressImageUsingQonvert(
 	DstImg.nWidth    = SizeX;
 	DstImg.nHeight   = SizeY;
 	DstImg.nDataSize = ImageBlocksX * ImageBlocksY * BlockBytes;
-	DstImg.pData     = OutCompressedData.GetTypedData();
+	DstImg.pData     = OutCompressedData.GetData();
 
 	switch (PixelFormat)
 	{

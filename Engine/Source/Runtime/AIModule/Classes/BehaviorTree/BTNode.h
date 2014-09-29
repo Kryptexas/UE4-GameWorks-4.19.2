@@ -256,13 +256,13 @@ const T* UBTNode::GetNodeMemory(const struct FBehaviorTreeSearchData& SearchData
 template<typename T>
 T* UBTNode::GetNodeMemory(struct FBehaviorTreeInstance& BTInstance) const
 {
-	return (T*)(BTInstance.InstanceMemory.GetTypedData() + MemoryOffset);
+	return (T*)(BTInstance.InstanceMemory.GetData() + MemoryOffset);
 }
 
 template<typename T>
 const T* UBTNode::GetNodeMemory(const struct FBehaviorTreeInstance& BTInstance) const
 {
-	return (const T*)(BTInstance.InstanceMemory.GetTypedData() + MemoryOffset);
+	return (const T*)(BTInstance.InstanceMemory.GetData() + MemoryOffset);
 }
 
 template<typename T>

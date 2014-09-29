@@ -171,7 +171,7 @@ public:
 inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFrame* InPreviousFrame, UField* InPropertyChainForCompiledIn )
 	: Node(InNode)
 	, Object(InObject)
-	, Code(InNode->Script.GetTypedData())
+	, Code(InNode->Script.GetData())
 	, Locals((uint8*)InLocals)
 	, MostRecentProperty(NULL)
 	, MostRecentPropertyAddress(NULL)

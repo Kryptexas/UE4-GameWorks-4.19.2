@@ -263,7 +263,7 @@ bool LoadPhysicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	uint32 MapSize = ApexClothingAsset.getMeshSkinningMapSize(LODIndex);
 
 	SkinningMap.AddUninitialized(MapSize);
-	ApexClothingAsset.getMeshSkinningMap(LODIndex,SkinningMap.GetTypedData());
+	ApexClothingAsset.getMeshSkinningMap(LODIndex,SkinningMap.GetData());
 
 	// Mapping
 	uint32 EndTotalIndex = StartSimulIndex + NumTotalVertices;
@@ -622,7 +622,7 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		TArray<FApexBoneIndices> BoneIndices;
 		BoneIndices.AddUninitialized(SubmeshVertexCount);
 
-		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetTypedData(), physx::NxRenderDataFormat::USHORT4, sizeof(FApexBoneIndices), BoneIndexBufferIndex, 0, SubmeshVertexCount);
+		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetData(), physx::NxRenderDataFormat::USHORT4, sizeof(FApexBoneIndices), BoneIndexBufferIndex, 0, SubmeshVertexCount);
 		// Converting uint16 to uint8 because APEX Clothing is using uint16 for Bone Index 
 		if (bHaveBoneIndices)
 		{
@@ -641,7 +641,7 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		TArray<uint16> BoneIndices;
 		BoneIndices.AddUninitialized(SubmeshVertexCount);
 
-		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetTypedData(), physx::NxRenderDataFormat::USHORT1, sizeof(uint16), BoneIndexBufferIndex, 0, SubmeshVertexCount);
+		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetData(), physx::NxRenderDataFormat::USHORT1, sizeof(uint16), BoneIndexBufferIndex, 0, SubmeshVertexCount);
 
 		if(bHaveBoneIndices)
 		{
@@ -672,7 +672,7 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		TArray<float> BoneWeights;
 		BoneWeights.AddUninitialized(SubmeshVertexCount);
 
-		bHaveBoneWeights = VB.getBufferData(BoneWeights.GetTypedData(), physx::NxRenderDataFormat::FLOAT1, sizeof(float), BoneWeightBufferIndex, 0, SubmeshVertexCount);
+		bHaveBoneWeights = VB.getBufferData(BoneWeights.GetData(), physx::NxRenderDataFormat::FLOAT1, sizeof(float), BoneWeightBufferIndex, 0, SubmeshVertexCount);
 
 		if(bHaveBoneWeights)
 		{
@@ -1096,7 +1096,7 @@ NxClothingAsset* ApplyTransform(NxClothingAsset* ApexClothingAsset)
 			NewBindPoses.Add(NewBindPose);
 		}
 
-		ApexClothingAssetAuthoring->updateBindPoses(NewBindPoses.GetTypedData(), NewBindPoses.Num(), true, true);
+		ApexClothingAssetAuthoring->updateBindPoses(NewBindPoses.GetData(), NewBindPoses.Num(), true, true);
 
 		// destroy and create a new asset based off the authoring version
 	

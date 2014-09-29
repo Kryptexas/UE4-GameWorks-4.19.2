@@ -298,7 +298,7 @@ static void ScaleLookupTableByConstants( FDistributionLookupTable* Table, const 
 	const int32 SubEntryCount = (Table->SubEntryStride > 0) ? 2 : 1;
 	const int32 Stride = Table->EntryStride;
 	const int32 SubEntryStride = Table->SubEntryStride;
-	float* RESTRICT Values = Table->Values.GetTypedData();
+	float* RESTRICT Values = Table->Values.GetData();
 
 	for ( int32 Index = 0; Index < EntryCount; ++Index )
 	{
@@ -330,7 +330,7 @@ static void AddConstantToLookupTable( FDistributionLookupTable* Table, const flo
 	const int32 SubEntryCount = (Table->SubEntryStride > 0) ? 2 : 1;
 	const int32 Stride = Table->EntryStride;
 	const int32 SubEntryStride = Table->SubEntryStride;
-	float* RESTRICT Values = Table->Values.GetTypedData();
+	float* RESTRICT Values = Table->Values.GetData();
 
 	for ( int32 Index = 0; Index < EntryCount; ++Index )
 	{
@@ -1291,7 +1291,7 @@ void FComposableDistribution::QuantizeVector4(
 	const FDistributionLookupTable& Table = Distribution.LookupTable;
 	const int32 EntryCount = Table.EntryCount;
 	const int32 EntryStride = Table.EntryStride;
-	const float* RESTRICT Values = Table.Values.GetTypedData();
+	const float* RESTRICT Values = Table.Values.GetData();
 	
 	// First find the minimum and maximum values for each channel at each sample.
 	for ( int32 EntryIndex = 0; EntryIndex < EntryCount; ++EntryIndex )
@@ -1330,8 +1330,8 @@ void FComposableDistribution::QuantizeVector4(
 	// Now construct the quantized samples.
 	OutQuantizedSamples.Empty( EntryCount );
 	OutQuantizedSamples.AddUninitialized( EntryCount );
-	FColor* RESTRICT QuantizedValues = OutQuantizedSamples.GetTypedData();
-	Values = Table.Values.GetTypedData();
+	FColor* RESTRICT QuantizedValues = OutQuantizedSamples.GetData();
+	Values = Table.Values.GetData();
 	for ( int32 EntryIndex = 0; EntryIndex < EntryCount; ++EntryIndex )
 	{
 		QuantizedValues->R = FMath::Clamp<int32>( FMath::TruncToInt( (Values[0] - Bias.X) * InvScale.X ), 0, 255 );

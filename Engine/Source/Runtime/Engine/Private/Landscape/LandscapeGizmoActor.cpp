@@ -1009,7 +1009,7 @@ void ALandscapeGizmoActiveActor::Export(int32 Index, TArray<FString>& Filenames)
 			{
 				HeightData.AddZeroed((1+MaxX-MinX)*(1+MaxY-MinY)*sizeof(uint16));
 			}
-			uint16* pHeightData = (uint16*)HeightData.GetTypedData();
+			uint16* pHeightData = (uint16*)HeightData.GetData();
 
 			TArray<TArray<uint8> > WeightDatas;
 			for( int32 i=1;i<Filenames.Num();i++ )

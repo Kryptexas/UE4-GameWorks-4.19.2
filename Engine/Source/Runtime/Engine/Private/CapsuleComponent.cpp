@@ -168,7 +168,7 @@ void UCapsuleComponent::UpdateBodySetup()
 	}
 
 	check(ShapeBodySetup->AggGeom.SphylElems.Num() == 1);
-	FKSphylElem* SE = ShapeBodySetup->AggGeom.SphylElems.GetTypedData();
+	FKSphylElem* SE = ShapeBodySetup->AggGeom.SphylElems.GetData();
 	
 	SE->SetTransform(FTransform::Identity);
 	SE->Radius = CapsuleRadius;

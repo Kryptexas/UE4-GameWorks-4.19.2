@@ -609,8 +609,8 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 
-	const FTransform * LocalTransformsData = SourceAtoms.GetTypedData();
-	FTransform * SpaceBasesData = DestSpaceBases.GetTypedData();
+	const FTransform * LocalTransformsData = SourceAtoms.GetData();
+	FTransform * SpaceBasesData = DestSpaceBases.GetData();
 
 	// First bone is always root bone, and it doesn't have a parent.
 	{

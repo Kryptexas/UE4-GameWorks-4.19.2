@@ -789,7 +789,7 @@ FORCEINLINE TArray<ToType> StringToArray(const FromType* Src, int32 SrcLen)
 
 	TArray<ToType> Result;
 	Result.AddUninitialized(DestLen);
-	FPlatformString::Convert(Result.GetTypedData(), DestLen, Src, SrcLen);
+	FPlatformString::Convert(Result.GetData(), DestLen, Src, SrcLen);
 
 	return Result;
 }

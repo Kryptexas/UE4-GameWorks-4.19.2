@@ -91,7 +91,7 @@ public:
 
 		SendBuffer->AddUninitialized(Count);
 
-		FMemory::Memcpy(SendBuffer->GetTypedData() + OldCount, Data, Count);
+		FMemory::Memcpy(SendBuffer->GetData() + OldCount, Data, Count);
 
 		AttemptResumeSendingInternal();
 	}
@@ -139,7 +139,7 @@ public:
 					if (OkToSendDelegate.Execute(Size, Channel))
 					{
 						Data.AddUninitialized(Size);
-						FMemory::Memcpy(Data.GetTypedData(), SendBuffer->GetTypedData(), Size);
+						FMemory::Memcpy(Data.GetData(), SendBuffer->GetData(), Size);
 
 						if (Size < Num)
 						{

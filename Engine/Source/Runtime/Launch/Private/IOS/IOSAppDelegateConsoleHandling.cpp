@@ -59,8 +59,8 @@
 			TArray<TCHAR> Ch;
 			Ch.AddZeroed([ConsoleCommand length]);
 
-			FPlatformString::CFStringToTCHAR((CFStringRef)ConsoleCommand, Ch.GetTypedData());
-			new(GEngine->DeferredCommands) FString(Ch.GetTypedData());
+			FPlatformString::CFStringToTCHAR((CFStringRef)ConsoleCommand, Ch.GetData());
+			new(GEngine->DeferredCommands) FString(Ch.GetData());
 		}
 
 		uint32 ExistingCommand = [self.ConsoleHistoryValues indexOfObjectPassingTest:

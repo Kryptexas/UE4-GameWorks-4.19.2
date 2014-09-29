@@ -186,7 +186,7 @@ TSharedRef<SWidget> SBehaviorTreeDiff::GenerateDiffListWidget()
 				return A->Result.Diff < B->Result.Diff;
 			}
 		};
-		Sort(DiffListSource.GetTypedData(),DiffListSource.Num(), FSortDiff());
+		Sort(DiffListSource.GetData(),DiffListSource.Num(), FSortDiff());
 
 		// Map commands through UI
 		const FDiffListCommands& Commands = FDiffListCommands::Get();

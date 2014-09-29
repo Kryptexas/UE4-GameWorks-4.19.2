@@ -235,10 +235,10 @@ public:
 		// Insert a new LOD model entry if needed.
 		if ( DesiredLOD == SkeletalMeshResource->LODModels.Num() )
 		{
-			SkeletalMeshResource->LODModels.AddRawItem(0);
+			SkeletalMeshResource->LODModels.Add(0);
 		}
 
-		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetTypedData();
+		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
 		delete LODModels[DesiredLOD];
 		FStaticLODModel* NewModel = new FStaticLODModel();
 		LODModels[DesiredLOD] = NewModel;

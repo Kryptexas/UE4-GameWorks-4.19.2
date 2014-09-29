@@ -65,7 +65,7 @@ TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode
 
 	// remember where the header ended and code (precompiled or source) begins
 	int32 CodeOffset = Ar.Tell();
-	const ANSICHAR* SourceCode = (ANSICHAR*)InCode.GetTypedData() + CodeOffset;
+	const ANSICHAR* SourceCode = (ANSICHAR*)InCode.GetData() + CodeOffset;
 
 	uint32 CodeLength, CodeCRC;
 	if (OfflineCompiledFlag)
@@ -73,7 +73,7 @@ TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode
 		CodeLength = InCode.Num() - CodeOffset;
 
 		// CRC the compiled code
-		CodeCRC = FCrc::MemCrc_DEPRECATED(InCode.GetTypedData() + CodeOffset, InCode.Num() - CodeOffset);
+		CodeCRC = FCrc::MemCrc_DEPRECATED(InCode.GetData() + CodeOffset, InCode.Num() - CodeOffset);
 	}
 	else
 	{
@@ -98,7 +98,7 @@ TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode
 			//		dispatch_data_t GCDBuffer = dispatch_data_create(InCode.GetTypedData() + CodeOffset, InCode.Num() - CodeOffset, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
 			uint32 BufferSize = InCode.Num() - CodeOffset;
 			void* Buffer = FMemory::Malloc( BufferSize );
-			FMemory::Memcpy( Buffer, InCode.GetTypedData() + CodeOffset, BufferSize );
+			FMemory::Memcpy( Buffer, InCode.GetData() + CodeOffset, BufferSize );
 			dispatch_data_t GCDBuffer = dispatch_data_create(Buffer, BufferSize, dispatch_get_main_queue(), ^(void) { FMemory::Free(Buffer); } );
 
 			// load up the already compiled shader
@@ -141,8 +141,8 @@ TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode
 
 			GlslCode.Empty(CodeLength + 1);
 			GlslCode.AddUninitialized(CodeLength + 1);
-			FMemory::Memcpy(GlslCode.GetTypedData(), SourceCode, CodeLength + 1);
-			GlslCodeString = (ANSICHAR*)GlslCode.GetTypedData();
+			FMemory::Memcpy(GlslCode.GetData(), SourceCode, CodeLength + 1);
+			GlslCodeString = (ANSICHAR*)GlslCode.GetData();
 			GlslCodeNSString = ShaderSource;
 
 #if !UE_BUILD_SHIPPING

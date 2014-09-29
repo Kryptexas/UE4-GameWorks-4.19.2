@@ -144,7 +144,7 @@ static bool ParseFGA(
 	const int32 ValueCount = VectorCount * 3;
 	OutContents->Values.Empty( ValueCount );
 	OutContents->Values.AddZeroed( ValueCount );
-	float* Values = OutContents->Values.GetTypedData();
+	float* Values = OutContents->Values.GetData();
 	float* ValuesEnd = Values + OutContents->Values.Num();
 
 	// Parse each value.
@@ -239,7 +239,7 @@ UObject* UVectorFieldStaticFactory::FactoryCreateBinary(
 				const int32 DestBufferSize = VectorCount * sizeof(FFloat16Color);
 				VectorField->SourceData.Lock( LOCK_READ_WRITE );
 				FFloat16Color* RESTRICT DestValues = (FFloat16Color*)VectorField->SourceData.Realloc( DestBufferSize );
-				const FVector* RESTRICT SrcValues = (FVector*)FileContents.Values.GetTypedData();
+				const FVector* RESTRICT SrcValues = (FVector*)FileContents.Values.GetData();
 				for ( int32 VectorIndex = 0; VectorIndex < VectorCount; ++VectorIndex )
 				{
 					DestValues->R = SrcValues->X;

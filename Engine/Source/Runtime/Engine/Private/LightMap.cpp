@@ -1142,7 +1142,7 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 		PendingLightMapSize = 0;
 
 		// Sort the light-maps in descending order by size.
-		Sort( PendingLightMaps.GetTypedData(), PendingLightMaps.Num(), FCompareLightmaps() );
+		Sort(PendingLightMaps.GetData(), PendingLightMaps.Num(), FCompareLightmaps());
 
 		// Allocate texture space for each light-map.
 		TArray<FLightMapPendingTexture*> PendingTextures;

@@ -2936,14 +2936,14 @@ void SoundWaveQualityPreview( USoundWave* SoundWave, FPreviewInfo* PreviewInfo )
 	{
 		TArray<uint8> Input;
 		Input.AddUninitialized(WaveInfo.SampleDataSize);
-		FMemory::Memcpy(Input.GetTypedData(), WaveInfo.SampleDataStart, Input.Num());
+		FMemory::Memcpy(Input.GetData(), WaveInfo.SampleDataStart, Input.Num());
 		TArray<uint8> Output;
 		Compressor->Recompress(NAME_OGG, Input, QualityInfo, Output );
 		if (Output.Num())
 		{
 			PreviewInfo->OggVorbisSize = Output.Num();
 			PreviewInfo->DecompressedOggVorbis = ( uint8* )FMemory::Malloc(Output.Num());
-			FMemory::Memcpy(PreviewInfo->DecompressedOggVorbis, Output.GetTypedData(), Output.Num());
+			FMemory::Memcpy(PreviewInfo->DecompressedOggVorbis, Output.GetData(), Output.Num());
 		}
 	}
 

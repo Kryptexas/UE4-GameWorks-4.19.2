@@ -87,7 +87,7 @@ public:
 		}
 		(*MipInfo)[MipLevel].LockCount++;
 
-		return (*MipInfo)[MipLevel].MipData.GetTypedData();
+		return (*MipInfo)[MipLevel].MipData.GetData();
 	}
 
 	void UnlockMip(UTexture2D* Texture, int32 MipLevel)

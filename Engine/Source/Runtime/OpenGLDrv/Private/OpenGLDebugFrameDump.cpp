@@ -43,7 +43,7 @@ void appCreatePNGWithAlpha( const TCHAR* File, int32 Width, int32 Height, FColor
 
 		const TArray<uint8>& CompressedData = ImageWrapper->GetCompressed();
 		int32 CompressedSize = CompressedData.Num();
-		Ar->Serialize( (void*)CompressedData.GetTypedData(), CompressedSize );
+		Ar->Serialize( (void*)CompressedData.GetData(), CompressedSize );
 		delete Ar;
 	}
 }

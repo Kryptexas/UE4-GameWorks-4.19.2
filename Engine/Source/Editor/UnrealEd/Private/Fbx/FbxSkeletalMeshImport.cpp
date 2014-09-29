@@ -1224,7 +1224,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	SkeletalMesh->LODInfo[0].ReductionSettings = Settings;
 
 	// Create initial bounding box based on expanded version of reference pose for meshes without physics assets. Can be overridden by artist.
-	FBox BoundingBox( SkelMeshImportDataPtr->Points.GetTypedData(), SkelMeshImportDataPtr->Points.Num() );
+	FBox BoundingBox(SkelMeshImportDataPtr->Points.GetData(), SkelMeshImportDataPtr->Points.Num());
 	FBox Temp = BoundingBox;
 	FVector MidMesh		= 0.5f*(Temp.Min + Temp.Max);
 	BoundingBox.Min		= Temp.Min + 1.0f*(Temp.Min - MidMesh);

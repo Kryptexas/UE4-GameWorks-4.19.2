@@ -653,8 +653,8 @@ public:
 					{
 						check(Task < NumTasks);
 						FGraphEventArray Setup;
-						new (Setup) FGraphEventRef(TGraphTask<FQueueTickTasks>::CreateTask(NULL,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllTickFunctions.GetTypedData() + Start, AllCompletionEvents.GetTypedData() + Start, NumThisTask, &Context));
-						new (QueueTickTasks) FGraphEventRef(TGraphTask<FPostTickTasks>::CreateTask(&Setup,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllCompletionEvents.GetTypedData() + Start, NumThisTask));
+						new (Setup) FGraphEventRef(TGraphTask<FQueueTickTasks>::CreateTask(NULL,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllTickFunctions.GetData() + Start, AllCompletionEvents.GetData() + Start, NumThisTask, &Context));
+						new (QueueTickTasks) FGraphEventRef(TGraphTask<FPostTickTasks>::CreateTask(&Setup,ENamedThreads::GameThread).ConstructAndDispatchWhenReady(AllCompletionEvents.GetData() + Start, NumThisTask));
 						Start += NumThisTask;
 						NumTicksSoFar = 0;
 

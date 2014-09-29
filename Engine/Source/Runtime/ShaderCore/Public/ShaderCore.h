@@ -257,10 +257,10 @@ struct FBaseShaderResourceTable
 		{
 			return false;
 		}
-		bEqual &= (FMemory::Memcmp(A.ShaderResourceViewMap.GetTypedData(), B.ShaderResourceViewMap.GetTypedData(), A.ShaderResourceViewMap.GetTypeSize()*A.ShaderResourceViewMap.Num()) == 0);
-		bEqual &= (FMemory::Memcmp(A.SamplerMap.GetTypedData(), B.SamplerMap.GetTypedData(), A.SamplerMap.GetTypeSize()*A.SamplerMap.Num()) == 0);
-		bEqual &= (FMemory::Memcmp(A.UnorderedAccessViewMap.GetTypedData(), B.UnorderedAccessViewMap.GetTypedData(), A.UnorderedAccessViewMap.GetTypeSize()*A.UnorderedAccessViewMap.Num()) == 0);
-		bEqual &= (FMemory::Memcmp(A.ResourceTableLayoutHashes.GetTypedData(), B.ResourceTableLayoutHashes.GetTypedData(), A.ResourceTableLayoutHashes.GetTypeSize()*A.ResourceTableLayoutHashes.Num()) == 0);
+		bEqual &= (FMemory::Memcmp(A.ShaderResourceViewMap.GetData(), B.ShaderResourceViewMap.GetData(), A.ShaderResourceViewMap.GetTypeSize()*A.ShaderResourceViewMap.Num()) == 0);
+		bEqual &= (FMemory::Memcmp(A.SamplerMap.GetData(), B.SamplerMap.GetData(), A.SamplerMap.GetTypeSize()*A.SamplerMap.Num()) == 0);
+		bEqual &= (FMemory::Memcmp(A.UnorderedAccessViewMap.GetData(), B.UnorderedAccessViewMap.GetData(), A.UnorderedAccessViewMap.GetTypeSize()*A.UnorderedAccessViewMap.Num()) == 0);
+		bEqual &= (FMemory::Memcmp(A.ResourceTableLayoutHashes.GetData(), B.ResourceTableLayoutHashes.GetData(), A.ResourceTableLayoutHashes.GetTypeSize()*A.ResourceTableLayoutHashes.Num()) == 0);
 		return bEqual;
 	}
 };

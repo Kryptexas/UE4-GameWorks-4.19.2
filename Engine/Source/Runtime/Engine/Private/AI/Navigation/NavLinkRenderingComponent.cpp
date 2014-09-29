@@ -107,7 +107,7 @@ FNavLinkRenderingProxy::FNavLinkRenderingProxy(const UPrimitiveComponent* InComp
 
 void FNavLinkRenderingProxy::StorePointLinks(const FTransform& LocalToWorld, const TArray<FNavigationLink>& LinksArray)
 {
-	const FNavigationLink* Link = LinksArray.GetTypedData();
+	const FNavigationLink* Link = LinksArray.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < LinksArray.Num(); ++LinkIndex, ++Link)
 	{	
 		FNavLinkDrawing LinkDrawing;
@@ -122,7 +122,7 @@ void FNavLinkRenderingProxy::StorePointLinks(const FTransform& LocalToWorld, con
 
 void FNavLinkRenderingProxy::StoreSegmentLinks(const FTransform& LocalToWorld, const TArray<FNavigationSegmentLink>& LinksArray)
 {
-	const FNavigationSegmentLink* Link = LinksArray.GetTypedData();
+	const FNavigationSegmentLink* Link = LinksArray.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < LinksArray.Num(); ++LinkIndex, ++Link)
 	{	
 		FNavLinkSegmentDrawing LinkDrawing;

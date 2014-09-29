@@ -233,7 +233,7 @@ void UAIPerceptionComponent::ProcessStimuli()
 		return;
 	}
 	
-	FStimulusToProcess* SourcedStimulus = StimuliToProcess.GetTypedData();
+	FStimulusToProcess* SourcedStimulus = StimuliToProcess.GetData();
 	TArray<AActor*> UpdatedActors;
 	UpdatedActors.Reserve(StimuliToProcess.Num());
 

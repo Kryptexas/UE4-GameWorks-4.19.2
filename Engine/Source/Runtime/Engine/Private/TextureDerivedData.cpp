@@ -203,7 +203,7 @@ static void GetTextureDerivedDataKeySuffix(
 	SerializeForKey(Ar, BuildSettings);
 
 	// Now convert the raw bytes to a string.
-	const uint8* SettingsAsBytes = TempBytes.GetTypedData();
+	const uint8* SettingsAsBytes = TempBytes.GetData();
 	OutKeySuffix.Reserve(OutKeySuffix.Len() + TempBytes.Num());
 	for (int32 ByteIndex = 0; ByteIndex < TempBytes.Num(); ++ByteIndex)
 	{
@@ -607,7 +607,7 @@ static float ComputePSNR(const FImage& SrcImage, const FCompressedImage2D& Compr
 {
 	double SquaredError = 0.0;
 	int32 NumErrors = 0;
-	const uint8* CompressedData = CompressedImage.RawData.GetTypedData();
+	const uint8* CompressedData = CompressedImage.RawData.GetData();
 
 	if (SrcImage.Format == ERawImageFormat::BGRA8 && (CompressedImage.PixelFormat == PF_DXT1 || CompressedImage.PixelFormat == PF_DXT5))
 	{
@@ -769,7 +769,7 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 					NewMip->BulkData.Lock(LOCK_READ_WRITE);
 					check(CompressedImage.RawData.GetTypeSize() == 1);
 					void* NewMipData = NewMip->BulkData.Realloc(CompressedImage.RawData.Num());
-					FMemory::Memcpy(NewMipData, CompressedImage.RawData.GetTypedData(), CompressedImage.RawData.Num());
+					FMemory::Memcpy(NewMipData, CompressedImage.RawData.GetData(), CompressedImage.RawData.Num());
 					NewMip->BulkData.Unlock();
 
 					if (MipIndex == 0)

@@ -2328,7 +2328,7 @@ void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TAr
 	// Makes sure that texture memory can get freed up right away.
 	RHICmdList.BlockUntilGPUIdle();
 
-	FTextureSortElement* CandidateTextures = InCandidateTextures->GetTypedData();
+	FTextureSortElement* CandidateTextures = InCandidateTextures->GetData();
 
 	// Sort the candidates.
 	InCandidateTextures->Sort( FTextureStreamingCompare() );

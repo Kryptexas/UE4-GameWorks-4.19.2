@@ -116,7 +116,7 @@ uint8 FKismetBytecodeDisassembler::ReadBYTE(int32& ScriptIndex)
 
 FString FKismetBytecodeDisassembler::ReadName(int32& ScriptIndex)
 {
-	const FScriptName ConstValue = *(FScriptName*)(Script.GetTypedData() + ScriptIndex);
+	const FScriptName ConstValue = *(FScriptName*)(Script.GetData() + ScriptIndex);
 	ScriptIndex += sizeof(FScriptName);
 
 	return ScriptNameToName(ConstValue).ToString();

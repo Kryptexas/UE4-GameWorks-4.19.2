@@ -56,7 +56,7 @@ public:
 			{
 				checkThreadGraph(Tasks[StartIndex - 1]==NULL);
 				checkThreadGraph(Tasks[0]==NULL);
-				FMemory::Memmove(Tasks.GetTypedData(),&Tasks[StartIndex],(EndIndex - StartIndex) * sizeof(FBaseGraphTask*));
+				FMemory::Memmove(Tasks.GetData(), &Tasks[StartIndex], (EndIndex - StartIndex) * sizeof(FBaseGraphTask*));
 				EndIndex -= StartIndex;
 				FMemory::Memzero(&Tasks[EndIndex],StartIndex * sizeof(FBaseGraphTask*)); // not needed in final
 				StartIndex = 0;

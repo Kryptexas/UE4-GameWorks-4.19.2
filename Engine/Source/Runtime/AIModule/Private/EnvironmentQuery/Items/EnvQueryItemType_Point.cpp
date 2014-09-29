@@ -29,7 +29,7 @@ void UEnvQueryItemType_Point::SetContextHelper(struct FEnvQueryContextData& Cont
 	ContextData.NumValues = 1;
 	ContextData.RawData.Init(sizeof(FVector));
 
-	UEnvQueryItemType_Point::SetValue((uint8*)ContextData.RawData.GetTypedData(), SinglePoint);
+	UEnvQueryItemType_Point::SetValue((uint8*)ContextData.RawData.GetData(), SinglePoint);
 }
 
 void UEnvQueryItemType_Point::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FVector>& MultiplePoints)
@@ -38,7 +38,7 @@ void UEnvQueryItemType_Point::SetContextHelper(struct FEnvQueryContextData& Cont
 	ContextData.NumValues = MultiplePoints.Num();
 	ContextData.RawData.Init(sizeof(FVector) * MultiplePoints.Num());
 
-	uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
+	uint8* RawData = (uint8*)ContextData.RawData.GetData();
 	for (int32 PointIndex = 0; PointIndex < MultiplePoints.Num(); PointIndex++)
 	{
 		UEnvQueryItemType_Point::SetValue(RawData, MultiplePoints[PointIndex]);

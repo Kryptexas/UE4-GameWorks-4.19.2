@@ -672,7 +672,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	{
 		for( int32 SubX=0;SubX<NumSubsections;SubX++ )
 		{
-			FMeshBatchElement* BatchElement = (SubX==0 && SubY==0) ? DynamicMesh.Elements.GetTypedData() : new(DynamicMesh.Elements) FMeshBatchElement;
+			FMeshBatchElement* BatchElement = (SubX==0 && SubY==0) ? DynamicMesh.Elements.GetData() : new(DynamicMesh.Elements) FMeshBatchElement;
 			BatchElement->PrimitiveUniformBufferResource = &GetUniformBuffer();
 			FLandscapeBatchElementParams* BatchElementParams = new(DynamicMeshBatchParamArray) FLandscapeBatchElementParams;
 			BatchElementParams->LocalToWorldNoScalingPtr = &LocalToWorldNoScaling;
@@ -685,7 +685,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 			BatchElementParams->SubY = SubY;
 
 #if WITH_EDITOR
-			FMeshBatchElement* ToolBatchElement = (SubX==0 && SubY==0) ? DynamicMeshTools.Elements.GetTypedData() : new(DynamicMeshTools.Elements) FMeshBatchElement;
+			FMeshBatchElement* ToolBatchElement = (SubX==0 && SubY==0) ? DynamicMeshTools.Elements.GetData() : new(DynamicMeshTools.Elements) FMeshBatchElement;
 			*ToolBatchElement = *BatchElement;
 #endif
 		}
@@ -1418,7 +1418,7 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					int32 SubSectionIdx = SubX + SubY*NumSubsections;
 					int32 CurrentLOD = CalcLODForSubsection(*View, SubX, SubY, CameraLocalPos);
 
-					FMeshBatchElement& BatchElement = (SubX==0 && SubY==0) ? *Mesh.Elements.GetTypedData() : *(new(Mesh.Elements) FMeshBatchElement);
+					FMeshBatchElement& BatchElement = (SubX==0 && SubY==0) ? *Mesh.Elements.GetData() : *(new(Mesh.Elements) FMeshBatchElement);
 					BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 					FLandscapeBatchElementParams& BatchElementParams = ParameterArray.ElementParams[SubSectionIdx];
 					BatchElementParams.LocalToWorldNoScalingPtr = &LocalToWorldNoScaling;
@@ -1449,7 +1449,7 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					BatchElement.MaxVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MaxIndex[SubX][SubY];
 					
 #if WITH_EDITOR
-					FMeshBatchElement& BatchElementTools = (SubX==0 && SubY==0) ? *MeshTools.Elements.GetTypedData() : *(new(MeshTools.Elements) FMeshBatchElement);
+					FMeshBatchElement& BatchElementTools = (SubX==0 && SubY==0) ? *MeshTools.Elements.GetData() : *(new(MeshTools.Elements) FMeshBatchElement);
 					BatchElementTools.PrimitiveUniformBufferResource = &GetUniformBuffer();
 					BatchElementTools.UserData = &BatchElementParams;
 

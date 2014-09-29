@@ -126,7 +126,7 @@ public:
 			int32 DestLen = FPlatformString::ConvertedLength<TCHAR>(Src, SrcLen);
 			Data.AddUninitialized(DestLen);
 
-			FPlatformString::Convert(Data.GetTypedData(), DestLen, Src, SrcLen);
+			FPlatformString::Convert(Data.GetData(), DestLen, Src, SrcLen);
 		}
 	}
 
@@ -142,7 +142,7 @@ public:
 
 		if( Data.Num() > 0 )
 		{
-			FCString::Strncpy( Data.GetTypedData(), InSrc, InCount+1 );
+			FCString::Strncpy(Data.GetData(), InSrc, InCount + 1);
 		}
 	}
 
@@ -176,7 +176,7 @@ public:
 	 */
 	FORCEINLINE FString& operator=( const TCHAR* Other )
 	{
-		if( Data.GetTypedData() != Other )
+		if (Data.GetData() != Other)
 		{
 			int32 Len = (Other && *Other) ? FCString::Strlen(Other)+1 : 0;
 			Data.Empty(Len);
@@ -253,7 +253,7 @@ public:
 	{
 		int32 Num = Data.Num();
 		checkSlow(Num >= 0);
-		checkSlow(!Num || !Data.GetTypedData()[Num - 1]);
+		checkSlow(!Num || !Data.GetData()[Num - 1]);
 		checkSlow(Data.GetSlack() >= 0);
 	}
 
@@ -293,7 +293,7 @@ public:
 	 */
 	FORCEINLINE const TCHAR* operator*() const
 	{
-		return Data.Num() ? Data.GetTypedData() : TEXT("");
+		return Data.Num() ? Data.GetData() : TEXT("");
 	}
 
 
@@ -346,7 +346,7 @@ public:
 		// Reserve enough space - including an extra gap for a null terminator if we don't already have a string allocated
 		Data.AddUninitialized(Count + (Index ? 0 : 1));
 
-		TCHAR* EndPtr = Data.GetTypedData() + Index - (Index ? 1 : 0);
+		TCHAR* EndPtr = Data.GetData() + Index - (Index ? 1 : 0);
 
 		// Copy characters to end of string, overwriting null terminator if we already have one
 		CopyAssignItems(EndPtr, Array, Count);
@@ -511,7 +511,7 @@ public:
 		CheckInvariants();
 		Str.CheckInvariants();
 
-		AppendChars(Str.Data.GetTypedData(), Str.Len());
+		AppendChars(Str.Data.GetData(), Str.Len());
 
 		return *this;
 	}
@@ -565,7 +565,7 @@ private:
 		int32 RhsLen = Rhs.Len();
 
 		FString Result(MoveTemp(Lhs), RhsLen);
-		Result.AppendChars(Rhs.Data.GetTypedData(), RhsLen);
+		Result.AppendChars(Rhs.Data.GetData(), RhsLen);
 		
 		return Result;
 	}
@@ -588,9 +588,9 @@ private:
 		FString Result;
 		Result.Data.AddUninitialized(LhsLen + RhsLen + 1);
 
-		TCHAR* ResultData = Result.Data.GetTypedData();
+		TCHAR* ResultData = Result.Data.GetData();
 		CopyAssignItems(ResultData, Lhs, LhsLen);
-		CopyAssignItems(ResultData + LhsLen, Rhs.Data.GetTypedData(), RhsLen);
+		CopyAssignItems(ResultData + LhsLen, Rhs.Data.GetData(), RhsLen);
 		*(ResultData + LhsLen + RhsLen) = 0;
 		
 		return Result;

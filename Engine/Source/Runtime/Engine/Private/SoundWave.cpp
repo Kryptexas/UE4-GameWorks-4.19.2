@@ -268,7 +268,7 @@ FByteBulkData* USoundWave::GetCompressedData(FName Format)
 			if (OutData.Num())
 			{
 				Result->Lock(LOCK_READ_WRITE);
-				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetTypedData(), OutData.Num());
+				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetData(), OutData.Num());
 				Result->Unlock();
 			}
 		}

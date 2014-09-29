@@ -93,7 +93,7 @@ void FTestVoice::SetStaticVoiceData(TArray<uint8>& VoiceData, uint32& TotalVoice
 		VoiceData.Empty(TotalVoiceBytes);
 		VoiceData.AddUninitialized(TotalVoiceBytes);
 
-		FMemory::Memcpy(VoiceData.GetTypedData(), RawVoiceTestData, ARRAY_COUNT(RawVoiceTestData));
+		FMemory::Memcpy(VoiceData.GetData(), RawVoiceTestData, ARRAY_COUNT(RawVoiceTestData));
 
 		LastQueueTime = CurrentTime;
 		bTimeToQueue = false;
@@ -144,10 +144,10 @@ bool FTestVoice::Tick(float DeltaTime)
 
 					if (LastRemainderSize > 0)
 					{
-						FMemory::Memcpy(RawCaptureData.GetTypedData(), Remainder.GetTypedData(), LastRemainderSize);
+						FMemory::Memcpy(RawCaptureData.GetData(), Remainder.GetData(), LastRemainderSize);
 					}
 
-					MicState = VoiceCapture->GetVoiceData(RawCaptureData.GetTypedData() + LastRemainderSize, NewVoiceDataBytes, NewVoiceDataBytes);
+					MicState = VoiceCapture->GetVoiceData(RawCaptureData.GetData() + LastRemainderSize, NewVoiceDataBytes, NewVoiceDataBytes);
 					TotalVoiceBytes = NewVoiceDataBytes + LastRemainderSize;
 					bDoWork = MicState == EVoiceCaptureState::Ok;
 				}
@@ -158,24 +158,24 @@ bool FTestVoice::Tick(float DeltaTime)
 				// ZERO INPUT
 				if (bZeroInput)
 				{
-					FMemory::Memzero(RawCaptureData.GetTypedData(), TotalVoiceBytes);
+					FMemory::Memzero(RawCaptureData.GetData(), TotalVoiceBytes);
 				}	
 				// ZERO INPUT END
 
 				// COMPRESSION BEGIN
 				uint32 CompressedDataSize = MaxCompressedDataSize;
-				LastRemainderSize = VoiceEncoder->Encode(RawCaptureData.GetTypedData(), TotalVoiceBytes, CompressedData.GetTypedData(), CompressedDataSize);
+				LastRemainderSize = VoiceEncoder->Encode(RawCaptureData.GetData(), TotalVoiceBytes, CompressedData.GetData(), CompressedDataSize);
 
 				if (LastRemainderSize > 0)
 				{
-					FMemory::Memcpy(Remainder.GetTypedData(), RawCaptureData.GetTypedData() + (TotalVoiceBytes - LastRemainderSize), LastRemainderSize);
+					FMemory::Memcpy(Remainder.GetData(), RawCaptureData.GetData() + (TotalVoiceBytes - LastRemainderSize), LastRemainderSize);
 				}
 				// COMPRESION END
 
 				// DECOMPRESION BEGIN
 				uint32 UncompressedDataSize = MaxUncompressedDataSize;
-				VoiceDecoder->Decode(CompressedData.GetTypedData(), CompressedDataSize, 
-					UncompressedData.GetTypedData(), UncompressedDataSize);
+				VoiceDecoder->Decode(CompressedData.GetData(), CompressedDataSize, 
+					UncompressedData.GetData(), UncompressedDataSize);
 				// DECOMPRESSION END
 
 				if (bUseDecompressed)
@@ -188,13 +188,13 @@ bool FTestVoice::Tick(float DeltaTime)
 							FMemory::Memzero((uint8*)UncompressedData.GetData(), UncompressedDataSize);
 						}
 
-						SoundStreaming->QueueAudio(UncompressedData.GetTypedData(), UncompressedDataSize);
+						SoundStreaming->QueueAudio(UncompressedData.GetData(), UncompressedDataSize);
 					}
 				}
 				else
 				{
 					//UE_LOG(LogVoice, Log, TEXT("Queueing raw data! %d"), TotalVoiceBytes - LastRemainderSize);
-					SoundStreaming->QueueAudio(RawCaptureData.GetTypedData(), TotalVoiceBytes - LastRemainderSize);
+					SoundStreaming->QueueAudio(RawCaptureData.GetData(), TotalVoiceBytes - LastRemainderSize);
 				}
 			}
 

@@ -191,7 +191,7 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 
 	// We only want to re-instance the old class if its CDO's values have changed or any of its DSOs' property values have changed
 	if (OriginalCDOProperties.Num() != ReconstructedCDOProperties.Num() ||
-		FMemory::Memcmp(OriginalCDOProperties.GetTypedData(), ReconstructedCDOProperties.GetTypedData(), OriginalCDOProperties.Num()))
+		FMemory::Memcmp(OriginalCDOProperties.GetData(), ReconstructedCDOProperties.GetData(), OriginalCDOProperties.Num()))
 	{
 		bNeedsReinstancing = true;
 		SaveClassFieldMapping(InOldClass);

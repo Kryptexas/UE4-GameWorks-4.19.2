@@ -18,7 +18,7 @@ DEFINE_LOG_CATEGORY(LogAnimationCompression);
 #define AC_UnalignedWriteToStream( Src, Len )										\
 	{																				\
 		const int32 Ofs = Seq->CompressedByteStream.AddUninitialized( Len );						\
-		FMemory::Memcpy( Seq->CompressedByteStream.GetTypedData()+Ofs, (Src), (Len) );	\
+		FMemory::Memcpy( Seq->CompressedByteStream.GetData()+Ofs, (Src), (Len) );	\
 	}
 
 static const uint8 AnimationPadSentinel = 85; //(1<<1)+(1<<3)+(1<<5)+(1<<7)

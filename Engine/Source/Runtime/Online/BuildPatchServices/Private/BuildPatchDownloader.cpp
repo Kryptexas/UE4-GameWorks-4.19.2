@@ -239,7 +239,7 @@ uint32 FBuildPatchDownloader::Run()
 				while ( BytesRead < FileSize )
 				{
 					const int64 ReadLen = FMath::Min<int64>( BytesPerCall, FileSize - BytesRead );
-					Reader->Serialize( FileDataArray.GetTypedData() + BytesRead, ReadLen );
+					Reader->Serialize( FileDataArray.GetData() + BytesRead, ReadLen );
 					BytesRead += ReadLen;
 					OnDownloadProgress( NextGuid, BytesRead );
 				}

@@ -183,25 +183,25 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 
 		if(!bDisplayFPSChart)
 		{
-			YPos = ProfileDataArray.GetTypedData()[i]->DurationMs/MaxValue.Get();
+			YPos = ProfileDataArray.GetData()[i]->DurationMs/MaxValue.Get();
 			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
 			LinePoints.Add(FVector2D((int32)XPos,(int32)YPos));
 		}
 		else
 		{
-			YPos = FPSChartDataArray.GetTypedData()[i].UnitFrame/MaxValue.Get();
+			YPos = FPSChartDataArray.GetData()[i].UnitFrame/MaxValue.Get();
 			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
 			UnitFramePoints.Add(FVector2D((int32)XPos,(int32)YPos));
 
-			YPos = FPSChartDataArray.GetTypedData()[i].UnitRender/MaxValue.Get();
+			YPos = FPSChartDataArray.GetData()[i].UnitRender/MaxValue.Get();
 			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
 			UnitRenderPoints.Add(FVector2D((int32)XPos,(int32)YPos));
 
-			YPos = FPSChartDataArray.GetTypedData()[i].UnitGame/MaxValue.Get();
+			YPos = FPSChartDataArray.GetData()[i].UnitGame/MaxValue.Get();
 			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
 			UnitGamePoints.Add(FVector2D((int32)XPos,(int32)YPos));
 
-			YPos = FPSChartDataArray.GetTypedData()[i].UnitGPU/MaxValue.Get();
+			YPos = FPSChartDataArray.GetData()[i].UnitGPU/MaxValue.Get();
 			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
 			UnitGPUPoints.Add(FVector2D((int32)XPos,(int32)YPos));
 		}
@@ -367,7 +367,7 @@ void SRealtimeProfilerLineGraph::DisplayFrameDetailAtMouse(const FGeometry& InMy
 
 	if(0 <= FrameIndex && FrameIndex < ProfileDataArray.Num())
 	{
-		TSharedPtr< FVisualizerEvent > SelectedData = ProfileDataArray.GetTypedData()[FrameIndex];
+		TSharedPtr< FVisualizerEvent > SelectedData = ProfileDataArray.GetData()[FrameIndex];
 		Visualizer.Get()->DisplayFrameDetails(SelectedData);
 	}
 }

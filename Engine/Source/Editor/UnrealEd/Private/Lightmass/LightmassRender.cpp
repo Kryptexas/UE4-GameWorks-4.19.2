@@ -1003,7 +1003,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 					case MP_Opacity:		OutputName += TEXT("Transmissive");		break;
 					}
 					OutputName += TEXT(".BMP");
-					FFileHelper::CreateBitmap(*OutputName,InOutSizeX,InOutSizeY,OutputBuffer.GetTypedData());
+					FFileHelper::CreateBitmap(*OutputName,InOutSizeX,InOutSizeY,OutputBuffer.GetData());
 				}
 			}
 		}

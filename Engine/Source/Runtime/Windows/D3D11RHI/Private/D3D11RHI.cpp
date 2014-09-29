@@ -398,7 +398,7 @@ void FD3DGPUProfiler::EndFrame()
 				{
 					GPUHitchEventNodeFrames.RemoveAt(0);
 				}
-				GPUHitchEventNodeFrames.AddRawItem((FD3D11EventNodeFrame*)CurrentEventNodeFrame);
+				GPUHitchEventNodeFrames.Add((FD3D11EventNodeFrame*)CurrentEventNodeFrame);
 				CurrentEventNodeFrame = NULL;  // prevent deletion of this below; ke kept it in the history
 			}
 		}

@@ -877,7 +877,7 @@ void FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 		{
 			// read it
 			Contents.AddUninitialized(File->Size());
-			File->Read(Contents.GetTypedData(), Contents.Num());
+			File->Read(Contents.GetData(), Contents.Num());
 		}
 
 		// close it

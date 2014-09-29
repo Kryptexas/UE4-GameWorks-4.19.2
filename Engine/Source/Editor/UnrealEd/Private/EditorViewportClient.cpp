@@ -3778,7 +3778,7 @@ void FEditorViewportClient::TakeScreenshot(FViewport* InViewport, bool bInValida
 		{
 			// Save the contents of the array to a bitmap file.
 			FString ScreenshotSaveName = "";
-			if ( FFileHelper::CreateBitmap(*(FPaths::ScreenShotDir() / TEXT("ScreenShot")),InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,Bitmap.GetTypedData(),NULL,&IFileManager::Get(),&ScreenshotSaveName) )
+			if ( FFileHelper::CreateBitmap(*(FPaths::ScreenShotDir() / TEXT("ScreenShot")),InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,Bitmap.GetData(),NULL,&IFileManager::Get(),&ScreenshotSaveName) )
 			{
 				// Setup the string with the path and name of the file
 				ScreenshotSaveResultText = NSLOCTEXT( "UnrealEd", "ScreenshotSavedAs", "Screenshot capture saved as" );					
@@ -3911,7 +3911,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 			}
 
 			// Save the bitmap to disc
-			FFileHelper::CreateBitmap(*ScreenShotName, BitmapSize.X, BitmapSize.Y, Bitmap.GetTypedData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
+			FFileHelper::CreateBitmap(*ScreenShotName, BitmapSize.X, BitmapSize.Y, Bitmap.GetData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
 		}
 		
 		// Done with the request

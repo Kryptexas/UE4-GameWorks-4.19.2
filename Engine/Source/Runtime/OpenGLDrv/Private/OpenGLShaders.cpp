@@ -267,7 +267,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 	}
 
 	int32 CodeOffset = Ar.Tell();
-	const ANSICHAR* GlslCode = (ANSICHAR*)Code.GetTypedData() + CodeOffset;
+	const ANSICHAR* GlslCode = (ANSICHAR*)Code.GetData() + CodeOffset;
 	GLint GlslCodeLength = Code.Num() - CodeOffset - 1;
 	uint32 GlslCodeCRC = FCrc::MemCrc_DEPRECATED(GlslCode,GlslCodeLength);
 
@@ -1147,7 +1147,7 @@ static void VerifyUniformBufferLayouts(GLuint Program)
 			TArray<GLint> ActiveUniformIndices;
 			ActiveUniformIndices.Init(ActiveUniforms);
 
-			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, ActiveUniformIndices.GetTypedData());
+			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, ActiveUniformIndices.GetData());
 			
 			TArray<GLint> ActiveUniformOffsets(ActiveUniformIndices);
 			glGetActiveUniformsiv(Program, ActiveUniforms, reinterpret_cast<const GLuint*>(ActiveUniformIndices.GetData()), GL_UNIFORM_OFFSET, ActiveUniformOffsets.GetData());
@@ -1407,7 +1407,7 @@ FComputeShaderRHIRef FOpenGLDynamicRHI::RHICreateComputeShader(const TArray<uint
 #if DEBUG_GL_SHADERS
 		if (ComputeShader->bSuccessfullyCompiled)
 		{
-			UE_LOG(LogRHI,Error,TEXT("Compute Shader:\n%s"),ANSI_TO_TCHAR(ComputeShader->GlslCode.GetTypedData()));
+			UE_LOG(LogRHI,Error,TEXT("Compute Shader:\n%s"),ANSI_TO_TCHAR(ComputeShader->GlslCode.GetData()));
 		}
 #endif //DEBUG_GL_SHADERS
 		checkf(ComputeShader->LinkedProgram, TEXT("Compute shader failed to compile & link."));
@@ -1571,25 +1571,25 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 #if DEBUG_GL_SHADERS
 					if (VertexShader->bSuccessfullyCompiled)
 					{
-						UE_LOG(LogRHI,Error,TEXT("Vertex Shader:\n%s"),ANSI_TO_TCHAR(VertexShader->GlslCode.GetTypedData()));
+						UE_LOG(LogRHI,Error,TEXT("Vertex Shader:\n%s"),ANSI_TO_TCHAR(VertexShader->GlslCode.GetData()));
 					}
 					if (PixelShader->bSuccessfullyCompiled)
 					{
-						UE_LOG(LogRHI,Error,TEXT("Pixel Shader:\n%s"),ANSI_TO_TCHAR(PixelShader->GlslCode.GetTypedData()));
+						UE_LOG(LogRHI,Error,TEXT("Pixel Shader:\n%s"),ANSI_TO_TCHAR(PixelShader->GlslCode.GetData()));
 					}
 					if (GeometryShader && GeometryShader->bSuccessfullyCompiled)
 					{
-						UE_LOG(LogRHI,Error,TEXT("Geometry Shader:\n%s"),ANSI_TO_TCHAR(GeometryShader->GlslCode.GetTypedData()));
+						UE_LOG(LogRHI,Error,TEXT("Geometry Shader:\n%s"),ANSI_TO_TCHAR(GeometryShader->GlslCode.GetData()));
 					}
 					if ( FOpenGL::SupportsTessellation() )
 					{
 						if (HullShader && HullShader->bSuccessfullyCompiled)
 						{
-							UE_LOG(LogRHI,Error,TEXT("Hull Shader:\n%s"),ANSI_TO_TCHAR(HullShader->GlslCode.GetTypedData()));
+							UE_LOG(LogRHI,Error,TEXT("Hull Shader:\n%s"),ANSI_TO_TCHAR(HullShader->GlslCode.GetData()));
 						}
 						if (DomainShader && DomainShader->bSuccessfullyCompiled)
 						{
-							UE_LOG(LogRHI,Error,TEXT("Domain Shader:\n%s"),ANSI_TO_TCHAR(DomainShader->GlslCode.GetTypedData()));
+							UE_LOG(LogRHI,Error,TEXT("Domain Shader:\n%s"),ANSI_TO_TCHAR(DomainShader->GlslCode.GetData()));
 						}
 					}
 #endif //DEBUG_GL_SHADERS
@@ -2033,7 +2033,7 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 		{
 			const FOpenGLUniformBuffer* UniformBuffer = (FOpenGLUniformBuffer*)RHIUniformBuffers[BufferIndex].GetReference();
 			check(UniformBuffer);
-			const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetTypedData();
+			const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetData();
 			for (int32 InfoIndex = LastInfoIndex; InfoIndex < UniformBuffersCopyInfo.Num(); ++InfoIndex)
 			{
 				const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
@@ -2074,7 +2074,7 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 					const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
 					if (Info.SourceUBIndex == BufferIndex)
 					{
-						const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetTypedData();
+						const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetData();
 						SourceData += Info.SourceOffsetInFloats;
 						float* RESTRICT ScratchMem = (float*)PackedUniformsScratch[Info.DestUBTypeIndex];
 						ScratchMem += Info.DestOffsetInFloats;

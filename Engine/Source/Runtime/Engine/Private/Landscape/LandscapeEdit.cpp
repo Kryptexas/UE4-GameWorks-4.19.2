@@ -525,7 +525,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 				DominantLayerData.AddUninitialized(FMath::Square(CollisionSizeVerts));
 
 				const uint8* SrcDominantLayerData = (uint8*)CollisionComp->DominantLayerData.Lock(LOCK_READ_ONLY);
-				FMemory::Memcpy(DominantLayerData.GetTypedData(), SrcDominantLayerData, sizeof(uint8)*FMath::Square(CollisionSizeVerts));
+				FMemory::Memcpy(DominantLayerData.GetData(), SrcDominantLayerData, sizeof(uint8)*FMath::Square(CollisionSizeVerts));
 				CollisionComp->DominantLayerData.Unlock();
 			}
 
@@ -574,7 +574,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			{
 				MeshCollisionComponent->DominantLayerData.Lock(LOCK_READ_WRITE);
 				uint8* DestDominantLayerData = (uint8*)MeshCollisionComponent->DominantLayerData.Realloc(FMath::Square(CollisionSizeVerts));
-				FMemory::Memcpy(DestDominantLayerData, DominantLayerData.GetTypedData(), sizeof(uint8)*FMath::Square(CollisionSizeVerts));
+				FMemory::Memcpy(DestDominantLayerData, DominantLayerData.GetData(), sizeof(uint8)*FMath::Square(CollisionSizeVerts));
 				MeshCollisionComponent->DominantLayerData.Unlock();
 			}
 
@@ -918,7 +918,7 @@ void ULandscapeComponent::UpdateCollisionLayerData()
 	{
 		TArray<uint8>* MipData = new(CachedWeightmapTextureMipData)TArray<uint8>();
 		WeightmapTextures[Idx]->Source.GetMipData(*MipData, CollisionMipLevel);
-		WeightmapTextureMipData.Add((FColor*)MipData->GetTypedData());
+		WeightmapTextureMipData.Add((FColor*)MipData->GetData());
 	}
 
 	UpdateCollisionLayerData(WeightmapTextureMipData);
@@ -1193,7 +1193,7 @@ void ULandscapeComponent::CreateEmptyTextureMips(UTexture2D* Texture, bool bClea
 		Texture->Source.Init2DWithMipChain(WeightmapSizeU, WeightmapSizeV, WeightmapFormat);
 		int32 NumMips = Texture->Source.GetNumMips();
 		uint8* MipData = Texture->Source.LockMip(0);
-		FMemory::Memcpy(MipData, TopMipData.GetTypedData(), TopMipData.Num());
+		FMemory::Memcpy(MipData, TopMipData.GetData(), TopMipData.Num());
 		Texture->Source.UnlockMip(0);
 	}
 }
@@ -2319,7 +2319,7 @@ bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) c
 
 		const int32 VisThreshold = 170;
 		const int32 WeightMapSize = (SubsectionSizeQuadsLOD + 1) * Component->NumSubsections;
-		uint32* Faces = OutRawMesh.WedgeIndices.GetTypedData() + IndicesOffset;
+		uint32* Faces = OutRawMesh.WedgeIndices.GetData() + IndicesOffset;
 
 		// Export verts
 		int32 VertexIdx = VerticesOffset;
@@ -2566,7 +2566,7 @@ void ULandscapeInfo::Export(const TArray<ULandscapeLayerInfoObject*>& LayerInfos
 
 	TArray<uint8> HeightData;
 	HeightData.AddZeroed((1 + MaxX - MinX)*(1 + MaxY - MinY)*sizeof(uint16));
-	LandscapeEdit.GetHeightDataFast(MinX, MinY, MaxX, MaxY, (uint16*)HeightData.GetTypedData(), 0);
+	LandscapeEdit.GetHeightDataFast(MinX, MinY, MaxX, MaxY, (uint16*)HeightData.GetData(), 0);
 	FFileHelper::SaveArrayToFile(HeightData, *Filenames[0]);
 
 	for (int32 i = 1; i < Filenames.Num(); i++)
@@ -2578,7 +2578,7 @@ void ULandscapeInfo::Export(const TArray<ULandscapeLayerInfoObject*>& LayerInfos
 			ULandscapeLayerInfoObject* LayerInfo = LayerInfos[i - 1];
 			if (LayerInfo)
 			{
-				LandscapeEdit.GetWeightDataFast(LayerInfo, MinX, MinY, MaxX, MaxY, WeightData.GetTypedData(), 0);
+				LandscapeEdit.GetWeightDataFast(LayerInfo, MinX, MinY, MaxX, MaxY, WeightData.GetData(), 0);
 			}
 			FFileHelper::SaveArrayToFile(WeightData, *Filenames[i]);
 		}
@@ -2862,7 +2862,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 			int32 ValidMinY = MinY;
 			int32 ValidMaxX = MaxX;
 			int32 ValidMaxY = MaxY;
-			LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetTypedData(), 0);
+			LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetData(), 0);
 
 			if (ValidMinX > ValidMaxX || ValidMinY > ValidMaxY)
 			{
@@ -2907,7 +2907,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				Rasterizer.DrawTriangle(FalloffRight0, Left1, FalloffLeft1, FalloffRight0Pos, Left1Pos, FalloffLeft1Pos, false);
 			}
 
-			LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, Data.GetTypedData(), 0, true);
+			LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, Data.GetData(), 0, true);
 			LandscapeEdit.GetComponentsInRegion(MinX, MinY, MaxX, MaxY, &ModifiedComponents);
 		}
 
@@ -2922,7 +2922,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 			int32 ValidMinY = MinY;
 			int32 ValidMaxX = MaxX;
 			int32 ValidMaxY = MaxY;
-			LandscapeEdit.GetWeightData(LayerInfo, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetTypedData(), 0);
+			LandscapeEdit.GetWeightData(LayerInfo, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetData(), 0);
 
 			if (ValidMinX > ValidMaxX || ValidMinY > ValidMaxY)
 			{
@@ -2968,7 +2968,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				Rasterizer.DrawTriangle(FalloffRight0, Left1, FalloffLeft1, FalloffRight0Pos, Left1Pos, FalloffLeft1Pos, false);
 			}
 
-			LandscapeEdit.SetAlphaData(LayerInfo, MinX, MinY, MaxX, MaxY, Data.GetTypedData(), 0, ELandscapeLayerPaintingRestriction::None, true, false);
+			LandscapeEdit.SetAlphaData(LayerInfo, MinX, MinY, MaxX, MaxY, Data.GetData(), 0, ELandscapeLayerPaintingRestriction::None, true, false);
 			LandscapeEdit.GetComponentsInRegion(MinX, MinY, MaxX, MaxY, &ModifiedComponents);
 		}
 	}
@@ -3016,7 +3016,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 			int32 ValidMinY = MinY;
 			int32 ValidMaxX = MaxX;
 			int32 ValidMaxY = MaxY;
-			LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetTypedData(), 0);
+			LandscapeEdit.GetHeightData(ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetData(), 0);
 
 			if (ValidMinX > ValidMaxX || ValidMinY > ValidMaxY)
 			{
@@ -3066,7 +3066,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				Rasterizer.DrawTriangle(FalloffRight0, Right1, FalloffRight1, FalloffRight0Pos, Right1Pos, FalloffRight1Pos, false);
 			}
 
-			LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, Data.GetTypedData(), 0, true);
+			LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, Data.GetData(), 0, true);
 			LandscapeEdit.GetComponentsInRegion(MinX, MinY, MaxX, MaxY, &ModifiedComponents);
 		}
 
@@ -3081,7 +3081,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 			int32 ValidMinY = MinY;
 			int32 ValidMaxX = MaxX;
 			int32 ValidMaxY = MaxY;
-			LandscapeEdit.GetWeightData(LayerInfo, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetTypedData(), 0);
+			LandscapeEdit.GetWeightData(LayerInfo, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY, Data.GetData(), 0);
 
 			if (ValidMinX > ValidMaxX || ValidMinY > ValidMaxY)
 			{
@@ -3132,7 +3132,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				Rasterizer.DrawTriangle(FalloffRight0, Right1, FalloffRight1, FalloffRight0Pos, Right1Pos, FalloffRight1Pos, false);
 			}
 
-			LandscapeEdit.SetAlphaData(LayerInfo, MinX, MinY, MaxX, MaxY, Data.GetTypedData(), 0, ELandscapeLayerPaintingRestriction::None, true, false);
+			LandscapeEdit.SetAlphaData(LayerInfo, MinX, MinY, MaxX, MaxY, Data.GetData(), 0, ELandscapeLayerPaintingRestriction::None, true, false);
 			LandscapeEdit.GetComponentsInRegion(MinX, MinY, MaxX, MaxY, &ModifiedComponents);
 		}
 	}
@@ -3452,7 +3452,7 @@ void ALandscapeProxy::RecreateCollisionComponents()
 			Comp->CollisionMipLevel = CollisionMipLevel;
 			TArray<uint8> CollisionMipData;
 			Comp->HeightmapTexture->Source.GetMipData(CollisionMipData, CollisionMipLevel);
-			Comp->UpdateCollisionHeightData((FColor*)CollisionMipData.GetTypedData(), 0, 0, MAX_int32, MAX_int32, true, NULL, true); // Rebuild for new CollisionMipLevel
+			Comp->UpdateCollisionHeightData((FColor*)CollisionMipData.GetData(), 0, 0, MAX_int32, MAX_int32, true, NULL, true); // Rebuild for new CollisionMipLevel
 		}
 	}
 }
@@ -3955,7 +3955,7 @@ void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		CollisionMipLevel = FMath::Clamp<int32>(CollisionMipLevel, 0, FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1);
 		TArray<uint8> CollisionMipData;
 		HeightmapTexture->Source.GetMipData(CollisionMipData, CollisionMipLevel);
-		UpdateCollisionHeightData((FColor*)CollisionMipData.GetTypedData(), 0, 0, MAX_int32, MAX_int32, true, NULL, true); // Rebuild for new CollisionMipLevel
+		UpdateCollisionHeightData((FColor*)CollisionMipData.GetData(), 0, 0, MAX_int32, MAX_int32, true, NULL, true); // Rebuild for new CollisionMipLevel
 	}
 }
 
@@ -4403,7 +4403,7 @@ void ULandscapeComponent::InitHeightmapData(TArray<FColor>& Heights, bool bUpdat
 		FColor* HeightmapTextureData = (FColor*)HeightmapTexture->Source.LockMip(Mip);
 		if (Mip == 0)
 		{
-			FMemory::Memcpy(HeightmapTextureData, Heights.GetTypedData(), MipSizeU*MipSizeV*sizeof(FColor));
+			FMemory::Memcpy(HeightmapTextureData, Heights.GetData(), MipSizeU*MipSizeV*sizeof(FColor));
 		}
 		else
 		{
@@ -4954,7 +4954,7 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 	check(VertexOrder.Num() == FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections));
 
 	// Fill in the vertices in the specified order
-	FLandscapeMobileVertex* DstVert = (FLandscapeMobileVertex*)NewPlatformData.GetTypedData();
+	FLandscapeMobileVertex* DstVert = (FLandscapeMobileVertex*)NewPlatformData.GetData();
 	for (int32 Idx = 0; Idx < VertexOrder.Num(); Idx++)
 	{
 		int32 X = VertexOrder[Idx].X;

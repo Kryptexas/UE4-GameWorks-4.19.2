@@ -581,14 +581,14 @@ namespace NvTriStrip
 		SetListsOnly(true);
 		SetCacheSize(CACHESIZE_GEFORCE3);
 
-		GenerateStrips((uint8*)Indices.GetTypedData(),Is32Bit,Indices.Num(),&PrimitiveGroups,&NumPrimitiveGroups);
+		GenerateStrips((uint8*)Indices.GetData(),Is32Bit,Indices.Num(),&PrimitiveGroups,&NumPrimitiveGroups);
 
 		Indices.Empty();
 		Indices.AddUninitialized(PrimitiveGroups->numIndices);
 	
 		if( Is32Bit )
 		{
-			FMemory::Memcpy(Indices.GetTypedData(),PrimitiveGroups->indices,Indices.Num() * sizeof(IndexDataType));
+			FMemory::Memcpy(Indices.GetData(),PrimitiveGroups->indices,Indices.Num() * sizeof(IndexDataType));
 		}
 		else
 		{
@@ -666,7 +666,7 @@ namespace Forsyth
 
 		if( Is32Bit )
 		{
-			FMemory::Memcpy(Indices.GetTypedData(),OptimizedIndices.GetTypedData(),Indices.Num() * sizeof(IndexDataType));
+			FMemory::Memcpy(Indices.GetData(),OptimizedIndices.GetData(),Indices.Num() * sizeof(IndexDataType));
 		}
 		else
 		{
@@ -722,7 +722,7 @@ public:
 		, VertexBuffer( InVertexBuffer )
 	{
 		check( PositionVertexBuffer.GetNumVertices() == VertexBuffer.GetNumVertices() );
-		mIb = new nv::IndexBuffer( (void*)Indices.GetTypedData(), nv::IBT_U32, Indices.Num(), false );
+		mIb = new nv::IndexBuffer( (void*)Indices.GetData(), nv::IBT_U32, Indices.Num(), false );
 	}
 
 	/** Retrieve the position and first texture coordinate of the specified index. */
@@ -780,7 +780,7 @@ public:
 		: VertexBuffer( InVertexBuffer )
 		, TexCoordCount( InTexCoordCount )
 	{
-		mIb = new nv::IndexBuffer( (void*)Indices.GetTypedData(), nv::IBT_U32, Indices.Num(), false );
+		mIb = new nv::IndexBuffer( (void*)Indices.GetData(), nv::IBT_U32, Indices.Num(), false );
 	}
 
 	/** Retrieve the position and first texture coordinate of the specified index. */
@@ -2425,7 +2425,7 @@ bool FMeshUtilities::BuildStaticMesh(
 
 				CombinedIndices.AddUninitialized(SectionIndices.Num());
 				uint32* DestPtr = &CombinedIndices[Section.FirstIndex];
-				uint32 const* SrcPtr = SectionIndices.GetTypedData();
+				uint32 const* SrcPtr = SectionIndices.GetData();
 
 				Section.MinVertexIndex = *SrcPtr;
 				Section.MaxVertexIndex = *SrcPtr;

@@ -917,7 +917,7 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 		
 		// copy over corridor poly data
 		Path.PathCorridor.AddUninitialized(PathResult.size());
-		NavNodeRef* DestCorridorPoly = Path.PathCorridor.GetTypedData();
+		NavNodeRef* DestCorridorPoly = Path.PathCorridor.GetData();
 		for (int i = 0; i < PathResult.size(); ++i, ++DestCorridorPoly)
 		{
 			*DestCorridorPoly = PathResult.getRef(i);
@@ -992,7 +992,7 @@ bool FPImplRecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVecto
 
 	dtQueryResult StringPullResult;
 	const dtStatus StringPullStatus = NavQuery.findStraightPath(&RecastStartPos.X, &RecastEndPos.X,
-		PathCorridor.GetTypedData(), PathCorridor.Num(), StringPullResult, DT_STRAIGHTPATH_AREA_CROSSINGS);
+		PathCorridor.GetData(), PathCorridor.Num(), StringPullResult, DT_STRAIGHTPATH_AREA_CROSSINGS);
 
 	PathPoints.Reset();
 	if (dtStatusSucceed(StringPullStatus))
@@ -1000,7 +1000,7 @@ bool FPImplRecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVecto
 		PathPoints.AddZeroed(StringPullResult.size());
 
 		// convert to desired format
-		FNavPathPoint* CurVert = PathPoints.GetTypedData();
+		FNavPathPoint* CurVert = PathPoints.GetData();
 
 		for (int32 VertIdx = 0; VertIdx < StringPullResult.size(); ++VertIdx)
 		{
@@ -1418,7 +1418,7 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 	int32 NumPolys;
 
 	dtStatus Status = NavQuery.findPolysInPathDistance(StartPolyID, RecastStartPos
-		, PathingDistance, QueryFilter, FoundPolys.GetTypedData(), &NumPolys, Filter.GetMaxSearchNodes());
+		, PathingDistance, QueryFilter, FoundPolys.GetData(), &NumPolys, Filter.GetMaxSearchNodes());
 
 	FoundPolys.RemoveAt(NumPolys, FoundPolys.Num() - NumPolys);
 
@@ -2248,7 +2248,7 @@ void FPImplRecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int
 		TArray<const dtMeshTile*> Tiles;
 		Tiles.AddZeroed(MaxTiles);
 
-		const int32 NumTiles = ConstRecastNavMesh->getTilesAt(TileX, TileY, Tiles.GetTypedData(), MaxTiles);
+		const int32 NumTiles = ConstRecastNavMesh->getTilesAt(TileX, TileY, Tiles.GetData(), MaxTiles);
 		for (int32 i = 0; i < NumTiles; i++)
 		{
 			dtTileRef TileRef = ConstRecastNavMesh->getTileRef(Tiles[i]);

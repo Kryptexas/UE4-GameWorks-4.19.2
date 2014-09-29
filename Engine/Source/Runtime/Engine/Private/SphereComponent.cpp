@@ -33,7 +33,7 @@ void USphereComponent::UpdateBodySetup()
 	}
 
 	check (ShapeBodySetup->AggGeom.SphereElems.Num() == 1);
-	FKSphereElem* se = ShapeBodySetup->AggGeom.SphereElems.GetTypedData();
+	FKSphereElem* se = ShapeBodySetup->AggGeom.SphereElems.GetData();
 
 	// check for mal formed values
 	float Radius = SphereRadius;

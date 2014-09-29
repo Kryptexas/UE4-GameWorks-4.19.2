@@ -10314,7 +10314,7 @@ void UEngine::HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<F
 				const FString Filename = Local::GenerateScreenshotFilename(TEXT("bmp"));
 				if (Filename.Len() > 0)
 				{
-					FFileHelper::CreateBitmap(*Filename, Width, Height, Colors.GetTypedData());
+					FFileHelper::CreateBitmap(*Filename, Width, Height, Colors.GetData());
 				}
 			}
 			break;

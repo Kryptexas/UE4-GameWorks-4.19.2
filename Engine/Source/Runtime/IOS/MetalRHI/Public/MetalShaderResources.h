@@ -33,7 +33,7 @@ struct FMetalShaderResourceTable : public FBaseShaderResourceTable
 		{
 			return false;
 		}
-		if (FMemory::Memcmp(A.TextureMap.GetTypedData(), B.TextureMap.GetTypedData(), A.TextureMap.GetTypeSize()*A.TextureMap.Num()) != 0)
+		if (FMemory::Memcmp(A.TextureMap.GetData(), B.TextureMap.GetData(), A.TextureMap.GetTypeSize()*A.TextureMap.Num()) != 0)
 		{
 			return false;
 		}
@@ -88,14 +88,14 @@ struct FMetalShaderBindings
 			return bEqual;
 		}
 
-		bEqual &= FMemory::Memcmp(A.PackedGlobalArrays.GetTypedData(), B.PackedGlobalArrays.GetTypedData(), A.PackedGlobalArrays.GetTypeSize()*A.PackedGlobalArrays.Num()) == 0;
+		bEqual &= FMemory::Memcmp(A.PackedGlobalArrays.GetData(), B.PackedGlobalArrays.GetData(), A.PackedGlobalArrays.GetTypeSize()*A.PackedGlobalArrays.Num()) == 0;
 
 		for (int32 Item = 0; Item < A.PackedUniformBuffers.Num(); Item++)
 		{
 			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayA = A.PackedUniformBuffers[Item];
 			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayB = B.PackedUniformBuffers[Item];
 
-			bEqual &= FMemory::Memcmp(ArrayA.GetTypedData(), ArrayB.GetTypedData(), ArrayA.GetTypeSize()*ArrayA.Num()) == 0;
+			bEqual &= FMemory::Memcmp(ArrayA.GetData(), ArrayB.GetData(), ArrayA.GetTypeSize()*ArrayA.Num()) == 0;
 		}
 
 		return bEqual;
@@ -109,12 +109,12 @@ struct FMetalShaderBindings
 		Hash |= Binding.NumUniformBuffers << 24;
 		Hash ^= Binding.NumUAVs;
 		Hash ^= Binding.bHasRegularUniformBuffers << 8;
-		Hash ^= FCrc::MemCrc_DEPRECATED(Binding.PackedGlobalArrays.GetTypedData(), Binding.PackedGlobalArrays.GetTypeSize()*Binding.PackedGlobalArrays.Num());
+		Hash ^= FCrc::MemCrc_DEPRECATED(Binding.PackedGlobalArrays.GetData(), Binding.PackedGlobalArrays.GetTypeSize()*Binding.PackedGlobalArrays.Num());
 
 		for (int32 Item = 0; Item < Binding.PackedUniformBuffers.Num(); Item++)
 		{
 			const TArray<CrossCompiler::FPackedArrayInfo> &Array = Binding.PackedUniformBuffers[Item];
-			Hash ^= FCrc::MemCrc_DEPRECATED(Array.GetTypedData(), Array.GetTypeSize()* Array.Num());
+			Hash ^= FCrc::MemCrc_DEPRECATED(Array.GetData(), Array.GetTypeSize()* Array.Num());
 		}
 		return Hash;
 	}

@@ -500,7 +500,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		{
 			DelayedPacket& B = *(new(Delayed)DelayedPacket);
 			B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
-			FMemory::Memcpy( B.Data.GetTypedData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+			FMemory::Memcpy( B.Data.GetData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 
 			for( int32 i=Delayed.Num()-1; i>=0; i-- )
 			{
@@ -524,7 +524,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			{
 				DelayedPacket& B = *(new(Delayed)DelayedPacket);
 				B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
-				FMemory::Memcpy( B.Data.GetTypedData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+				FMemory::Memcpy( B.Data.GetData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 				B.SendTime = FPlatformTime::Seconds() + (double(PacketSimulationSettings.PktLag)  + 2.0f * (FMath::FRand() - 0.5f) * double(PacketSimulationSettings.PktLagVariance))/ 1000.f;
 			}
 		}

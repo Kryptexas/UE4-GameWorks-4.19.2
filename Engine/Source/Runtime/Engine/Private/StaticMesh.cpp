@@ -1084,7 +1084,7 @@ FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMeshLODGro
 		Ar << FinalReductionSettings;
 
 		// Now convert the raw bytes to a string.
-		const uint8* SettingsAsBytes = TempBytes.GetTypedData();
+		const uint8* SettingsAsBytes = TempBytes.GetData();
 		KeySuffix.Reserve(KeySuffix.Len() + TempBytes.Num() + 1);
 		for (int32 ByteIndex = 0; ByteIndex < TempBytes.Num(); ++ByteIndex)
 		{
@@ -1294,7 +1294,7 @@ bool UStaticMesh::HasValidRenderData() const
 {
 	return RenderData != NULL
 		&& RenderData->LODResources.Num() > 0
-		&& RenderData->LODResources.GetTypedData() != NULL
+		&& RenderData->LODResources.GetData() != NULL
 		&& RenderData->LODResources[0].VertexBuffer.GetNumVertices() > 0;
 }
 

@@ -403,7 +403,7 @@ void FAsyncPackage::AddImportDependency(int32 CurrentPackageIndex, const FString
 	if (ExistingAsyncPackageIndex == INDEX_NONE)
 	{
 		PackageToStream = new FAsyncPackage(PendingImport, NULL, NAME_None, PendingImport);
-		GObjAsyncPackages.InsertRawItem(PackageToStream, CurrentPackageIndex);
+		GObjAsyncPackages.Insert(PackageToStream, CurrentPackageIndex);
 	}
 	else
 	{

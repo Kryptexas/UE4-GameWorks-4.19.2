@@ -89,7 +89,7 @@ public:
 			OutData.AddUninitialized(ActualSegmentSize);
 
 			MessageReader->Seek(SegmentOffset);
-			MessageReader->Serialize(OutData.GetTypedData(), ActualSegmentSize);
+			MessageReader->Serialize(OutData.GetData(), ActualSegmentSize);
 
 			//FMemory::Memcpy(OutData.GetTypedData(), Message->GetTypedData() + SegmentOffset, ActualSegmentSize);
 

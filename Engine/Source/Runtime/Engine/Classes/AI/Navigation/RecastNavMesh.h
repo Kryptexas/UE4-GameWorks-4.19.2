@@ -116,7 +116,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 		}
 
 		float TotalCost = 0.f;
-		const float* Cost = PathCorridorCost.GetTypedData();
+		const float* Cost = PathCorridorCost.GetData();
 		for (int32 PolyIndex = PathPointIndex; PolyIndex < PathCorridorCost.Num(); ++PolyIndex, ++Cost)
 		{
 			TotalCost += *Cost;
@@ -891,8 +891,8 @@ public:
 	/** get information about given tile index */
 	FTileSetItem* GetTileSetItemAt(int32 TileX, int32 TileY);
 	
-	const FTileSetItem* GetTileSet() const { return TileSet.GetTypedData(); }
-	FTileSetItem* GetTileSet() { return TileSet.GetTypedData(); }
+	const FTileSetItem* GetTileSet() const { return TileSet.GetData(); }
+	FTileSetItem* GetTileSet() { return TileSet.GetData(); }
 	
 	virtual bool NeedsRebuild() const override;
 

@@ -486,7 +486,7 @@ struct TLandscapeEditCache
 		}
 
 		// Update real data
-		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetTypedData(), PaintingRestriction);
+		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetData(), PaintingRestriction);
 	}
 
 	// Get the original data before we made any changes with the SetCachedData interface.
@@ -793,7 +793,7 @@ struct FXYOffsetmapAccessor
 
 				// Update landscape.
 				LandscapeEdit->SetXYOffsetData(X1, Y1, X2, Y2, Data, 0); // XY Offset always need to be update before the height update
-				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
+				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetData(), 0, true);
 
 				// Snap foliage for each component.
 				for (int32 Index = 0; Index < CollisionComponents.Num(); ++Index)
@@ -807,7 +807,7 @@ struct FXYOffsetmapAccessor
 			{
 				// No foliage, just update landscape.
 				LandscapeEdit->SetXYOffsetData(X1, Y1, X2, Y2, Data, 0); // XY Offset always need to be update before the height update
-				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetTypedData(), 0, true);
+				LandscapeEdit->SetHeightData(X1, Y1, X2, Y2, NewHeights.GetData(), 0, true);
 			}
 		}
 		else
@@ -1084,7 +1084,7 @@ struct FLandscapeFullWeightCache : public TLandscapeEditCache < FFullWeightmapAc
 		}
 
 		// Update real data
-		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetTypedData(), PaintingRestriction);
+		DataAccess.SetData(X1, Y1, X2, Y2, Data.GetData(), PaintingRestriction);
 	}
 
 	void AddDirtyLayer(ULandscapeLayerInfoObject* LayerInfo)

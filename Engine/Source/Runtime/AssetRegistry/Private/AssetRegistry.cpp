@@ -532,7 +532,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 	if ( DiskFilterSets.Num() > 0 )
 	{
 		// Initialize the combined filter set to the first set, in case we can skip combining.
-		TArray<FAssetData*>* CombinedFilterSet = DiskFilterSets.GetTypedData();
+		TArray<FAssetData*>* CombinedFilterSet = DiskFilterSets.GetData();
 		TArray<FAssetData*> Intersection;
 
 		// If we have more than one set, we must combine them. We take the intersection

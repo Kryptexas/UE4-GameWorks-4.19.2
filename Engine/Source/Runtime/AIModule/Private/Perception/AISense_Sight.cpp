@@ -93,7 +93,7 @@ float UAISense_Sight::Update()
 
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
 
-	FAISightQuery* SightQuery = SightQueryQueue.GetTypedData();
+	FAISightQuery* SightQuery = SightQueryQueue.GetData();
 	for (int32 QueryIndex = 0; QueryIndex < SightQueryQueue.Num(); ++QueryIndex, ++SightQuery)
 	{
 		if (TracesCount < MaxTracesPerTick)

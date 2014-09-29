@@ -131,7 +131,7 @@ public:
 		OutOffsets.Empty( OffsetsCount );
 		OutOffsets.AddUninitialized( OffsetsCount );
 		uint32* MappedOffsets = (uint32*)RHILockVertexBuffer( Buffers[BufferIndex], 0, OffsetsBufferSize, RLM_ReadOnly );
-		FMemory::Memcpy( OutOffsets.GetTypedData(), MappedOffsets, OffsetsBufferSize );
+		FMemory::Memcpy( OutOffsets.GetData(), MappedOffsets, OffsetsBufferSize );
 		RHIUnlockVertexBuffer( Buffers[BufferIndex] );
 	}
 
@@ -884,10 +884,10 @@ static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
 		uint32* Buffer;
 
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(KeysBufferRHI[0], /*Offset=*/ 0, BufferSize, RLM_WriteOnly);
-		FMemory::Memcpy(Buffer, Keys.GetTypedData(), BufferSize);
+		FMemory::Memcpy(Buffer, Keys.GetData(), BufferSize);
 		RHICmdList.UnlockVertexBuffer(KeysBufferRHI[0]);
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(ValuesBufferRHI[0], /*Offset=*/ 0, BufferSize, RLM_WriteOnly);
-		FMemory::Memcpy(Buffer, Keys.GetTypedData(), BufferSize);
+		FMemory::Memcpy(Buffer, Keys.GetData(), BufferSize);
 		RHICmdList.UnlockVertexBuffer(ValuesBufferRHI[0]);
 	}
 
@@ -911,10 +911,10 @@ static bool RunGPUSortTest(FRHICommandListImmediate& RHICmdList, int32 TestSize)
 		SortedValues.AddUninitialized(TestSize);
 
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(KeysBufferRHI[ResultBufferIndex], /*Offset=*/ 0, BufferSize, RLM_ReadOnly);
-		FMemory::Memcpy(SortedKeys.GetTypedData(), Buffer, BufferSize);
+		FMemory::Memcpy(SortedKeys.GetData(), Buffer, BufferSize);
 		RHICmdList.UnlockVertexBuffer(KeysBufferRHI[ResultBufferIndex]);
 		Buffer = (uint32*)RHICmdList.LockVertexBuffer(ValuesBufferRHI[ResultBufferIndex], /*Offset=*/ 0, BufferSize, RLM_ReadOnly);
-		FMemory::Memcpy(SortedValues.GetTypedData(), Buffer, BufferSize);
+		FMemory::Memcpy(SortedValues.GetData(), Buffer, BufferSize);
 		RHICmdList.UnlockVertexBuffer(ValuesBufferRHI[ResultBufferIndex]);
 	}
 

@@ -1463,12 +1463,12 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 				{
 					TexIndex = AllocInfo.WeightmapTextureIndex;
 					Component->WeightmapTextures[TexIndex]->Source.GetMipData(RawVisData, 0);
-					VisDataMap = RawVisData.GetTypedData() + ChannelOffsets[AllocInfo.WeightmapTextureChannel];
+					VisDataMap = RawVisData.GetData() + ChannelOffsets[AllocInfo.WeightmapTextureChannel];
 				}
 			}
 
 			// Export verts
-			FOBJVertex* Vert = OBJGeom->VertexData.GetTypedData();
+			FOBJVertex* Vert = OBJGeom->VertexData.GetData();
 			for( int32 y=0;y<ComponentSizeQuads+1;y++ )
 			{
 				for( int32 x=0;x<ComponentSizeQuads+1;x++ )
@@ -1487,7 +1487,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 			int32 VisThreshold = 170;
 			int32 SubNumX, SubNumY, SubX, SubY;
 
-			FOBJFace* Face = OBJGeom->Faces.GetTypedData();
+			FOBJFace* Face = OBJGeom->Faces.GetData();
 			for( int32 y=0;y<ComponentSizeQuads;y++ )
 			{
 				for( int32 x=0;x<ComponentSizeQuads;x++ )
@@ -1552,7 +1552,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 		
 		uint32 VertexCount = RenderData->PositionVertexBuffer.GetNumVertices();
 		OBJGeom->VertexData.AddUninitialized(VertexCount);
-		FOBJVertex* VerticesOut = OBJGeom->VertexData.GetTypedData();
+		FOBJVertex* VerticesOut = OBJGeom->VertexData.GetData();
 
 		check(VertexCount == RenderData->VertexBuffer.GetNumVertices());
 
@@ -1655,7 +1655,7 @@ static void ExportMaterialPropertyTexture(
 	}
 
 	// export the diffuse channel bmp
-	FFileHelper::CreateBitmap(*BMPFilename, SizeX, SizeY, OutputBMP.GetTypedData());
+	FFileHelper::CreateBitmap(*BMPFilename, SizeX, SizeY, OutputBMP.GetData());
 }
 
 /**
@@ -2803,7 +2803,7 @@ namespace MaterialExportUtils
 				// Copy the contents of the remote texture to system memory
 				// NOTE: OutRawImageData must be a preallocated buffer!
 				RenderTargetResource->ReadPixelsPtr(
-					(FColor*)OutFlattenMaterial.DiffuseSamples.GetTypedData(), 
+					(FColor*)OutFlattenMaterial.DiffuseSamples.GetData(), 
 					FReadSurfaceDataFlags(), 
 					FIntRect(0, 0, OutFlattenMaterial.DiffuseSize.X, OutFlattenMaterial.DiffuseSize.Y)
 					);
@@ -2887,7 +2887,7 @@ namespace MaterialExportUtils
 				// Copy the contents of the remote texture to system memory
 				// NOTE: OutRawImageData must be a preallocated buffer!
 				RenderTargetResource->ReadPixelsPtr(
-					(FColor*)OutFlattenMaterial.NormalSamples.GetTypedData(), 
+					(FColor*)OutFlattenMaterial.NormalSamples.GetData(), 
 					FReadSurfaceDataFlags(), 
 					FIntRect(0, 0, OutFlattenMaterial.NormalSize.X, OutFlattenMaterial.NormalSize.Y)
 					);

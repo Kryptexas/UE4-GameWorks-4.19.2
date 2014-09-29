@@ -537,7 +537,7 @@ void UModel::BuildBound()
 		for( int32 i=0; i<Polys->Element.Num(); i++ )
 			for( int32 j=0; j<Polys->Element[i].Vertices.Num(); j++ )
 				NewPoints.Add(Polys->Element[i].Vertices[j]);
-		Bounds = FBoxSphereBounds( NewPoints.GetTypedData(), NewPoints.Num() );
+		Bounds = FBoxSphereBounds( NewPoints.GetData(), NewPoints.Num() );
 	}
 }
 

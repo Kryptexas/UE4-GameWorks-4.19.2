@@ -118,8 +118,8 @@ public:
 				check(!OutData.Num());
 				check(FileHandle->IsLoading());
 				OutData.AddUninitialized(Item->Size);
-				FileHandle->Serialize(OutData.GetTypedData(),  int64(Item->Size));
-				uint32 TestCrc = FCrc::MemCrc_DEPRECATED(OutData.GetTypedData(), Item->Size);
+				FileHandle->Serialize(OutData.GetData(), int64(Item->Size));
+				uint32 TestCrc = FCrc::MemCrc_DEPRECATED(OutData.GetData(), Item->Size);
 				if (TestCrc != Item->Crc)
 				{
 					UE_LOG(LogDerivedDataCache, Warning, TEXT("Pak file, bad crc."));
@@ -160,7 +160,7 @@ public:
 			{
 				check(InData.Num());
 				check(Key.Len());
-				uint32 Crc = FCrc::MemCrc_DEPRECATED(InData.GetTypedData(), InData.Num());
+				uint32 Crc = FCrc::MemCrc_DEPRECATED(InData.GetData(), InData.Num());
 				check(FileHandle);
 				check(FileHandle->IsSaving());
 				int64 Offset = FileHandle->Tell();
@@ -172,7 +172,7 @@ public:
 				}
 				else
 				{
-					FileHandle->Serialize(InData.GetTypedData(), int64(InData.Num()));
+					FileHandle->Serialize(InData.GetData(), int64(InData.Num()));
 					UE_LOG(LogDerivedDataCache, Verbose, TEXT("FPakFileDerivedDataBackend: Put %s"), CacheKey);
 					CacheItems.Add(Key,FCacheValue(Offset, InData.Num(), Crc));
 				}
@@ -228,7 +228,7 @@ public:
 			}
 			check(NumProcessed == NumItems);
 		}
-		uint32 IndexCrc = FCrc::MemCrc_DEPRECATED(IndexBuffer.GetTypedData(), IndexBuffer.Num());
+		uint32 IndexCrc = FCrc::MemCrc_DEPRECATED(IndexBuffer.GetData(), IndexBuffer.Num());
 		uint32 SizeIndex = uint32(IndexBuffer.Num());
 
 		uint32 Magic = PakCache_Magic;
@@ -238,10 +238,10 @@ public:
 		Saver << IndexCrc;
 		Saver << NumItems;
 		Saver << SizeIndex;
-		Saver.Serialize(IndexBuffer.GetTypedData(), IndexBuffer.Num());
+		Saver.Serialize(IndexBuffer.GetData(), IndexBuffer.Num());
 		Saver << Magic;
 		Saver << IndexOffset;
-		FileHandle->Serialize(Buffer.GetTypedData(), Buffer.Num());
+		FileHandle->Serialize(Buffer.GetData(), Buffer.Num());
 		CacheItems.Empty();
 		FileHandle.Reset();
 		bClosed = true;
@@ -276,7 +276,7 @@ public:
 			}
 			check(Trailer >= 0 && Trailer < FileSize);
 			Buffer.AddUninitialized(sizeof(int64) + sizeof(uint32));
-			FileHandle->Serialize(Buffer.GetTypedData(), int64(sizeof(int64) + sizeof(uint32)));
+			FileHandle->Serialize(Buffer.GetData(), int64(sizeof(int64)+sizeof(uint32)));
 			FMemoryReader Loader(Buffer);
 			uint32 Magic = 0;
 			Loader << Magic;
@@ -299,7 +299,7 @@ public:
 				return false;
 			}
 			Buffer.AddUninitialized(sizeof(uint32) * 4);
-			FileHandle->Serialize(Buffer.GetTypedData(), int64(sizeof(uint32) * 4));
+			FileHandle->Serialize(Buffer.GetData(), int64(sizeof(uint32)* 4));
 			FMemoryReader Loader(Buffer);
 			uint32 Magic = 0;
 			Loader << Magic;
@@ -320,7 +320,7 @@ public:
 		{
 			TArray<uint8> Buffer;
 			Buffer.AddUninitialized(SizeIndex);
-			FileHandle->Serialize(Buffer.GetTypedData(), int64(SizeIndex));
+			FileHandle->Serialize(Buffer.GetData(), int64(SizeIndex));
 			FMemoryReader Loader(Buffer);
 			while (Loader.Tell() < (int32)SizeIndex)
 			{

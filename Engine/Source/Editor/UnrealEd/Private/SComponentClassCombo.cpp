@@ -390,7 +390,7 @@ void SComponentClassCombo::UpdateComponentClassList()
 
 	if (SortedClassList.Num() > 0)
 	{
-		Sort(SortedClassList.GetTypedData(),SortedClassList.Num(), SortComboEntry());
+		Sort(SortedClassList.GetData(), SortedClassList.Num(), SortComboEntry());
 
 		FString PreviousHeading;
 		for ( int32 ClassIndex = 0; ClassIndex < SortedClassList.Num(); ClassIndex++ )

@@ -434,7 +434,7 @@ void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 
 				const int32 UncompressedSize = UncompressedBuffer.Num();
 				int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
-				uint8* DestBuffer = BlackboardRepData.GetTypedData();
+				uint8* DestBuffer = BlackboardRepData.GetData();
 				FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
 				DestBuffer += HeaderSize;
 
@@ -454,14 +454,14 @@ void UGameplayDebuggingComponent::OnRep_UpdateBlackboard()
 		TArray<uint8> UncompressedBuffer;
 		int32 UncompressedSize = 0;
 		const int32 HeaderSize = sizeof(int32);
-		uint8* SrcBuffer = (uint8*)BlackboardRepData.GetTypedData();
+		uint8* SrcBuffer = (uint8*)BlackboardRepData.GetData();
 		FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
 		SrcBuffer += HeaderSize;
 		const int32 CompressedSize = BlackboardRepData.Num() - HeaderSize;
 
 		UncompressedBuffer.AddZeroed(UncompressedSize);
 
-		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetData(), UncompressedSize, SrcBuffer, CompressedSize);
 		FMemoryReader ArReader(UncompressedBuffer);
 
 		ArReader << BlackboardString;
@@ -584,14 +584,14 @@ void UGameplayDebuggingComponent::OnRep_UpdateEQS()
 		TArray<uint8> UncompressedBuffer;
 		int32 UncompressedSize = 0;
 		const int32 HeaderSize = sizeof(int32);
-		uint8* SrcBuffer = (uint8*)EQSRepData.GetTypedData();
+		uint8* SrcBuffer = (uint8*)EQSRepData.GetData();
 		FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
 		SrcBuffer += HeaderSize;
 		const int32 CompressedSize = EQSRepData.Num() - HeaderSize;
 
 		UncompressedBuffer.AddZeroed(UncompressedSize);
 
-		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetData(), UncompressedSize, SrcBuffer, CompressedSize);
 		FMemoryReader ArReader(UncompressedBuffer);
 
 		ArReader << EQSLocalData;
@@ -675,7 +675,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	EQSRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedSize));
 
 	int32 CompressedSize = EQSRepData.Num() - HeaderSize;
-	uint8* DestBuffer = EQSRepData.GetTypedData();
+	uint8* DestBuffer = EQSRepData.GetData();
 	FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
 	DestBuffer += HeaderSize;
 
@@ -968,7 +968,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 
 	const int32 UncompressedSize = UncompressedBuffer.Num();
 	int32 CompressedSize = NavmeshRepData.Num() - HeaderSize;
-	uint8* DestBuffer = NavmeshRepData.GetTypedData();
+	uint8* DestBuffer = NavmeshRepData.GetData();
 	FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
 	DestBuffer += HeaderSize;
 
@@ -1004,7 +1004,7 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 		if (NavmeshRepData.Num() > HeaderSize)
 		{
 			int32 UncompressedSize = 0;
-			uint8* SrcBuffer = (uint8*)NavmeshRepData.GetTypedData();
+			uint8* SrcBuffer = (uint8*)NavmeshRepData.GetData();
 			FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
 			SrcBuffer += HeaderSize;
 			const int32 CompressedSize = NavmeshRepData.Num() - HeaderSize;
@@ -1012,7 +1012,7 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 			UncompressedBuffer.AddZeroed(UncompressedSize);
 
 			FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB),
-				(void*)UncompressedBuffer.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+				(void*)UncompressedBuffer.GetData(), UncompressedSize, SrcBuffer, CompressedSize);
 		}
 
 		// read serialized values

@@ -800,7 +800,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		Scene->FXSystem->PostRenderOpaque(
 			RHICmdList,
-			Views.GetTypedData(),
+			Views.GetData(),
 			GSceneRenderTargets.GetSceneDepthTexture(),
 			GSceneRenderTargets.GetGBufferATexture()
 			);
@@ -906,7 +906,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			if (Scene->bIsEditorScene)
 			{
 				// Precompute Atmospheric Textures
-				Scene->AtmosphericFog->PrecomputeTextures(RHICmdList, Views.GetTypedData(), &ViewFamily);
+				Scene->AtmosphericFog->PrecomputeTextures(RHICmdList, Views.GetData(), &ViewFamily);
 			}
 #endif
 			RenderAtmosphere(RHICmdList, LightShaftOutput);

@@ -210,7 +210,7 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 				// Read the stream data into our buffer for UE serialzation
 				Size = Stream->getFileLength();
 				Buffer.AddUninitialized( Size );
-				Stream->read( Buffer.GetTypedData(), Size );
+				Stream->read( Buffer.GetData(), Size );
 			}
 		}
 		Ar << Size;

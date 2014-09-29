@@ -399,10 +399,10 @@ inline void AEFConstantKeyLerp<FORMAT>::GetPoseRotations(
 		const int32 AtomIndex = Pair.AtomIndex;
 		FTransform& BoneAtom = Atoms[AtomIndex];
 
-		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex*4);
+		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetData() + (TrackIndex*4);
 		const int32 RotKeysOffset	= *(TrackData+2);
 		const int32 NumRotKeys	= *(TrackData+3);
-		const uint8* RESTRICT RotStream		= Seq.CompressedByteStream.GetTypedData()+RotKeysOffset;
+		const uint8* RESTRICT RotStream		= Seq.CompressedByteStream.GetData()+RotKeysOffset;
 
 		// call the decoder directly (not through the vtable)
 		AEFConstantKeyLerp<FORMAT>::GetBoneAtomRotation(BoneAtom, Seq, RotStream, NumRotKeys, Time, RelativePos);
@@ -435,7 +435,7 @@ inline void AEFConstantKeyLerp<FORMAT>::GetPoseTranslations(
 	for (int32 PairIndex=0; PairIndex<PairCount; ++PairIndex)
 	{
 		const BoneTrackPair& Pair = DesiredPairs[PairIndex];
-		FPlatformMisc::Prefetch(Atoms.GetTypedData() + Pair.AtomIndex);
+		FPlatformMisc::Prefetch(Atoms.GetData() + Pair.AtomIndex);
 	}
 
 	for (int32 PairIndex=0; PairIndex<PairCount; ++PairIndex)
@@ -443,7 +443,7 @@ inline void AEFConstantKeyLerp<FORMAT>::GetPoseTranslations(
 		int32 PrefetchIndex = PairIndex + PrefetchCount;
 		if (PrefetchIndex < PairCount)
 		{
-			FPlatformMisc::Prefetch(Atoms.GetTypedData() + DesiredPairs[PrefetchIndex].AtomIndex);
+			FPlatformMisc::Prefetch(Atoms.GetData() + DesiredPairs[PrefetchIndex].AtomIndex);
 		}
 
 		const BoneTrackPair& Pair = DesiredPairs[PairIndex];
@@ -451,10 +451,10 @@ inline void AEFConstantKeyLerp<FORMAT>::GetPoseTranslations(
 		const int32 AtomIndex = Pair.AtomIndex;
 		FTransform& BoneAtom = Atoms[AtomIndex];
 
-		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex*4);
+		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetData() + (TrackIndex*4);
 		const int32 TransKeysOffset	= *(TrackData+0);
 		const int32 NumTransKeys		= *(TrackData+1);
-		const uint8* RESTRICT TransStream = Seq.CompressedByteStream.GetTypedData()+TransKeysOffset;
+		const uint8* RESTRICT TransStream = Seq.CompressedByteStream.GetData()+TransKeysOffset;
 
 		// call the decoder directly (not through the vtable)
 		AEFConstantKeyLerp<FORMAT>::GetBoneAtomTranslation(BoneAtom, Seq, TransStream, NumTransKeys, Time, RelativePos);
@@ -489,7 +489,7 @@ inline void AEFConstantKeyLerp<FORMAT>::GetPoseScales(
 	for (int32 PairIndex=0; PairIndex<PairCount; ++PairIndex)
 	{
 		const BoneTrackPair& Pair = DesiredPairs[PairIndex];
-		FPlatformMisc::Prefetch(Atoms.GetTypedData() + Pair.AtomIndex);
+		FPlatformMisc::Prefetch(Atoms.GetData() + Pair.AtomIndex);
 	}
 
 	for (int32 PairIndex=0; PairIndex<PairCount; ++PairIndex)
@@ -497,7 +497,7 @@ inline void AEFConstantKeyLerp<FORMAT>::GetPoseScales(
 		int32 PrefetchIndex = PairIndex + PrefetchCount;
 		if (PrefetchIndex < PairCount)
 		{
-			FPlatformMisc::Prefetch(Atoms.GetTypedData() + DesiredPairs[PrefetchIndex].AtomIndex);
+			FPlatformMisc::Prefetch(Atoms.GetData() + DesiredPairs[PrefetchIndex].AtomIndex);
 		}
 
 		const BoneTrackPair& Pair = DesiredPairs[PairIndex];
@@ -507,7 +507,7 @@ inline void AEFConstantKeyLerp<FORMAT>::GetPoseScales(
 
 		const int32 ScaleKeysOffset		= Seq.CompressedScaleOffsets.GetOffsetData(TrackIndex, 0);
 		const int32 NumScaleKeys		= Seq.CompressedScaleOffsets.GetOffsetData(TrackIndex, 1);
-		const uint8* RESTRICT ScaleStream = Seq.CompressedByteStream.GetTypedData()+ScaleKeysOffset;
+		const uint8* RESTRICT ScaleStream = Seq.CompressedByteStream.GetData()+ScaleKeysOffset;
 
 		// call the decoder directly (not through the vtable)
 		AEFConstantKeyLerp<FORMAT>::GetBoneAtomScale(BoneAtom, Seq, ScaleStream, NumScaleKeys, Time, RelativePos);

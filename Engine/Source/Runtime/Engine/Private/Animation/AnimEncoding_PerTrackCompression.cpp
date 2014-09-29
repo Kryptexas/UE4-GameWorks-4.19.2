@@ -295,7 +295,7 @@ void AEFPerTrackCompressionCodec::ByteSwapOneTrack(UAnimSequence& Seq, FMemoryAr
 	{
 		checkSlow( (Offset % 4) == 0 && "CompressedByteStream not aligned to four bytes" );
 
-		uint8* TrackData = Seq.CompressedByteStream.GetTypedData() + Offset;
+		uint8* TrackData = Seq.CompressedByteStream.GetData() + Offset;
 
 		// Read the header
 		AC_UnalignedSwap(MemoryStream, TrackData, sizeof(int32));
@@ -462,7 +462,7 @@ void AEFPerTrackCompressionCodec::GetBoneAtom(
 	OutAtom.SetIdentity();
 
 	// Use the CompressedTrackOffsets stream to find the data addresses
-	const int32* RESTRICT TrackData= Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex * 2);
+	const int32* RESTRICT TrackData= Seq.CompressedTrackOffsets.GetData() + (TrackIndex * 2);
 	const int32 TransKeysOffset = TrackData[0];
 	const int32 RotKeysOffset = TrackData[1];
 	const float RelativePos = Time / (float)Seq.SequenceLength;
@@ -491,8 +491,8 @@ void AEFPerTrackCompressionCodec::GetBoneAtomRotation(
 {
 	if (Offset != INDEX_NONE)
 	{
-		const uint8* RESTRICT TrackData = Seq.CompressedByteStream.GetTypedData() + Offset + 4;
-		const int32 Header = *((int32*)(Seq.CompressedByteStream.GetTypedData() + Offset));
+		const uint8* RESTRICT TrackData = Seq.CompressedByteStream.GetData() + Offset + 4;
+		const int32 Header = *((int32*)(Seq.CompressedByteStream.GetData() + Offset));
 
 		int32 KeyFormat;
 		int32 NumKeys;
@@ -582,8 +582,8 @@ void AEFPerTrackCompressionCodec::GetBoneAtomTranslation(
 {
 	if (Offset != INDEX_NONE)
 	{
-		const uint8* RESTRICT TrackData = Seq.CompressedByteStream.GetTypedData() + Offset + 4;
-		const int32 Header = *((int32*)(Seq.CompressedByteStream.GetTypedData() + Offset));
+		const uint8* RESTRICT TrackData = Seq.CompressedByteStream.GetData() + Offset + 4;
+		const int32 Header = *((int32*)(Seq.CompressedByteStream.GetData() + Offset));
 
 		int32 KeyFormat;
 		int32 NumKeys;
@@ -667,8 +667,8 @@ void AEFPerTrackCompressionCodec::GetBoneAtomScale(
 {
 	if (Offset != INDEX_NONE)
 	{
-		const uint8* RESTRICT TrackData = Seq.CompressedByteStream.GetTypedData() + Offset + 4;
-		const int32 Header = *((int32*)(Seq.CompressedByteStream.GetTypedData() + Offset));
+		const uint8* RESTRICT TrackData = Seq.CompressedByteStream.GetData() + Offset + 4;
+		const int32 Header = *((int32*)(Seq.CompressedByteStream.GetData() + Offset));
 
 		int32 KeyFormat;
 		int32 NumKeys;
@@ -769,7 +769,7 @@ void AEFPerTrackCompressionCodec::GetPoseRotations(
 		const int32 AtomIndex = Pair.AtomIndex;
 		FTransform& BoneAtom = Atoms[AtomIndex];
 
-		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex * 2);
+		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetData() + (TrackIndex * 2);
 		const int32 RotKeysOffset = *(TrackData + 1);
 
 		GetBoneAtomRotation( BoneAtom, Seq, RotKeysOffset, Time, RelativePos );
@@ -801,7 +801,7 @@ void AEFPerTrackCompressionCodec::GetPoseTranslations(
 		const int32 AtomIndex = Pair.AtomIndex;
 		FTransform& BoneAtom = Atoms[AtomIndex];
 
-		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex * 2);
+		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetData() + (TrackIndex * 2);
 		const int32 PosKeysOffset = *(TrackData + 0);
 
 		GetBoneAtomTranslation( BoneAtom, Seq, PosKeysOffset, Time, RelativePos );

@@ -3892,7 +3892,7 @@ bool FLightmassProcessor::ImportLightMapData2DData(int32 Channel, FQuantizedLigh
 	// make space for the samples
 	QuantizedData->Data.Empty(SizeX * SizeY);
 	QuantizedData->Data.AddUninitialized(SizeX * SizeY);
-	FLightMapCoefficients* DataBuffer = QuantizedData->Data.GetTypedData();
+	FLightMapCoefficients* DataBuffer = QuantizedData->Data.GetData();
 
 	int32 DataBufferSize = SizeX * SizeY * sizeof(FLightMapCoefficients);
 

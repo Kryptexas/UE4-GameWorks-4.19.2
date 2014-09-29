@@ -401,7 +401,7 @@ FSavedCustomSortSectionInfo::FSavedCustomSortSectionInfo(USkeletalMesh* Existing
 		}
 		else
 		{
-			FMemory::Memcpy(SavedIndices.GetTypedData(), LODModel.MultiSizeIndexContainer.GetIndexBuffer()->GetPointerTo(Section.BaseIndex), NumIndices*LODModel.MultiSizeIndexContainer.GetDataTypeSize());
+			FMemory::Memcpy(SavedIndices.GetData(), LODModel.MultiSizeIndexContainer.GetIndexBuffer()->GetPointerTo(Section.BaseIndex), NumIndices*LODModel.MultiSizeIndexContainer.GetDataTypeSize());
 		}
 	}
 }

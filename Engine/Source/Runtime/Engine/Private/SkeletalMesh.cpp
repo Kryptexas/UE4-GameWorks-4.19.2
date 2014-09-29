@@ -98,7 +98,7 @@ static bool SaveApexClothingAssetToBlob(const NxClothingAsset *InAsset, TArray<u
 			// Read the stream data into our buffer for UE serialzation
 			Size = Stream->getFileLength();
 			OutBuffer.AddUninitialized( Size );
-			Stream->read( OutBuffer.GetTypedData(), Size );
+			Stream->read( OutBuffer.GetData(), Size );
 			bResult = true;
 		}
 
@@ -1389,7 +1389,7 @@ void FStaticLODModel::GetVertices(TArray<FSoftSkinVertex>& Vertices) const
 			}
 			DestVertex++;
 		}
-		FMemory::Memcpy(DestVertex,Chunk.SoftVertices.GetTypedData(),Chunk.SoftVertices.Num() * sizeof(FSoftSkinVertex));
+		FMemory::Memcpy(DestVertex,Chunk.SoftVertices.GetData(),Chunk.SoftVertices.Num() * sizeof(FSoftSkinVertex));
 		DestVertex += Chunk.SoftVertices.Num();
 	}
 }
@@ -1519,7 +1519,7 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 		{
 			TArray<uint32> Indices;
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
-			SortTriangles_None( Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+			SortTriangles_None( Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
 		break;
@@ -1529,11 +1529,11 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
 			if (bUseSortCenter)
 			{
-				SortTriangles_CenterRadialDistance( SortCenter, Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+				SortTriangles_CenterRadialDistance( SortCenter, Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			}
 			else
 			{
-				SortTriangles_CenterRadialDistance( Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+				SortTriangles_CenterRadialDistance( Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			}
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
@@ -1542,7 +1542,7 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 		{
 			TArray<uint32> Indices;
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
-			SortTriangles_Random( Section.NumTriangles, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+			SortTriangles_Random( Section.NumTriangles, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
 		break;
@@ -1550,7 +1550,7 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 		{
 			TArray<uint32> Indices;
 			MultiSizeIndexContainer.GetIndexBuffer( Indices );
-			SortTriangles_MergeContiguous( Section.NumTriangles, NumVertices, Vertices.GetTypedData(), Indices.GetData() + Section.BaseIndex );
+			SortTriangles_MergeContiguous( Section.NumTriangles, NumVertices, Vertices.GetData(), Indices.GetData() + Section.BaseIndex );
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
 		break;

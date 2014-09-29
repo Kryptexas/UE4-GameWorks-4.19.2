@@ -411,7 +411,7 @@ static UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filenam
 			TextureFact->CompressionSettings = TC_Normalmap;
 		}
 
-		const uint8* PtrTexture = TextureData.GetTypedData();
+		const uint8* PtrTexture = TextureData.GetData();
 		UnrealTexture = (UTexture*)TextureFact->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *TextureName, RF_Standalone|RF_Public, NULL, *Extension, PtrTexture, PtrTexture + TextureData.Num(), GWarn);
 		if (UnrealTexture != NULL)
 		{

@@ -732,7 +732,7 @@ bool FFontEditor::ImportPage(int32 PageNum, const TCHAR* FileName)
 	if (FFileHelper::LoadFileToArray(Data, FileName))
 	{
 		// Make a const pointer for the API to be happy
-		const uint8* DataPtr = Data.GetTypedData();
+		const uint8* DataPtr = Data.GetData();
 		
 		// Create the new texture... note RF_Public because font textures can be referenced directly by material expressions
 		UTexture2D* NewPage = (UTexture2D*)Factory->FactoryCreateBinary(UTexture2D::StaticClass(), Font, NAME_None, RF_Public, NULL, TEXT("TGA"), DataPtr, DataPtr + Data.Num(), GWarn);

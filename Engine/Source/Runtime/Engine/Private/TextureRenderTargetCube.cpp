@@ -155,7 +155,7 @@ UTextureCube* UTextureRenderTargetCube::ConstructTextureCube(
 					{
 						if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
 						{
-							FMemory::Memcpy((FColor*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetTypedData(), MipSize);
+							FMemory::Memcpy((FColor*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
 						}
 					}
 				}
@@ -167,7 +167,7 @@ UTextureCube* UTextureRenderTargetCube::ConstructTextureCube(
 					{
 						if (CubeResource->ReadPixels(OutputBuffer, FReadSurfaceDataFlags(RCM_UNorm, (ECubeFace)SliceIndex)))
 						{
-							FMemory::Memcpy((FFloat16Color*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetTypedData(), MipSize);
+							FMemory::Memcpy((FFloat16Color*)(SliceData + SliceIndex * MipSize), OutputBuffer.GetData(), MipSize);
 						}
 					}
 				}

@@ -318,7 +318,7 @@ void ARecastNavMesh::TickMe(float DeltaTime)
 		TNavStatArray<FNavMeshGenerationResult> AsyncResults;
 		((FRecastNavMeshGenerator*)NavDataGenerator.Get())->GetAsyncResultsCopy(AsyncResults, /*bClearSource=*/true);
 
-		FNavMeshGenerationResult* Result = AsyncResults.GetTypedData();
+		FNavMeshGenerationResult* Result = AsyncResults.GetData();
 		for (int32 ResultIndex = 0; ResultIndex < AsyncResults.Num(); ++ResultIndex, ++Result)
 		{
 			UpdateNavTileData(Result->OldRawNavData, Result->NewNavData);
@@ -333,7 +333,7 @@ void ARecastNavMesh::TickMe(float DeltaTime)
 		FreshTiles.Reset();
 		const int32 PathsCount = ActivePaths.Num();
 
-		FNavPathWeakPtr* WeakPathPtr = (ActivePaths.GetTypedData() + PathsCount - 1);
+		FNavPathWeakPtr* WeakPathPtr = (ActivePaths.GetData() + PathsCount - 1);
 		for (int32 PathIndex = PathsCount - 1; PathIndex >= 0; --PathIndex, --WeakPathPtr)
 		{
 			FNavPathSharedPtr SharedPath = WeakPathPtr->Pin();
@@ -352,7 +352,7 @@ void ARecastNavMesh::TickMe(float DeltaTime)
 				}
 
 				const int32 PathLenght = Path->PathCorridor.Num();
-				const NavNodeRef* PathPoly = Path->PathCorridor.GetTypedData();
+				const NavNodeRef* PathPoly = Path->PathCorridor.GetData();
 				for (int32 NodeIndex = 0; NodeIndex < PathLenght; ++NodeIndex, ++PathPoly)
 				{
 					const uint32 NodeTileIdx = RecastNavMeshImpl->GetTileIndexFromPolyRef(*PathPoly);
@@ -509,7 +509,7 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 			if (Nav != NULL && Nav->GetTypedOuter<UWorld>() == NavSys->GetWorld() && Nav->IsPendingKill() == false)
 			{
 				// find out which one it is
-				const FNavDataConfig* AgentProps = SupportedAgents->GetTypedData();
+				const FNavDataConfig* AgentProps = SupportedAgents->GetData();
 				for (int i = 0; i < SupportedAgentsCount; ++i, ++AgentProps)
 				{
 					if (AlreadyInstantiated[i] == true)
@@ -1819,12 +1819,12 @@ void ARecastNavMesh::UpdateNavTileData(uint8* OldTileData, FNavMeshTileData NewT
 		int32 OldDataSize = 0;
 
 		// find shared pointer holding OldTileData
-		const FNavMeshTileData* const RESTRICT DataEnd = TileNavDataContainer.GetTypedData() + TileNavDataContainer.Num();
-		for(const FNavMeshTileData* RESTRICT Data = TileNavDataContainer.GetTypedData(); Data < DataEnd; ++Data)
+		const FNavMeshTileData* const RESTRICT DataEnd = TileNavDataContainer.GetData() + TileNavDataContainer.Num();
+		for(const FNavMeshTileData* RESTRICT Data = TileNavDataContainer.GetData(); Data < DataEnd; ++Data)
 		{
 			if( *Data == OldTileData )
 			{
-				OldDataIndex = (int32)(Data - TileNavDataContainer.GetTypedData());
+				OldDataIndex = (int32)(Data - TileNavDataContainer.GetData());
 				OldDataSize = Data->DataSize;
 				break;
 			}

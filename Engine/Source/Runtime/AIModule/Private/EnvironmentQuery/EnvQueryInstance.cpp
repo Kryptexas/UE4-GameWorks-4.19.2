@@ -81,7 +81,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FEnvQuerySpatialD
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = ContextData.RawData.GetTypedData();
+		uint8* RawData = ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -109,7 +109,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FVector>& Data)
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
+		uint8* RawData = (uint8*)ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -136,7 +136,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FRotator>& Data)
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = ContextData.RawData.GetTypedData();
+		uint8* RawData = ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -163,7 +163,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<AActor*>& Data)
 	{
 		UEnvQueryItemType_ActorBase* DefTypeOb = (UEnvQueryItemType_ActorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = ContextData.RawData.GetTypedData();
+		uint8* RawData = ContextData.RawData.GetData();
 
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
@@ -370,7 +370,7 @@ void FEnvQueryInstance::NormalizeScores()
 	float MinScore = 0.f;
 	float MaxScore = -BIG_NUMBER;
 
-	FEnvQueryItem* ItemInfo = Items.GetTypedData();
+	FEnvQueryItem* ItemInfo = Items.GetData();
 	for (int32 ItemIndex = 0; ItemIndex < NumValidItems; ItemIndex++, ItemInfo++)
 	{
 		ensure(ItemInfo->IsValid());
@@ -379,7 +379,7 @@ void FEnvQueryInstance::NormalizeScores()
 		MaxScore = FMath::Max(MaxScore, ItemInfo->Score);
 	}
 
-	ItemInfo = Items.GetTypedData();
+	ItemInfo = Items.GetData();
 	if (MinScore == MaxScore)
 	{
 		for (int32 ItemIndex = 0; ItemIndex < NumValidItems; ItemIndex++, ItemInfo++)
@@ -657,7 +657,7 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 
 		for (int32 Index = 0; Index < Items.Num(); ++Index)
 		{		
-			BBox += DefTypeOb->GetLocation(RawData.GetTypedData() + Items[Index].DataOffset);
+			BBox += DefTypeOb->GetLocation(RawData.GetData() + Items[Index].DataOffset);
 		}
 	}
 

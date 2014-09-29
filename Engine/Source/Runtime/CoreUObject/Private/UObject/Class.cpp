@@ -2830,7 +2830,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 			}
 		};
 
-		Sort( NetProperties.GetTypedData(), NetProperties.Num(), FCompareUFieldOffsets() );
+		Sort(NetProperties.GetData(), NetProperties.Num(), FCompareUFieldOffsets());
 
 		for ( int32 i = 0; i < NetProperties.Num(); i++ )
 		{
@@ -2850,7 +2850,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 				return A.GetName() < B.GetName();
 			}
 		};
-		Sort( NetFields.GetTypedData(), NetFields.Num(), FCompareUFieldNames() );
+		Sort(NetFields.GetData(), NetFields.Num(), FCompareUFieldNames());
 	}
 }
 

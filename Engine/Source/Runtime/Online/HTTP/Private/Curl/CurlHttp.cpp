@@ -201,7 +201,7 @@ void FCurlHttpRequest::SetContentAsString(const FString& ContentString)
 {
 	FTCHARToUTF8 Converter(*ContentString);
 	RequestPayload.SetNum(Converter.Length());
-	FMemory::Memcpy(RequestPayload.GetTypedData(), (uint8*)(ANSICHAR*)Converter.Get(), RequestPayload.Num());
+	FMemory::Memcpy(RequestPayload.GetData(), (uint8*)(ANSICHAR*)Converter.Get(), RequestPayload.Num());
 }
 
 void FCurlHttpRequest::SetHeader(const FString& HeaderName, const FString& HeaderValue)
@@ -486,7 +486,7 @@ bool FCurlHttpRequest::StartRequest()
 		// (if we pass, don't check here and trust the request)
 		check(!GetHeader("Content-Type").IsEmpty() || IsURLEncoded(RequestPayload));
 
-		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetTypedData());
+		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetData());
 		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDSIZE, RequestPayload.Num());
 	}
 	else if (Verb == TEXT("PUT"))
@@ -517,7 +517,7 @@ bool FCurlHttpRequest::StartRequest()
 		// (if we pass, don't check here and trust the request)
 		check(!GetHeader("Content-Type").IsEmpty() || IsURLEncoded(RequestPayload));
 
-		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetTypedData());
+		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDS, RequestPayload.GetData());
 		curl_easy_setopt(EasyHandle, CURLOPT_POSTFIELDSIZE, RequestPayload.Num());
 	}
 	else

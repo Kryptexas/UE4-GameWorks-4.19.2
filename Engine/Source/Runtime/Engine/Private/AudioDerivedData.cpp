@@ -246,7 +246,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 			TArray<uint8> CompressedBuffer;
 			CompressedBuffer.Empty(CompressedData->GetBulkDataSize());
 			CompressedBuffer.AddUninitialized(CompressedData->GetBulkDataSize());
-			void* BufferData = CompressedBuffer.GetTypedData();
+			void* BufferData = CompressedBuffer.GetData();
 			CompressedData->GetCopy(&BufferData, false);
 			TArray<TArray<uint8>> ChunkBuffers;
 
@@ -258,7 +258,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 					NewChunk->DataSize = ChunkBuffers[ChunkIndex].Num();
 					NewChunk->BulkData.Lock(LOCK_READ_WRITE);
 					void* NewChunkData = NewChunk->BulkData.Realloc(ChunkBuffers[ChunkIndex].Num());
-					FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetTypedData(), ChunkBuffers[ChunkIndex].Num());
+					FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetData(), ChunkBuffers[ChunkIndex].Num());
 					NewChunk->BulkData.Unlock();
 				}
 			}
@@ -269,7 +269,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 				NewChunk->DataSize = CompressedBuffer.Num();
 				NewChunk->BulkData.Lock(LOCK_READ_WRITE);
 				void* NewChunkData = NewChunk->BulkData.Realloc(CompressedBuffer.Num());
-				FMemory::Memcpy(NewChunkData, CompressedBuffer.GetTypedData(), CompressedBuffer.Num());
+				FMemory::Memcpy(NewChunkData, CompressedBuffer.GetData(), CompressedBuffer.Num());
 				NewChunk->BulkData.Unlock();
 			}
 
@@ -671,7 +671,7 @@ static void CookSimpleWave(USoundWave* SoundWave, FName FormatName, const IAudio
 		else
 		{
 			Input.AddUninitialized(WaveInfo.SampleDataSize);
-			FMemory::Memcpy(Input.GetTypedData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
+			FMemory::Memcpy(Input.GetData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
 		}
 	}
 
@@ -743,7 +743,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 		{
 			TArray<uint8>& Input = *new (SourceBuffers) TArray<uint8>;
 			Input.AddUninitialized(WaveInfo.SampleDataSize);
-			FMemory::Memcpy(Input.GetTypedData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
+			FMemory::Memcpy(Input.GetData(), WaveInfo.SampleDataStart, WaveInfo.SampleDataSize);
 		}
 
 		SampleDataSize = WaveInfo.SampleDataSize;
@@ -759,7 +759,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 					ChannelCount++;
 					TArray<uint8>& Input = *new (SourceBuffers) TArray<uint8>;
 					Input.AddUninitialized(WaveInfoInner.SampleDataSize);
-					FMemory::Memcpy(Input.GetTypedData(), WaveInfoInner.SampleDataStart, WaveInfoInner.SampleDataSize);
+					FMemory::Memcpy(Input.GetData(), WaveInfoInner.SampleDataStart, WaveInfoInner.SampleDataSize);
 					SampleDataSize = FMath::Min<uint32>(WaveInfoInner.SampleDataSize, SampleDataSize);
 				}
 			}

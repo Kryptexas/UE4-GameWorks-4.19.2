@@ -1325,7 +1325,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 				const FStaticMeshComponentLODInfo* InstanceMeshLODInfo = nullptr;
 				if (StaticMeshComponent->LODData.Num() > 0)
 				{
-					InstanceMeshLODInfo = StaticMeshComponent->LODData.GetTypedData();
+					InstanceMeshLODInfo = StaticMeshComponent->LODData.GetData();
 					bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
 				}
 
@@ -1474,7 +1474,7 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(UStaticMeshComponent* InStat
 	const FStaticMeshComponentLODInfo* InstanceMeshLODInfo = nullptr;
 	if (InStaticMeshComponent->LODData.Num() > 0)
 	{
-		InstanceMeshLODInfo = InStaticMeshComponent->LODData.GetTypedData();
+		InstanceMeshLODInfo = InStaticMeshComponent->LODData.GetData();
 		bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
 	}
 

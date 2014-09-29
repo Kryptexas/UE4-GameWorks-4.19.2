@@ -205,7 +205,7 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 
 	int32 VertexBufferSize = PlatformData.Num();
 	// Copy platform data into vertex buffer
-	VertexBuffer = new FLandscapeVertexBufferMobile(PlatformData.GetTypedData(), VertexBufferSize);
+	VertexBuffer = new FLandscapeVertexBufferMobile(PlatformData.GetData(), VertexBufferSize);
 
 	FLandscapeVertexFactoryMobile* LandscapeVertexFactory = new FLandscapeVertexFactoryMobile();
 	LandscapeVertexFactory->MobileData.PositionComponent = FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FLandscapeMobileVertex,Position), sizeof(FLandscapeMobileVertex), VET_UByte4N);

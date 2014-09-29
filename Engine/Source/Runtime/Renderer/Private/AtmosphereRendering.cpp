@@ -1450,7 +1450,7 @@ void FAtmosphericFogSceneInfo::Read3DPixelsPtr(FRHICommandListImmediate& RHICmdL
 		Data
 		);
 
-	FMemory::Memcpy( OutData, Data.GetTypedData(), Data.Num() * sizeof(FFloat16Color) );
+	FMemory::Memcpy(OutData, Data.GetData(), Data.Num() * sizeof(FFloat16Color));
 }
 
 void FAtmosphericFogSceneInfo::PrecomputeTextures(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, FSceneViewFamily* ViewFamily)

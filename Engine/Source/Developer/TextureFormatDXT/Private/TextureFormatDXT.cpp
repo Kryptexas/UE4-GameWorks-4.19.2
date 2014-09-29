@@ -320,7 +320,7 @@ static bool CompressImageUsingNVTT(
 				SizeY,
 				bSRGB,
 				bIsNormalMap,
-				OutCompressedData.GetTypedData(),
+				OutCompressedData.GetData(),
 				OutCompressedData.Num()
 				);
 		}
@@ -342,7 +342,7 @@ static bool CompressImageUsingNVTT(
 	{
 		FScopeLock ScopeLock(&GNVCompressionCriticalSection);
 		const uint8* Src = (const uint8*)SourceData;
-		uint8* Dest = OutCompressedData.GetTypedData();
+		uint8* Dest = OutCompressedData.GetData();
 		for (int32 BatchIndex = 0; BatchIndex < NumBatches; ++BatchIndex)
 		{
 			new(Compressors) FNVTTCompressor(

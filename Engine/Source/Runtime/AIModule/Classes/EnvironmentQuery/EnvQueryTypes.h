@@ -679,7 +679,7 @@ public:
 		DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
 		const int32 DataOffset = RawData.AddUninitialized(ValueSize);
-		TypeItem::SetValue(RawData.GetTypedData() + DataOffset, ItemValue);
+		TypeItem::SetValue(RawData.GetData() + DataOffset, ItemValue);
 		Items.Add(FEnvQueryItem(DataOffset));
 
 		INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
@@ -873,7 +873,7 @@ public:
 
 		uint8* GetItemData()
 		{
-			return Instance->RawData.GetTypedData() + Instance->Items[CurrentItem].DataOffset;
+			return Instance->RawData.GetData() + Instance->Items[CurrentItem].DataOffset;
 		}
 
 		void DiscardItem()

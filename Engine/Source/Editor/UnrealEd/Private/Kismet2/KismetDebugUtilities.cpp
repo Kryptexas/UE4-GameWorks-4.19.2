@@ -178,7 +178,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 
 		if (BlueprintObj->GetObjectBeingDebugged() == ActiveObject)
 		{
-			const int32 BreakpointOffset = StackFrame.Code - StackFrame.Node->Script.GetTypedData() - 1; //@TODO: Might want to make this a parameter of Info
+			const int32 BreakpointOffset = StackFrame.Code - StackFrame.Node->Script.GetData() - 1; //@TODO: Might want to make this a parameter of Info
 
 			// Record into the trace log
 			FKismetTraceSample& Tracer = TraceStackSamples.WriteNewElementUninitialized();
@@ -388,7 +388,7 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 	}
 	else
 	{
-		UE_LOG(LogBlueprintDebug, Warning, TEXT("Tried to break execution in an unknown spot at object %s:%04X"), *StackFrame.Node->GetFullName(), StackFrame.Code - StackFrame.Node->Script.GetTypedData());
+		UE_LOG(LogBlueprintDebug, Warning, TEXT("Tried to break execution in an unknown spot at object %s:%04X"), *StackFrame.Node->GetFullName(), StackFrame.Code - StackFrame.Node->Script.GetData());
 	}
 
 	if ((GUnrealEd->PlayWorld != NULL) && !GIsAutomationTesting)

@@ -593,7 +593,7 @@ public:
 	FSlateDrawElement& AddUninitialized()
 	{
 		const int32 InsertIdx = DrawElements.AddUninitialized();
-		return *(new(DrawElements.GetTypedData() + InsertIdx) FSlateDrawElement());
+		return *(new(DrawElements.GetData() + InsertIdx) FSlateDrawElement());
 	}
 
 	/**

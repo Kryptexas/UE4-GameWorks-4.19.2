@@ -213,7 +213,7 @@ static void ExportGeomToOBJFile(const FString& InFileName, const TNavStatArray<f
 			CompressedBuffer.Init(0, HeaderSize + FMath::Trunc(1.1f * UncompressedSize));
 
 			int32 CompressedSize = CompressedBuffer.Num() - HeaderSize;
-			uint8* DestBuffer = CompressedBuffer.GetTypedData();
+			uint8* DestBuffer = CompressedBuffer.GetData();
 			FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
 			DestBuffer += HeaderSize;
 
@@ -407,14 +407,14 @@ static void StoreCollisionCache(FRecastGeometryExport* GeomExport)
 	GeomExport->Data->CollisionData.AddUninitialized(CacheSize);
 
 	// store collisions
-	uint8* RawMemory = GeomExport->Data->CollisionData.GetTypedData();
+	uint8* RawMemory = GeomExport->Data->CollisionData.GetData();
 	FRecastGeometryCache* CacheMemory = (FRecastGeometryCache*)RawMemory;
 	CacheMemory->Header = HeaderInfo;
 	CacheMemory->Verts = 0;
 	CacheMemory->Indices = 0;
 
-	FMemory::Memcpy(RawMemory + HeaderSize, GeomExport->VertexBuffer.GetTypedData(), CoordsSize);
-	FMemory::Memcpy(RawMemory + HeaderSize + CoordsSize, GeomExport->IndexBuffer.GetTypedData(), IndicesSize);
+	FMemory::Memcpy(RawMemory + HeaderSize, GeomExport->VertexBuffer.GetData(), CoordsSize);
+	FMemory::Memcpy(RawMemory + HeaderSize + CoordsSize, GeomExport->IndexBuffer.GetData(), IndicesSize);
 }
 
 #if WITH_PHYSX
@@ -711,7 +711,7 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodyConvexElements(UBodySetup& BodySetup,
 {
 #if WITH_PHYSX
 	const int32 ConvexCount = BodySetup.AggGeom.ConvexElems.Num();
-	FKConvexElem const * ConvexElem = BodySetup.AggGeom.ConvexElems.GetTypedData();
+	FKConvexElem const * ConvexElem = BodySetup.AggGeom.ConvexElems.GetData();
 
 	for(int32 i=0; i< ConvexCount; ++i, ++ConvexElem)
 	{
@@ -995,7 +995,7 @@ FORCEINLINE void TransformVertexSoupToRecast(const TArray<FVector>& VertexSoup, 
 
 	const int32 StaticFacesCount = VertexSoup.Num() / 3;
 	int32 VertsCount = Verts.Num();
-	const FVector* Vertex = VertexSoup.GetTypedData();
+	const FVector* Vertex = VertexSoup.GetData();
 
 	for (int32 k = 0; k < StaticFacesCount; ++k, Vertex += 3)
 	{
@@ -1012,7 +1012,7 @@ FORCEINLINE void TransformVertexSoupToRecast(const TArray<FVector>& VertexSoup, 
 
 FORCEINLINE void CovertCoordDataToRecast(TNavStatArray<float>& Coords)
 {
-	float* CoordPtr = Coords.GetTypedData();
+	float* CoordPtr = Coords.GetData();
 	const int32 MaxIt = Coords.Num() / 3;
 	for (int32 i = 0; i < MaxIt; i++)
 	{
@@ -1663,7 +1663,7 @@ void FRecastTileGenerator::Init(class FRecastNavMeshGenerator* ParentGenerator, 
 
 		InclusionBounds.Reserve(BoundingBoxes.Num());
 
-		const FBox* Bounds = BoundingBoxes.GetTypedData();	
+		const FBox* Bounds = BoundingBoxes.GetData();	
 		for (int32 i = 0; i < BoundingBoxes.Num() && bFullyEncapsulatedByInclusionBounds == false; ++i, ++Bounds)
 		{	
 			if (Bounds->Intersect( TileBB ))
@@ -1753,7 +1753,7 @@ void FRecastTileGenerator::ApplyVoxelFilter(struct rcHeightfield* HF, float Walk
 		// it doesn't create "fake cliffs"
 		const float ExpandBBBy = WalkableRadius*CellSize;
 
-		const FBox* BBox = InclusionBounds.GetTypedData();
+		const FBox* BBox = InclusionBounds.GetData();
 		// optimized common case of single box
 		if (InclusionBounds.Num() == 1)
 		{
@@ -1821,7 +1821,7 @@ void FRecastTileGenerator::ApplyVoxelFilter(struct rcHeightfield* HF, float Walk
 							const FVector SpanMaxV(SpanX, SpanY, SpanMax);
 
 							bool bIsInsideAnyBB = false;
-							const FBox* BB = Bounds.GetTypedData();
+							const FBox* BB = Bounds.GetData();
 							for (int32 BoundIndex = 0; BoundIndex < BoundsCount; ++BoundIndex, ++BB)
 							{
 								if (BB->IsInside(SpanMinV) || BB->IsInside(SpanMaxV))
@@ -1846,7 +1846,7 @@ void FRecastTileGenerator::ApplyVoxelFilter(struct rcHeightfield* HF, float Walk
 
 void FRecastTileGenerator::PrepareVoxelCache(const TNavStatArray<uint8>& RawCollisionCache, TNavStatArray<rcSpanCache>& SpanData)
 {
-	FRecastGeometryCache CachedCollisions(RawCollisionCache.GetTypedData());
+	FRecastGeometryCache CachedCollisions(RawCollisionCache.GetData());
 	VoxelCacheContext.SetupForTile(BMin, BMax, RasterizationPadding);
 
 	float SlopeCosPerActor = WalkableSlopeCos;
@@ -1859,23 +1859,23 @@ void FRecastTileGenerator::PrepareVoxelCache(const TNavStatArray<uint8>& RawColl
 	rcMarkWalkableTrianglesCos(0, SlopeCosPerActor,
 		CachedCollisions.Verts, CachedCollisions.Header.NumVerts,
 		CachedCollisions.Indices, CachedCollisions.Header.NumFaces,
-		TriAreas.GetTypedData());
+		TriAreas.GetData());
 
 	rcRasterizeTriangles(0, CachedCollisions.Verts, CachedCollisions.Header.NumVerts,
-		CachedCollisions.Indices, TriAreas.GetTypedData(), CachedCollisions.Header.NumFaces,
+		CachedCollisions.Indices, TriAreas.GetData(), CachedCollisions.Header.NumFaces,
 		*VoxelCacheContext.RasterizeHF, WalkableClimbVX);
 
 	const int32 NumSpans = rcCountSpans(0, *VoxelCacheContext.RasterizeHF);
 	if (NumSpans > 0)
 	{
 		SpanData.AddZeroed(NumSpans);
-		rcCacheSpans(0, *VoxelCacheContext.RasterizeHF, SpanData.GetTypedData());
+		rcCacheSpans(0, *VoxelCacheContext.RasterizeHF, SpanData.GetData());
 	}
 }
 
 bool FRecastTileGenerator::HasVoxelCache(const TNavStatArray<uint8>& RawVoxelCache, rcSpanCache*& CachedVoxels, int32& NumCachedVoxels) const
 {
-	FRecastVoxelCache VoxelCache(RawVoxelCache.GetTypedData());
+	FRecastVoxelCache VoxelCache(RawVoxelCache.GetData());
 	for (FRecastVoxelCache::FTileInfo* iTile = VoxelCache.Tiles; iTile; iTile = iTile->NextTile)
 	{
 		if (iTile->TileX == TileX && iTile->TileY == TileY)
@@ -1896,7 +1896,7 @@ void FRecastTileGenerator::AddVoxelCache(TNavStatArray<uint8>& RawVoxelCache, co
 		RawVoxelCache.AddZeroed(sizeof(int32));
 	}
 
-	int32* NumTiles = (int32*)RawVoxelCache.GetTypedData();
+	int32* NumTiles = (int32*)RawVoxelCache.GetData();
 	*NumTiles = *NumTiles + 1;
 
 	const int32 NewCacheIdx = RawVoxelCache.Num();
@@ -1905,12 +1905,12 @@ void FRecastTileGenerator::AddVoxelCache(TNavStatArray<uint8>& RawVoxelCache, co
 	const int32 EntrySize = HeaderSize + VoxelsSize;
 	RawVoxelCache.AddZeroed(EntrySize);
 
-	FRecastVoxelCache::FTileInfo* TileInfo = (FRecastVoxelCache::FTileInfo*)(RawVoxelCache.GetTypedData() + NewCacheIdx);
+	FRecastVoxelCache::FTileInfo* TileInfo = (FRecastVoxelCache::FTileInfo*)(RawVoxelCache.GetData() + NewCacheIdx);
 	TileInfo->TileX = TileX;
 	TileInfo->TileY = TileY;
 	TileInfo->NumSpans = NumCachedVoxels;
 
-	FMemory::Memcpy(RawVoxelCache.GetTypedData() + NewCacheIdx + HeaderSize, CachedVoxels, VoxelsSize);
+	FMemory::Memcpy(RawVoxelCache.GetData() + NewCacheIdx + HeaderSize, CachedVoxels, VoxelsSize);
 }
 
 void FRecastTileGenerator::ClearGeometry()
@@ -1978,7 +1978,7 @@ void FRecastTileGenerator::AppendModifier(const FCompositeNavModifier& Modifier,
 #endif
 
 	// evaluate custom links
-	const FCustomLinkNavModifier* LinkModifier = Modifier.GetCustomLinks().GetTypedData();
+	const FCustomLinkNavModifier* LinkModifier = Modifier.GetCustomLinks().GetData();
 	for (int32 i = 0; i < Modifier.GetCustomLinks().Num(); i++, LinkModifier++)
 	{
 		FSimpleLinkNavModifier SimpleLinkCollection(UNavLinkDefinition::GetLinksDefinition(LinkModifier->GetNavLinkClass()), LinkModifier->LocalToWorld);
@@ -1997,7 +1997,7 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<uint8>& RawCollisi
 		return;
 	}
 
-	FRecastGeometryCache CollisionCache(RawCollisionCache.GetTypedData());
+	FRecastGeometryCache CollisionCache(RawCollisionCache.GetData());
 
 #if CACHE_NAV_GENERATOR_DATA
 	const int32 FirstNewCoord = GeomCoords.Num();
@@ -2007,8 +2007,8 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<uint8>& RawCollisi
 	GeomCoords.AddZeroed(CollisionCache.Header.NumVerts * 3);
 	GeomIndices.AddZeroed(CollisionCache.Header.NumFaces * 3);
 
-	FMemory::Memcpy(GeomCoords.GetTypedData() + FirstNewCoord, CollisionCache.Verts, sizeof(float) * CollisionCache.Header.NumVerts * 3);
-	int32* DestIndex = GeomIndices.GetTypedData() + FirstNewIndex;
+	FMemory::Memcpy(GeomCoords.GetData() + FirstNewCoord, CollisionCache.Verts, sizeof(float) * CollisionCache.Header.NumVerts * 3);
+	int32* DestIndex = GeomIndices.GetData() + FirstNewIndex;
 #else
 	const int32 FirstNewCoord = StaticGeomCoords.Num();
 	const int32 FirstNewIndex = StaticGeomIndices.Num();
@@ -2017,8 +2017,8 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<uint8>& RawCollisi
 	StaticGeomCoords.AddZeroed(CollisionCache.Header.NumVerts * 3);
 	StaticGeomIndices.AddZeroed(CollisionCache.Header.NumFaces * 3);
 
-	FMemory::Memcpy(StaticGeomCoords.GetTypedData() + FirstNewCoord, CollisionCache.Verts, sizeof(float) * CollisionCache.Header.NumVerts * 3);
-	int32* DestIndex = StaticGeomIndices.GetTypedData() + FirstNewIndex;
+	FMemory::Memcpy(StaticGeomCoords.GetData() + FirstNewCoord, CollisionCache.Verts, sizeof(float) * CollisionCache.Header.NumVerts * 3);
+	int32* DestIndex = StaticGeomIndices.GetData() + FirstNewIndex;
 #endif
 
 	for (int32 i = 0; i < CollisionCache.Header.NumFaces * 3; i++, DestIndex++)
@@ -2042,8 +2042,8 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<FVector>& Verts, c
 	GeomCoords.AddZeroed(Verts.Num() * 3);
 	GeomIndices.AddZeroed(Faces.Num());
 
-	float* DestCoord = GeomCoords.GetTypedData() + FirstNewCoord;
-	int32* DestIndex = GeomIndices.GetTypedData() + FirstNewIndex;
+	float* DestCoord = GeomCoords.GetData() + FirstNewCoord;
+	int32* DestIndex = GeomIndices.GetData() + FirstNewIndex;
 #else
 	const int32 FirstNewCoord = StaticGeomCoords.Num();
 	const int32 FirstNewIndex = StaticGeomIndices.Num();
@@ -2052,8 +2052,8 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<FVector>& Verts, c
 	StaticGeomCoords.AddZeroed(Verts.Num() * 3);
 	StaticGeomIndices.AddZeroed(Faces.Num());
 
-	float* DestCoord = StaticGeomCoords.GetTypedData() + FirstNewCoord;
-	int32* DestIndex = StaticGeomIndices.GetTypedData() + FirstNewIndex;
+	float* DestCoord = StaticGeomCoords.GetData() + FirstNewCoord;
+	int32* DestIndex = StaticGeomIndices.GetData() + FirstNewIndex;
 #endif
 
 	for (int32 i = 0; i < Verts.Num(); i++)
@@ -2077,7 +2077,7 @@ void FRecastTileGenerator::AppendVoxels(rcSpanCache* SpanData, int32 NumSpans)
 		const int32 FirstSpanIdx = StaticGeomSpans.Num();
 		StaticGeomSpans.AddZeroed(NumSpans);
 
-		FMemory::Memcpy(StaticGeomSpans.GetTypedData() + FirstSpanIdx, SpanData, NumSpans * sizeof(rcSpanCache));
+		FMemory::Memcpy(StaticGeomSpans.GetData() + FirstSpanIdx, SpanData, NumSpans * sizeof(rcSpanCache));
 #endif
 	}
 }
@@ -2286,19 +2286,19 @@ bool FRecastTileGenerator::GenerateCompressedLayers(class FNavMeshBuildContext* 
 		TriAreas.AddZeroed(NumFaces);
 
 		rcMarkWalkableTriangles(BuildContext, TileConfig.walkableSlopeAngle,
-			PtrGeomCoords->GetTypedData(), NumVerts, PtrGeomIndices->GetTypedData(), NumFaces,
-			TriAreas.GetTypedData());
+			PtrGeomCoords->GetData(), NumVerts, PtrGeomIndices->GetData(), NumFaces,
+			TriAreas.GetData());
 
 		rcRasterizeTriangles(BuildContext,
-			PtrGeomCoords->GetTypedData(), NumVerts, 
-			PtrGeomIndices->GetTypedData(), TriAreas.GetTypedData(), NumFaces,
+			PtrGeomCoords->GetData(), NumVerts, 
+			PtrGeomIndices->GetData(), TriAreas.GetData(), NumFaces,
 			*RasterContext.SolidHF, TileConfig.walkableClimb);
 	}
 	else if (PtrGeomSpans->Num())
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Rasterization: apply voxel cache"), Stat_RecastRasterCacheApply, STATGROUP_Navigation);
 
-		rcAddSpans(BuildContext, *RasterContext.SolidHF, TileConfig.walkableClimb, PtrGeomSpans->GetTypedData(), PtrGeomSpans->Num());
+		rcAddSpans(BuildContext, *RasterContext.SolidHF, TileConfig.walkableClimb, PtrGeomSpans->GetData(), PtrGeomSpans->Num());
 	}
 
 	if (!RasterContext.SolidHF || RasterContext.SolidHF->pools == 0)
@@ -2500,7 +2500,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 	RECAST_STAT(STAT_Navigation_Async_MarkAreas);
 	const float ExpandBy = TileConfig.AgentRadius * 1.5;
 
-	const FAreaNavModifier* Modifier = PtrStaticAreas->GetTypedData();
+	const FAreaNavModifier* Modifier = PtrStaticAreas->GetData();
 	for (int32 ModifierIndex = 0; ModifierIndex < NumAreas; ++ModifierIndex, ++Modifier)
 	{
 		const int32* AreaID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClass());
@@ -2556,7 +2556,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 					TArray<float> ConvexCoords;
 					ConvexCoords.AddZeroed(ConvexVerts.Num() * 3);
 
-					float* ItCoord = ConvexCoords.GetTypedData();
+					float* ItCoord = ConvexCoords.GetData();
 					for (int32 i = 0; i < ConvexVerts.Num(); i++)
 					{
 						const FVector RecastV = Unreal2RecastPoint(ConvexVerts[i]);
@@ -2565,7 +2565,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 						*ItCoord = RecastV.Z; ItCoord++;
 					}
 
-					rcMarkConvexPolyArea(BuildContext, ConvexCoords.GetTypedData(), ConvexVerts.Num(),
+					rcMarkConvexPolyArea(BuildContext, ConvexCoords.GetData(), ConvexVerts.Num(),
 						ConvexData.MinZ, ConvexData.MaxZ, *AreaID, CompactHF);
 				}
 			}
@@ -2798,7 +2798,7 @@ bool FRecastTileGenerator::GenerateNavigationData(class FNavMeshBuildContext* Bu
 				OffMeshData.FlagsPerArea = AdditionalCachedDataPtr->FlagsPerOffMeshLinkArea;
 				const uint32 AgentMask = (1 << TileConfig.AgentIndex);
 
-				const FSimpleLinkNavModifier* LinkModifier = PtrOffmeshLinks->GetTypedData();
+				const FSimpleLinkNavModifier* LinkModifier = PtrOffmeshLinks->GetData();
 				for (int32 LinkModifierIndex = 0; LinkModifierIndex < PtrOffmeshLinks->Num(); ++LinkModifierIndex, ++LinkModifier)
 				{
 					OffMeshData.AddLinks(LinkModifier->Links, LinkModifier->LocalToWorld, AgentMask);
@@ -2832,7 +2832,7 @@ bool FRecastTileGenerator::GenerateNavigationData(class FNavMeshBuildContext* Bu
 				Params.detailTris = GenerationContext.DetailMesh->tris;
 				Params.detailTriCount = GenerationContext.DetailMesh->ntris;
 			}
-			Params.offMeshCons = OffMeshData.LinkParams.GetTypedData();
+			Params.offMeshCons = OffMeshData.LinkParams.GetData();
 			Params.offMeshConCount = OffMeshData.LinkParams.Num();
 			Params.walkableHeight = TileConfig.AgentHeight;
 			Params.walkableRadius = TileConfig.AgentRadius;
@@ -2910,7 +2910,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 	const float* LayerRecastOrig = Layer.header->bmin;
 	const FBox LayerUnrealBounds = Recast2UnrealBox(Layer.header->bmin, Layer.header->bmax);
 
-	const FAreaNavModifier* Modifier = CombinedAreas.GetTypedData();
+	const FAreaNavModifier* Modifier = CombinedAreas.GetData();
 	for (int32 ModifierIndex = 0; ModifierIndex < CombinedAreas.Num(); ++ModifierIndex, ++Modifier)
 	{
 		const int32* AreaID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClass());
@@ -2980,7 +2980,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 					TArray<float> ConvexCoords;
 					ConvexCoords.AddZeroed(ConvexVerts.Num() * 3);
 
-					float* ItCoord = ConvexCoords.GetTypedData();
+					float* ItCoord = ConvexCoords.GetData();
 					for (int32 i = 0; i < ConvexVerts.Num(); i++)
 					{
 						const FVector RecastV = Unreal2RecastPoint(ConvexVerts[i]);
@@ -2990,7 +2990,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 					}
 
 					dtMarkConvexArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-						ConvexCoords.GetTypedData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, *AreaID);
+						ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, *AreaID);
 				}
 			}
 			break;
@@ -3010,7 +3010,7 @@ uint32 FRecastTileGenerator::GetUsedMemCount() const
 	TotalMemory += GeomCoords.GetAllocatedSize();
 	TotalMemory += GeomIndices.GetAllocatedSize();
 	
-	const FSimpleLinkNavModifier* SimpleLink = OffmeshLinks.GetTypedData();
+	const FSimpleLinkNavModifier* SimpleLink = OffmeshLinks.GetData();
 	for (int32 Index = 0; Index < OffmeshLinks.Num(); ++Index, ++SimpleLink)
 	{
 		TotalMemory += SimpleLink->Links.GetAllocatedSize();
@@ -3561,7 +3561,7 @@ bool FRecastNavMeshGenerator::Generate()
 
 void FRecastNavMeshGenerator::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& InDirtyAreas)
 {
-	const FNavigationDirtyArea* DirtyArea = InDirtyAreas.GetTypedData();
+	const FNavigationDirtyArea* DirtyArea = InDirtyAreas.GetData();
 	bool bOverlaps = false;
 	for (int32 DirtyIndex = 0; DirtyIndex < InDirtyAreas.Num(); ++DirtyIndex, ++DirtyArea)
 	{
@@ -3801,7 +3801,7 @@ void FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, const int32 Ti
 
 	TArray<dtMeshTile*> Tiles;
 	Tiles.AddZeroed(NumLayers);
-	DetourMesh->getTilesAt(TileX, TileY, (const dtMeshTile**)Tiles.GetTypedData(), NumLayers);
+	DetourMesh->getTilesAt(TileX, TileY, (const dtMeshTile**)Tiles.GetData(), NumLayers);
 	
 	for (int32 i = 0; i < NumLayers; i++)
 	{
@@ -4025,7 +4025,7 @@ void FRecastNavMeshGenerator::MarkDirtyGenerators()
 	TSet<int32> DirtyIndices;
 
 	// find all tiles that need regeneration:
-	const FNavigationDirtyArea* DirtyArea = DirtyAreasCopy.GetTypedData();
+	const FNavigationDirtyArea* DirtyArea = DirtyAreasCopy.GetData();
 	for (int32 i = 0; i < DirtyAreasCopy.Num(); ++i, ++DirtyArea)
 	{
 		const FBox AdjustedBounds = GrowBoundingBox(DirtyArea->Bounds, DirtyArea->HasFlag(ENavigationDirtyFlag::UseAgentHeight));
@@ -4235,7 +4235,7 @@ void FRecastNavMeshGenerator::FillGeneratorData(FRecastTileGenerator* TileGenera
 					{
 						// rasterize
 						TileGenerator->PrepareVoxelCache(Element.Data.CollisionData, SpanData);
-						CachedVoxels = SpanData.GetTypedData();
+						CachedVoxels = SpanData.GetData();
 						NumCachedVoxels = SpanData.Num();
 
 						// encode
@@ -4279,7 +4279,7 @@ void FRecastNavMeshGenerator::UpdateTileGenerationWorkers(int32 TileId)
 {
 #if RECAST_ASYNC_REBUILDING
 	bool bRequestRenderingDirty = false;
-	FRecastTileGenerator** CurrentGenerator = ActiveGenerators.GetTypedData();
+	FRecastTileGenerator** CurrentGenerator = ActiveGenerators.GetData();
 	int32 QueueIndex = 0;
 
 	for (int32 i = 0; i < ActiveGenerators.Num(); ++i, ++CurrentGenerator)
@@ -4476,7 +4476,7 @@ bool FRecastNavMeshGenerator::AreAnyTilesBeingBuilt(bool bCheckDirtyToo) const
 {
 #if RECAST_ASYNC_REBUILDING	
 	bool bRet = false;
-	const FRecastTileGenerator* TileGenerator = TileGenerators.GetTypedData();
+	const FRecastTileGenerator* TileGenerator = TileGenerators.GetData();
 
 	for (int32 i = 0; i < TileGenerators.Num(); ++i, ++TileGenerator)
 	{
@@ -4498,7 +4498,7 @@ bool FRecastNavMeshGenerator::AreAnyTilesBeingBuilt(bool bCheckDirtyToo) const
 bool FRecastNavMeshGenerator::IsAsyncBuildInProgress() const
 {
 #if RECAST_ASYNC_REBUILDING	
-	const FRecastTileGenerator* TileGenerator = TileGenerators.GetTypedData();
+	const FRecastTileGenerator* TileGenerator = TileGenerators.GetData();
 	for (int32 i = 0; i < TileGenerators.Num(); ++i, ++TileGenerator)
 	{
 		if (TileGenerator->IsAsyncBuildInProgress())
@@ -4592,7 +4592,7 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 
 				if (bExportGeometry && Element.Data.CollisionData.Num())
 				{
-					FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetTypedData());
+					FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetData());
 					IndexBuffer.Reserve( IndexBuffer.Num() + (CachedGeometry.Header.NumFaces * 3 ));
 					CoordBuffer.Reserve( CoordBuffer.Num() + (CachedGeometry.Header.NumVerts * 3 ));
 					for (int32 i = 0; i < CachedGeometry.Header.NumFaces * 3; i++)

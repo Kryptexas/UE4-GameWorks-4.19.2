@@ -321,7 +321,7 @@ float FNavMeshPath::GetStringPulledLength(const int32 StartingPoint) const
 	}
 
 	float TotalLength = 0.f;
-	const FNavPathPoint* PrevPoint = PathPoints.GetTypedData() + StartingPoint;
+	const FNavPathPoint* PrevPoint = PathPoints.GetData() + StartingPoint;
 	const FNavPathPoint* PathPoint = PrevPoint + 1;
 
 	for (int32 PathPointIndex = StartingPoint + 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex, ++PathPoint, ++PrevPoint)
@@ -344,7 +344,7 @@ float FNavMeshPath::GetPathCorridorLength(const int32 StartingEdge) const
 	}
 
 	
-	const FNavigationPortalEdge* PrevEdge = PathCorridorEdges.GetTypedData() + StartingEdge;
+	const FNavigationPortalEdge* PrevEdge = PathCorridorEdges.GetData() + StartingEdge;
 	const FNavigationPortalEdge* CorridorEdge = PrevEdge + 1;
 	FVector PrevEdgeMiddle = PrevEdge->GetMiddlePoint();
 
@@ -580,7 +580,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 	bool bNeedToCopyResults = false;
 	int32 SingleNodePassCount = 0;
 
-	FNavPathPoint* PathPoint = PathPoints.GetTypedData();
+	FNavPathPoint* PathPoint = PathPoints.GetData();
 	// it's possible we'll be inserting points into the path, so we need to buffer the result
 	TArray<FPathPointInfo> FirstPassPoints;
 	FirstPassPoints.Reserve(PathPoints.Num() + 2);
@@ -796,7 +796,7 @@ void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, U
 	const ARecastNavMesh* RecastNavMesh = Cast<const ARecastNavMesh>(NavData);
 
 	// tmp hack
-	const FNavigationPortalEdge* Edge = (const_cast<FNavMeshPath*>(this))->GetPathCorridorEdges()->GetTypedData();
+	const FNavigationPortalEdge* Edge = (const_cast<FNavMeshPath*>(this))->GetPathCorridorEdges()->GetData();
 	//const FNavigationPortalEdge* Edge = PathCorridorEdges.GetTypedData();
 	const int32 CorridorEdgesCount = PathCorridorEdges.Num();
 

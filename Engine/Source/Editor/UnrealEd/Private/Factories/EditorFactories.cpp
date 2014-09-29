@@ -169,7 +169,7 @@ UObject* UMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,F
 
 		TArray<FExpressionOutput> Outputs;
 		Outputs = Expression->GetOutputs();
-		FExpressionOutput* Output = Outputs.GetTypedData();
+		FExpressionOutput* Output = Outputs.GetData();
 		NewMaterial->BaseColor.Mask = Output->Mask;
 		NewMaterial->BaseColor.MaskR = Output->MaskR;
 		NewMaterial->BaseColor.MaskG = Output->MaskG;
@@ -1684,7 +1684,7 @@ UObject* USoundFactory::FactoryCreateBinary
 		// Read the wave info and make sure we have valid wave data
 		FWaveModInfo WaveInfo;
 		FString ErrorMessage;
-		if( WaveInfo.ReadWaveInfo( RawWaveData.GetTypedData(), RawWaveData.Num(), &ErrorMessage ) )
+		if( WaveInfo.ReadWaveInfo( RawWaveData.GetData(), RawWaveData.Num(), &ErrorMessage ) )
 		{
 			if( *WaveInfo.pBitsPerSample != 16 )
 			{
@@ -3496,7 +3496,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 			if ( PngImageWrapper->GetRaw( Format, BitDepth, RawPNG ) )
 			{
 				uint8* MipData = Texture->Source.LockMip(0);
-				FMemory::Memcpy( MipData, RawPNG->GetTypedData(), RawPNG->Num() );
+				FMemory::Memcpy( MipData, RawPNG->GetData(), RawPNG->Num() );
 
 				// Replace the pixels with 0.0 alpha with a color value from the nearest neighboring color which has a non-zero alpha
 				FillZeroAlphaPNGData( Texture->Source, MipData );
@@ -3570,7 +3570,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 				Texture->SRGB = true;
 			
 				uint8* MipData = Texture->Source.LockMip( 0 );
-				FMemory::Memcpy( MipData, RawJPEG->GetTypedData(), RawJPEG->Num() );
+				FMemory::Memcpy( MipData, RawJPEG->GetData(), RawJPEG->Num() );
 				Texture->Source.UnlockMip( 0 );
 			}
 			else
@@ -4404,7 +4404,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 			((UMaterialExpressionTextureSample*)Material->BaseColor.Expression)->Texture = Texture;
 
 			Outputs = Material->BaseColor.Expression->GetOutputs();
-			FExpressionOutput* Output = Outputs.GetTypedData();
+			FExpressionOutput* Output = Outputs.GetData();
 			Material->BaseColor.Mask = Output->Mask;
 			Material->BaseColor.MaskR = Output->MaskR;
 			Material->BaseColor.MaskG = Output->MaskG;
@@ -4418,7 +4418,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 			((UMaterialExpressionTextureSample*)Material->EmissiveColor.Expression)->Texture = Texture;
 
 			Outputs = Material->EmissiveColor.Expression->GetOutputs();
-			FExpressionOutput* Output = Outputs.GetTypedData();
+			FExpressionOutput* Output = Outputs.GetData();
 			Material->EmissiveColor.Mask = Output->Mask;
 			Material->EmissiveColor.MaskR = Output->MaskR;
 			Material->EmissiveColor.MaskG = Output->MaskG;
@@ -4432,7 +4432,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 			((UMaterialExpressionTextureSample*)Material->Roughness.Expression)->Texture = Texture;
 
 			Outputs = Material->Roughness.Expression->GetOutputs();
-			FExpressionOutput* Output = Outputs.GetTypedData();
+			FExpressionOutput* Output = Outputs.GetData();
 			Material->Roughness.Mask = Output->Mask;
 			Material->Roughness.MaskR = 0;
 			Material->Roughness.MaskG = 0;
@@ -4446,7 +4446,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 			((UMaterialExpressionTextureSample*)Material->EmissiveColor.Expression)->Texture = Texture;
 
 			Outputs = Material->EmissiveColor.Expression->GetOutputs();
-			FExpressionOutput* Output = Outputs.GetTypedData();
+			FExpressionOutput* Output = Outputs.GetData();
 			Material->EmissiveColor.Mask = Output->Mask;
 			Material->EmissiveColor.MaskR = 0;
 			Material->EmissiveColor.MaskG = 0;
@@ -4460,7 +4460,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 			((UMaterialExpressionTextureSample*)Material->Opacity.Expression)->Texture = Texture;
 
 			Outputs = Material->Opacity.Expression->GetOutputs();
-			FExpressionOutput* Output = Outputs.GetTypedData();
+			FExpressionOutput* Output = Outputs.GetData();
 			Material->Opacity.Mask = Output->Mask;
 			Material->Opacity.MaskR = 0;
 			Material->Opacity.MaskG = 0;
@@ -4474,7 +4474,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 			((UMaterialExpressionTextureSample*)Material->OpacityMask.Expression)->Texture = Texture;
 
 			Outputs = Material->OpacityMask.Expression->GetOutputs();
-			FExpressionOutput* Output = Outputs.GetTypedData();
+			FExpressionOutput* Output = Outputs.GetData();
 			Material->OpacityMask.Mask = Output->Mask;
 			Material->OpacityMask.MaskR = 0;
 			Material->OpacityMask.MaskG = 0;
@@ -4590,7 +4590,7 @@ bool UTextureExporterPCX::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 	{
 		for( int32 ColorPlane = 2; ColorPlane >= 0; ColorPlane-- )
 		{
-			uint8* ScreenPtr = RawData.GetTypedData() + (Line * SizeX * 4) + ColorPlane;
+			uint8* ScreenPtr = RawData.GetData() + (Line * SizeX * 4) + ColorPlane;
 			for( int32 Row=0; Row<SizeX; Row++ )
 			{
 				if( (*ScreenPtr&0xc0)==0xc0 )
@@ -4681,8 +4681,8 @@ class FHDRExportHelper
 {
 	void WriteScanLine(FArchive& Ar, const TArray<uint8>& ScanLine)
 	{
-		const uint8* LineEnd    = ScanLine.GetTypedData() + ScanLine.Num();
-		const uint8* LineSource = ScanLine.GetTypedData();
+		const uint8* LineEnd    = ScanLine.GetData() + ScanLine.Num();
+		const uint8* LineSource = ScanLine.GetData();
 		TArray<uint8> Output;
 		Output.Reserve(ScanLine.Num() * 2);
 		while (LineSource < LineEnd)
@@ -4726,7 +4726,7 @@ class FHDRExportHelper
 			}
 			LineSource += NextPos;
 		}
-		Ar.Serialize(Output.GetTypedData(), Output.Num());
+		Ar.Serialize(Output.GetData(), Output.Num());
 	}
 
 	static FColor ToRGBEDithered(const FLinearColor& ColorIN, const FRandomStream& Rand)
@@ -4830,11 +4830,11 @@ class FHDRExportHelper
 			{
 				TArray<FFloat16Color> FloatColors;
 				bReadSuccess = RenderTarget->ReadFloat16Pixels(FloatColors);
-				FMemory::Memcpy(RawData.GetTypedData(), FloatColors.GetTypedData(), ImageBytes);
+				FMemory::Memcpy(RawData.GetData(), FloatColors.GetData(), ImageBytes);
 			}
 			break;
 			case PF_B8G8R8A8:
-				bReadSuccess = RenderTarget->ReadPixelsPtr((FColor*)RawData.GetTypedData());
+				bReadSuccess = RenderTarget->ReadPixelsPtr((FColor*)RawData.GetData());
 			break;
 		}
 		if (bReadSuccess == false)
@@ -4849,11 +4849,11 @@ class FHDRExportHelper
 		WriteHDRHeader(Ar);
 		if (Format == PF_FloatRGBA)
 		{
-			WriteHDRBits(Ar, (FFloat16Color*)RawData.GetTypedData());
+			WriteHDRBits(Ar, (FFloat16Color*)RawData.GetData());
 		}
 		else
 		{
-			WriteHDRBits(Ar, (FColor*)RawData.GetTypedData());
+			WriteHDRBits(Ar, (FColor*)RawData.GetData());
 		}
 	}
 

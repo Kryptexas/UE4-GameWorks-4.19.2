@@ -263,7 +263,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 					const FNavigationOctreeElement& Element = *ElementIt;
 					if (Element.ShouldUseGeometry(&NavMesh->NavDataConfig) && Element.Data.CollisionData.Num())
 					{
-						const FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetTypedData());
+						const FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetData());
 						AppendGeometry(CurrentData->PathCollidingGeomVerts, CurrentData->PathCollidingGeomIndices,
 							CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
 					}

@@ -258,10 +258,10 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 	{
 		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[OrderedDrawingPolicies[Index]];
 		bool bDrawnShared = false;
-		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
+		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
-		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetData()->MeshId);
+		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetData();
 		for (int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
 			if (StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
@@ -412,10 +412,10 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 	{
 		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*PolicyIt];
 		FVector DrawingPolicyCenter = DrawingPolicyLink->CachedBoundingSphere.Center;
-		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
+		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
-		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetData()->MeshId);
+		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
 			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))

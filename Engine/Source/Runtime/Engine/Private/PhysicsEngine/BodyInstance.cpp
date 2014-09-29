@@ -1095,7 +1095,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 						}
 
 						b2PolygonShape ConvexPoly;
-						ConvexPoly.Set(Verts.GetTypedData(), Verts.Num());
+						ConvexPoly.Set(Verts.GetData(), Verts.Num());
 
 						b2FixtureDef FixtureDef;
 						FixtureDef.shape = &ConvexPoly;
@@ -1251,7 +1251,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	{
 		Setup->AddShapesToRigidActor(PNewActorSync, Scale3D);
 		PNewActorSync->userData = &PhysxUserData; // Store pointer to owning bodyinstance.
-		PNewActorSync->setName( CharDebugName.IsValid() ? CharDebugName->GetTypedData() : NULL );
+		PNewActorSync->setName( CharDebugName.IsValid() ? CharDebugName->GetData() : NULL );
 
 		check(FPhysxUserData::Get<FBodyInstance>(PNewActorSync->userData) == this && FPhysxUserData::Get<FBodyInstance>(PNewActorSync->userData)->OwnerComponent != NULL);
 	}
@@ -1263,7 +1263,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 
 		Setup->AddShapesToRigidActor(PNewActorAsync, Scale3D);
 		PNewActorAsync->userData = &PhysxUserData; // Store pointer to owning bodyinstance.
-		PNewActorAsync->setName( CharDebugName.IsValid() ? CharDebugName->GetTypedData() : NULL );
+		PNewActorAsync->setName( CharDebugName.IsValid() ? CharDebugName->GetData() : NULL );
 
 		check(FPhysxUserData::Get<FBodyInstance>(PNewActorAsync->userData) == this && FPhysxUserData::Get<FBodyInstance>(PNewActorAsync->userData)->OwnerComponent != NULL);
 	}

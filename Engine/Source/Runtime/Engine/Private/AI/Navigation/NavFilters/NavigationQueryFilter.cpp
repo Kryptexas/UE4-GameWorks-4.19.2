@@ -74,7 +74,7 @@ void FNavigationQueryFilter::SetExcludedArea(uint8 AreaType)
 
 void FNavigationQueryFilter::SetAllAreaCosts(const TArray<float>& CostArray)
 {
-	SetAllAreaCosts(CostArray.GetTypedData(), CostArray.Num());
+	SetAllAreaCosts(CostArray.GetData(), CostArray.Num());
 }
 
 void FNavigationQueryFilter::SetAllAreaCosts(const float* CostArray, const int32 Count)

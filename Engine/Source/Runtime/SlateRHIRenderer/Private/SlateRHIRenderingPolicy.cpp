@@ -75,7 +75,7 @@ void FSlateElementIndexBuffer::FillBuffer( const TArray<SlateIndex>& InIndices, 
 
 		void* IndicesPtr = RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
 
-		FMemory::Memcpy( IndicesPtr, InIndices.GetTypedData(), RequiredBufferSize );
+		FMemory::Memcpy( IndicesPtr, InIndices.GetData(), RequiredBufferSize );
 
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}

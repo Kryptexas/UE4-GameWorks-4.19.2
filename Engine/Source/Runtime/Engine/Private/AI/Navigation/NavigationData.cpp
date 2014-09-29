@@ -316,7 +316,7 @@ void ANavigationData::PurgeUnusedPaths()
 	check(IsInGameThread());
 
 	const int32 Count = ActivePaths.Num();
-	FNavPathWeakPtr* WeakPathPtr = (ActivePaths.GetTypedData() + Count - 1);
+	FNavPathWeakPtr* WeakPathPtr = (ActivePaths.GetData() + Count - 1);
 	for (int32 i = Count - 1; i >= 0; --i, --WeakPathPtr)
 	{
 		if (WeakPathPtr->IsValid() == false)

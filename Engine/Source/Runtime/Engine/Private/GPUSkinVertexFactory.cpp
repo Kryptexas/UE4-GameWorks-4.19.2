@@ -138,14 +138,14 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 			check(VectorArraySize == NumBones * sizeof(BoneMatrices[0]));
 			if (GRHIThread)
 			{
-				GRHICommandList.GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
+				GRHICommandList.GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, BoneMatrices.GetData(), NumBones * sizeof(BoneMatrices[0]));
 			}
 			else
 #endif
 			{
 				float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
 				checkSlow(Data);
-				FMemory::Memcpy(Data, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
+				FMemory::Memcpy(Data, BoneMatrices.GetData(), NumBones * sizeof(BoneMatrices[0]));
 				RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
 			}
 		}
@@ -153,7 +153,7 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 	else
 	{
 		check(NumBones * BoneMatrices.GetTypeSize() <= sizeof(GBoneUniformStruct));
-		FMemory::Memcpy(&GBoneUniformStruct, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
+		FMemory::Memcpy(&GBoneUniformStruct, BoneMatrices.GetData(), NumBones * sizeof(BoneMatrices[0]));
 		UniformBuffer = RHICreateUniformBuffer(&GBoneUniformStruct, FBoneMatricesUniformShaderParameters::StaticStruct.GetLayout(), UniformBuffer_MultiFrame);
 	}
 }
@@ -446,7 +446,7 @@ public:
 					// copy the bone data and tell the instance where it can pick it up next frame
 					check(IsInRenderingThread());
 					// append data to a buffer we bind next frame to read old matrix data for motion blur
-					uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetTypedData(), ShaderData.BoneMatrices.Num());
+					uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetData(), ShaderData.BoneMatrices.Num());
 					GPUVertexFactory->SetOldBoneDataStartIndex(View.FrameNumber, OldBoneDataStartIndex);
 				}
 			}
@@ -721,12 +721,12 @@ void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(c
 		{
 			float* Data = (float*)RHILockVertexBuffer(ClothSimulPositionBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
 			checkSlow(Data);
-			FMemory::Memcpy(Data, InSimulPositions.GetTypedData(), NumSimulVerts * sizeof(FVector4));
+			FMemory::Memcpy(Data, InSimulPositions.GetData(), NumSimulVerts * sizeof(FVector4));
 			RHIUnlockVertexBuffer(ClothSimulPositionBuffer.VertexBufferRHI);
 
 			Data = (float*)RHILockVertexBuffer(ClothSimulNormalBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
 			checkSlow(Data);
-			FMemory::Memcpy(Data, InSimulNormals.GetTypedData(), NumSimulVerts * sizeof(FVector4));
+			FMemory::Memcpy(Data, InSimulNormals.GetData(), NumSimulVerts * sizeof(FVector4));
 			RHIUnlockVertexBuffer(ClothSimulNormalBuffer.VertexBufferRHI);
 		}
 	}

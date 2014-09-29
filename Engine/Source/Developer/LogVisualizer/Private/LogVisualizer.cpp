@@ -154,7 +154,7 @@ int32 FLogVisualizer::GetLogIndexForActor(const AActor* Actor)
 {
 	int32 ResultIndex = INDEX_NONE;
 	const FString FullName = Actor->GetFullName();
-	TSharedPtr<FActorsVisLog>* Log = Logs.GetTypedData();
+	TSharedPtr<FActorsVisLog>* Log = Logs.GetData();
 	for (int32 LogIndex = 0; LogIndex < Logs.Num(); ++LogIndex, ++Log)
 	{
 		if ((*Log).IsValid() && (*Log)->FullName == FullName)

@@ -104,7 +104,7 @@ bool UNavLinkDefinition::HasAdjustableLinks() const
 	}
 
 	bHasDeterminedAdjustableLinks = true;
-	const FNavigationLink* Link = Links.GetTypedData();
+	const FNavigationLink* Link = Links.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < Links.Num(); ++LinkIndex, ++Link)
 	{
 		if (Link->MaxFallDownLength > 0)
@@ -113,7 +113,7 @@ bool UNavLinkDefinition::HasAdjustableLinks() const
 			return true;
 		}
 	}
-	const FNavigationSegmentLink* SegmentLink = SegmentLinks.GetTypedData();
+	const FNavigationSegmentLink* SegmentLink = SegmentLinks.GetData();
 	for (int32 LinkIndex = 0; LinkIndex < SegmentLinks.Num(); ++LinkIndex, ++SegmentLink)
 	{
 		if (SegmentLink->MaxFallDownLength > 0)
@@ -290,7 +290,7 @@ void FAreaNavModifier::SetConvex(const TArray<FVector>& InPoints, const int32 Fi
 
 		// check if there's a similar point already in HullVertices array
 		bool bUnique = true;
-		const FVector* RESTRICT Start = HullVertices.GetTypedData();
+		const FVector* RESTRICT Start = HullVertices.GetData();
 		for (const FVector* RESTRICT Data = Start, * RESTRICT DataEnd = Data + HullVertices.Num(); Data != DataEnd; ++Data)
 		{
 			if (FVector::DistSquared(*Data, TransformedPoint) < CONVEX_HULL_POINTS_MIN_DISTANCE_SQ)
@@ -480,7 +480,7 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 	Result = *this;
 
 	{
-		FAreaNavModifier* Area = Result.Areas.GetTypedData();
+		FAreaNavModifier* Area = Result.Areas.GetData();
 		for (int32 Index = 0; Index < Result.Areas.Num(); ++Index, ++Area)
 		{
 			if (Area->HasMetaAreas())
@@ -491,7 +491,7 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 	}
 
 	{
-		FSimpleLinkNavModifier* SimpleLink = Result.SimpleLinks.GetTypedData();
+		FSimpleLinkNavModifier* SimpleLink = Result.SimpleLinks.GetData();
 		for (int32 Index = 0; Index < Result.SimpleLinks.Num(); ++Index, ++SimpleLink)
 		{
 			if (SimpleLink->HasMetaAreas())
@@ -563,7 +563,7 @@ uint32 FCompositeNavModifier::GetAllocatedSize() const
 {
 	uint32 MemUsed = Areas.GetAllocatedSize() + SimpleLinks.GetAllocatedSize() + CustomLinks.GetAllocatedSize();
 
-	const FSimpleLinkNavModifier* SimpleLink = SimpleLinks.GetTypedData();
+	const FSimpleLinkNavModifier* SimpleLink = SimpleLinks.GetData();
 	for (int32 Index = 0; Index < SimpleLinks.Num(); ++Index, ++SimpleLink)
 	{
 		MemUsed += SimpleLink->Links.GetAllocatedSize();

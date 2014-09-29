@@ -740,7 +740,7 @@ int32 UDiffPackagesCommandlet::Main(const FString& Params)
 			{
 				if ( Comparison.ObjectSets[PackageIndex] != NULL )
 				{
-					AllObjectSets[PackageIndex].AddRawItem(Comparison.ObjectSets[PackageIndex]);
+					AllObjectSets[PackageIndex].Add(Comparison.ObjectSets[PackageIndex]);
 				}
 			}
 
@@ -763,7 +763,7 @@ int32 UDiffPackagesCommandlet::Main(const FString& Params)
 				{
 					if ( Comparison.ObjectSets[PackageIndex] != NULL )
 					{
-						AllObjectSets[PackageIndex].AddRawItem(Comparison.ObjectSets[PackageIndex]);
+						AllObjectSets[PackageIndex].Add(Comparison.ObjectSets[PackageIndex]);
 					}
 				}
 

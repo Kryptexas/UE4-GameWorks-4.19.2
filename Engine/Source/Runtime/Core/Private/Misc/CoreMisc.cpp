@@ -101,7 +101,7 @@ bool FFileHelper::LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename,
 	}
 	Result.Reset();
 	Result.AddUninitialized( Reader->TotalSize() );
-	Reader->Serialize( Result.GetTypedData(), Result.Num() );
+	Reader->Serialize(Result.GetData(), Result.Num());
 	bool Success = Reader->Close();
 	delete Reader;
 	return Success;
@@ -146,7 +146,7 @@ void FFileHelper::BufferToString( FString& Result, const uint8* Buffer, int32 Si
 		FUTF8ToTCHAR Conv((const ANSICHAR*)Buffer, Size);
 		int32 Length = Conv.Length();
 		ResultArray.AddUninitialized(Length + 1); // For the null terminator
-		CopyAssignItems(ResultArray.GetTypedData(), Conv.Get(), Length);
+		CopyAssignItems(ResultArray.GetData(), Conv.Get(), Length);
 	}
 
 	if (ResultArray.Num() == 1)
@@ -208,7 +208,7 @@ bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* File
 	{
 		return 0;
 	}
-	Ar->Serialize( const_cast<uint8*>(Array.GetTypedData()), Array.Num() );
+	Ar->Serialize(const_cast<uint8*>(Array.GetData()), Array.Num());
 	delete Ar;
 	return true;
 }

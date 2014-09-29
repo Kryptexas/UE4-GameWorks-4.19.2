@@ -547,7 +547,7 @@ public:
 
 				if (CurrentIndex != ObjectsToSerialize.Num())
 				{
-					UObject* NextObject = ObjectsToSerialize.GetTypedData()[CurrentIndex]; // special syntax avoiding out of bounds checking
+					UObject* NextObject = ObjectsToSerialize.GetData()[CurrentIndex]; // special syntax avoiding out of bounds checking
 					FPlatformMisc::PrefetchBlock(NextObject, NextObject->GetClass()->GetPropertiesSize());
 				}
 
@@ -563,7 +563,7 @@ public:
 				uint32 ReferenceTokenStreamIndex	= 0;
 
 				// Create stack entry and initialize sane values.
-				FStackEntry* RESTRICT StackEntry = Stack.GetTypedData();
+				FStackEntry* RESTRICT StackEntry = Stack.GetData();
 				uint8* StackEntryData		= (uint8*) CurrentObject;
 				StackEntry->Data			= StackEntryData;
 				StackEntry->Stride			= 0;
@@ -702,7 +702,7 @@ public:
 						UE_LOG(LogGarbage, Fatal,TEXT("Unknown token"));
 					}
 				}
-				check( StackEntry == Stack.GetTypedData() );
+				check(StackEntry == Stack.GetData());
 
 #if PERF_DETAILED_PER_CLASS_GC_STATS
 				// Detailed per class stats should not be performed when parallel GC is running

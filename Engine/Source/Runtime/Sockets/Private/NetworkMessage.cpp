@@ -83,7 +83,7 @@ bool FNFSMessageHeader::ReceivePayload(FArrayReader& OutPayload, const FSimpleAb
 	int32 Size = sizeof(FNFSMessageHeader);
 	HeaderBytes.AddZeroed(Size);
 		
-	if (!Socket.Receive(HeaderBytes.GetTypedData(), Size))
+	if (!Socket.Receive(HeaderBytes.GetData(), Size))
 	{
 		UE_LOG(LogSockets, Error, TEXT("Unable to read full header"));
 		return false;
@@ -116,14 +116,14 @@ bool FNFSMessageHeader::ReceivePayload(FArrayReader& OutPayload, const FSimpleAb
 	OutPayload.Seek(PayloadOffset);
 
 	// receive the payload
-	if (!Socket.Receive(OutPayload.GetTypedData() + PayloadOffset, Header.PayloadSize))
+	if (!Socket.Receive(OutPayload.GetData() + PayloadOffset, Header.PayloadSize))
 	{
 		UE_LOG(LogSockets, Error, TEXT("Unable to read full payload"));
 		return false;
 	}
 
 	// make sure it's valid
-	uint32 ActualPayloadCrc = FCrc::MemCrc_DEPRECATED(OutPayload.GetTypedData() + PayloadOffset, Header.PayloadSize);
+	uint32 ActualPayloadCrc = FCrc::MemCrc_DEPRECATED(OutPayload.GetData() + PayloadOffset, Header.PayloadSize);
 	if (Header.PayloadCrc != ActualPayloadCrc)
 	{
 		UE_LOG(LogSockets, Error, TEXT("Payload Crc failure."));

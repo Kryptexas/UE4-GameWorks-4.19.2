@@ -771,7 +771,7 @@ static void SortActorsHierarchy(TTransArray<AActor*>& Actors)
 	
 	// Unfortunately TArray.StableSort assumes no null entries in the array
 	// So it forces me to use internal unrestricted version
-	StableSortInternal(Actors.GetTypedData(), Actors.Num(), [&](AActor* L, AActor* R) {
+	StableSortInternal(Actors.GetData(), Actors.Num(), [&](AActor* L, AActor* R) {
 			return CalcAttachDepth(L) < CalcAttachDepth(R);
 	});
 }

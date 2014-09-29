@@ -69,13 +69,13 @@ namespace CubemapHelpers
 		switch (TargetPixelFormat)
 		{
 			case PF_B8G8R8A8:
-				bReadSuccess = RenderTarget->ReadPixelsPtr((FColor*)BitsOUT.GetTypedData());
+				bReadSuccess = RenderTarget->ReadPixelsPtr((FColor*)BitsOUT.GetData());
 			break;
 			case PF_FloatRGBA:
 				{
 					TArray<FFloat16Color> FloatColors;
 					bReadSuccess = RenderTarget->ReadFloat16Pixels(FloatColors);
-					FMemory::Memcpy(BitsOUT.GetTypedData(), FloatColors.GetTypedData(), ImageBytes);
+					FMemory::Memcpy(BitsOUT.GetData(), FloatColors.GetData(), ImageBytes);
 				}
 			break;
 		}

@@ -259,7 +259,7 @@ protected:
 				}
 
 				int32 BytesSent = 0;
-				UnicastSocket->SendTo(Payload->GetTypedData(), Payload->Num(), BytesSent, *RecipientEndpoint.ToInternetAddr());
+				UnicastSocket->SendTo(Payload->GetData(), Payload->Num(), BytesSent, *RecipientEndpoint.ToInternetAddr());
 			}
 			else
 			{

@@ -1899,7 +1899,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				}
 
 				// Fill instance buffer.
-				GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetTypedData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetTypedData(), Proxy, View);
+				GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), Proxy, View);
 			}
 
 			Proxy->UpdateWorldSpacePrimitiveUniformBuffer();
@@ -1971,8 +1971,8 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					if (!bInstanced)
 					{
 						FMeshParticleVertexFactory::FBatchParametersCPU& BatchParameters = Collector.AllocateOneFrameResource<FMeshParticleVertexFactory::FBatchParametersCPU>();
-						BatchParameters.InstanceBuffer = InstanceVerticesCPU->InstanceDataAllocationsCPU.GetTypedData();
-						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetTypedData();
+						BatchParameters.InstanceBuffer = InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData();
+						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData();
 						BatchElement.UserData = &BatchParameters;
 						BatchElement.UserIndex = 0;
 
@@ -2138,7 +2138,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 			DynamicParameterDataAllocationsCPU.AddUninitialized(ParticleCount);
 
 			// Fill instance buffer.
-			GetInstanceData((void*) InstanceDataAllocationsCPU.GetTypedData(), (void*) DynamicParameterDataAllocationsCPU.GetTypedData(), Proxy, ViewFamily->Views[ViewIndex]);
+			GetInstanceData((void*) InstanceDataAllocationsCPU.GetData(), (void*) DynamicParameterDataAllocationsCPU.GetData(), Proxy, ViewFamily->Views[ViewIndex]);
 		}
 
 		// Instance data is not calculated per-view when the emitter is unsorted.
@@ -2239,8 +2239,8 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 					if(!bInstanced)
 					{
 						FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = new(MeshBatchParameters) FMeshParticleVertexFactory::FBatchParametersCPU();
-						BatchParameters->InstanceBuffer = InstanceDataAllocationsCPU.GetTypedData();
-						BatchParameters->DynamicParameterBuffer = DynamicParameterDataAllocationsCPU.GetTypedData();
+						BatchParameters->InstanceBuffer = InstanceDataAllocationsCPU.GetData();
+						BatchParameters->DynamicParameterBuffer = DynamicParameterDataAllocationsCPU.GetData();
 						BatchElement.UserData = BatchParameters;
 						BatchElement.UserIndex = 0;
 

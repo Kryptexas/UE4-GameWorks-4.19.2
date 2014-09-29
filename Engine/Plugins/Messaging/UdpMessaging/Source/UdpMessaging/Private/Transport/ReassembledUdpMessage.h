@@ -135,7 +135,7 @@ public:
 		{
 			if (SegmentOffset + SegmentData.Num() <= Data.Num())
 			{
-				FMemory::Memcpy(Data.GetTypedData() + SegmentOffset, SegmentData.GetTypedData(), SegmentData.Num());
+				FMemory::Memcpy(Data.GetData() + SegmentOffset, SegmentData.GetData(), SegmentData.Num());
 
 				PendingSegments[SegmentNumber] = false;
 				--PendingSegmentsCount;

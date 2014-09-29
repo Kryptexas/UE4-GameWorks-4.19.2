@@ -121,7 +121,7 @@ FString FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TP
 		{
 			const TArray<uint8>& CompressedData = ImageCompressor->GetCompressed();
 			int32 CompressedSize = CompressedData.Num();
-			Ar->Serialize((void*)CompressedData.GetTypedData(), CompressedSize);
+			Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
 			delete Ar;
 		}
 		else

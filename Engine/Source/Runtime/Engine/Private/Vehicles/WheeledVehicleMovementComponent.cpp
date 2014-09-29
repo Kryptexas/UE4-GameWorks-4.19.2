@@ -341,7 +341,7 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 	TArray<PxShape*> Shapes;
 	Shapes.AddZeroed(NumShapes);
 
-	PVehicleActor->getShapes( Shapes.GetTypedData(), NumShapes );
+	PVehicleActor->getShapes( Shapes.GetData(), NumShapes );
 
 	for ( int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx )
 	{

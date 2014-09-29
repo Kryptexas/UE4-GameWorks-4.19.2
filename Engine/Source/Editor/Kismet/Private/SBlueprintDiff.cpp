@@ -425,7 +425,7 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateDiffListWidget()
 			}
 		};
 
-		Sort(DiffListSource.GetTypedData(),DiffListSource.Num(), SortDiff());
+		Sort(DiffListSource.GetData(),DiffListSource.Num(), SortDiff());
 
 		TSharedPtr<SListViewType> DiffListRef;
 		TSharedRef<SHorizontalBox> Result =	SNew(SHorizontalBox)

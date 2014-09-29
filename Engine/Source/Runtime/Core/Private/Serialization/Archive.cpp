@@ -738,7 +738,7 @@ void FArchive::SerializeIntPacked(uint32& Value)
 				break;
 			}
 		}
-		Serialize(PackedBytes.GetTypedData(), PackedBytes.Num()); // Actually serialize the bytes we made
+		Serialize(PackedBytes.GetData(), PackedBytes.Num()); // Actually serialize the bytes we made
 	}
 }
 

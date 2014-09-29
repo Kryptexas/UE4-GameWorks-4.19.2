@@ -603,7 +603,7 @@ void FTextureSource::Compress()
 			if ( CompressedData.Num() > 0 )
 			{
 				BulkDataPtr = (uint8*)BulkData.Realloc(CompressedData.Num());
-				FMemory::Memcpy(BulkDataPtr, CompressedData.GetTypedData(), CompressedData.Num());
+				FMemory::Memcpy(BulkDataPtr, CompressedData.GetData(), CompressedData.Num());
 				BulkData.Unlock();
 				bPNGCompressed = true;
 
@@ -649,7 +649,7 @@ uint8* FTextureSource::LockMip(int32 MipIndex)
 						if (RawData->Num() > 0)
 						{
 							LockedMipData = (uint8*)FMemory::Malloc(RawData->Num());
-							FMemory::Memcpy(LockedMipData, RawData->GetTypedData(), RawData->Num());
+							FMemory::Memcpy(LockedMipData, RawData->GetData(), RawData->Num());
 						}
 					}
 					if (RawData == NULL || RawData->Num() == 0)
@@ -753,7 +753,7 @@ bool FTextureSource::GetMipData(TArray<uint8>& OutMipData, int32 MipIndex)
 				OutMipData.Empty(MipSize);
 				OutMipData.AddUninitialized(MipSize);
 				FMemory::Memcpy(
-					OutMipData.GetTypedData(),
+					OutMipData.GetData(),
 					(uint8*)RawSourceData + MipOffset,
 					MipSize
 					);
@@ -875,12 +875,12 @@ void FTextureSource::ConvertFromLegacyDDS()
 	{
 		void* LockedDDSData = NULL;
 		BulkData.GetCopy(&LockedDDSData);
-		FMemory::Memcpy(RawDDS.GetTypedData(), LockedDDSData, RawDDS.Num());
+		FMemory::Memcpy(RawDDS.GetData(), LockedDDSData, RawDDS.Num());
 		FMemory::Free(LockedDDSData);
 		BulkData.RemoveBulkData();
 	}
 
-	FDDSLoadHelper DDS(RawDDS.GetTypedData(), RawDDS.Num());
+	FDDSLoadHelper DDS(RawDDS.GetData(), RawDDS.Num());
 	if ((DDS.IsValid2DTexture() || DDS.IsValidCubemapTexture()) && DDS.ComputeSourceFormat() != TSF_Invalid)
 	{
 		Init(

@@ -414,7 +414,7 @@ void FShadowMap2D::EncodeTextures(UWorld* InWorld , bool bLightingSuccessful )
 		// Reset the pending shadow-map size.
 		PendingShadowMapSize = 0;
 
-		Sort(PendingShadowMaps.GetTypedData(), PendingShadowMaps.Num(), FCompareShadowMaps());
+		Sort(PendingShadowMaps.GetData(), PendingShadowMaps.Num(), FCompareShadowMaps());
 
 		// Allocate texture space for each light-map.
 		TIndirectArray<FShadowMapPendingTexture> PendingTextures;

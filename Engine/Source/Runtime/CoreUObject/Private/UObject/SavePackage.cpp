@@ -3393,7 +3393,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					ScriptSHABytes->AddUninitialized(20);
 
 					// retrieve it
-					Linker->GetScriptSHAKey(ScriptSHABytes->GetTypedData());
+					Linker->GetScriptSHAKey(ScriptSHABytes->GetData());
 				}
 
 				

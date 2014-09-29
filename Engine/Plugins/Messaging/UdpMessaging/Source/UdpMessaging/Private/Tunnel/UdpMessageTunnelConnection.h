@@ -191,7 +191,7 @@ protected:
 			PayloadSizeData.Init(sizeof(uint16));
 			
 			// ... read it from the stream without removing it...
-			if (!Socket->Recv(PayloadSizeData.GetTypedData(), sizeof(uint16), BytesRead, ESocketReceiveFlags::Peek))
+			if (!Socket->Recv(PayloadSizeData.GetData(), sizeof(uint16), BytesRead, ESocketReceiveFlags::Peek))
 			{
 				return false;
 			}
@@ -254,7 +254,7 @@ protected:
 				uint16 PayloadSize = Payload->Num();
 				PayloadSizeData << PayloadSize;
 
-				if (!Socket->Send(PayloadSizeData.GetTypedData(), sizeof(uint16), BytesSent))
+				if (!Socket->Send(PayloadSizeData.GetData(), sizeof(uint16), BytesSent))
 				{
 					return false;
 				}
@@ -262,7 +262,7 @@ protected:
 				TotalBytesSent += BytesSent;
 
 				// send the payload
-				if (!Socket->Send(Payload->GetTypedData(), Payload->Num(), BytesSent))
+				if (!Socket->Send(Payload->GetData(), Payload->Num(), BytesSent))
 				{
 					return false;
 				}

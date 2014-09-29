@@ -139,7 +139,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 
 				// Create the sync scene actor
 				PxRigidStatic* HeightFieldActorSync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
-				PxShape* HeightFieldShapeSync = HeightFieldActorSync->createShape(LandscapeComponentGeom, HeightfieldRef->UsedPhysicalMaterialArray.GetTypedData(), HeightfieldRef->UsedPhysicalMaterialArray.Num());
+				PxShape* HeightFieldShapeSync = HeightFieldActorSync->createShape(LandscapeComponentGeom, HeightfieldRef->UsedPhysicalMaterialArray.GetData(), HeightfieldRef->UsedPhysicalMaterialArray.Num());
 				check(HeightFieldShapeSync);
 
 				// Setup filtering
@@ -186,7 +186,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 				{
 					// Create the async scene actor
 					HeightFieldActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
-					PxShape* HeightFieldShapeAsync = HeightFieldActorAsync->createShape(LandscapeComponentGeom, HeightfieldRef->UsedPhysicalMaterialArray.GetTypedData(), HeightfieldRef->UsedPhysicalMaterialArray.Num());
+					PxShape* HeightFieldShapeAsync = HeightFieldActorAsync->createShape(LandscapeComponentGeom, HeightfieldRef->UsedPhysicalMaterialArray.GetData(), HeightfieldRef->UsedPhysicalMaterialArray.Num());
 
 					HeightFieldShapeAsync->setQueryFilterData(PQueryFilterData);
 					HeightFieldShapeAsync->setSimulationFilterData(PSimFilterData);
@@ -674,7 +674,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 
 				// Create the sync scene actor
 				PxRigidStatic* MeshActorSync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
-				PxShape* MeshShapeSync = MeshActorSync->createShape(PTriMeshGeom, MeshRef->UsedPhysicalMaterialArray.GetTypedData(), MeshRef->UsedPhysicalMaterialArray.Num());
+				PxShape* MeshShapeSync = MeshActorSync->createShape(PTriMeshGeom, MeshRef->UsedPhysicalMaterialArray.GetData(), MeshRef->UsedPhysicalMaterialArray.Num());
 				check(MeshShapeSync);
 
 				// Setup filtering
@@ -697,7 +697,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 				{
 					// Create the async scene actor
 					MeshActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
-					PxShape* MeshShapeAsync = MeshActorAsync->createShape(PTriMeshGeom, MeshRef->UsedPhysicalMaterialArray.GetTypedData(), MeshRef->UsedPhysicalMaterialArray.Num());
+					PxShape* MeshShapeAsync = MeshActorAsync->createShape(PTriMeshGeom, MeshRef->UsedPhysicalMaterialArray.GetData(), MeshRef->UsedPhysicalMaterialArray.Num());
 					check(MeshShapeAsync);
 
 					MeshShapeAsync->setQueryFilterData(PQueryFilterData);

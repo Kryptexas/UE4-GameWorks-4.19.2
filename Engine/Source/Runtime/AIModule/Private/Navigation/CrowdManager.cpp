@@ -447,7 +447,7 @@ bool UCrowdManager::SetAgentMovePath(const class UCrowdFollowingComponent* Agent
 		bSuccess = DetourCrowd->requestMoveTarget(AgentData->AgentIndex, PathRefs.Last(), &RcTargetPos.X);
 		if (bSuccess)
 		{
-			bSuccess = DetourCrowd->setAgentCorridor(AgentData->AgentIndex, PathRefs.GetTypedData(), PathRefs.Num());
+			bSuccess = DetourCrowd->setAgentCorridor(AgentData->AgentIndex, PathRefs.GetData(), PathRefs.Num());
 		}
 	}
 #endif
@@ -813,7 +813,7 @@ void UCrowdManager::CreateCrowdManager()
 			const FCrowdAvoidanceSamplingPattern& Info = SamplingPatterns[Idx];
 			if (Info.Angles.Num() > 0 && Info.Angles.Num() == Info.Radii.Num())
 			{
-				DetourCrowd->setObstacleAvoidancePattern(Idx, Info.Angles.GetTypedData(), Info.Radii.GetTypedData(), Info.Angles.Num());
+				DetourCrowd->setObstacleAvoidancePattern(Idx, Info.Angles.GetData(), Info.Radii.GetData(), Info.Angles.Num());
 			}
 		}
 

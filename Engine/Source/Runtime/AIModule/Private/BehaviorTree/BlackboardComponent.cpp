@@ -793,7 +793,7 @@ bool UBlackboardComponent::GetLocationFromEntry(FBlackboard::FKey KeyID, FVector
 		const FBlackboardEntry* EntryInfo = BlackboardAsset->GetKey(KeyID);
 		if (EntryInfo && EntryInfo->KeyType)
 		{
-			const uint8* ValueData = ValueMemory.GetTypedData() + ValueOffsets[KeyID];
+			const uint8* ValueData = ValueMemory.GetData() + ValueOffsets[KeyID];
 			return EntryInfo->KeyType->GetLocation(ValueData, ResultLocation);
 		}
 	}
@@ -814,7 +814,7 @@ bool UBlackboardComponent::GetRotationFromEntry(FBlackboard::FKey KeyID, FRotato
 		const FBlackboardEntry* EntryInfo = BlackboardAsset->GetKey(KeyID);
 		if (EntryInfo && EntryInfo->KeyType)
 		{
-			const uint8* ValueData = ValueMemory.GetTypedData() + ValueOffsets[KeyID];
+			const uint8* ValueData = ValueMemory.GetData() + ValueOffsets[KeyID];
 			return EntryInfo->KeyType->GetRotation(ValueData, ResultRotation);
 		}
 	}

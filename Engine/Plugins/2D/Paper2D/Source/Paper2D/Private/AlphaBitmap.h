@@ -47,7 +47,7 @@ struct FAlphaBitmap
 				for (int X = 0; X < Width; ++X)
 				{
 					int32 PixelByteOffset = (X + Y * Width) * BytesPerPixel;
-					const uint8* PixelPtr = TextureRawData.GetTypedData() + PixelByteOffset;
+					const uint8* PixelPtr = TextureRawData.GetData() + PixelByteOffset;
 					FColor Color;
 					if (PixelFormat == TSF_BGRA8)
 					{

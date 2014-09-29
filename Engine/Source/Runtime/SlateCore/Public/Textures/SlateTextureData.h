@@ -81,7 +81,7 @@ struct SLATECORE_API FSlateTextureData
 	/** Accesses the raw bytes of already sized texture data */
 	uint8* GetRawBytesPtr( )
 	{
-		return Bytes.GetTypedData();
+		return Bytes.GetData();
 	}
 
 private:

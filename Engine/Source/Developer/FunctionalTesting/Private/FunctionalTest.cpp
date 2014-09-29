@@ -106,7 +106,7 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 
 	OnTestFinished.Broadcast();
 
-	AActor** ActorToDestroy = AutoDestroyActors.GetTypedData();
+	AActor** ActorToDestroy = AutoDestroyActors.GetData();
 
 	for (int32 ActorIndex = 0; ActorIndex < AutoDestroyActors.Num(); ++ActorIndex, ++ActorToDestroy)
 	{

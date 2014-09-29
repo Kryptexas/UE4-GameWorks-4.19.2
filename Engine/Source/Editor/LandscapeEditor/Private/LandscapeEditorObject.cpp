@@ -473,16 +473,16 @@ bool ULandscapeEditorObject::SetAlphaTexture(UTexture2D* InTexture, EColorChanne
 		switch(AlphaTextureChannel)
 		{
 		case 1:
-			SrcPtr = &((FColor*)NewTextureData.GetTypedData())->G;
+			SrcPtr = &((FColor*)NewTextureData.GetData())->G;
 			break;
 		case 2:
-			SrcPtr = &((FColor*)NewTextureData.GetTypedData())->B;
+			SrcPtr = &((FColor*)NewTextureData.GetData())->B;
 			break;
 		case 3:
-			SrcPtr = &((FColor*)NewTextureData.GetTypedData())->A;
+			SrcPtr = &((FColor*)NewTextureData.GetData())->A;
 			break;
 		default:
-			SrcPtr = &((FColor*)NewTextureData.GetTypedData())->R;
+			SrcPtr = &((FColor*)NewTextureData.GetData())->R;
 			break;
 		}
 

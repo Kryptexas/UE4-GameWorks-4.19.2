@@ -28,7 +28,7 @@ void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TA
 		BlobArray.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedSize));
 
 		int32 CompressedSize = BlobArray.Num() - HeaderSize;
-		uint8* DestBuffer = BlobArray.GetTypedData();
+		uint8* DestBuffer = BlobArray.GetData();
 		FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
 		DestBuffer += HeaderSize;
 
@@ -65,7 +65,7 @@ void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQ
 		ItemInfo.ItemIdx = ItemIdx + FirstItemIndex;
 		ItemInfo.TotalScore = Query->Items[ItemInfo.ItemIdx].Score;
 
-		const uint8* ItemData = Query->RawData.GetTypedData() + Query->Items[ItemInfo.ItemIdx].DataOffset;
+		const uint8* ItemData = Query->RawData.GetData() + Query->Items[ItemInfo.ItemIdx].DataOffset;
 		ItemInfo.Desc = FString::Printf(TEXT("[%d] %s"), ItemInfo.ItemIdx, *ItemCDO->GetDescription(ItemData));
 
 		ItemInfo.TestValues.Reserve(NumTests);
@@ -115,14 +115,14 @@ void  UEnvQueryDebugHelpers::BlobArrayToDebugData(const TArray<uint8>& BlobArray
 		TArray<uint8> UncompressedBuffer;
 		int32 UncompressedSize = 0;
 		const int32 HeaderSize = sizeof(int32);
-		uint8* SrcBuffer = (uint8*)BlobArray.GetTypedData();
+		uint8* SrcBuffer = (uint8*)BlobArray.GetData();
 		FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
 		SrcBuffer += HeaderSize;
 		const int32 CompressedSize = BlobArray.Num() - HeaderSize;
 
 		UncompressedBuffer.AddZeroed(UncompressedSize);
 
-		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+		FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)UncompressedBuffer.GetData(), UncompressedSize, SrcBuffer, CompressedSize);
 		FMemoryReader ArReader(UncompressedBuffer);
 
 		ArReader << EQSLocalData;

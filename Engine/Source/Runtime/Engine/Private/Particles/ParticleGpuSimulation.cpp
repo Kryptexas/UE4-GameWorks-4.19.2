@@ -1147,7 +1147,7 @@ static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const
  */
 static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const TArray<uint32>& Tiles )
 {
-	BuildTileVertexBuffer( TileOffsetsRef, Tiles.GetTypedData(), Tiles.Num() );
+	BuildTileVertexBuffer( TileOffsetsRef, Tiles.GetData(), Tiles.Num() );
 }
 
 /**
@@ -1313,7 +1313,7 @@ void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel
 	{
 		// Copy new particles in to the vertex buffer.
 		const int32 TilesThisDrawCall = FMath::Min<int32>( TileCount, MaxTilesPerDrawCall );
-		const uint32* TilesPtr = Tiles.GetTypedData() + FirstTile;
+		const uint32* TilesPtr = Tiles.GetData() + FirstTile;
 		BuildTileVertexBuffer( BufferParam, TilesPtr, TilesThisDrawCall );
 		
 		VertexShader->SetParameters(RHICmdList, ShaderParam);
@@ -1531,7 +1531,7 @@ void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Feat
 	{
 		// Copy new particles in to the vertex buffer.
 		const int32 ParticlesThisDrawCall = FMath::Min<int32>( ParticleCount, MaxParticlesPerDrawCall );
-		const void* Src = NewParticles.GetTypedData() + FirstParticle;
+		const void* Src = NewParticles.GetData() + FirstParticle;
 #if PLATFORM_SUPPORTS_RHI_THREAD
 		if (GRHIThread)
 		{
@@ -3271,13 +3271,13 @@ public:
 			if (BurstInfo.Count > 0)
 			{
 				// Spawn burst particles.
-				BuildNewParticles(NewParticles.GetTypedData() + FirstBurstParticleIndex, BurstInfo);
+				BuildNewParticles(NewParticles.GetData() + FirstBurstParticleIndex, BurstInfo);
 			}
 
 			if (SpawnInfo.Count > 0)
 			{
 				// Spawn normal particles.
-				BuildNewParticles(NewParticles.GetTypedData() + FirstSpawnParticleIndex, SpawnInfo);
+				BuildNewParticles(NewParticles.GetData() + FirstSpawnParticleIndex, SpawnInfo);
 			}
 
 			int32 NewParticleCount = BurstInfo.Count + SpawnInfo.Count;
@@ -3298,7 +3298,7 @@ public:
 			if (Component && Component->bWarmingUp)
 			{
 				SimulateWarmupParticles(
-					NewParticles.GetTypedData() + (NewParticles.Num() - NewParticleCount),
+					NewParticles.GetData() + (NewParticles.Num() - NewParticleCount),
 					NewParticleCount,
 					Component->WarmupTime - SecondsSinceCreation );
 			}

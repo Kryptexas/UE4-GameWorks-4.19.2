@@ -158,23 +158,23 @@ static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd & Cmd, const
 		uint32 * Guard = (uint32*)&TempPropMemory[TempPropMemory.Num() - 4];
 		const uint32 TAG_VALUE = 0xABADF00D;
 		*Guard = TAG_VALUE;
-		Cmd.Property->InitializeValue( TempPropMemory.GetTypedData() );
+		Cmd.Property->InitializeValue( TempPropMemory.GetData() );
 		check( *Guard == TAG_VALUE );
 
 		// Read it back in and then write it out to produce what the client will produce
 		FBitReader Reader( Writer.GetData(), Writer.GetNumBits() );
-		Cmd.Property->NetSerializeItem( Reader, NULL, TempPropMemory.GetTypedData() );
+		Cmd.Property->NetSerializeItem( Reader, NULL, TempPropMemory.GetData() );
 		check( Reader.AtEnd() && !Reader.IsError() );
 		check( *Guard == TAG_VALUE );
 
 		// Write it back out for a final time
 		Writer.Reset();
 
-		Cmd.Property->NetSerializeItem( Writer, NULL, TempPropMemory.GetTypedData() );
+		Cmd.Property->NetSerializeItem( Writer, NULL, TempPropMemory.GetData() );
 		check( *Guard == TAG_VALUE );
 
 		// Destroy temp memory
-		Cmd.Property->DestroyValue( TempPropMemory.GetTypedData() );
+		Cmd.Property->DestroyValue( TempPropMemory.GetData() );
 
 		// Restore the static array size
 		Cmd.Property->ArrayDim = OriginalDim;
@@ -288,7 +288,7 @@ bool FRepLayout::CompareProperties(
 {
 	bool PropertyChanged = false;
 
-	const uint16 * RESTRICT FirstProp	= PropertyList.GetTypedData();
+	const uint16 * RESTRICT FirstProp	= PropertyList.GetData();
 	const uint16 * RESTRICT LastProp	= FirstProp + PropertyList.Num();
 
 	for ( const uint16 * RESTRICT pLifeProp = FirstProp; pLifeProp < LastProp; ++pLifeProp )
@@ -368,8 +368,8 @@ void FRepLayout::LogChangeListMismatches(
 			FString StringValue3;
 
 			Parents[Index].Property->ExportText_InContainer( Parents[Index].ArrayIndex, StringValue1, Data, NULL, NULL, PPF_DebugDump );
-			Parents[Index].Property->ExportText_InContainer( Parents[Index].ArrayIndex, StringValue2, RepState1->StaticBuffer.GetTypedData(), NULL, NULL, PPF_DebugDump );
-			Parents[Index].Property->ExportText_InContainer( Parents[Index].ArrayIndex, StringValue3, RepState2->StaticBuffer.GetTypedData(), NULL, NULL, PPF_DebugDump );
+			Parents[Index].Property->ExportText_InContainer( Parents[Index].ArrayIndex, StringValue2, RepState1->StaticBuffer.GetData(), NULL, NULL, PPF_DebugDump );
+			Parents[Index].Property->ExportText_InContainer( Parents[Index].ArrayIndex, StringValue3, RepState2->StaticBuffer.GetData(), NULL, NULL, PPF_DebugDump );
 
 			UE_LOG( LogNet, Warning, TEXT( "      Values: %s, %s, %s" ), *StringValue1, *StringValue2, *StringValue3 );
 		}
@@ -397,7 +397,7 @@ void FRepLayout::SanityCheckShadowStateAgainstChangeList(
 	FRepState *							OtherRepState,
 	const TArray< FRepChangedParent > & OtherChangedParents ) const
 {
-	const uint8 *	CompareData	= RepState->StaticBuffer.GetTypedData();
+	const uint8 *	CompareData	= RepState->StaticBuffer.GetData();
 	UObject *		Object		= (UObject*)Data;
 
 	TArray< FRepChangedParent > LocalChangedParents;
@@ -450,7 +450,7 @@ bool FRepLayout::ReplicateProperties(
 	UObject *						Object			= (UObject*)Data;
 	const UNetDriver *				NetDriver		= OwningChannel->Connection->Driver;
 	FRepChangedPropertyTracker *	ChangeTracker	= RepState->RepChangedPropertyTracker.Get();
-	const uint8 *					CompareData		= RepState->StaticBuffer.GetTypedData();
+	const uint8 *					CompareData		= RepState->StaticBuffer.GetData();
 
 	// Rebuild conditional properties if needed
 	if ( RepState->RepFlags.Value != RepFlags.Value || RepState->ActiveStatusChanged != ChangeTracker->ActiveStatusChanged )
@@ -608,7 +608,7 @@ bool FRepLayout::ReplicateProperties(
 
 		if ( bIsAllAcked )
 		{
-			ValidateWithChecksum( RepState->StaticBuffer.GetTypedData(), Writer, false );
+			ValidateWithChecksum( RepState->StaticBuffer.GetData(), Writer, false );
 		}
 #endif
 		
@@ -990,7 +990,7 @@ void FRepLayout::SendProperties(
 	Writer.WriteBit( bDoChecksum ? 1 : 0 );
 #endif
 
-	SendProperties_r( RepState, RepFlags, WriterState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), Data, 0 );
+	SendProperties_r( RepState, RepFlags, WriterState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetData(), Data, 0 );
 
 	WritePropertyHandle( Writer, 0, bDoChecksum );
 }
@@ -1244,7 +1244,7 @@ bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT
 	ReadNextHandle( ReaderState );
 
 	// Read all properties
-	if ( !ReceiveProperties_r( ReaderState, &RepState->UnmappedGuids, 0, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), (uint8*)Data ) )
+	if ( !ReceiveProperties_r( ReaderState, &RepState->UnmappedGuids, 0, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetData(), (uint8*)Data ) )
 	{
 		return false;
 	}
@@ -1259,7 +1259,7 @@ bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT
 #ifdef ENABLE_SUPER_CHECKSUMS
 	if ( InBunch.ReadBit() == 1 )
 	{
-		ValidateWithChecksum( RepState->StaticBuffer.GetTypedData(), InBunch );
+		ValidateWithChecksum( RepState->StaticBuffer.GetData(), InBunch );
 	}
 #endif
 
@@ -1387,7 +1387,7 @@ void FRepLayout::CallRepNotifies( FRepState * RepState, UObject * Object ) const
 		}
 		else if (RepNotifyFunc->NumParms == 1 )
 		{
-			Object->ProcessEvent( RepNotifyFunc, RepProperty->ContainerPtrToValuePtr<uint8>( RepState->StaticBuffer.GetTypedData() ) );
+			Object->ProcessEvent( RepNotifyFunc, RepProperty->ContainerPtrToValuePtr<uint8>( RepState->StaticBuffer.GetData() ) );
 		}
 
 		// Store the property we just received
@@ -1456,7 +1456,7 @@ void FRepLayout::ValidateWithChecksum( const void * RESTRICT Data, FArchive & Ar
 uint32 FRepLayout::GenerateChecksum( const FRepState * RepState ) const
 {
 	FBitWriter Writer( 1024, true );
-	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)RepState->StaticBuffer.GetTypedData(), Writer );
+	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)RepState->StaticBuffer.GetData(), Writer );
 
 	return FCrc::MemCrc32( Writer.GetData(), Writer.GetNumBytes(), 0 );
 }
@@ -1785,7 +1785,7 @@ void FRepLayout::DiffProperties_r(
 bool FRepLayout::DiffProperties( FRepState * RepState, const void * RESTRICT Data, const bool bSync ) const
 {
 	bool bDifferent = false;
-	DiffProperties_r( RepState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), (uint8*)Data, bSync, bDifferent );
+	DiffProperties_r( RepState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetData(), (uint8*)Data, bSync, bDifferent );
 	return bDifferent;
 }
 
@@ -1974,7 +1974,7 @@ int32 FRepLayout::InitFromProperty_r( UProperty * Property, int32 Offset, int32 
 			}
 		};
 
-		Sort( NetProperties.GetTypedData(), NetProperties.Num(), FCompareUFieldOffsets() );
+		Sort( NetProperties.GetData(), NetProperties.Num(), FCompareUFieldOffsets() );
 
 		for ( int32 i = 0; i < NetProperties.Num(); i++ )
 		{
@@ -2460,7 +2460,7 @@ void FRepLayout::InitRepState(
 
 void FRepLayout::ConstructProperties( FRepState * RepState ) const
 {
-	uint8 * StoredData = RepState->StaticBuffer.GetTypedData();
+	uint8 * StoredData = RepState->StaticBuffer.GetData();
 
 	// Construct all items
 	for ( int32 i = 0; i < Parents.Num(); i++ )
@@ -2478,7 +2478,7 @@ void FRepLayout::ConstructProperties( FRepState * RepState ) const
 
 void FRepLayout::InitProperties( FRepState * RepState, uint8 * Src ) const
 {
-	uint8 * StoredData = RepState->StaticBuffer.GetTypedData();
+	uint8 * StoredData = RepState->StaticBuffer.GetData();
 
 	// Init all items
 	for ( int32 i = 0; i < Parents.Num(); i++ )
@@ -2496,7 +2496,7 @@ void FRepLayout::InitProperties( FRepState * RepState, uint8 * Src ) const
 
 void FRepLayout::DestructProperties( FRepState * RepState ) const
 {
-	uint8 * StoredData = RepState->StaticBuffer.GetTypedData();
+	uint8 * StoredData = RepState->StaticBuffer.GetData();
 
 	// Destruct all items
 	for ( int32 i = 0; i < Parents.Num(); i++ )

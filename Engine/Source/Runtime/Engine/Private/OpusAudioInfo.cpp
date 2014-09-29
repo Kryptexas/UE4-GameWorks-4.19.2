@@ -410,7 +410,7 @@ int32 FOpusAudioInfo::DecompressToPCMBuffer(uint16 FrameSize)
 	const uint8* SrcPtr = SrcBufferData + SrcBufferOffset;
 	SrcBufferOffset += FrameSize;
 	LastPCMOffset = 0;
-	return OpusDecoderWrapper->Decode(SrcPtr, FrameSize, (int16*)LastDecodedPCM.GetTypedData(), MaxFrameSizeSamples);
+	return OpusDecoderWrapper->Decode(SrcPtr, FrameSize, (int16*)LastDecodedPCM.GetData(), MaxFrameSizeSamples);
 }
 
 uint32 FOpusAudioInfo::IncrementCurrentSampleCount(uint32 NewSamples)
@@ -432,7 +432,7 @@ uint32 FOpusAudioInfo::WriteFromDecodedPCM(uint8* Destination, uint32 BufferSize
 	uint32 BytesToCopy = FMath::Min(BufferSize, LastPCMByteSize - LastPCMOffset);
 	if (BytesToCopy > 0)
 	{
-		FMemory::Memcpy(Destination, LastDecodedPCM.GetTypedData() + LastPCMOffset, BytesToCopy);
+		FMemory::Memcpy(Destination, LastDecodedPCM.GetData() + LastPCMOffset, BytesToCopy);
 		LastPCMOffset += BytesToCopy;
 		if (LastPCMOffset >= LastPCMByteSize)
 		{

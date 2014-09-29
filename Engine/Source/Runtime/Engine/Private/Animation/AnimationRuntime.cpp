@@ -304,8 +304,8 @@ void FAnimationRuntime::LerpBoneTransforms(TArray<FTransform> & A, const TArray<
 	}
 	else if( Alpha > ZERO_ANIMWEIGHT_THRESH )
 	{
-		FTransform * ATransformData = A.GetTypedData(); 
-		const FTransform * BTransformData = B.GetTypedData();
+		FTransform * ATransformData = A.GetData(); 
+		const FTransform * BTransformData = B.GetData();
 		const ScalarRegister VAlpha(Alpha);
 		const ScalarRegister VOneMinusAlpha(1.f - Alpha);
 
@@ -729,8 +729,8 @@ void FAnimationRuntime::ConvertPoseToMeshSpace(const TArray<FTransform> & LocalT
 	check( NumBones == LocalTransforms.Num() );
 	check( NumBones == MeshSpaceTransforms.Num() );
 
-	const FTransform * LocalTransformsData = LocalTransforms.GetTypedData(); 
-	FTransform * SpaceBasesData = MeshSpaceTransforms.GetTypedData();
+	const FTransform * LocalTransformsData = LocalTransforms.GetData(); 
+	FTransform * SpaceBasesData = MeshSpaceTransforms.GetData();
 	const TArray<FBoneIndexType> & RequiredBoneIndexArray = RequiredBones.GetBoneIndicesArray();
 
 	// First bone is always root bone, and it doesn't have a parent.
@@ -960,7 +960,7 @@ void FAnimationRuntime::UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight
 	// in the future, cache this outside
 	ensure (TargetBoneBlendWeights.Num() == SrcBoneBlendWeights.Num());
 
-	FMemory::Memset(TargetBoneBlendWeights.GetTypedData(), 0, TargetBoneBlendWeights.Num() * sizeof(FPerBoneBlendWeight));
+	FMemory::Memset(TargetBoneBlendWeights.GetData(), 0, TargetBoneBlendWeights.Num() * sizeof(FPerBoneBlendWeight));
 
 	// go through skeleton tree requiredboneindices
 	const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();

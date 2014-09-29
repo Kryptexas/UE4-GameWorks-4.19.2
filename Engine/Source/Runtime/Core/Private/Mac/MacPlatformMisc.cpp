@@ -600,8 +600,8 @@ void FMacPlatformMisc::ClipboardPaste(class FString& Result)
 	{
 		TArray<TCHAR> Ch;
 		Ch.AddUninitialized([CocoaString length] + 1);
-		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetTypedData());
-		Result = Ch.GetTypedData();
+		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetData());
+		Result = Ch.GetData();
 	}
 	else
 	{

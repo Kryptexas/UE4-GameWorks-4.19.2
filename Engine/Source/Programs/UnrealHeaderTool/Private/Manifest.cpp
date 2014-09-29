@@ -150,9 +150,9 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 		KnownModule.PublicUObjectHeaders       .AddZeroed(PublicHeaders .Num());
 		KnownModule.PrivateUObjectHeaders      .AddZeroed(PrivateHeaders.Num());
 
-		ProcessHeaderArray(KnownModule.PublicUObjectClassesHeaders.GetTypedData(), ClassesHeaders, *(Outer + TEXT(".ClassHeaders"  )));
-		ProcessHeaderArray(KnownModule.PublicUObjectHeaders       .GetTypedData(), PublicHeaders , *(Outer + TEXT(".PublicHeaders" )));
-		ProcessHeaderArray(KnownModule.PrivateUObjectHeaders      .GetTypedData(), PrivateHeaders, *(Outer + TEXT(".PrivateHeaders")));
+		ProcessHeaderArray(KnownModule.PublicUObjectClassesHeaders.GetData(), ClassesHeaders, *(Outer + TEXT(".ClassHeaders")));
+		ProcessHeaderArray(KnownModule.PublicUObjectHeaders       .GetData(), PublicHeaders , *(Outer + TEXT(".PublicHeaders" )));
+		ProcessHeaderArray(KnownModule.PrivateUObjectHeaders      .GetData(), PrivateHeaders, *(Outer + TEXT(".PrivateHeaders")));
 
 		// Sort the headers alphabetically.  This is just to add determinism to the compilation dependency order, since we currently
 		// don't rely on explicit includes (but we do support 'dependson')

@@ -274,7 +274,7 @@ void FOpenGLGPUProfiler::EndFrame()
 				{
 					GPUHitchEventNodeFrames.RemoveAt(0);
 				}
-				GPUHitchEventNodeFrames.AddRawItem((FOpenGLEventNodeFrame*)CurrentEventNodeFrame);
+				GPUHitchEventNodeFrames.Add((FOpenGLEventNodeFrame*)CurrentEventNodeFrame);
 				CurrentEventNodeFrame = NULL;  // prevent deletion of this below; ke kept it in the history
 			}
 		}

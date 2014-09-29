@@ -514,7 +514,7 @@ public:
 				int32 Start = AnnotationArray.AddUninitialized(AddNum);
 				while (AddNum--) 
 				{
-					new (AnnotationArray.GetTypedData() + Start++) TAnnotation();
+					new (AnnotationArray.GetData() + Start++) TAnnotation();
 				}
 			}
 			AnnotationArray[Index] = Annotation;

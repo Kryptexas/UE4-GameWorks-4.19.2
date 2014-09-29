@@ -2116,7 +2116,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 		}
 		NxParameterized::Handle md(*ActorDesc, "morphDisplacements");
 		md.resizeArray(PxBlendedData.Num());
-		md.setParamVec3Array(PxBlendedData.GetTypedData(), PxBlendedData.Num());
+		md.setParamVec3Array(PxBlendedData.GetData(), PxBlendedData.Num());
 	}
 
 	FPhysScene* PhysScene = NULL;
@@ -2738,7 +2738,7 @@ void USkeletalMeshComponent::CreateInternalClothCollisions(TArray<FApexClothColl
 						ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
 					}
 
-					NxClothingConvex* Convex = Actor->createCollisionConvex(ClothingPlanes.GetTypedData(), ClothingPlanes.Num());
+					NxClothingConvex* Convex = Actor->createCollisionConvex(ClothingPlanes.GetData(), ClothingPlanes.Num());
 
 					OutCollisions.Add(Convex);
 				}
@@ -2925,7 +2925,7 @@ FApexClothCollisionInfo* USkeletalMeshComponent::CreateNewClothingCollsions(UPri
 						ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
 					}
 
-					ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetTypedData(), ClothingPlanes.Num());
+					ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetData(), ClothingPlanes.Num());
 
 					if(ClothCol)
 					{
@@ -3243,7 +3243,7 @@ void USkeletalMeshComponent::ChangeClothMorphTargetMapping(FClothMorphTargetData
 
 			NxClothingAsset* ClothingAsset = Asset.ApexClothingAsset->GetAsset();
 			float Epsilon = 0.0f;
-			uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray.GetTypedData(), NumOriginPos, Epsilon);
+			uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray.GetData(), NumOriginPos, Epsilon);
 
 			if ((int32)NumMapped < NumOriginPos)
 			{
@@ -3352,7 +3352,7 @@ void USkeletalMeshComponent::PrepareClothMorphTargets()
 				{
 					NxClothingAsset* ClothingAsset = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetAsset();
 					float Epsilon = 0.0f;
-					uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray[AssetIdx].GetTypedData(), ClothOriginalPosArray[AssetIdx].Num(), Epsilon);
+					uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray[AssetIdx].GetData(), ClothOriginalPosArray[AssetIdx].Num(), Epsilon);
 
 					int32 NumOriginPos = ClothOriginalPosArray[AssetIdx].Num();
 					if ((int32)NumMapped < NumOriginPos)
@@ -3570,7 +3570,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 		// if bUseInternalboneOrder is set, "NumUsedBones" works, otherwise have to use "getNumBones" 
 		ClothingActor->updateState(
 			PxGlobalPose, 
-			BoneMatrices.GetTypedData(), 
+			BoneMatrices.GetData(), 
 			sizeof(physx::PxMat44), 
 			NumUsedBones,
 			CurTeleportMode);

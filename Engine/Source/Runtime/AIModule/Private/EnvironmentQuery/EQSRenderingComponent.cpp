@@ -16,7 +16,7 @@ namespace FEQSRenderingHelper
 			ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 		{
 			UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
-			return DefTypeOb->GetLocation(RawData.GetTypedData() + Items[Index].DataOffset);
+			return DefTypeOb->GetLocation(RawData.GetData() + Items[Index].DataOffset);
 		}
 		return FVector::ZeroVector;
 	}
@@ -148,7 +148,7 @@ void FEQSSceneProxy::CollectEQSData(const struct FEnvQueryResult* ResultItems, c
 	float MaxScore = -BIG_NUMBER;
 	if (bUseMidResults)
 	{
-		const FEnvQueryItem* ItemInfo = Items.GetTypedData();
+		const FEnvQueryItem* ItemInfo = Items.GetData();
 		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++, ItemInfo++)
 		{
 			if (ItemInfo->IsValid())

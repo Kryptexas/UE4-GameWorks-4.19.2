@@ -2452,7 +2452,7 @@ void FEdModeMeshPaint::CommitAllPaintedTextures()
 					// Store source art
 					FColor* Colors = (FColor*)TextureData->PaintingTexture2D->Source.LockMip(0);					
 					check(TextureData->PaintingTexture2D->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(FColor));
-					FMemory::Memcpy(Colors, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof(FColor));
+					FMemory::Memcpy(Colors, TexturePixels.GetData(), TexturePixels.Num() * sizeof(FColor));
 					TextureData->PaintingTexture2D->Source.UnlockMip(0);
 
 					// If render target gamma used was 1.0 then disable SRGB for the static texture
@@ -2666,7 +2666,7 @@ void FEdModeMeshPaint::FinishPaintingTexture( )
 				// Store source art
 				FColor* Colors = (FColor*)TextureData->PaintingTexture2D->Source.LockMip(0);
 				check(TextureData->PaintingTexture2D->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(FColor));
-				FMemory::Memcpy(Colors, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof(FColor));
+				FMemory::Memcpy(Colors, TexturePixels.GetData(), TexturePixels.Num() * sizeof(FColor));
 				TextureData->PaintingTexture2D->Source.UnlockMip(0);
 
 				// If render target gamma used was 1.0 then disable SRGB for the static texture
@@ -3197,7 +3197,7 @@ UTexture2D* FEdModeMeshPaint::CreateTempUncompressedTexture( UTexture2D* SourceT
 	for( int32 y=0; y<Height; y++ )
 	{
 		uint8* DestPtr = &MipData[(Height - 1 - y) * Width * sizeof(FColor)];
-		const FColor* SrcPtr = &( (FColor*)( RawData.GetTypedData() ) )[ ( Height - 1 - y ) * Width ];
+		const FColor* SrcPtr = &( (FColor*)( RawData.GetData() ) )[ ( Height - 1 - y ) * Width ];
 		for( int32 x=0; x<Width; x++ )
 		{
 			*DestPtr++ = SrcPtr->B;
@@ -4319,7 +4319,7 @@ void FImportVertexTextureHelper::ImportVertexColors(const FString & Filename, in
 
 	TArray<uint8> SrcMipData;
 	Tex->Source.GetMipData(SrcMipData, 0);
-	uint8* MipData = SrcMipData.GetTypedData();
+	uint8* MipData = SrcMipData.GetData();
 	TArray <UStaticMesh*> ModifiedStaticMeshes;
 
 	for(const auto& StaticMeshComponent : Components)
@@ -5000,7 +5000,7 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 						SelectedTexture->Source.GetMipData(TexturePixels, 0);					
 						uint8* DestData = NewTexture->Source.LockMip(0);					
 						check(NewTexture->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(uint8));
-						FMemory::Memcpy(DestData, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof( uint8 ) );
+						FMemory::Memcpy(DestData, TexturePixels.GetData(), TexturePixels.Num() * sizeof( uint8 ) );
 						NewTexture->Source.UnlockMip(0);
 						NewTexture->SRGB = SelectedTexture->SRGB;
 						NewTexture->PostEditChange();

@@ -134,7 +134,7 @@ bool FCrashUpload::SendCheckReportRequest()
 		const int32 Length = Converter.Length();
 		PostData.Reset( Length );
 		PostData.AddUninitialized( Length );
-		CopyAssignItems( (ANSICHAR*)PostData.GetTypedData(), Converter.Get(), Length );
+		CopyAssignItems( (ANSICHAR*)PostData.GetData(), Converter.Get(), Length );
 
 		Request->SetURL(UrlPrefix / TEXT("CheckReportDetail"));
 		Request->SetHeader(TEXT("Content-Type"), TEXT("text/plain; charset=utf-8"));

@@ -353,7 +353,7 @@ void UModelComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveI
 						SurfaceVertices.Add(WorldVertex);
 					}
 				}
-				const FSphere SurfaceBoundingSphere(SurfaceVertices.GetTypedData(),SurfaceVertices.Num());
+				const FSphere SurfaceBoundingSphere(SurfaceVertices.GetData(),SurfaceVertices.Num());
 
 				// Compute the surface's texture scaling factor.
 				const float BspTexelsPerNormalizedTexel = UModel::GetGlobalBSPTexelScale();

@@ -252,7 +252,7 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 			if ( Channel && Ar.IsSaving() )
 			{
 				FObjectReplicator * RepData = &Channel->GetActorReplicationData();
-				uint8 * Recent = RepData && RepData->RepState != NULL && RepData->RepState->StaticBuffer.Num() ? RepData->RepState->StaticBuffer.GetTypedData() : NULL;
+				uint8 * Recent = RepData && RepData->RepState != NULL && RepData->RepState->StaticBuffer.Num() ? RepData->RepState->StaticBuffer.GetData() : NULL;
 				if ( Recent )
 				{
 					((AActor*)Recent)->ReplicatedMovement.Location = Location;

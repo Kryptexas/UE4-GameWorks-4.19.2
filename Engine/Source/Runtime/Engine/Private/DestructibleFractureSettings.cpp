@@ -40,7 +40,7 @@ static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAutho
 	TArray<NxRenderMeshAssetAuthoring::SubmeshDesc> SubmeshDescs;
 	SubmeshDescs.Init(NxRenderMeshAssetAuthoring::SubmeshDesc(), HMesh.submeshCount());
 	MeshDesc.m_numSubmeshes = (PxU32)SubmeshDescs.Num();
-	MeshDesc.m_submeshes = SubmeshDescs.GetTypedData();
+	MeshDesc.m_submeshes = SubmeshDescs.GetData();
 
 	// Need to transpose the submesh/part arrays.  The outer arrays on the following are indexed by submesh:
 	TArray< TArray<NxVertex> > SubmeshVertices;
@@ -105,7 +105,7 @@ static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAutho
 			{
 				TArray<PxU32> Map;
 				Map.Init(PartVertices.Num());
-				const PxU32 ReducedPartVertexCount = RenderMeshAssetAuthor.createReductionMap(Map.GetTypedData(), PartVertices.GetTypedData(), NULL, (PxU32)PartVertices.Num(), PxVec3( 0.0001f ), 0.001f, 1.0f/256.01f);
+				const PxU32 ReducedPartVertexCount = RenderMeshAssetAuthor.createReductionMap(Map.GetData(), PartVertices.GetData(), NULL, (PxU32)PartVertices.Num(), PxVec3( 0.0001f ), 0.001f, 1.0f/256.01f);
 				const PxU32 VertexPartStart = (PxU32)Vertices.Num();
 				Resize(Vertices, NxVertex(), VertexPartStart + ReducedPartVertexCount);
 				Resize(Indices, (uint32)0, PartIndices[PartIndex] + PartVertices.Num());
@@ -122,9 +122,9 @@ static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAutho
 
 		SubmeshDesc.m_numVertices = (PxU32)Vertices.Num();
 		SubmeshDesc.m_numParts = (PxU32)PartIndices.Num();
-		SubmeshDesc.m_partIndices = PartIndices.GetTypedData();
+		SubmeshDesc.m_partIndices = PartIndices.GetData();
 		SubmeshDesc.m_numIndices = (PxU32)Indices.Num();
-		SubmeshDesc.m_vertexIndices = Indices.GetTypedData();
+		SubmeshDesc.m_vertexIndices = Indices.GetData();
 
 		if (SubmeshDesc.m_numParts == 0 || SubmeshDesc.m_vertexIndices == 0)
 		{
@@ -133,44 +133,44 @@ static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAutho
 
 		if (VertexFormat.mHasStaticPositions || VertexFormat.mHasDynamicPositions)
 		{
-			vb.setSemanticData( NxRenderVertexSemantic::POSITION, &Vertices.GetTypedData()->position, sizeof( NxVertex ), NxRenderDataFormat::FLOAT3);
+			vb.setSemanticData( NxRenderVertexSemantic::POSITION, &Vertices.GetData()->position, sizeof( NxVertex ), NxRenderDataFormat::FLOAT3);
 		}
 		if (VertexFormat.mHasStaticNormals || VertexFormat.mHasDynamicNormals)
 		{
-			vb.setSemanticData( NxRenderVertexSemantic::NORMAL, &Vertices.GetTypedData()->normal, sizeof( NxVertex ), VertexNormalFormat, NxRenderDataFormat::FLOAT3);
+			vb.setSemanticData( NxRenderVertexSemantic::NORMAL, &Vertices.GetData()->normal, sizeof( NxVertex ), VertexNormalFormat, NxRenderDataFormat::FLOAT3);
 		}
 		if (VertexFormat.mHasStaticTangents || VertexFormat.mHasDynamicTangents)
 		{
-			vb.setSemanticData( NxRenderVertexSemantic::TANGENT, &Vertices.GetTypedData()->tangent, sizeof( NxVertex ), VertexNormalFormat, NxRenderDataFormat::FLOAT3);
+			vb.setSemanticData( NxRenderVertexSemantic::TANGENT, &Vertices.GetData()->tangent, sizeof( NxVertex ), VertexNormalFormat, NxRenderDataFormat::FLOAT3);
 		}
 		if (VertexFormat.mHasStaticBinormals || VertexFormat.mHasDynamicBinormals)
 		{
-			vb.setSemanticData( NxRenderVertexSemantic::BINORMAL, &Vertices.GetTypedData()->binormal, sizeof( NxVertex ), VertexNormalFormat, NxRenderDataFormat::FLOAT3);
+			vb.setSemanticData( NxRenderVertexSemantic::BINORMAL, &Vertices.GetData()->binormal, sizeof( NxVertex ), VertexNormalFormat, NxRenderDataFormat::FLOAT3);
 		}
 		if (VertexFormat.mHasStaticColors || VertexFormat.mHasDynamicColors)
 		{
-			vb.setSemanticData( NxRenderVertexSemantic::COLOR, &Vertices.GetTypedData()->color, sizeof( NxVertex ), NxRenderDataFormat::R8G8B8A8, NxRenderDataFormat::R32G32B32A32_FLOAT);
+			vb.setSemanticData( NxRenderVertexSemantic::COLOR, &Vertices.GetData()->color, sizeof( NxVertex ), NxRenderDataFormat::R8G8B8A8, NxRenderDataFormat::R32G32B32A32_FLOAT);
 		}
 		for (PxU32 uvNum = 0; uvNum < VertexFormat.mUVCount; ++uvNum)
 		{
-			vb.setSemanticData( (NxRenderVertexSemantic::Enum)(uvNum+NxRenderVertexSemantic::TEXCOORD0), &Vertices.GetTypedData()->uv[uvNum], sizeof( NxVertex ), NxRenderDataFormat::FLOAT2);
+			vb.setSemanticData( (NxRenderVertexSemantic::Enum)(uvNum+NxRenderVertexSemantic::TEXCOORD0), &Vertices.GetData()->uv[uvNum], sizeof( NxVertex ), NxRenderDataFormat::FLOAT2);
 		}
 		switch (VertexFormat.mBonesPerVertex)
 		{
 		case 1:
-			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetTypedData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT1);
+			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT1);
 			break;
 		case 2:
-			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetTypedData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT2);
-			vb.setSemanticData( NxRenderVertexSemantic::BONE_WEIGHT, &Vertices.GetTypedData()->boneWeights[0], sizeof( NxVertex ), NxRenderDataFormat::FLOAT2);
+			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT2);
+			vb.setSemanticData( NxRenderVertexSemantic::BONE_WEIGHT, &Vertices.GetData()->boneWeights[0], sizeof( NxVertex ), NxRenderDataFormat::FLOAT2);
 			break;
 		case 3:
-			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetTypedData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT3);
-			vb.setSemanticData( NxRenderVertexSemantic::BONE_WEIGHT, &Vertices.GetTypedData()->boneWeights[0], sizeof( NxVertex ), NxRenderDataFormat::FLOAT3);
+			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT3);
+			vb.setSemanticData( NxRenderVertexSemantic::BONE_WEIGHT, &Vertices.GetData()->boneWeights[0], sizeof( NxVertex ), NxRenderDataFormat::FLOAT3);
 			break;
 		case 4:
-			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetTypedData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT4);
-			vb.setSemanticData( NxRenderVertexSemantic::BONE_WEIGHT, &Vertices.GetTypedData()->boneWeights[0], sizeof( NxVertex ), NxRenderDataFormat::FLOAT4);
+			vb.setSemanticData( NxRenderVertexSemantic::BONE_INDEX, &Vertices.GetData()->boneIndices[0], sizeof( NxVertex ), NxRenderDataFormat::USHORT4);
+			vb.setSemanticData( NxRenderVertexSemantic::BONE_WEIGHT, &Vertices.GetData()->boneWeights[0], sizeof( NxVertex ), NxRenderDataFormat::FLOAT4);
 			break;
 		}
 	}
@@ -336,7 +336,7 @@ void UDestructibleFractureSettings::BuildDestructibleAssetCookingDesc(NxDestruct
 
 	// Set up chunk desc array
 	ChunkDescs.Init(physx::NxDestructibleChunkDesc(), HMesh.chunkCount());
-	DestructibleAssetCookingDesc.chunkDescs = ChunkDescs.GetTypedData();
+	DestructibleAssetCookingDesc.chunkDescs = ChunkDescs.GetData();
 	DestructibleAssetCookingDesc.chunkDescCount = ChunkDescs.Num();
 	for (uint32 ChunkIndex = 0; ChunkIndex < DestructibleAssetCookingDesc.chunkDescCount; ++ChunkIndex)
 	{
@@ -360,7 +360,7 @@ void UDestructibleFractureSettings::BuildDestructibleAssetCookingDesc(NxDestruct
 
 	// Set up geometry desc array
 	GeometryDescs.Init(physx::NxDestructibleGeometryDesc(), HMesh.partCount());
-	DestructibleAssetCookingDesc.geometryDescs = GeometryDescs.GetTypedData();
+	DestructibleAssetCookingDesc.geometryDescs = GeometryDescs.GetData();
 	DestructibleAssetCookingDesc.geometryDescCount = GeometryDescs.Num();
 	for (uint32 GeometryIndex = 0; GeometryIndex < DestructibleAssetCookingDesc.geometryDescCount; ++GeometryIndex)
 	{
@@ -377,8 +377,8 @@ bool UDestructibleFractureSettings::SetRootMesh(const TArray<NxExplicitRenderTri
 
 	if (ApexDestructibleAssetAuthoring != NULL)
 	{
-		Success = ApexDestructibleAssetAuthoring->setRootMesh(MeshTriangles.GetTypedData(), MeshTriangles.Num(), SubmeshData.GetTypedData(), 
-															  SubmeshData.Num(), (uint32*)MeshPartition.GetTypedData(), MeshPartition.Num(), bFirstPartitionIsDepthZero);
+		Success = ApexDestructibleAssetAuthoring->setRootMesh(MeshTriangles.GetData(), MeshTriangles.Num(), SubmeshData.GetData(), 
+															  SubmeshData.Num(), (uint32*)MeshPartition.GetData(), MeshPartition.Num(), bFirstPartitionIsDepthZero);
 		if (Success)
 		{
 			NxCollisionDesc CollisionDesc;
@@ -489,7 +489,7 @@ void UDestructibleFractureSettings::CreateVoronoiSitesInRootMesh()
 		// Progress listener for reporting progress - for now, just a dummy
 		FProgressListener ProgressListener;
 		check(sizeof(FVector) == sizeof(PxVec3));
-		ApexDestructibleAssetAuthoring->createVoronoiSitesInsideMesh((PxVec3*)VoronoiSites.GetTypedData(), VoronoiSites.Num(), (PxU32*)&RandomSeed, NULL, ProgressListener);
+		ApexDestructibleAssetAuthoring->createVoronoiSitesInsideMesh((PxVec3*)VoronoiSites.GetData(), VoronoiSites.Num(), (PxU32*)&RandomSeed, NULL, ProgressListener);
 	}
 }
 
@@ -507,7 +507,7 @@ bool UDestructibleFractureSettings::VoronoiSplitMesh()
 		FractureTools::FractureVoronoiDesc FTFractureVoronoiDesc;
 		FTFractureVoronoiDesc.siteCount = VoronoiSites.Num();
 		check(sizeof(FVector) == sizeof(PxVec3));
-		FTFractureVoronoiDesc.sites = (PxVec3*)VoronoiSites.GetTypedData();
+		FTFractureVoronoiDesc.sites = (PxVec3*)VoronoiSites.GetData();
 
 		// Material descriptor
 		FractureMaterialDesc.FillNxFractureMaterialDesc(FTFractureVoronoiDesc.materialDesc);

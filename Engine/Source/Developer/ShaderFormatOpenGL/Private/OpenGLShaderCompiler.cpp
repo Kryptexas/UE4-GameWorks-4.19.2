@@ -1361,8 +1361,8 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 
 					RawCompileLog.Empty(LogLength);
 					RawCompileLog.AddZeroed(LogLength);
-					glGetShaderInfoLog(Shader, LogLength, /*OutLength=*/ NULL, RawCompileLog.GetTypedData());
-					CompileLog = ANSI_TO_TCHAR(RawCompileLog.GetTypedData());
+					glGetShaderInfoLog(Shader, LogLength, /*OutLength=*/ NULL, RawCompileLog.GetData());
+					CompileLog = ANSI_TO_TCHAR(RawCompileLog.GetData());
 					CompileLog.ParseIntoArray(&LogLines, TEXT("\n"), true);
 
 					for (int32 Line = 0; Line < LogLines.Num(); ++Line)
@@ -1376,7 +1376,7 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 						NewError->StrippedErrorMessage = FString::Printf(
 							TEXT("GLSL source:\n%sGL compile log: %s\n"),
 							ANSI_TO_TCHAR(ShaderSource),
-							ANSI_TO_TCHAR(RawCompileLog.GetTypedData())
+							ANSI_TO_TCHAR(RawCompileLog.GetData())
 							);
 					}
 				}

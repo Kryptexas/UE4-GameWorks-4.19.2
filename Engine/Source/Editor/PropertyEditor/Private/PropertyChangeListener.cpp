@@ -106,13 +106,13 @@ public:
 			{
 				// Check static arrays
 				Data.AddZeroed( Property->ArrayDim * Property->ElementSize );
-				Property->CopyCompleteValue( Data.GetTypedData(), PropertyValueAddress);
+				Property->CopyCompleteValue( Data.GetData(), PropertyValueAddress);
 			}
 			else
 			{
 				// Regular properties
 				Data.AddZeroed( Property->ElementSize );
-				Property->CopySingleValue( Data.GetTypedData(), PropertyValueAddress );
+				Property->CopySingleValue( Data.GetData(), PropertyValueAddress );
 			}
 		}
 	}
@@ -143,7 +143,7 @@ public:
 
 		if( bPropertyValid )
 		{
-			bChanged = !Property->Identical( PropertyValueAddress, Data.GetTypedData() );
+			bChanged = !Property->Identical( PropertyValueAddress, Data.GetData() );
 			if( bRecacheNewValues )
 			{
 				CacheValue();

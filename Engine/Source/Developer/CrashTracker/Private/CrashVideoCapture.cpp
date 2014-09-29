@@ -61,7 +61,7 @@ void FAsyncImageCompress::DoWork()
 	{
 		DataFrame->ActualSize = CompressedSize;
 
-		FMemory::Memcpy(DataFrame->Data, CompressedData.GetTypedData(), CompressedSize);
+		FMemory::Memcpy(DataFrame->Data, CompressedData.GetData(), CompressedSize);
 	}
 	else
 	{

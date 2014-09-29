@@ -50,7 +50,7 @@ void FSlateD3DTexture::UpdateTexture(const TArray<uint8>& Bytes)
 	GD3DDeviceContext->Map(D3DTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &Resource);
 	for (uint32 Row = 0; Row < SizeY; ++Row)
 	{
-		FMemory::Memcpy((uint8*)Resource.pData + Row * Resource.RowPitch, Bytes.GetTypedData() + Row * SizeX*4, SizeX*4);
+		FMemory::Memcpy((uint8*)Resource.pData + Row * Resource.RowPitch, Bytes.GetData() + Row * SizeX*4, SizeX*4);
 	}
 	GD3DDeviceContext->Unmap(D3DTexture, 0);
 }
@@ -105,7 +105,7 @@ void FSlateFontAtlasD3D::ConditionalUpdateTexture()
 	{
 		D3D11_MAPPED_SUBRESOURCE Resource;
 		GD3DDeviceContext->Map( FontTexture->GetTextureResource(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Resource );
-		FMemory::Memcpy( Resource.pData, AtlasData.GetTypedData(), sizeof(uint8)*AtlasWidth*AtlasHeight);
+		FMemory::Memcpy( Resource.pData, AtlasData.GetData(), sizeof(uint8)*AtlasWidth*AtlasHeight);
 		GD3DDeviceContext->Unmap( FontTexture->GetTextureResource(), 0 );
 
 		bNeedsUpdate = false;

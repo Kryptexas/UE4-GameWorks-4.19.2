@@ -543,7 +543,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 	}
 
 	TArray<TSharedPtr<FActorsVisLog> >& Logs = LogVisualizer->Logs;
-	TSharedPtr<FActorsVisLog>* SharedLog = Logs.GetTypedData();
+	TSharedPtr<FActorsVisLog>* SharedLog = Logs.GetData();
 	for (int32 LogIndex = 0; LogIndex < Logs.Num(); ++LogIndex, ++SharedLog)
 	{
 		if (SharedLog->IsValid())
@@ -1321,7 +1321,7 @@ void SLogVisualizer::AddOrUpdateLog(int32 LogIndex, const FActorsVisLog* Log)
 
 void SLogVisualizer::DoFullUpdate()
 {
-	TSharedPtr<FLogsListItem>* LogListItem = LogsList.GetTypedData();
+	TSharedPtr<FLogsListItem>* LogListItem = LogsList.GetData();
 	for (int32 ItemIndex = 0; ItemIndex < LogsList.Num(); ++ItemIndex, ++LogListItem)
 	{
 		if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
@@ -1362,7 +1362,7 @@ void SLogVisualizer::DoFullUpdate()
 
 void SLogVisualizer::DoTickUpdate()
 {
-	TSharedPtr<FLogsListItem>* LogListItem = LogsList.GetTypedData();
+	TSharedPtr<FLogsListItem>* LogListItem = LogsList.GetData();
 	for (int32 ItemIndex = 0; ItemIndex < LogsList.Num(); ++ItemIndex, ++LogListItem)
 	{
 		if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
@@ -1732,7 +1732,7 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 	UpdateStatusItems(LogEntry);
 	LogEntryLines.Reset();
 	
-	const FVisLogEntry::FLogLine* LogLine = LogEntry->LogLines.GetTypedData();
+	const FVisLogEntry::FLogLine* LogLine = LogEntry->LogLines.GetData();
 	for (int LineIndex = 0; LineIndex < LogEntry->LogLines.Num(); ++LineIndex, ++LogLine)
 	{
 		bool bShowLine = true;
@@ -1812,7 +1812,7 @@ void SLogVisualizer::RebuildFilteredList()
 	// redo selection
 	if (ItemsToSelect.Num() > 0)
 	{
-		TSharedPtr<FLogsListItem>* Item = ItemsToSelect.GetTypedData();
+		TSharedPtr<FLogsListItem>* Item = ItemsToSelect.GetData();
 		for (int32 ItemIndex = 0; ItemIndex < ItemsToSelect.Num(); ++ItemIndex, ++Item)
 		{
 			const int32 IndexInList = FindIndexInLogsList((*Item)->LogIndex);
@@ -1997,7 +1997,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 
 		if (bDrawLogEntriesPath)
 		{
-			const TSharedPtr<FVisLogEntry>* Entry = Entries.GetTypedData();
+			const TSharedPtr<FVisLogEntry>* Entry = Entries.GetData();
 			FVector Location = (*Entry)->Location;
 			++Entry;
 
@@ -2226,7 +2226,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				}
 			}
 
-			const FVisLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetTypedData();
+			const FVisLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetData();
 			const int32 ElementsCount = Entry->ElementsToDraw.Num();
 			
 			for (int32 ElementIndex = 0; ElementIndex < ElementsCount; ++ElementIndex, ++ElementToDraw)
@@ -2245,7 +2245,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 					{
 						const float Radius = float(ElementToDraw->Radius);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
-						const FVector* Location = ElementToDraw->Points.GetTypedData();
+						const FVector* Location = ElementToDraw->Points.GetData();
 						for (int32 Index = 0; Index < ElementToDraw->Points.Num(); ++Index, ++Location)
 						{
 							DrawDebugSphere(World, *Location, Radius, 16, Color);
@@ -2261,7 +2261,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
-						const FVector* Location = ElementToDraw->Points.GetTypedData();
+						const FVector* Location = ElementToDraw->Points.GetData();
 						for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, Location += 2)
 						{
 							DrawDebugLine(World, *Location, *(Location + 1), Color
@@ -2305,7 +2305,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
-						const FVector* BoxExtent = ElementToDraw->Points.GetTypedData();
+						const FVector* BoxExtent = ElementToDraw->Points.GetData();
 						for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, BoxExtent += 2)
 						{
 							FBox Box(*BoxExtent, *(BoxExtent + 1));
@@ -2710,7 +2710,7 @@ void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 	EntriesArray.Reserve(ItemsToSave.Num());
 
 
-	TSharedPtr<FLogsListItem>* LogListItem = ItemsToSave.GetTypedData();
+	TSharedPtr<FLogsListItem>* LogListItem = ItemsToSave.GetData();
 	for (int32 ItemIndex = 0; ItemIndex < ItemsToSave.Num(); ++ItemIndex, ++LogListItem)
 	{
 		if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))

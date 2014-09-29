@@ -92,9 +92,9 @@ struct FOpenGLVertexDeclarationKey
 			}
 		};
 		// Sort the FOpenGLVertexElements by stream then offset.
-		Sort( VertexElements.GetTypedData(),InElements.Num(), FCompareFOpenGLVertexElement() );
+		Sort( VertexElements.GetData(),InElements.Num(), FCompareFOpenGLVertexElement() );
 
-		Hash = FCrc::MemCrc_DEPRECATED(VertexElements.GetTypedData(),VertexElements.Num()*sizeof(FOpenGLVertexElement));
+		Hash = FCrc::MemCrc_DEPRECATED(VertexElements.GetData(),VertexElements.Num()*sizeof(FOpenGLVertexElement));
 	}
 };
 

@@ -122,7 +122,7 @@ FBitWriter::FBitWriter( int64 InMaxBits, bool InAllowResize /*=false*/ )
 	Buffer.AddUninitialized( (InMaxBits+7)>>3 );
 
 	AllowResize = InAllowResize;
-	FMemory::Memzero( Buffer.GetTypedData(), Buffer.Num() );
+	FMemory::Memzero(Buffer.GetData(), Buffer.Num());
 	ArIsPersistent = ArIsSaving = 1;
 	ArNetVer |= 0x80000000;
 }
@@ -141,7 +141,7 @@ void FBitWriter::Reset(void)
 {
 	FArchive::Reset();
 	Num = 0;
-	FMemory::Memzero( Buffer.GetTypedData(), Buffer.Num() );
+	FMemory::Memzero(Buffer.GetData(), Buffer.Num());
 	ArIsPersistent = ArIsSaving = 1;
 	ArNetVer |= 0x80000000;
 }
@@ -161,7 +161,7 @@ void FBitWriter::SerializeBits( void* Src, int64 LengthBits )
 		}
 		else
 		{
-			appBitsCpy( Buffer.GetTypedData(), Num, (uint8*)Src, 0, LengthBits);
+			appBitsCpy(Buffer.GetData(), Num, (uint8*)Src, 0, LengthBits);
 			Num += LengthBits;
 		}
 	}
@@ -173,7 +173,7 @@ void FBitWriter::Serialize( void* Src, int64 LengthBytes )
 	int64 LengthBits = LengthBytes*8;
 	if( AllowAppend(LengthBits) )
 	{
-		appBitsCpy( Buffer.GetTypedData(), Num, (uint8*)Src, 0, LengthBits);
+		appBitsCpy(Buffer.GetData(), Num, (uint8*)Src, 0, LengthBits);
 		Num += LengthBits;
 	}
 	else ArIsError = 1;
@@ -268,7 +268,7 @@ void FBitWriterMark::Copy( FBitWriter& Writer, TArray<uint8> &Buffer )
 	{
 		Buffer.Init(Bytes);		// This makes room but doesnt zero
 		Buffer[Bytes-1] = 0;	// Make sure the last byte is 0 out, because appBitsCpy wont touch the last bits
-		appBitsCpy( Buffer.GetTypedData(), 0, Writer.Buffer.GetTypedData(), Num, Writer.Num - Num );
+		appBitsCpy(Buffer.GetData(), 0, Writer.Buffer.GetData(), Num, Writer.Num - Num);
 	}
 }
 
@@ -294,7 +294,7 @@ FBitReader::FBitReader( uint8* Src, int64 CountBits )
 	ArNetVer |= 0x80000000;
 	if( Src )
 	{
-		FMemory::Memcpy( Buffer.GetTypedData(), Src, (CountBits+7)>>3 );
+		FMemory::Memcpy(Buffer.GetData(), Src, (CountBits + 7) >> 3);
 	}
 }
 void FBitReader::SetData( FBitReader& Src, int64 CountBits )
@@ -304,7 +304,7 @@ void FBitReader::SetData( FBitReader& Src, int64 CountBits )
 	ArIsError  = 0;
 	Buffer.Empty();
 	Buffer.AddUninitialized( (CountBits+7)>>3 );
-	Src.SerializeBits( Buffer.GetTypedData(), CountBits );
+	Src.SerializeBits(Buffer.GetData(), CountBits);
 }
 /** This appends data from another BitReader. It checks that this bit reader is byte-aligned so it can just do a TArray::Append instead of a bitcopy.
  *	It is intended to be used by performance minded code that wants to ensure an appBitCpy is avoided.
@@ -360,7 +360,7 @@ void FBitReader::SerializeBits( void* Dest, int64 LengthBits )
 		}
 		else
 		{
-			appBitsCpy( (uint8*)Dest, 0, Buffer.GetTypedData(), Pos, LengthBits );
+			appBitsCpy((uint8*)Dest, 0, Buffer.GetData(), Pos, LengthBits);
 			Pos += LengthBits;
 		}
 	}
@@ -416,7 +416,7 @@ void FBitReader::Serialize( void* Dest, int64 LengthBytes )
 }
 uint8* FBitReader::GetData()
 {
-	return Buffer.GetTypedData();
+	return Buffer.GetData();
 }
 uint8* FBitReader::GetDataPosChecked()
 {
@@ -466,6 +466,6 @@ void FBitReaderMark::Copy( FBitReader& Reader, TArray<uint8> &Buffer )
 	{
 		Buffer.Init(Bytes);		// This makes room but doesnt zero
 		Buffer[Bytes-1] = 0;	// Make sure the last byte is 0 out, because appBitsCpy wont touch the last bits
-		appBitsCpy( Buffer.GetTypedData(), 0, Reader.Buffer.GetTypedData(), Pos, Reader.Pos - Pos );
+		appBitsCpy(Buffer.GetData(), 0, Reader.Buffer.GetData(), Pos, Reader.Pos - Pos);
 	}
 }

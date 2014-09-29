@@ -23,7 +23,7 @@ FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<UO
 		InActor->GrabDebugSnapshot(this);
 		if (Children != NULL)
 		{
-			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
+			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetData();
 			for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
 			{
 				if (WeakActorPtr->IsValid())
@@ -191,13 +191,13 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 				// uncompress decoded data to get final TArray<uint8>
 				int32 UncompressedSize = 0;
 				const int32 HeaderSize = sizeof(int32);
-				uint8* SrcBuffer = (uint8*)CompressedDataBlock.GetTypedData();
+				uint8* SrcBuffer = (uint8*)CompressedDataBlock.GetData();
 				FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
 				SrcBuffer += HeaderSize;
 				const int32 CompressedSize = CompressedDataBlock.Num() - HeaderSize;
 
 				Sample.Data.AddZeroed(UncompressedSize);
-				FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)Sample.Data.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+				FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)Sample.Data.GetData(), UncompressedSize, SrcBuffer, CompressedSize);
 			}
 		}
 	}
@@ -212,7 +212,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 	JsonEntryObject->SetStringField(VisualLogJson::TAG_LOCATION, Location.ToString());
 
 	const int32 StatusCategoryCount = Status.Num();
-	const FVisLogEntry::FStatusCategory* StatusCategory = Status.GetTypedData();
+	const FVisLogEntry::FStatusCategory* StatusCategory = Status.GetData();
 	TArray< TSharedPtr<FJsonValue> > JsonStatus;
 	JsonStatus.AddZeroed(StatusCategoryCount);
 
@@ -234,7 +234,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 	JsonEntryObject->SetArrayField(VisualLogJson::TAG_STATUS, JsonStatus);
 
 	const int32 LogLineCount = LogLines.Num();
-	const FVisLogEntry::FLogLine* LogLine = LogLines.GetTypedData();
+	const FVisLogEntry::FLogLine* LogLine = LogLines.GetData();
 	TArray< TSharedPtr<FJsonValue> > JsonLines;
 	JsonLines.AddZeroed(LogLineCount);
 
@@ -252,7 +252,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 	JsonEntryObject->SetArrayField(VisualLogJson::TAG_LOGLINES, JsonLines);
 
 	const int32 ElementsToDrawCount = ElementsToDraw.Num();
-	const FVisLogEntry::FElementToDraw* Element = ElementsToDraw.GetTypedData();
+	const FVisLogEntry::FElementToDraw* Element = ElementsToDraw.GetData();
 	TArray< TSharedPtr<FJsonValue> > JsonElementsToDraw;
 	JsonElementsToDraw.AddZeroed(ElementsToDrawCount);
 
@@ -270,7 +270,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 		const int32 PointsCount = Element->Points.Num();
 		TArray< TSharedPtr<FJsonValue> > JsonStringPoints;
 		JsonStringPoints.AddZeroed(PointsCount);
-		const FVector* PointToDraw = Element->Points.GetTypedData();
+		const FVector* PointToDraw = Element->Points.GetData();
 		for (int32 PointIndex = 0; PointIndex < PointsCount; ++PointIndex, ++PointToDraw)
 		{
 			JsonStringPoints[PointIndex] = MakeShareable(new FJsonValueString(PointToDraw->ToString()));
@@ -283,7 +283,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 	JsonEntryObject->SetArrayField(VisualLogJson::TAG_ELEMENTSTODRAW, JsonElementsToDraw);
 	
 	const int32 HistogramSamplesCount = HistogramSamples.Num();
-	const FVisLogEntry::FHistogramSample* Sample = HistogramSamples.GetTypedData();
+	const FVisLogEntry::FHistogramSample* Sample = HistogramSamples.GetData();
 	TArray<TSharedPtr<FJsonValue> > JsonHistogramSamples;
 	JsonHistogramSamples.AddZeroed(HistogramSamplesCount);
 
@@ -315,7 +315,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 		CompressedData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedSize));
 
 		int32 CompressedSize = CompressedData.Num() - HeaderSize;
-		uint8* DestBuffer = CompressedData.GetTypedData();
+		uint8* DestBuffer = CompressedData.GetData();
 		FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
 		DestBuffer += HeaderSize;
 
@@ -477,7 +477,7 @@ TSharedPtr<FJsonValue> FActorsVisLog::ToJson() const
 	JsonLogObject->SetStringField(VisualLogJson::TAG_NAME, Name.ToString());
 	JsonLogObject->SetStringField(VisualLogJson::TAG_FULLNAME, FullName);
 
-	const TSharedPtr<FVisLogEntry>* Entry = Entries.GetTypedData();
+	const TSharedPtr<FVisLogEntry>* Entry = Entries.GetData();
 	const int32 EntryCount = Entries.Num();
 	TArray< TSharedPtr<FJsonValue> > JsonLogEntries;
 	JsonLogEntries.AddZeroed(EntryCount);
@@ -723,7 +723,7 @@ void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 		TArray<TWeakObjectPtr<UObject> >* Children = RedirectsMap.Find(SourceAsActor);
 		if (Children != NULL)
 		{
-			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
+			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetData();
 			for (int32 Index = 0; Index < Children->Num(); ++Index)
 			{
 				if (WeakActorPtr->IsValid())

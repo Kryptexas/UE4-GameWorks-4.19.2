@@ -704,7 +704,7 @@ void FOpenGLDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRe
 	OutData.Empty();
 	OutData.AddUninitialized(Size);
 
-	FMemory::Memcpy(OutData.GetTypedData(), Temp.GetTypedData(), Size * sizeof(FColor));
+	FMemory::Memcpy(OutData.GetData(), Temp.GetData(), Size * sizeof(FColor));
 }
 
 void FOpenGLDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*& OutData,int32& OutWidth,int32& OutHeight)
@@ -827,7 +827,7 @@ void FOpenGLDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 
 	// Grab the raw data from the temp texture.
 	glPixelStorei( GL_PACK_ALIGNMENT, 1 );
-	FOpenGL::GetTexImage( GL_TEXTURE_3D, 0, GL_RGBA, GL_HALF_FLOAT, OutData.GetTypedData() );
+	FOpenGL::GetTexImage( GL_TEXTURE_3D, 0, GL_RGBA, GL_HALF_FLOAT, OutData.GetData() );
 	glPixelStorei( GL_PACK_ALIGNMENT, 4 );
 
 	// Clean up

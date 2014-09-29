@@ -881,7 +881,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						const int32 VertexCount = SpriteList.Num();
 						const int32 PrimCount = VertexCount / 3;
 						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
-						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetTypedData(), sizeof(FSimpleElementVertex));
+						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 
 						SpriteList.Empty(6);
 						CurrentTexture = Sprite.Texture;
@@ -889,7 +889,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					}
 
 					int32 SpriteListIndex = SpriteList.AddUninitialized(6);
-					FSimpleElementVertex* Vertex = SpriteList.GetTypedData();
+					FSimpleElementVertex* Vertex = SpriteList.GetData();
 
 					// Compute the sprite vertices.
 					const FVector WorldSpriteX = CameraX * Sprite.SizeX;
@@ -921,7 +921,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					const int32 VertexCount = SpriteList.Num();
 					const int32 PrimCount = VertexCount / 3;
 					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
-					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetTypedData(), sizeof(FSimpleElementVertex));
+					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 				}
 			}
 		}
@@ -947,7 +947,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						0,
 						MeshElement.MaxVertex - MeshElement.MinVertex + 1,
 						MeshElement.Indices.Num() / 3,
-						MeshElement.Indices.GetTypedData(),
+						MeshElement.Indices.GetData(),
 						sizeof(uint16),
 						&MeshVertices[MeshElement.MinVertex],
 						sizeof(FSimpleElementVertex)
@@ -975,7 +975,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						RHICmdList,
 						PT_QuadList,
 						MeshElement.Vertices.Num() / 4,
-						MeshElement.Vertices.GetTypedData(),
+						MeshElement.Vertices.GetData(),
 						sizeof(FSimpleElementVertex)
 						);
 				}

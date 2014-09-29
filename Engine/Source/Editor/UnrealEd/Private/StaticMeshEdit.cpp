@@ -771,7 +771,7 @@ void CreateModelFromStaticMesh(UModel* Model,AStaticMeshActor* StaticMeshActor)
 			FPoly*						Polygon		= new(Model->Polys->Element) FPoly;
 
 			Polygon->Init();
-			Polygon->iLink = Polygon - Model->Polys->Element.GetTypedData();
+			Polygon->iLink = Polygon - Model->Polys->Element.GetData();
 			Polygon->Material = StaticMesh->LODModels[0].Elements[Triangle.MaterialIndex].Material;
 			Polygon->PolyFlags = PF_DefaultFlags;
 			Polygon->SmoothingMask = Triangle.SmoothingMask;

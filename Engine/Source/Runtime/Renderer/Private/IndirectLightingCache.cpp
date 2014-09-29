@@ -397,13 +397,13 @@ void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer
 				}
 			}
 
-			UpdateBlocks(Scene, Renderer.Views.GetTypedData(), BlocksToUpdate);
+			UpdateBlocks(Scene, Renderer.Views.GetData(), BlocksToUpdate);
 
 			UpdateTransitionsOverTime(TransitionsOverTimeToUpdate, Renderer.ViewFamily.DeltaWorldTime);
 
 			if (GCacheDrawLightingSamples || Renderer.ViewFamily.EngineShowFlags.VolumeLightingSamples || GCacheDrawDirectionalShadowing)
 			{
-				FViewElementPDI DebugPDI(Renderer.Views.GetTypedData(), NULL);
+				FViewElementPDI DebugPDI(Renderer.Views.GetData(), NULL);
 
 				for (int32 VolumeIndex = 0; VolumeIndex < Scene->PrecomputedLightVolumes.Num(); VolumeIndex++)
 				{

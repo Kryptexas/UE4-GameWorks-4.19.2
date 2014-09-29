@@ -42,13 +42,13 @@ public:
 	const FVector4 *GetAttributeData(FName Name) const
 	{
 		int32 Offset = AttrMap[Name] * ParticleAllocation;
-		return ParticleBuffers[CurrentBuffer].GetTypedData() + Offset;
+		return ParticleBuffers[CurrentBuffer].GetData() + Offset;
 	}
 
 	FVector4 *GetAttributeDataWrite(FName Name) 
 	{
 		int32 Offset = AttrMap[Name] * ParticleAllocation;
-		return ParticleBuffers[CurrentBuffer].GetTypedData() + Offset;
+		return ParticleBuffers[CurrentBuffer].GetData() + Offset;
 	}
 
 	
@@ -67,8 +67,8 @@ public:
 	void SetNumParticles(uint32 Num)	{ NumParticles = Num;  }
 	void SwapBuffers()					{ CurrentBuffer ^= 0x1; }
 
-	FVector4 *GetCurrentBuffer()		{ return ParticleBuffers[CurrentBuffer].GetTypedData(); }
-	FVector4 *GetPreviousBuffer()		{ return ParticleBuffers[CurrentBuffer^0x1].GetTypedData(); }
+	FVector4 *GetCurrentBuffer()		{ return ParticleBuffers[CurrentBuffer].GetData(); }
+	FVector4 *GetPreviousBuffer()		{ return ParticleBuffers[CurrentBuffer^0x1].GetData(); }
 
 private:
 	uint32 CurrentBuffer, NumParticles, ParticleAllocation;

@@ -134,7 +134,7 @@ void UAtmosphericFogComponent::PostLoad()
 				int32 TotalByte = OutData.Num() * sizeof(FColor);
 				TransmittanceData.Lock(LOCK_READ_WRITE);
 				FColor* TextureData = (FColor*)TransmittanceData.Realloc(TotalByte);
-				FMemory::Memcpy(TextureData, OutData.GetTypedData(), TotalByte);
+				FMemory::Memcpy(TextureData, OutData.GetData(), TotalByte);
 				TransmittanceData.Unlock();
 
 				TransmittanceTexture_DEPRECATED = NULL;
@@ -162,7 +162,7 @@ void UAtmosphericFogComponent::PostLoad()
 				int32 TotalByte = OutData.Num() * sizeof(FColor);
 				IrradianceData.Lock(LOCK_READ_WRITE);
 				FColor* TextureData = (FColor*)IrradianceData.Realloc(TotalByte);
-				FMemory::Memcpy(TextureData, OutData.GetTypedData(), TotalByte);
+				FMemory::Memcpy(TextureData, OutData.GetData(), TotalByte);
 				IrradianceData.Unlock();
 
 				IrradianceTexture_DEPRECATED = NULL;

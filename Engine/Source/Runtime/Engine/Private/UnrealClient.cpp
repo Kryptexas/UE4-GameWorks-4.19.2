@@ -143,7 +143,7 @@ bool FRenderTarget::ReadFloat16Pixels(FFloat16Color* OutImageData,ECubeFace Cube
 	const int32 ImageHeight = GetSizeXY().Y;
 	for (int32 Y = 0; Y < ImageHeight; Y++)
 	{
-		FFloat16Color* SourceData = (FFloat16Color*)SurfaceData.GetTypedData() + Y * ImageWidth;
+		FFloat16Color* SourceData = (FFloat16Color*)SurfaceData.GetData() + Y * ImageWidth;
 		for (int32 X = 0; X < ImageWidth; X++)
 		{
 			OutImageColors[ Y * ImageWidth + X ] = SourceData[X];

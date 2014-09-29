@@ -197,7 +197,7 @@ UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FSt
 		}
 		// copy the 2d surface data to the first mip of the static 2d texture
 		check(TextureDataSize == SurfData.Num()*sizeof(FColor));
-		FMemory::Memcpy(TextureData, SurfData.GetTypedData(), TextureDataSize);
+		FMemory::Memcpy(TextureData, SurfData.GetData(), TextureDataSize);
 	}
 	else if (TextureFormat == TSF_RGBA16F)
 	{
@@ -230,7 +230,7 @@ UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FSt
 		}
 		// copy the 2d surface data to the first mip of the static 2d texture
 		check(TextureDataSize == SurfData.Num()*sizeof(FFloat16Color));
-		FMemory::Memcpy(TextureData, SurfData.GetTypedData(), TextureDataSize);
+		FMemory::Memcpy(TextureData, SurfData.GetData(), TextureDataSize);
 	}
 	Result->Source.UnlockMip(0);
 	// if render target gamma used was 1.0 then disable SRGB for the static texture

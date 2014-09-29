@@ -1227,7 +1227,7 @@ void UGeomModifier_Pen::Apply()
 		}
 
 		// Generate center location from the shape's center
-		FBox WorldBounds(ShapeVertices.GetTypedData(), ShapeVertices.Num());
+		FBox WorldBounds(ShapeVertices.GetData(), ShapeVertices.Num());
 		FVector BaseLocation = WorldBounds.GetCenter();
 
 		//create a scoped transaction so that we can undo the creation/modification		

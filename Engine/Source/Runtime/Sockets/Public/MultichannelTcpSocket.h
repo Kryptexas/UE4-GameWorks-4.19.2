@@ -71,7 +71,7 @@ public:
 				
 				if (ChannelBuffer->Buffer.Num() >= Count)
 				{
-					FMemory::Memcpy(Data, ChannelBuffer->Buffer.GetTypedData(), Count);
+					FMemory::Memcpy(Data, ChannelBuffer->Buffer.GetData(), Count);
 
 					if (ChannelBuffer->Buffer.Num() == Count)
 					{
@@ -145,7 +145,7 @@ public:
 		
 		int32 Count = FMath::Min<int32>(ChannelBuffer->Buffer.Num(), MaxCount);
 
-		FMemory::Memcpy(Data, ChannelBuffer->Buffer.GetTypedData(), Count);
+		FMemory::Memcpy(Data, ChannelBuffer->Buffer.GetData(), Count);
 		
 		if (ChannelBuffer->Buffer.Num() == Count)
 		{
@@ -241,7 +241,7 @@ private:
 			FBufferArchive Ar;
 			uint64 BytesReceived = Receiver.GetBytesReceived();
 			Ar << BytesReceived;
-			Sender.Send(Ar.GetTypedData(), Ar.Num(), ControlChannel);
+			Sender.Send(Ar.GetData(), Ar.Num(), ControlChannel);
 		}
 	}
 

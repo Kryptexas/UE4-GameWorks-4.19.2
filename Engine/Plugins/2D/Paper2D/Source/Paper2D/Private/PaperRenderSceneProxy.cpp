@@ -429,7 +429,7 @@ void FPaperRenderSceneProxy::DrawNewBatches(FPrimitiveDrawInterface* PDI, const 
 	FMeshBatch Mesh;
 
 	Mesh.UseDynamicData = true;
-	Mesh.DynamicVertexData = BatchedVertices.GetTypedData();
+	Mesh.DynamicVertexData = BatchedVertices.GetData();
 	Mesh.DynamicVertexStride = sizeof(FPaperSpriteVertex);
 
 	Mesh.VertexFactory = VertexFactory;
@@ -530,7 +530,7 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, bool bUse
 
 			Mesh.UseDynamicData = true;
 			// Note: memory referenced by Collector must be valid as long as the Collector is around, see Collector.AllocateOneFrameResource
-			Mesh.DynamicVertexData = BatchedVertices.GetTypedData();
+			Mesh.DynamicVertexData = BatchedVertices.GetData();
 			Mesh.DynamicVertexStride = sizeof(FPaperSpriteVertex);
 
 			Mesh.VertexFactory = VertexFactory;
@@ -596,7 +596,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverr
 			FMeshBatch& Mesh = Collector.AllocateMesh();
 
 			Mesh.UseDynamicData = true;
-			Mesh.DynamicVertexData = VertexArray.Vertices.GetTypedData();
+			Mesh.DynamicVertexData = VertexArray.Vertices.GetData();
 			Mesh.DynamicVertexStride = sizeof(FPaperSpriteVertex);
 			Mesh.VertexFactory = VertexFactory;
 			Mesh.bCanApplyViewModeOverrides = true;
@@ -684,7 +684,7 @@ void FPaperRenderSceneProxy::DrawBatch(FPrimitiveDrawInterface* PDI, const FScen
 			FMeshBatch Mesh;
 
 			Mesh.UseDynamicData = true;
-			Mesh.DynamicVertexData = Vertices.GetTypedData();
+			Mesh.DynamicVertexData = Vertices.GetData();
 			Mesh.DynamicVertexStride = sizeof(FPaperSpriteVertex);
 
 			Mesh.VertexFactory = VertexFactory;

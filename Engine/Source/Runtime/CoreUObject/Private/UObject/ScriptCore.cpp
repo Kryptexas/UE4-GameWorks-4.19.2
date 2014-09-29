@@ -201,7 +201,7 @@ void FFrame::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const cla
 			V,
 			*Object->GetFullName(),
 			*Node->GetFullName(),
-			Code - Node->Script.GetTypedData(),
+			Code - Node->Script.GetData(),
 			*GetStackTrace()
 		);
 	}
@@ -214,7 +214,7 @@ void FFrame::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const cla
 			V,
 			*Object->GetFullName(),
 			*Node->GetFullName(),
-			Code - Node->Script.GetTypedData(),
+			Code - Node->Script.GetData(),
 			GScriptStackForScriptWarning ? *(FString(TEXT("\r\n")) + GetStackTrace()) : TEXT("")
 		);
 #endif

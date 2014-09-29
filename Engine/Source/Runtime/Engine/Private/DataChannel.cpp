@@ -1130,7 +1130,7 @@ void UControlChannel::QueueMessage(const FOutBunch* Bunch)
 	{
 		int32 Index = QueuedMessages.AddZeroed();
 		QueuedMessages[Index].AddUninitialized(Bunch->GetNumBytes());
-		FMemory::Memcpy(QueuedMessages[Index].GetTypedData(), Bunch->GetData(), Bunch->GetNumBytes());
+		FMemory::Memcpy(QueuedMessages[Index].GetData(), Bunch->GetData(), Bunch->GetNumBytes());
 	}
 }
 

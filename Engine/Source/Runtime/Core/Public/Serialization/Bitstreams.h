@@ -41,11 +41,11 @@ public:
 	 */
 	FORCEINLINE uint8* GetData(void)
 	{
-		return Buffer.GetTypedData();
+		return Buffer.GetData();
 	}
 	FORCEINLINE const uint8* GetData(void) const
 	{
-		return Buffer.GetTypedData();
+		return Buffer.GetData();
 	}
 	FORCEINLINE const TArray<uint8>* GetBuffer(void) const
 	{

@@ -693,7 +693,7 @@ uint32 UNavigationSystem::FindPathAsync(const FNavAgentProperties& AgentProperti
 void UNavigationSystem::AbortAsyncFindPathRequest(uint32 AsynPathQueryID)
 {
 	check(IsInGameThread());
-	FAsyncPathFindingQuery* Query = AsyncPathFindingQueries.GetTypedData();
+	FAsyncPathFindingQuery* Query = AsyncPathFindingQueries.GetData();
 	for (int32 Index = 0; Index < AsyncPathFindingQueries.Num(); ++Index, ++Query)
 	{
 		if (Query->QueryID == AsynPathQueryID)
@@ -730,7 +730,7 @@ void UNavigationSystem::PerformAsyncQueries(TArray<FAsyncPathFindingQuery> PathF
 	}
 	
 	const int32 QueriesCount = PathFindingQueries.Num();
-	FAsyncPathFindingQuery* Query = PathFindingQueries.GetTypedData();
+	FAsyncPathFindingQuery* Query = PathFindingQueries.GetData();
 
 	for (int32 QueryIndex = 0; QueryIndex < QueriesCount; ++QueryIndex, ++Query)
 	{
@@ -1244,7 +1244,7 @@ FBox UNavigationSystem::GetLevelBounds(ULevel* InLevel) const
 
 	if (InLevel)
 	{
-		AActor** Actor = InLevel->Actors.GetTypedData();
+		AActor** Actor = InLevel->Actors.GetData();
 		const int32 ActorCount = InLevel->Actors.Num();
 		for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex, ++Actor)
 		{
@@ -1304,7 +1304,7 @@ void UNavigationSystem::ProcessRegistrationCandidates()
 		return;
 	}
 
-	ANavigationData** NavDataPtr = NavDataRegistrationQueue.GetTypedData();
+	ANavigationData** NavDataPtr = NavDataRegistrationQueue.GetData();
 	const int CandidatesCount = NavDataRegistrationQueue.Num();
 
 	for (int32 CandidateIndex = 0; CandidateIndex < CandidatesCount; ++CandidateIndex, ++NavDataPtr)
@@ -1388,7 +1388,7 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 		{
 			// ok, so this navigation agent doesn't have its navmesh registered yet, but do we want to support it?
 			bool bAgentSupported = false;
-			FNavDataConfig* Agent = SupportedAgents.GetTypedData();
+			FNavDataConfig* Agent = SupportedAgents.GetData();
 			for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); ++AgentIndex, ++Agent)
 			{
 				if (Agent->IsEquivalent(NavConfig) == true)
@@ -2465,7 +2465,7 @@ void UNavigationSystem::SpawnMissingNavigationData()
 		if (Nav != NULL && Nav->GetTypedOuter<UWorld>() == NavWorld && Nav->IsPendingKill() == false)
 		{
 			// find out which one it is
-			const FNavDataConfig* AgentProps = SupportedAgents.GetTypedData();
+			const FNavDataConfig* AgentProps = SupportedAgents.GetData();
 			for (int32 AgentIndex = 0; AgentIndex < SupportedAgentsCount; ++AgentIndex, ++AgentProps)
 			{
 				if (AlreadyInstantiated[AgentIndex] == true)

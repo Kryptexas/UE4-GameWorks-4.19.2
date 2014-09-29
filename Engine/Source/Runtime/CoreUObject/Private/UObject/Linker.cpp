@@ -342,7 +342,7 @@ void ULinker::UpdateScriptSHAKey(const TArray<uint8>& ScriptCode)
 	// if we are doing SHA, update it
 	if (ScriptSHA && ScriptCode.Num())
 	{
-		ScriptSHA->Update((uint8*)ScriptCode.GetTypedData(), ScriptCode.Num());
+		ScriptSHA->Update((uint8*)ScriptCode.GetData(), ScriptCode.Num());
 	}
 }
 
