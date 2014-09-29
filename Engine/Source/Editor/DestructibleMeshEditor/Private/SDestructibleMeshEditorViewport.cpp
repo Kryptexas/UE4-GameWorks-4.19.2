@@ -171,6 +171,7 @@ void FDestructibleMeshEditorViewportClient::UpdateChunkSelection( TArray<int32> 
 
 		Proxy->DestructibleMesh = DestructibleMesh;
 		Proxy->ChunkIndex = InSelectedChunkIndices[i];
+		Proxy->DestructibleMeshEditorPtr = DestructibleMeshEditorPtr;
 
 		if (FractureSettings != NULL && FractureSettings->ChunkParameters.Num() > Proxy->ChunkIndex)
 		{
