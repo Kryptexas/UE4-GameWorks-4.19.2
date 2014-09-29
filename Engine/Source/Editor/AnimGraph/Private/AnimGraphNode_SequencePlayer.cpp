@@ -10,7 +10,7 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintActionFilter.h"
 #include "EditorCategoryUtils.h"
-#include "BlueprintUnloadedAssetNodeSpawner.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
@@ -182,74 +182,96 @@ FText UAnimGraphNode_SequencePlayer::GetMenuCategory() const
 
 void UAnimGraphNode_SequencePlayer::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	auto CustomizeSequencePlayerNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, const FAssetData SequenceAsset)
+	auto LoadedAssetSetup = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UAnimSequence> SequencePtr)
 	{
 		UAnimGraphNode_SequencePlayer* SequencePlayerNode = CastChecked<UAnimGraphNode_SequencePlayer>(NewNode);
-		if(!bIsTemplateNode || SequenceAsset.IsAssetLoaded())
-		{
-			UAnimSequence* Sequence = Cast<UAnimSequence>(SequenceAsset.GetAsset());
-			check(Sequence);
+		SequencePlayerNode->Node.Sequence = SequencePtr.Get();
+	};
 
-			SequencePlayerNode->Node.Sequence = Sequence;
-			SequencePlayerNode->UnloadedSkeletonName.Empty();
-		}
-		else
+	auto UnloadedAssetSetup = [](UEdGraphNode* NewNode, bool bIsTemplateNode, const FAssetData AssetData)
+	{
+		UAnimGraphNode_SequencePlayer* SequencePlayerNode = CastChecked<UAnimGraphNode_SequencePlayer>(NewNode);
+		if (bIsTemplateNode)
 		{
-			if( const FString* SkeletonTag = SequenceAsset.TagsAndValues.Find(TEXT("Skeleton")) )
+			if (const FString* SkeletonTag = AssetData.TagsAndValues.Find(TEXT("Skeleton")))
 			{
 				SequencePlayerNode->UnloadedSkeletonName = *SkeletonTag;
 			}
 		}
-	};
-
-	// Load the asset registry module
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-	FARFilter Filter;
-	Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
-	Filter.bRecursiveClasses = true;
-
-	// Find matching assets and add an entry for each one
-	TArray<FAssetData> SequenceList;
-	AssetRegistryModule.Get().GetAssets(Filter, /*out*/ SequenceList);
-
-	for (auto AssetIt = SequenceList.CreateConstIterator(); AssetIt; ++AssetIt)
-	{
-		const FAssetData& Asset = *AssetIt;
-
-		UBlueprintNodeSpawner* NodeSpawner = nullptr;
-
-		if(!Asset.IsAssetLoaded())
-		{
-			// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
-			// check to make sure that the registrar is looking for actions of this type
-			// (could be regenerating actions for a specific asset, and therefore the 
-			// registrar would only accept actions corresponding to that asset)
-			if (!ActionRegistrar.IsOpenForRegistration(GetClass()))
-			{
-				continue;
-			}
-
-			NodeSpawner = UBlueprintUnloadedAssetNodeSpawner::Create(GetClass(), Asset, UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), false));
-		}
 		else
 		{
-			// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
-			// check to make sure that the registrar is looking for actions of this type
-			// (could be regenerating actions for a specific asset, and therefore the 
-			// registrar would only accept actions corresponding to that asset)
-			if (!ActionRegistrar.IsOpenForRegistration(Asset.GetAsset()))
+			UAnimSequence* Sequence = Cast<UAnimSequence>(AssetData.GetAsset());
+			check(Sequence != nullptr);
+			SequencePlayerNode->Node.Sequence = Sequence;
+		}
+	};	
+
+	const UObject* QueryObject = ActionRegistrar.GetActionKeyFilter();
+	if (QueryObject == nullptr)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		// define a filter to help in pulling UAnimSequence asset data from the registry
+		FARFilter Filter;
+		Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
+		Filter.bRecursiveClasses = true;
+		// Find matching assets and add an entry for each one
+		TArray<FAssetData> SequenceList;
+		AssetRegistryModule.Get().GetAssets(Filter, /*out*/SequenceList);
+
+		for (auto AssetIt = SequenceList.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& Asset = *AssetIt;			
+
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			if (Asset.IsAssetLoaded())
+			{
+				TWeakObjectPtr<UAnimSequence> AnimSequence = Cast<UAnimSequence>(Asset.GetAsset());
+				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, AnimSequence);
+				NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(AnimSequence->GetFName()), AnimSequence->IsValidAdditive());
+			}
+			else
+			{
+				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(UnloadedAssetSetup, Asset);
+				NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), /*bKnownToBeAdditive =*/false);
+			}
+			ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
+		}
+	}
+	else if (const UAnimSequence* AnimSequence = Cast<UAnimSequence>(QueryObject))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+
+		TWeakObjectPtr<UAnimSequence> SequencePtr = AnimSequence;
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, SequencePtr);
+		NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(AnimSequence->GetFName()), AnimSequence->IsValidAdditive());
+
+		ActionRegistrar.AddBlueprintAction(QueryObject, NodeSpawner);
+	}
+	else if (QueryObject == GetClass())
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		// define a filter to help in pulling UAnimSequence asset data from the registry
+		FARFilter Filter;
+		Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
+		Filter.bRecursiveClasses = true;
+		// Find matching assets and add an entry for each one
+		TArray<FAssetData> SequenceList;
+		AssetRegistryModule.Get().GetAssets(Filter, /*out*/SequenceList);
+
+		for (auto AssetIt = SequenceList.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& Asset = *AssetIt;
+			if (Asset.IsAssetLoaded())
 			{
 				continue;
 			}
 
-			NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(UnloadedAssetSetup, Asset);
+			NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), /*bKnownToBeAdditive =*/false);
+			ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
 		}
-
-		check(NodeSpawner != nullptr);
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintUnloadedAssetNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeSequencePlayerNodeLambda, Asset);
-		ActionRegistrar.AddBlueprintAction(Asset, NodeSpawner);
-	}
+	}	
 }
 
 bool UAnimGraphNode_SequencePlayer::IsActionFilteredOut(class FBlueprintActionFilter const& Filter)

@@ -175,6 +175,17 @@ bool FBlueprintActionDatabaseRegistrar::IsOpenForRegistration(UObject const* Own
 }
 
 //------------------------------------------------------------------------------
+bool FBlueprintActionDatabaseRegistrar::IsOpenForRegistration(FAssetData const& AssetKey)
+{
+	UObject const* OwnerKey = GeneratingClass;
+	if (AssetKey.IsAssetLoaded())
+	{
+		OwnerKey = AssetKey.GetAsset();
+	}
+	return IsOpenForRegistration(OwnerKey);
+}
+
+//------------------------------------------------------------------------------
 bool FBlueprintActionDatabaseRegistrar::AddActionToDatabase(UObject const* ActionKey, UBlueprintNodeSpawner* NodeSpawner)
 {
 	ensureMsg(NodeSpawner->NodeClass == GeneratingClass, TEXT("We expect a nodes to add only spawners for its own type... Maybe a sub-class is adding nodes it shouldn't?"));

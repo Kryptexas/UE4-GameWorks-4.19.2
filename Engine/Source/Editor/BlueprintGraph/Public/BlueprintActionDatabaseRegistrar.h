@@ -55,6 +55,7 @@ public:
 	 * @return True if the OwnerKey would is allowed to register actions, false if it would be blocked. 
 	 */
 	bool IsOpenForRegistration(UObject const* OwnerKey);
+	bool IsOpenForRegistration(FAssetData const& AssetDataOwner);
 
 	/** Returns the current key the registrar is being filtered using */
 	UObject const* GetActionKeyFilter() const
