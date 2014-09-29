@@ -128,6 +128,13 @@ struct FLightmassWorldInfoSettings
 	UPROPERTY(EditAnywhere, Category=LightmassGeneral, AdvancedDisplay, meta=(UIMin = "0.1", UIMax = "100.0"))
 	float VolumeLightSamplePlacementScale;
 
+	/** 
+	 * Whether to compress lightmap textures.  Disabling lightmap texture compression will reduce artifacts but increase memory and disk size by 4x.
+	 * Use caution when disabling this.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassGeneral, AdvancedDisplay)
+	uint32 bCompressLightmaps:1;
+
 	FLightmassWorldInfoSettings()
 		: StaticLightingLevelScale(1)
 		, NumIndirectLightingBounces(3)
@@ -146,6 +153,7 @@ struct FLightmassWorldInfoSettings
 		, bVisualizeMaterialDiffuse(false)
 		, bVisualizeAmbientOcclusion(false)
 		, VolumeLightSamplePlacementScale(1)
+		, bCompressLightmaps(true)
 	{
 	}
 };
