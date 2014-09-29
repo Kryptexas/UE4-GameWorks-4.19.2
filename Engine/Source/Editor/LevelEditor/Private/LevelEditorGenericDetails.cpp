@@ -8,6 +8,7 @@
 #include "SSurfaceProperties.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SurfaceIterators.h"
+#include "ScopedTransaction.h"
 
 #include "PropertyCustomizationHelpers.h"
 
