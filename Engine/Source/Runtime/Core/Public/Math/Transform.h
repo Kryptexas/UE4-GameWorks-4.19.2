@@ -4,7 +4,7 @@
 #pragma once
 
 /** 
- * FTransform class for Quat/Translation/Scale.
+ * Transform composed of Quat/Translation/Scale.
  */
 class FTransform
 {
@@ -16,15 +16,15 @@ class FTransform
 	friend MAYBE_COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_UObject_FTransform();
 
 protected:
-	/** Rotation of this transformation, as a quaternion */
+	/** Rotation of this transformation, as a quaternion. */
 	FQuat	Rotation;
-	/** Translation of this transformation, as a vector */
+	/** Translation of this transformation, as a vector. */
 	FVector	Translation;
-	/** 3D scale (always applied in local space) as a vector */
+	/** 3D scale (always applied in local space) as a vector. */
 	FVector	Scale3D;
 public:
 	/**
-	 * The identity transformation (Rotation = FQuat::Identity, Translation = FVector::ZeroVector, Scale3D = (1,1,1))
+	 * The identity transformation (Rotation = FQuat::Identity, Translation = FVector::ZeroVector, Scale3D = (1,1,1)).
 	 */
 	static CORE_API const FTransform Identity;
 
