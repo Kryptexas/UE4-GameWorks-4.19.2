@@ -538,17 +538,17 @@ void UAtmosphericFogComponent::StartPrecompute()
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
-		PrecomputeCounter.Reset();
-
-		if (PrecomputeDataHandler)
-		{
-			delete PrecomputeDataHandler;
-			PrecomputeDataHandler = NULL;
-		}
-		PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
-
 		if (GetScene())
 		{
+			PrecomputeCounter.Reset();
+
+			if (PrecomputeDataHandler)
+			{
+				delete PrecomputeDataHandler;
+				PrecomputeDataHandler = NULL;
+			}
+			PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
+
 			FAtmosphericFogSceneInfo* AtmosphericFogSceneInfo = GetScene()->GetAtmosphericFogSceneInfo();
 
 			if (AtmosphericFogSceneInfo)
