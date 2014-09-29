@@ -225,3 +225,20 @@ bool UAbilitySystemBlueprintLibrary::HasHitResult(FGameplayCueParameters Paramet
 {
 	return Parameters.InstigatorContext.HitResult.IsValid();
 }
+
+AActor*	UAbilitySystemBlueprintLibrary::GetInstigatorActor(FGameplayCueParameters Parameters)
+{
+	return Parameters.InstigatorContext.GetOriginalInstigator();
+}
+
+FTransform UAbilitySystemBlueprintLibrary::GetInstigatorTransform(FGameplayCueParameters Parameters)
+{
+	AActor* InstigatorActor = GetInstigatorActor(Parameters);
+	if (InstigatorActor)
+	{
+		return InstigatorActor->GetTransform();
+	}
+
+	ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::GetInstigatorTransform called on GameplayCue with no valid instigator"));
+	return FTransform::Identity;
+}

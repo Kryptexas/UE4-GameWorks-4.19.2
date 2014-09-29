@@ -77,6 +77,14 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static bool HasHitResult(FGameplayCueParameters Parameters);
 
+	/** Gets the instigating actor (Pawn/Avatar) of the GameplayCue */
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static AActor*	GetInstigatorActor(FGameplayCueParameters Parameters);
+
+	/** Gets instigating world location */
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static FTransform GetInstigatorTransform(FGameplayCueParameters Parameters);
+
 
 	// -------------------------------------------------------------------------------
 
