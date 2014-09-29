@@ -32,7 +32,7 @@ public:
 	 * @param InValue value to construct with.
 	 */
 	FORCEINLINE TEnumAsByte( TEnum InValue )
-		: Value(InValue)
+		: Value(static_cast<uint8>(InValue))
 	{ }
 
 	/**
@@ -41,7 +41,7 @@ public:
 	 * @param InValue value to construct with.
 	 */
 	explicit FORCEINLINE TEnumAsByte( int32 InValue )
-		: Value(InValue)
+		: Value(static_cast<uint8>(InValue))
 	{ }
 
 	/**
@@ -72,7 +72,7 @@ public:
 	 */
 	FORCEINLINE TEnumAsByte& operator=( TEnum InValue )
 	{
-		Value = InValue;
+		Value = static_cast<uint8>(InValue);
 		return *this;
 	}
 
@@ -83,7 +83,7 @@ public:
 	 */
 	bool operator==( TEnum InValue ) const
 	{
-		return (Value == InValue);
+		return static_cast<TEnum>(Value) == InValue;
 	}
 
 	/**
@@ -93,7 +93,7 @@ public:
 	 */
 	bool operator==(TEnumAsByte InValue) const
 	{
-		return (Value == InValue.Value);
+		return Value == InValue.Value;
 	}
 
 	/**
@@ -101,7 +101,7 @@ public:
 	 */
 	operator TEnum( ) const
 	{
-		return TEnum(Value);
+		return (TEnum)Value;
 	}
 
 public:
@@ -111,7 +111,7 @@ public:
 	 */
 	TEnum GetValue( ) const
 	{
-		return TEnum(Value);
+		return (TEnum)Value;
 	}
 
 private:

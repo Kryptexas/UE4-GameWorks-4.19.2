@@ -97,11 +97,11 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 
 		if ((CPPExportFlags & CPPF_ArgumentOrReturnValue) && ((PropertyFlags & CPF_ReturnParm) || !(PropertyFlags & CPF_OutParm)))
 		{
-			return FString::Printf(TEXT("enum %s"), *FullyQualifiedEnumName);
+			return FullyQualifiedEnumName;
 		}
 		else
 		{
-			return FString::Printf(TEXT("TEnumAsByte<enum %s>"), *FullyQualifiedEnumName);
+			return FString::Printf(TEXT("TEnumAsByte<%s>"), *FullyQualifiedEnumName);
 		}
 	}
 	return Super::GetCPPType(ExtendedTypeText, CPPExportFlags);

@@ -17,6 +17,9 @@ class UTestObject : public UObject
 	UPROPERTY()
 	ECppEnum EnumProperty;
 
+	UFUNCTION()
+	void CodeGenTestForEnumClasses(ECppEnum Val);
+
 #if BLAH
 	UFUNCTION() int x; // This should not compile if UHT parses it, which it shouldn't
 #elif BLAH2
