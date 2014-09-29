@@ -7,6 +7,7 @@
 #include "LevelEditor.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "EngineVersion.h"
+#include "ShaderCompiler.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
@@ -749,6 +750,18 @@ bool FEditorLoadMap::Update()
 	
 	UE_LOG(LogEditorAutomationTests, Display, TEXT("%s took %.3f to load."), *LoadedMapName, MapLoadTime);
 	
+	return true;
+}
+
+/**
+* This will cause the test to wait for the shaders to finish compiling before moving on.
+*/
+bool FWaitForShadersToFinishCompiling::Update()
+{
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());
+	GShaderCompilingManager->FinishAllCompilation();
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Done waiting for shaders to finish."));
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("%i shaders need to be recompiled."), GShaderCompilingManager->GetNumRemainingJobs());
 	return true;
 }
 

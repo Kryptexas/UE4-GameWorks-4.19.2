@@ -143,6 +143,11 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorLoadMap, FString, MapName)
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerformanceCharts, FString, MapName);
 
+/**
+* Waits for shaders to finish compiling before moving on to the next thing.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompiling);
+
 //////////////////////////////////////////////////////////////////////////
 // FEditorAutomationTestUtilities
 

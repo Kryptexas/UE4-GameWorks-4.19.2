@@ -133,12 +133,16 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Running the performance capture test for %.0f seconds on %s"), Duration, *ShortMapName);
 	
+	//Wait for shaders to finish compile.
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompiling);
+	
 	//Grab the performance numbers based on the duration.
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
-	ADD_LATENT_AUTOMATION_COMMAND(FEditorPerformanceCommand(Duration));
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorPerformanceCommand(Duration));
+	
 
 	//Combine performance data into one chart.
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
 	ADD_LATENT_AUTOMATION_COMMAND(FGenerateEditorPerformanceCharts(ShortMapName));
 
 	return true;
