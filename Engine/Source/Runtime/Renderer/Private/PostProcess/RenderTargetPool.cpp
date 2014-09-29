@@ -122,7 +122,7 @@ FRenderTargetPool::FRenderTargetPool()
 
 static void LogVRamUsage(FPooledRenderTarget& Ref, FTextureRHIParamRef TexRef)
 {
-	if(TexRef)
+	if(FPlatformProperties::SupportsFastVRAMMemory() && TexRef)
 	{
 		FRHIResourceInfo Info;
 
