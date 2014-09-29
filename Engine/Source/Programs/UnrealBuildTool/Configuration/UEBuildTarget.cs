@@ -597,7 +597,7 @@ namespace UnrealBuildTool
 				bPlatformRequiresMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(InPlatform);
 			}
 
-			if (InRulesObject.ShouldCompileMonolithic(InPlatform, InConfiguration) || bPlatformRequiresMonolithic || (InRulesObject.Type == TargetRules.TargetType.RocketGame))
+			if (InRulesObject.ShouldCompileMonolithic(InPlatform, InConfiguration) || bPlatformRequiresMonolithic)
 			{
 				return InGameName;
 			}
@@ -780,10 +780,9 @@ namespace UnrealBuildTool
 			OnlyModules = InOnlyModules;
 
 			TargetTypeOrNull = (Rules != null) ? Rules.Type : (TargetRules.TargetType?)null;
-			bool bIsRocketGame = (InRulesObject != null) ? (TargetType == TargetRules.TargetType.RocketGame) : false;
 
 			// Construct the output path based on configuration, platform, game if not specified.
-            OutputPaths = MakeBinaryPaths("", AppName, UEBuildBinaryType.Executable, TargetType, bIsRocketGame, null, InAppName, Configuration == UnrealTargetConfiguration.Shipping ? Rules.ForceNameAsForDevelopment() : false, Rules.ExeBinariesSubFolder);
+            OutputPaths = MakeBinaryPaths("", AppName, UEBuildBinaryType.Executable, TargetType, null, InAppName, Configuration == UnrealTargetConfiguration.Shipping ? Rules.ForceNameAsForDevelopment() : false, Rules.ExeBinariesSubFolder);
 			for (int Index = 0; Index < OutputPaths.Length; Index++)
 			{
 				OutputPaths[Index] = Path.GetFullPath(OutputPaths[Index]);
@@ -1388,7 +1387,7 @@ namespace UnrealBuildTool
 						if(Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath) && Module.Binary == ExecutableBinary)
 						{
 							UnrealTargetConfiguration LibraryConfiguration = (Configuration == UnrealTargetConfiguration.DebugGame)? UnrealTargetConfiguration.Development : Configuration;
-							Module.RedistStaticLibraryPaths = MakeBinaryPaths("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, TargetType, false, null, AppName);
+							Module.RedistStaticLibraryPaths = MakeBinaryPaths("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, TargetType, null, AppName);
 							Module.bBuildingRedistStaticLibrary = UnrealBuildTool.BuildingRocket();
                             if (Module.bBuildingRedistStaticLibrary)
                             {
@@ -2074,9 +2073,6 @@ namespace UnrealBuildTool
 		{
             var SpecialRocketLibFilesThatAreBuildProducts = new List<string>();
 
-			// Is this a Rocket module?
-			bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(Module.Name);
-
 			bool bCompileMonolithic = ShouldCompileMonolithic();
 
 			// Get the binary type to build
@@ -2086,7 +2082,7 @@ namespace UnrealBuildTool
 			string[] OutputFilePaths;
 			if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && bCompileMonolithic)
 			{
-				OutputFilePaths = MakeBinaryPaths(Module.Name, Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
+				OutputFilePaths = MakeBinaryPaths(Module.Name, Module.Name, BinaryType, TargetType, Plugin, AppName);
                 if (UnrealBuildTool.BuildingRocket())
                 {
                     SpecialRocketLibFilesThatAreBuildProducts.AddRange(OutputFilePaths);
@@ -2094,7 +2090,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				OutputFilePaths = MakeBinaryPaths(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, bIsRocketModule, Plugin, AppName);
+				OutputFilePaths = MakeBinaryPaths(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, Plugin, AppName);
 			}
 
 			// Try to determine if we have the rules file
@@ -2148,11 +2144,8 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					// Is this a Rocket module?
-					bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(ModuleName);
-
 					// Create a DLL binary for this module
-					string[] OutputFilePaths = MakeBinaryPaths(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, bIsRocketModule, null, AppName);
+					string[] OutputFilePaths = MakeBinaryPaths(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, null, AppName);
 					UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
 																						InOutputFilePaths: OutputFilePaths,
 																						InIntermediateDirectory: RulesCompiler.IsGameModule(ModuleName) ? ProjectIntermediateDirectory : EngineIntermediateDirectory,
@@ -2192,7 +2185,7 @@ namespace UnrealBuildTool
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../Binaries/Win64/Core-Win64-Debug.lib") */
 		public static string[] MakeBinaryPaths(string ModuleName, string BinaryName, UnrealTargetPlatform Platform, 
-			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
+			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
 		{
 			// Determine the binary extension for the platform and binary type.
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
@@ -2276,15 +2269,15 @@ namespace UnrealBuildTool
 		}
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../../Binaries/Win64/Core-Win64-Debug.lib") */
-		public string[] MakeBinaryPaths(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
+		public string[] MakeBinaryPaths(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false, string ExeBinariesSubFolder = null)
 		{
 			if (String.IsNullOrEmpty(ModuleName) && Configuration == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic)
 			{
-				return MakeBinaryPaths(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment);
+				return MakeBinaryPaths(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, PluginInfo, AppName, bForceNameAsForDevelopment);
 			}
 			else
 			{
-				return MakeBinaryPaths(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment, ExeBinariesSubFolder);
+				return MakeBinaryPaths(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, PluginInfo, AppName, bForceNameAsForDevelopment, ExeBinariesSubFolder);
 			}
 		}
 

@@ -28,7 +28,6 @@ public class ICU : ModuleRules
             case TargetRules.TargetType.Game:
             case TargetRules.TargetType.Client:
             case TargetRules.TargetType.Server:
-            case TargetRules.TargetType.RocketGame:
                 ICULinkType = EICULinkType.Static;
                 break;
             case TargetRules.TargetType.Editor:

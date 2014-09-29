@@ -1961,13 +1961,10 @@ namespace UnrealBuildTool
 							}
 							else
 							{
-								// Is this a Rocket module?
-								bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(DependencyName);
-
 								// Is this a plugin module?
 								var PluginInfo = Plugins.GetPluginInfoForModule( DependencyName );
 
-								string[] OutputFilePaths = Target.MakeBinaryPaths(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.TargetType, bIsRocketModule, PluginInfo, "");
+								string[] OutputFilePaths = Target.MakeBinaryPaths(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.TargetType, PluginInfo, "");
 
 								// If it's an engine module, output intermediates to the engine intermediates directory. 
 								string IntermediateDirectory = Binary.Config.IntermediateDirectory;

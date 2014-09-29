@@ -389,8 +389,7 @@ namespace UnrealBuildTool
                     else if (InModule.ToString() == "NetworkFileSystem") // server 
                     {
                         if (UnrealBuildTool.RunningRocket() == false || 
-                            Target.Type == TargetRules.TargetType.Game || 
-                            Target.Type == TargetRules.TargetType.RocketGame )
+                            Target.Type == TargetRules.TargetType.Game )
                         {
                             InModule.AddPrivateDependencyModule("WebSockets");
                             InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
