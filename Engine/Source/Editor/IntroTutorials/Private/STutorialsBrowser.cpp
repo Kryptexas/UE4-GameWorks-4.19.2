@@ -101,12 +101,10 @@ public:
 				+SHorizontalBox::Slot()
 				.FillWidth(1.0f)
 				.MaxWidth(600.0f)
-				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
 				[
 					SNew(SVerticalBox)
 					+SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
 					.AutoHeight()
 					[
 						SNew(STextBlock)
@@ -117,7 +115,6 @@ public:
 						.HighlightShape(FEditorStyle::Get().GetBrush("TextBlock.HighlightShape"))
 					]
 					+SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
 					.FillHeight(1.0f)
 					[
 						SNew(STextBlock)
