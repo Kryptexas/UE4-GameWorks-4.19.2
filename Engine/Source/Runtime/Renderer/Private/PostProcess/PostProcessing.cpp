@@ -1117,7 +1117,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 					// TODO: Check if material actually uses this texture and only bind if needed.
 					Node->SetInput(ePId_Input1, SeparateTranslucency);
 					Node->SetInput(ePId_Input2, BloomOutputCombined);
-					Node->SetInput(ePId_Input3, EyeAdaptation);
 					Context.FinalOutput = Node;
 				}
 				else

@@ -942,6 +942,8 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 {
 	if(MaterialInterface)
 	{
+		UMaterial* Material = GetMaterial();
+
 		//first, clear out all the parameter values
 		ClearParameterValuesInternal();
 
@@ -950,8 +952,8 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 		TArray<FGuid> Guids;
 
 		//handle all the fonts
-		GetMaterial()->GetAllFontParameterNames(Names, Guids);
-		for(int32 i = 0; i < Names.Num(); ++i)
+		Material->GetAllFontParameterNames(Names, Guids);
+		for(int32 i = 0, Size = Names.Num(); i < Size; ++i)
 		{
 			FName ParameterName = Names[i];
 			UFont* FontValue = NULL;
@@ -970,8 +972,8 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 		//now do the scalar params
 		Names.Reset();
 		Guids.Reset();
-		GetMaterial()->GetAllScalarParameterNames(Names, Guids);
-		for(int32 i = 0; i < Names.Num(); ++i)
+		Material->GetAllScalarParameterNames(Names, Guids);
+		for(int32 i = 0, Size = Names.Num(); i < Size; ++i)
 		{
 			FName ParameterName = Names[i];
 			float ScalarValue = 1.0f;
@@ -987,8 +989,8 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 		//now do the vector params
 		Names.Reset();
 		Guids.Reset();
-		GetMaterial()->GetAllVectorParameterNames(Names, Guids);
-		for(int32 i = 0; i < Names.Num(); ++i)
+		Material->GetAllVectorParameterNames(Names, Guids);
+		for(int32 i = 0, Size = Names.Num(); i < Size; ++i)
 		{
 			FName ParameterName = Names[i];
 			FLinearColor VectorValue;
@@ -1004,8 +1006,8 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 		//now do the texture params
 		Names.Reset();
 		Guids.Reset();
-		GetMaterial()->GetAllTextureParameterNames(Names, Guids);
-		for(int32 i = 0; i < Names.Num(); ++i)
+		Material->GetAllTextureParameterNames(Names, Guids);
+		for(int32 i = 0, Size = Names.Num(); i < Size; ++i)
 		{
 			FName ParameterName = Names[i];
 			UTexture* TextureValue = NULL;
@@ -2326,14 +2328,16 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 
 		// a material already exists, blend with existing ones
 		DestMID->K2_InterpolateMaterialInstanceParams(DestMID, SrcMID, Weight);
+		SetTonemapperPostprocessMaterialSettings(View, *DestMID);
 	}
 	else
 	{
-		UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)Material);//, (UMaterialInterface*)this);
+		UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)Material);
 
 		if(MID)
 		{
 			MID->K2_CopyMaterialInstanceParameters((UMaterialInterface*)this);
+			SetTonemapperPostprocessMaterialSettings(View, *MID);
 
 			FPostProcessMaterialNode NewNode(MID, Material->BlendableLocation, Material->BlendablePriority);
 
@@ -2342,6 +2346,29 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 		}
 	}
 }
+
+void UMaterialInstance::SetTonemapperPostprocessMaterialSettings(FSceneView& View, UMaterialInstanceDynamic& MID) const
+{
+	UMaterial* Material = Parent->GetMaterial();
+
+	if(Material->BlendableLocation == BL_ReplacingTonemapper)
+	{
+		// can expose more if needed
+		{
+			static FName Name("Engine.FilmWhitePoint");
+			MID.SetVectorParameterValue(Name, View.FinalPostProcessSettings.FilmWhitePoint);
+		}
+		{
+			static FName Name("Engine.FilmSaturation");
+			MID.SetScalarParameterValue(Name, View.FinalPostProcessSettings.FilmSaturation);
+		}
+		{
+			static FName Name("Engine.FilmContrast");
+			MID.SetScalarParameterValue(Name, View.FinalPostProcessSettings.FilmContrast);
+		}
+	}
+}
+
 
 void UMaterialInstance::AllMaterialsCacheResourceShadersForRendering()
 {

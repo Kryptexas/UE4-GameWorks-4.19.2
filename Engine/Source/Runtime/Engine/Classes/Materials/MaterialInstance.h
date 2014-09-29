@@ -383,6 +383,8 @@ protected:
 	// to share code between PostLoad() and PostEditChangeProperty()
 	void PropagateDataToMaterialProxy();
 
+	void SetTonemapperPostprocessMaterialSettings(class FSceneView& View, UMaterialInstanceDynamic& MID) const;
+
 	/** Allow resource to access private members. */
 	friend class FMaterialInstanceResource;
 	/** Editor-only access to private members. */

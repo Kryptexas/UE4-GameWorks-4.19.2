@@ -16,7 +16,9 @@ enum EBlendableLocation
 	BL_BeforeTonemapping UMETA(DisplayName="Before Tonemapping"),
 	// Input0:former pass color, Input1:SeparateTranslucency
 	BL_BeforeTranslucency UMETA(DisplayName="Before Translucency"),
-	// Input0:former pass color, Input1:SeparateTranslucency, Input2: BloomOutput, Input3: EyeAdaptation
+	// Input0:former pass color, Input1:SeparateTranslucency, Input2: BloomOutput
+	// vector parameters: Engine.FilmWhitePoint
+	// scalar parameters: Engine.FilmSaturation, Engine.FilmContrast
 	BL_ReplacingTonemapper UMETA(DisplayName="Replacing the Tonemapper"),
 //	BL_AfterOpaque,
 //	BL_AfterFog,
