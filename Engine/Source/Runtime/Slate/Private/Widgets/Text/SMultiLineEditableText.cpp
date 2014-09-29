@@ -406,6 +406,22 @@ bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool 
 			TextLayout->AddLine(LineText, Runs);
 		}
 
+		{
+			const FTextLocation OldCursorPos = CursorInfo.GetCursorInteractionLocation();
+
+			// Make sure the cursor is still at a valid location
+			if(OldCursorPos.GetLineIndex() >= Lines.Num() || OldCursorPos.GetOffset() > Lines[OldCursorPos.GetLineIndex()].Text->Len())
+			{
+				const int32 LastLineIndex = Lines.Num() - 1;
+				const FTextLocation NewCursorPosition = FTextLocation(LastLineIndex, Lines[LastLineIndex].Text->Len());
+
+				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
+				UpdatePreferredCursorScreenOffsetInLine();
+				UpdateCursorHighlight();
+			}
+		}
+
 		return true;
 	}
 
