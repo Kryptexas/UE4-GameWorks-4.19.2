@@ -143,7 +143,7 @@ void UK2Node_TemporaryVariable::GetMenuActions(FBlueprintActionDatabaseRegistrar
 		return;
 	}
 
-	auto MakeTempVarNodeSpawner = [](FEdGraphPinType const& VarType, bool bIsPersistent) -> UBlueprintNodeSpawner*
+	auto MakeTempVarNodeSpawner = [](FEdGraphPinType const& VarType, bool bIsPersistent)
 	{
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(UK2Node_TemporaryVariable::StaticClass());
 		check(NodeSpawner != nullptr);

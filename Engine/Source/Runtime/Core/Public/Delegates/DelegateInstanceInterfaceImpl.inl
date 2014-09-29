@@ -12,13 +12,6 @@
 
 #define DELEGATE_INSTANCE_INTERFACE_CLASS FUNC_COMBINE( IBaseDelegateInstance_, FUNC_SUFFIX )
 
-#if FUNC_HAS_PARAMS
-	#define DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST : FUNC_PARAM_INITIALIZER_LIST
-#else
-	#define DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST
-#endif
-
-
 /**
  * Delegate instance base interface.  For internal use only.  This abstract class is used to interact with
  * a delegate instance for *any* type of object (e.g. raw, shared pointer, UObject-based, etc.)
@@ -35,10 +28,6 @@ class DELEGATE_INSTANCE_INTERFACE_CLASS
 #if !FUNC_IS_VOID
 		RetValType Result;
 #endif
-
-		FParms( FUNC_PARAM_LIST )
-			DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST
-		{ }
 	};
 
 public:
@@ -48,7 +37,7 @@ public:
 	 *
 	 * @return	The newly created copy
 	 */
-	virtual DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >* CreateCopy() = 0;
+	virtual DELEGATE_INSTANCE_INTERFACE_CLASS* CreateCopy() = 0;
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,
@@ -57,7 +46,7 @@ public:
 	 * @param  InOtherDelegate
 	 * @return  True if delegates match
 	 */
-	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >& InOtherDelegate ) const = 0;
+	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS& InOtherDelegate ) const = 0;
 
 	/**
 	 * Execute the delegate.  If the function pointer is not valid, an error will occur.
@@ -94,5 +83,4 @@ public:
 };
 
 
-#undef DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST
 #undef DELEGATE_INSTANCE_INTERFACE_CLASS

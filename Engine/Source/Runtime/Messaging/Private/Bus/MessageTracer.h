@@ -40,6 +40,7 @@ class FMessageTracer
 	};
 
 public:
+	DECLARE_DELEGATE(TraceDelegate)
 
 	/** Default constructor. */
 	FMessageTracer( );
@@ -317,7 +318,7 @@ protected:
 	 *
 	 * @param Trace The action to enqueue.
 	 */
-	FORCEINLINE void EnqueueTrace( TBaseDelegate_NoParams<void> Trace )
+	FORCEINLINE void EnqueueTrace( TraceDelegate Trace )
 	{
 		Traces.Enqueue(Trace);
 	}
@@ -452,7 +453,7 @@ private:
 	bool Running;
 
 	/** Holds the trace actions queue. */
-	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Traces;
+	TQueue<TraceDelegate, EQueueMode::Mpsc> Traces;
 
 private:
 

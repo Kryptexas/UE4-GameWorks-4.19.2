@@ -62,7 +62,7 @@ bool FMessageTracer::Tick( float DeltaTime )
 	}
 
 	// process new traces
-	TBaseDelegate_NoParams<void> Trace;
+	TraceDelegate Trace;
 
 	while (Traces.Dequeue(Trace))
 	{

@@ -41,7 +41,7 @@ uint32 FMessageRouter::Run( )
 		{
 			CurrentTime = FDateTime::UtcNow();
 
-			TBaseDelegate_NoParams<void> Command;
+			CommandDelegate Command;
 
 			while (Commands.Dequeue(Command))
 			{

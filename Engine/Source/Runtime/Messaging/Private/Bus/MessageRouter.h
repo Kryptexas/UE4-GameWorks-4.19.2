@@ -10,6 +10,7 @@ class FMessageRouter
 	: public FRunnable
 {
 public:
+	DECLARE_DELEGATE(CommandDelegate)
 
 	/** Default constructor. */
 	FMessageRouter( );
@@ -128,7 +129,7 @@ protected:
 	 * @param Command The command to queue up.
 	 * @return true if the command was enqueued, false otherwise.
 	 */
-	FORCEINLINE bool EnqueueCommand( TBaseDelegate_NoParams<void> Command )
+	FORCEINLINE bool EnqueueCommand( CommandDelegate Command )
 	{
 		if (!Commands.Enqueue(Command))
 		{
@@ -230,7 +231,7 @@ private:
 	TMap<FName, TArray<IMessageSubscriptionPtr>> ActiveSubscriptions;
 
 	/** Holds the router command queue. */
-	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Commands;
+	TQueue<CommandDelegate, EQueueMode::Mpsc> Commands;
 
 	/** Holds the current time. */
 	FDateTime CurrentTime;

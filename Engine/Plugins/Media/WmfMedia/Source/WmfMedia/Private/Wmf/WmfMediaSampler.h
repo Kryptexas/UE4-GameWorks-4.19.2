@@ -14,6 +14,7 @@ class FWmfMediaSampler
 	: public IMFSampleGrabberSinkCallback
 {
 public:
+	DECLARE_DELEGATE(CommandDelegate)
 
 	/** Default constructor. */
 	FWmfMediaSampler( )
@@ -86,7 +87,7 @@ public:
 	STDMETHODIMP OnProcessSample( REFGUID MajorMediaType, DWORD SampleFlags, LONGLONG SampleTime, LONGLONG SampleDuration, const BYTE* SampleBuffer, DWORD SampleSize)
 	{
 		// process pending commands
-		TBaseDelegate_NoParams<void> Command;
+		CommandDelegate Command;
 
 		while (Commands.Dequeue(Command))
 		{
@@ -156,7 +157,7 @@ private:
 private:
 
 	// Holds the router command queue.
-	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Commands;
+	TQueue<CommandDelegate, EQueueMode::Mpsc> Commands;
 
 	// The collection of registered media sinks.
 	TArray<IMediaSinkWeakPtr> Sinks;
