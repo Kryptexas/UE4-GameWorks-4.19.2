@@ -17,10 +17,6 @@
 
 extern int _mesa_hlsl_debug;
 
-/** Enable this define to time shader compilation. */
-#define ENABLE_TIMING 0
-
-
 #if defined(_MSC_VER)
 	#define WIN32_LEAN_AND_MEAN 1
 	#include <Windows.h>
@@ -86,6 +82,57 @@ static const int VersionTable[HCT_InvalidTarget] =
 static void OptimizeIR(exec_list* ir, _mesa_glsl_parse_state* ParseState);
 
 
+int32 FCrossCompiler::VersionMajor = HLSLCC_VersionMajor;
+int32 FCrossCompiler::VersionMinor = HLSLCC_VersionMinor;
+
+FCrossCompiler::FCrossCompiler(uint32 HLSLCCFlags) :
+	Flags(HLSLCCFlags)
+{
+}
+
+FCrossCompiler::~FCrossCompiler()
+{
+}
+
+bool FCrossCompiler::ParseAndGenerateAST(_mesa_glsl_parse_state* ParseState, const char* InShaderSource)
+{
+	const bool bPreprocess = (Flags & HLSLCC_NoPreprocess) == 0;
+
+	if (bPreprocess)
+	{
+		ParseState->error = preprocess(
+			ParseState,
+			&InShaderSource,
+			&ParseState->info_log
+			);
+
+		if (ParseState->error != 0)
+		{
+			return false;
+		}
+	}
+
+	//_mesa_hlsl_debug = 1;
+	_mesa_hlsl_lexer_ctor(ParseState, InShaderSource);
+	_mesa_hlsl_parse(ParseState);
+	_mesa_hlsl_lexer_dtor(ParseState);
+
+	/**
+	 * Debug only functionality to write out the AST to stdout
+	 */
+	const bool bPrintAST = (Flags & HLSLCC_PrintAST) != 0;
+	if (bPrintAST)
+	{
+		printf( "###########################################################################\n");
+		printf( "## Begin AST dump\n");
+		_mesa_ast_print( ParseState);
+		printf( "## End AST dump\n");
+		printf( "###########################################################################\n");
+	}
+
+	return true;
+}
+
 /**
  * Cross compile HLSL shader code to GLSL.
  * @param InSourceFilename - The filename of the shader source code. This file
@@ -99,14 +146,13 @@ static void OptimizeIR(exec_list* ir, _mesa_glsl_parse_state* ParseState);
  * @param OutErrorLog - Upon return contains the error log, if any.
  * @returns 0 if compilation failed, non-zero otherwise.
  */
-int HlslCrossCompile(
+int FCrossCompiler::Run(
 	const char* InSourceFilename,
 	const char* InShaderSource,
 	const char* InEntryPoint,
 	EHlslShaderFrequency InShaderFrequency,
 	FCodeBackend* InShaderBackEnd,
 	ILanguageSpec* InLanguageSpec,
-	unsigned int InFlags,
 	EHlslCompileTarget InCompileTarget,
 	char** OutShaderSource,
 	char** OutErrorLog
@@ -118,39 +164,21 @@ int HlslCrossCompile(
 	if (bIsES2)
 	{
 		// ES implies some flag modifications
-		InFlags |= HLSLCC_PackUniforms | HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;
+		Flags |= HLSLCC_PackUniforms | HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;
 	}
 	else if (bIsES3_1)
 	{
 		// ES implies some flag modifications
-		InFlags |= HLSLCC_PackUniforms;// | HLSLCC_FlattenUniformBuffers;
+		Flags |= HLSLCC_PackUniforms;// | HLSLCC_FlattenUniformBuffers;
 	}
 
-	const bool bValidate = (InFlags & HLSLCC_NoValidation) == 0;
-	const bool bPreprocess = (InFlags & HLSLCC_NoPreprocess) == 0;
-	const bool bPackUniforms = (InFlags & HLSLCC_PackUniforms) != 0;
-	const bool bFlattenUBStructures = ((InFlags & HLSLCC_FlattenUniformBufferStructures) == HLSLCC_FlattenUniformBufferStructures);
-	const bool bFlattenUniformBuffers = ((InFlags & HLSLCC_FlattenUniformBuffers) == HLSLCC_FlattenUniformBuffers);
-	const bool bGroupFlattenedUBs = ((InFlags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
-	const bool bPrintAST = (InFlags & HLSLCC_PrintAST) != 0;
-	const bool bDoCSE = (InFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0;
-	const bool bDoSubexpressionExpansion = (InFlags & HLSLCC_ExpandSubexpressions) != 0;
-
-#if ENABLE_TIMING
-	const int MAX_TIMERS = 16;
-	const char* TimerNames[MAX_TIMERS] = {0};
-	LARGE_INTEGER Timers[MAX_TIMERS] = {0};
-	int CurrentTimer = 0;
-	LARGE_INTEGER Frequency;
-	QueryPerformanceFrequency(&Frequency);
-	const double SecondsPerTick = 1.0 / Frequency.QuadPart;
-	QueryPerformanceCounter(Timers + CurrentTimer++);
-	#define TIMER(Tag) \
-		TimerNames[CurrentTimer] = #Tag; \
-		QueryPerformanceCounter(Timers + CurrentTimer++)
-#else
-	#define TIMER(...)
-#endif // #if ENABLE_TIMING
+	const bool bValidate = (Flags & HLSLCC_NoValidation) == 0;
+	const bool bPackUniforms = (Flags & HLSLCC_PackUniforms) != 0;
+	const bool bFlattenUBStructures = ((Flags & HLSLCC_FlattenUniformBufferStructures) == HLSLCC_FlattenUniformBufferStructures);
+	const bool bFlattenUniformBuffers = ((Flags & HLSLCC_FlattenUniformBuffers) == HLSLCC_FlattenUniformBuffers);
+	const bool bGroupFlattenedUBs = ((Flags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
+	const bool bDoCSE = (Flags & HLSLCC_ApplyCommonSubexpressionElimination) != 0;
+	const bool bDoSubexpressionExpansion = (Flags & HLSLCC_ExpandSubexpressions) != 0;
 
 	if (InShaderSource == 0 || OutShaderSource == 0 || OutErrorLog == 0 ||
 		InShaderFrequency < HSF_VertexShader || InShaderFrequency > HSF_ComputeShader ||
@@ -188,65 +216,24 @@ int HlslCrossCompile(
 		);
 	ParseState->base_source_file = InSourceFilename;
 	ParseState->error = 0;
-	ParseState->adjust_clip_space_dx11_to_opengl = (InFlags & HLSLCC_DX11ClipSpace) != 0;
+	ParseState->adjust_clip_space_dx11_to_opengl = (Flags & HLSLCC_DX11ClipSpace) != 0;
 	ParseState->bFlattenUniformBuffers = bFlattenUniformBuffers;
 	ParseState->bGenerateES = bIsES;
 	ParseState->bGenerateLayoutLocations = (InCompileTarget == HCT_FeatureLevelSM5) || (InCompileTarget == HCT_FeatureLevelES3_1Ext);
 
-	if (bPreprocess)
+	exec_list* ir = new(MemContext) exec_list();
+
+	if (!ParseAndGenerateAST(ParseState, InShaderSource))
 	{
-		ParseState->error = preprocess(
-			ParseState,
-			&InShaderSource,
-			&ParseState->info_log
-			);
-		TIMER(preprocess);
-
-		if (ParseState->error != 0)
-		{
-			goto done;
-		}
+		goto done;
 	}
-
-	//_mesa_hlsl_debug = 1;
-	_mesa_hlsl_lexer_ctor(ParseState, InShaderSource);
-	_mesa_hlsl_parse(ParseState);
-	_mesa_hlsl_lexer_dtor(ParseState);
-
-	TIMER(parse);
-
-	exec_list* ir;
 
 	if (ParseState->error != 0 || ParseState->translation_unit.is_empty())
 	{
 		goto done;
 	}
 
-
-	if (InShaderBackEnd == nullptr)
-	{
-		_mesa_glsl_error(
-			ParseState,
-			"No Shader code generation backend specified!"
-			);
-		goto done;
-	}
-
-	/**
-	 * Debug only functionality to write out the AST to stdout
-	 */
-	if (bPrintAST)
-	{
-		printf( "###########################################################################\n");
-		printf( "## Begin AST dump\n");
-		_mesa_ast_print( ParseState);
-		printf( "## End AST dump\n");
-		printf( "###########################################################################\n");
-	}
-
-	ir = new(MemContext) exec_list();
 	_mesa_ast_to_hir(ir, ParseState);
-	TIMER(ast_to_hir);
 //IRDump(ir);
 	if (ParseState->error != 0 || ir->is_empty())
 	{
@@ -256,7 +243,6 @@ int HlslCrossCompile(
 	if (bValidate)
 	{
 		validate_ir_tree(ir, ParseState);
-		TIMER(validate);
 		if (ParseState->error != 0)
 		{
 			goto done;
@@ -269,11 +255,19 @@ int HlslCrossCompile(
 		ParseState->language_version = 100;
 	}
 
+	if (InShaderBackEnd == nullptr)
+	{
+		_mesa_glsl_error(
+			ParseState,
+			"No Shader code generation backend specified!"
+			);
+		goto done;
+	}
+
 	if (!InShaderBackEnd->GenerateMain(InShaderFrequency, InEntryPoint, ir, ParseState))
 	{
 		goto done;
 	}
-	TIMER(gen_main);
 
 	if (!InShaderBackEnd->OptimizeAndValidate(ir, ParseState))
 	{
@@ -323,7 +317,6 @@ int HlslCrossCompile(
 	{
 		TVarVarMap UniformMap;
 		PackUniforms(ir, ParseState, bFlattenUBStructures, bGroupFlattenedUBs, UniformMap);
-		TIMER(pack_uniforms);
 
 		RemovePackedUniformBufferReferences(ir, ParseState, UniformMap);
 
@@ -360,7 +353,6 @@ int HlslCrossCompile(
 
 	check(ParseState->error == 0);
 	*OutShaderSource = InShaderBackEnd->GenerateCode(ir, ParseState, InShaderFrequency);
-	TIMER(gen_glsl);
 
 done:
 	int Result = ParseState->error ? 0 : 1;
@@ -371,15 +363,6 @@ done:
 	}
 	ralloc_free(MemContext);
 	_mesa_glsl_release_types();
-	TIMER(cleanup);
-
-#if ENABLE_TIMING
-	for (int i = 1; i < CurrentTimer; ++i)
-	{
-		dprintf("%s: %fs\n", TimerNames[i], (Timers[i].QuadPart - Timers[i-1].QuadPart) * SecondsPerTick);
-	}
-	dprintf("total: %fs\n", (Timers[CurrentTimer-1].QuadPart - Timers[0].QuadPart) * SecondsPerTick);
-#endif // #if ENABLE_TIMING
 
 	return Result;
 }
@@ -526,7 +509,6 @@ bool FCodeBackend::Optimize(exec_list* Instructions, _mesa_glsl_parse_state* Par
 		return false;
 	}
 	OptimizeIR(Instructions, ParseState);
-	TIMER(optimize);
 
 	return (ParseState->error == 0);
 }
@@ -542,7 +524,6 @@ bool FCodeBackend::Validate(exec_list* Instructions, _mesa_glsl_parse_state* Par
 	// This validation always runs. The optimized IR is very small and you really
 	// want to know if the final IR is valid.
 	validate_ir_tree(Instructions, ParseState);
-	TIMER(validate);
 	if (ParseState->error != 0)
 	{
 		return false;

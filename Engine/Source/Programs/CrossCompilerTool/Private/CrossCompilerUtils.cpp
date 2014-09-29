@@ -6,7 +6,7 @@
 namespace CCT
 {
 	FRunInfo::FRunInfo() :
-		Frequency(HSF_InvalidFrequency),
+		Frequency(SF_NumFrequencies),
 		Target(HCT_InvalidTarget),
 		Entry(""),
 		InputFile(""),
@@ -39,78 +39,78 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-gl4\tCompile for OpenGL 4.3"));
 	}
 
-	EHlslShaderFrequency FRunInfo::ParseFrequency(TArray<FString>& InOutSwitches)
+	static EShaderFrequency ParseFrequency(TArray<FString>& InOutSwitches)
 	{
 		TArray<FString> OutSwitches;
-		EHlslShaderFrequency Frequency = HSF_InvalidFrequency;
+		EShaderFrequency Frequency = SF_NumFrequencies;
 
 		// Validate profile and target
 		for(FString& Switch : InOutSwitches)
 		{
 			if (Switch == "vs")
 			{
-				if (Frequency != HSF_InvalidFrequency)
+				if (Frequency != SF_NumFrequencies)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -vs!"));
 				}
 				else
 				{
-					Frequency = HSF_VertexShader;
+					Frequency = SF_Vertex;
 				}
 			}
 			else if (Switch == "ps")
 			{
-				if (Frequency != HSF_InvalidFrequency)
+				if (Frequency != SF_NumFrequencies)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -ps!"));
 				}
 				else
 				{
-					Frequency = HSF_PixelShader;
+					Frequency = SF_Pixel;
 				}
 			}
 			else if (Switch == "cs")
 			{
-				if (Frequency != HSF_InvalidFrequency)
+				if (Frequency != SF_NumFrequencies)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -cs!"));
 				}
 				else
 				{
-					Frequency = HSF_ComputeShader;
+					Frequency = SF_Compute;
 				}
 			}
 			else if (Switch == "gs")
 			{
-				if (Frequency != HSF_InvalidFrequency)
+				if (Frequency != SF_NumFrequencies)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -gs!"));
 				}
 				else
 				{
-					Frequency = HSF_GeometryShader;
+					Frequency = SF_Geometry;
 				}
 			}
 			else if (Switch == "hs")
 			{
-				if (Frequency != HSF_InvalidFrequency)
+				if (Frequency != SF_NumFrequencies)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -hs!"));
 				}
 				else
 				{
-					Frequency = HSF_HullShader;
+					Frequency = SF_Hull;
 				}
 			}
 			else if (Switch == "ds")
 			{
-				if (Frequency != HSF_InvalidFrequency)
+				if (Frequency != SF_NumFrequencies)
 				{
 					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -ds!"));
 				}
 				else
 				{
-					Frequency = HSF_HullShader;
+					Frequency = SF_Domain;
 				}
 			}
 			else
@@ -120,10 +120,10 @@ namespace CCT
 		}
 
 		// Default to PS
-		if (Frequency == HSF_InvalidFrequency)
+		if (Frequency == SF_NumFrequencies)
 		{
 			UE_LOG(LogCrossCompilerTool, Warning, TEXT("No profile given, assuming Pixel Shader (-ps)!"));
-			Frequency = HSF_PixelShader;
+			Frequency = SF_Pixel;
 		}
 
 		Swap(InOutSwitches, OutSwitches);

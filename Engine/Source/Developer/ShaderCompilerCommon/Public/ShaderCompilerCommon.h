@@ -5,7 +5,6 @@
 #include "Core.h"
 #include "ShaderCore.h"
 
-
 /**
  * This function looks for resources specified in ResourceTableMap in the 
  * parameter map, adds them to the resource table, and removes them from the
@@ -61,13 +60,3 @@ extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderReso
 //		[...]UniformBuffer_Member[...]
 //		}
 extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
-
-// Cross compiler support/common functionality
-
-extern SHADERCOMPILERCOMMON_API FString CreateCrossCompilerBatchFileContents(
-											const FString& ShaderFile,
-											const FString& OutputFile,
-											const FString& FrequencySwitch,
-											const FString& EntryPoint,
-											const FString& VersionSwitch,
-											const FString& ExtraArguments = TEXT(""));

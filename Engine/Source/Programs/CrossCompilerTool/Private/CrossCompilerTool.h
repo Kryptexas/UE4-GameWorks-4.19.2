@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Core.h"
-
+#include "../../RHI/Public/RHIDefinitions.h"
 #include "hlslcc.h"
 
 namespace CCT
@@ -17,7 +17,7 @@ namespace CCT
 			BE_OpenGL,
 			BE_Invalid,
 		};
-		EHlslShaderFrequency Frequency;
+		EShaderFrequency Frequency;
 		EHlslCompileTarget Target;
 		FString Entry;
 		FString InputFile;
@@ -30,7 +30,6 @@ namespace CCT
 		bool Setup(const FString& InOptions, const TArray<FString>& InSwitches);
 
 	protected:
-		static EHlslShaderFrequency ParseFrequency(TArray<FString>& InOutSwitches);
 		static EHlslCompileTarget ParseTarget(TArray<FString>& InOutSwitches, EBackend& OutBackEnd);
 	};
 

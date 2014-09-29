@@ -1,11 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// ..
+// .
 
 #include "MetalShaderFormat.h"
 #include "Core.h"
 #include "ShaderCore.h"
 #include "MetalShaderResources.h"
 #include "ShaderCompilerCommon.h"
+#include "CrossCompiler.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -829,7 +830,6 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
 	if (PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 	{
-		char* MetalShaderSource = NULL;
 		char* ErrorLog = NULL;
 
 		const EHlslShaderFrequency FrequencyTable[] =
@@ -891,40 +891,35 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
 
+		FString MetalShaderSource(TEXT(""));
+
 		FMetalCodeBackend MetalBackEnd(CCFlags);
 		FMetalLanguageSpec MetalLanguageSpec;
 		int32 Result = HlslCrossCompile(
-			TCHAR_TO_ANSI(*Input.SourceFilename),
-			TCHAR_TO_ANSI(*PreprocessedShader),
-			TCHAR_TO_ANSI(*Input.EntryPointName),
-			Frequency,
+			Input.SourceFilename,
+			PreprocessedShader,
+			Input.EntryPointName,
+			(EShaderFrequency)Input.Target.Frequency,
 			&MetalBackEnd,
 			&MetalLanguageSpec,
 			CCFlags,
 			HlslCompilerTarget,
-			&MetalShaderSource,
+			MetalShaderSource,
 			&ErrorLog
 			);
 
-		int32 SourceLen = MetalShaderSource ? FCStringAnsi::Strlen(MetalShaderSource) : 0;
 		if (bDumpDebugInfo)
 		{
-			if (SourceLen > 0)
+			if (MetalShaderSource.Len() > 0)
 			{
-				FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".metal")));
-				if (FileWriter)
-				{
-					FileWriter->Serialize(MetalShaderSource, SourceLen + 1);
-					FileWriter->Close();
-					delete FileWriter;
-				}
+				FFileHelper::SaveStringToFile(MetalShaderSource, *(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".metal")));
 			}
 		}
 
 		if (Result != 0)
 		{
 			Output.Target = Input.Target;
-			BuildMetalShaderOutput(Output, Input, MetalShaderSource, SourceLen, Output.Errors);
+			BuildMetalShaderOutput(Output, Input, TCHAR_TO_ANSI(*MetalShaderSource), MetalShaderSource.Len(), Output.Errors);
 		}
 		else
 		{
@@ -938,10 +933,6 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 			}
 		}
 
-		if (MetalShaderSource)
-		{
-			free(MetalShaderSource);
-		}
 		if (ErrorLog)
 		{
 			free(ErrorLog);

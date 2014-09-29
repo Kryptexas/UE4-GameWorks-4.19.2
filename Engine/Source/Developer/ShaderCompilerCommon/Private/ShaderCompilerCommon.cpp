@@ -1,8 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderCompilerCommon.h"
+#include "CrossCompiler.h"
 #include "ModuleManager.h"
-
+#include "hlslcc.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, ShaderCompilerCommon);
 
@@ -192,4 +193,64 @@ FString CreateCrossCompilerBatchFileContents(const FString& ShaderFile, const FS
 	BatchFile += FString::Printf(TEXT("\"%s\" -o=\"%s\" %s -entry=%s %s %s"), *ShaderFile, *OutputFile, *FrequencySwitch, *EntryPoint, *VersionSwitch, *ExtraArguments);
 	BatchFile += TEXT("\npause\n");
 	return BatchFile;
+}
+
+int32 HlslCrossCompile(
+	const FString& InSourceFilename, 
+	const FString& InShaderSource,
+	const FString& InEntryPoint,
+	EShaderFrequency InShaderFrequency,
+	class FCodeBackend* InShaderBackEnd,
+	struct ILanguageSpec* InLanguageSpec,
+	unsigned int InFlags,
+	int32/*EHlslCompileTarget*/ InCompileTarget,
+	FString& OutShaderSource,
+	char** OutErrorLog)
+{
+	EHlslShaderFrequency Frequency = HSF_InvalidFrequency;
+	switch (InShaderFrequency)
+	{
+	case SF_Vertex:
+		return HSF_VertexShader;
+	case SF_Pixel:
+		return HSF_PixelShader;
+	case SF_Compute:
+		return HSF_ComputeShader;
+	case SF_Geometry:
+		return HSF_GeometryShader;
+	case SF_Hull:
+		return HSF_HullShader;
+	case SF_Domain:
+		return HSF_DomainShader;
+	default:
+		checkf(0, TEXT("Invalid Shader Frequency %d for CrossCompiler"), InShaderFrequency);
+		return 0;
+	}
+
+	check(InCompileTarget < HCT_InvalidTarget);
+	checkf(HLSLCC_VersionMajor == FCrossCompiler::GetVersionMajor(), TEXT("hlslcc library major version mismatch! Runtime expects %d and Library has %d"), HLSLCC_VersionMajor, FCrossCompiler::GetVersionMajor());
+	checkf(HLSLCC_VersionMinor == FCrossCompiler::GetVersionMinor(), TEXT("hlslcc library minor version mismatch! Runtime expects %d and Library has %d"), HLSLCC_VersionMinor, FCrossCompiler::GetVersionMinor());
+
+	char* ShaderSource = nullptr;
+
+	FCrossCompiler CrossCompiler(InFlags);
+	int32 Result = CrossCompiler.Run(
+		TCHAR_TO_ANSI(*InSourceFilename),
+		TCHAR_TO_ANSI(*InShaderSource),
+		TCHAR_TO_ANSI(*InEntryPoint),
+		Frequency,
+		InShaderBackEnd,
+		InLanguageSpec,
+		(EHlslCompileTarget)InCompileTarget,
+		&ShaderSource,
+		OutErrorLog
+		);
+
+	if (ShaderSource)
+	{
+		OutShaderSource = ANSI_TO_TCHAR(ShaderSource);
+		free(ShaderSource);
+	}
+
+	return Result;
 }

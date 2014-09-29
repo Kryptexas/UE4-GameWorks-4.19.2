@@ -3,6 +3,7 @@
 // CrossCompilerTool.cpp: Driver for testing compilation of an individual shader
 
 #include "CrossCompilerTool.h"
+#include "CrossCompiler.h"
 #include "hlslcc.h"
 #include "MetalBackend.h"
 #include "GlslBackend.h"
@@ -53,19 +54,19 @@ namespace CCT
 			return 1;
 		}
 
-		ANSICHAR* ShaderSource = 0;
+		FString ShaderSource(TEXT(""));
 		ANSICHAR* ErrorLog = 0;
 
-		int Result = HlslCrossCompile(
-			TCHAR_TO_ANSI(*RunInfo.InputFile),
-			TCHAR_TO_ANSI(*HLSLShaderSource),
-			TCHAR_TO_ANSI(*RunInfo.Entry),
+		int32 Result = HlslCrossCompile(
+			RunInfo.InputFile,
+			HLSLShaderSource,
+			RunInfo.Entry,
 			RunInfo.Frequency,
 			Backend,
 			Language,
 			Flags,
 			RunInfo.Target,
-			&ShaderSource,
+			ShaderSource,
 			&ErrorLog
 			);
 
@@ -75,17 +76,15 @@ namespace CCT
 			UE_LOG(LogCrossCompilerTool, Warning, TEXT("%s"), *OutError);
 		}
 
-		if (ShaderSource)
+		if (ShaderSource.Len() > 0)
 		{
-			FString OutSource(ANSI_TO_TCHAR(ShaderSource));
-			UE_LOG(LogCrossCompilerTool, Display, TEXT("%s"), *OutSource);
+			UE_LOG(LogCrossCompilerTool, Display, TEXT("%s"), *ShaderSource);
 			if (RunInfo.OutputFile.Len() > 0)
 			{
-				FFileHelper::SaveStringToFile(OutSource, *RunInfo.OutputFile);
+				FFileHelper::SaveStringToFile(ShaderSource, *RunInfo.OutputFile);
 			}
 		}
 
-		free(ShaderSource);
 		free(ErrorLog);
 
 		return 0;
