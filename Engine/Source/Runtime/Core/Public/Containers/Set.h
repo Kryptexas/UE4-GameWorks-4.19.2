@@ -314,6 +314,17 @@ public:
 		Rehash();
 	}
 
+	/** Preallocates enough memory to contain Number elements */
+	FORCEINLINE void Reserve(int32 Number)
+	{
+		// makes sense only when Number > Elements.Num() since TSparseArray::Reserve 
+		// does any work only if that's the case
+		if (Number > Elements.Num())
+		{
+			Elements.Reserve(Number);
+		}
+	}
+
 	/** Relaxes the set's hash to a size strictly bounded by the number of elements in the set. */
 	FORCEINLINE void Relax()
 	{

@@ -232,6 +232,12 @@ public:
 		Pairs.Compact();
 	}
 
+	/** Preallocates enough memory to contain Number elements */
+	FORCEINLINE void Reserve(int32 Number)
+	{
+		Pairs.Reserve(Number);
+	}
+
 	/** @return The number of elements in the map. */
 	FORCEINLINE int32 Num() const
 	{
