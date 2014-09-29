@@ -325,7 +325,7 @@ void FSlateMacMenu::ExecuteMenuItemAction(const TSharedRef< const class FMenuEnt
 			(*MenuBlock)->GetDirectActions().Execute();
 		}
         delete MenuBlock;
-	}, NSDefaultRunLoopMode, false);
+	}, @[ NSDefaultRunLoopMode ], false);
 }
 
 static const TSharedRef<SWidget> FindTextBlockWidget(TSharedRef<SWidget> Content)
