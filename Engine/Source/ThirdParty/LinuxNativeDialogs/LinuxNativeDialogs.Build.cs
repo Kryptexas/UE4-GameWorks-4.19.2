@@ -10,12 +10,14 @@ public class LinuxNativeDialogs : ModuleRules
 
 		string LNDPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "LinuxNativeDialogs/UELinuxNativeDialogs/";
 		string LNDLibPath = LNDPath + "lib/";
+		
+		Definitions.Add("WITH_LINUX_NATIVE_DIALOGS=1");
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			string CrossCompilingDir = (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux) ? "/NotForLicensees" : "";
 
-            PublicLibraryPaths.Add(LNDLibPath + "Linux/" + Target.Architecture + CrossCompilingDir);
+			PublicLibraryPaths.Add(LNDLibPath + "Linux/" + Target.Architecture + CrossCompilingDir);
 			PublicIncludePaths.Add(LNDPath + "include/");
 			PublicAdditionalLibraries.Add("LND");
 		}

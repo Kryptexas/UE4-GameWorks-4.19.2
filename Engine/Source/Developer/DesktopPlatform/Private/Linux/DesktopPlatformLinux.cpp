@@ -47,8 +47,9 @@ bool FDesktopPlatformLinux::OpenDirectoryDialog(const void* ParentWindowHandle, 
 
 	UFileDialog* dialog = UFileDialog_Create(&hints);
 
-	while(UFileDialog_ProcessEvents(dialog)) {
-		usleep(5000);
+	while(UFileDialog_ProcessEvents(dialog)) 
+	{
+		FPlatformProcess::Sleep(0.05f);
 	}
 
 	const UFileDialogResult* result = UFileDialog_Result(dialog);
@@ -142,7 +143,7 @@ bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindo
 	if (FileTypesLen > 0 && FileTypesLen - 1 < MAX_FILETYPES_STR)
 	{
 		FileTypesPtr = FileTypeStr;
-		FCString::Strcpy(FileTypeStr, MAX_FILETYPES_STR, *FileTypes);
+		FCString::Strcpy(FileTypeStr, MAX_FILETYPES_STR, *FileTypes.Replace(TEXT(";"), TEXT(" ")));
 
 		TCHAR* Pos = FileTypeStr;
 		while( Pos[0] != 0 )
@@ -160,15 +161,17 @@ bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindo
 		FileTypeStr[FileTypesLen + 1] = 0;
 	}
 
-	//char f_types[4096] = {0,};
-	//FTCHARToUTF8_Convert::Convert(f_types, sizeof(f_types), FileTypeStr, FileTypesLen);
-	hints.NameFilter = TCHAR_TO_UTF8(FileTypeStr);
+	char FileTypesBuf[MAX_FILETYPES_STR * 2] = {0,};
+	FTCHARToUTF8_Convert::Convert(FileTypesBuf, sizeof(FileTypesBuf), FileTypeStr, FileTypesLen);
+	hints.NameFilter = FileTypesBuf;
 
-	//char d_path[4096] = {0,};
-	//FTCHARToUTF8_Convert::Convert(d_path, sizeof(d_path), *DefaultPath, DefaultPath.Len());
-	hints.InitialDirectory = TCHAR_TO_UTF8(*DefaultPath);
+	char DefPathBuf[MAX_FILENAME_STR * 2] = {0,};
+	FTCHARToUTF8_Convert::Convert(DefPathBuf, sizeof(DefPathBuf), *DefaultPath, DefaultPath.Len());
+	hints.InitialDirectory = DefPathBuf;
 
-	hints.DefaultFile = TCHAR_TO_UTF8(*DefaultFile);
+	char DefFileBuf[MAX_FILENAME_STR * 2] = {0,};
+	FTCHARToUTF8_Convert::Convert(DefFileBuf, sizeof(DefFileBuf), *DefaultFile, DefaultFile.Len());
+	hints.DefaultFile = DefFileBuf;
 
 	if (bSave)
 	{
@@ -181,8 +184,9 @@ bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindo
 
 	UFileDialog* dialog = UFileDialog_Create(&hints);
 
-	while(UFileDialog_ProcessEvents(dialog)) {
-		usleep(5000);
+	while(UFileDialog_ProcessEvents(dialog))
+	{
+		FPlatformProcess::Sleep(0.05f);
 	}
 
 	const UFileDialogResult* result = UFileDialog_Result(dialog);
