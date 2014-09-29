@@ -896,6 +896,7 @@ X11_SetWindowSize(_THIS, SDL_Window * window)
     X11_XFlush(display);
 }
 
+/* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
 int
 X11_GetWindowBordersSize(_THIS, SDL_Window * window, SDL_Rect * borders)
@@ -936,7 +937,8 @@ X11_GetWindowBordersSize(_THIS, SDL_Window * window, SDL_Rect * borders)
     }
     return result;
 }
-#endif // SDL_WITH_EPIC_EXTENSIONS
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 void
 X11_SetWindowBordered(_THIS, SDL_Window * window, SDL_bool bordered)

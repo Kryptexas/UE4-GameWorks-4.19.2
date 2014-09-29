@@ -553,6 +553,7 @@ extern DECLSPEC void SDLCALL SDL_SetWindowSize(SDL_Window * window, int w,
 extern DECLSPEC void SDLCALL SDL_GetWindowSize(SDL_Window * window, int *w,
                                                int *h);
 
+/* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
 /**
  *  \brief Get the size of a window's borders (decorations) around the client area.
@@ -570,7 +571,8 @@ extern DECLSPEC void SDLCALL SDL_GetWindowSize(SDL_Window * window, int *w,
  *  \sa SDL_GetWindowBordersSize()
  */
 extern DECLSPEC int SDLCALL SDL_GetWindowBordersSize(SDL_Window * window, SDL_Rect * borders);
-#endif // SDL_WITH_EPIC_EXTENSIONS
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 /**
  *  \brief Set the minimum size of a window's client area.

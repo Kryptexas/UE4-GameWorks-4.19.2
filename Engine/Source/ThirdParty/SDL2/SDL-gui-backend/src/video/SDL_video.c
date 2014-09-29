@@ -1746,6 +1746,7 @@ SDL_SetWindowMinimumSize(SDL_Window * window, int min_w, int min_h)
     }
 }
 
+/* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
 int
 SDL_GetWindowBordersSize(SDL_Window * window, SDL_Rect * borders)
@@ -1764,7 +1765,8 @@ SDL_GetWindowBordersSize(SDL_Window * window, SDL_Rect * borders)
     }
     return -1;
 }
-#endif // SDL_WITH_EPIC_EXTENSIONS
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 void
 SDL_GetWindowMinimumSize(SDL_Window * window, int *min_w, int *min_h)

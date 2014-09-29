@@ -194,9 +194,11 @@ struct SDL_VideoDevice
     void (*SetWindowSize) (_THIS, SDL_Window * window);
     void (*SetWindowMinimumSize) (_THIS, SDL_Window * window);
     void (*SetWindowMaximumSize) (_THIS, SDL_Window * window);
+    /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     int (*GetWindowBordersSize) (_THIS, SDL_Window * window, SDL_Rect * borders);
-#endif // SDL_WITH_EPIC_EXTENSIONS
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    /* EG END */
     void (*ShowWindow) (_THIS, SDL_Window * window);
     void (*HideWindow) (_THIS, SDL_Window * window);
     void (*RaiseWindow) (_THIS, SDL_Window * window);
