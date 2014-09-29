@@ -335,7 +335,7 @@ public:
 	 * 
 	 * Size of the geometry in local space. 
 	 */
-	FVector2D /*Local*/Size;
+	const FVector2D /*Local*/Size;
 
 	/** 
 	 * !!! DEPRECATED !!! These legacy public members should ideally not be referenced, as they do not account for the render transform.
