@@ -102,6 +102,7 @@ public:
 	void OnWindowRedrawContents( FCocoaWindow* Window );
 	void OnWindowDidClose( FCocoaWindow* Window );
 	bool OnWindowDestroyed( FCocoaWindow* Window );
+	void OnWindowClose( FCocoaWindow* Window );
 
 	void OnMouseCursorLock( bool bLockEnabled );
 

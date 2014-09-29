@@ -309,7 +309,7 @@ void FMacWindow::Destroy()
 			// Close the window
 			MainThreadCall(^{
 				SCOPED_AUTORELEASE_POOL;
-				[Window performClose:nil];
+				[Window destroy];
 			}, UE4CloseEventMode, true);
 		}
 	}

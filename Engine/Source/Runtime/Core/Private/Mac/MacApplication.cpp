@@ -1292,6 +1292,15 @@ bool FMacApplication::OnWindowDestroyed( FCocoaWindow* Window )
 	return false;
 }
 
+void FMacApplication::OnWindowClose( FCocoaWindow* Window )
+{
+	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
+	if( EventWindow.IsValid() )
+	{
+		MessageHandler->OnWindowClose( EventWindow.ToSharedRef() );
+	}
+}
+
 void FMacApplication::OnMouseCursorLock( bool bLockEnabled )
 {
 	bIsMouseCursorLocked = bLockEnabled;
