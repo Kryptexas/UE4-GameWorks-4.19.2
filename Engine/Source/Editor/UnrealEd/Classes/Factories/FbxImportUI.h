@@ -51,6 +51,10 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh"))
 	bool bImportAsSkeletal;
 
+	/** Whether to import the mesh. Allows animation only import when importing a skeletal mesh. */
+	UPROPERTY(EditAnywhere, config, Category=Mesh, meta=(ImportType="SkeletalMesh"))
+	bool bImportMesh;
+
 	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Mesh, meta=(ToolTip="If enabled, combines all meshes into a single mesh", ImportType="StaticMesh"))
 	uint32 bCombineMeshes:1;
@@ -80,7 +84,7 @@ class UFbxImportUI : public UObject
 	uint32 bImportRigidMesh:1;
 
 	/** Enable this option to use default sample rate for the imported animation at 30 frames per second */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Animation, meta=(editcondition = "bImportAnimations", ToolTip="If enabled, samples all animation curves to 30 FPS", ImportType="SkeletalMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Animation, meta=(editcondition = "bImportAnimations", ToolTip="If enabled, samples all animation curves to 30 FPS", ImportType="SkeletalMesh|Animation"))
 	uint32 bUseDefaultSampleRate:1;
 
 	/** Whether to automatically create Unreal materials for materials found in the FBX scene */
