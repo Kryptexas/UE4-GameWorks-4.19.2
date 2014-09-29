@@ -5,6 +5,7 @@
 #include "EditorSupportDelegates.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
+#include "Engine/DemoNetDriver.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
@@ -533,6 +534,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	if( NetDriver )
 	{
 		NetDriver->NotifyActorDestroyed( ThisActor );
+	}
+
+	if ( DemoNetDriver )
+	{
+		DemoNetDriver->NotifyActorDestroyed( ThisActor );
 	}
 
 	// Remove the actor from the actor list.
