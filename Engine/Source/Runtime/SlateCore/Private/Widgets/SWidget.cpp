@@ -247,6 +247,8 @@ void SWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 {
 }
 
+TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 1, TEXT("Controls whether invisible widgets are ticked."));
+
 void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	INC_DWORD_STAT(STAT_SlateNumTickedWidgets);
@@ -257,7 +259,7 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 	// Gather all children, whether they're visible or not.  We need to allow invisible widgets to
 	// consider whether they should still be invisible in their tick functions, as well as maintain
 	// other state when hidden,
-	FArrangedChildren ArrangedChildren(EVisibility::All);
+	FArrangedChildren ArrangedChildren(TickInvisibleWidgets.GetValueOnGameThread() ? EVisibility::All : EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
 	// Recur!
