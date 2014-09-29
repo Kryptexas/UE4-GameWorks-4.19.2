@@ -29,6 +29,9 @@
 #include "SDL_waylandwindow.h"
 #include "SDL_waylandvideo.h"
 #include "SDL_waylandtouch.h"
+/* EG BEGIN */
+#include "SDL_waylanddyn.h"
+/* EG END */
 
 static void
 handle_ping(void *data, struct wl_shell_surface *shell_surface,
