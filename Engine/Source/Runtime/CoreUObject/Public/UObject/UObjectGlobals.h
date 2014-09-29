@@ -419,7 +419,6 @@ COREUOBJECT_API UPackage* FindPackage(UObject* InOuter, const TCHAR* PackageName
  */
 COREUOBJECT_API UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName );
 
-void StaticShutdownAfterError();
 void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, bool bNotifyObjectOfChange );
 
 /**

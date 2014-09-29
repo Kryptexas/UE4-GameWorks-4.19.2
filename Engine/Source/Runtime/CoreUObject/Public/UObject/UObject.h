@@ -561,10 +561,6 @@ public:
 	 */
 	void ConditionalPostLoadSubobjects( struct FObjectInstancingGraph* OuterInstanceGraph=NULL );
 
-	/** Make sure this object has been shut down. */
-	void ConditionalShutdownAfterError();
-
-
 	/**
 	 * Starts caching of platform specific data for the target platform
 	 * Called when cooking before serialization so that object can prepare platform specific data

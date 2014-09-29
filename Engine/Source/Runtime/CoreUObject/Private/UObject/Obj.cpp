@@ -1812,41 +1812,26 @@ void UObject::CultureChange()
    Shutdown.
 -----------------------------------------------------------------------------*/
 
-/** Used to track which objects have been shutdown after error			*/
-static FUObjectAnnotationSparseBool ShutdownAfterErrorAnnotation;
-
-
-void UObject::ConditionalShutdownAfterError()
-{
-	if( !ShutdownAfterErrorAnnotation.Get(this) )
-	{
-		ShutdownAfterErrorAnnotation.Set(this);
-		ShutdownAfterError();
-	}
-}
-
 /**
  * After a critical error, shutdown all objects which require
  * mission-critical cleanup, such as restoring the video mode,
  * releasing hardware resources.
  */
-void StaticShutdownAfterError()
+static void StaticShutdownAfterError()
 {
 	if( UObjectInitialized() )
 	{
-		static bool Shutdown=0;
-		if( Shutdown )
+		static bool bShutdown = false;
+		if( bShutdown )
 		{
 			return;
 		}
-		Shutdown = 1;
+		bShutdown = true;
 		UE_LOG(LogExit, Log, TEXT("Executing StaticShutdownAfterError") );
 
-		ShutdownAfterErrorAnnotation.Reserve( GUObjectArray.GetObjectArrayNum() );
-
-		for ( FRawObjectIterator It; It; ++It )
+		for( FRawObjectIterator It; It; ++It )
 		{
-			It->ConditionalShutdownAfterError();
+			It->ShutdownAfterError();
 		}
 	}
 }
