@@ -42,17 +42,31 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 
 	MeshCategory.GetDefaultProperties(CategoryDefaultProperties);
 
-	EFBXImportType ImportType = ImportUI->MeshTypeToImport;
-	switch(ImportType)
+	switch(ImportUI->MeshTypeToImport)
 	{
 		case FBXIT_StaticMesh:
 			CollectChildPropertiesRecursive(StaticMeshDataProp, ExtraProperties);
 			break;
 		case FBXIT_SkeletalMesh:
-			CollectChildPropertiesRecursive(SkeletalMeshDataProp, ExtraProperties);
+			if(ImportUI->bImportMesh)
+			{
+				CollectChildPropertiesRecursive(SkeletalMeshDataProp, ExtraProperties);
+			}
+			else
+			{
+				ImportUI->MeshTypeToImport = FBXIT_Animation;
+			}
 			break;
 		default:
 			break;
+	}
+	EFBXImportType ImportType = ImportUI->MeshTypeToImport;
+
+	if(ImportUI->OriginalImportType == FBXIT_SkeletalMesh)
+	{
+		TSharedRef<IPropertyHandle> ImportMeshProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFbxImportUI, bImportMesh));
+		ImportMeshProp->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FFbxImportUIDetails::ImportMeshToggleChanged));
+		MeshCategory.AddProperty(ImportMeshProp);
 	}
 
 	if(ImportType != FBXIT_Animation)
@@ -93,6 +107,18 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 
 	// Animation Category
 	IDetailCategoryBuilder& AnimCategory = DetailBuilder.EditCategory("Animation", TEXT(""), ECategoryPriority::Important);
+
+	CategoryDefaultProperties.Empty();
+	AnimCategory.GetDefaultProperties(CategoryDefaultProperties);
+	for(TSharedRef<IPropertyHandle> Handle : CategoryDefaultProperties)
+	{
+		FString MetaData = Handle->GetMetaData(TEXT("ImportType"));
+		if(!IsImportTypeMetaDataValid(ImportType, MetaData))
+		{
+			DetailBuilder.HideProperty(Handle);
+		}
+	}
+
 	if(ImportType == FBXIT_Animation || ImportType == FBXIT_SkeletalMesh)
 	{
 		ExtraProperties.Empty();
@@ -206,6 +232,15 @@ void FFbxImportUIDetails::MeshImportModeChanged()
 	if(CachedDetailBuilder)
 	{
 		ImportUI->MeshTypeToImport = ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh ? FBXIT_StaticMesh : FBXIT_SkeletalMesh;
+		CachedDetailBuilder->ForceRefreshDetails();
+	}
+}
+
+void FFbxImportUIDetails::ImportMeshToggleChanged()
+{
+	if(CachedDetailBuilder)
+	{
+		ImportUI->MeshTypeToImport = ImportUI->bImportMesh ? FBXIT_SkeletalMesh: FBXIT_Animation;
 		CachedDetailBuilder->ForceRefreshDetails();
 	}
 }

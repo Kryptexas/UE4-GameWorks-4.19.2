@@ -23,6 +23,9 @@ public:
 	/** Called if the mesh mode (static / skeletal) changes */
 	void MeshImportModeChanged();
 
+	/** Called if the import mesh option for skeletal meshes is changed */
+	void ImportMeshToggleChanged();
+
 	TWeakObjectPtr<UFbxImportUI> ImportUI;		// The UI data object being customised
 	IDetailLayoutBuilder* CachedDetailBuilder;	// The detail builder for this cusomtomisation
 
