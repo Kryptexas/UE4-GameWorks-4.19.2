@@ -272,7 +272,7 @@ public:
 	 * 
 	 * @param	InOuter		the package to save
 	 */
-	FArchiveSaveTagExports( UObject* InOuter )
+	FArchiveSaveTagExports( UPackage* InOuter )
 	: Outer(InOuter)
 	{
 		ArIsSaving				= true;
@@ -288,7 +288,7 @@ public:
 	 * Package we're currently saving.  Only objects contained
 	 * within this package will be tagged for serialization.
 	 */
-	UObject* Outer;
+	UPackage* Outer;
 
 	/**
 	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
@@ -313,14 +313,15 @@ private:
  **/
 FString FArchiveSaveTagExports::GetArchiveName() const
 {
-	return Outer != NULL
+	return Outer != nullptr
 		? *FString::Printf(TEXT("SaveTagExports (%s)"), *Outer->GetName())
 		: TEXT("SaveTagExports");
 }
 
 FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 {
-	CheckObjectPriorToSave(Obj, CastChecked<UPackage>(Outer));
+	check(Outer);
+	CheckObjectPriorToSave(Obj, Outer);
 	if( Obj && Obj->IsIn(Outer) && !Obj->HasAnyFlags(RF_Transient) && !Obj->HasAnyMarks(OBJECTMARK_TagExp) )
 	{
 #if 0
@@ -590,14 +591,14 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 		if( !Obj->HasAnyFlags(RF_Transient) || Obj->HasAllFlags(RF_Native) )
 		{
 			// remember it as a dependency, unless it's a top level package or native
-			bool bIsTopLevelPackage = Obj->GetOuter() == NULL && Obj->IsA(UPackage::StaticClass());
+			bool bIsTopLevelPackage = Obj->GetOuter() == NULL && dynamic_cast<UPackage*>(Obj);
 			bool bIsNative = Obj->HasAnyFlags(RF_Native);
 			UObject* Outer = Obj->GetOuter();
 			
 			// go up looking for native classes
 			while (!bIsNative && Outer)
 			{
-				if (Outer->IsA(UClass::StaticClass()) && Outer->HasAnyFlags(RF_Native))
+				if (dynamic_cast<UClass*>(Outer) && Outer->HasAnyFlags(RF_Native))
 				{
 					bIsNative = true;
 				}
@@ -1529,31 +1530,28 @@ class FExportReferenceSorter : public FArchiveUObject
 			const int32 PreviousReferencedObjectCount = ReferencedObjects.Num();
 			const int32 PreviousInsertIndex = CurrentInsertIndex;
 
-			if ( RequiredObject->IsA(UStruct::StaticClass()) )
+			if (UStruct* RequiredObjectStruct = dynamic_cast<UStruct*>(RequiredObject))
 			{
 				// if this is a struct/class/function/state, it may have a super that needs to be processed first
-				ProcessStruct((UStruct*)RequiredObject);
+				ProcessStruct(RequiredObjectStruct);
+			}
+			else if ( bProcessObject )
+			{
+				// this means that RequiredObject is being force-loaded by the referencing object, rather than simply referenced
+				ProcessObject(RequiredObject);
 			}
 			else
 			{
-				if ( bProcessObject )
+				// only the object's class and archetype are force-loaded, so only those objects need to be in the list before
+				// whatever object was referencing RequiredObject
+				if ( ProcessedObjects.Find(RequiredObject->GetOuter()) == INDEX_NONE )
 				{
-					// this means that RequiredObject is being force-loaded by the referencing object, rather than simply referenced
-					ProcessObject(RequiredObject);
+					HandleDependency(RequiredObject->GetOuter());
 				}
-				else
-				{
-					// only the object's class and archetype are force-loaded, so only those objects need to be in the list before
-					// whatever object was referencing RequiredObject
-					if ( ProcessedObjects.Find(RequiredObject->GetOuter()) == INDEX_NONE )
-					{
-						HandleDependency(RequiredObject->GetOuter());
-					}
 
-					// class is needed before archetype, but we need to process these in reverse order because we are inserting into the list.
-					ProcessObject(RequiredObject->GetArchetype());
-					ProcessStruct(RequiredObject->GetClass());
-				}
+				// class is needed before archetype, but we need to process these in reverse order because we are inserting into the list.
+				ProcessObject(RequiredObject->GetArchetype());
+				ProcessStruct(RequiredObject->GetClass());
 			}
 
 			// InsertIndexOffset is the amount the CurrentInsertIndex was incremented during the serialization of SuperField; we need to
@@ -1608,7 +1606,7 @@ public:
 			}
 
 			// UObjectRedirectors are always force-loaded as the loading code needs immediate access to the object pointed to by the Redirector
-			UObjectRedirector* Redirector = Cast<UObjectRedirector>(Object);
+			UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Object);
 			if ( Redirector != NULL && Redirector->DestinationObject != NULL )
 			{
 				// the Redirector does not force-load the destination object, so we only need its class and archetype.
@@ -1682,23 +1680,23 @@ public:
 				// of exports before the class, so that when CreateExport is called for this object reference we don't have to seek.
 				// Note that in the non-UField case, we don't actually need the object itself to appear before the referencing object/class because it won't
 				// be force-loaded (thus we don't need to add the referenced object to the ReferencedObject list)
-				if ( Object->IsA(UField::StaticClass()) )
+				if (dynamic_cast<UField*>(Object))
 				{
 					// when field processing is enabled, ignore any referenced classes since a class's class and CDO are both intrinsic and
 					// attempting to deal with them here will only cause problems
-					if ( !bIgnoreFieldReferences && !Object->IsA(UClass::StaticClass()) )
+					if ( !bIgnoreFieldReferences && !dynamic_cast<UClass*>(Object) )
 					{
 						if ( CurrentClass == NULL || Object->GetOuter() != CurrentClass )
 						{
-							if ( Object->IsA(UStruct::StaticClass()) )
+							if ( UStruct* StructObject = dynamic_cast<UStruct*>(Object) )
 							{
 								// if this is a struct/class/function/state, it may have a super that needs to be processed first (Preload force-loads UStruct::SuperField)
-								ProcessStruct((UStruct*)Object);
+								ProcessStruct(StructObject);
 							}
 							else
 							{
 								// byte properties that are enum references need their enums loaded first so that config importing works
-								UByteProperty* ByteProp = Cast<UByteProperty>(Object);
+								UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(Object);
 								if (ByteProp != NULL && ByteProp->Enum != NULL)
 								{
 									HandleDependency(ByteProp->Enum, true);
@@ -1761,7 +1759,7 @@ public:
 					HandleDependency(Object->GetArchetype(), true);
 
 					// UObjectRedirectors are always force-loaded as the loading code needs immediate access to the object pointed to by the Redirector
-					UObjectRedirector* Redirector = Cast<UObjectRedirector>(Object);
+					UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Object);
 					if ( Redirector != NULL && Redirector->DestinationObject != NULL )
 					{
 						// the Redirector does not force-load the destination object, so we only need its class and archetype.
@@ -1833,7 +1831,7 @@ public:
 
 					// invoke the serialize operator rather than calling Serialize directly so that the object is handled correctly (i.e. if it is a struct, then we should
 					// call ProcessStruct, etc. and all this logic is already contained in the serialization operator)
-					if ( Cast<UClass>(StructObject) == NULL )
+					if (!dynamic_cast<UClass*>(StructObject))
 					{
 						// before processing the Children reference, set the CurrentClass to the class which contains this StructObject so that we
 						// don't inadvertently serialize other fields of the owning class too early.
@@ -1850,7 +1848,7 @@ public:
 				// Preload will force-load the class default object when called on a UClass object, so make sure that the CDO is always immediately after its class
 				// in the export list; we can't resolve this circular reference, but hopefully we the CDO will fit into the same memory block as the class during 
 				// seek-free loading.
-				UClass* ClassObject = Cast<UClass>(StructObject);
+				UClass* ClassObject = dynamic_cast<UClass*>(StructObject);
 				if ( ClassObject != NULL )
 				{
 					UObject* CDO = ClassObject->GetDefaultObject();
@@ -1970,10 +1968,10 @@ struct FObjectExportSeekFreeSorter
 		for( int32 ExportIndex=FirstSortIndex; ExportIndex<Linker->ExportMap.Num(); ExportIndex++ )
 		{
 			const FObjectExport& Export = Linker->ExportMap[ExportIndex];
-			if( Export.Object && Export.Object->IsA(UClass::StaticClass()) )
+			if( UClass* ExportObjectClass = dynamic_cast<UClass*>(Export.Object) )
 			{
 				SortArchive.Clear();
-				SortArchive.ProcessStruct((UClass*)Export.Object);
+				SortArchive.ProcessStruct(ExportObjectClass);
 #if EXPORT_SORTING_DETAILED_LOGGING
 				TArray<UObject*> ReferencedObjects;
 				SortArchive.GetExportList(ReferencedObjects, bRetrieveInitialReferences);
@@ -2172,7 +2170,7 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 	for (int32 i = 0; i < OldLinker->ExportMap.Num(); i++)
 	{
 		UClass* NewClass = (UClass*)StaticFindObjectFast(UClass::StaticClass(), NewPackage, OldLinker->ExportMap[i].ObjectName, true, false);
-		UClass* OldClass = Cast<UClass>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
+		UClass* OldClass = static_cast<UClass*>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
 		if (OldClass != NULL && NewClass != NULL && OldClass->HasAnyFlags(RF_Native) && NewClass->HasAnyFlags(RF_Native))
 		{
 			OldClass->ClassConstructor = NewClass->ClassConstructor;
@@ -2189,11 +2187,11 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 		{
 			// load the object so we can analyze it
 			BeginLoad();
-			UClass* OldClass = Cast<UClass>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
+			UClass* OldClass = static_cast<UClass*>(OldLinker->Create(UClass::StaticClass(), OldLinker->ExportMap[i].ObjectName, OldLinker->LinkerRoot, LOAD_None, false));
 			EndLoad();
 			if (OldClass != NULL)
 			{
-				UClass* NewClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), NewPackage, OldClass->GetFName(), true, false));
+				UClass* NewClass = FindObjectFast<UClass>(NewPackage, OldClass->GetFName(), true, false);
 				if (NewClass != NULL)
 				{
 					for (TFieldIterator<UField> OldFieldIt(OldClass,EFieldIteratorFlags::ExcludeSuper); OldFieldIt; ++OldFieldIt)
@@ -2202,8 +2200,8 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 						{
 							if (OldFieldIt->GetFName() == NewFieldIt->GetFName())
 							{
-								UProperty* OldProp = Cast<UProperty>(*OldFieldIt);
-								UProperty* NewProp = Cast<UProperty>(*NewFieldIt);
+								UProperty* OldProp = dynamic_cast<UProperty*>(*OldFieldIt);
+								UProperty* NewProp = dynamic_cast<UProperty*>(*NewFieldIt);
 								if (OldProp != NULL && NewProp != NULL)
 								{
 									if ((OldProp->PropertyFlags & CPF_Net) != (NewProp->PropertyFlags & CPF_Net))
@@ -2214,8 +2212,8 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 								}
 								else
 								{
-									UFunction* OldFunc = Cast<UFunction>(*OldFieldIt);
-									UFunction* NewFunc = Cast<UFunction>(*NewFieldIt);
+									UFunction* OldFunc = dynamic_cast<UFunction*>(*OldFieldIt);
+									UFunction* NewFunc = dynamic_cast<UFunction*>(*NewFieldIt);
 									if (OldFunc != NULL && NewFunc != NULL)
 									{
 										if ((OldFunc->FunctionFlags & (FUNC_Net | FUNC_NetServer | FUNC_NetClient)) != (NewFunc->FunctionFlags & (FUNC_Net | FUNC_NetServer | FUNC_NetClient)))
@@ -2774,7 +2772,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 							}
 
 							// See whether the object we are referencing is in another map package.
-							UPackage* ObjPackage = Cast<UPackage>(Obj->GetOutermost());
+							UPackage* ObjPackage = dynamic_cast<UPackage*>(Obj->GetOutermost());
 							if( ObjPackage && ObjPackage->ContainsMap() )
 							{
 								if ( ObjPackage != Obj && Obj->GetFName() != NAME_PersistentLevel && Obj->GetClass()->GetFName() != WorldClassName )
@@ -3138,7 +3136,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					{
 						Linker->ObjectIndicesMap.Add(Object, FPackageIndex::FromExport(i));
 
-						UPackage* Package = Cast<UPackage>(Object);
+						UPackage* Package = dynamic_cast<UPackage*>(Object);
 						if (Package != NULL)
 						{
 							Linker->ExportMap[i].PackageFlags = Package->PackageFlags;
@@ -3314,9 +3312,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						}
 
 						// Set the parent index, if this export represents a UStruct-derived object
-						if( Export.Object->IsA(UStruct::StaticClass()) )
+						if( UStruct* Struct = dynamic_cast<UStruct*>(Export.Object) )
 						{
-							UStruct* Struct = (UStruct*)Export.Object;
 							if (Struct->GetSuperStruct() != NULL)
 							{
 								Export.SuperIndex = Linker->MapObject(Struct->GetSuperStruct());

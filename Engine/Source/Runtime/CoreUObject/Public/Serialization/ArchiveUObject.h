@@ -488,7 +488,7 @@ public:
 		for (FObjectIterator It; It; ++It)
 		{
 			UObject* PotentialReferencer = *It;
-			if (!TargetObjects.Contains(Cast<T>(PotentialReferencer))
+			if (!TargetObjects.Contains(dynamic_cast<T*>(PotentialReferencer))
 			&&	(PackageToCheck == NULL || PotentialReferencer->IsIn(PackageToCheck))
 			&&	(!bIgnoreTemplates || !PotentialReferencer->IsTemplate()) )
 			{

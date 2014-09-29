@@ -248,7 +248,7 @@ void UCrowdManager::Tick(float DeltaTime)
 					const FCrowdAgentData& AgentData = It.Value();
 					if (AgentData.bIsSimulated && AgentData.IsValid())
 					{
-						const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(It.Key()->GetUObjectInterfaceCrowdAgentInterface());
+						const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(It.Key());
 						if (CrowdComponent)
 						{
 							ApplyVelocity(CrowdComponent, AgentData.AgentIndex);
@@ -610,7 +610,7 @@ void UCrowdManager::AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData&
 	// create link filter for fully simulated agents
 	// (used to determine if agent can traverse smart links)
 	FRecastSpeciaLinkFilter* MyLinkFilter = NULL;
-	const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(Agent->GetUObjectInterfaceCrowdAgentInterface());
+	const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(Agent);
 	if (CrowdComponent)
 	{
 		UNavigationSystem* NavSys = Cast<UNavigationSystem>(GetOuter());
@@ -646,7 +646,7 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, struct dtC
 	// skip maxSpeed, it will be constantly updated in every tick
 	// skip maxAcceleration, we don't use Detour's movement code
 
-	const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(Agent->GetUObjectInterfaceCrowdAgentInterface());
+	const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(Agent);
 	if (CrowdComponent)
 	{
 		AgentParams->collisionQueryRange = CrowdComponent->GetCrowdCollisionQueryRange();
@@ -729,7 +729,7 @@ void UCrowdManager::UpdateAgentPaths()
 		FCrowdAgentData& AgentData = It.Value();
 		if (AgentData.bIsSimulated && AgentData.IsValid())
 		{
-			UCrowdFollowingComponent* CrowdComponent = (UCrowdFollowingComponent*)Cast<const UCrowdFollowingComponent>(It.Key()->GetUObjectInterfaceCrowdAgentInterface());
+			UCrowdFollowingComponent* CrowdComponent = (UCrowdFollowingComponent*)Cast<const UCrowdFollowingComponent>(It.Key());
 
 			const dtCrowdAgent* Agent = DetourCrowd->getAgent(AgentData.AgentIndex);
 			dtPolyRef AgentPolyRef = Agent->corridor.getFirstPoly();
@@ -775,7 +775,7 @@ void UCrowdManager::UpdateAgentPaths()
 void UCrowdManager::UpdateSelectedDebug(const ICrowdAgentInterface* Agent, int32 AgentIndex) const
 {
 #if WITH_EDITOR
-	const UObject* Obj = Agent->GetUObjectInterfaceCrowdAgentInterface();
+	const UObject* Obj = Cast<const UObject>(Agent);
 	if (GIsEditor && Obj)
 	{
 		const AController* TestController = Cast<const AController>(Obj->GetOuter());
@@ -1026,7 +1026,7 @@ void UCrowdManager::DebugTick() const
 		for (auto It = ActiveAgents.CreateConstIterator(); It; ++It)
 		{
 			const ICrowdAgentInterface* IAgent = It.Key();
-			const UObject* AgentOb = IAgent ? IAgent->GetUObjectInterfaceCrowdAgentInterface() : NULL;
+			const UObject* AgentOb = IAgent ?  Cast<const UObject>(IAgent) : NULL;
 			const AActor* LogOwner = AgentOb ? Cast<const AActor>(AgentOb->GetOuter()) : NULL;
 
 			const FCrowdAgentData& AgentData = It.Value();

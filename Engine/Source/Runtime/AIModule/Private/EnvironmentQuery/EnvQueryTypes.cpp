@@ -235,7 +235,7 @@ namespace FEQSHelpers
 		const UNavigationSystem* NavSys = QueryInstance.World->GetNavigationSystem();
 
 		// try to match navigation agent for querier
-		INavAgentInterface* NavAgent = QueryInstance.Owner.IsValid() ? InterfaceCast<INavAgentInterface>(QueryInstance.Owner.Get()) : NULL;
+		INavAgentInterface* NavAgent = QueryInstance.Owner.IsValid() ? Cast<INavAgentInterface>(QueryInstance.Owner.Get()) : NULL;
 		if (NavAgent)
 		{
 			const FNavAgentProperties* NavAgentProps = NavAgent ? NavAgent->GetNavAgentProperties() : NULL;

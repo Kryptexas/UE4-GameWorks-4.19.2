@@ -204,7 +204,7 @@ void UCrowdFollowingComponent::UpdateCrowdAgentParams() const
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->UpdateAgentParams(IAgent);
 	}
 }
@@ -284,7 +284,7 @@ void UCrowdFollowingComponent::Initialize()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->RegisterAgent(IAgent);
 	}
 	else
@@ -307,7 +307,7 @@ void UCrowdFollowingComponent::Cleanup()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->UnregisterAgent(IAgent);
 	}
 }
@@ -379,7 +379,7 @@ void UCrowdFollowingComponent::OnLanded()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (bEnableCrowdSimulation && CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->UpdateAgentState(IAgent);
 	}
 }
@@ -395,7 +395,7 @@ void UCrowdFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterfa
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (bPrevCustomLink && !bCurrentCustomLink && CrowdManager)
 		{
-			const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+			const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 			CrowdManager->OnAgentFinishedCustomLink(IAgent);
 		}
 	}

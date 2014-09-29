@@ -496,7 +496,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 
 		// Handle circular dependencies - try to find existing packages.
 		FString ImportPackageName(Import->ObjectName.ToString());
-		UPackage* ExistingPackage = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, Import->ObjectName, true));
+		UPackage* ExistingPackage = dynamic_cast<UPackage*>(StaticFindObjectFast(UPackage::StaticClass(), NULL, Import->ObjectName, true));
 		if (ExistingPackage && !(ExistingPackage->PackageFlags & PKG_CompiledIn) && !ExistingPackage->bHasBeenFullyLoaded)//!ExistingPackage->HasAnyFlags(RF_WasLoaded))
 		{
 			// The import package already exists. Check if it's currently being streamed as well. If so, make sure

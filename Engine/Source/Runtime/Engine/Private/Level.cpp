@@ -1799,7 +1799,7 @@ void ULevel::TickRuntimeMovieScenePlayers( const float DeltaSeconds )
 		check( OwningWorld->IsGameWorld() );
 
 		IRuntimeMovieScenePlayerInterface* RuntimeMovieScenePlayer =
-			InterfaceCast< IRuntimeMovieScenePlayerInterface >( ActiveRuntimeMovieScenePlayers[ CurPlayerIndex ] );
+			Cast< IRuntimeMovieScenePlayerInterface >( ActiveRuntimeMovieScenePlayers[ CurPlayerIndex ] );
 		check( RuntimeMovieScenePlayer != NULL );
 
 		// @todo sequencer runtime: Support expiring instances of RuntimeMovieScenePlayers that have finished playing

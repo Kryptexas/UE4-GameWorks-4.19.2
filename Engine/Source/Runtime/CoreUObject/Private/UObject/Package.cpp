@@ -108,7 +108,7 @@ UMetaData* UPackage::GetMetaData()
 	// If there is no MetaData, try to find it.
 	if (MetaData == NULL)
 	{
-		MetaData = Cast<UMetaData>(StaticFindObjectFast(UMetaData::StaticClass(), this, FName(NAME_PackageMetaData)));
+		MetaData = FindObjectFast<UMetaData>(this, FName(NAME_PackageMetaData));
 
 		// If MetaData is NULL then it wasn't loaded by linker, so we have to create it.
 		if(MetaData == NULL)

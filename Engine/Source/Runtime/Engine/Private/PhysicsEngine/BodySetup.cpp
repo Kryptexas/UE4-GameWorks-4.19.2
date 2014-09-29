@@ -804,7 +804,7 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format)
 		return NULL;
 	}
 
-	IInterface_CollisionDataProvider* CDP = InterfaceCast<IInterface_CollisionDataProvider>(GetOuter());
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(GetOuter());
 
 	// If there is nothing to cook or if we are reading data from a cooked package for an asset with no collision, 
 	// we want to return here

@@ -1977,7 +1977,7 @@ ULinkerLoad::EVerifyResult ULinkerLoad::VerifyImport(int32 ImportIndex)
 			WarningAppend += LOCTEXT("LoadWarningSuffix_redirection", " [redirection]").ToString();
 
 			// Create the redirector (no serialization yet)
-			UObjectRedirector* Redir = Cast<UObjectRedirector>(Import.SourceLinker->CreateExport(Import.SourceIndex));
+			UObjectRedirector* Redir = dynamic_cast<UObjectRedirector*>(Import.SourceLinker->CreateExport(Import.SourceIndex));
 			// this should probably never fail, but just in case
 			if (!Redir)
 			{
@@ -2196,11 +2196,13 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			{
 				// for loop does what we need
 			}
-			 if (Cast<UPackage>(Top->XObject) && (Cast<UPackage>(Top->XObject)->PackageFlags & PKG_CompiledIn))
-			 {
-				 // this is an import to a compiled in thing, just search for it in the package
-				 TmpPkg = Cast<UPackage>(Top->XObject);
-			 }
+
+			auto* Package = dynamic_cast<UPackage*>(Top->XObject);
+			if (Package && (Package->PackageFlags & PKG_CompiledIn))
+			{
+				// this is an import to a compiled in thing, just search for it in the package
+				TmpPkg = Package;
+			}
 		}
 
 		// Copy the SourceLinker from the FObjectImport for our Outer if the SourceLinker hasn't been set yet,
@@ -2442,7 +2444,7 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 UObject* ULinkerLoad::CreateExportAndPreload(int32 ExportIndex, bool bForcePreload /* = false */)
 {
 	UObject *Object = CreateExport(ExportIndex);
-	if (Object && (bForcePreload || (Cast<UClass>(Object) != NULL) || Object->IsTemplate() || (Cast<UObjectRedirector>(Object) != NULL)))
+	if (Object && (bForcePreload || dynamic_cast<UClass*>(Object) || Object->IsTemplate() || dynamic_cast<UObjectRedirector*>(Object)))
 	{
 		Preload(Object);
 	}
@@ -2567,7 +2569,7 @@ int32 ULinkerLoad::FindExportIndex( FName ClassName, FName ClassPackage, FName O
 
 		if(Export.ObjectName == ObjectName && (ExportOuterIndex.IsImport() || Export.OuterIndex == ExportOuterIndex)) // this is very not legit to be passing INDEX_NONE into this function to mean "ignore"
 		{
-			UClass*	ExportClass = Cast<UClass>(IndexToObject(Export.ClassIndex));
+			UClass*	ExportClass = dynamic_cast<UClass*>(IndexToObject(Export.ClassIndex));
 
 			// See if this export's class inherits from the requested class.
 			for(UClass* ParentClass = ExportClass;ParentClass;ParentClass = ParentClass->GetSuperClass())
@@ -2718,12 +2720,12 @@ void ULinkerLoad::Preload( UObject* Object )
 			UClass* Cls = NULL;
 
 			// If this is a struct, make sure that its parent struct is completely loaded
-			if(	Object->IsA(UStruct::StaticClass()) )
+			if( UStruct* Struct = dynamic_cast<UStruct*>(Object) )
 			{
-				Cls = Cast<UClass>(Object);
-				if( ((UStruct*)Object)->GetSuperStruct() )
+				Cls = dynamic_cast<UClass*>(Object);
+				if( Struct->GetSuperStruct() )
 				{
-					Preload( ((UStruct*)Object)->GetSuperStruct() );
+					Preload( Struct->GetSuperStruct() );
 				}
 			}
 
@@ -2933,7 +2935,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		{
 			LoadClass = UClass::StaticClass();
 		}
-		UObjectRedirector* LoadClassRedirector = Cast<UObjectRedirector>(LoadClass);
+		UObjectRedirector* LoadClassRedirector = dynamic_cast<UObjectRedirector*>(LoadClass);
 		if( LoadClassRedirector)
 		{
 			// mark this export as unloadable (so that other exports that
@@ -2947,7 +2949,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		}
 
 		check(LoadClass);
-		check(Cast<UClass>(LoadClass) != NULL);
+		check(dynamic_cast<UClass*>(LoadClass) != NULL);
 
 		// Check for a valid superstruct while there is still time to safely bail, if this export has one
 		if( !Export.SuperIndex.IsNull() )
@@ -2977,7 +2979,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 					&& SuperStruct->GetLinker()
 					&& Export.SuperIndex.IsImport())
 				{
-					const UClass* AsClass = Cast<UClass>(SuperStruct);
+					const UClass* AsClass = dynamic_cast<UClass*>(SuperStruct);
 					if (AsClass && !AsClass->ClassDefaultObject)
 					{
 						SuperStruct->SetFlags(RF_NeedLoad);
@@ -3065,7 +3067,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			return Export.Object;
 		}
 
-		UObjectRedirector* ParentRedirector = Cast<UObjectRedirector>(ThisParent);
+		UObjectRedirector* ParentRedirector = dynamic_cast<UObjectRedirector*>(ThisParent);
 		if( ThisParent == NULL || ParentRedirector)
 		{
 			// mark this export as unloadable (so that other exports that
@@ -3245,18 +3247,16 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		if ( Export.Object != NULL )
 		{
 			// If it's a struct or class, set its parent.
-			if( Export.Object->IsA(UStruct::StaticClass()) )
+			if( UStruct* Struct = dynamic_cast<UStruct*>(Export.Object) )
 			{
 				if ( !Export.SuperIndex.IsNull() )
 				{
-					((UStruct*)Export.Object)->SetSuperStruct( (UStruct*)IndexToObject( Export.SuperIndex ) );
+					Struct->SetSuperStruct( (UStruct*)IndexToObject( Export.SuperIndex ) );
 				}
 
 				// If it's a class, bind it to C++.
-				if( Export.Object->IsA( UClass::StaticClass() ) )
+				if( UClass* ClassObject = dynamic_cast<UClass*>(Export.Object) )
 				{
-					UClass* ClassObject = static_cast<UClass*>(Export.Object);
-
 #if WITH_EDITOR
 					// Before we serialize the class, begin a scoped class dependency gather to create a list of other classes that may need to be recompiled
 					FScopedClassDependencyGather DependencyHelper(ClassObject);
@@ -3390,7 +3390,7 @@ UObject* ULinkerLoad::CreateImport( int32 Index )
 #if WITH_EDITOR
 				if( GIsEditor )
 				{
-					UObjectRedirector* Redirector = Cast<UObjectRedirector>(Import.XObject);
+					UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Import.XObject);
 					if( Redirector )
 					{
 						Import.XObject = Redirector->DestinationObject;

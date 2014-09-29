@@ -908,7 +908,7 @@ UNavigationPath* UNavigationSystem::FindPathToActorSynchronously(UObject* WorldC
 		return NULL; 
 	}
 
-	INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(GoalActor);
+	INavAgentInterface* NavAgent = Cast<INavAgentInterface>(GoalActor);
 	UNavigationPath* GeneratedPath = FindPathToLocationSynchronously(WorldContext, PathStart, NavAgent ? NavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation(), PathfindingContext, FilterClass);
 	if (GeneratedPath != NULL && GeneratedPath->GetPath().IsValid() == true)
 	{
@@ -944,7 +944,7 @@ UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* Wor
 
 		if (PathfindingContext != NULL)
 		{
-			INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(PathfindingContext);
+			INavAgentInterface* NavAgent = Cast<INavAgentInterface>(PathfindingContext);
 			
 			if (NavAgent != NULL)
 			{
@@ -1004,7 +1004,7 @@ bool UNavigationSystem::NavigationRaycast(UObject* WorldContextObject, const FVe
 
 		// figure out which navigation data to use
 		const ANavigationData* NavData = NULL;
-		INavAgentInterface* MyNavAgent = InterfaceCast<INavAgentInterface>(Querier);
+		INavAgentInterface* MyNavAgent = Cast<INavAgentInterface>(Querier);
 		if (MyNavAgent)
 		{
 			const FNavAgentProperties* AgentProps = MyNavAgent->GetNavAgentProperties();
@@ -1193,7 +1193,7 @@ bool UNavigationSystem::IsThereAnywhereToBuildNavigation() const
 
 bool UNavigationSystem::IsNavigationRelevant(const AActor* TestActor) const
 {
-	const INavRelevantInterface* NavInterface = InterfaceCast<const INavRelevantInterface>(TestActor);
+	const INavRelevantInterface* NavInterface = Cast<const INavRelevantInterface>(TestActor);
 	if (NavInterface && NavInterface->IsNavigationRelevant())
 	{
 		return true;
@@ -1207,7 +1207,7 @@ bool UNavigationSystem::IsNavigationRelevant(const AActor* TestActor) const
 
 	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
 	{
-		NavInterface = InterfaceCast<const INavRelevantInterface>(Components[Idx]);
+		NavInterface = Cast<const INavRelevantInterface>(Components[Idx]);
 		if (NavInterface && NavInterface->IsNavigationRelevant())
 		{
 			return true;
@@ -2032,7 +2032,7 @@ void UNavigationSystem::UpdateNavOctree(class AActor* Actor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 
-	INavRelevantInterface* NavElement = InterfaceCast<INavRelevantInterface>(Actor);
+	INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(Actor);
 	if (NavElement)
 	{
 		UNavigationSystem* NavSys = Actor ? UNavigationSystem::GetCurrent(Actor->GetWorld()) : NULL;
@@ -2054,7 +2054,7 @@ void UNavigationSystem::UpdateNavOctree(class UActorComponent* Comp)
 		return;
 	}
 
-	INavRelevantInterface* NavElement = InterfaceCast<INavRelevantInterface>(Comp);
+	INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(Comp);
 	if (NavElement)
 	{
 		AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
@@ -2138,7 +2138,7 @@ void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, class INav
 
 void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner)
 {
-	INavRelevantInterface* ElementInterface = InterfaceCast<INavRelevantInterface>(ElementOwner);
+	INavRelevantInterface* ElementInterface = Cast<INavRelevantInterface>(ElementOwner);
 	const int32 UpdateFlags = OctreeUpdate_ParentChain | OctreeUpdate_Refresh;
 
 	TArray<FWeakObjectPtr> ChildNodes;
@@ -2158,7 +2158,7 @@ void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner)
 		if (ChildNodes[Idx].IsValid())
 		{
 			UObject* ChildNodeOb = ChildNodes[Idx].Get();
-			ChildNavInterfaces[Idx] = InterfaceCast<INavRelevantInterface>(ChildNodeOb);
+			ChildNavInterfaces[Idx] = Cast<INavRelevantInterface>(ChildNodeOb);
 			UnregisterNavOctreeElement(ChildNodeOb, ChildNavInterfaces[Idx], UpdateFlags);
 		}
 	}
@@ -2178,7 +2178,7 @@ void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner)
 void UNavigationSystem::OnComponentRegistered(UActorComponent* Comp)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
-	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Comp);
+	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Comp);
 	if (NavInterface)
 	{
 		AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
@@ -2196,7 +2196,7 @@ void UNavigationSystem::OnComponentRegistered(UActorComponent* Comp)
 void UNavigationSystem::OnComponentUnregistered(UActorComponent* Comp)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
-	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Comp);
+	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Comp);
 	if (NavInterface)
 	{
 		AActor* OwnerActor = Comp ? Comp->GetOwner() : NULL;
@@ -2216,7 +2216,7 @@ void UNavigationSystem::OnComponentUnregistered(UActorComponent* Comp)
 void UNavigationSystem::OnActorRegistered(class AActor* Actor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
-	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Actor);
+	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Actor);
 	if (NavInterface)
 	{
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());
@@ -2230,7 +2230,7 @@ void UNavigationSystem::OnActorRegistered(class AActor* Actor)
 void UNavigationSystem::OnActorUnregistered(class AActor* Actor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
-	INavRelevantInterface* NavInterface = InterfaceCast<INavRelevantInterface>(Actor);
+	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Actor);
 	if (NavInterface)
 	{
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());

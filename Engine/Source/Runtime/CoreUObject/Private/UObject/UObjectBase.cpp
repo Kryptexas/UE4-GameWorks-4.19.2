@@ -449,8 +449,13 @@ struct FStructOrEnumCompiledInfo : FFieldCompiledInInfo
 {
 	FStructOrEnumCompiledInfo(SIZE_T InClassSize, uint32 InCrc)
 		: FFieldCompiledInInfo(InClassSize, InCrc)
-	{}
-	virtual UField* Register() const { return NULL; }
+	{
+	}
+
+	virtual UClass* Register() const
+	{
+		return nullptr;
+	}
 };
 
 /** Registered struct info (including size and reflection info) */
@@ -627,13 +632,13 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 			GetObjectsWithOuter(ExistingClass, ClassSubobjects);
 			for (auto ClassSubobject : ClassSubobjects)
 			{
-				if (auto Enum = Cast<UEnum>(ClassSubobject))
+				if (auto Enum = dynamic_cast<UEnum*>(ClassSubobject))
 				{
 					Enum->RemoveNamesFromMasterList();
 				}
 			}
 		}
-		ClassInfo->OldField = ExistingClass;
+		ClassInfo->OldClass = ExistingClass;
 		GetHotReloadClasses().Add(ClassInfo);
 
 		*ExistingClassInfo = ClassInfo;
@@ -674,17 +679,18 @@ void UClassRegisterAllCompiledInClasses()
 void UClassReplaceHotReloadClasses()
 {
 	if (FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.IsBound())
-	{	
+	{
 		for (auto Class : GetHotReloadClasses())
 		{
+			check(Class->OldClass);
+
+			UClass* RegisteredClass = nullptr;
 			if (Class->bHasChanged)
 			{
-				FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(CastChecked<UClass>(Class->OldField), CastChecked<UClass>(Class->Register()));
+				RegisteredClass = Class->Register();
 			}
-			else
-			{
-				FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(CastChecked<UClass>(Class->OldField), NULL);
-			}
+
+			FCoreUObjectDelegates::ReplaceHotReloadClassDelegate.Execute(Class->OldClass, RegisteredClass);
 		}
 	}
 	GetHotReloadClasses().Empty();

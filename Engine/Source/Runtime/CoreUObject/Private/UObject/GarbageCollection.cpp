@@ -461,7 +461,7 @@ public:
 			}
 
 			// Assemble token stream for UClass objects. This is only done once for each class.
-			if (UClass* Class = Cast<UClass>(Object))
+			if (UClass* Class = dynamic_cast<UClass*>(Object))
 			{
 				if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
 				{

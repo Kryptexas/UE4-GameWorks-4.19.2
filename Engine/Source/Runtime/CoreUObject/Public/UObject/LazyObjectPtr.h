@@ -326,7 +326,7 @@ public:
 	 */
 	FORCEINLINE T *Get() const
 	{
-		return Cast<T>(FLazyObjectPtr::Get());
+		return dynamic_cast<T*>(FLazyObjectPtr::Get());
 	}
 
 	/**  

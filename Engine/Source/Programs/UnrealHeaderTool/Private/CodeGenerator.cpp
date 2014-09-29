@@ -1755,8 +1755,7 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 		// to script VM functions
 		if (SuperClass->IsChildOf(UInterface::StaticClass()))
 		{
-			InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* GetUObjectInterface%s()=0;\r\n"), *Class->GetName());
-			InterfaceBoilerplate.Logf(TEXT("\tvirtual const UObject* GetUObjectInterface%s() const=0;\r\n"), *Class->GetName());
+			InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* __GetUObject() const = 0;\r\n"));
 		}
 
 		// Replication, add in the declaration for GetLifetimeReplicatedProps() automatically if there are any net flagged properties
@@ -1919,30 +1918,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 					ClassBoilerplate.Logf(TEXT("    static const TCHAR* StaticConfigName() {return TEXT(\"%s\");}\r\n\r\n"), *Class->ClassConfigName.ToString());
 				}
 
-				{
-					// arrays for preventing multiple export of accessor function in situations where the native class
-					// implements multiple children of the same interface base class
-					TArray<UClass*> UObjectExportedInterfaces;
-					TArray<UClass*> ExportedInterfaces;
-
-					for (TArray<FImplementedInterface>::TIterator It(Class->Interfaces); It; ++It)
-					{
-						UClass* InterfaceClass = It->Class;
-						if ( InterfaceClass->HasAnyClassFlags(CLASS_Native) )
-						{
-							for ( UClass* IClass = InterfaceClass; IClass && IClass->HasAnyClassFlags(CLASS_Interface); IClass = IClass->GetSuperClass() )
-							{
-								if ( IClass != UInterface::StaticClass() && !UObjectExportedInterfaces.Contains(IClass) )
-								{
-									UObjectExportedInterfaces.Add(IClass);
-									ClassBoilerplate.Logf(TEXT("%svirtual UObject* GetUObjectInterface%s(){return this;}\r\n"), FCString::Spc(4), *IClass->GetName());
-									ClassBoilerplate.Logf(TEXT("%svirtual const UObject* GetUObjectInterface%s() const{return this;}\r\n"), FCString::Spc(4), *IClass->GetName());
-								}
-							}
-						}
-					}
-				}
-
+				ClassBoilerplate.Logf(TEXT("%sUObject* __GetUObject() const { return const_cast<%s*>(this); }\r\n"), FCString::Spc(4), ClassCPPName);
 
 				// Replication, add in the declaration for GetLifetimeReplicatedProps() automatically if there are any net flagged properties
 				for( TFieldIterator<UProperty> It(Class,EFieldIteratorFlags::ExcludeSuper); It; ++It )

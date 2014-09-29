@@ -17,7 +17,7 @@ void UClassProperty::Serialize( FArchive& Ar )
 		// If we failed to load the MetaClass and we're not a CDO, that means we relied on a class that has been removed or doesn't exist.
 		// The most likely cause for this is either an incomplete recompile, or if content was migrated between games that had native class dependencies
 		// that do not exist in this game.  We allow blueprint classes to continue, because compile on load will error out, and stub the class that was using it
-		UClass* TestClass = Cast<UClass>(GetOwnerStruct());
+		UClass* TestClass = dynamic_cast<UClass*>(GetOwnerStruct());
 		if( TestClass && TestClass->HasAllClassFlags(CLASS_Native) && !TestClass->HasAllClassFlags(CLASS_NewerVersionExists) && (TestClass->GetOutermost() != GetTransientPackage()) )
 		{
 			checkf(false, TEXT("Class property tried to serialize a missing class.  Did you remove a native class and not fully recompile?"));
@@ -37,7 +37,7 @@ const TCHAR* UClassProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	{
 		// Validate metaclass.
 		UClass* C = (UClass*)GetObjectPropertyValue(Data);
-		if ((C != NULL) && ((Cast<UClass>(C) == NULL) || !C->IsChildOf(MetaClass)))
+		if (C && (!dynamic_cast<UClass*>(C) || !C->IsChildOf(MetaClass)))
 		{
 			// the object we imported doesn't implement our interface class
 			ErrorText->Logf(TEXT("Invalid object '%s' specified for property '%s'"), *C->GetFullName(), *GetName());

@@ -130,7 +130,7 @@ void AMatineeActor::PostNetReceive()
 				// notify actors that something has changed
 				for (int32 ActorIndex = 0; ActorIndex < ControlledActors.Num(); ++ActorIndex )
 				{
-					IMatineeInterface * IMI = InterfaceCast<IMatineeInterface>(ControlledActors[ActorIndex]);
+					IMatineeInterface * IMI = Cast<IMatineeInterface>(ControlledActors[ActorIndex]);
 					if (IMI)
 					{
 						IMI->InterpolationChanged(this);
@@ -164,7 +164,7 @@ void AMatineeActor::PostNetReceive()
 					// fire an event if we're really playing (and not just starting it up to do a position update)
 					if (bIsPlaying)
 					{
-						IMatineeInterface * IMI = InterfaceCast<IMatineeInterface>(Actor);
+						IMatineeInterface * IMI = Cast<IMatineeInterface>(Actor);
 						if (IMI)
 						{
 							IMI->InterpolationStarted(this);
@@ -221,7 +221,7 @@ void AMatineeActor::PostNetReceive()
 					// fire an event if we were really playing (and not just starting it up to do a position update)
 					if (SavedbIsPlaying)
 					{
-						IMatineeInterface * IMI = InterfaceCast<IMatineeInterface>(Actor);
+						IMatineeInterface * IMI = Cast<IMatineeInterface>(Actor);
 						if (IMI)
 						{
 							IMI->InterpolationFinished(this);

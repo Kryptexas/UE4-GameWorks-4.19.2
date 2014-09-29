@@ -243,7 +243,7 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 	{
 		const EPathFollowingResult::Type FinishResult = bSilent ? EPathFollowingResult::Skipped : EPathFollowingResult::Aborted;
 
-		INavLinkCustomInterface* CustomNavLink = InterfaceCast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
+		INavLinkCustomInterface* CustomNavLink = Cast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
 		if (CustomNavLink)
 		{
 			CustomNavLink->OnLinkMoveFinished(this);
@@ -546,7 +546,7 @@ int32 UPathFollowingComponent::DetermineStartingPathPoint(const FNavigationPath*
 void UPathFollowingComponent::SetDestinationActor(const AActor* InDestinationActor)
 {
 	DestinationActor = InDestinationActor;
-	DestinationAgent = InterfaceCast<const INavAgentInterface>(InDestinationActor);
+	DestinationAgent = Cast<const INavAgentInterface>(InDestinationActor);
 	MoveOffset = DestinationAgent ? DestinationAgent->GetMoveGoalOffset(GetOwner()) : FVector::ZeroVector;
 }
 
@@ -848,7 +848,7 @@ bool UPathFollowingComponent::HasReached(const AActor* TestGoal, float InAccepta
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
 
-	const INavAgentInterface* NavAgent = InterfaceCast<const INavAgentInterface>(TestGoal);
+	const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(TestGoal);
 	if (NavAgent)
 	{
 		const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(GetOwner());
@@ -1005,7 +1005,7 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 
 void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint)
 {
-	INavLinkCustomInterface* PrevNavLink = InterfaceCast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
+	INavLinkCustomInterface* PrevNavLink = Cast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
 	if (PrevNavLink)
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Force finish custom move using navlink: %s"), *GetNameSafe(CurrentCustomLinkOb.Get()));
@@ -1014,7 +1014,7 @@ void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface
 		CurrentCustomLinkOb.Reset();
 	}
 
-	UObject* NewNavLinkOb = CustomNavLink ? CustomNavLink->GetUObjectInterfaceNavLinkCustomInterface() : NULL;
+	UObject* NewNavLinkOb = Cast<UObject>(CustomNavLink);
 	if (NewNavLinkOb)
 	{
 		CurrentCustomLinkOb = NewNavLinkOb;
@@ -1032,7 +1032,7 @@ void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface
 
 void UPathFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink)
 {
-	UObject* NavLinkOb = CustomNavLink ? CustomNavLink->GetUObjectInterfaceNavLinkCustomInterface() : NULL;
+	UObject* NavLinkOb = Cast<UObject>(CustomNavLink);
 	if (CurrentCustomLinkOb == NavLinkOb)
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Finish custom move using navlink: %s"), *GetNameSafe(NavLinkOb));

@@ -18,7 +18,7 @@ FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, UBodySetup* In
 	DataGuid = BodySetup->BodySetupGuid;
 	bGenerateNormalMesh = BodySetup->bGenerateNonMirroredCollision;
 	bGenerateMirroredMesh = BodySetup->bGenerateMirroredCollision;
-	IInterface_CollisionDataProvider* CDP = InterfaceCast<IInterface_CollisionDataProvider>(CollisionDataProvider);
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	if (CDP)
 	{
 		CDP->GetMeshId(MeshId);
@@ -155,14 +155,14 @@ bool FDerivedDataPhysXCooker::ShouldGenerateTriMeshData(bool InUseAllTriData)
 {
 	check(Cooker != NULL);
 
-	IInterface_CollisionDataProvider* CDP = InterfaceCast<IInterface_CollisionDataProvider>(CollisionDataProvider);
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	const bool bPerformCook = ( CDP != NULL ) ? CDP->ContainsPhysicsTriMeshData(InUseAllTriData) : false;
 	return bPerformCook;
 }
 
 bool FDerivedDataPhysXCooker::ShouldGenerateNegXTriMeshData()
 {
-	IInterface_CollisionDataProvider* CDP = InterfaceCast<IInterface_CollisionDataProvider>(CollisionDataProvider);
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	const bool bWantsNegX = ( CDP != NULL ) ? CDP->WantsNegXTriMesh() : false;
 	return bWantsNegX;
 }
@@ -174,7 +174,7 @@ bool FDerivedDataPhysXCooker::BuildTriMesh( TArray<uint8>& OutData, bool bInMirr
 
 	bool bResult = false;
 	FTriMeshCollisionData TriangleMeshDesc;
-	IInterface_CollisionDataProvider* CDP = InterfaceCast<IInterface_CollisionDataProvider>(CollisionDataProvider);
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	check(CDP != NULL); // It's all been checked before getting into this function
 		
 	bool bHaveTriMeshData = CDP->GetPhysicsTriMeshData(&TriangleMeshDesc, InUseAllTriData);

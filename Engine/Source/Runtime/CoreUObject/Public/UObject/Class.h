@@ -1723,7 +1723,7 @@ public:
 	// Class flags; See EClassFlags for more information
 	uint32 ClassFlags;
 
-	// Cast flags used to accelerate Cast<T> on objects of this type for common T
+	// Cast flags used to accelerate dynamic_cast<T*> on objects of this type for common T
 	EClassCastFlags ClassCastFlags;
 
 	// Class pseudo-unique counter; used to accelerate unique instance name generation

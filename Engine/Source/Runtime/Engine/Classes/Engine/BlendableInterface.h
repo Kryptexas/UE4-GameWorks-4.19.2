@@ -25,7 +25,7 @@ enum EBlendableLocation
 	BL_MAX,
 };
 
-/** Dummy class needed to support InterfaceCast<IBlendableInterface>(Object) */
+/** Dummy class needed to support Cast<IBlendableInterface>(Object) */
 UINTERFACE()
 class UBlendableInterface : public UInterface
 {

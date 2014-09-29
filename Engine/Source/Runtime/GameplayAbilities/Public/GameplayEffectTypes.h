@@ -220,7 +220,7 @@ struct FGameplayEffectInstigatorContext
 
 	void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer)
 	{
-		IGameplayTagAssetInterface* TagInterface = InterfaceCast<IGameplayTagAssetInterface>(Instigator);
+		IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator);
 		if (TagInterface)
 		{
 			TagInterface->GetOwnedGameplayTags(TagContainer);

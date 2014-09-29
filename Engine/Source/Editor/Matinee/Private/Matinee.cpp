@@ -2606,7 +2606,7 @@ void FMatinee::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEve
 					AActor* Actor = Inst->GetGroupActor();
 					if(Actor)
 					{
-						IMatineeAnimInterface * MatineeAnimInterface = InterfaceCast<IMatineeAnimInterface>(Actor);
+						IMatineeAnimInterface * MatineeAnimInterface = Cast<IMatineeAnimInterface>(Actor);
 						if (MatineeAnimInterface)
 						{
 							MatineeAnimInterface->PreviewBeginAnimControl(CurrentSelectedGroup);

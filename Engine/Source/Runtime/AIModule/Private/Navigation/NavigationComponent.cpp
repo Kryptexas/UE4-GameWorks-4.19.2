@@ -824,12 +824,12 @@ ANavigationData* UNavigationComponent::PickNavData() const
 
 	if (MyNavAgent == NULL)
 	{
-		MyNavAgent = InterfaceCast<INavAgentInterface>( GetOuter() );
+		MyNavAgent = Cast<INavAgentInterface>( GetOuter() );
 	}
 
 	if (MyPathObserver == NULL)
 	{
-		MyPathObserver = InterfaceCast<INavPathObserverInterface>( GetOuter() );
+		MyPathObserver = Cast<INavPathObserverInterface>( GetOuter() );
 	}
 
 	if (GetWorld() != NULL && GetWorld()->GetNavigationSystem() != NULL && MyNavAgent != NULL)

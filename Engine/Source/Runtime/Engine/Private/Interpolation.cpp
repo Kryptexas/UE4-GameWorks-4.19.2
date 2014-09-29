@@ -2199,7 +2199,7 @@ void UInterpGroup::UpdateAnimWeights(float NewPosition, class UInterpGroupInst* 
 	}
 
 	// Find Anim Interface. If not return. When initialize, it will print error
-	IMatineeAnimInterface * IMAI = InterfaceCast<IMatineeAnimInterface>(Actor);
+	IMatineeAnimInterface * IMAI = Cast<IMatineeAnimInterface>(Actor);
 	if (!IMAI)
 	{
 		return;
@@ -2596,7 +2596,7 @@ void UInterpGroupInst::InitGroupInst(UInterpGroup* InGroup, AActor* InGroupActor
 	bool bHasAnimTrack = Group->HasAnimControlTrack();
 	if (bHasAnimTrack && GroupActor != NULL && !GroupActor->IsPendingKill())
 	{
-		IMatineeAnimInterface * IMAI = InterfaceCast<IMatineeAnimInterface>(GroupActor);
+		IMatineeAnimInterface * IMAI = Cast<IMatineeAnimInterface>(GroupActor);
 		if (IMAI)
 		{
 			// If in the editor and we haven't started playing, this should be Matinee! Bit yuck...
@@ -2634,7 +2634,7 @@ void UInterpGroupInst::TermGroupInst(bool bDeleteTrackInst)
 	bool bHasAnimTrack = Group->HasAnimControlTrack();
 	if (GroupActor != NULL && !GroupActor->IsPendingKill())
 	{
-		IMatineeAnimInterface * IMAI = InterfaceCast<IMatineeAnimInterface>(GroupActor);
+		IMatineeAnimInterface * IMAI = Cast<IMatineeAnimInterface>(GroupActor);
 		if (IMAI)
 		{
 			// If in the editor and we haven't started playing, this should be Matinee!
@@ -7329,7 +7329,7 @@ void UInterpTrackAnimControl::PreviewUpdateTrack(float NewPosition, class UInter
 	{
 		// if we're going backward or if not @ the first frame of the animation
 		bool bFireNotifier = !bSkipAnimNotifiers && (TimeElapsed < 0.f || !bResetTime) ;
-		IMatineeAnimInterface * IMAI = InterfaceCast<IMatineeAnimInterface>(Actor);
+		IMatineeAnimInterface * IMAI = Cast<IMatineeAnimInterface>(Actor);
 		if (IMAI)
 		{
 			IMAI->PreviewSetAnimPosition(SlotName, ChannelIndex, NewAnimSeq, NewAnimPosition, bNewLooping, bFireNotifier, TimeElapsed);
@@ -7349,7 +7349,7 @@ void UInterpTrackAnimControl::UpdateTrack(float NewPosition, UInterpTrackInst* T
 	//UE_LOG(LogMatinee, Log, TEXT("UInterpTrackAnimControl::UpdateTrack, NewPosition: %3.2f"), NewPosition);
 
 	UInterpTrackInstAnimControl* AnimInst = CastChecked<UInterpTrackInstAnimControl>(TrInst);
-	IMatineeAnimInterface * IMAI = InterfaceCast<IMatineeAnimInterface>(Actor);
+	IMatineeAnimInterface * IMAI = Cast<IMatineeAnimInterface>(Actor);
 	if (!IMAI)
 	{
 		// Actor does not support Matinee Anim Interface

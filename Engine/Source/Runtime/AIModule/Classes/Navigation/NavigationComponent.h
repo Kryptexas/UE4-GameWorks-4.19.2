@@ -126,7 +126,7 @@ public:
 	/** Returns current move goal for actor, using data from GetMoveGoalOffset() */
 	FORCEINLINE FVector GetCurrentMoveGoal(const AActor* InGoalActor, AActor* MovingActor) const
 	{
-		const INavAgentInterface* NavAgent = InterfaceCast<const INavAgentInterface>(InGoalActor);
+		const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(InGoalActor);
 		if (NavAgent)
 		{
 			const FVector Offset = NavAgent->GetMoveGoalOffset(MovingActor);

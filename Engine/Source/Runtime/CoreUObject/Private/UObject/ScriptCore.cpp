@@ -667,7 +667,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		LastParameter = *It;
 	}
 
-	UStrProperty* LastStringParameter = Cast<UStrProperty>(LastParameter);
+	UStrProperty* LastStringParameter = dynamic_cast<UStrProperty*>(LastParameter);
 
 
 	// Parse all function parameters.
@@ -681,7 +681,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		UProperty* propertyParam = *It;
 		if (NumParamsEvaluated == 0 && Executor)
 		{
-			UObjectPropertyBase* Op = Cast<UObjectPropertyBase>(*It);
+			UObjectPropertyBase* Op = dynamic_cast<UObjectPropertyBase*>(*It);
 			if( Op && Executor->IsA(Op->PropertyClass) )
 			{
 				// First parameter is implicit reference to object executing the command.
@@ -1189,7 +1189,7 @@ IMPLEMENT_VM_FUNCTION( EX_PopExecutionFlowIfNot, execPopExecutionFlowIfNot );
 
 void UObject::execLet( FFrame& Stack, RESULT_DECL )
 {
-	checkSlow(!IsA(UBoolProperty::StaticClass()));
+	checkSlow(!dynamic_cast<UBoolProperty*>(this));
 
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -1224,13 +1224,13 @@ void UObject::execLetObj( FFrame& Stack, RESULT_DECL )
 	}
 
 	void* ObjAddr = Stack.MostRecentPropertyAddress;
-	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Stack.MostRecentProperty);
+	UObjectPropertyBase* ObjectProperty = dynamic_cast<UObjectPropertyBase*>(Stack.MostRecentProperty);
 	if (ObjectProperty == NULL)
 	{
 		UArrayProperty* ArrayProp = ExactCast<UArrayProperty>(Stack.MostRecentProperty);
 		if (ArrayProp != NULL)
 		{
-			ObjectProperty = Cast<UObjectPropertyBase>(ArrayProp->Inner);
+			ObjectProperty = dynamic_cast<UObjectPropertyBase*>(ArrayProp->Inner);
 		}
 	}
 
@@ -1259,13 +1259,13 @@ void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
 	}
 
 	void* ObjAddr = Stack.MostRecentPropertyAddress;
-	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Stack.MostRecentProperty);
+	UObjectPropertyBase* ObjectProperty = dynamic_cast<UObjectPropertyBase*>(Stack.MostRecentProperty);
 	if (ObjectProperty == NULL)
 	{
 		UArrayProperty* ArrayProp = ExactCast<UArrayProperty>(Stack.MostRecentProperty);
 		if (ArrayProp != NULL)
 		{
-			ObjectProperty = Cast<UObjectPropertyBase>(ArrayProp->Inner);
+			ObjectProperty = dynamic_cast<UObjectPropertyBase*>(ArrayProp->Inner);
 		}
 	}
 	
@@ -1319,7 +1319,7 @@ void UObject::execLetBool( FFrame& Stack, RESULT_DECL )
 	Stack.Step( Stack.Object, &NewValue );
 	if( BoolAddr )
 	{
-		checkSlow(BoolProperty->IsA(UBoolProperty::StaticClass()));
+		checkSlow(dynamic_cast<UBoolProperty*>(BoolProperty));
 		BoolProperty->SetPropertyValue( BoolAddr, NewValue );
 	}
 }
@@ -1745,7 +1745,7 @@ void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
 	for( UProperty* StructProp = ScriptStruct->PropertyLink; StructProp; StructProp = StructProp->PropertyLinkNext )
 	{
 		// Const struct arrays aren't supported yet
-		if( StructProp->IsA(UArrayProperty::StaticClass()) )
+		if ( dynamic_cast<UArrayProperty*>(StructProp) )
 		{
 			continue;
 		}
@@ -1867,9 +1867,10 @@ void UObject::execMetaCast( FFrame& Stack, RESULT_DECL )
 	UClass* MetaClass = (UClass*)Stack.ReadObject();
 
 	// Compile actor expression.
-	UObject* Castee=NULL;
+	UObject* Castee = nullptr;
 	Stack.Step( Stack.Object, &Castee );
-	*(UObject**)Result = (Castee && Castee->IsA(UClass::StaticClass()) && ((UClass*)Castee)->IsChildOf(MetaClass)) ? Castee : NULL;
+	UClass* CasteeClass = dynamic_cast<UClass*>(Castee);
+	*(UObject**)Result = (CasteeClass && CasteeClass->IsChildOf(MetaClass)) ? Castee : nullptr;
 }
 IMPLEMENT_VM_FUNCTION( EX_MetaCast, execMetaCast );
 
@@ -1907,7 +1908,7 @@ void UObject::execObjectToInterface( FFrame& Stack, RESULT_DECL )
 	FScriptInterface& InterfaceValue = *(FScriptInterface*)Result;
 
 	// read the interface class off the stack
-	UClass* InterfaceClass = Cast<UClass>(Stack.ReadObject());
+	UClass* InterfaceClass = dynamic_cast<UClass*>(Stack.ReadObject());
 	checkSlow(InterfaceClass != NULL);
 
 	// read the object off the stack
@@ -1933,7 +1934,7 @@ void UObject::execInterfaceToInterface( FFrame& Stack, RESULT_DECL )
 	FScriptInterface& CastResult = *(FScriptInterface*)Result;
 
 	// read the interface class off the stack
-	UClass* ClassToCastTo = Cast<UClass>(Stack.ReadObject());
+	UClass* ClassToCastTo = dynamic_cast<UClass*>(Stack.ReadObject());
 	checkSlow(ClassToCastTo != NULL);
 	checkSlow(ClassToCastTo->HasAnyClassFlags(CLASS_Interface));
 

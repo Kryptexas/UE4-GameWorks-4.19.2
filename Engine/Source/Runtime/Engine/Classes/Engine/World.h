@@ -2059,35 +2059,35 @@ public:
 	 * @param	bShouldModifyLevel		If true, Modify() the level before removing the actor if in the editor.
 	 */
 	void RemoveActor( AActor* Actor, bool bShouldModifyLevel );
-	
-	
+
 	AActor* SpawnActor( UClass* Class, FVector const* Location=NULL, FRotator const* Rotation=NULL, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() );
 
 	// Templated version of SpawnActor that allows you to specify a class type
 	template< class T >
 	T* SpawnActor( const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
-		return CastChecked<T>(SpawnActor(T::StaticClass(), NULL, NULL, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
+		return static_cast<T*>(SpawnActor(T::StaticClass(), NULL, NULL, SpawnParameters));
+	}
 
-	
 	template< class T >
 	T* SpawnActor( FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
-		return CastChecked<T>(SpawnActor(T::StaticClass(), &Location, &Rotation, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
+		return static_cast<T*>(SpawnActor(T::StaticClass(), &Location, &Rotation, SpawnParameters));
+	}
 	
 	template< class T >
 	T* SpawnActor( UClass* Class, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
-		return CastChecked<T>(SpawnActor(Class, NULL, NULL, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
+		check(Class->IsChildOf(T::StaticClass()));
+		return static_cast<T*>(SpawnActor(Class, NULL, NULL, SpawnParameters));
+	}
 
 	template< class T >
 	T* SpawnActor( UClass* Class, FVector const& Location, FRotator const& Rotation, const FActorSpawnParameters& SpawnParameters = FActorSpawnParameters() )
 	{
-		return CastChecked<T>(SpawnActor(Class, &Location, &Rotation, SpawnParameters),ECastCheckedType::NullAllowed);
-	};
+		check(Class->IsChildOf(T::StaticClass()));
+		return static_cast<T*>(SpawnActor(Class, &Location, &Rotation, SpawnParameters));
+	}
 
 
 	/**
@@ -2115,7 +2115,7 @@ public:
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bDeferConstruction = true;
 		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Location, &Rotation, SpawnInfo )) : NULL;
-	};
+	}
 
 	/** Returns the current GameMode instance, valid only on server. */
 	template< class T >

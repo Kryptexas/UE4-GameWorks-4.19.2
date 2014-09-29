@@ -77,7 +77,7 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 	const bool RegisterForPathUpdates = GoalActor.IsValid() == false;	
 	GoalActor = &ActorToObserve;
 	checkSlow(GoalActor.IsValid());
-	GoalActorAsNavAgent = InterfaceCast<INavAgentInterface>(&ActorToObserve);
+	GoalActorAsNavAgent = Cast<INavAgentInterface>(&ActorToObserve);
 	GoalActorLocationTetherDistanceSq = FMath::Square(TetherDistance);
 	UpdateLastRepathGoalLocation();
 
@@ -87,7 +87,7 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 void FNavigationPath::SetSourceActor(const AActor& InSourceActor)
 {
 	SourceActor = &InSourceActor;
-	SourceActorAsNavAgent = InterfaceCast<INavAgentInterface>(&InSourceActor);
+	SourceActorAsNavAgent = Cast<INavAgentInterface>(&InSourceActor);
 }
 
 void FNavigationPath::UpdateLastRepathGoalLocation()

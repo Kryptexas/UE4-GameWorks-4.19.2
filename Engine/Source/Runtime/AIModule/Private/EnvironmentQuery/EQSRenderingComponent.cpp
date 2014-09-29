@@ -43,10 +43,10 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	}
 
 	ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
-	QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(ActorOwner);
+	QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(ActorOwner);
 	if (QueryDataSource == NULL)
 	{
-		QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(InComponent);
+		QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(InComponent);
 		if (QueryDataSource == NULL)
 		{
 			return;
@@ -78,10 +78,10 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	}
 
 	ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
-	QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(ActorOwner);
+	QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(ActorOwner);
 	if (QueryDataSource == NULL)
 	{
-		QueryDataSource = InterfaceCast<const IEQSQueryResultSourceInterface>(InComponent);
+		QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(InComponent);
 		if (QueryDataSource == NULL)
 		{
 			return;
@@ -96,10 +96,10 @@ void FEQSSceneProxy::CollectEQSData(const UPrimitiveComponent* InComponent, cons
 	IEQSQueryResultSourceInterface* QueryDataSource = const_cast<IEQSQueryResultSourceInterface*>(InQueryDataSource);
 	if (QueryDataSource == NULL)
 	{
-		QueryDataSource = InterfaceCast<IEQSQueryResultSourceInterface>(ActorOwner);
+		QueryDataSource = Cast<IEQSQueryResultSourceInterface>(ActorOwner);
 		if (QueryDataSource == NULL)
 		{
-			QueryDataSource = InterfaceCast<IEQSQueryResultSourceInterface>(const_cast<UPrimitiveComponent*>(InComponent));
+			QueryDataSource = Cast<IEQSQueryResultSourceInterface>(const_cast<UPrimitiveComponent*>(InComponent));
 			if (QueryDataSource == NULL)
 			{
 				return;

@@ -151,7 +151,7 @@ bool UObject::IsInBlueprint() const
 	const UObject* TestObject = this;
  	while (TestObject)
  	{
- 		const UClass *ClassObject = Cast<const UClass>(TestObject);
+ 		const UClass *ClassObject = dynamic_cast<const UClass*>(TestObject);
 		if (ClassObject 
 			&& ClassObject->HasAnyClassFlags(CLASS_CompiledFromBlueprint) 
 			&& ClassObject->ClassGeneratedBy)
@@ -230,7 +230,7 @@ void FBlueprintSupport::DuplicateAllFields(UStruct* StructToDuplicate, FDuplicat
 			UField* Field = *FieldIt;
 
 			// Make sure functions also do their parameters and children first
-			if (UFunction* Function = Cast<UFunction>(Field))
+			if (UFunction* Function = dynamic_cast<UFunction*>(Field))
 			{
 				for (TFieldIterator<UField> FunctionFieldIt(Function, EFieldIteratorFlags::ExcludeSuper); FunctionFieldIt; ++FunctionFieldIt)
 				{

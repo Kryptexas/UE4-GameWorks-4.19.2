@@ -349,7 +349,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 	// if we found an object, and we have a parent, make sure we are in the same package if the found object is private, unless it's a cross level property
 	if (Result && !Result->HasAnyFlags(RF_Public) && OwnerObject && Result->GetOutermost() != OwnerObject->GetOutermost())
 	{
-		const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>(Property);
+		const UObjectPropertyBase* ObjectProperty = dynamic_cast<const UObjectPropertyBase*>(Property);
 		if ( !ObjectProperty || !ObjectProperty->AllowCrossLevel())
 		{
 			UE_LOG(LogProperty, Warning, TEXT("Illegal TEXT reference to a private object in external package (%s) from referencer (%s).  Import failed..."), *Result->GetFullName(), *OwnerObject->GetFullName());

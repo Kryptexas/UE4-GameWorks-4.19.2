@@ -243,7 +243,7 @@ void UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostPr
 		FAISightTarget NewSightTarget(&TargetActor);
 
 		SightTarget = &(ObservedTargets.Add(NewSightTarget.TargetId, NewSightTarget));
-		SightTarget->SightTargetInterface = InterfaceCast<IAISightTargetInterface>(&TargetActor);
+		SightTarget->SightTargetInterface = Cast<IAISightTargetInterface>(&TargetActor);
 	}
 
 	// set/update data

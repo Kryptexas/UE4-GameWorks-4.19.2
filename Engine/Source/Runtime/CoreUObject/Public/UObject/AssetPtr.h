@@ -206,7 +206,7 @@ public:
 	 */
 	FORCEINLINE T *Get() const
 	{
-		return Cast<T>(FAssetPtr::Get());
+		return dynamic_cast<T*>(FAssetPtr::Get());
 	}
 
 	/**  
@@ -449,7 +449,7 @@ public:
 	 */
 	FORCEINLINE UClass *Get() const
 	{
-		UClass* Class = Cast<UClass>(FAssetPtr::Get());
+		UClass* Class = dynamic_cast<UClass*>(FAssetPtr::Get());
 		if (!Class || !Class->IsChildOf(TClass::StaticClass()))
 		{
 			return NULL;

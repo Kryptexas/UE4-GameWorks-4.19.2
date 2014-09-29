@@ -569,7 +569,7 @@ bool ResolveName( UObject*& InPackage, FString& InOutName, bool Create, bool Thr
 		{
 			if (!ScriptPackageName)
 			{
-				InPackage = LoadPackage(Cast<UPackage>(InPackage), *PartialName, 0);
+				InPackage = LoadPackage(dynamic_cast<UPackage*>(InPackage), *PartialName, 0);
 			}
 			if (!InPackage)
 			{
@@ -692,7 +692,7 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 			}
 
 			// If the object was not found, check for a redirector and follow it if the class matches
-			UObjectRedirector* Redirector = Cast<UObjectRedirector>(StaticFindObjectFast(UObjectRedirector::StaticClass(), InOuter, *StrName));
+			UObjectRedirector* Redirector = FindObjectFast<UObjectRedirector>(InOuter, *StrName);
 			if ( Redirector && Redirector->DestinationObject && Redirector->DestinationObject->IsA(ObjectClass) )
 			{
 				return Redirector->DestinationObject;
@@ -1455,7 +1455,7 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 	
 	if (GIsDuplicatingClassForReinstancing)
 	{
-		FBlueprintSupport::DuplicateAllFields(Cast<UStruct>(Parameters.SourceObject), Writer);
+		FBlueprintSupport::DuplicateAllFields(dynamic_cast<UStruct*>(Parameters.SourceObject), Writer);
 	}
 
 	InstanceGraph.SetDestinationRoot( DupRootObject );
@@ -2433,7 +2433,7 @@ private:
 					}
 					if ( InReferencingObject != NULL )
 					{
-						CurrentReferenceInfo->ReferencingProperties.AddUnique(Cast<const UProperty>(InReferencingObject));
+						CurrentReferenceInfo->ReferencingProperties.AddUnique(dynamic_cast<const UProperty*>(InReferencingObject));
 					}
 					CurrentReferenceInfo->TotalReferences++;
 				}

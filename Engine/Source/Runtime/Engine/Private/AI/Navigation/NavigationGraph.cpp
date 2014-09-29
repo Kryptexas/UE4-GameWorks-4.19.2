@@ -70,7 +70,7 @@ ANavigationData* ANavigationGraph::CreateNavigationInstances(UNavigationSystem* 
 	FActorIterator It(NavSys->GetWorld());
 	for(; It; ++It )
 	{
-		if (InterfaceCast<INavNodeInterface>(*It) != NULL)
+		if (Cast<INavNodeInterface>(*It) != NULL)
 		{
 			bCreateNavigation = true;
 			break;

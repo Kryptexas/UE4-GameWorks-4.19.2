@@ -221,7 +221,7 @@ void ULinker::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
  */
 FString ULinker::GetImportPathName(int32 ImportIndex)
 {
-	ULinkerLoad* Loader = Cast<ULinkerLoad>(this);
+	ULinkerLoad* Loader = dynamic_cast<ULinkerLoad*>(this);
 
 	FString Result;
 	for (FPackageIndex LinkerIndex = FPackageIndex::FromImport(ImportIndex); !LinkerIndex.IsNull();)
@@ -268,7 +268,7 @@ FString ULinker::GetImportPathName(int32 ImportIndex)
 FString ULinker::GetExportPathName(int32 ExportIndex, const TCHAR* FakeRoot,bool bResolveForcedExports/*=false*/)
 {
 	FString Result;
-	ULinkerLoad* Loader = Cast<ULinkerLoad>(this);
+	ULinkerLoad* Loader = dynamic_cast<ULinkerLoad*>(this);
 
 	bool bForcedExport = false;
 	for ( FPackageIndex LinkerIndex = FPackageIndex::FromExport(ExportIndex); !LinkerIndex.IsNull(); LinkerIndex = Exp(LinkerIndex).OuterIndex )
@@ -726,7 +726,7 @@ ULinkerLoad* GetPackageLinker
  */
 void ResetLoadersForSave(UObject* InOuter, const TCHAR *Filename)
 {
-	UPackage* Package = Cast<UPackage>(InOuter);
+	UPackage* Package = dynamic_cast<UPackage*>(InOuter);
 	// If we have a loader for the package, unload it to prevent conflicts if we are resaving to the same filename
 	ULinkerLoad* Loader = ULinkerLoad::FindExistingLinkerForPackage(Package);
 	// This is the loader corresponding to the package we're saving.

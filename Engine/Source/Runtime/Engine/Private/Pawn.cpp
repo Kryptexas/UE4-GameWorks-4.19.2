@@ -987,7 +987,7 @@ void APawn::PostNetReceiveLocationAndRotation()
 		TeleportTo( ReplicatedMovement.Location, ReplicatedMovement.Rotation, false, true );
 		// SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred, but awaiting answer to question about UpdateNavOctree() missing in SceneComponent::MoveComponent
 
-		INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
+		INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)
 		{
 			PredictionInterface->SmoothCorrection(OldLocation);

@@ -18,7 +18,7 @@ float UAISense_Prediction::Update()
 
 		if (Event.Requestor != NULL && Event.PredictedActor != NULL)
 		{
-			IAIPerceptionListenerInterface* PerceptionListener = InterfaceCast<IAIPerceptionListenerInterface>(Event.Requestor);
+			IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.Requestor);
 			if (PerceptionListener != NULL)
 			{
 				UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();

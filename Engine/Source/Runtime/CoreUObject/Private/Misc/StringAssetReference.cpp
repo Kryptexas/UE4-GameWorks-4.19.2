@@ -115,7 +115,7 @@ UObject *FStringAssetReference::ResolveObject() const
 	FString FullPath = ToString();
 	FoundObject = StaticFindObject( UObject::StaticClass(), NULL, *FullPath);
 
-	UObjectRedirector* Redir = Cast<UObjectRedirector>(FoundObject);
+	UObjectRedirector* Redir = dynamic_cast<UObjectRedirector*>(FoundObject);
 	if (Redir)
 	{
 		// If we found a redirector, follow it

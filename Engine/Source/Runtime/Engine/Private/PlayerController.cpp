@@ -759,7 +759,7 @@ void APlayerController::Possess(APawn* PawnToPossess)
 
 		GetPawn()->SetActorTickEnabled(true);
 
-		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
+		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
 		if (NetworkPredictionInterface)
 		{
 			NetworkPredictionInterface->ResetPredictionData_Server();
@@ -1478,7 +1478,7 @@ void APlayerController::SendClientAdjustment()
 	APawn* RemotePawn = GetPawnOrSpectator();
 	if (RemotePawn && (GetNetMode() < NM_Client) && (RemotePawn->GetRemoteRole() == ROLE_AutonomousProxy))
 	{
-		INetworkPredictionInterface* NetworkPredictionInterface = InterfaceCast<INetworkPredictionInterface>(RemotePawn->GetMovementComponent());
+		INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(RemotePawn->GetMovementComponent());
 		if (NetworkPredictionInterface)
 		{
 			NetworkPredictionInterface->SendClientAdjustment();
@@ -3701,7 +3701,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 		// skip updates if pawn lost autonomous proxy role (e.g. TurnOff() call)
 		if (GetPawn() && !GetPawn()->IsPendingKill() && GetPawn()->GetRemoteRole() == ROLE_AutonomousProxy)
 		{
-			INetworkPredictionInterface* NetworkPredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
+			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
 			if (NetworkPredictionInterface)
 			{
 				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->GetPredictionData_Server();

@@ -38,7 +38,7 @@ void APostProcessVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 			{
 				UObject* Obj = Settings.Blendables[i];
 
-				if(!InterfaceCast<IBlendableInterface>(Obj))
+				if(!Cast<IBlendableInterface>(Obj))
 				{
 					Settings.Blendables[i] = 0;
 				}

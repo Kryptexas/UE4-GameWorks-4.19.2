@@ -26,7 +26,7 @@ UNavLinkRenderingComponent::UNavLinkRenderingComponent(const class FPostConstruc
 FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
 	AActor* LinkOwnerActor = Cast<AActor>(GetOwner());
-	INavLinkHostInterface* LinkOwnerHost = InterfaceCast<INavLinkHostInterface>(GetOwner());
+	INavLinkHostInterface* LinkOwnerHost = Cast<INavLinkHostInterface>(GetOwner());
 
 	if (LinkOwnerActor != NULL && LinkOwnerHost != NULL)
 	{
@@ -78,7 +78,7 @@ FNavLinkRenderingProxy::FNavLinkRenderingProxy(const UPrimitiveComponent* InComp
 	: FPrimitiveSceneProxy(InComponent)
 {
 	LinkOwnerActor = Cast<AActor>(InComponent->GetOwner());
-	LinkOwnerHost = InterfaceCast<INavLinkHostInterface>(InComponent->GetOwner());
+	LinkOwnerHost = Cast<INavLinkHostInterface>(InComponent->GetOwner());
 
 	if (LinkOwnerActor != NULL && LinkOwnerHost != NULL)
 	{

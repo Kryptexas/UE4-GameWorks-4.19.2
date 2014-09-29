@@ -135,7 +135,7 @@ bool UAbilitySystemComponent::AreGameplayEffectApplicationRequirementsSatisfied(
 		Instigator.GetOwnedGameplayTags(InstigatorTags);
 
 		FGameplayTagContainer TargetTags;
-		IGameplayTagAssetInterface* OwnerGTA = InterfaceCast<IGameplayTagAssetInterface>(AbilityActorInfo->Actor.Get());
+		IGameplayTagAssetInterface* OwnerGTA = Cast<IGameplayTagAssetInterface>(AbilityActorInfo->Actor.Get());
 		if (OwnerGTA)
 		{
 			OwnerGTA->GetOwnedGameplayTags(TargetTags);
@@ -494,7 +494,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
 	}
 
-	IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
+	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
 	{
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent %s on Actor %s that is not IGameplayCueInterface"), *Spec.ToSimpleString(), ActorOwner ? *ActorOwner->GetName() : TEXT("NULL"));
@@ -562,7 +562,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType)
 {
 	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
-	IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
+	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
 	{
 		return;

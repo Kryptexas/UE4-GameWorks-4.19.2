@@ -162,13 +162,13 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 	if (bCreateRedirector)
 	{
 		// Look for an existing redirector with the same name/class/outer in the old package.
-		UObjectRedirector* Redirector = Cast<UObjectRedirector>(StaticFindObject(UObjectRedirector::StaticClass(), OldOuter, *OldName.ToString(), /*bExactClass=*/ true));
+		UObjectRedirector* Redirector = FindObject<UObjectRedirector>(OldOuter, *OldName.ToString(), /*bExactClass=*/ true);
 
 		// If it does not exist, create it.
 		if ( Redirector == NULL )
 		{
 			// create a UObjectRedirector with the same name as the old object we are redirecting
-			Redirector = Cast<UObjectRedirector>(StaticConstructObject(UObjectRedirector::StaticClass(), OldOuter, OldName, RF_Standalone | RF_Public));
+			Redirector = ConstructObject<UObjectRedirector>(UObjectRedirector::StaticClass(), OldOuter, OldName, RF_Standalone | RF_Public);
 		}
 
 		// point the redirector object to this object
@@ -1123,7 +1123,7 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 			else if ( Class->IsChildOf(UByteProperty::StaticClass()) )
 			{
 				// bytes are numerical, enums are alphabetical
-				UByteProperty* ByteProp = Cast<UByteProperty>(*FieldIt);
+				UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(*FieldIt);
 				if ( ByteProp->Enum )
 				{
 					TagType = FAssetRegistryTag::TT_Alphabetical;
@@ -1168,11 +1168,10 @@ bool UObject::IsAsset () const
 	if ( bHasValidObjectFlags )
 	{
 		// Don't count objects embedded in other objects (e.g. font textures, sequences, material expressions)
-		UObject* LocalOuter = GetOuter();
-		if ( LocalOuter->IsA(UPackage::StaticClass()) )
+		if ( UPackage* LocalOuterPackage = dynamic_cast<UPackage*>(GetOuter()) )
 		{
 			// Also exclude any objects found in the transient package.
-			return LocalOuter != GetTransientPackage();
+			return LocalOuterPackage != GetTransientPackage();
 		}
 	}
 
@@ -1186,8 +1185,9 @@ bool UObject::IsSafeForRootSet() const
 		return false;
 	}
 
-	const ULinkerLoad* LinkerLoad = Cast<const ULinkerLoad>(this);
-	// Exclude linkers from root set if we're using seekfree loading		
+	const ULinkerLoad* LinkerLoad = dynamic_cast<const ULinkerLoad*>(this);
+
+	// Exclude linkers from root set if we're using seekfree loading
 	if( !HasAnyFlags(RF_PendingKill)
 		&& ( !FPlatformProperties::RequiresCookedData() || LinkerLoad == NULL || LinkerLoad->HasAnyFlags(RF_ClassDefaultObject) ) )
 	{
@@ -1473,7 +1473,7 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 #endif // #if WITH_EDITOR
 
 		UE_LOG(LogConfig, Verbose, TEXT("   Loading value for %s from [%s]"), *Key, *ClassSection);
-		UArrayProperty* Array = Cast<UArrayProperty>( Property );
+		UArrayProperty* Array = dynamic_cast<UArrayProperty*>( Property );
 		if( Array == NULL )
 		{
 			for( int32 i=0; i<Property->ArrayDim; i++ )
@@ -1659,7 +1659,7 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 			const bool bShouldCheckIfIdenticalBeforeAdding = !GetClass()->HasAnyClassFlags(CLASS_ConfigDoNotCheckDefaults) && !bPerObject && bIsPropertyInherited;
 			UObject* SuperClassDefaultObject = GetClass()->GetSuperClass()->GetDefaultObject();
 
-			UArrayProperty* Array   = Cast<UArrayProperty>( Property );
+			UArrayProperty* Array   = dynamic_cast<UArrayProperty*>( Property );
 			if( Array )
 			{
 				if ( !bShouldCheckIfIdenticalBeforeAdding || !Property->Identical_InContainer(this, SuperClassDefaultObject) )
@@ -2044,7 +2044,7 @@ UObject* UObject::CreateArchetype( const TCHAR* ArchetypeName, UObject* Archetyp
 	EObjectFlags ArchetypeObjectFlags = RF_Public | RF_ArchetypeObject;
 	
 	// Archetypes residing directly in packages need to be marked RF_Standalone
-	if( ArchetypeOuter->IsA(UPackage::StaticClass()) )
+	if( dynamic_cast<UPackage*>(ArchetypeOuter) )
 	{
 		ArchetypeObjectFlags |= RF_Standalone;
 	}
@@ -2160,15 +2160,15 @@ static void PrivateRecursiveDumpFlags(UStruct* Struct, void* Data, FOutputDevice
 			for( int32 i=0; i<It->ArrayDim; i++ )
 			{
 				uint8* Value = It->ContainerPtrToValuePtr<uint8>(Data, i);
-				UObjectPropertyBase* Prop = Cast<UObjectPropertyBase>(*It);
+				UObjectPropertyBase* Prop = dynamic_cast<UObjectPropertyBase*>(*It);
 				if(Prop)
 				{
 					UObject* Obj = Prop->GetObjectPropertyValue(Value);
 					PrivateDumpObjectFlags( Obj, Ar );
 				}
-				else if( Cast<UStructProperty>(*It) )
+				else if( UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(*It) )
 				{
-					PrivateRecursiveDumpFlags( ((UStructProperty*)*It)->Struct, Value, Ar );
+					PrivateRecursiveDumpFlags( StructProperty->Struct, Value, Ar );
 				}
 			}
 		}
@@ -2505,21 +2505,21 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					if (bResult)
 					{
 						FString ExtraInfo;
-						if (It->GetClass()->ClassCastFlags & CASTCLASS_UStructProperty)
+						if (auto* StructProperty = dynamic_cast<UStructProperty*>(It->GetClass()))
 						{
-							ExtraInfo = *Cast<UStructProperty>(*It)->Struct->GetName();
+							ExtraInfo = *StructProperty->Struct->GetName();
 						}
-						else if (It->GetClass()->ClassCastFlags & CASTCLASS_UClassProperty)
+						else if (auto* ClassProperty = dynamic_cast<UClassProperty*>(It->GetClass()))
 						{
-							ExtraInfo = FString::Printf(TEXT("class<%s>"), *Cast<UClassProperty>(*It)->MetaClass->GetName());
+							ExtraInfo = FString::Printf(TEXT("class<%s>"), *ClassProperty->MetaClass->GetName());
 						}
-						else if (It->GetClass()->ClassCastFlags & CASTCLASS_UAssetClassProperty)
+						else if (auto* AssetClassProperty = dynamic_cast<UAssetClassProperty*>(It->GetClass()))
 						{
-							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *Cast<UAssetClassProperty>(*It)->MetaClass->GetName());
+							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *AssetClassProperty->MetaClass->GetName());
 						}
-						else if (It->GetClass()->ClassCastFlags & CASTCLASS_UObjectPropertyBase)
+						else if (auto* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
 						{
-							ExtraInfo = *Cast<UObjectPropertyBase>(*It)->PropertyClass->GetName();
+							ExtraInfo = *ObjectPropertyBase->PropertyClass->GetName();
 						}
 						else
 						{
@@ -2612,7 +2612,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 									}
 									continue;
 								}
-								if ( Property->ArrayDim > 1 || Cast<UArrayProperty>(Property) != NULL )
+								if ( Property->ArrayDim > 1 || dynamic_cast<UArrayProperty*>(Property) != NULL )
 								{
 									uint8* BaseData = Property->ContainerPtrToValuePtr<uint8>(CurrentObject);
 									Ar.Logf(TEXT("%i) %s.%s ="), cnt++, *CurrentObject->GetFullName(), *Property->GetName());
@@ -2622,7 +2622,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 									UProperty* ExportProperty = Property;
 									if ( Property->ArrayDim == 1 )
 									{
-										UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property);
+										UArrayProperty* ArrayProp = dynamic_cast<UArrayProperty*>(Property);
 										FScriptArrayHelper ArrayHelper(ArrayProp, BaseData);
 
 										BaseData = ArrayHelper.GetRawPtr();

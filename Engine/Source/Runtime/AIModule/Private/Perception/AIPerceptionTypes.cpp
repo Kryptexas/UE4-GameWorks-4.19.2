@@ -86,6 +86,6 @@ const IGenericTeamAgentInterface* FPerceptionListener::GetTeamAgent() const
 	}
 
 	const AActor* OwnerActor = PercComponent->GetOwner();
-	const IGenericTeamAgentInterface* OwnerTeamAgent = InterfaceCast<const IGenericTeamAgentInterface>(OwnerActor);
-	return OwnerTeamAgent != NULL ? OwnerTeamAgent : InterfaceCast<const IGenericTeamAgentInterface>(PercComponent->GetBodyActor());
+	const IGenericTeamAgentInterface* OwnerTeamAgent = Cast<const IGenericTeamAgentInterface>(OwnerActor);
+	return OwnerTeamAgent != NULL ? OwnerTeamAgent : Cast<const IGenericTeamAgentInterface>(PercComponent->GetBodyActor());
 }

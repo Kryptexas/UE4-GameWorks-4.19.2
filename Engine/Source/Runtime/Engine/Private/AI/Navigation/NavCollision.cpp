@@ -102,7 +102,7 @@ FDerivedDataNavCollisionCooker::FDerivedDataNavCollisionCooker(FName InFormat, U
 	check(NavCollisionInstance != NULL);
 	CollisionDataProvider = NavCollisionInstance->GetOuter();
 	DataGuid = NavCollisionInstance->GetGuid();
-	IInterface_CollisionDataProvider* CDP = InterfaceCast<IInterface_CollisionDataProvider>(CollisionDataProvider);
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	if (CDP)
 	{
 		CDP->GetMeshId(MeshId);

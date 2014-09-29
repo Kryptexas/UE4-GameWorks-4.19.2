@@ -144,7 +144,7 @@ UClass* UField::GetOwnerClass() const
 
 	while ((TestObject != NULL) && (OwnerClass == NULL))
 	{
-		OwnerClass = Cast<UClass>(TestObject);
+		OwnerClass = dynamic_cast<UClass*>(TestObject);
 		TestObject = TestObject->GetOuter();
 	}
 
@@ -153,9 +153,19 @@ UClass* UField::GetOwnerClass() const
 
 UStruct* UField::GetOwnerStruct() const
 {
-	const UObject* Obj;
-	for ( Obj=this; Obj && !Obj->IsA(UStruct::StaticClass()); Obj=Obj->GetOuter() );
-	return (UStruct*)Obj;
+	const UObject* Obj = this;
+	do
+	{
+		if (const UStruct* Result = dynamic_cast<const UStruct*>(Obj))
+		{
+			return const_cast<UStruct*>(Result);
+		}
+
+		Obj = Obj->GetOuter();
+	}
+	while (Obj);
+
+	return nullptr;
 }
 
 void UField::Bind()
@@ -186,7 +196,7 @@ struct FDisplayNameHelper
 	static FString Get(const UObject& Object)
 	{
 		FString Name = Object.GetName();
-		const UClass* Class = Cast<UClass>(&Object);
+		const UClass* Class = dynamic_cast<const UClass*>(&Object);
 		if (Class && !Class->HasAnyClassFlags(CLASS_Native))
 		{
 			Name.RemoveFromEnd(TEXT("_C"));
@@ -471,7 +481,7 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 					break;
 				}
 
-				if (UProperty* Property = Cast<UProperty>(Field))
+				if (UProperty* Property = dynamic_cast<UProperty*>(Field))
 				{
 #if !WITH_EDITORONLY_DATA
 					// If we don't have the editor, make sure we aren't trying to link properties that are editor only.
@@ -506,10 +516,10 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 			// check for internal struct recursion via arrays
 			for (UField* Field = Children; Field; Field = Field->Next)
 			{
-				UArrayProperty* ArrayProp = Cast<UArrayProperty>(Field);
+				UArrayProperty* ArrayProp = dynamic_cast<UArrayProperty*>(Field);
 				if (ArrayProp != NULL)
 				{
-					UStructProperty* StructProp = Cast<UStructProperty>(ArrayProp->Inner);
+					UStructProperty* StructProp = dynamic_cast<UStructProperty*>(ArrayProp->Inner);
 					if (StructProp != NULL && StructProp->Struct == this)
 					{
 						//we won't support this, too complicated
@@ -517,12 +527,13 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 					}
 				}
 			}
-			UScriptStruct* ScriptStruct = CastChecked<UScriptStruct>(this);
-			ScriptStruct->PrepareCppStructOps();
-			UScriptStruct::ICppStructOps* CppStructOps = ScriptStruct->GetCppStructOps();
-			if (CppStructOps)
+
+			UScriptStruct& ScriptStruct = dynamic_cast<UScriptStruct&>(*this);
+			ScriptStruct.PrepareCppStructOps();
+
+			if (auto* CppStructOps = ScriptStruct.GetCppStructOps())
 			{
-				if (!ScriptStruct->InheritedCppStructOps())
+				if (!ScriptStruct.InheritedCppStructOps())
 				{
 					MinAlignment = CppStructOps->GetAlignment();
 					PropertiesSize = CppStructOps->GetSize();
@@ -540,7 +551,7 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	{
 		for (UField* Field = Children; (Field != NULL) && (Field->GetOuter() == this); Field = Field->Next)
 		{
-			if (UProperty* Property = Cast<UProperty>(Field))
+			if (UProperty* Property = dynamic_cast<UProperty*>(Field))
 			{
 				Property->LinkWithoutChangingOffset(Ar);
 			}
@@ -591,7 +602,7 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 				for( UField* Field=Children; Field && Field->GetOuter()==this; Field=Field->Next )
 				{
-					UProperty* Property = Cast<UProperty>( Field );
+					UProperty* Property = dynamic_cast<UProperty*>( Field );
 					check(Property);
 					ColorComponentEntries[ColorComponentIndex++] = Property;
 				}
@@ -721,8 +732,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 
 	check(Ar.IsLoading() || Ar.IsSaving());
 
-	UClass* DefaultsClass = Cast<UClass>(DefaultsStruct);
-	UScriptStruct* DefaultsScriptStruct = Cast<UScriptStruct>(DefaultsStruct);
+	UClass* DefaultsClass = dynamic_cast<UClass*>(DefaultsStruct);
+	UScriptStruct* DefaultsScriptStruct = dynamic_cast<UScriptStruct*>(DefaultsStruct);
 
 	if( Ar.IsLoading() )
 	{
@@ -871,7 +882,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				UE_LOG(LogClass, Warning, TEXT("Array bounds in %s of %s: %i/%i for package:  %s"), *Tag.Name.ToString(), *GetName(), Tag.ArrayIndex, Property->ArrayDim, *Ar.GetArchiveName() );
 			}
-			else if( Tag.Type==NAME_StrProperty && Cast<UNameProperty>(Property) )
+			else if( Tag.Type==NAME_StrProperty && dynamic_cast<UNameProperty*>(Property) )
 			{ 
 				FString str;  
 				Ar << str;
@@ -879,7 +890,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
-			else if( Tag.Type==NAME_StrProperty && Cast<UTextProperty>(Property) ) // Convert serialized string to text.
+			else if( Tag.Type==NAME_StrProperty && dynamic_cast<UTextProperty*>(Property) ) // Convert serialized string to text.
 			{ 
 				FString str;
 				Ar << str;
@@ -889,7 +900,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
-			else if( Tag.Type==NAME_TextProperty && Cast<UStrProperty>(Property) ) // Convert serialized text to string.
+			else if( Tag.Type==NAME_TextProperty && dynamic_cast<UStrProperty*>(Property) ) // Convert serialized text to string.
 			{ 
 				FText Text;  
 				Ar << Text;
@@ -1005,9 +1016,9 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
-			else if( Cast<UStructProperty>(Property) && Cast<UStructProperty>(Property)->Struct && (Tag.Type != Property->GetID() || (Tag.Type == NAME_StructProperty && Tag.StructName != Cast<UStructProperty>(Property)->Struct->GetFName())) && (Cast<UStructProperty>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
+			else if( dynamic_cast<UStructProperty*>(Property) && dynamic_cast<UStructProperty*>(Property)->Struct && (Tag.Type != Property->GetID() || (Tag.Type == NAME_StructProperty && Tag.StructName != dynamic_cast<UStructProperty*>(Property)->Struct->GetFName())) && (dynamic_cast<UStructProperty*>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
 			{
-				UScriptStruct::ICppStructOps* CppStructOps = Cast<UStructProperty>(Property)->Struct->GetCppStructOps();
+				UScriptStruct::ICppStructOps* CppStructOps = dynamic_cast<UStructProperty*>(Property)->Struct->GetCppStructOps();
 				check(CppStructOps && CppStructOps->HasSerializeFromMismatchedTag()); // else should not have STRUCT_SerializeFromMismatchedTag
 				void* DestAddress = Property->ContainerPtrToValuePtr<void>(Data, Tag.ArrayIndex);  
 				if (CppStructOps->SerializeFromMismatchedTag(Tag, Ar, DestAddress))
@@ -1024,9 +1035,9 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
 			}
-			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UArrayProperty>(Property)->Inner->GetID() )
+			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != dynamic_cast<UArrayProperty&>(*Property).Inner->GetID() )
 			{
-				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+				UArrayProperty* ArrayProperty = dynamic_cast<UArrayProperty*>(Property);
 				void* ArrayPropertyData = ArrayProperty->ContainerPtrToValuePtr<void>(Data);
 
 				int32 ElementCount = 0;
@@ -1035,7 +1046,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ArrayPropertyData);
 				ScriptArrayHelper.EmptyAndAddValues(ElementCount);
 
-				if( Tag.InnerType==NAME_StrProperty && Cast<UTextProperty>(ArrayProperty->Inner) ) // Convert serialized string to text.
+				if( Tag.InnerType==NAME_StrProperty && dynamic_cast<UTextProperty*>(ArrayProperty->Inner) ) // Convert serialized string to text.
 				{ 
 					for(int32 i = 0; i < ElementCount; ++i)
 					{
@@ -1048,7 +1059,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					}
 					continue;
 				}
-				else if( Tag.InnerType==NAME_TextProperty && Cast<UStrProperty>(ArrayProperty->Inner) ) // Convert serialized text to string.
+				else if( Tag.InnerType==NAME_TextProperty && dynamic_cast<UStrProperty*>(ArrayProperty->Inner) ) // Convert serialized text to string.
 				{ 
 					for(int32 i = 0; i < ElementCount; ++i)
 					{
@@ -1190,9 +1201,9 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				PropertyName = Property->GetFName();
 				for( int32 Idx=0; Idx<Property->ArrayDim; Idx++ )
 				{
-					uint8* DataPtr = Property->ContainerPtrToValuePtr<uint8>(Data, Idx);
+					uint8* DataPtr      = Property->ContainerPtrToValuePtr           <uint8>(Data, Idx);
 					uint8* DefaultValue = Property->ContainerPtrToValuePtrForDefaults<uint8>(DefaultsStruct, Defaults, Idx);
-					if( (!IsA(UClass::StaticClass()) && !Defaults) || !Ar.DoDelta() || 
+					if( (!dynamic_cast<const UClass*>(this) && !Defaults) || !Ar.DoDelta() || 
 						!Property->Identical( DataPtr, DefaultValue, Ar.GetPortFlags()) || Ar.IsTransacting() )
 					{
 						if (bUseAtomicSerialization)
@@ -1404,7 +1415,7 @@ void UStruct::Serialize( FArchive& Ar )
 		}	
 	}
 
-	if (Ar.IsLoading() && !Cast<UClass>(this)) // classes are linked in the UClass serializer, which just called me
+	if (Ar.IsLoading() && !dynamic_cast<UClass*>(this)) // classes are linked in the UClass serializer, which just called me
 	{
 		// Link the properties.
 		Link( Ar, true );
@@ -1711,10 +1722,10 @@ bool FindConstructorUninitialized(UStruct* BaseClass,uint8* Data,uint8* Defaults
 		int32 Size = P->GetSize();
 		bool bProblem = false;
 		check(Size);
-		UBoolProperty* PB = Cast<UBoolProperty>(P);
-		UStructProperty* PS = Cast<UStructProperty>(P);
-		UStrProperty* PStr = Cast<UStrProperty>(P);
-		UArrayProperty* PArray = Cast<UArrayProperty>(P);
+		UBoolProperty*   PB     = dynamic_cast<UBoolProperty  *>(P);
+		UStructProperty* PS     = dynamic_cast<UStructProperty*>(P);
+		UStrProperty*    PStr   = dynamic_cast<UStrProperty   *>(P);
+		UArrayProperty*  PArray = dynamic_cast<UArrayProperty *>(P);
 		if(PStr)
 		{
 			// string that actually have data would be false positives, since they would point to the same string, but actually be different pointers
@@ -1898,7 +1909,7 @@ void UScriptStruct::PrepareCppStructOps()
 	bCppStructOpsFromBaseClass = false;
 	if (!CppStructOps)
 	{
-		UScriptStruct* Base = Cast<UScriptStruct>(GetSuperStruct());
+		UScriptStruct* Base = dynamic_cast<UScriptStruct*>(GetSuperStruct());
 		if (Base)
 		{
 			Base->PrepareCppStructOps();
@@ -1909,7 +1920,7 @@ void UScriptStruct::PrepareCppStructOps()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!CppStructOps)
 	{
-		UScriptStruct* Base = Cast<UScriptStruct>(GetSuperStruct());
+		UScriptStruct* Base = dynamic_cast<UScriptStruct*>(GetSuperStruct());
 
 		while (Base)
 		{
@@ -1918,7 +1929,7 @@ void UScriptStruct::PrepareCppStructOps()
 				UE_LOG(LogClass, Fatal,TEXT("Couldn't bind to native BASE struct %s %s."),*GetName(),*Base->GetName());
 				break;
 			}
-			Base = Cast<UScriptStruct>(Base->GetSuperStruct());
+			Base = dynamic_cast<UScriptStruct*>(Base->GetSuperStruct());
 		}
 	}
 #endif
@@ -2801,7 +2812,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		{
 			UProperty* P;
 			UFunction* F;
-			if( (P=Cast<UProperty>(*It))!=NULL )
+			if( (P=dynamic_cast<UProperty*>(*It))!=NULL )
 			{
 				if ( P->PropertyFlags & CPF_Net )
 				{
@@ -2813,7 +2824,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 					}
 				}
 			}
-			else if( (F=Cast<UFunction>(*It))!=NULL )
+			else if( (F=dynamic_cast<UFunction*>(*It))!=NULL )
 			{
 				check(!F->GetSuperFunction() || (F->GetSuperFunction()->FunctionFlags&FUNC_NetFuncFlags) == (F->FunctionFlags&FUNC_NetFuncFlags));
 				if( (F->FunctionFlags&FUNC_Net) && !F->GetSuperFunction() )
@@ -3241,7 +3252,7 @@ bool UClass::IsFunctionImplementedInBlueprint(FName InFunctionName) const
 
 bool UClass::HasProperty(UProperty* InProperty) const
 {
-	if ( UClass* PropertiesClass = Cast<UClass>(InProperty->GetOuter()) )
+	if ( UClass* PropertiesClass = dynamic_cast<UClass*>(InProperty->GetOuter()) )
 	{
 		return PropertiesClass->FindNearestCommonBaseClass(this) != nullptr;
 	}
@@ -3407,7 +3418,7 @@ bool UClass::HotReloadPrivateStaticClass(
 				*(void**)Target = NewVTable;
 				Count++;
 			}
-			else if (Cast<UClass>(Target))
+			else if (dynamic_cast<UClass*>(Target))
 			{
 				UClass *Class = CastChecked<UClass>(Target);
 				if (Class->ClassConstructor == OldClassConstructor)
@@ -3660,7 +3671,7 @@ void UFunction::InitializeDerivedMembers()
 	ParmsSize = 0;
 	ReturnValueOffset = MAX_uint16;
 
-	for (UProperty* Property = Cast<UProperty>(Children); Property; Property = Cast<UProperty>(Property->Next))
+	for (UProperty* Property = dynamic_cast<UProperty*>(Children); Property; Property = dynamic_cast<UProperty*>(Property->Next))
 	{
 		if (Property->PropertyFlags & CPF_Parm)
 		{

@@ -479,17 +479,19 @@ FString UProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride ) const
 {
 	const bool bIsParameter     = DeclarationType == EExportedDeclaration::Parameter;
-	const bool bIsInterfaceProp = IsA(UInterfaceProperty::StaticClass());
+	const bool bIsInterfaceProp = dynamic_cast<const UInterfaceProperty*>(this) != nullptr;
 
 	// export the property type text (e.g. FString; int32; TArray, etc.)
 	FString ExtendedTypeText;
 	FString TypeText = GetCPPType(&ExtendedTypeText, bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
 
-	if (!Cast<const UBoolProperty>(this)) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
+	if (!dynamic_cast<const UBoolProperty*>(this)) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
 	{
+		const UObjectProperty* ObjectProp = dynamic_cast<const UObjectProperty*>(this);
+
 		// export 'const' for parameters
 		const bool bIsConstParam   = bIsParameter && (HasAnyPropertyFlags(CPF_ConstParm) || (bIsInterfaceProp && !HasAllPropertyFlags(CPF_OutParm)));
-		const bool bIsOnConstClass = IsA(UObjectProperty::StaticClass()) && ((UObjectProperty*)this)->PropertyClass && ((UObjectProperty*)this)->PropertyClass->HasAnyClassFlags(CLASS_Const);
+		const bool bIsOnConstClass = ObjectProp && ObjectProp->PropertyClass && ObjectProp->PropertyClass->HasAnyClassFlags(CLASS_Const);
 		if (bIsConstParam || bIsOnConstClass)
 		{
 			TypeText = FString::Printf(TEXT("const %s"), *TypeText);
@@ -497,7 +499,7 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 
 		if (DeclarationType == EExportedDeclaration::Member)
 		{
-			UClass* MyClass = Cast<UClass>(GetOuter());
+			UClass* MyClass = dynamic_cast<UClass*>(GetOuter());
 			if (MyClass && MyClass->HasAnyClassFlags(CLASS_Const))
 			{
 				ExtendedTypeText += TEXT(" const");
@@ -518,7 +520,7 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 		}
 	}
 
-	if( IsA(UBoolProperty::StaticClass()) )
+	if( dynamic_cast<const UBoolProperty*>(this) )
 	{
 		// if this is a member variable, export it as a bitfield
 		if( ArrayDim==1 && DeclarationType == EExportedDeclaration::Member )

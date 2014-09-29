@@ -375,6 +375,17 @@ struct TAreTypesEqual<A,A>
 
 
 /**
+ * Removes one level of pointer from a type, e.g.:
+ *
+ * TRemovePointer<      int32  >::Type == int32
+ * TRemovePointer<      int32* >::Type == int32
+ * TRemovePointer<      int32**>::Type == int32*
+ * TRemovePointer<const int32* >::Type == const int32
+ */
+template <typename T> struct TRemovePointer     { typedef T Type; };
+template <typename T> struct TRemovePointer<T*> { typedef T Type; };
+
+/**
  * TRemoveReference<type> will remove any references from a type.
  */
 template <typename T> struct TRemoveReference      { typedef T Type; };
@@ -504,6 +515,18 @@ template <typename From, typename To> struct TCopyQualifiersFromTo<      volatil
 template <typename From, typename To> struct TCopyQualifiersFromTo<const volatile From, To> { typedef const volatile To Type; };
 
 /**
+ * Tests if qualifiers are lost between one type and another, e.g.:
+ *
+ * TCopyQualifiersFromTo<const    T1,                T2>::Value == true
+ * TCopyQualifiersFromTo<volatile T1, const volatile T2>::Value == false
+ */
+template <typename From, typename To>
+struct TLosesQualifiersFromTo
+{
+	enum { Value = !TAreTypesEqual<typename TCopyQualifiersFromTo<From, To>::Type, To>::Value };
+};
+
+/**
  * Returns the same type passed to it.  This is useful in a few cases, but mainly for inhibiting template argument deduction in function arguments, e.g.:
  *
  * template <typename T>
@@ -516,6 +539,46 @@ template <typename T>
 struct TIdentity
 {
 	typedef T Type;
+};
+
+/**
+ * Does LHS::Value && RHS::Value, but short-circuits if LHS::Value == false.
+ */
+template <bool LHSValue, typename RHS>
+struct TAndValue
+{
+	enum { Value = RHS::Value };
+};
+
+template <typename RHS>
+struct TAndValue<false, RHS>
+{
+	enum { Value = false };
+};
+
+template <typename LHS, typename RHS>
+struct TAnd : TAndValue<LHS::Value, RHS>
+{
+};
+
+/**
+ * Does LHS::Value || RHS::Value, but short-circuits if LHS::Value == true.
+ */
+template <bool LHSValue, typename RHS>
+struct TOrValue
+{
+	enum { Value = RHS::Value };
+};
+
+template <typename RHS>
+struct TOrValue<true, RHS>
+{
+	enum { Value = true };
+};
+
+template <typename LHS, typename RHS>
+struct TOr : TOrValue<LHS::Value, RHS>
+{
 };
 
 /**

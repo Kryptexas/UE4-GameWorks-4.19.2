@@ -94,7 +94,7 @@ bool UMatineeTrackAnimControlHelper::PreCreateTrack( UInterpGroup* Group, const 
 	AActor* Actor = GrInst->GetGroupActor();
 	if ( Actor != NULL )
 	{
-		IMatineeAnimInterface* MatineeAnimInterface = InterfaceCast<IMatineeAnimInterface>(Actor);
+		IMatineeAnimInterface* MatineeAnimInterface = Cast<IMatineeAnimInterface>(Actor);
 		if (!MatineeAnimInterface)
 		{
 			UE_LOG(LogSlateMatinee, Log, TEXT("IntepGroup : MatineeAnimInterface is missing for (%s)"), *Actor->GetName());

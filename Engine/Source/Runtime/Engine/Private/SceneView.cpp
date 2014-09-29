@@ -805,7 +805,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 				continue;
 			}
 
-			IBlendableInterface* BlendableInterface = InterfaceCast<IBlendableInterface>(Object);
+			IBlendableInterface* BlendableInterface = Cast<IBlendableInterface>(Object);
 			
 			if(!BlendableInterface)
 			{
@@ -817,7 +817,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	}
 }
 
-/** Dummy class needed to support InterfaceCast<IBlendableInterface>(Object) */
+/** Dummy class needed to support Cast<IBlendableInterface>(Object) */
 UBlendableInterface::UBlendableInterface(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) 
 {
 }

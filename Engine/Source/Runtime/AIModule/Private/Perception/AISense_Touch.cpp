@@ -19,7 +19,7 @@ float UAISense_Touch::Update()
 
 		if (Event.TouchReceiver != NULL && Event.OtherActor != NULL)
 		{
-			IAIPerceptionListenerInterface* PerceptionListener = InterfaceCast<IAIPerceptionListenerInterface>(Event.TouchReceiver);
+			IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.TouchReceiver);
 			if (PerceptionListener != NULL)
 			{
 				UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();

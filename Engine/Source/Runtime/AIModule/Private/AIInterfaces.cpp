@@ -13,7 +13,7 @@ FGenericTeamId FGenericTeamId::NoTeam(FGenericTeamId::NoTeamId);
 
 FGenericTeamId FGenericTeamId::GetTeamIdentifier(const AActor* TeamMember)
 {
-	const IGenericTeamAgentInterface* TeamAgent = InterfaceCast<const IGenericTeamAgentInterface>(TeamMember);
+	const IGenericTeamAgentInterface* TeamAgent = Cast<const IGenericTeamAgentInterface>(TeamMember);
 	if (TeamAgent)
 	{
 		return TeamAgent->GetGenericTeamId();
@@ -24,7 +24,7 @@ FGenericTeamId FGenericTeamId::GetTeamIdentifier(const AActor* TeamMember)
 
 ETeamAttitude::Type FGenericTeamId::GetAttitude(const AActor* A, const AActor* B)
 {
-	const IGenericTeamAgentInterface* TeamAgentA = InterfaceCast<const IGenericTeamAgentInterface>(A);
+	const IGenericTeamAgentInterface* TeamAgentA = Cast<const IGenericTeamAgentInterface>(A);
 
 	return TeamAgentA == NULL || B == NULL ? ETeamAttitude::Neutral : TeamAgentA->GetTeamAttitudeTowards(*B);
 }

@@ -132,7 +132,7 @@ void UArrayProperty::ExportTextItem( FString& ValueStr, const void* PropertyValu
 	FScriptArrayHelper DefaultArrayHelper(this, DefaultValue);
 
 	uint8* StructDefaults = NULL;
-	UStructProperty* StructProperty = Cast<UStructProperty>(Inner);
+	UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(Inner);
 	if ( StructProperty != NULL )
 	{
 		checkSlow(StructProperty->Struct);

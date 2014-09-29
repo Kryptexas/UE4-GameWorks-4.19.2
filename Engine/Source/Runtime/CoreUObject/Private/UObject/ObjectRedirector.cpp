@@ -133,7 +133,7 @@ FScopedRedirectorCatcher::~FScopedRedirectorCatcher()
 void FScopedRedirectorCatcher::OnRedirectorFollowed( const FString& InString, UObject* InObject)
 {
 	// this needs to be the redirector
-	check(InObject->IsA(UObjectRedirector::StaticClass()));
+	check(dynamic_cast<UObjectRedirector*>(InObject));
 
 	// if the path of the redirector was the same as the path to the object constant
 	// being compiled, then the script code has a text reference to a redirector, 

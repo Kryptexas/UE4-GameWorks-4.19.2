@@ -715,7 +715,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		else if( Ar.IsSaving() )
 		{
 			// check if we save the package compressed
-			UPackage* Pkg = Cast<UPackage>(Owner != NULL ? Owner->GetOutermost() : NULL);
+			UPackage* Pkg = Owner ? dynamic_cast<UPackage*>(Owner->GetOutermost()) : nullptr;
 			if (Pkg && !!(Pkg->PackageFlags & PKG_StoreCompressed) )
 			{
 				ECompressionFlags BaseCompressionMethod = COMPRESS_Default;
@@ -750,7 +750,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 			Ar << BulkDataOffsetInFile;
 
 				// try to get the linkersave object
-			ULinkerSave* LinkerSave = Cast<ULinkerSave>(Ar.GetLinker());
+			ULinkerSave* LinkerSave = dynamic_cast<ULinkerSave*>(Ar.GetLinker());
 
 			// determine whether we are going to store the payload inline or not.
 			bool bStoreInline = !!(BulkDataFlags&BULKDATA_ForceInlinePayload) || LinkerSave == NULL;

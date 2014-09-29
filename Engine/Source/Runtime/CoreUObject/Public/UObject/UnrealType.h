@@ -738,8 +738,8 @@ public:
 	 */
 	UProperty* GetOwnerProperty()
 	{
-		UProperty* Result=this;
-		for ( UProperty* PropBase=Cast<UProperty>(GetOuter()); PropBase; PropBase=Cast<UProperty>(PropBase->GetOuter()) )
+		UProperty* Result = this;
+		for (UProperty* PropBase = dynamic_cast<UProperty*>(GetOuter()); PropBase; PropBase = dynamic_cast<UProperty*>(PropBase->GetOuter()))
 		{
 			Result = PropBase;
 		}
@@ -3023,7 +3023,7 @@ T* FindFieldChecked( const UStruct* Scope, FName FieldName )
 	if ( FieldName != NAME_None && Scope != NULL )
 	{
 		const UStruct* InitialScope = Scope;
-		for ( ; Scope != NULL; Scope = Cast<const UStruct>(Scope->GetOuter()) )
+		for ( ; Scope != NULL; Scope = dynamic_cast<const UStruct*>(Scope->GetOuter()) )
 		{
 			for ( TFieldIterator<T> It(Scope); It; ++It )
 			{
@@ -3046,13 +3046,13 @@ T* FindFieldChecked( const UStruct* Scope, FName FieldName )
 template<typename T>
 T* SmartCastProperty( UProperty* Src )
 {
-	T* Result = Cast<T>(Src);
+	T* Result = dynamic_cast<T*>(Src);
 	if ( Result == NULL )
 	{
-		UArrayProperty* ArrayProp = Cast<UArrayProperty>(Src);
+		UArrayProperty* ArrayProp = dynamic_cast<UArrayProperty*>(Src);
 		if ( ArrayProp != NULL )
 		{
-			Result = Cast<T>(ArrayProp->Inner);
+			Result = dynamic_cast<T*>(ArrayProp->Inner);
 		}
 	}
 	return Result;

@@ -242,7 +242,7 @@ float UEnvQueryTest_Pathfinding::FindPathLengthTo(const FVector& ItemPos, const 
 
 ANavigationData* UEnvQueryTest_Pathfinding::FindNavigationData(UNavigationSystem* NavSys, UObject* Owner) const
 {
-	INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(Owner);
+	INavAgentInterface* NavAgent = Cast<INavAgentInterface>(Owner);
 	if (NavAgent)
 	{
 		return NavSys->GetNavDataForProps(*NavAgent->GetNavAgentProperties());

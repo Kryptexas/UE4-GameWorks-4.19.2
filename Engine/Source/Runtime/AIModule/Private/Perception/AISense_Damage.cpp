@@ -17,7 +17,7 @@ float UAISense_Damage::Update()
 	{
 		const FAIDamageEvent& Event = RegisteredEvents[EventIndex];
 
-		IAIPerceptionListenerInterface* PerceptionListener = InterfaceCast<IAIPerceptionListenerInterface>(Event.DamagedActor);
+		IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.DamagedActor);
 		if (PerceptionListener != NULL)
 		{
 			UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();

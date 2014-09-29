@@ -256,20 +256,20 @@ struct FFieldCompiledInInfo
 	FFieldCompiledInInfo(SIZE_T InClassSize, uint32 InCrc)
 		: Size(InClassSize)
 		, Crc(InCrc)
-		, OldField(NULL)
+		, OldClass(NULL)
 		, bHasChanged(false)
 	{
 	}
 
 	/** Registers the native class (constructs a UClass object) */
-	virtual UField* Register() const = 0;
+	virtual UClass* Register() const = 0;
 
 	/** Size of the class */
 	SIZE_T Size;
 	/** CRC of the generated code for this class */
 	uint32 Crc;
 	/** Old UClass object */
-	UField* OldField;
+	UClass* OldClass;
 	/** True if this class has changed after hot-reload (or new class) */
 	bool bHasChanged;
 };
@@ -290,7 +290,7 @@ struct TClassCompiledInDefer : public FFieldCompiledInInfo
 	{
 		UClassCompiledInDefer(this, InName, InClassSize, InCrc);
 	}
-	virtual UField* Register() const override
+	virtual UClass* Register() const override
 	{
 		return TClass::StaticClass();
 	}
