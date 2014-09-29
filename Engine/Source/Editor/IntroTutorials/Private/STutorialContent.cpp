@@ -261,7 +261,7 @@ static TSharedRef<SWidget> GetStageTitle(const FExcerpt& InExcerpt, int32 InCurr
 	return SNullWidget::NullWidget;
 }
 
-TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, TSharedPtr<IDocumentationPage>& OutDocumentationPage)
+TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialContent& InContent, float WrapTextAt, TSharedPtr<IDocumentationPage>& OutDocumentationPage, const TAttribute<FText>& InHighlightText)
 {
 	// Style for the documentation
 	static FDocumentationStyle DocumentationStyle;
@@ -285,7 +285,9 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 				.Visibility(EVisibility::SelfHitTestInvisible)
 				.WrapTextAt(WrapTextAt)
 				.Text(InContent.Text)
-				.TextStyle(FEditorStyle::Get(), "Tutorials.Content");
+				.TextStyle(FEditorStyle::Get(), "Tutorials.Content")
+				.HighlightText(InHighlightText)
+				.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"));
 		}
 
 	case ETutorialContent::UDNExcerpt:
@@ -326,7 +328,8 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 					.Text(InContent.Text)
 					.WrapTextAt(WrapTextAt)
 					.Margin(4)
-					.LineHeightPercentage(1.1f);
+					.LineHeightPercentage(1.1f)
+					.HighlightText(InHighlightText);
 		}
 		break;
 	}
