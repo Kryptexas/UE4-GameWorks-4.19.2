@@ -142,7 +142,7 @@ void SDeviceProcesses::Tick( const FGeometry& AllottedGeometry, const double InC
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-	if (LastProcessListRefreshTime + FTimespan::FromSeconds(2.5) < FDateTime::Now())
+	if (LastProcessListRefreshTime + FTimespan::FromSeconds(2.5) < FDateTime::UtcNow())
 	{
 		ReloadProcessList(true);
 	}
@@ -227,7 +227,7 @@ void SDeviceProcesses::ReloadProcessList( bool FullyReload )
 	// refresh list view
 	ProcessTreeView->RequestTreeRefresh();
 
-	LastProcessListRefreshTime = FDateTime::Now();
+	LastProcessListRefreshTime = FDateTime::UtcNow();
 }
 
 

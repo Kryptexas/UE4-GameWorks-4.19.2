@@ -218,7 +218,7 @@ void FSessionManager::SendPing( )
 		MessageEndpoint->Publish(new FSessionServicePing(), EMessageScope::Network);
 	}
 
-	LastPingTime = FDateTime::Now();
+	LastPingTime = FDateTime::UtcNow();
 }
 
 
@@ -301,8 +301,9 @@ void FSessionManager::HandleSessionPongMessage( const FSessionServicePong& Messa
 
 bool FSessionManager::HandleTicker( float DeltaTime )
 {
-	FDateTime Now = FDateTime::Now();
+	FDateTime Now = FDateTime::UtcNow();
 
+	// @todo gmp: don't expire sessions for now
 //	FindExpiredSessions(Now);
 
 	if (Now >= LastPingTime + FTimespan::FromSeconds(2.5))
