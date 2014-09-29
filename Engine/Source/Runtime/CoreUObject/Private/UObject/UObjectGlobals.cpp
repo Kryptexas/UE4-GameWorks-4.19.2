@@ -1932,19 +1932,8 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 		InitProperties(Obj, BaseClass, Defaults, bCopyTransientsFromClassDefaults);
 	}
 
-	bool bAllowInstancing = (InstanceGraph == NULL) || InstanceGraph->IsSubobjectInstancingEnabled();
-	bool bNeedSubobjectInstancing = false;
-	// initialize any subobjects, now that the constructors have run
-	for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
-	{
-		UObject* Subobject = ComponentInits.SubobjectInits[Index].Subobject;
-		UObject* Template = ComponentInits.SubobjectInits[Index].Template;
-		InitProperties(Subobject, Template->GetClass(), Template, false);
-		if (bAllowInstancing && !Subobject->HasAnyFlags(RF_NeedLoad))
-		{
-			bNeedSubobjectInstancing = true;
-		}
-	}
+	bool bAllowInstancing = IsInstancingAllowed();
+	bool bNeedSubobjectInstancing = InitSubobjectProperties(bAllowInstancing);
 
 	// Restore class information if replacing native class.
 	if (ObjectRestoreAfterInitProps != NULL)
@@ -1977,32 +1966,7 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 	}
 	if (bNeedInstancing || bNeedSubobjectInstancing)
 	{
-		FObjectInstancingGraph TempInstancingGraph;
-		FObjectInstancingGraph* UseInstancingGraph = InstanceGraph ? InstanceGraph : &TempInstancingGraph;
-		UseInstancingGraph->AddNewObject(Obj);
-		// Add any default subobjects
-		for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
-		{
-			UseInstancingGraph->AddNewObject(ComponentInits.SubobjectInits[Index].Subobject);
-		}
-		if (bNeedInstancing)
-		{
-			UObject* Archetype = Obj->GetArchetype();
-			Class->InstanceSubobjectTemplates(Obj, Archetype, Archetype ? Archetype->GetClass() : NULL, Obj, UseInstancingGraph);
-		}
-		if (bNeedSubobjectInstancing)
-		{
-			// initialize any subobjects, now that the constructors have run
-			for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
-			{
-				UObject* Subobject = ComponentInits.SubobjectInits[Index].Subobject;
-				UObject* Template = ComponentInits.SubobjectInits[Index].Template;
-				if (!Subobject->HasAnyFlags(RF_NeedLoad))
-				{
-					Subobject->GetClass()->InstanceSubobjectTemplates(Subobject, Template, Template->GetClass(), Subobject, UseInstancingGraph);
-				}
-			}
-		}
+		InstanceSubobjects(Class, bNeedInstancing, bNeedSubobjectInstancing);
 	}
 
 	Obj->PostInitProperties();
@@ -2044,6 +2008,59 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 		&& ((InstanceGraph == NULL) || InstanceGraph->IsSubobjectInstancingEnabled())) 
 	{
 		Obj->CheckDefaultSubobjects();
+	}
+}
+
+bool FPostConstructInitializeProperties::IsInstancingAllowed() const
+{
+	return (InstanceGraph == NULL) || InstanceGraph->IsSubobjectInstancingEnabled();
+}
+
+bool FPostConstructInitializeProperties::InitSubobjectProperties(bool bAllowInstancing) const
+{
+	bool bNeedSubobjectInstancing = false;
+	// initialize any subobjects, now that the constructors have run
+	for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
+	{
+		UObject* Subobject = ComponentInits.SubobjectInits[Index].Subobject;
+		UObject* Template = ComponentInits.SubobjectInits[Index].Template;
+		InitProperties(Subobject, Template->GetClass(), Template, false);
+		if (bAllowInstancing && !Subobject->HasAnyFlags(RF_NeedLoad))
+		{
+			bNeedSubobjectInstancing = true;
+		}
+	}
+
+	return bNeedSubobjectInstancing;
+}
+
+void FPostConstructInitializeProperties::InstanceSubobjects(UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing) const
+{
+	FObjectInstancingGraph TempInstancingGraph;
+	FObjectInstancingGraph* UseInstancingGraph = InstanceGraph ? InstanceGraph : &TempInstancingGraph;
+	UseInstancingGraph->AddNewObject(Obj);
+	// Add any default subobjects
+	for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
+	{
+		UseInstancingGraph->AddNewObject(ComponentInits.SubobjectInits[Index].Subobject);
+	}
+	if (bNeedInstancing)
+	{
+		UObject* Archetype = Obj->GetArchetype();
+		Class->InstanceSubobjectTemplates(Obj, Archetype, Archetype ? Archetype->GetClass() : NULL, Obj, UseInstancingGraph);
+	}
+	if (bNeedSubobjectInstancing)
+	{
+		// initialize any subobjects, now that the constructors have run
+		for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
+		{
+			UObject* Subobject = ComponentInits.SubobjectInits[Index].Subobject;
+			UObject* Template = ComponentInits.SubobjectInits[Index].Template;
+			if (!Subobject->HasAnyFlags(RF_NeedLoad))
+			{
+				Subobject->GetClass()->InstanceSubobjectTemplates(Subobject, Template, Template->GetClass(), Subobject, UseInstancingGraph);
+			}
+		}
 	}
 }
 
@@ -2549,4 +2566,47 @@ UScriptStruct* GetFallbackStruct()
 {
 	static UScriptStruct* FallbackStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("FallbackStruct"));
 	return FallbackStruct;
+}
+
+UObject* FPostConstructInitializeProperties::CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient) const
+{
+	if (SubobjectFName == NAME_None)
+	{
+		UE_LOG(LogClass, Fatal, TEXT("Illegal default subobject name: %s"), *SubobjectFName.ToString());
+	}
+
+	UObject* Result = NULL;
+	UClass* OverrideClass = ComponentOverrides.Get(SubobjectFName, ReturnType, ClassToCreateByDefault, *this);
+	if (!OverrideClass && bIsRequired)
+	{
+		OverrideClass = ClassToCreateByDefault;
+		UE_LOG(LogClass, Warning, TEXT("Ignored DoNotCreateDefaultSubobject for %s as it's marked as required. Creating %s."), *SubobjectFName.ToString(), *OverrideClass->GetName());
+	}
+	if (OverrideClass)
+	{
+		check(OverrideClass->IsChildOf(ReturnType));
+
+		// Abstract sub-objects are only allowed when explicitly created with CreateAbstractDefaultSubobject.
+		if (!OverrideClass->HasAnyClassFlags(CLASS_Abstract) || !bAbstract)
+		{
+			UObject* Template = OverrideClass->GetDefaultObject(); // force the CDO to be created if it hasn't already
+			const EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
+			Result = StaticConstructObject(OverrideClass, Outer, SubobjectFName, SubobjectFlags);
+			if (!bIsTransient && !Outer->GetArchetype()->GetClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic))
+			{
+				// The archetype of the outer is not native, so we need to copy properties to the subobjects after the C++ constructor chain for the outer has run (because those sets properties on the subobjects)
+				UObject* MaybeTemplate = Outer->GetArchetype()->GetClass()->GetDefaultSubobjectByName(SubobjectFName);
+				if (MaybeTemplate && MaybeTemplate->IsA(ReturnType) && Template != MaybeTemplate)
+				{
+					ComponentInits.Add(Result, MaybeTemplate);
+				}
+			}
+			if (Outer->HasAnyFlags(RF_ClassDefaultObject) && Outer->GetClass()->GetSuperClass())
+			{
+				Outer->GetClass()->AddDefaultSubobject(Result, ReturnType);
+			}
+			Result->SetFlags(RF_DefaultSubObject);
+		}
+	}
+	return Result;
 }

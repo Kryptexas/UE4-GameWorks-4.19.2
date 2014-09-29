@@ -3426,6 +3426,33 @@ bool UClass::HotReloadPrivateStaticClass(
 	}
 	return true;
 }
+
+bool UClass::ReplaceNativeFunction(FName InFName, Native InPointer, bool bAddToFunctionRemapTable)
+{
+	IHotReloadInterface* HotReloadSupport = nullptr;
+
+	if(bAddToFunctionRemapTable)
+	{
+		HotReloadSupport = &FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	}
+
+	// Find the function in the class's native function lookup table.
+	for (int32 FunctionIndex = 0; FunctionIndex < NativeFunctionLookupTable.Num(); ++FunctionIndex)
+	{
+		FNativeFunctionLookup& NativeFunctionLookup = NativeFunctionLookupTable[FunctionIndex];
+		if (NativeFunctionLookup.Name == InFName)
+		{
+			if (bAddToFunctionRemapTable)
+			{
+				HotReloadSupport->AddHotReloadFunctionRemap(InPointer, NativeFunctionLookup.Pointer);
+			}
+			NativeFunctionLookup.Pointer = InPointer;
+			return true;
+		}
+	}
+	return false;
+}
+
 #endif
 
 void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
@@ -3434,20 +3461,16 @@ void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 #if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
-		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-
 		// Find the function in the class's native function lookup table.
-		for(int32 FunctionIndex = 0;FunctionIndex < NativeFunctionLookupTable.Num();++FunctionIndex)
+		if (ReplaceNativeFunction(InFName, InPointer, true))
 		{
-			FNativeFunctionLookup& NativeFunctionLookup = NativeFunctionLookupTable[FunctionIndex];
-			if(NativeFunctionLookup.Name == InFName)
-			{
-				HotReloadSupport.AddHotReloadFunctionRemap(InPointer, NativeFunctionLookup.Pointer);
-				NativeFunctionLookup.Pointer = InPointer;
-				return;
-			}
+			return;
 		}
-		UE_LOG(LogClass, Log, TEXT("Function %s is new."),* InFName.ToString());
+		else
+		{
+			// function was not found, so it's new
+			UE_LOG(LogClass, Log, TEXT("Function %s is new."), *InFName.ToString());
+		}
 	}
 #endif
 	new(NativeFunctionLookupTable) FNativeFunctionLookup(InFName,InPointer);

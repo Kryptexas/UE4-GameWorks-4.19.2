@@ -698,7 +698,8 @@ public:
 	template<class TReturnType>
 	TSubobjectPtrConstructor<TReturnType> CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+		UClass* ReturnType = TReturnType::StaticClass();
+		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient)));
 	}
 
 	/**
@@ -712,7 +713,8 @@ public:
 	template<class TReturnType>
 	TSubobjectPtrConstructor<TReturnType> CreateOptionalDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
+		UClass* ReturnType = TReturnType::StaticClass();
+		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient)));
 	}
 
 	/**
@@ -726,7 +728,8 @@ public:
 	template<class TReturnType>
 	TSubobjectPtrConstructor<TReturnType> CreateAbstractDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient));
+		UClass* ReturnType = TReturnType::StaticClass();
+		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient)));
 	}
 
 	/** 
@@ -740,7 +743,7 @@ public:
 	template<class TReturnType, class TClassToConstructByDefault> 
 	TSubobjectPtrConstructor<TReturnType> CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const 
 	{ 
-		return TSubobjectPtrConstructor<TReturnType>(CreateDefaultSubobject<TReturnType, TClassToConstructByDefault>(Outer, SubobjectName, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, TReturnType::StaticClass(), TClassToConstructByDefault::StaticClass(), /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient)));
 	}
 
 	/**
@@ -756,7 +759,8 @@ public:
 #if WITH_EDITOR
 		if (GIsEditor)
 		{
-			TReturnType* EditorSubobject = CreateDefaultSubobject<TReturnType, TReturnType>(Outer, SubobjectName, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient);
+			UClass* ReturnType = TReturnType::StaticClass();
+			TReturnType* EditorSubobject = static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
 			if (EditorSubobject)
 			{
 				EditorSubobject->AlwaysLoadOnClient = false;
@@ -777,8 +781,7 @@ public:
 	 * @param bIsRequired			true if the component is required and will always be created even if DoNotCreateDefaultSubobject was sepcified.
 	 * @param bIsTransient		true if the component is being assigned to a transient property
 	 */
-	template<class TReturnType, class TClassToConstructByDefault>
-	TReturnType* CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bIsRequired, bool bIsAbstract, bool bIsTransient) const;
+	UObject* CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient) const;
 
 	/**
 	 * Sets the class of a subobject for a base class
@@ -843,6 +846,7 @@ public:
 private:
 
 	friend class UObject; 
+	friend class FScriptIntegrationObjectHelper;
 
 	template<class T>
 	friend void InternalConstructor( const class FPostConstructInitializeProperties& X );
@@ -856,6 +860,23 @@ private:
 	 * @param	bCopyTransientsFromClassDefaults if true, copy the transients from the DefaultsClass defaults, otherwise copy the transients from DefaultData
 	 */
 	static void InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults);
+
+	bool IsInstancingAllowed() const;
+
+	/**
+	 * Calls InitProperties for any default subobjects created through this PCIP.
+	 * @param bAllowInstancing	Indicates whether the object's components may be copied from their templates.
+	 * @return true if there are any subobjects which require instancing.
+	*/
+	bool InitSubobjectProperties(bool bAllowInstancing) const;
+
+	/**
+	 * Create copies of the object's components from their templates.
+	 * @param Class						Class of the object we are initializing
+	 * @param bNeedInstancing			Indicates whether the object's components need to be instanced
+	 * @param bNeedSubobjectInstancing	Indicates whether subobjects of the object's components need to be instanced
+	 */
+	void InstanceSubobjects(UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing) const;
 
 	/** 
 	 * Initializes a non-native property, according to the initialization rules. If the property is non-native
@@ -884,18 +905,17 @@ private:
 			}
 		}
 		/**  Retrieve an override, or TClassToConstructByDefault::StaticClass or NULL if this was removed by a derived class **/
-		template<class TReturnType, class TClassToConstructByDefault>
-		UClass* Get(FName InComponentName, FPostConstructInitializeProperties const& PCIP)
+		UClass* Get(FName InComponentName, UClass* ReturnType, UClass* ClassToConstructByDefault, FPostConstructInitializeProperties const& PCIP)
 		{
 			int32 Index = Find(InComponentName);
-			UClass *BaseComponentClass = TClassToConstructByDefault::StaticClass();
+			UClass *BaseComponentClass = ClassToConstructByDefault;
 			if (Index == INDEX_NONE)
 			{
 				return BaseComponentClass; // no override so just do what the base class wanted
 			}
 			else if (Overrides[Index].ComponentClass)
 			{
-				if (PCIP.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, TReturnType::StaticClass())) // if THE base class is asking for a T, the existing override (which we are going to use) had better be derived
+				if (PCIP.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, ReturnType)) // if THE base class is asking for a T, the existing override (which we are going to use) had better be derived
 				{
 					return Overrides[Index].ComponentClass; // the override is of an acceptable class, so use it
 				}
@@ -978,6 +998,48 @@ private:
 	mutable FSubobjectsToInit ComponentInits;
 	/**  Previously constructed object in the callstack */
 	UObject* LastConstructedObject;
+};
+
+/**
+* Helper class for script integrations to access some UObject innards. Needed for script-generated UObject classes
+*/
+class FScriptIntegrationObjectHelper
+{
+public:
+	/**
+	* Binary initialize object properties to zero or defaults.
+	*
+	* @param	PCIP				FPostConstructInitializeProperties helper
+	* @param	Obj					object to initialize data for
+	* @param	DefaultsClass		the class to use for initializing the data
+	* @param	DefaultData			the buffer containing the source data for the initialization
+	*/
+	inline static void InitProperties(const FPostConstructInitializeProperties& PCIP, UObject* Obj, UClass* DefaultsClass, UObject* DefaultData)
+	{
+		FPostConstructInitializeProperties::InitProperties(Obj, DefaultsClass, DefaultData, PCIP.bCopyTransientsFromClassDefaults);
+	}
+
+	/**
+	* Calls InitProperties for any default subobjects created through this PCIP.
+	* @param bAllowInstancing	Indicates whether the object's components may be copied from their templates.
+	* @return true if there are any subobjects which require instancing.
+	*/
+	inline static bool InitSubobjectProperties(const FPostConstructInitializeProperties& PCIP)
+	{
+		return PCIP.InitSubobjectProperties(PCIP.IsInstancingAllowed());
+	}
+
+	/**
+	* Create copies of the object's components from their templates.
+	* @param PCIP					FPostConstructInitializeProperties helper
+	* @param Class						Class of the object we are initializing
+	* @param bNeedInstancing			Indicates whether the object's components need to be instanced
+	* @param bNeedSubobjectInstancing	Indicates whether subobjects of the object's components need to be instanced
+	*/
+	inline static void InstanceSubobjects(const FPostConstructInitializeProperties& PCIP, UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing)
+	{
+		PCIP.InstanceSubobjects(Class, bNeedInstancing, bNeedSubobjectInstancing);
+	}
 };
 
 /**
@@ -1547,4 +1609,3 @@ extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;
 COREUOBJECT_API UScriptStruct* GetFallbackStruct();
 
 #endif	// __UNOBJGLOBALS_H__
-

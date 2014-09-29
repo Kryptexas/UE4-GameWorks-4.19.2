@@ -1844,6 +1844,18 @@ public:
 		class UClass* TClass_Super_StaticClass,
 		class UClass* TClass_WithinClass_StaticClass
 		);
+
+
+	/**
+	* Replace a native function in the  internal native function table
+	* @param	InName							name of the function
+	* @param	InPointer						pointer to the function
+	* @param	bAddToFunctionRemapTable		For C++ hot-reloading, UFunctions are patched in a deferred manner and this should be true
+	*											For script hot-reloading, script integrations may have a many to 1 mapping of UFunction to native pointer
+	*											because dispatch is shared, so the C++ remap table does not work in this case, and this should be false
+	* @return	true if the function was found and replaced, false if it was not
+	*/
+	bool ReplaceNativeFunction(FName InName, Native InPointer, bool bAddToFunctionRemapTable);
 #endif
 
 #if WITH_EDITOR
@@ -2161,11 +2173,12 @@ private:
 		return UObject::FindFunctionChecked(InName);
 	}
 
+protected:
 	/**
 	 * Get the default object from the class, creating it if missing, if requested or under a few other circumstances
 	 * @return		the CDO for this class
 	 **/
-	UObject* CreateDefaultObject();
+	virtual UObject* CreateDefaultObject();
 };
 
 
@@ -2539,48 +2552,4 @@ inline T* GetMutableDefault(UClass *Class)
 {
 	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (T*)Class->GetDefaultObject();
-}
-
-template<class TReturnType, class TClassToConstructByDefault>
-inline TReturnType* FPostConstructInitializeProperties::CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, bool bIsRequired, bool bAbstract, bool bIsTransient) const
-{
-	if(SubobjectFName == NAME_None)
-	{
-		UE_LOG(LogClass, Fatal, TEXT("Illegal default subobject name: %s"), *SubobjectFName.ToString());
-	}
-
-	TReturnType* Result = NULL;
-	UClass* OverrideClass = ComponentOverrides.Get<TReturnType, TClassToConstructByDefault>(SubobjectFName, *this);
-	if (!OverrideClass && bIsRequired)
-	{
-		OverrideClass = TClassToConstructByDefault::StaticClass();
-		UE_LOG(LogClass, Warning, TEXT("Ignored DoNotCreateDefaultSubobject for %s as it's marked as required. Creating %s."), *SubobjectFName.ToString(), *OverrideClass->GetName());
-	}
-	if (OverrideClass)
-	{
-		check(OverrideClass->IsChildOf(TReturnType::StaticClass()));
-
-		// Abstract sub-objects are only allowed when explicitly created with CreateAbstractDefaultSubobject.
-		if (!OverrideClass->HasAnyClassFlags(CLASS_Abstract) || !bAbstract)
-		{
-			UObject* Template = OverrideClass->GetDefaultObject(); // force the CDO to be created if it hasn't already
-			const EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
-			Result = ConstructObject<TReturnType>(OverrideClass, Outer, SubobjectFName, SubobjectFlags);
-			if ( !bIsTransient && !Outer->GetArchetype()->GetClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic) )
-			{
-				// The archetype of the outer is not native, so we need to copy properties to the subobjects after the C++ constructor chain for the outer has run (because those sets properties on the subobjects)
-				UObject* MaybeTemplate = Outer->GetArchetype()->GetClass()->GetDefaultSubobjectByName(SubobjectFName);
-				if (MaybeTemplate && MaybeTemplate->IsA(TReturnType::StaticClass()) && Template != MaybeTemplate)
-				{
-					ComponentInits.Add(Result, MaybeTemplate);
-				}
-			}
-			if (Outer->HasAnyFlags(RF_ClassDefaultObject) && Outer->GetClass()->GetSuperClass())
-			{
-				Outer->GetClass()->AddDefaultSubobject(Result, TReturnType::StaticClass());
-			}
-			Result->SetFlags(RF_DefaultSubObject);
-		}
-	}
-	return Result;
 }
