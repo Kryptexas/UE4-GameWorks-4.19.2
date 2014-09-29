@@ -15,6 +15,9 @@ struct ITutorialListEntry
 	/** Whether this entry passes the current filter criteria */
 	virtual bool PassesFilter(const FString& InCategoryFilter, const FString& InFilter) const = 0;
 
+	/** Get the text representation of this item's title */
+	virtual FText GetTitleText() const = 0;
+
 	/** Get the string representation of this item's title */
 	virtual FString GetTitleString() const = 0;
 
@@ -88,6 +91,12 @@ protected:
 	/** Supplies the text to display in the filter box */
 	FText GetSearchText() const;
 
+	/** Handle clicking the breadcrumb trail */
+	void OnBreadcrumbClicked(const TSharedPtr<ITutorialListEntry>& InEntry);
+
+	/** Rebuild the breadcrumb trail according to the current category */
+	void RebuildCrumbs();
+
 private:
 
 	/** Root entry of the tutorials tree */
@@ -119,4 +128,7 @@ private:
 
 	/** Parent window of this browser */
 	TWeakPtr<SWindow> ParentWindow;
+
+	/** Breadcrumb trail for path display */
+	TSharedPtr<SBreadcrumbTrail<TSharedPtr<ITutorialListEntry>>> BreadcrumbTrail;
 };
