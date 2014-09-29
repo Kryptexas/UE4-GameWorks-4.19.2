@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "IOSInputInterface.h"
+#include "IOSAppDelegate.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogIOSInput, Log, All);
 
