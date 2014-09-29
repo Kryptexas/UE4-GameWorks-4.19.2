@@ -408,7 +408,7 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 						}
 						else
 						{
-							Arg = (NSString*)FPlatformString::TCHARToCFString(*MultiPartArg);
+							Arg = (NSString*)FPlatformString::TCHARToCFString(*MultiPartArg.Replace(TEXT("\""), TEXT("")));
 						}
 						[Arguments addObject: Arg];
 						CFRelease((CFStringRef)Arg);
