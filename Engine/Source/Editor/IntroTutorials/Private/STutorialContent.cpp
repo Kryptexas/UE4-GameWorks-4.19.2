@@ -651,4 +651,50 @@ FSlateColor STutorialContent::GetNextButtonColor() const
 	return NextButton->IsHovered() ? FLinearColor(0.1f, 0.1f, 0.1f, 1.0f) : FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
+FReply STutorialContent::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	// Mouse back and forward buttons traverse history
+	if ( MouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton)
+	{
+		if(IsBackEnabled.Get())
+		{
+			OnBackClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+	else if ( MouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton2)
+	{
+		if(IsNextEnabled.Get())
+		{
+			OnNextClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply STutorialContent::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+{
+	// Mouse back and forward buttons traverse history
+	if ( InMouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton)
+	{
+		if(IsBackEnabled.Get())
+		{
+			OnBackClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+	else if ( InMouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton2)
+	{
+		if(IsNextEnabled.Get())
+		{
+			OnNextClicked.ExecuteIfBound();
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
 #undef LOCTEXT_NAMESPACE
