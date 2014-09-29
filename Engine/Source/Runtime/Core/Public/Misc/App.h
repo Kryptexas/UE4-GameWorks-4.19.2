@@ -7,7 +7,7 @@
 #pragma once
 
 // platforms which can have runtime threading switches
-#define HAVE_RUNTIME_THREADING_SWITCHES			(PLATFORM_DESKTOP)
+#define HAVE_RUNTIME_THREADING_SWITCHES			(PLATFORM_DESKTOP || PLATFORM_ANDROID || PLATFORM_IOS)
 
 /**
  * Provides information about the application.
