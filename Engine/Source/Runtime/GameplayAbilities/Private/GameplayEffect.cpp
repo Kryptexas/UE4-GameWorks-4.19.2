@@ -2183,7 +2183,7 @@ void FGameplayEffectLevelSpec::RegisterLevelDependancy(TWeakPtr<FAggregator> Own
 {
 	if (Source.IsValid() && Attribute.GetUProperty() != NULL)
 	{
-		UAbilitySystemComponent * SourceComponent = Source->FindComponentByClass<UAbilitySystemComponent>();
+		UAbilitySystemComponent* SourceComponent = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Source.Get());
 		if (SourceComponent)
 		{
 			SourceComponent->AddDependancyToAttribute(Attribute, OwningAggregator);

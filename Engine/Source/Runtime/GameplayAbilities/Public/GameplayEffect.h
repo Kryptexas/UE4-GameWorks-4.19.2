@@ -401,7 +401,10 @@ struct FGameplayEffectLevelSpec
 	{
 		if (Def.Attribute.GetUProperty() != NULL)
 		{
+			// If given an attribute to base level on, then we throw out the passed in constant level.
 			Attribute = Def.Attribute;
+			ConstantLevel = INVALID_LEVEL;
+			CachedLevel = INVALID_LEVEL;
 		}
 
 		if (Def.TakeSnapshotOnInit)
