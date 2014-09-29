@@ -14,12 +14,16 @@ public:
 	/** Default constructor. */
 	FORCEINLINE FProcHandle()
 		: TProcHandle()
+		, IsShellScript( false )
 	{}
 
 	/** Initialization constructor. */
-	FORCEINLINE explicit FProcHandle( HandleType Other )
+	FORCEINLINE explicit FProcHandle( HandleType Other, bool InIsShellScript )
 		: TProcHandle( Other )
+		, IsShellScript( InIsShellScript )
 	{}
+
+	bool IsShellScript;
 };
 
 /**
