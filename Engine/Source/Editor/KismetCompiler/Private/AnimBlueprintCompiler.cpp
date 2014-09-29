@@ -385,19 +385,26 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 
 void FAnimBlueprintCompiler::ProcessUseCachedPose(UAnimGraphNode_UseCachedPose* UseCachedPose)
 {
-	// Link to the saved cached pose
-	if (UAnimGraphNode_SaveCachedPose* AssociatedSaveNode = SaveCachedPoseNodes.FindRef(UseCachedPose->NameOfCache))
-	{
-		UStructProperty* LinkProperty = FindField<UStructProperty>(FAnimNode_UseCachedPose::StaticStruct(), TEXT("LinkToCachingNode"));
-		check(LinkProperty);
+	bool bSuccessful = false;
 
-		FPoseLinkMappingRecord LinkRecord = FPoseLinkMappingRecord::MakeFromMember(UseCachedPose, AssociatedSaveNode, LinkProperty);
-		if (LinkRecord.IsValid())
+	// Link to the saved cached pose
+	if(UseCachedPose->SaveCachedPoseNode.IsValid())
+	{
+		if (UAnimGraphNode_SaveCachedPose* AssociatedSaveNode = SaveCachedPoseNodes.FindRef(UseCachedPose->SaveCachedPoseNode->CacheName))
 		{
-			ValidPoseLinkList.Add(LinkRecord);
+			UStructProperty* LinkProperty = FindField<UStructProperty>(FAnimNode_UseCachedPose::StaticStruct(), TEXT("LinkToCachingNode"));
+			check(LinkProperty);
+
+			FPoseLinkMappingRecord LinkRecord = FPoseLinkMappingRecord::MakeFromMember(UseCachedPose, AssociatedSaveNode, LinkProperty);
+			if (LinkRecord.IsValid())
+			{
+				ValidPoseLinkList.Add(LinkRecord);
+			}
+			bSuccessful = true;
 		}
 	}
-	else
+	
+	if(!bSuccessful)
 	{
 		MessageLog.Error(*LOCTEXT("NoAssociatedSaveNode", "@@ does not have an associated Save Cached Pose node").ToString(), UseCachedPose);
 	}
