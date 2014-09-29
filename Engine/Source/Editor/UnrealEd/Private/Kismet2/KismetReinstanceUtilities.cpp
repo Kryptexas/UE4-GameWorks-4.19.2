@@ -169,9 +169,9 @@ void FBlueprintCompileReinstancer::ReinstanceObjects()
 			if( BP->ParentClass == ClassToReinstance || BP->ParentClass == DuplicatedClass)
 			{
 				ReparentChild(BP);
+
+				FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection);
 			}
-			
-			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection);
 		}
 	}
 }
