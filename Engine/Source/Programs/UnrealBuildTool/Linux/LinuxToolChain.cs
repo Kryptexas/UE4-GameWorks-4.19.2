@@ -302,7 +302,7 @@ namespace UnrealBuildTool
             }
             else
             {
-                Result += " -O3";
+                Result += " -O2";	// warning: as of now (2014-09-28), clang 3.5.0 miscompiles PlatformerGame with -O3 (bitfields?)
             }
 
             if (CompileEnvironment.Config.bIsBuildingDLL)
