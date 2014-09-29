@@ -213,6 +213,7 @@ private:
 		ContextDisplayNames.Add(LOCTEXT("PlayInEditor", "Play In Editor"));
 		ContextDisplayNames.Add(LOCTEXT("AssetCreation", "Asset Creation"));
 		ContextDisplayNames.Add(LOCTEXT("DetailsPanel", "Details Panel"));
+		ContextDisplayNames.Add(LOCTEXT("Tutorials", "Tutorials"));
 		ContextDisplayNames.Add(LOCTEXT("Other", "Other"));
 
 		ContextMarkers.FirstEditor = ContextDisplayNames.Num();
