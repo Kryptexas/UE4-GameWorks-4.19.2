@@ -85,6 +85,7 @@ public:
 	}
 #endif
 
+	void SystemModalMode(bool const bInSystemModalMode);
 
 public:
 
@@ -159,6 +160,8 @@ private:
 	FMouseCaptureWindow* MouseCaptureWindow;
 	bool bIsMouseCaptureEnabled;
 	bool bIsMouseCursorLocked;
+
+	bool bSystemModalMode;
 
 	TSharedPtr< FMacWindow > LastEventWindow;
 

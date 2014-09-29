@@ -109,6 +109,7 @@ FMacApplication::FMacApplication()
 	, MouseCaptureWindow( NULL )
 	, bIsMouseCaptureEnabled( false )
 	, bIsMouseCursorLocked( false )
+	, bSystemModalMode( false )
 	, ModifierKeysFlags( 0 )
 	, CurrentModifierFlags( 0 )
 	, EventMonitor( NULL )
@@ -734,7 +735,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 		{
 			NSString *Characters = [Event characters];
 			bool bHandled = false;
-			if( [Characters length] && CurrentEventWindow.IsValid() )
+			if( !bSystemModalMode && [Characters length] && CurrentEventWindow.IsValid() )
 			{
 				bHandled = CurrentEventWindow->OnIMKKeyDown(Event);
 				if(!bHandled)
@@ -775,7 +776,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 		{
 			NSString *Characters = [Event characters];
 			bool bHandled = false;
-			if( [Characters length] && CurrentEventWindow.IsValid() )
+			if( !bSystemModalMode && [Characters length] && CurrentEventWindow.IsValid() )
 			{
 				const bool IsRepeat = [Event isARepeat];
 				const TCHAR Character = ConvertChar( [Characters characterAtIndex:0] );
@@ -1422,3 +1423,8 @@ void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 }
 
 #endif
+
+void FMacApplication::SystemModalMode(bool const bInSystemModalMode)
+{
+	bSystemModalMode = bInSystemModalMode;
+}

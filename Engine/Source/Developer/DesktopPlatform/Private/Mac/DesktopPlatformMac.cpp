@@ -8,6 +8,22 @@
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 
+class FMacScopedSystemModalMode
+{
+public:
+	FMacScopedSystemModalMode()
+	{
+		MacApplication->SystemModalMode(true);
+	}
+	
+	~FMacScopedSystemModalMode()
+	{
+		MacApplication->SystemModalMode(false);
+	}
+private:
+	FScopedSystemModalMode SystemModalMode;
+};
+
 class FCocoaScopeContext
 {
 public:
@@ -228,7 +244,7 @@ bool FDesktopPlatformMac::OpenDirectoryDialog(const void* ParentWindowHandle, co
 
 	bool bSuccess = false;
 	{
-		FScopedSystemModalMode SystemModalScope;
+		FMacScopedSystemModalMode SystemModalScope;
 		bSuccess = MainThreadReturn(^{
 			SCOPED_AUTORELEASE_POOL;
 			FCocoaScopeContext ContextGuard;
@@ -279,7 +295,7 @@ bool FDesktopPlatformMac::OpenFontDialog(const void* ParentWindowHandle, FString
 	
 	bool bSuccess = false;
 	{
-		FScopedSystemModalMode SystemModalScope;
+		FMacScopedSystemModalMode SystemModalScope;
 		bSuccess = MainThreadReturn(^{
 			SCOPED_AUTORELEASE_POOL;
 			FCocoaScopeContext ContextGuard;
@@ -411,7 +427,7 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 
 	bool bSuccess = false;
 	{
-		FScopedSystemModalMode SystemModalScope;
+		FMacScopedSystemModalMode SystemModalScope;
 		bSuccess = MainThreadReturn(^{
 			SCOPED_AUTORELEASE_POOL;
 			FCocoaScopeContext ContextGuard;
