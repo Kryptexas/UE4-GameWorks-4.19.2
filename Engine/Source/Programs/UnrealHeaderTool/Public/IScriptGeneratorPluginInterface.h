@@ -78,7 +78,7 @@ public:
 	/** Returns true if this plugin supports exporting scripts for the specified target. This should handle game as well as editor target names */
 	virtual bool SupportsTarget(const FString& TargetName) const = 0;
 	/** Returns true if this plugin supports exporting scripts for the specified module */
-	virtual bool ShouldExportClassesForModule(const FString& ModuleName, EBuildModuleType::Type ModuleType) const = 0;
+	virtual bool ShouldExportClassesForModule(const FString& ModuleName, EBuildModuleType::Type ModuleType, const FString& ModuleGeneratedIncludeDirectory) const = 0;
 	/** Initializes this plugin with build information */
 	virtual void Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory, const FString& IncludeBase) = 0;
 	/** Exports a single class. May be called multiple times for the same class (as UHT processes the entire hierarchy inside modules. */

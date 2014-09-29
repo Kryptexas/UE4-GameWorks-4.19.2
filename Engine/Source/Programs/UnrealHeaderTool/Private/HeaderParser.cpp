@@ -6771,7 +6771,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FClasses& ModuleCl
 		auto RootNode = &ModuleClasses.GetClassTree();
 		for (auto Plugin : ScriptPlugins)
 		{
-			if (Plugin->ShouldExportClassesForModule(Module.Name, Module.ModuleType))
+			if (Plugin->ShouldExportClassesForModule(Module.Name, Module.ModuleType, Module.GeneratedIncludeDirectory))
 			{
 				ExportClassToScriptPlugins(RootNode->GetClass(), Module, *Plugin);
 				ExportClassTreeToScriptPlugins(RootNode, Module, *Plugin);
