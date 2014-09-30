@@ -20,6 +20,11 @@ class UTestObject : public UObject
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);
 
+#if 0
+	UPROPERTY()
+	ITestInterface* ShouldGiveAMeaningfulErrorAboutTScriptInterface;
+#endif
+
 #if BLAH
 	UFUNCTION() int x; // This should not compile if UHT parses it, which it shouldn't
 #elif BLAH2

@@ -2303,7 +2303,8 @@ bool FHeaderParser::GetVarType
 	const TCHAR*                    Thing,
 	FToken*                         OuterPropertyType,
 	EPropertyDeclarationStyle::Type PropertyDeclarationStyle,
-	EVariableCategory::Type         VariableCategory
+	EVariableCategory::Type         VariableCategory,
+	FIndexRange*                    ParsedVarIndexRange
 )
 {
 	check(Scope);
@@ -2369,6 +2370,12 @@ bool FHeaderParser::GetVarType
 	if (CompilerDirectiveStack.Num() > 0 && (CompilerDirectiveStack.Last()&ECompilerDirective::WithEditorOnlyData)!=0)
 	{
 		Flags |= CPF_EditorOnly;
+	}
+
+	// Store the start and end positions of the parsed type
+	if (ParsedVarIndexRange)
+	{
+		ParsedVarIndexRange->StartIndex = InputPos;
 	}
 
 	// Process the list of specifiers
@@ -3324,6 +3331,10 @@ bool FHeaderParser::GetVarType
 
 	VarProperty.MetaData = MetaDataFromNewStyle;
 
+	if (ParsedVarIndexRange)
+	{
+		ParsedVarIndexRange->Count = InputPos - ParsedVarIndexRange->StartIndex;
+	}
 	return 1;
 }
 
@@ -5892,7 +5903,9 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	// Get variable type.
 	FPropertyBase OriginalProperty(CPT_None);
 	EObjectFlags ObjectFlags = RF_NoFlags;
-	GetVarType( AllClasses, Struct, OriginalProperty, ObjectFlags, DisallowFlags, TEXT("Member variable declaration"), /*OuterPropertyType=*/ NULL, PropertyDeclarationStyle, EVariableCategory::Member );
+
+	FIndexRange TypeRange;
+	GetVarType( AllClasses, Struct, OriginalProperty, ObjectFlags, DisallowFlags, TEXT("Member variable declaration"), /*OuterPropertyType=*/ NULL, PropertyDeclarationStyle, EVariableCategory::Member, &TypeRange );
 	OriginalProperty.PropertyFlags |= EdFlags;
 
 	FString* Category = OriginalProperty.MetaData.Find("Category");
@@ -5908,7 +5921,9 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 		// Validate that pointer properties are not interfaces (which are not GC'd and so will cause runtime errors)
 		if (OriginalProperty.PointerType == EPointerType::Native && OriginalProperty.Struct->IsChildOf(UInterface::StaticClass()))
 		{
-			FError::Throwf(TEXT("UPROPERTY pointers cannot be interfaces"));
+			// Get the name of the type, removing the asterisk representing the pointer
+			FString TypeName = FString(TypeRange.Count, Input + TypeRange.StartIndex).Trim().TrimTrailing().LeftChop(1).TrimTrailing();
+			FError::Throwf(TEXT("UPROPERTY pointers cannot be interfaces - did you mean TScriptInterface<%s>?"), *TypeName);
 		}
 	}
 

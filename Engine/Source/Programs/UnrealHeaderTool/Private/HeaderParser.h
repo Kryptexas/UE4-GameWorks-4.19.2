@@ -67,6 +67,12 @@ struct FNestInfo
 	int32 Allow;
 };
 
+struct FIndexRange
+{
+	int32 StartIndex;
+	int32 Count;
+};
+
 /////////////////////////////////////////////////////
 // FHeaderParser
 
@@ -392,6 +398,7 @@ protected:
 	 * @param   OuterPropertyType         only specified when compiling the inner properties for arrays or maps.  corresponds to the FToken for the outer property declaration.
 	 * @param   PropertyDeclarationStyle  if the variable is defined with a UPROPERTY
 	 * @param   VariableCategory          what kind of variable is being parsed
+	 * @param   ParsedVarIndexRange       The source text [Start, End) index range for the parsed type.
 	 *
 	 * @return  true if the variable type was parsed
 	 */
@@ -404,7 +411,8 @@ protected:
 		const TCHAR*                    Thing,
 		FToken*                         OuterPropertyType,
 		EPropertyDeclarationStyle::Type PropertyDeclarationStyle,
-		EVariableCategory::Type         VariableCategory);
+		EVariableCategory::Type         VariableCategory,
+		FIndexRange*                    ParsedVarIndexRange = nullptr);
 
 	/**
 	 * Parses a variable name declaration and creates a new UProperty object.
