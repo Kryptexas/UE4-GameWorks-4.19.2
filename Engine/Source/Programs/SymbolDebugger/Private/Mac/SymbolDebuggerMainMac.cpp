@@ -34,7 +34,6 @@ static FString GSavedCommandLine;
 	if(!GIsRequestingExit || ([NSThread gameThread] && [NSThread gameThread] != [NSThread mainThread]))
 	{
 		GIsRequestingExit = true;
-		FPlatformMisc::UpdateCachedMacMenuState = nullptr;
 		return NSTerminateLater;
 	}
 	else

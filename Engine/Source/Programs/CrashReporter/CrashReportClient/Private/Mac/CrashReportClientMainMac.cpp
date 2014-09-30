@@ -48,7 +48,6 @@ static FString GSavedCommandLine;
 - (IBAction)requestQuit:(id)Sender
 {
 	GIsRequestingExit = true;
-	FPlatformMisc::UpdateCachedMacMenuState = nullptr;
 }
 
 - (void) runGameThread:(id)Arg

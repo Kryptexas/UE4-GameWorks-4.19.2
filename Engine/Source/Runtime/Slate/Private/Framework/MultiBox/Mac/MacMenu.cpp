@@ -265,46 +265,50 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 void FSlateMacMenu::UpdateCachedState()
 {
-	for (TMap<FMacMenu*, TSharedPtr<TArray<FMacMenuItemState>>>::TIterator It(GCachedMenuState); It; ++It)
+	TSharedPtr<SDockTab> ActiveTab = FGlobalTabmanager::Get()->GetActiveTab();
+	if (ActiveTab.IsValid())
 	{
-		FMacMenu* Menu = It.Key();
-		TSharedPtr<TArray<FMacMenuItemState>> MenuState = It.Value();
-
-		if (!Menu.MultiBox.IsValid())
+		for (TMap<FMacMenu*, TSharedPtr<TArray<FMacMenuItemState>>>::TIterator It(GCachedMenuState); It; ++It)
 		{
-			const bool bShouldCloseWindowAfterMenuSelection = true;
-			FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, Menu.MenuEntryBlock->GetActionList(), Menu.MenuEntryBlock->Extender);
+			FMacMenu* Menu = It.Key();
+			TSharedPtr<TArray<FMacMenuItemState>> MenuState = It.Value();
+
+			if (!Menu.MultiBox.IsValid())
 			{
-				// Have the menu fill its contents
-				Menu.MenuEntryBlock->EntryBuilder.ExecuteIfBound(MenuBuilder);
-			}
-			TSharedRef<SWidget> Widget = MenuBuilder.MakeWidget();
-			Menu.MultiBox = TSharedPtr<const FMultiBox>(StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox());
-		}
-
-		const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = Menu.MultiBox->GetBlocks();
-		for (int32 Index = MenuState->Num(); MenuBlocks.Num() > MenuState->Num(); Index++)
-		{
-			MenuState->Add(FMacMenuItemState());
-		}
-		for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
-		{
-			FMacMenuItemState& ItemState = (*MenuState)[Index];
-			ItemState.Type = MenuBlocks[Index]->GetType();
-
-			if (ItemState.Type == EMultiBlockType::MenuEntry)
-			{
-				TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
-				ItemState.Block = Block;
-				ItemState.Title = [FSlateMacMenu::GetMenuItemTitle(Block) retain];
-				ItemState.KeyEquivalent = [FSlateMacMenu::GetMenuItemKeyEquivalent(Block, &ItemState.KeyModifiers) retain];
-				if (!ItemState.Icon)
+				const bool bShouldCloseWindowAfterMenuSelection = true;
+				FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, Menu.MenuEntryBlock->GetActionList(), Menu.MenuEntryBlock->Extender);
 				{
-					ItemState.Icon = [FSlateMacMenu::GetMenuItemIcon(Block) retain];
+					// Have the menu fill its contents
+					Menu.MenuEntryBlock->EntryBuilder.ExecuteIfBound(MenuBuilder);
 				}
-				ItemState.IsSubMenu = Block->bIsSubMenu;
-				ItemState.IsEnabled = FSlateMacMenu::IsMenuItemEnabled(Block);
-				ItemState.State = ItemState.IsSubMenu ? 0 : FSlateMacMenu::GetMenuItemState(Block);
+				TSharedRef<SWidget> Widget = MenuBuilder.MakeWidget();
+				Menu.MultiBox = TSharedPtr<const FMultiBox>(StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox());
+			}
+
+			const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = Menu.MultiBox->GetBlocks();
+			for (int32 Index = MenuState->Num(); MenuBlocks.Num() > MenuState->Num(); Index++)
+			{
+				MenuState->Add(FMacMenuItemState());
+			}
+			for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
+			{
+				FMacMenuItemState& ItemState = (*MenuState)[Index];
+				ItemState.Type = MenuBlocks[Index]->GetType();
+
+				if (ItemState.Type == EMultiBlockType::MenuEntry)
+				{
+					TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
+					ItemState.Block = Block;
+					ItemState.Title = [FSlateMacMenu::GetMenuItemTitle(Block) retain];
+					ItemState.KeyEquivalent = [FSlateMacMenu::GetMenuItemKeyEquivalent(Block, &ItemState.KeyModifiers) retain];
+					if (!ItemState.Icon)
+					{
+						ItemState.Icon = [FSlateMacMenu::GetMenuItemIcon(Block) retain];
+					}
+					ItemState.IsSubMenu = Block->bIsSubMenu;
+					ItemState.IsEnabled = FSlateMacMenu::IsMenuItemEnabled(Block);
+					ItemState.State = ItemState.IsSubMenu ? 0 : FSlateMacMenu::GetMenuItemState(Block);
+				}
 			}
 		}
 	}
