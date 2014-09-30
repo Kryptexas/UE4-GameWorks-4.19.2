@@ -12,12 +12,6 @@ typedef TSharedPtr<class IHistogramDataSource> FHistogramDataSourcePtr;
 /** Type definition for shared references to instances of FGraphDataSource. */
 typedef TSharedRef<class IHistogramDataSource> FHistogramDataSourceRef;
 
-
-/*-----------------------------------------------------------------------------
-	Delegates
------------------------------------------------------------------------------*/
-
-
 /*-----------------------------------------------------------------------------
 	Basic structures
 -----------------------------------------------------------------------------*/
@@ -93,12 +87,6 @@ public:
 class SHistogram : public SCompoundWidget
 {
 public:
-	/** Default constructor. */
-	SHistogram();
-
-	/** Virtual destructor. */
-	virtual ~SHistogram();
-
 	SLATE_BEGIN_ARGS( SHistogram )
 		: _Description()
 		{}
@@ -115,28 +103,7 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
-	
-	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-
-	/** Restores default state for the data graph by removing all inner graphs. */
-	void RestoreDefaultState();
 
 	virtual FVector2D ComputeDesiredSize() const override
 	{
