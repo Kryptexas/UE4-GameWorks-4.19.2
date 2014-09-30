@@ -1190,12 +1190,12 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 
 	const bool bRegularBlueprint = Blueprint && (Blueprint->GetClass() == UBlueprint::StaticClass());
 	static FBoolConfigValueHelper UseLocalGraphVariables(TEXT("Kismet"), TEXT("bUseLocalGraphVariables"), GEngineIni);
-	if (bSharedTerm && bRegularBlueprint && UseLocalGraphVariables)
+	const bool OutputPin = EEdGraphPinDirection::EGPD_Output == Net->Direction;
+	if (bSharedTerm && bRegularBlueprint && UseLocalGraphVariables && OutputPin)
 	{
 		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_ChooseTerminalScope);
 
 		// Pin's connections are checked, to tell if created terminal is shared, or if it could be a local variable.
-		ensure(EEdGraphPinDirection::EGPD_Output == Net->Direction);
 		bSharedTerm = FEventGraphUtils::PinRepresentsSharedTerminal(*Net);
 	}
 	FBPTerminal* Term = new (bSharedTerm ? EventGraphLocals : Locals) FBPTerminal();

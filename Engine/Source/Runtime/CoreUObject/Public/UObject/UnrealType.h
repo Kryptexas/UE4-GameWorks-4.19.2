@@ -112,6 +112,8 @@ enum EPropertyExportCPPFlags
 	CPPF_ArgumentOrReturnValue		=	0x00000002,
 	/** Indicates thet we are exporting this property's CPP text for C++ definition of a function. */
 	CPPF_Implementation = 0x00000004,
+	/** Indicates thet we are exporting this property's CPP text with an custom type name */
+	CPPF_CustomTypeName				=	0x00000008,
 };
 
 namespace EExportedDeclaration
@@ -120,7 +122,9 @@ namespace EExportedDeclaration
 	{
 		Local,
 		Member,
-		Parameter
+		Parameter,
+		/** Type and mane are separated by comma */
+		MacroParameter, 
 	};
 }
 
@@ -178,7 +182,7 @@ public:
 											FOutputDevice* Warn, TArray<struct FDefinedProperty>& DefinedProperties );
 
 	// UHT interface
-	void ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL ) const;
+	void ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL, uint32 AdditionalExportCPPFlags = 0) const;
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const;
 	virtual bool PassCPPArgsByRef() const { return false; }
 
@@ -738,7 +742,7 @@ public:
 	 */
 	UProperty* GetOwnerProperty()
 	{
-		UProperty* Result = this;
+		UProperty* Result=this;
 		for (UProperty* PropBase = dynamic_cast<UProperty*>(GetOuter()); PropBase; PropBase = dynamic_cast<UProperty*>(PropBase->GetOuter()))
 		{
 			Result = PropBase;

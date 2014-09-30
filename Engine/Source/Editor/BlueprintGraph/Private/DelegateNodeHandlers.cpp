@@ -92,7 +92,7 @@ struct FKCHandlerDelegateHelper
 		check(SelfPin && NetPin && BoundProperty && DelegateNode);
 
 		FBPTerminal* Term = new(Context.VariableReferences) FBPTerminal();
-		Term->CopyFromPin(SelfPin, Context.NetNameMap->MakeValidName(SelfPin));
+		Term->CopyFromPin(SelfPin, BoundProperty->GetName());
 		Term->AssociatedVarProperty = BoundProperty;
 
 		FBPTerminal** pContextTerm = Context.NetMap.Find(NetPin);

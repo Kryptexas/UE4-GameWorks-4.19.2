@@ -476,14 +476,15 @@ FString UProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("PROPERTY");
 }
 
-void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride ) const
+void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride, uint32 AdditionalExportCPPFlags) const
 {
-	const bool bIsParameter     = DeclarationType == EExportedDeclaration::Parameter;
+	const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 	const bool bIsInterfaceProp = dynamic_cast<const UInterfaceProperty*>(this) != nullptr;
 
 	// export the property type text (e.g. FString; int32; TArray, etc.)
 	FString ExtendedTypeText;
-	FString TypeText = GetCPPType(&ExtendedTypeText, bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+	const uint32 ExportCPPFlags = AdditionalExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+	FString TypeText = GetCPPType(&ExtendedTypeText, ExportCPPFlags);
 
 	if (!dynamic_cast<const UBoolProperty*>(this)) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
 	{
@@ -507,6 +508,12 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 		}
 	}
 
+	FString NameCpp = GetNameCPP();
+	if (DeclarationType == EExportedDeclaration::MacroParameter)
+	{
+		NameCpp = FString(TEXT(", ")) + NameCpp;
+	}
+
 	TCHAR ArrayStr[MAX_SPRINTF]=TEXT("");
 	if( ArrayDim != 1 )
 	{
@@ -526,19 +533,19 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 		if( ArrayDim==1 && DeclarationType == EExportedDeclaration::Member )
 		{
 			// export as a uint32 member....bad to hardcode, but this is a special case that won't be used anywhere else
-			Out.Logf( TEXT("%s%s %s%s:1"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s %s%s:1"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
 		}
 
 		//@todo we currently can't have out bools.. so this isn't really necessary, but eventually out bools may be supported, so leave here for now
 		else if( bIsParameter && HasAnyPropertyFlags(CPF_OutParm) )
 		{
 			// export as a reference
-			Out.Logf( TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, TEXT("&"), *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, TEXT("&"), *NameCpp, ArrayStr);
 		}
 
 		else
 		{
-			Out.Logf( TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
 		}
 	}
 	else 
@@ -550,7 +557,7 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 				// export as a pointer
 				//Out.Logf( TEXT("%s%s* %s"), *TypeText, *ExtendedTypeText, *GetNameCPP() );
 				// don't export as a pointer
-				Out.Logf( TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+				Out.Logf(TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
 			}
 			else
 			{
@@ -561,7 +568,7 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 						!HasAnyPropertyFlags(CPF_OutParm|CPF_ConstParm) ? TEXT("const ") : TEXT(""),
 						*TypeText, *ExtendedTypeText,
 						TEXT("&"),
-						*GetNameCPP());
+						*NameCpp);
 				}
 				else
 				{
@@ -571,13 +578,13 @@ void UProperty::ExportCppDeclaration( FOutputDevice& Out, EExportedDeclaration::
 					{
 						ModifierString[0] = TEXT('&');
 					}
-					Out.Logf( TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, ModifierString, *GetNameCPP(), ArrayStr );
+					Out.Logf(TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, ModifierString, *NameCpp, ArrayStr);
 				}
 			}
 		}
 		else
 		{
-			Out.Logf( TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *GetNameCPP(), ArrayStr );
+			Out.Logf(TEXT("%s%s %s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
 		}
 	}
 }

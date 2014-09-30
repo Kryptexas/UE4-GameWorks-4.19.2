@@ -61,8 +61,8 @@ protected:
 public:
 	FStringOutputDevice Header;
 	FStringOutputDevice Body;
-protected:
 	FString TermToText(const FBPTerminal* Term, const UProperty* SourceProperty = NULL);
+protected:
 	FString LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel);
 
 	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
@@ -84,6 +84,8 @@ public:
 		LinearColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
 		LatentInfoStruct = FLatentActionInfo::StaticStruct();
 	}
+
+	UEdGraphSchema_K2* GetSchema() const { return Schema; }
 
 	void Emit(FStringOutputDevice& Target, const TCHAR* Message)
 	{

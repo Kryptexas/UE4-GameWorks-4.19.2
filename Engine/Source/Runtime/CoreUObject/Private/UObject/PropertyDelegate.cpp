@@ -73,9 +73,12 @@ bool UDelegateProperty::NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* 
 
 FString UDelegateProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	const FString UnmangledFunctionName = SignatureFunction->GetName().LeftChop( FString( HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX ).Len() );
-	const FString DelegateName( FString( TEXT( "F" ) ) + UnmangledFunctionName );
-	return DelegateName;
+	FString UnmangledFunctionName = SignatureFunction->GetName().LeftChop( FString( HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX ).Len() );
+	if (0 != (CPPExportFlags & EPropertyExportCPPFlags::CPPF_CustomTypeName))
+	{
+		UnmangledFunctionName += TEXT("__SinglecastDelegate");
+	}
+	return FString(TEXT("F")) + UnmangledFunctionName;
 }
 
 
