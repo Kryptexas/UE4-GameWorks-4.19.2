@@ -5,7 +5,7 @@
 UAbilityTask_PlayMontageAndWait::UAbilityTask_PlayMontageAndWait(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
+	Rate = 1.f;
 }
 
 void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -22,10 +22,11 @@ void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool
 	EndTask();
 }
 
-UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay)
+UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay, float Rate)
 {
 	UAbilityTask_PlayMontageAndWait* MyObj = NewTask<UAbilityTask_PlayMontageAndWait>(WorldContextObject);
 	MyObj->MontageToPlay = MontageToPlay;
+	MyObj->Rate = Rate;
 
 	return MyObj;
 }
@@ -37,7 +38,7 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 		const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
 		if (ActorInfo->AnimInstance.IsValid())
 		{
-			ActorInfo->AnimInstance->Montage_Play(MontageToPlay, 1.f);
+			ActorInfo->AnimInstance->Montage_Play(MontageToPlay, Rate);
 			if (MontageToPlay)
 			{
 				FOnMontageEnded EndDelegate;
