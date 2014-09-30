@@ -11,11 +11,11 @@ public class MessagingDebugger : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
+				"EditorStyle",
                 "InputCore",
-                "PropertyEditor",
+//                "PropertyEditor",
 				"Slate",
 				"SlateCore",
-                "EditorStyle"
 			}
 		);
 

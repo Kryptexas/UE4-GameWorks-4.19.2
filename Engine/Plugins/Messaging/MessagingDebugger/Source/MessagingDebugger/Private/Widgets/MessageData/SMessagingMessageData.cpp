@@ -27,7 +27,7 @@ void SMessagingMessageData::Construct( const FArguments& InArgs, const FMessagin
 	Style = InStyle;
 
 	// initialize details view
-	FDetailsViewArgs DetailsViewArgs;
+/*	FDetailsViewArgs DetailsViewArgs;
 	{
 		DetailsViewArgs.bAllowSearch = false;
 		DetailsViewArgs.bHideSelectionTip = true;
@@ -43,7 +43,7 @@ void SMessagingMessageData::Construct( const FArguments& InArgs, const FMessagin
 	DetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor").CreateDetailView(DetailsViewArgs);
 	DetailsView->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SMessagingMessageData::HandleDetailsViewEnabled)));
 	DetailsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SMessagingMessageData::HandleDetailsViewVisibility)));
-
+*/
 	ChildSlot
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
@@ -95,7 +95,7 @@ void SMessagingMessageData::HandleModelSelectedMessageChanged( )
 	}
 	else
 	{
-		DetailsView->SetObject(nullptr);
+//		DetailsView->SetObject(nullptr);
 	}
 }
 

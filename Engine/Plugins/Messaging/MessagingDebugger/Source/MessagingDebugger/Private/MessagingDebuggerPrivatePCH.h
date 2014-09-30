@@ -11,7 +11,6 @@
 #include "Slate.h"
 #include "SlateStyle.h"
 #include "EditorStyle.h"
-#include "PropertyEditing.h"
 
 
 /* Private includes

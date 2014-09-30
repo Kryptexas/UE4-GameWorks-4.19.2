@@ -53,7 +53,7 @@ private:
 private:
 
 	// Holds the details view.
-	TSharedPtr<IDetailsView> DetailsView;
+//	TSharedPtr<IDetailsView> DetailsView;
 
 	// Holds a pointer to the view model.
 	FMessagingDebuggerModelPtr Model;
