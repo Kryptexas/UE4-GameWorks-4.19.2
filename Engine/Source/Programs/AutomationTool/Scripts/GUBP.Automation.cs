@@ -1533,10 +1533,6 @@ public class GUBP : BuildCommand
 			{
 				// host platform overlaps with the editor, so we don't want them here
 				var PlatformDir = TargetPlatform.ToString();
-				if (TargetPlatform == UnrealTargetPlatform.Android)
-				{
-					PlatformDir = "Android/-armv7";
-				}
 				foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", PlatformDir, "Inc")))
 				{
 					AddBuildProduct(FileToCopy);
