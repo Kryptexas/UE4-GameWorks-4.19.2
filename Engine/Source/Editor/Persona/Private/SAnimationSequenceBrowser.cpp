@@ -818,6 +818,7 @@ void SAnimationSequenceBrowser::CreateAssetTooltipResources()
 	ViewportClient->SetRealtime(true);
 	ViewportClient->SetViewMode(VMI_Lit);
 	ViewportClient->ToggleOrbitCamera(true);
+	ViewportClient->VisibilityDelegate.BindSP(this, &SAnimationSequenceBrowser::IsToolTipPreviewVisible);
 
 	// Add the scene viewport
 	ViewportWidget->SetViewportInterface(SceneViewport.ToSharedRef());
@@ -861,7 +862,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 		float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
 		float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
 
-		ViewportClient->SetViewRotation(FRotator(0.0f, 135.0f, 0.0f));
+		ViewportClient->SetViewRotation(FRotator(0.0f, -45.0f, 0.0f));
 		ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
 	}
 
@@ -893,6 +894,16 @@ void SAnimationSequenceBrowser::Tick(const FGeometry& AllottedGeometry, const do
 		// Tick the world to update preview viewport for tooltips
 		PreviewComponent->GetScene()->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
 	}
+}
+
+bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
+{
+	bool bVisible = false;
+	if(ViewportWidget.IsValid())
+	{
+		bVisible = ViewportWidget->GetVisibility() == EVisibility::Visible;
+	}
+	return bVisible;
 }
 
 FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene) : FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)

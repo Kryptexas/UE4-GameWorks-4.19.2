@@ -141,6 +141,11 @@ protected:
 	void CleanupPreviewSceneComponent(USceneComponent* Component);
 
 	/**
+	 * Has the animation asset preview tool tip been visualized
+	 */
+	bool IsToolTipPreviewVisible();
+
+	/**
 	 * The actual viewport widget
 	 */	
 	TSharedPtr<SViewport> ViewportWidget;
