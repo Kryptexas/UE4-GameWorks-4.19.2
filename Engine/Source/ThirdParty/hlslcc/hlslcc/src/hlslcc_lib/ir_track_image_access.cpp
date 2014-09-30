@@ -4,9 +4,9 @@
 
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
-#include "mesa/compiler.h"
-#include "mesa/glsl_parser_extras.h"
-#include "mesa/hash_table.h"
+#include "compiler.h"
+#include "glsl_parser_extras.h"
+#include "hash_table.h"
 
 
 /**

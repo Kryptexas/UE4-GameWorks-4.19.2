@@ -10,6 +10,7 @@ ROOT_DIR = ../../src
 TEST_SRCS = $(ROOT_DIR)/hlslcc_test/main.cpp
 MAIN_SRCS = $(ROOT_DIR)/hlslcc_exe/main.cpp
 LIB_SRCS = $(wildcard $(ROOT_DIR)/hlslcc_lib/*.cpp) \
+	$(wildcard $(ROOT_DIR)/hlslcc_lib/*.c) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/mesa/*.c) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/mesa/*.cpp) \
 	$(wildcard $(ROOT_DIR)/hlslcc_lib/glsl/*.cpp)

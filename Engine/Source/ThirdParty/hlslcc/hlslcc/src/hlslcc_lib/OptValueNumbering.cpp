@@ -1,17 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderCompilerCommon.h"
-#include "mesa/glsl_parser_extras.h"
-#include "mesa/ir.h"
-#include "mesa/ir_visitor.h"
-#include "mesa/ir_rvalue_visitor.h"
+#include "glsl_parser_extras.h"
+#include "ir.h"
+#include "ir_visitor.h"
+#include "ir_rvalue_visitor.h"
 #include "OptValueNumbering.h"
 #include "IRDump.h"
 //@todo-rco: Remove STL!
 #include <algorithm>
 #include <stack>
 #include <vector>
-#include "mesa/ir_basic_block.h"
+#include "ir_basic_block.h"
 
 #define printf(...)
 

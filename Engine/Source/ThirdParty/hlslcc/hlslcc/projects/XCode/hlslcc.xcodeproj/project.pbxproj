@@ -310,19 +310,10 @@
 				9063D4A71743B03D00540C43 /* PackUniformBuffers.h */,
 				DACBA84B18226C0300CBD9D0 /* OptValueNumbering.cpp */,
 				DACBA84C18226C0300CBD9D0 /* OptValueNumbering.h */,
-				90438DD7161082F400C0D669 /* mesa */,
 				90438DD81610831A00C0D669 /* hlslcc.cpp */,
 				90F7E6D7171A1CE300B562D0 /* hlslcc.h */,
 				90F7E6D8171A1CE300B562D0 /* ir_track_image_access.cpp */,
 				90F7E6D9171A1CE300B562D0 /* ir_track_image_access.h */,
-			);
-			name = src;
-			path = ../../src/hlslcc_lib;
-			sourceTree = SOURCE_ROOT;
-		};
-		90438DD7161082F400C0D669 /* mesa */ = {
-			isa = PBXGroup;
-			children = (
 				168A4E4A19706CF600611B10 /* hash_table.cpp */,
 				168A4E4219706C7400611B10 /* pp.cpp */,
 				168A4E4319706C7400611B10 /* ralloc.cpp */,
@@ -426,8 +417,9 @@
 				90438E3D1610833400C0D669 /* strtod.h */,
 				90438E3F1610833400C0D669 /* symbol_table.h */,
 			);
-			path = mesa;
-			sourceTree = "<group>";
+			name = src;
+			path = ../../src/hlslcc_lib;
+			sourceTree = SOURCE_ROOT;
 		};
 		DAA663641844C6190018F027 /* hlslcc_exe */ = {
 			isa = PBXGroup;

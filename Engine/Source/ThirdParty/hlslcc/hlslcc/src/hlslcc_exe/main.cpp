@@ -72,7 +72,7 @@ struct FGlslCodeBackend : public FCodeBackend
 	}
 };
 #define FRAMEBUFFER_FETCH_ES2	"FramebufferFetchES2"
-#include "mesa/ir.h"
+#include "ir.h"
 
 struct FGlslLanguageSpec : public ILanguageSpec
 {
@@ -340,15 +340,14 @@ int main( int argc, char** argv)
 		Flags |= HLSLCC_DX11ClipSpace;
 		break;
 	}
-	Flags = 0x16c;
-	FCrossCompiler CC(Flags);
-	int Result = CC.Run(
+	int Result = HlslCrossCompile(
 		Options.ShaderFilename,
 		HLSLShaderSource,
 		Options.Entry,
 		Options.Frequency,
 		CodeBackend,
 		LanguageSpec,
+		Flags,
 		Options.Target,
 		&GLSLShaderSource,
 		&ErrorLog

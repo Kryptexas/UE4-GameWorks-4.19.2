@@ -33,9 +33,9 @@
 //@todo-rco: Remove STL!
 #include <sstream>
 
-#include "mesa/glsl_parser_extras.h"
-#include "mesa/ir.h"
-#include "mesa/ir_visitor.h"
+#include "glsl_parser_extras.h"
+#include "ir.h"
+#include "ir_visitor.h"
 #include "IRDump.h"
 #include "hlslcc_private.h"
 
