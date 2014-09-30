@@ -237,7 +237,9 @@ namespace UnrealBuildTool
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
 //                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
+							// @todo es31: Put this back in for ES31 support
+							// ES31 code is in, but it's not fully supported in UE4 4.5, so for now we need to disable the targetplatform as it will confuse people greatly
+							// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                         }
 					}
 					else if (InModule.ToString() == "UnrealEd")
@@ -267,7 +269,9 @@ namespace UnrealBuildTool
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
 //                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
+					// @todo es31: Put this back in for ES31 support
+					// ES31 code is in, but it's not fully supported in UE4 4.5, so for now we need to disable the targetplatform as it will confuse people greatly
+					// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                 }
 
 				if (bBuildShaderFormats)
