@@ -645,7 +645,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 		if(!TargetSkeleton->GetPreviewMesh())
 		{
-			TargetSkeleton->SetPreviewMesh(InitMesh);
+			TargetSkeleton->SetPreviewMesh(InitMesh, false);
 		}
 	}
 	else if (TargetSkeleton)
