@@ -2603,8 +2603,8 @@ static FString GetSourceIniFilename(const TCHAR* BaseIniName, const TCHAR* Platf
  * Creates a chain of ini filenames to load and combine.
  *
  * @param InBaseIniName Ini name.
- * @param InPlatformName Platform name.
- * @param InGameName Game name.
+ * @param InPlatformName Platform name, NULL means to use the current platform
+ * @param InGameName Game name, NULL means to use the current
  * @param OutHierarchy An array which is to receive the generated hierachy of ini filenames.
  */
 static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCHAR* InPlatformName, const TCHAR* InGameName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, TArray<FIniFilename>& OutHierarchy, bool bRequireDefaultIni)
