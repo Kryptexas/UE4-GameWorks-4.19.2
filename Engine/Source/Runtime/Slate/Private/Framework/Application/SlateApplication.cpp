@@ -1453,9 +1453,9 @@ void FSlateApplication::SetKeyboardFocus( const TSharedPtr< SWidget >& OptionalW
 
 void FSlateApplication::ResetToDefaultInputSettings()
 {
-	if (MouseCaptor.HasCapture())
+	for (auto MouseCaptorPath : MouseCaptor.ToWidgetPaths())
 	{
-		MouseCaptor.InvalidateCaptureForAllPointers();
+		ProcessReply(MouseCaptorPath, FReply::Handled().ReleaseMouseCapture(), NULL, NULL);
 	}
 
 	for (int32 UserIndex = 0; UserIndex < ARRAY_COUNT(JoystickCaptorWeakPaths); UserIndex++)
