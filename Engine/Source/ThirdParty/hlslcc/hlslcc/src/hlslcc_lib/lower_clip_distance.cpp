@@ -51,7 +51,7 @@
 * LowerClipDistance flag in gl_shader_compiler_options to true.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir_hierarchical_visitor.h"
 #include "ir.h"
 

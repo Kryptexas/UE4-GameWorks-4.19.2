@@ -27,7 +27,7 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "symbol_table.h"
 #include "glsl_parser_extras.h"
@@ -77,7 +77,7 @@ ir_rvalue * _mesa_ast_field_selection_to_hir(const ast_expression *expr,
 	{
 		int src_components = op->type->components();
 		int components[4] = {0};
-		int num_components = 0;
+		uint32 num_components = 0;
 		ir_swizzle_mask mask = {0};
 		const char* mask_str = expr->primary_expression.identifier;
 		if (mask_str[0] == '_' && mask_str[1] == 'm')

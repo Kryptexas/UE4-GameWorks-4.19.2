@@ -607,7 +607,7 @@ goto find_rule; \
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glcpp.h"
 #include "glcpp-parse.h"
 

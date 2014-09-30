@@ -51,7 +51,7 @@
 * to attempt to flatten any if-statements appearing at depth > N.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_types.h"
 #include "ir.h"
 #include "hash_table.h"

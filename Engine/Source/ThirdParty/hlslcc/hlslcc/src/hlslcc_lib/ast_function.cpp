@@ -27,7 +27,7 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_symbol_table.h"
 #include "ast.h"
 #include "glsl_types.h"
@@ -2007,26 +2007,6 @@ ir_rvalue* ast_function_expression::hir(exec_list *instructions, struct _mesa_gl
 	}
 
 	return ir_rvalue::error_value(ctx);
-}
-
-
-static void get_texture_method(char* out_buffer, int buffer_size,
-	bool size, bool fetch, bool proj, bool grad, bool lod, bool offset)
-{
-	const char * const size_str[] = { "", "Size" };
-	const char * const fetch_str[] = { "", "Fetch" };
-	const char * const proj_str[] = { "", "Proj" };
-	const char * const grad_str[] = { "", "Grad" };
-	const char * const lod_str[] = { "", "Lod" };
-	const char * const offset_str[] = { "", "Offset" };
-
-	snprintf(out_buffer, buffer_size, "texture%s%s%s%s%s%s",
-		size_str[size],
-		fetch_str[fetch],
-		proj_str[proj],
-		grad_str[grad],
-		lod_str[lod],
-		offset_str[offset]);
 }
 
 ir_texture_channel get_channel(const char * extension)

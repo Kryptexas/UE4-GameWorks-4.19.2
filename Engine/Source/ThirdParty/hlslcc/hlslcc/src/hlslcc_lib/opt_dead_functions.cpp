@@ -33,7 +33,7 @@
 * Eliminates unused functions from the linked program.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_expression_flattening.h"

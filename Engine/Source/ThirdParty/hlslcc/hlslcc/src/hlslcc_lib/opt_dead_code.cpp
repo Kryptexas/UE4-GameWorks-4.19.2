@@ -33,7 +33,7 @@
 * Eliminates dead assignments and variable declarations from the code.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_variable_refcount.h"

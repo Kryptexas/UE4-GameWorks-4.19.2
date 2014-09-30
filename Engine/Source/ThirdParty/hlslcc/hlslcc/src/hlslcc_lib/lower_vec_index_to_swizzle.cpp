@@ -35,7 +35,7 @@
 * and codegen backends not have to worry about this case.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_optimization.h"

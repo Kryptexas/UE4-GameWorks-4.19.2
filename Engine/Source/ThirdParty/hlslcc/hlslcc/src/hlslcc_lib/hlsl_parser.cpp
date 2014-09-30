@@ -105,7 +105,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"

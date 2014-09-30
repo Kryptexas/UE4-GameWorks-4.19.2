@@ -39,7 +39,7 @@
  * a dereference chain.
  */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_hierarchical_visitor.h"
 #include "hash_table.h"
@@ -835,7 +835,7 @@ ir_visitor_status ir_validate::visit_enter(ir_assignment *ir)
 				);
 		}
 
-		int lhs_components = 0;
+		uint32 lhs_components = 0;
 		for (int i = 0; i < 4; i++)
 		{
 			if (ir->write_mask & (1 << i))

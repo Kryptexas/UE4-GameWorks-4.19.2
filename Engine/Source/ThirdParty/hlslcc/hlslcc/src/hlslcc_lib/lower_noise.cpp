@@ -34,7 +34,7 @@
 * \author Ian Romanick <ian.d.romanick@intel.com>
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_rvalue_visitor.h"
 

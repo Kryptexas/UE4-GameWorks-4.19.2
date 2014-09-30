@@ -28,7 +28,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #ifdef _MSC_VER
 #define strtoll(p, e, b) _strtoi64(p, e, b)
 #endif

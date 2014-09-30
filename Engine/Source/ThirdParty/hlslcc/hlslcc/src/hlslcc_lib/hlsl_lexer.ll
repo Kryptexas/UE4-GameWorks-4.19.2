@@ -28,7 +28,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "strtod.h"
 #include "ast.h"
 #include "glsl_parser_extras.h"

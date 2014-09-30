@@ -39,7 +39,7 @@
 * (0) loop surrounding the function body.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 
 class ir_function_can_inline_visitor : public ir_hierarchical_visitor

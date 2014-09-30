@@ -89,7 +89,7 @@
 *    }
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_types.h"
 #include "ir.h"
 

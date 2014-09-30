@@ -32,7 +32,7 @@
 * Remove certain types of redundant jumps
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 
 class redundant_jumps_visitor : public ir_hierarchical_visitor

@@ -53,14 +53,14 @@
 * move those expressions safely.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_variable_refcount.h"
 #include "ir_basic_block.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
-#include "../hlslcc_private.h"
+#include "hlslcc_private.h"
 static bool Debug = false;
 
 class ir_tree_grafting_visitor : public ir_hierarchical_visitor

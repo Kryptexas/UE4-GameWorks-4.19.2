@@ -87,7 +87,7 @@
 * opportunity to do things like constant fold the (1.0 / op1) easily.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_types.h"
 #include "ir.h"
 #include "ir_optimization.h"

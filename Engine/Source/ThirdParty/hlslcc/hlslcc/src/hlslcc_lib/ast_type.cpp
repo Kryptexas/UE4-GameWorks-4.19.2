@@ -27,7 +27,7 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ast.h"
 #include "symbol_table.h"
 

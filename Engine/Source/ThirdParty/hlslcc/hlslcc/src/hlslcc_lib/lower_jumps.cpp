@@ -62,7 +62,7 @@
 * prevents further optimization, and thus is not currently performed.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
 #include "glsl_types.h"
 #include "ir.h"
@@ -479,7 +479,7 @@ struct ir_lower_jumps_visitor : public ir_control_flow_visitor
 	bool should_lower_jump(ir_jump* ir)
 	{
 		unsigned strength = get_jump_strength(ir);
-		bool lower;
+		bool lower = false;
 		switch (strength)
 		{
 		case strength_none:
@@ -633,21 +633,31 @@ struct ir_lower_jumps_visitor : public ir_control_flow_visitor
 			*/
 			bool should_lower[2];
 			for (unsigned i = 0; i < 2; ++i)
+			{
 				should_lower[i] = should_lower_jump(jumps[i]);
+			}
 
-			int lower;
+			int lower = 0;
 			if (should_lower[1] && should_lower[0])
+			{
 				lower = jump_strengths[1] > jump_strengths[0];
+			}
 			else if (should_lower[0])
+			{
 				lower = 0;
+			}
 			else if (should_lower[1])
+			{
 				lower = 1;
+			}
 			else
+			{
 				/* Neither code path ends in a jump that needs to be
 				* lowered, so the CONTAINED_JUMPS_LOWERED postcondition
 				* is satisfied and we can break out of the loop.
 				*/
 				break;
+			}
 
 			if (jump_strengths[lower] == strength_return)
 			{

@@ -47,7 +47,7 @@
 * help anyway by triggering other optimizations that live in the HIR.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_rvalue_visitor.h"
 #include "ir_basic_block.h"
@@ -256,7 +256,7 @@ void ir_copy_propagation_elements_visitor::handle_rvalue(ir_rvalue **ir)
 	/* Try to find ACP entries covering swizzle_chan[], hoping they're
 	* the same source variable.
 	*/
-	bool interface_block;
+	bool interface_block = false;
 	foreach_iter(exec_list_iterator, iter, *this->acp)
 	{
 		acp_entry *entry = (acp_entry *)iter.get();
@@ -277,15 +277,21 @@ void ir_copy_propagation_elements_visitor::handle_rvalue(ir_rvalue **ir)
 
 	/* Make sure all channels are copying from the same source variable. */
 	if (!source[0])
+	{
 		return;
+	}
 	for (int c = 1; c < chans; c++)
 	{
 		if (source[c] != source[0])
+		{
 			return;
+		}
 	}
 
 	if (!shader_mem_ctx)
+	{
 		shader_mem_ctx = ralloc_parent(deref_var);
+	}
 
 	if (debug)
 	{

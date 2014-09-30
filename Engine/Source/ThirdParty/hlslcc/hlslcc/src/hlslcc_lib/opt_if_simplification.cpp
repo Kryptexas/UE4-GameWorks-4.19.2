@@ -34,9 +34,9 @@
 * instruction stream.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
-#include "../IRDump.h"
+#include "IRDump.h"
 
 class ir_if_simplification_visitor : public ir_hierarchical_visitor
 {

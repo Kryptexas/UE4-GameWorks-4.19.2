@@ -33,7 +33,7 @@
 * Basic block analysis of instruction streams.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_basic_block.h"
@@ -68,16 +68,16 @@ void call_for_basic_blocks(exec_list *instructions,
 	foreach_iter(exec_list_iterator, iter, *instructions)
 	{
 		ir_instruction *ir = (ir_instruction *)iter.get();
-		ir_if *ir_if;
-		ir_loop *ir_loop;
-		ir_function *ir_function;
 
 		if (!leader)
 		{
 			leader = ir;
 		}
 
-		if ((ir_if = ir->as_if()))
+		ir_if *ir_if = ir->as_if();
+		ir_loop *ir_loop = ir->as_loop();
+		ir_function *ir_function = ir->as_function();
+		if (ir_if)
 		{
 			callback(leader, ir, data);
 			leader = NULL;
@@ -85,7 +85,7 @@ void call_for_basic_blocks(exec_list *instructions,
 			call_for_basic_blocks(&ir_if->then_instructions, callback, data);
 			call_for_basic_blocks(&ir_if->else_instructions, callback, data);
 		}
-		else if ((ir_loop = ir->as_loop()))
+		else if (ir_loop)
 		{
 			callback(leader, ir, data);
 			leader = NULL;
@@ -96,7 +96,7 @@ void call_for_basic_blocks(exec_list *instructions,
 			callback(leader, ir, data);
 			leader = NULL;
 		}
-		else if ((ir_function = ir->as_function()))
+		else if (ir_function)
 		{
 			/* A function definition doesn't interrupt our basic block
 			* since execution doesn't go into it.  We should process the

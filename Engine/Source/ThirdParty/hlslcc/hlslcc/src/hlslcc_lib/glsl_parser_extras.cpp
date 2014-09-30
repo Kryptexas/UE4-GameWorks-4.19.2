@@ -26,7 +26,7 @@
 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 * DEALINGS IN THE SOFTWARE.
 */
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
 #include <stdarg.h>
 
@@ -36,7 +36,7 @@
 #include "hlsl_parser.h"
 #include "ir_optimization.h"
 #include "loop_analysis.h"
-#include "../IRDump.h"
+#include "IRDump.h"
 
 /* TODO: Move this in to _mesa_glsl_parse_state. */
 static unsigned int g_anon_struct_count = 0;

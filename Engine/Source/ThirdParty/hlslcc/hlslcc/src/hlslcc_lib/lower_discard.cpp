@@ -111,7 +111,7 @@
 * Unconditional discards are treated as having a condition of "true".
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_types.h"
 #include "ir.h"
 

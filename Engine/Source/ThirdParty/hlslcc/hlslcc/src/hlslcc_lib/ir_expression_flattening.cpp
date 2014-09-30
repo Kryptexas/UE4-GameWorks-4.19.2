@@ -37,7 +37,7 @@
 * create a temporary and work on each of its vector components individually.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_rvalue_visitor.h"

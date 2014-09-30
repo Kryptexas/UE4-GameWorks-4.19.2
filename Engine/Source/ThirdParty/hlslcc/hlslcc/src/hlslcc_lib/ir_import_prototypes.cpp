@@ -33,7 +33,7 @@
 *
 * \author Ian Romanick
 */
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "glsl_symbol_table.h"
 

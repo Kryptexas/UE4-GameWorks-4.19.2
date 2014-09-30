@@ -39,7 +39,7 @@
 * for assignments to variables that are never read.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_basic_block.h"
 #include "ir_optimization.h"

@@ -55,7 +55,7 @@
 * parser (and lexer) sources.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_symbol_table.h"
 #include "glsl_parser_extras.h"
 #include "ast.h"
@@ -64,8 +64,8 @@
 #include "ir.h"
 #include "ir_rvalue_visitor.h"
 #include "macros.h"
-#include "../IRDump.h"
-#include "../LanguageSpec.h"
+#include "IRDump.h"
+#include "LanguageSpec.h"
 
 static void remove_matrix_swizzles(exec_list *instructions);
 
@@ -1697,7 +1697,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			texop->sampler = op[0]->as_dereference();
 			check(texop->sampler);
 
-			int dimensions = array->type->sampler_dimensionality + 1;
+			uint32 dimensions = array->type->sampler_dimensionality + 1;
 			dimensions += array->type->sampler_array;
 			const glsl_type* index_type = glsl_type::get_instance(GLSL_TYPE_INT, dimensions, 1);
 
@@ -1786,7 +1786,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 		}
 		else if (array->type->is_image())
 		{
-			int required_count = -8;
+			int32 required_count = -8;
 			switch (array->type->sampler_dimensionality)
 			{
 			case GLSL_SAMPLER_DIM_1D:
@@ -1806,10 +1806,10 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 				error_emitted = true;
 			}
 			required_count += array->type->sampler_array;
-			if (op[1]->type->components() != required_count)
+			if ((int32)op[1]->type->components() != required_count)
 			{
 				_mesa_glsl_error(&index_loc, state,
-					"incorrect size for RW resoruce index (expected %d)", required_count);
+					"incorrect size for RW resource index (expected %d)", required_count);
 				error_emitted = true;
 			}
 			else if (op[1]->type->is_matrix())

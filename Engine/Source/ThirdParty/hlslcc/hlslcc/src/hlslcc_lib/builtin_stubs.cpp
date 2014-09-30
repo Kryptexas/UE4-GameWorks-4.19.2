@@ -27,10 +27,10 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_parser_extras.h"
-#include "../LanguageSpec.h"
-#include "../IRDump.h"
+#include "LanguageSpec.h"
+#include "IRDump.h"
 
 void _mesa_glsl_release_functions(void)
 {

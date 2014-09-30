@@ -38,7 +38,7 @@
  * help anyway by triggering other optimizations that live in the HIR.
  */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_basic_block.h"
@@ -360,7 +360,6 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 	foreach_iter(exec_list_iterator, iter, *orig_acp)
 	{
 		acp_entry *a = (acp_entry *)iter.get();
-		bool bAdd = false;
 		auto* Var = a->GetVariableReferenced();
 		if (Var && Var->type && (Var->type->is_sampler() || Var->type->IsSamplerState()))
 		{

@@ -41,7 +41,7 @@
 * \author Eric Anholt <eric@anholt.net>
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 
 class lower_texture_projection_visitor : public ir_hierarchical_visitor

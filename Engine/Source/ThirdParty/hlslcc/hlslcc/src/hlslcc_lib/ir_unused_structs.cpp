@@ -27,7 +27,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_unused_structs.h"

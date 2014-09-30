@@ -37,7 +37,7 @@
 * column or row.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_expression_flattening.h"
 #include "glsl_types.h"

@@ -127,7 +127,7 @@
 * \author Ian Romanick <ian.d.romanick@intel.com>
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "glsl_parser_extras.h"
 #include "hash_table.h"

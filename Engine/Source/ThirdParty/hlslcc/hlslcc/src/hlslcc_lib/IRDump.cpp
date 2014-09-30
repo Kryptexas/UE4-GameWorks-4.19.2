@@ -47,12 +47,6 @@
 	#define irdump_printf printf
 #endif
 
-static void PrintType(void *)
-{
-	irdump_printf("TYPE");
-}
-
-
 DebugPrintVisitor::DebugPrintVisitor(bool bSingleEntry) :
 	Indentation(0),
 	bIRVarEOL(!bSingleEntry),

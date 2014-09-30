@@ -36,7 +36,7 @@
 * \author Ian Romanick <ian.d.romanick@intel.com>
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "imports.h"
 #include "simple_list.h"
 #include "hash_table.h"

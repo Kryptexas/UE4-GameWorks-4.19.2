@@ -35,7 +35,7 @@
 * were defined in the scope.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_variable_refcount.h"

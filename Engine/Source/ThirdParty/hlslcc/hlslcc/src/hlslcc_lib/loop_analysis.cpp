@@ -27,7 +27,7 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "glsl_types.h"
 #include "loop_analysis.h"
 #include "ir_hierarchical_visitor.h"

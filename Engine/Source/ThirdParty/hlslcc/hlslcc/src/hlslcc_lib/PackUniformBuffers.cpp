@@ -177,7 +177,6 @@ struct SFindStructMembersVisitor : public ir_rvalue_visitor
 			ir_rvalue* RValue = *RValuePointer;
 			if (RValue && RValue->as_dereference_record())
 			{
-				ir_dereference_record* DerefRecord = RValue->as_dereference_record();
 				ir_variable* RecordVar = RValue->variable_referenced();
 				if (RecordVar->mode == ir_var_uniform)
 				{
@@ -751,7 +750,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 	return UniformIndex;
 }
 
-static int ProcessPackedSamplers(int UniformIndex, void* ctx, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables, const SPackedUniformsInfo& PUInfo)
+static int ProcessPackedSamplers(int UniformIndex, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables)
 {
 	int NumElements = 0;
 	check(ParseState->GlobalPackedArraysMap[EArrayType_Sampler].empty());
@@ -789,7 +788,7 @@ static int ProcessPackedSamplers(int UniformIndex, void* ctx, _mesa_glsl_parse_s
 	return UniformIndex;
 }
 
-static int ProcessPackedImages(int UniformIndex, void* ctx, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables, const SPackedUniformsInfo& PUInfo)
+static int ProcessPackedImages(int UniformIndex, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables)
 {
 	int NumElements = 0;
 	check(ParseState->GlobalPackedArraysMap[EArrayType_Image].empty());
@@ -864,13 +863,13 @@ void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, b
 		{
 			goto done;
 		}
-		UniformIndex = ProcessPackedSamplers(UniformIndex, ctx, ParseState, UniformVariables, PUInfo);
+		UniformIndex = ProcessPackedSamplers(UniformIndex, ParseState, UniformVariables);
 		if (UniformIndex == -1)
 		{
 			goto done;
 		}
 
-		UniformIndex = ProcessPackedImages(UniformIndex, ctx, ParseState, UniformVariables, PUInfo);
+		UniformIndex = ProcessPackedImages(UniformIndex, ParseState, UniformVariables);
 		if (UniformIndex == -1)
 		{
 			goto done;
@@ -1126,7 +1125,6 @@ namespace ArraysToMatrices
 
 		virtual ir_visitor_status visit(ir_variable* IR) override
 		{
-			const auto* OriginalType = IR->type;
 			IR->type = ConvertMatrix(IR->type, IR);
 			return visit_continue;
 		}
@@ -1165,7 +1163,6 @@ namespace ArraysToMatrices
 			//}
 			else if (Type->is_matrix())
 			{
-				const auto* OriginalType = Type;
 				const auto* ColumnType = Type->column_type();
 				check(Type->matrix_columns > 0);
 				Type = glsl_type::get_array_instance(ColumnType, Type->matrix_columns);

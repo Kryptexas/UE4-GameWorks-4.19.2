@@ -32,7 +32,7 @@
 * Replace constant-valued expressions with references to constant values.
 */
 
-#include "../ShaderCompilerCommon.h"
+#include "ShaderCompilerCommon.h"
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_rvalue_visitor.h"
