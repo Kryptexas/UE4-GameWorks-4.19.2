@@ -188,14 +188,21 @@ struct INTROTUTORIALS_API FTutorialStage
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Identifier for this stage */
 	UPROPERTY(EditAnywhere, Category="Stage")
 	FName Name;
 
+	/** Non-widget-bound content to display in this stage */
 	UPROPERTY(EditAnywhere, Category="Stage")
 	FTutorialContent Content;
 
+	/** Widget-bound content to display for this stage */
 	UPROPERTY(EditAnywhere, Category="Stage")
 	TArray<FTutorialWidgetContent> WidgetContent;
+
+	/** Text to display on the next button */
+	UPROPERTY(EditAnywhere, Category="Stage")
+	FText NextButtonText;
 };
 
 /** An asset used to build a stage-by-stage tutorial in the editor */
