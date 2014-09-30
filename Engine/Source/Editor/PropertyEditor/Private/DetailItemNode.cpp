@@ -144,16 +144,17 @@ void FDetailItemNode::ToggleExpansion()
 
 TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
 {
-	FGraphNodeMetaData TagMeta(TEXT("DetailRowItem"));
-	if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid() )
-	{
-		TagMeta.FriendlyName = Customization.GetPropertyNode()->GetDisplayName();
-	}
+	FTagMetaData TagMeta(TEXT("DetailRowItem"));
 	if (ParentCategory.IsValid())
 	{
-		FString Tag = FString::Printf(TEXT("%s_%s"), *TagMeta.FriendlyName, *ParentCategory.Pin()->GetCategoryPathName());
-		TagMeta.Tag = *Tag;
-		TagMeta.TabTypeToOpen = TEXT("LevelEditorSelectionDetails");
+		if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid())
+		{
+			TagMeta.Tag = *FString::Printf(TEXT("DetailRowItem.%s"), *Customization.GetPropertyNode()->GetDisplayName());
+		}
+		else if (Customization.HasCustomWidget() )
+		{
+			TagMeta.Tag = Customization.GetWidgetRow().RowTagName;
+		}
 	}
 	if( Customization.HasPropertyNode() && Customization.GetPropertyNode()->AsCategoryNode() )
 	{
@@ -161,7 +162,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 			SNew(SDetailCategoryTableRow, AsShared(), OwnerTable)
 			.IsEnabled(IsParentEnabled)
 			.DisplayName(Customization.GetPropertyNode()->GetDisplayName())
-			.AddMetaData<FTutorialMetaData>(TagMeta)
+			.AddMetaData<FTagMetaData>(TagMeta)
 			.InnerCategory( true );
 	}
 	else
@@ -169,7 +170,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 		return
 			SNew(SDetailSingleItemRow, &Customization, HasMultiColumnWidget(), AsShared(), OwnerTable )
 			.IsEnabled( IsParentEnabled )
-			.AddMetaData<FTutorialMetaData>(TagMeta)
+			.AddMetaData<FTagMetaData>(TagMeta)
 			.ColumnSizeData(ColumnSizeData);
 	}
 }

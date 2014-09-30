@@ -352,6 +352,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	];
 
 	NewLandscapeCategory.AddCustomRow("Overall Resolution")
+	.RowTag("LandscapeEditor.OverallResolution")
 	.NameContent()
 	[
 		SNew(SBox)
@@ -410,6 +411,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	];
 
 	NewLandscapeCategory.AddCustomRow("Total Components")
+	.RowTag("LandscapeEditor.TotalComponents")
 	.NameContent()
 	[
 		SNew(SBox)

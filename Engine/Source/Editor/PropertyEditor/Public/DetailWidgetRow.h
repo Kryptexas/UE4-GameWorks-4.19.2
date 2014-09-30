@@ -70,6 +70,7 @@ public:
 		, FilterTextString()
 		, CopyMenuAction()
 		, PasteMenuAction()
+		, RowTagName()
 	{
 	}
 	
@@ -173,6 +174,15 @@ public:
 		return CopyMenuAction.ExecuteAction.IsBound() && PasteMenuAction.ExecuteAction.IsBound();
 	}
 
+	/**
+	* Sets a tag which can be used to identify this row 
+	*/
+	FDetailWidgetRow& RowTag(const FName& InRowTagName)
+	{
+		RowTagName = InRowTagName;
+		return *this;
+	}
+
 public:
 	/** Name column content */
 	FDetailWidgetDecl NameWidget;
@@ -190,5 +200,7 @@ public:
 	FUIAction CopyMenuAction;
 	/** Action for pasting data on this row */
 	FUIAction PasteMenuAction;
+	/* Tag to identify this row */
+	FName	RowTagName;
 };
 
