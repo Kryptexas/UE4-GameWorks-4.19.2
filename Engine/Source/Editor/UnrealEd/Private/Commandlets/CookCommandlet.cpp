@@ -820,6 +820,11 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 				AddFileToCook(FilesInPath, CurrEntry);
 			}
 		}
+		else if (FPackageName::IsValidLongPackageName(CurrEntry))
+		{
+			CurrEntry = FPackageName::LongPackageNameToFilename(CurrEntry, TEXT(".umap"));
+			AddFileToCook(FilesInPath, CurrEntry);
+		}
 		else
 		{
 			AddFileToCook(FilesInPath, CurrEntry);
