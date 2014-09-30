@@ -543,7 +543,8 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if( FParse::Command( &Cmd,TEXT("REATTACHCOMPONENTS")) || FParse::Command( &Cmd,TEXT("REREGISTERCOMPONENTS")))
 	{
-		return HandleReattachComponentsCommand( Cmd, Ar );
+		UE_LOG(LogConsoleResponse, Warning, TEXT("Deprectated command! Please use 'Reattach.Components' instead."));
+		return true;
 	}
 	else if( FParse::Command( &Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
 	{
@@ -618,26 +619,6 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return false;
 	}
 }
-
-
-bool UGameEngine::HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	UClass* Class=NULL;
-	if( ParseObject<UClass>( Cmd, TEXT("CLASS="), Class, ANY_PACKAGE ) &&
-		Class->IsChildOf(UActorComponent::StaticClass()) )
-	{
-		for( FObjectIterator It(Class); It; ++It )
-		{
-			UActorComponent* ActorComponent = Cast<UActorComponent>(*It);
-			if( ActorComponent )
-			{
-				FComponentReregisterContext Reregister(ActorComponent);
-			}
-		}
-	}
-	return true;
-}
-
 
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {

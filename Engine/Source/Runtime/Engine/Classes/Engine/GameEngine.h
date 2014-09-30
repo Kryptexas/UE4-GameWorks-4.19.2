@@ -103,7 +103,6 @@ public:
 	 * Exec command handlers
 	 */
 
-	bool HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleMinimizeCommand( const TCHAR *Cmd, FOutputDevice &Ar );
