@@ -9,8 +9,8 @@
 
 UHardwareTargetingSettings::UHardwareTargetingSettings(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-	, TargetedHardwareClass(EHardwareClass::Desktop)
-	, DefaultGraphicsPerformance(EGraphicsPreset::Maximum)
+	, TargetedHardwareClass(EHardwareClass::Unspecified)
+	, DefaultGraphicsPerformance(EGraphicsPreset::Unspecified)
 {
 }
 
@@ -18,6 +18,7 @@ bool UHardwareTargetingSettings::HasPendingChanges() const
 {
 	UHardwareTargetingSettings* Settings = GetMutableDefault<UHardwareTargetingSettings>();
 
+	if (Settings->TargetedHardwareClass != EHardwareClass::Unspecified)
 	{
 		FString AppliedHardwareEnumValue;
 		const bool bFoundKey = GConfig->GetString(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedTargetedHardwareClass"), AppliedHardwareEnumValue, GEditorIni);
@@ -45,6 +46,7 @@ bool UHardwareTargetingSettings::HasPendingChanges() const
 		}
 	}
 
+	if (Settings->DefaultGraphicsPerformance != EHardwareClass::Unspecified)
 	{
 		FString AppliedGraphicsEnumValue;
 		const bool bFoundKey = GConfig->GetString(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedDefaultGraphicsPerformance"), AppliedGraphicsEnumValue, GEditorIni);
