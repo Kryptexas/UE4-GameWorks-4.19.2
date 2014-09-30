@@ -81,7 +81,7 @@ bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const 
 
 		FUniqueNetIdMatcher PlayerMatch(UniqueId);
 		if (bIsSessionOwner || 
-			Session->RegisteredPlayers.FindMatch(PlayerMatch) != INDEX_NONE)
+			Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch) != INDEX_NONE)
 		{
 			bFound = true;
 		}

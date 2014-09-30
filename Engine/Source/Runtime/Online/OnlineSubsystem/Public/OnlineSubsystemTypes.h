@@ -752,7 +752,7 @@ public:
 };
 
 /**
- * TArray helper for FindMatch() function
+ * TArray helper for IndexOfByPredicate() function
  */
 struct FUniqueNetIdMatcher
 {
@@ -771,27 +771,27 @@ public:
 	 *
 	 * @return true if they are an exact match, false otherwise
 	 */
- 	bool Matches(const FUniqueNetId& Candidate) const
- 	{
- 		return UniqueIdTarget == Candidate;
- 	}
+	bool operator()(const FUniqueNetId& Candidate) const
+	{
+		return UniqueIdTarget == Candidate;
+	}
  
 	/**
 	 * Match a given unique Id against the one stored in this struct
 	 *
 	 * @return true if they are an exact match, false otherwise
 	 */
- 	bool Matches(const TSharedPtr<FUniqueNetId>& Candidate) const
- 	{
- 		return UniqueIdTarget == *Candidate;
- 	}
+	bool operator()(const TSharedPtr<FUniqueNetId>& Candidate) const
+	{
+		return UniqueIdTarget == *Candidate;
+	}
 
 	/**
 	 * Match a given unique Id against the one stored in this struct
 	 *
 	 * @return true if they are an exact match, false otherwise
 	 */
-	bool Matches(const TSharedRef<FUniqueNetId>& Candidate) const
+	bool operator()(const TSharedRef<FUniqueNetId>& Candidate) const
 	{
 		return UniqueIdTarget == *Candidate;
 	}

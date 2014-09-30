@@ -839,7 +839,7 @@ bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TShare
 			const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
 
 			FUniqueNetIdMatcher PlayerMatch(*PlayerId);
-			if (Session->RegisteredPlayers.FindMatch(PlayerMatch) == INDEX_NONE)
+			if (Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch) == INDEX_NONE)
 			{
 				Session->RegisteredPlayers.Add(PlayerId);
 				RegisterVoice(*PlayerId);
@@ -889,7 +889,7 @@ bool FOnlineSessionNull::UnregisterPlayers(FName SessionName, const TArray< TSha
 			const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
 
 			FUniqueNetIdMatcher PlayerMatch(*PlayerId);
-			int32 RegistrantIndex = Session->RegisteredPlayers.FindMatch(PlayerMatch);
+			int32 RegistrantIndex = Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch);
 			if (RegistrantIndex != INDEX_NONE)
 			{
 				Session->RegisteredPlayers.RemoveAtSwap(RegistrantIndex);

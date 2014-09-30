@@ -247,13 +247,13 @@ struct FTabMatcher
 	{
 	}
 
-	bool Matches( const FTabManager::FTab& Candidate ) const
+	bool operator()(const FTabManager::FTab& Candidate) const
 	{
 		return
-			( (Candidate.TabState & RequiredTabState) != 0 ) &&
-			( Candidate.TabId.TabType == TabIdToMatch.TabType ) &&
+			((Candidate.TabState & RequiredTabState) != 0) &&
+			(Candidate.TabId.TabType == TabIdToMatch.TabType) &&
 			// INDEX_NONE is treated as a wildcard
-			( (TreatIndexNoneAsWildcard && TabIdToMatch.InstanceId == INDEX_NONE) || TabIdToMatch.InstanceId == Candidate.TabId.InstanceId );;
+			((TreatIndexNoneAsWildcard && TabIdToMatch.InstanceId == INDEX_NONE) || TabIdToMatch.InstanceId == Candidate.TabId.InstanceId);;
 	}
 
 	FTabId TabIdToMatch;

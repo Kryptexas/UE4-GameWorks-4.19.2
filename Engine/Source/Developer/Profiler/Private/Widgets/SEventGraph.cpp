@@ -2594,7 +2594,7 @@ void SEventGraph::SetHierarchicalSelectedEvents( const TArray<FEventGraphSampleP
 			: EventPtr( InEventPtr )
 		{}
 
-		bool Matches( const FEventGraphSamplePtr& Other ) const
+		bool operator()(const FEventGraphSamplePtr& Other) const
 		{
 			return EventPtr->_StatName == Other->_StatName;
 		}
@@ -2608,7 +2608,7 @@ void SEventGraph::SetHierarchicalSelectedEvents( const TArray<FEventGraphSampleP
 	{
 		for( int32 Nx = 0; Nx < HierarchicalSelectedEvents.Num(); ++Nx )
 		{
-			const int32 Index = Events_FlatCoalesced.FindMatch( FCoalescedEventMatcher( HierarchicalSelectedEvents[Nx] ) );
+			const int32 Index = Events_FlatCoalesced.IndexOfByPredicate(FCoalescedEventMatcher(HierarchicalSelectedEvents[Nx]));
 			if( Index != INDEX_NONE )
 			{
 				SelectedEvents.AddUnique( Events_FlatCoalesced[Index] );

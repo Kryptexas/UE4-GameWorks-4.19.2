@@ -4237,16 +4237,16 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 								: ComponentToMatch( InComponentToMatch )
 							{}
 
-							bool Matches( const UClass* ComponentClass ) const
+							bool operator()(const UClass* ComponentClass) const
 							{
-								return ComponentToMatch->IsA( ComponentClass );
+								return ComponentToMatch->IsA(ComponentClass);
 							}
 
 							UPrimitiveComponent* ComponentToMatch;
 						};
 
 						// Some components can have huge bounds but are not visible.  Ignore these components unless it is the only component on the actor 
-						const bool bIgnore = Components.Num() > 1 && PrimitiveComponentTypesToIgnore.FindMatch( ComponentTypeMatcher( PrimitiveComponent ) ) != INDEX_NONE;
+						const bool bIgnore = Components.Num() > 1 && PrimitiveComponentTypesToIgnore.IndexOfByPredicate(ComponentTypeMatcher(PrimitiveComponent)) != INDEX_NONE;
 
 						if( !bIgnore )
 						{

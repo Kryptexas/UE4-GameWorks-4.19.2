@@ -290,7 +290,7 @@ void FPopupSupport::SendNotifications( const FWidgetPath& WidgetsUnderCursor )
 		: WidgetToMatch( InWidgetToMatch )
 		{}
 
-		bool Matches( const FArrangedWidget& Candidate ) const
+		bool operator()(const FArrangedWidget& Candidate) const
 		{
 			return WidgetToMatch == Candidate.Widget;
 		}
@@ -307,7 +307,7 @@ void FPopupSupport::SendNotifications( const FWidgetPath& WidgetsUnderCursor )
 		{
 			// Did we click outside the region in this subscription? If so send the notification.
 			FArrangedWidgetMatcher Matcher(Subscriber.DetectClicksOutsideMe.Pin().ToSharedRef());
-			const bool bClickedOutsideOfWidget = WidgetsUnderCursor.Widgets.GetInternalArray().FindMatch( Matcher ) == INDEX_NONE;
+			const bool bClickedOutsideOfWidget = WidgetsUnderCursor.Widgets.GetInternalArray().IndexOfByPredicate(Matcher) == INDEX_NONE;
 			if ( bClickedOutsideOfWidget )
 			{
 				Subscriber.Notification.ExecuteIfBound();

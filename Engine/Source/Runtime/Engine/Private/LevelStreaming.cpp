@@ -653,7 +653,7 @@ ULevelStreaming* ULevelStreaming::CreateInstance(FString InstanceUniqueName)
 		FName	InstanceUniquePackageName = FName(*(InstancePackagePath + InstanceShortPackageName));
 
 		// check if instance name is unique among existing streaming level objects
-		const bool bUniqueName = (InWorld->StreamingLevels.FindMatch(ULevelStreaming::FPackageNameMatcher(InstanceUniquePackageName)) == INDEX_NONE);
+		const bool bUniqueName = (InWorld->StreamingLevels.IndexOfByPredicate(ULevelStreaming::FPackageNameMatcher(InstanceUniquePackageName)) == INDEX_NONE);
 				
 		if (bUniqueName)
 		{

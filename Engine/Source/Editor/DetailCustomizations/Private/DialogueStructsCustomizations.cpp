@@ -205,7 +205,7 @@ void SSpeakerDropDown::Tick( const FGeometry& AllottedGeometry, const double InC
 struct FSpeakerMatcher
 {
 	const UDialogueVoice* Speaker;
-	bool Matches(const FDialogueContextMapping& Mapping) const
+	bool operator()(const FDialogueContextMapping& Mapping) const
 	{
 		return Mapping.Context.Speaker == Speaker;
 	}
@@ -954,7 +954,7 @@ bool SValidatedDialogueContextHeaderWidget::IsSpeakerValid() const
 	if( DialogueWave )
 	{
 		FSpeakerMatcher SpeakerMatcher = { Speaker };
-		if( DialogueWave->ContextMappings.FindMatch( SpeakerMatcher ) != INDEX_NONE )
+		if (DialogueWave->ContextMappings.IndexOfByPredicate(SpeakerMatcher) != INDEX_NONE)
 		{
 			bSpeakerIsValid = true;
 		}

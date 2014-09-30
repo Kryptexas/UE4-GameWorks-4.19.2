@@ -87,9 +87,9 @@ struct FCommandLineMatcher
 
 	FCommandLineMatcher(){}
 
-	FORCEINLINE bool Matches( const FString& ToMatch ) const
+	FORCEINLINE bool operator()(const FString& ToMatch) const
 	{
-		if( ToMatch.StartsWith( Command, ESearchCase::CaseSensitive ) )
+		if (ToMatch.StartsWith(Command, ESearchCase::CaseSensitive))
 		{
 			return true;
 		}
@@ -179,53 +179,53 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		bSuccess = true;
 
 		Matcher.Command = TEXT("compactify");
-		bCompactify = Switches.FindMatch(Matcher) != INDEX_NONE;
+		bCompactify = Switches.IndexOfByPredicate(Matcher) != INDEX_NONE;
 		bPatchGeneration = !bCompactify;
 
 		Matcher.Command = TEXT("preview");
-		bPreview = bCompactify && Switches.FindMatch(Matcher) != INDEX_NONE;
+		bPreview = bCompactify && Switches.IndexOfByPredicate(Matcher) != INDEX_NONE;
 		
 		Matcher.Command = TEXT( "BuildRoot" );
-		BuildRootIdx = Switches.FindMatch( Matcher );
+		BuildRootIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "CloudDir" );
-		CloudDirIdx = Switches.FindMatch( Matcher );
+		CloudDirIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppID" );
-		AppIDIdx = Switches.FindMatch( Matcher );
+		AppIDIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppName" );
-		AppNameIdx = Switches.FindMatch( Matcher );
+		AppNameIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "BuildVersion" );
-		BuildVersionIdx = Switches.FindMatch( Matcher );
+		BuildVersionIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppLaunch" );
-		AppLaunchIdx = Switches.FindMatch( Matcher );
+		AppLaunchIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "AppArgs" );
-		AppArgsIdx = Switches.FindMatch( Matcher );
+		AppArgsIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "FileIgnoreList" );
-		FileIgnoreListIdx = Switches.FindMatch( Matcher );
+		FileIgnoreListIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "PrereqName" );
-		PrereqNameIdx = Switches.FindMatch( Matcher );
+		PrereqNameIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "PrereqPath" );
-		PrereqPathIdx = Switches.FindMatch( Matcher );
+		PrereqPathIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT( "PrereqArgs" );
-		PrereqArgsIdx = Switches.FindMatch( Matcher );
+		PrereqArgsIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT("ManifestsList");
-		ManifestsListIdx = Switches.FindMatch(Matcher);
+		ManifestsListIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT("ManifestsFile");
-		ManifestsFileIdx = Switches.FindMatch(Matcher);
+		ManifestsFileIdx = Switches.IndexOfByPredicate(Matcher);
 
 		Matcher.Command = TEXT("DataAgeThreshold");
-		DataAgeThresholdIdx = Switches.FindMatch(Matcher);
+		DataAgeThresholdIdx = Switches.IndexOfByPredicate(Matcher);
 
 		// Check required param indexes
 		bSuccess = bSuccess && CloudDirIdx != INDEX_NONE;

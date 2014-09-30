@@ -231,7 +231,7 @@ TSharedPtr<FLevelDragDropOp> FWorldTileCollectionModel::CreateDragDropOp() const
 			else
 			{
 				//
-				int32 TileStreamingIdx = GetWorld()->WorldComposition->TilesStreaming.FindMatch(
+				int32 TileStreamingIdx = GetWorld()->WorldComposition->TilesStreaming.IndexOfByPredicate(
 					ULevelStreaming::FPackageNameMatcher(LevelModel->GetLongPackageName())
 					);
 

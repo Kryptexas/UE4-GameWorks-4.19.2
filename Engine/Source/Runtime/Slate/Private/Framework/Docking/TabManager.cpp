@@ -1267,7 +1267,7 @@ bool FTabManager::HasAnyMatchingTabs( const TSharedRef<FTabManager::FLayoutNode>
 
 	if ( AsStack.IsValid() )
 	{
-		return INDEX_NONE != AsStack->Tabs.FindMatch(Matcher);
+		return INDEX_NONE != AsStack->Tabs.IndexOfByPredicate(Matcher);
 	}
 	else
 	{
@@ -1291,7 +1291,7 @@ bool FTabManager::HasOpenTabs( const TSharedRef<FTabManager::FLayoutNode>& SomeN
 	{
 		const FTabManager* TabManager;
 
-		bool Matches( const FTab& Candidate ) const
+		bool operator()(const FTab& Candidate) const
 		{
 			return TabManager->IsValidTabForSpawning(Candidate) && Candidate.TabState == ETabState::OpenedTab;
 		}
@@ -1309,7 +1309,7 @@ bool FTabManager::HasValidTabs( const TSharedRef<FTabManager::FLayoutNode>& Some
 	{
 		const FTabManager* TabManager;
 
-		bool Matches( const FTab& Candidate ) const
+		bool operator()(const FTab& Candidate) const
 		{
 			return TabManager->IsValidTabForSpawning(Candidate);
 		}
@@ -1407,7 +1407,7 @@ TSharedPtr<FTabManager::FStack> FTabManager::FindTabUnderNode( const FTabMatcher
 
 	if (NodeAsStack.IsValid())
 	{
-		const int32 TabIndex = NodeAsStack->Tabs.FindMatch( Matcher );
+		const int32 TabIndex = NodeAsStack->Tabs.IndexOfByPredicate(Matcher);
 		if (TabIndex != INDEX_NONE)
 		{
 			return NodeAsStack;
@@ -1473,7 +1473,7 @@ void FTabManager::RemoveTabFromCollapsedAreas( const FTabMatcher& Matcher )
 
 			if (StackWithMatchingTab.IsValid())
 			{
-				const int32 TabIndex = StackWithMatchingTab->Tabs.FindMatch( Matcher );
+				const int32 TabIndex = StackWithMatchingTab->Tabs.IndexOfByPredicate(Matcher);
 				if ( ensure(TabIndex != INDEX_NONE) )
 				{
 					StackWithMatchingTab->Tabs.RemoveAt(TabIndex);
@@ -1616,7 +1616,7 @@ bool FGlobalTabmanager::CanCloseManager( const TSet< TSharedRef<SDockTab> >& Tab
 
 void FGlobalTabmanager::DrawAttentionToTabManager( const TSharedRef<FTabManager>& ChildManager )
 {
-	const int32 MajorTabIndex = SubTabManagers.FindMatch( FindByManager(ChildManager) );
+	const int32 MajorTabIndex = SubTabManagers.IndexOfByPredicate(FindByManager(ChildManager));
 	if (MajorTabIndex != INDEX_NONE)
 	{
 		this->DrawAttention( SubTabManagers[MajorTabIndex].MajorTab.Pin().ToSharedRef() );
@@ -1646,7 +1646,7 @@ void FGlobalTabmanager::UpdateMainMenu(const TSharedRef<SDockTab>& ForTab, bool 
 	TSharedPtr<FTabManager> Tabmanager = ForTab->GetTabManager();
 	if(Tabmanager == AsShared())
 	{
-		const int32 TabIndex = SubTabManagers.FindMatch( FindByTab(ForTab) );
+		const int32 TabIndex = SubTabManagers.IndexOfByPredicate(FindByTab(ForTab));
 		if (TabIndex != INDEX_NONE)
 		{
 			Tabmanager = SubTabManagers[TabIndex].TabManager.Pin();
@@ -1703,7 +1703,7 @@ void FGlobalTabmanager::OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegr
 	if (NewForegroundTab.IsValid())
 	{
 		// Show any child windows associated with the Major Tab that got foregrounded.
-		const int32 ForegroundedTabIndex = SubTabManagers.FindMatch( FindByTab(NewForegroundTab.ToSharedRef()) );
+		const int32 ForegroundedTabIndex = SubTabManagers.IndexOfByPredicate(FindByTab(NewForegroundTab.ToSharedRef()));
 		if (ForegroundedTabIndex != INDEX_NONE)
 		{
 			TSharedPtr<FTabManager> ForegroundTabManager = SubTabManagers[ForegroundedTabIndex].TabManager.Pin();
@@ -1714,7 +1714,7 @@ void FGlobalTabmanager::OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegr
 	if ( BackgroundedTab.IsValid() )
 	{
 		// Hide any child windows associated with the Major Tab that got backgrounded.
-		const int32 BackgroundedTabIndex = SubTabManagers.FindMatch( FindByTab(BackgroundedTab.ToSharedRef()) );
+		const int32 BackgroundedTabIndex = SubTabManagers.IndexOfByPredicate(FindByTab(BackgroundedTab.ToSharedRef()));
 		if (BackgroundedTabIndex != INDEX_NONE)
 		{
 			TSharedPtr<FTabManager> BackgroundedTabManager = SubTabManagers[BackgroundedTabIndex].TabManager.Pin();
@@ -1727,7 +1727,7 @@ void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab
 {
 	if (NewOwnerWindow.IsValid())
 	{
-		const int32 RelocatedManagerIndex = SubTabManagers.FindMatch( FindByTab(RelocatedTab) );
+		const int32 RelocatedManagerIndex = SubTabManagers.IndexOfByPredicate(FindByTab(RelocatedTab));
 		if (RelocatedManagerIndex != INDEX_NONE)
 		{
 			const TSharedRef<FTabManager>& RelocatedManager = SubTabManagers[RelocatedManagerIndex].TabManager.Pin().ToSharedRef();
@@ -1769,7 +1769,7 @@ void FGlobalTabmanager::OnTabClosing( const TSharedRef<SDockTab>& TabBeingClosed
 {
 	// Is this a major tab that contained a Sub TabManager?
 	// If so, need to properly close the sub tab manager
-	const int32 TabManagerBeingClosedIndex = SubTabManagers.FindMatch( FindByTab(TabBeingClosed) );
+	const int32 TabManagerBeingClosedIndex = SubTabManagers.IndexOfByPredicate(FindByTab(TabBeingClosed));
 	if (TabManagerBeingClosedIndex != INDEX_NONE)
 	{
 		const TSharedRef<FTabManager>& TabManagerBeingClosed = SubTabManagers[TabManagerBeingClosedIndex].TabManager.Pin().ToSharedRef();

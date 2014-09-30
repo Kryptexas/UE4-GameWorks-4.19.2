@@ -229,7 +229,7 @@ class ULevelStreaming : public UObject
 		{
 		}
 
-		bool Matches( const ULevelStreaming* Candidate ) const
+		bool operator()(const ULevelStreaming* Candidate) const
 		{
 			return Candidate->GetWorldAssetPackageFName() == PackageName;
 		}

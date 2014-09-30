@@ -550,7 +550,7 @@ TSharedPtr<FVoicePacket> FOnlineVoiceImpl::SerializeRemotePacket(FArchive& Ar)
 		if (!OnlineSubsystem->IsDedicated())
 		{
 			FUniqueNetIdMatcher PlayerMatch(*NewPacket->GetSender());
-			if (MuteList.FindMatch(PlayerMatch) == INDEX_NONE)
+			if (MuteList.IndexOfByPredicate(PlayerMatch) == INDEX_NONE)
 			{
 				VoiceData.RemotePackets.Add(NewPacket);
 			}

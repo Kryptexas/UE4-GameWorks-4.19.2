@@ -820,7 +820,7 @@ private:
 		{
 		}
 
-		bool Matches( const FGlobalTabmanager::FSubTabManager& TabManagerPair ) const
+		bool operator()(const FGlobalTabmanager::FSubTabManager& TabManagerPair) const
 		{
 			return TabManagerPair.TabManager.IsValid() && TabManagerPair.MajorTab.IsValid() && TabManagerPair.MajorTab.Pin() == TabToFind;
 		}
@@ -835,7 +835,7 @@ private:
 		{
 		}
 
-		bool Matches( const FGlobalTabmanager::FSubTabManager& TabManagerPair ) const
+		bool operator()(const FGlobalTabmanager::FSubTabManager& TabManagerPair) const
 		{
 			return TabManagerPair.TabManager.IsValid() && TabManagerPair.MajorTab.IsValid() && TabManagerPair.TabManager.Pin() == ManagerToFind;
 		}

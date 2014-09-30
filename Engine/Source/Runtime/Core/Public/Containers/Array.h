@@ -882,6 +882,7 @@ public:
 	 * @returns Index of the found element. INDEX_NONE otherwise.
 	 */
 	template<typename MatchFunctorType>
+	DEPRECATED(4.6, "This function is deprecated as it does the same as IndexOfByPredicate(). Please use IndexOfByPredicate() instead.")
 	int32 FindMatch(const MatchFunctorType& Matcher) const
 	{
 		const ElementType* const RESTRICT DataEnd = GetData() + ArrayNum;

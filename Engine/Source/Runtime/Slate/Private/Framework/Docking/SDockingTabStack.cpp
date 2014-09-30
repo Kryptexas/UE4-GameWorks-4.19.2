@@ -290,9 +290,9 @@ int32 SDockingTabStack::GetNumTabs() const
 	return TabWell->GetNumTabs();
 }
 
-bool SDockingTabStack::HasTab( const struct FTabMatcher& TabMatcher ) const
+bool SDockingTabStack::HasTab(const struct FTabMatcher& TabMatcher) const
 {
-	return Tabs.FindMatch( TabMatcher ) != INDEX_NONE;
+	return Tabs.IndexOfByPredicate(TabMatcher) != INDEX_NONE;
 }
 
 FGeometry SDockingTabStack::GetTabStackGeometry() const
@@ -896,7 +896,7 @@ FSlateColor SDockingTabStack::GetUnhideTabWellButtonOpacity() const
 
 int32 SDockingTabStack::OpenPersistentTab( const FTabId& TabId, int32 OpenLocationAmongActiveTabs )
 {
-	const int32 ExistingClosedTabIndex = Tabs.FindMatch( FTabMatcher(TabId, ETabState::ClosedTab) );
+	const int32 ExistingClosedTabIndex = Tabs.IndexOfByPredicate(FTabMatcher(TabId, ETabState::ClosedTab));
 
 	if (OpenLocationAmongActiveTabs == INDEX_NONE)
 	{						
@@ -969,7 +969,7 @@ int32 SDockingTabStack::OpenPersistentTab( const FTabId& TabId, int32 OpenLocati
 
 int32 SDockingTabStack::ClosePersistentTab( const FTabId& TabId )
 {
-	const int32 TabIndex = Tabs.FindMatch( FTabMatcher(TabId, ETabState::OpenedTab) );
+	const int32 TabIndex = Tabs.IndexOfByPredicate(FTabMatcher(TabId, ETabState::OpenedTab));
 	if (TabIndex != INDEX_NONE)
 	{
 		Tabs[TabIndex].TabState = ETabState::ClosedTab;
@@ -979,7 +979,7 @@ int32 SDockingTabStack::ClosePersistentTab( const FTabId& TabId )
 
 void SDockingTabStack::RemovePersistentTab( const FTabId& TabId )
 {
-	const int32 TabIndex = Tabs.FindMatch( FTabMatcher(TabId) );
+	const int32 TabIndex = Tabs.IndexOfByPredicate(FTabMatcher(TabId));
 	Tabs.RemoveAtSwap(TabIndex);
 }
 
