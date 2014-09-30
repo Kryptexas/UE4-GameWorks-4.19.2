@@ -42,11 +42,15 @@ void AGameplayAbilityTargetActor_Trace::StartTargeting(UGameplayAbility* InAbili
 {
 	Super::StartTargeting(InAbility);
 	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
-	
-	ReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle>(ReticleClass, GetActorLocation(), GetActorRotation());
-	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())
+
+	if (ReticleClass)
 	{
-		CachedReticleActor->InitializeReticle(this);
+		AGameplayAbilityWorldReticle* SpawnedReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle>(ReticleClass, GetActorLocation(), GetActorRotation());
+		if (SpawnedReticleActor)
+		{
+			SpawnedReticleActor->InitializeReticle(this);
+			ReticleActor = SpawnedReticleActor;
+		}
 	}
 }
 
@@ -65,16 +69,6 @@ void AGameplayAbilityTargetActor_Trace::Tick(float DeltaSeconds)
 		}
 
 		SetActorLocationAndRotation(EndPoint, SourceActor->GetActorRotation());
-
-		if (ShouldProduceTargetData() && bAutoFire)
-		{
-			if (TimeUntilAutoFire <= 0.0f)
-			{
-				ConfirmTargeting();
-				bAutoFire = false;
-			}
-			TimeUntilAutoFire -= DeltaSeconds;
-		}
 	}
 }
 
@@ -84,7 +78,6 @@ void AGameplayAbilityTargetActor_Trace::ConfirmTargetingAndContinue()
 	if (SourceActor)
 	{
 		bDebug = false;
-		bAutoFire = false;
 		FGameplayAbilityTargetDataHandle Handle = MakeTargetData(PerformTrace(SourceActor));
 		TargetDataReadyDelegate.Broadcast(Handle);
 	}
