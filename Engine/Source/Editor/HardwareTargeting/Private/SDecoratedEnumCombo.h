@@ -8,13 +8,14 @@ class SDecoratedEnumCombo : public SCompoundWidget
 public:
 	struct FComboOption
 	{
-		FComboOption(TEnumType InValue, FSlateIcon InIcon, FText InText)
-			: Value(InValue), Icon(InIcon), Text(InText)
+		FComboOption(TEnumType InValue, FSlateIcon InIcon, FText InText, bool bInChoosable = true)
+			: Value(InValue), Icon(InIcon), Text(InText), bChoosable(bInChoosable)
 		{}
 
 		TEnumType Value;
 		FSlateIcon Icon;
 		FText Text;
+		bool bChoosable;
 	};
 
 	DECLARE_DELEGATE_OneParam(FOnEnumChanged, TEnumType)
@@ -119,6 +120,10 @@ private:
 		for (int32 Index = 0; Index < Options.Num(); ++Index)
 		{
 			const auto& Option = Options[Index];
+			if (!Option.bChoosable)
+			{
+				continue;
+			}
 
 			HorizontalBox->AddSlot()
 			.AutoWidth()
