@@ -69,7 +69,13 @@ namespace iPhonePackager
 		/// </summary>
 		public static string ProvisionDirectory
 		{
-			get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/"; }
+			get {
+				if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix) {
+					return Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/";
+				} else {
+					return Environment.GetFolderPath (Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/";
+				}
+			}
 		}
 
 		/// <summary>
@@ -77,7 +83,20 @@ namespace iPhonePackager
 		/// </summary>
 		public static string EngineBuildDirectory
 		{
-			get { return Path.GetFullPath(RootRelativePath + @"Engine\Build\IOS"); }
+			get { 
+				if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix) {
+					return Path.GetFullPath (RootRelativePath + "Engine/Build/IOS"); 
+				} else {
+					return Path.GetFullPath (RootRelativePath + @"Engine\Build\IOS"); 
+				}
+			}
+		}
+
+		static Config()
+		{
+			if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix) {
+				RootRelativePath = "../../../../";
+			}
 		}
 
 		/// <summary>
@@ -337,7 +356,11 @@ namespace iPhonePackager
 			// else we assume old school game name and look for it
 			else
 			{
-				GameDirectory = Path.GetFullPath(Path.Combine(Config.RootRelativePath, Program.GameName));
+				if (Program.GameName == "UE4Game") {
+					GameDirectory = Path.GetFullPath (Path.Combine (Config.RootRelativePath, GamePath));
+				} else {
+					GameDirectory = Path.GetFullPath (Path.Combine (Config.RootRelativePath, Program.GameName));
+				}
 			}
 
 			if (!Directory.Exists(GameDirectory))

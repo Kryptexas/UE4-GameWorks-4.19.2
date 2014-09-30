@@ -598,7 +598,15 @@ namespace iPhonePackager
 				{
 					case "validate":
 						// check to see if iTunes is installed
-						string dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
+						string dllPath = "";
+						if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix)
+						{
+							dllPath = "/Applications/Xcode.app/Contents/MacOS/Xcode";
+						}
+						else
+						{
+							dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
+						}
 						if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
 						{
 							Error("iTunes Not Found!!", (int)ErrorCodes.Error_SDKNotFound);
