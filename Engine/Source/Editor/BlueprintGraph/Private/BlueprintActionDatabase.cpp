@@ -573,8 +573,11 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 }
 
 //------------------------------------------------------------------------------
-static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* const Class, FActionList& ActionListOut)
+static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* Class, FActionList& ActionListOut)
 {
+	Class = Class->GetAuthoritativeClass();
+	check(Class);
+
 	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	bool bIsCastPermitted  = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Class);
 

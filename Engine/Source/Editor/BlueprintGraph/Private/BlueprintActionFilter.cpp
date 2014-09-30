@@ -1280,6 +1280,15 @@ UClass const* FBlueprintActionInfo::GetOwnerClass()
 		{
 			CachedOwnerClass = GetAssociatedMemberField()->GetOwnerClass();
 		}
+
+		if( CachedOwnerClass == nullptr )
+		{
+			if (const UBlueprint* AsBlueprint = Cast<UBlueprint>(ActionOwner))
+			{
+				CachedOwnerClass = AsBlueprint->SkeletonGeneratedClass;
+			}
+		}
+
 		CacheFlags |= EBlueprintActionInfoFlags::CachedClass;
 	}
 	return CachedOwnerClass;
