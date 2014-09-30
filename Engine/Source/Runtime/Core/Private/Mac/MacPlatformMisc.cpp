@@ -463,7 +463,7 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 	{
 		ProcessGameThreadEvents();
 
-		if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate && IsInGameThread())
+		if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate && MacApplication && !MacApplication->IsProcessingNSEvent() && IsInGameThread())
 		{
 			UpdateCachedMacMenuState();
 			bChachedMacMenuStateNeedsUpdate = false;
