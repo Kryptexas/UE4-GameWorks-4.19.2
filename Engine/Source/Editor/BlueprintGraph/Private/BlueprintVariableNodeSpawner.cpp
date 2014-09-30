@@ -122,8 +122,6 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 	}
 	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
 	// attempt to query the template node
-	//
-	// @TODO: maybe UPROPERTY() fields should have keyword metadata like functions
 	MenuSignature.Keywords = TEXT(" ");
 	MenuSignature.IconName = UK2Node_Variable::GetVarIconFromPinType(NodeSpawner->GetVarType(), MenuSignature.IconTint);
 

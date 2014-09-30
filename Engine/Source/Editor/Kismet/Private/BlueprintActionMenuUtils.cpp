@@ -70,6 +70,15 @@ namespace BlueprintActionMenuUtilsImpl
 	static bool IsUnexposedMemberAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
+	static bool IsUnexposedNonComponentAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
 	 * Utility function to find a common base class from a set of given classes.
 	 * 
 	 * @param  ObjectSet	The set of objects that you want a single base class for.
@@ -84,6 +93,14 @@ namespace BlueprintActionMenuUtilsImpl
 	 * @return 
 	 */
 	static UClass* GetPinClassType(UEdGraphPin const* Pin);
+
+	/**
+	 * 
+	 * 
+	 * @param  MainMenuFilter	
+	 * @return 
+	 */
+	static FBlueprintActionFilter MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter);
 
 	/**
 	 * 
@@ -145,9 +162,9 @@ static bool BlueprintActionMenuUtilsImpl::IsUnexposedMemberAction(FBlueprintActi
 		TArray<FString> AllExposedCategories;
 		for (TWeakObjectPtr<UObject> Binding : BlueprintAction.GetBindings())
 		{
-			if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Binding.Get()))
+			if (UProperty* Property = Cast<UProperty>(Binding.Get()))
 			{
-				FString const ExposedCategoryMetadata = ObjectProperty->GetMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories);
+				FString const ExposedCategoryMetadata = Property->GetMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories);
 				if (ExposedCategoryMetadata.IsEmpty())
 				{
 					continue;
@@ -162,6 +179,31 @@ static bool BlueprintActionMenuUtilsImpl::IsUnexposedMemberAction(FBlueprintActi
 		FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
 		bIsFliteredOut = !AllExposedCategories.Contains(FunctionCategory);
 	}
+	return bIsFliteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionMenuUtilsImpl::IsUnexposedNonComponentAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsFliteredOut = false;
+
+	for (TWeakObjectPtr<UObject> Binding : BlueprintAction.GetBindings())
+	{
+		if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Binding.Get()))
+		{
+			bool const bIsComponent = ObjectProperty->PropertyClass->IsChildOf<UActorComponent>();
+			// ignoring components for this rejection test
+			if (bIsComponent)
+			{
+				continue;
+			}
+		}
+		// else, it's not a component... let's do this!
+
+		bIsFliteredOut = IsUnexposedMemberAction(Filter, BlueprintAction);
+		break;
+	}
+
 	return bIsFliteredOut;
 }
 
@@ -205,6 +247,45 @@ static UClass* BlueprintActionMenuUtilsImpl::GetPinClassType(UEdGraphPin const* 
 	}
 
 	return PinObjClass;
+}
+
+//------------------------------------------------------------------------------
+static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter)
+{
+	FBlueprintActionFilter CallOnMemberFilter;
+	CallOnMemberFilter.Context = MainMenuFilter.Context;
+	CallOnMemberFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
+	CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
+
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	// instead of looking for "ExposeFunctionCategories" on component properties,
+	// we just expose functions for all components, but we still need to check
+	// for "ExposeFunctionCategories" on any non-component properties... 
+	if (BlueprintSettings->bExposeAllMemberComponentFunctions)
+	{
+		CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnexposedNonComponentAction));
+	}
+	else
+	{
+		CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnexposedMemberAction));
+	}
+
+	for (UClass const* TargetClass : MainMenuFilter.TargetClasses)
+	{
+		for (TFieldIterator<UObjectProperty> PropertyIt(TargetClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		{
+			UObjectProperty* ObjectProperty = *PropertyIt;
+
+			if (!ObjectProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) ||
+				!(ObjectProperty->PropertyClass->IsChildOf<UActorComponent>() || ObjectProperty->HasMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories)))
+			{
+				continue;
+			}
+			CallOnMemberFilter.Context.SelectedObjects.Add(ObjectProperty);
+		}
+	}
+
+	return CallOnMemberFilter;
 }
 
 //------------------------------------------------------------------------------
@@ -403,32 +484,8 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		}
 	}
 
-	FBlueprintActionFilter CallOnMemberFilter;
-	CallOnMemberFilter.Context = MainMenuFilter.Context;
-	CallOnMemberFilter.PermittedNodeTypes.Add(UK2Node_CallFunction::StaticClass());
-	CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
-	// instead of looking for "ExposeFunctionCategories" on object properties,
-	// we just expose functions for all components, this is problematic if we 
-	// were using the "ExposeFunctionCategories" on any non-component object 
-	// properties... if we re-enable this, then make sure to remove the 
-	// IsChildOf<UActorComponent>() check below
-	//CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnexposedMemberAction));
-
-	for (UClass const* TargetClass : MainMenuFilter.TargetClasses)
-	{
-		for (TFieldIterator<UObjectProperty> PropertyIt(TargetClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-		{
-			UObjectProperty* ComponentProperty = *PropertyIt;
-			// @TODO: consider a more relaxed scenario where we allow other
-			//        (non-component) properties as options here too
-			if (!ComponentProperty->PropertyClass->IsChildOf<UActorComponent>() || 
-				!ComponentProperty->HasAnyPropertyFlags(CPF_BlueprintVisible))
-			{
-				continue;
-			}
-			CallOnMemberFilter.Context.SelectedObjects.Add(ComponentProperty);
-		}
-	}
+	// should be called AFTER the MainMenuFilter if fully constructed
+	FBlueprintActionFilter CallOnMemberFilter = MakeCallOnMemberFilter(MainMenuFilter);
 
 	FBlueprintActionFilter AddComponentFilter;
 	AddComponentFilter.Context = MainMenuFilter.Context;

@@ -718,7 +718,7 @@ static void BlueprintActionDatabaseImpl::GetNodeSpecificActions(TSubclassOf<UEdG
 	}
 	else if (NodeClass == UEdGraphNode_Documentation::StaticClass())
 	{
-		// @TODO: BOO! (see comment above)
+		// @TODO: BOOOOOOO! (see comment above)
 		Registrar.AddBlueprintAction(MakeDocumentationNodeSpawner<UEdGraphNode_Documentation>());
 	}
 }

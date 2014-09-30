@@ -28,6 +28,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserExperience)
 	bool bUseTargetContextForNodeMenu;
 
+	/** If enabled, then ALL component functions are exposed to the context menu (when the contextual target is a component owner). Ignores "ExposeFunctionCategories" metadata for components. */
+	UPROPERTY(EditAnywhere, config, Category=UserExperience, meta=(DisplayName="Context Menu: Expose All Sub-Component Functions"))
+	bool bExposeAllMemberComponentFunctions;
+
 // Developer Settings
 public:
 	/** If enabled, tooltips on action menu items will show the associated action's signature id (can be used to setup custom favorites menus).*/
