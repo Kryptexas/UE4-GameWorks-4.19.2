@@ -18,7 +18,7 @@ public:
 	{}
 
 	/** Initialization constructor. */
-	FORCEINLINE explicit FProcHandle( HandleType Other, bool InIsShellScript )
+	FORCEINLINE explicit FProcHandle( HandleType Other, bool InIsShellScript = false )
 		: TProcHandle( Other )
 		, IsShellScript( InIsShellScript )
 	{}
