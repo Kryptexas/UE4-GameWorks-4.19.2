@@ -46,7 +46,7 @@ bool UHardwareTargetingSettings::HasPendingChanges() const
 		}
 	}
 
-	if (Settings->DefaultGraphicsPerformance != EHardwareClass::Unspecified)
+	if (Settings->DefaultGraphicsPerformance != EGraphicsPreset::Unspecified)
 	{
 		FString AppliedGraphicsEnumValue;
 		const bool bFoundKey = GConfig->GetString(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedDefaultGraphicsPerformance"), AppliedGraphicsEnumValue, GEditorIni);
