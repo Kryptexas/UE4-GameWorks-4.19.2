@@ -44,6 +44,7 @@
 #include "BodyInstanceCustomization.h"
 #include "VehicleTransmissionDataCustomization.h"
 #include "BodySetupDetails.h"
+#include "DestructibleMeshDetails.h"
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SlateBrushCustomization.h"
 #include "SlateSoundCustomization.h"
@@ -227,6 +228,7 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	RegisterCustomClassLayout("SoundWave", FOnGetDetailCustomizationInstance::CreateStatic(&FSoundWaveDetails::MakeInstance));
 	RegisterCustomClassLayout("DialogueWave", FOnGetDetailCustomizationInstance::CreateStatic(&FDialogueWaveDetails::MakeInstance));
 	RegisterCustomClassLayout("BodySetup", FOnGetDetailCustomizationInstance::CreateStatic(&FBodySetupDetails::MakeInstance));
+	RegisterCustomClassLayout("DestructibleMesh", FOnGetDetailCustomizationInstance::CreateStatic(&FDestructibleMeshDetails::MakeInstance));
 	RegisterCustomClassLayout("PhysicsConstraintTemplate", FOnGetDetailCustomizationInstance::CreateStatic(&FPhysicsConstraintComponentDetails::MakeInstance));
 	RegisterCustomClassLayout("PhysicsConstraintComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FPhysicsConstraintComponentDetails::MakeInstance));
 	RegisterCustomClassLayout("CollisionProfile", FOnGetDetailCustomizationInstance::CreateStatic(&FCollisionProfileDetails::MakeInstance));

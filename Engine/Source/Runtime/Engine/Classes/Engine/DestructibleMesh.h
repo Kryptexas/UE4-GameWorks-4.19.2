@@ -418,7 +418,7 @@ class UDestructibleMesh : public USkeletalMesh
 	class UPhysicalMaterial* DestructiblePhysicalMaterial_DEPRECATED;
 
 	/** Fracture effects for each fracture level, unless overridden in the component. */
-	UPROPERTY(EditAnywhere, editfixedsize, Category=DestructibleMesh)
+	UPROPERTY(EditAnywhere, editfixedsize, Category=Effects)
 	TArray<struct FFractureEffect> FractureEffects;
 
 	/** Physics data.  Fields from BodySetup which are relevant to the DestructibleMesh will be used. */
