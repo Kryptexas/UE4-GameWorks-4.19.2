@@ -202,7 +202,10 @@ FText UK2Node_VariableSet::GetBlueprintVarTooltip(FBPVariableDescription const& 
 
 FText UK2Node_VariableSet::GetTooltipText() const
 {
-	//if (!CachedTooltip.IsOutOfDate())
+	// @TODO: The variable name mutates as the user makes changes to the 
+	//        underlying property, so until we can catch all those cases, we're
+	//        going to leave this optimization off
+	//if (CachedTooltip.IsOutOfDate())
 	{
 		if (UProperty* Property = GetPropertyForVariable())
 		{
@@ -279,7 +282,10 @@ FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		return HasLocalRepNotify() ? NSLOCTEXT("K2Node", "SetWithNotify", "Set with Notify") : NSLOCTEXT("K2Node", "Set", "Set");
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	// @TODO: The variable name mutates as the user makes changes to the 
+	//        underlying property, so until we can catch all those cases, we're
+	//        going to leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PinName"), FText::FromString(InputPinName));

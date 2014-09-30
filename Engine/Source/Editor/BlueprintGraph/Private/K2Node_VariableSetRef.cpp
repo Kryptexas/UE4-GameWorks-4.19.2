@@ -119,6 +119,7 @@ void UK2Node_VariableSetRef::ReallocatePinsDuringReconstruction(TArray<UEdGraphP
   		UEdGraphPin* NewTargetPin = GetTargetPin();
   		CoerceTypeFromPin(OldTargetPin);
   	}
+	CachedNodeTitle.MarkDirty();
 }
 
 FText UK2Node_VariableSetRef::GetTooltipText() const

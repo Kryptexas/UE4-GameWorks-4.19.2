@@ -82,7 +82,10 @@ FText UK2Node_PlayMovieScene::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		return NSLOCTEXT("PlayMovieSceneNode", "NodeTitleWithNoMovieScene", "Play Movie Scene (No Asset)");
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the MovieScene won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("SceneName"), FText::FromString(MovieScene->GetName()));

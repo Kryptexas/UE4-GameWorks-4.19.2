@@ -39,7 +39,9 @@ FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			return LOCTEXT("SlotNodeTitle_NoName", "(No slot name)\nSlot");
 		}
 	}
-	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("SlotName"), FText::FromName(Node.SlotName));

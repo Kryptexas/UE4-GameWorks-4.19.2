@@ -34,7 +34,9 @@ FText UAnimGraphNode_BlendSpaceEvaluator::GetNodeTitle(ENodeTitleType::Type Titl
 			return LOCTEXT("BlendSpaceEvaluator_NONE_Title", "(None)\nBlendspace Evaluator");
 		}
 	}
-	else if (!CachedNodeTitles.IsTitleCached(TitleType))
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
 		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
 

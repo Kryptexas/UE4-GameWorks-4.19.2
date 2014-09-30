@@ -25,7 +25,10 @@ FText UAnimGraphNode_UseCachedPose::GetTooltipText() const
 
 FText UAnimGraphNode_UseCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (CachedNodeTitle.IsOutOfDate())
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the NameOfCache won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	//if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("CachePoseName"), FText::FromString(NameOfCache));
