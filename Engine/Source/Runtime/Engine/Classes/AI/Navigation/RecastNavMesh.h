@@ -26,6 +26,7 @@
 
 #define RECAST_MAX_AREAS			64
 #define RECAST_DEFAULT_AREA			(RECAST_MAX_AREAS - 1)
+#define RECAST_LOW_AREA				(RECAST_MAX_AREAS - 2)
 #define RECAST_NULL_AREA			0
 #define RECAST_STRAIGHTPATH_OFFMESH_CONNECTION 0x04
 #define RECAST_UNWALKABLE_POLY_COST	FLT_MAX
@@ -535,10 +536,6 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(config)
 	float DefaultMaxHierarchicalSearchNodes;
 
-	/** Indicates whether default navigation filters will use virtual functions. Defaults to true. */
-	UPROPERTY(config)
-	uint32 bUseVirtualFilters : 1;
-
 	/** partitioning method for creating navmesh polys */
 	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
 	TEnumAsByte<ERecastPartitioning::Type> RegionPartitioning;
@@ -573,12 +570,20 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 
 	/** controls whether voxel filterring will be applied (via FRecastTileGenerator::ApplyVoxelFilter). 
 	 *	Results in generated navemesh better fitting navigation bounds, but hits (a bit) generation performance */
-	UPROPERTY(EditAnywhere, Category=Generation, config)
+	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
 	uint32 bPerformVoxelFiltering:1;
+
+	/** mark areas with insufficient free height above instead of cutting them out  */
+	UPROPERTY(EditAnywhere, Category = Generation, config, AdvancedDisplay)
+	uint32 bMarkLowHeightAreas : 1;
 
 	/** TODO: switch to disable new code from OffsetFromCorners if necessary - remove it later */
 	UPROPERTY(config)
 	uint32 bUseBetterOffsetsFromCorners : 1;
+
+	/** Indicates whether default navigation filters will use virtual functions. Defaults to true. */
+	UPROPERTY(config)
+	uint32 bUseVirtualFilters : 1;
 
 private:
 	/** Cache rasterized voxels instead of just collision vertices/indices in navigation octree */

@@ -16,7 +16,8 @@ public:
 			return false;
 		}
 
-		if ( State.Object.IsValid() )
+		// Empty array is ok.
+		if (State.Type != EJson::Array)
 		{
 			return false;
 		}

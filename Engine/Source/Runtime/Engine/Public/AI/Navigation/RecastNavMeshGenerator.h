@@ -21,6 +21,8 @@ struct FRecastBuildConfig : public rcConfig
 	uint32 bGenerateDetailedMesh:1;
 	/** generate BV tree (space partitioning for queries) */
 	uint32 bGenerateBVTree:1;
+	/** if set, mark areas with insufficient free height instead of cutting them out  */
+	uint32 bMarkLowHeightAreas : 1;
 
 	/** region partitioning method used by tile cache */
 	int32 TileCachePartitionType;
@@ -52,6 +54,7 @@ struct FRecastBuildConfig : public rcConfig
 		bPerformVoxelFiltering = true;
 		bGenerateDetailedMesh = true;
 		bGenerateBVTree = true;
+		bMarkLowHeightAreas = false;
 		PolyMaxHeight = 10;
 		MaxPolysPerTile = -1;
 		AgentIndex = 0;

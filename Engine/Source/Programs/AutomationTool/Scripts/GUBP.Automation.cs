@@ -194,6 +194,7 @@ public class GUBP : BuildCommand
             public List<UnrealTargetPlatform> PlatformsToRemove = new List<UnrealTargetPlatform>();
             public List<string> ExcludeNodes = new List<string>();
 			public bool bNoAutomatedTesting = false;
+			public bool bNoDocumentation = false;
         }
         public virtual void ModifyOptions(GUBP bp, ref BranchOptions Options, string Branch)
         {

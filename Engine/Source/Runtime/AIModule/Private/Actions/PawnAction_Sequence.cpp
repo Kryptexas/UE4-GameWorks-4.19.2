@@ -5,10 +5,11 @@
 
 UPawnAction_Sequence::UPawnAction_Sequence(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, SubActionTriggeringPolicy(EPawnSubActionTriggeringPolicy::CopyBeforeTriggering)
 {
 }
 
-UPawnAction_Sequence* UPawnAction_Sequence::CreateAction(UWorld& World, TArray<UPawnAction*>& ActionSequence)
+UPawnAction_Sequence* UPawnAction_Sequence::CreateAction(UWorld& World, TArray<UPawnAction*>& ActionSequence, EPawnSubActionTriggeringPolicy::Type InSubActionTriggeringPolicy)
 {
 	ActionSequence.Remove(NULL);
 	if (ActionSequence.Num() <= 0)
@@ -20,6 +21,7 @@ UPawnAction_Sequence* UPawnAction_Sequence::CreateAction(UWorld& World, TArray<U
 	if (Action)
 	{
 		Action->ActionSequence = ActionSequence;
+		Action->SubActionTriggeringPolicy = InSubActionTriggeringPolicy;
 	}
 
 	return Action;
@@ -55,9 +57,9 @@ bool UPawnAction_Sequence::Resume()
 	return bResult;
 }
 
-void UPawnAction_Sequence::OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult)
+void UPawnAction_Sequence::OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult)
 {
-	if (RecentActionCopy == Action)
+	if (RecentActionCopy == &Action)
 	{
 		if (WithResult == EPawnActionResult::Success || (WithResult == EPawnActionResult::Failed && ChildFailureHandlingMode == EPawnActionFailHandling::IgnoreFailure))
 		{
@@ -80,11 +82,14 @@ bool UPawnAction_Sequence::PushNextActionCopy()
 		return true;
 	}
 
-	UPawnAction* ActionCopy = Cast<UPawnAction>(StaticDuplicateObject(ActionSequence[CurrentActionIndex], this, NULL));
+	UPawnAction* ActionCopy = SubActionTriggeringPolicy == EPawnSubActionTriggeringPolicy::CopyBeforeTriggering
+		? Cast<UPawnAction>(StaticDuplicateObject(ActionSequence[CurrentActionIndex], this, NULL))
+		: ActionSequence[CurrentActionIndex];
+
 	UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> pushing action %s")
 		, *GetName(), *GetNameSafe(ActionCopy));
 	++CurrentActionIndex;	
-	ensure(ActionCopy);
+	check(ActionCopy);
 	RecentActionCopy = ActionCopy;
-	return PushChildAction(ActionCopy);
+	return PushChildAction(*ActionCopy);
 }

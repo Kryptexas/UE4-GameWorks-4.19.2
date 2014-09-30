@@ -30,5 +30,8 @@ class UTestPawnAction_Log : public UPawnAction
 	virtual bool Pause(const UPawnAction* PausedBy) override;
 	virtual bool Resume() override;
 	virtual void OnFinished(EPawnActionResult::Type WithResult) override;
-	virtual void OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult) override;
+	virtual void OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult) override;
+
+	/** Testing-hack to call protected function outside of protected environment */
+	void Terminate(EPawnActionResult::Type Result) { Finish(Result); }
 };

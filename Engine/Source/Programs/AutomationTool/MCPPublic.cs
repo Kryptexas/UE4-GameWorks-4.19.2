@@ -633,7 +633,7 @@ namespace EpicGames.MCP.Config
 		{
 			get
 			{
-				return new List<string> { BuildInfoBaseUrl, BuildInfoV2BaseUrl }.Where(x => !string.IsNullOrEmpty(x)).Distinct();
+				return new List<string> { BuildInfoV2BaseUrl, BuildInfoBaseUrl }.Where(x => !string.IsNullOrEmpty(x)).Distinct();
 			}
 		}
 

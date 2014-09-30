@@ -193,17 +193,25 @@ NAVMESH_API void dtFreeTileCacheDistanceField(dtTileCacheAlloc* alloc, dtTileCac
 //@UE4 END
 
 NAVMESH_API dtStatus dtMarkCylinderArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
-							const float* pos, const float radius, const float height, 
-							const unsigned char areaId);
+	const float* pos, const float radius, const float height, const unsigned char areaId);
 
 //@UE4 BEGIN: more shapes
 NAVMESH_API dtStatus dtMarkBoxArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
-					   const float* pos, const float* extent,
-					   const unsigned char areaId);
+	const float* pos, const float* extent, const unsigned char areaId);
 
 NAVMESH_API dtStatus dtMarkConvexArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
-						  const float* verts, const int nverts, const float hmin, const float hmax,
-						  const unsigned char areaId);
+	const float* verts, const int nverts, const float hmin, const float hmax, const unsigned char areaId);
+
+NAVMESH_API dtStatus dtReplaceCylinderArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+	const float* pos, const float radius, const float height, const unsigned char areaId,
+	const unsigned char filterAreaId);
+
+NAVMESH_API dtStatus dtReplaceBoxArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+	const float* pos, const float* extent, const unsigned char areaId, const unsigned char filterAreaId);
+
+NAVMESH_API dtStatus dtReplaceConvexArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+	const float* verts, const int nverts, const float hmin, const float hmax, const unsigned char areaId,
+	const unsigned char filterAreaId);
 //@UE4 END
 
 

@@ -4,6 +4,7 @@
 #include "RecastHelpers.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
+#include "AI/Navigation/NavAreas/NavArea_LowHeight.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "VisualLog.h"
@@ -239,8 +240,9 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 	, MaxSimplificationError(1.3f)	// from RecastDemo
 	, DefaultMaxSearchNodes(RECAST_MAX_SEARCH_NODES)
 	, DefaultMaxHierarchicalSearchNodes(RECAST_MAX_SEARCH_NODES)
-	, bUseVirtualFilters(true)
 	, bPerformVoxelFiltering(true)	
+	, bMarkLowHeightAreas(false)
+	, bUseVirtualFilters(true)
 	, NextTimeToSortTiles(0.f)
 	, TileSetUpdateInterval(1.0f)
 	, GridWidth(-1)
@@ -275,8 +277,9 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 		
 		TickHelper.Owner = this;
 
-		// add default and null areas up front
+		// add predefined areas up front
 		SupportedAreas.Add(FSupportedAreaData(UNavArea_Null::StaticClass(), RECAST_NULL_AREA));
+		SupportedAreas.Add(FSupportedAreaData(UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA));
 		SupportedAreas.Add(FSupportedAreaData(UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA));
 	}
 }
@@ -810,8 +813,13 @@ int32 ARecastNavMesh::GetNewAreaID(const UClass* AreaClass) const
 		return RECAST_NULL_AREA;
 	}
 
+	if (AreaClass == UNavArea_LowHeight::StaticClass())
+	{
+		return RECAST_LOW_AREA;
+	}
+
 	int32 FreeAreaID = Super::GetNewAreaID(AreaClass);
-	while (FreeAreaID == RECAST_NULL_AREA || FreeAreaID == RECAST_DEFAULT_AREA)
+	while (FreeAreaID == RECAST_NULL_AREA || FreeAreaID == RECAST_DEFAULT_AREA || FreeAreaID == RECAST_LOW_AREA)
 	{
 		FreeAreaID++;
 	}
@@ -849,6 +857,13 @@ void ARecastNavMesh::SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) cons
 	{
 		FORCEINLINE bool operator()(const FAreaNavModifier& A, const FAreaNavModifier& B) const
 		{
+			const bool bIsAReplacing = (A.GetAreaClassToReplace() != NULL);
+			const bool bIsBReplacing = (B.GetAreaClassToReplace() != NULL);
+			if (bIsAReplacing != bIsBReplacing)
+			{
+				return bIsAReplacing;
+			}
+
 			return A.Cost != B.Cost ? A.Cost < B.Cost : A.FixedCost < B.FixedCost;
 		}
 	};

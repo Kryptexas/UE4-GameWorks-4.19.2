@@ -12,6 +12,7 @@
 
 #include "BehaviorTree/TestBTTask_Log.h"
 #include "BehaviorTree/TestBTTask_SetFlag.h"
+#include "BehaviorTree/TestBTDecorator_DelayedAbort.h"
 
 struct FBTBuilder
 {
@@ -179,5 +180,12 @@ struct FBTBuilder
 		UStructProperty* KeyProp = FindField<UStructProperty>(UBTDecorator_Blackboard::StaticClass(), TEXT("BlackboardKey"));
 		FBlackboardKeySelector* KeyPropData = KeyProp->ContainerPtrToValuePtr<FBlackboardKeySelector>(&BBDecorator);
 		KeyPropData->SelectedKeyName = BoolKeyName;
+	}
+
+	static void WithDecoratorDelayedAbort(UBTCompositeNode& ParentNode, int32 NumTicks, bool bAbortOnlyOnce = true)
+	{
+		UTestBTDecorator_DelayedAbort& AbortDecorator = WithDecorator<UTestBTDecorator_DelayedAbort>(ParentNode);
+		AbortDecorator.DelayTicks = NumTicks;
+		AbortDecorator.bOnlyOnce = bAbortOnlyOnce;
 	}
 };

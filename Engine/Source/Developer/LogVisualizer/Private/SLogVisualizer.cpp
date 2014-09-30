@@ -2596,6 +2596,10 @@ void SLogVisualizer::CameraActorSelected(AActor* SelectedActor)
 
 void SLogVisualizer::SelectActor(AActor* SelectedActor)
 {
+	if (SelectedActor == NULL)
+	{
+		return;
+	}
 	const AActor* LogOwner = FVisualLog::Get().GetVisualLogRedirection(SelectedActor);
 	const int32 LogIndex = LogVisualizer->GetLogIndexForActor(LogOwner);
 	if (LogVisualizer->Logs.IsValidIndex(LogIndex))

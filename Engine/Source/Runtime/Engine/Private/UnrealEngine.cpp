@@ -10083,14 +10083,15 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 					{
 						UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject, NULL);
 						ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
+
+						// We also need to make sure to fixup any properties here
+						ComponentsOnNewObject.Add(NewEditInlineSubobject);
 					}
 				}
 			}
 		}
 	}
 	
-
-
 	// Replace anything with an outer of the old object with NULL, unless it already has a replacement
 	TArray<UObject*> ObjectsInOuter;
 	GetObjectsWithOuter(OldObject, ObjectsInOuter, true);
@@ -10105,7 +10106,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	// Replace references to old classes and instances on this object with the corresponding new ones
 	FArchiveReplaceObjectRef<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 
-	// Replace references inside each individual component (overkill, but required in the case that all pointers to the new components were clobbered by deserializing the old stuff)
+	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
 	for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
 	{
 		UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];

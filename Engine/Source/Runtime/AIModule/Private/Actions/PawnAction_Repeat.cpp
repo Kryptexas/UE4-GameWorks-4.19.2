@@ -5,11 +5,12 @@
 
 UPawnAction_Repeat::UPawnAction_Repeat(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, SubActionTriggeringPolicy(EPawnSubActionTriggeringPolicy::CopyBeforeTriggering)
 {
 	ChildFailureHandlingMode = EPawnActionFailHandling::IgnoreFailure;
 }
 
-UPawnAction_Repeat* UPawnAction_Repeat::CreateAction(UWorld& World, UPawnAction* ActionToRepeat, int32 NumberOfRepeats)
+UPawnAction_Repeat* UPawnAction_Repeat::CreateAction(UWorld& World, UPawnAction* ActionToRepeat, int32 NumberOfRepeats, EPawnSubActionTriggeringPolicy::Type InSubActionTriggeringPolicy)
 {
 	if (ActionToRepeat == NULL || !(NumberOfRepeats > 0 || NumberOfRepeats == UPawnAction_Repeat::LoopForever))
 	{
@@ -21,6 +22,7 @@ UPawnAction_Repeat* UPawnAction_Repeat::CreateAction(UWorld& World, UPawnAction*
 	{
 		Action->ActionToRepeat = ActionToRepeat;
 		Action->RepeatsLeft = NumberOfRepeats;
+		Action->SubActionTriggeringPolicy = InSubActionTriggeringPolicy;
 	}
 
 	return Action;
@@ -34,7 +36,7 @@ bool UPawnAction_Repeat::Start()
 	{
 		UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("Starting repeating action: %s. Requested repeats: %d")
 			, *GetNameSafe(ActionToRepeat), RepeatsLeft);
-		bResult = PushActionCopy();
+		bResult = PushSubAction();
 	}
 
 	return bResult;
@@ -46,19 +48,19 @@ bool UPawnAction_Repeat::Resume()
 
 	if (bResult)
 	{
-		bResult = PushActionCopy();
+		bResult = PushSubAction();
 	}
 
 	return bResult;
 }
 
-void UPawnAction_Repeat::OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult)
+void UPawnAction_Repeat::OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult)
 {
-	if (RecentActionCopy == Action)
+	if (RecentActionCopy == &Action)
 	{
 		if (WithResult == EPawnActionResult::Success || (WithResult == EPawnActionResult::Failed && ChildFailureHandlingMode == EPawnActionFailHandling::IgnoreFailure))
 		{
-			PushActionCopy();
+			PushSubAction();
 		}
 		else
 		{
@@ -69,7 +71,7 @@ void UPawnAction_Repeat::OnChildFinished(UPawnAction* Action, EPawnActionResult:
 	Super::OnChildFinished(Action, WithResult);
 }
 
-bool UPawnAction_Repeat::PushActionCopy()
+bool UPawnAction_Repeat::PushSubAction()
 {
 	if (ActionToRepeat == NULL)
 	{
@@ -87,10 +89,13 @@ bool UPawnAction_Repeat::PushActionCopy()
 		--RepeatsLeft;
 	}
 
-	UPawnAction* ActionCopy = Cast<UPawnAction>(StaticDuplicateObject(ActionToRepeat, this, NULL));
+	UPawnAction* ActionCopy = SubActionTriggeringPolicy == EPawnSubActionTriggeringPolicy::CopyBeforeTriggering 
+		? Cast<UPawnAction>(StaticDuplicateObject(ActionToRepeat, this, NULL))
+		: ActionToRepeat;
+
 	UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> pushing repeted action copy %s, repeats left: %d")
 		, *GetName(), *GetNameSafe(ActionCopy), RepeatsLeft);
-	ensure(ActionCopy);
+	check(ActionCopy);
 	RecentActionCopy = ActionCopy;
-	return PushChildAction(ActionCopy); 
+	return PushChildAction(*ActionCopy); 
 }

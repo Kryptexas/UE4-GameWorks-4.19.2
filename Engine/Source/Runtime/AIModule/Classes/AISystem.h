@@ -11,6 +11,7 @@ class UBehaviorTreeManager;
 class UEnvQueryManager;
 class UAIPerceptionSystem;
 class UAIAsyncTaskBlueprintProxy;
+class UAIHotSpotManager;
 
 UCLASS(config=Engine)
 class AIMODULE_API UAISystem : public UAISystemBase
@@ -30,10 +31,18 @@ protected:
 	UAIPerceptionSystem* PerceptionSystem;
 
 	UPROPERTY(Transient)
-	TArray<class UAIAsyncTaskBlueprintProxy*> AllProxyObjects;
+	TArray<UAIAsyncTaskBlueprintProxy*> AllProxyObjects;
+
+	UPROPERTY(Transient)
+	UAIHotSpotManager* HotSpotManager;
+
+	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AIHotSpotManager", DisplayName = "AIHotSpotManager Class"))
+	FStringClassReference HotSpotManagerClassName;
 
 public:
 	virtual ~UAISystem();
+
+	virtual void PostInitProperties() override;
 
 	// IAISystemInterface begin		
 	virtual void InitializeActorsForPlay(bool bTimeGotReset) override;
@@ -53,6 +62,9 @@ public:
 
 	FORCEINLINE UAIPerceptionSystem* GetPerceptionSystem() { return PerceptionSystem; }
 	FORCEINLINE const UAIPerceptionSystem* GetPerceptionSystem() const { return PerceptionSystem; }
+
+	FORCEINLINE UAIHotSpotManager* GetHotSpotManager() { return HotSpotManager; }
+	FORCEINLINE const UAIHotSpotManager* GetHotSpotManager() const { return HotSpotManager; }
 
 	FORCEINLINE static UAISystem* GetCurrent(UWorld* World, bool bChecked = true) 
 	{ 

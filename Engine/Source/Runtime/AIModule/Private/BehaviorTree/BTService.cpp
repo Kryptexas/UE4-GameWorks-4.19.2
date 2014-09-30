@@ -37,13 +37,23 @@ void UBTService::NotifyParentActivation(struct FBehaviorTreeSearchData& SearchDa
 	}
 }
 
-FString UBTService::GetStaticDescription() const
+FString UBTService::GetStaticTickIntervalDescription() const
 {
 	FString IntervalDesc = (RandomDeviation > 0.0f) ?
 		FString::Printf(TEXT("%.2fs..%.2fs"), FMath::Max(0.0f, Interval - RandomDeviation), (Interval + RandomDeviation)) :
 		FString::Printf(TEXT("%.2fs"), Interval);
 
-	return FString::Printf(TEXT("%s: tick every %s"), *UBehaviorTreeTypes::GetShortTypeName(this), *IntervalDesc);
+	return FString::Printf(TEXT("tick every %s"), *IntervalDesc);
+}
+
+FString UBTService::GetStaticServiceDescription() const
+{
+	return GetStaticTickIntervalDescription();
+}
+
+FString UBTService::GetStaticDescription() const
+{
+	return FString::Printf(TEXT("%s: %s"), *UBehaviorTreeTypes::GetShortTypeName(this), *GetStaticServiceDescription());
 }
 
 #if WITH_EDITOR

@@ -503,12 +503,25 @@ FVisualLog::FVisualLog()
 	, bIsAllBlocked(false)
 {
 	Whitelist.Reserve(10);
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("EnableAILogging")))
+	{
+		SetIsRecording(true, true);
+		if (GWorld)
+		{
+			GWorld->GetTimerManager().SetTimer(FTimerDelegate::CreateRaw(this, &FVisualLog::DumpRecordedLogs), 4, true);
+		}
+	}
 }
 
 FVisualLog::~FVisualLog()
 {
 	if (bIsRecording)
 	{
+		if (GWorld)
+		{
+			GWorld->GetTimerManager().ClearTimer(FTimerDelegate::CreateRaw(this, &FVisualLog::DumpRecordedLogs));
+		}
 		SetIsRecording(false);
 	}
 }
@@ -534,15 +547,6 @@ FString FVisualLog::GetLogFileFullName() const
 
 void FVisualLog::DumpRecordedLogs()
 {
-	if (!FileAr)
-	{		
-		FileAr = IFileManager::Get().CreateFileWriter(*GetLogFileFullName());
-
-		const FString HeadetStr = TEXT("{\"Logs\":[{}");
-		auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);
-		FileAr->Serialize((UCS2CHAR*)AnsiAdditionalData.Get(), HeadetStr.Len() * sizeof(UCS2CHAR));
-	}
-
 	if (!FileAr)
 	{
 		return;
@@ -591,6 +595,11 @@ void FVisualLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const
 
 void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 {
+	if (GEngine && GEngine->bDisableAILogging)
+	{
+		return;
+	}
+
 	if (bIsRecording && bIsRecordingToFile && !NewRecording)
 	{
 		if (FileAr)
@@ -616,6 +625,15 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 	{
 		bIsRecordingToFile = bRecordToFile;
 		StartRecordingTime = GWorld ? GWorld->TimeSeconds : 0.0f;
+
+		if (!FileAr)
+		{
+			FileAr = IFileManager::Get().CreateFileWriter(*GetLogFileFullName());
+
+			const FString HeadetStr = TEXT("{\"Logs\":[{}");
+			auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);
+			FileAr->Serialize((UCS2CHAR*)AnsiAdditionalData.Get(), HeadetStr.Len() * sizeof(UCS2CHAR));
+		}
 	}
 }
 
@@ -623,7 +641,7 @@ FVisLogEntry*  FVisualLog::GetEntryToWrite(const class UObject* Object)
 {
 	const class AActor* RedirectionActor = GetVisualLogRedirection(Object);
 
-	UWorld* World = RedirectionActor ? RedirectionActor->GetWorld() : GEngine->GetWorldFromContextObject(Object);
+	UWorld* World = RedirectionActor && RedirectionActor->GetWorld() ? RedirectionActor->GetWorld() : GEngine->GetWorldFromContextObject(Object);
 	ensure(World);
 
 	const float TimeStamp = World->TimeSeconds;
@@ -650,15 +668,19 @@ FVisLogEntry*  FVisualLog::GetEntryToWrite(const class UObject* Object)
 
 void FVisualLog::Cleanup(bool bReleaseMemory)
 {
+	if (bIsRecording && bIsRecordingToFile)
+	{
+		// dump collected data if needed
+		DumpRecordedLogs();
+	}
+
 	if (bReleaseMemory)
 	{
 		LogsMap.Empty();
-		RedirectsMap.Empty();
 	}
 	else
 	{
 		LogsMap.Reset();
-		RedirectsMap.Reset();
 	}
 }
 
@@ -668,12 +690,16 @@ const class AActor* FVisualLog::GetVisualLogRedirection(const class UObject* Sou
 	{
 		return NULL;
 	}
+
 	for (auto Iterator = RedirectsMap.CreateConstIterator(); Iterator; ++Iterator)
 	{
-		const auto& Children = (*Iterator).Value;
-		if (Children.Find(Source) != INDEX_NONE)
+		if ((*Iterator).Key != NULL && (*Iterator).Value.Num() > 0)
 		{
-			return (*Iterator).Key;
+			const TArray<TWeakObjectPtr<UObject>>& Children = (*Iterator).Value;
+			if (Children.Find(Source) != INDEX_NONE)
+			{
+				return (*Iterator).Key;
+			}
 		}
 	}
 
@@ -712,8 +738,13 @@ void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 		return;
 	}
 
-	TArray<TWeakObjectPtr<UObject> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
+	if (OldRedirect != NULL)
+	{
+		TArray<TWeakObjectPtr<UObject> >& OldChildren = RedirectsMap.FindOrAdd(OldRedirect);
+		OldChildren.RemoveSingleSwap(Source);
+	}
 
+	TArray<TWeakObjectPtr<UObject> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
 	NewTargetChildren.AddUnique(Source);
 
 	// now update all actors that have Actor as their VLog redirection
@@ -746,6 +777,13 @@ void FVisualLog::LogLine(const UObject* Object, const FName& CategoryName, ELogV
 		return;
 	}
 	
+	const class AActor* RedirectionActor = GetVisualLogRedirection(Object);
+	UWorld* World = RedirectionActor && RedirectionActor->GetWorld() ? RedirectionActor->GetWorld() : GEngine->GetWorldFromContextObject(Object);
+	if (!World)
+	{
+		return;
+	}
+
 	FVisLogEntry* Entry = GetEntryToWrite(Object);
 
 	if (Entry != NULL)

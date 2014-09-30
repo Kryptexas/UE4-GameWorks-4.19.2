@@ -56,7 +56,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 	
 	// Init distance.
 	memset(dist, 0xff, sizeof(unsigned char)*chf.spanCount);
-	
+
 	// Mark boundary cells.
 	for (int y = 0; y < h; ++y)
 	{
@@ -95,35 +95,37 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 	}
 	
 	unsigned char nd;
-	
+
 	// Pass 1
 	for (int y = 0; y < h; ++y)
 	{
 		for (int x = 0; x < w; ++x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
-				
+
 				if (rcGetCon(s, 0) != RC_NOT_CONNECTED)
 				{
 					// (-1,0)
 					const int ax = x + rcGetDirOffsetX(0);
 					const int ay = y + rcGetDirOffsetY(0);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 0);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 0);
 					const rcCompactSpan& as = chf.spans[ai];
-					nd = (unsigned char)rcMin((int)dist[ai]+2, 255);
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
 					if (nd < dist[i])
+					{
 						dist[i] = nd;
-					
+					}
+
 					// (-1,-1)
 					if (rcGetCon(as, 3) != RC_NOT_CONNECTED)
 					{
 						const int aax = ax + rcGetDirOffsetX(3);
 						const int aay = ay + rcGetDirOffsetY(3);
-						const int aai = (int)chf.cells[aax+aay*w].index + rcGetCon(as, 3);
-						nd = (unsigned char)rcMin((int)dist[aai]+3, 255);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 3);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
 						if (nd < dist[i])
 							dist[i] = nd;
 					}
@@ -133,19 +135,19 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 					// (0,-1)
 					const int ax = x + rcGetDirOffsetX(3);
 					const int ay = y + rcGetDirOffsetY(3);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 3);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 3);
 					const rcCompactSpan& as = chf.spans[ai];
-					nd = (unsigned char)rcMin((int)dist[ai]+2, 255);
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
 					if (nd < dist[i])
 						dist[i] = nd;
-					
+
 					// (1,-1)
 					if (rcGetCon(as, 2) != RC_NOT_CONNECTED)
 					{
 						const int aax = ax + rcGetDirOffsetX(2);
 						const int aay = ay + rcGetDirOffsetY(2);
-						const int aai = (int)chf.cells[aax+aay*w].index + rcGetCon(as, 2);
-						nd = (unsigned char)rcMin((int)dist[aai]+3, 255);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 2);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
 						if (nd < dist[i])
 							dist[i] = nd;
 					}
@@ -153,35 +155,35 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 			}
 		}
 	}
-	
+
 	// Pass 2
-	for (int y = h-1; y >= 0; --y)
+	for (int y = h - 1; y >= 0; --y)
 	{
-		for (int x = w-1; x >= 0; --x)
+		for (int x = w - 1; x >= 0; --x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
-				
+
 				if (rcGetCon(s, 2) != RC_NOT_CONNECTED)
 				{
 					// (1,0)
 					const int ax = x + rcGetDirOffsetX(2);
 					const int ay = y + rcGetDirOffsetY(2);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 2);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 2);
 					const rcCompactSpan& as = chf.spans[ai];
-					nd = (unsigned char)rcMin((int)dist[ai]+2, 255);
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
 					if (nd < dist[i])
 						dist[i] = nd;
-					
+
 					// (1,1)
 					if (rcGetCon(as, 1) != RC_NOT_CONNECTED)
 					{
 						const int aax = ax + rcGetDirOffsetX(1);
 						const int aay = ay + rcGetDirOffsetY(1);
-						const int aai = (int)chf.cells[aax+aay*w].index + rcGetCon(as, 1);
-						nd = (unsigned char)rcMin((int)dist[aai]+3, 255);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 1);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
 						if (nd < dist[i])
 							dist[i] = nd;
 					}
@@ -191,19 +193,19 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 					// (0,1)
 					const int ax = x + rcGetDirOffsetX(1);
 					const int ay = y + rcGetDirOffsetY(1);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 1);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 1);
 					const rcCompactSpan& as = chf.spans[ai];
-					nd = (unsigned char)rcMin((int)dist[ai]+2, 255);
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
 					if (nd < dist[i])
 						dist[i] = nd;
-					
+
 					// (-1,1)
 					if (rcGetCon(as, 0) != RC_NOT_CONNECTED)
 					{
 						const int aax = ax + rcGetDirOffsetX(0);
 						const int aay = ay + rcGetDirOffsetY(0);
-						const int aai = (int)chf.cells[aax+aay*w].index + rcGetCon(as, 0);
-						nd = (unsigned char)rcMin((int)dist[aai]+3, 255);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 0);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
 						if (nd < dist[i])
 							dist[i] = nd;
 					}
@@ -211,16 +213,279 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 			}
 		}
 	}
-	
+
 	const unsigned char thr = (unsigned char)(radius*2);
 	for (int i = 0; i < chf.spanCount; ++i)
 		if (dist[i] < thr)
 			chf.areas[i] = RC_NULL_AREA;
 	
 	rcFree(dist);
-	
+
 	ctx->stopTimer(RC_TIMER_ERODE_AREA);
 	
+	return true;
+}
+
+/// @par 
+/// 
+/// Basically, any spans that are closer to a boundary or obstruction than the specified radius 
+/// are marked as unwalkable.
+///
+/// This method is usually called immediately after the heightfield has been built.
+///
+/// @see rcCompactHeightfield, rcBuildCompactHeightfield, rcConfig::walkableRadius
+bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
+	unsigned char areaId, rcCompactHeightfield& chf)
+{
+	rcAssert(ctx);
+
+	const int w = chf.width;
+	const int h = chf.height;
+
+	ctx->startTimer(RC_TIMER_ERODE_AREA);
+
+	unsigned char* dist = (unsigned char*)rcAlloc(sizeof(unsigned char)*chf.spanCount, RC_ALLOC_TEMP);
+	unsigned char* seed = (unsigned char*)rcAlloc(sizeof(unsigned char)*chf.spanCount, RC_ALLOC_TEMP);
+	if (!dist || !seed)
+	{
+		ctx->log(RC_LOG_ERROR, "erodeWalkableArea: Out of memory 'dist' (%d).", chf.spanCount);
+		return false;
+	}
+
+	// Init distance.
+	memset(dist, 0xff, sizeof(unsigned char)*chf.spanCount);
+	memset(seed, 0x0, sizeof(unsigned char)*chf.spanCount);
+
+	const unsigned char thr = (unsigned char)(radius * 2);
+
+	// Mark boundary cells.
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			{
+				if (chf.areas[i] == RC_NULL_AREA)
+				{
+					dist[i] = 0;
+				}
+				else if (chf.spans[i].h < height)
+				{
+					dist[i] = 0;
+					seed[i] = thr + 3;
+				}
+				else
+				{
+					const rcCompactSpan& s = chf.spans[i];
+					int nc = 0;
+					for (int dir = 0; dir < 4; ++dir)
+					{
+						if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+						{
+							const int nx = x + rcGetDirOffsetX(dir);
+							const int ny = y + rcGetDirOffsetY(dir);
+							const int nidx = (int)chf.cells[nx + ny*w].index + rcGetCon(s, dir);
+							if (chf.areas[nidx] != RC_NULL_AREA)
+							{
+								nc++;
+							}
+						}
+					}
+					// At least one missing neighbour.
+					if (nc != 4)
+						dist[i] = 0;
+				}
+			}
+		}
+	}
+
+	unsigned char nd;
+	unsigned char ns;
+
+	// Pass 1
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			{
+				const rcCompactSpan& s = chf.spans[i];
+
+				if (rcGetCon(s, 0) != RC_NOT_CONNECTED)
+				{
+					// (-1,0)
+					const int ax = x + rcGetDirOffsetX(0);
+					const int ay = y + rcGetDirOffsetY(0);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 0);
+					const rcCompactSpan& as = chf.spans[ai];
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
+					if (nd < dist[i])
+					{
+						dist[i] = nd;
+					}
+
+					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+					if (ns > seed[i])
+					{
+						seed[i] = ns;
+					}
+
+					// (-1,-1)
+					if (rcGetCon(as, 3) != RC_NOT_CONNECTED)
+					{
+						const int aax = ax + rcGetDirOffsetX(3);
+						const int aay = ay + rcGetDirOffsetY(3);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 3);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
+						if (nd < dist[i])
+							dist[i] = nd;
+
+						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+						if (ns > seed[i])
+						{
+							seed[i] = ns;
+						}
+					}
+				}
+				if (rcGetCon(s, 3) != RC_NOT_CONNECTED)
+				{
+					// (0,-1)
+					const int ax = x + rcGetDirOffsetX(3);
+					const int ay = y + rcGetDirOffsetY(3);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 3);
+					const rcCompactSpan& as = chf.spans[ai];
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
+					if (nd < dist[i])
+						dist[i] = nd;
+
+					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+					if (ns > seed[i])
+					{
+						seed[i] = ns;
+					}
+
+					// (1,-1)
+					if (rcGetCon(as, 2) != RC_NOT_CONNECTED)
+					{
+						const int aax = ax + rcGetDirOffsetX(2);
+						const int aay = ay + rcGetDirOffsetY(2);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 2);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
+						if (nd < dist[i])
+							dist[i] = nd;
+
+						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+						if (ns > seed[i])
+						{
+							seed[i] = ns;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Pass 2
+	for (int y = h - 1; y >= 0; --y)
+	{
+		for (int x = w - 1; x >= 0; --x)
+		{
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			{
+				const rcCompactSpan& s = chf.spans[i];
+
+				if (rcGetCon(s, 2) != RC_NOT_CONNECTED)
+				{
+					// (1,0)
+					const int ax = x + rcGetDirOffsetX(2);
+					const int ay = y + rcGetDirOffsetY(2);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 2);
+					const rcCompactSpan& as = chf.spans[ai];
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
+					if (nd < dist[i])
+						dist[i] = nd;
+
+					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+					if (ns > seed[i])
+					{
+						seed[i] = ns;
+					}
+
+					// (1,1)
+					if (rcGetCon(as, 1) != RC_NOT_CONNECTED)
+					{
+						const int aax = ax + rcGetDirOffsetX(1);
+						const int aay = ay + rcGetDirOffsetY(1);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 1);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
+						if (nd < dist[i])
+							dist[i] = nd;
+
+						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+						if (ns > seed[i])
+						{
+							seed[i] = ns;
+						}
+					}
+				}
+				if (rcGetCon(s, 1) != RC_NOT_CONNECTED)
+				{
+					// (0,1)
+					const int ax = x + rcGetDirOffsetX(1);
+					const int ay = y + rcGetDirOffsetY(1);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 1);
+					const rcCompactSpan& as = chf.spans[ai];
+					nd = (unsigned char)rcMin((int)dist[ai] + 2, 255);
+					if (nd < dist[i])
+						dist[i] = nd;
+
+					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+					if (ns > seed[i])
+					{
+						seed[i] = ns;
+					}
+
+					// (-1,1)
+					if (rcGetCon(as, 0) != RC_NOT_CONNECTED)
+					{
+						const int aax = ax + rcGetDirOffsetX(0);
+						const int aay = ay + rcGetDirOffsetY(0);
+						const int aai = (int)chf.cells[aax + aay*w].index + rcGetCon(as, 0);
+						nd = (unsigned char)rcMin((int)dist[aai] + 3, 255);
+						if (nd < dist[i])
+							dist[i] = nd;
+
+						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+						if (ns > seed[i])
+						{
+							seed[i] = ns;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < chf.spanCount; ++i)
+	{
+		if (seed[i])
+		{
+			chf.areas[i] = areaId;
+		}
+		else if (dist[i] < thr)
+		{
+			chf.areas[i] = RC_NULL_AREA;
+		}
+	}
+
+	rcFree(dist);
+	rcFree(seed);
+
+	ctx->stopTimer(RC_TIMER_ERODE_AREA);
+
 	return true;
 }
 
@@ -313,6 +578,29 @@ bool rcMedianFilterWalkableArea(rcContext* ctx, rcCompactHeightfield& chf)
 
 	ctx->stopTimer(RC_TIMER_MEDIAN_AREA);
 	
+	return true;
+}
+
+bool rcMarkLowAreas(rcContext* ctx, unsigned int height, unsigned char areaId, rcCompactHeightfield& chf)
+{
+	const int w = chf.width;
+	const int h = chf.height;
+
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			{
+				if (chf.areas[i] == RC_WALKABLE_AREA && chf.spans[i].h < height)
+				{
+					chf.areas[i] = areaId;
+				}
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -602,5 +890,202 @@ void rcMarkCylinderArea(rcContext* ctx, const float* pos,
 		}
 	}
 	
+	ctx->stopTimer(RC_TIMER_MARK_CYLINDER_AREA);
+}
+
+/// @par
+///
+/// The value of spacial parameters are in world units.
+/// 
+/// @see rcCompactHeightfield, rcMedianFilterWalkableArea
+void rcReplaceBoxArea(rcContext* ctx, const float* bmin, const float* bmax,
+	unsigned char areaId, unsigned char filterAreaId,
+	rcCompactHeightfield& chf)
+{
+	rcAssert(ctx);
+
+	ctx->startTimer(RC_TIMER_MARK_BOX_AREA);
+
+	int minx = (int)((bmin[0] - chf.bmin[0]) / chf.cs);
+	int miny = (int)((bmin[1] - chf.bmin[1]) / chf.ch);
+	int minz = (int)((bmin[2] - chf.bmin[2]) / chf.cs);
+	int maxx = (int)((bmax[0] - chf.bmin[0]) / chf.cs);
+	int maxy = (int)((bmax[1] - chf.bmin[1]) / chf.ch);
+	int maxz = (int)((bmax[2] - chf.bmin[2]) / chf.cs);
+
+	if (maxx < 0) return;
+	if (minx >= chf.width) return;
+	if (maxz < 0) return;
+	if (minz >= chf.height) return;
+
+	if (minx < 0) minx = 0;
+	if (maxx >= chf.width) maxx = chf.width - 1;
+	if (minz < 0) minz = 0;
+	if (maxz >= chf.height) maxz = chf.height - 1;
+
+	for (int z = minz; z <= maxz; ++z)
+	{
+		for (int x = minx; x <= maxx; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + z*chf.width];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			{
+				rcCompactSpan& s = chf.spans[i];
+				if ((int)s.y >= miny && (int)s.y <= maxy)
+				{
+					if (chf.areas[i] == filterAreaId)
+						chf.areas[i] = areaId;
+				}
+			}
+		}
+	}
+
+	ctx->stopTimer(RC_TIMER_MARK_BOX_AREA);
+
+}
+
+/// @par
+///
+/// The value of spacial parameters are in world units.
+/// 
+/// The y-values of the polygon vertices are ignored. So the polygon is effectively 
+/// projected onto the xz-plane at @p hmin, then extruded to @p hmax.
+/// 
+/// @see rcCompactHeightfield, rcMedianFilterWalkableArea
+void rcReplaceConvexPolyArea(rcContext* ctx, const float* verts, const int nverts,
+	const float hmin, const float hmax, unsigned char areaId, unsigned char filterAreaId,
+	rcCompactHeightfield& chf)
+{
+	rcAssert(ctx);
+
+	ctx->startTimer(RC_TIMER_MARK_CONVEXPOLY_AREA);
+
+	float bmin[3], bmax[3];
+	rcVcopy(bmin, verts);
+	rcVcopy(bmax, verts);
+	for (int i = 1; i < nverts; ++i)
+	{
+		rcVmin(bmin, &verts[i * 3]);
+		rcVmax(bmax, &verts[i * 3]);
+	}
+	bmin[1] = hmin;
+	bmax[1] = hmax;
+
+	int minx = (int)((bmin[0] - chf.bmin[0]) / chf.cs);
+	int miny = (int)((bmin[1] - chf.bmin[1]) / chf.ch);
+	int minz = (int)((bmin[2] - chf.bmin[2]) / chf.cs);
+	int maxx = (int)((bmax[0] - chf.bmin[0]) / chf.cs);
+	int maxy = (int)((bmax[1] - chf.bmin[1]) / chf.ch);
+	int maxz = (int)((bmax[2] - chf.bmin[2]) / chf.cs);
+
+	if (maxx < 0) return;
+	if (minx >= chf.width) return;
+	if (maxz < 0) return;
+	if (minz >= chf.height) return;
+
+	if (minx < 0) minx = 0;
+	if (maxx >= chf.width) maxx = chf.width - 1;
+	if (minz < 0) minz = 0;
+	if (maxz >= chf.height) maxz = chf.height - 1;
+
+
+	// TODO: Optimize.
+	for (int z = minz; z <= maxz; ++z)
+	{
+		for (int x = minx; x <= maxx; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + z*chf.width];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			{
+				rcCompactSpan& s = chf.spans[i];
+				if (chf.areas[i] != filterAreaId)
+					continue;
+				if ((int)s.y >= miny && (int)s.y <= maxy)
+				{
+					float p[3];
+					p[0] = chf.bmin[0] + (x + 0.5f)*chf.cs;
+					p[1] = 0;
+					p[2] = chf.bmin[2] + (z + 0.5f)*chf.cs;
+
+					if (pointInPoly(nverts, verts, p))
+					{
+						chf.areas[i] = areaId;
+					}
+				}
+			}
+		}
+	}
+
+	ctx->stopTimer(RC_TIMER_MARK_CONVEXPOLY_AREA);
+}
+
+/// @par
+///
+/// The value of spacial parameters are in world units.
+/// 
+/// @see rcCompactHeightfield, rcMedianFilterWalkableArea
+void rcReplaceCylinderArea(rcContext* ctx, const float* pos,
+	const float r, const float h, unsigned char areaId, unsigned char filterAreaId,
+	rcCompactHeightfield& chf)
+{
+	rcAssert(ctx);
+
+	ctx->startTimer(RC_TIMER_MARK_CYLINDER_AREA);
+
+	float bmin[3], bmax[3];
+	bmin[0] = pos[0] - r;
+	bmin[1] = pos[1];
+	bmin[2] = pos[2] - r;
+	bmax[0] = pos[0] + r;
+	bmax[1] = pos[1] + h;
+	bmax[2] = pos[2] + r;
+	const float r2 = r*r;
+
+	int minx = (int)((bmin[0] - chf.bmin[0]) / chf.cs);
+	int miny = (int)((bmin[1] - chf.bmin[1]) / chf.ch);
+	int minz = (int)((bmin[2] - chf.bmin[2]) / chf.cs);
+	int maxx = (int)((bmax[0] - chf.bmin[0]) / chf.cs);
+	int maxy = (int)((bmax[1] - chf.bmin[1]) / chf.ch);
+	int maxz = (int)((bmax[2] - chf.bmin[2]) / chf.cs);
+
+	if (maxx < 0) return;
+	if (minx >= chf.width) return;
+	if (maxz < 0) return;
+	if (minz >= chf.height) return;
+
+	if (minx < 0) minx = 0;
+	if (maxx >= chf.width) maxx = chf.width - 1;
+	if (minz < 0) minz = 0;
+	if (maxz >= chf.height) maxz = chf.height - 1;
+
+
+	for (int z = minz; z <= maxz; ++z)
+	{
+		for (int x = minx; x <= maxx; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + z*chf.width];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			{
+				rcCompactSpan& s = chf.spans[i];
+
+				if (chf.areas[i] != filterAreaId)
+					continue;
+
+				if ((int)s.y >= miny && (int)s.y <= maxy)
+				{
+					const float sx = chf.bmin[0] + (x + 0.5f)*chf.cs;
+					const float sz = chf.bmin[2] + (z + 0.5f)*chf.cs;
+					const float dx = sx - pos[0];
+					const float dz = sz - pos[2];
+
+					if (dx*dx + dz*dz < r2)
+					{
+						chf.areas[i] = areaId;
+					}
+				}
+			}
+		}
+	}
+
 	ctx->stopTimer(RC_TIMER_MARK_CYLINDER_AREA);
 }

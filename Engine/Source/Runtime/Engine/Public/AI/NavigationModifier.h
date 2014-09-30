@@ -62,7 +62,7 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	float Cost;
 	float FixedCost;
 
-	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), AreaClass(NULL), ShapeType(ENavigationShapeType::Unknown) {}
+	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), AreaClass(NULL), ReplaceAreaClass(NULL), ShapeType(ENavigationShapeType::Unknown) {}
 	FAreaNavModifier(float Radius, float Height, const FTransform& LocalToWorld, const TSubclassOf<class UNavArea> AreaClass);
 	FAreaNavModifier(const FVector& Extent, const FTransform& LocalToWorld, const TSubclassOf<class UNavArea> AreaClass);
 	FAreaNavModifier(const FBox& Box, const FTransform& LocalToWorld, const TSubclassOf<class UNavArea> AreaClass);
@@ -75,7 +75,9 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	FORCEINLINE bool ShouldIncludeAgentHeight() const { return bIncludeAgentHeight; }
 	FORCEINLINE void SetIncludeAgentHeight(bool bInclude) { bIncludeAgentHeight = bInclude; }
 	FORCEINLINE const TSubclassOf<class UNavArea> GetAreaClass() const { return AreaClass; }
+	FORCEINLINE const TSubclassOf<class UNavArea> GetAreaClassToReplace() const { return ReplaceAreaClass; }
 	void SetAreaClass(const TSubclassOf<class UNavArea> AreaClass);
+	void SetAreaClassToReplace(const TSubclassOf<class UNavArea> AreaClass);
 
 	void GetCylinder(FCylinderNavAreaData& Data) const;
 	void GetBox(FBoxNavAreaData& Data) const;
@@ -84,6 +86,7 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 protected:
 	/** this should take a value of a game specific navigation modifier	*/
 	TSubclassOf<class UNavArea> AreaClass;
+	TSubclassOf<class UNavArea> ReplaceAreaClass;
 	FBox Bounds;
 
 	TArray<FVector> Points;

@@ -333,7 +333,16 @@ void USkinnedMeshComponent::UpdateSlaveComponent()
 
 int32 USkinnedMeshComponent::GetNumMaterials() const
 {
-	return SkeletalMesh ? SkeletalMesh->Materials.Num() : 0;
+	if (Materials.Num() > 0)
+	{
+		return Materials.Num();
+	}
+	else if (SkeletalMesh)
+	{
+		return SkeletalMesh->Materials.Num();
+	}
+
+	return 0;
 }
 
 UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) const
@@ -483,6 +492,11 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
+	// Use MasterPoseComponent's PhysicsAsset if told to
+	else if (MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bUseBoundsFromMasterPoseComponent)
+	{
+		NewBounds = MasterPoseComponent->Bounds;
+	}
 #if WITH_EDITOR
 	// For AnimSet Viewer, use 'bounds preview' physics asset if present.
 	else if(SkeletalMesh && bHasPhysBodies && bCanUsePhysicsAsset)
@@ -498,10 +512,6 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset
 		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this));
 	}
 	// Use MasterPoseComponent's PhysicsAsset, if we don't have one and it does
-	else if( MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bUseBoundsFromMasterPoseComponent )
-	{
-		NewBounds = MasterPoseComponent->Bounds;
-	}
 	else if(MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bMasterHasPhysBodies)
 	{
 		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld		

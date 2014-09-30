@@ -158,15 +158,20 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	void SetValueAsVector(const FName& KeyName, FVector VectorValue);
 	void SetValueAsVector(FBlackboard::FKey KeyID, const FVector& VectorValue);
 
-	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void ClearValueAsVector(const FName& KeyName);
 	void ClearValueAsVector(FBlackboard::FKey KeyID);
+
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard", Meta=(
+		Tooltip="If the vector value has been set (and not cleared), this function returns true (indicating that the value should be valid).  If it's not set, the vector value is invalid and this function will return false.  (Also returns false if the key specified does not hold a vector.)"))
+	bool IsVectorValueSet(const FName& KeyName) const;
+	bool IsVectorValueSet(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsRotator(const FName& KeyName, FRotator VectorValue);
 	void SetValueAsRotator(uint8 KeyID, const FRotator& VectorValue);
 
-	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void ClearValueAsRotator(const FName& KeyName);
 	void ClearValueAsRotator(uint8 KeyID);
 
@@ -176,7 +181,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	bool GetLocationFromEntry(FBlackboard::FKey KeyID, FVector& ResultLocation) const;
 
 	/** return false if call failed (most probably no such entry in BB) */
-	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetRotationFromEntry(const FName& KeyName, FRotator& ResultRotation) const;
 	bool GetRotationFromEntry(FBlackboard::FKey KeyID, FRotator& ResultRotation) const;
 

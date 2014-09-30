@@ -806,6 +806,7 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 		return;
 	}
 
+	//const FVector CurrentLocation = MovementComp->IsMovingOnGround() ? MovementComp->GetActorFeetLocation() : MovementComp->GetActorLocation();
 	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 	const FVector CurrentTarget = GetCurrentTargetLocation();
 	FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;

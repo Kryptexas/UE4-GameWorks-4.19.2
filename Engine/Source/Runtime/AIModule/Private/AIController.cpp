@@ -789,8 +789,18 @@ bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start,
 
 	return UGameplayStatics::SuggestProjectileVelocity(this, OutTossVelocity, Start, End, TossSpeed, bPreferHighArc, CollisionRadius, GravityOverride, TraceOption);
 }
-bool AAIController::PerformAction(UPawnAction* Action, EAIRequestPriority::Type Priority, UObject* const Instigator)
+bool AAIController::PerformAction(UPawnAction& Action, EAIRequestPriority::Type Priority, UObject* const Instigator /*= NULL*/)
 {
 	return ActionsComp != NULL && ActionsComp->PushAction(Action, Priority, Instigator);
+}
+
+FString AAIController::GetDebugIcon() const
+{
+	if (BrainComponent == NULL || BrainComponent->IsRunning() == false)
+	{
+		return TEXT("/Engine/EngineResources/AICON-Red.AICON-Red");
+	}
+
+	return TEXT("/Engine/EngineResources/AICON-Green.AICON-Green");
 }
 

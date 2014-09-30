@@ -101,19 +101,28 @@ bool UBTService_BlueprintBase::IsServiceActive() const
 	return bIsActive;
 }
 
-FString UBTService_BlueprintBase::GetStaticDescription() const
+FString UBTService_BlueprintBase::GetStaticServiceDescription() const
 {
-	FString ReturnDesc = Super::GetStaticDescription();
+	FString ReturnDesc;
 
 	UBTService_BlueprintBase* CDO = (UBTService_BlueprintBase*)(GetClass()->GetDefaultObject());
-	if (bShowPropertyDetails && CDO)
+	if (CDO)
 	{
-		UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
-		FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, CDO->PropertyData);
-		if (PropertyDesc.Len())
+		ReturnDesc = FString::Printf(TEXT("%s, %s, %s, %s\n"),
+			bImplementsReceiveTick ? *GetStaticTickIntervalDescription() : TEXT("No tick"),
+			bImplementsReceiveActivation ? TEXT("Activation") : TEXT("No Activation"),
+			bImplementsReceiveDeactivation ? TEXT("Deactivation") : TEXT("No Deactivation"),
+			bImplementsReceiveSearchStart ? TEXT("Search Start") : TEXT("No Search Start"));
+								
+		if (bShowPropertyDetails)
 		{
-			ReturnDesc += TEXT(":\n\n");
-			ReturnDesc += PropertyDesc;
+			UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
+			FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, CDO->PropertyData);
+			if (PropertyDesc.Len())
+			{
+				ReturnDesc += TEXT("\n");
+				ReturnDesc += PropertyDesc;
+			}
 		}
 	}
 

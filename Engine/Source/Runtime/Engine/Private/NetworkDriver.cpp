@@ -1474,7 +1474,7 @@ void UNetDriver::FlushActorDormancy(AActor * Actor)
 	// needs to be moved into dormancy. The same amount of work will be done (1 time per connection when an actor goes dorm)
 	// and we avoid having to do special things when a new client joins.
 	//
-	// Going out of dormancy can be event based like this since it only affects clients already joined. Its more effecient in this
+	// Going out of dormancy can be event based like this since it only affects clients already joined. Its more efficient in this
 	// way too, since we dont have to check every dormant actor in ::ServerReplicateActor to see if it needs to go out of dormancy
 
 #if WITH_SERVER_CODE

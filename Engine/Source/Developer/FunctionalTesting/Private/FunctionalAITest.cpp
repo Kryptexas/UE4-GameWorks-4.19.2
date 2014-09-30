@@ -39,7 +39,7 @@ void AFunctionalAITest::BeginPlay()
 				SpawnInfo.SpawnSetName = SpawnSet.Name;
 				if (SpawnInfo.SpawnLocation == NULL)
 				{
-					SpawnInfo.SpawnLocation = SpawnSet.FallbackSpawnLocation;
+					SpawnInfo.SpawnLocation = SpawnSet.FallbackSpawnLocation ? SpawnSet.FallbackSpawnLocation : this;
 				}
 			}
 		}

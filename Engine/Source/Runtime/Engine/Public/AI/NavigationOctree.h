@@ -141,8 +141,6 @@ struct FNavigationOctreeSemantics
 
 class FNavigationOctree : public TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics>
 {
-	typedef TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics> Super;
-
 public:
 	DECLARE_DELEGATE_TwoParams(FNavigableGeometryComponentExportDelegate, UActorComponent*, FNavigationRelevantData&);
 	FNavigableGeometryComponentExportDelegate ComponentExportDelegate;
@@ -152,8 +150,8 @@ public:
 		StoreNavGeometry,
 	};
 
-	FNavigationOctree(FVector Origin, float Radius);
-	~FNavigationOctree();
+	FNavigationOctree(const FVector& Origin, float Radius);
+	virtual ~FNavigationOctree();
 
 	/** Add new node and fill it with navigation export data */
 	void AddNode(UObject* ElementOb, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Data);

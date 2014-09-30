@@ -52,4 +52,9 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 
 protected:
 	FVector CalcDirection(struct FEnvQueryInstance& QueryInstance) const;
+
+private:
+	void GenerateItemsForCircle(const FVector& CenterLocation, const FVector& StartDirection,
+								int32 StepsCount, float AngleStep,
+								FEnvQueryInstance& OutQueryInstance) const;
 };

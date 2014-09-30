@@ -1014,12 +1014,33 @@ NAVMESH_API bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHei
 ///  @returns True if the operation completed successfully.
 NAVMESH_API bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf);
 
+/// Erodes the walkable area within the heightfield by the specified radius. 
+/// Additionally, it will mark all spans that are too low (rcMarkLowAreas)
+///  @ingroup recast
+///  @param[in,out]	ctx		The build context to use during the operation.
+///  @param[in]		radius	The radius of erosion. [Limits: 0 < value < 255] [Units: vx]
+///  @param[in]		height	Height threshold [Units: vx]
+///  @param[in]		areaId	The area id to apply [Limit: <= @RC_WALKABLE_AREA]
+///  @param[in,out]	chf		The populated compact heightfield to erode.
+///  @returns True if the operation completed successfully.
+NAVMESH_API bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
+											unsigned char areaId, rcCompactHeightfield& chf);
+
 /// Applies a median filter to walkable area types (based on area id), removing noise.
 ///  @ingroup recast
 ///  @param[in,out]	ctx		The build context to use during the operation.
 ///  @param[in,out]	chf		A populated compact heightfield.
 ///  @returns True if the operation completed successfully.
 NAVMESH_API bool rcMedianFilterWalkableArea(rcContext* ctx, rcCompactHeightfield& chf);
+
+/// Marks all spans that have insufficient free space above
+///  @ingroup recast
+///  @param[in,out]	ctx		The build context to use during the operation.
+///  @param[in,out]	chf		A populated compact heightfield.
+///  @param[in]		height	Height threshold [Units: vx]
+///  @param[in]		areaId	The area id to apply [Limit: <= @RC_WALKABLE_AREA]
+///  @returns True if the operation completed successfully.
+NAVMESH_API bool rcMarkLowAreas(rcContext* ctx, unsigned int height, unsigned char areaId, rcCompactHeightfield& chf);
 
 /// Applies an area id to all spans within the specified bounding box. (AABB) 
 ///  @ingroup recast
@@ -1065,6 +1086,42 @@ NAVMESH_API int rcOffsetPoly(const float* verts, const int nverts, const float o
 NAVMESH_API void rcMarkCylinderArea(rcContext* ctx, const float* pos,
 						const float r, const float h, unsigned char areaId,
 						rcCompactHeightfield& chf);
+
+/// Replaces an area id in spans with matching filter area within the specified bounding box. (AABB) 
+///  @ingroup recast
+///  @param[in,out]	ctx		The build context to use during the operation.
+///  @param[in]		bmin	The minimum of the bounding box. [(x, y, z)]
+///  @param[in]		bmax	The maximum of the bounding box. [(x, y, z)]
+///  @param[in]		areaId	The area id to apply. [Limit: <= #RC_WALKABLE_AREA]
+///  @param[in,out]	chf		A populated compact heightfield.
+NAVMESH_API void rcReplaceBoxArea(rcContext* ctx, const float* bmin, const float* bmax,
+	unsigned char areaId, unsigned char filterAreaId,
+	rcCompactHeightfield& chf);
+
+/// Replaces an area id in spans with matching filter area within the specified convex polygon. 
+///  @ingroup recast
+///  @param[in,out]	ctx		The build context to use during the operation.
+///  @param[in]		verts	The vertices of the polygon [Fomr: (x, y, z) * @p nverts]
+///  @param[in]		nverts	The number of vertices in the polygon.
+///  @param[in]		hmin	The height of the base of the polygon.
+///  @param[in]		hmax	The height of the top of the polygon.
+///  @param[in]		areaId	The area id to apply. [Limit: <= #RC_WALKABLE_AREA]
+///  @param[in,out]	chf		A populated compact heightfield.
+NAVMESH_API void rcReplaceConvexPolyArea(rcContext* ctx, const float* verts, const int nverts,
+	const float hmin, const float hmax, unsigned char areaId, unsigned char filterAreaId,
+	rcCompactHeightfield& chf);
+
+/// Replaces an area id in spans with matching filter area within the specified cylinder.
+///  @ingroup recast
+///  @param[in,out]	ctx		The build context to use during the operation.
+///  @param[in]		pos		The center of the base of the cylinder. [Form: (x, y, z)] 
+///  @param[in]		r		The radius of the cylinder.
+///  @param[in]		h		The height of the cylinder.
+///  @param[in]		areaId	The area id to apply. [Limit: <= #RC_WALKABLE_AREA]
+///  @param[in,out]	chf	A populated compact heightfield.
+NAVMESH_API void rcReplaceCylinderArea(rcContext* ctx, const float* pos,
+	const float r, const float h, unsigned char areaId, unsigned char filterAreaId,
+	rcCompactHeightfield& chf);
 
 /// Builds the distance field for the specified compact heightfield. 
 ///  @ingroup recast

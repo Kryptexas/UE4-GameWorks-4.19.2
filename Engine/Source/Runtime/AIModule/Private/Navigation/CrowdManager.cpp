@@ -78,6 +78,14 @@ TStatId FCrowdTickHelper::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FCrowdTickHelper, STATGROUP_Tickables);
 }
 
+void FCrowdAgentData::ClearFilter()
+{
+#if WITH_RECAST
+	delete LinkFilter;
+	LinkFilter = NULL;
+#endif
+}
+
 void FCrowdAvoidanceSamplingPattern::AddSample(float AngleInDegrees, float NormalizedRadius)
 {
 	Angles.Add(FMath::DegreesToRadians(AngleInDegrees));
@@ -168,6 +176,8 @@ void UCrowdManager::BeginDestroy()
 		const FCrowdAgentData& AgentData = It.Value();
 		delete AgentData.LinkFilter;
 	}
+
+	ActiveAgents.Empty();
 
 	dtFreeObstacleAvoidanceDebugData(DetourAvoidanceDebug);
 	delete DetourAgentDebug;
@@ -300,7 +310,7 @@ void UCrowdManager::RegisterAgent(const ICrowdAgentInterface* Agent)
 void UCrowdManager::UnregisterAgent(const ICrowdAgentInterface* Agent)
 {
 #if WITH_RECAST
-	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
+	FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
 	if (DetourCrowd && AgentData)
 	{
 		RemoveAgent(Agent, AgentData);
@@ -627,12 +637,12 @@ void UCrowdManager::AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData&
 	AgentData.LinkFilter = MyLinkFilter;
 }
 
-void UCrowdManager::RemoveAgent(const ICrowdAgentInterface* Agent, const FCrowdAgentData* AgentData) const
+void UCrowdManager::RemoveAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData* AgentData) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_AgentUpdateTime);
 
 	DetourCrowd->removeAgent(AgentData->AgentIndex);
-	delete AgentData->LinkFilter;
+	AgentData->ClearFilter();
 }
 
 void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, struct dtCrowdAgentParams* AgentParams) const

@@ -97,6 +97,12 @@ void FTextureEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 				float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
 				BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, false, false);
 			}
+			else
+			{
+				// Default to treating any UTexture derivative as a 2D texture resource
+				float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
+				BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, false, false);
+			}
 		}
 
 		// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere

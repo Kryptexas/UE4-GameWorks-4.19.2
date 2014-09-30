@@ -468,7 +468,7 @@ FVector UBlackboardComponent::GetValueAsVector(const FName& KeyName) const
 FVector UBlackboardComponent::GetValueAsVector(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
-	return RawData ? UBlackboardKeyType_Vector::GetValue(RawData) : FVector::ZeroVector;
+	return RawData ? UBlackboardKeyType_Vector::GetValue(RawData) : FAISystem::InvalidLocation;
 }
 
 
@@ -753,6 +753,23 @@ void UBlackboardComponent::ClearValueAsVector(FBlackboard::FKey KeyID)
 			NotifyObservers(KeyID);
 		}
 	}
+}
+
+bool UBlackboardComponent::IsVectorValueSet(const FName& KeyName) const
+{
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
+	return IsVectorValueSet(KeyID);
+}
+
+bool UBlackboardComponent::IsVectorValueSet(FBlackboard::FKey KeyID) const
+{
+	FVector VectorValue = GetValueAsVector(KeyID);
+	if (VectorValue == FAISystem::InvalidLocation)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void UBlackboardComponent::ClearValueAsRotator(const FName& KeyName)

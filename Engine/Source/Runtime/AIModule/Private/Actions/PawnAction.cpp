@@ -18,14 +18,13 @@ namespace
 
 UPawnAction::UPawnAction(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, AbortState(EPawnActionAbortState::NeverStarted)
+	, FinishResult(EPawnActionResult::NotStarted)
 {
 	// actions start their lives paused
 	bPaused = true;
-	bHasBeenStarted = false;
 	bFailedToStart = false;
 	IndexOnStack = INDEX_NONE;
-
-	FinishResult = EPawnActionResult::InProgress;
 }
 
 UWorld* UPawnAction::GetWorld() const
@@ -42,7 +41,15 @@ EPawnActionAbortState::Type UPawnAction::Abort(EAIForceParam::Type ShouldForce)
 	// if already aborting, and this request is not Forced, just skip it
 	if (AbortState != EPawnActionAbortState::NotBeingAborted && ShouldForce != EAIForceParam::Force)
 	{
-		UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Discarding Abort request due to already in abort state"), *GetName());
+		if (AbortState == EPawnActionAbortState::NeverStarted)
+		{
+			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Discarding Abort request since the action has never been started yet"), *GetName());
+		}
+		else
+		{
+			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Discarding Abort request due to action being already in abort state"), *GetName());
+		}
+		
 		return AbortState;
 	}
 
@@ -134,10 +141,10 @@ void UPawnAction::SendEvent(EPawnActionEventType::Type Event)
 	if (OwnerComponent && OwnerComponent->IsPendingKill() == false)
 	{
 		// this will get communicated to parent action if needed, latently 
-		OwnerComponent->OnEvent(this, Event);
+		OwnerComponent->OnEvent(*this, Event);
 	}
 
-	ActionObserver.ExecuteIfBound(this, Event);
+	ActionObserver.ExecuteIfBound(*this, Event);
 }
 
 void UPawnAction::StopWaitingForMessages()
@@ -148,9 +155,9 @@ void UPawnAction::StopWaitingForMessages()
 void UPawnAction::SetFinishResult(EPawnActionResult::Type Result)
 {
 	// once return value had been set it's no longer possible to back to InProgress
-	if (Result == EPawnActionResult::InProgress)
+	if (Result <= EPawnActionResult::InProgress)
 	{
-		UE_VLOG(GetPawn(), LogPawnAction, Warning, TEXT("%s> UPawnAction::SetFinishResult setting FinishResult as EPawnActionResult::InProgress - should not be happening"), *GetName());
+		UE_VLOG(GetPawn(), LogPawnAction, Warning, TEXT("%s> UPawnAction::SetFinishResult setting FinishResult as EPawnActionResult::InProgress or EPawnActionResult::NotStarted - should not be happening"), *GetName());
 		return;
 	}
 
@@ -207,7 +214,7 @@ bool UPawnAction::Activate()
 	UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Activating at priority %s! First start? %s Paused? %s")
 		, *GetName()
 		, *GetPriorityName()
-		, bHasBeenStarted ? TEXT("NO") : TEXT("YES")
+		, HasBeenStarted() ? TEXT("NO") : TEXT("YES")
 		, IsPaused() ? TEXT("YES") : TEXT("NO"));
 
 	if (HasBeenStarted() && IsPaused())
@@ -241,7 +248,8 @@ void UPawnAction::OnPopped()
 
 bool UPawnAction::Start()
 {
-	bHasBeenStarted = true;
+	AbortState = EPawnActionAbortState::NotBeingAborted;
+	FinishResult = EPawnActionResult::InProgress;
 	bPaused = false;
 	return true;
 }
@@ -305,19 +313,14 @@ void UPawnAction::OnFinished(EPawnActionResult::Type WithResult)
 {
 }
 
-void UPawnAction::OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult)
+void UPawnAction::OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult)
 {
-	if (Action == NULL)
-	{
-		return;
-	}
-
 	UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Child \'%s\' finished with result %s")
-		, *GetName(), *Action->GetName(), *GetActionResultName(WithResult));
+		, *GetName(), *Action.GetName(), *GetActionResultName(WithResult));
 
-	ensure(Action->ParentAction == this);
-	ensure(ChildAction == Action);
-	Action->ParentAction = NULL;
+	ensure(Action.ParentAction == this);
+	ensure(ChildAction == &Action);
+	Action.ParentAction = NULL;
 	ChildAction = NULL;
 }
 
@@ -335,7 +338,7 @@ void UPawnAction::OnPushed()
 		, *GetName(), *GetPriorityName(), IndexOnStack, *GetNameSafe(Instigator));
 }
 
-bool UPawnAction::PushChildAction(UPawnAction* Action)
+bool UPawnAction::PushChildAction(UPawnAction& Action)
 {
 	bool bResult = false;
 	
@@ -343,7 +346,7 @@ bool UPawnAction::PushChildAction(UPawnAction* Action)
 	{
 		UE_CVLOG( ChildAction != NULL
 			, GetPawn(), LogPawnAction, Log, TEXT("%s> Pushing child action %s while already having ChildAction set to %s")
-			, *GetName(), *Action->GetName(), *ChildAction->GetName());
+			, *GetName(), *Action.GetName(), *ChildAction->GetName());
 		
 		// copy runtime data
 		// note that priority and instigator will get assigned as part of PushAction.
@@ -351,7 +354,7 @@ bool UPawnAction::PushChildAction(UPawnAction* Action)
 		bResult = OwnerComponent->PushAction(Action, GetPriority(), Instigator);
 
 		// adding a check to make sure important data has been set 
-		ensure(Action->GetPriority() == GetPriority() && Action->GetInstigator() == GetInstigator());
+		ensure(Action.GetPriority() == GetPriority() && Action.GetInstigator() == GetInstigator());
 	}
 
 	return bResult;

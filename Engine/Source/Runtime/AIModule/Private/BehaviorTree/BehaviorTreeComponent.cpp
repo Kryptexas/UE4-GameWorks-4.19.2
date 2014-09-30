@@ -293,25 +293,6 @@ bool UBehaviorTreeComponent::IsExecutingBranch(const UBTNode* Node, int32 ChildI
 		return false;
 	}
 
-	// check if branch is currently being restarted:
-	const FBTNodeIndex TestIndex(TestInstanceIdx, Node->GetExecutionIndex());
-	if (ExecutionRequest.ExecuteNode)
-	{
-		// - search takes priority (won't work on decorators above)
-		if (ExecutionRequest.SearchStart.TakesPriorityOver(TestIndex) ||
-			ExecutionRequest.SearchStart == TestIndex)
-		{
-			return false;
-		}
-
-		// - special case for decorators skipped by previous check
-		const UBTDecorator* TestDecorator = Cast<const UBTDecorator>(Node);
-		if (TestDecorator && TestDecorator->GetParentNode() == ExecutionRequest.ExecuteNode)
-		{
-			return false;
-		}
-	}
-
 	// is it active node or root of tree?
 	const FBehaviorTreeInstance& TestInstance = InstanceStack[TestInstanceIdx];
 	if (Node == TestInstance.RootNode || Node == TestInstance.ActiveNode)
@@ -408,7 +389,6 @@ void UBehaviorTreeComponent::RequestExecution(const UBTDecorator* RequestedBy)
 	// - LowerPri: try entering branch = search only nodes under decorator
 	//
 	// - Self: leave execution = from node under decorator to end of tree
-	//         UNLESS branch is no longer executing (pending restart), in which case it will restart parent
 	//
 	// - Both: check if active node is within inner child nodes and choose Self or LowerPri
 	//
@@ -425,7 +405,7 @@ void UBehaviorTreeComponent::RequestExecution(const UBTDecorator* RequestedBy)
 		return;
 	}
 
-	if (AbortMode == EBTFlowAbortMode::Both || AbortMode == EBTFlowAbortMode::Self)
+	if (AbortMode == EBTFlowAbortMode::Both)
 	{
 		const bool bIsExecutingChildNodes = IsExecutingBranch(RequestedBy, RequestedBy->GetChildIndex());
 		AbortMode = bIsExecutingChildNodes ? EBTFlowAbortMode::Self : EBTFlowAbortMode::LowerPriority;
@@ -801,7 +781,7 @@ void UBehaviorTreeComponent::ApplyDiscardedSearch()
 		}
 	}
 
-	ApplySearchUpdates(SearchData.PendingUpdates, 0);
+	ApplySearchUpdates(UpdateList, 0);
 }
 
 void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)

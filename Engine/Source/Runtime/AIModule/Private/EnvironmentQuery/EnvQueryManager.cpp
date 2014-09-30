@@ -88,6 +88,11 @@ UEnvQueryManager::UEnvQueryManager(const FPostConstructInitializeProperties& PCI
 	NextQueryID = 0;
 }
 
+class UWorld* UEnvQueryManager::GetWorld() const
+{
+	return Cast<UWorld>(GetOuter());
+}
+
 void UEnvQueryManager::FinishDestroy()
 {
 	FCoreDelegates::PreLoadMap.RemoveAll(this);

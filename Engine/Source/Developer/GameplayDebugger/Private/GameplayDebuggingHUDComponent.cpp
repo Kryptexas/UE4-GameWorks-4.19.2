@@ -10,6 +10,14 @@
 #include "GameplayDebuggingControllerComponent.h"
 #include "CanvasItem.h"
 #include "AI/Navigation/NavigationSystem.h"
+
+#include "AITypes.h"
+#include "AISystem.h"
+#include "GenericTeamAgentInterface.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "AIController.h"
+
+
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Engine/Texture2D.h"
 #include "Regex.h"
@@ -286,7 +294,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 
 	if (DebugComponent->DebugIcon.Len() > 0 )
 	{
-		UTexture2D* RegularIcon = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, *DebugComponent->DebugIcon, NULL, LOAD_None, NULL);
+		UTexture2D* RegularIcon = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, *DebugComponent->DebugIcon, NULL, LOAD_NoWarn | LOAD_Quiet, NULL);
 		if (RegularIcon)
 		{
 			FCanvasIcon Icon = UCanvas::MakeIcon(RegularIcon);
@@ -564,6 +572,60 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 
 void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
 {
+	if (!DebugComponent)
+	{
+		return;
+	}
+
+	//@FIXME: It have to be changed to only draw data collected by Debugging Component, just moved functionality from FN for now
+	APawn* MyPawn = Cast<APawn>(DebugComponent->GetSelectedActor());
+	if (MyPawn)
+	{
+		AAIController* BTAI = Cast<AAIController>(MyPawn->GetController());
+		if (BTAI)
+		{
+			// standalone only
+			if (BTAI->PerceptionComponent && DefaultContext.Canvas != NULL)
+			{
+				BTAI->PerceptionComponent->DrawDebugInfo(DefaultContext.Canvas);
+
+				const FVector AILocation = MyPawn->GetActorLocation();
+				const FVector Facing = MyPawn->GetActorRotation().Vector();
+
+				static const FColor SightColor = FColor::Red;
+				static const FColor LoseSightColor = FColorList::NeonPink;
+				static const FColor HearingColor = FColor::Yellow;
+				static const FColor LoSHearingColor = FColor::Cyan;
+
+				PrintString(DefaultContext, FColor::Green, TEXT("\n PERCEPTION COMPONENT\n"));
+				PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
+				PrintString(DefaultContext, SightColor, FString::Printf(TEXT(" Sight,")));
+				PrintString(DefaultContext, LoseSightColor, FString::Printf(TEXT(" Lose Sight,")));
+				PrintString(DefaultContext, HearingColor, FString::Printf(TEXT(" Hearing,")));
+				PrintString(DefaultContext, LoSHearingColor, FString::Printf(TEXT(" Line-of-Sight Hearing\n")));
+
+				if (PC && PC->GetPawn())
+				{
+					const float DistanceFromPlayer = (MyPawn->GetActorLocation() - PC->GetPawn()->GetActorLocation()).Size();
+					const float DistanceFromSensor = DebugComponent->SensingComponentLocation != FVector::ZeroVector ? (DebugComponent->SensingComponentLocation - PC->GetPawn()->GetActorLocation()).Size() : -1;
+					PrintString(DefaultContext, FString::Printf(TEXT("Distance Sensor-PlayerPawn: %.1f\n"), DistanceFromSensor));
+					PrintString(DefaultContext, FString::Printf(TEXT("Distance Pawn-PlayerPawn: %.1f\n"), DistanceFromPlayer));
+				}
+
+				UWorld* World = GetWorld();
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetSightRadius(), 32, SightColor);
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLoseSightRadius(), 32, LoseSightColor);
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetHearingRange(), 32, HearingColor);
+				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLOSHearingRange(), 32, LoSHearingColor);
+
+				DrawDebugLine(World, AILocation, AILocation + (Facing * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
+				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
+				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(-BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
+
+				return;
+			}
+		}
+	}
 }
 
 void AGameplayDebuggingHUDComponent::DrawNavMeshSnapshot(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)

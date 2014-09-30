@@ -202,6 +202,9 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
+
+	DOREPLIFETIME(UGameplayDebuggingComponent, SensingComponentLocation);
+
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -809,6 +812,7 @@ FArchive& operator<<(FArchive& Ar, NavMeshDebug::FAreaPolys& Data)
 	Ar << Data.Color.R;
 	Ar << Data.Color.G;
 	Ar << Data.Color.B;
+	Data.Color.A = 255;
 	return Ar;
 }
 
@@ -950,7 +954,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 			NavMeshDebug::FOffMeshLink Link;
 			Link.Left = SrcLink.Left - TileData.Location;
 			Link.Right = SrcLink.Right - TileData.Location;
-			Link.Color = NavMeshColors[SrcLink.AreaID];
+			Link.Color = ((SrcLink.Direction && SrcLink.ValidEnds) || (SrcLink.ValidEnds & FRecastDebugGeometry::OMLE_Left)) ? DarkenColor(NavMeshColors[SrcLink.AreaID]) : NavMeshRenderColor_OffMeshConnectionInvalid;
 			Link.PackedFlags.Radius = (int8)SrcLink.Radius;
 			Link.PackedFlags.Direction = SrcLink.Direction;
 			Link.PackedFlags.ValidEnds = SrcLink.ValidEnds;

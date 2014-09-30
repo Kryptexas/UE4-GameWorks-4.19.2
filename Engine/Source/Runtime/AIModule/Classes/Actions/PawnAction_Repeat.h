@@ -23,16 +23,18 @@ class AIMODULE_API UPawnAction_Repeat : public UPawnAction
 
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<EPawnActionFailHandling::Type> ChildFailureHandlingMode;
-
+	
 	int32 RepeatsLeft;
 
+	EPawnSubActionTriggeringPolicy::Type SubActionTriggeringPolicy;
+
 	/** @param NumberOfRepeats number of times to repeat action. UPawnAction_Repeat::LoopForever loops forever */
-	static UPawnAction_Repeat* CreateAction(UWorld& World, class UPawnAction* ActionToRepeat, int32 NumberOfRepeats);
+	static UPawnAction_Repeat* CreateAction(UWorld& World, class UPawnAction* ActionToRepeat, int32 NumberOfRepeats, EPawnSubActionTriggeringPolicy::Type InSubActionTriggeringPolicy = EPawnSubActionTriggeringPolicy::CopyBeforeTriggering);
 
 protected:
 	virtual bool Start() override;
 	virtual bool Resume() override;
-	virtual void OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult) override;
+	virtual void OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult) override;
 
-	bool PushActionCopy();
+	bool PushSubAction();
 };

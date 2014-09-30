@@ -133,7 +133,7 @@ public class DocumentationNodeAdder : GUBP.GUBPNodeAdder
 {
 	public override void AddNodes(GUBP bp, UnrealTargetPlatform InHostPlatform)
 	{
-		if(InHostPlatform == UnrealTargetPlatform.Win64)
+		if(InHostPlatform == UnrealTargetPlatform.Win64 && !bp.BranchOptions.bNoDocumentation)
 		{
 			bp.AddNode(new ToolsForDocumentationNode(InHostPlatform));
 			bp.AddNode(new CodeDocumentationNode(InHostPlatform));

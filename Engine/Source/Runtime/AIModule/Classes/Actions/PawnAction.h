@@ -8,8 +8,18 @@
 class UPawnAction;
 class UPawnActionsComponent;
 
+UENUM()
+namespace EPawnSubActionTriggeringPolicy
+{
+	enum Type
+	{
+		CopyBeforeTriggering,
+		ReuseInstances,
+	};
+}
+
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPawnAction, Warning, All);
-DECLARE_DELEGATE_TwoParams(FPawnActionEventDelegate, UPawnAction*, EPawnActionEventType::Type);
+DECLARE_DELEGATE_TwoParams(FPawnActionEventDelegate, UPawnAction&, EPawnActionEventType::Type);
 
 UENUM()
 namespace EPawnActionFailHandling
@@ -114,7 +124,7 @@ public:
 	FORCEINLINE bool IsPaused() const { return !!bPaused; }
 	FORCEINLINE bool IsActive() const { return FinishResult == EPawnActionResult::InProgress && IsPaused() == false && AbortState == EPawnActionAbortState::NotBeingAborted; }
 	FORCEINLINE bool IsBeingAborted() const { return AbortState != EPawnActionAbortState::NotBeingAborted; }
-	FORCEINLINE bool IsFinished() const { return FinishResult != EPawnActionResult::InProgress; }
+	FORCEINLINE bool IsFinished() const { return FinishResult > EPawnActionResult::InProgress; }
 	FORCEINLINE bool WantsTick() const { return bWantsTick; }
 
 protected:
@@ -211,16 +221,16 @@ protected:
 	 *	@NOTE gets called _AFTER_ child's OnFinished to give child action chance 
 	 *		to prepare "finishing data" for parent to read. 
 	 *	@NOTE clears parent-child binding */
-	virtual void OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult);
+	virtual void OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult);
 
 	/** apart from doing regular push request copies additional values from Parent, like Priority and Instigator */
-	bool PushChildAction(UPawnAction* Action);
+	bool PushChildAction(UPawnAction& Action);
 	
 	/** performs actual work on aborting Action. Should be called exclusively by Abort function
 	 *	@return only valid return values here are LatendAbortInProgress and AbortDone */
 	virtual EPawnActionAbortState::Type PerformAbort(EAIForceParam::Type ShouldForce) { return EPawnActionAbortState::AbortDone; }
 
-	FORCEINLINE bool HasBeenStarted() const { return bHasBeenStarted;  }
+	FORCEINLINE bool HasBeenStarted() const { return AbortState != EPawnActionAbortState::NeverStarted; }
 
 private:
 	/** called when this action is put on a stack. Does not indicate action will be started soon

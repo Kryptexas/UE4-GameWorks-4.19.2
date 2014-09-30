@@ -6,9 +6,10 @@
 
 namespace FAISystem
 {
-	static const FRotator InvalidRotation(FLT_MAX);
+	static const FRotator InvalidRotation = FRotator(FLT_MAX);
 	static const FVector InvalidLocation = FVector(FLT_MAX);
 	static const FVector InvalidDirection = FVector::ZeroVector;
+	static const float InfiniteInterval = -FLT_MAX;
 
 	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
 	{
@@ -73,6 +74,7 @@ namespace EPawnActionAbortState
 {
 	enum Type
 	{
+		NeverStarted,
 		NotBeingAborted,
 		MarkPendingAbort,	// this means waiting for child to abort before aborting self
 		LatentAbortInProgress,
@@ -87,6 +89,7 @@ namespace EPawnActionResult
 {
 	enum Type
 	{
+		NotStarted,
 		InProgress,
 		Success,
 		Failed,
@@ -141,8 +144,53 @@ namespace EAILockSource
 	};
 }
 
+struct AIMODULE_API FAIResourceID
+{
+	const uint8 Index;
+	const FName Name;
+private:
+	static uint32 NextAvailableID;
+public:
+
+	FAIResourceID(const FName& ResourceName)
+		: Index(NextAvailableID++), Name(ResourceName)
+	{}
+
+	FAIResourceID(const FAIResourceID& Other)
+		: Index(Other.Index), Name(Other.Name)
+	{}
+
+	FAIResourceID& operator=(const FAIResourceID& Other)
+	{
+		new(this) FAIResourceID(Other);
+		return *this;
+	}
+
+	static uint32 ResourcesCount() { return NextAvailableID; }
+};
+
+struct AIMODULE_API FAIResourcesSet
+{
+	static const uint32 NoResources = 0;
+	static const uint32 AllResources = uint32(-1);
+private:
+	uint32 Flags;
+public:
+	FAIResourcesSet(uint32 ResourceSetDescription = NoResources) : Flags(ResourceSetDescription) {}
+
+	FAIResourcesSet& AddResourceID(uint8 ResourceID) { Flags |= (1 << ResourceID); return *this; }
+	FAIResourcesSet& RemoveResourceID(uint8 ResourceID) { Flags &= ~(1 << ResourceID); return *this; }
+	bool ContainsResourceID(uint8 ResourceID) const { return (Flags & ResourceID) != 0; }
+
+	FAIResourcesSet& AddResource(const FAIResourceID& Resource) { AddResourceID(Resource.Index); return *this; }		
+	FAIResourcesSet& RemoveResource(const FAIResourceID& Resource) { RemoveResourceID(Resource.Index); return *this; }	
+	bool ContainsResource(const FAIResourceID& Resource) const { return ContainsResourceID(Resource.Index); }
+	
+	bool IsEmpty() const { return Flags == 0; }
+};
+
 /** structure used to define which subsystem requested locking of a specific AI resource (like movement, logic, etc.) */
-struct FAIResourceLock
+struct AIMODULE_API FAIResourceLock
 {
 	uint8 Locks[EAILockSource::MAX];
 

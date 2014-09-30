@@ -119,9 +119,15 @@ struct AIMODULE_API FCrowdAgentData
 	/** if set, agent wants path optimizations */
 	uint32 bWantsPathOptimization : 1;
 
-	FCrowdAgentData() : PrevPoly(0), AgentIndex(-1), PathOptRemainingTime(0), bIsSimulated(false), bWantsPathOptimization(false) {}
+	FCrowdAgentData() :
+#if WITH_RECAST
+		LinkFilter(0),
+#endif
+		PrevPoly(0), AgentIndex(-1), PathOptRemainingTime(0), bIsSimulated(false), bWantsPathOptimization(false)
+	{}
 
 	bool IsValid() const { return AgentIndex >= 0; }
+	void ClearFilter();
 };
 
 struct FCrowdTickHelper : FTickableGameObject
@@ -280,7 +286,7 @@ protected:
 
 #if WITH_RECAST
 	void AddAgent(const class ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData) const;
-	void RemoveAgent(const class ICrowdAgentInterface* Agent, const FCrowdAgentData* AgentData) const;
+	void RemoveAgent(const class ICrowdAgentInterface* Agent, FCrowdAgentData* AgentData) const;
 	void GetAgentParams(const class ICrowdAgentInterface* Agent, struct dtCrowdAgentParams* AgentParams) const;
 
 	/** prepare agent for next step of simulation */

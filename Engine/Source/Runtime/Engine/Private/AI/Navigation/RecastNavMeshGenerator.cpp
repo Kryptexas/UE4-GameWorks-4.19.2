@@ -2320,7 +2320,10 @@ bool FRecastTileGenerator::GenerateCompressedLayers(class FNavMeshBuildContext* 
 		// as well as filter spans where the character cannot possibly stand.
 		rcFilterLowHangingWalkableObstacles(BuildContext, TileConfig.walkableClimb, *RasterContext.SolidHF);
 		rcFilterLedgeSpans(BuildContext, TileConfig.walkableHeight, TileConfig.walkableClimb, *RasterContext.SolidHF);
-		rcFilterWalkableLowHeightSpans(BuildContext, TileConfig.walkableHeight, *RasterContext.SolidHF);
+		if (!TileConfig.bMarkLowHeightAreas)
+		{
+			rcFilterWalkableLowHeightSpans(BuildContext, TileConfig.walkableHeight, *RasterContext.SolidHF);
+		}
 	}
 
 	{
@@ -2343,18 +2346,29 @@ bool FRecastTileGenerator::GenerateCompressedLayers(class FNavMeshBuildContext* 
 
 	{
 		RECAST_STAT(STAT_Navigation_Async_Recast_Erode);
-		// Erode the walkable area by agent radius.
-		// do this step only if we're considering non-zero agent radius 
-		if (TileConfig.walkableRadius > RECAST_VERY_SMALL_AGENT_RADIUS && !rcErodeWalkableArea(BuildContext, TileConfig.walkableRadius, *RasterContext.CompactHF))
+		const int32 HeightThreshold = FMath::CeilToInt(TileConfig.AgentHeight / TileConfig.ch);
+
+		if (TileConfig.walkableRadius > RECAST_VERY_SMALL_AGENT_RADIUS)
 		{
-			BuildContext->log(RC_LOG_ERROR, "GenerateCompressedLayers: Could not erode.");
-			return false;
+			const bool bEroded = TileConfig.bMarkLowHeightAreas ?
+				rcErodeWalkableAndLowAreas(BuildContext, TileConfig.walkableRadius, HeightThreshold, RECAST_LOW_AREA, *RasterContext.CompactHF) :
+				rcErodeWalkableArea(BuildContext, TileConfig.walkableRadius, *RasterContext.CompactHF);
+
+			if (!bEroded)
+			{
+				BuildContext->log(RC_LOG_ERROR, "GenerateCompressedLayers: Could not erode.");
+				return false;
+			}
+		}
+		else if (TileConfig.bMarkLowHeightAreas)
+		{
+			rcMarkLowAreas(BuildContext, HeightThreshold, RECAST_LOW_AREA, *RasterContext.CompactHF);
 		}
 	}
 
 	// (Optional) Mark areas.
 	MarkStaticAreas(BuildContext, *RasterContext.CompactHF, TileConfig);
-	
+
 	// Build layers
 	{
 		RECAST_STAT(STAT_Navigation_Async_Recast_Layers);
@@ -2504,6 +2518,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 	for (int32 ModifierIndex = 0; ModifierIndex < NumAreas; ++ModifierIndex, ++Modifier)
 	{
 		const int32* AreaID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClass());
+		const int32* ReplaceID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClassToReplace());
 		if (AreaID == NULL)
 		{
 			// happens when area is not supported by agent owning this navmesh
@@ -2523,7 +2538,14 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 
 				FVector RecastPos = Unreal2RecastPoint(CylinderData.Origin);
 
-				rcMarkCylinderArea(BuildContext, &(RecastPos.X), CylinderData.Radius, CylinderData.Height, *AreaID, CompactHF);
+				if (ReplaceID)
+				{
+					rcReplaceCylinderArea(BuildContext, &(RecastPos.X), CylinderData.Radius, CylinderData.Height, *AreaID, *ReplaceID, CompactHF);
+				}
+				else
+				{
+					rcMarkCylinderArea(BuildContext, &(RecastPos.X), CylinderData.Radius, CylinderData.Height, *AreaID, CompactHF);
+				}
 			}
 			break;
 
@@ -2537,7 +2559,14 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 				FBox UnrealBox = FBox::BuildAABB(BoxData.Origin, BoxData.Extent);
 				FBox RecastBox = Unreal2RecastBox(UnrealBox);
 
-				rcMarkBoxArea(BuildContext, &(RecastBox.Min.X), &(RecastBox.Max.X), *AreaID, CompactHF);
+				if (ReplaceID)
+				{
+					rcReplaceBoxArea(BuildContext, &(RecastBox.Min.X), &(RecastBox.Max.X), *AreaID, *ReplaceID, CompactHF);
+				}
+				else
+				{
+					rcMarkBoxArea(BuildContext, &(RecastBox.Min.X), &(RecastBox.Max.X), *AreaID, CompactHF);
+				}
 			}
 			break;
 
@@ -2565,8 +2594,16 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 						*ItCoord = RecastV.Z; ItCoord++;
 					}
 
-					rcMarkConvexPolyArea(BuildContext, ConvexCoords.GetData(), ConvexVerts.Num(),
-						ConvexData.MinZ, ConvexData.MaxZ, *AreaID, CompactHF);
+					if (ReplaceID)
+					{
+						rcReplaceConvexPolyArea(BuildContext, ConvexCoords.GetData(), ConvexVerts.Num(),
+							ConvexData.MinZ, ConvexData.MaxZ, *AreaID, *ReplaceID, CompactHF);
+					}
+					else
+					{
+						rcMarkConvexPolyArea(BuildContext, ConvexCoords.GetData(), ConvexVerts.Num(),
+							ConvexData.MinZ, ConvexData.MaxZ, *AreaID, CompactHF);
+					}
 				}
 			}
 			break;
@@ -2914,6 +2951,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 	for (int32 ModifierIndex = 0; ModifierIndex < CombinedAreas.Num(); ++ModifierIndex, ++Modifier)
 	{
 		const int32* AreaID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClass());
+		const int32* ReplaceID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClassToReplace());
 		if (AreaID == NULL)
 		{
 			// happens when area is not supported by agent owning this navmesh
@@ -2944,8 +2982,16 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 
 				FVector RecastPos = Unreal2RecastPoint(CylidnerData.Origin);
 
-				dtMarkCylinderArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-					&(RecastPos.X), CylidnerData.Radius, CylidnerData.Height, *AreaID);
+				if (ReplaceID)
+				{
+					dtReplaceCylinderArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
+						&(RecastPos.X), CylidnerData.Radius, CylidnerData.Height, *AreaID, *ReplaceID);
+				}
+				else
+				{
+					dtMarkCylinderArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
+						&(RecastPos.X), CylidnerData.Radius, CylidnerData.Height, *AreaID);
+				}
 			}
 			break;
 
@@ -2959,8 +3005,16 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 				FVector RecastPos = Unreal2RecastPoint(BoxData.Origin);
 				FVector RecastExtent = Unreal2RecastPoint(BoxData.Extent).GetAbs();
 
-				dtMarkBoxArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-					&(RecastPos.X), &(RecastExtent.X), *AreaID);
+				if (ReplaceID)
+				{
+					dtReplaceBoxArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
+						&(RecastPos.X), &(RecastExtent.X), *AreaID, *ReplaceID);
+				}
+				else
+				{
+					dtMarkBoxArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
+						&(RecastPos.X), &(RecastExtent.X), *AreaID);
+				}
 			}
 			break;
 
@@ -2989,8 +3043,16 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 						*ItCoord = RecastV.Z; ItCoord++;
 					}
 
-					dtMarkConvexArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-						ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, *AreaID);
+					if (ReplaceID)
+					{
+						dtReplaceConvexArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
+							ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, *AreaID, *ReplaceID);
+					}
+					else
+					{
+						dtMarkConvexArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
+							ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, *AreaID);
+					}
 				}
 			}
 			break;
@@ -3118,6 +3180,11 @@ void FRecastNavMeshGenerator::Init()
 		Config.mergeRegionArea = (int32)rcSqr(NavGenParams->MergeRegionSize / CellSize);
 		Config.maxSimplificationError = NavGenParams->MaxSimplificationError;
 		Config.bPerformVoxelFiltering = NavGenParams->bPerformVoxelFiltering;
+		Config.bMarkLowHeightAreas = NavGenParams->bMarkLowHeightAreas;
+		if (NavGenParams->bMarkLowHeightAreas)
+		{
+			Config.walkableHeight = 1;
+		}
 
 		AdditionalCachedData = MakeShareable(new FRecastNavMeshCachedData(NavGenParams));
 
@@ -4212,7 +4279,7 @@ void FRecastNavMeshGenerator::FillGeneratorData(FRecastTileGenerator* TileGenera
 	const bool bUseVoxelCache = ARecastNavMesh::IsVoxelCacheEnabled();
 	const FNavAgentProperties NavAgentProps = DestNavMesh->NavDataConfig;
 
-	for(FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavOctree, GrowBoundingBox(TileGenerator->GetUnrealBB(), false));
+	for(FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavOctree, GrowBoundingBox(TileGenerator->GetUnrealBB(), /*bIncludeAgentHeight=*/false));
 		It.HasPendingElements();
 		It.Advance())
 	{

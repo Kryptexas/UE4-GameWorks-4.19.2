@@ -218,13 +218,22 @@ void FAreaNavModifier::Init(const TSubclassOf<class UNavArea> InAreaClass)
 {
 	Cost = 0.0f;
 	FixedCost = 0.0f;
+	ReplaceAreaClass = NULL;
 	SetAreaClass(InAreaClass);
 }
 
 void FAreaNavModifier::SetAreaClass(const TSubclassOf<class UNavArea> InAreaClass)
 {
 	AreaClass = InAreaClass;
-	bHasMetaAreas = InAreaClass->IsChildOf(UNavAreaMeta::StaticClass());
+	bHasMetaAreas = (ReplaceAreaClass && ReplaceAreaClass->IsChildOf(UNavAreaMeta::StaticClass())) ||
+		(AreaClass && AreaClass->IsChildOf(UNavAreaMeta::StaticClass()));
+}
+
+void FAreaNavModifier::SetAreaClassToReplace(const TSubclassOf<class UNavArea> InAreaClass)
+{
+	ReplaceAreaClass = InAreaClass;
+	bHasMetaAreas = (ReplaceAreaClass && ReplaceAreaClass->IsChildOf(UNavAreaMeta::StaticClass())) ||
+		(AreaClass && AreaClass->IsChildOf(UNavAreaMeta::StaticClass()));
 }
 
 bool IsAngleMatching(float Angle)
@@ -486,6 +495,7 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 			if (Area->HasMetaAreas())
 			{
 				Area->SetAreaClass(UNavAreaMeta::PickAreaClass(Area->GetAreaClass(), ActorOwner, *NavAgent));
+				Area->SetAreaClassToReplace(UNavAreaMeta::PickAreaClass(Area->GetAreaClassToReplace(), ActorOwner, *NavAgent));
 			}
 		}
 	}

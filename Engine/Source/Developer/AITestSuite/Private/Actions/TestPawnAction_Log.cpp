@@ -43,10 +43,12 @@ bool UTestPawnAction_Log::Resume()
 
 void UTestPawnAction_Log::OnFinished(EPawnActionResult::Type WithResult)
 {
-	Logger->Log(ETestPawnActionMessage::Finished);
+	Super::OnFinished(WithResult);
+	Logger->Log(ETestPawnActionMessage::Finished);	
 }
 
-void UTestPawnAction_Log::OnChildFinished(UPawnAction* Action, EPawnActionResult::Type WithResult)
+void UTestPawnAction_Log::OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult)
 {
+	Super::OnChildFinished(Action, WithResult);
 	Logger->Log(ETestPawnActionMessage::ChildFinished);
 }

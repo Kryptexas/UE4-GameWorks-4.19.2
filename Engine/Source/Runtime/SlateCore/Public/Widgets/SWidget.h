@@ -822,6 +822,10 @@ protected:
 
 	/** Render transform pivot of this widget (in normalized local space) */
 	TAttribute< FVector2D > RenderTransformPivot;
+
+	/** Is this widget hovered? */
+	bool bIsHovered;
+
 private:
 
 	/**
@@ -837,7 +841,4 @@ private:
 	// Whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
 	// occupied by this widget, and will instead be repelled to an outside edge
 	bool bToolTipForceFieldEnabled;
-
-	/** Is this widget hovered? */
-	bool bIsHovered;
 };

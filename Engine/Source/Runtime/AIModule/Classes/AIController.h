@@ -293,12 +293,12 @@ public:
 	//----------------------------------------------------------------------//
 	// Actions
 	//----------------------------------------------------------------------//
-	bool PerformAction(UPawnAction* Action, EAIRequestPriority::Type Priority, UObject* const Instigator = NULL);
+	bool PerformAction(UPawnAction& Action, EAIRequestPriority::Type Priority, UObject* const Instigator = NULL);
 
 	//----------------------------------------------------------------------//
 	// debug/dev-time 
 	//----------------------------------------------------------------------//
-	virtual FString GetDebugIcon() const {return FString();}
+	virtual FString GetDebugIcon() const;
 	
 	// Cheat/debugging functions
 	static void ToggleAIIgnorePlayers() { bAIIgnorePlayers = !bAIIgnorePlayers; }

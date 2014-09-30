@@ -12,8 +12,8 @@
 //----------------------------------------------------------------------//
 // FNavigationOctree
 //----------------------------------------------------------------------//
-FNavigationOctree::FNavigationOctree(FVector Origin, float Radius)
-	: Super(Origin, Radius)
+FNavigationOctree::FNavigationOctree(const FVector& Origin, float Radius)
+	: TOctree<FNavigationOctreeElement, FNavigationOctreeSemantics>(Origin, Radius)
 	, bGatherGeometry(false)
 	, NodesMemory(0)
 {

@@ -23,6 +23,21 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 	, LastDrawAtFrame(0)
 	, PlayerControllersUpdateDelay(0)
 {
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		ConstructorHelpers::FObjectFinderOptional<UTexture2D> RedIcon;
+		ConstructorHelpers::FObjectFinderOptional<UTexture2D> GreenIcon;
+
+		// both icons are needed to debug AI with Behavior Trees in Fortnite
+		FConstructorStatics()
+			: RedIcon(TEXT("/Engine/EngineResources/AICON-Red.AICON-Red"))
+			, GreenIcon(TEXT("/Engine/EngineResources/AICON-Green.AICON-Green"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	
@@ -231,6 +246,12 @@ void AGameplayDebuggingReplicator::BeginPlay()
 		}
 	}
 
+	// we are already replicated so let's activate tool
+	if (GetWorld() && GetNetMode() == ENetMode::NM_Client && !IsToolCreated() && !IsGlobalInWorld())
+	{
+		CreateTool();
+		EnableTool();
+	}
 }
 
 UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()

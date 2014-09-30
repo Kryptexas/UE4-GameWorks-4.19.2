@@ -203,7 +203,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	uint32 bEnableWorldBoundsChecks:1;
 
 	/** if set to false navigation system will not get created (and all navigation functionality won't be accesible)*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, config, Category=World, AdvancedDisplay)
 	uint32 bEnableNavigationSystem:1;
 
 	/** 

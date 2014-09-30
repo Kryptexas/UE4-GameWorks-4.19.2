@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	DumpAILogsInterval = 3;
+	DumpAILogsInterval = 1;
 	DebugCameraControllerClass = ADebugCameraController::StaticClass();
 	DebugCapsuleHalfHeight = 23.0f;
 	DebugCapsuleRadius = 21.0f;
@@ -555,7 +555,7 @@ void UCheatManager::DisableDebugCamera()
 
 void UCheatManager::InitCheatManager() 
 {
-
+	// Empty
 }
 
 void UCheatManager::BeginDestroy()

@@ -3,6 +3,7 @@
 #include "AITestSuitePrivatePCH.h"
 #include "MockAI_BT.h"
 #include "BehaviorTree/TestBTDecorator_CantExecute.h"
+#include "Actions/TestPawnAction_CallFunction.h"
 
 #define LOCTEXT_NAMESPACE "AITestSuite_PawnActionTest"
 
@@ -19,7 +20,7 @@ struct FAITest_PawnActions_Push : public FAITest_SimpleActionsTest
 
 		UWorld& World = GetWorld();
 		Action = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(Action, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic);
 
 		Test(TEXT("No action should be active at this point"), ActionsComponent->GetCurrentAction() == nullptr);
 	}
@@ -47,15 +48,15 @@ struct FAITest_PawnActions_PushingSameActionWithDelay : public FAITest_SimpleAct
 
 		UWorld& World = GetWorld();
 		Action = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(Action, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic);
 	}
 
 	bool Update()
 	{
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
-		Test(TEXT("Addind an action for a second time should fail"), ActionsComponent->PushAction(Action, EAIRequestPriority::Logic) == false);
-		Test(TEXT("Addind an action for a second time, but with different priority, should fail"), ActionsComponent->PushAction(Action, EAIRequestPriority::Ultimate) == false);
+		Test(TEXT("Addind an action for a second time should fail"), ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic) == false);
+		Test(TEXT("Addind an action for a second time, but with different priority, should fail"), ActionsComponent->PushAction(*Action, EAIRequestPriority::Ultimate) == false);
 		
 		return true;
 	}
@@ -80,7 +81,7 @@ struct FAITest_PawnActions_Pause : public FAITest_SimpleActionsTest
 
 		UWorld& World = GetWorld();
 		Action = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(Action, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic);
 	}
 		
 	bool Update()
@@ -89,7 +90,7 @@ struct FAITest_PawnActions_Pause : public FAITest_SimpleActionsTest
 
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 		UTestPawnAction_Log* AnotherAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(AnotherAction, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*AnotherAction, EAIRequestPriority::Logic);
 
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
@@ -116,9 +117,9 @@ struct FAITest_PawnActions_SamePriorityOrder : public FAITest_SimpleActionsTest
 
 		UWorld& World = GetWorld();
 		FirstAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(FirstAction, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*FirstAction, EAIRequestPriority::Logic);
 		UTestPawnAction_Log* SecondAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(SecondAction, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*SecondAction, EAIRequestPriority::Logic);
 	}
 
 	bool Update()
@@ -141,8 +142,8 @@ struct FAITest_PawnActions_DoublePushingAction : public FAITest_SimpleActionsTes
 	{
 		UWorld& World = GetWorld();
 		UTestPawnAction_Log* Action = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(Action, EAIRequestPriority::Logic);
-		Test(TEXT("Pushing same action for the second time should fail"), ActionsComponent->PushAction(Action, EAIRequestPriority::Logic) == false);
+		ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic);
+		Test(TEXT("Pushing same action for the second time should fail"), ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic) == false);
 		Test(TEXT("There should be exactly one ActionEvent awaiting processing"), ActionsComponent->GetActionEventsQueueSize() == 1);
 	
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
@@ -150,7 +151,7 @@ struct FAITest_PawnActions_DoublePushingAction : public FAITest_SimpleActionsTes
 		Test(TEXT("There should be only one action on stack now."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 1);
 		Test(TEXT("Action queue should be empty."), ActionsComponent->GetActionEventsQueueSize() == 0);
 
-		Test(TEXT("Pushing already active action should"), ActionsComponent->PushAction(Action, EAIRequestPriority::Logic) == false);
+		Test(TEXT("Pushing already active action should"), ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic) == false);
 		Test(TEXT("Action queue should be empty."), ActionsComponent->GetActionEventsQueueSize() == 0);
 
 		return true;
@@ -172,11 +173,11 @@ struct FAITest_PawnActions_SimplePriority : public FAITest_SimpleActionsTest
 		UWorld& World = GetWorld();
 
 		UTestPawnAction_Log* LowPriorityAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(LowPriorityAction, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*LowPriorityAction, EAIRequestPriority::Logic);
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
 		UTestPawnAction_Log* HighPriorityAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(HighPriorityAction, EAIRequestPriority::Reaction);
+		ActionsComponent->PushAction(*HighPriorityAction, EAIRequestPriority::Reaction);
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
 		Test(TEXT("There should be exactly one action on Logic stack now."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 1);
@@ -201,11 +202,11 @@ struct FAITest_PawnActions_HighPriorityKeepRunning : public FAITest_SimpleAction
 		UWorld& World = GetWorld();
 
 		UTestPawnAction_Log* HighPriorityAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(HighPriorityAction, EAIRequestPriority::Reaction);
+		ActionsComponent->PushAction(*HighPriorityAction, EAIRequestPriority::Reaction);
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
 		UTestPawnAction_Log* LowPriorityAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(LowPriorityAction, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*LowPriorityAction, EAIRequestPriority::Logic);
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
 		Test(TEXT("There should be exactly one action on Logic stack now."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 1);
@@ -227,11 +228,11 @@ struct FAITest_PawnActions_SamePriorityActionsPushing : public FAITest_SimpleAct
 		Logger.ExpectedValues.Add(ETestPawnActionMessage::Started);
 		UWorld& World = GetWorld();
 		
-		ActionsComponent->PushAction(UTestPawnAction_Log::CreateAction(World, Logger), EAIRequestPriority::Logic);
-		ActionsComponent->PushAction(UTestPawnAction_Log::CreateAction(World, Logger), EAIRequestPriority::Logic);
-		ActionsComponent->PushAction(UTestPawnAction_Log::CreateAction(World, Logger), EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*UTestPawnAction_Log::CreateAction(World, Logger), EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*UTestPawnAction_Log::CreateAction(World, Logger), EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*UTestPawnAction_Log::CreateAction(World, Logger), EAIRequestPriority::Logic);
 		UPawnAction* LastAction = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(LastAction, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*LastAction, EAIRequestPriority::Logic);
 		
 		Test(TEXT("Action queue should be empty."), ActionsComponent->GetActionEventsQueueSize() == 4);
 
@@ -256,10 +257,10 @@ struct FAITest_PawnActions_Aborting : public FAITest_SimpleActionsTest
 
 		UWorld& World = GetWorld();
 		UTestPawnAction_Log* Action = UTestPawnAction_Log::CreateAction(World, Logger);
-		ActionsComponent->PushAction(Action, EAIRequestPriority::Logic);
+		ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic);
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
-		ActionsComponent->AbortAction(Action);
+		ActionsComponent->AbortAction(*Action);
 		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
 
 		Test(TEXT("There should be no actions on the stack."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 0);
@@ -270,4 +271,99 @@ struct FAITest_PawnActions_Aborting : public FAITest_SimpleActionsTest
 };
 IMPLEMENT_AI_TEST(FAITest_PawnActions_Aborting, "Engine.AI.Pawn Actions.Basic aborting mechanics")
 
-//struct FAITest_PawnActions_InstantFinish : public FAITest_SimpleActionsTest
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+struct FAITest_PawnActions_PushAndAbort : public FAITest_SimpleActionsTest
+{
+	bool Update()
+	{
+		UWorld& World = GetWorld();
+		UTestPawnAction_Log* Action = UTestPawnAction_Log::CreateAction(World, Logger);
+		ActionsComponent->PushAction(*Action, EAIRequestPriority::Logic);
+		ActionsComponent->AbortAction(*Action);
+
+		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
+
+		Test(TEXT("There should be no actions on the stack."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 0);
+		Test(TEXT("There should be no current action"), ActionsComponent->GetCurrentAction() == nullptr);
+		Test(TEXT("No actuall work should have been done"), Logger.LoggedValues.Num() == 0);
+
+		return true;
+	}
+};
+IMPLEMENT_AI_TEST(FAITest_PawnActions_PushAndAbort, "Engine.AI.Pawn Actions.Push and Abort same frame")
+
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+struct FAITest_PawnActions_AbortAfterPushingNewAction : public FAITest_SimpleActionsTest
+{
+	bool Update()
+	{
+		Logger.ExpectedValues.Add(ETestPawnActionMessage::Started);
+		Logger.ExpectedValues.Add(ETestPawnActionMessage::Finished);
+		Logger.ExpectedValues.Add(ETestPawnActionMessage::Started);
+
+		UWorld& World = GetWorld();
+		UTestPawnAction_Log* FirstAction = UTestPawnAction_Log::CreateAction(World, Logger);
+		ActionsComponent->PushAction(*FirstAction, EAIRequestPriority::Logic);
+		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
+		
+		UTestPawnAction_Log* SecondAction = UTestPawnAction_Log::CreateAction(World, Logger);
+		ActionsComponent->PushAction(*SecondAction, EAIRequestPriority::Logic);		
+		ActionsComponent->AbortAction(*FirstAction);
+
+		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
+
+		Test(TEXT("There should be exactly one action on stack."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 1);
+		Test(TEXT("Last pushed action should be the active one"), ActionsComponent->GetCurrentAction() == SecondAction);
+
+		return true;
+	}
+};
+IMPLEMENT_AI_TEST(FAITest_PawnActions_AbortAfterPushingNewAction, "Engine.AI.Pawn Actions.Abort action after a newer action has been pushed")
+
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+struct FAITest_PawnActions_ActionPushingActions : public FAITest_SimpleActionsTest
+{
+	static void CreateNewAction(UPawnActionsComponent& ActionsComponent, UTestPawnAction_CallFunction& Caller, ETestPawnActionMessage::Type Message)
+	{
+		if (Message == ETestPawnActionMessage::Started)
+		{
+			UTestPawnAction_Log* NextAction = UTestPawnAction_Log::CreateAction(*Caller.GetWorld(), *Caller.Logger);
+			ActionsComponent.PushAction(*NextAction, Caller.GetPriority());
+		}
+	}
+
+	bool Update()
+	{
+		Logger.ExpectedValues.Add(ETestPawnActionMessage::Started);
+		Logger.ExpectedValues.Add(ETestPawnActionMessage::Paused);
+		Logger.ExpectedValues.Add(ETestPawnActionMessage::Started);
+
+		UWorld& World = GetWorld();
+		UTestPawnAction_CallFunction* RootAction = UTestPawnAction_CallFunction::CreateAction(World, Logger, &FAITest_PawnActions_ActionPushingActions::CreateNewAction);
+		ActionsComponent->PushAction(*RootAction, EAIRequestPriority::Logic);
+
+		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
+
+		Test(TEXT("There should be exactly one action on stack."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 1);
+		Test(TEXT("Root action action be the active one"), ActionsComponent->GetCurrentAction() == RootAction);
+		Test(TEXT("There should be exactly one action event pending"), ActionsComponent->GetActionEventsQueueSize() == 1);
+
+		ActionsComponent->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
+
+		Test(TEXT("There should be exactly one action on stack."), ActionsComponent->GetActionStackSize(EAIRequestPriority::Logic) == 2);
+		Test(TEXT("Root action action be the active one"), ActionsComponent->GetCurrentAction() != RootAction);
+		Test(TEXT("There should be exactly one action event pending"), ActionsComponent->GetActionEventsQueueSize() == 0);
+
+		return true;
+	}
+};
+IMPLEMENT_AI_TEST(FAITest_PawnActions_ActionPushingActions, "Engine.AI.Pawn Actions.Action pushing Actions")
+
+// scenarios to test
+// * Push, wait for Start and Abort instantly. Implement a special action that will finish in X tick with result Y

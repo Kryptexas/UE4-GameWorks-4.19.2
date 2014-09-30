@@ -94,6 +94,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 #endif
 	/** End EQS replication data */
 
+	UPROPERTY(Replicated)
+	FVector SensingComponentLocation;
+
 	uint32 bDrawEQSLabels:1;
 	uint32 bDrawEQSFailedItems : 1;
 

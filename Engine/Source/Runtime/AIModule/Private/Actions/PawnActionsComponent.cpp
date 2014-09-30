@@ -52,14 +52,10 @@ namespace
 	};
 }
 
-FPawnActionEvent::FPawnActionEvent(UPawnAction* InAction, EPawnActionEventType::Type InEventType, uint32 InIndex)
-	: Action(InAction), EventType(InEventType), Index(InIndex)
+FPawnActionEvent::FPawnActionEvent(UPawnAction& InAction, EPawnActionEventType::Type InEventType, uint32 InIndex)
+	: Action(&InAction), EventType(InEventType), Index(InIndex)
 {
-	ensure(InAction);
-	if (InAction)
-	{
-		Priority = InAction->GetPriority();
-	}
+	Priority = InAction.GetPriority();
 }
 
 //----------------------------------------------------------------------//
@@ -82,42 +78,37 @@ void FPawnActionStack::Resume()
 	}
 }
 
-void FPawnActionStack::PushAction(UPawnAction* NewTopAction)
+void FPawnActionStack::PushAction(UPawnAction& NewTopAction)
 {
 	if (TopAction != NULL)
 	{
 		if (TopAction->IsPaused() == false && TopAction->HasBeenStarted() == true)
 		{
-			TopAction->Pause(NewTopAction);
+			TopAction->Pause(&NewTopAction);
 		}
 		ensure(TopAction->ChildAction == NULL);
-		TopAction->ChildAction = NewTopAction;
-		NewTopAction->ParentAction = TopAction;
+		TopAction->ChildAction = &NewTopAction;
+		NewTopAction.ParentAction = TopAction;
 	}
 
-	TopAction = NewTopAction;
-	NewTopAction->OnPushed();
+	TopAction = &NewTopAction;
+	NewTopAction.OnPushed();
 }
 
-void FPawnActionStack::PopAction(UPawnAction* ActionToPop)
+void FPawnActionStack::PopAction(UPawnAction& ActionToPop)
 {
-	if (ActionToPop == NULL)
-	{
-		return;
-	}
-
 	// first check if it's there
 	UPawnAction* CutPoint = TopAction;
-	while (CutPoint != NULL && CutPoint != ActionToPop)
+	while (CutPoint != NULL && CutPoint != &ActionToPop)
 	{
 		CutPoint = CutPoint->ParentAction;
 	}
 
-	if (CutPoint == ActionToPop)
+	if (CutPoint == &ActionToPop)
 	{
 		UPawnAction* ActionBeingRemoved = TopAction;
 		// note StopAction can be null
-		UPawnAction* StopAction = ActionToPop->ParentAction;
+		UPawnAction* StopAction = ActionToPop.ParentAction;
 
 		while (ActionBeingRemoved != StopAction)
 		{
@@ -131,7 +122,7 @@ void FPawnActionStack::PopAction(UPawnAction* ActionToPop)
 			ActionBeingRemoved->OnPopped();
 			if (ActionBeingRemoved->ParentAction)
 			{
-				ActionBeingRemoved->ParentAction->OnChildFinished(ActionBeingRemoved, ActionBeingRemoved->FinishResult);
+				ActionBeingRemoved->ParentAction->OnChildFinished(*ActionBeingRemoved, ActionBeingRemoved->FinishResult);
 			}
 			ActionBeingRemoved = NextAction;
 		}
@@ -194,10 +185,10 @@ void UPawnActionsComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			case EPawnActionEventType::FinishedAborting:
 			case EPawnActionEventType::FinishedExecution:
 			case EPawnActionEventType::FailedToStart:
-				ActionStacks[Event.Priority].PopAction(Event.Action);
+				ActionStacks[Event.Priority].PopAction(*Event.Action);
 				break;
 			case EPawnActionEventType::Push:
-				ActionStacks[Event.Priority].PushAction(Event.Action);
+				ActionStacks[Event.Priority].PushAction(*Event.Action);
 				break;
 			default:
 				break;
@@ -312,26 +303,52 @@ void UPawnActionsComponent::UpdateAILogicLock()
 	}
 }
 
-bool UPawnActionsComponent::AbortAction(UPawnAction* ActionToAbort)
+EPawnActionAbortState::Type UPawnActionsComponent::K2_AbortAction(UPawnAction* ActionToAbort)
 {
-	if (ActionToAbort == NULL)
+	if (ActionToAbort != NULL)
 	{
-		return false;
+		return AbortAction(*ActionToAbort);
 	}
-
-	ActionToAbort->Abort(EAIForceParam::DoNotForce);
-	return true;
+	return EPawnActionAbortState::NeverStarted;
 }
 
-bool UPawnActionsComponent::ForceAbortAction(UPawnAction* ActionToAbort)
+EPawnActionAbortState::Type UPawnActionsComponent::AbortAction(UPawnAction& ActionToAbort)
 {
-	if (ActionToAbort == NULL)
+	const EPawnActionAbortState::Type AbortState = ActionToAbort.Abort(EAIForceParam::DoNotForce);
+	if (AbortState == EPawnActionAbortState::NeverStarted)
 	{
-		return false;
+		// this is a special case. It's possible someone tried to abort an action that 
+		// has just requested to be pushes and the push event has not been processed yet.
+		// in such a case we'll look through the awaiting action events and remove a push event 
+		// for given ActionToAbort
+		RemoveEventsForAction(ActionToAbort);
 	}
+	return AbortState;
+}
 
-	ActionToAbort->Abort(EAIForceParam::Force);
-	return true;
+void UPawnActionsComponent::RemoveEventsForAction(UPawnAction& PawnAction)
+{
+	for (int32 ActionIndex = ActionEvents.Num() - 1; ActionIndex >= 0; --ActionIndex)
+	{
+		if (ActionEvents[ActionIndex].Action == &PawnAction)
+		{
+			ActionEvents.RemoveAtSwap(ActionIndex, /*Count=*/1, /*bAllowShrinking=*/false);
+		}
+	}
+}
+
+EPawnActionAbortState::Type UPawnActionsComponent::K2_ForceAbortAction(UPawnAction* ActionToAbort)
+{
+	if (ActionToAbort)
+	{
+		ForceAbortAction(*ActionToAbort);
+	}
+	return EPawnActionAbortState::NeverStarted;
+}
+
+EPawnActionAbortState::Type UPawnActionsComponent::ForceAbortAction(UPawnAction& ActionToAbort)
+{
+	return ActionToAbort.Abort(EAIForceParam::Force);
 }
 
 uint32 UPawnActionsComponent::AbortActionsInstigatedBy(UObject* const Instigator, EAIRequestPriority::Type Priority)
@@ -363,31 +380,34 @@ uint32 UPawnActionsComponent::AbortActionsInstigatedBy(UObject* const Instigator
 	return AbortedActionsCount;
 }
 
-bool UPawnActionsComponent::PushAction(UPawnAction* NewAction, EAIRequestPriority::Type Priority, UObject* const Instigator)
+bool UPawnActionsComponent::K2_PushAction(UPawnAction* NewAction, EAIRequestPriority::Type Priority, UObject* Instigator)
 {
-	if (NewAction->HasBeenStarted() == false)
+	if (NewAction)
 	{
-		NewAction->ExecutionPriority = Priority;
-		NewAction->SetOwnerComponent(this);
-		NewAction->SetInstigator(Instigator);
+		return PushAction(*NewAction, Priority, Instigator);
+	}
+	return false;
+}
+
+bool UPawnActionsComponent::PushAction(UPawnAction& NewAction, EAIRequestPriority::Type Priority, UObject* Instigator)
+{
+	if (NewAction.HasBeenStarted() == false)
+	{
+		NewAction.ExecutionPriority = Priority;
+		NewAction.SetOwnerComponent(this);
+		NewAction.SetInstigator(Instigator);
 		return OnEvent(NewAction, EPawnActionEventType::Push);
 	}
 
 	return false;
 }
 
-bool UPawnActionsComponent::OnEvent(UPawnAction* Action, EPawnActionEventType::Type Event)
+bool UPawnActionsComponent::OnEvent(UPawnAction& Action, EPawnActionEventType::Type Event)
 {
+	bool bResult = false;
 	const FPawnActionEvent ActionEvent(Action, Event, ActionEventIndex++);
 
-	if (Action == NULL || Event == EPawnActionEventType::Invalid)
-	{
-		// ignore
-		UE_VLOG(ControlledPawn, LogPawnAction, Warning, TEXT("Ignoring Action Event: Action %s Event %s")
-			, *GetNameSafe(Action), *GetEventName(Event));
-		return false;
-	}
-	else if (ActionEvents.Find(ActionEvent) == INDEX_NONE)
+	if (Event != EPawnActionEventType::Invalid && ActionEvents.Find(ActionEvent) == INDEX_NONE)
 	{
 		ActionEvents.Add(ActionEvent);
 
@@ -397,13 +417,21 @@ bool UPawnActionsComponent::OnEvent(UPawnAction* Action, EPawnActionEventType::T
 			SetComponentTickEnabled(true);
 		}
 
-		return true;
+		bResult = true;
+	}
+	else if (Event == EPawnActionEventType::Invalid)
+	{
+		// ignore
+		UE_VLOG(ControlledPawn, LogPawnAction, Warning, TEXT("Ignoring Action Event: Action %s Event %s")
+			, *Action.GetName(), *GetEventName(Event));
+	}
+	else
+	{
+		UE_VLOG(ControlledPawn, LogPawnAction, Warning, TEXT("Ignoring duplicate Action Event: Action %s Event %s")
+			, *Action.GetName(), *GetEventName(Event));
 	}
 
-	UE_VLOG(ControlledPawn, LogPawnAction, Warning, TEXT("Ignoring duplicate Action Event: Action %s Event %s")
-		, *GetNameSafe(Action), *GetEventName(Event));
-
-	return false;
+	return bResult;
 }
 
 void UPawnActionsComponent::SetControlledPawn(APawn* NewPawn)
@@ -444,15 +472,24 @@ APawn* UPawnActionsComponent::CacheControlledPawn()
 //----------------------------------------------------------------------//
 // blueprint interface
 //----------------------------------------------------------------------//
-bool UPawnActionsComponent::PerformAction(APawn* Pawn, UPawnAction* Action, TEnumAsByte<EAIRequestPriority::Type> Priority)
+bool UPawnActionsComponent::K2_PerformAction(APawn* Pawn, UPawnAction* Action, TEnumAsByte<EAIRequestPriority::Type> Priority)
+{
+	if (Pawn && Action)
+	{
+		PerformAction(*Pawn, *Action, Priority);
+	}
+	return false;
+}
+
+bool UPawnActionsComponent::PerformAction(APawn& Pawn, UPawnAction& Action, TEnumAsByte<EAIRequestPriority::Type> Priority)
 {
 	bool bSuccess = false;
 
 	ensure(Priority < EAIRequestPriority::MAX);
 
-	if (Pawn && Pawn->GetController() && Action)
+	if (Pawn.GetController())
 	{
-		UPawnActionsComponent* ActionComp = Pawn->GetController()->FindComponentByClass<UPawnActionsComponent>();
+		UPawnActionsComponent* ActionComp = Pawn.GetController()->FindComponentByClass<UPawnActionsComponent>();
 		if (ActionComp)
 		{
 			ActionComp->PushAction(Action, Priority);

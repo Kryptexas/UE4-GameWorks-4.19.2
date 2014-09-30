@@ -50,6 +50,13 @@ void FBlackboardDataDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayou
 				]
 			];
 
+#if WITH_EDITORONLY_DATA
+// 			TSharedPtr<IPropertyHandle> EntryDescriptionHandle = ElementProperty->GetChildHandle("EntryDescription");
+			TSharedPtr<IPropertyHandle> EntryDescriptionHandle = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, EntryDescription));
+
+			DetailCategoryBuilder.AddProperty(EntryDescriptionHandle);
+#endif
+
 			TSharedPtr<IPropertyHandle> KeyTypeProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, KeyType));
 			DetailCategoryBuilder.AddProperty(KeyTypeProperty);
 		}	

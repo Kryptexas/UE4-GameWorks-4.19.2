@@ -15,10 +15,10 @@ SWidget::SWidget()
 	, Visibility( EVisibility::Visible )
 	, RenderTransform( )
 	, RenderTransformPivot( FVector2D::ZeroVector )
+	, bIsHovered(false)
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
 	, bToolTipForceFieldEnabled( false )
-	, bIsHovered( false )
 {
 
 }
