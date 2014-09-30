@@ -92,6 +92,9 @@ struct FPlatformMemoryStats;
 /** Generic implementation for most platforms, these tend to be unused and unimplemented. */
 struct CORE_API FGenericPlatformMemory
 {
+	/** Set to true if we encounters out of memory. */
+	static bool bIsOOM;
+
 	/**
 	 * Various memory regions that can be used with memory stats. The exact meaning of
 	 * the enums are relatively platform-dependent, although the general ones (Physical, GPU)
