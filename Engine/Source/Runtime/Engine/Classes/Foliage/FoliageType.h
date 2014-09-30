@@ -108,10 +108,15 @@ class UFoliageType : public UObject
 	UPROPERTY(EditAnywhere, Category=Painting)
 	uint32 VertexColorMaskInvert:1;
 
+	/* The maximum number of instances that can be placed in a single cluster component and rendered in a single draw call */
 	UPROPERTY(EditAnywhere, Category=Clustering)
 	int32 MaxInstancesPerCluster;
 
-	UPROPERTY(EditAnywhere, Category=Clustering)
+	/**
+	 * Determines the maximum size of a cluster of instances, rendered as a single component in a single draw call.
+	 * A smaller size will improve culling at the expense of more draw calls.
+	 */
+	UPROPERTY(EditAnywhere, Category = Clustering)
 	float MaxClusterRadius;
 
 	UPROPERTY()
@@ -159,10 +164,15 @@ class UFoliageType : public UObject
 	UPROPERTY()
 	uint32 ReapplyVertexColorMask:1;
 
+	/* The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables. */
 	UPROPERTY(EditAnywhere, Category=Culling)
 	int32 StartCullDistance;
 
-	UPROPERTY(EditAnywhere, Category=Culling)
+	/**
+	 * The distance where instances will have completely faded out when using a PerInstanceFadeAmount material node. 0 disables. 
+	 * When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.
+	 */
+	UPROPERTY(EditAnywhere, Category = Culling)
 	int32 EndCullDistance;
 
 	UPROPERTY()
@@ -216,7 +226,7 @@ class UFoliageType : public UObject
 	UPROPERTY(EditAnywhere, Category=Collision, meta=(HideObjectType=true))
 	struct FBodyInstance BodyInstance;
 
-	// Gets the mesh associated with this FoliageType
+	/* Gets the mesh associated with this FoliageType */
 	virtual UStaticMesh* GetStaticMesh() PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
 };
 

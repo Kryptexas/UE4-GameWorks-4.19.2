@@ -102,13 +102,13 @@ namespace ELandscapeConvertMode
 	{
 		//Invalid = -1,
 
-		// Adds data to the edge of the landscape to get to a whole number of components
+		// Given the new component size, the edges of the landscape will be expanded as necessary until its overall size is a whole number of landscape components.
 		Expand = 0,
 
-		// Removes data from the edge of the landscape to get to a whole number of components
+		// Given the new component size, the edges of the landscape will be trimmed until its overall size is a whole number of landscape components.
 		Clip = 1,
 
-		// Keeps the landscape the same size with the same number of components, resamples the heightmap/weightmaps to the new resolution
+		// The landscape will have the same overall size in the world, and have the same number of components. Existing landscape geometry and layer data will be resampled to match the new resolution.
 		Resample = 2,
 	};
 }
@@ -380,7 +380,7 @@ class ULandscapeEditorObject : public UObject
 	UPROPERTY(Category="Change Component Size", EditAnywhere, NonTransactional, meta=(DisplayName="Number of Components", ShowForTools="ResizeLandscape"))
 	FIntPoint ResizeLandscape_ComponentCount;
 
-	// 
+	// Determines how the new component size will be applied to the existing landscape geometry.
 	UPROPERTY(Category="Change Component Size", EditAnywhere, NonTransactional, meta=(DisplayName="Resize Mode", ShowForTools="ResizeLandscape"))
 	TEnumAsByte<ELandscapeConvertMode::Type> ResizeLandscape_ConvertMode;
 

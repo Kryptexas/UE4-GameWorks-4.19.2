@@ -65,6 +65,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 				SNew(STextBlock)
 				.Font(DetailBuilder.GetDetailFont())
 				.Text(LOCTEXT("Original", "Original"))
+				.ToolTipText(LOCTEXT("Original_Tip", "The properties of the landscape as it currently exists"))
 			]
 			+ SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
@@ -73,6 +74,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 				SNew(STextBlock)
 				.Font(DetailBuilder.GetDetailFont())
 				.Text(LOCTEXT("New", "New"))
+				.ToolTipText(LOCTEXT("New_Tip", "The properties the landscape will have after the resize operation is completed"))
 			]
 		]
 	];
@@ -208,6 +210,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
 			.Text(LOCTEXT("Resolution", "Overall Resolution"))
+			.ToolTipText(LOCTEXT("Resolution_Tip", "Overall resolution of the entire landscape in vertices"))
 		]
 	]
 	.ValueContent()
@@ -247,6 +250,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
 			.Text(LOCTEXT("TotalComponents", "Total Components"))
+			.ToolTipText(LOCTEXT("TotalComponents_Tip", "The total number of components in the landscape"))
 		]
 	]
 	.ValueContent()

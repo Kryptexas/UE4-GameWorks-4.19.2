@@ -114,7 +114,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 				SNew(STextBlock)
 				.Font(DetailBuilder.GetDetailFont())
 				.ShadowOffset(FVector2D::UnitVector)
-				.Text(LOCTEXT("Ramp.Hint", "Ctrl+Click to add ramp points, then press \"Add Ramp\"."))
+				.Text(LOCTEXT("Ramp.Hint", "Click to add ramp points, then press \"Add Ramp\"."))
 			]
 		];
 		ToolsCategory.AddCustomRow("Apply Ramp")
