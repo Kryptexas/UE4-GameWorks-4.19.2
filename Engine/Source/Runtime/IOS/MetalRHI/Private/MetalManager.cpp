@@ -193,7 +193,7 @@ FMetalManager::FMetalManager()
 	AutoReleasePoolTLSSlot = FPlatformTLS::AllocTlsSlot();
 
     FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
-    FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 2 );
+    FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 1 );
     
 	InitFrame();
 }
@@ -323,7 +323,7 @@ void FMetalManager::EndFrame(bool bPresent)
 		dispatch_semaphore_signal(CommandBufferSemaphore);
 	 }];
     
-	// Wait until at least 2 VBlanks has passed since last time
+	// Wait until at least a VBlank has passed since last time
     FrameReadyEvent->Wait();
 
 	// Commit before waiting to avoid leaving the gpu idle
