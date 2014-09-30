@@ -63,6 +63,9 @@ class STutorialContent : public SCompoundWidget
 	/** Delegate for querying whether a widget was drawn */
 	SLATE_EVENT(FOnWasWidgetDrawn, OnWasWidgetDrawn)
 
+	/** Text to display on next/home button */
+	SLATE_ATTRIBUTE(FText, NextButtonText)
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UEditorTutorial* InTutorial, const FTutorialContent& InContent);
@@ -142,7 +145,10 @@ private:
 	FText GetNextButtonTooltip() const;
 
 	/** Change next button color based on hover state */
-	FSlateColor GetNextButtonColor() const;
+	FText GetNextButtonLabel() const;
+
+	/** We need to override the border ourselves, rather than let the button handle it, as we are using a larger apparent hitbox */
+	const FSlateBrush* GetNextButtonBorder() const;
 
 private:
 
@@ -218,4 +224,7 @@ private:
 
 	/** Delegate for querying whether a widget was drawn */
 	FOnWasWidgetDrawn OnWasWidgetDrawn;
+
+	/** Text for next/home button */
+	TAttribute<FText> NextButtonText;
 };

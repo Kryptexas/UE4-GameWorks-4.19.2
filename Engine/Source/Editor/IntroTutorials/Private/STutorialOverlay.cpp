@@ -82,7 +82,8 @@ void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 						.WrapTextAt(WidgetContent.ContentWidth)
 						.Anchor(WidgetContent.WidgetAnchor)
 						.AllowNonWidgetContent(InArgs._AllowNonWidgetContent)
-						.OnWasWidgetDrawn(InArgs._OnWasWidgetDrawn);
+						.OnWasWidgetDrawn(InArgs._OnWasWidgetDrawn)
+						.NextButtonText(InStage->NextButtonText);
 					
 					PerformWidgetInteractions(WidgetContent); 					
 

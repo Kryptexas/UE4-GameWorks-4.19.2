@@ -19,7 +19,7 @@ namespace TutorialConstants
 	const float ShadowScale = 8.0f;
 	const float MaxBorderOffset = 8.0f;
 	const FMargin BorderSizeStandalone(24.0f, 24.0f);
-	const FMargin BorderSize(24.0f, 24.0f, 24.0f, 42.0f);
+	const FMargin BorderSize(24.0f, 24.0f, 24.0f, 52.0f);
 }
 
 const float ContentOffset = 10.0f;
@@ -29,7 +29,7 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 	bIsVisible = Anchor.Type == ETutorialAnchorIdentifier::None;
 
 	Tutorial = InTutorial;
-
+	
 	VerticalAlignment = InArgs._VAlign;
 	HorizontalAlignment = InArgs._HAlign;
 	WidgetOffset = InArgs._Offset;
@@ -44,6 +44,7 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 	Anchor = InArgs._Anchor;
 	bAllowNonWidgetContent = InArgs._AllowNonWidgetContent;
 	OnWasWidgetDrawn = InArgs._OnWasWidgetDrawn;
+	NextButtonText = InArgs._NextButtonText;
 
 	BorderIntroAnimation.AddCurve(0.0f, TutorialConstants::BorderIntroAnimationLength, ECurveEaseFunction::CubicOut);
 	BorderPulseAnimation.AddCurve(0.0f, TutorialConstants::BorderPulseAnimationLength, ECurveEaseFunction::Linear);
@@ -142,21 +143,40 @@ void STutorialContent::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 			+SOverlay::Slot()
 			.VAlign(VAlign_Bottom)
 			.HAlign(HAlign_Right)
-			.Padding(8.0f)
+			.Padding(12.0f)
 			[
 				SAssignNew(NextButton, SButton)
 				.ToolTipText(this, &STutorialContent::GetNextButtonTooltip)
 				.OnClicked(this, &STutorialContent::HandleNextClicked)
 				.Visibility(this, &STutorialContent::GetMenuButtonVisibility)
-				.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Navigation.Button"))
+				.ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationButtonWrapper"))
 				.ContentPadding(0.0f)
 				[
 					SNew(SBox)
 					.Padding(8.0f)
 					[
-						SNew(SImage)
-						.Image(this, &STutorialContent::GetNextButtonBrush)
-						.ColorAndOpacity(this, &STutorialContent::GetNextButtonColor)
+						SNew(SBorder)
+						.BorderImage(this, &STutorialContent::GetNextButtonBorder)
+						[
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							.VAlign(VAlign_Center)
+							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+							[
+								SNew(STextBlock)
+								.Text(this, &STutorialContent::GetNextButtonLabel)
+								.TextStyle(FEditorStyle::Get(), "Tutorials.Content.NavigationText")
+								.ColorAndOpacity(FLinearColor::White)
+							]
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Image(this, &STutorialContent::GetNextButtonBrush)
+								.ColorAndOpacity(FLinearColor::White)
+							]
+						]
 					]
 				]
 			]
@@ -646,9 +666,28 @@ FText STutorialContent::GetNextButtonTooltip() const
 	}
 }
 
-FSlateColor STutorialContent::GetNextButtonColor() const
+FText STutorialContent::GetNextButtonLabel() const
 {
-	return NextButton->IsHovered() ? FLinearColor(0.1f, 0.1f, 0.1f, 1.0f) : FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	if(!NextButtonText.Get().IsEmpty())
+	{
+		return NextButtonText.Get();
+	}
+	else
+	{
+		if(IsNextEnabled.Get())
+		{
+			return LOCTEXT("DefaultNextButtonLabel", "Next");
+		}
+		else
+		{
+			return LOCTEXT("DefaultHomeButtonLabel", "Home");
+		}
+	}
+}
+
+const FSlateBrush* STutorialContent::GetNextButtonBorder() const
+{
+	return NextButton->IsHovered() ? &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationButton").Hovered : &FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Tutorials.Content.NavigationButton").Normal;
 }
 
 FReply STutorialContent::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
