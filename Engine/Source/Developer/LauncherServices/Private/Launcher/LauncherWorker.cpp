@@ -199,7 +199,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		*InitialMap,
 //		*InstanceId.ToString(),
 		*SessionId.ToString(),
-		FPlatformProcess::UserName(false),
+		FPlatformProcess::UserName(true),
 		*InProfile->GetName());
 
 	// staging directory
