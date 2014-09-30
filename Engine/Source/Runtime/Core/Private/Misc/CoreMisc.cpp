@@ -957,6 +957,12 @@ void GenerateConvenientWindowedResolutions(const FDisplayMetrics& InDisplayMetri
 			}
 		}
 	}
+	
+	// if no convenient resolutions have been found, add a minimum one (if it fits)
+	if (OutResolutions.Num() == 0 && InDisplayMetrics.PrimaryDisplayHeight > MinHeight && InDisplayMetrics.PrimaryDisplayWidth > MinWidth)
+	{
+		OutResolutions.Add(FIntPoint(MinWidth, MinHeight));
+	}
 }
 
 /*----------------------------------------------------------------------------
