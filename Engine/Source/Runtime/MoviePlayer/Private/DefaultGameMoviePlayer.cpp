@@ -27,16 +27,26 @@ TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::Get()
 }
 
 FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
-	: SyncMechanism(NULL)
+	: FTickableObjectRenderThread(false)
+	, SyncMechanism(NULL)
 	, MovieStreamingIsDone(0)
 	, LoadingIsDone(0)
 	, bUserCalledFinish(false)
 	, LoadingScreenAttributes()
 	, LastPlayTime(0.0)
+	, bInitialized(false)
 {
 }
 
-FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer() {}
+FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
+{
+	if( bInitialized )
+	{
+		// This should not happen if initialize was called correctly.  This is a fallback to ensure that the movie player rendering tickable gets unregistered on the rendering thread correctly
+		Shutdown();
+		FlushRenderingCommands();
+	}
+}
 
 void FDefaultGameMoviePlayer::RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer)
 {
@@ -50,6 +60,13 @@ void FDefaultGameMoviePlayer::SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlat
 
 void FDefaultGameMoviePlayer::Initialize()
 {
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(RegisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
+	{
+		MoviePlayer->Register();
+	});
+
+	bInitialized = true;
+
 	// Initialize shaders, because otherwise they might not be guaranteed to exist at this point
 	if (!FPlatformProperties::RequiresCookedData())
 	{
@@ -107,6 +124,34 @@ void FDefaultGameMoviePlayer::Initialize()
 	LoadingScreenWindowPtr = GameWindow;
 }
 
+void FDefaultGameMoviePlayer::Shutdown()
+{
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UnregisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
+	{
+		MoviePlayer->Unregister();
+	});
+
+	bInitialized = false;
+
+	FCoreDelegates::PreLoadMap.RemoveAll( this );
+
+	LoadingScreenContents.Reset();
+	LoadingScreenWidgetHolder.Reset();
+	LoadingScreenWindowPtr.Reset();
+
+	MovieStreamer.Reset();
+
+	LoadingScreenAttributes = FLoadingScreenAttributes();
+
+	if( SyncMechanism)
+	{
+		SyncMechanism->DestroySlateThread();
+		delete SyncMechanism;
+		SyncMechanism = NULL;
+	}
+
+}
 void FDefaultGameMoviePlayer::PassLoadingScreenWindowBackToGame() const
 {
 	auto GameEngine = Cast<UGameEngine>(GEngine);
@@ -158,6 +203,7 @@ void FDefaultGameMoviePlayer::StopMovie()
 {
 	LastPlayTime = 0;
 	bUserCalledFinish = true;
+	LoadingScreenWidgetHolder->SetContent( SNullWidget::NullWidget );
 }
 
 void FDefaultGameMoviePlayer::WaitForMovieToFinish()
@@ -196,6 +242,7 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 			}
 		}
 
+		LoadingScreenWidgetHolder->SetContent( SNullWidget::NullWidget );
 
 		LoadingIsDone.Set(1);
 

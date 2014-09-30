@@ -1889,6 +1889,8 @@ void FEngineLoop::Exit()
 	GIsRunning	= 0;
 	GLogConsole	= NULL;
 
+	GetMoviePlayer()->Shutdown();
+
 	// Make sure we're not in the middle of loading something.
 	FlushAsyncLoading();
 
