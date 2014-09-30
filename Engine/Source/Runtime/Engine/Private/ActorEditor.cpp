@@ -377,14 +377,16 @@ void AActor::EditorApplyScale( const FVector& DeltaScale, const FVector* PivotLo
 {
 	if( RootComponent != NULL )
 	{
+		const FVector CurrentScale = GetRootComponent()->RelativeScale3D;
+
 		// @todo: Remove this hack once we have decided on the scaling method to use.
 		if( AActor::bUsePercentageBasedScaling )
 		{
-			GetRootComponent()->SetRelativeScale3D( GetRootComponent()->RelativeScale3D + DeltaScale * GetRootComponent()->RelativeScale3D );
+			GetRootComponent()->SetRelativeScale3D(CurrentScale + DeltaScale * CurrentScale);
 		}
 		else
 		{
-			GetRootComponent()->SetRelativeScale3D( GetRootComponent()->RelativeScale3D + DeltaScale );
+			GetRootComponent()->SetRelativeScale3D(CurrentScale + DeltaScale * CurrentScale.GetSignVector());
 		}
 
 		if( PivotLocation )

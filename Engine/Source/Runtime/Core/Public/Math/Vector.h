@@ -467,7 +467,7 @@ public:
 	 *
 	 * @param A copy of the vector with each component set to +1 or -1
 	 */
-	FORCEINLINE FVector GetSignVector();
+	FORCEINLINE FVector GetSignVector() const;
 
 	/**
 	 * Projects 2D components of vector based on Z.
@@ -1376,7 +1376,7 @@ FORCEINLINE void FVector::ToDirectionAndLength(FVector &OutDir, float &OutLength
 	}
 }
 
-FORCEINLINE FVector FVector::GetSignVector()
+FORCEINLINE FVector FVector::GetSignVector() const
 {
 	return FVector
 		(
