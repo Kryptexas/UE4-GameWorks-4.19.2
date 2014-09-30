@@ -37,6 +37,7 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 	[
 		SAssignNew( SuggestionBox, SMenuAnchor )
 		.Placement( InArgs._SuggestionListPlacement )
+		.Method( SMenuAnchor::UseCurrentWindow )
 		[
 			SAssignNew(InputText, SSearchBox)
 			.OnTextCommitted(this, &SSuperSearchBox::OnTextCommitted)
