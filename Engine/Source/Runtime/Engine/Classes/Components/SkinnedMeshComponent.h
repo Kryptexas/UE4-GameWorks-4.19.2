@@ -59,6 +59,21 @@ namespace EMeshComponentUpdateFlag
 	};
 }
 
+/** Flag for specifying bone space */
+UENUM()
+namespace EBoneSpaces
+{
+	enum Type
+	{
+		/** Set absolute position of bone in world space */
+		WorldSpace		UMETA(DisplayName = "World Space"),
+		/** Set position of bone in components reference frame */
+		ComponentSpace	UMETA(DisplayName = "Component Space"),
+		/** Set position of bone relative to parent bone */
+		//LocalSpace		UMETA( DisplayName = "Parent Bone Space" ),
+	};
+}
+
 //
 // Vertex Anim
 //
@@ -674,7 +689,7 @@ public:
 	 * 
 	 * @return Quaternion of the bone
 	 */
-	FQuat GetBoneQuaternion( FName BoneName, int32 Space = 0 ) const; 
+	FQuat GetBoneQuaternion(FName BoneName, EBoneSpaces::Type Space = EBoneSpaces::WorldSpace) const;
 
 	/** Get Bone Location
 	 *
@@ -683,7 +698,7 @@ public:
 	 * 
 	 * @return Vector of the bone
 	 */
-	FVector GetBoneLocation( FName BoneName, int32 Space = 0 ) const; 
+	FVector GetBoneLocation( FName BoneName, EBoneSpaces::Type Space = EBoneSpaces::WorldSpace) const; 
 
 	/** 
 	 * Fills the given array with the names of all the bones in this component's current SkeletalMesh 

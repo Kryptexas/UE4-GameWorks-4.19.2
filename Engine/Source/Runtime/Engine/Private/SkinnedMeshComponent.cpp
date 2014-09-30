@@ -1050,7 +1050,7 @@ FName USkinnedMeshComponent::GetSocketBoneName(FName InSocketName)
 }
 
 
-FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, int32 Space) const
+FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, EBoneSpaces::Type Space) const
 {
 	int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -1061,7 +1061,7 @@ FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, int32 Space) cons
 	}
 
 	FTransform BoneTransform;
-	if( Space == 1 )
+	if( Space == EBoneSpaces::ComponentSpace )
 	{
 		if(MasterPoseComponent.IsValid())
 		{
@@ -1099,7 +1099,7 @@ FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, int32 Space) cons
 }
 
 
-FVector USkinnedMeshComponent::GetBoneLocation( FName BoneName, int32 Space ) const
+FVector USkinnedMeshComponent::GetBoneLocation(FName BoneName, EBoneSpaces::Type Space) const
 {
 	int32 BoneIndex = GetBoneIndex(BoneName);
 	if( BoneIndex == INDEX_NONE )
@@ -1108,8 +1108,7 @@ FVector USkinnedMeshComponent::GetBoneLocation( FName BoneName, int32 Space ) co
 		return FVector::ZeroVector;
 	}
 
-	// If space == Local
-	if( Space == 1 )
+	if( Space == EBoneSpaces::ComponentSpace )
 	{
 		if(MasterPoseComponent.IsValid())
 		{
@@ -1132,10 +1131,15 @@ FVector USkinnedMeshComponent::GetBoneLocation( FName BoneName, int32 Space ) co
 			return SpaceBases[BoneIndex].GetLocation();
 		}
 	}
-	else
+	else if (Space == EBoneSpaces::WorldSpace)
 	{
 		// To support non-uniform scale (via LocalToWorld), use GetBoneMatrix
 		return GetBoneMatrix(BoneIndex).GetOrigin();
+	}
+	else
+	{
+		check(false); // Unknown BoneSpace
+		return FVector::ZeroVector;
 	}
 }
 
