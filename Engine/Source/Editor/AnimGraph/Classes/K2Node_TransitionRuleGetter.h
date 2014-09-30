@@ -34,14 +34,20 @@ class UK2Node_TransitionRuleGetter : public UK2Node
 	class UAnimGraphNode_Base* AssociatedAnimAssetPlayerNode;
 
 	UPROPERTY()
-	UObject* AssociatedStateNode;
+	UAnimStateNode* AssociatedStateNode;
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-	virtual bool ShowPaletteIconOnNode() const override{ return false; }
+	virtual bool ShowPaletteIconOnNode() const override { return false; }
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	// End of UEdGraphNode interface
+
+	// UK2Node interface
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	// end of UK2Node interface
 
 	// @todo document
 	ANIMGRAPH_API UEdGraphPin* GetOutputPin() const;
