@@ -76,6 +76,8 @@ public:
 
 	void UseMouseCaptureWindow(bool bUseMouseCaptureWindow);
 
+	bool IsProcessingNSEvent() const { return bIsProcessingNSEvent; }
+
 #if WITH_EDITOR
     virtual void SendAnalytics(IAnalyticsProvider* Provider) override;
 
@@ -163,6 +165,7 @@ private:
 	bool bIsMouseCursorLocked;
 
 	bool bSystemModalMode;
+	bool bIsProcessingNSEvent;
 
 	TSharedPtr< FMacWindow > LastEventWindow;
 

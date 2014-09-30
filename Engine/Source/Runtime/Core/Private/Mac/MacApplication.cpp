@@ -110,6 +110,7 @@ FMacApplication::FMacApplication()
 	, bIsMouseCaptureEnabled( false )
 	, bIsMouseCursorLocked( false )
 	, bSystemModalMode( false )
+	, bIsProcessingNSEvent( false )
 	, ModifierKeysFlags( 0 )
 	, CurrentModifierFlags( 0 )
 	, EventMonitor( NULL )
@@ -511,6 +512,8 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 		return;
 	}
 
+	bIsProcessingNSEvent = true;
+
 	if( CurrentModifierFlags != [Event modifierFlags] )
 	{
 		NSUInteger ModifierFlags = [Event modifierFlags];
@@ -816,7 +819,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 				FCocoaMenu* MainMenu = [[NSApp mainMenu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[NSApp mainMenu]: nil;
 				if ( MainMenu )
 				{
-					[MainMenu highlightKeyEquivalent:Event];
+					MainThreadCall(^{ [MainMenu highlightKeyEquivalent:Event]; }, NSDefaultRunLoopMode, true);
 				}
 			}
 			else
@@ -848,6 +851,8 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 			break;
 		}
 	}
+
+	bIsProcessingNSEvent = false;
 }
 
 void FMacApplication::ProcessEvent( NSEvent* Event )
