@@ -254,7 +254,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 	const bool bUpdateKinematics = (KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
 
 	// If desired, update physics bodies associated with skeletal mesh component to match.
-	if( !bUpdateKinematics && !bForceUpdate)
+	if( !bUpdateKinematics && !(bForceUpdate && IsAnySimulatingPhysics()))
 	{
 		// nothing to do 
 		return;
