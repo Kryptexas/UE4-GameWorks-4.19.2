@@ -217,6 +217,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 		}
 	}
 
+	// Adreno doesn't support HALF_FLOAT
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
+
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
 		return bUseES30ShadingLanguage;
