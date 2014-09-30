@@ -1158,6 +1158,16 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_DBuf") : TEXT("_NoDBuf");
 	}
 
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.StripShaderDebugData"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("") : TEXT("_NoStrip");
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OptimizeShaders"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("") : TEXT("_NoOpt");
+	}
+
 	if( Platform == SP_PS4 )
 	{
 		{

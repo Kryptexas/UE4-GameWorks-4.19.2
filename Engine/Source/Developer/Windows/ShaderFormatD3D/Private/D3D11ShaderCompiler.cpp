@@ -38,7 +38,6 @@ static uint32 TranslateCompilerFlagD3D11(ECompilerFlags CompilerFlag)
 	switch(CompilerFlag)
 	{
 	case CFLAG_PreferFlowControl: return D3D10_SHADER_PREFER_FLOW_CONTROL;
-	case CFLAG_Debug: return D3D10_SHADER_DEBUG | D3D10_SHADER_SKIP_OPTIMIZATION;
 	case CFLAG_AvoidFlowControl: return D3D10_SHADER_AVOID_FLOW_CONTROL;
 	default: return 0;
 	};
@@ -352,7 +351,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		// Unpack uniform matrices as row-major to match the CPU layout.
 		| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR;
 
-	if (DEBUG_SHADERS) 
+	if (DEBUG_SHADERS || Input.Environment.CompilerFlags.Contains(CFLAG_Debug)) 
 	{
 		//add the debug flags
 		CompileFlags |= D3D10_SHADER_DEBUG | D3D10_SHADER_SKIP_OPTIMIZATION;
@@ -632,21 +631,29 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 				}
 			}
 
-			// Strip shader reflection
-			D3D_SHADER_DATA ShaderData;
-			ShaderData.pBytecode = Shader->GetBufferPointer();
-			ShaderData.BytecodeLength = Shader->GetBufferSize();
 			TRefCountPtr<ID3DBlob> CompressedData;
-			Result = D3DStripShader(Shader->GetBufferPointer(),
-				Shader->GetBufferSize(),
-				D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO | D3DCOMPILER_STRIP_TEST_BLOBS,
-				CompressedData.GetInitReference());
 
-			if (FAILED(Result))
+			if (Input.Environment.CompilerFlags.Contains(CFLAG_DontStripDebugInfo))
 			{
-				UE_LOG(LogD3D11ShaderCompiler, Fatal,TEXT("D3DStripShader failed: Result=%08x"),Result);
+				CompressedData = Shader;
 			}
+			else
+			{
+				// Strip shader reflection and debug info
+				D3D_SHADER_DATA ShaderData;
+				ShaderData.pBytecode = Shader->GetBufferPointer();
+				ShaderData.BytecodeLength = Shader->GetBufferSize();
+				Result = D3DStripShader(Shader->GetBufferPointer(),
+					Shader->GetBufferSize(),
+					D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO | D3DCOMPILER_STRIP_TEST_BLOBS,
+					CompressedData.GetInitReference());
 
+				if (FAILED(Result))
+				{
+					UE_LOG(LogD3D11ShaderCompiler, Fatal,TEXT("D3DStripShader failed: Result=%08x"),Result);
+				}
+			}
+			
 			// Build the SRT for this shader.
 			FD3D11ShaderResourceTable SRT;
 			{
