@@ -4182,6 +4182,7 @@ void FRecastNavMeshGenerator::StartDirtyGenerators()
 		DirtyGenerators.KeySort(SortFunc);
 
 		FRecastTileDirtyState DirtyState;
+		const bool bRequestDrawingUpdate = DirtyGenerators.Num() > 0;
 		for (TMap<int32,FRecastTileDirtyState>::TIterator It(DirtyGenerators); It; ++It)
 		{
 			const int32 GenIdx = It.Key();
@@ -4265,6 +4266,10 @@ void FRecastNavMeshGenerator::StartDirtyGenerators()
 
 		// start processing generator queue
 		UpdateTileGenerationWorkers(INDEX_NONE);
+		if (bRequestDrawingUpdate)
+		{
+			DestNavMesh->RequestDrawingUpdate();
+		}
 	}
 
 	INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
@@ -4381,8 +4386,6 @@ void FRecastNavMeshGenerator::UpdateTileGenerationWorkers(int32 TileId)
 		// let navmesh drawing mark tiles being built
 		DestNavMesh->RequestDrawingUpdate();
 	}
-#else
-	DestNavMesh->RequestDrawingUpdate();
 #endif // RECAST_ASYNC_REBUILDING
 
 	// prepare next batch of dirty generators in next tick

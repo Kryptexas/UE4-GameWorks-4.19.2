@@ -385,7 +385,8 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastRenderingSceneProxy_DrawDynamicElements );
 
-		if (!ProxyData.bEnableDrawing) //check if we have any data to render
+		const bool bVisible = !!View->Family->EngineShowFlags.Navigation || bForceRendering;
+		if (!ProxyData.bEnableDrawing || !bVisible) //check if we have any data to render
 		{
 			return;
 		}
@@ -530,6 +531,11 @@ public:
 			if (VisibilityMap & (1 << ViewIndex))
 			{
 				const FSceneView* View = Views[ViewIndex];
+				const bool bVisible = !!View->Family->EngineShowFlags.Navigation || bForceRendering;
+				if (!bVisible)
+				{
+					continue;
+				}
 				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 
 				const bool bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == NULL);
@@ -669,7 +675,8 @@ public:
 
 	void DrawDebugLabels(UCanvas* Canvas, APlayerController*)
 	{
-		if (ProxyData.bNeedsNewData == true || ProxyData.bEnableDrawing == false)
+		const bool bVisible = (Canvas && Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation) || bForceRendering;
+		if (ProxyData.bNeedsNewData == true || ProxyData.bEnableDrawing == false || !bVisible || ProxyData.DebugLabels.Num() == 0)
 		{
 			return;
 		}
