@@ -67,8 +67,8 @@ struct FProgramCounterSymbolInfo /*final*/
 };
 
 /**
-* Generic implementation for most platforms
-**/
+ * Generic implementation for most platforms
+ **/
 struct CORE_API FGenericPlatformStackWalk
 {
 	typedef FGenericPlatformStackWalk Base;
