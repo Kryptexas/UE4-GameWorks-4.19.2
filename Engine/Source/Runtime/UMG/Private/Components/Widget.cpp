@@ -204,12 +204,9 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 	TSharedPtr<SWidget> SafeWidget;
 	bool bNewlyCreated = false;
 
+	// If the underlying widget doesn't exist we need to construct and cache the widget for the first run.
 	if ( !MyWidget.IsValid() )
 	{
-		// We lie a bit about this being a const function.  If this is the first call it's not really const
-		// and we need to construct and cache the widget for the first run.  But instead of forcing everyone
-		// downstream to make RebuildWidget const and force every implementation to make things mutable, we
-		// just blow away the const here.
 		SafeWidget = RebuildWidget();
 		MyWidget = SafeWidget;
 
@@ -223,10 +220,12 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 	// If it is a user widget wrap it in a SObjectWidget to keep the instance from being GC'ed
 	if ( IsA(UUserWidget::StaticClass()) )
 	{
+		// If the GC Widget is still valid we still exist in the slate hierarchy, so just return the GC Widget.
 		if ( MyGCWidget.IsValid() )
 		{
 			return MyGCWidget.Pin().ToSharedRef();
 		}
+		// Otherwise we need to recreate the wrapper widget
 		else
 		{
 			TSharedPtr<SWidget> SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))

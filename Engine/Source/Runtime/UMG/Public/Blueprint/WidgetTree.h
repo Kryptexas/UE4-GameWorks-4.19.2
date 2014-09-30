@@ -15,7 +15,7 @@ class UMG_API UWidgetTree : public UObject
 public:
 
 	/** Finds the widget in the tree by name. */
-	UWidget* FindWidget(const FString& Name) const;
+	UWidget* FindWidget(const FName& Name) const;
 
 	/** Finds a widget in the tree using the native widget as the key. */
 	UWidget* FindWidget(TSharedRef<SWidget> InWidget) const;

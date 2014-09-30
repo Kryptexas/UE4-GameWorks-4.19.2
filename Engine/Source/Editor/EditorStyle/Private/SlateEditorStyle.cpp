@@ -486,7 +486,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	{
 		Set( "ProgressBar", FProgressBarStyle()
 			.SetBackgroundImage( BOX_BRUSH( "Common/ProgressBar_Background", FMargin(5.f/12.f) ) )
-			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f) ) )
+			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f), FLinearColor( 1.0f, 0.22f, 0.0f ) ) )
 			.SetMarqueeImage( IMAGE_BRUSH( "Common/ProgressBar_Marquee", FVector2D(20,12), FLinearColor::White, ESlateBrushTileType::Horizontal ) )
 			);
 
@@ -501,7 +501,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	{
 		Set( "WorkingBar", FProgressBarStyle()
 			.SetBackgroundImage( FSlateNoResource() )
-			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f) ) )
+			.SetFillImage( BOX_BRUSH( "Common/ProgressBar_Fill", FMargin(5.f/12.f), FLinearColor( 1.0f, 0.22f, 0.0f ) ) )
 			.SetMarqueeImage( IMAGE_BRUSH( "Common/WorkingBar_Marquee", FVector2D(20,2), FLinearColor::White, ESlateBrushTileType::Horizontal ) )
 			);
 	}
@@ -1428,10 +1428,10 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 		Set("HardwareTargets.Normal", TargetSettingsNormal);
 
- 		Set("HardwareTargets.Strong", FTextBlockStyle(TargetSettingsNormal)
- 			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 8))
+		Set("HardwareTargets.Strong", FTextBlockStyle(TargetSettingsNormal)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 8))
 			.SetColorAndOpacity(EditorOrange)
- 			.SetShadowOffset(FVector2D::UnitVector));
+			.SetShadowOffset(FVector2D::UnitVector));
 	}
 #endif
 
@@ -5894,26 +5894,6 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 
 	Set("UMGEditor.AnchoredWidget", new BOX_BRUSH("Common/Button", FVector2D(32, 32), 8.0f / 32.0f));
 	Set("UMGEditor.AnchoredWidgetAlignment", new IMAGE_BRUSH("Icons/icon_tab_DeviceManager_16x", Icon8x8));
-
-	Set("UMGEditor.TopLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_left", Icon64x64));
-	Set("UMGEditor.TopCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_center", Icon64x64));
-	Set("UMGEditor.TopRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_right", Icon64x64));
-	Set("UMGEditor.TopFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_top_fill", Icon64x64));
-
-	Set("UMGEditor.CenterLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_left", Icon64x64));
-	Set("UMGEditor.CenterCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_center", Icon64x64));
-	Set("UMGEditor.CenterRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_right", Icon64x64));
-	Set("UMGEditor.CenterFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_center_fill", Icon64x64));
-
-	Set("UMGEditor.BottomLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_left", Icon64x64));
-	Set("UMGEditor.BottomCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_center", Icon64x64));
-	Set("UMGEditor.BottomRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_right", Icon64x64));
-	Set("UMGEditor.BottomFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_bottom_fill", Icon64x64));
-
-	Set("UMGEditor.FillLeft", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_left", Icon64x64));
-	Set("UMGEditor.FillCenter", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_center", Icon64x64));
-	Set("UMGEditor.FillRight", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_right", Icon64x64));
-	Set("UMGEditor.FillFill", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_fill", Icon64x64));
 	
 	Set("UMGEditor.PalettePreviewWidget", new IMAGE_BRUSH("Icons/UMG/umg_anchors_fill_fill", Icon16x16));
 
@@ -5957,7 +5937,12 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("UMGEditor.AddAnimationIcon", new IMAGE_BRUSH("Icons/PlusSymbol_12x", Icon12x12, FLinearColor(.05,.05,.05) ) );
 	Set("UMGEditor.NoAnimationFont", NoAnimationFont);
 
+	Set("UMGEditor.SwitchToDesigner", new IMAGE_BRUSH("UMG/Designer_40x", Icon40x40));
+	Set("UMGEditor.SwitchToDesigner.Small", new IMAGE_BRUSH("UMG/Designer_16x", Icon16x16));
+
 	Set("UMGEditor.SelectionOutline", new BORDER_BRUSH("UMG/SelectionBorder", FMargin(.2f) ));
+
+	Set("UMGEditor.AnchorGrid", new IMAGE_BRUSH("Icons/UMG/AnchorGrid", Icon10x10, FLinearColor::White, ESlateBrushTileType::Both ));
 }
 
 void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()

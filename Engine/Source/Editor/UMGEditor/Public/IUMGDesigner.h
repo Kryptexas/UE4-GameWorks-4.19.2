@@ -44,4 +44,9 @@ public:
 	 * Gets the previous frames widget geometry of the parent of the provided widget.
 	 */
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const = 0;
+
+	/**
+	 * Marks the designer content as being modified.
+	 */
+	virtual void MarkDesignModifed(bool bRequiresRecompile) = 0;
 };

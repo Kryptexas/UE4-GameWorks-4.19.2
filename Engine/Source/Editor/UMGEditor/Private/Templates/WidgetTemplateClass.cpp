@@ -36,7 +36,10 @@ FText FWidgetTemplateClass::GetCategory() const
 
 UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)
 {
-	return Tree->ConstructWidget<UWidget>(WidgetClass.Get());
+	UWidget* NewWidget = Tree->ConstructWidget<UWidget>(WidgetClass.Get());
+	NewWidget->OnCreationFromPalette();
+
+	return NewWidget;
 }
 
 const FSlateBrush* FWidgetTemplateClass::GetIcon() const

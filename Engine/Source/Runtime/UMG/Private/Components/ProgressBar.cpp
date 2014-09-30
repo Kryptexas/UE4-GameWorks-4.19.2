@@ -12,6 +12,7 @@ UProgressBar::UProgressBar(const FPostConstructInitializeProperties& PCIP)
 {
 	SProgressBar::FArguments SlateDefaults;
 	WidgetStyle = *SlateDefaults._Style;
+	WidgetStyle.FillImage.TintColor = FLinearColor::White;
 
 	BarFillType = EProgressBarFillType::LeftToRight;
 	bIsMarquee = false;
@@ -111,6 +112,11 @@ const FSlateBrush* UProgressBar::GetEditorIcon()
 const FText UProgressBar::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
+}
+
+void UProgressBar::OnCreationFromPalette()
+{
+	FillColorAndOpacity = FLinearColor(0, 0.5f, 1.0f);
 }
 
 #endif

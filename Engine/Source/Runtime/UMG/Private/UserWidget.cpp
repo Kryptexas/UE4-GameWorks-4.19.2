@@ -24,6 +24,9 @@ UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	CachedWorld = NULL;
 
 	bSupportsKeyboardFocus = true;
+
+	bUseDesignTimeSize = false;
+	DesignTimeSize = FVector2D(100, 100);
 }
 
 void UUserWidget::Initialize()
@@ -38,6 +41,22 @@ void UUserWidget::Initialize()
 		if ( BGClass != NULL )
 		{
 			BGClass->InitializeWidget(this);
+		}
+
+		for ( UWidget* Widget : Components )
+		{
+			if ( UNamedSlot* NamedWidet = Cast<UNamedSlot>(Widget) )
+			{
+				for ( FNamedSlotBinding& Binding : NamedSlotBindings )
+				{
+					if ( Binding.Content && Binding.Name == NamedWidet->GetFName() )
+					{
+						NamedWidet->ClearChildren();
+						NamedWidet->AddChild(Binding.Content);
+						continue;
+					}
+				}
+			}
 		}
 	}
 }
@@ -352,7 +371,7 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 	return UserRootWidget.ToSharedRef();
 }
 
-TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
+TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FName& Name) const
 {
 	UWidget* WidgetObject = WidgetTree->FindWidget(Name);
 	if ( WidgetObject )
@@ -374,6 +393,73 @@ UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 	}
 
 	return nullptr;
+}
+
+void UUserWidget::GetSlotNames(TArray<FName>& SlotNames) const
+{
+	//TODO UMG This should be static data computed and stored on the class at compile time.
+
+	// Add all the names of the named slot widgets to the slot names structure.
+	for ( UWidget* Widget : Components )
+	{
+		if ( Widget && Widget->IsA<UNamedSlot>() )
+		{
+			SlotNames.Add( Widget->GetFName() );
+		}
+	}
+
+	// Also add any existing bindings uniquely, templates don't have any components
+	// yet because they're never initialized because of their CDO status.
+	for ( const FNamedSlotBinding& Binding : NamedSlotBindings )
+	{
+		SlotNames.AddUnique( Binding.Name );
+	}
+}
+
+UWidget* UUserWidget::GetContentForSlot(FName SlotName) const
+{
+	for ( const FNamedSlotBinding& Binding : NamedSlotBindings )
+	{
+		if ( Binding.Name == SlotName )
+		{
+			return Binding.Content;
+		}
+	}
+
+	return nullptr;
+}
+
+void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
+{
+	// Find the binding in the existing set and replace the content for that binding.
+	for ( int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++)
+	{
+		FNamedSlotBinding& Binding = NamedSlotBindings[BindingIndex];
+
+		if ( Binding.Name == SlotName )
+		{
+			if ( Content )
+			{
+				Binding.Content = Content;
+			}
+			else
+			{
+				NamedSlotBindings.RemoveAt(BindingIndex);
+			}
+
+			return;
+		}
+	}
+
+	if ( Content )
+	{
+		// Add the new binding to the list of bindings.
+		FNamedSlotBinding NewBinding;
+		NewBinding.Name = SlotName;
+		NewBinding.Content = Content;
+
+		NamedSlotBindings.Add(NewBinding);
+	}
 }
 
 void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
@@ -416,7 +502,6 @@ TSharedRef<SWidget> UUserWidget::MakeViewportWidget(TSharedPtr<SWidget>& UserSla
 		.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
 		.Anchors(BIND_UOBJECT_ATTRIBUTE(FAnchors, GetViewportAnchors))
 		.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
-		.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
 		[
 			UserSlateWidget.ToSharedRef()
 		];
@@ -429,7 +514,7 @@ UWidget* UUserWidget::GetRootWidgetComponent()
 		return Components[0];
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UUserWidget::AddToViewport()
@@ -547,11 +632,6 @@ void UUserWidget::SetAlignmentInViewport(FVector2D Alignment)
 	ViewportAlignment = Alignment;
 }
 
-void UUserWidget::SetZOrderInViewport(int32 ZOrder)
-{
-	ViewportZOrder = ZOrder;
-}
-
 FMargin UUserWidget::GetFullScreenOffset() const
 {
 	// If the size is zero, and we're not stretched, then use the desired size.
@@ -576,11 +656,6 @@ FAnchors UUserWidget::GetViewportAnchors() const
 FVector2D UUserWidget::GetFullScreenAlignment() const
 {
 	return ViewportAlignment;
-}
-
-int32 UUserWidget::GetFullScreenZOrder() const
-{
-	return ViewportZOrder;
 }
 
 #if WITH_EDITOR

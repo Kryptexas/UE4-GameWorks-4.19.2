@@ -20,7 +20,7 @@ UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 
 UPanelSlot* UContentWidget::GetContentSlot() const
 {
-	return Slots.Num() > 0 ? Slots[0] : NULL;
+	return Slots.Num() > 0 ? Slots[0] : nullptr;
 }
 
 UClass* UContentWidget::GetSlotClass() const

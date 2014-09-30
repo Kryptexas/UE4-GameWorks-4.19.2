@@ -178,13 +178,12 @@ public:
 
 	/**
 	 * Checks to see if this widget is the current mouse captor
-	 *
 	 * @return  True if this widget has captured the mouse
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool HasMouseCapture() const;
 
-	/**  */
+	/** Sets the focus to this widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetKeyboardFocus() const;
 
@@ -194,7 +193,7 @@ public:
 
 	/**
 	 * Gets the widgets desired size.
-	 * NOTE: The underlying Slate widget must exist and be valid, also a at least one pre-pass must
+	 * NOTE: The underlying Slate widget must exist and be valid, also at least one pre-pass must
 	 *       have occurred before this value will be of any use.
 	 * 
 	 * @return The widget's desired size
@@ -254,6 +253,12 @@ public:
 
 	/** Gets the palette category of the widget */
 	virtual const FText GetPaletteCategory();
+
+	/**
+	 * Called by the palette after constructing a new widget, allows the widget to perform interesting 
+	 * default setup that we don't want to be UObject Defaults.
+	 */
+	virtual void OnCreationFromPalette() { }
 
 	/** Gets the editor icon */
 	virtual const FSlateBrush* GetEditorIcon();

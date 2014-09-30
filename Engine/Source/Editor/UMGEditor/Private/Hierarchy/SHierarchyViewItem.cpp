@@ -295,7 +295,7 @@ void FHierarchyRoot::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children
 void FHierarchyRoot::OnSelection()
 {
 	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
-	if ( UWidget* Default =BPEd->GetWidgetBlueprintObj()->GeneratedClass->GetDefaultObject<UWidget>() )
+	if ( UWidget* Default = BPEd->GetWidgetBlueprintObj()->GeneratedClass->GetDefaultObject<UWidget>() )
 	{
 		TSet<UObject*> SelectedObjects;
 		SelectedObjects.Add(Default);
@@ -315,6 +315,112 @@ FReply FHierarchyRoot::HandleDrop(FDragDropEvent const& DragDropEvent)
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 	bool bIsDrop = true;
 	return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, Blueprint, FWidgetReference());
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+FNamedSlotModel::FNamedSlotModel(FWidgetReference InItem, FName InSlotName, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
+	: Item(InItem)
+	, SlotName(InSlotName)
+	, BlueprintEditor(InBlueprintEditor)
+{
+}
+
+FName FNamedSlotModel::GetUniqueName() const
+{
+	UWidget* WidgetTemplate = Item.GetTemplate();
+	if ( WidgetTemplate )
+	{
+		FString UniqueSlot = WidgetTemplate->GetName() + TEXT(".") + SlotName.ToString();
+		return FName(*UniqueSlot);
+	}
+
+	return NAME_None;
+}
+
+FText FNamedSlotModel::GetText() const
+{
+	if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Item.GetPreview()) )
+	{
+		TSet<FWidgetReference> SelectedWidgets;
+		if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+		{
+			return FText::Format(LOCTEXT("NamedSlotTextFormat", "{0} ({1})"), FText::FromName(SlotName), FText::FromName(SlotContent->GetFName()));
+		}
+	}
+
+	return FText::FromName(SlotName);
+}
+
+const FSlateBrush* FNamedSlotModel::GetImage() const
+{
+	return NULL;
+}
+
+FSlateFontInfo FNamedSlotModel::GetFont() const
+{
+	return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
+}
+
+void FNamedSlotModel::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children)
+{
+	//TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
+	//UWidgetBlueprint* Blueprint = BPEd->GetWidgetBlueprintObj();
+
+	//if ( Blueprint->WidgetTree->RootWidget )
+	//{
+	//	TSharedPtr<FHierarchyWidget> RootChild = MakeShareable(new FHierarchyWidget(BPEd->GetReferenceFromTemplate(Blueprint->WidgetTree->RootWidget), BPEd));
+	//	Children.Add(RootChild);
+	//}
+}
+
+void FNamedSlotModel::OnSelection()
+{
+	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
+	if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Item.GetPreview()) )
+	{
+		TSet<FWidgetReference> SelectedWidgets;
+		if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+		{
+			SelectedWidgets.Add( BPEd->GetReferenceFromPreview(SlotContent) );
+		}
+
+		BPEd->SelectWidgets(SelectedWidgets);
+	}
+}
+
+FReply FNamedSlotModel::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	//UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+	//bool bIsDrop = false;
+	//return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, Blueprint, FWidgetReference());
+
+	return FReply::Unhandled();
+}
+
+FReply FNamedSlotModel::HandleDrop(FDragDropEvent const& DragDropEvent)
+{
+	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+
+	bool bIsDrop = true;
+
+	// Is this a drag/drop op to create a new widget in the tree?
+	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	if ( TemplateDragDropOp.IsValid() )
+	{
+		if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Item.GetTemplate()) )
+		{
+			UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
+
+			NamedSlotHost->SetContentForSlot(SlotName, Widget);
+
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -422,7 +528,7 @@ bool FHierarchyWidget::OnVerifyNameTextChanged(const FText& InText, FText& OutEr
 	FString NewName = InText.ToString();
 
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget(NewName);
+	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
 
 	bool bIsSameWidget = false;
 	if ( ExistingTemplate != NULL )
@@ -459,13 +565,26 @@ void FHierarchyWidget::OnNameTextCommited(const FText& InText, ETextCommit::Type
 void FHierarchyWidget::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children)
 {
 	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
-	
-	UPanelWidget* Widget = Cast<UPanelWidget>(Item.GetTemplate());
-	if ( Widget )
+
+	// Check for named slots
+	if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Item.GetPreview()) )
 	{
-		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
+		TArray<FName> SlotNames;
+		NamedSlotHost->GetSlotNames(SlotNames);
+
+		for ( FName& SlotName : SlotNames )
 		{
-			UWidget* Child = Widget->GetChildAt(i);
+			TSharedPtr<FNamedSlotModel> ChildItem = MakeShareable(new FNamedSlotModel(Item, SlotName, BPEd));
+			Children.Add(ChildItem);
+		}
+	}
+	
+	// Check if it's a panel widget that can support children
+	if ( UPanelWidget* PanelWidget = Cast<UPanelWidget>(Item.GetTemplate()) )
+	{
+		for ( int32 i = 0; i < PanelWidget->GetChildrenCount(); i++ )
+		{
+			UWidget* Child = PanelWidget->GetChildAt(i);
 			if ( Child )
 			{
 				TSharedPtr<FHierarchyWidget> ChildItem = MakeShareable(new FHierarchyWidget(BPEd->GetReferenceFromTemplate(Child), BPEd));

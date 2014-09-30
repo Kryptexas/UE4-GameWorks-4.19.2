@@ -79,6 +79,7 @@ public:
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
+	virtual void OnCreationFromPalette() override;
 	// End UWidget interface
 #endif
 

@@ -4,6 +4,9 @@
 
 #include "Geometry.h"
 #include "Engine/GameInstance.h"
+
+#include "NamedSlotInterface.h"
+
 #include "UserWidget.generated.h"
 
 static FGeometry NullGeometry;
@@ -69,6 +72,29 @@ public:
 	int32 MaxLayer;
 };
 
+/**
+* The state passed into OnPaint that we can expose as a single painting structure to blueprints to
+* allow script code to override OnPaint behavior.
+*/
+USTRUCT()
+struct UMG_API FNamedSlotBinding
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	FNamedSlotBinding()
+		: Name(NAME_None)
+		, Content(nullptr)
+	{ }
+
+	UPROPERTY()
+	FName Name;
+
+	UPROPERTY()
+	UWidget* Content;
+};
+
 class UUMGSequencePlayer;
 
 //TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
@@ -80,7 +106,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVis
  * The user widget is extensible by users through the WidgetBlueprint.
  */
 UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="User Controls" ))
-class UMG_API UUserWidget : public UWidget
+class UMG_API UUserWidget : public UWidget, public INamedSlotInterface
 {
 	GENERATED_UCLASS_BODY()
 public:
@@ -96,6 +122,12 @@ public:
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	// End of UVisual interface
+
+	// UNamedSlotInterface Begin
+	virtual void GetSlotNames(TArray<FName>& SlotNames) const override;
+	virtual UWidget* GetContentForSlot(FName SlotName) const override;
+	virtual void SetContentForSlot(FName SlotName, UWidget* Content) override;
+	// UNamedSlotInterface End
 
 	/** Sets that this widget is being designed sets it on all children as well. */
 	virtual void SetIsDesignTime(bool bInDesignTime) override;
@@ -130,10 +162,6 @@ public:
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
 	void SetAlignmentInViewport(FVector2D Alignment);
-
-	/*  */
-	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
-	void SetZOrderInViewport(int32 ZOrder);
 
 	/*  */
 	UFUNCTION(BlueprintPure, Category="Appearance")
@@ -272,7 +300,7 @@ public:
 	UWidget* GetRootWidgetComponent();
 
 	/** @returns The slate widget corresponding to a given name */
-	TSharedPtr<SWidget> GetWidgetFromName(const FString& Name) const;
+	TSharedPtr<SWidget> GetWidgetFromName(const FName& Name) const;
 
 	/** @returns The uobject widget corresponding to a given name */
 	UWidget* GetHandleFromName(const FString& Name) const;
@@ -309,19 +337,33 @@ public:
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> StoppedSequencePlayers;
 
+	/** Stores the widgets being assigned to named slots */
+	UPROPERTY()
+	TArray<FNamedSlotBinding> NamedSlotBindings;
+
+#if WITH_EDITORONLY_DATA
+
+	/** Stores the design time desired size of the user widget */
+	UPROPERTY()
+	FVector2D DesignTimeSize;
+
+	/** Stores the design time desired size of the user widget */
+	UPROPERTY()
+	bool bUseDesignTimeSize;
+
+#endif
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	FMargin GetFullScreenOffset() const;
 	FAnchors GetViewportAnchors() const;
 	FVector2D GetFullScreenAlignment() const;
-	int32 GetFullScreenZOrder() const;
 
 private:
 	FAnchors ViewportAnchors;
 	FMargin ViewportOffsets;
 	FVector2D ViewportAlignment;
-	int32 ViewportZOrder;
 
 	TWeakPtr<SWidget> FullScreenWidget;
 

@@ -76,7 +76,7 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 	const FString NewNameStr = NewName.ToString();
 	const FString OldNameStr = OldName.ToString();
 
-	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldNameStr);
+	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldName);
 	check(Widget);
 
 	if ( Widget )
@@ -158,6 +158,9 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 			}
 		}
 
+		// Update named slot bindings?
+		// TODO...
+
 		// Validate child blueprints and adjust variable names to avoid a potential name collision
 		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
 
@@ -225,15 +228,22 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 
 			bRemoved = BP->WidgetTree->RemoveWidget(WidgetTemplate);
 
+			// If we failed to remove the widget from the tree, it may be a named slot widget that
+			// we need to search for in the named slot bindings.
+			if ( !bRemoved && WidgetTemplate->GetParent() == nullptr )
+			{
+				bRemoved = FindAndRemoveNamedSlotContent(WidgetTemplate, BP->WidgetTree);
+			}
+
 			// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
-			WidgetTemplate->Rename(NULL, NULL);
+			WidgetTemplate->Rename(nullptr, nullptr);
 
 			// Rename all child widgets as well, to the transient package so that they don't conflict with future widgets sharing the same name.
 			TArray<UWidget*> ChildWidgets;
 			BP->WidgetTree->GetChildWidgets(WidgetTemplate, ChildWidgets);
 			for ( UWidget* Widget : ChildWidgets )
 			{
-				Widget->Rename(NULL, NULL);
+				Widget->Rename(nullptr, nullptr);
 			}
 		}
 
@@ -244,6 +254,35 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 		}
 	}
+}
+
+bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
+{
+	TArray<UWidget*> AllWidgets;
+	WidgetTree->GetAllWidgets(AllWidgets);
+
+	for ( UWidget* Widget : AllWidgets )
+	{
+		if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Widget) )
+		{
+			TArray<FName> SlotNames;
+			NamedSlotHost->GetSlotNames(SlotNames);
+
+			for ( FName SlotName : SlotNames )
+			{
+				if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+				{
+					if ( SlotContent == WidgetTemplate )
+					{
+						NamedSlotHost->SetContentForSlot(SlotName, nullptr);
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)

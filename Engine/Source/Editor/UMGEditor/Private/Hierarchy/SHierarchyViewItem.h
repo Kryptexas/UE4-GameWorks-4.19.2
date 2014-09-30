@@ -76,6 +76,39 @@ private:
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 };
 
+class FNamedSlotModel : public FHierarchyModel
+{
+public:
+	FNamedSlotModel(FWidgetReference InItem, FName InSlotName, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor);
+
+	virtual ~FNamedSlotModel() {}
+
+	virtual FName GetUniqueName() const override;
+
+	/* @returns the widget name to use for the tree item */
+	virtual FText GetText() const override;
+
+	virtual const FSlateBrush* GetImage() const override;
+
+	virtual FSlateFontInfo GetFont() const override;
+
+	virtual void OnSelection();
+
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
+
+	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent);
+
+protected:
+	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
+
+private:
+
+	FWidgetReference Item;
+	FName SlotName;
+
+	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
+};
+
 class FHierarchyWidget : public FHierarchyModel
 {
 public:

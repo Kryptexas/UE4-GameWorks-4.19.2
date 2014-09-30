@@ -10,18 +10,15 @@ UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-UWidget* UWidgetTree::FindWidget(const FString& Name) const
+UWidget* UWidgetTree::FindWidget(const FName& Name) const
 {
-	FString ExistingName;
-
 	// TODO UMG Hacky, remove this find widget function, or make it faster.
 	TArray<UWidget*> Widgets;
 	GetAllWidgets(Widgets);
 
 	for ( UWidget* Widget : Widgets )
 	{
-		Widget->GetName(ExistingName);
-		if ( ExistingName.Equals(Name, ESearchCase::IgnoreCase) )
+		if ( Widget->GetFName() == Name )
 		{
 			return Widget;
 		}
@@ -46,13 +43,13 @@ UWidget* UWidgetTree::FindWidget(TSharedRef<SWidget> InWidget) const
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildIndex)
 {
 	UPanelWidget* Parent = Widget->GetParent();
-	if ( Parent != NULL )
+	if ( Parent != nullptr )
 	{
 		OutChildIndex = Parent->GetChildIndex(Widget);
 	}
@@ -97,6 +94,20 @@ void UWidgetTree::GetAllWidgets(TArray<UWidget*>& Widgets) const
 
 void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const
 {
+	if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Parent) )
+	{
+		TArray<FName> SlotNames;
+		NamedSlotHost->GetSlotNames(SlotNames);
+
+		for ( FName SlotName : SlotNames )
+		{
+			if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+			{
+				Widgets.Add(SlotContent);
+			}
+		}
+	}
+
 	if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Parent) )
 	{
 		for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )

@@ -81,8 +81,8 @@ void FWidgetBlueprintEditorToolbar::FillWidgetBlueprintEditorModesToolbar(FToolB
 				NULL,
 				TEXT("Shared/Editors/BlueprintEditor"),
 				TEXT("DesignerMode")))
-			.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode"))
-			.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode.Small"))
+			.IconImage(FEditorStyle::GetBrush("UMGEditor.SwitchToDesigner"))
+			.SmallIconImage(FEditorStyle::GetBrush("UMGEditor.SwitchToDesigner.Small"))
 			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("DesignerMode")))
 		);
 

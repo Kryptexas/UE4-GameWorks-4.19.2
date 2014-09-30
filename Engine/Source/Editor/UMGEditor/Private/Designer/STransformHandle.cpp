@@ -74,6 +74,9 @@ FReply STransformHandle::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoi
 {
 	if ( HasMouseCapture() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
+		const bool bRequiresRecompile = false;
+		Designer->MarkDesignModifed(bRequiresRecompile);
+
 		Action = ETransformAction::None;
 		return FReply::Handled().ReleaseMouseCapture();
 	}

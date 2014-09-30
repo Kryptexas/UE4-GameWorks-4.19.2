@@ -6,4 +6,3 @@ UNamedSlotInterface::UNamedSlotInterface(const FPostConstructInitializePropertie
 	: Super(PCIP)
 {
 }
-

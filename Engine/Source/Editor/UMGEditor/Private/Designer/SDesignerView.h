@@ -8,6 +8,8 @@
 #include "DesignerExtension.h"
 #include "IUMGDesigner.h"
 
+#include "SPaintSurface.h"
+
 namespace EDesignerMessage
 {
 	enum Type
@@ -22,7 +24,7 @@ class FDesignerExtension;
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.
  */
-class SDesignerView : public SDesignSurface, public IUMGDesigner
+class SDesignerView : public SDesignSurface, public FGCObject, public IUMGDesigner
 {
 public:
 
@@ -41,9 +43,6 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
 
-	//virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
-
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -62,7 +61,12 @@ public:
 	virtual FGeometry GetDesignerGeometry() const override;
 	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
+	virtual void MarkDesignModifed(bool bRequiresRecompile) override;
 	// End of IUMGDesigner interface
+
+	// FGCObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	// End of FGCObject interface
 
 private:
 	/** Establishes the resolution and aspect ratio to use on construction from config settings */
@@ -114,12 +118,25 @@ private:
 
 	FText GetCurrentResolutionText() const;
 	FSlateColor GetResolutionTextColorAndOpacity() const;
+
+	TOptional<int32> GetCustomResolutionWidth() const;
+	TOptional<int32> GetCustomResolutionHeight() const;
+	void OnCustomResolutionWidthChanged(int32 InValue);
+	void OnCustomResolutionHeightChanged(int32 InValue);
+	EVisibility GetCustomResolutionEntryVisibility() const;
 	
 	// Handles selecting a common screen resolution.
 	void HandleOnCommonResolutionSelected(int32 Width, int32 Height, FString AspectRatio);
 	bool HandleIsCommonResolutionSelected(int32 Width, int32 Height) const;
 	void AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName);
+	bool HandleIsCustomResolutionSelected() const;
+	void HandleOnCustomResolutionSelected();
 	TSharedRef<SWidget> GetAspectMenu();
+
+	// Handles drawing selection and other effects a SPaintSurface widget injected into the hierarchy.
+	int32 HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs);
+
+	UUserWidget* GetDefaultWidget() const;
 
 	void BeginTransaction(const FText& SessionName);
 	bool InTransaction() const;
@@ -172,6 +189,7 @@ private:
 	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
 	TSharedPtr<SDPIScaler> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
+	TSharedPtr<SPaintSurface> EffectsLayer;
 
 	FVector2D CachedDesignerWidgetLocation;
 	FVector2D CachedDesignerWidgetSize;

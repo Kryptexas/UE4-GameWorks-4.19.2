@@ -17,4 +17,10 @@ class UMG_API INamedSlotInterface
 
 	/**  */
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const = 0;
+
+	/**  */
+	virtual UWidget* GetContentForSlot(FName SlotName) const = 0;
+
+	/**  */
+	virtual void SetContentForSlot(FName SlotName, UWidget* Content) = 0;
 };

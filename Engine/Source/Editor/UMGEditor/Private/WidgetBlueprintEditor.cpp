@@ -419,7 +419,7 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 
 			if ( PreviewWidget )
 			{
-				FString PreviewWidgetName = PreviewWidget->GetName();
+				FName PreviewWidgetName = PreviewWidget->GetFName();
 				UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(PreviewWidgetName);
 
 				if ( TemplateWidget )
@@ -495,7 +495,7 @@ FWidgetReference FWidgetBlueprintEditor::GetReferenceFromPreview(UWidget* Previe
 
 		if ( PreviewWidget )
 		{
-			FString Name = PreviewWidget->GetName();
+			FName Name = PreviewWidget->GetFName();
 			return GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Name));
 		}
 	}
