@@ -240,8 +240,11 @@ protected:
 	TAttribute<bool> ShowGraphStateOverlay;
 
 private:
-	/** Map of recently added nodes for the panel */
-	TMap<class UEdGraphNode*, FEdGraphEditAction> UserAddedNodes;
+	/** Ordered list of user actions, as they came in */
+	TArray<FEdGraphEditAction> UserActions;
+
+	/** Map of recently added nodes for the panel (maps from added nodes to UserActions indices) */
+	TMap<const class UEdGraphNode*, int32> UserAddedNodes;
 
 	FOnGraphChanged::FDelegate MyRegisteredGraphChangedDelegate;
 private:

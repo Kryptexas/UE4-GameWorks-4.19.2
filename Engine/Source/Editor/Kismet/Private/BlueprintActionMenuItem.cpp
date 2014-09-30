@@ -31,10 +31,9 @@ namespace FBlueprintMenuActionItemImpl
 	 * @param  ParentGraph		The graph you want the action to spawn a node into.
 	 * @param  Location			The position in the graph that you want the node spawned.
 	 * @param  Bindings			Any bindings you want applied after the node has been spawned.
-	 * @param  bSelectNewNode	Determines if the new node should be selected after it have been spawned.
 	 * @return The spawned node (could be an existing one if the event was already placed).
 	 */
-	static UEdGraphNode* InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings, bool bSelectNewNode);
+	static UEdGraphNode* InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings);
 }
 
 //------------------------------------------------------------------------------
@@ -61,22 +60,16 @@ static void FBlueprintMenuActionItemImpl::DirtyBlueprintFromNewNode(UEdGraphNode
 }
 
 //------------------------------------------------------------------------------
-static UEdGraphNode* FBlueprintMenuActionItemImpl::InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings, bool bSelectNewNode)
+static UEdGraphNode* FBlueprintMenuActionItemImpl::InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings)
 {
+	int32 const PreSpawnNodeCount = ParentGraph->Nodes.Num();
 	// this could return an existing node
 	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Bindings, Location);
 
-	// if a returned node hasn't been added to the graph yet (it must have been freshly spawned)
-	if (ParentGraph->Nodes.Find(SpawnedNode) == INDEX_NONE)
+	// if a returned node wasn't one that previously existed in the graph
+	if (PreSpawnNodeCount < ParentGraph->Nodes.Num())
 	{
 		check(SpawnedNode != nullptr);
-
-		// @TODO: Move Modify()/AddNode() into UBlueprintNodeSpawner and pull 
-		//        selection functionality out to FBlueprintActionMenuItem::PerformAction()
-		ParentGraph->Modify();
-		ParentGraph->AddNode(SpawnedNode, /*bFromUI =*/true, bSelectNewNode);
-		// @TODO: if this spawned multiple nodes, then we should be selecting all of them
-
 		SpawnedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
 
 		FBlueprintEditorUtils::AnalyticsTrackNewNode(SpawnedNode);
@@ -139,6 +132,9 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 		FromPin->Modify();
 	}
 
+	TSet<const UEdGraphNode*> NodesToFocus;
+	int32 const PreSpawnNodeCount = ParentGraph->Nodes.Num();
+
 	UEdGraphNode* LastSpawnedNode = nullptr;
 	auto BoundObjIt = Bindings.CreateConstIterator();
 	do
@@ -152,7 +148,11 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 			}
 		}
 
-		LastSpawnedNode = InvokeAction(Action, ParentGraph, ModifiedLocation, BindingsSubset, bSelectNewNode);
+		LastSpawnedNode = InvokeAction(Action, ParentGraph, ModifiedLocation, BindingsSubset);
+		// could already be an existent node, so we have to add here (can't 
+		// catch it as we go through all new nodes)
+		NodesToFocus.Add(LastSpawnedNode);
+
 		if (FromPin != nullptr)
 		{
 			// make sure to auto-wire after we position the new node (in case
@@ -164,6 +164,16 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 		ModifiedLocation.Y += UEdGraphSchema_K2::EstimateNodeHeight(LastSpawnedNode);
 
 	} while (BoundObjIt);
+
+	if (bSelectNewNode)
+	{
+		int32 const PostSpawnCount = ParentGraph->Nodes.Num();
+		for (int32 NodeIndex = PreSpawnNodeCount; NodeIndex < PostSpawnCount; ++NodeIndex)
+		{
+			NodesToFocus.Add(ParentGraph->Nodes[NodeIndex]);
+		}
+		ParentGraph->SelectNodeSet(NodesToFocus, /*bFromUI =*/true);
+	}
 	// @TODO: select ALL spawned nodes
 	
 	return LastSpawnedNode;

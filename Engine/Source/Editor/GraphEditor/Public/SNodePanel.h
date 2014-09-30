@@ -623,8 +623,8 @@ protected:
 	/** Given a node, find the corresponding widget */
 	TMap< UObject*, TSharedRef<SNode> > NodeToWidgetLookup;
 
-	/** If non-null and a part of this panel, this node will be selected and brought into view on the next Tick */
-	const UObject* DeferredSelectionTargetObject;
+	/** If not empty and a part of this panel, this node will be selected and brought into view on the next Tick */
+	TSet<const UObject*> DeferredSelectionTargetObjects;
 	/** If non-null and a part of this panel, this node will be brought into view on the next Tick */
 	const UObject* DeferredMovementTargetObject;
 

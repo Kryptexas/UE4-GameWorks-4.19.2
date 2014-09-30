@@ -129,6 +129,14 @@ public:
 	 */
 	void AddNode( UEdGraphNode* NodeToAdd, bool bUserAction = false, bool bSelectNewNode = true );
 
+	/**
+	 * Queues up a select operation for a series of nodes in this graph.
+	 * 
+	 * @param  NodeSelection	The group of nodes you want selected
+	 * @param  bFromUI			True if the node was added as the result of a direct user action.
+	 */
+	void SelectNodeSet(TSet<const UEdGraphNode*> NodeSelection, bool bFromUI = false);
+
 	/** Remove a node from this graph */
 	bool RemoveNode( UEdGraphNode* NodeToRemove );
 

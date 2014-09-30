@@ -951,8 +951,7 @@ void SGraphPanel::AddNode(UEdGraphNode* Node)
 	TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(Node);
 	check(NewNode.IsValid());
 
-	FEdGraphEditAction* GraphAction = UserAddedNodes.Find(Node);
-	const bool bWasUserAdded = (GraphAction != nullptr) ? true : false;
+	const bool bWasUserAdded = (UserAddedNodes.Find(Node) != nullptr);
 
 	NewNode->SetIsEditable(IsEditable);
 	NewNode->SetDoubleClickEvent(OnNodeDoubleClicked);
@@ -971,12 +970,6 @@ void SGraphPanel::AddNode(UEdGraphNode* Node)
 		VisibleChildren.Add(NewNode.ToSharedRef());
 
 		NewNode->PlaySpawnEffect();
-
-		// Do not Select nodes unless they are marked for selection
-		if ((GraphAction->Action & GRAPHACTION_SelectNode) != 0)
-		{
-			SelectAndCenterObject(Node, false);
-		}
 
 		NewNode->UpdateGraphNode();
 		NewNode->RequestRenameOnSpawn();
@@ -997,20 +990,31 @@ void SGraphPanel::Update()
 	// Add widgets for all the nodes that don't have one.
 	if(GraphObj != NULL)
 	{
-		int32 NumNodesAdded = 0;
-
 		// Scan for all missing nodes
-		for ( int32 NodeIndex = 0; NodeIndex < GraphObj->Nodes.Num(); ++NodeIndex )
+		for (int32 NodeIndex = 0; NodeIndex < GraphObj->Nodes.Num(); ++NodeIndex)
 		{
 			UEdGraphNode* Node = GraphObj->Nodes[NodeIndex];
 			if (Node)
 			{
 				AddNode(Node);
-				++NumNodesAdded;
 			}
 			else
 			{
 				UE_LOG(LogGraphPanel, Warning, TEXT("Found NULL Node in GraphObj array. A node type has been deleted without creating an ActiveClassRedictor to K2Node_DeadClass."));
+			}
+		}
+
+		// find the last selection action, and execute it
+		for (int32 ActionIndex = UserActions.Num() - 1; ActionIndex >= 0; --ActionIndex)
+		{
+			if (UserActions[ActionIndex].Action & GRAPHACTION_SelectNode)
+			{
+				DeferredSelectionTargetObjects.Empty();
+				for (const UEdGraphNode* Node : UserActions[ActionIndex].Nodes)
+				{
+					DeferredSelectionTargetObjects.Add(Node);
+				}
+				break;
 			}
 		}
 	}
@@ -1021,6 +1025,7 @@ void SGraphPanel::Update()
 
 	// Clean out set of added nodes
 	UserAddedNodes.Empty();
+	UserActions.Empty();
 
 	// Invoke any delegate methods
 	OnUpdateGraphPanel.ExecuteIfBound();
@@ -1106,16 +1111,23 @@ void SGraphPanel::JumpToPin(const UEdGraphPin* JumpToMe)
 	}
 }
 
-void SGraphPanel::OnGraphChanged ( const FEdGraphEditAction& EditAction)
+void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 {
-	if ((EditAction.Graph == GraphObj ) 
-		&& (EditAction.Action & GRAPHACTION_AddNode) 
-		&& (EditAction.Node != NULL)
+	if ((EditAction.Graph == GraphObj) &&
+		(EditAction.Nodes.Num() > 0) &&
 		// We do not want to mark it as a UserAddedNode for graphs that do not currently have focus,
 		// this causes each one to want to do the effects and rename, which causes problems.
-		&& (HasKeyboardFocus() || HasFocusedDescendants()))
+		(HasKeyboardFocus() || HasFocusedDescendants()))
 	{
-		UserAddedNodes.Add(EditAction.Node, EditAction);
+		int32 ActionIndex = UserActions.Num();
+		if (EditAction.Action & GRAPHACTION_AddNode)
+		{
+			for (const UEdGraphNode* Node : EditAction.Nodes)
+			{
+				UserAddedNodes.Add(Node, ActionIndex);
+			}
+		}
+		UserActions.Add(EditAction);
 	}
 }
 

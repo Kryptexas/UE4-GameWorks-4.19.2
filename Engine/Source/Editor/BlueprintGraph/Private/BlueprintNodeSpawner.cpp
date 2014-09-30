@@ -275,6 +275,10 @@ UEdGraphNode* UBlueprintNodeSpawner::SpawnEdGraphNode(TSubclassOf<UEdGraphNode> 
 			NewNode->SetFlags(RF_Transactional);
 			NewNode->AllocateDefaultPins();
 			NewNode->PostPlacedNewNode();
+
+			ParentGraph->Modify();
+			// the FBlueprintMenuActionItem should do the selecting
+			ParentGraph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 		}
 
 		ApplyBindings(NewNode, Bindings);

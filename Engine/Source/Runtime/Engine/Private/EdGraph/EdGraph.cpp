@@ -146,6 +146,22 @@ void UEdGraph::AddNode( UEdGraphNode* NodeToAdd, bool bFromUI/* = false*/, bool 
 	NotifyGraphChanged( Action );
 }
 
+void UEdGraph::SelectNodeSet(TSet<const UEdGraphNode*> NodeSelection, bool bFromUI/*= false*/) 
+{
+	FEdGraphEditAction SelectionAction;
+
+	SelectionAction.Action = GRAPHACTION_SelectNode;
+	if (bFromUI)
+	{
+		SelectionAction.Action = (EEdGraphActionType)(((int32)SelectionAction.Action) | GRAPHACTION_UserInitiated);
+	}
+
+	SelectionAction.Graph = this;
+	SelectionAction.Nodes = NodeSelection;
+
+	NotifyGraphChanged(SelectionAction);
+}
+
 bool UEdGraph::RemoveNode( UEdGraphNode* NodeToRemove )
 {
 	Modify();

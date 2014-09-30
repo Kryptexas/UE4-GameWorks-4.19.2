@@ -297,7 +297,7 @@ void SNodePanel::Construct()
 	bAllowContinousZoomInterpolation = false;
 	bTeleportInsteadOfScrollingWhenZoomingToFit = false;
 
-	DeferredSelectionTargetObject = NULL;
+	DeferredSelectionTargetObjects.Empty();
 	DeferredMovementTargetObject = NULL;
 
 	bIsPanning = false;
@@ -406,19 +406,23 @@ void SNodePanel::OnEndNodeInteraction(const TSharedRef<SNode>& InNodeToDrag)
 // Ticks this widget.  Override in derived classes, but always call the parent implementation.
 void SNodePanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if(DeferredSelectionTargetObject != NULL)
+	if(DeferredSelectionTargetObjects.Num() > 0)
 	{
-		TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(DeferredSelectionTargetObject);
-		if (pWidget != NULL)
+		FGraphPanelSelectionSet NewSelectionSet;
+		for (const UObject* SelectionTarget : DeferredSelectionTargetObjects)
 		{
-			SelectionManager.SelectSingleNode(const_cast<SelectedItemType>(DeferredSelectionTargetObject));
-			DeferredSelectionTargetObject = NULL;
+			if (TSharedRef<SNode>* pWidget = NodeToWidgetLookup.Find(SelectionTarget))
+			{
+				NewSelectionSet.Add(const_cast<SelectedItemType>(SelectionTarget));
+			}
 		}
-		else
+
+		if (NewSelectionSet.Num() > 0)
 		{
-			// The selection target does not have a corresponding widget. Just end the selection.
-			DeferredSelectionTargetObject = NULL;
+			SelectionManager.SetSelectionSet(NewSelectionSet);
 		}
+		DeferredSelectionTargetObjects.Empty();
+
 
 		// Since we want to move to a target object, do not zoom to extent. Panning and zoom will not begin until next tick however due to the nodes potentially not having a size yet.
 		if( DeferredMovementTargetObject )
@@ -1056,7 +1060,8 @@ FSlateRect SNodePanel::ComputeSensibleGraphBounds() const
 
 void SNodePanel::SelectAndCenterObject(const UObject* ObjectToSelect, bool bCenter)
 {
-	DeferredSelectionTargetObject = ObjectToSelect;
+	DeferredSelectionTargetObjects.Empty();
+	DeferredSelectionTargetObjects.Add(ObjectToSelect);
 
 	if( bCenter )
 	{

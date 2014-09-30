@@ -102,10 +102,6 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 
 	BindingOffset.Y += UEdGraphSchema_K2::EstimateNodeHeight(BindingNode);
 
-	// @TODO: Move this down into Invoke()
-	ParentGraph->Modify();
-	ParentGraph->AddNode(BindingNode, /*bFromUI =*/false, /*bSelectNewNode =*/false);
-
 	UEdGraphPin* LiteralOutput = BindingNode->GetValuePin();
 	UEdGraphPin* CallSelfInput = NewNode->FindPin(GetDefault<UEdGraphSchema_K2>()->PN_Self);
 	// connect the new "get-var" node with the spawned function node
