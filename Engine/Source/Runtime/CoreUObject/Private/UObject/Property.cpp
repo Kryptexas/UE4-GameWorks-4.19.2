@@ -527,13 +527,14 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		}
 	}
 
-	if( dynamic_cast<const UBoolProperty*>(this) )
+	if(auto BoolProperty = dynamic_cast<const UBoolProperty*>(this) )
 	{
 		// if this is a member variable, export it as a bitfield
 		if( ArrayDim==1 && DeclarationType == EExportedDeclaration::Member )
 		{
+			bool bCanUseBitfield = !BoolProperty->IsNativeBool();
 			// export as a uint32 member....bad to hardcode, but this is a special case that won't be used anywhere else
-			Out.Logf(TEXT("%s%s %s%s:1"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr);
+			Out.Logf(TEXT("%s%s %s%s%s"), *TypeText, *ExtendedTypeText, *NameCpp, ArrayStr, bCanUseBitfield ? TEXT(":1") : TEXT(""));
 		}
 
 		//@todo we currently can't have out bools.. so this isn't really necessary, but eventually out bools may be supported, so leave here for now
