@@ -38,7 +38,9 @@ protected:
 public:	
 	FAnimNode_LayeredBoneBlend()
 	{
+#if WITH_EDITOR
 		AddPose();
+#endif
 	}
 
 	// FAnimNode_Base interface
