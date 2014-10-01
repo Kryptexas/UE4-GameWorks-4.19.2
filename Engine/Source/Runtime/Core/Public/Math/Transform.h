@@ -13,7 +13,7 @@
  * Transformation of direction vectors is applied in the order: Scale -> Rotate.
  *
  * Order matters when composing transforms: C = A * B will yield a transform C that logically
- * first applies A then B to any subsequent transformation. Note that this is the opposite order of Quaternion multiplication.
+ * first applies A then B to any subsequent transformation. Note that this is the opposite order of quaternion (FQuat) multiplication.
  *
  * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in local space by DeltaRotation.
  * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in world space by DeltaRotation.
