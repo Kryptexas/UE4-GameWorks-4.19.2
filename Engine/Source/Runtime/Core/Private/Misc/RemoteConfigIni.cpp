@@ -482,11 +482,11 @@ void ProcessIniContents(const TCHAR* FilenameToLoad, const TCHAR* IniFileName, F
 		
 		if (bDoCombine)
 		{
-			Config->CombineFromBuffer(IniFileName, RemoteInfo->Buffer);
+			Config->CombineFromBuffer(RemoteInfo->Buffer);
 		}
 		else
 		{
-			Config->ProcessInputFileContents(IniFileName, RemoteInfo->Buffer);
+			Config->ProcessInputFileContents(RemoteInfo->Buffer);
 		}
 	}
 }

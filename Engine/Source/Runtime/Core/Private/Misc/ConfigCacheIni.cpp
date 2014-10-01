@@ -160,7 +160,7 @@ bool FConfigFile::Combine(const FString& Filename)
 	// needs file ops), and the other caller of this is already checking for disabled file ops
 	if( FFileHelper::LoadFileToString( Text, *Filename ) )
 	{
-		CombineFromBuffer(Filename,Text);
+		CombineFromBuffer(Text);
 		return true;
 	}
 
@@ -168,7 +168,7 @@ bool FConfigFile::Combine(const FString& Filename)
 }
 
 
-void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffer)
+void FConfigFile::CombineFromBuffer(const FString& Buffer)
 {
 	// Replace %GAME% with game name.
 	FString Text = Buffer.Replace( TEXT("%GAME%"), GGameName, ESearchCase::CaseSensitive );
@@ -376,10 +376,9 @@ void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffe
 /**
  * Process the contents of an .ini file that has been read into an FString
  * 
- * @param Filename Name of the .ini file the contents came from
  * @param Contents Contents of the .ini file
  */
-void FConfigFile::ProcessInputFileContents(const FString& Filename, FString& Contents)
+void FConfigFile::ProcessInputFileContents(const FString& Contents)
 {
 	// Replace %GAME% with game name.
 	FString Text = Contents.Replace(TEXT("%GAME%"), GGameName, ESearchCase::CaseSensitive);
@@ -545,7 +544,7 @@ void FConfigFile::Read( const FString& Filename )
 		if( FFileHelper::LoadFileToString( Text, *Filename ) )
 		{
 			// process the contents of the string
-			ProcessInputFileContents(Filename, Text);
+			ProcessInputFileContents(Text);
 		}
 	}
 }

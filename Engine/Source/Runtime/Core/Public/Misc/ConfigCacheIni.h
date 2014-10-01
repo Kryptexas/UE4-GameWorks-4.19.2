@@ -80,7 +80,7 @@ public:
 	bool operator!=( const FConfigFile& Other ) const;
 
 	CORE_API bool Combine( const FString& Filename);
-	CORE_API void CombineFromBuffer(const FString& Filename,const FString& Buffer);
+	CORE_API void CombineFromBuffer(const FString& Buffer);
 	CORE_API void Read( const FString& Filename );
 	CORE_API bool Write( const FString& Filename, bool bDoRemoteWrite=true, const FString& InitialText=FString() );
 	CORE_API void Dump(FOutputDevice& Ar);
@@ -99,7 +99,7 @@ public:
 	 * @param Filename Name of the .ini file the contents came from
 	 * @param Contents Contents of the .ini file
 	 */
-	void ProcessInputFileContents(const FString& Filename, FString& Contents);
+	CORE_API void ProcessInputFileContents(const FString& Contents);
 
 
 	/** Adds any properties that exist in InSourceFile that this config file is missing */
