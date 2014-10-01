@@ -299,7 +299,7 @@ struct TextureStatsGenerator : public FFindReferencedAssets
 						{
 							TArray<UTexture*> UsedTextures;
 
-							CurrentMaterial->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
+							CurrentMaterial->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GMaxRHIFeatureLevel, true);
 							for(int32 TextureIndex = 0; TextureIndex < UsedTextures.Num(); TextureIndex++)
 							{
 								UTexture* CurrentUsedTexture = UsedTextures[TextureIndex];

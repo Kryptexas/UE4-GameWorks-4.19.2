@@ -1011,7 +1011,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 				}
 
 				auto World = ViewportClient->GetWorld();
-				FCanvas Canvas(this, NULL, World, World ? World->FeatureLevel : GRHIFeatureLevel);
+				FCanvas Canvas(this, NULL, World, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
 				{
 					// Make sure the Canvas is not rendered upside down
 					Canvas.SetAllowSwitchVerticalAxis(false);
@@ -1117,7 +1117,7 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 
 		// Let the viewport client draw its hit proxies.
 		auto World = ViewportClient->GetWorld();
-		FCanvas Canvas(&HitProxyMap, &HitProxyMap, World, World ? World->FeatureLevel : GRHIFeatureLevel);
+		FCanvas Canvas(&HitProxyMap, &HitProxyMap, World, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
 		{
 			ViewportClient->Draw(this, &Canvas);
 		}

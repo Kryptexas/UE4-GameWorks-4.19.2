@@ -92,7 +92,7 @@ void UMaterialInterface::SetForceMipLevelsToBeResident( bool OverrideForceMiplev
 {
 	TArray<UTexture*> Textures;
 	
-	GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
+	GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, ERHIFeatureLevel::Num, true);
 	for ( int32 TextureIndex=0; TextureIndex < Textures.Num(); ++TextureIndex )
 	{
 		UTexture2D* Texture = Cast<UTexture2D>(Textures[TextureIndex]);
@@ -220,7 +220,7 @@ bool DoesMaterialUseTexture(const UMaterialInterface* Material,const UTexture* C
 	}
 
 	TArray<UTexture*> Textures;
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, GRHIFeatureLevel, true);
+	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
 	for (int32 i = 0; i < Textures.Num(); i++)
 	{
 		if (Textures[i] == CheckTexture)
@@ -231,7 +231,7 @@ bool DoesMaterialUseTexture(const UMaterialInterface* Material,const UTexture* C
 	return false;
 }
 
-float UMaterialInterface::GetOpacityMaskClipValue()const
+float UMaterialInterface::GetOpacityMaskClipValue() const
 {
 	if( IsInGameThread() )
 	{
@@ -239,10 +239,10 @@ float UMaterialInterface::GetOpacityMaskClipValue()const
 	}
 
 	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->GetOpacityMaskClipValue();
+	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->GetOpacityMaskClipValue();
 }
 
-EBlendMode UMaterialInterface::GetBlendMode()const
+EBlendMode UMaterialInterface::GetBlendMode() const
 {
 	if( IsInGameThread() )
 	{
@@ -250,10 +250,10 @@ EBlendMode UMaterialInterface::GetBlendMode()const
 	}
 
 	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->GetBlendMode();
+	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->GetBlendMode();
 }
 
-bool UMaterialInterface::IsTwoSided()const
+bool UMaterialInterface::IsTwoSided() const
 {
 	if( IsInGameThread() )
 	{
@@ -261,7 +261,7 @@ bool UMaterialInterface::IsTwoSided()const
 	}
 
 	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->IsTwoSided();
+	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->IsTwoSided();
 }
 
 bool UMaterialInterface::IsMasked() const
@@ -272,10 +272,10 @@ bool UMaterialInterface::IsMasked() const
 	}
 
 	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->IsMasked();
+	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->IsMasked();
 }
 
-EMaterialShadingModel UMaterialInterface::GetShadingModel()const
+EMaterialShadingModel UMaterialInterface::GetShadingModel() const
 {
 	if( IsInGameThread() )
 	{
@@ -283,20 +283,21 @@ EMaterialShadingModel UMaterialInterface::GetShadingModel()const
 	}
 
 	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->GetShadingModel();
+	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->GetShadingModel();
+
 }
 
-float UMaterialInterface::GetOpacityMaskClipValue_Internal()const
+float UMaterialInterface::GetOpacityMaskClipValue_Internal() const
 {
 	return 0.0f;
 }
 
-EBlendMode UMaterialInterface::GetBlendMode_Internal()const
+EBlendMode UMaterialInterface::GetBlendMode_Internal() const
 {
 	return BLEND_Opaque;
 }
 
-bool UMaterialInterface::IsTwoSided_Internal()const
+bool UMaterialInterface::IsTwoSided_Internal() const
 {
 	return false;
 }
@@ -306,7 +307,7 @@ bool UMaterialInterface::IsMasked_Internal() const
 	return false;
 }
 
-EMaterialShadingModel UMaterialInterface::GetShadingModel_Internal()const
+EMaterialShadingModel UMaterialInterface::GetShadingModel_Internal() const
 {
 	return MSM_DefaultLit;
 }

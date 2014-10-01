@@ -1420,9 +1420,10 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 	if (!Shader)
 	{
 		// Get the ShouldCache results that determine whether the shader should be compiled
-		bool bMaterialShouldCache = ShouldCache(GRHIShaderPlatform, ShaderType, VertexFactoryType);
-		bool bVFShouldCache = VertexFactoryType->ShouldCache(GRHIShaderPlatform, this, ShaderType);
-		bool bShaderShouldCache = ShaderType->ShouldCache(GRHIShaderPlatform, this, VertexFactoryType);
+		auto ShaderPlatform = GShaderPlatformForFeatureLevel[GetFeatureLevel()];
+		bool bMaterialShouldCache = ShouldCache(ShaderPlatform, ShaderType, VertexFactoryType);
+		bool bVFShouldCache = VertexFactoryType->ShouldCache(ShaderPlatform, this, ShaderType);
+		bool bShaderShouldCache = ShaderType->ShouldCache(ShaderPlatform, this, VertexFactoryType);
 		FString MaterialUsage = GetMaterialUsageDescription();
 
 		int BreakPoint = 0;
@@ -1437,7 +1438,7 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 			ShaderType->GetName(), 
 			*GetFriendlyName(),
 			VertexFactoryType->GetName(),
-			*LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString(),
+			*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString(),
 			bMaterialShouldCache,
 			bVFShouldCache,
 			bShaderShouldCache,
@@ -1530,13 +1531,10 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 
 	check(UMaterial::GetDefaultMaterial(MD_Surface));
 
-	uint32 FeatureLevelsToCompile = UMaterialInterface::GetFeatureLevelsToCompileForAllMaterials();
 	TArray<FMaterialResource*> ResourcesToCache;
 
-	while (FeatureLevelsToCompile != 0)
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type FeatureLevel)
 	{
-		ERHIFeatureLevel::Type FeatureLevel = (ERHIFeatureLevel::Type)FBitSet::GetAndClearNextBit(FeatureLevelsToCompile);
-
 		const FMaterial* MaterialNoFallback = GetMaterialNoFallback(FeatureLevel);
 
 		if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())
@@ -1564,7 +1562,7 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 			InvalidateUniformExpressionCache();
 			return;
 		}
-	}
+	});
 }
 
 void FMaterialRenderProxy::CacheUniformExpressions_GameThread()
@@ -1882,7 +1880,7 @@ bool FMaterial::GetMaterialExpressionSource( FString& OutSource, TMap<FMaterialE
 	};
 
 	FMaterialCompilationOutput TempOutput;
-	FViewSourceMaterialTranslator MaterialTranslator(this, TempOutput, FStaticParameterSet(), GRHIShaderPlatform, GetQualityLevel(), GetFeatureLevel());
+	FViewSourceMaterialTranslator MaterialTranslator(this, TempOutput, FStaticParameterSet(), GMaxRHIShaderPlatform, GetQualityLevel(), GetFeatureLevel());
 	bool bSuccess = MaterialTranslator.Translate();
 
 	if( bSuccess )
@@ -1977,10 +1975,19 @@ void FMaterialUpdateContext::AddMaterialInstance(UMaterialInstance* Instance)
 FMaterialUpdateContext::~FMaterialUpdateContext()
 {
 	double StartTime = FPlatformTime::Seconds();
+	bool bProcess = false;
 
 	// if the shader platform that was processed is not the currently rendering shader platform, 
 	// there's no reason to update all of the runtime components
-	if (ShaderPlatform != GRHIShaderPlatform)
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		if (ShaderPlatform == GShaderPlatformForFeatureLevel[InFeatureLevel])
+		{
+			bProcess = true;
+		}
+	});
+
+	if (!bProcess)
 	{
 		return;
 	}

@@ -2956,7 +2956,7 @@ bool UEngine::HandleRecompileGlobalShadersCommand( const TCHAR* Cmd, FOutputDevi
 bool UEngine::HandleDumpShaderStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString FlagStr(FParse::Token(Cmd, 0));
-	EShaderPlatform Platform = GRHIShaderPlatform;
+	EShaderPlatform Platform = GMaxRHIShaderPlatform;
 	if (FlagStr.Len() > 0)
 	{
 		Platform = ShaderFormatToLegacyShaderPlatform(FName(*FlagStr));
@@ -2970,7 +2970,7 @@ bool UEngine::HandleDumpShaderStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar 
 bool UEngine::HandleDumpMaterialStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString FlagStr(FParse::Token(Cmd, 0));
-	EShaderPlatform Platform = GRHIShaderPlatform;
+	EShaderPlatform Platform = GMaxRHIShaderPlatform;
 	if (FlagStr.Len() > 0)
 	{
 		Platform = ShaderFormatToLegacyShaderPlatform(FName(*FlagStr));
@@ -3255,7 +3255,7 @@ bool UEngine::HandleRemoteTextureStatsCommand( const TCHAR* Cmd, FOutputDevice& 
 			if( UsedMaterials[ MatIndex ] )
 			{
 				UsedTextures.Reset();
-				UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
+				UsedMaterials[MatIndex]->GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, false, GMaxRHIFeatureLevel, true);
 
 				// Increase usage count for all referenced textures
 				for( int32 TextureIndex=0; TextureIndex<UsedTextures.Num(); TextureIndex++ )
@@ -10237,11 +10237,6 @@ bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
 		&& (FeatureLevel > ERHIFeatureLevel::ES3_1)
 		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0)
 		&& !IsMobilePlatform(GShaderPlatformForFeatureLevel[FeatureLevel]);
-}
-
-bool AllowHighQualityLightmaps()
-{
-	return AllowHighQualityLightmaps(GRHIFeatureLevel);
 }
 
 // Helper function for changing system resolution via the r.setres console command

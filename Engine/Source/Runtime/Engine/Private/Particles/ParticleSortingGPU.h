@@ -125,5 +125,6 @@ int32 SortParticlesGPU(
 	FRHICommandListImmediate& RHICmdList,
 	FParticleSortBuffers& ParticleSortBuffers,
 	FTexture2DRHIParamRef PositionTextureRHI,
-	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
+	const TArray<FParticleSimulationSortInfo>& SimulationsToSort,
+	ERHIFeatureLevel::Type FeatureLevel
 	);

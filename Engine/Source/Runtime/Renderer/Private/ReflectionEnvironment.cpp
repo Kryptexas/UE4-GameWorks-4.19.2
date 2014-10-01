@@ -597,7 +597,7 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 		{
 			FScene* Scene = (FScene*)View.Family->Scene;
 
@@ -800,7 +800,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 			NewSortEntry.CaptureIndex = -1;
 
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+			if (FeatureLevel >= ERHIFeatureLevel::SM5)
 			{
 				const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(CurrentCapture->Component);
 				NewSortEntry.CaptureIndex = ComponentStatePtr ? ComponentStatePtr->CaptureIndex : -1;
@@ -881,7 +881,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			{
 				const FReflectionCaptureSortData& ReflectionCapture = SortData[ReflectionCaptureIndex];
 
-				if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ReflectionCapture.SM4FullHDRCubemap)
+				if (FeatureLevel >= ERHIFeatureLevel::SM5 || ReflectionCapture.SM4FullHDRCubemap)
 				{
 					const FSphere LightBounds(ReflectionCapture.PositionAndRadius, ReflectionCapture.PositionAndRadius.W);
 

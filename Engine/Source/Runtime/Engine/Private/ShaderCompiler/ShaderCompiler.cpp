@@ -2332,8 +2332,11 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 				FRecompileShadersTimer TestTimer(TEXT("RecompileShaders Changed"));
 
 				// Kick off global shader recompiles
-				BeginRecompileGlobalShaders(OutdatedShaderTypes);
-				UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
+				UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel) {
+					auto ShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+					BeginRecompileGlobalShaders(OutdatedShaderTypes, ShaderPlatform);
+					UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, ShaderPlatform);
+				});
 
 				GWarn->StatusUpdate(0, 1, NSLOCTEXT("ShaderCompilingManager", "CompilingGlobalShaderStatus", "Compiling global shaders..."));
 
@@ -2406,7 +2409,7 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 				
 				TArray<const FVertexFactoryType*> FactoryTypes;
 
-				BeginRecompileGlobalShaders(ShaderTypes);
+				BeginRecompileGlobalShaders(ShaderTypes, GRHIShaderPlatform);
 				UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes, GRHIShaderPlatform);
 				FinishRecompileGlobalShaders();
 			}

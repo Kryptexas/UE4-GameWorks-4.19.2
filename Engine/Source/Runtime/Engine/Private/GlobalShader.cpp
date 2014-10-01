@@ -223,7 +223,7 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 			// OpenGL requires that global shader maps are compiled before attaching
 			// primitives to the scene as it must be able to find FNULLPS.
 			// TODO_OPENGL: Allow shaders to be compiled asynchronously.
-			!IsOpenGLPlatform(GRHIShaderPlatform) &&
+			!IsOpenGLPlatform(GMaxRHIShaderPlatform) &&
 			GShaderCompilingManager->AllowAsynchronousShaderCompiling();
 
 		if (!bAllowAsynchronousGlobalShaderCompiling)

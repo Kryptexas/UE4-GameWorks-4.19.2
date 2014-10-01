@@ -310,7 +310,7 @@ public:
 	*
 	* @return shader platform that this canvas is rendering at
 	*/
-	EShaderPlatform GetShaderPlatform() const { return ShaderPlatform; }
+	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 
 	// Get/Set if this Canvas allows its batched elements to switch vertical axis (e.g., rendering to back buffer should never flip)
 	bool GetAllowSwitchVerticalAxis() const { return bAllowsToSwitchVerticalAxis; }
@@ -391,8 +391,6 @@ private:
 	bool bAllowsToSwitchVerticalAxis;
 	/** Feature level that we are currently rendering with */
 	ERHIFeatureLevel::Type FeatureLevel;
-	/** Shader platform that we are currently rendering with */
-	EShaderPlatform ShaderPlatform;
 
 	/** 
 	* Shared construction function

@@ -70,9 +70,9 @@ FLightMap::FLightMap()
 	: bAllowHighQualityLightMaps(true)
 	, NumRefs(0)
 {
-	bAllowHighQualityLightMaps = AllowHighQualityLightmaps();
+	bAllowHighQualityLightMaps = AllowHighQualityLightmaps(GMaxRHIFeatureLevel);
 #if !PLATFORM_DESKTOP 
-	checkf(bAllowHighQualityLightMaps || IsMobilePlatform(GRHIShaderPlatform), TEXT("Low quality lightmaps are not currently supported on consoles. Make sure console variable r.HighQualityLightMaps is true for this platform"));
+	checkf(bAllowHighQualityLightMaps || IsMobilePlatform(GMaxRHIShaderPlatform), TEXT("Low quality lightmaps are not currently supported on consoles. Make sure console variable r.HighQualityLightMaps is true for this platform"));
 #endif
 }
 

@@ -43,7 +43,7 @@ namespace AutomationCommon
 		}
 
 		FString FeatureLevelString;
-		GetFeatureLevelName(GRHIFeatureLevel,FeatureLevelString);
+		GetFeatureLevelName(GMaxRHIFeatureLevel,FeatureLevelString);
 		{
 			HardwareDetailsString = ( HardwareDetailsString + TEXT( "_" ) ) + FeatureLevelString;
 		}

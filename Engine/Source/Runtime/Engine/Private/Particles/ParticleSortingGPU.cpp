@@ -180,14 +180,11 @@ static int32 GenerateParticleSortKeys(
 	FUnorderedAccessViewRHIParamRef KeyBufferUAV,
 	FUnorderedAccessViewRHIParamRef SortedVertexBufferUAV,
 	FTexture2DRHIParamRef PositionTextureRHI,
-	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
+	const TArray<FParticleSimulationSortInfo>& SimulationsToSort,
+	ERHIFeatureLevel::Type FeatureLevel
 	)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, ParticleSortKeyGen, DEC_PARTICLE);
-
-	// MOBILEPREVIEWTODO: Proper value for this
-	const auto FeatureLevel = GRHIFeatureLevel;
-
 	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
 	FParticleKeyGenParameters KeyGenParameters;
@@ -314,12 +311,11 @@ int32 SortParticlesGPU(
 	FRHICommandListImmediate& RHICmdList,
 	FParticleSortBuffers& ParticleSortBuffers,
 	FTexture2DRHIParamRef PositionTextureRHI,
-	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
+	const TArray<FParticleSimulationSortInfo>& SimulationsToSort,
+	ERHIFeatureLevel::Type FeatureLevel
 	)
 {
 	SCOPED_DRAW_EVENTF(RHICmdList, ParticleSort, DEC_PARTICLE, TEXT("ParticleSort_%d"), SimulationsToSort.Num());
-
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 
 	// Ensure the sorted vertex buffers are not currently bound as input streams.
 	// They should only ever be bound to streams 0 or 1, so clear them.
@@ -338,7 +334,8 @@ int32 SortParticlesGPU(
 		ParticleSortBuffers.GetKeyBufferUAV(),
 		ParticleSortBuffers.GetVertexBufferUAV(),
 		PositionTextureRHI,
-		SimulationsToSort
+		SimulationsToSort,
+		FeatureLevel
 		);
 
 	// Update stats.
@@ -349,5 +346,5 @@ int32 SortParticlesGPU(
 	const uint32 EmitterKeyMask = (1 << FMath::CeilLogTwo( SimulationsToSort.Num() )) - 1;
 	const uint32 KeyMask = (EmitterKeyMask << 16) | 0xFFFF;
 	FGPUSortBuffers SortBuffers = ParticleSortBuffers.GetSortBuffers();
-	return SortGPUBuffers(RHICmdList, SortBuffers, 0, KeyMask, TotalParticleCount);
+	return SortGPUBuffers(RHICmdList, SortBuffers, 0, KeyMask, TotalParticleCount, FeatureLevel);
 }

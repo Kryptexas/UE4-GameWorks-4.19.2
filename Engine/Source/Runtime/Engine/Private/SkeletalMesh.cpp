@@ -1262,7 +1262,7 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors)
 		BeginInitResource(&APEXClothVertexBuffer);
 	}
 
-	if( RHISupportsTessellation(GRHIShaderPlatform) ) 
+	if( RHISupportsTessellation(GMaxRHIShaderPlatform) ) 
 	{
 		AdjacencyMultiSizeIndexContainer.InitResources();
 		INC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ? (AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize()) : 0 );

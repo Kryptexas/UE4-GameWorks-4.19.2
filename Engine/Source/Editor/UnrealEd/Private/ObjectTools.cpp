@@ -3517,7 +3517,7 @@ namespace ThumbnailTools
 				FScopedSlowTask SlowTaskMessage( NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ), bAllowNewSlowTask );
 
 				// Block until the shader maps that we will save have finished being compiled
-				InMaterial->GetMaterialResource(GRHIFeatureLevel)->FinishCompilation();
+				InMaterial->GetMaterialResource(GMaxRHIFeatureLevel)->FinishCompilation();
 			}
 
 			// Generate the thumbnail

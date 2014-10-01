@@ -106,7 +106,7 @@ void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, c
 	const bool bIsMobileHDR = MobileHDRCvar->GetValueOnRenderThread() == 1;
 
 	// Mobile HDR does not execute post process, so does not need to render flipped
-	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform) && !bIsMobileHDR;
+	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(View.GetShaderPlatform()) && !bIsMobileHDR;
 
 	// Draw the batched elements.
 	BatchedElements.Draw(

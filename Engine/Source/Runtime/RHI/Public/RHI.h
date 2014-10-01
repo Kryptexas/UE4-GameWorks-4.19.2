@@ -247,16 +247,16 @@ extern RHI_API EShaderPlatform GetMaxRHIShaderPlatform();
 /** treating GRHIFeatureLevel as a function allows for better usage tracking at small cost to performance. */
 #define RHI_FEATURE_LEVEL_AS_FUNCTION 0
 
-#if RHI_FEATURE_LEVEL_AS_FUNCTION
-	#define GMaxRHIFeatureLevel GetMaxRHIFeatureLevel()
-	#define GMaxRHIShaderPlatform GetMaxRHIShaderPlatform()
-#else
-	#define GMaxRHIFeatureLevel GMaxRHIFeatureLevelValue
-	#define GMaxRHIShaderPlatform GMaxRHIShaderPlatformValue
-#endif
+#define GMaxRHIFeatureLevel GMaxRHIFeatureLevelValue
+#define GMaxRHIShaderPlatform GMaxRHIShaderPlatformValue
 
-#define GRHIShaderPlatform GMaxRHIShaderPlatform
-#define GRHIFeatureLevel GMaxRHIFeatureLevel
+#if RHI_FEATURE_LEVEL_AS_FUNCTION
+	#define GRHIShaderPlatform GetMaxRHIShaderPlatform()
+	#define GRHIFeatureLevel GetMaxRHIFeatureLevel()
+#else
+	#define GRHIShaderPlatform GMaxRHIShaderPlatform
+	#define GRHIFeatureLevel GMaxRHIFeatureLevel
+#endif
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];

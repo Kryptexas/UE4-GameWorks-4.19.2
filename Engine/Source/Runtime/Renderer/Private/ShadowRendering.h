@@ -310,13 +310,14 @@ public:
 		bool bInDirectionalLight,
 		bool bInOnePassPointLightShadow,
 		bool bInPreShadow,
+		ERHIFeatureLevel::Type InFeatureLevel,
 		const FVertexFactory* InVertexFactory = 0,
 		const FMaterialRenderProxy* InMaterialRenderProxy = 0,
 		bool bInCastShadowAsTwoSided = false,
 		bool bReverseCulling = false
 		);
 
-	void UpdateElementState(FShadowStaticMeshElement& State);
+	void UpdateElementState(FShadowStaticMeshElement& State, ERHIFeatureLevel::Type FeatureLevel);
 
 	FShadowDepthDrawingPolicy& operator = (const FShadowDepthDrawingPolicy& Other)
 	{ 
@@ -330,6 +331,7 @@ public:
 		bOnePassPointLightShadow = Other.bOnePassPointLightShadow;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
 		bPreShadow = Other.bPreShadow;
+		FeatureLevel = Other.FeatureLevel;
 		(FMeshDrawingPolicy&)*this = (const FMeshDrawingPolicy&)Other;
 		return *this; 
 	}
@@ -347,7 +349,8 @@ public:
 			&& bReverseCulling == Other.bReverseCulling
 			&& bOnePassPointLightShadow == Other.bOnePassPointLightShadow
 			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
-			&& bPreShadow == Other.bPreShadow;
+			&& bPreShadow == Other.bPreShadow
+			&& FeatureLevel == Other.FeatureLevel;
 	}
 	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
@@ -384,6 +387,7 @@ private:
 	TShadowDepthBasePS<bRenderingReflectiveShadowMaps>* PixelShader;
 	class FBaseHS* HullShader;
 	class FShadowDepthDS* DomainShader;
+	ERHIFeatureLevel::Type FeatureLevel;
 
 public:
 

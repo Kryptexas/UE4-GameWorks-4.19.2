@@ -80,7 +80,7 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedLightVolume& Volume)
 			Ar << HighQualitySamples;
 
 			if (FPlatformProperties::SupportsHighQualityLightmaps() 
-				&& (GIsEditor || AllowHighQualityLightmaps()))
+				&& (GIsEditor || AllowHighQualityLightmaps(GMaxRHIFeatureLevel)))
 			{
 				for(int32 SampleIndex = 0; SampleIndex < HighQualitySamples.Num(); SampleIndex++)
 				{
@@ -96,7 +96,7 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedLightVolume& Volume)
 			}
 
 			if (FPlatformProperties::SupportsLowQualityLightmaps() 
-				&& (GIsEditor || !AllowHighQualityLightmaps()))
+				&& (GIsEditor || !AllowHighQualityLightmaps(GMaxRHIFeatureLevel)))
 			{
 				for(int32 SampleIndex = 0; SampleIndex < LowQualitySamples.Num(); SampleIndex++)
 				{
@@ -184,7 +184,7 @@ void FPrecomputedLightVolume::Initialize(const FBox& NewBounds)
 	HighQualityLightmapOctree = FLightVolumeOctree(NewBounds.GetCenter(), NewBounds.GetExtent().GetMax());
 	LowQualityLightmapOctree = FLightVolumeOctree(NewBounds.GetCenter(), NewBounds.GetExtent().GetMax());
 
-	OctreeForRendering = AllowHighQualityLightmaps() ? &HighQualityLightmapOctree : &LowQualityLightmapOctree;
+	OctreeForRendering = AllowHighQualityLightmaps(GMaxRHIFeatureLevel) ? &HighQualityLightmapOctree : &LowQualityLightmapOctree;
 }
 
 /** Adds a lighting sample. */

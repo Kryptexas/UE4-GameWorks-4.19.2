@@ -196,7 +196,7 @@ inline void RHICreateTargetableShaderResource2D(
 
 	if (NumSamples > 1)
 	{
-		bForceSeparateTargetAndShaderResource = RHISupportsSeparateMSAAAndResolveTextures(GRHIShaderPlatform);
+		bForceSeparateTargetAndShaderResource = RHISupportsSeparateMSAAAndResolveTextures(GMaxRHIShaderPlatform);
 	}
 
 	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)

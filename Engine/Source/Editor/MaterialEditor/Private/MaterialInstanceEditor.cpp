@@ -692,7 +692,7 @@ void FMaterialInstanceEditor::DrawMessages( FViewport* Viewport, FCanvas* Canvas
 	Canvas->PushAbsoluteTransform(FMatrix::Identity);
 	if ( MaterialEditorInstance->Parent && MaterialEditorInstance->SourceInstance )
 	{
-		const FMaterialResource* MaterialResource = MaterialEditorInstance->SourceInstance->GetMaterialResource(GRHIFeatureLevel);
+		const FMaterialResource* MaterialResource = MaterialEditorInstance->SourceInstance->GetMaterialResource(GMaxRHIFeatureLevel);
 		UMaterial* BaseMaterial = MaterialEditorInstance->SourceInstance->GetMaterial();
 		int32 DrawPositionY = 5;
 		if ( BaseMaterial && MaterialResource )

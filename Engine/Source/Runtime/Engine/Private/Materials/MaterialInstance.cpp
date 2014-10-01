@@ -772,56 +772,47 @@ void UMaterialInstance::OverrideTexture(const UTexture* InTextureToOverride, UTe
 {
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
-	const bool bES2Preview = false;
-	//ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
-	//int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[1] = { InFeatureLevel };
-	int32 NumFeatureLevelsToUpdate = 1;
 	
-	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
+	const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >* ExpressionsByType[2];
+
+	const FMaterialResource* SourceMaterialResource = NULL;
+	if (bHasStaticPermutationResource)
 	{
-		const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >* ExpressionsByType[2];
-		ERHIFeatureLevel::Type FeatureLevel = FeatureLevelsToUpdate[i];
-
-		const FMaterialResource* SourceMaterialResource = NULL;
-		if (bHasStaticPermutationResource)
-		{
-			SourceMaterialResource = GetMaterialResource(FeatureLevel);
-			// Iterate over both the 2D textures and cube texture expressions.
-			ExpressionsByType[0] = &SourceMaterialResource->GetUniform2DTextureExpressions();
-			ExpressionsByType[1] = &SourceMaterialResource->GetUniformCubeTextureExpressions();
-		}
-		else
-		{
-			//@todo - this isn't handling chained MIC's correctly, where a parent in the chain has static parameters
-			UMaterial* Material = GetMaterial();
-			SourceMaterialResource = Material->GetMaterialResource(FeatureLevel);
+		SourceMaterialResource = GetMaterialResource(InFeatureLevel);
+		// Iterate over both the 2D textures and cube texture expressions.
+		ExpressionsByType[0] = &SourceMaterialResource->GetUniform2DTextureExpressions();
+		ExpressionsByType[1] = &SourceMaterialResource->GetUniformCubeTextureExpressions();
+	}
+	else
+	{
+		//@todo - this isn't handling chained MIC's correctly, where a parent in the chain has static parameters
+		UMaterial* Material = GetMaterial();
+		SourceMaterialResource = Material->GetMaterialResource(InFeatureLevel);
 			
-			// Iterate over both the 2D textures and cube texture expressions.
-			ExpressionsByType[0] = &SourceMaterialResource->GetUniform2DTextureExpressions();
-			ExpressionsByType[1] = &SourceMaterialResource->GetUniformCubeTextureExpressions();
-		}
+		// Iterate over both the 2D textures and cube texture expressions.
+		ExpressionsByType[0] = &SourceMaterialResource->GetUniform2DTextureExpressions();
+		ExpressionsByType[1] = &SourceMaterialResource->GetUniformCubeTextureExpressions();
+	}
 		
-		for(int32 TypeIndex = 0;TypeIndex < ARRAY_COUNT(ExpressionsByType);TypeIndex++)
+	for(int32 TypeIndex = 0;TypeIndex < ARRAY_COUNT(ExpressionsByType);TypeIndex++)
+	{
+		const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& Expressions = *ExpressionsByType[TypeIndex];
+
+		// Iterate over each of the material's texture expressions.
+		for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
 		{
-			const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& Expressions = *ExpressionsByType[TypeIndex];
+			FMaterialUniformExpressionTexture* Expression = Expressions[ExpressionIndex];
 
-			// Iterate over each of the material's texture expressions.
-			for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+			// Evaluate the expression in terms of this material instance.
+			const bool bAllowOverride = false;
+			UTexture* Texture = NULL;
+			Expression->GetGameThreadTextureValue(this,*SourceMaterialResource,Texture,bAllowOverride);
+
+			if( Texture != NULL && Texture == InTextureToOverride )
 			{
-				FMaterialUniformExpressionTexture* Expression = Expressions[ExpressionIndex];
-
-				// Evaluate the expression in terms of this material instance.
-				const bool bAllowOverride = false;
-				UTexture* Texture = NULL;
-				Expression->GetGameThreadTextureValue(this,*SourceMaterialResource,Texture,bAllowOverride);
-
-				if( Texture != NULL && Texture == InTextureToOverride )
-				{
-					// Override this texture!
-					Expression->SetTransientOverrideTextureValue( OverrideTexture );
-					bShouldRecacheMaterialExpressions = true;
-				}
+				// Override this texture!
+				Expression->SetTransientOverrideTextureValue( OverrideTexture );
+				bShouldRecacheMaterialExpressions = true;
 			}
 		}
 	}
@@ -1260,9 +1251,8 @@ void UMaterialInstance::GetMaterialResourceId(EShaderPlatform ShaderPlatform, EM
 	FStaticParameterSet CompositedStaticParameters;
 	GetStaticParameterValues(CompositedStaticParameters);
 
-	// TODO: Is this right?
-	// ERHIFeatureLevel::Type FeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);
-	const FMaterialResource* BaseResource = BaseMaterial->GetMaterialResource(GRHIFeatureLevel, QualityLevel);
+	ERHIFeatureLevel::Type FeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);
+	const FMaterialResource* BaseResource = BaseMaterial->GetMaterialResource(FeatureLevel, QualityLevel);
 
 	GetMaterialResourceId(BaseResource, ShaderPlatform, CompositedStaticParameters, OutId);
 }
@@ -2063,7 +2053,7 @@ bool UMaterialInstance::UpdateLightmassTextureTracking()
 #if WITH_EDITORONLY_DATA
 	TArray<UTexture*> UsedTextures;
 	
-	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GRHIFeatureLevel, true);
+	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
 	if (UsedTextures.Num() != ReferencedTextureGuids.Num())
 	{
 		bTexturesHaveChanged = true;

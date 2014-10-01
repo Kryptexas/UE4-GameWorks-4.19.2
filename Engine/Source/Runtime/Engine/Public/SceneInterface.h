@@ -304,7 +304,7 @@ public:
 
 	virtual bool IsEditorScene() const { return false; }
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GRHIFeatureLevel; }
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GMaxRHIFeatureLevel; }
 
 	bool ShouldUseDeferredRenderer() const
 	{

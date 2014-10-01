@@ -201,7 +201,7 @@ extern ENGINE_API void RecompileGlobalShaders();
  * Begins recompiling the specified global shader types, and flushes their bound shader states.
  * FinishRecompileGlobalShaders must be called after this and before using the global shaders for anything.
  */
-extern ENGINE_API void BeginRecompileGlobalShaders(const TArray<FShaderType*>& OutdatedShaderTypes, EShaderPlatform ShaderPlatform=GRHIShaderPlatform);
+extern ENGINE_API void BeginRecompileGlobalShaders(const TArray<FShaderType*>& OutdatedShaderTypes, EShaderPlatform ShaderPlatform);
 
 /** Finishes recompiling global shaders.  Must be called after BeginRecompileGlobalShaders. */
 extern ENGINE_API void FinishRecompileGlobalShaders();

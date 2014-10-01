@@ -10,21 +10,16 @@ FTextureEditorViewportClient::FTextureEditorViewportClient( TWeakPtr<ITextureEdi
 	: TextureEditorPtr(InTextureEditor)
 	, TextureEditorViewportPtr(InTextureEditorViewport)
 	, CheckerboardTexture(NULL)
-	, World(NULL)
 {
 	check(TextureEditorPtr.IsValid() && TextureEditorViewportPtr.IsValid());
 
 	ModifyCheckerboardTextureColors();
-
-	// @todo This is a hack to get this working for now. This won't work with multiple worlds
-	GEditor->GetEditorWorldContext(true).AddRef(World);
 }
 
 
 FTextureEditorViewportClient::~FTextureEditorViewportClient( )
 {
 	DestroyCheckerboardTexture();
-	GEditor->GetEditorWorldContext(true).RemoveRef(World);
 }
 
 
@@ -79,7 +74,7 @@ void FTextureEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 		TRefCountPtr<FBatchedElementParameters> BatchedElementParameters;
 
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if (TextureCube || RTTextureCube)
 			{

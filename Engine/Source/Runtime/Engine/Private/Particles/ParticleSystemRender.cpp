@@ -1837,7 +1837,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 {
 	SCOPE_CYCLE_COUNTER(STAT_MeshRenderingTime);
 
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	const bool bInstanced = View->GetFeatureLevel() >= ERHIFeatureLevel::SM4;
 
 	if (bValid)
 	{

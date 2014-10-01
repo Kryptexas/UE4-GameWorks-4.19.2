@@ -615,8 +615,7 @@ void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQuality
 
 						if (Texture)
 						{
-							OutTextures.Add(Texture);
-							//OutTextures.AddUnique(Texture); //AJB - maybe this?
+							OutTextures.AddUnique(Texture);
 						}
 					}
 				}
@@ -1518,11 +1517,14 @@ void UMaterial::FlushResourceShaderMaps()
 {
 	FPlatformMisc::CreateGuid(StateId);
 
-	for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		FMaterialResource* CurrentResource = MaterialResources[QualityLevelIndex][GRHIFeatureLevel];
-		CurrentResource->ReleaseShaderMap();
-	}
+		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+		{
+			FMaterialResource* CurrentResource = MaterialResources[QualityLevelIndex][InFeatureLevel];
+			CurrentResource->ReleaseShaderMap();
+		}
+	});
 }
 
 void UMaterial::RebuildMaterialFunctionInfo()
@@ -2795,9 +2797,12 @@ void UMaterial::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 #if WITH_EDITOR
 void UMaterial::CancelOutstandingCompilation()
 {
-	if (FMaterialResource* Res = GetMaterialResource(GRHIFeatureLevel))
+	for (int32 FeatureLevel = 0; FeatureLevel < ERHIFeatureLevel::Num; ++FeatureLevel)
 	{
-		Res->CancelCompilation();
+		if (FMaterialResource* Res = GetMaterialResource((ERHIFeatureLevel::Type)FeatureLevel))
+		{
+			Res->CancelCompilation();
+		}
 	}
 }
 #endif
@@ -3443,20 +3448,28 @@ void UMaterial::AllMaterialsCacheResourceShadersForRendering()
 static void ListSceneColorMaterials()
 {
 	int32 NumSceneColorMaterials = 0;
-	for (TObjectIterator<UMaterialInterface> It; It; ++It)
+
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type FeatureLevel) 
 	{
-		UMaterialInterface* Mat = *It;
-		const FMaterial* MatRes = Mat->GetRenderProxy(false)->GetMaterial(GRHIFeatureLevel);
-		if (MatRes && MatRes->RequiresSceneColorCopy_GameThread())
+		FString FeatureLevelName;
+		GetFeatureLevelName(FeatureLevel, FeatureLevelName);
+
+		for (TObjectIterator<UMaterialInterface> It; It; ++It)
 		{
-			UMaterial* BaseMat = Mat->GetMaterial();
-			UE_LOG(LogConsoleResponse,Display,TEXT("[SepTrans=%d] %s"),
-				BaseMat ? BaseMat->bEnableSeparateTranslucency : 3,
-				*Mat->GetPathName()
-				);
-			NumSceneColorMaterials++;
+			UMaterialInterface* Mat = *It;
+			const FMaterial* MatRes = Mat->GetRenderProxy(false)->GetMaterial(FeatureLevel);
+			if (MatRes && MatRes->RequiresSceneColorCopy_GameThread())
+			{
+				UMaterial* BaseMat = Mat->GetMaterial();
+				UE_LOG(LogConsoleResponse, Display, TEXT("[SepTrans=%d][FeatureLevel=%s] %s"),
+					BaseMat ? BaseMat->bEnableSeparateTranslucency : 3,
+					*FeatureLevelName,
+					*Mat->GetPathName()
+					);
+				NumSceneColorMaterials++;
+			}
 		}
-	}
+	});
 	UE_LOG(LogConsoleResponse,Display,TEXT("%d loaded materials read from scene color."),NumSceneColorMaterials);
 }
 

@@ -1114,7 +1114,7 @@ void FMaterialEditor::RegenerateCodeView(bool bForce)
 	}
 
 	FString MarkupSource;
-	if (Material->GetMaterialResource(GRHIFeatureLevel)->GetMaterialExpressionSource(MarkupSource, ExpressionCodeMap))
+	if (Material->GetMaterialResource(GMaxRHIFeatureLevel)->GetMaterialExpressionSource(MarkupSource, ExpressionCodeMap))
 	{
 		// Remove line-feeds and leave just CRs so the character counts match the selection ranges.
 		MarkupSource.ReplaceInline(TEXT("\r"), TEXT(""));
@@ -1474,7 +1474,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 	ERHIFeatureLevel::Type FeatureLevelsToDisplay[2];
 	int32 NumFeatureLevels = 0;
 	// Always show basic features so that errors aren't hidden
-	FeatureLevelsToDisplay[NumFeatureLevels++] = GRHIFeatureLevel;
+	FeatureLevelsToDisplay[NumFeatureLevels++] = GMaxRHIFeatureLevel;
 	if (bShowMobileStats)
 	{
 		FeatureLevelsToDisplay[NumFeatureLevels++] = ERHIFeatureLevel::ES2;
@@ -1626,7 +1626,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 
 void FMaterialEditor::UpdateGraphNodeStates()
 {
-	const FMaterialResource* ErrorMaterialResource = PreviewExpression ? ExpressionPreviewMaterial->GetMaterialResource(GRHIFeatureLevel) : Material->GetMaterialResource(GRHIFeatureLevel);
+	const FMaterialResource* ErrorMaterialResource = PreviewExpression ? ExpressionPreviewMaterial->GetMaterialResource(GMaxRHIFeatureLevel) : Material->GetMaterialResource(GMaxRHIFeatureLevel);
 	const FMaterialResource* ErrorMaterialResourceES2 = NULL;
 	if (bShowMobileStats)
 	{
@@ -3410,7 +3410,7 @@ FMatExpressionPreview* FMaterialEditor::GetExpressionPreview(UMaterialExpression
 		{
 			bNewlyCreated = true;
 			Preview = new(ExpressionPreviews) FMatExpressionPreview(MaterialExpression);
-			Preview->CacheShaders(GRHIShaderPlatform, true);
+			Preview->CacheShaders(GMaxRHIShaderPlatform, true);
 		}
 		return Preview;
 	}

@@ -1356,7 +1356,10 @@ void UStaticMeshComponent::GetTextureLightAndShadowMapMemoryUsage(int32 InWidth,
 	// Stored in texture.
 	const float MIP_FACTOR = 1.33f;
 	OutShadowMapMemoryUsage = FMath::TruncToInt(MIP_FACTOR * InWidth * InHeight); // G8
-	if( AllowHighQualityLightmaps() )
+
+	auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
+	if (AllowHighQualityLightmaps(FeatureLevel))
 	{
 		OutLightMapMemoryUsage = FMath::TruncToInt(NUM_HQ_LIGHTMAP_COEF * MIP_FACTOR * InWidth * InHeight); // DXT5
 	}

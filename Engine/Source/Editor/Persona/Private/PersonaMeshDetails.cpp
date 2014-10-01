@@ -1676,7 +1676,7 @@ FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* Deta
 					FClothingAssetData& AssetData = SkelMesh->ClothingAssets[AssetIndex];
 					int32 NumLODs = ApexClothingUtils::GetNumLODs(AssetData.ApexClothingAsset->GetAsset());
 
-					uint32 MaxClothVertices = ApexClothingUtils::GetMaxClothSimulVertices(GRHIFeatureLevel);
+					uint32 MaxClothVertices = ApexClothingUtils::GetMaxClothSimulVertices(GMaxRHIFeatureLevel);
 
 					// check whether there are sub-meshes which have over MaxClothVertices or not
 					// this checking will be removed after changing implementation way for supporting over MaxClothVertices

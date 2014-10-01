@@ -1556,7 +1556,7 @@ public:
 	};
 
 	/** Initialization constructor. */
-	explicit ENGINE_API FMaterialUpdateContext(uint32 Options = EOptions::Default, EShaderPlatform InShaderPlatform=GRHIShaderPlatform);
+	explicit ENGINE_API FMaterialUpdateContext(uint32 Options = EOptions::Default, EShaderPlatform InShaderPlatform = GMaxRHIShaderPlatform);
 
 	/** Destructor. */
 	ENGINE_API ~FMaterialUpdateContext();

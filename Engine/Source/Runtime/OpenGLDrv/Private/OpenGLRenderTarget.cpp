@@ -737,7 +737,7 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 	VERIFY_GL_SCOPE();	
 
 	//reading from arrays only supported on SM5 and up.
-	check(FOpenGL::SupportsFloatReadSurface() && (ArrayIndex == 0 || GRHIFeatureLevel >= ERHIFeatureLevel::SM5));	
+	check(FOpenGL::SupportsFloatReadSurface() && (ArrayIndex == 0 || GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5));	
 	FOpenGLTextureBase* Texture = GetOpenGLTextureFromRHITexture(TextureRHI);
 	check(TextureRHI->GetFormat() == PF_FloatRGBA);
 

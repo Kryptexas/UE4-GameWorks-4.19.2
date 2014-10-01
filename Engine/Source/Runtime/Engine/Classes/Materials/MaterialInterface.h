@@ -6,6 +6,7 @@
 #include "Runtime/RHI/Public/RHIDefinitions.h"
 #include "Runtime/RenderCore/Public/RenderCommandFence.h"
 #include "SceneTypes.h"
+#include <functional>
 #include "MaterialInterface.generated.h"
 
 class UMaterial;
@@ -586,6 +587,16 @@ public:
 
 	/** Get bitfield indicating which feature levels should be compiled by default */
 	ENGINE_API static uint32 GetFeatureLevelsToCompileForAllMaterials() { return FeatureLevelsForAllMaterials | (1 << GMaxRHIFeatureLevel); }
+
+	/** Iterate over all feature levels currently marked as active */
+	ENGINE_API static void IterateOverActiveFeatureLevels(std::function<void(ERHIFeatureLevel::Type FeatureLevel)> InHandler) 
+	{  
+		uint32 FeatureLevels = GetFeatureLevelsToCompileForAllMaterials();
+		while (FeatureLevels != 0)
+		{
+			InHandler((ERHIFeatureLevel::Type)FBitSet::GetAndClearNextBit(FeatureLevels));
+		}
+	}
 
 protected:
 

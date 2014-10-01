@@ -315,7 +315,7 @@ void FGameLiveStreaming::StartCopyingNextGameVideoFrame( const FViewportRHIRef& 
 	{
 		FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(Context.ResizeTo, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
 			
-		const auto FeatureLevel = GRHIFeatureLevel;
+		const auto FeatureLevel = GMaxRHIFeatureLevel;
 
 		TRefCountPtr<IPooledRenderTarget> ResampleTexturePooledRenderTarget;
 		Context.RendererModule->RenderTargetPoolFindFreeElement(OutputDesc, ResampleTexturePooledRenderTarget, TEXT("ResampleTexture"));

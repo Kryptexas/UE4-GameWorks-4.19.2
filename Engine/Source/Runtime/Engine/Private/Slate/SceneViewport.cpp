@@ -1098,7 +1098,7 @@ void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool b
 	if (bUseSeparateRenderTarget)
 	{
 		// @todo-mobile
-		if (GRHIShaderPlatform == SP_OPENGL_ES2)
+		if (GMaxRHIShaderPlatform == SP_OPENGL_ES2)
 		{
 			check(0);
 		}

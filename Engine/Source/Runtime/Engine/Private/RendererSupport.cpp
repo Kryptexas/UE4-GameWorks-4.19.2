@@ -159,8 +159,12 @@ void RestoreReferencesToRendererModuleClasses(
 	FShaderType::GetOutdatedTypes(OutdatedShaderTypes, OutdatedFactoryTypes);
 
 	// Recompile any missing shaders
-	BeginRecompileGlobalShaders(OutdatedShaderTypes);
-	UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type FeatureLevel) 
+	{
+		auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
+		BeginRecompileGlobalShaders(OutdatedShaderTypes, ShaderPlatform);
+		UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, ShaderPlatform);
+	});
 
 	// Block on global shader jobs
 	FinishRecompileGlobalShaders();
