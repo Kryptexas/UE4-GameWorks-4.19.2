@@ -77,6 +77,7 @@ ir_visitor_status ir_rvalue_visitor::visit_leave(ir_texture *ir)
 	{
 	case ir_tex:
 	case ir_txm:
+	case ir_txg:
 		break;
 	case ir_txb:
 		handle_rvalue(&ir->lod_info.bias);

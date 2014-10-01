@@ -68,7 +68,9 @@ void
 ir_constant_folding_visitor::handle_rvalue(ir_rvalue **rvalue)
 {
 	if (*rvalue == NULL || (*rvalue)->ir_type == ir_type_constant)
+	{
 		return;
+	}
 
 	/* Note that we do rvalue visitoring on leaving.  So if an
 	* expression has a non-constant operand, no need to go looking
@@ -93,7 +95,9 @@ ir_constant_folding_visitor::handle_rvalue(ir_rvalue **rvalue)
 		this->progress = true;
 		if (!constant->is_finite())
 		{
+			// Debug point
 			int i = 0;
+			++i;
 		}
 	}
 	else
@@ -120,9 +124,13 @@ ir_constant_folding_visitor::visit_enter(ir_assignment *ir)
 		if (const_val)
 		{
 			if (const_val->value.b[0])
+			{
 				ir->condition = NULL;
+			}
 			else
+			{
 				ir->remove();
+			}
 			this->progress = true;
 		}
 	}

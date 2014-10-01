@@ -399,9 +399,11 @@ public:
 			return (var->location == -1) ? this->lower_temps : this->lower_outputs;
 		case ir_var_inout:
 			return this->lower_temps;
+		default:
+			check(!"Should not get here.");
+			break;
 		}
 
-		check(!"Should not get here.");
 		return false;
 	}
 
@@ -409,7 +411,9 @@ public:
 	{
 		if (deref == NULL || deref->array_index->as_constant()
 			|| !is_array_or_matrix(deref->array))
+		{
 			return false;
+		}
 
 		return this->storage_type_needs_lowering(deref);
 	}

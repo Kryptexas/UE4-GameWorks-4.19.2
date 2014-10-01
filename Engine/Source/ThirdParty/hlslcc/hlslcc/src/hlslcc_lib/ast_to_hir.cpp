@@ -2462,6 +2462,8 @@ static void apply_type_qualifier_to_variable(const struct ast_type_qualifier *qu
 				var->invariant = true;
 			}
 			break;
+		default:
+			break;
 		}
 	}
 
@@ -2557,6 +2559,8 @@ static void apply_type_qualifier_to_variable(const struct ast_type_qualifier *qu
 				fail = true;
 				string = "output";
 			}
+			break;
+		default:
 			break;
 		};
 
@@ -4303,7 +4307,6 @@ ir_rvalue* ast_function_definition::hir(exec_list *instructions, struct _mesa_gl
 		else if (!strcmp(attrib->attribute_name, "domain"))
 		{
 			glsl_domain result = GLSL_DOMAIN_NONE;
-			const char* result_string = 0;
 
 			convert_enum_attribute_args(attrib, result, domain_strings, domain_values, Elements(domain_values), state);
 

@@ -146,7 +146,7 @@ static inline int ConvertArrayTypeToIndex(EArrayType Type)
 	case EArrayType_Image:
 		return EArrayType_Index_Image;
 	default:
-		/*check(0)*/;
+		break;
 	}
 
 	return EArrayType_Index_FloatHighp;
@@ -174,6 +174,9 @@ static inline int GetArrayCharFromPrecisionType(glsl_base_type Type, bool bAsser
 
 	case GLSL_TYPE_IMAGE:
 		return EArrayType_Image;
+
+	default:
+		break;
 	}
 
 	if (bAssertIfNotFound)

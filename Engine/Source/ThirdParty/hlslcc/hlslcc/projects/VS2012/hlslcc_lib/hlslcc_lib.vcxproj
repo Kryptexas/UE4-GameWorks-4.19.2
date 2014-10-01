@@ -134,9 +134,13 @@
     <ClCompile Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\src\hlslcc_lib\glcpp-lex.inl" />
     <None Include="..\..\..\src\hlslcc_lib\glcpp-lex.l" />
+    <None Include="..\..\..\src\hlslcc_lib\glcpp-parse.inl" />
     <None Include="..\..\..\src\hlslcc_lib\glcpp-parse.y" />
+    <None Include="..\..\..\src\hlslcc_lib\hlsl_lexer.inl" />
     <None Include="..\..\..\src\hlslcc_lib\hlsl_lexer.ll" />
+    <None Include="..\..\..\src\hlslcc_lib\hlsl_parser.inl" />
     <None Include="..\..\..\src\hlslcc_lib\hlsl_parser.yy" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

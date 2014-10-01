@@ -85,7 +85,7 @@ ir_rvalue* process_mul(
 		const glsl_type* result_type = arithmetic_result_type(op[0], op[1], instructions, state, loc, false);
 		if (!result_type->is_error())
 		{
-			return new(ctx)ir_expression(ir_binop_mul, op[0], op[1]);
+			return new(ctx) ir_expression(ir_binop_mul, op[0], op[1]);
 		}
 	}
 	else if (type0->is_vector() && type1->is_vector())
@@ -94,19 +94,19 @@ ir_rvalue* process_mul(
 		const glsl_type* result_type = arithmetic_result_type(op[0], op[1], instructions, state, loc, false);
 		if (!result_type->is_error())
 		{
-			return new(ctx)ir_expression(ir_binop_dot, op[0], op[1]);
+			return new(ctx) ir_expression(ir_binop_dot, op[0], op[1]);
 		}
 	}
 	else if (type0->is_matrix() && type1->is_vector())
 	{
-		ir_variable* tmp_mat = new(ctx)ir_variable(type0, NULL, ir_var_temporary);
+		ir_variable* tmp_mat = new(ctx) ir_variable(type0, NULL, ir_var_temporary);
 		instructions->push_tail(tmp_mat);
-		instructions->push_tail(new(ctx)ir_assignment(
-			new(ctx)ir_dereference_variable(tmp_mat), op[0]));
+		instructions->push_tail(new(ctx) ir_assignment(
+			new(ctx) ir_dereference_variable(tmp_mat), op[0]));
 
 		// Matrix-vector multiplication treats the vector like a column vector,
 		// but in HLSL the matrix is transposed relative to GLSL conventions.
-		ir_variable* tmp_vec = new(ctx)ir_variable(type0->column_type(), NULL, ir_var_temporary);
+		ir_variable* tmp_vec = new(ctx) ir_variable(type0->column_type(), NULL, ir_var_temporary);
 		instructions->push_tail(tmp_vec);
 
 		if (tmp_vec->type->vector_elements > type1->vector_elements)
@@ -115,50 +115,50 @@ ir_rvalue* process_mul(
 			// situation I know of where HLSL implicitly zero-extends instead
 			// of truncating.
 			ir_constant_data zero_data = { 0 };
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_vec),
-				new(ctx)ir_constant(tmp_vec->type, &zero_data)));
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_vec),
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_vec),
+				new(ctx) ir_constant(tmp_vec->type, &zero_data)));
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_vec),
 				op[1], NULL, (1 << type0->vector_elements) - 1));
 		}
 		else
 		{
 			// The swizzle here is unnecessary if the # of elements match, but
 			// it doesn't hurt and will be optimized out later anyway.
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_vec),
-				new(ctx)ir_swizzle(op[1], 0, 1, 2, 3, tmp_vec->type->vector_elements)));
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_vec),
+				new(ctx) ir_swizzle(op[1], 0, 1, 2, 3, tmp_vec->type->vector_elements)));
 		}
 
-		ir_variable* tmp_result = new(ctx)ir_variable(type0->row_type(), NULL, ir_var_temporary);
+		ir_variable* tmp_result = new(ctx) ir_variable(type0->row_type(), NULL, ir_var_temporary);
 		instructions->push_tail(tmp_result);
 
 		unsigned write_mask = 1;
 		for (unsigned c = 0; c < type0->matrix_columns; ++c)
 		{
-			ir_expression* expr = new(ctx)ir_expression(
+			ir_expression* expr = new(ctx) ir_expression(
 				ir_binop_dot,
-				new(ctx)ir_dereference_array(tmp_mat, new(ctx)ir_constant(c)),
-				new(ctx)ir_dereference_variable(tmp_vec));
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_result),
+				new(ctx) ir_dereference_array(tmp_mat, new(ctx) ir_constant(c)),
+				new(ctx) ir_dereference_variable(tmp_vec));
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_result),
 				expr, NULL, write_mask));
 			write_mask <<= 1;
 		}
 
-		return new(ctx)ir_dereference_variable(tmp_result);
+		return new(ctx) ir_dereference_variable(tmp_result);
 	}
 	else if (type0->is_vector() && type1->is_matrix())
 	{
-		ir_variable* tmp_mat = new(ctx)ir_variable(type1, NULL, ir_var_temporary);
+		ir_variable* tmp_mat = new(ctx) ir_variable(type1, NULL, ir_var_temporary);
 		instructions->push_tail(tmp_mat);
-		instructions->push_tail(new(ctx)ir_assignment(
-			new(ctx)ir_dereference_variable(tmp_mat), op[1]));
+		instructions->push_tail(new(ctx) ir_assignment(
+			new(ctx) ir_dereference_variable(tmp_mat), op[1]));
 
 		// Vector-matrix multiplication treats the vector like a row vector,
 		// but in HLSL the matrix is transposed relative to GLSL conventions.
-		ir_variable* tmp_vec = new(ctx)ir_variable(type1->row_type(), NULL, ir_var_temporary);
+		ir_variable* tmp_vec = new(ctx) ir_variable(type1->row_type(), NULL, ir_var_temporary);
 		instructions->push_tail(tmp_vec);
 
 		if (tmp_vec->type->vector_elements > type0->vector_elements)
@@ -167,47 +167,47 @@ ir_rvalue* process_mul(
 			// situation I know of where HLSL implicitly zero-extends instead
 			// of truncating.
 			ir_constant_data zero_data = { 0 };
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_vec),
-				new(ctx)ir_constant(tmp_vec->type, &zero_data)));
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_vec),
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_vec),
+				new(ctx) ir_constant(tmp_vec->type, &zero_data)));
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_vec),
 				op[0], NULL, (1 << type0->vector_elements) - 1));
 		}
 		else
 		{
 			// The swizzle here is unnecessary if the # of elements match, but
 			// it doesn't hurt and will be optimized out later anyway.
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_vec),
-				new(ctx)ir_swizzle(op[0], 0, 1, 2, 3, tmp_vec->type->vector_elements)));
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_vec),
+				new(ctx) ir_swizzle(op[0], 0, 1, 2, 3, tmp_vec->type->vector_elements)));
 		}
 
-		ir_variable* tmp_result = new(ctx)ir_variable(type1->column_type(), NULL, ir_var_temporary);
+		ir_variable* tmp_result = new(ctx) ir_variable(type1->column_type(), NULL, ir_var_temporary);
 		instructions->push_tail(tmp_result);
 
 		for (unsigned c = 0; c < type1->matrix_columns; ++c)
 		{
-			ir_expression* expr = new(ctx)ir_expression(
+			ir_expression* expr = new(ctx) ir_expression(
 				ir_binop_mul,
-				new(ctx)ir_dereference_array(tmp_mat, new(ctx)ir_constant(c)),
-				new(ctx)ir_swizzle(new(ctx)ir_dereference_variable(tmp_vec), c, c, c, c, type1->vector_elements));
+				new(ctx) ir_dereference_array(tmp_mat, new(ctx) ir_constant(c)),
+				new(ctx) ir_swizzle(new(ctx) ir_dereference_variable(tmp_vec), c, c, c, c, type1->vector_elements));
 			if (c > 0)
 			{
-				expr = new(ctx)ir_expression(
+				expr = new(ctx) ir_expression(
 					ir_binop_add,
 					expr,
-					new(ctx)ir_dereference_variable(tmp_result));
+					new(ctx) ir_dereference_variable(tmp_result));
 
-				tmp_result = new(ctx)ir_variable(tmp_result->type, NULL, ir_var_temporary);
+				tmp_result = new(ctx) ir_variable(tmp_result->type, NULL, ir_var_temporary);
 				instructions->push_tail(tmp_result);
 			}
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_variable(tmp_result),
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_result),
 				expr));
 		}
 
-		return new(ctx)ir_dereference_variable(tmp_result);
+		return new(ctx) ir_dereference_variable(tmp_result);
 	}
 	else if (type0->is_matrix() && type1->is_matrix())
 	{
@@ -260,50 +260,50 @@ ir_rvalue* process_mul(
 
 		check(type0->vector_elements == type1->matrix_columns);
 
-		ir_variable* tmp0 = new(ctx)ir_variable(type0, NULL, ir_var_temporary);
+		ir_variable* tmp0 = new(ctx) ir_variable(type0, NULL, ir_var_temporary);
 		instructions->push_tail(tmp0);
-		instructions->push_tail(new(ctx)ir_assignment(new(ctx)ir_dereference_variable(tmp0), op[0]));
+		instructions->push_tail(new(ctx) ir_assignment(new(ctx) ir_dereference_variable(tmp0), op[0]));
 
-		ir_variable* tmp1 = new(ctx)ir_variable(type1, NULL, ir_var_temporary);
+		ir_variable* tmp1 = new(ctx) ir_variable(type1, NULL, ir_var_temporary);
 		instructions->push_tail(tmp1);
-		instructions->push_tail(new(ctx)ir_assignment(new(ctx)ir_dereference_variable(tmp1), op[1]));
+		instructions->push_tail(new(ctx) ir_assignment(new(ctx) ir_dereference_variable(tmp1), op[1]));
 
-		ir_variable* tmp_result = new(ctx)ir_variable(
+		ir_variable* tmp_result = new(ctx) ir_variable(
 			glsl_type::get_instance(type0->base_type, type1->vector_elements, type0->matrix_columns),
 			NULL, ir_var_temporary);
 		instructions->push_tail(tmp_result);
 
-		ir_variable* tmp_vec = new(ctx)ir_variable(tmp_result->type->column_type(), NULL, ir_var_temporary);
+		ir_variable* tmp_vec = new(ctx) ir_variable(tmp_result->type->column_type(), NULL, ir_var_temporary);
 		instructions->push_tail(tmp_vec);
 
 		for (unsigned c0 = 0; c0 < type0->matrix_columns; ++c0)
 		{
 			for (unsigned c1 = 0; c1 < type1->matrix_columns; ++c1)
 			{
-				ir_expression* expr = new(ctx)ir_expression(
+				ir_expression* expr = new(ctx) ir_expression(
 					ir_binop_mul,
-					new(ctx)ir_swizzle(new(ctx)ir_dereference_array(tmp0, new(ctx)ir_constant(c0)),
+					new(ctx) ir_swizzle(new(ctx) ir_dereference_array(tmp0, new(ctx) ir_constant(c0)),
 					c1, c1, c1, c1, type1->vector_elements),
-					new(ctx)ir_dereference_array(tmp1, new(ctx)ir_constant(c1)));
+					new(ctx) ir_dereference_array(tmp1, new(ctx) ir_constant(c1)));
 				if (c1 > 0)
 				{
-					expr = new(ctx)ir_expression(
+					expr = new(ctx) ir_expression(
 						ir_binop_add,
 						expr,
-						new(ctx)ir_dereference_variable(tmp_vec));
-					tmp_vec = new(ctx)ir_variable(tmp_vec->type, NULL, ir_var_temporary);
+						new(ctx) ir_dereference_variable(tmp_vec));
+					tmp_vec = new(ctx) ir_variable(tmp_vec->type, NULL, ir_var_temporary);
 					instructions->push_tail(tmp_vec);
 				}
-				instructions->push_tail(new(ctx)ir_assignment(
-					new(ctx)ir_dereference_variable(tmp_vec),
+				instructions->push_tail(new(ctx) ir_assignment(
+					new(ctx) ir_dereference_variable(tmp_vec),
 					expr));
 			}
-			instructions->push_tail(new(ctx)ir_assignment(
-				new(ctx)ir_dereference_array(tmp_result, new(ctx)ir_constant(c0)),
-				new(ctx)ir_dereference_variable(tmp_vec)));
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_array(tmp_result, new(ctx) ir_constant(c0)),
+				new(ctx) ir_dereference_variable(tmp_vec)));
 		}
 
-		return new(ctx)ir_dereference_variable(tmp_result);
+		return new(ctx) ir_dereference_variable(tmp_result);
 	}
 
 	return NULL;
@@ -562,19 +562,19 @@ static ir_rvalue* generate_call(exec_list *instructions, ir_function_signature *
 					*   value = float(out_parameter_conversion);
 					*/
 					ir_variable *tmp =
-						new(ctx)ir_variable(formal->type,
+						new(ctx) ir_variable(formal->type,
 						"out_parameter_conversion",
 						ir_var_temporary);
 					call_instructions.push_tail(tmp);
 					ir_dereference_variable *deref_tmp_1
-						= new(ctx)ir_dereference_variable(tmp);
+						= new(ctx) ir_dereference_variable(tmp);
 					ir_dereference_variable *deref_tmp_2
-						= new(ctx)ir_dereference_variable(tmp);
+						= new(ctx) ir_dereference_variable(tmp);
 					ir_rvalue *converted_tmp = deref_tmp_1;
 					apply_type_conversion(actual->type, converted_tmp,
 						&post_call_conversions, state, false, loc);
 					ir_assignment *assignment
-						= new(ctx)ir_assignment(actual, converted_tmp);
+						= new(ctx) ir_assignment(actual, converted_tmp);
 					post_call_conversions.push_tail(assignment);
 					actual->replace_with(deref_tmp_2);
 				}
@@ -628,15 +628,15 @@ static ir_rvalue* generate_call(exec_list *instructions, ir_function_signature *
 		/* Create a new temporary to hold the return value. */
 		ir_variable *var;
 
-		var = new(ctx)ir_variable(sig->return_type,
+		var = new(ctx) ir_variable(sig->return_type,
 			ralloc_asprintf(ctx, "%s_retval",
 			sig->function_name()),
 			ir_var_temporary);
 		call_instructions.push_tail(var);
 
-		deref = new(ctx)ir_dereference_variable(var);
+		deref = new(ctx) ir_dereference_variable(var);
 	}
-	ir_call *call = new(ctx)ir_call(sig, deref, actual_parameters);
+	ir_call *call = new(ctx) ir_call(sig, deref, actual_parameters);
 	call_instructions.push_tail(call);
 
 	ir_constant* const_value = NULL;
@@ -744,7 +744,7 @@ done:
 		{
 			if (f == NULL)
 			{
-				f = new(ctx)ir_function(name);
+				f = new(ctx) ir_function(name);
 				state->symbols->add_global_function(f);
 				emit_function(state, f);
 			}
@@ -822,22 +822,24 @@ ir_rvalue* convert_component(ir_rvalue *src, const glsl_type *desired_type)
 		switch (b)
 		{
 		case GLSL_TYPE_INT:
-			result = new(ctx)ir_expression(ir_unop_i2u, src);
+			result = new(ctx) ir_expression(ir_unop_i2u, src);
 			break;
 		case GLSL_TYPE_HALF:
-			result = new(ctx)ir_expression(ir_unop_h2u, src);
+			result = new(ctx) ir_expression(ir_unop_h2u, src);
 			//result = new(ctx) ir_expression(ir_unop_i2u,
 			//	  new(ctx) ir_expression(ir_unop_f2i, src));
 			break;
 		case GLSL_TYPE_FLOAT:
-			result = new(ctx)ir_expression(ir_unop_f2u, src);
+			result = new(ctx) ir_expression(ir_unop_f2u, src);
 			//result = new(ctx) ir_expression(ir_unop_i2u,
 			//	  new(ctx) ir_expression(ir_unop_f2i, src));
 			break;
 		case GLSL_TYPE_BOOL:
-			result = new(ctx)ir_expression(ir_unop_b2u, src);
+			result = new(ctx) ir_expression(ir_unop_b2u, src);
 			//result = new(ctx) ir_expression(ir_unop_i2u,
 			//new(ctx) ir_expression(ir_unop_b2i, src));
+			break;
+		default:
 			break;
 		}
 		break;
@@ -845,16 +847,18 @@ ir_rvalue* convert_component(ir_rvalue *src, const glsl_type *desired_type)
 		switch (b)
 		{
 		case GLSL_TYPE_UINT:
-			result = new(ctx)ir_expression(ir_unop_u2i, src);
+			result = new(ctx) ir_expression(ir_unop_u2i, src);
 			break;
 		case GLSL_TYPE_HALF:
-			result = new(ctx)ir_expression(ir_unop_h2i, src);
+			result = new(ctx) ir_expression(ir_unop_h2i, src);
 			break;
 		case GLSL_TYPE_FLOAT:
-			result = new(ctx)ir_expression(ir_unop_f2i, src);
+			result = new(ctx) ir_expression(ir_unop_f2i, src);
 			break;
 		case GLSL_TYPE_BOOL:
-			result = new(ctx)ir_expression(ir_unop_b2i, src);
+			result = new(ctx) ir_expression(ir_unop_b2i, src);
+			break;
+		default:
 			break;
 		}
 		break;
@@ -862,16 +866,18 @@ ir_rvalue* convert_component(ir_rvalue *src, const glsl_type *desired_type)
 		switch (b)
 		{
 		case GLSL_TYPE_UINT:
-			result = new(ctx)ir_expression(ir_unop_u2h, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_u2h, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_INT:
-			result = new(ctx)ir_expression(ir_unop_i2h, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_i2h, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_FLOAT:
-			result = new(ctx)ir_expression(ir_unop_f2h, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_f2h, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_BOOL:
-			result = new(ctx)ir_expression(ir_unop_b2h, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_b2h, desired_type, src, NULL);
+			break;
+		default:
 			break;
 		}
 		break;
@@ -879,16 +885,18 @@ ir_rvalue* convert_component(ir_rvalue *src, const glsl_type *desired_type)
 		switch (b)
 		{
 		case GLSL_TYPE_UINT:
-			result = new(ctx)ir_expression(ir_unop_u2f, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_u2f, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_INT:
-			result = new(ctx)ir_expression(ir_unop_i2f, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_i2f, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_HALF:
-			result = new(ctx)ir_expression(ir_unop_h2f, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_h2f, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_BOOL:
-			result = new(ctx)ir_expression(ir_unop_b2f, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_b2f, desired_type, src, NULL);
+			break;
+		default:
 			break;
 		}
 		break;
@@ -896,20 +904,24 @@ ir_rvalue* convert_component(ir_rvalue *src, const glsl_type *desired_type)
 		switch (b)
 		{
 		case GLSL_TYPE_UINT:
-			result = new(ctx)ir_expression(ir_unop_u2b, src);
+			result = new(ctx) ir_expression(ir_unop_u2b, src);
 			//result = new(ctx) ir_expression(ir_unop_i2b,
 			// new(ctx) ir_expression(ir_unop_u2i, src));
 			break;
 		case GLSL_TYPE_INT:
-			result = new(ctx)ir_expression(ir_unop_i2b, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_i2b, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_HALF:
-			result = new(ctx)ir_expression(ir_unop_h2b, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_h2b, desired_type, src, NULL);
 			break;
 		case GLSL_TYPE_FLOAT:
-			result = new(ctx)ir_expression(ir_unop_f2b, desired_type, src, NULL);
+			result = new(ctx) ir_expression(ir_unop_f2b, desired_type, src, NULL);
+			break;
+		default:
 			break;
 		}
+		break;
+	default:
 		break;
 	}
 
@@ -935,7 +947,7 @@ static ir_rvalue* dereference_component(ir_rvalue *src, unsigned component)
 	ir_constant *constant = src->as_constant();
 	if (constant)
 	{
-		return new(ctx)ir_constant(constant, component);
+		return new(ctx) ir_constant(constant, component);
 	}
 
 	if (src->type->is_scalar())
@@ -944,7 +956,7 @@ static ir_rvalue* dereference_component(ir_rvalue *src, unsigned component)
 	}
 	else if (src->type->is_vector())
 	{
-		return new(ctx)ir_swizzle(src, component, 0, 0, 0, 1);
+		return new(ctx) ir_swizzle(src, component, 0, 0, 0, 1);
 	}
 	else
 	{
@@ -955,8 +967,8 @@ static ir_rvalue* dereference_component(ir_rvalue *src, unsigned component)
 		*/
 		const int c = component / src->type->column_type()->vector_elements;
 		const int r = component % src->type->column_type()->vector_elements;
-		ir_constant *const col_index = new(ctx)ir_constant(c);
-		ir_dereference *const col = new(ctx)ir_dereference_array(src, col_index);
+		ir_constant *const col_index = new(ctx) ir_constant(c);
+		ir_dereference *const col = new(ctx) ir_dereference_array(src, col_index);
 
 		col->type = src->type->column_type();
 
@@ -1071,10 +1083,10 @@ static ir_rvalue* process_array_constructor(exec_list *instructions, const glsl_
 
 	if (all_parameters_are_constant)
 	{
-		return new(ctx)ir_constant(constructor_type, &actual_parameters);
+		return new(ctx) ir_constant(constructor_type, &actual_parameters);
 	}
 
-	ir_variable *var = new(ctx)ir_variable(constructor_type, "array_ctor",
+	ir_variable *var = new(ctx) ir_variable(constructor_type, "array_ctor",
 		ir_var_temporary);
 	instructions->push_tail(var);
 
@@ -1082,16 +1094,16 @@ static ir_rvalue* process_array_constructor(exec_list *instructions, const glsl_
 	foreach_list(node, &actual_parameters)
 	{
 		ir_rvalue *rhs = (ir_rvalue *)node;
-		ir_rvalue *lhs = new(ctx)ir_dereference_array(var,
-			new(ctx)ir_constant(i));
+		ir_rvalue *lhs = new(ctx) ir_dereference_array(var,
+			new(ctx) ir_constant(i));
 
-		ir_instruction *assignment = new(ctx)ir_assignment(lhs, rhs, NULL);
+		ir_instruction *assignment = new(ctx) ir_assignment(lhs, rhs, NULL);
 		instructions->push_tail(assignment);
 
 		i++;
 	}
 
-	return new(ctx)ir_dereference_variable(var);
+	return new(ctx) ir_dereference_variable(var);
 }
 
 
@@ -1110,7 +1122,7 @@ static ir_constant * constant_record_constructor(const glsl_type *constructor_ty
 		node->replace_with(constant);
 	}
 
-	return new(mem_ctx)ir_constant(constructor_type, parameters);
+	return new(mem_ctx) ir_constant(constructor_type, parameters);
 }
 
 
@@ -1141,7 +1153,7 @@ ir_rvalue * emit_inline_vector_constructor(const glsl_type *type, exec_list *ins
 {
 	check(!parameters->is_empty());
 
-	ir_variable *var = new(ctx)ir_variable(type, "vec_ctor", ir_var_temporary);
+	ir_variable *var = new(ctx) ir_variable(type, "vec_ctor", ir_var_temporary);
 	instructions->push_tail(var);
 
 	/* There are two kinds of vector constructors.
@@ -1157,14 +1169,14 @@ ir_rvalue * emit_inline_vector_constructor(const glsl_type *type, exec_list *ins
 	if (single_scalar_parameter(parameters))
 	{
 		ir_rvalue *first_param = (ir_rvalue *)parameters->head;
-		ir_rvalue *rhs = new(ctx)ir_swizzle(first_param, 0, 0, 0, 0,
+		ir_rvalue *rhs = new(ctx) ir_swizzle(first_param, 0, 0, 0, 0,
 			lhs_components);
-		ir_dereference_variable *lhs = new(ctx)ir_dereference_variable(var);
+		ir_dereference_variable *lhs = new(ctx) ir_dereference_variable(var);
 		const unsigned mask = (1U << lhs_components) - 1;
 
 		check(rhs->type == lhs->type);
 
-		ir_instruction *inst = new(ctx)ir_assignment(lhs, rhs, NULL, mask);
+		ir_instruction *inst = new(ctx) ir_assignment(lhs, rhs, NULL, mask);
 		instructions->push_tail(inst);
 	}
 	else
@@ -1229,14 +1241,14 @@ ir_rvalue * emit_inline_vector_constructor(const glsl_type *type, exec_list *ins
 
 		if (constant_mask != 0)
 		{
-			ir_dereference *lhs = new(ctx)ir_dereference_variable(var);
+			ir_dereference *lhs = new(ctx) ir_dereference_variable(var);
 			const glsl_type *rhs_type = glsl_type::get_instance(var->type->base_type,
 				constant_components,
 				1);
-			ir_rvalue *rhs = new(ctx)ir_constant(rhs_type, &data);
+			ir_rvalue *rhs = new(ctx) ir_constant(rhs_type, &data);
 
 			ir_instruction *inst =
-				new(ctx)ir_assignment(lhs, rhs, NULL, constant_mask);
+				new(ctx) ir_assignment(lhs, rhs, NULL, constant_mask);
 			instructions->push_tail(inst);
 		}
 
@@ -1261,15 +1273,15 @@ ir_rvalue * emit_inline_vector_constructor(const glsl_type *type, exec_list *ins
 				const unsigned write_mask = ((1U << rhs_components) - 1)
 					<< base_component;
 
-				ir_dereference *lhs = new(ctx)ir_dereference_variable(var);
+				ir_dereference *lhs = new(ctx) ir_dereference_variable(var);
 
 				/* Generate a swizzle so that LHS and RHS sizes match.
 				*/
 				ir_rvalue *rhs =
-					new(ctx)ir_swizzle(param, 0, 1, 2, 3, rhs_components);
+					new(ctx) ir_swizzle(param, 0, 1, 2, 3, rhs_components);
 
 				ir_instruction *inst =
-					new(ctx)ir_assignment(lhs, rhs, NULL, write_mask);
+					new(ctx) ir_assignment(lhs, rhs, NULL, write_mask);
 				instructions->push_tail(inst);
 			}
 
@@ -1279,7 +1291,7 @@ ir_rvalue * emit_inline_vector_constructor(const glsl_type *type, exec_list *ins
 			base_component += rhs_components;
 		}
 	}
-	return new(ctx)ir_dereference_variable(var);
+	return new(ctx) ir_dereference_variable(var);
 }
 
 
@@ -1298,8 +1310,8 @@ ir_rvalue * emit_inline_vector_constructor(const glsl_type *type, exec_list *ins
 ir_instruction* assign_to_matrix_column(ir_variable *var, unsigned column, unsigned row_base,
 		ir_rvalue *src, unsigned src_base, unsigned count, void *mem_ctx)
 {
-	ir_constant *col_idx = new(mem_ctx)ir_constant(column);
-	ir_dereference *column_ref = new(mem_ctx)ir_dereference_array(var, col_idx);
+	ir_constant *col_idx = new(mem_ctx) ir_constant(column);
+	ir_dereference *column_ref = new(mem_ctx) ir_dereference_array(var, col_idx);
 
 	check(column_ref->type->components() >= (row_base + count));
 	check(src->type->components() >= (src_base + count));
@@ -1309,7 +1321,7 @@ ir_instruction* assign_to_matrix_column(ir_variable *var, unsigned column, unsig
 	*/
 	if (count < src->type->vector_elements)
 	{
-		src = new(mem_ctx)ir_swizzle(src,
+		src = new(mem_ctx) ir_swizzle(src,
 			src_base + 0, src_base + 1,
 			src_base + 2, src_base + 3,
 			count);
@@ -1319,7 +1331,7 @@ ir_instruction* assign_to_matrix_column(ir_variable *var, unsigned column, unsig
 	*/
 	const unsigned write_mask = ((1U << count) - 1) << row_base;
 
-	return new(mem_ctx)ir_assignment(column_ref, src, NULL, write_mask);
+	return new(mem_ctx) ir_assignment(column_ref, src, NULL, write_mask);
 }
 
 
@@ -1339,7 +1351,7 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 {
 	check(!parameters->is_empty());
 
-	ir_variable *var = new(ctx)ir_variable(type, "mat_ctor", ir_var_temporary);
+	ir_variable *var = new(ctx) ir_variable(type, "mat_ctor", ir_var_temporary);
 	instructions->push_tail(var);
 
 	/* There are three kinds of matrix constructors.
@@ -1363,7 +1375,7 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 		* components with zero.
 		*/
 		ir_variable *rhs_var =
-			new(ctx)ir_variable(glsl_type::vec4_type, "mat_ctor_vec",
+			new(ctx) ir_variable(glsl_type::vec4_type, "mat_ctor_vec",
 			ir_var_temporary);
 		instructions->push_tail(rhs_var);
 
@@ -1374,14 +1386,14 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 		zero.f[3] = 0.0;
 
 		ir_instruction *inst =
-			new(ctx)ir_assignment(new(ctx)ir_dereference_variable(rhs_var),
-			new(ctx)ir_constant(rhs_var->type, &zero),
+			new(ctx) ir_assignment(new(ctx) ir_dereference_variable(rhs_var),
+			new(ctx) ir_constant(rhs_var->type, &zero),
 			NULL);
 		instructions->push_tail(inst);
 
-		ir_dereference *const rhs_ref = new(ctx)ir_dereference_variable(rhs_var);
+		ir_dereference *const rhs_ref = new(ctx) ir_dereference_variable(rhs_var);
 
-		inst = new(ctx)ir_assignment(rhs_ref, first_param, NULL, 0x01);
+		inst = new(ctx) ir_assignment(rhs_ref, first_param, NULL, 0x01);
 		instructions->push_tail(inst);
 
 		/* Assign the temporary vector to each column of the destination matrix
@@ -1402,27 +1414,27 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 			type->vector_elements);
 		for (unsigned i = 0; i < cols_to_init; i++)
 		{
-			ir_constant *const col_idx = new(ctx)ir_constant(i);
-			ir_rvalue *const col_ref = new(ctx)ir_dereference_array(var, col_idx);
+			ir_constant *const col_idx = new(ctx) ir_constant(i);
+			ir_rvalue *const col_ref = new(ctx) ir_dereference_array(var, col_idx);
 
-			ir_rvalue *const rhs_ref = new(ctx)ir_dereference_variable(rhs_var);
-			ir_rvalue *const rhs = new(ctx)ir_swizzle(rhs_ref, rhs_swiz[i],
+			ir_rvalue *const rhs_ref = new(ctx) ir_dereference_variable(rhs_var);
+			ir_rvalue *const rhs = new(ctx) ir_swizzle(rhs_ref, rhs_swiz[i],
 				type->vector_elements);
 
-			inst = new(ctx)ir_assignment(col_ref, rhs, NULL);
+			inst = new(ctx) ir_assignment(col_ref, rhs, NULL);
 			instructions->push_tail(inst);
 		}
 
 		for (unsigned i = cols_to_init; i < type->matrix_columns; i++)
 		{
-			ir_constant *const col_idx = new(ctx)ir_constant(i);
-			ir_rvalue *const col_ref = new(ctx)ir_dereference_array(var, col_idx);
+			ir_constant *const col_idx = new(ctx) ir_constant(i);
+			ir_rvalue *const col_ref = new(ctx) ir_dereference_array(var, col_idx);
 
-			ir_rvalue *const rhs_ref = new(ctx)ir_dereference_variable(rhs_var);
-			ir_rvalue *const rhs = new(ctx)ir_swizzle(rhs_ref, 1, 1, 1, 1,
+			ir_rvalue *const rhs_ref = new(ctx) ir_dereference_variable(rhs_var);
+			ir_rvalue *const rhs = new(ctx) ir_swizzle(rhs_ref, 1, 1, 1, 1,
 				type->vector_elements);
 
-			inst = new(ctx)ir_assignment(col_ref, rhs, NULL);
+			inst = new(ctx) ir_assignment(col_ref, rhs, NULL);
 			instructions->push_tail(inst);
 		}
 	}
@@ -1467,12 +1479,12 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 
 				ident.f[col] = 1.0;
 
-				ir_rvalue *const rhs = new(ctx)ir_constant(col_type, &ident);
+				ir_rvalue *const rhs = new(ctx) ir_constant(col_type, &ident);
 
 				ir_rvalue *const lhs =
-					new(ctx)ir_dereference_array(var, new(ctx)ir_constant(col));
+					new(ctx) ir_dereference_array(var, new(ctx) ir_constant(col));
 
-				ir_instruction *inst = new(ctx)ir_assignment(lhs, rhs, NULL);
+				ir_instruction *inst = new(ctx) ir_assignment(lhs, rhs, NULL);
 				instructions->push_tail(inst);
 			}
 		}
@@ -1483,14 +1495,14 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 		* generate a temporary and copy the paramter there.
 		*/
 		ir_variable *const rhs_var =
-			new(ctx)ir_variable(first_param->type, "mat_ctor_mat",
+			new(ctx) ir_variable(first_param->type, "mat_ctor_mat",
 			ir_var_temporary);
 		instructions->push_tail(rhs_var);
 
 		ir_dereference *const rhs_var_ref =
-			new(ctx)ir_dereference_variable(rhs_var);
+			new(ctx) ir_dereference_variable(rhs_var);
 		ir_instruction *const inst =
-			new(ctx)ir_assignment(rhs_var_ref, first_param, NULL);
+			new(ctx) ir_assignment(rhs_var_ref, first_param, NULL);
 		instructions->push_tail(inst);
 
 		const unsigned last_row = MIN2(src_matrix->type->vector_elements,
@@ -1509,9 +1521,9 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 		for (unsigned i = 0; i < last_col; i++)
 		{
 			ir_dereference *const lhs =
-				new(ctx)ir_dereference_array(var, new(ctx)ir_constant(i));
+				new(ctx) ir_dereference_array(var, new(ctx) ir_constant(i));
 			ir_rvalue *const rhs_col =
-				new(ctx)ir_dereference_array(rhs_var, new(ctx)ir_constant(i));
+				new(ctx) ir_dereference_array(rhs_var, new(ctx) ir_constant(i));
 
 			/* If one matrix has columns that are smaller than the columns of the
 			* other matrix, wrap the column access of the larger with a swizzle
@@ -1524,7 +1536,7 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 			ir_rvalue *rhs;
 			if (lhs->type->vector_elements != rhs_col->type->vector_elements)
 			{
-				rhs = new(ctx)ir_swizzle(rhs_col, swiz, last_row);
+				rhs = new(ctx) ir_swizzle(rhs_col, swiz, last_row);
 			}
 			else
 			{
@@ -1532,7 +1544,7 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 			}
 
 			ir_instruction *inst =
-				new(ctx)ir_assignment(lhs, rhs, NULL, write_mask);
+				new(ctx) ir_assignment(lhs, rhs, NULL, write_mask);
 			instructions->push_tail(inst);
 		}
 	}
@@ -1554,12 +1566,12 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 			* generate a temporary and copy the paramter there.
 			*/
 			ir_variable *rhs_var =
-				new(ctx)ir_variable(rhs->type, "mat_ctor_vec", ir_var_temporary);
+				new(ctx) ir_variable(rhs->type, "mat_ctor_vec", ir_var_temporary);
 			instructions->push_tail(rhs_var);
 
 			ir_dereference *rhs_var_ref =
-				new(ctx)ir_dereference_variable(rhs_var);
-			ir_instruction *inst = new(ctx)ir_assignment(rhs_var_ref, rhs, NULL);
+				new(ctx) ir_dereference_variable(rhs_var);
+			ir_instruction *inst = new(ctx) ir_assignment(rhs_var_ref, rhs, NULL);
 			instructions->push_tail(inst);
 
 			/* Assign the current parameter to as many components of the matrix
@@ -1573,7 +1585,7 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 				const unsigned count = MIN2(rhs_components,
 					components_remaining_this_column);
 
-				rhs_var_ref = new(ctx)ir_dereference_variable(rhs_var);
+				rhs_var_ref = new(ctx) ir_dereference_variable(rhs_var);
 
 				ir_instruction *inst = assign_to_matrix_column(var, col_idx,
 					row_idx,
@@ -1598,7 +1610,7 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 			{
 				const unsigned count = rhs_components - rhs_base;
 
-				rhs_var_ref = new(ctx)ir_dereference_variable(rhs_var);
+				rhs_var_ref = new(ctx) ir_dereference_variable(rhs_var);
 
 				ir_instruction *inst = assign_to_matrix_column(var, col_idx,
 					row_idx,
@@ -1612,15 +1624,15 @@ ir_rvalue* emit_inline_matrix_constructor(const glsl_type *type,
 		}
 	}
 
-	return new(ctx)ir_dereference_variable(var);
+	return new(ctx) ir_dereference_variable(var);
 }
 
 ir_rvalue * emit_inline_record_constructor(const glsl_type *type,
 	exec_list *instructions, exec_list *parameters, void *mem_ctx)
 {
 	ir_variable *const var =
-		new(mem_ctx)ir_variable(type, "record_ctor", ir_var_temporary);
-	ir_dereference_variable *const d = new(mem_ctx)ir_dereference_variable(var);
+		new(mem_ctx) ir_variable(type, "record_ctor", ir_var_temporary);
+	ir_dereference_variable *const d = new(mem_ctx) ir_dereference_variable(var);
 
 	instructions->push_tail(var);
 
@@ -1630,13 +1642,13 @@ ir_rvalue * emit_inline_record_constructor(const glsl_type *type,
 		check(!node->is_tail_sentinel());
 
 		ir_dereference *const lhs =
-			new(mem_ctx)ir_dereference_record(d->clone(mem_ctx, NULL),
+			new(mem_ctx) ir_dereference_record(d->clone(mem_ctx, NULL),
 			type->fields.structure[i].name);
 
 		ir_rvalue *const rhs = ((ir_instruction *)node)->as_rvalue();
 		check(rhs != NULL);
 
-		ir_instruction *const assign = new(mem_ctx)ir_assignment(lhs, rhs, NULL);
+		ir_instruction *const assign = new(mem_ctx) ir_assignment(lhs, rhs, NULL);
 
 		instructions->push_tail(assign);
 		node = node->next;
@@ -1885,18 +1897,18 @@ ir_rvalue* ast_function_expression::hir(exec_list *instructions, struct _mesa_gl
 				}
 
 				/* Create a temporary containing the matrix. */
-				ir_variable *var = new(ctx)ir_variable(matrix->type, "matrix_tmp",
+				ir_variable *var = new(ctx) ir_variable(matrix->type, "matrix_tmp",
 					ir_var_temporary);
 				instructions->push_tail(var);
-				instructions->push_tail(new(ctx)ir_assignment(new(ctx)
+				instructions->push_tail(new(ctx) ir_assignment(new(ctx)
 					ir_dereference_variable(var), matrix, NULL));
 				var->constant_value = matrix->constant_expression_value();
 
 				/* Replace the matrix with dereferences of its columns. */
 				for (int i = 0; i < matrix->type->matrix_columns; i++)
 				{
-					matrix->insert_before(new (ctx)ir_dereference_array(var,
-						new(ctx)ir_constant(i)));
+					matrix->insert_before(new (ctx) ir_dereference_array(var,
+						new(ctx) ir_constant(i)));
 				}
 				matrix->remove();
 			}
@@ -1942,7 +1954,7 @@ ir_rvalue* ast_function_expression::hir(exec_list *instructions, struct _mesa_gl
 		*/
 		if (all_parameters_are_constant)
 		{
-			return new(ctx)ir_constant(constructor_type, &actual_parameters);
+			return new(ctx) ir_constant(constructor_type, &actual_parameters);
 		}
 		else if (constructor_type->is_scalar())
 		{
@@ -2107,27 +2119,27 @@ struct _mesa_glsl_parse_state *state)
 	SSourceLocation SourceLocation = expr->GetSourceLocation(state);
 	if (!is_multisample && !is_shadow && num_params >= 2 && strcmp(method, "Sample") == 0)
 	{
-		texop = new(ctx)ir_texture(ir_tex, SourceLocation);
+		texop = new(ctx) ir_texture(ir_tex, SourceLocation);
 		texop->coordinate = parameters[1];
 		texop->offset = parameters[2];
 	}
 	else if (!is_multisample && !is_shadow && num_params >= 3 && strcmp(method, "SampleBias") == 0)
 	{
-		texop = new(ctx)ir_texture(ir_txb, SourceLocation);
+		texop = new(ctx) ir_texture(ir_txb, SourceLocation);
 		texop->coordinate = parameters[1];
 		texop->lod_info.bias = parameters[2];
 		texop->offset = parameters[3];
 	}
 	else if (!is_multisample && !is_shadow && num_params >= 3 && strcmp(method, "SampleLevel") == 0)
 	{
-		texop = new(ctx)ir_texture(ir_txl, SourceLocation);
+		texop = new(ctx) ir_texture(ir_txl, SourceLocation);
 		texop->coordinate = parameters[1];
 		texop->lod_info.lod = parameters[2];
 		texop->offset = parameters[3];
 	}
 	else if (!is_multisample && !is_shadow && num_params >= 4 && strcmp(method, "SampleGrad") == 0)
 	{
-		texop = new(ctx)ir_texture(ir_txd, SourceLocation);
+		texop = new(ctx) ir_texture(ir_txd, SourceLocation);
 		texop->coordinate = parameters[1];
 		texop->lod_info.grad.dPdx = parameters[2];
 		texop->lod_info.grad.dPdy = parameters[3];
@@ -2135,23 +2147,23 @@ struct _mesa_glsl_parse_state *state)
 	}
 	else if (!is_multisample && is_shadow && num_params >= 3 && strcmp(method, "SampleCmp") == 0)
 	{
-		texop = new(ctx)ir_texture(ir_tex, SourceLocation);
+		texop = new(ctx) ir_texture(ir_tex, SourceLocation);
 		texop->coordinate = parameters[1];
 		texop->shadow_comparitor = parameters[2];
 		texop->offset = parameters[3];
 	}
 	else if (!is_multisample && is_shadow && num_params >= 3 && strcmp(method, "SampleCmpLevelZero") == 0)
 	{
-		texop = new(ctx)ir_texture(ir_txl, SourceLocation);
+		texop = new(ctx) ir_texture(ir_txl, SourceLocation);
 		texop->coordinate = parameters[1];
 		texop->shadow_comparitor = parameters[2];
 		texop->offset = parameters[3];
-		texop->lod_info.lod = new(ctx)ir_constant(0.0f);
+		texop->lod_info.lod = new(ctx) ir_constant(0.0f);
 	}
 	else if (is_multisample && num_params >= 2 && strcmp(method, "Load") == 0)
 	{
-		texop = new(ctx)ir_texture(ir_txf, SourceLocation);
-		texop->coordinate = new(ctx)ir_swizzle(parameters[0], 0, 1, 0, 0, 2); // .xy
+		texop = new(ctx) ir_texture(ir_txf, SourceLocation);
+		texop->coordinate = new(ctx) ir_swizzle(parameters[0], 0, 1, 0, 0, 2); // .xy
 		apply_type_conversion(glsl_type::int_type, parameters[1], instructions, state, false, &loc);
 		texop->lod_info.sample_index = parameters[1];
 	}
@@ -2162,17 +2174,17 @@ struct _mesa_glsl_parse_state *state)
 			{ 1, 2, 3, 3, 0, 1 }, { 2, 3, 4, 4, 0, 0 }
 		};
 		check(parameters[0]);
-		ir_variable* param0 = new(ctx)ir_variable(parameters[0]->type, NULL, ir_var_temporary);
+		ir_variable* param0 = new(ctx) ir_variable(parameters[0]->type, NULL, ir_var_temporary);
 		instructions->push_tail(param0);
-		instructions->push_tail(new(ctx)ir_assignment(
-			new(ctx)ir_dereference_variable(param0), parameters[0]));
+		instructions->push_tail(new(ctx) ir_assignment(
+			new(ctx) ir_dereference_variable(param0), parameters[0]));
 
-		texop = new(ctx)ir_texture(ir_txf, SourceLocation);
+		texop = new(ctx) ir_texture(ir_txf, SourceLocation);
 		const int dim = dimensions[sampler->type->sampler_array][sampler->type->sampler_dimensionality];
-		texop->coordinate = new(ctx)ir_swizzle(new(ctx)ir_dereference_variable(param0), 0, 1, 2, 3, dim);
+		texop->coordinate = new(ctx) ir_swizzle(new(ctx) ir_dereference_variable(param0), 0, 1, 2, 3, dim);
 		if (!sampler->type->sampler_buffer)
 		{
-			texop->lod_info.lod = new(ctx)ir_swizzle(new(ctx)ir_dereference_variable(param0), dim, 0, 0, 0, 1);
+			texop->lod_info.lod = new(ctx) ir_swizzle(new(ctx) ir_dereference_variable(param0), dim, 0, 0, 0, 1);
 			apply_type_conversion(glsl_type::int_type, texop->lod_info.lod, instructions, state, false, &loc);
 			texop->offset = parameters[1];
 		}
@@ -2205,7 +2217,7 @@ struct _mesa_glsl_parse_state *state)
 		}
 		else
 		{
-			texop = new(ctx)ir_texture(ir_txg, SourceLocation);
+			texop = new(ctx) ir_texture(ir_txg, SourceLocation);
 			texop->coordinate = parameters[1];
 			texop->shadow_comparitor = parameters[2];
 			texop->offset = parameters[3];
@@ -2229,7 +2241,7 @@ struct _mesa_glsl_parse_state *state)
 		}
 		else
 		{
-			texop = new(ctx)ir_texture(ir_txg, SourceLocation);
+			texop = new(ctx) ir_texture(ir_txg, SourceLocation);
 			texop->coordinate = parameters[1];
 			texop->offset = parameters[2];
 			texop->channel = channel;
@@ -2272,10 +2284,10 @@ struct _mesa_glsl_parse_state *state)
 		}
 
 		int param_index = 0;
-		texop = new(ctx)ir_texture(ir_txs, SourceLocation);
+		texop = new(ctx) ir_texture(ir_txs, SourceLocation);
 		if (sampler->type->sampler_ms || num_params == dimensions)
 		{
-			texop->lod_info.lod = new(ctx)ir_constant(0);
+			texop->lod_info.lod = new(ctx) ir_constant(0);
 		}
 		else
 		{
@@ -2287,8 +2299,8 @@ struct _mesa_glsl_parse_state *state)
 		// generate an intermediate value to hold the return and output to the
 		// necessary derefs.
 		texop->type = glsl_type::get_instance(GLSL_TYPE_INT, dimensions, 1);
-		ir_variable* txs_return = new(ctx)ir_variable(texop->type, NULL, ir_var_temporary);
-		ir_assignment* txs_return_assign = new(ctx)ir_assignment(new(ctx)ir_dereference_variable(txs_return), texop);
+		ir_variable* txs_return = new(ctx) ir_variable(texop->type, NULL, ir_var_temporary);
+		ir_assignment* txs_return_assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(txs_return), texop);
 		instructions->push_tail(txs_return);
 		instructions->push_tail(txs_return_assign);
 
@@ -2299,13 +2311,13 @@ struct _mesa_glsl_parse_state *state)
 			ir_rvalue* lhs = parameters[param_index++];
 			check(lhs);
 
-			ir_rvalue* rhs = new (ctx)ir_swizzle(
-				new(ctx)ir_dereference_variable(txs_return),
+			ir_rvalue* rhs = new (ctx) ir_swizzle(
+				new(ctx) ir_dereference_variable(txs_return),
 				component_index++, 0, 0, 0, 1);
 
 			apply_type_conversion(lhs->type, rhs, instructions, state, false, &loc);
 
-			instructions->push_tail(new(ctx)ir_assignment(lhs, rhs));
+			instructions->push_tail(new(ctx) ir_assignment(lhs, rhs));
 		}
 
 		// For multisampled textures, return sample information defined in texture type
@@ -2314,43 +2326,43 @@ struct _mesa_glsl_parse_state *state)
 			ir_rvalue* lhs = parameters[param_index++];
 			check(lhs);
 
-			ir_rvalue* rhs = new(ctx)ir_constant(sampler->type->sample_count);
+			ir_rvalue* rhs = new(ctx) ir_constant(sampler->type->sample_count);
 			apply_type_conversion(lhs->type, rhs, instructions, state, false, &loc);
-			instructions->push_tail(new(ctx)ir_assignment(lhs, rhs));
+			instructions->push_tail(new(ctx) ir_assignment(lhs, rhs));
 		}
 
 		if (state->language_version >= 310 && num_params == dimensions + 2)
 		{
 			// generate one extra txm instruction to query levels and assign
-			ir_texture *query = new(ctx)ir_texture(ir_txm, SourceLocation);
-			query->lod_info.lod = new(ctx)ir_constant(0);
+			ir_texture *query = new(ctx) ir_texture(ir_txm, SourceLocation);
+			query->lod_info.lod = new(ctx) ir_constant(0);
 			query->type = glsl_type::int_type;
 			query->sampler = sampler->clone(ctx, 0); //clone the sampler, because it is a dereference
 
-			ir_variable* txm_return = new(ctx)ir_variable(query->type, NULL, ir_var_temporary);
-			ir_assignment* txm_return_assign = new(ctx)ir_assignment(new(ctx)ir_dereference_variable(txm_return), query);
+			ir_variable* txm_return = new(ctx) ir_variable(query->type, NULL, ir_var_temporary);
+			ir_assignment* txm_return_assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(txm_return), query);
 			instructions->push_tail(txm_return);
 			instructions->push_tail(txm_return_assign);
 
 			ir_rvalue* lhs = parameters[param_index++];
 			check(lhs);
 
-			ir_rvalue* rhs = new(ctx)ir_dereference_variable(txm_return);
+			ir_rvalue* rhs = new(ctx) ir_dereference_variable(txm_return);
 
 			apply_type_conversion(lhs->type, rhs, instructions, state, false, &loc);
 
-			instructions->push_tail(new(ctx)ir_assignment(lhs, rhs));
+			instructions->push_tail(new(ctx) ir_assignment(lhs, rhs));
 		}
 
 		// Assign remaining outputs to be constant 0.
 		while (param_index < num_params)
 		{
 			ir_rvalue* lhs = parameters[param_index++];
-			ir_rvalue* rhs = new(ctx)ir_constant((unsigned int)0);
+			ir_rvalue* rhs = new(ctx) ir_constant((unsigned int)0);
 
 			apply_type_conversion(lhs->type, rhs, instructions, state, false, &loc);
 
-			instructions->push_tail(new(ctx)ir_assignment(lhs, rhs));
+			instructions->push_tail(new(ctx) ir_assignment(lhs, rhs));
 		}
 
 		// GetDimensions doesn't return anything.
@@ -2552,8 +2564,9 @@ ir_rvalue* gen_image_op(
 
 	if (strcmp(method, "GetDimensions") == 0)
 	{
-		ir_dereference_image *imageop = new(ctx)ir_dereference_image(image, new(ctx)ir_constant(0.0f), ir_image_dimensions);
-		image->variable_referenced()->type;
+		ir_dereference_image *imageop = new(ctx) ir_dereference_image(image, new(ctx) ir_constant(0.0f), ir_image_dimensions);
+		//@todo-rco: ?
+		//image->variable_referenced()->type;
 
 		// GetDimensions doesn't return anything, it will be overridden if there is an error
 		result = NULL;
@@ -2587,8 +2600,8 @@ ir_rvalue* gen_image_op(
 		{
 			const glsl_type *res_type = glsl_type::get_instance(GLSL_TYPE_INT, dimensions, 1);
 			imageop->type = res_type;
-			ir_variable* dim_return = new(ctx)ir_variable(res_type, NULL, ir_var_temporary);
-			ir_assignment* dim_return_assign = new(ctx)ir_assignment(new(ctx)ir_dereference_variable(dim_return), imageop);
+			ir_variable* dim_return = new(ctx) ir_variable(res_type, NULL, ir_var_temporary);
+			ir_assignment* dim_return_assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(dim_return), imageop);
 			instructions->push_tail(dim_return);
 			instructions->push_tail(dim_return_assign);
 
@@ -2608,13 +2621,13 @@ ir_rvalue* gen_image_op(
 				}
 				else
 				{
-					ir_rvalue* rhs = new (ctx)ir_swizzle(
-						new(ctx)ir_dereference_variable(dim_return),
+					ir_rvalue* rhs = new (ctx) ir_swizzle(
+						new(ctx) ir_dereference_variable(dim_return),
 						component_index++, 0, 0, 0, 1);
 
 					apply_type_conversion(lhs->type, rhs, instructions, state, false, &loc);
 
-					instructions->push_tail(new(ctx)ir_assignment(lhs, rhs));
+					instructions->push_tail(new(ctx) ir_assignment(lhs, rhs));
 				}
 			}
 		}

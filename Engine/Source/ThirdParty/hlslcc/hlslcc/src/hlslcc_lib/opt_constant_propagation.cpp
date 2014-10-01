@@ -231,7 +231,9 @@ ir_constant_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
 	this->progress = true;
 	if (!Constant->is_finite())
 	{
+		// Debug point
 		int i = 0;
+		++i;
 	}
 }
 
@@ -265,7 +267,9 @@ ir_constant_propagation_visitor::visit_leave(ir_assignment *ir)
 	ir_rvalue_visitor::visit_leave(ir);
 
 	if (this->in_assignee)
+	{
 		return visit_continue;
+	}
 
 	kill(ir->lhs->variable_referenced(), ir->write_mask);
 

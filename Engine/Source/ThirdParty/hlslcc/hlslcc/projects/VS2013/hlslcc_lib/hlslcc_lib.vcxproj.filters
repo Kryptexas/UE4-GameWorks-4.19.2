@@ -366,5 +366,17 @@
     <None Include="..\..\..\src\hlslcc_lib\hlsl_parser.yy">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\..\..\src\hlslcc_lib\glcpp-lex.inl">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\..\src\hlslcc_lib\glcpp-parse.inl">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\..\src\hlslcc_lib\hlsl_lexer.inl">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\..\src\hlslcc_lib\hlsl_parser.inl">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

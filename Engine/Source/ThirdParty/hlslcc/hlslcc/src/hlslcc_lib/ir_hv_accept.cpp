@@ -345,6 +345,8 @@ ir_visitor_status ir_texture::accept(ir_hierarchical_visitor *v)
 		if (s != visit_continue)
 			return (s == visit_continue_with_parent) ? visit_continue : s;
 		break;
+	default:
+		break;
 	}
 
 	return (s == visit_stop) ? s : v->visit_leave(this);

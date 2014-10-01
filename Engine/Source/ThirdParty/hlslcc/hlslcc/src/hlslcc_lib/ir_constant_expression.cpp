@@ -1431,7 +1431,9 @@ ir_constant* ir_expression::constant_expression_value()
 	ir_constant* Constant = new(ctx)ir_constant(this->type, &data);
 	if (!Constant->is_finite())
 	{
+		// Debug point
 		int i = 0;
+		++i;
 	}
 	return Constant;
 }

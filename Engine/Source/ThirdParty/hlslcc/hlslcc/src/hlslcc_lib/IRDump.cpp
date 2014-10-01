@@ -67,26 +67,38 @@ void DebugPrintVisitor::visit(ir_rvalue* ir)
 void DebugPrintVisitor::visit(ir_variable* ir)
 {
 	PrintID(ir);
-	switch(ir->mode)
+	switch (ir->mode)
 	{
-		case ir_var_inout:
-			irdump_printf("/*IO*/");
-			break;
-		case ir_var_in:
-			irdump_printf("/*I*/");
-			break;
-		case ir_var_out:
-			irdump_printf("/*O*/");
-			break;
-		case ir_var_temporary:
-			irdump_printf("/*T*/");
-			break;
-		case ir_var_auto:
-			irdump_printf("/*A*/");
-			break;
-		case ir_var_uniform:
-			irdump_printf("/*U*/");
-			break;
+	case ir_var_auto:
+		irdump_printf("/*A*/");
+		break;
+	case ir_var_uniform:
+		irdump_printf("/*U*/");
+		break;
+	case ir_var_in:
+		irdump_printf("/*I*/");
+		break;
+	case ir_var_out:
+		irdump_printf("/*O*/");
+		break;
+	case ir_var_inout:
+		irdump_printf("/*IO*/");
+		break;
+	case ir_var_const_in:
+		irdump_printf("/*CI*/");
+		break;
+	case ir_var_temporary:
+		irdump_printf("/*T*/");
+		break;
+	case ir_var_shared:
+		irdump_printf("/*S*/");
+		break;
+	case ir_var_ref:
+		irdump_printf("/*R*/");
+		break;
+	case ir_var_ref_image:
+		irdump_printf("/*RI*/");
+		break;
 	}
 	PrintType(ir->type);
 	irdump_printf(" %s", GetVarName(ir).c_str());

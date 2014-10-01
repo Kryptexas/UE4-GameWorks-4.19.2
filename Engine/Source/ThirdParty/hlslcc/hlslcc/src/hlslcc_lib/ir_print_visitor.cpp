@@ -37,8 +37,7 @@ static void print_type(const glsl_type *t);
 
 int ir_instruction::ID = 0;
 
-void
-ir_instruction::print(void) const
+void ir_instruction::print() const
 {
 	ir_instruction *deconsted = const_cast<ir_instruction *>(this);
 
@@ -79,7 +78,9 @@ struct _mesa_glsl_parse_state *state)
 		ir_instruction *ir = (ir_instruction *)iter.get();
 		ir->print();
 		if (ir->ir_type != ir_type_function)
+		{
 			printf("\n");
+		}
 	}
 	printf("\n)");
 }
@@ -100,14 +101,15 @@ ir_print_visitor::~ir_print_visitor()
 	ralloc_free(mem_ctx);
 }
 
-void ir_print_visitor::indent(void)
+void ir_print_visitor::indent()
 {
 	for (int i = 0; i < indentation; i++)
+	{
 		printf("  ");
+	}
 }
 
-const char *
-ir_print_visitor::unique_name(ir_variable *var)
+const char* ir_print_visitor::unique_name(ir_variable *var)
 {
 	/* var->name can be NULL in function prototypes when a type is given for a
 	* parameter but no name is given.  In that case, just return an empty
@@ -123,7 +125,9 @@ ir_print_visitor::unique_name(ir_variable *var)
 	/* Do we already have a name for this variable? */
 	const char *name = (const char *)hash_table_find(this->printable_names, var);
 	if (name != NULL)
+	{
 		return name;
+	}
 
 	/* If there's no conflict, just use the original name */
 	if (_mesa_symbol_table_find_symbol(this->symbols, -1, var->name) == NULL)
@@ -335,6 +339,7 @@ void ir_print_visitor::visit(ir_texture *ir)
 	{
 	case ir_tex:
 	case ir_txm:
+	case ir_txg:
 		break;
 	case ir_txb:
 		ir->lod_info.bias->accept(this);
