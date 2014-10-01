@@ -16,8 +16,7 @@
 #include "MetalUtils.h"
 
 #if !PLATFORM_WINDOWS
-#define _stricmp stricmp
-#define _strnicmp strnicmp
+#define _strdup strdup
 #endif
 
 /**
