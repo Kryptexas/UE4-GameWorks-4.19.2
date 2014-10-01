@@ -4274,7 +4274,7 @@ void FInputModeDataBase::SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<
 	}
 }
 
-void FInputModeUIOnly::ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const
+void FInputModeUIOnly::ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const
 {
 	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
 	if (ViewportWidget.IsValid())
@@ -4288,7 +4288,7 @@ void FInputModeUIOnly::ApplyInputMode(FReply& SlateOperations, UGameViewportClie
 	}
 }
 
-void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const
+void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const
 {
 	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
 	if (ViewportWidget.IsValid())
@@ -4302,7 +4302,7 @@ void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, UGameViewportC
 	}
 }
 
-void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const
+void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const
 {
 	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
 	if (ViewportWidget.IsValid())
