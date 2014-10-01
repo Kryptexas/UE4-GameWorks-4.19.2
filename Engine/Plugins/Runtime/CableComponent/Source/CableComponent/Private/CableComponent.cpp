@@ -586,7 +586,7 @@ void UCableComponent::SendRenderDynamicData_Concurrent()
 	}
 }
 
-FBoxSphereBounds UCableComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UCableComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	// Calculate bounding box of cable points
 	FBox CableBox(0);

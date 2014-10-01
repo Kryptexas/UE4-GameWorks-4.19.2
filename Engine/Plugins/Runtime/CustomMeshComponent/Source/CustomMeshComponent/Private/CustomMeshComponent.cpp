@@ -295,7 +295,7 @@ int32 UCustomMeshComponent::GetNumMaterials() const
 }
 
 
-FBoxSphereBounds UCustomMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UCustomMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBoxSphereBounds NewBounds;
 	NewBounds.Origin = FVector::ZeroVector;

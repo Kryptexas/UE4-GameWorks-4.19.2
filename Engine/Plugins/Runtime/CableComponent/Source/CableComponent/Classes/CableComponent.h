@@ -36,7 +36,7 @@ public:
 	// Begin UActorComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// Begin USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface.

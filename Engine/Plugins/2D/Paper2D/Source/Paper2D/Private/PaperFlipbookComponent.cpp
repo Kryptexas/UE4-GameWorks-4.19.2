@@ -92,7 +92,7 @@ FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 	return NewProxy;
 }
 
-FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if (SourceFlipbook != nullptr)
 	{
