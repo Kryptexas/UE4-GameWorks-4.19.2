@@ -201,7 +201,8 @@ TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSp
 
 	TSharedRef<SAnimationEditorViewportTabBody> NewViewport = SNew(SAnimationEditorViewportTabBody)
 		.Persona(PersonaPtr)
-		.Skeleton(PersonaPtr->GetSkeleton());
+		.Skeleton(PersonaPtr->GetSkeleton())
+		.AddMetaData<FTagMetaData>(TEXT("Persona.Viewport"));
 
 	//@TODO:MODES:check(!PersonaPtr->Viewport.IsValid());
 	// mode switch data sharing

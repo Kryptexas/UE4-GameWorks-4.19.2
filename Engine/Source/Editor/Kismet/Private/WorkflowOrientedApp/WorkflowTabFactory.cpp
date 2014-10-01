@@ -31,9 +31,13 @@ TSharedRef<SDockTab> FWorkflowTabFactory::SpawnTab(const FWorkflowTabSpawnInfo& 
 	// Pad the content if requested
 	if (InsideTabPadding > 0.0f)
 	{
+		// propagate tag from original content, or use TabId
+		TSharedPtr<FTagMetaData> MetaData = TabBody->GetMetaData<FTagMetaData>();
+
 		TabBody = SNew(SBorder)
 			.Padding(InsideTabPadding)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.AddMetaData<FTagMetaData>(MetaData.IsValid() ? MetaData->Tag : this->TabIdentifier)
 			[
 				TabBody
 			];
