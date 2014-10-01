@@ -512,6 +512,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 		return;
 	}
 
+	const bool bWasProcessingNSEvent = bIsProcessingNSEvent; // ProcessNSEvent can be called recursively
 	bIsProcessingNSEvent = true;
 
 	if( CurrentModifierFlags != [Event modifierFlags] )
@@ -852,7 +853,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 		}
 	}
 
-	bIsProcessingNSEvent = false;
+	bIsProcessingNSEvent = bWasProcessingNSEvent;
 }
 
 void FMacApplication::ProcessEvent( NSEvent* Event )
