@@ -48,6 +48,7 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<cl
 	SEditorViewport::Construct(
 		SEditorViewport::FArguments()
 			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+			.AddMetaData<FTagMetaData>(TEXT("Persona.Viewport"))
 		);
 }
 
