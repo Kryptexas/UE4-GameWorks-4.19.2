@@ -1033,7 +1033,6 @@ bool FLinuxApplication::TryCalculatePopupWindowPosition( const FPlatformRect& In
 	return false;
 }
 
-
 void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
@@ -1044,17 +1043,61 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 		return;
 	}
 
-	SDL_Rect bounds;
-	SDL_GetDisplayBounds( 0, &bounds );
+	// loop over all monitors to determine which one is the best
+	int NumDisplays = SDL_GetNumVideoDisplays();
+	if (NumDisplays <= 0)
+	{
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = 0;
+		OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
+		OutDisplayMetrics.PrimaryDisplayWidth = 0;
+		OutDisplayMetrics.PrimaryDisplayHeight = 0;
 
-	// Get screen rect
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = bounds.x;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = bounds.y;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = bounds.w;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = bounds.h;
+		return;
+	}
+	
+	OutDisplayMetrics.MonitorInfo.Empty();
+	
+	FMonitorInfo Primary;
+	SDL_Rect PrimaryBounds;
+	SDL_GetDisplayBounds(0, &PrimaryBounds);
+
+	Primary.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(0));
+	Primary.ID = TEXT("display0");
+	Primary.NativeWidth = PrimaryBounds.w;
+	Primary.NativeHeight = PrimaryBounds.h;
+	Primary.bIsPrimary = true;
+	OutDisplayMetrics.MonitorInfo.Add(Primary);
+
+	// @TODO [RCL] 2014-09-30 - try to account for real work area and not just display size.
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = PrimaryBounds.x;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = PrimaryBounds.y;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = PrimaryBounds.x + PrimaryBounds.w;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = PrimaryBounds.y + PrimaryBounds.h;
+
+	OutDisplayMetrics.PrimaryDisplayWidth = PrimaryBounds.w;
+ 	OutDisplayMetrics.PrimaryDisplayHeight = PrimaryBounds.h;
+
+	// accumulate the total bound rect
 	OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
-
-	// Total screen size of the primary monitor
-	OutDisplayMetrics.PrimaryDisplayWidth = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
-	OutDisplayMetrics.PrimaryDisplayHeight = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
+	for (int DisplayIdx = 1; DisplayIdx < NumDisplays; ++DisplayIdx)
+	{
+		SDL_Rect DisplayBounds;
+		FMonitorInfo Display;
+		SDL_GetDisplayBounds(DisplayIdx, &DisplayBounds);
+		
+		Display.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(DisplayIdx));
+		Display.ID = FString::Printf(TEXT("display%d"), DisplayIdx);
+		Display.NativeWidth = DisplayBounds.w;
+		Display.NativeHeight = DisplayBounds.h;
+		Display.bIsPrimary = false;
+		OutDisplayMetrics.MonitorInfo.Add(Display);
+		
+		OutDisplayMetrics.VirtualDisplayRect.Left = FMath::Min(DisplayBounds.x, OutDisplayMetrics.VirtualDisplayRect.Left);
+		OutDisplayMetrics.VirtualDisplayRect.Right = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Right, DisplayBounds.x + DisplayBounds.w);
+		OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(DisplayBounds.y, OutDisplayMetrics.VirtualDisplayRect.Top);
+		OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, DisplayBounds.y + DisplayBounds.h);
+	}
 }
