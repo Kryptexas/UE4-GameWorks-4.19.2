@@ -161,10 +161,14 @@ public:
 				}
 
 				Points[SelectedPoint] = HitLocation;
+
+				GUnrealEd->RedrawLevelEditingViewports();
 			}
+
+			return true;
 		}
 
-		return true;
+		return false;
 	}
 
 	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) override
