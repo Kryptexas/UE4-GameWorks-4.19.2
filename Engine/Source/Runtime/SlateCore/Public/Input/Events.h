@@ -250,6 +250,16 @@ public:
 		return ModifierKeys.IsRightCommandDown();
 	}
 
+	/**
+	 * Returns true if caps lock was on when this event occurred
+	 * 
+	 * @return True if caps lock is on
+	 */
+	bool AreCapsLocked() const
+	{
+		return ModifierKeys.AreCapsLocked();
+	}
+
 	/** The event path provides additional context for handling */
 	FGeometry FindGeometry( const TSharedRef<SWidget>& WidgetToFind ) const
 	{
@@ -298,6 +308,7 @@ public:
 		: FInputEvent(FModifierKeysState(), false)
 		, Key(EKeys::SpaceBar)
 		, CharacterCode(0)
+		, KeyCode(0)
 	{
 	}
 
@@ -311,11 +322,13 @@ public:
 	FKeyboardEvent( const FKey InKey,
 					const FModifierKeysState& InModifierKeys, 
 					const bool bInIsRepeat,
-					const uint32 InCharacterCode
+					const uint32 InCharacterCode,
+					const uint32 InKeyCode
 	)
 		: FInputEvent(InModifierKeys, bInIsRepeat)
 		, Key(InKey)
 		, CharacterCode(InCharacterCode)
+		, KeyCode(InKeyCode)
 	{ }
 	
 	/**
@@ -338,6 +351,11 @@ public:
 		return CharacterCode;
 	}
 
+	uint32 GetKeyCode() const
+	{
+		return KeyCode;
+	}
+
 private:
 
 	// Name of the key that was pressed.
@@ -345,6 +363,9 @@ private:
 
 	// The character code of the key that was pressed.  Only applicable to typed character keys, 0 otherwise.
 	uint32 CharacterCode;
+
+	// Original key code received from hardware before any conversion/mapping
+	uint32 KeyCode;
 };
 
 
