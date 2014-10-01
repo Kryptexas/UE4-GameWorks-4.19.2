@@ -10,6 +10,7 @@
 #include "GameProjectGenerationModule.h"
 #include "SWizard.h"
 #include "HardwareTargetingModule.h"
+#include "SDecoratedEnumCombo.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
@@ -317,6 +318,20 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	TSharedRef<SSeparator> Separator = SNew(SSeparator).Orientation(EOrientation::Orient_Vertical);
 	Separator->SetBorderBackgroundColor(FLinearColor::White.CopyWithNewOpacity(0.25f));
 
+	TSharedPtr<SWidget> StartContentCombo;
+	{
+		TArray<SDecoratedEnumCombo<int32>::FComboOption> StarterContentInfo;
+		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
+			0, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.NoStarterContent"), LOCTEXT("NoStarterContent", "No Starter Content")));
+		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
+			1, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.IncludeStarterContent"), LOCTEXT("IncludeStarterContent", "With Starter Content")));
+
+		StartContentCombo = SNew(SDecoratedEnumCombo<int32>, MoveTemp(StarterContentInfo))
+			.SelectedEnum(this, &SNewProjectWizard::GetCopyStarterContentIndex)
+			.OnEnumChanged(this, &SNewProjectWizard::OnSetCopyStarterContent)
+			.ToolTipText( LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."));
+	}
+
 	const float UniformPadding = 16.f;
 	ChildSlot
 	[
@@ -530,53 +545,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 												SNew(SOverlay)
 												+SOverlay::Slot()
 												[
-													SNew(SButton)
-													.Visibility(StarterContentVisiblity)
-													.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-													.ForegroundColor(FSlateColor::UseForeground())
-													.ContentPadding(6.f)
-													.ToolTipText( LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."))
-													.OnClicked(this, &SNewProjectWizard::OnCopyStarterContentClicked)
-													[
-														SNew(SVerticalBox)
-
-														+ SVerticalBox::Slot()
-														.AutoHeight()
-														.HAlign(HAlign_Center)
-														[
-															SNew(SImage)
-															.Image(this, &SNewProjectWizard::GetStartContentIcon)
-														]
-
-														+ SVerticalBox::Slot()
-														.AutoHeight()
-														.Padding(4)
-														.HAlign(HAlign_Center)
-														[
-															SNew(STextBlock)
-															.Text(this, &SNewProjectWizard::GetStartContentText)
-														]
-													]
-												]
-
-												// Fake combo-button down arrow to make it look more interactive
-												+SOverlay::Slot()
-												.VAlign(VAlign_Center)
-												[
-													SNew(SHorizontalBox)
-													+ SHorizontalBox::Slot()
-													.FillWidth(1.0f)
-													[
-														SNew(SSpacer)
-													]
-													+SHorizontalBox::Slot()
-													.AutoWidth()
-													.Padding(FMargin(8, 0))
-													[
-														SNew(SImage)
-														.Visibility(EVisibility::HitTestInvisible)
-														.Image(&(FCoreStyle::Get().GetWidgetStyle<FComboButtonStyle>("ComboButton").DownArrowImage))
-													]
+													StartContentCombo.ToSharedRef()
 												]
 
 												// Warning when enabled for mobile, since the current starter content is bad for mobile
@@ -775,10 +744,9 @@ TSharedRef<SWidget> SNewProjectWizard::BuildCategoryTabs()
 	return TabStrip;
 }
 
-FReply SNewProjectWizard::OnCopyStarterContentClicked()
+void SNewProjectWizard::OnSetCopyStarterContent(int32 InCopyStarterContent)
 {
-	bCopyStarterContent = !bCopyStarterContent;
-	return FReply::Handled();
+	bCopyStarterContent = InCopyStarterContent != 0;
 }
 
 EVisibility SNewProjectWizard::GetStarterContentWarningVisibility() const
@@ -1566,16 +1534,6 @@ void SNewProjectWizard::SetHardwareClassTarget(EHardwareClass::Type InHardwareCl
 void SNewProjectWizard::SetGraphicsPreset(EGraphicsPreset::Type InGraphicsPreset)
 {
 	SelectedGraphicsPreset = InGraphicsPreset;
-}
-
-FText SNewProjectWizard::GetStartContentText() const
-{
-	return bCopyStarterContent ? LOCTEXT("IncludeStarterContent", "With Starter Content") : LOCTEXT("NoStarterContent", "No Starter Content");
-}
-
-const FSlateBrush* SNewProjectWizard::GetStartContentIcon() const
-{
-	return bCopyStarterContent ? FEditorStyle::GetBrush("GameProjectDialog.IncludeStarterContent") : FEditorStyle::GetBrush("GameProjectDialog.NoStarterContent");
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -113,7 +113,10 @@ private:
 	FText GetNameAndLocationErrorLabelText() const;
 
 	/** Handler for when the "copy starter content" checkbox changes state */
-	FReply OnCopyStarterContentClicked();
+	void OnSetCopyStarterContent(int32 InCopyStarterContent);
+
+	/** Get whether we are copying starter content or not */
+	int32 GetCopyStarterContentIndex() const { return bCopyStarterContent ? 1 : 0; };
 
 	/** Returns the visibility of the starter content warning */
 	EVisibility GetStarterContentWarningVisibility() const;
@@ -129,11 +132,6 @@ private:
 	EGraphicsPreset::Type SelectedGraphicsPreset;
 	void SetGraphicsPreset(EGraphicsPreset::Type InGraphicsPreset);
 	EGraphicsPreset::Type GetGraphicsPreset() const { return SelectedGraphicsPreset; }
-
-private:
-
-	FText GetStartContentText() const;
-	const FSlateBrush* GetStartContentIcon() const;
 
 private:
 
