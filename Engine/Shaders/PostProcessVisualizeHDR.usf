@@ -130,9 +130,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 
 	uint Bucket = (uint)(InsetUV.x * HISTOGRAM_SIZE);
 	
-//	Texture2D HistogramTexture = InputNew1;
-#define HistogramTexture InputNew1 // WAR for HLSLCC not allowing assignment to samplers (yet)
-	float HistogramSum = ComputeHistogramSum(HistogramTexture);
+	float HistogramSum = ComputeHistogramSum(PostprocessInput1);
 
 	if(InsetUV.x < ComputeHistogramPositionFromLuminance(EyeAdaptationParams[0].z))
 	{

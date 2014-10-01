@@ -54,7 +54,7 @@ void MainCS(
 
 				if(TexelPos.x < GatherExtentInt.x && TexelPos.y < GatherExtentInt.y)
 				{
-					float4 SceneColor = InputNew0.Load(int3(TexelPos, 0));
+					float4 SceneColor = PostprocessInput0.Load(int3(TexelPos, 0));
 	
 //					float LuminanceVal = dot(SceneColor.rgb, float3(0.3f, 0.59f, 0.11f));
 					float LuminanceVal = max(SceneColor.r, max(SceneColor.g, SceneColor.b));

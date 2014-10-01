@@ -113,7 +113,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	
 	// GBuffer size
 	uint2 BufferSize;
-	InputNew0.GetDimensions(BufferSize.x, BufferSize.y);
+	PostprocessInput0.GetDimensions(BufferSize.x, BufferSize.y);
 	float2 InvBufferSize = 1.0f / (float2)BufferSize;
 
 	int2 HalfTileLocalPos = PixelPos - QuarterInsetSize;

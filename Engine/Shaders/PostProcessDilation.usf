@@ -16,7 +16,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	float2 ScreenSpacePos = UVAndScreenPos.zw;
 	int3 PixelPos = int3((int2)(ScreenSpacePos * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f), 0);
 
-	OutColor = InputNew0.Load(PixelPos);
+	OutColor = PostprocessInput0.Load(PixelPos);
 
 	int2 MaxSize = (int2)ViewportSize;
 
@@ -26,7 +26,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 		FLATTEN\
 		if(all(OutColor.rgb == 0) && all(p.xy < MaxSize))\
 		{\
-			OutColor = InputNew0.Load(p);\
+			OutColor = PostprocessInput0.Load(p);\
 		}\
 	}
 

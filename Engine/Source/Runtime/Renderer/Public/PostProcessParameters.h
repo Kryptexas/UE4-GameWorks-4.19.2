@@ -78,7 +78,6 @@ private:
 	FShaderParameter ViewportRect;
 	FShaderResourceParameter PostprocessInputParameter[ePId_Input_MAX];
 	FShaderResourceParameter PostprocessInputParameterSampler[ePId_Input_MAX];
-	FShaderResourceParameter PostprocessInputNew[ePId_Input_MAX];
 	FShaderParameter PostprocessInputSizeParameter[ePId_Input_MAX];
 	FShaderParameter PostProcessInputMinMaxParameter[ePId_Input_MAX];
 	FShaderParameter ScreenPosToPixel;
