@@ -187,7 +187,7 @@ FBlueprintActionUiSpec UBlueprintVariableNodeSpawner::GetUiSpec(FBlueprintAction
 		if (!TargetClass->IsChildOf(VariableClass))
 		{
 			MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Class,
-				FText::FromString(VariableClass->GetDisplayNameText().ToString() + TEXT("|") + MenuSignature.Category.ToString()));
+				FText::FromString(VariableClass->GetDisplayNameText().ToString()));
 		}
 	}
 	DynamicUiSignatureGetter.ExecuteIfBound(Context, Bindings, &MenuSignature);

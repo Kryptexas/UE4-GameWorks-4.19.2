@@ -84,6 +84,9 @@ const FName FBlueprintMetadata::MD_CallInEditor(TEXT("CallInEditor"));
 
 const FName FBlueprintMetadata::MD_DataTablePin(TEXT("DataTablePin"));
 
+const FName FBlueprintMetadata::MD_NativeMakeFunction(TEXT("HasNativeMake"));
+const FName FBlueprintMetadata::MD_NativeBreakFunction(TEXT("HasNativeBreak"));
+
 //////////////////////////////////////////////////////////////////////////
 
 #define LOCTEXT_NAMESPACE "KismetSchema"

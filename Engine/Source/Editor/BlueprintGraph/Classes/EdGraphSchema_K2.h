@@ -141,6 +141,11 @@ public:
 
 	/** Metadata to identify an DataTable Pin. Depending on which DataTable is selected, we display different RowName options */
 	static const FName MD_DataTablePin;
+
+	/** Metadata that flags make/break functions for specific struct types. */
+	static const FName MD_NativeMakeFunction;
+	static const FName MD_NativeBreakFunction;
+	
 private:
 	// This class should never be instantiated
 	FBlueprintMetadata() {}

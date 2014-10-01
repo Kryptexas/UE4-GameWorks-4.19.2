@@ -47,6 +47,16 @@ namespace BlueprintFunctionNodeSpawnerImpl
 	 * @return 
 	 */
 	static FVector2D CalculateBindingPosition(UEdGraphNode* const InputNode);
+
+	/**
+	 * 
+	 * 
+	 * @param  Struct	
+	 * @param  Function	
+	 * @param  OperatorMetaTag	
+	 * @return 
+	 */
+	static bool IsStructOperatorFunc(const UScriptStruct* Struct, const UFunction* Function, FName const OperatorMetaTag);
 }
 
 //------------------------------------------------------------------------------
@@ -129,6 +139,27 @@ static FVector2D BlueprintFunctionNodeSpawnerImpl::CalculateBindingPosition(UEdG
 
 	AttachingNodePos += BindingOffset;
 	return AttachingNodePos;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintFunctionNodeSpawnerImpl::IsStructOperatorFunc(const UScriptStruct* Struct, const UFunction* Function, FName const OperatorMetaTag)
+{
+	bool bIsOperatorFunc = false;
+
+	FString NamedOperatorFunction = Struct->GetMetaData(OperatorMetaTag);
+	if (!NamedOperatorFunction.IsEmpty())
+	{
+		UObject* OperatorOuter = nullptr;
+		if (ResolveName(OperatorOuter, NamedOperatorFunction, /*Create =*/false, /*Throw =*/false))
+		{
+			if ((Function->GetOuter() == OperatorOuter) &&
+				(Function->GetName()  == NamedOperatorFunction))
+			{
+				bIsOperatorFunc = true;
+			}
+		}
+	}
+	return bIsOperatorFunc;
 }
 
 /*******************************************************************************
@@ -254,12 +285,19 @@ void UBlueprintFunctionNodeSpawner::Prime()
 //------------------------------------------------------------------------------
 FBlueprintActionUiSpec UBlueprintFunctionNodeSpawner::GetUiSpec(FBlueprintActionContext const& Context, FBindingSet const& Bindings) const
 {
+	// for FallbackCategory, IsStructOperatorFunc(), etc.
+	using namespace BlueprintFunctionNodeSpawnerImpl;
+
 	UEdGraph* TargetGraph = (Context.Graphs.Num() > 0) ? Context.Graphs[0] : nullptr;
 	FBlueprintActionUiSpec MenuSignature = PrimeDefaultUiSpec(TargetGraph);
 
+	//
+	// stick uncategorized functions in either "Call Function" (for self 
+	// members), or "<ClassName>|..." for external members
+
 	FString const CategoryString = MenuSignature.Category.ToString();
 	// FText compares are slow, so let's use FString compares
-	bool const bIsUncategorized = (CategoryString == BlueprintFunctionNodeSpawnerImpl::FallbackCategory.ToString());
+	bool const bIsUncategorized = (CategoryString == FallbackCategory.ToString());
 	if (bIsUncategorized)
 	{
 		checkSlow(Context.Blueprints.Num() > 0);
@@ -282,10 +320,35 @@ FBlueprintActionUiSpec UBlueprintFunctionNodeSpawner::GetUiSpec(FBlueprintAction
 
 		if (!TargetClass->IsChildOf(FunctionClass))
 		{
-			MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Class, 
-				FText::FromString(FunctionClass->GetDisplayNameText().ToString() + TEXT("|") + CategoryString));
+			MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString( FCommonEditorCategory::Class, 
+				FText::FromString(FunctionClass->GetDisplayNameText().ToString()) );
 		}
 	}
+
+	//
+	// bubble up important make/break functions (when dragging from a struct pin)
+
+	for (UEdGraphPin* Pin : Context.Pins)
+	{
+		const UScriptStruct* PinStruct = Cast<const UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
+		if (PinStruct != nullptr)
+		{
+			UFunction const* WrappedFunction = GetFunction();
+			checkSlow(WrappedFunction != nullptr);
+
+			bool const bIsStructOperator = IsStructOperatorFunc(PinStruct, WrappedFunction, FBlueprintMetadata::MD_NativeBreakFunction) ||
+				IsStructOperatorFunc(PinStruct, WrappedFunction, FBlueprintMetadata::MD_NativeMakeFunction);
+
+			if (bIsStructOperator)
+			{
+				MenuSignature.Category = LOCTEXT("EmptyFunctionCategory", "|");
+				break;
+			}
+		}
+	}
+
+	//
+	// call out functions bound to sub-component (members); give them a unique name
 
 	if (Bindings.Num() == 1)
 	{
