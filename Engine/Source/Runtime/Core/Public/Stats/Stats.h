@@ -1,8 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnStats.h: Performance stats framework.
-=============================================================================*/
 #pragma once
 
 #define FORCEINLINE_STATS FORCEINLINE
@@ -96,10 +93,6 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 }
 
 // Remove all the macros
-#define STAT_IS_COLLECTING(Stat) (false)
-
-#define REGISTER_DYNAMIC_CYCLE_STAT(Stat, Group) (TStatId())
-
 
 #define DEFINE_STAT(Stat)
 #define SCOPE_CYCLE_COUNTER(Stat)

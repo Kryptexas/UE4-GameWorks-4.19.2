@@ -1435,8 +1435,6 @@ struct FStat_##StatName\
 
 #define STAT_GROUP_TO_FStatGroup(Group) FStatGroup_##Group
 
-#define STAT_IS_COLLECTING(Stat) (FThreadStats::IsCollectingData(GET_STATID(Stat)))
-
 #define DEFINE_STAT(Stat) \
 	struct FThreadSafeStaticStat<FStat_##Stat> StatPtr_##Stat;
 
