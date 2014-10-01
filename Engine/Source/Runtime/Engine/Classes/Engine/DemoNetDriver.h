@@ -13,28 +13,31 @@ class UDemoNetDriver : public UNetDriver
 	// Variables.
 
 	/** Name of the file to read/write from */
-	FString			DemoFilename;
+	FString				DemoFilename;
 
 	/** Handle to the archive that will read/write network packets */
-	FArchive*		FileAr;
+	FArchive*			FileAr;
 
 	/** @todo document */
-	int32			DemoFrameNum;
+	int32				DemoFrameNum;
 
 	/** Last time (in real seconds) that we recorded a frame */
-	double			LastRecordTime;
+	double				LastRecordTime;
 
 	/** Time (in game seconds) that have elapsed between recorded frames */
-	float			DemoDeltaTime;
+	float				DemoDeltaTime;
 
 	/** during playback, set to total number of frames recorded in the demo */
-	int32			PlaybackTotalFrames;
+	int32				PlaybackTotalFrames;
 
 	/** True if we're in the middle of recording a frame */
-	bool			bIsRecordingDemoFrame;
+	bool				bIsRecordingDemoFrame;
+
+	/** This is our spectator controller that is used to view the demo world from */
+	APlayerController*	SpectatorController;
 
 	UPROPERTY( config )
-	FString			DemoSpectatorClass;
+	FString				DemoSpectatorClass;
 
 	// Begin UNetDriver interface.
 	virtual bool InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error ) override;

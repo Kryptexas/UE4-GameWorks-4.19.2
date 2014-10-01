@@ -14,6 +14,7 @@
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 
 static TAutoConsoleVariable<float> CVarDemoRecordHz( TEXT( "demo.RecordHz" ), 10, TEXT( "Number of demo frames recorded per second" ) );
+static TAutoConsoleVariable<float> CVarDemoTimeDilation( TEXT( "demo.TimeDilation" ), 1.0f, TEXT( "Override time dilation during demo playback" ) );
 
 static const int32 MAX_DEMO_READ_WRITE_BUFFER = 1024 * 2;
 
@@ -231,6 +232,17 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 		}
 		else if ( ServerConnection != NULL )
 		{
+			World->GetWorldSettings()->DemoPlayTimeDilation = CVarDemoTimeDilation.GetValueOnGameThread();
+
+			// Update time dilation on spectator pawn to compensate for any demo dilation 
+			//	(we want to continue to fly around in real-time)
+			if ( SpectatorController != NULL )
+			{
+				if ( SpectatorController->GetSpectatorPawn() != NULL )
+				{
+					SpectatorController->GetSpectatorPawn()->CustomTimeDilation = 1.0f / World->GetWorldSettings()->DemoPlayTimeDilation;
+				}
+			}
 			TickDemoPlayback( DeltaSeconds );
 		}
 	}
@@ -684,6 +696,9 @@ void UDemoNetConnection::FlushNet( bool bIgnoreSimulation )
 void UDemoNetConnection::HandleClientPlayer( APlayerController* PC, UNetConnection* NetConnection )
 {
 	Super::HandleClientPlayer( PC, NetConnection );
+
+	// Assume this is our special spectator controller
+	GetDriver()->SpectatorController = PC;
 
 	for ( FActorIterator It( Driver->World ); It; ++It)
 	{
