@@ -411,6 +411,64 @@ void FPhysScene::FlushDeferredCollisionDisableTableQueue()
 	DeferredCollisionDisableTableQueue.Empty();
 }
 
+void GatherPhysXStats(PxScene* PScene, uint32 SceneType)
+{
+	/** Gather PhysX stats */
+	if (SceneType == 0)
+	{
+		if (PScene)
+		{
+			PxSimulationStatistics SimStats;
+			PScene->getSimulationStatistics(SimStats);
+
+			SET_DWORD_STAT(STAT_NumActiveConstraints, SimStats.nbActiveConstraints);
+			SET_DWORD_STAT(STAT_NumActiveSimulatedBodies, SimStats.nbActiveDynamicBodies);
+			SET_DWORD_STAT(STAT_NumActiveKinematicBodies, SimStats.nbActiveKinematicBodies);
+			SET_DWORD_STAT(STAT_NumStaticBodies, SimStats.nbStaticBodies);
+			SET_DWORD_STAT(STAT_NumMobileBodies, SimStats.nbDynamicBodies);
+			
+			SET_DWORD_STAT(STAT_NumBroadphaseAdds, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+			SET_DWORD_STAT(STAT_NumBroadphaseRemoves, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+
+			uint32 NumShapes = 0;
+			for (int32 GeomType = 0; GeomType < PxGeometryType::eGEOMETRY_COUNT; ++GeomType)
+			{
+				NumShapes += SimStats.nbShapes[GeomType];
+			}
+
+			SET_DWORD_STAT(STAT_NumShapes, NumShapes);
+
+		}
+
+	}
+
+#if 0	//this is not reliable right now
+	else if (SceneType == 1 & UPhysicsSettings::Get()->bEnableAsyncScene)
+	{
+		//Having to duplicate because of macros. In theory we can fix this but need to get this quickly
+		PxSimulationStatistics SimStats;
+		PScene->getSimulationStatistics(SimStats);
+
+		SET_DWORD_STAT(STAT_NumActiveConstraintsAsync, SimStats.nbActiveConstraints);
+		SET_DWORD_STAT(STAT_NumActiveSimulatedBodiesAsync, SimStats.nbActiveDynamicBodies);
+		SET_DWORD_STAT(STAT_NumActiveKinematicBodiesAsync, SimStats.nbActiveKinematicBodies);
+		SET_DWORD_STAT(STAT_NumStaticBodiesAsync, SimStats.nbStaticBodies);
+		SET_DWORD_STAT(STAT_NumMobileBodiesAsync, SimStats.nbDynamicBodies);
+
+		SET_DWORD_STAT(STAT_NumBroadphaseAddsAsync, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+		SET_DWORD_STAT(STAT_NumBroadphaseRemovesAsync, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+
+		uint32 NumShapes = 0;
+		for (int32 GeomType = 0; GeomType < PxGeometryType::eGEOMETRY_COUNT; ++GeomType)
+		{
+			NumShapes += SimStats.nbShapes[GeomType];
+		}
+
+		SET_DWORD_STAT(STAT_NumShapesAsync, NumShapes);
+	}
+#endif
+}
+
 /** Exposes ticking of physics-engine scene outside Engine. */
 void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent)
 {
@@ -453,6 +511,12 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 		}
 		return;
 	}
+
+#if WITH_PHYSX
+	GatherPhysXStats(GetPhysXScene(SceneType), SceneType);
+#endif
+
+
 
 	/**
 	* Weight frame time according to PhysScene settings.
@@ -641,10 +705,12 @@ void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 		return;
 	}
 
+
 	PxScene* PScene = GetPhysXScene(SceneType);
 	check(PScene);
 	SCENE_LOCK_READ(PScene);
 	PxU32 NumTransforms = 0;
+
 	const PxActiveTransform* PActiveTransforms = PScene->getActiveTransforms(NumTransforms);
 	SCENE_UNLOCK_READ(PScene);
 
@@ -659,6 +725,7 @@ void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 
 		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
 	}
+
 }
 #endif
 
