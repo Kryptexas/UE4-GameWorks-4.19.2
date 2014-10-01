@@ -296,6 +296,13 @@ public:
 	 */
 	FPakFile(IPlatformFile* LowerLevel, const TCHAR* Filename, bool bIsSigned);
 
+	/**
+	 * Creates a pak file using the supplied archive
+	 *
+	 * @param Archive	Pointer to the archive which contains the pak file data
+	 */
+	FPakFile(FArchive* Archive);
+
 	~FPakFile();
 
 	/**
