@@ -43,6 +43,7 @@ AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& P
 	bAlwaysRelevant = true;
 	TimeDilation = 1.0f;
 	MatineeTimeDilation = 1.0f;
+	DemoPlayTimeDilation = 1.0f;
 	PackedLightAndShadowMapTextureSize = 1024;
 #if WITH_EDITORONLY_DATA
 	bHiddenEd = true;

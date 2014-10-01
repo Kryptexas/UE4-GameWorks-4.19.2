@@ -381,6 +381,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(replicated)
 	float MatineeTimeDilation;
 
+	// Additional TimeDilation used to control demo playback speed
+	UPROPERTY()
+	float DemoPlayTimeDilation;
+
 	// If paused, FName of person pausing the game.
 	UPROPERTY(replicated)
 	class APlayerState* Pauser;
@@ -436,7 +440,7 @@ public:
 
 	float GetEffectiveTimeDilation() const
 	{
-		return TimeDilation * MatineeTimeDilation;
+		return TimeDilation * MatineeTimeDilation * DemoPlayTimeDilation;
 	}
 
 	/** 
