@@ -138,7 +138,7 @@ public:
 	 * @param  Location     Where you want the new node positioned in the graph.
 	 * @return Null if it failed to spawn a node, otherwise a newly spawned node or possibly one that already existed.
 	 */
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const;	
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const;
 
 	/**
 	 * Retrieves a cached template for the node that this is set to spawn. Will

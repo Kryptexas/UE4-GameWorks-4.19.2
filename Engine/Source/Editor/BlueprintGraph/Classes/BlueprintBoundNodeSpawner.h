@@ -15,6 +15,7 @@ class BLUEPRINTGRAPH_API UBlueprintBoundNodeSpawner : public UBlueprintNodeSpawn
 	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FCanBindObjectDelegate, UObject const*);
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBindObjectDelegate, UEdGraphNode*, UObject*);
+	DECLARE_DELEGATE_RetVal_TwoParams(UEdGraphNode*, FFindPreExistingNodeDelegate, const UBlueprint*, IBlueprintNodeBinder::FBindingSet const& );
 
 public:
 	/**
@@ -24,6 +25,7 @@ public:
 
 	// UBlueprintNodeSpawner interface
 	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
 	// End UBlueprintNodeSpawner interface
 
 	// FBlueprintNodeBinder interface
@@ -41,4 +43,10 @@ public:
 	 * A delegate to perform specialized node setup during binding
 	 */
 	FOnBindObjectDelegate OnBindObjectDelegate;
+
+	/**
+	 * A delegate to find a node that is already spawned, instead of spawning a node
+	 * we will focus on the pre-existing node found by the delegate
+	 */
+	FFindPreExistingNodeDelegate FindPreExistingNodeDelegate;
 };

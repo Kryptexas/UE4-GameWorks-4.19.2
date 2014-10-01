@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionFilter.h"
 #include "BlueprintBoundNodeSpawner.h"
 #include "KismetCompiler.h"
 #include "Runtime/Engine/Public/MatineeDelegates.h"
@@ -167,10 +168,25 @@ void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar
 		return true;
 	};
 
+	auto FindPreExistingNodeLambda = []( const UBlueprint* Blueprint, IBlueprintNodeBinder::FBindingSet const& BindingSet ) -> UEdGraphNode*
+	{
+		TArray<UK2Node_MatineeController*> ExistingMatineeControllers;
+		FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, ExistingMatineeControllers);
+		for (auto Controller : ExistingMatineeControllers)
+		{
+			if (BindingSet.Contains( Controller->MatineeActor ))
+			{
+				return Controller;
+			}
+		}
+		return nullptr;
+	};
+
 	UBlueprintBoundNodeSpawner* NodeSpawner = UBlueprintBoundNodeSpawner::Create(GetClass());
 	NodeSpawner->CanBindObjectDelegate = UBlueprintBoundNodeSpawner::FCanBindObjectDelegate::CreateStatic(CanBindObjectLambda);
 	NodeSpawner->OnBindObjectDelegate  = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
 	NodeSpawner->DynamicUiSignatureGetter = UBlueprintBoundNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(UiSpecOverride);
+	NodeSpawner->FindPreExistingNodeDelegate = UBlueprintBoundNodeSpawner::FFindPreExistingNodeDelegate::CreateStatic( FindPreExistingNodeLambda );
 	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 

@@ -39,6 +39,22 @@ FBlueprintNodeSignature UBlueprintBoundNodeSpawner::GetSpawnerSignature() const
 }
 
 //------------------------------------------------------------------------------
+UEdGraphNode* UBlueprintBoundNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
+{
+	UEdGraphNode* Result = nullptr;
+	if( FindPreExistingNodeDelegate.IsBound() )
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
+		Result = FindPreExistingNodeDelegate.Execute( Blueprint, Bindings );
+	}
+	if( Result == nullptr)
+	{
+		Result = UBlueprintNodeSpawner::Invoke( ParentGraph, Bindings, Location );
+	}
+	return Result;
+}
+
+//------------------------------------------------------------------------------
 bool UBlueprintBoundNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
 	if(CanBindObjectDelegate.IsBound())
