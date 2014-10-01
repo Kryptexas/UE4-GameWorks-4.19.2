@@ -526,7 +526,7 @@ void UUserWidget::AddToViewport()
 		TSharedPtr<SWidget> OutUserSlateWidget;
 		TSharedRef<SWidget> RootWidget = MakeViewportWidget(OutUserSlateWidget);
 
-		FullScreenWidget = OutUserSlateWidget;
+		FullScreenWidget = RootWidget;
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -534,7 +534,7 @@ void UUserWidget::AddToViewport()
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				ViewportClient->AddViewportWidgetContent(OutUserSlateWidget.ToSharedRef());
+				ViewportClient->AddViewportWidgetContent(RootWidget);
 			}
 		}
 	}

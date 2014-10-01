@@ -37,6 +37,9 @@ void UGameInstance::Init()
 void UGameInstance::Shutdown()
 {
 	ReceiveShutdown();
+
+	// Clear the world context pointer to prevent further access.
+	WorldContext = nullptr;
 }
 
 void UGameInstance::InitializeStandalone()
