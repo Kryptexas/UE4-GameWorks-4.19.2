@@ -70,7 +70,13 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 		{
 			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(NewNode);
 			UClass* OwnerClass = Property->GetOwnerClass();
-			bool const bIsSelfContext = Blueprint->SkeletonGeneratedClass->IsChildOf(OwnerClass);
+
+			// We need to use a generated class instead of a skeleton class for IsChildOf, so if the OwnerClass has a Blueprint, grab the GeneratedClass
+			if(OwnerClass)
+			{
+				OwnerClass = OwnerClass->GetAuthoritativeClass();
+			}
+			bool const bIsSelfContext = Blueprint->SkeletonGeneratedClass->GetAuthoritativeClass() == OwnerClass || Blueprint->SkeletonGeneratedClass->IsChildOf(OwnerClass);
 
 			UK2Node_Variable* VarNode = CastChecked<UK2Node_Variable>(NewNode);
 			VarNode->SetFromProperty(Property, bIsSelfContext);

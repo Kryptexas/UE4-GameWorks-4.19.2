@@ -101,24 +101,20 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 void UK2Node_Variable::CreatePinForSelf()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UClass* VariableClass = GetVariableSourceClass();
 	// Create the self pin
 	if (!K2Schema->FindSelfPin(*this, EGPD_Input))
 	{
 		// Do not create a self pin for locally scoped variables
 		if( !VariableReference.IsLocalScope() )
 		{
+			UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
+			UClass* AuthoritativeClass = MemberParentClass ? MemberParentClass->GetAuthoritativeClass() : NULL;
+			UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AuthoritativeClass, false, false, K2Schema->PN_Self);
+			TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+
 			if (VariableReference.IsSelfContext() && (ESelfContextInfo::NotSelfContext != SelfContextInfo))
 			{
-				UEdGraphPin* SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
-				SelfPin->bHidden = true; // don't show in 'self' context
-			}
-			else
-			{
-				UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
-				UClass* AuthoritativeClass = MemberParentClass ? MemberParentClass->GetAuthoritativeClass() : NULL;
-				UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AuthoritativeClass, false, false, K2Schema->PN_Self);
-				TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+				TargetPin->bHidden = true; // don't show in 'self' context
 			}
 		}
 	}
@@ -547,6 +543,52 @@ FString UK2Node_Variable::GetDocumentationLink() const
 FString UK2Node_Variable::GetDocumentationExcerptName() const
 {
 	return GetVarName().ToString();
+}
+
+void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+
+	// Do some auto-connection
+	if (FromPin != NULL)
+	{
+		bool bConnected = false;
+		if(FromPin->Direction == EGPD_Output)
+		{
+			// If the source pin has a valid PinSubCategoryObject, we might be doing BP Comms, so check if it is a class
+			if(FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass()))
+			{
+				UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+				if(VariableProperty)
+				{
+					UClass* PropertyOwner = VariableProperty->GetOwnerClass();
+
+					// BP Comms is highly likely at this point, if the source pin's type is a child of the variable's owner class, let's conform the "Target" pin
+					if(FromPin->PinType.PinSubCategoryObject == PropertyOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(PropertyOwner))
+					{
+						UEdGraphPin* TargetPin = FindPin(K2Schema->PN_Self);
+						TargetPin->PinType.PinSubCategoryObject = PropertyOwner;
+
+						if(K2Schema->TryCreateConnection(FromPin, TargetPin))
+						{
+							bConnected = true;
+
+							// Setup the VariableReference correctly since it may no longer be a self member
+							VariableReference.SetFromField<UProperty>(GetPropertyForVariable(), false);
+							TargetPin->bHidden = false;
+							FromPin->GetOwningNode()->NodeConnectionListChanged();
+							this->NodeConnectionListChanged();
+						}
+					}
+				}
+			}
+		}
+
+		if(!bConnected)
+		{
+			Super::AutowireNewNode(FromPin);
+		}
+	}
 }
 
 FBPVariableDescription const* UK2Node_Variable::GetBlueprintVarDescription() const
