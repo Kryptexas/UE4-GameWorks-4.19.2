@@ -608,6 +608,15 @@ void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCu
 		DeferredActions.Empty();
 	}
 
+	if( RootPropertyNode == RootNodePendingKill )
+	{
+		// Reaquire the root property node.  It may have been changed by the deferred actions if something like a blueprint editor forcefully resets a details panel during a posteditchange
+		RootPropertyNode = GetRootNode();
+
+		RestoreExpandedItems();
+	}
+
+
 	bool bValidateExternalNodes = true;
 	FPropertyNode::DataValidationResult Result = RootPropertyNode->EnsureDataIsValid();
 	if (Result == FPropertyNode::PropertiesChanged || Result == FPropertyNode::EditInlineNewValueChanged)
@@ -754,6 +763,13 @@ void SDetailsViewBase::SaveExpandedItems()
 
 	TArray<FString> ExpandedPropertyItems;
 	GetExpandedItems(RootPropertyNode, ExpandedPropertyItems);
+
+	// Handle spaces in expanded node names by wrapping them in quotes
+	for( FString& String : ExpandedPropertyItems )
+	{
+		String.InsertAt(0, '"');
+		String.AppendChar('"');
+	}
 
 	TArray<FString> ExpandedCustomItems = ExpandedDetailNodes.Array();
 
