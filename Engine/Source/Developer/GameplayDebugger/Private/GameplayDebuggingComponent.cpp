@@ -1150,11 +1150,13 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 			auto& CurrentLocalData = EQSLocalData[EQSIndex];
 			
 			FString ViewFlagName = TEXT("Game");
+#if WITH_EDITOR
 			UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
 			if (EEngine && EEngine->bIsSimulatingInEditor)
 			{
 				ViewFlagName = TEXT("DebugAI");
 			}
+#endif
 			CompositeProxy->AddChild(new FEQSSceneProxy(this, ViewFlagName, false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
 		}
 	}
