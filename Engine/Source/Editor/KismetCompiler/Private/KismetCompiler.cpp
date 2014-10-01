@@ -3564,7 +3564,7 @@ void FKismetCompilerContext::SetCanEverTickForActor()
 	
 	// RECEIVE TICK
 	static FName ReceiveTickName(GET_FUNCTION_NAME_CHECKED(AActor, ReceiveTick));
-	const UFunction * ReciveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveTickName, NewClass);
+	const UFunction* ReciveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveTickName, NewClass);
 	if (ReciveTickEvent)
 	{
 		static const FName ChildCanTickName = TEXT("ChildCanTick");

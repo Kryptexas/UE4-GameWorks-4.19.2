@@ -56,7 +56,7 @@ struct FNVOutputHandler : public nvtt::OutputHandler
 	{
 	}
 
-	virtual bool writeData( const void * data, int size )
+	virtual bool writeData( const void* data, int size )
 	{
 		check(data);
 		check(Buffer + size <= BufferEnd);

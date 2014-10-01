@@ -232,9 +232,9 @@ public:
 	void OnContextReplaceAllActors();
 	void OnContextRemoveAllActors();
 
-	void AddActorToGroup(UInterpGroup * GroupToAdd, AActor * ActorToAdd);
+	void AddActorToGroup(UInterpGroup* GroupToAdd, AActor* ActorToAdd);
 	/** If ActorToRemove == NULL, it will remove all **/
-	void RemoveActorFromGroup(UInterpGroup * GroupToRemove, AActor * ActorToRemove);
+	void RemoveActorFromGroup(UInterpGroup* GroupToRemove, AActor* ActorToRemove);
 	/**
 	 * Creates a new group track.
 	 */

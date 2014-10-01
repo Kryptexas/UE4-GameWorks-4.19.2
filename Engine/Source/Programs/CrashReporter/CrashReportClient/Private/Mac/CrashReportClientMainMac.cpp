@@ -7,7 +7,7 @@
 /**
  * Because crash reporters can crash, too
  */
-void CrashReporterCrashHandler(const FGenericCrashContext & GenericContext)
+void CrashReporterCrashHandler(const FGenericCrashContext& GenericContext)
 {
 	const FMacCrashContext& Context = static_cast< const FMacCrashContext& >( GenericContext );
 

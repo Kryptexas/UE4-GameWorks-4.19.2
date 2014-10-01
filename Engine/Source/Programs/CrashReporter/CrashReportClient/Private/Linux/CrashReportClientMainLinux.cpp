@@ -3,12 +3,12 @@
 #include "CrashReportClientApp.h"
 #include <locale.h>
 
-extern int32 ReportCrash(const FLinuxCrashContext & Context);	// FIXME: handle expose it someplace else?
+extern int32 ReportCrash(const FLinuxCrashContext& Context);	// FIXME: handle expose it someplace else?
 
 /**
  * Because crash reporters can crash, too
  */
-void CrashReporterCrashHandler(const FGenericCrashContext & GenericContext)
+void CrashReporterCrashHandler(const FGenericCrashContext& GenericContext)
 {
 	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
 

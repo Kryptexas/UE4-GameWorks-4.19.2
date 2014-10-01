@@ -37,7 +37,7 @@ private:
 	FReply OnAddSlotName(TSharedRef<SWidget> Widget);
 	FReply OnManageSlotName();
 
-	void AddSlotName(const FText & SlotNameToAdd, ETextCommit::Type CommitInfo);
+	void AddSlotName(const FText& SlotNameToAdd, ETextCommit::Type CommitInfo);
 	int32 RefreshSlotNames();
 
 	// group names
@@ -50,8 +50,8 @@ private:
 	FReply OnAddGroupName(TSharedRef<SWidget> Widget);
 	FReply OnManageGroupName();
 
-	void AddGroupName(const FText & GroupNameToAdd, ETextCommit::Type CommitInfo);
+	void AddGroupName(const FText& GroupNameToAdd, ETextCommit::Type CommitInfo);
 	int32 RefreshGroupNames();
 
-	USkeleton * Skeleton;
+	USkeleton* Skeleton;
 };

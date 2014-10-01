@@ -1358,7 +1358,7 @@ void FLevelEditorActionCallbacks::OnSelectMatineeActor( AMatineeActor * ActorToS
 	GEditor->NoteSelectionChange();
 }
 
-void FLevelEditorActionCallbacks::OnSelectMatineeGroup( AActor * Actor )
+void FLevelEditorActionCallbacks::OnSelectMatineeGroup( AActor* Actor )
 {
 	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{

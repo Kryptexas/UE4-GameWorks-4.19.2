@@ -60,7 +60,7 @@ void SSkeletonListWidget::SkeletonSelectionChanged(const FAssetData& AssetData)
 
 	if (CurSelectedSkeleton != NULL)
 	{
-		const FReferenceSkeleton & RefSkeleton = CurSelectedSkeleton->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = CurSelectedSkeleton->GetReferenceSkeleton();
 
 		for (int32 I=0; I<RefSkeleton.GetNum(); ++I)
 		{
@@ -100,7 +100,7 @@ void SSkeletonListWidget::SkeletonSelectionChanged(const FAssetData& AssetData)
 
 void SSkeletonCompareWidget::Construct(const FArguments& InArgs)
 {
-	const UObject * Object = InArgs._Object;
+	const UObject* Object = InArgs._Object;
 
 	CurSelectedSkeleton = NULL;
 	BoneNames = *InArgs._BoneNames;
@@ -247,7 +247,7 @@ void SSkeletonCompareWidget::SkeletonSelectionChanged(const FAssetData& AssetDat
 
 void SSkeletonSelectorWindow::Construct(const FArguments& InArgs)
 {
-	UObject * Object = InArgs._Object;
+	UObject* Object = InArgs._Object;
 	WidgetWindow = InArgs._WidgetWindow;
 	SelectedSkeleton = NULL;
 	if (Object == NULL)
@@ -331,7 +331,7 @@ TSharedPtr<SWindow> SAnimationRemapSkeleton::DialogWindow;
 
 bool SAnimationRemapSkeleton::OnShouldFilterAsset(const class FAssetData& AssetData)
 {
-	USkeleton * AssetSkeleton = NULL;
+	USkeleton* AssetSkeleton = NULL;
 	if (AssetData.IsAssetLoaded())
 	{
 		AssetSkeleton = Cast<USkeleton>(AssetData.GetAsset());
@@ -349,7 +349,7 @@ bool SAnimationRemapSkeleton::OnShouldFilterAsset(const class FAssetData& AssetD
 		{
 			URig * Rig = OldSkeleton->GetRig();
 
-			const FString * Value = AssetData.TagsAndValues.Find(USkeleton::RigTag);
+			const FString* Value = AssetData.TagsAndValues.Find(USkeleton::RigTag);
 
 			if(Value && Rig->GetFullName() == *Value)
 			{
@@ -359,7 +359,7 @@ bool SAnimationRemapSkeleton::OnShouldFilterAsset(const class FAssetData& AssetD
 			// if loaded, check to see if it has same rig
 			if (AssetData.IsAssetLoaded())
 			{
-				USkeleton * LoadedSkeleton = Cast<USkeleton>(AssetData.GetAsset());
+				USkeleton* LoadedSkeleton = Cast<USkeleton>(AssetData.GetAsset());
 
 				if (LoadedSkeleton && LoadedSkeleton->GetRig() == Rig)
 				{
@@ -714,7 +714,7 @@ void SAnimationRemapSkeleton::CloseWindow()
 	}
 }
 
-void SAnimationRemapSkeleton::ShowWindow(USkeleton * OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate)
+void SAnimationRemapSkeleton::ShowWindow(USkeleton* OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate)
 {
 	if(DialogWindow.IsValid())
 	{
@@ -751,7 +751,7 @@ void SAnimationRemapSkeleton::ShowWindow(USkeleton * OldSkeleton, const FText& W
 
 ////////////////////////////////////////////////////
 
-FDlgRemapSkeleton::FDlgRemapSkeleton( USkeleton * Skeleton )
+FDlgRemapSkeleton::FDlgRemapSkeleton( USkeleton* Skeleton )
 {
 	if (FSlateApplication::IsInitialized())
 	{
@@ -1144,7 +1144,7 @@ void SBasePoseViewport::Construct(const FArguments& InArgs)
 	SetSkeleton(InArgs._Skeleton);
 }
 
-void SBasePoseViewport::SetSkeleton(USkeleton * Skeleton)
+void SBasePoseViewport::SetSkeleton(USkeleton* Skeleton)
 {
 	if(Skeleton != TargetSkeleton)
 	{

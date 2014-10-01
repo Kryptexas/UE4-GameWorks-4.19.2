@@ -631,7 +631,7 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 	//rebuild the property window to account for the possibility that the item changed was
 	//a static switch
 
-	UObject * PropertyClass = PropertyThatChanged->GetOuter();
+	UObject* PropertyClass = PropertyThatChanged->GetOuter();
 	if(PropertyClass && PropertyClass->GetName() == TEXT("DEditorStaticSwitchParameterValue")  && MaterialEditorInstance->Parent && MaterialEditorInstance->SourceInstance )
 	{
 		TArray<FGuid> PreviousExpressions(MaterialEditorInstance->VisibleExpressions);

@@ -119,5 +119,5 @@ UNREALED_API void ComputeBoundingBox(UStaticMesh* StaticMesh, FVector& Center, F
  *
  * @param	StaticMesh	StaticMesh that collision has been changed for
  */
-UNREALED_API void RefreshCollisionChange(const UStaticMesh * StaticMesh);
+UNREALED_API void RefreshCollisionChange(const UStaticMesh* StaticMesh);
 	

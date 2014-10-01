@@ -289,7 +289,7 @@ private:
 private:
 	int32 FindSelectedBone() const;
 	class USkeletalMeshSocket* FindSelectedSocket() const;
-	void SetSelectedBackgroundColor(const FLinearColor & RGBColor, bool bSave = true);
+	void SetSelectedBackgroundColor(const FLinearColor& RGBColor, bool bSave = true);
 	void SaveGridSize(float NewGridSize, bool bSave = true);
 	void SetCameraTargetLocation(const FSphere &BoundSphere, float DeltaSeconds);
 
@@ -304,11 +304,11 @@ private:
 	/** Draws Bones for Additive Base Pose */
 	void DrawMeshBonesAdditiveBasePose(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Bones for RequiredBones with WorldTransform **/
-	void DrawBones(const USkeletalMeshComponent * MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness=0.f) const;
+	void DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness=0.f) const;
 	/** Draw Sub set of Bones **/
-	void DrawMeshSubsetBones(const USkeletalMeshComponent * MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const;
+	void DrawMeshSubsetBones(const USkeletalMeshComponent* MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Gizmo for the Transform in foreground **/
-	void RenderGizmo(const FTransform & Transform, FPrimitiveDrawInterface* PDI) const;
+	void RenderGizmo(const FTransform& Transform, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Mesh Sockets in foreground - bUseSkeletonSocketColor = true for grey (skeleton), false for red (mesh) **/
 	void DrawSockets( TArray<class USkeletalMeshSocket*>& Sockets, FPrimitiveDrawInterface* PDI, bool bUseSkeletonSocketColor ) const;
 

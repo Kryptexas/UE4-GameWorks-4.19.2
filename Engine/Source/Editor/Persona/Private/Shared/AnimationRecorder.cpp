@@ -46,7 +46,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 	AnimationObject->SequenceLength = Duration;
 	AnimationObject->NumFrames = MaxFrame;
 
-	USkeleton * AnimSkeleton = AnimationObject->GetSkeleton();
+	USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
 	// add all frames
 	for (int32 BoneIndex=0; BoneIndex <PreviousSpacesBases.Num(); ++BoneIndex)
 	{
@@ -162,7 +162,7 @@ void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTra
 {
 	if (ensure (AnimationObject))
 	{
-		USkeleton * AnimSkeleton = AnimationObject->GetSkeleton();
+		USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
 		for (int32 TrackIndex=0; TrackIndex <AnimationObject->RawAnimationData.Num(); ++TrackIndex)
 		{
 			// verify if this bone exists in skeleton

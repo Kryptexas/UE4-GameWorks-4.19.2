@@ -34,8 +34,8 @@ protected:
 	// End of UAnimGraphNode_SkeletalControlBase interface
 
 	// local conversion function for drawing
-	void ConvertToComponentSpaceTransform(USkeletalMeshComponent* SkelComp, USkeleton * Skeleton, const FTransform & InTransform, FTransform & OutCSTransform, int32 BoneIndex, uint8 Space) const;
-	void DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelComp, USkeleton * Skeleton, uint8 SpaceBase, FName SpaceBoneName, const FVector & TargetLocation, const FColor & TargetColor, const FColor & BoneColor) const;
+	void ConvertToComponentSpaceTransform(USkeletalMeshComponent* SkelComp, USkeleton* Skeleton, const FTransform& InTransform, FTransform& OutCSTransform, int32 BoneIndex, uint8 Space) const;
+	void DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelComp, USkeleton* Skeleton, uint8 SpaceBase, FName SpaceBoneName, const FVector& TargetLocation, const FColor& TargetColor, const FColor& BoneColor) const;
 
 	// make Pins showed / hidden by options
 	void SetPinsVisibility(bool bShow);

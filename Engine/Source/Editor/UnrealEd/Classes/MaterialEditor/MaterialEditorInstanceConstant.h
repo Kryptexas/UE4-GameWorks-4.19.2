@@ -280,7 +280,7 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	 *
 	 * @param ParameterGroup		Name to be looked for.
 	 */
-	FEditorParameterGroup & GetParameterGroup(FName & ParameterGroup);
+	FEditorParameterGroup & GetParameterGroup(FName& ParameterGroup);
 	/** 
 	 *  Creates/adds value to group retrieved from parent material . 
 	 *

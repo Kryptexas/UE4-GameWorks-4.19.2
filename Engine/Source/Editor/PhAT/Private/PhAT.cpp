@@ -1459,10 +1459,10 @@ void FPhAT::OnGetChildrenForTree(FTreeElemPtr Parent, TArray<FTreeElemPtr>& OutC
 	int32 ParentIndex = SharedData->EditorSkelComp->GetBoneIndex((*Parent).Name);
 	for (int32 BoneIndex = 0; BoneIndex < SharedData->EditorSkelMesh->RefSkeleton.GetNum(); ++BoneIndex)
 	{
-		const FMeshBoneInfo & Bone = SharedData->EditorSkelMesh->RefSkeleton.GetRefBoneInfo()[BoneIndex];
+		const FMeshBoneInfo& Bone = SharedData->EditorSkelMesh->RefSkeleton.GetRefBoneInfo()[BoneIndex];
 		if (Bone.ParentIndex != INDEX_NONE)
 		{
-			const FMeshBoneInfo & ParentBone = SharedData->EditorSkelMesh->RefSkeleton.GetRefBoneInfo()[Bone.ParentIndex];
+			const FMeshBoneInfo& ParentBone = SharedData->EditorSkelMesh->RefSkeleton.GetRefBoneInfo()[Bone.ParentIndex];
 			if ((BoneIndex != ParentIndex) && (ParentBone.Name == (*Parent).Name))
 			{
 				for (int32 i = 0; i < TreeElements.Num(); ++i)
@@ -3155,7 +3155,7 @@ void FPhAT::OnSelectAll()
 }
 
 // record if simulating or not, or mode changed or not, or what mode it is in while simulating and what kind of simulation options
-void FPhAT::OnAddPhatRecord(const FString & Action, bool bRecordSimulate, bool bRecordMode )
+void FPhAT::OnAddPhatRecord(const FString& Action, bool bRecordSimulate, bool bRecordMode)
 {
 	// Don't attempt to report usage stats if analytics isn't available
 	if( Action.IsEmpty() == false && SharedData.IsValid() && FEngineAnalytics::IsAvailable())

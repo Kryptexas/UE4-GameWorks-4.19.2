@@ -121,7 +121,7 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const class FPostConstructIniti
 #endif //#if WITH_APEX_CLOTHING
 }
 
-FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBoxSphereBounds Result = Super::CalcBounds(LocalToWorld);
 

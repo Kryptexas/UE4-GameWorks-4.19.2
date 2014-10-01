@@ -61,7 +61,7 @@ void FTargetDeviceProxy::UpdateFromMessage( const FTargetDeviceServicePong& Mess
 		// Update the map of flavors.
 		for (int Index = 0; Index < Message.Variants.Num(); Index++)
 		{
-			const FTargetDeviceVariant & MsgVariant = Message.Variants[Index];
+			const FTargetDeviceVariant& MsgVariant = Message.Variants[Index];
 
 			FTargetDeviceProxyVariant & Variant = TargetDeviceVariants.Add(MsgVariant.VariantName);
 			Variant.DeviceID = MsgVariant.DeviceID;
@@ -99,7 +99,7 @@ FName FTargetDeviceProxy::GetTargetDeviceVariant(const FString& InDeviceId) cons
 {
 	for (TMap<FName, FTargetDeviceProxyVariant>::TConstIterator ItVariant(TargetDeviceVariants); ItVariant; ++ItVariant)
 	{
-		const FTargetDeviceProxyVariant & Variant = ItVariant.Value();
+		const FTargetDeviceProxyVariant& Variant = ItVariant.Value();
 		if (Variant.DeviceID == InDeviceId)
 		{
 			return ItVariant.Key();
@@ -112,7 +112,7 @@ bool FTargetDeviceProxy::HasDeviceId(const FString& InDeviceId) const
 {
 	for (TMap<FName, FTargetDeviceProxyVariant>::TConstIterator ItVariant(TargetDeviceVariants); ItVariant; ++ItVariant)
 	{
-		const FTargetDeviceProxyVariant & Variant = ItVariant.Value();
+		const FTargetDeviceProxyVariant& Variant = ItVariant.Value();
 		if (Variant.DeviceID == InDeviceId)
 		{
 			return true;
@@ -134,7 +134,7 @@ bool FTargetDeviceProxy::HasTargetPlatform(FName InTargetPlatformId) const
 {
 	for (TMap<FName, FTargetDeviceProxyVariant>::TConstIterator ItVariant(TargetDeviceVariants); ItVariant; ++ItVariant)
 	{
-		const FTargetDeviceProxyVariant & Variant = ItVariant.Value();
+		const FTargetDeviceProxyVariant& Variant = ItVariant.Value();
 		if (Variant.TargetPlatformId == InTargetPlatformId)
 		{
 			return true;

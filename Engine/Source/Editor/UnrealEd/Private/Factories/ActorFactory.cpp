@@ -683,7 +683,7 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 		// skeleton should be loaded by this time. If not, we have problem
 		// so I'm changing this to load directly not using tags and values
-		USkeleton * Skeleton = Cast<USkeleton>(SkeletonData.GetAsset());
+		USkeleton* Skeleton = Cast<USkeleton>(SkeletonData.GetAsset());
 		if (Skeleton)
 		{
 			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
@@ -868,7 +868,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 
 		// skeleton should be loaded by this time. If not, we have problem
 		// so I'm changing this to load directly not using tags and values
-		USkeleton * Skeleton = Cast<USkeleton>(TargetSkeleton.GetAsset());
+		USkeleton* Skeleton = Cast<USkeleton>(TargetSkeleton.GetAsset());
 		if(Skeleton)
 		{
 			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
@@ -891,7 +891,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 	if ( !SkeletalMeshData.IsValid() && AssetData.GetClass()->IsChildOf( USkeleton::StaticClass() ) )
 	{
 		// so I'm changing this to load directly not using tags and values
-		USkeleton * Skeleton = Cast<USkeleton>(AssetData.GetAsset());
+		USkeleton* Skeleton = Cast<USkeleton>(AssetData.GetAsset());
 		if(Skeleton)
 		{
 			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);

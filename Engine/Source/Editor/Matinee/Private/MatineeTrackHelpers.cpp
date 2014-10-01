@@ -205,7 +205,7 @@ bool UMatineeTrackAnimControlHelper::PreCreateKeyframe( UInterpTrack *Track, flo
 	UInterpTrackAnimControl	*AnimTrack = CastChecked<UInterpTrackAnimControl>(Track);
 	UInterpGroup* Group = CastChecked<UInterpGroup>(Track->GetOuter());
 
-	AActor * Actor = GetGroupActor(Track);
+	AActor* Actor = GetGroupActor(Track);
 	if (!Actor)
 	{
 		// error message
@@ -235,7 +235,7 @@ bool UMatineeTrackAnimControlHelper::PreCreateKeyframe( UInterpTrack *Track, flo
 		return false;
 	}
 
-	USkeleton * Skeleton = SkelMeshComp->SkeletalMesh->Skeleton;
+	USkeleton* Skeleton = SkelMeshComp->SkeletalMesh->Skeleton;
 	if ( Skeleton )
 	{
 		// Show the dialog.
@@ -294,7 +294,7 @@ void UMatineeTrackAnimControlHelper::OnAddKeyTextEntry(const FAssetData& AssetDa
 		EntryPopupWindow.Pin()->RequestDestroyWindow();
 	}
 
-	UObject * SelectedObject = AssetData.GetAsset();
+	UObject* SelectedObject = AssetData.GetAsset();
 	if (SelectedObject && SelectedObject->IsA(UAnimSequence::StaticClass()))
 	{
 		KeyframeAddAnimSequence = CastChecked<UAnimSequence>(AssetData.GetAsset());

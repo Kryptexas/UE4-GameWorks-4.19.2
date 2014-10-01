@@ -327,8 +327,8 @@ public:
 	// Invoked to let this widget know that the GraphEditor module is being unloaded.
 	UNREALED_API void OnModuleUnloading();
 
-	UNREALED_API void NotifyPrePropertyChange(const FString & PropertyName );
-	UNREALED_API void NotifyPostPropertyChange( const FPropertyChangedEvent& PropertyChangeEvent, const FString & PropertyName );
+	UNREALED_API void NotifyPrePropertyChange(const FString& PropertyName);
+	UNREALED_API void NotifyPostPropertyChange(const FPropertyChangedEvent& PropertyChangeEvent, const FString& PropertyName);
 
 	/** Invoked when the Graph being edited changes in some way. */
 	virtual void NotifyGraphChanged()

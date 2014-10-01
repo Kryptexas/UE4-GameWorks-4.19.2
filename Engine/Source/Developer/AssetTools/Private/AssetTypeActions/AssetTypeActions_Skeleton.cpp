@@ -331,11 +331,11 @@ FCreateRigDlg::EResult FCreateRigDlg::ShowModal()
 	TArray<FBoneCheckbox> BoneInfos;
 
 	// Make a list of all skeleton bone list
-	const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 	const TArray<FBoneNode> & BoneTree = Skeleton->GetBoneTree();
 	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
 	{
-		const FName & BoneName = RefSkeleton.GetBoneName(BoneTreeId);
+		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
 
 		FBoneCheckbox Info;
 		Info.BoneID = BoneTreeId;
@@ -638,7 +638,7 @@ void FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<U
 	{
 		for (auto SkelIt = Skeletons.CreateConstIterator(); SkelIt; ++SkelIt)
 		{	
-			USkeleton * OldSkeleton = (*SkelIt).Get();
+			USkeleton* OldSkeleton = (*SkelIt).Get();
 
 			const FText Message = LOCTEXT("RetargetSkeleton_Warning", "This only converts animation data -i.e. animation assets and Anim Blueprints. \nIf you'd like to convert SkeletalMesh, use the context menu (Assign Skeleton) for each mesh. \n\nIf you'd like to convert mesh as well, please do so before converting animation data. \nOtherwise you will lose any extra track that is in the new mesh.");
 

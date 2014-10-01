@@ -89,12 +89,12 @@ class SSkeletonWidget : public SCompoundWidget
 {
 public:
 
-	USkeleton * GetSelectedSkeleton() const
+	USkeleton* GetSelectedSkeleton() const
 	{ 
 		return CurSelectedSkeleton; 
 	}
 protected:
-	USkeleton * CurSelectedSkeleton;
+	USkeleton* CurSelectedSkeleton;
 };
 
 /** 1 columns - just show bone list **/
@@ -238,7 +238,7 @@ public:
 		return FReply::Handled();
 	}
 
-	USkeleton * GetSelectedSkeleton()
+	USkeleton* GetSelectedSkeleton()
 	{
 		return SelectedSkeleton;
 	}
@@ -266,7 +266,7 @@ public:
 	virtual ~SBasePoseViewport();
 
 	void Construct(const FArguments& InArgs);
-	void SetSkeleton(USkeleton * Skeleton);
+	void SetSkeleton(USkeleton* Skeleton);
 private:
 	TSharedPtr<FEditorViewportClient> LevelViewportClient;
 
@@ -404,7 +404,7 @@ public:
 	 *
 	 * @return true if successfully selected new skeleton
 	 */
-	static UNREALED_API void ShowWindow(USkeleton * OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate);
+	static UNREALED_API void ShowWindow(USkeleton* OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate);
 
 	static TSharedPtr<SWindow> DialogWindow;
 };
@@ -419,13 +419,13 @@ public:
 class UNREALED_API FDlgRemapSkeleton 
 {
 public:
-	FDlgRemapSkeleton( USkeleton * Skeleton );
+	FDlgRemapSkeleton( USkeleton* Skeleton );
 
 	/**  Shows the dialog box and waits for the user to respond. */
 	bool ShowModal();
 
 	/** New Skeleton that is chosen **/
-	USkeleton * NewSkeleton;
+	USkeleton* NewSkeleton;
 
 	/** true if you'd like to retarget skeletal meshes as well **/
 	bool RetargetSkeletalMesh;

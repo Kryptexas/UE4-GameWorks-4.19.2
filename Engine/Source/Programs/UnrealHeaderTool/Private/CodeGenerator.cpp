@@ -4656,7 +4656,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 				class FSuperClassContextSupplier : public FContextSupplier
 				{
 				public:
-					FSuperClassContextSupplier(const UClass * Class) :
+					FSuperClassContextSupplier(const UClass* Class) :
 						ScriptClass(Class)
 					{ }
 
@@ -4667,7 +4667,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 						return FString::Printf(TEXT("%s(%i)"), *Filename, LineNumber);
 					}
 				private:
-					const UClass * ScriptClass;
+					const UClass* ScriptClass;
 				} ContextSupplier(ScriptClass);
 
 				auto OldContext = GWarn->GetContext();

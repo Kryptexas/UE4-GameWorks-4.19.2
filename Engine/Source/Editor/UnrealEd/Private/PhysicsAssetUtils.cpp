@@ -209,7 +209,7 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 	return PhysicsAsset->BodySetup.Num() > 0;
 }
 
-bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText & OutErrorMessage)
+bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage)
 {
 	PhysicsAsset->PreviewSkeletalMesh = SkelMesh;
 
@@ -243,7 +243,7 @@ bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh
 	return bSuccess;
 }
 
-FMatrix ComputeCovarianceMatrix(const FBoneVertInfo & VertInfo)
+FMatrix ComputeCovarianceMatrix(const FBoneVertInfo& VertInfo)
 {
 	if (VertInfo.Positions.Num() == 0)
 	{
@@ -275,13 +275,13 @@ FMatrix ComputeCovarianceMatrix(const FBoneVertInfo & VertInfo)
 	for (int32 j = 0; j < 3; ++j)
 	{
 		FVector Axis = FVector::ZeroVector;
-		float * Cj = &Axis.X;
+		float* Cj = &Axis.X;
 		for (int32 k = 0; k < 3; ++k)
 		{
 			float Cjk = 0.f;
 			for (int32 i = 0; i < N; ++i)
 			{
-				const float * error = &Errors[i].X;
+				const float* error = &Errors[i].X;
 				Cj[k] += error[j] * error[k];
 			}
 			Cj[k] /= N;
@@ -293,7 +293,7 @@ FMatrix ComputeCovarianceMatrix(const FBoneVertInfo & VertInfo)
 	return Covariance;
 }
 
-FVector ComputeEigenVector(const FMatrix & A)
+FVector ComputeEigenVector(const FMatrix& A)
 {
 	//using the power method: this is ok because we only need the dominate eigenvector and speed is not critical: http://en.wikipedia.org/wiki/Power_iteration
 	FVector Bk = FVector(0, 0, 1);

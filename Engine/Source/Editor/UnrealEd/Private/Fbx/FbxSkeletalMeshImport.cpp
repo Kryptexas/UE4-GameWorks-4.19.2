@@ -1079,7 +1079,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 	if ( !FbxShapeArray  )
 	{
-		UObject * ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_PendingKill);
+		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_PendingKill);
 		USkeletalMesh* ExistingSkelMesh = Cast<USkeletalMesh>(ExistingObject);
 
 		if (ExistingSkelMesh)
@@ -1359,7 +1359,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 		// see if we have skeleton set up
 		// if creating skeleton, create skeleeton
-		USkeleton * Skeleton = ImportOptions->SkeletonForAnimation;
+		USkeleton* Skeleton = ImportOptions->SkeletonForAnimation;
 		if (Skeleton == NULL)
 		{
 			FString ObjectName = FString::Printf(TEXT("%s_Skeleton"), *SkeletalMesh->GetName());
@@ -1412,11 +1412,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 UObject* UnFbx::FFbxImporter::CreateAssetOfClass(UClass* AssetClass, FString ParentPackageName, FString ObjectName, bool bAllowReplace)
 {
 	// See if this sequence already exists.
-	UObject * 	ParentPkg = CreatePackage(NULL, *ParentPackageName);
+	UObject* 	ParentPkg = CreatePackage(NULL, *ParentPackageName);
 	FString 	ParentPath = FString::Printf(TEXT("%s/%s"), *FPackageName::GetLongPackagePath(*ParentPackageName), *ObjectName);
-	UObject * 	Parent = CreatePackage(NULL, *ParentPath);
+	UObject* 	Parent = CreatePackage(NULL, *ParentPath);
 	// See if an object with this name exists
-	UObject * Object = LoadObject<UObject>(Parent, *ObjectName, NULL, LOAD_None, NULL);
+	UObject* Object = LoadObject<UObject>(Parent, *ObjectName, NULL, LOAD_None, NULL);
 
 	// if object with same name but different class exists, warn user
 	if ((Object != NULL) && (Object->GetClass() != AssetClass))
@@ -1451,9 +1451,9 @@ UObject* UnFbx::FFbxImporter::CreateAssetOfClass(UClass* AssetClass, FString Par
 	return Object;
 }
 
-void UnFbx::FFbxImporter::SetupAnimationDataFromMesh(USkeletalMesh* SkeletalMesh, UObject* InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* TemplateImportData, const FString & Name)
+void UnFbx::FFbxImporter::SetupAnimationDataFromMesh(USkeletalMesh* SkeletalMesh, UObject* InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* TemplateImportData, const FString& Name)
 {
-	USkeleton * Skeleton = SkeletalMesh->Skeleton;
+	USkeleton* Skeleton = SkeletalMesh->Skeleton;
 
 	if (Scene->GetSrcObjectCount<FbxAnimStack>() > 0)
 	{
@@ -2656,7 +2656,7 @@ private:
 	bool bKeepOverlappingVertices;
 };
 
-void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject * InParent, const FString& InFilename, int32 LODIndex )
+void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* InParent, const FString& InFilename, int32 LODIndex )
 {
 	FbxString ShapeNodeName;
 	TMap<FString, TArray<FbxShape*>> ShapeNameToShapeArray;
@@ -2923,7 +2923,7 @@ FFbxLogger::~FFbxLogger()
 {
 	if(TokenizedErrorMessages.Num() > 0)
 	{
-		const TCHAR * LogTitle = TEXT("FBXImport");
+		const TCHAR* LogTitle = TEXT("FBXImport");
 		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
 		LogListing->SetLabel(FText::FromString("FBX Import"));

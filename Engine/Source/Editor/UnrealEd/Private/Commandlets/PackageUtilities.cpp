@@ -1551,7 +1551,7 @@ struct CompressAnimationsFunctor
 				continue;
 			}
 
-			USkeleton * Skeleton = AnimSeq->GetSkeleton();
+			USkeleton* Skeleton = AnimSeq->GetSkeleton();
 			check (Skeleton);
 
 			if( bAnalyze )

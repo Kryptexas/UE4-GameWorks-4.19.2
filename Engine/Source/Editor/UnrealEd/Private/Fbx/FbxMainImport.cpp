@@ -1377,7 +1377,7 @@ void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<Fbx
 	}
 }
 
-FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName & RootBoneName, bool bExpandLOD, TArray<FbxNode*>& OutFBXMeshNodeArray)
+FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName& RootBoneName, bool bExpandLOD, TArray<FbxNode*>& OutFBXMeshNodeArray)
 {
 	// get the root bone of Unreal skeletal mesh
 	const FString BoneNameString = RootBoneName.ToString();

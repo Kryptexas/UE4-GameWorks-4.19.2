@@ -364,7 +364,7 @@ public:
 	 * @param UserName The user account on the device we will run under
 	 * @param UserPassword The password for the user account on the device we will run under.
 	 */
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) = 0;
+	virtual void SetUserCredentials( const FString& UserName, const FString& UserPassword ) = 0;
 
 	/**
 	 * Get credentials for the user account to use on the device
@@ -373,7 +373,7 @@ public:
 	 * @param OutUserPassword The password for the user account on the device we will run under
 	 * @return true on success, false if not supported.
 	 */
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) = 0;
+	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) = 0;
 
 public:
 	

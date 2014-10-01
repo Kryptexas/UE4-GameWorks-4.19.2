@@ -570,7 +570,7 @@ int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
 	return bs->AggGeom.SphylElems.Num() - 1;
 }
 
-void RefreshCollisionChange(const UStaticMesh * StaticMesh)
+void RefreshCollisionChange(const UStaticMesh* StaticMesh)
 {
 	for (FObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
 	{

@@ -745,7 +745,7 @@ void FPersona::ExtendDefaultPersonaToolbar()
 	// extend extra menu/toolbars
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, USkeleton * Skeleton, FPersona* PersonaPtr)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, USkeleton* Skeleton, FPersona* PersonaPtr)
 		{
 			ToolbarBuilder.BeginSection("Skeleton");
 			{
@@ -2287,7 +2287,7 @@ void FPersona::RedoAction()
 
 
 // get record configuration
-bool GetRecordConfig( FString & AssetPath, FString & AssetName, float & Duration )
+bool GetRecordConfig( FString& AssetPath, FString& AssetName, float& Duration )
 {
 	TSharedRef<SCreateAnimationDlg> NewAnimDlg = 
 		SNew(SCreateAnimationDlg);
@@ -2323,8 +2323,8 @@ void FPersona::RecordAnimation()
 	if ( GetRecordConfig(AssetPath, AssetName, Duration) )
 	{
 		// create the asset
-		UObject * 	Parent = CreatePackage(NULL, *AssetPath);
-		UObject * Object = LoadObject<UObject>(Parent, *AssetName, NULL, LOAD_None, NULL);
+		UObject* 	Parent = CreatePackage(NULL, *AssetPath);
+		UObject* Object = LoadObject<UObject>(Parent, *AssetName, NULL, LOAD_None, NULL);
 		// if object with same name exists, warn user
 		if (Object)
 		{
@@ -2691,7 +2691,7 @@ void FPersona::Tick(float DeltaTime)
 		if (Recorder.UpdateRecord(PreviewComponent, DeltaTime) == false)
 		{
 			// before stop record, save the animation, it will get cleared after stop recording
-			const UAnimSequence * NewAnim = Recorder.GetAnimationObject();
+			const UAnimSequence* NewAnim = Recorder.GetAnimationObject();
 			Recorder.StopRecord();
 
 			// notify to user

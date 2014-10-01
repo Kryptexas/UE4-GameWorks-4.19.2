@@ -1050,7 +1050,7 @@ void FMatinee::AddKeyToSelection(UInterpGroup* InGroup, UInterpTrack* InTrack, i
 		UInterpGroupInst* GrInst = MatineeActor->FindFirstGroupInst(InGroup);
 		if(GrInst)
 		{
-			AActor * GrActor = GrInst->GetGroupActor();
+			AActor* GrActor = GrInst->GetGroupActor();
 			if (GrActor)
 			{
 				GEditor->SetPivot( GrActor->GetActorLocation(), false, true );

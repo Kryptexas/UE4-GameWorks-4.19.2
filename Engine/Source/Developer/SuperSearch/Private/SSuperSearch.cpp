@@ -178,7 +178,7 @@ TSharedRef<ITableRow> SSuperSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 	TSharedPtr<SWidget> IconWidget;
 	if (bCategory)
 	{
-		FName * IconResult = CategoryToIconMap.Find(Combined);
+		FName* IconResult = CategoryToIconMap.Find(Combined);
 		SAssignNew(IconWidget, SImage)
 			.Image(FEditorStyle::GetBrush(IconResult ? *IconResult : FName("MainFrame.VisitEpicGamesDotCom") ));
 	}
@@ -230,7 +230,7 @@ void SSuperSearchBox::OnTextChanged(const FText& InText)
 			const FText QueryURL = FText::Format(FText::FromString("https://www.googleapis.com/customsearch/v1?key=AIzaSyCMGfdDaSfjqv5zYoS0mTJnOT3e9MURWkU&cx=009868829633250020713:y7tfd8hlcgg&fields=items(title,link,labels/name)&q={0}+less:forums"), FText::FromString(UrlEncodedString));
 
 			//save http request into map to ensure correct ordering
-			FText & Query = RequestQueryMap.FindOrAdd(HttpRequest);
+			FText& Query = RequestQueryMap.FindOrAdd(HttpRequest);
 			Query = InText;
 
 			
@@ -309,7 +309,7 @@ void SSuperSearchBox::Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHt
 
 			if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
 			{
-				if (FText * QueryText = RequestQueryMap.Find(HttpRequest))
+				if (FText* QueryText = RequestQueryMap.Find(HttpRequest))
 				{
 					const TArray<TSharedPtr<FJsonValue> > * JsonItems = nullptr;
 					if (JsonObject->TryGetArrayField(TEXT("items"), JsonItems))
@@ -415,7 +415,7 @@ FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 	return FReply::Unhandled();
 }
 
-FSearchEntry * FSearchEntry::MakeCategoryEntry(const FString & InTitle)
+FSearchEntry * FSearchEntry::MakeCategoryEntry(const FString& InTitle)
 {
 	FSearchEntry * SearchEntry = new FSearchEntry();
 	SearchEntry->Title = InTitle;
@@ -424,7 +424,7 @@ FSearchEntry * FSearchEntry::MakeCategoryEntry(const FString & InTitle)
 	return SearchEntry;
 }
 
-void UpdateSuggestionHelper(const FText & CategoryLabel, const TArray<FSearchEntry> & Elements, TArray<TSharedPtr< FSearchEntry > > & OutSuggestions)
+void UpdateSuggestionHelper(const FText& CategoryLabel, const TArray<FSearchEntry> & Elements, TArray<TSharedPtr< FSearchEntry > > & OutSuggestions)
 {
 	if (Elements.Num())
 	{
@@ -439,7 +439,7 @@ void UpdateSuggestionHelper(const FText & CategoryLabel, const TArray<FSearchEnt
 
 void SSuperSearchBox::UpdateSuggestions()
 {
-	const FText & Query = InputText->GetText();
+	const FText& Query = InputText->GetText();
 	FSearchResults * SearchResults = SearchResultsCache.Find(Query.ToString());
 
 	//still waiting on results for current query

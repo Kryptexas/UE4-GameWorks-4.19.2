@@ -31,7 +31,7 @@ public:
 	{
 		const TArray<FMeshBoneInfo> & RefBoneInfo = SkeletalMesh->RefSkeleton.GetRefBoneInfo();
 
-		USkeleton * Skeleton = SkeletalMesh->Skeleton;
+		USkeleton* Skeleton = SkeletalMesh->Skeleton;
 		if (Skeleton)
 		{
 			TArray<FBoneIndexType> BoneIndicesToRemove;
@@ -83,7 +83,7 @@ public:
 			for (int32 BoneMapIndex=0; BoneMapIndex < BoneMapSize; ++BoneMapIndex )
 			{
 				// look for this bone to be removed or not?
-				const FBoneIndexType * ParentBoneIndex = BonesToRepair.Find(Chunk.BoneMap[BoneMapIndex]);
+				const FBoneIndexType* ParentBoneIndex = BonesToRepair.Find(Chunk.BoneMap[BoneMapIndex]);
 				if ( ParentBoneIndex  )
 				{
 					// this should not happen, I don't ever remove root
@@ -115,7 +115,7 @@ public:
 					// first fix up all indices of BoneMapRemapTable for the indices higher than BoneMapIndex, since BoneMapIndex is being removed
 					for (auto Iter = BoneMapRemapTable.CreateIterator(); Iter; ++Iter)
 					{
-						uint8 & Value = Iter.Value();
+						uint8& Value = Iter.Value();
 
 						check (Value != BoneMapIndex);
 						if (Value > BoneMapIndex)
@@ -213,7 +213,7 @@ public:
 	void ReduceBoneCounts( USkeletalMesh* SkeletalMesh, int32 DesiredLOD ) override
 	{
 		check (SkeletalMesh);
-		USkeleton * Skeleton = SkeletalMesh->Skeleton;
+		USkeleton* Skeleton = SkeletalMesh->Skeleton;
 		check (Skeleton);
 
 		// find all the bones to remove from Skeleton settings

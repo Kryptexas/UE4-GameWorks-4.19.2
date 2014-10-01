@@ -667,7 +667,7 @@ void FPersonaMeshDetails::RefreshBonesToRemove(TArray<FBoneReference>& InOutBone
 
 		// filter out only the parent, not all children
 		int32 TotalNumOfBonesToRemove = BonesToRemove.Num();
-		const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 		for (int32 Index = 0; Index < TotalNumOfBonesToRemove; ++Index)
 		{
 			bool bNoParent = true;

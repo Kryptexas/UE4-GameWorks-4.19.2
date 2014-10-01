@@ -39,7 +39,7 @@ FText GetErrorMessageForSequence(UBlendSpaceBase* BlendSpace, UAnimSequence* Ani
 
 struct FAnimWeightSorted
 {
-	const UAnimSequence * AnimSequence;
+	const UAnimSequence* AnimSequence;
 	float Weight;
 	FAnimWeightSorted(UAnimSequence * InSeq, float InWeight) 
 		: AnimSequence(InSeq), Weight(InWeight) {}
@@ -215,7 +215,7 @@ private:
 		const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
 		check (Samples.IsValidIndex(SampleIndex));
 
-		const FBlendSample & Sample = Samples[SampleIndex];
+		const FBlendSample& Sample = Samples[SampleIndex];
 		float NewValue = FCString::Atof(*NewText.ToString());
 
 		if (NewValue!=Sample.SampleValue.X)
@@ -271,7 +271,7 @@ void SBlendSpaceParameterWidget::ConstructParameterPanel()
 
 	for (int32 Param = 0; Param < BlendSpace->NumOfDimension; ++Param)
 	{
-		const FBlendParameter & BlendParam = BlendSpace->GetBlendParameter(Param);
+		const FBlendParameter& BlendParam = BlendSpace->GetBlendParameter(Param);
 
 		const FText AxisNameLabel = FText::Format( LOCTEXT("AxisName", "{0} Axis Label"), ParameterNames[Param]);
 		const FText AxisRangeLabel = FText::Format( LOCTEXT("AxisRange", "{0} Axis Range"), ParameterNames[Param]);
@@ -496,7 +496,7 @@ void SBlendSpaceSamplesWidget::ConstructSamplesPanel()
 
 	for(int32 I=0; I<SampleData.Num(); ++I)
 	{
-		const FBlendSample & Sample = SampleData[I];
+		const FBlendSample& Sample = SampleData[I];
 
 		if (Sample.Animation)
 		{
@@ -579,7 +579,7 @@ FReply SBlendSpaceSamplesWidget::GotoSample(int32 indexOfSample)
 {
 	if (BlendSpace->SampleData.IsValidIndex(indexOfSample))
 	{
-		UObject * ObjectToGoTo = BlendSpace->SampleData[indexOfSample].Animation;
+		UObject* ObjectToGoTo = BlendSpace->SampleData[indexOfSample].Animation;
 		if (ObjectToGoTo)
 		{
 			TArray<UObject*> Objects;
@@ -899,7 +899,7 @@ void SBlendSpaceWidget::ValidateSamplePositions()
 	}
 }
 
-void SBlendSpaceWidget::DrawToolTip(const FVector2D & LeftTopPos, const FText & Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceWidget::DrawToolTip(const FVector2D & LeftTopPos, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	if (bTooltipOn)
 	{
@@ -1034,7 +1034,7 @@ void SBlendSpaceWidget::DrawText( const FVector2D & Point, const FText& Text, co
 		);
 }
 
-FText SBlendSpaceWidget::GetToolTipText(const FVector & GridPos, const TArray<UAnimSequence*> AnimSeqs, const TArray<float> BlendWeights) const
+FText SBlendSpaceWidget::GetToolTipText(const FVector& GridPos, const TArray<UAnimSequence*> AnimSeqs, const TArray<float> BlendWeights) const
 {
 	// need to consolidate animseqs to be unique and in the order of weights
 	check (AnimSeqs.Num() == BlendWeights.Num());
@@ -1087,7 +1087,7 @@ FText SBlendSpaceWidget::GetToolTipText(const FVector & GridPos, const TArray<UA
 	return FText::FromString( OutputToolTip );
 }
 
-int32 SBlendSpaceWidget::GetHighlightedSample(const FSlateRect & WindowRect) const
+int32 SBlendSpaceWidget::GetHighlightedSample(const FSlateRect& WindowRect) const
 {
 	int32 HighlightedSampleIndex = INDEX_NONE;
 

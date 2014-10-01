@@ -46,7 +46,7 @@ namespace FPhysicsAssetUtils
 	 * @param	SkelMesh			The Skeletal Mesh to create the physics asset from
 	 * @param	Params				Additional creation parameters
 	 */
-	UNREALED_API bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText & OutErrorMessage);
+	UNREALED_API bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage);
 
 	/** Replaces any collision already in the BodySetup with an auto-generated one using the parameters provided. 
 	 *

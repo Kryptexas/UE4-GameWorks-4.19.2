@@ -1392,7 +1392,7 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 		// find the first staticmesh we can find
 		for ( auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt )
 		{
-			const FAssetData & Asset = (*AssetIt);
+			const FAssetData& Asset = (*AssetIt);
 			// if staticmesh
 			if ( Asset.GetClass() == UStaticMesh::StaticClass() )
 			{

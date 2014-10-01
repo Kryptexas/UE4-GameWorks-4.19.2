@@ -166,8 +166,8 @@ public:
 	virtual bool SupportsFeature(ETargetDeviceFeatures::Type Feature) const override;
 	virtual bool SupportsSdkVersion(const FString& VersionString) const override;
 	virtual bool TerminateProcess(const int32 ProcessId) override;
-	virtual void SetUserCredentials(const FString & UserName, const FString & UserPassword) override;
-	virtual bool GetUserCredentials(FString & OutUserName, FString & OutUserPassword) override;
+	virtual void SetUserCredentials(const FString& UserName, const FString& UserPassword) override;
+	virtual bool GetUserCredentials(FString& OutUserName, FString& OutUserPassword) override;
 	// End ITargetDevice interface
 
 protected:

@@ -4222,7 +4222,7 @@ bool FEdModeMeshPaint::CanPasteVertexColors() const
 	return false; 
 }
 
-void FImportVertexTextureHelper::PickVertexColorFromTex(FColor & NewVertexColor, uint8* MipData, FVector2D & UV, UTexture2D* Tex, uint8 & ColorMask)
+void FImportVertexTextureHelper::PickVertexColorFromTex(FColor& NewVertexColor, uint8* MipData, FVector2D & UV, UTexture2D* Tex, uint8& ColorMask)
 {	
 	check(MipData);
 	NewVertexColor = FColor(0,0,0, 0);
@@ -4250,7 +4250,7 @@ void FImportVertexTextureHelper::PickVertexColorFromTex(FColor & NewVertexColor,
 }
 
 
-void FImportVertexTextureHelper::ImportVertexColors(const FString & Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask)
+void FImportVertexTextureHelper::ImportVertexColors(const FString& Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask)
 {
 	FMessageLog EditorErrors("EditorErrors");
 	EditorErrors.NewPage(LOCTEXT("MeshPaintImportLogLabel", "Mesh Paint: Import Vertex Colors"));

@@ -814,7 +814,7 @@ void FEditorAutomationTestUtilities::CollectTestsByClass(UClass * Class, TArray<
 
 	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 	{
-		const FAssetData & Asset = *ObjIter;
+		const FAssetData& Asset = *ObjIter;
 		FString Filename = Asset.ObjectPath.ToString();
 		//convert to full paths
 		Filename = FPackageName::LongPackageNameToFilename(Filename);
@@ -852,7 +852,7 @@ void FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UClass * Cla
 	//Loop through the list of assets, make their path full and a string, then add them to the test.
 	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 	{
-		const FAssetData & Asset = *ObjIter;
+		const FAssetData& Asset = *ObjIter;
 		FString Filename = Asset.ObjectPath.ToString();
 		//convert to full paths
 		Filename = FPackageName::LongPackageNameToFilename(Filename);
@@ -931,7 +931,7 @@ void FEditorAutomationTestUtilities::CollectMiscGameContentTestsByClass(TArray<F
 		//Loop through the list of assets, make their path full and a string, then add them to the test.
 		for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 		{
-			const FAssetData & Asset = *ObjIter;
+			const FAssetData& Asset = *ObjIter;
 			//First we check if the class is valid.  If not then we move onto the next object.
 			if (Asset.GetClass() != NULL)
 			{

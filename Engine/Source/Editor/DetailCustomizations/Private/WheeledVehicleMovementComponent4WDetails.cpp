@@ -108,7 +108,7 @@ TArray<FRichCurveEditInfo> FWheeledVehicleMovementComponent4WDetails::FSteeringC
 	return Curves;
 }
 
-UObject * FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::GetOwner()
+UObject* FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::GetOwner()
 {
 	return Owner;
 }
@@ -152,7 +152,7 @@ TArray<FRichCurveEditInfo> FWheeledVehicleMovementComponent4WDetails::FTorqueCur
 	return Curves;
 }
 
-UObject * FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::GetOwner()
+UObject* FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::GetOwner()
 {
 	return Owner;
 }

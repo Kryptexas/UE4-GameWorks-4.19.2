@@ -1234,7 +1234,7 @@ void FMatinee::OnContextReplaceActor( int32 InIndex )
 	const int32 NewGroupTrackIndex = InIndex; 
 	check( NewGroupTrackIndex >= 0 && NewGroupTrackIndex < MatineeActor->GroupInst.Num() );
 
-	AActor * SelectedActor = NULL;
+	AActor* SelectedActor = NULL;
 
 	for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
 	{
@@ -1258,7 +1258,7 @@ void FMatinee::OnContextReplaceActor( int32 InIndex )
 	UInterpGroupInst * GroupInst = MatineeActor->GroupInst[NewGroupTrackIndex];
 	if (GroupInst->GetGroupActor())
 	{
-		AActor * OldGroupActor = GroupInst->GroupActor;
+		AActor* OldGroupActor = GroupInst->GroupActor;
 		GroupInst->RestoreGroupActorState();
 		GroupInst->GroupActor = SelectedActor;
 		GroupInst->SaveGroupActorState();
@@ -1383,7 +1383,7 @@ bool FMatinee::PrepareToAddActorAndWarnUser(AActor* ActorToAdd)
 	return true;
 }
 
-void FMatinee::AddActorToGroup(UInterpGroup * GroupToAdd, AActor * ActorToAdd)
+void FMatinee::AddActorToGroup(UInterpGroup* GroupToAdd, AActor* ActorToAdd)
 {
 	// create new groupinst
 	UInterpGroupInst* NewGroupInst = NULL;
@@ -1396,7 +1396,7 @@ void FMatinee::AddActorToGroup(UInterpGroup * GroupToAdd, AActor * ActorToAdd)
 
 	for (int32 I=0; I<MatineeActor->GroupInst.Num(); ++I)
 	{
-		UInterpGroupInst * GrInst = MatineeActor->GroupInst[I];
+		UInterpGroupInst* GrInst = MatineeActor->GroupInst[I];
 
 		// we have groupinst that don't have GroupActor, assign that
 		if (GrInst->Group == GroupToAdd && GrInst->GetGroupActor() == NULL)
@@ -1414,7 +1414,7 @@ void FMatinee::AddActorToGroup(UInterpGroup * GroupToAdd, AActor * ActorToAdd)
 
 	if ( NewGroupInst )
 	{
-		AActor * OldActor = NewGroupInst->GroupActor;
+		AActor* OldActor = NewGroupInst->GroupActor;
 		NewGroupInst->GroupActor = ActorToAdd;
 		MatineeActor->ReplaceActorGroupInfo(NewGroupInst->Group, OldActor, ActorToAdd);
 		NewGroupInst->InitGroupInst(GroupToAdd, ActorToAdd);
@@ -1433,7 +1433,7 @@ void FMatinee::AddActorToGroup(UInterpGroup * GroupToAdd, AActor * ActorToAdd)
 }
 
 /** If ActorToRemove == NULL, it will remove all **/
-void FMatinee::RemoveActorFromGroup(UInterpGroup * GroupToRemove, AActor * ActorToRemove)
+void FMatinee::RemoveActorFromGroup(UInterpGroup* GroupToRemove, AActor* ActorToRemove)
 {
 	bool DefaultGroupInstExists = false;
 
@@ -1442,7 +1442,7 @@ void FMatinee::RemoveActorFromGroup(UInterpGroup * GroupToRemove, AActor * Actor
 	// so we can't remove the last one
 	for (int32 I=0; I<MatineeActor->GroupInst.Num(); ++I)
 	{
-		UInterpGroupInst * GrInst = MatineeActor->GroupInst[I];
+		UInterpGroupInst* GrInst = MatineeActor->GroupInst[I];
 
 		if (GrInst->Group == GroupToRemove
 			// if actor == NULL or groupActor is 
@@ -5286,7 +5286,7 @@ TSharedPtr<SWidget> FMatinee::CreateGroupMenu()
 
 							if ( IterGrInst && IterGrInst->Group == InSelectedGroup && IterGrInst->GetGroupActor() )
 							{
-								AActor * GrActor = IterGrInst->GetGroupActor();
+								AActor* GrActor = IterGrInst->GetGroupActor();
 								// right now it only allows 1000 indexing. If more, we'll get trouble
 								if (ensure(I<1000))
 								{

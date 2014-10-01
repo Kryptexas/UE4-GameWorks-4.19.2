@@ -328,8 +328,8 @@ void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 	if ( Selected.Num() > 0 )
 	{
 		// ask which skeleton users would like to choose
-		USkeleton * OldSkeleton = PersonaPtr.Pin()->GetSkeleton();
-		USkeleton * NewSkeleton = NULL;
+		USkeleton* OldSkeleton = PersonaPtr.Pin()->GetSkeleton();
+		USkeleton* NewSkeleton = NULL;
 		bool		bDuplicateAssets = true;
 
 		const FText Message = LOCTEXT("RemapSkeleton_Warning", "This will duplicate the asset and convert to new skeleton.");

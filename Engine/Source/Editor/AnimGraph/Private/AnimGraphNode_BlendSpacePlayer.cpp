@@ -83,7 +83,7 @@ void UAnimGraphNode_BlendSpacePlayer::ValidateAnimNodeDuringCompilation(class US
 	}
 	else
 	{
-		USkeleton * BlendSpaceSkeleton = Node.BlendSpace->GetSkeleton();
+		USkeleton* BlendSpaceSkeleton = Node.BlendSpace->GetSkeleton();
 		if (BlendSpaceSkeleton && // if blend space doesn't have skeleton, it might be due to blend space not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!BlendSpaceSkeleton->IsCompatible(ForSkeleton))
 		{

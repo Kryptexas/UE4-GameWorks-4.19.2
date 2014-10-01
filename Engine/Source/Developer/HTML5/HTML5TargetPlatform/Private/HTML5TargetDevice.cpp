@@ -97,11 +97,11 @@ bool FHTML5TargetDevice::SupportsSdkVersion( const FString& VersionString ) cons
 	return true;
 }
 
-void FHTML5TargetDevice::SetUserCredentials( const FString & UserName, const FString & UserPassword )
+void FHTML5TargetDevice::SetUserCredentials( const FString& UserName, const FString& UserPassword )
 {
 }
 
-bool FHTML5TargetDevice::GetUserCredentials( FString & OutUserName, FString & OutUserPassword )
+bool FHTML5TargetDevice::GetUserCredentials( FString& OutUserName, FString& OutUserPassword )
 {
 	return false;
 }

@@ -39,7 +39,7 @@ struct FPoint
 		Triangles.Remove(TriangleToRemove);
 	}
 
-	float GetDistance(const FPoint & Other)
+	float GetDistance(const FPoint& Other)
 	{
 		return (Other.Position-Position).Size();
 	}
@@ -57,12 +57,12 @@ struct FHalfEdge
 		Vertices[1] = B;
 	}
 
-	bool DoesShare(const FHalfEdge & A) const
+	bool DoesShare(const FHalfEdge& A) const
 	{
 		return (Vertices[0] == A.Vertices[1] && Vertices[1] == A.Vertices[0]);
 	}
 
-	bool operator==( const FHalfEdge & Other ) const 
+	bool operator==( const FHalfEdge& Other ) const 
 	{
 		// if same position, it's same point
 		return FMemory::Memcmp(Other.Vertices, Vertices, sizeof(Vertices)) == 0;
@@ -124,22 +124,22 @@ struct FTriangle
 		Vertices[2]->RemoveTriangle(this);
 	}
 
-	bool Contains (const FPoint & Other) const
+	bool Contains (const FPoint& Other) const
 	{
 		return (Other == *Vertices[0] || Other == *Vertices[1] || Other == *Vertices[2]);
 	}
 
-	float GetDistance(const FPoint & Other) const
+	float GetDistance(const FPoint& Other) const
 	{
 		return (Other.Position-Center).Size();
 	}
 
-	float GetDistance(const FVector & Other) const
+	float GetDistance(const FVector& Other) const
 	{
 		return (Other-Center).Size();
 	}
 
-	bool HasSameHalfEdge(const FTriangle * Other) const
+	bool HasSameHalfEdge(const FTriangle* Other) const
 	{
 		for (int32 I=0; I<3; ++I)
 		{
@@ -155,7 +155,7 @@ struct FTriangle
 		return false;
 	}
 
-	bool DoesShareSameEdge(const FTriangle * Other) const
+	bool DoesShareSameEdge(const FTriangle* Other) const
 	{
 		for (int32 I=0; I<3; ++I)
 		{
@@ -173,7 +173,7 @@ struct FTriangle
 
 	// find point that doesn't share with this
 	// this should only get called if it shares same edge
-	FPoint * FindNonSharingPoint(const FTriangle * Other)
+	FPoint * FindNonSharingPoint(const FTriangle* Other)
 	{
 		if (!Contains(*Other->Vertices[0]))
 		{
@@ -290,7 +290,7 @@ public:
 	void InitializeIndiceMapping();
 
 	/* Set the grid box, so we can normalize the sample points */
-	void SetGridBox(const FBox & Box)
+	void SetGridBox(const FBox& Box)
 	{
 		FVector Size = Box.GetSize();
 
@@ -308,12 +308,12 @@ private:
 	 * return true if the TestPoint is WITHIN the triangle circumcircle
 	 *	http://en.wikipedia.org/wiki/Delaunay_triangulation 
 	 */
-	ECircumCircleState GetCircumcircleState(const FTriangle * T, const FPoint & TestPoint);
+	ECircumCircleState GetCircumcircleState(const FTriangle* T, const FPoint& TestPoint);
 
 	/**
 	 * return true if they can make triangle
 	 */
-	bool IsEligibleForTriangulation(const FPoint * A, const FPoint * B, const FPoint * C)
+	bool IsEligibleForTriangulation(const FPoint* A, const FPoint* B, const FPoint* C)
 	{
 		return (IsCollinear(A, B, C)==false);
 	}
@@ -322,7 +322,7 @@ private:
 	 * return true if 3 points are collinear
 	 * by that if those 3 points create straight line
 	 */
-	bool IsCollinear(const FPoint * A, const FPoint * B, const FPoint * C);
+	bool IsCollinear(const FPoint* A, const FPoint* B, const FPoint* C);
 
 	/**
 	 * Flip TriangleList(I) with TriangleList(J). 
@@ -385,7 +385,7 @@ public:
 	 * 
 	 * @return	true if successfully found the triangle this point is within
 	 */
-	bool FindTriangleThisPointBelongsTo(const FVector & TestPoint, FVector & OutBaryCentricCoords, FTriangle * & OutTriangle, const TArray<FTriangle*> & TriangleList) const;
+	bool FindTriangleThisPointBelongsTo(const FVector& TestPoint, FVector& OutBaryCentricCoords, FTriangle * & OutTriangle, const TArray<FTriangle*> & TriangleList) const;
 
 	/**  
 	 * Fill up Grid Elements using TriangleList input - Grid information should have been set by SetGridInfo
@@ -409,7 +409,7 @@ public:
 		Elements.Empty();
 	}
 
-	void SetGridInfo( const FIntPoint & InGridNum, const FBox & InGridDim )
+	void SetGridInfo( const FIntPoint& InGridNum, const FBox& InGridDim )
 	{
 		GridNum = InGridNum;
 		GridDim = InGridDim;
@@ -496,7 +496,7 @@ public:
 	/** 
 	 * Manually AddPoint
 	 */
-	void AddGridPoint(const FVector & Point)
+	void AddGridPoint(const FVector& Point)
 	{
 		Generator.AddSamplePoint(Point);
 	}
@@ -509,7 +509,7 @@ public:
 	/** 
 	 * Mapping function between WidgetPos and EditorPos
 	 */
-	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const override;
+	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const override;
 	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const override;
 
 	/**
@@ -520,7 +520,7 @@ public:
 	/**
 	 * Utility function to set the grid info for both the BlendSpaceGrid and the Generator in one go
 	 */
-	void SetGridInfo( const FIntPoint & InGridNum, const FBox & InGridDim )
+	void SetGridInfo( const FIntPoint& InGridNum, const FBox& InGridDim )
 	{
 		BlendSpaceGrid.SetGridInfo( InGridNum, InGridDim );
 		Generator.SetGridBox( InGridDim );
@@ -548,8 +548,8 @@ private:
 	const UBlendSpace* GetBlendSpace() const { return Cast<UBlendSpace>(BlendSpace); }
 
 	/** Utility functions **/
-	virtual FText GetInputText(const FVector & GridPos) const override;
-	bool IsOnTheBorder(const FIntPoint & GridIndices) const;
+	virtual FText GetInputText(const FVector& GridPos) const override;
+	bool IsOnTheBorder(const FIntPoint& GridIndices) const;
 
 	/** Utility function for OnPaint **/
 	void DrawHighlightGrid(const FVector2D & LeftTopPos, const FVector2D & RightBottomPos, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;

@@ -871,7 +871,7 @@ public:
 	/**
 	 * Selects the Matinee InterpGroup
 	 */
-	static void OnSelectMatineeGroup( AActor * Actor );
+	static void OnSelectMatineeGroup( AActor* Actor );
 
 	/**
 	 * Called when selecting all actors that's controlled by currently selected matinee actor

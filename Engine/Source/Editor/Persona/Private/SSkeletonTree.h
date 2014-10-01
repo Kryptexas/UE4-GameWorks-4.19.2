@@ -116,7 +116,7 @@ struct FDisplayedMeshBoneInfo : public FDisplayedTreeRowInfo
 public:
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
 	static TSharedRef<FDisplayedMeshBoneInfo> Make(
-		const FName & BoneName,
+		const FName& BoneName,
 		USkeleton* InTargetSkeleton,
 		TWeakPtr<FPersona> InPersona,
 		TWeakPtr<SSkeletonTree> InSkeletonTree )
@@ -130,7 +130,7 @@ public:
 	}
 
 	// Manual RTTI - not particularly elegant! :-(
-	virtual void * GetData() { return &BoneName; }
+	virtual void* GetData() { return &BoneName; }
 	virtual ESkeletonTreeRowType::Type GetType() const { return ESkeletonTreeRowType::Bone; }
 
 	/** Builds the table row widget to display this info */
@@ -157,7 +157,7 @@ public:
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedMeshBoneInfo(const FName & InSource)
+	FDisplayedMeshBoneInfo(const FName& InSource)
 		: BoneName(InSource)
 	{}
 

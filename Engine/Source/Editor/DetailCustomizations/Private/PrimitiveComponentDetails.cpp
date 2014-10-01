@@ -102,7 +102,7 @@ bool FPrimitiveComponentDetails::IsAutoWeldEditable() const
 	{
 		if (UPrimitiveComponent * SceneComponent = Cast<UPrimitiveComponent>(ObjectsCustomized[i].Get()))
 		{
-			if (FBodyInstance * BI = SceneComponent->GetBodyInstance())
+			if (FBodyInstance* BI = SceneComponent->GetBodyInstance())
 			{
 				if (BI->IsInstanceSimulatingPhysics())
 				{

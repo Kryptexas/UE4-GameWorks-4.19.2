@@ -1067,10 +1067,10 @@ void SSkeletonTree::CreateFromSkeleton( const TArray<FBoneNode>& SourceSkeleton,
 
 	if( BoneFilter != EBoneFilter::None )
 	{
-		const FReferenceSkeleton & RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
 		for (int32 BoneIndex = 0; BoneIndex < SourceSkeleton.Num(); ++BoneIndex)
 		{
-			const FName & BoneName = RefSkeleton.GetBoneName(BoneIndex);
+			const FName& BoneName = RefSkeleton.GetBoneName(BoneIndex);
 			if ( !FilterText.IsEmpty() && !BoneName.ToString().Contains( FilterText.ToString()) )
 			{
 				continue;
@@ -1467,7 +1467,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 }
 
 /*
-void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton * Skeleton, bool bAdd)
+void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton* Skeleton, bool bAdd)
 {
 	if (bMeshReductionSupported)
 	{
@@ -1579,7 +1579,7 @@ void SSkeletonTree::OnCopyBoneNames()
 		FString BoneNames;
 		for( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
 		{
-			FName * BoneName = static_cast<FName*>( (*ItemIt)->GetData() );
+			FName* BoneName = static_cast<FName*>( (*ItemIt)->GetData() );
 
 			BoneNames += BoneName->ToString();
 			BoneNames += "\r\n";
@@ -2114,7 +2114,7 @@ void SSkeletonTree::OnExternalSelectBone( const FName& BoneName )
 		FDisplayedTreeRowInfoPtr SkeletonRow = *( SkeletonRowIt );
 
 		if ( SkeletonRow->GetType() == ESkeletonTreeRowType::Bone &&
-			*static_cast< FName * >( SkeletonRow->GetData() ) == BoneName )
+			*static_cast< FName* >( SkeletonRow->GetData() ) == BoneName )
 		{
 			SkeletonTreeView->SetSelection( SkeletonRow );
 			SkeletonTreeView->RequestScrollIntoView( SkeletonRow );

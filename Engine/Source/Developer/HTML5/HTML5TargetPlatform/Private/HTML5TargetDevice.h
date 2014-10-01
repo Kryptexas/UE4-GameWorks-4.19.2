@@ -102,9 +102,9 @@ public:
 
 	virtual bool TerminateProcess( const int32 ProcessId ) override;
 
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override;
+	virtual void SetUserCredentials( const FString& UserName, const FString& UserPassword ) override;
 
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override;
+	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override;
 
 	// End ITargetDevice interface
 

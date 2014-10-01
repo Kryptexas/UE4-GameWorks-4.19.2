@@ -106,7 +106,7 @@ protected:
 	 * @return a widget to represent the contents of a cell in this row of a TableView. 
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName & ColumnID ) override
+	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnID ) override
 	{
 		TSharedPtr< SWidget > TableRowContent;
 

@@ -127,7 +127,7 @@ public:
 	/** 
 	 * Mapping function between WidgetPos and GridPos
 	 */
-	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const override;
+	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const override;
 	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const override;
 
 	/**
@@ -137,7 +137,7 @@ public:
 
 protected:
 	/** Utility functions **/
-	virtual FText GetInputText(const FVector & GridPos) const override;
+	virtual FText GetInputText(const FVector& GridPos) const override;
 	virtual FReply UpdateLastMousePosition( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition, bool bClampToWindowRect = false, bool bSnapToGrid = false  ) override;
 
 private:

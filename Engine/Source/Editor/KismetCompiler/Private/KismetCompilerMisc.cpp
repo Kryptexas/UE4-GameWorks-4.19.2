@@ -462,7 +462,7 @@ void FKismetCompilerUtilities::LinkAddedProperty(UStruct* Structure, UProperty* 
 	Structure->Children = NewProperty;
 }
 
-const UFunction* FKismetCompilerUtilities::FindOverriddenImplementableEvent(const FName& EventName, const UClass * Class)
+const UFunction* FKismetCompilerUtilities::FindOverriddenImplementableEvent(const FName& EventName, const UClass* Class)
 {
 	const uint32 RequiredFlagMask = FUNC_Event | FUNC_BlueprintEvent | FUNC_Native;
 	const uint32 RequiredFlagResult = FUNC_Event | FUNC_BlueprintEvent;

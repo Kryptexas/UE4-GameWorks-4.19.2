@@ -13,7 +13,7 @@ struct FSearchEntry
 	bool bCategory;
 	FAssetData AssetData;
 
-	static FSearchEntry * MakeCategoryEntry(const FString & InTitle);
+	static FSearchEntry * MakeCategoryEntry(const FString& InTitle);
 };
 
 

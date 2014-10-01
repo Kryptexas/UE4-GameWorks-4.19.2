@@ -1782,7 +1782,7 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder)
 	MenuBuilder.BeginSection("AnimNotifyCustom", LOCTEXT("NewNotifySubMenu_Custom", "Custom"));
 	{
 		// now add custom anim notifiers
-		USkeleton * SeqSkeleton = Sequence->GetSkeleton();
+		USkeleton* SeqSkeleton = Sequence->GetSkeleton();
 		if (SeqSkeleton)
 		{
 			for (int32 I = 0; I<SeqSkeleton->AnimationNotifies.Num(); ++I)
@@ -2463,7 +2463,7 @@ void SAnimNotifyTrack::OnNewNotifyClicked()
 
 void SAnimNotifyTrack::AddNewNotify(const FText& NewNotifyName, ETextCommit::Type CommitInfo)
 {
-	USkeleton * SeqSkeleton = Sequence->GetSkeleton();
+	USkeleton* SeqSkeleton = Sequence->GetSkeleton();
 	if ((CommitInfo == ETextCommit::OnEnter) && SeqSkeleton)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("AddNewNotifyEvent", "Add New Anim Notify") );

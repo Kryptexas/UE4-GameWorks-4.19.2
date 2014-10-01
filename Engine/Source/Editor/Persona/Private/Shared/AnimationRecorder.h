@@ -25,7 +25,7 @@ public:
 	// return false if nothing to update
 	// return true if it has properly updated
 	bool UpdateRecord(USkeletalMeshComponent * Component, float DeltaTime);
-	const UAnimSequence * GetAnimationObject() const { return AnimationObject; }
+	const UAnimSequence* GetAnimationObject() const { return AnimationObject; }
 
 private:
 	void Record( USkeletalMeshComponent * Component, TArray<FTransform> SpacesBases, int32 FrameToAdd );

@@ -1165,7 +1165,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 	return CompositeProxy;
 }
 
-FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox MyBounds;
 	MyBounds.Init();

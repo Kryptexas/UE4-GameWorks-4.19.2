@@ -99,7 +99,7 @@ void SGraphEditor::RegisterGraphEditor( const TSharedRef<SGraphEditor>& InGraphE
 	AllInstances.Add(InGraphEditor);
 }
 
-void SGraphEditor::NotifyPrePropertyChange( const FString & PropertyName )
+void SGraphEditor::NotifyPrePropertyChange( const FString& PropertyName )
 {
 	if (EdGraphObj)
 	{
@@ -107,7 +107,7 @@ void SGraphEditor::NotifyPrePropertyChange( const FString & PropertyName )
 	}
 }
 
-void SGraphEditor::NotifyPostPropertyChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString & PropertyName )
+void SGraphEditor::NotifyPostPropertyChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString& PropertyName )
 {
 	if (EdGraphObj)
 	{

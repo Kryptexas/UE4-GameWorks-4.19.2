@@ -62,7 +62,7 @@ public:
 		{
 		}
 
-		bool operator==(const FSelection & rhs) const
+		bool operator==(const FSelection& rhs) const
 		{
 			return Index == rhs.Index && PrimitiveType == rhs.PrimitiveType && PrimitiveIndex == rhs.PrimitiveIndex;
 		}
@@ -79,11 +79,11 @@ public:
 	
 	/** Constraint editing */
 	void SetSelectedConstraint(int32 ConstraintIndex, bool bGroupSelect = false);
-	FTransform GetConstraintWorldTM(const FSelection * Constraint, EConstraintFrame::Type Frame) const;
-	FTransform GetConstraintWorldTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame, float Scale = 1.f) const;
+	FTransform GetConstraintWorldTM(const FSelection* Constraint, EConstraintFrame::Type Frame) const;
+	FTransform GetConstraintWorldTM(const UPhysicsConstraintTemplate* ConstraintSetup, EConstraintFrame::Type Frame, float Scale = 1.f) const;
 	FTransform GetConstraintMatrix(int32 ConstraintIndex, EConstraintFrame::Type Frame, float Scale) const;
 	
-	FTransform GetConstraintBodyTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame) const;
+	FTransform GetConstraintBodyTM(const UPhysicsConstraintTemplate* ConstraintSetup, EConstraintFrame::Type Frame) const;
 
 	void SetSelectedConstraintRelTM(const FTransform& RelTM);	
 	
@@ -101,11 +101,11 @@ public:
 	void ToggleConstraint(EPhATConstraintType Constraint);
 
 	/** Collision geometry editing */
-	void SetSelectedBody(const FSelection * Body, bool bGroupSelect = false, bool bGroupSelectRemove = true);// int32 BodyIndex, EKCollisionPrimitiveType PrimitiveType, int32 PrimitiveIndex);
+	void SetSelectedBody(const FSelection* Body, bool bGroupSelect = false, bool bGroupSelectRemove = true);// int32 BodyIndex, EKCollisionPrimitiveType PrimitiveType, int32 PrimitiveIndex);
 	void SetSelectedBodyAnyPrim(int32 BodyIndex, bool bGroupSelect = false);
 	void DeleteCurrentPrim();
 	void DeleteBody(int32 DelBodyIndex, bool bRefreshComponent=true);
-	void RefreshPhysicsAssetChange(const UPhysicsAsset * InPhysAsset);
+	void RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset);
 	void MakeNewBody(int32 NewBoneIndex, bool bAutoSelect = true);
 	void CopyBody();
 	void CopyConstraint();

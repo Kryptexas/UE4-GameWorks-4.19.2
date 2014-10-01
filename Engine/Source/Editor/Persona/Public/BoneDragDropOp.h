@@ -8,7 +8,7 @@ class FBoneDragDropOp : public FDragDropOperation
 public:	
 	DRAG_DROP_OPERATOR_TYPE(FBoneDragDropOp, FDragDropOperation)
 	
-	USkeleton * TargetSkeleton;
+	USkeleton* TargetSkeleton;
 	FName BoneName;
 
 	/** The widget decorator to use */
@@ -51,7 +51,7 @@ public:
 		CurrentIconBrush = InIcon;
 	}
 
-	static TSharedRef<FBoneDragDropOp> New(USkeleton* Skeleton, const FName & InBoneName)
+	static TSharedRef<FBoneDragDropOp> New(USkeleton* Skeleton, const FName& InBoneName)
 	{
 		TSharedRef<FBoneDragDropOp> Operation = MakeShareable(new FBoneDragDropOp);
 		Operation->BoneName = InBoneName;

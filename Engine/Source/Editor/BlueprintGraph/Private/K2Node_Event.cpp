@@ -253,7 +253,7 @@ void UK2Node_Event::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>&
 
 	if ( RedirectPinNames.Num() > 0 )
 	{
-		const FString & OldPinName = RedirectPinNames[0];
+		const FString& OldPinName = RedirectPinNames[0];
 
 		// first add functionname.param
 		RedirectPinNames.Add(FString::Printf(TEXT("%s.%s"), *EventSignatureName.ToString(), *OldPinName));

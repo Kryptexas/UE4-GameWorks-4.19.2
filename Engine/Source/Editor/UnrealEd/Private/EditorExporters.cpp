@@ -191,7 +191,7 @@ bool USoundSurroundExporterWAV::ExportBinary( UObject* Object, const TCHAR* Type
 	USoundWave* Sound = CastChecked<USoundWave>( Object );
 	if ( Sound->ChannelSizes.Num() > 0 )
 	{
-		uint8* RawWaveData = ( uint8 * )Sound->RawData.Lock( LOCK_READ_ONLY );
+		uint8* RawWaveData = ( uint8* )Sound->RawData.Lock( LOCK_READ_ONLY );
 
 		if( Sound->ChannelSizes[ FileIndex ] )
 		{
@@ -2500,7 +2500,7 @@ UAnimSequenceExporterFBX::UAnimSequenceExporterFBX(const class FPostConstructIni
 bool UAnimSequenceExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	UAnimSequence* AnimSequence = CastChecked<UAnimSequence>( Object );
-	USkeleton * AnimSkeleton = AnimSequence->GetSkeleton();
+	USkeleton* AnimSkeleton = AnimSequence->GetSkeleton();
 	USkeletalMesh* PreviewMesh = AnimSkeleton->GetPreviewMesh(true);
 
 	if (AnimSkeleton && PreviewMesh)

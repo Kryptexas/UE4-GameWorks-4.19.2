@@ -2041,8 +2041,8 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 		Sound->InvalidateCompressedData();
 
 		// Delete the old version of the wave from the bulk data
-		uint8 * RawWaveData[SPEAKER_Count] = { nullptr };
-		uint8 * RawData = ( uint8 * )Sound->RawData.Lock( LOCK_READ_WRITE );
+		uint8* RawWaveData[SPEAKER_Count] = { nullptr };
+		uint8* RawData = ( uint8* )Sound->RawData.Lock( LOCK_READ_WRITE );
 		int32 RawDataOffset = 0;
 		int32 TotalSize = 0;
 
@@ -2058,7 +2058,7 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 		}
 
 		// Copy them back without the one that will be updated
-		RawData = ( uint8 * )Sound->RawData.Realloc( TotalSize );
+		RawData = ( uint8* )Sound->RawData.Realloc( TotalSize );
 
 		for( i = 0; i < SPEAKER_Count; i++ )
 		{
@@ -2073,7 +2073,7 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 		}
 
 		uint32 RawDataSize = BufferEnd - Buffer;
-		uint8* LockedData = ( uint8 * )Sound->RawData.Realloc( RawDataOffset + RawDataSize );		
+		uint8* LockedData = ( uint8* )Sound->RawData.Realloc( RawDataOffset + RawDataSize );		
 		LockedData += RawDataOffset;
 		FMemory::Memcpy( LockedData, Buffer, RawDataSize ); 
 
@@ -6014,7 +6014,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 
 	CurrentFilename = Filename;
 
-	USkeleton * Skeleton = AnimSequence->GetSkeleton();
+	USkeleton* Skeleton = AnimSequence->GetSkeleton();
 	if (!Skeleton)
 	{
 		// if it does not exist, ask for one

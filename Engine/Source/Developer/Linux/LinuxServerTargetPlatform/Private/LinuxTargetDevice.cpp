@@ -48,13 +48,13 @@ bool FLinuxTargetDevice::SupportsSdkVersion( const FString& VersionString ) cons
 	return true;
 }
 
-void FLinuxTargetDevice::SetUserCredentials( const FString & InUserName, const FString & InUserPassword )
+void FLinuxTargetDevice::SetUserCredentials( const FString& InUserName, const FString& InUserPassword )
 {
 	UserName = InUserName;
 	UserPassword = InUserPassword;
 }
 
-bool FLinuxTargetDevice::GetUserCredentials( FString & OutUserName, FString & OutUserPassword )
+bool FLinuxTargetDevice::GetUserCredentials( FString& OutUserName, FString& OutUserPassword )
 {
 	OutUserName = UserName;
 	OutUserPassword = UserPassword;

@@ -104,12 +104,12 @@ inline bool FAndroidTargetDevice::TerminateProcess( const int32 ProcessId )
 }
 
 
-inline void FAndroidTargetDevice::SetUserCredentials( const FString & UserName, const FString & UserPassword )
+inline void FAndroidTargetDevice::SetUserCredentials( const FString& UserName, const FString& UserPassword )
 {
 }
 
 
-inline bool FAndroidTargetDevice::GetUserCredentials( FString & OutUserName, FString & OutUserPassword )
+inline bool FAndroidTargetDevice::GetUserCredentials( FString& OutUserName, FString& OutUserPassword )
 {
 	return false;
 }

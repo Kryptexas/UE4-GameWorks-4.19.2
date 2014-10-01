@@ -12,10 +12,10 @@ class FDisplayedBoneMappingInfo
 public:
 	FName Name;
 	FString DisplayName;
-	USkeleton * Skeleton;
+	USkeleton* Skeleton;
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedBoneMappingInfo> Make(const FName NodeName, const FString DisplayName, USkeleton * InSkeleton)
+	static TSharedRef<FDisplayedBoneMappingInfo> Make(const FName NodeName, const FString DisplayName, USkeleton* InSkeleton)
 	{
 		return MakeShareable(new FDisplayedBoneMappingInfo(NodeName, DisplayName, InSkeleton));
 	}
@@ -32,7 +32,7 @@ public:
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedBoneMappingInfo(const FName InNodeName, const FString DisplayName, USkeleton * InSkeleton)
+	FDisplayedBoneMappingInfo(const FName InNodeName, const FString DisplayName, USkeleton* InSkeleton)
 		: Name( InNodeName )
 		, DisplayName( DisplayName )
 		, Skeleton( InSkeleton )

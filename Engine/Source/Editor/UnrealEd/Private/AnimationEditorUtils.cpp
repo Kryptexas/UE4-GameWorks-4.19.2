@@ -289,7 +289,7 @@ namespace AnimationEditorUtils
 				{
 					// @TODO: this doesn't work
 					//FString LongPackagePath = FPackageName::GetLongPackagePath(PackageName);
-					UObject * 	Parent = FindPackage(NULL, *PackageName);
+					UObject* 	Parent = FindPackage(NULL, *PackageName);
 					UObject* NewAsset = FindObject<UObject>(Parent, *Name, false);
 					if (NewAsset)
 					{

@@ -1109,7 +1109,7 @@ ESlateCheckBoxState::Type SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveU
 {
 	if ( Sequence )
 	{
-		const FFloatCurve * Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		const FFloatCurve* Curve = Sequence->RawCurveData.GetCurveData(Uid);
 		if ( Curve )
 		{
 			return Curve->GetCurveTypeFlag(ACF_Editable)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;

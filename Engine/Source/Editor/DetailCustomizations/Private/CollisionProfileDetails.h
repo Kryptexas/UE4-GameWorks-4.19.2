@@ -125,13 +125,13 @@ private:
 	FReply	OnEditChannel(bool bTraceType);
 	bool	IsAnyChannelSelected(bool bTraceType) const;
 	FReply	OnDeleteChannel(bool bTraceType);
-	bool	IsValidChannelSetup(const FCustomChannelSetup * Channel) const;
+	bool	IsValidChannelSetup(const FCustomChannelSetup* Channel) const;
 
 	FReply	OnNewProfile();
 	FReply	OnEditProfile();
 	FReply	OnDeleteProfile();
 	bool	IsAnyProfileSelected() const;
-	bool	IsValidProfileSetup(const FCollisionResponseTemplate * Template, int32 ProfileIndex) const;
+	bool	IsValidProfileSetup(const FCollisionResponseTemplate* Template, int32 ProfileIndex) const;
 
 private:
 	TSharedPtr<SChannelListView>				ObjectChannelListView;

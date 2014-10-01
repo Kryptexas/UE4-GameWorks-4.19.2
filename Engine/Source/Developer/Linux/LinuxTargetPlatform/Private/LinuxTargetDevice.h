@@ -31,7 +31,7 @@ public:
 	 *
 	 * @param InTargetPlatform - The target platform.
 	 */
-	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId & InDeviceId, const FString & InDeviceName )
+	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId& InDeviceId, const FString& InDeviceName )
 		: TargetPlatform(InTargetPlatform)
 		, DeviceName(InDeviceName)
 		, TargetDeviceId(InDeviceId)
@@ -107,9 +107,9 @@ public:
 
 	virtual bool SupportsSdkVersion( const FString& VersionString ) const override;
 
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override;
+	virtual void SetUserCredentials( const FString& UserName, const FString& UserPassword ) override;
 
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override;
+	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override;
 
 	virtual bool TerminateProcess( const int32 ProcessId ) override;
 

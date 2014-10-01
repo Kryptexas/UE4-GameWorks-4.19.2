@@ -15,8 +15,8 @@
 static const FName ColumnId_RetargetSourceNameLabel( "Retarget Source Name" );
 static const FName ColumnID_BaseReferenceMeshLabel( "Reference Mesh" );
 
-DECLARE_DELEGATE_TwoParams( FOnRenameCommit, const FName & /*OldName*/,  const FString& /*NewName*/ )
-DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnVerifyRenameCommit, const FName & /*OldName*/, const FString& /*NewName*/, FText& /*OutErrorMessage*/)
+DECLARE_DELEGATE_TwoParams( FOnRenameCommit, const FName& /*OldName*/,  const FString& /*NewName*/ )
+DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnVerifyRenameCommit, const FName& /*OldName*/, const FString& /*NewName*/, FText& /*OutErrorMessage*/)
 
 //////////////////////////////////////////////////////////////////////////
 // SRetargetSourceListRow
@@ -272,7 +272,7 @@ TSharedRef<ITableRow> SRetargetSourceWindow::GenerateRetargetSourceRow(TSharedPt
 }
 
 
-void SRetargetSourceWindow::OnRenameCommit( const FName & OldName,  const FString& NewName )
+void SRetargetSourceWindow::OnRenameCommit( const FName& OldName,  const FString& NewName )
 {
 	FString NewNameString = NewName;
 	if (OldName != FName(*NewNameString.Trim().TrimTrailing()))
@@ -346,7 +346,7 @@ void SRetargetSourceWindow::OnRenameCommit( const FName & OldName,  const FStrin
 	}
 }
 
-bool SRetargetSourceWindow::OnVerifyRenameCommit( const FName & OldName, const FString& NewName, FText& OutErrorMessage)
+bool SRetargetSourceWindow::OnVerifyRenameCommit( const FName& OldName, const FString& NewName, FText& OutErrorMessage)
 {
 	// if same reject
 	FString NewString = NewName;
@@ -436,8 +436,8 @@ void SRetargetSourceWindow::CreateRetargetSourceList( const FString& SearchText,
 
 		for (auto Iter=Skeleton->AnimRetargetSources.CreateConstIterator(); Iter; ++Iter)
 		{
-			const FName & Name = Iter.Key();
-			const FReferencePose & RefPose = Iter.Value();
+			const FName& Name = Iter.Key();
+			const FReferencePose& RefPose = Iter.Value();
 
 			if ( bDoFiltering )
 			{
@@ -576,8 +576,8 @@ void SRetargetSourceWindow::OnAssetSelectedFromMeshPicker(const FAssetData& Asse
 	// make sure you don't have any more retarget sources from the same mesh
 	for (auto Iter=Skeleton->AnimRetargetSources.CreateConstIterator(); Iter; ++Iter)
 	{
-		const FName & Name = Iter.Key();
-		const FReferencePose & RefPose = Iter.Value();
+		const FName& Name = Iter.Key();
+		const FReferencePose& RefPose = Iter.Value();
 
 		if (RefPose.ReferenceMesh == SelectedMesh)
 		{
@@ -606,7 +606,7 @@ void SRetargetSourceWindow::OnDeleteRetargetSource()
 	const FScopedTransaction Transaction( LOCTEXT("RetargetSourceWindow_Delete", "Delete Retarget Source") );
 	for (int RowIndex = 0; RowIndex < SelectedRows.Num(); ++RowIndex)
 	{
-		const FReferencePose * PoseFound = Skeleton->AnimRetargetSources.Find(SelectedRows[RowIndex]->Name);
+		const FReferencePose* PoseFound = Skeleton->AnimRetargetSources.Find(SelectedRows[RowIndex]->Name);
 		if(PoseFound)
 		{
 			// need to verify if these pose is used by anybody else
@@ -692,7 +692,7 @@ void SRetargetSourceWindow::OnRenameRetargetSource()
 	if (ensure (SelectedRows.Num() == 1))
 	{
 		int32 RowIndex = 0;
-		const FReferencePose * PoseFound = Skeleton->AnimRetargetSources.Find(SelectedRows[RowIndex]->Name);
+		const FReferencePose* PoseFound = Skeleton->AnimRetargetSources.Find(SelectedRows[RowIndex]->Name);
 		if(PoseFound)
 		{
 			// we used to verify if there is any animation referencing and warn them, but that doesn't really help

@@ -163,7 +163,7 @@ public:
 	float InputPerPixel;
 	float PixelsPerInput;
 
-	FEditorSpaceConverter(float InParamMin, float InParamMax, const FSlateRect & InWindowRect, bool bInIsEditorVertical)
+	FEditorSpaceConverter(float InParamMin, float InParamMax, const FSlateRect& InWindowRect, bool bInIsEditorVertical)
 		: bIsEditorVertical(bInIsEditorVertical), ParamMin(InParamMin), ParamMax(InParamMax), Range(InParamMax - InParamMin)
 	{
 		if(bIsEditorVertical)
@@ -242,7 +242,7 @@ FVector2D SBlendSpace1DWidget::ComputeDesiredSize() const
 	return FVector2D( 150.0f, 150.0f );
 }
 
-FText SBlendSpace1DWidget::GetInputText(const FVector & GridPos) const
+FText SBlendSpace1DWidget::GetInputText(const FVector& GridPos) const
 {
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("DisplayName"), FText::FromString( BlendSpace->GetBlendParameter(0).DisplayName ) );
@@ -362,7 +362,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 				for (int32 I=0; I<SampleDataList.Num(); ++I)
 				{
-					const FBlendSample & Sample = SampleData[SampleDataList[I].SampleDataIndex];
+					const FBlendSample& Sample = SampleData[SampleDataList[I].SampleDataIndex];
 					if (Sample.Animation)
 					{
 						UAnimSequence * Seq = Sample.Animation;
@@ -438,7 +438,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	return TooltipLayer + 1;
 }
 
-TOptional<FVector2D> SBlendSpace1DWidget::GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const
+TOptional<FVector2D> SBlendSpace1DWidget::GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const
 {
 	TOptional<FVector2D> OutWidgetPos;
 
@@ -490,7 +490,7 @@ void SBlendSpace1DWidget::ResampleData()
 {
 	SBlendSpaceWidget::ResampleData();
 
-	const FBlendParameter & BlendParam = BlendSpace->GetBlendParameter(0);
+	const FBlendParameter& BlendParam = BlendSpace->GetBlendParameter(0);
 
 	ElementGenerator.Init(BlendParam.Min, BlendParam.Max, BlendParam.GridNum+1);
 
@@ -615,7 +615,7 @@ void SBlendSpaceEditor1D::OnPropertyChanged(UObject* ObjectBeingModified, FPrope
 
 void SBlendSpaceEditor1D::UpdateBlendParameters()
 {
-	const FBlendParameter & BlendParam = BlendSpace->GetBlendParameter(0);
+	const FBlendParameter& BlendParam = BlendSpace->GetBlendParameter(0);
 	FString ParameterName = BlendParam.DisplayName;
 
 	// update UI for parameters

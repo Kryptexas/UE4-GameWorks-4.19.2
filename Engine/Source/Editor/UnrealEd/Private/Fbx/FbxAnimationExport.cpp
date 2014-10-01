@@ -54,7 +54,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 									 float AnimPlayRate,
 									 float StartTime)
 {
-	USkeleton * Skeleton = AnimSeq->GetSkeleton();
+	USkeleton* Skeleton = AnimSeq->GetSkeleton();
 
 	if (AnimSeq->SequenceLength == 0.f)
 	{

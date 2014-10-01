@@ -58,7 +58,7 @@ inline bool _HasUnknownCameras( AMatineeActor* InMatineeActor, FbxNode* Node, co
 			UInterpGroupInst* GroupInst = InMatineeActor->FindFirstGroupInstByName( FString( Name ) );
 			if( GroupInst != NULL )
 			{
-				AActor * GrActor = GroupInst->GetGroupActor();
+				AActor* GrActor = GroupInst->GetGroupActor();
 				// Make sure we have an actor
 				if( GrActor != NULL &&
 					GrActor->IsA( ACameraActor::StaticClass() ) )

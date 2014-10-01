@@ -246,7 +246,7 @@ void UK2Node::PostReconstructNode()
 					UEnum* EnumPtr = Cast<UEnum>(CurrentPin->PinType.PinSubCategoryObject.Get());
 					if (EnumPtr)
 					{
-						const FString & PinValue = CurrentPin->DefaultValue;
+						const FString& PinValue = CurrentPin->DefaultValue;
 						// see if this enum is in EnumRedirects
 						int32 EnumIndex = UEnum::FindEnumRedirects(EnumPtr, *PinValue);
 						if (EnumIndex != INDEX_NONE)
@@ -373,7 +373,7 @@ void UK2Node::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& Redir
 	RedirectPinNames.Add(Pin.PinName);
 }
 
-UK2Node::ERedirectType UK2Node::ShouldRedirectParam(const TArray<FString>& OldPinNames, FName & NewPinName, const UK2Node * NewPinNode) const 
+UK2Node::ERedirectType UK2Node::ShouldRedirectParam(const TArray<FString>& OldPinNames, FName& NewPinName, const UK2Node * NewPinNode) const 
 {
 	if ( ensure(NewPinNode) )
 	{
@@ -385,14 +385,14 @@ UK2Node::ERedirectType UK2Node::ShouldRedirectParam(const TArray<FString>& OldPi
 			TArray<FName> OldPinFNames;
 			for (auto NameIter=OldPinNames.CreateConstIterator(); NameIter; ++NameIter)
 			{
-				const FString & Name = *NameIter;
+				const FString& Name = *NameIter;
 				OldPinFNames.AddUnique(*Name);
 			}
 
 			// go through for the NewPinNode
 			for(TMultiMap<UClass*, FParamRemapInfo>::TConstKeyIterator ParamIter(ParamRedirectMap, NewPinNode->GetClass()); ParamIter; ++ParamIter)
 			{
-				const FParamRemapInfo & ParamRemap = ParamIter.Value();
+				const FParamRemapInfo& ParamRemap = ParamIter.Value();
 
 				// if it has it, return true
 				if (OldPinFNames.Contains(ParamRemap.OldParam)
@@ -536,14 +536,14 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 			TArray<FName> OldPinFNames;
 			for (auto NameIter=OldPinNames.CreateConstIterator(); NameIter; ++NameIter)
 			{
-				const FString & Name = *NameIter;
+				const FString& Name = *NameIter;
 				OldPinFNames.AddUnique(*Name);
 			}
 
 			// go through for the NewPinNode
 			for(TMultiMap<UClass*, FParamRemapInfo>::TConstKeyIterator ParamIter(ParamRedirectMap, Cast<UK2Node>(NewPin->GetOwningNode())->GetClass()); ParamIter; ++ParamIter)
 			{
-				const FParamRemapInfo & ParamRemap = ParamIter.Value();
+				const FParamRemapInfo& ParamRemap = ParamIter.Value();
 
 				// once we find it, see about remapping the value
 				if (OldPinFNames.Contains(ParamRemap.OldParam))

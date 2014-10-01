@@ -320,7 +320,7 @@ void UAnimGraphNode_SequencePlayer::ValidateAnimNodeDuringCompilation(class USke
 	}
 	else
 	{
-		USkeleton * SeqSkeleton = Node.Sequence->GetSkeleton();
+		USkeleton* SeqSkeleton = Node.Sequence->GetSkeleton();
 		if (SeqSkeleton&& // if anim sequence doesn't have skeleton, it might be due to anim sequence not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!SeqSkeleton->IsCompatible(ForSkeleton))
 		{

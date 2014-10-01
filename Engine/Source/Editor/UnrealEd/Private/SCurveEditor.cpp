@@ -1144,7 +1144,7 @@ FReply SCurveEditor::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPoin
 	return FReply::Unhandled();
 }
 
-void ClampViewRangeToDataIfBound( float & NewViewMin, float & NewViewMax, const TAttribute< TOptional<float> > & DataMin, const TAttribute< TOptional<float> > & DataMax, const float ViewRange)
+void ClampViewRangeToDataIfBound( float& NewViewMin, float& NewViewMax, const TAttribute< TOptional<float> > & DataMin, const TAttribute< TOptional<float> > & DataMax, const float ViewRange)
 {
 	// if we have data bound
 	const TOptional<float> & Min = DataMin.Get();

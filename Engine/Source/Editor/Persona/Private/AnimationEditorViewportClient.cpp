@@ -55,7 +55,7 @@ struct HPersonaBoneProxy : public HHitProxy
 
 	FName BoneName;
 
-	explicit HPersonaBoneProxy(const FName & InBoneName)
+	explicit HPersonaBoneProxy(const FName& InBoneName)
 		:	BoneName( InBoneName )
 	{}
 };
@@ -222,7 +222,7 @@ FSceneView* FAnimationViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily
 	return SceneView;
 }
 
-void FAnimationViewportClient::SetSelectedBackgroundColor(const FLinearColor & RGBColor, bool bSave/*=true*/)
+void FAnimationViewportClient::SetSelectedBackgroundColor(const FLinearColor& RGBColor, bool bSave/*=true*/)
 {
 	SelectedHSVColor = RGBColor.LinearRGBToHSV(); 
 
@@ -1515,7 +1515,7 @@ void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshCompon
 	}
 }
 
-void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent * MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness/*=0.f*/) const
+void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness/*=0.f*/) const
 {
 	check ( MeshComponent && MeshComponent->SkeletalMesh );
 
@@ -1568,7 +1568,7 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent * MeshComp
 	}
 }
 
-void FAnimationViewportClient::RenderGizmo(const FTransform & Transform, FPrimitiveDrawInterface* PDI) const
+void FAnimationViewportClient::RenderGizmo(const FTransform& Transform, FPrimitiveDrawInterface* PDI) const
 {
 	// Display colored coordinate system axes for this joint.
 	const float AxisLength = 3.75f;
@@ -1591,7 +1591,7 @@ void FAnimationViewportClient::RenderGizmo(const FTransform & Transform, FPrimit
 	PDI->DrawLine( Origin, Origin + ZAxis * AxisLength, FColor( 80, 80, 255),SDPG_Foreground, LineThickness); 
 }
 
-void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent * MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const
+void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent* MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const
 {
 	// this BonesOfInterest has to be in MeshComponent base, not Skeleton 
 	if ( MeshComponent && MeshComponent->SkeletalMesh && BonesOfInterest.Num() > 0 )
@@ -1604,7 +1604,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent 
 
 		TArray<FBoneIndexType> RequiredBones;
 
-		const FReferenceSkeleton & RefSkeleton = MeshComponent->SkeletalMesh->RefSkeleton;
+		const FReferenceSkeleton& RefSkeleton = MeshComponent->SkeletalMesh->RefSkeleton;
 		const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
 		const FLinearColor LinearSelectionColor( SelectionColor.IsColorSpecified() ? SelectionColor.GetSpecifiedColor() : FLinearColor::White );
 

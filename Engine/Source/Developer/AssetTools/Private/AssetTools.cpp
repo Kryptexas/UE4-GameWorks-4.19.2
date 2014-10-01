@@ -189,9 +189,9 @@ bool FAssetTools::GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuild
 
 struct FRootedOnScope
 {
-	UObject * Obj;
+	UObject* Obj;
 
-	FRootedOnScope(UObject * InObj) : Obj(NULL)
+	FRootedOnScope(UObject* InObj) : Obj(NULL)
 	{
 		if (InObj && !InObj->IsRooted())
 		{

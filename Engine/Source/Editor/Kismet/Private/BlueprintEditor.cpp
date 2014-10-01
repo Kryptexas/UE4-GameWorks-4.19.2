@@ -6598,7 +6598,7 @@ FString FBlueprintEditor::GetPIEStatus() const
 		}
 		else
 		{
-			UObject * ObjOuter = CurrentBlueprint->GetObjectBeingDebugged();
+			UObject* ObjOuter = CurrentBlueprint->GetObjectBeingDebugged();
 			while(DebugWorld == NULL && ObjOuter != NULL)
 			{
 				ObjOuter = ObjOuter->GetOuter();

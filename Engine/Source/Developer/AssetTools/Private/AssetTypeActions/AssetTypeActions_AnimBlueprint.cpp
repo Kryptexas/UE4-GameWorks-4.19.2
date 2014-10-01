@@ -155,7 +155,7 @@ void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSke
 void FAssetTypeActions_AnimBlueprint::RetargetAssets(TArray<UObject*> InAnimBlueprints, bool bDuplicateAssets)
 {
 	bool bRemapReferencedAssets = false;
-	USkeleton * OldSkeleton = NULL;
+	USkeleton* OldSkeleton = NULL;
 
 	if ( InAnimBlueprints.Num() > 0 )
 	{

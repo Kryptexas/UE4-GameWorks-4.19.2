@@ -41,7 +41,7 @@ UPersonaOptions::UPersonaOptions(const class FPostConstructInitializeProperties&
 	ViewModeIndex = VMI_Lit;
 }
 
-void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor & InViewportBackgroundColor)
+void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)
 {
 	ViewportBackgroundColor = InViewportBackgroundColor;
 	SaveConfig();

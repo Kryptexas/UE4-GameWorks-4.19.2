@@ -388,7 +388,7 @@ protected:
 	 * 
 	 * returns the redirect type
 	 */
-	BLUEPRINTGRAPH_API ERedirectType ShouldRedirectParam(const TArray<FString>& OldPinNames, FName & NewPinName, const UK2Node * NewPinNode) const;
+	BLUEPRINTGRAPH_API ERedirectType ShouldRedirectParam(const TArray<FString>& OldPinNames, FName& NewPinName, const UK2Node * NewPinNode) const;
 
 	/** 
 	 * Sends a message to the owning blueprint's CurrentMessageLog, if there is one available.  Otherwise, defaults to logging to the normal channels.

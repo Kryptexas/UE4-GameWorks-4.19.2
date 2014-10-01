@@ -498,7 +498,7 @@ struct FSaveActorFlagsHelper
 		bOverride = (AActor::StaticClass() == FBlueprintEditorUtils::FindFirstNativeClass(Class));
 		if(Class && bOverride)
 		{
-			AActor * CDActor = Cast<AActor>(Class->GetDefaultObject());
+			AActor* CDActor = Cast<AActor>(Class->GetDefaultObject());
 			if(CDActor)
 			{
 				bCanEverTick = CDActor->PrimaryActorTick.bCanEverTick;
@@ -510,7 +510,7 @@ struct FSaveActorFlagsHelper
 	{
 		if(Class && bOverride)
 		{
-			AActor * CDActor = Cast<AActor>(Class->GetDefaultObject());
+			AActor* CDActor = Cast<AActor>(Class->GetDefaultObject());
 			if(CDActor)
 			{
 				CDActor->PrimaryActorTick.bCanEverTick = bCanEverTick;

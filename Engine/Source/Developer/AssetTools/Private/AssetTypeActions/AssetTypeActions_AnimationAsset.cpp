@@ -90,7 +90,7 @@ void FAssetTypeActions_AnimationAsset::OpenAssetEditor( const TArray<UObject*>& 
 		auto AnimAsset = Cast<UAnimationAsset>(*ObjIt);
 		if (AnimAsset != NULL)
 		{
-			USkeleton * AnimSkeleton = AnimAsset->GetSkeleton();
+			USkeleton* AnimSkeleton = AnimAsset->GetSkeleton();
 			if (!AnimSkeleton)
 			{
 				FText ShouldRetargetMessage = LOCTEXT("ShouldRetargetAnimAsset_Message", "Could not find the skeleton for Anim '{AnimName}' Would you like to choose a new one?");
@@ -161,8 +161,8 @@ void FAssetTypeActions_AnimationAsset::RetargetAnimationHandler(USkeleton* OldSk
 void FAssetTypeActions_AnimationAsset::RetargetAssets(TArray<UObject*> InAnimAssets, bool bDuplicateAssets)
 {
 	bool bRemapReferencedAssets = false;
-	USkeleton * NewSkeleton = NULL;
-	USkeleton * OldSkeleton = NULL;
+	USkeleton* NewSkeleton = NULL;
+	USkeleton* OldSkeleton = NULL;
 	if(InAnimAssets.Num() > 0)
 	{
 		UAnimationAsset * AnimAsset = CastChecked<UAnimationAsset>(InAnimAssets[0]);

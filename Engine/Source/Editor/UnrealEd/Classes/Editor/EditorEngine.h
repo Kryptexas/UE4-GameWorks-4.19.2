@@ -1436,14 +1436,14 @@ public:
 	 * @param Filename	The FBX filename
 	 * @param bImportMorphTracks	true to import any morph curve data.
 	 */
-	static UAnimSequence * ImportFbxAnimation( USkeleton * Skeleton, UObject * Outer, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename, const TCHAR * AnimName, bool bImportMorphTracks );
+	static UAnimSequence * ImportFbxAnimation( USkeleton* Skeleton, UObject* Outer, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename, const TCHAR* AnimName, bool bImportMorphTracks );
 	/**
 	 * Reimport animation using SourceFilePath and SourceFileStamp 
 	 *
 	 * @param Skeleton	The skeleton that animation is import into
 	 * @param Filename	The FBX filename
 	 */
-	static bool ReimportFbxAnimation( USkeleton * Skeleton, UAnimSequence * AnimSequence, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename);
+	static bool ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* AnimSequence, class UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename);
 
 
 	// Object management.

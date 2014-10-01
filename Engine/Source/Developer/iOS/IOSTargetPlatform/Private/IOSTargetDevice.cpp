@@ -159,11 +159,11 @@ bool FIOSTargetDevice::TerminateProcess(const int32 ProcessId)
 	return false;
 }
 
-void FIOSTargetDevice::SetUserCredentials(const FString & UserName, const FString & UserPassword)
+void FIOSTargetDevice::SetUserCredentials(const FString& UserName, const FString& UserPassword)
 {
 }
 
-bool FIOSTargetDevice::GetUserCredentials(FString & OutUserName, FString & OutUserPassword)
+bool FIOSTargetDevice::GetUserCredentials(FString& OutUserName, FString& OutUserPassword)
 {
 	return false;
 }

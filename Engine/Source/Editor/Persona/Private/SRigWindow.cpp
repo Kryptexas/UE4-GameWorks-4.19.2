@@ -324,7 +324,7 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 {
 	BoneMappingList.Empty();
 
-	const URig * Rig = Skeleton->GetRig();
+	const URig* Rig = Skeleton->GetRig();
 
 	if ( Rig )
 	{
@@ -333,9 +333,9 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 
 		for ( const auto Node : Nodes )
 		{
-			const FName & Name = Node.Name;
-			const FString & DisplayName = Node.DisplayName;
-			const FName & BoneName = Skeleton->GetRigBoneMapping(Name);
+			const FName& Name = Node.Name;
+			const FString& DisplayName = Node.DisplayName;
+			const FName& BoneName = Skeleton->GetRigBoneMapping(Name);
 
 			if (Node.bAdvanced == bDisplayAdvanced)
 			{

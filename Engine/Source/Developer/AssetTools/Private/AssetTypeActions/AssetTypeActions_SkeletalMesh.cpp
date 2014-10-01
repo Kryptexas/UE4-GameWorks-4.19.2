@@ -334,11 +334,11 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 	TArray<FBoneCheckboxInfo> BoneInfos;
 
 	// Make a list of all skeleton bone list
-	const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 	const TArray<FBoneNode> & BoneTree = Skeleton->GetBoneTree();
 	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
 	{
-		const FName & BoneName = RefSkeleton.GetBoneName(BoneTreeId);
+		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
 		BoneIndicesMap.Add(BoneName, BoneTreeId);
 	}
 

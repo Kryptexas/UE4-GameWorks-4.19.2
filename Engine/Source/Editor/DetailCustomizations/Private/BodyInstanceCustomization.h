@@ -60,7 +60,7 @@ private:
 
 	// utility functions between property and struct
 	void CreateCustomCollisionSetup( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailGroup& CollisionGroup );
-	void SetCollisionResponseContainer(const FCollisionResponseContainer & ResponseContainer);
+	void SetCollisionResponseContainer(const FCollisionResponseContainer& ResponseContainer);
 	void SetResponse(int32 ValidIndex, ECollisionResponse InCollisionResponse);
 	void UpdateCollisionProfile();
 	TSharedPtr<FString> GetProfileString(FName ProfileName) const;

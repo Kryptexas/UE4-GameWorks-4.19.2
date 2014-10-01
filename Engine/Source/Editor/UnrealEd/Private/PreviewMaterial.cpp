@@ -242,7 +242,7 @@ void  UMaterialEditorInstanceConstant::AssignParameterToGroup(UMaterial* ParentM
 	CurrentGroup.Parameters.Add(ParameterValue);
 }
 
-FEditorParameterGroup&  UMaterialEditorInstanceConstant::GetParameterGroup(FName & ParameterGroup)
+FEditorParameterGroup&  UMaterialEditorInstanceConstant::GetParameterGroup(FName& ParameterGroup)
 {	
 	if (ParameterGroup == TEXT(""))
 	{

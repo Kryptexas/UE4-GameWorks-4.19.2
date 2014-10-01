@@ -40,8 +40,8 @@ void FAnimGraphNodeSlotDetails::CustomizeDetails(class IDetailLayoutBuilder& Det
 	for (auto Object : OuterObjects)
 	{
 		// if not this object, we have problem 
-		const UAnimGraphNode_Base * Node = CastChecked<UAnimGraphNode_Base>(Object);
-		const UAnimBlueprint * AnimBlueprint = Node->GetAnimBlueprint();
+		const UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(Object);
+		const UAnimBlueprint* AnimBlueprint = Node->GetAnimBlueprint();
 		if (AnimBlueprint)
 		{
 			// if skeleton is already set and it's not same as target skeleton, we have some problem ,return
@@ -255,7 +255,7 @@ FReply FAnimGraphNodeSlotDetails::OnAddSlotName(TSharedRef<SWidget> Widget)
 	return FReply::Handled();
 }
 
-void FAnimGraphNodeSlotDetails::AddSlotName(const FText & SlotNameToAdd, ETextCommit::Type CommitInfo)
+void FAnimGraphNodeSlotDetails::AddSlotName(const FText& SlotNameToAdd, ETextCommit::Type CommitInfo)
 {
 	if(!SlotNameToAdd.IsEmpty())
 	{
@@ -327,7 +327,7 @@ FReply FAnimGraphNodeSlotDetails::OnAddGroupName(TSharedRef<SWidget> Widget)
 	return FReply::Handled();
 }
 
-void FAnimGraphNodeSlotDetails::AddGroupName(const FText & GroupNameToAdd, ETextCommit::Type CommitInfo)
+void FAnimGraphNodeSlotDetails::AddGroupName(const FText& GroupNameToAdd, ETextCommit::Type CommitInfo)
 {
 	if(!GroupNameToAdd.IsEmpty())
 	{

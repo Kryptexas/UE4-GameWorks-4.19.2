@@ -235,7 +235,7 @@ public:
 
 		for (auto ObjIter=ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
 		{
-			const FAssetData & Asset = *ObjIter;
+			const FAssetData& Asset = *ObjIter;
 			FString Filename = Asset.ObjectPath.ToString();
 			//convert to full paths
 			Filename = FPackageName::LongPackageNameToFilename(Filename);
