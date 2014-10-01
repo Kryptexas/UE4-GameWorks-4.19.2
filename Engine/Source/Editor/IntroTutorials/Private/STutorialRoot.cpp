@@ -106,6 +106,12 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 	{
 		CurrentTutorial = InTutorial;
 
+		// we force a restart if this tutorial was completed
+		if(GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(CurrentTutorial))
+		{
+			bInRestart = true;
+		}
+
 		bool bHaveSeenTutorial = false;
 		CurrentTutorialStage = bInRestart ? 0 : GetDefault<UTutorialStateSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
 
