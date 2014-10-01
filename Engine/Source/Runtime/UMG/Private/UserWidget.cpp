@@ -25,8 +25,10 @@ UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 
 	bSupportsKeyboardFocus = true;
 
+#if WITH_EDITORONLY_DATA
 	bUseDesignTimeSize = false;
 	DesignTimeSize = FVector2D(100, 100);
+#endif
 }
 
 void UUserWidget::Initialize()

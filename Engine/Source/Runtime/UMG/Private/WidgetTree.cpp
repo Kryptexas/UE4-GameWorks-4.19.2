@@ -94,7 +94,7 @@ void UWidgetTree::GetAllWidgets(TArray<UWidget*>& Widgets) const
 
 void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const
 {
-	if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Parent) )
+	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Parent) )
 	{
 		TArray<FName> SlotNames;
 		NamedSlotHost->GetSlotNames(SlotNames);
