@@ -307,7 +307,7 @@ void UGameplayAbility::PreActivate(const FGameplayAbilitySpecHandle Handle, cons
 
 	bIsActive = true;
 
-	Comp->CancelAbilitiesWithTags(CancelAbilitiesWithTag, Handle, ActorInfo, ActivationInfo, this);
+	Comp->CancelAbilities(&CancelAbilitiesWithTag, nullptr, this);
 	Comp->BlockAbilitiesWithTags(BlockAbilitiesWithTag);
 
 	Comp->NotifyAbilityActivated(Handle, this);

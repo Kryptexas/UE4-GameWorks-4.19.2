@@ -251,11 +251,17 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 	}
 }
 
-void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore)
+void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithTags, const FGameplayTagContainer* WithoutTags, UGameplayAbility* Ignore)
 {
+	FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
+	FGameplayAbilityActivationInfo ActivationInfo;
+
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
 	{
-		if (Spec.IsActive() && Spec.Ability && Spec.Ability->AbilityTags.MatchesAny(Tags, false))
+		bool WithTagPass = (!WithTags || Spec.Ability->AbilityTags.MatchesAny(*WithTags, false));
+		bool WithoutTagPass = (!WithoutTags || Spec.Ability->AbilityTags.MatchesAll(*WithoutTags, false));
+
+		if (Spec.IsActive() && Spec.Ability && WithTagPass && WithoutTagPass)
 		{
 			if (Spec.Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 			{
