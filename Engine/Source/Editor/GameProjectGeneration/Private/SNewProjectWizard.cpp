@@ -12,6 +12,7 @@
 #include "HardwareTargetingModule.h"
 #include "SDecoratedEnumCombo.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "BreakIterator.h"
 
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
 
@@ -259,9 +260,10 @@ public:
 				.VAlign(VAlign_Top)
 				.Padding(FMargin(ThumbnailPadding, 0))
 				[
-					SNew(SRichTextBlock)
+					SNew(STextBlock)
 					.AutoWrapText(true)
 					.Justification(ETextJustify::Center)
+					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 					//.HighlightText(this, &SNewProjectWizard::GetItemHighlightText)
 					.Text(InArgs._Item->Name)
 				]
