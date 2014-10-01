@@ -234,7 +234,13 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetEndOffset(FVector2D EndOffset);
 
+	/** Get the forward axis */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	ESplineMeshAxis::Type GetForwardAxis() const;
 
+	/** Set the forward axis */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetForwardAxis(ESplineMeshAxis::Type InForwardAxis);
 
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();

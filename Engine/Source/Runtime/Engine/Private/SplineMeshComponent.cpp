@@ -354,6 +354,18 @@ void USplineMeshComponent::SetEndOffset(FVector2D EndOffset)
 	MarkSplineParamsDirty();
 }
 
+ESplineMeshAxis::Type USplineMeshComponent::GetForwardAxis() const
+{
+	return ForwardAxis;
+}
+
+void USplineMeshComponent::SetForwardAxis(ESplineMeshAxis::Type InForwardAxis)
+{
+	ForwardAxis = InForwardAxis;
+	MarkSplineParamsDirty();
+}
+
+
 void USplineMeshComponent::MarkSplineParamsDirty()
 {
 	MarkRenderStateDirty();
