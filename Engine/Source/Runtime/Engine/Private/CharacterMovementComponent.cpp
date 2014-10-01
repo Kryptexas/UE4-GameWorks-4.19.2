@@ -2809,7 +2809,18 @@ void UCharacterMovementComponent::NotifyJumpApex()
 FVector UCharacterMovementComponent::GetFallingLateralAcceleration(float DeltaTime)
 {
 	// No acceleration in Z
-	return FVector(Acceleration.X, Acceleration.Y, 0.f);
+	FVector FallAcceleration = FVector(Acceleration.X, Acceleration.Y, 0.f);
+
+	// bound acceleration, falling object has minimal ability to impact acceleration
+	if (!HasRootMotion() && FallAcceleration.SizeSquared2D() > 0.f)
+	{
+		const float TickAirControl = GetAirControl(DeltaTime, AirControl, FallAcceleration);
+
+		const float MaxAccel = GetMaxAcceleration() * TickAirControl;
+		FallAcceleration = FallAcceleration.ClampMaxSize(MaxAccel);
+	}
+
+	return FallAcceleration;
 }
 
 
@@ -2856,15 +2867,6 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 
 	FVector FallAcceleration = GetFallingLateralAcceleration(deltaTime);
 	FallAcceleration.Z = 0.f;
-
-	// bound acceleration, falling object has minimal ability to impact acceleration
-	if (!HasRootMotion() && FallAcceleration.SizeSquared() > 0.f)
-	{
-		const float TickAirControl = GetAirControl(deltaTime, AirControl, FallAcceleration);
-
-		const float MaxAccel = GetMaxAcceleration() * TickAirControl;
-		FallAcceleration = FallAcceleration.ClampMaxSize(MaxAccel);
-	}
 
 	float remainingTime = deltaTime;
 	while( (remainingTime >= MIN_TICK_TIME) && (Iterations < MaxSimulationIterations) )
