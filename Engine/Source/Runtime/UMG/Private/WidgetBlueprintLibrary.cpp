@@ -39,6 +39,46 @@ UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf
 	}
 }
 
+void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)
+{
+	if (Target != nullptr)
+	{
+		FInputModeUIOnly InputMode;
+		InputMode.SetLockMouseToViewport(bLockMouseToViewport);
+
+		if (InWidgetToFocus != nullptr)
+		{
+			InputMode.SetWidgetToFocus(InWidgetToFocus->TakeWidget());
+		}
+		Target->SetInputMode(InputMode);
+	}
+}
+
+void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
+{
+	if (Target != nullptr)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewport(bLockMouseToViewport);
+		InputMode.SetHideCursorDuringCapture(bHideCursorDuringCapture);
+
+		if (InWidgetToFocus != nullptr)
+		{
+			InputMode.SetWidgetToFocus(InWidgetToFocus->TakeWidget());
+		}
+		Target->SetInputMode(InputMode);
+	}
+}
+
+void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController* Target)
+{
+	if (Target != nullptr)
+	{
+		FInputModeGameOnly InputMode;
+		Target->SetInputMode(InputMode);
+	}
+}
+
 void UWidgetBlueprintLibrary::SetFocusToGameViewport()
 {
 	FSlateApplication::Get().SetFocusToGameViewport();
