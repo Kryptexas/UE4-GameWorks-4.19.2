@@ -84,7 +84,7 @@ public:
 	 */
 	int32 RemoveSlot( const TSharedRef<SWidget>& SlotWidget );
 
-	void Construct( const FArguments & InArgs );
+	void Construct( const FArguments& InArgs );
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 

@@ -27,7 +27,7 @@ private:
 	friend struct TWidgetAllocator;
 
 public:
-	void operator delete(void * mem)
+	void operator delete(void* mem)
 	{
 		FMemory::Free(mem);
 	}

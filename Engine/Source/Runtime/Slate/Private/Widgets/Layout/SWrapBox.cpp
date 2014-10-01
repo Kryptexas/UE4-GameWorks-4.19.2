@@ -34,7 +34,7 @@ int32 SWrapBox::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 	return -1;
 }
 
-void SWrapBox::Construct( const FArguments & InArgs )
+void SWrapBox::Construct( const FArguments& InArgs )
 {
 	PreferredWidth = InArgs._PreferredWidth;
 	InnerSlotPadding = InArgs._InnerSlotPadding;
