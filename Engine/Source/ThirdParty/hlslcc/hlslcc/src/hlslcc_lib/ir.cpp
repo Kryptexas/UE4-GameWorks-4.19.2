@@ -30,7 +30,7 @@
 #include "ir.h"
 #include "ir_visitor.h"
 #include "glsl_types.h"
-#include "macros.h"
+#include "compiler.h"
 
 
 ir_rvalue::ir_rvalue()

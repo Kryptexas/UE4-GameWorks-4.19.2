@@ -61,357 +61,361 @@
 #include "ir_optimization.h"
 #include "glsl_types.h"
 #include "hlslcc_private.h"
-static bool Debug = false;
 
-class ir_tree_grafting_visitor : public ir_hierarchical_visitor
+namespace OptTreeGrafting
 {
-public:
-	ir_tree_grafting_visitor(ir_assignment *graft_assign,
-		ir_variable *graft_var)
+	static bool Debug = false;
+
+	class ir_tree_grafting_visitor : public ir_hierarchical_visitor
 	{
-		this->progress = false;
-		this->graft_assign = graft_assign;
-		this->graft_var = graft_var;
+	public:
+		ir_tree_grafting_visitor(ir_assignment *graft_assign,
+			ir_variable *graft_var)
+		{
+			this->progress = false;
+			this->graft_assign = graft_assign;
+			this->graft_var = graft_var;
+		}
+
+		virtual ir_visitor_status visit_leave(class ir_assignment *);
+		virtual ir_visitor_status visit_enter(class ir_call *);
+		virtual ir_visitor_status visit_enter(class ir_expression *);
+		virtual ir_visitor_status visit_enter(class ir_function *);
+		virtual ir_visitor_status visit_enter(class ir_function_signature *);
+		virtual ir_visitor_status visit_enter(class ir_if *);
+		virtual ir_visitor_status visit_enter(class ir_loop *);
+		virtual ir_visitor_status visit_enter(class ir_swizzle *);
+		virtual ir_visitor_status visit_enter(class ir_texture *);
+
+		ir_visitor_status check_graft(ir_instruction *ir, ir_variable *var);
+
+		bool do_graft(ir_rvalue **rvalue);
+
+		bool progress;
+		ir_variable *graft_var;
+		ir_assignment *graft_assign;
+	};
+
+	struct find_deref_info
+	{
+		ir_variable *var;
+		bool found;
+	};
+
+	void dereferences_variable_callback(ir_instruction *ir, void *data)
+	{
+		struct find_deref_info *info = (struct find_deref_info *)data;
+		ir_dereference_variable *deref = ir->as_dereference_variable();
+
+		if (deref && deref->var == info->var)
+		{
+			info->found = true;
+		}
 	}
 
-	virtual ir_visitor_status visit_leave(class ir_assignment *);
-	virtual ir_visitor_status visit_enter(class ir_call *);
-	virtual ir_visitor_status visit_enter(class ir_expression *);
-	virtual ir_visitor_status visit_enter(class ir_function *);
-	virtual ir_visitor_status visit_enter(class ir_function_signature *);
-	virtual ir_visitor_status visit_enter(class ir_if *);
-	virtual ir_visitor_status visit_enter(class ir_loop *);
-	virtual ir_visitor_status visit_enter(class ir_swizzle *);
-	virtual ir_visitor_status visit_enter(class ir_texture *);
-
-	ir_visitor_status check_graft(ir_instruction *ir, ir_variable *var);
-
-	bool do_graft(ir_rvalue **rvalue);
-
-	bool progress;
-	ir_variable *graft_var;
-	ir_assignment *graft_assign;
-};
-
-struct find_deref_info
-{
-	ir_variable *var;
-	bool found;
-};
-
-void dereferences_variable_callback(ir_instruction *ir, void *data)
-{
-	struct find_deref_info *info = (struct find_deref_info *)data;
-	ir_dereference_variable *deref = ir->as_dereference_variable();
-
-	if (deref && deref->var == info->var)
+	static bool dereferences_variable(ir_instruction *ir, ir_variable *var)
 	{
-		info->found = true;
-	}
-}
+		struct find_deref_info info;
 
-static bool dereferences_variable(ir_instruction *ir, ir_variable *var)
-{
-	struct find_deref_info info;
+		info.var = var;
+		info.found = false;
 
-	info.var = var;
-	info.found = false;
+		visit_tree(ir, dereferences_variable_callback, &info);
 
-	visit_tree(ir, dereferences_variable_callback, &info);
-
-	return info.found;
-}
-
-bool ir_tree_grafting_visitor::do_graft(ir_rvalue **rvalue)
-{
-	if (!*rvalue)
-	{
-		return false;
+		return info.found;
 	}
 
-	ir_dereference_variable *deref = (*rvalue)->as_dereference_variable();
-
-	if (!deref || deref->var != this->graft_var)
+	bool ir_tree_grafting_visitor::do_graft(ir_rvalue **rvalue)
 	{
-		return false;
-	}
+		if (!*rvalue)
+		{
+			return false;
+		}
 
-	if (Debug)
-	{
-		printf("GRAFTING: %d\n", this->graft_assign->id);
-		this->graft_assign->print();
-		printf("\n");
-		printf("TO: %d\n", (*rvalue)->id);
-		(*rvalue)->print();
-		printf("\n");
-	}
+		ir_dereference_variable *deref = (*rvalue)->as_dereference_variable();
 
-	this->graft_assign->remove();
-	*rvalue = this->graft_assign->rhs;
+		if (!deref || deref->var != this->graft_var)
+		{
+			return false;
+		}
 
-	this->progress = true;
-	return true;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_loop *ir)
-{
-	(void)ir;
-	/* Do not traverse into the body of the loop since that is a
-	* different basic block.
-	*/
-	return visit_stop;
-}
-
-/**
-* Check if we can continue grafting after writing to a variable.  If the
-* expression we're trying to graft references the variable, we must stop.
-*
-* \param ir   An instruction that writes to a variable.
-* \param var  The variable being updated.
-*/
-ir_visitor_status ir_tree_grafting_visitor::check_graft(ir_instruction *ir, ir_variable *var)
-{
-	if (dereferences_variable(this->graft_assign->rhs, var))
-	{
 		if (Debug)
 		{
-			printf("graft killed by %d: ", ir->id);
-			ir->print();
+			printf("GRAFTING: %d\n", this->graft_assign->id);
+			this->graft_assign->print();
+			printf("\n");
+			printf("TO: %d\n", (*rvalue)->id);
+			(*rvalue)->print();
 			printf("\n");
 		}
-		return visit_stop;
+
+		this->graft_assign->remove();
+		*rvalue = this->graft_assign->rhs;
+
+		this->progress = true;
+		return true;
 	}
 
-	return visit_continue;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_leave(ir_assignment *ir)
-{
-	if (do_graft(&ir->rhs) ||
-		do_graft(&ir->condition))
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_loop *ir)
 	{
+		(void)ir;
+		/* Do not traverse into the body of the loop since that is a
+		* different basic block.
+		*/
 		return visit_stop;
 	}
 
-	/* If this assignment updates a variable used in the assignment
-	* we're trying to graft, then we're done.
+	/**
+	* Check if we can continue grafting after writing to a variable.  If the
+	* expression we're trying to graft references the variable, we must stop.
+	*
+	* \param ir   An instruction that writes to a variable.
+	* \param var  The variable being updated.
 	*/
-	return check_graft(ir, ir->lhs->variable_referenced());
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_function *ir)
-{
-	(void)ir;
-	return visit_continue_with_parent;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_function_signature *ir)
-{
-	(void)ir;
-	return visit_continue_with_parent;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_call *ir)
-{
-	exec_list_iterator sig_iter = ir->callee->parameters.iterator();
-	/* Reminder: iterating ir_call iterates its parameters. */
-	foreach_iter(exec_list_iterator, iter, *ir)
+	ir_visitor_status ir_tree_grafting_visitor::check_graft(ir_instruction *ir, ir_variable *var)
 	{
-		ir_variable *sig_param = (ir_variable *)sig_iter.get();
-		ir_rvalue *ir = (ir_rvalue *)iter.get();
-		ir_rvalue *new_ir = ir;
-
-		if (sig_param->mode != ir_var_in && sig_param->mode != ir_var_const_in)
+		if (dereferences_variable(this->graft_assign->rhs, var))
 		{
-			if (check_graft(ir, sig_param) == visit_stop)
-				return visit_stop;
+			if (Debug)
 			{
-				continue;
+				printf("graft killed by %d: ", ir->id);
+				ir->print();
+				printf("\n");
+			}
+			return visit_stop;
+		}
+
+		return visit_continue;
+	}
+
+	ir_visitor_status ir_tree_grafting_visitor::visit_leave(ir_assignment *ir)
+	{
+		if (do_graft(&ir->rhs) ||
+			do_graft(&ir->condition))
+		{
+			return visit_stop;
+		}
+
+		/* If this assignment updates a variable used in the assignment
+		* we're trying to graft, then we're done.
+		*/
+		return check_graft(ir, ir->lhs->variable_referenced());
+	}
+
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_function *ir)
+	{
+		(void)ir;
+		return visit_continue_with_parent;
+	}
+
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_function_signature *ir)
+	{
+		(void)ir;
+		return visit_continue_with_parent;
+	}
+
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_call *ir)
+	{
+		exec_list_iterator sig_iter = ir->callee->parameters.iterator();
+		/* Reminder: iterating ir_call iterates its parameters. */
+		foreach_iter(exec_list_iterator, iter, *ir)
+		{
+			ir_variable *sig_param = (ir_variable *)sig_iter.get();
+			ir_rvalue *ir = (ir_rvalue *)iter.get();
+			ir_rvalue *new_ir = ir;
+
+			if (sig_param->mode != ir_var_in && sig_param->mode != ir_var_const_in)
+			{
+				if (check_graft(ir, sig_param) == visit_stop)
+					return visit_stop;
+				{
+					continue;
+				}
+			}
+
+			if (do_graft(&new_ir))
+			{
+				ir->replace_with(new_ir);
+				return visit_stop;
+			}
+			sig_iter.next();
+		}
+
+		if (ir->return_deref && check_graft(ir, ir->return_deref->var) == visit_stop)
+		{
+			return visit_stop;
+		}
+
+		return visit_continue;
+	}
+
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_expression *ir)
+	{
+		for (unsigned int i = 0; i < ir->get_num_operands(); i++)
+		{
+			if (do_graft(&ir->operands[i]))
+			{
+				return visit_stop;
 			}
 		}
 
-		if (do_graft(&new_ir))
-		{
-			ir->replace_with(new_ir);
-			return visit_stop;
-		}
-		sig_iter.next();
+		return visit_continue;
 	}
 
-	if (ir->return_deref && check_graft(ir, ir->return_deref->var) == visit_stop)
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_if *ir)
 	{
-		return visit_stop;
-	}
-
-	return visit_continue;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_expression *ir)
-{
-	for (unsigned int i = 0; i < ir->get_num_operands(); i++)
-	{
-		if (do_graft(&ir->operands[i]))
+		if (do_graft(&ir->condition))
 		{
 			return visit_stop;
 		}
+
+		/* Do not traverse into the body of the if-statement since that is a
+		* different basic block.
+		*/
+		return visit_continue_with_parent;
 	}
 
-	return visit_continue;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_if *ir)
-{
-	if (do_graft(&ir->condition))
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_swizzle *ir)
 	{
-		return visit_stop;
-	}
-
-	/* Do not traverse into the body of the if-statement since that is a
-	* different basic block.
-	*/
-	return visit_continue_with_parent;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_swizzle *ir)
-{
-	if (do_graft(&ir->val))
-	{
-		return visit_stop;
-	}
-
-	return visit_continue;
-}
-
-ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_texture *ir)
-{
-	if (do_graft(&ir->coordinate) ||
-		do_graft(&ir->projector) ||
-		do_graft(&ir->offset) ||
-		do_graft(&ir->shadow_comparitor))
-	{
-		return visit_stop;
-	}
-
-	switch (ir->op)
-	{
-	case ir_tex:
-	case ir_txm:
-	case ir_txg:
-		break;
-	case ir_txb:
-		if (do_graft(&ir->lod_info.bias))
+		if (do_graft(&ir->val))
 		{
 			return visit_stop;
 		}
-		break;
-	case ir_txf:
-	case ir_txl:
-	case ir_txs:
-		if (do_graft(&ir->lod_info.lod))
+
+		return visit_continue;
+	}
+
+	ir_visitor_status ir_tree_grafting_visitor::visit_enter(ir_texture *ir)
+	{
+		if (do_graft(&ir->coordinate) ||
+			do_graft(&ir->projector) ||
+			do_graft(&ir->offset) ||
+			do_graft(&ir->shadow_comparitor))
 		{
 			return visit_stop;
 		}
-		break;
-	case ir_txd:
-		if (do_graft(&ir->lod_info.grad.dPdx) ||
-			do_graft(&ir->lod_info.grad.dPdy))
+
+		switch (ir->op)
 		{
-			return visit_stop;
+		case ir_tex:
+		case ir_txm:
+		case ir_txg:
+			break;
+		case ir_txb:
+			if (do_graft(&ir->lod_info.bias))
+			{
+				return visit_stop;
+			}
+			break;
+		case ir_txf:
+		case ir_txl:
+		case ir_txs:
+			if (do_graft(&ir->lod_info.lod))
+			{
+				return visit_stop;
+			}
+			break;
+		case ir_txd:
+			if (do_graft(&ir->lod_info.grad.dPdx) ||
+				do_graft(&ir->lod_info.grad.dPdy))
+			{
+				return visit_stop;
+			}
+			break;
 		}
-		break;
+
+		return visit_continue;
 	}
 
-	return visit_continue;
-}
-
-struct tree_grafting_info
-{
-	ir_variable_refcount_visitor *refs;
-	bool progress;
-};
-
-static bool try_tree_grafting(ir_assignment *start, ir_variable *lhs_var, ir_instruction *bb_last)
-{
-	ir_tree_grafting_visitor v(start, lhs_var);
-
-	if (Debug)
+	struct tree_grafting_info
 	{
-		printf("trying to graft %d:", lhs_var->id);
-		lhs_var->print();
-		printf("\n");
-	}
+		ir_variable_refcount_visitor *refs;
+		bool progress;
+	};
 
-	bool bProgress = false;
-
-	for (ir_instruction *ir = (ir_instruction *)start->next;
-		ir != bb_last->next;
-		ir = (ir_instruction *)ir->next)
+	static bool try_tree_grafting(ir_assignment *start, ir_variable *lhs_var, ir_instruction *bb_last)
 	{
+		ir_tree_grafting_visitor v(start, lhs_var);
 
 		if (Debug)
 		{
-			printf("- %d", ir->id);
-			ir->print();
+			printf("trying to graft %d:", lhs_var->id);
+			lhs_var->print();
 			printf("\n");
 		}
 
-		ir_visitor_status s = ir->accept(&v);
-		if (s == visit_stop)
+		bool bProgress = false;
+
+		for (ir_instruction *ir = (ir_instruction *)start->next;
+			ir != bb_last->next;
+			ir = (ir_instruction *)ir->next)
 		{
-			return v.progress;
+
+			if (Debug)
+			{
+				printf("- %d", ir->id);
+				ir->print();
+				printf("\n");
+			}
+
+			ir_visitor_status s = ir->accept(&v);
+			if (s == visit_stop)
+			{
+				return v.progress;
+			}
+
+			bProgress |= v.progress;
 		}
 
-		bProgress |= v.progress;
+		return bProgress;
 	}
 
-	return bProgress;
-}
-
-static void tree_grafting_basic_block(ir_instruction *bb_first, ir_instruction *bb_last, void *data)
-{
-	struct tree_grafting_info *info = (struct tree_grafting_info *)data;
-	ir_instruction *ir, *next;
-
-	for (ir = bb_first, next = (ir_instruction *)ir->next;
-		ir != bb_last->next;
-		ir = next, next = (ir_instruction *)ir->next)
+	static void tree_grafting_basic_block(ir_instruction *bb_first, ir_instruction *bb_last, void *data)
 	{
-		ir_assignment *assign = ir->as_assignment();
+		struct tree_grafting_info *info = (struct tree_grafting_info *)data;
+		ir_instruction *ir, *next;
 
-		if (!assign)
+		for (ir = bb_first, next = (ir_instruction *)ir->next;
+			ir != bb_last->next;
+			ir = next, next = (ir_instruction *)ir->next)
 		{
-			continue;
+			ir_assignment *assign = ir->as_assignment();
+
+			if (!assign)
+			{
+				continue;
+			}
+
+			ir_variable *lhs_var = assign->whole_variable_written();
+			if (!lhs_var)
+			{
+				continue;
+			}
+
+			if (lhs_var->mode == ir_var_out ||
+				lhs_var->mode == ir_var_inout)
+			{
+				continue;
+			}
+
+			ir_variable_refcount_entry *entry = info->refs->get_variable_entry(lhs_var);
+
+			if (!entry->declaration ||
+				entry->assigned_count != 1 ||
+				entry->referenced_count != 2 ||
+				entry->call != NULL)
+			{
+				continue;
+			}
+
+			check(assign == entry->assign);
+
+			/* Found a possibly graftable assignment.  Now, walk through the
+			* rest of the BB seeing if the deref is here, and if nothing interfered with
+			* pasting its expression's values in between.
+			*/
+			info->progress |= try_tree_grafting(assign, lhs_var, bb_last);
 		}
-
-		ir_variable *lhs_var = assign->whole_variable_written();
-		if (!lhs_var)
-		{
-			continue;
-		}
-
-		if (lhs_var->mode == ir_var_out ||
-			lhs_var->mode == ir_var_inout)
-		{
-			continue;
-		}
-
-		ir_variable_refcount_entry *entry = info->refs->get_variable_entry(lhs_var);
-
-		if (!entry->declaration ||
-			entry->assigned_count != 1 ||
-			entry->referenced_count != 2 ||
-			entry->call != NULL)
-		{
-			continue;
-		}
-
-		check(assign == entry->assign);
-
-		/* Found a possibly graftable assignment.  Now, walk through the
-		* rest of the BB seeing if the deref is here, and if nothing interfered with
-		* pasting its expression's values in between.
-		*/
-		info->progress |= try_tree_grafting(assign, lhs_var, bb_last);
 	}
 }
 
@@ -421,14 +425,14 @@ static void tree_grafting_basic_block(ir_instruction *bb_first, ir_instruction *
 bool do_tree_grafting(exec_list *instructions)
 {
 	ir_variable_refcount_visitor refs;
-	struct tree_grafting_info info;
+	OptTreeGrafting::tree_grafting_info info;
 
 	info.progress = false;
 	info.refs = &refs;
 
 	visit_list_elements(info.refs, instructions);
 
-	call_for_basic_blocks(instructions, tree_grafting_basic_block, &info);
+	call_for_basic_blocks(instructions, OptTreeGrafting::tree_grafting_basic_block, &info);
 
 	return info.progress;
 }

@@ -63,7 +63,7 @@
 #include "hash_table.h"
 #include "ir.h"
 #include "ir_rvalue_visitor.h"
-#include "macros.h"
+#include "compiler.h"
 #include "IRDump.h"
 #include "LanguageSpec.h"
 
@@ -1842,7 +1842,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 		}
 		else if (const_index != NULL)
 		{
-			const int idx = const_index->value.i[0];
+			const uint32 idx = const_index->value.i[0];
 			const char *type_name;
 			unsigned bound = 0;
 
@@ -1893,7 +1893,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			else if (array->type->is_patch())
 			{
 				if ((array->type->patch_size() > 0)
-					&& (array->type->patch_size() <= idx))
+					&& (array->type->patch_size() <= (int32)idx))
 				{
 					bound = array->type->patch_size();
 				}
@@ -1901,7 +1901,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			else
 			{
 				if ((array->type->array_size() > 0)
-					&& (array->type->array_size() <= idx))
+					&& (array->type->array_size() <= (int32)idx))
 				{
 					bound = array->type->array_size();
 				}
@@ -2053,7 +2053,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 		break;
 
 	case ast_bool_constant:
-		result = new(ctx)ir_constant(bool(this->primary_expression.bool_constant));
+		result = new(ctx)ir_constant(this->primary_expression.bool_constant != 0);
 		break;
 
 	case ast_sequence:

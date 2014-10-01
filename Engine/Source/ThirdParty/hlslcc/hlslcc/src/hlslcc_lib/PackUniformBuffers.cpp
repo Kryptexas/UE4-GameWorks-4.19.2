@@ -123,7 +123,7 @@ struct SFixSimpleArrayDereferencesVisitor : ir_rvalue_visitor
 							instructions.push_tail(NewLocal);
 
 							// matrix construction goes column by column performing an assignment
-							for (int i = 0; i < ArrayElementType->matrix_columns; i++)
+							for (uint32 i = 0; i < ArrayElementType->matrix_columns; i++)
 							{
 								// Offset baking in matrix column
 								ir_constant* ArrayBaseOffset = (DerefArray->array_index->type->base_type == GLSL_TYPE_UINT) ?
@@ -932,7 +932,7 @@ struct SExpandArrayAssignment : public ir_hierarchical_visitor
 			if (FoundStruct == MemberIsArrayMap.end())
 			{
 				//glsl_struct_field* Member = nullptr;
-				for (int i = 0; i < DerefStruct->record->type->length; ++i)
+				for (uint32 i = 0; i < DerefStruct->record->type->length; ++i)
 				{
 					if (DerefStruct->record->type->fields.structure[i].type->is_array())
 					{
@@ -953,7 +953,7 @@ struct SExpandArrayAssignment : public ir_hierarchical_visitor
 			if (FoundMember != Members.end() && FoundMember->second >= 0)
 			{
 				auto& Member = DerefStruct->record->type->fields.structure[FoundMember->second];
-				for (int i = 0; i < Member.type->length; ++i)
+				for (uint32 i = 0; i < Member.type->length; ++i)
 				{
 					ir_dereference_array* NewLHS = new(ParseState) ir_dereference_array(DerefStruct->clone(ParseState, NULL), new(ParseState) ir_constant(i));
 					NewLHS->type = DerefStruct->type->element_type();
@@ -1230,7 +1230,7 @@ namespace ArraysToMatrices
 			if (!Expression->type || !Expression->type->is_matrix())
 			{
 				bool bExpand = false;
-				for (int i = 0; i < Expression->get_num_operands(); ++i)
+				for (uint32 i = 0; i < Expression->get_num_operands(); ++i)
 				{
 					bExpand |= (Expression->operands[i]->type && Expression->operands[i]->type->is_matrix());
 				}
@@ -1244,11 +1244,11 @@ namespace ArraysToMatrices
 			auto* NewTemporary = new(ParseState) ir_variable(Expression->type, NULL, ir_var_temporary);
 			base_ir->insert_before(NewTemporary);
 
-			for (int i = 0; i < Expression->type->matrix_columns; ++i)
+			for (uint32 i = 0; i < Expression->type->matrix_columns; ++i)
 			{
 				auto* NewLHS = new(ParseState) ir_dereference_array(NewTemporary, new(ParseState) ir_constant(i));
 				auto* NewRHS = Expression->clone(ParseState, NULL);
-				for (int j = 0; j < Expression->get_num_operands(); ++j)
+				for (uint32 j = 0; j < Expression->get_num_operands(); ++j)
 				{
 					NewRHS->operands[j] = new(ParseState) ir_dereference_array(NewRHS->operands[j], new(ParseState) ir_constant(i));
 				}

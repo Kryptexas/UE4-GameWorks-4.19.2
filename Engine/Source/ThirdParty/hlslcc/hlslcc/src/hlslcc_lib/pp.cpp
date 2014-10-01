@@ -31,10 +31,14 @@
 #include <string.h>
 #include <ctype.h>
 #include "glcpp.h"
-#include "imports.h"
+#include "compiler.h"
 
-void
-glcpp_error (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
+inline int IsBlank(int ch)
+{
+	return ch == ' ' || ch == '\t';
+}
+
+void glcpp_error (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
 {
 	va_list ap;
 
@@ -50,8 +54,7 @@ glcpp_error (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
 	ralloc_strcat(&parser->info_log, "\n");
 }
 
-void
-glcpp_warning (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
+void glcpp_warning (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
 {
 	va_list ap;
 
@@ -67,22 +70,27 @@ glcpp_warning (YYLTYPE *locp, glcpp_parser_t *parser, const char *fmt, ...)
 }
 
 /* Searches backwards for '^ *#' from a given starting point. */
-static int
-in_directive(const char *shader, const char *ptr)
+static int in_directive(const char *shader, const char *ptr)
 {
 	check(ptr >= shader);
 
 	/* Search backwards for '#'. If we find a \n first, it doesn't count */
-	for (; ptr >= shader && *ptr != '#'; ptr--) {
+	for (; ptr >= shader && *ptr != '#'; ptr--)
+	{
 		if (*ptr == '\n')
+		{
 			return 0;
+		}
 	}
-	if (ptr >= shader) {
+	if (ptr >= shader)
+	{
 		/* Found '#'...look for spaces preceded by a newline */
-		for (ptr--; ptr >= shader && isblank(*ptr); ptr--);
+		for (ptr--; ptr >= shader && IsBlank(*ptr); ptr--);
 		// FIXME: I don't think the '\n' case can happen
 		if (ptr < shader || *ptr == '\n')
+		{
 			return 1;
+		}
 	}
 	return 0;
 }
@@ -91,15 +99,15 @@ in_directive(const char *shader, const char *ptr)
  * However, ignore any in GLSL code, as "There is no line continuation
  * character" (1.30 page 9) in GLSL.
  */
-static char *
-remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
+static char* remove_line_continuations(glcpp_parser_t *ctx, const char *shader)
 {
 	int in_continued_line = 0;
 	int extra_newlines = 0;
 	char *clean = ralloc_strdup(ctx, "");
 	const char *search_start = shader;
 	const char *newline;
-	while ((newline = strchr(search_start, '\n')) != NULL) {
+	while ((newline = strchr(search_start, '\n')) != NULL)
+	{
 		const char *backslash = NULL;
 
 		/* # of characters preceding the newline. */

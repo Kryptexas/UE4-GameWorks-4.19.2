@@ -434,8 +434,7 @@ const glsl_type *glsl_type::get_scalar_type() const
 }
 
 
-void
-_mesa_glsl_release_types(void)
+void _mesa_glsl_release_types()
 {
 	if (glsl_type::sampler_types != NULL)
 	{
@@ -483,11 +482,11 @@ _mesa_glsl_release_types(void)
 
 
 glsl_type::glsl_type(const glsl_type *array, unsigned length) :
-base_type(GLSL_TYPE_ARRAY),
-sampler_dimensionality(0), sampler_shadow(0), sampler_array(0),
-inner_type(0),
-vector_elements(0), matrix_columns(0),
-name(NULL), length(length), patch_length(0)
+	base_type(GLSL_TYPE_ARRAY),
+	sampler_dimensionality(0), sampler_shadow(0), sampler_array(0),
+	inner_type(0),
+	vector_elements(0), matrix_columns(0),
+	name(NULL), length(length), patch_length(0)
 {
 	this->fields.array = array;
 
@@ -499,16 +498,19 @@ name(NULL), length(length), patch_length(0)
 	char *const n = (char *)ralloc_size(this->mem_ctx, name_length);
 
 	if (length == 0)
+	{
 		snprintf(n, name_length, "%s[]", array->name);
+	}
 	else
+	{
 		snprintf(n, name_length, "%s[%u]", array->name, length);
+	}
 
 	this->name = n;
 }
 
 
-const glsl_type *
-glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
+const glsl_type* glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
 {
 	if (base_type == GLSL_TYPE_VOID)
 	{

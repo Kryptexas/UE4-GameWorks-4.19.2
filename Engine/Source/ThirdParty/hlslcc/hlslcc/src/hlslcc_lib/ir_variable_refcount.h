@@ -35,6 +35,7 @@
 * were defined in the scope.
 */
 
+#pragma once
 #include "ir.h"
 #include "ir_visitor.h"
 #include "glsl_types.h"

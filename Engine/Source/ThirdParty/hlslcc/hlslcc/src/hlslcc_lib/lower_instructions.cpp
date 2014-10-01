@@ -91,7 +91,9 @@
 #include "glsl_types.h"
 #include "ir.h"
 #include "ir_optimization.h"
-#include "imports.h"
+#include <math.h>
+
+#define M_LOG2E     (1.4426950408889634074)
 
 class lower_instructions_visitor : public ir_hierarchical_visitor
 {

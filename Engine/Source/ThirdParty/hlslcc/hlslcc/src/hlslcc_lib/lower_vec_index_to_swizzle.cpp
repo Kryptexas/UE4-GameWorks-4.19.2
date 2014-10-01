@@ -40,7 +40,7 @@
 #include "ir_visitor.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
-#include "macros.h"
+#include "compiler.h"
 
 /**
 * Visitor class for replacing expressions with ir_constant values.
@@ -106,8 +106,8 @@ ir_rvalue * ir_vec_index_to_swizzle_visitor::convert_vec_index_to_swizzle(ir_rva
 	* The ir_swizzle constructor gets angry if the index is negative or too
 	* large.  For simplicity sake, just clamp the index to [0, size-1].
 	*/
-	const int i = MIN2(MAX2(ir_constant->value.i[0], 0),
-		(deref->array->type->vector_elements - 1));
+	const int32 i = MIN2(MAX2(ir_constant->value.i[0], 0),
+		((int32)deref->array->type->vector_elements - 1));
 
 	return new(ctx)ir_swizzle(deref->array, i, 0, 0, 0, 1);
 }

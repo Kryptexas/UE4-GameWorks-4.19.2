@@ -45,7 +45,13 @@
 #include "glsl_types.h"
 #include "ir_optimization.h"
 #include "ir_function_inlining.h"
-#include "macros.h"
+#include "compiler.h"
+
+inline float truncf(float x) { return x < 0.0f ? ceilf(x) : floorf(x); }
+inline float exp2f(float x) { return powf(2.0f, x); }
+inline float log2f(float x) { return logf(x) * 1.442695041f; }
+
+#define IROUND(f)  ((int32) (((f) >= 0.0F) ? ((f) + 0.5F) : ((f) - 0.5F)))
 
 static float dot(ir_constant* op0, ir_constant* op1)
 {
@@ -269,7 +275,7 @@ ir_constant* ir_expression::constant_expression_value()
 		check(op[0]->type->base_type == GLSL_TYPE_UINT);
 		for (unsigned c = 0; c < op[0]->type->components(); c++)
 		{
-			data.b[c] = (bool)op[0]->value.u[c];
+			data.b[c] = op[0]->value.u[c] != 0;
 		}
 		break;
 	case ir_unop_any:

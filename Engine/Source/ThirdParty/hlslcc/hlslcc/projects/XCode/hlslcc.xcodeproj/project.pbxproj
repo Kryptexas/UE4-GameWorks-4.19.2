@@ -14,6 +14,9 @@
 		168A4E4819706C7400611B10 /* strtod.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4419706C7400611B10 /* strtod.cpp */; };
 		168A4E4919706C7400611B10 /* symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4519706C7400611B10 /* symbol_table.cpp */; };
 		168A4E4B19706CF600611B10 /* hash_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4A19706CF600611B10 /* hash_table.cpp */; };
+		16A89F1419DC86FF00B61938 /* hlslcc_private.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A89F1119DC86FF00B61938 /* hlslcc_private.h */; };
+		16A89F1519DC86FF00B61938 /* LanguageSpec.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A89F1219DC86FF00B61938 /* LanguageSpec.h */; };
+		16A89F1619DC86FF00B61938 /* ShaderCompilerCommon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16A89F1319DC86FF00B61938 /* ShaderCompilerCommon.cpp */; };
 		30FF2A1819633B8D00409BF3 /* ShaderCompilerCommon.h in Headers */ = {isa = PBXBuildFile; fileRef = 30FF2A171963396C00409BF3 /* ShaderCompilerCommon.h */; };
 		90438DDB1610831A00C0D669 /* hlslcc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DD81610831A00C0D669 /* hlslcc.cpp */; };
 		90438E401610833400C0D669 /* ast_expr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DDE1610833400C0D669 /* ast_expr.cpp */; };
@@ -37,7 +40,6 @@
 		90438E551610833400C0D669 /* hlsl_lexer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DF31610833400C0D669 /* hlsl_lexer.cpp */; };
 		90438E561610833400C0D669 /* hlsl_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DF41610833400C0D669 /* hlsl_parser.cpp */; };
 		90438E571610833400C0D669 /* hlsl_parser.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DF51610833400C0D669 /* hlsl_parser.h */; };
-		90438E581610833400C0D669 /* imports.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DF61610833400C0D669 /* imports.h */; };
 		90438E591610833400C0D669 /* ir_basic_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DF71610833400C0D669 /* ir_basic_block.cpp */; };
 		90438E5A1610833400C0D669 /* ir_basic_block.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DF81610833400C0D669 /* ir_basic_block.h */; };
 		90438E5B1610833400C0D669 /* ir_clone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DF91610833400C0D669 /* ir_clone.cpp */; };
@@ -84,7 +86,6 @@
 		90438E841610833400C0D669 /* lower_vec_index_to_cond_assign.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E221610833400C0D669 /* lower_vec_index_to_cond_assign.cpp */; };
 		90438E851610833400C0D669 /* lower_vec_index_to_swizzle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E231610833400C0D669 /* lower_vec_index_to_swizzle.cpp */; };
 		90438E861610833400C0D669 /* lower_vector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E241610833400C0D669 /* lower_vector.cpp */; };
-		90438E871610833400C0D669 /* macros.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E251610833400C0D669 /* macros.h */; };
 		90438E881610833400C0D669 /* opt_algebraic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E261610833400C0D669 /* opt_algebraic.cpp */; };
 		90438E891610833400C0D669 /* opt_array_splitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E271610833400C0D669 /* opt_array_splitting.cpp */; };
 		90438E8A1610833400C0D669 /* opt_constant_folding.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E281610833400C0D669 /* opt_constant_folding.cpp */; };
@@ -151,6 +152,13 @@
 		168A4E4419706C7400611B10 /* strtod.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = strtod.cpp; sourceTree = "<group>"; };
 		168A4E4519706C7400611B10 /* symbol_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = symbol_table.cpp; sourceTree = "<group>"; };
 		168A4E4A19706CF600611B10 /* hash_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hash_table.cpp; sourceTree = "<group>"; };
+		16A89F0D19DC86FF00B61938 /* glcpp-lex.inl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "glcpp-lex.inl"; sourceTree = "<group>"; };
+		16A89F0E19DC86FF00B61938 /* glcpp-parse.inl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "glcpp-parse.inl"; sourceTree = "<group>"; };
+		16A89F0F19DC86FF00B61938 /* hlsl_lexer.inl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = hlsl_lexer.inl; sourceTree = "<group>"; };
+		16A89F1019DC86FF00B61938 /* hlsl_parser.inl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = hlsl_parser.inl; sourceTree = "<group>"; };
+		16A89F1119DC86FF00B61938 /* hlslcc_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hlslcc_private.h; sourceTree = "<group>"; };
+		16A89F1219DC86FF00B61938 /* LanguageSpec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LanguageSpec.h; sourceTree = "<group>"; };
+		16A89F1319DC86FF00B61938 /* ShaderCompilerCommon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ShaderCompilerCommon.cpp; sourceTree = "<group>"; };
 		30FF2A171963396C00409BF3 /* ShaderCompilerCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderCompilerCommon.h; sourceTree = "<group>"; };
 		90438DC51610829E00C0D669 /* libhlslccd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libhlslccd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		90438DD81610831A00C0D669 /* hlslcc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hlslcc.cpp; sourceTree = "<group>"; };
@@ -303,6 +311,13 @@
 		90438DCC161082C500C0D669 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				16A89F0D19DC86FF00B61938 /* glcpp-lex.inl */,
+				16A89F0E19DC86FF00B61938 /* glcpp-parse.inl */,
+				16A89F0F19DC86FF00B61938 /* hlsl_lexer.inl */,
+				16A89F1019DC86FF00B61938 /* hlsl_parser.inl */,
+				16A89F1119DC86FF00B61938 /* hlslcc_private.h */,
+				16A89F1219DC86FF00B61938 /* LanguageSpec.h */,
+				16A89F1319DC86FF00B61938 /* ShaderCompilerCommon.cpp */,
 				30FF2A171963396C00409BF3 /* ShaderCompilerCommon.h */,
 				9063D4A41743B03D00540C43 /* IRDump.cpp */,
 				9063D4A51743B03D00540C43 /* IRDump.h */,
@@ -445,11 +460,12 @@
 				90438E4B1610833400C0D669 /* glcpp.h in Headers */,
 				90438E4D1610833400C0D669 /* glsl_parser_extras.h in Headers */,
 				90438E4F1610833400C0D669 /* glsl_symbol_table.h in Headers */,
+				16A89F1419DC86FF00B61938 /* hlslcc_private.h in Headers */,
 				DACBA84E18226C0300CBD9D0 /* OptValueNumbering.h in Headers */,
 				90438E511610833400C0D669 /* glsl_types.h in Headers */,
 				90438E531610833400C0D669 /* hash_table.h in Headers */,
+				16A89F1519DC86FF00B61938 /* LanguageSpec.h in Headers */,
 				90438E571610833400C0D669 /* hlsl_parser.h in Headers */,
-				90438E581610833400C0D669 /* imports.h in Headers */,
 				90438E5A1610833400C0D669 /* ir_basic_block.h in Headers */,
 				90438E5E1610833400C0D669 /* ir_expression_flattening.h in Headers */,
 				90438E611610833400C0D669 /* ir_function_inlining.h in Headers */,
@@ -464,7 +480,6 @@
 				90438E741610833400C0D669 /* ir.h in Headers */,
 				90438E751610833400C0D669 /* list.h in Headers */,
 				90438E771610833400C0D669 /* loop_analysis.h in Headers */,
-				90438E871610833400C0D669 /* macros.h in Headers */,
 				30FF2A1819633B8D00409BF3 /* ShaderCompilerCommon.h in Headers */,
 				90438E9C1610833400C0D669 /* ralloc.h in Headers */,
 				90438E9D1610833400C0D669 /* simple_list.h in Headers */,
@@ -612,6 +627,7 @@
 				90438E931610833400C0D669 /* opt_function_inlining.cpp in Sources */,
 				90438E941610833400C0D669 /* opt_if_simplification.cpp in Sources */,
 				90438E951610833400C0D669 /* opt_noop_swizzle.cpp in Sources */,
+				16A89F1619DC86FF00B61938 /* ShaderCompilerCommon.cpp in Sources */,
 				90438E961610833400C0D669 /* opt_redundant_jumps.cpp in Sources */,
 				168A4E4719706C7400611B10 /* ralloc.cpp in Sources */,
 				90438E971610833400C0D669 /* opt_structure_splitting.cpp in Sources */,

@@ -34,7 +34,7 @@
 #include "ir.h"
 #include "ir_optimization.h"
 #include "ir_function_inlining.h"
-#include "macros.h"
+#include "compiler.h"
 
 ir_rvalue* process_mul(
 	exec_list* instructions, _mesa_glsl_parse_state* state,
@@ -1905,7 +1905,7 @@ ir_rvalue* ast_function_expression::hir(exec_list *instructions, struct _mesa_gl
 				var->constant_value = matrix->constant_expression_value();
 
 				/* Replace the matrix with dereferences of its columns. */
-				for (int i = 0; i < matrix->type->matrix_columns; i++)
+				for (uint32 i = 0; i < matrix->type->matrix_columns; i++)
 				{
 					matrix->insert_before(new (ctx) ir_dereference_array(var,
 						new(ctx) ir_constant(i)));
@@ -2305,7 +2305,7 @@ struct _mesa_glsl_parse_state *state)
 		instructions->push_tail(txs_return_assign);
 
 		// Assign the outputs.
-		int component_index = 0;
+		uint32 component_index = 0;
 		while (param_index < num_params && component_index < texop->type->components())
 		{
 			ir_rvalue* lhs = parameters[param_index++];
@@ -2606,7 +2606,7 @@ ir_rvalue* gen_image_op(
 			instructions->push_tail(dim_return_assign);
 
 			// Assign the outputs.
-			int component_index = 0;
+			uint32 component_index = 0;
 			int param_index = 0;
 			while (param_index < num_params && component_index < res_type->components())
 			{

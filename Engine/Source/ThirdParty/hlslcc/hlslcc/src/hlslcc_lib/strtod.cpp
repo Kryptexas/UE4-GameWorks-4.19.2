@@ -29,7 +29,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
+#include "ShaderCompilerCommon.h"
 #include <stdlib.h>
 
 #ifdef _GNU_SOURCE

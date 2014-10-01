@@ -37,7 +37,6 @@
 */
 
 #include "ShaderCompilerCommon.h"
-#include "imports.h"
 #include "simple_list.h"
 #include "hash_table.h"
 
@@ -183,8 +182,7 @@ hash_table_replace(struct hash_table *ht, void *data, const void *key)
 	insert_at_head(& ht->buckets[bucket], & hn->link);
 }
 
-void
-hash_table_remove(struct hash_table *ht, const void *key)
+void hash_table_remove(struct hash_table *ht, const void *key)
 {
 	struct node *node = (struct node *) get_node(ht, key);
 	if (node != NULL) {
@@ -194,16 +192,14 @@ hash_table_remove(struct hash_table *ht, const void *key)
 	}
 }
 
-void
-hash_table_call_foreach(struct hash_table *ht,
-void(*callback)(const void *key,
-void *data,
-void *closure),
-void *closure)
+void hash_table_call_foreach(struct hash_table *ht,
+	void(*callback)(const void *key,
+	void *data,
+	void *closure),
+	void *closure)
 {
-	int bucket;
-
-	for (bucket = 0; bucket < ht->num_buckets; bucket++) {
+	for (uint32 bucket = 0; bucket < ht->num_buckets; bucket++)
+	{
 		struct node *node, *temp;
 		foreach_s(node, temp, &ht->buckets[bucket]) {
 			struct hash_node *hn = (struct hash_node *) node;
@@ -213,14 +209,12 @@ void *closure)
 	}
 }
 
-unsigned
-hash_table_string_hash(const void *key)
+unsigned hash_table_string_hash(const void *key)
 {
 	const char *str = (const char *)key;
 	unsigned hash = 5381;
-
-
-	while (*str != '\0') {
+	while (*str != '\0')
+	{
 		hash = (hash * 33) + *str;
 		str++;
 	}
@@ -229,15 +223,13 @@ hash_table_string_hash(const void *key)
 }
 
 
-unsigned
-hash_table_pointer_hash(const void *key)
+unsigned hash_table_pointer_hash(const void *key)
 {
 	return (unsigned)((uintptr_t)key / sizeof(void *));
 }
 
 
-int
-hash_table_pointer_compare(const void *key1, const void *key2)
+int hash_table_pointer_compare(const void *key1, const void *key2)
 {
 	return key1 == key2 ? 0 : 1;
 }

@@ -347,13 +347,13 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		}
 		check(Param->is_tail_sentinel() && ParamDefinition->is_tail_sentinel());
 		printf("\t%s(", IR->callee_name());
-		for (auto it = Parameters.begin(); it != Parameters.end(); ++it)
+		for (auto& Param : Parameters)
 		{
-			if (it != Parameters.begin())
+			if (Param != Parameters[0])
 			{
 				printf(", ");
 			}
-			printf("%d", *it);
+			printf("%d", P);
 		}
 		printf(")\n");
 

@@ -7,7 +7,7 @@
 #include "glsl_parser_extras.h"
 #include "ir_optimization.h"
 #include "loop_analysis.h"
-#include "macros.h"
+#include "compiler.h"
 #include "ir_track_image_access.h"
 #include "ir_print_visitor.h"
 #include "ir_rvalue_visitor.h"
@@ -21,7 +21,7 @@ extern int _mesa_hlsl_debug;
 #define ENABLE_TIMING 0
 
 
-#if defined(_MSC_VER)
+#if 0//defined(_MSC_VER)
 	#define WIN32_LEAN_AND_MEAN 1
 	#include <Windows.h>
 
@@ -199,7 +199,7 @@ int HlslCrossCompile(
 			ParseState,
 			&InShaderSource,
 			&ParseState->info_log
-			);
+			) != 0;
 		TIMER(preprocess);
 
 		if (ParseState->error != 0)

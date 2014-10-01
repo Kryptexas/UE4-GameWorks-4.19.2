@@ -32,10 +32,6 @@
 #include "LanguageSpec.h"
 #include "IRDump.h"
 
-void _mesa_glsl_release_functions(void)
-{
-}
-
 static ir_variable* make_var(void *ctx, const glsl_type* type, unsigned index, ir_variable_mode mode)
 {
 	return new(ctx)ir_variable(type, ralloc_asprintf(ctx, "arg%u", index), mode);
@@ -96,8 +92,8 @@ void make_intrinsic_genType(
 {
 	void* ctx = state;
 	ir_variable* args[3] = {0};
-	const bool is_scalar = flags & IR_INTRINSIC_SCALAR;
-	const bool ret_bool_true = flags & IR_INTRINSIC_RETURNS_BOOL_TRUE;
+	const bool is_scalar = (flags & IR_INTRINSIC_SCALAR) != 0;
+	const bool ret_bool_true = (flags & IR_INTRINSIC_RETURNS_BOOL_TRUE) != 0;
 	const bool ret_bool = ret_bool_true || (flags & IR_INTRINSIC_RETURNS_BOOL);
 	const bool support_matrices = (flags & IR_INTRINSIC_MATRIX) && !is_scalar && !ret_bool;
 

@@ -57,7 +57,7 @@
 #include "ir_rvalue_visitor.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
-#include "macros.h"
+#include "compiler.h"
 
 /**
 * Generate a comparison value for a block of indices

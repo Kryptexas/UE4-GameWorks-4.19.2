@@ -45,183 +45,192 @@
 #include "ir_optimization.h"
 #include "glsl_types.h"
 
-static bool debug = false;
-
-class assignment_entry : public exec_node
+namespace OptDeadCodeLocal
 {
-public:
-	assignment_entry(ir_variable *lhs, ir_instruction *ir)
+	static bool Debug = false;
+
+	class assignment_entry : public exec_node
 	{
-		check(lhs);
-		check(ir);
-		this->lhs = lhs;
-		this->ir = ir;
-	}
-
-	ir_variable *lhs;
-	ir_instruction *ir;
-};
-
-class kill_for_derefs_visitor : public ir_hierarchical_visitor
-{
-public:
-	kill_for_derefs_visitor(exec_list *assignments)
-	{
-		this->assignments = assignments;
-	}
-
-	virtual ir_visitor_status visit(ir_dereference_variable *ir)
-	{
-		ir_variable *const var = ir->variable_referenced();
-
-		foreach_iter(exec_list_iterator, iter, *this->assignments)
+	public:
+		assignment_entry(ir_variable *lhs, ir_instruction *ir)
 		{
-			assignment_entry *entry = (assignment_entry *)iter.get();
-
-			if (entry->lhs == var)
-			{
-				if (debug)
-					printf("kill %s\n", entry->lhs->name);
-				entry->remove();
-			}
+			check(lhs);
+			check(ir);
+			this->lhs = lhs;
+			this->ir = ir;
 		}
 
-		return visit_continue;
-	}
+		ir_variable *lhs;
+		ir_instruction *ir;
+	};
 
-private:
-	exec_list *assignments;
-};
-
-class array_index_visit : public ir_hierarchical_visitor
-{
-public:
-	array_index_visit(ir_hierarchical_visitor *v)
+	class kill_for_derefs_visitor : public ir_hierarchical_visitor
 	{
-		this->visitor = v;
-	}
+	public:
+		kill_for_derefs_visitor(exec_list *assignments)
+		{
+			this->assignments = assignments;
+		}
 
-	virtual ir_visitor_status visit_enter(class ir_dereference_array *ir)
+		virtual ir_visitor_status visit(ir_dereference_variable *ir)
+		{
+			ir_variable *const var = ir->variable_referenced();
+
+			foreach_iter(exec_list_iterator, iter, *this->assignments)
+			{
+				assignment_entry *entry = (assignment_entry *)iter.get();
+
+				if (entry->lhs == var)
+				{
+					if (Debug)
+					{
+						printf("kill %s\n", entry->lhs->name);
+					}
+					entry->remove();
+				}
+			}
+
+			return visit_continue;
+		}
+
+	private:
+		exec_list *assignments;
+	};
+
+	class array_index_visit : public ir_hierarchical_visitor
 	{
-		ir->array_index->accept(visitor);
-		return visit_continue;
-	}
+	public:
+		array_index_visit(ir_hierarchical_visitor *v)
+		{
+			this->visitor = v;
+		}
 
-	static void run(ir_instruction *ir, ir_hierarchical_visitor *v)
-	{
-		array_index_visit top_visit(v);
-		ir->accept(& top_visit);
-	}
+		virtual ir_visitor_status visit_enter(class ir_dereference_array *ir)
+		{
+			ir->array_index->accept(visitor);
+			return visit_continue;
+		}
 
-	ir_hierarchical_visitor *visitor;
-};
+		static void run(ir_instruction *ir, ir_hierarchical_visitor *v)
+		{
+			array_index_visit top_visit(v);
+			ir->accept(& top_visit);
+		}
+
+		ir_hierarchical_visitor *visitor;
+	};
 
 
-/**
-* Adds an entry to the available copy list if it's a plain assignment
-* of a variable to a variable.
-*/
-static bool process_assignment(void *ctx, ir_assignment *ir, exec_list *assignments)
-{
-	ir_variable *var = NULL;
-	bool progress = false;
-	kill_for_derefs_visitor v(assignments);
-
-	/* Kill assignment entries for things used to produce this assignment. */
-	ir->rhs->accept(&v);
-	if (ir->condition)
-	{
-		ir->condition->accept(&v);
-	}
-
-	/* Kill assignment enties used as array indices.
+	/**
+	* Adds an entry to the available copy list if it's a plain assignment
+	* of a variable to a variable.
 	*/
-	array_index_visit::run(ir->lhs, &v);
-	var = ir->lhs->variable_referenced();
-	check(var);
-
-	/* Now, check if we did a whole-variable assignment. */
-	if (!ir->condition && (ir->whole_variable_written() != NULL))
+	static bool process_assignment(void *ctx, ir_assignment *ir, exec_list *assignments)
 	{
-		/* We did a whole-variable assignment.  So, any instruction in
-		* the assignment list with the same LHS is dead.
-		*/
-		if (debug)
-			printf("looking for %s to remove\n", var->name);
-		foreach_iter(exec_list_iterator, iter, *assignments)
-		{
-			assignment_entry *entry = (assignment_entry *)iter.get();
+		ir_variable *var = NULL;
+		bool progress = false;
+		kill_for_derefs_visitor v(assignments);
 
-			if (entry->lhs == var)
+		/* Kill assignment entries for things used to produce this assignment. */
+		ir->rhs->accept(&v);
+		if (ir->condition)
+		{
+			ir->condition->accept(&v);
+		}
+
+		/* Kill assignment enties used as array indices.
+		*/
+		array_index_visit::run(ir->lhs, &v);
+		var = ir->lhs->variable_referenced();
+		check(var);
+
+		/* Now, check if we did a whole-variable assignment. */
+		if (!ir->condition && (ir->whole_variable_written() != NULL))
+		{
+			/* We did a whole-variable assignment.  So, any instruction in
+			* the assignment list with the same LHS is dead.
+			*/
+			if (Debug)
 			{
-				if (debug)
-					printf("removing %s\n", var->name);
-				entry->ir->remove();
-				entry->remove();
-				progress = true;
+				printf("looking for %s to remove\n", var->name);
+			}
+			foreach_iter(exec_list_iterator, iter, *assignments)
+			{
+				assignment_entry *entry = (assignment_entry *)iter.get();
+
+				if (entry->lhs == var)
+				{
+					if (Debug)
+					{
+						printf("removing %s\n", var->name);
+					}
+					entry->ir->remove();
+					entry->remove();
+					progress = true;
+				}
 			}
 		}
+
+		/* Add this instruction to the assignment list available to be removed. */
+		assignment_entry *entry = new(ctx)assignment_entry(var, ir);
+		assignments->push_tail(entry);
+
+		if (Debug)
+		{
+			printf("add %s\n", var->name);
+
+			printf("current entries\n");
+			foreach_iter(exec_list_iterator, iter, *assignments)
+			{
+				assignment_entry *entry = (assignment_entry *)iter.get();
+
+				printf("    %s\n", entry->lhs->name);
+			}
+		}
+
+		return progress;
 	}
 
-	/* Add this instruction to the assignment list available to be removed. */
-	assignment_entry *entry = new(ctx)assignment_entry(var, ir);
-	assignments->push_tail(entry);
-
-	if (debug)
+	static void dead_code_local_basic_block(ir_instruction *first,
+		ir_instruction *last, void *data)
 	{
-		printf("add %s\n", var->name);
+		ir_instruction *ir, *ir_next;
+		/* List of avaialble_copy */
+		exec_list assignments;
+		bool *out_progress = (bool *)data;
+		bool progress = false;
 
-		printf("current entries\n");
-		foreach_iter(exec_list_iterator, iter, *assignments)
+		void *ctx = ralloc_context(NULL);
+		/* Safe looping, since process_assignment */
+		for (ir = first, ir_next = (ir_instruction *)first->next;;
+			ir = ir_next, ir_next = (ir_instruction *)ir->next)
 		{
-			assignment_entry *entry = (assignment_entry *)iter.get();
+			ir_assignment *ir_assign = ir->as_assignment();
 
-			printf("    %s\n", entry->lhs->name);
+			if (Debug)
+			{
+				ir->print();
+				printf("\n");
+			}
+
+			if (ir_assign)
+			{
+				progress = process_assignment(ctx, ir_assign, &assignments) || progress;
+			}
+			else
+			{
+				kill_for_derefs_visitor kill(&assignments);
+				ir->accept(&kill);
+			}
+
+			if (ir == last)
+			{
+				break;
+			}
 		}
+		*out_progress = progress;
+		ralloc_free(ctx);
 	}
-
-	return progress;
-}
-
-static void dead_code_local_basic_block(ir_instruction *first,
-	ir_instruction *last, void *data)
-{
-	ir_instruction *ir, *ir_next;
-	/* List of avaialble_copy */
-	exec_list assignments;
-	bool *out_progress = (bool *)data;
-	bool progress = false;
-
-	void *ctx = ralloc_context(NULL);
-	/* Safe looping, since process_assignment */
-	for (ir = first, ir_next = (ir_instruction *)first->next;;
-		ir = ir_next, ir_next = (ir_instruction *)ir->next)
-	{
-		ir_assignment *ir_assign = ir->as_assignment();
-
-		if (debug)
-		{
-			ir->print();
-			printf("\n");
-		}
-
-		if (ir_assign)
-		{
-			progress = process_assignment(ctx, ir_assign, &assignments) || progress;
-		}
-		else
-		{
-			kill_for_derefs_visitor kill(&assignments);
-			ir->accept(&kill);
-		}
-
-		if (ir == last)
-		{
-			break;
-		}
-	}
-	*out_progress = progress;
-	ralloc_free(ctx);
 }
 
 /**
@@ -229,9 +238,7 @@ static void dead_code_local_basic_block(ir_instruction *first,
 */
 bool do_dead_code_local(exec_list *instructions)
 {
-	bool progress = false;
-
-	call_for_basic_blocks(instructions, dead_code_local_basic_block, &progress);
-
-	return progress;
+	bool bProgress = false;
+	call_for_basic_blocks(instructions, OptDeadCodeLocal::dead_code_local_basic_block, &bProgress);
+	return bProgress;
 }

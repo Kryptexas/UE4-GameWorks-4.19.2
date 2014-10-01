@@ -2156,8 +2156,6 @@ void clone_ir_list(void *mem_ctx, exec_list *out, const exec_list *in);
 extern void _mesa_glsl_initialize_functions(exec_list *instructions,
 	_mesa_glsl_parse_state *state);
 
-extern void _mesa_glsl_release_functions(void);
-
 struct glsl_symbol_table;
 
 extern void import_prototypes(const exec_list *source, exec_list *dest,

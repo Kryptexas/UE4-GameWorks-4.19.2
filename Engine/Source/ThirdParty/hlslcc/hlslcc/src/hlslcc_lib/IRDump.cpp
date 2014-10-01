@@ -188,7 +188,7 @@ void DebugPrintVisitor::visit(ir_expression* ir)
 		if (ir->get_num_operands() == 3)
 		{
 			irdump_printf("%s", ir->operator_string());
-			for (int i = 0; i < ir->get_num_operands(); ++i)
+			for (uint32 i = 0; i < ir->get_num_operands(); ++i)
 			{
 				irdump_printf("%s", (i == 0) ? "" : ", ");
 				ir->operands[i]->accept(this);

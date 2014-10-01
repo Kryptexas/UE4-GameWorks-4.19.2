@@ -34,7 +34,6 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\glsl_types.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\hash_table.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlsl_parser.h" />
-    <ClInclude Include="..\..\..\src\hlslcc_lib\imports.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_basic_block.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_expression_flattening.h" />
@@ -49,7 +48,6 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_visitor.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\list.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\loop_analysis.h" />
-    <ClInclude Include="..\..\..\src\hlslcc_lib\macros.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ralloc.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\simple_list.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\strtod.h" />

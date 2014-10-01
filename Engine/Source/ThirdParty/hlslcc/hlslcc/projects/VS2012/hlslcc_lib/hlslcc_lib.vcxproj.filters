@@ -44,9 +44,6 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlsl_parser.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\hlslcc_lib\imports.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -87,9 +84,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\loop_analysis.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\hlslcc_lib\macros.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\ralloc.h">

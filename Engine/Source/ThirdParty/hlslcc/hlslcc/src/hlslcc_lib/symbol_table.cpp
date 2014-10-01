@@ -30,7 +30,6 @@
 /** mesa/program/symbol_table.c */
 
 #include "ShaderCompilerCommon.h"
-#include "imports.h"
 #include "symbol_table.h"
 #include "hash_table.h"
 
