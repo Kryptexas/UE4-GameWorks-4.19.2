@@ -188,6 +188,14 @@ namespace iPhonePackager
 			}
 		}
 
+		static private string CertToolData = "";
+		static public void OutputReceivedCertToolProcessCall(Object Sender, DataReceivedEventArgs Line)
+		{
+			if ((Line != null) && !String.IsNullOrEmpty (Line.Data)) {
+				CertToolData += Line.Data + "\n";
+			}
+		}
+
 		/// <summary>
 		/// Tries to find a matching certificate on this machine from the the serial number of one of the
 		/// certificates in the mobile provision (the one in the mobileprovision is missing the public/private key pair)
@@ -196,45 +204,95 @@ namespace iPhonePackager
 		{
 			Program.LogVerbose("  Looking for a certificate that matches the application identifier '{0}'", ProvisionToWorkFrom.ApplicationIdentifier);
 
-			// Open the personal certificate store on this machine
-			X509Store Store = new X509Store();
-			Store.Open(OpenFlags.ReadOnly);
-
-			// Try finding a matching certificate from the serial number (the one in the mobileprovision is missing the public/private key pair)
 			X509Certificate2 Result = null;
-			foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates)
-			{
-				X509Certificate2Collection FoundCerts = Store.Certificates.Find(X509FindType.FindBySerialNumber, SourceCert.SerialNumber, false);
 
-				Program.LogVerbose("  .. Provision entry SN '{0}' matched {1} installed certificate(s)", SourceCert.SerialNumber, FoundCerts.Count);
+			if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX) {
+				// run certtool y to get the currently installed certificates
+				CertToolData = "";
+				Process CertTool = new Process ();
+				CertTool.StartInfo.FileName = "/usr/bin/certtool";
+				CertTool.StartInfo.UseShellExecute = false;
+				CertTool.StartInfo.Arguments = "y";
+				CertTool.StartInfo.RedirectStandardOutput = true;
+				CertTool.OutputDataReceived += new DataReceivedEventHandler (OutputReceivedCertToolProcessCall);
+				CertTool.Start ();
+				CertTool.BeginOutputReadLine ();
+				CertTool.WaitForExit ();
+				if (CertTool.ExitCode == 0) {
+					foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates) {
+						X509Certificate2 ValidInTimeCert = null;
+						// see if certificate can be found by serial number
+						string SerialNumber = SourceCert.GetSerialNumberString ();
+						for (int Index = 14; Index > 0; Index -= 2) {
+							SerialNumber = SerialNumber.Insert (Index, " ");
+						}
 
-				X509Certificate2 ValidInTimeCert = null;
-				foreach (X509Certificate2 TestCert in FoundCerts)
-				{
-					//@TODO: Pretty sure the certificate information from the library is in local time, not UTC and this works as expected, but it should be verified!
-					DateTime EffectiveDate = TestCert.NotBefore;
-					DateTime ExpirationDate = TestCert.NotAfter;
-					DateTime Now = DateTime.Now;
+						if (CertToolData.Contains (SerialNumber)) {
+							// check the cert time
+							int StartLine = CertToolData.IndexOf (SerialNumber);
+							string BeforeStart = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Not Before", StartLine))+1);
+							BeforeStart = BeforeStart.Remove(BeforeStart.IndexOf("\n"));
+							string AfterStart = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Not After", StartLine))+1);
+							AfterStart = AfterStart.Remove(AfterStart.IndexOf("\n"));
+							string CommonName = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Common Name", CertToolData.IndexOf("Subject Name", StartLine)))+1);
+							CommonName = CommonName.Remove(CommonName.IndexOf("\n"));
 
-					bool bCertTimeIsValid = (EffectiveDate < Now) && (ExpirationDate > Now);
+							DateTime EffectiveDate = DateTime.Parse (BeforeStart);
+							DateTime ExpirationDate = DateTime.Parse (AfterStart);
+							DateTime Now = DateTime.Now;
 
-					Program.LogVerbose("  .. .. Installed certificate '{0}' is {1} (range '{2}' to '{3}')", TestCert.FriendlyName, bCertTimeIsValid ? "valid (choosing it)" : "EXPIRED", TestCert.GetEffectiveDateString(), TestCert.GetExpirationDateString());
-					if (bCertTimeIsValid)
-					{
-						ValidInTimeCert = TestCert;
+							bool bCertTimeIsValid = (EffectiveDate < Now) && (ExpirationDate > Now);
+
+							Program.LogVerbose ("  .. .. Installed certificate '{0}' is {1} (range '{2}' to '{3}')", CommonName, bCertTimeIsValid ? "valid (choosing it)" : "EXPIRED", BeforeStart, AfterStart);
+							if (bCertTimeIsValid) {
+								ValidInTimeCert = SourceCert;
+							}
+						}
+
+						if (ValidInTimeCert != null) {
+							// Found a cert in the valid time range, quit now!
+							Result = ValidInTimeCert;
+							break;
+						}
+					}
+				} else {
+				}
+			} else {
+				// Open the personal certificate store on this machine
+				X509Store Store = new X509Store (StoreName.TrustedPeople, StoreLocation.LocalMachine);
+				Store.Open (OpenFlags.ReadOnly);
+
+				// Try finding a matching certificate from the serial number (the one in the mobileprovision is missing the public/private key pair)
+				foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates) {
+					X509Certificate2Collection FoundCerts = Store.Certificates.Find (X509FindType.FindBySerialNumber, SourceCert.SerialNumber, false);
+
+					Program.LogVerbose ("  .. Provision entry SN '{0}' matched {1} installed certificate(s)", SourceCert.SerialNumber, FoundCerts.Count);
+
+					X509Certificate2 ValidInTimeCert = null;
+					foreach (X509Certificate2 TestCert in FoundCerts) {
+						//@TODO: Pretty sure the certificate information from the library is in local time, not UTC and this works as expected, but it should be verified!
+						DateTime EffectiveDate = TestCert.NotBefore;
+						DateTime ExpirationDate = TestCert.NotAfter;
+						DateTime Now = DateTime.Now;
+
+						bool bCertTimeIsValid = (EffectiveDate < Now) && (ExpirationDate > Now);
+
+						Program.LogVerbose ("  .. .. Installed certificate '{0}' is {1} (range '{2}' to '{3}')", TestCert.FriendlyName, bCertTimeIsValid ? "valid (choosing it)" : "EXPIRED", TestCert.GetEffectiveDateString (), TestCert.GetExpirationDateString ());
+						if (bCertTimeIsValid) {
+							ValidInTimeCert = TestCert;
+							break;
+						}
+					}
+
+					if (ValidInTimeCert != null) {
+						// Found a cert in the valid time range, quit now!
+						Result = ValidInTimeCert;
 						break;
 					}
 				}
 
-				if (ValidInTimeCert != null)
-				{
-					// Found a cert in the valid time range, quit now!
-					Result = ValidInTimeCert;
-					break;
-				}
+				Store.Close ();
 			}
-
-			Store.Close();
 
 			if (Result == null)
 			{

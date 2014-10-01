@@ -103,7 +103,7 @@ static FString OutputMessage;
 static void OnOutput(FString Message)
 {
 	OutputMessage += Message;
-	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
+	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
 }
 
 int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
@@ -115,6 +115,7 @@ int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool 
 	}
 #if PLATFORM_MAC
 	OutTutorialPath = FString("/Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial");
+    // shell to certtool
 #else
 	if (bProjectHasCode && FRocketSupport::IsRocket())
 	{
@@ -126,10 +127,18 @@ int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool 
 		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCValidPlugins.iOSonPCValidPlugins");
 		bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
 	}
+#endif
 
 	// shell to IPP and get the status of the provision and cert
+#if PLATFORM_MAC
+    FString CmdExe = TEXT("/bin/sh");
+    FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
+    FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+    FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\""), *ScriptPath, *IPPPath, *ProjectPath);
+#else
 	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
 	FString CommandLine = FString::Printf(TEXT("Validate Engine -project \"%s\""), *ProjectPath);
+#endif
 	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
 	OutputMessage = TEXT("");
 	IPPProcess->OnOutput().BindStatic(&OnOutput);
@@ -139,6 +148,7 @@ int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool 
 		FPlatformProcess::Sleep(0.01f);
 	}
 	int RetCode = IPPProcess->GetReturnCode();
+    UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
 	if (RetCode == 14)
 	{
 		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingInfoPlist.CreatingInfoPlist");
@@ -160,7 +170,7 @@ int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool 
 		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
 	}
-#endif
+
 	return bReadyToBuild;
 }
 
