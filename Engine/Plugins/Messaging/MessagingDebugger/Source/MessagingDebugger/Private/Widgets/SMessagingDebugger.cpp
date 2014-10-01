@@ -123,7 +123,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 						(
 							FTabManager::NewStack()
 								->AddTab(EndpointsTabId, ETabState::OpenedTab)
-								->SetSizeCoefficient(0.65f)
+								->SetSizeCoefficient(0.6f)
 						)
 						->Split
 						(
@@ -131,7 +131,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 								->AddTab(EndpointDetailsTabId, ETabState::OpenedTab)
 								->AddTab(InterceptorsTabId, ETabState::OpenedTab)
 								->SetForegroundTab(EndpointDetailsTabId)
-								->SetSizeCoefficient(0.35f)
+								->SetSizeCoefficient(0.4f)
 						)
 				)
 				->Split
@@ -176,7 +176,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 						(
 							FTabManager::NewStack()
 								->AddTab(MessageTypesTabId, ETabState::OpenedTab)
-								->SetSizeCoefficient(0.65f)
+								->SetSizeCoefficient(0.6f)
 						)
 						->Split
 						(
@@ -184,7 +184,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 								->AddTab(MessageDetailsTabId, ETabState::OpenedTab)
 								->AddTab(MessageDataTabId, ETabState::OpenedTab)
 								->SetForegroundTab(MessageDetailsTabId)
-								->SetSizeCoefficient(0.35f)
+								->SetSizeCoefficient(0.4f)
 						)
 				)
 		);

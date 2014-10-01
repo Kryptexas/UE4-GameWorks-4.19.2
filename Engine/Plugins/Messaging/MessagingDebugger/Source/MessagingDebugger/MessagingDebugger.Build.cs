@@ -12,6 +12,7 @@ public class MessagingDebugger : ModuleRules
 				"Core",
 				"CoreUObject",
                 "InputCore",
+				"Serialization",
 				"Slate",
 				"SlateCore",
 			}

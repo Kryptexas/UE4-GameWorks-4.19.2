@@ -17,9 +17,7 @@ public:
 
 public:
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~SMessagingMessageData( );
 
 public:
@@ -41,25 +39,28 @@ public:
 
 private:
 
-	// Handles checking whether the details view is enabled.
+	/** Handles checking whether the details view is enabled. */
 	bool HandleDetailsViewEnabled( ) const;
 
-	// Handles determining the visibility of the details view.
+	/** Handles determining the visibility of the details view. */
 	EVisibility HandleDetailsViewVisibility( ) const;
 
-	// Callback for handling message selection changes.
+	/** Callback for handling message selection changes. */
 	void HandleModelSelectedMessageChanged( );
 
 private:
 
-	// Holds the details view.
+	/** Holds the details view. */
 //	TSharedPtr<IDetailsView> DetailsView;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
+
+	/** Holds the details text box. */
+	TSharedPtr<SMultiLineEditableTextBox> TextBox;
 };
 
 

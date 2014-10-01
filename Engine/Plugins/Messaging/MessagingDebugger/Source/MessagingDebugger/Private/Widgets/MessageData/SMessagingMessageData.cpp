@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
+#include "Json.h"
+#include "JsonStructSerializerBackend.h"
+#include "StructSerializer.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingMessageData"
@@ -45,12 +48,10 @@ void SMessagingMessageData::Construct( const FArguments& InArgs, const FMessagin
 	DetailsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SMessagingMessageData::HandleDetailsViewVisibility)));
 */
 	ChildSlot
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
 		[
 			//DetailsView.ToSharedRef()
-			SNew(STextBlock)
-				.Text(LOCTEXT("NotImplementedYet", "Not implemented yet"))
+			SAssignNew(TextBox, SMultiLineEditableTextBox)
+				.IsReadOnly(true)
 		];
 
 	Model->OnSelectedMessageChanged().AddRaw(this, &SMessagingMessageData::HandleModelSelectedMessageChanged);
@@ -91,11 +92,29 @@ void SMessagingMessageData::HandleModelSelectedMessageChanged( )
 
 	if (SelectedMessage.IsValid() && SelectedMessage->Context.IsValid())
 	{
-		// @todo gmp: add support for displaying UScriptStructs in details view
+		UScriptStruct* MessageTypeInfo = SelectedMessage->Context->GetMessageTypeInfo().Get();
+
+		if (MessageTypeInfo != nullptr)
+		{
+			FBufferArchive BufferArchive;
+			FJsonStructSerializerBackend Backend(BufferArchive);
+
+			FStructSerializer::Serialize(SelectedMessage->Context->GetMessage(), *MessageTypeInfo, Backend);
+
+			// add string terminator
+			BufferArchive.Add(0);
+			BufferArchive.Add(0);
+
+			TextBox->SetText(FText::FromString(FString((TCHAR*)BufferArchive.GetData()).Replace(TEXT("\t"), TEXT("    "))));
+		}
+		else
+		{
+			TextBox->SetText(FText::Format(LOCTEXT("UnknownMessageTypeFormat", "Unknown message type '{0}'"), FText::FromString(SelectedMessage->Context->GetMessageType().ToString())));
+		}
 	}
 	else
 	{
-//		DetailsView->SetObject(nullptr);
+		TextBox->SetText(FText::GetEmpty());
 	}
 }
 
