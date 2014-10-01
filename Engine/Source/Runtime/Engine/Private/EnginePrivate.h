@@ -80,7 +80,6 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/TargetPoint.h"
-#include "Engine/TextRenderActor.h"
 #include "Engine/DataAsset.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"

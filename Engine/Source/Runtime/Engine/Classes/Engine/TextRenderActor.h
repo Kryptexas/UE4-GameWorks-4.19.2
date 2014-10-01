@@ -16,7 +16,7 @@ class ATextRenderActor : public AActor
 	friend class UActorFactoryTextRender;
 
 	/** Component to render a text in 3d with a font */
-	UPROPERTY(Category=TextRenderActor, VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category=TextRenderActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Rendering|Components|TextRender"))
 	TSubobjectPtr<class UTextRenderComponent> TextRender;
 
 #if WITH_EDITORONLY_DATA

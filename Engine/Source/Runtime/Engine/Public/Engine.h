@@ -115,7 +115,6 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/TargetPoint.h"
-#include "Engine/TextRenderActor.h"
 #include "VectorField/VectorFieldVolume.h"
 #include "Engine/DataAsset.h"
 #include "GameFramework/SpectatorPawnMovement.h"

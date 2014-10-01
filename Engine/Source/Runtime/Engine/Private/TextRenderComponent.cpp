@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "DynamicMeshBuilder.h"
-#include "../../../../Source/Runtime/Engine/Classes/Engine/TextRenderActor.h"
+#include "Engine/TextRenderActor.h"
 #include "LocalVertexFactory.h"
 
 ATextRenderActor::ATextRenderActor(const class FPostConstructInitializeProperties& PCIP)

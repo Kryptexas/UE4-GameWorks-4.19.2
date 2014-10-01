@@ -31,6 +31,7 @@ ActorFactory.cpp:
 #include "Engine/TriggerBox.h"
 #include "Engine/TriggerSphere.h"
 #include "Engine/TriggerCapsule.h"
+#include "Engine/TextRenderActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
