@@ -126,6 +126,8 @@ FPhysicsScene2D::~FPhysicsScene2D()
 {
 	StartPhysicsTickFunction.UnRegisterTickFunction();
 	EndPhysicsTickFunction.UnRegisterTickFunction();
+
+	delete World;
 }
 
 bool FPhysicsScene2D::ShouldCollide(b2Fixture* FixtureA, b2Fixture* FixtureB)
