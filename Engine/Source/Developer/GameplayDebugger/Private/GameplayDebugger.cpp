@@ -147,6 +147,12 @@ bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerControl
 		DestActor->SetLocalPlayerOwner(PlayerController);
 		DestActor->SetReplicates(true);
 		DestActor->SetAsGlobalInWorld(false);
+		UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
+		if (EEngine && EEngine->bIsSimulatingInEditor)
+		{
+			DestActor->CreateTool();
+			DestActor->EnableTool();
+		}
 		AddReplicator(World, DestActor);
 		return true;
 	}
@@ -292,6 +298,7 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 			if (!Replicator)
 			{
 				PC->ConsoleCommand("cheat EnableGDT");
+				bHandled = true;
 			}
 			else if (!Replicator->IsToolCreated())
 			{
@@ -326,6 +333,14 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 				{
 					Replicator->CreateTool();
 					Replicator->EnableTool();
+					bHandled = true;
+				}
+			}
+			else
+			{
+				if (Replicator)
+				{
+					Replicator->bAutoActivate = true;;
 					bHandled = true;
 				}
 			}

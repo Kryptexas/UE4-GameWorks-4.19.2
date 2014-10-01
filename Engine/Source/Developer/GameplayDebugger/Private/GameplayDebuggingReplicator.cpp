@@ -245,7 +245,10 @@ void AGameplayDebuggingReplicator::BeginPlay()
 			}
 		}
 	}
+}
 
+void AGameplayDebuggingReplicator::OnRep_AutoActivate()
+{
 	// we are already replicated so let's activate tool
 	if (GetWorld() && GetNetMode() == ENetMode::NM_Client && !IsToolCreated() && !IsGlobalInWorld())
 	{

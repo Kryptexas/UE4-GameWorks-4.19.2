@@ -1148,7 +1148,14 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		{
 			CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
 			auto& CurrentLocalData = EQSLocalData[EQSIndex];
-			CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("DebugAI"), false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
+			
+			FString ViewFlagName = TEXT("Game");
+			UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
+			if (EEngine && EEngine->bIsSimulatingInEditor)
+			{
+				ViewFlagName = TEXT("DebugAI");
+			}
+			CompositeProxy->AddChild(new FEQSSceneProxy(this, ViewFlagName, false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
 		}
 	}
 #endif // USE_EQS_DEBUGGER

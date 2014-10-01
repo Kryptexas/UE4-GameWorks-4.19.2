@@ -156,7 +156,6 @@ void UGameplayDebuggingControllerComponent::OnActivationKeyPressed()
 			BindAIDebugViewKeys();
 			GetDebuggingReplicator()->EnableDraw(true);
 			GetDebuggingReplicator()->ServerReplicateMessage(NULL, EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
-			PlayerOwner->ConsoleCommand(TEXT("ShowFlag.DebugAI 1"), false);
 		}
 
 		ControlKeyPressedTime = GetWorld()->GetTimeSeconds();
@@ -205,10 +204,6 @@ void UGameplayDebuggingControllerComponent::CloseDebugTool()
 		GetDebuggingReplicator()->EnableDraw(false);
 		GetDebuggingReplicator()->ServerReplicateMessage(NULL, EDebugComponentMessage::DeactivateReplilcation, EAIDebugDrawDataView::Empty);
 		bToolActivated = false;
-		if (PlayerOwner.IsValid())
-		{
-			PlayerOwner->ConsoleCommand(TEXT("ShowFlag.DebugAI 0"), false);
-		}
 	}
 }
 
