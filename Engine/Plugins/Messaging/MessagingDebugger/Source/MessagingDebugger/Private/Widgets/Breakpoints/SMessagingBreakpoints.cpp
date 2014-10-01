@@ -23,7 +23,7 @@ void SMessagingBreakpoints::Construct( const FArguments& InArgs, const TSharedRe
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// message list

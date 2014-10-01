@@ -52,7 +52,7 @@ public:
 		{
 			return SNew(SBorder)
 				.BorderBackgroundColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.33f))
-				.BorderImage(FEditorStyle::GetBrush("ErrorReporting.Box"));
+				.BorderImage(Style->GetBrush("BreakpointBorder"));
 
 /*			return SNew(SImage)
 				.Image(Style->GetBrush("BreakDisabled"));*/

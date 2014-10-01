@@ -11,9 +11,7 @@ public class MessagingDebugger : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
-				"EditorStyle",
                 "InputCore",
-//                "PropertyEditor",
 				"Slate",
 				"SlateCore",
 			}

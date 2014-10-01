@@ -18,9 +18,7 @@ class FMessagingDebuggerStyle
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	 FMessagingDebuggerStyle( )
 		 : FSlateStyleSet("MessagingDebuggerStyle")
 	 {
@@ -29,6 +27,10 @@ public:
 		const FVector2D Icon40x40(40.0f, 40.0f);
 
 		SetContentRoot(FPaths::EnginePluginsDir() / TEXT("Messaging/MessagingDebugger/Content"));
+
+		// general
+		Set("BreakpointBorder", new BOX_BRUSH("GroupBorder", FMargin(4.0f / 16.0f)));
+		Set("GroupBorder", new BOX_BRUSH("GroupBorder", FMargin(4.0f / 16.0f)));
 
 		// tab icons
 		Set("BreakpointsTabIcon", new IMAGE_BRUSH("icon_tab_Breakpoints_16x", Icon16x16));
@@ -92,9 +94,7 @@ public:
 		FSlateStyleRegistry::RegisterSlateStyle(*this);
 	 }
 
-	 /**
-	  * Destructor.
-	  */
+	 /** Destructor. */
 	 ~FMessagingDebuggerStyle( )
 	 {
 		FSlateStyleRegistry::UnRegisterSlateStyle(*this);

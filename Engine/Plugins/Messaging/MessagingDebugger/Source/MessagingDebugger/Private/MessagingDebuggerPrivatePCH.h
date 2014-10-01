@@ -10,7 +10,6 @@
 #include "ModuleManager.h"
 #include "Slate.h"
 #include "SlateStyle.h"
-#include "EditorStyle.h"
 
 
 /* Private includes

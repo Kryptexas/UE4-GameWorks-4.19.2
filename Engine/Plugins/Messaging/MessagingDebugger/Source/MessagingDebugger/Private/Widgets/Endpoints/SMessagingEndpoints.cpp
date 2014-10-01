@@ -52,7 +52,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// message list

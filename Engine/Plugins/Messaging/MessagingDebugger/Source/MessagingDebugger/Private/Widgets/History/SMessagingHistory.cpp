@@ -44,7 +44,7 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 			.AutoHeight()
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// filter bar
@@ -57,7 +57,7 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(0.0f)
 					[
 						// message list
@@ -138,7 +138,7 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(InStyle->GetBrush("GroupBorder"))
 					.Padding(4.0f)
 					[
 						// status bar
