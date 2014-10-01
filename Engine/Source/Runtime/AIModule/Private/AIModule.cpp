@@ -31,6 +31,10 @@ void FAIModule::StartupModule()
 	FModuleManager::LoadModulePtr< IModuleInterface >("GameplayDebugger");
 #endif
 
+#if WITH_EDITOR 
+	FModuleManager::LoadModulePtr< IModuleInterface >("AITestSuite");
+#endif // WITH_EDITOR 
+
 #if WITH_EDITOR && ENABLE_VISUAL_LOG
 	FVisualLog::Get().RegisterExtension(*EVisLogTags::TAG_EQS, &VisualLoggerExtension);
 #endif

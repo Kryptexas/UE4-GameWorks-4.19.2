@@ -53,7 +53,7 @@ public class Engine : ModuleRules
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",                
-                "AIModule",
+                "AIModule", // Here until all engine's dependencies of AI code are removed
 			}
 		);
 
