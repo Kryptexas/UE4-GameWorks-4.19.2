@@ -83,7 +83,7 @@ void FSplineComponentVisualizer::OnRegister()
 	SplineComponentVisualizerActions->MapAction(
 		Commands.DeleteKey,
 		FExecuteAction::CreateSP(this, &FSplineComponentVisualizer::OnDeleteKey),
-		FCanExecuteAction::CreateSP(this, &FSplineComponentVisualizer::IsKeySelectionValid));
+		FCanExecuteAction::CreateSP(this, &FSplineComponentVisualizer::CanDeleteKey));
 
 	SplineComponentVisualizerActions->MapAction(
 		Commands.DuplicateKey,
@@ -148,7 +148,7 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 
 		FVector OldKeyPos(0);
 		float OldKeyTime = 0.f;
-		for (int32 KeyIdx = 0; KeyIdx<SplineInfo.Points.Num(); KeyIdx++)
+		for (int32 KeyIdx = 0; KeyIdx < SplineInfo.Points.Num(); KeyIdx++)
 		{
 			float NewKeyTime = SplineInfo.Points[KeyIdx].InVal;
 			FVector NewKeyPos = SplineComp->ComponentToWorld.TransformPosition( SplineInfo.Eval(NewKeyTime, FVector::ZeroVector) );
@@ -156,9 +156,12 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 			const FColor KeyColor = (SplineComp == EditedSplineComp && KeyIdx == SelectedKeyIndex) ? SelectedColor : NormalColor;
 
 			// Draw the keypoint
-			PDI->SetHitProxy(new HSplineKeyProxy(Component, KeyIdx));
-			PDI->DrawPoint(NewKeyPos, KeyColor, GrabHandleSize, SDPG_Foreground);
-			PDI->SetHitProxy(NULL);
+			if (!SplineComp->IsClosedLoop() || KeyIdx < SplineInfo.Points.Num() - 1)
+			{
+				PDI->SetHitProxy(new HSplineKeyProxy(Component, KeyIdx));
+				PDI->DrawPoint(NewKeyPos, KeyColor, GrabHandleSize, SDPG_Foreground);
+				PDI->SetHitProxy(NULL);
+			}
 
 			// If not the first keypoint, draw a line to the previous keypoint.
 			if (KeyIdx>0)
@@ -303,10 +306,8 @@ bool FSplineComponentVisualizer::GetCustomInputCoordinateSystem(const FEditorVie
 			if (SelectedKeyIndex < SplineComp->SplineInfo.Points.Num())
 			{
 				const auto& Point = SplineComp->SplineInfo.Points[SelectedKeyIndex];
-				const FVector Tangent = Point.ArriveTangent.SafeNormal();
-				const FVector Bitangent = (Tangent.Z == 1.0f) ?
-					FVector(1.0f, 0.0f, 0.0f) :
-					FVector(-Tangent.Y, Tangent.X, 0.0f).SafeNormal();
+				const FVector Tangent = Point.ArriveTangent.IsNearlyZero() ? FVector(1.0f, 0.0f, 0.0f) : Point.ArriveTangent.SafeNormal();
+				const FVector Bitangent = (Tangent.Z == 1.0f) ? FVector(1.0f, 0.0f, 0.0f) : FVector(-Tangent.Y, Tangent.X, 0.0f).SafeNormal();
 				const FVector Normal = FVector::CrossProduct(Tangent, Bitangent);
 
 				OutMatrix = FMatrix(Tangent, Bitangent, Normal, FVector::ZeroVector) * FQuatRotationTranslationMatrix(SplineComp->ComponentToWorld.GetRotation(), FVector::ZeroVector);
@@ -322,9 +323,11 @@ bool FSplineComponentVisualizer::GetCustomInputCoordinateSystem(const FEditorVie
 bool FSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale)
 {
 	USplineComponent* SplineComp = GetEditedSplineComponent();
-	if( SplineComp && 
+	const int32 NumPoints = SplineComp->SplineInfo.Points.Num();
+
+	if (SplineComp && 
 		SelectedKeyIndex != INDEX_NONE &&
-		SelectedKeyIndex < SplineComp->SplineInfo.Points.Num() )
+		SelectedKeyIndex < NumPoints)
 	{
 		if (ViewportClient->IsAltPressed() && bAllowDuplication)
 		{
@@ -382,6 +385,14 @@ bool FSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewpor
 			EditedPoint.ArriveTangent = NewTangent;
 		}
 
+		// Duplicate first point to last point if it is a closed loop
+		if (SplineComp->IsClosedLoop() && SelectedKeyIndex == 0 && NumPoints > 0)
+		{
+			SplineComp->SplineInfo.Points[NumPoints - 1].OutVal = EditedPoint.OutVal;
+			SplineComp->SplineInfo.Points[NumPoints - 1].LeaveTangent = EditedPoint.LeaveTangent;
+			SplineComp->SplineInfo.Points[NumPoints - 1].ArriveTangent = EditedPoint.ArriveTangent;
+		}
+
 		NotifyComponentModified();
 
 		return true;
@@ -427,6 +438,9 @@ void FSplineComponentVisualizer::OnDuplicateKey()
 		Owner->Modify();
 	}
 
+	const bool bWasLoop = SplineComp->IsClosedLoop();
+	SplineComp->SetClosedLoop(false);
+
 	FInterpCurvePoint<FVector> KeyToDupe = SplineComp->SplineInfo.Points[SelectedKeyIndex];
 	KeyToDupe.InterpMode = CIM_CurveAuto;
 	int32 NewKeyIndex = SplineComp->SplineInfo.Points.Insert(KeyToDupe, SelectedKeyIndex);
@@ -435,6 +449,8 @@ void FSplineComponentVisualizer::OnDuplicateKey()
 
 	// Update Input value for all keys
 	SplineComp->RefreshSplineInputs();
+
+	SplineComp->SetClosedLoop(bWasLoop);
 
 	NotifyComponentModified();
 }
@@ -459,6 +475,9 @@ void FSplineComponentVisualizer::OnAddKey()
 		Owner->Modify();
 	}
 
+	const bool bWasLoop = SplineComp->IsClosedLoop();
+	SplineComp->SetClosedLoop(false);
+
 	FInterpCurvePoint<FVector> NewKey;
 	NewKey.InVal = SelectedSegmentIndex;
 	NewKey.OutVal = SplineComp->ComponentToWorld.InverseTransformPosition(SelectedSplinePosition);
@@ -470,6 +489,8 @@ void FSplineComponentVisualizer::OnAddKey()
 
 	// Update Input value for all keys
 	SplineComp->RefreshSplineInputs();
+
+	SplineComp->SetClosedLoop(bWasLoop);
 
 	NotifyComponentModified();
 }
@@ -485,13 +506,29 @@ void FSplineComponentVisualizer::OnDeleteKey()
 		Owner->Modify();
 	}
 
+	const bool bWasLoop = SplineComp->IsClosedLoop();
+	SplineComp->SetClosedLoop(false);
+
 	SplineComp->SplineInfo.Points.RemoveAt(SelectedKeyIndex);
 	SplineComp->RefreshSplineInputs(); // update input value for each key
+
+	SplineComp->SetClosedLoop(bWasLoop);
 
 	SelectedKeyIndex = INDEX_NONE; // deselect any keys
 	SelectedSegmentIndex = INDEX_NONE;
 
 	NotifyComponentModified();
+}
+
+
+bool FSplineComponentVisualizer::CanDeleteKey() const
+{
+	USplineComponent* SplineComp = GetEditedSplineComponent();
+	return (SplineComp &&
+		SplineComp->SplineInfo.Points.Num() >= 2 &&
+		SelectedSegmentIndex == INDEX_NONE &&
+		SelectedKeyIndex != INDEX_NONE &&
+		SelectedKeyIndex < SplineComp->SplineInfo.Points.Num());
 }
 
 
@@ -517,7 +554,10 @@ void FSplineComponentVisualizer::OnResetToAutomaticTangent(EInterpCurveMode Mode
 			Owner->Modify();
 		}
 
+		const bool bWasLoop = SplineComp->IsClosedLoop();
+		SplineComp->SetClosedLoop(false);
 		SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode = Mode;
+		SplineComp->SetClosedLoop(bWasLoop);
 		NotifyComponentModified();
 	}
 }
@@ -546,7 +586,10 @@ void FSplineComponentVisualizer::OnSetKeyType(EInterpCurveMode Mode)
 			Owner->Modify();
 		}
 
+		const bool bWasLoop = SplineComp->IsClosedLoop();
+		SplineComp->SetClosedLoop(false);
 		SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode = Mode;
+		SplineComp->SetClosedLoop(bWasLoop);
 		NotifyComponentModified();
 	}
 }
