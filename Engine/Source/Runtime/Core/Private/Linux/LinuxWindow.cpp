@@ -423,14 +423,15 @@ void FLinuxWindow::AdjustCachedSize( FVector2D& Size ) const
 
 bool FLinuxWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const
 {
-	SDL_Rect rect;
+	SDL_Rect DisplayRect;
 
-	if (SDL_GetDisplayBounds(0, &rect) == 0)
+	int DisplayIdx = SDL_GetWindowDisplayIndex(HWnd);
+	if (DisplayIdx >= 0 && SDL_GetDisplayBounds(DisplayIdx, &DisplayRect) == 0)
 	{
-		X = rect.x;
-		Y = rect.y;
-		Width = rect.w;
-		Height = rect.h;
+		X = DisplayRect.x;
+		Y = DisplayRect.y;
+		Width = DisplayRect.w;
+		Height = DisplayRect.h;
 
 		return true;
 	}
