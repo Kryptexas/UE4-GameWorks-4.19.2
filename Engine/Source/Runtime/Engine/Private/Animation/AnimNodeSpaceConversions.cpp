@@ -15,7 +15,7 @@ void FAnimNode_ConvertComponentToLocalSpace::Initialize(const FAnimationInitiali
 	ComponentPose.Initialize(Context);
 }
 
-void FAnimNode_ConvertComponentToLocalSpace::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_ConvertComponentToLocalSpace::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	ComponentPose.CacheBones(Context);
 }
@@ -54,7 +54,7 @@ void FAnimNode_ConvertLocalToComponentSpace::Initialize(const FAnimationInitiali
 	LocalPose.Initialize(Context);
 }
 
-void FAnimNode_ConvertLocalToComponentSpace::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_ConvertLocalToComponentSpace::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	LocalPose.CacheBones(Context);
 }

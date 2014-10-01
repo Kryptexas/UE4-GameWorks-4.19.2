@@ -23,7 +23,7 @@ FVector FAnimNode_Fabrik::GetCurrentLocation(FA2CSPose & MeshBases, int32 const 
 	return MeshBases.GetComponentSpaceTransform(BoneIndex).GetLocation();
 }
 
-void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	// IsValidToEvaluate validated our inputs, we don't need to check pre-requisites again.
 	int32 const RootIndex = RootBone.BoneIndex;
@@ -201,14 +201,14 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 			checkSlow(DeltaRotation.IsNormalized());
 
 			// Calculate absolute rotation and set it
-			FTransform & CurrentBoneTransform = OutBoneTransforms[CurrentLink.TransformIndex].Transform;
+			FTransform& CurrentBoneTransform = OutBoneTransforms[CurrentLink.TransformIndex].Transform;
 			CurrentBoneTransform.SetRotation(DeltaRotation * CurrentBoneTransform.GetRotation());
 
 			// Update zero length children if any
 			int32 const NumChildren = CurrentLink.ChildZeroLengthTransformIndices.Num();
 			for (int32 ChildIndex = 0; ChildIndex < NumChildren; ChildIndex++)
 			{
-				FTransform & ChildBoneTransform = OutBoneTransforms[CurrentLink.ChildZeroLengthTransformIndices[ChildIndex]].Transform;
+				FTransform& ChildBoneTransform = OutBoneTransforms[CurrentLink.ChildZeroLengthTransformIndices[ChildIndex]].Transform;
 				ChildBoneTransform.SetRotation(DeltaRotation * ChildBoneTransform.GetRotation());
 			}
 		}
@@ -232,7 +232,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 	}
 }
 
-bool FAnimNode_Fabrik::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones)
+bool FAnimNode_Fabrik::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
 	// Allow evaluation if all parameters are initialized and TipBone is child of RootBone
 	return
@@ -244,7 +244,7 @@ bool FAnimNode_Fabrik::IsValidToEvaluate(const USkeleton * Skeleton, const FBone
 		);
 }
 
-void FAnimNode_Fabrik::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_Fabrik::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	TipBone.Initialize(RequiredBones);
 	RootBone.Initialize(RequiredBones);

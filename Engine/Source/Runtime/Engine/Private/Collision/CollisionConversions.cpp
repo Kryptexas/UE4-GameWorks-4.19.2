@@ -17,7 +17,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 /* Validate Normal of OutResult. We're on hunt for invalid normal */
-static void CheckHitResultNormal(const FHitResult& OutResult, const TCHAR* Message, const FVector & Start=FVector::ZeroVector, const FVector & End = FVector::ZeroVector, const PxGeometry* const Geom=NULL)
+static void CheckHitResultNormal(const FHitResult& OutResult, const TCHAR* Message, const FVector& Start=FVector::ZeroVector, const FVector& End = FVector::ZeroVector, const PxGeometry* const Geom=NULL)
 {
 	if(!OutResult.bStartPenetrating && !OutResult.Normal.IsNormalized())
 	{

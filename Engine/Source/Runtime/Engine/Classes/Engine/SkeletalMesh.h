@@ -908,4 +908,4 @@ private:
  *
  * @param	InSkeletalMesh	SkeletalMesh that physics asset has been changed for
  */
-ENGINE_API void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh * InSkeletalMesh);
+ENGINE_API void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh* InSkeletalMesh);

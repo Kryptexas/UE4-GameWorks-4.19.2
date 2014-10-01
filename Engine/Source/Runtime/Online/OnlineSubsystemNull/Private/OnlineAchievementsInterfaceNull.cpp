@@ -59,7 +59,7 @@ void FOnlineAchievementsNull::WriteAchievements(const FUniqueNetId& PlayerId, FO
 	Delegate.ExecuteIfBound(PlayerId, true);
 };
 
-void FOnlineAchievementsNull::QueryAchievements( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )
+void FOnlineAchievementsNull::QueryAchievements( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate )
 {
 	if (!ReadAchievementsFromConfig())
 	{
@@ -86,7 +86,7 @@ void FOnlineAchievementsNull::QueryAchievements( const FUniqueNetId& PlayerId, c
 	Delegate.ExecuteIfBound(PlayerId, true);
 }
 
-void FOnlineAchievementsNull::QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )
+void FOnlineAchievementsNull::QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate )
 {
 	if (!ReadAchievementsFromConfig())
 	{

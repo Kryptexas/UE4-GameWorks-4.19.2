@@ -65,7 +65,7 @@ void UNavMeshRenderingComponent::DestroyRenderState_Concurrent()
 	Super::DestroyRenderState_Concurrent();
 }
 
-FBoxSphereBounds UNavMeshRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UNavMeshRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox BoundingBox(0);
 #if WITH_RECAST

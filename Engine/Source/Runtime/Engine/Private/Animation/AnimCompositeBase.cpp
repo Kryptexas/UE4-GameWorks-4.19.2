@@ -13,7 +13,7 @@
 // FAnimSegment
 ///////////////////////////////////////////////////////
 
-UAnimSequenceBase * FAnimSegment::GetAnimationData(float PositionInTrack, float & PositionInAnim, float & Weight) const
+UAnimSequenceBase * FAnimSegment::GetAnimationData(float PositionInTrack, float& PositionInAnim, float& Weight) const
 {
 	if( IsInRange(PositionInTrack) )
 	{
@@ -44,7 +44,7 @@ UAnimSequenceBase * FAnimSegment::GetAnimationData(float PositionInTrack, float 
 
 /** Converts 'Track Position' to position on AnimSequence.
  * Note: doesn't check that position is in valid range, must do that before calling this function! */
-float FAnimSegment::ConvertTrackPosToAnimPos(const float & TrackPosition) const
+float FAnimSegment::ConvertTrackPosToAnimPos(const float& TrackPosition) const
 {
 	const float AnimLength = (AnimEndTime - AnimStartTime);
 	const float AnimPositionUnWrapped = (TrackPosition - StartPos) * GetValidPlayRate();
@@ -57,7 +57,7 @@ float FAnimSegment::ConvertTrackPosToAnimPos(const float & TrackPosition) const
 	return AnimPosition;
 }
 
-void FAnimSegment::GetAnimNotifiesFromTrackPositions(const float & PreviousTrackPosition, const float & CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+void FAnimSegment::GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
 	if( PreviousTrackPosition == CurrentTrackPosition )
 	{
@@ -200,7 +200,7 @@ void FAnimTrack::GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionExt
 	{
 		for(int32 AnimSegmentIndex=AnimSegments.Num()-1; AnimSegmentIndex>=0; AnimSegmentIndex--)
 		{
-			const FAnimSegment & AnimSegment = AnimSegments[AnimSegmentIndex];
+			const FAnimSegment& AnimSegment = AnimSegments[AnimSegmentIndex];
 			AnimSegment.GetRootMotionExtractionStepsForTrackRange(RootMotionExtractionSteps, StartTrackPosition, EndTrackPosition);
 		}
 	}
@@ -208,7 +208,7 @@ void FAnimTrack::GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionExt
 	{
 		for(int32 AnimSegmentIndex=0; AnimSegmentIndex<AnimSegments.Num(); AnimSegmentIndex++)
 		{
-			const FAnimSegment & AnimSegment = AnimSegments[AnimSegmentIndex];
+			const FAnimSegment& AnimSegment = AnimSegments[AnimSegmentIndex];
 			AnimSegment.GetRootMotionExtractionStepsForTrackRange(RootMotionExtractionSteps, StartTrackPosition, EndTrackPosition);
 		}
 	}

@@ -111,7 +111,7 @@ void FRawCurveTracks::EvaluateCurveData(class UAnimInstance* Instance, float Cur
 	// evaluate the curve data at the CurrentTime and add to Instance
 	for (auto CurveIter = FloatCurves.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
-		const FFloatCurve & Curve = *CurveIter;
+		const FFloatCurve& Curve = *CurveIter;
 
 		Instance->AddCurveValue( Curve.CurveUid, Curve.FloatCurve.Eval(CurrentTime)*BlendWeight, Curve.GetCurveTypeFlags() );
 	}
@@ -332,7 +332,7 @@ void UAnimSequenceBase::SortNotifies()
  * Supports playing backwards (DeltaTime<0).
  * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
  */
-void UAnimSequenceBase::GetAnimNotifies(const float & StartTime, const float & DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
 	// Early out if we have no notifies
 	if( (Notifies.Num() == 0) || (DeltaTime == 0.f) )
@@ -378,7 +378,7 @@ void UAnimSequenceBase::GetAnimNotifies(const float & StartTime, const float & D
  * Supports playing backwards (CurrentPosition<PreviousPosition).
  * Only supports contiguous range, does NOT support looping and wrapping over.
  */
-void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float & PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float& CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
 	// Early out if we have no notifies
 	if( (Notifies.Num() == 0) || (PreviousPosition == CurrentPosition) )
@@ -393,7 +393,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float & Previous
 	{
 		for (int32 NotifyIndex=0; NotifyIndex<Notifies.Num(); NotifyIndex++)
 		{
-			const FAnimNotifyEvent & AnimNotifyEvent = Notifies[NotifyIndex];
+			const FAnimNotifyEvent& AnimNotifyEvent = Notifies[NotifyIndex];
 			const float NotifyStartTime = AnimNotifyEvent.GetTriggerTime();
 			const float NotifyEndTime = AnimNotifyEvent.GetEndTriggerTime();
 
@@ -407,7 +407,7 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float & Previous
 	{
 		for (int32 NotifyIndex=0; NotifyIndex<Notifies.Num(); NotifyIndex++)
 		{
-			const FAnimNotifyEvent & AnimNotifyEvent = Notifies[NotifyIndex];
+			const FAnimNotifyEvent& AnimNotifyEvent = Notifies[NotifyIndex];
 			const float NotifyStartTime = AnimNotifyEvent.GetTriggerTime();
 			const float NotifyEndTime = AnimNotifyEvent.GetEndTriggerTime();
 
@@ -520,7 +520,7 @@ void UAnimSequenceBase::RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate
 {
 	OnNotifyChanged.Add(Delegate);
 }
-void UAnimSequenceBase::UnregisterOnNotifyChanged(void * Unregister)
+void UAnimSequenceBase::UnregisterOnNotifyChanged(void* Unregister)
 {
 	OnNotifyChanged.RemoveAll(Unregister);
 }
@@ -628,12 +628,12 @@ void UAnimSequenceBase::EvaluateCurveData(class UAnimInstance* Instance, float C
 	RawCurveData.EvaluateCurveData(Instance, CurrentTime, BlendWeight);
 }
 
-void UAnimSequenceBase::ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const
+void UAnimSequenceBase::ExtractRootTrack(float Pos, FTransform& RootTransform, const FBoneContainer* RequiredBones) const
 {
 	// Fallback to root bone from reference skeleton.
 	if (RequiredBones)
 	{
-		const FReferenceSkeleton & RefSkeleton = RequiredBones->GetReferenceSkeleton();
+		const FReferenceSkeleton& RefSkeleton = RequiredBones->GetReferenceSkeleton();
 		if (RefSkeleton.GetNum() > 0)
 		{
 			RootTransform = RefSkeleton.GetRefBonePose()[0];
@@ -641,7 +641,7 @@ void UAnimSequenceBase::ExtractRootTrack(float Pos, FTransform & RootTransform, 
 		}
 	}
 
-	USkeleton * MySkeleton = GetSkeleton();
+	USkeleton* MySkeleton = GetSkeleton();
 	// If we don't have a RequiredBones array, get root bone from default skeleton.
 	if (!RequiredBones && MySkeleton)
 	{

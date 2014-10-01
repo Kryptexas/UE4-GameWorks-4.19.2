@@ -121,8 +121,8 @@ void FALSoundSource::Update( void )
 	alSourcef( SourceId, AL_GAIN, Volume );	
 	alSourcef( SourceId, AL_PITCH, Pitch );		
 
-	alSourcefv( SourceId, AL_POSITION, ( ALfloat * )&Location );
-	alSourcefv( SourceId, AL_VELOCITY, ( ALfloat * )&Velocity );
+	alSourcefv( SourceId, AL_POSITION, ( ALfloat* )&Location );
+	alSourcefv( SourceId, AL_VELOCITY, ( ALfloat* )&Velocity );
 
 	// Platform dependent call to update the sound output with new parameters
 	// @todo openal: Is this no longer needed?

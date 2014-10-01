@@ -525,7 +525,7 @@ FPrimitiveSceneProxy* ULandscapeSplinesComponent::CreateSceneProxy()
 }
 #endif
 
-FBoxSphereBounds ULandscapeSplinesComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds ULandscapeSplinesComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox NewBoundsCalc(0);
 

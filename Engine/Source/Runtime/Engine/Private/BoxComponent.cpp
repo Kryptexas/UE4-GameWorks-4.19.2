@@ -73,7 +73,7 @@ bool UBoxComponent::IsZeroExtent() const
 	return BoxExtent.IsZero();
 }
 
-FBoxSphereBounds UBoxComponent::CalcBounds(const FTransform & LocalToWorld) const 
+FBoxSphereBounds UBoxComponent::CalcBounds(const FTransform& LocalToWorld) const 
 {
 	return FBoxSphereBounds( FBox( -BoxExtent, BoxExtent ) ).TransformBy(LocalToWorld);
 }

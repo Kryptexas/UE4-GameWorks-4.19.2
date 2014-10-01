@@ -35,7 +35,7 @@ USceneComponent::USceneComponent(const class FPostConstructInitializeProperties&
 	NetUpdateTransform = false;
 }
 
-FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent) const
+FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
 {
 	Parent = Parent ? Parent : AttachParent;
 	if (Parent != NULL)
@@ -263,7 +263,7 @@ void USceneComponent::DestroyComponent()
 	Super::DestroyComponent();
 }
 
-FBoxSphereBounds USceneComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USceneComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBoxSphereBounds NewBounds;
 	NewBounds.Origin = LocalToWorld.GetLocation();
@@ -868,7 +868,7 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 		if (UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 		{
-			if (FBodyInstance * BI = PrimitiveComponent->GetBodyInstance())
+			if (FBodyInstance* BI = PrimitiveComponent->GetBodyInstance())
 			{
 				if (bWeldSimulatedBodies)
 				{
@@ -1086,7 +1086,7 @@ ECollisionEnabled::Type USceneComponent::GetCollisionEnabled() const
 	return ECollisionEnabled::NoCollision;
 }
 
-const FCollisionResponseContainer & USceneComponent::GetCollisionResponseToChannels() const
+const FCollisionResponseContainer& USceneComponent::GetCollisionResponseToChannels() const
 {
 	return FCollisionResponseContainer::GetDefaultResponseContainer();
 }

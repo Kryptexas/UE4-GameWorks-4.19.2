@@ -84,7 +84,7 @@ FDeferredDecalProxy* UDecalComponent::CreateSceneProxy()
 	return new FDeferredDecalProxy(this);
 }
 
-FBoxSphereBounds UDecalComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UDecalComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds();
 }

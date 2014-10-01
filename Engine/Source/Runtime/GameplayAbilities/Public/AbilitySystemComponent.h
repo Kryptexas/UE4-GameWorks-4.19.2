@@ -532,7 +532,7 @@ private:
 
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
 
-	const FGlobalCurveDataOverride * GetCurveDataOverride() const
+	const FGlobalCurveDataOverride* GetCurveDataOverride() const
 	{
 		// only return data if we have overrides. NULL if we don't.
 		return (GlobalCurveDataOverride.Overrides.Num() > 0 ? &GlobalCurveDataOverride : NULL);

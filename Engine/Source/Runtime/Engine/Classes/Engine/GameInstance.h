@@ -86,7 +86,7 @@ public:
 	/** Starts the GameInstance state machine running */
 	virtual void StartGameInstance();
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults) { return false; }
-	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult & SearchResult) { return false; }
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) { return false; }
 
 	/** Local player access */
 

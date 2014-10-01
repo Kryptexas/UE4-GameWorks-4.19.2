@@ -65,7 +65,7 @@ void UPhysicsHandleComponent::GrabComponent(UPrimitiveComponent* InComponent, FN
 
 #if WITH_PHYSX
 	// Get the PxRigidDynamic that we want to grab.
-	FBodyInstance * BodyInstance = InComponent->GetBodyInstance(InBoneName);
+	FBodyInstance* BodyInstance = InComponent->GetBodyInstance(InBoneName);
 	if (!BodyInstance)
 	{
 		return;

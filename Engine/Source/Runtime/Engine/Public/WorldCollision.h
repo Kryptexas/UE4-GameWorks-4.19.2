@@ -77,7 +77,7 @@ struct FCollisionShape
 		ShapeType = ECollisionShape::Line;
 	}
 
-	void SetBox(const FVector & HalfExtent)
+	void SetBox(const FVector& HalfExtent)
 	{
 		ShapeType = ECollisionShape::Box;
 		Box.HalfExtentX = HalfExtent.X;		
@@ -178,7 +178,7 @@ struct FCollisionShape
 
 	static struct FCollisionShape LineShape;
 
-	static FCollisionShape MakeBox(const FVector & BoxHalfExtent)
+	static FCollisionShape MakeBox(const FVector& BoxHalfExtent)
 	{
 		FCollisionShape BoxShape;
 		BoxShape.SetBox(BoxHalfExtent);
@@ -199,7 +199,7 @@ struct FCollisionShape
 		return CapsuleShape;
 	}
 
-	static FCollisionShape MakeCapsule(const FVector & Extent)
+	static FCollisionShape MakeCapsule(const FVector& Extent)
 	{
 		FCollisionShape CapsuleShape;
 		CapsuleShape.SetCapsule(Extent);
@@ -243,7 +243,7 @@ struct FBaseTraceDatum
 	FBaseTraceDatum() {};
 
 	/* Set functions for each Shape type */
-	void Set(UWorld * World, const FCollisionShape & InCollisionShape, const FCollisionQueryParams & Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
+	void Set(UWorld * World, const FCollisionShape& InCollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
 		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace, int32 FrameCounter);
 };
 
@@ -280,8 +280,8 @@ struct FTraceDatum : public FBaseTraceDatum
 	FTraceDatum() {}
 
 	/** Set Trace Datum for each shape type **/
-	FTraceDatum(UWorld * World, const FCollisionShape & CollisionShape, const FCollisionQueryParams & Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
-		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace,	const FVector & InStart, const FVector & InEnd, FTraceDelegate * InDelegate, int32 FrameCounter)
+	FTraceDatum(UWorld * World, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
+		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace,	const FVector& InStart, const FVector& InEnd, FTraceDelegate * InDelegate, int32 FrameCounter)
 	{
 		Set(World, CollisionShape, Param, InResponseParam, InObjectQueryParam, Channel, InUserData, bInIsMultiTrace, FrameCounter);
 		Start = InStart;
@@ -311,7 +311,7 @@ struct FOverlapDatum : FBaseTraceDatum
 
 	FOverlapDatum() {}
 
-	FOverlapDatum(UWorld * World, const FCollisionShape & CollisionShape, const FCollisionQueryParams & Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
+	FOverlapDatum(UWorld * World, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
 		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace,
 		const FVector& InPos, const FQuat& InRot, FOverlapDelegate * InDelegate, int32 FrameCounter)
 	{

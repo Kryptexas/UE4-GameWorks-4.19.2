@@ -810,7 +810,7 @@ bool AActor::IsRootComponentCollisionRegistered() const
 	return RootComponent != NULL && RootComponent->IsRegistered() && RootComponent->IsCollisionEnabled();
 }
 
-bool AActor::IsAttachedTo(const AActor * Other) const
+bool AActor::IsAttachedTo(const AActor* Other) const
 {
 	return (RootComponent && Other && Other->RootComponent) ? RootComponent->IsAttachedTo(Other->RootComponent) : false;
 }

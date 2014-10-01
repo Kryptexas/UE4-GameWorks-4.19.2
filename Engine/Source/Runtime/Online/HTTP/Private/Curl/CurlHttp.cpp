@@ -214,7 +214,7 @@ FString FCurlHttpRequest::GetVerb()
 	return Verb;
 }
 
-size_t FCurlHttpRequest::StaticUploadCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData)
+size_t FCurlHttpRequest::StaticUploadCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData)
 {
 	check(Ptr);
 	check(UserData);
@@ -224,7 +224,7 @@ size_t FCurlHttpRequest::StaticUploadCallback(void * Ptr, size_t SizeInBlocks, s
 	return Request->UploadCallback(Ptr, SizeInBlocks, BlockSizeInBytes);
 }
 
-size_t FCurlHttpRequest::StaticReceiveResponseHeaderCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData)
+size_t FCurlHttpRequest::StaticReceiveResponseHeaderCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData)
 {
 	check(Ptr);
 	check(UserData);
@@ -234,7 +234,7 @@ size_t FCurlHttpRequest::StaticReceiveResponseHeaderCallback(void * Ptr, size_t 
 	return Request->ReceiveResponseHeaderCallback(Ptr, SizeInBlocks, BlockSizeInBytes);	
 }
 
-size_t FCurlHttpRequest::StaticReceiveResponseBodyCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void * UserData)
+size_t FCurlHttpRequest::StaticReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes, void* UserData)
 {
 	check(Ptr);
 	check(UserData);
@@ -245,7 +245,7 @@ size_t FCurlHttpRequest::StaticReceiveResponseBodyCallback(void * Ptr, size_t Si
 }
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize, void * UserData)
+size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize, void* UserData)
 {
 	check(Handle);
 	check(UserData);
@@ -256,7 +256,7 @@ size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugI
 }
 #endif // #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
+size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
 {
 	check(Response.IsValid());
 
@@ -298,7 +298,7 @@ size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void * Ptr, size_t SizeIn
 	return 0;
 }
 
-size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
+size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
 {
 	check(Response.IsValid());
 
@@ -335,7 +335,7 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void * Ptr, size_t SizeInBl
 	return 0;	// request will fail with write error if we had non-zero bytes to download
 }
 
-size_t FCurlHttpRequest::UploadCallback(void * Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
+size_t FCurlHttpRequest::UploadCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
 {
 	size_t SizeToSend = RequestPayload.Num() - BytesSent;
 	size_t SizeToSendThisTime = 0;

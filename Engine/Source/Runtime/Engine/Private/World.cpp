@@ -3229,7 +3229,7 @@ FConstCameraActorIterator UWorld::GetAutoActivateCameraIterator() const
 }
 
 
-void UWorld::AddNetworkActor( AActor * Actor )
+void UWorld::AddNetworkActor( AActor* Actor )
 {
 	if ( Actor == NULL )
 	{
@@ -3256,7 +3256,7 @@ void UWorld::AddNetworkActor( AActor * Actor )
 	NetworkActors.AddUnique( Actor );
 }
 
-void UWorld::RemoveNetworkActor( AActor * Actor )
+void UWorld::RemoveNetworkActor( AActor* Actor )
 {
 	if ( Actor == NULL )
 	{

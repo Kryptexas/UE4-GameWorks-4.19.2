@@ -237,7 +237,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static float MultiplyMultiply_FloatFloat(float Base, float Exp);
 
 	/* Multiplication (A * B) */
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "float * float", CompactNodeTitle = "*", Keywords = "* multiply", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Float")
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "float* float", CompactNodeTitle = "*", Keywords = "* multiply", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Float")
 	static float Multiply_FloatFloat(float A, float B);
 
 	/* Multiplication (A * B) */

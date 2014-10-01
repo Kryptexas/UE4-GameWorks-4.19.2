@@ -192,7 +192,7 @@ FPrimitiveSceneProxy* UDrawFrustumComponent::CreateSceneProxy()
 }
 
 
-FBoxSphereBounds UDrawFrustumComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UDrawFrustumComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds( LocalToWorld.TransformPosition(FVector::ZeroVector), FVector(FrustumEndDist), FrustumEndDist );
 }

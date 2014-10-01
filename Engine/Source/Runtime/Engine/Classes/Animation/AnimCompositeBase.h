@@ -57,7 +57,7 @@ struct FAnimSegment
 
 	/** Anim Reference to play - only allow AnimSequence or AnimComposite **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
-	UAnimSequenceBase * AnimReference;
+	UAnimSequenceBase* AnimReference;
 
 	/** Start Pos within this AnimCompositeBase */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=AnimSegment)
@@ -117,11 +117,11 @@ struct FAnimSegment
 	/**
 	 * Get Animation Data, for now have weight to be controlled here, in the future, it will be controlled in Track
 	 */
-	UAnimSequenceBase * GetAnimationData(float PositionInTrack, float & PositionInAnim, float & Weight) const;
+	UAnimSequenceBase* GetAnimationData(float PositionInTrack, float& PositionInAnim, float& Weight) const;
 
 	/** Converts 'Track Position' to position on AnimSequence.
 	 * Note: doesn't check that position is in valid range, must do that before calling this function! */
-	float ConvertTrackPosToAnimPos(const float & TrackPosition) const;
+	float ConvertTrackPosToAnimPos(const float& TrackPosition) const;
 
 	/** 
 	 * Retrieves AnimNotifies between two Track time positions. ]PreviousTrackPosition, CurrentTrackPosition]
@@ -129,7 +129,7 @@ struct FAnimSegment
 	 * Supports playing backwards (CurrentTrackPosition<PreviousTrackPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
-	void GetAnimNotifiesFromTrackPositions(const float & PreviousTrackPosition, const float & CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+	void GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
 	
 	/** 
 	 * Given a Track delta position [StartTrackPosition, EndTrackPosition]

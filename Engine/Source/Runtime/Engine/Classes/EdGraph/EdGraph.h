@@ -179,10 +179,10 @@ public:
 
 #if WITH_EDITOR
 	/** Notify the graph and its associated listeners that a property is about to change  */
-	void NotifyPreChange( const FString & PropertyName );
+	void NotifyPreChange( const FString& PropertyName );
 
 	/** Notify the graph and associated listeners that a property has changed */
-	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString & PropertyName );
+	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString& PropertyName );
 
 	/** Add a delegate listening for property change notifications */
 	void AddPropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate );

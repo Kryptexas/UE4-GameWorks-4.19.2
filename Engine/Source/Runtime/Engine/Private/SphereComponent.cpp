@@ -12,7 +12,7 @@ USphereComponent::USphereComponent(const class FPostConstructInitializePropertie
 	bUseEditorCompositing = true;
 }
 
-FBoxSphereBounds USphereComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USphereComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds( FVector::ZeroVector, FVector(SphereRadius), SphereRadius ).TransformBy(LocalToWorld);
 }

@@ -890,7 +890,7 @@ void ULandscapeHeightfieldCollisionComponent::DestroyComponent()
 	Super::DestroyComponent();
 }
 
-FBoxSphereBounds ULandscapeHeightfieldCollisionComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds ULandscapeHeightfieldCollisionComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return CachedLocalBox.TransformBy(LocalToWorld);
 }

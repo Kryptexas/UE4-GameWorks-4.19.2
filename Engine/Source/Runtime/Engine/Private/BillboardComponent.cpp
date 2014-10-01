@@ -347,7 +347,7 @@ FPrimitiveSceneProxy* UBillboardComponent::CreateSceneProxy()
 	return new FSpriteSceneProxy(this, SpriteScale);
 }
 
-FBoxSphereBounds UBillboardComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UBillboardComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	const float NewScale = LocalToWorld.GetScale3D().GetMax() * (Sprite ? (float)FMath::Max(Sprite->GetSizeX(),Sprite->GetSizeY()) : 1.0f);
 	return FBoxSphereBounds(LocalToWorld.GetLocation(),FVector(NewScale,NewScale,NewScale),FMath::Sqrt(3.0f * FMath::Square(NewScale)));

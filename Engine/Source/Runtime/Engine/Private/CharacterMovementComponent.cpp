@@ -997,7 +997,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 	}
 }
 
-void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const FTransform & LocalRootMotionTransform)
+void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform)
 {
 	if( CharacterOwner && CharacterOwner->Mesh && (DeltaSeconds > 0.f) )
 	{
@@ -6080,7 +6080,7 @@ void UCharacterMovementComponent::ClientAckGoodMove_Implementation(float TimeSta
 	ClientData->AckMove(MoveIndex);
 }
 
-void UCharacterMovementComponent::CapsuleTouched( AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult )
+void UCharacterMovementComponent::CapsuleTouched( AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult )
 {
 	check(bEnablePhysicsInteraction);
 
@@ -6439,7 +6439,7 @@ int32 FNetworkPredictionData_Client_Character::GetSavedMoveIndex(float TimeStamp
 		// Otherwise see if we can find this move.
 		for (int32 Index=0; Index<SavedMoves.Num(); Index++)
 		{
-			const FSavedMovePtr & CurrentMove = SavedMoves[Index];
+			const FSavedMovePtr& CurrentMove = SavedMoves[Index];
 			if( CurrentMove->TimeStamp == TimeStamp )
 			{
 				return Index;
@@ -6609,7 +6609,7 @@ void FSavedMove_Character::PostUpdate(ACharacter* Character, FSavedMove_Characte
 	// Only save RootMotion params when initially recording
 	if (PostUpdateMode == PostUpdate_Record)
 	{
-		const FAnimMontageInstance * RootMotionMontageInstance = Character->GetRootMotionAnimMontageInstance();
+		const FAnimMontageInstance* RootMotionMontageInstance = Character->GetRootMotionAnimMontageInstance();
 		if( RootMotionMontageInstance )
 		{
 			RootMotionMontage = RootMotionMontageInstance->Montage;

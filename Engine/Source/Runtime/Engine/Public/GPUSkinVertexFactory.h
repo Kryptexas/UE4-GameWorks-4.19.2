@@ -35,8 +35,8 @@ MS_ALIGN(16) struct FSkinMatrix3x4
 	float M[3][4];
 	FORCEINLINE void SetMatrix(const FMatrix& Mat)
 	{
-		const float * RESTRICT Src = &(Mat.M[0][0]);
-		float * RESTRICT Dest = &(M[0][0]);
+		const float* RESTRICT Src = &(Mat.M[0][0]);
+		float* RESTRICT Dest = &(M[0][0]);
 
 		Dest[0] = Src[0];   // [0][0]
 		Dest[1] = Src[1];   // [0][1]
@@ -57,8 +57,8 @@ MS_ALIGN(16) struct FSkinMatrix3x4
 	FORCEINLINE void SetMatrixTranspose(const FMatrix& Mat)
 	{
 
-		const float * RESTRICT Src = &(Mat.M[0][0]);
-		float * RESTRICT Dest = &(M[0][0]);
+		const float* RESTRICT Src = &(Mat.M[0][0]);
+		float* RESTRICT Dest = &(M[0][0]);
 
 		Dest[0] = Src[0];   // [0][0]
 		Dest[1] = Src[4];   // [1][0]

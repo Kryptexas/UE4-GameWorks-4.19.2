@@ -1184,7 +1184,7 @@ void UAnimCompress_PerTrackCompression::CompressUsingUnderlyingCompressor(
 		bool bSkipTranslationTrack = false;
 #if( SKIP_FORCEMESHTRANSLATION_TRACKS || SKIP_ANIMROTATIONONLY_TRACKS )
 		{
-			USkeleton * Skeleton = AnimSeq->Skeleton;
+			USkeleton* Skeleton = AnimSeq->Skeleton;
 			check (Skeleton);
 			int32 const BoneTreeIndex = AnimSeq->TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 			bSkipTranslationTrack = (Skeleton->GetBoneTranslationRetargetingMode(BoneTreeIndex) == EBoneTranslationRetargetingMode::Skeleton);

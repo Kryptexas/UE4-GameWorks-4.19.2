@@ -457,7 +457,7 @@ void FNetworkProfiler::TrackSessionChange( bool bShouldContinueTracking, const F
  *
  * @return			True if processed, false otherwise
 */
-bool FNetworkProfiler::Exec( UWorld * InWorld, const TCHAR * Cmd, FOutputDevice & Ar )
+bool FNetworkProfiler::Exec( UWorld * InWorld, const TCHAR* Cmd, FOutputDevice & Ar )
 {
 	if (FParse::Command(&Cmd, TEXT("ENABLE")))
 	{

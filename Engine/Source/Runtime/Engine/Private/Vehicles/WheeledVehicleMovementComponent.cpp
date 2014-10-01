@@ -686,7 +686,7 @@ void UWheeledVehicleMovementComponent::UpdateDrag(float DeltaTime)
 		float DragMag = 0.5f * AirDensity * SpeedSquared * DragCoefficient * ChassisDragArea;
 		DebugDragMagnitude = DragMag;
 		DragVector *= DragMag;
-		FBodyInstance * BodyInstance = UpdatedComponent->GetBodyInstance();
+		FBodyInstance* BodyInstance = UpdatedComponent->GetBodyInstance();
 		BodyInstance->AddForce(DragVector, false);
 	}
 }
@@ -1019,7 +1019,7 @@ bool UWheeledVehicleMovementComponent::GetUseAutoGears() const
 
 #if WITH_VEHICLE
 
-void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight, float & OutX )
+void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight, float& OutX )
 {
 	PxF32 PGraphXY[2*PxVehicleGraph::eMAX_NB_SAMPLES];
 	PxVec3 PGraphColor[PxVehicleGraph::eMAX_NB_SAMPLES];
@@ -1237,7 +1237,7 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 					
 					if (BodySetupIdx >= 0)
 					{
-						FBodyInstance * BodyInstance = Mesh->Bodies[BodySetupIdx];
+						FBodyInstance* BodyInstance = Mesh->Bodies[BodySetupIdx];
 						BodyInstance->SetResponseToAllChannels(ECR_Ignore);	//turn off collision for wheel automatically
 
 						if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[BodySetupIdx])

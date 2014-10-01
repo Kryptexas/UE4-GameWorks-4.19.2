@@ -26,7 +26,7 @@ struct FPhysicalSurfaceName
 	FPhysicalSurfaceName()
 		: Type(SurfaceType_Max)
 	{}
-	FPhysicalSurfaceName(EPhysicalSurface InType, const FName & InName)
+	FPhysicalSurfaceName(EPhysicalSurface InType, const FName& InName)
 		: Type(InType)
 		, Name(InName)
 	{}

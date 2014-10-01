@@ -924,7 +924,7 @@ bool UModelComponent::ShouldRecreateProxyOnUpdateTransform() const
 	return true;
 }
 
-FBoxSphereBounds UModelComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UModelComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if(Model)
 	{

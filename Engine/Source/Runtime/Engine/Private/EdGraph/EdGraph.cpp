@@ -242,12 +242,12 @@ FVector2D UEdGraph::GetGoodPlaceForNewNode()
 
 #if WITH_EDITOR
 
-void UEdGraph::NotifyPreChange( const FString & PropertyName )
+void UEdGraph::NotifyPreChange( const FString& PropertyName )
 {
 	// no notification is hooked up yet
 }
 
-void UEdGraph::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString & PropertyName )
+void UEdGraph::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString& PropertyName )
 {
 #if WITH_EDITORONLY_DATA
 	PropertyChangedNotifiers.Broadcast(PropertyChangedEvent, PropertyName);

@@ -55,7 +55,7 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 		//	PendingKill objects will collide with each other and with NULL objects in those data structures.
 		if (Object && Object->IsPendingKill())
 		{
-			UObject * NullObj = NULL;
+			UObject* NullObj = NULL;
 			return SerializeObject( Ar, Class, NullObj, OutNetGUID);
 		}
 
@@ -231,7 +231,7 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 
 		if ( ArchetypeNetGUID.IsValid() && Archetype == NULL )
 		{
-			const FNetGuidCacheObject * ExistingCacheObjectPtr = GuidCache->ObjectLookup.Find( ArchetypeNetGUID );
+			const FNetGuidCacheObject* ExistingCacheObjectPtr = GuidCache->ObjectLookup.Find( ArchetypeNetGUID );
 
 			if ( ExistingCacheObjectPtr != NULL )
 			{
@@ -253,7 +253,7 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 			if ( Channel && Ar.IsSaving() )
 			{
 				FObjectReplicator * RepData = &Channel->GetActorReplicationData();
-				uint8 * Recent = RepData && RepData->RepState != NULL && RepData->RepState->StaticBuffer.Num() ? RepData->RepState->StaticBuffer.GetData() : NULL;
+				uint8* Recent = RepData && RepData->RepState != NULL && RepData->RepState->StaticBuffer.Num() ? RepData->RepState->StaticBuffer.GetData() : NULL;
 				if ( Recent )
 				{
 					((AActor*)Recent)->ReplicatedMovement.Location = Location;
@@ -320,7 +320,7 @@ struct FExportFlags
 	}
 };
 
-static bool CanClientLoadObject( const UObject * Object, const FNetworkGUID & NetGUID )
+static bool CanClientLoadObject( const UObject* Object, const FNetworkGUID& NetGUID )
 {
 	if ( !NetGUID.IsValid() || NetGUID.IsDynamic() )
 	{
@@ -339,7 +339,7 @@ static bool CanClientLoadObject( const UObject * Object, const FNetworkGUID & Ne
 }
 
 /** Writes an object NetGUID given the NetGUID and either the object itself, or FString full name of the object. Appends full name/path if necessary */
-void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject * ObjectOuter )
+void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID, const UObject* Object, FString ObjectPathName, UObject* ObjectOuter )
 {
 	check( Ar.IsSaving() );
 
@@ -434,7 +434,7 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 		{
 			CurrentExportNetGUIDs.Add( NetGUID );
 
-			int32 & Count = NetGUIDExportCountMap.FindOrAdd( NetGUID );
+			int32& Count = NetGUIDExportCountMap.FindOrAdd( NetGUID );
 			Count++;
 		}
 	}
@@ -460,7 +460,7 @@ static void SanityCheckExport(
 	check( GuidCache != NULL );
 	check( Object != NULL );
 
-	const FNetGuidCacheObject * CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject* CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
 
 	if ( CacheObject != NULL )
 	{
@@ -492,7 +492,7 @@ static void SanityCheckExport(
 	}
 
 	const bool bIsPackage = ( NetGUID.IsStatic() && Object != NULL && Object->GetOuter() == NULL );
-	const UPackage * Package = Cast< const UPackage >( Object );
+	const UPackage* Package = Cast< const UPackage >( Object );
 
 	if ( bIsPackage != ( Package != NULL ) )
 	{
@@ -562,7 +562,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 
 	if ( ExportFlags.bHasPath )
 	{
-		UObject * ObjOuter = NULL;
+		UObject* ObjOuter = NULL;
 
 		FNetworkGUID OuterGUID = InternalLoadObject( Ar, ObjOuter, InternalLoadObjectRecursionCount + 1 );
 
@@ -672,7 +672,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 	}
 	else if ( Object == NULL && !GuidCache->ShouldIgnoreWhenMissing( NetGUID ) )
 	{
-		const FNetGuidCacheObject * CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
+		const FNetGuidCacheObject* CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
 
 		if ( CacheObject == NULL )
 		{
@@ -687,7 +687,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 	return NetGUID;
 }
 
-UObject * UPackageMapClient::ResolvePathAndAssignNetGUID( const FNetworkGUID & NetGUID, const FString & PathName )
+UObject* UPackageMapClient::ResolvePathAndAssignNetGUID( const FNetworkGUID& NetGUID, const FString& PathName )
 {
 	check( 0 );
 	return NULL;
@@ -704,7 +704,7 @@ UObject * UPackageMapClient::ResolvePathAndAssignNetGUID( const FNetworkGUID & N
 //--------------------------------------------------------------------
 
 /** Exports the NetGUID and paths needed to the CurrentExportBunch */
-bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject * Object, FString PathName, UObject * ObjOuter )
+bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject* Object, FString PathName, UObject* ObjOuter )
 {
 	check( NetGUID.IsValid() );
 	check( ( Object == NULL ) == !PathName.IsEmpty() );
@@ -782,7 +782,7 @@ bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject * Obj
 
 		for ( auto It = CurrentExportNetGUIDs.CreateIterator(); It; ++It )
 		{
-			int32 & Count = NetGUIDExportCountMap.FindOrAdd( *It );
+			int32& Count = NetGUIDExportCountMap.FindOrAdd( *It );
 			Count--;
 		}
 
@@ -879,7 +879,7 @@ void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 	int32 NumGUIDsRead = 0;
 	while( NumGUIDsRead < NumGUIDsInBunch )
 	{
-		UObject * Obj = NULL;
+		UObject* Obj = NULL;
 		InternalLoadObject( InBunch, Obj, 0 );
 
 		if ( InBunch.IsError() )
@@ -951,7 +951,7 @@ void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const TArray
 			NetGUIDAckStatus.Add( ExportNetGUIDs[i], GUID_PACKET_NOT_ACKED );
 		}
 
-		int32 & ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( ExportNetGUIDs[i] );
+		int32& ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( ExportNetGUIDs[i] );
 
 		// Only update expected sequence if this guid was previously nak'd
 		// If we always update to the latest packet id, we risk prolonging the ack for no good reason
@@ -973,7 +973,7 @@ void UPackageMapClient::ReceivedAck( const int32 AckPacketId )
 {
 	for ( int32 i = PendingAckGUIDs.Num() - 1; i >= 0; i-- )
 	{
-		int32 & ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
+		int32& ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
 
 		check( ExpectedPacketIdRef > GUID_PACKET_ACKED );		// Make sure we really are pending, since we're on the list
 
@@ -993,7 +993,7 @@ void UPackageMapClient::ReceivedNak( const int32 NakPacketId )
 {
 	for ( int32 i = PendingAckGUIDs.Num() - 1; i >= 0; i-- )
 	{
-		int32 & ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
+		int32& ExpectedPacketIdRef = NetGUIDAckStatus.FindChecked( PendingAckGUIDs[i] );
 
 		check( ExpectedPacketIdRef > GUID_PACKET_ACKED );		// Make sure we aren't acked, since we're on the list
 
@@ -1036,7 +1036,7 @@ bool UPackageMapClient::NetGUIDHasBeenAckd(FNetworkGUID NetGUID)
 		NetGUIDAckStatus.Add( NetGUID, GUID_PACKET_NOT_ACKED );
 	}
 
-	int32 & AckPacketId = NetGUIDAckStatus.FindChecked( NetGUID );	
+	int32& AckPacketId = NetGUIDAckStatus.FindChecked( NetGUID );	
 
 	if ( AckPacketId == GUID_PACKET_ACKED )
 	{
@@ -1254,7 +1254,7 @@ bool UPackageMapClient::PrintExportBatch()
 	return true;
 }
 
-UObject * UPackageMapClient::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped )
+UObject* UPackageMapClient::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped )
 {
 	return GuidCache->GetObjectFromNetGUID( NetGUID, bIgnoreMustBeMapped );
 }
@@ -1357,7 +1357,7 @@ void FNetGUIDCache::CleanReferences()
 	UE_LOG( LogNetPackageMap, Warning, TEXT( "FNetGUIDCache::CleanReferences: ObjectLookup: %i, NetGUIDLookup: %i, Mem: %i kB" ), ObjectLookup.Num(), NetGUIDLookup.Num(), ( CountBytesAr.Mem / 1024 ) );
 }
 
-bool FNetGUIDCache::SupportsObject( const UObject * Object )
+bool FNetGUIDCache::SupportsObject( const UObject* Object )
 {
 	// NULL is always supported
 	if ( !Object )
@@ -1396,7 +1396,7 @@ bool FNetGUIDCache::SupportsObject( const UObject * Object )
  *	Dynamic objects are actors or sub-objects that were spawned in the world at run time, and therefor cannot be
  *	referenced with a path name to the client.
  */
-bool FNetGUIDCache::IsDynamicObject( const UObject * Object )
+bool FNetGUIDCache::IsDynamicObject( const UObject* Object )
 {
 	check( Object != NULL );
 	check( Object->IsSupportedForNetworking() );
@@ -1411,7 +1411,7 @@ bool FNetGUIDCache::IsNetGUIDAuthority() const
 }
 
 /** Gets or assigns a new NetGUID to this object. Returns whether the object is fully mapped or not */
-FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject * Object )
+FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject* Object )
 {
 	if ( !Object || !SupportsObject( Object ) )
 	{
@@ -1443,7 +1443,7 @@ FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject * Object )
 /**
  *	Generate a new NetGUID for this object and assign it.
  */
-FNetworkGUID FNetGUIDCache::AssignNewNetGUID_Server( const UObject * Object )
+FNetworkGUID FNetGUIDCache::AssignNewNetGUID_Server( const UObject* Object )
 {
 	check( IsNetGUIDAuthority() );
 
@@ -1460,7 +1460,7 @@ FNetworkGUID FNetGUIDCache::AssignNewNetGUID_Server( const UObject * Object )
 	return NewNetGuid;
 }
 
-void FNetGUIDCache::RegisterNetGUID_Internal( const FNetworkGUID & NetGUID, const FNetGuidCacheObject & CacheObject )
+void FNetGUIDCache::RegisterNetGUID_Internal( const FNetworkGUID& NetGUID, const FNetGuidCacheObject& CacheObject )
 {
 	// We're pretty strict in this function, we expect everything to have been handled before we get here
 	check( !ObjectLookup.Contains( NetGUID ) );
@@ -1491,7 +1491,7 @@ void FNetGUIDCache::RegisterNetGUID_Internal( const FNetworkGUID & NetGUID, cons
  *	Associates a net guid directly with an object
  *  This function is only called on server
  */
-void FNetGUIDCache::RegisterNetGUID_Server( const FNetworkGUID & NetGUID, const UObject * Object )
+void FNetGUIDCache::RegisterNetGUID_Server( const FNetworkGUID& NetGUID, const UObject* Object )
 {
 	check( Object != NULL );
 	check( IsNetGUIDAuthority() );				// Only the server should call this
@@ -1511,7 +1511,7 @@ void FNetGUIDCache::RegisterNetGUID_Server( const FNetworkGUID & NetGUID, const 
  *	Associates a net guid directly with an object
  *  This function is only called on clients with dynamic guids
  */
-void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const UObject * Object )
+void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID& NetGUID, const UObject* Object )
 {
 	check( !IsNetGUIDAuthority() );			// Only clients should be here
 	check( !Object->IsPendingKill() );
@@ -1525,7 +1525,7 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const 
 	// We also completely disassociate anything so that RegisterNetGUID_Internal can be fairly strict
 	//
 
-	const FNetGuidCacheObject * ExistingCacheObjectPtr = ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject* ExistingCacheObjectPtr = ObjectLookup.Find( NetGUID );
 
 	if ( ExistingCacheObjectPtr )
 	{
@@ -1545,7 +1545,7 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const 
 		// If the object pointers are different, this can be a problem, 
 		//	since this should only be possible if something gets out of sync during the net guid exchange code
 
-		const UObject * OldObject = ExistingCacheObjectPtr->Object.Get();
+		const UObject* OldObject = ExistingCacheObjectPtr->Object.Get();
 
 		if ( OldObject != NULL && OldObject != Object )
 		{
@@ -1560,7 +1560,7 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const 
 		ObjectLookup.Remove( NetGUID );
 	}
 
-	const FNetworkGUID * ExistingNetworkGUIDPtr = NetGUIDLookup.Find( Object );
+	const FNetworkGUID* ExistingNetworkGUIDPtr = NetGUIDLookup.Find( Object );
 
 	if ( ExistingNetworkGUIDPtr )
 	{
@@ -1582,12 +1582,12 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const 
  *	Associates a net guid with a path, that can be loaded or found later
  *  This function is only called on the client
  */
-void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const FGuid & PackageGuid, const bool bNoLoad, const bool bIgnoreWhenMissing )
+void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID, const FString& PathName, const FNetworkGUID& OuterGUID, const FGuid& PackageGuid, const bool bNoLoad, const bool bIgnoreWhenMissing )
 {
 	check( !IsNetGUIDAuthority() );		// Server never calls this locally
 	check( !NetGUID.IsDefault() );
 
-	const FNetGuidCacheObject * ExistingCacheObjectPtr = ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject* ExistingCacheObjectPtr = ObjectLookup.Find( NetGUID );
 
 	// If we find this guid, make sure nothing changes
 	if ( ExistingCacheObjectPtr != NULL )
@@ -1628,7 +1628,7 @@ void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID
 	RegisterNetGUID_Internal( NetGUID, CacheObject );
 }
 
-void FNetGUIDCache::AsyncPackageCallback( const FString & PackageName, UPackage * Package )
+void FNetGUIDCache::AsyncPackageCallback( const FString& PackageName, UPackage * Package )
 {
 	check( Package == NULL || Package->IsFullyLoaded() );
 
@@ -1671,7 +1671,7 @@ void FNetGUIDCache::AsyncPackageCallback( const FString & PackageName, UPackage 
 	}
 }
 
-UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped )
+UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped )
 {
 	if ( !ensure( NetGUID.IsValid() ) )
 	{
@@ -1691,7 +1691,7 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 		return NULL;
 	}
 
-	UObject * Object = CacheObjectPtr->Object.Get();
+	UObject* Object = CacheObjectPtr->Object.Get();
 
 	if ( Object != NULL )
 	{
@@ -1726,7 +1726,7 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 	}
 
 	// First, resolve the outer
-	UObject * ObjOuter = NULL;
+	UObject* ObjOuter = NULL;
 
 	if ( CacheObjectPtr->OuterGUID.IsValid() )
 	{
@@ -1903,7 +1903,7 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 	return Object;
 }
 
-bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID ) const
+bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID& NetGUID ) const
 {
 	if ( IsNetGUIDAuthority() )
 	{
@@ -1915,14 +1915,14 @@ bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID ) cons
 		return true;		// Ignore missing dynamic guids
 	}
 
-	const FNetGuidCacheObject * CacheObject = ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject* CacheObject = ObjectLookup.Find( NetGUID );
 
 	if ( CacheObject == NULL )
 	{
 		return false;		// If we haven't been told about this static guid before, we need to warn
 	}
 
-	const FNetGuidCacheObject * OutermostCacheObject = CacheObject;
+	const FNetGuidCacheObject* OutermostCacheObject = CacheObject;
 
 	while ( OutermostCacheObject->OuterGUID.IsValid() )
 	{
@@ -1948,7 +1948,7 @@ bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID ) cons
 	return CacheObject->bIgnoreWhenMissing;
 }
 
-bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID ) const
+bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID& NetGUID ) const
 {
 	if ( !NetGUID.IsValid() )
 	{
@@ -1963,7 +1963,7 @@ bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID ) const
 	return ObjectLookup.Contains( NetGUID );
 }
 
-bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID ) const
+bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID& NetGUID ) const
 {
 	if ( !NetGUID.IsValid() )
 	{
@@ -1975,7 +1975,7 @@ bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID ) const
 		return false;
 	}
 
-	const FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject* CacheObjectPtr = ObjectLookup.Find( NetGUID );
 
 	if ( CacheObjectPtr == NULL )
 	{
@@ -1985,7 +1985,7 @@ bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID ) const
 	return CacheObjectPtr->Object != NULL;
 }
 
-bool FNetGUIDCache::IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const
+bool FNetGUIDCache::IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const
 {
 	if ( !NetGUID.IsValid() )
 	{
@@ -1997,7 +1997,7 @@ bool FNetGUIDCache::IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMust
 		return false;
 	}
 
-	const FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject* CacheObjectPtr = ObjectLookup.Find( NetGUID );
 
 	if ( CacheObjectPtr == NULL )
 	{

@@ -1159,7 +1159,7 @@ void ULevel::PostEditUndo()
 			const int32 NumStreamingLevels = OwningWorld->StreamingLevels.Num();
 			for (int i = 0; i < NumStreamingLevels; ++i)
 			{
-				const ULevelStreaming * StreamedLevel = OwningWorld->StreamingLevels[i];
+				const ULevelStreaming* StreamedLevel = OwningWorld->StreamingLevels[i];
 				if (StreamedLevel && StreamedLevel->GetLoadedLevel() == this)
 				{
 					bIsStreamingLevelVisible = FLevelUtils::IsLevelVisible(StreamedLevel);
@@ -2336,7 +2336,7 @@ FPrimitiveSceneProxy* ULineBatchComponent::CreateSceneProxy()
 	return new FLineBatcherSceneProxy(this);
 }
 
-FBoxSphereBounds ULineBatchComponent::CalcBounds( const FTransform & LocalToWorld ) const 
+FBoxSphereBounds ULineBatchComponent::CalcBounds( const FTransform& LocalToWorld ) const 
 {
 	const FVector BoxExtent(HALF_WORLD_MAX);
 	return FBoxSphereBounds(FVector::ZeroVector, BoxExtent, BoxExtent.Size());

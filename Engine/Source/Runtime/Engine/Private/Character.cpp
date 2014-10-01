@@ -995,7 +995,7 @@ void ACharacter::OnRep_RootMotion()
 
 void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 {
-	const FAnimMontageInstance * ClientMontageInstance = GetRootMotionAnimMontageInstance();
+	const FAnimMontageInstance* ClientMontageInstance = GetRootMotionAnimMontageInstance();
 	if( ClientMontageInstance && CharacterMovement && Mesh )
 	{
 		// Find most recent buffered move that we can use.
@@ -1004,7 +1004,7 @@ void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 		{
 			const FVector OldLocation = GetActorLocation();
 			// Move Actor back to position of that buffered move. (server replicated position).
-			const FSimulatedRootMotionReplicatedMove & RootMotionRepMove = RootMotionRepMoves[MoveIndex];
+			const FSimulatedRootMotionReplicatedMove& RootMotionRepMove = RootMotionRepMoves[MoveIndex];
 			if( RestoreReplicatedMove(RootMotionRepMove) )
 			{
 				const float ServerPosition = RootMotionRepMove.RootMotion.Position;
@@ -1046,7 +1046,7 @@ void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 	}
 }
 
-int32 ACharacter::FindRootMotionRepMove(const FAnimMontageInstance & ClientMontageInstance) const
+int32 ACharacter::FindRootMotionRepMove(const FAnimMontageInstance& ClientMontageInstance) const
 {
 	int32 FoundIndex = INDEX_NONE;
 
@@ -1064,7 +1064,7 @@ int32 ACharacter::FindRootMotionRepMove(const FAnimMontageInstance & ClientMonta
 	return FoundIndex;
 }
 
-bool ACharacter::CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMove & RootMotionRepMove, const FAnimMontageInstance & ClientMontageInstance) const
+bool ACharacter::CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove, const FAnimMontageInstance& ClientMontageInstance) const
 {
 	// Ignore outdated moves.
 	if( GetWorld()->TimeSince(RootMotionRepMove.Time) <= 0.5f )
@@ -1099,7 +1099,7 @@ bool ACharacter::CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMov
 	return false;
 }
 
-bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove & RootMotionRepMove)
+bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove)
 {
 	UPrimitiveComponent* ServerBase = RootMotionRepMove.RootMotion.MovementBase;
 	const FName ServerBaseBoneName = RootMotionRepMove.RootMotion.MovementBaseBoneName;
@@ -1147,7 +1147,7 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove 
 	return true;
 }
 
-void ACharacter::UpdateSimulatedPosition(const FVector & NewLocation, const FRotator & NewRotation)
+void ACharacter::UpdateSimulatedPosition(const FVector& NewLocation, const FRotator& NewRotation)
 {
 	// Always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
 	if( (NewLocation != GetActorLocation()) || (CreationTime == GetWorld()->TimeSeconds) )
@@ -1195,7 +1195,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 {
 	Super::PreReplication( ChangedPropertyTracker );
 
-	const FAnimMontageInstance * RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
+	const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
 
 	if ( RootMotionMontageInstance )
 	{

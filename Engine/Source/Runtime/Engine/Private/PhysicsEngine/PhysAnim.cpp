@@ -28,7 +28,7 @@ static int32 PhysAssetUpdateNum = 0;
 static TArray<FAssetWorldBoneTM> WorldBoneTMs;
 
 // Use current pose to calculate world-space position of this bone without physics now.
-static void UpdateWorldBoneTM(int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FVector & Scale3D)
+static void UpdateWorldBoneTM(int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FVector& Scale3D)
 {
 	// If its already up to date - do nothing
 	if(	WorldBoneTMs[BoneIndex].UpdateNum == PhysAssetUpdateNum )
@@ -282,7 +282,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 	}
 
 	// warn if it has non-uniform scale
-	const FVector & MeshScale3D = CurrentLocalToWorld.GetScale3D();
+	const FVector& MeshScale3D = CurrentLocalToWorld.GetScale3D();
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if( !MeshScale3D.IsUniform() )
 	{
@@ -292,7 +292,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 
 	if (bEnablePerPolyCollision == false)
 	{
-		const UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+		const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 		if (PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

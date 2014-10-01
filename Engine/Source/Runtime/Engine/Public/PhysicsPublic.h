@@ -211,7 +211,7 @@ private:
 	void ExecuteCommands();
 
 	/** Enqueue a command to the double buffer */
-	void EnqueueCommand(const FPhysPendingCommand & Command);
+	void EnqueueCommand(const FPhysPendingCommand& Command);
 
 	/** Array of commands waiting to execute once simulation is done */
 	TArray<FPhysPendingCommand> PendingCommands;
@@ -363,23 +363,23 @@ public:
 	ENGINE_API bool HasAsyncScene() const { return bAsyncSceneEnabled; }
 
 	/** Lets the scene update anything related to this BodyInstance as it's now being terminated */
-	void TermBody(FBodyInstance * BodyInstance);
+	void TermBody(FBodyInstance* BodyInstance);
 
 	/** Adds a force to a body - We need to go through scene to support substepping */
-	void AddForce(FBodyInstance * BodyInstance, const FVector & Force, bool bAllowSubstepping);
+	void AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping);
 
 	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
-	void AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position, bool bAllowSubstepping);
+	void AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping);
 
 	/** Adds torque to a body - We need to go through scene to support substepping */
-	void AddTorque(FBodyInstance * BodyInstance, const FVector & Torque, bool bAllowSubstepping);
+	void AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping);
 
 	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
-	void SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTM, bool bAllowSubstepping);
+	void SetKinematicTarget(FBodyInstance* BodyInstance, const FTransform& TargetTM, bool bAllowSubstepping);
 
 	/** Gets a Kinematic actor's target position - We need to do this here to support substepping
 	  * Returns true if kinematic target has been set. If false the OutTM is invalid */
-	bool GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const;
+	bool GetKinematicTarget(const FBodyInstance* BodyInstance, FTransform& OutTM) const;
 
 	/** Gets the collision disable table */
 	const TMap<uint32, TMap<struct FRigidBodyIndexPair, bool> *> & GetCollisionDisableTableLookup()

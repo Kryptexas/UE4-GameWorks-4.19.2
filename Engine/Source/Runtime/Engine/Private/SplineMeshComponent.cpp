@@ -434,7 +434,7 @@ FPrimitiveSceneProxy* USplineMeshComponent::CreateSceneProxy()
 	}
 }
 
-FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	// Use util to generate bounds of spline
 	FInterpCurvePoint<FVector> Start(0.f, SplineParams.StartPos, SplineParams.StartTangent, SplineParams.StartTangent, CIM_CurveUser);

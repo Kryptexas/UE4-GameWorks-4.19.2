@@ -170,7 +170,7 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 						continue;
 					}
 
-					void * PropertyData = It->ContainerPtrToValuePtr<void*>(ContainerPtr);
+					void* PropertyData = It->ContainerPtrToValuePtr<void*>(ContainerPtr);
 
 					It->NetSerializeItem(Ar, Map, PropertyData);
 				}

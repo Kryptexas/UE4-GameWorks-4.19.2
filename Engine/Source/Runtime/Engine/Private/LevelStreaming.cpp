@@ -12,7 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 
 #define LOCTEXT_NAMESPACE "World"
 
-FStreamLevelAction::FStreamLevelAction(bool bIsLoading, const FName & InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World)
+FStreamLevelAction::FStreamLevelAction(bool bIsLoading, const FName& InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World)
 	: bLoading(bIsLoading)
 	, bMakeVisibleAfterLoad(bIsMakeVisibleAfterLoad)
 	, bShouldBlockOnLoad(bIsShouldBlockOnLoad)

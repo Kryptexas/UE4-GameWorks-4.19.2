@@ -104,6 +104,6 @@ inline void CreateShapeFilterData(
 
 /** Utility for creating a PhysX PxFilterData for performing a query (trace) against the scene */
 // PxFilterData ZZ_CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex,
-// 	const FCollisionResponseContainer & InCollisionResponseContainer,
+// 	const FCollisionResponseContainer& InCollisionResponseContainer,
 // 	const struct FCollisionObjectQueryParams & ObjectParam,
 // 	const bool bMultitrace);

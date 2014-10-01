@@ -385,7 +385,7 @@ FPrimitiveSceneProxy* UArrowComponent::CreateSceneProxy()
 }
 
 
-FBoxSphereBounds UArrowComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UArrowComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds(FBox(FVector(0,-ARROW_SCALE,-ARROW_SCALE),FVector(ArrowSize * ARROW_SCALE * 3.0f,ARROW_SCALE,ARROW_SCALE))).TransformBy(LocalToWorld);
 }

@@ -1246,7 +1246,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1267,7 +1267,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 *	@param	ObjectQueryParams	List of object types it's looking for
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1291,7 +1291,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace	 
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1314,7 +1314,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 *	@param	ObjectQueryParams	List of object types it's looking for
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1339,7 +1339,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1348,7 +1348,7 @@ public:
 	 *	@param UserData			UserData
 	 *	@param bMultiTrace		true if you'd like to get continuous result from the trace, false if you want single
 	 */ 
-	FTraceHandle	AsyncOverlap(const FVector & Pos, const FQuat & Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
+	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
 
 	/**
 	 * Interface for Async trace
@@ -1362,7 +1362,7 @@ public:
 	 *  @param  Params          Additional parameters used for the trace
 	 * 	@param 	ResponseParam	ResponseContainer to be used for this trace
 	 *	@param	InDeleagte		Delegate function to be called - to see example, search FTraceDelegate
-	 *							Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+	 *							Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
 	 *							Before sending to the function, 
 	 *						
 	 *							FTraceDelegate TraceDelegate;
@@ -1371,7 +1371,7 @@ public:
 	 *	@param UserData			UserData
 	 *	@param bMultiTrace		true if you'd like to get continuous result from the trace, false if you want single
 	 */ 
-	FTraceHandle	AsyncOverlap(const FVector & Pos, const FQuat & Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
+	FTraceHandle	AsyncOverlap(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate = NULL, uint32 UserData = 0, bool bMultiTrace = false);
 
 	/**
 	 * Query function 
@@ -1397,7 +1397,7 @@ public:
 	 * return true if it will be evaluated OR it has valid result 
 	 * return false if it already has expired Or not valid 
 	 */
-	bool IsTraceHandleValid(const FTraceHandle & Handle, bool bOverlapTrace);
+	bool IsTraceHandleValid(const FTraceHandle& Handle, bool bOverlapTrace);
 
 	/** NavigationSystem getter */
 	FORCEINLINE UNavigationSystem* GetNavigationSystem() { return NavigationSystem; }
@@ -1591,13 +1591,13 @@ public:
 	 * This list is used to specifically single out actors that are relevant for networking without having to scan the much large list
 	 * @param	Actor	Actor to add
 	 */
-	void AddNetworkActor( AActor * Actor );
+	void AddNetworkActor( AActor* Actor );
 	
 	/**
 	 * Removes the passed in actor to from special network actor list
 	 * @param	Actor	Actor to remove
 	 */
-	void RemoveNetworkActor( AActor * Actor );
+	void RemoveNetworkActor( AActor* Actor );
 
 	/** Add a listener for OnActorSpawned events */
 	void AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler );

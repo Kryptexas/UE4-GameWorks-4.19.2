@@ -259,7 +259,7 @@ void UBlueprintCore::GenerateDeterministicGuid()
 
 	uint32 HashBuffer[ 5 ];
 	uint32 BufferLength = HashString.Len() * sizeof( HashString[0] );
-	FSHA1::HashBuffer(*HashString, BufferLength, reinterpret_cast< uint8 * >( HashBuffer ));
+	FSHA1::HashBuffer(*HashString, BufferLength, reinterpret_cast< uint8* >( HashBuffer ));
 	BlueprintGuid.A = HashBuffer[ 1 ];
 	BlueprintGuid.B = HashBuffer[ 2 ];
 	BlueprintGuid.C = HashBuffer[ 3 ];

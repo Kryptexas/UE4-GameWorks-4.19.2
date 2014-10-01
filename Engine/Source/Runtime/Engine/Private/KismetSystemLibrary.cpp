@@ -1031,11 +1031,11 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1094,11 +1094,11 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1199,11 +1199,11 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor * IgnoreActor = Cast<AActor>(CurrentObject))
+				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -1254,11 +1254,11 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor * IgnoreActor = Cast<AActor>(CurrentObject))
+				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -1322,11 +1322,11 @@ bool UKismetSystemLibrary::SphereTraceSingle_DEPRECATED(UObject* WorldContextObj
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1384,11 +1384,11 @@ bool UKismetSystemLibrary::SphereTraceMulti_DEPRECATED(UObject* WorldContextObje
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1453,11 +1453,11 @@ bool UKismetSystemLibrary::CapsuleTraceSingle_DEPRECATED(UObject* WorldContextOb
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1521,11 +1521,11 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1606,11 +1606,11 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1697,11 +1697,11 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1799,11 +1799,11 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1889,11 +1889,11 @@ bool UKismetSystemLibrary::SphereTraceMultiByObject_DEPRECATED(UObject* WorldCon
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1980,11 +1980,11 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor * IgnoreActor = Cast<AActor>(CurrentObject))
+				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -2063,11 +2063,11 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor * IgnoreActor = Cast<AActor>(CurrentObject))
+				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -2159,11 +2159,11 @@ bool UKismetSystemLibrary::CapsuleTraceSingleByObject_DEPRECATED(UObject* WorldC
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -2254,11 +2254,11 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 		else
 		{
 			// find owner
-			UObject * CurrentObject = WorldContextObject;
+			UObject* CurrentObject = WorldContextObject;
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor * IgnoreActor = Cast<AActor>(CurrentObject);
+				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -2440,7 +2440,7 @@ void UKismetSystemLibrary::DrawDebugCamera(const ACameraActor* CameraActor, FLin
 	}
 }
 
-void UKismetSystemLibrary::DrawDebugFloatHistoryTransform(UObject* WorldContextObject, const FDebugFloatHistory & FloatHistory, const FTransform & DrawTransform, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
+void UKismetSystemLibrary::DrawDebugFloatHistoryTransform(UObject* WorldContextObject, const FDebugFloatHistory& FloatHistory, const FTransform& DrawTransform, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
 {
 	UWorld * World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World)
@@ -2449,7 +2449,7 @@ void UKismetSystemLibrary::DrawDebugFloatHistoryTransform(UObject* WorldContextO
 	}
 }
 
-void UKismetSystemLibrary::DrawDebugFloatHistoryLocation(UObject* WorldContextObject, const FDebugFloatHistory & FloatHistory, FVector DrawLocation, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
+void UKismetSystemLibrary::DrawDebugFloatHistoryLocation(UObject* WorldContextObject, const FDebugFloatHistory& FloatHistory, FVector DrawLocation, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
 {
 	UWorld * World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World)
@@ -2458,7 +2458,7 @@ void UKismetSystemLibrary::DrawDebugFloatHistoryLocation(UObject* WorldContextOb
 	}
 }
 
-FDebugFloatHistory UKismetSystemLibrary::AddFloatHistorySample(float Value, const FDebugFloatHistory & FloatHistory)
+FDebugFloatHistory UKismetSystemLibrary::AddFloatHistorySample(float Value, const FDebugFloatHistory& FloatHistory)
 {
 	FDebugFloatHistory NewDebugFloatHistory = FloatHistory;
 	NewDebugFloatHistory.AddSample(Value);

@@ -162,7 +162,7 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 		{
 			// for invisible bones, I'll still need to update the transform, so that rendering can use it for skinning
 			uint8 const * BoneVisibilityState = BoneVisibilityStates.GetData();
-			FTransform * SpaceBase = SpaceBases.GetData();
+			FTransform* SpaceBase = SpaceBases.GetData();
 			for (int32 BoneIndex=0; BoneIndex<BoneVisibilityStates.Num(); ++BoneIndex, ++BoneVisibilityState, ++SpaceBase)
 			{
 				if (*BoneVisibilityState!=BVS_Visible)
@@ -435,7 +435,7 @@ void USkinnedMeshComponent::RebuildVisibilityArray()
 	}
 }
 
-FBoxSphereBounds USkinnedMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USkinnedMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return CalcMeshBound( FVector::ZeroVector, false, LocalToWorld );
 }
@@ -456,7 +456,7 @@ class UPhysicsAsset* USkinnedMeshComponent::GetPhysicsAsset() const
 	return NULL;
 }
 
-FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset, bool UsePhysicsAsset, const FTransform & LocalToWorld) const
+FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset, bool UsePhysicsAsset, const FTransform& LocalToWorld) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateSkelMeshBounds);
 
@@ -1389,7 +1389,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 			{
 				if (bCachedMatrices)
 				{
-					const FMatrix & RefToLocal = RefToLocals[BoneIndex];
+					const FMatrix& RefToLocal = RefToLocals[BoneIndex];
 					SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
 				}
 				else
@@ -1414,7 +1414,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 
 		if (bCachedMatrices)
 		{
-			const FMatrix & RefToLocal = RefToLocals[BoneIndex];
+			const FMatrix& RefToLocal = RefToLocals[BoneIndex];
 			SkinnedPos = RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcRigidVertex));
 		}
 		else
@@ -1486,7 +1486,7 @@ void USkinnedMeshComponent::ComputeSkinnedPositions(TArray<FVector> & OutPositio
 	//update positions
 	for (int32 ChunkIdx = 0; ChunkIdx < Model.Chunks.Num(); ++ChunkIdx)
 	{
-		const FSkelMeshChunk & Chunk = Model.Chunks[ChunkIdx];
+		const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIdx];
 		const uint32 NumChunkVerts = Chunk.GetNumVertices();
 		bool bHasExtraBoneInfluences = Chunk.HasExtraBoneInfluences();
 		{
@@ -1713,8 +1713,8 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
-		const FName & CurveName	= (CurveIter).Key();
-		const float & Weight	= (CurveIter).Value();
+		const FName& CurveName	= (CurveIter).Key();
+		const float& Weight	= (CurveIter).Value();
 
 		// If it has a valid weight
 		if(Weight > MinVertexAnimBlendWeight)
@@ -1784,7 +1784,7 @@ void USkinnedMeshComponent::AnimUpdateRateTick()
 	AnimUpdateRateSetParams(bRecentlyRendered, MaxDistanceFactor, bPlayingRootMotion);
 }
 
-void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float & MaxDistanceFactor, const bool & bPlayingRootMotion)
+void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion)
 {
 	// default rules for setting update rates
 
@@ -1830,7 +1830,7 @@ void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRender
 	}
 }
 
-void FAnimUpdateRateParameters::Set(class AActor& Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames)
+void FAnimUpdateRateParameters::Set(class AActor& Owner, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames)
 {
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.

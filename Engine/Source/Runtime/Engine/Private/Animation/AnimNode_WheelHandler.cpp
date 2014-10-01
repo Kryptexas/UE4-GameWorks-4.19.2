@@ -42,7 +42,7 @@ void FAnimNode_WheelHandler::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -73,7 +73,7 @@ void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 	}
 }
 
-bool FAnimNode_WheelHandler::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) 
+bool FAnimNode_WheelHandler::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
 	for(const auto & WheelSim : WheelSimulators)
@@ -88,7 +88,7 @@ bool FAnimNode_WheelHandler::IsValidToEvaluate(const USkeleton * Skeleton, const
 	return false;
 }
 
-void FAnimNode_WheelHandler::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_WheelHandler::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	for (auto & WheelSim : WheelSimulators)
 	{
@@ -145,7 +145,7 @@ void FAnimNode_WheelHandler::Initialize(const FAnimationInitializeContext& Conte
 			for(int32 WheelIndex = 0; WheelIndex<WheelSimulators.Num(); ++WheelIndex)
 			{
 				FWheelSimulator & WheelSim = WheelSimulators[WheelIndex];
-				const FWheelSetup & WheelSetup = VehicleSimComponent->WheelSetups[WheelIndex];
+				const FWheelSetup& WheelSetup = VehicleSimComponent->WheelSetups[WheelIndex];
 
 				// set data
 				WheelSim.WheelIndex = WheelIndex;

@@ -15,7 +15,7 @@ public:
 
 	FLatentActionInfo LatentInfo;
 
-	FStreamLevelAction(bool bIsLoading, const FName & InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World);
+	FStreamLevelAction(bool bIsLoading, const FName& InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World);
 
 	/**
 	 * Given a level name, returns level name that will work with Play on Editor or Play on Console

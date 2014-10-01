@@ -31,7 +31,7 @@ static TAutoConsoleVariable<float> CVarBounceThresholdVelocity(
 	TEXT("A contact with a relative velocity below this will not bounce. Default: 200"),
 	ECVF_Default);
 
-FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance * BodyInstance)
+FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance* BodyInstance)
 {
 #if WITH_PHYSX
 	//This is a helper function for dynamic actors - static actors are in both scenes
@@ -168,7 +168,7 @@ bool UseSyncTime(uint32 SceneType)
 
 }
 
-bool FPhysScene::GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const
+bool FPhysScene::GetKinematicTarget(const FBodyInstance* BodyInstance, FTransform& OutTM) const
 {
 #if WITH_PHYSX
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
@@ -198,7 +198,7 @@ bool FPhysScene::GetKinematicTarget(const FBodyInstance * BodyInstance, FTransfo
 	return false;
 }
 
-void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTransform, bool bAllowSubstepping)
+void FPhysScene::SetKinematicTarget(FBodyInstance* BodyInstance, const FTransform& TargetTransform, bool bAllowSubstepping)
 {
 	TargetTransform.DiagnosticCheckNaN_All();
 
@@ -224,7 +224,7 @@ void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransfo
 #endif
 }
 
-void FPhysScene::AddForce(FBodyInstance * BodyInstance, const FVector & Force, bool bAllowSubstepping)
+void FPhysScene::AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
@@ -246,7 +246,7 @@ void FPhysScene::AddForce(FBodyInstance * BodyInstance, const FVector & Force, b
 #endif
 }
 
-void FPhysScene::AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position, bool bAllowSubstepping)
+void FPhysScene::AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
@@ -268,7 +268,7 @@ void FPhysScene::AddForceAtPosition(FBodyInstance * BodyInstance, const FVector 
 #endif
 }
 
-void FPhysScene::AddTorque(FBodyInstance * BodyInstance, const FVector & Torque, bool bAllowSubstepping)
+void FPhysScene::AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
@@ -308,7 +308,7 @@ void FPhysScene::RemoveBodyFromActiveTransforms(class PxActor * PActor, uint32 S
 }
 #endif
 
-void FPhysScene::TermBody(FBodyInstance * BodyInstance)
+void FPhysScene::TermBody(FBodyInstance* BodyInstance)
 {
 #if WITH_SUBSTEPPING
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
@@ -682,7 +682,7 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 
 #if WITH_APEX
 		//Special code for destructible chunk
-		if (const FDestructibleChunkInfo * DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
+		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
 		{
 			if (GApexModuleDestructible->owns(RigidActor) && DestructibleChunkInfo->OwningComponent.IsValid())
 			{

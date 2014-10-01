@@ -27,7 +27,7 @@ void UBlendSpace::GetGridSamplesFromBlendInput(const FVector &BlendInput, FGridB
 	FVector Remainder = NormalizedBlendInput - GridIndex;
 
 	// bi-linear very simple interpolation
-	const FEditorElement * EleLT = GetEditorElement(GridIndex.X, GridIndex.Y+1);
+	const FEditorElement* EleLT = GetEditorElement(GridIndex.X, GridIndex.Y+1);
 	if (EleLT)
 	{
 		LeftTop.GridElement = *EleLT;
@@ -40,7 +40,7 @@ void UBlendSpace::GetGridSamplesFromBlendInput(const FVector &BlendInput, FGridB
 		LeftTop.BlendWeight = 0.f;
 	}
 
-	const FEditorElement * EleRT = GetEditorElement(GridIndex.X+1, GridIndex.Y+1);
+	const FEditorElement* EleRT = GetEditorElement(GridIndex.X+1, GridIndex.Y+1);
 	if (EleRT)
 	{
 		RightTop.GridElement = *EleRT;
@@ -52,7 +52,7 @@ void UBlendSpace::GetGridSamplesFromBlendInput(const FVector &BlendInput, FGridB
 		RightTop.BlendWeight = 0.f;
 	}
 
-	const FEditorElement * EleLB = GetEditorElement(GridIndex.X, GridIndex.Y);
+	const FEditorElement* EleLB = GetEditorElement(GridIndex.X, GridIndex.Y);
 	if (EleLB)
 	{
 		LeftBottom.GridElement = *EleLB;
@@ -64,7 +64,7 @@ void UBlendSpace::GetGridSamplesFromBlendInput(const FVector &BlendInput, FGridB
 		LeftBottom.BlendWeight = 0.f;
 	}
 
-	const FEditorElement * EleRB = GetEditorElement(GridIndex.X+1, GridIndex.Y);
+	const FEditorElement* EleRB = GetEditorElement(GridIndex.X+1, GridIndex.Y);
 	if (EleRB)
 	{
 		RightBottom.GridElement = *EleRB;
@@ -85,7 +85,7 @@ void UBlendSpace::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<
 	GetGridSamplesFromBlendInput(BlendInput, OutBlendSamples[0], OutBlendSamples[1], OutBlendSamples[2], OutBlendSamples[3]);
 }
 
-const FEditorElement * UBlendSpace::GetEditorElement(int32 XIndex, int32 YIndex) const
+const FEditorElement* UBlendSpace::GetEditorElement(int32 XIndex, int32 YIndex) const
 {
 	int32 Index = XIndex*(BlendParameters[1].GridNum+1) + YIndex;
 	return GetGridSampleInternal(Index);

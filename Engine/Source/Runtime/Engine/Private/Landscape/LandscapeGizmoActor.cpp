@@ -421,7 +421,7 @@ FPrimitiveSceneProxy* ULandscapeGizmoRenderComponent::CreateSceneProxy()
 	return new FLandscapeGizmoRenderSceneProxy(this);
 }
 
-FBoxSphereBounds ULandscapeGizmoRenderComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds ULandscapeGizmoRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 #if WITH_EDITOR
 	ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(GetOwner());

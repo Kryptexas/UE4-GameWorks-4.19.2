@@ -1733,7 +1733,7 @@ bool UPrimitiveComponent::OverlapComponent(const FVector& Pos, const FQuat& Rot,
 	return BodyInstance.OverlapTest(Pos, Rot, CollisionShape);
 }
 
-bool UPrimitiveComponent::ComputePenetration(FMTDResult & OutMTD, const FCollisionShape & CollisionShape, const FVector & Pos, const FQuat & Rot)
+bool UPrimitiveComponent::ComputePenetration(FMTDResult & OutMTD, const FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot)
 {
 #if WITH_PHYSX
 	UCollision2PGeom GeomStorage0(CollisionShape);

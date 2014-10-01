@@ -35,7 +35,7 @@ void FPhysSubstepTask::SwapBuffers()
 	External = !External;
 }
 
-void FPhysSubstepTask::RemoveBodyInstance(FBodyInstance * BodyInstance)
+void FPhysSubstepTask::RemoveBodyInstance(FBodyInstance* BodyInstance)
 {
 	
 	PhysTargetBuffers[External].Remove(BodyInstance);
@@ -47,7 +47,7 @@ void FPhysSubstepTask::RemoveBodyInstance(FBodyInstance * BodyInstance)
 	PhysTargetBuffers[!External].Remove(BodyInstance);
 }
 
-void FPhysSubstepTask::SetKinematicTarget(FBodyInstance * Body, const FTransform & TM)
+void FPhysSubstepTask::SetKinematicTarget(FBodyInstance* Body, const FTransform& TM)
 {
 #if WITH_PHYSX
 	check(Body);
@@ -66,12 +66,12 @@ void FPhysSubstepTask::SetKinematicTarget(FBodyInstance * Body, const FTransform
 #endif
 }
 
-bool FPhysSubstepTask::GetKinematicTarget(const FBodyInstance * Body, FTransform & OutTM) const
+bool FPhysSubstepTask::GetKinematicTarget(const FBodyInstance* Body, FTransform& OutTM) const
 {
 #if WITH_PHYSX
 	const PxRigidDynamic * PRigidDynamic = Body->GetPxRigidDynamic();
 	SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
-	if (const FPhysTarget * TargetState = PhysTargetBuffers[External].Find(Body))
+	if (const FPhysTarget* TargetState = PhysTargetBuffers[External].Find(Body))
 	{
 		if (TargetState->bKinematicTarget)
 		{
@@ -84,7 +84,7 @@ bool FPhysSubstepTask::GetKinematicTarget(const FBodyInstance * Body, FTransform
 	return false;
 }
 
-void FPhysSubstepTask::AddForce(FBodyInstance * Body, const FVector & Force)
+void FPhysSubstepTask::AddForce(FBodyInstance* Body, const FVector& Force)
 {
 #if WITH_PHYSX
 	check(Body);
@@ -104,7 +104,7 @@ void FPhysSubstepTask::AddForce(FBodyInstance * Body, const FVector & Force)
 #endif
 }
 
-void FPhysSubstepTask::AddForceAtPosition(FBodyInstance * Body, const FVector & Force, const FVector & Position)
+void FPhysSubstepTask::AddForceAtPosition(FBodyInstance* Body, const FVector& Force, const FVector& Position)
 {
 #if WITH_PHYSX
 	check(Body);
@@ -124,7 +124,7 @@ void FPhysSubstepTask::AddForceAtPosition(FBodyInstance * Body, const FVector & 
 	}
 #endif
 }
-void FPhysSubstepTask::AddTorque(FBodyInstance * Body, const FVector & Torque)
+void FPhysSubstepTask::AddTorque(FBodyInstance* Body, const FVector& Torque)
 {
 #if WITH_PHYSX
 	check(Body);
@@ -144,7 +144,7 @@ void FPhysSubstepTask::AddTorque(FBodyInstance * Body, const FVector & Torque)
 }
 
 /** Applies forces - Assumes caller has obtained writer lock */
-void FPhysSubstepTask::ApplyForces(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance)
+void FPhysSubstepTask::ApplyForces(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance)
 {
 #if WITH_PHYSX
 	/** Apply Forces */
@@ -152,7 +152,7 @@ void FPhysSubstepTask::ApplyForces(const FPhysTarget & PhysTarget, FBodyInstance
 
 	for (int32 i = 0; i < PhysTarget.Forces.Num(); ++i)
 	{
-		const FForceTarget & ForceTarget = PhysTarget.Forces[i];
+		const FForceTarget& ForceTarget = PhysTarget.Forces[i];
 
 		if (ForceTarget.bPosition)
 		{
@@ -167,7 +167,7 @@ void FPhysSubstepTask::ApplyForces(const FPhysTarget & PhysTarget, FBodyInstance
 }
 
 /** Applies torques - Assumes caller has obtained writer lock */
-void FPhysSubstepTask::ApplyTorques(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance)
+void FPhysSubstepTask::ApplyTorques(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance)
 {
 #if WITH_PHYSX
 	/** Apply Torques */
@@ -175,14 +175,14 @@ void FPhysSubstepTask::ApplyTorques(const FPhysTarget & PhysTarget, FBodyInstanc
 
 	for (int32 i = 0; i < PhysTarget.Torques.Num(); ++i)
 	{
-		const FTorqueTarget & TorqueTarget = PhysTarget.Torques[i];
+		const FTorqueTarget& TorqueTarget = PhysTarget.Torques[i];
 		PRigidDynamic->addTorque(U2PVector(TorqueTarget.Torque), PxForceMode::eFORCE, true);
 	}
 #endif
 }
 
 /** Interpolates kinematic actor transform - Assumes caller has obtained writer lock */
-void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget, FBodyInstance * BodyInstance, float InAlpha)
+void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float InAlpha)
 {
 #if WITH_PHYSX
 	PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic();
@@ -194,9 +194,9 @@ void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget,
 		//It's possible that the actor is no longer kinematic and is now simulating. In that case do nothing
 		if (!IsRigidDynamicNonKinematic(PRigidDynamic))
 		{
-			const FKinematicTarget & KinematicTarget = PhysTarget.KinematicTarget;
-			const FTransform & TargetTM = KinematicTarget.TargetTM;
-			const FTransform & StartTM = KinematicTarget.OriginalTM;
+			const FKinematicTarget& KinematicTarget = PhysTarget.KinematicTarget;
+			const FTransform& TargetTM = KinematicTarget.TargetTM;
+			const FTransform& StartTM = KinematicTarget.OriginalTM;
 			FTransform InterTM = FTransform::Identity;
 
 			InterTM.SetLocation(FMath::Lerp(StartTM.GetLocation(), TargetTM.GetLocation(), InAlpha));
@@ -227,7 +227,7 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha)
 	for (PhysTargetMap::TIterator Itr = Targets.CreateIterator(); Itr; ++Itr)
 	{
 		FPhysTarget & PhysTarget = Itr.Value();
-		FBodyInstance * BodyInstance = Itr.Key();
+		FBodyInstance* BodyInstance = Itr.Key();
 		PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic();
 
 		if (PRigidDynamic == NULL)

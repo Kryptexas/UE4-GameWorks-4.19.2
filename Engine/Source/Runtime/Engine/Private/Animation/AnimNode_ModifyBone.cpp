@@ -32,7 +32,7 @@ void FAnimNode_ModifyBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -98,13 +98,13 @@ void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 	OutBoneTransforms.Add( FBoneTransform(BoneToModify.BoneIndex, NewBoneTM) );
 }
 
-bool FAnimNode_ModifyBone::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) 
+bool FAnimNode_ModifyBone::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
 	return (BoneToModify.IsValid(RequiredBones));
 }
 
-void FAnimNode_ModifyBone::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_ModifyBone::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	BoneToModify.Initialize(RequiredBones);
 }

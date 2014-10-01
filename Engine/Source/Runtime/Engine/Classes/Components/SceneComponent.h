@@ -14,7 +14,7 @@ struct FOverlapInfo
 	FOverlapInfo()
 	{}
 
-	FOverlapInfo(const FHitResult & InSweepResult)
+	FOverlapInfo(const FHitResult& InSweepResult)
 		: bFromSweep(true), OverlapInfo(InSweepResult)
 	{
 	}
@@ -585,7 +585,7 @@ public:
 	void UpdateChildTransforms();
 
 	/** Calculate the bounds of this component. Default behavior is a bounding box/sphere of zero size. */
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const;
 
 	/**
 	 * Calculate the axis-aligned bounding cylinder of this component (radius in X-Y, half-height along Z axis).
@@ -625,7 +625,7 @@ public:
 
 
 	/** Return const reference to CollsionResponseContainer */
-	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const;
+	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const;
 
 	/** Return true if visible in editor **/
 	virtual bool IsVisibleInEditor() const;
@@ -656,7 +656,7 @@ protected:
 	/** Calculate the new ComponentToWorld transform for this component.
 		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
 		If Parent is not passed in we use the component's AttachParent*/
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent = NULL) const;
+	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL) const;
 
 	
 public:
@@ -671,7 +671,7 @@ public:
 	void SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false);
 
 	/** Set the relative location & FQuat rotation of this component to put it at the supplied pose in world space. */
-	void SetWorldLocationAndRotation(FVector NewLocation, const FQuat & NewRotation, bool bSweep=false);
+	void SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false);
 
 	/** Special version of SetWorldLocationAndRotation that does not affect physics. */
 	void SetWorldLocationAndRotationNoPhysics(const FVector& NewLocation, const FRotator& NewRotation);

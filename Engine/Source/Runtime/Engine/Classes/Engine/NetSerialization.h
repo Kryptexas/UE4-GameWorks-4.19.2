@@ -495,7 +495,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		// Serialized new elements with their payload
 		for (auto It = ChangedElements.CreateIterator(); It; ++It)
 		{
-			void * ThisElement = &Items[It->Idx];
+			void* ThisElement = &Items[It->Idx];
 
 			// Dont pack this, want property to be byte aligned
 			uint32 ID = It->ID;
@@ -584,7 +584,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			int32 ElementID;
 			Ar << ElementID;
 
-			int32 * ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
+			int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
 			int32	ElementIndex = 0;
 			Type *	ThisElement = NULL;
 

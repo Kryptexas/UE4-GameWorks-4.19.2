@@ -611,7 +611,7 @@ bool UAnimCompress::Reduce(UAnimSequence* AnimSeq, bool bOutput)
 {
 	bool bResult = false;
 #if WITH_EDITORONLY_DATA
-	USkeleton * AnimSkeleton = AnimSeq->GetSkeleton();
+	USkeleton* AnimSkeleton = AnimSeq->GetSkeleton();
 	const bool bSkeletonExistsIfNeeded = ( AnimSkeleton || !bNeedsSkeleton);
 	if ( bSkeletonExistsIfNeeded )
 	{
@@ -838,7 +838,7 @@ void UAnimCompress::FilterAnimRotationOnlyKeys(TArray<FTranslationTrack> & Posit
 {
 #if( REDUCE_ANIMROTATIONONLY_TRACKS )
 
-	USkeleton * Skeleton = AnimSeq->Skeleton;
+	USkeleton* Skeleton = AnimSeq->Skeleton;
 	if (!Skeleton)
 	{
 		return;

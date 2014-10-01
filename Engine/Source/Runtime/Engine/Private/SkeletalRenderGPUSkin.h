@@ -89,7 +89,7 @@ struct FMorphGPUSkinVertex
 	FMorphGPUSkinVertex() {};
 	
 	/** Construct for special case **/
-	FMorphGPUSkinVertex(const FVector & InDeltaPosition, const FPackedNormal& InDeltaTangentZ)
+	FMorphGPUSkinVertex(const FVector& InDeltaPosition, const FPackedNormal& InDeltaTangentZ)
 	{
 		DeltaPosition = InDeltaPosition;
 		DeltaTangentZ = InDeltaTangentZ;

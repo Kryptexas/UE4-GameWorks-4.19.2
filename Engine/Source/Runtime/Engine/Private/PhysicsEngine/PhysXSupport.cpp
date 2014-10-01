@@ -94,7 +94,7 @@ PxPlane U2PPlane(FPlane& Plane)
 	return PxPlane(Plane.X, Plane.Y, Plane.Z, -Plane.W);
 }
 
-UCollision2PGeom::UCollision2PGeom(const FCollisionShape & CollisionShape)
+UCollision2PGeom::UCollision2PGeom(const FCollisionShape& CollisionShape)
 {
 	switch (CollisionShape.ShapeType)
 	{
@@ -347,7 +347,7 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	if((filterData0.word2 == filterData1.word2) && (filterData0.word2 != 0))
 	{
 		check(constantBlockSize == sizeof(FPhysSceneShaderInfo));
-		const FPhysSceneShaderInfo * PhysSceneShaderInfo = (const FPhysSceneShaderInfo*) constantBlock;
+		const FPhysSceneShaderInfo* PhysSceneShaderInfo = (const FPhysSceneShaderInfo*) constantBlock;
 		check(PhysSceneShaderInfo);
 		FPhysScene * PhysScene = PhysSceneShaderInfo->PhysScene;
 		check(PhysScene);
@@ -422,7 +422,7 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	// check if it's a destructible actor
 	if (BodyInst0 == NULL)
 	{
-		if (const FDestructibleChunkInfo * DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor0->userData))
+		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor0->userData))
 		{
 			BodyInst0 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
 		}
@@ -430,7 +430,7 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 
 	if (BodyInst1 == NULL)
 	{
-		if (const FDestructibleChunkInfo * DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor1->userData))
+		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor1->userData))
 		{
 			BodyInst1 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
 		}

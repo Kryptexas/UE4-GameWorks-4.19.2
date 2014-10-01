@@ -68,7 +68,7 @@ public:
 	}
 
 	/** Get Skeleton Asset. Could either be the SkeletalMesh's Skeleton, or the Skeleton this BoneContainer was made for. Is non NULL is BoneContainer is valid. */
-	USkeleton * GetSkeletonAsset() const
+	USkeleton* GetSkeletonAsset() const
 	{
 		return AssetSkeleton.Get();
 	}
@@ -192,7 +192,7 @@ private:
 	ENGINE_API void Initialize();
 
 	/** Cache remapping data if current Asset is a SkeletalMesh, with all compatible Skeletons. */
-	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton & TargetSkeleton);
+	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton);
 
 	/** Cache remapping data if current Asset is a Skeleton, with all compatible Skeletons. */
 	void RemapFromSkeleton(USkeleton const & SourceSkeleton);

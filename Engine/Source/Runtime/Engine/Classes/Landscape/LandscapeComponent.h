@@ -272,7 +272,7 @@ public:
 
 	// Begin USceneComponent interface.
 	virtual void DestroyComponent() override;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent interface.
 
 	// Begin UActorComponent interface.

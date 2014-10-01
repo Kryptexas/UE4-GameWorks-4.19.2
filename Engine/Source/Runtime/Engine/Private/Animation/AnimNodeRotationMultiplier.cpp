@@ -40,7 +40,7 @@ FVector GetAxisVector(const EBoneAxis Axis)
 FQuat FAnimNode_RotationMultiplier::ExtractAngle(const TArray<FTransform> & RefPoseTransforms, FA2CSPose & MeshBases, const EBoneAxis Axis,  int32 SourceBoneIndex)
 {
 	// local bone transform
-	const FTransform & LocalBoneTransform = MeshBases.GetLocalSpaceTransform(SourceBoneIndex);
+	const FTransform& LocalBoneTransform = MeshBases.GetLocalSpaceTransform(SourceBoneIndex);
 	// local bone transform with reference rotation
 	FTransform ReferenceBoneTransform = RefPoseTransforms[SourceBoneIndex];
 	ReferenceBoneTransform.SetTranslation(LocalBoneTransform.GetTranslation());
@@ -56,7 +56,7 @@ FQuat FAnimNode_RotationMultiplier::ExtractAngle(const TArray<FTransform> & RefP
 	// Rotate parent bone atom from position in local space to reference skeleton
 	// Since our rotation rotates both vectors with shortest arc
 	// we're essentially left with a quaternion that has angle difference with reference skeleton version
-	const FQuat BoneQuatAligned = LocalToRefQuat * LocalBoneTransform.GetRotation();
+	const FQuat BoneQuatAligned = LocalToRefQuat* LocalBoneTransform.GetRotation();
 	checkSlow( BoneQuatAligned.IsNormalized() );
 
 	// Find that delta angle
@@ -86,7 +86,7 @@ FQuat FAnimNode_RotationMultiplier::ExtractAngle(const TArray<FTransform> & RefP
 	return DeltaQuat;
 }
 
-void FAnimNode_RotationMultiplier::MultiplyQuatBasedOnSourceIndex(const TArray<FTransform> & RefPoseTransforms, FA2CSPose& MeshBases, const EBoneAxis Axis, int32 SourceBoneIndex, float Multiplier, const FQuat & ReferenceQuat, FQuat & OutQuat)
+void FAnimNode_RotationMultiplier::MultiplyQuatBasedOnSourceIndex(const TArray<FTransform> & RefPoseTransforms, FA2CSPose& MeshBases, const EBoneAxis Axis, int32 SourceBoneIndex, float Multiplier, const FQuat& ReferenceQuat, FQuat& OutQuat)
 {
 	// Find delta angle for source bone.
 	FQuat DeltaQuat = ExtractAngle(RefPoseTransforms, MeshBases, Axis, SourceBoneIndex);
@@ -120,7 +120,7 @@ void FAnimNode_RotationMultiplier::MultiplyQuatBasedOnSourceIndex(const TArray<F
 #endif
 }
 
-void FAnimNode_RotationMultiplier::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_RotationMultiplier::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -149,13 +149,13 @@ void FAnimNode_RotationMultiplier::EvaluateBoneTransforms(USkeletalMeshComponent
 	}
 }
 
-bool FAnimNode_RotationMultiplier::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) 
+bool FAnimNode_RotationMultiplier::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
 	return (TargetBone.IsValid(RequiredBones) && (TargetBone==SourceBone || SourceBone.IsValid(RequiredBones)));
 }
 
-void FAnimNode_RotationMultiplier::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_RotationMultiplier::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	SourceBone.Initialize(RequiredBones);
 	TargetBone.Initialize(RequiredBones);

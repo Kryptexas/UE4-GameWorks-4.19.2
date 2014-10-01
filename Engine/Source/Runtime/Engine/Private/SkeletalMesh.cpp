@@ -2091,7 +2091,7 @@ FArchive &operator<<( FArchive& Ar, FSkeletalMeshLODInfo& I )
 	return Ar;
 }
 
-void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh * InSkeletalMesh)
+void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh* InSkeletalMesh)
 {
 	if (InSkeletalMesh)
 	{
@@ -2227,7 +2227,7 @@ void USkeletalMesh::PostEditUndo()
 }
 #endif // WITH_EDITOR
 
-static void RecreateRenderState_Internal(const USkeletalMesh * InSkeletalMesh)
+static void RecreateRenderState_Internal(const USkeletalMesh* InSkeletalMesh)
 {
 	if (InSkeletalMesh)
 	{
@@ -2657,7 +2657,7 @@ void USkeletalMesh::PostLoad()
 		// so it's safe to decrease indices for children, we're not going to lose the index of the remaining duplicate bones.
 		for(int32 Index=0; Index<DuplicateBones.Num(); Index++)
 		{
-			const FBoneIndexType & DuplicateBoneIndex = DuplicateBones[Index];
+			const FBoneIndexType& DuplicateBoneIndex = DuplicateBones[Index];
 			for(int32 LodIndex=0; LodIndex<LODInfo.Num(); LodIndex++)
 			{
 				FStaticLODModel & ThisLODModel = ImportedResource->LODModels[LodIndex];

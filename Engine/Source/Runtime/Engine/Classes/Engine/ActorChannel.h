@@ -121,7 +121,7 @@ class ENGINE_API UActorChannel : public UChannel
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/** Queue a function bunch for this channel to be sent on the next property update. */
-	void QueueRemoteFunctionBunch( UObject * CallTarget, UFunction* Func, FOutBunch &Bunch );
+	void QueueRemoteFunctionBunch( UObject* CallTarget, UFunction* Func, FOutBunch &Bunch );
 
 	/** Returns true if channel is ready to go dormant (e.g., all outstanding property updates have been ACK'd) */
 	virtual bool ReadyForDormancy(bool debug=false);
@@ -133,7 +133,7 @@ class ENGINE_API UActorChannel : public UChannel
 	void CleanupReplicators( const bool bKeepReplicators = false );
 
 	/** Writes the header for a content block of proeprties / RPCs for the given object (either the actor a subobject of the actor) */
-	void BeginContentBlock( UObject * Obj, FOutBunch &Bunch );
+	void BeginContentBlock( UObject* Obj, FOutBunch &Bunch );
 
 	/** Writes the header for a content block specifically for deleting sub-objects */
 	void BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete );

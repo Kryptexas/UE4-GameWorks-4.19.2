@@ -75,7 +75,7 @@ void FADPCMAudioInfo::ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* Qua
 	if (*WaveInfo.pChannels == 1)
 	{
 		const uint8* EncodedADPCMBlockStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart);
-		uint8 * EncodedADPCMBlock = (uint8*)EncodedADPCMBlockStart;
+		uint8* EncodedADPCMBlock = (uint8*)EncodedADPCMBlockStart;
 		while (EncodedADPCMBlock < EncodedADPCMBlockStart + (WaveInfo.SampleDataSize))
 		{
 			ADPCM::DecodeBlock(EncodedADPCMBlock, CompressedBlockSize, (int16*)DstBuffer);
@@ -87,8 +87,8 @@ void FADPCMAudioInfo::ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* Qua
 	{
 		const uint8* EncodedADPCMBlockLeftStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart);
 		const uint8* EncodedADPCMBlockRightStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart + (WaveInfo.SampleDataSize / 2));
-		uint8 * EncodedADPCMLeftBlock = (uint8*)EncodedADPCMBlockLeftStart;
-		uint8 * EncodedADPCMRightBlock = (uint8*)EncodedADPCMBlockRightStart;
+		uint8* EncodedADPCMLeftBlock = (uint8*)EncodedADPCMBlockLeftStart;
+		uint8* EncodedADPCMRightBlock = (uint8*)EncodedADPCMBlockRightStart;
 		while (EncodedADPCMLeftBlock < EncodedADPCMBlockLeftStart + (WaveInfo.SampleDataSize / 2))
 		{
 			ADPCM::DecodeBlockStereo(EncodedADPCMLeftBlock, EncodedADPCMRightBlock, CompressedBlockSize, (int16*)DstBuffer);
@@ -108,8 +108,8 @@ bool FADPCMAudioInfo::DecodeStereoData(uint8* Destination, bool bLooping, uint32
 {
 	const uint8* EncodedADPCMBlockLeftStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart);
 	const uint8* EncodedADPCMBlockRightStart = reinterpret_cast<uint8*>(WaveInfo.SampleDataStart + (WaveInfo.SampleDataSize / 2));
-	uint8 * EncodedADPCMLeftBlock = (uint8*)EncodedADPCMBlockLeftStart + SrcBufferOffset;
-	uint8 * EncodedADPCMRightBlock = (uint8*)EncodedADPCMBlockRightStart + SrcBufferOffset;
+	uint8* EncodedADPCMLeftBlock = (uint8*)EncodedADPCMBlockLeftStart + SrcBufferOffset;
+	uint8* EncodedADPCMRightBlock = (uint8*)EncodedADPCMBlockRightStart + SrcBufferOffset;
 	
 	// Check to see if we have enough data left to do a complete decode
 	if (EncodedADPCMLeftBlock + StreamBufferSizeInBlocks < EncodedADPCMBlockRightStart)

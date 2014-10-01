@@ -182,7 +182,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	}
 
-	FGameplayAbilityActivationInfo(AActor * InActor, FPredictionKey InPredictionKey)
+	FGameplayAbilityActivationInfo(AActor* InActor, FPredictionKey InPredictionKey)
 		: PredictionKey(InPredictionKey)
 	{
 		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.

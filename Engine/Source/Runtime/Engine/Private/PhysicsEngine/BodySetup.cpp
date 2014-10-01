@@ -267,7 +267,7 @@ bool CalcMeshNegScaleCompensation(const FVector& InScale3D, PxTransform& POutTra
 	return (InScale3D.X * InScale3D.Y * InScale3D.Z) < 0.f;
 }
 
-void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScaleAbs, FVector & Scale3DAbs)
+void SetupNonUniformHelper(FVector& Scale3D, float& MinScale, float& MinScaleAbs, FVector& Scale3DAbs)
 {
 	// if almost zero, set min scale
 	// @todo fixme
@@ -290,7 +290,7 @@ void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScale
 	}
 }
 
-void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM /* = NULL */, TArray<physx::PxShape*> * NewShapes /* = NULL */ )
+void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform* RelativeTM /* = NULL */, TArray<physx::PxShape*> * NewShapes /* = NULL */ )
 {
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// in editor, there are a lot of things relying on body setup to create physics meshes

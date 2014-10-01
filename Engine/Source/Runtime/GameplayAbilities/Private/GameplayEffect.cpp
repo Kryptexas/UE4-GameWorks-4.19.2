@@ -132,7 +132,7 @@ void UGameplayEffect::ValidateStacking()
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor * Instigator, float Level, const FGlobalCurveDataOverride *CurveData)
+FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor* Instigator, float Level, const FGlobalCurveDataOverride *CurveData)
 : Def(InDef)
 , ModifierLevel(TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, InDef->LevelInfo, Instigator)))
 , Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
@@ -448,7 +448,7 @@ void FModifierSpec::ExecuteModOn(FModifierSpec &Other) const
 
 bool FModifierSpec::AreTagRequirementsSatisfied(const FModifierSpec &ModifierToBeModified) const
 {
-	const FGameplayModifierEvaluatedData & ToBeModifiedData = ModifierToBeModified.Aggregator.Get()->Evaluate();
+	const FGameplayModifierEvaluatedData& ToBeModifiedData = ModifierToBeModified.Aggregator.Get()->Evaluate();
 
 	bool HasRequired = ToBeModifiedData.Tags.MatchesAll(this->Info.RequiredTags, true);
 	bool HasIgnored = ToBeModifiedData.Tags.MatchesAny(this->Info.IgnoreTags, false);
@@ -924,7 +924,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 			
 			for (int32 ModIdx = 0; ModIdx < ModList.Num()-1; ++ModIdx)
 			{
-				const FAggregator * Agg = ModList[ModIdx];
+				const FAggregator* Agg = ModList[ModIdx];
 				if (Agg == NULL)
 				{
 					continue;
@@ -1218,7 +1218,7 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 bool FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext) const
 {
 	ABILITY_LOG_SCOPE(TEXT("ApplyActiveEffectsTo: %s %s"), *Spec.ToSimpleString(), *QualifierContext.ToString());
-	for (const FActiveGameplayEffect & ActiveEffect : GameplayEffects)
+	for (const FActiveGameplayEffect& ActiveEffect : GameplayEffects)
 	{
 		// We dont want to use FModifierQualifier::TestTarget here, since we aren't the 'target'. We are applying stuff to Spec which will be applied to a target.
 		if (QualifierContext.IgnoreHandle().IsValid() && QualifierContext.IgnoreHandle() == ActiveEffect.Handle)
@@ -2030,7 +2030,7 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 
 	ApplyActiveEffectsTo(Spec, FModifierQualifier().Type(EGameplayMod::IncomingGE));
 	
-	for (const FModifierSpec & Mod : Spec.Modifiers)
+	for (const FModifierSpec& Mod : Spec.Modifiers)
 	{
 		// It only makes sense to check additive operators
 		if (Mod.Info.ModifierOp == EGameplayModOp::Additive)

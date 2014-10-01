@@ -90,7 +90,7 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 }
 
 
-FBoxSphereBounds UCapsuleComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UCapsuleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FVector BoxPoint = FVector(CapsuleRadius,CapsuleRadius,CapsuleHalfHeight);
 	return FBoxSphereBounds(FVector::ZeroVector, BoxPoint, BoxPoint.Size()).TransformBy(LocalToWorld);

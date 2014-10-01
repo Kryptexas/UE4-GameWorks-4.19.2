@@ -26,7 +26,7 @@ FPrimitiveSceneProxy* UShapeComponent::CreateSceneProxy()
 	return NULL;
 }
 
-FBoxSphereBounds UShapeComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UShapeComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	check( false && "Subclass needs to Implement this" );
 	return FBoxSphereBounds();

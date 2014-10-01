@@ -250,13 +250,13 @@ struct FRootMotionMovementParams
 	{
 	}
 
-	void Set(const FTransform & InTransform)
+	void Set(const FTransform& InTransform)
 	{
 		bHasRootMotion = true;
 		RootMotionTransform = InTransform;
 	}
 
-	void Accumulate(const FTransform & InTransform)
+	void Accumulate(const FTransform& InTransform)
 	{
 		if (!bHasRootMotion)
 		{
@@ -268,7 +268,7 @@ struct FRootMotionMovementParams
 		}
 	}
 
-	void Accumulate(const FRootMotionMovementParams & MovementParams)
+	void Accumulate(const FRootMotionMovementParams& MovementParams)
 	{
 		if (MovementParams.bHasRootMotion)
 		{

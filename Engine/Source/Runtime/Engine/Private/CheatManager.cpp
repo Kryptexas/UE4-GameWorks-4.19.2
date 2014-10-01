@@ -747,12 +747,12 @@ void UCheatManager::TickCollisionDebug()
 }
 
 void UCheatManager::AddCapsuleSweepDebugInfo(
-	const FVector & LineTraceStart, 
-	const FVector & LineTraceEnd, 
-	const FVector & HitImpactLocation, 
-	const FVector & HitNormal, 
-	const FVector & HitImpactNormal, 
-	const FVector & HitLocation, 
+	const FVector& LineTraceStart, 
+	const FVector& LineTraceEnd, 
+	const FVector& HitImpactLocation, 
+	const FVector& HitNormal, 
+	const FVector& HitImpactNormal, 
+	const FVector& HitLocation, 
 	float CapsuleHalfheight, 
 	float CapsuleRadius, 
 	bool bTracePawn, 

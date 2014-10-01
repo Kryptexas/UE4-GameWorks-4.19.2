@@ -295,7 +295,7 @@ FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 	return new FEQSSceneProxy(this, DrawFlagName, bDrawOnlyWhenSelected);
 }
 
-FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	static FBox BoundingBox(FVector(-HALF_WORLD_MAX), FVector(HALF_WORLD_MAX));
 	return FBoxSphereBounds(BoundingBox);

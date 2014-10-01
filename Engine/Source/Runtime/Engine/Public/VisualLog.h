@@ -197,7 +197,7 @@ struct ENGINE_API FVisLogEntry
 	void AddDataBlock(const FString& TagName, const TArray<uint8>& BlobDataArray, const FName& CategoryName);
 
 	// capsule
-	void AddCapsule(FVector const& Center, float HalfHeight, float Radius, const FQuat & Rotation, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""));
+	void AddCapsule(FVector const& Center, float HalfHeight, float Radius, const FQuat& Rotation, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""));
 
 	// find index of status category
 	FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)

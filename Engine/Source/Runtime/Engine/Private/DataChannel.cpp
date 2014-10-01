@@ -1587,7 +1587,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 			return;
 		}
 
-		AActor * NewChannelActor = NULL;
+		AActor* NewChannelActor = NULL;
 		SpawnedNewActor = Connection->PackageMap->SerializeNewActor(Bunch, this, NewChannelActor);
 
 		// We are unsynchronized. Instead of crashing, let's try to recover.
@@ -1623,7 +1623,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 	// ----------------------------------------------
 	while ( !Bunch.AtEnd() && Connection != NULL && Connection->State != USOCK_Closed )
 	{
-		UObject * RepObj = ReadContentBlockHeader( Bunch );
+		UObject* RepObj = ReadContentBlockHeader( Bunch );
 
 		if ( Bunch.IsError() )
 		{
@@ -1934,7 +1934,7 @@ void UActorChannel::Serialize(FArchive& Ar)
 	}
 }
 
-void UActorChannel::QueueRemoteFunctionBunch( UObject * CallTarget, UFunction* Func, FOutBunch &Bunch )
+void UActorChannel::QueueRemoteFunctionBunch( UObject* CallTarget, UFunction* Func, FOutBunch &Bunch )
 {
 	FindOrCreateReplicator(CallTarget).Get().QueueRemoteFunctionBunch( Func, Bunch );
 }
@@ -1975,7 +1975,7 @@ void UActorChannel::StartBecomingDormant()
 	bPendingDormancy = 1;
 }
 
-void UActorChannel::BeginContentBlock( UObject * Obj, FOutBunch &Bunch )
+void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (CVarDoReplicationContextString->GetInt() > 0)
@@ -2055,7 +2055,7 @@ void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCa
 	Bunch.WriteIntWrapped(ClassCache->GetMaxIndex(), ClassCache->GetMaxIndex()+1);
 }
 
-UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
+UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 {
 	const bool IsServer = Connection->Driver->IsServer();
 
@@ -2071,7 +2071,7 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 
 	// Note this heavily mirrors what happens in UPackageMapClient::SerializeNewActor
 	FNetworkGUID NetGUID;
-	UObject * SubObj = NULL;
+	UObject* SubObj = NULL;
 
 	// Manually serialize the object so that we can get the NetGUID (in order to assign it if we spawn the object here)
 	Connection->PackageMap->SerializeObject( Bunch, UObject::StaticClass(), SubObj, &NetGUID );
@@ -2141,7 +2141,7 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 	// Serialize the class in case we have to spawn it.
 	// Manually serialize the object so that we can get the NetGUID (in order to assign it if we spawn the object here)
 	FNetworkGUID ClassNetGUID;
-	UObject * SubObjClassObj = NULL;
+	UObject* SubObjClassObj = NULL;
 	Connection->PackageMap->SerializeObject( Bunch, UObject::StaticClass(), SubObjClassObj, &ClassNetGUID );
 
 	// Delete sub-object
@@ -2215,7 +2215,7 @@ FObjectReplicator & UActorChannel::GetActorReplicationData()
 	return ReplicationMap.FindChecked(Actor).Get();
 }
 
-TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject * Obj )
+TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject* Obj )
 {
 	// First, try to find it on the channel replication map
 	TSharedRef<FObjectReplicator> * ReplicatorRefPtr = ReplicationMap.Find( Obj );
@@ -2397,7 +2397,7 @@ static void	DeleteDormantActor( UWorld* InWorld )
 
 	for (auto It = Connection->DormantActors.CreateIterator(); It; ++It)
 	{
-		AActor * ThisActor = const_cast<AActor*>(*It);
+		AActor* ThisActor = const_cast<AActor*>(*It);
 
 		UE_LOG(LogNet, Warning, TEXT("Deleting actor %s"), *ThisActor->GetName());
 
@@ -2476,7 +2476,7 @@ static void	TestObjectRefSerialize( const TArray<FString>& Args, UWorld* InWorld
 	if (!InWorld || Args.Num() <= 0)
 		return;
 
-	UObject * Object = StaticFindObject( UObject::StaticClass(), NULL, *Args[0], false );
+	UObject* Object = StaticFindObject( UObject::StaticClass(), NULL, *Args[0], false );
 	if (!Object)
 	{
 		Object = StaticLoadObject( UObject::StaticClass(), NULL, *Args[0], NULL, LOAD_NoWarn );

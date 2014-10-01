@@ -12,7 +12,7 @@ void FAnimNode_RotationOffsetBlendSpace::Initialize(const FAnimationInitializeCo
 	BasePose.Initialize(Context);
 }
 
-void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	FAnimNode_BlendSpacePlayer::CacheBones(Context);
 	BasePose.CacheBones(Context);

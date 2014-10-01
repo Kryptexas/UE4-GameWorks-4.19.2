@@ -192,7 +192,7 @@ void AActor::GatherCurrentMovement()
 	}
 }
 
-static void GetLifetimeBlueprintReplicationList( const AActor * ThisActor, const UBlueprintGeneratedClass * MyClass, TArray< FLifetimeProperty > & OutLifetimeProps )
+static void GetLifetimeBlueprintReplicationList( const AActor* ThisActor, const UBlueprintGeneratedClass* MyClass, TArray< FLifetimeProperty > & OutLifetimeProps )
 {
 	if ( MyClass == NULL )
 	{
@@ -267,7 +267,7 @@ void AActor::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList
 	// Sort the list so that we generate the same list on client/server
 	struct FCompareComponentNames
 	{
-		FORCEINLINE bool operator()( UObject & A, UObject & B ) const
+		FORCEINLINE bool operator()( UObject& A, UObject& B ) const
 		{
 			return A.GetName() < B.GetName();
 		}

@@ -1202,7 +1202,7 @@ void AMatineeActor::ValidateActorGroups()
 	}
 }
 
-AMatineeActor::EActorAddWarningType AMatineeActor::IsValidActorToAdd(const AActor * ActorToCheck) const
+AMatineeActor::EActorAddWarningType AMatineeActor::IsValidActorToAdd(const AActor* ActorToCheck) const
 {
 	ULevel * CurrentLevel = GetLevel();
 	if ( !ActorToCheck )
@@ -1305,7 +1305,7 @@ void AMatineeActor::EnsureActorGroupConsistency()
 	}
 }
 
-void AMatineeActor::DeleteActorGroupInfo(class UInterpGroup * Group, AActor * ActorToDelete)
+void AMatineeActor::DeleteActorGroupInfo(class UInterpGroup * Group, AActor* ActorToDelete)
 {
 	// this one just refreshes the old actor to new actor for the group that's set up
 	for (int32 InfoIndex = 0; InfoIndex<GroupActorInfos.Num(); ++InfoIndex)
@@ -1356,7 +1356,7 @@ void AMatineeActor::DeleteGroupinfo(class UInterpGroup * GroupToDelete)
 	}
 }
 
-void AMatineeActor::ReplaceActorGroupInfo(UInterpGroup * Group, AActor * OldActor, AActor * NewActor)
+void AMatineeActor::ReplaceActorGroupInfo(UInterpGroup * Group, AActor* OldActor, AActor* NewActor)
 {
 	// this one just refreshes the old actor to new actor for the group that's set up
 	for (int32 InfoIndex = 0; InfoIndex<GroupActorInfos.Num(); ++InfoIndex)
@@ -4541,7 +4541,7 @@ void UInterpTrackMove::GetKeyTransformAtTime(UInterpTrackInst* TrInst, float Tim
 	}
 }
 
-float GetDistanceFromAxis(EAxisList::Type WeightAxis, const FVector & Eval, const FVector & Base)
+float GetDistanceFromAxis(EAxisList::Type WeightAxis, const FVector& Eval, const FVector& Base)
 {
 	switch (WeightAxis)
 	{
@@ -7653,7 +7653,7 @@ void UInterpTrackInstAnimControl::InitTrackInst(UInterpTrack* Track)
 	LastUpdatePosition = MatineeActor->InterpPosition;
 
 #if WITH_EDITORONLY_DATA
-	AActor * GrActor = GetGroupActor();
+	AActor* GrActor = GetGroupActor();
 	if (GrActor)
 	{
 		InitPosition = GrActor->GetActorLocation();

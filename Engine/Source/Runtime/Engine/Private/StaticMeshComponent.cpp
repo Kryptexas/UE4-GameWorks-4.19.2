@@ -398,7 +398,7 @@ void UStaticMeshComponent::CheckForErrors()
 }
 #endif
 
-FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if(StaticMesh)
 	{
@@ -1194,7 +1194,7 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 	return true;
 }
 
-void UStaticMeshComponent::GetLocalBounds(FVector & Min, FVector & Max) const
+void UStaticMeshComponent::GetLocalBounds(FVector& Min, FVector& Max) const
 {
 	if (StaticMesh)
 	{

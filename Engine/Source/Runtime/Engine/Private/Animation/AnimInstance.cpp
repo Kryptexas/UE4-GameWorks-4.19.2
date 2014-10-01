@@ -126,7 +126,7 @@ FAnimTickRecord& UAnimInstance::CreateUninitializedTickRecord(int32 GroupIndex, 
 	return *TickRecord;
 }
 
-void UAnimInstance::SequenceEvaluatePose(UAnimSequenceBase* Sequence, FA2Pose& Pose, const FAnimExtractContext & ExtractionContext)
+void UAnimInstance::SequenceEvaluatePose(UAnimSequenceBase* Sequence, FA2Pose& Pose, const FAnimExtractContext& ExtractionContext)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
 	checkSlow( RequiredBones.IsValid() );
@@ -877,7 +877,7 @@ void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local s
 		{
 			int32 BoneIndex = RequiredBoneIndices[I];
 			
-			FTransform & Result = BlendedPose.Bones[BoneIndex];
+			FTransform& Result = BlendedPose.Bones[BoneIndex];
 
 			// We want Base pose (local Pose)
 			Result = BasePose.Bones[BoneIndex];
@@ -1005,12 +1005,12 @@ void UAnimInstance::AddAnimNotifyFromGeneratedClass(int32 NotifyIndex)
 	if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(GetClass()))
 	{
 		check(AnimBlueprintClass->AnimNotifies.IsValidIndex(NotifyIndex));
-		const FAnimNotifyEvent * Notify =& AnimBlueprintClass->AnimNotifies[NotifyIndex];
+		const FAnimNotifyEvent* Notify =& AnimBlueprintClass->AnimNotifies[NotifyIndex];
 		AnimNotifies.Add(Notify);
 	}
 }
 
-void UAnimInstance::AddCurveValue(const FName & CurveName, float Value, int32 CurveTypeFlags)
+void UAnimInstance::AddCurveValue(const FName& CurveName, float Value, int32 CurveTypeFlags)
 {
 	// save curve value, it will overwrite if same exists, 
 	//CurveValues.Add(CurveName, Value);
@@ -1082,7 +1082,7 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 
 	for (int32 Index=0; Index<AnimNotifies.Num(); Index++)
 	{
-		const FAnimNotifyEvent * AnimNotifyEvent = AnimNotifies[Index];
+		const FAnimNotifyEvent* AnimNotifyEvent = AnimNotifies[Index];
 
 		// AnimNotifyState
 		if( AnimNotifyEvent->NotifyStateClass )
@@ -1146,7 +1146,7 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	// Call 'NotifyBegin' event on freshly added AnimNotifyState.
 	for (int32 Index = 0; Index < NotifyStateBeginEvent.Num(); Index++)
 	{
-		const FAnimNotifyEvent * AnimNotifyEvent = NotifyStateBeginEvent[Index];
+		const FAnimNotifyEvent* AnimNotifyEvent = NotifyStateBeginEvent[Index];
 		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->NotifyStateClass->GetOuter()), AnimNotifyEvent->Duration);
 	}
 
@@ -1169,7 +1169,7 @@ void UAnimInstance::AnimNotify_Sound(UAnimNotify* AnimNotify)
 //to debug montage weight
 #define DEBUGMONTAGEWEIGHT 0
 
-void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float & out_SlotNodeWeight, float & out_SourceWeight) const
+void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const
 {
 	float NodeTotalWeight = 0.f;
 	float NonAdditiveTotalWeight = 0.f;
@@ -1387,7 +1387,7 @@ void UAnimInstance::RegisterSlotNode(FName SlotNodeName)
 
 void UAnimInstance::UpdateSlotNodeWeight(FName SlotNodeName, float Weight)
 {
-	float * CurrentWeight = ActiveSlotWeights.Find(SlotNodeName);
+	float* CurrentWeight = ActiveSlotWeights.Find(SlotNodeName);
 	if (CurrentWeight)
 	{
 		*CurrentWeight = Weight;
@@ -1398,20 +1398,20 @@ void UAnimInstance::ClearSlotNodeWeights()
 {
 	for (auto Iter = ActiveSlotWeights.CreateIterator(); Iter; ++Iter)
 	{
-		float & Weight = Iter.Value();
+		float& Weight = Iter.Value();
 		Weight = 0.f;
 	}
 }
 
 bool UAnimInstance::IsActiveSlotNode(FName SlotNodeName) const
 {
-	const float * SlotNodeWeight = ActiveSlotWeights.Find(SlotNodeName);
+	const float* SlotNodeWeight = ActiveSlotWeights.Find(SlotNodeName);
 	return ( SlotNodeWeight && (*SlotNodeWeight > ZERO_ANIMWEIGHT_THRESH) );
 }
 
 float UAnimInstance::GetCurveValue(FName CurveName)
 {
-	float * Value = EventCurves.Find(CurveName);
+	float* Value = EventCurves.Find(CurveName);
 	if (Value)
 	{
 		return *Value;
@@ -1577,7 +1577,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 		return 0.f;
 	}
 
-	USkeleton * AssetSkeleton = Asset->GetSkeleton();
+	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("The Skeleton isn't compatible"));
@@ -1632,7 +1632,7 @@ bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotN
 			UAnimMontage * CurMontage = MontageInstance->Montage;
 			if (CurMontage && CurMontage->GetOuter() == GetTransientPackage())
 			{
-				const FAnimTrack * AnimTrack = CurMontage->GetAnimationData(SlotNodeName);
+				const FAnimTrack* AnimTrack = CurMontage->GetAnimationData(SlotNodeName);
 				if (AnimTrack && AnimTrack->AnimSegments.Num() == 1)
 				{
 					// find if the 
@@ -2174,7 +2174,7 @@ void UAnimInstance::ClearMorphTargets()
 	}
 }
 
-float UAnimInstance::CalculateDirection(const FVector & Velocity, const FRotator & BaseRotation)
+float UAnimInstance::CalculateDirection(const FVector& Velocity, const FRotator& BaseRotation)
 {
 	FMatrix RotMatrix = FRotationMatrix(BaseRotation);
 	FVector ForwardVector = RotMatrix.GetScaledAxis(EAxis::X);

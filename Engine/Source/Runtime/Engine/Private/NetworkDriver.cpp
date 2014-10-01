@@ -643,7 +643,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	}
 
 	// If we have a subobject, thats who we are actually calling this on. If no subobject, we are calling on the actor.
-	UObject * TargetObj = SubObject ? SubObject : Actor;
+	UObject* TargetObj = SubObject ? SubObject : Actor;
 
 	// Make sure this function exists for both parties.
 	FClassNetCache* ClassCache = NetCache->GetClassNetCache( TargetObj->GetClass() );
@@ -799,7 +799,7 @@ void UNetDriver::InternalProcessRemoteFunction
 					checkSlow( Out );
 				}
 
-				void * Dest = It->ContainerPtrToValuePtr< void >( Parms );
+				void* Dest = It->ContainerPtrToValuePtr< void >( Parms );
 
 				const int32 CopySize = It->ElementSize * It->ArrayDim;
 
@@ -1460,13 +1460,13 @@ void UNetDriver::NotifyActorLevelUnloaded( AActor* TheActor )
 	}
 }
 
-/** UNetDriver::FlushActorDormancy(AActor * Actor)
+/** UNetDriver::FlushActorDormancy(AActor* Actor)
  *	 Flushes the actor from the NetDriver's dormant list and/or cancels pending dormancy on the actor channel.
  *
  *	 This does not change the Actor's actual NetDormant state. If a dormant actor is Flushed, it will net update at least one more
  *	 time, and then go back to dormant.
  */
-void UNetDriver::FlushActorDormancy(AActor * Actor)
+void UNetDriver::FlushActorDormancy(AActor* Actor)
 {
 	// Note: Going into dormancy is completely handled in ServerReplicateActor. We want to avoid
 	// event-based handling of going into dormancy, because we have to deal with connections joining in progress.
@@ -1878,7 +1878,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 
 		for ( int i = World->NetworkActors.Num() - 1; i >= 0 ; i-- )		// Traverse list backwards so we can easily remove items
 		{
-			AActor * Actor = World->NetworkActors[i];
+			AActor* Actor = World->NetworkActors[i];
 
 			if (Actor->IsPendingKill() )
 			{
@@ -2541,7 +2541,7 @@ void UNetDriver::PrintDebugRelevantActors()
 
 			for (auto It = List.CreateIterator(); It; ++It)
 			{
-				AActor * Actor = Cast<AActor>(It->Get());
+				AActor* Actor = Cast<AActor>(It->Get());
 				if (Actor)
 				{
 
@@ -2750,7 +2750,7 @@ static void	DumpRelevantActors( UWorld* InWorld )
 	NetDriver->DebugRelevantActors = true;
 }
 
-TSharedPtr<FRepChangedPropertyTracker> UNetDriver::FindOrCreateRepChangedPropertyTracker(UObject * Obj)
+TSharedPtr<FRepChangedPropertyTracker> UNetDriver::FindOrCreateRepChangedPropertyTracker(UObject* Obj)
 {
 	TSharedPtr<FRepChangedPropertyTracker> * GlobalPropertyTrackerPtr = RepChangedPropertyTrackerMap.Find( Obj );
 

@@ -19,7 +19,7 @@
  * the data is available only in the next frame after request is made - in other words, if request is made in frame X, you can get the result in frame (X+1)
  *
  * @param InDeleagte	Delegate function to be called - to see example, search FTraceDelegate
- *						Example can be void MyActor::TraceDone(const FTraceHandle & TraceHandle, FTraceDatum & TraceData)
+ *						Example can be void MyActor::TraceDone(const FTraceHandle& TraceHandle, FTraceDatum & TraceData)
  *						Before sending to the function, 
  *						
  *						FTraceDelegate TraceDelegate;
@@ -333,12 +333,12 @@ FTraceHandle UWorld::AsyncSweep(const FVector& Start,const FVector& End,const st
 }
 
 // overlap functions
-FTraceHandle UWorld::AsyncOverlap(const FVector & Pos, const FQuat& Rot, ECollisionChannel TraceChannel,const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam, FOverlapDelegate * InDelegate, uint32 UserData, bool bMultiTrace)
+FTraceHandle UWorld::AsyncOverlap(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel,const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam, FOverlapDelegate * InDelegate, uint32 UserData, bool bMultiTrace)
 {
 	return StartNewTrace(AsyncTraceState, FOverlapDatum(this, CollisionShape, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam, TraceChannel, UserData, bMultiTrace, Pos, Rot, InDelegate, AsyncTraceState.CurrentFrame));
 }
 
-FTraceHandle UWorld::AsyncOverlap(const FVector & Pos, const FQuat& Rot, const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate, uint32 UserData, bool bMultiTrace)
+FTraceHandle UWorld::AsyncOverlap(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape & CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams, FOverlapDelegate * InDelegate, uint32 UserData, bool bMultiTrace)
 {
 	return StartNewTrace(AsyncTraceState, FOverlapDatum(this, CollisionShape, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams, DefaultCollisionChannel, UserData, bMultiTrace, Pos, Rot, InDelegate, AsyncTraceState.CurrentFrame));
 }

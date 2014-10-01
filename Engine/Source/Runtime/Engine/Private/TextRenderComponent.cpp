@@ -802,7 +802,7 @@ bool UTextRenderComponent::ShouldRecreateProxyOnUpdateTransform() const
 	return true;
 }
 
-FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if(!Text.IsEmpty() && Font)
 	{

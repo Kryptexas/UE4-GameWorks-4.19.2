@@ -51,7 +51,7 @@ struct FNavAvoidanceData
 
 	FORCEINLINE bool ShouldIgnoreGroup(int32 OtherGroupMask) const
 	{
-		return ((GroupsToAvoid & OtherGroupMask) == 0) || ((GroupsToIgnore & OtherGroupMask) != 0);
+		return ((GroupsToAvoid& OtherGroupMask) == 0) || ((GroupsToIgnore & OtherGroupMask) != 0);
 	}
 };
 

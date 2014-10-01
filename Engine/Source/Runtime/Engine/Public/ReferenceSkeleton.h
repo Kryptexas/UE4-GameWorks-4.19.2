@@ -20,7 +20,7 @@ struct FMeshBoneInfo
 
 	FMeshBoneInfo() : Name(NAME_None), ParentIndex(INDEX_NONE) {}
 
-	FMeshBoneInfo(const FName & InName, const FString& InExportName, int32 InParentIndex)
+	FMeshBoneInfo(const FName& InName, const FString& InExportName, int32 InParentIndex)
 		: Name(InName)
 #if WITH_EDITORONLY_DATA
 		, ExportName(InExportName)
@@ -28,7 +28,7 @@ struct FMeshBoneInfo
 		, ParentIndex(InParentIndex)
 	{}
 
-	FMeshBoneInfo(const FMeshBoneInfo & Other)
+	FMeshBoneInfo(const FMeshBoneInfo& Other)
 		: Name(Other.Name)
 #if WITH_EDITORONLY_DATA
 		, ExportName(Other.ExportName)
@@ -115,14 +115,14 @@ public:
 		return RefBonePose;
 	}
 
-	void UpdateRefPoseTransform(const int32 & BoneIndex, const FTransform & BonePose)
+	void UpdateRefPoseTransform(const int32& BoneIndex, const FTransform& BonePose)
 	{
 		RefBonePose[BoneIndex] = BonePose;
 	}
 
 	/** Add a new bone. 
 	 * BoneName must not already exist! ParentIndex must be valid. */
-	void Add(const FMeshBoneInfo & BoneInfo, const FTransform & BonePose)
+	void Add(const FMeshBoneInfo& BoneInfo, const FTransform& BonePose)
 	{
 		// Adding a bone that already exists is illegal
 		check(FindBoneIndex(BoneInfo.Name) == INDEX_NONE);
@@ -143,7 +143,7 @@ public:
 
 	/** Insert a new bone
 	* BoneName must not already exist! ParentIndex must be valid. */
-	void Insert(int32 BoneIndex, const FMeshBoneInfo & BoneInfo, const FTransform & BonePose)
+	void Insert(int32 BoneIndex, const FMeshBoneInfo& BoneInfo, const FTransform& BonePose)
 	{
 		// Make sure our arrays are in sync.
 		checkSlow( (RefBoneInfo.Num() == RefBonePose.Num()) && (RefBoneInfo.Num() == NameToIndexMap.Num()) );
@@ -183,7 +183,7 @@ public:
 	}
 
 	/** Find Bone Index from BoneName. Precache as much as possible in speed critical sections! */
-	int32 FindBoneIndex(const FName & BoneName) const
+	int32 FindBoneIndex(const FName& BoneName) const
 	{
 		checkSlow(RefBoneInfo.Num() == NameToIndexMap.Num());
 		int32 BoneIndex = INDEX_NONE;
@@ -198,12 +198,12 @@ public:
 		return BoneIndex;
 	}
 
-	FName GetBoneName(const int32 & BoneIndex) const
+	FName GetBoneName(const int32& BoneIndex) const
 	{
 		return RefBoneInfo[BoneIndex].Name;
 	}
 
-	int32 GetParentIndex(const int32 & BoneIndex) const
+	int32 GetParentIndex(const int32& BoneIndex) const
 	{
 		// Parent must be valid. Either INDEX_NONE for Root, or before us.
 		checkSlow( ((BoneIndex == 0) && (RefBoneInfo[BoneIndex].ParentIndex == INDEX_NONE)) || ((BoneIndex > 0) && RefBoneInfo.IsValidIndex(RefBoneInfo[BoneIndex].ParentIndex)) );
@@ -220,7 +220,7 @@ public:
 	 * This will return 0 if BoneIndex == ParentBoneIndex;
 	 * This will return -1 if BoneIndex isn't child of ParentBoneIndex
 	 */
-	int32 GetDepthBetweenBones(const int32 & BoneIndex, const int32 & ParentBoneIndex) const
+	int32 GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const
 	{
 		if (BoneIndex >= ParentBoneIndex)
 		{
@@ -244,7 +244,7 @@ public:
 		return INDEX_NONE;
 	}
 
-	bool BoneIsChildOf(const int32 & ChildBoneIndex, const int32 & ParentBoneIndex) const
+	bool BoneIsChildOf(const int32& ChildBoneIndex, const int32& ParentBoneIndex) const
 	{
 		// Bones are in strictly increasing order.
 		// So child must have an index greater than his parent.
@@ -265,7 +265,7 @@ public:
 		return false;
 	}
 
-	void RemoveDuplicateBones(const UObject * Requester, TArray<FBoneIndexType> & DuplicateBones);
+	void RemoveDuplicateBones(const UObject* Requester, TArray<FBoneIndexType> & DuplicateBones);
 
 
 	/** Removes the supplied bones from the skeleton, unless they have children that aren't also going to be removed */

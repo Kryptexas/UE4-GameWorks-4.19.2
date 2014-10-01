@@ -31,7 +31,7 @@ void FAnimNode_TwoBoneIK::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -277,13 +277,13 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 	check(OutBoneTransforms.Num() == 3);
 }
 
-bool FAnimNode_TwoBoneIK::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) 
+bool FAnimNode_TwoBoneIK::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
 	return (IKBone.IsValid(RequiredBones));
 }
 
-void FAnimNode_TwoBoneIK::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_TwoBoneIK::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	IKBone.Initialize(RequiredBones);
 }

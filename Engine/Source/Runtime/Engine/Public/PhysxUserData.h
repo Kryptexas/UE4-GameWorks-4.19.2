@@ -47,7 +47,7 @@ public:
 	template <class T> static void Set(void* UserData, T* Payload);
 
 	//helper function to determine if userData is garbage (maybe dangling pointer)
-	static bool IsGarbage(void * UserData){ return ((FPhysxUserData*)UserData)->Type < EPhysxUserDataType::Invalid || ((FPhysxUserData*)UserData)->Type > EPhysxUserDataType::DestructibleChunk; }
+	static bool IsGarbage(void* UserData){ return ((FPhysxUserData*)UserData)->Type < EPhysxUserDataType::Invalid || ((FPhysxUserData*)UserData)->Type > EPhysxUserDataType::DestructibleChunk; }
 };
 
 template <> FORCEINLINE FBodyInstance* FPhysxUserData::Get(void* UserData)			{ if (!UserData || ((FPhysxUserData*)UserData)->Type != EPhysxUserDataType::BodyInstance) { return NULL; } return (FBodyInstance*)((FPhysxUserData*)UserData)->Payload; }

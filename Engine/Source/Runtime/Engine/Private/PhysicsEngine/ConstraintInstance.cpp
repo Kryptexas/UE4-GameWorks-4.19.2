@@ -1228,7 +1228,7 @@ void FConstraintInstance::Free(FConstraintInstance * Ptr)
 }
 FConstraintInstance * FConstraintInstance::Alloc()
 {
-	void * Memory = FMemory::Malloc(sizeof(FConstraintInstance));
+	void* Memory = FMemory::Malloc(sizeof(FConstraintInstance));
 	FMemory::Memzero(Memory, sizeof(FConstraintInstance));
 	return new (Memory)FConstraintInstance();
 }

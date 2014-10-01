@@ -20,7 +20,7 @@ void FAnimNode_SequencePlayer::Initialize(const FAnimationInitializeContext& Con
 	}
 }
 
-void FAnimNode_SequencePlayer::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_SequencePlayer::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 }
 

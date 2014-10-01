@@ -74,7 +74,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetPosition(float InPosition, bool bFireNotifies=true);
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void SetBlendSpaceInput(const FVector & InBlendInput);
+	void SetBlendSpaceInput(const FVector& InBlendInput);
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetPlaying(bool bIsPlaying);
 	UFUNCTION(BlueprintCallable, Category="Animation")

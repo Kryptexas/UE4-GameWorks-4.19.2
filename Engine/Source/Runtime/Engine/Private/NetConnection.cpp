@@ -601,7 +601,7 @@ void UNetConnection::ReceivedNak( int32 NakPacketId )
  * @NumBits		Number of bits in data blob
  * @PacketId	PacketId of the packet used to produce this ack data
 */
-static uint32 CalcPingAckData( const uint8 * BunchData, const int32 NumBits, const int32 PacketId )
+static uint32 CalcPingAckData( const uint8* BunchData, const int32 NumBits, const int32 PacketId )
 {
 	// Simply walk the bunch data, based upon OutPacketId, to get 'good enough' random data for verification
 	const int32	BunchBytesFloor = NumBits / 8;
@@ -1031,14 +1031,14 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	// Add the bits to the queue
 	if ( SizeInBits )
 	{
-		SendBuffer.SerializeBits( const_cast< uint8 * >( Bits ), SizeInBits );
+		SendBuffer.SerializeBits( const_cast< uint8* >( Bits ), SizeInBits );
 		ValidateSendBuffer();
 	}
 
 	// Add any extra bits
 	if ( ExtraSizeInBits )
 	{
-		SendBuffer.SerializeBits( const_cast< uint8 * >( ExtraBits ), ExtraSizeInBits );
+		SendBuffer.SerializeBits( const_cast< uint8* >( ExtraBits ), ExtraSizeInBits );
 		ValidateSendBuffer();
 	}
 
@@ -1622,7 +1622,7 @@ void UNetConnection::CleanupDormantActorState()
 	DormantReplicatorMap.Empty();
 }
 
-void UNetConnection::FlushDormancy( class AActor * Actor )
+void UNetConnection::FlushDormancy( class AActor* Actor )
 {
 	UE_LOG( LogNetDormancy, Verbose, TEXT( "FlushDormancy: %s. Connection: %s" ), *Actor->GetName(), *GetName() );
 	
@@ -1664,7 +1664,7 @@ void UNetConnection::FlushDormancy( class AActor * Actor )
 }
 
 /** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
-void UNetConnection::FlushDormancyForObject( UObject * Object )
+void UNetConnection::FlushDormancyForObject( UObject* Object )
 {
 	static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.DormancyValidate" ) );
 	const bool ValidateProperties = ( ValidateCVar && ValidateCVar->GetValueOnGameThread() == 1 );

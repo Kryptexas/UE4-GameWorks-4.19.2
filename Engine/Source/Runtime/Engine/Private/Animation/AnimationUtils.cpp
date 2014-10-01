@@ -18,7 +18,7 @@
 /** Array to keep track of SkeletalMeshes we have built metadata for, and log out the results just once. */
 //static TArray<USkeleton*> UniqueSkeletonsMetadataArray;
 
-void FAnimationUtils::BuildSkeletonMetaData(USkeleton * Skeleton, TArray<FBoneData>& OutBoneData)
+void FAnimationUtils::BuildSkeletonMetaData(USkeleton* Skeleton, TArray<FBoneData>& OutBoneData)
 {
 	// Disable logging by default. Except if we deal with a new Skeleton. Then we log out its details. (just once).
 	bool bEnableLogging = false;
@@ -29,7 +29,7 @@ void FAnimationUtils::BuildSkeletonMetaData(USkeleton * Skeleton, TArray<FBoneDa
 // 		UniqueSkeletonsMetadataArray.AddItem(Skeleton);
 // 	}
 
-	const FReferenceSkeleton & RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 	const TArray<FTransform> & SkeletonRefPose = Skeleton->GetRefLocalPoses();
 	const int32 NumBones = RefSkeleton.GetNum();
 
@@ -226,7 +226,7 @@ void FAnimationUtils::ComputeCompressionError(const UAnimSequence* AnimSeq, cons
 		float ErrorCount = 0.0f;
 		float ErrorTotal = 0.0f;
 
-		USkeleton * Skeleton = AnimSeq->GetSkeleton();
+		USkeleton* Skeleton = AnimSeq->GetSkeleton();
 		check ( Skeleton );
 
 		const TArray<FTransform>& RefPose	= Skeleton->GetRefLocalPoses();
@@ -694,7 +694,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 	check(AnimSeq != NULL);
 
 	// attempt to find the default skeletal mesh associated with this sequence
-	USkeleton * Skeleton = AnimSeq->GetSkeleton();
+	USkeleton* Skeleton = AnimSeq->GetSkeleton();
 	check (Skeleton);
 
 	static int32 TotalRecompressions = 0;
@@ -1389,7 +1389,7 @@ void FAnimationUtils::TestForMissingMeshes(UAnimSequence* AnimSeq)
 	{
 		check(AnimSeq != NULL);
 
-		USkeleton * Skeleton = AnimSeq->GetSkeleton();
+		USkeleton* Skeleton = AnimSeq->GetSkeleton();
 		check( Skeleton );
 
 		static int32 MissingSkeletonCount = 0;
@@ -1522,7 +1522,7 @@ void FAnimationUtils::CalculateTrackHeights(UAnimSequence* AnimSeq, const TArray
 		TrackHeights[TrackIndex] = 0;
 	}
 
-	USkeleton * Skeleton = AnimSeq->GetSkeleton();
+	USkeleton* Skeleton = AnimSeq->GetSkeleton();
 	check(Skeleton);
 
 	// Populate the bone 'height' table (distance from closest end effector, with 0 indicating an end effector)
@@ -1596,7 +1596,7 @@ void FAnimationUtils::TallyErrorsFromPerturbation(
 	const int32 NumBones = BoneData.Num();
 
 
-	USkeleton * Skeleton = AnimSeq->GetSkeleton();
+	USkeleton* Skeleton = AnimSeq->GetSkeleton();
 	check ( Skeleton );
 
 	const TArray<FTransform>& RefPose = Skeleton->GetRefLocalPoses();

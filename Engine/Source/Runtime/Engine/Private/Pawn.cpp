@@ -1045,7 +1045,7 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
 }
 
-void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
+void APawn::MoveIgnoreActorAdd(AActor* ActorToIgnore)
 {
 	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
@@ -1054,7 +1054,7 @@ void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
 	}
 }
 
-void APawn::MoveIgnoreActorRemove(AActor * ActorToIgnore)
+void APawn::MoveIgnoreActorRemove(AActor* ActorToIgnore)
 {
 	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )

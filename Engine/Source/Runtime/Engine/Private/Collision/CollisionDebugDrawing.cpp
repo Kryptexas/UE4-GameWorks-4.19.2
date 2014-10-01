@@ -11,7 +11,7 @@ static FColor BlockColor(255,64,64);
 static FColor TouchColor(64,255,64);
 static float NormalLength = 20.f;
 
-void DrawLineTraces(const UWorld* InWorld, const FVector & Start, const FVector & End, const TArray<FHitResult>& Hits, float Lifetime)
+void DrawLineTraces(const UWorld* InWorld, const FVector& Start, const FVector& End, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FColor Color = (Hits.Num() > 0)? HitColor: TraceColor;
 	DrawDebugLine(InWorld, Start, End, Color, false, Lifetime);
@@ -32,7 +32,7 @@ void DrawLineTraces(const UWorld* InWorld, const FVector & Start, const FVector 
 	}
 }
 
-void DrawSphereSweeps(const UWorld* InWorld, const FVector & Start, const FVector & End, const float Radius, const TArray<FHitResult>& Hits, float Lifetime)
+void DrawSphereSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, const float Radius, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FColor Color = (Hits.Num() > 0)? HitColor: TraceColor;
 	DrawDebugSphere(InWorld, Start, Radius, FMath::Max(Radius/4.f, 2.f), Color, false, Lifetime);
@@ -55,7 +55,7 @@ void DrawSphereSweeps(const UWorld* InWorld, const FVector & Start, const FVecto
 	}
 }
 
-void DrawBoxSweeps(const UWorld* InWorld, const FVector & Start, const FVector & End, const FVector & Extent, const FQuat & Rot, const TArray<FHitResult>& Hits, float Lifetime)
+void DrawBoxSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, const FVector& Extent, const FQuat& Rot, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FBox StartBox(Start-Extent, Start+Extent);
 	FBox EndBox(End-Extent, End+Extent);
@@ -90,7 +90,7 @@ void DrawBoxSweeps(const UWorld* InWorld, const FVector & Start, const FVector &
 	}
 }
 
-void DrawCapsuleSweeps(const UWorld* InWorld, const FVector & Start, const FVector & End, float HalfHeight, float Radius, const FQuat& Rotation, const TArray<FHitResult>& Hits, float Lifetime)
+void DrawCapsuleSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, float HalfHeight, float Radius, const FQuat& Rotation, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FColor Color = (Hits.Num() > 0)? HitColor: TraceColor;
 	if (Hits.Num() > 0 && Hits[0].bBlockingHit)
@@ -132,7 +132,7 @@ void DrawCapsuleSweeps(const UWorld* InWorld, const FVector & Start, const FVect
 	}
 }
 
-void DrawBoxOverlap(const UWorld* InWorld, const FVector & Pos, const FVector & Extent, const FQuat& Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
+void DrawBoxOverlap(const UWorld* InWorld, const FVector& Pos, const FVector& Extent, const FQuat& Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
 {
 	FColor Color = (Overlaps.Num() > 0)? HitColor: TraceColor;
 	DrawDebugBox(InWorld, Pos, Extent, Rot, Color, false, Lifetime);
@@ -151,7 +151,7 @@ void DrawBoxOverlap(const UWorld* InWorld, const FVector & Pos, const FVector & 
 	}
 }
 
-void DrawSphereOverlap(const UWorld* InWorld, const FVector & Pos, const float Radius, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
+void DrawSphereOverlap(const UWorld* InWorld, const FVector& Pos, const float Radius, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
 {
 	FColor Color = (Overlaps.Num() > 0)? HitColor: TraceColor;
 	DrawDebugSphere(InWorld, Pos, Radius, FMath::Max(Radius/4.f, 2.f), Color, false, Lifetime);
@@ -170,7 +170,7 @@ void DrawSphereOverlap(const UWorld* InWorld, const FVector & Pos, const float R
 	}
 }
 
-void DrawCapsuleOverlap(const UWorld* InWorld,const FVector & Pos, const float HalfHeight, const float Radius, const FQuat & Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
+void DrawCapsuleOverlap(const UWorld* InWorld,const FVector& Pos, const float HalfHeight, const float Radius, const FQuat& Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
 {
 	FColor Color = (Overlaps.Num() > 0)? HitColor: TraceColor;
 	DrawDebugCapsule(InWorld, Pos, HalfHeight, Radius, Rot, Color, false, Lifetime);
@@ -217,7 +217,7 @@ void DrawGeomOverlaps(const UWorld* InWorld, const PxGeometry& PGeom, const PxTr
 	}
 }
 
-void DrawGeomSweeps(const UWorld* InWorld, const FVector & Start, const FVector & End, const PxGeometry& PGeom, const PxQuat& PGeomRot, const TArray<FHitResult>& Hits, float Lifetime)
+void DrawGeomSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, const PxGeometry& PGeom, const PxQuat& PGeomRot, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	if (PGeom.getType() == PxGeometryType::eBOX)
 	{

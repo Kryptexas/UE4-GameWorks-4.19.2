@@ -549,7 +549,7 @@ struct TGPUSkinVertexBase
 	* @param Ar - archive to serialize with
 	*/
 	void Serialize(FArchive& Ar);
-	void Serialize(FArchive& Ar, FVector & OutPosition)
+	void Serialize(FArchive& Ar, FVector& OutPosition)
 	{
 		Serialize(Ar);
 	}

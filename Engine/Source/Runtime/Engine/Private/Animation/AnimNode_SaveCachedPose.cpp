@@ -25,7 +25,7 @@ void FAnimNode_SaveCachedPose::Initialize(const FAnimationInitializeContext& Con
 	}
 }
 
-void FAnimNode_SaveCachedPose::CacheBones(const FAnimationCacheBonesContext & Context)
+void FAnimNode_SaveCachedPose::CacheBones(const FAnimationCacheBonesContext& Context)
 {
 	if( LastCacheBonesContextCounter != Context.AnimInstance->GetContextCounter() )
 	{

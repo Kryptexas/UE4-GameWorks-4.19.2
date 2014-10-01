@@ -527,7 +527,7 @@ public:
 	 * @param DebugType - type of debug message
 	 * @result bool - true if it should be displayed
 	 */
-	virtual bool ShouldDisplayDebug(const FName & DebugType) const;
+	virtual bool ShouldDisplayDebug(const FName& DebugType) const;
 
 	/** 
 	 * Entry point for basic debug rendering on the HUD.  Activated and controlled via the "showdebug" console command.  

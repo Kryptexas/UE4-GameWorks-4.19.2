@@ -414,7 +414,7 @@ void FVisLogEntry::AddDataBlock(const FString& TagName, const TArray<uint8>& Blo
 	DataBlocks.Add(DataBlock);
 }
 
-void FVisLogEntry::AddCapsule(FVector const& Center, float HalfHeight, float Radius, const FQuat & Rotation, const FName& CategoryName, const FColor& Color, const FString& Description)
+void FVisLogEntry::AddCapsule(FVector const& Center, float HalfHeight, float Radius, const FQuat& Rotation, const FName& CategoryName, const FColor& Color, const FString& Description)
 {
 	FElementToDraw Element(Description, Color, 0, CategoryName);
 	Element.Points.Reserve(3);

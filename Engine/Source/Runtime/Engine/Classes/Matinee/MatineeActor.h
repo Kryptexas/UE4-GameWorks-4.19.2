@@ -388,10 +388,10 @@ public:
 	void ValidateActorGroups();
 
 	/** Replace Group Actors */
-	ENGINE_API void ReplaceActorGroupInfo(class UInterpGroup * Group, AActor * OldActor, AActor * NewActor);
+	ENGINE_API void ReplaceActorGroupInfo(class UInterpGroup * Group, AActor* OldActor, AActor* NewActor);
 
 	/** Delete Group Actors */
-	ENGINE_API void DeleteActorGroupInfo(class UInterpGroup * Group, AActor * ActorToDelete);
+	ENGINE_API void DeleteActorGroupInfo(class UInterpGroup * Group, AActor* ActorToDelete);
 
 	/** Rename groupinfo **/
 	ENGINE_API void DeleteGroupinfo(class UInterpGroup * GroupToDelete);
@@ -400,7 +400,7 @@ public:
 	void SaveActorVisibility( AActor*  AActor  );
 
 	/** return if this actor is valid to add **/
-	ENGINE_API EActorAddWarningType IsValidActorToAdd(const AActor * NewActor) const;
+	ENGINE_API EActorAddWarningType IsValidActorToAdd(const AActor* NewActor) const;
 
 	/**
 	 * Conditionally save state for the specified actor and its children

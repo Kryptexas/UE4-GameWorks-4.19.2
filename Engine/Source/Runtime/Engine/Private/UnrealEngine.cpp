@@ -1791,7 +1791,7 @@ ULocalPlayer* GetLocalPlayerFromControllerId_local(const TArray<class ULocalPlay
 	return NULL;
 }
 
-ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( const UGameViewportClient * InViewport, int32 ControllerId )
+ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, int32 ControllerId )
 {
 	if (GetWorldContextFromGameViewport(InViewport) != NULL)
 	{
@@ -7318,7 +7318,7 @@ ULocalPlayer* UEngine::GetGamePlayer( UWorld * InWorld, int32 InPlayer )
 	return PlayerList[ InPlayer ];
 }
 
-ULocalPlayer* UEngine::GetGamePlayer( const UGameViewportClient * InViewport, int32 InPlayer )
+ULocalPlayer* UEngine::GetGamePlayer( const UGameViewportClient* InViewport, int32 InPlayer )
 {
 	const TArray<class ULocalPlayer*>& PlayerList = GetGamePlayers(InViewport);
 	check( InPlayer < PlayerList.Num() );
@@ -7497,7 +7497,7 @@ UNetDriver* UEngine::FindNamedNetDriver(UWorld * InWorld, FName NetDriverName)
 	return FindNamedNetDriver_Local(GetWorldContextFromWorldChecked(InWorld).ActiveNetDrivers, NetDriverName);
 }
 
-UNetDriver* UEngine::FindNamedNetDriver(const UPendingNetGame * InPendingNetGame, FName NetDriverName)
+UNetDriver* UEngine::FindNamedNetDriver(const UPendingNetGame* InPendingNetGame, FName NetDriverName)
 {
 	return FindNamedNetDriver_Local(GetWorldContextFromPendingNetGameChecked(InPendingNetGame).ActiveNetDrivers, NetDriverName);
 }

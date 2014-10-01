@@ -216,7 +216,7 @@ private:
 
 public:
 	/** Accessor to Reference Skeleton to make data read only */
-	const FReferenceSkeleton & GetReferenceSkeleton() const
+	const FReferenceSkeleton& GetReferenceSkeleton() const
 	{
 		return ReferenceSkeleton;
 	}
@@ -481,7 +481,7 @@ public:
 	{
 		if ( RetargetSource != NAME_None ) 
 		{
-			const FReferencePose * FoundRetargetSource = AnimRetargetSources.Find(RetargetSource);
+			const FReferencePose* FoundRetargetSource = AnimRetargetSources.Find(RetargetSource);
 			if (FoundRetargetSource)
 			{
 				return FoundRetargetSource->ReferencePose;
@@ -506,7 +506,7 @@ public:
 	 *
 	 * @return	Index of Track of Animation Sequence
 	 */
-	ENGINE_API int32 GetAnimationTrackIndex(const int32 & InSkeletonBoneIndex, const UAnimSequence * InAnimSeq);
+	ENGINE_API int32 GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq);
 
 	/** 
 	 * Get Bone Tree Index from Reference Bone Index
@@ -514,7 +514,7 @@ public:
 	 * @param	InRefBoneIdx	Reference Bone Index to look for - index of USkeletalMesh.RefSkeleton
 	 * @return	Index of BoneTree Index
 	 */
-	ENGINE_API int32 GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh * InSkelMesh, const int32 & MeshBoneIndex);
+	ENGINE_API int32 GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSkelMesh, const int32& MeshBoneIndex);
 
 	/** 
 	 * Get Reference Bone Index from Bone Tree Index
@@ -522,9 +522,9 @@ public:
 	 * @param	InBoneTreeIdx	Bone Tree Index to look for - index of USkeleton.BoneTree
 	 * @return	Index of BoneTree Index
 	 */
-	ENGINE_API int32 GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh * InSkelMesh, const int32 & SkeletonBoneIndex);
+	ENGINE_API int32 GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh* InSkelMesh, const int32& SkeletonBoneIndex);
 
-	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(const int32 & BoneTreeIdx) const
+	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(const int32& BoneTreeIdx) const
 	{
 		return BoneTree[BoneTreeIdx].TranslationRetargetingMode;
 	}
@@ -538,7 +538,7 @@ public:
 	 */
 	void RebuildLinkup(const USkeletalMesh* InSkelMesh);
 
-	ENGINE_API void SetBoneTranslationRetargetingMode(const int32 & BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
+	ENGINE_API void SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo=false);
 
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -554,7 +554,7 @@ public:
 	 *
 	 * @return true if successful. false if skeletalmesh wasn't compatible with the bone hierarchy
 	 */
-	ENGINE_API void UpdateReferencePoseFromMesh(const USkeletalMesh * InSkelMesh);
+	ENGINE_API void UpdateReferencePoseFromMesh(const USkeletalMesh* InSkelMesh);
 
 #if WITH_EDITORONLY_DATA
 	/**
@@ -600,7 +600,7 @@ protected:
 	 *
 	 * @return true if successful
 	 */
-	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh * InSkeletalMesh, const TArray<int32> & RequiredRefBones);
+	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalMesh, const TArray<int32> & RequiredRefBones);
 
 #if WITH_EDITOR
 	DECLARE_MULTICAST_DELEGATE( FOnSkeletonHierarchyChangedMulticaster );
@@ -614,7 +614,7 @@ public:
 
 	/** Registers a delegate to be called after notification has changed*/
 	ENGINE_API void RegisterOnSkeletonHierarchyChanged(const FOnSkeletonHierarchyChanged& Delegate);
-	ENGINE_API void UnregisterOnSkeletonHierarchyChanged(void * Unregister);
+	ENGINE_API void UnregisterOnSkeletonHierarchyChanged(void* Unregister);
 
 	/** Removes the supplied bones from the skeleton */
 	ENGINE_API void RemoveBonesFromSkeleton(const TArray<FName>& BonesToRemove, bool bRemoveChildBones);
@@ -630,14 +630,14 @@ public:
 	// rig Configs
 	ENGINE_API static const FName RigTag;
 	ENGINE_API void SetRigConfig(URig * Rig);
-	ENGINE_API FName GetRigBoneMapping(const FName & NodeName) const;
-	ENGINE_API bool SetRigBoneMapping(const FName & NodeName, FName BoneName);
-	ENGINE_API FName GetRigNodeNameFromBoneName(const FName & BoneName) const;
+	ENGINE_API FName GetRigBoneMapping(const FName& NodeName) const;
+	ENGINE_API bool SetRigBoneMapping(const FName& NodeName, FName BoneName);
+	ENGINE_API FName GetRigNodeNameFromBoneName(const FName& BoneName) const;
 	// this make sure it stays within the valid range
 	ENGINE_API int32 GetMappedValidNodes(TArray<FName> &OutValidNodeNames);
 	// verify if it has all latest data
 	ENGINE_API void RefreshRigConfig();
-	int32 FindRigBoneMapping(const FName & NodeName) const;
+	int32 FindRigBoneMapping(const FName& NodeName) const;
 	ENGINE_API URig * GetRig() const;
 #endif
 

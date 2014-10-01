@@ -1766,7 +1766,7 @@ PxFilterData CreateObjectQueryFilterData(const bool bTraceComplex, const int32 M
 	return PNewData;
 }
 
-PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer & InCollisionResponseContainer)
+PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer)
 {
 	/**
 	 * Format for QueryData : 
@@ -1819,7 +1819,7 @@ PxFilterData CreateTraceQueryFilterData(const uint8 MyChannel, const bool bTrace
 }
 
 /** Utility for creating a PhysX PxFilterData for performing a query (trace) against the scene */
-PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer & InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace)
+PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer& InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace)
 {
 	if (ObjectParam.IsValid() )
 	{

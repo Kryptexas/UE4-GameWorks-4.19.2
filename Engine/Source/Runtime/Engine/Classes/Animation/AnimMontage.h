@@ -242,7 +242,7 @@ public:
 	void UpdateWeight(float DeltaTime);
 	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. 
 	 * @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync? */
-	bool SimulateAdvance(float DeltaTime, float & InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
+	bool SimulateAdvance(float DeltaTime, float& InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
 	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams);
 
 	FName GetCurrentSection() const;
@@ -258,7 +258,7 @@ private:
 
 	/** Delegate function handlers
 	 */
-	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint * BranchingPoint);
+	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint* BranchingPoint);
 	void TriggerEventHandler(FName EventName);
 	void RefreshNextPrevSections();
 };
@@ -336,7 +336,7 @@ public:
 
 	/** Find First BranchingPoint between ]StartTrackPos,EndTrackPos] 
 	 * Has to be contiguous range, does not handle looping and wrapping over. **/
-	const FBranchingPoint * FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos);
+	const FBranchingPoint* FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos);
 
 	/** Get FCompositeSection with InSectionName */
 	FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);
@@ -364,7 +364,7 @@ public:
 	ENGINE_API int32 GetSectionIndexFromPosition(float Position) const;
 	
 	/** Get Section Index from CurrentTime with PosWithinCompositeSection */
-	int32 GetAnimCompositeSectionIndexFromPos(float CurrentTime, float & PosWithinCompositeSection) const;
+	int32 GetAnimCompositeSectionIndexFromPos(float CurrentTime, float& PosWithinCompositeSection) const;
 
 	/** Return time left to end of section from given position. -1.f if not a valid position */
 	ENGINE_API float GetSectionTimeLeftFromPos(float Position);

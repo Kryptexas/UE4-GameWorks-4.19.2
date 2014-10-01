@@ -115,7 +115,7 @@ struct FViewTargetTransitionParams
 		, bLockOutgoing(false)
 	{}
 
-	float GetBlendAlpha(const float & TimePct) const
+	float GetBlendAlpha(const float& TimePct) const
 	{
 		switch (BlendFunction)
 		{

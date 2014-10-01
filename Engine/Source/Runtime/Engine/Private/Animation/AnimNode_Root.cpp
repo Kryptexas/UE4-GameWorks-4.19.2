@@ -15,7 +15,7 @@ void FAnimNode_Root::Initialize(const FAnimationInitializeContext& Context)
 	Result.Initialize(Context);
 }
 
-void FAnimNode_Root::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_Root::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	Result.CacheBones(Context);
 }

@@ -257,7 +257,7 @@ void UPrimitiveComponent::SetPhysicsAngularVelocity(FVector NewAngVel, bool bAdd
 
 void UPrimitiveComponent::SetPhysicsMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, FName BoneName)
 {
-	FBodyInstance * const BI = GetBodyInstance(BoneName);
+	FBodyInstance* const BI = GetBodyInstance(BoneName);
 	if (BI != NULL)
 	{
 		BI->SetMaxAngularVelocity(NewMaxAngVel, bAddToCurrent);
@@ -481,13 +481,13 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 }
 
 
-UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent * PrimComponent, FName ParentSocketName = NAME_None, FName * OutSocketName = NULL, bool bAboutToWeld = false)
+UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FName ParentSocketName = NAME_None, FName* OutSocketName = NULL, bool bAboutToWeld = false)
 {
 	UPrimitiveComponent * Result = NULL;
 	UPrimitiveComponent * RootComponent = Cast<UPrimitiveComponent>(PrimComponent->AttachParent);	//we must find the root component along hierarchy that has bWelded set to true
 
 	//check that body itself is welded
-	if (FBodyInstance * BI = PrimComponent->GetBodyInstance(ParentSocketName, false))
+	if (FBodyInstance* BI = PrimComponent->GetBodyInstance(ParentSocketName, false))
 	{
 		if (bAboutToWeld == false && BI->bWelded == false && BI->bAutoWeld == false)	//we're not welded and we aren't trying to become welded
 		{
@@ -497,7 +497,7 @@ UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent * PrimComponent, F
 
 	FName PrevSocketName = ParentSocketName;
 	FName SocketName = NAME_None; //because of skeletal mesh it's important that we check along the bones that we attached
-	FBodyInstance * RootBI = NULL;
+	FBodyInstance* RootBI = NULL;
 	for (; RootComponent; RootComponent = Cast<UPrimitiveComponent>(RootComponent->AttachParent))
 	{
 		Result = RootComponent;
@@ -530,7 +530,7 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 	{
 		if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
 		{
-			if (FBodyInstance * BI = PrimChild->GetBodyInstance(NAME_None, false))
+			if (FBodyInstance* BI = PrimChild->GetBodyInstance(NAME_None, false))
 			{
 				if (BI->bWelded)
 				{
@@ -550,7 +550,7 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 	}
 
 	//Check that we can actually our own socket name
-	FBodyInstance * BI = GetBodyInstance(NAME_None, false);
+	FBodyInstance* BI = GetBodyInstance(NAME_None, false);
 	if (BI == NULL)
 	{
 		return false;
@@ -568,7 +568,7 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 
 	if (RootComponent)
 	{
-		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName, false))
+		if (FBodyInstance* RootBI = RootComponent->GetBodyInstance(SocketName, false))
 		{
 			if (BI->WeldParent == RootBI)	//already welded so stop
 			{
@@ -614,7 +614,7 @@ void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /
 
 void UPrimitiveComponent::UnWeldFromParent()
 {
-	FBodyInstance * NewRootBI = GetBodyInstance(NAME_None, false);
+	FBodyInstance* NewRootBI = GetBodyInstance(NAME_None, false);
 	if (NewRootBI == NULL || NewRootBI->bWelded == false || IsPendingKill())
 	{
 		return;
@@ -625,7 +625,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 	if (RootComponent)
 	{
-		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName, false))
+		if (FBodyInstance* RootBI = RootComponent->GetBodyInstance(SocketName, false))
 		{
 			//create new root
 			RootBI->UnWeld(NewRootBI);
@@ -650,7 +650,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 			for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
 			{
-				FBodyInstance * ChildBI = ChildrenBodies[ChildIdx];
+				FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
 				if (ChildBI != NewRootBI)
 				{
 					RootBI->UnWeld(NewRootBI);
@@ -671,7 +671,7 @@ FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWel
 		FName OutSocket;
 		if (UPrimitiveComponent * RootComponentWelded = GetRootWelded(this, AttachSocketName, &OutSocket))
 		{
-			if (FBodyInstance * BI = RootComponentWelded->GetBodyInstance(OutSocket, bGetWelded))
+			if (FBodyInstance* BI = RootComponentWelded->GetBodyInstance(OutSocket, bGetWelded))
 			{
 				if (BI->bSimulatePhysics)
 				{
@@ -684,7 +684,7 @@ FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWel
 	return const_cast<FBodyInstance*>(&BodyInstance);
 }
 
-float UPrimitiveComponent::GetDistanceToCollision(const FVector & Point, FVector& ClosestPointOnCollision) const
+float UPrimitiveComponent::GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const
 {
 	ClosestPointOnCollision=Point;
 
@@ -801,7 +801,7 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 	}
 }
 
-bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName & BoneName)
+bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName)
 {
 	FHitResult Hit;
 	static FName KismetTraceComponentName(TEXT("KismetTraceComponent"));
@@ -846,7 +846,7 @@ ECollisionResponse UPrimitiveComponent::GetCollisionResponseToChannel(ECollision
 	return BodyInstance.GetResponseToChannel(Channel);
 }
 
-const FCollisionResponseContainer & UPrimitiveComponent::GetCollisionResponseToChannels() const
+const FCollisionResponseContainer& UPrimitiveComponent::GetCollisionResponseToChannels() const
 {
 	return BodyInstance.GetResponseToChannels();
 }

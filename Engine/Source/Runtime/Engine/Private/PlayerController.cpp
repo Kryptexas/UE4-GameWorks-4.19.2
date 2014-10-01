@@ -1823,7 +1823,7 @@ bool APlayerController::GetHitResultUnderFingerForObjects(ETouchIndex::Type Fing
 	return bHit;
 }
 
-bool APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const
+bool APlayerController::DeprojectMousePositionToWorld(FVector& WorldLocation, FVector& WorldDirection) const
 {
 	bool bSuccessfulDeproject = false;
 
@@ -1840,7 +1840,7 @@ bool APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, F
 	return bSuccessfulDeproject;
 }
 
-bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const
+bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector& WorldLocation, FVector& WorldDirection) const
 {
 	bool bSuccessfulDeproject = false;
 

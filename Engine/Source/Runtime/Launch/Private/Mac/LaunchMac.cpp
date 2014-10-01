@@ -19,7 +19,7 @@ extern void LaunchStaticShutdownAfterError();
 /**
  * Game-specific crash reporter
  */
-void EngineCrashHandler(const FGenericCrashContext & GenericContext)
+void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 {
 	const FMacCrashContext& Context = static_cast< const FMacCrashContext& >( GenericContext );
 	

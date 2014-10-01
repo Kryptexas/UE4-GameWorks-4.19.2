@@ -253,7 +253,7 @@ void UWheeledVehicleMovementComponent4W::SetupVehicle()
 
 	for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
 	{
-		const FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
+		const FWheelSetup& WheelSetup = WheelSetups[WheelIdx];
 		if (WheelSetup.BoneName == NAME_None)
 		{
 			return;
@@ -376,7 +376,7 @@ void UWheeledVehicleMovementComponent4W::UpdateTransmissionSetup(const FVehicleT
 #endif
 }
 
-void BackwardsConvertCm2ToM2(float & val, float defaultValue)
+void BackwardsConvertCm2ToM2(float& val, float defaultValue)
 {
 	if (val != defaultValue)
 	{

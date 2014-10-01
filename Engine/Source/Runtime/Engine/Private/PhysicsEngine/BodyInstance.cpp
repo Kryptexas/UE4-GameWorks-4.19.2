@@ -290,9 +290,9 @@ void FBodyInstance::UpdateFromDeprecatedEnableCollision()
 
 #if WITH_PHYSX
 //Determine that the shape is associated with this subbody (or root body)
-bool ShapeBoundToBody(const PxShape * PShape, const FBodyInstance * SubBody)
+bool ShapeBoundToBody(const PxShape * PShape, const FBodyInstance* SubBody)
 {
-	FBodyInstance * BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData);
+	FBodyInstance* BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData);
 	return (SubBody->WeldParent == NULL && BI == NULL) || (BI == SubBody && BI->WeldParent != NULL);
 }
 
@@ -632,11 +632,11 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 		for (int32 ShapeIdx = 0; ShapeIdx < AllShapes.Num(); ShapeIdx++)
 		{
 			PxShape* PShape = AllShapes[ShapeIdx];
-			FBodyInstance * BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData);
+			FBodyInstance* BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData);
 			BI = BI ? BI : this;
 
 			const TEnumAsByte<ECollisionEnabled::Type> & UseCollisionEnabled = CollisionEnabledOverride ? *CollisionEnabledOverride : (TEnumAsByte<ECollisionEnabled::Type>)BI->GetCollisionEnabled();
-			const FCollisionResponseContainer & UseResponse = ResponseOverride ? *ResponseOverride : BI->CollisionResponses.GetResponseContainer();
+			const FCollisionResponseContainer& UseResponse = ResponseOverride ? *ResponseOverride : BI->CollisionResponses.GetResponseContainer();
 			bool bUseNotify = bNotifyOverride ? *bNotifyOverride : BI->bNotifyRigidBodyCollision;
 
 
@@ -1393,7 +1393,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 #endif // UE_WITH_PHYSICS
 
 #if WITH_PHYSX
-TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance * Body0, const FBodyInstance * Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos)
+TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance* Body0, const FBodyInstance* Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos)
 {
 	TArray<int32> PairNotifyMapping;
 	PairNotifyMapping.Empty(NumPairs);
@@ -1410,8 +1410,8 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance * Body0,
 
 		PairNotifyMapping.Add(-1);	//start as -1 because we can have collisions that we don't want to actually record collision
 
-		const FBodyInstance * SubBody0 = FPhysxUserData::Get<FBodyInstance>(Shape0->userData);
-		const FBodyInstance * SubBody1 = FPhysxUserData::Get<FBodyInstance>(Shape1->userData);
+		const FBodyInstance* SubBody0 = FPhysxUserData::Get<FBodyInstance>(Shape0->userData);
+		const FBodyInstance* SubBody1 = FPhysxUserData::Get<FBodyInstance>(Shape1->userData);
 
 		if (SubBody0 == NULL) { SubBody0 = Body0; }
 		if (SubBody1 == NULL) { SubBody1 = Body1; }
@@ -1419,7 +1419,7 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance * Body0,
 		if (SubBody0->bNotifyRigidBodyCollision || SubBody1->bNotifyRigidBodyCollision)
 		{
 			TMap<const FBodyInstance *, int32> & SubBodyNotifyMap = BodyPairNotifyMap.FindOrAdd(SubBody0);
-			int32 * NotifyInfoIndex = SubBodyNotifyMap.Find(SubBody1);
+			int32* NotifyInfoIndex = SubBodyNotifyMap.Find(SubBody1);
 
 			if (NotifyInfoIndex == NULL)
 			{
@@ -1499,7 +1499,7 @@ void FBodyInstance::TermBody()
 		{
 			if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
 			{
-				if (FBodyInstance * ChildBI = PrimChild->GetBodyInstance())
+				if (FBodyInstance* ChildBI = PrimChild->GetBodyInstance())
 				{
 					if (ChildBI->bWelded)
 					{
@@ -1642,7 +1642,7 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 	for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ++ShapeIdx)
 	{
 		PxShape* PShape = PShapes[ShapeIdx];
-		if (FBodyInstance * BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData))
+		if (FBodyInstance* BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData))
 		{
 			bNeedsNotification |= BI->bNotifyRigidBodyCollision;
 
@@ -1657,7 +1657,7 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 	for (int32 ShapeIdx = NumSyncShapes; ShapeIdx <PShapes.Num(); ++ShapeIdx)
 	{
 		PxShape* PShape = PShapes[ShapeIdx];
-		if (FBodyInstance * BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData))
+		if (FBodyInstance* BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData))
 		{
 			bNeedsNotification |= BI->bNotifyRigidBodyCollision;
 
@@ -2182,7 +2182,7 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 
 			for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
 			{
-				FBodyInstance * ChildBI = ChildrenBodies[ChildIdx];
+				FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
 				if (ChildBI != this)
 				{
 					Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
@@ -3539,7 +3539,7 @@ bool FBodyInstance::OverlapTest(const FVector& Position, const FQuat& Rotation, 
 	return bHasOverlap;
 }
 
-FTransform RootSpaceToWeldedSpace(const FBodyInstance * BI, const FTransform & RootTM)
+FTransform RootSpaceToWeldedSpace(const FBodyInstance* BI, const FTransform& RootTM)
 {
 	if (BI->WeldParent && BI->OwnerComponent.IsValid())
 	{

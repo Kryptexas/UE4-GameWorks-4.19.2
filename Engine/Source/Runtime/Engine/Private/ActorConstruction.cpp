@@ -472,7 +472,7 @@ void AActor::FinishAndRegisterComponent(UActorComponent* Component)
 	SerializedComponents.Add(Component);
 }
 
-UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FString & InName)
+UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FString& InName)
 {
 	UActorComponent* NewActorComp = NULL;
 	if(Template != NULL)

@@ -227,7 +227,7 @@ bool FBoneContainer::BoneIsChildOf(const int32& BoneIndex, const int32& ParentBo
 	return RefSkeleton->BoneIsChildOf(BoneIndex, ParentBoneIndex);
 }
 
-void FBoneContainer::RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton & TargetSkeleton)
+void FBoneContainer::RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton)
 {
 	int32 const SkelMeshLinkupIndex = TargetSkeleton.GetMeshLinkupIndex(&SourceSkeletalMesh);
 	check(SkelMeshLinkupIndex != INDEX_NONE);

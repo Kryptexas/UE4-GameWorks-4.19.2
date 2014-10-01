@@ -174,7 +174,7 @@ void LineCheckTracker::ToggleLineChecks()
 }
 
 /** Captures a single stack trace for a line check */
-void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Extent, const FFrame* ScriptStackFrame, const UObject * Object)
+void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Extent, const FFrame* ScriptStackFrame, const UObject* Object)
 {
 	if (LineCheckStackTracker == NULL || LineCheckScriptStackTracker == NULL)
 	{

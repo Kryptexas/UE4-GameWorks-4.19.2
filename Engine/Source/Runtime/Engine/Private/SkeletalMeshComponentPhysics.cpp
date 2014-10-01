@@ -392,7 +392,7 @@ bool USkeletalMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 
 		for (uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
 		{
-			const FSkelMeshChunk & Chunk = Model.Chunks[ChunkIdx];
+			const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIdx];
 			{
 				//rigid
 				const uint32 RigidOffset = Chunk.GetRigidVertexBufferIndex();
@@ -417,7 +417,7 @@ bool USkeletalMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 	
 	{
 		// Copy indices into collision index buffer
-		const FMultiSizeIndexContainer & IndexBufferContainer = Model.MultiSizeIndexContainer;
+		const FMultiSizeIndexContainer& IndexBufferContainer = Model.MultiSizeIndexContainer;
 
 		TArray<uint32> Indices;
 		IndexBufferContainer.GetIndexBuffer(Indices);
@@ -516,7 +516,7 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 	{
 		for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 		{
-			if (FBodyInstance * BodyInstance = Bodies[BodyIdx])
+			if (FBodyInstance* BodyInstance = Bodies[BodyIdx])
 			{
 				if (UBodySetup * BodySetup = PhysAsset->BodySetup[BodyIdx])
 				{
@@ -1525,7 +1525,7 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 
 	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 	{
-		FBodyInstance * BI = Bodies[BodyIdx];
+		FBodyInstance* BI = Bodies[BodyIdx];
 		if (BI && BI->bWelded)
 		{
 			OutWeldedBodies.Add(&BodyInstance);
@@ -1647,7 +1647,7 @@ void USkeletalMeshComponent::UpdateHasValidBodies()
 	// First clear out old data
 	bHasValidBodies = false;
 
-	const UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+	const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 
 	// If we have a physics asset..
 	if(PhysicsAsset != NULL)

@@ -890,7 +890,7 @@ static void DrawLinearLimit(FPrimitiveDrawInterface* PDI, const FVector& Origin,
 }
 
 //creates fan shape along visualized axis for rotation axis of length Length
-FMatrix HelpBuildFan(const FTransform & Con1Frame, const FTransform & Con2Frame, EAxis::Type DrawOnAxis, EAxis::Type RotationAxis, float Length)
+FMatrix HelpBuildFan(const FTransform& Con1Frame, const FTransform& Con2Frame, EAxis::Type DrawOnAxis, EAxis::Type RotationAxis, float Length)
 {
 	FVector Con1DrawOnAxis = Con1Frame.GetScaledAxis(DrawOnAxis);
 	FVector Con2DrawOnAxis = Con2Frame.GetScaledAxis(DrawOnAxis);

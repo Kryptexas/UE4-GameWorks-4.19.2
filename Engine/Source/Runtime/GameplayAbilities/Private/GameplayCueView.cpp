@@ -47,7 +47,7 @@ FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEven
 	return NULL;
 }
 
-void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
 	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
@@ -73,7 +73,7 @@ void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & Gam
 	}
 }
 
-void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
 	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
@@ -88,7 +88,7 @@ void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer & Game
 	}
 }
 
-void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
 	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
@@ -110,7 +110,7 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & Gamepla
 	}
 }
 
-void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
 	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();

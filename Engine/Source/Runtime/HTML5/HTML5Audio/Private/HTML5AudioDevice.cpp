@@ -232,9 +232,9 @@ void FALAudioDevice::Update( bool Realtime )
 	// us to scale the doppler effect on a per-sound basis.
 	FVector Velocity = FVector( 0.0f, 0.0f, 0.0f );
 	
-	alListenerfv( AL_POSITION, ( ALfloat * )&Location );
-	alListenerfv( AL_ORIENTATION, ( ALfloat * )&Orientation[0] );
-	alListenerfv( AL_VELOCITY, ( ALfloat * )&Velocity );
+	alListenerfv( AL_POSITION, ( ALfloat* )&Location );
+	alListenerfv( AL_ORIENTATION, ( ALfloat* )&Orientation[0] );
+	alListenerfv( AL_VELOCITY, ( ALfloat* )&Velocity );
 
 	alError( TEXT( "UALAudioDevice::Update" ) );
 }	

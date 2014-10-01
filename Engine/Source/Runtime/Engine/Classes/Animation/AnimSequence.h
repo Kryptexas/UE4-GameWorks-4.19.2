@@ -549,7 +549,7 @@ class UAnimSequence : public UAnimSequenceBase
 	// End of UAnimationAsset interface
 
 	// Begin UAnimSequenceBase interface
-	ENGINE_API virtual void ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const override;
+	ENGINE_API virtual void ExtractRootTrack(float Pos, FTransform& RootTransform, const FBoneContainer* RequiredBones) const override;
 	ENGINE_API virtual void UpgradeMorphTargetCurves() override;
 	// End UAnimSequenceBase interface
 
@@ -563,7 +563,7 @@ class UAnimSequence : public UAnimSequenceBase
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	void GetAnimationPose( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	void GetAnimationPose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 	/** 
 	 * Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones 
@@ -572,7 +572,7 @@ class UAnimSequence : public UAnimSequenceBase
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	ENGINE_API void GetBonePose( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	ENGINE_API void GetBonePose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 private:
 	/** 
@@ -583,7 +583,7 @@ private:
 	 * @param	RequiredBones		BoneContainer
 	 * @param	ExtractionContext	Extraction Context to access root motion extraction information.
 	 */
-	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 	
 	/** 
 	 * Retarget a single bone transform, to apply right after extraction.
@@ -593,7 +593,7 @@ private:
 	 * @param	PoseBoneIndex		Bone Index in Bone Transform array.
 	 * @param	RequiredBones		BoneContainer
 	 */	
-	void RetargetBoneTransform(FTransform & BoneTransform, const int32 & SkeletonBoneIndex, const int32 & PoseBoneIndex, const FBoneContainer & RequiredBones) const;
+	void RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const int32& PoseBoneIndex, const FBoneContainer& RequiredBones) const;
 
 public:
 	/** 
@@ -603,7 +603,7 @@ public:
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	ENGINE_API void GetBonePose_Additive( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	ENGINE_API void GetBonePose_Additive( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 	/** 
 	 * Get Bone Transform of the base (reference) pose of the additive animation for the Time given, relative to Parent for all RequiredBones 
@@ -612,7 +612,7 @@ public:
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	ENGINE_API void GetAdditiveBasePose(FTransformArrayA2 & OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	ENGINE_API void GetAdditiveBasePose(FTransformArrayA2 & OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 	/**
 	 * Get Bone Transform of the Time given, relative to Parent for the Track Given
@@ -681,7 +681,7 @@ public:
 	 *
 	 * @param	TrackIndex		Track Index
 	 */
-	int32 GetSkeletonIndexFromTrackIndex(const int32 & TrackIndex) const 
+	int32 GetSkeletonIndexFromTrackIndex(const int32& TrackIndex) const 
 	{ 
 		return TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex; 
 	}
@@ -753,13 +753,13 @@ private:
 	 * @param	RequiredBones		Array of Desired Tracks
 	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
 	 */
-	void GetBonePose_AdditiveMeshRotationOnly( FTransformArrayA2& OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const;
+	void GetBonePose_AdditiveMeshRotationOnly( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
 
 #if WITH_EDITOR
 	/**
 	 * Remap Tracks to New Skeleton
 	 */
-	void RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bConvertSpaces );
+	void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces );
 	/**
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	

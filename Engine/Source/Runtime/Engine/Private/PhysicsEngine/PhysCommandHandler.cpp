@@ -20,7 +20,7 @@ void FPhysCommandHandler::ExecuteCommands()
 {
 	for (int32 i = 0; i < PendingCommands.Num(); ++i)
 	{
-		const FPhysPendingCommand & Command = PendingCommands[i];
+		const FPhysPendingCommand& Command = PendingCommands[i];
 		switch (Command.CommandType)
 		{
 #if WITH_APEX
@@ -59,7 +59,7 @@ void FPhysCommandHandler::ExecuteCommands()
 	}
 }
 
-void FPhysCommandHandler::EnqueueCommand(const FPhysPendingCommand & Command)
+void FPhysCommandHandler::EnqueueCommand(const FPhysPendingCommand& Command)
 {
 	check(IsInGameThread());
 	PendingCommands.Add(Command);

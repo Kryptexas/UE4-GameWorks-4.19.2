@@ -357,7 +357,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (DeltaTime<0).
 	 * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
 	 */
-	void GetAnimNotifies(const float & StartTime, const float & DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+	void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
 
 	/** 
 	 * Retrieves AnimNotifies between two time positions. ]PreviousPosition, CurrentPosition]
@@ -365,7 +365,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (CurrentPosition<PreviousPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
-	void GetAnimNotifiesFromDeltaPositions(const float & PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+	void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float& CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
 
 	/** Evaluate curve data to Instance at the time of CurrentTime **/
 	ENGINE_API virtual void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const;
@@ -413,7 +413,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	// End of UAnimationAsset interface
 
 protected:
-	virtual void ExtractRootTrack(float Pos, FTransform & RootTransform, const FBoneContainer * RequiredBones) const;
+	virtual void ExtractRootTrack(float Pos, FTransform& RootTransform, const FBoneContainer* RequiredBones) const;
 
 public:
 	virtual void Serialize(FArchive& Ar) override;
@@ -428,7 +428,7 @@ public:
 
 	/** Registers a delegate to be called after notification has changed*/
 	ENGINE_API void RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate);
-	ENGINE_API void UnregisterOnNotifyChanged(void * Unregister);
+	ENGINE_API void UnregisterOnNotifyChanged(void* Unregister);
 	ENGINE_API virtual bool IsValidToPlay() const { return true; }
 #endif
 };

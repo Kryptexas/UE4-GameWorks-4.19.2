@@ -792,7 +792,7 @@ public:
 
 	// Begin USceneComponent interface.
 	virtual void UpdateBounds();
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
@@ -1202,7 +1202,7 @@ public:
 	float LastTickTime;
 
 	/** Take extracted RootMotion and convert it from local space to world space. */
-	FTransform ConvertLocalRootMotionToWorld(const FTransform & InTransform);
+	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);
 };
 
 

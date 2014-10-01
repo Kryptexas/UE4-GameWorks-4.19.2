@@ -637,16 +637,16 @@ public:
 	/** Find usable root motion replicated move from our buffer.
 	 * Goes through the buffer back in time, to find the first move that clears 'CanUseRootMotionRepMove' below.
 	 * Returns index of that move or INDEX_NONE otherwise. */
-	int32 FindRootMotionRepMove(const FAnimMontageInstance & ClientMontageInstance) const;
+	int32 FindRootMotionRepMove(const FAnimMontageInstance& ClientMontageInstance) const;
 
 	/** true if buffered move is usable to teleport client back to. */
-	bool CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMove & RootMotionRepMove, const FAnimMontageInstance & ClientMontageInstance) const;
+	bool CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove, const FAnimMontageInstance& ClientMontageInstance) const;
 
 	/** Restore actor to an old buffered move. */
-	bool RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove & RootMotionRepMove);
+	bool RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove);
 	
 	/** Called on client after position update is received to actually move the character. */
-	virtual void UpdateSimulatedPosition(const FVector & NewLocation, const FRotator & NewRotation);
+	virtual void UpdateSimulatedPosition(const FVector& NewLocation, const FRotator& NewRotation);
 
 	/** Replicated Root Motion montage */
 	UPROPERTY(ReplicatedUsing=OnRep_RootMotion)

@@ -204,7 +204,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	 * Get Local bounds
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")
-	void GetLocalBounds(FVector & Min, FVector & Max) const;
+	void GetLocalBounds(FVector& Min, FVector& Max) const;
 
 public:
 
@@ -226,7 +226,7 @@ public:
 	// End UObject interface.
 
 	// Begin USceneComponent Interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool HasAnySockets() const override;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;

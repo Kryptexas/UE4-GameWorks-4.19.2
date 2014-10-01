@@ -87,19 +87,19 @@ public:
 	TArray< FRPCCallInfo >							RemoteFuncInfo;				// Meta information on pending net RPCs (to be sent)
 	FOutBunch *										RemoteFunctions;
 
-	void InitWithObject( UObject * InObject, UNetConnection * InConnection, bool bUseDefaultState = true );
+	void InitWithObject( UObject* InObject, UNetConnection * InConnection, bool bUseDefaultState = true );
 	void CleanUp();
 
 	void StartReplicating( class UActorChannel * InActorChannel );
 	void StopReplicating( class UActorChannel * InActorChannel );
 
 	/** Recent/dirty related functions */
-	void InitRecentProperties( uint8 * Source );
+	void InitRecentProperties( uint8* Source );
 
 	/** Takes Data, and compares against shadow state to log differences */
-	bool ValidateAgainstState( const UObject * ObjectState );
+	bool ValidateAgainstState( const UObject* ObjectState );
 
-	static bool SerializeCustomDeltaProperty( UNetConnection * Connection, void * Src, UProperty * Property, int32 ArrayDim, FNetBitWriter & OutBunch, TSharedPtr<INetDeltaBaseState> & NewFullState, TSharedPtr<INetDeltaBaseState> & OldState );
+	static bool SerializeCustomDeltaProperty( UNetConnection * Connection, void* Src, UProperty * Property, int32 ArrayDim, FNetBitWriter & OutBunch, TSharedPtr<INetDeltaBaseState> & NewFullState, TSharedPtr<INetDeltaBaseState> & OldState );
 
 	/** Packet was dropped */
 	void	ReceivedNak( int32 NakPacketId );
@@ -107,11 +107,11 @@ public:
 	void	Serialize(FArchive& Ar);
 
 	/** Writes dirty properties to bunch */
-	void	ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32 & LastIndex, bool & bContentBlockWritten );
+	void	ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32& LastIndex, bool & bContentBlockWritten );
 	bool	ReplicateProperties( FOutBunch & Bunch, FReplicationFlags RepFlags );
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
-	bool	ReceivedBunch( FInBunch & Bunch, const FReplicationFlags & RepFlags, bool & bOutHasUnmapped );
+	bool	ReceivedBunch( FInBunch & Bunch, const FReplicationFlags& RepFlags, bool & bOutHasUnmapped );
 	void	PostReceivedBunch();
 
 	void ForceRefreshUnreliableProperties();
@@ -127,11 +127,11 @@ public:
 	void UpdateUnmappedObjects( bool & bOutHasMoreUnmapped );
 
 	FORCEINLINE UObject *	GetObject() const { return ObjectPtr.Get(); }
-	FORCEINLINE void		SetObject( UObject * NewObj ) { ObjectPtr = TWeakObjectPtr<UObject>( NewObj ); }
+	FORCEINLINE void		SetObject( UObject* NewObj ) { ObjectPtr = TWeakObjectPtr<UObject>( NewObj ); }
 
 	FORCEINLINE void PreNetReceive()		
 	{ 
-		UObject * Object = GetObject();
+		UObject* Object = GetObject();
 		if ( Object != NULL )
 		{
 			Object->PreNetReceive(); 
@@ -140,12 +140,12 @@ public:
 
 	FORCEINLINE void PostNetReceive()	
 	{ 
-		UObject * Object = GetObject();
+		UObject* Object = GetObject();
 		if ( Object != NULL )
 		{
 			Object->PostNetReceive(); 
 		}
 	}
 
-	void QueuePropertyRepNotify( UObject * Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData );
+	void QueuePropertyRepNotify( UObject* Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData );
 };

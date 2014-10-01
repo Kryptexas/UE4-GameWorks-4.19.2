@@ -123,7 +123,7 @@ ENGINE_API FMatrix PTransform2UMatrix(const PxTransform& PTM);
 // we need this helper struct since PhysX needs geoms to be on the stack
 struct UCollision2PGeom
 {
-	UCollision2PGeom(const FCollisionShape & CollisionShape);
+	UCollision2PGeom(const FCollisionShape& CollisionShape);
 	const PxGeometry * GetGeometry() { return (PxGeometry*)Storage; }
 private:
 	

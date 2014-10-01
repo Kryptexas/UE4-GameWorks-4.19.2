@@ -46,9 +46,9 @@ public:
 		return FName( *ProviderName );
 	}
 
-	virtual IAdvertisingProvider * GetAdvertisingProvider( const FName & ProviderName );
+	virtual IAdvertisingProvider* GetAdvertisingProvider( const FName& ProviderName );
 
-	virtual IAdvertisingProvider * GetDefaultProvider()
+	virtual IAdvertisingProvider* GetDefaultProvider()
 	{
 		return GetAdvertisingProvider( GetDefaultProviderName() );
 	}

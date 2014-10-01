@@ -70,7 +70,7 @@ class FUnmappedGuidMgrElement
 {
 public:
 	FUnmappedGuidMgrElement() : Array( NULL ) {}
-	FUnmappedGuidMgrElement( const FNetworkGUID & InGuid, const int32 InParentIndex, const int32 InCmdIndex ) : Guid( InGuid ), Array( NULL ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
+	FUnmappedGuidMgrElement( const FNetworkGUID& InGuid, const int32 InParentIndex, const int32 InCmdIndex ) : Guid( InGuid ), Array( NULL ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
 	FUnmappedGuidMgrElement( class FUnmappedGuidMgr * InArray, const int32 InParentIndex, const int32 InCmdIndex ) : Array( InArray ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
 
 	~FUnmappedGuidMgrElement();
@@ -302,7 +302,7 @@ public:
 
 	bool ReplicateProperties( 
 		FRepState * RESTRICT		RepState, 
-		const uint8 * RESTRICT		Data, 
+		const uint8* RESTRICT		Data, 
 		UClass *					ObjectClass,
 		UActorChannel *				OwningChannel,
 		FOutBunch &					Writer, 
@@ -313,7 +313,7 @@ public:
 	void SendProperties( 
 		FRepState *	RESTRICT		RepState, 
 		const FReplicationFlags &	RepFlags,
-		const uint8 * RESTRICT		Data, 
+		const uint8* RESTRICT		Data, 
 		UClass *					ObjectClass,
 		UActorChannel *				OwningChannel,
 		FOutBunch &					Writer, 
@@ -323,38 +323,38 @@ public:
 
 	void InitFromObjectClass( UClass * InObjectClass );
 
-	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const;
-	void UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject * Object, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const;
+	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const;
+	void UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject* Object, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const;
 
-	void CallRepNotifies( FRepState * RepState, UObject * Object ) const;
+	void CallRepNotifies( FRepState * RepState, UObject* Object ) const;
 	void PostReplicate( FRepState * RepState, FPacketIdRange & PacketRange, bool bReliable ) const;
 	void ReceivedNak( FRepState * RepState, int32 NakPacketId ) const;
 	bool AllAcked( FRepState * RepState ) const;
 	bool ReadyForDormancy( FRepState * RepState ) const;
 
-	void ValidateWithChecksum( const void * RESTRICT Data, FArchive & Ar ) const;
-	uint32 GenerateChecksum( const FRepState * RepState ) const;
+	void ValidateWithChecksum( const void* RESTRICT Data, FArchive & Ar ) const;
+	uint32 GenerateChecksum( const FRepState* RepState ) const;
 
-	void MergeDirtyList( const void * RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const;
+	void MergeDirtyList( const void* RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const;
 
-	bool DiffProperties( FRepState * RepState, const void * RESTRICT Data, const bool bSync ) const;
+	bool DiffProperties( FRepState * RepState, const void* RESTRICT Data, const bool bSync ) const;
 
 	void GetLifetimeCustomDeltaProperties( TArray< int32 > & OutCustom );
 
 	// RPC support
 	void InitFromFunction( UFunction * InFunction );
-	void SendPropertiesForRPC( UObject * Object, UFunction * Function, UActorChannel * Channel, FNetBitWriter & Writer, void * Data ) const;
-	void ReceivePropertiesForRPC( UObject * Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void * Data ) const;
+	void SendPropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitWriter & Writer, void* Data ) const;
+	void ReceivePropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void* Data ) const;
 
 	// Struct support
-	void SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, UPackageMap	* Map, void * Data, bool & bHasUnmapped ) const;	
+	void SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, UPackageMap	* Map, void* Data, bool & bHasUnmapped ) const;	
 	void InitFromStruct( UStruct * InStruct );
 
 private:
-	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker & ChangedTracker, const FReplicationFlags & RepFlags ) const;
+	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
 
 	void LogChangeListMismatches( 
-		const uint8 * 						Data, 
+		const uint8* 						Data, 
 		UActorChannel *						OwningChannel, 
 		const TArray< uint16 > &			PropertyList,
 		FRepState *							RepState1, 
@@ -364,33 +364,33 @@ private:
 
 	void SanityCheckShadowStateAgainstChangeList(
 		FRepState * 						RepState, 
-		const uint8 * 						Data, 
+		const uint8* 						Data, 
 		UActorChannel *						OwningChannel, 
 		const TArray< uint16 > &			PropertyList,
 		FRepState *							OtherRepState,
 		const TArray< FRepChangedParent > & OtherChangedParents ) const;
 
-	void UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8 * RESTRICT Data, const int32 AckPacketId, TArray< uint16 > * OutMerged ) const;
+	void UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8* RESTRICT Data, const int32 AckPacketId, TArray< uint16 > * OutMerged ) const;
 
 	uint16 CompareProperties_r(
 		const int32				CmdStart,
 		const int32				CmdEnd,
-		const uint8 * RESTRICT	CompareData, 
-		const uint8 * RESTRICT	Data,
+		const uint8* RESTRICT	CompareData, 
+		const uint8* RESTRICT	Data,
 		TArray< uint16 > &		Changed,
 		uint16					Handle ) const;
 
 	void CompareProperties_Array_r( 
-		const uint8 * RESTRICT	CompareData, 
-		const uint8 * RESTRICT	Data,
+		const uint8* RESTRICT	CompareData, 
+		const uint8* RESTRICT	Data,
 		TArray< uint16 > &		Changed,
 		const uint16			CmdIndex,
 		const uint16			Handle ) const;
 
 	bool CompareProperties( 
 		FRepState * RESTRICT				RepState, 
-		const uint8 * RESTRICT				CompareData,
-		const uint8 * RESTRICT				Data, 
+		const uint8* RESTRICT				CompareData,
+		const uint8* RESTRICT				Data, 
 		TArray< FRepChangedParent > &		OutChangedParents,
 		const TArray< uint16 > &			PropertyList ) const;
 
@@ -399,8 +399,8 @@ private:
 		const FReplicationFlags &	RepFlags,
 		FRepWriterState &			WriterState,
 		const int32					CmdIndex, 
-		const uint8 * RESTRICT		StoredData, 
-		const uint8 * RESTRICT		Data, 
+		const uint8* RESTRICT		StoredData, 
+		const uint8* RESTRICT		Data, 
 		uint16						Handle ) const;
 
 	uint16 SendProperties_r( 
@@ -409,8 +409,8 @@ private:
 		FRepWriterState &			WriterState,
 		const int32					CmdStart, 
 		const int32					CmdEnd, 
-		const uint8 * RESTRICT		StoredData, 
-		const uint8 * RESTRICT		Data, 
+		const uint8* RESTRICT		StoredData, 
+		const uint8* RESTRICT		Data, 
 		uint16						Handle ) const;
 
 	bool ReadProperty( 
@@ -419,8 +419,8 @@ private:
 		const int32				AbsOffset,
 		const FRepLayoutCmd &	Cmd, 
 		const int32				CurrentCmdIndex, 
-		uint8 * RESTRICT		StoredData, 
-		uint8 * RESTRICT		Data ) const;
+		uint8* RESTRICT		StoredData, 
+		uint8* RESTRICT		Data ) const;
 
 	bool ReceiveProperties_AnyArray_r( 
 		FRepReaderState &	ReaderState, 
@@ -429,7 +429,7 @@ private:
 		const int32			ArrayNum, 
 		const int32			ElementSize, 
 		const int32			CmdIndex, 
-		uint8 * RESTRICT	StoredData, 
+		uint8* RESTRICT	StoredData, 
 		uint8 *	RESTRICT	Data ) const;
 
 	bool ReceiveProperties_DynamicArray_r( 
@@ -438,8 +438,8 @@ private:
 		const int32				AbsOffset,
 		const FRepLayoutCmd &	Cmd, 
 		const int32				CmdIndex, 
-		uint8 * RESTRICT		StoredData, 
-		uint8 * RESTRICT		Data ) const;
+		uint8* RESTRICT		StoredData, 
+		uint8* RESTRICT		Data ) const;
 
 	bool ReceiveProperties_r( 
 		FRepReaderState &	ReaderState, 
@@ -447,47 +447,47 @@ private:
 		const int32			AbsOffset,
 		const int32			CmdStart, 
 		const int32			CmdEnd, 
-		uint8 * RESTRICT	StoredData, 
-		uint8 * RESTRICT	Data ) const;
+		uint8* RESTRICT	StoredData, 
+		uint8* RESTRICT	Data ) const;
 
 	void UpdateUnmappedObjects_r( 
 		FRepState *			RepState, 
 		FUnmappedGuidMgr *	UnmappedGuids, 
 		UObject *			OriginalObject,
 		UPackageMap *		PackageMap, 
-		uint8 * RESTRICT	Data, 
+		uint8* RESTRICT	Data, 
 		const int32			MaxAbsOffset,
 		bool &				bOutSomeObjectsWereMapped,
 		bool &				bOutHasMoreUnmapped ) const;
 
-	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar ) const;
-	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8 * RESTRICT Data, FArchive & Ar ) const;
+	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT Data, FArchive & Ar ) const;
+	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8* RESTRICT Data, FArchive & Ar ) const;
 
-	void MergeDirtyList_AnyArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd & Cmd, const int32 ArrayNum, const int32 ElementSize, const int32 CmdIndex, const uint8 * RESTRICT Data ) const;
-	void MergeDirtyList_DynamicArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data ) const;
-	void MergeDirtyList_r( FMergeDirtyListState & MergeState, const int32 CmdStart, const int32 CmdEnd, const uint8 * RESTRICT Data ) const;
+	void MergeDirtyList_AnyArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd& Cmd, const int32 ArrayNum, const int32 ElementSize, const int32 CmdIndex, const uint8* RESTRICT Data ) const;
+	void MergeDirtyList_DynamicArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT Data ) const;
+	void MergeDirtyList_r( FMergeDirtyListState & MergeState, const int32 CmdStart, const int32 CmdEnd, const uint8* RESTRICT Data ) const;
 
 	void SanityCheckChangeList_DynamicArray_r( 
 		const int32				CmdIndex, 
-		const uint8 * RESTRICT	Data, 
+		const uint8* RESTRICT	Data, 
 		TArray< uint16 > &		Changed,
 		int32 &					ChangedIndex ) const;
 
 	uint16 SanityCheckChangeList_r( 
 		const int32				CmdStart, 
 		const int32				CmdEnd, 
-		const uint8 * RESTRICT	Data, 
+		const uint8* RESTRICT	Data, 
 		TArray< uint16 > &		Changed,
 		int32 &					ChangedIndex,
 		uint16					Handle ) const;
 
-	void SanityCheckChangeList( const uint8 * RESTRICT Data, TArray< uint16 > & Changed ) const;
+	void SanityCheckChangeList( const uint8* RESTRICT Data, TArray< uint16 > & Changed ) const;
 
 	void DiffProperties_DynamicArray_r( 
 		FRepState *				RepState,
 		const int32				CmdIndex, 
-		const uint8 * RESTRICT	StoredData, 
-		const uint8 * RESTRICT	Data,
+		const uint8* RESTRICT	StoredData, 
+		const uint8* RESTRICT	Data,
 		const bool				bSync,
 		bool &					bOutDifferent ) const;
 
@@ -495,8 +495,8 @@ private:
 		FRepState *				RepState,
 		const int32				CmdStart, 
 		const int32				CmdEnd, 
-		const uint8 * RESTRICT	StoredData, 
-		const uint8 * RESTRICT	Data,
+		const uint8* RESTRICT	StoredData, 
+		const uint8* RESTRICT	Data,
 		const bool				bSync,
 		bool &					bOutDifferent ) const;
 
@@ -524,7 +524,7 @@ private:
 		bool &				bHasUnmapped ) const;
 
 	void ConstructProperties( FRepState * RepState ) const;
-	void InitProperties( FRepState * RepState, uint8 * Src ) const;
+	void InitProperties( FRepState * RepState, uint8* Src ) const;
 	void DestructProperties( FRepState * RepState ) const;
 
 	TArray< FRepParentCmd >		Parents;

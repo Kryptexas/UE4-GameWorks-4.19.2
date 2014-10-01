@@ -215,7 +215,7 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 	}
 }
 
-void FAnimNode_StateMachine::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_StateMachine::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	if (FBakedAnimationStateMachine* Machine = GetMachineDescription())
 	{

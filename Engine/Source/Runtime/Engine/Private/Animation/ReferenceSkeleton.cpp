@@ -32,7 +32,7 @@ FArchive &operator<<(FArchive& Ar, FMeshBoneInfo& F)
 
 //////////////////////////////////////////////////////////////////////////
 
-void FReferenceSkeleton::RemoveDuplicateBones(const UObject * Requester, TArray<FBoneIndexType> & DuplicateBones)
+void FReferenceSkeleton::RemoveDuplicateBones(const UObject* Requester, TArray<FBoneIndexType> & DuplicateBones)
 {
 	const int32 NumBones = GetNum();
 	DuplicateBones.Empty();
@@ -41,8 +41,8 @@ void FReferenceSkeleton::RemoveDuplicateBones(const UObject * Requester, TArray<
 	bool bRemovedBones = false;
 	for (int32 BoneIndex = NumBones - 1; BoneIndex >= 0; BoneIndex--)
 	{
-		const FName & BoneName = GetBoneName(BoneIndex);
-		const int32 * FoundBoneIndexPtr = BoneNameCheck.Find(BoneName);
+		const FName& BoneName = GetBoneName(BoneIndex);
+		const int32* FoundBoneIndexPtr = BoneNameCheck.Find(BoneName);
 
 		// Not a duplicate bone, track it.
 		if (FoundBoneIndexPtr == NULL)
@@ -104,7 +104,7 @@ void FReferenceSkeleton::RebuildNameToIndexMap()
 	const int32 NumBones = GetNum();
 	for (int32 BoneIndex = 0; BoneIndex < NumBones; BoneIndex++)
 	{
-		const FName & BoneName = GetBoneName(BoneIndex);
+		const FName& BoneName = GetBoneName(BoneIndex);
 		if (BoneName != NAME_None)
 		{
 			NameToIndexMap.Add(BoneName, BoneIndex);

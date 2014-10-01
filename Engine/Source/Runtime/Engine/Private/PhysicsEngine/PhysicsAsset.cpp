@@ -229,7 +229,7 @@ int32 UPhysicsAsset::FindParentBodyIndex(class USkeletalMesh * skelMesh, int32 S
 
 int32 UPhysicsAsset::FindBodyIndex(FName bodyName) const
 {
-	const int32 * IdxData = BodySetupIndexMap.Find(bodyName);
+	const int32* IdxData = BodySetupIndexMap.Find(bodyName);
 	if (IdxData)
 	{
 		return *IdxData;

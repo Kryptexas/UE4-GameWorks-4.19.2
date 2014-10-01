@@ -38,7 +38,7 @@ void FAnimNode_Trail::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -196,13 +196,13 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 	OldLocalToWorld = SkelComp->GetTransformMatrix();
 }
 
-bool FAnimNode_Trail::IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) 
+bool FAnimNode_Trail::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if bones are valid
 	return (TrailBone.IsValid(RequiredBones));
 }
 
-void FAnimNode_Trail::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_Trail::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	TrailBone.Initialize(RequiredBones);
 }

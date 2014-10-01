@@ -27,7 +27,7 @@ void FAnimNode_SpringBone::Initialize(const FAnimationInitializeContext& Context
 	RemainingTime = 0.0f;
 }
 
-void FAnimNode_SpringBone::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_SpringBone::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	FAnimNode_SkeletalControlBase::CacheBones(Context);
 }
@@ -51,7 +51,7 @@ void FAnimNode_SpringBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -165,7 +165,7 @@ bool FAnimNode_SpringBone::IsValidToEvaluate(const USkeleton* Skeleton, const FB
 	return (SpringBone.IsValid(RequiredBones));
 }
 
-void FAnimNode_SpringBone::InitializeBoneReferences(const FBoneContainer & RequiredBones) 
+void FAnimNode_SpringBone::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	SpringBone.Initialize(RequiredBones);
 }

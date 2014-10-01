@@ -542,7 +542,7 @@ public:
 	FOnlineAsyncTaskSteamGetAchievements(
 		FOnlineSubsystemSteam* InSteamSubsystem, 
 		const FUniqueNetIdSteam& InUserId, 
-		const FOnQueryAchievementsCompleteDelegate & InAchievementDelegate ) :
+		const FOnQueryAchievementsCompleteDelegate& InAchievementDelegate ) :
 		FOnlineAsyncTaskSteam(InSteamSubsystem, k_uAPICallInvalid),
 		bInit(false),
 		UserId(InUserId),

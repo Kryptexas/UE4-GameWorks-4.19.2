@@ -157,7 +157,7 @@ bool FStaticParameterSet::ShouldMarkDirty(const FStaticParameterSet* ReferenceSe
 	//switch parameters
 	for (int32 RefParamIndex = 0;RefParamIndex < ReferenceSet->StaticSwitchParameters.Num();RefParamIndex++)
 	{
-		const FStaticSwitchParameter * ReferenceSwitchParameter = &ReferenceSet->StaticSwitchParameters[RefParamIndex];
+		const FStaticSwitchParameter* ReferenceSwitchParameter = &ReferenceSet->StaticSwitchParameters[RefParamIndex];
 		for (int32 ParamIndex = 0;ParamIndex < StaticSwitchParameters.Num();ParamIndex++)
 		{
 			FStaticSwitchParameter * SwitchParameter = &StaticSwitchParameters[ParamIndex];
@@ -176,7 +176,7 @@ bool FStaticParameterSet::ShouldMarkDirty(const FStaticParameterSet* ReferenceSe
 	//component mask parameters
 	for (int32 RefParamIndex = 0;RefParamIndex < ReferenceSet->StaticComponentMaskParameters.Num();RefParamIndex++)
 	{
-		const FStaticComponentMaskParameter * ReferenceComponentMaskParameter = &ReferenceSet->StaticComponentMaskParameters[RefParamIndex];
+		const FStaticComponentMaskParameter* ReferenceComponentMaskParameter = &ReferenceSet->StaticComponentMaskParameters[RefParamIndex];
 		for (int32 ParamIndex = 0;ParamIndex < StaticComponentMaskParameters.Num();ParamIndex++)
 		{
 			FStaticComponentMaskParameter * ComponentMaskParameter = &StaticComponentMaskParameters[ParamIndex];
@@ -198,7 +198,7 @@ bool FStaticParameterSet::ShouldMarkDirty(const FStaticParameterSet* ReferenceSe
 	// Terrain layer weight parameters
 	for (int32 RefParamIndex = 0;RefParamIndex < ReferenceSet->TerrainLayerWeightParameters.Num();RefParamIndex++)
 	{
-		const FStaticTerrainLayerWeightParameter * ReferenceTerrainLayerWeightParameter  = &ReferenceSet->TerrainLayerWeightParameters[RefParamIndex];
+		const FStaticTerrainLayerWeightParameter* ReferenceTerrainLayerWeightParameter  = &ReferenceSet->TerrainLayerWeightParameters[RefParamIndex];
 		for (int32 ParamIndex = 0;ParamIndex < TerrainLayerWeightParameters.Num();ParamIndex++)
 		{
 			FStaticTerrainLayerWeightParameter * TerrainLayerWeightParameter = &TerrainLayerWeightParameters[ParamIndex];

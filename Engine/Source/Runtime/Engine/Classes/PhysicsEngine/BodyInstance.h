@@ -213,11 +213,11 @@ public:
 	FConstraintInstance * DOFConstraint;
 
 	/** The parent body that we are welded to*/
-	FBodyInstance * WeldParent;
+	FBodyInstance* WeldParent;
 
 #if WITH_PHYSX
 	/** Figures out the new FCollisionNotifyInfo needed for pending notification. It adds it, and then returns an array that goes from pair index to notify collision index */
-	static TArray<int32> AddCollisionNotifyInfo(const FBodyInstance * Body0, const FBodyInstance * Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos);
+	static TArray<int32> AddCollisionNotifyInfo(const FBodyInstance* Body0, const FBodyInstance* Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos);
 
 #endif
 
@@ -341,7 +341,7 @@ public:
 
 	/** 
 	 * Takes a welded body and unwelds it. This function does not create the new body, it only removes the old one */
-	void UnWeld(FBodyInstance * Body);
+	void UnWeld(FBodyInstance* Body);
 
 	/**
 	 * After adding/removing shapes call this function to update mass distribution etc... */

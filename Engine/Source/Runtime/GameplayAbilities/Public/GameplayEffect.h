@@ -519,7 +519,7 @@ struct FAggregatorRef
 		return WeakPtr.IsValid() ? WeakPtr.Pin().Get() : NULL;
 	}
 
-	const FAggregator * Get() const
+	const FAggregator* Get() const
 	{
 		return WeakPtr.IsValid() ? WeakPtr.Pin().Get() : NULL;
 	}
@@ -592,7 +592,7 @@ struct FGameplayModifierData
 		Callbacks = NULL;
 	}
 
-	FGameplayModifierData(float InMagnitude, const FGameplayModifierCallbacks * InCallbacks)
+	FGameplayModifierData(float InMagnitude, const FGameplayModifierCallbacks* InCallbacks)
 	{
 		// Magnitude will be fixed at this value
 		Magnitude.SetValue(InMagnitude);
@@ -609,7 +609,7 @@ struct FGameplayModifierData
 	FGameplayTagContainer IgnoreTags;
 
 	// Callback information for custom logic pre/post evaluation
-	const FGameplayModifierCallbacks * Callbacks;
+	const FGameplayModifierCallbacks* Callbacks;
 
 	void PrintAll() const;
 };
@@ -627,7 +627,7 @@ struct FGameplayModifierEvaluatedData
 	{
 	}
 
-	FGameplayModifierEvaluatedData(float InMagnitude, const FGameplayModifierCallbacks * InCallbacks = NULL, FActiveGameplayEffectHandle InHandle = FActiveGameplayEffectHandle(), const FGameplayTagContainer *InTags = NULL)
+	FGameplayModifierEvaluatedData(float InMagnitude, const FGameplayModifierCallbacks* InCallbacks = NULL, FActiveGameplayEffectHandle InHandle = FActiveGameplayEffectHandle(), const FGameplayTagContainer *InTags = NULL)
 		: Magnitude(InMagnitude)
 		, Callbacks(InCallbacks)
 		, Handle(InHandle)
@@ -641,7 +641,7 @@ struct FGameplayModifierEvaluatedData
 
 	float	Magnitude;
 	FGameplayTagContainer Tags;
-	const FGameplayModifierCallbacks * Callbacks;
+	const FGameplayModifierCallbacks* Callbacks;
 	FActiveGameplayEffectHandle	Handle;	// Handle of the active gameplay effect that originated us. Will be invalid in many cases
 	bool IsValid;
 
@@ -842,7 +842,7 @@ struct FGameplayEffectSpec
 	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Instigator, float Level, const FGlobalCurveDataOverride *CurveData );
 	
 	UPROPERTY()
-	const UGameplayEffect * Def;
+	const UGameplayEffect* Def;
 
 	// Replicated	
 	TSharedPtr< FGameplayEffectLevelSpec > ModifierLevel;

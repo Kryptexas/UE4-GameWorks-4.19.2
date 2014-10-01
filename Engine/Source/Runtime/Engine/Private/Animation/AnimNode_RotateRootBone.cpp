@@ -11,7 +11,7 @@ void FAnimNode_RotateRootBone::Initialize(const FAnimationInitializeContext& Con
 	BasePose.Initialize(Context);
 }
 
-void FAnimNode_RotateRootBone::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_RotateRootBone::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	BasePose.CacheBones(Context);
 }

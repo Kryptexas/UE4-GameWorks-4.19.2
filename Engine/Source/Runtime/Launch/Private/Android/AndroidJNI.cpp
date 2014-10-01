@@ -123,7 +123,7 @@ jmethodID JDef_GameActivity::AndroidThunkJava_IsMusicActive;
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 //Game-specific crash reporter
-void EngineCrashHandler(const FGenericCrashContext & GenericContext)
+void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 {
 	const FAndroidCrashContext& Context = static_cast< const FAndroidCrashContext& >( GenericContext );
 

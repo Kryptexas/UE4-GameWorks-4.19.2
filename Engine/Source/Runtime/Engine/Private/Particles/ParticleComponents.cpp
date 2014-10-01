@@ -3708,7 +3708,7 @@ void UParticleSystemComponent::PostEditChangeChainProperty(FPropertyChangedChain
 }
 #endif // WITH_EDITOR
 
-FBoxSphereBounds UParticleSystemComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UParticleSystemComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox BoundingBox;
 	BoundingBox.Init();

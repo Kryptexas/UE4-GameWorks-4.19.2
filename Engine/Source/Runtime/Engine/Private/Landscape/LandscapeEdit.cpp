@@ -4044,7 +4044,7 @@ void ULandscapeInfo::SortSelectedComponents()
 {
 	struct FCompareULandscapeComponentBySectionBase
 	{
-		FORCEINLINE bool operator()(const ULandscapeComponent& A, const ULandscapeComponent & B) const
+		FORCEINLINE bool operator()(const ULandscapeComponent& A, const ULandscapeComponent& B) const
 		{
 			return (A.GetSectionBase().X == B.GetSectionBase().X) ? (A.GetSectionBase().Y < B.GetSectionBase().Y) : (A.GetSectionBase().X < B.GetSectionBase().X);
 		}

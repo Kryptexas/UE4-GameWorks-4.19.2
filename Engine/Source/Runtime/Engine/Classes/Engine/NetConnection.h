@@ -524,10 +524,10 @@ public:
 	 */
 	class UVoiceChannel* GetVoiceChannel();
 
-	void FlushDormancy(class AActor * Actor);
+	void FlushDormancy(class AActor* Actor);
 
 	/** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
-	void FlushDormancyForObject( UObject * Object );
+	void FlushDormancyForObject( UObject* Object );
 
 	/** Wrapper for setting the current client login state, so we can trap for debugging, and verbosity purposes. */
 	ENGINE_API void SetClientLoginState( const EClientLoginState::Type NewState );

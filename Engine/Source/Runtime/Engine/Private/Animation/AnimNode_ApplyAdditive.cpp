@@ -12,7 +12,7 @@ void FAnimNode_ApplyAdditive::Initialize(const FAnimationInitializeContext& Cont
 	Additive.Initialize(Context);
 }
 
-void FAnimNode_ApplyAdditive::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_ApplyAdditive::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	Base.CacheBones(Context);
 	Additive.CacheBones(Context);

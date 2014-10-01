@@ -370,7 +370,7 @@ FPrimitiveSceneProxy* UMaterialBillboardComponent::CreateSceneProxy()
 	return new FMaterialSpriteSceneProxy(this);
 }
 
-FBoxSphereBounds UMaterialBillboardComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UMaterialBillboardComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	const float BoundsSize = 32.0f;
 	return FBoxSphereBounds(LocalToWorld.GetLocation(),FVector(BoundsSize,BoundsSize,BoundsSize),FMath::Sqrt(3.0f * FMath::Square(BoundsSize)));

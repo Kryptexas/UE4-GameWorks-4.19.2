@@ -431,7 +431,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	for ( int32 i = 0; i < World->NetworkActors.Num(); i++ )
 	{
-		AActor * Actor = World->NetworkActors[i];
+		AActor* Actor = World->NetworkActors[i];
 
 		Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
 		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient );

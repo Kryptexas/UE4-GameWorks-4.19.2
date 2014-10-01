@@ -1804,7 +1804,7 @@ public:
 	void FinishAndRegisterComponent(UActorComponent* Component);
 
 	/**  Util to create a component based on a template	 */
-	UActorComponent* CreateComponentFromTemplate(UActorComponent* Template, const FString & InName = FString() );
+	UActorComponent* CreateComponentFromTemplate(UActorComponent* Template, const FString& InName = FString() );
 
 	/** Destroys the constructed components. */
 	void DestroyConstructedComponents();

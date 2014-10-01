@@ -296,7 +296,7 @@ void AHUD::ShowDebugToggleSubCategory(FName Category)
 }
 
 
-bool AHUD::ShouldDisplayDebug(const FName & DebugType) const
+bool AHUD::ShouldDisplayDebug(const FName& DebugType) const
 {
 	return bShowDebugInfo && DebugDisplay.Contains(DebugType);
 }

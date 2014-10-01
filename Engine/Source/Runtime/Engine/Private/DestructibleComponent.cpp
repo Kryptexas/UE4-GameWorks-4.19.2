@@ -71,7 +71,7 @@ void UDestructibleComponent::PostEditChangeProperty( struct FPropertyChangedEven
 }
 #endif // WITH_EDITOR
 
-FBoxSphereBounds UDestructibleComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UDestructibleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 #if WITH_APEX
 	if( ApexDestructibleActor == NULL )
@@ -111,7 +111,7 @@ void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	}
 
 	// warn if it has non-uniform scale
-	const FVector & MeshScale3D = CurrentLocalToWorld.GetScale3D();
+	const FVector& MeshScale3D = CurrentLocalToWorld.GetScale3D();
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if( !MeshScale3D.IsUniform() )
 	{
@@ -1150,7 +1150,7 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 	{
 		AActor* Owner = GetOwner();
 		bool bLargeChunk = IsChunkLarge(ChunkIdx);
-		const FCollisionResponse & ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
+		const FCollisionResponse& ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
 		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, BodyInstance.bNotifyRigidBodyCollision, false);
 		
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;

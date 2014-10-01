@@ -609,8 +609,8 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 
-	const FTransform * LocalTransformsData = SourceAtoms.GetData();
-	FTransform * SpaceBasesData = DestSpaceBases.GetData();
+	const FTransform* LocalTransformsData = SourceAtoms.GetData();
+	FTransform* SpaceBasesData = DestSpaceBases.GetData();
 
 	// First bone is always root bone, and it doesn't have a parent.
 	{
@@ -915,7 +915,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		return;
 	}
 
-	AActor * Owner = GetOwner();
+	AActor* Owner = GetOwner();
 	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));
 
 	// Recalculate the RequiredBones array, if necessary
@@ -1083,7 +1083,7 @@ void USkeletalMeshComponent::UpdateBounds()
 #endif
 }
 
-FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FVector RootBoneOffset;
 
@@ -1654,7 +1654,7 @@ void FSingleAnimationPlayData::ValidatePosition()
 	SavedPosition = FMath::Clamp<float>(SavedPosition, Min, Max);
 }
 
-FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform & InTransform)
+FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)
 {
 	// Make sure component to world is up to date
 	if (!bWorldToComponentUpdated)

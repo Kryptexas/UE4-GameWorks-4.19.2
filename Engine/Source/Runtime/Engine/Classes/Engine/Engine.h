@@ -1801,7 +1801,7 @@ public:
 	 * @returns	pointer to the LocalPlayer with the given index
 	 */
 	ULocalPlayer* GetGamePlayer( UWorld * InWorld, int32 InPlayer );
-	ULocalPlayer* GetGamePlayer( const UGameViewportClient * InViewport, int32 InPlayer );
+	ULocalPlayer* GetGamePlayer( const UGameViewportClient* InViewport, int32 InPlayer );
 	
 	/**
 	 * return the first ULocalPlayer in the GamePlayers array.
@@ -2040,7 +2040,7 @@ public:
 	 * @param	ControllerId	the game pad index of the player to search for
 	 * @return	The player that has the ControllerId specified, or nullptr if no players have that ControllerId
 	 */
-	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient * InViewport, int32 ControllerId );
+	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, int32 ControllerId );
 	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId );
 
 	void SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID);

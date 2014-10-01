@@ -38,7 +38,7 @@ public:
 public:
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context)  override;
+	virtual void CacheBones(const FAnimationCacheBonesContext& Context)  override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
 	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) override;
 	// End of FAnimNode_Base interface
@@ -47,11 +47,11 @@ protected:
 	// Interface for derived skeletal controls to implement
 
 	// Evaluate the new component-space transforms for the affected bones.
-	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) {}
+	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) {}
 	// return true if it is valid to Evaluate
-	virtual bool IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) { return false; }
+	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) { return false; }
 	// initialize any bone references you have
-	virtual void InitializeBoneReferences(const FBoneContainer & RequiredBones){};
+	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones){};
 
 	/** Allow base to add info to the node debug output */
 	void AddDebugNodeData(FString& OutDebugData);

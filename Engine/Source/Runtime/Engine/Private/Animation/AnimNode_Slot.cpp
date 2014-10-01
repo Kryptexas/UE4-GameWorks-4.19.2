@@ -17,7 +17,7 @@ void FAnimNode_Slot::Initialize(const FAnimationInitializeContext& Context)
 	Context.AnimInstance->RegisterSlotNode(SlotName);
 }
 
-void FAnimNode_Slot::CacheBones(const FAnimationCacheBonesContext & Context) 
+void FAnimNode_Slot::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	Source.CacheBones(Context);
 }

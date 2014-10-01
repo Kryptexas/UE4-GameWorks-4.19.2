@@ -156,7 +156,7 @@ public:
 	UFUNCTION(BlueprintPure, Category="Pawn")
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
 
-	virtual bool IsBasedOnActor(const AActor * Other) const override;
+	virtual bool IsBasedOnActor(const AActor* Other) const override;
 
 	virtual bool ReachedDesiredRotation();
 

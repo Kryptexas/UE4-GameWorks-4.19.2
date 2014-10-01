@@ -26,14 +26,14 @@ class UBrushComponent : public UPrimitiveComponent
 	// End UObject interface
 
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FVector GetCustomLocation() const override;
 protected:
 	
 	/** Calculate the new ComponentToWorld transform for this component.
 	Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
 	If Parent is not passed in we use the component's AttachParent*/
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent = NULL) const override;
+	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL) const override;
 	// End USceneComponent interface
 
 public:

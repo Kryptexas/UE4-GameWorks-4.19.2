@@ -51,7 +51,7 @@ ECollisionChannel DefaultCollisionChannel = (ECollisionChannel) 0;
 
 
 /* Set functions for each Shape type */
-void FBaseTraceDatum::Set(UWorld * World, const FCollisionShape & InCollisionShape, const FCollisionQueryParams & Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam,
+void FBaseTraceDatum::Set(UWorld * World, const FCollisionShape& InCollisionShape, const FCollisionQueryParams& Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam,
 	ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace, int32 FrameCounter)
 {
 	ensure(World);

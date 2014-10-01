@@ -22,7 +22,7 @@ UBoneMaskFilter::UBoneMaskFilter(const class FPostConstructInitializeProperties&
 /////////////////////////////////////////////////////
 // FBoneReference
 
-bool FBoneReference::Initialize(const FBoneContainer & RequiredBones)
+bool FBoneReference::Initialize(const FBoneContainer& RequiredBones)
 {
 	BoneName = *BoneName.ToString().Trim().TrimTrailing();
 	BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(BoneName);
@@ -42,7 +42,7 @@ bool FBoneReference::Initialize(const FBoneContainer & RequiredBones)
 	return (BoneIndex != INDEX_NONE);
 }
 
-bool FBoneReference::Initialize(const USkeleton * Skeleton)
+bool FBoneReference::Initialize(const USkeleton* Skeleton)
 {
 	if( Skeleton && (BoneName != NAME_None) )
 	{

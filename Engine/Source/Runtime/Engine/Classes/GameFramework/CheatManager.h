@@ -313,12 +313,12 @@ class ENGINE_API UCheatManager : public UObject
 
 	/** Add Debug Trace info into current index - used when DebugCapsuleSweepPawn is on**/
 	void AddCapsuleSweepDebugInfo(
-		const FVector & LineTraceStart, 
-		const FVector & LineTraceEnd, 
-		const FVector & HitImpactLocation, 
-		const FVector & HitNormal, 
-		const FVector & HitImpactNormal, 
-		const FVector & HitLocation, 
+		const FVector& LineTraceStart, 
+		const FVector& LineTraceEnd, 
+		const FVector& HitImpactLocation, 
+		const FVector& HitNormal, 
+		const FVector& HitImpactNormal, 
+		const FVector& HitLocation, 
 		float CapsuleHalfheight, 
 		float CapsuleRadius, 
 		bool bTracePawn, 

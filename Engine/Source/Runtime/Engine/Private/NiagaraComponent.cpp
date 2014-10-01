@@ -489,7 +489,7 @@ void UNiagaraComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* InMa
 	}
 }
 
-FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox SimBounds(ForceInit);
 	//if (Simulation)

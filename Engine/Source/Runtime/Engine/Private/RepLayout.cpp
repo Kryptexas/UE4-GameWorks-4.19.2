@@ -25,12 +25,12 @@ FAutoConsoleVariable CVarDoReplicationContextString( TEXT( "net.ContextDebug" ),
 //#define ENABLE_SUPER_CHECKSUMS
 
 #ifdef USE_CUSTOM_COMPARE
-static FORCEINLINE bool CompareBool( const FRepLayoutCmd & Cmd, const void * A, const void * B )
+static FORCEINLINE bool CompareBool( const FRepLayoutCmd& Cmd, const void* A, const void* B )
 {
 	return Cmd.Property->Identical( A, B );
 }
 
-static FORCEINLINE bool CompareObject( const FRepLayoutCmd & Cmd, const void * A, const void * B )
+static FORCEINLINE bool CompareObject( const FRepLayoutCmd& Cmd, const void* A, const void* B )
 {
 	return Cmd.Property->Identical( A, B );
 }
@@ -42,12 +42,12 @@ bool CompareValue( const T * A, const T * B )
 }
 
 template< typename T >
-bool CompareValue( const void * A, const void * B )
+bool CompareValue( const void* A, const void* B )
 {
 	return CompareValue( (T*)A, (T*)B);
 }
 
-static FORCEINLINE bool PropertiesAreIdenticalNative( const FRepLayoutCmd & Cmd, const void * A, const void * B )
+static FORCEINLINE bool PropertiesAreIdenticalNative( const FRepLayoutCmd& Cmd, const void* A, const void* B )
 {
 	switch ( Cmd.Type )
 	{
@@ -77,7 +77,7 @@ static FORCEINLINE bool PropertiesAreIdenticalNative( const FRepLayoutCmd & Cmd,
 	return false;
 }
 
-static FORCEINLINE bool PropertiesAreIdentical( const FRepLayoutCmd & Cmd, const void * A, const void * B )
+static FORCEINLINE bool PropertiesAreIdentical( const FRepLayoutCmd& Cmd, const void* A, const void* B )
 {
 	const bool bIsIdentical = PropertiesAreIdenticalNative( Cmd, A, B );
 #if 0
@@ -90,13 +90,13 @@ static FORCEINLINE bool PropertiesAreIdentical( const FRepLayoutCmd & Cmd, const
 	return bIsIdentical;
 }
 #else
-static FORCEINLINE bool PropertiesAreIdentical( const FRepLayoutCmd & Cmd, const void * A, const void * B )
+static FORCEINLINE bool PropertiesAreIdentical( const FRepLayoutCmd& Cmd, const void* A, const void* B )
 {
 	return Cmd.Property->Identical( A, B );
 }
 #endif
 
-static FORCEINLINE void StoreProperty( const FRepLayoutCmd & Cmd, void * A, const void * B )
+static FORCEINLINE void StoreProperty( const FRepLayoutCmd& Cmd, void* A, const void* B )
 {
 	Cmd.Property->CopySingleValue( A, B );
 }
@@ -108,7 +108,7 @@ static FORCEINLINE void SerializeGenericChecksum( FArchive & Ar )
 	check( Checksum == 0xABADF00D );
 }
 
-static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd & Cmd, const int32 CurCmdIndex, const uint8 * Data, FArchive & Ar )
+static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd& Cmd, const int32 CurCmdIndex, const uint8* Data, FArchive & Ar )
 {
 	// Serialize various attributes that will mostly ensure we are working on the same property
 	const uint32 NameHash = GetTypeHash( Cmd.Property->GetName() );
@@ -143,7 +143,7 @@ static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd & Cmd, const
 	//	it also needs to write the same blob it just read as well.
 	FBitWriter Writer( 0, true );
 
-	Cmd.Property->NetSerializeItem( Writer, NULL, const_cast< uint8 * >( Data ) );
+	Cmd.Property->NetSerializeItem( Writer, NULL, const_cast< uint8* >( Data ) );
 
 	if ( Ar.IsSaving() )
 	{
@@ -155,7 +155,7 @@ static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd & Cmd, const
 
 		TArray< uint8 > TempPropMemory;
 		TempPropMemory.AddZeroed( Cmd.Property->ElementSize + 4 );
-		uint32 * Guard = (uint32*)&TempPropMemory[TempPropMemory.Num() - 4];
+		uint32* Guard = (uint32*)&TempPropMemory[TempPropMemory.Num() - 4];
 		const uint32 TAG_VALUE = 0xABADF00D;
 		*Guard = TAG_VALUE;
 		Cmd.Property->InitializeValue( TempPropMemory.GetData() );
@@ -198,15 +198,15 @@ static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd & Cmd, const
 uint16 FRepLayout::CompareProperties_r(
 	const int32				CmdStart,
 	const int32				CmdEnd,
-	const uint8 * RESTRICT	CompareData, 
-	const uint8 * RESTRICT	Data,
+	const uint8* RESTRICT	CompareData, 
+	const uint8* RESTRICT	Data,
 	TArray< uint16 > &		Changed,
 	uint16					Handle
 ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[CmdIndex];
+		const FRepLayoutCmd& Cmd = Cmds[CmdIndex];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -230,14 +230,14 @@ uint16 FRepLayout::CompareProperties_r(
 }
 
 void FRepLayout::CompareProperties_Array_r( 
-	const uint8 * RESTRICT	CompareData, 
-	const uint8 * RESTRICT	Data,
+	const uint8* RESTRICT	CompareData, 
+	const uint8* RESTRICT	Data,
 	TArray< uint16 > &		Changed,
 	const uint16			CmdIndex,
 	const uint16			Handle
 ) const
 {
-	const FRepLayoutCmd & Cmd = Cmds[CmdIndex];
+	const FRepLayoutCmd& Cmd = Cmds[CmdIndex];
 
 	FScriptArray * CompareArray = (FScriptArray *)CompareData;
 	FScriptArray * Array = (FScriptArray *)Data;
@@ -255,7 +255,7 @@ void FRepLayout::CompareProperties_Array_r(
 	for ( int32 i = 0; i < ArrayNum; i++ )
 	{
 		const int32 ElementOffset = i * Cmd.ElementSize;
-		const uint8 * LocalCompareData = ( i < CompareArrayNum ) ? ( CompareData + ElementOffset ) : NULL;
+		const uint8* LocalCompareData = ( i < CompareArrayNum ) ? ( CompareData + ElementOffset ) : NULL;
 
 		LocalHandle = CompareProperties_r( CmdIndex + 1, Cmd.EndCmd - 1, LocalCompareData, Data + ElementOffset, ChangedLocal, LocalHandle );
 	}
@@ -281,19 +281,19 @@ void FRepLayout::CompareProperties_Array_r(
 
 bool FRepLayout::CompareProperties( 
 	FRepState * RESTRICT				RepState, 
-	const uint8 * RESTRICT				CompareData,
-	const uint8 * RESTRICT				Data, 
+	const uint8* RESTRICT				CompareData,
+	const uint8* RESTRICT				Data, 
 	TArray< FRepChangedParent > &		OutChangedParents,
 	const TArray< uint16 > &			PropertyList ) const
 {
 	bool PropertyChanged = false;
 
-	const uint16 * RESTRICT FirstProp	= PropertyList.GetData();
-	const uint16 * RESTRICT LastProp	= FirstProp + PropertyList.Num();
+	const uint16* RESTRICT FirstProp	= PropertyList.GetData();
+	const uint16* RESTRICT LastProp	= FirstProp + PropertyList.Num();
 
-	for ( const uint16 * RESTRICT pLifeProp = FirstProp; pLifeProp < LastProp; ++pLifeProp )
+	for ( const uint16* RESTRICT pLifeProp = FirstProp; pLifeProp < LastProp; ++pLifeProp )
 	{
-		const FRepParentCmd & ParentCmd = Parents[*pLifeProp];
+		const FRepParentCmd& ParentCmd = Parents[*pLifeProp];
 
 		// We store changed properties on each parent, so we can build a final sorted change list later
 		TArray< uint16 > & Changed = OutChangedParents[*pLifeProp].Changed;
@@ -303,7 +303,7 @@ bool FRepLayout::CompareProperties(
 		// Loop over the block of child properties that are children of this parent
 		for ( int32 i = ParentCmd.CmdStart; i < ParentCmd.CmdEnd; i++ )
 		{
-			const FRepLayoutCmd & Cmd = Cmds[i];
+			const FRepLayoutCmd& Cmd = Cmds[i];
 
 			check( Cmd.Type != REPCMD_Return );		// REPCMD_Return's are markers we shouldn't hit
 
@@ -333,7 +333,7 @@ bool FRepLayout::CompareProperties(
 }
 
 void FRepLayout::LogChangeListMismatches( 
-	const uint8 * 						Data, 
+	const uint8* 						Data, 
 	UActorChannel *						OwningChannel, 
 	const TArray< uint16 > &			PropertyList,
 	FRepState *							RepState1, 
@@ -435,7 +435,7 @@ void FRepLayout::SanityCheckShadowStateAgainstChangeList(
 
 bool FRepLayout::ReplicateProperties( 
 	FRepState * RESTRICT		RepState, 
-	const uint8 * RESTRICT		Data, 
+	const uint8* RESTRICT		Data, 
 	UClass *					ObjectClass,
 	UActorChannel *				OwningChannel,
 	FOutBunch &					Writer, 
@@ -621,7 +621,7 @@ bool FRepLayout::ReplicateProperties(
 	return false;
 }
 
-void FRepLayout::UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8 * RESTRICT Data, const int32 AckPacketId, TArray< uint16 > * OutMerged ) const
+void FRepLayout::UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8* RESTRICT Data, const int32 AckPacketId, TArray< uint16 > * OutMerged ) const
 {
 	check( RepState->HistoryEnd >= RepState->HistoryStart );
 
@@ -805,11 +805,11 @@ void FRepLayout::SendProperties_DynamicArray_r(
 	const FReplicationFlags &	RepFlags,
 	FRepWriterState &			WriterState,
 	const int32					CmdIndex, 
-	const uint8 * RESTRICT		StoredData, 
-	const uint8 * RESTRICT		Data, 
+	const uint8* RESTRICT		StoredData, 
+	const uint8* RESTRICT		Data, 
 	uint16						Handle ) const
 {
-	const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+	const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 	FScriptArray * Array = (FScriptArray *)Data;
 	FScriptArray * StoredArray = (FScriptArray *)StoredData;
@@ -854,13 +854,13 @@ uint16 FRepLayout::SendProperties_r(
 	FRepWriterState &			WriterState,
 	const int32					CmdStart, 
 	const int32					CmdEnd, 
-	const uint8 * RESTRICT		StoredData, 
-	const uint8 * RESTRICT		Data, 
+	const uint8* RESTRICT		StoredData, 
+	const uint8* RESTRICT		Data, 
 	uint16						Handle ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+		const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -892,7 +892,7 @@ uint16 FRepLayout::SendProperties_r(
 
 			const int32 NumEndBits = WriterState.Writer.GetNumBits();
 
-			const FRepParentCmd & ParentCmd = Parents[Cmd.ParentIndex];
+			const FRepParentCmd& ParentCmd = Parents[Cmd.ParentIndex];
 
 			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, NumEndBits - NumStartBits ) );
 
@@ -970,7 +970,7 @@ void FRepLayout::WritePropertyHeader(
 void FRepLayout::SendProperties( 
 	FRepState *	RESTRICT		RepState, 
 	const FReplicationFlags &	RepFlags,
-	const uint8 * RESTRICT		Data, 
+	const uint8* RESTRICT		Data, 
 	UClass *					ObjectClass,
 	UActorChannel	*			OwningChannel,
 	FOutBunch &					Writer, 
@@ -1026,8 +1026,8 @@ bool FRepLayout::ReadProperty(
 	const int32				AbsOffset,
 	const FRepLayoutCmd &	Cmd, 
 	const int32				CmdIndex, 
-	uint8 * RESTRICT		StoredData, 
-	uint8 * RESTRICT		Data ) const
+	uint8* RESTRICT		StoredData, 
+	uint8* RESTRICT		Data ) const
 {
 	if ( !ShouldReadProperty( ReaderState ) )
 	{
@@ -1035,10 +1035,10 @@ bool FRepLayout::ReadProperty(
 		return true;
 	}
 
-	const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
+	const FRepParentCmd& Parent = Parents[Cmd.ParentIndex];
 
 	// This swaps Role/RemoteRole as we write it
-	const FRepLayoutCmd & SwappedCmd = Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
+	const FRepLayoutCmd& SwappedCmd = Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
 
 	ReaderState.Bunch.PackageMap->ResetLoadedUnmappedObject();
 
@@ -1094,7 +1094,7 @@ bool FRepLayout::ReceiveProperties_AnyArray_r(
 	const int32			ArrayNum, 
 	const int32			ElementSize, 
 	const int32			CmdIndex, 
-	uint8 * RESTRICT	StoredData, 
+	uint8* RESTRICT	StoredData, 
 	uint8 *	RESTRICT	Data ) const
 {
 	const int32 CmdStart	= CmdIndex + 1;
@@ -1119,8 +1119,8 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 	const int32				AbsOffset,
 	const FRepLayoutCmd &	Cmd, 
 	const int32				CmdIndex, 
-	uint8 * RESTRICT		StoredData, 
-	uint8 * RESTRICT		Data ) const
+	uint8* RESTRICT		StoredData, 
+	uint8* RESTRICT		Data ) const
 {
 	if ( !ShouldReadProperty( ReaderState ) )
 	{
@@ -1155,7 +1155,7 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 
 	UnmappedGuids = NewArrayElement->Array;
 
-	const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
+	const FRepParentCmd& Parent = Parents[Cmd.ParentIndex];
 
 	if ( (Array->Num() != ArrayNum || Parent.RepNotifyCondition == REPNOTIFY_Always) && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 	{
@@ -1198,12 +1198,12 @@ bool FRepLayout::ReceiveProperties_r(
 	const int32			AbsOffset,
 	const int32			CmdStart, 
 	const int32			CmdEnd, 
-	uint8 * RESTRICT	StoredData, 
-	uint8 * RESTRICT	Data ) const
+	uint8* RESTRICT	StoredData, 
+	uint8* RESTRICT	Data ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+		const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -1226,7 +1226,7 @@ bool FRepLayout::ReceiveProperties_r(
 	return true;
 }
 
-bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const
+bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const
 {
 	check( InObjectClass == Owner );
 
@@ -1282,7 +1282,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 	FUnmappedGuidMgr *	UnmappedGuids, 
 	UObject *			OriginalObject,
 	UPackageMap *		PackageMap, 
-	uint8 * RESTRICT	Data, 
+	uint8* RESTRICT	Data, 
 	const int32			MaxAbsOffset,
 	bool &				bOutSomeObjectsWereMapped,
 	bool &				bOutHasMoreUnmapped ) const
@@ -1301,8 +1301,8 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			continue;
 		}
 
-		const FRepLayoutCmd & Cmd = Cmds[It.Value().CmdIndex];
-		const FRepParentCmd & Parent = Parents[It.Value().ParentIndex];
+		const FRepLayoutCmd& Cmd = Cmds[It.Value().CmdIndex];
+		const FRepParentCmd& Parent = Parents[It.Value().ParentIndex];
 
 		if ( It.Value().Array != NULL )
 		{
@@ -1314,14 +1314,14 @@ void FRepLayout::UpdateUnmappedObjects_r(
 
 		check( Cmd.Type == REPCMD_PropertyObject );
 
-		UObject * Object = PackageMap->GetObjectFromNetGUID( It.Value().Guid, false );
+		UObject* Object = PackageMap->GetObjectFromNetGUID( It.Value().Guid, false );
 
 		if ( Object != NULL )
 		{
 			UE_LOG( LogNet, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *It.Value().Guid.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
 			UObjectPropertyBase * ObjProperty = CastChecked< UObjectPropertyBase>( Cmd.Property );
 
-			UObject * OldObject = ObjProperty->GetObjectPropertyValue( Data + AbsOffset );
+			UObject* OldObject = ObjProperty->GetObjectPropertyValue( Data + AbsOffset );
 
 			if (Parent.RepNotifyCondition == REPNOTIFY_Always || OldObject != Object)
 			{
@@ -1358,7 +1358,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 	}
 }
 
-void FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject * OriginalObject, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const
+void FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject* OriginalObject, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const
 {
 	bOutSomeObjectsWereMapped	= false;
 	bOutHasMoreUnmapped			= false;
@@ -1366,7 +1366,7 @@ void FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * Pack
 	UpdateUnmappedObjects_r( RepState, &RepState->UnmappedGuids, OriginalObject, PackageMap, (uint8*)OriginalObject, RepState->StaticBuffer.Num(), bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
 }
 
-void FRepLayout::CallRepNotifies( FRepState * RepState, UObject * Object ) const
+void FRepLayout::CallRepNotifies( FRepState * RepState, UObject* Object ) const
 {
 	if ( RepState->RepNotifies.Num() == 0 )
 	{
@@ -1397,7 +1397,7 @@ void FRepLayout::CallRepNotifies( FRepState * RepState, UObject * Object ) const
 	RepState->RepNotifies.Empty();
 }
 
-void FRepLayout::ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar ) const
+void FRepLayout::ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT Data, FArchive & Ar ) const
 {
 	FScriptArray * Array = (FScriptArray *)Data;
 
@@ -1417,7 +1417,7 @@ void FRepLayout::ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd,
 		UE_LOG( LogNet, Fatal, TEXT( "ValidateWithChecksum_AnyArray_r: Array element sizes different! %s %i / %i" ), *Cmd.Property->GetFullName(), ElementSize, Cmd.ElementSize );
 	}
 
-	uint8 * LocalData = (uint8*)Array->GetData();
+	uint8* LocalData = (uint8*)Array->GetData();
 
 	for ( int32 i = 0; i < ArrayNum; i++ )
 	{
@@ -1428,12 +1428,12 @@ void FRepLayout::ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd,
 void FRepLayout::ValidateWithChecksum_r( 
 	const int32				CmdStart, 
 	const int32				CmdEnd, 
-	const uint8 * RESTRICT	Data, 
+	const uint8* RESTRICT	Data, 
 	FArchive &				Ar ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+		const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -1448,12 +1448,12 @@ void FRepLayout::ValidateWithChecksum_r(
 	}
 }
 
-void FRepLayout::ValidateWithChecksum( const void * RESTRICT Data, FArchive & Ar ) const
+void FRepLayout::ValidateWithChecksum( const void* RESTRICT Data, FArchive & Ar ) const
 {
 	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)Data, Ar );
 }
 
-uint32 FRepLayout::GenerateChecksum( const FRepState * RepState ) const
+uint32 FRepLayout::GenerateChecksum( const FRepState* RepState ) const
 {
 	FBitWriter Writer( 1024, true );
 	ValidateWithChecksum_r( 0, Cmds.Num() - 1, (const uint8*)RepState->StaticBuffer.GetData(), Writer );
@@ -1461,7 +1461,7 @@ uint32 FRepLayout::GenerateChecksum( const FRepState * RepState ) const
 	return FCrc::MemCrc32( Writer.GetData(), Writer.GetNumBytes(), 0 );
 }
 
-void FRepLayout::MergeDirtyList_AnyArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd & Cmd, const int32 ArrayNum, const int32 ElementSize, const int32 CmdIndex, const uint8 * RESTRICT Data ) const
+void FRepLayout::MergeDirtyList_AnyArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd& Cmd, const int32 ArrayNum, const int32 ElementSize, const int32 CmdIndex, const uint8* RESTRICT Data ) const
 {
 	for ( int32 i = 0; i < ArrayNum; i++ )
 	{
@@ -1469,7 +1469,7 @@ void FRepLayout::MergeDirtyList_AnyArray_r( FMergeDirtyListState & MergeState, c
 	}
 }
 
-void FRepLayout::MergeDirtyList_DynamicArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data ) const
+void FRepLayout::MergeDirtyList_DynamicArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT Data ) const
 {
 	// At least one of the list should be valid to be here
 	check( MergeState.DirtyValid1 || MergeState.DirtyValid2 );
@@ -1549,11 +1549,11 @@ void FRepLayout::MergeDirtyList_DynamicArray_r( FMergeDirtyListState & MergeStat
 	MergeState.MergedDirtyList.Add( 0 );	
 }
 
-void FRepLayout::MergeDirtyList_r( FMergeDirtyListState & MergeState, const int32 CmdStart, const int32 CmdEnd, const uint8 * RESTRICT Data ) const
+void FRepLayout::MergeDirtyList_r( FMergeDirtyListState & MergeState, const int32 CmdStart, const int32 CmdEnd, const uint8* RESTRICT Data ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+		const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -1588,7 +1588,7 @@ void FRepLayout::MergeDirtyList_r( FMergeDirtyListState & MergeState, const int3
 	}
 }
 
-void FRepLayout::MergeDirtyList( const void * RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const
+void FRepLayout::MergeDirtyList( const void* RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const
 {
 	check( Dirty1.Num() > 0 || Dirty2.Num() > 0 );
 
@@ -1607,11 +1607,11 @@ void FRepLayout::MergeDirtyList( const void * RESTRICT Data, const TArray< uint1
 
 void FRepLayout::SanityCheckChangeList_DynamicArray_r( 
 	const int32				CmdIndex, 
-	const uint8 * RESTRICT	Data, 
+	const uint8* RESTRICT	Data, 
 	TArray< uint16 > &		Changed,
 	int32 &					ChangedIndex ) const
 {
-	const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+	const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 	FScriptArray * Array = (FScriptArray *)Data;
 
@@ -1640,7 +1640,7 @@ void FRepLayout::SanityCheckChangeList_DynamicArray_r(
 uint16 FRepLayout::SanityCheckChangeList_r( 
 	const int32				CmdStart, 
 	const int32				CmdEnd, 
-	const uint8 * RESTRICT	Data, 
+	const uint8* RESTRICT	Data, 
 	TArray< uint16 > &		Changed,
 	int32 &					ChangedIndex,
 	uint16					Handle 
@@ -1648,7 +1648,7 @@ uint16 FRepLayout::SanityCheckChangeList_r(
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+		const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -1678,7 +1678,7 @@ uint16 FRepLayout::SanityCheckChangeList_r(
 	return Handle;
 }
 
-void FRepLayout::SanityCheckChangeList( const uint8 * RESTRICT Data, TArray< uint16 > & Changed ) const
+void FRepLayout::SanityCheckChangeList( const uint8* RESTRICT Data, TArray< uint16 > & Changed ) const
 {
 	int32 ChangedIndex = 0;
 	SanityCheckChangeList_r( 0, Cmds.Num() - 1, Data, Changed, ChangedIndex, 0 );
@@ -1688,12 +1688,12 @@ void FRepLayout::SanityCheckChangeList( const uint8 * RESTRICT Data, TArray< uin
 void FRepLayout::DiffProperties_DynamicArray_r( 
 	FRepState *				RepState,
 	const int32				CmdIndex, 
-	const uint8 * RESTRICT	StoredData, 
-	const uint8 * RESTRICT	Data,
+	const uint8* RESTRICT	StoredData, 
+	const uint8* RESTRICT	Data,
 	const bool				bSync,
 	bool &					bOutDifferent ) const
 {
-	const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+	const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 	FScriptArray * Array = (FScriptArray *)Data;
 	FScriptArray * StoredArray = (FScriptArray *)StoredData;
@@ -1733,14 +1733,14 @@ void FRepLayout::DiffProperties_r(
 	FRepState *				RepState,
 	const int32				CmdStart, 
 	const int32				CmdEnd, 
-	const uint8 * RESTRICT	StoredData, 
-	const uint8 * RESTRICT	Data,
+	const uint8* RESTRICT	StoredData, 
+	const uint8* RESTRICT	Data,
 	const bool				bSync,
 	bool &					bOutDifferent ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+		const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -1751,9 +1751,9 @@ void FRepLayout::DiffProperties_r(
 			continue;
 		}
 
-		const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
+		const FRepParentCmd& Parent = Parents[Cmd.ParentIndex];
 
-		const FRepLayoutCmd & SwappedCmd = Cmd;//Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
+		const FRepLayoutCmd& SwappedCmd = Cmd;//Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
 
 		// Make the shadow state match the actual state at the time of send
 		if ( Parent.RepNotifyCondition == REPNOTIFY_Always || !PropertiesAreIdentical( Cmd, (const void*)( Data + SwappedCmd.Offset ), (const void*)( StoredData + Cmd.Offset ) ) )
@@ -1782,7 +1782,7 @@ void FRepLayout::DiffProperties_r(
 	}
 }
 
-bool FRepLayout::DiffProperties( FRepState * RepState, const void * RESTRICT Data, const bool bSync ) const
+bool FRepLayout::DiffProperties( FRepState * RepState, const void* RESTRICT Data, const bool bSync ) const
 {
 	bool bDifferent = false;
 	DiffProperties_r( RepState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetData(), (uint8*)Data, bSync, bDifferent );
@@ -2093,7 +2093,7 @@ void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 	// Initialize lifetime props
 	TArray< FLifetimeProperty >	LifetimeProps;			// Properties that replicate for the lifetime of the channel
 
-	UObject * Object = InObjectClass->GetDefaultObject();
+	UObject* Object = InObjectClass->GetDefaultObject();
 
 	Object->GetLifetimeReplicatedProps( LifetimeProps );
 
@@ -2191,7 +2191,7 @@ void FRepLayout::SerializeProperties_DynamicArray_r(
 	uint8 *				Data,
 	bool &				bHasUnmapped ) const
 {
-	const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
+	const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
 
 	FScriptArray * Array = (FScriptArray *)Data;
 
@@ -2242,7 +2242,7 @@ void FRepLayout::SerializeProperties_r(
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd && !Ar.IsError(); CmdIndex++ )
 	{
-		const FRepLayoutCmd & Cmd = Cmds[CmdIndex];
+		const FRepLayoutCmd& Cmd = Cmds[CmdIndex];
 
 		check( Cmd.Type != REPCMD_Return );
 
@@ -2274,7 +2274,7 @@ void FRepLayout::SerializeProperties_r(
 	}
 }
 
-void FRepLayout::SendPropertiesForRPC( UObject * Object, UFunction * Function, UActorChannel * Channel, FNetBitWriter & Writer, void * Data ) const
+void FRepLayout::SendPropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitWriter & Writer, void* Data ) const
 {
 	check( Function == Owner );
 
@@ -2313,7 +2313,7 @@ void FRepLayout::SendPropertiesForRPC( UObject * Object, UFunction * Function, U
 	}
 }
 
-void FRepLayout::ReceivePropertiesForRPC( UObject * Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void * Data ) const
+void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void* Data ) const
 {
 	check( Function == Owner );
 
@@ -2339,7 +2339,7 @@ void FRepLayout::ReceivePropertiesForRPC( UObject * Object, UFunction * Function
 	}
 }
 
-void FRepLayout::SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, UPackageMap	* Map, void * Data, bool & bHasUnmapped ) const
+void FRepLayout::SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, UPackageMap	* Map, void* Data, bool & bHasUnmapped ) const
 {
 	check( Struct == Owner );
 
@@ -2354,7 +2354,7 @@ void FRepLayout::SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, 
 	}
 }
 
-void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker & ChangedTracker, const FReplicationFlags & RepFlags ) const
+void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const
 {
 	SCOPE_CYCLE_COUNTER( STAT_NetRebuildConditionalTime );
 
@@ -2439,7 +2439,7 @@ void FRepLayout::InitRepState(
 
 void FRepLayout::ConstructProperties( FRepState * RepState ) const
 {
-	uint8 * StoredData = RepState->StaticBuffer.GetData();
+	uint8* StoredData = RepState->StaticBuffer.GetData();
 
 	// Construct all items
 	for ( int32 i = 0; i < Parents.Num(); i++ )
@@ -2455,9 +2455,9 @@ void FRepLayout::ConstructProperties( FRepState * RepState ) const
 	}
 }
 
-void FRepLayout::InitProperties( FRepState * RepState, uint8 * Src ) const
+void FRepLayout::InitProperties( FRepState * RepState, uint8* Src ) const
 {
-	uint8 * StoredData = RepState->StaticBuffer.GetData();
+	uint8* StoredData = RepState->StaticBuffer.GetData();
 
 	// Init all items
 	for ( int32 i = 0; i < Parents.Num(); i++ )
@@ -2475,7 +2475,7 @@ void FRepLayout::InitProperties( FRepState * RepState, uint8 * Src ) const
 
 void FRepLayout::DestructProperties( FRepState * RepState ) const
 {
-	uint8 * StoredData = RepState->StaticBuffer.GetData();
+	uint8* StoredData = RepState->StaticBuffer.GetData();
 
 	// Destruct all items
 	for ( int32 i = 0; i < Parents.Num(); i++ )

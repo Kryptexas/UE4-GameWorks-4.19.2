@@ -733,7 +733,7 @@ void ULandscapeComponent::DestroyComponent()
 	Super::DestroyComponent();
 }
 
-FBoxSphereBounds ULandscapeComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds ULandscapeComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds(CachedLocalBox.TransformBy(LocalToWorld));
 }

@@ -109,7 +109,7 @@ public:
 #endif	//WITH_APEX
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;

@@ -342,7 +342,7 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 		}
 		else if (UAnimComposite* Composite = Cast<UAnimComposite>(CurrentAsset))
 		{
-			const FAnimTrack & AnimTrack = Composite->AnimationTrack;
+			const FAnimTrack& AnimTrack = Composite->AnimationTrack;
 
 			// find out if this is additive animation
 			EAdditiveAnimationType AdditiveAnimType = AAT_None;

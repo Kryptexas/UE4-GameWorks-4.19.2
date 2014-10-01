@@ -44,7 +44,7 @@ bool UAnimMontage::IsValidSlot(FName InSlotName) const
 	return false;
 }
 
-const FAnimTrack * UAnimMontage::GetAnimationData(FName InSlotName) const
+const FAnimTrack* UAnimMontage::GetAnimationData(FName InSlotName) const
 {
 	for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
 	{
@@ -156,7 +156,7 @@ int32 UAnimMontage::GetSectionIndexFromPosition(float Position) const
 	return INDEX_NONE;
 }
 
-int32 UAnimMontage::GetAnimCompositeSectionIndexFromPos(float CurrentTime, float & PosWithinCompositeSection) const
+int32 UAnimMontage::GetAnimCompositeSectionIndexFromPos(float CurrentTime, float& PosWithinCompositeSection) const
 {
 	PosWithinCompositeSection = 0.f;
 
@@ -394,7 +394,7 @@ void UAnimMontage::PostLoad()
 	}
 
 	// verify if skeleton matches, otherwise clear it, this can happen if anim sequence has been modified when this hasn't been loaded. 
-	USkeleton * MySkeleton = GetSkeleton();
+	USkeleton* MySkeleton = GetSkeleton();
 	for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
 	{
 		if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
@@ -439,7 +439,7 @@ void UAnimMontage::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 }
 #endif // WITH_EDITOR
 
-const FBranchingPoint * UAnimMontage::FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos)
+const FBranchingPoint* UAnimMontage::FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos)
 {
 	if( bAnimBranchingPointNeedsSort )
 	{
@@ -451,7 +451,7 @@ const FBranchingPoint * UAnimMontage::FindFirstBranchingPoint(float StartTrackPo
 	{
 		for( int32 Index=0; Index<BranchingPoints.Num(); Index++)
 		{
-			const FBranchingPoint & BranchingPoint = BranchingPoints[Index];
+			const FBranchingPoint& BranchingPoint = BranchingPoints[Index];
 			if( BranchingPoint.GetTriggerTime() <= StartTrackPos )
 			{
 				continue;
@@ -467,7 +467,7 @@ const FBranchingPoint * UAnimMontage::FindFirstBranchingPoint(float StartTrackPo
 	{
 		for( int32 Index=BranchingPoints.Num()-1; Index>=0; Index--)
 		{
-			const FBranchingPoint & BranchingPoint = BranchingPoints[Index];
+			const FBranchingPoint& BranchingPoint = BranchingPoints[Index];
 			if( BranchingPoint.GetTriggerTime() >= StartTrackPos )
 			{
 				continue;
@@ -564,7 +564,7 @@ FTransform UAnimMontage::ExtractRootMotionFromTrackRange(float StartTrackPositio
 	// For now assume Root Motion only comes from first track.
 	if( SlotAnimTracks.Num() > 0 )
 	{
-		const FAnimTrack & SlotAnimTrack = SlotAnimTracks[0].AnimTrack;
+		const FAnimTrack& SlotAnimTrack = SlotAnimTracks[0].AnimTrack;
 
 		// Get RootMotion pieces from this track.
 		// We can deal with looping animations, or multiple animations. So we break those up into sequential operations.
@@ -584,7 +584,7 @@ FTransform UAnimMontage::ExtractRootMotionFromTrackRange(float StartTrackPositio
 			// This has to be done in order so root motion translation & rotation is applied properly (as translation is relative to rotation)
 			for(int32 StepIndex=0; StepIndex<RootMotionExtractionSteps.Num(); StepIndex++)
 			{
-				const FRootMotionExtractionStep & CurrentStep = RootMotionExtractionSteps[StepIndex];
+				const FRootMotionExtractionStep& CurrentStep = RootMotionExtractionSteps[StepIndex];
 				CurrentStep.AnimSequence->ExtractRootTrack(0.f, InitialTransform, NULL);
 				CurrentStep.AnimSequence->ExtractRootTrack(CurrentStep.StartPosition, StartTransform, NULL);
 				CurrentStep.AnimSequence->ExtractRootTrack(CurrentStep.EndPosition, EndTransform, NULL);
@@ -632,10 +632,10 @@ void UAnimMontage::EvaluateCurveData(class UAnimInstance* Instance, float Curren
 	// first get all the montage instance weight this slot node has
 	if ( SlotAnimTracks.Num() > 0 )
 	{
-		const FAnimTrack & Track = SlotAnimTracks[0].AnimTrack;
+		const FAnimTrack& Track = SlotAnimTracks[0].AnimTrack;
 		for (int32 I=0; I<Track.AnimSegments.Num(); ++I)
 		{
-			const FAnimSegment & AnimSegment = Track.AnimSegments[I];
+			const FAnimSegment& AnimSegment = Track.AnimSegments[I];
 
 			float PositionInAnim = 0.f;
 			float Weight = 0.f;
@@ -916,7 +916,7 @@ void FAnimMontageInstance::UpdateWeight(float DeltaTime)
 	}
 }
 
-bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPosition, FRootMotionMovementParams & OutRootMotionParams) const
+bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition, FRootMotionMovementParams & OutRootMotionParams) const
 {
 	if( !IsValid() )
 	{
@@ -939,7 +939,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float & InOutPositio
 
 		if( Montage->IsValidSectionIndex(CurrentSectionIndex) )
 		{
-			const FCompositeSection & CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
+			const FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
 
 			// we need to advance within section
 			check(NextSections.IsValidIndex(CurrentSectionIndex));
@@ -1040,7 +1040,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 				
 				if( Montage->IsValidSectionIndex(CurrentSectionIndex) )
 				{
-					const FCompositeSection & CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
+					const FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
 
 					// we need to advance within section
 					check(NextSections.IsValidIndex(CurrentSectionIndex));
@@ -1052,7 +1052,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 
 					// Also look for a branching point. If we have one, stop there first to handle it.
 					const float CurrentSectionEndPos = CurrentSection.StartTime + CurrentSectionLength;
-					const FBranchingPoint * NextBranchingPoint = Montage->FindFirstBranchingPoint(Position, FMath::Clamp(Position + DesiredDeltaMove, CurrentSection.StartTime, CurrentSectionEndPos));
+					const FBranchingPoint* NextBranchingPoint = Montage->FindFirstBranchingPoint(Position, FMath::Clamp(Position + DesiredDeltaMove, CurrentSection.StartTime, CurrentSectionEndPos));
 					if( NextBranchingPoint )
 					{
 						// get the first one to see if it's less than AnimEnd
@@ -1169,7 +1169,7 @@ void FAnimMontageInstance::TriggerEventHandler(FName EventName)
 	}
 }
 
-void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint * BranchingPoint)
+void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint* BranchingPoint)
 {
 	// Skip notifies and branching points if montage has been interrupted.
 	if( bInterrupted )

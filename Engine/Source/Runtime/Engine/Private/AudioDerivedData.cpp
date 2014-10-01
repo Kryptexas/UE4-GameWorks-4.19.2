@@ -659,7 +659,7 @@ static void CookSimpleWave(USoundWave* SoundWave, FName FormatName, const IAudio
 	if( SoundWave->RawData.GetBulkDataSize() > 0 )
 	{
 		// Lock raw wave data.
-		uint8* RawWaveData = ( uint8 * )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+		uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
 		bWasLocked = true;
 		int32 RawDataSize = SoundWave->RawData.GetBulkDataSize();
 
@@ -733,7 +733,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 	FWaveModInfo			WaveInfo;
 	TArray<TArray<uint8> >	SourceBuffers;
 
-	uint8* RawWaveData = ( uint8 * )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+	uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
 
 	// Front left channel is the master
 	ChannelCount = 1;

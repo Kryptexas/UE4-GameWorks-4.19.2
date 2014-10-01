@@ -31,12 +31,12 @@ void UAbilitySystemComponent::InitializeComponent()
 
 	TArray<UObject*> ChildObjects;
 	GetObjectsWithOuter(Owner, ChildObjects, false, RF_PendingKill);
-	for (UObject * Obj : ChildObjects)
+	for (UObject* Obj : ChildObjects)
 	{
 		UAttributeSet* Set = Cast<UAttributeSet>(Obj);
 		if (Set)  
 		{
-			UObject * AT = Set->GetArchetype();	
+			UObject* AT = Set->GetArchetype();	
 			SpawnedAttributes.Add(Set);
 		}
 	}
@@ -195,7 +195,7 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayA
 	check(Ability);
 	check(Ability->HasAllFlags(RF_ClassDefaultObject));
 
-	AActor * OwnerActor = GetOwner();
+	AActor* OwnerActor = GetOwner();
 	check(OwnerActor);
 
 	UGameplayAbility * AbilityInstance = ConstructObject<UGameplayAbility>(Ability->GetClass(), OwnerActor);
