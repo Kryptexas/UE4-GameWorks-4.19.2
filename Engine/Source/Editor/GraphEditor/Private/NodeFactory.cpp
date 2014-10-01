@@ -32,6 +32,7 @@
 #include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_StateMachineBase.h"
+#include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimStateNode.h"
 #include "AnimStateEntryNode.h"
 #include "AnimStateConduitNode.h"
@@ -46,6 +47,7 @@
 #include "AnimationNodes/SGraphNodeSequencePlayer.h"
 #include "AnimationNodes/SGraphNodeAnimationResult.h"
 #include "AnimationNodes/SGraphNodeStateMachineInstance.h"
+#include "AnimationNodes/SGraphNodeLayeredBoneBlend.h"
 #include "AnimationPins/SGraphPinPose.h"
 
 #include "KismetPins/SGraphPinBool.h"
@@ -106,6 +108,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else if (UAnimGraphNode_SequencePlayer* SequencePlayer = Cast<UAnimGraphNode_SequencePlayer>(InNode))
 		{
 			return SNew(SGraphNodeSequencePlayer, SequencePlayer);
+		}
+		else if (UAnimGraphNode_LayeredBoneBlend* LayeredBlend = Cast<UAnimGraphNode_LayeredBoneBlend>(InNode))
+		{
+			return SNew(SGraphNodeLayeredBoneBlend, LayeredBlend);
 		}
 	}
 

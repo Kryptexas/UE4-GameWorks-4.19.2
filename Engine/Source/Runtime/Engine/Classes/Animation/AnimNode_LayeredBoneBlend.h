@@ -38,6 +38,7 @@ protected:
 public:	
 	FAnimNode_LayeredBoneBlend()
 	{
+		AddPose();
 	}
 
 	// FAnimNode_Base interface
