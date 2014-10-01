@@ -341,6 +341,11 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::AddBoundMenuItems(
 				{
 					LastMadeMenuItem = ItemFactory.MakeBoundMenuItem(EditorContext, BoundActionInfo);
 					MenuItemsOut.Add(LastMadeMenuItem);
+
+					if (Flags & FBlueprintActionMenuBuilder::FlattenCategoryHierarcy)
+					{
+						LastMadeMenuItem->Category = ItemFactory.RootCategory.ToString();
+					}
 				}
 				else
 				{
@@ -402,6 +407,10 @@ FBlueprintActionMenuBuilderImpl::MenuItemList FBlueprintActionMenuBuilderImpl::F
 	if (!UnBoundMenuEntry.IsValid() && bPassedFilter)
 	{
 		UnBoundMenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, DatabaseAction);
+		if (Flags & FBlueprintActionMenuBuilder::FlattenCategoryHierarcy)
+		{
+			UnBoundMenuEntry->Category = ItemFactory.RootCategory.ToString();
+		}
 	}
 
 	FBlueprintActionMenuBuilderImpl::MenuItemList MenuItems;

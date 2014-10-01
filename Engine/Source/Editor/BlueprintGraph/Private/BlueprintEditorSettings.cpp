@@ -9,9 +9,11 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructIni
 	: Super(PCIP)
 {
 	bShowGraphInstructionText = true;
-	NodeTemplateCacheCapMB    = 20.f;
+	NodeTemplateCacheCapMB = 20.f;
 	bUseTargetContextForNodeMenu = true;
 	bExposeAllMemberComponentFunctions = true;
+	bShowContextualFavorites = false;
+	bFlattenFavoritesMenu = false;
 
 	// settings that were moved out of experimental...
 	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();

@@ -26,6 +26,7 @@
 
 namespace BlueprintActionMenuUtilsImpl
 {
+	static int32 const FavoritesSectionGroup  = 102;
 	static int32 const LevelActorSectionGroup = 101;
 	static int32 const ComponentsSectionGroup = 100;
 	static int32 const BoundAddComponentGroup = 002;
@@ -119,6 +120,8 @@ namespace BlueprintActionMenuUtilsImpl
 	 * @return 
 	 */
 	static void AddLevelActorSections(FBlueprintActionFilter const& LevelActorsFilter, FBlueprintActionMenuBuilder& MenuOut);
+
+	static void AddFavoritesSection(FBlueprintActionFilter const& MainMenuFilter, FBlueprintActionMenuBuilder& MenuOut);
 }
 
 //------------------------------------------------------------------------------
@@ -337,6 +340,28 @@ static void BlueprintActionMenuUtilsImpl::AddLevelActorSections(FBlueprintAction
 	MenuOut.AddMenuSection(ActorReferencesFilter, FText::GetEmpty(), LevelActorSectionGroup, FBlueprintActionMenuBuilder::ConsolidateBoundActions);
 }
 
+//------------------------------------------------------------------------------
+static void BlueprintActionMenuUtilsImpl::AddFavoritesSection(FBlueprintActionFilter const& MainMenuFilter, FBlueprintActionMenuBuilder& MenuOut)
+{
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	if (BlueprintSettings->bShowContextualFavorites)
+	{
+		FBlueprintActionFilter FavoritesFilter = MainMenuFilter;
+		FavoritesFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsNonFavoritedAction));
+		
+		uint32 SectionFlags = 0x00;
+		FText  SectionHeading = LOCTEXT("ContextMenuFavoritesTitle", "Favorites");
+
+		if (BlueprintSettings->bFlattenFavoritesMenu)
+		{
+			SectionFlags |= FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
+			SectionHeading = FText::GetEmpty();
+		}
+
+		MenuOut.AddMenuSection(FavoritesFilter, SectionHeading, FavoritesSectionGroup, SectionFlags);
+	}
+}
+
 /*******************************************************************************
  * FBlueprintActionMenuUtils
  ******************************************************************************/
@@ -532,6 +557,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	if (bIsContextSensitive)
 	{
+		AddFavoritesSection(MainMenuFilter, MenuOut);
 		MenuOut.AddMenuSection(CallOnMemberFilter, FText::GetEmpty(), MainMenuSectionGroup);
 		MenuOut.AddMenuSection(AddComponentFilter, FText::GetEmpty(), BoundAddComponentGroup);
 	}	
@@ -586,7 +612,13 @@ void FBlueprintActionMenuUtils::MakeFavoritesMenu(FBlueprintActionContext const&
 		MenuFilter.Context = Context;
 		MenuFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(BlueprintActionMenuUtilsImpl::IsNonFavoritedAction));
 
-		MenuOut.AddMenuSection(MenuFilter);
+		uint32 SectionFlags = 0x00;
+		if (GetDefault<UBlueprintEditorSettings>()->bFlattenFavoritesMenu)
+		{
+			SectionFlags = FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
+		}
+
+		MenuOut.AddMenuSection(MenuFilter, FText::GetEmpty(), BlueprintActionMenuUtilsImpl::MainMenuSectionGroup, SectionFlags);
 		MenuOut.RebuildActionList();
 	}
 	else

@@ -32,6 +32,14 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserExperience, meta=(DisplayName="Context Menu: Expose All Sub-Component Functions"))
 	bool bExposeAllMemberComponentFunctions;
 
+	/** If enabled, then a separate section with your Blueprint favorites will be pined to the top of the context menu. */
+	UPROPERTY(EditAnywhere, config, Category=UserExperience, meta=(DisplayName="Context Menu: Show Favorites Section"))
+	bool bShowContextualFavorites;
+
+	/** If enabled, then your Blueprint favorites will be uncategorized, leaving you with less nested categories to sort through. */
+	UPROPERTY(EditAnywhere, config, Category=UserExperience)
+	bool bFlattenFavoritesMenu;
+
 // Developer Settings
 public:
 	/** If enabled, tooltips on action menu items will show the associated action's signature id (can be used to setup custom favorites menus).*/
