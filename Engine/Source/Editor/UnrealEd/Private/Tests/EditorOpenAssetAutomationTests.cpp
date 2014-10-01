@@ -11,6 +11,7 @@
 //Includes needed for opening certain assets
 #include "Materials/MaterialFunction.h"
 #include "Slate/SlateBrushAsset.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 
 
@@ -214,6 +215,25 @@ bool FOpenAnimSequenceAssetEditors::RunTest(const FString& Parameters)
 
 //////////////////////////////////////////////////////////////////////////
 /**
+* This test opens each BEHAVIOR TREE into its sub-editor.
+*/
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FOpenBehaviorTreeAssetEditors, "Tools.AI.Open Behavior Tree Assets", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser));
+
+void FOpenBehaviorTreeAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	//This grabs each Behavior Tree asset in the Game/Content directory
+	FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UBehaviorTree::StaticClass(), true, OutBeautifiedNames, OutTestCommands);
+}
+
+bool FOpenBehaviorTreeAssetEditors::RunTest(const FString& Parameters)
+{
+	bool bDidTheTestPass = FOpenActualAssetEditors(Parameters);
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	return bDidTheTestPass;
+}
+
+//////////////////////////////////////////////////////////////////////////
+/**
 * This test opens each BlendSpace into its sub-editor.
 */
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(FOpenBlendSpaceAssetEditors, "Tools.Skeletal Mesh.Animation.BlendSpaces.Open BlendSpace Assets", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser));
@@ -264,6 +284,25 @@ void FOpenBlueprintAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, T
 }
 
 bool FOpenBlueprintAssetEditors::RunTest(const FString& Parameters)
+{
+	bool bDidTheTestPass = FOpenActualAssetEditors(Parameters);
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	return bDidTheTestPass;
+}
+
+//////////////////////////////////////////////////////////////////////////
+/**
+* This test opens each UserDefinedEnum into its sub-editor.
+*/
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FOpenUserDefinedEnumAssetEditors, "Tools.Blueprint.Open User Defined Enum Assets", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser));
+
+void FOpenUserDefinedEnumAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	//This grabs each UserDefinedEnum asset in the Game/Content directory
+	FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UUserDefinedEnum::StaticClass(), true, OutBeautifiedNames, OutTestCommands);
+}
+
+bool FOpenUserDefinedEnumAssetEditors::RunTest(const FString& Parameters)
 {
 	bool bDidTheTestPass = FOpenActualAssetEditors(Parameters);
 	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
@@ -446,7 +485,7 @@ bool FOpenPhysicalMaterialAssetEditors::RunTest(const FString& Parameters)
 /**
 * This test opens each PhysicsAsset into its sub-editor.
 */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FOpenPhysicsAssetAssetEditors, "Tools.Physics.Open Physics Asset Assets", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser));
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FOpenPhysicsAssetAssetEditors, "Tools.Physics.Open Physics Assets", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser));
 
 void FOpenPhysicsAssetAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
 {

@@ -8,6 +8,8 @@
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "EngineVersion.h"
 #include "ShaderCompiler.h"
+#include "BehaviorTree/BehaviorTree.h"
+
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
@@ -876,41 +878,45 @@ void FEditorAutomationTestUtilities::CollectMiscGameContentTestsByClass(TArray<F
 
 	//This is a list of classes that we don't want to be in the misc category.
 	TArray<FName> ExcludeClassesList;
-	ExcludeClassesList.Add(UTexture::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTexture2D::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTextureRenderTarget::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTextureRenderTarget2D::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UTextureCube::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAimOffsetBlendSpace::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAimOffsetBlendSpace1D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UAnimBlueprint::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAnimMontage::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UAnimSequence::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UBehaviorTree::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UBlendSpace::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UBlendSpace1D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UBlueprint::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UDestructibleMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UDialogueVoice::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UDialogueWave::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UFont::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterial::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterialFunction::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterialInstanceConstant::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UMaterialParameterCollection::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UParticleSystem::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UPhysicalMaterial::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UPhysicsAsset::StaticClass()->GetFName());
 	ExcludeClassesList.Add(UReverbEffect::StaticClass()->GetFName());
-	ExcludeClassesList.Add(USlateWidgetStyleAsset::StaticClass()->GetFName());
-	ExcludeClassesList.Add(USlateBrushAsset::StaticClass()->GetFName());
-	ExcludeClassesList.Add(USoundAttenuation::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UStaticMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USkeletalMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USkeleton::StaticClass()->GetFName());
+	ExcludeClassesList.Add(USlateBrushAsset::StaticClass()->GetFName());
+	ExcludeClassesList.Add(USlateWidgetStyleAsset::StaticClass()->GetFName());
+	ExcludeClassesList.Add(USoundAttenuation::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundClass::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundCue::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundMix::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USoundWave::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UStaticMesh::StaticClass()->GetFName());
 	ExcludeClassesList.Add(USubsurfaceProfile::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UFont::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UBlueprint::StaticClass()->GetFName());
-	ExcludeClassesList.Add(UAnimBlueprint::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTexture::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTexture2D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTextureCube::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTextureRenderTarget::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UTextureRenderTarget2D::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UUserDefinedEnum::StaticClass()->GetFName());
+	ExcludeClassesList.Add(UWorld::StaticClass()->GetFName());
 
 	//Generating the list of assets.
 	//This list isn't expected to have anything that may be obtained with another function.
