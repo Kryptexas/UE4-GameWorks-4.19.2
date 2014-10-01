@@ -31,8 +31,10 @@ namespace iPhonePackager
 		public DateTime CreationDate;
 		public DateTime ExpirationDate;
 
-		public static string FindCompatibleProvision(string CFBundleIdentifier, bool bCheckCert = true)
+		public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
 		{
+			bNameMatch = false;
+
 			// remap the gamename if necessary
 			string GameName = Program.GameName;
 			if (GameName == "UE4Game")
@@ -51,6 +53,7 @@ namespace iPhonePackager
 
 			#region remove after we provide an install mechanism
 			// copy all of the provisions from the game directory to the library
+
 			{
 				var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/";
 				if (Directory.Exists(ProjectFileBuildIOSPath))
@@ -110,13 +113,14 @@ namespace iPhonePackager
 					if (Phase == 0)
 					{
 						bPassesNameCheck = TestProvision.ApplicationIdentifier.Contains(CFBundleIdentifier);
+						bNameMatch = bPassesNameCheck;
 					}
 					else
 					{
 						bPassesNameCheck = TestProvision.ProvisionName.Contains("Wildcard") || TestProvision.ApplicationIdentifier.Contains("*");
 					}
 
-					if (!bPassesNameCheck)
+					if (!bPassesNameCheck && bCheckIdentifier)
 					{
 						Program.LogVerbose("  .. Failed phase {0} name check (provision app ID was {1})", Phase, TestProvision.ApplicationIdentifier);
 						continue;

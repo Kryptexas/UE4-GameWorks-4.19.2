@@ -16,7 +16,7 @@ namespace iPhonePackager
 {
 	public partial class ToolsHub : Form
 	{
-		protected Dictionary<bool, Bitmap> CheckStateImages = new Dictionary<bool, Bitmap>();
+		protected Dictionary<int, Bitmap> CheckStateImages = new Dictionary<int, Bitmap>();
 
 		public static string IpaFilter = "iOS packaged applications (*.ipa)|*.ipa|All Files (*.*)|*.*";
 		public static string CertificateRequestFilter = "Certificate Request (*.csr)|*.csr|All Files (*.*)|*.*";
@@ -78,8 +78,9 @@ namespace iPhonePackager
 		{
 			InitializeComponent();
 
-			CheckStateImages.Add(false, iPhonePackager.Properties.Resources.GreyCheck);
-			CheckStateImages.Add(true, iPhonePackager.Properties.Resources.GreenCheck);
+			CheckStateImages.Add(0, iPhonePackager.Properties.Resources.GreyCheck);
+			CheckStateImages.Add(1, iPhonePackager.Properties.Resources.YellowCheck);
+			CheckStateImages.Add(2, iPhonePackager.Properties.Resources.GreenCheck);
 
 			Text = Config.AppDisplayName + " Wizard";
 		}
@@ -109,10 +110,25 @@ namespace iPhonePackager
 			MobileProvision Provision;
 			X509Certificate2 Cert;
 			bool bOverridesExists;
-			CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bOverridesExists);
+			bool bNameMatch;
+			CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bOverridesExists, out bNameMatch, false);
 
-			MobileProvisionCheck2.Image = MobileProvisionCheck.Image = CheckStateImages[Provision != null];
-			CertificatePresentCheck2.Image = CertificatePresentCheck.Image = CheckStateImages[Cert != null];
+			int ProvisionVal = 0;
+			if (Provision != null)
+			{
+				ProvisionVal = 1;
+				if (bNameMatch)
+				{
+					ProvisionVal = 2;
+				}
+			}
+			int CertVal = 0;
+			if (Cert != null)
+			{
+				CertVal = 2;
+			}
+			MobileProvisionCheck2.Image = MobileProvisionCheck.Image = CheckStateImages[ProvisionVal];
+			CertificatePresentCheck2.Image = CertificatePresentCheck.Image = CheckStateImages[CertVal];
 //			OverridesPresentCheck2.Image = OverridesPresentCheck.Image = CheckStateImages[bOverridesExists];
 
 //			ReadyToPackageButton.Enabled = /*bOverridesExists && */(Provision != null) && (Cert != null);

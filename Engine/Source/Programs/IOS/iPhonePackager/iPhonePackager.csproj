@@ -215,6 +215,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="IPhonePackagerIcon.ico" />
+    <Content Include="Resources\YellowCheck.png" />
     <None Include="Resources\GreyCheck.png" />
   </ItemGroup>
   <ItemGroup>
