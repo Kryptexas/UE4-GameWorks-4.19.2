@@ -39,7 +39,7 @@ namespace EGraphicsPreset
 }
 
 /** Hardware targeting settings, stored in default config, per-project */
-UCLASS(config=Editor, defaultconfig)
+UCLASS(config=Engine, defaultconfig)
 class HARDWARETARGETING_API UHardwareTargetingSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -47,10 +47,18 @@ class HARDWARETARGETING_API UHardwareTargetingSettings : public UObject
 	/** Enum specifying which class of hardware this game is targeting */
 	UPROPERTY(config, EditAnywhere, category=None)
 	TEnumAsByte<EHardwareClass::Type> TargetedHardwareClass;
+	
+	/** Enum that is set to TargetedHardwareClass when the settings have been successfully applied */
+	UPROPERTY(config)
+	TEnumAsByte<EHardwareClass::Type> AppliedTargetedHardwareClass;
 
 	/** Enum specifying a graphics preset to use for this game */
 	UPROPERTY(config, EditAnywhere, category=None)
 	TEnumAsByte<EGraphicsPreset::Type> DefaultGraphicsPerformance;
+
+	/** Enum that is set to DefaultGraphicsPerformance when the settings have been successfully applied */
+	UPROPERTY(config)
+	TEnumAsByte<EGraphicsPreset::Type> AppliedDefaultGraphicsPerformance;
 
 	/** Check if these settings have any pending changes that require action */
 	bool HasPendingChanges() const;

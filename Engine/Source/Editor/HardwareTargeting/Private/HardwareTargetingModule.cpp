@@ -248,15 +248,9 @@ void FHardwareTargetingModule::ApplyHardwareTargetingSettings()
 		// Write out the 'did we apply' values
 		if (bSuccess)
 		{
-			UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGraphicsPreset"), true);
-			check(Enum);
-			GConfig->SetString(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedDefaultGraphicsPerformance"), *Enum->GetEnumName(Settings->DefaultGraphicsPerformance), GEditorIni);
-
-			Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EHardwareClass"), true);
-			check(Enum);
-			GConfig->SetString(TEXT("AppliedHardwareTargetingSettings"), TEXT("AppliedTargetedHardwareClass"), *Enum->GetEnumName(Settings->TargetedHardwareClass), GEditorIni);
-
-			GConfig->Flush(false, GEditorIni);
+			Settings->AppliedTargetedHardwareClass = Settings->TargetedHardwareClass;
+			Settings->AppliedDefaultGraphicsPerformance = Settings->DefaultGraphicsPerformance;
+			Settings->UpdateDefaultConfigFile();
 		}
 	}
 }
