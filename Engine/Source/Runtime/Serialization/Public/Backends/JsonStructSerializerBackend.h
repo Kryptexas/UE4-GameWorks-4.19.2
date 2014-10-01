@@ -42,5 +42,5 @@ public:
 private:
 
 	/** Holds the Json writer used for the actual serialization. */
-	TSharedRef<TJsonWriter<>> JsonWriter;
+	TSharedRef<TJsonWriter<UCS2CHAR>> JsonWriter;
 };

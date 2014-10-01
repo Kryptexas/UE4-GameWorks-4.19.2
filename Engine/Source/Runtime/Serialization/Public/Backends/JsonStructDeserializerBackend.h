@@ -48,5 +48,5 @@ private:
 	EJsonNotation LastNotation;
 
 	/** Holds the Json reader used for the actual reading of the archive. */
-	TSharedRef<TJsonReader<>> JsonReader;
+	TSharedRef<TJsonReader<UCS2CHAR>> JsonReader;
 };
