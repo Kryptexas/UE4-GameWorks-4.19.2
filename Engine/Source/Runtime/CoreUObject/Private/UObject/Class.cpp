@@ -356,14 +356,14 @@ void UField::SetMetaData(const FName& Key, const TCHAR* InValue)
 
 UClass* UField::GetClassMetaData(const TCHAR* Key) const
 {
-	const FString & ClassName = GetMetaData(Key);
+	const FString& ClassName = GetMetaData(Key);
 	UClass* const FoundObject = FindObject<UClass>(ANY_PACKAGE, *ClassName);
 	return FoundObject;
 }
 
 UClass* UField::GetClassMetaData(const FName& Key) const
 {
-	const FString & ClassName = GetMetaData(Key);
+	const FString& ClassName = GetMetaData(Key);
 	UClass* const FoundObject = FindObject<UClass>(ANY_PACKAGE, *ClassName);
 	return FoundObject;
 }

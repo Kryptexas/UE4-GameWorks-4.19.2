@@ -245,7 +245,7 @@ public:
 	CORE_API FString ToString() const;
 
 	/** Acceptable form: "%f,%f,%f|%f,%f,%f|%f,%f,%f" */
-	CORE_API bool InitFromString( const FString & InSourceString );
+	CORE_API bool InitFromString( const FString& InSourceString );
 
 	/**
 	* Copy another Transform into this one
@@ -542,7 +542,7 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector & InScale, float Tolerance=0.0f) const;
+	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=0.0f) const;
 
 
 	// temp function for easy conversion
@@ -679,7 +679,7 @@ public:
 		return RotationEquals(Other.Rotation, ToleranceRegister) && TranslationEquals(Other.Translation, ToleranceRegister);
 	}
 
-	FORCEINLINE static void Multiply(FTransform * OutTransform, const FTransform * A, const FTransform * B);
+	FORCEINLINE static void Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B);
 
 	/**
 	 * Sets the components
@@ -1108,7 +1108,7 @@ public:
 		DiagnosticCheckNaN_Scale3D();
 	}
 
-	void SetFromMatrix(const FMatrix & InMatrix)
+	void SetFromMatrix(const FMatrix& InMatrix)
 	{
 		FMatrix M = InMatrix;
 
@@ -1667,7 +1667,7 @@ inline float FTransform::GetMinimumAxisScale() const
  * also returning BIG_NUMBER causes sequential NaN issues by multiplying 
  * so we hardcode as 0
  */
-FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector & InScale, float Tolerance) const
+FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, float Tolerance) const
 {
 	FVector SafeReciprocalScale;
 	if (FMath::Abs(InScale.X) <= Tolerance)

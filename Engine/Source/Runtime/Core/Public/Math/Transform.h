@@ -201,7 +201,7 @@ public:
 	CORE_API FString ToString() const;
 
 	/** Acceptable form: "%f,%f,%f|%f,%f,%f|%f,%f,%f" */
-	CORE_API bool InitFromString( const FString & InSourceString );
+	CORE_API bool InitFromString( const FString& InSourceString );
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 	/**
@@ -535,7 +535,7 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector & InScale) const;
+	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale) const;
 
 	// temp function for easy conversion
 	FORCEINLINE FVector GetLocation() const
@@ -625,7 +625,7 @@ public:
 	 * @param  A Transform A.
 	 * @param  B Transform B.
 	 */
-	FORCEINLINE static void Multiply(FTransform * OutTransform, const FTransform * A, const FTransform * B);
+	FORCEINLINE static void Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B);
 
 	/**
 	 * Sets the components
@@ -1014,7 +1014,7 @@ public:
 		DiagnosticCheckNaN_Scale3D();
 	}
 
-	void SetFromMatrix(const FMatrix & InMatrix)
+	void SetFromMatrix(const FMatrix& InMatrix)
 	{
 		FMatrix M = InMatrix;
 
@@ -1066,7 +1066,7 @@ FORCEINLINE void FTransform::RemoveScaling(float Tolerance/*=SMALL_NUMBER*/)
 }
 
 /** Returns Multiplied Transform of 2 FTransforms **/
-FORCEINLINE void FTransform::Multiply(FTransform * OutTransform, const FTransform * A, const FTransform * B)
+FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B)
 {
 	A->DiagnosticCheckNaN_All();
 	B->DiagnosticCheckNaN_All();
@@ -1292,7 +1292,7 @@ inline float FTransform::GetMinimumAxisScale() const
 // anymore because you should be instead of showing gigantic infinite mesh
 // also returning BIG_NUMBER causes sequential NaN issues by multiplying 
 // so we hardcode as 0
-FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector & InScale) const
+FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale) const
 {
 	FVector SafeReciprocalScale;
 	// mathematically if you have 0 scale, it should be infinite, 

@@ -123,12 +123,12 @@ FBox FBox::TransformBy(const FMatrix& M) const
 	return NewBox;
 }
 
-FBox FBox::TransformBy(const FTransform & M) const
+FBox FBox::TransformBy(const FTransform& M) const
 {
 	return TransformBy(M.ToMatrixWithScale());
 }
 
-FBox FBox::InverseTransformBy(const FTransform & M) const
+FBox FBox::InverseTransformBy(const FTransform& M) const
 {
 	FVector Vertices[8] = 
 	{

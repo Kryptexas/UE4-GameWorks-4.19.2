@@ -110,7 +110,7 @@ FORCEINLINE VectorRegister VectorOne()
  * @param Ptr	Unaligned memory pointer to the 4 floats
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
  */
-FORCEINLINE VectorRegister VectorLoad( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoad( const void* Ptr )
 {
 	return vld1q_f32( (float32_t*)Ptr );
 }
@@ -151,7 +151,7 @@ FORCEINLINE VectorRegister VectorLoad( const void * Ptr )
  * @param Ptr	Aligned memory pointer to the 4 floats
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
  */
-FORCEINLINE VectorRegister VectorLoadAligned( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoadAligned( const void* Ptr )
 {
 	return vld1q_f32( (float32_t*)Ptr );
 }
@@ -203,7 +203,7 @@ FORCEINLINE VectorRegister VectorSet( float X, float Y, float Z, float W )
  * @param Vec	Vector to store
  * @param Ptr	Aligned memory pointer
  */
-FORCEINLINE void VectorStoreAligned( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStoreAligned( VectorRegister Vec, void* Ptr )
 {
 	vst1q_f32( (float32_t *)Ptr, Vec );
 }
@@ -214,7 +214,7 @@ FORCEINLINE void VectorStoreAligned( VectorRegister Vec, void * Ptr )
  * @param Vec	Vector to store
  * @param Ptr	Memory pointer
  */
-FORCEINLINE void VectorStore( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStore( VectorRegister Vec, void* Ptr )
 {
 	vst1q_f32( (float32_t *)Ptr, Vec );
 }
@@ -225,7 +225,7 @@ FORCEINLINE void VectorStore( VectorRegister Vec, void * Ptr )
  * @param Vec	Vector to store XYZ
  * @param Ptr	Unaligned memory pointer
  */
-FORCEINLINE void VectorStoreFloat3( VectorRegister & Vec, void * Ptr )
+FORCEINLINE void VectorStoreFloat3( VectorRegister& Vec, void* Ptr )
 {
 	vst1q_lane_f32( ((float32_t *)Ptr) + 0, Vec, 0 );
 	vst1q_lane_f32( ((float32_t *)Ptr) + 1, Vec, 1 );
@@ -238,7 +238,7 @@ FORCEINLINE void VectorStoreFloat3( VectorRegister & Vec, void * Ptr )
  * @param Vec	Vector to store X
  * @param Ptr	Unaligned memory pointer
  */
-FORCEINLINE void VectorStoreFloat1( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStoreFloat1( VectorRegister Vec, void* Ptr )
 {
 	vst1q_lane_f32( (float32_t *)Ptr, Vec, 0 );
 }
@@ -828,7 +828,7 @@ FORCEINLINE VectorRegister VectorMergeVecXYZ_VecW(const VectorRegister& VecXYZ, 
  * @param Ptr			Unaligned memory pointer to the 4 uint8s.
  * @return				VectorRegister( float(Ptr[0]), float(Ptr[1]), float(Ptr[2]), float(Ptr[3]) )
  */
-FORCEINLINE VectorRegister VectorLoadByte4( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoadByte4( const void* Ptr )
 {
 	// OPTIMIZE ME!
 	const uint8 *P = (const uint8 *)Ptr;
@@ -842,7 +842,7 @@ FORCEINLINE VectorRegister VectorLoadByte4( const void * Ptr )
  * @param Ptr			Unaligned memory pointer to the 4 uint8s.
  * @return				VectorRegister( float(Ptr[3]), float(Ptr[2]), float(Ptr[1]), float(Ptr[0]) )
  */
-FORCEINLINE VectorRegister VectorLoadByte4Reverse( const void * Ptr )
+FORCEINLINE VectorRegister VectorLoadByte4Reverse( const void* Ptr )
 {
 	// OPTIMIZE ME!
 	const uint8 *P = (const uint8 *)Ptr;
@@ -856,7 +856,7 @@ FORCEINLINE VectorRegister VectorLoadByte4Reverse( const void * Ptr )
  * @param Vec			Vector containing 4 floats
  * @param Ptr			Unaligned memory pointer to store the 4 uint8s.
  */
-FORCEINLINE void VectorStoreByte4( VectorRegister Vec, void * Ptr )
+FORCEINLINE void VectorStoreByte4( VectorRegister Vec, void* Ptr )
 {
 	uint16x8_t u16x8 = (uint16x8_t)vcvtq_u32_f32( VectorMin( Vec, Vec255 ) );
 	uint8x8_t u8x8 = (uint8x8_t)vget_low_u16( vuzpq_u16( u16x8, u16x8 ).val[0] );

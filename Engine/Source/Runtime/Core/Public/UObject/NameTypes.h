@@ -768,7 +768,7 @@ public:
 	 * @param	Other	String to compare this name to
 	 * @return true if name matches the string, false otherwise
 	 */
-	bool operator==( const TCHAR * Other ) const;
+	bool operator==( const TCHAR* Other ) const;
 
 	static void StaticInit();
 	static void DisplayHash( class FOutputDevice& Ar );

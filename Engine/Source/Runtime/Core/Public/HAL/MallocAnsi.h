@@ -166,5 +166,5 @@ public:
 		return true;
 	}
 
-	virtual const TCHAR * GetDescriptiveName() override { return TEXT("ANSI"); }
+	virtual const TCHAR* GetDescriptiveName() override { return TEXT("ANSI"); }
 };

@@ -132,7 +132,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	bool GetBoolMetaData(const TCHAR* Key) const
 	{		
-		const FString & BoolString = GetMetaData(Key);
+		const FString& BoolString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		return (BoolString == "true");
 	}
@@ -145,7 +145,7 @@ class COREUOBJECT_API UField : public UObject
 	 */
 	bool GetBoolMetaData(const FName& Key) const
 	{		
-		const FString & BoolString = GetMetaData(Key);
+		const FString& BoolString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		return (BoolString == "true");
 	}
@@ -158,7 +158,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	int32 GetINTMetaData(const TCHAR* Key) const
 	{
-		const FString & INTString = GetMetaData(Key);
+		const FString& INTString = GetMetaData(Key);
 		int32 Value = FCString::Atoi(*INTString);
 		return Value;
 	}
@@ -171,7 +171,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	int32 GetINTMetaData(const FName& Key) const
 	{
-		const FString & INTString = GetMetaData(Key);
+		const FString& INTString = GetMetaData(Key);
 		int32 Value = FCString::Atoi(*INTString);
 		return Value;
 	}
@@ -184,7 +184,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	float GetFLOATMetaData(const TCHAR* Key) const
 	{
-		const FString & FLOATString = GetMetaData(Key);
+		const FString& FLOATString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		float Value = FCString::Atof(*FLOATString);
 		return Value;
@@ -198,7 +198,7 @@ class COREUOBJECT_API UField : public UObject
 	*/
 	float GetFLOATMetaData(const FName& Key) const
 	{
-		const FString & FLOATString = GetMetaData(Key);
+		const FString& FLOATString = GetMetaData(Key);
 		// FString == operator does case insensitive comparison
 		float Value = FCString::Atof(*FLOATString);
 		return Value;
@@ -1358,7 +1358,7 @@ public:
 	 * @param InEnumName Enum name.
 	 * @return Full enum name.
 	 */
-	COREUOBJECT_API static FString GenerateFullEnumName(const UEnum * InEnum, const TCHAR* InEnumName)
+	COREUOBJECT_API static FString GenerateFullEnumName(const UEnum* InEnum, const TCHAR* InEnumName)
 	{
 		if (InEnum->GetCppForm() == ECppForm::Regular || IsFullEnumName(InEnumName))
 		{
@@ -1575,7 +1575,7 @@ public:
 	 * @param	EnumEntryName	Name of the entry of the enum
 	 *
 	 */
-	static COREUOBJECT_API int32 FindEnumRedirects(const UEnum * Enum, FName EnumEntryName);
+	static COREUOBJECT_API int32 FindEnumRedirects(const UEnum* Enum, FName EnumEntryName);
 
 
 	/**

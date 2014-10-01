@@ -160,7 +160,7 @@ public:
 	 *
 	 * @return pointer to human-readable malloc name
 	 */
-	virtual const TCHAR * GetDescriptiveName()
+	virtual const TCHAR* GetDescriptiveName()
 	{
 		return TEXT("Unspecified allocator");
 	}

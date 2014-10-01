@@ -58,7 +58,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 		HANDLE			GetSemaphore() { return Semaphore; }
 
 		/** Constructor */
-		FWindowsSemaphore(const FString & InName, HANDLE InSemaphore);
+		FWindowsSemaphore(const FString& InName, HANDLE InSemaphore);
 
 		/** Destructor */
 		virtual ~FWindowsSemaphore();
@@ -115,7 +115,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
 	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
-	static FSemaphore * NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks = 1);
+	static FSemaphore* NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks = 1);
 	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
 	static bool Daemonize();
 

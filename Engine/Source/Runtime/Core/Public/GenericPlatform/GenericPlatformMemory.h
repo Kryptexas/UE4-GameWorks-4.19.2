@@ -139,7 +139,7 @@ struct CORE_API FGenericPlatformMemory
 		SIZE_T			GetSize() const			{ return Size; }
 	
 		
-		FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize);
+		FSharedMemoryRegion(const FString& InName, uint32 InAccessMode, void* InAddress, SIZE_T InSize);
 
 	protected:
 
@@ -275,7 +275,7 @@ struct CORE_API FGenericPlatformMemory
 	 *
 	 * @return pointer to FSharedMemoryRegion (or its descendants) if successful, NULL if not.
 	 */
-	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & Name, bool bCreate, uint32 AccessMode, SIZE_T Size);
+	static FSharedMemoryRegion* MapNamedSharedMemoryRegion(const FString& Name, bool bCreate, uint32 AccessMode, SIZE_T Size);
 
 	/**
 	 * Unmaps a name shared memory region

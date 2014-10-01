@@ -285,14 +285,14 @@ bool FDefaultValueHelper::IsStringValidFloat(const FString& Source)
 
 bool FDefaultValueHelper::IsStringValidVector(const FString& Source)
 {
-	const TCHAR * Start = StartOf(Source);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(Source);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
@@ -304,7 +304,7 @@ bool FDefaultValueHelper::IsStringValidVector(const FString& Source)
 		return false;
 	}
 
-	const TCHAR * End = EndOf(Source);
+	const TCHAR* End = EndOf(Source);
 	if(	!IsStringValidFloat( Start, FirstComma ) ||
 		!IsStringValidFloat( FirstComma + 1, SecondComma ) ||
 		!IsStringValidFloat( SecondComma + 1, End ) )
@@ -326,21 +326,21 @@ bool FDefaultValueHelper::IsStringValidLinearColor(const FString& Source)
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(Source);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(Source);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
 	}
 
-	const TCHAR * ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
-	const TCHAR * End = EndOf(Source);
+	const TCHAR* ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
+	const TCHAR* End = EndOf(Source);
 	if( ( NULL != ThirdComma ) && !IsStringValidFloat( ThirdComma + 1, End ) )
 	{
 		return false;
@@ -385,7 +385,7 @@ bool FDefaultValueHelper::StringFromCppString(const FString& Source, const FStri
 	}
 
 	// remove "TEXT ( "
-	const TCHAR * TextStr = TEXT("TEXT");
+	const TCHAR* TextStr = TEXT("TEXT");
 	if( Source.Find(TextStr) == Pos )
 	{
 		Pos += FCString::Strlen(TextStr);
@@ -456,14 +456,14 @@ bool FDefaultValueHelper::ParseVector(const FString& Source, FVector& OutVal)
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(ProperSource);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(ProperSource);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
@@ -475,7 +475,7 @@ bool FDefaultValueHelper::ParseVector(const FString& Source, FVector& OutVal)
 		return false;
 	}
 
-	const TCHAR * End = EndOf(ProperSource);
+	const TCHAR* End = EndOf(ProperSource);
 	if(	!IsStringValidFloat( Start, FirstComma ) ||
 		!IsStringValidFloat( FirstComma + 1, SecondComma ) ||
 		!IsStringValidFloat( SecondComma + 1, End ) )
@@ -500,14 +500,14 @@ bool FDefaultValueHelper::ParseVector2D(const FString& Source, FVector2D& OutVal
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(ProperSource);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(ProperSource);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * End = EndOf(ProperSource);
+	const TCHAR* End = EndOf(ProperSource);
 	if(	!IsStringValidFloat( Start, FirstComma ) ||
 		!IsStringValidFloat( FirstComma + 1, End ) )
 	{
@@ -579,21 +579,21 @@ bool FDefaultValueHelper::ParseLinearColor(const FString& Source, FLinearColor& 
 		return false;
 	}
 
-	const TCHAR * Start = StartOf(ProperSource);
-	const TCHAR * FirstComma = FCString::Strstr( Start, TEXT(",") );
+	const TCHAR* Start = StartOf(ProperSource);
+	const TCHAR* FirstComma = FCString::Strstr( Start, TEXT(",") );
 	if(!FirstComma)
 	{
 		return false;
 	}
 
-	const TCHAR * SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
+	const TCHAR* SecondComma = FCString::Strstr( FirstComma + 1,  TEXT(",") );
 	if(!SecondComma)
 	{
 		return false;
 	}
 
-	const TCHAR * ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
-	const TCHAR * End = EndOf(ProperSource);
+	const TCHAR* ThirdComma = FCString::Strstr( SecondComma + 1,  TEXT(",") );
+	const TCHAR* End = EndOf(ProperSource);
 	if( ( NULL != ThirdComma ) && !IsStringValidFloat( ThirdComma + 1, End ) )
 	{
 		return false;

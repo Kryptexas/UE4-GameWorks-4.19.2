@@ -332,8 +332,8 @@ public:
 	*/
 	void To3x4MatrixTranspose( float* Out ) const
 	{
-		const float * RESTRICT Src = &(M[0][0]);
-		float * RESTRICT Dest = Out;
+		const float* RESTRICT Src = &(M[0][0]);
+		float* RESTRICT Dest = Out;
 
 		Dest[0] = Src[0];   // [0][0]
 		Dest[1] = Src[4];   // [1][0]

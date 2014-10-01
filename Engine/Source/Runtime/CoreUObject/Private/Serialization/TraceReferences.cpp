@@ -75,7 +75,7 @@ FString FTraceReferences::GetReferencedString( UObject* Object, int32 Depth)
 	return OutString;
 }
 
-int32 FTraceReferences::GetReferencer( UObject * Object, TArray<FObjectGraphNode*> &Referencer, bool bExcludeSelf, int32 Depth)
+int32 FTraceReferences::GetReferencer( UObject* Object, TArray<FObjectGraphNode*> &Referencer, bool bExcludeSelf, int32 Depth)
 {
 	ArchiveObjectGraph.ClearSearchFlags();
 	Referencer.Empty();
@@ -91,7 +91,7 @@ int32 FTraceReferences::GetReferencer( UObject * Object, TArray<FObjectGraphNode
 	return Referencer.Num();
 }
 
-void FTraceReferences::GetReferencerInternal( UObject * CurrentObject, TArray<FObjectGraphNode*> &OutReferencer, int32 CurrentDepth, int32 TargetDepth )
+void FTraceReferences::GetReferencerInternal( UObject* CurrentObject, TArray<FObjectGraphNode*> &OutReferencer, int32 CurrentDepth, int32 TargetDepth )
 {
 	if (TargetDepth >= CurrentDepth)
 	{
@@ -128,7 +128,7 @@ void FTraceReferences::GetReferencerInternal( UObject * CurrentObject, TArray<FO
 	}
 }
 
-int32 FTraceReferences::GetReferenced( UObject * Object, TArray<FObjectGraphNode*> &Referenced, bool bExcludeSelf, int32 Depth)
+int32 FTraceReferences::GetReferenced( UObject* Object, TArray<FObjectGraphNode*> &Referenced, bool bExcludeSelf, int32 Depth)
 {
 	ArchiveObjectGraph.ClearSearchFlags();
 	Referenced.Empty();
@@ -144,7 +144,7 @@ int32 FTraceReferences::GetReferenced( UObject * Object, TArray<FObjectGraphNode
 	return Referenced.Num();
 }
 
-void FTraceReferences::GetReferencedInternal( UObject * CurrentObject, TArray<FObjectGraphNode*> &OutReferenced, int32 CurrentDepth, int32 TargetDepth )
+void FTraceReferences::GetReferencedInternal( UObject* CurrentObject, TArray<FObjectGraphNode*> &OutReferenced, int32 CurrentDepth, int32 TargetDepth )
 {
 	if (TargetDepth >= CurrentDepth)
 	{

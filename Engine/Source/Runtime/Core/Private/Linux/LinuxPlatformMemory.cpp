@@ -143,7 +143,7 @@ const FPlatformMemoryConstants& FLinuxPlatformMemory::GetConstants()
 	return MemoryConstants;	
 }
 
-FPlatformMemory::FSharedMemoryRegion * FLinuxPlatformMemory::MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size)
+FPlatformMemory::FSharedMemoryRegion* FLinuxPlatformMemory::MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size)
 {
 	// expecting platform-independent name, so convert it to match platform requirements
 	FString Name("/");

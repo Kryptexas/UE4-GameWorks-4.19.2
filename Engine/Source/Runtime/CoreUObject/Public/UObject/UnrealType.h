@@ -1136,7 +1136,7 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	 * @param Value - Value (as a string) to set 
 	 * CAUTION: This routine does not do enum name conversion
 	**/
-	virtual void SetNumericPropertyValueFromString(void * Data, TCHAR const* Value) const
+	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const
 	{
 		check(0);
 	}
@@ -1230,7 +1230,7 @@ public:
 		check(TIsFloatType<TCppType>::Value);
 		TTypeFundamentals::SetPropertyValue(Data, Value);
 	}
-	virtual void SetNumericPropertyValueFromString(void * Data, TCHAR const* Value) const override
+	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const override
 	{
 		TTypeFundamentals::FromString(Data, Value);
 	}

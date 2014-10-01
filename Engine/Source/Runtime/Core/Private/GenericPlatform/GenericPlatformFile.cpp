@@ -139,11 +139,11 @@ bool IPlatformFile::CopyDirectoryTree(const TCHAR* DestinationDirectory, const T
 	struct FCopyFilesAndDirs : public FDirectoryVisitor
 	{
 		IPlatformFile & PlatformFile;
-		const TCHAR * SourceRoot;
-		const TCHAR * DestRoot;
+		const TCHAR* SourceRoot;
+		const TCHAR* DestRoot;
 		bool bOverwrite;
 
-		FCopyFilesAndDirs(IPlatformFile& InPlatformFile, const TCHAR * InSourceRoot, const TCHAR * InDestRoot, bool bInOverwrite)
+		FCopyFilesAndDirs(IPlatformFile& InPlatformFile, const TCHAR* InSourceRoot, const TCHAR* InDestRoot, bool bInOverwrite)
 			: PlatformFile(InPlatformFile)
 			, SourceRoot(InSourceRoot)
 			, DestRoot(InDestRoot)

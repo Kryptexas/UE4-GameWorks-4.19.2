@@ -62,7 +62,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static int32 NumberOfCores();
 	static void LoadPreInitModules();
-	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext & Context));
+	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext& Context));
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static FString GetDefaultLocale();
 	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);

@@ -211,7 +211,7 @@ public:
 	 * @param Extents[out] Will contain the extent around the center.
 	 * @see GetCenter, GetExtent, GetSize, GetVolume
 	 */
-	void GetCenterAndExtents( FVector & center, FVector & Extents ) const
+	void GetCenterAndExtents( FVector& center, FVector& Extents ) const
 	{
 		Extents = GetExtent();
 		center = Min + Extents;
@@ -295,7 +295,7 @@ public:
 	 * @param Other The bounding box to intersect with.
 	 * @return true if the boxes intersect, false otherwise.
 	 */
-	FORCEINLINE bool Intersect( const FBox & other ) const;
+	FORCEINLINE bool Intersect( const FBox& other ) const;
 
 	/**
 	 * Checks whether the given bounding box intersects this bounding box in the XY plane.
@@ -311,7 +311,7 @@ public:
 	  * @param M The transformation object to perform the inversely transform this box with.
 	  * @return	The transformed box.
 	  */
-	CORE_API FBox InverseTransformBy( const FTransform & M ) const;
+	CORE_API FBox InverseTransformBy( const FTransform& M ) const;
 
 	/** 
 	 * Checks whether the given location is inside this box.
@@ -375,7 +375,7 @@ public:
 	 * @return The transformed box.
 	 * @see TransformProjectBy
 	 */
-	CORE_API FBox TransformBy( const FTransform & M ) const;
+	CORE_API FBox TransformBy( const FTransform& M ) const;
 
 	/** 
 	 * Transforms and projects a world bounding box to screen space
@@ -516,7 +516,7 @@ FORCEINLINE FVector FBox::GetClosestPointTo( const FVector& Point ) const
 }
 
 
-FORCEINLINE bool FBox::Intersect( const FBox & Other ) const
+FORCEINLINE bool FBox::Intersect( const FBox& Other ) const
 {
 	if ((Min.X > Other.Max.X) || (Other.Min.X > Max.X))
 	{

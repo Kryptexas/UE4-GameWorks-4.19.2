@@ -412,7 +412,7 @@ FName::FName( EName HardcodedIndex, const TCHAR* Name )
  * @param	Other	String to compare this name to
  * @return true if name matches the string, false otherwise
  */
-bool FName::operator==( const TCHAR * Other ) const
+bool FName::operator==( const TCHAR* Other ) const
 {
 	// Find name entry associated with this FName.
 	check( Other );

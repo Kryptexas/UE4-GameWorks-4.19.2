@@ -659,7 +659,7 @@ public:
 	 * @param	InSourceString	FString containing the vector values.
 	 * @return true if the X,Y,Z values were read successfully; false otherwise.
 	 */
-	bool InitFromString( const FString & InSourceString );
+	bool InitFromString( const FString& InSourceString );
 
 	/** 
 	 * Converts a Cartesian unit vector into spherical coordinates on the unit sphere.
@@ -770,7 +770,7 @@ public:
 	 * @param Size The size of the box.
 	 * @return Pushout required.
 	 */
-	static FORCEINLINE float BoxPushOut( const FVector & Normal, const FVector & Size );
+	static FORCEINLINE float BoxPushOut( const FVector& Normal, const FVector& Size );
 
 	/**
 	 * See if two normal vectors (or plane normals) are nearly parallel.
@@ -1702,7 +1702,7 @@ FORCEINLINE FString FVector::ToCompactString() const
 	return ReturnString;
 }
 
-FORCEINLINE bool FVector::InitFromString( const FString & InSourceString )
+FORCEINLINE bool FVector::InitFromString( const FString& InSourceString )
 {
 	X = Y = Z = 0;
 
@@ -1749,7 +1749,7 @@ FORCEINLINE float FVector::DistSquared( const FVector &V1, const FVector &V2 )
 	return FMath::Square(V2.X-V1.X) + FMath::Square(V2.Y-V1.Y) + FMath::Square(V2.Z-V1.Z);
 }
 
-FORCEINLINE float FVector::BoxPushOut( const FVector & Normal, const FVector & Size )
+FORCEINLINE float FVector::BoxPushOut( const FVector& Normal, const FVector& Size )
 {
 	return FMath::Abs(Normal.X*Size.X) + FMath::Abs(Normal.Y*Size.Y) + FMath::Abs(Normal.Z*Size.Z);
 }

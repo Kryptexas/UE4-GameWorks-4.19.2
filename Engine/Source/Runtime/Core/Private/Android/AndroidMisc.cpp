@@ -225,7 +225,7 @@ bool FAndroidMisc::SupportsLocalCaching()
 /**
  * Good enough default crash reporter.
  */
-void DefaultCrashHandler(const FAndroidCrashContext & Context)
+void DefaultCrashHandler(const FAndroidCrashContext& Context)
 {
 	static int32 bHasEntered = 0;
 	if (FPlatformAtomics::InterlockedCompareExchange(&bHasEntered, 1, 0) == 0)
@@ -245,7 +245,7 @@ void DefaultCrashHandler(const FAndroidCrashContext & Context)
 }
 
 /** Global pointer to crash handler */
-void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
+void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 
 /** True system-specific crash handler that gets called first */
 void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
@@ -266,7 +266,7 @@ void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 	}
 }
 
-void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
 {
 	GCrashHandlerPointer = CrashHandler;
 

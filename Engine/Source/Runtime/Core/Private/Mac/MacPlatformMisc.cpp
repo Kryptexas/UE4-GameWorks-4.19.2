@@ -1056,7 +1056,7 @@ bool FMacPlatformMisc::IsRunningOnMavericks()
 }
 
 /** Global pointer to crash handler */
-void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
+void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 FMacMallocCrashHandler* GCrashMalloc = nullptr;
 
 /**
@@ -1145,7 +1145,7 @@ void FMacPlatformMisc::SetGracefulTerminationHandler()
 	sigaction(SIGHUP, &Action, NULL);	//  this should actually cause the server to just re-read configs (restart?)
 }
 
-void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
 {
 	GCrashHandlerPointer = CrashHandler;
 	

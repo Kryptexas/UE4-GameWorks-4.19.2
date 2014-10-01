@@ -31,7 +31,7 @@ struct FProcHandle : public TProcHandle<pid_t, -1>
 	}
 
 	/** Copy constructor. */
-	FORCEINLINE FProcHandle( const FProcHandle & Other )
+	FORCEINLINE FProcHandle( const FProcHandle& Other )
 		:	TProcHandle( Other )
 		,	bIsRunning( Other.bIsRunning )	// assume it is
 		,	bHasBeenWaitedFor( Other.bHasBeenWaitedFor )

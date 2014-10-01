@@ -70,14 +70,14 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 	 *
 	 * @return true if succeeded in getting the info. If false is returned, none of above parameters should be trusted to contain valid data!
 	 */
-	bool GetInfoForAddress(void * Address, const char **OutFunctionNamePtr, const char **OutSourceFilePtr, int *OutLineNumberPtr);
+	bool GetInfoForAddress(void* Address, const char **OutFunctionNamePtr, const char **OutSourceFilePtr, int *OutLineNumberPtr);
 
 	/**
 	 * Dumps all the data from crash context to the "minidump" report.
 	 *
 	 * @param DiagnosticsPath Path to put the file to
 	 */
-	void GenerateReport(const FString & DiagnosticsPath) const;
+	void GenerateReport(const FString& DiagnosticsPath) const;
 };
 
 /**
@@ -88,7 +88,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static void PlatformInit();
 	static void PlatformTearDown();
 	static void SetGracefulTerminationHandler();
-	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context));
+	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 	static class GenericApplication* CreateApplication();
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();

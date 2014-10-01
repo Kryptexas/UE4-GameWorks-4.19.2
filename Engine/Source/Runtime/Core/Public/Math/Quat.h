@@ -168,7 +168,7 @@ public:
 	 *
 	 * @param M
 	 */	
-	FMatrix operator*( const FMatrix & M ) const;
+	FMatrix operator*( const FMatrix& M ) const;
 	
 	/**
 	 * Multiply this quaternion by a scaling factor.
@@ -508,7 +508,7 @@ inline FVector FQuat::operator*( const FVector& V ) const
 }
 
 
-inline FMatrix FQuat::operator*( const FMatrix & M ) const
+inline FMatrix FQuat::operator*( const FMatrix& M ) const
 {
 	FMatrix Result;
 	FQuat VT, VR;

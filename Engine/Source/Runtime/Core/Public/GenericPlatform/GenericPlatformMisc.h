@@ -346,7 +346,7 @@ struct CORE_API FGenericPlatformMisc
 	 * including, but not limited to, crashes.
 	 *
 	 */
-	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
 	{
 	}
 
@@ -480,7 +480,7 @@ struct CORE_API FGenericPlatformMisc
 	 *
 	 * @param Handler	The handler to call
 	 */
-	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext & Context))
+	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext& Context))
 	{
 	}
 	

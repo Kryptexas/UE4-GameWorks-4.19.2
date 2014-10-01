@@ -292,7 +292,7 @@ struct FLinearColor
 	 *
 	 * @return true if the R,G,B values were read successfully; false otherwise.
 	 */
-	bool InitFromString( const FString & InSourceString )
+	bool InitFromString( const FString& InSourceString )
 	{
 		R = G = B = 0.f;
 		A = 1.f;
@@ -484,7 +484,7 @@ public:
 	 *
 	 * @return true if the R,G,B values were read successfully; false otherwise.
 	 */
-	bool InitFromString( const FString & InSourceString )
+	bool InitFromString( const FString& InSourceString )
 	{
 		R = G = B = 0;
 		A = 255;

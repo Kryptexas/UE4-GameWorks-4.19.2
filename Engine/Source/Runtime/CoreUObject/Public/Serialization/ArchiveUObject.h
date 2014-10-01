@@ -669,8 +669,8 @@ class FTraceReferences
 	FArchiveObjectGraph ArchiveObjectGraph;
 
 	// internal recursive function for referencers/referenced
-	void	GetReferencerInternal( UObject * CurrentObject, TArray<FObjectGraphNode*> &OutReferencer, int32 CurrentDepth, int32 TargetDepth );
-	void	GetReferencedInternal( UObject * CurrentObject, TArray<FObjectGraphNode*> &OutReferenced, int32 CurrentDepth, int32 TargetDepth );
+	void GetReferencerInternal( UObject* CurrentObject, TArray<FObjectGraphNode*> &OutReferencer, int32 CurrentDepth, int32 TargetDepth );
+	void GetReferencedInternal( UObject* CurrentObject, TArray<FObjectGraphNode*> &OutReferenced, int32 CurrentDepth, int32 TargetDepth );
 
 public:
 	FTraceReferences( bool bIncludeTransients = false, EObjectFlags KeepFlags = RF_AllFlags );
@@ -681,9 +681,9 @@ public:
 	FString GetReferencedString( UObject* Object, int32 Depth = 100 );
 
 	// returns referencer object list of an object	
-	int32		GetReferencer( UObject * Object, TArray<FObjectGraphNode*> &Referencer, bool bExcludeSelf=true, int32 Depth = 100 );
+	int32 GetReferencer( UObject* Object, TArray<FObjectGraphNode*> &Referencer, bool bExcludeSelf=true, int32 Depth = 100 );
 	// returns referenced object list of an object		
-	int32		GetReferenced( UObject * Object, TArray<FObjectGraphNode*> &Referenced, bool bExcludeSelf=true, int32 Depth = 100 );
+	int32 GetReferenced( UObject* Object, TArray<FObjectGraphNode*> &Referenced, bool bExcludeSelf=true, int32 Depth = 100 );
 };
 /**
  * Archive for finding shortest path from root to a particular object.

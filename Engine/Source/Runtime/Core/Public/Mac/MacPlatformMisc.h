@@ -128,7 +128,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	
 	static void SetGracefulTerminationHandler();
 	
-	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context));
+	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 
 	static FString GetDefaultLocale();
 

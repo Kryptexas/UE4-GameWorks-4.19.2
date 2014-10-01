@@ -87,7 +87,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 {
 	DECLARE_CLASS_INTRINSIC( UPackageMap, UObject, CLASS_Transient | CLASS_Abstract | 0, CoreUObject );
 
-	virtual bool		WriteObject( FArchive & Ar, UObject * Outer, FNetworkGUID NetGUID, FString ObjName ) { return false; }
+	virtual bool		WriteObject( FArchive & Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName ) { return false; }
 
 	// @todo document
 	virtual bool		SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) { return false; }
@@ -95,7 +95,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 	// @todo document
 	virtual bool		SerializeName( FArchive& Ar, FName& Name );
 
-	virtual UObject *	ResolvePathAndAssignNetGUID( const FNetworkGUID & NetGUID, const FString & PathName ) { return NULL; }
+	virtual UObject*	ResolvePathAndAssignNetGUID( const FNetworkGUID& NetGUID, const FString& PathName ) { return NULL; }
 
 	virtual bool		SerializeNewActor(FArchive & Ar, class UActorChannel * Channel, class AActor *& Actor) { return false; }
 
@@ -103,13 +103,13 @@ class COREUOBJECT_API UPackageMap : public UObject
 	virtual void		ReceivedAck( const int32 AckPacketId ) { }
 	virtual void		NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) { }
 
-	virtual void		GetNetGUIDStats(int32 & AckCount, int32 & UnAckCount, int32 & PendingCount) { }
+	virtual void		GetNetGUIDStats(int32& AckCount, int32& UnAckCount, int32& PendingCount) { }
 
-	virtual void		NotifyStreamingLevelUnload( UObject * UnloadedLevel ) { }
+	virtual void		NotifyStreamingLevelUnload( UObject* UnloadedLevel ) { }
 
 	virtual bool		PrintExportBatch() { return false; }
 
-	void				SetDebugContextString( const FString & Str ) { DebugContextString = Str; }
+	void				SetDebugContextString( const FString& Str ) { DebugContextString = Str; }
 	void				ClearDebugContextString() { DebugContextString.Empty(); }
 
 	void				ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
@@ -117,8 +117,8 @@ class COREUOBJECT_API UPackageMap : public UObject
 	FNetworkGUID		GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
 
 	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
-	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
-	virtual bool		IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const { return false; }
+	virtual UObject*	GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
+	virtual bool		IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const { return false; }
 
 protected:
 
@@ -205,7 +205,7 @@ public:
 	FLifetimeProperty( int32 InRepIndex ) : RepIndex( InRepIndex ), Condition( COND_None ), RepNotifyCondition(REPNOTIFY_OnChanged) { check( InRepIndex <= 65535 ); }
 	FLifetimeProperty(int32 InRepIndex, ELifetimeCondition InCondition, ELifetimeRepNotifyCondition InRepNotifyCondition=REPNOTIFY_OnChanged) : RepIndex(InRepIndex), Condition(InCondition), RepNotifyCondition(InRepNotifyCondition) { check(InRepIndex <= 65535); }
 
-	inline bool operator==( const FLifetimeProperty & Other ) const
+	inline bool operator==( const FLifetimeProperty& Other ) const
 	{
 		if ( RepIndex == Other.RepIndex )
 		{
@@ -318,7 +318,7 @@ struct FNetDeltaSerializeInfo
 	TSharedPtr<INetDeltaBaseState> *NewState;		// SharedPtr to new base state created by NetDeltaSerialize.
 	INetDeltaBaseState *  OldState;				// Pointer to the previous base state.
 	UPackageMap *	Map;
-	void * Data;
+	void* Data;
 
 	// Only used for fast TArray replication
 	UStruct *Struct;
@@ -383,5 +383,5 @@ COREUOBJECT_API void SerializeChecksum(FArchive &Ar, uint32 x, bool ErrorOK);
  * Functions to assist in detecting errors during RPC calls
  */
 COREUOBJECT_API void			RPC_ResetLastFailedReason();
-COREUOBJECT_API void			RPC_ValidateFailed( const TCHAR * Reason );
+COREUOBJECT_API void			RPC_ValidateFailed( const TCHAR* Reason );
 COREUOBJECT_API const TCHAR *	RPC_GetLastFailedReason();

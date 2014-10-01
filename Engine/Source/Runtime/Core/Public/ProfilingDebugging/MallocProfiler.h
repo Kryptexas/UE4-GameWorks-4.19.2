@@ -523,7 +523,7 @@ public:
 	bool HandleSnapshotMemoryCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleSnapshotMemoryFrameCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 
-	virtual const TCHAR * GetDescriptiveName() override
+	virtual const TCHAR* GetDescriptiveName() override
 	{ 
 		FScopeLock ScopeLock( &CriticalSection );
 		check(UsedMalloc);

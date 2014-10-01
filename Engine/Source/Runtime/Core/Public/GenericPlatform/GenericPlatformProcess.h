@@ -128,7 +128,7 @@ struct CORE_API FGenericPlatformProcess
 		 *
 		 * @param InName name of the semaphore (all processes should use the same)
 		 */
-		FSemaphore(const FString & InName);
+		FSemaphore(const FString& InName);
 
 		/** Destructor */
 		virtual ~FSemaphore()  {};
@@ -471,7 +471,7 @@ struct CORE_API FGenericPlatformProcess
 	 * @param bCreate - if true, the function will try to create, otherwise will try to open existing
 	 * @param MaxLocks - maximum amount of locks that the semaphore can have (pass 1 to make it act as mutex)
 	 */
-	static FSemaphore * NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks = 1);
+	static FSemaphore* NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks = 1);
 
 	/**
 	 * Deletes an interprocess synchronization object.

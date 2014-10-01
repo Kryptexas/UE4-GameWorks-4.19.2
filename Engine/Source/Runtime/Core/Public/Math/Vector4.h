@@ -77,7 +77,7 @@ public:
 	 *
 	 * @return Reference to the desired component.
 	 */
-	FORCEINLINE float & operator[]( int32 ComponentIndex );
+	FORCEINLINE float& operator[]( int32 ComponentIndex );
 
 	/**
 	 * Access a specific component of the vector.
@@ -281,7 +281,7 @@ public:
 	 * @param InSourceString	FString containing the vector values.
 	 * @return true if the X,Y,Z values were read successfully; false otherwise.
 	 */
-	bool InitFromString( const FString & InSourceString );
+	bool InitFromString( const FString& InSourceString );
 
 	/**
 	 * Returns a normalized copy of the vector if safe to normalize.
@@ -438,7 +438,7 @@ FORCEINLINE FVector4::FVector4( FVector2D InXY, FVector2D InZW )
 }
 
 
-FORCEINLINE float & FVector4::operator[]( int32 ComponentIndex )
+FORCEINLINE float& FVector4::operator[]( int32 ComponentIndex )
 {
 	return (&X)[ ComponentIndex ];
 }
@@ -547,7 +547,7 @@ FORCEINLINE FString FVector4::ToString( ) const
 }
 
 
-FORCEINLINE bool FVector4::InitFromString( const FString & InSourceString )
+FORCEINLINE bool FVector4::InitFromString( const FString& InSourceString )
 {
 	X = Y = Z = 0;
 	W = 1.0f;

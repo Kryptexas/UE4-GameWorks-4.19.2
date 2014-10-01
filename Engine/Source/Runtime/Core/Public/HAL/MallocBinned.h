@@ -1265,7 +1265,7 @@ public:
 		BufferedOutput.RedirectTo( Ar );
 	}
 
-	virtual const TCHAR * GetDescriptiveName() override { return TEXT("binned"); }
+	virtual const TCHAR* GetDescriptiveName() override { return TEXT("binned"); }
 
 protected:
 

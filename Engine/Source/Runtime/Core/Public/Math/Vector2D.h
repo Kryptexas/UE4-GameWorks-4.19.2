@@ -431,7 +431,7 @@ public:
 	 * @param	InSourceString	FString containing the vector values.
 	 * @return true if the X,Y values were read successfully; false otherwise.
 	 */
-	bool InitFromString( const FString & InSourceString );
+	bool InitFromString( const FString& InSourceString );
 
 	/**
 	 * Serialize a vector.
@@ -804,7 +804,7 @@ FORCEINLINE FString FVector2D::ToString() const
 }
 
 
-FORCEINLINE bool FVector2D::InitFromString( const FString & InSourceString )
+FORCEINLINE bool FVector2D::InitFromString( const FString& InSourceString )
 {
 	X = Y = 0;
 

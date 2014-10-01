@@ -283,7 +283,7 @@ public:
 	 * @param InSourceString	FString containing the rotator values.
 	 * @return true if the P,Y,R values were read successfully; false otherwise.
 	 */
-	bool InitFromString( const FString & InSourceString );
+	bool InitFromString( const FString& InSourceString );
 
 	/**
 	 * Utility to check if there are any NaNs in this Rotator.
@@ -657,7 +657,7 @@ FORCEINLINE FString FRotator::ToCompactString( ) const
 }
 
 
-FORCEINLINE bool FRotator::InitFromString( const FString & InSourceString )
+FORCEINLINE bool FRotator::InitFromString( const FString& InSourceString )
 {
 	Pitch = Yaw = Roll = 0;
 

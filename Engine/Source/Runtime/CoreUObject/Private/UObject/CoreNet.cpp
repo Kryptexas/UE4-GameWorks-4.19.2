@@ -206,18 +206,18 @@ FArchive& FNetBitReader::operator<<(FStringAssetReference& Value)
 	return *this << Value.AssetLongPathname;
 }
 
-static const TCHAR * GLastRPCFailedReason = NULL;
+static const TCHAR* GLastRPCFailedReason = NULL;
 
 void RPC_ResetLastFailedReason()
 {
 	GLastRPCFailedReason = NULL;
 }
-void RPC_ValidateFailed( const TCHAR * Reason )
+void RPC_ValidateFailed( const TCHAR* Reason )
 {
 	GLastRPCFailedReason = Reason;
 }
 
-const TCHAR * RPC_GetLastFailedReason()
+const TCHAR* RPC_GetLastFailedReason()
 {
 	return GLastRPCFailedReason;
 }

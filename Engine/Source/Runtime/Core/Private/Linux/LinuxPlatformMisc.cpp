@@ -77,7 +77,7 @@ bool FLinuxPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 
 const TCHAR* FLinuxPlatformMisc::RootDir()
 {
-	const TCHAR * TrueRootDir = FGenericPlatformMisc::RootDir();
+	const TCHAR* TrueRootDir = FGenericPlatformMisc::RootDir();
 	return TrueRootDir;
 }
 
@@ -835,7 +835,7 @@ void FindFunctionNameInDIEAndChildren(Dwarf_Debug DebugInfo, Dwarf_Die Die, Dwar
 	};
 }
 
-bool FLinuxCrashContext::GetInfoForAddress(void * Address, const char **OutFunctionNamePtr, const char **OutSourceFilePtr, int *OutLineNumberPtr)
+bool FLinuxCrashContext::GetInfoForAddress(void* Address, const char **OutFunctionNamePtr, const char **OutSourceFilePtr, int *OutLineNumberPtr)
 {
 	if (DebugInfo == NULL)
 	{
@@ -1048,7 +1048,7 @@ namespace
 	/**
 	 * Serializes UTF string to UTF-16
 	 */
-	void WriteUTF16String(FArchive* ReportFile, const TCHAR * UTFString4BytesChar, uint32 NumChars)
+	void WriteUTF16String(FArchive* ReportFile, const TCHAR* UTFString4BytesChar, uint32 NumChars)
 	{
 		check(UTFString4BytesChar != NULL || NumChars == 0);
 		static_assert(sizeof(TCHAR) == 4, "Platform TCHAR is not 4 bytes. Revisit this function.");
@@ -1079,7 +1079,7 @@ namespace
 /** 
  * Write all the data mined from the minidump to a text file
  */
-void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
+void FLinuxCrashContext::GenerateReport(const FString& DiagnosticsPath) const
 {
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*DiagnosticsPath);
 	if (ReportFile != NULL)
@@ -1139,7 +1139,7 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
 /** 
  * Mimics Windows WER format
  */
-void GenerateWindowsErrorReport(const FString & WERPath)
+void GenerateWindowsErrorReport(const FString& WERPath)
 {
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*WERPath);
 	if (ReportFile != NULL)
@@ -1206,7 +1206,7 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 /** 
  * Creates (fake so far) minidump
  */
-void GenerateMinidump(const FString & Path)
+void GenerateMinidump(const FString& Path)
 {
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*Path);
 	if (ReportFile != NULL)
@@ -1221,7 +1221,7 @@ void GenerateMinidump(const FString & Path)
 }
 
 
-int32 ReportCrash(const FLinuxCrashContext & Context)
+int32 ReportCrash(const FLinuxCrashContext& Context)
 {
 	static bool GAlreadyCreatedMinidump = false;
 	// Only create a minidump the first time this function is called.
@@ -1248,7 +1248,7 @@ int32 ReportCrash(const FLinuxCrashContext & Context)
 /**
  * Generates information for crash reporter
  */
-void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
+void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext& Context)
 {
 	// do not report crashes for tools (particularly for crash reporter itself)
 #if !IS_PROGRAM
@@ -1275,7 +1275,7 @@ void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
 		static_cast<void>(IFileManager::Get().Copy(*LogDstAbsolute, *LogSrcAbsolute));	// best effort, so don't care about result: couldn't copy -> tough, no log
 
 		// try launching the tool and wait for its exit, if at all
-		const TCHAR * RelativePathToCrashReporter = TEXT("../../../engine/binaries/linux/crashreportclient");	// FIXME: painfully hard-coded
+		const TCHAR* RelativePathToCrashReporter = TEXT("../../../engine/binaries/linux/crashreportclient");	// FIXME: painfully hard-coded
 		if (!FPaths::FileExists(RelativePathToCrashReporter))
 		{
 			RelativePathToCrashReporter = TEXT("../../../Engine/Binaries/Linux/CrashReportClient");	// FIXME: even more painfully hard-coded
@@ -1314,7 +1314,7 @@ void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
 /**
  * Good enough default crash reporter.
  */
-void DefaultCrashHandler(const FLinuxCrashContext & Context)
+void DefaultCrashHandler(const FLinuxCrashContext& Context)
 {
 	printf("DefaultCrashHandler: Signal=%d\n", Context.Signal);
 
@@ -1337,7 +1337,7 @@ void DefaultCrashHandler(const FLinuxCrashContext & Context)
 }
 
 /** Global pointer to crash handler */
-void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
+void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 
 /** True system-specific crash handler that gets called first */
 void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
@@ -1370,7 +1370,7 @@ void FLinuxPlatformMisc::SetGracefulTerminationHandler()
 	sigaction(SIGHUP, &Action, NULL);	//  this should actually cause the server to just re-read configs (restart?)
 }
 
-void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
 {
 	GCrashHandlerPointer = CrashHandler;
 

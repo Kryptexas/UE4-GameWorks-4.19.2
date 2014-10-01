@@ -72,7 +72,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void LoadPreInitModules();
 	static void BeforeRenderThreadStarts();
 	static bool SupportsLocalCaching();
-	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context));
+	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 	// NOTE: THIS FUNCTION IS DEFINED IN ANDROIDOPENGL.CPP
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool GetUseVirtualJoysticks();

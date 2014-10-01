@@ -44,7 +44,7 @@ FBoxSphereBounds FBoxSphereBounds::TransformBy(const FMatrix& M) const
 }
 
 
-FBoxSphereBounds FBoxSphereBounds::TransformBy(const FTransform & M) const
+FBoxSphereBounds FBoxSphereBounds::TransformBy(const FTransform& M) const
 {
 	FBoxSphereBounds Result;
 

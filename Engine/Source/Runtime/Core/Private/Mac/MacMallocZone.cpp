@@ -55,7 +55,7 @@ bool FMacMallocZone::ValidateHeap()
 	return malloc_zone_check( MemoryZone ) ;
 }
 
-const TCHAR * FMacMallocZone::GetDescriptiveName()
+const TCHAR* FMacMallocZone::GetDescriptiveName()
 {
 	return TEXT("MallocZone");
 }
@@ -163,7 +163,7 @@ bool FMacMallocCrashHandler::GetAllocationSize( void *Original, SIZE_T &SizeOut 
 	return SizeOut > 0;
 }
 
-const TCHAR * FMacMallocCrashHandler::GetDescriptiveName()
+const TCHAR* FMacMallocCrashHandler::GetDescriptiveName()
 {
 	return TEXT("MallocCrashHandler");
 }

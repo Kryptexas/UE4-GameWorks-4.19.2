@@ -265,7 +265,7 @@ bool FWeakObjectPtr::IsStale(bool bEvenIfPendingKill, bool bThreadsafeTest) cons
 	return GUObjectArray.IsStale(ObjectIndex, bEvenIfPendingKill);
 }
 
-UObject * FWeakObjectPtr::Get(bool bEvenIfPendingKill) const
+UObject* FWeakObjectPtr::Get(bool bEvenIfPendingKill) const
 {
 	UObject *Result = NULL;
 	if (IsValid(true))

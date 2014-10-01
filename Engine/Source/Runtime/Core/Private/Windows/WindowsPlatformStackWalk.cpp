@@ -23,7 +23,7 @@ static bool GNeedToRefreshSymbols = false;
 // If GStackWalkingInitialized is true, traces will work anyway but will be much slower.
 #define USE_FAST_STACKTRACE 1
 
-typedef bool  (WINAPI *TFEnumProcesses)( uint32 * lpidProcess, uint32 cb, uint32 * cbNeeded);
+typedef bool  (WINAPI *TFEnumProcesses)( uint32* lpidProcess, uint32 cb, uint32* cbNeeded);
 typedef bool  (WINAPI *TFEnumProcessModules)(HANDLE hProcess, HMODULE *lphModule, uint32 cb, LPDWORD lpcbNeeded);
 typedef uint32 (WINAPI *TFGetModuleBaseName)(HANDLE hProcess, HMODULE hModule, LPSTR lpBaseName, uint32 nSize);
 typedef uint32 (WINAPI *TFGetModuleFileNameEx)(HANDLE hProcess, HMODULE hModule, LPSTR lpFilename, uint32 nSize);
