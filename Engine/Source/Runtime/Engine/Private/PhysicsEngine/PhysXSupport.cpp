@@ -419,11 +419,14 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	const FBodyInstance* BodyInst0 = FPhysxUserData::Get<FBodyInstance>(PActor0->userData);
 	const FBodyInstance* BodyInst1 = FPhysxUserData::Get<FBodyInstance>(PActor1->userData);
 	
+	bool bEitherDestructible = false;
+
 	// check if it's a destructible actor
 	if (BodyInst0 == NULL)
 	{
 		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor0->userData))
 		{
+			bEitherDestructible = true;
 			BodyInst0 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
 		}
 	}
@@ -432,6 +435,7 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	{
 		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor1->userData))
 		{
+			bEitherDestructible = true;
 			BodyInst1 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
 		}
 	}
@@ -441,6 +445,16 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	if(BodyInst0 == NULL || BodyInst1 == NULL || BodyInst0 == BodyInst1)
 	{
 		return;
+	}
+
+	//destruction applies damage when it hits something. Unfortunately it relies on the same flag that generates onContact.
+	//We only want onContact events to happen if the user actually selected bNotifyRigidBodyCollision so we have to check if this is the case
+	if (bEitherDestructible)
+	{
+		if (BodyInst0->bNotifyRigidBodyCollision == false && BodyInst1->bNotifyRigidBodyCollision == false)
+		{
+			return;
+		}
 	}
 
 	// Get the Scene. 
