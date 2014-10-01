@@ -163,6 +163,7 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeMessageNodeSpawn
 	};
 	NodeSpawner->SetNodeFieldDelegate = UBlueprintFunctionNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeFunctionLambda);
 
+	NodeSpawner->DefaultMenuSignature.MenuName = FText::Format(LOCTEXT("MessageNodeMenuName", "{0} (Message)"), NodeSpawner->DefaultMenuSignature.MenuName);
 	return NodeSpawner;
 }
 
@@ -505,6 +506,9 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 
 			if (FKismetEditorUtilities::IsClassABlueprintInterface(Class))
 			{
+				FuncSpawner->DefaultMenuSignature.MenuName = FText::Format(LOCTEXT("InterfaceCallMenuName", "{0} (Interface Call)"), 
+					FuncSpawner->DefaultMenuSignature.MenuName);
+
 				ActionListOut.Add(MakeMessageNodeSpawner(Function));
 			}
 		}
@@ -520,7 +524,7 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
 	bool const bIsActorClass = Class->IsChildOf<AActor>();
 	
 	// loop over all the properties in the specified class; exclude-super because 
-	// we can always get the super properties by looking up that class separately 
+	// we can always get the super properties by looking up that class separateHavely 
 	for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 	{
 		UProperty* Property = *PropertyIt;
