@@ -6,9 +6,22 @@
 /** This returns Quaternion Inverse of X **/
 #define MAKE_QUATINV_VECTORREGISTER(X) VectorMultiply(GlobalVectorConstants::QINV_SIGN_MASK, X)
 
-/** 
- * FTransform class for Quat/Translation/Scale.
- */
+/**
+* Transform composed of Scale, Rotation (as a quaternion), and Translation.
+*
+* Transforms can be used to convert from one space to another, for example by transforming
+* positions and directions from local space to world space.
+*
+* Transformation of position vectors is applied in the order:  Scale -> Rotate -> Translate.
+* Transformation of direction vectors is applied in the order: Scale -> Rotate.
+*
+* Order matters when composing transforms: C = A * B will yield a transform C that logically
+* first applies B then A to any subsequent transformation.
+*
+* Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in local space by DeltaRotation.
+* Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in world space by DeltaRotation.
+*/
+
 MS_ALIGN(16) class FTransform
 {
 #if !defined(COREUOBJECT_API)

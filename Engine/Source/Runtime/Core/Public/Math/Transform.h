@@ -4,8 +4,21 @@
 #pragma once
 
 /** 
- * Transform composed of Quat/Translation/Scale.
+ * Transform composed of Scale, Rotation (as a quaternion), and Translation.
+ *
+ * Transforms can be used to convert from one space to another, for example by transforming
+ * positions and directions from local space to world space.
+ *
+ * Transformation of position vectors is applied in the order:  Scale -> Rotate -> Translate.
+ * Transformation of direction vectors is applied in the order: Scale -> Rotate.
+ *
+ * Order matters when composing transforms: C = A * B will yield a transform C that logically
+ * first applies B then A to any subsequent transformation.
+ *
+ * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in local space by DeltaRotation.
+ * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in world space by DeltaRotation.
  */
+
 class FTransform
 {
 #if !defined(COREUOBJECT_API)
@@ -438,10 +451,40 @@ public:
 		return *this;
 	}
 
-	FORCEINLINE FTransform		operator*(const FTransform& Other) const;
-	FORCEINLINE void			operator*=(const FTransform& Other);
-	FORCEINLINE FTransform		operator*(const FQuat& Other) const;
-	FORCEINLINE void			operator*=(const FQuat& Other);
+	/**
+	 * Return a transform that is the result of this multiplied by another transform.
+	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	 * 
+	 * @param  Other other transform by which to multiply.
+	 * @return new transform: this * Other
+	 */
+	FORCEINLINE FTransform operator*(const FTransform& Other) const;
+
+
+	/**
+	 * Sets this transform to the result of this multiplied by another transform.
+	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	 *
+	 * @param  Other other transform by which to multiply.
+	 */
+	FORCEINLINE void operator*=(const FTransform& Other);
+	
+	/**
+	* Return a transform that is the result of this multiplied by another transform (made only from a rotation).
+	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	*
+	* @param  Other other quaternion rotation by which to multiply.
+	* @return new transform: this * FTransform(Other)
+	*/
+	FORCEINLINE FTransform operator*(const FQuat& Other) const;
+	
+	/**
+	* Sets this transform to the result of this multiplied by another transform (made only from a rotation).
+	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	*
+	* @param  Other other quaternion rotation by which to multiply.
+	*/
+	FORCEINLINE void operator*=(const FQuat& Other);
 
 	FORCEINLINE void ScaleTranslation(const FVector& Scale3D);
 	FORCEINLINE void ScaleTranslation(const float& Scale);
@@ -573,6 +616,15 @@ public:
 		return Rotation.Equals(Other.Rotation, Tolerance) && Translation.Equals(Other.Translation, Tolerance);
 	}
 
+	/**
+	 * Create a new transform: OutTransform = A * B.
+	 *
+	 * Order matters when composing transforms : A * B will yield a transform that logically first applies B then A to any subsequent transformation.
+	 * 
+	 * @param  OutTransform pointer to transform that will store the result of A * B.
+	 * @param  A Transform A.
+	 * @param  B Transform B.
+	 */
 	FORCEINLINE static void Multiply(FTransform * OutTransform, const FTransform * A, const FTransform * B);
 
 	/**

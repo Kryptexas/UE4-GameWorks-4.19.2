@@ -1190,7 +1190,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	//
 	
 	/** 
-	 *	Transform a position by the supplied transform 
+	 *	Transform a position by the supplied transform.
 	 *	For example, if T was an object's transform, would transform a position from local space to world space.
 	 */
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(Keywords="location"))
@@ -1204,25 +1204,35 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector TransformDirection(const FTransform& T, FVector Direction);
 
 	/** 
-	 *	Transform a position by the inverse of the supplied transform 
+	 *	Transform a position by the inverse of the supplied transform.
 	 *	For example, if T was an object's transform, would transform a position from world space to local space.
 	 */
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(Keywords="location"))
 	static FVector InverseTransformLocation(const FTransform& T, FVector Location);
 
 	/** 
-	 *	Transform a direction vector by the inverse of the supplied transform - will not change its length 
+	 *	Transform a direction vector by the inverse of the supplied transform - will not change its length.
 	 *	For example, if T was an object's transform, would transform a direction from world space to local space.
 	 */
 	UFUNCTION(BlueprintPure, Category="Math|Transform")
 	static FVector InverseTransformDirection(const FTransform& T, FVector Direction);
 
-	/** Multiply two transforms in order */
-	UFUNCTION(BlueprintPure, meta=(ToolTip = "Multiply two transforms in order: A * B", Keywords="add"), Category="Math|Transform")
+	/**
+	 * Compose two transforms in order: A * B.
+	 *
+	 * Order matters when composing transforms:
+	 * A * B will yield a transform that logically first applies B then A to any subsequent transformation.
+	 *
+	 * Example: LocalToWorld = ComposeTransforms(LocalToWorld, DeltaRotation) will change rotation in local space by DeltaRotation.
+	 * Example: LocalToWorld = ComposeTransforms(DeltaRotation, LocalToWorld) will change rotation in world space by DeltaRotation.
+	 *
+	 * @return New transform: A * B
+	 */
+	UFUNCTION(BlueprintPure, meta=(Keywords="multiply *"), Category="Math|Transform")
 	static FTransform ComposeTransforms(const FTransform& A, const FTransform& B);
 
 	/** 
-	 *  Convert a world-transform from world-space into local-space
+	 *  Convert a world-transform from world-space into local-space.
 	 *  @param		WorldTransform	The transform you wish to convert
 	 *  @param		LocalTransform	The transform the conversion is relative to
 	 *  @return		A new relative transform
@@ -1230,15 +1240,15 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(Keywords="cast convert"))
 	static FTransform ConvertTransformToRelative(const FTransform& WorldTransform, const FTransform& LocalTransform);
 
-	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */
+	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1). */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (Transform)"), Category="Math|Transform")
 	static FTransform TLerp(const FTransform& A, const FTransform& B, float Alpha);
 
-	/* Easeing  between A and B using a specified easing function */
+	/** Ease between A and B using a specified easing function. */
 	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (Transform)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
 	static FTransform TEase(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
 
-	/** Tries to reach a target transform */
+	/** Tries to reach a target transform. */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation")
 	static FTransform TInterpTo(const FTransform& Current, const FTransform& Target, float DeltaTime, float InterpSpeed);
 
@@ -1246,27 +1256,27 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// Vector2D functions
 	//
 
-	//Returns addition of Vector A and Vector B (A + B)
+	/** Returns addition of Vector A and Vector B (A + B) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d + vector2d", CompactNodeTitle = "+", Keywords = "+ add plus", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Vector2D")
 	static FVector2D Add_Vector2DVector2D(FVector2D A, FVector2D B);
 
-	//Returns subtraction of Vector B from Vector A (A - B)
+	/** Returns subtraction of Vector B from Vector A (A - B) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d - vector2d", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Vector2D")
 	static FVector2D Subtract_Vector2DVector2D(FVector2D A, FVector2D B);
 
-	//Returns Vector A scaled by B
+	/** Returns Vector A scaled by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d * float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Vector2D")
 	static FVector2D Multiply_Vector2DFloat(FVector2D A, float B);
 
-	//Returns Vector A divided by B
+	/** Returns Vector A divided by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d / float", CompactNodeTitle = "/", Keywords = "/ divide division"), Category="Math|Vector2D")
 	static FVector2D Divide_Vector2DFloat(FVector2D A, float B);
 
-	//Returns Vector A added by B
+	/** Returns Vector A added by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d + float", CompactNodeTitle = "+", Keywords = "+ add plus"), Category="Math|Vector2D")
 	static FVector2D Add_Vector2DFloat(FVector2D A, float B);
 
-	//Returns Vector A subtracted by B
+	/** Returns Vector A subtracted by B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "vector2d - float", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Vector2D")
 	static FVector2D Subtract_Vector2DFloat(FVector2D A, float B);
 
