@@ -29,6 +29,10 @@ UEngine* UGameInstance::GetEngine() const
 	return CastChecked<UEngine>(GetOuter());
 }
 
+void UGameInstance::Shutdown()
+{
+}
+
 void UGameInstance::Init()
 {
 	UEngine* const Engine = GetEngine();

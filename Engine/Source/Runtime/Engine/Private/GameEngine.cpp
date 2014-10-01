@@ -655,6 +655,8 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		{
 			ActorIt->RouteEndPlay(EEndPlayReason::Quit);
 		}
+
+		World->GetGameInstance()->Shutdown();
 	}
 
 	Ar.Log( TEXT("Closing by request") );

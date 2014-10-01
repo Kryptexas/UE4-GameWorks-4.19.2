@@ -58,6 +58,9 @@ public:
 	/** Gives GameInstance an opportunity to set up what it needs */
 	virtual void Init();
 
+	/** virtual function to allow custom GameInstances an opportunity to do cleanup when shutting down */
+	virtual void Shutdown();
+
 #if WITH_EDITOR
 	virtual bool InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance);
 
