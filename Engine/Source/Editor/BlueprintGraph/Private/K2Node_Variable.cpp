@@ -562,6 +562,10 @@ void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
 				if(VariableProperty)
 				{
 					UClass* PropertyOwner = VariableProperty->GetOwnerClass();
+					if (PropertyOwner != nullptr)
+					{
+						PropertyOwner = PropertyOwner->GetAuthoritativeClass();
+					}
 
 					// BP Comms is highly likely at this point, if the source pin's type is a child of the variable's owner class, let's conform the "Target" pin
 					if(FromPin->PinType.PinSubCategoryObject == PropertyOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(PropertyOwner))
