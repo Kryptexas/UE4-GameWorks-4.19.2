@@ -658,10 +658,13 @@ public:
 	UPROPERTY()
 	TSubclassOf<class UGameUserSettings> GameUserSettingsClass;
 
+	/** name of Controller class to be used as default AIController class for pawns */
+	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AI", DisplayName = "Default AIController class for all Pawns"))
+	FStringClassReference AIControllerClassName;
+
 	/** Global instance of the user game settings */
 	UPROPERTY()
 	class UGameUserSettings* GameUserSettings;
-
 
 	/** @todo document */
 	UPROPERTY()

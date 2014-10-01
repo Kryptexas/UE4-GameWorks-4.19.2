@@ -15,7 +15,6 @@
 #include "DisplayDebugHelpers.h"
 #include "NetworkingDistanceConstants.h"
 #include "VisualLog.h"
-#include "AIController.h"
 #include "Engine/InputDelegateBinding.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
@@ -31,7 +30,10 @@ APawn::APawn(const class FPostConstructInitializeProperties& PCIP)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
-	AIControllerClass = AAIController::StaticClass();
+	if (HasAnyFlags(RF_ClassDefaultObject) && GetClass() == APawn::StaticClass())
+	{
+		AIControllerClass = LoadClass<AController>(NULL, *((UEngine*)(UEngine::StaticClass()->GetDefaultObject()))->AIControllerClassName.ToString(), NULL, LOAD_None, NULL);
+	}
 	bCanBeDamaged = true;
 	
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
