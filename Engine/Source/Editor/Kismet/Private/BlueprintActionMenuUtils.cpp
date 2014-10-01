@@ -211,6 +211,14 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	MenuOut.Empty();
 
+	if (!bIsContextSensitive)
+	{
+		MenuFilter.Context.Pins.Empty();
+	}
+	// for backwards compatibility, the main menu section should be added first 
+	// (so if we have to, the legacy menu system can be constructed from it)
+	MenuOut.AddMenuSection(MenuFilter);
+
 	bool const bAddComponentsSection = bIsContextSensitive && bCanHaveActorComponents && (ComponentsFilter.Context.SelectedObjects.Num() > 0);
 	// add the components section to the menu (if we don't have any components
 	// selected, then inform the user through a dummy menu entry)
@@ -231,12 +239,6 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 		MenuOut.AddMenuSection(LevelActorsFilter, FText::GetEmpty(), LevelActorSectionGroup);
 	}
-
-	if (!bIsContextSensitive)
-	{
-		MenuFilter.Context.Pins.Empty();
-	}
-	MenuOut.AddMenuSection(MenuFilter);
 
 	//--------------------------------------
 	// Building the Menu

@@ -585,12 +585,19 @@ void FBlueprintActionMenuBuilderImpl::AppendLegacyItems(FMenuSectionDefinition c
 		{
 			LegacyBuilder.FromPin = MenuContext.Pins[0];
 		}
-		LegacyBuilder.SelectedObjects.Append(MenuContext.SelectedObjects);
 		
 		bool bIsContextSensitive = true;
 		if (BlueprintEditor.IsValid())
 		{
 			bIsContextSensitive = BlueprintEditor.Pin()->GetIsContextSensitive();
+			if (bIsContextSensitive)
+			{
+				FEdGraphSchemaAction_K2Var* SelectedVar = BlueprintEditor.Pin()->GetMyBlueprintWidget()->SelectionAsVar();
+				if ((SelectedVar != nullptr) && (SelectedVar->GetProperty() != nullptr))
+				{
+					LegacyBuilder.SelectedObjects.Add(SelectedVar->GetProperty());
+				}
+			}
 		}
 		
 		if (bIsContextSensitive)
