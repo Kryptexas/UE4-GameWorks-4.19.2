@@ -1221,10 +1221,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 * Compose two transforms in order: A * B.
 	 *
 	 * Order matters when composing transforms:
-	 * A * B will yield a transform that logically first applies B then A to any subsequent transformation.
+	 * A * B will yield a transform that logically first applies A then B to any subsequent transformation.
 	 *
-	 * Example: LocalToWorld = ComposeTransforms(LocalToWorld, DeltaRotation) will change rotation in local space by DeltaRotation.
-	 * Example: LocalToWorld = ComposeTransforms(DeltaRotation, LocalToWorld) will change rotation in world space by DeltaRotation.
+	 * Example: LocalToWorld = ComposeTransforms(DeltaRotation, LocalToWorld) will change rotation in local space by DeltaRotation.
+	 * Example: LocalToWorld = ComposeTransforms(LocalToWorld, DeltaRotation) will change rotation in world space by DeltaRotation.
 	 *
 	 * @return New transform: A * B
 	 */

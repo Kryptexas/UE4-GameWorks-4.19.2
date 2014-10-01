@@ -13,10 +13,10 @@
  * Transformation of direction vectors is applied in the order: Scale -> Rotate.
  *
  * Order matters when composing transforms: C = A * B will yield a transform C that logically
- * first applies B then A to any subsequent transformation.
+ * first applies A then B to any subsequent transformation. Note that this is the opposite order of Quaternion multiplication.
  *
- * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in local space by DeltaRotation.
- * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in world space by DeltaRotation.
+ * Example: LocalToWorld = (DeltaRotation * LocalToWorld) will change rotation in local space by DeltaRotation.
+ * Example: LocalToWorld = (LocalToWorld * DeltaRotation) will change rotation in world space by DeltaRotation.
  */
 
 class FTransform
@@ -453,7 +453,7 @@ public:
 
 	/**
 	 * Return a transform that is the result of this multiplied by another transform.
-	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
 	 * 
 	 * @param  Other other transform by which to multiply.
 	 * @return new transform: this * Other
@@ -463,7 +463,7 @@ public:
 
 	/**
 	 * Sets this transform to the result of this multiplied by another transform.
-	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	 * Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
 	 *
 	 * @param  Other other transform by which to multiply.
 	 */
@@ -471,7 +471,7 @@ public:
 	
 	/**
 	* Return a transform that is the result of this multiplied by another transform (made only from a rotation).
-	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
 	*
 	* @param  Other other quaternion rotation by which to multiply.
 	* @return new transform: this * FTransform(Other)
@@ -480,7 +480,7 @@ public:
 	
 	/**
 	* Sets this transform to the result of this multiplied by another transform (made only from a rotation).
-	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies B then A to any subsequent transformation.
+	* Order matters when composing transforms : C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
 	*
 	* @param  Other other quaternion rotation by which to multiply.
 	*/
@@ -619,7 +619,7 @@ public:
 	/**
 	 * Create a new transform: OutTransform = A * B.
 	 *
-	 * Order matters when composing transforms : A * B will yield a transform that logically first applies B then A to any subsequent transformation.
+	 * Order matters when composing transforms : A * B will yield a transform that logically first applies A then B to any subsequent transformation.
 	 * 
 	 * @param  OutTransform pointer to transform that will store the result of A * B.
 	 * @param  A Transform A.
