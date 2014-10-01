@@ -785,7 +785,7 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 		// 4 float components per texel (RGBA)
 		FloatData.AddUninitialized(SizeX * SizeY);
 		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatData.GetData());
-		FLinearColor* FloatDataPtr = FloatData.GetTypedData();
+		FLinearColor* FloatDataPtr = FloatData.GetData();
 		for (uint32 Index = 0; Index < SizeX * SizeY; ++Index, ++FloatDataPtr)
 		{
 			OutData[Index] = FFloat16Color(*FloatDataPtr);

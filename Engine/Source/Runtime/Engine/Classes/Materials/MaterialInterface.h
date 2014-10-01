@@ -589,6 +589,18 @@ public:
 	ENGINE_API static uint32 GetFeatureLevelsToCompileForAllMaterials() { return FeatureLevelsForAllMaterials | (1 << GMaxRHIFeatureLevel); }
 
 	/** Iterate over all feature levels currently marked as active */
+#if IS_MONOLITHIC
+	template <typename TFunction>
+	ENGINE_API static void IterateOverActiveFeatureLevels(TFunction InHandler) 
+	{  
+		uint32 FeatureLevels = GetFeatureLevelsToCompileForAllMaterials();
+		while (FeatureLevels != 0)
+		{
+			InHandler((ERHIFeatureLevel::Type)FBitSet::GetAndClearNextBit(FeatureLevels));
+		}
+	}
+#else
+	//@todo: Can't export template functions...
 	ENGINE_API static void IterateOverActiveFeatureLevels(std::function<void(ERHIFeatureLevel::Type FeatureLevel)> InHandler) 
 	{  
 		uint32 FeatureLevels = GetFeatureLevelsToCompileForAllMaterials();
@@ -597,6 +609,7 @@ public:
 			InHandler((ERHIFeatureLevel::Type)FBitSet::GetAndClearNextBit(FeatureLevels));
 		}
 	}
+#endif
 
 protected:
 
