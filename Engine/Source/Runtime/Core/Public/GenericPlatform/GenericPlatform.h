@@ -55,8 +55,8 @@ struct FGenericPlatformTypes
 	typedef WIDECHAR			TCHAR;		// A switchable character  - In-memory only.  Either ANSICHAR or WIDECHAR, depending on a licensee's requirements.
 
 	typedef SelectIntPointerType<uint32, uint64, sizeof(void*)>::TIntPointer UPTRINT;	// unsigned int the same size as a pointer
-	typedef SelectIntPointerType<int32, int64, sizeof(void*)>::TIntPointer PTRINT;	// signed int the same size as a pointer
-	typedef UPTRINT SIZE_T;															// signed int the same size as a pointer
+	typedef SelectIntPointerType<int32, int64, sizeof(void*)>::TIntPointer PTRINT;		// signed int the same size as a pointer
+	typedef UPTRINT SIZE_T;																// unsigned int the same size as a pointer
 
 	typedef int32					TYPE_OF_NULL;
 	typedef decltype(nullptr)		TYPE_OF_NULLPTR;
