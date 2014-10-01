@@ -38,7 +38,11 @@ public:
 
 	/** If enabled, then your Blueprint favorites will be uncategorized, leaving you with less nested categories to sort through. */
 	UPROPERTY(EditAnywhere, config, Category=UserExperience)
-	bool bFlattenFavoritesMenu;
+	bool bFlattenFavoritesMenus;
+
+	/** If set, then the new refactored menu system will be replaced with the old (legacy) system (as a fallback, in case the new system has unforeseen problems)*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=UserExperience)
+	bool bUseLegacyMenuingSystem;
 
 // Developer Settings
 public:

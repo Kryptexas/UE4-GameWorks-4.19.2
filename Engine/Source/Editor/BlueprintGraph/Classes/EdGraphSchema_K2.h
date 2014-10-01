@@ -289,10 +289,6 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	// Somewhat hacky mechanism to prevent tooltips created for pins from including the display name and type when generating BP API documentation
 	static bool bGeneratingDocumentation;
 
-	/** DEPRECATED - Use UEditorExperimentalSettings::bUseRefactoredBlueprintMenuingSystem instead */
-	UPROPERTY(GlobalConfig)
-	bool bUseLegacyActionMenus; 
-
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
 

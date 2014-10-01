@@ -13,7 +13,8 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructIni
 	bUseTargetContextForNodeMenu = true;
 	bExposeAllMemberComponentFunctions = true;
 	bShowContextualFavorites = false;
-	bFlattenFavoritesMenu = false;
+	bFlattenFavoritesMenus = true;
+	bUseLegacyMenuingSystem = false;
 
 	// settings that were moved out of experimental...
 	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();

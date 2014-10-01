@@ -56,10 +56,6 @@ public:
 	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints")*/)
 	bool bDrawMidpointArrowsInBlueprints;
 
-	/** Determines if the Blueprint editor should use the new (experimental) menu system, or the old (legacy) system */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use New Blueprint Menuing System"))
-	bool bUseRefactoredBlueprintMenuingSystem;
-
 	/** Whether to show Audio Streaming options for SoundWaves (disabling will not stop all audio streaming) */
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	bool bShowAudioStreamingOptions;

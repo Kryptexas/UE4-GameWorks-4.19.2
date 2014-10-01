@@ -352,7 +352,7 @@ static void BlueprintActionMenuUtilsImpl::AddFavoritesSection(FBlueprintActionFi
 		uint32 SectionFlags = 0x00;
 		FText  SectionHeading = LOCTEXT("ContextMenuFavoritesTitle", "Favorites");
 
-		if (BlueprintSettings->bFlattenFavoritesMenu)
+		if (BlueprintSettings->bFlattenFavoritesMenus)
 		{
 			SectionFlags |= FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
 			SectionHeading = FText::GetEmpty();
@@ -568,8 +568,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	MenuOut.RebuildActionList();
 
-	UEditorExperimentalSettings const* ExperimentalSettings =  GetDefault<UEditorExperimentalSettings>();
-	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
+	if (!BlueprintSettings->bUseLegacyMenuingSystem)
 	{
 		for (UEdGraph const* Graph : Context.Graphs)
 		{
@@ -605,15 +604,15 @@ void FBlueprintActionMenuUtils::MakeFavoritesMenu(FBlueprintActionContext const&
 {
 	MenuOut.Empty();
 
-	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
-	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	if (!BlueprintSettings->bUseLegacyMenuingSystem)
 	{
 		FBlueprintActionFilter MenuFilter;
 		MenuFilter.Context = Context;
 		MenuFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(BlueprintActionMenuUtilsImpl::IsNonFavoritedAction));
 
 		uint32 SectionFlags = 0x00;
-		if (GetDefault<UBlueprintEditorSettings>()->bFlattenFavoritesMenu)
+		if (BlueprintSettings->bFlattenFavoritesMenus)
 		{
 			SectionFlags = FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
 		}

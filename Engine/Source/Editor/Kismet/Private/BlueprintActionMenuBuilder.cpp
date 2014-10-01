@@ -16,6 +16,7 @@
 #include "SMyBlueprint.h"				// for SelectionAsVar()
 #include "BlueprintEditorUtils.h"		// for FindBlueprintForGraphChecked()
 #include "BlueprintEditor.h"			// for GetFocusedGraph()
+#include "BlueprintEditorSettings.h"	// for bUseLegacyMenuingSystem
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuBuilder"
 
@@ -540,15 +541,14 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 		MenuSection->Empty();
 	}
 	
-	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
-	if (ExperimentalSettings->bUseRefactoredBlueprintMenuingSystem)
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	if (!BlueprintSettings->bUseLegacyMenuingSystem)
 	{
 		FBlueprintActionDatabase::FActionRegistry const& ActionDatabase = FBlueprintActionDatabase::Get().GetAllActions();
 		for (auto const& ActionEntry : ActionDatabase)
 		{
 			for (UBlueprintNodeSpawner const* NodeSpawner : ActionEntry.Value)
 			{
-
 				FBlueprintActionInfo BlueprintAction(ActionEntry.Key, NodeSpawner);
 
 				// @TODO: could probably have a super filter that spreads across 
