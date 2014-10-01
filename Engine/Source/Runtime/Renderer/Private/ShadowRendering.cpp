@@ -732,6 +732,7 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	):
 	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,*InMaterialResource,false,bInCastShadowAsTwoSided),
 	GeometryShader(NULL),
+	FeatureLevel(InFeatureLevel),
 	bDirectionalLight(bInDirectionalLight),
 	bReverseCulling(bInReverseCulling),
 	bOnePassPointLightShadow(bInOnePassPointLightShadow),
