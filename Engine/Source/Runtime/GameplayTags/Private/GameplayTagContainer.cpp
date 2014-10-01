@@ -10,6 +10,11 @@ FGameplayTagContainer::FGameplayTagContainer(FGameplayTagContainer const& Other)
 	*this = Other;
 }
 
+FGameplayTagContainer::FGameplayTagContainer(const FGameplayTag& Tag)
+{
+	AddTag(Tag);
+}
+
 FGameplayTagContainer& FGameplayTagContainer::operator=(FGameplayTagContainer const& Other)
 {
 	// Guard against self-assignment
