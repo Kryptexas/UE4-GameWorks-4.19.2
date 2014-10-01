@@ -129,7 +129,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 	[
 		SNew(SBorder)
 		.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-		.Padding(8.f)
+		.Padding(FMargin(8.f, 4.f))
 		[
 			SNew(SVerticalBox)
 
@@ -143,49 +143,34 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				.VAlign(VAlign_Top)
-				.HAlign(HAlign_Left)
-				.Padding(FMargin(0, 0, 0, 5.f))
 				[
 					SNew(SHorizontalBox)
 					
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(FMargin(0,0,5,0))
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0, 0, 5.f, 0))
+					.VAlign(VAlign_Center)
 					[
-						SNew(SButton)
-						.Visibility( FDesktopPlatformModule::Get()->CanOpenLauncher(true) ? EVisibility::Visible : EVisibility::Collapsed )
-						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-						.OnClicked(this, &SProjectBrowser::HandleMarketplaceTabButtonClicked)
-						.ForegroundColor(FSlateColor::UseForeground())
-						.ToolTipText(LOCTEXT("MarketplaceToolTip", "Check out the Marketplace to find new projects!"))
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
+						SNew(SOverlay)
+
+						+SOverlay::Slot()
 						[
-							SNew(SHorizontalBox)
+							SNew(SSearchBox)
+							.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
+							.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
+						]
 
-							+ SHorizontalBox::Slot()
-							.Padding(2.0f)
-							.VAlign(VAlign_Center)
-							.AutoWidth()
-							[
-								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("LevelEditor.OpenMarketplace.Small")) 
-							]
-
-							+ SHorizontalBox::Slot()
-							.VAlign(VAlign_Center)
-							.Padding(2.0f)
-							[
-								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "ProjectBrowser.Toolbar.Text")
-								.Text(LOCTEXT("Marketplace", "Marketplace"))
-							]
+						+SOverlay::Slot()
+						[
+							SNew(SBorder)
+							.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
+							.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
 						]
 					]
 
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
+					.Padding(FMargin(0, 0, 5.f, 0))
 					[
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
@@ -216,27 +201,39 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 							]
 						]
 					]
-				]
 
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.VAlign(VAlign_Top)
-				.Padding(FMargin(0, 5.f))
-				[
-					SNew(SOverlay)
-
-					+SOverlay::Slot()
+					+SHorizontalBox::Slot()
+					.AutoWidth()
 					[
-						SNew(SSearchBox)
-						.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
-						.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
-					]
+						SNew(SButton)
+						.Visibility( FDesktopPlatformModule::Get()->CanOpenLauncher(true) ? EVisibility::Visible : EVisibility::Collapsed )
+						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+						.OnClicked(this, &SProjectBrowser::HandleMarketplaceTabButtonClicked)
+						.ForegroundColor(FSlateColor::UseForeground())
+						.ToolTipText(LOCTEXT("MarketplaceToolTip", "Check out the Marketplace to find new projects!"))
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SHorizontalBox)
 
-					+SOverlay::Slot()
-					[
-						SNew(SBorder)
-						.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
-						.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
+							+ SHorizontalBox::Slot()
+							.Padding(2.0f)
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("LevelEditor.OpenMarketplace.Small")) 
+							]
+
+							+ SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.Padding(2.0f)
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "ProjectBrowser.Toolbar.Text")
+								.Text(LOCTEXT("Marketplace", "Marketplace"))
+							]
+						]
 					]
 				]
 
