@@ -133,6 +133,10 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Running the performance capture test for %.0f seconds on %s"), Duration, *ShortMapName);
 	
+	//Move the viewport views to the first bookmark
+	ADD_LATENT_AUTOMATION_COMMAND(FChangeViewportToFirstAvailableBookmarkCommand);
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
+
 	//Wait for shaders to finish compile.
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompiling);
 	

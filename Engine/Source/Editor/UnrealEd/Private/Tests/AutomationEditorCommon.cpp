@@ -761,10 +761,36 @@ bool FWaitForShadersToFinishCompiling::Update()
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());
 	GShaderCompilingManager->FinishAllCompilation();
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Done waiting for shaders to finish."));
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("%i shaders need to be recompiled."), GShaderCompilingManager->GetNumRemainingJobs());
 	return true;
 }
 
+/**
+* Latent command that changes the editor viewport to the first available bookmarked view.
+*/
+bool FChangeViewportToFirstAvailableBookmarkCommand::Update()
+{
+	FEditorModeTools EditorModeTools;
+	FLevelEditorViewportClient* ViewportClient;
+
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Attempting to change the editor viewports view to the first set bookmark."));
+
+	//Move the perspective viewport view to show the test.
+	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++)
+	{
+		ViewportClient = GEditor->LevelViewportClients[i];
+
+		for (uint32 ViewportIndex = 0; ViewportIndex <= AWorldSettings::MAX_BOOKMARK_NUMBER; ViewportIndex++)
+		{
+			if (EditorModeTools.CheckBookmark(ViewportIndex, ViewportClient))
+			{
+				UE_LOG(LogEditorAutomationTests, Log, TEXT("Changing a viewport view to the set bookmark %i"), ViewportIndex);
+				EditorModeTools.JumpToBookmark(ViewportIndex, true, ViewportClient);
+				break;
+			}
+		}
+	}
+	return true;
+}
 //////////////////////////////////////////////////////////////////////
 //Find Asset Commands
 

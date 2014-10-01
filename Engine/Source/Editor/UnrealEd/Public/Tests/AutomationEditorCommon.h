@@ -148,6 +148,11 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerformanceCharts,
 */
 DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompiling);
 
+/**
+* Latent command that changes the editor viewport to the first available bookmarked view.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FChangeViewportToFirstAvailableBookmarkCommand);
+
 //////////////////////////////////////////////////////////////////////////
 // FEditorAutomationTestUtilities
 
