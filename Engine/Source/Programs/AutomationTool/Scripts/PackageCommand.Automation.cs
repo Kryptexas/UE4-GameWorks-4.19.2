@@ -23,7 +23,7 @@ public partial class Project : CommandUtils
 		{
 			DeployContextList.AddRange(CreateDeploymentContext(Params, true, false));
 		}
-		if (DeployContextList.Count > 0)
+		if (DeployContextList.Count > 0 && !Params.SkipStage)
 		{
 			Log("********** PACKAGE COMMAND STARTED **********");
 

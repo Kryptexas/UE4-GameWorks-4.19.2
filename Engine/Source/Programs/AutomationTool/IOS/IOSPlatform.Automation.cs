@@ -833,10 +833,6 @@ public class IOSPlatform : Platform
 		return false;
 	}
 
-    public override PakType RequiresPak(ProjectParams Params)
-    {
-        return PakType.Always;
-    }
 
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{

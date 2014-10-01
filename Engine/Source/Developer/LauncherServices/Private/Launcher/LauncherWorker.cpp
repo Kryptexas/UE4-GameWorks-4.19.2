@@ -418,7 +418,26 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		switch (InProfile->GetDeploymentMode())
 		{
 		case ELauncherProfileDeploymentModes::CopyRepository:
+			{
+				UATCommand += TEXT(" -skipstage -deploy");
+				UATCommand += CommandLine;
+				UATCommand += StageDirectory;
+				UATCommand += DeviceCommand;
+				UATCommand += AdditionalCommandLine;
+
+				FCommandDesc Desc;
+				FText Command = FText::Format(LOCTEXT("LauncherDeployDesc", "Deploying content for {0}"), FText::FromString(Platforms.RightChop(1)));
+				Desc.Name = "Deploy Task";
+				Desc.Desc = Command.ToString();
+				Desc.EndText = TEXT("********** DEPLOY COMMAND COMPLETED **********");
+				OutCommands.Add(Desc);
+				if (CommandStart.Len() == 0)
+				{
+					CommandStart = TEXT("********** DEPLOY COMMAND STARTED **********");
+				}
+			}
 			break;
+
 		case ELauncherProfileDeploymentModes::FileServer:
 		case ELauncherProfileDeploymentModes::CopyToDevice:
 			{
