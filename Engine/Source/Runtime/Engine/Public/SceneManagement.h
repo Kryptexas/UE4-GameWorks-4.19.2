@@ -574,6 +574,8 @@ public:
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float OcclusionMaxDistance;
 	float Contrast;
+	float MinOcclusion;
+	FLinearColor OcclusionTint;
 };
 
 

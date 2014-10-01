@@ -81,6 +81,8 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, IrradianceEnvironmentMap(InLightComponent->IrradianceEnvironmentMap)
 	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
 	, Contrast(InLightComponent->Contrast)
+	, MinOcclusion(InLightComponent->MinOcclusion)
+	, OcclusionTint(InLightComponent->OcclusionTint)
 {
 }
 
@@ -107,6 +109,8 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 	bLowerHemisphereIsBlack = true;
 	bSavedConstructionScriptValuesValid = true;
 	OcclusionMaxDistance = 600;
+	MinOcclusion = 0;
+	OcclusionTint = FColor::Black;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const

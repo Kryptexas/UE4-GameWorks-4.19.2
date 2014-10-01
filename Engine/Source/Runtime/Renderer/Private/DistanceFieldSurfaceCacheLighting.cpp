@@ -3251,7 +3251,7 @@ void UpdateVisibleObjectBuffers(const FScene* Scene, const FDistanceFieldAOParam
 						ObjectData2.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[2]);
 						ObjectData2.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[3]);
 
-						const FMatrix WorldToVolume = UniformScaleVolumeToWorld.InverseFast();
+						const FMatrix WorldToVolume = UniformScaleVolumeToWorld.Inverse();
 						// WorldToVolume
 						ObjectData.Add(*(FVector4*)&WorldToVolume.M[0]);
 						ObjectData.Add(*(FVector4*)&WorldToVolume.M[1]);
@@ -3805,9 +3805,10 @@ public:
 		DynamicBentNormalAOTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexture"));
 		DynamicBentNormalAOSampler.Bind(Initializer.ParameterMap, TEXT("BentNormalAOSampler"));
 		ContrastAndNormalizeMulAdd.Bind(Initializer.ParameterMap, TEXT("ContrastAndNormalizeMulAdd"));
+		OcclusionTintAndMinOcclusion.Bind(Initializer.ParameterMap, TEXT("OcclusionTintAndMinOcclusion"));
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTextureRHIParamRef DynamicBentNormalAO, const FDistanceFieldAOParameters& Parameters)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTextureRHIParamRef DynamicBentNormalAO, const FDistanceFieldAOParameters& Parameters, const FSkyLightSceneProxy* SkyLight)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
@@ -3822,6 +3823,10 @@ public:
 		const float Add = -Min / (Max - Min);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ContrastAndNormalizeMulAdd, FVector(Parameters.Contrast, Mul, Add));
+
+		FVector4 OcclusionTintAndMinOcclusionValue = FVector4(SkyLight->OcclusionTint);
+		OcclusionTintAndMinOcclusionValue.W = SkyLight->MinOcclusion;
+		SetShaderValue(RHICmdList, ShaderRHI, OcclusionTintAndMinOcclusion, OcclusionTintAndMinOcclusionValue);
 	}
 
 	// FShader interface.
@@ -3832,6 +3837,7 @@ public:
 		Ar << DynamicBentNormalAOTexture;
 		Ar << DynamicBentNormalAOSampler;
 		Ar << ContrastAndNormalizeMulAdd;
+		Ar << OcclusionTintAndMinOcclusion;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -3841,6 +3847,7 @@ private:
 	FShaderResourceParameter DynamicBentNormalAOTexture;
 	FShaderResourceParameter DynamicBentNormalAOSampler;
 	FShaderParameter ContrastAndNormalizeMulAdd;
+	FShaderParameter OcclusionTintAndMinOcclusion;
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS<true>,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
@@ -3890,7 +3897,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 
 				static FGlobalBoundShaderState BoundShaderState;
 				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-				PixelShader->SetParameters(RHICmdList, View, DynamicBentNormalAO->GetRenderTargetItem().ShaderResourceTexture, Parameters);
+				PixelShader->SetParameters(RHICmdList, View, DynamicBentNormalAO->GetRenderTargetItem().ShaderResourceTexture, Parameters, Scene->SkyLight);
 			}
 			else
 			{
@@ -3898,7 +3905,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 
 				static FGlobalBoundShaderState BoundShaderState;
 				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-				PixelShader->SetParameters(RHICmdList, View, GWhiteTexture->TextureRHI, Parameters);
+				PixelShader->SetParameters(RHICmdList, View, GWhiteTexture->TextureRHI, Parameters, Scene->SkyLight);
 			}
 
 			DrawRectangle( 
