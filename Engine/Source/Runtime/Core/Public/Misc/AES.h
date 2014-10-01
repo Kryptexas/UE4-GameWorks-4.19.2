@@ -8,7 +8,7 @@
 
 #define AES_BLOCK_SIZE				16
 
-struct FAES
+struct CORE_API FAES
 {
 	static const uint32 AESBlockSize = 16;
 
