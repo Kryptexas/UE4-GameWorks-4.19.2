@@ -4740,6 +4740,8 @@ UMaterialExpressionSceneTexture::UMaterialExpressionSceneTexture(const class FPo
 
 	//by default slower but reliable results, if the shader never accesses the texels outside it can be disabled.
 	bClampUVs = true;
+	// by default faster, most lookup are read/write the same pixel so this is ralrely needed
+	bFiltered = false;
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT("Color"), 1, 1, 1, 1, 1));
@@ -4769,7 +4771,7 @@ int32 UMaterialExpressionSceneTexture::Compile(class FMaterialCompiler* Compiler
 		}
 
 		// Color
-		return Compiler->SceneTextureLookup(UV, SceneTextureId);
+		return Compiler->SceneTextureLookup(UV, SceneTextureId, bFiltered);
 	}
 	else if(OutputIndex == 1 || OutputIndex == 2)
 	{

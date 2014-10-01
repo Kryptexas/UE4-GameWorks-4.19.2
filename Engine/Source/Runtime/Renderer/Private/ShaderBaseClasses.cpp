@@ -228,12 +228,6 @@ void FMaterialShader::SetParameters(
 		}
 	}
 
-	// if we are in a postprocessing pass
-	if(View.RenderingCompositePassContext)
-	{
-		PostprocessParameter.Set(ShaderRHI, *View.RenderingCompositePassContext, TStaticSamplerState<>::GetRHI());
-	}
-
 	//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 	if(EyeAdaptation.IsBound())
 	{

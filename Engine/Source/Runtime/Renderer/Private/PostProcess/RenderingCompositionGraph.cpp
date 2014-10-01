@@ -800,14 +800,17 @@ void FPostProcessPassParameters::Set(
 
 			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, SrcTexture);
 
+			if(PostprocessInputSizeParameter[Id].IsBound() || PostProcessInputMinMaxParameter[Id].IsBound())
 			{
 				float Width = InputPooledElement->GetDesc().Extent.X;
 				float Height = InputPooledElement->GetDesc().Extent.Y;
-				FVector4 TextureSize(Width, Height, 1.0f / Width, 1.0f / Height);
-				SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], TextureSize);
-					
-				//We could use the main scene min max here if it weren't that we need to pull the max in by a pixel on a per input basis.
+				
 				FVector2D OnePPInputPixelUVSize = FVector2D(1.0f / Width, 1.0f / Height);
+
+				FVector4 TextureSize(Width, Height, OnePPInputPixelUVSize.X, OnePPInputPixelUVSize.Y);
+				SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], TextureSize);
+
+				//We could use the main scene min max here if it weren't that we need to pull the max in by a pixel on a per input basis.
 				FVector4 PPInputMinMax = BaseSceneTexMinMax;
 				PPInputMinMax.Z -= OnePPInputPixelUVSize.X;
 				PPInputMinMax.W -= OnePPInputPixelUVSize.Y;

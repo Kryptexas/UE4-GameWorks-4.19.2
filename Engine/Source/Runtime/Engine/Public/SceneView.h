@@ -333,9 +333,6 @@ public:
 	 */
 	bool bStaticSceneOnly;
 
-	/** 0 if valid (we are rendering a screen postprocess pass )*/
-	struct FRenderingCompositePassContext* RenderingCompositePassContext; 
-
 	/** Aspect ratio constrained view rect. In the editor, when attached to a camera actor and the camera black bar showflag is enabled, the normal viewrect 
 	  * remains as the full viewport, and the black bars are just simulated by drawing black bars. This member stores the effective constrained area within the
 	  * bars.

@@ -2266,7 +2266,7 @@ protected:
 	}
 	
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) override
+	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
@@ -2288,8 +2288,8 @@ protected:
 
 		return AddCodeChunk(
 			MCT_Float4,
-			TEXT("SceneTextureLookup(%s, %d)"),
-			*TexCoordCode, (int)SceneTextureId
+			TEXT("SceneTextureLookup(%s, %d, %s)"),
+			*TexCoordCode, (int)SceneTextureId, bFiltered ? TEXT("true") : TEXT("false")
 			);
 	}
 

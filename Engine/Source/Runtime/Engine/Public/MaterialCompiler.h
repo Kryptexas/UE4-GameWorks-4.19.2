@@ -109,7 +109,7 @@ public:
 	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) = 0;
 	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) = 0;
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureLookup(int32 UV, uint32 SceneTextureId) = 0;
+	virtual int32 SceneTextureLookup(int32 UV, uint32 SceneTextureId, bool bFiltered) = 0;
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
 	virtual int32 SceneTextureSize(uint32 SceneTextureId, bool bInvert) = 0;
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
@@ -262,7 +262,7 @@ public:
 	virtual	int32 PixelDepth() override { return Compiler->PixelDepth();	}
 	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->SceneDepth(Offset, UV, bUseOffset); }
 	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->SceneColor(Offset, UV, bUseOffset); }
-	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) override { return Compiler->SceneTextureLookup(UV, InSceneTextureId); }
+	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override { return Compiler->SceneTextureLookup(UV, InSceneTextureId, bFiltered); }
 	virtual int32 SceneTextureSize(uint32 InSceneTextureId, bool bInvert) override { return Compiler->SceneTextureSize(InSceneTextureId, bInvert); }
 	virtual int32 SceneTextureMax(uint32 InSceneTextureId) override { return Compiler->SceneTextureMax(InSceneTextureId); }
 	virtual int32 SceneTextureMin(uint32 InSceneTextureId) override { return Compiler->SceneTextureMin(InSceneTextureId); }

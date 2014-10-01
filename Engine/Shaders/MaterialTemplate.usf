@@ -871,7 +871,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 }
 
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
-float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
+float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 {
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV, false);
 
@@ -892,13 +892,13 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 	else if (SceneTextureIndex == 11)	return ScreenSpaceData.GBuffer.Roughness;
 	else if (SceneTextureIndex == 12)	return ScreenSpaceData.GBuffer.GBufferAO;
 	else if (SceneTextureIndex == 13)	return ScreenSpaceData.GBuffer.CustomDepth;
-	else if (SceneTextureIndex == 14)	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
-	else if (SceneTextureIndex == 15)	return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
-	else if (SceneTextureIndex == 16)	return Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV);
-	else if (SceneTextureIndex == 17)	return Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, UV);
-	else if (SceneTextureIndex == 18)	return Texture2DSample(PostprocessInput4, PostprocessInput4Sampler, UV);
-	else if (SceneTextureIndex == 19)	return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);
-	else if (SceneTextureIndex == 20)	return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);
+	else if (SceneTextureIndex == 14)	return Texture2DSample(PostprocessInput0, bFiltered ? BilinearTextureSampler0 : PostprocessInput0Sampler, UV);
+	else if (SceneTextureIndex == 15)	return Texture2DSample(PostprocessInput1, bFiltered ? BilinearTextureSampler0 : PostprocessInput1Sampler, UV);
+	else if (SceneTextureIndex == 16)	return Texture2DSample(PostprocessInput2, bFiltered ? BilinearTextureSampler0 : PostprocessInput2Sampler, UV);
+	else if (SceneTextureIndex == 17)	return Texture2DSample(PostprocessInput3, bFiltered ? BilinearTextureSampler0 : PostprocessInput3Sampler, UV);
+	else if (SceneTextureIndex == 18)	return Texture2DSample(PostprocessInput4, bFiltered ? BilinearTextureSampler0 : PostprocessInput4Sampler, UV);
+	else if (SceneTextureIndex == 19)	return Texture2DSample(PostprocessInput5, bFiltered ? BilinearTextureSampler0 : PostprocessInput5Sampler, UV);
+	else if (SceneTextureIndex == 20)	return Texture2DSample(PostprocessInput6, bFiltered ? BilinearTextureSampler0 : PostprocessInput6Sampler, UV);
 	else if (SceneTextureIndex == 21)	return ScreenSpaceData.GBuffer.DecalMask;
 	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
@@ -936,19 +936,19 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex)
 		// PPI_CustomDepth
 		case 13: return ScreenSpaceData.GBuffer.CustomDepth;
 		// PPI_PostprocessInput0
-		case 14: return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+		case 14: return Texture2DSample(PostprocessInput0, bFiltered ? BilinearTextureSampler0 : PostprocessInput0Sampler, UV);
 		// PPI_PostprocessInput1
-		case 15: return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
+		case 15: return Texture2DSample(PostprocessInput1, bFiltered ? BilinearTextureSampler0 : PostprocessInput1Sampler, UV);
 		// PPI_PostprocessInput2
-		case 16: return Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV);
+		case 16: return Texture2DSample(PostprocessInput2, bFiltered ? BilinearTextureSampler0 : PostprocessInput2Sampler, UV);
 		// PPI_PostprocessInput3
-		case 17: return Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, UV);
+		case 17: return Texture2DSample(PostprocessInput3, bFiltered ? BilinearTextureSampler0 : PostprocessInput3Sampler, UV);
 		// PPI_PostprocessInput4
-		case 18: return Texture2DSample(PostprocessInput4, PostprocessInput4Sampler, UV);
+		case 18: return Texture2DSample(PostprocessInput4, bFiltered ? BilinearTextureSampler0 : PostprocessInput4Sampler, UV);
 		// PPI_PostprocessInput5
-		case 19: return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);
+		case 19: return Texture2DSample(PostprocessInput5, bFiltered ? BilinearTextureSampler0 : PostprocessInput5Sampler, UV);
 		// PPI_PostprocessInput6
-		case 20: return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);
+		case 20: return Texture2DSample(PostprocessInput6, bFiltered ? BilinearTextureSampler0 : PostprocessInput6Sampler, UV);
 		// PPI_DecalMask
 		case 21: return ScreenSpaceData.GBuffer.DecalMask;
 		// PPI_ShadingModel
