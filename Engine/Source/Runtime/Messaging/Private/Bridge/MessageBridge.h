@@ -78,20 +78,18 @@ public:
 
 protected:
 
-	/**
-	 * Shuts down the bridge.
-	 */
+	/** Shuts down the bridge. */
 	void Shutdown( );
 
 private:
 
-	// Callback for message bus shut downs
+	/** Callback for message bus shut downs. */
 	void HandleMessageBusShutdown( );
 
-	// Callback for received transport messages.
+	/** Callback for received transport messages. */
 	void HandleTransportMessageReceived( FArchive& MessageData, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId );
 
-	// Callback for lost transport endpoints.
+	/** Callback for lost transport endpoints. */
 	void HandleTransportNodeLost( const FGuid& LostNodeId );
 
 private:

@@ -5,7 +5,7 @@
 #include "UdpMessaging.h"
 
 
-/* Private Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Core.h"
@@ -17,7 +17,7 @@
 #include "SocketSubsystem.h"
 
 
-/* Private Constants
+/* Private constants
  *****************************************************************************/
 
 /** Defines the default IP endpoint for multicast traffic. */

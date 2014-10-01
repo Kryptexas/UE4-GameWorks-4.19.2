@@ -59,10 +59,10 @@ public:
 
 private:
 
-	// Holds the data.
+	/** Holds the data. */
 	TArray<uint8> Data;
 
-	// Holds the message data state.
+	/** Holds the message data state. */
 	EMessageDataState::Type State;
 
 private:

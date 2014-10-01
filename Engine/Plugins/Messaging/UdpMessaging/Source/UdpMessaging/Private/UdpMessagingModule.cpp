@@ -225,7 +225,7 @@ protected:
 	{
 		if (FApp::IsGame())
 		{
-			// disallow in Debug and Development configurations
+			// only allow in Debug and Development configurations for now
 			if ((FApp::GetBuildConfiguration() == EBuildConfigurations::Shipping) || (FApp::GetBuildConfiguration() == EBuildConfigurations::Test))
 			{
 				return false;
