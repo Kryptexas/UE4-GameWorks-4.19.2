@@ -384,6 +384,8 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 			Device->SetConnected(true);
 			Device->SetModel(DeviceInfo.Model);
 			Device->SetDeviceName(DeviceInfo.DeviceName);
+			Device->SetAuthorized(!DeviceInfo.bUnauthorizedDevice);
+			Device->SetVersions(DeviceInfo.SDKVersion, DeviceInfo.HumanAndroidVersion);
 
 			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 		}

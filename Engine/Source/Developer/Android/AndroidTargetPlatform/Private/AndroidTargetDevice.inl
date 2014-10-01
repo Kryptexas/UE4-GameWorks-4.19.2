@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AndroidTargetDevice.cpp: Implements the AndroidTargetDevice class.
-=============================================================================*/
-
 
 /* ITargetDevice interface
  *****************************************************************************/
@@ -24,6 +20,17 @@ inline bool FAndroidTargetDevice::Deploy( const FString& SourceFolder, FString& 
 	return 0 == ReturnCode;
 }
 
+inline FString FAndroidTargetDevice::GetOperatingSystemName()
+{
+	if (!AndroidVersionString.IsEmpty())
+	{
+		return FString::Printf(TEXT("Android %s, API level %d"), *AndroidVersionString, AndroidSDKVersion);
+	}
+	else
+	{
+		return TEXT("Android");
+	}
+}
 
 inline int32 FAndroidTargetDevice::GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) 
 {

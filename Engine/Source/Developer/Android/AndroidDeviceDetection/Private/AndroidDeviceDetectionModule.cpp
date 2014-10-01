@@ -117,71 +117,95 @@ private:
 				continue;
 			}
 
-			FString SerialNumber = DeviceString.Left(TabIndex);
+			FAndroidDeviceInfo NewDeviceInfo;
+
+			NewDeviceInfo.SerialNumber = DeviceString.Left(TabIndex);
+			const FString DeviceState = DeviceString.Mid(TabIndex + 1).Trim();
+
+			NewDeviceInfo.bUnauthorizedDevice = DeviceState == TEXT("unauthorized");
 
 			// add it to our list of currently connected devices
-			CurrentlyConnectedDevices.Add(SerialNumber);
+			CurrentlyConnectedDevices.Add(NewDeviceInfo.SerialNumber);
 
 			// move on to next device if this one is already a known device
-			if (DeviceMap.Contains(SerialNumber))
+			if (DeviceMap.Contains(NewDeviceInfo.SerialNumber))
 			{
 				continue;
 			}
 
-			// get the GL extensions string (and a bunch of other stuff)
-			FString GLESExtensions;
-
-			FString ExtensionsCommand = FString::Printf(TEXT("-s %s shell dumpsys SurfaceFlinger"), *SerialNumber);
-			if (!ExecuteAdbCommand(*ExtensionsCommand, &GLESExtensions, nullptr))
+			if (NewDeviceInfo.bUnauthorizedDevice)
 			{
-				continue;
+				NewDeviceInfo.DeviceName = TEXT("Unauthorized - enable USB debugging");
 			}
-
-			// grab the GL ES version
-			FString GLESVersionString;
-
-			FString VersionCommand = FString::Printf(TEXT("-s %s shell getprop ro.opengles.version"), *SerialNumber);
-			if (!ExecuteAdbCommand(*VersionCommand, &GLESVersionString, nullptr))
+			else
 			{
-				continue;
-			}
+				// grab the Android version
+				const FString AndroidVersionCommand = FString::Printf(TEXT("-s %s shell getprop ro.build.version.release"), *NewDeviceInfo.SerialNumber);
+				if (!ExecuteAdbCommand(*AndroidVersionCommand, &NewDeviceInfo.HumanAndroidVersion, nullptr))
+				{
+					continue;
+				}
+				NewDeviceInfo.HumanAndroidVersion = NewDeviceInfo.HumanAndroidVersion.Replace(TEXT("\r"), TEXT("")).Replace(TEXT("\n"), TEXT(""));
+				NewDeviceInfo.HumanAndroidVersion.Trim().TrimTrailing();
 
-			int GLESVersion = FCString::Atoi(*GLESVersionString);
+				// grab the Android SDK version
+				const FString SDKVersionCommand = FString::Printf(TEXT("-s %s shell getprop ro.build.version.sdk"), *NewDeviceInfo.SerialNumber);
+				FString SDKVersionString;
+				if (!ExecuteAdbCommand(*SDKVersionCommand, &SDKVersionString, nullptr))
+				{
+					continue;
+				}
+				NewDeviceInfo.SDKVersion = FCString::Atoi(*SDKVersionString);
+				if (NewDeviceInfo.SDKVersion <= 0)
+				{
+					NewDeviceInfo.SDKVersion = INDEX_NONE;
+				}
 
-			// parse the device model
-			FString Model;
-			FParse::Value(*DeviceString, TEXT("model:"), Model);
-			if (Model.IsEmpty())
-			{
-				FString ModelCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.model"), *SerialNumber);
-				FString RoProductModel;
-				ExecuteAdbCommand(*ModelCommand, &RoProductModel, nullptr);
-				const TCHAR* Ptr = *RoProductModel;
-				FParse::Line(&Ptr, Model);
-			}
+				// get the GL extensions string (and a bunch of other stuff)
+				const FString ExtensionsCommand = FString::Printf(TEXT("-s %s shell dumpsys SurfaceFlinger"), *NewDeviceInfo.SerialNumber);
+				if (!ExecuteAdbCommand(*ExtensionsCommand, &NewDeviceInfo.GLESExtensions, nullptr))
+				{
+					continue;
+				}
 
-			// parse the device model
-			FString DeviceName;
-			FParse::Value(*DeviceString, TEXT("device:"), DeviceName);
-			if (DeviceName.IsEmpty())
-			{
-				FString DeviceCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.device"), *SerialNumber);
-				FString RoProductDevice;
-				ExecuteAdbCommand(*DeviceCommand, &RoProductDevice, nullptr);
-				const TCHAR* Ptr = *RoProductDevice;
-				FParse::Line(&Ptr, DeviceName);
+				// grab the GL ES version
+				FString GLESVersionString;
+				const FString GLVersionCommand = FString::Printf(TEXT("-s %s shell getprop ro.opengles.version"), *NewDeviceInfo.SerialNumber);
+				if (!ExecuteAdbCommand(*GLVersionCommand, &GLESVersionString, nullptr))
+				{
+					continue;
+				}
+				NewDeviceInfo.GLESVersion = FCString::Atoi(*GLESVersionString);
+
+				// parse the device model
+				FParse::Value(*DeviceString, TEXT("model:"), NewDeviceInfo.Model);
+				if (NewDeviceInfo.Model.IsEmpty())
+				{
+					FString ModelCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.model"), *NewDeviceInfo.SerialNumber);
+					FString RoProductModel;
+					ExecuteAdbCommand(*ModelCommand, &RoProductModel, nullptr);
+					const TCHAR* Ptr = *RoProductModel;
+					FParse::Line(&Ptr, NewDeviceInfo.Model);
+				}
+
+				// parse the device name
+				FParse::Value(*DeviceString, TEXT("device:"), NewDeviceInfo.DeviceName);
+				if (NewDeviceInfo.DeviceName.IsEmpty())
+				{
+					FString DeviceCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.device"), *NewDeviceInfo.SerialNumber);
+					FString RoProductDevice;
+					ExecuteAdbCommand(*DeviceCommand, &RoProductDevice, nullptr);
+					const TCHAR* Ptr = *RoProductDevice;
+					FParse::Line(&Ptr, NewDeviceInfo.DeviceName);
+				}
 			}
 
 			// add the device to the map
 			{
 				FScopeLock ScopeLock(DeviceMapLock);
 
-				FAndroidDeviceInfo& DeviceInfo = DeviceMap.Add(SerialNumber);
-				DeviceInfo.SerialNumber = SerialNumber;
-				DeviceInfo.Model = Model;
-				DeviceInfo.DeviceName = DeviceName;
-				DeviceInfo.GLESExtensions = GLESExtensions;
-				DeviceInfo.GLESVersion = GLESVersion;
+				FAndroidDeviceInfo& SavedDeviceInfo = DeviceMap.Add(NewDeviceInfo.SerialNumber);
+				SavedDeviceInfo = NewDeviceInfo;
 			}
 		}
 
