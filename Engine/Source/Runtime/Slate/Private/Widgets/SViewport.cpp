@@ -112,7 +112,7 @@ void SViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentT
 {
 	if(ViewportInterface.IsValid())
 	{
-		ViewportInterface.Pin()->Tick(InDeltaTime);
+		ViewportInterface.Pin()->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	}
 }
 

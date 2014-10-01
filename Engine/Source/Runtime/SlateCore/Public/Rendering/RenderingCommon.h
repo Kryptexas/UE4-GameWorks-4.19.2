@@ -232,7 +232,7 @@ public:
 	/**
 	 * Performs any ticking necessary by this handle                   
 	 */
-	virtual void Tick( float DeltaTime )
+	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )
 	{
 	}
 

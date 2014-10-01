@@ -469,7 +469,7 @@ class SAutoRefreshViewport : public SViewport
 		Viewport->Invalidate();
 		Viewport->InvalidateDisplay();
 
-		Viewport->Tick(InDeltaTime);
+		Viewport->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 		ViewportClient->Tick(InDeltaTime);
 	}

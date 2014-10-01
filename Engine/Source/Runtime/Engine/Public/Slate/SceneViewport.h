@@ -120,7 +120,7 @@ public:
 	/**
 	 * Ticks the viewport
 	 */
-	virtual void Tick( float DeltaTime );
+	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime ) override;
 
 	/**
 	 * Performs a resize when in swapping viewports while viewing the play world.
