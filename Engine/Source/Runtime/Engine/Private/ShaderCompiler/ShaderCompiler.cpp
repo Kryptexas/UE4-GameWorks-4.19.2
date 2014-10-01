@@ -32,14 +32,14 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("On iOS, if the PowerVR graphics SDK is installed to the default path, the PowerVR shader compiler will be called and errors will be reported during the cook.")
 	);
 
-static TAutoConsoleVariable<int32> CVarStripShaderDebugData(
-	TEXT("r.StripShaderDebugData"),
-	1,
-	TEXT("Whether to strip shader reflection and debug data from shader bytecode.  When using graphical debuggers like Nsight it can be useful to disable this on startup."),
+static TAutoConsoleVariable<int32> CVarKeepShaderDebugData(
+	TEXT("r.Shaders.KeepDebugInfo"),
+	0,
+	TEXT("Whether to keep shader reflection and debug data from shader bytecode, default is to strip.  When using graphical debuggers like Nsight it can be useful to enable this on startup."),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarOptimizeShaders(
-	TEXT("r.OptimizeShaders"),
+	TEXT("r.Shaders.Optimize"),
 	1,
 	TEXT("Whether to optimize shaders.  When using graphical debuggers like Nsight it can be useful to disable this on startup."),
 	ECVF_ReadOnly);
@@ -2075,7 +2075,7 @@ void GlobalBeginCompileShader(
 #endif
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OptimizeShaders"));
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
 
 		if (CVar->GetInt() == 0)
 		{
@@ -2084,11 +2084,11 @@ void GlobalBeginCompileShader(
 	}
 	
 	{
-		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.StripShaderDebugData"));
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.KeepDebugInfo"));
 
-		if (CVar->GetInt() == 0)
+		if (CVar->GetInt() != 0)
 		{
-			Input.Environment.CompilerFlags.Add(CFLAG_DontStripDebugInfo);
+			Input.Environment.CompilerFlags.Add(CFLAG_KeepDebugInfo);
 		}
 	}
 

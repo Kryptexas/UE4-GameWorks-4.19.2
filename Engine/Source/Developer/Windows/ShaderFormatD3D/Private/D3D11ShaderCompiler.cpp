@@ -633,7 +633,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 			TRefCountPtr<ID3DBlob> CompressedData;
 
-			if (Input.Environment.CompilerFlags.Contains(CFLAG_DontStripDebugInfo))
+			if (Input.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
 			{
 				CompressedData = Shader;
 			}

@@ -111,7 +111,7 @@ enum ECompilerFlags
 	CFLAG_StandardOptimization,
 	/** Shader should use on chip memory instead of main memory ring buffer memory. */
 	CFLAG_OnChip,
-	CFLAG_DontStripDebugInfo
+	CFLAG_KeepDebugInfo
 };
 
 /**
