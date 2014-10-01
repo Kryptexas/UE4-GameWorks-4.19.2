@@ -548,8 +548,6 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		*OutProcessID = ChildPid;
 	}
 
-	posix_spawn_file_actions_destroy(&FileActions);
-
 	return FProcHandle( ChildPid );
 }
 
