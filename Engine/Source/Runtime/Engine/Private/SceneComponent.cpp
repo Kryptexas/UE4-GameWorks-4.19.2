@@ -248,19 +248,14 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 }
 
 
-void USceneComponent::DestroyComponent()
+void USceneComponent::OnComponentDestroyed()
 {
-	ScopedMovementStack.Reset();
+	Super::OnComponentDestroyed();
 
-	if (IsRegistered())
-	{
-		UnregisterComponent();
-	}
+	ScopedMovementStack.Reset();
 
 	// Ensure we are detached before destroying
 	DetachFromParent();
-
-	Super::DestroyComponent();
 }
 
 FBoxSphereBounds USceneComponent::CalcBounds(const FTransform& LocalToWorld) const

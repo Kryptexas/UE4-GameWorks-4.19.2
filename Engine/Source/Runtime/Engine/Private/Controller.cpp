@@ -569,32 +569,18 @@ void AController::UpdateNavigationComponents()
 
 void AController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)
 {
-	bool bInitPathFinding = false;
 	PathFindingComp = FindComponentByClass<UNavigationComponent>();
 	if (PathFindingComp == NULL)
 	{
 		PathFindingComp = NewObject<UNavigationComponent>(this);
 		PathFindingComp->RegisterComponentWithWorld(GetWorld());
-		bInitPathFinding = true;
 	}
 
-	bool bInitPathFollowing = false;
 	PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp == NULL)
 	{
 		PathFollowingComp = NewObject<UPathFollowingComponent>(this);
 		PathFollowingComp->RegisterComponentWithWorld(GetWorld());
-		bInitPathFollowing = true;
-	}
-
-	if (bInitPathFinding)
-	{
-		PathFindingComp->InitializeComponent();
-	}
-
-	if (bInitPathFollowing)
-	{
-		PathFollowingComp->InitializeComponent();
 	}
 }
 

@@ -728,13 +728,6 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 
 			BrainComponent = BTComp = ConstructObject<UBehaviorTreeComponent>(UBehaviorTreeComponent::StaticClass(), this, TEXT("BTComponent"));
 			BrainComponent->RegisterComponent();
-
-			if (BrainComponent->bWantsInitializeComponent)
-			{
-				// make sure that newly created component is initialized before running BT
-				// both blackboard and BT to must exist before calling it!
-				BrainComponent->InitializeComponent();
-			}
 		}
 
 		check(BTComp != NULL);
@@ -762,7 +755,6 @@ bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
 		{
 			BlackboardComp->InitializeBlackboard(BlackboardAsset);
 			BlackboardComp->RegisterComponent();
-			BlackboardComp->InitializeComponent();
 		}
 
 	}

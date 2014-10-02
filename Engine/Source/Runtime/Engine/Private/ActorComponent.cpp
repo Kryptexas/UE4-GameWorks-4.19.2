@@ -289,16 +289,14 @@ void UActorComponent::BeginDestroy()
 		UninitializeComponent();
 	}
 
+	ExecuteUnregisterEvents();
+
 	// Ensure that we call OnComponentDestroyed before we destroy this component
 	if(bHasBeenCreated)
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		//UE_LOG(LogActor, Warning, TEXT("UChildActorComponent::BeginDestroy called on '%s' before without OnComponentDestroyed being called."), *this->GetPathName());
-#endif
 		OnComponentDestroyed();
 	}
 
-	ExecuteUnregisterEvents();
 	World = NULL;
 
 	// Remove from the parent's OwnedComponents list
@@ -449,6 +447,7 @@ void UActorComponent::OnUnregister()
 void UActorComponent::InitializeComponent()
 {
 	check(bRegistered);
+	check(!bHasBeenInitialized);
 	bHasBeenInitialized = true;
 }
 
@@ -604,7 +603,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		// can happen with undo because the owner will be restored "next"
 		//checkf(!Owner->IsPendingKill(), TEXT("%s"), *GetFullName());
 
-		if(InWorld != GetOwner()->GetWorld())
+		if(InWorld != Owner->GetWorld())
 		{
 			// The only time you should specify a scene that is not GetOwner()->GetWorld() is when you don't have an Actor
 			UE_LOG(LogActorComponent, Log, TEXT("RegisterComponentWithWorld: (%s) Specifying a world, but an Owner Actor found, and InWorld is not GetOwner()->GetWorld()"), *GetPathName());
@@ -616,6 +615,14 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 
 	ExecuteRegisterEvents();
 	RegisterAllComponentTickFunctions(true);
+
+	if (Owner == nullptr || Owner->bActorInitialized)
+	{
+		if (bWantsInitializeComponent)
+		{
+			InitializeComponent();
+		}
+	}
 }
 
 void UActorComponent::RegisterComponent()
@@ -655,7 +662,13 @@ void UActorComponent::UnregisterComponent()
 
 void UActorComponent::DestroyComponent()
 {
-	// First, unregister if registered
+	// Ensure that we call UninitializeComponent before we destroy this component
+	if (bHasBeenInitialized)
+	{
+		UninitializeComponent();
+	}
+
+	// Unregister if registered
 	if(IsRegistered())
 	{
 		UnregisterComponent();
