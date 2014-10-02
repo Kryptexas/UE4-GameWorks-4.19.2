@@ -3,6 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphNodeLayeredBoneBlend.h"
+#include "AnimGraphNode_LayeredBoneBlend.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeLayeredBoneBlend

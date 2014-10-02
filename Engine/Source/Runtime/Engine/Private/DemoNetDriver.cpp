@@ -10,6 +10,7 @@
 #include "Engine/DemoPendingNetGame.h"
 #include "Engine/ActorChannel.h"
 #include "RepLayout.h"
+#include "GameFramework/SpectatorPawn.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 
