@@ -82,9 +82,9 @@ public class IOSPlatform : Platform
 		return 4;
 	}
 
-	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, string ProjectGameExeFilename )
+	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
 	{
-		var ProjectIPA = Path.ChangeExtension(ProjectGameExeFilename, null);
+		string ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName);
 		if (TargetConfiguration != UnrealTargetConfiguration.Development)
 		{
 			ProjectIPA += "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString();
@@ -171,8 +171,8 @@ public class IOSPlatform : Platform
 			}
 			var TargetConfiguration = SC.StageTargetConfigurations[0];
 
-			var ProjectStub = Params.ProjectGameExeFilename;
-			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params.ProjectGameExeFilename);
+			var ProjectStub = Path.GetFullPath (Params.ProjectGameExeFilename) + "/" + Params.ShortProjectName + Path.GetExtension(Params.ProjectGameExeFilename);
+			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
 
 			// package a .ipa from the now staged directory
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
@@ -183,16 +183,6 @@ public class IOSPlatform : Platform
 			Log("IPPExe={0}", IPPExe);
 
 			bool cookonthefly = Params.CookOnTheFly || Params.SkipCookOnTheFly;
-
-			// rename the .ipa if not code based
-			if (!Params.IsCodeBasedProject)
-			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + ".ipa");
-				if (TargetConfiguration != UnrealTargetConfiguration.Development)
-				{
-					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-				}
-			}
 
 			// delete the .ipa to make sure it was made
 			DeleteFile(ProjectIPA);
@@ -751,22 +741,7 @@ public class IOSPlatform : Platform
 			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 		var TargetConfiguration = SC.StageTargetConfigurations[0];
-
-		string ProjectGameExeFilename = Params.ProjectGameExeFilename;
-		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-		{
-			ProjectGameExeFilename = CombinePaths (Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Path.GetFileName (Params.ProjectGameExeFilename));
-		}
-		var ProjectIPA = MakeIPAFileName( TargetConfiguration, ProjectGameExeFilename );
-		// rename the .ipa if not code based
-		if (!Params.IsCodeBasedProject)
-		{
-			ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + ".ipa");
-			if (TargetConfiguration != UnrealTargetConfiguration.Development)
-			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-			}
-		}
+		var ProjectIPA = MakeIPAFileName( TargetConfiguration, Params );
 
 		// verify the .ipa exists
 		if (!FileExists(ProjectIPA))
@@ -790,20 +765,9 @@ public class IOSPlatform : Platform
 				throw new AutomationException("iOS cannot deploy a package made for distribution.");
 			}
 			var TargetConfiguration = SC.StageTargetConfigurations[0];
-
-//			var ProjectStub = Params.ProjectGameExeFilename;	
-			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params.ProjectGameExeFilename);
-			// rename the .ipa if not code based
-			if (!Params.IsCodeBasedProject)
-			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + ".ipa");
-				if (TargetConfiguration != UnrealTargetConfiguration.Development)
-				{
-					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-				}
-			}
-
+			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
 			var StagedIPA = SC.StageDirectory + "\\" + Path.GetFileName(ProjectIPA);
+
 			// verify the .ipa exists
 			if (!FileExists(StagedIPA))
 			{
