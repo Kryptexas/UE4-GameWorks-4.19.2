@@ -106,13 +106,21 @@ public:
 	UPROPERTY()
 	FGetMouseCursor CursorDelegate;
 
-	/**  */
+	/** The render transform of the widget allows for arbitrary 2D transforms to be applied to the widget. */
 	UPROPERTY(EditDefaultsOnly, Category=RenderTransform, meta=(DisplayName="Transform"))
 	FWidgetTransform RenderTransform;
 
-	/**  */
+	/** The render transform pivot controls the location about which transforms are applied.  This value is a normalized coordinate about which things like rotations will occur. */
 	UPROPERTY(EditDefaultsOnly, Category=RenderTransform, meta=(DisplayName="Pivot"))
 	FVector2D RenderTransformPivot;
+
+#if WITH_EDITORONLY_DATA
+
+	/** Stores the design time flag setting if the widget is hidden inside the designer */
+	UPROPERTY()
+	bool bHiddenInDesigner;
+
+#endif
 
 	/** */
 	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
@@ -207,7 +215,7 @@ public:
 
 	/** Removes the widget from it's parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void RemoveFromParent();
+	virtual void RemoveFromParent();
 
 	/**
 	 * Gets the underlying slate widget or constructs it if it doesn't exist.  This function is
@@ -269,6 +277,9 @@ public:
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
+
+	/** Gets the visibility of the widget inside the designer. */
+	EVisibility GetVisibilityInDesigner() const;
 
 	// Begin Designer contextual events
 	void Select();

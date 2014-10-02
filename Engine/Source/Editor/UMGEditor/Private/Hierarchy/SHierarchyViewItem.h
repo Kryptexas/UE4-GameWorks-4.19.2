@@ -37,6 +37,10 @@ public:
 
 	virtual bool IsModel(UObject* PossibleModel) const { return false; }
 
+	virtual bool IsVisible() const { return true; }
+	virtual bool CanControlVisibility() const { return false; }
+	virtual void SetIsVisible(bool IsVisible) { }
+
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) = 0;
 
@@ -142,6 +146,26 @@ public:
 		return Item.GetTemplate() == PossibleModel;
 	}
 
+	virtual bool IsVisible() const override
+	{
+		return !Item.GetTemplate()->bHiddenInDesigner;
+	}
+
+	virtual bool CanControlVisibility() const override
+	{
+		return true;
+	}
+
+	virtual void SetIsVisible(bool IsVisible) override
+	{
+		Item.GetTemplate()->bHiddenInDesigner = !IsVisible;
+
+		if ( UWidget* PreviewWidget = Item.GetPreview() )
+		{
+			PreviewWidget->bHiddenInDesigner = !IsVisible;
+		}
+	}
+
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
 
@@ -179,14 +203,20 @@ private:
 	/** Called when text is being committed to check for validity */
 	bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
 
-	/* Called when text is committed on the node */
+	/** Called when text is committed on the node */
 	void OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
 
-	/* Gets the font to use for the text item, bold for customized named items */
+	/** Gets the font to use for the text item, bold for customized named items */
 	FSlateFontInfo GetItemFont() const;
 
-	/* @returns the widget name to use for the tree item */
+	/** @returns the widget name to use for the tree item */
 	FText GetItemText() const;
+
+	/** Handles clicking the visibility toggle */
+	FReply OnToggleVisibility();
+
+	/** Returns a brush representing the visibility item of the widget's visibility button */
+	const FSlateBrush* GetVisibilityBrushForWidget() const;
 
 	/* The mode that this tree item represents */
 	TSharedPtr<FHierarchyModel> Model;

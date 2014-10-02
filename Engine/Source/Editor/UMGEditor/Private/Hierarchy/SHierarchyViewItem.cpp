@@ -642,6 +642,26 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 				.OnTextCommitted(this, &SHierarchyViewItem::OnNameTextCommited)
 				.IsSelected(this, &SHierarchyViewItem::IsSelectedExclusively)
 			]
+
+			// Visibility icon
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ContentPadding(0)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.OnClicked(this, &SHierarchyViewItem::OnToggleVisibility)
+				.Visibility(Model->CanControlVisibility() ? EVisibility::Visible : EVisibility::Hidden)
+				.ToolTipText(LOCTEXT("WidgetVisibilityButtonToolTip", "Toggle Widget's Editor Visibility"))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(this, &SHierarchyViewItem::GetVisibilityBrushForWidget)
+				]
+			]
 		],
 		InOwnerTableView);
 }
@@ -689,6 +709,20 @@ void SHierarchyViewItem::HandleDragLeave(const FDragDropEvent& DragDropEvent)
 FReply SHierarchyViewItem::HandleDrop(const FDragDropEvent& DragDropEvent)
 {
 	return Model->HandleDrop(DragDropEvent);
+}
+
+FReply SHierarchyViewItem::OnToggleVisibility()
+{
+	Model->SetIsVisible(!Model->IsVisible());
+
+	return FReply::Handled();
+}
+
+const FSlateBrush* SHierarchyViewItem::GetVisibilityBrushForWidget() const
+{
+	return Model->IsVisible() ?
+		FEditorStyle::GetBrush("WidgetDesigner.WidgetVisible") :
+		FEditorStyle::GetBrush("WidgetDesigner.WidgetHidden");
 }
 
 #undef LOCTEXT_NAMESPACE

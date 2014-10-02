@@ -542,6 +542,11 @@ void UUserWidget::AddToViewport()
 
 void UUserWidget::RemoveFromViewport()
 {
+	RemoveFromParent();
+}
+
+void UUserWidget::RemoveFromParent()
+{
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> WidgetHost = FullScreenWidget.Pin();
@@ -556,9 +561,18 @@ void UUserWidget::RemoveFromViewport()
 			}
 		}
 	}
+	else
+	{
+		Super::RemoveFromParent();
+	}
 }
 
 bool UUserWidget::GetIsVisible() const
+{
+	return FullScreenWidget.IsValid();
+}
+
+bool UUserWidget::IsInViewport() const
 {
 	return FullScreenWidget.IsValid();
 }

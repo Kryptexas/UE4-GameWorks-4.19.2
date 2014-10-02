@@ -332,6 +332,11 @@ const FSlateBrush* UWidget::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget");
 }
 
+EVisibility UWidget::GetVisibilityInDesigner() const
+{
+	return bHiddenInDesigner ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
 void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -409,13 +414,15 @@ void UWidget::SynchronizeProperties()
 	// visibility and enabled status are not stomping values setup in the root widget in the User Widget.
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 
+#if WITH_EDITOR
 	// Always use an enabled and visible state in the designer.
 	if ( IsDesignTime() )
 	{
 		SafeWidget->SetEnabled(true);
-		SafeWidget->SetVisibility(EVisibility::Visible);
+		SafeWidget->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UWidget::GetVisibilityInDesigner)));
 	}
 	else
+#endif
 	{
 		SafeWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));

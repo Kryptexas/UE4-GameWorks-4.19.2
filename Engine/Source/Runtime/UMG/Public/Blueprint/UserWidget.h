@@ -142,8 +142,11 @@ public:
 	/**
 	 * Removes the widget from the viewport.
 	 */
-	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport", meta=( DeprecatedFunction, DeprecationMessage="Use RemoveFromParent instead" ))
 	void RemoveFromViewport();
+
+	/** Removes the widget from it's parent widget, including the viewport if it was added to the viewport. */
+	virtual void RemoveFromParent() override;
 
 	/**
 	 * Sets the widgets position in the viewport.
@@ -164,8 +167,12 @@ public:
 	void SetAlignmentInViewport(FVector2D Alignment);
 
 	/*  */
-	UFUNCTION(BlueprintPure, Category="Appearance")
+	UFUNCTION(BlueprintPure, Category="Appearance", meta=( DeprecatedFunction, DeprecationMessage="Use IsInViewport instead" ))
 	bool GetIsVisible() const;
+
+	/* @return true if the widget was added to the viewport using AddToViewport. */
+	UFUNCTION(BlueprintPure, Category="Appearance")
+	bool IsInViewport() const;
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	TEnumAsByte<ESlateVisibility::Type> GetVisiblity() const;
