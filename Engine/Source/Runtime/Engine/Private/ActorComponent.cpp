@@ -1153,13 +1153,10 @@ void UActorComponent::SetIsReplicated(bool ShouldReplicate)
 	check(GetComponentClassCanReplicate()); // Only certain component classes can replicate!
 	bReplicates = ShouldReplicate;
 
-	if (ShouldReplicate)
+	AActor* Owner = GetOwner();
+	if (Owner)
 	{
-		AActor* Owner = GetOwner();
-		if (Owner)
-		{
-			Owner->ReplicatedComponents.AddUnique( this );
-		}
+		Owner->UpdateReplicatedComponent( this );
 	}
 }
 

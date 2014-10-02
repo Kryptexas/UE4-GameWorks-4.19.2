@@ -240,9 +240,8 @@ bool AActor::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FRepl
 
 	bool WroteSomething = false;
 
-	for (int32 CompIdx =0; CompIdx < ReplicatedComponents.Num(); ++CompIdx )
+	for (UActorComponent* ActorComp : ReplicatedComponents)
 	{
-		UActorComponent * ActorComp = ReplicatedComponents[CompIdx].Get();
 		if (ActorComp && ActorComp->GetIsReplicated())
 		{
 			WroteSomething |= ActorComp->ReplicateSubobjects(Channel, Bunch, RepFlags);		// Lets the component add subobjects before replicating its own properties.

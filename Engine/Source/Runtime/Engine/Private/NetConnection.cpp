@@ -1631,9 +1631,8 @@ void UNetConnection::FlushDormancy( class AActor* Actor )
 	{
 		FlushDormancyForObject( Actor );
 
-		for ( int32 i = 0; i < Actor->ReplicatedComponents.Num(); ++i )
+		for ( UActorComponent* ActorComp : Actor->GetReplicatedComponents() )
 		{
-			UActorComponent * ActorComp = Actor->ReplicatedComponents[i].Get();
 			if ( ActorComp && ActorComp->GetIsReplicated() )
 			{
 				FlushDormancyForObject( ActorComp );

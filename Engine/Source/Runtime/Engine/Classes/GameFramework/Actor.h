@@ -236,10 +236,6 @@ public:
 	/** Dormancy setting for actor to take itself off of the replication list without being destroyed on clients. */
 	TEnumAsByte<enum ENetDormancy> NetDormancy;
 
-	/** List of replicated components. Cooked builds won't rebuild this array. */
-	UPROPERTY()
-	TArray< TWeakObjectPtr<class UActorComponent> >	ReplicatedComponents;
-
 	/** Automatically registers this actor to receive input from a player. */
 	UPROPERTY(EditAnywhere, Category=Input)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoReceiveInput;
@@ -2107,13 +2103,24 @@ public:
 	 */
 	void ResetOwnedComponents();
 
+	/** Called when the replicated state of a component changes to update the Actor's cached ReplicatedComponents array
+	 */
+	void UpdateReplicatedComponent(UActorComponent* Component);
+
+	/** Returns a constant reference to the replicated components array
+	 */
+	const TArray<UActorComponent*>& GetReplicatedComponents() const;
+
 private:
 	/**
 	 * All ActorComponents owned by this Actor.
 	 * @see GetComponents()
 	 */
 	TArray<UActorComponent*> OwnedComponents;
-	
+
+	/** List of replicated components. */
+	TArray<UActorComponent*> ReplicatedComponents;
+
 public:
 
 	/** Array of ActorComponents that is actually serialized per-instance. */

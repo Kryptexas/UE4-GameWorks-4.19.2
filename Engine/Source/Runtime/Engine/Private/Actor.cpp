@@ -187,6 +187,7 @@ void AActor::ResetOwnedComponents()
 {
 	TArray<UObject*> Children;
 	OwnedComponents.Empty();
+	ReplicatedComponents.Empty();
 	GetObjectsWithOuter(this, Children, true, RF_PendingKill);
 
 	for (UObject* Child : Children)
@@ -195,6 +196,11 @@ void AActor::ResetOwnedComponents()
 		if (Component)
 		{
 			OwnedComponents.Add(Component);
+
+			if (Component->GetIsReplicated())
+			{
+				ReplicatedComponents.Add(Component);
+			}
 		}
 	}
 }
@@ -1962,6 +1968,11 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 {
 	check(Component->GetOwner() == this);
 	OwnedComponents.AddUnique(Component);
+
+	if (Component->GetIsReplicated())
+	{
+		ReplicatedComponents.AddUnique(Component);
+	}
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
@@ -1972,6 +1983,8 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component)
 		// property system so take the time to pull them out now
 		OwnedComponents.RemoveSwap(NULL);
 	}
+
+	ReplicatedComponents.RemoveSwap(Component);
 }
 
 #if DO_CHECK
@@ -1980,6 +1993,24 @@ bool AActor::OwnsComponent(UActorComponent* Component) const
 	return OwnedComponents.Contains(Component);
 }
 #endif
+
+const TArray<UActorComponent*>& AActor::GetReplicatedComponents() const
+{
+	return ReplicatedComponents;
+}
+
+void AActor::UpdateReplicatedComponent(UActorComponent* Component)
+{
+	check(OwnsComponent(Component));
+	if (Component->GetIsReplicated())
+	{
+		ReplicatedComponents.AddUnique(Component);
+	}
+	else
+	{
+		ReplicatedComponents.RemoveSwap(Component);
+	}
+}
 
 UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
