@@ -151,6 +151,16 @@ public:
 	TSharedPtr<IModuleInterface> LoadModule( const FName InModuleName, const bool bWasReloaded = false );
 
 	/**
+	 * Loads the specified module, checking to ensure it exists.
+	 *
+	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
+	 * @param bWasReloaded Indicates that the module has been reloaded (default = false).
+	 * @return The loaded module, or nullptr if the load operation failed.
+	 * @see AbandonModule, IsModuleLoaded, LoadModuleChecked, LoadModulePtr, LoadModuleWithFailureReason, UnloadModule
+	 */
+	TSharedPtr<IModuleInterface> LoadModuleChecked( const FName InModuleName, const bool bWasReloaded = false );
+
+	/**
 	 * Loads a module in memory then calls PostLoad.
 	 *
 	 * @param InModuleName The name of the module to load.
