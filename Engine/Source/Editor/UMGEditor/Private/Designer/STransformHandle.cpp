@@ -37,22 +37,26 @@ EVisibility STransformHandle::GetHandleVisibility() const
 {
 	ETransformMode::Type TransformMode = Designer->GetTransformMode();
 
-	switch ( TransformMode )
+	// Only show the handles for visible elements in the designer.
+	FWidgetReference SelectedWidget = Designer->GetSelectedWidget();
+	if ( !SelectedWidget.GetTemplate()->bHiddenInDesigner )
 	{
-	case ETransformMode::Layout:
-	{
-		FWidgetReference SelectedWidget = Designer->GetSelectedWidget();
-		if ( UPanelSlot* TemplateSlot = SelectedWidget.GetTemplate()->Slot )
+		switch ( TransformMode )
 		{
-			if ( TemplateSlot->CanResize(DragDirection) )
+		case ETransformMode::Layout:
+		{
+			if ( UPanelSlot* TemplateSlot = SelectedWidget.GetTemplate()->Slot )
 			{
-				return EVisibility::Visible;
+				if ( TemplateSlot->CanResize(DragDirection) )
+				{
+					return EVisibility::Visible;
+				}
 			}
+			break;
 		}
-		break;
-	}
-	case ETransformMode::Render:
-		return EVisibility::Visible;
+		case ETransformMode::Render:
+			return EVisibility::Visible;
+		}
 	}
 
 	return EVisibility::Collapsed;
