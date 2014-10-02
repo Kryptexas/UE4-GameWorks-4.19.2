@@ -360,6 +360,7 @@ FCocoaRunLoopSource* FCocoaRunLoopSource::GameRunLoopSource = nullptr;
 	if (GIsRequestingExit)
 	{
 		MainThreadCall(^{
+			GGameThreadId = FPlatformTLS::GetCurrentThreadId();
 			[NSApp replyToApplicationShouldTerminate:YES];
 		}, NSDefaultRunLoopMode, false);
 	}
