@@ -66,6 +66,9 @@
 /** Order window to the front. */
 - (void)orderFrontAndMakeMain:(bool)bMain andKey:(bool)bKey;
 
+/** Destroy the window */
+- (void)destroy;
+
 @end
 
 /**

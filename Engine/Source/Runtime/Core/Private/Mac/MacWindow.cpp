@@ -314,7 +314,7 @@ void FMacWindow::Destroy()
 			
 			// Close the window
 			MainThreadCall(^{
-				[Window performClose:nil];
+				[Window destroy];
 			}, UE4CloseEventMode, true);
 		}
 	}

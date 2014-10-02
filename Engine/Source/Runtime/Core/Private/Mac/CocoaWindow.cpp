@@ -257,9 +257,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)performClose:(id)Sender
 {
-	bDeferOrderFront = false;
-	
-	[self close];
+	GameThreadCall(^{
+		if (MacApplication)
+		{
+			MacApplication->OnWindowClose(self);
+		}
+	}, @[ NSDefaultRunLoopMode ], false);
 }
 
 - (void)performMiniaturize:(id)Sender
@@ -271,6 +274,13 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	bZoomed = !bZoomed;
 	[self zoom: self];
+}
+
+- (void)destroy
+{
+	SCOPED_AUTORELEASE_POOL;
+	bDeferOrderFront = false;
+	[self close];
 }
 
 - (void)setFrame:(NSRect)FrameRect display:(BOOL)Flag
@@ -485,6 +495,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 	self.bForwardEvents = false;
 	[self setDelegate:nil];
+
+	if ([[NSApp windows] count] == 1)
+	{
+		// It's the last window. App will quit, so stop updating menu state cache.
+		GameThreadCall(^{ FPlatformMisc::UpdateCachedMacMenuState = nullptr; }, @[ NSDefaultRunLoopMode ], true);
+	}
 }
 
 - (void)mouseDown:(NSEvent*)Event
