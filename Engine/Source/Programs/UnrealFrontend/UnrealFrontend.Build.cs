@@ -11,6 +11,7 @@ public class UnrealFrontend : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"Programs/UnrealFrontend/Private",
+				"Programs/UnrealFrontend/Private/Commands",
 				"Runtime/Launch/Private",					// for LaunchEngineLoop.cpp include
 			}
 		);

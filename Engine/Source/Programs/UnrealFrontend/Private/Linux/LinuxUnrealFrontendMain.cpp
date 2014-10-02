@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#include "UnrealFrontendPrivatePCH.h"
 #include "UnrealFrontendMain.h"
 
 
@@ -12,12 +13,14 @@ int main( int argc, char *argv[] )
 	{
 		GSavedCommandLine += TEXT(" ");
 		FString Argument(ANSI_TO_TCHAR(argv[Option]));
+
 		if (Argument.Contains(TEXT(" ")))
 		{
 			if (Argument.Contains(TEXT("=")))
 			{
 				FString ArgName;
 				FString ArgValue;
+
 				Argument.Split( TEXT("="), &ArgName, &ArgValue );
 				Argument = FString::Printf( TEXT("%s=\"%s\""), *ArgName, *ArgValue );
 			}
@@ -26,6 +29,7 @@ int main( int argc, char *argv[] )
 				Argument = FString::Printf(TEXT("\"%s\""), *Argument);
 			}
 		}
+
 		GSavedCommandLine += Argument;
 	}
 	
