@@ -444,10 +444,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// ----------------------------------------------------------------------------------------------------------------
 
 	/** Adds a UAbilityTask task to the list of tasks to be ticked */
-	void TickingTaskStarted(UAbilityTask* NewTask);
+	void TaskStarted(UAbilityTask* NewTask);
 
 	/** Removes a UAbilityTask task from the list of tasks to be ticked */
-	void TickingTaskEnded(UAbilityTask* Task);
+	void TaskEnded(UAbilityTask* Task);
+
 
 	/** There needs to be a concept of an animating ability. Only one may exist at a time. New requests can be queued up, overridden, or ignored. */
 	UPROPERTY()
@@ -516,6 +517,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** ReplicatedTargetData was 'cancelled' for this activation */
 	FAbilityConfirmOrCancel	ReplicatedTargetDataCancelledDelegate;
 
+	/** Tasks that run on simulated proxies */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTasks)
+	TArray<UAbilityTask*> SimulatedTasks;
+
+	UFUNCTION()
+	void OnRep_SimulatedTasks();
+
 private:
 
 	bool HasNetworkAuthorityToApplyGameplayEffect(const FModifierQualifier QualifierContext) const;
@@ -561,8 +569,7 @@ private:
 	// ---------------------------------------------
 
 	/** Array of currently active UAbilityTasks that require ticking */
-	TArray<TWeakObjectPtr<UAbilityTask> >	TickingTasks;
-	
+	TArray<TWeakObjectPtr<UAbilityTask> >	TickingTasks;	
 
 protected:
 

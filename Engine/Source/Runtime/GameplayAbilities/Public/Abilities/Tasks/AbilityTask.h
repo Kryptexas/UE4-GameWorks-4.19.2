@@ -68,7 +68,9 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	virtual void Activate();
 
 	/** Initailizes the task with the owning GameplayAbility but does not actviate until Activate() is called */
-	virtual void InitTask(UGameplayAbility* InAbility);
+	void InitTask(UGameplayAbility* InAbility);
+
+	virtual void InitSimulatedTask(UAbilitySystemComponent* InAbilitySystemComponent);
 
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) {}
@@ -116,13 +118,24 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	UPROPERTY()
 	FName InstanceName;
 
+	bool IsSupportedForNetworking() const override
+	{
+		return bSimulatedTask;
+	}
+
+	/** If true, this task will receive TickTask calls from AbilitySystemComponent */
+	bool bTickingTask;
+
+	/** Should this task run on simulated clients? This should only be used in rare cases, such as movement tasks. Simulated Tasks do not broadcast their end delegates.  */
+	bool bSimulatedTask;
+
+	/** Am I actually running this as a simulated task. (This will be true on clients that simulating. This will be false on the server and the owning client) */
+	bool bIsSimulating;
+
 protected:	
 
 	/** End and CleanUp the task - may be called by the task itself or by the owning ability if the ability is ending. Do NOT call directly! Call EndTask() or AbilityEnded() */
 	virtual void OnDestroy(bool AbilityIsEnding);
-
-	/** If true, this task will receive TickTask calls from AbilitySystemComponent */
-	bool bTickingTask;
 };
 
 //For searching through lists of ability instances

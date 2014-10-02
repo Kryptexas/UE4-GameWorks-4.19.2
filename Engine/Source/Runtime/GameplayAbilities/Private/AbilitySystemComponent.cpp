@@ -644,23 +644,40 @@ void UAbilitySystemComponent::OnRestackGameplayEffects()
 
 // ---------------------------------------------------------------------------------------
 
-void UAbilitySystemComponent::TickingTaskStarted(UAbilityTask* NewTask)
+void UAbilitySystemComponent::TaskStarted(UAbilityTask* NewTask)
 {
-	// If this is our first ticking task, set this component as active so it begins ticking
-	if (TickingTasks.Num() == 0)
+	if (NewTask->bTickingTask)
 	{
-		SetActive(true);
+		// If this is our first ticking task, set this component as active so it begins ticking
+		if (TickingTasks.Num() == 0)
+		{
+			SetActive(true);
+		}
+		check(TickingTasks.Contains(NewTask) == false);
+		TickingTasks.Add(NewTask);
 	}
-	TickingTasks.AddUnique(NewTask);
+	if (NewTask->bSimulatedTask)
+	{
+		check(SimulatedTasks.Contains(NewTask) == false);
+		SimulatedTasks.Add(NewTask);
+	}
 }
 
-void UAbilitySystemComponent::TickingTaskEnded(UAbilityTask* Task)
+void UAbilitySystemComponent::TaskEnded(UAbilityTask* Task)
 {
-	// If we are removing our last ticking task, set this component as inactive so it stops ticking
-	TickingTasks.RemoveSingleSwap(Task);
-	if (TickingTasks.Num() == 0)
+	if (Task->bTickingTask)
 	{
-		SetActive(false);
+		// If we are removing our last ticking task, set this component as inactive so it stops ticking
+		TickingTasks.RemoveSingleSwap(Task);
+		if (TickingTasks.Num() == 0)
+		{
+			SetActive(false);
+		}
+	}
+
+	if (Task->bSimulatedTask)
+	{
+		SimulatedTasks.RemoveSingleSwap(Task);
 	}
 }
 
@@ -673,13 +690,12 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
-	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
-	
+	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);	
 	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
-
 	DOREPLIFETIME(UAbilitySystemComponent, AbilityActor);
-
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
+	
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, SimulatedTasks, COND_SkipOwner);
 }
 
 bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
@@ -699,6 +715,17 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 		if (Ability && !Ability->HasAnyFlags(RF_PendingKill))
 		{
 			WroteSomething |= Channel->ReplicateSubobject(Ability, *Bunch, *RepFlags);
+		}
+	}
+
+	if (!RepFlags->bNetOwner)
+	{
+		for (UAbilityTask* SimulatedTask : SimulatedTasks)
+		{
+			if (SimulatedTask && !SimulatedTask->HasAnyFlags(RF_PendingKill))
+			{
+				WroteSomething |= Channel->ReplicateSubobject(SimulatedTask, *Bunch, *RepFlags);
+			}
 		}
 	}
 

@@ -6,6 +6,8 @@ UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const class FPostConstr
 : Super(PCIP)
 {
 	bTickingTask = true;
+	bSimulatedTask = true;
+	bIsFinished = false;
 }
 
 UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
@@ -14,7 +16,7 @@ UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class U
 
 	MyObj->StartLocation = MyObj->GetActor()->GetActorLocation();
 	MyObj->TargetLocation = Location;
-	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		//Avoid negative or divide-by-zero cases
+	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		// Avoid negative or divide-by-zero cases
 	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
 	MyObj->TimeMoveWillEnd = MyObj->TimeMoveStarted + MyObj->DurationOfMovement;
 	MyObj->LerpCurve = OptionalInterpolationCurve;
@@ -24,11 +26,25 @@ UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class U
 
 void UAbilityTask_MoveToLocation::Activate()
 {
+
+}
+
+void UAbilityTask_MoveToLocation::InitSimulatedTask(UAbilitySystemComponent* InAbilitySystemComponent)
+{
+	Super::InitSimulatedTask(InAbilitySystemComponent);
+
+	TimeMoveStarted = GetWorld()->GetTimeSeconds();
+	TimeMoveWillEnd = TimeMoveStarted + DurationOfMovement;
 }
 
 //TODO: This is still an awful way to do this and we should scrap this task or do it right.
 void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
 {
+	if (bIsFinished)
+	{
+		return;
+	}
+
 	Super::TickTask(DeltaTime);
 	AActor* MyActor = GetActor();
 	if (MyActor)
@@ -37,18 +53,34 @@ void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
 
 		if (CurrentTime >= TimeMoveWillEnd)
 		{
-			MyActor->SetActorLocation(TargetLocation);
-			OnTargetLocationReached.Broadcast();
-			EndTask();
+			bIsFinished = true;
+
+			// Teleport in attempt to find a valid collision spot
+			MyActor->TeleportTo(TargetLocation, MyActor->GetActorRotation());
+			if (!bIsSimulating)
+			{
+				MyActor->ForceNetUpdate();
+				OnTargetLocationReached.Broadcast();
+				EndTask();
+			}
 		}
 		else
 		{
 			float MoveFraction = (CurrentTime - TimeMoveStarted) / DurationOfMovement;
-			if (LerpCurve.IsValid())
+			if (LerpCurve)
 			{
-				MoveFraction = LerpCurve.Get()->GetFloatValue(MoveFraction);
+				MoveFraction = LerpCurve->GetFloatValue(MoveFraction);
 			}
+
 			MyActor->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));
 		}
 	}
+}
+
+void UAbilityTask_MoveToLocation::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	DOREPLIFETIME(UAbilityTask_MoveToLocation, StartLocation);
+	DOREPLIFETIME(UAbilityTask_MoveToLocation, TargetLocation);
+	DOREPLIFETIME(UAbilityTask_MoveToLocation, DurationOfMovement);
+	DOREPLIFETIME(UAbilityTask_MoveToLocation, LerpCurve);
 }

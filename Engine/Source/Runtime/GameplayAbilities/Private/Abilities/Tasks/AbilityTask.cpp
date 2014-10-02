@@ -7,6 +7,8 @@ UAbilityTask::UAbilityTask(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bTickingTask = false;
+	bSimulatedTask = false;
+	bIsSimulating = false;
 }
 
 void UAbilityTask::Activate()
@@ -21,10 +23,17 @@ void UAbilityTask::InitTask(UGameplayAbility* InAbility)
 	InAbility->TaskStarted(this);
 
 	// If this task requires ticking, register it with AbilitySystemComponent
-	if (bTickingTask && AbilitySystemComponent.IsValid())
+	if (AbilitySystemComponent.IsValid())
 	{
-		AbilitySystemComponent->TickingTaskStarted(this);
+		AbilitySystemComponent->TaskStarted(this);
 	}
+}
+
+void UAbilityTask::InitSimulatedTask(UAbilitySystemComponent* InAbilitySystemComponent)
+{
+	check(InAbilitySystemComponent);
+	AbilitySystemComponent = InAbilitySystemComponent;
+	bIsSimulating = true;
 }
 
 UWorld* UAbilityTask::GetWorld() const
@@ -46,6 +55,10 @@ AActor* UAbilityTask::GetActor() const
 		{
 			return Info->Actor.Get();
 		}
+	}
+	else if (AbilitySystemComponent.IsValid())
+	{
+		return AbilitySystemComponent->AbilityActorInfo->Actor.Get();
 	}
 
 	return nullptr;	
@@ -85,9 +98,9 @@ void UAbilityTask::OnDestroy(bool AbilityIsEnding)
 	ensure(!IsPendingKill());
 
 	// If this task required ticking, unregister it with AbilitySystemComponent
-	if (bTickingTask && AbilitySystemComponent.IsValid())
+	if (AbilitySystemComponent.IsValid())
 	{
-		AbilitySystemComponent->TickingTaskEnded(this);
+		AbilitySystemComponent->TaskEnded(this);
 	}
 
 	// Remove ourselves from the owning Ability's task list, if the ability isn't ending

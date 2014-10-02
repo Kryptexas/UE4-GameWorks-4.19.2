@@ -54,6 +54,7 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	// itself from the TickingTask list, we will make a copy of the tasks we want to service before ticking any
 
 	int32 NumTickingTasks = TickingTasks.Num();
+	int32 NumActuallyTicked = 0;
 	switch(NumTickingTasks)
 	{
 		case 0:
@@ -62,6 +63,7 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 			if (TickingTasks[0].IsValid())
 			{
 				TickingTasks[0]->TickTask(DeltaTime);
+				NumActuallyTicked++;
 			}
 			break;
 		default:
@@ -72,11 +74,20 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 					if (TickingTask.IsValid())
 					{
 						TickingTask->TickTask(DeltaTime);
+						NumActuallyTicked++;
 					}
 				}
 			}
 		break;
 	};
+	
+	// Stop ticking if no more active tasks
+	if (NumActuallyTicked == 0)
+	{
+		TickingTasks.SetNum(0, false);
+		SetActive(false);
+	}
+
 }
 
 void UAbilitySystemComponent::InitAbilityActorInfo(AActor* AvatarActor)
@@ -1014,6 +1025,24 @@ void UAbilitySystemComponent::ConsumeAbilityConfirmCancel()
 void UAbilitySystemComponent::ConsumeAbilityTargetData()
 {
 	ReplicatedTargetData.Clear();
+}
+
+void UAbilitySystemComponent::OnRep_SimulatedTasks()
+{
+	for (UAbilityTask* SimulatedTask : SimulatedTasks)
+	{
+		// Temp check 
+		if (SimulatedTask && SimulatedTask->bTickingTask && TickingTasks.Contains(SimulatedTask) == false)
+		{
+			SimulatedTask->InitSimulatedTask(this);
+			if (TickingTasks.Num() == 0)
+			{
+				SetActive(true);
+			}
+
+			TickingTasks.Add(SimulatedTask);
+		}
+	}
 }
 
 
