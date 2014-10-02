@@ -1431,13 +1431,6 @@ void ARecastNavMesh::UpdateDrawing()
 	ConstructRenderingComponentImpl();
 #endif
 	UpdateNavMeshDrawing();
-
-#if WITH_EDITOR
-	if (GEditor != NULL)
-	{
-		GEditor->RedrawLevelEditingViewports();
-	}
-#endif // WITH_EDITOR
 }
 
 void ARecastNavMesh::DrawDebugPathCorridor(NavNodeRef const* PathPolys, int32 NumPathPolys, bool bPersistent) const
