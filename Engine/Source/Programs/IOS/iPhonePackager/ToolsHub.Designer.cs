@@ -58,14 +58,14 @@
 			this.CertificatePresentCheck2 = new System.Windows.Forms.PictureBox();
 			this.MobileProvisionCheck2 = new System.Windows.Forms.PictureBox();
 			this.tabPage3 = new System.Windows.Forms.TabPage();
-			this.linkLabel4 = new System.Windows.Forms.LinkLabel();
-			this.label20 = new System.Windows.Forms.Label();
-			this.InstallIPAButton = new System.Windows.Forms.Button();
 			this.groupBox1 = new System.Windows.Forms.GroupBox();
 			this.label19 = new System.Windows.Forms.Label();
 			this.label17 = new System.Windows.Forms.Label();
 			this.OtherDeployToolsButton = new System.Windows.Forms.Button();
 			this.ResignIPAButton = new System.Windows.Forms.Button();
+			this.linkLabel4 = new System.Windows.Forms.LinkLabel();
+			this.label20 = new System.Windows.Forms.Label();
+			this.InstallIPAButton = new System.Windows.Forms.Button();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.CertificatePresentCheck)).BeginInit();
@@ -169,7 +169,7 @@
 			// 
 			this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.label14.Location = new System.Drawing.Point(16, 251);
+			this.label14.Location = new System.Drawing.Point(16, 284);
 			this.label14.Name = "label14";
 			this.label14.Size = new System.Drawing.Size(404, 34);
 			this.label14.TabIndex = 45;
@@ -180,7 +180,7 @@
 			// 
 			this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.label5.AutoSize = true;
-			this.label5.Location = new System.Drawing.Point(441, 298);
+			this.label5.Location = new System.Drawing.Point(441, 331);
 			this.label5.Name = "label5";
 			this.label5.Size = new System.Drawing.Size(16, 13);
 			this.label5.TabIndex = 42;
@@ -190,7 +190,7 @@
 			// 
 			this.label6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.label6.AutoSize = true;
-			this.label6.Location = new System.Drawing.Point(441, 214);
+			this.label6.Location = new System.Drawing.Point(441, 247);
 			this.label6.Name = "label6";
 			this.label6.Size = new System.Drawing.Size(16, 13);
 			this.label6.TabIndex = 41;
@@ -199,7 +199,7 @@
 			// label11
 			// 
 			this.label11.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.label11.Location = new System.Drawing.Point(447, 173);
+			this.label11.Location = new System.Drawing.Point(447, 206);
 			this.label11.Name = "label11";
 			this.label11.Size = new System.Drawing.Size(65, 28);
 			this.label11.TabIndex = 33;
@@ -210,7 +210,7 @@
 			// 
 			this.CertificatePresentCheck.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.CertificatePresentCheck.Image = global::iPhonePackager.Properties.Resources.GreenCheck;
-			this.CertificatePresentCheck.Location = new System.Drawing.Point(463, 288);
+			this.CertificatePresentCheck.Location = new System.Drawing.Point(463, 321);
 			this.CertificatePresentCheck.Name = "CertificatePresentCheck";
 			this.CertificatePresentCheck.Size = new System.Drawing.Size(32, 32);
 			this.CertificatePresentCheck.TabIndex = 26;
@@ -220,7 +220,7 @@
 			// 
 			this.MobileProvisionCheck.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.MobileProvisionCheck.Image = global::iPhonePackager.Properties.Resources.GreyCheck;
-			this.MobileProvisionCheck.Location = new System.Drawing.Point(463, 204);
+			this.MobileProvisionCheck.Location = new System.Drawing.Point(463, 237);
 			this.MobileProvisionCheck.Name = "MobileProvisionCheck";
 			this.MobileProvisionCheck.Size = new System.Drawing.Size(32, 32);
 			this.MobileProvisionCheck.TabIndex = 25;
@@ -230,7 +230,7 @@
 			// 
 			this.ImportMobileProvisionButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.ImportMobileProvisionButton.Location = new System.Drawing.Point(16, 204);
+			this.ImportMobileProvisionButton.Location = new System.Drawing.Point(16, 237);
 			this.ImportMobileProvisionButton.Name = "ImportMobileProvisionButton";
 			this.ImportMobileProvisionButton.Size = new System.Drawing.Size(404, 32);
 			this.ImportMobileProvisionButton.TabIndex = 2;
@@ -242,7 +242,7 @@
 			// 
 			this.ImportCertificateButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.ImportCertificateButton.Location = new System.Drawing.Point(16, 288);
+			this.ImportCertificateButton.Location = new System.Drawing.Point(16, 321);
 			this.ImportCertificateButton.Name = "ImportCertificateButton";
 			this.ImportCertificateButton.Size = new System.Drawing.Size(404, 32);
 			this.ImportCertificateButton.TabIndex = 3;
@@ -268,7 +268,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.label10.Location = new System.Drawing.Point(16, 128);
 			this.label10.Name = "label10";
-			this.label10.Size = new System.Drawing.Size(404, 71);
+			this.label10.Size = new System.Drawing.Size(404, 106);
 			this.label10.TabIndex = 44;
 			this.label10.Text = resources.GetString("label10.Text");
 			// 
@@ -309,7 +309,7 @@
 			// 
 			this.label13.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.label13.Location = new System.Drawing.Point(16, 152);
+			this.label13.Location = new System.Drawing.Point(16, 195);
 			this.label13.Name = "label13";
 			this.label13.Size = new System.Drawing.Size(404, 86);
 			this.label13.TabIndex = 44;
@@ -329,7 +329,7 @@
 			// label12
 			// 
 			this.label12.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.label12.Location = new System.Drawing.Point(447, 65);
+			this.label12.Location = new System.Drawing.Point(447, 108);
 			this.label12.Name = "label12";
 			this.label12.Size = new System.Drawing.Size(65, 28);
 			this.label12.TabIndex = 41;
@@ -340,7 +340,7 @@
 			// 
 			this.label8.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.label8.AutoSize = true;
-			this.label8.Location = new System.Drawing.Point(441, 251);
+			this.label8.Location = new System.Drawing.Point(441, 294);
 			this.label8.Name = "label8";
 			this.label8.Size = new System.Drawing.Size(16, 13);
 			this.label8.TabIndex = 37;
@@ -350,7 +350,7 @@
 			// 
 			this.label9.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.label9.AutoSize = true;
-			this.label9.Location = new System.Drawing.Point(441, 106);
+			this.label9.Location = new System.Drawing.Point(441, 149);
 			this.label9.Name = "label9";
 			this.label9.Size = new System.Drawing.Size(16, 13);
 			this.label9.TabIndex = 36;
@@ -360,7 +360,7 @@
 			// 
 			this.ImportProvisionButton2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.ImportProvisionButton2.Location = new System.Drawing.Point(16, 96);
+			this.ImportProvisionButton2.Location = new System.Drawing.Point(16, 139);
 			this.ImportProvisionButton2.Name = "ImportProvisionButton2";
 			this.ImportProvisionButton2.Size = new System.Drawing.Size(404, 32);
 			this.ImportProvisionButton2.TabIndex = 1;
@@ -372,7 +372,7 @@
 			// 
 			this.ImportCertificateButton2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.ImportCertificateButton2.Location = new System.Drawing.Point(16, 241);
+			this.ImportCertificateButton2.Location = new System.Drawing.Point(16, 284);
 			this.ImportCertificateButton2.Name = "ImportCertificateButton2";
 			this.ImportCertificateButton2.Size = new System.Drawing.Size(404, 32);
 			this.ImportCertificateButton2.TabIndex = 2;
@@ -386,16 +386,15 @@
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.label3.Location = new System.Drawing.Point(16, 54);
 			this.label3.Name = "label3";
-			this.label3.Size = new System.Drawing.Size(404, 37);
+			this.label3.Size = new System.Drawing.Size(404, 82);
 			this.label3.TabIndex = 43;
-			this.label3.Text = "You can download your mobile provision again from the iOS Provisioning Portal, or" +
-    " transfer it from another computer.";
+			this.label3.Text = resources.GetString("label3.Text");
 			// 
 			// CertificatePresentCheck2
 			// 
 			this.CertificatePresentCheck2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.CertificatePresentCheck2.Image = global::iPhonePackager.Properties.Resources.GreenCheck;
-			this.CertificatePresentCheck2.Location = new System.Drawing.Point(463, 241);
+			this.CertificatePresentCheck2.Image = global::iPhonePackager.Properties.Resources.YellowCheck;
+			this.CertificatePresentCheck2.Location = new System.Drawing.Point(463, 284);
 			this.CertificatePresentCheck2.Name = "CertificatePresentCheck2";
 			this.CertificatePresentCheck2.Size = new System.Drawing.Size(32, 32);
 			this.CertificatePresentCheck2.TabIndex = 35;
@@ -405,7 +404,7 @@
 			// 
 			this.MobileProvisionCheck2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.MobileProvisionCheck2.Image = global::iPhonePackager.Properties.Resources.GreenCheck;
-			this.MobileProvisionCheck2.Location = new System.Drawing.Point(463, 96);
+			this.MobileProvisionCheck2.Location = new System.Drawing.Point(463, 139);
 			this.MobileProvisionCheck2.Name = "MobileProvisionCheck2";
 			this.MobileProvisionCheck2.Size = new System.Drawing.Size(32, 32);
 			this.MobileProvisionCheck2.TabIndex = 34;
@@ -424,38 +423,6 @@
 			this.tabPage3.TabIndex = 2;
 			this.tabPage3.Text = "Advanced Tools";
 			this.tabPage3.UseVisualStyleBackColor = true;
-			// 
-			// linkLabel4
-			// 
-			this.linkLabel4.AutoSize = true;
-			this.linkLabel4.Location = new System.Drawing.Point(18, 398);
-			this.linkLabel4.Name = "linkLabel4";
-			this.linkLabel4.Size = new System.Drawing.Size(215, 13);
-			this.linkLabel4.TabIndex = 53;
-			this.linkLabel4.TabStop = true;
-			this.linkLabel4.Tag = "http://udn.epicgames.com/Three/UnrealiPhonePackager.html";
-			this.linkLabel4.Text = "UE3 documentation for tools (still applicable)";
-			this.linkLabel4.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.HyperlinkClicked);
-			// 
-			// label20
-			// 
-			this.label20.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.label20.Location = new System.Drawing.Point(20, 28);
-			this.label20.Name = "label20";
-			this.label20.Size = new System.Drawing.Size(494, 20);
-			this.label20.TabIndex = 52;
-			this.label20.Text = "Install a packaged game to all connected devices";
-			// 
-			// InstallIPAButton
-			// 
-			this.InstallIPAButton.Location = new System.Drawing.Point(23, 51);
-			this.InstallIPAButton.Name = "InstallIPAButton";
-			this.InstallIPAButton.Size = new System.Drawing.Size(221, 32);
-			this.InstallIPAButton.TabIndex = 44;
-			this.InstallIPAButton.Text = "Install IPA to hardware...";
-			this.InstallIPAButton.UseVisualStyleBackColor = true;
-			this.InstallIPAButton.Click += new System.EventHandler(this.InstallIPAButton_Click);
 			// 
 			// groupBox1
 			// 
@@ -510,6 +477,38 @@
 			this.ResignIPAButton.Text = "Re-sign an IPA...";
 			this.ResignIPAButton.UseVisualStyleBackColor = true;
 			this.ResignIPAButton.Click += new System.EventHandler(this.ResignIPAButton_Click);
+			// 
+			// linkLabel4
+			// 
+			this.linkLabel4.AutoSize = true;
+			this.linkLabel4.Location = new System.Drawing.Point(18, 398);
+			this.linkLabel4.Name = "linkLabel4";
+			this.linkLabel4.Size = new System.Drawing.Size(215, 13);
+			this.linkLabel4.TabIndex = 53;
+			this.linkLabel4.TabStop = true;
+			this.linkLabel4.Tag = "http://udn.epicgames.com/Three/UnrealiPhonePackager.html";
+			this.linkLabel4.Text = "UE3 documentation for tools (still applicable)";
+			this.linkLabel4.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.HyperlinkClicked);
+			// 
+			// label20
+			// 
+			this.label20.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+			this.label20.Location = new System.Drawing.Point(20, 28);
+			this.label20.Name = "label20";
+			this.label20.Size = new System.Drawing.Size(494, 20);
+			this.label20.TabIndex = 52;
+			this.label20.Text = "Install a packaged game to all connected devices";
+			// 
+			// InstallIPAButton
+			// 
+			this.InstallIPAButton.Location = new System.Drawing.Point(23, 51);
+			this.InstallIPAButton.Name = "InstallIPAButton";
+			this.InstallIPAButton.Size = new System.Drawing.Size(221, 32);
+			this.InstallIPAButton.TabIndex = 44;
+			this.InstallIPAButton.Text = "Install IPA to hardware...";
+			this.InstallIPAButton.UseVisualStyleBackColor = true;
+			this.InstallIPAButton.Click += new System.EventHandler(this.InstallIPAButton_Click);
 			// 
 			// ToolsHub
 			// 

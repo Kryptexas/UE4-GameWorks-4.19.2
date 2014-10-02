@@ -617,7 +617,8 @@ namespace iPhonePackager
 							MobileProvision Provision;
 							X509Certificate2 Cert;
 							bool bHasOverrides;
-							bool foundPlist = CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrides);
+							bool bNameMatch;
+							bool foundPlist = CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrides, out bNameMatch);
 							if (!foundPlist)
 							{
 								Error("Could not find a valid plist file!!", (int)ErrorCodes.Error_InfoPListNotFound);

@@ -70,11 +70,12 @@ namespace iPhonePackager
 		/// <summary>
 		/// Makes sure the required files for code signing exist and can be found
 		/// </summary>
-		public static bool FindRequiredFiles(out MobileProvision Provision, out X509Certificate2 Cert, out bool bHasOverridesFile)
+		public static bool FindRequiredFiles(out MobileProvision Provision, out X509Certificate2 Cert, out bool bHasOverridesFile, out bool bNameMatch, bool bNameCheck = true)
 		{
 			Provision = null;
 			Cert = null;
 			bHasOverridesFile = File.Exists(Config.GetPlistOverrideFilename());
+			bNameMatch = false;
 
 			// Load Info.plist, which guides nearly everything else
 			string plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
@@ -122,7 +123,7 @@ namespace iPhonePackager
 			// Check for a mobile provision
 			try
 			{
-				string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
+				string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch);
 				Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
 			}
 			catch (Exception)
@@ -134,11 +135,24 @@ namespace iPhonePackager
 			{
 				try
 				{
-					string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, false);
+					string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch, false);
 					Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
 				}
 				catch (Exception)
 				{
+				}
+
+				// if we have a null provision see if we can find a valid provision without checking for name match
+				if (Provision == null && !bNameCheck)
+				{
+					try
+					{
+						string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch, false, false);
+						Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
+					}
+					catch (Exception)
+					{
+					}
 				}
 			}
 
@@ -154,7 +168,8 @@ namespace iPhonePackager
 		protected virtual byte[] GetMobileProvision(string CFBundleIdentifier)
 		{
 			// find the movile provision file in the library
-			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
+			bool bNameMatch;
+			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch);
 
 			byte[] Result = null;
 			try
