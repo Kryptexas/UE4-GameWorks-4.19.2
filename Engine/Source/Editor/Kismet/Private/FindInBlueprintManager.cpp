@@ -589,9 +589,9 @@ FFindInBlueprintSearchManager::~FFindInBlueprintSearchManager()
 	AssetRegistryModule->Get().OnAssetAdded().RemoveAll(this);
 	AssetRegistryModule->Get().OnAssetRemoved().RemoveAll(this);
 	AssetRegistryModule->Get().OnAssetRenamed().RemoveAll(this);
-	FCoreDelegates::PreGarbageCollect.RemoveAll(this);
-	FCoreDelegates::PostGarbageCollect.RemoveAll(this);
-	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 }
 
 void FFindInBlueprintSearchManager::Initialize()
@@ -600,9 +600,9 @@ void FFindInBlueprintSearchManager::Initialize()
 	AssetRegistryModule->Get().OnAssetAdded().AddRaw(this, &FFindInBlueprintSearchManager::OnAssetAdded);
 	AssetRegistryModule->Get().OnAssetRemoved().AddRaw(this, &FFindInBlueprintSearchManager::OnAssetRemoved);
 	AssetRegistryModule->Get().OnAssetRenamed().AddRaw(this, &FFindInBlueprintSearchManager::OnAssetRenamed);
-	FCoreDelegates::PreGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::PauseFindInBlueprintSearch);
-	FCoreDelegates::PostGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::UnpauseFindInBlueprintSearch);
-	FCoreDelegates::OnAssetLoaded.AddRaw(this, &FFindInBlueprintSearchManager::OnAssetLoaded);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::PauseFindInBlueprintSearch);
+	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::UnpauseFindInBlueprintSearch);
+	FCoreUObjectDelegates::OnAssetLoaded.AddRaw(this, &FFindInBlueprintSearchManager::OnAssetLoaded);
 
 	// Do an immediate load of the cache to catch any Blueprints that were discovered by the asset registry before we initialized.
 	BuildCache();

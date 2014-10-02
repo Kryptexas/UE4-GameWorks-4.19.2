@@ -865,12 +865,12 @@ FBlueprintThumbnailScene::FBlueprintThumbnailScene()
 {
 	CurrentBlueprint = NULL;
 
-	FCoreDelegates::PreGarbageCollect.AddRaw(this, &FBlueprintThumbnailScene::OnPreGarbageCollect);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FBlueprintThumbnailScene::OnPreGarbageCollect);
 }
 
 FBlueprintThumbnailScene::~FBlueprintThumbnailScene()
 {
-	FCoreDelegates::PreGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
 }
 
 void FBlueprintThumbnailScene::SetBlueprint(UBlueprint* Blueprint)

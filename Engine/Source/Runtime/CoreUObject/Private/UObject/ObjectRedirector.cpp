@@ -109,7 +109,7 @@ FScopedRedirectorCatcher::FScopedRedirectorCatcher(const FString& InObjectPathNa
 , bWasRedirectorFollowed(false)
 {
 	// register itself on construction to see if the object is a redirector 
-	FCoreDelegates::RedirectorFollowed.AddRaw(this, &FScopedRedirectorCatcher::OnRedirectorFollowed);
+	FCoreUObjectDelegates::RedirectorFollowed.AddRaw(this, &FScopedRedirectorCatcher::OnRedirectorFollowed);
 }
 
 /**
@@ -118,7 +118,7 @@ FScopedRedirectorCatcher::FScopedRedirectorCatcher(const FString& InObjectPathNa
 FScopedRedirectorCatcher::~FScopedRedirectorCatcher()
 {
 	// register itself on construction to see if the object is a redirector 
-	FCoreDelegates::RedirectorFollowed.RemoveAll(this);
+	FCoreUObjectDelegates::RedirectorFollowed.RemoveAll(this);
 }
 
 

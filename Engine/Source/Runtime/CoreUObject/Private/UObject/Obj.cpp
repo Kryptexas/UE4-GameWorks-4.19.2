@@ -217,7 +217,7 @@ void UObject::PostEditChange(void)
 
 void UObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	FCoreDelegates::OnObjectPropertyChanged.Broadcast(this, PropertyChangedEvent);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Broadcast(this, PropertyChangedEvent);
 }
 
 
@@ -226,7 +226,7 @@ void UObject::PreEditChange( FEditPropertyChain& PropertyAboutToChange )
 	// forward the notification to the UProperty* version of PreEditChange
 	PreEditChange(PropertyAboutToChange.GetActiveNode()->GetValue());
 
-	FCoreDelegates::OnPreObjectPropertyChanged.Broadcast(this, PropertyAboutToChange);
+	FCoreUObjectDelegates::OnPreObjectPropertyChanged.Broadcast(this, PropertyAboutToChange);
 
 	if ( HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead() && !FApp::IsGame())
 	{
@@ -695,7 +695,7 @@ void UObject::ConditionalPostLoadSubobjects( FObjectInstancingGraph* OuterInstan
 void UObject::PreSave()
 {
 #if WITH_EDITOR
-	FCoreDelegates::OnObjectSaved.Broadcast(this);
+	FCoreUObjectDelegates::OnObjectSaved.Broadcast(this);
 #endif
 }
 
@@ -719,7 +719,7 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 		}
 	}
 #if WITH_EDITOR
-	FCoreDelegates::OnObjectModified.Broadcast(this);
+	FCoreUObjectDelegates::OnObjectModified.Broadcast(this);
 #endif
 	return bSavedToTransactionBuffer;
 }
@@ -3422,17 +3422,17 @@ void InitUObject()
 	// this is a hack to give fixup redirects insight into the startup packages
 	if (CommandLine.Contains(TEXT("fixupredirects")) )
 	{
-		FCoreDelegates::RedirectorFollowed.AddRaw(&GRedirectCollector, &FRedirectCollector::OnRedirectorFollowed);
-		FCoreDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
-		FCoreDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
+		FCoreUObjectDelegates::RedirectorFollowed.AddRaw(&GRedirectCollector, &FRedirectCollector::OnRedirectorFollowed);
+		FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
+		FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
 	}
 
 	// this is a hack to the cooker insight into the startup packages
 	if (CommandLine.Contains(TEXT("cookcommandlet")) || 
 		  CommandLine.Contains(TEXT("run=cook")) )
 	{
-		FCoreDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
-		FCoreDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
+		FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
+		FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
 	}
 
 	// Object initialization.

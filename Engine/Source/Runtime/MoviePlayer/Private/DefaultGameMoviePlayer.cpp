@@ -76,7 +76,7 @@ void FDefaultGameMoviePlayer::Initialize()
 	}
 
 	// Add a delegate to start playing movies when we start loading a map
-	FCoreDelegates::PreLoadMap.AddSP( this, &FDefaultGameMoviePlayer::OnPreLoadMap );
+	FCoreUObjectDelegates::PreLoadMap.AddSP( this, &FDefaultGameMoviePlayer::OnPreLoadMap );
 
 	FPlatformSplash::Hide();
 
@@ -134,7 +134,7 @@ void FDefaultGameMoviePlayer::Shutdown()
 
 	bInitialized = false;
 
-	FCoreDelegates::PreLoadMap.RemoveAll( this );
+	FCoreUObjectDelegates::PreLoadMap.RemoveAll( this );
 
 	LoadingScreenContents.Reset();
 	LoadingScreenWidgetHolder.Reset();
@@ -436,11 +436,11 @@ FReply FDefaultGameMoviePlayer::OnLoadingScreenMouseButtonDown(const FGeometry& 
 
 void FDefaultGameMoviePlayer::OnPreLoadMap()
 {
-	FCoreDelegates::PostLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
 
 	if( PlayMovie() )
 	{
-		FCoreDelegates::PostLoadMap.AddSP(this, &FDefaultGameMoviePlayer::OnPostLoadMap );
+		FCoreUObjectDelegates::PostLoadMap.AddSP(this, &FDefaultGameMoviePlayer::OnPostLoadMap );
 	}
 }
 

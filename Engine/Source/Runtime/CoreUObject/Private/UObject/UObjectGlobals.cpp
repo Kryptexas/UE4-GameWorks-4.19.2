@@ -55,6 +55,26 @@ FCoreUObjectDelegates::FReplaceHotReloadClassDelegate FCoreUObjectDelegates::Rep
 FCoreUObjectDelegates::FIsPackageOKToSaveDelegate FCoreUObjectDelegates::IsPackageOKToSaveDelegate;
 FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
 
+FCoreUObjectDelegates::FOnPreObjectPropertyChanged FCoreUObjectDelegates::OnPreObjectPropertyChanged;
+FCoreUObjectDelegates::FOnObjectPropertyChanged FCoreUObjectDelegates::OnObjectPropertyChanged;
+
+#if WITH_EDITOR
+FCoreUObjectDelegates::FOnObjectModified FCoreUObjectDelegates::OnObjectModified;
+FCoreUObjectDelegates::FOnAssetLoaded FCoreUObjectDelegates::OnAssetLoaded;
+FCoreUObjectDelegates::FOnObjectSaved FCoreUObjectDelegates::OnObjectSaved;
+#endif // WITH_EDITOR
+
+FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFollowed;
+
+FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollect;
+FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollect;
+FSimpleMulticastDelegate FCoreUObjectDelegates::PreLoadMap;
+FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
+FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTop;
+
+FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
+FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
+FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
 /**
  * Fast version of StaticFindObject that relies on the passed in FName being the object name
  * without any group/ package qualifiers.
@@ -1137,7 +1157,7 @@ void EndLoad(const TCHAR* LoadContext)
 						check(Obj);
 						if ( Obj->IsAsset() )
 						{
-							FCoreDelegates::OnAssetLoaded.Broadcast(Obj);
+							FCoreUObjectDelegates::OnAssetLoaded.Broadcast(Obj);
 						}
 					}
 				}

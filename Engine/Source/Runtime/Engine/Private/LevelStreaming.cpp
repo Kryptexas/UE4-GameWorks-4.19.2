@@ -200,7 +200,7 @@ void ULevelStreaming::PostLoad()
 			// Convert the FName reference to a TAssetPtr, then broadcast that we loaded a reference
 			// so this reference is gathered by the cooker without having to resave the package.
 			SetWorldAssetByPackageName(PackageName_DEPRECATED);
-			FCoreDelegates::StringAssetReferenceLoaded.ExecuteIfBound(WorldAsset.ToStringReference().ToString());
+			FCoreUObjectDelegates::StringAssetReferenceLoaded.ExecuteIfBound(WorldAsset.ToStringReference().ToString());
 		}
 		else
 		{

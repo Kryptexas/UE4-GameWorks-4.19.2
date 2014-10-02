@@ -20,7 +20,7 @@ void SPropertyTableCell::Construct( const FArguments& InArgs, const TSharedRef< 
 	Cell->OnEnteredEditMode().AddSP( this, &SPropertyTableCell::EnteredEditMode );
 	Cell->OnExitedEditMode().AddSP( this, &SPropertyTableCell::ExitedEditMode );
 
-	FCoreDelegates::OnObjectPropertyChanged.AddSP( this, &SPropertyTableCell::OnCellValueChanged );
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SPropertyTableCell::OnCellValueChanged);
 
 	SetForegroundColor( FEditorStyle::GetSlateColor( "InvertedForeground" ) );
 }

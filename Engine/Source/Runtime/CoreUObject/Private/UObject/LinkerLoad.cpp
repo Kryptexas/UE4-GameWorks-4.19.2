@@ -351,7 +351,7 @@ ULinkerLoad* ULinkerLoad::CreateLinker( UPackage* Parent, const TCHAR* Filename,
 			return NULL;
 		}
 	}
-	FCoreDelegates::PackageCreatedForLoad.Broadcast(Parent);
+	FCoreUObjectDelegates::PackageCreatedForLoad.Broadcast(Parent);
 	return Linker;
 }
 
@@ -1602,7 +1602,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FindExistingExports()
 			// the objects in those cases, so don't try to find existing exports.
 			//
 			bool bContainsMap			= LinkerRoot ? LinkerRoot->ContainsMap() : false;
-			bool bRequestFindExisting	= FCoreDelegates::ShouldLoadOnTop.IsBound() ? !FCoreDelegates::ShouldLoadOnTop.Execute(Filename) : true;
+			bool bRequestFindExisting = FCoreUObjectDelegates::ShouldLoadOnTop.IsBound() ? !FCoreUObjectDelegates::ShouldLoadOnTop.Execute(Filename) : true;
 			if( (!IsRunningCommandlet() && bRequestFindExisting && !bContainsMap) )
 			{
 				for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ExportIndex++)
@@ -2016,7 +2016,7 @@ ULinkerLoad::EVerifyResult ULinkerLoad::VerifyImport(int32 ImportIndex)
 					Result = VERIFY_Redirected;
 
 					// send a callback saying we followed a redirector successfully
-					FCoreDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
+					FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
 
 					// now, fake our Import to be what the redirector pointed to
 					Import.XObject = Redir->DestinationObject;
@@ -2654,7 +2654,7 @@ UObject* ULinkerLoad::Create( UClass* ObjectClass, FName ObjectName, UObject* Ou
 			if (Redir->DestinationObject && Redir->DestinationObject->IsA(ObjectClass))
 			{
 				// send a callback saying we followed a redirector successfully
-				FCoreDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
+				FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
 				// and return the object we are being redirected to
 				return Redir->DestinationObject;
 			}

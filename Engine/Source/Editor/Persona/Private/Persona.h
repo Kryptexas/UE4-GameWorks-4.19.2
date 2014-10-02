@@ -280,7 +280,7 @@ public:
 	TWeakPtr<class SAnimationEditorViewportTabBody> Viewport;
 
 	// Property changed delegate
-	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** Shared data between modes - for now only used for viewport **/

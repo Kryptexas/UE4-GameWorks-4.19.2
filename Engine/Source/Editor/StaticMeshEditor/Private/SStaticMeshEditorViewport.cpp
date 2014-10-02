@@ -55,13 +55,13 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 			SAssignNew(OverlayTextVerticalBox, SVerticalBox)
 		];
 
-	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
 
 }
 
 SStaticMeshEditorViewport::~SStaticMeshEditorViewport()
 {
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	if (EditorViewportClient.IsValid())
 	{
 		EditorViewportClient->Viewport = NULL;

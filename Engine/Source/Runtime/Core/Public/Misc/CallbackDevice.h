@@ -47,24 +47,7 @@ public:
 	DECLARE_DELEGATE_TwoParams(FHotFixDelegate, void *, int32);
 
 	// Callback for object property modifications
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnObjectPropertyChanged, UObject*, struct FPropertyChangedEvent&);
-
-	// Callback for object property modifications
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnActorLabelChanged, AActor*);
-
-	// Callback for PreEditChange
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreObjectPropertyChanged, UObject*, const class FEditPropertyChain& );
-
-	#if WITH_EDITOR
-	// Callback for all object modifications
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectModified, UObject*);
-
-	// Callback for when an asset is loaded (Editor)
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
-	
-	// Callback for when an asset is saved (Editor)
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectSaved, UObject*);
-	#endif	//WITH_EDITOR
 
 	// delegate type for prompting the pak system to mount a new pak
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnMountPak, const FString&, uint32);
@@ -72,17 +55,14 @@ public:
 	// Callback for PER_MODULE_BOILERPLATE macro's GSerialNumberBlocksForDebugVisualizers
 	DECLARE_DELEGATE_RetVal(int32***, FGetSerialNumberBlocksForDebugVisualizersDelegate);
 
-	// Callback for PER_MODULE_BOILERPLATE macro's GObjectArrayForDebugVisualizers
-	DECLARE_DELEGATE_RetVal(TArray<class UObjectBase*>*, FObjectArrayForDebugVisualizersDelegate);
-
-	// Delegate type for redirector followed events ( Params: const FString& PackageName, UObject* Redirector )
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
-
 	/** delegate type for opening a modal message box ( Params: EAppMsgType::Type MessageType, const FText& Text, const FText& Title ) */
 	DECLARE_DELEGATE_RetVal_ThreeParams(EAppReturnType::Type, FOnModalMessageBox, EAppMsgType::Type, const FText&, const FText&);
 
-	/** delegate type for querying whether a loaded object should replace an already existing one */
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnLoadObjectsOnTop, const FString&);
+	// Callback for PER_MODULE_BOILERPLATE macro's GObjectArrayForDebugVisualizers
+	DECLARE_DELEGATE_RetVal(TArray<class UObjectBase*>*, FObjectArrayForDebugVisualizersDelegate);
+
+	// Called in PER_MODULE_BOILERPLATE macro.
+	static FObjectArrayForDebugVisualizersDelegate ObjectArrayForDebugVisualizers;
 
 	// Callback for handling an ensure
 	DECLARE_MULTICAST_DELEGATE(FOnHandleSystemEnsure);
@@ -124,25 +104,10 @@ public:
 	// Callback when an error (crash) has occurred
 	static FOnHandleSystemError OnHandleSystemError;
 
-	// Called before a property is changed
-	static FOnPreObjectPropertyChanged OnPreObjectPropertyChanged;
-
-	// Called when a property is changed
-	static FOnObjectPropertyChanged OnObjectPropertyChanged;
-
 	// Called when an actor label is changed
 	static FOnActorLabelChanged OnActorLabelChanged;
 
 #if WITH_EDITOR
-	// Called when any object is modified at all 
-	static FOnObjectModified OnObjectModified;
-
-	// Called when an asset is loaded
-	static FOnAssetLoaded OnAssetLoaded;
-
-	// Called when an asset is saved
-	static FOnObjectSaved OnObjectSaved;
-
 	// Called before the editor displays a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
 	static FSimpleMulticastDelegate PreModal;
 
@@ -165,26 +130,8 @@ public:
 	// Called when before the application is exiting.
 	static FSimpleMulticastDelegate OnPreExit;
 
-	// Called before garbage collection
-	static FSimpleMulticastDelegate PreGarbageCollect;
-
-	// Called after garbage collection
-	static FSimpleMulticastDelegate PostGarbageCollect;
-
 	// Called in PER_MODULE_BOILERPLATE macro.
 	static FGetSerialNumberBlocksForDebugVisualizersDelegate GetSerialNumberBlocksDebugVisualizers;
-
-	// Called in PER_MODULE_BOILERPLATE macro.
-	static FObjectArrayForDebugVisualizersDelegate ObjectArrayForDebugVisualizers;
-
-	// Sent when a UObjectRedirector was followed to find the destination object
-	static FOnRedirectorFollowed	RedirectorFollowed;
-
-	// Sent at the very beginning of LoadMap
-	static FSimpleMulticastDelegate PreLoadMap;
-
-	// Sent at the _successful_ end of LoadMap
-	static FSimpleMulticastDelegate PostLoadMap;
 
 	/** Color picker color has changed, please refresh as needed*/
 	static FSimpleMulticastDelegate ColorPickerChanged;
@@ -192,24 +139,9 @@ public:
 	/** requests to open a message box */
 	static FOnModalMessageBox ModalErrorMessage;
 
-	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
-	static FOnLoadObjectsOnTop ShouldLoadOnTop;
-
 	/** Called when the user accepts an invitation to the current game */
 	static FOnInviteAccepted OnInviteAccepted;
 
-	/** called when loading a string asset reference */
-	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, FString const& /*LoadedAssetLongPathname*/);
-	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
-
-	/** called when path to world root is changed */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);
-	static FPackageCreatedForLoad PackageCreatedForLoad;
-
-	/** called when saving a string asset reference, can replace the value with something else */
-	DECLARE_DELEGATE_RetVal_OneParam( FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
-	static FStringAssetReferenceSaving StringAssetReferenceSaving;
-		
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, FIntVector, FIntVector);
 	/** called before world origin shifting */
 	static FWorldOriginOffset PreWorldOriginOffset;

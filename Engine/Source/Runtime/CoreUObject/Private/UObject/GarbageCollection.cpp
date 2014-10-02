@@ -1043,7 +1043,7 @@ void CollectGarbage( EObjectFlags KeepFlags, bool bPerformFullPurge )
 	{
 		FAddFlushAsyncLoadingCallback()
 		{
-			FCoreDelegates::PreGarbageCollect.AddStatic(FlushAsyncLoadingCallback);
+			FCoreUObjectDelegates::PreGarbageCollect.AddStatic(FlushAsyncLoadingCallback);
 		}
 		/** Wrapper function to handle default parameter when used as function pointer */
 		static void FlushAsyncLoadingCallback()
@@ -1059,7 +1059,7 @@ void CollectGarbage( EObjectFlags KeepFlags, bool bPerformFullPurge )
 
 	// Route callbacks so we can ensure that we are e.g. not in the middle of loading something by flushing
 	// the async loading, etc...
-	FCoreDelegates::PreGarbageCollect.Broadcast();
+	FCoreUObjectDelegates::PreGarbageCollect.Broadcast();
 	
 	// Set 'I'm garbage collecting' flag - might be checked inside various functions.
 	GIsGarbageCollecting = true; 
@@ -1174,7 +1174,7 @@ void CollectGarbage( EObjectFlags KeepFlags, bool bPerformFullPurge )
 	GIsGarbageCollecting = false;
 
 	// Route callbacks to verify GC assumptions
-	FCoreDelegates::PostGarbageCollect.Broadcast();
+	FCoreUObjectDelegates::PostGarbageCollect.Broadcast();
 }
 
 /**

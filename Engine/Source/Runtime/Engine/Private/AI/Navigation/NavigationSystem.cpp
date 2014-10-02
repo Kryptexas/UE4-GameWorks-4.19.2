@@ -319,7 +319,7 @@ void UNavigationSystem::PostInitProperties()
 			GEngine->OnActorMoved().AddUObject(this, &UNavigationSystem::OnActorMoved);
 		}
 #endif
-		FCoreDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
+		FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
 #if WITH_NAVIGATION_GENERATOR
 		UNavigationSystem::NavigationDirtyEvent.AddUObject(this, &UNavigationSystem::OnNavigationDirtied);
 #endif // WITH_NAVIGATION_GENERATOR
@@ -2785,7 +2785,7 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 	}
 #endif // WITH_EDITOR
 
-	FCoreDelegates::PostLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
 #if WITH_NAVIGATION_GENERATOR
 	UNavigationSystem::NavigationDirtyEvent.RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);

@@ -194,7 +194,7 @@ void FChunkManifestGenerator::Initialize(bool InGenerateChunks)
 	// Hook up game delegate
 	if (bGenerateChunks)
 	{
-		FCoreDelegates::OnAssetLoaded.AddRaw(this, &FChunkManifestGenerator::OnAssetLoaded);
+		FCoreUObjectDelegates::OnAssetLoaded.AddRaw(this, &FChunkManifestGenerator::OnAssetLoaded);
 	}
 }
 

@@ -933,7 +933,7 @@ bool SAssetViewItem::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipConten
 
 SAssetListItem::~SAssetListItem()
 {
-	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -1105,7 +1105,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	SetForceMipLevelsToBeResident(true);
 
 	// listen for asset loads so we can force mips to stream in if required
-	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
+	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -1138,7 +1138,7 @@ FOptionalSize SAssetListItem::GetSCCImageSize() const
 
 SAssetTileItem::~SAssetTileItem()
 {
-	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -1309,7 +1309,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 	SetForceMipLevelsToBeResident(true);
 
 	// listen for asset loads so we can force mips to stream in if required
-	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
+	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 

@@ -49,7 +49,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 
 	if (!bStartupOnly && bFillCache)
 	{
-		FCoreDelegates::PackageCreatedForLoad.AddUObject(this, &UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded);
+		FCoreUObjectDelegates::PackageCreatedForLoad.AddUObject(this, &UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded);
 
 		TArray<FString> FilesInPath;
 

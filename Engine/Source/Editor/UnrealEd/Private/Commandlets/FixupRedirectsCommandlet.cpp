@@ -254,7 +254,7 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 	}
 
 	// unregister the callback so we stop getting redirections added
-	FCoreDelegates::RedirectorFollowed.RemoveAll(&GRedirectCollector);
+	FCoreUObjectDelegates::RedirectorFollowed.RemoveAll(&GRedirectCollector);
 	
 	/////////////////////////////////////////////////////////////////////
 	// Explain to user what is happening

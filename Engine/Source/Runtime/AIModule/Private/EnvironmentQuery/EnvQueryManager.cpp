@@ -82,7 +82,7 @@ UEnvQueryManager::UEnvQueryManager(const FPostConstructInitializeProperties& PCI
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		FCoreDelegates::PreLoadMap.AddUObject(this, &UEnvQueryManager::OnPreLoadMap);
+		FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UEnvQueryManager::OnPreLoadMap);
 	}
 
 	NextQueryID = 0;
@@ -95,7 +95,7 @@ class UWorld* UEnvQueryManager::GetWorld() const
 
 void UEnvQueryManager::FinishDestroy()
 {
-	FCoreDelegates::PreLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
 	Super::FinishDestroy();
 }
 

@@ -495,9 +495,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FSlateApplication::Get().SetAppIcon(FEditorStyle::GetBrush(TEXT("Editor.AppIcon")));
 
 	FCoreDelegates::ModalErrorMessage.BindUObject(this, &UEditorEngine::OnModalMessageDialog);
-	FCoreDelegates::ShouldLoadOnTop.BindUObject(this, &UEditorEngine::OnShouldLoadOnTop);
+	FCoreUObjectDelegates::ShouldLoadOnTop.BindUObject(this, &UEditorEngine::OnShouldLoadOnTop);
 	FCoreDelegates::PreWorldOriginOffset.AddUObject(this, &UEditorEngine::PreWorldOriginOffset);
-	FCoreDelegates::OnAssetLoaded.AddUObject(this, &UEditorEngine::OnAssetLoaded);
+	FCoreUObjectDelegates::OnAssetLoaded.AddUObject(this, &UEditorEngine::OnAssetLoaded);
 	FWorldDelegates::LevelAddedToWorld.AddUObject(this, &UEditorEngine::OnLevelAddedToWorld);
 	FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UEditorEngine::OnLevelRemovedFromWorld);
 	FLevelStreamingGCHelper::OnGCStreamedOutLevels.AddUObject(this, &UEditorEngine::OnGCStreamedOutLevels);
@@ -745,9 +745,9 @@ void UEditorEngine::FinishDestroy()
 		// Unregister events
 		FEditorDelegates::MapChange.RemoveAll(this);
 		FCoreDelegates::ModalErrorMessage.Unbind();
-		FCoreDelegates::ShouldLoadOnTop.Unbind();
+		FCoreUObjectDelegates::ShouldLoadOnTop.Unbind();
 		FCoreDelegates::PreWorldOriginOffset.RemoveAll(this);
-		FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+		FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 		FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 		FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
 		FLevelStreamingGCHelper::OnGCStreamedOutLevels.RemoveAll(this);

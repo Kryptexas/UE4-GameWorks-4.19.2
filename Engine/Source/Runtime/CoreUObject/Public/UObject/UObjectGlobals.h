@@ -1584,8 +1584,47 @@ DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* 
  */
 struct COREUOBJECT_API FCoreUObjectDelegates
 {
+	// Callback for object property modifications
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnObjectPropertyChanged, UObject*, struct FPropertyChangedEvent&);
+
+	// Called when a property is changed
+	static FOnObjectPropertyChanged OnObjectPropertyChanged;
+
+	// Callback for PreEditChange
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreObjectPropertyChanged, UObject*, const class FEditPropertyChain&);
+
+	// Called before a property is changed
+	static FOnPreObjectPropertyChanged OnPreObjectPropertyChanged;
+
 	/** Delegate type for making auto backup of package */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
+
+#if WITH_EDITOR
+	// Callback for all object modifications
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectModified, UObject*);
+
+	// Called when any object is modified at all 
+	static FOnObjectModified OnObjectModified;
+
+	// Callback for when an asset is loaded (Editor)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
+
+	// Called when an asset is loaded
+	static FOnAssetLoaded OnAssetLoaded;
+
+	// Callback for when an asset is saved (Editor)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectSaved, UObject*);
+
+	// Called when an asset is saved
+	static FOnObjectSaved OnObjectSaved;
+
+#endif	//WITH_EDITOR
+
+	// Delegate type for redirector followed events ( Params: const FString& PackageName, UObject* Redirector )
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
+
+	// Sent when a UObjectRedirector was followed to find the destination object
+	static FOnRedirectorFollowed RedirectorFollowed;
 
 	/** Delegate used by SavePackage() to create the package backup */
 	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
@@ -1599,6 +1638,36 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** Delegate for replacing hot-reloaded classes that changed after hot-reload */
 	DECLARE_DELEGATE_TwoParams(FReplaceHotReloadClassDelegate, UClass*, UClass*);
 	static FReplaceHotReloadClassDelegate ReplaceHotReloadClassDelegate;
+
+	// Sent at the very beginning of LoadMap
+	static FSimpleMulticastDelegate PreLoadMap;
+
+	// Sent at the _successful_ end of LoadMap
+	static FSimpleMulticastDelegate PostLoadMap;
+
+	// Called before garbage collection
+	static FSimpleMulticastDelegate PreGarbageCollect;
+
+	// Called after garbage collection
+	static FSimpleMulticastDelegate PostGarbageCollect;
+
+	/** delegate type for querying whether a loaded object should replace an already existing one */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnLoadObjectsOnTop, const FString&);
+
+	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
+	static FOnLoadObjectsOnTop ShouldLoadOnTop;
+
+	/** called when loading a string asset reference */
+	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, FString const& /*LoadedAssetLongPathname*/);
+	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
+
+	/** called when path to world root is changed */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);
+	static FPackageCreatedForLoad PackageCreatedForLoad;
+
+	/** called when saving a string asset reference, can replace the value with something else */
+	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
+	static FStringAssetReferenceSaving StringAssetReferenceSaving;
 };
 
 /** Allows release builds to override not verifying GC assumptions. Useful for profiling as it's hitchy. */

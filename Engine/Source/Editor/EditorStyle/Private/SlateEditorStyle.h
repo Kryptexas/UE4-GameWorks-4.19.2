@@ -133,7 +133,7 @@ public:
 		TSharedRef< class FSlateEditorStyle::FStyle > NewStyle = MakeShareable( new FSlateEditorStyle::FStyle( InCustomization ) );
 		NewStyle->Initialize();
 
-		FCoreDelegates::OnObjectPropertyChanged.AddSP( NewStyle, &FSlateEditorStyle::FStyle::SettingsChanged );
+		FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(NewStyle, &FSlateEditorStyle::FStyle::SettingsChanged);
 
 		return NewStyle;
 }

@@ -52,7 +52,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	
 	// Register to the PostGarbageCollect delegate, as we want to use this to trigger the RefreshAllBroweser delegate from 
 	// here rather then from Core
-	FCoreDelegates::PostGarbageCollect.AddUObject(this, &UUnrealEdEngine::OnPostGarbageCollect);
+	FCoreUObjectDelegates::PostGarbageCollect.AddUObject(this, &UUnrealEdEngine::OnPostGarbageCollect);
 
 	// register to color picker changed event and trigger RedrawAllViewports when that happens */
 	FCoreDelegates::ColorPickerChanged.AddUObject(this, &UUnrealEdEngine::OnColorPickerChanged);
@@ -117,8 +117,8 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
 		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave );
 
-		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
-		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
+		FCoreUObjectDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
+		FCoreUObjectDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
 	}
 	else if ( ExperimentalSettings->bCookOnTheSide )
 	{
@@ -126,8 +126,8 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		CookServer->Initialize( ECookMode::CookOnTheFly, ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave );
 		CookServer->StartNetworkFileServer( false );
 
-		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
-		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
+		FCoreUObjectDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
+		FCoreUObjectDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
 	}
 }
 
@@ -254,8 +254,8 @@ void UUnrealEdEngine::FinishDestroy()
 {
 	if( CookServer)
 	{
-		FCoreDelegates::OnObjectPropertyChanged.RemoveAll( CookServer );
-		FCoreDelegates::OnObjectModified.RemoveAll( CookServer );
+		FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(CookServer);
+		FCoreUObjectDelegates::OnObjectModified.RemoveAll(CookServer);
 	}
 
 	if(PackageAutoSaver.Get())
@@ -271,7 +271,7 @@ void UUnrealEdEngine::FinishDestroy()
 	}
 
 	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
-	FCoreDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
 	FCoreDelegates::ColorPickerChanged.RemoveAll(this);
 	Super::FinishDestroy();
 }

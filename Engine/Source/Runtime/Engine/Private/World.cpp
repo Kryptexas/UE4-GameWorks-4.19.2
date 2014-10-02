@@ -1930,8 +1930,8 @@ void FLevelStreamingGCHelper::AddGarbageCollectorCallback()
 	static bool GarbageCollectAdded = false;
 	if ( GarbageCollectAdded == false )
 	{
-		FCoreDelegates::PreGarbageCollect.AddStatic( FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC );
-		FCoreDelegates::PostGarbageCollect.AddStatic( FLevelStreamingGCHelper::VerifyLevelsGotRemovedByGC );
+		FCoreUObjectDelegates::PreGarbageCollect.AddStatic( FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC );
+		FCoreUObjectDelegates::PostGarbageCollect.AddStatic( FLevelStreamingGCHelper::VerifyLevelsGotRemovedByGC );
 		GarbageCollectAdded = true;
 	}
 }
@@ -4748,7 +4748,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				// Called after post seamless travel to make sure players are setup correctly first
 				LoadedWorld->BeginPlay();
 
-				FCoreDelegates::PostLoadMap.Broadcast();
+				FCoreUObjectDelegates::PostLoadMap.Broadcast();
 			}
 			else
 			{

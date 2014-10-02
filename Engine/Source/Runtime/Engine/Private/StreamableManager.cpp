@@ -59,14 +59,14 @@ struct FStreamable
 
 FStreamableManager::FStreamableManager()
 {
-	FCoreDelegates::PreGarbageCollect.AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
-	FCoreDelegates::PostGarbageCollect.AddRaw(this, &FStreamableManager::OnPostGarbageCollect);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
+	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FStreamableManager::OnPostGarbageCollect);
 }
 
 FStreamableManager::~FStreamableManager()
 {
-	FCoreDelegates::PreGarbageCollect.RemoveAll(this);
-	FCoreDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
 	for (TStreamableMap::TIterator It(StreamableItems); It; ++It)
 	{
 		delete It.Value();
