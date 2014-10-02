@@ -1603,6 +1603,9 @@ public:
 	 */
 	virtual void EndPlayMap();
 
+	/** 
+	 * Destroy the current play session and perform miscellaneous cleanup
+	 */
 	virtual void TeardownPlaySession(FWorldContext &PieWorldContext);
 
 	/**
@@ -2383,6 +2386,13 @@ public:
 	 */
 	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
+	/*
+	 * Handler for when viewport close request is made. 
+	 *
+	 * @param InViewport the viewport being closed.
+	 */
+	void OnViewportCloseRequested(FViewport* InViewport);
+
 private:
 	/** Gets the DPI Scale for the game viewport in the editor. */
 	float GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const;
@@ -2632,6 +2642,15 @@ private:
 
 	/** Number of currently running instances logged into an online platform */
 	int32 NumOnlinePIEInstances;
+
+	/** Cached version of the view location at the point the PIE session was ended */
+	FVector LastViewLocation;
+	
+	/** Cached version of the view location at the point the PIE session was ended */
+	FRotator LastViewRotation;
+	
+	/** Are the lastview/rotation variables valid */
+	bool	bLastViewAndLocationValid;
 
 protected:
 

@@ -172,6 +172,13 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnScreenshotCaptured, int32 /*Width*/, i
  */
 DECLARE_DELEGATE_FourParams(FOnPNGScreenshotCaptured, int32, int32, const TArray<FColor>&, const FString&);
 
+/**
+* Delegate type for when call is made to close a viewport
+*
+* The first parameter is the viewport being closed.
+*/
+DECLARE_DELEGATE_OneParam(FOnCloseRequested, FViewport*);
+
 UCLASS(Within=Engine, transient, config=Engine)
 class ENGINE_API UGameViewportClient : public UScriptViewportClient, public FExec
 {
@@ -552,6 +559,12 @@ public:
 		return ScreenshotCapturedDelegate;
 	}
 
+	/* Accessor for the delegate called when a viewport is asked to close. */
+	FOnCloseRequested& OnCloseRequested()
+	{
+		return CloseRequestedDelegate;
+	}
+
 	/** Return the engine show flags for this viewport */
 	virtual FEngineShowFlags* GetEngineShowFlags() 
 	{ 
@@ -730,6 +743,9 @@ private:
 
 	/** Delegate called at the end of the frame when a screenshot is captured */
 	static FOnScreenshotCaptured ScreenshotCapturedDelegate;
+
+	/** Delegate called when a request to close the viewport is received */
+	FOnCloseRequested CloseRequestedDelegate;
 
 	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
 	FStatUnitData* StatUnitData;

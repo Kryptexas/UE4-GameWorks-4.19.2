@@ -1237,6 +1237,9 @@ void UGameViewportClient::CloseRequested(FViewport* InViewport)
 	check(InViewport == Viewport);
 
 	FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
+	
+	// broadcast close request to anyone that registered an interest
+	CloseRequestedDelegate.ExecuteIfBound(InViewport);
 
 	SetViewportFrame(NULL);
 

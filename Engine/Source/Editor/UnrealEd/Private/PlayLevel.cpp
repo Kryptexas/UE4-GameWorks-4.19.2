@@ -110,6 +110,9 @@ void UEditorEngine::EndPlayMap()
 	// clean up any previous Play From Here sessions
 	if ( GameViewport != NULL && GameViewport->Viewport != NULL )
 	{
+		// Remove close handler binding
+		GameViewport->OnCloseRequested().Unbind();
+
 		GameViewport->CloseRequested(GameViewport->Viewport);
 	}
 	CleanupGameViewport();
@@ -313,17 +316,15 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 				if( !bIsSimulatingInEditor)
 				{
 					// Set the editor viewport location to match that of Play in Viewport if we aren't simulating in the editor, we have a valid player to get the location from 
-					if (SlatePlayInEditorSession->EditorPlayer.IsValid() && SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController)
+					if (bLastViewAndLocationValid == true)
 					{
-						FVector ViewLocation;
-						FRotator ViewRotation;
-						SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
-						Viewport->GetLevelViewportClient().SetViewLocation( ViewLocation );
+						bLastViewAndLocationValid = false;
+						Viewport->GetLevelViewportClient().SetViewLocation( LastViewLocation );
 
 						if( Viewport->GetLevelViewportClient().IsPerspective() )
 						{
 							// Rotation only matters for perspective viewports not orthographic
-							Viewport->GetLevelViewportClient().SetViewRotation( ViewRotation );
+							Viewport->GetLevelViewportClient().SetViewRotation( LastViewRotation );
 						}
 					}
 				}
@@ -1542,6 +1543,26 @@ void UEditorEngine::RequestEndPlayMap()
 	if( PlayWorld )
 	{
 		bRequestEndPlayMapQueued = true;
+
+		// Cache the postion and rotation of the camera (the controller may be destroyed before we end the pie session and we need them to preserve the camera position)
+		if (bLastViewAndLocationValid == false)
+		{
+			bLastViewAndLocationValid = false;
+			for (int32 WorldIdx = WorldList.Num() - 1; WorldIdx >= 0; --WorldIdx)
+			{
+				FWorldContext &ThisContext = WorldList[WorldIdx];
+				if (ThisContext.WorldType == EWorldType::PIE)
+				{
+					FSlatePlayInEditorInfo* const SlatePlayInEditorSession = SlatePlayInEditorMap.Find(ThisContext.ContextHandle);
+					if (SlatePlayInEditorSession != nullptr)
+					{
+						SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController->GetPlayerViewPoint(LastViewLocation, LastViewRotation);
+						bLastViewAndLocationValid = true;
+						break;
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -2367,6 +2388,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 		GameViewport->bIsPlayInEditorViewport = true;
 		PieWorldContext->GameViewport = ViewportClient;
 
+		// Add a handler for viewport close requests
+		ViewportClient->OnCloseRequested().BindUObject(this, &UEditorEngine::OnViewportCloseRequested);
+			
 		FSlatePlayInEditorInfo& SlatePlayInEditorSession = SlatePlayInEditorMap.Add(PieWorldContext->ContextHandle, FSlatePlayInEditorInfo());
 		SlatePlayInEditorSession.DestinationSlateViewport = RequestedDestinationSlateViewport;	// Might be invalid depending how pie was launched. Code below handles this.
 		RequestedDestinationSlateViewport = NULL;
@@ -2571,6 +2595,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	GEngine->BroadcastLevelActorListChanged();
 
 	return GameInstance;
+}
+
+void UEditorEngine::OnViewportCloseRequested(FViewport* InViewport)
+{
+	RequestEndPlayMap();
 }
 
 float UEditorEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const
