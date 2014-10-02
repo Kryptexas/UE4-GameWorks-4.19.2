@@ -294,6 +294,15 @@ private:
 	friend class FTickTaskLevel;
 };
 
+template<>
+struct TStructOpsTypeTraits<FTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 /** 
 * Tick function that calls AActor::TickActor
 **/
@@ -315,6 +324,15 @@ struct FActorTickFunction : public FTickFunction
 	ENGINE_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	ENGINE_API virtual FString DiagnosticMessage();
+};
+
+template<>
+struct TStructOpsTypeTraits<FActorTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 /** 
@@ -340,6 +358,15 @@ struct FActorComponentTickFunction : public FTickFunction
 	ENGINE_API virtual FString DiagnosticMessage();
 };
 
+
+template<>
+struct TStructOpsTypeTraits<FActorComponentTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
 /** 
 * Tick function that calls UPrimitiveComponent::PostPhysicsTick
 **/
@@ -363,7 +390,14 @@ struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage();
 };
 
-
+template<>
+struct TStructOpsTypeTraits<FPrimitiveComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
 
 /** Types of network failures broadcast from the engine */
 namespace ENetworkFailure
