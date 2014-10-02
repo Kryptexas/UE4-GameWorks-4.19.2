@@ -63,7 +63,7 @@ struct ENGINE_API FInputModeDataBase
 {
 protected:
 	/** Derived classes override this function to apply the necessary settings for the desired input mode */
-	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const = 0;
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
 
 	/** Utility functions for derived classes. */
 	void SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<class SViewport> InViewportWidget) const;
@@ -89,7 +89,7 @@ protected:
 	TSharedPtr<SWidget> WidgetToFocus;
 	bool bLockMouseToViewport;
 
-	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const override;
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
 };
 
 /** Data structure used to setup an input mode that allows the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
@@ -116,7 +116,7 @@ protected:
 	bool bLockMouseToViewport;
 	bool bHideCursorDuringCapture;
 
-	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const override;
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
 };
 
 /** Data structure used to setup an input mode that allows only the player input / player controller to respond to user input. */
@@ -126,7 +126,7 @@ struct ENGINE_API FInputModeGameOnly : public FInputModeDataBase
 	{}
 
 protected:
-	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const override;
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
 };
 
 
