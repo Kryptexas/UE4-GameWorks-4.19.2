@@ -21,14 +21,14 @@ UTestBTDecorator_DelayedAbort::UTestBTDecorator_DelayedAbort(const FPostConstruc
 void UTestBTDecorator_DelayedAbort::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTDelayedAbortMemory* MyMemory = (FBTDelayedAbortMemory*)NodeMemory;
-	MyMemory->EndFrameIdx = GFrameCounter + DelayTicks;
+	MyMemory->EndFrameIdx = FAITestHelpers::FramesCounter() + DelayTicks;
 }
 
 void UTestBTDecorator_DelayedAbort::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTDelayedAbortMemory* MyMemory = (FBTDelayedAbortMemory*)NodeMemory;
 
-	if (GFrameCounter >= MyMemory->EndFrameIdx)
+	if (FAITestHelpers::FramesCounter() >= MyMemory->EndFrameIdx)
 	{
 		OwnerComp->RequestExecution(this);
 		MyMemory->EndFrameIdx = bOnlyOnce ? MAX_uint64 : 0;

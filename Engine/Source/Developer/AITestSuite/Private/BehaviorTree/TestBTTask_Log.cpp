@@ -18,7 +18,7 @@ UTestBTTask_Log::UTestBTTask_Log(const FPostConstructInitializeProperties& PCIP)
 EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
-	MyMemory->EndFrameIdx = ExecutionTicks + GFrameCounter;
+	MyMemory->EndFrameIdx = ExecutionTicks + FAITestHelpers::FramesCounter();
 
 	LogExecution(OwnerComp, LogIndex);
 	if (ExecutionTicks == 0)
@@ -33,7 +33,7 @@ void UTestBTTask_Log::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMem
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
 
-	if (GFrameCounter >= MyMemory->EndFrameIdx)
+	if (FAITestHelpers::FramesCounter() >= MyMemory->EndFrameIdx)
 	{
 		LogExecution(OwnerComp, LogFinished);
 		FinishLatentTask(OwnerComp, LogResult);

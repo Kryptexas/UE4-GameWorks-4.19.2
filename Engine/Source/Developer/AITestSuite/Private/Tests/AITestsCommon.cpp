@@ -2,6 +2,26 @@
 
 #include "AITestSuitePrivatePCH.h"
 
+namespace FAITestHelpers
+{
+	uint64 UpdatesCounter = 0;
+	
+	void UpdateFrameCounter()
+	{
+		static uint64 PreviousFramesCounter = GFrameCounter;
+		if (PreviousFramesCounter != GFrameCounter)
+		{
+			++UpdatesCounter;
+			PreviousFramesCounter = GFrameCounter;
+		}
+	}
+
+	uint64 FramesCounter()
+	{
+		return UpdatesCounter;
+	}
+}
+
 bool FAITestCommand_WaitSeconds::Update()
 {
 	float NewTime = FPlatformTime::Seconds();
@@ -106,6 +126,8 @@ void FAITest_SimpleBT::SetUp()
 
 bool FAITest_SimpleBT::Update()
 {
+	FAITestHelpers::UpdateFrameCounter();
+
 	if (AIBTUser != NULL && AIBTUser->IsRunning())
 	{
 		return false;
@@ -130,7 +152,16 @@ void FAITest_SimpleBT::VerifyResults()
 			}
 		}
 
-		UE_LOG(LogBehaviorTreeTest, Error, TEXT("Results are not matching!\nExecution log: %s"), *Desc);
+		for (int32 Idx = 0; Idx < ExpectedResult.Num(); Idx++)
+		{
+			Desc += TTypeToString<int32>::ToString(ExpectedResult[Idx]);
+			if (Idx < (ExpectedResult.Num() - 1))
+			{
+				Desc += TEXT(", ");
+			}
+		}
+
+		UE_LOG(LogBehaviorTreeTest, Error, TEXT("Test scenario failed to produce expected results!\nExecution log: %s\nExpected values: %s"), *Desc);
 	}
 }
 

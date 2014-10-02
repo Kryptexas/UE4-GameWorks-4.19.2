@@ -30,6 +30,9 @@ namespace FAITestHelpers
 {
 	UWorld* GetWorld();
 	static const float TickInterval = 1.f / 30;
+
+	void UpdateFrameCounter();
+	uint64 FramesCounter();
 }
 
 struct FAITestBase
