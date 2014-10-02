@@ -434,7 +434,7 @@ bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View, bool bChec
 	const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
 	// !Skip translucent objects as they don't support velocities and in the case of particles have a significant CPU overhead.
-	if(!PrimitiveViewRelevance.bOpaqueRelevance)
+	if(!PrimitiveViewRelevance.bOpaqueRelevance || !PrimitiveViewRelevance.bRenderInMainPass)
 	{
 		return false;
 	}
