@@ -33,6 +33,10 @@ class UParticleModuleSpawn : public UParticleModuleSpawnBase
 	UPROPERTY(EditAnywhere, Category=Burst)
 	struct FRawDistributionFloat BurstScale;
 
+	/**	If true, the SpawnRate will be scaled by the global CVar r.EmitterSpawnRateScale */
+	UPROPERTY(EditAnywhere, Category=Spawn)
+	uint32 bApplyGlobalSpawnRateScale : 1;
+
 	/** Initializes the default values for this property */
 	void InitializeDefaults();
 
@@ -41,6 +45,7 @@ class UParticleModuleSpawn : public UParticleModuleSpawnBase
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void	PostInitProperties() override;
+	virtual void	PostLoad() override;
 	virtual void	Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
@@ -55,6 +60,8 @@ class UParticleModuleSpawn : public UParticleModuleSpawnBase
 	virtual float GetEstimatedSpawnRate() override;
 	virtual int32 GetMaximumBurstCount() override;
 	// End UParticleModuleSpawnBase Interface
+
+	float GetGlobalRateScale()const;
 };
 
 

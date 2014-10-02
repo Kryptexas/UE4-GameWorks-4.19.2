@@ -1758,7 +1758,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		// Figure out spawn rate for this tick.
 		if (bProcessSpawnRate)
 		{
-			float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
+			float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
 			SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * RateScale;
 			SpawnRate = FMath::Max<float>(0.0f, SpawnRate);
 		}

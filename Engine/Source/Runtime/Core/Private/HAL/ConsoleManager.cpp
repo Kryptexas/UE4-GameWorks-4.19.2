@@ -1936,3 +1936,9 @@ static TAutoConsoleVariable<int32> CVarVerifyPeer(
 	TEXT("  0 = disable (allows self-signed certificates)\n")
 	TEXT("  1 = enable [default]"),
 	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<float> CVarEmitterSpawnRateScale(
+	TEXT("r.EmitterSpawnRateScale"),
+	1.0,
+	TEXT("A global scale upon the spawn rate of emitters. Emitters can choose to apply or ignore it via their bApplyGlobalSpawnRateScale property."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);

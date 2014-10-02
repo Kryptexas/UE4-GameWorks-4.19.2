@@ -620,6 +620,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_RENAME_CAMERA_COMPONENT_CONTROL_ROTATION,
 	// Fix bad refraction material attribute masks
 	VER_UE4_FIX_REFRACTION_INPUT_MASKING,
+	// A global spawn rate for emitters.
+	VER_UE4_GLOBAL_EMITTER_SPAWN_RATE_SCALE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

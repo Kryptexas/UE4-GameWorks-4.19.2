@@ -3648,7 +3648,7 @@ private:
 
 		// Determine spawn rate.
 		check(SpawnModule && RequiredModule);
-		const float RateScale = CurrentLODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
+		const float RateScale = CurrentLODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * CurrentLODLevel->SpawnModule->GetGlobalRateScale();
 		float SpawnRate = CurrentLODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * RateScale;
 		SpawnRate = FMath::Max<float>(0.0f, SpawnRate);
 

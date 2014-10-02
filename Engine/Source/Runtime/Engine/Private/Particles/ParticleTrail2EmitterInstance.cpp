@@ -1216,7 +1216,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 	// Figure out spawn rate for this tick.
 	if (bProcessSpawnRate)
 	{
-		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
+		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
 		float QualityMult = SpriteTemplate->GetQualityLevelSpawnRateMult();
 		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(QualityMult, 0.0f, 1.0);
 	}
@@ -3293,7 +3293,7 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	// Figure out spawn rate for this tick.
 	if (bProcessSpawnRate)
 	{
-		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
+		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
 		float QualityMult = 0.25f * (1 << Scalability::GetQualityLevels().EffectsQuality);
 		RateScale *= SpriteTemplate->QualityLevelSpawnRateScale*QualityMult;
 		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(RateScale, 0.0f, RateScale);

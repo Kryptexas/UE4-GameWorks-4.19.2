@@ -31,6 +31,7 @@ UParticleModuleSpawn::UParticleModuleSpawn(const class FPostConstructInitializeP
 {
 	bProcessSpawnRate = true;
 	LODDuplicate = false;
+	bApplyGlobalSpawnRateScale = true;
 }
 
 void UParticleModuleSpawn::InitializeDefaults()
@@ -63,6 +64,20 @@ void UParticleModuleSpawn::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
+	}
+}
+
+void UParticleModuleSpawn::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GetLinkerUE4Version() < VER_UE4_GLOBAL_EMITTER_SPAWN_RATE_SCALE && Rate.Distribution)
+	{
+		Rate.Distribution->ConditionalPostLoad();//Ensure the distribution is loaded.
+		if (Rate.Distribution->IsA(UDistributionFloatConstant::StaticClass()) && Rate.GetValue() <= 1.0f)
+		{
+			bApplyGlobalSpawnRateScale = false;
+		}
 	}
 }
 
@@ -244,6 +259,12 @@ int32 UParticleModuleSpawn::GetMaximumBurstCount()
 		MaxBurst += BurstList[BurstIndex].Count;
 	}
 	return MaxBurst;
+}
+
+float UParticleModuleSpawn::GetGlobalRateScale()const
+{
+	static const auto EmitterRateScaleCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.EmitterSpawnRateScale"));
+	return bApplyGlobalSpawnRateScale ? EmitterRateScaleCVar->GetValueOnAnyThread() : 1.0f;
 }
 
 /*-----------------------------------------------------------------------------
