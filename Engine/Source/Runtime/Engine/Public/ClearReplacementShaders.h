@@ -90,6 +90,16 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
+	const FShaderParameter& GetClearColorParameter()
+	{
+		return ClearColor;
+	}
+
+	const FShaderResourceParameter& GetClearTextureRWParameter()
+	{
+		return ClearTextureRW;
+	}
+
 protected:
 	FShaderParameter ClearColor;
 	FShaderResourceParameter ClearTextureRW;
