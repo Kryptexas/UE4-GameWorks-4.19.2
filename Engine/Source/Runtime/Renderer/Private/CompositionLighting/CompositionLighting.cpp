@@ -319,17 +319,17 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		}
 
 		// The graph setup should be finished before this line ----------------------------------------
-    
+
 		SCOPED_DRAW_EVENT(RHICmdList, LightCompositionTasks_PreLighting, DEC_SCENE_ITEMS);
 
 		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
 
 		Context.FinalOutput.GetOutput()->RenderTargetDesc = SceneColor->GetDesc();
 		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
-    
+
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);
-    
+
 		CompositeContext.Process(TEXT("CompositionLighting_AfterBasePass"));
 	}
 }
@@ -363,7 +363,9 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 			bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
-			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
+			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering && 
+				//@todo-rco: Remove this when we fix the cross-compiler
+				!IsOpenGLPlatform(GRHIShaderPlatform))
 			{
 				int32 HalfRes = CVarSSSHalfRes.GetValueOnRenderThread();
 
