@@ -74,6 +74,7 @@ bool FDocumentation::Open( const FString& Link ) const
 		else
 		{
 			FPlatformProcess::LaunchURL(*Link, nullptr, nullptr);
+			return true;
 		}
 	}
 
