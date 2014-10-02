@@ -113,6 +113,11 @@ UClass* UK2Node_SpawnActorFromClass::GetClassToSpawn(const TArray<UEdGraphPin*>*
 	{
 		UseSpawnClass = CastChecked<UClass>(ClassPin->DefaultObject);
 	}
+	else if (ClassPin && (1 == ClassPin->LinkedTo.Num()))
+	{
+		auto SourcePin = ClassPin->LinkedTo[0];
+		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : NULL;
+	}
 
 	return UseSpawnClass;
 }
@@ -150,43 +155,55 @@ bool UK2Node_SpawnActorFromClass::IsSpawnVarPin(UEdGraphPin* Pin)
 			Pin->PinName != FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName );
 }
 
+void UK2Node_SpawnActorFromClass::OnClassPinChanged()
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// Because the archetype has changed, we break the output link as the output pin type will change
+	UEdGraphPin* ResultPin = GetResultPin();
+	ResultPin->BreakAllPinLinks();
+
+	// Remove all pins related to archetype variables
+	TArray<UEdGraphPin*> OldPins = Pins;
+	for (int32 i = 0; i < OldPins.Num(); i++)
+	{
+		UEdGraphPin* OldPin = OldPins[i];
+		if (IsSpawnVarPin(OldPin))
+		{
+			OldPin->BreakAllPinLinks();
+			Pins.Remove(OldPin);
+		}
+	}
+
+	CachedNodeTitle.MarkDirty();
+
+	UClass* UseSpawnClass = GetClassToSpawn();
+	if (UseSpawnClass != NULL)
+	{
+		CreatePinsForClass(UseSpawnClass);
+	}
+
+	// Refresh the UI for the graph so the pin changes show up
+	UEdGraph* Graph = GetGraph();
+	Graph->NotifyGraphChanged();
+
+	// Mark dirty
+	FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
+}
+
+void UK2Node_SpawnActorFromClass::PinConnectionListChanged(UEdGraphPin* ChangedPin)
+{
+	if (ChangedPin && (ChangedPin->PinName == FK2Node_SpawnActorFromClassHelper::ClassPinName))
+	{
+		OnClassPinChanged();
+	}
+}
 
 void UK2Node_SpawnActorFromClass::PinDefaultValueChanged(UEdGraphPin* ChangedPin) 
 {
-	if (ChangedPin->PinName == FK2Node_SpawnActorFromClassHelper::ClassPinName)
+	if (ChangedPin && (ChangedPin->PinName == FK2Node_SpawnActorFromClassHelper::ClassPinName))
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-		// Because the archetype has changed, we break the output link as the output pin type will change
-		UEdGraphPin* ResultPin = GetResultPin();
-		ResultPin->BreakAllPinLinks();
-
-		// Remove all pins related to archetype variables
-		TArray<UEdGraphPin*> OldPins = Pins;
-		for (int32 i = 0; i < OldPins.Num(); i++)
-		{
-			UEdGraphPin* OldPin = OldPins[i];
-			if (IsSpawnVarPin(OldPin))
-			{
-				OldPin->BreakAllPinLinks();
-				Pins.Remove(OldPin);
-			}
-		}
-
-		CachedNodeTitle.MarkDirty();
-
-		UClass* UseSpawnClass = GetClassToSpawn();
-		if (UseSpawnClass != NULL)
-		{
-			CreatePinsForClass(UseSpawnClass);
-		}
-
-		// Refresh the UI for the graph so the pin changes show up
-		UEdGraph* Graph = GetGraph();
-		Graph->NotifyGraphChanged();
-
-		// Mark dirty
-		FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
+		OnClassPinChanged();
 	}
 }
 
