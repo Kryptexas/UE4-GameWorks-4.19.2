@@ -499,7 +499,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if ([[NSApp windows] count] == 1)
 	{
 		// It's the last window. App will quit, so stop updating menu state cache.
-		GameThreadCall(^{ FPlatformMisc::UpdateCachedMacMenuState = nullptr; }, @[ NSDefaultRunLoopMode ], true);
+		GameThreadCall(^{ FPlatformMisc::UpdateCachedMacMenuState = nullptr; }, @[ NSDefaultRunLoopMode ], false);
 	}
 }
 
