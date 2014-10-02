@@ -547,19 +547,24 @@ void UAtmosphericFogComponent::StartPrecompute()
 		}
 		PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FStartPrecompute,
-			FScene*,Scene,(FScene*)GetScene(),
-			UAtmosphericFogComponent*,Component,this,
+		if (GetScene())
 		{
-			if (Scene && Scene->AtmosphericFog)
+			FAtmosphericFogSceneInfo* AtmosphericFogSceneInfo = GetScene()->GetAtmosphericFogSceneInfo();
+
+			if (AtmosphericFogSceneInfo)
 			{
-				if (Scene->AtmosphericFog->Component == Component)
+				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+					FStartPrecompute,
+					FAtmosphericFogSceneInfo*, AtmosphericFogSceneInfo, AtmosphericFogSceneInfo, 
+					UAtmosphericFogComponent*, Component, this,
 				{
-					Scene->AtmosphericFog->bNeedRecompute = true;
-				}
+					if (AtmosphericFogSceneInfo->Component == Component)
+					{
+						AtmosphericFogSceneInfo->bNeedRecompute = true;
+					}
+				});
 			}
-		});
+		}
 	}
 #endif
 }

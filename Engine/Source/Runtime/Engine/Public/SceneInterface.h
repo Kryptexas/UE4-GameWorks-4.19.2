@@ -7,6 +7,7 @@ class FMaterial;
 class FMaterialShaderMap;
 class ULightComponent;
 class USkyLightComponent;
+class FAtmosphericFogSceneInfo;
 
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
@@ -167,6 +168,11 @@ public:
 	 * @param FogComponent - fog component to remove
 	 */	
 	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) = 0;
+
+	/**
+	 * Returns the scene's FAtmosphericFogSceneInfo if it exists
+	 */
+	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() = 0;
 
 	/**
 	 * Adds a wind source component to the scene.
