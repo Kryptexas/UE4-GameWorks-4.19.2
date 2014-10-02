@@ -54,13 +54,13 @@ void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWi
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
+void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)//, bool bHideCursorDuringCapture)
 {
 	if (Target != nullptr)
 	{
 		FInputModeGameAndUI InputMode;
 		InputMode.SetLockMouseToViewport(bLockMouseToViewport);
-		InputMode.SetHideCursorDuringCapture(bHideCursorDuringCapture);
+		//InputMode.SetHideCursorDuringCapture(bHideCursorDuringCapture);
 
 		if (InWidgetToFocus != nullptr)
 		{
