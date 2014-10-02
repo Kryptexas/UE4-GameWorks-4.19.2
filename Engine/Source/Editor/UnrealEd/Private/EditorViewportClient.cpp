@@ -1692,8 +1692,10 @@ bool FEditorViewportClient::IsFlightCameraActive() const
 		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomIn->GetActiveGesture()->Key )
 		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomOut->GetActiveGesture()->Key ) );
 
+	const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();
+
 	// Movement key pressed and automatic movement enabled
-	bIsFlightMovementKey &= GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_Always;
+	bIsFlightMovementKey &= (GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_Always) | bIsUsingTrackpad;
 
 	// Not using automatic movement but the flight camera is active
 	bIsFlightMovementKey |= IsFlightCameraInputModeActive() && (GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_RMBOnly );
