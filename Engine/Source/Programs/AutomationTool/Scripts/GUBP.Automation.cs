@@ -944,16 +944,6 @@ public class GUBP : BuildCommand
 						}
                     );
             }
-			else if(HostPlatform == UnrealTargetPlatform.Mac)
-			{
-                Agenda.IOSDotNetProjects.AddRange(
-                        new string[]
-						{
-							CombinePaths(@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj"),
-							CombinePaths(@"Engine\Source\Programs\IOS\DeploymentInterface\DeploymentInterface.csproj"),
-						}
-                    );
-			}
 
             string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs(); ;
 
