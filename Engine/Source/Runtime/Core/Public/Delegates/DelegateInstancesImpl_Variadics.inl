@@ -286,8 +286,7 @@ public:
 		// See the comment in multi-cast delegate's Remove() method for more information.
 		if ((InOtherDelegate.GetType() == EDelegateInstanceType::SharedPointerMethod) || 
 			(InOtherDelegate.GetType() == EDelegateInstanceType::ThreadSafeSharedPointerMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::UObjectMethod))
+			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod))
 		{
 			return (GetRawMethodPtrInternal() == InOtherDelegate.GetRawMethodPtr() && UserObject.HasSameObject(InOtherDelegate.GetRawUserObject()));
 		}
@@ -659,9 +658,7 @@ public:
 		// NOTE: Payload data is not currently considered when comparing delegate instances.
 		// See the comment in multi-cast delegate's Remove() method for more information.
 		if ((InOtherDelegate.GetType() == EDelegateInstanceType::UObjectMethod) || 
-			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::SharedPointerMethod) ||
-			(InOtherDelegate.GetType() == EDelegateInstanceType::ThreadSafeSharedPointerMethod))
+			(InOtherDelegate.GetType() == EDelegateInstanceType::RawMethod))
 		{
 			return (GetRawMethodPtrInternal() == InOtherDelegate.GetRawMethodPtr()) && (UserObject.Get() == InOtherDelegate.GetRawUserObject());
 		}
@@ -810,8 +807,7 @@ public:
 
 	virtual RetValType Execute(ParamTypes... Params) const override
 	{
-		// Call the member function on the user's object.  And yes, this is the correct C++ syntax for calling a
-		// pointer-to-member function.
+		// Call the static function
 		checkSlow(StaticFuncPtr != nullptr);
 
 		return Payload.template ApplyAfter_ExplicitReturnType<RetValType>(StaticFuncPtr, Params...);
@@ -872,6 +868,144 @@ public:
 
 	virtual bool ExecuteIfSafe(ParamTypes... Params) const override
 	{
+		Super::Execute(Params...);
+
+		return true;
+	}
+};
+
+/**
+ * Implements a delegate binding for C++ functors, e.g. lambdas.
+ */
+template <typename FuncType, typename FunctorType, typename... VarTypes>
+class TBaseFunctorDelegateInstance;
+
+template <typename WrappedRetValType, typename... ParamTypes, typename FunctorType, typename... VarTypes>
+class TBaseFunctorDelegateInstance<WrappedRetValType(ParamTypes...), FunctorType, VarTypes...> : public IBaseDelegateInstance<typename TUnwrapType<WrappedRetValType>::Type(ParamTypes...)>
+{
+	static_assert(TAreTypesEqual<FunctorType, typename TRemoveReference<FunctorType>::Type>::Value, "FunctorType cannot be a reference");
+
+	typedef IBaseDelegateInstance<typename TUnwrapType<WrappedRetValType>::Type(ParamTypes...)> Super;
+
+public:
+	typedef typename TUnwrapType<WrappedRetValType>::Type RetValType;
+
+	TBaseFunctorDelegateInstance(const FunctorType& InFunctor, VarTypes... Vars)
+		: Functor(InFunctor)
+		, Payload(Vars...)
+	{
+	}
+	TBaseFunctorDelegateInstance(FunctorType&& InFunctor, VarTypes... Vars)
+		: Functor(MoveTemp(InFunctor))
+		, Payload(Vars...)
+	{
+	}
+
+	// IDelegateInstance interface
+
+	virtual FName GetFunctionName() const override
+	{
+		return NAME_None;
+	}
+
+	virtual const void* GetRawMethodPtr() const override
+	{
+		// casting operator() to void* is not legal C++ if it's a member function
+		// and wouldn't necessarily be a useful thing to return anyway
+		check(0);
+		return nullptr;
+	}
+
+	virtual const void* GetRawUserObject() const override
+	{
+		// returning &Functor wouldn't be particularly useful to the comparison code
+		// as it would always be unique because we store a copy of the functor
+		check(0);
+		return nullptr;
+	}
+
+	virtual EDelegateInstanceType::Type GetType() const override
+	{
+		return EDelegateInstanceType::Functor;
+	}
+
+	virtual bool HasSameObject(const void* UserObject) const override
+	{
+		// Functor Delegates aren't bound to a user object so they can never match
+		return false;
+	}
+
+	virtual bool IsSafeToExecute() const override
+	{
+		// Functors are always considered safe to execute!
+		return true;
+	}
+
+public:
+	// IBaseDelegateInstance interface
+	virtual Super* CreateCopy() override
+	{
+		return Payload.template ApplyAfter_ExplicitReturnType<Super*>(static_cast<Super* (*)(const FunctorType&)>(&Create), Functor);
+	}
+
+	virtual RetValType Execute(ParamTypes... Params) const override
+	{
+		return Payload.template ApplyAfter_ExplicitReturnType<RetValType>(Functor, Params...);
+	}
+
+	virtual bool IsSameFunction(const Super& InOtherDelegate) const override
+	{
+		// There's no nice way to implement this (we don't have the type info necessary to compare against OtherDelegate's Functor)
+		return false;
+	}
+
+public:
+	/**
+	 * Creates a new static function delegate binding for the given function pointer.
+	 *
+	 * @param InFunctor C++ functor
+	 * @return The new delegate.
+	 */
+	FORCEINLINE static Super* Create(const FunctorType& InFunctor, VarTypes... Vars)
+	{
+		return new TBaseFunctorDelegateInstance<RetValType(ParamTypes...), FunctorType, VarTypes...>(InFunctor, Vars...);
+	}
+	FORCEINLINE static Super* Create(FunctorType&& InFunctor, VarTypes... Vars)
+	{
+		return new TBaseFunctorDelegateInstance<RetValType(ParamTypes...), FunctorType, VarTypes...>(MoveTemp(InFunctor), Vars...);
+	}
+
+private:
+	// C++ functor
+	FunctorType Functor;
+
+	// Payload member variables, if any.
+	TTuple<VarTypes...> Payload;
+};
+
+template <typename FunctorType, typename... ParamTypes, typename... VarTypes>
+class TBaseFunctorDelegateInstance<void(ParamTypes...), FunctorType, VarTypes...> : public TBaseFunctorDelegateInstance<TTypeWrapper<void>(ParamTypes...), FunctorType, VarTypes...>
+{
+	typedef TBaseFunctorDelegateInstance<TTypeWrapper<void>(ParamTypes...), FunctorType, VarTypes...> Super;
+
+public:
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InFunctor C++ functor
+	 */
+	TBaseFunctorDelegateInstance(const FunctorType& InFunctor, VarTypes... Vars)
+		: Super(InFunctor, Vars...)
+	{
+	}
+	TBaseFunctorDelegateInstance(FunctorType&& InFunctor, VarTypes... Vars)
+		: Super(MoveTemp(InFunctor), Vars...)
+	{
+	}
+
+	virtual bool ExecuteIfSafe(ParamTypes... Params) const override
+	{
+		// Functors are always considered safe to execute!
 		Super::Execute(Params...);
 
 		return true;

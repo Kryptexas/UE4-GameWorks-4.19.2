@@ -98,6 +98,16 @@ public:
 	}
 
 	/**
+	 * Static: Creates a C++ lambda delegate
+	 * technically this works for any functor types, but lambdas are the primary use case
+	 */
+	template<typename FunctorType, typename... VarTypes>
+	inline static TBaseDelegate<RetValType, ParamTypes...> CreateLambda(FunctorType&& InFunctor, VarTypes... Vars)
+	{
+		return TBaseFunctorDelegateInstance<TFuncType, typename TRemoveReference<FunctorType>::Type>::Create(Forward<FunctorType>(InFunctor), Vars...);
+	}
+
+	/**
 	 * Static: Creates a raw C++ pointer member function delegate.
 	 *
 	 * Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
@@ -279,12 +289,22 @@ public:
 public:
 
 	/**
-	 * Creates a raw C++ pointer global function delegate
+	 * Binds a raw C++ pointer global function delegate
 	 */
 	template <typename... VarTypes>
 	inline void BindStatic(typename TBaseStaticDelegateInstance<TFuncType, VarTypes...>::FFuncPtr InFunc, VarTypes... Vars)
 	{
 		*this = CreateStatic(InFunc, Vars...);
+	}
+	
+	/**
+	 * Static: Binds a C++ lambda delegate
+	 * technically this works for any functor types, but lambdas are the primary use case
+	 */
+	template<typename FunctorType, typename... VarTypes>
+	inline void BindLambda(FunctorType&& InFunctor, VarTypes... Vars)
+	{
+		*this = CreateLambda(Forward<FunctorType>(InFunctor), Vars...);
 	}
 
 	/**
@@ -319,7 +339,7 @@ public:
 	}
 
 	/**
-	 * Creates a shared pointer-based (fast, not thread-safe) member function delegate.
+	 * Binds a shared pointer-based (fast, not thread-safe) member function delegate.
 	 *
 	 * Shared pointer delegates keep a weak reference to your object.
 	 * You can use ExecuteIfBound() to call them.
@@ -353,7 +373,7 @@ public:
 	}
 
 	/**
-	 * Creates a shared pointer-based (slower, conditionally thread-safe) member function delegate.
+	 * Binds a shared pointer-based (slower, conditionally thread-safe) member function delegate.
 	 *
 	 * Shared pointer delegates keep a weak reference to your object.
 	 * You can use ExecuteIfBound() to call them.
@@ -370,7 +390,7 @@ public:
 	}
 
 	/**
-	 * Creates a UFunction-based member function delegate.
+	 * Binds a UFunction-based member function delegate.
 	 *
 	 * UFunction delegates keep a weak reference to your object.
 	 * You can use ExecuteIfBound() to call them.
@@ -382,7 +402,7 @@ public:
 	}
 
 	/**
-	 * Creates a UObject-based member function delegate.
+	 * Binds a UObject-based member function delegate.
 	 *
 	 * UObject delegates keep a weak reference to your object.
 	 * You can use ExecuteIfBound() to call them.

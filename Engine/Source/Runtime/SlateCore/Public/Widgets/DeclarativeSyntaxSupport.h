@@ -145,6 +145,15 @@
 			return this->Me(); \
 		} \
 	\
+		/* Bind attribute with delegate to a lambda
+		 * technically this works for any functor types, but lambdas are the primary use case */ \
+		template<typename FunctorType> \
+		WidgetArgsType& AttrName##_Lambda(FunctorType&& InFunctor) \
+		{ \
+			Var = AttrType::Create(AttrType::FGetter::CreateLambda(InFunctor)); \
+			return this->Me(); \
+		} \
+	\
 		/* Bind attribute with delegate to a raw C++ class method */ \
 		template< class UserClass >	\
 		WidgetArgsType& AttrName##_Raw( UserClass* InUserObject, typename AttrType::FGetter::template TRawMethodDelegate_Const< UserClass >::FMethodPtr InFunc )	\
@@ -312,6 +321,10 @@
 			Var = TargetAttrType::Create( TargetAttrType::FGetter::CreateStatic( &AttrName##_Local::PassThroughDelegate, SourceAttrType::FGetter::CreateStatic( InFunc, Var1, Var2, Var3, Var4 ) ) ); \
 			return this->Me(); \
 		} \
+	\
+		/* We don't support binding FString lambdas to FText attributes because we currently have no way to disambiguate them */ \
+		/*template<typename FunctorType> \
+		WidgetArgsType& AttrName##_Lambda(FunctorType&& InFunctor) \
 	\
 		/* Bind attribute with delegate to a raw C++ class method */ \
 		template< class UserClass >	\
