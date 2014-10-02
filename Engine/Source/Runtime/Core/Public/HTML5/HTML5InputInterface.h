@@ -36,4 +36,6 @@ private:
 
 	TSharedRef< FGenericApplicationMessageHandler > MessageHandler;
 	const TSharedPtr< ICursor > Cursor;
+
+	TBitArray<FDefaultBitArrayAllocator> KeyStates;
 };
