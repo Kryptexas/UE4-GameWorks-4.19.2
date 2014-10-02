@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IStructDeserializerBackend.h"
+#include "Json.h"
 
 
 /**

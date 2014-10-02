@@ -4,7 +4,7 @@
 
 #include "IStructSerializerBackend.h"
 #include "Json.h"
-#include "JsonWriter.h"
+
 
 /**
  * Implements a writer for UStruct serialization using Json.

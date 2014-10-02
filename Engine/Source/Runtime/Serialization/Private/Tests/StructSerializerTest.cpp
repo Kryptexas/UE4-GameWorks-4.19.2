@@ -2,8 +2,8 @@
 
 #include "SerializationPrivatePCH.h"
 #include "AutomationTest.h"
-#include "JsonStructSerializerBackend.h"
 #include "JsonStructDeserializerBackend.h"
+#include "JsonStructSerializerBackend.h"
 #include "StructDeserializer.h"
 #include "StructSerializer.h"
 #include "StructSerializerTestTypes.h"
