@@ -164,6 +164,9 @@ public:
 		{
 			PreviewWidget->bHiddenInDesigner = !IsVisible;
 		}
+
+		// Mark the blueprint as modified
+		FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintEditor.Pin()->GetBlueprintObj());
 	}
 
 protected:
