@@ -1068,10 +1068,9 @@ namespace UnrealBuildTool
 			{
 				string TargetName = Utils.GetFilenameWithoutAnyExtensions(Path.GetFileName(TargetPath));
 				bool WantProjectFileForTarget = true;
+				bool IsEngineTarget = false;
 				if (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles)
 				{
-					bool IsEngineTarget = false;
-
 					// Check to see if this is an Engine target.  That is, the target is located under the "Engine" folder
 					string TargetFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(TargetPath, Path.Combine(EngineRelativePath), AlwaysTreatSourceAsDirectory: false);
 					if (!TargetFileRelativeToEngineDirectory.StartsWith("..") && !Path.IsPathRooted(TargetFileRelativeToEngineDirectory))
@@ -1110,10 +1109,27 @@ namespace UnrealBuildTool
 						TargetsThatNeedApp.Add(TargetName);
 					}
 
+					// if the project is not an engine project check to make sure we have the correct name
+					string DisplayName = TargetName;
+					if (!IsEngineTarget && TargetRulesObject.Type != TargetRules.TargetType.Program)
+					{
+						List<UProjectInfo> AllGames = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
+						Console.WriteLine("Game Count: " + AllGames.Count);
+						UProjectInfo ProjectInfo = FindGameContainingFile (AllGames, TargetFilePath);
+						if (ProjectInfo != null)
+						{
+							DisplayName = ProjectInfo.GameName;
+							if (TargetName.Contains("Editor"))
+							{
+								DisplayName += "Editor";
+							}
+						}
+					}
+
 					// @todo: Remove target platform param and merge Mac and iOS targets. For now BuildTarget knows how to build iOS, but cannot run iOS apps, so we need separate DeployTarget.
 					bool bIsMacOnly = !SupportedPlatforms.Contains(UnrealTargetPlatform.IOS);
 
-					XcodeProjectTarget BuildTarget = new XcodeProjectTarget(TargetName + " - Mac", TargetName, XcodeTargetType.Legacy, TargetFilePath, "", UnrealTargetPlatform.Mac, bIsMacOnly);
+					XcodeProjectTarget BuildTarget = new XcodeProjectTarget(DisplayName + " - Mac", TargetName, XcodeTargetType.Legacy, TargetFilePath, "", UnrealTargetPlatform.Mac, bIsMacOnly);
 					if (!bGeneratingRunIOSProject)
 					{
 						ProjectTargets.Add(BuildTarget);
@@ -1130,14 +1146,14 @@ namespace UnrealBuildTool
 								FrameworkRefs.Add(new XcodeFrameworkRef(Framework));
 							}
 
-							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
+							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(DisplayName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
 							ProjectTargets.Add(IOSDeployTarget);
 						}
 						else
 						{
 							XcodeContainerItemProxy ContainerProxy = new XcodeContainerItemProxy(ProjectTarget.Guid, BuildTarget.Guid, BuildTarget.DisplayName);
 							XcodeTargetDependency TargetDependency = new XcodeTargetDependency(BuildTarget.DisplayName, BuildTarget.Guid, ContainerProxy.Guid);
-							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, new List<XcodeTargetDependency>() { TargetDependency }, true);
+							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(DisplayName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, new List<XcodeTargetDependency>() { TargetDependency }, true);
 							ProjectTargets.Add(IOSDeployTarget);
 							ContainerItemProxies.Add(ContainerProxy);
 							TargetDependencies.Add(TargetDependency);
