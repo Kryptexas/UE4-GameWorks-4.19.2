@@ -111,10 +111,12 @@ FIntPoint FSceneRenderTargets::GetSceneRenderTargetSize(const FSceneViewFamily& 
 	enum ESizingMethods { RequestedSize, ScreenRes, Grow, VisibleSizingMethodsCount, Clamped};
 	ESizingMethods SceneTargetsSizingMethod = Grow;
 
-	bool bSceneCapture = false;
+	bool bCapture = false;
 	for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
 	{
-		bSceneCapture |= ViewFamily.Views[ViewIndex]->bIsSceneCapture;
+		const FSceneView* View = ViewFamily.Views[ViewIndex];
+
+		bCapture |= View->bIsSceneCapture || View->bIsReflectionCapture;
 	}
 
 	if(!FPlatformProperties::SupportsWindowedMode())
@@ -133,7 +135,7 @@ FIntPoint FSceneRenderTargets::GetSceneRenderTargetSize(const FSceneViewFamily& 
 		SceneTargetsSizingMethod = (ESizingMethods) FMath::Clamp(CVarSceneTargetsResizingMethod.GetValueOnRenderThread(), 0, (int32)VisibleSizingMethodsCount);
 	}
 	
-	if (bSceneCapture)
+	if (bCapture)
 	{
 		// In general, we don't want scenecapture to grow our buffers, because depending on the cvar for our game, we may not recover that memory.  This can be changed if necessary.
 		// However, in the editor a user might have a small editor window, but be capturing cubemaps or other dynamic assets for data distribution, 

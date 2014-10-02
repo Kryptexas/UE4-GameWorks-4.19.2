@@ -40,6 +40,12 @@ float GetSubsurfaceStrength(float2 UV)
 // 0:speculars leak into SSS / 1:requires alpha channel for scenecolor
 // #define SSSS_SPECULAR_CORRECTION 1
 
+// set by C++ for SubsurfaceRecombinePS
+// #define SSS_RECOMBINE_METHOD 0:without reconstruct specular/1:with reconstruct specular
+
+// set by C++ for SubsurfacePS
+// #define SSS_DIRECTION 0/1
+
 // define by C++ for the setup pass
 #ifndef SETUP_MODE
 	#define SETUP_MODE 0
@@ -91,16 +97,6 @@ float GetSubsurfaceStrength(float2 UV)
 	// requires alpha channel for scenecolor
 #elif SSSS_SPECULAR_CORRECTION == 0
 	// speculars leak into SSS
-#else
-	error
-#endif
-
-#if SSS_METHOD == 0
-	// horizontal
-#elif SSS_METHOD == 1
-	// vertical
-#elif SSS_METHOD == 2
-	// vertical and reconstruct specular
 #else
 	error
 #endif
@@ -239,27 +235,37 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	// *1000 as we store the sample distances / 1000 to allows for scaling
 	float Scaler = View.ViewSizeAndSceneTexelSize.x * View.ViewSizeAndSceneTexelSize.z * 1000.0f;
 
-#if SSS_METHOD == 0
-	// first pass
+#if SSS_DIRECTION == 0
+	// horizontal
 	float2 Direction = float2(1, 0) * Scaler;
 #else
-	// second pass
+	// vertical
 	float2 Direction = float2(0, View.ViewSizeAndSceneTexelSize.w / View.ViewSizeAndSceneTexelSize.z) * Scaler;
 #endif
-	OutColor = SSSSBlurPS(UV, sssWidth, Direction, false);
+
+	OutColor.rgb = SSSSBlurPS(UV, sssWidth, Direction, false).rgb;
 
 	OutColor.a = 1.0f;
+}
 
-	// Lighting
 
-#if SSS_METHOD > 0
-	// on second pass we recombine with the scene color
+
+
+
+void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+
+	OutColor.rgb = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).rgb;
+	OutColor.a = 1.0f;
+
+	// recombine with the scene color
 
 	// can be optimized
 	float2 PixelPos = UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw;
 	float2 UVSceneColor = (PixelPos + 0.5f) * View.ViewSizeAndSceneTexelSize.zw;
 
-	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor);
+	float4 SceneColor4 = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UVSceneColor);
 
 	float4 SSSColor = OutColor;
 
@@ -267,12 +273,11 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 
 	SSSColor.a = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE);
 
-#if SSS_METHOD > 1
+#if SSS_RECOMBINE_METHOD
 	// we took the specular highlights out, now we add them back in
 	SSSColor.rgb += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
 #endif
 
 	// alpha channel can be anything - we consumed the value and likely output to a format that doesn't need the value
 	OutColor = float4(lerp(SceneColor4.rgb, SSSColor.rgb, SSSColor.a), 0);
-#endif
 }

@@ -39,14 +39,6 @@ static TAutoConsoleVariable<float> CVarSSSScale(
 	TEXT(">1: scale scatter radius up (for testing)"),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarSSSHalfRes(
-	TEXT("r.SSS.HalfRes"),
-	2,
-	TEXT("0: full quality (default)\n")
-	TEXT("1: half resolution setup, low quality but faster (currently minor shift from SubsurfaceSetup to SubsurfaceTemp)\n")
-	TEXT("2: also half horizontal during first blurring step, lower quality, even faster"),
-	ECVF_RenderThreadSafe  | ECVF_Scalability);
-
 static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 {
 	FScene* Scene = (FScene*)Context.View.Family->Scene;
@@ -367,18 +359,20 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 				//@todo-rco: Remove this when we fix the cross-compiler
 				!IsOpenGLPlatform(GRHIShaderPlatform))
 			{
-				int32 HalfRes = CVarSSSHalfRes.GetValueOnRenderThread();
-
-				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(false, HalfRes > 0));
+				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(false, true));
 				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
-				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius, HalfRes > 1));
-				Pass0->SetInput(ePId_Input1, PassSetup);
+				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius, true));
+				Pass0->SetInput(ePId_Input0, PassSetup);
 
-				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, Radius));
-				Pass1->SetInput(ePId_Input0, Context.FinalOutput);
-				Pass1->SetInput(ePId_Input1, Pass0);
-				Context.FinalOutput = FRenderingCompositeOutputRef(Pass1);
+				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, Radius, true));
+				Pass1->SetInput(ePId_Input0, Pass0);
+
+				// full res composite pass, no blurring (Radius=0)
+				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine());
+				RecombinePass->SetInput(ePId_Input0, Pass1);
+				RecombinePass->SetInput(ePId_Input1, Context.FinalOutput);					
+				Context.FinalOutput = FRenderingCompositeOutputRef(RecombinePass);
 			}
 		}
 

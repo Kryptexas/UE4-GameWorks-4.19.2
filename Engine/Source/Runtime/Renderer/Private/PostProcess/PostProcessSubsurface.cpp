@@ -16,12 +16,17 @@ ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandL
 
 static TAutoConsoleVariable<int32> CVarSSSSampleSet(
 	TEXT("r.SSS.SampleSet"),
-	2,
+	3,
 	TEXT("0: lowest quality\n")
 	TEXT("1: medium quality\n")
 	TEXT("2: high quality (default)"),
 	ECVF_RenderThreadSafe  | ECVF_Scalability);
 
+static bool SubsurfaceShouldCache(EShaderPlatform Platform)
+{
+	//@todo-rco: Remove this when we fix the cross-compiler
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsOpenGLPlatform(Platform);
+}
 
 /**
  * Encapsulates the post processing ambient occlusion pixel shader.
@@ -34,8 +39,7 @@ class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		//@todo-rco: Remove this when we fix the cross-compiler
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsOpenGLPlatform(Platform);
+		return SubsurfaceShouldCache(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -314,24 +318,23 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPa
 }
 
 
-/** Encapsulates the post processing down sample pixel shader. */
-// @param Method 0: horizontal, 1:vertical, 2:vertical and reconstruct specular
+/** Encapsulates the post processing subsurface pixel shader. */
+// @param Direction 0: horizontal, 1:vertical
 // @param SampleSet 0:low, 1:med, 2:high
-template <uint32 Method, uint32 SampleSet>
+template <uint32 Direction, uint32 SampleSet>
 class TPostProcessSubsurfacePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TPostProcessSubsurfacePS, Global);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		//@todo-rco: Remove this when we fix the cross-compiler
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsOpenGLPlatform(Platform);
+		return SubsurfaceShouldCache(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("SSS_METHOD"), Method);
+		OutEnvironment.SetDefine(TEXT("SSS_DIRECTION"), Direction);
 		OutEnvironment.SetDefine(TEXT("SSS_SAMPLESET"), SampleSet);
 	}
 
@@ -414,18 +417,19 @@ public:
 #undef VARIATION2
 
 
-FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InPass, float InRadius, bool bInHalfRes)
+FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InDirection, float InRadius, bool bInHalfRes)
 	: Radius(InRadius)
-	, Pass(InPass) 
+	, Direction(InDirection) 
 	, bHalfRes(bInHalfRes) 
 {
+	check(InDirection < 2);
+	check(Radius >= 0.0f);
 }
 
-template <uint32 Method, uint32 SampleSet>
-void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, float InRadius)
+template <uint32 Direction, uint32 SampleSet>
+void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, TShaderMapRef<FPostProcessVS> &VertexShader, float InRadius)
 {
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<TPostProcessSubsurfacePS<Method,SampleSet> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<TPostProcessSubsurfacePS<Direction, SampleSet> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -435,15 +439,15 @@ void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, float In
 	VertexShader->SetParameters(Context);
 }
 
-// 0:horizontal, 1:vertical with spec correction, 2:vertical without spec correction
-template <uint32 Method>
-void SetSubsurfaceShaderSampleSet(const FRenderingCompositePassContext& Context, float InRadius, uint32 SampleSet)
+// 0:horizontal, 1: vertical
+template <uint32 Direction>
+void SetSubsurfaceShaderSampleSet(const FRenderingCompositePassContext& Context, TShaderMapRef<FPostProcessVS> &VertexShader, float InRadius, uint32 SampleSet)
 {
 	switch(SampleSet)
 	{
-		case 0: SetSubsurfaceShader<Method, 0>(Context, InRadius); break;
-		case 1: SetSubsurfaceShader<Method, 1>(Context, InRadius); break;
-		case 2: SetSubsurfaceShader<Method, 2>(Context, InRadius); break;
+		case 0: SetSubsurfaceShader<Direction, 0>(Context, VertexShader, InRadius); break;
+		case 1: SetSubsurfaceShader<Direction, 1>(Context, VertexShader, InRadius); break;
+		case 2: SetSubsurfaceShader<Direction, 2>(Context, VertexShader, InRadius); break;
 
 	default:
 		check(0);
@@ -452,7 +456,7 @@ void SetSubsurfaceShaderSampleSet(const FRenderingCompositePassContext& Context,
 
 void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Context)
 {
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input1);
+	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	check(InputDesc);
 
@@ -469,7 +473,12 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
-	FIntPoint DestSize = (Pass == 0) ? PassOutputs[0].RenderTargetDesc.Extent : GSceneRenderTargets.GetBufferSizeXY();
+	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
+
+	check(DestSize.X);
+	check(DestSize.Y);
+	check(SrcSize.X);
+	check(SrcSize.Y);
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
 	uint32 ScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / SrcSize.X;
@@ -481,16 +490,7 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 
 	const FSceneRenderTargetItem* DestRenderTarget;
 	{
-		if(Pass == 0)
-		{
-			DestRenderTarget = &PassOutputs[0].RequestSurface(Context);
-		}
-		else
-		{
-			// in that case we directly render to the HDR scene color
-			GRenderTargetPool.FindFreeElement(GSceneRenderTargets.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("SceneColor"));
-			DestRenderTarget = &NewSceneColor->GetRenderTargetItem();
-		}
+		DestRenderTarget = &PassOutputs[0].RequestSurface(Context);
 
 		check(DestRenderTarget);
 	}
@@ -509,30 +509,198 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
-	const TCHAR* PassNames[] = { TEXT("SubsurfaceX"), TEXT("SubsurfaceY0"), TEXT("SubsurfaceY1") };
-	check(Pass < sizeof(PassNames) / sizeof(PassNames[0]));
-
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, SubsurfacePass, DEC_SCENE_ITEMS, PassNames[Pass]);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, SubsurfacePass, DEC_SCENE_ITEMS, TEXT("SubsurfaceDirection#%d"), Direction);
 
 	uint32 SampleSet = FMath::Clamp(CVarSSSSampleSet.GetValueOnRenderThread(), 0, 2);
 
-	if (Pass == 0)
+	if (Direction == 0)
 	{
-		SetSubsurfaceShaderSampleSet<0>(Context, Radius, SampleSet);
+		SetSubsurfaceShaderSampleSet<0>(Context, VertexShader, Radius, SampleSet);
 	}
 	else
 	{
-		check(Pass == 1);
+		SetSubsurfaceShaderSampleSet<1>(Context, VertexShader, Radius, SampleSet);
+	}
 
-		if(DoSpecularCorrection())
-		{
-			// reconstruct specular and add it in final pass
-			SetSubsurfaceShaderSampleSet<2>(Context, Radius, SampleSet);
-		}
-		else
-		{
-			SetSubsurfaceShaderSampleSet<1>(Context, Radius, SampleSet);
-		}
+	DrawRectangle(
+		Context.RHICmdList,
+		DestRect.Min.X, DestRect.Min.Y,
+		DestRect.Width(), DestRect.Height(),
+		SrcRect.Min.X, SrcRect.Min.Y,
+		SrcRect.Width(), SrcRect.Height(),
+		DestSize,
+		SrcSize,
+		*VertexShader,
+		EDRF_UseTriangleOptimization);
+
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget->TargetableTexture, DestRenderTarget->ShaderResourceTexture, false, FResolveParams());
+}
+
+
+FPooledRenderTargetDesc FRCPassPostProcessSubsurface::ComputeOutputDesc(EPassOutputId InPassOutputId) const
+{
+	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+
+	Ret.Reset();
+	Ret.DebugName = (Direction == 0) ? TEXT("SubsurfaceX") : TEXT("SubsurfaceY");
+
+	// the setup was done in half res but the actual sampling happens in full resolution
+	Ret.Extent = GSceneRenderTargets.GetBufferSizeXY();
+
+	if(bHalfRes)
+	{
+		Ret.Extent  = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
+
+		Ret.Extent.X = FMath::Max(1, Ret.Extent.X);
+		Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
+	}
+
+	return Ret;
+}
+
+
+
+
+
+
+/** Encapsulates the post processing subsurafce recombine pixel shader. */
+// @param SpecularCorrection 0: reconstruct specular
+template <uint32 RecombineMethod>
+class TPostProcessSubsurfaceRecombinePS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(TPostProcessSubsurfaceRecombinePS, Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return SubsurfaceShouldCache(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("SSS_RECOMBINE_METHOD"), RecombineMethod);
+	}
+
+	/** Default constructor. */
+	TPostProcessSubsurfaceRecombinePS() {}
+
+public:
+	FPostProcessPassParameters PostprocessParameter;
+	FDeferredPixelShaderParameters DeferredParameters;
+
+	/** Initialization constructor. */
+	TPostProcessSubsurfaceRecombinePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		DeferredParameters.Bind(Initializer.ParameterMap);
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar)
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << PostprocessParameter << DeferredParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+	void SetParameters(const FRenderingCompositePassContext& Context)
+	{
+		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Border>::GetRHI());
+	}
+
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessSubsurface");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("SubsurfaceRecombinePS");
+	}
+};
+
+// #define avoids a lot of code duplication
+#define VARIATION1(A) typedef TPostProcessSubsurfaceRecombinePS<A> TPostProcessSubsurfaceRecombinePS##A; \
+	IMPLEMENT_SHADER_TYPE2(TPostProcessSubsurfaceRecombinePS##A, SF_Pixel);
+	VARIATION1(0) VARIATION1(1)
+#undef VARIATION1
+
+
+template <uint32 RecombineMethod>
+void SetSubsurfaceRecombineShader(const FRenderingCompositePassContext& Context, TShaderMapRef<FPostProcessVS> &VertexShader)
+{
+	TShaderMapRef<TPostProcessSubsurfaceRecombinePS<RecombineMethod> > PixelShader(Context.GetShaderMap());
+
+	static FGlobalBoundShaderState BoundShaderState;
+
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	PixelShader->SetParameters(Context);
+	VertexShader->SetParameters(Context);
+}
+
+void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassContext& Context)
+{
+	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+
+	check(InputDesc);
+
+	const FSceneView& View = Context.View;
+	const FSceneViewFamily& ViewFamily = *(View.Family);
+
+	FIntPoint SrcSize = InputDesc->Extent;
+	FIntPoint DestSize = GSceneRenderTargets.GetBufferSizeXY();
+
+	check(DestSize.X);
+	check(DestSize.Y);
+	check(SrcSize.X);
+	check(SrcSize.Y);
+
+	// e.g. 4 means the input texture is 4x smaller than the buffer size
+	uint32 ScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / SrcSize.X;
+
+	FIntRect SrcRect = View.ViewRect / ScaleFactor;
+	FIntRect DestRect = View.ViewRect;
+
+	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
+
+	const FSceneRenderTargetItem* DestRenderTarget;
+	{
+		// in that case we directly render to the HDR scene color
+		GRenderTargetPool.FindFreeElement(*GetInputDesc(ePId_Input1), NewSceneColor, TEXT("SceneColor"));
+		DestRenderTarget = &NewSceneColor->GetRenderTargetItem();
+	}
+
+	// Set the view family's render target/viewport.
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget->TargetableTexture, FTextureRHIRef());
+
+	// is optimized away if possible (RT size=view size, )
+	Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
+
+	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+
+	bool bDoSpecularCorrection = DoSpecularCorrection();
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, SubsurfacePass, DEC_SCENE_ITEMS, TEXT("SubsurfacePassRecombine#%d"), (int32)bDoSpecularCorrection);
+
+	if(bDoSpecularCorrection)
+	{
+		SetSubsurfaceRecombineShader<1>(Context, VertexShader);
+	}
+	else
+	{
+		SetSubsurfaceRecombineShader<0>(Context, VertexShader);
 	}
 
 	DrawRectangle(
@@ -548,37 +716,15 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget->TargetableTexture, DestRenderTarget->ShaderResourceTexture, false, FResolveParams());
 
-	if(Pass != 0)
-	{
-		GSceneRenderTargets.SetSceneColor(NewSceneColor);
-	}
+	GSceneRenderTargets.SetSceneColor(NewSceneColor);
 }
 
 
-FPooledRenderTargetDesc FRCPassPostProcessSubsurface::ComputeOutputDesc(EPassOutputId InPassOutputId) const
+FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceRecombine::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret;
 
-	if(Pass != 0)
-	{
-		// in that case we directly render to the HDR scene color
-		return Ret;
-	}
-
-	Ret = PassInputs[1].GetOutput()->RenderTargetDesc;
-
-	Ret.Reset();
-	Ret.DebugName = (Pass == 0) ? TEXT("SubsurfaceTemp") : TEXT("SceneColor");
-	// the setup was done in half res but the actual sampling happens in full resolution
-	Ret.Extent = GSceneRenderTargets.GetBufferSizeXY();
-
-	if(bHalfRes)
-	{
-		Ret.Extent  = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
-
-		Ret.Extent.X = FMath::Max(1, Ret.Extent.X);
-		Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
-	}
-
+	Ret.DebugName = TEXT("SceneColor");
+	// we directly render to the HDR scene color
 	return Ret;
 }

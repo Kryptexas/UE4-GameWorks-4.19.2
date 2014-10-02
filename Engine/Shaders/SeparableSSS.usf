@@ -253,8 +253,8 @@ float4 GetKernel(uint SampleIndex, uint SubsurfaceProfileInt)
 // EPIC changed start
 #define SSSSSampleShadowmap(coord)	float4(0,0,0,0)	// todo: not used yet
 #define SSSSSampleMasking(texcoord)	(GetScreenSpaceData(texcoord).GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)	// todo: masking doesn't work with filtering ideally put in alpha to get it filtered
-#define SSSSSampleSceneColor(coord) (SSSSSampleMasking(coord) * Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, coord))
-#define SSSSSampleSceneColorPoint(coord) ( Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, coord))		// todo: could be made point
+#define SSSSSampleSceneColor(coord) (SSSSSampleMasking(coord) * Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, coord))
+#define SSSSSampleSceneColorPoint(coord) ( Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, coord))		// todo: could be made point
 #define SSSSSampleSceneDepth(coord) CalcSceneDepth(coord)		// todo: could be made linear
 #define SSSSSampleSceneDepthPoint(coord) CalcSceneDepth(coord)
 // EPIC changed end

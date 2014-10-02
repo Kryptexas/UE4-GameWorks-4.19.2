@@ -163,7 +163,7 @@ struct FRenderingCompositePass
 	virtual FRenderingCompositeOutputRef* GetInput(EPassInputId InPassInputId) = 0;
 
 	/**
-	 * Each input is a dependency and will be processed before the node itself (don't generate cyles)
+	 * Each input is a dependency and will be processed before the node itself (don't generate cycles)
 	 * The index allows to access the input in Process() and on the shader side
 	 * @param InInputIndex silently ignores calls outside the range
 	 */
