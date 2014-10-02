@@ -309,20 +309,18 @@ public:
 
 template<class DrawingPolicyFactoryType>
 void DrawViewElementsParallel(
-	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog,
-	FRHICommandList& ParentCmdList,
-	int32 Width
+	FParallelCommandListSet& ParallelCommandListSet
 	)
 {
 	// Get the correct element list based on dpg index
-	const TIndirectArray<FMeshBatch>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements);
+	const TIndirectArray<FMeshBatch>& ViewMeshElementList = (DPGIndex == SDPG_Foreground ? ParallelCommandListSet.View.TopViewMeshElements : ParallelCommandListSet.View.ViewMeshElements);
 
 	{
 		int32 NumPrims = ViewMeshElementList.Num();
-		int32 EffectiveThreads = FMath::Min<int32>(NumPrims, Width);
+		int32 EffectiveThreads = FMath::Min<int32>(NumPrims, ParallelCommandListSet.Width);
 
 		int32 Start = 0;
 		if (EffectiveThreads)
@@ -338,12 +336,12 @@ void DrawViewElementsParallel(
 				check(Last >= Start);
 
 				{
-					FRHICommandList* CmdList = new FRHICommandList;
+					FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawViewElementsAnyThreadTask<DrawingPolicyFactoryType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
-						.ConstructAndDispatchWhenReady(CmdList, &View, DrawingContext, DPGIndex, bPreFog, Start, Last);
+						.ConstructAndDispatchWhenReady(CmdList, &ParallelCommandListSet.View, DrawingContext, DPGIndex, bPreFog, Start, Last);
 
-					ParentCmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+					ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 				}
 				Start = Last + 1;
 			}

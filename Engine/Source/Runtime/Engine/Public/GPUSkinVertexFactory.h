@@ -329,13 +329,13 @@ public:
 		void SetOldBoneData(uint32 FrameNumber, uint32 Index) const
 		{
 			// keep the one from last from, someone might read want to read that
-			if(OldBoneFrameNumber[0] + 1 == FrameNumber)
+			if (OldBoneFrameNumber[0] + 1 == FrameNumber)
 			{
 				// [1] has the right data
 				OldBoneFrameNumber[1] = FrameNumber;
 				OldBoneDataStartIndex[1] = Index;
 			}
-			else
+			else 
 			{
 				// [0] has the right data
 				OldBoneFrameNumber[0] = FrameNumber;
@@ -377,6 +377,7 @@ public:
 			return BoneBuffer;
 		}
 
+		mutable FCriticalSection OldBoneDataLock;
 	private:
 
 		// the following members can be stored in less bytes (after some adjustments)

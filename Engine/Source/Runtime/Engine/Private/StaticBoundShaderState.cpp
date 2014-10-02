@@ -56,7 +56,12 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	// Create the bound shader state if it hasn't been cached yet.
 	if(!IsValidRef(BoundShaderState))
 	{
-		BoundShaderState = CreateBoundShaderState_Internal(
+		BoundShaderState = 
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+			RHICreateBoundShaderState(
+#else
+			CreateBoundShaderState_Internal(
+#endif
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(), 
@@ -68,7 +73,12 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	// Only people working on shaders (and therefore have LogShaders unsuppressed) will want to see these errors
 	else if (!GUsingNullRHI && UE_LOG_ACTIVE(LogShaders, Warning))
 	{
-		FBoundShaderStateRHIRef TempBoundShaderState = CreateBoundShaderState_Internal(
+		FBoundShaderStateRHIRef TempBoundShaderState = 
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+			RHICreateBoundShaderState(
+#else
+			CreateBoundShaderState_Internal(
+#endif
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(),

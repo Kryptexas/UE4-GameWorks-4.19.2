@@ -477,16 +477,29 @@ DEFINE_RHIMETHOD_GLOBAL_1(
  * @param GeometryShader - existing geometry shader
  * @param PixelShader - existing pixel shader
  */
-DEFINE_RHIMETHOD_CMDLIST_6(
-	FBoundShaderStateRHIRef,CreateBoundShaderState,
-	FVertexDeclarationRHIParamRef,VertexDeclaration,
-	FVertexShaderRHIParamRef,VertexShader,
-	FHullShaderRHIParamRef,HullShader,
-	FDomainShaderRHIParamRef,DomainShader,
-	FPixelShaderRHIParamRef,PixelShader,
-	FGeometryShaderRHIParamRef,GeometryShader,
-	return,return new FRHIBoundShaderState();
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6(
+		FBoundShaderStateRHIRef,CreateBoundShaderState,
+		FVertexDeclarationRHIParamRef,VertexDeclaration,
+		FVertexShaderRHIParamRef,VertexShader,
+		FHullShaderRHIParamRef,HullShader,
+		FDomainShaderRHIParamRef,DomainShader,
+		FPixelShaderRHIParamRef,PixelShader,
+		FGeometryShaderRHIParamRef,GeometryShader,
+		return,return new FRHIBoundShaderState();
 	);
+#else
+	DEFINE_RHIMETHOD_GLOBAL_6(
+		FBoundShaderStateRHIRef,CreateBoundShaderState,
+		FVertexDeclarationRHIParamRef,VertexDeclaration,
+		FVertexShaderRHIParamRef,VertexShader,
+		FHullShaderRHIParamRef,HullShader,
+		FDomainShaderRHIParamRef,DomainShader,
+		FPixelShaderRHIParamRef,PixelShader,
+		FGeometryShaderRHIParamRef,GeometryShader,
+		return,return new FRHIBoundShaderState();
+		);
+#endif
 
 /**
  *Sets the current compute shader.  Mostly for compliance with platforms
@@ -1478,6 +1491,7 @@ DEFINE_RHIMETHOD_CMDLIST_4(
 	);
 
 /** Sets stream output targets, for use with a geometry shader created with RHICreateGeometryShaderWithStreamOutput. */
+//@todo this should be a CMDLIST method
 DEFINE_RHIMETHOD_3(
 	void,SetStreamOutTargets,
 	uint32,NumTargets,
@@ -2136,3 +2150,20 @@ DEFINE_RHIMETHOD_CMDLIST_0(
 	void,PopEvent,
 	,
 	);
+
+#if PLATFORM_RHI_USES_CONTEXT_OBJECT
+	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
+		class IRHICommandContext*,GetDefaultContext,
+		return,return this
+	);
+
+	#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+			DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
+				class IRHICommandContextContainer*,GetCommandContextContainer,
+				uint32, ClearTag,
+				return,return nullptr
+				);
+	#endif
+
+#endif
+

@@ -188,6 +188,7 @@ struct RHI_API FGPUProfiler
 	{
 		if (bTrackingEvents && CurrentEventNode)
 		{
+			check(IsInRenderingThread() || IsInRHIThread());
 			CurrentEventNode->NumDraws++;
 			CurrentEventNode->NumPrimitives += NumPrimitives;
 			CurrentEventNode->NumVertices += NumVertices;

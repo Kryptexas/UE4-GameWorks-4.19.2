@@ -473,11 +473,11 @@ void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesInner(FRHICommandList
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View)
+void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
 {
 	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
 
-	for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+	for (int32 MeshBatchIndex = FirstIndex; MeshBatchIndex < LastIndex; MeshBatchIndex++)
 	{
 		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
@@ -529,10 +529,118 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		ThisRenderer.RenderDynamicVelocitiesInner(RHICmdList, View, FirstIndex, LastIndex);
+		ThisRenderer.RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, FirstIndex, LastIndex);
 		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
+
+static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+{
+	SetRenderTarget(RHICmdList, VelocityRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
+
+	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
+
+	const uint32 MinX = View.ViewRect.Min.X * VelocityBufferSize.X / BufferSize.X;
+	const uint32 MinY = View.ViewRect.Min.Y * VelocityBufferSize.Y / BufferSize.Y;
+	const uint32 MaxX = View.ViewRect.Max.X * VelocityBufferSize.X / BufferSize.X;
+	const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
+
+	RHICmdList.SetViewport(MinX, MinY, 0.0f, MaxX, MaxY, 1.0f);
+
+	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
+	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
+}
+
+class FVelocityPassParallelCommandListSet : public FParallelCommandListSet
+{
+	TRefCountPtr<IPooledRenderTarget>& VelocityRT;
+public:
+	FVelocityPassParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute, TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
+		: FParallelCommandListSet(InView, InParentCmdList, InOutDirty, bInParallelExecute)
+		, VelocityRT(InVelocityRT)
+	{
+		SetStateOnCommandList(ParentCmdList);
+	}
+	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
+	{
+		SetVelocitiesState(CmdList, View, VelocityRT);
+	}
+};
+
+static TAutoConsoleVariable<int32> CVarRHICmdVelocityPassDeferredContexts(
+	TEXT("r.RHICmdVelocityPassDeferredContexts"),
+	1,
+	TEXT("True to use deferred contexts to parallelize velocity pass command list execution.\n"));
+
+void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+{
+	// parallel version
+	FScopedCommandListWaitForTasks Flusher(RHICmdList);
+
+	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		const FViewInfo& View = Views[ViewIndex];
+
+		FVelocityPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, nullptr, CVarRHICmdVelocityPassDeferredContexts.GetValueOnRenderThread() > 0, VelocityRT);
+
+		Scene->VelocityDrawList.DrawVisibleParallel(View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility, ParallelCommandListSet);
+
+		int32 NumPrims = View.DynamicMeshElements.Num();
+		int32 EffectiveThreads = FMath::Min<int32>(NumPrims, ParallelCommandListSet.Width);
+
+		int32 Start = 0;
+		if (EffectiveThreads)
+		{
+			check(IsInRenderingThread());
+
+			int32 NumPer = NumPrims / EffectiveThreads;
+			int32 Extra = NumPrims - NumPer * EffectiveThreads;
+
+
+			for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+			{
+				int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
+				check(Last >= Start);
+
+				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
+
+				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+					.ConstructAndDispatchWhenReady(this, CmdList, &View, Start, Last);
+
+				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
+
+				Start = Last + 1;
+			}
+		}
+	}
+}
+
+void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+{
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+
+	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		const FViewInfo& View = Views[ViewIndex];
+
+		SetVelocitiesState(RHICmdList, View, VelocityRT);
+		// Draw velocities for movable static meshes.
+		Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
+
+		if (bUseGetMeshElements)
+		{
+			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, 0, View.DynamicMeshElements.Num() - 1);
+		}
+		else
+		{
+			RenderDynamicVelocitiesInner(RHICmdList, View, 0, View.VisibleDynamicPrimitives.Num() - 1);
+		}
+	}
+}
+
 
 
 static TAutoConsoleVariable<int32> CVarParallelVelocity(
@@ -542,71 +650,6 @@ static TAutoConsoleVariable<int32> CVarParallelVelocity(
 	ECVF_RenderThreadSafe
 	);
 
-void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
-{
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
-	if (GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread())
-	{
-		// parallel version
-		FScopedCommandListWaitForTasks Flusher(RHICmdList);
-
-		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
-		bool OutDirty = false; // unused
-
-		Scene->VelocityDrawList.DrawVisibleParallel(View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility, Width, RHICmdList, OutDirty);
-
-		if (bUseGetMeshElements)
-		{
-			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View);
-		}
-		else
-		{
-			int32 NumPrims = View.VisibleDynamicPrimitives.Num();
-			int32 EffectiveThreads = FMath::Min<int32>(NumPrims, Width);
-
-			int32 Start = 0;
-			if (EffectiveThreads)
-			{
-				check(IsInRenderingThread());
-
-				int32 NumPer = NumPrims / EffectiveThreads;
-				int32 Extra = NumPrims - NumPer * EffectiveThreads;
-
-
-				for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
-				{
-					int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
-					check(Last >= Start);
-
-					FRHICommandList* CmdList = new FRHICommandList;
-
-					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-						.ConstructAndDispatchWhenReady(this, CmdList, &View, Start, Last);
-
-					RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
-
-					Start = Last + 1;
-				}
-			}
-		}
-	}
-	else
-	{
-		// single threaded version
-		// Draw velocities for movable static meshes.
-		Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
-
-		if (bUseGetMeshElements)
-		{
-			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View);
-		}
-		else
-		{
-			RenderDynamicVelocitiesInner(RHICmdList, View, 0, View.VisibleDynamicPrimitives.Num() - 1);
-		}
-	}
-}
 
 void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
@@ -643,23 +686,13 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	// Clear the velocity buffer (0.0f means "use static background velocity").
 	RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
-	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	if (GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread())
 	{
-		const FViewInfo& View = Views[ViewIndex];
-
-		const uint32 MinX = View.ViewRect.Min.X * VelocityBufferSize.X / BufferSize.X;
-		const uint32 MinY = View.ViewRect.Min.Y * VelocityBufferSize.Y / BufferSize.Y;
-		const uint32 MaxX = View.ViewRect.Max.X * VelocityBufferSize.X / BufferSize.X;
-		const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
-
-		RHICmdList.SetViewport(MinX, MinY, 0.0f, MaxX, MaxY, 1.0f);
-
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
-		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
-		RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
-
-		RenderVelocitiesInner(RHICmdList, View);
+		RenderVelocitiesInnerParallel(RHICmdList, VelocityRT);
+	}
+	else
+	{
+		RenderVelocitiesInner(RHICmdList, VelocityRT);
 	}
 
 	RHICmdList.CopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());

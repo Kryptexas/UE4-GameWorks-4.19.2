@@ -316,6 +316,7 @@ void FGPUProfiler::PushEvent(const TCHAR* Name)
 {
 	if (bTrackingEvents)
 	{
+		check(IsInRenderingThread() || IsInRHIThread());
 		if (CurrentEventNode)
 		{
 			// Add to the current node's children
@@ -339,7 +340,7 @@ void FGPUProfiler::PopEvent()
 {
 	if (bTrackingEvents)
 	{
-		check(CurrentEventNode);
+		check(CurrentEventNode && (IsInRenderingThread() || IsInRHIThread()));
 		// Stop timing the current node and move one level up the tree
 		CurrentEventNode->StopTiming();
 		CurrentEventNode = CurrentEventNode->Parent;

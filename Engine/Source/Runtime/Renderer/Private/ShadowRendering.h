@@ -490,6 +490,13 @@ public:
 	bool bIsTwoSided;
 };
 
+
+struct ISetShadowRenderTargets
+{
+	virtual ~ISetShadowRenderTargets() {}
+	virtual void SetRenderTargetsForShadows(FRHICommandList& RHICmdList) = 0;
+};
+
 /**
  * Information about a projected shadow.
  */
@@ -671,7 +678,10 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
+	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, ISetShadowRenderTargets& SetShadowRenderTargets);
+
+	/** Set state for depth rendering */
+	void SetStateForDepth(FRHICommandList& RHICmdList);
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
@@ -756,7 +766,7 @@ private:
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
-	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, ISetShadowRenderTargets& SetShadowRenderTargets);
 
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view

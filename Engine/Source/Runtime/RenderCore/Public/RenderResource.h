@@ -619,12 +619,16 @@ public:
 	/** Adds a bound shader state to the history. */
 	void Add(FBoundShaderStateRHIParamRef BoundShaderState)
 	{
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+		FScopeLock Lock(&BoundShaderStateHistoryLock);
+#endif
 		BoundShaderStates[NextBoundShaderStateIndex] = BoundShaderState;
 		NextBoundShaderStateIndex = (NextBoundShaderStateIndex + 1) % Size;
 	}
 
 	FBoundShaderStateRHIParamRef GetLast()
 	{
+		check(!PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE);
 		// % doesn't work as we want on negative numbers, so handle the wraparound manually
 		uint32 LastIndex = NextBoundShaderStateIndex == 0 ? Size - 1 : NextBoundShaderStateIndex - 1;
 		return BoundShaderStates[LastIndex];
@@ -643,4 +647,7 @@ private:
 
 	FBoundShaderStateRHIRef BoundShaderStates[Size];
 	uint32 NextBoundShaderStateIndex;
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	FCriticalSection BoundShaderStateHistoryLock;
+#endif
 };

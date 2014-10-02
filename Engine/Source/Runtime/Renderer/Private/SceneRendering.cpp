@@ -70,6 +70,69 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 	ECVF_RenderThreadSafe);
 
 /*-----------------------------------------------------------------------------
+	FParallelCommandListSet
+-----------------------------------------------------------------------------*/
+
+
+FRHICommandList* FParallelCommandListSet::AllocCommandList()
+{
+	return new FRHICommandList;
+}
+
+FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute)
+	: View(InView)
+	, ParentCmdList(InParentCmdList)
+	, OutDirtyIfIgnored(false)
+	, OutDirty(InOutDirty ? *InOutDirty : OutDirtyIfIgnored)
+	, bParallelExecute(bInParallelExecute)
+{
+	Width = CVarRHICmdWidth.GetValueOnRenderThread();
+	CommandLists.Reserve(Width * 8);
+	Events.Reserve(Width * 8);
+
+}
+
+FParallelCommandListSet::~FParallelCommandListSet()
+{
+	check(CommandLists.Num() == Events.Num());
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	if (bParallelExecute && CommandLists.Num())
+	{
+		ParentCmdList.QueueParallelAsyncCommandListSubmit(&Events[0], &CommandLists[0], CommandLists.Num());
+		SetStateOnCommandList(ParentCmdList);
+	}
+	else
+#endif
+	{
+		for (int32 Index = 0; Index < CommandLists.Num(); Index++)
+		{
+			ParentCmdList.QueueAsyncCommandListSubmit(Events[Index], CommandLists[Index]);
+		}
+	}
+	CommandLists.Reset();
+	Events.Reset();
+}
+
+FRHICommandList* FParallelCommandListSet::NewParallelCommandList()
+{
+	FRHICommandList* Result = AllocCommandList();
+//	if (bParallelExecute)
+	{
+		SetStateOnCommandList(*Result); 
+	}
+	return Result;
+}
+
+void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent)
+{
+	check(CommandLists.Num() == Events.Num());
+	CommandLists.Add(CmdList);
+	Events.Add(CompletionEvent);
+}
+
+
+
+/*-----------------------------------------------------------------------------
 	FViewInfo
 -----------------------------------------------------------------------------*/
 

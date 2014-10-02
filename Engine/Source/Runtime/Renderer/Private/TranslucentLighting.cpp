@@ -1410,7 +1410,13 @@ void SetInjectionShader(
 	{
 		CachedShaderMap = MaterialShaderMap;
 		check(IsInRenderingThread()); // I didn't know quite how to deal with this caching. It won't work with threads.
-		BoundShaderState = CreateBoundShaderState_Internal(GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), GeometryShader->GetGeometryShader());
+		BoundShaderState = 
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+			RHICreateBoundShaderState(
+#else
+			CreateBoundShaderState_Internal(
+#endif
+			GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), GeometryShader->GetGeometryShader());
 	}
 
 	RHICmdList.SetBoundShaderState(BoundShaderState);

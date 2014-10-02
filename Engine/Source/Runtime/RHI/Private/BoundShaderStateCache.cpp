@@ -16,6 +16,11 @@ static FBoundShaderStateCache& GetBoundShaderStateCache()
 	return BoundShaderStateCache;
 }
 
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+static FCriticalSection BoundShaderStateCacheLock;
+#endif
+
+
 FCachedBoundShaderStateLink::FCachedBoundShaderStateLink(
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FVertexShaderRHIParamRef VertexShader,
@@ -29,7 +34,9 @@ FCachedBoundShaderStateLink::FCachedBoundShaderStateLink(
 	Key(VertexDeclaration,VertexShader,PixelShader,HullShader,DomainShader,GeometryShader)
 {
 	// Add this bound shader state to the cache.
+#if !PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 	GetBoundShaderStateCache().Add(Key,this);
+#endif
 }
 
 FCachedBoundShaderStateLink::FCachedBoundShaderStateLink(
@@ -42,13 +49,56 @@ FCachedBoundShaderStateLink::FCachedBoundShaderStateLink(
 	Key(VertexDeclaration,VertexShader,PixelShader)
 {
 	// Add this bound shader state to the cache.
+#if !PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 	GetBoundShaderStateCache().Add(Key,this);
+#endif
 }
 
 FCachedBoundShaderStateLink::~FCachedBoundShaderStateLink()
 {
+#if !PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	GetBoundShaderStateCache().Remove(Key);
+#endif
+}
+
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+void FCachedBoundShaderStateLink::AddToCache()
+{
+	FScopeLock Lock(&BoundShaderStateCacheLock);
+	GetBoundShaderStateCache().Add(Key,this);
+}
+void FCachedBoundShaderStateLink::RemoveFromCache()
+{
+	FScopeLock Lock(&BoundShaderStateCacheLock);
 	GetBoundShaderStateCache().Remove(Key);
 }
+#endif
+
+
+#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+FBoundShaderStateRHIRef GetCachedBoundShaderState_Threadsafe(
+	FVertexDeclarationRHIParamRef VertexDeclaration,
+	FVertexShaderRHIParamRef VertexShader,
+	FPixelShaderRHIParamRef PixelShader,
+	FHullShaderRHIParamRef HullShader,
+	FDomainShaderRHIParamRef DomainShader,
+	FGeometryShaderRHIParamRef GeometryShader
+	)
+{
+	FScopeLock Lock(&BoundShaderStateCacheLock);
+	// Find the existing bound shader state in the cache.
+	FCachedBoundShaderStateLink* CachedBoundShaderStateLink = GetBoundShaderStateCache().FindRef(
+		FBoundShaderStateKey(VertexDeclaration,VertexShader,PixelShader,HullShader,DomainShader,GeometryShader)
+		);
+	if(CachedBoundShaderStateLink)
+	{
+		// If we've already created a bound shader state with these parameters, reuse it.
+		return CachedBoundShaderStateLink->BoundShaderState;
+	}
+	return FBoundShaderStateRHIRef();
+}
+
+#else
 
 FCachedBoundShaderStateLink* GetCachedBoundShaderState(
 	FVertexDeclarationRHIParamRef VertexDeclaration,
@@ -64,3 +114,5 @@ FCachedBoundShaderStateLink* GetCachedBoundShaderState(
 		FBoundShaderStateKey(VertexDeclaration,VertexShader,PixelShader,HullShader,DomainShader,GeometryShader)
 		);
 }
+
+#endif

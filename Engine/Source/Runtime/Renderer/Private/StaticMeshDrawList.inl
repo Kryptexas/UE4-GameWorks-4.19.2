@@ -355,15 +355,14 @@ public:
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
-	const FViewInfo& View,
 	const typename DrawingPolicyType::ContextDataType PolicyContext,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
 	const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray,
-	int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty
+	FParallelCommandListSet& ParallelCommandListSet
 	)
 {
 
-	int32 EffectiveThreads = FMath::Min<int32>(OrderedDrawingPolicies.Num(), Width);
+	int32 EffectiveThreads = FMath::Min<int32>(OrderedDrawingPolicies.Num(), ParallelCommandListSet.Width);
 
 	int32 Start = 0;
 	if (EffectiveThreads)
@@ -379,12 +378,12 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 			check(Last >= Start);
 
 			{
-				FRHICommandList* CmdList = new FRHICommandList;
+				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawVisibleAnyThreadTask<DrawingPolicyType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
-					.ConstructAndDispatchWhenReady(this, CmdList, &View, PolicyContext, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &OutDirty);
+					.ConstructAndDispatchWhenReady(this, CmdList, &ParallelCommandListSet.View, PolicyContext, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &ParallelCommandListSet.OutDirty);
 
-				ParentCmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 			}
 
 			Start = Last + 1;
