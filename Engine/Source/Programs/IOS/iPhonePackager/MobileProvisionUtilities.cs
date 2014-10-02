@@ -53,7 +53,7 @@ namespace iPhonePackager
 
 			#region remove after we provide an install mechanism
 			// copy all of the provisions from the game directory to the library
-
+			if (!String.IsNullOrEmpty(Config.ProjectFile))
 			{
 				var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/";
 				if (Directory.Exists(ProjectFileBuildIOSPath))

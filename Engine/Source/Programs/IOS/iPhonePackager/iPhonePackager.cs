@@ -78,6 +78,7 @@ namespace iPhonePackager
 		static public SlowProgressDialog ProgressDialog = null;
 		static public BackgroundWorker BGWorker = null;
 		static public int ProgressIndex = 0;
+		static public string AdditionalCommandline = "";
 
 		static public void UpdateStatus(string Line)
 		{
@@ -303,6 +304,18 @@ namespace iPhonePackager
 							if (Arguments.Length > ArgIndex + 1)
 							{
 								Config.DeviceId = Arguments[++ArgIndex];
+							}
+							else
+							{
+								return false;
+							}
+						}
+						else if (Arg == "-additionalcommandline")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								AdditionalCommandline = Arguments[++ArgIndex];
 							}
 							else
 							{
