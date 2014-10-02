@@ -6,7 +6,9 @@
 
 #include "EditableText.generated.h"
 
-/** Editable text box widget */
+/**
+ * Editable text box widget
+ */
 UCLASS(meta=( Category="Primitive" ), ClassGroup=UserInterface)
 class UMG_API UEditableText : public UWidget
 {

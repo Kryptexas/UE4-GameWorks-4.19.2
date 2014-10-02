@@ -46,6 +46,7 @@ public:
 		ChildSlot
 		[
 			SNew(SHorizontalBox)
+			.Visibility(EVisibility::Visible)
 			.ToolTip(Template->GetToolTip())
 
 			+ SHorizontalBox::Slot()

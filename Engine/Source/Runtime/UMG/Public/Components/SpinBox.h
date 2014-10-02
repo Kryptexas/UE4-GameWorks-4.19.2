@@ -4,7 +4,9 @@
 
 #include "SpinBox.generated.h"
 
-/** Spin box widget */
+/**
+ * A numerical entry box that allows for direct entry of the number or allows the user to click and slide the number.
+ */
 UCLASS(ClassGroup = UserInterface)
 class UMG_API USpinBox : public UWidget
 {

@@ -5,8 +5,8 @@
 #include "NamedSlot.generated.h"
 
 /**
- * A representation for external socketing of widgets so that user controls can have widget insertion points 
- * visible in the designer.
+ * Allows you to expose an external slot for your user widget.  When others reuse your user control, 
+ * they can put whatever they want in this named slot.
  */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UNamedSlot : public UContentWidget

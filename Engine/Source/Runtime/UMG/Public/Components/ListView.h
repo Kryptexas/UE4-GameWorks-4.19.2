@@ -4,7 +4,9 @@
 
 #include "ListView.generated.h"
 
-/** Allows thousands of items to be displayed in a list.  Generates widgets dynamically for each item. */
+/**
+ * Allows thousands of items to be displayed in a list.  Generates widgets dynamically for each item.
+ */
 UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UListView : public UTableViewBase
 {

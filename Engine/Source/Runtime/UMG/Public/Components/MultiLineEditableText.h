@@ -4,7 +4,9 @@
 
 #include "MultiLineEditableText.generated.h"
 
-/** Editable text box widget */
+/**
+ * Editable text box widget
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UMultiLineEditableText : public UWidget
 {

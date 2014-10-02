@@ -4,7 +4,9 @@
 
 #include "TileView.generated.h"
 
-/** A flow panel that presents the contents as a set of tiles all uniformly sized. */
+/**
+ * A flow panel that presents the contents as a set of tiles all uniformly sized.
+ */
 UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UTileView : public UTableViewBase
 {

@@ -4,7 +4,9 @@
 
 #include "ScrollBox.generated.h"
 
-/** An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization. */
+/**
+ * An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UScrollBox : public UPanelWidget
 {

@@ -6,7 +6,9 @@
 
 class USlateBrushAsset;
 
-/**  A throbber widget that orients images in a spinning circle. */
+/**
+ * A throbber widget that orients images in a spinning circle.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UCircularThrobber : public UWidget
 {

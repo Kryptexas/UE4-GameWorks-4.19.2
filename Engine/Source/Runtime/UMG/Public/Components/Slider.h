@@ -8,7 +8,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMouseCaptureBeginEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMouseCaptureEndEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Value);
 
-/** Slider widget */
+/**
+ * A simple widget that shows a sliding bar with a handle that allows you to control the value between 0..1.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API USlider : public UWidget
 {

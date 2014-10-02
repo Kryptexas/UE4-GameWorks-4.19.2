@@ -4,6 +4,9 @@
 
 #include "HorizontalBox.generated.h"
 
+/**
+ * Allows widgets to be laid out in a flow horizontally.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UHorizontalBox : public UPanelWidget
 {

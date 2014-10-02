@@ -6,7 +6,9 @@
 
 #include "ProgressBar.generated.h"
 
-/** ProgressBar widget */
+/**
+ * The progress bar widget is a simple bar that fills up that can be restyled to fit any number of uses.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UProgressBar : public UWidget
 {

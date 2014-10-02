@@ -7,8 +7,8 @@
 class USlateBrushAsset;
 
 /**
- * A SizeBox is a container widget that can contain one child widget, providing an opportunity 
- * to surround it with a SizeBox image and adjustable padding.
+ * A widget that allows you to specify the size it reports to have and desire.  Not all widgets report a desired size
+ * that you actually desire.  Wrapping them in a SizeBox lets you have the Size Box force them to be a particular size.
  */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API USizeBox : public UContentWidget

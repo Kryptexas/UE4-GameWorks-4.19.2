@@ -5,9 +5,8 @@
 #include "WrapBox.generated.h"
 
 /**
-* A vertical box widget is a layout panel allowing child widgets to be automatically laid out
-* vertically.
-*/
+ * Arranges widgets left-to-right.  When the widgets exceed the Width it will place widgets on the next line.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UWrapBox : public UPanelWidget
 {

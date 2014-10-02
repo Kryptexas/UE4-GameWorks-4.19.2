@@ -4,6 +4,9 @@
 
 #include "Overlay.generated.h"
 
+/**
+ * Allows widgets to be stacked on top of each other, uses simple flow layout for content on each layer.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UOverlay : public UPanelWidget
 {

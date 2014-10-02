@@ -4,8 +4,10 @@
 
 #include "TextBlock.generated.h"
 
-/** A simple static text widget */
-UCLASS(ClassGroup=UserInterface )
+/**
+ * A simple static text widget
+ */
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UTextBlock : public UWidget
 {
 	GENERATED_UCLASS_BODY()

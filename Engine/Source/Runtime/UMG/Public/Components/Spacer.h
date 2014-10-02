@@ -4,7 +4,9 @@
 
 #include "Spacer.generated.h"
 
-/** A spacer widget; it does not have a visual representation, and just provides padding between other widgets. */
+/**
+ * A spacer widget; it does not have a visual representation, and just provides padding between other widgets.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API USpacer : public UWidget
 {

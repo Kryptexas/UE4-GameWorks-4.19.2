@@ -4,7 +4,9 @@
 
 #include "UniformGridPanel.generated.h"
 
-/** A panel that evenly divides up available space between all of its children. */
+/**
+ * A panel that evenly divides up available space between all of its children.
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UUniformGridPanel : public UPanelWidget
 {

@@ -4,6 +4,12 @@
 
 #include "CanvasPanel.generated.h"
 
+/**
+ * The canvas panel is a designer friendly panel that allows widgets to be laid out at arbitrary 
+ * locations, anchored and z-ordered with other children of the canvas.  The canvas is a great widget
+ * for manual layout, but bad when you want to procedurally just generate widgets and place them in a 
+ * container (unless you want absolute layout).
+ */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UCanvasPanel : public UPanelWidget
 {
