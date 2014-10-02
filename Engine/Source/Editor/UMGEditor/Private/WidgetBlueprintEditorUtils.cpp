@@ -263,7 +263,7 @@ bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetT
 
 	for ( UWidget* Widget : AllWidgets )
 	{
-		if ( INamedSlotInterface* NamedSlotHost = InterfaceCast<INamedSlotInterface>(Widget) )
+		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
 		{
 			TArray<FName> SlotNames;
 			NamedSlotHost->GetSlotNames(SlotNames);
