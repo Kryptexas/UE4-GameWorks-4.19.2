@@ -44,6 +44,7 @@ namespace UnrealBuildTool.Rules
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 
+                PrivateDependencyModuleNames.Add("AITestSuite");                
                 CircularlyReferencedDependentModules.Add("AITestSuite");
 			}
 
