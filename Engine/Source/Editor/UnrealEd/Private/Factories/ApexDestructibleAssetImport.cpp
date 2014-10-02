@@ -23,6 +23,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 #include "ApexDestructibleAssetImport.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/DestructibleMesh.h"
 
 #if WITH_APEX
 

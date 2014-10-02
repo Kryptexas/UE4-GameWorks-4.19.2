@@ -8,6 +8,7 @@
 #include "AssetToolsModule.h"
 
 #include "ApexDestructibleAssetImport.h"
+#include "Engine/DestructibleMesh.h"
 
 IMPLEMENT_MODULE( FDestructibleMeshEditorModule, DestructibleMeshEditor );
 

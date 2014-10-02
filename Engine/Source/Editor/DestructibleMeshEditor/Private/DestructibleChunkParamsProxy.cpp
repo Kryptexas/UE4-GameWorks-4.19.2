@@ -2,6 +2,7 @@
 
 #include "DestructibleMeshEditorPrivatePCH.h"
 #include "ApexDestructibleAssetImport.h"
+#include "Engine/DestructibleMesh.h"
 
 UDestructibleChunkParamsProxy::UDestructibleChunkParamsProxy(const class FPostConstructInitializeProperties& PCIP)
 	:Super(PCIP)

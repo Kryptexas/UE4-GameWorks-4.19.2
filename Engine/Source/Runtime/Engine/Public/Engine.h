@@ -283,7 +283,6 @@
 #include "Engine/Selection.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Animation/PreviewAssetAttachComponent.h"
-#include "Engine/DestructibleMesh.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Animation/Skeleton.h"
 #include "Sound/DialogueSoundWaveProxy.h"

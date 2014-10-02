@@ -8,6 +8,8 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
+#include "Engine/DestructibleMesh.h"
+
 #define LOCTEXT_NAMESPACE "DestructibleMeshEditor"
 
 const FName FDestructibleMeshEditor::ViewportTabId( TEXT( "DestructibleMeshEditor_Viewport" ) );

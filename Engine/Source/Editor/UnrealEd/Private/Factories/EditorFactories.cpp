@@ -46,6 +46,7 @@
 
 #include "Particles/ParticleSystem.h"
 
+#include "Engine/DestructibleMesh.h"
 #if WITH_APEX
 #include "ApexDestructibleAssetImport.h"
 #endif // WITH_APEX

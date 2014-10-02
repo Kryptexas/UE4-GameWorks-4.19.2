@@ -33,6 +33,8 @@ ActorFactory.cpp:
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TextRenderActor.h"
 
+#include "Engine/DestructibleMesh.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"

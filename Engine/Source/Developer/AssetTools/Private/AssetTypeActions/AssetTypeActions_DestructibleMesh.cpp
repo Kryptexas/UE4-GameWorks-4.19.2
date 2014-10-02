@@ -5,6 +5,8 @@
 #include "Editor/DestructibleMeshEditor/Public/DestructibleMeshEditorModule.h"
 #include "Editor/DestructibleMeshEditor/Public/IDestructibleMeshEditor.h"
 
+#include "Engine/DestructibleMesh.h"
+
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 UClass* FAssetTypeActions_DestructibleMesh::GetSupportedClass() const

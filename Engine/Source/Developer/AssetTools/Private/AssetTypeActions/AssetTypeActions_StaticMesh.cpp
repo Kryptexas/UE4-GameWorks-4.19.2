@@ -8,6 +8,7 @@
 #include "Editor/DestructibleMeshEditor/Public/IDestructibleMeshEditor.h"
 
 #include "ApexDestructibleAssetImport.h"
+#include "Engine/DestructibleMesh.h"
 
 #include "FbxMeshUtils.h"
 

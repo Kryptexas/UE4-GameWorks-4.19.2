@@ -36,6 +36,7 @@
 #include "ComponentReregisterContext.h"
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
+#include "Engine/DestructibleMesh.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);

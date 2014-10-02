@@ -9,6 +9,7 @@
 #include "EngineVersion.h"
 #include "ShaderCompiler.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "Engine/DestructibleMesh.h"
 
 
 

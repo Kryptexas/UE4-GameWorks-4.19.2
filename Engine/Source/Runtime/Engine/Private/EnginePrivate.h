@@ -232,7 +232,6 @@
 #include "Engine/Selection.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SkeletalMesh.h"
-#include "Engine/DestructibleMesh.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshSocket.h"

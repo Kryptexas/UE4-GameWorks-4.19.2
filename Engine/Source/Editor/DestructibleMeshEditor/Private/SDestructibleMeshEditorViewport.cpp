@@ -10,6 +10,7 @@
 #include "DesktopPlatformModule.h"
 #include "FbxImporter.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/DestructibleMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 

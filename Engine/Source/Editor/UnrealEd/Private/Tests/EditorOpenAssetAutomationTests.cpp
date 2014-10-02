@@ -12,6 +12,7 @@
 #include "Materials/MaterialFunction.h"
 #include "Slate/SlateBrushAsset.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "Engine/DestructibleMesh.h"
 
 
 

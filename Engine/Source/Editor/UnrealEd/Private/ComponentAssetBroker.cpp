@@ -8,6 +8,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "Engine/DestructibleMesh.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker
 
