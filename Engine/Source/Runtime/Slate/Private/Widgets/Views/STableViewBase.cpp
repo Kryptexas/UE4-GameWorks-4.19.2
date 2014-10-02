@@ -456,9 +456,9 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 	{
 		const float ScrollByAmount = InTouchEvent.GetCursorDelta().Y / MyGeometry.Scale;
 		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
-		TickScrollDelta += ScrollByAmount;
+		TickScrollDelta -= ScrollByAmount;
 
-		const float AmountScrolled = this->ScrollBy( MyGeometry, ScrollByAmount, AllowOverscroll );
+		const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, AllowOverscroll );
 
 		if (AmountScrolledWhileRightMouseDown > SlatePanTriggerDistance)
 		{
