@@ -206,7 +206,7 @@ public:
 	uint32 bRenderCustomDepth:1;
 
 	/** If true, this component will be rendered in the main pass (z prepass, basepass, transparency) */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
 
 	/** Whether to completely hide the primitive in the game; if true, the primitive is not drawn, does not cast a shadow. */
@@ -844,6 +844,10 @@ public:
 	/** Sets the bRenderCustomDepth property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void SetRenderCustomDepth(bool bValue);
+
+	/** Sets bRenderInMainPass property and marks the render state dirty. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void SetRenderInMainPass(bool bValue);
 
 public:
 	static int32 CurrentTag;

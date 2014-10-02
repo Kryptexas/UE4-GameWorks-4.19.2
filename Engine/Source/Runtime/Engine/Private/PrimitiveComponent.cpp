@@ -2509,6 +2509,15 @@ void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)
 	}
 }
 
+void UPrimitiveComponent::SetRenderInMainPass(bool bValue)
+{
+	if (bRenderInMainPass != bValue)
+	{
+		bRenderInMainPass = bValue;
+		MarkRenderStateDirty();
+	}
+}
+
 #if WITH_EDITOR
 const int32 UPrimitiveComponent::GetNumUncachedStaticLightingInteractions() const
 {
