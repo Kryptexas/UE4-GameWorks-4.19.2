@@ -2117,7 +2117,7 @@ private:
 public:
 
 	/** Array of ActorComponents that is actually serialized per-instance. */
-	UPROPERTY(TextExportTransient)
+	UPROPERTY(TextExportTransient, NonTransactional)
 	TArray<UActorComponent*> SerializedComponents;
 
 public:
