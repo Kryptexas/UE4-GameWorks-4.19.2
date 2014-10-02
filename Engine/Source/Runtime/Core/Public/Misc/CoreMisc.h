@@ -150,7 +150,8 @@ struct CORE_API FFileHelper
 			AutoDetect,
 			ForceAnsi,
 			ForceUnicode,
-			ForceUTF8
+			ForceUTF8,
+			ForceUTF8WithoutBOM
 		};
 	};
 

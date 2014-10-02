@@ -238,7 +238,12 @@ bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename
 		FTCHARToUTF8 UTF8String(StrPtr);
 		Ar->Serialize( (UTF8CHAR*)UTF8String.Get(), UTF8String.Length() * sizeof(UTF8CHAR) );
 	}
-	else if( SaveAsUnicode )
+	else if ( EncodingOptions == EEncodingOptions::ForceUTF8WithoutBOM )
+	{
+		FTCHARToUTF8 UTF8String(StrPtr);
+		Ar->Serialize((UTF8CHAR*)UTF8String.Get(), UTF8String.Length() * sizeof(UTF8CHAR));
+	}
+	else if (SaveAsUnicode)
 	{
 		UCS2CHAR BOM = UNICODE_BOM;
 		Ar->Serialize( &BOM, sizeof(UCS2CHAR) );
