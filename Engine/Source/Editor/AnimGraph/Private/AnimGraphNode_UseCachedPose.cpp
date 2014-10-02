@@ -5,6 +5,7 @@
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "EdGraphUtilities.h"
 #include "AnimGraphNode_SaveCachedPose.h"
 #include "AnimGraphNode_UseCachedPose.h"
 #include "BlueprintNodeSpawner.h"
@@ -21,19 +22,34 @@ UAnimGraphNode_UseCachedPose::UAnimGraphNode_UseCachedPose(const FPostConstructI
 {
 }
 
-void UAnimGraphNode_UseCachedPose::PostLoad()
+void UAnimGraphNode_UseCachedPose::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
-	Super::PostLoad();
+	bool bRefreshSavCachedPoseNode = true;
 
-	// If there is no SaveCachedPose node set but there is a NameOfCache available, we may be updating to the new system
-	// Go through and find the cached node, if possible.
-	if(!SaveCachedPoseNode.IsValid() && !NameOfCache.IsEmpty())
+	// Check to see the current cached node is still valid (and not deleted, by checking pin connections)
+	if(SaveCachedPoseNode.IsValid())
 	{
-		TArray<UEdGraph*> AllAnimationGraphs;
-		GetGraph()->GetAllChildrenGraphs(AllAnimationGraphs);
-		AllAnimationGraphs.Add(GetGraph());
+		// The node has a single pin, make sure it's there
+		check(SaveCachedPoseNode->Pins.Num());
 
-		for(UEdGraph* Graph : AllAnimationGraphs)
+		// Deleted nodes have no links, otherwise we will be doing some wasted work on unlinked nodes
+		if(SaveCachedPoseNode->Pins[0]->LinkedTo.Num())
+		{
+			// The node has links, it's valid, continue to use it
+			bRefreshSavCachedPoseNode = false;
+		}
+	}
+
+	// We need to refresh the cached pose node this node is linked to
+	if(bRefreshSavCachedPoseNode && !NameOfCache.IsEmpty())
+	{
+		UBlueprint* GraphBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(GetGraph());
+		check(GraphBlueprint);
+
+		TArray<UEdGraph*> AllGraphs;
+		GraphBlueprint->GetAllGraphs(AllGraphs);
+
+		for(UEdGraph* Graph : AllGraphs)
 		{
 			// Get a list of all save cached pose nodes
 			TArray<UAnimGraphNode_SaveCachedPose*> CachedPoseNodes;
@@ -44,6 +60,8 @@ void UAnimGraphNode_UseCachedPose::PostLoad()
 			{
 				if((*NodeIt)->CacheName == NameOfCache)
 				{
+					// Fix the original Blueprint node as well as the compiled version
+					MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_UseCachedPose>(this)->SaveCachedPoseNode = *NodeIt;
 					SaveCachedPoseNode = *NodeIt;
 					break;
 				}

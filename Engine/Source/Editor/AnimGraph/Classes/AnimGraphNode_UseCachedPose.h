@@ -16,13 +16,9 @@ public:
 	FAnimNode_UseCachedPose Node;
 
 	UPROPERTY()
-	TWeakObjectPtr<UAnimGraphNode_SaveCachedPose> SaveCachedPoseNode;
+	mutable TWeakObjectPtr<UAnimGraphNode_SaveCachedPose> SaveCachedPoseNode;
 
 public:
-	// Begin UObject interface
-	virtual void PostLoad() override;
-	// End UObject interface
-
 	// UEdGraphNode interface
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -31,6 +27,7 @@ public:
 	// UK2Node interface.
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End of UK2Node interface
 
 	// UAnimGraphNode_Base interface
