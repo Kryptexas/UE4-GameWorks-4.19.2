@@ -39,8 +39,8 @@ private:
 		if (!EGL->IsInitialized())
 		{
 			FAndroidAppEntry::PlatformInit();
-			EGL->InitSurface(true);
 		}
+		EGL->InitSurface(true);
 		EGL->SetCurrentSharedContext();
 
 		// get extensions
