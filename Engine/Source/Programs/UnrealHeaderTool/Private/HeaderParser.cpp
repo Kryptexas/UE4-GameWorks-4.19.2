@@ -5892,6 +5892,7 @@ struct FExposeOnSpawnValidator
 		case CPT_Bool:
 		case CPT_ObjectReference:
 		case CPT_String:
+		case CPT_Text:
 		case CPT_Name:
 		case CPT_Vector:
 		case CPT_Rotation:

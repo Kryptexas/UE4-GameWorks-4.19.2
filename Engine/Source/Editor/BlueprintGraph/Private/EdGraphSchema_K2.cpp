@@ -3473,6 +3473,11 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 		static FName SetStringName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetStringPropertyByName));
 		SetFunctionName = SetStringName;
 	}
+	else if ( PinType.PinCategory == K2Schema->PC_Text)
+	{
+		static FName SetTextName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetTextPropertyByName));
+		SetFunctionName = SetTextName;
+	}
 	else if(PinType.PinCategory == K2Schema->PC_Name)
 	{
 		static FName SetNameName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetNamePropertyByName));
