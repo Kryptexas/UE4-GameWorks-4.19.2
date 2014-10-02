@@ -18,6 +18,7 @@ struct FApplePlatformSymbolCache;
  */
 struct CORE_API FApplePlatformSymbolication
 {
+	static void SetSymbolicationAllowed(bool const bAllow);
 	static bool SymbolInfoForAddress(uint64 ProgramCounter, FProgramCounterSymbolInfo& Info);
 	static bool SymbolInfoForFunctionFromModule(ANSICHAR const* MangledName, ANSICHAR const* ModuleName, FProgramCounterSymbolInfo& Info);
 	

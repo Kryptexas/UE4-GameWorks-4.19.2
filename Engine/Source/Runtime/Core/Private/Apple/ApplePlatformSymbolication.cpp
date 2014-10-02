@@ -66,10 +66,17 @@ struct FApplePlatformSymbolCache
 #endif
 };
 
+static bool GAllowApplePlatformSymbolication = PLATFORM_MAC;
+
+void FApplePlatformSymbolication::SetSymbolicationAllowed(bool const bAllow)
+{
+	GAllowApplePlatformSymbolication = bAllow;
+}
+
 FApplePlatformSymbolCache* FApplePlatformSymbolication::CreateSymbolCache(void)
 {
 #if PLATFORM_MAC
-	return new FApplePlatformSymbolCache;
+	return GAllowApplePlatformSymbolication ? new FApplePlatformSymbolCache : nullptr;
 #else 
 	return nullptr;
 #endif
@@ -78,7 +85,7 @@ FApplePlatformSymbolCache* FApplePlatformSymbolication::CreateSymbolCache(void)
 void FApplePlatformSymbolication::DestroySymbolCache(FApplePlatformSymbolCache* Cache)
 {
 #if PLATFORM_MAC
-	if(Cache)
+	if(GAllowApplePlatformSymbolication && Cache)
 	{
 		for(auto It : Cache->Symbolicators)
 		{
@@ -93,31 +100,33 @@ bool FApplePlatformSymbolication::SymbolInfoForAddress(uint64 ProgramCounter, FP
 {
 #if PLATFORM_MAC
 	bool bOK = false;
-	
-	CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPid(FPlatformProcess::GetCurrentProcessId());
-	if(!CSIsNull(Symbolicator))
+	if (GAllowApplePlatformSymbolication)
 	{
-		CSSourceInfoRef Symbol = CSSymbolicatorGetSourceInfoWithAddressAtTime(Symbolicator, (vm_address_t)ProgramCounter, kCSNow);
-		
-		if(!CSIsNull(Symbol))
+		CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPid(FPlatformProcess::GetCurrentProcessId());
+		if(!CSIsNull(Symbolicator))
 		{
-			out_SymbolInfo.LineNumber = CSSourceInfoGetLineNumber(Symbol);
-			FCStringAnsi::Sprintf(out_SymbolInfo.Filename, CSSourceInfoGetPath(Symbol));
-			FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, CSSymbolGetName(CSSourceInfoGetSymbol(Symbol)));
-			CSRange CodeRange = CSSourceInfoGetRange(Symbol);
-			out_SymbolInfo.SymbolDisplacement = (ProgramCounter - CodeRange.Location);
+			CSSourceInfoRef Symbol = CSSymbolicatorGetSourceInfoWithAddressAtTime(Symbolicator, (vm_address_t)ProgramCounter, kCSNow);
 			
-			CSSymbolOwnerRef Owner = CSSourceInfoGetSymbolOwner(Symbol);
-			if(!CSIsNull(Owner))
+			if(!CSIsNull(Symbol))
 			{
-				ANSICHAR const* DylibName = CSSymbolOwnerGetName(Owner);
-				FCStringAnsi::Strcpy(out_SymbolInfo.ModuleName, DylibName);
+				out_SymbolInfo.LineNumber = CSSourceInfoGetLineNumber(Symbol);
+				FCStringAnsi::Sprintf(out_SymbolInfo.Filename, CSSourceInfoGetPath(Symbol));
+				FCStringAnsi::Sprintf(out_SymbolInfo.FunctionName, CSSymbolGetName(CSSourceInfoGetSymbol(Symbol)));
+				CSRange CodeRange = CSSourceInfoGetRange(Symbol);
+				out_SymbolInfo.SymbolDisplacement = (ProgramCounter - CodeRange.Location);
 				
-				bOK = out_SymbolInfo.LineNumber != 0;
+				CSSymbolOwnerRef Owner = CSSourceInfoGetSymbolOwner(Symbol);
+				if(!CSIsNull(Owner))
+				{
+					ANSICHAR const* DylibName = CSSymbolOwnerGetName(Owner);
+					FCStringAnsi::Strcpy(out_SymbolInfo.ModuleName, DylibName);
+					
+					bOK = out_SymbolInfo.LineNumber != 0;
+				}
 			}
+			
+			CSRelease(Symbolicator);
 		}
-		
-		CSRelease(Symbolicator);
 	}
 	
 	return bOK;
@@ -131,19 +140,22 @@ bool FApplePlatformSymbolication::SymbolInfoForFunctionFromModule(ANSICHAR const
 #if PLATFORM_MAC
 	bool bOK = false;
 	
-	CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPid(FPlatformProcess::GetCurrentProcessId());
-	if(!CSIsNull(Symbolicator))
+	if (GAllowApplePlatformSymbolication)
 	{
-		CSSymbolRef Symbol = CSSymbolicatorGetSymbolWithMangledNameFromSymbolOwnerWithNameAtTime(Symbolicator, MangledName, ModuleName, kCSNow);
-		
-		if(!CSIsNull(Symbol))
+		CSSymbolicatorRef Symbolicator = CSSymbolicatorCreateWithPid(FPlatformProcess::GetCurrentProcessId());
+		if(!CSIsNull(Symbolicator))
 		{
-			CSRange CodeRange = CSSymbolGetRange(Symbol);
-		
-			bOK = SymbolInfoForAddress(CodeRange.Location, Info);
+			CSSymbolRef Symbol = CSSymbolicatorGetSymbolWithMangledNameFromSymbolOwnerWithNameAtTime(Symbolicator, MangledName, ModuleName, kCSNow);
+			
+			if(!CSIsNull(Symbol))
+			{
+				CSRange CodeRange = CSSymbolGetRange(Symbol);
+			
+				bOK = SymbolInfoForAddress(CodeRange.Location, Info);
+			}
+			
+			CSRelease(Symbolicator);
 		}
-		
-		CSRelease(Symbolicator);
 	}
 	
 	return bOK;
@@ -157,7 +169,7 @@ bool FApplePlatformSymbolication::SymbolInfoForStrippedSymbol(FApplePlatformSymb
 #if PLATFORM_MAC
 	bool bOK = false;
 	
-	if(IFileManager::Get().FileSize(UTF8_TO_TCHAR(ModulePath)) > 0)
+	if(GAllowApplePlatformSymbolication && IFileManager::Get().FileSize(UTF8_TO_TCHAR(ModulePath)) > 0)
 	{
 		CSSymbolicatorRef Symbolicator = { nullptr, nullptr };
 		if ( Cache )
