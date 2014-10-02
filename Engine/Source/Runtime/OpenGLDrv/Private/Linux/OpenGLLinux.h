@@ -345,7 +345,15 @@
 
 /** Declare all GL functions. */
 #define DECLARE_GL_ENTRYPOINTS(Type,Func) extern Type Func;
-ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
+// We need to make pointer names different from GL functions otherwise we may end up getting
+// addresses of those symbols when looking for extensions.
+namespace GLFuncPointers
+{
+	ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
+};
+
+// this using is needed since the rest of code uses plain GL names
+using namespace GLFuncPointers;
 
 //========================================================================
 

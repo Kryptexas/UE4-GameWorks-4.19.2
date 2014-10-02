@@ -11,8 +11,10 @@
 	OpenGL function pointers.
 ------------------------------------------------------------------------------*/
 #define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
-ENUM_GL_ENTRYPOINTS_ALL(DEFINE_GL_ENTRYPOINTS);
-
+namespace GLFuncPointers	// see explanation in OpenGLLinux.h why we need the namespace
+{
+	ENUM_GL_ENTRYPOINTS_ALL(DEFINE_GL_ENTRYPOINTS);
+};
 
 typedef SDL_Window*		SDL_HWindow;
 typedef SDL_GLContext	SDL_HGLContext;
@@ -778,7 +780,7 @@ bool PlatformInitOpenGL()
 		if (bOpenGLSupported)
 		{
 			// Initialize all entry points required by Unreal.
-			#define GET_GL_ENTRYPOINTS(Type,Func) Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
+			#define GET_GL_ENTRYPOINTS(Type,Func) GLFuncPointers::Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
 			ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS_OPTIONAL(GET_GL_ENTRYPOINTS);
 		
