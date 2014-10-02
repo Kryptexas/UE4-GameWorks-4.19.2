@@ -156,6 +156,12 @@ struct CORE_API FGenericPlatformProcess
 	/** Gets the API version from the specified DLL **/
 	static int32 GetDllApiVersion( const TCHAR* Filename );
 
+	/** Adds a directory to search in when resolving implicitly loaded or filename-only DLLs. **/
+	FORCEINLINE static void AddDllDirectory(const TCHAR* Directory)
+	{
+
+	}
+
 	/** Set a directory to look for DLL files. NEEDS to have a Pop call when complete */
 	FORCEINLINE static void PushDllDirectory(const TCHAR* Directory)
 	{

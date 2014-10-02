@@ -950,6 +950,8 @@ void FModuleManager::AddBinariesDirectory(const TCHAR *InDirectory, bool bIsGame
 	{
 		EngineBinariesDirectories.Add(InDirectory);
 	}
+
+	FPlatformProcess::AddDllDirectory(InDirectory);
 }
 
 
