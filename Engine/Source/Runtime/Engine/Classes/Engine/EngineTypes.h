@@ -1468,6 +1468,9 @@ struct ENGINE_API FHitResult
 	/** Utility to return the Component that was hit. */
 	UPrimitiveComponent* GetComponent() const;
 
+	/** Optimized serialize function */
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
 	/** Return true if there was a blocking hit that was not caused by starting in penetration. */
 	FORCEINLINE bool IsValidBlockingHit() const
 	{
@@ -1506,6 +1509,15 @@ struct ENGINE_API FHitResult
 	{
 		return (InHits.Num() - GetNumBlockingHits(InHits));
 	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true,
+	};
 };
 
 /** Structure containing information about one hit of an overlap test */

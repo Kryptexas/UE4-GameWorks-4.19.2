@@ -31,6 +31,71 @@ UPrimitiveComponent* FHitResult::GetComponent() const
 	return Component.Get();
 }
 
+bool FHitResult::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	// Most of the time the vectors are the same values, use that as an optimization
+	bool bImpactPointEqualsLocation = 0, bImpactNormalEqualsNormal = 0;
+
+	if (Ar.IsSaving())
+	{
+		bImpactPointEqualsLocation = (ImpactPoint == Location);
+		bImpactNormalEqualsNormal = (ImpactNormal == Normal);
+	}
+
+	// pack bitfield with flags
+	uint8 Flags = (bBlockingHit << 0) | (bStartPenetrating << 1) | (bImpactPointEqualsLocation << 2) | (bImpactNormalEqualsNormal << 3);
+	Ar.SerializeBits(&Flags, 4);
+	bBlockingHit = (Flags & (1 << 0)) ? 1 : 0;
+	bStartPenetrating = (Flags & (1 << 1)) ? 1 : 0;
+	bImpactPointEqualsLocation = (Flags & (1 << 2)) ? 1 : 0;
+	bImpactNormalEqualsNormal = (Flags & (1 << 3)) ? 1 : 0;
+
+	Ar << Time;
+
+	bOutSuccess = true;
+
+	bool bOutSuccessLocal = true;
+
+	Location.NetSerialize(Ar, Map, bOutSuccessLocal);
+	bOutSuccess &= bOutSuccessLocal;
+	Normal.NetSerialize(Ar, Map, bOutSuccessLocal);
+	bOutSuccess &= bOutSuccessLocal;
+
+	if (!bImpactPointEqualsLocation)
+	{
+		ImpactPoint.NetSerialize(Ar, Map, bOutSuccessLocal);
+		bOutSuccess &= bOutSuccessLocal;
+	}
+	else if (Ar.IsLoading())
+	{
+		ImpactPoint = Location;
+	}
+	
+	if (!bImpactNormalEqualsNormal)
+	{
+		ImpactNormal.NetSerialize(Ar, Map, bOutSuccessLocal);
+		bOutSuccess &= bOutSuccessLocal;
+	}
+	else if (Ar.IsLoading())
+	{
+		ImpactNormal = Normal;
+	}
+	TraceStart.NetSerialize(Ar, Map, bOutSuccessLocal);
+	bOutSuccess &= bOutSuccessLocal;
+	TraceEnd.NetSerialize(Ar, Map, bOutSuccessLocal);
+	bOutSuccess &= bOutSuccessLocal;
+
+	Ar << PenetrationDepth;
+	Ar << Item;
+	Ar << PhysMaterial;
+	Ar << Actor;
+	// Skipping component on purpose
+	Ar << BoneName;
+	Ar << FaceIndex;
+
+	return true;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FOverlapResult
 
