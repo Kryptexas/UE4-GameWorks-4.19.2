@@ -15,6 +15,7 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "EngineVersion.h"
 #include "MacMallocZone.h"
+#include "ApplePlatformSymbolication.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -136,6 +137,8 @@ struct MacApplicationInfo
 		
 		AppPath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 		
+		AppBundleID = FString([[NSBundle mainBundle] bundleIdentifier]);
+		
 		LCID = FString::Printf(TEXT("%d"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
 		
 		PrimaryGPU = FPlatformMisc::GetPrimaryGPUBrand();
@@ -169,6 +172,8 @@ struct MacApplicationInfo
 		check(Status == NOTIFY_STATUS_OK);
 		
 		NumCores = FPlatformMisc::NumberOfCores();
+		
+		FPlatformMisc::CreateGuid(RunUUID);
 	}
 	
 	bool RunningOnBattery;
@@ -185,6 +190,7 @@ struct MacApplicationInfo
 	char MachineCPUString[PATH_MAX+1];
 	FString AppPath;
 	FString AppName;
+	FString AppBundleID;
 	FString OSVersion;
 	FString OSBuild;
 	FString MachineUUID;
@@ -197,6 +203,7 @@ struct MacApplicationInfo
 	FString CommandLine;
 	FString BranchBaseDir;
 	FString PrimaryGPU;
+	FGuid RunUUID;
 };
 static MacApplicationInfo GMacAppInfo;
 
@@ -1086,6 +1093,8 @@ static void DefaultCrashHandler(FMacCrashContext const& Context)
 /** True system-specific crash handler that gets called first */
 static void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
 {
+	FApplePlatformSymbolication::SetSymbolicationAllowed( false );
+	
 	FMacCrashContext CrashContext;
 	CrashContext.InitFromSignal(Signal, Info, Context);
 	
@@ -1372,7 +1381,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		static uint16 ByteOrderMarker = 0xFEFF;
 		write(ReportFile, &ByteOrderMarker, sizeof(ByteOrderMarker));
 		
-		WriteUTF16String(ReportFile, TEXT("Process:\t"));
+		WriteUTF16String(ReportFile, TEXT("Process:\tUE4-"));
 		WriteUTF16String(ReportFile, *GMacAppInfo.AppName);
 		WriteUTF16String(ReportFile, TEXT(" ["));
 		WriteUTF16String(ReportFile, ItoTCHAR(FPlatformProcess::GetCurrentProcessId(), 10));
@@ -1382,7 +1391,7 @@ void FMacCrashContext::GenerateMinidump(char const* Path) const
 		WriteLine(ReportFile, *GMacAppInfo.AppPath);
 		
 		WriteUTF16String(ReportFile, TEXT("Identifier:\t"));
-		WriteLine(ReportFile, *GMacAppInfo.AppName);
+		WriteLine(ReportFile, *GMacAppInfo.AppBundleID);
 		
 		WriteUTF16String(ReportFile, TEXT("Version:\t"));
 		WriteUTF16String(ReportFile, ENGINE_VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) ENGINE_VERSION_TEXT(".") ENGINE_VERSION_STRINGIFY(ENGINE_MINOR_VERSION) ENGINE_VERSION_TEXT(".") ENGINE_VERSION_STRINGIFY(ENGINE_PATCH_VERSION));
@@ -1630,10 +1639,15 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 	// create a crash-specific directory
 	char CrashInfoFolder[PATH_MAX] = {};
 	FCStringAnsi::Strncpy(CrashInfoFolder, GMacAppInfo.CrashReportPath, PATH_MAX);
-	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "/CrashReport-");
+	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "/CrashReport-UE4-");
 	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, GMacAppInfo.AppNameUTF8);
 	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "-pid-");
 	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(getpid(), 10));
+	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "-");
+	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.A, 16));
+	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.B, 16));
+	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.C, 16));
+	FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.D, 16));
 
 	// Prevent CrashReportClient from spawning another CrashReportClient.
 	const TCHAR* ExecutableName = FPlatformProcess::ExecutableName();
@@ -1697,7 +1711,7 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		// copy log
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
-		FCStringAnsi::Strcat(FilePath, PATH_MAX, GMacAppInfo.AppNameUTF8);
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, (!GMacAppInfo.AppName.IsEmpty() ? GMacAppInfo.AppNameUTF8 : "UE4"));
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, ".log");
 		int LogSrc = open(GMacAppInfo.AppLogPath, O_RDONLY);
 		int LogDst = open(FilePath, O_CREAT|O_WRONLY, 0766);
