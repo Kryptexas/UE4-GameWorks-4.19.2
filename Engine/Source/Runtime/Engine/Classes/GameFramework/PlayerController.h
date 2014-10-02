@@ -28,17 +28,6 @@ DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVecto
 DECLARE_LOG_CATEGORY_EXTERN(LogPlayerController, Log, All);
 
 UENUM()
-namespace EInputMode
-{
-	enum Type
-	{
-		UIOnly,
-		UIAndGame,
-		GameOnly,
-	};
-}
-
-UENUM()
 namespace EDynamicForceFeedbackAction
 {
 	enum Type
@@ -68,6 +57,78 @@ struct FDynamicForceFeedbackDetails
 
 	void Update(FForceFeedbackValues& Values) const;
 };
+
+/** Abstract base class for Input Mode structures */
+struct ENGINE_API FInputModeDataBase
+{
+protected:
+	/** Derived classes override this function to apply the necessary settings for the desired input mode */
+	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const = 0;
+
+	/** Utility functions for derived classes. */
+	void SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<class SViewport> InViewportWidget) const;
+
+	friend class APlayerController;
+};
+
+/** Data structure used to setup an input mode that allows only the UI to respond to user input. */
+struct ENGINE_API FInputModeUIOnly : public FInputModeDataBase
+{
+	/** Widget to focus */
+	FInputModeUIOnly& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
+
+	/** Whether to lock the mouse to the viewport */
+	FInputModeUIOnly& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+
+	FInputModeUIOnly()
+		: WidgetToFocus()
+		, bLockMouseToViewport(false)
+	{}
+
+protected:
+	TSharedPtr<SWidget> WidgetToFocus;
+	bool bLockMouseToViewport;
+
+	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const override;
+};
+
+/** Data structure used to setup an input mode that allows the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
+struct ENGINE_API FInputModeGameAndUI : public FInputModeDataBase
+{
+	/** Widget to focus */
+	FInputModeGameAndUI& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
+
+	/** Whether to lock the mouse to the viewport */
+	FInputModeGameAndUI& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+
+	/** Whether to hide the cursor during temporary mouse capture caused by a mouse down */
+	FInputModeGameAndUI& SetHideCursorDuringCapture(bool InHideCursorDuringCapture) { bHideCursorDuringCapture = InHideCursorDuringCapture; return *this; }
+
+	FInputModeGameAndUI()
+		: WidgetToFocus()
+		, bLockMouseToViewport(false)
+		, bHideCursorDuringCapture(true)
+	{}
+
+protected:
+
+	TSharedPtr<SWidget> WidgetToFocus;
+	bool bLockMouseToViewport;
+	bool bHideCursorDuringCapture;
+
+	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const override;
+};
+
+/** Data structure used to setup an input mode that allows only the player input / player controller to respond to user input. */
+struct ENGINE_API FInputModeGameOnly : public FInputModeDataBase
+{
+	FInputModeGameOnly()
+	{}
+
+protected:
+	virtual void ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const override;
+};
+
 
 //=============================================================================
 /**
@@ -971,9 +1032,14 @@ public:
 	virtual void SetVirtualJoystickVisibility(bool bVisible);
 
 public:
-	/** Set the Input Mode. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	virtual void SetInputMode(EInputMode::Type Mode);
+
+	/** Setup an input mode. */
+	virtual void SetInputMode(const FInputModeDataBase& InData);
+
+protected:
+
+	/** Utility function for Input Mode functions. */
+	void SetFocusAndLocking(TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedPtr<class SViewport> InViewportWidget);
 
 public:
 	/**

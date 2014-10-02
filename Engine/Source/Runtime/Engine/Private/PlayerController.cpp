@@ -2080,7 +2080,7 @@ void APlayerController::FlushPressedKeys()
 bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
 	bool bResult = false;
-
+	
 	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
 	{
 		bResult = GEngine->HMDDevice->HandleInputKey(PlayerInput, Key, EventType, AmountDepressed, bGamepad);
@@ -4246,41 +4246,76 @@ void APlayerController::SetVirtualJoystickVisibility(bool bVisible)
 	}
 }
 
-void APlayerController::SetInputMode(EInputMode::Type Mode)
+void FInputModeDataBase::SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<SViewport> InViewportWidget) const
+{
+	if (InWidgetToFocus.IsValid())
+	{
+		SlateOperations.CaptureJoystick(InWidgetToFocus.ToSharedRef());
+	}
+	else
+	{
+		SlateOperations.ReleaseJoystickCapture();
+	}
+
+	if (bLockMouseToViewport)
+	{
+		SlateOperations.LockMouseToWidget(InViewportWidget);
+	}
+	else
+	{
+		SlateOperations.ReleaseMouseLock();
+	}
+}
+
+void FInputModeUIOnly::ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const
+{
+	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
+	if (ViewportWidget.IsValid())
+	{
+		SetFocusAndLocking(SlateOperations, WidgetToFocus, bLockMouseToViewport, ViewportWidget.ToSharedRef());
+
+		SlateOperations.ReleaseMouseCapture();
+
+		GameViewportClient.SetIgnoreInput(true);
+		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
+	}
+}
+
+void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const
+{
+	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
+	if (ViewportWidget.IsValid())
+	{
+		SetFocusAndLocking(SlateOperations, WidgetToFocus, bLockMouseToViewport, ViewportWidget.ToSharedRef());
+
+		SlateOperations.ReleaseMouseCapture();
+
+		GameViewportClient.SetIgnoreInput(false);
+		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CaptureDuringMouseDown);
+	}
+}
+
+void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, UGameViewportClient& GameViewportClient) const
+{
+	TSharedPtr<SViewport> ViewportWidget = GameViewportClient.GetGameViewportWidget();
+	if (ViewportWidget.IsValid())
+	{
+		TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
+		SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+		SlateOperations.CaptureJoystick(ViewportWidgetRef);
+		SlateOperations.LockMouseToWidget(ViewportWidgetRef);
+		SlateOperations.SetKeyboardFocus(ViewportWidgetRef, EKeyboardFocusCause::SetDirectly);
+		GameViewportClient.SetIgnoreInput(false);
+		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CapturePermanently);
+	}
+}
+
+void APlayerController::SetInputMode(const FInputModeDataBase& InData)
 {
 	UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
 	if (GameViewportClient != nullptr)
 	{
-		TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
-		if (ViewportWidget.IsValid())
-		{
-			switch (Mode)
-			{
-			case EInputMode::UIOnly:
-				SlateOperations.ReleaseMouseCapture();
-				SlateOperations.ReleaseJoystickCapture();
-				SlateOperations.ReleaseMouseLock();
-				GameViewportClient->SetIgnoreInput(true);
-				GameViewportClient->SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
-				break;
-			case EInputMode::UIAndGame:
-				SlateOperations.ReleaseMouseCapture();
-				SlateOperations.ReleaseJoystickCapture();
-				SlateOperations.ReleaseMouseLock();
-				GameViewportClient->SetIgnoreInput(false);
-				GameViewportClient->SetCaptureMouseOnClick(EMouseCaptureMode::CaptureDuringMouseDown);
-				break;
-			case EInputMode::GameOnly:
-				TSharedRef<SViewport> pViewportWidgetRef = ViewportWidget.ToSharedRef();
-				SlateOperations.CaptureMouse(pViewportWidgetRef);
-				SlateOperations.CaptureJoystick(pViewportWidgetRef);
-				SlateOperations.LockMouseToWidget(pViewportWidgetRef);
-				SlateOperations.SetKeyboardFocus(pViewportWidgetRef, EKeyboardFocusCause::SetDirectly);
-				GameViewportClient->SetIgnoreInput(false);
-				GameViewportClient->SetCaptureMouseOnClick(EMouseCaptureMode::CapturePermanently);
-				break;
-			}
-		}
+		InData.ApplyInputMode(SlateOperations, *GameViewportClient);
 	}
 }
 
