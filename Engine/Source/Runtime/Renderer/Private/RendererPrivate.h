@@ -60,8 +60,14 @@ public:
 		return AllocatedScenes;
 	}
 
+	virtual void RegisterCustomCullingImpl(ICustomCulling* impl) override;
+	virtual void UnregisterCustomCullingImpl(ICustomCulling* impl) override;
+
 private:
 	TSet<FSceneInterface*> AllocatedScenes;
+	ICustomCulling* CustomCullingImpl;
 };
+
+extern ICustomCulling* GCustomCullingImpl;
 
 #endif

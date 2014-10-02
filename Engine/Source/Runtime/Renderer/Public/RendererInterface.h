@@ -421,6 +421,21 @@ enum EDrawRectangleFlags
 	EDRF_UseTriangleOptimization
 };
 
+class ICustomVisibilityQuery: public IRefCountedObject
+{
+public:
+	/** prepares the query for visibility tests */
+	virtual bool Prepare() = 0;
+
+	/** test primitive visiblity */
+	virtual bool IsVisible(int32 VisibilityId, const FBoxSphereBounds& Bounds) = 0;
+};
+
+class ICustomCulling
+{
+public:
+	virtual ICustomVisibilityQuery* CreateQuery (const FSceneView& View) = 0;
+};
 
 
 
@@ -515,6 +530,10 @@ public:
 
 	/** @return Returns a vertex declaration that can be used with with the DrawRectangle() function */
 	virtual TGlobalResource<FFilterVertexDeclaration>& GetFilterVertexDeclaration() = 0;
+
+	/** Register/unregister a custom occlusion culling implementation */
+	virtual void RegisterCustomCullingImpl(ICustomCulling* impl) = 0;
+	virtual void UnregisterCustomCullingImpl(ICustomCulling* impl) = 0;
 };
 
 

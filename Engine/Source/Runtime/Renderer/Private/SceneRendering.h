@@ -469,6 +469,9 @@ public:
 
 	TShaderMap<FGlobalShaderType>* ShaderMap;
 
+	/** Custom visibility query for view */
+	ICustomVisibilityQuery* CustomVisibilityQuery;
+
 	/** 
 	 * Initialization constructor. Passes all parameters to FSceneView constructor
 	 */

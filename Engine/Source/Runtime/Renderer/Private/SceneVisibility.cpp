@@ -223,6 +223,7 @@ bool FViewInfo::IsDistanceCulled( float DistanceSquared, float MinDrawDistance, 
 /**
  * Frustum cull primitives in the scene against the view.
  */
+template<bool UseCustomCulling>
 static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FrustumCull);
@@ -231,12 +232,20 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 	FVector ViewOriginForDistanceCulling = View.ViewMatrices.ViewOrigin;
 	float MaxDrawDistanceScale = GetCachedScalabilityCVars().ViewDistanceScale;
 	float FadeRadius = GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
+	uint8 CustomVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 
 	for (FSceneBitArray::FIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 	{
 		const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[BitIt.GetIndex()];
 		float DistanceSquared = (Bounds.Origin - ViewOriginForDistanceCulling).SizeSquared();
 		float MaxDrawDistance = Bounds.MaxDrawDistance * MaxDrawDistanceScale;
+		int32 VisibilityId = INDEX_NONE;
+
+		if (UseCustomCulling &&
+			((Scene->PrimitiveOcclusionFlags[BitIt.GetIndex()] & CustomVisibilityFlags) == CustomVisibilityFlags))
+		{
+			VisibilityId = Scene->PrimitiveVisibilityIds[BitIt.GetIndex()].ByteIndex;
+		}
 
 		// If cull distance is disabled, always show (except foliage)
 		if (View.Family->EngineShowFlags.DistanceCulledPrimitives
@@ -248,6 +257,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 		// The primitive is always culled if it exceeds the max fade distance or lay outside the view frustum.
 		if (DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
 			DistanceSquared < Bounds.MinDrawDistanceSq ||
+			(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 			View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false ||
 			View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
 		{
@@ -1425,7 +1435,7 @@ static void MarkRelevantStaticMeshesForView(
 		const FPrimitiveSceneInfo* RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
 		const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
 		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
-		
+
 		int8 LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ViewData.ForcedLODLevel, ViewData.LODScale);
 
 		float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
@@ -1812,7 +1822,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 
 			// This finishes the update of view state
 			ViewState->UpdateLastRenderTime(*View.Family);
-		}		
+		}
 	}
 }
 
@@ -1955,7 +1965,15 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		// Most views use standard frustum culling.
 		if (bNeedsFrustumCulling)
 		{
-			int32 NumCulledPrimitivesForView = FrustumCull(Scene, View);
+			int32 NumCulledPrimitivesForView;
+			if (View.CustomVisibilityQuery && View.CustomVisibilityQuery->Prepare())
+			{
+				NumCulledPrimitivesForView = FrustumCull<true>(Scene, View);
+			}
+			else
+			{
+				NumCulledPrimitivesForView = FrustumCull<false>(Scene, View);
+			}
 			STAT(NumCulledPrimitives += NumCulledPrimitivesForView);
 			UpdatePrimitiveFading(Scene, View);			
 		}
@@ -2010,7 +2028,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ViewRelevance);
-			// Compute view relevance for all visible primitives.
+		// Compute view relevance for all visible primitives.
 			if (!CVarLegacySingleThreadedRelevance.GetValueOnRenderThread())
 			{
 				ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, PreRenderViewMasks, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
@@ -2020,7 +2038,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 				// This array contains a list of relevant static primities.
 				FRelevantStaticPrimitives RelevantStaticPrimitives;
 				ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
-				MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
+		MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
 			}
 		}
 
@@ -2055,7 +2073,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 	}
 	else
 	{
-		DispatchPreRenderView(Scene, &ViewFamily, PreRenderViewMasks, FrameNumber);
+	DispatchPreRenderView(Scene, &ViewFamily, PreRenderViewMasks, FrameNumber);
 	}
 
 	INC_DWORD_STAT_BY(STAT_ProcessedPrimitives,NumProcessedPrimitives);

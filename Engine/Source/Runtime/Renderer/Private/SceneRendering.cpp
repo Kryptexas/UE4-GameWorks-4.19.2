@@ -155,6 +155,7 @@ FViewInfo::FViewInfo(const FSceneView* InView)
 	:	FSceneView(*InView)
 	,	IndividualOcclusionQueries((FSceneViewState*)InView->State,1)
 	,	GroupedOcclusionQueries((FSceneViewState*)InView->State,FOcclusionQueryBatcher::OccludedPrimitiveQueryBatchSize)
+	,	CustomVisibilityQuery(nullptr)
 {
 	Init();
 }
@@ -201,6 +202,10 @@ FViewInfo::~FViewInfo()
 	for(int32 ResourceIndex = 0;ResourceIndex < DynamicResources.Num();ResourceIndex++)
 	{
 		DynamicResources[ResourceIndex]->ReleasePrimitiveResource();
+	}
+	if (CustomVisibilityQuery)
+	{
+		CustomVisibilityQuery->Release();
 	}
 }
 
@@ -734,6 +739,16 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 	{
 		// Set the hit proxies show flag.
 		ViewFamily.EngineShowFlags.HitProxies = 1;
+	}
+
+	// launch custom visibility queries for views
+	if (GCustomCullingImpl)
+	{
+		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		{
+			FViewInfo& ViewInfo = Views[ViewIndex];
+			ViewInfo.CustomVisibilityQuery = GCustomCullingImpl->CreateQuery(ViewInfo);
+		}
 	}
 
 	ViewFamily.ComputeFamilySize();
