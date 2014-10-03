@@ -324,17 +324,17 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 	if(AppKitEvent)
 	{
 		// Process a standard NSEvent as we always did
-		MacApplication->ProcessNSEvent(AppKitEvent, Event->GetWindow(), Event->GetMousePosition());
+		TSharedPtr<FMacWindow> MacWindow = FindWindowByNSWindow(MacApplication->Windows, &MacApplication->WindowsMutex, Event->GetWindow());
+		MacApplication->ProcessNSEvent(AppKitEvent, MacWindow, Event->GetMousePosition());
 	}
 	else if(Notification)
 	{
 		// Notifications need to mapped to the right handler function, that's no longer handled in the
 		// call location.
 		NSString* const NotificationName = [Notification name];
-		TSharedPtr<FMacWindow> Window = Event->GetWindow();
-		if(Window.IsValid())
+		FCocoaWindow* CocoaWindow = Event->GetWindow();
+		if (CocoaWindow)
 		{
-			FCocoaWindow* CocoaWindow = Window->GetWindowHandle();
 			if(NotificationName == NSWindowDidResizeNotification)
 			{
 				MacApplication->OnWindowDidResize( CocoaWindow );

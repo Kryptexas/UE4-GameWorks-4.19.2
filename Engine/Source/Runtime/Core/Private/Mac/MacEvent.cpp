@@ -12,12 +12,8 @@ FMacEvent::FMacEvent(NSEvent* const Event)
 	check(Event);
 	[Event retain];
 	
-	NSWindow* Window = FMacApplication::FindMacEventWindow(Event);
-	if(Window)
-	{
-		MacWindow = FMacApplication::FindMacWindowByNSWindow((FCocoaWindow*)Window);
-	}
-	
+	CocoaWindow = FMacApplication::FindMacEventWindow(Event);
+
 	CGEventRef CGEvent = [Event CGEvent];
 	CGPoint CGMouseLocation = CGEventGetLocation(CGEvent);
 	MousePosition.X = CGMouseLocation.x;
@@ -29,12 +25,9 @@ FMacEvent::FMacEvent(NSNotification* const Notification, NSWindow* const Window)
 {
 	check(Notification);
 	[Notification retain];
-	
-	if(Window)
-	{
-		MacWindow = FMacApplication::FindMacWindowByNSWindow((FCocoaWindow*)Window);
-	}
-	
+
+	CocoaWindow = [Window isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)Window : nullptr;
+
 	CGEventRef Event = CGEventCreate(NULL);
 	CGPoint CursorPos = CGEventGetLocation(Event);
 	MousePosition.X = CursorPos.x;
@@ -101,9 +94,9 @@ NSNotification* FMacEvent::GetNotification(void) const
 	}
 }
 
-TSharedPtr<FMacWindow> FMacEvent::GetWindow(void) const
+FCocoaWindow* FMacEvent::GetWindow(void) const
 {
-	return MacWindow;
+	return CocoaWindow;
 }
 
 FVector2D FMacEvent::GetMousePosition(void) const
