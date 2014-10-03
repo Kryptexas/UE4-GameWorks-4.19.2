@@ -1153,9 +1153,9 @@ bool UNavigationSystem::IsNavigationBuilt(const AWorldSettings* Settings) const
 		{
 #if WITH_NAVIGATION_GENERATOR
 			FNavDataGenerator* Generator = NavData->GetGenerator(FNavigationSystem::DontCreate);
-			if ((NavData->bRebuildAtRuntime == true || 
+			if ((NavData->bRebuildAtRuntime == true 
 #if WITH_EDITOR
-				GEditor != NULL
+				|| GEditor != NULL
 #endif // WITH_EDITOR
 				) && (Generator == NULL || Generator->IsBuildInProgress(/*bCheckDirtyToo=*/true) == true))
 			{
