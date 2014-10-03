@@ -248,6 +248,10 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 			{
 				if ( SpectatorController->GetSpectatorPawn() != NULL )
 				{
+					// Disable collision on the spectator
+					SpectatorController->GetSpectatorPawn()->SetActorEnableCollision( false );
+					
+					// Apply time dilation on spectator to reverse the effects of global dilation
 					SpectatorController->GetSpectatorPawn()->CustomTimeDilation = 1.0f / World->GetWorldSettings()->DemoPlayTimeDilation;
 				}
 			}
