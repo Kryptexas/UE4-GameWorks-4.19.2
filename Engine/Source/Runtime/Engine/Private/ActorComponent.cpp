@@ -618,7 +618,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 
 	if (Owner == nullptr || Owner->bActorInitialized)
 	{
-		if (bWantsInitializeComponent)
+		if (!bHasBeenInitialized && bWantsInitializeComponent)
 		{
 			InitializeComponent();
 		}
