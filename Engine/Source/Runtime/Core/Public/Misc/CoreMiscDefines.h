@@ -70,7 +70,7 @@
 #endif
 
 #if USING_CODE_ANALYSIS
-	#if !defined( CA_IN ) || !defined( CA_OUT ) || !defined( CA_READ_ONLY ) || !defined( CA_WRITE_ONLY ) || !defined( CA_VALID_POINTER ) || !defined( CA_CHECK_RETVAL ) || !defined( CA_NORETURN) || !defined( CA_SUPPRESS ) || !defined( CA_ASSUME )
+	#if !defined( CA_IN ) || !defined( CA_OUT ) || !defined( CA_READ_ONLY ) || !defined( CA_WRITE_ONLY ) || !defined( CA_VALID_POINTER ) || !defined( CA_CHECK_RETVAL ) || !defined( CA_NO_RETURN ) || !defined( CA_SUPPRESS ) || !defined( CA_ASSUME )
 		#error Code analysis macros are not configured correctly for this platform
 	#endif
 #else
@@ -81,7 +81,7 @@
 	#define CA_WRITE_ONLY
 	#define CA_VALID_POINTER
 	#define CA_CHECK_RETVAL
-	#define CA_NORETURN
+	#define CA_NO_RETURN
 	#define CA_SUPPRESS( WarningNumber )
 	#define CA_ASSUME( Expr )
 #endif

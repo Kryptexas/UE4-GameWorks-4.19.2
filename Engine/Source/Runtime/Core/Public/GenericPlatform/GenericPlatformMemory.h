@@ -164,7 +164,7 @@ struct CORE_API FGenericPlatformMemory
 	/** Initializes platform memory specific constants. */
 	static void Init();
 	
-	static CA_NORETURN void OnOutOfMemory(uint64 Size, uint32 Alignment);
+	static CA_NO_RETURN void OnOutOfMemory(uint64 Size, uint32 Alignment);
 
 	/** Initializes the memory pools, should be called by the init function. */
 	static void SetupMemoryPools();

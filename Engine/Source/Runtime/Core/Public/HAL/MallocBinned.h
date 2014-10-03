@@ -315,7 +315,7 @@ private:
 #endif
 
 	// Implementation. 
-	CA_NORETURN void OutOfMemory(uint64 Size, uint32 Alignment=0)
+	CA_NO_RETURN void OutOfMemory(uint64 Size, uint32 Alignment=0)
 	{
 		// this is expected not to return
 		FPlatformMemory::OnOutOfMemory(Size, Alignment);
