@@ -22,7 +22,11 @@
  */
 FMallocProfilerEx::FMallocProfilerEx( FMalloc* InMalloc )
 	: FMallocProfiler( InMalloc )
-{}
+{
+	// Add callbacks for garbage collection
+	FCoreUObjectDelegates::PreGarbageCollect.AddStatic( FMallocProfiler::SnapshotMemoryGCStart );
+	FCoreUObjectDelegates::PostGarbageCollect.AddStatic( FMallocProfiler::SnapshotMemoryGCEnd );
+}
 
 /** 
  * Writes names of currently loaded levels. 
