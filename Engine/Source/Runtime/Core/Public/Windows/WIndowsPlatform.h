@@ -52,7 +52,6 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 //#define PLATFORM_USE_LS_SPEC_FOR_WIDECHAR					1
 //#define PLATFORM_USE_SYSTEM_VSWPRINTF						1
 //#define PLATFORM_TCHAR_IS_4_BYTES							0
-#define PLATFORM_HAS_vsnprintf								0
 #define PLATFORM_HAS_BSD_TIME								0
 #define PLATFORM_USE_PTHREADS								0
 #define PLATFORM_MAX_FILEPATH_LENGTH						MAX_PATH

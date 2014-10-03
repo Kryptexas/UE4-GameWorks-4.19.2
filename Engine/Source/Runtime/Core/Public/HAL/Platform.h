@@ -164,9 +164,6 @@
 #ifndef PLATFORM_TCHAR_IS_4_BYTES
 	#define PLATFORM_TCHAR_IS_4_BYTES			0
 #endif
-#ifndef PLATFORM_HAS_vsnprintf
-	#define PLATFORM_HAS_vsnprintf				1
-#endif
 #ifndef PLATFORM_HAS_BSD_TIME
 	#define PLATFORM_HAS_BSD_TIME				1
 #endif

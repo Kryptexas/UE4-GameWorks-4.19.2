@@ -36,7 +36,6 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_PRAGMA_PACK				1
 #define PLATFORM_USE_LS_SPEC_FOR_WIDECHAR			1
 #define PLATFORM_TCHAR_IS_4_BYTES					1
-#define PLATFORM_HAS_vsnprintf						0
 #define PLATFORM_HAS_BSD_TIME						1
 #define PLATFORM_USE_PTHREADS						1
 #define PLATFORM_MAX_FILEPATH_LENGTH				MAX_PATH /* @todo linux: avoid using PATH_MAX as it is known to be broken */
