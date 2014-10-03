@@ -55,7 +55,7 @@ void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
 		if (MyCharacter)
 		{
 			UCharacterMovementComponent* CharMoveComp = Cast<UCharacterMovementComponent>(MyCharacter->GetMovementComponent());
-			if (CharMoveComp
+			if (CharMoveComp)
 			{
 				CharMoveComp->SetMovementMode(MOVE_Custom, 0);
 			}
