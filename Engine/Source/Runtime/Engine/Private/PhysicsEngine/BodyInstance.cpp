@@ -203,6 +203,8 @@ FBodyInstance::FBodyInstance()
 , bEnableGravity(true)
 , bUseAsyncScene(false)
 , bUpdateMassWhenScaleChanges(false)
+, bOverrideMass(false)
+, MassInKg(100.f)
 , LockedAxisMode(0)
 , CustomLockedAxis(FVector::ZeroVector)
 , DOFConstraint(NULL)
@@ -2760,22 +2762,27 @@ void FBodyInstance::UpdateMassProperties()
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if ((PRigidDynamic != NULL) && (GetNumSimShapes(PRigidDynamic) > 0))
 	{
-		// First, reset mass to default
 
 		// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
 		float DensityKGPerCubicUU = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
 		PxRigidBodyExt::updateMassAndInertia(*PRigidDynamic, DensityKGPerCubicUU);
 
-		// Then scale mass to avoid big differences between big and small objects.
+		//grab OldMass so we can apply new mass while maintaining inertia tensor
 		float OldMass = PRigidDynamic->getMass();
+		float NewMass = 0.f;
 
-		float UsePow = FMath::Clamp<float>(PhysMat->RaiseMassToPower, KINDA_SMALL_NUMBER, 1.f);
-		float NewMass = FMath::Pow(OldMass, UsePow);
-
-		// Apply user-defined mass scaling.
-		NewMass *= FMath::Clamp<float>(MassScale, 0.01f, 100.0f);
-
-		//UE_LOG(LogPhysics, Log,  TEXT("OldMass: %f NewMass: %f"), OldMass, NewMass );
+		if (bOverrideMass == false)
+		{
+			float UsePow = FMath::Clamp<float>(PhysMat->RaiseMassToPower, KINDA_SMALL_NUMBER, 1.f);
+			NewMass = FMath::Pow(OldMass, UsePow);
+			
+			// Apply user-defined mass scaling.
+			NewMass *= FMath::Clamp<float>(MassScale, 0.01f, 100.0f);
+		}
+		else
+		{
+			NewMass = FMath::Max(MassInKg, 0.001f);	//min weight of 1g
+		}
 
 		check (NewMass > 0.f);
 
@@ -2801,12 +2808,22 @@ void FBodyInstance::UpdateMassProperties()
 	{
 		//@TODO: BOX2D: Implement COMNudge, Unreal 'funky' mass algorithm, etc... for UpdateMassProperties (if we don't update the formula, we need to update the displayed mass in the details panel)
 
-		// Unreal material density is in g/cm^3, and Box2D density is in kg/m^2
-		// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
-		const float DensityKGPerCubicCM = FMath::Max(0.00009f, PhysMat->Density * 0.001f);
-		const float DensityKGPerCubicM = DensityKGPerCubicCM * 1000.0f;
-		const float DensityKGPerSquareM = DensityKGPerCubicM * 0.1f; //@TODO: BOX2D: Should there be a thickness property for mass calculations?
-		const float MassScaledDensity = DensityKGPerSquareM * FMath::Clamp<float>(MassScale, 0.01f, 100.0f);
+		float MassScaledDensity = 0.f;
+		if (bOverrideMass == false)
+		{
+			// Unreal material density is in g/cm^3, and Box2D density is in kg/m^2
+			// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
+			float DensityKGPerCubicCM = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
+			const float DensityKGPerCubicM = DensityKGPerCubicCM * 1000.0f;
+			const float DensityKGPerSquareM = DensityKGPerCubicM * 0.1f; //@TODO: BOX2D: Should there be a thickness property for mass calculations?
+			MassScaledDensity = DensityKGPerSquareM * FMath::Clamp<float>(MassScale, 0.01f, 100.0f);
+		}
+		else
+		{
+			MassScaledDensity = FMath::Max(MassInKg, 0.001f);	//min weight of 1g	//TODO: this is actually wrong because we're assuming mass and density are the same thing, but good enough for now
+		}
+
+		check(MassScaledDensity > 0.f);
 
 		// Apply the density
 		for (b2Fixture* Fixture = BodyInstancePtr->GetFixtureList(); Fixture; Fixture = Fixture->GetNext())

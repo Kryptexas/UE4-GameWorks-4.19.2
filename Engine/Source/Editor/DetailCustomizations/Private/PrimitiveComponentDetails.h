@@ -28,7 +28,7 @@ private:
 	bool IsUseAsyncEditable() const;
 
 	FText OnGetBodyMass() const;
-	bool IsBodyMassReadOnly() const { return true; }
+	bool IsBodyMassReadOnly() const;
 	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }
 
 private:
@@ -39,5 +39,6 @@ private:
 
 	bool IsAutoWeldEditable() const;
 	EVisibility IsAutoWeldVisible() const;
+	EVisibility IsMassVisible(bool bOverrideMass) const;
 };
 

@@ -382,6 +382,11 @@ float UPrimitiveComponent::GetMass() const
 
 float UPrimitiveComponent::CalculateMass(FName)
 {
+	if (BodyInstance.bOverrideMass)
+	{
+		return BodyInstance.MassInKg;
+	}
+
 	if (BodyInstance.BodySetup.IsValid())
 	{
 		return BodyInstance.BodySetup->CalculateMass(this);

@@ -35,23 +35,6 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			// Get the objects being customized so we can enable/disable editing of 'Simulate Physics'
 			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
 
-			PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
-				.IsEnabled(TAttribute<bool>(this, &FBodySetupDetails::IsBodyMassReadOnly))
-				.NameContent()
-				[
-					SNew (STextBlock)
-					.Text(NSLOCTEXT("MassInKG", "MassInKG_Name", "Mass in KG"))
-					.ToolTip( IDocumentation::Get()->CreateToolTip(LOCTEXT("MassInKG", "Mass of the body in KG"), NULL, TEXT("Shared/Physics"), TEXT("MassInKG")) )
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-				]
-			.ValueContent()
-				[
-					SNew(SEditableTextBox)
-					.Text(this, &FBodySetupDetails::OnGetBodyMass)
-					.IsReadOnly(this, &FBodySetupDetails::IsBodyMassReadOnly)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				];
-
 			// add all properties of this now - after adding 
 			for (uint32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex)
 			{
@@ -65,6 +48,43 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 					// staitc mesh already hides everything else not interested in
 					// so phat editor just should not show this option
 					//also hide bAutoWeld for phat
+					continue;
+				}
+				else if (ChildProperty->GetProperty()->GetName() == TEXT("MassInKg"))
+				{
+					PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
+						.IsEnabled(TAttribute<bool>(this, &FBodySetupDetails::IsBodyMassEnabled))
+						.NameContent()
+						[
+							ChildProperty->CreatePropertyNameWidget()
+						]
+					.ValueContent()
+						[
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SEditableTextBox)
+								.Text(this, &FBodySetupDetails::OnGetBodyMass)
+								.IsReadOnly(this, &FBodySetupDetails::IsBodyMassReadOnly)
+								.Font(IDetailLayoutBuilder::GetDetailFont())
+								.Visibility(this, &FBodySetupDetails::IsMassVisible, false)
+							]
+
+							+ SVerticalBox::Slot()
+								.AutoHeight()
+								[
+									SNew(SVerticalBox)
+									.Visibility(this, &FBodySetupDetails::IsMassVisible, true)
+									+ SVerticalBox::Slot()
+									.AutoHeight()
+									[
+										ChildProperty->CreatePropertyValueWidget()
+									]
+								]
+
+						];
+
 					continue;
 				}
 				if (Category == TEXT("Physics"))
@@ -113,6 +133,38 @@ FText FBodySetupDetails::OnGetBodyMass() const
 
 	return FText::AsNumber(Mass);
 }
+
+EVisibility FBodySetupDetails::IsMassVisible(bool bOverrideMass) const
+{
+	bool bIsMassReadOnly = IsBodyMassReadOnly();
+	if (bOverrideMass)
+	{
+		return bIsMassReadOnly ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+	else
+	{
+		return bIsMassReadOnly ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+}
+
+
+bool FBodySetupDetails::IsBodyMassReadOnly() const
+{
+	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	{
+		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UBodySetup::StaticClass()))
+		{
+			UBodySetup* BS = Cast<UBodySetup>(ObjectIt->Get());
+			if (BS->DefaultInstance.bOverrideMass == false)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

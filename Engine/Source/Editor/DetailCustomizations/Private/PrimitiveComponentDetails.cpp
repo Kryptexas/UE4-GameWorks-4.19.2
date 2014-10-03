@@ -119,13 +119,31 @@ EVisibility FPrimitiveComponentDetails::IsAutoWeldVisible() const
 {
 	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
 	{
-		if (ObjectsCustomized[i].IsValid() && !ObjectsCustomized[i]->IsA(UStaticMeshComponent::StaticClass()))
+		if (ObjectsCustomized[i].IsValid())
+		if(ObjectsCustomized[i]->IsA(UStaticMeshComponent::StaticClass()))
 		{
-			return EVisibility::Collapsed;
+			return EVisibility::Visible;
+		}
+		else if (ObjectsCustomized[i]->IsA(USkeletalMeshComponent::StaticClass()))
+		{
+			return EVisibility::Visible;
 		}
 	}
 
-	return EVisibility::Visible;
+	return EVisibility::Collapsed;
+}
+
+EVisibility FPrimitiveComponentDetails::IsMassVisible(bool bOverrideMass) const
+{
+	bool bIsMassReadOnly = IsBodyMassReadOnly();
+	if (bOverrideMass)
+	{
+		return bIsMassReadOnly ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+	else
+	{
+		return bIsMassReadOnly ? EVisibility::Visible : EVisibility::Collapsed;
+	}
 }
 
 void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
@@ -150,34 +168,20 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
 
 			bool bDisplayMass = true;
+			bool bDisplayMassOverride = true;
 
 			for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
 			{
 				if (ObjectsCustomized[i].IsValid() && ObjectsCustomized[i]->IsA(UDestructibleComponent::StaticClass()))
 				{
 					bDisplayMass = false;
-					break;
+					bDisplayMassOverride = false;
 				}
-			}
 
-			if (bDisplayMass)
-			{
-				PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
-					.IsEnabled(TAttribute<bool>(this, &FPrimitiveComponentDetails::IsBodyMassEnabled))
-					.NameContent()
-					[
-						SNew(STextBlock)
-						.Text(NSLOCTEXT("MassInKG", "MassInKG_Name", "Mass in KG"))
-						.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("MassInKG", "Mass of the body in KG"), NULL, TEXT("Shared/Physics"), TEXT("MassInKG")))
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-					]
-					.ValueContent()
-					[
-						SNew(SEditableTextBox)
-						.Text(this, &FPrimitiveComponentDetails::OnGetBodyMass)
-						.IsReadOnly(this, &FPrimitiveComponentDetails::IsBodyMassReadOnly)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-					];
+				if (ObjectsCustomized[i].IsValid() && ObjectsCustomized[i]->IsA(USkeletalMeshComponent::StaticClass()))
+				{
+					bDisplayMassOverride = false;
+				}
 			}
 
 			// add all physics properties now - after adding mass
@@ -212,6 +216,52 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 					{
 						PhysicsCategory.AddProperty(ChildProperty).Visibility(TAttribute<EVisibility>(this, &FPrimitiveComponentDetails::IsAutoWeldVisible))
 																  .EditCondition(TAttribute<bool>(this, &FPrimitiveComponentDetails::IsAutoWeldEditable), NULL);
+					}
+					else if (PropName == TEXT("bOverrideMass"))
+					{
+						if (bDisplayMassOverride)
+						{
+							PhysicsCategory.AddProperty(ChildProperty);
+						}
+					}
+					else if (PropName == TEXT("MassInKg"))
+					{
+						
+						if (bDisplayMass)
+						{
+							PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
+								.IsEnabled(TAttribute<bool>(this, &FPrimitiveComponentDetails::IsBodyMassEnabled))
+								.NameContent()
+								[
+									ChildProperty->CreatePropertyNameWidget()
+								]
+							.ValueContent()
+								[
+									SNew(SVerticalBox)
+									+ SVerticalBox::Slot()
+									.AutoHeight()
+									[
+										SNew(SEditableTextBox)
+										.Text(this, &FPrimitiveComponentDetails::OnGetBodyMass)
+										.IsReadOnly(this, &FPrimitiveComponentDetails::IsBodyMassReadOnly)
+										.Font(IDetailLayoutBuilder::GetDetailFont())
+										.Visibility(this, &FPrimitiveComponentDetails::IsMassVisible, false)
+									]
+
+									+ SVerticalBox::Slot()
+									.AutoHeight()
+									[
+										SNew(SVerticalBox)
+										.Visibility(this, &FPrimitiveComponentDetails::IsMassVisible, true)
+										+ SVerticalBox::Slot()
+										.AutoHeight()
+										[
+											ChildProperty->CreatePropertyValueWidget()
+										]
+									]
+									
+								];
+						}
 					}
 					else
 					{
@@ -305,6 +355,22 @@ FText FPrimitiveComponentDetails::OnGetBodyMass() const
 	}
 
 	return FText::AsNumber(Mass);
+}
+
+bool FPrimitiveComponentDetails::IsBodyMassReadOnly() const
+{
+	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	{
+		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
+		{
+			if (UPrimitiveComponent* Comp = Cast<UPrimitiveComponent>(ObjectIt->Get()))
+			{
+				if (Comp->BodyInstance.bOverrideMass == false) { return true; }
+			}
+		}
+	}
+
+	return false;
 }
 
 

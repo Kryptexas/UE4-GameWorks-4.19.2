@@ -198,6 +198,15 @@ public:
 	UPROPERTY()
 	uint32 bUpdateMassWhenScaleChanges:1;
 
+	/** If true, mass will not be automatically computed and you must set it directly */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics)
+	uint32 bOverrideMass : 1;
+
+	/**Mass of the body in KG. By default we compute this based on physical material and mass scale.
+	   *@see bOverrideMass to set this directly */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001"))
+	float MassInKg;
+
 	/** Locks physical movement along specified axis.*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName="Locked Axis"))
 	TEnumAsByte<ELockedAxis::Type> LockedAxisMode;

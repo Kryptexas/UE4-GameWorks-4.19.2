@@ -12,8 +12,9 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 	FText OnGetBodyMass() const;
-	bool IsBodyMassReadOnly() const { return true; }
+	bool IsBodyMassReadOnly() const;
 	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }
+	EVisibility IsMassVisible(bool bOverrideMass) const;
 
 private:
 	TArray< TWeakObjectPtr<UObject> > ObjectsCustomized;
