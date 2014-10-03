@@ -67,6 +67,11 @@
 #include "glsl_types.h"
 #include "ir.h"
 
+#if __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
+
 /**
 * Enum recording the result of analyzing how control flow might exit
 * an IR node.
@@ -1071,3 +1076,7 @@ bool do_lower_jumps(exec_list *instructions, bool pull_out_jumps, bool lower_sub
 
 	return v.progress;
 }
+
+#if __clang__
+#pragma clang diagnostic pop
+#endif

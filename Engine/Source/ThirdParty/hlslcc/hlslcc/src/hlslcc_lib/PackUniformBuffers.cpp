@@ -449,13 +449,8 @@ void RemovePackedUniformBufferReferences(exec_list* Instructions, _mesa_glsl_par
 */
 struct SSortUniformsPredicate
 {
-	_mesa_glsl_parse_state* ParseState;
-	SSortUniformsPredicate(_mesa_glsl_parse_state* InParseState) : ParseState(InParseState)
-	{
-	}
-
 #if CPP
-	bool operator()(const ir_variable& v1, const ir_variable& v2)
+	bool operator()(const ir_variable& v1, const ir_variable& v2) const
 #else
 	bool operator()(ir_variable* v1, ir_variable* v2)
 #endif
@@ -872,7 +867,7 @@ void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, b
 #if CPP
 		UniformVariables.Sort(SSortUniformsPredicate());
 #else
-		std::sort(UniformVariables.begin(), UniformVariables.end(), SSortUniformsPredicate(ParseState));
+		std::sort(UniformVariables.begin(), UniformVariables.end(), SSortUniformsPredicate());
 #endif
 		int UniformIndex = ProcessPackedUniformArrays(Instructions, ctx, ParseState, UniformVariables, PUInfo, bFlattenStructure, bGroupFlattenedUBs, OutUniformMap);
 		if (UniformIndex == -1)
@@ -900,8 +895,8 @@ done:
 
 struct SExpandArrayAssignment : public ir_hierarchical_visitor
 {
-	bool bModified;
 	_mesa_glsl_parse_state* ParseState;
+	bool bModified;
 
 	std::map<const glsl_type*, std::map<std::string, int>> MemberIsArrayMap;
 

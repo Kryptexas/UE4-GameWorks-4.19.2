@@ -4,4 +4,5 @@
 
 #include "ShaderCompilerCommon.h"
 #define register
+#pragma warning(disable: 4267)
 #include "glcpp-lex.inl"

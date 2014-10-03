@@ -136,7 +136,8 @@ void make_intrinsic_genType(
 					}
 					else if (ret_bool)
 					{
-						ir_constant_data data = ZeroConstantData;
+						ir_constant_data data;
+						data.MakeZero();
 						sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_constant(retType, &data)));
 					}
 					else
@@ -522,7 +523,8 @@ void make_intrinsic_saturate(exec_list *ir, _mesa_glsl_parse_state *state)
 
 	for (int base_type = GLSL_TYPE_UINT; base_type <= GLSL_TYPE_FLOAT; ++base_type)
 	{
-		ir_constant_data zero_data = ZeroConstantData;
+		ir_constant_data zero_data;
+		zero_data.MakeZero();
 		ir_constant_data one_data;
 
 		if (base_type == GLSL_TYPE_FLOAT || base_type == GLSL_TYPE_HALF)
@@ -629,7 +631,8 @@ void make_intrinsic_clip(exec_list *ir, _mesa_glsl_parse_state *state)
 {
 	void* ctx = state;
 	ir_function* func = new(ctx)ir_function("clip");
-	ir_constant_data zero_data = ZeroConstantData;
+	ir_constant_data zero_data;
+	zero_data.MakeZero();
 
 	for (unsigned Type = GLSL_TYPE_HALF; Type <= GLSL_TYPE_FLOAT; ++Type)
 	{

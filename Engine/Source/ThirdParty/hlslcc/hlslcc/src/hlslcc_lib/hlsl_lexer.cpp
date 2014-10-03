@@ -6,5 +6,6 @@
 #if PLATFORM_WINDOWS
 #define strdup _strdup
 #endif
+#pragma warning(disable: 4267)
 #define register
 #include "hlsl_lexer.inl"

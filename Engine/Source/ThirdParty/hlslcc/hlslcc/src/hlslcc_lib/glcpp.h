@@ -48,16 +48,16 @@ typedef struct string_list {
 	string_node_t *tail;
 } string_list_t;
 
-typedef struct token token_t;
-typedef struct token_list token_list_t;
+struct token;
+struct token_list;
 
 typedef union YYSTYPE
 {
 	intmax_t ival;
 	char *str;
 	string_list_t *string_list;
-	token_t *token;
-	token_list_t *token_list;
+	token *token;
+	token_list *token_list;
 } YYSTYPE;
 
 # define YYSTYPE_IS_TRIVIAL 1
@@ -77,16 +77,16 @@ typedef struct YYLTYPE {
 do {								\
    if (N)							\
    {								\
-      (Current).first_line   = YYRHSLOC(Rhs, 1).first_line;	\
-      (Current).first_column = YYRHSLOC(Rhs, 1).first_column;	\
-      (Current).last_line    = YYRHSLOC(Rhs, N).last_line;	\
-      (Current).last_column  = YYRHSLOC(Rhs, N).last_column;	\
+	  (Current).first_line   = YYRHSLOC(Rhs, 1).first_line;	\
+	  (Current).first_column = YYRHSLOC(Rhs, 1).first_column;	\
+	  (Current).last_line    = YYRHSLOC(Rhs, N).last_line;	\
+	  (Current).last_column  = YYRHSLOC(Rhs, N).last_column;	\
    }								\
    else								\
    {								\
-      (Current).first_line   = (Current).last_line =		\
+	  (Current).first_line   = (Current).last_line =		\
 	 YYRHSLOC(Rhs, 0).last_line;				\
-      (Current).first_column = (Current).last_column =		\
+	  (Current).first_column = (Current).last_column =		\
 	 YYRHSLOC(Rhs, 0).last_column;				\
    }								\
    (Current).source = 0;					\
@@ -99,7 +99,7 @@ struct token {
 };
 
 typedef struct token_node {
-	token_t *token;
+	token *token;
 	struct token_node *next;
 } token_node_t;
 
@@ -110,7 +110,7 @@ struct token_list {
 };
 
 typedef struct argument_node {
-	token_list_t *argument;
+	token_list *argument;
 	struct argument_node *next;
 } argument_node_t;
 
@@ -130,14 +130,14 @@ typedef enum {
 
 token_class_t
 glcpp_parser_classify_token (glcpp_parser_t *parser,
-			     const char *identifier,
-			     int *parameter_index);
+				 const char *identifier,
+				 int *parameter_index);
 
 typedef struct {
 	int is_function;
 	string_list_t *parameters;
 	const char *identifier;
-	token_list_t *replacements;
+	token_list *replacements;
 } macro_t;
 
 typedef struct expansion_node {
@@ -174,8 +174,8 @@ struct glcpp_parser {
 	int in_control_line;
 	int paren_count;
 	skip_node_t *skip_stack;
-	token_list_t *lex_from_list;
-	token_node_t *lex_from_node;
+	token_list *lex_from_list;
+	token_node *lex_from_node;
 	char *output;
 	char *info_log;
 	size_t output_length;
@@ -223,5 +223,8 @@ glcpp_lex_destroy (yyscan_t scanner);
 
 int
 yyparse (glcpp_parser_t *parser);
+
+typedef struct token TToken;
+typedef struct token_list token_list_t;
 
 #endif

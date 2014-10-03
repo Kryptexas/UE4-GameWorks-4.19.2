@@ -79,17 +79,17 @@ static token_list_t *
 _argument_list_member_at (argument_list_t *list, int index);
 
 /* Note: This function ralloc_steal()s the str pointer. */
-static token_t *
+static TToken *
 _token_create_str (void *ctx, int type, char *str);
 
-static token_t *
+static TToken *
 _token_create_ival (void *ctx, int type, int ival);
 
 static token_list_t *
 _token_list_create (void *ctx);
 
 static void
-_token_list_append (token_list_t *list, token_t *token);
+_token_list_append (token_list_t *list, TToken *token);
 
 static void
 _token_list_append_list (token_list_t *list, token_list_t *tail);
@@ -717,12 +717,12 @@ _argument_list_member_at (argument_list_t *list, int index)
 }
 
 /* Note: This function ralloc_steal()s the str pointer. */
-token_t *
+TToken *
 _token_create_str (void *ctx, int type, char *str)
 {
-	token_t *token;
+	TToken *token;
 
-	token = ralloc (ctx, token_t);
+	token = ralloc (ctx, TToken);
 	token->type = type;
 	token->value.str = str;
 
@@ -731,12 +731,12 @@ _token_create_str (void *ctx, int type, char *str)
 	return token;
 }
 
-token_t *
+TToken *
 _token_create_ival (void *ctx, int type, int ival)
 {
-	token_t *token;
+	TToken *token;
 
-	token = ralloc (ctx, token_t);
+	token = ralloc (ctx, TToken);
 	token->type = type;
 	token->value.ival = ival;
 
@@ -757,7 +757,7 @@ _token_list_create (void *ctx)
 }
 
 void
-_token_list_append (token_list_t *list, token_t *token)
+_token_list_append (token_list_t *list, TToken *token)
 {
 	token_node_t *node;
 
@@ -803,7 +803,7 @@ _token_list_copy (void *ctx, token_list_t *other)
 
 	copy = _token_list_create (ctx);
 	for (node = other->head; node; node = node->next) {
-		token_t *new_token = ralloc (copy, token_t);
+		TToken *new_token = ralloc (copy, TToken);
 		*new_token = *node->token;
 		_token_list_append (copy, new_token);
 	}
@@ -906,7 +906,7 @@ _token_list_equal_ignoring_space (token_list_t *a, token_list_t *b)
 }
 
 static void
-_token_print (char **out, size_t *len, token_t *token)
+_token_print (char **out, size_t *len, TToken *token)
 {
 	if (token->type < 256) {
 		ralloc_asprintf_rewrite_tail (out, len, "%c", token->type);
@@ -970,10 +970,10 @@ _token_print (char **out, size_t *len, token_t *token)
  *
  * Caution: Only very cursory error-checking is performed to see if
  * the final result is a valid single token. */
-static token_t *
-_token_paste (glcpp_parser_t *parser, token_t *token, token_t *other)
+static TToken *
+_token_paste (glcpp_parser_t *parser, TToken *token, TToken *other)
 {
-	token_t *combined = NULL;
+	TToken *combined = NULL;
 
 	/* Pasting a placeholder onto anything makes no change. */
 	if (other->type == PLACEHOLDER)
@@ -1073,7 +1073,7 @@ yyerror (YYLTYPE *locp, glcpp_parser_t *parser, const char *error)
 static void add_builtin_define(glcpp_parser_t *parser,
 			       const char *name, int value)
 {
-   token_t *tok;
+   TToken *tok;
    token_list_t *list;
 
    tok = _token_create_ival (parser, INTEGER, value);
@@ -1226,7 +1226,7 @@ static token_list_t *
 _token_list_create_with_one_space (void *ctx)
 {
 	token_list_t *list;
-	token_t *space;
+	TToken *space;
 
 	list = _token_list_create (ctx);
 	space = _token_create_ival (list, SPACE, SPACE);
@@ -1239,7 +1239,7 @@ static void
 _glcpp_parser_expand_if (glcpp_parser_t *parser, int type, token_list_t *list)
 {
 	token_list_t *expanded;
-	token_t *token;
+	TToken *token;
 
 	expanded = _token_list_create (parser);
 	token = _token_create_ival (parser, type, type);
@@ -1385,7 +1385,7 @@ _glcpp_parser_expand_function (glcpp_parser_t *parser,
 				_token_list_append_list (substituted,
 							 expanded_argument);
 			} else {
-				token_t *new_token;
+				TToken *new_token;
 
 				new_token = _token_create_ival (substituted,
 								PLACEHOLDER,
@@ -1427,7 +1427,7 @@ _glcpp_parser_expand_node (glcpp_parser_t *parser,
 			   token_node_t *node,
 			   token_node_t **last)
 {
-	token_t *token = node->token;
+	TToken *token = node->token;
 	const char *identifier;
 	macro_t* macro;
 
@@ -1460,7 +1460,7 @@ _glcpp_parser_expand_node (glcpp_parser_t *parser,
 		 * unexpanded token. */
 		char *str;
 		token_list_t *expansion;
-		token_t *final;
+		TToken *final;
 
 		str = ralloc_strdup (parser, token->value.str);
 		final = _token_create_str (parser, OTHER, str);

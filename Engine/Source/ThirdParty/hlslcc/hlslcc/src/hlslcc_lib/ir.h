@@ -1917,9 +1917,12 @@ union ir_constant_data
 	int i[16];
 	float f[16];
 	bool b[16];
-};
 
-extern const ir_constant_data ZeroConstantData;
+	void MakeZero()
+	{
+		memset(this, 0, sizeof(*this));
+	}
+};
 
 class SHADERCOMPILERCOMMON_API ir_constant : public ir_rvalue
 {

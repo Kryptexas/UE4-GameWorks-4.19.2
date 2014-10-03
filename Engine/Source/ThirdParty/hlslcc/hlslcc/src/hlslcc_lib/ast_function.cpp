@@ -114,7 +114,8 @@ ir_rvalue* process_mul(
 			// Oddly, HLSL zero-extends the vector in this case. It is the only
 			// situation I know of where HLSL implicitly zero-extends instead
 			// of truncating.
-			ir_constant_data zero_data = ZeroConstantData;
+			ir_constant_data zero_data;
+			zero_data.MakeZero();
 			instructions->push_tail(new(ctx) ir_assignment(
 				new(ctx) ir_dereference_variable(tmp_vec),
 				new(ctx) ir_constant(tmp_vec->type, &zero_data)));
@@ -166,7 +167,8 @@ ir_rvalue* process_mul(
 			// Oddly, HLSL zero-extends the vector in this case. It is the only
 			// situation I know of where HLSL implicitly zero-extends instead
 			// of truncating.
-			ir_constant_data zero_data = ZeroConstantData;
+			ir_constant_data zero_data;
+			zero_data.MakeZero();
 			instructions->push_tail(new(ctx) ir_assignment(
 				new(ctx) ir_dereference_variable(tmp_vec),
 				new(ctx) ir_constant(tmp_vec->type, &zero_data)));
