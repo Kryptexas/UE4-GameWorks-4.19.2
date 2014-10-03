@@ -93,7 +93,9 @@
 #include "ir_optimization.h"
 #include <math.h>
 
+#ifndef M_LOG2E
 #define M_LOG2E     (1.4426950408889634074)
+#endif
 
 class lower_instructions_visitor : public ir_hierarchical_visitor
 {

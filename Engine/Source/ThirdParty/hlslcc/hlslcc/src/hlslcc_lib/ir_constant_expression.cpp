@@ -47,9 +47,11 @@
 #include "ir_function_inlining.h"
 #include "compiler.h"
 
+#if _MSC_VER
 inline float truncf(float x) { return x < 0.0f ? ceilf(x) : floorf(x); }
 inline float exp2f(float x) { return powf(2.0f, x); }
 inline float log2f(float x) { return logf(x) * 1.442695041f; }
+#endif
 
 #define IROUND(f)  ((int32) (((f) >= 0.0F) ? ((f) + 0.5F) : ((f) - 0.5F)))
 
