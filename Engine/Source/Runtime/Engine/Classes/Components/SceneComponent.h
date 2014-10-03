@@ -247,7 +247,7 @@ public:
 	void AddRelativeRotation(FRotator DeltaRotation, bool bSweep=false);
 
 	/** Adds a delta to the location of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="location position"))
 	void AddLocalOffset(FVector DeltaLocation, bool bSweep=false);
 	
 	/** Adds a delta to the rotation of this component in its local reference frame */
@@ -275,7 +275,7 @@ public:
 	void SetWorldTransform(const FTransform& NewTransform, bool bSweep=false);
 
 	/** Adds a delta to the location of this component in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="location position"))
 	void AddWorldOffset(FVector DeltaLocation, bool bSweep=false);
 
 	/** Adds a delta to the rotation of this component in world space. */
