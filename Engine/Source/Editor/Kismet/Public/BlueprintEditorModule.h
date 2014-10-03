@@ -130,6 +130,13 @@ public:
 	DECLARE_EVENT_OneParam( FBlueprintEditorModule, FBlueprintEditorOpenedEvent, EBlueprintType );
 	FBlueprintEditorOpenedEvent& OnBlueprintEditorOpened() { return BlueprintEditorOpened; }
 
+	/** 
+	 * Exposes a way for other modules to fold in their own Blueprint editor 
+	 * commands (folded in with other BP editor commands, when the editor is 
+	 * first opened).
+	 */
+	virtual const TSharedRef<FUICommandList> GetsSharedBlueprintEditorCommands() const { return SharedBlueprintEditorCommands.ToSharedRef(); }
+
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 
@@ -138,4 +145,10 @@ private:
 
 	/** Customizations for the SCS editor */
 	TMap<FName, FSCSEditorCustomizationBuilder> SCSEditorCustomizations;
+
+	/** 
+	 * A command list that can be passed around and isn't bound to an instance 
+	 * of the blueprint editor. 
+	 */
+	TSharedPtr<FUICommandList> SharedBlueprintEditorCommands;
 };

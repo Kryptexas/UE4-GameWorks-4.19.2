@@ -67,6 +67,7 @@ static void FocusBlueprintEditorOnObject(const TSharedRef<IMessageToken>& Token)
 void FBlueprintEditorModule::StartupModule()
 {
 	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
+	SharedBlueprintEditorCommands = MakeShareable(new FUICommandList);
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
@@ -109,6 +110,7 @@ void FBlueprintEditorModule::StartupModule()
 
 void FBlueprintEditorModule::ShutdownModule()
 {
+	SharedBlueprintEditorCommands.Reset();
 	MenuExtensibilityManager.Reset();
 
 	if (FSlateApplication::IsInitialized())

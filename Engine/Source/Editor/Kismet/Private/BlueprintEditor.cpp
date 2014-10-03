@@ -1775,6 +1775,10 @@ void FBlueprintEditor::CreateDefaultCommands()
 	FMyBlueprintCommands::Register();
 	FBlueprintSpawnNodeCommands::Register();
 
+	static const FName BpEditorModuleName("Kismet");
+	FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>(BpEditorModuleName);
+	ToolkitCommands->Append(BlueprintEditorModule.GetsSharedBlueprintEditorCommands());
+
 	ToolkitCommands->MapAction(
 		FFullBlueprintEditorCommands::Get().Compile,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::Compile),
@@ -2303,6 +2307,7 @@ void FBlueprintEditor::OnGraphEditorDropActor(const TArray< TWeakObjectPtr<AActo
 	{
 		ULevel* BlueprintLevel = LevelBlueprint->GetLevel();
 
+		FVector2D NodeLocation = DropLocation;
 		for (int32 i = 0; i < Actors.Num(); i++)
 		{
 			AActor* DroppedActor = Actors[i].Get();
@@ -2311,8 +2316,8 @@ void FBlueprintEditor::OnGraphEditorDropActor(const TArray< TWeakObjectPtr<AActo
 				UK2Node_Literal* LiteralNodeTemplate = NewObject<UK2Node_Literal>();
 				LiteralNodeTemplate->SetObjectRef(DroppedActor);
 
-				const FVector2D NodeLocation = DropLocation + (i * FVector2D(0,30));
-				FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Literal>(Graph, LiteralNodeTemplate, NodeLocation);
+				UK2Node_Literal* ActorRefNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Literal>(Graph, LiteralNodeTemplate, NodeLocation);
+				NodeLocation.Y += UEdGraphSchema_K2::EstimateNodeHeight(ActorRefNode);
 			}
 		}
 	}
@@ -6515,15 +6520,36 @@ AActor* FBlueprintEditor::GetPreviewActor() const
 FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph)
 {
 	UEdGraph* Graph = InGraph;
+	if (Graph == nullptr)
+	{
+		return FReply::Handled();
+	}
 
 	FBlueprintPaletteListBuilder PaletteBuilder(GetBlueprintObj());
-	TSharedPtr< FEdGraphSchemaAction > Action = FBlueprintSpawnNodeCommands::Get().GetGraphActionByGesture(InGesture, PaletteBuilder, InGraph);
+	FBlueprintSpawnNodeCommands::Get().GetGraphActionByGesture(InGesture, PaletteBuilder, InGraph);
 
-	if(Action.IsValid())
+	TSet<const UEdGraphNode*> NodesToSelect;
+	FVector2D NodeSpawnPos = InPosition;
+
+	for (int32 ActionIndex = 0; ActionIndex < PaletteBuilder.GetNumActions(); ++ActionIndex)
 	{
-		TArray<UEdGraphPin*> DummyPins;
-		Action->PerformAction(Graph, DummyPins, InPosition);
+		FGraphActionListBuilderBase::ActionGroup& ActionSet = PaletteBuilder.GetAction(ActionIndex);
+		if ((ActionSet.Actions.Num() > 0) && ActionSet.Actions[0].IsValid())
+		{
+			int32 const OldNodeCount = Graph->Nodes.Num();
+
+			TArray<UEdGraphPin*> DummyPins;
+			ActionSet.PerformAction(Graph, DummyPins, NodeSpawnPos);
+
+			for (int32 NodeIndex = OldNodeCount; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
+			{
+				UEdGraphNode* SpawnedNode = Graph->Nodes[NodeIndex];
+				NodeSpawnPos.Y = FMath::Max(NodeSpawnPos.Y, SpawnedNode->NodePosY + UEdGraphSchema_K2::EstimateNodeHeight(SpawnedNode));
+				NodesToSelect.Add(SpawnedNode);
+			}
+		}	
 	}
+	Graph->SelectNodeSet(NodesToSelect, /*bFromUI =*/true);
 
 	return FReply::Handled();
 }
