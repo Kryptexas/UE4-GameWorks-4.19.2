@@ -526,12 +526,12 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		check(ExpressionNumberStack.size() >= NumOperands);
 
 		TNumberVector Operands;
+		Operands.AddUninitialized(NumOperands);
 		for (int i = 0; i < NumOperands; ++i)
 		{
-			Operands.Add(ExpressionNumberStack.top());
+			Operands[NumOperands - 1 - i] = ExpressionNumberStack.top();
 			ExpressionNumberStack.pop();
 		}
-		std::reverse(Operands.begin(), Operands.end());
 
 		printf("\t\top %s: ", IR->operator_string());
 		for (int i = 0; i < NumOperands; ++i)

@@ -38,7 +38,8 @@
  * a pointer to each rvalue in the tree.
  */
 
-class ir_rvalue_visitor : public ir_hierarchical_visitor {
+class SHADERCOMPILERCOMMON_API ir_rvalue_visitor : public ir_hierarchical_visitor
+{
 public:
 
    virtual ir_visitor_status visit_leave(ir_assignment *);

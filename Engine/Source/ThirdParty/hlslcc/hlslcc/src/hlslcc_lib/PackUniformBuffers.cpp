@@ -454,11 +454,19 @@ struct SSortUniformsPredicate
 	{
 	}
 
+#if CPP
+	bool operator()(const ir_variable& v1, const ir_variable& v2)
+#else
 	bool operator()(ir_variable* v1, ir_variable* v2)
+#endif
 	{
+#if CPP
+		const glsl_type* Type1 = v1.type;
+		const glsl_type* Type2 = v2.type;
+#else
 		const glsl_type* Type1 = v1->type;
 		const glsl_type* Type2 = v2->type;
-
+#endif
 		// Sort by base type.
 		const glsl_base_type BaseType1 = Type1->is_array() ? Type1->fields.array->base_type : Type1->base_type;
 		const glsl_base_type BaseType2 = Type2->is_array() ? Type2->fields.array->base_type : Type2->base_type;
@@ -506,7 +514,11 @@ struct SSortUniformsPredicate
 		}
 
 		// If the types match, sort on the uniform name.
+#if CPP
+		return strcmp(v1.name, v2.name) < 0;
+#else
 		return strcmp(v1->name, v2->name) < 0;
+#endif
 	}
 };
 
@@ -857,7 +869,11 @@ void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, b
 
 	if (MainSig && UniformVariables.Num())
 	{
+#if CPP
+		UniformVariables.Sort(SSortUniformsPredicate());
+#else
 		std::sort(UniformVariables.begin(), UniformVariables.end(), SSortUniformsPredicate(ParseState));
+#endif
 		int UniformIndex = ProcessPackedUniformArrays(Instructions, ctx, ParseState, UniformVariables, PUInfo, bFlattenStructure, bGroupFlattenedUBs, OutUniformMap);
 		if (UniformIndex == -1)
 		{

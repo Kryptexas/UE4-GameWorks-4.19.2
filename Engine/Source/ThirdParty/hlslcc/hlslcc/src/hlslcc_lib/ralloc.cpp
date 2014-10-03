@@ -201,8 +201,8 @@ ralloc_block(ralloc_header *parent, size_t size)
 	}
 
 	mblock = parent->mem_blocks;
-
-	if (unlikely(mblock == NULL || (mblock->end - mblock->top) < size))
+	check(!mblock || mblock->end >= mblock->top);
+	if (unlikely(mblock == nullptr || (size_t)(mblock->end - mblock->top) < size))
 	{
 		mblock = ralloc_new_mem_block(size);
 		mblock->next_block = parent->mem_blocks;
@@ -235,9 +235,10 @@ ralloc_block_resize(ralloc_header *old, size_t size)
 		parent = old;
 
 	mblock = parent->mem_blocks;
+	check(!mblock || mblock->end >= (char*)old);
 	if (mblock &&
 		(mblock->top - old->size) == (char*)old &&
-		(mblock->end - (char*)old) >= size)
+		(size_t)(mblock->end - (char*)old) >= size)
 	{
 		mblock->top = (char*)old + size;
 		old->size = (unsigned)size;

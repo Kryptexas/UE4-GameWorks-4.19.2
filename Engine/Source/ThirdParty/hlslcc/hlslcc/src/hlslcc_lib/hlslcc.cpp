@@ -17,6 +17,10 @@
 
 extern int _mesa_hlsl_debug;
 
+#if _MSC_VER
+#define strdup _strdup
+#endif
+
 /** Enable this define to time shader compilation. */
 #define ENABLE_TIMING 0
 

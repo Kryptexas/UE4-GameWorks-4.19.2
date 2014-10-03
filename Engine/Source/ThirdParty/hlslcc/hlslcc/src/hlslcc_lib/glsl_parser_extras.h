@@ -254,7 +254,7 @@ struct glsl_switch_state
 };
 
 
-struct _mesa_glsl_parse_state
+struct SHADERCOMPILERCOMMON_API _mesa_glsl_parse_state
 {
 	_mesa_glsl_parse_state(
 	void *mem_ctx,
@@ -444,9 +444,9 @@ else								\
 }								\
 } while (0)
 
-extern void _mesa_glsl_error(YYLTYPE *locp, _mesa_glsl_parse_state *state,
+extern SHADERCOMPILERCOMMON_API void _mesa_glsl_error(YYLTYPE *locp, _mesa_glsl_parse_state *state,
 const char *fmt, ...);
-extern void _mesa_glsl_error(_mesa_glsl_parse_state *state,
+extern SHADERCOMPILERCOMMON_API void _mesa_glsl_error(_mesa_glsl_parse_state *state,
 	const char *fmt, ...);
 
 /**
@@ -454,32 +454,32 @@ extern void _mesa_glsl_error(_mesa_glsl_parse_state *state,
 *
 * \sa _mesa_glsl_error
 */
-extern void _mesa_glsl_warning(const YYLTYPE *locp,
+extern SHADERCOMPILERCOMMON_API void _mesa_glsl_warning(const YYLTYPE *locp,
 	_mesa_glsl_parse_state *state,
 	const char *fmt, ...);
-extern void _mesa_glsl_warning(_mesa_glsl_parse_state *state,
+extern SHADERCOMPILERCOMMON_API void _mesa_glsl_warning(_mesa_glsl_parse_state *state,
 	const char *fmt, ...);
 
-extern void _mesa_glsl_lexer_ctor(struct _mesa_glsl_parse_state *state,
+extern SHADERCOMPILERCOMMON_API void _mesa_glsl_lexer_ctor(struct _mesa_glsl_parse_state *state,
 	const char *string);
 
-extern void _mesa_glsl_lexer_dtor(struct _mesa_glsl_parse_state *state);
+extern SHADERCOMPILERCOMMON_API void _mesa_glsl_lexer_dtor(struct _mesa_glsl_parse_state *state);
 
 union YYSTYPE;
-extern int _mesa_glsl_lex(union YYSTYPE *yylval, YYLTYPE *yylloc,
+extern SHADERCOMPILERCOMMON_API int _mesa_glsl_lex(union YYSTYPE *yylval, YYLTYPE *yylloc,
 	void *scanner);
 
-extern int _mesa_glsl_parse(struct _mesa_glsl_parse_state *);
+extern SHADERCOMPILERCOMMON_API int _mesa_glsl_parse(struct _mesa_glsl_parse_state *);
 
-extern void _mesa_hlsl_lexer_ctor(struct _mesa_glsl_parse_state *state,
+extern SHADERCOMPILERCOMMON_API void _mesa_hlsl_lexer_ctor(struct _mesa_glsl_parse_state *state,
 	const char *string);
 
-extern void _mesa_hlsl_lexer_dtor(struct _mesa_glsl_parse_state *state);
+extern SHADERCOMPILERCOMMON_API void _mesa_hlsl_lexer_dtor(struct _mesa_glsl_parse_state *state);
 
-extern int _mesa_hlsl_lex(union YYSTYPE *yylval, YYLTYPE *yylloc,
+extern SHADERCOMPILERCOMMON_API int _mesa_hlsl_lex(union YYSTYPE *yylval, YYLTYPE *yylloc,
 	void *scanner);
 
-extern int _mesa_hlsl_parse(struct _mesa_glsl_parse_state *);
+extern SHADERCOMPILERCOMMON_API int _mesa_hlsl_parse(struct _mesa_glsl_parse_state *);
 
 
 /**
@@ -489,7 +489,7 @@ extern int _mesa_hlsl_parse(struct _mesa_glsl_parse_state *);
 * If \c name and \c behavior are valid, \c true is returned.  Otherwise
 * \c false is returned.
 */
-extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
+extern SHADERCOMPILERCOMMON_API bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
 	const char *behavior,
 	YYLTYPE *behavior_locp,
 	_mesa_glsl_parse_state *state);
@@ -497,7 +497,7 @@ extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
 /**
 * Get the textual name of the specified shader target
 */
-extern const char * _mesa_glsl_shader_target_name(enum _mesa_glsl_parser_targets target);
+extern SHADERCOMPILERCOMMON_API const char * _mesa_glsl_shader_target_name(enum _mesa_glsl_parser_targets target);
 
 
 #endif /* __cplusplus */
@@ -506,7 +506,7 @@ extern const char * _mesa_glsl_shader_target_name(enum _mesa_glsl_parser_targets
 /*
 * These definitions apply to C and C++
 */
-extern int preprocess(void *ctx, const char **shader, char **info_log);
+extern SHADERCOMPILERCOMMON_API int preprocess(void *ctx, const char **shader, char **info_log);
 
 #define FRAMEBUFFER_FETCH_ES2	"FramebufferFetchES2"
 #define FRAMEBUFFER_FETCH_MRT	"FramebufferFetchMRT"

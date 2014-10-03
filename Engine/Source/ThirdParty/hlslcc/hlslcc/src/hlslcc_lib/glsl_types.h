@@ -111,7 +111,7 @@ enum glsl_outputtopology
 #ifdef __cplusplus
 #include "ralloc.h"
 
-struct glsl_type
+struct SHADERCOMPILERCOMMON_API glsl_type
 {
 	glsl_base_type base_type;
 

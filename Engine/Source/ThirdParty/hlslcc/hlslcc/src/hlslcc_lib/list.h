@@ -72,7 +72,8 @@
 
 #include "ralloc.h"
 
-struct exec_node {
+struct SHADERCOMPILERCOMMON_API exec_node
+{
    struct exec_node *next;
    struct exec_node *prev;
 

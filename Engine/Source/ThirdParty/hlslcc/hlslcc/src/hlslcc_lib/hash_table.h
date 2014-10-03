@@ -39,6 +39,10 @@
 #ifndef HASH_TABLE_H
 #define HASH_TABLE_H
 
+#ifndef SHADERCOMPILERCOMMON_API
+#define SHADERCOMPILERCOMMON_API
+#endif
+
 //@todo-rco: Remove STL!
 #include <string.h>
 #include <stdint.h>
@@ -67,7 +71,7 @@ typedef int (*hash_compare_func_t)(const void *key1, const void *key2);
  * \param hash         Function used to compute hash value of input keys.
  * \param compare      Function used to compare keys.
  */
-extern struct hash_table *hash_table_ctor(unsigned num_buckets,
+extern SHADERCOMPILERCOMMON_API struct hash_table *hash_table_ctor(unsigned num_buckets,
     hash_func_t hash, hash_compare_func_t compare);
 
 
@@ -77,7 +81,7 @@ extern struct hash_table *hash_table_ctor(unsigned num_buckets,
  * \warning
  * This function cannot release memory occupied either by keys or data.
  */
-extern void hash_table_dtor(struct hash_table *ht);
+extern SHADERCOMPILERCOMMON_API void hash_table_dtor(struct hash_table *ht);
 
 
 /**
@@ -85,7 +89,7 @@ extern void hash_table_dtor(struct hash_table *ht);
  *
  * \param ht  Table to be cleared of its entries.
  */
-extern void hash_table_clear(struct hash_table *ht);
+extern SHADERCOMPILERCOMMON_API void hash_table_clear(struct hash_table *ht);
 
 
 /**
@@ -99,7 +103,7 @@ extern void hash_table_clear(struct hash_table *ht);
  * the matching key was added.  If no matching key exists in the table,
  * \c NULL is returned.
  */
-extern void *hash_table_find(struct hash_table *ht, const void *key);
+extern SHADERCOMPILERCOMMON_API void *hash_table_find(struct hash_table *ht, const void *key);
 
 
 /**
@@ -116,7 +120,7 @@ extern void *hash_table_find(struct hash_table *ht, const void *key);
  *
  * \sa hash_table_replace
  */
-extern void hash_table_insert(struct hash_table *ht, void *data,
+extern SHADERCOMPILERCOMMON_API void hash_table_insert(struct hash_table *ht, void *data,
     const void *key);
 
 /**
@@ -129,13 +133,13 @@ extern void hash_table_insert(struct hash_table *ht, void *data,
  *
  * \sa hash_table_insert
  */
-extern void hash_table_replace(struct hash_table *ht, void *data,
+extern SHADERCOMPILERCOMMON_API void hash_table_replace(struct hash_table *ht, void *data,
     const void *key);
 
 /**
  * Remove a specific element from a hash table.
  */
-extern void hash_table_remove(struct hash_table *ht, const void *key);
+extern SHADERCOMPILERCOMMON_API void hash_table_remove(struct hash_table *ht, const void *key);
 
 /**
  * Compute hash value of a string
@@ -148,7 +152,7 @@ extern void hash_table_remove(struct hash_table *ht, const void *key);
  *
  * \sa hash_table_string_compare
  */
-extern unsigned hash_table_string_hash(const void *key);
+extern SHADERCOMPILERCOMMON_API unsigned hash_table_string_hash(const void *key);
 
 
 /**
@@ -172,8 +176,7 @@ extern unsigned hash_table_string_hash(const void *key);
  *
  * \sa hash_table_pointer_compare
  */
-unsigned
-hash_table_pointer_hash(const void *key);
+extern SHADERCOMPILERCOMMON_API unsigned hash_table_pointer_hash(const void *key);
 
 
 /**
@@ -181,21 +184,17 @@ hash_table_pointer_hash(const void *key);
  *
  * \sa hash_table_pointer_hash
  */
-int
-hash_table_pointer_compare(const void *key1, const void *key2);
+extern SHADERCOMPILERCOMMON_API int hash_table_pointer_compare(const void *key1, const void *key2);
 
-void
-hash_table_call_foreach(struct hash_table *ht,
+extern SHADERCOMPILERCOMMON_API void hash_table_call_foreach(struct hash_table *ht,
 			void (*callback)(const void *key,
 					 void *data,
 					 void *closure),
 			void *closure);
 
-struct string_to_uint_map *
-string_to_uint_map_ctor();
+extern SHADERCOMPILERCOMMON_API struct string_to_uint_map * string_to_uint_map_ctor();
 
-void
-string_to_uint_map_dtor(struct string_to_uint_map *);
+extern SHADERCOMPILERCOMMON_API void string_to_uint_map_dtor(struct string_to_uint_map *);
 
 
 /**
@@ -205,7 +204,8 @@ string_to_uint_map_dtor(struct string_to_uint_map *);
  * Because of the way this class interacts with the \c hash_table
  * implementation, values of \c UINT_MAX cannot be stored in the map.
  */
-struct string_to_uint_map {
+struct SHADERCOMPILERCOMMON_API string_to_uint_map
+{
 public:
    string_to_uint_map()
    {

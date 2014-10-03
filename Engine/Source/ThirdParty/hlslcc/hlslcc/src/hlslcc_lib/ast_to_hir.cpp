@@ -1842,7 +1842,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 		}
 		else if (const_index != NULL)
 		{
-			const uint32 idx = const_index->value.i[0];
+			const int32 idx = const_index->value.i[0];
 			const char *type_name;
 			unsigned bound = 0;
 
@@ -1878,14 +1878,14 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			*/
 			if (array->type->is_matrix())
 			{
-				if (array->type->row_type()->vector_elements <= idx)
+				if ((int32)array->type->row_type()->vector_elements <= idx)
 				{
 					bound = array->type->row_type()->vector_elements;
 				}
 			}
 			else if (array->type->is_vector())
 			{
-				if (array->type->vector_elements <= idx)
+				if ((int32)array->type->vector_elements <= idx)
 				{
 					bound = array->type->vector_elements;
 				}
@@ -1893,7 +1893,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			else if (array->type->is_patch())
 			{
 				if ((array->type->patch_size() > 0)
-					&& (array->type->patch_size() <= (int32)idx))
+					&& (array->type->patch_size() <= idx))
 				{
 					bound = array->type->patch_size();
 				}
@@ -1901,7 +1901,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			else
 			{
 				if ((array->type->array_size() > 0)
-					&& (array->type->array_size() <= (int32)idx))
+					&& (array->type->array_size() <= idx))
 				{
 					bound = array->type->array_size();
 				}

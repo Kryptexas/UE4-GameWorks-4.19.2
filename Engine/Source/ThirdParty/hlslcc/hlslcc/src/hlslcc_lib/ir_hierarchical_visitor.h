@@ -80,7 +80,8 @@ enum ir_visitor_status {
  *    http://c2.com/cgi/wiki?HierarchicalVisitorDiscussion
  */
 
-class ir_hierarchical_visitor {
+class SHADERCOMPILERCOMMON_API ir_hierarchical_visitor
+{
 public:
    ir_hierarchical_visitor();
 
