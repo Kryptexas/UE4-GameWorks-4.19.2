@@ -48,6 +48,31 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 		.Padding(0, 0, 0, 6)
 		[
 			SNew(SHorizontalBox)
+			.Visibility(this, &SWidgetDetailsView::GetCategoryAreaVisibility)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0, 0, 6, 0)
+			[
+				SNew(SBox)
+				.WidthOverride(200.0f)
+				.VAlign(VAlign_Center)
+				[
+					SAssignNew(NameTextBox, SEditableTextBox)
+					.SelectAllTextWhenFocused(true)
+					.ToolTipText(LOCTEXT("CategoryToolTip", "Sets the category of the widget"))
+					.HintText(LOCTEXT("Category", "Category"))
+					.Text(this, &SWidgetDetailsView::GetCategoryText)
+					.OnTextCommitted(this, &SWidgetDetailsView::HandleCategoryTextCommitted)
+				]
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 6)
+		[
+			SNew(SHorizontalBox)
 			.Visibility(this, &SWidgetDetailsView::GetNameAreaVisibility)
 
 			+ SHorizontalBox::Slot()
@@ -218,6 +243,50 @@ EVisibility SWidgetDetailsView::GetNameAreaVisibility() const
 	return EVisibility::Collapsed;
 }
 
+EVisibility SWidgetDetailsView::GetCategoryAreaVisibility() const
+{
+	if ( SelectedObjects.Num() == 1 )
+	{
+		UUserWidget* Widget = Cast<UUserWidget>(SelectedObjects[0].Get());
+		if ( Widget && Widget->HasAnyFlags(RF_ClassDefaultObject) )
+		{
+			return EVisibility::Visible;
+		}
+	}
+
+	return EVisibility::Collapsed;
+}
+
+void SWidgetDetailsView::HandleCategoryTextCommitted(const FText& Text, ETextCommit::Type CommitType)
+{
+	if ( SelectedObjects.Num() == 1 && !Text.IsEmptyOrWhitespace() )
+	{
+		if ( UUserWidget* Widget = Cast<UUserWidget>(SelectedObjects[0].Get()) )
+		{
+			UUserWidget* WidgetCDO = Widget->GetClass()->GetDefaultObject<UUserWidget>();
+			WidgetCDO->PaletteCategory = Text;
+
+			// We mark it as structurally modified to ensure that all palettes refresh to move the widget into
+			// the correct new category.
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintEditor.Pin()->GetBlueprintObj());
+		}
+	}
+}
+
+FText SWidgetDetailsView::GetCategoryText() const
+{
+	if ( SelectedObjects.Num() == 1 )
+	{
+		if ( UUserWidget* Widget = Cast<UUserWidget>(SelectedObjects[0].Get()) )
+		{
+			UUserWidget* WidgetCDO = Widget->GetClass()->GetDefaultObject<UUserWidget>();
+			return WidgetCDO->PaletteCategory;
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
 const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 {
 	if ( SelectedObjects.Num() == 1 )
@@ -229,7 +298,7 @@ const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FText SWidgetDetailsView::GetNameText() const

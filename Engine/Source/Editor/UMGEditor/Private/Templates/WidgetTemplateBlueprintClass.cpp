@@ -27,8 +27,17 @@ FWidgetTemplateBlueprintClass::~FWidgetTemplateBlueprintClass()
 
 FText FWidgetTemplateBlueprintClass::GetCategory() const
 {
-	auto DefaultUserWidget = UUserWidget::StaticClass()->GetDefaultObject<UUserWidget>();
-	return DefaultUserWidget->GetPaletteCategory();
+	if ( WidgetClass.Get() )
+	{
+		UUserWidget* DefaultUserWidget = WidgetClass->GetDefaultObject<UUserWidget>();
+		return DefaultUserWidget->GetPaletteCategory();
+	}
+	else
+	{
+		//TODO UMG if the blueprint is unloaded we need to extract it from the asset metadata.
+		auto DefaultUserWidget = UUserWidget::StaticClass()->GetDefaultObject<UUserWidget>();
+		return DefaultUserWidget->GetPaletteCategory();
+	}
 }
 
 UWidget* FWidgetTemplateBlueprintClass::Create(UWidgetTree* Tree)

@@ -28,6 +28,7 @@ UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITORONLY_DATA
 	bUseDesignTimeSize = false;
 	DesignTimeSize = FVector2D(100, 100);
+	PaletteCategory = LOCTEXT("UserCreated", "User Created");
 #endif
 }
 
@@ -683,7 +684,7 @@ const FSlateBrush* UUserWidget::GetEditorIcon()
 
 const FText UUserWidget::GetPaletteCategory()
 {
-	return LOCTEXT("UserCreated", "User Created");
+	return PaletteCategory;
 }
 
 #endif

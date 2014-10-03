@@ -358,6 +358,10 @@ public:
 	UPROPERTY()
 	bool bUseDesignTimeSize;
 
+	/** The category this widget appears in the palette. */
+	UPROPERTY()
+	FText PaletteCategory;
+
 #endif
 
 protected:

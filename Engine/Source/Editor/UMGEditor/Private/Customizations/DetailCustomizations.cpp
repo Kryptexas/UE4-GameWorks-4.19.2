@@ -338,7 +338,7 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 			else
 			{
 				auto& Category = DetailLayout.EditCategory(LayoutCategoryKey);
-				//TODO UMG Hide Category
+				// TODO UMG Hide Category
 			}
 		}
 	}
