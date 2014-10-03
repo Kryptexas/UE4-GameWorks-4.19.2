@@ -6,4 +6,5 @@
 #if PLATFORM_WINDOWS
 #define strdup _strdup
 #endif
+#define register
 #include "hlsl_lexer.inl"

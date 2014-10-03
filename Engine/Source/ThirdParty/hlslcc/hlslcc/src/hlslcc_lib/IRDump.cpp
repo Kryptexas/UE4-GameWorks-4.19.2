@@ -48,8 +48,8 @@
 #endif
 
 DebugPrintVisitor::DebugPrintVisitor(bool bSingleEntry) :
-	Indentation(0),
 	bIRVarEOL(!bSingleEntry),
+	Indentation(0),
 	ID(0),
 	bDumpBuiltInFunctions(false)
 {

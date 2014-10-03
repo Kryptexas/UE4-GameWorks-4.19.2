@@ -1191,9 +1191,9 @@ namespace ArraysToMatrices
 	// Fixes the case where matNxM A[L] is accessed by row since that requires an extra offset/multiply: A[i][r] => A[i * N + r]
 	struct SFixArrays : public ir_hierarchical_visitor
 	{
+		_mesa_glsl_parse_state* ParseState;
 		TArrayReplacedMap& Entries;
 
-		_mesa_glsl_parse_state* ParseState;
 		SFixArrays(_mesa_glsl_parse_state* InParseState, TArrayReplacedMap& InEntries) : ParseState(InParseState), Entries(InEntries) {}
 
 		virtual ir_visitor_status visit_enter(ir_dereference_array* DerefArray)

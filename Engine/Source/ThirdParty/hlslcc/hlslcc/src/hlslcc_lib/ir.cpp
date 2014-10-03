@@ -32,6 +32,7 @@
 #include "glsl_types.h"
 #include "compiler.h"
 
+const ir_constant_data ZeroConstantData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 ir_rvalue::ir_rvalue()
 {

@@ -192,6 +192,7 @@ typedef std::map<SBasicBlock*, struct SLVNVisitor*> TLVNVisitors;
 struct SLVNVisitor : public ir_hierarchical_visitor
 {
 	TLVN LVN;
+	_mesa_glsl_parse_state* ParseState;
 	bool bChanged;
 	struct SArrayPair
 	{
@@ -214,7 +215,6 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 	std::map<ir_texture*, TNumberVector > Textures;
 	std::map<ir_dereference_array*, SArrayPair > Arrays;
 	std::map<ir_swizzle*, SNumber > SwizzleVars;
-	_mesa_glsl_parse_state* ParseState;
 	bool bInLHS;
 
 	SLVNVisitor(_mesa_glsl_parse_state* InParseState) : ParseState(InParseState), bChanged(false), bInLHS(false) {}

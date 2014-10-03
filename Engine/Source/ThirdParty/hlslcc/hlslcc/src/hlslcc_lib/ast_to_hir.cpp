@@ -1579,7 +1579,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			}
 			else if (type->is_integer())
 			{
-				ir_constant_data one_data = {0};
+				ir_constant_data one_data;
 				for (unsigned i = 0; i < 16; ++i)
 				{
 					one_data.u[i] = 1;

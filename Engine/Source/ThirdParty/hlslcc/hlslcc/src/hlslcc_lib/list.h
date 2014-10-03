@@ -102,6 +102,8 @@ struct SHADERCOMPILERCOMMON_API exec_node
       /* empty */
    }
 
+   virtual ~exec_node() {}
+
    const exec_node *get_next() const
    {
       return next;

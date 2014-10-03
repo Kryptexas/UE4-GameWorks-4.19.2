@@ -1919,6 +1919,7 @@ union ir_constant_data
 	bool b[16];
 };
 
+extern const ir_constant_data ZeroConstantData;
 
 class SHADERCOMPILERCOMMON_API ir_constant : public ir_rvalue
 {
