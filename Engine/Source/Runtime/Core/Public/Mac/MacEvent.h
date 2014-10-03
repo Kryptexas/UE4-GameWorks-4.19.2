@@ -45,14 +45,14 @@ public:
 	// Get the NSNotification for this FMacEvent, nil if not an NSNotification.
 	NSNotification* GetNotification(void) const;
 	
-	// Get the FMacWindow for this FMacEvent, may be nullptr if not a window event, or for a non-FMacWindow.
-	TSharedPtr<FMacWindow> GetWindow(void) const;
+	// Get the FCocoaWindow for this FMacEvent, may be nullptr if not a window event, or for a non-FCocoaWindow.
+	FCocoaWindow* GetWindow(void) const;
 	
 	// Get the mouse position for this FMacEvent at the time of posting on the AppKit Main Thread.
 	FVector2D GetMousePosition(void) const;
 	
 private:
-	TSharedPtr<FMacWindow> MacWindow; // The retained UE4 window for this event, or nullptr
+	FCocoaWindow* CocoaWindow; // The retained window for this event, or nullptr
 	NSObject* EventData; // The retained NSEvent or NSNotification for this event or nil.
 	FVector2D MousePosition; // The mouse position for the event in UE4 coordinates.
 };
