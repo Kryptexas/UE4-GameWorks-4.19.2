@@ -1503,11 +1503,11 @@ struct FStat_##StatName\
 	#define SCOPE_CYCLE_COUNTER_GUARD
 #endif // UE_BUILD_DEBUG
 
-#define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,StatId,GroupId) \
+#define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,Stat,GroupId) \
 	SCOPE_CYCLE_COUNTER_GUARD \
-	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
-	static DEFINE_STAT(StatId) \
-	FScopeCycleCounter CycleCount_##StatId(GET_STATID(StatId));
+	DECLARE_STAT(CounterName,Stat,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
+	static DEFINE_STAT(Stat) \
+	FScopeCycleCounter CycleCount_##Stat(GET_STATID(Stat));
 
 #define QUICK_SCOPE_CYCLE_COUNTER(Stat) \
 	SCOPE_CYCLE_COUNTER_GUARD \
