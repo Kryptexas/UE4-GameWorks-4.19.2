@@ -781,7 +781,8 @@ void SetupCopyIndirectArgumentsCS(
 {
 	uint NumRecords = (1 - TrimFraction) * DrawParameters[1];
 
-	RWDispatchParameters[0] = (NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE;
+	// Make sure we spawn at least one group so RWScatterDrawParameters gets written to
+	RWDispatchParameters[0] = max((NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE, 1);
 	RWDispatchParameters[1] = 1;
 	RWDispatchParameters[2] = 1;
 }
