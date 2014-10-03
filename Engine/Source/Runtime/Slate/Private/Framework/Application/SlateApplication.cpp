@@ -3486,6 +3486,9 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 		FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex());
 		if ( ensureMsg(MouseCaptorPath.Widgets.Num() > 0, TEXT("A window had a widget with mouse capture. That entire window has been dismissed before the mouse up could be processed.")) )
 		{
+#if PLATFORM_MAC
+			NSWindow* ActiveNativeWindow = [NSApp keyWindow];
+#endif
 			FArrangedWidget& MouseCaptorWidget = MouseCaptorPath.Widgets.Last();
 			MouseEvent.SetEventPath(MouseCaptorPath);
 
@@ -3503,8 +3506,9 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 			}
 			ProcessReply(MouseCaptorPath, Reply, &MouseCaptorPath, &MouseEvent);
 #if PLATFORM_MAC
+			// Activate a window under the mouse if it's inactive and mouse up didn't bring any window to front
 			TSharedPtr<SWindow> ActiveWindow = GetActiveTopLevelWindow();
-			if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && MouseCaptorPath.TopLevelWindow.IsValid() && ActiveWindow != MouseCaptorPath.TopLevelWindow)
+			if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && MouseCaptorPath.TopLevelWindow.IsValid() && ActiveWindow != MouseCaptorPath.TopLevelWindow && ActiveNativeWindow == [NSApp keyWindow])
 			{
 				MouseCaptorPath.TopLevelWindow->BringToFront(true);
 			}
