@@ -419,7 +419,7 @@ bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform Tar
 								CurrentPlatform == SP_PCD3D_SM4 ||
 								CurrentPlatform == SP_PCD3D_ES2;
 
-		bFeatureLevelCompatible = bFeatureLevelCompatible && bIsCurrentPlatformD3D && bIsTargetD3D;
+		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D);
 	}
 
 	return bFeatureLevelCompatible;

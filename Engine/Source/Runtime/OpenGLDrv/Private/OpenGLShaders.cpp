@@ -1465,6 +1465,9 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 
 		FOpenGLLinkedProgramConfiguration Config;
 
+		check(VertexShader);
+		check(PixelShader);
+
 		// Fill-in the configuration
 		Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings = VertexShader->Bindings;
 		Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource = VertexShader->Resource;
