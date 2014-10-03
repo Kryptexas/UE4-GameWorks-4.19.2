@@ -256,12 +256,6 @@ private:
 	/** Function to show/hide grid in the viewport */
 	void OnShowGrid();
 
-	/** Function to show/hide the origin highlight */
-	void OnHighlightOrigin();
-
-	/** Function to query whether the origin highlighting is being displayed */
-	bool IsHighlightingOrigin() const;
-
 	/** Function to show/hide floor in the viewport */
 	void OnShowFloor();
 

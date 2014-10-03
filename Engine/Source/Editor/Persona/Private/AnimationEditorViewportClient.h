@@ -95,12 +95,6 @@ public:
 	/** Function to check whether grid is displayed or not */
 	bool IsShowingGrid() const;
 
-	/** Function to show/hide grid in the viewport */
-	void OnToggleHighlightOrigin();
-
-	/** Function to check whether grid is displayed or not */
-	bool IsHighlightingOrigin() const;
-
 	/** Function to show/hide floor in the viewport */
 	void OnToggleShowFloor();
 

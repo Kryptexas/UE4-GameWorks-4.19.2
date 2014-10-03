@@ -675,13 +675,6 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingGrid));
 
-	// Highlight origin should be disabled if the grid isn't showing
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.HighlightOrigin,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnHighlightOrigin),
-		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingGrid),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsHighlightingOrigin));
-
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ToggleFloor,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowFloor),
@@ -912,18 +905,6 @@ bool SAnimationEditorViewportTabBody::IsShowingGrid() const
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 	return AnimViewportClient->IsShowingGrid();
-}
-
-void SAnimationEditorViewportTabBody::OnHighlightOrigin()
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->OnToggleHighlightOrigin();
-}
-
-bool SAnimationEditorViewportTabBody::IsHighlightingOrigin() const
-{
-	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	return AnimViewportClient->IsHighlightingOrigin();
 }
 
 void SAnimationEditorViewportTabBody::OnShowFloor()

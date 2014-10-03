@@ -551,7 +551,6 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.BeginSection("AnimViewportGrid", LOCTEXT("Viewport_GridLabel", "Grid"));
 	{
 		MenuBuilder.AddMenuEntry(Actions.ToggleGrid);
-		MenuBuilder.AddMenuEntry(Actions.HighlightOrigin);
 	}
 	MenuBuilder.EndSection();
 

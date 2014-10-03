@@ -279,18 +279,6 @@ bool FAnimationViewportClient::IsShowingGrid() const
 	return FEditorViewportClient::IsSetShowGridChecked();
 }
 
-void FAnimationViewportClient::OnToggleHighlightOrigin()
-{
-	DrawHelper.AxesLineThickness = 1.0f - DrawHelper.AxesLineThickness;
-
-	ConfigOption->SetHighlightOrigin( DrawHelper.AxesLineThickness != 0.0f );
-}
-
-bool FAnimationViewportClient::IsHighlightingOrigin() const
-{
-	return ( DrawHelper.AxesLineThickness != 0.0f );
-}
-
 void FAnimationViewportClient::OnToggleShowFloor()
 {
 	if (EditorFloorComp)
