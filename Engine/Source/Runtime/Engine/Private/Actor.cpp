@@ -2001,6 +2001,7 @@ const TArray<UActorComponent*>& AActor::GetReplicatedComponents() const
 
 void AActor::UpdateReplicatedComponent(UActorComponent* Component)
 {
+	check(Component->GetOwner() == this);
 	if (Component->GetIsReplicated())
 	{
 		ReplicatedComponents.AddUnique(Component);
