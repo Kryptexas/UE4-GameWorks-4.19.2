@@ -171,19 +171,24 @@ public:
 	bool StartTravel(UWorld* InCurrentWorld, const FURL& InURL, const FGuid& InGuid);
 
 	/** @return whether a transition is already in progress */
-	FORCEINLINE bool IsInTransition()
+	FORCEINLINE bool IsInTransition() const
 	{
 		return bTransitionInProgress;
 	}
 	/** @return if current transition has switched to the default map; returns false if no transition is in progress */
-	FORCEINLINE bool HasSwitchedToDefaultMap()
+	FORCEINLINE bool HasSwitchedToDefaultMap() const
 	{
 		return IsInTransition() && bSwitchedToDefaultMap;
 	}
 
-	inline FString GetDestinationMapName()
+	inline FString GetDestinationMapName() const
 	{
 		return (IsInTransition() ? PendingTravelURL.Map : TEXT(""));
+	}
+
+	inline const UWorld* GetLoadedWorld() const
+	{
+		return LoadedWorld;
 	}
 
 	/** cancels transition in progress */

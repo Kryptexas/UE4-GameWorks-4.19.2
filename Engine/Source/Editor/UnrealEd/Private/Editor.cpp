@@ -6852,10 +6852,17 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 			bool ValidWorld = false;
 			for (int32 idx=0; idx < WorldList.Num(); ++idx)
 			{
-				if (WorldList[idx].World())
+				FWorldContext& WorldContext = WorldList[idx];
+				if (World == WorldContext.SeamlessTravelHandler.GetLoadedWorld())
+				{
+					// World valid, but not loaded yet
+					ValidWorld = true;
+					break;
+				}
+				else if (WorldContext.World())
 				{
 					TArray<UWorld*> OtherWorlds;
-					EditorLevelUtils::GetWorlds(WorldList[idx].World(), OtherWorlds, true, false);
+					EditorLevelUtils::GetWorlds(WorldContext.World(), OtherWorlds, true, false);
 
 					if (OtherWorlds.Contains(World))
 					{
