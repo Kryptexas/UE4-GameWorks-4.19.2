@@ -41,7 +41,7 @@ UAbilitySystemComponent::UAbilitySystemComponent(const class FPostConstructIniti
 	ActiveGameplayEffects.Owner = this;
 	ActiveGameplayCues.Owner = this;
 
-	SetIsReplicated(true);
+	bReplicates = true;
 
 	UserAbilityActivationInhibited = false;
 }
