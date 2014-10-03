@@ -407,42 +407,6 @@ FName::FName( EName HardcodedIndex, const TCHAR* Name )
 }
 
 /**
- * Comparision operator.
- *
- * @param	Other	String to compare this name to
- * @return true if name matches the string, false otherwise
- */
-bool FName::operator==( const TCHAR* Other ) const
-{
-	// Find name entry associated with this FName.
-	check( Other );
-	const FNameEntry* const Entry = GetComparisonNameEntry();
-
-	// Temporary buffer to hold split name in case passed in name is of Name_Number format.
-	WIDECHAR TempBuffer[NAME_SIZE];
-	int32 InNumber	= NAME_NO_NUMBER_INTERNAL;
-	int32 TempNumber	= NAME_NO_NUMBER_INTERNAL;
-
-	// Check whether we need to split the passed in string into name and number portion.
-	auto           WideOther    = StringCast<WIDECHAR>(Other);
-	const WIDECHAR* WideOtherPtr = WideOther.Get();
-	if( SplitNameWithCheck( WideOtherPtr, TempBuffer, ARRAY_COUNT(TempBuffer), TempNumber) )
-	{
-		WideOtherPtr	= TempBuffer;
-		InNumber	= NAME_EXTERNAL_TO_INTERNAL(TempNumber);
-	}
-
-	// Report a match if both the number and string portion match.
-	bool bAreNamesMatching = false;
-	if( InNumber == GetNumber() && !FCStringWide::Stricmp( WideOtherPtr, Entry->IsWide() ? Entry->GetWideName() : StringCast<WIDECHAR>(Entry->GetAnsiName()).Get() ) )
-	{
-		bAreNamesMatching = true;
-	}
-
-	return bAreNamesMatching;
-}
-
-/**
  * Compares name to passed in one. Sort is alphabetical ascending.
  *
  * @param	Other	Name to compare this against

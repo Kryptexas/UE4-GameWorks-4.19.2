@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Char.h"
+#include "GenericPlatformStricmp.h"
 
 /**
 * Microsoft specific implementation 
@@ -66,20 +67,6 @@ struct FMicrosoftPlatformString : public FGenericPlatformString
 	static FORCEINLINE int32 Strncmp( const WIDECHAR* String1, const WIDECHAR* String2, SIZE_T Count )
 	{
 		return _tcsncmp( String1, String2, Count );
-	}
-
-	static FORCEINLINE int32 Stricmp( const WIDECHAR* String1, const WIDECHAR* String2 )
-	{
-		// walk the strings, comparing them case insensitively
-		for (; *String1 || *String2; String1++, String2++)
-		{
-			WIDECHAR Char1 = TChar<WIDECHAR>::ToLower(*String1), Char2 = TChar<WIDECHAR>::ToLower(*String2);
-			if (Char1 != Char2)
-			{
-				return Char1 - Char2;
-			}
-		}
-		return 0;
 	}
 
 	static FORCEINLINE int32 Strnicmp( const WIDECHAR* String1, const WIDECHAR* String2, SIZE_T Count )
@@ -206,9 +193,37 @@ struct FMicrosoftPlatformString : public FGenericPlatformString
 		return strncmp( String1, String2, Count );
 	}
 
-	static FORCEINLINE int32 Stricmp( const ANSICHAR* String1, const ANSICHAR* String2 )
+	/**
+	 * Compares two strings case-insensitive.
+	 *
+	 * Specialized version for ANSICHAR types.
+	 *
+	 * @param String1 First string to compare.
+	 * @param String2 Second string to compare.
+	 *
+	 * @returns Zero if both strings are equal. Greater than zero if first
+	 *          string is greater than the second one. Less than zero
+	 *          otherwise.
+	 */
+	static FORCEINLINE int32 Stricmp(const ANSICHAR* String1, const ANSICHAR* String2)
 	{
-		return _stricmp( String1, String2 );
+		return _stricmp(String1, String2);
+	}
+
+	/**
+	 * Compares two strings case-insensitive.
+	 *
+	 * @param String1 First string to compare.
+	 * @param String2 Second string to compare.
+	 *
+	 * @returns Zero if both strings are equal. Greater than zero if first
+	 *          string is greater than the second one. Less than zero
+	 *          otherwise.
+	 */
+	template <typename CharType1, typename CharType2>
+	static FORCEINLINE int32 Stricmp(const CharType1* String1, const CharType2* String2)
+	{
+		return FGenericPlatformStricmp::Stricmp(String1, String2);
 	}
 
 	static FORCEINLINE int32 Strnicmp( const ANSICHAR* String1, const ANSICHAR* String2, SIZE_T Count )

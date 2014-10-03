@@ -770,25 +770,27 @@ public:
 	/**
 	 * Lexicographically test whether this string is <= the Other given string
 	 * 
-	 * @param Other array of TCHAR to compare against
+	 * @param Other array of CharType to compare against
 	 * @return true if length of this string is lexicographically <= the other, otherwise false
 	 * @note case insensitive
 	 */
-	FORCEINLINE bool operator<=( const TCHAR* Other ) const
+	template <typename CharType>
+	FORCEINLINE bool operator<=(const CharType* Other) const
 	{
-		return !(FCString::Stricmp( **this, Other ) > 0);
+		return !(FPlatformString::Stricmp(**this, Other) > 0);
 	}
 
 	/**
 	 * Lexicographically test whether this string is < the Other given string
 	 * 
-	 * @param Other array of TCHAR to compare against
+	 * @param Other array of CharType to compare against
 	 * @return true if length of this string is lexicographically < the other, otherwise false
 	 * @note case insensitive
 	 */
-	FORCEINLINE bool operator<( const TCHAR* Other ) const
+	template <typename CharType>
+	FORCEINLINE bool operator<(const CharType* Other) const
 	{
-		return FCString::Stricmp( **this, Other ) < 0;
+		return FPlatformString::Stricmp(**this, Other) < 0;
 	}
 
 	/**
@@ -806,25 +808,27 @@ public:
 	/**
 	 * Lexicographically test whether this string is >= the Other given string
 	 * 
-	 * @param Other array of TCHAR to compare against
+	 * @param Other array of CharType to compare against
 	 * @return true if length of this string is lexicographically >= the other, otherwise false
 	 * @note case insensitive
 	 */
-	FORCEINLINE bool operator>=( const TCHAR* Other ) const
+	template <typename CharType>
+	FORCEINLINE bool operator>=(const CharType* Other) const
 	{
-		return !(FCString::Stricmp( **this, Other ) < 0);
+		return !(FPlatformString::Stricmp(**this, Other) < 0);
 	}
 
 	/**
 	 * Lexicographically test whether this string is > the Other given string
 	 * 
-	 * @param Other array of TCHAR to compare against
+	 * @param Other array of CharType to compare against
 	 * @return true if length of this string is lexicographically > the other, otherwise false
 	 * @note case insensitive
 	 */
-	FORCEINLINE bool operator>( const TCHAR* Other ) const
+	template <typename CharType>
+	FORCEINLINE bool operator>(const CharType* Other) const
 	{
-		return FCString::Stricmp( **this, Other ) > 0;
+		return FPlatformString::Stricmp(**this, Other) > 0;
 	}
 
 	/**
@@ -842,13 +846,14 @@ public:
 	/**
 	 * Lexicographically test whether this string is equivalent to the Other given string
 	 * 
-	 * @param Other array of TCHAR to compare against
+	 * @param Other array of CharType to compare against
 	 * @return true if length of this string is lexicographically equivalent to the other, otherwise false
 	 * @note case insensitive
 	 */
-	FORCEINLINE bool operator==( const TCHAR* Other ) const
+	template <typename CharType>
+	FORCEINLINE bool operator==(const CharType* Other) const
 	{
-		return FCString::Stricmp( **this, Other )==0;
+		return FPlatformString::Stricmp(**this, Other) == 0;
 	}
 
 	/**
@@ -866,13 +871,14 @@ public:
 	/**
 	 * Lexicographically test whether this string is not equivalent to the Other given string
 	 * 
-	 * @param Other array of TCHAR to compare against
+	 * @param Other array of CharType to compare against
 	 * @return true if length of this string is lexicographically not equivalent to the other, otherwise false
 	 * @note case insensitive
 	 */
-	FORCEINLINE bool operator!=( const TCHAR* Other ) const
+	template <typename CharType>
+	FORCEINLINE bool operator!=(const CharType* Other) const
 	{
-		return FCString::Stricmp( **this, Other )!=0;
+		return FPlatformString::Stricmp(**this, Other) != 0;
 	}
 
 	/**

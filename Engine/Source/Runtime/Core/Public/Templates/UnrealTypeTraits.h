@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include "AssertionMacros.h"
+#include "Misc/OutputDevice.h"
+
 /*-----------------------------------------------------------------------------
  * Macros to abstract the presence of certain compiler intrinsic type traits 
  -----------------------------------------------------------------------------*/
@@ -93,6 +96,14 @@ template<typename T> struct TIsArithmeticType
 { 
 	enum { Value = TIsIntegralType<T>::Value || TIsFloatType<T>::Value } ;
 };
+
+/**
+ * TIsSame
+ *
+ * Unreal implementation of std::is_same trait.
+ */
+template<typename A, typename B>	struct TIsSame			{ enum { Value = false	}; };
+template<typename T>				struct TIsSame<T, T>	{ enum { Value = true	}; };
 
 /**
  * TIsCharType
