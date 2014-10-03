@@ -275,7 +275,7 @@ const FTextureLODSettings& FAndroidTargetPlatform<TPlatformProperties>::GetTextu
 
 
 template<class TPlatformProperties>
-FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( class USoundWave* Wave ) const
+FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( const class USoundWave* Wave ) const
 {
 	static bool formatRead = false;
 	static FName NAME_FORMAT;

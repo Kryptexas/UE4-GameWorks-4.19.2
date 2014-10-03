@@ -817,7 +817,6 @@ public:
 	FMaterial():
 		RenderingThreadShaderMap(NULL),
 		Id_DEPRECATED(0,0,0,0),
-		OutstandingCompileShaderMapId(INDEX_NONE),
 		QualityLevel(EMaterialQualityLevel::High),
 		bQualityLevelHasDifferentNodes(false),
 		FeatureLevel(ERHIFeatureLevel::SM4),
@@ -940,6 +939,13 @@ public:
 	 */
 	ENGINE_API void FinishCompilation();
 
+	/**
+	 * Checks if the compilation for this shader is finished
+	 * 
+	 * @return returns true if compilation is complete false otherwise
+	 */
+	ENGINE_API bool IsCompilationFinished();
+
 	EMaterialQualityLevel::Type GetQualityLevel() const 
 	{
 		return QualityLevel;
@@ -997,9 +1003,10 @@ public:
 	/** Note: SetGameThreadShaderMap must also be called with the same value, but from the game thread. */
 	ENGINE_API void SetRenderingThreadShaderMap(FMaterialShaderMap* InMaterialShaderMap);
 
-	void ClearOutstandingCompileId()
+	void RemoveOutstandingCompileId(const int32 OldOutstandingCompileShaderMapId )
 	{
-		OutstandingCompileShaderMapId = INDEX_NONE;
+		OutstandingCompileShaderMapIds.Remove( OldOutstandingCompileShaderMapId );
+		// UE_LOG(LogMaterial, Display, TEXT("Removing compile shader map id %d"), OldOutstandingCompileShaderMapId);
 	}
 
 	void AddReferencedObjects(FReferenceCollector& Collector);
@@ -1122,7 +1129,7 @@ private:
 	 * Contains the compiling id of this shader map when it is being compiled asynchronously. 
 	 * This can be used to access the shader map during async compiling, since GameThreadShaderMap will not have been set yet.
 	 */
-	int32 OutstandingCompileShaderMapId;
+	TArray<int32, TInlineAllocator<1> > OutstandingCompileShaderMapIds;
 
 	/** Quality level that this material is representing. */
 	EMaterialQualityLevel::Type QualityLevel;

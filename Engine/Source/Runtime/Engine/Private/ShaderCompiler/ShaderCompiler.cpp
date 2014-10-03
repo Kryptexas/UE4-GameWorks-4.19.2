@@ -1408,6 +1408,13 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 				bShaderMapComplete = ShaderMap->ProcessCompilationResults(ResultArray, CompileResults.FinalizeJobIndex, TimeBudget);
 			}
 
+			for ( auto& Material : MaterialsArray )
+			{
+				Material->RemoveOutstandingCompileId( ShaderMap->CompilingId );
+			}
+
+			UE_LOG(LogShaderCompilers, Display, TEXT("Received shader map compiling id %d"), ShaderMap->CompilingId );
+
 			if (bShaderMapComplete)
 			{
 				ShaderMap->bCompiledSuccessfully = bSuccess;
@@ -1444,6 +1451,8 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 
 						// Propagate error messages
 						CurrentMaterial.CompileErrors = Errors;
+
+						MaterialsToUpdate.Add( &CurrentMaterial, NULL );
 
 						if (CurrentMaterial.IsDefaultMaterial())
 						{
@@ -1510,7 +1519,6 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			check(!ShaderMap || ShaderMap->IsValidForRendering());
 
 			Material->SetGameThreadShaderMap(It.Value());
-			Material->ClearOutstandingCompileId();
 		}
 
 		const TSet<FSceneInterface*>& AllocatedScenes = GetRendererModule().GetAllocatedScenes();
@@ -1901,7 +1909,7 @@ void FShaderCompilingManager::FinishAllCompilation()
 	UE_LOG(LogShaders, Log, TEXT("FinishAllCompilation %.3fs"), (float)(EndTime - StartTime));
 }
 
-void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion)
+void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion, bool bProcessShaderMapNotForRendering)
 {
 	if (bAllowAsynchronousShaderCompiling)
 	{
@@ -1938,7 +1946,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 
 					if (Results.FinishedJobs.Num() == Results.NumJobsQueued 
 						// Shader maps that don't want to be applied can only be processed by a call to FinishCompilation
-						&& Results.bApplyCompletedShaderMapForRendering)
+						&& (Results.bApplyCompletedShaderMapForRendering || bProcessShaderMapNotForRendering) )
 					{
 						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());

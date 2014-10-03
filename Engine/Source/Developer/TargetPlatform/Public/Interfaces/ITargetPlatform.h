@@ -347,7 +347,7 @@ public:
 	 * @param Wave The sound node wave to get the format for.
 	 * @return Name of the wave format.
 	 */
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const = 0;
+	virtual FName GetWaveFormat( const class USoundWave* Wave ) const = 0;
 
 	/**
 	 * Gets the texture LOD settings used by this platform.

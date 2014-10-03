@@ -272,6 +272,7 @@ public:
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void PostInitProperties() override;	
 	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
+	virtual bool IsCachedCookedPlatformDataLoaded(  const ITargetPlatform* TargetPlatform ) override;
 	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) override;
 	virtual void ClearAllCachedCookedPlatformData() override;
 	virtual void Serialize(FArchive& Ar) override;

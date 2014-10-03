@@ -231,7 +231,7 @@ const struct FTextureLODSettings& FHTML5TargetPlatform::GetTextureLODSettings( )
 }
 
 
-FName FHTML5TargetPlatform::GetWaveFormat( USoundWave* Wave ) const
+FName FHTML5TargetPlatform::GetWaveFormat( const USoundWave* Wave ) const
 {
 	static FName NAME_OGG(TEXT("OGG"));
 	return NAME_OGG;

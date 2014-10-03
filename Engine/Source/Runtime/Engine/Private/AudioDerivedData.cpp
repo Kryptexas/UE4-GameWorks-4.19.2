@@ -414,6 +414,11 @@ void FStreamedAudioPlatformData::Cache(USoundWave& InSoundWave, FName AudioForma
 	}
 }
 
+bool FStreamedAudioPlatformData::IsFinishedCache() const
+{
+	return AsyncTask == NULL ? true : false;
+}
+
 void FStreamedAudioPlatformData::FinishCache()
 {
 	if (AsyncTask)
@@ -1003,6 +1008,28 @@ void USoundWave::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 	}
 
 	Super::BeginCacheForCookedPlatformData(TargetPlatform);
+}
+
+bool USoundWave::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) 
+{
+	if (TargetPlatform->SupportsFeature(ETargetPlatformFeatures::AudioStreaming) && IsStreaming())
+	{
+		// Retrieve format to cache for targetplatform.
+		FName PlatformFormat = TargetPlatform->GetWaveFormat(this);
+
+		// find format data by comparing derived data keys.
+		FString DerivedDataKey;
+		GetStreamedAudioDerivedDataKeySuffix(*this, PlatformFormat, DerivedDataKey);
+
+		FStreamedAudioPlatformData *PlatformData = CookedPlatformData.FindRef(DerivedDataKey);
+		if (PlatformData == NULL)
+		{
+			// we havne't called begincache
+			return false;
+		}
+		return PlatformData->IsFinishedCache();
+	}
+	return true; 
 }
 
 void USoundWave::FinishCachePlatformData()

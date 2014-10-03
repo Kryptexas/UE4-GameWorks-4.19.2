@@ -1558,6 +1558,23 @@ void UMaterialInstance::BeginCacheForCookedPlatformData( const ITargetPlatform *
 	}
 }
 
+bool UMaterialInstance::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) 
+{
+	const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
+	if ( CachedMaterialResourcesForPlatform != NULL )
+	{
+		for ( const auto& MaterialResource : *CachedMaterialResourcesForPlatform )
+		{
+			if ( MaterialResource->IsCompilationFinished() == false )
+				return false;
+		}
+
+		return true;
+	}
+	return true; // this happens if we haven't started caching (begincache hasn't been called yet)
+}
+
+
 void UMaterialInstance::ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );

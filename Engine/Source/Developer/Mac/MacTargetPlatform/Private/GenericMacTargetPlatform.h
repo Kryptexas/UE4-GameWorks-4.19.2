@@ -136,7 +136,7 @@ return TSuper::SupportsFeature(Feature);
 	}
 
 
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const override
+	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override
 	{
 		static FName NAME_OGG(TEXT("OGG"));
 

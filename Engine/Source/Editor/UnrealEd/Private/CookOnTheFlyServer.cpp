@@ -29,12 +29,13 @@
 #include "TokenizedMessage.h"
 #include "MessageLog.h"
 
-
+// shader compiler processAsyncResults
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookOnTheFly, Log, All);
 
 #define DEBUG_COOKONTHEFLY 0
-#define OUTPUT_TIMING 0
+#define OUTPUT_TIMING 1
 
 #if OUTPUT_TIMING
 
@@ -779,12 +780,34 @@ void UCookOnTheFlyServer::GenerateManifestInfo( UPackage* Package, const TArray<
 	}
 }
 
+bool UCookOnTheFlyServer::IsRealtimeMode()
+{
+	return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookByTheBook;
+}
 
 uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackageCount )
 {
-	double StartTime = FPlatformTime::Seconds();
-	uint32 Result = 0;
+	struct FCookerTimer
+	{
+		const bool bIsRealtimeMode;
+		const double StartTime;
+		const float &TimeSlice;
+		FCookerTimer(const float &InTimeSlice, bool bInIsRealtimeMode ) : 
+			bIsRealtimeMode( bInIsRealtimeMode), StartTime(FPlatformTime::Seconds()), TimeSlice(InTimeSlice)
+		{
+		}
+		double GetTimeTillNow()
+		{
+			return FPlatformTime::Seconds() - StartTime;
+		}
+		bool IsTimeUp()
+		{
+			return (FPlatformTime::Seconds() - StartTime) > TimeSlice && bIsRealtimeMode;
+		}
+	};
+	FCookerTimer Timer(TimeSlice, IsRealtimeMode());
 
+	uint32 Result = 0;
 	// This is all the target platforms which we needed to process requests for this iteration
 	// we use this in the unsolicited packages processing below
 	TArray<FName> AllTargetPlatformNames;
@@ -863,7 +886,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		
 		if ( bShouldCook ) // if we should cook the package then cook it otherwise add it to the list of already cooked packages below
 		{
-			FString PackageName;	
+			SCOPE_TIMER(AllOfLoadPackage);
+
+			FString PackageName;
 			UPackage *Package = NULL;
 			if ( FPackageName::TryConvertFilenameToLongPackageName(BuildFilename, PackageName) )
 			{
@@ -998,6 +1023,55 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			GRedirectCollector.ResolveStringAssetReference();
 		}
 
+
+		bool bIsAllDataCached = true;
+		if ( PackagesToSave.Num() )
+		{
+			SCOPE_TIMER(CallBeginCacheForCookedPlatformData);
+			// cache the resources for this package for each platform
+			ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+			TArray<UObject*> ObjectsInPackage;
+			GetObjectsWithOuter( PackagesToSave[0], ObjectsInPackage );
+			for ( const auto& TargetPlatformName : AllTargetPlatformNames )
+			{
+				const ITargetPlatform* TargetPlatform = TPM.FindTargetPlatform( TargetPlatformName.ToString() );
+				
+				for ( const auto& Obj : ObjectsInPackage )
+				{
+					if ( Timer.IsTimeUp() && IsRealtimeMode() )
+					{
+						bIsAllDataCached = false;
+						break;
+					}
+
+					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
+					if ( Obj->IsCachedCookedPlatformDataLoaded(TargetPlatform) == false )
+					{
+						bIsAllDataCached = false;
+						break;
+					}
+				}
+
+				if ( bIsAllDataCached == false )
+					break;
+			}
+
+			if ( !bIsAllDataCached )
+			{
+				GShaderCompilingManager->ProcessAsyncResults(true, false, true);
+			}
+		}
+
+		if ( IsRealtimeMode() )
+		{
+			if ( bIsAllDataCached == false )
+			{
+				// reque the current task and process it next tick
+				CookRequests.EnqueueUnique(ToBuild, true);
+				break;
+			}
+		}
+
 		int32 FirstUnsolicitedPackage = PackagesToSave.Num();
 
 		// generate a list of other packages which were loaded with this one
@@ -1084,7 +1158,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 
-
 		{
 			SCOPE_TIMER(GenerateManifestInfo);
 			// update manifest with cooked package info
@@ -1109,7 +1182,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						bShouldFinishTick = true;
 					}
 
-					if ( (FPlatformTime::Seconds() - StartTime) > TimeSlice)
+					if ( Timer.IsTimeUp() )
 					{
 						bShouldFinishTick = true;
 						// our timeslice is up
@@ -1237,7 +1310,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 		}*/
 
-		if ( (FPlatformTime::Seconds() - StartTime) > TimeSlice)
+		if ( Timer.IsTimeUp() )
 		{
 			break;
 		}
@@ -1247,7 +1320,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 	if ( CookByTheBookOptions )
 	{
-		CookByTheBookOptions->CookTime += FPlatformTime::Seconds() - StartTime;
+		CookByTheBookOptions->CookTime += Timer.GetTimeTillNow();
 	}
 
 
@@ -2068,8 +2141,8 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 	}
 
 	CookByTheBookOptions->LastGCItems.Empty();
-
-	UE_LOG(LogCookOnTheFly, Display, TEXT("Cook by the book total time %fs"), CookByTheBookOptions->CookTime);
+	const float TotalCookTime = (float)(FPlatformTime::Seconds() - CookByTheBookOptions->CookStartTime);
+	UE_LOG(LogCookOnTheFly, Display, TEXT("Cook by the book total time in tick %fs total time %f"), CookByTheBookOptions->CookTime, TotalCookTime);
 
 	CookByTheBookOptions->bRunning = false;
 }
@@ -2150,6 +2223,7 @@ void UCookOnTheFlyServer::StartCookByTheBook(const TArray<ITargetPlatform*>& Tar
 	CookByTheBookOptions->bRunning = true;
 	CookByTheBookOptions->bCancel = false;
 	CookByTheBookOptions->CookTime = 0.0f;
+	CookByTheBookOptions->CookStartTime = FPlatformTime::Seconds();
 
 	bool bCookAll = false;
 	bool bMapsOnly = false;

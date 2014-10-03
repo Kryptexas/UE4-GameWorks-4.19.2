@@ -1473,6 +1473,37 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 	}
 }
 
+bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) 
+{ 
+	const TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
+	if ( CookedPlatformDataPtr == NULL )
+		return true; // we should always have cookedplatformDataPtr in the case of WITH_EDITOR
+
+	FTextureBuildSettings BuildSettings;
+	TArray<FName> PlatformFormats;
+	TArray<FTexturePlatformData*> PlatformDataToSerialize;
+
+	GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), BuildSettings);
+	TargetPlatform->GetTextureFormats(this, PlatformFormats);
+
+	for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); FormatIndex++)
+	{
+		FString DerivedDataKey;
+		BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
+		GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
+
+		FTexturePlatformData *PlatformData= (*CookedPlatformDataPtr).FindRef(DerivedDataKey);
+
+		if (PlatformData)
+		{
+			if ( (PlatformData->AsyncTask != NULL) && ( PlatformData->AsyncTask->IsWorkDone() == false ) )
+				return false;
+		}
+	}
+	// if we get here all our stuff is cached :)
+	return true;
+}
+
 bool UTexture::IsAsyncCacheComplete()
 {
 	bool bComplete = true;
@@ -1485,8 +1516,6 @@ bool UTexture::IsAsyncCacheComplete()
 			bComplete &= (RunningPlatformData->AsyncTask == NULL) || RunningPlatformData->AsyncTask->IsWorkDone();
 		}
 	}
-
-	
 
 	TMap<FString,FTexturePlatformData*>* CookedPlatformDataPtr = GetCookedPlatformData();
 	if (CookedPlatformDataPtr)

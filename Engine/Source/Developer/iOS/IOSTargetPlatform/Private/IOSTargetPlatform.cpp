@@ -435,7 +435,7 @@ const FTextureLODSettings& FIOSTargetPlatform::GetTextureLODSettings() const
 }
 
 
-FName FIOSTargetPlatform::GetWaveFormat( class USoundWave* Wave ) const
+FName FIOSTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 {
 	static FName NAME_ADPCM(TEXT("ADPCM"));
 	return NAME_ADPCM;

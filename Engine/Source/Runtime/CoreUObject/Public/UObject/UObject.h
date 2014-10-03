@@ -568,14 +568,14 @@ public:
 	 * 
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
-	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform* TargetPlatform ) {  }
 
 	/**
 	 * Clears cached cooked platform data for specific platform
 	 * 
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
-	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+	virtual void ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform ) {  }
 
 	/**
 	 * Clear all cached cooked platform data
@@ -583,6 +583,13 @@ public:
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
 	virtual void ClearAllCachedCookedPlatformData() { }
+
+	/**
+	 * Have we finished loading all the cooked platform data for the target platforms requested in BeginCacheForCookedPlatformData
+	 * 
+	 * @param	TargetPlatform target platform to check for cooked platform data
+	 */
+	virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) { return true; }
 
 
 	/**

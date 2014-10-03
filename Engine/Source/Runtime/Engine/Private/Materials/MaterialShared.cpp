@@ -281,10 +281,24 @@ void FMaterial::GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMa
 	{
 		ShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
 	}
-	else if (OutstandingCompileShaderMapId != INDEX_NONE)
+	else if (OutstandingCompileShaderMapIds.Num() != 0 )
 	{
-		ShaderMapIds.Add(OutstandingCompileShaderMapId);
+		ShaderMapIds.Append(OutstandingCompileShaderMapIds);
 	}
+}
+
+bool FMaterial::IsCompilationFinished()
+{
+	// Build an array of the shader map Id's are not finished compiling.
+	if (GameThreadShaderMap && !GameThreadShaderMap->IsCompilationFinalized())
+	{
+		return false;
+	}
+	else if (OutstandingCompileShaderMapIds.Num() != 0 )
+	{
+		return false;
+	}
+	return true;
 }
 
 void FMaterial::CancelCompilation()
@@ -1217,7 +1231,6 @@ bool FMaterial::CacheShaders(EShaderPlatform Platform, bool bApplyCompletedShade
 bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPlatform Platform, bool bApplyCompletedShaderMapForRendering)
 {
 	bool bSucceeded = false;
-	OutstandingCompileShaderMapId = INDEX_NONE;
 
 	check(ShaderMapId.BaseMaterialId.IsValid());
 
@@ -1370,7 +1383,8 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
-			OutstandingCompileShaderMapId = NewShaderMap->GetCompilingId();
+			UE_LOG(LogMaterial, Display, TEXT("Adding new outstanding shader map compilation id %d."), NewShaderMap->GetCompilingId() );
+			OutstandingCompileShaderMapIds.Add( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = NULL;
 		}

@@ -447,13 +447,14 @@ private:
 			if ( ForceEnqueFront )
 			{
 				int32 Index = Queue.Find(Request.GetFilename());
+				check( Index != INDEX_NONE );
 				if ( Index != 0 )
 				{
 					Queue.Swap(0, Index);
 				}
 			}
 		}
-		
+
 		bool Dequeue(FFilePlatformRequest* Result)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -566,7 +567,8 @@ private:
 	public:
 		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
 			bRunning(false),
-			CookTime( 0.0f )
+			CookTime( 0.0 ),
+			CookStartTime( 0.0 )
 		{ }
 
 		/** Should we generate streaming install manifests (only valid option in cook by the book) */
@@ -582,6 +584,7 @@ private:
 		/** If a cook is cancelled next cook will need to resume cooking */ 
 		TArray<FFilePlatformRequest> PreviousCookRequests; 
 		double CookTime;
+		double CookStartTime;
 	};
 	FCookByTheBookOptions* CookByTheBookOptions;
 	
@@ -697,7 +700,13 @@ public:
 	uint32 NumConnections() const;
 
 	
-
+	/**
+	 * Is this cooker running in real time mode (where it needs to respect the timeslice) 
+	 * 
+	 * @return returns true if this cooker is running in realtime mode like in the editor
+	 */
+	bool IsRealtimeMode();
+	
 
 	virtual void BeginDestroy() override;
 	
