@@ -271,7 +271,7 @@ namespace UnrealBuildTool
             UEBuildConfiguration.bCompilePhysX = true;
             UEBuildConfiguration.bRuntimePhysicsCooking = false;
             UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileICU = false;
+            UEBuildConfiguration.bCompileICU = true;
         }
 
         /**
