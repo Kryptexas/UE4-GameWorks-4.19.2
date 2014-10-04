@@ -115,7 +115,7 @@ UENUM(BlueprintType)
 enum EMenuPlacement
 {
 	/** Place the menu immediately below the anchor */
-	MenuPlacement_BelowAnchor UMETA(DisplayName="Below Anchor"),
+	MenuPlacement_BelowAnchor UMETA(DisplayName="Below"),
 
 	/** Place the menu immediately below the anchor and match is width to the anchor's content */
 	MenuPlacement_ComboBox UMETA(DisplayName="Combo Box"),
@@ -124,10 +124,13 @@ enum EMenuPlacement
 	MenuPlacement_ComboBoxRight UMETA(DisplayName="Combo Box Right"),
 
 	/** Place the menu to the right of the anchor */
-	MenuPlacement_MenuRight UMETA(DisplayName="Menu Right"),
+	MenuPlacement_MenuRight UMETA(DisplayName="Right"),
 
 	/** Place the menu immediately above the anchor, not transition effect */
-	MenuPlacement_AboveAnchor UMETA(DisplayName="Above Anchor"),
+	MenuPlacement_AboveAnchor UMETA(DisplayName="Above"),
+
+	/** Place the menu to the left of the anchor */
+	MenuPlacement_MenuLeft UMETA(DisplayName="Left"),
 };
 
 
