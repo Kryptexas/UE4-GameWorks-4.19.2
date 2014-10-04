@@ -213,11 +213,8 @@ private:
 	 */
 	FWidgetReference PendingSelectedWidget;
 
-	/**  */
-	bool bMouseDown;
-
-	/**  */
-	FVector2D ScreenMouseDownLocation;
+	/** The position in screen space where the user began dragging a widget */
+	FVector2D DraggingStartPositionScreenSpace;
 
 	/** An existing widget is being moved in its current container, or in to a new container. */
 	bool bMovingExistingWidget;
