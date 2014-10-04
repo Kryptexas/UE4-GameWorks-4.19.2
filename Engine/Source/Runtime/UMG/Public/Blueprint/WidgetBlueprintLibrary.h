@@ -132,4 +132,8 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category="Widget|Brush")
 	static FSlateBrush NoResourceBrush();
+
+	/** Closes any popup menu */
+	UFUNCTION(BlueprintCallable, Category="Widget|Brush")
+	static void DismissAllMenus();
 };

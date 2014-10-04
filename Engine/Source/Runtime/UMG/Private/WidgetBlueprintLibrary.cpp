@@ -272,4 +272,9 @@ FSlateBrush UWidgetBlueprintLibrary::NoResourceBrush()
 	return FSlateNoResource();
 }
 
+void UWidgetBlueprintLibrary::DismissAllMenus()
+{
+	FSlateApplication::Get().DismissAllMenus();
+}
+
 #undef LOCTEXT_NAMESPACE

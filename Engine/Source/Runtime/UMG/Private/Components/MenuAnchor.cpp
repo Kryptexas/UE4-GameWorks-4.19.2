@@ -78,11 +78,27 @@ TSharedRef<SWidget> UMenuAnchor::HandleGetMenuContent()
 	return SlateMenuWidget.IsValid() ? SlateMenuWidget.ToSharedRef() : SNullWidget::NullWidget;
 }
 
-void UMenuAnchor::SetIsOpen(bool InIsOpen, bool bFocusMenu)
+void UMenuAnchor::ToggleOpen(bool bFocusOnOpen)
 {
 	if ( MyMenuAnchor.IsValid() )
 	{
-		MyMenuAnchor->SetIsOpen(InIsOpen, bFocusMenu);
+		MyMenuAnchor->SetIsOpen(!MyMenuAnchor->IsOpen(), bFocusOnOpen);
+	}
+}
+
+void UMenuAnchor::Open(bool bFocusMenu)
+{
+	if ( MyMenuAnchor.IsValid() && !MyMenuAnchor->IsOpen() )
+	{
+		MyMenuAnchor->SetIsOpen(true, bFocusMenu);
+	}
+}
+
+void UMenuAnchor::Close()
+{
+	if ( MyMenuAnchor.IsValid() )
+	{
+		return MyMenuAnchor->SetIsOpen(false, false);
 	}
 }
 
@@ -105,7 +121,7 @@ const FSlateBrush* UMenuAnchor::GetEditorIcon()
 
 const FText UMenuAnchor::GetPaletteCategory()
 {
-	return LOCTEXT("Advanced", "Advanced");
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif
