@@ -280,7 +280,15 @@ FText SWidgetDetailsView::GetCategoryText() const
 		if ( UUserWidget* Widget = Cast<UUserWidget>(SelectedObjects[0].Get()) )
 		{
 			UUserWidget* WidgetCDO = Widget->GetClass()->GetDefaultObject<UUserWidget>();
-			return WidgetCDO->PaletteCategory;
+			FText Category = WidgetCDO->PaletteCategory;
+			if ( Category.EqualToCaseIgnored(UUserWidget::StaticClass()->GetDefaultObject<UUserWidget>()->PaletteCategory) )
+			{
+				return FText::GetEmpty();
+			}
+			else
+			{
+				return Category;
+			}
 		}
 	}
 
