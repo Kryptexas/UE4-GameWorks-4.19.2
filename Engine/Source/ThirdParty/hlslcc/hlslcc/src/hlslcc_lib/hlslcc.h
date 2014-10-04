@@ -2,12 +2,6 @@
 
 #pragma once
 
-#ifdef SHADERCOMPILERCOMMON_API
-#undef SHADERCOMPILERCOMMON_API
-#endif
-
-#define SHADERCOMPILERCOMMON_API
-
 /**
  * Compiler version.
  */
@@ -78,7 +72,7 @@ enum EHlslCompileTarget
 class ir_function_signature;
 
 // Interface for generating source code
-class SHADERCOMPILERCOMMON_API FCodeBackend
+class FCodeBackend
 {
 protected:
 	// Built from EHlslCompileFlag
@@ -134,7 +128,10 @@ protected:
  * @param OutErrorLog - Upon return contains the error log, if any.
  * @returns 0 if compilation failed, non-zero otherwise.
  */
-extern SHADERCOMPILERCOMMON_API int HlslCrossCompile(
+#ifdef __GNUC__
+__attribute__ ((visibility("default")))
+#endif // __GNUC__
+int HlslCrossCompile(
 	const char* InSourceFilename,
 	const char* InShaderSource,
 	const char* InEntryPoint,

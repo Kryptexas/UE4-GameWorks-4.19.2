@@ -32,6 +32,10 @@
 #include "LanguageSpec.h"
 #include "IRDump.h"
 
+void _mesa_glsl_release_functions(void)
+{
+}
+
 static ir_variable* make_var(void *ctx, const glsl_type* type, unsigned index, ir_variable_mode mode)
 {
 	return new(ctx)ir_variable(type, ralloc_asprintf(ctx, "arg%u", index), mode);
@@ -92,8 +96,8 @@ void make_intrinsic_genType(
 {
 	void* ctx = state;
 	ir_variable* args[3] = {0};
-	const bool is_scalar = (flags & IR_INTRINSIC_SCALAR) != 0;
-	const bool ret_bool_true = (flags & IR_INTRINSIC_RETURNS_BOOL_TRUE) != 0;
+	const bool is_scalar = flags & IR_INTRINSIC_SCALAR;
+	const bool ret_bool_true = flags & IR_INTRINSIC_RETURNS_BOOL_TRUE;
 	const bool ret_bool = ret_bool_true || (flags & IR_INTRINSIC_RETURNS_BOOL);
 	const bool support_matrices = (flags & IR_INTRINSIC_MATRIX) && !is_scalar && !ret_bool;
 
@@ -136,8 +140,7 @@ void make_intrinsic_genType(
 					}
 					else if (ret_bool)
 					{
-						ir_constant_data data;
-						data.MakeZero();
+						ir_constant_data data = {0};
 						sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_constant(retType, &data)));
 					}
 					else
@@ -523,8 +526,7 @@ void make_intrinsic_saturate(exec_list *ir, _mesa_glsl_parse_state *state)
 
 	for (int base_type = GLSL_TYPE_UINT; base_type <= GLSL_TYPE_FLOAT; ++base_type)
 	{
-		ir_constant_data zero_data;
-		zero_data.MakeZero();
+		ir_constant_data zero_data = {0};
 		ir_constant_data one_data;
 
 		if (base_type == GLSL_TYPE_FLOAT || base_type == GLSL_TYPE_HALF)
@@ -631,8 +633,7 @@ void make_intrinsic_clip(exec_list *ir, _mesa_glsl_parse_state *state)
 {
 	void* ctx = state;
 	ir_function* func = new(ctx)ir_function("clip");
-	ir_constant_data zero_data;
-	zero_data.MakeZero();
+	ir_constant_data zero_data = {0};
 
 	for (unsigned Type = GLSL_TYPE_HALF; Type <= GLSL_TYPE_FLOAT; ++Type)
 	{

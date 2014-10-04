@@ -123,7 +123,7 @@ struct SFixSimpleArrayDereferencesVisitor : ir_rvalue_visitor
 							instructions.push_tail(NewLocal);
 
 							// matrix construction goes column by column performing an assignment
-							for (uint32 i = 0; i < ArrayElementType->matrix_columns; i++)
+							for (int i = 0; i < ArrayElementType->matrix_columns; i++)
 							{
 								// Offset baking in matrix column
 								ir_constant* ArrayBaseOffset = (DerefArray->array_index->type->base_type == GLSL_TYPE_UINT) ?
@@ -449,19 +449,16 @@ void RemovePackedUniformBufferReferences(exec_list* Instructions, _mesa_glsl_par
 */
 struct SSortUniformsPredicate
 {
-#if CPP
-	bool operator()(const ir_variable& v1, const ir_variable& v2) const
-#else
-	bool operator()(ir_variable* v1, ir_variable* v2)
-#endif
+	_mesa_glsl_parse_state* ParseState;
+	SSortUniformsPredicate(_mesa_glsl_parse_state* InParseState) : ParseState(InParseState)
 	{
-#if CPP
-		const glsl_type* Type1 = v1.type;
-		const glsl_type* Type2 = v2.type;
-#else
+	}
+
+	bool operator()(ir_variable* v1, ir_variable* v2)
+	{
 		const glsl_type* Type1 = v1->type;
 		const glsl_type* Type2 = v2->type;
-#endif
+
 		// Sort by base type.
 		const glsl_base_type BaseType1 = Type1->is_array() ? Type1->fields.array->base_type : Type1->base_type;
 		const glsl_base_type BaseType2 = Type2->is_array() ? Type2->fields.array->base_type : Type2->base_type;
@@ -509,11 +506,7 @@ struct SSortUniformsPredicate
 		}
 
 		// If the types match, sort on the uniform name.
-#if CPP
-		return strcmp(v1.name, v2.name) < 0;
-#else
 		return strcmp(v1->name, v2->name) < 0;
-#endif
 	}
 };
 
@@ -864,11 +857,7 @@ void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, b
 
 	if (MainSig && UniformVariables.Num())
 	{
-#if CPP
-		UniformVariables.Sort(SSortUniformsPredicate());
-#else
-		std::sort(UniformVariables.begin(), UniformVariables.end(), SSortUniformsPredicate());
-#endif
+		std::sort(UniformVariables.begin(), UniformVariables.end(), SSortUniformsPredicate(ParseState));
 		int UniformIndex = ProcessPackedUniformArrays(Instructions, ctx, ParseState, UniformVariables, PUInfo, bFlattenStructure, bGroupFlattenedUBs, OutUniformMap);
 		if (UniformIndex == -1)
 		{
@@ -895,8 +884,8 @@ done:
 
 struct SExpandArrayAssignment : public ir_hierarchical_visitor
 {
-	_mesa_glsl_parse_state* ParseState;
 	bool bModified;
+	_mesa_glsl_parse_state* ParseState;
 
 	std::map<const glsl_type*, std::map<std::string, int>> MemberIsArrayMap;
 
@@ -943,7 +932,7 @@ struct SExpandArrayAssignment : public ir_hierarchical_visitor
 			if (FoundStruct == MemberIsArrayMap.end())
 			{
 				//glsl_struct_field* Member = nullptr;
-				for (uint32 i = 0; i < DerefStruct->record->type->length; ++i)
+				for (int i = 0; i < DerefStruct->record->type->length; ++i)
 				{
 					if (DerefStruct->record->type->fields.structure[i].type->is_array())
 					{
@@ -964,7 +953,7 @@ struct SExpandArrayAssignment : public ir_hierarchical_visitor
 			if (FoundMember != Members.end() && FoundMember->second >= 0)
 			{
 				auto& Member = DerefStruct->record->type->fields.structure[FoundMember->second];
-				for (uint32 i = 0; i < Member.type->length; ++i)
+				for (int i = 0; i < Member.type->length; ++i)
 				{
 					ir_dereference_array* NewLHS = new(ParseState) ir_dereference_array(DerefStruct->clone(ParseState, NULL), new(ParseState) ir_constant(i));
 					NewLHS->type = DerefStruct->type->element_type();
@@ -1186,9 +1175,9 @@ namespace ArraysToMatrices
 	// Fixes the case where matNxM A[L] is accessed by row since that requires an extra offset/multiply: A[i][r] => A[i * N + r]
 	struct SFixArrays : public ir_hierarchical_visitor
 	{
-		_mesa_glsl_parse_state* ParseState;
 		TArrayReplacedMap& Entries;
 
+		_mesa_glsl_parse_state* ParseState;
 		SFixArrays(_mesa_glsl_parse_state* InParseState, TArrayReplacedMap& InEntries) : ParseState(InParseState), Entries(InEntries) {}
 
 		virtual ir_visitor_status visit_enter(ir_dereference_array* DerefArray)
@@ -1241,7 +1230,7 @@ namespace ArraysToMatrices
 			if (!Expression->type || !Expression->type->is_matrix())
 			{
 				bool bExpand = false;
-				for (uint32 i = 0; i < Expression->get_num_operands(); ++i)
+				for (int i = 0; i < Expression->get_num_operands(); ++i)
 				{
 					bExpand |= (Expression->operands[i]->type && Expression->operands[i]->type->is_matrix());
 				}
@@ -1255,11 +1244,11 @@ namespace ArraysToMatrices
 			auto* NewTemporary = new(ParseState) ir_variable(Expression->type, NULL, ir_var_temporary);
 			base_ir->insert_before(NewTemporary);
 
-			for (uint32 i = 0; i < Expression->type->matrix_columns; ++i)
+			for (int i = 0; i < Expression->type->matrix_columns; ++i)
 			{
 				auto* NewLHS = new(ParseState) ir_dereference_array(NewTemporary, new(ParseState) ir_constant(i));
 				auto* NewRHS = Expression->clone(ParseState, NULL);
-				for (uint32 j = 0; j < Expression->get_num_operands(); ++j)
+				for (int j = 0; j < Expression->get_num_operands(); ++j)
 				{
 					NewRHS->operands[j] = new(ParseState) ir_dereference_array(NewRHS->operands[j], new(ParseState) ir_constant(i));
 				}

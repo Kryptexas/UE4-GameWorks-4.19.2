@@ -9,7 +9,7 @@
  * @param OutSemantic - Upon return contains the base semantic.
  * @param OutIndex - Upon return contains the semantic index.
  */
-extern SHADERCOMPILERCOMMON_API void ParseSemanticAndIndex(void* MemContext,const char* InSemantic,const char** OutSemantic,int* OutIndex);
+void ParseSemanticAndIndex(void* MemContext,const char* InSemantic,const char** OutSemantic,int* OutIndex);
 
 /**
 * Moves any instructions in the global instruction stream to the beginning
@@ -17,7 +17,7 @@ extern SHADERCOMPILERCOMMON_API void ParseSemanticAndIndex(void* MemContext,cons
 * variables. Note however that instructions can be moved iff main() is the
 * only function in the program!
 */
-extern SHADERCOMPILERCOMMON_API bool MoveGlobalInstructionsToMain(struct exec_list* Instructions);
+bool MoveGlobalInstructionsToMain(struct exec_list* Instructions);
 
 /**
  * For debug output in visual studio.

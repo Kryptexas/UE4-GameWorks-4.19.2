@@ -944,15 +944,15 @@ public:
 };
 /*@}*/
 
-extern SHADERCOMPILERCOMMON_API void _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state);
+extern void _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state);
 
-extern SHADERCOMPILERCOMMON_API void _mesa_ast_print(struct _mesa_glsl_parse_state *state);
+extern void _mesa_ast_print(struct _mesa_glsl_parse_state *state);
 
-extern SHADERCOMPILERCOMMON_API ir_rvalue* _mesa_ast_field_selection_to_hir(const ast_expression *expr,
+extern ir_rvalue* _mesa_ast_field_selection_to_hir(const ast_expression *expr,
 					exec_list *instructions, struct _mesa_glsl_parse_state *state);
 
-extern SHADERCOMPILERCOMMON_API void emit_function(_mesa_glsl_parse_state *state, ir_function *f);
+void emit_function(_mesa_glsl_parse_state *state, ir_function *f);
 
-extern SHADERCOMPILERCOMMON_API ir_rvalue* convert_component(ir_rvalue *src, const glsl_type *desired_type);
+ir_rvalue* convert_component(ir_rvalue *src, const glsl_type *desired_type);
 
 #endif /* AST_H */

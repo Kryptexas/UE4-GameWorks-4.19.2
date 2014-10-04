@@ -72,24 +72,21 @@ public:
 	bool progress;
 };
 
-ir_rvalue* ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign(ir_rvalue *ir)
+ir_rvalue *
+ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign(ir_rvalue *ir)
 {
 	ir_dereference_array *orig_deref = ir->as_dereference_array();
 	ir_assignment *assign;
 	ir_variable *index, *var;
 	ir_dereference *deref;
-	uint32 i;
+	int i;
 
 	if (!orig_deref)
-	{
 		return ir;
-	}
 
 	if (orig_deref->array->type->is_matrix() ||
 		orig_deref->array->type->is_array())
-	{
 		return ir;
-	}
 
 	void *mem_ctx = ralloc_parent(ir);
 
@@ -149,7 +146,9 @@ ir_rvalue* ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign
 ir_visitor_status
 ir_vec_index_to_cond_assign_visitor::visit_enter(ir_expression *ir)
 {
-	for (uint32 i = 0; i < ir->get_num_operands(); i++)
+	unsigned int i;
+
+	for (i = 0; i < ir->get_num_operands(); i++)
 	{
 		ir->operands[i] = convert_vec_index_to_cond_assign(ir->operands[i]);
 	}
@@ -169,18 +168,17 @@ ir_vec_index_to_cond_assign_visitor::visit_enter(ir_swizzle *ir)
 	return visit_continue;
 }
 
-ir_visitor_status ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment *ir)
+ir_visitor_status
+ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment *ir)
 {
 	ir_variable *index, *var;
 	ir_dereference_variable *deref;
 	ir_assignment *assign;
-	uint32 i;
+	int i;
 
 	ir->rhs = convert_vec_index_to_cond_assign(ir->rhs);
 	if (ir->condition)
-	{
 		ir->condition = convert_vec_index_to_cond_assign(ir->condition);
-	}
 
 	/* Last, handle the LHS */
 	ir_dereference_array *orig_deref = ir->lhs->as_dereference_array();
@@ -188,9 +186,7 @@ ir_visitor_status ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment
 	if (!orig_deref ||
 		orig_deref->array->type->is_matrix() ||
 		orig_deref->array->type->is_array())
-	{
 		return visit_continue;
-	}
 
 	void *mem_ctx = ralloc_parent(ir);
 
@@ -207,7 +203,8 @@ ir_visitor_status ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment
 	list.push_tail(assign);
 
 	/* Store the RHS to a temporary to avoid reusing its tree. */
-	var = new(ir)ir_variable(ir->rhs->type, "vec_index_tmp_v", ir_var_temporary);
+	var = new(ir)ir_variable(ir->rhs->type, "vec_index_tmp_v",
+		ir_var_temporary);
 	list.push_tail(var);
 	deref = new(ir)ir_dereference_variable(var);
 	assign = new(ir)ir_assignment(deref, ir->rhs, NULL);
@@ -227,6 +224,7 @@ ir_visitor_status ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment
 		ir_rvalue *condition_swizzle =
 			new(ir)ir_swizzle(cond_deref->clone(ir, NULL), i, 0, 0, 0, 1);
 
+
 		/* Just clone the rest of the deref chain when trying to get at the
 		* underlying variable.
 		*/
@@ -240,7 +238,7 @@ ir_visitor_status ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment
 	}
 
 	/* If the original assignment has a condition, respect that original
-	* condition!  This is accomplished by wrapping the new conditional
+	* condition!  This is acomplished by wrapping the new conditional
 	* assignments in an if-statement that uses the original condition.
 	*/
 	if (ir->condition != NULL)

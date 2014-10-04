@@ -328,7 +328,7 @@ ast_node::ast_node(void)
 }
 
 
-static void ast_opt_array_size_print(int is_array, const ast_expression *array_size)
+static void ast_opt_array_size_print(bool is_array, const ast_expression *array_size)
 {
 	if (is_array && array_size == NULL)
 	{
@@ -1162,6 +1162,29 @@ void _mesa_ast_print(struct _mesa_glsl_parse_state *state)
 	}
 }
 
+	/**
+	* To be called at GL teardown time, this frees compiler datastructures.
+	*
+	* After calling this, any previously compiled shaders and shader
+	* programs would be invalid.  So this should happen at approximately
+	* program exit.
+	*/
+	void _mesa_destroy_shader_compiler(void)
+	{
+		_mesa_destroy_shader_compiler_caches();
+		_mesa_glsl_release_types();
+	}
+
+	/**
+	* Releases compiler caches to trade off performance for memory.
+	*
+	* Intended to be used with glReleaseShaderCompiler().
+	*/
+	void _mesa_destroy_shader_compiler_caches(void)
+	{
+		_mesa_glsl_release_functions();
+	}
+
 void SCBuffer::AddMember(const struct glsl_type * field_type, ir_variable* var)
 {
 	unsigned StartOffset = 0;
@@ -1214,7 +1237,7 @@ void SCBuffer::CalculateMemberInfo(unsigned& SizeInFloats, unsigned& StartOffset
 	else if (field_type->is_record())
 	{
 		unsigned OriginalStartOffset = StartOffset;
-		for (uint32 i = 0; i < field_type->length; ++i)
+		for (int i = 0; i < field_type->length; ++i)
 		{
 			unsigned MemberSizeInFloats = 0;
 			CalculateMemberInfo(MemberSizeInFloats, StartOffset, field_type->fields.structure[i].type);

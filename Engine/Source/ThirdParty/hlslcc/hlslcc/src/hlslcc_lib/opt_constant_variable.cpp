@@ -44,11 +44,6 @@
 #include "ir_optimization.h"
 #include "glsl_types.h"
 
-#if __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-#endif
-
 struct assignment_entry
 {
 	exec_node link;
@@ -226,7 +221,3 @@ bool do_constant_variable_unlinked(exec_list *instructions)
 
 	return progress;
 }
-
-#if __clang__
-#pragma clang diagnostic pop
-#endif

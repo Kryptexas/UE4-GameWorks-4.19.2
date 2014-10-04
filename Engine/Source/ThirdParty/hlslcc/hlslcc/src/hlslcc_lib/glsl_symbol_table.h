@@ -44,8 +44,7 @@ class symbol_table_entry;
  * Wraps the existing \c _mesa_symbol_table data structure to enforce some
  * type safe and some symbol table invariants.
  */
-struct SHADERCOMPILERCOMMON_API glsl_symbol_table
-{
+struct glsl_symbol_table {
 private:
    static void
    _glsl_symbol_table_destructor (glsl_symbol_table *table)

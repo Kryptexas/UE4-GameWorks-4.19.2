@@ -30,9 +30,8 @@
 #include "ir.h"
 #include "ir_visitor.h"
 #include "glsl_types.h"
-#include "compiler.h"
+#include "macros.h"
 
-const ir_constant_data ZeroConstantData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 ir_rvalue::ir_rvalue()
 {
@@ -1902,7 +1901,8 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
 }
 
 
-const char* ir_variable::interpolation_string() const
+const char *
+ir_variable::interpolation_string() const
 {
 	switch (this->interpolation)
 	{
@@ -1922,16 +1922,21 @@ bool ir_variable::IsEquivalent(ir_variable* IR)
 }
 
 
-ir_function_signature::ir_function_signature(const glsl_type *return_type) :
-	return_type(nullptr), return_semantic(nullptr),
-	is_defined(false), is_builtin(false), has_output_parameters(false), is_main(false),
-	maxvertexcount(0), is_early_depth_stencil(0), wg_size_x(0), wg_size_y(0), wg_size_z(0), _function(nullptr)
+ir_function_signature::ir_function_signature(const glsl_type *return_type)
+: return_type(return_type), is_defined(false), _function(NULL),
+is_early_depth_stencil(0), wg_size_x(0), wg_size_y(0), wg_size_z(0)
 {
 	this->ir_type = ir_type_function_signature;
+	this->is_builtin = false;
+	this->has_output_parameters = false;
+	this->is_main = false;
+	this->return_semantic = NULL;
+	this->maxvertexcount = 0;
 }
 
 
-static bool modes_match(unsigned a, unsigned b)
+static bool
+modes_match(unsigned a, unsigned b)
 {
 	if (a == b)
 		return true;
@@ -1947,7 +1952,8 @@ static bool modes_match(unsigned a, unsigned b)
 }
 
 
-const char* ir_function_signature::qualifiers_match(exec_list *params)
+const char *
+ir_function_signature::qualifiers_match(exec_list *params)
 {
 	exec_list_iterator iter_a = parameters.iterator();
 	exec_list_iterator iter_b = params->iterator();

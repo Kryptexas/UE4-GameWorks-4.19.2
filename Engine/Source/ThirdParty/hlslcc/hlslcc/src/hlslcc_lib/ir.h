@@ -88,12 +88,12 @@ enum ir_node_type
 	ir_type_max /**< maximum ir_type enum number, for validation */
 };
 
-extern SHADERCOMPILERCOMMON_API bool AreEquivalent(class ir_instruction* A, class ir_instruction* B);
+bool AreEquivalent(class ir_instruction* A, class ir_instruction* B);
 
 /**
 * Base class of all IR instructions
 */
-class SHADERCOMPILERCOMMON_API ir_instruction : public exec_node
+class ir_instruction : public exec_node
 {
 public:
 	enum ir_node_type ir_type;
@@ -151,7 +151,7 @@ protected:
 /**
 * The base class for all "values"/expression trees.
 */
-class SHADERCOMPILERCOMMON_API ir_rvalue : public ir_instruction
+class ir_rvalue : public ir_instruction
 {
 public:
 	const struct glsl_type *type;
@@ -330,7 +330,7 @@ struct ir_state_slot
 	int swizzle;
 };
 
-class SHADERCOMPILERCOMMON_API ir_variable : public ir_instruction
+class ir_variable : public ir_instruction
 {
 public:
 	ir_variable(const struct glsl_type *, const char *, ir_variable_mode);
@@ -550,7 +550,7 @@ public:
 * The representation of a function instance; may be the full definition or
 * simply a prototype.
 */
-class SHADERCOMPILERCOMMON_API ir_function_signature : public ir_instruction
+class ir_function_signature : public ir_instruction
 {
 	/* An ir_function_signature will be part of the list of signatures in
 	* an ir_function.
@@ -674,7 +674,7 @@ private:
 * Contains a list of ir_function_signatures representing each of the
 * actual functions.
 */
-class SHADERCOMPILERCOMMON_API ir_function : public ir_instruction
+class ir_function : public ir_instruction
 {
 public:
 	ir_function(const char *name);
@@ -766,7 +766,7 @@ inline const char *ir_function_signature::function_name() const
 /**
 * IR instruction representing high-level if-statements
 */
-class SHADERCOMPILERCOMMON_API ir_if : public ir_instruction
+class ir_if : public ir_instruction
 {
 public:
 	enum if_mode
@@ -810,7 +810,7 @@ public:
 /**
 * IR instruction representing a high-level loop structure.
 */
-class SHADERCOMPILERCOMMON_API ir_loop : public ir_instruction
+class ir_loop : public ir_instruction
 {
 public:
 	enum loop_mode
@@ -886,7 +886,7 @@ public:
 };
 
 
-class SHADERCOMPILERCOMMON_API ir_assignment : public ir_instruction
+class ir_assignment : public ir_instruction
 {
 public:
 	ir_assignment(ir_rvalue *lhs, ir_rvalue *rhs, ir_rvalue *condition = NULL);
@@ -1186,7 +1186,7 @@ enum ir_expression_operation
 	ir_invalid_opcode = -1
 };
 
-class SHADERCOMPILERCOMMON_API ir_expression : public ir_rvalue
+class ir_expression : public ir_rvalue
 {
 public:
 	/**
@@ -1271,7 +1271,7 @@ public:
 * HIR instruction representing a high-level function call, containing a list
 * of parameters and returning a value in the supplied temporary.
 */
-class SHADERCOMPILERCOMMON_API ir_call : public ir_instruction
+class ir_call : public ir_instruction
 {
 public:
 	ir_call(ir_function_signature *callee,
@@ -1348,7 +1348,7 @@ public:
 * These include \c break, \c continue, \c return, and \c discard.
 */
 /*@{*/
-class SHADERCOMPILERCOMMON_API ir_jump : public ir_instruction
+class ir_jump : public ir_instruction
 {
 protected:
 	ir_jump()
@@ -1357,7 +1357,7 @@ protected:
 	}
 };
 
-class SHADERCOMPILERCOMMON_API ir_return : public ir_jump
+class ir_return : public ir_jump
 {
 public:
 	ir_return()
@@ -1408,7 +1408,7 @@ public:
 *
 * \sa ir_switch_jump
 */
-class SHADERCOMPILERCOMMON_API ir_loop_jump : public ir_jump
+class ir_loop_jump : public ir_jump
 {
 public:
 	enum jump_mode
@@ -1453,7 +1453,7 @@ private:
 /**
 * IR instruction representing discard statements.
 */
-class SHADERCOMPILERCOMMON_API ir_discard : public ir_jump
+class ir_discard : public ir_jump
 {
 public:
 	ir_discard()
@@ -1539,7 +1539,7 @@ enum ir_texture_channel
 * (txf <type> <sampler> <coordinate> 0       <lod>)
 * (txs <type> <sampler> <lod>)
 */
-class SHADERCOMPILERCOMMON_API ir_texture : public ir_rvalue
+class ir_texture : public ir_rvalue
 {
 public:
 	ir_texture(enum ir_texture_opcode op, const SSourceLocation& InSourceLocation)
@@ -1651,7 +1651,7 @@ struct ir_swizzle_mask
 };
 
 
-class SHADERCOMPILERCOMMON_API ir_swizzle : public ir_rvalue
+class ir_swizzle : public ir_rvalue
 {
 public:
 	ir_swizzle(ir_rvalue *, unsigned x, unsigned y, unsigned z, unsigned w,
@@ -1707,7 +1707,7 @@ private:
 };
 
 
-class SHADERCOMPILERCOMMON_API ir_dereference : public ir_rvalue
+class ir_dereference : public ir_rvalue
 {
 public:
 	virtual ir_dereference *clone(void *mem_ctx, struct hash_table *) const = 0;
@@ -1726,7 +1726,7 @@ public:
 };
 
 
-class SHADERCOMPILERCOMMON_API ir_dereference_variable : public ir_dereference
+class ir_dereference_variable : public ir_dereference
 {
 public:
 	ir_dereference_variable(ir_variable *var);
@@ -1778,7 +1778,7 @@ public:
 };
 
 
-class SHADERCOMPILERCOMMON_API ir_dereference_array : public ir_dereference
+class ir_dereference_array : public ir_dereference
 {
 public:
 	ir_dereference_array(ir_rvalue *value, ir_rvalue *array_index);
@@ -1824,7 +1824,7 @@ enum ir_image_op
 	ir_image_dimensions
 };
 
-class SHADERCOMPILERCOMMON_API ir_dereference_image : public ir_dereference
+class ir_dereference_image : public ir_dereference
 {
 public:
 	ir_dereference_image(ir_rvalue *value, ir_rvalue *array_index);
@@ -1870,7 +1870,7 @@ private:
 };
 
 
-class SHADERCOMPILERCOMMON_API ir_dereference_record : public ir_dereference
+class ir_dereference_record : public ir_dereference
 {
 public:
 	ir_dereference_record(ir_rvalue *value, const char *field);
@@ -1917,14 +1917,10 @@ union ir_constant_data
 	int i[16];
 	float f[16];
 	bool b[16];
-
-	void MakeZero()
-	{
-		memset(this, 0, sizeof(*this));
-	}
 };
 
-class SHADERCOMPILERCOMMON_API ir_constant : public ir_rvalue
+
+class ir_constant : public ir_rvalue
 {
 public:
 	ir_constant(const struct glsl_type *type, const ir_constant_data *data);
@@ -2051,7 +2047,7 @@ enum ir_atomic_op
 /**
 * HIR instruction representing an atomic operation.
 */
-class SHADERCOMPILERCOMMON_API ir_atomic : public ir_instruction
+class ir_atomic : public ir_instruction
 {
 public:
 	ir_atomic(ir_atomic_op op,
@@ -2160,6 +2156,8 @@ void clone_ir_list(void *mem_ctx, exec_list *out, const exec_list *in);
 extern void _mesa_glsl_initialize_functions(exec_list *instructions,
 	_mesa_glsl_parse_state *state);
 
+extern void _mesa_glsl_release_functions(void);
+
 struct glsl_symbol_table;
 
 extern void import_prototypes(const exec_list *source, exec_list *dest,
@@ -2184,7 +2182,7 @@ ir_rvalue* gen_image_op(
 	exec_list *instructions,
 struct _mesa_glsl_parse_state *state);
 
-extern SHADERCOMPILERCOMMON_API bool apply_type_conversion(
+bool apply_type_conversion(
 	const struct glsl_type *to, ir_rvalue * &from,
 	exec_list* instructions, struct _mesa_glsl_parse_state *state,
 	bool is_explicit, const struct YYLTYPE *loc);

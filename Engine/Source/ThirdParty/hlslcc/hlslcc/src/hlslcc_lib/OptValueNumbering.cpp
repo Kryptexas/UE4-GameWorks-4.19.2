@@ -192,7 +192,6 @@ typedef std::map<SBasicBlock*, struct SLVNVisitor*> TLVNVisitors;
 struct SLVNVisitor : public ir_hierarchical_visitor
 {
 	TLVN LVN;
-	_mesa_glsl_parse_state* ParseState;
 	bool bChanged;
 	struct SArrayPair
 	{
@@ -215,6 +214,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 	std::map<ir_texture*, TNumberVector > Textures;
 	std::map<ir_dereference_array*, SArrayPair > Arrays;
 	std::map<ir_swizzle*, SNumber > SwizzleVars;
+	_mesa_glsl_parse_state* ParseState;
 	bool bInLHS;
 
 	SLVNVisitor(_mesa_glsl_parse_state* InParseState) : ParseState(InParseState), bChanged(false), bInLHS(false) {}
@@ -347,13 +347,13 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		}
 		check(Param->is_tail_sentinel() && ParamDefinition->is_tail_sentinel());
 		printf("\t%s(", IR->callee_name());
-		for (auto& Param : Parameters)
+		for (auto it = Parameters.begin(); it != Parameters.end(); ++it)
 		{
-			if (Param != Parameters[0])
+			if (it != Parameters.begin())
 			{
 				printf(", ");
 			}
-			printf("%d", P);
+			printf("%d", *it);
 		}
 		printf(")\n");
 
@@ -526,12 +526,12 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		check(ExpressionNumberStack.size() >= NumOperands);
 
 		TNumberVector Operands;
-		Operands.AddUninitialized(NumOperands);
 		for (int i = 0; i < NumOperands; ++i)
 		{
-			Operands[NumOperands - 1 - i] = ExpressionNumberStack.top();
+			Operands.Add(ExpressionNumberStack.top());
 			ExpressionNumberStack.pop();
 		}
+		std::reverse(Operands.begin(), Operands.end());
 
 		printf("\t\top %s: ", IR->operator_string());
 		for (int i = 0; i < NumOperands; ++i)

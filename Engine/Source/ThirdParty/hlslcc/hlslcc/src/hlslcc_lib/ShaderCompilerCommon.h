@@ -97,11 +97,6 @@ public:
 		Vector.resize(Vector.size() + Count, (ElementType)0);
 	}
 
-	void AddUninitialized(int Count)
-	{
-		Vector.resize(Vector.size() + Count);
-	}
-
 //private:
 	TSTLVector Vector;
 };
@@ -118,5 +113,3 @@ void Exchange(TArray<T>& A, TArray<T>& B)
 typedef uint32_t uint32;
 typedef int32_t int32;
 #endif
-
-#define SHADERCOMPILERCOMMON_API 

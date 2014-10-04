@@ -111,7 +111,7 @@ enum glsl_outputtopology
 #ifdef __cplusplus
 #include "ralloc.h"
 
-struct SHADERCOMPILERCOMMON_API glsl_type
+struct glsl_type
 {
 	glsl_base_type base_type;
 
@@ -122,6 +122,7 @@ struct SHADERCOMPILERCOMMON_API glsl_type
 	unsigned sampler_buffer : 1;
 	unsigned outputstream_type : 2; /**< \see glsl_outputstream_type */
 	int sample_count;
+	int patch_length;
 	const struct glsl_type* inner_type;
 
 	/* Callers of this ralloc-based new need not call delete. It's
@@ -175,8 +176,6 @@ struct SHADERCOMPILERCOMMON_API glsl_type
 	* the number of values pointed to by \c fields.structure (below).
 	*/
 	unsigned length;
-
-	int patch_length;
 
 	/**
 	* Subtype of composite data types.

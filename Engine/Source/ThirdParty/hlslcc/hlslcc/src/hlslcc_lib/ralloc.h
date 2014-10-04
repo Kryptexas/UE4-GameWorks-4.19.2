@@ -53,10 +53,6 @@
 #ifndef RALLOC_H
 #define RALLOC_H
 
-#ifndef SHADERCOMPILERCOMMON_API
-#define SHADERCOMPILERCOMMON_API
-#endif
-
 /**
  * \def ralloc(ctx, type)
  * Allocate a new object chained off of the given context.
@@ -90,7 +86,7 @@
  * ((type *) ralloc_size(ctx, 0)
  * \endcode
  */
-extern SHADERCOMPILERCOMMON_API void *ralloc_context(const void *ctx);
+void *ralloc_context(const void *ctx);
 
 /**
  * Allocate memory chained off of the given context.
@@ -99,14 +95,14 @@ extern SHADERCOMPILERCOMMON_API void *ralloc_context(const void *ctx);
  * simply allocates storage for \p size bytes and returns the pointer,
  * similar to \c malloc.
  */
-extern SHADERCOMPILERCOMMON_API void *ralloc_size(const void *ctx, size_t size);
+void *ralloc_size(const void *ctx, size_t size);
 
 /**
  * Allocate zero-initialized memory chained off of the given context.
  *
  * This is similar to \c calloc with a size of 1.
  */
-extern SHADERCOMPILERCOMMON_API void *rzalloc_size(const void *ctx, size_t size);
+void *rzalloc_size(const void *ctx, size_t size);
 
 /**
  * Resize a piece of ralloc-managed memory, preserving data.
@@ -120,7 +116,7 @@ extern SHADERCOMPILERCOMMON_API void *rzalloc_size(const void *ctx, size_t size)
  * \param ptr  Pointer to the memory to be resized.  May be NULL.
  * \param size The amount of memory to allocate, in bytes.
  */
-extern SHADERCOMPILERCOMMON_API void *reralloc_size(const void *ctx, void *ptr, size_t size);
+void *reralloc_size(const void *ctx, void *ptr, size_t size);
 
 /// \defgroup array Array Allocators @{
 
@@ -186,7 +182,7 @@ extern SHADERCOMPILERCOMMON_API void *reralloc_size(const void *ctx, void *ptr, 
  * More than a convenience function, this also checks for integer overflow when
  * multiplying \p size and \p count.  This is necessary for security.
  */
-extern SHADERCOMPILERCOMMON_API void *ralloc_array_size(const void *ctx, size_t size, unsigned count);
+void *ralloc_array_size(const void *ctx, size_t size, unsigned count);
 
 /**
  * Allocate a zero-initialized array chained off the given context.
@@ -196,7 +192,7 @@ extern SHADERCOMPILERCOMMON_API void *ralloc_array_size(const void *ctx, size_t 
  * More than a convenience function, this also checks for integer overflow when
  * multiplying \p size and \p count.  This is necessary for security.
  */
-extern SHADERCOMPILERCOMMON_API void *rzalloc_array_size(const void *ctx, size_t size, unsigned count);
+void *rzalloc_array_size(const void *ctx, size_t size, unsigned count);
 
 /**
  * Resize a ralloc-managed array, preserving data.
@@ -216,7 +212,7 @@ extern SHADERCOMPILERCOMMON_API void *rzalloc_array_size(const void *ctx, size_t
  *
  * \return True unless allocation failed.
  */
-extern SHADERCOMPILERCOMMON_API void *reralloc_array_size(const void *ctx, void *ptr, size_t size,
+void *reralloc_array_size(const void *ctx, void *ptr, size_t size,
 			  unsigned count);
 /// @}
 
@@ -225,12 +221,12 @@ extern SHADERCOMPILERCOMMON_API void *reralloc_array_size(const void *ctx, void 
  *
  * This will also free the memory of any children allocated this context.
  */
-extern SHADERCOMPILERCOMMON_API void ralloc_free(void *ptr);
+void ralloc_free(void *ptr);
 
 /**
  * Return the given pointer's ralloc context.
  */
-extern SHADERCOMPILERCOMMON_API void *ralloc_parent(const void *ptr);
+void *ralloc_parent(const void *ptr);
 
 /**
  * Return a context whose memory will be automatically freed at program exit.
@@ -239,18 +235,18 @@ extern SHADERCOMPILERCOMMON_API void *ralloc_parent(const void *ptr);
  * to free it using \c atexit.  This may cause trouble if used in a library
  * loaded with \c dlopen.
  */
-extern SHADERCOMPILERCOMMON_API void *ralloc_autofree_context(void);
+void *ralloc_autofree_context(void);
 
 /**
  * Set a callback to occur just before an object is freed.
  */
-extern SHADERCOMPILERCOMMON_API void ralloc_set_destructor(const void *ptr, void(*destructor)(void *));
+void ralloc_set_destructor(const void *ptr, void(*destructor)(void *));
 
 /// \defgroup array String Functions @{
 /**
  * Duplicate a string, allocating the memory from the given context.
  */
-extern SHADERCOMPILERCOMMON_API char *ralloc_strdup(const void *ctx, const char *str);
+char *ralloc_strdup(const void *ctx, const char *str);
 
 /**
  * Duplicate a string, allocating the memory from the given context.
@@ -258,7 +254,7 @@ extern SHADERCOMPILERCOMMON_API char *ralloc_strdup(const void *ctx, const char 
  * Like \c strndup, at most \p n characters are copied.  If \p str is longer
  * than \p n characters, \p n are copied, and a termining \c '\0' byte is added.
  */
-extern SHADERCOMPILERCOMMON_API char *ralloc_strndup(const void *ctx, const char *str, size_t n);
+char *ralloc_strndup(const void *ctx, const char *str, size_t n);
 
 /**
  * Concatenate two strings, allocating the necessary space.
@@ -271,7 +267,7 @@ extern SHADERCOMPILERCOMMON_API char *ralloc_strndup(const void *ctx, const char
  *
  * \return True unless allocation failed.
  */
-extern SHADERCOMPILERCOMMON_API bool ralloc_strcat(char **dest, const char *str);
+bool ralloc_strcat(char **dest, const char *str);
 
 /**
  * Concatenate two strings, allocating the necessary space.
@@ -285,7 +281,7 @@ extern SHADERCOMPILERCOMMON_API bool ralloc_strcat(char **dest, const char *str)
  *
  * \return True unless allocation failed.
  */
-extern SHADERCOMPILERCOMMON_API bool ralloc_strncat(char **dest, const char *str, size_t n);
+bool ralloc_strncat(char **dest, const char *str, size_t n);
 
 /**
  * Print to a string.
@@ -295,7 +291,7 @@ extern SHADERCOMPILERCOMMON_API bool ralloc_strncat(char **dest, const char *str
  *
  * \return The newly allocated string.
  */
-extern SHADERCOMPILERCOMMON_API char *ralloc_asprintf (const void *ctx, const char *fmt, ...);
+char *ralloc_asprintf (const void *ctx, const char *fmt, ...);
 
 /**
  * Print to a string, given a va_list.
@@ -305,7 +301,7 @@ extern SHADERCOMPILERCOMMON_API char *ralloc_asprintf (const void *ctx, const ch
  *
  * \return The newly allocated string.
  */
-extern SHADERCOMPILERCOMMON_API char *ralloc_vasprintf(const void *ctx, const char *fmt, va_list args);
+char *ralloc_vasprintf(const void *ctx, const char *fmt, va_list args);
 
 /**
  * Rewrite the tail of an existing string, starting at a given index.
@@ -327,7 +323,7 @@ extern SHADERCOMPILERCOMMON_API char *ralloc_vasprintf(const void *ctx, const ch
  *
  * \return True unless allocation failed.
  */
-extern SHADERCOMPILERCOMMON_API bool ralloc_asprintf_rewrite_tail(char **str, size_t *start,
+bool ralloc_asprintf_rewrite_tail(char **str, size_t *start,
 				  const char *fmt, ...);
 
 /**
@@ -351,7 +347,7 @@ extern SHADERCOMPILERCOMMON_API bool ralloc_asprintf_rewrite_tail(char **str, si
  *
  * \return True unless allocation failed.
  */
-extern SHADERCOMPILERCOMMON_API bool ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
+bool ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
 				   va_list args);
 
 /**
@@ -370,7 +366,7 @@ extern SHADERCOMPILERCOMMON_API bool ralloc_vasprintf_rewrite_tail(char **str, s
  *
  * \return True unless allocation failed.
  */
-extern SHADERCOMPILERCOMMON_API bool ralloc_asprintf_append (char **str, const char *fmt, ...);
+bool ralloc_asprintf_append (char **str, const char *fmt, ...);
 
 /**
  * Append formatted text to the supplied string, given a va_list.
@@ -388,7 +384,7 @@ extern SHADERCOMPILERCOMMON_API bool ralloc_asprintf_append (char **str, const c
  *
  * \return True unless allocation failed.
  */
-extern SHADERCOMPILERCOMMON_API bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
+bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
 /// @}
 
 

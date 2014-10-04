@@ -85,11 +85,11 @@ ir_rvalue * _mesa_ast_field_selection_to_hir(const ast_expression *expr,
 			do
 			{
 				mask_str += 2;
-				int32 col = (*mask_str) ? (*mask_str++) - '0' : -1;
-				int32 row = (*mask_str) ? (*mask_str++) - '0' : -1;
+				int col = (*mask_str) ? (*mask_str++) - '0' : -1;
+				int row = (*mask_str) ? (*mask_str++) - '0' : -1;
 
-				if (col >= 0 && (uint32)col <= op->type->matrix_columns &&
-					row >= 0 && (uint32)row <= op->type->vector_elements)
+				if (col >= 0 && col <= op->type->matrix_columns &&
+					row >= 0 && row <= op->type->vector_elements)
 				{
 					components[num_components++] = col * op->type->vector_elements + row;
 				}
@@ -104,11 +104,11 @@ ir_rvalue * _mesa_ast_field_selection_to_hir(const ast_expression *expr,
 			do
 			{
 				mask_str += 1;
-				int32 col = (*mask_str) ? (*mask_str++) - '1' : -1;
-				int32 row = (*mask_str) ? (*mask_str++) - '1' : -1;
+				int col = (*mask_str) ? (*mask_str++) - '1' : -1;
+				int row = (*mask_str) ? (*mask_str++) - '1' : -1;
 
-				if (col >= 0 && (uint32)col <= op->type->matrix_columns &&
-					row >= 0 && (uint32)row <= op->type->vector_elements)
+				if (col >= 0 && col <= op->type->matrix_columns &&
+					row >= 0 && row <= op->type->vector_elements)
 				{
 					components[num_components++] = col * op->type->vector_elements + row;
 				}

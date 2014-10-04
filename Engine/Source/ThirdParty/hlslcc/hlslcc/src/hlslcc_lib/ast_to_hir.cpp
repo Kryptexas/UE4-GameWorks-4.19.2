@@ -63,7 +63,7 @@
 #include "hash_table.h"
 #include "ir.h"
 #include "ir_rvalue_visitor.h"
-#include "compiler.h"
+#include "macros.h"
 #include "IRDump.h"
 #include "LanguageSpec.h"
 
@@ -1579,7 +1579,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			}
 			else if (type->is_integer())
 			{
-				ir_constant_data one_data;
+				ir_constant_data one_data = {0};
 				for (unsigned i = 0; i < 16; ++i)
 				{
 					one_data.u[i] = 1;
@@ -1842,7 +1842,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 		}
 		else if (const_index != NULL)
 		{
-			const int32 idx = const_index->value.i[0];
+			const int idx = const_index->value.i[0];
 			const char *type_name;
 			unsigned bound = 0;
 
@@ -1878,14 +1878,14 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 			*/
 			if (array->type->is_matrix())
 			{
-				if ((int32)array->type->row_type()->vector_elements <= idx)
+				if (array->type->row_type()->vector_elements <= idx)
 				{
 					bound = array->type->row_type()->vector_elements;
 				}
 			}
 			else if (array->type->is_vector())
 			{
-				if ((int32)array->type->vector_elements <= idx)
+				if (array->type->vector_elements <= idx)
 				{
 					bound = array->type->vector_elements;
 				}
@@ -2053,7 +2053,7 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 		break;
 
 	case ast_bool_constant:
-		result = new(ctx)ir_constant(this->primary_expression.bool_constant != 0);
+		result = new(ctx)ir_constant(bool(this->primary_expression.bool_constant));
 		break;
 
 	case ast_sequence:

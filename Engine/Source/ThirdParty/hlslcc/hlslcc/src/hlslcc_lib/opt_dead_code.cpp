@@ -39,7 +39,7 @@
 #include "ir_variable_refcount.h"
 #include "glsl_types.h"
 
-static bool DebugOptDeadCode = false;
+static bool debug = false;
 
 /**
 * Do a dead code pass over instructions and everything that instructions
@@ -68,7 +68,7 @@ bool do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 		*/
 		check(entry->referenced_count >= entry->assigned_count);
 
-		if (DebugOptDeadCode)
+		if (debug)
 		{
 			printf("%s@%p: %d refs, %d assigns, %sdeclared in our scope\n",
 				entry->var->name, (void *)entry->var,
@@ -92,7 +92,7 @@ bool do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 					entry->assign->remove();
 					progress = true;
 
-					if (DebugOptDeadCode)
+					if (debug)
 					{
 						printf("Removed assignment to %s %d @%p\n",
 							entry->var->name, entry->assign->id, (void *)entry->var);
@@ -131,7 +131,7 @@ bool do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 				entry->var->remove();
 				progress = true;
 
-				if (DebugOptDeadCode)
+				if (debug)
 				{
 					printf("Removed declaration of %s %d @%p\n", entry->var->name, entry->var->id, (void *)entry->var);
 				}

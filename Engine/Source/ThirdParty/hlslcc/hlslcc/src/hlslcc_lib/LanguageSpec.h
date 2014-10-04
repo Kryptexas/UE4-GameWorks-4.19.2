@@ -2,13 +2,8 @@
 
 #pragma once
 
-#ifdef SHADERCOMPILERCOMMON_API
-#undef SHADERCOMPILERCOMMON_API
-#define SHADERCOMPILERCOMMON_API
-#endif
-
 // Determines what intrinsics will the compiler accept based off target language (e.g., ES 2 doesn't have transpose)
-struct SHADERCOMPILERCOMMON_API ILanguageSpec
+struct ILanguageSpec
 {
 	virtual ~ILanguageSpec() {}
 
@@ -54,7 +49,7 @@ enum
 	IR_INTRINSIC_RETURNS_BOOL_TRUE = 0x1000,
 };
 
-extern SHADERCOMPILERCOMMON_API void make_intrinsic_genType(
+extern void make_intrinsic_genType(
 	exec_list *ir, _mesa_glsl_parse_state *state, const char *name, int op,
 	unsigned flags, unsigned num_args,
 	unsigned min_vec = 1, unsigned max_vec = 4);

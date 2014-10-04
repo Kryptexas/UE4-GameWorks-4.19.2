@@ -3,6 +3,4 @@
 // glccp-lex.cpp: Wraps the Flex generated file for the C preprocessor
 
 #include "ShaderCompilerCommon.h"
-#define register
-#pragma warning(disable: 4267)
 #include "glcpp-lex.inl"

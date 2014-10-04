@@ -27,7 +27,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "compiler.h"
+#include "macros.h"
 
 const glsl_type glsl_type::_error_type =
    glsl_type(GLSL_TYPE_ERROR, 0, (unsigned int)0, "", "");

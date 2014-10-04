@@ -30,12 +30,7 @@
 /** mesa/program/symbol_table.c */
 
 #include "ShaderCompilerCommon.h"
-
-#if !PLATFORM_WINDOWS
-#define _strdup strdup
-#endif
-
-
+#include "imports.h"
 #include "symbol_table.h"
 #include "hash_table.h"
 

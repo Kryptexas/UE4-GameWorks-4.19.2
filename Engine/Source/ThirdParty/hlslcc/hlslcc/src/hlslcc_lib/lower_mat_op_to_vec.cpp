@@ -126,7 +126,7 @@ ir_dereference * ir_mat_op_to_vec_visitor::get_column(ir_dereference *val, int r
 void ir_mat_op_to_vec_visitor::do_mul_mat_mat(ir_dereference *result,
 	ir_dereference *a, ir_dereference *b)
 {
-	uint32 b_col, i;
+	int b_col, i;
 	ir_assignment *assign;
 	ir_expression *expr;
 
@@ -158,7 +158,7 @@ void ir_mat_op_to_vec_visitor::do_mul_mat_mat(ir_dereference *result,
 void ir_mat_op_to_vec_visitor::do_mul_mat_vec(ir_dereference *result,
 	ir_dereference *a, ir_dereference *b)
 {
-	uint32 i;
+	int i;
 	ir_assignment *assign;
 	ir_expression *expr;
 
@@ -186,7 +186,9 @@ void ir_mat_op_to_vec_visitor::do_mul_mat_vec(ir_dereference *result,
 void ir_mat_op_to_vec_visitor::do_mul_vec_mat(ir_dereference *result,
 	ir_dereference *a, ir_dereference *b)
 {
-	for (uint32 i = 0; i < b->type->matrix_columns; i++)
+	int i;
+
+	for (i = 0; i < b->type->matrix_columns; i++)
 	{
 		ir_rvalue *column_result;
 		ir_expression *column_expr;
@@ -208,7 +210,9 @@ void ir_mat_op_to_vec_visitor::do_mul_vec_mat(ir_dereference *result,
 void ir_mat_op_to_vec_visitor::do_mul_mat_scalar(ir_dereference *result,
 	ir_dereference *a, ir_dereference *b)
 {
-	for (uint32 i = 0; i < a->type->matrix_columns; i++)
+	int i;
+
+	for (i = 0; i < a->type->matrix_columns; i++)
 	{
 		ir_expression *column_expr;
 		ir_assignment *column_assign;
