@@ -1,12 +1,29 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(cd "$(dirname "$BASH_SOURCE")" ; pwd)
+# these need to be passed to children scripts
+export ARCHIVE_ROOT=$HOME/Downloads
+export GITHUB_TAG=4.5.0-preview
+
+IsGithubBuild()
+{
+  # if p4 is installed, assume building out of perforce repo (no need to download and fix dependencies)
+  # Override this with -git
+  for Arg in $@; do
+    if [ "$Arg" == "-git" ]; then
+      return 0
+    fi
+  done
+
+  if which p4 > /dev/null; then
+    return 1	# perforce
+  fi
+
+  return 0
+}
+
 
 set -e
-
-echo
-echo Setting up Unreal Engine 4 project files...
-echo
 
 TOP_DIR=$(cd $SCRIPT_DIR/../../.. ; pwd)
 cd ${TOP_DIR}
@@ -17,7 +34,7 @@ located inside the Engine/Build/BatchFiles/Linux directory."
   exit 1
 fi
 
-if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" = "Distributor ID:	Debian" ]; then
+if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" = "Distributor ID:	Debian" -o "$(lsb_release --id)" = "Distributor ID:	Linux Mint" ]; then
   # Install all necessary dependencies
   DEPS="mono-xbuild \
     mono-dmcs \
@@ -27,17 +44,55 @@ if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" =
     libmono-system-management4.0-cil
     libmono-system-xml-linq4.0-cil
     libmono-corlib4.0-cil
-    libogg-dev"
+    libqt4-dev
+    dos2unix
+    "
 
   for DEP in $DEPS; do
     if ! dpkg -s $DEP > /dev/null 2>&1; then
       echo "Attempting installation of missing package: $DEP"
       set -x
-      sudo apt-get install $DEP
+      sudo apt-get install -y $DEP
       set +x
     fi
   done
 fi
+
+echo 
+if IsGithubBuild $@; then
+	echo
+	echo Github build
+	echo Checking / downloading the latest archives
+	echo
+	set +e
+	Build/BatchFiles/Linux/GetAssets.py EpicGames/UnrealEngine $GITHUB_TAG 
+
+	# check if it had to download anything
+	if [ $? -eq 2 ]; then
+	  echo
+          echo Downloaded new binaries!
+	  echo Unpacking and massaging the files
+	  pushd Build/BatchFiles/Linux > /dev/null
+	  ./UpdateDeps.sh 
+	  popd > /dev/null
+        else
+          echo
+          echo All assets are up to date, not unpacking zip files again.
+        fi
+
+else
+	echo Perforce build
+	echo Assuming availability of up to date third-party libraries
+fi
+
+echo
+pushd Build/BatchFiles/Linux > /dev/null
+./BuildThirdParty.sh
+popd > /dev/null
+
+echo
+echo Setting up Unreal Engine 4 project files...
+echo
 
 # args: wrong filename, correct filename
 # expects to be in Engine folder

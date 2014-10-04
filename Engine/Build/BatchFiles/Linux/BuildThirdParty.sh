@@ -40,6 +40,45 @@ P4Open()
   done
 }
 
+BuildZ()
+{
+  echo "building zlib"
+  set -x
+  cd Source/ThirdParty/zlib/zlib-1.2.5/build
+  tar xf zlib-1.2.5.tar.gz
+  cd zlib-1.2.5
+  CFLAGS=-fPIC ./configure
+  make $MAKE_ARGS
+  local LIB_DIR=../../Lib/Linux/$TARGET_ARCH
+  P4Open $LIB_DIR/libz.a
+  P4Open $LIB_DIR/libz_fPIC.a
+  mkdir -p $LIB_DIR
+  cp libz.a $LIB_DIR/libz_fPIC.a
+  set +x
+}
+
+BuildJemalloc()
+{
+  echo "building jemalloc"
+  set -x
+  cd Source/ThirdParty/jemalloc/build
+  tar xf jemalloc-3.6.0.tar.bz2
+  cd jemalloc-3.6.0
+  ./configure --with-mangling --with-jemalloc-prefix=je_
+  make $MAKE_ARGS
+  local LIB_DIR=../../lib/Linux/$TARGET_ARCH
+  local INC_DIR=../../include/Linux/$TARGET_ARCH
+  P4Open $LIB_DIR/libjemalloc.a
+  P4Open $LIB_DIR/libjemalloc_pic.a
+  mkdir -p $LIB_DIR
+  cp -rp lib/* $LIB_DIR
+  mkdir -p $INC_DIR
+  P4Open $INC_DIR/jemalloc_defs.h
+  P4Open $INC_DIR/jemalloc.h
+  cp -rp include/jemalloc/* $INC_DIR
+  set +x
+}
+
 BuildOpus()
 {
   echo "building libOpus"
@@ -51,8 +90,8 @@ BuildOpus()
   make $MAKE_ARGS
   local LIB_DIR=Linux/$TARGET_ARCH
   mkdir -p $LIB_DIR
-  cp .libs/libopus.a .libs/libopus*.so* $LIB_DIR
-  cp $LIB_DIR/libopus.so.0 ${TOP_DIR}/Binaries/Linux/
+  P4Open $LIB_DIR/libopus_fPIC.a
+  cp .libs/libopus.a $LIB_DIR/libopus_fPIC.a
   set +x
 }
 
@@ -68,8 +107,10 @@ BuildOgg()
 
   local LIB_DIR=lib/Linux/$TARGET_ARCH
   P4Open $LIB_DIR/libogg.a
+  P4Open $LIB_DIR/libogg_fPIC.a
   mkdir -p $LIB_DIR
-  cp src/.libs/* $LIB_DIR
+  cp src/.libs/libogg.a $LIB_DIR
+  cp $LIB_DIR/libogg.a $LIB_DIR/libogg_fPIC.a
   set +x
 }
 
@@ -86,9 +127,13 @@ BuildVorbis()
   make $MAKE_ARGS
 
   local LIB_DIR=lib/Linux/$TARGET_ARCH
-  #P4Open $LIB_DIR/libvorbis.a $LIB_DIR/libvorbisfile.a
+  P4Open $LIB_DIR/libvorbis.a $LIB_DIR/libvorbisfile.a $LIB_DIR/libvorbis_fPIC.a $LIB_DIR/libvorbisfile_fPIC.a
+  P4Open $LIB_DIR/libvorbisenc.a $LIB_DIR/libvorbisenc_fPIC.a 
   mkdir -p $LIB_DIR
   cp lib/.libs/libvorbis*.a $LIB_DIR/
+  cp $LIB_DIR/libvorbis.a libvorbis_fPIC.a
+  cp $LIB_DIR/libvorbisfile.a libvorbisfile_fPIC.a
+  cp $LIB_DIR/libvorbisenc.a libvorbisenc_fPIC.a
   set +x
   cd -
 }
@@ -98,7 +143,7 @@ BuildHLSLCC()
   echo "building hlslcc"
   set -x
   cd Source/ThirdParty/hlslcc
-  P4Open hlslcc/bin/Linux/hlslcc_64
+  # not building anymore P4Open hlslcc/bin/Linux/hlslcc_64
   P4Open hlslcc/lib/Linux/libhlslcc.a
   cd hlslcc/projects/Linux
   make $MAKE_ARGS
@@ -118,10 +163,27 @@ BuildMcpp()
   local LIB_DIR=lib/Linux/$TARGET_ARCH
   P4Open $LIB_DIR/libmcpp.a
   P4Open $LIB_DIR/libmcpp.so
+  P4Open ${TOP_DIR}/Binaries/Linux/libmcpp.so.0
   mkdir -p $LIB_DIR
   cp --remove-destination ./src/.libs/libmcpp.a $LIB_DIR/
   cp --remove-destination ./src/.libs/libmcpp.so $LIB_DIR/
   cp --remove-destination ./src/.libs/libmcpp.so ${TOP_DIR}/Binaries/Linux/libmcpp.so.0
+  set +x
+}
+
+BuildFreeType()
+{
+  echo "building freetype"
+  set -x
+  cd Source/ThirdParty/FreeType2/FreeType2-2.4.12/src
+  pwd
+  make $MAKE_ARGS -f ../Builds/Linux/makefile $*
+
+  local LIB_DIR=../Lib/Linux/$TARGET_ARCH
+  P4Open $LIB_DIR/libfreetype2412.a
+  P4Open $LIB_DIR/libfreetype2412_fPIC.a
+  cp --remove-destination libfreetype2412.a $LIB_DIR/libfreetype2412.a
+  cp $LIB_DIR/libfreetype2412.a $LIB_DIR/libfreetype2412_fPIC.a
   set +x
 }
 
@@ -153,7 +215,10 @@ BuildLND()
 {
   echo "building LinuxNativeDialogs"
   set -x
-  cd Source/ThirdParty/LinuxNativeDialogs/UELinuxNativeDialogs/build
+  cd Source/ThirdParty/LinuxNativeDialogs/UELinuxNativeDialogs
+  rm -rf build
+  mkdir build
+  cd build
   cmake ..
   make $MAKE_ARGS
   local LIB_DIR=../lib/Linux/$TARGET_ARCH/
@@ -185,6 +250,7 @@ BuildForsythTriOO()
   echo "building ForsythTriOO"
   set -x
   cd Source/ThirdParty/ForsythTriOO
+  rm -rf Build/Linux
   mkdir -p Build/Linux
   mkdir -p Lib/Linux/$TARGET_ARCH
   cd Build/Linux
@@ -202,6 +268,7 @@ BuildnvTriStrip()
   echo "building nvTriStrip"
   set -x
   cd Source/ThirdParty/nvTriStrip/nvTriStrip-1.0.0
+  rm -rf Build/Linux
   mkdir -p Build/Linux
   mkdir -p Lib/Linux/$TARGET_ARCH
   cd Build/Linux
@@ -221,6 +288,7 @@ BuildnvTextureTools()
   cd Source/ThirdParty/nvTextureTools/nvTextureTools-2.0.8
   mkdir -p lib/Linux/$TARGET_ARCH
   cd src
+  rm -rf build
   P4Open configure
   chmod +x ./configure
   CXXFLAGS=-fPIC ./configure --release
@@ -251,10 +319,10 @@ BuildSDL2()
   cd $SDL_BUILD_DIR
 
   cmake ../$SDL_DIR
-  make
+  make ${MAKE_ARGS}
   P4Open ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2.a
   P4Open ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2_fPIC.a
-  
+
   cp --remove-destination libSDL2.a ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2.a
   cp --remove-destination libSDL2_fPIC.a ../$SDL_DIR/lib/Linux/x86_64-unknown-linux-gnu/libSDL2_fPIC.a
   set +x
@@ -304,35 +372,150 @@ Run()
 {
   cd ${TOP_DIR}
   echo "==> $1"
-  if [ -n "$VERBOSE" ]; then
+  if [[ $VERBOSE -eq 1 ]]; then
     $1
   else
     $1 >> ${SCRIPT_DIR}/BuildThirdParty.log 2>&1
   fi
 }
 
+Success() {
+    if [ -z $1 ]; then
+        echo "**********  SUCCESS ****************"
+    else
+        echo "**********  SUCCESS $1 ****************"
+    fi
+}
+build_all() {
+   Run BuildJemalloc
+   Run BuildZ
+   Run BuildOpus
+   Run BuildOgg
+   Run BuildVorbis
+   Run BuildHLSLCC
+   Run BuildMcpp
+   Run BuildFreeType
+   Run BuildLND
+   Run BuildForsythTriOO
+   Run BuildnvTriStrip
+   Run BuildnvTextureTools
+   Run BuildSDL2
+   Run Buildcoremod
+   Run FixICU
+}
+
+print_help() {
+
+ echo "-a|--all Rebuild all ThirdParty libs"
+ echo "-v|--verbose Print full output, otherwise output is logged to BuildThirdParty.log"
+ echo "-b|--build BUILD_ME|--build=BUILD_ME Rebuild a specific library"
+ print_valid_build_opts
+ echo "-h|--help Print this help and exit"
+
+}
+
+print_valid_build_opts() {
+  echo "  Valid build choices are"
+  echo "    Jemalloc"
+  echo "    Z"
+  echo "    Opus"
+  echo "    Ogg"
+  echo "    Vorbis"
+  echo "    HLSLCC"
+  echo "    Mcpp"
+  echo "    FreeType"
+  echo "    LND"
+  echo "    ForsythTriOO"
+  echo "    nvTriStrip"
+  echo "    nvTextureTools"
+  echo "    SDL2"
+  echo "    coremod"
+  echo "    ICU"
+}
+
+BuildList=()
+
+# Parse command line parameters
+while :; do
+    case $1 in
+        -h|--help)
+            print_help
+            exit
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            continue
+            ;;
+        -a|--all)
+            ALL=1
+            shift
+            continue
+            ;;
+        -b|--build) # Add to the list of packages to build
+            if [ "$2" ]; then
+                BuildList+=("$2")
+                BUILD_LIST=1
+                shift 2
+                continue
+             else
+                echo 'ERROR: Must specify non empty "--build=BUILD" argument.' >&2
+                print_valid_build_opts
+                exit 1
+             fi
+             ;;
+        --build=?*) # Add to the list of packages to build
+            BuildList+=("${1#*=}")
+            BUILD_LIST=1
+            shift
+            continue
+            ;;
+        --build=)
+            echo 'ERROR: Must specify non empty "--build=BUILD" argument.' >&2
+            exit 1
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -?*)
+            printf "WARN: Unknown Option (ignored): %s\n' "$1" >&2"
+            ;;
+        *)
+            break
+  esac
+
+  shift
+done
+
 echo "Building ThirdParty libraries"
-if [ -z "$VERBOSE" ]; then
-  echo "(For full output set VERBOSE=1, otherwise output is logged to BuildThirdParty.log)"
-fi
 
 rm -f ${SCRIPT_DIR}/BuildThirdParty.log
-if [ -z "$1" ]; then
-  # use bundled Run BuildOpus
-  # use bundled Run BuildOgg
-  # use bundled Run BuildVorbis
-  Run BuildHLSLCC
-  Run BuildMcpp
-  # use bundled Run BuildFreeType
-  Run BuildLND
-  Run BuildForsythTriOO
-  Run BuildnvTriStrip
-  Run BuildnvTextureTools
-  Run BuildSDL2
-  Run Buildcoremod
-  Run FixICU
-else
-  Run $1
+
+# if -b --build or --build=?* is used, build the list
+# instead of the default or all
+if [[ ${#BuildList[@]} -ne 0 &&  $ALL -eq 0 ]]; then
+    for var in "${BuildList[@]}"
+    do
+        if [[ "${var}" -ne "ICU" ]]; then
+            Run Fix"${var}"
+            Success "${var}"
+        else
+            Run Build"${var}"
+            Success "${var}"
+        fi
+    done
+    exit
+elif [[ ${#BuildList[@]} -ne 0 ]] && [[ $ALL -eq 1 ]]; then
+    echo "ERROR: Can not build all and individual packages at the same time"
+    exit
 fi
 
-echo "********** SUCCESS ****************"
+if [[ $ALL -eq 1 ]]; then
+  build_all
+else
+  Run BuildLND
+fi
+
+Success
+
