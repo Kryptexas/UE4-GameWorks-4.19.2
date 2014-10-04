@@ -83,7 +83,7 @@ def download_assets(repo):
 			size = int(asset["size"])
 			if at_latest_version:
 				if size != os.path.getsize(asset_path):
-					print("Incomplete download of asset {0}, retrying")
+					print("Incomplete download of asset {0}, retrying".format(name))
 				else:
 					print("Asset {0} up to date".format(name))
 					continue

@@ -66,9 +66,17 @@ if IsGithubBuild $@; then
 	echo
 	set +e
 	Build/BatchFiles/Linux/GetAssets.py EpicGames/UnrealEngine $GITHUB_TAG 
+	UpdateResult=$?
+	set -e
+
+	if [ $UpdateResult -eq 1 ]; then
+	  echo
+          echo Could not check/download binary dependencies!
+          exit 1
+        fi
 
 	# check if it had to download anything
-	if [ $? -eq 2 ]; then
+	if [ $UpdateResult -eq 2 ]; then
 	  echo
           echo Downloaded new binaries!
 	  echo Unpacking and massaging the files
