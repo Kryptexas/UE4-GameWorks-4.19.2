@@ -86,7 +86,7 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 
 	int32 GetDefaultZoomLevel() const override
 	{
-		return 12;
+		return 10;
 	}
 
 	EGraphRenderingLOD::Type GetLOD(int32 InZoomLevel) const override
@@ -129,6 +129,8 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 
 	bAllowContinousZoomInterpolation = false;
 	bTeleportInsteadOfScrollingWhenZoomingToFit = false;
+
+	bRequireControlToOverZoom = false;
 
 	ZoomTargetTopLeft = FVector2D::ZeroVector;
 	ZoomTargetBottomRight = FVector2D::ZeroVector;
@@ -236,7 +238,7 @@ FReply SDesignSurface::OnMouseWheel(const FGeometry& MyGeometry, const FPointerE
 	// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
 	const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 	const int32 ZoomLevelDelta = FMath::FloorToInt(MouseEvent.GetWheelDelta());
-	ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, MouseEvent.IsControlDown());
+	ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, !bRequireControlToOverZoom || MouseEvent.IsControlDown());
 
 	return FReply::Handled();
 }
