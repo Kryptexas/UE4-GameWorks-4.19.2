@@ -19,6 +19,9 @@
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
+const EViewModeIndex FEditorViewportClient::DefaultPerspectiveViewMode = VMI_Lit;
+const EViewModeIndex FEditorViewportClient::DefaultOrthoViewMode = VMI_BrushWireframe;
+
 static TAutoConsoleVariable<int32> CVarAlignedOrthoZoom(
 	TEXT("r.Editor.AlignedOrthoZoom"),
 	1,
@@ -239,8 +242,8 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, bIsSimulateInEditorViewport(false)
 	, bCameraLock(false)
 	, PreviewScene(InPreviewScene)
-	, PerspViewModeIndex(VMI_Lit)
-	, OrthoViewModeIndex(VMI_BrushWireframe)
+	, PerspViewModeIndex(DefaultPerspectiveViewMode)
+	, OrthoViewModeIndex(DefaultOrthoViewMode)
 	, NearPlane(-1.0f)
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
@@ -274,7 +277,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 
 	EngineShowFlags.SetSnap(1);
 
-	SetViewMode(VMI_Lit);
+	SetViewMode(IsPerspective() ? PerspViewModeIndex : OrthoViewModeIndex);
 
 	ModeTools->OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
 }

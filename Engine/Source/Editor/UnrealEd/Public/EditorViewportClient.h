@@ -1345,6 +1345,13 @@ protected:
 	FVector DefaultOrbitZoom;
 	FVector DefaultOrbitLookAt;
 	
+public:
+	/* Default view mode for perspective viewports */
+	static const EViewModeIndex DefaultPerspectiveViewMode;
+
+	/* Default view mode for orthographic viewports */
+	static const EViewModeIndex DefaultOrthoViewMode;
+
 private:
 	/* View mode to set when this viewport is of type LVT_Perspective */
 	EViewModeIndex PerspViewModeIndex;
