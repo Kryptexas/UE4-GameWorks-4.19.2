@@ -311,6 +311,8 @@ private:
 	bool bPlayInEditorGetsMouseControl;
 	/** Whether the PIE viewport is currently in simulate in editor mode */
 	bool bPlayInEditorIsSimulate;
+	/** Whether or not the cursor is hidden when the viewport captures the mouse */
+	bool bCursorHiddenDueToCapture;
 };
 
 

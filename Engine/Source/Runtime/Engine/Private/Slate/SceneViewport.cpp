@@ -31,6 +31,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bIsResizing( false )
 	, bPlayInEditorGetsMouseControl( true )
 	, bPlayInEditorIsSimulate( false )
+	, bCursorHiddenDueToCapture( false )
 {
 	bIsSlateViewport = true;
 }
@@ -308,6 +309,11 @@ bool FSceneViewport::IsForegroundWindow() const
 
 FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent )
 {
+	if (bCursorHiddenDueToCapture)
+	{
+		return FCursorReply::Cursor(EMouseCursor::None);
+	}
+
 	EMouseCursor::Type MouseCursorToUse = EMouseCursor::Default;
 
 	// If the cursor should be hidden, use EMouseCursor::None,
@@ -364,7 +370,13 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 			{
 				CurrentReplyState.CaptureMouse(ViewportWidgetRef);
 				CurrentReplyState.LockMouseToWidget(ViewportWidgetRef);
-				if (!World->GetFirstPlayerController()->ShouldShowMouseCursor())
+
+				bool bShouldShowMouseCursor = World->GetFirstPlayerController()->ShouldShowMouseCursor();
+				if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
+				{
+					bCursorHiddenDueToCapture = true;
+				}
+				if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
 				{
 					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 				}
@@ -411,6 +423,8 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 		// as long as the left or right mouse buttons are not still down
 		if( !InMouseEvent.IsMouseButtonDown( EKeys::RightMouseButton ) && !InMouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
 		{
+			bCursorHiddenDueToCapture = false;
+
 			CurrentReplyState.ReleaseMouseCapture();
 			if (bIsCursorVisible)
 			{

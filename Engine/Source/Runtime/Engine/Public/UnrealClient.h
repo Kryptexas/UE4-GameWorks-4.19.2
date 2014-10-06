@@ -877,6 +877,11 @@ public:
 	 * Gets the mouse capture behavior when the viewport is clicked
 	 */
 	virtual EMouseCaptureMode::Type CaptureMouseOnClick() { return EMouseCaptureMode::CapturePermanently; }
+
+	/**
+	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
+	virtual bool HideCursorDuringCapture() { return false; }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */

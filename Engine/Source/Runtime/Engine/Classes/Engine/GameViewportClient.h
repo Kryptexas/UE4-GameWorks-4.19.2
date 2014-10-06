@@ -679,6 +679,22 @@ public:
 		return MouseCaptureMode;
 	}
 
+	/**
+	 * Sets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
+	void SetHideCursorDuringCapture(bool InHideCursorDuringCapture)
+	{
+		bHideCursorDuringCapture = InHideCursorDuringCapture;
+	}
+
+	/**
+	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
+	virtual bool HideCursorDuringCapture() override
+	{
+		return bHideCursorDuringCapture;
+	}
+
 private:
 	/**
 	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
@@ -767,6 +783,10 @@ private:
 
 	/** Mouse capture behavior when the viewport is clicked */
 	EMouseCaptureMode::Type MouseCaptureMode;
+
+	/** Whether or not the cursor is hidden when the viewport captures the mouse */
+	bool bHideCursorDuringCapture;
+
 };
 
 

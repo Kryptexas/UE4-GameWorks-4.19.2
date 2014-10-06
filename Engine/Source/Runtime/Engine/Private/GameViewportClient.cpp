@@ -84,6 +84,7 @@ UGameViewportClient::UGameViewportClient(const class FPostConstructInitializePro
 	, HighResScreenshotDialog(NULL)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
+	, bHideCursorDuringCapture(false)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
