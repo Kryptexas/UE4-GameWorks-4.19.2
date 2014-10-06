@@ -65,13 +65,15 @@ TSharedRef<SWidget> UMenuAnchor::HandleGetMenuContent()
 			SlateMenuWidget = MenuWidget->TakeWidget();
 		}
 	}
-
-	if ( MenuClass != NULL && !MenuClass->HasAnyClassFlags(CLASS_Abstract) )
+	else
 	{
-		UWidget* MenuWidget = (UWidget*)ConstructObject<UWidget>(MenuClass, GetOuter());
-		if ( MenuWidget )
+		if ( MenuClass != nullptr && !MenuClass->HasAnyClassFlags(CLASS_Abstract) )
 		{
-			SlateMenuWidget = MenuWidget->TakeWidget();
+			UUserWidget* MenuWidget = CreateWidget<UUserWidget>(GetWorld(), MenuClass);
+			if ( MenuWidget )
+			{
+				SlateMenuWidget = MenuWidget->TakeWidget();
+			}
 		}
 	}
 
