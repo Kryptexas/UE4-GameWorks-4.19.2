@@ -642,8 +642,12 @@ public:
 	/** Creates a new FX system for this world */
 	void CreateFXSystem();
 
+#if WITH_EDITOR
+
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
+
+#endif // WITH_EDITOR
 
 private:
 

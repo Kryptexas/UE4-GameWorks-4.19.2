@@ -20,6 +20,12 @@ ENGINE_API int32 GReflectionCaptureSize = 128;
 
 void UWorld::UpdateAllReflectionCaptures()
 {
+	if ( FeatureLevel < ERHIFeatureLevel::SM4)
+	{
+		UE_LOG(LogMaterial, Warning, TEXT("Update reflection captures only works with an active feature level of SM4 or greater."));
+		return;
+	}
+
 	TArray<UReflectionCaptureComponent*> UpdatedComponents;
 
 	for (TObjectIterator<UReflectionCaptureComponent> It; It; ++It)
@@ -961,6 +967,8 @@ void UReflectionCaptureComponent::PostLoad()
 	Super::PostLoad();
 
 	bool bRetainAllFeatureLevelData = GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	bool bEncodedDataRequired = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2;
+	bool bFullDataRequired = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
 
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())
@@ -994,39 +1002,32 @@ void UReflectionCaptureComponent::PostLoad()
 		// If we have full HDR data but not encoded HDR data, generate the encoded data now
 		if (FullHDRDerivedData 
 			&& !EncodedHDRDerivedData 
-			&& (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
+			&& (bEncodedDataRequired))
 		{
 			EncodedHDRDerivedData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRDerivedData, StateId, Brightness);
 		}
 	}
 	
-	// Initialize rendering resources for the current feature level, and toss data only needed by other feature levels
-	if (FullHDRDerivedData && (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
+	// Initialize rendering resources for the current feature level, and toss data only needed by other feature levels (unless in editor mode, in which all feature level data should be resident.)
+	if (FullHDRDerivedData && bFullDataRequired)
 	{
 		// Don't need encoded HDR data for rendering on this feature level
 		INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, FullHDRDerivedData->CompressedCapturedData.GetAllocatedSize());
 
-		// command line option: -NoTiledReflections
-		// useful to test this code path and to run the potentially more efficient path (PS vs CS) on SM5 hardware
-		// not a cvar as it also needs to change the data when loading the captures
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NoTiledReflections"));
-		check(CVar);
-		const bool bNoTiledReflections = (CVar->GetValueOnAnyThread() == 1);
-
-		if ((GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData || bNoTiledReflections))
+		if (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
 			SM4FullHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_FloatRGBA, &FullHDRDerivedData->GetCapturedDataForSM4Load());
 			BeginInitResource(SM4FullHDRCubemapTexture);
 		}
 
-		if (!bRetainAllFeatureLevelData)
+		if (!bEncodedDataRequired)
 		{
 			EncodedHDRDerivedData = NULL;
 		}
 	}
 
-	if (EncodedHDRDerivedData && (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
+	if (EncodedHDRDerivedData && bEncodedDataRequired)
 	{
 		if (FPlatformProperties::RequiresCookedData())
 		{
@@ -1038,12 +1039,9 @@ void UReflectionCaptureComponent::PostLoad()
 		EncodedHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
 		BeginInitResource(EncodedHDRCubemapTexture);
 
-		if (!bRetainAllFeatureLevelData)
-		{
-			// Don't need the full HDR data for rendering on this feature level
-			delete FullHDRDerivedData;
-			FullHDRDerivedData = NULL;
-		}
+		// Don't need the full HDR data for rendering on this feature level
+		delete FullHDRDerivedData;
+		FullHDRDerivedData = NULL;
 	}
 }
 
@@ -1335,6 +1333,76 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 		}
 	}
 }
+
+#if WITH_EDITOR
+void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel)
+{
+	if (PendingFeatureLevel == ERHIFeatureLevel::ES2)
+	{
+		// generate encoded hdr data for ES2 preview mode.
+		if (World != nullptr)
+		{
+			// Capture full hdr derived data first.
+			ReadbackFromGPUAndSaveDerivedData(World);
+		}
+		if (FullHDRDerivedData)
+		{
+			EncodedHDRDerivedData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRDerivedData, StateId, Brightness);
+			if (FPlatformProperties::RequiresCookedData() && EncodedHDRDerivedData)
+			{
+				INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
+			}
+
+			if (EncodedHDRCubemapTexture == nullptr)
+			{
+				EncodedHDRCubemapTexture = new FReflectionTextureCubeResource();
+			}
+			EncodedHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
+			BeginInitResource(EncodedHDRCubemapTexture);
+		}
+	}
+	else
+	{
+		// Release ES2's unused textures & data.
+		if (FPlatformProperties::RequiresCookedData() && EncodedHDRDerivedData)
+		{
+			DEC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
+		}
+		EncodedHDRDerivedData = nullptr;
+		if (EncodedHDRCubemapTexture)
+		{
+			BeginReleaseResource(EncodedHDRCubemapTexture);
+			FlushRenderingCommands();
+			delete EncodedHDRCubemapTexture;
+			EncodedHDRCubemapTexture = nullptr;
+		}
+
+		// for >= SM4 capture should be updated.
+		SetCaptureIsDirty();
+	}
+
+	if (PendingFeatureLevel == ERHIFeatureLevel::SM4)
+	{
+		if (SM4FullHDRCubemapTexture == nullptr)
+		{
+			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
+			SM4FullHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_FloatRGBA, NULL);
+			BeginInitResource(SM4FullHDRCubemapTexture);
+		}
+	}
+	else
+	{
+		// release SM4 texture
+		if (SM4FullHDRCubemapTexture != nullptr)
+		{
+			BeginReleaseResource(SM4FullHDRCubemapTexture);
+			FlushRenderingCommands();
+			delete SM4FullHDRCubemapTexture;
+			SM4FullHDRCubemapTexture = nullptr;
+		}
+	}
+}
+#endif // WITH_EDITOR
 
 USphereReflectionCaptureComponent::USphereReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

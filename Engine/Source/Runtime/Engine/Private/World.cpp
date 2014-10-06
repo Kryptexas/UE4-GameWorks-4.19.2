@@ -5319,14 +5319,25 @@ void UWorld::GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& O
 	}
 }
 
+#if WITH_EDITOR
 void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
 		FlushRenderingCommands();
 
+		// Give all scene components the opportunity to prepare for pending feature level change.
+		for (TObjectIterator<USceneComponent> It; It; ++It)
+		{
+			USceneComponent* SceneComponent = *It;
+			if (SceneComponent->GetWorld() == this)
+			{
+				SceneComponent->PreFeatureLevelChange(InFeatureLevel);
+			}
+		}
+
 		FGlobalComponentReregisterContext RecreateComponents;
-		
+
 		// Decrement refcount on old feature level
 		UMaterialInterface::SetGlobalRequiredFeatureLevel(InFeatureLevel, true);
 
@@ -5362,6 +5373,7 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 		RecompileShaders(TEXT("CHANGED"), Ar);
 	}
 }
+#endif // WITH_EDITOR
 
 /**
 * Dump visible actors in current world.

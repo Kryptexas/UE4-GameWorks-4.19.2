@@ -3,6 +3,7 @@
 #pragma once
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
+#include "RHIDefinitions.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -649,6 +650,8 @@ public:
 	virtual bool CanEditChange( const UProperty* Property ) const override;
 
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const;
+
+	virtual void PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel) {}
 #endif // WITH_EDITOR
 
 protected:

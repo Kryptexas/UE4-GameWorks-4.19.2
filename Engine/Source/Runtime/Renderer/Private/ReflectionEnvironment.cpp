@@ -46,22 +46,6 @@ static TAutoConsoleVariable<int32> CVarHalfResReflections(
 	TEXT(" 0 is off (default), 1 is on"),
 	ECVF_RenderThreadSafe);
 
-// NoTiledReflections option, useful to fall back to SM4 style reflections on some SM5 HW
-static TAutoConsoleVariable<int32> CVarNoTiledReflections(
-	TEXT("r.NoTiledReflections"),
-	0,
-	TEXT("Use SM4 style PS reflections on SM5 HW.\n")
-	TEXT(" 0 is off (default), 1 is on"),
-	ECVF_ReadOnly);
-
-int32 GNumCapturesBeforeUsingTiledDeferred = 0;
-static FAutoConsoleVariableRef CVarNumCapturesBeforeUsingTiledDeferred(
-	TEXT("r.TiledReflectionEnvironmentMinimumCount"),
-	GNumCapturesBeforeUsingTiledDeferred,
-	TEXT("Number of applicable reflection captures that must be in the scene before switching to tiled deferred."),
-	ECVF_RenderThreadSafe
-	);
-
 // to avoid having direct access from many places
 static int GetReflectionEnvironmentCVar()
 {
@@ -611,7 +595,7 @@ public:
 		}
 		else
 		{
-		SetTextureParameter(RHICmdList, ShaderRHI, ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SortData.SM4FullHDRCubemap->TextureRHI);
+			SetTextureParameter(RHICmdList, ShaderRHI, ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SortData.SM4FullHDRCubemap->TextureRHI);
 		}
 
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
@@ -984,19 +968,6 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 	}
 }
 
-bool ShouldUseTiledDeferredReflectionEnvironment(FScene* Scene)
-{
-	// command line option: -NoTiledReflections
-	// useful to test this code path and to run the potentially more efficient path (PS vs CS) on SM5 hardware
-	// not a cvar as it also needs to change the data when loading the captures
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NoTiledReflections"));
-	check(CVar);
-	const bool bNoTiledReflections = (CVar->GetValueOnAnyThread() == 1);
-
-	const ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
-	return FeatureLevel >= ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() > GNumCapturesBeforeUsingTiledDeferred && !bNoTiledReflections;
-}
-
 void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
 {
 	if (IsSimpleDynamicLightingEnabled() || ViewFamily.EngineShowFlags.VisualizeLightCulling)
@@ -1020,9 +991,9 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 	else
 	{
 		const bool bReflectionEnvironment = ShouldDoReflectionEnvironment();
-		const bool bWantsTiledReflections = ShouldUseTiledDeferredReflectionEnvironment(Scene);
+		const bool bReflectionsWithCompute = (FeatureLevel >= ERHIFeatureLevel::SM5) && bReflectionEnvironment && Scene->ReflectionSceneData.CubemapArray.IsValid();
 
-		if (bWantsTiledReflections && bReflectionEnvironment)
+		if (bReflectionsWithCompute)
 		{
 			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO);
 		}
