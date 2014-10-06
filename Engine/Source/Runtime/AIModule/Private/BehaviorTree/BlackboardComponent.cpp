@@ -17,11 +17,17 @@ void UBlackboardComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	// cache blackboard component if owner has one
-	BrainComp = GetOwner()->FindComponentByClass<UBrainComponent>();
-	if (BrainComp)
+	// note that it's a valid scenario for this component to not have an owner at all (at least in terms of unittesting)
+	AActor* Owner = GetOwner();
+	if (Owner)
 	{
-		BrainComp->CacheBlackboardComponent(this);
+		BrainComp = GetOwner()->FindComponentByClass<UBrainComponent>();
+		if (BrainComp)
+		{
+			BrainComp->CacheBlackboardComponent(this);
+		}
 	}
+
 	InitializeBlackboard(BlackboardAsset);
 }
 
