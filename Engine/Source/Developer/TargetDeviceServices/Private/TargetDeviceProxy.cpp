@@ -69,7 +69,7 @@ void FTargetDeviceProxy::UpdateFromMessage( const FTargetDeviceServicePong& Mess
 			Variant.TargetPlatformName = MsgVariant.TargetPlatformName;
 			Variant.TargetPlatformId = MsgVariant.TargetPlatformId;
 			Variant.VanillaPlatformId = MsgVariant.VanillaPlatformId;
-			Variant.PlatformDisplayName = MsgVariant.PlatformDisplayName;
+			Variant.PlatformDisplayName = FText::FromString(MsgVariant.PlatformDisplayName);
 		}
 
 		LastUpdateTime = FDateTime::UtcNow();
@@ -92,6 +92,10 @@ int32 FTargetDeviceProxy::GetVariants(TArray<FName>& OutVariants) const
 
 bool FTargetDeviceProxy::HasVariant(FName InVariant) const
 {
+	if (InVariant == NAME_None)
+	{
+		return TargetDeviceVariants.Contains(DefaultVariant);
+	}
 	return TargetDeviceVariants.Contains(InVariant);
 }
 

@@ -174,14 +174,10 @@ private:
 	EVisibility HandleValidationMessageVisibility( ELauncherProfileValidationErrors::Type Error ) const
 	{
 		ILauncherProfilePtr LaunchProfile = LaunchProfileAttr.Get();
-		if (LaunchProfile.IsValid())
+		if (!LaunchProfile.IsValid() || LaunchProfile->HasValidationError(Error))
 		{
-			if (LaunchProfile->HasValidationError(Error))
-			{
-				return EVisibility::Visible;
-			}
+			return EVisibility::Visible;
 		}
-
 		return EVisibility::Collapsed;
 	}
 
@@ -194,9 +190,10 @@ private:
 			{
 				return LOCTEXT("NoPlatformSDKInstalled", "A required platform SDK is mising: ").ToString() + LaunchProfile->GetInvalidPlatform();
 			}
-		}
 
-		return TEXT("");
+			return TEXT("");
+		}
+		return LOCTEXT("InvalidLaunchProfile", "Invalid Launch Profile.").ToString();
 	}
 
 private:

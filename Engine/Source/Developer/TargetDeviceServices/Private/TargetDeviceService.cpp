@@ -123,7 +123,7 @@ void FTargetDeviceService::HandlePingMessage(const FTargetDeviceServicePing& InM
 				Variant.TargetPlatformName = TargetDevice->GetTargetPlatform().PlatformName();
 				Variant.TargetPlatformId = Info.TargetPlatformName;
 				Variant.VanillaPlatformId = Info.VanillaPlatformName;
-				Variant.PlatformDisplayName = Info.DisplayName;
+				Variant.PlatformDisplayName = Info.DisplayName.ToString();
 			}
 
 			MessageEndpoint->Send(Message, Context->GetSender());

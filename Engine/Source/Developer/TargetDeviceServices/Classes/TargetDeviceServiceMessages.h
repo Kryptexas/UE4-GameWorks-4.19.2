@@ -531,7 +531,16 @@ struct FTargetDeviceVariant
 	FName VanillaPlatformId;
 
 	UPROPERTY()
-	FText PlatformDisplayName;
+	FString PlatformDisplayName;
+};
+
+template<>
+struct TStructOpsTypeTraits<FTargetDeviceVariant> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithMessageHandling = true
+	};
 };
 
 
