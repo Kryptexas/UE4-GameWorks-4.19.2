@@ -448,6 +448,8 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 		ActorIt->RouteEndPlay(EEndPlayReason::EndPlayInEditor);
 	}
 
+	PieWorldContext.OwningGameInstance->Shutdown();
+
 	// Move blueprint debugging pointers back to the objects in the editor world
 	PlayWorld->TransferBlueprintDebugReferences(EditorWorld);
 
