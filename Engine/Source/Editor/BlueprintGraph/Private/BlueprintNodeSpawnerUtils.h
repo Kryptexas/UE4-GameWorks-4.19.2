@@ -35,5 +35,15 @@ struct FBlueprintNodeSpawnerUtils
 	 * @return The action's associated property (null if it doesn't have one).
 	 */
 	static UProperty const* GetAssociatedProperty(UBlueprintNodeSpawner const* BlueprintAction);
+
+	/**
+	 * Utility function to pull UClass info from a tentative binding object 
+	 * (defaults to the object's class, uses the PropertyClass if the object is
+	 * an object property).
+	 * 
+	 * @param  Binding	The binding you want a class for.
+	 * @return A UClass that corresponds to the supplied binding.
+	 */
+	static UClass* GetBindingClass(const UObject* Binding);
 };
 

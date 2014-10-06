@@ -6,8 +6,10 @@
 #include "GameFramework/Actor.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
-#include "BlueprintActionFilter.h" // for FBlueprintActionContext
-#include "EditorCategoryUtils.h" // for BuildCategoryString()
+#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "EditorCategoryUtils.h"	// for BuildCategoryString()
+#include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()
+#include "BlueprintNodeSpawnerUtils.h" // for GetBindingClass()
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 
@@ -397,24 +399,19 @@ bool UBlueprintFunctionNodeSpawner::CanBindMultipleObjects() const
 //------------------------------------------------------------------------------
 bool UBlueprintFunctionNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
-	bool bCanBind = false;
-
 	UFunction const* Function = GetFunction();
-	if ((Function != nullptr) && (NodeClass == UK2Node_CallFunction::StaticClass()))
-	{
-		UClass* BindingClass = BindingCandidate->GetClass();
-		if (UObjectProperty const* ObjectProperty = Cast<UObjectProperty>(BindingCandidate))
-		{
-			BindingClass = ObjectProperty->PropertyClass;
-		}
+	checkSlow(Function != nullptr);
 
-		if (UClass const* FuncOwner = Function->GetOwnerClass())
-		{
-			bCanBind = BindingClass->IsChildOf(FuncOwner);
-		}
+	bool const bNodeTypeMatches = (NodeClass == UK2Node_CallFunction::StaticClass());
+	bool bClassOwnerMatches = false;
+
+	UClass* BindingClass = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate);
+	if (UClass const* FuncOwner = Function->GetOwnerClass())
+	{
+		bClassOwnerMatches = BindingClass->IsChildOf(FuncOwner);
 	}
 
-	return bCanBind;
+	return bNodeTypeMatches && bClassOwnerMatches && !FObjectEditorUtils::IsFunctionHiddenFromClass(Function, BindingClass);
 }
 
 //------------------------------------------------------------------------------

@@ -2,9 +2,10 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintBoundEventNodeSpawner.h"
-#include "ObjectEditorUtils.h"		// for GetCategory()
+#include "ObjectEditorUtils.h"		// for GetCategory()/IsVariableCategoryHiddenFromClass()
 #include "KismetEditorUtilities.h"	// for FindBoundEventForComponent()/FindBoundEventForActor()
 #include "EditorCategoryUtils.h"	// for GetCommonCategory()
+#include "BlueprintNodeSpawnerUtils.h" // for GetBindingClass()
 
 #define LOCTEXT_NAMESPACE "BlueprintBoundEventNodeSpawner"
 
@@ -119,27 +120,22 @@ UK2Node_Event const* UBlueprintBoundEventNodeSpawner::FindPreExistingEvent(UBlue
 //------------------------------------------------------------------------------
 bool UBlueprintBoundEventNodeSpawner::IsBindingCompatible(UObject const* BindingCandidate) const
 {
-	bool bCanBind = false;
-
-	UClass* DelegateOwner = nullptr;
-	if (UMulticastDelegateProperty const* Delegate = GetEventDelegate())
-	{
-		DelegateOwner = Delegate->GetOwnerClass();
-	}
-
+	bool bMatchesNodeType = false;
 	if (NodeClass->IsChildOf<UK2Node_ComponentBoundEvent>())
 	{
 		UObjectProperty const* BindingProperty = Cast<UObjectProperty>(BindingCandidate);
-
-		bCanBind = (BindingProperty != nullptr) && (DelegateOwner != nullptr) &&
-			BindingProperty->PropertyClass->IsChildOf(DelegateOwner);
+		bMatchesNodeType = (BindingProperty != nullptr);
 	}
 	else if (NodeClass->IsChildOf<UK2Node_ActorBoundEvent>())
 	{
-		bCanBind = BindingCandidate->IsA<AActor>() && (DelegateOwner != nullptr) &&
-			BindingCandidate->GetClass()->IsChildOf(DelegateOwner);
+		bMatchesNodeType = BindingCandidate->IsA<AActor>();
 	}
-	return bCanBind;
+
+	const UMulticastDelegateProperty* Delegate = GetEventDelegate();
+	UClass* DelegateOwner = Delegate->GetOwnerClass();
+	UClass* BindingClass  = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate);
+
+	return bMatchesNodeType && BindingClass->IsChildOf(DelegateOwner) && !FObjectEditorUtils::IsVariableCategoryHiddenFromClass(Delegate, BindingClass);
 }
 
 //------------------------------------------------------------------------------

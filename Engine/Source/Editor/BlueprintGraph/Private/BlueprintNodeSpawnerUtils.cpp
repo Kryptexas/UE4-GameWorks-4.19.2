@@ -23,6 +23,11 @@ UField const* FBlueprintNodeSpawnerUtils::GetAssociatedField(UBlueprintNodeSpawn
 	{
 		ClassField = Property;
 	}
+	// @TODO: have to fix up some of the filter cases to ignore structs/enums
+// 	else if (UBlueprintFieldNodeSpawner const* FieldNodeSpawner = Cast<UBlueprintFieldNodeSpawner>(BlueprintAction))
+// 	{
+// 		ClassField = FieldNodeSpawner->GetField();
+// 	}
 	return ClassField;
 }
 
@@ -61,4 +66,15 @@ UProperty const* FBlueprintNodeSpawnerUtils::GetAssociatedProperty(UBlueprintNod
 		Property = BoundSpawner->GetEventDelegate();
 	}
 	return Property;
+}
+
+//------------------------------------------------------------------------------
+UClass* FBlueprintNodeSpawnerUtils::GetBindingClass(const UObject* Binding)
+{
+	UClass* BindingClass = Binding->GetClass();
+	if (const UObjectProperty* ObjProperty = Cast<UObjectProperty>(Binding))
+	{
+		BindingClass = ObjProperty->PropertyClass;
+	}
+	return BindingClass;
 }

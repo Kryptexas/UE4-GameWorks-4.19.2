@@ -703,6 +703,13 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 				break;
 			}
 		}
+
+		// handled now in each IsBindingCompatible() check
+// 		for (auto BindingIt = BlueprintAction.GetBindings().CreateConstIterator(); BindingIt && !bIsFilteredOut; ++BindingIt)
+// 		{
+// 			UClass* BindingClass = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingIt->Get());
+// 			bIsFilteredOut = IsFieldHiddenDelegate.Execute(BindingClass);
+// 		}
 	}
 
 	return bIsFilteredOut;
@@ -1391,9 +1398,12 @@ UProperty const* FBlueprintActionInfo::GetAssociatedProperty()
 		else
 		{
 			CachedActionProperty = FBlueprintNodeSpawnerUtils::GetAssociatedProperty(NodeSpawner);
-			CachedActionField = CachedActionProperty;
+			if (CachedActionProperty != nullptr)
+			{
+				CachedActionField = CachedActionProperty;
+				CacheFlags |= EBlueprintActionInfoFlags::CachedProperty;
+			}
 		}
-		CacheFlags |= (EBlueprintActionInfoFlags::CachedProperty | EBlueprintActionInfoFlags::CachedField);
 	}
 	return CachedActionProperty;
 }
@@ -1410,9 +1420,13 @@ UFunction const* FBlueprintActionInfo::GetAssociatedFunction()
 		else
 		{
 			CachedActionFunction = FBlueprintNodeSpawnerUtils::GetAssociatedFunction(NodeSpawner);
-			CachedActionField = CachedActionFunction;
+			if (CachedActionFunction != nullptr)
+			{
+				CachedActionField = CachedActionFunction;
+				CacheFlags |= EBlueprintActionInfoFlags::CachedProperty;
+			}
 		}
-		CacheFlags |= (EBlueprintActionInfoFlags::CachedFunction | EBlueprintActionInfoFlags::CachedField);
+		CacheFlags |= EBlueprintActionInfoFlags::CachedFunction;
 	}
 	return CachedActionFunction;
 }
