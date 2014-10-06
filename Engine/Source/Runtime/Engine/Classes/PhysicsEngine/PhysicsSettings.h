@@ -123,6 +123,10 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	bool bSubstepping;
 
+	/** Whether to substep the async physics simulation. This feature is still experimental. Certain functionality might not work correctly*/
+	UPROPERTY(config, EditAnywhere, Category = Framerate)
+	bool bSubsteppingAsync;
+
 	/** Max delta time for an individual substep simulation. */
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "0.0013", UIMin = "0.0013", ClampMax = "1.0", UIMax = "1.0", editcondition = "bSubStepping"), Category=Framerate)
 	float MaxSubstepDeltaTime;

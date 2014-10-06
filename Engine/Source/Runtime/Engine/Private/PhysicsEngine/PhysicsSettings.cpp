@@ -12,6 +12,7 @@ UPhysicsSettings::UPhysicsSettings(const class FPostConstructInitializePropertie
 	, bSimulateSkeletalMeshOnDedicatedServer(true)
 	, MaxPhysicsDeltaTime(1.f / 30.f)
 	, bSubstepping(false)
+	, bSubsteppingAsync(false)
 	, MaxSubstepDeltaTime(1.f / 60.f)
 	, MaxSubsteps(6)
 	, SyncSceneSmoothingFactor(0.0f)

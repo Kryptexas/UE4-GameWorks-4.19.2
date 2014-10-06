@@ -247,6 +247,9 @@ public:
 	/** Indicates whether the scene is using substepping */
 	bool							bSubstepping;
 
+	/** Indicates whether the scene is using substepping */
+	bool							bSubsteppingAsync;
+
 	/** Stores the number of valid scenes we are working with. This will be PST_MAX or PST_Async, 
 		depending on whether the async scene is enabled or not*/
 	uint32							NumPhysScenes;
@@ -366,10 +369,12 @@ public:
 	static bool SupportsOriginShifting() { return true; }
 
 	/** @return Whether physics scene is using substepping */
-	bool IsSubstepping() const
+	bool IsSubstepping(uint32 SceneType) const
 	{
 #if WITH_SUBSTEPPING
-		return bSubstepping;
+		if (SceneType == PST_Sync) return bSubstepping;
+		if (SceneType == PST_Async) return bSubsteppingAsync;
+		return false;
 #else
 		return false;
 #endif
