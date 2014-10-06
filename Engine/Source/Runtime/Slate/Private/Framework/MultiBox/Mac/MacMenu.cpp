@@ -3,6 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "MacMenu.h"
 #include "CocoaThread.h"
+#include "MacApplication.h"
 
 struct FMacMenuItemState
 {
@@ -266,8 +267,21 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 void FSlateMacMenu::UpdateCachedState()
 {
-	TSharedPtr<SDockTab> ActiveTab = FGlobalTabmanager::Get()->GetActiveTab();
-	if (ActiveTab.IsValid())
+	bool bShouldUpdate = false;
+
+	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment
+	// so instead we assume that as long as there's any visible, regular window open, we do have some menu to show/update.
+	const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
+	for (auto Window : AllWindows)
+	{
+		if (Window->IsRegularWindow() && Window->IsVisible())
+		{
+			bShouldUpdate = true;
+			break;
+		}
+	}
+
+	if (bShouldUpdate)
 	{
 		for (TMap<FMacMenu*, TSharedPtr<TArray<FMacMenuItemState>>>::TIterator It(GCachedMenuState); It; ++It)
 		{

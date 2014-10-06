@@ -112,6 +112,8 @@ public:
 	static TSharedPtr< FMacWindow > FindMacWindowByNSWindow( FCocoaWindow* const WindowHandle );
 	static void ProcessEvent(FMacEvent const* const Event);
 
+	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
+
 private:
 	enum FMacApplicationEventTypes
 	{
