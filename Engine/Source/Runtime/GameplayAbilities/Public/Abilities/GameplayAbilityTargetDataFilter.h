@@ -9,6 +9,10 @@ struct FGameplayTargetDataFilter
 {
 	GENERATED_USTRUCT_BODY()
 
+	virtual ~FGameplayTargetDataFilter()
+	{
+	}
+
 	virtual bool FilterPassesForActor(const AActor* ActorToBeFiltered) const
 	{
 		return true;
