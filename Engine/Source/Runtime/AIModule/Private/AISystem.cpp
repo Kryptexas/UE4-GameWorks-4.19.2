@@ -36,7 +36,7 @@ void UAISystem::PostInitProperties()
 		UWorld* WorldOuter = Cast<UWorld>(GetOuter());
 		UObject* ManagersOuter = WorldOuter != NULL ? (UObject*)WorldOuter : (UObject*)this;
 		
-		TSubclassOf<UAIHotSpotManager> HotSpotManagerClass = LoadClass<UAIHotSpotManager>(NULL, *HotSpotManagerClassName.ToString(), NULL, LOAD_None, NULL);
+		TSubclassOf<UAIHotSpotManager> HotSpotManagerClass = HotSpotManagerClassName.ResolveClass();
 		if (HotSpotManagerClass)
 		{
 			HotSpotManager = NewObject<UAIHotSpotManager>(ManagersOuter, HotSpotManagerClass);
