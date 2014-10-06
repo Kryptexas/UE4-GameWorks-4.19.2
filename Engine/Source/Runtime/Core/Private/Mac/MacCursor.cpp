@@ -9,6 +9,7 @@ FMacCursor::FMacCursor()
 :	bIsVisible(true)
 ,	bAssociateMouseCursor(false)
 ,	MouseWarpDelta(FVector2D::ZeroVector)
+,	MouseScale(1.0f, 1.0f)
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -153,16 +154,16 @@ FVector2D FMacCursor::GetPosition() const
 	CGPoint CursorPos = CGEventGetLocation(Event);
 	CFRelease(Event);
 	
-	return FVector2D(FMath::TruncToFloat(CursorPos.x), FMath::TruncToFloat(CursorPos.y));
+	return FVector2D(FMath::TruncToFloat(CursorPos.x * MouseScale.X), FMath::TruncToFloat(CursorPos.y * MouseScale.X));
 }
 
 void FMacCursor::SetPosition( const int32 X, const int32 Y )
 {
 	FVector2D CurrentPos = GetPosition();
 	FVector2D NewPos(X, Y);
-	MouseWarpDelta += (NewPos - CurrentPos);
+	MouseWarpDelta += (NewPos - CurrentPos) / MouseScale;
 
-	WarpCursor(X, Y);
+	WarpCursor(X / MouseScale.X, Y / MouseScale.Y);
 }
 
 void FMacCursor::SetType( const EMouseCursor::Type InNewCursor )
@@ -308,4 +309,14 @@ void FMacCursor::AssociateMouseAndCursorPosition( bool const bEnable )
 		bAssociateMouseCursor = bEnable;
 		CGAssociateMouseAndMouseCursorPosition( bEnable );
 	}
+}
+
+void FMacCursor::SetMouseScaling( FVector2D Scale )
+{
+	MouseScale = Scale;
+}
+
+FVector2D FMacCursor::GetMouseScaling( void )
+{
+	return MouseScale;
 }

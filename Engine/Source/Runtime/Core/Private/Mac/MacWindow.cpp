@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "MacWindow.h"
 #include "MacApplication.h"
+#include "MacCursor.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
 
@@ -556,7 +557,9 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 		
 		if([WindowHandle isOnActiveSpace])
 		{
-			PointInWindow = (NSPointInRect(NSMakePoint(X, Y), VisibleFrame) == YES);
+			FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+			FVector2D MouseScale = MacCursor ? MacCursor->GetMouseScaling() : FVector2D(1.0f, 1.0f);
+			PointInWindow = (NSPointInRect(NSMakePoint(X / MouseScale.X, Y / MouseScale.Y), VisibleFrame) == YES);
 		}
 	}
 	return PointInWindow;

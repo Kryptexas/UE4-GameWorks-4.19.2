@@ -6,6 +6,7 @@
 #include "CocoaTextView.h"
 #include "MacEvent.h"
 #include "CocoaThread.h"
+#include "MacCursor.h"
 
 TArray< FCocoaWindow* > GRunningModalWindows;
 
@@ -59,7 +60,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	SCOPED_AUTORELEASE_POOL;
 	if(self.TargetWindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::Fullscreen)
 	{
-		return self.PreFullScreenRect;
+		return {{0, 0}, self.PreFullScreenRect.size};
 	}
 	else if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
@@ -368,6 +369,15 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	{
 		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
 	}
+	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+	if ( MacCursor )
+	{
+		NSSize WindowSize = [self frame].size;
+		NSSize ViewSize = [self openGLFrame].size;
+		float WidthScale = ViewSize.width / WindowSize.width;
+		float HeightScale = ViewSize.height / WindowSize.height;
+		MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
+	}
 }
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification
@@ -377,6 +387,11 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if(self.bForwardEvents)
 	{
 		FMacEvent::SendToGameRunLoop(notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
+	}
+	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+	if ( MacCursor )
+	{
+		MacCursor->SetMouseScaling(FVector2D(1.0f, 1.0f));
 	}
 }
 
