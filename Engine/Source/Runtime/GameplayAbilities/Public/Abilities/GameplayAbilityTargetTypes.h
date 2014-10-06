@@ -70,6 +70,12 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 		return TArray<TWeakObjectPtr<AActor> >();
 	}
 
+	virtual bool SetActors(TArray<TWeakObjectPtr<AActor>> NewActorArray)
+	{
+		//By default, we don't keep this data, and therefore can't set it.
+		return false;
+	}
+
 	// -------------------------------------
 
 	virtual bool HasHitResult() const
@@ -238,6 +244,12 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_Radius : public FGamepla
 
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const { return Actors; }
 
+	virtual bool SetActors(TArray<TWeakObjectPtr<AActor>> NewActorArray) override
+	{
+		Actors = NewActorArray;
+		return true;
+	}
+
 	virtual bool HasOrigin() const { return true; }
 
 	virtual FTransform GetOrigin() const { return FTransform(Origin); }
@@ -263,6 +275,45 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_Radius> : public TStructO
 		WithNetSerializer = true	// For now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
 	};
 };
+
+/*
+USTRUCT(BlueprintType)
+struct FGameplayAbilityTargetDataActorFilter
+{
+	GENERATED_USTRUCT_BODY()
+
+	virtual bool FilterPassesForActor(const AActor* ActorToBeFiltered) const
+	{
+		return true;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGameplayAbilityTargetDataActorFilterHandleBase
+{
+	GENERATED_USTRUCT_BODY()
+
+	TSharedPtr<FGameplayAbilityTargetDataActorFilter>	Filter;
+
+	bool operator()(const TWeakObjectPtr<AActor> A) const
+	{
+		if (Filter.IsValid())
+		{
+			return Filter.Get()->FilterPassesForActor(A.Get());
+		}
+		return true;
+	}
+
+	bool operator()(const AActor* A) const
+	{
+		if (Filter.IsValid())
+		{
+			return Filter.Get()->FilterPassesForActor(A);
+		}
+		return true;
+	}
+};
+*/
 
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
@@ -315,7 +366,7 @@ public:
 
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const;
 
-	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors, bool OneActorPerHandle = false) const;
+	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor>> TargetActors, bool OneActorPerHandle = false) const;
 
 	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
@@ -438,6 +489,12 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const override
 	{
 		return TargetActorArray;
+	}
+
+	virtual bool SetActors(TArray<TWeakObjectPtr<AActor>> NewActorArray) override
+	{
+		TargetActorArray = NewActorArray;
+		return true;
 	}
 
 	// -------------------------------------
@@ -623,6 +680,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 		}
 		return Actors;
 	}
+
+	// SetActors() will not work here because the actor "array" is drawn from the hit result data, and changing that doesn't make sense.
 
 	// -------------------------------------
 
