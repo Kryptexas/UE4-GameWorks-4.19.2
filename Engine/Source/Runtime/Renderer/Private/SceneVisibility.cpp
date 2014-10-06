@@ -1117,8 +1117,8 @@ class FRelevancePacketAnyThreadTask
 	ENamedThreads::Type ThreadToUse;
 public:
 
-	FRelevancePacketAnyThreadTask(FRelevancePacket* InPacket, ENamedThreads::Type InThreadToUse)
-		: Packet(*InPacket)
+	FRelevancePacketAnyThreadTask(FRelevancePacket& InPacket, ENamedThreads::Type InThreadToUse)
+		: Packet(InPacket)
 		, ThreadToUse(InThreadToUse)
 	{
 	}
@@ -1146,8 +1146,8 @@ class FRelevancePacketRenderThreadTask
 	FRelevancePacket& Packet;
 public:
 
-	FRelevancePacketRenderThreadTask(FRelevancePacket* InPacket)
-		: Packet(*InPacket)
+	FRelevancePacketRenderThreadTask(FRelevancePacket& InPacket)
+		: Packet(InPacket)
 	{
 	}
 
@@ -1258,9 +1258,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 					{
 						RenderPrereqs.Add(LastRenderThread); // this puts the render thread ones in order
 					}
-					FGraphEventRef AnyThread = TGraphTask<FRelevancePacketAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(Packet, ThreadToUse);
+					FGraphEventRef AnyThread = TGraphTask<FRelevancePacketAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(*Packet, ThreadToUse);
 					RenderPrereqs.Add(AnyThread);
-					LastRenderThread = TGraphTask<FRelevancePacketRenderThreadTask>::CreateTask(&RenderPrereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(Packet);
+					LastRenderThread = TGraphTask<FRelevancePacketRenderThreadTask>::CreateTask(&RenderPrereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(*Packet);
 					if (!BitIt)
 					{
 						break;

@@ -490,12 +490,53 @@ public:
 	bool bIsTwoSided;
 };
 
-
-struct ISetShadowRenderTargets
+template<typename TReturn, typename TArg>
+class IFunction
 {
-	virtual ~ISetShadowRenderTargets() {}
-	virtual void SetRenderTargetsForShadows(FRHICommandList& RHICmdList) = 0;
+public:
+	virtual ~IFunction() {}
+	virtual TReturn operator()(TArg&& Arg) = 0;
+	virtual TReturn operator()(TArg&& Arg) const = 0;
 };
+
+template<typename TReturn, typename TArg, typename TLambda>
+class TFunction : public IFunction<TReturn, TArg>
+{
+	TLambda Func;
+public:
+	TFunction(TLambda&& InFunc)
+		: Func(MoveTemp(InFunc))
+	{
+	}
+	TFunction(TLambda& InFunc)
+		: Func(InFunc)
+	{
+	}
+	virtual ~TFunction() override final
+	{
+	}
+	virtual TReturn operator()(TArg&& Arg) override final
+	{
+		return Func(Forward<TArg>(Arg));
+	}
+	virtual TReturn operator()(TArg&& Arg) const override final
+	{
+		return Func(Forward<TArg>(Arg));
+	}
+};
+
+template<typename TReturn, typename TArg, typename TLambda>
+TFunction<TReturn, TArg, TLambda> MakeFunction(TLambda&& Func)
+{
+	return TFunction<TReturn, TArg, TLambda>(MoveTemp(Func));
+}
+
+template<typename TReturn, typename TArg, typename TLambda>
+TFunction<TReturn, TArg, TLambda>* NewFunction(TLambda&& Func)
+{
+	return new TFunction<TReturn, TArg, TLambda>(MoveTemp(Func));
+}
+
 
 /**
  * Information about a projected shadow.
@@ -678,7 +719,7 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, ISetShadowRenderTargets& SetShadowRenderTargets);
+	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, IFunction<void, FRHICommandList&>& SetShadowRenderTargets);
 
 	/** Set state for depth rendering */
 	void SetStateForDepth(FRHICommandList& RHICmdList);
@@ -766,7 +807,7 @@ private:
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
-	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, ISetShadowRenderTargets& SetShadowRenderTargets);
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, IFunction<void, FRHICommandList&>& SetShadowRenderTargets);
 
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view

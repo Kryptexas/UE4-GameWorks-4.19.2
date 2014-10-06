@@ -150,9 +150,9 @@ class FSetGlobalBoundShaderStateRenderThreadTask
 
 public:
 
-	FSetGlobalBoundShaderStateRenderThreadTask(FRHICommandList* InRHICmdList, FGlobalBoundShaderState* InGlobalBoundShaderState, ERHIFeatureLevel::Type InFeatureLevel)
-		: RHICmdList(*InRHICmdList)
-		, GlobalBoundShaderState(*InGlobalBoundShaderState)
+	FSetGlobalBoundShaderStateRenderThreadTask(FRHICommandList& InRHICmdList, FGlobalBoundShaderState& InGlobalBoundShaderState, ERHIFeatureLevel::Type InFeatureLevel)
+		: RHICmdList(InRHICmdList)
+		, GlobalBoundShaderState(InGlobalBoundShaderState)
 		, FeatureLevel(InFeatureLevel)
 	{
 	}
@@ -241,7 +241,7 @@ void SetGlobalBoundShaderState(
 	// We need to do this on the render thread
 
 	FRHICommandList* CmdList = new FRHICommandList;
-	FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FSetGlobalBoundShaderStateRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(CmdList, &GlobalBoundShaderState, FeatureLevel);
+	FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FSetGlobalBoundShaderStateRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*CmdList, GlobalBoundShaderState, FeatureLevel);
 	RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
 }
 

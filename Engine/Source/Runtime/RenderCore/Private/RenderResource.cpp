@@ -78,9 +78,9 @@ void FRenderResource::InitResourceFromPossiblyParallelRendering()
 			FScopedEvent& Event;
 		public:
 
-			FInitResourceRenderThreadTask(FRenderResource* InResource, FScopedEvent* InEvent)
-				: Resource(*InResource)
-				, Event(*InEvent)
+			FInitResourceRenderThreadTask(FRenderResource& InResource, FScopedEvent& InEvent)
+				: Resource(InResource)
+				, Event(InEvent)
 			{
 			}
 
@@ -104,7 +104,7 @@ void FRenderResource::InitResourceFromPossiblyParallelRendering()
 		};
 		{
 			FScopedEvent Event;
-			TGraphTask<FInitResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(this, &Event);
+			TGraphTask<FInitResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*this, Event);
 		}
 	}
 }

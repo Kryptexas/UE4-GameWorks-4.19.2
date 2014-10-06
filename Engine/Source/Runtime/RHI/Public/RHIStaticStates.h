@@ -20,9 +20,9 @@ class FInitStaticResourceRenderThreadTask
 	FScopedEvent& Event;
 public:
 
-	FInitStaticResourceRenderThreadTask(void (*InDoConstruct)(), FScopedEvent* InEvent)
+	FInitStaticResourceRenderThreadTask(void (*InDoConstruct)(), FScopedEvent& InEvent)
 		: DoConstruct(InDoConstruct)
-		, Event(*InEvent)
+		, Event(InEvent)
 	{
 	}
 
@@ -77,7 +77,7 @@ public:
 				check(IsInParallelRenderingThread());
 				{
 					FScopedEvent Event;
-					TGraphTask<FInitStaticResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(&GetRHI_WithNoReturnValue, &Event);
+					TGraphTask<FInitStaticResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(&GetRHI_WithNoReturnValue, Event);
 				}
 			}
 			else

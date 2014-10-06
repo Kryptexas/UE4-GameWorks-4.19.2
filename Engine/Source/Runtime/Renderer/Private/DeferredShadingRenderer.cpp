@@ -460,15 +460,15 @@ class FRenderBasePassDynamicDataThreadTask
 public:
 
 	FRenderBasePassDynamicDataThreadTask(
-		FDeferredShadingSceneRenderer* InThisRenderer,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
-		bool* InOutDirty
+		FDeferredShadingSceneRenderer& InThisRenderer,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
+		bool& InOutDirty
 		)
-		: ThisRenderer(*InThisRenderer)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
-		, OutDirty(*InOutDirty)
+		: ThisRenderer(InThisRenderer)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
+		, OutDirty(InOutDirty)
 	{
 	}
 
@@ -495,7 +495,7 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicDataParallel(FParallelC
 {
 	FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 	FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderBasePassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-		.ConstructAndDispatchWhenReady(this, CmdList, &ParallelCommandListSet.View, &ParallelCommandListSet.OutDirty);
+		.ConstructAndDispatchWhenReady(*this, *CmdList, ParallelCommandListSet.View, ParallelCommandListSet.OutDirty);
 
 	ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 }
@@ -1179,15 +1179,15 @@ class FRenderPrepassDynamicDataThreadTask
 public:
 
 	FRenderPrepassDynamicDataThreadTask(
-		FDeferredShadingSceneRenderer* InThisRenderer,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
-		bool* InOutDirty
+		FDeferredShadingSceneRenderer& InThisRenderer,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
+		bool& InOutDirty
 		)
-		: ThisRenderer(*InThisRenderer)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
-		, OutDirty(*InOutDirty)
+		: ThisRenderer(InThisRenderer)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
+		, OutDirty(InOutDirty)
 	{
 	}
 
@@ -1265,7 +1265,7 @@ void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 		FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 		FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderPrepassDynamicDataThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-			.ConstructAndDispatchWhenReady(this, CmdList, &View, &OutDirty);
+			.ConstructAndDispatchWhenReady(*this, *CmdList, View, OutDirty);
 
 		ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 	}

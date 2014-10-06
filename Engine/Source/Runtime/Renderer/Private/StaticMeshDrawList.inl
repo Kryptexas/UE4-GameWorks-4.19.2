@@ -309,25 +309,25 @@ class FDrawVisibleAnyThreadTask
 public:
 
 	FDrawVisibleAnyThreadTask(
-		TStaticMeshDrawList<DrawingPolicyType>* InCaller,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
-		const typename DrawingPolicyType::ContextDataType InPolicyContext,
-		const TBitArray<SceneRenderingBitArrayAllocator>* InStaticMeshVisibilityMap,
-		const TArray<uint64, SceneRenderingAllocator>* InBatchVisibilityArray,
+		TStaticMeshDrawList<DrawingPolicyType>& InCaller,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
+		const typename DrawingPolicyType::ContextDataType& InPolicyContext,
+		const TBitArray<SceneRenderingBitArrayAllocator>& InStaticMeshVisibilityMap,
+		const TArray<uint64, SceneRenderingAllocator>& InBatchVisibilityArray,
 		int32 InFirstPolicy,
 		int32 InLastPolicy,
-		bool* InOutDirty
+		bool& InOutDirty
 		)
-		: Caller(*InCaller)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
+		: Caller(InCaller)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
 		, PolicyContext(InPolicyContext)
-		, StaticMeshVisibilityMap(*InStaticMeshVisibilityMap)
-		, BatchVisibilityArray(*InBatchVisibilityArray)
+		, StaticMeshVisibilityMap(InStaticMeshVisibilityMap)
+		, BatchVisibilityArray(InBatchVisibilityArray)
 		, FirstPolicy(InFirstPolicy)
 		, LastPolicy(InLastPolicy)
-		, OutDirty(*InOutDirty)
+		, OutDirty(InOutDirty)
 	{
 	}
 
@@ -381,7 +381,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
 				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawVisibleAnyThreadTask<DrawingPolicyType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
-					.ConstructAndDispatchWhenReady(this, CmdList, &ParallelCommandListSet.View, PolicyContext, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &ParallelCommandListSet.OutDirty);
+					.ConstructAndDispatchWhenReady(*this, *CmdList, ParallelCommandListSet.View, PolicyContext, StaticMeshVisibilityMap, BatchVisibilityArray, Start, Last, ParallelCommandListSet.OutDirty);
 
 				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 			}

@@ -270,16 +270,16 @@ class FDrawViewElementsAnyThreadTask
 public:
 
 	FDrawViewElementsAnyThreadTask(
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
 		const typename DrawingPolicyFactoryType::ContextType& InDrawingContext,
 		uint8 InDPGIndex,
 		bool InbPreFog,
 		int32 InFirstIndex,
 		int32 InLastIndex
 		)
-		: RHICmdList(*InRHICmdList)
-		, View(*InView)
+		: RHICmdList(InRHICmdList)
+		, View(InView)
 		, DrawingContext(InDrawingContext)
 		, DPGIndex(InDPGIndex)
 		, bPreFog(InbPreFog)
@@ -339,7 +339,7 @@ void DrawViewElementsParallel(
 					FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawViewElementsAnyThreadTask<DrawingPolicyFactoryType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
-						.ConstructAndDispatchWhenReady(CmdList, &ParallelCommandListSet.View, DrawingContext, DPGIndex, bPreFog, Start, Last);
+						.ConstructAndDispatchWhenReady(*CmdList, ParallelCommandListSet.View, DrawingContext, DPGIndex, bPreFog, Start, Last);
 
 					ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 				}

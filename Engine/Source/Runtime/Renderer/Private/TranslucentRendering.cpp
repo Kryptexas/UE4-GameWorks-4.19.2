@@ -319,9 +319,9 @@ class FCopySceneColorAndRestoreRenderThreadTask
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
 public:
 
-	FCopySceneColorAndRestoreRenderThreadTask(FRHICommandList* InRHICmdList, const FViewInfo* InView, const FPrimitiveSceneProxy* InPrimitiveSceneProxy)
-		: RHICmdList(*InRHICmdList)
-		, View(*InView)
+	FCopySceneColorAndRestoreRenderThreadTask(FRHICommandList& InRHICmdList, const FViewInfo& InView, const FPrimitiveSceneProxy* InPrimitiveSceneProxy)
+		: RHICmdList(InRHICmdList)
+		, View(InView)
 		, PrimitiveSceneProxy(InPrimitiveSceneProxy)
 	{
 	}
@@ -379,7 +379,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 				if (!RHICmdList.Bypass() && !IsInRenderingThread())
 				{
 					FRHICommandList* CmdList = new FRHICommandList;
-					FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FCopySceneColorAndRestoreRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(CmdList, &View, PrimitiveSceneProxy);
+					FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FCopySceneColorAndRestoreRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*CmdList, View, PrimitiveSceneProxy);
 					RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
 				}
 				else
@@ -546,11 +546,11 @@ class FVolumetricTranslucentShadowRenderThreadTask
 
 public:
 
-	FORCEINLINE_DEBUGGABLE FVolumetricTranslucentShadowRenderThreadTask(FRHICommandList* InRHICmdList, const FTranslucentPrimSet* InPrimSet, const FViewInfo* InView, FDeferredShadingSceneRenderer* InRenderer, bool InbSeparateTranslucencyPass, int32 InIndex)
-		: RHICmdList(*InRHICmdList)
-		, PrimSet(*InPrimSet)
-		, View(*InView)
-		, Renderer(*InRenderer)
+	FORCEINLINE_DEBUGGABLE FVolumetricTranslucentShadowRenderThreadTask(FRHICommandList& InRHICmdList, const FTranslucentPrimSet& InPrimSet, const FViewInfo& InView, FDeferredShadingSceneRenderer& InRenderer, bool InbSeparateTranslucencyPass, int32 InIndex)
+		: RHICmdList(InRHICmdList)
+		, PrimSet(InPrimSet)
+		, View(InView)
+		, Renderer(InRenderer)
 		, bSeparateTranslucencyPass(InbSeparateTranslucencyPass)
 		, Index(InIndex)
 	{
@@ -602,7 +602,7 @@ void FTranslucentPrimSet::DrawPrimitivesParallel(
 			check(!IsInRenderingThread());
 			// can't do this in parallel, defer
 			FRHICommandList* CmdList = new FRHICommandList;
-			FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FVolumetricTranslucentShadowRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(CmdList, this, &View, &Renderer, bSeparateTranslucencyPass, PrimIdx);
+			FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FVolumetricTranslucentShadowRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*CmdList, *this, View, Renderer, bSeparateTranslucencyPass, PrimIdx);
 			RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
 		}
 		else
@@ -830,16 +830,16 @@ class FDrawSortedTransAnyThreadTask
 public:
 
 	FDrawSortedTransAnyThreadTask(
-		FDeferredShadingSceneRenderer* InRenderer,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
+		FDeferredShadingSceneRenderer& InRenderer,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
 		bool InbSeparateTranslucencyPass,
 		int32 InFirstIndex,
 		int32 InLastIndex
 		)
-		: Renderer(*InRenderer)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
+		: Renderer(InRenderer)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
 		, bSeparateTranslucencyPass(InbSeparateTranslucencyPass)
 		, FirstIndex(InFirstIndex)
 		, LastIndex(InLastIndex)
@@ -929,7 +929,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 							FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 							FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-								.ConstructAndDispatchWhenReady(this, CmdList, &View, false, Start, Last);
+								.ConstructAndDispatchWhenReady(*this, *CmdList, View, false, Start, Last);
 
 							ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 						}
@@ -983,7 +983,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 								FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 								FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-									.ConstructAndDispatchWhenReady(this, CmdList, &View, true, Start, Last);
+									.ConstructAndDispatchWhenReady(*this, *CmdList, View, true, Start, Last);
 
 								ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 							}

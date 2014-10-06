@@ -495,21 +495,20 @@ class FRenderVelocityDynamicThreadTask
 	FDeferredShadingSceneRenderer& ThisRenderer;
 	FRHICommandList& RHICmdList;
 	const FViewInfo& View;
-	FDeferredShadingSceneRenderer* SceneRenderer;
 	int32 FirstIndex;
 	int32 LastIndex;
 
 public:
 
 	FRenderVelocityDynamicThreadTask(
-		FDeferredShadingSceneRenderer* InThisRenderer,
-		FRHICommandList* InRHICmdList,
-		const FViewInfo* InView,
+		FDeferredShadingSceneRenderer& InThisRenderer,
+		FRHICommandList& InRHICmdList,
+		const FViewInfo& InView,
 		int32 InFirstIndex, int32 InLastIndex
 		)
-		: ThisRenderer(*InThisRenderer)
-		, RHICmdList(*InRHICmdList)
-		, View(*InView)
+		: ThisRenderer(InThisRenderer)
+		, RHICmdList(InRHICmdList)
+		, View(InView)
 		, FirstIndex(InFirstIndex)
 		, LastIndex(InLastIndex)
 	{
@@ -608,7 +607,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
-					.ConstructAndDispatchWhenReady(this, CmdList, &View, Start, Last);
+					.ConstructAndDispatchWhenReady(*this, *CmdList, View, Start, Last);
 
 				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 
