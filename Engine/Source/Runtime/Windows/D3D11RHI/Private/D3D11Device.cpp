@@ -243,7 +243,6 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 		DXGI_ADAPTER_DESC AdapterDesc;
 		VERIFYD3D11RESULT(Adapter->GetDesc(&AdapterDesc));
 	  
-#ifndef PLATFORM_XBOXONE // No need for display mode enumeration on console
 		// Enumerate outputs for this adapter
 		// TODO: Cap at 1 for default output
 		for(uint32 o = 0;o < 1; o++)
@@ -291,7 +290,6 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 
 			delete[] ModeList;
 		}
-#endif // PLATFORM_XBOXONE
 	}
 
 	check(InitializedMode);
