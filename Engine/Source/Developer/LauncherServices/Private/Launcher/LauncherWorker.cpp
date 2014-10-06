@@ -195,13 +195,6 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	FString CommandLine = FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
 		*InitialMap);
 
-	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"%s -SessionId=%s -SessionOwner=%s -SessionName='%s'\""),
-		*InitialMap,
-//		*InstanceId.ToString(),
-		*SessionId.ToString(),
-		FPlatformProcess::UserName(true),
-		*InProfile->GetName());
-
 	// staging directory
 	FString StageDirectory = TEXT("");
 	auto PackageDirectory = InProfile->GetPackageDirectory();
@@ -310,6 +303,15 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	{
 		DeviceCommand += TEXT(" -device=") + DeviceNames.RightChop(1);
 	}
+
+	// additional commands to be sent to the commandline
+	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s\""),
+		*InitialMap,
+		//		*InstanceId.ToString(),
+		*SessionId.ToString(),
+		FPlatformProcess::UserName(true),
+		*InProfile->GetName(),
+		*RoleCommands);
 
 	// map list
 	FString MapList = TEXT("");
@@ -446,7 +448,6 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		if (InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch)
 		{
 			UATCommand += TEXT(" -run");
-			UATCommand += RoleCommands;
 
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherRunDesc", "Launching on {0}"), FText::FromString(DeviceNames.RightChop(1)));
