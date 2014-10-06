@@ -494,6 +494,12 @@ void UAnimSequence::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 			RefPoseSeq = NULL;
 		}
 	}
+
+	// @Todo fix me: This is temporary fix to make sure they always have compressed data
+	if (CompressedTrackOffsets.Num() == 0 && RawAnimationData.Num() > 0)
+	{
+		PostProcessSequence();
+	}
 }
 #endif // WITH_EDITOR
 
