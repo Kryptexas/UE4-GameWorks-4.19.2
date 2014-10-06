@@ -151,6 +151,12 @@ public:
 	{
 		if (bMovingPoint)
 		{
+			if (!Viewport->KeyState(EKeys::LeftMouseButton))
+			{
+				bMovingPoint = false;
+				return false;
+			}
+
 			FVector HitLocation;
 			if (EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation))
 			{
@@ -171,24 +177,6 @@ public:
 		return false;
 	}
 
-	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) override
-	{
-		if (HitProxy)
-		{
-			if (HitProxy->IsA(HLandscapeRampToolPointHitProxy::StaticGetType()))
-			{
-				HLandscapeRampToolPointHitProxy* PointHitProxy = (HLandscapeRampToolPointHitProxy*)HitProxy;
-				SelectedPoint = PointHitProxy->Point;
-				GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
-				GUnrealEd->RedrawLevelEditingViewports();
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override
 	{
 		if (InKey == EKeys::Enter && InEvent == IE_Pressed)
@@ -204,9 +192,37 @@ public:
 			ResetRamp();
 		}
 
-		if (SelectedPoint != INDEX_NONE)
+		// Handle clicking on points to select them and drag them around
+		if (InKey == EKeys::LeftMouseButton)
 		{
-			if (InKey == EKeys::End && InEvent == IE_Pressed)
+			if (InEvent == IE_Pressed)
+			{
+				if (!InViewport->KeyState(EKeys::MiddleMouseButton) && !InViewport->KeyState(EKeys::RightMouseButton) && !IsAltDown(InViewport) && InViewportClient->GetCurrentWidgetAxis() == EAxisList::None)
+				{
+					HHitProxy* HitProxy = InViewport->GetHitProxy(InViewport->GetMouseX(), InViewport->GetMouseY());
+					if (HitProxy && HitProxy->IsA(HLandscapeRampToolPointHitProxy::StaticGetType()))
+					{
+						HLandscapeRampToolPointHitProxy* PointHitProxy = (HLandscapeRampToolPointHitProxy*)HitProxy;
+						SelectedPoint = PointHitProxy->Point;
+						GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+						GUnrealEd->RedrawLevelEditingViewports();
+
+						bMovingPoint = true;
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (InEvent == IE_Released)
+			{
+				bMovingPoint = false;
+				return false;
+			}
+		}
+
+		if (InKey == EKeys::End && InEvent == IE_Pressed)
+		{
+			if (SelectedPoint != INDEX_NONE)
 			{
 				const int32 MinX = FMath::FloorToInt(Points[SelectedPoint].X);
 				const int32 MinY = FMath::FloorToInt(Points[SelectedPoint].Y);

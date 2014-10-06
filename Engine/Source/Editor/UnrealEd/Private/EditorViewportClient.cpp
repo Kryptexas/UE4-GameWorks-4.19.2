@@ -714,7 +714,7 @@ void FEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 	ApplyRequiredCursorVisibility( true );
 
 	// Force a cursor update to make sure its returned to default as it could of been left in any state and wont update itself till an action is taken
-	SetRequiredCursorOverride( true , EMouseCursor::Default );
+	SetRequiredCursorOverride( false , EMouseCursor::Default );
 	FSlateApplication::Get().QueryCursor();
 
 	if( IsMatineeRecordingWindow() )
