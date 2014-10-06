@@ -8,11 +8,11 @@ public:
 	SLATE_BEGIN_ARGS( SPropertyMenuAssetPicker )
 		: _InitialObject(NULL)
 		, _AllowClear(true)
-		, _AllowedClasses(NULL)
 	{}
 		SLATE_ARGUMENT( FAssetData, InitialObject )
 		SLATE_ARGUMENT( bool, AllowClear )
-		SLATE_ARGUMENT( const TArray<const UClass*>*, AllowedClasses )
+		SLATE_ARGUMENT( TArray<const UClass*>, AllowedClasses )
+		SLATE_ARGUMENT( TArray<UFactory*>, NewAssetFactories )
 		SLATE_EVENT( FOnShouldFilterAsset, OnShouldFilterAsset )
 		SLATE_EVENT( FOnAssetSelected, OnSet )
 		SLATE_EVENT( FSimpleDelegate, OnClose )
@@ -57,6 +57,12 @@ private:
 	 */
 	void OnAssetSelected( const FAssetData& AssetData );
 
+	/**
+	 * Delegate for handling creating new assets from the menu.
+	 * @param	FactoryPtr		Factory which creates asset
+	 */
+	void OnCreateNewAssetSelected(TWeakObjectPtr<UFactory> Factory);
+
 	/** 
 	 * Set the value of the asset referenced by this property editor.
 	 * Will set the underlying property handle if there is one.
@@ -70,7 +76,11 @@ private:
 	/** Whether the asset can be 'None' in this case */
 	bool bAllowClear;
 
+	/** Array of classes to filter by */
 	TArray<const UClass*> AllowedClasses;
+
+	/** Array of factories which can create a new asset of suitable type */
+	TArray<UFactory*> NewAssetFactories;
 
 	/** Delegate for filtering valid assets */
 	FOnShouldFilterAsset OnShouldFilterAsset;
@@ -80,5 +90,4 @@ private:
 
 	/** Delegate for closing the containing menu */
 	FSimpleDelegate OnClose;
-
 };

@@ -6,6 +6,8 @@
 #include "DelegateFilter.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "PropertyEditorAssetConstants.h"
+#include "EditorStyleSet.h"
+#include "ClassIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -13,12 +15,32 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 {
 	CurrentObject = InArgs._InitialObject;
 	bAllowClear = InArgs._AllowClear;
-	AllowedClasses = *InArgs._AllowedClasses;
+	AllowedClasses = InArgs._AllowedClasses;
+	NewAssetFactories = InArgs._NewAssetFactories;
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
 	OnSet = InArgs._OnSet;
 	OnClose = InArgs._OnClose;
 
 	FMenuBuilder MenuBuilder(true, NULL);
+
+	if (NewAssetFactories.Num() > 0)
+	{
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("CreateNewAsset", "Create New Asset"));
+		{
+			for (UFactory* Factory : NewAssetFactories)
+			{
+				TWeakObjectPtr<UFactory> FactoryPtr(Factory);
+
+				MenuBuilder.AddMenuEntry(
+					Factory->GetDisplayName(),
+					Factory->GetToolTip(),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(Factory->GetSupportedClass())),
+					FUIAction(FExecuteAction::CreateSP(this, &SPropertyMenuAssetPicker::OnCreateNewAssetSelected, FactoryPtr))
+					);
+			}
+		}
+		MenuBuilder.EndSection();
+	}
 
 	MenuBuilder.BeginSection(NAME_None, LOCTEXT("CurrentAssetOperationsHeader", "Current Asset"));
 	{
@@ -212,6 +234,18 @@ void SPropertyMenuAssetPicker::OnAssetSelected( const FAssetData& AssetData )
 void SPropertyMenuAssetPicker::SetValue( const FAssetData& AssetData )
 {
 	OnSet.ExecuteIfBound(AssetData);
+}
+
+void SPropertyMenuAssetPicker::OnCreateNewAssetSelected(TWeakObjectPtr<UFactory> FactoryPtr)
+{
+	if (FactoryPtr.IsValid())
+	{
+		UObject* NewAsset = SPropertyEditorNewAsset::Create(FactoryPtr);
+		if (NewAsset != nullptr)
+		{
+			SetValue(NewAsset);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

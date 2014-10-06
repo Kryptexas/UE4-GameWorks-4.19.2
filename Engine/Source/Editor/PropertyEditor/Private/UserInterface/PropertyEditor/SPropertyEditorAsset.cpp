@@ -2,6 +2,7 @@
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorAsset.h"
+#include "SPropertyEditorNewAsset.h"
 #include "PropertyNode.h"
 #include "PropertyEditor.h"
 #include "AssetThumbnail.h"
@@ -14,6 +15,7 @@
 #include "SAssetDropTarget.h"
 #include "AssetRegistryModule.h"
 #include "Particles/ParticleSystem.h"
+
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
 DECLARE_DELEGATE( FOnCopy );
@@ -286,14 +288,24 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 		TSharedPtr<SceneOutliner::FOutlinerFilters> ActorFilters = MakeShareable( new SceneOutliner::FOutlinerFilters );
 		ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ) ) ) );
 
-		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object), bAllowClear, ActorFilters, FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );
+		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object),
+																	 bAllowClear,
+																	 ActorFilters,
+																	 FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected),
+																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ),
+																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );
 	}
 	else
 	{
 		TArray<const UClass*> AllowedClasses;
 		AllowedClasses.Add(ObjectClass);
 
-		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData, bAllowClear, &AllowedClasses, OnShouldFilterAsset, FOnAssetSelected::CreateSP( this, &SPropertyEditorAsset::OnAssetSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ) );
+		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData,
+																	 bAllowClear,
+																	 AllowedClasses,
+																	 OnShouldFilterAsset,
+																	 FOnAssetSelected::CreateSP(this, &SPropertyEditorAsset::OnAssetSelected),
+																	 FSimpleDelegate::CreateSP(this, &SPropertyEditorAsset::CloseComboButton));
 	}
 }
 
