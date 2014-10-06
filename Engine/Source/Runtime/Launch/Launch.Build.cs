@@ -24,6 +24,7 @@ public class Launch : ModuleRules
 				"Engine",
 				"InputCore",
                 "Media",
+				"MediaAssets",
                 "MoviePlayer",
 				"Networking",
 				"PakFile",
