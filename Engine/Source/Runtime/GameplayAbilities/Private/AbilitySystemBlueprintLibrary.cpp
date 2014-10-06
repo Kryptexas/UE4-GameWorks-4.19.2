@@ -288,14 +288,7 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 			const FHitResult* HitResultPtr = Data->GetHitResult();
 			if (HitResultPtr)
 			{
-				if (HitResultPtr->Component.IsValid())
-				{
-					return HitResultPtr->ImpactPoint;
-				}
-				else
-				{
-					return HitResultPtr->TraceEnd;
-				}
+				return HitResultPtr->Location;
 			}
 			else if (Data->HasEndPoint())
 			{
