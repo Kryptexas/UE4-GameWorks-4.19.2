@@ -105,6 +105,8 @@ private:
 	/** Interface to the online identity system */
 	FOnlineIdentityGooglePlayPtr IdentityInterface;
 
+	FOnlineStoreGooglePlayPtr StoreInterface;
+
 	/** Interface to the online leaderboards */
 	FOnlineLeaderboardsGooglePlayPtr LeaderboardsInterface;
 

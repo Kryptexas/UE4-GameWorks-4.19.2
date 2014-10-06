@@ -33,7 +33,7 @@ IOnlineIdentityPtr FOnlineSubsystemGooglePlay::GetIdentityInterface() const
 
 IOnlineStorePtr FOnlineSubsystemGooglePlay::GetStoreInterface() const
 {
-	return nullptr;
+	return StoreInterface;
 }
 
 
@@ -114,6 +114,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 	LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsGooglePlay(this));
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
 	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay(this));
+	StoreInterface = MakeShareable(new FOnlineStoreGooglePlay());
 
 	extern struct android_app* GNativeAndroidApp;
 	check(GNativeAndroidApp != nullptr);
