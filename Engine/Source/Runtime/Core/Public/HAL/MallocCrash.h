@@ -115,6 +115,11 @@ protected:
 
 	static uint32 GetAllocationSize(void *Original);
 
+	/**
+	 * @return page size, if page size is not initialized, returns 64k.
+	 */
+	static uint32 SafePageSize();
+
 protected:
 	/** Used to lock crash malloc to one thread. */
 	FCriticalSection InternalLock;
