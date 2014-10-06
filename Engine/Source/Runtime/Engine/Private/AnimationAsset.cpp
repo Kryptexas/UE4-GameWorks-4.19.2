@@ -59,11 +59,8 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 	// if it's not same 
 	if (NewSkeleton != Skeleton)
 	{
-		SetSkeleton(NewSkeleton);
-
 		// get all sequences that need to change
 		TArray<UAnimSequence*> AnimSeqsToReplace;
-
 		if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(this))
 		{
 			AnimSeqsToReplace.AddUnique(AnimSequence);
@@ -79,6 +76,8 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 				}
 			}
 		}
+
+		SetSkeleton(NewSkeleton);
 
 		PostEditChange();
 		MarkPackageDirty();
