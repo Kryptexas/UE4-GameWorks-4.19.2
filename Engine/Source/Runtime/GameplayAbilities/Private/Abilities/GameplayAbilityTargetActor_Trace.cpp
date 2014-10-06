@@ -38,6 +38,25 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::StaticGetTar
 	return MakeTargetData(PerformTrace(StaticSourceActor));
 }
 
+bool AGameplayAbilityTargetActor_Trace::ClipCameraRayToAbilityRange(FVector CameraLocation, FVector CameraDirection, FVector AbilityCenter, float AbilityRange, FVector& ClippedPosition)
+{
+	FVector CameraToCenter = AbilityCenter - CameraLocation;
+	float DotToCenter = FVector::DotProduct(CameraToCenter, CameraDirection);
+	if (DotToCenter >= 0)		//If this fails, we're pointed away from the center, but we might be inside the sphere and able to find a good exit point.
+	{
+		float DistanceSquared = CameraToCenter.SizeSquared() - (DotToCenter * DotToCenter);
+		float RadiusSquared = (AbilityRange * AbilityRange);
+		if (DistanceSquared <= RadiusSquared)
+		{
+			float DistanceFromCamera = FMath::Sqrt(RadiusSquared - DistanceSquared);
+			float DistanceAlongRay = DotToCenter + DistanceFromCamera;						//Subtracting instead of adding will get the other intersection point
+			ClippedPosition = CameraLocation + (DistanceAlongRay * CameraDirection);		//Cam aim point clipped to range sphere
+			return true;
+		}
+	}
+	return false;
+}
+
 void AGameplayAbilityTargetActor_Trace::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);

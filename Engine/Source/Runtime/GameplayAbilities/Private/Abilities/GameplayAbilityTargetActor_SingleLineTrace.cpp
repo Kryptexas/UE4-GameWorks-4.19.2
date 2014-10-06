@@ -5,7 +5,7 @@
 #include "GameplayAbilityTargetActor_SingleLineTrace.h"
 #include "Engine/World.h"
 #include "Runtime/Engine/Public/Net/UnrealNetwork.h"
-
+#pragma optimize("",off)
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	AGameplayAbilityTargetActor_SingleLineTrace
@@ -30,8 +30,9 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
-	FVector AimDirection = InSourceActor->GetActorForwardVector();		//Default
-	
+	FVector TraceStart = InSourceActor->GetActorLocation();
+	FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);		//Default
+
 	if (OwningAbility)		//Server and launching client only
 	{
 		APlayerController* AimingPC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
@@ -39,18 +40,26 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 		FVector CamLoc;
 		FRotator CamRot;
 		AimingPC->GetPlayerViewPoint(CamLoc, CamRot);
-		AimDirection = CamRot.Vector();
-	}
+		FVector CamDir = CamRot.Vector();
+		FVector CamTarget = CamLoc + (CamDir * MaxRange);		//Straight, dumb aiming to a point that's reasonable though not exactly correct
 
-	FVector TraceStart = InSourceActor->GetActorLocation();
-	FVector TraceEnd = TraceStart + (AimDirection * MaxRange);
+		ClipCameraRayToAbilityRange(CamLoc, CamDir, TraceStart, MaxRange, CamTarget);
 
-	//If we're using a socket, adjust the starting location and aim direction after the end position has been found. This way we can still aim with the camera, then fire accurately from the socket.
-	if (OwningAbility)		//Server and launching client only
-	{
+		FHitResult TempHitResult;
+		InSourceActor->GetWorld()->LineTraceSingle(TempHitResult, CamLoc, CamTarget, ECC_WorldStatic, Params);
 		TraceStart = StartLocation.GetTargetingTransform().GetLocation();
+		if (TempHitResult.bBlockingHit && (FVector::DistSquared(TraceStart, TempHitResult.Location) <= (MaxRange * MaxRange)))
+		{
+			//We actually made a hit? Pull back.
+			TraceEnd = TempHitResult.Location;
+		}
+		else
+		{
+			//If we didn't make a hit, use the clipped location.
+			TraceEnd = CamTarget;
+		}
 	}
-	AimDirection = (TraceEnd - TraceStart).SafeNormal();
+	FVector AimDirection = (TraceStart - TraceEnd).SafeNormal();
 
 	// ------------------------------------------------------
 
@@ -64,6 +73,12 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	if (AActor* LocalReticleActor = ReticleActor.Get())
 	{
 		LocalReticleActor->SetActorLocation(ReturnHitResult.Location);
+	}
+
+	if (bDebug)
+	{
+		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green);
+		DrawDebugSphere(GetWorld(), TraceEnd, 100.0f, 16, FColor::Green);
 	}
 	return ReturnHitResult;
 }
