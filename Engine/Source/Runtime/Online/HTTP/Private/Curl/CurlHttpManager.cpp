@@ -108,6 +108,7 @@ void FCurlHttpManager::InitCurl()
 		{
 			"/etc/pki/tls/certs/ca-bundle.crt",
 			"/etc/ssl/certs/ca-certificates.crt",
+			"/etc/ssl/ca-bundle.pem",
 			nullptr
 		};
 
