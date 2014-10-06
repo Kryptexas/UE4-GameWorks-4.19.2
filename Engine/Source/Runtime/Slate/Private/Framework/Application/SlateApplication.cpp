@@ -5,6 +5,9 @@
 #include "SWindowTitleBar.h"
 #include "HittestGrid.h"
 
+#include "WebBrowserModule.h"
+#include "IWebBrowserSingleton.h"
+
 
 DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Update Tooltip Time"), STAT_SlateUpdateTooltip, STATGROUP_Slate );
@@ -444,6 +447,9 @@ void FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRendere
 {
 	Renderer = InRenderer;
 	Renderer->Initialize();
+
+	// Pass renderer on to the Web Browser module
+	IWebBrowserModule::Get().GetSingleton()->SetSlateRenderer(InRenderer);
 }
 
 void FSlateApplication::InitializeSound( const TSharedRef<ISlateSoundDevice>& InSlateSoundDevice )
@@ -920,6 +926,9 @@ void FSlateApplication::Tick()
 	// Update any notifications - this needs to be done after windows have updated themselves 
 	// (so they know their size)
 	FSlateNotificationManager::Get().Tick();
+
+	// Calling this after Tick gives web browser a chance to render pages to texture after size changes
+	IWebBrowserModule::Get().GetSingleton()->PumpMessages();
 
 	// Draw all windows
 	DrawWindows();

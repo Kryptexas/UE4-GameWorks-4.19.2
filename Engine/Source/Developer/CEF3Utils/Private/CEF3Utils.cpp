@@ -4,7 +4,7 @@
 
 DEFINE_LOG_CATEGORY(LogCEF3Utils);
 
-IMPLEMENT_MODULE(FDefaultModuleImpl, CEF3);
+IMPLEMENT_MODULE(FDefaultModuleImpl, CEF3Utils);
 
 #if WITH_CEF3
 namespace CEF3Utils
