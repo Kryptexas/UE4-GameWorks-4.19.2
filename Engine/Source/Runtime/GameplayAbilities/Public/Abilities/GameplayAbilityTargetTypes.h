@@ -513,8 +513,12 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 		{
 			if (TargetActorArray[i].IsValid())
 			{
-				ReturnTransform.SetRotation((TargetActorArray[i].Get()->GetActorLocation()).SafeNormal().Rotation().Quaternion());
-				break;
+				FVector Direction = (TargetActorArray[i].Get()->GetActorLocation() - ReturnTransform.GetLocation()).SafeNormal();
+				if (Direction.IsNormalized())
+				{
+					ReturnTransform.SetRotation(Direction.Rotation().Quaternion());
+					break;
+				}
 			}
 		}
 		return ReturnTransform;
