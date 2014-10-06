@@ -69,6 +69,8 @@ void ADocumentationActor::PostEditChangeProperty(FPropertyChangedEvent& Property
 void ADocumentationActor::UpdateLinkType()
 {
 #if WITH_EDITORONLY_DATA
+	DocumentLink = DocumentLink.Replace(TEXT("\"), TEXT("/"))
+	DocumentLink = DocumentLink.Replace(TEXT("\\"), TEXT("/"))
 	if (DocumentLink.IsEmpty() == true)
 	{
 		LinkType = EDocumentationActorType::None;
