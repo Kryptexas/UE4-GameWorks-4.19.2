@@ -289,8 +289,13 @@ void FPhysSubstepTask::StepSimulation(PhysXCompletionTask * Task)
 }
 #endif
 
+DEFINE_STAT(STAT_SubstepSimulationStart);
+DEFINE_STAT(STAT_SubstepSimulationEnd);
+
 void FPhysSubstepTask::SubstepSimulationStart()
 {
+	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
+	SCOPE_CYCLE_COUNTER(STAT_SubstepSimulationStart);
 #if WITH_PHYSX
 	check(SubTime > 0.f);
 	check(DeltaSeconds > 0.f);
@@ -349,13 +354,20 @@ void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, c
 	if (CurrentSubStep < NumSubsteps)
 	{
 		uint32 OutErrorCode = 0;
+		{
+			SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
+			SCOPE_CYCLE_COUNTER(STAT_SubstepSimulationEnd);
+
 #if WITH_APEX
-		PAScene->fetchResults(true, &OutErrorCode);
+			PAScene->fetchResults(true, &OutErrorCode);
 #else
-		PAScene->lockWrite();
-		PAScene->fetchResults(true, &OutErrorCode);
-		PAScene->unlockWrite();
+			PAScene->lockWrite();
+			PAScene->fetchResults(true, &OutErrorCode);
+			PAScene->unlockWrite();
 #endif
+
+		}
+
 		if (OutErrorCode != 0)
 		{
 			UE_LOG(LogPhysics, Log, TEXT("PHYSX FETCHRESULTS ERROR: %d"), OutErrorCode);
@@ -365,6 +377,9 @@ void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, c
 	}
 	else
 	{
+		SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
+		SCOPE_CYCLE_COUNTER(STAT_SubstepSimulationEnd);
+
 		//final step we call fetch on in game thread
 		FullSimulationTask->removeReference();
 	}

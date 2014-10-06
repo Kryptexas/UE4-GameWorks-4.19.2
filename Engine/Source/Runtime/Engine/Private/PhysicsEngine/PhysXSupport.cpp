@@ -567,7 +567,7 @@ public:
 
 	FORCEINLINE TStatId GetStatId() const
 	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_TaskGraphTasks);
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_Physics);
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
@@ -580,7 +580,9 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		FPlatformMisc::BeginNamedEvent(FColor::Black, Task.getName());
 		Task.run();
+		FPlatformMisc::EndNamedEvent();
 	}
 };
 
