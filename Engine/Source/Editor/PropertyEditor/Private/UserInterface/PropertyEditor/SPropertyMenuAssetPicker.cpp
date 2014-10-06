@@ -2,6 +2,7 @@
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyMenuAssetPicker.h"
+#include "SPropertyEditorNewAsset.h"
 #include "AssetRegistryModule.h"
 #include "DelegateFilter.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"

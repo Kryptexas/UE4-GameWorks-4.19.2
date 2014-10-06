@@ -12,7 +12,7 @@ UObject* SPropertyEditorNewAsset::Create(TWeakObjectPtr<UFactory> FactoryPtr)
 {
 	if (!FactoryPtr.IsValid())
 	{
-		return false;
+		return nullptr;
 	}
 
 	FFormatNamedArguments Args;

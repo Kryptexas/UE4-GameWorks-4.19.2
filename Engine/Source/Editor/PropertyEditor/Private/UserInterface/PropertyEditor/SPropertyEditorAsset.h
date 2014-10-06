@@ -229,14 +229,8 @@ private:
 	 */
 	FReply OnAssetThumbnailDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
 
-	/** 
-	 * Handle creating a new asset from the provided factory
-	 */
-	void SPropertyEditorAsset::OnCreateNewAsset( TWeakObjectPtr<UFactory> FactoryPtr );
-
 	/** @return True if the property can be edited */
 	bool CanEdit() const;
-
 private:
 
 	/** Main combobutton */
