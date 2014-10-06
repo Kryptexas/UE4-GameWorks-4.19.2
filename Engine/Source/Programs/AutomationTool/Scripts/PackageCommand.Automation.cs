@@ -14,12 +14,6 @@ public partial class Project : CommandUtils
 	public static void Package(ProjectParams Params, int WorkingCL=-1)
 	{
 		Params.ValidateAndLog();
-/*		if (!Params.Package)
-		{
-			return;
-		}*/
-
-		bool NeedsPackage = Params.Package;
 		List<DeploymentContext> DeployContextList = new List<DeploymentContext>();
 		if (!Params.NoClient)
 		{

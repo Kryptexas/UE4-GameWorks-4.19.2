@@ -6105,12 +6105,6 @@ public class GUBP : BuildCommand
             }
 
             var FakeECArgs = new List<string>();
-            var BranchForEmail = "";
-            if (P4Enabled)
-            {
-                BranchForEmail = P4Env.BuildRootP4;
-            }
-
             var AgentGroupChains = new Dictionary<string, List<string>>();
             foreach (var NodeToDo in OrdereredToDo)
             {
