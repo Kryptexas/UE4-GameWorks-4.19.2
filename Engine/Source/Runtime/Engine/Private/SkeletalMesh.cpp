@@ -501,11 +501,7 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexColorBuffer& VertexBuffer
 		if( VertexBuffer.VertexData != NULL )
 		{
 			VertexBuffer.VertexData->Serialize( Ar );
-
-			// update cached buffer info
-			VertexBuffer.Data = VertexBuffer.VertexData->GetDataPointer();
-			VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
-			VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
+			VertexBuffer.UpdateCachedInfo();
 		}
 	}
 
@@ -518,15 +514,8 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexColorBuffer& VertexBuffer
  */
 void FSkeletalMeshVertexColorBuffer::Init( const TArray<FSoftSkinVertex>& InVertices )
 {
-	// Allocate new data
 	AllocateData();
-
-	// Resize the buffer to hold enough data for all passed in vertices
-	VertexData->ResizeBuffer( InVertices.Num() );
-
-	Data = VertexData->GetDataPointer();
-	Stride = VertexData->GetStride();
-	NumVertices = VertexData->GetNumVertices();
+	ResizeData(InVertices.Num());
 
 	// Copy color info from each vertex
 	for( int32 VertIdx=0; VertIdx < InVertices.Num(); ++VertIdx )
@@ -544,6 +533,33 @@ void FSkeletalMeshVertexColorBuffer::AllocateData()
 	CleanUp();
 
 	VertexData = new TSkeletalMeshVertexData<FGPUSkinVertexColor>(true);
+}
+
+FSkeletalMeshVertexColorBuffer& FSkeletalMeshVertexColorBuffer::operator=(const TArray<FColor>& InColors)
+{
+	AllocateData();
+	ResizeData(InColors.Num());
+
+	// Copy the color values for each vertex.
+	for (int32 VertIdx = 0; VertIdx < InColors.Num(); ++VertIdx)
+	{
+		SetColor(VertIdx, InColors[VertIdx]);
+	}
+
+	return *this;
+}
+
+void FSkeletalMeshVertexColorBuffer::ResizeData(int32 NumVertices)
+{
+	VertexData->ResizeBuffer(NumVertices);
+	UpdateCachedInfo();
+}
+
+void FSkeletalMeshVertexColorBuffer::UpdateCachedInfo()
+{
+	Data = VertexData->GetDataPointer();
+	Stride = VertexData->GetStride();
+	NumVertices = VertexData->GetNumVertices();
 }
 
 /** 

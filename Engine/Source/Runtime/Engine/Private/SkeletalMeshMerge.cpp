@@ -85,6 +85,11 @@ bool FSkeletalMeshMerge::DoMerge()
 		USkeletalMesh* SrcMesh = SrcMeshList[MeshIdx];
 		if( SrcMesh )
 		{
+			if( SrcMesh->bHasVertexColors )
+			{
+				MergeMesh->bHasVertexColors = true;
+			}
+
 			if( bMaxNumLODsInit )
 			{
 				// initialize
@@ -388,8 +393,6 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 	// add the new LOD model entry
 	FSkeletalMeshResource* MergeResource = MergeMesh->GetImportedResource();
 	FStaticLODModel& MergeLODModel = *new(MergeResource->LODModels) FStaticLODModel;
-	MergeLODModel.NumVertices = 0;
-	MergeLODModel.Size = 0;
 	// add the new LOD info entry
 	FSkeletalMeshLODInfo& MergeLODInfo = *new(MergeMesh->LODInfo) FSkeletalMeshLODInfo;
 	MergeLODInfo.ScreenSize = MergeLODInfo.LODHysteresis = MAX_FLT;
@@ -402,6 +405,8 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// merged vertex buffer
 	TArray< VertexDataType > MergedVertexBuffer;
+	// merged vertex color buffer
+	TArray< FColor > MergedColorBuffer;
 	// merged index buffer
 	TArray<uint32> MergedIndexBuffer;
 
@@ -509,6 +514,9 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				MergeSectionInfo.Chunk->BaseVertexIndex + NumTotalVertices, 
 				SrcLODModel.VertexBufferGPUSkin.GetNumVertices() 
 				);
+
+			int32 MaxColorIdx = SrcLODModel.ColorVertexBuffer.GetNumVertices();
+
 			// keep track of the current base vertex index before adding any new vertices
 			// this will be needed to remap the index buffer values to the new range
 			int32 CurrentBaseVertexIndex = MergedVertexBuffer.Num();
@@ -524,7 +532,22 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				DestVert.TangentZ = SrcBaseVert->TangentZ;
 				FMemory::Memcpy(DestVert.InfluenceBones,SrcBaseVert->InfluenceBones,sizeof(SrcBaseVert->InfluenceBones));
 				FMemory::Memcpy(DestVert.InfluenceWeights,SrcBaseVert->InfluenceWeights,sizeof(SrcBaseVert->InfluenceWeights));
-				
+
+				// if the mesh uses vertex colors, copy the source color if possible or default to white
+				if( MergeMesh->bHasVertexColors )
+				{
+					if( VertIdx < MaxColorIdx )
+					{
+						const FColor& SrcColor = SrcLODModel.ColorVertexBuffer.VertexColor(VertIdx);
+						MergedColorBuffer.Add(SrcColor);
+					}
+					else
+					{
+						const FColor ColorWhite(255, 255, 255);
+						MergedColorBuffer.Add(ColorWhite);
+					}
+				}
+
 				// Copy all UVs that are available
 				uint32 LODNumTexCoords = SrcLODModel.VertexBufferGPUSkin.GetNumTexCoords();
 				for( uint32 UVIndex = 0; UVIndex < LODNumTexCoords && UVIndex < MAX_TEXCOORDS; ++UVIndex )
@@ -590,6 +613,11 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// copy vertex resource arrays
 	MergeLODModel.VertexBufferGPUSkin = MergedVertexBuffer;
+
+	if( MergeMesh->bHasVertexColors )
+	{
+		MergeLODModel.ColorVertexBuffer = MergedColorBuffer;
+	}
 
 	FMultiSizeIndexContainerData IndexBufferData;
 	IndexBufferData.DataTypeSize = (MaxIndex < MAX_uint16) ? sizeof(uint16) : sizeof(uint32);

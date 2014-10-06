@@ -1219,6 +1219,13 @@ public:
 		uint8* VertBase = Data + VertexIndex * Stride;
 		return ((FGPUSkinVertexColor*)(VertBase))->VertexColor;
 	}
+
+	/**
+	 * Assignment operator - Initializes the buffer with the given colors.
+	 * @param InColors - The colors to initialize the buffer with.
+	 */
+	FSkeletalMeshVertexColorBuffer& operator=(const TArray<FColor>& InColors);
+
 private:
 	/** The vertex data storage type */
 	FSkeletalMeshVertexDataInterface* VertexData;
@@ -1232,7 +1239,17 @@ private:
 	/** 
 	 * Allocates the vertex data storage type
 	 */
-	void AllocateData();	
+	void AllocateData();
+
+	/**
+	 * Resizes the vertex data storage & updates the cached info.
+	 */
+	void ResizeData(int32 NumVertices);
+
+	/**
+	 * Update the cached 'VertexData' information.
+	 */
+	void UpdateCachedInfo();
 
 	/** 
 	 * Copy the contents of the source color to the destination vertex in the buffer 
