@@ -2730,6 +2730,8 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 			Ar.Logf( TEXT( "Demo playback failed: %s" ), *Error );
 			DestroyDemoNetDriver();
 		}
+
+		FCoreUObjectDelegates::PostDemoPlay.Broadcast();
 #endif
 	}
 	else

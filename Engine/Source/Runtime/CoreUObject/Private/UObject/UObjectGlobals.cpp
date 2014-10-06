@@ -70,6 +70,7 @@ FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollect;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollect;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PreLoadMap;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
+FSimpleMulticastDelegate FCoreUObjectDelegates::PostDemoPlay;
 FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTop;
 
 FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;

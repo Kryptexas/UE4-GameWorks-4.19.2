@@ -1645,6 +1645,9 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	// Sent at the _successful_ end of LoadMap
 	static FSimpleMulticastDelegate PostLoadMap;
 
+	// Sent at the _successful_ end of LoadMap
+	static FSimpleMulticastDelegate PostDemoPlay;
+
 	// Called before garbage collection
 	static FSimpleMulticastDelegate PreGarbageCollect;
 
