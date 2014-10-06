@@ -115,7 +115,14 @@ void UK2Node_Variable::CreatePinForSelf()
 			// so if the node is from a Macro Blueprint, it will hook up as self in any placed Blueprint
 			if(bSelfTarget)
 			{
-				TargetClass = VariableReference.ResolveMember<UProperty>(this)->GetOwnerClass()->GetAuthoritativeClass();
+				if(UProperty* Property = VariableReference.ResolveMember<UProperty>(this))
+				{
+					TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
+				}
+				else
+				{
+					TargetClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
+				}
 			}
 			else
 			{
