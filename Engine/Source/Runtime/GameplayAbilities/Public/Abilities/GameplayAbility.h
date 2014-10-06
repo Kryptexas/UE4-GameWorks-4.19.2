@@ -464,13 +464,15 @@ protected:
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
-	//	Animation callbacks (still WIP)
+	//	Animation
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 
-	void MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo* ActorInfo) const;
+	UFUNCTION(BlueprintCallable, Category="Ability|Animation")
+	void MontageJumpToSection(FName SectionName);
 
-	void MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const;
+	UFUNCTION(BlueprintCallable, Category="Ability|Animation")
+	void MontageStop();
 
 	UFUNCTION(BlueprintPure, Category = Ability, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
 	FGameplayAbilityTargetingLocationInfo MakeTargetLocationInfoFromOwnerActor();

@@ -651,7 +651,7 @@ void UAbilitySystemComponent::TaskStarted(UAbilityTask* NewTask)
 		// If this is our first ticking task, set this component as active so it begins ticking
 		if (TickingTasks.Num() == 0)
 		{
-			SetActive(true);
+			UpdateShouldTick();
 		}
 		check(TickingTasks.Contains(NewTask) == false);
 		TickingTasks.Add(NewTask);
@@ -671,7 +671,7 @@ void UAbilitySystemComponent::TaskEnded(UAbilityTask* Task)
 		TickingTasks.RemoveSingleSwap(Task);
 		if (TickingTasks.Num() == 0)
 		{
-			SetActive(false);
+			UpdateShouldTick();
 		}
 	}
 
@@ -694,6 +694,7 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
 	DOREPLIFETIME(UAbilitySystemComponent, AbilityActor);
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
+	DOREPLIFETIME(UAbilitySystemComponent, RepAnimMontageInfo);
 	
 	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, SimulatedTasks, COND_SkipOwner);
 }

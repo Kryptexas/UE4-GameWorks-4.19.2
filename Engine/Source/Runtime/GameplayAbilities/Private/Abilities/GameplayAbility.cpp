@@ -481,14 +481,28 @@ void UGameplayAbility::K2_EndAbility()
 
 // --------------------------------------------------------------------
 
-void UGameplayAbility::MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo* ActorInfo) const
+void UGameplayAbility::MontageJumpToSection(FName SectionName)
 {
+	check(CurrentActorInfo);
 
+	CurrentActorInfo->AbilitySystemComponent->LocalAnimMontageInfo.AnimMontage;
+
+	if (CurrentActorInfo->AbilitySystemComponent->IsAnimatingAbility(this))
+	{
+		CurrentActorInfo->AbilitySystemComponent->CurrentMontageJumpToSection(SectionName);
+	}
 }
 
-void UGameplayAbility::MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const
-{
 
+void UGameplayAbility::MontageStop()
+{
+	check(CurrentActorInfo);
+
+	// We should only stop the current montage if we are the animating ability
+	if (CurrentActorInfo->AbilitySystemComponent->IsAnimatingAbility(this))
+	{
+		CurrentActorInfo->AbilitySystemComponent->CurrentMontageStop();
+	}
 }
 
 // --------------------------------------------------------------------

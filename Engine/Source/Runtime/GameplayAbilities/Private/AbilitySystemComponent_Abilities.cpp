@@ -48,6 +48,11 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (IsOwnerActorAuthoritative())
+	{
+		AnimMontage_UpdateReplicatedData();
+	}
+
 	// Because we have no control over what a task may do when it ticks, we must be careful.
 	// Ticking a task may kill the task right here. It could also potentially kill another task
 	// which was waiting on the original task to do something. Since when a tasks is killed, it removes
@@ -85,9 +90,23 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	if (NumActuallyTicked == 0)
 	{
 		TickingTasks.SetNum(0, false);
+		UpdateShouldTick();
+	}
+}
+
+void UAbilitySystemComponent::UpdateShouldTick()
+{
+	bool HasTickingTasks = (TickingTasks.Num() == 0);
+	bool HasReplicatedMontageInfoToUpdate = (IsOwnerActorAuthoritative() && RepAnimMontageInfo.IsStopped == false);
+
+	if (HasTickingTasks || HasReplicatedMontageInfoToUpdate)
+	{
+		SetActive(true);
+	}
+	else
+	{
 		SetActive(false);
 	}
-
 }
 
 void UAbilitySystemComponent::InitAbilityActorInfo(AActor* AvatarActor)
@@ -233,9 +252,9 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 	check(Ability);
 
 	// If AnimatingAbility ended, clear the pointer
-	if (AnimatingAbility == Ability)
+	if (LocalAnimMontageInfo.AnimatingAbility == Ability)
 	{
-		AnimatingAbility = NULL;
+		LocalAnimMontageInfo.AnimatingAbility = NULL;
 	}
 
 	Spec->ActiveCount--;
@@ -695,22 +714,6 @@ void UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 //								Input 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------
 
-void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStop()
-{
-	if (AnimatingAbility)
-	{
-		AnimatingAbility->MontageBranchPoint_AbilityDecisionStop(AbilityActorInfo.Get());
-	}
-}
-
-void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStart()
-{
-	if (AnimatingAbility)
-	{
-		AnimatingAbility->MontageBranchPoint_AbilityDecisionStart(AbilityActorInfo.Get());
-	}
-}
-
 bool UAbilitySystemComponent::GetUserAbilityActivationInhibited() const
 {
 	return UserAbilityActivationInhibited;
@@ -1037,7 +1040,7 @@ void UAbilitySystemComponent::OnRep_SimulatedTasks()
 			SimulatedTask->InitSimulatedTask(this);
 			if (TickingTasks.Num() == 0)
 			{
-				SetActive(true);
+				UpdateShouldTick();
 			}
 
 			TickingTasks.Add(SimulatedTask);
@@ -1045,6 +1048,276 @@ void UAbilitySystemComponent::OnRep_SimulatedTasks()
 	}
 }
 
+// ---------------------------------------------------------------------------
+
+float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility, FGameplayAbilityActivationInfo ActivationInfo, UAnimMontage* NewAnimMontage, float InPlayRate, FName StartSectionName)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+
+	if (AnimInstance && NewAnimMontage)
+	{
+		float const Duration = AnimInstance->Montage_Play(NewAnimMontage, InPlayRate);
+		if (Duration > 0.f)
+		{
+			if (LocalAnimMontageInfo.AnimatingAbility && LocalAnimMontageInfo.AnimatingAbility != InAnimatingAbility)
+			{
+				// The ability that was previously animating will have already gotten the 'interrupted' callback.
+				// It may be a good idea to make this a global policy and 'cancel' the ability.
+				// 
+				// For now, we expect it to end itself when this happens.
+			}
+
+			LocalAnimMontageInfo.AnimMontage = NewAnimMontage;
+			LocalAnimMontageInfo.AnimatingAbility = InAnimatingAbility;
+			
+			// Replicate to non owners
+			if (IsOwnerActorAuthoritative())
+			{
+				// Those are static parameters, they are only set when the montage is played. They are not changed after that.
+				RepAnimMontageInfo.AnimMontage = NewAnimMontage;
+				RepAnimMontageInfo.ForcePlayBit = !bool(RepAnimMontageInfo.ForcePlayBit);
+
+				// Start at a given Section.
+				if (StartSectionName != NAME_None)
+				{
+					AnimInstance->Montage_JumpToSection(StartSectionName);
+				}
+
+				// Update parameters that change during Montage life time.
+				AnimMontage_UpdateReplicatedData();
+			}
+			else
+			{
+				// If this prediction key is rejected, we need to end the preview
+				FPredictionKey PredictionKey = ActivationInfo.GetPredictionKeyForNewAction();
+				if (PredictionKey.IsValidKey())
+				{
+					PredictionKey.NewRejectedDelegate().BindUObject(this, &UAbilitySystemComponent::OnPredictiveMontageRejected, NewAnimMontage);
+				}
+			}
+
+			return Duration;
+		}
+	}
+
+	return -1.f;
+}
+
+float UAbilitySystemComponent::PlayMontageSimulated(UAnimMontage* NewAnimMontage, float InPlayRate, FName StartSectionName)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+
+	if (AnimInstance && NewAnimMontage)
+	{
+		float const Duration = AnimInstance->Montage_Play(NewAnimMontage, InPlayRate);
+		if (Duration > 0.f)
+		{
+			LocalAnimMontageInfo.AnimMontage = NewAnimMontage;
+			return Duration;
+		}
+	}
+
+	return -1.f;
+}
+
+void UAbilitySystemComponent::AnimMontage_UpdateReplicatedData()
+{
+	check(IsOwnerActorAuthoritative());
+
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	if (AnimInstance && LocalAnimMontageInfo.AnimMontage)
+	{
+		RepAnimMontageInfo.AnimMontage = LocalAnimMontageInfo.AnimMontage;
+		RepAnimMontageInfo.PlayRate = AnimInstance->Montage_GetPlayRate(LocalAnimMontageInfo.AnimMontage);
+		RepAnimMontageInfo.Position = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
+
+		// Compressed Flags
+		bool bIsStopped = AnimInstance->Montage_GetIsStopped(LocalAnimMontageInfo.AnimMontage);
+
+		if (RepAnimMontageInfo.IsStopped != bIsStopped)
+		{
+			// When this changes, we should update whether or not we should be ticking
+			UpdateShouldTick();
+		}
+			
+		RepAnimMontageInfo.IsStopped = bIsStopped;
+
+		// Replicate NextSectionID to keep it in sync.
+		// We actually replicate NextSectionID+1 on a BYTE to put INDEX_NONE in there.
+		int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(RepAnimMontageInfo.Position);
+		if (CurrentSectionID != INDEX_NONE)
+		{
+			int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, CurrentSectionID);
+			ensure(NextSectionID < (256 - 1));
+			RepAnimMontageInfo.NextSectionID = uint8(NextSectionID + 1);
+		}
+		else
+		{
+			RepAnimMontageInfo.NextSectionID = 0;
+		}
+	}
+}
+
+void UAbilitySystemComponent::OnPredictiveMontageRejected(UAnimMontage* PredictiveMontage)
+{
+	static const float MONTAGE_PREDICTION_REJECT_FADETIME = 0.25f;
+
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	if (AnimInstance && PredictiveMontage)
+	{
+		// If this montage is still palying: kill it
+		if (AnimInstance->Montage_IsPlaying(PredictiveMontage))
+		{
+			AnimInstance->Montage_Stop(MONTAGE_PREDICTION_REJECT_FADETIME, PredictiveMontage);
+		}
+	}
+}
+
+/**	Replicated Event for AnimMontages */
+void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
+{
+	static const float MONTAGE_REP_POS_ERR_THRESH = 0.1f;
+
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	if (!AbilityActorInfo->IsLocallyControlled() && AnimInstance)
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.Montage.Debug"));
+		bool DebugMontage = (CVar && CVar->GetValueOnGameThread() == 1);
+		if (DebugMontage)
+		{
+			ABILITY_LOG( Warning, TEXT("\n\nOnRep_ReplicatedAnimMontage, %s"), *GetNameSafe(this));
+			ABILITY_LOG( Warning, TEXT("\tAnimMontage: %s\n\tPlayRate: %f\n\tPosition: %f\n\tNextSectionID: %d\n\tIsStopped: %d\n\tForcePlayBit: %d"),
+				*GetNameSafe(RepAnimMontageInfo.AnimMontage), 
+				RepAnimMontageInfo.PlayRate, 
+				RepAnimMontageInfo.Position, 
+				RepAnimMontageInfo.NextSectionID, 
+				RepAnimMontageInfo.IsStopped, 
+				RepAnimMontageInfo.ForcePlayBit);
+			ABILITY_LOG( Warning, TEXT("\tLocalAnimMontageInfo.AnimMontage: %s\n\tPosition: %f"),
+				*GetNameSafe(LocalAnimMontageInfo.AnimMontage), AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage));
+		}
+
+		if( RepAnimMontageInfo.AnimMontage )
+		{
+			// New Montage to play
+			bool ReplicatedPlayBit = bool(RepAnimMontageInfo.ForcePlayBit);
+			if ((LocalAnimMontageInfo.AnimMontage != RepAnimMontageInfo.AnimMontage) || (LocalAnimMontageInfo.PlayBit != ReplicatedPlayBit))
+			{
+				LocalAnimMontageInfo.PlayBit = ReplicatedPlayBit;
+				PlayMontageSimulated(RepAnimMontageInfo.AnimMontage, RepAnimMontageInfo.PlayRate);
+			}
+
+			// Play Rate has changed
+			if (AnimInstance->Montage_GetPlayRate(LocalAnimMontageInfo.AnimMontage) != RepAnimMontageInfo.PlayRate)
+			{
+				AnimInstance->Montage_SetPlayRate(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.PlayRate);
+			}
+
+			int32 RepSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(RepAnimMontageInfo.Position);
+			int32 RepNextSectionID = int32(RepAnimMontageInfo.NextSectionID) - 1;
+		
+			// And NextSectionID for the replicated SectionID.
+			if( RepSectionID != INDEX_NONE )
+			{
+				int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, RepSectionID);
+
+				// If NextSectionID is different thant the replicated one, then set it.
+				if( NextSectionID != RepNextSectionID )
+				{
+					AnimInstance->Montage_SetNextSection(LocalAnimMontageInfo.AnimMontage->GetSectionName(RepSectionID), LocalAnimMontageInfo.AnimMontage->GetSectionName(RepNextSectionID));
+				}
+
+				// Make sure we haven't received that update too late and the client hasn't already jumped to another section. 
+				int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage));
+				if( (CurrentSectionID != RepSectionID) && (CurrentSectionID != RepNextSectionID) )
+				{
+					// Client is in a wrong section, jump to replicated position.
+					AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.Position);
+				}
+			}
+
+			// Update Position. If error is too great, jump to replicated position.
+			float CurrentPosition = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
+			int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(CurrentPosition);
+			// Only check threshold if we are located in the same section. Different sections require a bit more work as we could be jumping around the timeline.
+			if( (CurrentSectionID == RepSectionID) && (FMath::Abs(CurrentPosition - RepAnimMontageInfo.Position) > MONTAGE_REP_POS_ERR_THRESH) )
+			{
+				AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.Position);
+			}
+
+			// Compressed Flags
+			bool bIsStopped = AnimInstance->Montage_GetIsStopped(LocalAnimMontageInfo.AnimMontage);
+			bool ReplicatedIsStopped = bool(RepAnimMontageInfo.IsStopped);
+			if( ReplicatedIsStopped && !bIsStopped )
+			{
+				CurrentMontageStop();
+			}
+		}
+	}
+}
+
+void UAbilitySystemComponent::CurrentMontageStop()
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimMontage* MontageToStop = LocalAnimMontageInfo.AnimMontage;
+	bool bShouldStopMontage = AnimInstance && MontageToStop && !AnimInstance->Montage_GetIsStopped(MontageToStop);
+
+	if (bShouldStopMontage)
+	{
+		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
+
+		if (IsOwnerActorAuthoritative())
+		{
+			AnimMontage_UpdateReplicatedData();
+		}
+	}
+}
+
+void UAbilitySystemComponent::CurrentMontageJumpToSection(FName SectionName)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	if( (SectionName != NAME_None) && AnimInstance )
+	{
+		AnimInstance->Montage_JumpToSection(SectionName);
+		if (IsOwnerActorAuthoritative())
+		{
+			AnimMontage_UpdateReplicatedData();
+		}
+	}
+}
+
+/** Set Next Section Name, and update replication for Simulated Proxies if we are on the server. */
+void UAbilitySystemComponent::CurrentMontageSetNextSectionName(FName FromSectionName, FName ToSectionName)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	if( LocalAnimMontageInfo.AnimMontage && AnimInstance )
+	{
+		// Set Next Section Name. 
+		AnimInstance->Montage_SetNextSection(FromSectionName, ToSectionName);
+
+		// Update replicated version for Simulated Proxies if we are on the server.
+		if( IsOwnerActorAuthoritative() )
+		{
+			AnimMontage_UpdateReplicatedData();
+		}
+	}
+}
+
+UAnimMontage* UAbilitySystemComponent::GetCurrentMontage() const
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	if (AnimInstance)
+	{
+		return AnimInstance->GetCurrentActiveMontage();
+	}
+
+	return nullptr;
+}
+
+bool UAbilitySystemComponent::IsAnimatingAbility(UGameplayAbility* InAbility) const
+{
+	return (LocalAnimMontageInfo.AnimatingAbility == InAbility);
+}
 
 #undef LOCTEXT_NAMESPACE
 

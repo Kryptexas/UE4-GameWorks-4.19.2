@@ -57,6 +57,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
+	/** Checks to see if we should be active (ticking). Called after something changes that would cause us to tick or not tick. */
+	void UpdateShouldTick();
+
 	/** Finds existing AttributeSet */
 	template <class T >
 	const T*	GetSet()
@@ -449,14 +452,51 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Removes a UAbilityTask task from the list of tasks to be ticked */
 	void TaskEnded(UAbilityTask* Task);
 
+	// ----------------------------------------------------------------------------------------------------------------
+	//	AnimMontage Support
+	//	
+	//	TODO:
+	//	-Continously update RepAnimMontageInfo on server for join in progress clients.
+	//	-Some missing functionality may still be needed (GetCurrentSectionTime, SetPlayRate, etc)	
+	// ----------------------------------------------------------------------------------------------------------------	
 
-	/** There needs to be a concept of an animating ability. Only one may exist at a time. New requests can be queued up, overridden, or ignored. */
+	/** Plays a montage and handles replication and prediction based on passed in ability/activation info */
+	float PlayMontage(UGameplayAbility* AnimatingAbility, FGameplayAbilityActivationInfo ActivationInfo, UAnimMontage* Montage, float InPlayRate, FName StartSectionName = NAME_None);
+
+	/** Plays a montage without updating replication/prediction structures. Used by simulated proxies when replication tells them to play a montage. */
+	float PlayMontageSimulated(UAnimMontage* Montage, float InPlayRate, FName StartSectionName = NAME_None);
+
+	/** Stops whatever montage is currently playing. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	void CurrentMontageStop();
+
+	/** Jumps current montage to given section. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	void CurrentMontageJumpToSection(FName SectionName);
+
+	/** Sets current montages next section name. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	void CurrentMontageSetNextSectionName(FName FromSectionName, FName ToSectionName);
+
+	/** Returns true if the passed in ability is the current animating ability */
+	bool IsAnimatingAbility(UGameplayAbility* Ability) const;
+
+	/** Returns montage that is currently playing */
+	UAnimMontage* GetCurrentMontage() const;
+
+	/** Called when a prediction key that played a montage is rejected */
+	void OnPredictiveMontageRejected(UAnimMontage* PredictiveMontage);
+
+	/** Copy LocalAnimMontageInfo into RepAnimMontageInfo */
+	void AnimMontage_UpdateReplicatedData();
+
+	/** Data structure for replicating montage info to simulated clients */
+	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedAnimMontage)
+	FGameplayAbilityRepAnimMontage RepAnimMontageInfo;
+
+	/** Data structure for montages that were instigated locally (everything if server, predictive if client. replicated if simulated proxy) */
 	UPROPERTY()
-	UGameplayAbility*	AnimatingAbility;
+	FGameplayAbilityLocalAnimMontage LocalAnimMontageInfo;
 
-	void MontageBranchPoint_AbilityDecisionStop();
-
-	void MontageBranchPoint_AbilityDecisionStart();
+	UFUNCTION()
+	void OnRep_ReplicatedAnimMontage();
 
 	// -----------------------------------------------------------------------------
 

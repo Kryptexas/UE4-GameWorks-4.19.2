@@ -33,13 +33,12 @@ UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMont
 
 void UAbilityTask_PlayMontageAndWait::Activate()
 {
-	if (Ability.IsValid())
+	if (AbilitySystemComponent.IsValid() && Ability.IsValid())
 	{
 		const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
 		if (ActorInfo->AnimInstance.IsValid())
 		{
-			ActorInfo->AnimInstance->Montage_Play(MontageToPlay, Rate);
-			if (MontageToPlay)
+			if (AbilitySystemComponent->PlayMontage(Ability.Get(), Ability->GetCurrentActivationInfo(), MontageToPlay, Rate	) > 0.f)
 			{
 				FOnMontageEnded EndDelegate;
 				EndDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);

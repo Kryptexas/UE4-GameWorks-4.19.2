@@ -295,6 +295,78 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 
 // ----------------------------------------------------
 
+
+/** Data about montages that is replicated to simulated clients */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** AnimMontage ref */
+	UPROPERTY()
+	UAnimMontage* AnimMontage;
+
+	/** Play Rate */
+	UPROPERTY()
+	float PlayRate;
+
+	/** Montage position */
+	UPROPERTY()
+	float Position;
+
+	/** NextSectionID */
+	UPROPERTY()
+	uint8 NextSectionID;
+
+	/** Bit set when montage has been stopped. */
+	UPROPERTY()
+	uint8 IsStopped : 1;
+	
+	/** Bit flipped every time a new Montage is played. To trigger replication when the same montage is played again. */
+	UPROPERTY()
+	uint8 ForcePlayBit : 1;
+
+	FGameplayAbilityRepAnimMontage()
+		: AnimMontage(NULL),
+		PlayRate(0.f),
+		Position(0.f),
+		NextSectionID(0),
+		IsStopped(0),
+		ForcePlayBit(0)
+	{
+	}
+
+	UPROPERTY()
+	FPredictionKey PredictionKey;
+};
+
+/** Data about montages that were played locally (all montages in case of server. predictive montages in case of client). Never replicated directly. */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayAbilityLocalAnimMontage
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilityLocalAnimMontage()
+	: AnimMontage(nullptr), PlayBit(false), AnimatingAbility(nullptr)
+	{
+	}
+
+	UPROPERTY()
+	UAnimMontage* AnimMontage;
+
+	UPROPERTY()
+	bool PlayBit;
+
+	UPROPERTY()
+	FPredictionKey PredictionKey;
+
+	/** The ability, if any, that instigated this montage */
+	UPROPERTY()
+	UGameplayAbility* AnimatingAbility;
+};
+
+// ----------------------------------------------------
+
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEventData
 {
@@ -304,7 +376,6 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	: Instigator(NULL)
 	, Target(NULL)
 	{
-		// do nothing
 	}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
