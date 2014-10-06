@@ -7,6 +7,11 @@
 #include "RHI.h"
 #include "BoundShaderStateCache.h"
 
+#if !defined(HAS_THREADSAFE_CreateBoundShaderState)
+#error "HAS_THREADSAFE_CreateBoundShaderState must be defined"
+#endif
+
+
 typedef TMap<FBoundShaderStateKey,FCachedBoundShaderStateLink*> FBoundShaderStateCache;
 
 /** Lazily initialized bound shader state cache singleton. */
@@ -16,7 +21,7 @@ static FBoundShaderStateCache& GetBoundShaderStateCache()
 	return BoundShaderStateCache;
 }
 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#if HAS_THREADSAFE_CreateBoundShaderState
 static FCriticalSection BoundShaderStateCacheLock;
 #endif
 
@@ -34,7 +39,7 @@ FCachedBoundShaderStateLink::FCachedBoundShaderStateLink(
 	Key(VertexDeclaration,VertexShader,PixelShader,HullShader,DomainShader,GeometryShader)
 {
 	// Add this bound shader state to the cache.
-#if !PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#if !HAS_THREADSAFE_CreateBoundShaderState
 	GetBoundShaderStateCache().Add(Key,this);
 #endif
 }
@@ -49,19 +54,19 @@ FCachedBoundShaderStateLink::FCachedBoundShaderStateLink(
 	Key(VertexDeclaration,VertexShader,PixelShader)
 {
 	// Add this bound shader state to the cache.
-#if !PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#if !HAS_THREADSAFE_CreateBoundShaderState
 	GetBoundShaderStateCache().Add(Key,this);
 #endif
 }
 
 FCachedBoundShaderStateLink::~FCachedBoundShaderStateLink()
 {
-#if !PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#if !HAS_THREADSAFE_CreateBoundShaderState
 	GetBoundShaderStateCache().Remove(Key);
 #endif
 }
 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#if HAS_THREADSAFE_CreateBoundShaderState
 void FCachedBoundShaderStateLink::AddToCache()
 {
 	FScopeLock Lock(&BoundShaderStateCacheLock);
@@ -75,7 +80,7 @@ void FCachedBoundShaderStateLink::RemoveFromCache()
 #endif
 
 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#if HAS_THREADSAFE_CreateBoundShaderState
 FBoundShaderStateRHIRef GetCachedBoundShaderState_Threadsafe(
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FVertexShaderRHIParamRef VertexShader,

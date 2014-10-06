@@ -57,11 +57,7 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	if(!IsValidRef(BoundShaderState))
 	{
 		BoundShaderState = 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 			RHICreateBoundShaderState(
-#else
-			CreateBoundShaderState_Internal(
-#endif
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(), 
@@ -74,11 +70,7 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	else if (!GUsingNullRHI && UE_LOG_ACTIVE(LogShaders, Warning))
 	{
 		FBoundShaderStateRHIRef TempBoundShaderState = 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 			RHICreateBoundShaderState(
-#else
-			CreateBoundShaderState_Internal(
-#endif
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(),

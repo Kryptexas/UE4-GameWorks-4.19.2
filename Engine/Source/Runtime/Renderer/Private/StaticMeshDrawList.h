@@ -204,12 +204,7 @@ private:
 		{
 			check(IsInRenderingThread());
 			FBoundShaderStateInput BoundShaderStateInput = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
-			BoundShaderState = 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-				RHICreateBoundShaderState(
-#else
-				CreateBoundShaderState_Internal(
-#endif
+			BoundShaderState = RHICreateBoundShaderState(
 				BoundShaderStateInput.VertexDeclarationRHI,
 				BoundShaderStateInput.VertexShaderRHI,
 				BoundShaderStateInput.HullShaderRHI,

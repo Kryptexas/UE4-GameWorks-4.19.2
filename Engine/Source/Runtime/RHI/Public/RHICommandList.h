@@ -1219,7 +1219,7 @@ public:
 		FLocalBoundShaderState Result;
 		if (Bypass())
 		{
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#if HAS_THREADSAFE_CreateBoundShaderState
 			Result.BypassBSS = RHICreateBoundShaderState(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
 #else
 			Result.BypassBSS = CreateBoundShaderState_Internal(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);

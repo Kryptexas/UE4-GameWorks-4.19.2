@@ -477,7 +477,16 @@ DEFINE_RHIMETHOD_GLOBAL_1(
  * @param GeometryShader - existing geometry shader
  * @param PixelShader - existing pixel shader
  */
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+
+#if !defined(HAS_THREADSAFE_CreateBoundShaderState)
+	#define HAS_THREADSAFE_CreateBoundShaderState PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+#endif
+
+#if HAS_THREADSAFE_CreateBoundShaderState != PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
+	#error "HAS_THREADSAFE_CreateBoundShaderState changed meaning"
+#endif
+
+#if HAS_THREADSAFE_CreateBoundShaderState
 	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6(
 		FBoundShaderStateRHIRef,CreateBoundShaderState,
 		FVertexDeclarationRHIParamRef,VertexDeclaration,

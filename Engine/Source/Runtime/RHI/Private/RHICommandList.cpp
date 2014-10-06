@@ -48,7 +48,7 @@ TAutoConsoleVariable<int32> CVarRHICmdWidth(
 #if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 static TAutoConsoleVariable<int32> CVarRHICmdUseDeferredContexts(
 	TEXT("r.RHICmdUseDeferredContexts"),
-	1,
+	0,
 	TEXT("True to use deferred contexts to parallelize command list execution.\n"));
 static TAutoConsoleVariable<int32> CVarRHIDeferredContextWidth(
 	TEXT("r.RHIDeferredContextWidth"),
