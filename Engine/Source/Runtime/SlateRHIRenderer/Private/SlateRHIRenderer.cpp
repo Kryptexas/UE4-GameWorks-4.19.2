@@ -358,7 +358,19 @@ void FSlateRHIRenderer::RestoreSystemResolution(const TSharedRef<SWindow> InWind
 {
 	if (!GIsEditor)
 	{
-		FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, GSystemResolution.WindowMode);
+		uint32 ResX = GSystemResolution.ResX;
+		uint32 ResY = GSystemResolution.ResY;
+		
+		if( InWindow->GetWindowMode() == EWindowMode::WindowedFullscreen )
+		{
+			FViewportInfo* ViewInfo = WindowToViewportInfo.FindRef( &InWindow.Get() );
+			if( ViewInfo )
+			{
+				ResX = ViewInfo->Width;
+				ResY = ViewInfo->Height;
+			}
+		}
+		FSystemResolution::RequestResolutionChange(ResX, ResY, GSystemResolution.WindowMode);
 		GSystemResolution.ResX = GSystemResolution.ResY = 0;
 	}
 }
