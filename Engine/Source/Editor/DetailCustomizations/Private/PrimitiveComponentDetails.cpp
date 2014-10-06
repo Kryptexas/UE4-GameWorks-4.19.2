@@ -121,11 +121,11 @@ EVisibility FPrimitiveComponentDetails::IsAutoWeldVisible() const
 	{
 		if (ObjectsCustomized[i].IsValid() && !ObjectsCustomized[i]->IsA(UStaticMeshComponent::StaticClass()))
 		{
-			return EVisibility::Visible;
+			return EVisibility::Collapsed;
 		}
 	}
 
-	return EVisibility::Collapsed;
+	return EVisibility::Visible;
 }
 
 EVisibility FPrimitiveComponentDetails::IsMassVisible(bool bOverrideMass) const
