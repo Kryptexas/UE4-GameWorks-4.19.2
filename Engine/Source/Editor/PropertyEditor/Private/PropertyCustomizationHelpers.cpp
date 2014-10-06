@@ -303,6 +303,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 {
 	ObjectPath = InArgs._ObjectPath;
 	OnObjectChanged = InArgs._OnObjectChanged;
+	OnShouldSetAsset = InArgs._OnShouldSetAsset;
 
 	bool bDisplayThumbnail = false;
 	FIntPoint ThumbnailSize(64, 64);
@@ -378,16 +379,18 @@ void SObjectPropertyEntryBox::OnSetObject(const FAssetData& AssetData)
 {
 	if( PropertyHandle.IsValid() && PropertyHandle->IsValidHandle() )
 	{
-		FString ObjectPathName = TEXT("None");
-		if(AssetData.IsValid())
+		if (!OnShouldSetAsset.IsBound() || OnShouldSetAsset.Execute(AssetData))
 		{
-			ObjectPathName = AssetData.ObjectPath.ToString();
+			FString ObjectPathName = TEXT("None");
+			if (AssetData.IsValid())
+			{
+				ObjectPathName = AssetData.ObjectPath.ToString();
+			}
+
+			PropertyHandle->SetValueFromFormattedString(ObjectPathName);
+			OnObjectChanged.ExecuteIfBound(AssetData);
 		}
-
-		PropertyHandle->SetValueFromFormattedString(ObjectPathName);
 	}
-
-	OnObjectChanged.ExecuteIfBound(AssetData);
 }
 
 void SClassPropertyEntryBox::Construct(const FArguments& InArgs)

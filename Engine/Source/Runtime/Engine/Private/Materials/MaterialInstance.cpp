@@ -1827,9 +1827,18 @@ void UMaterialInstance::SetParentInternal(UMaterialInterface* NewParent)
 {
 	if (Parent == NULL || Parent != NewParent)
 	{
-		if (NewParent &&
-			!NewParent->IsA(UMaterial::StaticClass()) &&
-			!NewParent->IsA(UMaterialInstanceConstant::StaticClass()))
+		// Check if the new parent is already an existing child
+		UMaterialInstance* ParentAsMaterialInstance = Cast<UMaterialInstance>(NewParent);
+
+		if (ParentAsMaterialInstance != nullptr && ParentAsMaterialInstance->IsChildOf(this))
+		{
+			UE_LOG(LogMaterial, Warning, TEXT("%s is not a valid parent for %s as it is already a child of this material instance."),
+				   *NewParent->GetFullName(),
+				   *GetFullName());
+		}
+		else if (NewParent &&
+				 !NewParent->IsA(UMaterial::StaticClass()) &&
+				 !NewParent->IsA(UMaterialInstanceConstant::StaticClass()))
 		{
 			UE_LOG(LogMaterial, Warning, TEXT("%s is not a valid parent for %s. Only Materials and MaterialInstanceConstants are valid parents for a material instance."),
 				*NewParent->GetFullName(),
@@ -2386,6 +2395,21 @@ void UMaterialInstance::AllMaterialsCacheResourceShadersForRendering()
 		MaterialInstance->CacheResourceShadersForRendering();
 	}
 }
+
+
+bool UMaterialInstance::IsChildOf(const UMaterialInterface* Parent) const
+{
+	const UMaterialInterface* Material = this;
+
+	while (Material != Parent && Material != nullptr)
+	{
+		const UMaterialInstance* MaterialInstance = Cast<const UMaterialInstance>(Material);
+		Material = (MaterialInstance != nullptr) ? MaterialInstance->Parent : nullptr;
+	}
+
+	return (Material != nullptr);
+}
+
 
 /**
 	Properties of the base material. Can now be overridden by instances.

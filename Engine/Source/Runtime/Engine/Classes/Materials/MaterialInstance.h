@@ -327,6 +327,14 @@ public:
 	// For all materials instances, UMaterialInstance::CacheResourceShadersForRendering
 	static void AllMaterialsCacheResourceShadersForRendering();
 
+	/** 
+	 * Determine whether this Material Instance is a child of another Material
+	 *
+	 * @param	Material	Material to check against
+	 * @return	true if this Material Instance is a child of the other Material.
+	 */
+	ENGINE_API bool IsChildOf(const UMaterialInterface* Material) const;
+
 protected:
 	/**
 	 * Updates parameter names on the material instance, returns true if parameters have changed.

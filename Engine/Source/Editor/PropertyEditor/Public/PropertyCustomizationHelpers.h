@@ -14,6 +14,7 @@
 namespace SceneOutliner { struct FOutlinerFilters; }
 
 DECLARE_DELEGATE_OneParam(FOnAssetSelected, const class FAssetData& /*AssetData*/);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldSetAsset, const class FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldFilterAsset, const class FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_OneParam( FOnGetActorFilters, TSharedPtr<SceneOutliner::FOutlinerFilters>& );
 
@@ -66,6 +67,8 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool )
 		/** Classes that are allowed in the asset picker */
 		SLATE_ARGUMENT( UClass*, AllowedClass )
+		/** Called to check if an asset should be set */
+		SLATE_EVENT(FOnShouldSetAsset, OnShouldSetAsset)
 		/** Called when the object value changes */
 		SLATE_EVENT(FOnSetObject, OnObjectChanged)
 		/** Called to check if an asset is valid to use */
@@ -85,6 +88,8 @@ private:
 	/** @return the object path for the object we are viewing */
 	FString OnGetObjectPath() const;
 private:
+	/** Delegate to call to determine whether the asset should be set */
+	FOnShouldSetAsset OnShouldSetAsset;
 	/** Delegate to call when the object changes */
 	FOnSetObject OnObjectChanged;
 	/** Path to the object */
