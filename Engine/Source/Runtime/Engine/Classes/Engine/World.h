@@ -2431,6 +2431,7 @@ public:
 
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
+	static FString StripPIEPrefixFromPackageName(const FString& PackageName, const FString& Prefix);
 	static FString BuildPIEPackagePrefix(int32 PIEInstanceID);
 	static UWorld* DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld);
 	static FString RemovePIEPrefix(const FString &Source);
