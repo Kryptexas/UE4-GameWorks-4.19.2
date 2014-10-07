@@ -863,10 +863,13 @@ void UNavigationComponent::CacheNavQueryExtent() const
 	if (MyNavAgent)
 	{
 		const FNavAgentProperties* AgentProperties = MyNavAgent->GetNavAgentProperties();
-		check(AgentProperties);
-		NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
-			, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
-			, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
+		// it's possible to have NULL AgentProperties if controlled pawn doesn't have a movement component
+		if (AgentProperties)
+		{
+			NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
+				, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
+				, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
+		}
 	}
 }
 
