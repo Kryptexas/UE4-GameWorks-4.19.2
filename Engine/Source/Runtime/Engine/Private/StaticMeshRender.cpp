@@ -309,7 +309,7 @@ void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, F
 	if (bWireframe)
 	{
 		if( LODModel.WireframeIndexBuffer.IsInitialized()
-			&& !(RHISupportsTessellation(GRHIShaderPlatform) && OutMeshElement.VertexFactory->GetType()->SupportsTessellationShaders())
+			&& !(RHISupportsTessellation(GetScene()->GetShaderPlatform()) && OutMeshElement.VertexFactory->GetType()->SupportsTessellationShaders())
 			)
 		{
 			OutMeshElement.Type = PT_LineList;

@@ -411,7 +411,7 @@ bool FMaterial::NeedsGBuffer() const
 {
 	check(IsInParallelRenderingThread());
 
-	if (IsOpenGLPlatform(GRHIShaderPlatform)) // @todo: TTP #341211
+	if (IsOpenGLPlatform(GMaxRHIShaderPlatform)) // @todo: TTP #341211
 	{
 		return true;
 	}
@@ -1913,14 +1913,14 @@ bool FMaterial::GetMaterialExpressionSource( FString& OutSource, TMap<FMaterialE
 }
 
 /** Recompiles any materials in the EditorLoadedMaterialResources list if they are not complete. */
-void FMaterial::UpdateEditorLoadedMaterialResources()
+void FMaterial::UpdateEditorLoadedMaterialResources(EShaderPlatform InShaderPlatform)
 {
 	for (TSet<FMaterial*>::TIterator It(EditorLoadedMaterialResources); It; ++It)
 	{
 		FMaterial* CurrentMaterial = *It;
 		if (!CurrentMaterial->GetGameThreadShaderMap() || !CurrentMaterial->GetGameThreadShaderMap()->IsComplete(CurrentMaterial, true))
 		{
-			CurrentMaterial->CacheShaders(GRHIShaderPlatform, true);
+			CurrentMaterial->CacheShaders(InShaderPlatform, true);
 		}
 	}
 }

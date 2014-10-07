@@ -208,12 +208,12 @@ public:
 			// This allows us to create a deterministic yet unique Id for the shader map that will be compiled for this FLightmassMaterialProxy
 			FMaterialShaderMapId ResourceId;
 			//@todo - always use highest quality level for static lighting
-			MaterialInstance->GetMaterialResourceId(GRHIShaderPlatform, EMaterialQualityLevel::Num, ResourceId);
+			MaterialInstance->GetMaterialResourceId(GMaxRHIShaderPlatform, EMaterialQualityLevel::Num, ResourceId);
 
 			// Override with a special usage so we won't re-use the shader map used by the MI for rendering
 			ResourceId.Usage = GetShaderMapUsage();
 
-			CacheShaders(ResourceId, GRHIShaderPlatform, true);
+			CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
 		}
 		else
 		{
@@ -222,7 +222,7 @@ public:
 			// Copy the material resource Id
 			// The FLightmassMaterialProxy's GetShaderMapUsage will set it apart from the MI's resource when it comes to finding a shader map
 
-			CacheShaders(GRHIShaderPlatform, true);
+			CacheShaders(GMaxRHIShaderPlatform, true);
 		}
 	}
 

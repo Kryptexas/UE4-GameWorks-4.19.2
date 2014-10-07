@@ -447,7 +447,7 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMateria
 				FMaterialResource& LoadedResource = LoadedResources[ResourceIndex];
 				FMaterialShaderMap* LoadedShaderMap = LoadedResource.GetGameThreadShaderMap();
 
-				if (LoadedShaderMap && LoadedShaderMap->GetShaderPlatform() == GRHIShaderPlatform)
+				if (LoadedShaderMap && LoadedShaderMap->GetShaderPlatform() == GMaxRHIShaderPlatform)
 				{
 					EMaterialQualityLevel::Type LoadedQualityLevel = LoadedShaderMap->GetShaderMapId().QualityLevel;
 					ERHIFeatureLevel::Type LoadedFeatureLevel = LoadedShaderMap->GetShaderMapId().FeatureLevel;
@@ -2879,10 +2879,10 @@ void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, 
 	// Update any FMaterials not belonging to a UMaterialInterface, for example FExpressionPreviews
 	// If we did not do this, the editor would crash the next time it tried to render one of those previews
 	// And didn't find a shader that had been flushed for the preview's shader map.
-	FMaterial::UpdateEditorLoadedMaterialResources();
+	FMaterial::UpdateEditorLoadedMaterialResources(ShaderPlatform);
 }
 
-void UMaterial::BackupMaterialShadersToMemory(EShaderPlatform ShaderPlatform, TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	// Process FMaterialShaderMap's referenced by UObjects (UMaterial, UMaterialInstance)
 	for (TObjectIterator<UMaterialInterface> It; It; ++It)

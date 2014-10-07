@@ -343,7 +343,7 @@ void FForwardShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& 
 			#if PLATFORM_HTML5
 			// Copy the view so emulation of framebuffer fetch works for alpha=depth.
 			// Possible optimization: this copy shouldn't be needed unless something uses fetch of depth.
-			if(bLinearHDR64 && GSupportsRenderTargetFormat_PF_FloatRGBA && (GSupportsShaderFramebufferFetch == false) && (!IsPCPlatform(GRHIShaderPlatform)))
+			if(bLinearHDR64 && GSupportsRenderTargetFormat_PF_FloatRGBA && (GSupportsShaderFramebufferFetch == false) && (!IsPCPlatform(View.GetShaderPlatform())))
 			{
 				CopySceneAlpha(RHICmdList, View);
 			}

@@ -615,6 +615,8 @@ public:
 	ENGINE_API void ComputeFamilySize();
 
 	ENGINE_API ERHIFeatureLevel::Type GetFeatureLevel() const;
+
+	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 };
 
 /**

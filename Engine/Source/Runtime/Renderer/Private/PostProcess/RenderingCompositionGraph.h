@@ -132,6 +132,7 @@ struct FRenderingCompositePassContext
 	}
 
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 	TShaderMap<FGlobalShaderType>* GetShaderMap() const { check(ShaderMap); return ShaderMap; }
 
 	FRenderingCompositePass* Root;

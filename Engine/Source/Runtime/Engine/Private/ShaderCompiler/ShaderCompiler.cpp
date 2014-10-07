@@ -2241,7 +2241,7 @@ public:
 		}
 
 		Payload << MaterialsToLoad;
-		uint32 ShaderPlatform = ( uint32 )GRHIShaderPlatform;
+		uint32 ShaderPlatform = ( uint32 )GMaxRHIShaderPlatform;
 		Payload << ShaderPlatform;
 		// tell the other side the Ids we have so it doesn't send back duplicates
 		// (need to serialize this into a TArray since FShaderResourceId isn't known in the file server)
@@ -2266,7 +2266,7 @@ public:
 		FlushRenderingCommands();
 
 		// reload the global shaders
-		GetGlobalShaderMap(GRHIShaderPlatform, true);
+		GetGlobalShaderMap(GMaxRHIShaderPlatform, true);
 
 		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
 		for(TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList());It;It.Next())
@@ -2283,7 +2283,7 @@ public:
 			// parse the shaders
 			FMemoryReader MemoryReader(MeshMaterialMaps, true);
 			FNameAsStringProxyArchive Ar(MemoryReader);
-			FMaterialShaderMap::LoadForRemoteRecompile(Ar, GRHIShaderPlatform, MaterialsToLoad);
+			FMaterialShaderMap::LoadForRemoteRecompile(Ar, GMaxRHIShaderPlatform, MaterialsToLoad);
 
 			// gather the shader maps to reattach
 			for (TObjectIterator<UMaterial> It; It; ++It)
@@ -2417,9 +2417,12 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 				
 				TArray<const FVertexFactoryType*> FactoryTypes;
 
-				BeginRecompileGlobalShaders(ShaderTypes, GRHIShaderPlatform);
-				UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes, GRHIShaderPlatform);
-				FinishRecompileGlobalShaders();
+				UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel) {
+					auto ShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+					BeginRecompileGlobalShaders(ShaderTypes, ShaderPlatform);
+					UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes, ShaderPlatform);
+					FinishRecompileGlobalShaders();
+				});
 			}
 		}
 

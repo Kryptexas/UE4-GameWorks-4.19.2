@@ -1281,7 +1281,7 @@ void FSceneViewState::CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Typ
 	bool bLPV = UseLightPropagationVolumeRT(InFeatureLevel);
 
 	//@todo-rco: Remove this when reenabling for OpenGL
-	if (bLPV && !IsOpenGLPlatform(GRHIShaderPlatform))
+	if (bLPV && !IsOpenGLPlatform(GShaderPlatformForFeatureLevel[InFeatureLevel]))
 	{
 		LightPropagationVolume = new FLightPropagationVolume();
 	}

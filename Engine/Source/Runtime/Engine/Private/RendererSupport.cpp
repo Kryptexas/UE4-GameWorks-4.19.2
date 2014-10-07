@@ -50,7 +50,7 @@ void ClearReferencesToRendererModuleClasses(
 
 	// Save off shaders by serializing them into memory, and remove all shader map references to FShaders
 	GlobalShaderData = TScopedPointer<TArray<uint8> >(BackupGlobalShaderMap(GRHIShaderPlatform));
-	UMaterial::BackupMaterialShadersToMemory(GRHIShaderPlatform, ShaderMapToSerializedShaderData);
+	UMaterial::BackupMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 
 	// Verify no FShaders still in memory
 	for(TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next())

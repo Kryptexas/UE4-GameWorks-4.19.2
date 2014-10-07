@@ -1047,7 +1047,7 @@ public:
 	}
 
 	/** Recompiles any materials in the EditorLoadedMaterialResources list if they are not complete. */
-	static void UpdateEditorLoadedMaterialResources();
+	static void UpdateEditorLoadedMaterialResources(EShaderPlatform InShaderPlatform);
 
 	/** Backs up any FShaders in editor loaded materials to memory through serialization and clears FShader references. */
 	static void BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);

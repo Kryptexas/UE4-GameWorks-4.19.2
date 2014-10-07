@@ -3316,7 +3316,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 
 	if (GDistanceFieldAO 
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
-		&& DoesPlatformSupportDistanceFieldAO(GRHIShaderPlatform)
+		&& DoesPlatformSupportDistanceFieldAO(View.GetShaderPlatform())
 		&& Views.Num() == 1
 		// ViewState is used to cache tile intersection resources which have to be sized based on the view
 		&& View.State)
@@ -3688,7 +3688,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 
 	if (GDistanceFieldAO 
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
-		&& DoesPlatformSupportDistanceFieldAO(GRHIShaderPlatform)
+		&& DoesPlatformSupportDistanceFieldAO(View.GetShaderPlatform())
 		&& Views.Num() == 1)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderMeshDistanceFieldVis);

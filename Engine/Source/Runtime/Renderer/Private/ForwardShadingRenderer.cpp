@@ -80,7 +80,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		return;
 	}
 
-	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
+	auto FeatureLevel = ViewFamily.GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
@@ -161,7 +161,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			GSupportsShaderFramebufferFetch &&
 			ViewFamily.EngineShowFlags.PostProcessing &&
 			((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0) || 
-			((GRHIShaderPlatform == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+			((ViewFamily.GetShaderPlatform() == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
 			);
 
 		// Convert alpha from depth to circle of confusion with sunshaft intensity.

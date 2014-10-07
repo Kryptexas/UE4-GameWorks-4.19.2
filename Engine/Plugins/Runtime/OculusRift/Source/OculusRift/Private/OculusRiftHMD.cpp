@@ -1634,13 +1634,13 @@ void FOculusRiftHMD::Startup()
 
 #ifdef OVR_DIRECT_RENDERING
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
-	if (IsPCPlatform(GRHIShaderPlatform) && !IsOpenGLPlatform(GRHIShaderPlatform))
+	if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
 	{
 		pD3D11Bridge = new D3D11Bridge(this);
 	}
 #endif
 #if defined(OVR_GL)
-	if (IsOpenGLPlatform(GRHIShaderPlatform))
+	if (IsOpenGLPlatform(GMaxRHIShaderPlatform))
 	{
 		pOGLBridge = new OGLBridge(this);
 	}
@@ -1688,7 +1688,7 @@ void FOculusRiftHMD::Shutdown()
 
 void FOculusRiftHMD::UpdateDistortionCaps()
 {
-	if (IsOpenGLPlatform(GRHIShaderPlatform))
+	if (IsOpenGLPlatform(GMaxRHIShaderPlatform))
 	{
 		DistortionCaps &= ~ovrDistortionCap_SRGB;
 		DistortionCaps |= ovrDistortionCap_FlipInput;

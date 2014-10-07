@@ -273,7 +273,7 @@ public:
 		DomainShader = NULL;
 
 		const EMaterialTessellationMode MaterialTessellationMode = MaterialResource->GetTessellationMode();
-		if(RHISupportsTessellation(GRHIShaderPlatform)
+		if(RHISupportsTessellation(View.GetShaderPlatform())
 			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{

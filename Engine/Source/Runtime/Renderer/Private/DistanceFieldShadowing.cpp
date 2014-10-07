@@ -629,7 +629,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 {
 	if (GDistanceFieldShadowing
 		&& View.GetFeatureLevel() >= ERHIFeatureLevel::SM5
-		&& DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform))
+		&& DoesPlatformSupportDistanceFieldShadowing(View.GetShaderPlatform()))
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderRayTracedDistanceFieldShadows);
 		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow, DEC_SCENE_ITEMS);

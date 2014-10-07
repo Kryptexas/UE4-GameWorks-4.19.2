@@ -357,7 +357,7 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering && 
 				//@todo-rco: Remove this when we fix the cross-compiler
-				!IsOpenGLPlatform(GRHIShaderPlatform))
+				!IsOpenGLPlatform(View.GetShaderPlatform()))
 			{
 				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(false, true));
 				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);

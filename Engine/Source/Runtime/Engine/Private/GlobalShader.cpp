@@ -397,7 +397,7 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 		VerifyGlobalShaders(Platform, bLoadedFromCacheFile);
 
 		extern int32 GCreateShadersOnLoad;
-		if (GCreateShadersOnLoad && Platform == GRHIShaderPlatform)
+		if (GCreateShadersOnLoad && Platform == GMaxRHIShaderPlatform)
 		{
 			for (TMap<FShaderType*, TRefCountPtr<FShader> >::TConstIterator ShaderIt(GGlobalShaderMap[Platform]->GetShaders()); ShaderIt; ++ShaderIt)
 			{
@@ -453,9 +453,11 @@ void RecompileGlobalShaders()
 		// Flush pending accesses to the existing global shaders.
 		FlushRenderingCommands();
 
-		// MOBILEPREVIEWTODO: Use global feature level bitfield to recompile for all active platforms
-		GetGlobalShaderMap(GRHIShaderPlatform)->Empty();
-		VerifyGlobalShaders(GRHIShaderPlatform, false);
+		UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel) {
+			auto ShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+			GetGlobalShaderMap(ShaderPlatform)->Empty();
+			VerifyGlobalShaders(ShaderPlatform, false);
+		});
 
 		GShaderCompilingManager->ProcessAsyncResults(false, true);
 

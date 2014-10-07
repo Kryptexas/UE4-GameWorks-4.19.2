@@ -485,7 +485,7 @@ public:
 			}
 		}
 
-		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GRHIShaderPlatform);
+		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(View->GetShaderPlatform());
 		const FTexture2DRHIRef DepthTexture;
 		const auto FeatureLevel = View->GetFeatureLevel();
 			
