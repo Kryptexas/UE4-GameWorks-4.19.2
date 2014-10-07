@@ -5,13 +5,6 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
-//	AGameplayAbilityTargetDataActorFilter
+//	FGameplayTargetDataFilter
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
-
-/*
-AGameplayAbilityTargetDataActorFilter::AGameplayAbilityTargetDataActorFilter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-}
-*/

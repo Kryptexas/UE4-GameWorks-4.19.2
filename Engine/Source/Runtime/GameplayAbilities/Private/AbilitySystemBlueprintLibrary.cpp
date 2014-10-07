@@ -124,10 +124,11 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::FilterTargetDat
 	return ReturnDataHandle;
 }
 
-FGameplayTargetDataFilterHandle UAbilitySystemBlueprintLibrary::MakeFilterHandle(FGameplayTargetDataFilter Filter)
+FGameplayTargetDataFilterHandle UAbilitySystemBlueprintLibrary::MakeFilterHandle(UGameplayAbility* WorldContextObject, FGameplayTargetDataFilter Filter)
 {
 	FGameplayTargetDataFilterHandle FilterHandle;
 	FGameplayTargetDataFilter* NewFilter = new FGameplayTargetDataFilter(Filter);
+	NewFilter->SourceAbility = WorldContextObject;
 	FilterHandle.Filter = TSharedPtr<FGameplayTargetDataFilter>(NewFilter);
 	return FilterHandle;
 }

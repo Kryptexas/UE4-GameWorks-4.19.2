@@ -50,8 +50,9 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	FilterTargetData(FGameplayAbilityTargetDataHandle TargetDataHandle, FGameplayTargetDataFilterHandle ActorFilterClass);
 
-	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
-	static FGameplayTargetDataFilterHandle MakeFilterHandle(FGameplayTargetDataFilter Filter);
+	/** Create a handle for filtering target data */
+	UFUNCTION(BlueprintPure, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"), Category = "Filter")
+	static FGameplayTargetDataFilterHandle MakeFilterHandle(UGameplayAbility* WorldContextObject, FGameplayTargetDataFilter Filter);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static TArray<AActor*> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index);

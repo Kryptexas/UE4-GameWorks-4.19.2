@@ -4,6 +4,17 @@
 #include "GameplayAbility.h"
 #include "GameplayAbilityTargetActor.generated.h"
 
+UENUM(BlueprintType)
+namespace ETargetAbilitySelfSelection
+{
+	enum Type
+	{
+		TASS_Permit			UMETA(DisplayName = "Allow self-selection"),
+		TASS_Forbid			UMETA(DisplayName = "Forbid self-selection"),
+		TASS_Require 		UMETA(DisplayName = "Force self-selection (add to final data)")
+	};
+}
+
 /** TargetActors are spawned to assist with ability targeting. They are spawned by ability tasks and create/determine the outgoing targeting data passed from one task to another. */
 UCLASS(Blueprintable, abstract, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor : public AActor

@@ -133,27 +133,10 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActor(InSourceActor);
 
-	FVector AimDirection = InSourceActor->GetActorForwardVector();		//Default
-	
-	if (OwningAbility)		//Server and launching client only
-	{
-		APlayerController* AimingPC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
-		check(AimingPC);
-		FVector CamLoc;
-		FRotator CamRot;
-		AimingPC->GetPlayerViewPoint(CamLoc, CamRot);
-		AimDirection = CamRot.Vector();
-	}
-
-	FVector TraceStart = InSourceActor->GetActorLocation();
-	FVector TraceEnd = TraceStart + (AimDirection * MaxRange);
-
-	//If we're using a socket, adjust the starting location and aim direction after the end position has been found. This way we can still aim with the camera, then fire accurately from the socket.
-	if (OwningAbility)		//Server and launching client only
-	{
-		TraceStart = StartLocation.GetTargetingTransform().GetLocation();
-	}
-	AimDirection = (TraceEnd - TraceStart).SafeNormal();
+	FVector TraceStart = StartLocation.GetTargetingTransform().GetLocation();// InSourceActor->GetActorLocation();
+	FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);		//Default
+	AimWithPlayerController(InSourceActor, Params, TraceStart, TraceEnd);		//Effective on server and launching client only
+	FVector AimDirection = (TraceStart - TraceEnd).SafeNormal();
 
 	// ------------------------------------------------------
 

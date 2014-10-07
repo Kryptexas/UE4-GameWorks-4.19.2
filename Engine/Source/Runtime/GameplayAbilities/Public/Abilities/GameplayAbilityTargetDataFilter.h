@@ -4,6 +4,17 @@
 
 #include "GameplayAbilityTargetDataFilter.generated.h"
 
+UENUM(BlueprintType)
+namespace ETargetDataFilterSelf
+{
+	enum Type
+	{
+		TDFS_Any 			UMETA(DisplayName = "Allow self or others"),
+		TDFS_NoSelf 		UMETA(DisplayName = "Filter self out"),
+		TDFS_NoOthers		UMETA(DisplayName = "Filter others out")
+	};
+}
+
 USTRUCT(BlueprintType)
 struct FGameplayTargetDataFilter
 {
@@ -15,6 +26,26 @@ struct FGameplayTargetDataFilter
 
 	virtual bool FilterPassesForActor(const AActor* ActorToBeFiltered) const
 	{
+		check(SourceAbility.IsValid());
+		check(SourceAbility.Get()->GetOwningActorFromActorInfo());
+		switch (SelfFilter.GetValue())
+		{
+		case ETargetDataFilterSelf::Type::TDFS_NoOthers:
+			if (ActorToBeFiltered != SourceAbility.Get()->GetOwningActorFromActorInfo())
+			{
+				return false;
+			}
+			break;
+		case ETargetDataFilterSelf::Type::TDFS_NoSelf:
+			if (ActorToBeFiltered == SourceAbility.Get()->GetOwningActorFromActorInfo())
+			{
+				return false;
+			}
+			break;
+		case ETargetDataFilterSelf::Type::TDFS_Any:
+		default:
+			break;
+		}
 		return true;
 	}
 
@@ -27,6 +58,12 @@ struct FGameplayTargetDataFilter
 	{
 		return FilterPassesForActor(A);
 	}
+
+	/** Filled out while running */
+	TWeakObjectPtr<UGameplayAbility> SourceAbility;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Filter)
+	TEnumAsByte<ETargetDataFilterSelf::Type> SelfFilter;
 };
 
 

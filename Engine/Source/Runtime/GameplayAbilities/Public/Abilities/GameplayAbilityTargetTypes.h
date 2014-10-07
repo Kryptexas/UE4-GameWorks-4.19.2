@@ -171,6 +171,11 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 		Data.Reset();
 	}
 
+	int32 Num() const
+	{
+		return Data.Num();
+	}
+
 	bool IsValid(int32 Index) const
 	{
 		return (Index < Data.Num() && Data[Index].IsValid());

@@ -30,35 +30,9 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
-	FVector TraceStart = InSourceActor->GetActorLocation();
+	FVector TraceStart = StartLocation.GetTargetingTransform().GetLocation();// InSourceActor->GetActorLocation();
 	FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);		//Default
-
-	if (OwningAbility)		//Server and launching client only
-	{
-		APlayerController* AimingPC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
-		check(AimingPC);
-		FVector CamLoc;
-		FRotator CamRot;
-		AimingPC->GetPlayerViewPoint(CamLoc, CamRot);
-		FVector CamDir = CamRot.Vector();
-		FVector CamTarget = CamLoc + (CamDir * MaxRange);		//Straight, dumb aiming to a point that's reasonable though not exactly correct
-
-		ClipCameraRayToAbilityRange(CamLoc, CamDir, TraceStart, MaxRange, CamTarget);
-
-		FHitResult TempHitResult;
-		InSourceActor->GetWorld()->LineTraceSingle(TempHitResult, CamLoc, CamTarget, ECC_WorldStatic, Params);
-		TraceStart = StartLocation.GetTargetingTransform().GetLocation();
-		if (TempHitResult.bBlockingHit && (FVector::DistSquared(TraceStart, TempHitResult.Location) <= (MaxRange * MaxRange)))
-		{
-			//We actually made a hit? Pull back.
-			TraceEnd = TempHitResult.Location;
-		}
-		else
-		{
-			//If we didn't make a hit, use the clipped location.
-			TraceEnd = CamTarget;
-		}
-	}
+	AimWithPlayerController(InSourceActor, Params, TraceStart, TraceEnd);		//Effective on server and launching client only
 	FVector AimDirection = (TraceStart - TraceEnd).SafeNormal();
 
 	// ------------------------------------------------------
