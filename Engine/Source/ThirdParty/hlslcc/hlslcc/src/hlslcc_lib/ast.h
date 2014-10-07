@@ -32,7 +32,7 @@
 #ifndef AST_H
 #define AST_H
 
-#include "list.h"
+#include "cclist.h"
 #include "glsl_parser_extras.h"
 
 struct _mesa_glsl_parse_state;

@@ -83,7 +83,7 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_visitor.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\hlslcc_lib\list.h">
+    <ClInclude Include="..\..\..\src\hlslcc_lib\cclist.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\loop_analysis.h">

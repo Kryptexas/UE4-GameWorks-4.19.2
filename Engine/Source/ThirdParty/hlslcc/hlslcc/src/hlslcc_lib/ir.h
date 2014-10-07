@@ -34,7 +34,7 @@
 
 #include "ralloc.h"
 #include "glsl_types.h"
-#include "list.h"
+#include "cclist.h"
 #include "ir_visitor.h"
 #include "ir_hierarchical_visitor.h"
 #include "glsl_parser_extras.h"

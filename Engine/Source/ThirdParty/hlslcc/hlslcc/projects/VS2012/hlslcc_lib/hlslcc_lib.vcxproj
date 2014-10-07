@@ -46,7 +46,7 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_unused_structs.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_variable_refcount.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_visitor.h" />
-    <ClInclude Include="..\..\..\src\hlslcc_lib\list.h" />
+    <ClInclude Include="..\..\..\src\hlslcc_lib\cclist.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\loop_analysis.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\macros.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ralloc.h" />

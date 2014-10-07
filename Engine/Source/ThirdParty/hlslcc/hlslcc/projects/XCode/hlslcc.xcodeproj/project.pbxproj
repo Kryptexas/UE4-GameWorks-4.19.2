@@ -66,7 +66,7 @@
 		90438E721610833400C0D669 /* ir_visitor.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E101610833400C0D669 /* ir_visitor.h */; };
 		90438E731610833400C0D669 /* ir.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E111610833400C0D669 /* ir.cpp */; };
 		90438E741610833400C0D669 /* ir.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E121610833400C0D669 /* ir.h */; };
-		90438E751610833400C0D669 /* list.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E131610833400C0D669 /* list.h */; };
+		90438E751610833400C0D669 /* cclist.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E131610833400C0D669 /* cclist.h */; };
 		90438E761610833400C0D669 /* loop_analysis.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E141610833400C0D669 /* loop_analysis.cpp */; };
 		90438E771610833400C0D669 /* loop_analysis.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E151610833400C0D669 /* loop_analysis.h */; };
 		90438E781610833400C0D669 /* loop_controls.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E161610833400C0D669 /* loop_controls.cpp */; };
@@ -204,7 +204,7 @@
 		90438E101610833400C0D669 /* ir_visitor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ir_visitor.h; sourceTree = "<group>"; };
 		90438E111610833400C0D669 /* ir.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = ir.cpp; sourceTree = "<group>"; };
 		90438E121610833400C0D669 /* ir.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ir.h; sourceTree = "<group>"; };
-		90438E131610833400C0D669 /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
+		90438E131610833400C0D669 /* cclist.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cclist.h; sourceTree = "<group>"; };
 		90438E141610833400C0D669 /* loop_analysis.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = loop_analysis.cpp; sourceTree = "<group>"; };
 		90438E151610833400C0D669 /* loop_analysis.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = loop_analysis.h; sourceTree = "<group>"; };
 		90438E161610833400C0D669 /* loop_controls.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = loop_controls.cpp; sourceTree = "<group>"; };
@@ -375,7 +375,7 @@
 				90438E101610833400C0D669 /* ir_visitor.h */,
 				90438E111610833400C0D669 /* ir.cpp */,
 				90438E121610833400C0D669 /* ir.h */,
-				90438E131610833400C0D669 /* list.h */,
+				90438E131610833400C0D669 /* cclist.h */,
 				90438E141610833400C0D669 /* loop_analysis.cpp */,
 				90438E151610833400C0D669 /* loop_analysis.h */,
 				90438E161610833400C0D669 /* loop_controls.cpp */,
@@ -462,7 +462,7 @@
 				90438E711610833400C0D669 /* ir_variable_refcount.h in Headers */,
 				90438E721610833400C0D669 /* ir_visitor.h in Headers */,
 				90438E741610833400C0D669 /* ir.h in Headers */,
-				90438E751610833400C0D669 /* list.h in Headers */,
+				90438E751610833400C0D669 /* cclist.h in Headers */,
 				90438E771610833400C0D669 /* loop_analysis.h in Headers */,
 				90438E871610833400C0D669 /* macros.h in Headers */,
 				30FF2A1819633B8D00409BF3 /* ShaderCompilerCommon.h in Headers */,
