@@ -83,14 +83,15 @@ void FSubsurfaceProfileTexture::UpdateProfile(int32 AllocationId, const FSubsurf
 {
 	check(IsInRenderingThread());
 
-	// call SetRendererModule() is missing
-	check(RendererModule);
 
 	if (AllocationId == -1)
 	{
 		// if we modify a profile that is not assigned/used yet, no work is needed
 		return;
 	}
+
+	// call SetRendererModule() is missing
+	check(RendererModule);
 
 	check(AllocationId < SubsurfaceProfileEntries.Num());
 
