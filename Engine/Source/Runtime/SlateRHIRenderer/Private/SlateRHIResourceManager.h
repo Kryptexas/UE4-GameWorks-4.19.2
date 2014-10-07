@@ -179,7 +179,9 @@ private:
 	/** List of old utexture resources that are free to use as new resources */
 	TArray< TSharedPtr<FSlateUTextureResource> > UTextureFreeList;
 	/** List of old dynamic resources that are free to use as new resources */
-	TArray< TSharedPtr<FSlateDynamicTextureResource> > DynamicTextureFreeList;
+	TArray< TSharedPtr<FSlateDynamicTextureResource> > DynamicTextureFreeList;\
+	/** List of old material resources that are free to use as new resources */
+	TArray< TSharedPtr<FSlateMaterialResource> > MaterialResourceFreeList;
 	/** Static Texture atlases which have been created */
 	TArray<class FSlateTextureAtlasRHI*> TextureAtlases;
 	/** Static Textures created that are not atlased */	

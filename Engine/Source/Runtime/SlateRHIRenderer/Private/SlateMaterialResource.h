@@ -15,6 +15,8 @@ public:
 	virtual uint32 GetHeight() const { return Height; }
 	virtual ESlateShaderResource::Type GetType() const override { return ESlateShaderResource::Material; }
 
+	void UpdateMaterial(UMaterialInterface& InMaterialResource, const FVector2D& InImageSize);
+
 	/** Updates the rendering resource */
 	void UpdateRenderResource(FMaterialRenderProxy* Proxy) { RenderProxy = Proxy; }
 

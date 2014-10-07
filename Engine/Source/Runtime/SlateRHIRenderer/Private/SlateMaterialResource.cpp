@@ -23,3 +23,19 @@ FSlateMaterialResource::~FSlateMaterialResource()
 	}
 }
 
+void FSlateMaterialResource::UpdateMaterial(UMaterialInterface& InMaterialResource, const FVector2D& InImageSize)
+{
+	MaterialObject = &InMaterialResource;
+	RenderProxy = InMaterialResource.GetRenderProxy(false);
+	if( !SlateProxy )
+	{
+		SlateProxy = new FSlateShaderResourceProxy;
+	}
+
+	SlateProxy->ActualSize = InImageSize.IntPoint();
+	SlateProxy->Resource = this;
+
+	Width = FMath::RoundToInt(InImageSize.X);
+	Height = FMath::RoundToInt(InImageSize.Y);
+}
+

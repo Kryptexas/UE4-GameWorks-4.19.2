@@ -559,10 +559,19 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetMaterialResource(const F
 	TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Material);
 	if (!MaterialResource.IsValid())
 	{
-		TSharedRef<FSlateMaterialResource> NewMaterialResource = MakeShareable(new FSlateMaterialResource(*Material, InBrush.ImageSize));
-		DynamicResourceMap.AddMaterialResource( Material, NewMaterialResource );
-
-		MaterialResource = NewMaterialResource;
+		// Get a resource from the free list if possible
+		if(MaterialResourceFreeList.Num() > 0)
+		{
+			MaterialResource = MaterialResourceFreeList.Pop();
+		
+			MaterialResource->UpdateMaterial( *Material, InBrush.ImageSize );
+		}
+		else
+		{
+			MaterialResource = MakeShareable(new FSlateMaterialResource(*Material, InBrush.ImageSize));
+		}
+		
+		DynamicResourceMap.AddMaterialResource(Material, MaterialResource.ToSharedRef());
 	}
 	else
 	{
@@ -607,7 +616,15 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 			else
 			{
 				UMaterialInterface* Material = Cast<UMaterialInterface>(ResourceObject);
+
+				TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Material);
+				
 				DynamicResourceMap.RemoveMaterialResource(Material);
+
+				if (MaterialResource.IsValid())
+				{
+					MaterialResourceFreeList.Add( MaterialResource );
+				}
 			}
 		
 		}
@@ -700,6 +717,7 @@ void FSlateRHIResourceManager::DeleteResources()
 	TextureAtlases.Empty();
 	NonAtlasedTextures.Empty();
 	DynamicTextureFreeList.Empty();
+	MaterialResourceFreeList.Empty();
 	UTextureFreeList.Empty();
 
 	// Clean up mapping to texture
