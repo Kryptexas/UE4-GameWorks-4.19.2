@@ -81,14 +81,13 @@ void ADocumentationActor::UpdateLinkType()
 	{
 		LinkType = EDocumentationActorType::URLLink;
 	}
-	else if (IDocumentation::Get()->PageExists(DocumentLink) == true )
+	else
 	{
 		LinkType = EDocumentationActorType::UDNLink;
 	}
-	else
+#else
+	LinkType = EDocumentationActorType::None;
 #endif
-	{
-		LinkType = EDocumentationActorType::InvalidLink;
-	}
+	
 }
 
