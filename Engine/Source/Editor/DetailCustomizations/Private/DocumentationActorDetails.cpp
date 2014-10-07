@@ -86,7 +86,7 @@ FText FDocumentationActorDetails::OnGetButtonTooltipText() const
 	switch (LinkType)
 	{
 		case EDocumentationActorType::UDNLink:
-			Tooltip = FText::Format(LOCTEXT("OpenUDNLink", "Opens the UDN link:{0}"), FText::FromString(SelectedDocumentationActor->DocumentLink));
+			Tooltip = FText::Format(LOCTEXT("OpenUDNLink", "Opens the help link:{0}"), FText::FromString(SelectedDocumentationActor->DocumentLink));
 			break;
 		case EDocumentationActorType::URLLink:
 			Tooltip = FText::Format(LOCTEXT("OpenURLLink", "Opens the Web page:{0}"), FText::FromString(SelectedDocumentationActor->DocumentLink));
