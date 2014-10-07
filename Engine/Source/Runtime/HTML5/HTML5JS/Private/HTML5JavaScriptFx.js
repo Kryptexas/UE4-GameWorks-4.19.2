@@ -101,6 +101,15 @@ var UE_JavaScriptLibary =
             alert(text);
         }
         return 1; 
+    },
+
+    UE_GetCurrentCultureName: function (address, outsize) {
+        var culture_name = navigator.language || navigator.browserLanguage;
+        if (culture_name.lenght >= outsize) {
+            return 0;
+        }
+        Module.writeAsciiToMemory(culture_name, address);
+        return 1;
     }
 };
 

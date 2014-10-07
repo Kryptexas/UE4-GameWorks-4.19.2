@@ -18,6 +18,7 @@ void FHTML5Misc::PlatformInit()
 	// Identity.
 	UE_LOG(LogInit, Log, TEXT("Computer: %s"), FPlatformProcess::ComputerName());
 	UE_LOG(LogInit, Log, TEXT("User: %s"), FPlatformProcess::UserName());
+	UE_LOG(LogInit, Log, TEXT("Current Culture: %s"), *FHTML5Misc::GetDefaultLocale());
 
 	// Timer resolution.
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle());
@@ -133,6 +134,22 @@ uint32 FHTML5Misc::GetKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMapp
 	}
 
 	return NumMappings;
+}
+
+FString FHTML5Misc::GetDefaultLocale()
+{
+#if PLATFORM_HTML5_BROWSER
+	char AsciiCultureName[512];
+	if (UE_GetCurrentCultureName(AsciiCultureName,sizeof(AsciiCultureName)))
+	{
+		return FString(StringCast<TCHAR>(AsciiCultureName).Get());
+	}
+	else
+#endif
+	{
+		icu::Locale ICUDefaultLocale = icu::Locale::getDefault();
+		return FString(ICUDefaultLocale.getName());
+	}
 }
 
 EAppReturnType::Type FHTML5Misc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
