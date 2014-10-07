@@ -1118,7 +1118,7 @@ public:
 				if (TrueSourceNode)
 				{
 					// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
+					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
 					if (MacroSourceNode == SourceNode)
 					{
 						// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
@@ -1143,7 +1143,7 @@ public:
 						}
 
 						// Gather up all the macro instance nodes that lead to this macro source node
-						CompilerContext.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
+						CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
 					}
 
 					int32 Offset = Writer.ScriptBuffer.Num();

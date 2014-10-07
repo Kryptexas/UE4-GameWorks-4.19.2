@@ -85,6 +85,10 @@ public:
 	// Should detailed results be appended to the final summary log?
 	bool bLogDetailedResults;
 
+	// Special maps used for autocreated macros to preserve information about their source
+	FBacktrackMap FinalNodeBackToMacroSourceMap;
+	TMultiMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> MacroSourceToMacroInstanceNodeMap;
+
 	// Minimum event time (ms) for inclusion into the final summary log
 	int EventDisplayThresholdMs;
 

@@ -2830,13 +2830,13 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(MessageLog.FindSourceObject(DuplicatedNode));
 					if (MacroSourceNode)
 					{
-						FinalNodeBackToMacroSourceMap.NotifyIntermediateObjectCreation(DuplicatedNode, MacroSourceNode);
+						MessageLog.FinalNodeBackToMacroSourceMap.NotifyIntermediateObjectCreation(DuplicatedNode, MacroSourceNode);
 
 						// Also record mappings from final macro source node to intermediate macro instance nodes (there may be more than one)
-						UEdGraphNode* MacroInstanceSourceNode = Cast<UEdGraphNode>(FinalNodeBackToMacroSourceMap.FindSourceObject(MacroInstanceNode));
+						UEdGraphNode* MacroInstanceSourceNode = Cast<UEdGraphNode>(MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(MacroInstanceNode));
 						if (MacroInstanceSourceNode && MacroInstanceSourceNode != MacroInstanceNode)
 						{
-							MacroSourceToMacroInstanceNodeMap.Add(MacroSourceNode, MacroInstanceSourceNode);
+							MessageLog.MacroSourceToMacroInstanceNodeMap.Add(MacroSourceNode, MacroInstanceSourceNode);
 						}
 					}
 
