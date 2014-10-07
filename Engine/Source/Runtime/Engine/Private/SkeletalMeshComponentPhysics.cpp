@@ -1775,6 +1775,7 @@ extern float DebugLineLifetime;
 bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)
 {
 	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
+	UWorld* const World = GetWorld();
 	bool bHaveHit = false;
 
 	float MinTime = MAX_FLT;
@@ -1793,7 +1794,7 @@ bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((GetWorld()->DebugDrawTraceTag != NAME_None) && (GetWorld()->DebugDrawTraceTag == Params.TraceTag))
+	if(World && (World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		if (bHaveHit)
