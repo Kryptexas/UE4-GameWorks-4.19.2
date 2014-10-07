@@ -157,7 +157,8 @@ namespace MarkdownMode
                     anchorPosition, "<span name=\"MARKDOWNANCHORNOTUSEDELSEWHERE\"></span>");
             }
 
-            html.AppendLine(RemoveScript.Replace(newHtml, ""));
+            //html.AppendLine(RemoveScript.Replace(newHtml, ""));
+            html.AppendLine(newHtml);
 
             LogMarkdownErrors(document.FilePath, results.Errors, log);
 
