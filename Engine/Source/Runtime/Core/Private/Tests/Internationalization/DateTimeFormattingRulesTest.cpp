@@ -21,13 +21,11 @@ namespace
 
 bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 {
+#if UE_ENABLE_ICU
 	FInternationalization& I18N = FInternationalization::Get();
 
 	const FString OriginalCulture = I18N.GetCurrentCulture()->GetName();
 
-	//////////////////////////////////////////////////////////////////////////
-
-#if UE_ENABLE_ICU
 	const FDateTime UnixEpoch = FDateTime::FromUnixTimestamp(0);
 	const FDateTime UnixBillennium = FDateTime::FromUnixTimestamp(1000000000);
 	const FDateTime UnixOnes = FDateTime::FromUnixTimestamp(1111111111);
@@ -91,12 +89,11 @@ bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Medium, EDateTimeStyle::Medium, "GMT"), FText::FromString( TEXT("1990/06/13 12:34:56") ) );
 	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("1990\x5E74") TEXT("6\x6708") TEXT("13\x65E5") TEXT(" 12:34:56 GMT") ) );
 	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("1990\x5E74") TEXT("6\x6708") TEXT("13\x65E5\x6C34\x66DC\x65E5") TEXT(" ") TEXT("12\x6642") TEXT("34\x5206") TEXT("56\x79D2 GMT") ) );
+
+	I18N.SetCurrentCulture(OriginalCulture);
 #else
 	AddWarning("ICU is disabled thus locale-aware date/time formatting is disabled.");
 #endif
-	//////////////////////////////////////////////////////////////////////////
-
-	I18N.SetCurrentCulture(OriginalCulture);
 
 	return true;
 }

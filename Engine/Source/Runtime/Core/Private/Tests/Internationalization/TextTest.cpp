@@ -59,7 +59,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 	FText::SetEnableErrorCheckingResults(true);
 	FText::SetSuppressWarnings(true);
-	I18N.SetCurrentCulture("en-US");
 
 	FText ArgText0 = FText::FromString(TEXT("Arg0"));
 	FText ArgText1 = FText::FromString(TEXT("Arg1"));
@@ -157,8 +156,8 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 	{
 		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("Age"), 23 );
-		Arguments.Add( TEXT("Height"), 68 );
+		Arguments.Add( TEXT("Age"), FText::FromString( TEXT("23") ) );
+		Arguments.Add( TEXT("Height"), FText::FromString( TEXT("68") ) );
 		Arguments.Add( TEXT("Gender"), FText::FromString( TEXT("male") ) );
 		Arguments.Add( TEXT("Name"), FText::FromString( TEXT("Saul") ) );
 
@@ -224,39 +223,38 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 		// Not using all the arguments is okay.
 		TestText = INVTEXT("My name is {Name}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My name is Saul.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My name is Saul.") );
 		TestText = INVTEXT("My age is {Age}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My age is 23.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My age is 23.") );
 		TestText = INVTEXT("My gender is {Gender}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My gender is male.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My gender is male.") );
 		TestText = INVTEXT("My height is {Height}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My height is 68.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My height is 68.") );
 
 		// Using arguments out of order is okay.
 		TestText = INVTEXT("My name is {Name}. My age is {Age}. My gender is {Gender}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My name is Saul. My age is 23. My gender is male.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My name is Saul. My age is 23. My gender is male.") );
 		TestText = INVTEXT("My age is {Age}. My gender is {Gender}. My name is {Name}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My age is 23. My gender is male. My name is Saul.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My age is 23. My gender is male. My name is Saul.") );
 		TestText = INVTEXT("My gender is {Gender}. My name is {Name}. My age is {Age}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My gender is male. My name is Saul. My age is 23.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My gender is male. My name is Saul. My age is 23.") );
 		TestText = INVTEXT("My gender is {Gender}. My age is {Age}. My name is {Name}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My gender is male. My age is 23. My name is Saul.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My gender is male. My age is 23. My name is Saul.") );
 		TestText = INVTEXT("My age is {Age}. My name is {Name}. My gender is {Gender}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My age is 23. My name is Saul. My gender is male.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My age is 23. My name is Saul. My gender is male.") );
 		TestText = INVTEXT("My name is {Name}. My gender is {Gender}. My age is {Age}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("My name is Saul. My gender is male. My age is 23.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("My name is Saul. My gender is male. My age is 23.") );
 
 		// Reusing arguments is okay.
 		TestText = INVTEXT("If my age is {Age}, I have been alive for {Age} year(s).");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("If my age is 23, I have been alive for 23 year(s).") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("If my age is 23, I have been alive for 23 year(s).") );
 
 		// Not providing an argument leaves the parameter as text.
 		TestText = INVTEXT("What... is the air-speed velocity of an unladen swallow? {AirSpeedOfAnUnladenSwallow}.");
-		TEST( TestText.ToString(), FText::Format( TestText, ArgumentList), INVTEXT("What... is the air-speed velocity of an unladen swallow? {AirSpeedOfAnUnladenSwallow}.") );
+		TEST( TestText.ToString(), FText::Format(TestText, ArgumentList), INVTEXT("What... is the air-speed velocity of an unladen swallow? {AirSpeedOfAnUnladenSwallow}.") );
 	}
 
 #undef TEST
-
 #define TEST( Pattern, Actual, Expected ) TestPatternParameterEnumeration(*this, Pattern, Actual, Expected)
 
 	TArray<FString> ActualArguments;
@@ -300,6 +298,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 	FText::SetSuppressWarnings(true);
 
 #if UE_ENABLE_ICU
+	I18N.SetCurrentCulture("en-US");
 #define TEST( A, B, ComparisonLevel ) if( !(FText::FromString(A)).EqualTo(FText::FromString(B), (ComparisonLevel)) ) AddError(FString::Printf(TEXT("Testing comparison of equivalent characters with comparison level (%s). - A=%s B=%s"),TEXT(#ComparisonLevel),(A),(B)))
 
 	// Basic sanity checks
@@ -398,7 +397,11 @@ bool FTextTest::RunTest (const FString& Parameters)
 			}
 		}
 	}
+#else
+	AddWarning("ICU is disabled thus locale-aware string collation is disabled.");
+#endif
 
+#if UE_ENABLE_ICU
 	{
 		I18N.SetCurrentCulture(OriginalCulture);
 
@@ -585,7 +588,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 		}
 	}
 #else
-	AddWarning("ICU is disabled thus locale-aware string collation is disabled.");
+	AddWarning("ICU is disabled thus locale-aware formatting needed in rebuilding source text from history is disabled.");
 #endif
 
 	FText::SetEnableErrorCheckingResults(OriginalEnableErrorCheckingValue);

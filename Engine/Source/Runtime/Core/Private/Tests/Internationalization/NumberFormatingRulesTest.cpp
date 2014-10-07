@@ -54,6 +54,7 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
  *	AsPercent	float 
  */
 
+#if UE_ENABLE_ICU
 	double DoubleValue = 12345678.901;
 	float FloatValue = 1234.567f;
 	double DoubleNegativeValue = -12345678.901;
@@ -93,7 +94,6 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	Test(this, TEXT("Convert a Negative int32 to a number formatted correct for en-US"),	FText::AsNumber(Int32NegativeValue),	FText::FromString(TEXT("-12,345")));
 	Test(this, TEXT("Convert a Negative int64 to a number formatted correct for en-US"),	FText::AsNumber(Int64NegativeValue),	FText::FromString(TEXT("-12,345")));
 
-#if UE_ENABLE_ICU
 	// Test Number Formatting Options
 	{
 		FNumberFormattingOptions NumberFormattingOptions;
@@ -206,9 +206,6 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 		Test(this, TEXT("Round a Double to a number formatted correct for en-US using ToPositiveInfinity"),	FText::AsNumber( 0.5, &(NumberFormattingOptions)),	FText::FromString(TEXT( "1")));
 		Test(this, TEXT("Round a Double to a number formatted correct for en-US using ToPositiveInfinity"),	FText::AsNumber( 1.0, &(NumberFormattingOptions)),	FText::FromString(TEXT( "1")));
 	}
-#else
-	AddWarning("ICU is disabled thus custom number formatting options are disabled.");
-#endif
 
 	Test(this, TEXT("Convert a Double to a currency formatted correct for en-US"),			FText::AsCurrency(DoubleValue),			FText::FromString(TEXT("$12,345,678.90")));
 	Test(this, TEXT("Convert a Float to a currency formatted correct for en-US"),			FText::AsCurrency(FloatValue),			FText::FromString(TEXT("$1,234.57")));
@@ -251,7 +248,6 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	Test(this, TEXT("Convert a Negative int32 to a number formatted correct for hi-IN"),	FText::AsNumber(Int32NegativeValue),	FText::FromString(TEXT("-12,345")));
 	Test(this, TEXT("Convert a Negative int64 to a number formatted correct for hi-IN"),	FText::AsNumber(Int64NegativeValue),	FText::FromString(TEXT("-12,345")));
 
-#if UE_ENABLE_ICU
 	{
 		const FCulturePtr& InvariantCulture = I18N.GetInvariantCulture();
 		Test(this, TEXT("Convert a Double to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(DoubleValue, NULL, InvariantCulture),			FText::FromString(TEXT("12345678.901")));
@@ -271,9 +267,6 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 		Test(this, TEXT("Convert a Negative int32 to a number formatted correct for hi-IN but as invariant"),		FText::AsNumber(Int32NegativeValue, NULL, InvariantCulture),	FText::FromString(TEXT("-12345")));
 		Test(this, TEXT("Convert a Negative int64 to a number formatted correct for hi-IN but as invariant"),		FText::AsNumber(Int64NegativeValue, NULL, InvariantCulture),	FText::FromString(TEXT("-12345")));
 	}
-#else
-	AddWarning("ICU is disabled thus invariant number formatting options are disabled.");
-#endif
 
 	Test(this, TEXT("Convert a Double to a currency formatted correct for hi-IN"),				FText::AsCurrency(DoubleValue),			FText::FromString(TEXT("\x20B9") TEXT("1,23,45,678.90")));
 	Test(this, TEXT("Convert a Float to a currency formatted correct for hi-IN"),				FText::AsCurrency(FloatValue),			FText::FromString(TEXT("\x20B9") TEXT("1,234.57")));
@@ -317,6 +310,9 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	{
 		AddError( TEXT("Number formatting functions should never produce a Culture Invariant Text") );
 	}
+#else
+	AddWarning("ICU is disabled thus locale-aware number formatting is disabled.");
+#endif
 
 	return true;
 }
