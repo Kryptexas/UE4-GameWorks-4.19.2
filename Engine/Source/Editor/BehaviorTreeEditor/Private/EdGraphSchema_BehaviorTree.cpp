@@ -481,10 +481,30 @@ void UEdGraphSchema_BehaviorTree::GetBreakLinkToSubMenuActions( class FMenuBuild
 		++Count;
 
 		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
-			FExecuteAction::CreateUObject((USoundClassGraphSchema*const)this, &USoundClassGraphSchema::BreakSinglePinLink, const_cast< UEdGraphPin* >(InGraphPin), *Links) ) );
+			FExecuteAction::CreateUObject(this, &UEdGraphSchema_BehaviorTree::BreakSinglePinLink, const_cast< UEdGraphPin* >(InGraphPin), *Links) ) );
 	}
 }
 
+void UEdGraphSchema_BehaviorTree::BreakNodeLinks(UEdGraphNode& TargetNode) const
+{
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakNodeLinks", "Break Node Links") );
+
+	Super::BreakNodeLinks(TargetNode);
+}
+
+void UEdGraphSchema_BehaviorTree::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotification) const
+{
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakPinLinks", "Break Pin Links") );
+
+	Super::BreakPinLinks(TargetPin, bSendsNodeNotification);
+}
+
+void UEdGraphSchema_BehaviorTree::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+{
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link") );
+
+	Super::BreakSinglePinLink(SourcePin, TargetPin);
+}
 
 const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanCreateConnection(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const
 {
