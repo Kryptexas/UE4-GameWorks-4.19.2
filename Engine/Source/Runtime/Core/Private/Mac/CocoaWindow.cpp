@@ -357,8 +357,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	// Handle clicking on the titlebar fullscreen item
 	if(self.TargetWindowMode == EWindowMode::Windowed)
 	{
-		// @todo: Fix fullscreen mode mouse coordinate handling - for now default to windowed fullscreen
-		self.TargetWindowMode = EWindowMode::WindowedFullscreen;
+		self.TargetWindowMode = EWindowMode::Fullscreen;
 	}
 }
 
