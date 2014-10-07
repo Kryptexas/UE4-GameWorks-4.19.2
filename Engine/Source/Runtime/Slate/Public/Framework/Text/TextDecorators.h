@@ -68,14 +68,16 @@ public:
 
 	virtual TSharedRef< ISlateRun > Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunParseResult, const FString& OriginalText, const TSharedRef< FString >& InOutModelText, const ISlateStyle* Style) override;
 
-private:
+protected:
 
 	FHyperlinkDecorator( FString InId, const FSlateHyperlinkRun::FOnClick& InNavigateDelegate, const FSlateHyperlinkRun::FOnGetTooltipText& InToolTipTextDelegate, const FSlateHyperlinkRun::FOnGenerateTooltip& InToolTipDelegate );
 
-private:
+protected:
 
-	FString Id;
 	FSlateHyperlinkRun::FOnClick NavigateDelegate;
+
+private:
+	FString Id;
 	FSlateHyperlinkRun::FOnGetTooltipText ToolTipTextDelegate;
 	FSlateHyperlinkRun::FOnGenerateTooltip ToolTipDelegate;
 };

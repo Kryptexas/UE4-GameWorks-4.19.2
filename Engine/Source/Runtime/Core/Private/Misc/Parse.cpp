@@ -277,23 +277,15 @@ bool FParse::Text( const TCHAR* Str, FText& Value, const TCHAR* Namespace )
 					{
 						if( c == '"' )
 						{
-							// Closing quote of parsed string
-							if( !ParsedString.IsEmpty() )
+							bInQuotes = false;
+							++StringCount;
+							if (StringCount == ExpectedStringCount - 2)
 							{
-								bInQuotes = false;
-								++StringCount;
-								if( StringCount == ExpectedStringCount - 2 )
-								{
-									NamespaceString = ParsedString;
-								}
-								else if( StringCount == ExpectedStringCount - 1 )
-								{
-									KeyString = ParsedString;
-								}						
+								NamespaceString = ParsedString;
 							}
-							else
+							else if (StringCount == ExpectedStringCount - 1)
 							{
-								bError = true;
+								KeyString = ParsedString;
 							}
 						}
 						else if( c == '\\' )
@@ -341,10 +333,15 @@ bool FParse::Text( const TCHAR* Str, FText& Value, const TCHAR* Namespace )
 				++Str;
 			}
 
+			if (KeyString.Len() == 0 && (bFoundNSLocText ? NamespaceString : Namespace).Len() > 0)
+			{
+				bError = true;
+			}
+
 			if( *Str == ')' && !bError && StringCount == ExpectedStringCount )
 			{
 				if ( !FText::FindText( bFoundNSLocText ? NamespaceString : Namespace, KeyString, /*OUT*/Value ) )
-				{
+				{ 
 					Value = FText::FromString( ParsedString );
 				}
 

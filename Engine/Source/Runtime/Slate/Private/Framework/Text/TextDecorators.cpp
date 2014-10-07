@@ -99,8 +99,8 @@ TSharedRef< FHyperlinkDecorator > FHyperlinkDecorator::Create( FString Id, const
 }
 
 FHyperlinkDecorator::FHyperlinkDecorator( FString InId, const FSlateHyperlinkRun::FOnClick& InNavigateDelegate, const FSlateHyperlinkRun::FOnGetTooltipText& InToolTipTextDelegate, const FSlateHyperlinkRun::FOnGenerateTooltip& InToolTipDelegate )
-	: Id( InId )
-	, NavigateDelegate( InNavigateDelegate )
+	: NavigateDelegate( InNavigateDelegate )
+	, Id(InId)
 	, ToolTipTextDelegate( InToolTipTextDelegate )
 	, ToolTipDelegate( InToolTipDelegate )
 {
