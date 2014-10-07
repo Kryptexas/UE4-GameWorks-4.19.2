@@ -313,6 +313,34 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint3
 	return NumMappings;
 }
 
+void FLinuxPlatformMisc::ClipboardCopy(const TCHAR* Str)
+{
+	if (SDL_HasClipboardText() == SDL_TRUE)
+	{
+		if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
+		{
+			UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), ANSI_TO_TCHAR(SDL_GetError()));
+		}
+	}
+}
+void FLinuxPlatformMisc::ClipboardPaste(class FString& Result)
+{
+	char* ClipContent;
+	ClipContent = SDL_GetClipboardText();
+
+	if (!ClipContent)
+	{
+		UE_LOG(LogInit, Fatal, TEXT("Error pasting clipboard contents: %s\n"), ANSI_TO_TCHAR(SDL_GetError()));
+		// unreachable
+		Result = TEXT("");
+	}
+	else
+	{
+		Result = FString(UTF8_TO_TCHAR(ClipContent));
+	}
+	SDL_free(ClipContent);
+}
+
 EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
 	int NumberOfButtons = 0;
