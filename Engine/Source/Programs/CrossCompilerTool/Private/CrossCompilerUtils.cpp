@@ -249,7 +249,7 @@ namespace CCT
 		if (Entry == TEXT(""))
 		{
 			UE_LOG(LogCrossCompilerTool, Warning, TEXT("No entry point given, assuming Main (-entry=Main)!"));
-			Target = HCT_FeatureLevelSM5;
+			Entry = TEXT("Main");
 		}
 
 		return true;
