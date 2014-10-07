@@ -42,6 +42,7 @@ public:
 
 	/** Compile the blueprint */
 	TSharedPtr<FUICommandInfo> Compile;
+	TSharedPtr<FUICommandInfo> SaveOnCompile;
 
 	/** Switch between modes in the blueprint editor */
 	TSharedPtr<FUICommandInfo> SwitchToScriptingMode;

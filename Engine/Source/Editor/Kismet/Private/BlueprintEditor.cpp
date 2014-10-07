@@ -1783,6 +1783,13 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FFullBlueprintEditorCommands::Get().Compile,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::Compile),
 		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsCompilingEnabled));
+
+	ToolkitCommands->MapAction(
+		FFullBlueprintEditorCommands::Get().SaveOnCompile,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::OnSaveOnCompileToggled),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileChecked)
+	);
 	
 	ToolkitCommands->MapAction(
 		FFullBlueprintEditorCommands::Get().SwitchToScriptingMode,
@@ -2448,7 +2455,29 @@ void FBlueprintEditor::Compile()
 		// send record when player clicks compile and send the result
 		// this will make sure how the users activity is
 		AnalyticsTrackCompileEvent(BlueprintObj, LogResults.NumErrors, LogResults.NumWarnings);
+
+		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+		if (Settings->bSaveOnCompile)
+		{
+			TArray<UPackage*> PackagesToSave;
+			PackagesToSave.Add(BlueprintObj->GetOutermost());
+
+			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/false, /*bPromptToSave =*/false);
+		}
 	}
+}
+
+bool FBlueprintEditor::IsSaveOnCompileChecked() const
+{
+	UBlueprintEditorSettings const* Settings = GetDefault<UBlueprintEditorSettings>();
+	return Settings->bSaveOnCompile;
+}
+
+void FBlueprintEditor::OnSaveOnCompileToggled() const
+{
+	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+	Settings->bSaveOnCompile = !Settings->bSaveOnCompile;
+	Settings->SaveConfig();
 }
 
 FReply FBlueprintEditor::Compile_OnClickWithReply()

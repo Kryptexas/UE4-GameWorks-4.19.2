@@ -12,6 +12,12 @@ class BLUEPRINTGRAPH_API UBlueprintEditorSettings
 {
 	GENERATED_UCLASS_BODY()
 
+// General Settings
+public:
+	/** Determines if Blueprints are saved whenever you compile them */
+	UPROPERTY(EditAnywhere, config, Category=General)
+	bool bSaveOnCompile;
+
 // Style Settings
 public:
 	/** Should arrows indicating data/execution flow be drawn halfway along wires? */

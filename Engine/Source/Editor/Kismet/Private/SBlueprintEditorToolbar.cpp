@@ -543,10 +543,30 @@ TSharedRef<SWidget> FKismet2Menu::MakeDiffMenu(FBlueprintEditor& Kismet)
 void FFullBlueprintEditorCommands::RegisterCommands() 
 {
 	UI_COMMAND(Compile, "Compile", "Compile the blueprint", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(SaveOnCompile, "Save on Compile", "Determines if the Blueprint is saved every time you compile it", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToScriptingMode, "Graph", "Switches to Graph Editing Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToBlueprintDefaultsMode, "Defaults", "Switches to Blueprint Defaults Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToComponentsMode, "Components", "Switches to Components Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(EditGlobalOptions, "Blueprint Props", "Edit Blueprint Options", EUserInterfaceActionType::Button, FInputGesture());
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Static FBlueprintEditorToolbar Helpers
+
+namespace BlueprintEditorToolbarImpl
+{
+	static TSharedRef<SWidget> GenerateCompileOptionsWidget(TSharedRef<FUICommandList> CommandList);
+};
+
+
+static TSharedRef<SWidget> BlueprintEditorToolbarImpl::GenerateCompileOptionsWidget(TSharedRef<FUICommandList> CommandList)
+{
+	FMenuBuilder MenuBuilder(/*bShouldCloseWindowAfterMenuSelection =*/true, CommandList);
+
+	const FFullBlueprintEditorCommands& Commands = FFullBlueprintEditorCommands::Get();
+	MenuBuilder.AddMenuEntry(Commands.SaveOnCompile);
+
+	return MenuBuilder.MakeWidget();
 }
 
 
@@ -677,6 +697,16 @@ void FBlueprintEditorToolbar::FillCompileToolbar(FToolBarBuilder& ToolbarBuilder
 									 TAttribute<FText>(this, &FBlueprintEditorToolbar::GetStatusTooltip),
 									 TAttribute<FSlateIcon>(this, &FBlueprintEditorToolbar::GetStatusImage),
 									 FName(TEXT("CompileBlueprint")));
+
+		FUIAction TempCompileOptionsCommand;
+		ToolbarBuilder.AddComboButton(
+			TempCompileOptionsCommand,
+			FOnGetContent::CreateStatic(&BlueprintEditorToolbarImpl::GenerateCompileOptionsWidget, BlueprintEditorPtr->GetToolkitCommands()),
+			LOCTEXT("BlupeintCompileOptions_ToolbarName",    "Compile Options"),
+			LOCTEXT("BlupeintCompileOptions_ToolbarTooltip", "Options to customize how Blueprints compile"),
+			TAttribute<FSlateIcon>(),
+			/*bSimpleComboBox =*/true
+		);
 	}
 	ToolbarBuilder.EndSection();
 }

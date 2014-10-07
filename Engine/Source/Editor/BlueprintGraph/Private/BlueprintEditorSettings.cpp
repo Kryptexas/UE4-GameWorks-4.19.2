@@ -8,6 +8,7 @@
 UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bSaveOnCompile = false;
 	bShowGraphInstructionText = true;
 	NodeTemplateCacheCapMB = 20.f;
 	bUseTargetContextForNodeMenu = true;
