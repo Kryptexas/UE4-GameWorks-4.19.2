@@ -786,7 +786,14 @@ void FHotReloadModule::OnHotReloadBinariesChanged(const TArray<struct FFileChang
 		// Check if any of the game DLLs has been added
 		for (auto& Change : FileChanges)
 		{
+#if PLATFORM_MAC
+			// On the Mac the Add event is for a temporary linker(?) file that gets immediately renamed
+			// to a dylib. In the future we may want to support modified event for all platforms anyway once
+			// shadow copying works with hot-reload.
+			if (Change.Action == FFileChangeData::FCA_Modified)
+#else
 			if (Change.Action == FFileChangeData::FCA_Added)
+#endif
 			{
 				const FString Filename = FPaths::GetCleanFilename(Change.Filename);
 				if (Filename.EndsWith(FPlatformProcess::GetModuleExtension()))
