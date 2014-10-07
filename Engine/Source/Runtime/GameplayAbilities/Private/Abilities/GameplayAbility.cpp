@@ -485,8 +485,6 @@ void UGameplayAbility::MontageJumpToSection(FName SectionName)
 {
 	check(CurrentActorInfo);
 
-	CurrentActorInfo->AbilitySystemComponent->LocalAnimMontageInfo.AnimMontage;
-
 	if (CurrentActorInfo->AbilitySystemComponent->IsAnimatingAbility(this))
 	{
 		CurrentActorInfo->AbilitySystemComponent->CurrentMontageJumpToSection(SectionName);
