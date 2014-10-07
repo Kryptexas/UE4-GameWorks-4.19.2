@@ -315,7 +315,7 @@ bool FindDelimitedString( const FString& InStr, const FString& LeftDelim, const 
 FPortableObjectCulture::FPortableObjectCulture( const FString& LangCode, const FString& PluralForms )
 	: LanguageCode( LangCode )
 	, LanguagePluralForms( PluralForms )
-	, Culture( MakeShareable( new FCulture( LangCode ) ) )
+	, Culture( FCulture::Create( LangCode ) )
 {
 
 }
@@ -323,7 +323,7 @@ FPortableObjectCulture::FPortableObjectCulture( const FString& LangCode, const F
 FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Other )
 	: LanguageCode( Other.LanguageCode )
 	, LanguagePluralForms( Other.LanguagePluralForms )
-	, Culture( MakeShareable( new FCulture( Other.LanguageCode ) ) )
+	, Culture( FCulture::Create( Other.LanguageCode ) )
 {
 
 }
@@ -331,7 +331,7 @@ FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Ot
 void FPortableObjectCulture::SetLanguageCode( const FString& LangCode )
 {
 	LanguageCode = LangCode;
-	Culture = MakeShareable( new FCulture( LangCode ) );
+	Culture = FCulture::Create( LangCode );
 }
 
 
@@ -352,7 +352,7 @@ FString FPortableObjectCulture::Country() const
 	FString Result;
 	if( Culture.IsValid() )
 	{
-		Result = Culture->GetCountry();
+		Result = Culture->GetRegion();
 	}
 	return Result;
 }

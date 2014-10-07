@@ -102,11 +102,6 @@ int FCulture::FICUCultureImplementation::GetLCID() const
 	return ICULocale.getLCID();
 }
 
-FString FCulture::FICUCultureImplementation::GetName() const
-{
-	return ICULocale.getName();
-}
-
 FString FCulture::FICUCultureImplementation::GetCanonicalName(const FString& Name)
 {
 	static const int32 MaximumNameLength = 64;
@@ -119,12 +114,9 @@ FString FCulture::FICUCultureImplementation::GetCanonicalName(const FString& Nam
 	return CanonicalName;
 }
 
-FString FCulture::FICUCultureImplementation::GetParentName(const FString& CultureName)
+FString FCulture::FICUCultureImplementation::GetName() const
 {
-	char Parent[32];
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	int32_t ParentLength = uloc_getParent(TCHAR_TO_ANSI(*CultureName), Parent, 32, &ICUStatus);
-	return FString(Parent);
+	return ICULocale.getName();
 }
 
 FString FCulture::FICUCultureImplementation::GetNativeName() const
@@ -132,44 +124,6 @@ FString FCulture::FICUCultureImplementation::GetNativeName() const
 	icu::UnicodeString ICUResult;
 	ICULocale.getDisplayName(ICULocale, ICUResult);
 	return ICUUtilities::ConvertString(ICUResult);
-}
-
-FString FCulture::FICUCultureImplementation::GetNativeLanguage() const
-{
-	icu::UnicodeString ICUNativeLanguage;
-	ICULocale.getDisplayLanguage(ICULocale, ICUNativeLanguage);
-	FString NativeLanguage;
-	ICUUtilities::ConvertString(ICUNativeLanguage, NativeLanguage);
-
-	icu::UnicodeString ICUNativeScript;
-	ICULocale.getDisplayScript(ICULocale, ICUNativeScript);
-	FString NativeScript;
-	ICUUtilities::ConvertString(ICUNativeScript, NativeScript);
-
-	if ( !NativeScript.IsEmpty() )
-	{
-		return NativeLanguage + TEXT(" (") + NativeScript + TEXT(")");
-	}
-	return NativeLanguage;
-}
-
-FString FCulture::FICUCultureImplementation::GetNativeRegion() const
-{
-	icu::UnicodeString ICUNativeCountry;
-	ICULocale.getDisplayCountry(ICULocale, ICUNativeCountry);
-	FString NativeCountry;
-	ICUUtilities::ConvertString(ICUNativeCountry, NativeCountry);
-
-	icu::UnicodeString ICUNativeVariant;
-	ICULocale.getDisplayVariant(ICULocale, ICUNativeVariant);
-	FString NativeVariant;
-	ICUUtilities::ConvertString(ICUNativeVariant, NativeVariant);
-
-	if ( !NativeVariant.IsEmpty() )
-	{
-		return NativeCountry + TEXT(", ") + NativeVariant;
-	}
-	return NativeCountry;
 }
 
 FString FCulture::FICUCultureImplementation::GetUnrealLegacyThreeLetterISOLanguageName() const
@@ -200,9 +154,52 @@ FString FCulture::FICUCultureImplementation::GetTwoLetterISOLanguageName() const
 	return ICULocale.getLanguage();
 }
 
-FString FCulture::FICUCultureImplementation::GetCountry() const
+FString FCulture::FICUCultureImplementation::GetNativeLanguage() const
+{
+	icu::UnicodeString ICUNativeLanguage;
+	ICULocale.getDisplayLanguage(ICULocale, ICUNativeLanguage);
+	FString NativeLanguage;
+	ICUUtilities::ConvertString(ICUNativeLanguage, NativeLanguage);
+
+	icu::UnicodeString ICUNativeScript;
+	ICULocale.getDisplayScript(ICULocale, ICUNativeScript);
+	FString NativeScript;
+	ICUUtilities::ConvertString(ICUNativeScript, NativeScript);
+
+	if ( !NativeScript.IsEmpty() )
+	{
+		return NativeLanguage + TEXT(" (") + NativeScript + TEXT(")");
+	}
+	return NativeLanguage;
+}
+
+FString FCulture::FICUCultureImplementation::GetRegion() const
 {
 	return ICULocale.getCountry();
+}
+
+FString FCulture::FICUCultureImplementation::GetNativeRegion() const
+{
+	icu::UnicodeString ICUNativeCountry;
+	ICULocale.getDisplayCountry(ICULocale, ICUNativeCountry);
+	FString NativeCountry;
+	ICUUtilities::ConvertString(ICUNativeCountry, NativeCountry);
+
+	icu::UnicodeString ICUNativeVariant;
+	ICULocale.getDisplayVariant(ICULocale, ICUNativeVariant);
+	FString NativeVariant;
+	ICUUtilities::ConvertString(ICUNativeVariant, NativeVariant);
+
+	if ( !NativeVariant.IsEmpty() )
+	{
+		return NativeCountry + TEXT(", ") + NativeVariant;
+	}
+	return NativeCountry;
+}
+
+FString FCulture::FICUCultureImplementation::GetScript() const
+{
+	return ICULocale.getScript();
 }
 
 FString FCulture::FICUCultureImplementation::GetVariant() const

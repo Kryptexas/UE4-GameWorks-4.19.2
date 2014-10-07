@@ -125,7 +125,7 @@ FString FWebBrowserSingleton::GetCurrentLocaleCode()
 {
 	FCultureRef Culture = FInternationalization::Get().GetCurrentCulture();
 	FString LocaleCode = Culture->GetTwoLetterISOLanguageName();
-	FString Country = Culture->GetCountry();
+	FString Country = Culture->GetRegion();
 	if (!Country.IsEmpty())
 	{
 		LocaleCode = LocaleCode + TEXT("-") + Country;

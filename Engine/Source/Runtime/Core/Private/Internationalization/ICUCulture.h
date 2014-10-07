@@ -114,17 +114,11 @@ class FCulture::FICUCultureImplementation
 
 	int GetLCID() const;
 
+	static FString GetCanonicalName(const FString& Name);
+	
 	FString GetName() const;
 
-	static FString GetCanonicalName(const FString& Name);
-
-	static FString GetParentName(const FString& CultureName);
-
 	FString GetNativeName() const;
-
-	FString GetNativeLanguage() const;
-
-	FString GetNativeRegion() const;
 
 	FString GetUnrealLegacyThreeLetterISOLanguageName() const;
 
@@ -132,7 +126,13 @@ class FCulture::FICUCultureImplementation
 
 	FString GetTwoLetterISOLanguageName() const;
 
-	FString GetCountry() const;
+	FString GetNativeLanguage() const;
+
+	FString GetRegion() const;
+
+	FString GetNativeRegion() const;
+
+	FString GetScript() const;
 
 	FString GetVariant() const;
 

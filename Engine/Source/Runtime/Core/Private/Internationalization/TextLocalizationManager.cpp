@@ -83,30 +83,29 @@ void EndInitTextLocalization()
 			}
 			LocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
+			// Validate the locale has data or fallback to one that does.
 			TArray< FCultureRef > AvailableCultures;
 			I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures, false);
 
-			// Query for parent culture name based on request culture name.
-			FString ParentCultureName = RequestedCultureName;
+			TArray<FString> PrioritizedParentCultureNames = I18N.GetCurrentCulture()->GetPrioritizedParentCultureNames();
 				
-			// If we do not have localization data, try the parent culture.
-			for(FCulturePtr ParentCulture = I18N.GetCulture(ParentCultureName); !ParentCulture.IsValid() || !AvailableCultures.Contains(ParentCulture.ToSharedRef()); ParentCulture = I18N.GetCulture(ParentCultureName))
+			FString ValidCultureName;
+			for (const FString& CultureName : PrioritizedParentCultureNames)
 			{
-				ParentCultureName = FCulture::GetParentName(ParentCultureName);
-
-				// No parent culture
-				if(ParentCultureName.IsEmpty())
+				FCulturePtr ValidCulture = I18N.GetCulture(CultureName);
+				if (ValidCulture.IsValid() && AvailableCultures.Contains(ValidCulture.ToSharedRef()))
 				{
+					ValidCultureName = CultureName;
 					break;
 				}
 			}
 
-			if(!ParentCultureName.IsEmpty())
+			if(!ValidCultureName.IsEmpty())
 			{
-				if(RequestedCultureName != ParentCultureName)
+				if(RequestedCultureName != ValidCultureName)
 				{
 					// Make the user aware that the localization data belongs to a parent culture.
-					UE_LOG(LogTextLocalizationManager, Log, TEXT("The requested culture ('%s') has no localization data; parent culture's ('%s') localization data will be used."), *RequestedCultureName, *ParentCultureName);
+					UE_LOG(LogTextLocalizationManager, Log, TEXT("The requested culture ('%s') has no localization data; parent culture's ('%s') localization data will be used."), *RequestedCultureName, *ValidCultureName);
 				}
 			}
 			else
@@ -273,7 +272,6 @@ void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const 
 	FInternationalization& I18N = FInternationalization::Get();
 
 	const FString& CultureName = I18N.GetCurrentCulture()->GetName();
-	const FString& BaseLanguageName = I18N.GetCurrentCulture()->GetTwoLetterISOLanguageName();
 
 #if ENABLE_LOC_TESTING
 	if(CultureName == TEXT("LEET"))
@@ -364,37 +362,23 @@ void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const 
 	}
 
 	// Read culture localization resources.
-	FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
-	for (const FString& LocalizationPath : LocalizationPaths)
+	TArray<FString> PrioritizedParentCultureNames = I18N.GetCurrentCulture()->GetPrioritizedParentCultureNames();
+
+	for (const FString& CultureName : PrioritizedParentCultureNames)
 	{
-		const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(CultureName);
-		if (Entry)
+		FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
+		for (const FString& LocalizationPath : LocalizationPaths)
 		{
-			const FString CulturePath = LocalizationPath / (*Entry);
-
-			CultureTracker.ReadFromDirectory(CulturePath);
-		}
-	}
-	CultureTracker.ReportCollisions();
-
-	// Read base language localization resources.
-	FLocalizationEntryTracker& BaseLanguageTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
-	for (const FString& LocalizationPath : LocalizationPaths)
-	{
-		const FString* const BaseEntry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(BaseLanguageName);
-		const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(CultureName);
-
-		if (BaseEntry)
-		{
-			// If there is no entry or the paths are different.
-			if( !Entry || *BaseEntry != *Entry )
+			const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(CultureName));
+			if (Entry)
 			{
-				const FString BaseLanguagePath = LocalizationPath / (*BaseEntry);
-				BaseLanguageTracker.ReadFromDirectory(BaseLanguagePath);
+				const FString CulturePath = LocalizationPath / (*Entry);
+
+				CultureTracker.ReadFromDirectory(CulturePath);
 			}
 		}
+		CultureTracker.ReportCollisions();
 	}
-	BaseLanguageTracker.ReportCollisions();
 
 	UpdateLiveTable(LocalizationEntryTrackers);
 }
