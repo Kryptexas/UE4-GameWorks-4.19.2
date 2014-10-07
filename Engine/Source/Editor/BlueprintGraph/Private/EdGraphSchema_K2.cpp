@@ -319,14 +319,14 @@ bool UEdGraphSchema_K2::DoesFunctionHaveOutParameters( const UFunction* Function
 	return false;
 }
 
-bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InAllowedFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo) const
+bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InAllowedFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason) const
 {
 	if (CanUserKismetCallFunction(InFunction))
 	{
 		bool bLatentFuncsAllowed = true;
 		bool bIsConstructionScript = false;
 
-		if(InDestGraph != NULL)
+		if(InDestGraph != nullptr)
 		{
 			bLatentFuncsAllowed = (GetGraphType(InDestGraph) == GT_Ubergraph || (GetGraphType(InDestGraph) == GT_Macro));
 			bIsConstructionScript = IsConstructionScript(InDestGraph);
@@ -338,6 +338,11 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 			const bool bAllowPureFuncs = (InAllowedFunctionTypes & FT_Pure) != 0;
 			if (!bAllowPureFuncs)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("PureFunctionsNotAllowed", "Pure functions are not allowed.");
+				}
+
 				return false;
 			}
 		}
@@ -346,6 +351,11 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 			const bool bAllowImperativeFuncs = (InAllowedFunctionTypes & FT_Imperative) != 0;
 			if (!bAllowImperativeFuncs)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("ImpureFunctionsNotAllowed", "Impure functions are not allowed.");
+				}
+
 				return false;
 			}
 		}
@@ -354,12 +364,22 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bAllowConstFuncs = (InAllowedFunctionTypes & FT_Const) != 0;
 		if (bIsConstFunc && !bAllowConstFuncs)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("ConstFunctionsNotAllowed", "Const functions are not allowed.");
+			}
+
 			return false;
 		}
 
 		const bool bIsLatent = InFunction->HasMetaData(FBlueprintMetadata::MD_Latent);
 		if (bIsLatent && !bLatentFuncsAllowed)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("LatentFunctionsNotAllowed", "Latent functions cannot be used here.");
+			}
+
 			return false;
 		}
 
@@ -370,11 +390,21 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 			const bool bAllowProtectedFuncs = (InAllowedFunctionTypes & FT_Protected) != 0;
 			if (!bAllowProtectedFuncs)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("ProtectedFunctionsNotAllowed", "Protected functions are not allowed.");
+				}
+
 				return false;
 			}
 
 			if (!bFuncBelongsToSubClass)
 			{
+				if(OutReason != nullptr)
+				{
+					*OutReason = LOCTEXT("ProtectedFunctionInaccessible", "Function is protected and inaccessible.");
+				}
+
 				return false;
 			}
 		}
@@ -383,12 +413,22 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bFuncBelongsToClass = bFuncBelongsToSubClass && (InFunction->GetOuterUClass() == InClass);
 		if (bIsPrivate && !bFuncBelongsToClass)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("PrivateFunctionInaccessible", "Function is private and inaccessible.");
+			}
+
 			return false;
 		}
 
 		const bool bIsUnsafeForConstruction = InFunction->GetBoolMetaData(FBlueprintMetadata::MD_UnsafeForConstructionScripts);	
 		if (bIsUnsafeForConstruction && bIsConstructionScript)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("FunctionUnsafeForConstructionScript", "Function cannot be used in a Construction Script.");
+			}
+
 			return false;
 		}
 
@@ -400,6 +440,11 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 				UClass* ParentClass = FBlueprintEditorUtils::FindBlueprintForGraphChecked(InDestGraph)->ParentClass;
 				if (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
 				{
+					if(OutReason != nullptr)
+					{
+						*OutReason = LOCTEXT("FunctionRequiresWorldContext", "Function requires a world context.");
+					}
+
 					return false;
 				}
 			}
@@ -408,6 +453,11 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bFunctionHidden = FObjectEditorUtils::IsFunctionHiddenFromClass(InFunction, InClass);
 		if (bFunctionHidden)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("HiddenFunctionInaccessible", "Function is hidden and inaccessible.");
+			}
+
 			return false;
 		}
 
@@ -418,6 +468,38 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bAllowForEachCall = !bFunctionStatic && !bIsLatent && !bIsPureFunc && !bIsConstFunc && !bHasReturnParams && !bHasArrayPointerParms;
 		if (bInCalledForEach && !bAllowForEachCall)
 		{
+			if(OutReason != nullptr)
+			{
+				if(bFunctionStatic)
+				{
+					*OutReason = LOCTEXT("StaticFunctionsNotAllowedInForEachContext", "Static functions cannot be used within a ForEach context.");
+				}
+				else if(bIsLatent)
+				{
+					*OutReason = LOCTEXT("LatentFunctionsNotAllowedInForEachContext", "Latent functions cannot be used within a ForEach context.");
+				}
+				else if(bIsPureFunc)
+				{
+					*OutReason = LOCTEXT("PureFunctionsNotAllowedInForEachContext", "Pure functions cannot be used within a ForEach context.");
+				}
+				else if(bIsConstFunc)
+				{
+					*OutReason = LOCTEXT("ConstFunctionsNotAllowedInForEachContext", "Const functions cannot be used within a ForEach context.");
+				}
+				else if(bHasReturnParams)
+				{
+					*OutReason = LOCTEXT("FunctionsWithReturnValueNotAllowedInForEachContext", "Functions that return a value cannot be used within a ForEach context.");
+				}
+				else if(bHasArrayPointerParms)
+				{
+					*OutReason = LOCTEXT("FunctionsWithArrayParmsNotAllowedInForEachContext", "Functions with array parameters cannot be used within a ForEach context.");
+				}
+				else
+				{
+					*OutReason = LOCTEXT("FunctionNotAllowedInForEachContext", "Function cannot be used within a ForEach context.");
+				}
+			}
+
 			return false;
 		}
 
@@ -428,10 +510,20 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 		const bool bAllowReturnValuesForNoneOrSingleActors = !bClassIsAnActor || InTargetInfo.Actors.Num() <= 1 || !bFunctionHasReturnOrOutParameters;
 		if (!bAllowReturnValuesForNoneOrSingleActors)
 		{
+			if(OutReason != nullptr)
+			{
+				*OutReason = LOCTEXT("FunctionNotAllowedWithMultipleTargets", "Functions that return a value cannot be used with multiple targets.");
+			}
+
 			return false;
 		}
 
 		return true;
+	}
+
+	if(OutReason != nullptr)
+	{
+		*OutReason = LOCTEXT("FunctionInvalid", "Invalid function.");
 	}
 
 	return false;

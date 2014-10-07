@@ -59,7 +59,7 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 	else if (UK2Node const* NodeToBePlaced = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(DropActionIn))
 	{
 		UEdGraphSchema const* const GraphSchema = HoveredGraphIn->GetSchema();
-		check(GraphSchema != NULL);
+		check(GraphSchema != nullptr);
 
 		bool bIsFunctionGraph = (GraphSchema->GetGraphType(HoveredGraphIn) == EGraphType::GT_Function);
 
@@ -68,24 +68,31 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 			FName const FuncName = CallFuncNode->FunctionReference.GetMemberName();
 			check(FuncName != NAME_None);
 			UClass const* const FuncOwner = CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode);
-			check(FuncOwner != NULL);
+			check(FuncOwner != nullptr);
 
-			UFunction const* const Function = FindField<UFunction>(FuncOwner, FuncName);
+			UFunction* const Function = FindField<UFunction>(FuncOwner, FuncName);
+			UEdGraphSchema_K2 const* const K2Schema = Cast<UEdGraphSchema_K2 const>(GraphSchema);
 
-			if (!HoveredGraphIn->GetSchema()->IsA(UEdGraphSchema_K2::StaticClass()))
-			{
-				bCanBePlaced = false;
-				ImpededReasonOut = LOCTEXT("CannotCreateInThisSchema", "Cannot call functions in this type of graph");
-			}
-			else if (Function == NULL)
+			if (Function == nullptr)
 			{
 				bCanBePlaced = false;
 				ImpededReasonOut = LOCTEXT("InvalidFuncAction", "Invalid function for placement");
 			}
-			else if (bIsFunctionGraph && Function->HasMetaData(FBlueprintMetadata::MD_Latent))
+			else if (K2Schema == nullptr)
 			{
 				bCanBePlaced = false;
-				ImpededReasonOut = LOCTEXT("CannotCreateLatentInGraph", "Cannot call latent functions in function graphs");
+				ImpededReasonOut = LOCTEXT("CannotCreateInThisSchema", "Cannot call functions in this type of graph");
+			}
+			else
+			{
+				uint32 AllowedFunctionTypes = UEdGraphSchema_K2::EFunctionType::FT_Pure | UEdGraphSchema_K2::EFunctionType::FT_Const | UEdGraphSchema_K2::EFunctionType::FT_Protected;
+				if(K2Schema->DoesGraphSupportImpureFunctions(HoveredGraphIn))
+				{
+					AllowedFunctionTypes |= UEdGraphSchema_K2::EFunctionType::FT_Imperative;
+				}
+
+				const UClass* GeneratedClass = FBlueprintEditorUtils::FindBlueprintForGraphChecked(HoveredGraphIn)->GeneratedClass;
+				bCanBePlaced = K2Schema->CanFunctionBeUsedInClass(GeneratedClass, Function, HoveredGraphIn, AllowedFunctionTypes, true, false, FFunctionTargetInfo(), &ImpededReasonOut);
 			}
 		}
 		else if (UK2Node_Event const* EventNode = Cast<UK2Node_Event const>(NodeToBePlaced))
