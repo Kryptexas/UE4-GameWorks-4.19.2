@@ -8,14 +8,15 @@ latest updates on the process.
 
 If you are stuck at some point, we suggest searching AnswerHub 
 (https://answers.unrealengine.com/questions/topics/linux.html) for possible answers 
-or asking a new question. You may also receive help on #UE4Linux IRC channel on FreeNode,
-however it is not an official support outlet.
+or asking a new question on there if you can not find what you are looking for. 
+You may also receive help on #UE4Linux IRC channel on FreeNode, however it is 
+not an official support outlet.
 
 
 Prerequisites
 -------------
 
-Packages required to build the engine vary from distribution to distribution,
+The packages that are required to build the engine vary from distribution to distribution,
 and an up-to-date list should be maintained (and installed) by GenerateProjectFiles.sh -
 feel free to suggest modifications. Automated install currently works for Debian-based
 distributions only (Debian itself, (K)Ubuntu and Linux Mint).
@@ -28,11 +29,11 @@ Most important dependencies:
 - SDL2 is also needed for building LinuxNativeDialogs module, but the rest
 of the engine is using our own (modified) version of it from Engine/Source/ThirdParty/SDL2.
 
-You will also need at least 20 GB of disk space and a relatively powerful
+You will also need at least 20 GB of free disk space and a relatively powerful
 machine.
 
 If you want to rebuild third-party dependencies (we don't recommend doing
-that anymore), you will need many more development packages installed. Refer
+that any more), you will need many more development packages installed. Refer
 to BuildThirdParty.sh script and specific automake/CMake scripts for each
 dependency. You don't have to do that though as we supply prebuilt libraries.
 
@@ -40,8 +41,8 @@ dependency. You don't have to do that though as we supply prebuilt libraries.
 Setting up/updating the sources
 -------------------------------
 
-Setup has been simplified since previous releases, and the additional
-.zip archives are now being downloaded automatically. However, in order to
+Setup has been simplified since the previous releases, and the additional
+.zip archives are now being automatically downloaded. However, in order to
 make this happen, you need to generate a personal access token (repo scope):
 https://github.com/settings/tokens/new  Copy the token to OAUTH_TOKEN environment variable -\
 treat it as your GitHub password in terms of security and have that variable set each
@@ -65,8 +66,8 @@ run GenerateProjectFiles.sh file in the engine's directory:
 
 
 The script may ask you to install additional packages (on certain distributions), then it will download 
-the archives with binary dependencies (by default, to ~/Downloads), which are pretty large (3GB in total) - 
-they won't be re-downloaded unless they are updated for the particular release tag. 
+the archives with binary dependencies (by default, to ~/Downloads), which is pretty large (3GB in total). 
+They won't be re-downloaded unless they are updated for the particular release tag. 
 If any new archives have been downloaded (which is the case the first time you do this), 
 the script will unpack them over your repository (it will ask you 
 to confirm that action as it is potentially destructive). You can force this by supplying 
