@@ -113,6 +113,7 @@ FMacApplication::FMacApplication()
 	, bIsProcessingNSEvent( false )
 	, ModifierKeysFlags( 0 )
 	, CurrentModifierFlags( 0 )
+	, bIsWorkspaceSessionActive( true )
 	, EventMonitor( NULL )
 {
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
@@ -233,6 +234,16 @@ FMacApplication::FMacApplication()
 									GVolumeMultiplier = 0.0f;
 								}];
 	
+	WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification object:[NSWorkspace sharedWorkspace] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+								   printf("workspace activated\n");
+									   bIsWorkspaceSessionActive = true;
+								   }];
+
+	WorkspaceDeactivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidResignActiveNotification object:[NSWorkspace sharedWorkspace] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+									 printf("workspace deactivated\n");
+									   bIsWorkspaceSessionActive = false;
+								   }];
+
 #if WITH_EDITOR
 	FMemory::MemZero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
@@ -259,6 +270,18 @@ FMacApplication::~FMacApplication()
 		AppDeactivationObserver = nil;
 	}
 	
+	if(WorkspaceActivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActivationObserver];
+		WorkspaceActivationObserver = nil;
+	}
+
+	if(WorkspaceDeactivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
+		WorkspaceDeactivationObserver = nil;
+	}
+
 	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 	if (MouseCaptureWindow)
 	{

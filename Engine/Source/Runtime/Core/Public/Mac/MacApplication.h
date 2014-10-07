@@ -78,6 +78,8 @@ public:
 
 	bool IsProcessingNSEvent() const { return bIsProcessingNSEvent; }
 
+	bool IsWorkspaceSessionActive() const { return bIsWorkspaceSessionActive; }
+
 #if WITH_EDITOR
     virtual void SendAnalytics(IAnalyticsProvider* Provider) override;
 
@@ -181,11 +183,19 @@ private:
 
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
+	bool bIsWorkspaceSessionActive;
+
 	/** Notification center observer for application activation events */
 	id AppActivationObserver;
 
 	/** Notification center observer for application deactivation events */
 	id AppDeactivationObserver;
+
+	/** Notification center observer for workspace activation events */
+	id WorkspaceActivationObserver;
+
+	/** Notification center observer for workspace deactivation events */
+	id WorkspaceDeactivationObserver;
 
 #if WITH_EDITOR
 	/** Holds the last gesture used to try and capture unique uses for gestures. */

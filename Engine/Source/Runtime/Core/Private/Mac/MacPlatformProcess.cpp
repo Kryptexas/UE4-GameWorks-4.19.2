@@ -6,6 +6,7 @@
 
 #include "Core.h"
 #include "../../Launch/Resources/Version.h"
+#include "MacApplication.h"
 #include <mach-o/dyld.h>
 #include <libproc.h>
 
@@ -581,7 +582,7 @@ FString FMacPlatformProcess::GetApplicationName( uint32 ProcessId )
 bool FMacPlatformProcess::IsThisApplicationForeground()
 {
 	SCOPED_AUTORELEASE_POOL;
-	return [NSApp isActive];
+	return [NSApp isActive] && MacApplication && MacApplication->IsWorkspaceSessionActive();
 }
 
 void FMacPlatformProcess::CleanFileCache()
