@@ -16,6 +16,7 @@ namespace physx
 	}
 #endif
 	class PxRigidDynamic;
+	class PxRigidActor;
 }
 
 /** Mapping info for destructible chunk user data. */
@@ -169,6 +170,16 @@ public:
 	 */
 	void SetChunkVisible( int32 ChunkIndex, bool bVisible );
 
+#if WITH_APEX
+	/** This method takes a collection of active actors and updates the chunks in one pass. Saves a lot of duplicate work instead of calling each individual chunk
+	 * 
+	 *  @param ActiveActors - The array of actors that need their transforms updated
+	 *
+     */
+	static void UpdateDestructibleChunkTM(TArray<const physx::PxRigidActor*> ActiveActors);
+#endif
+
+
 	/** This method sets a chunk's (fractured piece's) world rotation and translation.
 	 *
 	 * @param ChunkIndex - Which chunk to affect.  ChunkIndex must lie in the range: 0 <= ChunkIndex < ((DestructibleMesh*)USkeletalMesh)->ApexDestructibleAsset->chunkCount().
@@ -195,6 +206,18 @@ public:
 	FORCEINLINE static int32 ChunkIdxToBoneIdx(int32 ChunkIdx) { return ChunkIdx + 1; }
 	FORCEINLINE static int32 BoneIdxToChunkIdx(int32 BoneIdx) { return FMath::Max(BoneIdx - 1, 0); }
 private:
+
+	struct FUpdateChunksInfo
+	{
+		int32 ChunkIndex;
+		FTransform WorldTM;
+
+		FUpdateChunksInfo(int32 InChunkIndex, const FTransform& InWorldTM) : ChunkIndex(InChunkIndex), WorldTM(InWorldTM){}
+
+	};
+
+	void SetChunksWorldTM(const TArray<FUpdateChunksInfo>& UpdateInfos);
+
 	/** Collision response used for chunks */
 	FCollisionResponse LargeChunkCollisionResponse;
 	FCollisionResponse SmallChunkCollisionResponse;

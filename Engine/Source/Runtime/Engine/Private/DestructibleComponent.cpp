@@ -848,6 +848,84 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 	MarkRenderDynamicDataDirty();
 }
 
+#if WITH_APEX
+void UDestructibleComponent::UpdateDestructibleChunkTM(TArray<const PxRigidActor*> ActiveActors)
+{
+	//We want to consolidate the transforms so that we update each destructible component once by passing it an array of chunks to update.
+	//This helps avoid a lot of duplicated work like marking render dirty, computing inverse world component, etc...
+
+	TMap<UDestructibleComponent*, TArray<FUpdateChunksInfo> > ComponentUpdateMapping;
+	
+	//prepare map to update destructible components
+	TArray<PxShape*> Shapes;
+	for (const PxRigidActor* RigidActor : ActiveActors)
+	{
+		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
+		{
+			if (GApexModuleDestructible->owns(RigidActor) && DestructibleChunkInfo->OwningComponent.IsValid())
+			{
+				Shapes.AddUninitialized(RigidActor->getNbShapes());
+				int32 NumShapes = RigidActor->getShapes(Shapes.GetData(), Shapes.Num());
+				for (int32 ShapeIdx = 0; ShapeIdx < Shapes.Num(); ++ShapeIdx)
+				{
+					PxShape* Shape = Shapes[ShapeIdx];
+					int32 ChunkIndex;
+					if (NxDestructibleActor* DestructibleActor = GApexModuleDestructible->getDestructibleAndChunk(Shape, &ChunkIndex))
+					{
+						const physx::PxMat44 ChunkPoseRT = DestructibleActor->getChunkPose(ChunkIndex);
+						const physx::PxTransform Transform(ChunkPoseRT);
+						if (UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(DestructibleActor->userData)))
+						{
+							if (DestructibleComponent->IsRegistered())
+							{
+								TArray<FUpdateChunksInfo>& UpdateInfos = ComponentUpdateMapping.FindOrAdd(DestructibleComponent);
+								FUpdateChunksInfo* UpdateInfo = new (UpdateInfos)FUpdateChunksInfo(ChunkIndex, P2UTransform(Transform));
+							}
+						}
+					}
+				}
+
+				Shapes.Empty(Shapes.Num());	//we want to keep largest capacity array to avoid reallocs
+			}
+		}
+	}
+	
+	//update each component
+	for (auto It = ComponentUpdateMapping.CreateIterator(); It; ++It)
+	{
+		UDestructibleComponent* DestructibleComponent = It.Key();
+		TArray<FUpdateChunksInfo>& UpdateInfos = It.Value();
+		DestructibleComponent->SetChunksWorldTM(UpdateInfos);
+		/*for (FUpdateChunksInfo& UpdateInfo : UpdateInfos)
+		{
+			DestructibleComponent->SetChunkWorldRT(UpdateInfo.ChunkIndex, UpdateInfo.WorldTM.GetRotation(), UpdateInfo.WorldTM.GetLocation());
+		}*/
+		
+	}
+
+}
+
+#endif
+
+void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& UpdateInfos)
+{
+	FTransform InvWorldTM = ComponentToWorld.Inverse();
+	InvWorldTM.SetScale3D(FVector(1.f));
+
+	for (const FUpdateChunksInfo& UpdateInfo : UpdateInfos)
+	{
+		// Bone 0 is a dummy root bone
+		const int32 BoneIndex = ChunkIdxToBoneIdx(UpdateInfo.ChunkIndex);
+		SpaceBases[BoneIndex] = FTransform(UpdateInfo.WorldTM * InvWorldTM);
+	}
+
+	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
+	MarkRenderTransformDirty();
+
+	// New bone positions need to be sent to render thread
+	MarkRenderDynamicDataDirty();
+}
+
 void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& WorldRotation, const FVector& WorldTranslation )
 {
 	// Bone 0 is a dummy root bone

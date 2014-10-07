@@ -733,11 +733,22 @@ void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 }
 #endif
 
+DEFINE_STAT(STAT_SyncComponentsToBodies);
+
 void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 {
+	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);
+	SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies);
 #if WITH_PHYSX
+
+	SCOPED_SCENE_READ_LOCK(GetPhysXScene(SceneType));
+
 	PxU32 NumTransforms = ActiveTransforms[SceneType].Num();
 	const TArray<const PxActiveTransform*> & PActiveTransforms = ActiveTransforms[SceneType];
+
+#if WITH_APEX
+	TArray<const PxRigidActor*> ActiveDestructionActors;
+#endif
 
 	for (PxU32 TransformIdx = 0; TransformIdx<NumTransforms; TransformIdx++)
 	{
@@ -755,7 +766,7 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 		//Special code for destructible chunk
 		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
 		{
-			if (GApexModuleDestructible->owns(RigidActor) && DestructibleChunkInfo->OwningComponent.IsValid())
+			/*if (GApexModuleDestructible->owns(RigidActor) && DestructibleChunkInfo->OwningComponent.IsValid())
 			{
 				//TODO: waiting on new API to avoid duplicate updates per shape.
 				TArray<PxShape*> Shapes;
@@ -780,7 +791,9 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 						}
 					}
 				}
-			}
+			}*/
+
+			ActiveDestructionActors.Add(RigidActor);
 		}
 #endif
 
@@ -814,6 +827,13 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 			}
 		}
 	}
+
+#if WITH_APEX
+	if (ActiveDestructionActors.Num())
+	{
+		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructionActors);
+	}
+#endif
 #endif
 }
 
