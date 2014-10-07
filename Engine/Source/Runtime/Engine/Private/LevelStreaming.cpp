@@ -400,11 +400,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		}
 		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
 #endif
-		const FString PrefixedLevelName = DesiredPackageName.ToString();
-		const FString ShortPrefixedLevelName = FPackageName::GetLongPackageAssetName(PrefixedLevelName);
-		const FString LevelPath = FPackageName::GetLongPackagePath(PrefixedLevelName);
-		// Rebuild the original NonPrefixedLevelName so we can find and duplicate it
-		const FString NonPrefixedLevelName = LevelPath + "/" + ShortPrefixedLevelName.RightChop(PersistentWorld->StreamingLevelsPrefix.Len());
+		const FString NonPrefixedLevelName = UWorld::StripPIEPrefixFromPackageName(DesiredPackageName.ToString(), PersistentWorld->StreamingLevelsPrefix);
 					
 		// Do the duplication
 		UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
@@ -746,7 +742,10 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 		// Store original name 
 		if (PackageNameToLoad == NAME_None)
 		{
-			PackageNameToLoad = GetWorldAssetPackageFName();
+			FString NonPrefixedName = UWorld::StripPIEPrefixFromPackageName(
+				GetWorldAssetPackageName(), 
+				UWorld::BuildPIEPackagePrefix(PIEInstanceID));
+			PackageNameToLoad = FName(*NonPrefixedName);
 		}
 		const FString PlayWorldSteamingLevelName = UWorld::ConvertToPIEPackageName(GetWorldAssetPackageName(), PIEInstanceID);
 		SetWorldAssetByPackageName(FName(*PlayWorldSteamingLevelName));

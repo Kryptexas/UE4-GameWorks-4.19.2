@@ -2081,6 +2081,23 @@ FString UWorld::ConvertToPIEPackageName(const FString& PackageName, int32 PIEIns
 	}
 }
 
+FString UWorld::StripPIEPrefixFromPackageName(const FString& PrefixedName, const FString& Prefix)
+{
+	FString ResultName;
+	FString ShortPrefixedName = FPackageName::GetLongPackageAssetName(PrefixedName);
+	if (ShortPrefixedName.StartsWith(Prefix))
+	{
+		FString NamePath = FPackageName::GetLongPackagePath(PrefixedName);
+		ResultName = NamePath + "/" + ShortPrefixedName.RightChop(Prefix.Len());
+	}
+	else
+	{
+		ResultName = PrefixedName;
+	}
+
+	return ResultName;
+}
+
 FString UWorld::BuildPIEPackagePrefix(int PIEInstanceID)
 {
 	check(PIEInstanceID != -1);
