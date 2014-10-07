@@ -2,6 +2,7 @@
 
 #include "CrashReportClientApp.h"
 #include "ExceptionHandling.h"
+#include "MacPlatformCrashContext.h"
 #include "CocoaThread.h"
 
 /**

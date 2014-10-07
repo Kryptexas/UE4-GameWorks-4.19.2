@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
+#include "MallocCrash.h"
 #include "ExceptionHandling.h"
+#include "GenericPlatform/GenericPlatformContext.h"
 #include "../../Launch/Resources/Version.h"
 
 #include "AllowWindowsPlatformTypes.h"
@@ -190,6 +192,14 @@ void AddMiniDump(HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo)
 	}
 }
 
+struct FWindowsPlatformCrashContext : public FGenericCrashContext
+{
+	void AddPlatformSpecificProperties()
+	{
+		AddCrashProperty( TEXT( "Platform.IsRunningWindows" ), 1 );
+	}
+};
+
 /** 
  * Add miscellaneous files to the report. Currently the log and the video file
  */
@@ -199,7 +209,14 @@ void AddMiscFiles( HREPORT ReportHandle )
 	WerReportAddFile( ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA ); 
 
 	FString CrashVideoPath = FPaths::GameLogDir() / TEXT( "CrashVideo.avi" );
-	WerReportAddFile( ReportHandle, *CrashVideoPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA ); 
+	WerReportAddFile( ReportHandle, *CrashVideoPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
+
+	// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
+	const FString CrashContextXMLPath = FPaths::Combine( *FPaths::GameLogDir(), FWindowsPlatformCrashContext::CrashContextRuntimeXMLNameW );
+	FWindowsPlatformCrashContext CrashContext;
+	CrashContext.SerializeAsXML( *CrashContextXMLPath );
+
+	WerReportAddFile( ReportHandle, *CrashContextXMLPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
 }
 
 /**
@@ -446,6 +463,9 @@ int32 NullReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 
 int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
+	// Switch to malloc crash.
+	FMallocCrash::Get().SetAsGMalloc();
+
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
 	if( FPlatformAtomics::InterlockedIncrement( &ReportCrashCallCount ) != 1 )
@@ -457,7 +477,7 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 
 	// Note: ReportCrashUsingCrashReportClient reads the callstack from GErrorHist
 	const SIZE_T StackTraceSize = 65535;
-	ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
+	ANSICHAR* StackTrace = (ANSICHAR*) GMalloc->Malloc( StackTraceSize );
 	StackTrace[0] = 0;
 	// Walk the stack and dump it to the allocated memory.
 	FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord );
@@ -472,7 +492,7 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 
 	FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) );
 
-	FMemory::SystemFree( StackTrace );
+	GMalloc->Free( StackTrace );
 
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 	if (GUseCrashReportClient)

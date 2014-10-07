@@ -12,6 +12,8 @@
 #include "IOSView.h"
 #include "GenericPlatformChunkInstall.h"
 
+#include "Apple/ApplePlatformCrashContext.h"
+
 /** Amount of free memory in MB reported by the system at starup */
 CORE_API int32 GStartupFreeMemoryMB;
 

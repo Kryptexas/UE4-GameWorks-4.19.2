@@ -193,16 +193,3 @@ enum EMacModifierKeys
 	MMK_RightAlt		= 0xF761,
 	MMK_RightControl	= 0xF762
 };
-
-struct CORE_API FMacCrashContext : public FApplePlatformCrashContext
-{
-	/** Mimics Windows WER format */
-	void GenerateWindowsErrorReport(char const* WERPath) const;
-	
-	/** Creates (fake so far) minidump */
-	void GenerateMinidump(char const* Path) const;
-	
-	/** Generates information for crash reporter */
-	void GenerateCrashInfoAndLaunchReporter() const;
-};
-

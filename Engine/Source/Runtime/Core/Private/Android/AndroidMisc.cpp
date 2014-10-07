@@ -6,7 +6,8 @@
 #include <cpu-features.h>
 #include "ModuleManager.h"
 #include <android/keycodes.h>
-
+#include "AndroidPlatformCrashContext.h"
+#include "MallocCrash.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -250,6 +251,9 @@ void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 /** True system-specific crash handler that gets called first */
 void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 {
+	// Switch to malloc crash.
+	//FMallocCrash::Get().SetAsGMalloc(); @todo uncomment after verification
+
 	fprintf(stderr, "Signal %d caught.\n", Signal);
 
 	FAndroidCrashContext CrashContext;

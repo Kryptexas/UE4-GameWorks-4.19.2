@@ -2,6 +2,7 @@
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
+#include "AndroidPlatformCrashContext.h"
 
 #include "AndroidJNI.h"
 #include <Android/asset_manager.h>

@@ -2,6 +2,7 @@
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
+#include "MacPlatformCrashContext.h"
 
 #if WITH_EDITOR
 	#include "MainFrame.h"

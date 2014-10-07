@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "MacMallocZone.h"
 #include "MacPlatformMisc.h"
+#include "MacPlatformCrashContext.h"
 #include <malloc/malloc.h>
 
 FMacMallocZone::FMacMallocZone( uint64 const InitialSize )

@@ -7,6 +7,9 @@
 
 #pragma once
 
+struct FGenericCrashContext;
+struct FGenericMemoryWarningContext;
+
 class FText;
 
 template<typename KeyType, typename ValueType> class TPair;
@@ -181,126 +184,6 @@ namespace EAppReturnType
 		Continue,
 	};
 }
-
-/**
- *	Contains crash's description that is common for all platform and can be obtained in run-time.
- *	Since we can't used dynamic memory allocation everything is defined as simple as possible.
- *	This may change in the future.
- */
-struct CORE_API FGenericCrashDescription
-{
-	/**
-	 * The name of the game that crashed. (AppID)
-	 */
-	TCHAR GameName[64];
-
-	/**
-	 * The mode the game was in e.g. editor.
-	 */
-	TCHAR EngineMode[64];
-
-	/**
-	 * The platform that crashed e.g. Win64.
-	 * Main platform name [detailed information like OS version]
-	 */
-	TCHAR Platform[64];
-
-	/**
-	* Encoded engine version. (AppVersion)
-	* E.g. 4.3.0.0-2215663+UE4-Releases+4.3
-	* BuildVersion-BuiltFromCL-BranchName
-	* @EngineVersion	varchar(64)
-	*/
-	//FEngineVersion EngineVersion;
-
-	//Architecture;
-
-	//NumberOfCores;
-
-	//CrashedModuleName;
-
-	//LoadedModules ? ;
-
-	//static const FPlatformMemoryConstants& GetConstants();
-	//static FPlatformMemoryStats GetStats();
-
-	/**
-	 * The three component version of the app e.g. 4.4.1
-	 */
-	TCHAR BuildVersion[32];
-
-	/**
-	 * Built from changelist.
-	 */
-	uint32 BuiltFromCL;
-
-	/**
-	 * The name of the branch this game was built out of.
-	 */
-	TCHAR BranchName[32];
-
-	/**
-	 * The command line of the application that crashed.
-	 */
-	TCHAR CommandLine[512];
-
-	/**
-	 * The base directory where the app was running.
-	 */
-	TCHAR BaseDir[512];
-
-	/**
-	 * The language ID the application that crashed.
-	 */
-	TCHAR LanguageLCID[64];
-
-	/**
-	 * The name of the user that caused this crash.
-	 */
-	TCHAR UserName[64];
-
-	/**
-	 * The unique ID used to identify the machine the crash occurred on.
-	 */
-	TCHAR MachineId[64];
-
-	/**
-	 * The Epic account ID for the user who last used the Launcher.
-	 */
-	TCHAR EpicAccountId[64];
-
-	/**
-	 * A string representing the callstack of the crash.
-	 */
-	TCHAR CallStack[16384];
-
-	/**
-	 * A string representing the user description of the crash.
-	 */
-	TCHAR UserDescription[512];
-
-	/**
-	 * The error message, can be assertion message, ensure message or message from the fatal error.
-	 */
-	TCHAR ErrorMessage[512];
-
-	/**
-	 * The UTC time the crash occurred.
-	 */
-	//	FDateTime TimeOfCrash;
-
-	/** Lenght of the crash's description, in bytes. */
-	int32 Lenght;
-};
-
-struct CORE_API FGenericCrashContext
-{
-};
-
-struct CORE_API FGenericMemoryWarningContext
-{
-};
-
 
 /**
 * Generic implementation for most platforms
@@ -743,7 +626,7 @@ public:
 	/** Return the name of the platform features module. Can be NULL if there are no extra features for this platform */
 	static const TCHAR* GetPlatformFeaturesModuleName()
 	{
-		// by deafult, no module
+		// by default, no module
 		return NULL;
 	}
 

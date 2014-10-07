@@ -80,7 +80,6 @@ struct RECT
 // include platform implementations
 #include "Mac/MacPlatformMemory.h"
 #include "Apple/ApplePlatformString.h"
-#include "Apple/ApplePlatformCrashContext.h"
 #include "Mac/MacPlatformMisc.h"
 #include "Apple/ApplePlatformStackWalk.h"
 #include "Mac/MacPlatformMath.h"

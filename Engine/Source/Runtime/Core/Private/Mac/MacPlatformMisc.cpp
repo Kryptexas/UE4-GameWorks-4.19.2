@@ -16,6 +16,7 @@
 #include "EngineVersion.h"
 #include "MacMallocZone.h"
 #include "ApplePlatformSymbolication.h"
+#include "MacPlatformCrashContext.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -1707,6 +1708,12 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 			
 			close(ReportFile);
 		}
+		
+		// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
+		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
+		//SerializeAsXML( FilePath ); @todo uncomment after verification
 		
 		// copy log
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);

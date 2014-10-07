@@ -2,6 +2,7 @@
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
+#include "LinuxPlatformCrashContext.h"
 
 #if WITH_EDITOR
 #include "Editor/MainFrame/Private/Frame/MainFrameActions.h"
