@@ -210,9 +210,6 @@ void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 
 void FWidgetBlueprintEditor::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
 {
-	// Objects being replaced could force a selection change
-	OnSelectedWidgetsChanging.Broadcast();
-
 	// Remove dead references and update references
 	for ( int32 HandleIndex = WidgetHandlePool.Num() - 1; HandleIndex >= 0; HandleIndex-- )
 	{
@@ -231,9 +228,6 @@ void FWidgetBlueprintEditor::OnObjectsReplaced(const TMap<UObject*, UObject*>& R
 			WidgetHandlePool.RemoveAtSwap(HandleIndex);
 		}
 	}
-
-	// Fire the selection updated event to ensure everyone is watching the same widgets.
-	OnSelectedWidgetsChanged.Broadcast();
 }
 
 bool FWidgetBlueprintEditor::CanDeleteSelectedWidgets()
