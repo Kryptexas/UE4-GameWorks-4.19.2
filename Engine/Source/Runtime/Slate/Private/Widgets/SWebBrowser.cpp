@@ -165,3 +165,5 @@ FReply SWebBrowser::OnReloadClicked()
 	}
 	return FReply::Handled();
 }
+
+#undef LOCTEXT_NAMESPACE
