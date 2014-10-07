@@ -667,4 +667,22 @@ FBPVariableDescription const* UK2Node_Variable::GetBlueprintVarDescription() con
 	return nullptr;
 }
 
+bool UK2Node_Variable::CanPasteHere(const UEdGraph* TargetGraph) const
+{
+	// Do not allow pasting of variables in BPs that cannot handle them
+	if ( FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph)->BlueprintType == BPTYPE_MacroLibrary && VariableReference.IsSelfContext() )
+	{
+		// Self variables must be from a parent class to the macro BP
+		if(UProperty* Property = VariableReference.ResolveMember<UProperty>(this))
+		{
+			const UClass* CurrentClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
+			const UClass* PropertyClass = Property->GetOwnerClass()->GetAuthoritativeClass();
+			const bool bIsChildOf = CurrentClass->IsChildOf(PropertyClass);
+			return bIsChildOf;
+		}
+		return false;
+	}
+	return true;
+}
+
 #undef LOCTEXT_NAMESPACE

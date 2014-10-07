@@ -910,7 +910,16 @@ static bool IsUsingNonExistantVariable(const UEdGraphNode* InGraphNode, UBluepri
 			{
 				TArray<FName> CurrentVars;
 				FBlueprintEditorUtils::GetClassVariableList(OwnerBlueprint, CurrentVars);
-				if (false == CurrentVars.Contains(Variable->GetVarName()))
+				if ( false == CurrentVars.Contains(Variable->GetVarName()) )
+				{
+					bNonExistantVariable = true;
+				}
+			}
+			else if(Variable->VariableReference.IsLocalScope())
+			{
+				// If there is no member scope, or we can't find the local variable in the member scope, then it's non-existant
+				if(!Variable->VariableReference.GetMemberScope(Variable) 
+					||  (Variable->VariableReference.GetMemberScope(Variable) && !FBlueprintEditorUtils::FindLocalVariable(OwnerBlueprint, Variable->VariableReference.GetMemberScope(Variable), Variable->GetVarName())))
 				{
 					bNonExistantVariable = true;
 				}
@@ -1224,6 +1233,8 @@ void UEdGraphSchema_K2::OnCreateNonExistentVariable( UK2Node_Variable* Variable,
 {
 	if (UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
 	{
+		const FScopedTransaction Transaction( LOCTEXT("CreateMissingVariable", "Create Missing Variable") );
+
 		if (FBlueprintEditorUtils::AddMemberVariable(OwnerBlueprint,Variable->GetVarName(), Pin->PinType))
 		{
 			Variable->VariableReference.SetSelfMember( Variable->GetVarName() );
@@ -1231,12 +1242,38 @@ void UEdGraphSchema_K2::OnCreateNonExistentVariable( UK2Node_Variable* Variable,
 	}	
 }
 
-void UEdGraphSchema_K2::OnReplaceVariableForVariableNode( UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName)
+void UEdGraphSchema_K2::OnCreateNonExistentLocalVariable( UK2Node_Variable* Variable,  UBlueprint* OwnerBlueprint)
 {
 	if (UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
 	{
-		Variable->VariableReference.SetSelfMember( FName(*VariableName) );
+		const FScopedTransaction Transaction( LOCTEXT("CreateMissingLocalVariable", "Create Missing Local Variable") );
+
+		FName VarName = Variable->GetVarName();
+		if (FBlueprintEditorUtils::AddLocalVariable(OwnerBlueprint, Variable->GetGraph(), VarName, Pin->PinType))
+		{
+			FGuid LocalVarGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(OwnerBlueprint, Variable->GetGraph(), VarName);
+			if (LocalVarGuid.IsValid())
+			{
+				Variable->VariableReference.SetLocalMember(VarName, Variable->GetGraph()->GetName(), LocalVarGuid);
+			}
+		}
+	}	
+}
+
+void UEdGraphSchema_K2::OnReplaceVariableForVariableNode( UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName, bool bIsSelfMember)
+{
+	if(UEdGraphPin* Pin = Variable->FindPin(Variable->GetVarNameString()))
+	{
+		if (bIsSelfMember)
+		{
+			Variable->VariableReference.SetSelfMember( FName(*VariableName) );
+		}
+		else
+		{
+			Variable->VariableReference.SetLocalMember( FName(*VariableName), Variable->GetGraph()->GetName(), FBlueprintEditorUtils::FindLocalVariableGuidByName(OwnerBlueprint, Variable->GetGraph(), *VariableName));
+		}
 		Pin->PinName = VariableName;
+		Variable->ReconstructNode();
 	}
 }
 
@@ -1247,14 +1284,30 @@ void UEdGraphSchema_K2::GetReplaceNonExistentVariableMenu(FMenuBuilder& MenuBuil
 		TArray<FName> Variables;
 		FBlueprintEditorUtils::GetNewVariablesOfType(OwnerBlueprint, Pin->PinType, Variables);
 
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("Variables", "Variables"));
 		for (TArray<FName>::TIterator VarIt(Variables); VarIt; ++VarIt)
 		{
 			const FText AlternativeVar = FText::FromName( *VarIt );
 			const FText Desc = FText::Format( LOCTEXT("ReplaceNonExistantVarToolTip", "Variable '{0}' does not exist, replace with matching variable '{0}'?"), Variable->GetVarNameText(), AlternativeVar );
 
 			MenuBuilder.AddMenuEntry( AlternativeVar, Desc, FSlateIcon(), FUIAction(
-				FExecuteAction::CreateStatic(&UEdGraphSchema_K2::OnReplaceVariableForVariableNode, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint, (*VarIt).ToString() ) ) );
+				FExecuteAction::CreateStatic(&UEdGraphSchema_K2::OnReplaceVariableForVariableNode, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint, (*VarIt).ToString(), /*bIsSelfMember=*/true ) ) );
 		}
+		MenuBuilder.EndSection();
+
+		TArray<FName> LocalVariables;
+		FBlueprintEditorUtils::GetLocalVariablesOfType(Variable->GetGraph(), Pin->PinType, LocalVariables);
+
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("LocalVariables", "LocalVariables"));
+		for (TArray<FName>::TIterator VarIt(LocalVariables); VarIt; ++VarIt)
+		{
+			const FText AlternativeVar = FText::FromName( *VarIt );
+			const FText Desc = FText::Format( LOCTEXT("ReplaceNonExistantLocalVarToolTip", "Variable '{0}' does not exist, replace with matching localvariable '{0}'?"), Variable->GetVarNameText(), AlternativeVar );
+
+			MenuBuilder.AddMenuEntry( AlternativeVar, Desc, FSlateIcon(), FUIAction(
+				FExecuteAction::CreateStatic(&UEdGraphSchema_K2::OnReplaceVariableForVariableNode, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint, (*VarIt).ToString(), /*bIsSelfMember=*/false ) ) );
+		}
+		MenuBuilder.EndSection();
 	}
 }
 
@@ -1263,12 +1316,27 @@ void UEdGraphSchema_K2::GetNonExistentVariableMenu( const UEdGraphNode* InGraphN
 
 	if (const UK2Node_Variable* Variable = Cast<const UK2Node_Variable>(InGraphNode))
 	{
-		// create missing variable
-		{			
-			const FText Label = FText::Format( LOCTEXT("CreateNonExistentVar", "Create variable '{0}'"), Variable->GetVarNameText());
-			const FText Desc = FText::Format( LOCTEXT("CreateNonExistentVarToolTip", "Variable '{0}' does not exist, create it?"), Variable->GetVarNameText());
-			MenuBuilder->AddMenuEntry( Label, Desc, FSlateIcon(), FUIAction(
-				FExecuteAction::CreateStatic( &UEdGraphSchema_K2::OnCreateNonExistentVariable, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint) ) );
+		// Creating missing variables should never occur in a Macro Library or Interface, they do not support variables
+		if(OwnerBlueprint->BlueprintType != BPTYPE_MacroLibrary && OwnerBlueprint->BlueprintType != BPTYPE_Interface )
+		{		
+			// Creating missing member variables should never occur in a Function Library, they do not support variables
+			if(OwnerBlueprint->BlueprintType != BPTYPE_FunctionLibrary)
+			{
+				// create missing variable
+				const FText Label = FText::Format( LOCTEXT("CreateNonExistentVar", "Create variable '{0}'"), Variable->GetVarNameText());
+				const FText Desc = FText::Format( LOCTEXT("CreateNonExistentVarToolTip", "Variable '{0}' does not exist, create it?"), Variable->GetVarNameText());
+				MenuBuilder->AddMenuEntry( Label, Desc, FSlateIcon(), FUIAction(
+					FExecuteAction::CreateStatic( &UEdGraphSchema_K2::OnCreateNonExistentVariable, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint) ) );
+			}
+
+			// Only allow creating missing local variables if in a function graph
+			if(InGraphNode->GetGraph()->GetSchema()->GetGraphType(InGraphNode->GetGraph()) == GT_Function)
+			{
+				const FText Label = FText::Format( LOCTEXT("CreateNonExistentLocalVar", "Create local variable '{0}'"), Variable->GetVarNameText());
+				const FText Desc = FText::Format( LOCTEXT("CreateNonExistentLocalVarToolTip", "Local variable '{0}' does not exist, create it?"), Variable->GetVarNameText());
+				MenuBuilder->AddMenuEntry( Label, Desc, FSlateIcon(), FUIAction(
+					FExecuteAction::CreateStatic( &UEdGraphSchema_K2::OnCreateNonExistentLocalVariable, const_cast<UK2Node_Variable* >(Variable),OwnerBlueprint) ) );
+			}
 		}
 
 		// delete this node
@@ -1283,7 +1351,10 @@ void UEdGraphSchema_K2::GetNonExistentVariableMenu( const UEdGraphNode* InGraphN
 			TArray<FName> Variables;
 			FBlueprintEditorUtils::GetNewVariablesOfType(OwnerBlueprint, Pin->PinType, Variables);
 
-			if (Variables.Num() > 0)
+			TArray<FName> LocalVariables;
+			FBlueprintEditorUtils::GetLocalVariablesOfType(Variable->GetGraph(), Pin->PinType, LocalVariables);
+
+			if (Variables.Num() > 0 || LocalVariables.Num() > 0)
 			{
 				MenuBuilder->AddSubMenu(
 					FText::Format( LOCTEXT("ReplaceVariableWith", "Replace variable '{0}' with..."), Variable->GetVarNameText()),

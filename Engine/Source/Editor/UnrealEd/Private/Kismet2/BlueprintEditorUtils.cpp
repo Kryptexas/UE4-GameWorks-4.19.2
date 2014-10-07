@@ -3201,6 +3201,28 @@ void FBlueprintEditorUtils::GetNewVariablesOfType( const UBlueprint* Blueprint, 
 	}
 }
 
+void FBlueprintEditorUtils::GetLocalVariablesOfType( const UEdGraph* Graph, const FEdGraphPinType& Type, TArray<FName>& OutVars)
+{
+	if(Graph && Graph->GetSchema()->GetGraphType(Graph) == GT_Function)
+	{
+		TArray<UK2Node_FunctionEntry*> GraphNodes;
+		Graph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
+
+		bool bFoundLocalVariable = false;
+
+		// There is only ever 1 function entry
+		check(GraphNodes.Num() == 1);
+
+		for( auto& LocalVar : GraphNodes[0]->LocalVariables )
+		{
+			if(LocalVar.VarType == Type)
+			{
+				OutVars.Add(LocalVar.VarName);
+			}
+		}
+	}
+}
+
 // Adds a member variable to the blueprint.  It cannot mask a variable in any superclass.
 bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName& NewVarName, const FEdGraphPinType& NewVarType, const FString& DefaultValue/* = FString()*/)
 {
@@ -3217,6 +3239,8 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	{
 		return false; // fail
 	}
+
+	Blueprint->Modify();
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -3598,6 +3622,38 @@ FBPVariableDescription FBlueprintEditorUtils::DuplicateVariableDescription(UBlue
 	return NewVar;
 }
 
+bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName& InNewVarName, const FEdGraphPinType& InNewVarType)
+{
+	if(InTargetGraph != NULL && InTargetGraph->GetSchema()->GetGraphType(InTargetGraph) == GT_Function)
+	{
+		const FScopedTransaction Transaction( LOCTEXT("AddLocalVariable", "Add Local Variable") );
+		Blueprint->Modify();
+
+		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+		InTargetGraph->GetNodesOfClass(FunctionEntryNodes);
+		check(FunctionEntryNodes.Num());
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+		// Now create new variable
+		FBPVariableDescription NewVar;
+
+		NewVar.VarName = InNewVarName;
+		NewVar.VarGuid = FGuid::NewGuid();
+		NewVar.VarType = InNewVarType;
+		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
+		NewVar.Category = K2Schema->VR_DefaultCategory;
+
+		FunctionEntryNodes[0]->Modify();
+		FunctionEntryNodes[0]->LocalVariables.Add(NewVar);
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+		return true;
+	}
+	return false;
+}
+
 void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVarName)
 {
 	UEdGraph* ScopeGraph = FindScopeGraph(InBlueprint, InScope);
@@ -3725,15 +3781,13 @@ FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(UBlueprint* InB
 	return FindLocalVariable(InBlueprint, InScope, InVariableName, &DummyFunctionEntry);
 }
 
-FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
+FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
 {
-	UEdGraph* ScopeGraph = FindScopeGraph(InBlueprint, InScope);
-
 	FBPVariableDescription* ReturnVariable = NULL;
-	if(ScopeGraph)
+	if(InScopeGraph)
 	{
 		TArray<UK2Node_FunctionEntry*> GraphNodes;
-		ScopeGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
+		InScopeGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
 
 		bool bFoundLocalVariable = false;
 
@@ -3759,6 +3813,13 @@ FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprin
 	}
 
 	return ReturnVariable;
+}
+
+FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
+{
+	UEdGraph* ScopeGraph = FindScopeGraph(InBlueprint, InScope);
+
+	return FindLocalVariable(InBlueprint, ScopeGraph, InVariableName, OutFunctionEntry);
 }
 
 FName FBlueprintEditorUtils::FindLocalVariableNameByGuid(UBlueprint* InBlueprint, const FGuid& InVariableGuid)
@@ -3792,6 +3853,17 @@ FGuid FBlueprintEditorUtils::FindLocalVariableGuidByName(UBlueprint* InBlueprint
 {
 	FGuid ReturnGuid;
 	if(FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InScope, InVariableName))
+	{
+		ReturnGuid = LocalVariable->VarGuid;
+	}
+
+	return ReturnGuid;
+}
+
+FGuid FBlueprintEditorUtils::FindLocalVariableGuidByName(UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName InVariableName)
+{
+	FGuid ReturnGuid;
+	if(FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InScopeGraph, InVariableName))
 	{
 		ReturnGuid = LocalVariable->VarGuid;
 	}

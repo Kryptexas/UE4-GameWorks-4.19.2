@@ -57,6 +57,7 @@ public:
 	virtual FName GetCornerIcon() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface

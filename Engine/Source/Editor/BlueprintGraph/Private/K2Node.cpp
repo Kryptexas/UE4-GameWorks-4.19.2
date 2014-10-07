@@ -1285,6 +1285,7 @@ void FMemberReference::SetLocalMember(FName InMemberName, FString InScopeName, c
 	MemberName = InMemberName;
 	MemberScope = InScopeName;
 	MemberGuid = InMemberGuid;
+	bSelfContext = false;
 }
 
 void FMemberReference::InvalidateSelfScope()

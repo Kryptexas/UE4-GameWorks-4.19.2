@@ -4640,6 +4640,12 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 
 bool FBlueprintEditor::CanPasteNodes() const
 {
+	// Do not allow pasting into interface Blueprints
+	if (GetBlueprintObj()->BlueprintType == BPTYPE_Interface)
+	{
+		return false;
+	}
+
 	// Find the graph editor with focus
 	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
 	if (!FocusedGraphEd.IsValid())
@@ -5721,8 +5727,6 @@ void FBlueprintEditor::OnAddNewVariable()
 		++Index;
 	}
 
-	GetBlueprintObj()->Modify();
-
 	bool bSuccess = MyBlueprintWidget.IsValid() && FBlueprintEditorUtils::AddMemberVariable(GetBlueprintObj(), VarName, MyBlueprintWidget->GetLastPinTypeUsed());
 
 	if(!bSuccess)
@@ -5741,34 +5745,17 @@ void FBlueprintEditor::OnAddNewLocalVariable()
 	UEdGraph* TargetGraph = FBlueprintEditorUtils::GetTopLevelGraph(FocusedGraphEdPtr.Pin()->GetCurrentGraph());
 	check(TargetGraph->GetSchema()->GetGraphType(TargetGraph) == GT_Function);
 
-	if(TargetGraph != NULL)
+	FName VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"), FindField<UFunction>(GetBlueprintObj()->SkeletonGeneratedClass, TargetGraph->GetFName()));
+
+	bool bSuccess = MyBlueprintWidget.IsValid() && FBlueprintEditorUtils::AddLocalVariable(GetBlueprintObj(), TargetGraph, VarName, MyBlueprintWidget->GetLastPinTypeUsed());
+
+	if(!bSuccess)
 	{
-		const FScopedTransaction Transaction( LOCTEXT("AddLocalVariable", "Add Local Variable") );
-		GetBlueprintObj()->Modify();
-
-		// Figure out a decent place to stick the node
-		const FVector2D NewNodePos = TargetGraph->GetGoodPlaceForNewNode();
-
-		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
-		TargetGraph->GetNodesOfClass(FunctionEntryNodes);
-		check(FunctionEntryNodes.Num());
-
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-		// Now create new variable
-		FBPVariableDescription NewVar;
-
-		NewVar.VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"), FindField<UFunction>(GetBlueprintObj()->SkeletonGeneratedClass, TargetGraph->GetFName()));
-		NewVar.VarGuid = FGuid::NewGuid();
-		NewVar.VarType = GetMyBlueprintWidget()->GetLastPinTypeUsed();
-		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
-		NewVar.Category = K2Schema->VR_DefaultCategory;
-
-		FunctionEntryNodes[0]->Modify();
-		FunctionEntryNodes[0]->LocalVariables.Add(NewVar);
-
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
-		RenameNewlyAddedAction(NewVar.VarName);
+		LogSimpleMessage( LOCTEXT("AddLocalVariable_Error", "Adding new local variable failed.") );
+	}
+	else
+	{
+		RenameNewlyAddedAction(VarName);
 	}
 }
 
