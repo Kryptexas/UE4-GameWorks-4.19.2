@@ -284,7 +284,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (float)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Float")
 	static bool EqualEqual_FloatFloat(float A, float B);
 
-	/* Returns true if (|A - B| < ErrorTolerance) */
+	/* Returns true if A is nearly equal to B (|A - B| < ErrorTolerance) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Nearly Equal (float)", Keywords = "== equal"), Category="Math|Float")
 	static bool NearlyEqual_FloatFloat(float A, float B, float ErrorTolerance = 1.e-6f);
 
@@ -521,11 +521,15 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "RotateVectorAroundAxis"), Category="Math|Vector")
 	static FVector RotateAngleAxis(FVector InVect, float AngleDeg, FVector Axis);
 
-	/* Returns true if the values are equal (A == B) */
+	/* Returns true if two vectors are exactly equal (A == B) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (vector)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Vector")
 	static bool EqualEqual_VectorVector(FVector A, FVector B);
 
-	/* Returns true if the values are not equal (A != B) */
+	/* Returns true if two vectors are nearly equal (within a specified error tolerance) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NearlyEqual (vector)", Keywords = "== equal"), Category="Math|Vector")
+	static bool NearlyEqual_VectorVector(FVector A, FVector B, float ErrorTolerance = 1.e-6f);
+
+	/* Returns true if two vectors are not equal (A != B) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (vector)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Vector")
 	static bool NotEqual_VectorVector(FVector A, FVector B);
 
@@ -613,9 +617,13 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// Rotator functions.
 	//
 
-	//Returns true if rotator A is equal to rotator B (A == B)
+	//Returns true if rotator A is exactly equal to rotator B (A == B)
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (Rotator)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Rotator")
 	static bool EqualEqual_RotatorRotator(FRotator A, FRotator B);
+
+	//Returns true if rotator A is nearly equal to rotator B (within a specified error tolerance)
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NearlyEqual (Rotator)", Keywords = "== equal"), Category="Math|Rotator")
+	static bool NearlyEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance = 1.e-6f);
 
 	//Returns true if rotator A does not equal rotator B (A != B)
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (Rotator)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Rotator")

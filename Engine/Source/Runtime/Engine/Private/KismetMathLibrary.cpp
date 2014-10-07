@@ -688,6 +688,11 @@ bool UKismetMathLibrary::EqualEqual_VectorVector(FVector A, FVector B)
 	return (A.X == B.X) && (A.Y == B.Y) && (A.Z == B.Z);
 }	
 
+bool UKismetMathLibrary::NearlyEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
+{
+	return A.Equals(B, ErrorTolerance);
+}
+
 bool UKismetMathLibrary::NotEqual_VectorVector(FVector A, FVector B)
 {
 	return (A.X != B.X) || (A.Y != B.Y) || (A.Z != B.Z);
@@ -838,6 +843,11 @@ bool UKismetMathLibrary::EqualEqual_RotatorRotator(FRotator A, FRotator B)
 {
 	return (A.Pitch == B.Pitch) && (A.Yaw == B.Yaw) && (A.Roll == B.Roll);
 }	
+
+bool UKismetMathLibrary::NearlyEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance)
+{
+	return A.Equals(B, ErrorTolerance);
+}
 
 bool UKismetMathLibrary::NotEqual_RotatorRotator(FRotator A, FRotator B)
 {
