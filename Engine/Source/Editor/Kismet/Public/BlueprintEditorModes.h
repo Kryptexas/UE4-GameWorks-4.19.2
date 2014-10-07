@@ -4,7 +4,7 @@
 
 #include "BlueprintEditorModule.h"
 #include "BlueprintUtilities.h"
-
+#include "WorkflowOrientedApp/ApplicationMode.h"
 
 struct KISMET_API FBlueprintEditorApplicationModes
 {

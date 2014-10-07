@@ -7,6 +7,7 @@
 #include "ISequencer.h"
 #include "WidgetAnimation.h"
 #include "MovieScene.h"
+#include "UMGStyle.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

@@ -13,7 +13,7 @@
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Animation/MarginTrackEditor.h"
 #include "Animation/Sequencer2DTransformTrackEditor.h"
-
+#include "IUMGModule.h"
 #include "DesignerCommands.h"
 
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));

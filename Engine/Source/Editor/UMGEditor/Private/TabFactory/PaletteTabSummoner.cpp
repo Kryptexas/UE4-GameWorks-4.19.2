@@ -4,6 +4,7 @@
 
 #include "PaletteTabSummoner.h"
 #include "SPaletteView.h"
+#include "UMGStyle.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

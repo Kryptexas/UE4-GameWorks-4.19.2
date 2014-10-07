@@ -5,6 +5,7 @@
 #include "DesignerTabSummoner.h"
 #include "SDesignerView.h"
 #include "SScissorRectBox.h"
+#include "UMGStyle.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

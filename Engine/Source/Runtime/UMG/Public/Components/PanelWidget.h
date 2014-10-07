@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/PanelSlot.h"
+#include "Components/Widget.h"
 #include "PanelWidget.generated.h"
 
 /** The base class for all UMG panel widgets.  Panel widgets layout a collection of child widgets. */

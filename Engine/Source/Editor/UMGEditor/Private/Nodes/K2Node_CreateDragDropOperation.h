@@ -3,6 +3,7 @@
 #pragma once
 
 #include "K2Node.h"
+#include "K2Node_ConstructObjectFromClass.h"
 #include "K2Node_CreateDragDropOperation.generated.h"
 
 UCLASS()

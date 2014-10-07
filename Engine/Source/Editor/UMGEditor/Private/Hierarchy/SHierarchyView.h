@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
-#include "TreeFilterHandler.h"
+#include "Misc/TextFilter.h"
+#include "SCompoundWidget.h"
 #include "SHierarchyViewItem.h"
-
+#include "TreeFilterHandler.h"
 //TODO rename SUMGEditorHierarchy
 
 /**

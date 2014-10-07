@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+class SWidget;
+class FArrangedWidget;
+class FWidgetPath;
 
 /**
  * A set of utility functions used at design time for the widget blueprint editor.

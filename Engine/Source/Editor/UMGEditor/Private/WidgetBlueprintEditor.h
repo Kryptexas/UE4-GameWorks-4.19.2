@@ -5,6 +5,7 @@
 #include "Editor/Kismet/Public/BlueprintEditor.h"
 #include "ISequencer.h"
 #include "PreviewScene.h"
+#include "WidgetReference.h"
 
 class ISequencer;
 

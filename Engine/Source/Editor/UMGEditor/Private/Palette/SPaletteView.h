@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Misc/TextFilter.h"
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
 #include "TreeFilterHandler.h"

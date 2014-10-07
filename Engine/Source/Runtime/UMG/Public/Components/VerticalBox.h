@@ -1,8 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/PanelWidget.h"
 #include "VerticalBox.generated.h"
+
+class UVerticalBoxSlot;
 
 /**
  * A vertical box widget is a layout panel allowing child widgets to be automatically laid out

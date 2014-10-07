@@ -8,6 +8,7 @@
 #include "KismetReinstanceUtilities.h"
 #include "MovieScene.h"
 #include "K2Node_FunctionEntry.h"
+#include "Blueprint/WidgetTree.h"
 
 FOnWidgetBlueprintCompiled FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled = FOnWidgetBlueprintCompiled();
 

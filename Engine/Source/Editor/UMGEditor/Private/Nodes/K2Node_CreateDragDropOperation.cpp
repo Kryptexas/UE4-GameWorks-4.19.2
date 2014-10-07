@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
-#include "KismetCompiler.h"
+#include "Blueprint/DragDropOperation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "KismetCompiler.h"
 #include "K2ActionMenuBuilder.h"
-
 #include "K2Node_CreateDragDropOperation.h"
 
 #define LOCTEXT_NAMESPACE "UMG"

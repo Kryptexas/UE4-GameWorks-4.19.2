@@ -9,6 +9,7 @@
 #include "WidgetGraphSchema.h"
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
+#include "WidgetGraphSchema.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

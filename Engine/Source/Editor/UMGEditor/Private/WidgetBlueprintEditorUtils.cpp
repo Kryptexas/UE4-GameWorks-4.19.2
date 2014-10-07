@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
+#include "Components/PanelSlot.h"
+#include "Components/PanelWidget.h"
 #include "WidgetBlueprintEditorUtils.h"
 #include "WidgetBlueprintEditor.h"
 #include "Kismet2NameValidators.h"

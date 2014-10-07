@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/SlateWrapperTypes.h"
+#include "Components/Widget.h"
 #include "Geometry.h"
 #include "Engine/GameInstance.h"
 
 #include "NamedSlotInterface.h"
-
+#include "Slate/Anchors.h"
 #include "UserWidget.generated.h"
 
 static FGeometry NullGeometry;
@@ -14,7 +15,9 @@ static FSlateRect NullRect;
 static FSlateWindowElementList NullElementList;
 static FWidgetStyle NullStyle;
 
+class UWidget;
 class UWidgetAnimation;
+struct FAnchors;
 
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to

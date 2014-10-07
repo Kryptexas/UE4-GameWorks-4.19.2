@@ -12,11 +12,13 @@
 #include "PropertyCustomizationHelpers.h"
 
 #include "WidgetBlueprintApplicationModes.h"
-//#include "WidgetDefafaultsApplicationMode.h"
+#include "WidgetBlueprintEditorUtils.h"
 #include "WidgetDesignerApplicationMode.h"
 #include "WidgetGraphApplicationMode.h"
 
 #include "WidgetBlueprintEditorToolbar.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/CanvasPanel.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

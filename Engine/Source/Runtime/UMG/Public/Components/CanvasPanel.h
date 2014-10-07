@@ -1,8 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/PanelWidget.h"
 #include "CanvasPanel.generated.h"
+
+class UCanvasPanelSlot;
 
 /**
  * The canvas panel is a designer friendly panel that allows widgets to be laid out at arbitrary 

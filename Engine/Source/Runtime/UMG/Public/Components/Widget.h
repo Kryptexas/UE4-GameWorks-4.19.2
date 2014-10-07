@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Components/Visual.h"
 #include "SlateWrapperTypes.h"
 #include "WidgetTransform.h"
 
 #include "Widget.generated.h"
+
+class UPanelSlot;
 
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget

@@ -1,8 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Interface.h"
 #include "NamedSlotInterface.generated.h"
+
+class UWidget;
 
 /**  */
 UINTERFACE(MinimalAPI, meta=( CannotImplementInterfaceInBlueprint ))

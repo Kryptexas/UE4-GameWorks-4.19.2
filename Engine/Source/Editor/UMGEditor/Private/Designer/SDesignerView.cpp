@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "Extensions/CanvasSlotExtension.h"
+#include "Extensions/GridSlotExtension.h"
+#include "Extensions/HorizontalSlotExtension.h"
+#include "Extensions/UniformGridSlotExtension.h"
+#include "Extensions/VerticalSlotExtension.h"
 #include "SDesignerView.h"
 
 #include "BlueprintEditor.h"
