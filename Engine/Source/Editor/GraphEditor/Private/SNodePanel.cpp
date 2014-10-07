@@ -677,7 +677,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 				// Update the amount to pan panel
 				UpdateViewOffset(MyGeometry, MouseEvent.GetScreenSpacePosition());
 
-				const bool bCursorInDeadZone = TotalMouseDelta <= SlatePanTriggerDistance;
+				const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
 
 				if ( NodeBeingDragged.IsValid() )
 				{
@@ -774,7 +774,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 	// Did the user move the cursor sufficiently far, or is it in a dead zone?
 	// In Dead zone     - implies actions like summoning context menus and general clicking.
 	// Out of Dead Zone - implies dragging actions like moving nodes and marquee selection.
-	const bool bCursorInDeadZone = TotalMouseDelta <= SlatePanTriggerDistance;
+	const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
 
 	// Set to true later if we need to finish with the software cursor
 	bool bRemoveSoftwareCursor = false;

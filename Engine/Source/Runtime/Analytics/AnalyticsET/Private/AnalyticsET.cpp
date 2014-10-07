@@ -160,7 +160,7 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 	FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSAPPVERSION="), ConfigAppVersion, false);
 	AppVersion = ConfigAppVersion.IsEmpty() 
 		? GEngineVersion.ToString() 
-		: ConfigAppVersion.Replace(TEXT("{VERSION}"), *GEngineVersion.ToString(), ESearchCase::CaseSensitive);
+		: ConfigAppVersion.Replace(TEXT("%VERSION%"), *GEngineVersion.ToString(), ESearchCase::CaseSensitive);
 
 	UE_LOG(LogAnalytics, Log, TEXT("ET APIKey = %s. APIServer = %s. AppVersion = %s"), *APIKey, *APIServer, *AppVersion);
 

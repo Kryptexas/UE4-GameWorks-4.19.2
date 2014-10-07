@@ -371,6 +371,7 @@ FSlateApplication::FSlateApplication()
 	: bAppIsActive(true)
 	, bSlateWindowActive(true)
 	, Scale( 1.0f )
+	, DragTriggerDistnace( 5.0f )
 	, LastUserInteractionTimeForThrottling( 0.0 )
 	, SlateSoundDevice( MakeShareable(new FNullSlateSoundDevice()) )
 	, CurrentTime( FPlatformTime::Seconds() )
@@ -2595,6 +2596,16 @@ void FSlateApplication::SetUnhandledKeyDownEventHandler( const FOnKeyboardEvent&
 	UnhandledKeyDownEventHandler = NewHandler;
 }
 
+float FSlateApplication::GetDragTriggerDistnace() const
+{
+	return DragTriggerDistnace;
+}
+
+void FSlateApplication::SetDragTriggerDistnace( float ScreenPixels )
+{
+	DragTriggerDistnace = ScreenPixels;
+}
+
 FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation ) const
 {
 	// Do nothing if this window has no size
@@ -3731,7 +3742,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 	if( DragDetector.DetectDragForWidget.IsValid() )
 	{	
 		const FVector2D DragDelta = (DragDetector.DetectDragStartLocation - MouseEvent.GetScreenSpacePosition());
-		bDragDetected = ( DragDelta.Size() > SlateDragStartDistance );
+		bDragDetected = ( DragDelta.Size() > FSlateApplication::Get().GetDragTriggerDistnace() );
 		if (bDragDetected)
 		{
 			FWidgetPath DragDetectPath = DragDetector.DetectDragForWidget.ToWidgetPath();

@@ -475,6 +475,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityCustom(const float* pos, const float
 	float minPenalty = FLT_MAX;
 	float cr = vmax * (1.0f - m_params.velBias);
 	float res[3];
+	bool bFoundSample = false;
 	dtVset(res, dvel[0] * m_params.velBias, 0, dvel[2] * m_params.velBias);
 
 	for (int i = 0; i < pattern.nsamples; ++i)
@@ -489,9 +490,15 @@ int dtObstacleAvoidanceQuery::sampleVelocityCustom(const float* pos, const float
 		const float penalty = processSample(vcand, 20.0f, pos, rad, vel, dvel, debug);
 		if (penalty < minPenalty)
 		{
+			bFoundSample = true;
 			minPenalty = penalty;
 			dtVcopy(nvel, vcand);
 		}
+	}
+
+	if (!bFoundSample)
+	{
+		dtVcopy(nvel, dvel);
 	}
 
 	return pattern.nsamples;

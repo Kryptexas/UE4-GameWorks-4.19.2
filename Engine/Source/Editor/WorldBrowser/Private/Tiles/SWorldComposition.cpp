@@ -422,7 +422,7 @@ public:
 					// Update the amount to pan panel
 					UpdateViewOffset(MyGeometry, MouseEvent.GetScreenSpacePosition());
 
-					const bool bCursorInDeadZone = TotalMouseDelta <= SlatePanTriggerDistance;
+					const bool bCursorInDeadZone = TotalMouseDelta <= FSlateApplication::Get().GetDragTriggerDistnace();
 
 					if ( NodeBeingDragged.IsValid() )
 					{

@@ -158,7 +158,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 			}
 		}
 
-		CompositeOb->InitializeComposite(InitList.Num() - 1);
+		CompositeOb->InitializeComposite(ExecutionIndex - 1);
 	}
 }
 

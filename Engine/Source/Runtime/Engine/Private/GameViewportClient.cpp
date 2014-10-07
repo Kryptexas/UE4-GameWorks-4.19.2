@@ -422,7 +422,6 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
-		UE_LOG(LogTemp, Log, TEXT("MouseLeave"));
 		FIntPoint LastViewportCursorPos;
 		Viewport->GetMousePos(LastViewportCursorPos, false);
 		const FVector2D CurrentCursorPos = FSlateApplication::Get().GetCursorPos();

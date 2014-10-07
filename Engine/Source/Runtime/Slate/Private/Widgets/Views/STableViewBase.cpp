@@ -458,10 +458,10 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
 		TickScrollDelta -= ScrollByAmount;
 
-		const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, AllowOverscroll );
-
-		if (AmountScrolledWhileRightMouseDown > SlatePanTriggerDistance)
+		if (AmountScrolledWhileRightMouseDown > FSlateApplication::Get().GetDragTriggerDistnace())
 		{
+			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
+
 			// The user has moved the list some amount; they are probably
 			// trying to scroll. From now on, the list assumes the user is scrolling
 			// until they lift their finger.
@@ -506,7 +506,7 @@ TSharedPtr<SHeaderRow> STableViewBase::GetHeaderRow() const
 
 bool STableViewBase::IsRightClickScrolling() const
 {
-	return AmountScrolledWhileRightMouseDown >= SlatePanTriggerDistance &&
+	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistnace() &&
 		(this->ScrollBar->IsNeeded() || AllowOverscroll == EAllowOverscroll::Yes);
 }
 

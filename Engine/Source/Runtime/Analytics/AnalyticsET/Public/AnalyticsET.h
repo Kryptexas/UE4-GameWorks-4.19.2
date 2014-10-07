@@ -41,7 +41,7 @@ public:
 		/** 
 		 * AppVersion - defines the app version passed to the provider. By default this will be GEngineVersion, but you can supply your own. 
 		 * As a convenience, you can use -AnalyticsAppVersion=XXX to force the AppVersion to a specific value. Useful for playtest etc where you want to define a specific version string dynamically.
-		 * If you supply your own Version string, occurrences of "{VERSION}" are replaced with GEngineVersion. ie, -AnalyticsAppVersion=MyCustomID-{VERSION}.
+		 * If you supply your own Version string, occurrences of "%VERSION%" are replaced with GEngineVersion. ie, -AnalyticsAppVersion=MyCustomID-%VERSION%.
 		 */
 		FString AppVersionET;
 

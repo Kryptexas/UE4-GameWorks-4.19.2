@@ -333,7 +333,7 @@ void SScrollBox::ClearChildren()
 
 bool SScrollBox::IsRightClickScrolling() const
 {
-	return AmountScrolledWhileRightMouseDown >= SlatePanTriggerDistance && this->ScrollBar->IsNeeded();
+	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistnace() && this->ScrollBar->IsNeeded();
 }
 
 float SScrollBox::GetScrollOffset()

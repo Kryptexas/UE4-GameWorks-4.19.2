@@ -211,7 +211,8 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 
 FReply SButton::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.IsTouchEvent() && TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.GetCursorDelta().SizeSquared() != 0 )
+	const float SlateDragStartDistance = FSlateApplication::Get().GetDragTriggerDistnace();
+	if ( MouseEvent.IsTouchEvent() && TouchMethod == EButtonTouchMethod::PreciseTap && MouseEvent.GetCursorDelta().SizeSquared() > (SlateDragStartDistance*SlateDragStartDistance) )
 	{
 		bIsPressed = false;
 	}
