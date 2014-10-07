@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "EdGraph/EdGraphNode_Comment.h"
+#include "EdGraphNode_Comment.h"
+#include "MaterialGraph/MaterialGraph.h"
+
 #include "MaterialGraphNode_Comment.generated.h"
 
 UCLASS(MinimalAPI)

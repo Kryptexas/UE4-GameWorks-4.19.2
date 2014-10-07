@@ -2,6 +2,8 @@
 
 #include "MaterialEditorModule.h"
 
+#include "MaterialGraph/MaterialGraphNode_Comment.h"
+
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionComment.h"

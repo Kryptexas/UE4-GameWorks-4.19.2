@@ -40,38 +40,38 @@ class UEdGraphNode_Comment : public UEdGraphNode
 public:
 
 	// Begin UObject Interface
-	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	UNREALED_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override {}
-	ENGINE_API virtual FText GetTooltipText() const override;
-	ENGINE_API virtual FLinearColor GetNodeCommentColor() const override;
-	ENGINE_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	UNREALED_API virtual FText GetTooltipText() const override;
+	UNREALED_API virtual FLinearColor GetNodeCommentColor() const override;
+	UNREALED_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldOverridePinNames() const override { return true; }
-	ENGINE_API virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const override;
-	ENGINE_API virtual void ResizeNode(const FVector2D& NewSize) override;
-	ENGINE_API virtual void PostPlacedNewNode() override;
-	ENGINE_API virtual void OnRenameNode(const FString& NewName) override;
-	ENGINE_API virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
+	UNREALED_API virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const override;
+	UNREALED_API virtual void ResizeNode(const FVector2D& NewSize) override;
+	UNREALED_API virtual void PostPlacedNewNode() override;
+	UNREALED_API virtual void OnRenameNode(const FString& NewName) override;
+	UNREALED_API virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
 	virtual bool ShouldDrawNodeAsComment() const override { return true; }
-	ENGINE_API virtual FString GetDocumentationLink() const override;
-	ENGINE_API virtual FString GetDocumentationExcerptName() const override;
-	ENGINE_API virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
+	UNREALED_API virtual FString GetDocumentationLink() const override;
+	UNREALED_API virtual FString GetDocumentationExcerptName() const override;
+	UNREALED_API virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	// End UEdGraphNode interface
 
 	/** Add a node that will be dragged when this comment is dragged */
-	ENGINE_API void	AddNodeUnderComment(UObject* Object);
+	UNREALED_API void	AddNodeUnderComment(UObject* Object);
 
 	/** Clear all of the nodes which are currently being dragged with this comment */
-	ENGINE_API void	ClearNodesUnderComment();
+	UNREALED_API void	ClearNodesUnderComment();
 
 	/** Set the Bounds for the comment node */
-	ENGINE_API void SetBounds(const class FSlateRect& Rect);
+	UNREALED_API void SetBounds(const class FSlateRect& Rect);
 
 	/** Return the set of nodes underneath the comment */
-	ENGINE_API const FCommentNodeSet& GetNodesUnderComment() const;
+	UNREALED_API const FCommentNodeSet& GetNodesUnderComment() const;
 
 private:
 	/** Nodes currently within the region of the comment */

@@ -59,7 +59,7 @@ class ENGINE_API UEdGraph : public UObject
 
 	/** The schema that this graph obeys */
 	UPROPERTY()
-	TSubclassOf<UEdGraphSchema>  Schema;
+	TSubclassOf<class UEdGraphSchema>  Schema;
 
 	/** Set of all nodes in this graph */
 	UPROPERTY()
@@ -95,7 +95,7 @@ public:
 	template <typename NodeType> friend struct FGraphNodeCreator;
 
 	/** Get the schema associated with this graph */
-	const UEdGraphSchema* GetSchema() const;
+	const class UEdGraphSchema* GetSchema() const;
 
 	/** Add a listener for OnGraphChanged events */
 	void AddOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler );

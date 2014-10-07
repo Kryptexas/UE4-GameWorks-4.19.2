@@ -39,7 +39,7 @@
 #include "K2Node_DynamicCast.h"
 #include "K2Node_ClassDynamicCast.h"
 // used below in BlueprintActionDatabaseImpl::GetNodeSpectificActions()
-#include "EdGraph/EdGraphNode_Comment.h"
+#include "EdGraphNode_Comment.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionDatabase"

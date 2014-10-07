@@ -119,7 +119,7 @@ public:
 	 *
 	 * @param	GraphPin	Pin representing the material input
 	 */
-	UNREALED_API bool IsInputActive(UEdGraphPin* GraphPin) const;
+	UNREALED_API bool IsInputActive(class UEdGraphPin* GraphPin) const;
 
 	/**
 	 * Get a list of nodes representing expressions that are not used in the Material

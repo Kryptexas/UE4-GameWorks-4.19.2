@@ -4,6 +4,7 @@
 #include "Materials/MaterialExpressionComment.h"
 #include "SGraphNodeComment.h"
 #include "SGraphNodeMaterialComment.h"
+#include "MaterialGraph/MaterialGraphNode_Comment.h"
 
 void SGraphNodeMaterialComment::Construct(const FArguments& InArgs, class UMaterialGraphNode_Comment* InNode)
 {
