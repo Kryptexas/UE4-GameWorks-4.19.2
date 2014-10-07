@@ -4,12 +4,11 @@
 #include "EdGraphNode_Comment.h"
 
 #include "BlueprintUtilities.h"
-#if WITH_EDITOR
+#include "GraphEditorSettings.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Slate.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
-#endif
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
@@ -21,30 +20,25 @@ UEdGraphNode_Comment::UEdGraphNode_Comment(const class FPostConstructInitializeP
 {
 	NodeWidth = 400.0f;
 	NodeHeight = 100.0f;
-	CommentColor = FLinearColor::White;
+	CommentColor = GetDefault<UGraphEditorSettings>()->DefaultCommentNodeTitleColor;
 	bColorCommentBubble = false;
 	MoveMode = ECommentBoxMode::GroupMovement;
 
-#if WITH_EDITORONLY_DATA
 	bCanResizeNode = true;
 	bCanRenameNode = true;
-#endif // WITH_EDITORONLY_DATA
 }
 
 void UEdGraphNode_Comment::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector) 
 {
-#if WITH_EDITOR
 	UEdGraphNode_Comment* This = CastChecked<UEdGraphNode_Comment>(InThis);
 	for (auto It = This->NodesUnderComment.CreateIterator(); It; ++It)
 	{
 		Collector.AddReferencedObject(*It, This);
 	}
-#endif // WITH_EDITOR
 
 	Super::AddReferencedObjects(InThis, Collector);
 }
 
-#if WITH_EDITOR
 void UEdGraphNode_Comment::PostPlacedNewNode()
 {
 	//@TODO: Consider making the default value we use here a preference
@@ -152,7 +146,6 @@ TSharedPtr<class INameValidatorInterface> UEdGraphNode_Comment::MakeNameValidato
 	// Comments can be duplicated, etc...
 	return MakeShareable(new FDummyNameValidator(EValidatorResult::Ok));
 }
-#endif // WITH_EDITOR
 
 /////////////////////////////////////////////////////
 

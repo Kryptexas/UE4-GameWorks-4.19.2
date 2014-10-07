@@ -210,6 +210,10 @@ public:
 	UPROPERTY(EditAnywhere,  config, Category=NodeTitleColors)
 	FLinearColor ResultNodeTitleColor;
 
+	/** Default Comment node title color */
+	UPROPERTY(EditAnywhere, config, Category=NodeTitleColors)
+	FLinearColor DefaultCommentNodeTitleColor;
+
 public:
 
 	UPROPERTY(EditAnywhere,  config, Category=Tracing)
