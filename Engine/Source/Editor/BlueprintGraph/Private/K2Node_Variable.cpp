@@ -322,6 +322,34 @@ UEdGraphPin* UK2Node_Variable::GetValuePin() const
 	return Pin;
 }
 
+void UK2Node_Variable::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+	if (!bDuplicateForPIE && (!this->HasAnyFlags(RF_Transient)))
+	{
+		// Self context variable nodes need to be updated with the new Blueprint class
+		if(VariableReference.IsSelfContext())
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			if(UEdGraphPin* SelfPin = K2Schema->FindSelfPin(*this, EGPD_Input))
+			{
+				UClass* TargetClass = nullptr;
+
+				if(UProperty* Property = VariableReference.ResolveMember<UProperty>(this))
+				{
+					TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
+				}
+				else
+				{
+					TargetClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
+				}
+
+				SelfPin->PinType.PinSubCategoryObject = TargetClass;
+			}
+		}
+	}
+}
+
 void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);

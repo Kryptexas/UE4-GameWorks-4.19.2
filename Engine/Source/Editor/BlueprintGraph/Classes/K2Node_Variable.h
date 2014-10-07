@@ -45,6 +45,7 @@ protected:
 
 public:
 	// Begin UObject interface
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface
 
