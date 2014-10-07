@@ -575,7 +575,7 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 				{
 					// export as a pointer if this is an optional out parm, reference if it's just an out parm, standard otherwise...
 					TCHAR ModifierString[2]={0,0};
-					if ( HasAnyPropertyFlags(CPF_OutParm) || bIsInterfaceProp )
+					if (HasAnyPropertyFlags(CPF_OutParm | CPF_ReferenceParm) || bIsInterfaceProp)
 					{
 						ModifierString[0] = TEXT('&');
 					}

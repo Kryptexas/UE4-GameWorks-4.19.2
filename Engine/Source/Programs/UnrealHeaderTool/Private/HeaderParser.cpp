@@ -3253,7 +3253,11 @@ bool FHeaderParser::GetVarType
 			case EVariableCategory::ReplicatedParameter:
 			{
 				if (!(Flags & CPF_ConstParm))
+				{
 					FError::Throwf(TEXT("Replicated %s parameters cannot be passed by non-const reference"), VarType.Identifier);
+				}
+
+				Flags |= CPF_ReferenceParm;
 			}
 			break;
 
