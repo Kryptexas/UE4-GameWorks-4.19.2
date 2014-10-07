@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayAbility.h"
 #include "GameplayAbilityTargetDataFilter.generated.h"
 
 UENUM(BlueprintType)
