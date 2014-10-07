@@ -273,12 +273,6 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 UProjectPackagingSettings::UProjectPackagingSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 {
-	BuildConfiguration = PPBC_Development;
-	FullRebuild = true;
-	UsePakFile = true;
-	IncludePrerequisites = true;
-	UseOBB_InAPK = false;
-	CulturesToStage.Add("en");
 }
 
 
