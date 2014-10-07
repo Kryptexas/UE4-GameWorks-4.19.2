@@ -315,10 +315,8 @@ private:
 	
 	struct FRange
 	{
-		uint32	StartVector;
-		uint32	NumVectors;
-
-		void MarkDirtyRange(uint32 NewStartVector, uint32 NewNumVectors);
+		uint32	LowVector;
+		uint32	HighVector;
 	};
 	/** Dirty ranges for each uniform array. */
 	FRange	PackedGlobalUniformDirty[CrossCompiler::PACKED_TYPEINDEX_MAX];
