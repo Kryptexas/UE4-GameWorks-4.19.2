@@ -5,21 +5,24 @@ SCRIPT_DIR=$(cd "$(dirname "$BASH_SOURCE")" ; pwd)
 export ARCHIVE_ROOT=$HOME/Downloads
 export GITHUB_TAG=4.5.0-preview
 
-IsGithubBuild()
+IS_GITHUB_BUILD=true
+FORCE_UPDATEDEPS=false
+
+CheckArgs()
 {
   # if p4 is installed, assume building out of perforce repo (no need to download and fix dependencies)
+  if which p4 > /dev/null; then
+    IS_GITHUB_BUILD=false	# perforce
+  fi
+
   # Override this with -git
   for Arg in $@; do
     if [ "$Arg" == "-git" ]; then
-      return 0
+      IS_GITHUB_BUILD=true
+    elif [ "$Arg" == "-updatedeps" ]; then
+      FORCE_UPDATEDEPS=true     
     fi
   done
-
-  if which p4 > /dev/null; then
-    return 1	# perforce
-  fi
-
-  return 0
 }
 
 
@@ -34,6 +37,8 @@ located inside the Engine/Build/BatchFiles/Linux directory."
   exit 1
 fi
 
+CheckArgs $@
+
 if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" = "Distributor ID:	Debian" -o "$(lsb_release --id)" = "Distributor ID:	Linux Mint" ]; then
   # Install all necessary dependencies
   DEPS="mono-xbuild \
@@ -46,6 +51,7 @@ if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" =
     libmono-corlib4.0-cil
     libqt4-dev
     dos2unix
+    cmake
     "
 
   for DEP in $DEPS; do
@@ -59,12 +65,13 @@ if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" =
 fi
 
 echo 
-if IsGithubBuild $@; then
+if [ "$IS_GITHUB_BUILD" = true ]; then
 	echo
 	echo Github build
 	echo Checking / downloading the latest archives
 	echo
 	set +e
+        chmod +x Build/BatchFiles/Linux/GetAssets.py
 	Build/BatchFiles/Linux/GetAssets.py EpicGames/UnrealEngine $GITHUB_TAG 
 	UpdateResult=$?
 	set -e
@@ -76,7 +83,7 @@ if IsGithubBuild $@; then
         fi
 
 	# check if it had to download anything
-	if [ $UpdateResult -eq 2 ]; then
+	if [ $UpdateResult -eq 2 -o "$FORCE_UPDATEDEPS" = true ]; then
 	  echo
           echo Downloaded new binaries!
 	  echo Unpacking and massaging the files
@@ -109,12 +116,12 @@ CreateLinkIfNoneExists()
     WrongName=$1
     CorrectName=$2
 
-    pushd `dirname $CorrectName`
+    pushd `dirname $CorrectName` > /dev/null
     if [ ! -f `basename $CorrectName` ] && [ -f $WrongName ]; then
       echo "$WrongName -> $CorrectName"
       ln -sf $WrongName `basename $CorrectName`
     fi
-    popd
+    popd > /dev/null
 }
 
 
