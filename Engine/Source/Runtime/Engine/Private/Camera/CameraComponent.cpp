@@ -7,6 +7,9 @@
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 
+static void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValue);
+
+
 //////////////////////////////////////////////////////////////////////////
 // UCameraComponent
 
@@ -29,6 +32,9 @@ UCameraComponent::UCameraComponent(const class FPostConstructInitializePropertie
 	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
 	bUsePawnControlRotation = false;
 	bAutoActivate = true;
+
+	// Init deprecated var, for old code that may refer to it.
+	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void UCameraComponent::OnRegister()
@@ -61,6 +67,9 @@ void UCameraComponent::OnRegister()
 #endif
 
 	Super::OnRegister();
+
+	// Init deprecated var, for old code that may refer to it.
+	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void UCameraComponent::OnUnregister()
@@ -98,6 +107,9 @@ void UCameraComponent::PostLoad()
 	{
 		bUsePawnControlRotation = bUseControllerViewRotation_DEPRECATED;
 	}
+
+	// Init deprecated var, for old code that may refer to it.
+	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 
@@ -187,4 +199,30 @@ void UCameraComponent::CheckForErrors()
 	}
 }
 #endif
+
+
+void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValue)
+{
+	// BEGIN_IGNORE_DEPRECATION_WARNINGS
+	#ifdef __clang__
+		#pragma clang diagnostic push
+		#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	#else
+		#pragma warning(push)
+		#pragma warning(disable:4995)
+		#pragma warning(disable:4996)
+	#endif
+
+	Component.bUseControllerViewRotation = bValue;
+
+	// END_IGNORE_DEPRECATION_WARNINGS
+	#ifdef __clang__
+		#pragma clang diagnostic pop
+	#else
+		#pragma warning(pop)
+	#endif
+}
+
+
 #undef LOCTEXT_NAMESPACE
+
