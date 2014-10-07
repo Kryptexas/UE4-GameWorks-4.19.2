@@ -5,9 +5,8 @@
 
 #if !PLATFORM_HTML5_WIN32 
 #include <emscripten.h>
-#else
-#include <SDL/SDL.h>
 #endif
+#include <SDL/SDL.h>
 
 FHTML5Window::~FHTML5Window()
 {
