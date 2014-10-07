@@ -107,7 +107,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			.NameContent()
 			[
 				SNew(STextBlock)
-					.Text(LOCTEXT("ForwardRatesUnthinned", "Forward Rates (Unhinned)"))
+					.Text(LOCTEXT("ForwardRatesUnthinned", "Forward Rates (Unthinned)"))
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.ValueContent()
