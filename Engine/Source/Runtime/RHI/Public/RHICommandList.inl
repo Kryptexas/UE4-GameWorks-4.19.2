@@ -59,6 +59,7 @@ FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::ImmediateFlush(EImmediateF
 			{
 				GRHICommandList.ExecuteList(*this);
 			}
+			WaitForDispatch();
 			if (GRHIThread)
 			{
 				WaitForRHIThreadTasks();
@@ -72,6 +73,7 @@ FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::ImmediateFlush(EImmediateF
 			{
 				GRHICommandList.ExecuteList(*this);
 			}
+			WaitForDispatch();
 			WaitForRHIThreadTasks();
 			WaitForTasks(true); // these are already done, but this resets the outstanding array
 			FRHIResource::FlushPendingDeletes();

@@ -77,6 +77,7 @@ public:
 	void QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList);
 	void QueueCommandListSubmit(class FRHICommandList* CmdList);
 	void WaitForTasks(bool bKnownToBeComplete = false);
+	void WaitForDispatch();
 	void WaitForRHIThreadTasks();
 	void HandleRTThreadTaskCompletion(const FGraphEventRef& MyCompletionGraphEvent);
 
