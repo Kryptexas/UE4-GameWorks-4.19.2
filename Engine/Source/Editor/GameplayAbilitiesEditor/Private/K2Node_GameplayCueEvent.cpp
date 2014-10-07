@@ -57,6 +57,8 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 	FGameplayTag RootTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(TEXT("GameplayCue")));
 
 	FGameplayTagContainer CueTags = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagChildren(RootTag);
+	// Add a root GameplayCue function as a default
+	CueTags.AddTag(RootTag);
 
 	// Fixme: need to check if this function is already defined so that it can be reimplemented
 	//	-Checking MyBlueprint->GeneratedClass isn't enough since they may have added an event and not recompiled
@@ -109,7 +111,10 @@ void UK2Node_GameplayCueEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar&
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	FGameplayTag RootTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(TEXT("GameplayCue")));
 	
+	
 	FGameplayTagContainer CueTags = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagChildren(RootTag);
+	// Add a root GameplayCue function as a default
+	CueTags.AddTag(RootTag);
 	for (auto TagIt = CueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
 		UBlueprintNodeSpawner::FCustomizeNodeDelegate PostSpawnDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeCueNodeLambda, TagIt->GetTagName());

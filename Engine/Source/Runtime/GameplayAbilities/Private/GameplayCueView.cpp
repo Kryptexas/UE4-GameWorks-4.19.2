@@ -47,17 +47,17 @@ FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEven
 	return NULL;
 }
 
-void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext)
 {
 	check(Owner);
-	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool InstigatorLocal = EffectContext.IsLocallyControlled();
 	bool TargetLocal = OwnerIsLocallyControlled();
 	
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
 		if (FGameplayCueViewInfo* View = GetBestMatchingView(EGameplayCueEvent::OnActive, *TagIt, InstigatorLocal, TargetLocal))
 		{
-			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
+			View->SpawnViewEffects(Owner, NULL, EffectContext);
 		}
 
 		FName MatchedTag;
@@ -66,32 +66,32 @@ void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer& Game
 		{
 			FGameplayCueParameters Params;
 			Params.NormalizedMagnitude = NormalizedMagnitude;
-			Params.InstigatorContext = InstigatorContext;
+			Params.EffectContext = EffectContext;
 
 			IGameplayCueInterface::DispatchBlueprintCustomHandler(Owner, Func, EGameplayCueEvent::OnActive, Params);
 		}
 	}
 }
 
-void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext)
 {
 	check(Owner);
-	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool InstigatorLocal = EffectContext.IsLocallyControlled();
 	bool TargetLocal = OwnerIsLocallyControlled();
 
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
 		if (FGameplayCueViewInfo* View = GetBestMatchingView(EGameplayCueEvent::Executed, *TagIt, InstigatorLocal, TargetLocal))
 		{
-			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
+			View->SpawnViewEffects(Owner, NULL, EffectContext);
 		}
 	}
 }
 
-void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext)
 {
 	check(Owner);
-	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool InstigatorLocal = EffectContext.IsLocallyControlled();
 	bool TargetLocal = OwnerIsLocallyControlled();
 
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
@@ -104,16 +104,16 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer& Gameplay
 
 		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::WhileActive, *TagIt, InstigatorLocal, TargetLocal))
 		{
-			TSharedPtr<FGameplayCueViewEffects> SpawnedEffects = View->SpawnViewEffects(Owner, &SpawnedObjects, InstigatorContext);
+			TSharedPtr<FGameplayCueViewEffects> SpawnedEffects = View->SpawnViewEffects(Owner, &SpawnedObjects, EffectContext);
 			Effects.Add(SpawnedEffects);
 		}
 	}
 }
 
-void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer& GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectContextHandle& EffectContext)
 {
 	check(Owner);
-	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool InstigatorLocal = EffectContext.IsLocallyControlled();
 	bool TargetLocal = OwnerIsLocallyControlled();
 
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
@@ -129,7 +129,7 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer& Gamepl
 		
 		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Removed, *TagIt, InstigatorLocal, TargetLocal))
 		{
-			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
+			View->SpawnViewEffects(Owner, NULL, EffectContext);
 		}
 
 		FName MatchedTag;
@@ -138,7 +138,7 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer& Gamepl
 		{
 			FGameplayCueParameters Params;
 			Params.NormalizedMagnitude = NormalizedMagnitude;
-			Params.InstigatorContext = InstigatorContext;
+			Params.EffectContext = EffectContext;
 
 			IGameplayCueInterface::DispatchBlueprintCustomHandler(Owner, Func, EGameplayCueEvent::Removed, Params);
 		}
@@ -193,7 +193,7 @@ void FGameplayCueHandler::ClearEffects(TArray< TSharedPtr<FGameplayCueViewEffect
 	}
 }
 
-TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActor *Owner, TArray<UObject*> *SpawnedObjects, const FGameplayEffectInstigatorContext InstigatorContext) const
+TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActor *Owner, TArray<UObject*> *SpawnedObjects, const FGameplayEffectContextHandle& EffectContext) const
 {
 	check(Owner);
 
@@ -209,9 +209,9 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 	}
 	if (ParticleSystem)
 	{
-		if (InstigatorContext.HitResult.IsValid())
+		if (EffectContext.GetHitResult())
 		{
-			FHitResult &HitResult = *InstigatorContext.HitResult.Get();
+			const FHitResult &HitResult = *EffectContext.GetHitResult();
 
 			if (AttachParticleSystem)
 			{

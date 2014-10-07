@@ -150,6 +150,10 @@ struct FGameplayEffectCue
 		GameplayCueTags.AddTag(InTag);
 	}
 
+	/** The attribute to use as the source for cue magnitude. If none use level */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
+	FGameplayAttribute MagnitudeAttribute;
+
 	/** The minimum level that this Cue supports */
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	float	MinLevel;
@@ -787,7 +791,7 @@ private:
  */
 struct FModifierSpec
 {
-	FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData, AActor *Owner = NULL, float Level = 0.f);
+	FModifierSpec(const FGameplayModifierInfo& InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride* CurveData, const FGameplayEffectContextHandle& InEffectContext = FGameplayEffectContextHandle(), float Level = 0.f);
 
 	// Hard Ref to what we modify, this stuff is const and never changes
 	const FGameplayModifierInfo &Info;
@@ -816,6 +820,23 @@ struct FModifierSpec
 	void PrintAll() const;
 };
 
+/** Saves list of modified attributes, to use for gameplay cues or later processing */
+USTRUCT()
+struct FGameplayEffectModifiedAttribute
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** The attribute that has been modified */
+	UPROPERTY()
+	FGameplayAttribute Attribute;
+
+	/** Total magnitude applied to that attribute */
+	UPROPERTY()
+	float TotalMagnitude;
+
+	FGameplayEffectModifiedAttribute() : TotalMagnitude(0.0f) {}
+};
+
 /**
  * GameplayEffect Specification. Tells us:
  *	-What UGameplayEffect (const data)
@@ -839,7 +860,7 @@ struct FGameplayEffectSpec
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
 
-	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Instigator, float Level, const FGlobalCurveDataOverride *CurveData );
+	FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level, const FGlobalCurveDataOverride* CurveData);
 	
 	UPROPERTY()
 	const UGameplayEffect* Def;
@@ -849,13 +870,28 @@ struct FGameplayEffectSpec
 	
 	// Replicated
 	UPROPERTY()
-	FGameplayEffectInstigatorContext InstigatorContext; // This tells us how we got here (who / what applied us)
+	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
+
+	// Replicated
+	UPROPERTY()
+	TArray<FGameplayEffectModifiedAttribute> ModifiedAttributes;
+
+	// Looks for an existing modified attribute struct, may return NULL
+	const FGameplayEffectModifiedAttribute* GetModifiedAttribute(const FGameplayAttribute& Attribute) const;
+	FGameplayEffectModifiedAttribute* GetModifiedAttribute(const FGameplayAttribute& Attribute);
+
+	// Adds a new modified attribute struct, will always add so check to see if it exists first
+	FGameplayEffectModifiedAttribute* AddModifiedAttribute(const FGameplayAttribute& Attribute);
+
+	// Deletes any modified attributes that aren't needed. Call before replication
+	void PruneModifiedAttributes();
 
 	float GetDuration() const;
 	float GetPeriod() const;
 	float GetChanceToApplyToTarget() const;
 	float GetChanceToExecuteOnGameplayEffect() const;
 	float GetMagnitude(const FGameplayAttribute &Attribute) const;
+
 
 	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 
@@ -892,7 +928,7 @@ struct FGameplayEffectSpec
 
 	void MakeUnique();
 
-	void InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level);
+	void InitModifiers(const FGlobalCurveDataOverride* CurveData, const FGameplayEffectContextHandle& InEffectContext, float Level);
 
 	// returns the number of modifiers applied to the current GameplayEffectSpec by InSpec
 	// returns -1 if the current GameplayEffectSpec prevents InSpec from being applied
@@ -1061,7 +1097,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void ApplySpecToActiveEffectsAndAttributes(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 		
-	void ExecuteActiveEffectsFrom(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	void ExecuteActiveEffectsFrom(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 	
 	void ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning AbilitySystemComponent
 
@@ -1117,7 +1153,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	// ------------------------------------------------
 
-	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
 	
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 

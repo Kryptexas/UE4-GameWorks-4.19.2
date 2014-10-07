@@ -27,7 +27,7 @@ void UAbilitySystemComponent::InitializeComponent()
 	
 	// Look for DSO AttributeSets (note we are currently requiring all attribute sets to be subobjects of the same owner. This doesn't *have* to be the case forever.
 	AActor *Owner = GetOwner();
-	InitAbilityActorInfo(Owner);	// Default init to our outer owner
+	InitAbilityActorInfo(Owner, Owner);	// Default init to our outer owner
 
 	TArray<UObject*> ChildObjects;
 	GetObjectsWithOuter(Owner, ChildObjects, false, RF_PendingKill);
@@ -94,6 +94,14 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	}
 }
 
+void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
+{
+	check(AbilityActorInfo.IsValid());
+	AbilityActorInfo->InitFromActor(InOwnerActor, InAvatarActor, this);
+	OwnerActor = InOwnerActor;
+	AvatarActor = InAvatarActor;
+}
+
 void UAbilitySystemComponent::UpdateShouldTick()
 {
 	bool HasTickingTasks = (TickingTasks.Num() == 0);
@@ -109,29 +117,29 @@ void UAbilitySystemComponent::UpdateShouldTick()
 	}
 }
 
-void UAbilitySystemComponent::InitAbilityActorInfo(AActor* AvatarActor)
+void UAbilitySystemComponent::SetAvatarActor(AActor* InAvatarActor)
 {
 	check(AbilityActorInfo.IsValid());
-	AbilityActorInfo->InitFromActor(AvatarActor, this);
-	AbilityActor = AvatarActor;
+	InitAbilityActorInfo(OwnerActor, InAvatarActor);
 }
 
 void UAbilitySystemComponent::ClearActorInfo()
 {
 	check(AbilityActorInfo.IsValid());
 	AbilityActorInfo->ClearActorInfo();
-	AbilityActor = NULL;
+	OwnerActor = NULL;
+	AvatarActor = NULL;
 }
 
 void UAbilitySystemComponent::OnRep_OwningActor()
 {
 	check(AbilityActorInfo.IsValid());
 
-	if (AbilityActor != AbilityActorInfo->Actor)
+	if (OwnerActor != AbilityActorInfo->OwnerActor || AvatarActor != AbilityActorInfo->AvatarActor)
 	{
-		if (AbilityActor != NULL)
+		if (OwnerActor != NULL)
 		{
-			InitAbilityActorInfo(AbilityActor);
+			InitAbilityActorInfo(OwnerActor, AvatarActor);
 		}
 		else
 		{
@@ -143,7 +151,7 @@ void UAbilitySystemComponent::OnRep_OwningActor()
 void UAbilitySystemComponent::RefreshAbilityActorInfo()
 {
 	check(AbilityActorInfo.IsValid());
-	AbilityActorInfo->InitFromActor(AbilityActorInfo->Actor.Get(), this);
+	AbilityActorInfo->InitFromActor(AbilityActorInfo->OwnerActor.Get(), AbilityActorInfo->AvatarActor.Get(), this);
 }
 
 FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(FGameplayAbilitySpec Spec)
@@ -171,8 +179,28 @@ void UAbilitySystemComponent::ClearAllAbilities()
 	ActivatableAbilities.Empty(ActivatableAbilities.Num());
 }
 
+void UAbilitySystemComponent::ClearAbility(const FGameplayAbilitySpecHandle& Handle)
+{
+	check(IsOwnerActorAuthoritative()); // Should be called on authority
+
+	for (int Idx = 0; Idx < ActivatableAbilities.Num(); ++Idx)
+	{
+		check(ActivatableAbilities[Idx].Handle.IsValid());
+		if (ActivatableAbilities[Idx].Handle == Handle)
+		{
+			ActivatableAbilities.RemoveAtSwap(Idx);
+			return;
+		}
+	}
+}
+
 void UAbilitySystemComponent::OnGiveAbility(const FGameplayAbilitySpec Spec)
 {
+	if (!Spec.Ability)
+	{
+		return;
+	}
+
 	for (const FAbilityTriggerData& TriggerData : Spec.Ability->AbilityTriggers)
 	{
 		FGameplayTag EventTag = TriggerData.TriggerTag;
@@ -349,7 +377,7 @@ void UAbilitySystemComponent::OnRep_ActivateAbilities()
  *	-This function handles networking and prediction
  *	-If all goes well, CallActivateAbility is called next.
  */
-bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Handle, FPredictionKey InPredictionKey, UGameplayAbility** OutInstancedAbility)
+bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Handle, FPredictionKey InPredictionKey, UGameplayAbility** OutInstancedAbility, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate)
 {
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (!Spec)
@@ -361,16 +389,22 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	const FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
 
 	// make sure the ActorInfo and then Actor on that FGameplayAbilityActorInfo are valid, if not bail out.
-	if (ActorInfo == NULL || ActorInfo->Actor == NULL)
+	if (ActorInfo == NULL || ActorInfo->OwnerActor == NULL)
 	{
 		return false;
 	}
 
 	// This should only come from button presses/local instigation (AI, etc)
-	ENetRole NetMode = ActorInfo->Actor->Role;
+	ENetRole NetMode = ActorInfo->AvatarActor->Role;
 	ensure(NetMode != ROLE_SimulatedProxy);
 
 	UGameplayAbility* Ability = Spec->Ability;
+
+	if (!Ability)
+	{
+		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Ability"));
+		return false;
+	}
 
 	// Check if any of this ability's tags are currently blocked
 	if (BlockedAbilityTags.HasAnyMatchingGameplayTags(Ability->AbilityTags, EGameplayTagMatchType::IncludeParentTags, false))
@@ -393,7 +427,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	Spec->ActiveCount++;
 
 	// Setup a fresh ActivationInfo for this AbilitySpec.
-	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->Actor.Get(), InPredictionKey);
+	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->OwnerActor.Get(), InPredictionKey);
 	FGameplayAbilityActivationInfo &ActivationInfo = Spec->ActivationInfo;
 
 	UGameplayAbility* InstancedAbility = Ability;
@@ -405,7 +439,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
 			InstancedAbility = CreateNewInstanceOfAbility(*Spec, Ability);
-			InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+			InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate);
 			if (OutInstancedAbility)
 			{
 				*OutInstancedAbility = InstancedAbility;
@@ -413,7 +447,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		}
 		else
 		{
-			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate);
 		}
 	}
 	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Server)
@@ -442,7 +476,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 			if (Ability->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNone)
 			{
 				InstancedAbility = CreateNewInstanceOfAbility(*Spec, Ability);
-				InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+				InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate);
 				if (OutInstancedAbility)
 				{
 					*OutInstancedAbility = InstancedAbility;
@@ -455,7 +489,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		}
 		else
 		{
-			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo);
+			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate);
 		}
 	}
 
@@ -669,7 +703,7 @@ void UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 		// if we're the server and this is coming from a predicted event we should check if the client has already predicted it
 		if (Payload->PredictionKey.Current > 0
 			&& Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive
-			&& ActorInfo->Actor->Role == ROLE_Authority)
+			&& ActorInfo->OwnerActor->Role == ROLE_Authority)
 		{
 			bool bPendingClientAbilityFound = false;
 			for (auto PendingAbilityInfo : Component.PendingClientAbilities)

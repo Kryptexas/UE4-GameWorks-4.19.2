@@ -11,6 +11,8 @@
 UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
+	AbilitySystemGlobalsClassName = FStringClassReference(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
+
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
 #endif // #if WITH_EDITORONLY_DATA
@@ -76,6 +78,11 @@ void UAbilitySystemGlobals::OnTableReimported(UObject* InObject)
 FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo() const
 {
 	return new FGameplayAbilityActorInfo();
+}
+
+FGameplayEffectContext* UAbilitySystemGlobals::AllocGameplayEffectContext() const
+{
+	return new FGameplayEffectContext();
 }
 
 /** This is just some syntax sugar to avoid calling gode to have to IGameplayAbilitiesModule::Get() */

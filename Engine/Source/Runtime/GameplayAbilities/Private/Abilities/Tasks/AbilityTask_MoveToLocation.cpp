@@ -17,7 +17,7 @@ UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class U
 {
 	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject);
 
-	MyObj->StartLocation = MyObj->GetActor()->GetActorLocation();
+	MyObj->StartLocation = MyObj->GetAvatarActor()->GetActorLocation();
 	MyObj->TargetLocation = Location;
 	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		// Avoid negative or divide-by-zero cases
 	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
@@ -49,7 +49,7 @@ void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
 	}
 
 	Super::TickTask(DeltaTime);
-	AActor* MyActor = GetActor();
+	AActor* MyActor = GetAvatarActor();
 	if (MyActor)
 	{
 		ACharacter* MyCharacter = Cast<ACharacter>(MyActor);

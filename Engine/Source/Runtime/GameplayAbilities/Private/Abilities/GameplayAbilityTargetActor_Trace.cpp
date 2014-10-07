@@ -34,7 +34,7 @@ void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPl
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	AActor* StaticSourceActor = ActorInfo->Actor.Get();
+	AActor* StaticSourceActor = ActorInfo->AvatarActor.Get();
 	return MakeTargetData(PerformTrace(StaticSourceActor));
 }
 
@@ -90,7 +90,7 @@ bool AGameplayAbilityTargetActor_Trace::ClipCameraRayToAbilityRange(FVector Came
 void AGameplayAbilityTargetActor_Trace::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);
-	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
+	SourceActor = InAbility->GetCurrentActorInfo()->AvatarActor.Get();
 
 	if (ReticleClass)
 	{

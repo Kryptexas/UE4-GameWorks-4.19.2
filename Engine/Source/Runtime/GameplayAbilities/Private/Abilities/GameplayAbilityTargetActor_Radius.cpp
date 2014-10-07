@@ -25,7 +25,7 @@ AGameplayAbilityTargetActor_Radius::AGameplayAbilityTargetActor_Radius(const cla
 void AGameplayAbilityTargetActor_Radius::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);
-	SourceActor = InAbility->GetCurrentActorInfo()->Actor.Get();
+	SourceActor = InAbility->GetCurrentActorInfo()->AvatarActor.Get();
 }
 
 void AGameplayAbilityTargetActor_Radius::ConfirmTargetingAndContinue()
@@ -43,9 +43,8 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Radius::MakeTargetD
 {
 	if (OwningAbility)
 	{
-		/** Note: This will be cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
-		FGameplayAbilityTargetData_Radius* ReturnData = new FGameplayAbilityTargetData_Radius(Actors, Origin);
-		return FGameplayAbilityTargetDataHandle(ReturnData);
+		/** Use the source location instead of the literal origin */
+		return StartLocation.MakeTargetDataHandleFromActors(Actors, false);
 	}
 
 	return FGameplayAbilityTargetDataHandle();

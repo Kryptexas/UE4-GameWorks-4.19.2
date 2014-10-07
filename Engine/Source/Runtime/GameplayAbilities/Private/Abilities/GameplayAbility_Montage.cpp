@@ -32,7 +32,7 @@ void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilitySpecHandle 
 		// Apply GameplayEffects
 		for (const UGameplayEffect* Effect : GameplayEffectsWhileAnimating)
 		{
-			FActiveGameplayEffectHandle Handle = ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(Effect, 1.f, ActorInfo->Actor.Get());
+			FActiveGameplayEffectHandle Handle = ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(Effect, 1.f, GetEffectContext(ActorInfo));
 			if (Handle.IsValid())
 			{
 				AppliedEffects.Add(Handle);

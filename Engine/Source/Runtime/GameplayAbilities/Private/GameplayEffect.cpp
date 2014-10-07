@@ -132,9 +132,10 @@ void UGameplayEffect::ValidateStacking()
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor* Instigator, float Level, const FGlobalCurveDataOverride *CurveData)
+FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level, const FGlobalCurveDataOverride* CurveData)
 : Def(InDef)
-, ModifierLevel(TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, InDef->LevelInfo, Instigator)))
+, ModifierLevel(TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, InDef->LevelInfo, InEffectContext.GetInstigator())))
+, EffectContext(InEffectContext)
 , Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
 , Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
 , ChanceToApplyToTarget(new FAggregator(InDef->ChanceToApplyToTarget.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s ChanceToApplyToTarget"), *InDef->GetName())))
@@ -145,20 +146,18 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor* I
 	ChanceToApplyToTarget.Get()->RegisterLevelDependancies();
 	ChanceToExecuteOnGameplayEffect.Get()->RegisterLevelDependancies();
 
-	InitModifiers(CurveData, Instigator, Level);
+	InitModifiers(CurveData, EffectContext, Level);
 
 	if (InDef)
 	{
 		for (UGameplayEffect* TargetDef : InDef->TargetEffects)
 		{
-			TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, Instigator, Level, CurveData)));
+			TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, EffectContext, Level, CurveData)));
 		}
 	}
-
-	InstigatorContext.AddInstigator(Instigator);
 }
 
-void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level)
+void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride* CurveData, const FGameplayEffectContextHandle& InEffectContext, float Level)
 {
 	check(Def);
 
@@ -175,7 +174,7 @@ void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveDat
 		ModifierLevel->ApplyNewDef(ModInfo.LevelInfo, NewLevelSpec);
 
 		// This creates a new FModifierSpec that we own.
-		new (Modifiers)FModifierSpec(ModInfo, NewLevelSpec, CurveData, Owner, Level);
+		new (Modifiers)FModifierSpec(ModInfo, NewLevelSpec, CurveData, InEffectContext, Level);
 	}	
 }
 
@@ -367,6 +366,59 @@ float FGameplayEffectSpec::GetMagnitude(const FGameplayAttribute &Attribute) con
 	return CurrentMagnitude;
 }
 
+const FGameplayEffectModifiedAttribute* FGameplayEffectSpec::GetModifiedAttribute(const FGameplayAttribute& Attribute) const
+{
+	for (const FGameplayEffectModifiedAttribute& ModifiedAttribute : ModifiedAttributes)
+	{
+		if (ModifiedAttribute.Attribute == Attribute)
+		{
+			return &ModifiedAttribute;
+		}
+	}
+	return NULL;
+}
+
+FGameplayEffectModifiedAttribute* FGameplayEffectSpec::GetModifiedAttribute(const FGameplayAttribute& Attribute)
+{
+	for (FGameplayEffectModifiedAttribute& ModifiedAttribute : ModifiedAttributes)
+	{
+		if (ModifiedAttribute.Attribute == Attribute)
+		{
+			return &ModifiedAttribute;
+		}
+	}
+	return NULL;
+}
+
+FGameplayEffectModifiedAttribute* FGameplayEffectSpec::AddModifiedAttribute(const FGameplayAttribute& Attribute)
+{
+	FGameplayEffectModifiedAttribute NewAttribute;
+	NewAttribute.Attribute = Attribute;
+	return &ModifiedAttributes[ModifiedAttributes.Add(NewAttribute)];
+}
+
+void FGameplayEffectSpec::PruneModifiedAttributes()
+{
+	TSet<FGameplayAttribute> ImportantAttributes;
+
+	for (FGameplayEffectCue CueInfo : Def->GameplayCues)
+	{
+		if (CueInfo.MagnitudeAttribute.IsValid())
+		{
+			ImportantAttributes.Add(CueInfo.MagnitudeAttribute);
+		}
+	}
+
+	// Remove all unimportant attributes
+	for (int32 i = ModifiedAttributes.Num() - 1; i >= 0; i--)
+	{
+		if (!ImportantAttributes.Contains(ModifiedAttributes[i].Attribute))
+		{
+			ModifiedAttributes.RemoveAtSwap(i);
+		}
+	}
+}
+
 bool FGameplayEffectSpec::ShouldApplyAsSnapshot(const FModifierQualifier &QualifierContext) const
 {
 	bool ShouldSnapshot;
@@ -424,14 +476,14 @@ bool FModifierSpec::CanModifyModifier(FModifierSpec &Other, const FModifierQuali
 	return true;
 }
 
-FModifierSpec::FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level)
+FModifierSpec::FModifierSpec(const FGameplayModifierInfo& InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride* CurveData, const FGameplayEffectContextHandle& InEffectContext, float Level)
 : Info(InInfo)
 , Aggregator(new FAggregator(FGameplayModifierData(InInfo, CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("FModifierSpec: %s "), *InInfo.ToSimpleString())))
 {
 	Aggregator.Get()->RegisterLevelDependancies();
 	if (InInfo.TargetEffect)
 	{
-		TargetEffectSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(InInfo.TargetEffect, Owner, Level, CurveData));
+		TargetEffectSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(InInfo.TargetEffect, InEffectContext, Level, CurveData));
 	}
 }
 
@@ -455,80 +507,6 @@ bool FModifierSpec::AreTagRequirementsSatisfied(const FModifierSpec &ModifierToB
 
 	return HasRequired && !HasIgnored;
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------------------------------
-//
-//	FGameplayEffectInstigatorContext
-//
-// --------------------------------------------------------------------------------------------------------------------------------------------------------
-
-void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
-{
-	Instigator = InInstigator;
-	InstigatorAbilitySystemComponent = NULL;
-
-	// Cache off his AbilitySystemComponent.
-	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Instigator);
-	if (AbilitySystemInterface)
-	{
-		InstigatorAbilitySystemComponent = AbilitySystemInterface->GetAbilitySystemComponent();
-	}
-}
-
-void FGameplayEffectInstigatorContext::AddHitResult(const FHitResult InHitResult)
-{
-	check(!HitResult.IsValid());
-	HitResult = TSharedPtr<FHitResult>(new FHitResult(InHitResult));
-}
-
-bool FGameplayEffectInstigatorContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-{
-	Ar << Instigator;
-
-	bool HasHitResults = HitResult.IsValid();
-	Ar << HasHitResults;
-	if (Ar.IsLoading())
-	{
-		if (HasHitResults)
-		{
-			if (!HitResult.IsValid())
-			{
-				HitResult = TSharedPtr<FHitResult>(new FHitResult());
-			}
-			AddInstigator(Instigator); // Just to initialize InstigatorAbilitySystemComponent
-		}
-	}
-
-	if (HasHitResults == 1)
-	{
-		Ar << HitResult->BoneName;
-		HitResult->Location.NetSerialize(Ar, Map, bOutSuccess);
-		HitResult->Normal.NetSerialize(Ar, Map, bOutSuccess);
-	}
-
-	Ar << HasWorldOrigin;
-	Ar << WorldOrigin;
-
-	bOutSuccess = true;
-	return true;
-}
-
-bool FGameplayEffectInstigatorContext::IsLocallyControlled() const
-{
-	APawn* Pawn = Cast<APawn>(Instigator);
-	if (Pawn)
-	{
-		return Pawn->IsLocallyControlled();
-	}
-	return false;
-}
-
-void FGameplayEffectInstigatorContext::AddOrigin(FVector InOrigin)
-{
-	HasWorldOrigin = true;
-	WorldOrigin = InOrigin;
-}
-
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -857,7 +835,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 		int32 TotalModCount = Mods[EGameplayModOp::Additive].Num() + Mods[EGameplayModOp::Multiplicitive].Num() + Mods[EGameplayModOp::Division].Num();
 		
 		// Early out if no mods.
-		// We need to calculate num of mods anyways to do ModLIst.Reserve.
+		// We need to calculate num of mods anyways to do ModList.Reserve.
 		if (TotalModCount <= 0)
 		{
 			ABILITY_LOG(Log, TEXT("Final Magnitude: %.2f"), CachedData.Magnitude);
@@ -870,7 +848,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 		//		These mods can also give us new tags. Its possible the 1st mod will require a tag that the 2nd mod gives us.
 		//
 		//	The basic approach here is create an ordered, linear list of all modifiers:
-		//		[Additive][Multipliticitive][Division] mods
+		//		[Additive][Multiplicative][Division] mods
 		//
 		//	We make a pass through the list, aggregating as we go. During a pass we keep track of what what tags we've added
 		//	and if there were any mods that we rejected due to not having tags. When the pass is over, we check if we added
@@ -1288,7 +1266,7 @@ void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGam
 }
 
 /** This is the main function that executes a GameplayEffect on Attributes and ActiveGameplayEffects */
-void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
+void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
 	// If there are no modifiers, we always want to apply the GameplayCue. If there are modifiers, we only want to invoke the GameplayCue if one of them went through (coudl be blocked by immunity or % chance roll)
 	bool InvokeGameplayCueExecute = (Spec.Modifiers.Num() == 0);
@@ -1392,6 +1370,14 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 				InternalUpdateNumericalAttribute(Mod.Info.Attribute, NewPropertyValue, &ExecuteData);
 			}
 
+			FGameplayEffectModifiedAttribute* ModifiedAttribute = Spec.GetModifiedAttribute(Mod.Info.Attribute);
+			if (!ModifiedAttribute)
+			{
+				// If we haven't already created a modified attribute holder, create it
+				ModifiedAttribute = Spec.AddModifiedAttribute(Mod.Info.Attribute);
+			}
+			ModifiedAttribute->TotalMagnitude += EvaluatedData.Magnitude;
+
 			/** This should apply 'gameplay effect specific' rules, such as life steal, shields, etc */
 			Mod.Aggregator.Get()->PostEvaluate(ExecuteData);
 
@@ -1430,6 +1416,9 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 		}
 	}
 	
+	// Prune the modified attributes before we replicate
+	Spec.PruneModifiedAttributes();
+
 	if (InvokeGameplayCueExecute && Spec.Def->GameplayCues.Num())
 	{
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
@@ -2022,11 +2011,11 @@ bool FActiveGameplayEffectsContainer::HasAnyMatchingGameplayTags(const FGameplay
 	return GameplayTagCountContainer.HasAnyMatchingGameplayTags(TagContainer, EGameplayTagMatchType::Explicit, bCountEmptyAsMatch);
 }
 
-bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsCanApplyAttributeModifiers);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, Owner->GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, EffectContext, Level, Owner->GetCurveDataOverride());
 
 	ApplyActiveEffectsTo(Spec, FModifierQualifier().Type(EGameplayMod::IncomingGE));
 	
@@ -2197,36 +2186,6 @@ void FGameplayEffectLevelSpec::RegisterLevelDependancy(TWeakPtr<FAggregator> Own
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-FString EGameplayModOpToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModOp"));
-	return e->GetEnum(Type).ToString();
-}
-
-FString EGameplayModToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayMod"));
-	return e->GetEnum(Type).ToString();
-}
-
-FString EGameplayModEffectToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModEffect"));
-	return e->GetEnum(Type).ToString();
-}
-
-FString EGameplayEffectCopyPolicyToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayEffectCopyPolicy"));
-	return e->GetEnum(Type).ToString();
-}
-
-FString EGameplayEffectStackingPolicyToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayEffectStackingPolicy"));
-	return e->GetEnum(Type).ToString();
-}
-
 namespace GlobalActiveGameplayEffectHandles
 {
 	static TMap<FActiveGameplayEffectHandle, TWeakObjectPtr<UAbilitySystemComponent>>	Map;
@@ -2254,112 +2213,6 @@ UAbilitySystemComponent* FActiveGameplayEffectHandle::GetOwningAbilitySystemComp
 
 	return nullptr;	
 }
-
-// -----------------------------------------------------------------
-
-bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const
-{
-	if (TagMatchType == EGameplayTagMatchType::Explicit)
-	{
-		// Search for TagToCheck
-		const int32* Count = GameplayTagCountMap.Find(TagToCheck);
-		if (Count && *Count > 0)
-		{
-			return true;
-		}
-	}
-	else if (TagMatchType == EGameplayTagMatchType::IncludeParentTags)
-	{
-		// Search for TagToCheck or any of its parent tags
-		FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(TagToCheck);
-		for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
-		{
-			const int32* Count = GameplayTagCountMap.Find(*TagIt);
-			if (Count && *Count > 0)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool FGameplayTagCountContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch) const
-{
-	if (TagContainer.Num() == 0)
-		return bCountEmptyAsMatch;
-
-	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
-	{
-		if (!HasMatchingGameplayTag(*It, TagMatchType))
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-
-bool FGameplayTagCountContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch) const
-{
-	if (TagContainer.Num() == 0)
-		return bCountEmptyAsMatch;
-
-	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
-	{
-		if (HasMatchingGameplayTag(*It, TagMatchType))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-void FGameplayTagCountContainer::UpdateTagMap(const FGameplayTag& Tag, int32 CountDelta)
-{
-	// Update count of Tag
-	int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
-
-	bool WasZero = Count == 0;
-	Count = FMath::Max(Count + CountDelta, 0);
-		
-	// If we went from 0->1 or 1->0
-	if (WasZero || Count == 0)
-	{
-		FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
-		if (Delegate)
-		{
-			Delegate->Broadcast(Tag, Count);
-		}
-	}
-}
-
-void FGameplayTagCountContainer::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
-{
-	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
-	{
-		const FGameplayTag& BaseTag = *TagIt;
-		if (TagContainerType == EGameplayTagMatchType::Explicit)
-		{
-			// Update count of BaseTag
-			UpdateTagMap(BaseTag, CountDelta);
-		}
-		else if (TagContainerType == EGameplayTagMatchType::IncludeParentTags)
-		{
-			// Update count of BaseTag and all of its parent tags
-			FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
-			for (auto ParentTagIt = TagAndParentsContainer.CreateConstIterator(); ParentTagIt; ++ParentTagIt)
-			{
-				UpdateTagMap(*ParentTagIt, CountDelta);
-			}
-		}
-	}
-}
-
-
 // -----------------------------------------------------------------
 
 bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const

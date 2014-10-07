@@ -7,24 +7,24 @@
 #include "AbilitySystemBlueprintLibrary.h"
 
 
-TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo* InstigatorInfo, float Level, FModifierQualifier Qualifier)
+TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayEffectContextHandle& InEffectContext, float Level, FModifierQualifier Qualifier)
 {
-	// TODO: Improve relationship between InstigatorContext and FGameplayAbilityTargetData/FHitResult (or use something different between HitResult)
-
-
+	// Clone the effect context per target to avoid modifying original context
+	FGameplayEffectContextHandle EffectContext = InEffectContext.Duplicate();
+	
 	FGameplayEffectSpec	SpecToApply(GameplayEffect,					// The UGameplayEffect data asset
-		InstigatorInfo->Actor.Get(),		// The actor who instigated this
+		EffectContext,		// The actor who instigated this
 		Level,							// FIXME: Leveling
 		NULL							// FIXME: CurveData override... should we just remove this?
 		);
 	if (HasHitResult())
 	{
-		SpecToApply.InstigatorContext.AddHitResult(*GetHitResult());
+		SpecToApply.EffectContext.AddHitResult(*GetHitResult());
 	}
 
 	if (HasOrigin())
 	{
-		SpecToApply.InstigatorContext.AddOrigin(GetOrigin().GetLocation());
+		SpecToApply.EffectContext.AddOrigin(GetOrigin().GetLocation());
 	}
 
 	TArray<TWeakObjectPtr<AActor> > Actors = GetActors();
@@ -36,9 +36,9 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 		if (TargetActor.IsValid())
 		{
 			UAbilitySystemComponent* TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor.Get());
-			if (TargetComponent)
+			if (TargetComponent && EffectContext.GetInstigatorAbilitySystemComponent())
 			{
-				AppliedHandles.Add( InstigatorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent, Qualifier) );
+				AppliedHandles.Add(EffectContext.GetInstigatorAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent, Qualifier));
 			}
 		}
 	}
@@ -51,34 +51,26 @@ FString FGameplayAbilityTargetData::ToString() const
 	return TEXT("BASE CLASS");
 }
 
-
 FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const
 {
-	if (LocationType == EGameplayAbilityTargetingLocationType::Type::SocketTransform)
+	TArray<FHitResult> HitResults;
+	HitResults.Add(HitResult);
+	return MakeTargetDataHandleFromHitResults(Ability, HitResults);
+}
+
+FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromHitResults(TWeakObjectPtr<UGameplayAbility> Ability, const TArray<FHitResult>& HitResults) const
+{
+	FGameplayAbilityTargetDataHandle ReturnDataHandle;
+
+	for (int32 i = 0; i < HitResults.Num(); i++)
 	{
-		const FGameplayAbilityActorInfo* ActorInfo = Ability.IsValid() ? Ability.Get()->GetCurrentActorInfo() : NULL;
-		if (ActorInfo)
-		{
-			AActor* AISourceActor = ActorInfo->Actor.Get();
-			UAnimInstance* AnimInstance = ActorInfo->AnimInstance.Get();
-			USkeletalMeshComponent* AISourceComponent = AnimInstance ? AnimInstance->GetOwningComponent() : NULL;
-
-			if (AISourceActor && AISourceComponent)
-			{
-				FGameplayAbilityTargetData_Mesh* ReturnData = new FGameplayAbilityTargetData_Mesh();
-				ReturnData->SourceActor = AISourceActor;
-				ReturnData->SourceComponent = AISourceComponent;
-				ReturnData->SourceSocketName = SourceSocketName;
-				ReturnData->TargetPoint = HitResult.Location;
-				return FGameplayAbilityTargetDataHandle(ReturnData);
-			}
-		}
+		/** Note: These are cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
+		FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
+		ReturnData->HitResult = HitResults[i];
+		ReturnDataHandle.Add(ReturnData);
 	}
-
-	/** Note: These are cleaned up by the FGameplayAbilityTargetDataHandle (via an internal TSharedPtr) */
-	FGameplayAbilityTargetData_SingleTargetHit* ReturnData = new FGameplayAbilityTargetData_SingleTargetHit();
-	ReturnData->HitResult = HitResult;
-	return FGameplayAbilityTargetDataHandle(ReturnData);
+	
+	return ReturnDataHandle;
 }
 
 FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor> > TargetActors, bool OneActorPerHandle) const
@@ -101,10 +93,9 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 				if (TargetActors[i].IsValid())
 				{
 					FGameplayAbilityTargetData_ActorArray* CurrentData = new FGameplayAbilityTargetData_ActorArray();
-					FGameplayAbilityTargetDataHandle CurrentDataHandle = FGameplayAbilityTargetDataHandle(CurrentData);
 					CurrentData->SourceLocation = *this;
 					CurrentData->TargetActorArray.Add(TargetActors[i].Get());
-					ReturnDataHandle.Append(&CurrentDataHandle);
+					ReturnDataHandle.Add(CurrentData);
 				}
 			}
 		}
@@ -226,34 +217,9 @@ bool FGameplayAbilityTargetData_ActorArray::NetSerialize(FArchive& Ar, class UPa
 	return true;
 }
 
-bool FGameplayAbilityTargetData_Mesh::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-{
-	//SourceActor can be used as a backup if the component isn't found.
-	Ar << SourceActor;
-	Ar << SourceComponent;
-	Ar << SourceSocketName;
-	TargetPoint.NetSerialize(Ar, Map, bOutSuccess);
-
-	bOutSuccess = true;
-	return true;
-}
-
 bool FGameplayAbilityTargetData_SingleTargetHit::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	Ar << HitResult.Actor;
-
-	HitResult.TraceStart.NetSerialize(Ar, Map, bOutSuccess);
-	HitResult.Location.NetSerialize(Ar, Map, bOutSuccess);
-	HitResult.Normal.NetSerialize(Ar, Map, bOutSuccess);
-
-	bOutSuccess = true;
-	return true;
-}
-
-bool FGameplayAbilityTargetData_Radius::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-{
-	Ar << Actors;	// Fixme: will this go through the package map properly?
-	Ar << Origin;
+	HitResult.NetSerialize(Ar, Map, bOutSuccess);
 
 	return true;
 }

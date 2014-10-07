@@ -16,7 +16,7 @@ UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const c
 void UGameplayEffectExtension_ShieldTest::PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const
 {
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	UAbilitySystemComponent *Source = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAbilitySystemComponent();
+	UAbilitySystemComponent *Source = Data.EffectSpec.EffectContext.GetOriginalInstigatorAbilitySystemComponent();
 
 	// FIXME: some annoyances here: Damage about to be applied = Data.EvaluatedData.Magnitude = negative. Do some sign flipping here that would make more sense if we were dealing with
 	// 'damage' (positive) instead of 'health' (negative)
@@ -64,7 +64,7 @@ void UGameplayEffectExtension_ShieldTest::PreGameplayEffectExecute(const FGamepl
 			LocalShieldRemoval->Period.Value = UGameplayEffect::NO_PERIOD;
 		}
 
-		Data.Target.ApplyGameplayEffectToSelf(LocalShieldRemoval, ShieldedDamage, Source->GetOwner(), FModifierQualifier().ExclusiveTarget(SelfData.Handle));
+		Data.Target.ApplyGameplayEffectToSelf(LocalShieldRemoval, ShieldedDamage, Source->GetEffectContext(), FModifierQualifier().ExclusiveTarget(SelfData.Handle));
 	}
 }
 

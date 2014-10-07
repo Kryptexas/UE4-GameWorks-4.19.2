@@ -63,6 +63,9 @@
  */
 
 
+/** Notification delegate definition for when the gameplay ability ends */
+DECLARE_DELEGATE_OneParam(FOnGameplayAbilityEnded, UGameplayAbility*);
+
 /** TriggerData */
 USTRUCT()
 struct FAbilityTriggerData
@@ -171,6 +174,9 @@ public:
 	/** Retrieves the actual AbilitySpec for this ability. Can only be called on instanced abilities. */
 	FGameplayAbilitySpec* GetCurrentAbilitySpec() const;
 
+	/** Returns an effect context, given a specified actor info */
+	FGameplayEffectContextHandle GetEffectContext(const FGameplayAbilityActorInfo *ActorInfo) const;
+
 	virtual UWorld* GetWorld() const override
 	{
 		if (!IsInstantiated())
@@ -189,6 +195,9 @@ public:
 
 	/** Returns true if the ability is currently active */
 	bool IsActive() const;
+
+	/** Notification that the ability has ended.  Set using TryActivateAbility. */
+	FOnGameplayAbilityEnded OnGameplayAbilityEnded;
 
 	/** This ability has these tags */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
@@ -245,7 +254,7 @@ protected:
 
 	bool HasBlueprintActivate;
 
-	void CallActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	void CallActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate = nullptr);
 
 	/** Called on a predictive ability when the server confirms its execution */
 	virtual void ConfirmActivateSucceed();
@@ -283,7 +292,7 @@ protected:
 	virtual void CommitExecute(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Do boilerplate init stuff and then call ActivateAbility */
-	void PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	void PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate);
 
 	// --------------------------------------
 	//	CancelAbility
@@ -387,15 +396,23 @@ protected:
 
 	public:
 
+	/** Returns the actor info associated with this ability, has cached pointers to useful objects */
 	UFUNCTION(BlueprintCallable, Category=Ability)
 	FGameplayAbilityActorInfo GetActorInfo() const;
 
+	/** Returns the actor that owns this ability, which may not have a physical location */
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	AActor* GetOwningActorFromActorInfo() const;
 
+	/** Returns the physical actor that is executing this abilit. May be null */
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	AActor* GetAvatarActorFromActorInfo() const;
+
+	/** Convenience method for abilities to get skeletal mesh component - useful for aiming abilities */
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	USkeletalMeshComponent* GetOwningComponentFromActorInfo() const;
 
+	/** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */
 	UFUNCTION(BlueprintCallable, Category=Ability)
 	FGameplayEffectSpecHandle GetOutgoingGameplayEffectSpec(UGameplayEffect* GameplayEffect, float Level=1.f) const;
 

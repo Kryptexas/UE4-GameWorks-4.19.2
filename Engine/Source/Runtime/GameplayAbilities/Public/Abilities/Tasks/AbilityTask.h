@@ -92,8 +92,11 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	/** Helper function for getting UWorld off a task */
 	UWorld* GetWorld() const;
 
-	/** Proper way to get the owning actor of the ability that owns this task (usually a pawn, tower, etc) */
-	AActor* GetActor() const;
+	/** Proper way to get the owning actor of the ability that owns this task and the gameplay effects */
+	AActor* GetOwnerActor() const;
+
+	/** Proper way to get the avatar actor of the ability that owns this task (usually a pawn, tower, etc) */
+	AActor* GetAvatarActor() const;
 
 	/** Helper function for instantiating and initializing a new task */
 	template <class T>

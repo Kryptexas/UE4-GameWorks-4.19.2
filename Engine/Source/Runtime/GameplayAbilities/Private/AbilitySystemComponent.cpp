@@ -125,17 +125,17 @@ void UAbilitySystemComponent::OnRegister()
 
 // ---------------------------------------------------------
 
-bool UAbilitySystemComponent::AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, FGameplayEffectInstigatorContext& Instigator) const
+bool UAbilitySystemComponent::AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, const FGameplayEffectContextHandle& EffectContext) const
 {
 	bool bReqsSatisfied = false;
 	if (EffectToAdd)
 	{
 		// Collect gameplay tags from instigator and target to see if requirements are satisfied
 		FGameplayTagContainer InstigatorTags;
-		Instigator.GetOwnedGameplayTags(InstigatorTags);
+		EffectContext.GetOwnedGameplayTags(InstigatorTags);
 
 		FGameplayTagContainer TargetTags;
-		IGameplayTagAssetInterface* OwnerGTA = Cast<IGameplayTagAssetInterface>(AbilityActorInfo->Actor.Get());
+		IGameplayTagAssetInterface* OwnerGTA = Cast<IGameplayTagAssetInterface>(AbilityActorInfo->OwnerActor.Get());
 		if (OwnerGTA)
 		{
 			OwnerGTA->GetOwnedGameplayTags(TargetTags);
@@ -176,7 +176,8 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffe
 	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
 	// Fixme: we should build a map and cache these off. We can invalidate the map when an OutgoingGE modifier is applied or removed from us.
 
-	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, AbilityActorInfo->Actor.Get(), Level, GetCurveDataOverride());
+	// By default use the owner and avatar as the instigator and causer
+	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, GetEffectContext(), Level, GetCurveDataOverride());
 	if (ActiveGameplayEffects.ApplyActiveEffectsTo(*NewSpec, FModifierQualifier().Type(EGameplayMod::OutgoingGE)))
 	{
 		return FGameplayEffectSpecHandle(NewSpec);
@@ -186,10 +187,11 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffe
 	return FGameplayEffectSpecHandle(nullptr);
 }
 
-FGameplayEffectInstigatorContext UAbilitySystemComponent::GetInstigatorContext() const
+FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 {
-	FGameplayEffectInstigatorContext Context;
-	Context.AddInstigator(AbilityActorInfo->Actor.Get());
+	FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
+	// By default use the owner and avatar as the instigator and causer
+	Context.AddInstigator(AbilityActorInfo->OwnerActor.Get(), AbilityActorInfo->AvatarActor.Get());
 	return Context;
 }
 
@@ -199,7 +201,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget
 	check(GameplayEffect);
 	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
 	{
-		FGameplayEffectSpec	Spec(GameplayEffect, AbilityActorInfo->Actor.Get(), Level, GetCurveDataOverride());
+		FGameplayEffectSpec	Spec(GameplayEffect, GetEffectContext(), Level, GetCurveDataOverride());
 		return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
 	}
 
@@ -207,23 +209,23 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
-FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, FGameplayEffectContextHandle EffectContext)
 {
-	return ApplyGameplayEffectToSelf(GameplayEffect, Level, Instigator);
+	return ApplyGameplayEffectToSelf(GameplayEffect, Level, EffectContext);
 }
 
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
-FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext, FModifierQualifier BaseQualifier)
 {
 	if (GameplayEffect == nullptr)
 	{
-		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::ApplyGameplayEffectToSelf called by Instigator %s with a null GameplayEffect."), *GetNameSafe(Instigator));
+		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::ApplyGameplayEffectToSelf called by Instigator %s with a null GameplayEffect."), *EffectContext.ToString());
 		return FActiveGameplayEffectHandle();
 	}
 
 	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
 	{
-		FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, GetCurveDataOverride());
+		FGameplayEffectSpec	Spec(GameplayEffect, EffectContext, Level, GetCurveDataOverride());
 		return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
 	}
 
@@ -317,7 +319,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTa
 	return FActiveGameplayEffectHandle();
 }
 
-FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
 {
 	// Temp, only non instant, non periodic GEs can be predictive
 	// Effects with other effects may be a mix so go with non-predictive
@@ -451,7 +453,7 @@ void UAbilitySystemComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	
 	ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
 }
 
-void UAbilitySystemComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
+void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
 	// Should only ever execute effects that are instant application or periodic application
 	// Effects with no period and that aren't instant application should never be executed
@@ -482,10 +484,10 @@ float UAbilitySystemComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectH
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType)
 {
-	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
+	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
 	if (!Spec.Def)
 	{
-		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent Actor %s that has no gameplay effect!"), ActorOwner ? *ActorOwner->GetName() : TEXT("NULL"));
+		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent Actor %s that has no gameplay effect!"), ActorAvatar ? *ActorAvatar->GetName() : TEXT("NULL"));
 		return;
 	}
 
@@ -494,10 +496,10 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
 	}
 
-	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorOwner);
+	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorAvatar);
 	if (!GameplayCueInterface)
 	{
-		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent %s on Actor %s that is not IGameplayCueInterface"), *Spec.ToSimpleString(), ActorOwner ? *ActorOwner->GetName() : TEXT("NULL"));
+		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent %s on Actor %s that is not IGameplayCueInterface"), *Spec.ToSimpleString(), ActorAvatar ? *ActorAvatar->GetName() : TEXT("NULL"));
 		return;
 	}
 
@@ -505,16 +507,32 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 	float ExecuteLevel =  (Spec.ModifierLevel.IsValid() && Spec.ModifierLevel.Get()->IsValid()) ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
 
 	FGameplayCueParameters CueParameters;
-	CueParameters.InstigatorContext = Spec.InstigatorContext;
+	CueParameters.EffectContext = Spec.EffectContext;
 
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
-		CueParameters.NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->HandleGameplayCues(ActorOwner, CueInfo.GameplayCueTags, EventType, CueParameters);
-
-		if (DebugGameplayCues)
+		if (CueInfo.MagnitudeAttribute.IsValid())
 		{
-			DrawDebugSphere(GetWorld(), Spec.InstigatorContext.HitResult->Location, 30.f, 32, FColor(255, 0, 0), true, 30.f);
+			if (const FGameplayEffectModifiedAttribute* ModifiedAttribute = Spec.GetModifiedAttribute(CueInfo.MagnitudeAttribute))
+			{
+				CueParameters.RawMagnitude = ModifiedAttribute->TotalMagnitude;
+			}
+			else
+			{
+				CueParameters.RawMagnitude = 0.0f;
+			}
+		}
+		else
+		{
+			CueParameters.RawMagnitude = 0.0f;
+		}
+
+		CueParameters.NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
+		GameplayCueInterface->HandleGameplayCues(ActorAvatar, CueInfo.GameplayCueTags, EventType, CueParameters);
+
+		if (DebugGameplayCues && Spec.EffectContext.GetHitResult())
+		{
+			DrawDebugSphere(GetWorld(), Spec.EffectContext.GetHitResult()->Location, 30.f, 32, FColor(255, 0, 0), true, 30.f);
 			ABILITY_LOG(Warning, TEXT("   %s"), *CueInfo.GameplayCueTags.ToString());
 		}
 	}
@@ -561,19 +579,20 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType)
 {
-	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
-	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorOwner);
+	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
+	AActor* ActorOwner = AbilityActorInfo->OwnerActor.Get();
+	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorAvatar);
 	if (!GameplayCueInterface)
 	{
 		return;
 	}
 
 	FGameplayCueParameters CueParameters;
-	CueParameters.InstigatorContext.AddInstigator(ActorOwner);	// Treat ourselves as the instigator for now. We may need to allow this to be passed in eventually.
+	CueParameters.EffectContext.AddInstigator(ActorOwner, ActorAvatar); // By default use the owner and avatar as the instigator and causer
+	CueParameters.NormalizedMagnitude = 1.f;
+	CueParameters.RawMagnitude = 0.f;
 
-	const float NormalizedMagnitude = 1.f;
-
-	GameplayCueInterface->HandleGameplayCue(ActorOwner, GameplayCueTag, EventType, CueParameters);
+	GameplayCueInterface->HandleGameplayCue(ActorAvatar, GameplayCueTag, EventType, CueParameters);
 }
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)
@@ -617,9 +636,9 @@ void UAbilitySystemComponent::SetBaseAttributeValueFromReplication(float NewValu
 	ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue);
 }
 
-bool UAbilitySystemComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+bool UAbilitySystemComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
 {
-	return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, Instigator);
+	return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, EffectContext);
 }
 
 TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
@@ -690,9 +709,13 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
-	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);	
-	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
-	DOREPLIFETIME(UAbilitySystemComponent, AbilityActor);
+	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
+	
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, ActivatableAbilities, COND_OwnerOnly);
+
+	DOREPLIFETIME(UAbilitySystemComponent, OwnerActor);
+	DOREPLIFETIME(UAbilitySystemComponent, AvatarActor);
+
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
 	DOREPLIFETIME(UAbilitySystemComponent, RepAnimMontageInfo);
 	
@@ -760,7 +783,7 @@ void UAbilitySystemComponent::OnRep_PredictionKey()
 void UAbilitySystemComponent::PrintAllGameplayEffects() const
 {
 	ABILITY_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
-	ABILITY_LOG(Log, TEXT("Owner: %s. Avatar: %s"), *GetOwner()->GetName(), *AbilityActorInfo->Actor->GetName());
+	ABILITY_LOG(Log, TEXT("Owner: %s. Avatar: %s"), *GetOwner()->GetName(), *AbilityActorInfo->AvatarActor->GetName());
 	ActiveGameplayEffects.PrintAllGameplayEffects();
 }
 

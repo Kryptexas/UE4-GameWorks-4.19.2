@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "GameplayAbility.h"
 #include "GameplayEffect.h"
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -19,7 +20,7 @@
  *	
  *	GameplayAbilities:
  *		-Provides a way to give/assign abilities that can be used (by a player or AI for example)
- *		-Provides managment of instanced abilities (something must hold onto them)
+ *		-Provides management of instanced abilities (something must hold onto them)
  *		-Provides replication functionality
  *			-Ability state must always be replicated on the UGameplayAbility itself, but UAbilitySystemComponent can provide RPC replication
  *			for non-instanced gameplay abilities. (Explained more in GameplayAbility.h).
@@ -32,7 +33,7 @@
  *		
  *	GameplayAttributes
  *		-Provides methods for allocating and initializing attribute sets
- *		-Provides methods for getting ATtributeSets
+ *		-Provides methods for getting AttributeSets
  *  
  * 
  */
@@ -167,7 +168,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// Primary outward facing API for other systems:
 	// --------------------------------------------
 	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec& GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec& GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
@@ -176,9 +177,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect, float Level) const;
 
-	/** Create an InstigatorContext for the owner of this AbilitySystemComponent */
+	/** Create an EffectContext for the owner of this AbilitySystemComponent */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	FGameplayEffectInstigatorContext GetInstigatorContext() const;
+	FGameplayEffectContextHandle GetEffectContext() const;
 
 	/** This only exists so it can be hooked up to a multicast delegate */
 	void RemoveActiveGameplayEffect_NoReturn(FActiveGameplayEffectHandle Handle)
@@ -226,9 +227,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
-	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, FGameplayEffectContextHandle EffectContext);
 	
-	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier = FModifierQualifier() );
+	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	int32 GetNumActiveGameplayEffect() const;
 
@@ -237,7 +238,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute);
 
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
-	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
 
 	// Generic 'Get expected magnitude (list) if I was to apply this outgoing or incoming'
 
@@ -301,7 +302,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType);
 
-	/** Allows polling to see if a GameplayCue is active. We expect most GameplayCue hanlding to be event based, but some cases we may need to check if a GamepalyCue is active (Animation Blueprint for example) */
+	/** Allows polling to see if a GameplayCue is active. We expect most GameplayCue handling to be event based, but some cases we may need to check if a GamepalyCue is active (Animation Blueprint for example) */
 	UFUNCTION(BlueprintCallable, Category="GameplayCue", meta=(GameplayTagFilter="GameplayCue"))
 	bool IsGameplayCueActive(const FGameplayTag GameplayCueTag) const;
 
@@ -327,12 +328,15 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	FGameplayAbilitySpecHandle GiveAbility(FGameplayAbilitySpec AbilitySpec);
 
 	/** Attempts to activate the given ability */
-	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey=FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr);
+	bool TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey = FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate = nullptr);
 
 	void TriggerAbilityFromGameplayEvent(FGameplayAbilitySpecHandle AbilityToTrigger, FGameplayAbilityActorInfo* ActorInfo, FGameplayTag Tag, FGameplayEventData* Payload, UAbilitySystemComponent& Component);
 
 	/** Wipes all 'given' abilities. */
 	void ClearAllAbilities();
+
+	/** Removes the specified ability */
+	void ClearAbility(const FGameplayAbilitySpecHandle& Handle);
 
 	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
 	void OnGiveAbility(const FGameplayAbilitySpec AbilitySpec);
@@ -500,8 +504,14 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	// -----------------------------------------------------------------------------
 
-	UPROPERTY(ReplicatedUsing=OnRep_OwningActor)
-	AActor* AbilityActor;
+
+	/** The actor that owns this component logically */
+	UPROPERTY(ReplicatedUsing = OnRep_OwningActor)
+	AActor* OwnerActor;
+
+	/** The actor that is the physical representation used for abilities. Can be NULL */
+	UPROPERTY(ReplicatedUsing = OnRep_OwningActor)
+	AActor* AvatarActor;
 	
 	UFUNCTION()
 	void OnRep_OwningActor();
@@ -509,12 +519,15 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Cached off data about the owning actor that abilities will need to frequently access (movement component, mesh component, anim instance, etc) */
 	TSharedPtr<FGameplayAbilityActorInfo>	AbilityActorInfo;
 
-
 	/**
 	 *	Initialized the Abilities' ActorInfo - the structure that holds information about who we are acting on and who controls us.
-	 *		AvatarActor is what physical actor in the world we are acting on. Usually a Pawn but it could be a Tower, Building, Turret, etc.
+	 *      OwnerActor is the actor that logically owns this component.
+	 *		AvatarActor is what physical actor in the world we are acting on. Usually a Pawn but it could be a Tower, Building, Turret, etc, may be the same as Owner
 	 */
-	void InitAbilityActorInfo(AActor* AvatarActor);
+	void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor);
+
+	/** Changes the avatar actor, leaves the owner actor the same */
+	void SetAvatarActor(AActor* InAvatarActor);
 
 	/**
 	* This is called when the actor that is initialized to this system dies, this will clear that actor from this system and FGameplayAbilityActorInfo
@@ -570,11 +583,11 @@ private:
 
 	void ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle);
 
-	void ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	void ExecuteGameplayEffect(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 
 	void CheckDurationExpired(FActiveGameplayEffectHandle Handle);
 
-	bool AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, FGameplayEffectInstigatorContext& Instigator) const;
+	bool AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, const FGameplayEffectContextHandle& EffectContext) const;
 
 	bool IsOwnerActorAuthoritative() const;
 

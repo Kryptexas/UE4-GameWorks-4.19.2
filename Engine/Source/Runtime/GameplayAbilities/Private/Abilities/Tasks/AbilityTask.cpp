@@ -46,22 +46,36 @@ UWorld* UAbilityTask::GetWorld() const
 	return nullptr;
 }
 
-AActor* UAbilityTask::GetActor() const
+AActor* UAbilityTask::GetOwnerActor() const
 {
 	if (Ability.IsValid())
 	{
 		const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();
 		if (Info)
 		{
-			return Info->Actor.Get();
+			return Info->OwnerActor.Get();
 		}
 	}
 	else if (AbilitySystemComponent.IsValid())
 	{
-		return AbilitySystemComponent->AbilityActorInfo->Actor.Get();
+		return AbilitySystemComponent->AbilityActorInfo->OwnerActor.Get();
 	}
 
 	return nullptr;	
+}
+
+AActor* UAbilityTask::GetAvatarActor() const
+{
+	if (Ability.IsValid())
+	{
+		const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();
+		if (Info)
+		{
+			return Info->AvatarActor.Get();
+		}
+	}
+
+	return nullptr;
 }
 
 void UAbilityTask::AbilityEnded()

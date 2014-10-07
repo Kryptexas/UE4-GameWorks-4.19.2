@@ -8,8 +8,8 @@
 
 class UAbilitySystemComponent;
 
-/** Interface for actors that wish to handle GameplayCue events from GameplayEffects */
-UINTERFACE(MinimalAPI)
+/** Interface for actors that expose access to an ability system component */
+UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UAbilitySystemInterface : public UInterface
 {
 	GENERATED_UINTERFACE_BODY()

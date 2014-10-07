@@ -5244,28 +5244,28 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		bSawVirtual = true;
 	}
 
+	FString*   InternalPtr = MetaData.Find("BlueprintInternalUseOnly"); // FBlueprintMetadata::MD_BlueprintInternalUseOnly
+	const bool bDeprecated = MetaData.Contains("DeprecatedFunction");       // FBlueprintMetadata::MD_DeprecatedFunction
+	const bool bHasMenuCategory = MetaData.Contains("Category");                 // FBlueprintMetadata::MD_FunctionCategory
+	const bool bInternalOnly = InternalPtr && *InternalPtr == TEXT("true");
+
 	// If this function is blueprint callable or blueprint pure, require a category 
 	if ((FuncInfo.FunctionFlags & (FUNC_BlueprintCallable | FUNC_BlueprintPure)) != 0) 
 	{ 
-		FString*   InternalPtr      = MetaData.Find    ("BlueprintInternalUseOnly"); // FBlueprintMetadata::MD_BlueprintInternalUseOnly
-		const bool bDeprecated      = MetaData.Contains("DeprecatedFunction");       // FBlueprintMetadata::MD_DeprecatedFunction
-		const bool bHasMenuCategory = MetaData.Contains("Category");                 // FBlueprintMetadata::MD_FunctionCategory
-		const bool bInternalOnly    = InternalPtr && *InternalPtr == TEXT("true");
-
 		if (!bHasMenuCategory && !bInternalOnly && !bDeprecated) 
 		{ 
 			FError::Throwf(TEXT("Blueprint accessible functions must have a category specified")); 
 		} 
 	}
 
-	// Verify interfaces with respect to their blueprint accessable functions
+	// Verify interfaces with respect to their blueprint accessible functions
 	if (Class->HasAnyClassFlags(CLASS_Interface))
 	{
 		const bool bCanImplementInBlueprints = !Class->HasMetaData(TEXT("CannotImplementInterfaceInBlueprint"));  //FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint
 		if((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
 		{
-			// Ensure that blueprint events are only allowed in implementable interfaces
-			if(!bCanImplementInBlueprints)
+			// Ensure that blueprint events are only allowed in implementable interfaces. Internal only functions allowed
+			if (!bCanImplementInBlueprints && !bInternalOnly)
 			{
 				FError::Throwf(TEXT("Interfaces that are not implementable in blueprints cannot have BlueprintImplementableEvent members."));
 			}

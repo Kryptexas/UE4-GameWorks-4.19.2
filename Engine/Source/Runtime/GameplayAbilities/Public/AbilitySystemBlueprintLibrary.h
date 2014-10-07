@@ -5,6 +5,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/GameplayAbilityTargetDataFilter.h"
 #include "GameplayCueView.h"
+#include "GameplayCueInterface.h"
 #include "AbilitySystemBlueprintLibrary.generated.h"
 
 class UAnimMontage;
@@ -31,9 +32,6 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromLocations(const FGameplayAbilityTargetingLocationInfo& SourceLocation, const FGameplayAbilityTargetingLocationInfo& TargetLocation);
-
-	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
-	static FGameplayAbilityTargetDataHandle	AbilityTargetDataHandleFromAbilityTargetDataMesh(FGameplayAbilityTargetData_Mesh Data);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
@@ -87,6 +85,10 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static bool HasHitResult(FGameplayCueParameters Parameters);
+
+	/** Forwards the gameplay cue to another gameplay cue interface object */
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayCue")
+	static void ForwardGameplayCueToTarget(TScriptInterface<IGameplayCueInterface> TargetCueInterface, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
 	/** Gets the instigating actor (Pawn/Avatar) of the GameplayCue */
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")

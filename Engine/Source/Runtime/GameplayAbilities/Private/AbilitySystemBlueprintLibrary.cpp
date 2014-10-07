@@ -39,17 +39,6 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	return Handle;
 }
 
-FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataHandleFromAbilityTargetDataMesh(FGameplayAbilityTargetData_Mesh Data)
-{
-	// Construct TargetData
-	FGameplayAbilityTargetData_Mesh*	NewData = new FGameplayAbilityTargetData_Mesh(Data);
-	FGameplayAbilityTargetDataHandle	Handle;
-
-	// Give it a handle and return
-	Handle.Data.Add(TSharedPtr<FGameplayAbilityTargetData_Mesh>(NewData));
-	return Handle;
-}
-
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(AActor* Actor)
 {
 	// Construct TargetData
@@ -58,7 +47,6 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	FGameplayAbilityTargetDataHandle		Handle(NewData);
 	return Handle;
 }
-
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActorArray(TArray<TWeakObjectPtr<AActor>> ActorArray, bool OneTargetPerHandle)
 {
 	// Construct TargetData
@@ -306,15 +294,15 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
 {
-	return Parameters.InstigatorContext.IsLocallyControlled();
+	return Parameters.EffectContext.IsLocallyControlled();
 }
 
 
 FHitResult UAbilitySystemBlueprintLibrary::GetHitResult(FGameplayCueParameters Parameters)
 {
-	if (Parameters.InstigatorContext.HitResult.IsValid())
+	if (Parameters.EffectContext.GetHitResult())
 	{
-		return *Parameters.InstigatorContext.HitResult.Get();
+		return *Parameters.EffectContext.GetHitResult();
 	}
 	
 	return FHitResult();
@@ -322,12 +310,21 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResult(FGameplayCueParameters P
 
 bool UAbilitySystemBlueprintLibrary::HasHitResult(FGameplayCueParameters Parameters)
 {
-	return Parameters.InstigatorContext.HitResult.IsValid();
+	return Parameters.EffectContext.GetHitResult() != NULL;
+}
+
+void UAbilitySystemBlueprintLibrary::ForwardGameplayCueToTarget(TScriptInterface<IGameplayCueInterface> TargetCueInterface, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+{
+	AActor* ActorTarget = Cast<AActor>(TargetCueInterface.GetObject());
+	if (TargetCueInterface && ActorTarget)
+	{
+		TargetCueInterface->HandleGameplayCue(ActorTarget, Parameters.OriginalTag, EventType, Parameters);
+	}
 }
 
 AActor*	UAbilitySystemBlueprintLibrary::GetInstigatorActor(FGameplayCueParameters Parameters)
 {
-	return Parameters.InstigatorContext.GetOriginalInstigator();
+	return Parameters.EffectContext.GetInstigator();
 }
 
 FTransform UAbilitySystemBlueprintLibrary::GetInstigatorTransform(FGameplayCueParameters Parameters)

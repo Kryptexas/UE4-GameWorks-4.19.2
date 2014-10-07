@@ -72,7 +72,7 @@ UPrimitiveComponent* UAbilityTask_WaitOverlap::GetComponent()
 {
 	// TEMP - we are just using root component's collision. A real system will need more data to specify which component to use
 	UPrimitiveComponent * PrimComponent = nullptr;
-	AActor* ActorOwner = GetActor();
+	AActor* ActorOwner = GetAvatarActor();
 	if (ActorOwner)
 	{
 		PrimComponent = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());

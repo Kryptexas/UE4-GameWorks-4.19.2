@@ -21,6 +21,11 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 	{
 	}
 
+	bool IsValid() const
+	{
+		return Attribute != NULL;
+	}
+
 	void SetUProperty(UProperty *NewProperty)
 	{
 		Attribute = NewProperty;
@@ -56,11 +61,6 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 		return Attribute->GetName();
 	}
 
-	bool IsValid() const
-	{
-		return Attribute != nullptr;
-	}
-
 private:
 	friend class FAttributePropertyDetails;
 
@@ -74,6 +74,7 @@ class GAMEPLAYABILITIES_API UAttributeSet : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
+	bool IsNameStableForNetworking() const override;
 
 	bool IsSupportedForNetworking() const override
 	{
@@ -106,11 +107,28 @@ public:
 	 */
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float NewValue) { }
 
+	/** 
+	 * Called to determine the set of gameplay attributes that the specified attribute requires as pre-requisites in order to accurately compute
+	 * the value of an attribute modification to the specified attribute. As an example, if you had a custom, complex implementation of a damage formula
+	 * and the damage relied on other attributes to perform its calculation (such as crit %, etc.), they would be output by this function.
+	 * 
+	 * @param AttributeToBeModified	Attribute that is being considered for modification and requires pre-requisites computed
+	 * @param OutPrereqs			[OUT] Pre-requisite attributes whose values/modifiers must be known prior to resolving a computation of the specified attribute
+	 */
+	virtual void GetPrerequisiteAttributesForAttributeModification(const FGameplayAttribute& AttributeToBeModified, OUT TArray<FGameplayAttribute>& OutPrereqs) const {}
+
+	/** This signifies the attribute set can be ID'd by name over the network. */
+	void SetNetAddressable();
+
 	void InitFromMetaDataTable(const UDataTable* DataTable);
 
 	UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
 
 	virtual void PrintDebug();
+
+protected:
+	/** Is this attribute set safe to ID over the network by name?  */
+	uint32 bNetAddressable : 1;
 };
 
 USTRUCT()
@@ -235,7 +253,7 @@ public:
 };
 
 /**
- *	Helper struct that facilates initializing attribute set default values from spread sheets (UCurveTable).
+ *	Helper struct that facilitates initializing attribute set default values from spread sheets (UCurveTable).
  *	Projects are free to initialize their attribute sets however they want. This is just want example that is 
  *	useful in some cases.
  *	
@@ -258,10 +276,10 @@ public:
  *	AttributeSetName	- what UAttributeSet the attributes belong to. (Note that this is a simple partial match on the UClass name. "Health" matches "UMyGameHealthSet").
  *	Attribute			- the name of the actual attribute property (matches full name).
  *		
- *	Colums represent "Level". 
+ *	Columns represent "Level". 
  *	
  *	FAttributeSetInitter::PreloadAttributeSetData(UCurveTable*)
- *	This transforms the CurveTable into a more effecient format to read in at run time. Should be called from UAbilitySystemGlobals for example.
+ *	This transforms the CurveTable into a more efficient format to read in at run time. Should be called from UAbilitySystemGlobals for example.
  *
  *	FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level) const;
  *	This initializes the given AbilitySystemComponent's attribute sets with the specified GroupName and Level. Game code would be expected to call

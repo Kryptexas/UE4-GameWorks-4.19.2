@@ -10,6 +10,7 @@ class UCurveTable;
 class UDataTable;
 
 struct FGameplayAbilityActorInfo;
+struct FGameplayEffectContext;
 struct FGameplayTag;
 struct FAttributeSetInitter;
 
@@ -32,7 +33,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Holds default values for attribute sets, keyed off of Name/Levels. */
 	UPROPERTY(config)
 	FString GlobalAttributeSetDefaultsTableName;
-	
+
+	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
+	UPROPERTY(config)
+	FStringClassReference AbilitySystemGlobalsClassName;
+
 	UCurveTable* GetGlobalCurveTable();
 
 	UDataTable* GetGlobalAttributeMetaDataTable();
@@ -56,8 +61,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	static UAbilitySystemComponent* GetAbilitySystemComponentFromActor(AActor* Actor);
 
-	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for dellocation */
+	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for deallocation */
 	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo() const;
+
+	/** Should allocate a project specific GameplayEffectContext struct. Caller is responsible for deallocation */
+	virtual FGameplayEffectContext* AllocGameplayEffectContext() const;
 
 	UFunction* GetGameplayCueFunction(const FGameplayTag &Tag, UClass* Class, FName &MatchedTag);
 

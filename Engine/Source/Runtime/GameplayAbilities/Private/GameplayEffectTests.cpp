@@ -2010,7 +2010,7 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 		LifestealEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		LifestealEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
-		SourceComponent->ApplyGameplayEffectToSelf(LifestealEffect, 1.f, SourceActor);
+		SourceComponent->ApplyGameplayEffectToSelf(LifestealEffect, 1.f, SourceComponent->GetEffectContext());
 	}
 	
 	{
@@ -2086,7 +2086,7 @@ bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Te
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
-		AppliedHandle = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor);
+		AppliedHandle = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestComponent->GetEffectContext());
 	}
 
 	{
@@ -2202,8 +2202,8 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
-		AppliedHandle_1 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor);
-		AppliedHandle_2 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor);
+		AppliedHandle_1 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestComponent->GetEffectContext());
+		AppliedHandle_2 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestComponent->GetEffectContext());
 	}
 
 	{

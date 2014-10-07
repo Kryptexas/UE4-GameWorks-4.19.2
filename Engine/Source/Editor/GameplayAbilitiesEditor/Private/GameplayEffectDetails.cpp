@@ -130,6 +130,11 @@ void FGameplayEffectDetails::OnTemplateChange()
 		for (TFieldIterator<UProperty> PropIt(UGameplayEffect::StaticClass(), EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt)
 		{
 			UProperty* Property = *PropIt;
+			// don't overwrite the template property
+			if (Property->GetFName() == "Template")
+			{
+				continue;
+			}
 			if (!Property->Identical_InContainer(Template, DefObj))
 			{
 				Property->CopyCompleteValue_InContainer(Obj, Template);

@@ -29,6 +29,25 @@ UAttributeSet::UAttributeSet(const class FPostConstructInitializeProperties& PCI
 
 }
 
+bool UAttributeSet::IsNameStableForNetworking() const
+{
+	/** 
+	 * IsNameStableForNetworking means an attribute set can be referred to its path name (relative to owning AActor*) over the network
+	 *
+	 * Attribute sets are net addressable if:
+	 *	-They are Default Subobjects (created in C++ constructor)
+	 *	-They were loaded directly from a package (placed in map actors)
+	 *	-They were explicitly set to bNetAddressable
+	 */
+
+	return bNetAddressable || Super::IsNameStableForNetworking();
+}
+
+void UAttributeSet::SetNetAddressable()
+{
+	bNetAddressable = true;
+}
+
 void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
 {
 	static const FString Context = FString(TEXT("UAttribute::BindToMetaDataTable"));

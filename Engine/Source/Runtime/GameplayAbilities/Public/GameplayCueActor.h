@@ -3,10 +3,11 @@
 #pragma once
 
 #include "GameplayEffect.h"
+#include "GameplayCueInterface.h"
 #include "GameplayCueActor.generated.h"
 
 /**
- *	This is meant to be a basic implementation of an actor is spawned from a GameplayCue event.
+ *	This is meant to be a basic implementation of an actor is spawned from a GameplayCue event. It implements the cue interface so events can be forwarded to it as well.
  *	It provides basic functionality like attachment.
  *	
  *	Individual projects will most likely want their own subclass (or a completely different GameplayCue handling system all together)
@@ -14,7 +15,7 @@
 
 
 UCLASS(BlueprintType, notplaceable)
-class GAMEPLAYABILITIES_API AGameplayCueActor : public AActor
+class GAMEPLAYABILITIES_API AGameplayCueActor : public AActor, public IGameplayCueInterface
 {
 	// Defines how a GameplayCue is translated into viewable components
 	GENERATED_UCLASS_BODY()

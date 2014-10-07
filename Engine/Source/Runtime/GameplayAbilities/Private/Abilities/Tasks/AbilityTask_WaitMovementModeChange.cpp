@@ -17,7 +17,7 @@ UAbilityTask_WaitMovementModeChange* UAbilityTask_WaitMovementModeChange::Create
 
 void UAbilityTask_WaitMovementModeChange::Activate()
 {
-	ACharacter* Character = Cast<ACharacter>(GetActor());
+	ACharacter* Character = Cast<ACharacter>(GetAvatarActor());
 	if (Character)
 	{
 		Character->MovementModeChangedDelegate.AddDynamic(this, &UAbilityTask_WaitMovementModeChange::OnMovementModeChange);

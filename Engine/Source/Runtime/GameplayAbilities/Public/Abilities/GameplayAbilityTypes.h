@@ -138,27 +138,43 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 
 	virtual ~FGameplayAbilityActorInfo() {}
 
+	/** The actor that owns the abilities, shouldn't be null */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
-	TWeakObjectPtr<AActor>	Actor;
+	TWeakObjectPtr<AActor>	OwnerActor;
 
-	/** PlayerController associated with this actor. This will often be null! */
+	/** The physical representation of the owner, used for targeting and animation. This will often be null! */
+	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
+	TWeakObjectPtr<AActor>	AvatarActor;
+
+	/** PlayerController associated with the owning actor. This will often be null! */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<APlayerController>	PlayerController;
 
-	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
-	TWeakObjectPtr<UAnimInstance>	AnimInstance;
-
+	/** Ability System component associated with the owner actor, shouldn't be null */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UAbilitySystemComponent>	AbilitySystemComponent;
 
+	/** Anim instance of the avatar actor. Often null */
+	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
+	TWeakObjectPtr<UAnimInstance>	AnimInstance;
+
+	/** Movement component of the avatar actor. Often null */
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UMovementComponent>	MovementComponent;
 
+	/** Returns true if this actor is locally controlled. Only true for players on the client that owns them */
 	bool IsLocallyControlled() const;
 
+	/** Returns true if the owning actor has net authority */
 	bool IsNetAuthority() const;
 
-	virtual void InitFromActor(AActor *Actor, UAbilitySystemComponent* InAbilitySystemComponent);
+	/** Initializes the info from an owning actor. Will set both owner and avatar */
+	virtual void InitFromActor(AActor *OwnerActor, AActor *AvatarActor, UAbilitySystemComponent* InAbilitySystemComponent);
+
+	/** Sets a new avatar actor, keeps same owner and ability system component */
+	virtual void SetAvatarActor(AActor *AvatarActor);
+
+	/** Clears out any actor info, both owner and avatar */
 	virtual void ClearActorInfo();
 };
 
