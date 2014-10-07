@@ -42,11 +42,11 @@ FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale 
 {
 	if ( EndIndex - BeginIndex == 0 )
 	{
-		return FVector2D( 0, GetMaxHeight( Scale ) );
+		return FVector2D( 0, GetMaxHeight( Scale ) ) + Style.ShadowOffset;
 	}
 
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->Measure( **Text, BeginIndex, EndIndex, Style.Font, true, Scale );
+	return FontMeasure->Measure( **Text, BeginIndex, EndIndex, Style.Font, true, Scale ) + Style.ShadowOffset;
 }
 
 int8 FSlateTextRun::GetKerning(int32 CurrentIndex, float Scale) const
