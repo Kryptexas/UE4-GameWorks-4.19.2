@@ -42,52 +42,12 @@ public:
 	}
 };
 
-struct FPrintCompilationSummaryHelper
-{
-	static void Print(double CompileStartTime, double FinishTime, const FString Name, bool bPrintResultSuccess, FCompilerResultsLog& Results)
-	{
-
-		FNumberFormattingOptions TimeFormat;
-	  TimeFormat.MaximumFractionalDigits = 2;
-	  TimeFormat.MinimumFractionalDigits = 2;
-	  TimeFormat.MaximumIntegralDigits = 4;
-	  TimeFormat.MinimumIntegralDigits = 4;
-	  TimeFormat.UseGrouping = false;
-  
-	  FFormatNamedArguments Args;
-	  Args.Add(TEXT("Time"), FText::AsNumber(FinishTime - GStartTime, &TimeFormat));
-	  Args.Add(TEXT("BlueprintName"), FText::FromString(Name));
-	  Args.Add(TEXT("NumWarnings"), Results.NumWarnings);
-	  Args.Add(TEXT("NumErrors"), Results.NumErrors);
-	  Args.Add(TEXT("TotalMilliseconds"), (int)((FinishTime - CompileStartTime) * 1000));
-
-		if (Results.NumErrors > 0)
-	  {
-		  FString FailMsg = FText::Format(LOCTEXT("CompileFailed", "[{Time}] Compile of {BlueprintName} failed. {NumErrors} Fatal Issue(s) {NumWarnings} Warning(s) [in {TotalMilliseconds} ms]"), Args).ToString();
-		  Results.Warning(*FailMsg);
-	  }
-	  else if(Results.NumWarnings > 0)
-	  {
-		  FString WarningMsg = FText::Format(LOCTEXT("CompileWarning", "[{Time}] Compile of {BlueprintName} successful, but with {NumWarnings} Warning(s) [in {TotalMilliseconds} ms]"), Args).ToString();
-		  Results.Warning(*WarningMsg);
-	  }
-	  else if(bPrintResultSuccess)
-	  {
-		  FString SuccessMsg = FText::Format(LOCTEXT("CompileSuccess", "[{Time}] Compile of {BlueprintName} successful! [in {TotalMilliseconds} ms]"), Args).ToString();
-		  Results.Note(*SuccessMsg);
-	  }
-	}
-};
-
-
 // Compiles a blueprint.
-void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, bool bPrintResultSuccess, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
 {
 	FBlueprintIsBeingCompiledHelper BeingCompiled(Blueprint);
 
 	Blueprint->CurrentMessageLog = &Results;
-
-	const double CompileStartTime = FPlatformTime::Seconds();
 
 	// Early out if blueprint parent is missing
 	if (Blueprint->ParentClass == NULL)
@@ -127,43 +87,46 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 		}
 	}
 
-	const double FinishTime = FPlatformTime::Seconds();
-	FPrintCompilationSummaryHelper::Print(CompileStartTime, FinishTime, Blueprint->GetName(), bPrintResultSuccess, Results);
-
 	Blueprint->CurrentMessageLog = NULL;
 }
 
 
 void FKismet2CompilerModule::CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results)
 {
-	const double CompileStartTime = FPlatformTime::Seconds();
+	Results.SetSourceName(Struct->GetName());
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
 	FUserDefinedStructureCompilerUtils::CompileStruct(Struct, Results, true);
-	const double FinishTime = FPlatformTime::Seconds();
-	FPrintCompilationSummaryHelper::Print(CompileStartTime, FinishTime, Struct->GetName(), true, Results);
 }
 
 // Compiles a blueprint.
 void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, FBlueprintCompileReinstancer* ParentReinstancer, TArray<UObject*>* ObjLoaded)
 {
 	SCOPE_SECONDS_COUNTER(GBlueprintCompileTime);
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
+
+	Results.SetSourceName(Blueprint->GetName());
 
 	const bool bIsBrandNewBP = (Blueprint->SkeletonGeneratedClass == NULL) && (Blueprint->GeneratedClass == NULL) && (Blueprint->ParentClass != NULL) && !CompileOptions.bIsDuplicationInstigated;
 
 	{
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Compile Skeleton Class"));
+
 		FBlueprintCompileReinstancer SkeletonReinstancer(Blueprint->SkeletonGeneratedClass);
 
 		FCompilerResultsLog SkeletonResults;
 		SkeletonResults.bSilentMode = true;
 		FKismetCompilerOptions SkeletonCompileOptions;
 		SkeletonCompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
-		CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ false, SkeletonCompileOptions, SkeletonResults, ObjLoaded);
+		CompileBlueprintInner(Blueprint, SkeletonCompileOptions, SkeletonResults, ObjLoaded);
 	}
 
 	// If this was a full compile, take appropriate actions depending on the success of failure of the compile
 	if( CompileOptions.IsGeneratedClassCompileType() )
 	{
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Compile Generated Class"));
+
 		// Perform the full compile
-		CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ true, CompileOptions, Results, ObjLoaded);
+		CompileBlueprintInner(Blueprint, CompileOptions, Results, ObjLoaded);
 
 		if (Results.NumErrors == 0)
 		{
@@ -206,7 +169,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			FKismetCompilerOptions StubCompileOptions(CompileOptions);
 			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
 
-			CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ false, StubCompileOptions, StubResults, ObjLoaded);
+			CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, ObjLoaded);
 
 			StubReinstancer.UpdateBytecodeReferences();
 			if( !Blueprint->bIsRegeneratingOnLoad )

@@ -2428,23 +2428,26 @@ void FBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 
 void FBlueprintEditor::Compile()
 {
-	if (GetBlueprintObj())
+	UBlueprint* BlueprintObj = GetBlueprintObj();
+	if (BlueprintObj)
 	{
 		FMessageLog BlueprintLog("BlueprintLog");
 
 		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("BlueprintName"), FText::FromString(GetBlueprintObj()->GetName()));
+		Arguments.Add(TEXT("BlueprintName"), FText::FromString(BlueprintObj->GetName()));
 		BlueprintLog.NewPage(FText::Format(LOCTEXT("CompilationPageLabel", "Compile {BlueprintName}"), Arguments));
 
 		FCompilerResultsLog LogResults;
-		FKismetEditorUtilities::CompileBlueprint(GetBlueprintObj(), false, false, bSaveIntermediateBuildProducts, &LogResults);
+		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
+		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
+		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, false, false, bSaveIntermediateBuildProducts, &LogResults);
 
-		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !GetBlueprintObj()->bIsRegeneratingOnLoad;
+		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);
 
 		// send record when player clicks compile and send the result
 		// this will make sure how the users activity is
-		AnalyticsTrackCompileEvent(GetBlueprintObj(), LogResults.NumErrors, LogResults.NumWarnings);
+		AnalyticsTrackCompileEvent(BlueprintObj, LogResults.NumErrors, LogResults.NumWarnings);
 	}
 }
 

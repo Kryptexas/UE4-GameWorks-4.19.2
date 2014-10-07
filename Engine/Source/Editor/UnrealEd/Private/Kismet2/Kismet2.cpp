@@ -34,6 +34,7 @@
 #include "ComponentAssetBroker.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
+
 //////////////////////////////////////////////////////////////////////////
 // FArchiveInvalidateTransientRefs
 
@@ -369,6 +370,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	FCompilerResultsLog LocalResults;
 	FCompilerResultsLog& Results = (pResults != NULL) ? *pResults : LocalResults;
 
+	BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Compile Blueprint"));
+
 	FBlueprintCompileReinstancer ReinstanceHelper(OldClass);
 
 	// Suppress errors/warnings in the log if we're recompiling on load on a build machine
@@ -409,6 +412,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 
 		if (!bSkipGarbageCollection)
 		{
+			BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Garbage Collection"));
+
 			// Garbage collect to make sure the old class and actors are disposed of
 			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 		}
@@ -417,12 +422,15 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		// ReinstanceHelper.VerifyReplacement();
 	}
 
-	// Blueprint has changed, broadcast notify
-	BlueprintObj->BroadcastChanged();
+	{ BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Notify Blueprint Changed"));
 
-	if(GEditor)
-	{
-		GEditor->BroadcastBlueprintCompiled();	
+		// Blueprint has changed, broadcast notify
+		BlueprintObj->BroadcastChanged();
+
+		if(GEditor)
+		{
+			GEditor->BroadcastBlueprintCompiled();	
+		}
 	}
 
 	// Default Values are now set in CDO. And these copies could be soon obsolete, so better to reset them.
@@ -431,30 +439,34 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
 	}
 
-	TArray<UBlueprint*> DependentBPs;
-	FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
+	{ BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Refresh Dependent Blueprints"));
 
-	// refresh each dependent blueprint
-	for (UBlueprint* Dependent : DependentBPs)
-	{
-		// for interface changes, auto-refresh nodes on any dependent blueprints
-		// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
-		if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
+		TArray<UBlueprint*> DependentBPs;
+		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
+
+		// refresh each dependent blueprint
+		for (UBlueprint* Dependent : DependentBPs)
 		{
-			bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
-			Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
-			FBlueprintEditorUtils::RefreshAllNodes(Dependent);
-			Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
-		}
-		else if(!BlueprintObj->bIsRegeneratingOnLoad)
-		{
-			// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
-			Dependent->BroadcastChanged();
+			// for interface changes, auto-refresh nodes on any dependent blueprints
+			// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
+			if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
+			{
+				bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
+				Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
+				FBlueprintEditorUtils::RefreshAllNodes(Dependent);
+				Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
+			}
+			else if(!BlueprintObj->bIsRegeneratingOnLoad)
+			{
+				// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
+				Dependent->BroadcastChanged();
+			}
 		}
 	}
 
 	if(!bIsRegeneratingOnLoad && BlueprintObj->GeneratedClass)
 	{
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Validate Generated Class"));
 		UBlueprint::ValidateGeneratedClass(BlueprintObj->GeneratedClass);
 	}
 

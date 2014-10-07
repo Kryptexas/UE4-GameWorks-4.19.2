@@ -15,6 +15,8 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructIni
 	bShowContextualFavorites = false;
 	bFlattenFavoritesMenus = true;
 	bUseLegacyMenuingSystem = false;
+	bShowDetailedCompileResults = false;
+	CompileEventDisplayThresholdMs = 5;
 
 	// settings that were moved out of experimental...
 	UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();

@@ -33,7 +33,6 @@ static bool bDebugPropertyPropagation = false;
 
 DEFINE_STAT(EKismetCompilerStats_CompileTime);
 DEFINE_STAT(EKismetCompilerStats_CreateSchema);
-DEFINE_STAT(EKismetCompilerStats_ReplaceGraphRefsToGeneratedClass);
 DEFINE_STAT(EKismetCompilerStats_CreateFunctionList);
 DEFINE_STAT(EKismetCompilerStats_Expansion);
 DEFINE_STAT(EKismetCompilerStats_ProcessUbergraph);
@@ -43,8 +42,10 @@ DEFINE_STAT(EKismetCompilerStats_CompileFunction);
 DEFINE_STAT(EKismetCompilerStats_PostcompileFunction);
 DEFINE_STAT(EKismetCompilerStats_FinalizationWork);
 DEFINE_STAT(EKismetCompilerStats_CodeGenerationTime);
-DEFINE_STAT(EKismetCompilerStats_UpdateBlueprintGeneratedClass);
 DEFINE_STAT(EKismetCompilerStats_ChooseTerminalScope);
+DEFINE_STAT(EKismetCompilerStats_CleanAndSanitizeClass);
+DEFINE_STAT(EKismetCompilerStats_CreateClassVariables);
+DEFINE_STAT(EKismetCompilerStats_BindAndLinkClass);
 		
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
@@ -142,6 +143,8 @@ bool FKismetCompilerContext::FSubobjectCollection::operator()(const UObject* con
 
 void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
 {
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CleanAndSanitizeClass);
+
 	const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
 	FString TransientClassString = FString::Printf(TEXT("TRASHCLASS_%s"), *Blueprint->GetName());
 	FName TransientClassName = MakeUniqueObjectName(GetTransientPackage(), UBlueprintGeneratedClass::StaticClass(), FName(*TransientClassString));
@@ -452,6 +455,8 @@ void FKismetCompilerContext::ValidateTimelineNames()
 
 void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 {
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CreateClassVariables);
+
 	// Ensure that member variable names are valid and that there are no collisions with a parent class
 	ValidateVariableNames();
 
@@ -1063,7 +1068,7 @@ void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph
  */
 void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 {
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_PrecompileFunction);
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_PrecompileFunction);
 
 	// Find the root node, which will drive everything else
 	check(Context.RootSet.Num() == 0);
@@ -1299,7 +1304,8 @@ void OrderedInsertIntoArray(TArray<DataType>& Array, const TMap<DataType, SortKe
  */
 void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 {
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_CompileFunction);
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileFunction);
+
 	check(Context.IsValid());
 
 	// Generate statements for each node in the linear execution order (which should roughly correspond to the final execution order)
@@ -1431,7 +1437,7 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
  */
 void FKismetCompilerContext::PostcompileFunction(FKismetFunctionContext& Context)
 {
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_PostcompileFunction);
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_PostcompileFunction);
 
 	// Sort the 'linear execution list' again by likely execution order.
 	Context.FinalSortLinearExecList();
@@ -2437,29 +2443,29 @@ void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraph
 {
 	if (bIsFullCompile)
 	{
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_Expansion);
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_Expansion);
 
-	// Collapse any remaining tunnels or macros
-	ExpandTunnelsAndMacros(Graph);
+		// Collapse any remaining tunnels or macros
+		ExpandTunnelsAndMacros(Graph);
 
-	for (int32 NodeIndex = 0; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
-	{
-		UK2Node* Node = Cast<UK2Node>(Graph->Nodes[NodeIndex]);
-		if (Node)
+		for (int32 NodeIndex = 0; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
 		{
-			Node->ExpandNode(*this, Graph);
+			UK2Node* Node = Cast<UK2Node>(Graph->Nodes[NodeIndex]);
+			if (Node)
+			{
+				Node->ExpandNode(*this, Graph);
+			}
+		}
+
+		if (bAllowUbergraphExpansions)
+		{
+			// Expand timeline nodes
+			ExpandTimelineNodes(Graph);
+
+			// Expand PlayMovieScene nodes
+			ExpandPlayMovieSceneNodes(Graph);
 		}
 	}
-
-	if (bAllowUbergraphExpansions)
-	{
-		// Expand timeline nodes
-		ExpandTimelineNodes(Graph);
-
-		// Expand PlayMovieScene nodes
-		ExpandPlayMovieSceneNodes(Graph);
-	}
-}
 }
 
 void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
@@ -2543,7 +2549,7 @@ void FKismetCompilerContext::VerifyValidOverrideFunction(const UEdGraph* Graph)
 // Merges pages and creates function stubs, etc... from the ubergraph entry points
 void FKismetCompilerContext::CreateAndProcessUbergraph()
 {
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_ProcessUbergraph);
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ProcessUbergraph);
 
 	ConsolidatedEventGraph = NewNamedObject<UEdGraph>(Blueprint, GetUbergraphCallName());
 	ConsolidatedEventGraph->Schema = UEdGraphSchema_K2::StaticClass();
@@ -2922,7 +2928,7 @@ void FKismetCompilerContext::ResetErrorFlags(UEdGraph* Graph) const
  */
 void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
 {
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_ProcessFunctionGraph);
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ProcessFunctionGraph);
 
 	// Clone the source graph so we can modify it as needed; merging in the child graphs
 	UEdGraph* FunctionGraph = FEdGraphUtilities::CloneGraph(SourceGraph, Blueprint, &MessageLog, true); 
@@ -2994,6 +3000,8 @@ void FKismetCompilerContext::ValidateFunctionGraphNames()
 // Creates a copy of the graph to allow further transformations to occur
 void FKismetCompilerContext::CreateFunctionList()
 {
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CreateFunctionList);
+
 	// Process the ubergraph if one should be present
 	if (FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint))
 	{
@@ -3038,8 +3046,6 @@ FKismetFunctionContext* FKismetCompilerContext::CreateFunctionContext()
 /** Compile a blueprint into a class and a set of functions */
 void FKismetCompilerContext::Compile()
 {
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_CompileTime);
-
 	// Interfaces only need function signatures, so we only need to perform the first phase of compilation for them
 	bIsFullCompile = CompileOptions.DoesRequireBytecodeGeneration() && (Blueprint->BlueprintType != BPTYPE_Interface);
 
@@ -3055,7 +3061,7 @@ void FKismetCompilerContext::Compile()
 
 	if (Schema == NULL)
 	{
-		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_CreateSchema);
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CreateSchema);
 		Schema = CreateSchema();
 		PostCreateSchema();
 	}
@@ -3233,10 +3239,7 @@ void FKismetCompilerContext::Compile()
 	AddInterfacesFromBlueprint(NewClass);
 
 	// Construct a context for each function, doing validation and building the function interface
-	{	
-		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_CreateFunctionList);
-		CreateFunctionList();
-	}
+	CreateFunctionList();
 
 	// Precompile the functions
 	// Handle delegates signatures first, because they are needed by other functions
@@ -3256,9 +3259,12 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
-	// Relink the class
-	NewClass->Bind();
-	NewClass->StaticLink(true);
+	{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_BindAndLinkClass);
+
+		// Relink the class
+		NewClass->Bind();
+		NewClass->StaticLink(true);
+	}
 
 	if (bIsFullCompile && !MessageLog.NumErrors)
 	{
@@ -3316,7 +3322,7 @@ void FKismetCompilerContext::Compile()
 			FKismetFunctionContext& Function = FunctionList[i];
 			if (Function.IsValid())
 			{
-				SCOPE_CYCLE_COUNTER(EKismetCompilerStats_PostcompileFunction);
+				BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_PostcompileFunction);
 				FinishCompilingFunction(Function);
 			}
 		}
@@ -3347,8 +3353,7 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
-	{
-		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_FinalizationWork);
+	{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_FinalizationWork);
 
 		// Set any final flags and seal the class, build a CDO, etc...
 		FinishCompilingClass(NewClass);
@@ -3443,7 +3448,7 @@ void FKismetCompilerContext::Compile()
 
 		// Always run the VM backend, it's needed for more than just debug printing
 		{
-			SCOPE_CYCLE_COUNTER(EKismetCompilerStats_CodeGenerationTime);
+			BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CodeGenerationTime);
 			const bool bGenerateStubsOnly = !bIsFullCompile || (0 != MessageLog.NumErrors);
 			Backend_VM.GenerateCodeFromClass(NewClass, FunctionList, bGenerateStubsOnly);
 		}

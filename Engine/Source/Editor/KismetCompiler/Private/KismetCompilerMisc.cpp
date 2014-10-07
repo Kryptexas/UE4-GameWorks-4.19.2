@@ -1193,7 +1193,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 	const bool OutputPin = EEdGraphPinDirection::EGPD_Output == Net->Direction;
 	if (bSharedTerm && bRegularBlueprint && UseLocalGraphVariables && OutputPin)
 	{
-		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_ChooseTerminalScope);
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChooseTerminalScope);
 
 		// Pin's connections are checked, to tell if created terminal is shared, or if it could be a local variable.
 		bSharedTerm = FEventGraphUtils::PinRepresentsSharedTerminal(*Net);

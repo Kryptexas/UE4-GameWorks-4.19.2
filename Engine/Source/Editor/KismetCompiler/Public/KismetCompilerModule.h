@@ -71,7 +71,7 @@ public:
 	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() override { return Compilers; }
 	// End implementation
 private:
-	void CompileBlueprintInner(class UBlueprint* Blueprint, bool bPrintResultSuccess, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded);
+	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded);
 
 	TArray<FBlueprintCompileDelegate> Compilers;
 };

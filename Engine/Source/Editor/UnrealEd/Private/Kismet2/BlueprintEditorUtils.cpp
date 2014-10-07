@@ -311,6 +311,8 @@ void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 
 void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint, UStruct* RefreshOnlyChild)
 {
+	BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Refresh External Dependency Nodes"));
+
 	if (!Blueprint || !Blueprint->HasAllFlags(RF_LoadCompleted))
 	{
 		UE_LOG(LogBlueprint, Warning,
@@ -1537,6 +1539,11 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 	Blueprint->bCachedDependenciesUpToDate = false;
 	if (Blueprint->Status != BS_BeingCreated && !Blueprint->bBeingCompiled)
 	{
+		FCompilerResultsLog Results;
+		Results.bLogInfoOnly = Blueprint->bIsRegeneratingOnLoad;
+
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Mark Blueprint as Structurally Modified"));
+
 		TArray<UEdGraph*> AllGraphs;
 		Blueprint->GetAllGraphs(AllGraphs);
 		for (int32 i = 0; i < AllGraphs.Num(); i++)
@@ -1556,9 +1563,6 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 			// Invoke the compiler to update the skeleton class definition
 			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 
-			FCompilerResultsLog Results;
-			Results.bLogInfoOnly = Blueprint->bIsRegeneratingOnLoad;
-
 			FKismetCompilerOptions CompileOptions;
 			CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 			Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
@@ -1566,8 +1570,11 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 		}
 		UpdateDelegatesInBlueprint(Blueprint);
 
-		// Notify any interested parties that the blueprint has changed
-		Blueprint->BroadcastChanged();
+		{ BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Notify Blueprint Changed"));
+
+			// Notify any interested parties that the blueprint has changed
+			Blueprint->BroadcastChanged();
+		}
 
 		Blueprint->MarkPackageDirty();
 	}
