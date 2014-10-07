@@ -33,6 +33,9 @@ class UDemoNetDriver : public UNetDriver
 	/** True if we're in the middle of recording a frame */
 	bool				bIsRecordingDemoFrame;
 
+	/** True if we are at the end of playing a demo */
+	bool				bDemoPlaybackDone;
+
 	/** This is our spectator controller that is used to view the demo world from */
 	APlayerController*	SpectatorController;
 
