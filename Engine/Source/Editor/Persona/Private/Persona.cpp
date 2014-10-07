@@ -638,17 +638,30 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// preview worlds (in UWorld::CleanupWorld), but we want this to stick around while Persona exists
 	PreviewComponent->AddToRoot();
 
+	bool bSetMesh = false;
+
 	// Set the mesh
 	if (InitMesh != NULL)
 	{
 		SetPreviewMesh(InitMesh);
+		bSetMesh = true;
 
 		if(!TargetSkeleton->GetPreviewMesh())
 		{
 			TargetSkeleton->SetPreviewMesh(InitMesh, false);
 		}
 	}
-	else if (TargetSkeleton)
+	else if (InitAnimationAsset != NULL)
+	{
+		USkeletalMesh * AssetMesh = InitAnimationAsset->GetPreviewMesh();
+		if (AssetMesh)
+		{
+			SetPreviewMesh(AssetMesh);
+			bSetMesh = true;
+		}
+	}
+
+	if (!bSetMesh && TargetSkeleton)
 	{
 		//If no preview mesh set, just find the first mesh that uses this skeleton
 		USkeletalMesh * PreviewMesh = TargetSkeleton->GetPreviewMesh(true);

@@ -157,6 +157,16 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 				FCanExecuteAction()
 				)
 				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("SetCurrentPreviewMesh", "Set Current Preview Mesh"),
+				LOCTEXT("SetCurrentPreviewMesh_ToolTip", "Set current preview mesh to be used when previewed by this asset. This only applies when you open Persona using this asset."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnSetCurrentPreviewMesh, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -273,6 +283,27 @@ void SAnimationSequenceBrowser::OnExportToFBX(TArray<FAssetData> SelectedAssets)
 		}
 
 		PersonaPtr.Pin()->ExportToFBX(AnimSequences);
+	}
+}
+
+void SAnimationSequenceBrowser::OnSetCurrentPreviewMesh(TArray<FAssetData> SelectedAssets)
+{
+	if(SelectedAssets.Num() > 0)
+	{
+		USkeletalMesh * PreviewMesh = PersonaPtr.Pin()->GetMesh();
+
+		if (PreviewMesh)
+		{
+			TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+			for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+			{
+				UAnimationAsset * AnimAsset = Cast<UAnimationAsset>(Iter->GetAsset());
+				if (AnimAsset)
+				{
+					AnimAsset->SetPreviewMesh(PreviewMesh);
+				}
+			}
+		}
 	}
 }
 
@@ -849,7 +880,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 
 		USkeleton* Skeleton = Asset->GetSkeleton();
 		
-		MeshToUse = Skeleton->GetPreviewMesh(true);
+		MeshToUse = Skeleton->GetAssetPreviewMesh(Asset);
 		check(MeshToUse);
 		if(PreviewComponent->SkeletalMesh != MeshToUse)
 		{

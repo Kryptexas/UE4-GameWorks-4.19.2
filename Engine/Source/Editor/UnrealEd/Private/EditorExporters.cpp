@@ -2501,7 +2501,7 @@ bool UAnimSequenceExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type,
 {
 	UAnimSequence* AnimSequence = CastChecked<UAnimSequence>( Object );
 	USkeleton* AnimSkeleton = AnimSequence->GetSkeleton();
-	USkeletalMesh* PreviewMesh = AnimSkeleton->GetPreviewMesh(true);
+	USkeletalMesh* PreviewMesh = AnimSkeleton->GetAssetPreviewMesh(AnimSequence);
 
 	if (AnimSkeleton && PreviewMesh)
 	{

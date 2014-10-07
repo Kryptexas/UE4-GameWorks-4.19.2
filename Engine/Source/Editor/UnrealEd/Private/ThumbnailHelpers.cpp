@@ -526,7 +526,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 	{
 		if (USkeleton* Skeleton = InAnimation->GetSkeleton())
 		{
-			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetPreviewMesh(true);
+			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetAssetPreviewMesh(InAnimation);
 
 			PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(PreviewSkeletalMesh);
 
@@ -650,7 +650,7 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 	{
 		if (USkeleton* Skeleton = InBlendSpace->GetSkeleton())
 		{
-			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetPreviewMesh(true);
+			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetAssetPreviewMesh(InBlendSpace);
 
 			PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(PreviewSkeletalMesh);
 

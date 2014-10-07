@@ -763,6 +763,24 @@ USkeletalMesh* USkeleton::GetPreviewMesh() const
 	return PreviewSkeletalMesh.Get();
 }
 
+USkeletalMesh* USkeleton::GetAssetPreviewMesh(UAnimationAsset* AnimAsset) 
+{
+	USkeletalMesh * PreviewMesh = NULL;
+	// return asset preview asset
+	// if nothing is assigned, return skeleton asset
+	if (AnimAsset)
+	{
+		PreviewMesh = AnimAsset->GetPreviewMesh();
+	}
+
+	if (!PreviewMesh)
+	{
+		PreviewMesh = GetPreviewMesh(false);
+	}
+
+	return PreviewMesh;
+}
+
 void USkeleton::SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty/*=true*/)
 {
 	if (bMarkAsDirty)

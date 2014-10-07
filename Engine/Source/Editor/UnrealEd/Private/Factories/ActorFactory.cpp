@@ -745,7 +745,7 @@ USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* A
 	if( AnimationAsset != NULL )
 	{
 		// base it on preview skeletal mesh, just to have something
-		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetPreviewMesh(true) : NULL;
+		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetAssetPreviewMesh(AnimationAsset) : NULL;
 	}
 	else if( VertexAnimation != NULL )
 	{

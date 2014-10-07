@@ -642,7 +642,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 
 						if(bShouldChangeMesh)
 						{
-							SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+							SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetAssetPreviewMesh(DroppedObjAsAnimationAsset));
 						}
 
 						if(DroppedObjAsAnimationAsset)

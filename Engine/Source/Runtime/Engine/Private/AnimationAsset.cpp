@@ -96,6 +96,34 @@ void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnim
 {
 }
 
+USkeletalMesh* UAnimationAsset::GetPreviewMesh() 
+{
+	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
+	if(!PreviewMesh)
+	{
+		// if preview mesh isn't loaded, see if we have set
+		FStringAssetReference PreviewMeshStringRef = PreviewSkeletalMesh.ToStringReference();
+		// load it since now is the time to load
+		if(!PreviewMeshStringRef.ToString().IsEmpty())
+		{
+			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
+			// if somehow skeleton changes, just nullify it. 
+			if (PreviewMesh && PreviewMesh->Skeleton != Skeleton)
+			{
+				PreviewMesh = NULL;
+				SetPreviewMesh(NULL);
+			}
+		}
+	}
+
+	return PreviewMesh;
+}
+
+void UAnimationAsset::SetPreviewMesh(USkeletalMesh* PreviewMesh)
+{
+	Modify();
+	PreviewSkeletalMesh = PreviewMesh;
+}
 #endif
 
 void UAnimationAsset::ValidateSkeleton()

@@ -415,10 +415,20 @@ public:
 	ENGINE_API virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap);	
 #endif
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/** Information for thumbnail rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
+
+private:
+	/** The default skeletal mesh to use when previewing this asset - this only applies when you open Persona using this asset*/
+	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
+	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
+
+public:
+	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh);
+	ENGINE_API USkeletalMesh* UAnimationAsset::GetPreviewMesh();
+
 #endif
 
 public:
