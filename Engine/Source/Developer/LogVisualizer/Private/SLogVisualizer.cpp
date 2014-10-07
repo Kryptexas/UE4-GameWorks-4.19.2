@@ -648,7 +648,7 @@ void SLogVisualizer::OnListDoubleClick(TSharedPtr<FLogsListItem> LogListItem)
 #endif
 }
 
-int32 SLogVisualizer::GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisLogEntry> >& InVisibleEntries)
+int32 SLogVisualizer::GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisualLogEntry> >& InVisibleEntries)
 {
 	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
 	{
@@ -709,7 +709,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 	{
 		for (int32 EntryIndex = 0; EntryIndex < Log->Entries.Num(); ++EntryIndex)
 		{
-			const TSharedPtr<FVisLogEntry> CurrentEntry = Log->Entries[EntryIndex];
+			const TSharedPtr<FVisualLogEntry> CurrentEntry = Log->Entries[EntryIndex];
 			if (CurrentEntry->TimeStamp <= LastTimestamp)
 			{
 				continue;
@@ -720,7 +720,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 			{
 				for (int32 LogLineIndex = 0; LogLineIndex < CurrentEntry->LogLines.Num(); ++LogLineIndex)
 				{
-					const FVisLogEntry::FLogLine &CurrentLine = CurrentEntry->LogLines[LogLineIndex];
+					const FVisualLogEntry::FLogLine &CurrentLine = CurrentEntry->LogLines[LogLineIndex];
 					const FString CurrentCategory = CurrentLine.Category.ToString();
 					if (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentLine.Verbosity))
 					{
@@ -739,7 +739,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 			for (int32 ElementIndex = 0; ElementIndex < CurrentEntry->ElementsToDraw.Num(); ++ElementIndex)
 			{
 				const FString CurrentCategory = CurrentEntry->ElementsToDraw[ElementIndex].Category.ToString();
-				FVisLogEntry::FElementToDraw &CurrentElement = CurrentEntry->ElementsToDraw[ElementIndex];
+				FVisualLogEntry::FElementToDraw &CurrentElement = CurrentEntry->ElementsToDraw[ElementIndex];
 				if (CurrentElement.Category != NAME_None && (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentElement.Verbosity)))
 				{
 					OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
@@ -754,7 +754,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 
 			for (int32 SampleIndex = 0; SampleIndex < CurrentEntry->HistogramSamples.Num(); ++SampleIndex)
 			{
-				const FVisLogEntry::FHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+				const FVisualLogEntry::FHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
 				const FName CurrentCategory = CurrentSample.Category;
 				const FName CurrentDataName = CurrentSample.DataName;
 
@@ -796,7 +796,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 	LogsList[CurrentIndex]->LastEndTimestamp = LogsList[CurrentIndex]->EndTimestamp;
 }
 
-void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TArray<TSharedPtr<FVisLogEntry> >& OutEntries)
+void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TArray<TSharedPtr<FVisualLogEntry> >& OutEntries)
 {
 	const int32 NumLogs = OutEntriesCached.Num();
 	int32 CachedLogIndex = INDEX_NONE;
@@ -826,12 +826,12 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 			{
 				bool bAddedEntry = false;
 
-				const TSharedPtr<FVisLogEntry> CurrentEntry = Log->Entries[i];
+				const TSharedPtr<FVisualLogEntry> CurrentEntry = Log->Entries[i];
 				if (!bAddedEntry)
 				{
 					for (int32 j = 0; j < CurrentEntry->LogLines.Num(); ++j)
 					{
-						const FVisLogEntry::FLogLine &CurrentLine = CurrentEntry->LogLines[j];
+						const FVisualLogEntry::FLogLine &CurrentLine = CurrentEntry->LogLines[j];
 						const FString CurrentCategory = CurrentLine.Category.ToString();
 						if (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentLine.Verbosity))
 						{
@@ -850,7 +850,7 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 				for (int32 j = 0; j < CurrentEntry->ElementsToDraw.Num(); ++j)
 				{
 					const FString CurrentCategory = CurrentEntry->ElementsToDraw[j].Category.ToString();
-					FVisLogEntry::FElementToDraw &CurrentElement = CurrentEntry->ElementsToDraw[j];
+					FVisualLogEntry::FElementToDraw &CurrentElement = CurrentEntry->ElementsToDraw[j];
 					if (CurrentElement.Category != NAME_None && (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentElement.Verbosity)))
 					{
 						OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
@@ -865,7 +865,7 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 
 				for (int32 SampleIndex = 0; SampleIndex < CurrentEntry->HistogramSamples.Num(); ++SampleIndex)
 				{
-					const FVisLogEntry::FHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+					const FVisualLogEntry::FHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
 					const FName CurrentCategory = CurrentSample.Category;
 					const FName CurrentDataName = CurrentSample.DataName;
 
@@ -913,7 +913,7 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 		const int32 NumEntries = OutEntriesCached[CachedLogIndex].CachedEntries.Num();
 		for (int32 Index = 0; Index < NumEntries; ++Index)
 		{
-			TSharedPtr<FVisLogEntry> LogEntry = OutEntriesCached[CachedLogIndex].CachedEntries[Index];
+			TSharedPtr<FVisualLogEntry> LogEntry = OutEntriesCached[CachedLogIndex].CachedEntries[Index];
 			if (!LogEntry.IsValid())
 			{
 				continue;
@@ -1514,7 +1514,7 @@ TSharedRef<ITableRow> SLogVisualizer::LogEntryLinesGenerateRow(TSharedPtr<FLogEn
 
 void SLogVisualizer::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, ESelectInfo::Type SelectInfo)
 {
-	TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLog::Get().GetAllExtensions();
+	TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
 	for (auto Iterator = AllExtensions.CreateIterator(); Iterator; ++Iterator)
 	{
 		FVisualLogExtensionInterface* Extension = (*Iterator).Value;
@@ -1547,7 +1547,7 @@ bool SLogVisualizer::ShouldListLog(const TSharedPtr<FActorsVisLog>& Log)
 	}
 	else
 	{
-		static TArray<TSharedPtr<FVisLogEntry> > OutEntries;
+		static TArray<TSharedPtr<FVisualLogEntry> > OutEntries;
 		GetVisibleEntries(Log, OutEntries);
 		return !bIgnoreTrivialLogs || OutEntries.Num() >= 2;
 	}
@@ -1590,12 +1590,12 @@ void SLogVisualizer::InvalidateCanvas()
 #endif
 }
 
-void SLogVisualizer::RequestShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisLogEntry> LogEntry)
+void SLogVisualizer::RequestShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisualLogEntry> LogEntry)
 {
 	ShowLogEntry(Item, LogEntry);
 }
 
-void SLogVisualizer::ShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisLogEntry> LogEntry)
+void SLogVisualizer::ShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisualLogEntry> LogEntry)
 {
 	if(LogsListWidget->GetSelectedItems().Find(Item) == INDEX_NONE)
 	{
@@ -1671,7 +1671,7 @@ void SLogVisualizer::OnLogStatusGetChildren(TSharedPtr<FLogStatusItem> InItem, T
 	OutItems = InItem->Children;
 }
 
-void SLogVisualizer::UpdateStatusItems(const FVisLogEntry* LogEntry)
+void SLogVisualizer::UpdateStatusItems(const FVisualLogEntry* LogEntry)
 {
 	TArray<FString> ExpandedCategories;
 	for (int32 ItemIndex = 0; ItemIndex < StatusItems.Num(); ItemIndex++)
@@ -1727,12 +1727,12 @@ void SLogVisualizer::UpdateStatusItems(const FVisLogEntry* LogEntry)
 	}
 }
 
-void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
+void SLogVisualizer::ShowEntry(const FVisualLogEntry* LogEntry)
 {
 	UpdateStatusItems(LogEntry);
 	LogEntryLines.Reset();
 	
-	const FVisLogEntry::FLogLine* LogLine = LogEntry->LogLines.GetData();
+	const FVisualLogEntry::FLogLine* LogLine = LogEntry->LogLines.GetData();
 	for (int LineIndex = 0; LineIndex < LogEntry->LogLines.Num(); ++LineIndex, ++LogLine)
 	{
 		bool bShowLine = true;
@@ -1768,7 +1768,7 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 	SetCurrentViewedTime(LogEntry->TimeStamp);
 
 	UWorld* World = GetWorld();
-	for (auto It = FVisualLog::Get().GetAllExtensions().CreateIterator(); It; ++It)
+	for (auto It = FVisualLogger::Get().GetAllExtensions().CreateIterator(); It; ++It)
 	{
 		(*It).Value->OnTimestampChange(LogEntry->TimeStamp, World, FLogVisualizerModule::Get()->GetHelperActor(World));
 	}
@@ -1993,11 +1993,11 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 	if (World != NULL && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
 	{
 		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
-		const TArray<TSharedPtr<FVisLogEntry> >& Entries = Log->Entries;
+		const TArray<TSharedPtr<FVisualLogEntry> >& Entries = Log->Entries;
 
 		if (bDrawLogEntriesPath)
 		{
-			const TSharedPtr<FVisLogEntry>* Entry = Entries.GetData();
+			const TSharedPtr<FVisualLogEntry>* Entry = Entries.GetData();
 			FVector Location = (*Entry)->Location;
 			++Entry;
 
@@ -2012,7 +2012,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 		if (Entries.IsValidIndex(LogEntryIndex))
 		{
 			// draw all additional data stored in current entry
-			const TSharedPtr<FVisLogEntry>& Entry = Entries[LogEntryIndex];
+			const TSharedPtr<FVisualLogEntry>& Entry = Entries[LogEntryIndex];
 
 			// mark current location
 			DrawDebugCone(World, Entry->Location, /*Direction*/FVector(0, 0, 1), /*Length*/200.f
@@ -2057,7 +2057,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			int32 ColorIndex = 0;
 			for (int32 EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
 			{
-				const TSharedPtr<FVisLogEntry>& CurrentEntry = Entries[EntryIndex];
+				const TSharedPtr<FVisualLogEntry>& CurrentEntry = Entries[EntryIndex];
 				if (HistogramPreviewWindow <= 0)
 				{
 					if (CurrentEntry->TimeStamp > Entry->TimeStamp)
@@ -2080,7 +2080,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
 				for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
 				{
-					FVisLogEntry::FHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+					FVisualLogEntry::FHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
 
 					const FName CurrentCategory = CurrentSample.Category;
 					const FName CurrentGraphName = CurrentSample.GraphName;
@@ -2210,7 +2210,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			{
 				const FName TagName = CurrentData.TagName;
 				const bool bIsValidByFilter = FilterListPtr->IsFilterEnabled(CurrentData.Category.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentData.TagName.ToString(), ELogVerbosity::All);
-				FVisualLogExtensionInterface* Extension = FVisualLog::Get().GetExtensionForTag(TagName);
+				FVisualLogExtensionInterface* Extension = FVisualLogger::Get().GetExtensionForTag(TagName);
 				if (!Extension)
 				{
 					continue;
@@ -2226,7 +2226,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				}
 			}
 
-			const FVisLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetData();
+			const FVisualLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetData();
 			const int32 ElementsCount = Entry->ElementsToDraw.Num();
 			
 			for (int32 ElementIndex = 0; ElementIndex < ElementsCount; ++ElementIndex, ++ElementToDraw)
@@ -2241,7 +2241,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 
 				switch(ElementToDraw->GetType())
 				{
-				case FVisLogEntry::FElementToDraw::SinglePoint:
+				case FVisualLogEntry::FElementToDraw::SinglePoint:
 					{
 						const float Radius = float(ElementToDraw->Radius);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2257,7 +2257,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisLogEntry::FElementToDraw::Segment:
+				case FVisualLogEntry::FElementToDraw::Segment:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
@@ -2287,7 +2287,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisLogEntry::FElementToDraw::Path:
+				case FVisualLogEntry::FElementToDraw::Path:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						FVector Location = ElementToDraw->Points[0];
@@ -2301,7 +2301,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisLogEntry::FElementToDraw::Box:
+				case FVisualLogEntry::FElementToDraw::Box:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
@@ -2332,7 +2332,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisLogEntry::FElementToDraw::Cone:
+				case FVisualLogEntry::FElementToDraw::Cone:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2350,7 +2350,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisLogEntry::FElementToDraw::Cylinder:
+				case FVisualLogEntry::FElementToDraw::Cylinder:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2368,7 +2368,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisLogEntry::FElementToDraw::Capsule:
+				case FVisualLogEntry::FElementToDraw::Capsule:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2600,7 +2600,7 @@ void SLogVisualizer::SelectActor(AActor* SelectedActor)
 	{
 		return;
 	}
-	const AActor* LogOwner = FVisualLog::Get().GetVisualLogRedirection(SelectedActor);
+	const AActor* LogOwner = Cast<AActor>(FVisualLogger::Get().FindRedirection(SelectedActor));
 	const int32 LogIndex = LogVisualizer->GetLogIndexForActor(LogOwner);
 	if (LogVisualizer->Logs.IsValidIndex(LogIndex))
 	{

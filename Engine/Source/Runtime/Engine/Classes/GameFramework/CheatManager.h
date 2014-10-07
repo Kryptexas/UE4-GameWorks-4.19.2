@@ -67,6 +67,10 @@ class ENGINE_API UCheatManager : public UObject
 	UPROPERTY()
 	TSubclassOf<class ADebugCameraController>  DebugCameraControllerClass;
 
+	/** Holds information about VisualLogger on server - came from replication */
+	UPROPERTY(ReplicatedUsing = OnRep_VisualLoggerActiveOnServer)
+	bool bVisualLoggerActiveOnServer;
+
 	// Trace/Sweep debug start
 	/** If we should should perform a debug capsule trace and draw results. Toggled with DebugCapsuleSweep() */
 	uint32 bDebugCapsuleSweep:1;
@@ -80,7 +84,8 @@ class ENGINE_API UCheatManager : public UObject
 	/** Holds information if we used ToggleAILogging cheat to activate AI logging */
 	uint32 bToggleAILogging : 1;
 
-	/** How far debugf trace should go out from player viewpoint */
+
+	/** How far debug trace should go out from player viewpoint */
 	float DebugTraceDistance;
 
 	/** Half distance between debug capsule sphere ends. Total heigh of capsule is 2*(this + DebugCapsuleRadius). */
@@ -106,9 +111,6 @@ class ENGINE_API UCheatManager : public UObject
 
 	/** Index of the array for current trace to overwrite.  Whenever you capture, this index will be increased **/
 	int32 CurrentTracePawnIndex;
-
-	/** time interval for dumping AI loggs (vlogs) */
-	float DumpAILogsInterval;
 
 	/** Pause the game for Delay seconds. */
 	UFUNCTION(exec)
@@ -205,7 +207,9 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(reliable, server, WithValidation)
 	virtual void ServerToggleAILogging();
 
-	void DumpAILogs();
+	/** after bVisualLoggerActiveOnServer replication callback */
+	UFUNCTION()
+	virtual void OnRep_VisualLoggerActiveOnServer();
 
 	/** Toggle capsule trace debugging. Will trace a capsule from current view point and show where it hits the world */
 	UFUNCTION(exec)
@@ -307,7 +311,6 @@ class ENGINE_API UCheatManager : public UObject
 	virtual void LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	
 	/** Do any trace debugging that is currently enabled */
 	void TickCollisionDebug();
 

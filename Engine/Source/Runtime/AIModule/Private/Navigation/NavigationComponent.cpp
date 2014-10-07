@@ -959,7 +959,7 @@ void UNavigationComponent::SwapCurrentMoveGoal(const AActor* NewGoalActor)
 //----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//
-void UNavigationComponent::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+void UNavigationComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	// path will be drawn by path following
 }

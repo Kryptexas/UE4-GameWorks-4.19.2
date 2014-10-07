@@ -184,7 +184,7 @@ UBrainComponent::UBrainComponent(const FPostConstructInitializeProperties& PCIP)
 }
 
 #if ENABLE_VISUAL_LOG
-void UBrainComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UBrainComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
 {
 	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));
 
@@ -193,7 +193,7 @@ void UBrainComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
 		return;
 	}
 
-	FVisLogEntry::FStatusCategory StatusCategory;
+	FVisualLogEntry::FStatusCategory StatusCategory;
 	StatusCategory.Category = FString::Printf(TEXT("Resource lock: %s"), *ResourceLock.GetLockSourceName());
 	for (int32 LockLevel = 0; LockLevel < int32(EAILockSource::MAX); ++LockLevel)
 	{

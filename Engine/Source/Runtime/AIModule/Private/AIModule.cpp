@@ -36,7 +36,7 @@ void FAIModule::StartupModule()
 #endif // WITH_EDITOR 
 
 #if WITH_EDITOR && ENABLE_VISUAL_LOG
-	FVisualLog::Get().RegisterExtension(*EVisLogTags::TAG_EQS, &VisualLoggerExtension);
+	FVisualLogger::Get().RegisterExtension(*EVisLogTags::TAG_EQS, &VisualLoggerExtension);
 #endif
 }
 
@@ -45,7 +45,7 @@ void FAIModule::ShutdownModule()
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
 #if WITH_EDITOR && ENABLE_VISUAL_LOG
-	FVisualLog::Get().UnregisterExtension(*EVisLogTags::TAG_EQS, &VisualLoggerExtension);
+	FVisualLogger::Get().UnregisterExtension(*EVisLogTags::TAG_EQS, &VisualLoggerExtension);
 #endif
 }
 

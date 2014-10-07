@@ -68,7 +68,7 @@ int32 SLogBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	{
 		float CurrentStartX, CurrentEndX;
 		{
-			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+			TSharedPtr<FVisualLogEntry> Entry = Entries[EntryIndex];
 			if (!Entry.IsValid() || !CalculateEntryGeometry(Entry.Get(), AllottedGeometry, CurrentStartX, CurrentEndX))
 			{
 				EntryIndex++;
@@ -83,7 +83,7 @@ int32 SLogBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 		float LastEndX = MAX_FLT;
 		for (; StartIndex < Entries.Num(); ++StartIndex)
 		{
-			TSharedPtr<FVisLogEntry> Entry = Entries[StartIndex];
+			TSharedPtr<FVisualLogEntry> Entry = Entries[StartIndex];
 			float StartX, EndX;
 			if (!Entry.IsValid() || !CalculateEntryGeometry(Entry.Get(), AllottedGeometry, StartX, EndX))
 			{
@@ -149,7 +149,7 @@ int32 SLogBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 			const float PosX = (float)(LogBarWidth * RelativePos);
 			const float ClampedSize = FMath::Clamp(TimeUnit / TotalTime * Zoom, 0.0f, 1.0f);
 
-			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+			TSharedPtr<FVisualLogEntry> Entry = Entries[EntryIndex];
 			float StartX, EndX;
 			CalculateEntryGeometry(Entry.Get(), AllottedGeometry, StartX, EndX);
 			const float WindowHalfWidth = LogBarWidth * HistogramPreviewWindow * 0.01;
@@ -189,7 +189,7 @@ int32 SLogBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 		EntryIndex = CurrentEntryIndex.IsBound() ? CurrentEntryIndex.Execute() : INDEX_NONE;
 		if (Entries.IsValidIndex(EntryIndex) == true)
 		{
-			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+			TSharedPtr<FVisualLogEntry> Entry = Entries[EntryIndex];
 			float StartX, EndX;
 			if (CalculateEntryGeometry( Entry.Get(), AllottedGeometry, StartX, EndX ) )
 			{
@@ -244,7 +244,7 @@ void SLogBar::SelectEntry(const FGeometry& MyGeometry, const float ClickX)
 	{
 		for (EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
 		{
-			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+			TSharedPtr<FVisualLogEntry> Entry = Entries[EntryIndex];
 			float StartX, EndX;
 			if (CalculateEntryGeometry(Entry.Get(), MyGeometry, StartX, EndX))
 			{
@@ -275,7 +275,7 @@ int32 SLogBar::GetEntryIndexAtTime(float Time) const
 	int32 EntryIndex = INDEX_NONE;
 	for( EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex )
 	{
-		TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+		TSharedPtr<FVisualLogEntry> Entry = Entries[EntryIndex];
 		const float TimeDiff = FMath::Abs(Entry->TimeStamp - Time);
 
 		if (TimeDiff < BestTimeDiff)
@@ -346,7 +346,7 @@ FReply SLogBar::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& M
 
 	for( int32 EntryIndex = 0; EntryIndex < Entries.Num(); EntryIndex++ )
 	{
-		TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+		TSharedPtr<FVisualLogEntry> Entry = Entries[EntryIndex];
 
 		if( HoverX >= Entry->TimeStamp && Entry->TimeStamp <= HoverX + 1)
 		{
@@ -381,7 +381,7 @@ FVector2D SLogBar::ComputeDesiredSize() const
 	return FVector2D( 500.0f, 24.0f );
 }
 
-void SLogBar::SetEntries(const TArray<TSharedPtr<FVisLogEntry> >& InEntries, float InStartTime, float InTotalTime)
+void SLogBar::SetEntries(const TArray<TSharedPtr<FVisualLogEntry> >& InEntries, float InStartTime, float InTotalTime)
 {
 	Entries = InEntries;
 	StartTime = InStartTime;
@@ -391,7 +391,7 @@ void SLogBar::SetEntries(const TArray<TSharedPtr<FVisLogEntry> >& InEntries, flo
 	int32 EntryIndex = 0;
 	while (EntryIndex < Entries.Num())
 	{
-		TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+		TSharedPtr<FVisualLogEntry> Entry = Entries[EntryIndex];
 		if (!Entry.IsValid())
 		{
 			EntryIndex++;

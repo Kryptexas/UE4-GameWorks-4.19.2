@@ -54,11 +54,11 @@ UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructIniti
 void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const int32 CurrentPathPointGoal)
 {
 #if ENABLE_VISUAL_LOG
-	FVisualLog& Vlog = FVisualLog::Get();
+	FVisualLogger& Vlog = FVisualLogger::Get();
 	if (Vlog.IsRecording() && 
 		Path.IsValid() && Path->IsValid() && Path->GetPathPoints().Num())
 	{
-		FVisLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner);
+		FVisualLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner, LogOwner->GetWorld()->TimeSeconds);
 		Path->DescribeSelfToVisLog(Entry);
 
 		const FVector PathEnd = Path->GetPathPoints().Last().Location;
@@ -1306,9 +1306,9 @@ void UPathFollowingComponent::DisplayDebug(class UCanvas* Canvas, const FDebugDi
 }
 
 #if ENABLE_VISUAL_LOG
-void UPathFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UPathFollowingComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
 {
-	FVisLogEntry::FStatusCategory Category;
+	FVisualLogEntry::FStatusCategory Category;
 	Category.Category = TEXT("Path following");
 
 	if (DestinationActor.IsValid())

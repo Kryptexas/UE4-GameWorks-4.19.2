@@ -264,10 +264,10 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, in
 
 #if ENABLE_VISUAL_LOG
 
-void FNavigationPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const 
+void FNavigationPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const 
 {
 	const int32 NumPathVerts = PathPoints.Num();
-	FVisLogEntry::FElementToDraw Element(FVisLogEntry::FElementToDraw::Path);
+	FVisualLogEntry::FElementToDraw Element(FVisualLogEntry::FElementToDraw::Path);
 	Element.Category = LogNavigation.GetCategoryName();
 	Element.SetColor(FColorList::Green);
 	Element.Points.Reserve(NumPathVerts);
@@ -899,7 +899,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 
 #if ENABLE_VISUAL_LOG
 
-void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	if (IsStringPulled())
 	{
@@ -909,7 +909,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 
 	// draw corridor
 #if WITH_RECAST
-	FVisLogEntry::FElementToDraw CorridorElem(FVisLogEntry::FElementToDraw::Segment);
+	FVisualLogEntry::FElementToDraw CorridorElem(FVisualLogEntry::FElementToDraw::Segment);
 	CorridorElem.SetColor(FColorList::Cyan);
 	CorridorElem.Category = LogNavigation.GetCategoryName();
 	CorridorElem.Points.Reserve(PathCorridor.Num() * 6);
@@ -940,7 +940,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
 		if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 		{
-			FVisLogEntry::FElementToDraw AreaMarkElem(FVisLogEntry::FElementToDraw::Segment);
+			FVisualLogEntry::FElementToDraw AreaMarkElem(FVisualLogEntry::FElementToDraw::Segment);
 			AreaMarkElem.SetColor(FColorList::Orange);
 			AreaMarkElem.Category = LogNavigation.GetCategoryName();
 			AreaMarkElem.Thicknes = 2;

@@ -19,7 +19,7 @@ void FLogVisualizer::SummonUI(UWorld* InWorld)
 		}
 
 		World = InWorld;
-		FVisualLog& VisualLog = FVisualLog::Get();
+		FVisualLog& VisualLog = FVisualLog::GetStatic();
 		VisualLog.RegisterNewLogsObserver(FVisualLog::FOnNewLogCreatedDelegate::CreateRaw(this, &FLogVisualizer::OnNewLog));
 		PullDataFromVisualLog(VisualLog);
 
@@ -77,7 +77,7 @@ bool FLogVisualizer::IsOpenUI(UWorld* InWorld)
 
 void FLogVisualizer::CleanUp()
 {
-	FVisualLog::Get().ClearNewLogsObserver();
+	FVisualLog::GetStatic().ClearNewLogsObserver();
 }
 
 class AActor* FLogVisualizer::GetHelperActor(class UWorld* InWorld)
@@ -142,12 +142,12 @@ void FLogVisualizer::AddLoadedLog(TSharedPtr<FActorsVisLog> Log)
 
 bool FLogVisualizer::IsRecording()
 {
-	return FVisualLog::Get().IsRecording();
+	return FVisualLogger::Get().IsRecording();
 }
 
 void FLogVisualizer::SetIsRecording(bool bNewRecording)
 {
-	FVisualLog::Get().SetIsRecording(bNewRecording);
+	FVisualLogger::Get().SetIsRecording(bNewRecording);
 }
 
 int32 FLogVisualizer::GetLogIndexForActor(const AActor* Actor)

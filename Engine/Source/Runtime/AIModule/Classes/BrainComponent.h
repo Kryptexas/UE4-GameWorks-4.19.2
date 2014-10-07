@@ -137,7 +137,7 @@ public:
 	virtual bool IsPaused() const { return false; }
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 	
 	// IAIResourceInterface begin

@@ -299,9 +299,9 @@ FString UBlackboardComponent::DescribeKeyValue(FBlackboard::FKey KeyID, EBlackbo
 
 #if ENABLE_VISUAL_LOG
 
-void UBlackboardComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UBlackboardComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
 {
-	FVisLogEntry::FStatusCategory Category;
+	FVisualLogEntry::FStatusCategory Category;
 	Category.Category = FString::Printf(TEXT("Blackboard (asset: %s)"), *GetNameSafe(BlackboardAsset));
 
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)

@@ -109,9 +109,9 @@ void AAIController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Debug
 
 #if ENABLE_VISUAL_LOG
 
-void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
+void AAIController::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 {
-	FVisLogEntry::FStatusCategory MyCategory;
+	FVisualLogEntry::FStatusCategory MyCategory;
 	MyCategory.Category = TEXT("AI Controller");
 	MyCategory.Add(TEXT("Pawn"), GetNameSafe(GetPawn()));
 	AActor* FocusActor = GetFocusActor();
@@ -145,7 +145,7 @@ void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
 	if (PerceptionComponent != NULL)
 	{
 		PerceptionComponent->DescribeSelfToVisLog(Snapshot);
-}
+	}
 }
 #endif // ENABLE_VISUAL_LOG
 

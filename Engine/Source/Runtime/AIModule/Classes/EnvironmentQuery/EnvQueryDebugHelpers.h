@@ -141,14 +141,8 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 
 #define UE_VLOG_EQS(Query, CategoryName, Verbosity) \
 { \
-	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
-	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
-	{ \
-		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Query->Owner.Get()); \
-			UEnvQueryDebugHelpers::LogQuery(OwnerActor ? OwnerActor : Query->Owner.Get(), Query, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, \
-			FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query->QueryName, Query->QueryID, Query->OptionIndex, Query->ItemDetails.Num(), Query->NumValidItems)); \
-	} \
+	UEnvQueryDebugHelpers::LogQuery(Query->Owner.Get(), Query, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, \
+		FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query->QueryName, Query->QueryID, Query->OptionIndex, Query->ItemDetails.Num(), Query->NumValidItems)); \
 }
 
 #else

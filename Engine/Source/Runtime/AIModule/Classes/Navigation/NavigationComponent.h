@@ -190,7 +190,7 @@ public:
 	//----------------------------------------------------------------------//
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 
 	/** quick and dirty debug render. If Canvas not NULL additional data (if present) will be drawn */

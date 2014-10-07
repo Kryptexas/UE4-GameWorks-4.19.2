@@ -2158,7 +2158,7 @@ public:
 	 *	Hook for Actors to supply visual logger with additional data.
 	 *	It's guaranteed that Snapshot != NULL
 	 */
-	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const {}
+	virtual void GrabDebugSnapshot(struct FVisualLogEntry* Snapshot) const {}
 
 private:
 	friend class FVisualLog;

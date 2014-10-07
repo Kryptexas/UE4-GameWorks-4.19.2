@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-
+#include "UnrealNetwork.h"
 #include "Slate.h"
 #include "SlateReflector.h"
 #include "NavDataGenerator.h"
@@ -19,8 +19,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 
 UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bToggleAILogging(false)
 {
-	DumpAILogsInterval = 1;
 	DebugCameraControllerClass = ADebugCameraController::StaticClass();
 	DebugCapsuleHalfHeight = 23.0f;
 	DebugCapsuleRadius = 21.0f;
@@ -28,6 +28,14 @@ UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCI
 	DebugTraceDrawNormalLength = 30.0f;
 	DebugTraceChannel = ECC_Pawn;
 	bDebugCapsuleTraceComplex = false;
+}
+
+void UCheatManager::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+#if ENABLE_VISUAL_LOG
+	DOREPLIFETIME(UCheatManager, bVisualLoggerActiveOnServer);
+#endif
 }
 
 void UCheatManager::FreezeFrame(float delay)
@@ -561,18 +569,13 @@ void UCheatManager::InitCheatManager()
 void UCheatManager::BeginDestroy()
 {
 #if ENABLE_VISUAL_LOG
-	if (bToggleAILogging && FVisualLog::Get().IsRecording())
+	if (bToggleAILogging && FVisualLogger::Get().IsRecording())
 	{
-		UWorld *World = GetWorld();
-		if (World)
-		{
-			// clear timer, we'll dump all remaining logs
-			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
-		}
-
 		// stop recording and dump all remaining logs
-		FVisualLog::Get().SetIsRecording(false);
+		FVisualLogger::Get().SetIsRecording(false);
+		FVisualLogger::Get().SetIsRecordingToFile(false);
 		bToggleAILogging = false;
+		bVisualLoggerActiveOnServer = false;
 	}
 #endif
 	Super::BeginDestroy();
@@ -583,47 +586,25 @@ bool UCheatManager::ServerToggleAILogging_Validate()
 	return true;
 }
 
-void UCheatManager::DumpAILogs()
-{
-#if ENABLE_VISUAL_LOG
-	UWorld *World = GetWorld();
-	if (World == NULL)
-	{
-		return;
-	}
-
-	FVisualLog::Get().DumpRecordedLogs();
-	World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
-#endif
-}
-
 void UCheatManager::ServerToggleAILogging_Implementation()
 {
 #if ENABLE_VISUAL_LOG
 	UWorld *World = GetWorld();
-	if (FVisualLog::Get().IsRecording())
+	if (FVisualLogger::Get().IsRecordingToFile())
 	{
-		// clear timer, we'll dump all remaining logs in a moment
-		if (World)
-		{
-			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
-		}
-
 		// stop recording and dump all remaining logs in a moment
-		FVisualLog::Get().SetIsRecording(false, true);
+		FVisualLogger::Get().SetIsRecordingToFile(false);
+		FVisualLogger::Get().SetIsRecording(false);
 		bToggleAILogging = false;
 	}
 	else
 	{
-		if (World)
-		{
-			World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
-		}
-		FVisualLog::Get().SetIsRecording(true, true);
+		FVisualLogger::Get().SetIsRecordingToFile(true);
 		bToggleAILogging = true;
 	}
 
-	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLog::Get().IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
+	bVisualLoggerActiveOnServer = bToggleAILogging;
+	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLogger::Get().IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
 #endif
 }
 
@@ -639,14 +620,19 @@ void UCheatManager::ToggleAILogging()
 	UWorld *World = GetWorld();
 	if (World && World->GetNetMode() == NM_Client)
 	{
-		FVisualLog::Get().SetIsRecordingOnServer(!FVisualLog::Get().IsRecordingOnServer());
-		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), FVisualLog::Get().IsRecordingOnServer() ? TEXT("Enabled") : TEXT("Disabled")));
 		PC->ServerToggleAILogging();
 	}
 	else
 	{
 		ServerToggleAILogging();
 	}
+#endif
+}
+
+void UCheatManager::OnRep_VisualLoggerActiveOnServer()
+{
+#if ENABLE_VISUAL_LOG
+	FVisualLogger::Get().SetIsRecordingOnServer(bVisualLoggerActiveOnServer);
 #endif
 }
 

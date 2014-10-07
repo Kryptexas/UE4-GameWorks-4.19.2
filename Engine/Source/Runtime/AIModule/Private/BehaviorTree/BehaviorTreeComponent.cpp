@@ -1614,7 +1614,7 @@ FString UBehaviorTreeComponent::DescribeActiveTrees() const
 }
 
 #if ENABLE_VISUAL_LOG
-void UBehaviorTreeComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UBehaviorTreeComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
 {
 	if (IsPendingKill())
 	{
@@ -1628,7 +1628,7 @@ void UBehaviorTreeComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot)
 		const FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
 		const FBehaviorTreeInstanceId& InstanceId = KnownInstances[InstanceInfo.InstanceIdIndex];
 
-		FVisLogEntry::FStatusCategory StatusCategory;
+		FVisualLogEntry::FStatusCategory StatusCategory;
 		StatusCategory.Category = FString::Printf(TEXT("BehaviorTree %d (asset: %s)"), InstanceIndex, *GetNameSafe(InstanceId.TreeAsset));
 		
 		TArray<FString> Descriptions;

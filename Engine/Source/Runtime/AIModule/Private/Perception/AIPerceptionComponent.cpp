@@ -469,7 +469,7 @@ void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 }
 
 #if ENABLE_VISUAL_LOG
-void UAIPerceptionComponent::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+void UAIPerceptionComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 
 }

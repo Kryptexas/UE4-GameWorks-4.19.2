@@ -144,7 +144,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const override;
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const override;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const override;
 	virtual FString GetDescription() const override;
 #endif // ENABLE_VISUAL_LOG
 

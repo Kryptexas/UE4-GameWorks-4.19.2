@@ -205,7 +205,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 
 #if ENABLE_VISUAL_LOG
 	/** prepare blackboard snapshot for logs */
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif
 	
 protected:

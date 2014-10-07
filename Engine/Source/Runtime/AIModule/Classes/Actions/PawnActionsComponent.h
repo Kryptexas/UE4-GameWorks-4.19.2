@@ -137,7 +137,7 @@ public:
 	FORCEINLINE UPawnAction* GetActiveAction(EAIRequestPriority::Type Priority) { return ActionStacks[Priority].GetTop(); }
 
 #if ENABLE_VISUAL_LOG
-	void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 
 	//----------------------------------------------------------------------//

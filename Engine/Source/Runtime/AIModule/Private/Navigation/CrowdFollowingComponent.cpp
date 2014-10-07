@@ -847,7 +847,7 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 
 #if ENABLE_VISUAL_LOG
 
-void UCrowdFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
+void UCrowdFollowingComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
 {
 	if (!bEnableCrowdSimulation)
 	{
@@ -855,7 +855,7 @@ void UCrowdFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapsho
 		return;
 	}
 
-	FVisLogEntry::FStatusCategory Category;
+	FVisualLogEntry::FStatusCategory Category;
 	Category.Category = TEXT("Path following");
 
 	if (DestinationActor.IsValid())

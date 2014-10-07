@@ -6731,7 +6731,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 
 #if ENABLE_VISUAL_LOG
-			if (FVisualLog::Get().IsRecording() || FVisualLog::Get().IsRecordingOnServer())
+			if (FVisualLogger::Get().IsRecording() || FVisualLogger::Get().IsRecordingOnServer() )
 			{
 				int32 XSize;
 				int32 YSize;

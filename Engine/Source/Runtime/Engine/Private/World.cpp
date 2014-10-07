@@ -3104,7 +3104,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 #endif //WITH_EDITOR
 
 #if ENABLE_VISUAL_LOG
-	FVisualLog::Get().Cleanup();
+	FVisualLogger::Get().Cleanup();
 #endif // ENABLE_VISUAL_LOG	
 
 	// Tell actors to remove their components from the scene.

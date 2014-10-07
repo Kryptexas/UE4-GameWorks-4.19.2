@@ -8,7 +8,7 @@
 #include "AIPerceptionComponent.generated.h"
 
 class AAIController;
-struct FVisLogEntry;
+struct FVisualLogEntry;
 class UCanvas;
 class UAIPerceptionSystem;
 
@@ -206,7 +206,7 @@ public:
 	void DrawDebugInfo(UCanvas* Canvas);
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(FVisLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 	
 protected:

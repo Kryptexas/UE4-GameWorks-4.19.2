@@ -504,7 +504,7 @@ bool UPawnActionsComponent::PerformAction(APawn& Pawn, UPawnAction& Action, TEnu
 // debug
 //----------------------------------------------------------------------//
 #if ENABLE_VISUAL_LOG
-void UPawnActionsComponent::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+void UPawnActionsComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	static const FString Category = TEXT("PawnActions");
 
@@ -521,7 +521,7 @@ void UPawnActionsComponent::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 			continue;
 		}
 
-		FVisLogEntry::FStatusCategory StatusCategory;
+		FVisualLogEntry::FStatusCategory StatusCategory;
 		StatusCategory.Category = Category + TEXT(": ") + GetPriorityName(PriorityIndex);
 
 		while (Action)
