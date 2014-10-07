@@ -27,23 +27,5 @@ public class OnlineSubsystemSteam : ModuleRules
 		);
 
 		AddThirdPartyPrivateStaticDependencies(Target, "Steamworks");
-
-		Definitions.Add("WITH_STEAMGC=0");
-
-#if false
-		if (Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true &&
-			Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SteamGC") == true)
-		{
-			AddThirdPartyPrivateStaticDependencies(Target, 
-				"ProtoBuf",
-				"SteamGC"
-				);
-			Definitions.Add("WITH_STEAMGC=1");
-		}
-		else
-		{
-			Definitions.Add("WITH_STEAMGC=0");
-		}
-#endif
 	}
 }

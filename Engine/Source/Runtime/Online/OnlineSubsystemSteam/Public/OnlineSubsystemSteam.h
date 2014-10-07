@@ -160,12 +160,6 @@ PACKAGE_SCOPE:
 	 */
 	void QueueAsyncOutgoingItem(class FOnlineAsyncItem* AsyncItem);
 
-	/**
-	 *	Add an async msg onto the msg queue for processing
-	 * @param AsyncMsg - new heap allocated msg to process on the async task thread
-	 */
-	void QueueAsyncMsg(class FOnlineAsyncMsgSteam* AsyncMsg);
-
     /** 
      * **INTERNAL**
      * Get the metadata related to a given user

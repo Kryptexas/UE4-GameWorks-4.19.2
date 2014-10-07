@@ -12,110 +12,7 @@
 #include "IPAddressSteam.h"
 #include "SocketSubsystemSteam.h"
 #include "SocketsSteam.h"
-#include "OnlineMsgSteam.h"
 #include "SteamUtilities.h"
-
-/**
- * Destroy any messages left in the queue
- */
-void FOnlineAsyncTaskManagerSteam::FreeMsgQueue()
-{
-#if WITH_STEAMGC
-	FScopeLock ScopeLock(&InMsgQueueLock);
-	for(TMap<int64, FOnlineAsyncMsgSteam*>::TIterator It(InMsgQueue); It; ++It)
-	{
-		It.Value()->Destroy();
-	}
-
-	InMsgQueue.Empty();
-#endif
-}
-
-void FOnlineAsyncTaskManagerSteam::MessagePump()
-{
-#if WITH_STEAMGC
-	uint32 MsgSize = 0;
-	while (SteamCoordinator.IsMessageAvailable(&MsgSize))
-	{
-		TArray<uint8> Buffer(MsgSize);
-		Buffer.AddUninitialized(MsgSize);
-
-		uint32 MsgType;
-		uint32 NewMsgSize;
-
-		// Retrieve the message type and its payload
-		EGCResults eResult = SteamCoordinator.RetrieveMessage(&MsgType, Buffer.GetData(), MsgSize, &NewMsgSize);
-		if (eResult != k_EGCResultOK)
-		{
-			continue;
-		}
-
-		check(MsgSize == NewMsgSize);
-
-		uint32 ProtoMsgByteOffset;
-		CClientMsgGCHeader MsgHdr;
-		// Retrieve the message header and payload offsets
-		if (SteamCoordinator.ParseMessage(MsgType, Buffer.GetData(), MsgSize, MsgHdr, &ProtoMsgByteOffset))
-		{
-			// Who this message is intended for (job that initiated request)
-			uint64 JobId = MsgHdr.jobid_target();
-
-			FOnlineAsyncMsgSteam* NewJob = NULL;
-			{		
-				FScopeLock ScopeLock(&InMsgQueueLock);
-				FOnlineAsyncMsgSteam** Job = InMsgQueue.Find(JobId);
-
-				if (Job && *Job)
-				{
-					NewJob = *Job;
-					InMsgQueue.Remove(JobId);
-				}
-			}
-
-			if (NewJob)
-			{
-				// Convert the message payload to a usable format and pass to game thread
-				check(NewJob->ResponseMessage);
-				check(NewJob->GetResponseMsgType() == MsgType);
-				if (NewJob->GetResponse()->ParseFromArray(Buffer.GetData() + ProtoMsgByteOffset, MsgSize - ProtoMsgByteOffset))
-				{
-					NewJob->Deserialize();
-				}
-
-				// Always add to out queue for destruction on game thread
-				AddToOutQueue(NewJob);
-				if (!NewJob->bWasSuccessful)
-				{
-					UE_LOG_ONLINE(Warning, TEXT("Failed to parse message.  MessageType: %d JobId: %llu"), MsgType, JobId);
-				}
-
-				UE_LOG_ONLINE(Log, TEXT("Async msg '%s' completed in %f seconds with %d"), *NewJob->ToString(), NewJob->GetElapsedTime(), NewJob->bWasSuccessful);
-			}
-			else
-			{
-				UE_LOG_ONLINE(Warning, TEXT("Unsolicited message from server.  MessageType: %d JobId: %llu"), MsgType, JobId);
-			}
-		}
-	}
-
-	static float CheckInterval = 15.0f;
-	static double LastCheckTime = 0.0;
-	if (FPlatformTime::Seconds() - LastCheckTime > CheckInterval)
-	{
-		LastCheckTime = FPlatformTime::Seconds();
-		FScopeLock ScopeLock(&InMsgQueueLock);
-		for (TMap<int64, FOnlineAsyncMsgSteam*>::TConstIterator It(InMsgQueue); It; ++It)
-		{
-			uint64 JobId = It.Key();
-			FOnlineAsyncMsgSteam* Message = It.Value();
-			if (Message->GetElapsedTime() > CheckInterval)
-			{
-				UE_LOG_ONLINE(Warning, TEXT("Message id %ull type %d in queue for %f without a response."), JobId, Message->GetMsgType(), Message->GetElapsedTime());
-			}
-		}
-	}
-#endif
-}
 
 void FOnlineAsyncTaskManagerSteam::OnlineTick()
 {
@@ -131,8 +28,6 @@ void FOnlineAsyncTaskManagerSteam::OnlineTick()
 	{
 		SteamGameServer_RunCallbacks();
 	}
-
-	MessagePump();
 }
 
 /**
@@ -1184,34 +1079,4 @@ void FOnlineAsyncTaskManagerSteam::OnSteamShutdown(SteamShutdown_t* CallbackData
 	FOnlineAsyncEventSteamShutdown* NewEvent = new FOnlineAsyncEventSteamShutdown(SteamSubsystem);
 	UE_LOG_ONLINE(Verbose, TEXT("%s"), *NewEvent->ToString());
 	AddToOutQueue(NewEvent);
-}
-
-void FOnlineAsyncTaskManagerSteam::AddToInMsgQueue(FOnlineAsyncMsgSteam* NewMsg)
-{
-#if WITH_STEAMGC
-	// assert if not game thread
-	check(IsInGameThread());
-
-	int64 LocalJobId = -1;
-	{
-		FScopeLock Lock(&InMsgQueueLock);
-		if (NewMsg->GetResponseMsgType() > 0)
-		{
-			static int64 JobId = 0;
-			LocalJobId = ++JobId;
-			InMsgQueue.Add(LocalJobId, NewMsg);
-		}	
-	}
-
-	if (LocalJobId != -1)
-	{
-		SteamCoordinator.BSendMessageExpectResponse(NewMsg->GetMsgType(), LocalJobId, *NewMsg->GetParams());
-	}
-	else
-	{
-		SteamCoordinator.BSendMessageNoResponse(NewMsg->GetMsgType(), *NewMsg->GetParams());
-	}
-
-	WorkEvent->Trigger();
-#endif
 }

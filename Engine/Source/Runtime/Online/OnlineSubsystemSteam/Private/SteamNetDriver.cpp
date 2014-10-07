@@ -8,7 +8,6 @@
 #include "OnlineSubsystemSteam.h"
 #include "SocketSubsystemSteam.h"
 #include "SocketsSteam.h"
-#include "OnlineMsgSteam.h"
 
 USteamNetDriver::USteamNetDriver(const class FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),

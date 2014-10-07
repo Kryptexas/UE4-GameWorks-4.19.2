@@ -44,10 +44,6 @@
 #include "steam/steam_api.h"
 #include "steam/steam_gameserver.h"
 
-#if WITH_STEAMGC
-#include "gc_client.h"
-#endif
-
 // @todo Steam: See above
 #ifdef _MSC_VER
 #pragma warning(pop)
