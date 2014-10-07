@@ -4,6 +4,7 @@
 #include "MacWindow.h"
 #include "MacApplication.h"
 #include "MacCursor.h"
+#include "MacEvent.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
 
@@ -253,6 +254,12 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 				
 				WindowHandle->bZoomed = [WindowHandle isZoomed];
 			}, UE4ResizeEventMode, true);
+		}
+		else
+		{
+			WindowHandle.PreFullScreenRect = NSMakeRect(WindowHandle.PreFullScreenRect.origin.x, WindowHandle.PreFullScreenRect.origin.y, (CGFloat)Width, (CGFloat)Height);
+			
+			FMacEvent::SendToGameRunLoop([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle], WindowHandle, EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 		}
 		
 		MessageHandler->FinishedReshapingWindow( SharedThis( this ) );
