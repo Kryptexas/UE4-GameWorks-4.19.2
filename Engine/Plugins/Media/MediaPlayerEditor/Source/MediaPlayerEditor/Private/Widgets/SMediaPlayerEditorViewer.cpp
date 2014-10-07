@@ -11,7 +11,17 @@
 
 SMediaPlayerEditorViewer::SMediaPlayerEditorViewer( )
 	: CaptionBuffer(MakeShareable(new FMediaSampleBuffer))
+	, MediaPlayer(nullptr)
 { }
+
+
+SMediaPlayerEditorViewer::~SMediaPlayerEditorViewer()
+{
+	if (MediaPlayer != nullptr)
+	{
+		MediaPlayer->OnMediaChanged().RemoveAll(this);
+	}
+}
 
 
 /* SMediaPlayerEditorPlayer interface
@@ -242,6 +252,8 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 	Viewport = MakeShareable(new FMediaPlayerEditorViewport());
 	ViewportWidget->SetViewportInterface(Viewport.ToSharedRef());
 
+	MediaPlayer->OnMediaChanged().AddRaw(this, &SMediaPlayerEditorViewer::HandleMediaPlayerMediaChanged);
+
 	ReloadMediaPlayer();
 }
 
@@ -411,6 +423,12 @@ FText SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxText( ) const
 FText SMediaPlayerEditorViewer::HandleElapsedTimeTextBlockText( ) const
 {
 	return FText::AsTimespan(MediaPlayer->GetTime());
+}
+
+
+void SMediaPlayerEditorViewer::HandleMediaPlayerMediaChanged()
+{
+	ReloadMediaPlayer();
 }
 
 

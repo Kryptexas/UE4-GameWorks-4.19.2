@@ -19,6 +19,9 @@ public:
 	/** Default constructor. */
 	SMediaPlayerEditorViewer( );
 
+	/** Destructor. */
+	~SMediaPlayerEditorViewer();
+
 public:
 
 	/**
@@ -59,6 +62,9 @@ private:
 
 	// Callback for getting the text of the 'Elapsed Time' text block.
 	FText HandleElapsedTimeTextBlockText( ) const;
+
+	/** Callback for when the media player's media has changed. */
+	void HandleMediaPlayerMediaChanged();
 
 	// Callback for getting the text of the movie captions.
 	FText HandleOverlayCaptionText( ) const;
