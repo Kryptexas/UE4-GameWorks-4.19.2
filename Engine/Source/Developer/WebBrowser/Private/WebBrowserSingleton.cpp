@@ -88,11 +88,11 @@ void FWebBrowserSingleton::PumpMessages()
 #endif
 }
 
-TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height)
+TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency)
 {
 #if WITH_CEF3
 	// Create new window
-	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(SlateRenderer, FVector2D(Width, Height)));
+	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(SlateRenderer, FIntPoint(Width, Height)));
 
 	// WebBrowserHandler implements browser-level callbacks.
 	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
@@ -104,6 +104,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OS
 
 	// Always use off screen rendering so we can integrate with our windows
 	WindowInfo.SetAsOffScreen(WindowHandle);
+	WindowInfo.SetTransparentPainting(bUseTransparency);
 
 	// Specify CEF browser settings here.
 	CefBrowserSettings BrowserSettings;

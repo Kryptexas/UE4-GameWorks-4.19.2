@@ -11,6 +11,7 @@ public:
 	SLATE_BEGIN_ARGS(SWebBrowser)
 		: _InitialURL(TEXT("www.google.com"))
 		, _ShowControls(true)
+		, _SupportsTransparency(false)
 		, _ViewportSize(FVector2D(320, 240))
 		{}
 
@@ -22,6 +23,9 @@ public:
 
 		/** Whether to show standard controls like Back, Forward, Reload etc. */
 		SLATE_ARGUMENT(bool, ShowControls)
+
+		/** Should this browser window support transparency */
+		SLATE_ARGUMENT(bool, SupportsTransparency)
 
 		/** Desired size of the web browser viewport */
 		SLATE_ATTRIBUTE(FVector2D, ViewportSize);

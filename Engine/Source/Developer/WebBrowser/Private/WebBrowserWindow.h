@@ -34,7 +34,7 @@ public:
 	 * @param InSlateRenderer Slate renderer to allow creation of texture to render to
 	 * @param InViewportSize Initial size of the browser window
 	 */
-	FWebBrowserWindow(TWeakPtr<FSlateRenderer> InSlateRenderer, FVector2D InViewportSize);
+	FWebBrowserWindow(TWeakPtr<FSlateRenderer> InSlateRenderer, FIntPoint InViewportSize);
 	/**
 	 * Virtual Destructor
 	 */
@@ -155,7 +155,7 @@ private:
 	/** Current title of this window */
 	FString							Title;
 	/** Current size of this window */
-	FVector2D						ViewportSize;
+	FIntPoint						ViewportSize;
 	/** Whether this window is closing */
 	bool							bIsClosing;
 

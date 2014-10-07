@@ -36,7 +36,8 @@ public:
 	 * @param InitialURL URL that the browser should initially navigate to
 	 * @param Width Initial width of the browser
 	 * @param Height Initial height of the browser
+	 * @param bUseTransparency Whether to allow transparent rendering of pages
 	 * @return New Web Browser Window Interface (may be null if not supported)
 	 */
-	virtual TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height) = 0;
+	virtual TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency) = 0;
 };

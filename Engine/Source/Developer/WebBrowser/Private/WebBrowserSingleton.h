@@ -37,7 +37,7 @@ public:
 	// IWebBrowserSingleton Interface
 	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) override;
 	virtual void PumpMessages() override;
-	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height) override;
+	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency) override;
 
 	/**
 	 * Gets the Current Locale Code in the format CEF expects

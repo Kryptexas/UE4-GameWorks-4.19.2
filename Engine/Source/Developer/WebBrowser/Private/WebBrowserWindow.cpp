@@ -5,7 +5,7 @@
 #include "SlateCore.h"
 
 #if WITH_CEF3
-FWebBrowserWindow::FWebBrowserWindow(TWeakPtr<FSlateRenderer> InSlateRenderer, FVector2D InViewportSize)
+FWebBrowserWindow::FWebBrowserWindow(TWeakPtr<FSlateRenderer> InSlateRenderer, FIntPoint InViewportSize)
 	: SlateRenderer(InSlateRenderer)
 	, UpdatableTexture(nullptr)
 	, ViewportSize(InViewportSize)
@@ -33,15 +33,26 @@ FWebBrowserWindow::~FWebBrowserWindow()
 void FWebBrowserWindow::SetViewportSize(FVector2D WindowSize)
 {
 	// Magic number for texture size, can't access GetMax2DTextureDimension easily
-	WindowSize = WindowSize.ClampAxes(1, 2048);
-	if (ViewportSize != WindowSize)
+	FIntPoint ClampedWindowSize = WindowSize.ClampAxes(1, 2048).IntPoint();
+	if (ViewportSize != ClampedWindowSize)
 	{
-		ViewportSize = WindowSize;
-		TextureData.Reset(ViewportSize.X * ViewportSize.Y * 4);
+		FIntPoint OldViewportSize = MoveTemp(ViewportSize);
+		TArray<uint8> OldTextureData = MoveTemp(TextureData);
+		ViewportSize = ClampedWindowSize;
 		TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
+
+		// copy row by row to avoid texture distortion
+		const int32 WriteWidth = FMath::Min(OldViewportSize.X, ViewportSize.X) * 4;
+		const int32 WriteHeight = FMath::Min(OldViewportSize.Y, ViewportSize.Y);
+		for (int32 RowIndex = 0; RowIndex < WriteHeight; ++RowIndex)
+		{
+			FMemory::Memcpy(TextureData.GetData() + ViewportSize.X * RowIndex * 4, OldTextureData.GetData() + OldViewportSize.X * RowIndex * 4, WriteWidth);
+		}
+
 		if (UpdatableTexture != nullptr)
 		{
 			UpdatableTexture->ResizeTexture(ViewportSize.X, ViewportSize.Y);
+			UpdatableTexture->UpdateTexture(TextureData);
 		}
 		if (IsValid())
 		{
@@ -336,14 +347,25 @@ bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
 
 void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
 {
-	const int BufferSize = Width*Height*4;
-	if (BufferSize <= TextureData.Num())
+	const int32 BufferSize = Width*Height*4;
+	if (BufferSize == TextureData.Num())
 	{
 		FMemory::Memcpy(TextureData.GetData(), Buffer, BufferSize);
-		if (UpdatableTexture != nullptr)
+	}
+	else
+	{
+		// copy row by row to avoid texture distortion
+		const int32 WriteWidth = FMath::Min(Width, ViewportSize.X) * 4;
+		const int32 WriteHeight = FMath::Min(Height, ViewportSize.Y);
+		for (int32 RowIndex = 0; RowIndex < WriteHeight; ++RowIndex)
 		{
-			UpdatableTexture->UpdateTexture(TextureData);
+			FMemory::Memcpy(TextureData.GetData() + ViewportSize.X * RowIndex * 4, static_cast<const uint8*>(Buffer) + Width * RowIndex * 4, WriteWidth);
 		}
+	}
+
+	if (UpdatableTexture != nullptr)
+	{
+		UpdatableTexture->UpdateTexture(TextureData);
 	}
 }
 

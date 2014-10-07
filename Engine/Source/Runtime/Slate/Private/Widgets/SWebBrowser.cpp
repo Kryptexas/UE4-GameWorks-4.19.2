@@ -22,7 +22,11 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 		TSharedPtr<FGenericWindow> NativeWindow = InArgs._ParentWindow->GetNativeWindow();
 		OSWindowHandle = NativeWindow->GetOSWindowHandle();
 	}
-	BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(OSWindowHandle, InArgs._InitialURL, InArgs._ViewportSize.Get().X, InArgs._ViewportSize.Get().Y);
+	BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(OSWindowHandle,
+																				InArgs._InitialURL,
+																				InArgs._ViewportSize.Get().X,
+																				InArgs._ViewportSize.Get().Y,
+																				InArgs._SupportsTransparency);
 
 	TSharedPtr<SViewport> ViewportWidget;
 
@@ -74,6 +78,8 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 			SAssignNew(ViewportWidget, SViewport)
 			.ViewportSize(InArgs._ViewportSize)
 			.EnableGammaCorrection(false)
+			.EnableBlending(InArgs._SupportsTransparency)
+			.IgnoreTextureAlpha(!InArgs._SupportsTransparency)
 		]
 	];
 
