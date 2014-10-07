@@ -6534,6 +6534,8 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, con
 	TSet<const UEdGraphNode*> NodesToSelect;
 	FVector2D NodeSpawnPos = InPosition;
 
+	bool bPerformedAction = false;
+
 	for (int32 ActionIndex = 0; ActionIndex < PaletteBuilder.GetNumActions(); ++ActionIndex)
 	{
 		FGraphActionListBuilderBase::ActionGroup& ActionSet = PaletteBuilder.GetAction(ActionIndex);
@@ -6550,9 +6552,16 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, con
 				NodeSpawnPos.Y = FMath::Max(NodeSpawnPos.Y, SpawnedNode->NodePosY + UEdGraphSchema_K2::EstimateNodeHeight(SpawnedNode));
 				NodesToSelect.Add(SpawnedNode);
 			}
+
+			bPerformedAction = true;
 		}	
 	}
-	Graph->SelectNodeSet(NodesToSelect, /*bFromUI =*/true);
+
+	// Do not change node selection if no actions were performed
+	if(bPerformedAction)
+	{
+		Graph->SelectNodeSet(NodesToSelect, /*bFromUI =*/true);
+	}
 
 	return FReply::Handled();
 }
