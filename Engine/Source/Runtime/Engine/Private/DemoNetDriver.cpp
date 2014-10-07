@@ -687,7 +687,20 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 	check( Connection != NULL );
 
 	UClass* C = StaticLoadClass( AActor::StaticClass(), NULL, *DemoSpectatorClass, NULL, LOAD_None, NULL );
+
+	if ( C == NULL )
+	{
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::SpawnDemoRecSpectator: Failed to load demo spectator class." ) );
+		return;
+	}
+
 	APlayerController* Controller = World->SpawnActor<APlayerController>( C );
+
+	if ( Controller == NULL )
+	{
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::SpawnDemoRecSpectator: Failed to spawn demo spectator." ) );
+		return;
+	}
 
 	for ( FActorIterator It( World ); It; ++It)
 	{
