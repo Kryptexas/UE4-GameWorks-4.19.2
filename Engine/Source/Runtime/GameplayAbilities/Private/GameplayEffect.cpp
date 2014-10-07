@@ -260,56 +260,45 @@ int32 FGameplayEffectSpec::ApplyModifier(const FModifierSpec &InMod, const FModi
 		return 0;
 	}
 
-	switch (InMod.Info.EffectType)
+	for (FModifierSpec &MyMod : Modifiers)
 	{
-		case EGameplayModEffect::Magnitude:
+		if (InMod.CanModifyModifier(MyMod, QualifierContext))
 		{
-			for (FModifierSpec &MyMod : Modifiers)
+			bool FinishedLoop = true;
+			NumApplied = 1;
+
+			switch (InMod.Info.EffectType)
 			{
-				if (InMod.CanModifyModifier(MyMod, QualifierContext))
-				{
+				case EGameplayModEffect::Magnitude:
 					InMod.ApplyModTo(MyMod, bApplyAsSnapshot);
-					NumApplied = 1;
-				}
+					FinishedLoop = false;	// Keeep going: we need to go through the entire mod list
+					break;
+
+				case EGameplayModEffect::Duration:
+					// don't modify infinite duration or instant unless we're overriding it
+					if (GetDuration() > 0.f || InMod.Info.ModifierOp == EGameplayModOp::Override)
+					{
+						Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
+					}
+					else
+					{
+						NumApplied = 0;
+					}
+					break;
+				case EGameplayModEffect::ChanceApplyTarget:
+					ChanceToApplyToTarget.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
+					break;
+				case EGameplayModEffect::ChanceExecuteEffect:
+					ChanceToExecuteOnGameplayEffect.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
+					break;
+
+				case EGameplayModEffect::LinkedGameplayEffect:
+					TargetEffectSpecs.Add(InMod.TargetEffectSpec.ToSharedRef());
+					break;
 			}
-			break;
-		}
 
-		// Fixme: Duration mods aren't checking that attributes match - do we care?
-		// eg - "I mod duration of all GEs that modify Health" would need to check to see if this mod modifies health before doing the stuff below.
-		// Or can we get by with just tags?
-
-		case EGameplayModEffect::Duration:
-		{
-			// don't modify infinite duration or instant unless we're overriding it
-			if (GetDuration() > 0.f || InMod.Info.ModifierOp == EGameplayModOp::Override)
-			{
-				Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
-				NumApplied = 1;
-			}
-
-			break;
-		}
-
-		case EGameplayModEffect::ChanceApplyTarget:
-		{
-			ChanceToApplyToTarget.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
-			NumApplied = 1;
-			break;
-		}
-
-		case EGameplayModEffect::ChanceExecuteEffect:
-		{
-			ChanceToExecuteOnGameplayEffect.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, bApplyAsSnapshot);
-			NumApplied = 1;
-			break;
-		}
-
-		case EGameplayModEffect::LinkedGameplayEffect:
-		{
-			TargetEffectSpecs.Add(InMod.TargetEffectSpec.ToSharedRef());
-			NumApplied = 1;
-			break;
+			if (FinishedLoop)
+				break;
 		}
 	}
 

@@ -1612,6 +1612,7 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		DummyBuffEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		DummyBuffEffect->Modifiers[0].EffectType = EGameplayModEffect::LinkedGameplayEffect;
 		DummyBuffEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
+		DummyBuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
 		DummyBuffEffect->Modifiers[0].TargetEffect = BuffEffect;
 		DummyBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
@@ -1742,6 +1743,7 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		DummyBuffEffect->Modifiers.SetNum(1);
 		DummyBuffEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		DummyBuffEffect->Modifiers[0].EffectType = EGameplayModEffect::LinkedGameplayEffect;
+		DummyBuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
 		DummyBuffEffect->Modifiers[0].TargetEffect = BuffEffect;
 		DummyBuffEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
 		DummyBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
@@ -1750,6 +1752,7 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		DummyBuffEffect2->Modifiers.SetNum(1);
 		DummyBuffEffect2->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		DummyBuffEffect2->Modifiers[0].EffectType = EGameplayModEffect::LinkedGameplayEffect;
+		DummyBuffEffect2->Modifiers[0].Attribute.SetUProperty(DamageProperty);
 		DummyBuffEffect2->Modifiers[0].TargetEffect = DummyBuffEffect;
 		DummyBuffEffect2->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
@@ -5908,6 +5911,7 @@ bool GameplayEffectsTest_ModifyChanceToApplyToTarget(UWorld *World, FAutomationT
 		BaseEffect->Modifiers[0].Magnitude.SetValue(1.f);
 		BaseEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		BaseEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
 		BaseEffect->Modifiers[0].EffectType = EGameplayModEffect::ChanceApplyTarget;
 		BaseEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
@@ -6008,6 +6012,8 @@ bool GameplayEffectsTest_ModifyChanceToExecuteOnGE(UWorld *World, FAutomationTes
 		BaseEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
 		BaseEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseEffect->Modifiers[0].EffectType = EGameplayModEffect::ChanceExecuteEffect;
+		BaseEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
 		BaseEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		// Apply to self
