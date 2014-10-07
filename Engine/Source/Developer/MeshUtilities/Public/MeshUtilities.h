@@ -184,6 +184,8 @@ public:
 		) = 0;
 
 	
+	virtual void RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk) = 0;
+
 	/**
 	 *	Calculate the verts associated weighted to each bone of the skeleton.
 	 *	The vertices returned are in the local space of the bone.

@@ -749,7 +749,7 @@ public:
 	/**
 	 * Computes flags for building vertex buffers.
 	 */
-	uint32 GetVertexBufferFlags() const;
+	ENGINE_API uint32 GetVertexBufferFlags() const;
 
 	// Begin UObject interface.
 #if WITH_EDITOR

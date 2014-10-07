@@ -103,6 +103,8 @@ private:
 		TArray<uint32>& OutPnAenIndices
 		) override;
 
+	virtual void RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk) override;
+
 	virtual void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) override;
 
 	/**
@@ -872,6 +874,61 @@ void FMeshUtilities::BuildSkeletalAdjacencyIndexBuffer(
 	{
 		OutPnAenIndices.Empty();
 	}
+}
+
+void FMeshUtilities::RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk)
+{
+#if WITH_EDITORONLY_DATA
+	TIndirectArray<FStaticLODModel> DestModels;
+	TIndirectArray<FSkinnedModelData> ModelData;
+	FReferenceSkeleton RefSkeleton = SrcMesh->RefSkeleton;
+	uint32 VertexBufferBuildFlags = SrcMesh->GetVertexBufferFlags();
+	FSkeletalMeshResource* SrcMeshResource = SrcMesh->GetImportedResource();
+	FVector TriangleSortCenter;
+	bool bHaveTriangleSortCenter = SrcMesh->GetSortCenterPoint(TriangleSortCenter);
+
+	for (int32 ModelIndex = 0; ModelIndex < SrcMeshResource->LODModels.Num(); ++ModelIndex)
+	{
+		FSkinnedModelData& TmpModelData = *new(ModelData) FSkinnedModelData();
+		SkeletalMeshTools::CopySkinnedModelData(TmpModelData,SrcMeshResource->LODModels[ModelIndex]);
+	}
+
+	for (int32 ModelIndex = 0; ModelIndex < ModelData.Num(); ++ModelIndex)
+	{
+		TArray<FSkinnedMeshChunk*> Chunks;
+		TArray<int32> PointToOriginalMap;
+		TArray<ETriangleSortOption> SectionSortOptions;
+
+		const FSkinnedModelData& SrcModel = ModelData[ModelIndex];
+		FStaticLODModel& DestModel = *new(DestModels) FStaticLODModel();
+
+		SkeletalMeshTools::UnchunkSkeletalModel(Chunks,PointToOriginalMap,SrcModel);
+		SkeletalMeshTools::ChunkSkinnedVertices(Chunks,MaxBonesPerChunk);
+
+		for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ++ChunkIndex)
+		{
+			int32 SectionIndex = Chunks[ChunkIndex]->OriginalSectionIndex;
+			SectionSortOptions.Add(SrcModel.Sections[SectionIndex].TriangleSorting);
+		}
+		check(SectionSortOptions.Num() == Chunks.Num());
+
+		BuildSkeletalModelFromChunks(DestModel,RefSkeleton,Chunks,PointToOriginalMap);
+		check(DestModel.Sections.Num() == DestModel.Chunks.Num());
+		check(DestModel.Sections.Num() == SectionSortOptions.Num());
+
+		DestModel.NumTexCoords = SrcModel.NumTexCoords;
+		DestModel.BuildVertexBuffers(VertexBufferBuildFlags);
+		for (int32 SectionIndex = 0; SectionIndex < DestModel.Sections.Num(); ++SectionIndex)
+		{
+			DestModel.SortTriangles(TriangleSortCenter,bHaveTriangleSortCenter,SectionIndex,SectionSortOptions[SectionIndex]);
+		}
+	}
+
+	//@todo-rco: Swap() doesn't seem to work
+	Exchange(SrcMeshResource->LODModels, DestModels);
+
+	// TODO: Also need to patch bEnableShadowCasting in the LODInfo struct.
+#endif // #if WITH_EDITORONLY_DATA
 }
 
 void FMeshUtilities::CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant)
@@ -1767,7 +1824,6 @@ static void ComputeTangents(
 			}
 			while (NewConnections > 0);
 		}
-        
 
 		// Vertex normal construction.
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
@@ -2620,7 +2676,7 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 		}
 	}
 
- 	check(Wedges.Num() == WedgeInfluenceIndices.Num());
+	check(Wedges.Num() == WedgeInfluenceIndices.Num());
 
 	// Calculate smooth wedge tangent vectors.
 

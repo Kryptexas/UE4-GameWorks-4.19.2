@@ -1649,7 +1649,7 @@ public:
 	 * Initialize vertex buffers from skel mesh chunks.
 	 * @param BuildFlags See EVertexFlags.
 	 */
-	void BuildVertexBuffers(uint32 VertexFlags);
+	ENGINE_API void BuildVertexBuffers(uint32 VertexFlags);
 
 	/** Utility function for returning total number of faces in this LOD. */
 	ENGINE_API int32 GetTotalFaces() const;
