@@ -58,7 +58,7 @@ void* FHTML5PlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 #if PLATFORM_HTML5_WIN32 
 	return _aligned_malloc( Size, 32 * 1024  );
 #else  
-	return malloc(Size); 
+	return FMemory::Malloc(Size, 16);
 #endif 
 }
 
@@ -67,7 +67,7 @@ void FHTML5PlatformMemory::BinnedFreeToOS( void* Ptr )
 #if PLATFORM_HTML5_WIN32 
 	_aligned_free ( Ptr );
 #else
-	free(Ptr); 
+	FMemory::Free(Ptr);
 #endif 
 }
 
