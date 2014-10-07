@@ -1114,7 +1114,6 @@ namespace UnrealBuildTool
 					if (!IsEngineTarget && TargetRulesObject.Type != TargetRules.TargetType.Program)
 					{
 						List<UProjectInfo> AllGames = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
-						Console.WriteLine("Game Count: " + AllGames.Count);
 						UProjectInfo ProjectInfo = FindGameContainingFile (AllGames, TargetFilePath);
 						if (ProjectInfo != null)
 						{
