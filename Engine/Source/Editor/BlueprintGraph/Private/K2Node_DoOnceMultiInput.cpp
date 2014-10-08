@@ -25,6 +25,38 @@ void UK2Node_DoOnceMultiInput::GetMenuEntries(FGraphContextMenuBuilder& ContextM
 	NodeAction->NodeTemplate = NodeTemplate;
 }
 
+void UK2Node_DoOnceMultiInput::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
+{
+	Super::ReallocatePinsDuringReconstruction(OldPins);
+}
+
+UK2Node::ERedirectType UK2Node_DoOnceMultiInput::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
+{
+	// Temp work around: remove whitespaces from pin names before doing string comparison.
+
+	FString NewName = NewPin->PinName;
+	FString OldName = OldPin->PinName;
+
+	NewName.ReplaceInline(TEXT(" "), TEXT(""));
+	OldName.ReplaceInline(TEXT(" "), TEXT(""));
+	
+	if (NewName.Equals(OldName, ESearchCase::IgnoreCase))
+	{
+		// Make sure we're not dealing with a menu node
+		UEdGraph* OuterGraph = GetGraph();
+		if (OuterGraph && OuterGraph->Schema)
+		{
+			const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
+			if (!K2Schema || K2Schema->IsSelfPin(*NewPin) || K2Schema->ArePinTypesCompatible(OldPin->PinType, NewPin->PinType))
+			{
+				return ERedirectType_Name;
+			}
+		}
+	}
+
+	return Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
+}
+
 FText UK2Node_DoOnceMultiInput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return LOCTEXT("DoOnceMultiInput", "DoOnce MultiInput");
