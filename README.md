@@ -21,7 +21,7 @@ This branch contains source code for the **4.5 preview release**.  You'll need t
 
 We're also publishing bleeding edge changes from our engine team in the [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) on GitHub.  Here you can 
 see [live commits](https://github.com/EpicGames/UnrealEngine/commits/master) from Epic programmers along with integrated code submissions from the community.  This branch is 
-unstable and may not even compile, though we periodically tag [preview releases](https://github.com/EpicGames/UnrealEngine/releases/tag/4.5.0-preview) which
+unstable and may not even compile, though we periodically tag [preview releases](https://github.com/EpicGames/UnrealEngine/releases/tag/latest-preview) which
 receive basic testing and have matching dependencies attached.
 
 We recommend you work with a versioned release such as this one.  The master branch contains unstable and possibly untested code,
