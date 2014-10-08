@@ -557,7 +557,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 
 	virtual FVector GetEndPoint() const override
 	{
-		return HitResult.ImpactPoint;
+		return HitResult.Location;
 	}
 
 	// -------------------------------------
