@@ -28,6 +28,7 @@ UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitial
 
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::EvenIfNotCollidable;
 
+	BodyInstance.bUseAsyncScene = true;
 	BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("Destructible"));
 	SetCollisionProfileName(CollisionProfileName);
