@@ -5,6 +5,21 @@
 
 class AGameplayAbilityTargetActor;
 
+USTRUCT(BlueprintType)
+struct FWorldReticleParameters
+{
+	GENERATED_USTRUCT_BODY()
+
+	//Use this so that we can't slip in new parameters without some actor knowing about it.
+	void Initialize(FVector InAOEScale)
+	{
+		AOEScale = InAOEScale;
+	}
+
+	UPROPERTY(BlueprintReadWrite, Category = Reticle)
+	FVector AOEScale;
+};
+
 /** Reticles allow targeting to be visualized. Tasks can spawn these. Artists/designers can create BPs for these. */
 UCLASS(Blueprintable, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityWorldReticle : public AActor
@@ -20,7 +35,13 @@ public:
 
 	virtual bool IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
 
-	void InitializeReticle(AGameplayAbilityTargetActor* InTargetingActor);
+	void InitializeReticle(AGameplayAbilityTargetActor* InTargetingActor, FWorldReticleParameters InParameters);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
+	void OnParametersInitialized();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
+	FWorldReticleParameters Parameters;
 
 protected:
 	/** This is used in the process of determining whether we should replicate to a specific client. */

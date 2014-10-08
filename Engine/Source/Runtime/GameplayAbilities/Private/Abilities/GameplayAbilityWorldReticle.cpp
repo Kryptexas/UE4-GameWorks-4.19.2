@@ -17,12 +17,14 @@ AGameplayAbilityWorldReticle::AGameplayAbilityWorldReticle(const class FPostCons
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 }
 
-void AGameplayAbilityWorldReticle::InitializeReticle(AGameplayAbilityTargetActor* InTargetingActor)
+void AGameplayAbilityWorldReticle::InitializeReticle(AGameplayAbilityTargetActor* InTargetingActor, FWorldReticleParameters InParameters)
 {
 	check(InTargetingActor);
 	TargetingActor = InTargetingActor;
 	MasterPC = InTargetingActor->MasterPC;
 	AddTickPrerequisiteActor(TargetingActor);		//We want the reticle to tick after the targeting actor so that designers have the final say on the position
+	Parameters = InParameters;
+	OnParametersInitialized();
 }
 
 bool AGameplayAbilityWorldReticle::IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)

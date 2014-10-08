@@ -2,6 +2,7 @@
 #pragma once
 
 #include "GameplayAbility.h"
+#include "Abilities/GameplayAbilityWorldReticle.h"
 #include "GameplayAbilityTargetActor.generated.h"
 
 UENUM(BlueprintType)
@@ -80,6 +81,14 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = Targeting)
 	AActor* SourceActor;
+
+	/** Parameters for world reticle. Usage of these parameters is dependent on the reticle. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Targeting)
+	FWorldReticleParameters ReticleParams;
+
+	/** Reticle that will appear on top of acquired targets. Reticles will be spawned/despawned as targets are acquired/lost. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Targeting)
+	TSubclassOf<AGameplayAbilityWorldReticle> ReticleClass;		//Using a special class for replication purposes.
 
 	/** Draw the debug information (if applicable) for this targeting actor. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (ExposeOnSpawn = true), Category = Targeting)
