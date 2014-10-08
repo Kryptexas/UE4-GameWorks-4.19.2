@@ -106,6 +106,7 @@ FMacApplication::FMacApplication()
 	, bUsingTrackpad( false )
 	, HIDInput( HIDInputInterface::Create( MessageHandler ) )
 	, DraggedWindow( NULL )
+	, WindowDragCursorPos( FVector2D::ZeroVector )
 	, MouseCaptureWindow( NULL )
 	, bIsMouseCaptureEnabled( false )
 	, bIsMouseCursorLocked( false )
@@ -327,16 +328,6 @@ static TSharedPtr< FMacWindow > FindWindowByNSWindow( const TArray< TSharedRef< 
 	}
 
 	return TSharedPtr< FMacWindow >( NULL );
-}
-
-FCocoaWindow* FMacApplication::FindMacEventWindow( NSEvent* CocoaEvent )
-{
-	return MacApplication->FindEventWindow( CocoaEvent );
-}
-
-TSharedPtr< FMacWindow > FMacApplication::FindMacWindowByNSWindow( FCocoaWindow* const WindowHandle )
-{
-	return FindWindowByNSWindow(MacApplication->Windows, &MacApplication->WindowsMutex, WindowHandle);
 }
 
 void FMacApplication::ProcessEvent(FMacEvent const* const Event)
@@ -573,25 +564,16 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 				[NativeWindow setMovable: IsMovable];
 				[NativeWindow setMovableByWindowBackground: IsMouseOverTitleBar];
 			}
-			
-			// Cocoa does not update NSWindow's frame until user stops dragging the window, so while window is being dragged, we calculate
-			// its position based on mouse move delta
+
+			FMacCursor* MacCursor = (FMacCursor*)Cursor.Get();
+
 			if( DraggedWindow )
 			{
-				const int32 X = FMath::TruncToInt(CurrentEventWindow->PositionX + [Event deltaX]);
-				const int32 Y = FMath::TruncToInt(CurrentEventWindow->PositionY + [Event deltaY]);
-				if( CurrentEventWindow.IsValid() )
-				{
-					MessageHandler->OnMovedWindow( CurrentEventWindow.ToSharedRef(), X, Y );
-					CurrentEventWindow->PositionX = X;
-					CurrentEventWindow->PositionY = Y;
-				}
+				// Cocoa does not update NSWindow's frame until user stops dragging the window, so while the window is being dragged we don't let Slate know anything's moving
+				MacCursor->UpdateCurrentPosition(WindowDragCursorPos);
 			}
-
-			if( CurrentEventWindow.IsValid() )
+			else if( CurrentEventWindow.IsValid() )
 			{
-				FMacCursor* MacCursor = (FMacCursor*)Cursor.Get();
-				
 				// Under OS X we disassociate the cursor and mouse position during hi-precision mouse input.
 				// The game snaps the mouse cursor back to the starting point when this is disabled, which
 				// accumulates mouse delta that we want to ignore.
@@ -637,10 +619,14 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 				}
 				else
 				{
-					FVector2D CurrentPosition = MacCursor->GetPosition();
+					FVector2D CurrentPosition = MousePosition * MacCursor->GetMouseScaling();
 					if( MacCursor->UpdateCursorClipping( CurrentPosition ) )
 					{
 						MacCursor->SetPosition( CurrentPosition.X, CurrentPosition.Y );
+					}
+					else
+					{
+						MacCursor->UpdateCurrentPosition(MousePosition);
 					}
 					MessageHandler->OnMouseMove();
 				}
@@ -893,10 +879,8 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 
 	FCocoaWindow* NativeWindow = FindEventWindow( Event );
 	TSharedPtr< FMacWindow > CurrentEventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, NativeWindow );
-	
-	FMacCursor* MacCursor = (FMacCursor*)Cursor.Get();
-	
-	ProcessNSEvent(Event, CurrentEventWindow, MacCursor->GetPosition());
+
+	ProcessNSEvent(Event, CurrentEventWindow, ((FMacCursor*)Cursor.Get())->GetPosition());
 }
 
 void FMacApplication::ResendEvent(NSEvent* Event)
@@ -954,8 +938,8 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 		}
 		else
 		{
-			const FVector2D CursorPos = bUsingHighPrecisionMouseInput ? HighPrecisionMousePos : FVector2D([NSEvent mouseLocation].x, FPlatformMisc::ConvertSlateYPositionToCocoa([NSEvent mouseLocation].y));
-			TSharedPtr<FMacWindow> WindowUnderCursor = StaticCastSharedPtr<FMacWindow>(LocateWindowUnderCursor(CursorPos));
+			const FVector2D CursorPos = bUsingHighPrecisionMouseInput ? HighPrecisionMousePos : ((FMacCursor*)Cursor.Get())->GetPosition();
+			TSharedPtr<FMacWindow> WindowUnderCursor = LocateWindowUnderCursor(CursorPos);
 			if (WindowUnderCursor.IsValid())
 			{
 				EventWindow = WindowUnderCursor->GetWindowHandle();
@@ -966,7 +950,7 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 	return EventWindow;
 }
 
-TSharedPtr<FGenericWindow> FMacApplication::LocateWindowUnderCursor( const FVector2D& CursorPos )
+TSharedPtr<FMacWindow> FMacApplication::LocateWindowUnderCursor( const FVector2D& CursorPos )
 {
 	const NSPoint Position = NSMakePoint(CursorPos.X, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.Y));
 
@@ -1300,6 +1284,12 @@ void FMacApplication::OnWindowWillMove( FCocoaWindow* Window )
 	SCOPED_AUTORELEASE_POOL;
 
 	DraggedWindow = Window;
+
+	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow(Windows, &WindowsMutex, Window);
+	if (EventWindow.IsValid())
+	{
+		WindowDragCursorPos = ((FMacCursor*)Cursor.Get())->GetPosition();
+	}
 }
 
 void FMacApplication::OnWindowDidMove( FCocoaWindow* Window )

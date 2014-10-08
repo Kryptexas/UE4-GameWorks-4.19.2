@@ -110,8 +110,6 @@ public:
 
 	void OnMouseCursorLock( bool bLockEnabled );
 
-	static FCocoaWindow* FindMacEventWindow( NSEvent* CocoaEvent );
-	static TSharedPtr< FMacWindow > FindMacWindowByNSWindow( FCocoaWindow* const WindowHandle );
 	static void ProcessEvent(FMacEvent const* const Event);
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
@@ -133,7 +131,7 @@ private:
 
 	void ResendEvent( NSEvent* Event );
 	FCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
-	TSharedPtr<FGenericWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
+	TSharedPtr<FMacWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 
@@ -163,6 +161,7 @@ private:
 	TSharedRef< class HIDInputInterface > HIDInput;
 
 	FCocoaWindow* DraggedWindow;
+	FVector2D WindowDragCursorPos;
 
 	FMouseCaptureWindow* MouseCaptureWindow;
 	bool bIsMouseCaptureEnabled;
@@ -208,6 +207,7 @@ private:
 	void* EventMonitor;
 
 	friend class FMacWindow;
+	friend class FMacEvent;
 };
 
 extern FMacApplication* MacApplication;

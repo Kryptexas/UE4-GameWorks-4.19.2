@@ -43,6 +43,8 @@ public:
 	
 	FVector2D GetMouseScaling( void );
 
+	void UpdateCurrentPosition( const FVector2D& Position );
+
 private:
 
 	void UpdateVisibility();
@@ -55,7 +57,8 @@ private:
 	bool bIsVisible;
 	bool bAssociateMouseCursor;
 	NSCursor* CurrentCursor;
-	
+
+	FVector2D CurrentPosition;
 	FVector2D MouseWarpDelta;
 	FVector2D MouseScale;
 };

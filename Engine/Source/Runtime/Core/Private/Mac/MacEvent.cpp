@@ -13,7 +13,7 @@ FMacEvent::FMacEvent(NSEvent* const Event)
 	check(Event);
 	[Event retain];
 	
-	CocoaWindow = FMacApplication::FindMacEventWindow(Event);
+	CocoaWindow = MacApplication->FindEventWindow(Event);
 
 	CGEventRef CGEvent = [Event CGEvent];
 	CGPoint CGMouseLocation = CGEventGetLocation(CGEvent);

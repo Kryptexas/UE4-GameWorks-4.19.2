@@ -8,6 +8,7 @@
 FMacCursor::FMacCursor()
 :	bIsVisible(true)
 ,	bAssociateMouseCursor(false)
+,	CurrentPosition(FVector2D::ZeroVector)
 ,	MouseWarpDelta(FVector2D::ZeroVector)
 ,	MouseScale(1.0f, 1.0f)
 {
@@ -107,6 +108,12 @@ FMacCursor::FMacCursor()
 
 	// Set the default cursor
 	SetType( EMouseCursor::Default );
+
+	CGEventRef Event = CGEventCreate(NULL);
+	CGPoint CursorPos = CGEventGetLocation(Event);
+	CFRelease(Event);
+
+	CurrentPosition = FVector2D(FMath::TruncToFloat(CursorPos.x), FMath::TruncToFloat(CursorPos.y));
 }
 
 FMacCursor::~FMacCursor()
@@ -150,11 +157,7 @@ FMacCursor::~FMacCursor()
 
 FVector2D FMacCursor::GetPosition() const
 {
-	CGEventRef Event = CGEventCreate(NULL);
-	CGPoint CursorPos = CGEventGetLocation(Event);
-	CFRelease(Event);
-	
-	return FVector2D(FMath::TruncToFloat(CursorPos.x * MouseScale.X), FMath::TruncToFloat(CursorPos.y * MouseScale.X));
+	return FVector2D(FMath::TruncToFloat(CurrentPosition.X * MouseScale.X), FMath::TruncToFloat(CurrentPosition.Y * MouseScale.Y));
 }
 
 void FMacCursor::SetPosition( const int32 X, const int32 Y )
@@ -208,10 +211,10 @@ void FMacCursor::Lock( const RECT* const Bounds )
 		CusorClipRect.Max.Y = FMath::TruncToInt(Bounds->bottom) - 1;
 	}
 
-	FVector2D CurrentPosition = GetPosition();
-	if( UpdateCursorClipping( CurrentPosition ) )
+	FVector2D Position = GetPosition();
+	if( UpdateCursorClipping( Position ) )
 	{
-		SetPosition( CurrentPosition.X, CurrentPosition.Y );
+		SetPosition( Position.X, Position.Y );
 	}
 }
 
@@ -274,6 +277,11 @@ void FMacCursor::UpdateVisibility()
 #pragma clang diagnostic pop
 }
 
+void FMacCursor::UpdateCurrentPosition(const FVector2D &Position)
+{
+	CurrentPosition = Position;
+}
+
 void FMacCursor::WarpCursor( const int32 X, const int32 Y )
 {
 	// Apple suppress mouse events for 0.25 seconds after a call to Warp, unless we call CGAssociateMouseAndMouseCursorPosition.
@@ -293,6 +301,8 @@ void FMacCursor::WarpCursor( const int32 X, const int32 Y )
 	{
 		CGAssociateMouseAndMouseCursorPosition( true );
 	}
+
+	CurrentPosition = FVector2D(X, Y);
 }
 
 FVector2D FMacCursor::GetMouseWarpDelta( bool const bClearAccumulatedDelta )
