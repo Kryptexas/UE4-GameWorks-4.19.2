@@ -49,7 +49,7 @@ void ClearReferencesToRendererModuleClasses(
 	}
 
 	// Save off shaders by serializing them into memory, and remove all shader map references to FShaders
-	GlobalShaderData = TScopedPointer<TArray<uint8> >(BackupGlobalShaderMap(GRHIShaderPlatform));
+	GlobalShaderData = TScopedPointer<TArray<uint8> >(BackupGlobalShaderMap(GRHIShaderPlatform_DEPRECATED));
 	UMaterial::BackupMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 
 	// Verify no FShaders still in memory
@@ -150,9 +150,9 @@ void RestoreReferencesToRendererModuleClasses(
 
 	// Restore FShaders from the serialized memory blobs
 	// Shader maps may still not be complete after this due to code changes picked up in the recompile
-	RestoreGlobalShaderMap(GRHIShaderPlatform, *GlobalShaderData);
-	UMaterial::RestoreMaterialShadersFromMemory(GRHIShaderPlatform, ShaderMapToSerializedShaderData);
-	FMaterialShaderMap::FixupShaderTypes(GRHIShaderPlatform, ShaderTypeNames, VertexFactoryTypeNames);
+	RestoreGlobalShaderMap(GRHIShaderPlatform_DEPRECATED, *GlobalShaderData);
+	UMaterial::RestoreMaterialShadersFromMemory(GRHIShaderPlatform_DEPRECATED, ShaderMapToSerializedShaderData);
+	FMaterialShaderMap::FixupShaderTypes(GRHIShaderPlatform_DEPRECATED, ShaderTypeNames, VertexFactoryTypeNames);
 
 	TArray<FShaderType*> OutdatedShaderTypes;
 	TArray<const FVertexFactoryType*> OutdatedFactoryTypes;

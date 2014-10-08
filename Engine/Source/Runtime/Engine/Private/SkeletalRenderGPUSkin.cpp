@@ -233,14 +233,14 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 
 	if(DataPresent)
 	{
-		bool bGPUSkinCacheEnabled = GEnableGPUSkinCache && (GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+		bool bGPUSkinCacheEnabled = GEnableGPUSkinCache && (GRHIFeatureLevel_DEPRECATED >= ERHIFeatureLevel::SM5);
 		for( int32 ChunkIdx=0; ChunkIdx < Chunks.Num(); ChunkIdx++ )
 		{
 			const FSkelMeshChunk& Chunk = Chunks[ChunkIdx];
 
 			bool bClothFactory = (DynamicData->ClothSimulUpdateData.Num() > 0) && Chunk.HasApexClothData();
 
-			if (GRHIFeatureLevel < ERHIFeatureLevel::SM4)
+			if (GRHIFeatureLevel_DEPRECATED < ERHIFeatureLevel::SM4)
 			{
 				bClothFactory = false;
 			}
@@ -836,7 +836,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactorie
 	ClothVertexFactories.Empty(Chunks.Num());
 	for( int32 FactoryIdx=0; FactoryIdx < Chunks.Num(); FactoryIdx++ )
 	{
-		if (Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel_DEPRECATED >= ERHIFeatureLevel::SM4)
 		{
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{

@@ -223,20 +223,10 @@ void RHIPrivateBeginFrame()
 // The current shader platform.
 //
 
-RHI_API EShaderPlatform GMaxRHIShaderPlatformValue = SP_PCD3D_SM5;
+RHI_API EShaderPlatform GMaxRHIShaderPlatform = SP_PCD3D_SM5;
 
 /** The maximum feature level supported on this machine */
-RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM5;
-
-RHI_API ERHIFeatureLevel::Type GetMaxRHIFeatureLevel()
-{
-	return GMaxRHIFeatureLevelValue;
-}
-
-RHI_API EShaderPlatform GetMaxRHIShaderPlatform()
-{
-	return GMaxRHIShaderPlatformValue;
-}
+RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
 FName FeatureLevelNames[] = 
 {

@@ -116,7 +116,7 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 {
 	uint32 NumBones = BoneMatrices.Num();
 	check(NumBones <= MaxGPUSkinBones);
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (GRHIFeatureLevel_DEPRECATED >= ERHIFeatureLevel::SM4)
 	{
 		static FSharedPoolPolicyData PoolPolicy;
 		uint32 NumVectors = NumBones*3;
@@ -690,7 +690,7 @@ void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(c
 {
 	uint32 NumSimulVerts = InSimulPositions.Num();
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (GRHIFeatureLevel_DEPRECATED >= ERHIFeatureLevel::SM4)
 	{
 		FMath::Min(NumSimulVerts, (uint32)MAX_APEXCLOTH_VERTICES_FOR_VB);
 

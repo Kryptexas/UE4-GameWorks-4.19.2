@@ -14,7 +14,7 @@ FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI()
 	if (DynamicRHI)
 	{
 		// Initialize the RHI capabilities.
-		GMaxRHIShaderPlatformValue = SP_PCD3D_SM5;
+		GMaxRHIShaderPlatform = SP_PCD3D_SM5;
 
 		// This will be set in the D3D11DynamicRHI::Init call!
 		//	GIsRHIInitialized = true;

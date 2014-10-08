@@ -42,8 +42,8 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	check( !GIsThreadedRendering );
 
 	// Initialize the RHI capabilities.
-	GMaxRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
-	GMaxRHIShaderPlatformValue = SP_METAL;
+	GMaxRHIFeatureLevel = ERHIFeatureLevel::ES2;
+	GMaxRHIShaderPlatform = SP_METAL;
 
 	GPixelCenterOffset = 0.0f;
 	GSupportsVertexInstancing = false;
