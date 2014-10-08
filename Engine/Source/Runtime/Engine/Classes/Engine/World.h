@@ -913,6 +913,13 @@ public:
 	TMap< FGuid, class ULandscapeInfo* > LandscapeInfoMap;
 #endif // WITH_EDITORONLY_DATA
 
+	/**
+	 * This is a int on the level which is set when a light that needs to have lighting rebuilt
+	 * is moved.  This is then checked in CheckMap for errors to let you know that this level should
+	 * have lighting rebuilt.
+	 **/
+	uint32 NumLightingUnbuiltObjects;
+
 	/** frame rate is below DesiredFrameRate, so drop high detail actors */
 	uint32 bDropDetail:1;
 
@@ -943,12 +950,8 @@ public:
 	/** Starting gameplay. */
 	uint32 bStartup:1;
 
-	/**
-	 * This is a int on the level which is set when a light that needs to have lighting rebuilt
-	 * is moved.  This is then checked in CheckMap for errors to let you know that this level should
-	 * have lighting rebuilt.
-	 **/
-	uint32 NumLightingUnbuiltObjects;
+	/** Is the world being torn down */
+	uint32 bIsTearingDown:1;
 
 	/**
 	 * This is a bool that indicates that one or more blueprints in the level (blueprint instances, level script, etc)

@@ -620,6 +620,7 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	for (int32 WorldIndex = 0; WorldIndex < WorldList.Num(); ++WorldIndex)
 	{
 		UWorld* const World = WorldList[WorldIndex].World();
+		World->bIsTearingDown = true;
 
 		// Cancel any pending connection to a server
 		CancelPending(WorldList[WorldIndex]);

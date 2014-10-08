@@ -263,6 +263,11 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because we are running a ConstructionScript (%s)"), *Class->GetName() );
 		return NULL;
 	}
+	else if (bIsTearingDown)
+	{
+		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because we are in the process of tearing down the world"));
+		return NULL;
+	}
 
 	AActor* Template = SpawnParameters.Template;
 	// Use class's default actor as a template.

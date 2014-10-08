@@ -293,6 +293,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 {
 	check(PieWorldContext.WorldType == EWorldType::PIE);
 	PlayWorld = PieWorldContext.World();
+	PlayWorld->bIsTearingDown = true;
 
 	if (!PieWorldContext.RunAsDedicated)
 	{
