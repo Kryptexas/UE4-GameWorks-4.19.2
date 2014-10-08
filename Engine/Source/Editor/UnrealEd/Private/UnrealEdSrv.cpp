@@ -1262,7 +1262,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 				FString FileName;
 				const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
-				FFileHelper::GenerateNextBitmapFilename(*BaseFileName, FileName);
+				FFileHelper::GenerateNextBitmapFilename(BaseFileName, TEXT("bmp"), FileName);
 				FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetData());
 			}
 		};

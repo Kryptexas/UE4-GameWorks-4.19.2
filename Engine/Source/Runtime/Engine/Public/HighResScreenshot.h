@@ -40,7 +40,7 @@ struct ENGINE_API FHighResScreenshotConfig
 
 	/** Save to image file **/
 	template<typename TPixelType>
-	ENGINE_API FString SaveImage(const FString& File, const TArray<TPixelType>& Bitmap, const FIntPoint& BitmapSize, EPixelFormat SourceFormat) const;
+	ENGINE_API bool SaveImage(const FString& File, const TArray<TPixelType>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename = nullptr) const;
 };
 
 ENGINE_API FHighResScreenshotConfig& GetHighResScreenshotConfig();

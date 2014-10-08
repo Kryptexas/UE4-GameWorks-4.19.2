@@ -203,15 +203,16 @@ struct CORE_API FFileHelper
 	static bool CreateBitmap( const TCHAR* Pattern, int32 DataWidth, int32 DataHeight, const class FColor* Data, struct FIntRect* SubRectangle = NULL, IFileManager* FileManager = &IFileManager::Get(), FString* OutFilename = NULL, bool bInWriteAlpha = false );
 
 	/**
-	 * Generates the next unique bitmap filename
-	 * 
-	 * @param Pattern filename with path, must not be 0, if with "bmp" extension (e.g. "out.bmp") the filename stays like this, if without (e.g. "out") automatic index numbers are addended (e.g. "out00002.bmp")
-	 * @param OutFilename reference to an fstring which will hold the generated filename
-	 * @param FileManager must not be 0
+	 * Generates the next unique bitmap filename with a specified extension
+	 *
+	 * @param Pattern		Filename with path, but without extension.
+	 * @oaran Extension		File extension to be appended
+	 * @param OutFilename	Reference to an FString where the newly generated filename will be placed
+	 * @param FileManager	Reference to a IFileManager (or the global instance by default)
 	 *
 	 * @return true if success
 	 */
-	static bool GenerateNextBitmapFilename( const FString& Pattern, FString& OutFilename, IFileManager* FileManager = &IFileManager::Get() );
+	static bool GenerateNextBitmapFilename(const FString& Pattern, const FString& Extension, FString& OutFilename, IFileManager* FileManager = &IFileManager::Get());
 	
 	/**
 	 *	Load the given ANSI text file to an array of strings - one FString per line of the file.

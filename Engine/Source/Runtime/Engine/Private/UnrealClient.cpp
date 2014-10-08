@@ -205,11 +205,11 @@ void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInS
 }
 
 
-void FScreenshotRequest::RequestScreenshot( bool bInShowUI )
+void FScreenshotRequest::RequestScreenshot( bool bInShowUI, const FString& InExtension )
 {
 	FString NewFilename;
 	CreateViewportScreenShotFilename( NewFilename );
-	FFileHelper::GenerateNextBitmapFilename(*NewFilename, Filename);
+	FFileHelper::GenerateNextBitmapFilename(NewFilename, InExtension, Filename);
 
 	bShowUI = bInShowUI;
 }
@@ -971,7 +971,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 			if( GIsHighResScreenshot || bTakeHighResScreenShot )
 			{
 				bool bShowUI = false;
-				FScreenshotRequest::RequestScreenshot( bShowUI );
+				FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
 				GIsHighResScreenshot = true;
 				GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 				GAreScreenMessagesEnabled = false;

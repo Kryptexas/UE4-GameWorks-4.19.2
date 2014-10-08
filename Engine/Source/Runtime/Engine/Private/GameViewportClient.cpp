@@ -2503,7 +2503,7 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 	if(Viewport)
 	{
 		const bool bShowUI = FParse::Command(&Cmd, TEXT("SHOWUI"));
-		FScreenshotRequest::RequestScreenshot( bShowUI );
+		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
 
 		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;

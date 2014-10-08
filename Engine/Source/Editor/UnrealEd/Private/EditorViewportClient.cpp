@@ -3778,12 +3778,22 @@ void FEditorViewportClient::TakeScreenshot(FViewport* InViewport, bool bInValida
 	{
 		check(Bitmap.Num() == InViewport->GetSizeXY().X * InViewport->GetSizeXY().Y);
 
+		// Initialize alpha channel of bitmap
+		for (auto& Pixel : Bitmap)
+		{
+			Pixel.A = 255;
+		}
+
 		// Create screenshot folder if not already present.
 		if ( IFileManager::Get().MakeDirectory( *FPaths::ScreenShotDir(), true ) )
 		{
 			// Save the contents of the array to a bitmap file.
-			FString ScreenshotSaveName = "";
-			if ( FFileHelper::CreateBitmap(*(FPaths::ScreenShotDir() / TEXT("ScreenShot")),InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,Bitmap.GetData(),NULL,&IFileManager::Get(),&ScreenshotSaveName) )
+			FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
+			HighResScreenshotConfig.SetHDRCapture(false);
+
+			FString ScreenshotSaveName;
+			if (FFileHelper::GenerateNextBitmapFilename(FPaths::ScreenShotDir() / TEXT("ScreenShot"), TEXT("png"), ScreenshotSaveName) &&
+				HighResScreenshotConfig.SaveImage(ScreenshotSaveName, Bitmap, InViewport->GetSizeXY()))
 			{
 				// Setup the string with the path and name of the file
 				ScreenshotSaveResultText = NSLOCTEXT( "UnrealEd", "ScreenshotSavedAs", "Screenshot capture saved as" );					
@@ -3871,7 +3881,8 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 		// Default capture region is the entire viewport
 		FIntRect CaptureRect(0, 0, 0, 0);
 
-		bool bCaptureAreaValid = GetHighResScreenshotConfig().CaptureRegion.Area() > 0;
+		FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
+		bool bCaptureAreaValid = HighResScreenshotConfig.CaptureRegion.Area() > 0;
 
 		// If capture region isn't valid, we need to determine which rectangle to capture from.
 		// We need to calculate a proper view rectangle so that we can take into account camera
@@ -3903,20 +3914,29 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 			if (GIsHighResScreenshot && bCaptureAreaValid)
 			{
 				// Highres screenshot capture region is valid, so use that
-				SourceRect = GetHighResScreenshotConfig().CaptureRegion;
+				SourceRect = HighResScreenshotConfig.CaptureRegion;
 			}
 
 			bool bWriteAlpha = false;
 
 			// If this is a high resolution screenshot and we are using the masking feature,
 			// Get the results of the mask rendering pass and insert into the alpha channel of the screenshot.
-			if (GIsHighResScreenshot && GetHighResScreenshotConfig().bMaskEnabled)
+			if (GIsHighResScreenshot && HighResScreenshotConfig.bMaskEnabled)
 			{
-				bWriteAlpha = GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
+				bWriteAlpha = HighResScreenshotConfig.MergeMaskIntoAlpha(Bitmap);
+			}
+
+			// Set full alpha on the bitmap
+			if (!bWriteAlpha)
+			{
+				for (auto& Pixel : Bitmap)
+				{
+					Pixel.A = 255;
+				}
 			}
 
 			// Save the bitmap to disc
-			FFileHelper::CreateBitmap(*ScreenShotName, BitmapSize.X, BitmapSize.Y, Bitmap.GetData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
+			HighResScreenshotConfig.SaveImage(ScreenShotName, Bitmap, BitmapSize);
 		}
 		
 		// Done with the request

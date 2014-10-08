@@ -238,6 +238,7 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingC
 void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const
 {
 	FSceneRenderTargetItem& RenderTargetItem = Output->PooledRenderTarget->GetRenderTargetItem();
+	FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
 	FTextureRHIRef Texture = RenderTargetItem.TargetableTexture ? RenderTargetItem.TargetableTexture : RenderTargetItem.ShaderResourceTexture;
 	check(Texture);
 	check(Texture->GetTexture2D());
@@ -246,7 +247,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	int32 MSAAXSamples = Texture->GetNumSamples();
 	if (GIsHighResScreenshot)
 	{
-		SourceRect = GetHighResScreenshotConfig().CaptureRegion;
+		SourceRect = HighResScreenshotConfig.CaptureRegion;
 		if (SourceRect.Area() == 0)
 		{
 			SourceRect = Context.View.ViewRect;
@@ -268,7 +269,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 		{
 			TArray<FFloat16Color> Bitmap;
 			Context.RHICmdList.ReadSurfaceFloatData(Texture, SourceRect, Bitmap, (ECubeFace)0, 0, 0);
-			ResultPath = GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, PixelFormat);
+			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
 		}
 		break;
 		case PF_R8G8B8A8:
@@ -283,7 +284,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 			{
 				Pixel->A = 255;
 			}
-			ResultPath = GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, PixelFormat);
+			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
 		}
 		break;
 	}

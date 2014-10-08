@@ -261,24 +261,25 @@ bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename
 }
 
 /**
- * Generates the next unique bitmap filename
+ * Generates the next unique bitmap filename with a specified extension
  * 
- * @param Pattern filename with path, must not be 0, if with "bmp" extension (e.g. "out.bmp") the filename stays like this, if without (e.g. "out") automatic index numbers are appended (e.g. "out00002.bmp")
- * @param OutFilename reference to an FString where the newly generated filename will be placed
- * @param FileManager must not be 0
+ * @param Pattern		Filename with path, but without extension.
+ * @oaran Extension		File extension to be appended
+ * @param OutFilename	Reference to an FString where the newly generated filename will be placed
+ * @param FileManager	Reference to a IFileManager (or the global instance by default)
  *
  * @return true if success
  */
-bool FFileHelper::GenerateNextBitmapFilename( const FString& Pattern, FString& OutFilename, IFileManager* FileManager /*= &IFileManager::Get()*/ )
+bool FFileHelper::GenerateNextBitmapFilename( const FString& Pattern, const FString& Extension, FString& OutFilename, IFileManager* FileManager /*= &IFileManager::Get()*/ )
 {
-	TCHAR File[MAX_SPRINTF]=TEXT("");
+	FString File;
 	OutFilename = "";
 	bool bSuccess = false;
 
-	for( int32 TestBitmapIndex = GScreenshotBitmapIndex + 1; TestBitmapIndex < 65536; ++TestBitmapIndex )
+	for( int32 TestBitmapIndex = GScreenshotBitmapIndex + 1; TestBitmapIndex < 100000; ++TestBitmapIndex )
 	{
-		FCString::Sprintf( File, TEXT("%s%05i.bmp"), *Pattern, TestBitmapIndex );
-		if( FileManager->FileSize(File) < 0 )
+		File = FString::Printf(TEXT("%s%05i.%s"), *Pattern, TestBitmapIndex, *Extension);
+		if( FileManager->FileSize(*File) < 0 )
 		{
 			GScreenshotBitmapIndex = TestBitmapIndex;
 			OutFilename = File;
@@ -312,21 +313,19 @@ bool FFileHelper::CreateBitmap( const TCHAR* Pattern, int32 SourceWidth, int32 S
 		SubRectangle = &Src;
 	}
 
-	TCHAR File[MAX_SPRINTF]=TEXT("");
+	FString File;
 	// if the Pattern already has a .bmp extension, then use that the file to write to
 	if (FPaths::GetExtension(Pattern) == TEXT("bmp"))
 	{
-		FCString::Strcpy(File, Pattern);
+		File = Pattern;
 	}
 	else
 	{
-		FString Filename;
-		if (GenerateNextBitmapFilename(Pattern, Filename, FileManager))
+		if (GenerateNextBitmapFilename(Pattern, TEXT("bmp"), File, FileManager))
 		{
-			FCString::Strcpy(File, *Filename);
 			if ( OutFilename )
 			{
-				*OutFilename = Filename;
+				*OutFilename = File;
 			}
 		}
 		else
@@ -335,7 +334,7 @@ bool FFileHelper::CreateBitmap( const TCHAR* Pattern, int32 SourceWidth, int32 S
 		}
 	}
 
-	FArchive* Ar = FileManager->CreateDebugFileWriter( File );
+	FArchive* Ar = FileManager->CreateDebugFileWriter( *File );
 	if( Ar )
 	{
 		// Types.
