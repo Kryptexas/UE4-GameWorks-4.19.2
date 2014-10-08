@@ -94,7 +94,7 @@ public:
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 
 	/** Overridden to auto-register the updated component if it starts NULL, and we can find a root component on our owner. */
-	virtual void InitializeComponent() override;
+	virtual void OnRegister() override;
 	// End ActorComponent interface
 
 	/** @return gravity that affects this component */
@@ -310,10 +310,6 @@ public:
 	/** Snap the updated component to the plane constraint, if enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SnapUpdatedComponentToPlane();
-
-private:
-	/** Transient flag indicating whether we are executing InitializeComponent. */
-	uint32 bInInitializeComponent:1;
 };
 
 

@@ -29,7 +29,6 @@ UMovementComponent::UMovementComponent(const class FPostConstructInitializePrope
 
 	bWantsInitializeComponent = true;
 	bAutoActivate = true;
-	bInInitializeComponent = false;
 }
 
 
@@ -66,10 +65,9 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 }
 
 
-void UMovementComponent::InitializeComponent()
+void UMovementComponent::OnRegister()
 {
-	bInInitializeComponent = true;
-	Super::InitializeComponent();
+	Super::OnRegister();
 
 	UPrimitiveComponent* NewUpdatedComponent = NULL;
 	if (UpdatedComponent != NULL)
@@ -95,12 +93,14 @@ void UMovementComponent::InitializeComponent()
 
 	PlaneConstraintNormal = PlaneConstraintNormal.SafeNormal();
 	SetUpdatedComponent(NewUpdatedComponent);
-	bInInitializeComponent = false;
 }
 
 void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 {
 	Super::RegisterComponentTickFunctions(bRegister);
+
+	// Super may start up the tick function when we don't want to.
+	UpdateTickRegistration();
 
 	// If the owner ticks, make sure we tick first
 	AActor* Owner = GetOwner();
@@ -112,14 +112,11 @@ void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 void UMovementComponent::UpdateTickRegistration()
 {
-	if (!bAutoUpdateTickRegistration)
+	if (bAutoUpdateTickRegistration)
 	{
-		return;
+		const bool bHasUpdatedComponent = (UpdatedComponent != NULL);
+		SetComponentTickEnabled(bHasUpdatedComponent && bAutoActivate);
 	}
-
-	const bool bAllowedToStartTick = (!bInInitializeComponent || bAutoActivate);
-	const bool bHasUpdatedComponent = (UpdatedComponent != NULL);
-	SetComponentTickEnabled(bHasUpdatedComponent && bAllowedToStartTick);
 }
 
 
