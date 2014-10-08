@@ -196,12 +196,20 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 {
 	checkSlow(Inner);
 
+	FScriptArrayHelper ArrayHelper(this, Data);
+
+	// If we export an empty array we export an empty string, so ensure that if we're passed an empty string
+	// we interpret it as an empty array.
+	if ( *Buffer == TCHAR('\0') )
+	{
+		ArrayHelper.EmptyValues();
+		return NULL;
+	}
+
 	if ( *Buffer++ != TCHAR('(') )
 	{
 		return NULL;
 	}
-
-	FScriptArrayHelper ArrayHelper(this, Data);
 
 	// only clear the array if we're not importing localized text
 	if ( (PortFlags&PPF_LocalizedOnly) == 0 )
