@@ -13,6 +13,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const class FPostConstructInitializePro
 	BundleName = TEXT("MyUE4Game");
 	BundleIdentifier = TEXT("com.YourCompany.GameNameNoSpaces");
 	VersionInfo = TEXT("1.0.0");
+    FrameRateLock = EPowerUsageFrameRateLock::PUFRL_30;
 }
 
 #if WITH_EDITOR

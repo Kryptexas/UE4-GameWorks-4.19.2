@@ -20,6 +20,9 @@ struct FPlatformOpenGLContext
 	}
 };
 
+// Event for coordinating pausing of render thread to keep inline with the ios display link.
+static FEvent* FrameReadyEvent = NULL;
+
 struct FPlatformOpenGLDevice
 {
 	FPlatformOpenGLContext RenderingContext;
@@ -76,6 +79,16 @@ struct FPlatformOpenGLDevice
 
 		PlatformSharedContextSetup(this);
 		InitDefaultGLContextState();
+        
+        // Hook into the ios framepacer, if it's enabled for this platform.
+        if( FIOSPlatformRHIFramePacer::IsEnabled() )
+        {
+            if( FrameReadyEvent == nullptr )
+            {
+                FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+                FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent );
+            }
+        }
 	}
 
 	bool SetRealTimeMode(pthread_t ThreadHandle, uint32 NormalProcessingTimeMs, uint32 ConstraintProcessingTimeMs)
@@ -130,20 +143,10 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 	return (void*)Context->Context;
 }
 
-
-// Event for coordinating pausing of render thread to keep inline with the ios display link.
-static FEvent* FrameReadyEvent = NULL;
-
 bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
-    if( FIOSPlatformRHIFramePacer::IsEnabled() )
+    if( FrameReadyEvent != nullptr )
     {
-        if( FrameReadyEvent == NULL )
-        {
-            FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
-            FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 1 );
-        }
-    
         FrameReadyEvent->Wait();
     }
     

@@ -245,6 +245,8 @@ protected:
 	void CommitNonComputeShaderConstants();
 
 private:
+    
+    /** Event for coordinating pausing of render thread to keep inline with the ios display link. */
     FEvent* FrameReadyEvent;
 };
 

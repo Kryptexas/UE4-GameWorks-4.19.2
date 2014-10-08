@@ -191,9 +191,14 @@ FMetalManager::FMetalManager()
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
 
 	AutoReleasePoolTLSSlot = FPlatformTLS::AllocTlsSlot();
-
-    FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
-    FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 1 );
+    
+    // Hook into the ios framepacer, if it's enabled for this platform.
+    FrameReadyEvent = NULL;
+    if( FIOSPlatformRHIFramePacer::IsEnabled() )
+    {
+        FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+        FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent );
+    }
     
 	InitFrame();
 }
@@ -323,8 +328,11 @@ void FMetalManager::EndFrame(bool bPresent)
 		dispatch_semaphore_signal(CommandBufferSemaphore);
 	 }];
     
-	// Wait until at least a VBlank has passed since last time
-    FrameReadyEvent->Wait();
+    // We may be limiting our framerate to the display link
+    if( FrameReadyEvent != nullptr )
+    {
+        FrameReadyEvent->Wait();
+    }
 
 	// Commit before waiting to avoid leaving the gpu idle
 	[CurrentCommandBuffer commit];

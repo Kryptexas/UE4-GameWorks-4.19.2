@@ -19,7 +19,7 @@ struct FIOSPlatformRHIFramePacer : public FGenericPlatformRHIFramePacer
 {
     // FGenericPlatformRHIFramePacer interface
     static bool IsEnabled();
-	static void InitWithEvent(class FEvent* TriggeredEvent, uint32 InFrameInterval);
+	static void InitWithEvent(class FEvent* TriggeredEvent);
     static void Destroy();
     
     /** Access to the IOS Frame Pacer: CADisplayLink */
