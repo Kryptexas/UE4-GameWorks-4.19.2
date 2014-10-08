@@ -28,7 +28,13 @@ bool UAbilityTask_SpawnActor::BeginSpawningActor(UObject* WorldContextObject, FG
 		SpawnedActor = World->SpawnActorDeferred<AActor>(InClass, FVector::ZeroVector, FRotator::ZeroRotator, NULL, NULL, true);
 	}
 	
-	return (SpawnedActor != nullptr);
+	if (SpawnedActor == nullptr)
+	{
+		DidNotSpawn.Broadcast(nullptr);
+		return false;
+	}
+
+	return true;
 }
 
 void UAbilityTask_SpawnActor::FinishSpawningActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, AActor* SpawnedActor)

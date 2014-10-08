@@ -27,6 +27,10 @@ class UAbilityTask_SpawnActor: public UAbilityTask
 
 	UPROPERTY(BlueprintAssignable)
 	FSpawnActorDelegate	Success;
+
+	/** Called when we can't spawn: on clients or potentially on server if they fail to spawn (rare) */
+	UPROPERTY(BlueprintAssignable)
+	FSpawnActorDelegate	DidNotSpawn;
 	
 	/** Spawn new Actor on the network authority (server) */
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category="Ability|Tasks")
