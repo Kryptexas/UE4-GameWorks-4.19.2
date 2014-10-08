@@ -36,19 +36,20 @@ public:
 	virtual IBuildManifestPtr LoadManifestFromFile( const FString& Filename ) = 0;
 	
 	/**
-	 * Constructs a Build Manifest from a JSON string
-	 * @param ManifestJSON		The JSON received from a web api
+	 * Constructs a Build Manifest from a data
+	 * @param ManifestData		The data received from a web api
 	 * @return		a shared pointer to the manifest, which will be invalid if creation failed.
 	 */
-	virtual IBuildManifestPtr MakeManifestFromJSON( const FString& ManifestJSON ) = 0;
+	virtual IBuildManifestPtr MakeManifestFromData( const TArray<uint8>& ManifestData ) = 0;
 	
 	/**
 	 * Saves a Build Manifest to file
 	 * @param Filename		The file to save to
 	 * @param Manifest		The manifest to save out
+	 * @param bUseBinary	Whether to save binary format instead of json
 	 * @return		If the save was successful.
 	 */
-	virtual bool SaveManifestToFile( const FString& Filename, IBuildManifestRef Manifest ) = 0;
+	virtual bool SaveManifestToFile(const FString& Filename, IBuildManifestRef Manifest, bool bUseBinary = true) = 0;
 
 	/**
 	 * Starts an installer thread for the provided manifests
@@ -118,4 +119,9 @@ public:
 	 */
 	virtual bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview) = 0;
 #endif // WITH_BUILDPATCHGENERATION
+
+	/**
+	 * Deprecated function, use MakeManifestFromData instead
+	 */
+	virtual IBuildManifestPtr MakeManifestFromJSON(const FString& ManifestJSON) = 0;
 };

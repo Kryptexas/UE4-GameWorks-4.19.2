@@ -204,7 +204,7 @@ uint32 FBuildPatchDownloader::Run()
 		}
 		else
 		{
-			FSHAHash FileHash;
+			FSHAHashData FileHash;
 			const bool bFound = InstallManifest->GetFileDataHash( NextGuid, FileHash );
 			// Should be impossible to not exist
 			check( bFound );

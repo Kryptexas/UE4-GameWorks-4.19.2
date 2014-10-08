@@ -10,6 +10,7 @@ public class BuildPatchServices : ModuleRules
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
 			}
 		);
 

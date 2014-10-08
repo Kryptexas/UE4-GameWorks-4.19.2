@@ -28,7 +28,7 @@
 
 	Optional arguments:
 	-stdout				Adds stdout logging to the app.
-	-nochunks			Creates file based patch data instead of chunk based patch data.
+	-nochunks			Creates file based patch data instead of chunk based patch data. Should not be used with builds that have large files.
 	-FileIgnoreList=""	Specifies in quotes, the path to a text file containing BuildRoot relative files, separated by \r\n line endings, to not be included in the build.
 	-PrereqName=""		Specifies in quotes, the display name for the prerequisites installer
 	-PrereqPath=""		Specifies in quotes, the prerequisites installer to launch on successful product install
@@ -72,6 +72,8 @@
 #include "RequiredProgramMainCPPInclude.h"
 
 #include "BuildPatchServices.h"
+
+#include "CoreUObject.h"
 
 // Ensure compiled with patch generation code
 #if WITH_BUILDPATCHGENERATION
@@ -259,17 +261,17 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 		if( PrereqNameIdx != INDEX_NONE )
 		{
-			FParse::Value( *Switches[ PrereqNameIdx ], TEXT( "FileIgnoreList=" ), PrereqName );
+			FParse::Value( *Switches[ PrereqNameIdx ], TEXT( "PrereqName=" ), PrereqName );
 		}
 
 		if( PrereqPathIdx != INDEX_NONE )
 		{
-			FParse::Value( *Switches[ PrereqPathIdx ], TEXT( "FileIgnoreList=" ), PrereqPath );
+			FParse::Value( *Switches[ PrereqPathIdx ], TEXT( "PrereqPath=" ), PrereqPath );
 		}
 
 		if( PrereqArgsIdx != INDEX_NONE )
 		{
-			FParse::Value( *Switches[ PrereqArgsIdx ], TEXT( "FileIgnoreList=" ), PrereqArgs );
+			FParse::Value( *Switches[ PrereqArgsIdx ], TEXT( "PrereqArgs=" ), PrereqArgs );
 		}
 
 		if (ManifestsListIdx != INDEX_NONE)
@@ -308,7 +310,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 					Right.TrimTrailing();
 					if (!Right.IsNumeric())
 					{
-						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customint. Non Numeric character found right of ="));
+						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customfloat. Non Numeric character found right of ="));
 						bSuccess = false;
 					}
 					CustomFields.Add(Left, FVariant(TCString<TCHAR>::Atod(*Right)));
@@ -324,7 +326,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 					Right.TrimTrailing();
 					if (!Right.IsNumeric())
 					{
-						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customfloat. Non Numeric character found right of ="));
+						GLog->Log(ELogVerbosity::Error, TEXT("An error occurred processing token -customint. Non Numeric character found right of ="));
 						bSuccess = false;
 					}
 					CustomFields.Add(Left, FVariant(TCString<TCHAR>::Atoi64(*Right)));
@@ -383,6 +385,11 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	// Load the BuildPatchServices Module
 	TSharedPtr<IBuildPatchServicesModule> BuildPatchServicesModule = StaticCastSharedPtr<IBuildPatchServicesModule>( FModuleManager::Get().LoadModule( TEXT( "BuildPatchServices" ) ) );
 
+	// Initialise the UObject system and process our uobject classes
+	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));
+	FCoreDelegates::OnInit.Broadcast();
+	ProcessNewlyLoadedUObjects();
+
 	// Setup the module
 	BuildPatchServicesModule->SetCloudDirectory( CloudDirectory + TEXT( "/" ) );
 
@@ -407,6 +414,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			{
 				GLog->Log(ELogVerbosity::Error, TEXT("Could not open specified manifests to keep file"));
 				BuildPatchServicesModule.Reset();
+				FCoreDelegates::OnExit.Broadcast();
 				return 2;
 			}
 		}
@@ -418,7 +426,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	{
 		FBuildPatchSettings Settings;
 		Settings.RootDirectory = RootDirectory + TEXT("/");
-		Settings.InAppID = AppID;
+		Settings.AppID = AppID;
 		Settings.AppName = AppName;
 		Settings.BuildVersion = BuildVersion;
 		Settings.LaunchExe = LaunchExe;
@@ -445,6 +453,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	{
 		GLog->Log(ELogVerbosity::Error, TEXT("Unknown tool mode"));
 		BuildPatchServicesModule.Reset();
+		FCoreDelegates::OnExit.Broadcast();
 		return 3;
 	}
 
@@ -455,8 +464,11 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	if (!bSuccess)
 	{
 		GLog->Log(ELogVerbosity::Error, TEXT("A fatal error occurred executing BuildPatchTool.exe"));
+		FCoreDelegates::OnExit.Broadcast();
 		return 4;
 	}
+
+	FCoreDelegates::OnExit.Broadcast();
 
 	GLog->Log(TEXT("BuildPatchToolMain completed successfuly"));
 	return 0;

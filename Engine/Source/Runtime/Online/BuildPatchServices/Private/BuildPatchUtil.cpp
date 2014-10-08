@@ -14,7 +14,7 @@ const FString FBuildPatchUtils::GetChunkNewFilename( const EBuildPatchAppManifes
 	return FPaths::Combine( *RootDirectory, *FString::Printf( TEXT("%s/%02d/%016llX_%s.chunk"), *EBuildPatchAppManifestVersion::GetChunkSubdir( ManifestVersion ),FCrc::MemCrc32( &ChunkGUID, sizeof( FGuid ) ) % 100, ChunkHash, *ChunkGUID.ToString() ) );
 }
 
-const FString FBuildPatchUtils::GetFileNewFilename( const EBuildPatchAppManifestVersion::Type ManifestVersion, const FString& RootDirectory, const FGuid& FileGUID, const FSHAHash& FileHash )
+const FString FBuildPatchUtils::GetFileNewFilename(const EBuildPatchAppManifestVersion::Type ManifestVersion, const FString& RootDirectory, const FGuid& FileGUID, const FSHAHashData& FileHash)
 {
 	check( FileGUID.IsValid() );
 	return FPaths::Combine( *RootDirectory, *FString::Printf( TEXT("%s/%02d/%s_%s.file"), *EBuildPatchAppManifestVersion::GetFileSubdir( ManifestVersion ), FCrc::MemCrc32( &FileGUID, sizeof( FGuid ) ) % 100, *FileHash.ToString(), *FileGUID.ToString() ) );
@@ -33,7 +33,7 @@ void FBuildPatchUtils::GetChunkDetailFromNewFilename( const FString& ChunkNewFil
 	FGuid::Parse( GuidString, ChunkGUID );
 }
 
-void FBuildPatchUtils::GetFileDetailFromNewFilename( const FString& FileNewFilename, FGuid& FileGUID, FSHAHash& FileHash )
+void FBuildPatchUtils::GetFileDetailFromNewFilename(const FString& FileNewFilename, FGuid& FileGUID, FSHAHashData& FileHash)
 {
 	const FString FileFilename = FPaths::GetBaseFilename( FileNewFilename );
 	FString GuidString;
@@ -91,7 +91,7 @@ bool FBuildPatchUtils::GetGUIDFromFilename( const FString& DataFilename, FGuid& 
 	return FGuid::Parse( GuidString, DataGUID );
 }
 
-uint8 FBuildPatchUtils::VerifyFile(const FString& FileToVerify, const FSHAHash& Hash1, const FSHAHash& Hash2)
+uint8 FBuildPatchUtils::VerifyFile(const FString& FileToVerify, const FSHAHashData& Hash1, const FSHAHashData& Hash2)
 {
 	FBuildPatchFloatDelegate NoProgressDelegate;
 	FBuildPatchBoolRetDelegate NoPauseDelegate;
@@ -99,7 +99,7 @@ uint8 FBuildPatchUtils::VerifyFile(const FString& FileToVerify, const FSHAHash& 
 	return VerifyFile(FileToVerify, Hash1, Hash2, NoProgressDelegate, NoPauseDelegate, NoDouble);
 }
 
-uint8 FBuildPatchUtils::VerifyFile(const FString& FileToVerify, const FSHAHash& Hash1, const FSHAHash& Hash2, FBuildPatchFloatDelegate ProgressDelegate, FBuildPatchBoolRetDelegate ShouldPauseDelegate, double& TimeSpentPaused)
+uint8 FBuildPatchUtils::VerifyFile(const FString& FileToVerify, const FSHAHashData& Hash1, const FSHAHashData& Hash2, FBuildPatchFloatDelegate ProgressDelegate, FBuildPatchBoolRetDelegate ShouldPauseDelegate, double& TimeSpentPaused)
 {
 	uint8 ReturnValue = 0;
 	FArchive* FileReader = IFileManager::Get().CreateFileReader(*FileToVerify);
@@ -107,7 +107,7 @@ uint8 FBuildPatchUtils::VerifyFile(const FString& FileToVerify, const FSHAHash& 
 	if (FileReader != NULL)
 	{
 		FSHA1 HashState;
-		FSHAHash HashValue;
+		FSHAHashData HashValue;
 		const int64 FileSize = FileReader->TotalSize();
 		uint8* FileReadBuffer = new uint8[FileBufferSize];
 		while (!FileReader->AtEnd() && !FBuildPatchInstallError::HasFatalError())
@@ -187,7 +187,7 @@ bool FBuildPatchUtils::VerifyChunkFile( FArchive& ChunkFileData, bool bQuickChec
 		{
 			// Hashes for checking data
 			FSHA1 SHAHasher;
-			FSHAHash SHAHash;
+			FSHAHashData SHAHash;
 			// Load the data to check
 			uint8* FileReadBuffer = new uint8[ FileBufferSize ];
 			int64 DataOffset = 0;

@@ -130,6 +130,12 @@ public:
 	 * @param RemovableFiles	OUT		A list to receive the files that may be removed.
 	 */
 	virtual void GetRemovableFiles(const TCHAR* InstallPath, TArray< FString >& RemovableFiles) const = 0;
+
+	/**
+	 * Checks the manifest format version to see if this manifest was loaded from latest data
+	 * @return True if the manifest was created from the latest format
+	 */
+	virtual bool NeedsResaving() const = 0;
 	
 	/**
 	 * Duplicated this manifest to create a copy. Should be used if storing a received manifest as an installed

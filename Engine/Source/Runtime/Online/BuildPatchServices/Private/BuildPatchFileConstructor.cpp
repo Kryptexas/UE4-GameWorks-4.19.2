@@ -340,20 +340,24 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 
 	// Calculate the hash as we write the data
 	FSHA1 HashState;
-	FSHAHash HashValue;
+	FSHAHashData HashValue;
 
 	// First make sure we can get the file manifest
-	TSharedPtr< FBuildPatchFileManifest > FileManifest = BuildManifest->GetFileManifest( Filename );
-	bSuccess = FileManifest.IsValid();
+	const FFileManifestData* FileManifest = BuildManifest->GetFileManifest(Filename);
+	bSuccess = FileManifest != nullptr;
 	if( bSuccess )
 	{
-#if PLATFORM_MAC
 		if( !FileManifest->SymlinkTarget.IsEmpty() )
 		{
+#if PLATFORM_MAC
 			bSuccess = symlink(TCHAR_TO_UTF8(*FileManifest->SymlinkTarget), TCHAR_TO_UTF8(*NewFilename)) == 0;
+#else
+			const bool bSymlinkNotImplemented = false;
+			check(bSymlinkNotImplemented);
+			bSuccess = false;
+#endif
 			return bSuccess;
 		}
-#endif
 
 		// Check for resuming of existing file
 		int64 StartPosition = 0;
@@ -372,7 +376,7 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 				int64 ByteCounter = 0;
 				for( int32 ChunkPartIdx = StartChunkPart; ChunkPartIdx < FileManifest->FileChunkParts.Num() && !FBuildPatchInstallError::HasFatalError(); ++ChunkPartIdx )
 				{
-					const FChunkPart& ChunkPart = FileManifest->FileChunkParts[ ChunkPartIdx ];
+					const FChunkPartData& ChunkPart = FileManifest->FileChunkParts[ ChunkPartIdx ];
 					const int64 NextBytePosition = ByteCounter + ChunkPart.Size;
 					if( NextBytePosition <= StartPosition )
 					{
@@ -425,7 +429,7 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 			// For each chunk, load it, and place it's data into the file
 			for( int32 ChunkPartIdx = StartChunkPart; ChunkPartIdx < FileManifest->FileChunkParts.Num() && bSuccess && !FBuildPatchInstallError::HasFatalError(); ++ChunkPartIdx )
 			{
-				const FChunkPart& ChunkPart = FileManifest->FileChunkParts[ ChunkPartIdx ];
+				const FChunkPartData& ChunkPart = FileManifest->FileChunkParts[ChunkPartIdx];
 				if( bIsFileData )
 				{
 					bSuccess = InsertFileData( ChunkPart, *NewFile, HashState );
@@ -509,7 +513,7 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 	return bSuccess;
 }
 
-bool FBuildPatchFileConstructor::InsertFileData( const FChunkPart& ChunkPart, FArchive& DestinationFile, FSHA1& HashState )
+bool FBuildPatchFileConstructor::InsertFileData(const FChunkPartData& ChunkPart, FArchive& DestinationFile, FSHA1& HashState)
 {
 	bool bSuccess = false;
 
@@ -604,7 +608,7 @@ bool FBuildPatchFileConstructor::InsertFileData( const FChunkPart& ChunkPart, FA
 	return bSuccess;
 }
 
-bool FBuildPatchFileConstructor::InsertChunkData( const FChunkPart& ChunkPart, FArchive& DestinationFile, FSHA1& HashState )
+bool FBuildPatchFileConstructor::InsertChunkData(const FChunkPartData& ChunkPart, FArchive& DestinationFile, FSHA1& HashState)
 {
 	uint8* Data;
 	uint8* DataStart;

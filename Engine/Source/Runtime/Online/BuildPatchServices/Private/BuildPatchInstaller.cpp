@@ -611,14 +611,14 @@ bool FBuildPatchInstaller::BackupFileIfNecessary(const FString& Filename, bool b
 	const bool bCheckFileChanges = !bDiscoveredByVerification;
 	if (bCheckFileChanges)
 	{
-		TSharedPtr< FBuildPatchFileManifest > OldFileManifest = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetFileManifest(Filename) : NULL;
-		TSharedPtr< FBuildPatchFileManifest > NewFileManifest = NewBuildManifest->GetFileManifest(Filename);
+		const FFileManifestData* OldFileManifest = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetFileManifest(Filename) : nullptr;
+		const FFileManifestData* NewFileManifest = NewBuildManifest->GetFileManifest(Filename);
 		const int64 InstalledFilesize = IFileManager::Get().FileSize(*InstalledFilename);
-		const int64 OriginalFileSize = OldFileManifest.IsValid() ? OldFileManifest->GetFileSize() : INDEX_NONE;
-		const int64 NewFileSize = NewFileManifest.IsValid() ? NewFileManifest->GetFileSize() : INDEX_NONE;
-		const FSHAHash HashZero;
-		const FSHAHash& HashOld = OldFileManifest.IsValid() ? OldFileManifest->FileHash : HashZero;
-		const FSHAHash& HashNew = NewFileManifest.IsValid() ? NewFileManifest->FileHash : HashZero;
+		const int64 OriginalFileSize = OldFileManifest ? OldFileManifest->GetFileSize() : INDEX_NONE;
+		const int64 NewFileSize = NewFileManifest ? NewFileManifest->GetFileSize() : INDEX_NONE;
+		const FSHAHashData HashZero;
+		const FSHAHashData& HashOld = OldFileManifest ? OldFileManifest->FileHash : HashZero;
+		const FSHAHashData& HashNew = NewFileManifest ? NewFileManifest->FileHash : HashZero;
 		const bool bFileSizeDiffers = OriginalFileSize != InstalledFilesize && NewFileSize != InstalledFilesize;
 		bUserEditedFile = bFileSizeDiffers || FBuildPatchUtils::VerifyFile(InstalledFilename, HashOld, HashNew) == 0;
 	}

@@ -322,7 +322,7 @@ private:
 	uint32 CurrentChunkBufferPos;
 
 	// Holds the current file being processed. Receives the chunk parts that we pass over.
-	TSharedPtr< class FBuildPatchFileManifest > CurrentFile;
+	FFileManifestData* CurrentFile;
 
 	// Holds an SHA hash calculator
 	FSHA1 FileHash;
@@ -417,7 +417,7 @@ private:
 	FString BuildRoot;
 
 	// Holds the current file being processed. Receives the chunk parts that we pass over.
-	TSharedPtr< class FBuildPatchFileManifest > CurrentFile;
+	FFileManifestData* CurrentFile;
 
 	// Holds an SHA hash calculator
 	FSHA1 FileHash;
@@ -628,17 +628,17 @@ public:
 	 * @param OutFileGuid			OUT		Will be set to the existing file guid if found.
 	 * @return		Whether this file is new or existing.
 	 */
-	static bool FindExistingFileData( const FString& InSourceFile, const FSHAHash& InFileHash, const FDateTime& DataThresholdTime, FGuid& OutFileGuid );
+	static bool FindExistingFileData(const FString& InSourceFile, const FSHAHashData& InFileHash, const FDateTime& DataThresholdTime, FGuid& OutFileGuid);
 
 	/**
 	 * Saves out the file data for use with file based patch manifests
 	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread.
-	 * @param SourceFile	IN		The filename of the source file on disk.
-	 * @param FileHash		IN		The hash for the file.
-	 * @param FileGuid		OUT		The GUID for the file
+	 * @param SourceFile		The filename of the source file on disk.
+	 * @param FileHash			The hash for the file.
+	 * @param FileGuid			The GUID for the file.
 	 * @return		Whether this file is new or existing.
 	 */
-	static bool SaveOutFileData( const FString& SourceFile, const FSHAHash& FileHash, const FGuid& FileGuid );
+	static bool SaveOutFileData(const FString& SourceFile, const FSHAHashData& FileHash, const FGuid& FileGuid);
 
 	/**
 	 * Strips out files from the provided array that appear in the ignore list file
@@ -671,7 +671,7 @@ private:
 	static bool ExistingChunksEnumerated;
 
 	// For File Manifest generation, the existing files
-	static TMap< FSHAHash, TArray< FString > > ExistingFileInventory;
+	static TMap< FSHAHashData, TArray< FString > > ExistingFileInventory;
 
 	// For File Manifest generation, have we enumerated the existing files yet
 	static bool ExistingFilesEnumerated;

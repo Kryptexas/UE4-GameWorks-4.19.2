@@ -246,7 +246,7 @@ public:
 	 * Notify the cache that a chunk part for a partially complete file is to be skipped
 	 * @param ChunkPart		The chunk part
 	 */
-	void SkipChunkPart( const FChunkPart& ChunkPart );
+	void SkipChunkPart(const FChunkPartData& ChunkPart);
 
 	/**
 	 * Should be after initialization and after all skippable parts have been registered to kick of the chunk downloader
