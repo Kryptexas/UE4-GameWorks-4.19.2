@@ -129,7 +129,8 @@ namespace EditorLevelUtils
 			return nullptr;
 		}
 
-		FScopedSlowTask SlowTask(LOCTEXT("AddLevelsToWorldTask", "Adding Levels to World"), true);
+		FScopedSlowTask SlowTask(LevelPackageNames.Num(), LOCTEXT("AddLevelsToWorldTask", "Adding Levels to World"));
+		SlowTask.MakeDialog();
 
 		TArray<FString> PackageNames = LevelPackageNames;
 
@@ -143,6 +144,8 @@ namespace EditorLevelUtils
 		ULevel* NewLevel = nullptr;
 		for (const auto& PackageName : PackageNames)
 		{
+			SlowTask.EnterProgressFrame();
+
 			NewLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
 			if (NewLevel)
 			{

@@ -1375,7 +1375,15 @@ private:
 
 	static FName NAME_LoadErrors;
 
+#if WITH_EDITOR
+	/** Feedback scope that is created to house the slow task of an asynchronous linker load. Raw ptr so we don't pull in TUniquePtr for everything. */
+	FScopedSlowTask* LoadProgressScope;
+#endif 
+
 public:
+	
+	/** Destructor */
+	~ULinkerLoad();
 
 	/**
 	 * Initialize the static variables

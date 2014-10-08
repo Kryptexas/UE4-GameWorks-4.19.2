@@ -14,7 +14,6 @@ class FFeedbackContextAnsi : public FFeedbackContext
 {
 public:
 	// Variables.
-	int32					SlowTaskCount;
 	FContextSupplier*	Context;
 	FOutputDevice*		AuxOut;
 
@@ -33,7 +32,6 @@ public:
 	// Constructor.
 	FFeedbackContextAnsi()
 	: FFeedbackContext()
-	, SlowTaskCount(0)
 	, Context(nullptr)
 	, AuxOut(nullptr)
 	{}
@@ -98,20 +96,6 @@ public:
 				}
 			}
 		}
-		return true;
-	}
-
-	void BeginSlowTask( const FText& Task, bool ShowProgressDialog, bool bShowCancelButton=false )
-	{
-		GIsSlowTask = ++SlowTaskCount>0;
-	}
-	void EndSlowTask()
-	{
-		check(SlowTaskCount>0);
-		GIsSlowTask = --SlowTaskCount>0;
-	}
-	virtual bool StatusUpdate(int32 Numerator, int32 Denominator, const FText& StatusText)
-	{
 		return true;
 	}
 

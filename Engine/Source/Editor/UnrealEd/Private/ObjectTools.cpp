@@ -3513,8 +3513,8 @@ namespace ThumbnailTools
 			// When generating a material thumbnail to save in a package, make sure we finish compilation on the material first
 			if ( UMaterial* InMaterial = Cast<UMaterial>(InObject) )
 			{
-				const bool bAllowNewSlowTask = true;
-				FScopedSlowTask SlowTaskMessage( NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ), bAllowNewSlowTask );
+				FScopedSlowTask SlowTask(0, NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ) );
+				SlowTask.MakeDialog();
 
 				// Block until the shader maps that we will save have finished being compiled
 				InMaterial->GetMaterialResource(GMaxRHIFeatureLevel)->FinishCompilation();

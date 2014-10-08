@@ -1329,17 +1329,23 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	TMap< TSharedRef<IAssetTypeActions>, TArray<UObject*> > TypeActionsToObjects;
 	TArray<UObject*> ObjectsWithoutTypeActions;
 
+	const FText LoadingTemplate = LOCTEXT("LoadingAssetName", "Loading {0}...");
+	const FText DefaultText = ActivatedAssets.Num() == 1 ? FText::Format(LoadingTemplate, FText::FromName(ActivatedAssets[0].AssetName)) : LOCTEXT("LoadingObjects", "Loading Objects...");
+	FScopedSlowTask SlowTask(100, DefaultText);
+
 	// Iterate over all activated assets to map them to AssetTypeActions.
 	// This way individual asset type actions will get a batched list of assets to operate on
 	for ( auto AssetIt = ActivatedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 	{
 		const FAssetData& AssetData = *AssetIt;
-		const bool bShowProgressDialog = (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()));
-		GWarn->BeginSlowTask(LOCTEXT("LoadingObjects", "Loading Objects..."), bShowProgressDialog);
+		if (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()))
+		{
+			SlowTask.MakeDialog();
+		}
+
+		SlowTask.EnterProgressFrame(75.f/ActivatedAssets.Num(), FText::Format(LoadingTemplate, FText::FromName(AssetData.AssetName)));
 
 		UObject* Asset = (*AssetIt).GetAsset();
-
-		GWarn->EndSlowTask();
 
 		if ( Asset != NULL )
 		{
@@ -1361,6 +1367,8 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	// Now that we have created our map, activate all the lists of objects for each asset type action.
 	for ( auto TypeActionsIt = TypeActionsToObjects.CreateConstIterator(); TypeActionsIt; ++TypeActionsIt )
 	{
+		SlowTask.EnterProgressFrame(25.f/TypeActionsToObjects.Num());
+
 		const TSharedRef<IAssetTypeActions>& TypeActions = TypeActionsIt.Key();
 		const TArray<UObject*>& ObjList = TypeActionsIt.Value();
 

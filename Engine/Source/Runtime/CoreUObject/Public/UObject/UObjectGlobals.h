@@ -400,7 +400,7 @@ namespace EAsyncPackageState
  */
 COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType = NAME_None );
 COREUOBJECT_API void BeginLoad();
-COREUOBJECT_API void EndLoad(const TCHAR* LoadContext = NULL);
+COREUOBJECT_API void EndLoad();
 
 /**
  * Find an existing package by name

@@ -275,11 +275,11 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 		}
 	}
 
-	GWarn->PushStatus();
-		GWarn->StatusUpdate( 0, DynamicBrushes.Num(), NSLOCTEXT("UnrealEd", "RebuildCSGRebuildingDynamicBrushBSPs", "Rebuild CSG: Rebuilding Dynamic Brush BSPs") );
+	{
+		FScopedSlowTask SlowTask(DynamicBrushes.Num(), NSLOCTEXT("UnrealEd", "RebuildCSGRebuildingDynamicBrushBSPs", "Rebuild CSG: Rebuilding Dynamic Brush BSPs") );
 		for ( int32 BrushIndex = 0; BrushIndex < DynamicBrushes.Num(); BrushIndex++ )
 		{
-			GWarn->UpdateProgress(BrushIndex, DynamicBrushes.Num());
+			SlowTask.EnterProgressFrame();
 
 			ABrush* B = DynamicBrushes[BrushIndex];
 			FBSPOps::csgPrepMovingBrush(B);
@@ -289,7 +289,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 				break;
 			}
 		}
-	GWarn->PopStatus();
+	}
 
 	GWarn->UpdateProgress( 4, 4 );
 

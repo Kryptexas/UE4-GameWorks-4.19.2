@@ -1196,6 +1196,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FCoreStyle::ResetToDefault();
 	}
 
+	
+	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
+
+	SlowTask.EnterProgressFrame(10);
+
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Initial UObject load"), STAT_InitialUObjectLoad, STATGROUP_LoadTime);
 
@@ -1224,6 +1229,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UMaterialInterface::AssertDefaultMaterialsPostLoaded();
 	}
 
+	SlowTask.EnterProgressFrame(10);
+
 	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
 	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
@@ -1240,6 +1247,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GUObjectArray.DisableDisregardForGC();
 	}
 	
+	SlowTask.EnterProgressFrame(10);
+
 	if ( !LoadStartupCoreModules() )
 	{
 		// At least one startup module failed to load, return 1 to indicate an error
@@ -1259,6 +1268,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
+	SlowTask.EnterProgressFrame(10);
+	
 	// Load up all modules that need to hook into the loading screen
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen))
 	{
@@ -1286,6 +1297,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
         // do any post appInit processing, before the render thread is started.
         FPlatformMisc::PlatformPostInit(true);
     }
+	SlowTask.EnterProgressFrame(10);
+
 	if (GUseThreadedRendering)
 	{
 #if PLATFORM_SUPPORTS_RHI_THREAD
@@ -1315,6 +1328,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if WITH_ENGINE
 	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
 #endif
+
+	SlowTask.EnterProgressFrame(50);
 
 #if WITH_EDITOR
 	if (!bHasEditorToken)
@@ -1816,6 +1831,9 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
+	FScopedSlowTask SlowTask(100);
+	SlowTask.EnterProgressFrame(10);
+
 	// Figure out which UEngine variant to use.
 	UClass* EngineClass = NULL;
 	if( !GIsEditor )
@@ -1843,7 +1861,11 @@ int32 FEngineLoop::Init()
 
 	InitTime();
 
+	SlowTask.EnterProgressFrame(60);
+
 	GEngine->Init(this);
+
+	SlowTask.EnterProgressFrame(30);
 
 	// Load all the post-engine init modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit))

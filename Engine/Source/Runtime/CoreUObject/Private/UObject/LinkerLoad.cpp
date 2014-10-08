@@ -592,8 +592,19 @@ ULinkerLoad::ULinkerLoad( const class FPostConstructInitializeProperties& PCIP, 
 :	ULinker( PCIP, InParent, InFilename )
 ,	LoadFlags( InLoadFlags )
 ,	bHaveImportsBeenVerified( false )
+#if WITH_EDITOR
+,	LoadProgressScope( nullptr )
+#endif
 {
 	check(!HasAnyFlags(RF_ClassDefaultObject));
+}
+
+ULinkerLoad::~ULinkerLoad()
+{
+#if WITH_EDITOR
+	// Make sure this is deleted if it's still allocated
+	delete LoadProgressScope;
+#endif
 }
 
 /**
@@ -627,82 +638,31 @@ bool ULinkerLoad::IsTimeLimitExceeded( const TCHAR* CurrentTask, int32 Granulari
 	return bTimeLimitExceeded;
 }
 
-void UpdateObjectLoadingStatusMessage()
-{
-#if WITH_EDITOR
-	// Used to control animation of the load progress status updates.
-	static int32 ProgressIterator = 3;
-
-	// Time that progress was last updated
-	static  double LastProgressUpdateTime = 0.0;
-
-	const double UpdateDelta = 0.25;
-	const double SlowLoadDelta = 2.0;
-	FText StatusUpdate;
-
-	// This can be a long operation so we will output some progress feedback to the 
-	//  user in the form of 3 dots that animate between "." ".." "..."
-	const double CurTime = FPlatformTime::Seconds();
-	if ( CurTime - LastProgressUpdateTime > UpdateDelta )
-	{
-		if ( ProgressIterator == 1 )
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState1", "Loading.");
-		}
-		else if ( ProgressIterator == 2 )
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState2", "Loading..");
-		}
-		else if ( ProgressIterator == 3 )
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState3", "Loading...");
-		}
-		else
-		{
-			StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState0", "Loading");
-		}
-
-		LastProgressUpdateTime = CurTime;
-		ProgressIterator = (ProgressIterator + 1) % 4;
-	}		
-
-	GWarn->StatusUpdate( -1, -1, StatusUpdate );
-#endif
-}
-
 /**
  * Creates loader used to serialize content.
  */
 ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 {
-	CreateActiveRedirectsMap( GEngineIni );
+#if WITH_EDITOR
 
+	if (!LoadProgressScope)
+	{
+		const bool bShowProgress = ( LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
+		LoadProgressScope = new FScopedSlowTask(ULinkerDefs::TotalProgressSteps, NSLOCTEXT("Core", "GenericLoading", "Loading..."), bShowProgress);
+	}
+
+#endif
+
+	CreateActiveRedirectsMap( GEngineIni );
 	if( !Loader )
 	{
 		bool bIsSeekFree = LoadFlags & LOAD_SeekFree;
 
 #if WITH_EDITOR
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			FString CleanFilename = FPaths::GetCleanFilename( *Filename );
-
-			// We currently only allow status updates during the editor load splash screen.
-			const bool bAllowStatusUpdate = GIsEditor && !IsRunningCommandlet() && !GIsSlowTask;
-			if( bAllowStatusUpdate )
-			{
-				UpdateObjectLoadingStatusMessage();
-			}
-			else
-			{
-				if ( GIsSlowTask )
-				{
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
-					GWarn->StatusUpdate( 0, ULinkerDefs::TotalProgressSteps, FText::Format( NSLOCTEXT("Core", "Loading", "Loading file: {CleanFilename}..."), Args ) );
-				}
-			}
-			GWarn->PushStatus();
-		}
+		FFormatNamedArguments FeedbackArgs;
+		FeedbackArgs.Add( TEXT("CleanFilename"), FText::FromString( FPaths::GetCleanFilename( *Filename ) ) );
+		LoadProgressScope->DefaultMessage = FText::Format( NSLOCTEXT("Core", "LoadingFileWithFilename", "Loading file: {CleanFilename}..."), FeedbackArgs );
+		LoadProgressScope->EnterProgressFrame();
 #endif
 
 		// NOTE: Precached memory read gets highest priority, then memory reader, then seek free, then normal
@@ -801,11 +761,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 
 		// Reset all custom versions
 		ResetCustomVersions();
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 1, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 
 	bool bExecuteNextStep = true;
@@ -833,6 +788,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 {
 	if( bHasSerializedPackageFileSummary == false )
 	{
+#if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
+#endif
 		// Read summary from file.
 		*this << Summary;
 
@@ -1025,11 +983,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 
 		// Avoid serializing it again.
 		bHasSerializedPackageFileSummary = true;
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 2, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 
 	return !IsTimeLimitExceeded( TEXT("serializing package file summary") ) ? LINKER_Loaded : LINKER_TimedOut;
@@ -1113,6 +1066,10 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupImportMap()
 {
 	if( bHasFixedUpImportMap == false )
 	{
+#if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
+#endif
+
 		// Fix up imports, not required if everything is cooked.
 		if (!FPlatformProperties::RequiresCookedData())
 		{
@@ -1295,11 +1252,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupImportMap()
 		}
 		// Avoid duplicate work in async case.
 		bHasFixedUpImportMap = true;
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 3, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 	return IsTimeLimitExceeded( TEXT("fixing up import map") ) ? LINKER_TimedOut : LINKER_Loaded;
 }
@@ -1595,6 +1547,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FindExistingExports()
 	{
 		// only look for existing exports in the editor after it has started up
 #if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
 		if( GIsEditor && GIsRunning )
 		{
 			// Hunt down any existing objects and hook them up to this linker unless the user is either currently opening this
@@ -1615,11 +1568,6 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FindExistingExports()
 
 		// Avoid duplicate work in the case of async linker creation.
 		bHasFoundExistingExports = true;
-
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 4, ULinkerDefs::TotalProgressSteps );
-		}
 	}
 	return IsTimeLimitExceeded( TEXT("finding existing exports") ) ? LINKER_TimedOut : LINKER_Loaded;
 }
@@ -1631,6 +1579,10 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FinalizeCreation()
 {
 	if( bHasFinishedInitialization == false )
 	{
+#if WITH_EDITOR
+		LoadProgressScope->EnterProgressFrame(1);
+#endif
+
 		// Add this linker to the object manager's linker array.
 		GObjLoaders.Add(LinkerRoot, this);
 		// And remove it from the pending loaders list.
@@ -1653,12 +1605,12 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FinalizeCreation()
 		// Avoid duplicate work in the case of async linker creation.
 		bHasFinishedInitialization = true;
 
-		if ((LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0)
-		{
-			GWarn->UpdateProgress( 5, ULinkerDefs::TotalProgressSteps );
-			GWarn->PopStatus();
-		}
+#if WITH_EDITOR
+		delete LoadProgressScope;
+		LoadProgressScope = nullptr;
+#endif
 	}
+
 	return IsTimeLimitExceeded( TEXT("finalizing creation") ) ? LINKER_TimedOut : LINKER_Loaded;
 }
 
@@ -1738,10 +1690,15 @@ void ULinkerLoad::Verify()
 	{
 		if (!bHaveImportsBeenVerified)
 		{
+			FScopedSlowTask SlowTask(Summary.ImportCount, NSLOCTEXT("Core", "LinkerLoad_Imports", "Loading Imports"));
+
 			// Validate all imports and map them to their remote linkers.
 			for (int32 ImportIndex = 0; ImportIndex < Summary.ImportCount; ImportIndex++)
 			{
-				VerifyImport(ImportIndex);
+				FObjectImport& Import = ImportMap[ImportIndex];
+				
+				SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("Core", "LinkerLoad_LoadingImportName", "Loading Import '{0}'"), FText::FromString(Import.ObjectName.ToString())));
+				VerifyImport( ImportIndex );
 			}
 		}
 	}
@@ -2112,6 +2069,8 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 	FObjectImport& Import = ImportMap[ImportIndex];
 
+	FScopedSlowTask SlowTask(100, FText::Format(NSLOCTEXT("Core", "VerifyPackage_Scope", "Verifying '{0}'"), FText::FromString(Import.ObjectName.ToString())));
+
 	if
 	(	(Import.SourceLinker && Import.SourceIndex != INDEX_NONE)
 	||	Import.ClassPackage	== NAME_None
@@ -2147,12 +2106,17 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			TmpPkg = FindObjectFast<UPackage>(NULL, Import.ObjectName);
 			bWasFullyLoaded = TmpPkg && TmpPkg->IsFullyLoaded();
 		}
+
+		SlowTask.EnterProgressFrame(30);
+
 		if (!bWasFullyLoaded)
 		{
 			// we now fully load the package that we need a single export from - however, we still use CreatePackage below as it handles all cases when the package
 			// didn't exist (native only), etc		
 			TmpPkg = LoadPackage(NULL, *Import.ObjectName.ToString(), InternalLoadFlags);
 		}
+
+		SlowTask.EnterProgressFrame(30);
 
 		// following is the original VerifyImport code
 		// @todo linkers: This could quite possibly be cleaned up
@@ -2174,6 +2138,8 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			InternalLoadFlags |= LOAD_NoVerify;
 		}
 
+		SlowTask.EnterProgressFrame(40);
+
 		// Get the linker if the package hasn't been fully loaded already.
 		if (!bWasFullyLoaded)
 		{
@@ -2184,6 +2150,8 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 	{
 		// this resource's Outer is not a UPackage
 		checkf(Import.OuterIndex.IsImport(),TEXT("Outer for Import %s (%i) is not an import - OuterIndex:%i"), *GetImportFullName(ImportIndex), ImportIndex, Import.OuterIndex.ForDebugging());
+
+		SlowTask.EnterProgressFrame(50);
 
 		VerifyImport( Import.OuterIndex.ToImport() );
 
@@ -2213,6 +2181,7 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			Import.SourceLinker = OuterImport.SourceLinker;
 		}
 
+		SlowTask.EnterProgressFrame(50);
 
 		//check(Import.SourceLinker);
 		//@todo what does it mean if we don't have a SourceLinker here?
@@ -2494,12 +2463,14 @@ int32 ULinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
  */
 void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 {
+	FScopedSlowTask SlowTask(ExportMap.Num(), NSLOCTEXT("Core", "LinkerLoad_LoadingObjects", "Loading Objects"), (LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0);
+	SlowTask.bVisibleOnUI = false;
+	
 	if ( (LoadFlags&LOAD_SeekFree) != 0 )
 	{
 		bForcePreload = true;
 	}
 
-	bool bAllowedToShowStatusUpdate = (LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
 	double StartTime = FPlatformTime::Seconds();
 
 	// MetaData object index in this package.
@@ -2509,9 +2480,10 @@ void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 	{
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
-
+	
 	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
+		SlowTask.EnterProgressFrame(1);
 		if(ExportIndex == MetaDataIndex)
 		{
 			continue;

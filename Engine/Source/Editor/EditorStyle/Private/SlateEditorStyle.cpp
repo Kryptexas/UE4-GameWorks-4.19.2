@@ -490,6 +490,9 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetMarqueeImage( IMAGE_BRUSH( "Common/ProgressBar_Marquee", FVector2D(20,12), FLinearColor::White, ESlateBrushTileType::Horizontal ) )
 			);
 
+		Set( "ProgressBar.ThinBackground", new BOX_BRUSH( "Common/ProgressBar_Thin_Background", FMargin(5.f/12.f) ) );
+		Set( "ProgressBar.ThinFill", new BOX_BRUSH( "Common/ProgressBar_Thin_Fill", FMargin(5.f/12.f) ) );
+
 		// Legacy ProgressBar styles; kept here because other FEditorStyle controls (mis)use them
 		// todo: jdale - Widgets using these styles should be updated to use SlateStyle types once FEditorStyle has been obliterated from the Slate core
 		Set( "ProgressBar.Background", new BOX_BRUSH( "Common/ProgressBar_Background", FMargin(5.f/12.f) ) );

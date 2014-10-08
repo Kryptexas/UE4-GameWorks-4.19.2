@@ -781,20 +781,25 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 
 	if (AssetsToFind.Num() > 0)
 	{
-		const bool ShowProgressDialog = true;
-		GWarn->BeginSlowTask(NSLOCTEXT("AssetContextMenu", "FindAssetInWorld", "Finding actors that use this asset..."), ShowProgressDialog);
+		FScopedSlowTask SlowTask(2 + AssetsToFind.Num(), NSLOCTEXT("AssetContextMenu", "FindAssetInWorld", "Finding actors that use this asset..."));
+		SlowTask.MakeDialog();
 
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
 		TArray< TWeakObjectPtr<UObject> > OutObjects;
 		WorldReferenceGenerator ObjRefGenerator;
+
+		SlowTask.EnterProgressFrame();
 		ObjRefGenerator.BuildReferencingData();
 
 		for (int32 AssetIdx = 0; AssetIdx < AssetsToFind.Num(); ++AssetIdx)
 		{
+			SlowTask.EnterProgressFrame();
 			ObjRefGenerator.MarkAllObjects();
 			ObjRefGenerator.Generate(AssetsToFind[AssetIdx], OutObjects);
 		}
+
+		SlowTask.EnterProgressFrame();
 
 		if (OutObjects.Num() > 0)
 		{
@@ -815,8 +820,6 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 			Info.ExpireDuration = 3.0f;
 			FSlateNotificationManager::Get().AddNotification(Info);
 		}
-
-		GWarn->EndSlowTask();
 	}
 }
 

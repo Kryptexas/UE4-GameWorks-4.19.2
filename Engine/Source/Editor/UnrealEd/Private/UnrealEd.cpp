@@ -53,6 +53,10 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	GDebugToolExec = new FDebugToolExec;
 
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Editor Initialized"), STAT_EditorStartup, STATGROUP_LoadTime);
+	
+	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Loading", "Loading..."));
+	
+	SlowTask.EnterProgressFrame(50);
 
 	int32 ErrorLevel = EngineLoop.Init();
 	if( ErrorLevel != 0 )
@@ -73,8 +77,12 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.ProgramStarted"), EventAttributes);
 	}
 
+	SlowTask.EnterProgressFrame(40);
+
 	// Initialize the misc editor
 	FUnrealEdMisc::Get().OnInit();
+	
+	SlowTask.EnterProgressFrame(10);
 
 	// Prime our array of default directories for loading and saving content files to
 	FEditorDirectories::Get().LoadLastDirectories();

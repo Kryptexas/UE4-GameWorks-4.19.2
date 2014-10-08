@@ -169,7 +169,10 @@ void FUnrealEdMisc::OnInit()
 		return;
 	}
 	bInitialized = true;
-	
+
+	FScopedSlowTask SlowTask(100);
+	SlowTask.EnterProgressFrame(10);
+
 	// Register all callback notifications
 	FEditorDelegates::SelectedProps.AddRaw(this, &FUnrealEdMisc::CB_SelectedProps);
 	FEditorDelegates::DisplayLoadErrors.AddRaw(this, &FUnrealEdMisc::CB_DisplayLoadErrors);
@@ -224,6 +227,8 @@ void FUnrealEdMisc::OnInit()
 	const TCHAR* ParsedCmdLine = FCommandLine::Get();
 	const bool bIsImmersive = FParse::Param( ParsedCmdLine, TEXT( "immersive" ) );
 
+	SlowTask.EnterProgressFrame(10);
+
 	ISourceControlModule::Get().GetProvider().Init();
 
 	// Init the editor tools.
@@ -247,6 +252,7 @@ void FUnrealEdMisc::OnInit()
 	const bool bDoAutomatedMapBuild = FParse::Param( ParsedCmdLine, TEXT("AutomatedMapBuild") );
 
 	// Load startup map (conditionally)
+	SlowTask.EnterProgressFrame(60);
 	{
 		bool bMapLoaded = false;
 
@@ -360,6 +366,8 @@ void FUnrealEdMisc::OnInit()
 		FEditorBuildUtils::EditorAutomatedBuildAndSubmit( AutomatedBuildSettings, ErrorText );
 	}
 
+	SlowTask.EnterProgressFrame(10);
+
 	LoadFBxLibraries();
 
 	// Register message log UIs
@@ -416,6 +424,8 @@ void FUnrealEdMisc::OnInit()
 
 	// Register to receive notification of new key bindings
 	FInputBindingManager::Get().RegisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
+
+	SlowTask.EnterProgressFrame(10);
 
 	// Send Project Analytics
 	InitEngineAnalytics();

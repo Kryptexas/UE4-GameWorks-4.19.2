@@ -4329,6 +4329,8 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 				 FOutputDevice* Error, ULinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
 				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp )
 {
+	FScopedSlowTask SlowTask(100);
+
 	UObject* Base = InBase;
 	if ( !Base && InOuter && InOuter->PackageFlags & PKG_ContainsMap )
 	{
@@ -4341,6 +4343,8 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 	{
 		OriginalPackageFlags = InOuter->PackageFlags;
 	}
+
+	SlowTask.EnterProgressFrame(10);
 
 	UWorld* World = Cast<UWorld>(Base);
 	if ( World )
@@ -4356,7 +4360,11 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 		bAutoAddPkgToSCC = IsPackageValidForAutoAdding( InOuter, Filename );
 	}
 
+	SlowTask.EnterProgressFrame(70);
+
 	bool bSuccess = UPackage::SavePackage(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp);
+
+	SlowTask.EnterProgressFrame(10);
 
 	// If the package is a valid candidate for being automatically-added to source control, go ahead and add it
 	// to the default changelist
@@ -4377,6 +4385,8 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 			ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FMarkForAdd>(), SourceControlHelpers::PackageFilename(Filename));
 		}
 	}
+
+	SlowTask.EnterProgressFrame(10);
 
 	if ( World )
 	{
@@ -4436,14 +4446,12 @@ void UEditorEngine::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)
 			// Don't do this when autosaving or PIE saving so that actor adds can still undo.
 			World->ShrinkLevel();
 
-			GWarn->PushStatus();
-			GWarn->StatusUpdate( -1, -1, FText::Format(NSLOCTEXT("UnrealEd", "SavingMapStatus_CollectingGarbage", "Saving map: {0}... (Collecting garbage)"), FText::FromString(World->GetName())) );
-		
-			// NULL empty or "invalid" entries (e.g. IsPendingKill()) in actors array.
-			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-
-			GWarn->PopStatus();
-
+			{
+				FScopedSlowTask SlowTask(0, FText::Format(NSLOCTEXT("UnrealEd", "SavingMapStatus_CollectingGarbage", "Saving map: {0}... (Collecting garbage)"), FText::FromString(World->GetName())));
+				// NULL empty or "invalid" entries (e.g. IsPendingKill()) in actors array.
+				CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+			}
+			
 			// Compact and sort actors array to remove empty entries.
 			// Don't do this when autosaving or PIE saving so that actor adds can still undo.
 			World->PersistentLevel->SortActorList();

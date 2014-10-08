@@ -619,7 +619,7 @@ void FStreamedAudioPlatformData::Serialize(FArchive& Ar, USoundWave* Owner)
 /**
  * Helper class to display a status update message in the editor.
  */
-class FAudioStatusMessageContext
+class FAudioStatusMessageContext : FScopedSlowTask
 {
 public:
 
@@ -627,25 +627,10 @@ public:
 	 * Updates the status message displayed to the user.
 	 */
 	explicit FAudioStatusMessageContext( const FText& InMessage )
+	 : FScopedSlowTask(1, InMessage, GIsEditor && !IsRunningCommandlet())
 	{
-		if ( GIsEditor && !IsRunningCommandlet() )
-		{
-			GWarn->PushStatus();
-			GWarn->StatusUpdate(-1, -1, InMessage);
-		}
 		DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 		UE_LOG(LogAudioDerivedData, Display, TEXT("%s"), *InMessage.ToString());
-	}
-
-	/**
-	 * Ensures the status context is popped off the stack.
-	 */
-	~FAudioStatusMessageContext()
-	{
-		if ( GIsEditor && !IsRunningCommandlet() )
-		{
-			GWarn->PopStatus();
-		}
 	}
 };
 

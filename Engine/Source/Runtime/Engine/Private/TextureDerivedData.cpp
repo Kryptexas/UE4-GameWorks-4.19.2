@@ -468,9 +468,10 @@ class FTextureStatusMessageContext : public FScopedSlowTask
 {
 public:
 	explicit FTextureStatusMessageContext(const FText& InMessage)
-		: FScopedSlowTask(InMessage)
+		: FScopedSlowTask(0, InMessage)
 	{
 		UE_LOG(LogTexture,Display,TEXT("%s"),*InMessage.ToString());
+		MakeDialog();
 	}
 };
 

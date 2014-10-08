@@ -8,7 +8,6 @@
 FWindowsNativeFeedbackContext::FWindowsNativeFeedbackContext()
 	: FFeedbackContext()
 	, Context( NULL )
-	, SlowTaskCount( 0 )
 	, hThread( NULL )
 	, hCloseEvent( NULL )
 	, hUpdateEvent( NULL )
@@ -69,7 +68,7 @@ void FWindowsNativeFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Ty
 	}
 
 	// Buffer up the output during a slow task so that we can dump it all to the log console if the show log button is clicked
-	if(SlowTaskCount > 0)
+	if(GIsSlowTask)
 	{
 		FScopeLock Lock(&CriticalSection);
 		if(hThread != NULL)
@@ -100,57 +99,26 @@ bool FWindowsNativeFeedbackContext::ReceivedUserCancel()
 	return bReceivedUserCancel;
 }
 
-void FWindowsNativeFeedbackContext::BeginSlowTask( const FText& Task, bool bShowProgressDialog, bool bInShowCancelButton )
+void FWindowsNativeFeedbackContext::StartSlowTask( const FText& Task, bool bShowCancelButton )
 {
-	GIsSlowTask = ++SlowTaskCount>0;
-
-	if(SlowTaskCount > 0 && bShowProgressDialog)
-	{
-		CreateSlowTaskWindow(Task, bInShowCancelButton);
-	}
+	FFeedbackContext::StartSlowTask( Task, bShowCancelButton );
+	CreateSlowTaskWindow(Task, bShowCancelButton);
+}
+void FWindowsNativeFeedbackContext::FinalizeSlowTask( )
+{
+	FFeedbackContext::FinalizeSlowTask( );
+	DestroySlowTaskWindow();
 }
 
-void FWindowsNativeFeedbackContext::EndSlowTask()
-{
-	check(SlowTaskCount>0);
-	GIsSlowTask = --SlowTaskCount>0;
-
-	if(SlowTaskCount == 0)
-	{
-		DestroySlowTaskWindow();
-	}
-}
-
-bool FWindowsNativeFeedbackContext::StatusUpdate( int32 Numerator, int32 Denominator, const FText& NewStatus )
+void FWindowsNativeFeedbackContext::ProgressReported( const float TotalProgressInterp, FText DisplayMessage )
 {
 	FScopeLock Lock(&CriticalSection);
 	if(hThread != NULL)
 	{
-		UpdateProgress(Numerator, Denominator);
-
-		Status = NewStatus.ToString();
+		Progress = TotalProgressInterp;
+		Status = DisplayMessage.ToString();
 
 		SetEvent(hUpdateEvent);
-	}
-	return true;
-}
-
-bool FWindowsNativeFeedbackContext::StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText )
-{
-	return StatusUpdate(Numerator, Denominator, StatusText);
-}
-
-void FWindowsNativeFeedbackContext::UpdateProgress(int32 Numerator, int32 Denominator)
-{
-	FScopeLock Lock(&CriticalSection);
-	if(hThread != NULL)
-	{
-		float NewProgress = (float)Numerator / (float)Denominator;
-		if(Progress != NewProgress)
-		{
-			Progress = NewProgress;
-			SetEvent(hUpdateEvent);
-		}
 	}
 }
 

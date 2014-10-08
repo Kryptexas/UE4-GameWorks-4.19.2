@@ -1841,24 +1841,19 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 	check(!FPlatformProperties::RequiresCookedData());
 	const double StartTime = FPlatformTime::Seconds();
 
-	if (GIsEditor && !IsRunningCommandlet())
+	FText StatusUpdate;
+	if ( MaterialName != NULL )
 	{
-		GWarn->PushStatus();
-
-		FText StatusUpdate;
-		if ( MaterialName != NULL )
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("MaterialName"), FText::FromString( MaterialName ) );
-			StatusUpdate = FText::Format( NSLOCTEXT("ShaderCompilingManager", "CompilingShadersForMaterialStatus", "Compiling shaders: {MaterialName}..."), Args );
-		}
-		else
-		{
-			StatusUpdate = NSLOCTEXT("ShaderCompilingManager", "CompilingShadersStatus", "Compiling shaders...");
-		}
-
-		GWarn->StatusUpdate(-1, -1, StatusUpdate);
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("MaterialName"), FText::FromString( MaterialName ) );
+		StatusUpdate = FText::Format( NSLOCTEXT("ShaderCompilingManager", "CompilingShadersForMaterialStatus", "Compiling shaders: {MaterialName}..."), Args );
 	}
+	else
+	{
+		StatusUpdate = NSLOCTEXT("ShaderCompilingManager", "CompilingShadersStatus", "Compiling shaders...");
+	}
+
+	FScopedSlowTask SlowTask(0, StatusUpdate, GIsEditor && !IsRunningCommandlet());
 
 	TMap<int32, FShaderMapFinalizeResults> CompiledShaderMaps;
 	BlockOnShaderMapCompletion(ShaderMapIdsToFinishCompiling, CompiledShaderMaps);
@@ -1872,14 +1867,6 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 
 	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
 	check(CompiledShaderMaps.Num() == 0);
-
-	if (GIsEditor && !IsRunningCommandlet())
-	{
-		// Clear the status so it doesn't look like we're compiling shaders for the entire load, in the case that no other status is specified
-		GWarn->StatusUpdate(-1, -1, FText::GetEmpty());
-		// We called StatusUpdatef earlier, so we want to restore whatever the previous status was now
-		GWarn->PopStatus();
-	}
 
 	const double EndTime = FPlatformTime::Seconds();
 

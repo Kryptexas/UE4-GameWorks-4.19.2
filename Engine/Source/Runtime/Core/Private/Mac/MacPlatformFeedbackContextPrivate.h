@@ -15,14 +15,10 @@ class FFeedbackContextMac : public FFeedbackContext
 	FContextSupplier*	Context;
 
 public:
-	// Variables.
-	int32					SlowTaskCount;
-
 	// Constructor.
 	FFeedbackContextMac()
 		: FFeedbackContext()
 		, Context( NULL )
-		, SlowTaskCount( 0 )
 	{}
 
 	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
@@ -78,20 +74,6 @@ public:
 	bool YesNof( const FText& Question )
 	{
 		return FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *Question.ToString(), TEXT("")) == EAppReturnType::Yes;
-	}
-
-	void BeginSlowTask( const FText& Task, bool ShowProgressDialog, bool bShowCancelButton=false )
-	{
-		GIsSlowTask = ++SlowTaskCount>0;
-	}
-	void EndSlowTask()
-	{
-		check(SlowTaskCount>0);
-		GIsSlowTask = --SlowTaskCount>0;
-	}
-	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& StatusText )
-	{
-		return true;
 	}
 	FContextSupplier* GetContext() const
 	{

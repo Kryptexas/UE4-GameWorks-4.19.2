@@ -87,13 +87,18 @@ struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetEx
 			}
 			else
 			{
-				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "Paper2D_ExtractSpritesFromTexture", "Extracting Sprites From Texture"), true, true);
+				FScopedSlowTask Feedback(1, NSLOCTEXT("Paper2D", "Paper2D_ExtractSpritesFromTexture", "Extracting Sprites From Texture"));
+				Feedback.MakeDialog(true);
 
+				// First extract the rects from the texture
 				TArray<FIntRect> ExtractedRects;
 				UPaperSprite::ExtractRectsFromTexture(Texture, /*out*/ ExtractedRects);
+
+				Feedback.TotalAmountOfWork = ExtractedRects.Num();
+
 				for (int ExtractedRectIndex = 0; ExtractedRectIndex < ExtractedRects.Num(); ++ExtractedRectIndex)
 				{
-					GWarn->StatusUpdate(ExtractedRectIndex, ExtractedRects.Num(), NSLOCTEXT("Paper2D", "Paper2D_ExtractSpritesFromTexture", "Extracting Sprites From Texture"));
+					Feedback.EnterProgressFrame(1, NSLOCTEXT("Paper2D", "Paper2D_ExtractSpritesFromTexture", "Extracting Sprites From Texture"));
 
 					FIntRect& ExtractedRect = ExtractedRects[ExtractedRectIndex];
 					SpriteFactory->bUseSourceRegion = true;
@@ -114,8 +119,6 @@ struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetEx
 						break;
 					}
 				}
-
-				GWarn->EndSlowTask();
 			}
 		}
 

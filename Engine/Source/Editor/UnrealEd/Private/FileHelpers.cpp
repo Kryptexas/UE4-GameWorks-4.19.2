@@ -485,7 +485,11 @@ static bool SaveWorld(UWorld* World,
 
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("MapFilename"), FText::FromString( FPaths::GetCleanFilename(FinalFilename) ) );
-		GWarn->BeginSlowTask( FText::Format( NSLOCTEXT("UnrealEd", "SavingMap_F", "Saving map: {MapFilename}..." ), Args ), true, true );
+		
+		FScopedSlowTask SlowTask(100, FText::Format( NSLOCTEXT("UnrealEd", "SavingMap_F", "Saving map: {MapFilename}..." ), Args ));
+		SlowTask.MakeDialog(true);
+
+		SlowTask.EnterProgressFrame(25);
 
 		// Rename the package and the object, as necessary
 		if ( bRenamePackageToFile )
@@ -501,6 +505,8 @@ static bool SaveWorld(UWorld* World,
 			}
 		}
 
+		SlowTask.EnterProgressFrame(50);
+
 		// Save package.
 		{
 			const FString AutoSavingString = (bAutosaving || bPIESaving) ? TEXT("true") : TEXT("false");
@@ -510,6 +516,8 @@ static bool SaveWorld(UWorld* World,
 			bSuccess = GUnrealEd->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=true AUTOSAVING=%s KEEPDIRTY=%s"), *Package->GetName(), *FinalFilename, *AutoSavingString, *KeepDirtyString ), SaveErrors );
 			SaveErrors.Flush();
 		}
+
+		SlowTask.EnterProgressFrame(25);
 
 		// If the package save was not successful. Rename anything we changed back to the original name.
 		if( bRenamePackageToFile && !bSuccess )
@@ -524,8 +532,6 @@ static bool SaveWorld(UWorld* World,
 				World->Rename(*OriginalWorldName, NULL, REN_NonTransactional);
 			}
 		}
-
-		GWarn->EndSlowTask();
 	}
 
 	return bSuccess;

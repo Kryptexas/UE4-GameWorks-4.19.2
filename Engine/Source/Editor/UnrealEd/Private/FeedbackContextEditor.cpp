@@ -9,163 +9,314 @@
 /** Called to cancel the slow task activity */
 DECLARE_DELEGATE( FOnCancelClickedDelegate );
 
-
 /**
  * Simple "slow task" widget
  */
 class SSlowTaskWidget : public SBorder
 {
+	/** The maximum number of secondary bars to show on the widget */
+	static const int32 MaxNumSecondaryBars = 3;
+
+	/** The width of the dialog, and horizontal padding */
+	static const int32 FixedWidth = 600, FixedPaddingH = 24;
+
+	/** The heights of the progress bars on this widget */
+	static const int32 MainBarHeight = 12, SecondaryBarHeight = 3;
 public:
 	SLATE_BEGIN_ARGS( SSlowTaskWidget )	{ }
+
+		/** Called to when an asset is clicked */
+		SLATE_EVENT( FOnCancelClickedDelegate, OnCancelClickedDelegate )
+
+		/** The feedback scope stack that we are presenting to the user */
+		SLATE_ARGUMENT( const FScopedSlowTaskStack*, ScopeStack )
+
 	SLATE_END_ARGS()
 
+	/** Construct this widget */
 	void Construct( const FArguments& InArgs )
 	{
-		SBorder::Construct(SBorder::FArguments()
-			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-			.VAlign(VAlign_Center)
+		OnCancelClickedDelegate = InArgs._OnCancelClickedDelegate;
+		ScopeStack = InArgs._ScopeStack;
+
+		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox)
+
+			// Construct the main progress bar and text
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
 				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
+
+				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding( 14.0f, 4.0f, 14.0f, 10.0f )
+				.Padding(FMargin(0, 0, 0, 5.f))
+				.VAlign(VAlign_Center)
 				[
-					SNew( STextBlock )
-						.Text( this, &SSlowTaskWidget::OnGetProgressText )
-						.ShadowOffset( FVector2D( 1.0f, 1.0f ) )
+					SNew(SBox)
+					.HeightOverride(24.f)
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						[
+							SNew( STextBlock )
+							.AutoWrapText(true)
+							.Text( this, &SSlowTaskWidget::GetProgressText, 0 )
+							// The main font size dynamically changes depending on the content
+							.Font( this, &SSlowTaskWidget::GetMainTextFont )
+						]
+
+						+ SHorizontalBox::Slot()
+						.Padding(FMargin(5.f, 0, 0, 0))
+						.AutoWidth()
+						[
+							SNew( STextBlock )
+							.Text( this, &SSlowTaskWidget::GetPercentageText )
+							// The main font size dynamically changes depending on the content
+							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Light.ttf"), 14, EFontHinting::AutoLight ) )
+						]
+					]
 				]
-				+SVerticalBox::Slot()
+
+				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(10.0f, 7.0f)
 				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.Padding(5,0,0,0)
-					.FillWidth(1.0f)
+					SNew(SBox)
+					.HeightOverride(MainBarHeight)
 					[
 						SNew(SProgressBar)
-						.Percent( this, &SSlowTaskWidget::GetProgressFraction )
-					]
-					+SHorizontalBox::Slot()
-					.Padding(5,0,0,0)
-					.FillWidth(0.2f)
-					[
-						SNew(SButton)
-						.Text( NSLOCTEXT("FeedbackContextProgress", "Cancel", "Cancel") )
-						.HAlign(EHorizontalAlignment::HAlign_Center)
-						.OnClicked(this, &SSlowTaskWidget::OnCancel)
-						.Visibility(this, &SSlowTaskWidget::GetCancelButtonVisibility)
+						.BorderPadding(FVector2D::ZeroVector)
+						.Percent( this, &SSlowTaskWidget::GetProgressFraction, 0 )
+						.BackgroundImage( FEditorStyle::GetBrush("ProgressBar.ThinBackground") )
+						.FillImage( FEditorStyle::GetBrush("ProgressBar.ThinFill") )
 					]
 				]
+			]
+			
+			// Secondary progress bars
+			+ SVerticalBox::Slot()
+			.Padding(FMargin(0.f, 8.f, 0.f, 0.f))
+			[
+				SAssignNew(SecondaryBars, SVerticalBox)
+			];
+		
+
+		if ( OnCancelClickedDelegate.IsBound() )
+		{
+			VerticalBox->AddSlot()
+				.AutoHeight()
+				.HAlign(HAlign_Center)
+				.Padding(10.0f, 7.0f)
+				[
+					SNew(SButton)
+					.Text( NSLOCTEXT("FeedbackContextProgress", "Cancel", "Cancel") )
+					.HAlign(EHorizontalAlignment::HAlign_Center)
+					.OnClicked(this, &SSlowTaskWidget::OnCancel)
+				];
+		}
+
+		SBorder::Construct( SBorder::FArguments()
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			.VAlign(VAlign_Center)
+			.Padding(FMargin(FixedPaddingH))
+			[
+				SNew(SBox).WidthOverride(FixedWidth) [ VerticalBox ]
 			]
 		);
 	}
 
-	SSlowTaskWidget()
-		: ProgressNumerator(0)
-		, ProgressDenominator(1)
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
 	{
-	}
+		static const double VisibleScopeThreshold = 0.5;
 
-	void SetProgressPercent( int32 InProgressNumerator, int32 InProgressDenominator )
-	{
-		// interlocked exchange for threaded version
-		FPlatformAtomics::InterlockedExchange( &ProgressNumerator, InProgressNumerator );
-		FPlatformAtomics::InterlockedExchange( &ProgressDenominator, InProgressDenominator );
-		UpdateProgressText();
-	}
+		DynamicProgressIndices.Empty();
+		
+		// Always show the first one
+		DynamicProgressIndices.Add(0);
 
-	void SetProgressText( const FText& InProgressText )
-	{
-		ProgressText = InProgressText;
-		UpdateProgressText();
-	}
-	
-	void BindOnCancelDelegate(const FOnCancelClickedDelegate& InCancelClickedDelegate)
-	{
-		OnCancelClickedDelegate = InCancelClickedDelegate;
-	}
+		for (int32 Index = 1; Index < ScopeStack->Num(); ++Index)
+		{
+			const auto* Scope = (*ScopeStack)[Index];
 
-	void UnbindOnCancelDelegate()
-	{
-		OnCancelClickedDelegate.Unbind();
+			if (Scope->bVisibleOnUI && !Scope->DefaultMessage.IsEmpty())
+			{
+				const auto TimeOpen = FPlatformTime::Seconds() - Scope->StartTime;
+				const auto WorkDone = ScopeStack->GetProgressFraction(Index);
+
+				// We only show visible scopes if they have been opened a while, and have a reasonable amount of work left
+				if (WorkDone * TimeOpen > VisibleScopeThreshold)
+				{
+					DynamicProgressIndices.Add(Index);
+				}
+
+				if (DynamicProgressIndices.Num() == MaxNumSecondaryBars)
+				{
+					break;
+				}
+			}
+		}
+
+		// Create progress bars for anything that we haven't cached yet
+		// We don't destroy old widgets, they just remain ghosted until shown again
+		for (int32 Index = SecondaryBars->GetChildren()->Num() + 1; Index < DynamicProgressIndices.Num(); ++Index)
+		{
+			CreateSecondaryBar(Index);
+		}
 	}
 
 private:
 
+	/** Create a progress bar for the specified index */
+	void CreateSecondaryBar(int32 Index) 
+	{
+		SecondaryBars->AddSlot()
+		.Padding( 0.f, 16.f, 0.f, 0.f )
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.Padding( 0.f, 0.f, 0.f, 4.f )
+			.AutoHeight()
+			[
+				SNew( STextBlock )
+				.Text( this, &SSlowTaskWidget::GetProgressText, Index )
+				.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9, EFontHinting::AutoLight ) )
+				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SBox)
+				.HeightOverride(SecondaryBarHeight)
+				[
+					SNew(SBorder)
+					.Padding(0)
+					.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+					.ColorAndOpacity( this, &SSlowTaskWidget::GetSecondaryProgressBarTint, Index )
+					[
+						SNew(SProgressBar)
+						.BorderPadding(FVector2D::ZeroVector)
+						.Percent( this, &SSlowTaskWidget::GetProgressFraction, Index )
+						.BackgroundImage( FEditorStyle::GetBrush("ProgressBar.ThinBackground") )
+						.FillImage( FEditorStyle::GetBrush("ProgressBar.ThinFill") )
+					]
+				]
+			]
+		];
+	}
+
+private:
+
+	/** The main text that we will display in the window */
+	FText GetPercentageText() const
+	{
+		const float ProgressInterp = ScopeStack->GetProgressFraction(0);
+
+		FFormatOrderedArguments Args;
+		Args.Add(int(ProgressInterp * 100));
+
+		return FText::Format(NSLOCTEXT("FeedbackContextEditor", "MainProgressDisplayText", "{0}%"), Args);
+	}
+
+	/** Calculate the best font to display the main text with */
+	FSlateFontInfo GetMainTextFont() const
+	{
+		TSharedRef<FSlateFontMeasure> MeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+
+		const int32 MaxFontSize = 14;
+		FSlateFontInfo FontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Light.ttf"), MaxFontSize, EFontHinting::AutoLight );
+
+		const FText MainText = GetProgressText(0);
+		const int32 MaxTextWidth = FixedWidth - FixedPaddingH*2;
+		while( FontInfo.Size > 9 && MeasureService->Measure(MainText, FontInfo).X > MaxTextWidth )
+		{
+			FontInfo.Size -= 4;
+		}
+
+		return FontInfo;
+	}
+
+	/** Get the tint for a secondary progress bar */
+	FLinearColor GetSecondaryProgressBarTint(int32 Index) const
+	{
+		if (!DynamicProgressIndices.IsValidIndex(Index) || !ScopeStack->IsValidIndex(DynamicProgressIndices[Index]))
+		{
+			return FLinearColor::White.CopyWithNewOpacity(0.25f);
+		}
+		return FLinearColor::White;
+	}
+
+	/** Get the fractional percentage of completion for a progress bar */
+	TOptional<float> GetProgressFraction(int32 Index) const
+	{
+		if (DynamicProgressIndices.IsValidIndex(Index) && ScopeStack->IsValidIndex(DynamicProgressIndices[Index]))
+		{
+			return ScopeStack->GetProgressFraction(DynamicProgressIndices[Index]);
+		}
+		return TOptional<float>();
+	}
+
+	/** Get the text to display for a progress bar */
+	FText GetProgressText(int32 Index) const
+	{
+		if (DynamicProgressIndices.IsValidIndex(Index) && ScopeStack->IsValidIndex(DynamicProgressIndices[Index]))
+		{
+			return (*ScopeStack)[DynamicProgressIndices[Index]]->GetCurrentMessage();
+		}
+
+		return FText();
+	}
+
+	/** Called when the cancel button is clicked */
 	FReply OnCancel()
 	{
 		OnCancelClickedDelegate.ExecuteIfBound();
 		return FReply::Handled();
 	}
 
-	EVisibility GetCancelButtonVisibility() const
-	{
-		return OnCancelClickedDelegate.IsBound() ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-
-	TOptional<float> GetProgressFraction() const
-	{
-		// Only show a percentage if there is something interesting to report
-		if( ProgressNumerator > 0 && ProgressDenominator > 0 )
-		{
-			return (float)ProgressNumerator/ProgressDenominator;
-		}
-		else
-		{
-			// Return non-value to indicate marquee mode
-			// for the progress bar.
-			return TOptional<float>();
-		}
-	}
-
-	FText OnGetProgressText() const
-	{
-		return ProgressStatusText;
-	}
-
-	void UpdateProgressText()
-	{
-		if( ProgressNumerator > 0 && ProgressDenominator > 0 )
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("StatusText"), ProgressText );
-			Args.Add( TEXT("ProgressCompletePercentage"), FText::AsPercent( (float)ProgressNumerator/ProgressDenominator) );
-			ProgressStatusText = FText::Format( NSLOCTEXT("FeedbackContextProgress", "ProgressStatusFormat", "{StatusText} ({ProgressCompletePercentage})"), Args );
-		}
-		else
-		{
-			ProgressStatusText = ProgressText;
-		}
-	}
-
 private:
-	FText ProgressText;
-	FText ProgressStatusText;
-	int32 ProgressNumerator;
-	int32 ProgressDenominator;
+
+	/** Delegate to invoke if the user clicks cancel */
 	FOnCancelClickedDelegate OnCancelClickedDelegate;
+
+	/** The scope stack that we are reflecting */
+	const FScopedSlowTaskStack* ScopeStack;
+
+	/** The vertical box containing the secondary progress bars */
+	TSharedPtr<SVerticalBox> SecondaryBars;
+
+	/** Array mapping progress bar index -> scope stack index. Updated every tick. */
+	TArray<int32> DynamicProgressIndices;
 };
+
+/** Static integer definitions required on some builds where the linker needs access to these */
+const int32 SSlowTaskWidget::MaxNumSecondaryBars;
+const int32 SSlowTaskWidget::FixedWidth;
+const int32 SSlowTaskWidget::FixedPaddingH;;
+const int32 SSlowTaskWidget::MainBarHeight;
+const int32 SSlowTaskWidget::SecondaryBarHeight;
 
 static void TickSlate()
 {
-	// Tick Slate application
-	FSlateApplication::Get().Tick();
+	static double Seconds = FPlatformTime::Seconds();
+	static double MinFrameTime = 0.05;		// Only update at 20fps so as not to slow down the actual task
+	if (FPlatformTime::Seconds() - Seconds > MinFrameTime)
+	{
+		Seconds = FPlatformTime::Seconds();
 
-	// Sync the game thread and the render thread. This is needed if many StatusUpdate are called
-	FSlateApplication::Get().GetRenderer()->Sync();
+		// Tick Slate application
+		FSlateApplication::Get().Tick();
+
+		// Sync the game thread and the render thread. This is needed if many StatusUpdate are called
+		FSlateApplication::Get().GetRenderer()->Sync();
+	}
 }
 
-
-const float FFeedbackContextEditor::UIUpdateGatingTime = 1.0f / 60.0f;
-
-
-FFeedbackContextEditor::FFeedbackContextEditor() : 
-	DialogRequestCount(0),
-	HasTaskBeenCancelled(false),
-	SlowTaskCount(0)
+FFeedbackContextEditor::FFeedbackContextEditor()
+	: HasTaskBeenCancelled(false)
 {
-	DialogRequestStack.Reserve(15);
+	
 }
 
 void FFeedbackContextEditor::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
@@ -176,14 +327,10 @@ void FFeedbackContextEditor::Serialize( const TCHAR* V, ELogVerbosity::Type Verb
 	}
 }
 
-/**
- * Tells the editor that a slow task is beginning
- * 
- * @param Task					The description of the task beginning.
- * @param ShowProgressDialog	Whether to show the progress dialog.
- */
-void FFeedbackContextEditor::BeginSlowTask( const FText& Task, bool bShowProgressDialog, bool bShowCancelButton )
+void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelButton )
 {
+	FFeedbackContext::StartSlowTask( Task, bShowCancelButton );
+
 	// Attempt to parent the slow task window to the slate main frame
 	TSharedPtr<SWindow> ParentWindow;
 	if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
@@ -194,16 +341,7 @@ void FFeedbackContextEditor::BeginSlowTask( const FText& Task, bool bShowProgres
 
 	if( GIsEditor && ParentWindow.IsValid())
 	{
-		GIsSlowTask = ++SlowTaskCount>0;
 		GSlowTaskOccurred = GIsSlowTask;
-
-		// Show a wait cursor for long running tasks
-		if (SlowTaskCount == 1)
-		{
-			// NOTE: Any slow tasks that start after the first slow task is running won't display
-			//   status text unless 'StatusUpdate' is called
-			StatusMessage.StatusText = Task;
-		}
 
 		// Don't show the progress dialog if the Build Progress dialog is already visible
 		bool bProgressWindowShown = BuildProgressWidget.IsValid();
@@ -211,7 +349,7 @@ void FFeedbackContextEditor::BeginSlowTask( const FText& Task, bool bShowProgres
 		// Don't show the progress dialog if a Slate menu is currently open
 		const bool bHaveOpenMenu = FSlateApplication::Get().AnyMenusVisible();
 
-		if( bShowProgressDialog && bHaveOpenMenu )
+		if( bHaveOpenMenu )
 		{
 			UE_LOG(LogSlate, Warning, TEXT("Prevented a slow task dialog from being summoned while a context menu was open") );
 		}
@@ -219,36 +357,91 @@ void FFeedbackContextEditor::BeginSlowTask( const FText& Task, bool bShowProgres
 		// reset the cancellation flag
 		HasTaskBeenCancelled = false;
 
-		bShowProgressDialog &= !bHaveOpenMenu;
-
-		DialogRequestStack.Push( ( bProgressWindowShown ? 0 : bShowProgressDialog) );
-
-		if(!bProgressWindowShown && bShowProgressDialog && ++DialogRequestCount == 1 )
+		if (!bProgressWindowShown && !bHaveOpenMenu && FSlateApplication::Get().CanDisplayWindows())
 		{
-			if( !bProgressWindowShown && FSlateApplication::Get().CanDisplayWindows() )
+			FOnCancelClickedDelegate OnCancelClicked;
+			if ( bShowCancelButton )
 			{
-				TSharedRef<SWindow> SlowTaskWindowRef = SNew(SWindow)
-					.ClientSize(FVector2D(500,100))
-					.IsPopupWindow(true)
-					.ActivateWhenFirstShown(true);
+				// The cancel button is only displayed if a delegate is bound to it.
+				OnCancelClicked = FOnCancelClickedDelegate::CreateRaw(this, &FFeedbackContextEditor::OnUserCancel);
+			}
 
-				SlowTaskWidget = SNew(SSlowTaskWidget);
-				SlowTaskWindowRef->SetContent( SlowTaskWidget.ToSharedRef() );
+			TSharedRef<SWindow> SlowTaskWindowRef = SNew(SWindow)
+				.SizingRule(ESizingRule::Autosized)
+				.AutoCenter(EAutoCenter::PreferredWorkArea)
+				.IsPopupWindow(true)
+				.CreateTitleBar(true)
+				.ActivateWhenFirstShown(true);
 
-				EnableUserCancel(bShowCancelButton);
+			SlowTaskWidget = SNew(SSlowTaskWidget)
+				.ScopeStack(&ScopeStack)
+				.OnCancelClickedDelegate( OnCancelClicked );
+			SlowTaskWindowRef->SetContent( SlowTaskWidget.ToSharedRef() );
 
-				SlowTaskWidget->SetProgressText( StatusMessage.StatusText );
+			SlowTaskWindow = SlowTaskWindowRef;
 
-				SlowTaskWindow = SlowTaskWindowRef;
+			const bool bSlowTask = true;
+			FSlateApplication::Get().AddModalWindow( SlowTaskWindowRef, ParentWindow, bSlowTask );
 
-				const bool bSlowTask = true;
-				FSlateApplication::Get().AddModalWindow( SlowTaskWindowRef, ParentWindow, bSlowTask );
+			SlowTaskWindowRef->ShowWindow();
 
-				SlowTaskWindowRef->ShowWindow();
+			TickSlate();
+		}
 
-				TickSlate();
+		FPlatformSplash::SetSplashText( SplashTextType::StartupProgress, *Task.ToString() );
+	}
+}
+
+void FFeedbackContextEditor::FinalizeSlowTask()
+{
+	TSharedPtr<SWindow> ParentWindow;
+	if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
+	{
+		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
+		ParentWindow = MainFrame.GetParentWindow();
+	}
+
+	if( GIsEditor && ParentWindow.IsValid())
+	{
+		if( SlowTaskWindow.IsValid() )
+		{
+			SlowTaskWindow.Pin()->RequestDestroyWindow();
+			SlowTaskWindow.Reset();
+			SlowTaskWidget.Reset();
+		}
+	}
+
+	FFeedbackContext::FinalizeSlowTask( );
+}
+
+void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, FText DisplayMessage )
+{
+	if (SlowTaskWidget.IsValid() && FSlateApplication::Get().CanDisplayWindows())
+	{
+		TickSlate();
+	}
+	else
+	{
+		// Always show the top-most message
+		for (auto& Scope : ScopeStack)
+		{
+			const FText ThisMessage = Scope->GetCurrentMessage();
+			if (!ThisMessage.IsEmpty())
+			{
+				DisplayMessage = ThisMessage;
+				break;
 			}
 		}
+
+		if (!DisplayMessage.IsEmpty() && TotalProgressInterp > 0)
+		{
+            FFormatOrderedArguments Args;
+            Args.Add(DisplayMessage);
+            Args.Add(int(TotalProgressInterp * 100.f));
+
+            DisplayMessage = FText::Format(NSLOCTEXT("FeedbackContextEditor", "ProgressDisplayText", "{0} ({1}%)"), Args);
+		}
+		FPlatformSplash::SetSplashText( SplashTextType::StartupProgress, *DisplayMessage.ToString() );
 	}
 }
 
@@ -260,346 +453,9 @@ bool FFeedbackContextEditor::ReceivedUserCancel( void )
 	return res;
 }
 
-void FFeedbackContextEditor::EnableUserCancel( bool bUserCancel )
-{
-	if (SlowTaskWidget.IsValid())
-	{
-		if (!bUserCancel)
-		{
-			SlowTaskWidget->UnbindOnCancelDelegate();
-		}
-		else
-		{
-			SlowTaskWidget->BindOnCancelDelegate(FOnCancelClickedDelegate::CreateRaw(this, &FFeedbackContextEditor::OnUserCancel));
-		}
-	}
-}
-
 void FFeedbackContextEditor::OnUserCancel()
 {
 	HasTaskBeenCancelled = true;
-}
-
-/**
- * Tells the editor that the slow task is done.
- */
-void FFeedbackContextEditor::EndSlowTask()
-{
-	TSharedPtr<SWindow> ParentWindow;
-	if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
-	{
-		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
-		ParentWindow = MainFrame.GetParentWindow();
-	}
-
-	if( GIsEditor && ParentWindow.IsValid())
-	{
-		check(SlowTaskCount>0);
-		GIsSlowTask = --SlowTaskCount>0;
-
-		checkSlow(DialogRequestStack.Num()>0);
-		const bool bWasDialogRequest = DialogRequestStack.Pop();
-
-		// Restore the cursor now that the long running task is done
-		if (SlowTaskCount == 0)
-		{
-			// Reset cached message
-			StatusMessage.StatusText = FText::GetEmpty();
-			StatusMessage.ProgressNumerator = StatusMessage.SavedNumerator = 0;
-			StatusMessage.ProgressDenominator = StatusMessage.SavedDenominator = 0;
-			StatusMessage.LastUpdateTime  = FPlatformTime::Seconds();
-		}
-
-		if( bWasDialogRequest )
-		{
-			checkSlow(DialogRequestCount>0);
-			if ( --DialogRequestCount == 0 )
-			{
-				if( SlowTaskWindow.IsValid() )
-				{
-					SlowTaskWindow.Pin()->RequestDestroyWindow();
-					SlowTaskWindow.Reset();
-					SlowTaskWidget.Reset();
-
-				}
-			}
-		}
-	}
-}
-
-void FFeedbackContextEditor::SetContext( FContextSupplier* InSupplier )
-{
-}
-
-bool FFeedbackContextEditor::StatusUpdate( int32 Numerator, int32 Denominator, const FText& StatusText )
-{
-	// don't update too frequently
-	if( GIsSlowTask )
-	{
-		// limit to update to once every 'y' seconds
-		double Now = FPlatformTime::Seconds();
-		double Diff = Now - StatusMessage.LastUpdateTime;
-		if ( Diff >= UIUpdateGatingTime )
-		{
-			StatusMessage.LastUpdateTime = Now;
-		}
-		else
-		{
-			return true;
-		}
-	}
-
-	return ApplyStatusUpdate( StatusText, Numerator, Denominator );
-}
-
-bool FFeedbackContextEditor::StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText )
-{
-	return ApplyStatusUpdate( StatusText, Numerator, Denominator );
-}
-
-bool FFeedbackContextEditor::ApplyStatusUpdate( const FText& StatusText, int32 ProgressNumerator, int32 ProgressDenominator )
-{
-	// Cache the new status message and progress
-	StatusMessage.StatusText = StatusText;
-
-	if( ProgressNumerator >= 0 ) // Ignore if set to -1
-	{
-		StatusMessage.ProgressNumerator = StatusMessage.SavedNumerator = ProgressNumerator;
-	}
-	if( ProgressDenominator >= 0 ) // Ignore if set to -1
-	{
-		StatusMessage.ProgressDenominator = StatusMessage.SavedDenominator = ProgressDenominator;
-	}
-
-	if( GIsSlowTask )
-	{
-		bool bCanCancelTask = (BuildProgressWidget.IsValid());
-
-		// Don't bother refreshing progress for sub-tasks (tasks greater than 2 levels deep.)  The reason we
-		// allow two levels is because some subsystems call PushStatus() before reporting any status for
-		// first-tier tasks, and we wouldn't be able to display any progress for those tasks otherwise.
-		if( StatusMessageStack.Num() <= 1 || bCanCancelTask)
-		{
-			StatusUpdateProgress(
-				StatusMessage.StatusText,
-				StatusMessage.ProgressNumerator,
-				StatusMessage.ProgressDenominator,
-				StatusMessageStack.Num() == 0 || DialogRequestCount == 0
-				);
-
-			if ( DialogRequestCount > 0 )
-			{
-				if( SlowTaskWindow.IsValid() )
-				{
-					SlowTaskWidget->SetProgressText( StatusMessage.StatusText );
-					SlowTaskWidget->SetProgressPercent( StatusMessage.ProgressNumerator, StatusMessage.ProgressDenominator );
-
-					if (FSlateApplication::Get().CanDisplayWindows())
-					{
-						TickSlate();
-					}
-				}
-			}
-		}
-	}
-
-	// Also update the splash screen text (in case we're in the middle of starting up)
-	if ( !StatusMessage.StatusText.IsEmpty() )
-	{
-		FPlatformSplash::SetSplashText( SplashTextType::StartupProgress, *StatusMessage.StatusText.ToString() );
-	}
-	return true;
-}
-
-/**
- * Updates the progress amount without changing the status message text
- *
- * @param Numerator		New progress numerator
- * @param Denominator	New progress denominator
- */
-void FFeedbackContextEditor::UpdateProgress( int32 Numerator, int32 Denominator )
-{
-	// Cache the new progress
-	if( Numerator >= 0 ) // Ignore if set to -1
-	{
-		StatusMessage.ProgressNumerator = Numerator;
-	}
-	if( Denominator >= 0 ) // Ignore if set to -1
-	{
-		StatusMessage.ProgressDenominator = Denominator;
-	}
-
-	if( GIsSlowTask )
-	{
-		bool bCanCancelTask = (BuildProgressWidget.IsValid());
-
-		// Don't bother refreshing progress for sub-tasks (tasks greater than 2 levels deep.)  The reason we
-		// allow two levels is because some subsystems call PushStatus() before reporting any status for
-		// first-tier tasks, and we wouldn't be able to display any progress for those tasks otherwise.
-		if( StatusMessageStack.Num() <= 1 || bCanCancelTask)
-		{
-			// calculate our previous percentage and our new one
-			float SavedRatio = 0.0f;
-			float NewRatio = 0.0f;
-
-			// Check divisors to guard against divide by zeros
-			if ( StatusMessage.SavedDenominator > 0 )
-			{
-				SavedRatio = (float)StatusMessage.SavedNumerator / (float)StatusMessage.SavedDenominator;
-			}
-
-			if ( ensure(StatusMessage.ProgressDenominator > 0) )
-			{
-				NewRatio = (float)StatusMessage.ProgressNumerator / (float)StatusMessage.ProgressDenominator;
-			}
-
-			double Now = FPlatformTime::Seconds();
-
-			// update the progress bar if we've moved enough since last time, or we are going to start or end of bar,
-			// or if a second has passed
-			//
-			// or if the build progress is running...
-			bool bUpdate =
-				(FMath::Abs<float>(SavedRatio - NewRatio) > 0.1f || Numerator == 0 || Numerator >= (Denominator - 1) ||
-				Now >= StatusMessage.LastUpdateTime + UIUpdateGatingTime);
-				
-			if (bUpdate || bCanCancelTask)
-			{
-				StatusMessage.SavedNumerator = StatusMessage.ProgressNumerator;
-				StatusMessage.SavedDenominator = StatusMessage.ProgressDenominator;
-				StatusMessage.LastUpdateTime = Now;
-
-				StatusUpdateProgress(
-					FText::GetEmpty(),
-					StatusMessage.ProgressNumerator,
-					StatusMessage.ProgressDenominator,
-					StatusMessageStack.Num() == 0 || DialogRequestCount == 0
-					);
-			
-				if ( DialogRequestCount > 0 )
-				{
-					if( SlowTaskWindow.IsValid()  )
-					{
-						SlowTaskWidget->SetProgressPercent( StatusMessage.ProgressNumerator, StatusMessage.ProgressDenominator );
-
-						if (FSlateApplication::Get().CanDisplayWindows())
-						{
-							TickSlate();
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-/**
- *  Updates text and value for various progress meters.
- *
- *	@param StatusText				New status text
- *	@param ProgressNumerator		Numerator for the progress meter (its current value).
- *	@param ProgressDenominitator	Denominiator for the progress meter (its range).
- */
-void FFeedbackContextEditor::StatusUpdateProgress( const FText& StatusText, int32 ProgressNumerator, int32 ProgressDenominator, bool bUpdateBuildDialog/*=true*/ )
-{
-	// Clean up deferred cleanup objects from rendering thread every once in a while.
-	static double LastTimePendingCleanupObjectsWhereDeleted;
-	if( FPlatformTime::Seconds() - LastTimePendingCleanupObjectsWhereDeleted > 1 )
-	{
-		// Get list of objects that are pending cleanup.
-		FPendingCleanupObjects* PendingCleanupObjects = GetPendingCleanupObjects();
-		// Flush rendering commands in the queue.
-		FlushRenderingCommands();
-		// It is now save to delete the pending clean objects.
-		delete PendingCleanupObjects;
-		// Keep track of time this operation was performed so we don't do it too often.
-		LastTimePendingCleanupObjectsWhereDeleted = FPlatformTime::Seconds();
-	}
-
-	// Update build progress dialog if it is visible.
-	const bool bBuildProgressDialogVisible = BuildProgressWidget.IsValid();
-
-	if( bBuildProgressDialogVisible && bUpdateBuildDialog )
-	{
-		if( !StatusText.IsEmpty() )
-		{
-			BuildProgressWidget->SetBuildStatusText( StatusText );
-		}
-
-		BuildProgressWidget->SetBuildProgressPercent( ProgressNumerator, ProgressDenominator );
-
-		if (FSlateApplication::Get().CanDisplayWindows())
-		{
-			TickSlate();
-		}
-	}
-}
-
-/** Pushes the current status message/progress onto the stack so it can be restored later */
-void FFeedbackContextEditor::PushStatus()
-{
-	StatusMessage.LastUpdateTime = 0.0f; // Gurantees the next call to update this window will not fail due to the 1 second requirement between updates. When we are popped, our time will also be 0.0f.
-
-	// Push the current message onto the stack.  This doesn't change the current message though.  You should
-	// call StatusUpdate after calling PushStatus to update the message.
-	StatusMessageStack.Add( StatusMessage );
-}
-
-
-
-/** Restores the previously pushed status message/progress */
-void FFeedbackContextEditor::PopStatus()
-{
-	if( StatusMessageStack.Num() > 0 )
-	{
-		// Pop from stack
-		StatusMessageStackItem PoppedStatusMessage = StatusMessageStack.Pop();
-
-		// Update the message text
-		StatusMessage.StatusText = PoppedStatusMessage.StatusText;
-
-		// Only overwrite progress if the item on the stack actually had some progress set
-		if( PoppedStatusMessage.ProgressDenominator > 0 )
-		{
-			StatusMessage.ProgressNumerator = PoppedStatusMessage.ProgressNumerator;
-			StatusMessage.ProgressDenominator = PoppedStatusMessage.ProgressDenominator;
-			StatusMessage.SavedNumerator = PoppedStatusMessage.SavedNumerator;
-			StatusMessage.SavedDenominator = PoppedStatusMessage.SavedDenominator;
-			StatusMessage.LastUpdateTime = PoppedStatusMessage.LastUpdateTime;
-		}
-
-		// Update the GUI!
-		if( GIsSlowTask )
-		{
-			StatusMessage.SavedNumerator = StatusMessage.ProgressNumerator;
-			StatusMessage.SavedDenominator = StatusMessage.ProgressDenominator;
-
-			// Don't bother refreshing progress for sub-tasks (tasks greater than 2 levels deep.)  The reason we
-			// allow two levels is because some subsystems call PushStatus() before reporting any status for
-			// first-tier tasks, and we wouldn't be able to display any progress for those tasks otherwise.
-			if( StatusMessageStack.Num() <= 1 )
-			{
-				StatusUpdateProgress(
-					StatusMessage.StatusText,
-					StatusMessage.ProgressNumerator,
-					StatusMessage.ProgressDenominator);
-
-				if ( DialogRequestCount > 0 )
-				{
-					if( SlowTaskWindow.IsValid()  )
-					{
-						SlowTaskWidget->SetProgressText( StatusMessage.StatusText );
-						SlowTaskWidget->SetProgressPercent( StatusMessage.ProgressNumerator, StatusMessage.ProgressDenominator );
-
-						if (FSlateApplication::Get().CanDisplayWindows())
-						{
-							TickSlate();
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 /** 

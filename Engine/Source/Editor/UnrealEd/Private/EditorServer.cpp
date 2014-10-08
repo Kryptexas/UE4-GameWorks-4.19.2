@@ -2038,7 +2038,27 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				// Should we display progress while loading?
 				int32 bShowProgress = 1;
 				FParse::Value(Str, TEXT("SHOWPROGRESS="), bShowProgress);
-			
+
+				FString MapFileName = FPaths::GetCleanFilename(TempFname);
+
+				// Detect whether the map we are loading is a template map and alter the undo
+				// readout accordingly.
+				FText LocalizedLoadingMap;
+				if (!bIsLoadingMapTemplate)
+				{
+					LocalizedLoadingMap = FText::Format( NSLOCTEXT("UnrealEd", "LoadingMap_F", "Loading map: {0}..."), FText::FromString( MapFileName ) );
+				}
+				else
+				{
+					LocalizedLoadingMap = NSLOCTEXT("UnrealEd", "LoadingMap_Template", "New Map");
+				}
+				
+				// Don't show progress dialogs when loading one of our startup maps. They should load rather quickly.
+				FScopedSlowTask SlowTask(100, FText::Format( NSLOCTEXT("UnrealEd", "LoadingMapStatus_Loading", "Loading {0}"), LocalizedLoadingMap ), bShowProgress != 0);
+				SlowTask.MakeDialog();
+
+				SlowTask.EnterProgressFrame(10, FText::Format( NSLOCTEXT("UnrealEd", "LoadingMapStatus_CleaningUp", "{0} (Clearing existing world)"), LocalizedLoadingMap ));
+
 				UObject* OldOuter = NULL;
 
 				{
@@ -2052,25 +2072,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 					OldOuter = Context.World()->GetOuter();
 
-					FString MapFileName = FPaths::GetCleanFilename(TempFname);
-
-					// Detect whether the map we are loading is a template map and alter the undo
-					// readout accordingly.
-					FText LocalizedLoadingMap;
-					if (!bIsLoadingMapTemplate)
-					{
-						LocalizedLoadingMap = FText::Format( NSLOCTEXT("UnrealEd", "LoadingMap_F", "Loading map: {0}..."), FText::FromString( MapFileName ) );
-					}
-					else
-					{
-						LocalizedLoadingMap = NSLOCTEXT("UnrealEd", "LoadingMap_Template", "New Map");
-					}
-					
 					ResetTransaction( LocalizedLoadingMap );
-
-					// Don't show progress dialogs when loading one of our startup maps.  They should load rather quickly.
-					const bool bShowProgressDialog = (bShowProgress != 0);
-					GWarn->BeginSlowTask( FText::Format( NSLOCTEXT("UnrealEd", "LoadingMapStatus_CleaningUp", "{0} (Clearing existing world)"), LocalizedLoadingMap ), bShowProgressDialog );
 
 					// Don't clear errors if we are loading a startup map so we can see all startup load errors
 					if (!FEditorFileUtils::IsLoadingStartupMap())
@@ -2100,7 +2102,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						ExistingWorld = NULL;
 					}
 
-					GWarn->StatusUpdate( -1, -1, LocalizedLoadingMap );
+					SlowTask.EnterProgressFrame( 70, LocalizedLoadingMap );
 				}
 
 				// Record the name of this file to make sure we load objects in this package on top of in-memory objects in this package.
@@ -2125,13 +2127,19 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					}
 				}
 
-			
+				
 				UPackage* WorldPackage;
 				// Load startup maps and templates into new outermost packages so that the Save function in the editor won't overwrite the original
 				if (bIsLoadingMapTemplate)
 				{
+					FScopedSlowTask LoadScope(2);
+
+					LoadScope.EnterProgressFrame();
+
 					//create a package with the proper name
 					WorldPackage = CreatePackage(NULL, *(MakeUniqueObjectName(NULL, UPackage::StaticClass()).ToString()));
+
+					LoadScope.EnterProgressFrame();
 
 					//now load the map into the package created above
 					const FName WorldPackageFName = WorldPackage->GetFName();
@@ -2159,7 +2167,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				{
 					FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "MapPackageLoadFailed", "Failed to open map file. This is most likely because the map was saved with a newer version of the engine."));
 					GIsEditorLoadingPackage = false;
-					GWarn->EndSlowTask();
 					return false;
 				}
 
@@ -2204,11 +2211,13 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					World->InitWorld( GetEditorWorldInitializationValues() );
 				}
 
+				SlowTask.EnterProgressFrame(20, FText::Format( LOCTEXT( "LoadingMapStatus_Initializing", "Loading map: {0}... (Initializing world)" ), FText::FromString(MapFileName) ));
 				{
 					FBSPOps::bspValidateBrush(Context.World()->GetDefaultBrush()->Brush, 0, 1);
 
-					FString MapFileName = FPaths::GetCleanFilename(TempFname);
-					GWarn->StatusUpdate( -1, -1, FText::Format( LOCTEXT( "LoadingMapStatus_Initializing", "Loading map: {0}... (Initializing world)" ), FText::FromString(MapFileName) ) );
+					// This is a relatively long process, so break it up a bit
+					FScopedSlowTask InitializingFeedback(5);
+					InitializingFeedback.EnterProgressFrame();
 
 					Context.World()->AddToRoot();
 
@@ -2226,6 +2235,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					// Update any actors that can be affected by CullDistanceVolumes
 					Context.World()->UpdateCullDistanceVolumes();
 
+					InitializingFeedback.EnterProgressFrame();
+
 					// A new level was loaded into the editor, so we need to let other systems know about the new
 					// actors in the scene
 					FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::NewMap );
@@ -2240,7 +2251,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 					NoteSelectionChange();
 
-					GWarn->EndSlowTask();
+					InitializingFeedback.EnterProgressFrame();
+
 					// Look for 'orphan' actors - that is, actors which are in the Package of the level we just loaded, but not in the Actors array.
 					// If we find any, set IsPendingKill() to 'true', so that PendingKill will return 'true' for them. We can NOT use FActorIterator here
 					// as it just traverses the Actors list.
@@ -2266,6 +2278,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						AActor* Actor = *It;
 						Actor->SetFlags( RF_Transactional );
 					}
+
+					InitializingFeedback.EnterProgressFrame();
 
 					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
 					Context.World()->CreateAISystem();
@@ -2313,6 +2327,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						const bool bIsVisible = false;
 						GEditor->Layers->SetLayersVisibility( LayersToHide, bIsVisible );
 					}
+
+					InitializingFeedback.EnterProgressFrame();
 
 					FEditorDelegates::DisplayLoadErrors.Broadcast();
 
@@ -4028,18 +4044,12 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 			FParse::Bool( Str, TEXT( "KEEPDIRTY=" ), bKeepDirty );
 
 			// Save the package.
-			if( !bSilent )
-			{
-				const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(Pkg);
-				const bool bIsMapPackage = AssociatedWorld != nullptr;
+			const bool bIsMapPackage = UWorld::FindWorldInPackage(Pkg) != nullptr;
+			const FText SavingPackageText = (bIsMapPackage) 
+				? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Pkg->GetName()))
+				: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Pkg->GetName()));
 
-				const FText SavingPackageText = (bIsMapPackage) 
-					? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Pkg->GetName()))
-					: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Pkg->GetName()));
-
-				GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackage", "Saving package" ), true );
-				GWarn->StatusUpdate( 1, 1, SavingPackageText );
-			}
+			FScopedSlowTask SlowTask(100, SavingPackageText, !bSilent);
 
 			uint32 SaveFlags = bAutosaving ? SAVE_FromAutosave : SAVE_None;
 			if ( bKeepDirty )
@@ -4049,10 +4059,6 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 
 			const bool bWarnOfLongFilename = !bAutosaving;
 			bWasSuccessful = this->SavePackage( Pkg, NULL, RF_Standalone, TempFname, &Ar, NULL, false, bWarnOfLongFilename, SaveFlags );
-			if( !bSilent )
-			{
-				GWarn->EndSlowTask();
-			}
 		}
 		else
 		{

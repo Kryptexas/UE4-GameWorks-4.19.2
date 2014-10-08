@@ -16,13 +16,11 @@ class FFeedbackContextWindows : public FFeedbackContext
 
 public:
 	// Variables.
-	int32					SlowTaskCount;
 
 	// Constructor.
 	FFeedbackContextWindows()
 	: FFeedbackContext()
 	, Context( NULL )
-	, SlowTaskCount( 0 )
 	{}
 	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 	{
@@ -81,20 +79,6 @@ public:
 		{
 			return false;
 		}
-	}
-
-	void BeginSlowTask( const FText& Task, bool ShowProgressDialog, bool bShowCancelButton=false )
-	{
-		GIsSlowTask = ++SlowTaskCount>0;
-	}
-	void EndSlowTask()
-	{
-		check(SlowTaskCount>0);
-		GIsSlowTask = --SlowTaskCount>0;
-	}
-	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& StatusText )
-	{
-		return true;
 	}
 	FContextSupplier* GetContext() const
 	{

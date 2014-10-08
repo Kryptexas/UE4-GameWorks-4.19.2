@@ -220,7 +220,7 @@ private:
 	bool InvokeUnrealBuildToolForCompile(const FString& InCmdLineParams, FOutputDevice &Ar);
 
 	/** Checks to see if a pending compilation action has completed and optionally waits for it to finish.  If completed, fires any appropriate callbacks and reports status provided bFireEvents is true. */
-	void CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideText = FText::GetEmpty(), bool bFireEvents = true);
+	void CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, bool bFireEvents = true);
 
 	/** Called when the compile data for a module need to be update in memory and written to config */
 	void UpdateModuleCompileData(FName ModuleName);
@@ -402,14 +402,13 @@ FString FHotReloadModule::GetModuleCompileMethod(FName InModuleName)
 bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar )
 {
 #if WITH_HOT_RELOAD
-	const bool bShowProgressDialog = true;
-	const bool bShowCancelButton = false;
 
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("CodeModuleName"), FText::FromName( InModuleName ) );
 	const FText StatusUpdate = FText::Format( NSLOCTEXT("ModuleManager", "Recompile_SlowTaskName", "Compiling {CodeModuleName}..."), Args );
 
-	GWarn->BeginSlowTask( StatusUpdate, bShowProgressDialog, bShowCancelButton );
+	FScopedSlowTask SlowTask(1, StatusUpdate);
+	SlowTask.MakeDialog();
 
 	ModuleCompilerStartedEvent.Broadcast();
 
@@ -468,7 +467,6 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 		}
 	}
 
-	GWarn->EndSlowTask();
 	return bWasSuccessful;
 #else
 	return false;
@@ -891,26 +889,29 @@ void FHotReloadModule::DoHotReloadFromIDE()
 
 		UE_LOG(LogHotReload, Log, TEXT("Starting Hot-Reload from IDE"));
 
-		GWarn->BeginSlowTask(LOCTEXT("CompilingGameCode", "Compiling Game Code"), true);
+		FScopedSlowTask SlowTask(100.f, LOCTEXT("CompilingGameCode", "Compiling Game Code"));
+		SlowTask.MakeDialog();
 
 		// Update compile data before we start compiling
 		for (auto& NewModule : NewModules)
 		{
+			// Move on 10% / num items
+			SlowTask.EnterProgressFrame(10.f/NewModules.Num());
+
 			UpdateModuleCompileData(*NewModule.Name);
 			OnModuleCompileSucceeded(*NewModule.Name, NewModule.NewFilename);
 		}
 
-
+		SlowTask.EnterProgressFrame(10);
 		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
 
+		SlowTask.EnterProgressFrame(80);
 		check(PackagesToRebind.Num() || DependentModules.Num())
 		{
 			const bool bRecompileFinished = true;
 			const ECompilationResult::Type RecompileResult = ECompilationResult::Succeeded;
 			Result = DoHotReloadInternal(bRecompileFinished, RecompileResult, PackagesToRebind, DependentModules, *GLog);
 		}
-
-		GWarn->EndSlowTask();
 	}
 
 	RecordAnalyticsEvent(TEXT("IDE"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
@@ -1197,7 +1198,7 @@ bool FHotReloadModule::InvokeUnrealBuildToolForCompile(const FString& InCmdLineP
 #endif // WITH_HOT_RELOAD
 }
 
-void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideText, bool bFireEvents)
+void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, bool bFireEvents)
 {
 #if WITH_HOT_RELOAD
 	bCompileStillInProgress = false;
@@ -1208,33 +1209,20 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 	{
 		bCompileStillInProgress = true;
 
-		// Ensure slow task messages are seen.
-		GWarn->PushStatus();
-
-		// Update the slow task dialog if we were summoned from a synchronous recompile path
-		if (GIsSlowTask)
+		FText StatusUpdate;
+		if ( ModulesBeingCompiled.Num() > 0 )
 		{
-			if ( !SlowTaskOverrideText.IsEmpty() )
-			{
-				GWarn->StatusUpdate(-1, -1, SlowTaskOverrideText);
-			}
-			else
-			{
-				FText StatusUpdate;
-				if ( ModulesBeingCompiled.Num() > 0 )
-				{
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("CodeModuleName"), FText::FromString( ModulesBeingCompiled[0].ModuleName ) );
-					StatusUpdate = FText::Format( NSLOCTEXT("FModuleManager", "CompileSpecificModuleStatusMessage", "{CodeModuleName}: Compiling modules..."), Args );
-				}
-				else
-				{
-					StatusUpdate = NSLOCTEXT("FModuleManager", "CompileStatusMessage", "Compiling modules...");
-				}
-
-				GWarn->StatusUpdate(-1, -1, StatusUpdate);
-			}
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("CodeModuleName"), FText::FromString( ModulesBeingCompiled[0].ModuleName ) );
+			StatusUpdate = FText::Format( NSLOCTEXT("FModuleManager", "CompileSpecificModuleStatusMessage", "{CodeModuleName}: Compiling modules..."), Args );
 		}
+		else
+		{
+			StatusUpdate = NSLOCTEXT("FModuleManager", "CompileStatusMessage", "Compiling modules...");
+		}
+
+		FScopedSlowTask SlowTask(0, StatusUpdate, GIsSlowTask);
+		SlowTask.MakeDialog();
 
 		// Check to see if the compile has finished yet
 		int32 ReturnCode = -1;
@@ -1272,9 +1260,6 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 		}
 		
 		bRequestCancelCompilation = false;
-
-		// Restore any status from before the loop - see PushStatus() above.
-		GWarn->PopStatus();
 
 		if( !bCompileStillInProgress )		
 		{

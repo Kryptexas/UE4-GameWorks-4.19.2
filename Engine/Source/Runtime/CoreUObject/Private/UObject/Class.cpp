@@ -2568,17 +2568,6 @@ public:
 			GLog->Serialize( V, Verbosity, Category );
 	}
 
-	void BeginSlowTask( const FText& Task, bool ShowProgressDialog, bool bShowCancelButton=false )
-	{
-	}
-	void EndSlowTask()
-	{
-	}
-	virtual bool StatusUpdate(int32 Numerator, int32 Denominator, const FText& StatusText )
-	{
-		return true;
-	}
-
 	FContextSupplier* GetContext() const
 	{
 		return Context;

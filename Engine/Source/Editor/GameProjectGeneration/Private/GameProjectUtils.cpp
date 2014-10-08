@@ -515,14 +515,16 @@ bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FTex
 	TArray<FString> FilesToCopy;
 	GetStarterContentFiles(FilesToCopy);
 
+	FScopedSlowTask SlowTask(FilesToCopy.Num(), LOCTEXT("CreatingProjectStatus_CopyingFiles", "Copying Files {SrcFilename}..."));
+	SlowTask.MakeDialog();
+
 	TArray<FString> CreatedFiles;
 	for (FString SrcFilename : FilesToCopy)
 	{
 		// Update the slow task dialog
-		const bool bAllowNewSlowTask = false;
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("SrcFilename"), FText::FromString(FPaths::GetCleanFilename(SrcFilename)));
-		FScopedSlowTask SlowTaskMessage(FText::Format(LOCTEXT("CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..."), Args), bAllowNewSlowTask);
+		SlowTask.EnterProgressFrame(1, FText::Format(LOCTEXT("CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..."), Args));
 
 		FString FileRelPath = FPaths::GetPath(SrcFilename);
 		FPaths::MakePathRelativeTo(FileRelPath, *SrcFolder);
@@ -558,8 +560,8 @@ bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, F
 		return false;
 	}
 
-	const bool bAllowNewSlowTask = true;
-	FScopedSlowTask SlowTaskMessage( LOCTEXT( "CreatingProjectStatus", "Creating project..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTask(0, LOCTEXT( "CreatingProjectStatus", "Creating project..." ));
+	SlowTask.MakeDialog();
 
 	bool bProjectCreationSuccessful = false;
 	FString TemplateName;
@@ -819,9 +821,13 @@ UTemplateProjectDefs* GameProjectUtils::LoadTemplateDefs(const FString& ProjectD
 
 bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InProjectInfo, FText& OutFailReason)
 {
+	FScopedSlowTask SlowTask(5);
+
 	const FString NewProjectFolder = FPaths::GetPath(InProjectInfo.ProjectFilename);
 	const FString NewProjectName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
 	TArray<FString> CreatedFiles;
+
+	SlowTask.EnterProgressFrame();
 
 	// Generate config files
 	if (!GenerateConfigFiles(InProjectInfo, CreatedFiles, OutFailReason))
@@ -841,9 +847,14 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		return false;
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	TArray<FString> StartupModuleNames;
 	if ( InProjectInfo.bShouldGenerateCode )
 	{
+		FScopedSlowTask LocalScope(2);
+
+		LocalScope.EnterProgressFrame();
 		// Generate basic source code files
 		if ( !GenerateBasicSourceCode(NewProjectFolder / TEXT("Source"), NewProjectName, NewProjectFolder, StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
@@ -851,6 +862,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 			return false;
 		}
 
+		LocalScope.EnterProgressFrame();
 		// Generate game framework source code files
 		if ( !GenerateGameFrameworkSourceCode(NewProjectFolder / TEXT("Source"), NewProjectName, CreatedFiles, OutFailReason) )
 		{
@@ -858,6 +870,8 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 			return false;
 		}
 	}
+
+	SlowTask.EnterProgressFrame();
 
 	// Generate the project file
 	{
@@ -874,6 +888,8 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 		}
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// Generate project files
@@ -884,6 +900,8 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 			return false;
 		}
 	}
+
+	SlowTask.EnterProgressFrame();
 
 	if (InProjectInfo.bCopyStarterContent)
 	{
@@ -902,6 +920,8 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 
 bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason)
 {
+	FScopedSlowTask SlowTask(10);
+
 	const FString ProjectName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
 	const FString TemplateName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
 	const FString SrcFolder = FPaths::GetPath(InProjectInfo.TemplateFile);
@@ -915,6 +935,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		return false;
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	UTemplateProjectDefs* TemplateDefs = LoadTemplateDefs(SrcFolder);
 	if ( TemplateDefs == NULL )
 	{
@@ -924,6 +946,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		OutFailReason = FText::Format( LOCTEXT("InvalidTemplate_MissingDefs", "Template project \"{TemplateFile}\" does not have definitions file: '{TemplateDefinesFile}'."), Args );
 		return false;
 	}
+
+	SlowTask.EnterProgressFrame();
 
 	// Fix up the replacement strings using the specified project name
 	TemplateDefs->FixupStrings(TemplateName, ProjectName);
@@ -938,148 +962,165 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	// Keep a list of created files so we can delete them if project creation fails
 	TArray<FString> CreatedFiles;
 
+	SlowTask.EnterProgressFrame();
+
 	// Discover and copy all files in the src folder to the destination, excluding a few files and folders
 	TArray<FString> FilesToCopy;
 	TArray<FString> FilesThatNeedContentsReplaced;
 	TMap<FString, FString> ClassRenames;
 	IFileManager::Get().FindFilesRecursive(FilesToCopy, *SrcFolder, TEXT("*"), /*Files=*/true, /*Directories=*/false);
-	for ( auto FileIt = FilesToCopy.CreateConstIterator(); FileIt; ++FileIt )
+
+	SlowTask.EnterProgressFrame();
 	{
-		const FString SrcFilename = (*FileIt);
+		// Open a new feedback scope for the loop so we can report how far through the copy we are
+		FScopedSlowTask InnerSlowTask(FilesToCopy.Num());
+		for ( auto FileIt = FilesToCopy.CreateConstIterator(); FileIt; ++FileIt )
+		{
+			const FString SrcFilename = (*FileIt);
+
+			// Update the progress
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("SrcFilename"), FText::FromString( FPaths::GetCleanFilename(SrcFilename) ) );
+			InnerSlowTask.EnterProgressFrame(1, FText::Format( LOCTEXT( "CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..." ), Args ));
 
 		// Get the file path, relative to the src folder
-		const FString SrcFileSubpath = SrcFilename.RightChop(SrcFolder.Len() + 1);
+			const FString SrcFileSubpath = SrcFilename.RightChop(SrcFolder.Len() + 1);
 
-		// Skip any files that were configured to be ignored
-		bool bThisFileIsIgnored = false;
-		for ( auto IgnoreIt = TemplateDefs->FilesToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
-		{
-			if ( SrcFileSubpath == *IgnoreIt )
+			// Skip any files that were configured to be ignored
+			bool bThisFileIsIgnored = false;
+			for ( auto IgnoreIt = TemplateDefs->FilesToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
 			{
-				// This file was marked as "ignored"
-				bThisFileIsIgnored = true;
-				break;
-			}
-		}
-
-		if ( bThisFileIsIgnored )
-		{
-			// This file was marked as "ignored"
-			continue;
-		}
-
-		// Skip any folders that were configured to be ignored
-		bool bThisFolderIsIgnored = false;
-		for ( auto IgnoreIt = TemplateDefs->FoldersToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
-		{
-			if ( SrcFileSubpath.StartsWith((*IgnoreIt) + TEXT("/") ) )
-			{
-				// This folder was marked as "ignored"
-				bThisFolderIsIgnored = true;
-				break;
-			}
-		}
-
-		if ( bThisFolderIsIgnored )
-		{
-			// This folder was marked as "ignored"
-			continue;
-		}
-
-		// Update the slow task dialog
-		const bool bAllowNewSlowTask = false;
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("SrcFilename"), FText::FromString( FPaths::GetCleanFilename(SrcFilename) ) );
-		FScopedSlowTask SlowTaskMessage( FText::Format( LOCTEXT( "CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..." ), Args ), bAllowNewSlowTask );
-
-		// Retarget any folders that were chosen to be renamed by choosing a new destination subpath now
-		FString DestFileSubpathWithoutFilename = FPaths::GetPath(SrcFileSubpath) + TEXT("/");
-		for ( auto RenameIt = TemplateDefs->FolderRenames.CreateConstIterator(); RenameIt; ++RenameIt )
-		{
-			const FTemplateFolderRename& FolderRename = *RenameIt;
-			if ( SrcFileSubpath.StartsWith(FolderRename.From + TEXT("/")) )
-			{
-				// This was a file in a renamed folder. Retarget to the new location
-				DestFileSubpathWithoutFilename = FolderRename.To / DestFileSubpathWithoutFilename.RightChop( FolderRename.From.Len() );
-			}
-		}
-
-		// Retarget any files that were chosen to have parts of their names replaced here
-		FString DestBaseFilename = FPaths::GetBaseFilename(SrcFileSubpath);
-		const FString FileExtension = FPaths::GetExtension(SrcFileSubpath);
-		for ( auto ReplacementIt = TemplateDefs->FilenameReplacements.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
-		{
-			const FTemplateReplacement& Replacement = *ReplacementIt;
-			if ( Replacement.Extensions.Contains( FileExtension ) )
-			{
-				// This file matched a filename replacement extension, apply it now
-				DestBaseFilename = DestBaseFilename.Replace(*Replacement.From, *Replacement.To, Replacement.bCaseSensitive ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase);
-			}
-		}
-
-		// Perform the copy
-		const FString DestFilename = DestFolder / DestFileSubpathWithoutFilename + DestBaseFilename + TEXT(".") + FileExtension;
-		if ( IFileManager::Get().Copy(*DestFilename, *SrcFilename) == COPY_OK )
-		{
-			CreatedFiles.Add(DestFilename);
-
-			if ( ReplacementsInFilesExtensions.Contains(FileExtension) )
-			{
-				FilesThatNeedContentsReplaced.Add(DestFilename);
-			}
-
-			// Allow project template to extract class renames from this file copy
-			if (FPaths::GetBaseFilename(SrcFilename) != FPaths::GetBaseFilename(DestFilename)
-				&& TemplateDefs->IsClassRename(DestFilename, SrcFilename, FileExtension))
-			{
-				// Looks like a UObject file!
-				ClassRenames.Add(FPaths::GetBaseFilename(SrcFilename), FPaths::GetBaseFilename(DestFilename));
-			}
-		}
-		else
-		{
-			FFormatNamedArguments FailArgs;
-			FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
-			FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
-			OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
-			DeleteCreatedFiles(DestFolder, CreatedFiles);
-			return false;
-		}
-	}
-
-	// Open all files with the specified extensions and replace text
-	for ( auto FileIt = FilesThatNeedContentsReplaced.CreateConstIterator(); FileIt; ++FileIt )
-	{
-		const FString FileToFix = *FileIt;
-		bool bSuccessfullyProcessed = false;
-
-		FString FileContents;
-		if ( FFileHelper::LoadFileToString(FileContents, *FileToFix) )
-		{
-			for ( auto ReplacementIt = TemplateDefs->ReplacementsInFiles.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
-			{
-				const FTemplateReplacement& Replacement = *ReplacementIt;
-				if ( Replacement.Extensions.Contains( FPaths::GetExtension(FileToFix) ) )
+				if ( SrcFileSubpath == *IgnoreIt )
 				{
-					FileContents = FileContents.Replace(*Replacement.From, *Replacement.To, Replacement.bCaseSensitive ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase);
+					// This file was marked as "ignored"
+					bThisFileIsIgnored = true;
+					break;
 				}
 			}
 
-			if ( FFileHelper::SaveStringToFile(FileContents, *FileToFix) )
+			if ( bThisFileIsIgnored )
 			{
-				bSuccessfullyProcessed = true;
+				// This file was marked as "ignored"
+				continue;
+			}
+
+			// Skip any folders that were configured to be ignored
+			bool bThisFolderIsIgnored = false;
+			for ( auto IgnoreIt = TemplateDefs->FoldersToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
+			{
+				if ( SrcFileSubpath.StartsWith((*IgnoreIt) + TEXT("/") ) )
+				{
+					// This folder was marked as "ignored"
+					bThisFolderIsIgnored = true;
+					break;
+				}
+			}
+
+			if ( bThisFolderIsIgnored )
+			{
+				// This folder was marked as "ignored"
+				continue;
+			}
+
+			// Retarget any folders that were chosen to be renamed by choosing a new destination subpath now
+			FString DestFileSubpathWithoutFilename = FPaths::GetPath(SrcFileSubpath) + TEXT("/");
+			for ( auto RenameIt = TemplateDefs->FolderRenames.CreateConstIterator(); RenameIt; ++RenameIt )
+			{
+				const FTemplateFolderRename& FolderRename = *RenameIt;
+				if ( SrcFileSubpath.StartsWith(FolderRename.From + TEXT("/")) )
+				{
+					// This was a file in a renamed folder. Retarget to the new location
+					DestFileSubpathWithoutFilename = FolderRename.To / DestFileSubpathWithoutFilename.RightChop( FolderRename.From.Len() );
+				}
+			}
+
+			// Retarget any files that were chosen to have parts of their names replaced here
+			FString DestBaseFilename = FPaths::GetBaseFilename(SrcFileSubpath);
+			const FString FileExtension = FPaths::GetExtension(SrcFileSubpath);
+			for ( auto ReplacementIt = TemplateDefs->FilenameReplacements.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+			{
+				const FTemplateReplacement& Replacement = *ReplacementIt;
+				if ( Replacement.Extensions.Contains( FileExtension ) )
+				{
+					// This file matched a filename replacement extension, apply it now
+					DestBaseFilename = DestBaseFilename.Replace(*Replacement.From, *Replacement.To, Replacement.bCaseSensitive ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase);
+				}
+			}
+
+			// Perform the copy
+			const FString DestFilename = DestFolder / DestFileSubpathWithoutFilename + DestBaseFilename + TEXT(".") + FileExtension;
+			if ( IFileManager::Get().Copy(*DestFilename, *SrcFilename) == COPY_OK )
+			{
+				CreatedFiles.Add(DestFilename);
+
+				if ( ReplacementsInFilesExtensions.Contains(FileExtension) )
+				{
+					FilesThatNeedContentsReplaced.Add(DestFilename);
+				}
+
+				// Allow project template to extract class renames from this file copy
+				if (FPaths::GetBaseFilename(SrcFilename) != FPaths::GetBaseFilename(DestFilename)
+					&& TemplateDefs->IsClassRename(DestFilename, SrcFilename, FileExtension))
+				{
+					// Looks like a UObject file!
+					ClassRenames.Add(FPaths::GetBaseFilename(SrcFilename), FPaths::GetBaseFilename(DestFilename));
+				}
+			}
+			else
+			{
+				FFormatNamedArguments FailArgs;
+				FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
+				FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
+				OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
+				DeleteCreatedFiles(DestFolder, CreatedFiles);
+				return false;
 			}
 		}
+	}
 
-		if ( !bSuccessfullyProcessed )
+	SlowTask.EnterProgressFrame();
+	{
+		// Open a new feedback scope for the loop so we can report how far through the process we are
+		FScopedSlowTask InnerSlowTask(FilesThatNeedContentsReplaced.Num());
+
+		// Open all files with the specified extensions and replace text
+		for ( auto FileIt = FilesThatNeedContentsReplaced.CreateConstIterator(); FileIt; ++FileIt )
 		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("FileToFix"), FText::FromString( FileToFix ) );
-			OutFailReason = FText::Format( LOCTEXT("FailedToFixUpFile", "Failed to process file \"{FileToFix}\"."), Args );
-			DeleteCreatedFiles(DestFolder, CreatedFiles);
-			return false;
+			InnerSlowTask.EnterProgressFrame();
+
+			const FString FileToFix = *FileIt;
+			bool bSuccessfullyProcessed = false;
+
+			FString FileContents;
+			if ( FFileHelper::LoadFileToString(FileContents, *FileToFix) )
+			{
+				for ( auto ReplacementIt = TemplateDefs->ReplacementsInFiles.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+				{
+					const FTemplateReplacement& Replacement = *ReplacementIt;
+					if ( Replacement.Extensions.Contains( FPaths::GetExtension(FileToFix) ) )
+					{
+						FileContents = FileContents.Replace(*Replacement.From, *Replacement.To, Replacement.bCaseSensitive ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase);
+					}
+				}
+
+				if ( FFileHelper::SaveStringToFile(FileContents, *FileToFix) )
+				{
+					bSuccessfullyProcessed = true;
+				}
+			}
+
+			if ( !bSuccessfullyProcessed )
+			{
+				FFormatNamedArguments Args;
+				Args.Add( TEXT("FileToFix"), FText::FromString( FileToFix ) );
+				OutFailReason = FText::Format( LOCTEXT("FailedToFixUpFile", "Failed to process file \"{FileToFix}\"."), Args );
+				DeleteCreatedFiles(DestFolder, CreatedFiles);
+				return false;
+			}
 		}
 	}
+
+	SlowTask.EnterProgressFrame();
 
 	const FString ProjectConfigPath = DestFolder / TEXT("Config");
 
@@ -1220,6 +1261,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		}
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	// Generate the project file
 	{
 		// Load the source project
@@ -1254,6 +1297,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		CreatedFiles.Add(InProjectInfo.ProjectFilename);
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	// Copy resources
 	const FString GameModuleSourcePath = DestFolder / TEXT("Source") / ProjectName;
 	if (GenerateGameResourceFiles(GameModuleSourcePath, ProjectName, DestFolder, InProjectInfo.bShouldGenerateCode, CreatedFiles, OutFailReason) == false)
@@ -1262,6 +1307,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		return false;
 	}
 
+	SlowTask.EnterProgressFrame();
 	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// Generate project files
@@ -1272,6 +1318,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 			return false;
 		}
 	}
+
+	SlowTask.EnterProgressFrame();
 
 	if (InProjectInfo.bCopyStarterContent)
 	{
@@ -2658,8 +2706,10 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		return false;
 	}
 
-	const bool bAllowNewSlowTask = true;
-	FScopedSlowTask SlowTaskMessage( LOCTEXT( "AddingCodeToProject", "Adding code to project..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTask( 5,  LOCTEXT( "AddingCodeToProject", "Adding code to project..." ) );
+	SlowTask.MakeDialog();
+
+	SlowTask.EnterProgressFrame();
 
 	// If the project does not already contain code, add the primary game module
 	TArray<FString> CreatedFiles;
@@ -2683,6 +2733,8 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		}
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	// Class Header File
 	FString SyncLocation;
 	const FString NewHeaderFilename = NewHeaderPath / ParentClassInfo.GetHeaderFilename(NewClassName);
@@ -2698,6 +2750,8 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		}
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	// Class CPP file
 	const FString NewCppFilename = NewCppPath / ParentClassInfo.GetSourceFilename(NewClassName);
 	{
@@ -2712,12 +2766,16 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		}
 	}
 
+	SlowTask.EnterProgressFrame();
+
 	// Generate project files if we happen to be using a project file.
 	if ( !FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
 	{
 		OutFailReason = LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files.");
 		return false;
 	}
+
+	SlowTask.EnterProgressFrame();
 
 	// Mark the files for add in SCC
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();

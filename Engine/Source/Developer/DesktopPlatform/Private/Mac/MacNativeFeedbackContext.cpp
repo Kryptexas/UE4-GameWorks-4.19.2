@@ -398,18 +398,18 @@ bool FMacNativeFeedbackContext::ReceivedUserCancel()
 	return bReceivedUserCancel;
 }
 
-void FMacNativeFeedbackContext::BeginSlowTask( const FText& Task, bool bShowProgressDialog, bool bInShowCancelButton )
+void FMacNativeFeedbackContext::StartSlowTask(const FText& Task, bool bInShowCancelButton)
 {
-	GIsSlowTask = ++SlowTaskCount>0;
+	FFeedbackContext::StartSlowTask(Task, bInShowCancelButton);
 
-	if(SlowTaskCount > 0 && bShowProgressDialog && WindowController != NULL && !bShowingConsoleForSlowTask)
+	if(WindowController != NULL && !bShowingConsoleForSlowTask)
 	{
 		MainThreadCall(^{
 			[WindowController setTitleText:Task.ToString().GetNSString()];
 			[WindowController setStatusText:@"Progress:"];
 			[WindowController setShowCancelButton:bInShowCancelButton];
 			[WindowController setShowProgress:true];
-			[WindowController setProgress:0 total:100];
+			[WindowController setProgress:0 total:1];
 			[WindowController setShowProgress:false];
 			
 			SetDefaultTextColor();
@@ -421,12 +421,11 @@ void FMacNativeFeedbackContext::BeginSlowTask( const FText& Task, bool bShowProg
 	}
 }
 
-void FMacNativeFeedbackContext::EndSlowTask()
+void FMacNativeFeedbackContext::FinalizeSlowTask()
 {
-	check(SlowTaskCount>0);
-	GIsSlowTask = --SlowTaskCount>0;
+	FFeedbackContext::FinalizeSlowTask();
 
-	if(SlowTaskCount == 0 && bShowingConsoleForSlowTask)
+	if(bShowingConsoleForSlowTask)
 	{
 		MainThreadCall(^{
 			if(WindowController != NULL)
@@ -438,32 +437,16 @@ void FMacNativeFeedbackContext::EndSlowTask()
 	}
 }
 
-bool FMacNativeFeedbackContext::StatusUpdate( int32 Numerator, int32 Denominator, const FText& NewStatus )
+void FMacNativeFeedbackContext::ProgressReported( const float TotalProgressInterp, FText DisplayMessage )
 {
 	if(WindowController != NULL && bShowingConsoleForSlowTask)
 	{
 		MainThreadCall(^{
-			[WindowController setStatusText:NewStatus.ToString().GetNSString()];
-		});
-		UpdateProgress(Numerator, Denominator);
-	}
-	return true;
-}
-
-bool FMacNativeFeedbackContext::StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText )
-{
-	return StatusUpdate(Numerator, Denominator, StatusText);
-}
-
-void FMacNativeFeedbackContext::UpdateProgress(int32 Numerator, int32 Denominator)
-{
-	MainThreadCall(^{
-		if(WindowController != NULL && bShowingConsoleForSlowTask)
-		{
+			[WindowController setStatusText:DisplayMessage.ToString().GetNSString()];
 			[WindowController setShowProgress:true];
-			[WindowController setProgress:Numerator total:Denominator];
-		}
-	});
+			[WindowController setProgress:TotalProgressInterp total:1];
+		});
+	}
 }
 
 FContextSupplier* FMacNativeFeedbackContext::GetContext() const

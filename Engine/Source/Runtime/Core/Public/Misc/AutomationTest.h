@@ -536,31 +536,12 @@ private:
 
 		/** Constructor */
 		FAutomationTestFeedbackContext() 
-			: SlowTaskCount( 0 ), CurTest( NULL ) {}
+			: CurTest( NULL ) {}
 
 		/** Destructor */
 		~FAutomationTestFeedbackContext()
 		{
 			CurTest = NULL;
-		}
-
-		/** Signify the a slow task is beginning (parameters unused in this implementation) */
-		void BeginSlowTask( const FText& Task, bool ShowProgressDialog, bool bShowCancelButton=false )
-		{
-			GIsSlowTask = ++SlowTaskCount > 0;
-		}
-
-		/** Signify that a slow task is ending (parameters unused in this implementation) */
-		void EndSlowTask()
-		{
-			check( SlowTaskCount > 0 );
-			GIsSlowTask = --SlowTaskCount > 0;
-		}
-
-		/** Unneeded by the context, just return true */
-		virtual bool StatusUpdate(int32 Numerator, int32 Denominator, const FText& StatusText )
-		{
-			return true;
 		}
 
 		/**
@@ -583,8 +564,6 @@ private:
 		}
 
 	private:
-		/** Number of slow tasks currently occurring */
-		int32 SlowTaskCount;
 
 		/** Associated automation test; all warnings, errors, etc. are routed to the automation test to track */
 		class FAutomationTestBase* CurTest;

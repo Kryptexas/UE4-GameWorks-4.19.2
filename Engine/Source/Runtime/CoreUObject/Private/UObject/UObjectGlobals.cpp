@@ -798,9 +798,15 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 	TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, GIsEditor || GIsEditorLoadingPackage);
 #endif
 
+	FScopedSlowTask SlowTask(100, FText::Format(NSLOCTEXT("Core", "LoadingPackage_Scope", "Loading Package '{0}'"), FText::FromString(FileToLoad)));
+	SlowTask.bVisibleOnUI = false;
+	
+	SlowTask.EnterProgressFrame(10);
+
 	// Try to load.
 	BeginLoad();
 
+	SlowTask.EnterProgressFrame(30);
 	{
 		// Keep track of start time.
 		const double StartTime = FPlatformTime::Seconds();
@@ -843,17 +849,19 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 			Linker->StartScriptSHAGeneration();
 		}
 
+		SlowTask.EnterProgressFrame(30);
+
 		if( !(LoadFlags & LOAD_Verify) )
 		{
 			Linker->LoadAllObjects();
 		}
-#if WITH_EDITOR
-		// Add a LoadContext string to the endload function in the form of: "<FileToLoad> Package"
-		EndLoad( GIsEditor ? *FPaths::GetBaseFilename(FileToLoad) : NULL );
 
-		GIsEditorLoadingPackage = *IsEditorLoadingPackage;
-#else
+		SlowTask.EnterProgressFrame(30);
+
 		EndLoad();
+
+#if WITH_EDITOR
+		GIsEditorLoadingPackage = *IsEditorLoadingPackage;
 #endif
 
 		// Set package-requires-localization flags from archive after loading. This reinforces flagging of packages that haven't yet been resaved.
@@ -987,78 +995,10 @@ struct FCompareUObjectByLinkerAndOffset
 	}
 };
 
-void UpdateObjectLoadingStatusMessage( const TCHAR* LoadContext, const double StartTime )
-{
-#if WITH_EDITOR
-// Used to control animation of the load progress status updates.
-	static int32 ProgressIterator = 3;
-
-// Time that progress was last updated
-	static  double LastProgressUpdateTime = 0.0;
-
-	const double UpdateDelta = 0.25;
-	const double SlowLoadDelta = 2.0;
-	FText StatusUpdate;
-
-	// This can be a long operation so we will output some progress feedback to the 
-	//  user in the form of 3 dots that animate between "." ".." "..."
-	const double CurTime = FPlatformTime::Seconds();
-	if ( CurTime - LastProgressUpdateTime > UpdateDelta )
-	{
-		if( ( CurTime - StartTime ) > SlowLoadDelta )
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("LoadContext"), FText::FromString( LoadContext ) );
-
-			if ( ProgressIterator == 1 )
-			{
-				StatusUpdate = FText::Format( NSLOCTEXT("Core", "LoadingRefObjectsMessageStateContext1", "Loading {LoadContext}."), Args );
-			}
-			else if ( ProgressIterator == 2 )
-			{
-				StatusUpdate = FText::Format( NSLOCTEXT("Core", "LoadingRefObjectsMessageStateContext2", "Loading {LoadContext}.."), Args );
-			}
-			else if ( ProgressIterator == 3 )
-			{
-				StatusUpdate = FText::Format( NSLOCTEXT("Core", "LoadingRefObjectsMessageStateContext3", "Loading {LoadContext}..."), Args );
-			}
-			else
-			{
-				StatusUpdate = FText::Format( NSLOCTEXT("Core", "LoadingRefObjectsMessageStateContext0", "Loading {LoadContext}"), Args );
-			}
-		}
-		else
-		{
-			if ( ProgressIterator == 1 )
-			{
-				StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState1", "Loading.");
-			}
-			else if ( ProgressIterator == 2 )
-			{
-				StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState2", "Loading..");
-			}
-			else if ( ProgressIterator == 3 )
-			{
-				StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState3", "Loading...");
-			}
-			else
-			{
-				StatusUpdate = NSLOCTEXT("Core", "LoadingRefObjectsMessageState0", "Loading");
-			}
-		}
-
-		LastProgressUpdateTime = CurTime;
-		ProgressIterator = (ProgressIterator + 1) % 4;
-	}		
-
-	GWarn->StatusUpdate( -1, -1, StatusUpdate );
-#endif
-}
-
 //
 // End loading packages.
 //
-void EndLoad(const TCHAR* LoadContext)
+void EndLoad()
 {
 	check(GObjBeginLoadCount>0);
 	if (GIsAsyncLoading)
@@ -1067,138 +1007,137 @@ void EndLoad(const TCHAR* LoadContext)
 		return;
 	}
 
+#if WITH_EDITOR
+	const bool bReportProgress = GIsEditor && !IsRunningCommandlet();
+	
+	FScopedSlowTask SlowTask(0, NSLOCTEXT("Core", "PerformingPostLoad", "Performing post-load..."), bReportProgress);
+
+	int32 NumObjectsLoaded = 0, NumObjectsFound = 0;
+#endif
+
 	while( --GObjBeginLoadCount == 0 && (GObjLoaded.Num() || GImportCount || GForcedExportCount) )
 	{
 		// Make sure we're not recursively calling EndLoad as e.g. loading a config file could cause
 		// BeginLoad/EndLoad to be called.
 		GObjBeginLoadCount++;
 
-			// Temporary list of loaded objects as GObjLoaded might expand during iteration.
-			TArray<UObject*> ObjLoaded;
-			TSet<ULinkerLoad*> LoadedLinkers;
+		// Temporary list of loaded objects as GObjLoaded might expand during iteration.
+		TArray<UObject*> ObjLoaded;
+		TSet<ULinkerLoad*> LoadedLinkers;
+		while( GObjLoaded.Num() )
+		{
+			// Accumulate till GObjLoaded no longer increases.
+			ObjLoaded += GObjLoaded;
+			GObjLoaded.Empty();
+
+			// Sort by Filename and Offset.
+			ObjLoaded.Sort( FCompareUObjectByLinkerAndOffset() );
+
+			// Finish loading everything.
+			for( int32 i=0; i<ObjLoaded.Num(); i++ )
+			{
+				// Preload.
+				UObject* Obj = ObjLoaded[i];
+				if( Obj->HasAnyFlags(RF_NeedLoad) )
+				{
+					check(Obj->GetLinker());
+					Obj->GetLinker()->Preload( Obj );
+				}
+			}
+
+			// Start over again as new objects have been loaded that need to have "Preload" called on them before
+			// we can safely PostLoad them.
+			if(GObjLoaded.Num())
+			{
+				continue;
+			}
 
 #if WITH_EDITOR
-			// Stores the progress symbols that we will animate through during long operations
-			const double StartTime = FPlatformTime::Seconds();
-			const bool bIsLoadContextValid = LoadContext != NULL && *LoadContext != '\0';
-			// We currently only allow status updates during the editor load splash screen.
-			const bool bAllowStatusUpdate = GIsEditor && !IsRunningCommandlet() && !GIsSlowTask && bIsLoadContextValid;
+			SlowTask.CompletedWork = SlowTask.TotalAmountOfWork;
+			SlowTask.TotalAmountOfWork += ObjLoaded.Num();
+			SlowTask.CurrentFrameScope = 0;
 #endif
-			while( GObjLoaded.Num() )
+
+			if ( GIsEditor )
 			{
-				// Accumulate till GObjLoaded no longer increases.
-				ObjLoaded += GObjLoaded;
-				GObjLoaded.Empty();
-
-				// Sort by Filename and Offset.
-				ObjLoaded.Sort( FCompareUObjectByLinkerAndOffset() );
-
-				// Finish loading everything.
 				for( int32 i=0; i<ObjLoaded.Num(); i++ )
 				{
-#if WITH_EDITOR
-					if ( bAllowStatusUpdate )
-					{
-						UpdateObjectLoadingStatusMessage( LoadContext, StartTime );
-					}		
-#endif				
-					// Preload.
 					UObject* Obj = ObjLoaded[i];
-					if( Obj->HasAnyFlags(RF_NeedLoad) )
+					if ( Obj->GetLinker() )
 					{
-						check(Obj->GetLinker());
-						Obj->GetLinker()->Preload( Obj );
+						LoadedLinkers.Add(Obj->GetLinker());
 					}
 				}
+			}
 
-				// Start over again as new objects have been loaded that need to have "Preload" called on them before
-				// we can safely PostLoad them.
-				if(GObjLoaded.Num())
+			{
+				// set this so that we can perform certain operations in which are only safe once all objects have been de-serialized.
+				TGuardValue<bool> GuardIsRoutingPostLoad(GIsRoutingPostLoad, true);
+
+				// Postload objects.
+				for(int32 i = 0; i < ObjLoaded.Num(); i++)
 				{
-					continue;
-				}
-
-				if ( GIsEditor )
-				{
-					for( int32 i=0; i<ObjLoaded.Num(); i++ )
-					{
-						UObject* Obj = ObjLoaded[i];
-						if ( Obj->GetLinker() )
-						{
-							LoadedLinkers.Add(Obj->GetLinker());
-						}
-					}
-				}
-
-				{
-					// set this so that we can perform certain operations in which are only safe once all objects have been de-serialized.
-					TGuardValue<bool> GuardIsRoutingPostLoad(GIsRoutingPostLoad, true);
-
-					// Postload objects.
-					for(int32 i = 0; i < ObjLoaded.Num(); i++)
-					{
+				
+					UObject* Obj = ObjLoaded[i];
+					check(Obj);
 #if WITH_EDITOR
-						if(bAllowStatusUpdate)
-						{
-							UpdateObjectLoadingStatusMessage(LoadContext, StartTime);
-						}
+					SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("Core", "FinalizingUObject", "Finalizing load of {0}"), FText::FromString(Obj->GetName())));
 #endif
-						UObject* Obj = ObjLoaded[i];
-						check(Obj);
-						Obj->ConditionalPostLoad();
-					}
+					Obj->ConditionalPostLoad();
 				}
+			}
+
 #if WITH_EDITOR
-				// Send global notification for each object that was loaded.
-				// Useful for updating UI such as ContentBrowser's loaded status.
+			// Send global notification for each object that was loaded.
+			// Useful for updating UI such as ContentBrowser's loaded status.
+			{
+				for( int32 CurObjIndex=0; CurObjIndex<ObjLoaded.Num(); CurObjIndex++ )
 				{
-					for( int32 CurObjIndex=0; CurObjIndex<ObjLoaded.Num(); CurObjIndex++ )
+					UObject* Obj = ObjLoaded[CurObjIndex];
+					check(Obj);
+					if ( Obj->IsAsset() )
 					{
-						UObject* Obj = ObjLoaded[CurObjIndex];
-						check(Obj);
-						if ( Obj->IsAsset() )
-						{
-							FCoreUObjectDelegates::OnAssetLoaded.Broadcast(Obj);
-						}
+						FCoreUObjectDelegates::OnAssetLoaded.Broadcast(Obj);
 					}
 				}
+			}
 #endif	// WITH_EDITOR
 
-				// Empty array before next iteration as we finished postloading all objects.
-				ObjLoaded.Empty( GObjLoaded.Num() );
-			}
+			// Empty array before next iteration as we finished postloading all objects.
+			ObjLoaded.Empty( GObjLoaded.Num() );
+		}
 
-			if ( GIsEditor && LoadedLinkers.Num() > 0 )
+		if ( GIsEditor && LoadedLinkers.Num() > 0 )
+		{
+			for ( TSet<ULinkerLoad*>::TIterator It(LoadedLinkers); It; ++It )
 			{
-				for ( TSet<ULinkerLoad*>::TIterator It(LoadedLinkers); It; ++It )
+				ULinkerLoad* LoadedLinker = *It;
+				check(LoadedLinker);
+
+				if ( LoadedLinker->LinkerRoot != NULL && !LoadedLinker->LinkerRoot->IsFullyLoaded() )
 				{
-					ULinkerLoad* LoadedLinker = *It;
-					check(LoadedLinker);
-
-					if ( LoadedLinker->LinkerRoot != NULL && !LoadedLinker->LinkerRoot->IsFullyLoaded() )
+					bool bAllExportsCreated = true;
+					for ( int32 ExportIndex = 0; ExportIndex < LoadedLinker->ExportMap.Num(); ExportIndex++ )
 					{
-						bool bAllExportsCreated = true;
-						for ( int32 ExportIndex = 0; ExportIndex < LoadedLinker->ExportMap.Num(); ExportIndex++ )
+						FObjectExport& Export = LoadedLinker->ExportMap[ExportIndex];
+						if ( !Export.bForcedExport && Export.Object == NULL )
 						{
-							FObjectExport& Export = LoadedLinker->ExportMap[ExportIndex];
-							if ( !Export.bForcedExport && Export.Object == NULL )
-							{
-								bAllExportsCreated = false;
-								break;
-							}
+							bAllExportsCreated = false;
+							break;
 						}
+					}
 
-						if ( bAllExportsCreated )
-						{
-							LoadedLinker->LinkerRoot->MarkAsFullyLoaded();
-						}
+					if ( bAllExportsCreated )
+					{
+						LoadedLinker->LinkerRoot->MarkAsFullyLoaded();
 					}
 				}
 			}
+		}
 
-			// Dissociate all linker import and forced export object references, since they
-			// may be destroyed, causing their pointers to become invalid.
-			DissociateImportsAndForcedExports();
+		// Dissociate all linker import and forced export object references, since they
+		// may be destroyed, causing their pointers to become invalid.
+		DissociateImportsAndForcedExports();
 
 		// close any linkers' loaders that were requested to be closed once GObjBeginLoadCount goes to 0
 		for (int32 Index = 0; Index < GDelayedLinkerClosePackages.Num(); Index++)
