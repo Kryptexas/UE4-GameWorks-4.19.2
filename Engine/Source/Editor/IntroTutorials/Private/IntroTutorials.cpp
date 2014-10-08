@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
-#include "SIntroTutorials.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
