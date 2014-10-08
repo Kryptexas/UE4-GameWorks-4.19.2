@@ -13,15 +13,11 @@ class FTargetDeviceServiceManager
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FTargetDeviceServiceManager( );
+	/** Default constructor. */
+	FTargetDeviceServiceManager();
 
-	/**
-	 * Destructor.
-	 */
-	~FTargetDeviceServiceManager( );
+	/** Destructor. */
+	~FTargetDeviceServiceManager();
 
 public:
 
@@ -55,7 +51,7 @@ protected:
 	ITargetDeviceServicePtr AddService(const FString& DeviceName);
 
 	/**
-	 * Adds a target device, a device service will be created if needed
+	 * Adds a target device, a device service will be created if needed.
 	 *
 	 * @param InDevice The target device to add
 	 * @return true if the device was added to the device service, false if the service failed to create.
@@ -106,34 +102,34 @@ protected:
 
 private:
 
-	// Callback for handling message bus shutdowns.
+	/** Callback for handling message bus shutdowns. */
 	void HandleMessageBusShutdown();
 
-	// Callback for discovered target devices.
+	/** Callback for discovered target devices. */
 	void HandleTargetPlatformDeviceDiscovered(ITargetDeviceRef DiscoveredDevice);
 
-	// Callback for lost target devices.
+	/** Callback for lost target devices. */
 	void HandleTargetPlatformDeviceLost(ITargetDeviceRef LostDevice);
 
 private:
 
-	// Holds a critical section object.
+	/** Holds a critical section object. */
 	FCriticalSection CriticalSection;
 
-	// Holds the list of locally managed device services.
+	/** Holds the list of locally managed device services. */
 	TMap<FString, ITargetDeviceServicePtr> DeviceServices;
 
-	// Holds a weak pointer to the message bus.
+	/** Holds a weak pointer to the message bus. */
 	IMessageBusWeakPtr MessageBusPtr;
 
-	// Holds the collection of identifiers for devices that start automatically (shared/unshared).
+	/** Holds the collection of identifiers for devices that start automatically (shared/unshared). */
 	TMap<FString, bool> StartupServices;
 
 private:
 
-	// Holds a delegate that is invoked when a target device service was added.
+	/** Holds a delegate that is invoked when a target device service was added. */
 	FOnTargetDeviceServiceAdded ServiceAddedDelegate;
 
-	// Holds a delegate that is invoked when a target device service was removed.
+	/** Holds a delegate that is invoked when a target device service was removed. */
 	FOnTargetDeviceServiceRemoved ServiceRemovedDelegate;
 };

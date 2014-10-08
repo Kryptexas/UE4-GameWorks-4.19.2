@@ -31,20 +31,6 @@ public:
 	virtual void AddTargetDevice(ITargetDevicePtr InDevice) = 0;
 
 	/**
-	 * Removes a flavor from this device.
-	 *
-	 * @return true if the service can start, false otherwise.
-	 */
-	virtual void RemoveTargetDevice(ITargetDevicePtr InDevice) = 0;
-
-	/**
-	 * Gets number of target devices.
-	 *
-	 * @return number of target devices in this device service.
-	 */
-	virtual int32 NumTargetDevices() = 0;
-
-	/**
 	 * Checks whether this service can start.
 	 *
 	 * A service can be started if it has a valid device and the device is connected.
@@ -59,14 +45,14 @@ public:
 	 *
 	 * @return Host name string.
 	 */
-	virtual const FString& GetClaimHost( ) = 0;
+	virtual const FString& GetClaimHost() = 0;
 
 	/**
 	 * Gets the name of the user that has a claim on the device.
 	 *
 	 * @return User name string.
 	 */
-	virtual const FString& GetClaimUser( ) = 0;
+	virtual const FString& GetClaimUser() = 0;
 
 	/**
 	 * Gets the target device for the supplied flavor, if no flavor is specified then the default device flavor is returned.
@@ -101,7 +87,7 @@ public:
 	 *
 	 * @return true if the service is running, false otherwise.
 	 */
-	virtual bool IsRunning( ) const = 0;
+	virtual bool IsRunning() const = 0;
 
 	/**
 	 * Checks whether the device is being shared with other users.
@@ -112,9 +98,21 @@ public:
 	 * @return true if the device is shared, false otherwise.
 	 * @see SetShared
 	 */
-	virtual bool IsShared( ) const = 0;
+	virtual bool IsShared() const = 0;
 
-public:
+	/**
+	 * Gets number of target devices.
+	 *
+	 * @return number of target devices in this device service.
+	 */
+	virtual int32 NumTargetDevices() = 0;
+
+	/**
+	 * Removes a flavor from this device.
+	 *
+	 * @return true if the service can start, false otherwise.
+	 */
+	virtual void RemoveTargetDevice(ITargetDevicePtr InDevice) = 0;
 
 	/**
 	 * Sets whether the device should be shared with other users.
@@ -125,29 +123,25 @@ public:
 	 * @param InShared Indicates whether device sharing is enabled.
 	 * @see IsShared
 	 */
-	virtual void SetShared( bool InShared ) = 0;
+	virtual void SetShared(bool InShared) = 0;
 
 	/**
 	 * Starts the service.
 	 *
 	 * @return true if the service has been started, false otherwise.
-	 * @see IsRunning
-	 * @see Stop
+	 * @see IsRunning, Stop
 	 */
-	virtual bool Start( ) = 0;
+	virtual bool Start() = 0;
 
 	/**
 	 * Stops the service.
 	 *
-	 * @see IsRunning
-	 * @see Stop
+	 * @see IsRunning, Stop
 	 */
-	virtual void Stop( ) = 0;
+	virtual void Stop() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ITargetDeviceService( ) { }
+	/** Virtual destructor. */
+	virtual ~ITargetDeviceService() { }
 };

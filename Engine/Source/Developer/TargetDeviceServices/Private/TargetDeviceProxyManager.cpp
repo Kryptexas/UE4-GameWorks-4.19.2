@@ -6,7 +6,7 @@
 /* FTargetDeviceProxyManager structors
  *****************************************************************************/
 
-FTargetDeviceProxyManager::FTargetDeviceProxyManager( )
+FTargetDeviceProxyManager::FTargetDeviceProxyManager()
 {
 	MessageEndpoint = FMessageEndpoint::Builder("FTargetDeviceProxyManager")
 		.Handling<FTargetDeviceServicePong>(this, &FTargetDeviceProxyManager::HandlePongMessage);
@@ -21,7 +21,7 @@ FTargetDeviceProxyManager::FTargetDeviceProxyManager( )
 }
 
 
-FTargetDeviceProxyManager::~FTargetDeviceProxyManager( )
+FTargetDeviceProxyManager::~FTargetDeviceProxyManager()
 {
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegate);
 }
@@ -30,7 +30,7 @@ FTargetDeviceProxyManager::~FTargetDeviceProxyManager( )
 /* ITargetDeviceProxyLocator interface
  *****************************************************************************/
 
-ITargetDeviceProxyPtr FTargetDeviceProxyManager::FindProxy( const FString& Name ) 
+ITargetDeviceProxyPtr FTargetDeviceProxyManager::FindProxy(const FString& Name) 
 {
 	return Proxies.FindRef(Name);
 }
@@ -50,6 +50,7 @@ ITargetDeviceProxyRef FTargetDeviceProxyManager::FindOrAddProxy(const FString& N
 	return Proxy.ToSharedRef();
 }
 
+
 ITargetDeviceProxyPtr FTargetDeviceProxyManager::FindProxyDeviceForTargetDevice(const FString& DeviceId)
 {
 	for (TMap<FString, TSharedPtr<FTargetDeviceProxy> >::TConstIterator ItProxies(Proxies); ItProxies; ++ItProxies)
@@ -64,6 +65,7 @@ ITargetDeviceProxyPtr FTargetDeviceProxyManager::FindProxyDeviceForTargetDevice(
 
 	return ITargetDeviceProxyPtr();
 }
+
 
 void FTargetDeviceProxyManager::GetProxies(FName TargetPlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies)
 {
@@ -86,7 +88,7 @@ void FTargetDeviceProxyManager::GetProxies(FName TargetPlatformName, bool Includ
 /* FTargetDeviceProxyManager implementation
  *****************************************************************************/
 
-void FTargetDeviceProxyManager::RemoveDeadProxies( )
+void FTargetDeviceProxyManager::RemoveDeadProxies()
 {
 	FDateTime CurrentTime = FDateTime::UtcNow();
 
@@ -111,10 +113,10 @@ void FTargetDeviceProxyManager::SendPing()
 }
 
 
-/* FTargetDeviceProxyManager event handlers
+/* FTargetDeviceProxyManager callbacks
  *****************************************************************************/
 
-void FTargetDeviceProxyManager::HandlePongMessage( const FTargetDeviceServicePong& Message, const IMessageContextRef& Context )
+void FTargetDeviceProxyManager::HandlePongMessage(const FTargetDeviceServicePong& Message, const IMessageContextRef& Context)
 {
 	TSharedPtr<FTargetDeviceProxy>& Proxy = Proxies.FindOrAdd(Message.Name);
 
@@ -130,7 +132,7 @@ void FTargetDeviceProxyManager::HandlePongMessage( const FTargetDeviceServicePon
 }
 
 
-bool FTargetDeviceProxyManager::HandleTicker( float DeltaTime )
+bool FTargetDeviceProxyManager::HandleTicker(float DeltaTime)
 {
 	RemoveDeadProxies();
 	SendPing();

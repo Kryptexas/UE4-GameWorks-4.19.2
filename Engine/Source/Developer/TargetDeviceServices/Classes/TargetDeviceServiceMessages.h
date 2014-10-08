@@ -11,35 +11,26 @@
 /**
  * Implements a message for committing a deployment transaction.
  *
- * @see FTargetDeviceServiceDeployFile
- * @see FTargetDeviceServiceDeployFinished
+ * @see FTargetDeviceServiceDeployFile, FTargetDeviceServiceDeployFinished
  */
 USTRUCT()
 struct FTargetDeviceServiceDeployCommit
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the variant identifier of the target device to use.
-	 */
+	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()
 	FName Variant;
 
-	/**
-	 * Holds the identifier of the deployment transaction to commit.
-	 */
+	/** Holds the identifier of the deployment transaction to commit. */
 	UPROPERTY()
 	FGuid TransactionId;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceDeployCommit() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceDeployCommit(FName InVariant, const FGuid& InTransactionId)
 		: Variant(InVariant)
 		, TransactionId(InTransactionId)
@@ -61,35 +52,26 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceDeployCommit> : public TStructOp
  *
  * The actual file data must be attached to the message.
  *
- * @see FTargetDeviceServiceDeployCommit
- * @see FTargetDeviceServiceDeployFinished
+ * @see FTargetDeviceServiceDeployCommit, FTargetDeviceServiceDeployFinished
  */
 USTRUCT()
 struct FTargetDeviceServiceDeployFile
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name and path of the file as it will be stored on the target device.
-	 */
+	/** Holds the name and path of the file as it will be stored on the target device. */
 	UPROPERTY()
 	FString TargetFileName;
 
-	/**
-	 * Holds the identifier of the deployment transaction that this file is part of.
-	 */
+	/** Holds the identifier of the deployment transaction that this file is part of. */
 	UPROPERTY()
 	FGuid TransactionId;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceDeployFile() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceDeployFile(const FString& InTargetFileName, const FGuid& InTransactionId)
 		: TargetFileName(InTargetFileName)
 		, TransactionId(InTransactionId)
@@ -109,17 +91,14 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceDeployFile> : public TStructOpsT
 /**
  * Implements a message for notifying a target device proxy that a deployment transaction has finished.
  *
- * @see FTargetDeviceServiceDeployFile
- * @see FTargetDeviceServiceDeployCommit
+ * @see FTargetDeviceServiceDeployFile, FTargetDeviceServiceDeployCommit
  */
 USTRUCT()
 struct FTargetDeviceServiceDeployFinished
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the variant identifier of the target device to use.
-	 */
+	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()
 	FName Variant;
 
@@ -134,27 +113,19 @@ struct FTargetDeviceServiceDeployFinished
 	UPROPERTY()
 	FString AppID;
 
-	/**
-	 * Holds a flag indicating whether the deployment transaction finished successfully.
-	 */
+	/** Holds a flag indicating whether the deployment transaction finished successfully. */
 	UPROPERTY()
 	bool Succeeded;
 
-	/**
-	 * Holds the identifier of the deployment transaction that this file is part of.
-	 */
+	/** Holds the identifier of the deployment transaction that this file is part of. */
 	UPROPERTY()
 	FGuid TransactionId;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceDeployFinished() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceDeployFinished(FName InVariant, const FString& InAppId, bool InSucceeded, FGuid InTransactionId)
 		: Variant(InVariant)
 		, AppID(InAppId)
@@ -188,9 +159,7 @@ struct FTargetDeviceServiceLaunchApp
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the variant identifier of the target device to use.
-	 */
+	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()
 	FName Variant;
 
@@ -205,27 +174,19 @@ struct FTargetDeviceServiceLaunchApp
 	UPROPERTY()
 	FString AppID;
 
-	/**
-	 * The application's build configuration, i.e. Debug or Shipping.
-	 */
+	/** The application's build configuration, i.e. Debug or Shipping. */
 	UPROPERTY()
 	uint8 BuildConfiguration;
 
-	/**
-	 * Holds optional command line parameters for the application.
-	 */
+	/** Holds optional command line parameters for the application. */
 	UPROPERTY()
 	FString Params;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceLaunchApp() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceLaunchApp(FName InVariant, const FString& InAppId, uint8 InBuildConfiguration, const FString& InParams)
 		: Variant(InVariant)
 		, AppID(InAppId)
@@ -265,27 +226,19 @@ struct FTargetDeviceServiceLaunchFinished
 	UPROPERTY()
 	FString AppID;
 
-	/**
-	 * Holds the process identifier for the launched application.
-	 */
+	/** Holds the process identifier for the launched application. */
 	UPROPERTY()
 	int32 ProcessId;
 
-	/**
-	 * Holds a flag indicating whether the application was launched successfully.
-	 */
+	/** Holds a flag indicating whether the application was launched successfully. */
 	UPROPERTY()
 	bool Succeeded;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceLaunchFinished() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceLaunchFinished(const FString& InAppId, int32 InProcessId, bool InSucceeded)
 		: AppID(InAppId)
 		, ProcessId(InProcessId)
@@ -302,6 +255,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceLaunchFinished> : public TStruct
 	};
 };
 
+
 /* Device claiming messages
  *****************************************************************************/
 
@@ -316,32 +270,23 @@ struct FTargetDeviceClaimDenied
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the identifier of the device that is already claimed.
-	 */
+	/** Holds the identifier of the device that is already claimed. */
 	UPROPERTY()
 	FString DeviceName;
 
-	/**
-	 * Holds the name of the host computer that claimed the device.
-	 */
+	/** Holds the name of the host computer that claimed the device. */
 	UPROPERTY()
 	FString HostName;
 
-	/**
-	 * Holds the name of the user that claimed the device.
-	 */
+	/** Holds the name of the user that claimed the device. */
 	UPROPERTY()
 	FString HostUser;
 
-	/**
-	 * Default constructor.
-	 */
+
+	/** Default constructor. */
 	FTargetDeviceClaimDenied( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceClaimDenied(const FString& InDeviceName, const FString& InHostName, const FString& InHostUser)
 		: DeviceName(InDeviceName)
 		, HostName(InHostName)
@@ -370,32 +315,23 @@ struct FTargetDeviceClaimed
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the identifier of the device that is being claimed.
-	 */
+	/** Holds the identifier of the device that is being claimed. */
 	UPROPERTY()
 	FString DeviceName;
 
-	/**
-	 * Holds the name of the host computer that is claiming the device.
-	 */
+	/** Holds the name of the host computer that is claiming the device. */
 	UPROPERTY()
 	FString HostName;
 
-	/**
-	 * Holds the name of the user that is claiming the device.
-	 */
+	/** Holds the name of the user that is claiming the device. */
 	UPROPERTY()
 	FString HostUser;
 
-	/**
-	 * Default constructor.
-	 */
+
+	/** Default constructor. */
 	FTargetDeviceClaimed( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceClaimed(const FString& InDeviceName, const FString& InHostName, const FString& InHostUser)
 		: DeviceName(InDeviceName)
 		, HostName(InHostName)
@@ -416,40 +352,30 @@ struct TStructOpsTypeTraits<FTargetDeviceClaimed> : public TStructOpsTypeTraitsB
 /**
  * Implements a message that is sent when a device is no longer claimed.
  *
- * @see FTargetDeviceClaimDenied
- * @see FTargetDeviceClaimRequest
+ * @see FTargetDeviceClaimDenied, FTargetDeviceClaimRequest
  */
 USTRUCT()
 struct FTargetDeviceUnclaimed
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the identifier of the device that is no longer claimed.
-	 */
+	/** Holds the identifier of the device that is no longer claimed. */
 	UPROPERTY()
 	FString DeviceName;
 
-	/**
-	 * Holds the name of the host computer that had claimed the device.
-	 */
+	/** Holds the name of the host computer that had claimed the device. */
 	UPROPERTY()
 	FString HostName;
 
-	/**
-	 * Holds the name of the user that had claimed the device.
-	 */
+	/** Holds the name of the user that had claimed the device. */
 	UPROPERTY()
 	FString HostUser;
 
-	/**
-	 * Default constructor.
-	 */
+
+	/** Default constructor. */
 	FTargetDeviceUnclaimed( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceUnclaimed(const FString& InDeviceName, const FString& InHostName, const FString& InHostUser)
 		: DeviceName(InDeviceName)
 		, HostName(InHostName)
@@ -478,20 +404,15 @@ struct FTargetDeviceServicePing
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the user who generated the ping.
-	 */
+	/** Holds the name of the user who generated the ping. */
 	UPROPERTY()
 	FString HostUser;
 
-	/**
-	 * Default constructor.
-	 */
+
+	/** Default constructor. */
 	FTargetDeviceServicePing( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServicePing( const FString& InHostUser )
 		: HostUser(InHostUser)
 	{ }
@@ -552,105 +473,71 @@ struct FTargetDeviceServicePong
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds a flag indicating whether the device is currently connected.
-	 */
+	/** Holds a flag indicating whether the device is currently connected. */
 	UPROPERTY()
 	bool Connected;
 
-	/**
-	 * Holds the name of the host computer that the device is attached to.
-	 */
+	/** Holds the name of the host computer that the device is attached to. */
 	UPROPERTY()
 	FString HostName;
 
-	/**
-	 * Holds the name of the user under which the host computer is running.
-	 */
+	/** Holds the name of the user under which the host computer is running. */
 	UPROPERTY()
 	FString HostUser;
 
-	/**
-	 * Holds the make of the device, i.e. Microsoft or Sony.
-	 */
+	/** Holds the make of the device, i.e. Microsoft or Sony. */
 	UPROPERTY()
 	FString Make;
 
-	/**
-	 * Holds the model of the device.
-	 */
+	/** Holds the model of the device. */
 	UPROPERTY()
 	FString Model;
 
-	/**
-	 * Holds the human readable name of the device, i.e "Bob's XBox'.
-	 */
+	/** Holds the human readable name of the device, i.e "Bob's XBox'. */
 	UPROPERTY()
 	FString Name;
 
-	/**
-	 * Holds the name of the user that we log in to remote device as, i.e "root".
-	 */
+	/** Holds the name of the user that we log in to remote device as, i.e "root". */
 	UPROPERTY()
 	FString DeviceUser;
 
-	/**
-	 * Holds the password of the user that we log in to remote device as, i.e "12345".
-	 */
+	/** Holds the password of the user that we log in to remote device as, i.e "12345". */
 	UPROPERTY()
 	FString DeviceUserPassword;
 
-	/**
-	 * Holds a flag indicating whether this device is shared with other users on the network.
-	 */
+	/** Holds a flag indicating whether this device is shared with other users on the network. */
 	UPROPERTY()
 	bool Shared;
 
-	/**
-	 * Holds a flag indicating whether the device supports running multiple application instances in parallel.
-	 */
+	/** Holds a flag indicating whether the device supports running multiple application instances in parallel. */
 	UPROPERTY()
 	bool SupportsMultiLaunch;
 
-	/**
-	 * Holds a flag indicating whether the device can be powered off.
-	 */
+	/** Holds a flag indicating whether the device can be powered off. */
 	UPROPERTY()
 	bool SupportsPowerOff;
 
-	/**
-	 * Holds a flag indicating whether the device can be powered on.
-	 */
+	/** Holds a flag indicating whether the device can be powered on. */
 	UPROPERTY()
 	bool SupportsPowerOn;
 
-	/**
-	 * Holds a flag indicating whether the device can be rebooted.
-	 */
+	/** Holds a flag indicating whether the device can be rebooted. */
 	UPROPERTY()
 	bool SupportsReboot;
 
-	/**
-	* Holds a flag indicating whether the device's target platform supports variants.
-	*/
+	/** Holds a flag indicating whether the device's target platform supports variants. */
 	UPROPERTY()
 	bool SupportsVariants;
 
-	/**
-	 * Holds the device type.
-	 */
+	/** Holds the device type. */
 	UPROPERTY()
 	FString Type;
 
-	/**
-	 * Holds the variant name of the default device.
-	 */
+	/** Holds the variant name of the default device. */
 	UPROPERTY()
 	FName DefaultVariant;
 
-	/**
-	 * List of the Flavors this service supports
-	 */
+	/** List of the Flavors this service supports */
 	UPROPERTY()
 	TArray<FTargetDeviceVariant> Variants;
 };
@@ -684,21 +571,15 @@ struct FTargetDeviceServicePowerOff
 	UPROPERTY()
 	bool Force;
 
-	/**
-	 * Holds the name of the user that wishes to power off the device.
-	 */
+	/** Holds the name of the user that wishes to power off the device. */
 	UPROPERTY()
 	FString Operator;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServicePowerOff( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServicePowerOff( const FString& InOperator, bool InForce )
 		: Force(InForce)
 		, Operator(InOperator)
@@ -723,21 +604,15 @@ struct FTargetDeviceServicePowerOn
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the user that wishes to power on the device.
-	 */
+	/** Holds the name of the user that wishes to power on the device. */
 	UPROPERTY()
 	FString Operator;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServicePowerOn( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServicePowerOn( const FString& InOperator )
 		: Operator(InOperator)
 	{ }
@@ -761,21 +636,15 @@ struct FTargetDeviceServiceReboot
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the user that wishes to reboot the device.
-	 */
+	/** Holds the name of the user that wishes to reboot the device. */
 	UPROPERTY()
 	FString Operator;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceReboot( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceReboot( const FString& InOperator )
 		: Operator(InOperator)
 	{ }
@@ -803,33 +672,23 @@ struct FTargetDeviceServiceRunExecutable
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the variant identifier of the target device to use for execution.
-	 */
+	/** Holds the variant identifier of the target device to use for execution. */
 	UPROPERTY()
 	FName Variant;
 
-	/**
-	 * Holds the path to the executable on the device.
-	 */
+	/** Holds the path to the executable on the device. */
 	UPROPERTY()
 	FString ExecutablePath;
 
-	/**
-	 * Holds optional command line parameters for the executable.
-	 */
+	/** Holds optional command line parameters for the executable. */
 	UPROPERTY()
 	FString Params;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceRunExecutable() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceRunExecutable(FName InVariant, const FString& InExecutablePath, const FString& InParams)
 		: Variant(InVariant)
 		, ExecutablePath(InExecutablePath)
@@ -857,39 +716,27 @@ struct FTargetDeviceServiceRunFinished
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the variant identifier of the target device to use.
-	 */
+	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()
 	FName Variant;
 
-	/**
-	 * Holds the path to the executable that was run.
-	 */
+	/** Holds the path to the executable that was run. */
 	UPROPERTY()
 	FString ExecutablePath;
 
-	/**
-	 * Holds the process identifier of the running executable.
-	 */
+	/** Holds the process identifier of the running executable. */
 	UPROPERTY()
 	int32 ProcessId;
 
-	/**
-	 * Holds a flag indicating whether the executable started successfully.
-	 */
+	/** Holds a flag indicating whether the executable started successfully. */
 	UPROPERTY()
 	bool Succeeded;
 
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FTargetDeviceServiceRunFinished() { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FTargetDeviceServiceRunFinished(FName InVariant, const FString& InExecutablePath, int32 InProcessId, bool InSucceeded)
 		: Variant(InVariant)
 		, ExecutablePath(InExecutablePath)

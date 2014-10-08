@@ -11,15 +11,11 @@ class FTargetDeviceProxyManager
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FTargetDeviceProxyManager( );
+	/** Default constructor. */
+	FTargetDeviceProxyManager();
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~FTargetDeviceProxyManager( );
+	/** Destructor. */
+	virtual ~FTargetDeviceProxyManager();
 
 public:
 
@@ -33,53 +29,49 @@ public:
 	virtual void GetProxies(FName TargetPlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies) override;
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceProxyManager, ITargetDeviceProxyManager::FOnTargetDeviceProxyAdded, FOnTargetDeviceProxyAdded);
-	virtual FOnTargetDeviceProxyAdded& OnProxyAdded( ) override
+	virtual FOnTargetDeviceProxyAdded& OnProxyAdded() override
 	{
 		return ProxyAddedDelegate;
 	}
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceProxyManager, ITargetDeviceProxyManager::FOnTargetDeviceProxyRemoved, FOnTargetDeviceProxyRemoved);
-	virtual FOnTargetDeviceProxyRemoved& OnProxyRemoved( ) override
+	virtual FOnTargetDeviceProxyRemoved& OnProxyRemoved() override
 	{
 		return ProxyRemovedDelegate;
 	}
 
 protected:
 
-	/**
-	 * Removes all target device proxies that timed out.
-	 */
-	void RemoveDeadProxies( );
+	/** Removes all target device proxies that timed out. */
+	void RemoveDeadProxies();
 
-	/**
-	 * Pings all target devices on the network.
-	 */
-	void SendPing( );
+	/** Pings all target devices on the network. */
+	void SendPing();
 
 private:
 	
-	// Handles FTargetDeviceServicePong messages.
-	void HandlePongMessage( const FTargetDeviceServicePong& Message, const IMessageContextRef& Context );
+	/** Handles FTargetDeviceServicePong messages. */
+	void HandlePongMessage(const FTargetDeviceServicePong& Message, const IMessageContextRef& Context);
 
-	// Handles ticks from the ticker.
-	bool HandleTicker( float DeltaTime );
+	/** Handles ticks from the ticker. */
+	bool HandleTicker(float DeltaTime);
 
 private:
 
-	// Holds the message endpoint.
+	/** Holds the message endpoint. */
 	FMessageEndpointPtr MessageEndpoint;
 
-	// Holds the collection of proxies.
+	/** Holds the collection of proxies. */
 	TMap<FString, FTargetDeviceProxyPtr> Proxies;
 
 private:
 
-	// Holds a delegate that is invoked when a target device proxy has been added.
+	/** Holds a delegate that is invoked when a target device proxy has been added. */
 	FOnTargetDeviceProxyAdded ProxyAddedDelegate;
 
-	// Holds a delegate that is invoked when a target device proxy has been removed.
+	/** Holds a delegate that is invoked when a target device proxy has been removed. */
 	FOnTargetDeviceProxyRemoved ProxyRemovedDelegate;
 
-	// Holds a delegate to be invoked when the widget ticks.
+	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate TickDelegate;
 };
