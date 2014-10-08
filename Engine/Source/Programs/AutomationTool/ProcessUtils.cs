@@ -262,8 +262,11 @@ namespace AutomationTool
 		/// </summary>
         public void DisposeProcess()
         {
-            Proc.Dispose();
-            Proc = null;
+			if(Proc != null)
+			{
+				Proc.Dispose();
+				Proc = null;
+			}
         }
 
 		/// <summary>
