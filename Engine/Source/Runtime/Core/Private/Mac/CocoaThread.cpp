@@ -405,7 +405,7 @@ void MainThreadCall(dispatch_block_t Block, NSString* WaitMode, bool const bWait
 	if ( [NSThread mainThread] != [NSThread currentThread] )
 	{
 		FCocoaRunLoopSource& MainRunLoopSource = FCocoaRunLoopSource::GetMainRunLoopSource();
-		PerformBlockOnThread(MainRunLoopSource, Block, @[ NSDefaultRunLoopMode, NSModalPanelRunLoopMode ], WaitMode, bWait);
+		PerformBlockOnThread(MainRunLoopSource, Block, @[ NSDefaultRunLoopMode, NSModalPanelRunLoopMode, NSEventTrackingRunLoopMode ], WaitMode, bWait);
 	}
 	else
 	{
