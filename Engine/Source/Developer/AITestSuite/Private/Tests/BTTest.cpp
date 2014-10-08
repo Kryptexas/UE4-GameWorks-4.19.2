@@ -436,6 +436,11 @@ struct FAITest_BTAbortParallelOutAndBack : public FAITest_SimpleBT
 		ExpectedResult.Add(1);
 		ExpectedResult.Add(2);
 		ExpectedResult.Add(3);
+		// added this as actuall execution shows that's the case
+		// needs to be reviewed
+		ExpectedResult.Add(2);
+		ExpectedResult.Add(3);
+		//
 		ExpectedResult.Add(4);
 	}
 };

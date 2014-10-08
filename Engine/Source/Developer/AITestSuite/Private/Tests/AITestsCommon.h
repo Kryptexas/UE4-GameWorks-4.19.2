@@ -106,6 +106,7 @@ struct FAITest_SimpleBT : public FAITestBase
 	TArray<int32> ExpectedResult;
 	UBehaviorTree* BTAsset;
 	UMockAI_BT* AIBTUser;
+	bool bUseSystemTicking;
 
 	FAITest_SimpleBT();	
 	

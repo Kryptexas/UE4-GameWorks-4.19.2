@@ -113,6 +113,8 @@ FAITest_SimpleBT::FAITest_SimpleBT()
 	BTAsset = &FBTBuilder::CreateBehaviorTree();
 
 	UMockAI_BT::ExecutionLog.Reset();
+
+	bUseSystemTicking = false;
 }
 
 void FAITest_SimpleBT::SetUp()
@@ -120,7 +122,7 @@ void FAITest_SimpleBT::SetUp()
 	if (AIBTUser && BTAsset)
 	{
 		AIBTUser->RunBT(*BTAsset, EBTExecutionMode::SingleRun);
-		AIBTUser->SetEnableTicking(true);
+		AIBTUser->SetEnableTicking(bUseSystemTicking);
 	}
 }
 
@@ -128,9 +130,17 @@ bool FAITest_SimpleBT::Update()
 {
 	FAITestHelpers::UpdateFrameCounter();
 
-	if (AIBTUser != NULL && AIBTUser->IsRunning())
+	if (AIBTUser != NULL)
 	{
-		return false;
+		if (bUseSystemTicking == false)
+		{
+			AIBTUser->TickMe(FAITestHelpers::TickInterval);
+		}
+
+		if (AIBTUser->IsRunning())
+		{
+			return false;
+		}
 	}
 
 	VerifyResults();
@@ -140,6 +150,7 @@ bool FAITest_SimpleBT::Update()
 void FAITest_SimpleBT::VerifyResults()
 {
 	const bool bMatch = (ExpectedResult == UMockAI_BT::ExecutionLog);
+	ensure(bMatch && "VerifyResults failed!");
 	if (!bMatch)
 	{
 		FString DescriptionResult;
