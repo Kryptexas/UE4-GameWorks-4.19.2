@@ -2643,6 +2643,8 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 					.SetPadding(FMargin(0.0f));
 				Set( "Tutorials.Content.Hyperlink", RichTextHyperlink );
 
+				Set( "Tutorials.Content.ExternalLink", new IMAGE_BRUSH("Tutorials/ExternalLink", Icon16x16, FLinearColor::Blue));
+
 				// legacy style
 				Set( "TutorialEditableText.Editor.Hyperlink", RichTextHyperlink );
 			}
