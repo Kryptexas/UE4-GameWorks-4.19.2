@@ -621,6 +621,9 @@ FHttpRequestProgressDelegate& FCurlHttpRequest::OnRequestProgress()
 void FCurlHttpRequest::CancelRequest()
 {
 	bCanceled = true;
+    
+    // Cleanup cancel request and fire off any necessary delegates.
+    FinishedRequest();
 }
 
 EHttpRequestStatus::Type FCurlHttpRequest::GetStatus()

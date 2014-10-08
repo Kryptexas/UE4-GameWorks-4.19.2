@@ -291,6 +291,9 @@ void FIOSHttpRequest::CancelRequest()
 		[Connection cancel];
 		Connection = NULL;
 	}
+    
+    // Cleanup cancel request and fire off any necessary delegates.
+    FinishedRequest();
 }
 
 
