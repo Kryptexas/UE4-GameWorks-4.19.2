@@ -45,9 +45,9 @@ void UProjectileMovementComponent::Serialize( FArchive& Ar)
 }
 
 
-void UProjectileMovementComponent::InitializeComponent()
+void UProjectileMovementComponent::OnRegister()
 {
-	Super::InitializeComponent();
+	Super::OnRegister();
 
 	if (Velocity.SizeSquared() > 0.f)
 	{
