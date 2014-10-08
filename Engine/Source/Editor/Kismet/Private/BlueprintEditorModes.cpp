@@ -306,6 +306,13 @@ void FBlueprintComponentsApplicationMode::PreDeactivateMode()
 	BP->GetInspector()->SetEnabled(true);
 	BP->GetInspector()->EnableComponentDetailsCustomization(false);
 	BP->EnableSCSPreview(false);
+	TSharedPtr<class SKismetInspector> Inspector = BP->GetInspector();
+
+	if(Inspector.IsValid())
+	{
+		// Clear the details panel of any selected components, they will be restored when the menu is re-activated
+		Inspector->ShowDetailsForObjects(TArray<UObject*>());
+	}
 }
 
 void FBlueprintComponentsApplicationMode::PostActivateMode()
