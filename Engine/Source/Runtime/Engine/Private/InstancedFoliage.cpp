@@ -1258,7 +1258,7 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 		if (MeshInfo)
 		{
 			FFoliageInstanceCluster* Cluster = MeshInfo->InstanceClusters.FindByPredicate([InComponent](FFoliageInstanceCluster& Cluster){ return Cluster.ClusterComponent == InComponent; });
-			if (ensure(Cluster))
+			if (Cluster)
 			{
 				InComponent->Modify();
 				int32 InstanceIndex = Cluster->InstanceIndices[InComponentInstanceIndex];
