@@ -1468,7 +1468,6 @@ void FBuildPatchAppManifest::GetRemovableFiles(const TCHAR* InstallPath, TArray<
 
 bool FBuildPatchAppManifest::NeedsResaving() const
 {
-	return true;
 	return Data->ManifestFileVersion < EBuildPatchAppManifestVersion::GetLatestVersion();
 }
 
