@@ -1334,6 +1334,8 @@ void FTabManager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, cons
 		DockAreas[DockAreaIndex].Pin()->OnTabFoundNewHome( RelocatedTab, NewOwnerWindow.ToSharedRef() );
 	}
 
+	FGlobalTabmanager::Get()->UpdateMainMenu(RelocatedTab, true);
+
 	UpdateStats();
 }
 
