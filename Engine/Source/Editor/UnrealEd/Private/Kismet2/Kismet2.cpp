@@ -853,6 +853,14 @@ protected:
 				Property->CopyCompleteValue_InContainer(Destination, Source);
 			}
 		}
+
+		if (UStaticMeshComponent* TemplateMeshComponent = Cast<UStaticMeshComponent>(Destination))
+		{
+			UStaticMeshComponent* SourceMeshComponent = CastChecked<UStaticMeshComponent>(Source);
+			// vert coloring data lives in the mesh component's LODData member,
+			// which is transient, so it wouldn't be copied in the above loop
+			TemplateMeshComponent->CopyInstanceVertexColorsIfCompatible(SourceMeshComponent);
+		}
 	}
 
 	/** Creates a USCS Node for the passed in component */
