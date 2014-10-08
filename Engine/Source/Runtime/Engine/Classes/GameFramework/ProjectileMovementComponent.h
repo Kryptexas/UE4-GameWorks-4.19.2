@@ -74,14 +74,16 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 	 * Percentage of velocity maintained after the bounce in the direction of the normal of impact (coefficient of restitution).
 	 * 1.0 = no velocity lost, 0.0 = no bounce. Ignored if bShouldBounce is false.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ProjectileBounces)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ProjectileBounces, meta=(ClampMin="0", UIMin="0"))
 	float Bounciness;
 
 	/**
-	 * Percentage of velocity maintained after the bounce in the direction tangent to the normal of impact (coefficient of friction).
-	 * 0.0 = no velocity lost, 1.0 = no sliding. Ignored if bShouldBounce is false.
+	 * Coefficient of friction, affecting the resistance to sliding along a surface.
+	 * Normal range is [0,1] : 0.0 = no friction, 1.0+ = very high friction.
+	 * Also affects the percentage of velocity maintained after the bounce in the direction tangent to the normal of impact.
+	 * Ignored if bShouldBounce is false.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ProjectileBounces)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ProjectileBounces, meta=(ClampMin="0", UIMin="0"))
 	float Friction;
 
 	/**
@@ -135,8 +137,19 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 
 	bool ShouldApplyGravity() const { return ProjectileGravityScale != 0.f; }
 
-	/** @return the velocity after DeltaTime */
-	virtual FVector CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled) const;
+	/** DEPRECATED: renamed to ComputeVelocity(). */
+	DEPRECATED(4.6, "CalculateVelocity() is deprecated, use ComputeVelocity() instead.")
+	virtual FVector CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled_UNUSED) const;
+
+	/**
+	 * Given an initial velocity and a time step, compute a new velocity.
+	 * Default implementation applies the result of ComputeAcceleration() to velocity.
+	 * 
+	 * @param  InitialVelocity Initial velocity.
+	 * @param  DeltaTime Time step of the update.
+	 * @return Velocity after DeltaTime time step.
+	 */
+	virtual FVector ComputeVelocity(FVector InitialVelocity, float DeltaTime) const;
 
 	/** Clears the reference to UpdatedComponent, fires stop event, and stops ticking. */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|ProjectileMovement")
@@ -192,6 +205,16 @@ protected:
 	/** Applies bounce logic (if enabled) to affect velocity upon impact, or stops the projectile if bounces are not enabled (or velocity is below threshold). Fires applicable events. */
 	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
+	/**
+	 * Handle case where projectile is sliding along a surface.
+	 * Velocity will be parallel to the impact surface upon entry to this method.
+	 * 
+	 * @param  InitialHit Hit result of impact causing slide. May be modified by this function to reflect any subsequent movement.
+	 * @param  SubTickTimeRemaining Time remaining in the tick. This function may update this time with any reduction to the simulation time requested.
+	 * @return True if simulation of the projectile should continue, false otherwise.
+	 */
+	virtual bool HandleSliding(FHitResult& Hit, float& SubTickTimeRemaining);
+
 	/** Computes result of a bounce and returns the new velocity. */
 	virtual FVector ComputeBounceResult(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta);
 
@@ -200,13 +223,13 @@ protected:
 	FVector LimitVelocity(FVector NewVelocity) const;
 
 	/** Compute the distance we should move in the given time, at a given a velocity. */
-	virtual FVector ComputeMoveDelta(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled = true) const;
+	virtual FVector ComputeMoveDelta(const FVector& InVelocity, float DeltaTime) const;
 
 	/** Compute the acceleration that will be applied */
-	virtual FVector ComputeAcceleration(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const;
+	virtual FVector ComputeAcceleration(const FVector& InVelocity, float DeltaTime) const;
 
 	/** Allow the projectile to track towards its homing target. */
-	virtual FVector ComputeHomingAcceleration(const FVector& InVelocity, float DeltaTime, bool bGravityEnabled) const;
+	virtual FVector ComputeHomingAcceleration(const FVector& InVelocity, float DeltaTime) const;
 
 	/** Compute gravity effect given current physics volume, projectile gravity scale, etc. */
 	float GetEffectiveGravityZ() const;
