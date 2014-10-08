@@ -36,6 +36,8 @@ TSharedRef<SWidget> UProgressBar::RebuildWidget()
 
 void UProgressBar::SynchronizeProperties()
 {
+	Super::SynchronizeProperties();
+	
 	TAttribute< TOptional<float> > PercentBinding = OPTIONAL_BINDING_CONVERT(float, Percent, TOptional<float>, ConvertFloatToOptionalFloat);
 
 	MyProgressBar->SetStyle(&WidgetStyle);
