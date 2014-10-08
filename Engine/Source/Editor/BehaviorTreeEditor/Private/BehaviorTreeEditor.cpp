@@ -1421,6 +1421,7 @@ void FBehaviorTreeEditor::PasteNodesHere(const FVector2D& Location)
 	//Average position of nodes so we can move them while still maintaining relative distances to each other
 	FVector2D AvgNodePosition(0.0f,0.0f);
 
+	float NumTopLevelNodes = 0.0f;
 	for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
 	{
 		UBehaviorTreeGraphNode* BTNode = Cast<UBehaviorTreeGraphNode>(*It);
@@ -1428,12 +1429,13 @@ void FBehaviorTreeEditor::PasteNodesHere(const FVector2D& Location)
 		{
 			AvgNodePosition.X += BTNode->NodePosX;
 			AvgNodePosition.Y += BTNode->NodePosY;
+			NumTopLevelNodes += 1.0f;
 		}
 	}
 
-	if (PastedNodes.Num() > 0)
+	if (NumTopLevelNodes > 0.0f)
 	{
-		float InvNumNodes = 1.0f/float(PastedNodes.Num());
+		float InvNumNodes = 1.0f/NumTopLevelNodes;
 		AvgNodePosition.X *= InvNumNodes;
 		AvgNodePosition.Y *= InvNumNodes;
 	}
