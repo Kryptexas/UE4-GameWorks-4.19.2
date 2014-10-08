@@ -1555,9 +1555,12 @@ void UEditorEngine::RequestEndPlayMap()
 					FSlatePlayInEditorInfo* const SlatePlayInEditorSession = SlatePlayInEditorMap.Find(ThisContext.ContextHandle);
 					if ((SlatePlayInEditorSession != nullptr) && (SlatePlayInEditorSession->EditorPlayer.IsValid() == true) && (SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController != nullptr ) )
 					{
-						SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController->GetPlayerViewPoint(LastViewLocation, LastViewRotation);
-						bLastViewAndLocationValid = true;
-						break;
+						if( SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController != nullptr )
+						{
+							SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController->GetPlayerViewPoint( LastViewLocation, LastViewRotation );
+							bLastViewAndLocationValid = true;
+							break;
+						}
 					}
 				}
 			}
