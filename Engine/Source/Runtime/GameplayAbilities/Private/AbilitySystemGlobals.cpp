@@ -96,7 +96,7 @@ UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 }
 
 /** Helping function to avoid having to manually cast */
-UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor* Actor)
+UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor* Actor, bool LookForComponent)
 {
 	if (Actor == nullptr)
 	{
@@ -109,10 +109,15 @@ UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromAct
 		return ASI->GetAbilitySystemComponent();
 	}
 
-	/** This is slow and not desirable */
-	ABILITY_LOG(Warning, TEXT("GetAbilitySystemComponentFromActor called on Actor that is not IAbilitySystemInterface. This slow!"));
+	if (LookForComponent)
+	{
+		/** This is slow and not desirable */
+		ABILITY_LOG(Warning, TEXT("GetAbilitySystemComponentFromActor called on %s that is not IAbilitySystemInterface. This slow!"), *Actor->GetName());
 
-	return Actor->FindComponentByClass<UAbilitySystemComponent>();
+		return Actor->FindComponentByClass<UAbilitySystemComponent>();
+	}
+
+	return nullptr;
 }
 
 // --------------------------------------------------------------------
