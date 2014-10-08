@@ -56,6 +56,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Hyperlink URL string for the company or individual who created this plugin.  This is optional. */
 	FString CreatedByURL;
 
+	/** Documentation URL string. */
+	FString DocsURL;
+
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 

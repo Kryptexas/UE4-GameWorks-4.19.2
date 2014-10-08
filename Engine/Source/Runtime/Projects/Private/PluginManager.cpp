@@ -468,6 +468,7 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.CreatedBy = PluginInfo.CreatedBy;
 		PluginStatus.CreatedByURL = PluginInfo.CreatedByURL;
 		PluginStatus.CategoryPath = PluginInfo.Category;
+		PluginStatus.DocsURL = PluginInfo.DocsURL;
 		PluginStatus.PluginDirectory = FPaths::GetPath(Plugin->FileName);
 		PluginStatus.bIsEnabled = Plugin->bEnabled;
 		PluginStatus.bIsBuiltIn = ( Plugin->LoadedFrom == EPluginLoadedFrom::Engine );

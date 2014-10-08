@@ -2,71 +2,72 @@
 
 #pragma once
 
-
 #include "ModuleDescriptor.h"
 
 
 /**
- * Simple data structure that is filled when querying information about plugins
+ * Simple data structure that is filled when querying information about plug-ins.
  */
 class FPluginStatus
 {
-
 public:
 
-	/** The name of this plugin */
+	/** The name of this plug-in. */
 	FString Name;
 
-	/** Friendly name for the plugin */
+	/** Friendly name for the plug-in. */
 	FString FriendlyName;
 
-	/** Internal version number (not user displayed, but valid for comparisons.) */
+	/** Internal version number (not user displayed, but valid for comparisons). */
 	int32 Version;
 
-	/** Friendly version name */
+	/** Friendly version name. */
 	FString VersionName;
 
-	/** Description of the plugin */
+	/** Description of the plug-in. */
 	FString Description;
 
-	/** Created by name */
+	/** Created by name. */
 	FString CreatedBy;
 
-	/** Created by URL string */
+	/** Created by URL string. */
 	FString CreatedByURL;
 
-	/** Category path (dot-separated list of categories) */
+	/** Category path (dot-separated list of categories). */
 	FString CategoryPath;
 
-	/** Path to plugin directory on disk */
+	/** Documentation URL string. */
+	FString DocsURL;
+
+	/** Path to plug-in directory on disk. */
 	FString PluginDirectory;
 
-	/** True if plugin is currently enabled */
+	/** True if plug-in is currently enabled. */
 	bool bIsEnabled;
 
-	/** True if plugin is enabled by default in all projects */
+	/** True if plug-in is enabled by default in all projects. */
 	bool bIsEnabledByDefault;
 
-	/** True if the plugin is a 'built-in' engine plugin */
+	/** True if the plug-in is a 'built-in' engine plug-in. */
 	bool bIsBuiltIn;
 
-	/** Full path to the 128x128 thumbnail icon file name (or an empty string if no icon is available) */
+	/** Full path to the 128x128 thumbnail icon file name (or an empty string if no icon is available). */
 	FString Icon128FilePath;
 
-	/** Marks the plugin as beta in the UI */
+	/** Marks the plug-in as beta in the UI. */
 	bool bIsBetaVersion;
 
-	/** Whether the plugin has a content folder */
+	/** Whether the plug-in has a content folder. */
 	bool bHasContentFolder;
-
 };
 
+
 /**
- * Structure holding information about a plugin content folder
+ * Structure holding information about a plug-in content folder.
  */
 struct FPluginContentFolder
 {
-	/** Name of the plugin */
+	/** Name of the plug-in */
 	FString Name;
 
 	/** Virtual root path for asset paths */
@@ -76,26 +77,18 @@ struct FPluginContentFolder
 	FString ContentPath;
 };
 
+
 /**
- * PluginManager manages available code and content extensions (both loaded and not loaded.)
+ * PluginManager manages available code and content extensions (both loaded and not loaded).
  */
 class IPluginManager
 {
-
 public:
 
 	/**
-	 * Static: Access singleton instance
+	 * Loads all plug-ins
 	 *
-	 * @return	Reference to the singleton object
-	 */
-	static PROJECTS_API IPluginManager& Get();
-
-
-	/**
-	 * Loads all plugins
-	 *
-	 * @param	LoadingPhase	Which loading phase we're loading plugin modules from.  Only modules that are configured to be
+	 * @param	LoadingPhase	Which loading phase we're loading plug-in modules from.  Only modules that are configured to be
 	 *							loaded at the specified loading phase will be loaded during this call.
 	 */
 	virtual bool LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) = 0;
@@ -104,39 +97,48 @@ public:
 	DECLARE_DELEGATE_TwoParams( FRegisterMountPointDelegate, const FString& /* Root content path */, const FString& /* Directory name */ );
 
 	/**
-	 * Sets the delegate to call to register a new content mount point.  This is used internally by the plugin manager system
+	 * Sets the delegate to call to register a new content mount point.  This is used internally by the plug-in manager system
 	 * and should not be called by you.  This is registered at application startup by FPackageName code in CoreUObject.
 	 *
-	 * @param	Delegate	The delegate to that will be called when plugin manager needs to register a mount point
+	 * @param	Delegate	The delegate to that will be called when plug-in manager needs to register a mount point
 	 */
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) = 0;
 
 	/**
-	 * Checks if all the required plugins are available. If not, will present an error dialog the first time a plugin is loaded or this function is called.
+	 * Checks if all the required plug-ins are available. If not, will present an error dialog the first time a plug-in is loaded or this function is called.
 	 *
-	 * @returns true if all the required plugins are available.
+	 * @returns true if all the required plug-ins are available.
 	 */
-	virtual bool AreRequiredPluginsAvailable( ) = 0;
+	virtual bool AreRequiredPluginsAvailable() = 0;
 
 	/** 
-	 * Checks whether modules for the enabled plugins are up to date
+	 * Checks whether modules for the enabled plug-ins are up to date.
 	 *
-	 * @param OutIncompatibleNames	Array to receive a list of incompatible module names
-	 * @returns true if the enabled plugin modules are up to date
+	 * @param OutIncompatibleNames	Array to receive a list of incompatible module names.
+	 * @returns true if the enabled plug-in modules are up to date.
 	 */
 	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) = 0;
 
 	/**
-	 * Gets status about all currently known plugins
+	 * Gets status about all currently known plug-ins.
 	 *
-	 * @return	 Array of plugin status objects
+	 * @return	 Array of plug-in status objects.
 	 */
-	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const = 0;
+	virtual TArray<FPluginStatus> QueryStatusForAllPlugins() const = 0;
 
 	/**
-	 * Gets a list of plugin content folders
+	 * Gets a list of plug-in content folders.
 	 *
-	 * @return	 Array of plugin content folders
+	 * @return	 Array of plug-in content folders.
 	 */
-	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const = 0;
+	virtual const TArray<FPluginContentFolder>& GetPluginContentFolders() const = 0;
+
+public:
+
+	/**
+	 * Static: Access singleton instance.
+	 *
+	 * @return	Reference to the singleton object.
+	 */
+	static PROJECTS_API IPluginManager& Get();
 };

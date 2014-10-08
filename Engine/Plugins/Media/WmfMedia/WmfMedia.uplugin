@@ -6,6 +6,7 @@
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
+	"DocsURL" : "https://forums.unrealengine.com/showthread.php?46879-Media-Framework-Documentation-for-4-5-Preview",
 	"EngineVersion" : "4.2.0",
 	"Description" : "Implements a media player using the Windows Media Foundation framework.",
 	"Category" : "Media.Players",
