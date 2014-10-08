@@ -6,8 +6,6 @@ p4 set
 
 p4 sync //depot/PhysX/...
 
-pause 
-
 REM PhysX root is always next to UE4, since that's how p4 is structured, and we know that we are always in UE4\Engine\Source\ThirdParty\PhysX
 REM This batch file wouldn't work otherwise
 set PhysXRoot=..\..\..\..\..\PhysX
