@@ -55,11 +55,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor FillColorAndOpacity;
 
+	/** */
+	UPROPERTY()
+	FGetLinearColor FillColorAndOpacityDelegate;
+
 public:
 	
 	/** Sets the current value of the ProgressBar. */
-	UFUNCTION(BlueprintCallable, Category="Behavior")
+	UFUNCTION(BlueprintCallable, Category="Progress Bar")
 	void SetPercent(float InPercent);
+
+	/** Sets the fill color of the progress bar. */
+	UFUNCTION(BlueprintCallable, Category="Progress Bar")
+	void SetFillColorAndOpacity(FLinearColor InColor);
 
 	/** Sets the progress bar to show as a marquee. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")

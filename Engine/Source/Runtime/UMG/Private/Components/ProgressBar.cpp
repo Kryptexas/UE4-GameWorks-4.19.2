@@ -37,14 +37,16 @@ TSharedRef<SWidget> UProgressBar::RebuildWidget()
 
 void UProgressBar::SynchronizeProperties()
 {
+	Super::SynchronizeProperties();
+
 	TAttribute< TOptional<float> > PercentBinding = OPTIONAL_BINDING_CONVERT(float, Percent, TOptional<float>, ConvertFloatToOptionalFloat);
+	TAttribute<FSlateColor> FillColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, FillColorAndOpacity);
 
 	MyProgressBar->SetStyle(&WidgetStyle);
 
-	MyProgressBar->SetPercent(bIsMarquee ? TOptional<float>() : PercentBinding);
-	
 	MyProgressBar->SetBarFillType(BarFillType);
-	MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacity);
+	MyProgressBar->SetPercent(bIsMarquee ? TOptional<float>() : PercentBinding);
+	MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacityBinding);
 }
 
 void UProgressBar::SetIsMarquee(bool InbIsMarquee)
@@ -53,6 +55,15 @@ void UProgressBar::SetIsMarquee(bool InbIsMarquee)
 	if ( MyProgressBar.IsValid() )
 	{
 		MyProgressBar->SetPercent(bIsMarquee ? TOptional<float>() : Percent);
+	}
+}
+
+void UProgressBar::SetFillColorAndOpacity(FLinearColor Color)
+{
+	FillColorAndOpacity = Color;
+	if (MyProgressBar.IsValid())
+	{
+		MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacity);
 	}
 }
 
