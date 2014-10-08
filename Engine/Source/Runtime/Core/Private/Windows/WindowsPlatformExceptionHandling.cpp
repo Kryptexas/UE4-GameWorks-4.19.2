@@ -194,7 +194,7 @@ void AddMiniDump(HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo)
 
 struct FWindowsPlatformCrashContext : public FGenericCrashContext
 {
-	void AddPlatformSpecificProperties()
+	void AddPlatformSpecificProperties() override
 	{
 		AddCrashProperty( TEXT( "Platform.IsRunningWindows" ), 1 );
 	}
