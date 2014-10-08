@@ -306,13 +306,13 @@ void FBlueprintComponentsApplicationMode::PreDeactivateMode()
 	BP->GetInspector()->SetEnabled(true);
 	BP->GetInspector()->EnableComponentDetailsCustomization(false);
 	BP->EnableSCSPreview(false);
-	TSharedPtr<class SKismetInspector> Inspector = BP->GetInspector();
 
-	if(Inspector.IsValid())
+	// Cache component selection before clearing so it can be restored
+	for( auto& SCSNode : BP->GetSCSEditor()->GetSelectedNodes() )
 	{
-		// Clear the details panel of any selected components, they will be restored when the menu is re-activated
-		Inspector->ShowDetailsForObjects(TArray<UObject*>());
+		CachedComponentSelection.AddUnique(SCSNode->GetComponentTemplate());
 	}
+	BP->GetSCSEditor()->ClearSelection();
 }
 
 void FBlueprintComponentsApplicationMode::PostActivateMode()
@@ -322,6 +322,13 @@ void FBlueprintComponentsApplicationMode::PostActivateMode()
 	BP->EnableSCSPreview(true);
 	BP->UpdateSCSPreview();
 	BP->GetInspector()->EnableComponentDetailsCustomization(true);
+
+	// Reselect the cached components
+	TArray<TSharedPtr<FSCSEditorTreeNode>> Selection;
+	for( auto& Component : CachedComponentSelection )
+	{
+		BP->GetSCSEditor()->SCSTreeWidget->SetItemSelection(BP->GetSCSEditor()->GetNodeFromActorComponent(Component), true);
+	}
 
 	if (BP->GetSCSViewport()->GetIsSimulateEnabled())
 	{
