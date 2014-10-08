@@ -141,7 +141,7 @@ namespace EpicGames.MCP.Automation
         /// <summary>
         /// Gets the base filename of the manifest that would be created by invoking the BuildPatchTool with the given parameters.
         /// </summary>
-        public string ManifestFilename
+        public virtual string ManifestFilename
         {
             get
             {
@@ -243,6 +243,28 @@ namespace EpicGames.MCP.Automation
 			CloudDir = CommandUtils.CombinePaths(BuildRootPath, CloudDirRelativePath);
 		}
     }
+
+	public class BuildPatchToolBinaryStagingInfo : BuildPatchToolStagingInfo
+	{
+		public BuildPatchToolBinaryStagingInfo(BuildPatchToolStagingInfo StagingInfo) : base(
+			StagingInfo.OwnerCommand,
+			StagingInfo.AppName,
+			StagingInfo.McpConfigKey,
+			StagingInfo.AppID,
+			StagingInfo.BuildVersion,
+			StagingInfo.Platform,
+			StagingInfo.StagingDir)
+		{
+		}
+
+		public override string ManifestFilename
+		{
+			get
+			{
+				return base.ManifestFilename.Replace(".manifest", ".binary.manifest");
+			}
+		}
+	}
 
 
     /// <summary>
