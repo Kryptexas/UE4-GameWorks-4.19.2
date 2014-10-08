@@ -149,7 +149,14 @@ void FSourceControlModule::ShowLoginDialog(const FSourceControlLoginClosed& InOn
 		}
 		else
 		{
-			FSlateApplication::Get().AddWindow(SourceControlLoginWindowPtr.ToSharedRef());
+			if(InLoginWindowMode == ELoginWindowMode::Modal)
+			{
+				FSlateApplication::Get().AddModalWindow(SourceControlLoginWindowPtr.ToSharedRef(), RootWindow);
+			}
+			else
+			{
+				FSlateApplication::Get().AddWindow(SourceControlLoginWindowPtr.ToSharedRef());
+			}
 		}
 	}
 #else
