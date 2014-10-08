@@ -286,7 +286,11 @@ APlayerState* APlayerState::Duplicate()
 	SpawnInfo.Instigator = Instigator;
 	SpawnInfo.bNoCollisionFail = true;
 	APlayerState* NewPlayerState = GetWorld()->SpawnActor<APlayerState>(GetClass(), SpawnInfo );
-	CopyProperties(NewPlayerState);
+	// Can fail in case of multiplayer PIE teardown
+	if (NewPlayerState)
+	{
+		CopyProperties(NewPlayerState);
+	}
 	return NewPlayerState;
 }
 
