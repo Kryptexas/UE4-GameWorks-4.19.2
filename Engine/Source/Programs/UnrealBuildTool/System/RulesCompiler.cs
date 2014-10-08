@@ -860,6 +860,14 @@ namespace UnrealBuildTool
 		{
 			return "";
 		}
+
+		/// <summary>
+		/// Allow Cook Platform Override from a target file
+		/// </summary>
+		public virtual string GUBP_AlternateCookPlatform(UnrealTargetPlatform HostPlatform, string Platform)
+		{
+			return "";
+		}
 	}
 
 
