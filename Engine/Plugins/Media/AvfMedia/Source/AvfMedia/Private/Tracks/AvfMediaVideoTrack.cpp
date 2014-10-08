@@ -3,7 +3,10 @@
 #include "AvfMediaPrivatePCH.h"
 
 
-FAvfMediaVideoTrack::FAvfMediaVideoTrack(AVAssetTrack* InVideoTrack)
+/* FAvfMediaVideoTrack structors
+ *****************************************************************************/
+
+FAvfMediaVideoTrack::FAvfMediaVideoTrack( AVAssetTrack* InVideoTrack )
     : FAvfMediaTrack()
     , SyncStatus(Default)
     , BitRate(0)
@@ -32,6 +35,17 @@ FAvfMediaVideoTrack::FAvfMediaVideoTrack(AVAssetTrack* InVideoTrack)
 }
 
 
+FAvfMediaVideoTrack::~FAvfMediaVideoTrack()
+{
+    // Destroyed.
+    [AVReader release];
+    [AVVideoOutput release];
+}
+
+
+/* FAvfMediaVideoTrack interface
+ *****************************************************************************/
+
 bool FAvfMediaVideoTrack::SeekToTime( const CMTime& SeekTime )
 {
     bool bSeekComplete = false;
@@ -46,7 +60,7 @@ bool FAvfMediaVideoTrack::SeekToTime( const CMTime& SeekTime )
 }
 
 
-void FAvfMediaVideoTrack::GetVideoDetails(AVAssetTrack* InVideoTrack)
+void FAvfMediaVideoTrack::GetVideoDetails( AVAssetTrack* InVideoTrack )
 {
     // Setup the asset reader to ascertain some further video details.
     NSError* nsError = nil;
@@ -91,18 +105,12 @@ void FAvfMediaVideoTrack::GetVideoDetails(AVAssetTrack* InVideoTrack)
 }
 
 
-FAvfMediaVideoTrack::~FAvfMediaVideoTrack()
-{
-    // Destroyed.
-    [AVReader release];
-    [AVVideoOutput release];
-}
-
 void FAvfMediaVideoTrack::ResetAssetReader()
 {
     [AVReader cancelReading];
     [AVReader release];
 }
+
 
 bool FAvfMediaVideoTrack::IsReady() const
 {

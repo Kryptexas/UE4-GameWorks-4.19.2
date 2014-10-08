@@ -42,7 +42,7 @@ UObject* UMediaPlayerFactory::FactoryCreateBinary( UClass* Class, UObject* InPar
 /* UMediaPlayerFactory implementation
  *****************************************************************************/
 
-void UMediaPlayerFactory::ReloadMediaFormats( )
+void UMediaPlayerFactory::ReloadMediaFormats()
 {
 	Formats.Reset();
 
@@ -64,12 +64,12 @@ void UMediaPlayerFactory::ReloadMediaFormats( )
 /* UMediaPlayerFactory callbacks
  *****************************************************************************/
 
-void UMediaPlayerFactory::HandleMediaPlayerFactoryAdded( )
+void UMediaPlayerFactory::HandleMediaPlayerFactoryAdded()
 {
 	ReloadMediaFormats();
 }
 
-void UMediaPlayerFactory::HandleMediaPlayerFactoryRemoved( )
+void UMediaPlayerFactory::HandleMediaPlayerFactoryRemoved()
 {
 	ReloadMediaFormats();
 }

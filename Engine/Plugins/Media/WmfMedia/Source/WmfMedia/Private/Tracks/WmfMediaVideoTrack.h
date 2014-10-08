@@ -44,17 +44,17 @@ public:
 
 	// IMediaTrackVideoDetails interface
 
-	virtual uint32 GetBitRate( ) const override
+	virtual uint32 GetBitRate() const override
 	{
 		return BitRate;
 	}
 
-	virtual FIntPoint GetDimensions( ) const override
+	virtual FIntPoint GetDimensions() const override
 	{
 		return FIntPoint(Width, Height);
 	}
 
-	virtual float GetFrameRate( ) const override
+	virtual float GetFrameRate() const override
 	{
 		return FrameRate;
 	}
@@ -63,40 +63,40 @@ public:
 
 	// IMediaTrack interface
 
-	virtual const IMediaTrackAudioDetails& GetAudioDetails( ) const override
+	virtual const IMediaTrackAudioDetails& GetAudioDetails() const override
 	{
 		check(false); // not an audio track
 		return (IMediaTrackAudioDetails&)*this;
 	}
 
-	virtual const IMediaTrackCaptionDetails& GetCaptionDetails( ) const override
+	virtual const IMediaTrackCaptionDetails& GetCaptionDetails() const override
 	{
 		check(false); // not a caption track
 		return (IMediaTrackCaptionDetails&)*this;
 	}
 
-	virtual EMediaTrackTypes GetType( ) const override
+	virtual EMediaTrackTypes GetType() const override
 	{
 		return EMediaTrackTypes::Video;
 	}
 
-	virtual const IMediaTrackVideoDetails& GetVideoDetails( ) const override
+	virtual const IMediaTrackVideoDetails& GetVideoDetails() const override
 	{
 		return *this;
 	}
 
 private:
 
-	// The video's average bit rate.
+	/** The video's average bit rate. */
 	uint32 BitRate;
 
-	// The video's frame rate.
+	/** The video's frame rate. */
 	float FrameRate;
 
-	// The video's height in pixels.
+	/** The video's height in pixels. */
 	UINT32 Height;
 
-	// The video's width in pixels.
+	/** The video's width in pixels. */
 	UINT32 Width;
 };
 

@@ -31,7 +31,7 @@ UObject* UMediaTextureFactoryNew::FactoryCreateNew( UClass* InClass, UObject* In
 }
 
 
-bool UMediaTextureFactoryNew::ShouldShowInNewMenu( ) const
+bool UMediaTextureFactoryNew::ShouldShowInNewMenu() const
 {
 	return true;
 }

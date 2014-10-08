@@ -17,15 +17,10 @@ FAvfMediaPlayer::FAvfMediaPlayer()
 }
 
 
-FAvfMediaPlayer::~FAvfMediaPlayer( )
-{
-}
-
-
 /* IMediaInfo interface
  *****************************************************************************/
 
-FTimespan FAvfMediaPlayer::GetDuration( ) const
+FTimespan FAvfMediaPlayer::GetDuration() const
 {
 	return Duration;
 }
@@ -40,7 +35,7 @@ TRange<float> FAvfMediaPlayer::GetSupportedRates( EMediaPlaybackDirections Direc
 }
 
 
-FString FAvfMediaPlayer::GetUrl( ) const
+FString FAvfMediaPlayer::GetUrl() const
 {
 	return MediaUrl;
 }
@@ -52,13 +47,13 @@ bool FAvfMediaPlayer::SupportsRate( float Rate, bool Unthinned ) const
 }
 
 
-bool FAvfMediaPlayer::SupportsScrubbing( ) const
+bool FAvfMediaPlayer::SupportsScrubbing() const
 {
 	return false;
 }
 
 
-bool FAvfMediaPlayer::SupportsSeeking( ) const
+bool FAvfMediaPlayer::SupportsSeeking() const
 {
 	return false;
 }
@@ -67,7 +62,7 @@ bool FAvfMediaPlayer::SupportsSeeking( ) const
 /* IMediaPlayer interface
  *****************************************************************************/
 
-void FAvfMediaPlayer::Close( )
+void FAvfMediaPlayer::Close()
 {
     CurrentTime = 0;
 	MediaUrl = FString();
@@ -90,49 +85,49 @@ void FAvfMediaPlayer::Close( )
 }
 
 
-const IMediaInfo& FAvfMediaPlayer::GetMediaInfo( ) const 
+const IMediaInfo& FAvfMediaPlayer::GetMediaInfo() const 
 {
 	return *this;
 }
 
 
-float FAvfMediaPlayer::GetRate( ) const
+float FAvfMediaPlayer::GetRate() const
 {
     return CurrentRate;
 }
 
 
-FTimespan FAvfMediaPlayer::GetTime( ) const 
+FTimespan FAvfMediaPlayer::GetTime() const 
 {
     return CurrentTime;
 }
 
 
-const TArray<IMediaTrackRef>& FAvfMediaPlayer::GetTracks( ) const
+const TArray<IMediaTrackRef>& FAvfMediaPlayer::GetTracks() const
 {
 	return Tracks;
 }
 
 
-bool FAvfMediaPlayer::IsLooping( ) const 
+bool FAvfMediaPlayer::IsLooping() const 
 {
     return false;
 }
 
 
-bool FAvfMediaPlayer::IsPaused( ) const
+bool FAvfMediaPlayer::IsPaused() const
 {
     return FMath::IsNearlyZero( [MediaPlayer rate] );
 }
 
 
-bool FAvfMediaPlayer::IsPlaying( ) const
+bool FAvfMediaPlayer::IsPlaying() const
 {
     return (MediaPlayer != nil) && (1.0f == MediaPlayer.rate) && (CurrentTime <= Duration);
 }
 
 
-bool FAvfMediaPlayer::IsReady( ) const
+bool FAvfMediaPlayer::IsReady() const
 {
     // To be ready, we need the AVPlayer setup
     bool bIsReady = (MediaPlayer != nil) && ([MediaPlayer status] == AVPlayerStatusReadyToPlay);
@@ -252,23 +247,23 @@ bool FAvfMediaPlayer::SetRate( float Rate )
 }
 
 
-/* FTickerBase implementation
+/* FTickerBase interface
  *****************************************************************************/
 
-
-bool FAvfMediaPlayer::Tick(float DeltaTime)
+bool FAvfMediaPlayer::Tick( float DeltaTime )
 {
-    CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([[MediaPlayer currentItem] currentTime]) );
+    CurrentTime = FTimespan::FromSeconds(CMTimeGetSeconds([[MediaPlayer currentItem] currentTime]));
     
-    if( IsPlaying() )
+    if (IsPlaying())
     {
-        for( IMediaTrackRef& Track : Tracks )
+        for (IMediaTrackRef& Track : Tracks)
         {
             FAvfMediaVideoTrack* AVFTrack = (FAvfMediaVideoTrack*)&Track.Get();
-            if( AVFTrack != nil )
+            
+			if (AVFTrack != nil)
             {
-                AVFTrack->ReadFrameAtTime( [[MediaPlayer currentItem] currentTime] );
-            }
+                AVFTrack->ReadFrameAtTime([[MediaPlayer currentItem] currentTime]);
+			}
         }
     }
     

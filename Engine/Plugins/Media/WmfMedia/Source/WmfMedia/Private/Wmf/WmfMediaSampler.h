@@ -17,12 +17,12 @@ public:
 	DECLARE_DELEGATE(CommandDelegate)
 
 	/** Default constructor. */
-	FWmfMediaSampler( )
+	FWmfMediaSampler()
 		: RefCount(1)
 	{ }
 
 	/** Virtual destructor. */
-	virtual ~FWmfMediaSampler( ) { }
+	virtual ~FWmfMediaSampler() { }
 
 public:
 
@@ -54,7 +54,7 @@ public:
 
 	// IMFSampleGrabberSinkCallback interface
 
-	STDMETHODIMP_(ULONG) AddRef( )
+	STDMETHODIMP_(ULONG) AddRef()
 	{
 		return FPlatformAtomics::InterlockedIncrement(&RefCount);
 	}
@@ -113,7 +113,7 @@ public:
 		return S_OK;
 	}
 
-	STDMETHODIMP OnShutdown( )
+	STDMETHODIMP OnShutdown()
 	{
 		return S_OK;
 	}
@@ -130,7 +130,7 @@ public:
 		return QISearch(this, QITab, RefID, Object);
 	}
 
-	STDMETHODIMP_(ULONG) Release( )
+	STDMETHODIMP_(ULONG) Release()
 	{
 		int32 CurrentRefCount = FPlatformAtomics::InterlockedDecrement(&RefCount);
 
@@ -156,13 +156,13 @@ private:
 
 private:
 
-	// Holds the router command queue.
+	/** Holds the router command queue. */
 	TQueue<CommandDelegate, EQueueMode::Mpsc> Commands;
 
-	// The collection of registered media sinks.
+	/** The collection of registered media sinks. */
 	TArray<IMediaSinkWeakPtr> Sinks;
 
-	// Holds a reference counter for this instance.
+	/** Holds a reference counter for this instance. */
 	int32 RefCount;
 };
 

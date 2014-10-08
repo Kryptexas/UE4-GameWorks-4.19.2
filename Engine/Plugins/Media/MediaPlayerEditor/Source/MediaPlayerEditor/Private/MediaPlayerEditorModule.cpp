@@ -20,7 +20,7 @@ public:
 
 	// IHasMenuExtensibility interface
 
-	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager( )
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager()
 	{
 		return MenuExtensibilityManager;
 	}
@@ -29,7 +29,7 @@ public:
 
 	// IHasToolBarExtensibility interface
 
-	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager( )
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager()
 	{
 		return ToolBarExtensibilityManager;
 	}
@@ -38,7 +38,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		Style = MakeShareable(new FMediaPlayerEditorStyle());
 
@@ -49,7 +49,7 @@ public:
 		RegisterThumbnailRenderers();
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		UnregisterAssetTools();
 		UnregisterMenuExtensions();
@@ -59,7 +59,7 @@ public:
 protected:
 
 	/** Registers asset tool actions. */
-	void RegisterAssetTools( )
+	void RegisterAssetTools()
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 
@@ -81,20 +81,20 @@ protected:
 	}
 
 	/** Registers main menu and tool bar menu extensions. */
-	void RegisterMenuExtensions( )
+	void RegisterMenuExtensions()
 	{
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	}
 
 	/** Registers asset thumbnail renderers .*/
-	void RegisterThumbnailRenderers( )
+	void RegisterThumbnailRenderers()
 	{
 		UThumbnailManager::Get().RegisterCustomRenderer(UMediaTexture::StaticClass(), UTextureThumbnailRenderer::StaticClass());
 	}
 
 	/** Unregisters asset tool actions. */
-	void UnregisterAssetTools( )
+	void UnregisterAssetTools()
 	{
 		FAssetToolsModule* AssetToolsModule = FModuleManager::GetModulePtr<FAssetToolsModule>("AssetTools");
 
@@ -110,14 +110,14 @@ protected:
 	}
 
 	/** Unregisters main menu and tool bar menu extensions. */
-	void UnregisterMenuExtensions( )
+	void UnregisterMenuExtensions()
 	{
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
 	}
 
 	/** Unregisters all asset thumbnail renderers. */
-	void UnregisterThumbnailRenderers( )
+	void UnregisterThumbnailRenderers()
 	{
 		if (UObjectInitialized())
 		{

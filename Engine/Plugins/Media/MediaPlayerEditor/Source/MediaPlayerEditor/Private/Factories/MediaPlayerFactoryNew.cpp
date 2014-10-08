@@ -24,7 +24,7 @@ UObject* UMediaPlayerFactoryNew::FactoryCreateNew( UClass* InClass, UObject* InP
 }
 
 
-bool UMediaPlayerFactoryNew::ShouldShowInNewMenu( ) const
+bool UMediaPlayerFactoryNew::ShouldShowInNewMenu() const
 {
 	return true;
 }

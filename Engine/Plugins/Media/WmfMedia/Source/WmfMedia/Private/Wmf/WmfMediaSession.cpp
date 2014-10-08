@@ -60,7 +60,7 @@ FWmfMediaSession::FWmfMediaSession( const FTimespan& InDuration, const TComPtr<I
 /* FWmfMediaSession interface
  *****************************************************************************/
 
-FTimespan FWmfMediaSession::GetPosition( ) const
+FTimespan FWmfMediaSession::GetPosition() const
 {
 	if (PresentationClock == NULL)
 	{
@@ -171,7 +171,7 @@ bool FWmfMediaSession::SetState( EMediaStates NewState )
 /* IMFAsyncCallback interface
  *****************************************************************************/
 
-STDMETHODIMP_(ULONG) FWmfMediaSession::AddRef( )
+STDMETHODIMP_(ULONG) FWmfMediaSession::AddRef()
 {
 	return FPlatformAtomics::InterlockedIncrement(&RefCount);
 }
@@ -299,7 +299,7 @@ STDMETHODIMP FWmfMediaSession::QueryInterface( REFIID RefID, void** Object )
 }
 
 
-STDMETHODIMP_(ULONG) FWmfMediaSession::Release( )
+STDMETHODIMP_(ULONG) FWmfMediaSession::Release()
 {
 	int32 CurrentRefCount = FPlatformAtomics::InterlockedDecrement(&RefCount);
 	
@@ -315,7 +315,7 @@ STDMETHODIMP_(ULONG) FWmfMediaSession::Release( )
 /* FWmfVideoSession implementation
  *****************************************************************************/
 
-bool FWmfMediaSession::ChangeState( )
+bool FWmfMediaSession::ChangeState()
 {
 	// disallow state changes if session was closed or had an error
 	if ((CurrentState == EMediaStates::Closed) || (CurrentState == EMediaStates::Error))
@@ -431,7 +431,7 @@ bool FWmfMediaSession::ChangeState( )
 }
 
 
-FTimespan FWmfMediaSession::GetInternalPosition( ) const
+FTimespan FWmfMediaSession::GetInternalPosition() const
 {
 	MFTIME ClockTime;
 

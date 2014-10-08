@@ -13,15 +13,11 @@ class FAvfMediaPlayer
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FAvfMediaPlayer( );
+	/** Default constructor. */
+	FAvfMediaPlayer();
 
-	/**
-	 * Destructor.
-	 */
-	~FAvfMediaPlayer();
+	/** Destructor. */
+	~FAvfMediaPlayer() { }
 
 public:
 
@@ -67,39 +63,40 @@ public:
 
 public:
 
-    // FTickerObjectBase
-    virtual bool Tick(float DeltaTime) override;
+    // FTickerObjectBase interface
+
+    virtual bool Tick( float DeltaTime ) override;
 
 private:
-    // The AVFoundation media player
+
+    /** The AVFoundation media player */
     AVPlayer* MediaPlayer;
 
-    // The player item which the media player uses to progress.
+    /** The player item which the media player uses to progress. */
     AVPlayerItem* PlayerItem;
 
-    // The available media tracks.
+    /** The available media tracks. */
     TArray<IMediaTrackRef> Tracks;
 
 private:
-    // Media Info
 
-    // The duration of the media.
+    /** The duration of the media. */
     FTimespan Duration;
 
-    // The current time of the playthrough.
+    /** The current time of the playback. */
     FTimespan CurrentTime;
 
-    // The URL of the currently opened media.
+    /** The URL of the currently opened media. */
     FString MediaUrl;
 
-    // The current playback rate.
+    /** The current playback rate. */
     float CurrentRate;
 
 private:
 
-	// Holds an event delegate that is invoked when media is being unloaded.
+	/** Holds an event delegate that is invoked when media is being unloaded. */
 	FOnMediaClosed ClosedEvent;
 
-	// Holds an event delegate that is invoked when media has been loaded.
+	/** Holds an event delegate that is invoked when media has been loaded. */
 	FOnMediaOpened OpenedEvent;
 };

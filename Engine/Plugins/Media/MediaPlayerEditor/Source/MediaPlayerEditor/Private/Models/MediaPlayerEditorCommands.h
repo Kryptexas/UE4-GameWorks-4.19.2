@@ -14,7 +14,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FMediaPlayerEditorCommands( ) 
+	FMediaPlayerEditorCommands() 
 		: TCommands<FMediaPlayerEditorCommands>("MediaPlayerEditor", NSLOCTEXT("Contexts", "MediaPlayerEditor", "MediaPlayer Editor"), NAME_None, "MediaPlayerEditorStyle")
 	{ }
 
@@ -22,7 +22,7 @@ public:
 
 	// TCommands interface
 
-	virtual void RegisterCommands( ) override;
+	virtual void RegisterCommands() override;
 	
 public:
 

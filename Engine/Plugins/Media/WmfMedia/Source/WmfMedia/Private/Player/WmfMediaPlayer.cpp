@@ -7,13 +7,13 @@
 /* FWmfVideoPlayer structors
  *****************************************************************************/
 
-FWmfMediaPlayer::FWmfMediaPlayer( )
+FWmfMediaPlayer::FWmfMediaPlayer()
 	: Duration(0)
 	, MediaSession(nullptr)
 { }
 
 
-FWmfMediaPlayer::~FWmfMediaPlayer( )
+FWmfMediaPlayer::~FWmfMediaPlayer()
 {
 	Close();
 }
@@ -22,7 +22,7 @@ FWmfMediaPlayer::~FWmfMediaPlayer( )
 /* IMediaInfo interface
  *****************************************************************************/
 
-FTimespan FWmfMediaPlayer::GetDuration( ) const
+FTimespan FWmfMediaPlayer::GetDuration() const
 {
 	return Duration;
 }
@@ -39,7 +39,7 @@ TRange<float> FWmfMediaPlayer::GetSupportedRates( EMediaPlaybackDirections Direc
 }
 
 
-FString FWmfMediaPlayer::GetUrl( ) const
+FString FWmfMediaPlayer::GetUrl() const
 {
 	return MediaUrl;
 }
@@ -53,13 +53,13 @@ bool FWmfMediaPlayer::SupportsRate( float Rate, bool Unthinned ) const
 }
 
 
-bool FWmfMediaPlayer::SupportsScrubbing( ) const
+bool FWmfMediaPlayer::SupportsScrubbing() const
 {
 	return ((MediaSession != NULL) && MediaSession->SupportsScrubbing());
 }
 
 
-bool FWmfMediaPlayer::SupportsSeeking( ) const
+bool FWmfMediaPlayer::SupportsSeeking() const
 {
 	return ((MediaSession != NULL) &&
 			((MediaSession->GetCapabilities() & MFSESSIONCAP_SEEK) != 0) &&
@@ -70,7 +70,7 @@ bool FWmfMediaPlayer::SupportsSeeking( ) const
 /* IMediaPlayer interface
  *****************************************************************************/
 
-void FWmfMediaPlayer::Close( )
+void FWmfMediaPlayer::Close()
 {
 	if (MediaSession == NULL)
 	{
@@ -89,13 +89,13 @@ void FWmfMediaPlayer::Close( )
 }
 
 
-const IMediaInfo& FWmfMediaPlayer::GetMediaInfo( ) const 
+const IMediaInfo& FWmfMediaPlayer::GetMediaInfo() const 
 {
 	return *this;
 }
 
 
-float FWmfMediaPlayer::GetRate( ) const
+float FWmfMediaPlayer::GetRate() const
 {
 	return (MediaSession != NULL)
 		? MediaSession->GetRate()
@@ -103,7 +103,7 @@ float FWmfMediaPlayer::GetRate( ) const
 }
 
 
-FTimespan FWmfMediaPlayer::GetTime( ) const 
+FTimespan FWmfMediaPlayer::GetTime() const 
 {
 	return (MediaSession != NULL)
 		? MediaSession->GetPosition()
@@ -111,19 +111,19 @@ FTimespan FWmfMediaPlayer::GetTime( ) const
 }
 
 
-const TArray<IMediaTrackRef>& FWmfMediaPlayer::GetTracks( ) const
+const TArray<IMediaTrackRef>& FWmfMediaPlayer::GetTracks() const
 {
 	return Tracks;
 }
 
 
-bool FWmfMediaPlayer::IsLooping( ) const 
+bool FWmfMediaPlayer::IsLooping() const 
 {
 	return ((MediaSession != NULL) && MediaSession->IsLooping());
 }
 
 
-bool FWmfMediaPlayer::IsPaused( ) const
+bool FWmfMediaPlayer::IsPaused() const
 {
 	if (MediaSession == NULL)
 	{
@@ -139,13 +139,13 @@ bool FWmfMediaPlayer::IsPaused( ) const
 }
 
 
-bool FWmfMediaPlayer::IsPlaying( ) const
+bool FWmfMediaPlayer::IsPlaying() const
 {
 	return (MediaSession != NULL) && (MediaSession->GetState() == EMediaStates::Playing) && !FMath::IsNearlyZero(MediaSession->GetRate());
 }
 
 
-bool FWmfMediaPlayer::IsReady( ) const
+bool FWmfMediaPlayer::IsReady() const
 {
 	return ((MediaSession != NULL) &&
 			(MediaSession->GetState() != EMediaStates::Closed) &&

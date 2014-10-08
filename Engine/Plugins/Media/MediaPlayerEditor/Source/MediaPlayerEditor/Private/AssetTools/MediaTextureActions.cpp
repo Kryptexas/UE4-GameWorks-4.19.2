@@ -11,7 +11,7 @@
 /* FAssetTypeActions_Base overrides
  *****************************************************************************/
 
-bool FMediaTextureActions::CanFilter( )
+bool FMediaTextureActions::CanFilter()
 {
 	return true;
 }
@@ -69,25 +69,25 @@ void FMediaTextureActions::GetActions( const TArray<UObject*>& InObjects, FMenuB
 }
 
 
-uint32 FMediaTextureActions::GetCategories( )
+uint32 FMediaTextureActions::GetCategories()
 {
 	return EAssetTypeCategories::MaterialsAndTextures;
 }
 
 
-FText FMediaTextureActions::GetName( ) const
+FText FMediaTextureActions::GetName() const
 {
 	return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_MediaTexture", "Media Texture");
 }
 
 
-UClass* FMediaTextureActions::GetSupportedClass( ) const
+UClass* FMediaTextureActions::GetSupportedClass() const
 {
 	return UMediaTexture::StaticClass();
 }
 
 
-FColor FMediaTextureActions::GetTypeColor( ) const
+FColor FMediaTextureActions::GetTypeColor() const
 {
 	return FColor(255, 0, 0);
 }

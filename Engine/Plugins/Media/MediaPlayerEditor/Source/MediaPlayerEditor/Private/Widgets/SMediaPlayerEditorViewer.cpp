@@ -9,7 +9,7 @@
 /* SMediaPlayerEditorPlayer structors
  *****************************************************************************/
 
-SMediaPlayerEditorViewer::SMediaPlayerEditorViewer( )
+SMediaPlayerEditorViewer::SMediaPlayerEditorViewer()
 	: CaptionBuffer(MakeShareable(new FMediaSampleBuffer))
 	, MediaPlayer(nullptr)
 { }
@@ -261,7 +261,7 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 /* SMediaPlayerEditorPlayer implementation
  *****************************************************************************/
 
-void SMediaPlayerEditorViewer::ReloadMediaPlayer( )
+void SMediaPlayerEditorViewer::ReloadMediaPlayer()
 {
 	// clear track collections
 	IMediaTrackPtr SelectedCaptionTrack = CaptionTrackComboBox->GetSelectedItem();
@@ -368,7 +368,7 @@ void SMediaPlayerEditorViewer::HandleAudioTrackComboBoxSelectionChanged( IMediaT
 }
 
 
-FText SMediaPlayerEditorViewer::HandleAudioTrackComboBoxText( ) const
+FText SMediaPlayerEditorViewer::HandleAudioTrackComboBoxText() const
 {
 	IMediaTrackPtr AudioTrack = AudioTrackComboBox->GetSelectedItem();
 
@@ -402,7 +402,7 @@ void SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxSelectionChanged( IMedi
 }
 
 
-FText SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxText( ) const
+FText SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxText() const
 {
 	IMediaTrackPtr CaptionTrack = CaptionTrackComboBox->GetSelectedItem();
 
@@ -420,7 +420,7 @@ FText SMediaPlayerEditorViewer::HandleCaptionTrackComboBoxText( ) const
 }
 
 
-FText SMediaPlayerEditorViewer::HandleElapsedTimeTextBlockText( ) const
+FText SMediaPlayerEditorViewer::HandleElapsedTimeTextBlockText() const
 {
 	return FText::AsTimespan(MediaPlayer->GetTime());
 }
@@ -432,7 +432,7 @@ void SMediaPlayerEditorViewer::HandleMediaPlayerMediaChanged()
 }
 
 
-FText SMediaPlayerEditorViewer::HandleOverlayCaptionText( ) const
+FText SMediaPlayerEditorViewer::HandleOverlayCaptionText() const
 {
 	TSharedPtr<TArray<uint8>, ESPMode::ThreadSafe> CurrentCaption = CaptionBuffer->GetCurrentSample();
 
@@ -445,7 +445,7 @@ FText SMediaPlayerEditorViewer::HandleOverlayCaptionText( ) const
 }
 
 
-FText SMediaPlayerEditorViewer::HandleOverlayStateText( ) const
+FText SMediaPlayerEditorViewer::HandleOverlayStateText() const
 {
 	if (MediaPlayer->IsPaused())
 	{
@@ -473,7 +473,7 @@ FText SMediaPlayerEditorViewer::HandleOverlayStateText( ) const
 }
 
 
-TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMaxValue( ) const
+TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMaxValue() const
 {
 	IMediaPlayerPtr Player = MediaPlayer->GetPlayer();
 
@@ -486,7 +486,7 @@ TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMaxValue( ) cons
 }
 
 
-TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMinValue( ) const
+TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMinValue() const
 {
 	IMediaPlayerPtr Player = MediaPlayer->GetPlayer();
 
@@ -499,7 +499,7 @@ TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMinValue( ) cons
 }
 
 
-TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateSpinBoxValue( ) const
+TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateSpinBoxValue() const
 {
 	return MediaPlayer->GetRate();
 }
@@ -511,13 +511,13 @@ void SMediaPlayerEditorViewer::HandlePlaybackRateBoxValueChanged( float NewValue
 }
 
 
-bool SMediaPlayerEditorViewer::HandlePositionSliderIsEnabled( ) const
+bool SMediaPlayerEditorViewer::HandlePositionSliderIsEnabled() const
 {
 	return MediaPlayer->SupportsSeeking();
 }
 
 
-void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureBegin( )
+void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureBegin()
 {
 	if (MediaPlayer->SupportsScrubbing())
 	{
@@ -527,7 +527,7 @@ void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureBegin( )
 }
 
 
-void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureEnd( )
+void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureEnd()
 {
 	if (MediaPlayer->SupportsScrubbing())
 	{
@@ -536,7 +536,7 @@ void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureEnd( )
 }
 
 
-float SMediaPlayerEditorViewer::HandlePositionSliderValue( ) const
+float SMediaPlayerEditorViewer::HandlePositionSliderValue() const
 {
 	if (MediaPlayer->GetDuration() > FTimespan::Zero())
 	{
@@ -556,7 +556,7 @@ void SMediaPlayerEditorViewer::HandlePositionSliderValueChanged( float NewValue 
 }
 
 
-FText SMediaPlayerEditorViewer::HandleRemainingTimeTextBlockText( ) const
+FText SMediaPlayerEditorViewer::HandleRemainingTimeTextBlockText() const
 {
 	return FText::AsTimespan(MediaPlayer->GetDuration() - MediaPlayer->GetTime());
 }
@@ -578,7 +578,7 @@ void SMediaPlayerEditorViewer::HandleVideoTrackComboBoxSelectionChanged( IMediaT
 }
 
 
-FText SMediaPlayerEditorViewer::HandleVideoTrackComboBoxText( ) const
+FText SMediaPlayerEditorViewer::HandleVideoTrackComboBoxText() const
 {
 	IMediaTrackPtr VideoTrack = VideoTrackComboBox->GetSelectedItem();
 

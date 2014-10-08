@@ -18,7 +18,7 @@ FWmfMediaByteStream::FWmfMediaByteStream( const TSharedRef<TArray<uint8>>& InBuf
 /* IMFAsyncCallback interface
  *****************************************************************************/
 
-STDMETHODIMP_(ULONG) FWmfMediaByteStream::AddRef( )
+STDMETHODIMP_(ULONG) FWmfMediaByteStream::AddRef()
 {
 	return FPlatformAtomics::InterlockedIncrement(&RefCount);
 }
@@ -92,7 +92,7 @@ STDMETHODIMP FWmfMediaByteStream::QueryInterface( REFIID RefID, void** Object )
 }
 
 
-STDMETHODIMP_(ULONG) FWmfMediaByteStream::Release( )
+STDMETHODIMP_(ULONG) FWmfMediaByteStream::Release()
 {
 	int32 CurrentRefCount = FPlatformAtomics::InterlockedDecrement(&RefCount);
 	
@@ -143,7 +143,7 @@ STDMETHODIMP FWmfMediaByteStream::BeginWrite( const BYTE* pb, ULONG cb, IMFAsync
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::Close( )
+STDMETHODIMP FWmfMediaByteStream::Close()
 {
 	return S_OK;
 }
@@ -177,7 +177,7 @@ STDMETHODIMP FWmfMediaByteStream::EndWrite( IMFAsyncResult* pResult, ULONG* pcbW
 }
 
 
-STDMETHODIMP FWmfMediaByteStream::Flush( )
+STDMETHODIMP FWmfMediaByteStream::Flush()
 {
 	return E_NOTIMPL;
 }

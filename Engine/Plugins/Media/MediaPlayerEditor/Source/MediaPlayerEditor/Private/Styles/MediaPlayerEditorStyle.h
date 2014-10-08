@@ -18,10 +18,8 @@ class FMediaPlayerEditorStyle
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	 FMediaPlayerEditorStyle( )
+	/** Default constructor. */
+	 FMediaPlayerEditorStyle()
 		 : FSlateStyleSet("MediaPlayerEditorStyle")
 	 {
 		const FVector2D Icon16x16(16.0f, 16.0f);
@@ -47,10 +45,8 @@ public:
 		FSlateStyleRegistry::RegisterSlateStyle(*this);
 	 }
 
-	 /**
-	  * Destructor.
-	  */
-	 ~FMediaPlayerEditorStyle( )
+	 /** Destructor. */
+	 ~FMediaPlayerEditorStyle()
 	 {
 		FSlateStyleRegistry::UnRegisterSlateStyle(*this);
 	 }

@@ -18,7 +18,7 @@ FMediaPlayerActions::FMediaPlayerActions( const TSharedRef<ISlateStyle>& InStyle
 /* FAssetTypeActions_Base overrides
  *****************************************************************************/
 
-bool FMediaPlayerActions::CanFilter( )
+bool FMediaPlayerActions::CanFilter()
 {
 	return true;
 }
@@ -76,25 +76,25 @@ void FMediaPlayerActions::GetActions( const TArray<UObject*>& InObjects, FMenuBu
 }
 
 
-uint32 FMediaPlayerActions::GetCategories( )
+uint32 FMediaPlayerActions::GetCategories()
 {
 	return EAssetTypeCategories::Misc;
 }
 
 
-FText FMediaPlayerActions::GetName( ) const
+FText FMediaPlayerActions::GetName() const
 {
 	return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_MediaPlayer", "Media Player");
 }
 
 
-UClass* FMediaPlayerActions::GetSupportedClass( ) const
+UClass* FMediaPlayerActions::GetSupportedClass() const
 {
 	return UMediaPlayer::StaticClass();
 }
 
 
-FColor FMediaPlayerActions::GetTypeColor( ) const
+FColor FMediaPlayerActions::GetTypeColor() const
 {
 	return FColor(255, 0, 0);
 }

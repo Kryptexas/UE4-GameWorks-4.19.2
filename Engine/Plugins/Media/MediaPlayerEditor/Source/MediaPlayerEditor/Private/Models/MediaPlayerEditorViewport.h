@@ -8,18 +8,14 @@ class FMediaPlayerEditorViewport
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FMediaPlayerEditorViewport( )
+	/** Default constructor. */
+	FMediaPlayerEditorViewport()
 		: EditorTexture(nullptr)
 		, SlateTexture(nullptr)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
-	~FMediaPlayerEditorViewport( )
+	/** Destructor. */
+	~FMediaPlayerEditorViewport()
 	{
 		ReleaseResources();
 	}
@@ -57,7 +53,7 @@ public:
 
 protected:
 
-	void ReleaseResources( )
+	void ReleaseResources()
 	{
 		if (SlateTexture != nullptr)
 		{
@@ -83,28 +79,28 @@ public:
 
 	// ISlateViewport interface
 
-	virtual FIntPoint GetSize( ) const override
+	virtual FIntPoint GetSize() const override
 	{
 		return (SlateTexture != nullptr)
 			? FIntPoint(SlateTexture->GetWidth(), SlateTexture->GetHeight())
 			: FIntPoint();
 	}
 
-	virtual class FSlateShaderResource* GetViewportRenderTargetTexture( ) const override
+	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const override
 	{
 		return SlateTexture;
 	}
 
-	virtual bool RequiresVsync( ) const override
+	virtual bool RequiresVsync() const override
 	{
 		return false;
 	}
 
 private:
 
-	// The texture being rendered on this viewport
+	/** The texture being rendered on this viewport. */
 	FMediaPlayerEditorTexture* EditorTexture;
 
-	// Pointer to the Slate texture being rendered.
+	/** Pointer to the Slate texture being rendered. */
 	FSlateTexture2DRHIRef* SlateTexture;
 };

@@ -31,7 +31,7 @@ UObject* UMediaSoundWaveFactoryNew::FactoryCreateNew( UClass* InClass, UObject* 
 }
 
 
-bool UMediaSoundWaveFactoryNew::ShouldShowInNewMenu( ) const
+bool UMediaSoundWaveFactoryNew::ShouldShowInNewMenu() const
 {
 	return true;
 }
