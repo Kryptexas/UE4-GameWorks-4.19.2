@@ -17,7 +17,7 @@ namespace ETargetDataFilterSelf
 }
 
 USTRUCT(BlueprintType)
-struct FGameplayTargetDataFilter
+struct GAMEPLAYABILITIES_API FGameplayTargetDataFilter
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -50,16 +50,6 @@ struct FGameplayTargetDataFilter
 		return true;
 	}
 
-	bool operator()(const TWeakObjectPtr<AActor> A) const
-	{
-		return FilterPassesForActor(A.Get());
-	}
-
-	bool operator()(const AActor* A) const
-	{
-		return FilterPassesForActor(A);
-	}
-
 	/** Filled out while running */
 	TWeakObjectPtr<UGameplayAbility> SourceAbility;
 
@@ -69,9 +59,36 @@ struct FGameplayTargetDataFilter
 
 
 USTRUCT(BlueprintType)
-struct FGameplayTargetDataFilterHandle
+struct GAMEPLAYABILITIES_API FGameplayTargetDataFilterHandle
 {
 	GENERATED_USTRUCT_BODY()
 
 	TSharedPtr<FGameplayTargetDataFilter> Filter;
+
+	bool FilterPassesForActor(const AActor* ActorToBeFiltered) const
+	{
+		if (!ActorToBeFiltered)
+		{
+			return false;
+		}
+		//Eventually, this might iterate through multiple filters. We'll need to decide how to designate OR versus AND functionality.
+		if (Filter.IsValid())
+		{
+			if (!Filter.Get()->FilterPassesForActor(ActorToBeFiltered))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool operator()(const TWeakObjectPtr<AActor> ActorToBeFiltered) const
+	{
+		return FilterPassesForActor(ActorToBeFiltered.Get());
+	}
+
+	bool operator()(const AActor* ActorToBeFiltered) const
+	{
+		return FilterPassesForActor(ActorToBeFiltered);
+	}
 };

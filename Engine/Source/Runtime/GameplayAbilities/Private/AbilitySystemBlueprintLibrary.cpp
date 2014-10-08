@@ -72,22 +72,17 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	}
 }
 
-
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::FilterTargetData(FGameplayAbilityTargetDataHandle TargetDataHandle, FGameplayTargetDataFilterHandle FilterHandle)
 {
 	FGameplayAbilityTargetDataHandle ReturnDataHandle;
 	
-	//return ReturnDataHandle;
-	check(FilterHandle.Filter.IsValid());		//Return unfiltered data
-
 	for (int32 i = 0; TargetDataHandle.IsValid(i); ++i)
 	{
 		FGameplayAbilityTargetData* UnfilteredData = TargetDataHandle.Get(i);
 		check(UnfilteredData);
 		if (UnfilteredData->GetActors().Num() > 0)
 		{
-			//TArray<TWeakObjectPtr<AActor>> FilteredActors = FilterActorArray(UnfilteredData->GetActors(), Filter);
-			TArray<TWeakObjectPtr<AActor>> FilteredActors = UnfilteredData->GetActors().FilterByPredicate(*FilterHandle.Filter.Get());
+			TArray<TWeakObjectPtr<AActor>> FilteredActors = UnfilteredData->GetActors().FilterByPredicate(FilterHandle);
 			if (FilteredActors.Num() > 0)
 			{
 				//Copy the data first, since we don't understand the internals of it
@@ -120,40 +115,6 @@ FGameplayTargetDataFilterHandle UAbilitySystemBlueprintLibrary::MakeFilterHandle
 	FilterHandle.Filter = TSharedPtr<FGameplayTargetDataFilter>(NewFilter);
 	return FilterHandle;
 }
-
-
-/*
-TArray<TWeakObjectPtr<AActor>> UGameplayAbility::FilterActorArray(TArray<TWeakObjectPtr<AActor>> ArrayToFilter, FGameplayAbilityTargetDataActorFilter Filter)
-{
-	TArray<TWeakObjectPtr<AActor>> ReturnArray;
-	int32 NewArraySize = 0;
-	for (int32 i = 0; i < ArrayToFilter.Num(); ++i)
-	{
-		if (ArrayToFilter[i].IsValid())
-		{
-			if (Filter.FilterPassesForActor(ArrayToFilter[i].Get()))
-			{
-				++NewArraySize;
-			}
-		}
-	}
-	if (NewArraySize)
-	{
-		ReturnArray.Reserve(NewArraySize);
-		for (int32 i = 0; i < ArrayToFilter.Num(); ++i)
-		{
-			if (ArrayToFilter[i].IsValid())
-			{
-				if (Filter.FilterPassesForActor(ArrayToFilter[i].Get()))
-				{
-					ReturnArray.Add(ArrayToFilter[i].Get());
-				}
-			}
-		}
-	}
-	return ReturnArray;
-}
-*/
 
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(FHitResult HitResult)
 {
