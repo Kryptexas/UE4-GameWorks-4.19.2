@@ -391,7 +391,7 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 				{
 					for (int32 Index = 0; Index < MaterialGraph->MaterialInputs.Num(); ++Index)
 					{
-						if( MaterialGraph->IsInputVisible( Index ) )
+						if(MaterialGraph->MaterialInputs[Index].IsVisiblePin(MaterialGraph->Material))
 						{
 							FFormatNamedArguments Arguments;
 							Arguments.Add(TEXT("Name"), MaterialGraph->MaterialInputs[Index].Name);

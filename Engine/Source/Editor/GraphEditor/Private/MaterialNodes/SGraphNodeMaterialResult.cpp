@@ -36,7 +36,10 @@ void SGraphNodeMaterialResult::CreatePinWidgets()
 		//const bool bPinDesiresToBeHidden = CurPin->bHidden || (bHideNoConnectionPins && !bPinHasConections);
 
 		UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(GraphNode->GetGraph());
-		const bool bPinDesiresToBeHidden = !MaterialGraph->IsInputVisible(PinIndex) || (bHideNoConnectionPins && !bPinHasConections);
+
+		check(PinIndex < MaterialGraph->MaterialInputs.Num());
+
+		const bool bPinDesiresToBeHidden = !MaterialGraph->MaterialInputs[PinIndex].IsVisiblePin(MaterialGraph->Material) || (bHideNoConnectionPins && !bPinHasConections);
 
 		if (!bPinDesiresToBeHidden)
 		{

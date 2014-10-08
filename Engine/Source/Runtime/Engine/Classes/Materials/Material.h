@@ -273,10 +273,10 @@ class UMaterial : public UMaterialInterface
 	// Reflection.
 	
 	UPROPERTY()
-	FColorMaterialInput DiffuseColor;
+	FColorMaterialInput DiffuseColor_DEPRECATED;
 
 	UPROPERTY()
-	FColorMaterialInput SpecularColor;
+	FColorMaterialInput SpecularColor_DEPRECATED;
 
 	UPROPERTY()
 	FColorMaterialInput BaseColor;
@@ -1119,7 +1119,7 @@ public:
 	*	@param	InProperty				The material property chain to inspect, such as MP_DiffuseColor.
 	*
 	*	@return	FExpressionInput*		A pointer to the expression input of the property specified, 
-	*									or NULL if an invalid property was requested.
+	*									or NULL if an invalid property was requested (MP_DiffuseColor, MP_SpecularColor have been removed, they would return NULL).
 	*/
 	ENGINE_API FExpressionInput* GetExpressionInputForProperty(EMaterialProperty InProperty);
 

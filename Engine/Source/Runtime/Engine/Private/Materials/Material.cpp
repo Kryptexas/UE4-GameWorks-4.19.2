@@ -506,8 +506,8 @@ UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
 	TranslucentMultipleScatteringExtinction = FLinearColor(1.0f, 0.833f, 0.588f, 1.0f);
 	TranslucentShadowStartOffset = 100.0f;
 
-	DiffuseColor.Constant = FColor(128,128,128);
-	SpecularColor.Constant = FColor(128,128,128);
+	DiffuseColor_DEPRECATED.Constant = FColor(128,128,128);
+	SpecularColor_DEPRECATED.Constant = FColor(128,128,128);
 	BaseColor.Constant = FColor(128,128,128);	
 	Metallic.Constant = 0.0f;
 	Specular.Constant = 0.5f;
@@ -1718,8 +1718,8 @@ void UMaterial::Serialize(FArchive& Ar)
 	}
 #endif // #if WITH_EDITOR
 
-	DoMaterialAttributeReorder(&DiffuseColor,			Ar.UE4Ver());
-	DoMaterialAttributeReorder(&SpecularColor,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&DiffuseColor_DEPRECATED,Ar.UE4Ver());
+	DoMaterialAttributeReorder(&SpecularColor_DEPRECATED,Ar.UE4Ver());
 	DoMaterialAttributeReorder(&BaseColor,				Ar.UE4Ver());
 	DoMaterialAttributeReorder(&Metallic,				Ar.UE4Ver());
 	DoMaterialAttributeReorder(&Specular,				Ar.UE4Ver());
@@ -1747,8 +1747,6 @@ void UMaterial::PostDuplicate(bool bDuplicateForPIE)
 void UMaterial::BackwardsCompatibilityInputConversion()
 {
 #if WITH_EDITOR
-	static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
-
 	if ( GMaterialsThatNeedPhysicalConversion.Get( this ) )
 	{
 		GMaterialsThatNeedPhysicalConversion.Clear( this );
@@ -1758,28 +1756,20 @@ void UMaterial::BackwardsCompatibilityInputConversion()
 		if( ShadingModel != MSM_Unlit )
 		{
 			// Multiply SpecularColor by FresnelBaseReflectFraction
-			if( SpecularColor.IsConnected() && FresnelBaseReflectFraction_DEPRECATED != 1.0f )
+			if( SpecularColor_DEPRECATED.IsConnected() && FresnelBaseReflectFraction_DEPRECATED != 1.0f )
 			{
 				UMaterialExpressionMultiply* MulExpression = ConstructObject< UMaterialExpressionMultiply >( UMaterialExpressionMultiply::StaticClass(), this );
 				Expressions.Add( MulExpression );
 
-				if( UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() )
-				{
-					MulExpression->MaterialExpressionEditorX += 200;
-					MulExpression->MaterialExpressionEditorY += 20;
-				}
-				else
-				{
-					MulExpression->MaterialExpressionEditorX += 450;
-					MulExpression->MaterialExpressionEditorY += 20;
-				}
+				MulExpression->MaterialExpressionEditorX += 450;
+				MulExpression->MaterialExpressionEditorY += 20;
 
 				MulExpression->Desc = TEXT("FresnelBaseReflectFraction");
 				MulExpression->ConstA = 1.0f;
 				MulExpression->ConstB = FresnelBaseReflectFraction_DEPRECATED;
 
-				MulExpression->A.Connect( SpecularColor.OutputIndex, SpecularColor.Expression );
-				SpecularColor.Connect( 0, MulExpression );
+				MulExpression->A.Connect( SpecularColor_DEPRECATED.OutputIndex, SpecularColor_DEPRECATED.Expression );
+				SpecularColor_DEPRECATED.Connect( 0, MulExpression );
 			}
 
 			// Convert from SpecularPower to Roughness
@@ -1802,9 +1792,9 @@ void UMaterial::BackwardsCompatibilityInputConversion()
 		}
 	}
 
-	if( ShadingModel != MSM_Unlit && UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 0 )
+	if( ShadingModel != MSM_Unlit )
 	{
-		bool bIsDS = DiffuseColor.IsConnected() || SpecularColor.IsConnected();
+		bool bIsDS = DiffuseColor_DEPRECATED.IsConnected() || SpecularColor_DEPRECATED.IsConnected();
 		bool bIsBMS = BaseColor.IsConnected() || Metallic.IsConnected() || Specular.IsConnected();
 
 		if( bIsDS && !bIsBMS )
@@ -1821,14 +1811,14 @@ void UMaterial::BackwardsCompatibilityInputConversion()
 			FunctionExpression->MaterialFunction = GConvertFromDiffSpecMaterialFunction;
 			FunctionExpression->UpdateFromFunctionResource();
 
-			if( DiffuseColor.IsConnected() )
+			if( DiffuseColor_DEPRECATED.IsConnected() )
 			{
-				FunctionExpression->GetInput(0)->Connect( DiffuseColor.OutputIndex, DiffuseColor.Expression );
+				FunctionExpression->GetInput(0)->Connect( DiffuseColor_DEPRECATED.OutputIndex, DiffuseColor_DEPRECATED.Expression );
 			}
 
-			if( SpecularColor.IsConnected() )
+			if( SpecularColor_DEPRECATED.IsConnected() )
 			{
-				FunctionExpression->GetInput(1)->Connect( SpecularColor.OutputIndex, SpecularColor.Expression );
+				FunctionExpression->GetInput(1)->Connect( SpecularColor_DEPRECATED.OutputIndex, SpecularColor_DEPRECATED.Expression );
 			}
 
 			BaseColor.Connect( 0, FunctionExpression );
@@ -3092,8 +3082,6 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		case MP_EmissiveColor:			return &EmissiveColor;
 		case MP_Opacity:				return &Opacity;
 		case MP_OpacityMask:			return &OpacityMask;
-		case MP_DiffuseColor:			return &DiffuseColor;
-		case MP_SpecularColor:			return &SpecularColor;
 		case MP_BaseColor:				return &BaseColor;
 		case MP_Metallic:				return &Metallic;
 		case MP_Specular:				return &Specular;
@@ -3403,8 +3391,6 @@ int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProper
 		case MP_AmbientOcclusion:		return AmbientOcclusion.CompileWithDefault(Compiler, Property);
 		case MP_Refraction:				return Refraction.CompileWithDefault(Compiler, Property);
 		case MP_EmissiveColor:			return EmissiveColor.CompileWithDefault(Compiler, Property);
-		case MP_DiffuseColor:			return DiffuseColor.CompileWithDefault(Compiler, Property);
-		case MP_SpecularColor:			return SpecularColor.CompileWithDefault(Compiler, Property);
 		case MP_BaseColor:				return BaseColor.CompileWithDefault(Compiler, Property);
 		case MP_SubsurfaceColor:		return SubsurfaceColor.CompileWithDefault(Compiler, Property);
 		case MP_Normal:					return Normal.CompileWithDefault(Compiler, Property);
@@ -3636,6 +3622,10 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 
 	switch (InProperty)
 	{
+	case MP_DiffuseColor:
+	case MP_SpecularColor:
+		Active = false;
+		break;
 	case MP_Refraction:
 		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
 		break;
@@ -3649,8 +3639,6 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 	case MP_OpacityMask:
 		Active = BlendMode == BLEND_Masked;
 		break;
-	case MP_DiffuseColor:
-	case MP_SpecularColor:
 	case MP_BaseColor:
 	case MP_Specular:
 	case MP_Roughness:
@@ -3742,7 +3730,7 @@ bool UMaterial::HasFlippedCoordinates()
 	for (int32 InputIndex = 0; InputIndex < MP_MAX; InputIndex++)
 	{
 		FExpressionInput* Input = GetExpressionInputForProperty((EMaterialProperty)InputIndex);
-		if (Input->Expression)
+		if (Input && Input->Expression)
 		{
 			if (Input->Expression->MaterialExpressionEditorX > EditorX)
 			{

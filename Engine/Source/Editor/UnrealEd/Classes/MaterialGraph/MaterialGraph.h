@@ -31,17 +31,39 @@ struct FMaterialInputInfo
 	{
 	}
 
-	FExpressionInput* GetInput(UMaterial* Material) const
+	FExpressionInput& GetExpressionInput(UMaterial* Material) const
 	{
 		check(Material);
 
 		auto Ret = Material->GetExpressionInputForProperty(Property);
 
+		// if this happens UMaterialGraph::RebuildGraph() registered something it shouldn't
 		check(Ret);
 
-		return Ret;
+		return *Ret;
 	}
 
+	bool IsVisiblePin(const UMaterial* Material) const
+	{
+		if(Material->bUseMaterialAttributes)
+		{
+			return Property == MP_MaterialAttributes;
+		}
+		else
+		{
+			if(Property == MP_MaterialAttributes)
+			{
+				return false;
+			}
+
+			if(Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
+			{
+				return (Property - MP_CustomizedUVs0) < Material->NumCustomizedUVs;
+			}
+
+			return true;
+		}
+	}
 };
 
 UCLASS(MinimalAPI)
@@ -106,13 +128,6 @@ public:
 
 	/** Link the Material using the Graph node's connections */
 	UNREALED_API void LinkMaterialExpressionsFromGraph() const;
-
-	/**
-	 * Check whether a material input should be shown
-	 *
-	 * @param	Index	Index of the material input
-	 */
-	UNREALED_API bool IsInputVisible(int32 Index) const;
 
 	/**
 	 * Check whether a material input should be marked as active

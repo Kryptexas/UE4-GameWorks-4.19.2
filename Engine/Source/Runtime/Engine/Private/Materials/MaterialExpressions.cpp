@@ -910,6 +910,7 @@ void UMaterialExpression::ConnectToPreviewMaterial(UMaterial* InMaterial, int32 
 			InMaterial->SetShadingModel(MSM_DefaultLit);
 			InMaterial->bUseMaterialAttributes = true;
 			FExpressionInput* MaterialInput = InMaterial->GetExpressionInputForProperty(MP_MaterialAttributes);
+			check(MaterialInput);
 			ConnectExpression( MaterialInput, OutputIndex );
 		}
 		else
@@ -919,6 +920,7 @@ void UMaterialExpression::ConnectToPreviewMaterial(UMaterial* InMaterial, int32 
 
 			// Connect the selected expression to the emissive node of the expression preview material.  The emissive material is not affected by light which is why its a good choice.
 			FExpressionInput* MaterialInput = InMaterial->GetExpressionInputForProperty(MP_EmissiveColor);
+			check(MaterialInput);
 			ConnectExpression( MaterialInput, OutputIndex );
 		}
 	}
@@ -6863,7 +6865,12 @@ bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunction(
 			MaterialInputs.Empty(MP_MAX);
 			for (int32 InputIndex = 0; InputIndex < MP_MAX; InputIndex++)
 			{
-				MaterialInputs.Add(Material->GetExpressionInputForProperty((EMaterialProperty)InputIndex));
+				auto Input = Material->GetExpressionInputForProperty((EMaterialProperty)InputIndex);
+
+				if(Input)
+				{
+					MaterialInputs.Add(Input);
+				}
 			}
 
 			// Fixup any references that the material or material inputs had to the function's outputs, maintaining links with the same output name
@@ -6932,7 +6939,12 @@ void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource()
 			MaterialInputs.Empty(MP_MAX);
 			for (int32 InputIndex = 0; InputIndex < MP_MAX; InputIndex++)
 			{
-				MaterialInputs.Add(Material->GetExpressionInputForProperty((EMaterialProperty)InputIndex));
+				auto Input = Material->GetExpressionInputForProperty((EMaterialProperty)InputIndex);
+
+				if(Input)
+				{
+					MaterialInputs.Add(Input);
+				}
 			}
 			
 			// Fixup any references that the material or material inputs had to the function's outputs

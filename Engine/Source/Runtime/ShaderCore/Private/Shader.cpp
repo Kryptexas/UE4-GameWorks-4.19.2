@@ -1130,11 +1130,6 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
-		KeyString += (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("_DSIN") : TEXT("_BMSIN");
-	}
-
-	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));
 		KeyString += (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("_DEV") : TEXT("_NoDEV");
 	}

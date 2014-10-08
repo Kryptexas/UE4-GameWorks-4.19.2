@@ -2101,11 +2101,6 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("DXT5_NORMALMAPS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
 
-	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
-		Input.Environment.SetDefine(TEXT("DIFFUSE_SPEC_INPUTS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
-	}
-
 	if(bAllowDevelopmentShaderCompile)
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));

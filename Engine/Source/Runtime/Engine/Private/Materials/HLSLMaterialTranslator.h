@@ -644,8 +644,6 @@ public:
 			LazyPrintf.PushParam(TEXT("return 0"));
 		}
 
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_DiffuseColor));
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SpecularColor));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_BaseColor));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Metallic));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Specular));

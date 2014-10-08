@@ -202,9 +202,12 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial *Mat
 
 	for(uint32 i = 0; i < MP_MAX; ++i)
 	{
-		FExpressionInput* ExpressionInput = GetMaterialInput((UMaterial *)Material, i);
+		FExpressionInput* ExpressionInput = ((UMaterial *)Material)->GetExpressionInputForProperty((EMaterialProperty)i);
 
-		GetVisibleMaterialParametersFromExpression(ExpressionInput->Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+		if(ExpressionInput)
+		{
+			GetVisibleMaterialParametersFromExpression(ExpressionInput->Expression, MaterialInstance, VisibleExpressions, ProcessedExpressions);
+		}
 	}
 }
 
@@ -283,69 +286,6 @@ const FFunctionExpressionInput* FMaterialEditorUtilities::FindInputById(const UM
 		}
 	}
 	return NULL;
-}
-
-FExpressionInput* FMaterialEditorUtilities::GetMaterialInput(UMaterial* Material, int32 Index)
-{
-	FExpressionInput* ExpressionInput = NULL;
-	switch( Index )
-	{
-	case 0: ExpressionInput = &Material->DiffuseColor ; break;
-	case 1: ExpressionInput = &Material->SpecularColor ; break;
-	case 2: ExpressionInput = &Material->BaseColor ; break;
-	case 3: ExpressionInput = &Material->Metallic ; break;
-	case 4: ExpressionInput = &Material->Specular ; break;
-	case 5: ExpressionInput = &Material->Roughness ; break;
-	case 6: ExpressionInput = &Material->EmissiveColor ; break;
-	case 7: ExpressionInput = &Material->Opacity ; break;
-	case 8: ExpressionInput = &Material->OpacityMask ; break;
-	case 9: ExpressionInput = &Material->Normal ; break;
-	case 10: ExpressionInput = &Material->WorldPositionOffset ; break;
-	case 11: ExpressionInput = &Material->WorldDisplacement ; break;
-	case 12: ExpressionInput = &Material->TessellationMultiplier ; break;
-	case 13: ExpressionInput = &Material->SubsurfaceColor ; break;
-	case 14: ExpressionInput = &Material->ClearCoat ; break;
-	case 15: ExpressionInput = &Material->ClearCoatRoughness ; break;
-	case 16: ExpressionInput = &Material->AmbientOcclusion ; break;
-	case 17: ExpressionInput = &Material->Refraction ; break;
-	case 26: ExpressionInput = &Material->MaterialAttributes ; break;
-	default: 
-		if (Index >= 18 && Index <= 25)
-		{
-			ExpressionInput = &Material->CustomizedUVs[Index - 18]; break;	
-		}
-		else
-		{
-			UE_LOG(LogMaterialEditorUtilities, Fatal, TEXT("%i: Invalid material input index"), Index );
-		}
-	}
-	return ExpressionInput;
-}
-
-bool FMaterialEditorUtilities::IsInputVisible(UMaterial* Material, int32 Index)
-{
-	static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
-
-	bool bVisibleUV = true;
-	if (Index >= 18 && Index <= 25)
-	{
-		bVisibleUV = Index - 18 < Material->NumCustomizedUVs;
-	}
-
-	switch( Index )
-	{
-	case 0:
-	case 1:
-		return (UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() != 0) && !Material->bUseMaterialAttributes;
-	case 2:
-	case 3:
-	case 4:
-		return (UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 0) && !Material->bUseMaterialAttributes;
-	case 26:
-		return Material->bUseMaterialAttributes;
-	default:
-		return !Material->bUseMaterialAttributes && bVisibleUV;
-	}
 }
 
 void FMaterialEditorUtilities::InitExpressions(UMaterial* Material)

@@ -129,8 +129,8 @@ enum EMaterialProperty
 	MP_EmissiveColor = 0,
 	MP_Opacity,
 	MP_OpacityMask,
-	MP_DiffuseColor,
-	MP_SpecularColor,
+	MP_DiffuseColor,			// used in Lightmass, not exposed to user, computed from: BaseColor, Metallic
+	MP_SpecularColor,			// used in Lightmass, not exposed to user, derived from: SpecularColor, Metallic, Specular
 	MP_BaseColor,
 	MP_Metallic,
 	MP_Specular,

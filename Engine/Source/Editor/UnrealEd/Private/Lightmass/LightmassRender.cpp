@@ -306,8 +306,7 @@ public:
 	/** helper for CompilePropertyAndSetMaterialProperty() */
 	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
-		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
-		EMaterialProperty DiffuseInput = UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 1 ? MP_DiffuseColor : MP_BaseColor;
+		EMaterialProperty DiffuseInput = MP_BaseColor;
 
 		// MAKE SURE THIS MATCHES THE CHART IN WillFillData
 		// 						  RETURNED VALUES (F16 'textures')
@@ -496,7 +495,6 @@ public:
 	bool IsMaterialInputConnected(UMaterial* InMaterial, EMaterialProperty MaterialInput)
 	{
 		bool bConnected = false;
-		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
 
 		switch (MaterialInput)
 		{
@@ -504,10 +502,10 @@ public:
 			bConnected = InMaterial->EmissiveColor.Expression != NULL;
 			break;
 		case MP_DiffuseColor:
-			bConnected = (UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 1 ? InMaterial->DiffuseColor.Expression : InMaterial->BaseColor.Expression) != NULL;
+			bConnected = InMaterial->BaseColor.Expression != NULL;
 			break;
 		case MP_SpecularColor:
-			bConnected = InMaterial->SpecularColor.Expression != NULL;
+			bConnected = InMaterial->Specular.Expression != NULL;
 			break;
 		case MP_Normal:
 			bConnected = InMaterial->Normal.Expression != NULL;

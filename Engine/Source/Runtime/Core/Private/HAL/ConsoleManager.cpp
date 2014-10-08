@@ -1593,13 +1593,6 @@ static TAutoConsoleVariable<float> CVarScreenPercentage(
 	TEXT("in percent, >0 and <=100, <0 means the post process volume settings are used"),
 	ECVF_Scalability | ECVF_Default);
 
-// Changing this causes a full shader recompile
-static TAutoConsoleVariable<int32> CVarUseDiffuseSpecularMaterialInputs(
-	TEXT("r.UseDiffuseSpecularMaterialInputs"),
-	0,
-	TEXT("Whether to use DiffuseColor, SpecularColor material inputs, otherwise BaseColor, Metallic, Specular will be used. Cannot be changed at runtime."),
-	ECVF_ReadOnly);
-
 static TAutoConsoleVariable<int32> CVarMaterialQualityLevel(
 	TEXT("r.MaterialQualityLevel"),
 	1,

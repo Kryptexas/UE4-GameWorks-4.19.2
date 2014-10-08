@@ -825,8 +825,6 @@ public:
 	/** helper for CompilePropertyAndSetMaterialProperty() */
 	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
-		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
-				
 		// MAKE SURE THIS MATCHES THE CHART IN WillFillData
 		// 						  RETURNED VALUES (F16 'textures')
 		// 	BLEND MODE  | DIFFUSE     | SPECULAR     | EMISSIVE    | NORMAL    | TRANSMISSIVE              |
@@ -852,7 +850,7 @@ public:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					EMaterialProperty DiffuseInput = UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 1 ? MP_DiffuseColor : MP_BaseColor;
+					EMaterialProperty DiffuseInput = MP_BaseColor;
 					return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true);
 				}
 				break;
@@ -1003,7 +1001,6 @@ public:
 	bool IsMaterialInputConnected(UMaterial* InMaterial, EMaterialProperty MaterialInput)
 	{
 		bool bConnected = false;
-		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
 
 		switch (MaterialInput)
 		{
@@ -1011,10 +1008,10 @@ public:
 			bConnected = InMaterial->EmissiveColor.Expression != NULL;
 			break;
 		case MP_DiffuseColor:
-			bConnected = (UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 1 ? InMaterial->DiffuseColor.Expression : InMaterial->BaseColor.Expression) != NULL;
+			bConnected = InMaterial->BaseColor.Expression != NULL;
 			break;
 		case MP_SpecularColor:
-			bConnected = InMaterial->SpecularColor.Expression != NULL;
+			bConnected = InMaterial->Specular.Expression != NULL;
 			break;
 		case MP_Normal:
 			bConnected = InMaterial->Normal.Expression != NULL;

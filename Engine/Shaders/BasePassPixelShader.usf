@@ -564,17 +564,9 @@ void Main(
 
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
-#if DIFFUSE_SPEC_INPUTS
-	half3 DiffuseColor = GetMaterialDiffuseColor( MaterialParameters );
-	half3 SpecularColor = GetMaterialSpecularColor( MaterialParameters );
-
-#else
-	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );
 	half  Metallic = GetMaterialMetallic( MaterialParameters );
 	half  Specular = GetMaterialSpecular( MaterialParameters );
-
-#endif
 
 	float MaterialAO = GetMaterialAmbientOcclusion(MaterialParameters);
 	float Roughness = GetMaterialRoughness(MaterialParameters);
@@ -614,19 +606,13 @@ void Main(
 		if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.PreMulWorldNormal = 0; DBufferData.NormalOpacity = 1; }
 		if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.PreMulRoughness = 0; DBufferData.RoughnessOpacity = 1; }
 
-#if DIFFUSE_SPEC_INPUTS
-		ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, DiffuseColor, SpecularColor);
-#else
 		ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, BaseColor, Metallic, Specular);
-#endif
 	}
 #endif
 
-#if !DIFFUSE_SPEC_INPUTS
 	// So that the following code can still use DiffuseColor and SpecularColor.
 	half3 DiffuseColor = BaseColor - BaseColor * Metallic;
 	half3 SpecularColor = lerp( 0.08 * Specular.xxx, BaseColor, Metallic.xxx );
-#endif
 
 // todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
 #if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
@@ -725,14 +711,9 @@ void Main(
 		FGBufferData GBuffer = (FGBufferData)0;
 
 		GBuffer.WorldNormal = MaterialParameters.WorldNormal;
-#if DIFFUSE_SPEC_INPUTS
-		GBuffer.DiffuseColor = DiffuseColor;
-		GBuffer.SpecularColor = SpecularColor;
-#else
 		GBuffer.BaseColor = BaseColor;
 		GBuffer.Metallic = Metallic;
 		GBuffer.Specular = Specular;
-#endif
 		GBuffer.Roughness = Roughness;
 		GBuffer.IndirectIrradiance = IndirectIrradiance;
 		GBuffer.PrecomputedShadowFactors = PrecomputedShadowFactors;
@@ -768,27 +749,16 @@ void Main(
 			float RefractionScale = ( (NoV * 0.5 + 0.5) * NoV - 1 ) * saturate( 1.25 - 1.25 * Roughness ) + 1;
 			RefractionScale = lerp( 1, RefractionScale, ClearCoat );
 
-#if DIFFUSE_SPEC_INPUTS
-			// Absorption doesn't work correctly with nonmetals with diffuse/spec
-			float3 AbsorptionColor = (1 - Film) + SpecularColor * ( Film * (1 / MetalSpec) );
-			GBuffer.SpecularColor = lerp( SpecularColor, MetalSpec, Film );
-#else
 			float3 AbsorptionColor = (1 - Film) + BaseColor * ( Film * (1 / MetalSpec) );
 			GBuffer.BaseColor = lerp( BaseColor, MetalSpec, Film );
-#endif
 
 			// Approximation of absorption integral, tuned for Roughness=0.4
 			float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
 			//float Toe = 1 - exp2( -9 * NoV - 3.5 );
 			//float3 Absorption = Toe * AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + lerp( 0.93, 0.96, AbsorptionColor * 2 - 1 ) );
 
-#if DIFFUSE_SPEC_INPUTS
-			GBuffer.DiffuseColor *= Absorption;
-			GBuffer.SpecularColor *= Absorption * RefractionScale;
-#else
 			GBuffer.BaseColor *= Absorption * lerp( 1, RefractionScale, Metallic );
 			GBuffer.Specular *= Luminance( Absorption ) * RefractionScale;
-#endif
 
 			GBuffer.CustomData.x = ClearCoat;
 			GBuffer.CustomData.y = ClearCoatRoughness;

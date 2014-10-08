@@ -142,26 +142,6 @@ public:
 	static bool GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression *SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, const TArray<FFunctionExpressionInput>* FunctionInputs = NULL);
 
 	/**
-	 * Allows access to a material's input by index.
-	 *
-	 * @param	Material	The material to retrieve an input from.
-	 * @param	Index		The index of the desired input.
-	 *
-	 * @return	Returns the requested input or NULL.
-	 */
-	static FExpressionInput* GetMaterialInput(UMaterial* Material, int32 Index);
-
-	/**
-	 * Checks whether a material's input is visible by index.
-	 *
-	 * @param	Material	The material to check inputs.
-	 * @param	Index		The index of the input to check.
-	 *
-	 * @return	Returns whether requested input is visible.
-	 */
-	static bool IsInputVisible(UMaterial* Material, int32 Index);
-
-	/**
 	 * Populates the specified material's Expressions array (eg if cooked out or old content).
 	 * Also ensures materials and expressions are RF_Transactional for undo/redo support.
 	 *

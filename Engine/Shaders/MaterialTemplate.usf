@@ -1014,26 +1014,6 @@ half3 GetMaterialEmissiveForCS(FMaterialPixelParameters Parameters)
 %s;
 }
 
-half3 GetMaterialDiffuseColorRaw(FMaterialPixelParameters Parameters)
-{
-%s;
-}
-
-half3 GetMaterialDiffuseColor(FMaterialPixelParameters Parameters)
-{
-	return saturate(GetMaterialDiffuseColorRaw(Parameters));
-}
-
-half3 GetMaterialSpecularColorRaw(FMaterialPixelParameters Parameters)
-{
-%s;
-}
-
-half3 GetMaterialSpecularColor(FMaterialPixelParameters Parameters)
-{
-	return saturate(GetMaterialSpecularColorRaw(Parameters));
-}
-
 half3 GetMaterialBaseColorRaw(FMaterialPixelParameters Parameters)
 {
 %s;

@@ -27,17 +27,9 @@
 
 float3 GetMaterialBounceColor(FMaterialPixelParameters MaterialParameters)
 {
-#if DIFFUSE_SPEC_INPUTS
-	half3 DiffuseColor = GetMaterialDiffuseColor(MaterialParameters);
-
-	// Approximation for better performance (assuming mostly diffuse materials):
-	// We could combine with specular but we only need an approximate color, Artist can always override
-	return DiffuseColor;
-#else
 	half3 BaseColor = GetMaterialBaseColor(MaterialParameters);
 
 	return BaseColor;
-#endif
 }
 
 

@@ -2542,6 +2542,12 @@ bool UMaterialInstance::IsMaskedOverride(bool& OutResult) const
 /** Checks to see if an input property should be active, based on the state of the material */
 bool UMaterialInstance::IsPropertyActive(EMaterialProperty InProperty) const
 {
+	if(InProperty == MP_DiffuseColor || InProperty == MP_SpecularColor)
+	{
+		// to supress some CompilePropertyEx calls
+		return false;
+	}
+
 	return true;
 }
 

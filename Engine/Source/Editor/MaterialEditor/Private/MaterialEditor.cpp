@@ -3897,7 +3897,10 @@ void FMaterialEditor::UpdateStatsMaterials()
 		for (int32 PropIdx = 0; PropIdx < MP_MAX; ++PropIdx)
 		{
 			FExpressionInput* ExpInput = EmptyMaterial->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
-			ExpInput->Expression = NULL;
+			if(ExpInput)
+			{
+				ExpInput->Expression = NULL;
+			}
 		}
 		EmptyMaterial->bAllowDevelopmentShaderCompile = Material->bAllowDevelopmentShaderCompile;
 		EmptyMaterial->PreEditChange(NULL);
