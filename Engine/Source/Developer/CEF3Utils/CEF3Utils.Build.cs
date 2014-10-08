@@ -16,11 +16,11 @@ public class CEF3Utils : ModuleRules
 			}
 		);
 
-		if (Target.Platform == UnrealTargetPlatform.Win64)
+		/*if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target,
 				"CEF3"
 				);
-		}
+		}*/
 	}
 }
