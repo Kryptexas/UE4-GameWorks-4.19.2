@@ -1077,6 +1077,42 @@ struct FAsyncBufferFillData
 	}
 };
 
+/*-----------------------------------------------------------------------------
+	Async Fill Task, simple wrapper to forward the request to a FDynamicSpriteEmitterDataBase
+-----------------------------------------------------------------------------*/
+
+struct FAsyncParticleFill
+{
+	/** Emitter to forward to   */
+	struct FDynamicSpriteEmitterDataBase* Parent;
+
+	/** Constructor, just sets up the parent pointer  
+	  * @param InParent emitter to forward the eventual async call to
+	*/
+	FAsyncParticleFill(struct FDynamicSpriteEmitterDataBase* InParent)
+		: Parent(InParent)
+	{
+	}
+
+	/** Work function, just forwards the request to the parent  */
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		return GET_STATID( STAT_ParticleAsyncTime );
+	}
+
+	static ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() 
+	{ 
+		return ESubsequentsMode::TrackSubsequents; 
+	}
+};
+
 // TAsyncBufferFillTasks - handy typedef for an inline array of buffer fill tasks
 typedef TArray<FAsyncBufferFillData, TInlineAllocator<2> > TAsyncBufferFillTasks;
 
@@ -1448,6 +1484,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 {
 	FDynamicSpriteEmitterDataBase(const UParticleModuleRequired* RequiredModule) : 
 		FDynamicEmitterDataBase(RequiredModule),
+		AsyncTask(NULL),
 		bUsesDynamicParameter( false )
 	{
 		MaterialResource[0] = NULL;
@@ -1456,6 +1493,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 
 	virtual ~FDynamicSpriteEmitterDataBase()
 	{
+		EnsureAsyncTaskComplete();
 	}
 
 	/**
@@ -1532,31 +1570,62 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 */
 	virtual void RenderDebug(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses) const;
 
-	virtual void DoBufferFill(FAsyncBufferFillData& Me) const
+	/**
+	 *	Fill index and vertex buffers. Often called from a different thread
+	 *
+	 */
+	void DoBufferFill()
 	{
-		// Must be overridden if called
-		check(0);
+		for (int32 TaskIndex = 0; TaskIndex < AsyncBufferFillTasks.Num(); TaskIndex++) 
+		{
+			DoBufferFill(AsyncBufferFillTasks[TaskIndex]);
+		}
 	}
-
+	/**
+	 *	Fill index and vertex buffers. Often called from a different thread
+	 *
+	 *	@param	Me			buffer pair to compute
+	 */
+	virtual void DoBufferFill(FAsyncBufferFillData& Me)const
+	{
+		// this must be overridden, but in some cases a destructor call will leave this a no-op
+		// because the vtable has been reset to the base class 
+		// checkf(0, TEXT("DoBufferFill MUST be overridden"));
+	}
 	/**
 	 *	Set up an buffer for async filling
 	 *
 	 *	@param	Proxy					The primitive scene proxy for the emitter.
+	 *	@param	InBufferIndex			Index of this buffer
 	 *	@param	InView					View for this buffer
 	 *	@param	InVertexCount			Count of verts for this buffer
 	 *	@param	InVertexSize			Stride of these verts, only used for verification
 	 *	@param	InDynamicParameterVertexStride	Stride of the dynamic parameter
 	 */
-	void BuildViewFillData(
-		const FParticleSystemSceneProxy* Proxy, 
-		const FSceneView *InView, 
-		int32 InVertexCount, 
-		int32 InVertexSize, 
-		int32 InDynamicParameterVertexSize, 
-		FGlobalDynamicVertexBuffer::FAllocation& DynamicVertexAllocation,
-		FGlobalDynamicIndexBuffer::FAllocation& DynamicIndexAllocation,
-		FGlobalDynamicVertexBuffer::FAllocation* DynamicParameterAllocation,
-		FAsyncBufferFillData& Data) const;
+	void BuildViewFillData(FParticleSystemSceneProxy* Proxy, int32 InBufferIndex,const FSceneView *InView,int32 InVertexCount,int32 InVertexSize,int32 InDynamicParameterVertexSize);
+
+	/**
+	 *	Set up all buffers for async filling
+	 *
+	 *	@param	Proxy							The primitive scene proxy for the emitter.
+	 *	@param	ViewFamily						View family to process
+	 *	@param	VisibilityMap					Visibility map for the sub-views
+	 *	@param	bOnlyOneView					If true, then we don't need per-view buffers
+	 *	@param	InVertexCount					Count of verts for this buffer
+	 *	@param	InVertexSize					Stride of these verts, only used for verification
+	 *	@param	InDynamicParameterVertexStride	Stride of the dynamic parameter
+	 */
+	void BuildViewFillDataAndSubmit(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily,const uint32 VisibilityMap,bool bOnlyOneView,int32 InVertexCount,int32 InVertexSize, int32 InDynamicParameterVertexSize);
+
+	void EnsureAsyncTaskComplete()
+	{
+		if (AsyncTask.GetReference())
+		{
+			SCOPE_CYCLE_COUNTER(STAT_ParticleAsyncWaitTime);
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(AsyncTask, ENamedThreads::RenderThread_Local);
+			AsyncTask = NULL;
+		}
+	}
 
 	/**
 	 *	Called to verify that a buffer is ready to use, blocks to wait and can sometimes execute the buffer fill on the current thread
@@ -1581,6 +1650,9 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 
 	/** Async task is queued for execution */
 	bool									bAsyncTaskOutstanding;
+
+	/** Async task that is queued in the hi priority pool */
+	FGraphEventRef							AsyncTask;
 
 	/** Array of buffers for filling by async task */
 	TAsyncBufferFillTasks					AsyncBufferFillTasks;
