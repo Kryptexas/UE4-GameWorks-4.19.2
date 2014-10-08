@@ -737,6 +737,7 @@ public:
 	 * This increases framecount + time, so that it requires recompression
 	 */
 	ENGINE_API bool AddLoopingInterpolation();
+
 #endif
 
 	/** 
@@ -769,6 +770,9 @@ private:
 	bool ConvertAnimationDataToRiggingData(FAnimSequenceTrackContainer & RiggingAnimationData);
 	bool ConvertRiggingDataToAnimationData(FAnimSequenceTrackContainer & RiggingAnimationData);
 	int32 GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & AnimationDataInComponentSpace, FAnimSequenceTrackContainer * RiggingAnimationData) const;
+
+	/** Verify Track Map is valid, if not, fix up */
+	void VerifyTrackMap();
 #endif
 
 	/**
