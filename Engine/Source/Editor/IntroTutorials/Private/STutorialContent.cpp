@@ -338,7 +338,8 @@ TSharedRef<SWidget> STutorialContent::GenerateContentWidget(const FTutorialConte
 	case ETutorialContent::RichText:
 		{
 			TArray< TSharedRef< class ITextDecorator > > Decorators;
-			FTutorialText::GetRichTextDecorators(Decorators);
+			const bool bForEditing = false;
+			FTutorialText::GetRichTextDecorators(bForEditing, Decorators);
 
 			return SNew(SRichTextBlock)
 					.Visibility(EVisibility::SelfHitTestInvisible)

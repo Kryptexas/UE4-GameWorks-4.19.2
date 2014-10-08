@@ -76,7 +76,7 @@ protected:
 
 	FSlateHyperlinkRun::FOnClick NavigateDelegate;
 
-private:
+protected:
 	FString Id;
 	FSlateHyperlinkRun::FOnGetTooltipText ToolTipTextDelegate;
 	FSlateHyperlinkRun::FOnGenerateTooltip ToolTipDelegate;

@@ -12,6 +12,8 @@
 #include "TutorialImageDecorator.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "TutorialHyperlinkDecorator.h"
+#include "TextDecorators.h"
 
 #define LOCTEXT_NAMESPACE "TutorialText"
 
@@ -298,13 +300,23 @@ static FText OnGetTutorialTooltipText(const FSlateHyperlinkRun::FMetadata& Metad
 	return LOCTEXT("InvalidTutorialLink", "Invalid Tutorial Link");
 }
 
-void FTutorialText::GetRichTextDecorators(TArray< TSharedRef< class ITextDecorator > >& OutDecorators)
+void FTutorialText::GetRichTextDecorators(bool bForEditing, TArray< TSharedRef< class ITextDecorator > >& OutDecorators)
 {
 	Initialize();
 
-	for(const auto& HyperlinkDesc : HyperlinkDescs)
+	if(bForEditing)
 	{
-		OutDecorators.Add(FHyperlinkDecorator::Create(HyperlinkDesc->Id, HyperlinkDesc->OnClickedDelegate, HyperlinkDesc->TooltipTextDelegate, HyperlinkDesc->TooltipDelegate));
+		for(const auto& HyperlinkDesc : HyperlinkDescs)
+		{
+			OutDecorators.Add(FHyperlinkDecorator::Create(HyperlinkDesc->Id, HyperlinkDesc->OnClickedDelegate, HyperlinkDesc->TooltipTextDelegate, HyperlinkDesc->TooltipDelegate));
+		}
+	}
+	else
+	{
+		for(const auto& HyperlinkDesc : HyperlinkDescs)
+		{
+			OutDecorators.Add(FTutorialHyperlinkDecorator::Create(HyperlinkDesc->Id, HyperlinkDesc->OnClickedDelegate, HyperlinkDesc->TooltipTextDelegate, HyperlinkDesc->TooltipDelegate));
+		}	
 	}
 
 	OutDecorators.Add(FTextStyleDecorator::Create());

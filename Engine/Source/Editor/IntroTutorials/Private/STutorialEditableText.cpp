@@ -34,7 +34,8 @@ void STutorialEditableText::Construct(const FArguments& InArgs)
 
 
 	TArray<TSharedRef<class ITextDecorator>> Decorators;
-	FTutorialText::GetRichTextDecorators(Decorators);
+	const bool bForEditing = true;
+	FTutorialText::GetRichTextDecorators(bForEditing, Decorators);
 
 	for(auto& Decorator : Decorators)
 	{
