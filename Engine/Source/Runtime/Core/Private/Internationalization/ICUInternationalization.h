@@ -3,6 +3,8 @@
 
 #if UE_ENABLE_ICU
 
+#include <unicode/umachine.h>
+
 class FICUInternationalization
 {
 public:

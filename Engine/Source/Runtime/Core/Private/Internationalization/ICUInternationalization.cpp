@@ -10,7 +10,6 @@
 #include <unicode/timezone.h>
 #include <unicode/uclean.h>
 #include <unicode/udata.h>
-#include <unicode/umachine.h>
 
 namespace
 {
