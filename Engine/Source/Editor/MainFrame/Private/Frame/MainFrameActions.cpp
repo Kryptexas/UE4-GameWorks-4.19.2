@@ -878,10 +878,10 @@ void FMainFrameActionCallbacks::ToggleFullscreen_Execute()
 
 bool FMainFrameActionCallbacks::FullScreen_IsChecked()
 {
-	const TWeakPtr<SDockTab> LevelEditorTabPtr = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>( "LevelEditor" ).GetLevelEditorTab();
+	const TSharedPtr<SDockTab> LevelEditorTabPtr = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>( "LevelEditor" ).GetLevelEditorTab();
 
 	const TSharedPtr<SWindow> LevelEditorWindow = LevelEditorTabPtr.IsValid()
-		? LevelEditorTabPtr.Pin()->GetParentWindow()
+		? LevelEditorTabPtr->GetParentWindow()
 		: TSharedPtr<SWindow>();
 
 	return (LevelEditorWindow.IsValid())

@@ -498,7 +498,7 @@ TSharedPtr<ILevelEditor> FLevelEditorModule::GetFirstLevelEditor()
 
 TSharedPtr<SDockTab> FLevelEditorModule::GetLevelEditorTab() const
 {
-	return LevelEditorInstanceTabPtr.Pin().ToSharedRef();
+	return LevelEditorInstanceTabPtr.Pin();
 }
 
 void FLevelEditorModule::BindGlobalLevelEditorCommands()
