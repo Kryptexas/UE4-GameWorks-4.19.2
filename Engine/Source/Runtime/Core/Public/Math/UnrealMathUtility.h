@@ -127,6 +127,17 @@ struct FMath : public FPlatformMath
 	/** Returns a random point within the passed in bounding box */
 	static CORE_API FVector RandPointInBox(const FBox& Box);
 
+	/** 
+	 * Given a direction vector and a surface normal, returns the vector reflected across the surface normal.
+	 * Produces a result like shining a laser at a mirror!
+	 *
+	 * @param Direction Direction vector the ray is comming from.
+	 * @param SurfaceNormal A normal of the surface the ray should be reflected on.
+	 *
+	 * @returns Reflected vector.
+	 */
+	static CORE_API FVector GetReflectionVector(const FVector& Direction, const FVector& SurfaceNormal);
+	
 	// Predicates
 
 	/** Checks if value is within a range, exclusive on MaxValue) */

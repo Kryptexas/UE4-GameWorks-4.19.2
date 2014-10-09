@@ -768,8 +768,7 @@ FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHa
 
 FVector UKismetMathLibrary::MirrorVectorByNormal(FVector A, FVector B)
 {
-	B = B.SafeNormal();
-	return A - 2.f * B * (B | A);
+	return FMath::GetReflectionVector(A, B);
 }
 
 FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
