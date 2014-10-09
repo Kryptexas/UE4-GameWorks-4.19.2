@@ -166,6 +166,7 @@ UObject* UMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,F
 		NewMaterial->Expressions.Add( Expression );
 
 		NewMaterial->BaseColor.Expression = Expression;
+		Expression->MaterialExpressionEditorX = -250;
 		Expression->Texture = InitialTexture;
 
 		TArray<FExpressionOutput> Outputs;
