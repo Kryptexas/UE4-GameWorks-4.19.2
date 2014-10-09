@@ -3,7 +3,7 @@
 #include "Core.h"
 #include "MallocCrash.h"
 #include "ExceptionHandling.h"
-#include "GenericPlatform/GenericPlatformContext.h"
+#include "WindowsPlatformCrashContext.h"
 #include "../../Launch/Resources/Version.h"
 
 #include "AllowWindowsPlatformTypes.h"
@@ -22,14 +22,6 @@
 namespace
 {
 static int32 ReportCrashCallCount = 0;
-
-struct FWindowsPlatformCrashContext : public FGenericCrashContext
-{
-	virtual void AddPlatformSpecificProperties() override
-	{
-		AddCrashProperty( TEXT( "Platform.IsRunningWindows" ), 1 );
-	}
-};
 
 /**
  * Write a Windows minidump to disk
@@ -59,14 +51,9 @@ bool WriteMinidump(const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo)
 	// CrashContext.runtime-xml is now a part of the minidump file.
 	FWindowsPlatformCrashContext CrashContext;
 	CrashContext.SerializeContentToBuffer();
-
-	enum 
-	{
-		UE4_MINIDUMP_CRASHCONTEXT = LastReservedStream + 1,
-	};
 	
 	MINIDUMP_USER_STREAM CrashContextStream ={0};
-	CrashContextStream.Type = UE4_MINIDUMP_CRASHCONTEXT;
+	CrashContextStream.Type = FWindowsPlatformCrashContext::UE4_MINIDUMP_CRASHCONTEXT;
 	CrashContextStream.BufferSize = CrashContext.GetBuffer().GetAllocatedSize();
 	CrashContextStream.Buffer = (void*)*CrashContext.GetBuffer();
 
@@ -466,14 +453,6 @@ void CreateExceptionInfoString(EXCEPTION_RECORD* ExceptionRecord)
 #undef HANDLE_CASE
 }
 #include "HideWindowsPlatformTypes.h"
-
-/** 
- * A null crash handler to suppress error report generation
- */
-int32 NullReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
-{
-	return EXCEPTION_EXECUTE_HANDLER;
-}
 
 int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {

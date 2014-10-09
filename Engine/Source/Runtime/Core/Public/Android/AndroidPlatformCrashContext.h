@@ -40,3 +40,5 @@ struct CORE_API FAndroidCrashContext : public FGenericCrashContext
 		Context = InContext;
 	}
 };
+
+typedef FAndroidCrashContext FPlatformCrashContext;

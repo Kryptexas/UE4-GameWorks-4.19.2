@@ -79,3 +79,5 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 	 */
 	void GenerateReport(const FString & DiagnosticsPath) const;
 };
+
+typedef FLinuxCrashContext FPlatformCrashContext;

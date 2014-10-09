@@ -16,3 +16,4 @@ struct CORE_API FMacCrashContext : public FApplePlatformCrashContext
 	void GenerateCrashInfoAndLaunchReporter() const;
 };
 
+typedef FMacCrashContext FPlatformCrashContext;
