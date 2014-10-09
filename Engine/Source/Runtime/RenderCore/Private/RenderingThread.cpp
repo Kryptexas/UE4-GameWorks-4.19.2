@@ -514,6 +514,7 @@ void StartRenderingThread()
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread_Local);
 		GRHIThread = FRHIThread::Get().Thread;
 		check(GRHIThread);
+		GRHICommandList.LatchBypass();
 	}
 #endif
 
