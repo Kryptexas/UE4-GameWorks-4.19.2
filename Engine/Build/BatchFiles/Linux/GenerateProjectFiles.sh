@@ -151,6 +151,7 @@ xbuild Source/Programs/UnrealBuildTool/UnrealBuildTool_Mono.csproj \
 xbuild Source/Programs/AutomationTool/AutomationTool_Mono.csproj \
   /verbosity:quiet /nologo \
   /p:TargetFrameworkVersion=v4.0 \
+  /p:Platform="AnyCPU" \
   /p:Configuration="Development"
 
 xbuild Source/Programs/AutomationTool/Scripts/AutomationScripts.Automation.csproj \
