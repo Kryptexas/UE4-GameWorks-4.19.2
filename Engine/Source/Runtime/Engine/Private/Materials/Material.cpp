@@ -3528,7 +3528,7 @@ USubsurfaceProfile* UMaterial::GetSubsurfaceProfile_Internal() const
 	return SubsurfaceProfile; 
 }
 
-bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const 
+bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const 
 {
 	if(MaterialDomain == MD_PostProcess)
 	{
@@ -3541,7 +3541,8 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 	}
 	else if(MaterialDomain == MD_DeferredDecal)
 	{
-		if(InProperty >= MP_CustomizedUVs0 )
+		// todo: this should also check for <= MP_CustomizedUVs7 but then MaterialAttruibutes would not return true, should it? Wht we don't chekc for the checkbox in the material
+		if(InProperty >= MP_CustomizedUVs0)
 		{
 			return true;
 		}
@@ -3577,25 +3578,21 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 
 			case DBM_DBuffer_ColorNormalRoughness:
 				return InProperty == MP_Normal
-					|| InProperty == MP_DiffuseColor
 					|| InProperty == MP_BaseColor
 					|| InProperty == MP_Roughness
 					|| InProperty == MP_Opacity;
 
 			case DBM_DBuffer_Color:
-				return InProperty == MP_DiffuseColor
-					|| InProperty == MP_BaseColor
+				return InProperty == MP_BaseColor
 					|| InProperty == MP_Opacity;
 
 			case DBM_DBuffer_ColorNormal:
-				return InProperty == MP_DiffuseColor
-					|| InProperty == MP_BaseColor
+				return InProperty == MP_BaseColor
 					|| InProperty == MP_Normal
 					|| InProperty == MP_Opacity;
 
 			case DBM_DBuffer_ColorRoughness:
-				return InProperty == MP_DiffuseColor
-					|| InProperty == MP_BaseColor
+				return InProperty == MP_BaseColor
 					|| InProperty == MP_Roughness
 					|| InProperty == MP_Opacity;
 
