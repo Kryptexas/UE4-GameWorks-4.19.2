@@ -113,7 +113,7 @@ FTimespan FTimespan::FromMinutes( double Minutes )
 
 FTimespan FTimespan::FromSeconds( double Seconds )
 {
-	check((Seconds >= MinValue().GetTotalMinutes()) && (Seconds <= MaxValue().GetTotalMinutes()));
+	check((Seconds >= MinValue().GetTotalSeconds()) && (Seconds <= MaxValue().GetTotalSeconds()));
 
 	return FTimespan(Seconds * ETimespan::TicksPerSecond);
 }
