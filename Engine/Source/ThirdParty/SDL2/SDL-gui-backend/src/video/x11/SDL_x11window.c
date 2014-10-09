@@ -937,6 +937,33 @@ X11_GetWindowBordersSize(_THIS, SDL_Window * window, SDL_Rect * borders)
     }
     return result;
 }
+
+int
+X11_SetWindowOpacity(_THIS, SDL_Window * window, float opacity)
+{
+    SDL_WindowData *data = (SDL_WindowData *) window->driverdata;
+    SDL_DisplayData *displaydata =
+        (SDL_DisplayData *) SDL_GetDisplayForWindow(window)->driverdata;
+    Display *display = data->videodata->display;
+    Atom _NET_WM_WINDOW_OPACITY = data->videodata->_NET_WM_WINDOW_OPACITY;
+
+    const Uint32 FullyOpaque = 0xffffffff;
+    Uint32 x11_opacity = 0;
+    if (opacity > 0) {
+        if (opacity < 1.0f) {
+            x11_opacity = (Uint32)(opacity * (float)FullyOpaque);
+        } else {
+            x11_opacity = FullyOpaque;
+        }
+    }
+
+    if (x11_opacity == FullyOpaque) {
+        X11_XDeleteProperty(display, data->xwindow, _NET_WM_WINDOW_OPACITY);
+    } else  {
+        X11_XChangeProperty(display, data->xwindow, _NET_WM_WINDOW_OPACITY, XA_CARDINAL, 32,
+            PropModeReplace, (unsigned char *)&x11_opacity, 1);
+    }
+}
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 

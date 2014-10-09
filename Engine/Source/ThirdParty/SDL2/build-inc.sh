@@ -4,8 +4,6 @@ set -e
 SDL_DIR=SDL-gui-backend
 BUILD_DIR=build-$SDL_DIR
 
-rm -rf $BUILD_DIR
-mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 CFLAGS=-fPIC cmake -DCMAKE_BUILD_TYPE=Debug ../$SDL_DIR

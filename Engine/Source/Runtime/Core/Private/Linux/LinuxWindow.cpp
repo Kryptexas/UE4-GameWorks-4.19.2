@@ -483,8 +483,7 @@ void FLinuxWindow::SetWindowFocus()
  */
 void FLinuxWindow::SetOpacity( const float InOpacity )
 {
-	//	SDL2 doesn't offer such functionality...
-	//  Could be added to ds_extenstion
+	SDL_SetWindowOpacity(HWnd, InOpacity);
 }
 
 /**

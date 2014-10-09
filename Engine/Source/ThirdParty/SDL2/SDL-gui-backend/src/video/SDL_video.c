@@ -2021,6 +2021,34 @@ SDL_GetWindowBrightness(SDL_Window * window)
     return window->brightness;
 }
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+int
+SDL_SetWindowOpacity(SDL_Window * window, float opacity)
+{
+    CHECK_WINDOW_MAGIC(window, -1);
+
+    if (!_this->SetWindowOpacity) {
+        return SDL_Unsupported();
+    }
+
+    return _this->SetWindowOpacity(_this, window, opacity);
+}
+
+int
+SDL_GetWindowOpacity(SDL_Window * window, float * out_opacity)
+{
+    CHECK_WINDOW_MAGIC(window, -1);
+
+    if (!_this->GetWindowOpacity) {
+        return SDL_Unsupported();
+    }
+
+    return _this->GetWindowOpacity(_this, window, out_opacity);
+}
+#endif // SDL_WITH_EPIC_EXTENSIONS
+/* EG END */
+
 int
 SDL_SetWindowGammaRamp(SDL_Window * window, const Uint16 * red,
                                             const Uint16 * green,

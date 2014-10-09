@@ -99,6 +99,11 @@ typedef struct SDL_VideoData
     Atom _NET_WM_ICON_NAME;
     Atom _NET_WM_ICON;
     Atom _NET_WM_PING;
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    Atom _NET_WM_WINDOW_OPACITY;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
     Atom _NET_ACTIVE_WINDOW;
     Atom UTF8_STRING;
     Atom PRIMARY;
