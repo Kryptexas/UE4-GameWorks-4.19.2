@@ -971,7 +971,12 @@ void SGraphPanel::AddNode(UEdGraphNode* Node)
 
 		NewNode->PlaySpawnEffect();
 
+		NewNode->UpdateGraphNode();
 		NewNode->RequestRenameOnSpawn();
+	}
+	else
+	{
+		NewNode->UpdateGraphNode();
 	}
 }
 
@@ -982,8 +987,6 @@ TSharedPtr<SGraphNode> SGraphPanel::GetNodeWidgetFromGuid(FGuid Guid) const
 
 void SGraphPanel::Update()
 {
-//	SCOPE_LOG_TIME_FUNC();
-
 	// Add widgets for all the nodes that don't have one.
 	if(GraphObj != NULL)
 	{
