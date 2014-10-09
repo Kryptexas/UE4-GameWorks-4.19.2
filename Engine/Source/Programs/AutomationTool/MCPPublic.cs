@@ -244,29 +244,6 @@ namespace EpicGames.MCP.Automation
 		}
     }
 
-	public class BuildPatchToolBinaryStagingInfo : BuildPatchToolStagingInfo
-	{
-		public BuildPatchToolBinaryStagingInfo(BuildPatchToolStagingInfo StagingInfo) : base(
-			StagingInfo.OwnerCommand,
-			StagingInfo.AppName,
-			StagingInfo.McpConfigKey,
-			StagingInfo.AppID,
-			StagingInfo.BuildVersion,
-			StagingInfo.Platform,
-			StagingInfo.StagingDir)
-		{
-		}
-
-		public override string ManifestFilename
-		{
-			get
-			{
-				return base.ManifestFilename.Replace(".manifest", ".binary.manifest");
-			}
-		}
-	}
-
-
     /// <summary>
     /// Class that provides programmatic access to the BuildPatchTool
     /// </summary>
