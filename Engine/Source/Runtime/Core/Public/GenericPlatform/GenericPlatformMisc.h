@@ -193,9 +193,7 @@ struct CORE_API FGenericPlatformMisc
 	/**
 	 * Called during appInit() after cmd line setup
 	 */
-	static void PlatformPreInit()
-	{
-	}
+	static void PlatformPreInit();
 	static void PlatformInit()
 	{
 	}

@@ -11,6 +11,7 @@
 #include "ExceptionHandling.h"
 #include "Containers/Map.h"
 #include "../../Launch/Resources/Version.h"
+#include "GenericPlatformContext.h"
 
 #include "UProjectInfo.h"
 
@@ -821,25 +822,16 @@ FGuid FGenericPlatformMisc::GetMachineId()
 	return MachineId;
 }
 
-namespace
-{
-	/** Cached EpicAccountId. */
-	FString EpicAccountId;
-}
-
 FString FGenericPlatformMisc::GetEpicAccountId()
 {
-	if( EpicAccountId.IsEmpty() )
-	{
-		FPlatformMisc::GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), EpicAccountId );
-	}
+	FString EpicAccountId;
+	FPlatformMisc::GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), EpicAccountId );
 	return EpicAccountId;
 }
 
 void FGenericPlatformMisc::SetEpicAccountId( const FString& AccountId )
 {
 	FPlatformMisc::SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
-	EpicAccountId = AccountId;
 }
 
 const TCHAR* FGenericPlatformMisc::GetEngineMode()
@@ -849,4 +841,9 @@ const TCHAR* FGenericPlatformMisc::GetEngineMode()
 		GIsEditor ? TEXT( "Editor" ) :
 		IsRunningDedicatedServer() ? TEXT( "Server" ) :
 		TEXT( "Game" );
+}
+
+void FGenericPlatformMisc::PlatformPreInit()
+{
+	FGenericCrashContext::Initialize();
 }

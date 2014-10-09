@@ -61,6 +61,7 @@ void FAndroidMisc::LoadPreInitModules()
 
 void FAndroidMisc::PlatformPreInit()
 {
+	FGenericPlatformMisc::PlatformPreInit();
 	FAndroidAppEntry::PlatformInit();
 }
 

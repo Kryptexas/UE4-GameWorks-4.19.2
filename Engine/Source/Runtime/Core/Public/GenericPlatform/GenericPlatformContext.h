@@ -24,6 +24,20 @@ public:
 	static const ANSICHAR* CrashContextRuntimeXMLNameA;
 	static const TCHAR* CrashContextRuntimeXMLNameW;
 
+	/**	Whether the Initialize() has been called */
+	static bool bIsInitialized;
+
+	/** Initializes crash context related platform specific data that can be impossible to obtain after a crash. */
+	static void Initialize();
+
+	/**
+	 * @return true, if the generic crash context has been initialized.
+	 */
+	static bool IsInitalized()
+	{
+		return bIsInitialized;
+	}
+
 	/** Default constructor. */
 	FGenericCrashContext();
 

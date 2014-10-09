@@ -13,6 +13,7 @@
 
 /*-----------------------------------------------------------------------------
 	Stack walking.
+	@TODO To be removed
 -----------------------------------------------------------------------------*/
 
 /** Whether appInitStackWalking() has been called successfully or not. */
@@ -359,8 +360,7 @@ static void LoadProcessModules()
 	{
 		// Keep track of the fact that we need to free it again.
 		bNeedToFreeModuleHandlePointer = true;
-		// @TODO yrx 2014-09-05 Calling malloc after a crash is not a good idea, fix it.
-		ModuleHandlePointer = (HMODULE*) FMemory::Malloc( BytesRequired );
+		ModuleHandlePointer = (HMODULE*) GMalloc->Malloc( BytesRequired );
 		FEnumProcessModules( ProcessHandle, ModuleHandlePointer, sizeof(ModuleHandleArray), (::DWORD *)&BytesRequired );
 	}
 
@@ -404,7 +404,7 @@ static void LoadProcessModules()
 	// Free the module handle pointer allocated in case the static array was insufficient.
 	if( bNeedToFreeModuleHandlePointer )
 	{
-		FMemory::Free( ModuleHandlePointer );
+		GMalloc->Free( ModuleHandlePointer );
 	}
 }
 

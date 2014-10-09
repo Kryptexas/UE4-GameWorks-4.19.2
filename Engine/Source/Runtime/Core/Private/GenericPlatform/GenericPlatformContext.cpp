@@ -6,11 +6,42 @@
 
 const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContext.runtime-xml";
 const TCHAR* FGenericCrashContext::CrashContextRuntimeXMLNameW = TEXT( "CrashContext.runtime-xml" );
+bool FGenericCrashContext::bIsInitialized = false;
 
-namespace
+namespace NCachedCrashContextProperties
 {
 	static FString CrashDescriptionCommonBuffer;
+	static FString BaseDir;
+	static FString EpicAccountId;
+	static FString MachineIdStr;
+	static FString OsVersion;
+	static FString OsSubVersion;
+	static int32 NumberOfCores;
+	static int32 NumberOfCoresIncludingHyperthreads;
+	static FString CPUVendor;
+	static FString CPUBrand;
+	static FString PrimaryGPUBrand;
+	static FString UserName;
 }
+using namespace NCachedCrashContextProperties;
+
+void FGenericCrashContext::Initialize()
+{
+	BaseDir = FPlatformProcess::BaseDir();
+	EpicAccountId = FPlatformMisc::GetEpicAccountId();
+	MachineIdStr = FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits );
+	FPlatformMisc::GetOSVersions(OsVersion,OsSubVersion);
+	NumberOfCores = FPlatformMisc::NumberOfCores();
+	NumberOfCoresIncludingHyperthreads = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
+
+	CPUVendor = FPlatformMisc::GetCPUVendor();
+	CPUBrand = FPlatformMisc::GetCPUBrand();
+	PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
+	UserName = FPlatformProcess::UserName();
+
+	bIsInitialized = true;
+}
+
 
 FGenericCrashContext::FGenericCrashContext() :
 CommonBuffer( CrashDescriptionCommonBuffer )
@@ -22,13 +53,17 @@ void FGenericCrashContext::SerializeContentToBuffer()
 {
 	AddHeader();
 
+	// ProcessId will be used by the crash report client to get more information about the crashed process.
+	// It should be enough to open the process, get the memory stats, a list of loaded modules etc.
+	// It means that the crashed process needs to be alive as long as the crash report client is working on the process.
+	AddCrashProperty( TEXT( "ProcessId" ), FPlatformProcess::GetCurrentProcessId() );
+
 	// Add common crash properties.
 	AddCrashProperty( TEXT( "GameName" ), *FString::Printf( TEXT( "UE4-%s" ), FApp::GetGameName() ) );
 	AddCrashProperty( TEXT( "PlatformName" ), *FString( FPlatformProperties::PlatformName() ) );
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
 	AddCrashProperty( TEXT( "EngineVersion" ), ENGINE_VERSION_STRING );
-	AddCrashProperty( TEXT( "CommandLine" ), FCommandLine::Get() );
-	AddCrashProperty( TEXT( "BaseDir" ), FPlatformProcess::BaseDir() );
+	AddCrashProperty( TEXT( "CommandLine" ), FCommandLine::IsInitialized() ? FCommandLine::Get() : TEXT("") );
 	AddCrashProperty( TEXT( "LanguageLCID" ), FInternationalization::Get().GetCurrentCulture()->GetLCID() );
 
 	// Get the user name only for non-UE4 releases.
@@ -37,52 +72,69 @@ void FGenericCrashContext::SerializeContentToBuffer()
 		// Remove periods from internal user names to match AutoReporter user names
 		// The name prefix is read by CrashRepository.AddNewCrash in the website code
 
-		AddCrashProperty( TEXT( "UserName" ), *FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) ) );
+		AddCrashProperty( TEXT( "UserName" ), *UserName.Replace( TEXT( "." ), TEXT( "" ) ) );
 	}
 
-	AddCrashProperty( TEXT( "MachineId" ), *FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits ) );
-	AddCrashProperty( TEXT( "EpicAccountId" ), *FPlatformMisc::GetEpicAccountId() );
+
+	AddCrashProperty( TEXT( "BaseDir" ), *BaseDir );
+	AddCrashProperty( TEXT( "MachineId" ), *MachineIdStr );
+	AddCrashProperty( TEXT( "EpicAccountId" ), *EpicAccountId );
 
 	AddCrashProperty( TEXT( "CallStack" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "SourceContext" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "UserDescription" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "ErrorMessage" ), (const TCHAR*)GErrorMessage );
 
-	AddCrashProperty( TEXT( "TimeOfCrash" ), FDateTime::UtcNow().GetTicks() );
+	// @TODO yrx 2014-10-08 Move to the crash report client.
+	/*if( CanUseUnsafeAPI() )
+	{
+		AddCrashProperty( TEXT( "TimeOfCrash" ), FDateTime::UtcNow().GetTicks() );
+	}
+	*/
 
 	// Add misc stats.
-	AddCrashProperty( TEXT( "Misc.NumberOfCores" ), FPlatformMisc::NumberOfCores() );
-	AddCrashProperty( TEXT( "Misc.NumberOfCoresIncludingHyperthreads" ), FPlatformMisc::NumberOfCoresIncludingHyperthreads() );
+	AddCrashProperty( TEXT( "Misc.NumberOfCores" ), NumberOfCores );
+	AddCrashProperty( TEXT( "Misc.NumberOfCoresIncludingHyperthreads" ), NumberOfCoresIncludingHyperthreads );
 	AddCrashProperty( TEXT( "Misc.Is64bitOperatingSystem" ), (int32)FPlatformMisc::Is64bitOperatingSystem() );
 
-	AddCrashProperty( TEXT( "Misc.CPUVendor" ), *FPlatformMisc::GetCPUVendor() );
-	AddCrashProperty( TEXT( "Misc.CPUBrand" ), *FPlatformMisc::GetCPUBrand() );
-	AddCrashProperty( TEXT( "Misc.PrimaryGPUBrand" ), *FPlatformMisc::GetPrimaryGPUBrand() );
+	AddCrashProperty( TEXT( "Misc.CPUVendor" ), *CPUVendor );
+	AddCrashProperty( TEXT( "Misc.CPUBrand" ), *CPUBrand );
+	AddCrashProperty( TEXT( "Misc.PrimaryGPUBrand" ), *PrimaryGPUBrand );
+	AddCrashProperty( TEXT( "Misc.OSVersion" ), *FString::Printf( TEXT( "%s, %s" ), *OsVersion, *OsSubVersion ) );
 
-	FString OSVersion, OSSubVersion;
-	FPlatformMisc::GetOSVersions( OSVersion, OSSubVersion );
-	AddCrashProperty( TEXT( "Misc.OSVersion" ), *FString::Printf( TEXT( "%s, %s" ), *OSVersion, *OSSubVersion ) );
+	// @TODO yrx 2014-10-08 Move to the crash report client.
+	/*if( CanUseUnsafeAPI() )
+	{
+		uint64 AppDiskTotalNumberOfBytes = 0;
+		uint64 AppDiskNumberOfFreeBytes = 0;
+		FPlatformMisc::GetDiskTotalAndFreeSpace( FPlatformProcess::BaseDir(), AppDiskTotalNumberOfBytes, AppDiskNumberOfFreeBytes );
+		AddCrashProperty( TEXT( "Misc.AppDiskTotalNumberOfBytes" ), AppDiskTotalNumberOfBytes );
+		AddCrashProperty( TEXT( "Misc.AppDiskNumberOfFreeBytes" ), AppDiskNumberOfFreeBytes );
+	}*/
 
-	uint64 AppDiskTotalNumberOfBytes = 0;
-	uint64 AppDiskNumberOfFreeBytes = 0;
-	FPlatformMisc::GetDiskTotalAndFreeSpace( FPlatformProcess::BaseDir(), AppDiskTotalNumberOfBytes, AppDiskNumberOfFreeBytes );
-	AddCrashProperty( TEXT( "Misc.AppDiskTotalNumberOfBytes" ), AppDiskTotalNumberOfBytes );
-	AddCrashProperty( TEXT( "Misc.AppDiskNumberOfFreeBytes" ), AppDiskNumberOfFreeBytes );
+	// FPlatformMemory::GetConstants is called in the GCreateMalloc, so we can assume it is always valid.
+	{
+		// Add memory stats.
+		const FPlatformMemoryConstants& MemConstants = FPlatformMemory::GetConstants();
 
-	// Add memory stats.
-	const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
+		AddCrashProperty( TEXT( "MemoryStats.TotalPhysical" ), (uint64)MemConstants.TotalPhysical );
+		AddCrashProperty( TEXT( "MemoryStats.TotalVirtual" ), (uint64)MemConstants.TotalVirtual );
+		AddCrashProperty( TEXT( "MemoryStats.PageSize" ), (uint64)MemConstants.PageSize );
+		AddCrashProperty( TEXT( "MemoryStats.TotalPhysicalGB" ), MemConstants.TotalPhysicalGB );
+	}
 
-	AddCrashProperty( TEXT( "MemoryStats.TotalPhysical" ), (uint64)MemStats.TotalPhysical );
-	AddCrashProperty( TEXT( "MemoryStats.TotalVirtual" ), (uint64)MemStats.TotalVirtual );
-	AddCrashProperty( TEXT( "MemoryStats.PageSize" ), (uint64)MemStats.PageSize );
-	AddCrashProperty( TEXT( "MemoryStats.TotalPhysicalGB" ), MemStats.TotalPhysicalGB );
-	AddCrashProperty( TEXT( "MemoryStats.AvailablePhysical" ), (uint64)MemStats.AvailablePhysical );
-	AddCrashProperty( TEXT( "MemoryStats.AvailableVirtual" ), (uint64)MemStats.AvailableVirtual );
-	AddCrashProperty( TEXT( "MemoryStats.UsedPhysical" ), (uint64)MemStats.UsedPhysical );
-	AddCrashProperty( TEXT( "MemoryStats.PeakUsedPhysical" ), (uint64)MemStats.PeakUsedPhysical );
-	AddCrashProperty( TEXT( "MemoryStats.UsedVirtual" ), (uint64)MemStats.UsedVirtual );
-	AddCrashProperty( TEXT( "MemoryStats.PeakUsedVirtual" ), (uint64)MemStats.PeakUsedVirtual );
-	AddCrashProperty( TEXT( "MemoryStats.bIsOOM" ), (int32)FPlatformMemory::bIsOOM );
+	// @TODO yrx 2014-10-08 Move to the crash report client.
+	/*if( CanUseUnsafeAPI() )
+	{
+		const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
+		AddCrashProperty( TEXT( "MemoryStats.AvailablePhysical" ), (uint64)MemStats.AvailablePhysical );
+		AddCrashProperty( TEXT( "MemoryStats.AvailableVirtual" ), (uint64)MemStats.AvailableVirtual );
+		AddCrashProperty( TEXT( "MemoryStats.UsedPhysical" ), (uint64)MemStats.UsedPhysical );
+		AddCrashProperty( TEXT( "MemoryStats.PeakUsedPhysical" ), (uint64)MemStats.PeakUsedPhysical );
+		AddCrashProperty( TEXT( "MemoryStats.UsedVirtual" ), (uint64)MemStats.UsedVirtual );
+		AddCrashProperty( TEXT( "MemoryStats.PeakUsedVirtual" ), (uint64)MemStats.PeakUsedVirtual );
+		AddCrashProperty( TEXT( "MemoryStats.bIsOOM" ), (int32)FPlatformMemory::bIsOOM );
+	}*/
 
 	// @TODO yrx 2014-09-10 
 	//Architecture
@@ -99,6 +151,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename )
 {
 	SerializeContentToBuffer();
+	// @TODO yrx 2014-10-08 We need mechanism to store the file that is aware of crashes and OOMs.
+	// Probably will be replaced with some kind of Inter-Process Communication
 	FFileHelper::SaveStringToFile( CommonBuffer, Filename, FFileHelper::EEncodingOptions::ForceUTF8 );
 }
 
