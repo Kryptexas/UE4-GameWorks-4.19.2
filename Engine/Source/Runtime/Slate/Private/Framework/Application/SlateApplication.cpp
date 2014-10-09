@@ -5,8 +5,10 @@
 #include "SWindowTitleBar.h"
 #include "HittestGrid.h"
 
+#if WITH_EDITOR || IS_PROGRAM
 #include "WebBrowserModule.h"
 #include "IWebBrowserSingleton.h"
+#endif
 
 
 DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_Slate );
@@ -449,8 +451,10 @@ void FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRendere
 	Renderer = InRenderer;
 	Renderer->Initialize();
 
+#if WITH_EDITOR || IS_PROGRAM
 	// Pass renderer on to the Web Browser module
 	IWebBrowserModule::Get().GetSingleton()->SetSlateRenderer(InRenderer);
+#endif
 }
 
 void FSlateApplication::InitializeSound( const TSharedRef<ISlateSoundDevice>& InSlateSoundDevice )
@@ -928,8 +932,10 @@ void FSlateApplication::Tick()
 	// (so they know their size)
 	FSlateNotificationManager::Get().Tick();
 
+#if WITH_EDITOR || IS_PROGRAM
 	// Calling this after Tick gives web browser a chance to render pages to texture after size changes
 	IWebBrowserModule::Get().GetSingleton()->PumpMessages();
+#endif
 
 	// Draw all windows
 	DrawWindows();
