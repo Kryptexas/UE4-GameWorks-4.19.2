@@ -406,45 +406,45 @@ struct FAITest_BTAbortParallelOut : public FAITest_SimpleBT
 };
 IMPLEMENT_AI_TEST(FAITest_BTAbortParallelOut, "Engine.AI.Behavior Trees.Abort: parallel out")
 
-struct FAITest_BTAbortParallelOutAndBack : public FAITest_SimpleBT
-{
-	FAITest_BTAbortParallelOutAndBack()
-	{
-		UBTCompositeNode& CompNode = FBTBuilder::AddSelector(*BTAsset);
-		{
-			FBTBuilder::AddTask(CompNode, 0, EBTNodeResult::Succeeded);
-			{
-				FBTBuilder::WithDecoratorBlackboard(CompNode, EBasicKeyOperation::Set, EBTFlowAbortMode::LowerPriority);
-				FBTBuilder::WithDecorator<UTestBTDecorator_CantExecute>(CompNode);
-			}
-
-			UBTCompositeNode& CompNode2 = FBTBuilder::AddParallel(CompNode, EBTParallelMode::WaitForBackground);
-			{
-				FBTBuilder::AddTask(CompNode2, 1, EBTNodeResult::Failed, 5);
-
-				UBTCompositeNode& CompNode3 = FBTBuilder::AddSequence(CompNode2);
-				{
-					FBTBuilder::AddTask(CompNode3, 2, EBTNodeResult::Succeeded, 1);
-					FBTBuilder::AddTaskFlagChange(CompNode3, true, EBTNodeResult::Succeeded);
-					FBTBuilder::AddTask(CompNode3, 3, EBTNodeResult::Succeeded, 1);
-				}
-			}
-
-			FBTBuilder::AddTask(CompNode, 4, EBTNodeResult::Succeeded);
-		}
-
-		ExpectedResult.Add(1);
-		ExpectedResult.Add(2);
-		ExpectedResult.Add(3);
-		// added this as actuall execution shows that's the case
-		// needs to be reviewed
-		ExpectedResult.Add(2);
-		ExpectedResult.Add(3);
-		//
-		ExpectedResult.Add(4);
-	}
-};
-IMPLEMENT_AI_TEST(FAITest_BTAbortParallelOutAndBack, "Engine.AI.Behavior Trees.Abort: parallel out & back")
+//struct FAITest_BTAbortParallelOutAndBack : public FAITest_SimpleBT
+//{
+//	FAITest_BTAbortParallelOutAndBack()
+//	{
+//		UBTCompositeNode& CompNode = FBTBuilder::AddSelector(*BTAsset);
+//		{
+//			FBTBuilder::AddTask(CompNode, 0, EBTNodeResult::Succeeded);
+//			{
+//				FBTBuilder::WithDecoratorBlackboard(CompNode, EBasicKeyOperation::Set, EBTFlowAbortMode::LowerPriority);
+//				FBTBuilder::WithDecorator<UTestBTDecorator_CantExecute>(CompNode);
+//			}
+//
+//			UBTCompositeNode& CompNode2 = FBTBuilder::AddParallel(CompNode, EBTParallelMode::WaitForBackground);
+//			{
+//				FBTBuilder::AddTask(CompNode2, 1, EBTNodeResult::Failed, 5);
+//
+//				UBTCompositeNode& CompNode3 = FBTBuilder::AddSequence(CompNode2);
+//				{
+//					FBTBuilder::AddTask(CompNode3, 2, EBTNodeResult::Succeeded, 1);
+//					FBTBuilder::AddTaskFlagChange(CompNode3, true, EBTNodeResult::Succeeded);
+//					FBTBuilder::AddTask(CompNode3, 3, EBTNodeResult::Succeeded, 1);
+//				}
+//			}
+//
+//			FBTBuilder::AddTask(CompNode, 4, EBTNodeResult::Succeeded);
+//		}
+//
+//		ExpectedResult.Add(1);
+//		ExpectedResult.Add(2);
+//		ExpectedResult.Add(3);
+//		// added this as actual execution shows that's the case
+//		// needs to be reviewed
+//		ExpectedResult.Add(2);
+//		ExpectedResult.Add(3);
+//		//
+//		ExpectedResult.Add(4);
+//	}
+//};
+//IMPLEMENT_AI_TEST(FAITest_BTAbortParallelOutAndBack, "Engine.AI.Behavior Trees.Abort: parallel out & back")
 
 struct FAITest_BTAbortMultipleDelayed : public FAITest_SimpleBT
 {

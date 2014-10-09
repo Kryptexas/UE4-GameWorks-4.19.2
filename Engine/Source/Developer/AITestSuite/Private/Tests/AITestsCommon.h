@@ -82,8 +82,8 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_TearDownTest, FAIT
 
 // @note that TestClass needs to derive from FAITestBase
 #define IMPLEMENT_AI_TEST(TestClass, PrettyName) \
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##Runner, PrettyName, (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)) \
-	bool TestClass##Runner::RunTest(const FString& Parameters) \
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##_Runner, PrettyName, (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)) \
+	bool TestClass##_Runner::RunTest(const FString& Parameters) \
 	{ \
 		/* spawn test instance. Setup should be done in test's constructor */ \
 		TestClass* TestInstance = new TestClass(); \
