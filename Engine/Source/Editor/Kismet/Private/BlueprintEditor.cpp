@@ -2455,15 +2455,6 @@ void FBlueprintEditor::Compile()
 		// send record when player clicks compile and send the result
 		// this will make sure how the users activity is
 		AnalyticsTrackCompileEvent(BlueprintObj, LogResults.NumErrors, LogResults.NumWarnings);
-
-		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
-		if (Settings->bSaveOnCompile)
-		{
-			TArray<UPackage*> PackagesToSave;
-			PackagesToSave.Add(BlueprintObj->GetOutermost());
-
-			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/false, /*bPromptToSave =*/false);
-		}
 	}
 }
 

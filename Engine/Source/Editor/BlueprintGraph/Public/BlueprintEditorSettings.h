@@ -14,7 +14,7 @@ class BLUEPRINTGRAPH_API UBlueprintEditorSettings
 
 // General Settings
 public:
-	/** Determines if Blueprints are saved whenever you compile them */
+	/** Determines if Blueprints are saved whenever you (successfully) compile them */
 	UPROPERTY(EditAnywhere, config, Category=General)
 	bool bSaveOnCompile;
 

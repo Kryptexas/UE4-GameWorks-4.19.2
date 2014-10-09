@@ -543,7 +543,7 @@ TSharedRef<SWidget> FKismet2Menu::MakeDiffMenu(FBlueprintEditor& Kismet)
 void FFullBlueprintEditorCommands::RegisterCommands() 
 {
 	UI_COMMAND(Compile, "Compile", "Compile the blueprint", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(SaveOnCompile, "Save on Compile", "Determines if the Blueprint is saved every time you compile it", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(SaveOnCompile, "Save on Compile", "Determines if the Blueprint is saved every time you (successfully) compile it", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToScriptingMode, "Graph", "Switches to Graph Editing Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToBlueprintDefaultsMode, "Defaults", "Switches to Blueprint Defaults Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToComponentsMode, "Components", "Switches to Components Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());

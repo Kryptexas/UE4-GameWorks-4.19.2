@@ -32,6 +32,7 @@
 #include "ObjectEditorUtils.h"
 #include "DlgPickAssetPath.h"
 #include "ComponentAssetBroker.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
 
@@ -473,6 +474,15 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	if (BlueprintPackage != NULL)
 	{
 		BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
+
+		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+		if (Settings->bSaveOnCompile && (BlueprintObj->Status == BS_UpToDate))
+		{
+			TArray<UPackage*> PackagesToSave;
+			PackagesToSave.Add(BlueprintPackage);
+
+			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
+		}
 	}	
 }
 

@@ -1777,10 +1777,6 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 						// ... is there a case where we'd want to recompile this again?
 					}
 
-					// Cache off the dirty flag for the package, so we can restore it later
-					UPackage* Package = Cast<UPackage>(Blueprint->GetOutermost());
-					const bool bIsPackageDirty = Package ? Package->IsDirty() : false;
-
 					Blueprint->BroadcastChanged();
 
 					UE_LOG(LogPlayLevel, Log, TEXT("[PIE] Compiling %s before PIE..."), *Blueprint->GetName());
@@ -1797,12 +1793,6 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 						Arguments.Add(TEXT("Name"), FText::FromString(Blueprint->GetName()));
 
 						BlueprintLog.Info( FText::Format(LOCTEXT("BlueprintCompileFailed", "Blueprint {Name} failed to compile"), Arguments) );
-					}
-
-					// Restore the dirty package flag
-					if (Package)
-					{
-						Package->SetDirtyFlag(bIsPackageDirty);
 					}
 				}
 
