@@ -2247,6 +2247,11 @@ FVector FMath::RandPointInBox(const FBox& Box)
 					FRandRange(Box.Min.Z, Box.Max.Z) );
 }
 
+FVector FMath::GetReflectionVector(const FVector& Direction, const FVector& SurfaceNormal)
+{
+	return Direction - 2 * (Direction | SurfaceNormal.SafeNormal()) * SurfaceNormal.SafeNormal();
+}
+
 struct FClusterMovedHereToMakeCompile
 {
 	FVector ClusterPosAccum;
