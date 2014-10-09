@@ -145,6 +145,11 @@ public:
 	/** Metadata that flags make/break functions for specific struct types. */
 	static const FName MD_NativeMakeFunction;
 	static const FName MD_NativeBreakFunction;
+
+	/** Metadata that flags function params that govern what type of object the function returns */
+	static const FName MD_DynamicOutputType;
+	/** Metadata that flags the function output param that will be controlled by the "MD_DynamicOutputType" pin */
+	static const FName MD_DynamicOutputParam;
 	
 private:
 	// This class should never be instantiated

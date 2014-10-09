@@ -12,6 +12,10 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
+/*******************************************************************************
+ *  FCustomStructureParamHelper
+ ******************************************************************************/
+
 struct FCustomStructureParamHelper
 {
 	static FName GetCustomStructureParamName()
@@ -81,6 +85,316 @@ struct FCustomStructureParamHelper
 		}
 	}
 };
+
+/*******************************************************************************
+ *  FDynamicOutputUtils
+ ******************************************************************************/
+
+struct FDynamicOutputHelper
+{
+public:
+	FDynamicOutputHelper(UEdGraphPin* InAlteredPin)
+		: MutatingPin(InAlteredPin)
+	{}
+
+	/**
+	 * Attempts to change the output pin's type so that it reflects the class 
+	 * specified by the input class pin.
+	 */
+	void ConformOutputType() const;
+
+	/**
+	 * Retrieves the class pin that is used to determine the function's output type.
+	 * 
+	 * @return Null if the "DeterminesOutputType" metadata targets an invalid 
+	 *         param (or if the metadata isn't present), otherwise a class picker pin.
+	 */
+	static UEdGraphPin* GetTypePickerPin(const UK2Node_CallFunction* FuncNode);
+
+	/**
+	 * Attempts to pull out class info from the supplied pin. Starts with the 
+	 * pin's default, and then falls back onto the pin's native type. Will poll
+	 * any connections that the pin may have.
+	 * 
+	 * @param  Pin	The pin you want a class from.
+	 * @return A class that the pin represents (could be null if the pin isn't a class pin).
+	 */
+	static UClass* GetPinClass(UEdGraphPin* Pin);
+
+	/**
+	 * Intended to be used by ValidateNodeDuringCompilation(). Will check to 
+	 * make sure the dynamic output's connections are still valid (they could
+	 * become invalid as the the pin's type changes).
+	 * 
+	 * @param  FuncNode		The node you wish to validate.
+	 * @param  MessageLog	The log to post errors/warnings to.
+	 */
+	static void VerifyNode(const UK2Node_CallFunction* FuncNode, FCompilerResultsLog& MessageLog);
+
+private:
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	UK2Node_CallFunction* GetFunctionNode() const;
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	UFunction* GetTargetFunction() const;
+
+	/**
+	 * Checks if the supplied pin is the class picker that governs the 
+	 * function's output type.
+	 * 
+	 * @param  Pin	The pin to test.
+	 * @return True if the pin corresponds to the param that was flagged by the "DeterminesOutputType" metadata.
+	 */
+	bool IsTypePickerPin(UEdGraphPin* Pin) const;
+
+	/**
+	 * Retrieves the object output pin that is altered as the class input is 
+	 * changed (favors params flagged by "DynamicOutputParam" metadata).
+	 * 
+	 * @return Null if the output param cannot be altered from the class input, 
+	 *         otherwise a output pin that will mutate type as the class input is changed.
+	 */
+	static UEdGraphPin* GetDynamicOutPin(const UK2Node_CallFunction* FuncNode);
+
+	/**
+	 * Checks if the specified type is an object type that reflects the picker 
+	 * pin's class.
+	 * 
+	 * @param  TypeToTest	The type you want to check.
+	 * @return True if the type is likely the output governed by the class picker pin, otherwise false.
+	 */
+	static bool CanConformPinType(const UK2Node_CallFunction* FuncNode, const FEdGraphPinType& TypeToTest);
+
+private:
+	UEdGraphPin* MutatingPin;
+};
+
+void FDynamicOutputHelper::ConformOutputType() const
+{
+	if (IsTypePickerPin(MutatingPin))
+	{
+		UClass* PickedClass = GetPinClass(MutatingPin);
+		UK2Node_CallFunction* FuncNode = GetFunctionNode();
+
+		if (UEdGraphPin* DynamicOutPin = GetDynamicOutPin(FuncNode))
+		{
+			DynamicOutPin->PinType.PinSubCategoryObject = PickedClass;
+
+			if (UFunction* Function = FuncNode->GetTargetFunction())
+			{
+				DynamicOutPin->PinToolTip.Empty();
+				FuncNode->GeneratePinTooltipFromFunction(*DynamicOutPin, Function);
+			}
+
+			// leave the connection, and instead bring the user's attention to 
+			// it via a ValidateNodeDuringCompilation() error
+// 			const UEdGraphSchema* Schema = FuncNode->GetSchema();
+// 			for (int32 LinkIndex = 0; LinkIndex < DynamicOutPin->LinkedTo.Num();)
+// 			{
+// 				UEdGraphPin* Link = DynamicOutPin->LinkedTo[LinkIndex];
+// 				// if this can no longer be linked to the other pin, then we 
+// 				// should disconnect it (because the pin's type just changed)
+// 				if (Schema->CanCreateConnection(DynamicOutPin, Link).Response == CONNECT_RESPONSE_DISALLOW)
+// 				{
+// 					DynamicOutPin->BreakLinkTo(Link);
+// 					// @TODO: warn/notify somehow
+// 				}
+// 				else
+// 				{
+// 					++LinkIndex;
+// 				}
+// 			}
+		}
+	}
+}
+
+UEdGraphPin* FDynamicOutputHelper::GetTypePickerPin(const UK2Node_CallFunction* FuncNode)
+{
+	UEdGraphPin* TypePickerPin = nullptr;
+
+	if (UFunction* Function = FuncNode->GetTargetFunction())
+	{
+		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		if (!TypeDeterminingPinName.IsEmpty())
+		{
+			TypePickerPin = FuncNode->FindPin(TypeDeterminingPinName);
+		}
+	}
+
+	if (TypePickerPin && !ensure(TypePickerPin->Direction == EGPD_Input))
+	{
+		TypePickerPin = nullptr;
+	}
+
+	return TypePickerPin;
+}
+
+UClass* FDynamicOutputHelper::GetPinClass(UEdGraphPin* Pin)
+{
+	UClass* PinClass = UObject::StaticClass();
+
+	bool const bIsClassPin = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
+	if (bIsClassPin)
+	{
+		if (UClass* DefaultClass = Cast<UClass>(Pin->DefaultObject))
+		{
+			PinClass = DefaultClass;
+		}
+		else if (UClass* BaseClass = Cast<UClass>(Pin->PinType.PinSubCategoryObject.Get()))
+		{
+			PinClass = BaseClass;
+		}
+
+		if (Pin->LinkedTo.Num() > 0)
+		{
+			UClass* CommonInputClass = Cast<UClass>(Pin->LinkedTo[0]->PinType.PinSubCategoryObject.Get());
+			for (int32 LinkIndex = 1; LinkIndex < Pin->LinkedTo.Num(); ++LinkIndex)
+			{
+				UClass* LinkClass = Cast<UClass>(Pin->LinkedTo[LinkIndex]->PinType.PinSubCategoryObject.Get());
+				if (LinkClass == nullptr)
+				{
+					continue;
+				}
+
+				if (CommonInputClass == nullptr)
+				{
+					CommonInputClass = LinkClass;
+					continue;
+				}
+
+				while (!LinkClass->IsChildOf(CommonInputClass))
+				{
+					CommonInputClass = CommonInputClass->GetSuperClass();
+				}
+			}
+
+			PinClass = CommonInputClass;
+		}
+	}
+	return PinClass;
+}
+
+void FDynamicOutputHelper::VerifyNode(const UK2Node_CallFunction* FuncNode, FCompilerResultsLog& MessageLog)
+{
+	if (UEdGraphPin* DynamicOutPin = GetDynamicOutPin(FuncNode))
+	{
+		const UEdGraphSchema* Schema = FuncNode->GetSchema();
+		for (UEdGraphPin* Link : DynamicOutPin->LinkedTo)
+		{
+			if (Schema->CanCreateConnection(DynamicOutPin, Link).Response == CONNECT_RESPONSE_DISALLOW)
+			{
+				FText const ErrorFormat = LOCTEXT("BadConnection", "Invalid pin connection from '@@' to '@@'. You may have changed the type after the connections were made.");
+				MessageLog.Error(*ErrorFormat.ToString(), DynamicOutPin, Link);
+			}
+		}
+	}
+}
+
+UK2Node_CallFunction* FDynamicOutputHelper::GetFunctionNode() const
+{
+	return CastChecked<UK2Node_CallFunction>(MutatingPin->GetOwningNode());
+}
+
+UFunction* FDynamicOutputHelper::GetTargetFunction() const
+{
+	return GetFunctionNode()->GetTargetFunction();
+}
+
+bool FDynamicOutputHelper::IsTypePickerPin(UEdGraphPin* Pin) const
+{
+	bool bIsTypeDeterminingPin = false;
+
+	if (UFunction* Function = GetTargetFunction())
+	{
+		FString TypeDeterminingPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputType);
+		if (!TypeDeterminingPinName.IsEmpty())
+		{
+			bIsTypeDeterminingPin = (Pin->PinName == TypeDeterminingPinName);
+		}
+	}
+
+	bool const bPinIsClassPicker = (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class);
+	return bIsTypeDeterminingPin && bPinIsClassPicker && (Pin->Direction == EGPD_Input);
+}
+
+UEdGraphPin* FDynamicOutputHelper::GetDynamicOutPin(const UK2Node_CallFunction* FuncNode)
+{
+	UProperty* TaggedOutputParam = nullptr;
+	if (UFunction* Function = FuncNode->GetTargetFunction())
+	{
+		const FString& OutputPinName = Function->GetMetaData(FBlueprintMetadata::MD_DynamicOutputParam);
+		// we sort through properties, instead of pins, because the pin's type 
+		// could already be modified to some other class (for when we check CanConformPinType)
+		for (TFieldIterator<UProperty> ParamIt(Function); ParamIt && (ParamIt->PropertyFlags & CPF_Parm); ++ParamIt)
+		{
+			if (OutputPinName.IsEmpty() && ParamIt->HasAnyPropertyFlags(CPF_ReturnParm))
+			{
+				TaggedOutputParam = *ParamIt;
+				break;
+			}
+			else if (OutputPinName == ParamIt->GetName())
+			{
+				TaggedOutputParam = *ParamIt;
+				break;
+			}
+		}
+
+		if (TaggedOutputParam != nullptr)
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			FEdGraphPinType PropertyPinType;
+
+			if (!K2Schema->ConvertPropertyToPinType(TaggedOutputParam, /*out*/PropertyPinType) || !CanConformPinType(FuncNode, PropertyPinType))
+			{
+				TaggedOutputParam = nullptr;
+			}
+		}
+	}
+
+	UEdGraphPin* DynamicOutPin = nullptr;
+	if (TaggedOutputParam != nullptr)
+	{
+		DynamicOutPin = FuncNode->FindPin(TaggedOutputParam->GetName());
+		if (DynamicOutPin && (DynamicOutPin->Direction != EGPD_Output))
+		{
+			DynamicOutPin = nullptr;
+		}
+	}
+	return DynamicOutPin;
+}
+
+bool FDynamicOutputHelper::CanConformPinType(const UK2Node_CallFunction* FuncNode, const FEdGraphPinType& TypeToTest)
+{
+	bool bIsProperType = false;
+	if (UEdGraphPin* TypePickerPin = GetTypePickerPin(FuncNode))
+	{
+		UClass* BasePickerClass = CastChecked<UClass>(TypePickerPin->PinType.PinSubCategoryObject.Get());
+
+		const FString& PinCategory = TypeToTest.PinCategory;
+		if ((PinCategory == UEdGraphSchema_K2::PC_Object) ||
+			(PinCategory == UEdGraphSchema_K2::PC_Interface) ||
+			(PinCategory == UEdGraphSchema_K2::PC_Class))
+		{
+			if (UClass* TypeClass = Cast<UClass>(TypeToTest.PinSubCategoryObject.Get()))
+			{
+				bIsProperType = BasePickerClass->IsChildOf(TypeClass);
+			}
+		}
+	}
+	return bIsProperType;
+}
+
+/*******************************************************************************
+ *  UK2Node_CallFunction
+ ******************************************************************************/
 
 UK2Node_CallFunction::UK2Node_CallFunction(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -558,7 +872,6 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	return bAllPinsGood;
 }
 
-
 void UK2Node_CallFunction::PostReconstructNode()
 {
 	Super::PostReconstructNode();
@@ -588,6 +901,11 @@ void UK2Node_CallFunction::PostReconstructNode()
 	if(TemplateComp && ReturnPin)
 	{
 		ReturnPin->PinType.PinSubCategoryObject = TemplateComp->GetClass();
+	}
+
+	if (UEdGraphPin* TypePickerPin = FDynamicOutputHelper::GetTypePickerPin(this))
+	{
+		FDynamicOutputHelper(TypePickerPin).ConformOutputType();
 	}
 }
 
@@ -624,6 +942,14 @@ void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			DestroyNode();
 		}
 	}
+
+	FDynamicOutputHelper(Pin).ConformOutputType();
+}
+
+void UK2Node_CallFunction::PinDefaultValueChanged(UEdGraphPin* Pin)
+{
+	Super::PinDefaultValueChanged(Pin);
+	FDynamicOutputHelper(Pin).ConformOutputType();
 }
 
 UFunction* UK2Node_CallFunction::GetTargetFunction() const
@@ -1283,6 +1609,8 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 			}
 		}
 	}
+
+	FDynamicOutputHelper::VerifyNode(this, MessageLog);
 }
 
 void UK2Node_CallFunction::Serialize(FArchive& Ar)

@@ -182,6 +182,7 @@ void UK2Node_SpawnActorFromClass::OnClassPinChanged()
 	{
 		CreatePinsForClass(UseSpawnClass);
 	}
+	K2Schema->ConstructBasicPinTooltip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor"), ResultPin->PinToolTip);
 
 	// Refresh the UI for the graph so the pin changes show up
 	UEdGraph* Graph = GetGraph();
@@ -297,8 +298,15 @@ FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) 
 			{
 				if (CachedNodeTitle.IsOutOfDate())
 				{
+					FText ClassName;
+					if (UClass* PickedClass = Cast<UClass>(ClassPin->DefaultObject))
+					{
+						ClassName = PickedClass->GetDisplayNameText();
+					}
+
 					FFormatNamedArguments Args;
-					Args.Add(TEXT("ClassName"), FText::FromString(ClassPin->DefaultObject->GetName()));
+					Args.Add(TEXT("ClassName"), ClassName);
+
 					// FText::Format() is slow, so we cache this to save on performance
 					CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
 				}

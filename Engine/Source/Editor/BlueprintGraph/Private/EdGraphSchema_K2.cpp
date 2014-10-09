@@ -87,6 +87,9 @@ const FName FBlueprintMetadata::MD_DataTablePin(TEXT("DataTablePin"));
 const FName FBlueprintMetadata::MD_NativeMakeFunction(TEXT("HasNativeMake"));
 const FName FBlueprintMetadata::MD_NativeBreakFunction(TEXT("HasNativeBreak"));
 
+const FName FBlueprintMetadata::MD_DynamicOutputType(TEXT("DeterminesOutputType"));
+const FName FBlueprintMetadata::MD_DynamicOutputParam(TEXT("DynamicOutputParam"));
+
 //////////////////////////////////////////////////////////////////////////
 
 #define LOCTEXT_NAMESPACE "KismetSchema"
@@ -2839,6 +2842,13 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 		}
 		else
 		{
+			UObject* SubCategoryObj = Type.PinSubCategoryObject.Get();
+			FString SubCategoryObjName = SubCategoryObj->GetName();
+			if (UField* SubCategoryField = Cast<UField>(SubCategoryObj))
+			{
+				SubCategoryObjName = SubCategoryField->GetDisplayNameText().ToString();
+			}
+
 			if( !Type.bIsWeakPointer )
 			{
 				UClass* PSCOAsClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
@@ -2854,14 +2864,15 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 				{
 					Args.Add(TEXT("Category"), (!bIsInterface ? GetCategoryText(Type.PinCategory) : GetCategoryText(PC_Interface)));
 				}
-				Args.Add(TEXT("ObjectName"), FText::FromString(FName::NameToDisplayString(Type.PinSubCategoryObject.Get()->GetName(), false)));
+
+				Args.Add(TEXT("ObjectName"), FText::FromString(FName::NameToDisplayString(SubCategoryObjName, /*bIsBool =*/false)));
 				PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{ObjectName} {Category}"), Args);
 			}
 			else
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
-				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
+				Args.Add(TEXT("ObjectName"), FText::FromString(SubCategoryObjName));
 				PropertyText = FText::Format(LOCTEXT("WeakPtrAsText", "{ObjectName} Weak {Category}"), Args);
 			}
 		}
@@ -2882,7 +2893,7 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PropertyTitle"), PropertyText);
-		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "Array of {PropertyTitle}"), Args);
+		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "Array of {PropertyTitle}s"), Args);
 	}
 	else if (Type.bIsReference)
 	{
