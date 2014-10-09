@@ -9,6 +9,29 @@ class ITextInputMethodSystem;
 class IForceFeedbackSystem;
 class IAnalyticsProvider;
 
+/**
+* Enumerates available modifier keys for input gestures.
+*/
+namespace EModifierKey
+{
+	typedef uint8 Type;
+
+	/** No key. */
+	const Type None	= 0;
+
+	/** Ctrl key (Command key on Mac, Control key on Windows). */
+	const Type Control = 1 << 0;
+
+	/** Alt key. */
+	const Type Alt = 1 << 1;
+
+	/** Shift key. */
+	const Type Shift = 1 << 2;
+
+	/** Cmd key (Control key on Mac, Win key on Windows) */
+	const Type Command = 1 << 3;
+};
+
 namespace EPopUpOrientation
 {
 	enum Type
@@ -37,10 +60,10 @@ public:
 	 * @param  bInIsRightAltDown  True if right alt is pressed
 	 */
 	FModifierKeysState( const bool bInIsLeftShiftDown,
-					    const bool bInIsRightShiftDown,
-					    const bool bInIsLeftControlDown,
-					    const bool bInIsRightControlDown,
-					    const bool bInIsLeftAltDown,
+						const bool bInIsRightShiftDown,
+						const bool bInIsLeftControlDown,
+						const bool bInIsRightControlDown,
+						const bool bInIsLeftAltDown,
 						const bool bInIsRightAltDown,
 						const bool bInIsLeftCommandDown,
 						const bool bInIsRightCommandDown,
@@ -197,6 +220,34 @@ public:
 	bool AreCapsLocked() const
 	{
 		return bAreCapsLocked;
+	}
+
+	/**
+	 * @param ModifierKeys the modifier keys to test to see if they are pressed.  Returns true if no modifiers are specified.
+	 * @return true if all modifier keys are pressed specified in the modifier keys.
+	 */
+	bool AreModifersDown(EModifierKey::Type ModiferKeys) const
+	{
+		bool AllModifersDown = true;
+
+		if ( (ModiferKeys & EModifierKey::Shift) == EModifierKey::Shift )
+		{
+			AllModifersDown &= IsShiftDown();
+		}
+		if ( (ModiferKeys & EModifierKey::Command) == EModifierKey::Command )
+		{
+			AllModifersDown &= IsCommandDown();
+		}
+		if ( (ModiferKeys & EModifierKey::Control) == EModifierKey::Control )
+		{
+			AllModifersDown &= IsControlDown();
+		}
+		if ( (ModiferKeys & EModifierKey::Alt) == EModifierKey::Alt )
+		{
+			AllModifersDown &= IsAltDown();
+		}
+
+		return AllModifersDown;
 	}
 
 private:
@@ -376,9 +427,9 @@ public:
 
 	/** Function to return the current implementation of the Text Input Method System */
 	virtual ITextInputMethodSystem *GetTextInputMethodSystem() { return NULL; }
-    
-    /** Send any analytics captured by the application */
-    virtual void SendAnalytics(IAnalyticsProvider* Provider) { }
+	
+	/** Send any analytics captured by the application */
+	virtual void SendAnalytics(IAnalyticsProvider* Provider) { }
 
 	virtual bool SupportsSystemHelp() const { return false; }
 

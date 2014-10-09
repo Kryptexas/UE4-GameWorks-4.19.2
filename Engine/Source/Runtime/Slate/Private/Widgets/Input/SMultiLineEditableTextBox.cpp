@@ -98,6 +98,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.AutoWrapText(InArgs._AutoWrapText)
 					.HScrollBar(HScrollBar)
 					.VScrollBar(VScrollBar)
+					.ModiferKeyForNewLine(InArgs._ModiferKeyForNewLine)
 				]
 
 				+SVerticalBox::Slot()

@@ -32,6 +32,7 @@ public:
 		, _OnTextCommitted()
 		, _OnCursorMoved()
 		, _ContextMenuExtender()
+		, _ModiferKeyForNewLine(EModifierKey::None)
 	{}
 		/** The initial text that will appear in the widget. */
 		SLATE_ATTRIBUTE(FText, Text)
@@ -82,6 +83,9 @@ public:
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT(FMenuExtensionDelegate, ContextMenuExtender)
+
+		/** The optional modifier key necessary to create a newline when typing into the editor. */
+		SLATE_ARGUMENT(EModifierKey::Type, ModiferKeyForNewLine)
 
 	SLATE_END_ARGS()
 
@@ -643,6 +647,9 @@ private:
 
 	/** Whether the text has been changed by a virtual keyboard */
 	bool bTextChangedByVirtualKeyboard;
+
+	/** The optional modifier key necessary to create a newline when typing into the editor. */
+	EModifierKey::Type ModiferKeyForNewLine;
 };
 
 

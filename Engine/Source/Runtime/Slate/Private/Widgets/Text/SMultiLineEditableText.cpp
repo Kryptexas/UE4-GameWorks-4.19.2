@@ -229,6 +229,8 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	SelectionStart = TOptional<FTextLocation>();
 	PreferredCursorScreenOffsetInLine = 0;
 
+	ModiferKeyForNewLine = InArgs._ModiferKeyForNewLine;
+
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
 	CachedSize = FVector2D::ZeroVector;
@@ -1710,22 +1712,39 @@ FReply SMultiLineEditableText::OnEscape()
 
 void SMultiLineEditableText::OnEnter()
 {
-	if (AnyTextSelected())
+	if ( FSlateApplication::Get().GetModifierKeys().AreModifersDown(ModiferKeyForNewLine) )
 	{
-		// Delete selected text
-		DeleteSelectedText();
-	}
+		if ( AnyTextSelected() )
+		{
+			// Delete selected text
+			DeleteSelectedText();
+		}
 
-	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
-	if (TextLayout->SplitLineAt(CursorInteractionPosition))
+		const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+		if ( TextLayout->SplitLineAt(CursorInteractionPosition) )
+		{
+			// Adjust the cursor position to be at the beginning of the new line
+			const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
+			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+		}
+
+		ClearSelection();
+		UpdateCursorHighlight();
+	}
+	else
 	{
-		// Adjust the cursor position to be at the beginning of the new line
-		const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
-		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
-	}
+		//Always clear the local undo chain on commit.
+		ClearUndoStates();
 
-	ClearSelection();
-	UpdateCursorHighlight();
+		const FText EditedText = GetEditableText();
+
+		// When enter is pressed text is committed.  Let anyone interested know about it.
+		OnTextCommitted.ExecuteIfBound(EditedText, ETextCommit::OnEnter);
+
+		// Reload underlying value now it is committed  (commit may alter the value) 
+		// so it can be re-displayed in the edit box if it retains focus
+		LoadText();
+	}
 }
 
 bool SMultiLineEditableText::CanExecuteCut() const
