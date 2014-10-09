@@ -1012,7 +1012,7 @@ public:
 			OrderedValues.Empty(OutValues.Num());
 			for(int32 Index = OutValues.Num() - 1;Index >= 0;Index--)
 			{
-				new(OrderedValues) const ValueType*(OutValues(Index));
+				new(OrderedValues) const ValueType*(OutValues[Index]);
 			}
 
 			// Swap the ordered array into the output array.
