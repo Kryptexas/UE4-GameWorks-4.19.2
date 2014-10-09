@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DeviceManagerPrivatePCH.h"
-
+#include "WorkspaceMenuStructureModule.h"
 
 static const FName DeviceManagerTabName("DeviceManager");
 
@@ -23,15 +23,21 @@ public:
 
 		TargetDeviceServiceManager = TargetDeviceServicesModule.GetDeviceServiceManager();
 
-		FGlobalTabmanager::Get()->RegisterTabSpawner(DeviceManagerTabName, FOnSpawnTab::CreateRaw(this, &FDeviceManagerModule::SpawnDeviceManagerTab))
+		auto& TabSpawnerEntry = FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DeviceManagerTabName, FOnSpawnTab::CreateRaw(this, &FDeviceManagerModule::SpawnDeviceManagerTab))
 			.SetDisplayName(NSLOCTEXT("FDeviceManagerModule", "DeviceManagerTabTitle", "Device Manager"))
-			.SetTooltipText(NSLOCTEXT("FDeviceManagerModule", "DeviceManagerTooltipText", "Open the Device Manager tab."))
+			.SetTooltipText(NSLOCTEXT("FDeviceManagerModule", "DeviceManagerTooltipText", "View and manage connected devices."))
 			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "DeviceDetails.TabIcon"));
+
+#if WITH_EDITOR
+		TabSpawnerEntry.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory());
+#else
+		TabSpawnerEntry.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+#endif
 	}
 
 	virtual void ShutdownModule( ) override
 	{
-		FGlobalTabmanager::Get()->UnregisterTabSpawner(DeviceManagerTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DeviceManagerTabName);
 	}
 
 public:

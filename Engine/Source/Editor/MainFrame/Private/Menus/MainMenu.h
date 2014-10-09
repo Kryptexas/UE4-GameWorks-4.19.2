@@ -64,4 +64,32 @@ protected:
 	 * @param Extender Extensibility support for this menu.
 	 */
 	static void FillHelpMenu( FMenuBuilder& MenuBuilder, const TSharedRef<FExtender> Extender );
+
+private:
+	/** 
+	* Opens the experimental project launcher tab.
+	* Remove this when it is is no longer experimental.
+	*/
+	static void OpenProjectLauncher()
+	{
+		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("ProjectLauncher")));
+	}
+
+	/**
+	* Opens the experimental messaging debugger tab.
+	* Remove this when it is no longer experimental.
+	*/
+	static void OpenMessagingDebugger()
+	{
+		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("MessagingDebugger")));
+	}
+
+	/**
+	* Opens the experimental blutility shelf tab.
+	* Remove this when it is no longer experimental.
+	*/
+	static void OpenBlutilityShelf()
+	{
+		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("BlutilityShelfApp")));
+	}
 };

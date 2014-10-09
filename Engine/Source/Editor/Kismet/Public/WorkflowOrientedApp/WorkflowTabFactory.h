@@ -61,7 +61,7 @@ protected:
 	ETabRole::Type TabRole;
 
 	FText TabLabel;
-	const FSlateBrush* TabIcon;
+	FSlateIcon TabIcon;
 
 	float InsideTabPadding;
 
@@ -120,6 +120,9 @@ public:
 
 	// Virtual to create an icon for the tab
 	virtual const FSlateBrush* GetTabIcon(const FWorkflowTabSpawnInfo& Info) const;
+	
+	// Virtual to create an icon for the menu entry
+	virtual const FSlateIcon& GetTabSpawnerIcon(const FWorkflowTabSpawnInfo& Info) const;
 
 	// Create a tooltip widget for the tab
 	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const;

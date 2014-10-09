@@ -29,9 +29,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;
 
-	/** The Game Launcher provides advanced workflows for packaging, deploying and launching your games. */
+	/** The Project Launcher provides advanced workflows for packaging, deploying and launching your projects. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Project Launcher"))
-	bool bGameLauncher;
+	bool bProjectLauncher;
 
 	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))

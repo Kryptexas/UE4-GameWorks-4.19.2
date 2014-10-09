@@ -18,7 +18,7 @@ FAnimationTabSummoner::FAnimationTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("AnimationsTabLabel", "Animations");
-	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Animations");
+	TabIcon = FSlateIcon(FUMGStyle::GetStyleSetName(), "Animations.TabIcon");
 
 	bIsSingleton = true;
 

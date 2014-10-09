@@ -9,7 +9,8 @@
 #include "SourceCodeNavigation.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "TranslationEditorMenu.h"
-
+#include "Editor/DeviceProfileEditor/Public/DeviceProfileEditorModule.h"
+#include "UndoHistoryModule.h"
 
 #define LOCTEXT_NAMESPACE "MainFileMenu"
 
@@ -73,6 +74,14 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 		TAttribute< FText > DynamicRedoLabel;
 		DynamicRedoLabel.BindStatic( &Local::GetRedoLabelText );
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Redo, "Redo", DynamicRedoLabel); // TAttribute< FString >::Create( &Local::GetRedoLabelText ) );
+
+		// Show undo history
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("UndoHistoryTabTitle", "Undo History"),
+			LOCTEXT("UndoHistoryTooltipText", "View the entire undo history."),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "UndoHistory.TabIcon"),
+			FUIAction(FExecuteAction::CreateStatic(&FUndoHistoryModule::ExecuteOpenUndoHistory))
+			);
 	}
 	MenuBuilder.EndSection();
 
@@ -122,7 +131,7 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 #if !PLATFORM_MAC // Handled by app's menu in menu bar
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("EditorPreferencesMenuLabel", "Editor Preferences..."),
-				LOCTEXT("EditorPreferencesMenuToolTip", "Configure the behavior and features of this Editor"),
+				LOCTEXT("EditorPreferencesMenuToolTip", "Configure the behavior and features of the Unreal Editor."),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Editor"), FName("General"), FName("Appearance")))
 			);
@@ -130,7 +139,7 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
-				LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project"),
+				LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project."),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Project"), FName("Project"), FName("General")))
 			);
@@ -145,16 +154,76 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 
 void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExtender > Extender, const TSharedPtr<FTabManager> TabManager )
 {
-	MenuBuilder.BeginSection("WindowLocalTabSpawners");
+	// Automatically populate tab spawners from TabManager
+	if (TabManager.IsValid())
 	{
-		// Automatically populate tab spawners from TabManager
-		if (TabManager.IsValid())
+		// Local editor tabs
+		TabManager->PopulateLocalTabSpawnerMenu(MenuBuilder);
+	
+		// General tabs
+		const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+		TabManager->PopulateTabSpawnerMenu(MenuBuilder, MenuStructure.GetStructureRoot());
+	}
+
+	{
+		// This is a temporary home for the spawners of experimental features that must be explicitly enabled.
+		// When the feature becomes permanent and need not check a flag, register a nomad spawner for it in the proper WorkspaceMenu category
+		bool bProjectLauncher = GetDefault<UEditorExperimentalSettings>()->bProjectLauncher;
+		bool bMessagingDebugger = GetDefault<UEditorExperimentalSettings>()->bMessagingDebugger;
+		bool bBlutility = GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
+		bool bTranslationEditor = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor;
+
+		// Make sure at least one is enabled before creating the section
+		if (bProjectLauncher || bMessagingDebugger || bBlutility || bTranslationEditor)
 		{
-			const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
-			TabManager->PopulateTabSpawnerMenu(MenuBuilder, MenuStructure.GetStructureRoot());
+			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
+			{
+				// Project Launcher
+				if (bProjectLauncher)
+				{
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("ProjectLauncherLabel", "Project Launcher"),
+						LOCTEXT("ProjectLauncherToolTip", "The Project Launcher provides advanced workflows for packaging, deploying and launching your projects."),
+						FSlateIcon(FEditorStyle::GetStyleSetName(), "Launcher.TabIcon"),
+						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenProjectLauncher))
+						);
+				}
+
+				// Messaging Debugger
+				if (bMessagingDebugger)
+				{
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("MessagingDebuggerLabel", "Messaging Debugger"),
+						LOCTEXT("MessagingDebuggerToolTip", "The Messaging Debugger provides a visual utility for debugging the messaging system."),
+						FSlateIcon(), // Icon lives in the plugin dir for the debugger
+						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenMessagingDebugger))
+						);
+				}
+
+				// Blutility
+				if (bBlutility)
+				{
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("BlutilityShelfLabel", "Blutility Shelf"),
+						LOCTEXT("BlutilityShelfToolTip", "Open the blutility shelf."),
+						FSlateIcon(),
+						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenBlutilityShelf))
+						);
+				}
+
+				// Translation Editor
+				if (bTranslationEditor)
+				{
+					MenuBuilder.AddSubMenu(
+						LOCTEXT("TranslationEditorSubMenuLabel", "Translation Editor"),
+						LOCTEXT("EditorPreferencesSubMenuToolTip", "Open the Translation Editor for a Given Project and Language"),
+						FNewMenuDelegate::CreateStatic(&FMainFrameTranslationEditorMenu::MakeMainFrameTranslationEditorSubMenu)
+						);
+				}
+			}
+			MenuBuilder.EndSection();
 		}
 	}
-	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("WindowGlobalTabSpawners");
 	{
@@ -162,36 +231,6 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		if (IModularFeatures::Get().IsModularFeatureAvailable(EditorFeatures::PluginsEditor ) )
 		{
 			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "PluginsEditor");
-		}
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("UnrealFrontendTabs", NSLOCTEXT("MainAppMenu", "UnrealFrontendHeader", "Unreal Frontend"));
-	{
-		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "DeviceManager");
-
-		if (GetDefault<UEditorExperimentalSettings>()->bMessagingDebugger)
-		{
-			if (IModularFeatures::Get().IsModularFeatureAvailable("MessagingDebugger"))
-			{
-				FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "MessagingDebugger");
-			}
-		}
-
-		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "SessionFrontend");
-
-		if (GetDefault<UEditorExperimentalSettings>()->bGameLauncher)
-		{
-			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "ProjectLauncher");
-		}
-
-		if (GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor)
-		{
-			MenuBuilder.AddSubMenu(
-				LOCTEXT("TranslationEditorSubMenuLabel", "TranslationEditor"),
-				LOCTEXT("EditorPreferencesSubMenuToolTip", "Open the Translation Editor for a Given Project and Language"),
-				FNewMenuDelegate::CreateStatic(&FMainFrameTranslationEditorMenu::MakeMainFrameTranslationEditorSubMenu)
-			);
 		}
 	}
 	MenuBuilder.EndSection();

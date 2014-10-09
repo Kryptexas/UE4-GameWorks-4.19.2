@@ -51,7 +51,7 @@ FMeshPropertiesSummoner::FMeshPropertiesSummoner(TSharedPtr<class FAssetEditorTo
 	: FWorkflowTabFactory(FPersonaTabs::MeshAssetPropertiesID, InHostingApp)
 {
 	TabLabel = LOCTEXT("MeshProperties_TabTitle", "Mesh Details");
-	//TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.ContentBrowser");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.SkeletalMesh");
 
 	bIsSingleton = true;
 

@@ -21,7 +21,7 @@ static const FName MessageTypesTabId("MessageTypes");
 static const FName ToolbarTabId("Toolbar");
 
 
-/* SMessagingDebugger structors
+/* SMessagingDebugger constructors
  *****************************************************************************/
 
 SMessagingDebugger::SMessagingDebugger( )
@@ -53,9 +53,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 
 	// create & initialize tab manager
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(ConstructUnderMajorTab);
-
-	TSharedRef<FWorkspaceItem> RootMenuGroup = FWorkspaceItem::NewGroup(LOCTEXT("RootMenuGroupName", "Root"));
-	TSharedRef<FWorkspaceItem> AppMenuGroup = RootMenuGroup->AddGroup(LOCTEXT("AppMenuGroupName", "Messaging Debugger"));
+	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("MessagingDebuggerGroupName", "Messaging Debugger"));
 
 	TabManager->RegisterTabSpawner(BreakpointsTabId, FOnSpawnTab::CreateRaw(this, &SMessagingDebugger::HandleTabManagerSpawnTab, BreakpointsTabId))
 		.SetDisplayName(LOCTEXT("BreakpointsTabTitle", "Breakpoints"))
@@ -195,7 +193,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 	MenuBarBuilder.AddPullDownMenu(
 		LOCTEXT("WindowMenuLabel", "Window"),
 		FText::GetEmpty(),
-		FNewMenuDelegate::CreateStatic(&SMessagingDebugger::FillWindowMenu, RootMenuGroup, AppMenuGroup, TabManager),
+		FNewMenuDelegate::CreateStatic(&SMessagingDebugger::FillWindowMenu, TabManager),
 		"Window"
 	);
 
@@ -225,8 +223,6 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 
 void SMessagingDebugger::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
 	MessageTracer->Tick(InDeltaTime);
 }
 
@@ -234,33 +230,25 @@ void SMessagingDebugger::Tick( const FGeometry& AllottedGeometry, const double I
 /* SMessagingDebugger implementation
  *****************************************************************************/
 
-void SMessagingDebugger::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup, TSharedRef<FWorkspaceItem> AppMenuGroup, const TSharedPtr<FTabManager> TabManager )
+void SMessagingDebugger::FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager)
 {
 	if (!TabManager.IsValid())
 	{
 		return;
 	}
 
-	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("MessagingDebuggerMenuGroup", "Messaging Debugger"));
-	{
-		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
-	}
-	MenuBuilder.EndSection();
-
 #if !WITH_EDITOR
-	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
-	{
-		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, RootMenuGroup);
-	}
-	MenuBuilder.EndSection();
+	FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, WorkspaceMenu::GetMenuStructure().GetStructureRoot());
 #endif //!WITH_EDITOR
+
+	TabManager->PopulateLocalTabSpawnerMenu(MenuBuilder);
 }
 
 
 /* SMessagingDebugger callbacks
  *****************************************************************************/
 
-bool SMessagingDebugger::HandleBreakDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleBreakDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsRunning() && !MessageTracer->IsBreaking();
 }

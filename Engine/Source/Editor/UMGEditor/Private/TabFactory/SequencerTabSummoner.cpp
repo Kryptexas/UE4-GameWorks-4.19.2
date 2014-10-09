@@ -15,7 +15,7 @@ FSequencerTabSummoner::FSequencerTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("SequencerLabel", "Timeline");
-	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Timeline");
+	TabIcon = FSlateIcon(FUMGStyle::GetStyleSetName(), "Sequencer.TabIcon");
 
 	bIsSingleton = true;
 

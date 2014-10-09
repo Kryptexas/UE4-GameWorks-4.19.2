@@ -1472,7 +1472,13 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateBuildMenuContent( TSharedRef<
 
 	MenuBuilder.BeginSection("LevelEditorAutomation", LOCTEXT( "AutomationHeading", "Automation" ) );
 	{
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().BuildAndSubmitToSourceControl );
+		MenuBuilder.AddMenuEntry( 
+			FLevelEditorCommands::Get().BuildAndSubmitToSourceControl,
+			NAME_None,
+			TAttribute<FText>(),
+			TAttribute<FText>(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.BuildAndSubmit")
+			);
 	}
 	MenuBuilder.EndSection();
 
@@ -1928,7 +1934,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 
 	MenuBuilder.BeginSection("LevelEditorNewMatinee", LOCTEXT("MatineeMenuCombo_NewHeading", "New"));
 	{
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AddMatinee );
+		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AddMatinee, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.MatineeActor") );
 	}
 	MenuBuilder.EndSection();
 

@@ -88,7 +88,7 @@ FSelectionDetailsSummoner::FSelectionDetailsSummoner(TSharedPtr<class FAssetEdit
 	: FWorkflowTabFactory(FBlueprintEditorTabs::DetailsID, InHostingApp)
 {
 	TabLabel = LOCTEXT("DetailsView_TabTitle", "Details");
-	TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.Details");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details");
 
 	bIsSingleton = true;
 
@@ -1301,14 +1301,14 @@ void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlu
 		{
 			AddApplicationMode(
 				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
 			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 		}
 		else
 		{
 			AddApplicationMode(
 				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, FBlueprintEditorApplicationModes::GetLocalizedMode)));
 			AddApplicationMode(
 				FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
 				MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));

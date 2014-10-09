@@ -550,6 +550,8 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		TSharedPtr<SWidget> RestoreFrom( const TSharedRef<FLayout>& Layout, const TSharedPtr<SWindow>& ParentWindow, const bool bEmbedTitleAreaContent = false );
 
+		void PopulateLocalTabSpawnerMenu( FMenuBuilder& PopulateMe );
+
 		void PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure );
 
 		void PopulateTabSpawnerMenu( FMenuBuilder &PopulateMe, const FName& TabType );
@@ -603,6 +605,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		/** @return if the provided tab can be closed. */
 		bool IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const;
+
+		/** @return The local workspace menu root */
+		TSharedRef<FWorkspaceItem> GetLocalWorkspaceMenuRoot();
 
 	protected:
 		void InvokeTabForMenu( FName TabId );
@@ -677,6 +682,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		TArray< TWeakPtr<SDockingArea> > DockAreas;
 		TArray< TSharedRef<FTabManager::FArea> > CollapsedDockAreas;
+
+		/** The root for the local editor's tab spawner workspace menu */
+		TSharedPtr<FWorkspaceItem> LocalWorkspaceMenuRoot;
 
 		/** A Major tab that contains this TabManager's widgets. */
 		TWeakPtr<SDockTab> OwnerTabPtr;

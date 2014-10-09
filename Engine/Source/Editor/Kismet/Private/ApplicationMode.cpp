@@ -4,8 +4,24 @@
 #include "WorkflowOrientedApp/WorkflowTabFactory.h"
 #include "WorkflowOrientedApp/ApplicationMode.h"
 
+#define LOCTEXT_NAMESPACE "ApplicationMode"
+
 /////////////////////////////////////////////////////
 // FApplicationMode
+
+FApplicationMode::FApplicationMode(FName InModeName)
+	: ModeName(InModeName)
+{
+	ToolbarExtender = MakeShareable(new FExtender);
+	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_ApplicationMode", "Asset Editor"));
+}
+
+FApplicationMode::FApplicationMode(FName InModeName, FText(*GetLocalizedMode)(const FName))
+	: ModeName(InModeName)
+{
+	ToolbarExtender = MakeShareable(new FExtender);
+	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(FText::Format(LOCTEXT("WorkspaceMenu_ApplicationMode", "{0} Editor"), GetLocalizedMode(InModeName)));
+}
 
 void FApplicationMode::DeactivateMode(TSharedPtr<FTabManager> InTabManager)
 {
@@ -42,3 +58,5 @@ TSharedRef<FTabManager::FLayout> FApplicationMode::ActivateMode(TSharedPtr<FTabM
 	check(TabLayout.IsValid());
 	return FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, TabLayout.ToSharedRef());
 }
+
+#undef LOCTEXT_NAMESPACE

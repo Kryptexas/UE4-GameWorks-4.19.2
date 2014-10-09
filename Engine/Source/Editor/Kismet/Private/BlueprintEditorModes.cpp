@@ -41,8 +41,8 @@ const FName FBlueprintEditorApplicationModes::BlueprintComponentsMode( TEXT("Com
 const FName FBlueprintEditorApplicationModes::BlueprintInterfaceMode( TEXT("InterfaceName") );
 const FName FBlueprintEditorApplicationModes::BlueprintMacroMode( TEXT("MacroName") );
 
-FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, const bool bRegisterViewport, const bool bRegisterDefaultsTab)
-	: FApplicationMode(InModeName)
+FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, FText(*GetLocalizedMode)(const FName), const bool bRegisterViewport, const bool bRegisterDefaultsTab)
+	: FApplicationMode(InModeName, GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 
@@ -168,7 +168,7 @@ void FBlueprintEditorApplicationMode::PostActivateMode()
 
 
 FBlueprintDefaultsApplicationMode::FBlueprintDefaultsApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	
@@ -223,7 +223,7 @@ void FBlueprintDefaultsApplicationMode::PostActivateMode()
 
 
 FBlueprintComponentsApplicationMode::FBlueprintComponentsApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	
@@ -342,7 +342,7 @@ void FBlueprintComponentsApplicationMode::PostActivateMode()
 ////////////////////////////////////////
 //
 FBlueprintInterfaceApplicationMode::FBlueprintInterfaceApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	
@@ -423,7 +423,7 @@ void FBlueprintInterfaceApplicationMode::RegisterTabFactories(TSharedPtr<FTabMan
 ////////////////////////////////////////
 //
 FBlueprintMacroApplicationMode::FBlueprintMacroApplicationMode(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintMacroMode)
+	: FApplicationMode(FBlueprintEditorApplicationModes::BlueprintMacroMode, FBlueprintEditorApplicationModes::GetLocalizedMode)
 {
 	MyBlueprintEditor = InBlueprintEditor;
 	

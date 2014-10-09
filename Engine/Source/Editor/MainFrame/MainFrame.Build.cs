@@ -10,7 +10,7 @@ public class MainFrame : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
 			{
-                "Documentation"
+                "Documentation",
 			}
         );
 
@@ -37,6 +37,8 @@ public class MainFrame : ModuleRules
 //				"SearchUI",
 				"TranslationEditor",
 				"Projects",
+                "DeviceProfileEditor",
+                "UndoHistory",
 			}
 		);
 

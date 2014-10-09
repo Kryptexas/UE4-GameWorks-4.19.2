@@ -16,7 +16,7 @@ FDesignerTabSummoner::FDesignerTabSummoner(TSharedPtr<class FWidgetBlueprintEdit
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("DesignerTabLabel", "Designer");
-	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Designer");
+	TabIcon = FSlateIcon(FUMGStyle::GetStyleSetName(), "Designer.TabIcon");
 
 	bIsSingleton = true;
 

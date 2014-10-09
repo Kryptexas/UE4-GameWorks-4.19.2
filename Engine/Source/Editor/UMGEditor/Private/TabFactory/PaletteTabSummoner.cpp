@@ -15,7 +15,7 @@ FPaletteTabSummoner::FPaletteTabSummoner(TSharedPtr<class FWidgetBlueprintEditor
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("WidgetTemplatesTabLabel", "Palette");
-	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Palette");
+	TabIcon = FSlateIcon(FUMGStyle::GetStyleSetName(), "Palette.TabIcon");
 
 	bIsSingleton = true;
 

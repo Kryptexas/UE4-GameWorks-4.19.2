@@ -72,6 +72,9 @@ public:
 	/** Returns the localized name of this toolkit */
 	virtual FText GetToolkitName() const = 0;
 
+	/** Returns the workspace menu category of this toolkit */
+	virtual TSharedRef<FWorkspaceItem> GetWorkspaceMenuCategory() const = 0;
+
 	/** Returns the localize prefix string to use for tab labels in world-centric mode. */
 	virtual FString GetWorldCentricTabPrefix() const = 0;
 

@@ -15,6 +15,7 @@ public class MessagingDebugger : ModuleRules
 				"Serialization",
 				"Slate",
 				"SlateCore",
+                "WorkspaceMenuStructure",
 			}
 		);
 

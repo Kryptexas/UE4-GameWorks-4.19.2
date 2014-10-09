@@ -43,11 +43,11 @@ void FMessageLogModule::StartupModule()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("MessageLog", FOnSpawnTab::CreateStatic( &SpawnMessageLog, MessageLogViewModel.ToSharedRef() ))
 		.SetDisplayName(NSLOCTEXT("UnrealEditor", "MessageLogTab", "Message Log"))
 		.SetTooltipText(NSLOCTEXT("UnrealEditor", "MessageLogTooltipText", "Open the Message Log tab."))
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() )
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsLogCategory() )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"));
 #endif
 
-	// Bind us so message log output is routed via this moddule
+	// Bind us so message log output is routed via this module
 	FMessageLog::OnGetLog().BindStatic(&GetLog);
 }
 

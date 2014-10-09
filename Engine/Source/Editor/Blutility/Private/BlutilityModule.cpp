@@ -41,10 +41,9 @@ public:
 		PropertyModule.RegisterCustomClassLayout("GlobalEditorUtilityBase", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
 
-		if (GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints)
-		{
-			RegisterBlutilityShelfTabSpawner();
-		}
+		FGlobalTabmanager::Get()->RegisterTabSpawner(BlutilityModule::BlutilityShelfApp, FOnSpawnTab::CreateStatic(&SpawnBlutilityShelfTab))
+			.SetDisplayName(NSLOCTEXT("BlutilityShelf", "TabTitle", "Blutility Shelf"))
+			.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
 	}
 
 	virtual void ShutdownModule() override
@@ -54,7 +53,7 @@ public:
 			return;
 		}
 
-		UnregisterBlutilityShelfTabSpawner();
+		FGlobalTabmanager::Get()->UnregisterTabSpawner(BlutilityModule::BlutilityShelfApp);
 
 		// Only unregister if the asset tools module is loaded.  We don't want to forcibly load it during shutdown phase.
 		check( EditorBlueprintAssetTypeActions.IsValid() );
@@ -82,35 +81,6 @@ protected:
 			[
 				SNew(SBlutilityShelf)
 			];
-	}
-
-	void RegisterBlutilityShelfTabSpawner()
-	{
-		FGlobalTabmanager::Get()->RegisterNomadTabSpawner( BlutilityModule::BlutilityShelfApp, FOnSpawnTab::CreateStatic( &SpawnBlutilityShelfTab ) )
-			.SetDisplayName(NSLOCTEXT("BlutilityShelf", "TabTitle", "Blutility Shelf"))
-			.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() );
-	}
-
-	void UnregisterBlutilityShelfTabSpawner()
-	{
-		// Unregister our shelf tab spawner
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(BlutilityModule::BlutilityShelfApp);
-	}
-
-	void HandleExperimentalSettingChanged(FName PropertyName)
-	{
-		if (PropertyName == TEXT("bEnableEditorUtilityBlueprints"))
-		{
-			UEditorUtilityBlueprintFactory* EditorUtilityBlueprintFactory = Cast<UEditorUtilityBlueprintFactory>(UEditorUtilityBlueprintFactory::StaticClass()->GetDefaultObject());
-			if (GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints)
-			{
-				RegisterBlutilityShelfTabSpawner();
-			}
-			else
-			{
-				UnregisterBlutilityShelfTabSpawner();
-			}
-		}
 	}
 };
 

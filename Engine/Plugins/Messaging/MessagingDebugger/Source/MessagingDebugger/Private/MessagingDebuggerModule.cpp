@@ -2,6 +2,7 @@
 
 #include "MessagingDebuggerPrivatePCH.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "WorkspaceMenuStructureModule.h"
 
 
 #define LOCTEXT_NAMESPACE "FMessagingDebuggerModule"
@@ -28,16 +29,16 @@ public:
 		FMessagingDebuggerCommands::Register();
 
 		IModularFeatures::Get().RegisterModularFeature("MessagingDebugger", this);
-
-		FGlobalTabmanager::Get()->RegisterTabSpawner(MessagingDebuggerTabName, FOnSpawnTab::CreateRaw(this, &FMessagingDebuggerModule::SpawnMessagingDebuggerTab))
-			.SetDisplayName(NSLOCTEXT("FMessagingDebuggerModule", "DebuggerTabTitle", "Messaging Debugger"))
-			.SetTooltipText(NSLOCTEXT("FMessagingDebuggerModule", "DebuggerTooltipText", "Open the Messaging Debugger tab."))
-			.SetIcon(FSlateIcon(Style->GetStyleSetName(), "MessagingDebuggerTabIcon"));
+		
+		// This is still experimental in the editor, so it'll be invoked specifically in FMainMenu if the experimental settings flag is set.
+		// When no longer experimental, switch to the nomad spawner registration below
+		FGlobalTabmanager::Get()->RegisterTabSpawner(MessagingDebuggerTabName, FOnSpawnTab::CreateRaw(this, &FMessagingDebuggerModule::SpawnMessagingDebuggerTab));
 	}
 
 	virtual void ShutdownModule( ) override
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(MessagingDebuggerTabName);
+
 		IModularFeatures::Get().UnregisterModularFeature("MessagingDebugger", this);
 		FMessagingDebuggerCommands::Unregister();
 	}

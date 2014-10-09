@@ -27,7 +27,7 @@ void FTaskBrowserModule::StartupModule()
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( TaskBrowserModule::TaskBrowserApp, FOnSpawnTab::CreateStatic( &SpawnTaskBrowserTab ) )
 		.SetDisplayName(NSLOCTEXT("TaskBrowser", "TabTitle", "Task Browser"))
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsCategory() );
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory() );
 }
 
 

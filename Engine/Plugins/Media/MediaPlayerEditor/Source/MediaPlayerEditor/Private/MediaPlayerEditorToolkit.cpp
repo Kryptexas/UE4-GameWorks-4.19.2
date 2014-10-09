@@ -107,17 +107,20 @@ FString FMediaPlayerEditorToolkit::GetDocumentationLink() const
 
 void FMediaPlayerEditorToolkit::RegisterTabSpawners( const TSharedRef<class FTabManager>& TabManager )
 {
+	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_MediaPlayerEditor", "Media Player Editor"));
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
+
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	TabManager->RegisterTabSpawner( ViewerTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, ViewerTabId ) )
+		.SetDisplayName( LOCTEXT( "PlayerTabName", "Player" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports" ) );
 
-	TabManager->RegisterTabSpawner(ViewerTabId, FOnSpawnTab::CreateSP(this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, ViewerTabId))
-		.SetDisplayName(LOCTEXT("PlayerTabName", "Player"))
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
-	
-	TabManager->RegisterTabSpawner(DetailsTabId, FOnSpawnTab::CreateSP(this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, DetailsTabId))
-		.SetDisplayName(LOCTEXT("DetailsTabName", "Details") )
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
+	TabManager->RegisterTabSpawner( DetailsTabId, FOnSpawnTab::CreateSP( this, &FMediaPlayerEditorToolkit::HandleTabManagerSpawnTab, DetailsTabId ) )
+		.SetDisplayName( LOCTEXT( "DetailsTabName", "Details" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details" ) );
 }
 
 

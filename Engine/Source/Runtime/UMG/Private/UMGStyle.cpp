@@ -83,15 +83,22 @@ TSharedRef< FSlateStyleSet > FUMGStyle::Create()
 
 	Style->Set("Widget.UserWidget", new IMAGE_BRUSH(TEXT("UserWidget"), Icon16x16));
 
-	Style->Set("UMGEditor.Tabs.Animations", new IMAGE_BRUSH(TEXT("Animations_16x"), Icon16x16));
-	Style->Set("UMGEditor.Tabs.Designer", new IMAGE_BRUSH(TEXT("Designer_16x"), Icon16x16));
-	Style->Set("UMGEditor.Tabs.Palette", new IMAGE_BRUSH(TEXT("Palette_16x"), Icon16x16));
-	Style->Set("UMGEditor.Tabs.Timeline", new IMAGE_BRUSH(TEXT("Timeline_16x"), Icon16x16));
+	Style->Set("Animations.TabIcon", new IMAGE_BRUSH(TEXT("Animations_16x"), Icon16x16));
+	Style->Set("Designer.TabIcon", new IMAGE_BRUSH(TEXT("Designer_16x"), Icon16x16));
+	Style->Set("Palette.TabIcon", new IMAGE_BRUSH(TEXT("Palette_16x"), Icon16x16));
+	Style->Set("Sequencer.TabIcon", new IMAGE_BRUSH(TEXT("Timeline_16x"), Icon16x16));
 
-	Style->Set("UMGEditor.Icons.Animations", new IMAGE_BRUSH(TEXT("Animations_40x"), Icon40x40));
-	Style->Set("UMGEditor.Icons.Designer", new IMAGE_BRUSH(TEXT("Designer_40x"), Icon40x40));
-	Style->Set("UMGEditor.Icons.Palette", new IMAGE_BRUSH(TEXT("Palette_40x"), Icon40x40));
-	Style->Set("UMGEditor.Icons.Timeline", new IMAGE_BRUSH(TEXT("Timeline_40x"), Icon40x40));
+	Style->Set("Animations.Icon", new IMAGE_BRUSH(TEXT("Animations_40x"), Icon40x40));
+	Style->Set("Animations.Icon.Small", new IMAGE_BRUSH(TEXT("Animations_40x"), Icon20x20));
+
+	Style->Set("Designer.Icon", new IMAGE_BRUSH(TEXT("Designer_40x"), Icon40x40));
+	Style->Set("Designer.Icon.Small", new IMAGE_BRUSH(TEXT("Designer_40x"), Icon20x20));
+
+	Style->Set("Palette.Icon", new IMAGE_BRUSH(TEXT("Palette_40x"), Icon40x40));
+	Style->Set("Palette.Icon.Small", new IMAGE_BRUSH(TEXT("Palette_40x"), Icon20x20));
+
+	Style->Set("Timeline.Icon", new IMAGE_BRUSH(TEXT("Timeline_40x"), Icon40x40));
+	Style->Set("Timeline.Icon.Small", new IMAGE_BRUSH(TEXT("Timeline_40x"), Icon20x20));
 
 
 	return Style;

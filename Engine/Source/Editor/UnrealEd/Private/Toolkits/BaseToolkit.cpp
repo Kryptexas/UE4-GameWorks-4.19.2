@@ -5,11 +5,13 @@
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/ToolkitManager.h"
 
+#define LOCTEXT_NAMESPACE "BaseToolkit"
 
 FBaseToolkit::FBaseToolkit()
 	: ToolkitMode( EToolkitMode::Standalone ),
 	  ToolkitCommands( new FUICommandList() )
 {
+	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_BaseToolkit", "Toolkit"));
 }
 
 
@@ -195,6 +197,8 @@ bool FBaseToolkit::IsBlueprintEditor() const
 {
 	return false;
 }
+
+#undef LOCTEXT_NAMESPACE
 
 
 void FModeToolkit::Init(const TSharedPtr< class IToolkitHost >& InitToolkitHost)

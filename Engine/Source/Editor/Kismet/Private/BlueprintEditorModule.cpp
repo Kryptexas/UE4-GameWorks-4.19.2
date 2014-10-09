@@ -74,7 +74,7 @@ void FBlueprintEditorModule::StartupModule()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( DebuggerAppName, FOnSpawnTab::CreateStatic(&CreateBluprintDebuggerTab) )
 		.SetDisplayName( NSLOCTEXT("BlueprintDebugger", "TabTitle", "Blueprint Debugger") )
 		.SetTooltipText( NSLOCTEXT("BlueprintDebugger", "TooltipText", "Open the Blueprint Debugger tab.") )
-		.SetGroup( MenuStructure.GetToolsCategory() )
+		.SetGroup( MenuStructure.GetDeveloperToolsDebugCategory() )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDebugger.TabIcon"));
 
 	// Have to check GIsEditor because right now editor modules can be loaded by the game

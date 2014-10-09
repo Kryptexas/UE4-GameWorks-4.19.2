@@ -16,7 +16,7 @@ static const FName DeviceProcessesTabId("DeviceProcesses");
 static const FName DeviceToolbarTabId("DeviceToolbar");
 
 
-/* SDeviceManager structors
+/* SDeviceManager constructors
  *****************************************************************************/
 
 SDeviceManager::SDeviceManager( )
@@ -38,9 +38,7 @@ void SDeviceManager::Construct( const FArguments& InArgs, const ITargetDeviceSer
 
 	// create & initialize tab manager
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(ConstructUnderMajorTab);
-
-	TSharedRef<FWorkspaceItem> RootMenuGroup = FWorkspaceItem::NewGroup(LOCTEXT("RootMenuGroup", "Root"));
-	TSharedRef<FWorkspaceItem> AppMenuGroup = RootMenuGroup->AddGroup(LOCTEXT("DeviceManagerMenuGroupName", "Device Manager Tabs"));
+	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("DeviceManagerMenuGroupName", "Device Manager"));
 
 	TabManager->RegisterTabSpawner(DeviceBrowserTabId, FOnSpawnTab::CreateRaw(this, &SDeviceManager::HandleTabManagerSpawnTab, DeviceBrowserTabId))
 		.SetDisplayName(LOCTEXT("DeviceBrowserTabTitle", "Device Browser"))
@@ -113,7 +111,7 @@ void SDeviceManager::Construct( const FArguments& InArgs, const ITargetDeviceSer
 	MenuBarBuilder.AddPullDownMenu(
 		LOCTEXT("WindowMenuLabel", "Window"),
 		FText::GetEmpty(),
-		FNewMenuDelegate::CreateStatic(&SDeviceManager::FillWindowMenu, RootMenuGroup, AppMenuGroup, TabManager),
+		FNewMenuDelegate::CreateStatic(&SDeviceManager::FillWindowMenu, TabManager),
 		"Window"
 	);
 
@@ -199,7 +197,7 @@ void SDeviceManager::BindCommands( )
 }
 
 
-void SDeviceManager::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup, TSharedRef<FWorkspaceItem> AppMenuGroup, const TSharedPtr<FTabManager> TabManager )
+void SDeviceManager::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager )
 {
 	if (!TabManager.IsValid())
 	{
@@ -207,18 +205,10 @@ void SDeviceManager::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWork
 	}
 
 #if !WITH_EDITOR
-	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
-	{
-		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, RootMenuGroup);
-	}
-	MenuBuilder.EndSection();
+		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, WorkspaceMenu::GetMenuStructure().GetStructureRoot());
 #endif //!WITH_EDITOR
 
-	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("DeviceManagerMenuGroup", "Device Manager"));
-	{
-		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
-	}
-	MenuBuilder.EndSection();
+	TabManager->PopulateLocalTabSpawnerMenu(MenuBuilder);
 }
 
 

@@ -56,6 +56,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::DebugID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("DebugTabTitle", "Debug");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "DebugTools.TabIcon");
 
 		EnableTabPadding();
 		bIsSingleton = true;
@@ -82,7 +83,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::DefaultEditorID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("BlueprintDefaultsTabTitle", "Blueprint Defaults"); //@TODO: ANIMATION: GetDefaultEditorTitle(); !!!
-		TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.Details");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.BlueprintDefaults");
 
 		bIsSingleton = true;
 
@@ -297,7 +298,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::ConstructionScriptEditorID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("ComponentsTabLabel", "Components");
-		TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Components");
 
 		bIsSingleton = true;
 
@@ -328,6 +329,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::SCSViewportID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("SCSViewportTabLabel", "Viewport");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
 
 		bIsSingleton = true;
 
@@ -368,7 +370,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::PaletteID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("PaletteTabTitle", "Palette");
-		TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Palette");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette");
 
 		bIsSingleton = true;
 
@@ -399,7 +401,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::MyBlueprintID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("MyBlueprintTabLabel", "My Blueprint");
-		TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Palette");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.BlueprintCore");
 
 		bIsSingleton = true;
 
@@ -430,7 +432,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::CompilerResultsID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("CompilerResultsTabTitle", "Compiler Results");
-		TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.CompilerResults");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.CompilerResults");
 
 		bIsSingleton = true;
 
@@ -461,7 +463,7 @@ public:
 		: FWorkflowTabFactory(FBlueprintEditorTabs::FindResultsID, InHostingApp)
 	{
 		TabLabel = LOCTEXT("FindResultsTabTitle", "Find Results");
-		TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.FindResults");
+		TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.FindResults");
 
 		bIsSingleton = true;
 

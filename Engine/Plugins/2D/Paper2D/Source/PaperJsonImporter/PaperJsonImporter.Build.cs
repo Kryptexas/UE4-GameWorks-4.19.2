@@ -18,7 +18,8 @@ public class PaperJsonImporter : ModuleRules
 				"UnrealEd",
 				"Paper2DEditor",
 				"AssetTools",
-				"ContentBrowser"
+				"ContentBrowser",
+                "EditorStyle"
 			});
 
 		PrivateIncludePathModuleNames.AddRange(

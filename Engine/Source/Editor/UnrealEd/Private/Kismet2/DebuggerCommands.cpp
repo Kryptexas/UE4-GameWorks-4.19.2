@@ -228,7 +228,7 @@ void FPlayWorldCommands::RegisterCommands()
 
 	// Launch
 	UI_COMMAND( RepeatLastLaunch, "Launch", "Launches the game on the device as the last session launched from the dropdown next to the Play on Device button on the level editor toolbar", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt | EModifierKey::Shift ) )
-	UI_COMMAND( OpenDeviceManager, "Device Manager...", "Opens the device manager", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenDeviceManager, "Device Manager...", "View and manage connected devices.", EUserInterfaceActionType::Button, FInputGesture() );
 }
 
 
@@ -764,7 +764,12 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	// options section
 	MenuBuilder.BeginSection("LevelEditorLaunchOptions");
 	{
-		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().OpenDeviceManager );
+		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().OpenDeviceManager,
+			NAME_None,
+			TAttribute<FText>(),
+			TAttribute<FText>(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "DeviceDetails.TabIcon")
+			);
 		
 		ProjectTargetPlatformEditorModule.AddOpenProjectTargetPlatformEditorMenuItem(MenuBuilder);
 	}

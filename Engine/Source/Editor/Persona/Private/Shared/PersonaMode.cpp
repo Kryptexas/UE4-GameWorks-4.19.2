@@ -56,7 +56,7 @@ const FName FPersonaModes::AnimBlueprintEditMode( "GraphName" );
 // FPersonaAppMode
 
 FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InModeName)
-	: FApplicationMode(InModeName)
+	: FApplicationMode(InModeName, FPersonaModes::GetLocalizedMode)
 {
 	MyPersona = InPersona;
 
@@ -162,7 +162,7 @@ FAnimationAssetBrowserSummoner::FAnimationAssetBrowserSummoner(TSharedPtr<class 
 	: FWorkflowTabFactory(FPersonaTabs::AssetBrowserID, InHostingApp)
 {
 	TabLabel = LOCTEXT("AssetBrowserTabTitle", "Asset Browser");
-	TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.ContentBrowser");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.TabIcon");
 
 	EnableTabPadding();
 	bIsSingleton = true;
@@ -186,6 +186,7 @@ FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditor
 	: FWorkflowTabFactory(FPersonaTabs::PreviewViewportID, InHostingApp)
 {
 	TabLabel = LOCTEXT("ViewportTabTitle", "Viewport");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
 
 	bIsSingleton = true;
 

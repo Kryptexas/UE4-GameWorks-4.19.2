@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
-
+#include "WorkspaceMenuStructureModule.h"
 
 static const FName ProjectLauncherTabName("ProjectLauncher");
-
 
 /**
  * Implements the SessionSProjectLauncher module.
@@ -31,15 +30,26 @@ public:
 	
 	virtual void StartupModule( ) override
 	{
-		FGlobalTabmanager::Get()->RegisterTabSpawner(ProjectLauncherTabName, FOnSpawnTab::CreateRaw(this, &FProjectLauncherModule::SpawnProjectLauncherTab))
+#if WITH_EDITOR
+		FGlobalTabmanager::Get()->RegisterTabSpawner(ProjectLauncherTabName, FOnSpawnTab::CreateRaw(this, &FProjectLauncherModule::SpawnProjectLauncherTab));
+#else
+		// This is still experimental in the editor, so it'll be invoked specifically in FMainMenu if the experimental settings flag is set.
+		//@todo Enable this in the editor when no longer experimental
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ProjectLauncherTabName, FOnSpawnTab::CreateRaw(this, &FProjectLauncherModule::SpawnProjectLauncherTab))
 			.SetDisplayName(NSLOCTEXT("FProjectLauncherModule", "ProjectLauncherTabTitle", "Project Launcher"))
 			.SetTooltipText(NSLOCTEXT("FProjectLauncherModule", "ProjectLauncherTooltipText", "Open the Project Launcher tab."))
-			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Launcher.TabIcon"));
+			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Launcher.TabIcon"))
+			.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+#endif
 	}
 
 	virtual void ShutdownModule( ) override
 	{
+#if WITH_EDITOR
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(ProjectLauncherTabName);
+#else
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProjectLauncherTabName);
+#endif
 	}
 
 private:

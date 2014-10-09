@@ -23,9 +23,6 @@ public:
 	/** @return The menu structure that is populated by tab spawners */
 	virtual const IWorkspaceMenuStructure& GetWorkspaceMenuStructure() const;
 
-	/** Reset the "Asset Editor" category to its default state */
-	virtual void ResetAssetEditorCategory();
-
 	/** Reset the "Level Editor" category to its default state */
 	virtual void ResetLevelEditorCategory();
 

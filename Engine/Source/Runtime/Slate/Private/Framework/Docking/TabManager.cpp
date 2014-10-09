@@ -507,6 +507,11 @@ bool FTabManager::IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const
 	return !(MainNonCloseableTab.Pin() == InTab);
 }
 
+TSharedRef<FWorkspaceItem> FTabManager::GetLocalWorkspaceMenuRoot()
+{
+	return LocalWorkspaceMenuRoot.ToSharedRef();
+}
+
 TSharedPtr<FTabManager::FStack> FTabManager::FLayoutNode::AsStack()
 {
 	return TSharedPtr<FTabManager::FStack>();
@@ -706,19 +711,19 @@ void FTabManager::PopulateTabSpawnerMenu_Helper( FMenuBuilder& PopulateMe, FPopu
 		else
 		{
 			// GROUP NODE
-			// If it's not empty, populate it
+			// If it's not empty, create a section and populate it
 			if ( ChildItem->HasChildrenIn(*Args.AllSpawners) )
 			{
 				const FPopulateTabSpawnerMenu_Args Payload( Args.AllSpawners, ChildItem, Args.Level+1 );
 
 				if ( Args.Level % 2 == 0 )
 				{
-					if (!bFirstItemOnLevel)
+					FName SectionName(*ChildItem->GetDisplayName().ToString().Replace(TEXT(" "), TEXT("")));
+					PopulateMe.BeginSection(SectionName, ChildItem->GetDisplayName());
 					{
-						PopulateMe.AddMenuSeparator();
+						PopulateTabSpawnerMenu_Helper(PopulateMe, Payload);
 					}
-						
-					PopulateTabSpawnerMenu_Helper( PopulateMe, Payload );
+					PopulateMe.EndSection();
 				}
 				else
 				{
@@ -740,7 +745,6 @@ void FTabManager::PopulateTabSpawnerMenu_Helper( FMenuBuilder& PopulateMe, FPopu
 
 void FTabManager::MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedPtr<FTabSpawnerEntry> &SpawnerNode ) 
 {
-	//PopulateMe.BeginSection( "TabSection", SpawnerNode->GetDisplayName() );
 	if ( SpawnerNode->MenuType != ETabSpawnerMenuType::Hide )
 	{
 		PopulateMe.AddMenuEntry(
@@ -756,19 +760,25 @@ void FTabManager::MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedP
 			EUserInterfaceActionType::Check
 			);
 	}
-	//PopulateMe.EndSection();
+}
+
+void FTabManager::PopulateLocalTabSpawnerMenu(FMenuBuilder& PopulateMe)
+{
+	PopulateTabSpawnerMenu(PopulateMe, LocalWorkspaceMenuRoot.ToSharedRef());
 }
 
 void FTabManager::PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure )
 {
 	TSharedRef< TArray< TWeakPtr<FTabSpawnerEntry> > > AllSpawners = MakeShareable( new TArray< TWeakPtr<FTabSpawnerEntry> >() );
 	{
+		// Editor-specific tabs
 		for ( FTabSpawner::TIterator SpawnerIterator(TabSpawner); SpawnerIterator; ++SpawnerIterator  )	
 		{
 			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
 			AllSpawners->AddUnique(SpawnerEntry);
 		}
 
+		// General Tabs
 		for ( FTabSpawner::TIterator SpawnerIterator(*NomadTabSpawner); SpawnerIterator; ++SpawnerIterator  )	
 		{
 			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
@@ -992,6 +1002,7 @@ FTabManager::FTabManager( const TSharedPtr<SDockTab>& InOwnerTab, const TSharedR
 , LastDocumentUID( 0 )
 , bIsSavingVisualState( false )
 {
+	LocalWorkspaceMenuRoot = FWorkspaceItem::NewGroup(LOCTEXT("LocalWorkspaceRoot", "Local Workspace Root"));
 }
 
 

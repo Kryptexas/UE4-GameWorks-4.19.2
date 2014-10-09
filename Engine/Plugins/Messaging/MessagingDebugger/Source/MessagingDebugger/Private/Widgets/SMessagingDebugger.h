@@ -37,20 +37,17 @@ public:
 public:
 
 	// SCompoundWidget overrides
-
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 protected:
 
 	/**
-	 * Fills the Window menu with menu items.
-	 *
-	 * @param MenuBuilder The multi-box builder that should be filled with content for this pull-down menu.
-	 * @param RootMenuGroup The root menu group.
-	 * @param AppMenuGroup The application menu group.
-	 * @param TabManager A Tab Manager from which to populate tab spawner menu items.
-	 */
-	static void FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup, TSharedRef<FWorkspaceItem> AppMenuGroup, const TSharedPtr<FTabManager> TabManager );
+	* Fills the Window menu with menu items.
+	*
+	* @param MenuBuilder The multi-box builder that should be filled with content for this pull-down menu.
+	* @param TabManager A Tab Manager from which to populate tab spawner menu items.
+	*/
+	static void FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager);
 
 private:
 

@@ -724,11 +724,7 @@ TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) c
 	
 	Skeletons.Add(Skeleton);
 	
-	MenuBuilder.BeginSection(NAME_None, LOCTEXT("Persona_CreateAsset", "Create Asset"));
-	{
-		AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FPersona::OnAssetCreated), false);
-	}
-	MenuBuilder.EndSection();
+	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FPersona::OnAssetCreated), false);
 
 	return MenuBuilder.MakeWidget();
 }

@@ -1049,15 +1049,6 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 		}
 
 		{
-			const FSlateIcon BuildAndSubmitIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.BuildAndSubmit");
-			LevelEditorTabManager->RegisterTabSpawner( LevelEditorBuildAndSubmitTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, LevelEditorBuildAndSubmitTab, FString()) )
-				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "BuildAndSubmit", "Build And Submit"))
-				.SetTooltipText(NSLOCTEXT("LevelEditorTabs", "BuildAndSubmitTooltip", "Opens a tab allowing the user to build all levels and optionally submit the result to source control."))
-				.SetGroup( MenuStructure.GetLevelEditorCategory() )
-				.SetIcon( BuildAndSubmitIcon );
-		}
-
-		{
 			const FSlateIcon WorldPropertiesIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.WorldProperties.Tab");
 			LevelEditorTabManager->RegisterTabSpawner( "WorldSettingsTab", FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, FName("WorldSettingsTab"), FString()) )
 				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldSettings", "World Settings"))

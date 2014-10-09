@@ -28,9 +28,6 @@ public:
 	virtual TSharedRef<FWorkspaceItem> GetStructureRoot() const = 0;
 
 	/** See diagram above */
-	virtual TSharedRef<FWorkspaceItem> GetAssetEditorCategory() const = 0;
-
-	/** See diagram above */
 	virtual TSharedRef<FWorkspaceItem> GetLevelEditorCategory() const = 0;
 
 	/** See diagram above */
@@ -46,7 +43,13 @@ public:
 	virtual TSharedRef<FWorkspaceItem> GetToolsCategory() const = 0;
 
 	/** See diagram above */
-	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsCategory() const = 0;
+	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsDebugCategory() const = 0;
+
+	/** See diagram above */
+	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsLogCategory() const = 0;
+
+	/** See diagram above */
+	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsMiscCategory() const = 0;
 
 	/** Get the root of the edit menu structure. Pass this into PopulateTabSpawnerMenu() */
 	virtual TSharedRef<FWorkspaceItem> GetEditOptions() const = 0;

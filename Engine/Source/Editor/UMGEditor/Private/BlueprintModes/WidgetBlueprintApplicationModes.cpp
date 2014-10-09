@@ -3,8 +3,8 @@
 #include "UMGEditorPrivatePCH.h"
 
 // Mode constants
-const FName FWidgetBlueprintApplicationModes::DesignerMode("DesignModeName");
-const FName FWidgetBlueprintApplicationModes::GraphMode("GraphModeName");
+const FName FWidgetBlueprintApplicationModes::DesignerMode("DesignerName");
+const FName FWidgetBlueprintApplicationModes::GraphMode("GraphName");
 
 FText FWidgetBlueprintApplicationModes::GetLocalizedMode(const FName InMode)
 {

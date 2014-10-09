@@ -74,18 +74,25 @@ static const FName PhATHierarchyName("PhAT_Hierarchy");
 
 void FPhAT::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup( LOCTEXT( "WorkspaceMenu_MaterialEditor", "Material Editor" ) );
+	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
+	FAssetEditorToolkit::RegisterTabSpawners( TabManager );
 
-	TabManager->RegisterTabSpawner( PhATPreviewViewportName, FOnSpawnTab::CreateSP(this, &FPhAT::SpawnTab, PhATPreviewViewportName) )
-		.SetDisplayName( LOCTEXT( "ViewportTab", "Viewport" ) );
+	TabManager->RegisterTabSpawner( PhATPreviewViewportName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATPreviewViewportName ) )
+		.SetDisplayName( LOCTEXT( "ViewportTab", "Viewport" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports" ) );
 
-	TabManager->RegisterTabSpawner( PhATPropertiesName, FOnSpawnTab::CreateSP(this, &FPhAT::SpawnTab, PhATPropertiesName) )
-		.SetDisplayName( LOCTEXT( "PropertiesTab", "Details" ) );
+	TabManager->RegisterTabSpawner( PhATPropertiesName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATPropertiesName ) )
+		.SetDisplayName( LOCTEXT( "PropertiesTab", "Details" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details" ) );
 
-	TabManager->RegisterTabSpawner( PhATHierarchyName, FOnSpawnTab::CreateSP(this, &FPhAT::SpawnTab, PhATHierarchyName) )
-		.SetDisplayName( LOCTEXT( "HierarchyTab", "Hierarchy" ) );
+	TabManager->RegisterTabSpawner( PhATHierarchyName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATHierarchyName ) )
+		.SetDisplayName( LOCTEXT( "HierarchyTab", "Hierarchy" ) )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette" ) );
 }
 
 void FPhAT::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
