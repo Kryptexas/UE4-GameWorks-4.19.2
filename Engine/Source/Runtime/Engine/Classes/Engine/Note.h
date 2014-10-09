@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// A sticky note.  Level designers can place these in the level and then
-// view them as a batch in the error/warnings window.
-//=============================================================================
+/**
+ * A sticky note.  Level designers can place these in the level and then
+ * view them as a batch in the error/warnings window.
+ */
 
 #pragma once
 #include "Note.generated.h"

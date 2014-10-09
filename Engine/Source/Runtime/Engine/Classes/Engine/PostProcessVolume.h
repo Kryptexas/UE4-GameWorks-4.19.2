@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// PostProcessVolume:  a post process settings volume
-// Used to affect post process settings in the game and editor.
-//=============================================================================
+/**
+ * PostProcessVolume:  a post process settings volume
+ * Used to affect post process settings in the game and editor.
+ */
 
 #pragma once
 

@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// SpectatorPawns are simple pawns that can fly around the world, used by
-// PlayerControllers when in the spectator state.
-//
-//=============================================================================
+/**
+ * SpectatorPawns are simple pawns that can fly around the world, used by
+ * PlayerControllers when in the spectator state.
+ */
 
 #pragma once
 #include "GameFramework/DefaultPawn.h"

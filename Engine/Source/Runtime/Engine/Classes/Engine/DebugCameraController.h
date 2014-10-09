@@ -1,13 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//-----------------------------------------------------------
-// Debug Camera Controller
-//
-// To turn it on, please press Alt+C or both (left and right) analogs on xbox pad
-//
-// Check the debug camera bindings in BaseInput.ini for the camera controls.
-//
-//-----------------------------------------------------------
+/**
+ * Camera controller that allows you to fly around a level mostly unrestricted by normal movement rules.
+ * 
+ * To turn it on, please press Alt+C or both (left and right) analogs on xbox pad, or use the "ToggleDebugCamera" console command.
+ * 
+ * Check the debug camera bindings in DefaultPawn.cpp for the camera controls.
+ */
 
 #pragma once
 #include "DebugCameraController.generated.h"

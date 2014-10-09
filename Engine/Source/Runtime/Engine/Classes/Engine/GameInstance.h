@@ -1,12 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// GameInstance: High-level manager object for a instance of the running game.
-// Spawned at game creation and not destroyed until game instance is shut down.
-// Running as a standalone game, there will be one of these.  Running in PIE
-// will generate one of these per PIE instance.
-//=============================================================================
-
 #pragma once
 #include "GameInstance.generated.h"
 
@@ -27,6 +20,13 @@ namespace GameInstanceState
 
 class FOnlineSessionSearchResult;
 
+
+/**
+ * GameInstance: high-level manager object for an instance of the running game.
+ * Spawned at game creation and not destroyed until game instance is shut down.
+ * Running as a standalone game, there will be one of these.
+ * Running in PIE (play-in-editor) will generate one of these per PIE instance.
+ */
 
 UCLASS(config=Game, transient, BlueprintType, Blueprintable)
 class ENGINE_API UGameInstance : public UObject, public FExec

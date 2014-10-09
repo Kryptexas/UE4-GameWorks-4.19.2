@@ -354,10 +354,9 @@ private:
 };
 
 /** 
- * A timeline component. 
- * Holds a series of Events, floats, vectors or colors with associated keyframes.
+ * TimelineComponent holds a series of events, floats, vectors or colors with associated keyframes.
  * Events can be triggered at keyframes along the timeline. 
- * floats, vectors an colors are interpolated between keyframes along the timeline.
+ * Floats, vectors, and colors are interpolated between keyframes along the timeline.
  */
 UCLASS(MinimalAPI)
 class UTimelineComponent : public UActorComponent

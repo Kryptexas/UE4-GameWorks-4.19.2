@@ -1,11 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/**
- * 
- * Skinned Mesh Component that supports Bone Skinned Mesh rendering
- * This class does not support animation
- *
- */
 
 #pragma once
 #include "Components/MeshComponent.h"
@@ -140,6 +134,15 @@ struct FSkelMeshComponentLODInfo
 		}
 	
 };
+
+
+/**
+ *
+ * Skinned mesh component that supports bone skinned mesh rendering.
+ * This class does not support animation.
+ *
+ * @see USkeletalMeshComponent
+*/
 
 UCLASS(hidecategories=Object, config=Engine, editinlinenew, abstract)
 class ENGINE_API USkinnedMeshComponent : public UMeshComponent

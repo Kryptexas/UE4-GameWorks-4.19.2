@@ -6,10 +6,11 @@
 
 /** 
  * A cubemap texture resource that knows how to upload the capture data from a sky capture. 
- * @todo - support compression
  */
 class FSkyTextureCubeResource : public FTexture, private FDeferredCleanupInterface
 {
+	// @todo - support compression
+
 public:
 
 	FSkyTextureCubeResource() :

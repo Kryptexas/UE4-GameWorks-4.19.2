@@ -2,8 +2,8 @@
 
 //=============================================================================
 // PlayerInput
-// Object within playercontroller that manages player input.
-// only spawned on client
+// Object within PlayerController that manages player input.
+// Only spawned on client.
 //=============================================================================
 
 #pragma once
@@ -240,6 +240,10 @@ struct FAxisKeyDetails
 	}
 };
 
+/**
+ * Object within PlayerController that manages player input.
+ * Only spawned on the client in network games.
+ */
 UCLASS(Within=PlayerController, config=Input, transient)
 class ENGINE_API UPlayerInput : public UObject
 {

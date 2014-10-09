@@ -6,7 +6,7 @@
 class UDrawSphereComponent;
 
 /** 
- *	Actor used to capture the scene for reflection in a sphere shape 
+ *	Actor used to capture the scene for reflection in a sphere shape.
  *	@see https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/Reflections/1_4
  */
 UCLASS(hidecategories = (Collision, Attachment, Actor), MinimalAPI)

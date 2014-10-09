@@ -5,7 +5,7 @@
 #include "ArrowComponent.generated.h"
 
 /** 
- * A simple arrow rendered using lines.Useful for indicating which way an object is facing.
+ * A simple arrow rendered using lines. Useful for indicating which way an object is facing.
  */
 UCLASS(ClassGroup=Shapes, hidecategories=(Object,LOD,Physics,Lighting,TextureStreaming,Activation,"Components|Activation",Collision), editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UArrowComponent : public UPrimitiveComponent

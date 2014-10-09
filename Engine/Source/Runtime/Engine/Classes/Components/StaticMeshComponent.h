@@ -108,6 +108,7 @@ struct TStructOpsTypeTraits<FStaticMeshComponentLODInfo> : public TStructOpsType
 
 /**
  * StaticMeshComponent is used to create an instance of a UStaticMesh.
+ * A static mesh is a piece of geometry that consists of a static set of polygons.
  *
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/
  * @see UStaticMesh

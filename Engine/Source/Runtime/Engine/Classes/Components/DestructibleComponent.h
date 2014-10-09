@@ -37,7 +37,7 @@ struct FDestructibleChunkInfo
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentFractureSignature, const FVector &, HitPoint, const FVector &, HitDirection);
 
 /**
- *	This component holds the physics data for a DestructibleActor
+ *	This component holds the physics data for a DestructibleActor.
  *
  *	The USkeletalMesh pointer in the base class (SkinnedMeshComponent) MUST be a DestructibleMesh
  */

@@ -125,8 +125,8 @@ private:
 
 /**
  *	Each player that is active on the current client has a LocalPlayer. It stays active across maps
- *	There may be several spawned in the case of splitscreen/coop
- *	There may be 0 spawned on servers
+ *	There may be several spawned in the case of splitscreen/coop.
+ *	There may be 0 spawned on servers.
  */
 UCLASS(Within=Engine, config=Engine, transient)
 class ENGINE_API ULocalPlayer : public UPlayer
