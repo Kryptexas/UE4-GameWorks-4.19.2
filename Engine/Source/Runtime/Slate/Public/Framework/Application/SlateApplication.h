@@ -1052,6 +1052,8 @@ public:
 
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
 
+	virtual bool OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode) override;
+
 	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 
 	virtual void OnWindowClose( const TSharedRef< FGenericWindow >& PlatformWindow ) override;

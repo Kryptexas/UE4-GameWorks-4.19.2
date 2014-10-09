@@ -1022,7 +1022,7 @@ void APlayerController::CreateTouchInterface()
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 
 	// do we want to show virtual joysticks?
-	if (LocalPlayer && LocalPlayer->ViewportClient && SVirtualJoystick::ShouldDisplayTouchInterface())
+	if (LocalPlayer && LocalPlayer->ViewportClient && !VirtualJoystick.IsValid() && SVirtualJoystick::ShouldDisplayTouchInterface())
 	{
 		// in case we already had one, remove it
 		if (VirtualJoystick.IsValid())
@@ -3670,6 +3670,17 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 
 				CurrentTouchablePrimitives[TouchIndexInt] = CurrentComponent;
 			}
+		}
+
+		// force touch UI on when it should be
+		if (SVirtualJoystick::ShouldDisplayTouchInterface())
+		{
+			CreateTouchInterface();
+			VirtualJoystick->SetVisibility(true, true);
+		}
+		else
+		{
+			CleanupGameViewport();
 		}
 	}
 

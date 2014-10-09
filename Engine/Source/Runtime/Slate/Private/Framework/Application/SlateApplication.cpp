@@ -4464,6 +4464,27 @@ void FSlateApplication::ProcessApplicationActivationEvent( bool InAppActivated )
 	}
 }
 
+
+bool FSlateApplication::OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode)
+{
+	// Notify that we want the mobile experience when in tablet mode, otherwise use mouse and keyboard
+	if (!(FParse::Param(FCommandLine::Get(), TEXT("simmobile")) || FParse::Param(FCommandLine::Get(), TEXT("faketouches"))))
+	{
+		// Not sure what the correct long-term strategy is. Use bIsFakingTouch for now to get things going.
+		if (NewMode == EConvertibleLaptopModes::Tablet)
+		{
+			bIsFakingTouch = true;
+		}
+		else
+		{
+			bIsFakingTouch = false;
+		}
+	}
+
+	return true;
+}
+
+
 EWindowZone::Type FSlateApplication::GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y )
 {
 	TSharedPtr< SWindow > Window = FSlateWindowHelper::FindWindowByPlatformWindow( SlateWindows, PlatformWindow );
