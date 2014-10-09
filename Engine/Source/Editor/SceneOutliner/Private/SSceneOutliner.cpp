@@ -139,7 +139,6 @@ namespace SceneOutliner
 		bFullRefresh = true;
 		bNeedsRefresh = true;
 		bIsReentrant = false;
-		TotalActorCount = 0;
 		FilteredActorCount = 0;
 		SortOutlinerTimer = 0.0f;
 		bPendingFocusNextFrame = InInitOptions.bFocusSearchBoxWhenOpened;
@@ -862,7 +861,6 @@ namespace SceneOutliner
 
 	void SSceneOutliner::EmptyTreeItems()
 	{
-		TotalActorCount = 0;
 		FilteredActorCount = 0;
 
 		ActorToTreeItemMap.Reset();
@@ -971,8 +969,6 @@ namespace SceneOutliner
 			}
 			ActorToTreeItemMap.Remove(ActorItemPtr->Actor);
 
-			--TotalActorCount;
-
 			if(!InItem->Flags.IsFilteredOut)
 			{
 				--FilteredActorCount;
@@ -1020,8 +1016,6 @@ namespace SceneOutliner
 		{
 			return false;
 		}
-
-		++TotalActorCount;
 
 		// Apply text filter
 		if (!SearchBoxFilter->PassesFilter(*InActorItem))
@@ -2891,6 +2885,7 @@ namespace SceneOutliner
 	FString SSceneOutliner::GetFilterStatusText() const
 	{
 		const int32 SelectedActorCount = OutlinerTreeView->GetNumItemsSelected();
+		const int32 TotalActorCount = ActorToTreeItemMap.Num();
 
 		if ( !IsFilterActive() )
 		{
@@ -2938,6 +2933,7 @@ namespace SceneOutliner
 
 	bool SSceneOutliner::IsFilterActive() const
 	{
+		const int32 TotalActorCount = ActorToTreeItemMap.Num();
 		return FilterTextBoxWidget->GetText().ToString().Len() > 0 && TotalActorCount != FilteredActorCount;
 	}
 

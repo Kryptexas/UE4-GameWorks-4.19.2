@@ -491,9 +491,6 @@ namespace SceneOutliner
 		/** Whether the scene outliner is currently displaying PlayWorld actors */
 		bool bRepresentingPlayWorld;
 
-		/** Total number of displayable actors we've seen, before applying a search filter */
-		int32 TotalActorCount;
-
 		/** Number of actors that passed the search filter */
 		int32 FilteredActorCount;
 
