@@ -1467,36 +1467,39 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 
 		// AUTO CREATED REFS
 		{
-			TArray<FString> AutoCreateRefTermPinNames;
-			const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
-			if (bHasAutoCreateRefTerms)
+			if ( Function )
 			{
-				CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
-			}
-
-			for (auto Pin : Pins)
-			{
-				if (Pin && bHasAutoCreateRefTerms && AutoCreateRefTermPinNames.Contains(Pin->PinName))
+				TArray<FString> AutoCreateRefTermPinNames;
+				const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
+				if ( bHasAutoCreateRefTerms )
 				{
-					const bool bHasDefaultValue = !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject || !Pin->DefaultTextValue.IsEmpty();
-					const bool bValidAutoRefPin = Pin->PinType.bIsReference
-						&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
-						&& (Pin->Direction == EGPD_Input)
-						&& !Pin->LinkedTo.Num()
-						&& (Pin->PinType.bIsArray || bHasDefaultValue);
-					if (bValidAutoRefPin)
-					{
-						//default values can be reset when the pin is connected
-						const auto DefaultValue = Pin->DefaultValue;
-						const auto DefaultObject = Pin->DefaultObject;
-						const auto DefaultTextValue = Pin->DefaultTextValue;
+					CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
+				}
 
-						auto ValuePin = InnerHandleAutoCreateRef(this, Pin, CompilerContext, SourceGraph, bHasDefaultValue);
-						if (ValuePin)
+				for ( auto Pin : Pins )
+				{
+					if ( Pin && bHasAutoCreateRefTerms && AutoCreateRefTermPinNames.Contains(Pin->PinName) )
+					{
+						const bool bHasDefaultValue = !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject || !Pin->DefaultTextValue.IsEmpty();
+						const bool bValidAutoRefPin = Pin->PinType.bIsReference
+							&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
+							&& ( Pin->Direction == EGPD_Input )
+							&& !Pin->LinkedTo.Num()
+							&& ( Pin->PinType.bIsArray || bHasDefaultValue );
+						if ( bValidAutoRefPin )
 						{
-							ValuePin->DefaultValue = DefaultValue;
-							ValuePin->DefaultObject = DefaultObject;
-							ValuePin->DefaultTextValue = DefaultTextValue;
+							//default values can be reset when the pin is connected
+							const auto DefaultValue = Pin->DefaultValue;
+							const auto DefaultObject = Pin->DefaultObject;
+							const auto DefaultTextValue = Pin->DefaultTextValue;
+
+							auto ValuePin = InnerHandleAutoCreateRef(this, Pin, CompilerContext, SourceGraph, bHasDefaultValue);
+							if ( ValuePin )
+							{
+								ValuePin->DefaultValue = DefaultValue;
+								ValuePin->DefaultObject = DefaultObject;
+								ValuePin->DefaultTextValue = DefaultTextValue;
+							}
 						}
 					}
 				}
