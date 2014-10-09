@@ -313,7 +313,7 @@ namespace MetalUtils
 			{
 				Variable->semantic = ralloc_asprintf(ParseState, "[[ attribute(%s) ]]", Semantic);
 			}
-			else
+			else if (FCStringAnsi::Strnicmp(Semantic, "[[", 2))
 			{
 				_mesa_glsl_warning(ParseState, "Unrecognized input attribute '%s'", Semantic);
 			}
