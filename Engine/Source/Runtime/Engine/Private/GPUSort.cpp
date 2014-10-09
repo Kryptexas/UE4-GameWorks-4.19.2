@@ -221,10 +221,9 @@ class FRadixSortClearOffsetsCS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
@@ -308,8 +307,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
@@ -426,8 +424,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
@@ -523,8 +520,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
-		//@todo-rco: Fix the shader
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return RHISupportsComputeShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )

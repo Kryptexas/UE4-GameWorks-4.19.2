@@ -662,6 +662,12 @@ inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Plat
 	return Platform != SP_METAL && Platform != SP_METAL_MRT;
 }
 
+inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
+{
+	//@todo-rco: Add Metal support
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);// || (Platform == SP_METAL);
+}
+
 inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 {
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && Platform != SP_METAL_MRT;
