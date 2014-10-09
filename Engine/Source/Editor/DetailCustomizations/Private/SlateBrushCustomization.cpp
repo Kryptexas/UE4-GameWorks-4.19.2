@@ -962,11 +962,13 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 			.FillWidth(1.0f)
 			[
 				SNew(SBorder)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
 				.Visibility(this, &SSlateBrushStaticPreview::GetPreviewVisibilityBorder)
 				.BorderImage(this, &SSlateBrushStaticPreview::GetPropertyBrush)
 				[
 					SNew(SSpacer)
-					.Size(FVector2D(1, 1))
+					.Size(this, &SSlateBrushStaticPreview::GetScaledBrushSize)
 				]
 			]
 
@@ -999,6 +1001,22 @@ private:
 	const FSlateBrush* GetPropertyBrush() const
 	{
 		return &TemporaryBrush;
+	}
+
+	FVector2D GetScaledBrushSize() const
+	{
+		if ( TemporaryBrush.DrawAs == ESlateBrushDrawType::Image )
+		{
+			const FVector2D& Size = TemporaryBrush.ImageSize;
+			if (Size.X > 0 && Size.Y > 0)
+			{
+				const float TargetHeight = 40.f;
+				const float ScaledWidth = Size.X * TargetHeight / Size.Y;
+				return FVector2D(ScaledWidth, TargetHeight);
+			}
+		}
+
+		return FVector2D(8.f, 8.f);
 	}
 
 	EVisibility GetPreviewVisibilityBorder() const
@@ -1168,6 +1186,8 @@ void FSlateBrushStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
 		[
 			SNew(SSlateBrushStaticPreview, StructPropertyHandle)
 		];
