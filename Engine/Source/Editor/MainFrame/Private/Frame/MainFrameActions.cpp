@@ -352,7 +352,8 @@ bool FMainFrameActionCallbacks::CanChoosePackagesToCheckIn()
 
 void FMainFrameActionCallbacks::ConnectToSourceControl()
 {
-	ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed(), ELoginWindowMode::Modeless);
+	ELoginWindowMode::Type Mode = !FSlateApplication::Get().GetActiveModalWindow().IsValid() ? ELoginWindowMode::Modeless : ELoginWindowMode::Modal;
+	ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed(), Mode);
 }
 
 void FMainFrameActionCallbacks::SaveAll()
