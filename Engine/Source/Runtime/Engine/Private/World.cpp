@@ -5371,6 +5371,12 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 			GetRendererModule().RemoveScene(Scene);
 
 			GetRendererModule().AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel );
+
+			PersistentLevel->ReleaseRenderingResources();
+			PersistentLevel->InitializeRenderingResources();
+
+			PersistentLevel->PrecomputedVisibilityHandler.UpdateScene(Scene);
+			PersistentLevel->PrecomputedVolumeDistanceField.UpdateScene(Scene);
 		}
 
 		TriggerStreamingDataRebuild();
