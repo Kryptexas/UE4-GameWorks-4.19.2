@@ -17,16 +17,12 @@ class AGameplayAbilityTargetActor_ActorPlacement : public AGameplayAbilityTarget
 
 	/** Actor we intend to place. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Targeting)
-	UClass* TurretClass;		//Using a special class for replication purposes. (Not implemented yet)
+	UClass* PlacedActorClass;		//Using a special class for replication purposes. (Not implemented yet)
 	
-	/** Override Material 0 on our turret's meshes with this material for visualization. */
+	/** Override Material 0 on our placed actor's meshes with this material for visualization. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Projectile)
-	UMaterialInterface *TurretMaterial;
+	UMaterialInterface *PlacedActorMaterial;
 
-	/** Visualization for the turret. */
-	TWeakObjectPtr<AGameplayAbilityWorldReticle_ActorVisualization> TurretReticleActor;
-
-protected:
-	//Consider whether we want size-checking here, or in GroundTrace
-	//virtual FHitResult PerformTrace(AActor* InSourceActor) const override;
+	/** Visualization for the intended location of the placed actor. */
+	TWeakObjectPtr<AGameplayAbilityWorldReticle_ActorVisualization> ActorVisualizationReticle;
 };

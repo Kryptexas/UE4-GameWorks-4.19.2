@@ -18,9 +18,9 @@ AGameplayAbilityTargetActor_ActorPlacement::AGameplayAbilityTargetActor_ActorPla
 
 void AGameplayAbilityTargetActor_ActorPlacement::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (TurretReticleActor.IsValid())
+	if (ActorVisualizationReticle.IsValid())
 	{
-		TurretReticleActor.Get()->Destroy();
+		ActorVisualizationReticle.Get()->Destroy();
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -29,20 +29,20 @@ void AGameplayAbilityTargetActor_ActorPlacement::EndPlay(const EEndPlayReason::T
 void AGameplayAbilityTargetActor_ActorPlacement::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);
-	if (AActor *TurretActor = GetWorld()->SpawnActor(TurretClass))
+	if (AActor *TurretActor = GetWorld()->SpawnActor(PlacedActorClass))
 	{
-		TurretReticleActor = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle_ActorVisualization>();
-		TurretReticleActor->InitializeReticleTurretInformation(TurretActor, TurretMaterial);
+		ActorVisualizationReticle = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle_ActorVisualization>();
+		ActorVisualizationReticle->InitializeReticleTurretInformation(TurretActor, PlacedActorMaterial);
 		GetWorld()->DestroyActor(TurretActor);
 	}
 	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())
 	{
-		TurretReticleActor->AttachRootComponentToActor(CachedReticleActor);
+		ActorVisualizationReticle->AttachRootComponentToActor(CachedReticleActor);
 	}
 	else
 	{
-		ReticleActor = TurretReticleActor;
-		TurretReticleActor = nullptr;
+		ReticleActor = ActorVisualizationReticle;
+		ActorVisualizationReticle = nullptr;
 	}
 }
 
