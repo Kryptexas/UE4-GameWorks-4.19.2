@@ -410,8 +410,6 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 		MaxWidth = InCustomRow->ValueWidget.MaxWidth;
 
 		ValueWidget->AddSlot()
-		.HAlign(InCustomRow->ValueWidget.HorizontalAlignment)
-		.VAlign(InCustomRow->ValueWidget.VerticalAlignment)
 		[
 			InCustomRow->ValueWidget.Widget
 		];
