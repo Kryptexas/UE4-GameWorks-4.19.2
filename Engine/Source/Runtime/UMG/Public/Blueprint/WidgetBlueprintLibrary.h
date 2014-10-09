@@ -83,6 +83,9 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
 	static FEventReply ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks = false);
 
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply SetMousePosition(UPARAM(ref) FEventReply& Reply, FVector2D NewMousePosition);
+
 	/**
 	 * Ask Slate to detect if a user started dragging in this widget.
 	 * If a drag is detected, Slate will send an OnDragDetected event.

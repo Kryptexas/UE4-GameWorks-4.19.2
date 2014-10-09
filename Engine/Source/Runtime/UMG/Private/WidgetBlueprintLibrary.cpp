@@ -196,6 +196,14 @@ FEventReply UWidgetBlueprintLibrary::ReleaseJoystickCapture(UPARAM(ref) FEventRe
 	return Reply;
 }
 
+FEventReply UWidgetBlueprintLibrary::SetMousePosition(UPARAM(ref) FEventReply& Reply, FVector2D NewMousePosition)
+{
+	FIntPoint NewPoint((int32)NewMousePosition.X, (int32)NewMousePosition.Y);
+	Reply.NativeReply = Reply.NativeReply.SetMousePos(NewPoint);
+
+	return Reply;
+}
+
 FEventReply UWidgetBlueprintLibrary::DetectDrag(UPARAM(ref) FEventReply& Reply, UWidget* WidgetDetectingDrag, FKey DragKey)
 {
 	if ( WidgetDetectingDrag )
