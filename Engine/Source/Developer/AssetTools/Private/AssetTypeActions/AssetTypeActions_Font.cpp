@@ -5,28 +5,15 @@
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
-void FAssetTypeActions_Font::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
+void FAssetTypeActions_Font::GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder)
 {
 	auto Fonts = GetTypedWeakObjectPtrs<UFont>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Font_Edit", "Edit"),
-		LOCTEXT("Font_EditTooltip", "Opens the selected fonts in the font editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Font::ExecuteEdit, Fonts ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Font_Reimport", "Reimport"),
-		LOCTEXT("Font_ReimportTooltip", "Reimports the selected fonts."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Font::ExecuteReimport, Fonts ),
-			FCanExecuteAction()
-			)
+		LOCTEXT("ReimportFontLabel", "Reimport"),
+		LOCTEXT("ReimportFontTooltip", "Reimport the selected font(s)."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
+		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_Font::ExecuteReimport, Fonts))
 		);
 }
 
@@ -45,26 +32,15 @@ void FAssetTypeActions_Font::OpenAssetEditor( const TArray<UObject*>& InObjects,
 	}
 }
 
-void FAssetTypeActions_Font::ExecuteEdit(TArray<TWeakObjectPtr<UFont>> Objects)
+void FAssetTypeActions_Font::ExecuteReimport(const TArray<TWeakObjectPtr<UFont>> Objects) const
 {
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
 		auto Object = (*ObjIt).Get();
-		if ( Object )
+		if (Object)
 		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
-		}
-	}
-}
-
-void FAssetTypeActions_Font::ExecuteReimport(TArray<TWeakObjectPtr<UFont>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FReimportManager::Instance()->Reimport( Object );
+			// Fonts fail to reimport if they ask for a new file if missing
+			FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/false);
 		}
 	}
 }

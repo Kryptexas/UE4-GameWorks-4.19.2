@@ -14,13 +14,9 @@ public:
 	virtual bool CanFilter() override { return true; }
 
 private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<USoundCue>> Objects);
-
 	/** Take selected SoundCues and combine, as much as possible, them to using shared attenuation settings */
 	void ExecuteConsolidateAttenuation(TArray<TWeakObjectPtr<USoundCue>> Objects);
 
 	/** Returns true if more than one cue is selected to consolidate */
 	bool CanExecuteConsolidateCommand(TArray<TWeakObjectPtr<USoundCue>> Objects) const;
-
 };

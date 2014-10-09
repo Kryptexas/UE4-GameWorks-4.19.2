@@ -91,4 +91,10 @@ public:
 
 	/** Returns additional tooltip information for the specified asset, if it has any (otherwise return the null widget) */
 	virtual FText GetAssetDescription(const class FAssetData& AssetData) const = 0;
+
+	/** Returns whether the asset was imported from an external source */
+	virtual bool IsImportedAsset() const = 0;
+
+	/** Collects the resolved source paths for the imported assets */
+	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const = 0;
 };

@@ -20,9 +20,6 @@ public:
 	virtual FText GetAssetDescription(const FAssetData& AssetData) const override;
 
 protected:
-	/** Handler for when Edit is selected */
-	virtual void ExecuteEdit(TArray<TWeakObjectPtr<UBlueprint>> Objects);
-
 	/** Whether or not this asset can create derived blueprints */
 	virtual bool CanCreateNewDerivedBlueprint() const;
 

@@ -401,21 +401,14 @@ void FAssetTypeActions_Skeleton::GetActions( const TArray<UObject*>& InObjects, 
 {
 	auto Skeletons = GetTypedWeakObjectPtrs<USkeleton>(InObjects);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_Edit", "Edit"),
-		LOCTEXT("Skeleton_EditTooltip", "Opens the selected skeleton in the persona."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteEdit, Skeletons ),
-			FCanExecuteAction()
-			)
-		);
-
 	// create menu
 	MenuBuilder.AddSubMenu(
 			LOCTEXT("CreateSkeletonSubmenu", "Create"),
 			LOCTEXT("CreateSkeletonSubmenu_ToolTip", "Create assets for this skeleton"),
-			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillCreateMenu, Skeletons));
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillCreateMenu, Skeletons),
+			false, 
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.AssetActions.CreateAnimAsset")
+			);
 
 	// only show if one is selected. It won't work since I changed the window to be normal window
 	if (Skeletons.Num() == 1)
@@ -447,35 +440,25 @@ void FAssetTypeActions_Skeleton::GetActions( const TArray<UObject*>& InObjects, 
 
 void FAssetTypeActions_Skeleton::FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons) const
 {
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_NewAnimBlueprint", "Create Anim Blueprint"),
-		LOCTEXT("Skeleton_NewAnimBlueprintTooltip", "Creates an Anim Blueprint using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteNewAnimBlueprint, Skeletons),
-			FCanExecuteAction()
-			)
-		);
-
-	FAnimAssetCreated OnAssetCreated;
-	OnAssetCreated.BindSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated);
-	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, /*OnAssetCreated*/FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated));
-
-	MenuBuilder.AddMenuSeparator();
-
 	// create rig
-	if(Skeletons.Num() == 1)
+	if (Skeletons.Num() == 1)
 	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Skeleton_CreateRig", "Create Rig"),
-			LOCTEXT("Skeleton_CreateRigTooltip", "Create Rig from this skeleton."),
-			FSlateIcon(),
-			FUIAction(
+		MenuBuilder.BeginSection("CreateRig", LOCTEXT("CreateRigMenuHeading", "Rig"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("Skeleton_CreateRig", "Create Rig"),
+				LOCTEXT("Skeleton_CreateRigTooltip", "Create Rig from this skeleton."),
+				FSlateIcon(),
+				FUIAction(
 				FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteCreateRig, Skeletons),
 				FCanExecuteAction()
 				)
-			);
+				);
+		}
+		MenuBuilder.EndSection();
 	}
+
+	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated));	
 }
 
 void FAssetTypeActions_Skeleton::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -489,74 +472,6 @@ void FAssetTypeActions_Skeleton::OpenAssetEditor( const TArray<UObject*>& InObje
 		{
 			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
 			PersonaModule.CreatePersona( Mode, EditWithinLevelEditor, Skeleton, NULL, NULL, NULL );
-		}
-	}
-}
-
-void FAssetTypeActions_Skeleton::ExecuteEdit(TArray<TWeakObjectPtr<USkeleton>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
-		}
-	}
-}
-
-void FAssetTypeActions_Skeleton::ExecuteNewAnimBlueprint(TArray<TWeakObjectPtr<USkeleton>> Objects)
-{
-	const FString DefaultSuffix = TEXT("_AnimBlueprint");
-
-	if ( Objects.Num() == 1 )
-	{
-		auto Object = Objects[0].Get();
-
-		if ( Object )
-		{
-			// Determine an appropriate name for inline-rename
-			FString Name;
-			FString PackageName;
-			CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
-
-			UAnimBlueprintFactory* Factory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
-			Factory->TargetSkeleton = Object;
-
-			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-			ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), UAnimBlueprint::StaticClass(), Factory);
-		}
-	}
-	else
-	{
-		TArray<UObject*> ObjectsToSync;
-		for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-		{
-			auto Object = (*ObjIt).Get();
-			if ( Object )
-			{
-				// Determine an appropriate name
-				FString Name;
-				FString PackageName;
-				CreateUniqueAssetName(Object->GetOutermost()->GetName(), DefaultSuffix, PackageName, Name);
-
-				// Create the anim blueprint factory used to generate the asset
-				UAnimBlueprintFactory* Factory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
-				Factory->TargetSkeleton = Object;
-
-				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), UAnimBlueprint::StaticClass(), Factory);
-
-				if ( NewAsset )
-				{
-					ObjectsToSync.Add(NewAsset);
-				}
-			}
-		}
-
-		if ( ObjectsToSync.Num() > 0 )
-		{
-			FAssetTools::Get().SyncBrowserToAssets(ObjectsToSync);
 		}
 	}
 }
@@ -600,13 +515,6 @@ void FAssetTypeActions_Skeleton::CreateRig(const TWeakObjectPtr<USkeleton> Skele
 			}
 		}
 	}
-}
-
-void FAssetTypeActions_Skeleton::CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix)
-{
-	FAnimAssetCreated OnAssetCreated;
-	OnAssetCreated.BindSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated);
-	AnimationEditorUtils::CreateAnimationAssets(Skeletons, AssetClass, InPrefix, /*OnAssetCreated*/FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_Skeleton::OnAssetCreated));
 }
 
 void FAssetTypeActions_Skeleton::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces)

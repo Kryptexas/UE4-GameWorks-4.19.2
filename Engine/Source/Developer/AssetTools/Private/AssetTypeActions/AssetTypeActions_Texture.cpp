@@ -14,52 +14,12 @@ void FAssetTypeActions_Texture::GetActions( const TArray<UObject*>& InObjects, F
 	auto Textures = GetTypedWeakObjectPtrs<UTexture>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Texture_Reimport", "Reimport"),
-		LOCTEXT("Texture_ReimportTooltip", "Reimports the selected textures from file."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Texture::ExecuteReimport, Textures ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Texture_Edit", "Edit"),
-		LOCTEXT("Texture_EditTooltip", "Opens the selected textures in the texture viewer."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Texture::ExecuteEdit, Textures ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
 		LOCTEXT("Texture_CreateMaterial", "Create Material"),
 		LOCTEXT("Texture_CreateMaterialTooltip", "Creates a new material using this texture."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.Material"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_Texture::ExecuteCreateMaterial, Textures ),
 			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Texture_FindInExplorer", "Find Source"),
-		LOCTEXT("Texture_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Texture::ExecuteFindInExplorer, Textures ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_Texture::CanExecuteSourceCommands, Textures )
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Texture_OpenInExternalEditor", "Open Source"),
-		LOCTEXT("Texture_OpenInExternalEditorTooltip", "Opens the selected asset in an external editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Texture::ExecuteOpenInExternalEditor, Textures ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_Texture::CanExecuteSourceCommands, Textures )
 			)
 		);
 
@@ -80,6 +40,15 @@ void FAssetTypeActions_Texture::GetActions( const TArray<UObject*>& InObjects, F
 	*/
 }
 
+void FAssetTypeActions_Texture::GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const
+{
+	for (auto& Asset : TypeAssets)
+	{
+		UTexture* Texture = CastChecked<UTexture>(Asset);
+		OutSourceFilePaths.Add(FReimportManager::ResolveImportFilename(Texture->SourceFilePath, Texture));
+	}
+}
+
 void FAssetTypeActions_Texture::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
@@ -91,30 +60,6 @@ void FAssetTypeActions_Texture::OpenAssetEditor( const TArray<UObject*>& InObjec
 		{
 			ITextureEditorModule* TextureEditorModule = &FModuleManager::LoadModuleChecked<ITextureEditorModule>("TextureEditor");
 			TextureEditorModule->CreateTextureEditor(Mode, EditWithinLevelEditor, Texture);
-		}
-	}
-}
-
-void FAssetTypeActions_Texture::ExecuteReimport(TArray<TWeakObjectPtr<UTexture>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/true);
-		}
-	}
-}
-
-void FAssetTypeActions_Texture::ExecuteEdit(TArray<TWeakObjectPtr<UTexture>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
 	}
 }
@@ -176,38 +121,6 @@ void FAssetTypeActions_Texture::ExecuteCreateMaterial(TArray<TWeakObjectPtr<UTex
 	}
 }
 
-void FAssetTypeActions_Texture::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UTexture>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
-			{
-				FPlatformProcess::ExploreFolder( *FPaths::GetPath(SourceFilePath) );
-			}
-		}
-	}
-}
-
-void FAssetTypeActions_Texture::ExecuteOpenInExternalEditor(TArray<TWeakObjectPtr<UTexture>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
-			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath, NULL, ELaunchVerb::Edit );
-			}
-		}
-	}
-}
-
 void FAssetTypeActions_Texture::ExecuteFindMaterials(TWeakObjectPtr<UTexture> Object)
 {
 	auto Texture = Object.Get();
@@ -215,26 +128,6 @@ void FAssetTypeActions_Texture::ExecuteFindMaterials(TWeakObjectPtr<UTexture> Ob
 	{
 		// @todo AssetTypeActions Implement FindMaterials using the asset registry.
 	}
-}
-
-bool FAssetTypeActions_Texture::CanExecuteSourceCommands(TArray<TWeakObjectPtr<UTexture>> Objects) const
-{
-	bool bHaveSourceAsset = false;
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			const FString& SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
-
-			if ( SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath) != INDEX_NONE )
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

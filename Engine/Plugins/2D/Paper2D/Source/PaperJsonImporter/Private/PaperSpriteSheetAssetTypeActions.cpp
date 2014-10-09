@@ -36,24 +36,31 @@ uint32 FPaperSpriteSheetAssetTypeActions::GetCategories()
 	return EAssetTypeCategories::Misc;
 }
 
+bool FPaperSpriteSheetAssetTypeActions::IsImportedAsset() const
+{
+	return true;
+}
+
+void FPaperSpriteSheetAssetTypeActions::GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const
+{
+	for (auto& Asset : TypeAssets)
+	{
+		const auto SpriteSheet = CastChecked<UPaperSpriteSheet>(Asset);
+		if (SpriteSheet->AssetImportData)
+		{
+			OutSourceFilePaths.Add(FReimportManager::ResolveImportFilename(SpriteSheet->AssetImportData->SourceFilePath, SpriteSheet));
+		}
+	}
+}
+
 void FPaperSpriteSheetAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder)
 {
 	auto SpriteSheetImports = GetTypedWeakObjectPtrs<UPaperSpriteSheet>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SpriteSheet_Reimport", "Reimport"),
-		LOCTEXT("SpriteSheet_ReimportTooltip", "Reimports the sprite sheet."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP(this, &FPaperSpriteSheetAssetTypeActions::ExecuteReimport, SpriteSheetImports),
-		FCanExecuteAction()
-		)
-	);
-
-	MenuBuilder.AddMenuEntry(
 		LOCTEXT("SpriteSheet_CreateFlipbooks", "Create Flipbooks"),
 		LOCTEXT("SpriteSheet_CreateFlipbooksTooltip", "Creates flipbooks from sprites in this sprite sheet."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.PaperFlipbook"),
 		FUIAction(
 		FExecuteAction::CreateSP(this, &FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks, SpriteSheetImports),
 		FCanExecuteAction()
@@ -62,18 +69,6 @@ void FPaperSpriteSheetAssetTypeActions::GetActions(const TArray<UObject*>& InObj
 }
 
 //////////////////////////////////////////////////////////////////////////
-
-void FPaperSpriteSheetAssetTypeActions::ExecuteReimport(TArray<TWeakObjectPtr<UPaperSpriteSheet>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if (Object)
-		{
-			FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/true);
-		}
-	}
-}
 
 static bool ExtractSpriteNumber(const FString& String, FString& BareString, int& Number)
 {

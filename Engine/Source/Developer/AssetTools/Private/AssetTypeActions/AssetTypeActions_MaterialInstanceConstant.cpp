@@ -9,16 +9,6 @@ void FAssetTypeActions_MaterialInstanceConstant::GetActions( const TArray<UObjec
 {
 	auto MICs = GetTypedWeakObjectPtrs<UMaterialInstanceConstant>(InObjects);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MaterialInstanceConstant_Edit", "Edit"),
-		LOCTEXT("MaterialInstanceConstant_EditTooltip", "Opens the selected materials in the material editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_MaterialInstanceConstant::ExecuteEdit, MICs ),
-			FCanExecuteAction()
-			)
-		);
-
 	FAssetTypeActions_MaterialInterface::GetActions(InObjects, MenuBuilder);
 
 	MenuBuilder.AddMenuEntry(
@@ -43,18 +33,6 @@ void FAssetTypeActions_MaterialInstanceConstant::OpenAssetEditor( const TArray<U
 		{
 			IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
 			MaterialEditorModule->CreateMaterialInstanceEditor(Mode, EditWithinLevelEditor, MIC);
-		}
-	}
-}
-
-void FAssetTypeActions_MaterialInstanceConstant::ExecuteEdit(TArray<TWeakObjectPtr<UMaterialInstanceConstant>> Objects)
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
 		}
 	}
 }

@@ -7,7 +7,7 @@
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 
-/* FMediaPlayerActions structors
+/* FMediaPlayerActions constructors
  *****************************************************************************/
 
 FMediaPlayerActions::FMediaPlayerActions( const TSharedRef<ISlateStyle>& InStyle )
@@ -33,7 +33,7 @@ void FMediaPlayerActions::GetActions( const TArray<UObject*>& InObjects, FMenuBu
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MediaPlayer_PlayMovie", "Play Movie"),
 		LOCTEXT("MediaPlayer_PlayMovieToolTip", "Starts playback of the media."),
-		FSlateIcon(),
+		FSlateIcon( FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Play" ),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FMediaPlayerActions::HandlePlayMovieActionExecute, MediaPlayers),
 			FCanExecuteAction()
@@ -43,7 +43,7 @@ void FMediaPlayerActions::GetActions( const TArray<UObject*>& InObjects, FMenuBu
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MediaPlayer_PauseMovie", "Pause Movie"),
 		LOCTEXT("MediaPlayer_PauseMovieToolTip", "Pauses playback of the media."),
-		FSlateIcon(),
+		FSlateIcon( FEditorStyle::GetStyleSetName(), "MediaAsset.AssetActions.Pause" ),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FMediaPlayerActions::HandlePauseMovieActionExecute, MediaPlayers),
 			FCanExecuteAction()
@@ -55,7 +55,7 @@ void FMediaPlayerActions::GetActions( const TArray<UObject*>& InObjects, FMenuBu
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MediaPlayer_CreateMediaSoundWave", "Create Media Sound Wave"),
 		LOCTEXT("MediaPlayer_CreateMediaSoundWaveTooltip", "Creates a new MediaSoundWave using this MediaPlayer asset."),
-		FSlateIcon(),
+		FSlateIcon( FEditorStyle::GetStyleSetName(), "ClassIcon.MediaSoundWave" ),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FMediaPlayerActions::ExecuteCreateMediaSoundWave, MediaPlayers),
 			FCanExecuteAction()
@@ -65,7 +65,7 @@ void FMediaPlayerActions::GetActions( const TArray<UObject*>& InObjects, FMenuBu
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MediaPlayer_CreateMediaTexture", "Create Media Texture"),
 		LOCTEXT("MediaPlayer_CreateMediaTextureTooltip", "Creates a new MediaTexture using this MediaPlayer asset."),
-		FSlateIcon(),
+		FSlateIcon( FEditorStyle::GetStyleSetName(), "ClassIcon.MediaTexture" ),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FMediaPlayerActions::ExecuteCreateMediaTexture, MediaPlayers),
 			FCanExecuteAction()

@@ -38,12 +38,6 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Animation; }
 
 private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<USkeleton>> Objects);
-
-	/** Handler for when NewAnimBlueprint is selected */
-	void ExecuteNewAnimBlueprint(TArray<TWeakObjectPtr<USkeleton>> Objects);
-
 	/** Handler for when Skeleton Retarget is selected */
 	void ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<USkeleton>> Skeletons);
 
@@ -51,9 +45,6 @@ private:
 	void ExecuteCreateRig(TArray<TWeakObjectPtr<USkeleton>> Skeletons);
 
 private: // Helper functions
-	/** Creates animation assets using the BaseName+Suffix */
-	void CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix);
-
 	/** Creates animation assets using the BaseName+Suffix */
 	void CreateRig(const TWeakObjectPtr<USkeleton> Skeleton);
 

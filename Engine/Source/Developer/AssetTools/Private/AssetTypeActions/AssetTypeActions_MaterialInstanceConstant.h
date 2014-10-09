@@ -14,9 +14,6 @@ public:
 	virtual bool CanFilter() override { return true; }
 
 private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<UMaterialInstanceConstant>> Objects);
-
 	/** Handler for when FindParent is selected */
 	void ExecuteFindParent(TArray<TWeakObjectPtr<UMaterialInstanceConstant>> Objects);
 };

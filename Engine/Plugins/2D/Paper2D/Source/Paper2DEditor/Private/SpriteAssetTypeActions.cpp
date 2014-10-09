@@ -52,14 +52,14 @@ void FSpriteAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, FMen
 	auto Sprites = GetTypedWeakObjectPtrs<UPaperSprite>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Sprite_CreateFlipbook", "Create Flipbooks"),
+		LOCTEXT("Sprite_CreateFlipbook", "Create Flipbook"),
 		LOCTEXT("Sprite_CreateFlipbookTooltip", "Creates flipbooks from the selected sprites."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.PaperFlipbook"),
 		FUIAction(
 		FExecuteAction::CreateSP(this, &FSpriteAssetTypeActions::ExecuteCreateFlipbook, Sprites),
 		FCanExecuteAction()
 		)
-		);
+	);
 }
 
 //////////////////////////////////////////////////////////////////////////

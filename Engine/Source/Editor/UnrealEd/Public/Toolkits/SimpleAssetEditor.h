@@ -35,7 +35,7 @@ public:
 	virtual FText GetToolkitName() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	virtual bool IsPrimaryEditor() const override { return false; }
+	virtual bool IsPrimaryEditor() const override { return true; }
 	
 	/** Used to show or hide certain properties */
 	void SetPropertyVisibilityDelegate(FIsPropertyVisible InVisibilityDelegate);

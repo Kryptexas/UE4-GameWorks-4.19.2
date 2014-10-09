@@ -4,6 +4,7 @@
 
 #include "AssetToolsModule.h"
 #include "Toolkits/SimpleAssetEditor.h"
+#include "EditorReimportHandler.h"
 
 /** A base class for all AssetTypeActions. Provides helper functions useful for many types. Deriving from this class is optional. */
 class FAssetTypeActions_Base : public IAssetTypeActions
@@ -67,6 +68,15 @@ public:
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override
 	{
 		return NULL;
+	}
+
+	virtual bool IsImportedAsset() const
+	{
+		return false;
+	}
+
+	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const override
+	{
 	}
 
 	// End IAssetTypeActions implementation

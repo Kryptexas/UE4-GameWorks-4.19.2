@@ -233,7 +233,7 @@ bool FAssetEditorManager::OpenEditorForAsset(UObject* Asset, const EToolkitMode:
 	
 	AssetEditorRequestOpenEvent.Broadcast(Asset);
 
-	if( FindEditorForAsset(Asset, bBringToFrontIfOpen) != NULL )
+	if( FindEditorForAsset(Asset, bBringToFrontIfOpen) != nullptr )
 	{
 		// This asset is already open in an editor! (the call to FindEditorForAsset above will bring it to the front)
 		return true;
@@ -264,8 +264,6 @@ bool FAssetEditorManager::OpenEditorForAsset(UObject* Asset, const EToolkitMode:
 			}
 		}
 	}
-	
-	GWarn->EndSlowTask();
 	
 	if( ActualToolkitMode != EToolkitMode::WorldCentric && OpenedFromLevelEditor.IsValid() )
 	{
@@ -301,38 +299,122 @@ bool FAssetEditorManager::OpenEditorForAsset(UObject* Asset, const EToolkitMode:
 		FSimpleAssetEditor::CreateEditor(ActualToolkitMode, ActualToolkitMode == EToolkitMode::WorldCentric ? OpenedFromLevelEditor : TSharedPtr<IToolkitHost>(), Asset);
 	}
 
+	GWarn->EndSlowTask();
 	return true;
 }
 
 
 bool FAssetEditorManager::OpenEditorForAssets( const TArray< UObject* >& Assets, const EToolkitMode::Type ToolkitMode, TSharedPtr< IToolkitHost > OpenedFromLevelEditor )
 {
-	//@todo Temporarily whenever someone attempts to open an editor editing multiple assets the editor type will default to FSimpleAssetEditor [8/14/2012 Justin.Sargent]
-
-	if( ToolkitMode != EToolkitMode::WorldCentric && OpenedFromLevelEditor.IsValid() )
-	{
-		// @todo toolkit minor: Kind of lame use of a static variable here to prime the new asset editor.  This was done to avoid refactoring a few dozen files for a very minor change.
-		FAssetEditorToolkit::SetPreviousWorldCentricToolkitHostForNewAssetEditor( OpenedFromLevelEditor.ToSharedRef() );
-	}
-
 	if( Assets.Num() == 1 )
 	{
-		// Find any existing simple editors for this asset
-		const TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset( Assets[0] );
-
-		IAssetEditorInstance* const * ExistingInstance = Editors.FindByPredicate( [&](IAssetEditorInstance* Editor){
-			return Editor->GetEditorName() == FSimpleAssetEditor::ToolkitFName;
-		} );
-
-		if( ExistingInstance )
+		return OpenEditorForAsset(Assets[0], ToolkitMode, OpenedFromLevelEditor);
+	}
+	else if (Assets.Num() > 0)
+	{
+		// If any of the assets are already open, remove them from the list of assets to open an editor for
+		TArray<UObject*> AlreadyOpenAssets;
+		for (auto Asset : Assets)
 		{
-			(*ExistingInstance)->FocusWindow();
-			return true;
+			if( FindEditorForAsset(Asset, true) != nullptr )
+			{
+				AlreadyOpenAssets.Add(Asset);
+			}
+		}
+
+		// Verify that all the assets are of the same class
+		bool bAssetClassesMatch = true;
+		auto AssetClass = Assets[0]->GetClass();
+		for (int32 i = 1; i < Assets.Num(); i++)
+		{
+			if (Assets[i]->GetClass() != AssetClass)
+			{
+				bAssetClassesMatch = false;
+				break;
+			}
+		}
+
+		// If the classes don't match or any of the selected assets are already open, just open each asset in its own editor.
+		if (bAssetClassesMatch && AlreadyOpenAssets.Num() == 0)
+		{
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+			TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(AssetClass);
+
+			if (AssetTypeActions.IsValid())
+			{
+				GWarn->BeginSlowTask(LOCTEXT("OpenEditor", "Opening Editor(s)..."), true);
+
+				// Determine the appropriate toolkit mode for the asset type
+				auto ActualToolkitMode = ToolkitMode;
+				if (AssetTypeActions.Pin()->ShouldForceWorldCentric())
+				{
+					// This asset type prefers a specific toolkit mode
+					ActualToolkitMode = EToolkitMode::WorldCentric;
+
+					if (!OpenedFromLevelEditor.IsValid())
+					{
+						// We don't have a level editor to spawn in world-centric mode, so we'll find one now
+						// @todo sequencer: We should eventually eliminate this code (incl include dependencies) or change it to not make assumptions about a single level editor
+						OpenedFromLevelEditor = FModuleManager::LoadModuleChecked< FLevelEditorModule >("LevelEditor").GetFirstLevelEditor();
+					}
+				}
+
+				if (ActualToolkitMode != EToolkitMode::WorldCentric && OpenedFromLevelEditor.IsValid())
+				{
+					// @todo toolkit minor: Kind of lame use of a static variable here to prime the new asset editor.  This was done to avoid refactoring a few dozen files for a very minor change.
+					FAssetEditorToolkit::SetPreviousWorldCentricToolkitHostForNewAssetEditor(OpenedFromLevelEditor.ToSharedRef());
+				}
+
+				// Some assets (like UWorlds) may be destroyed and recreated as part of opening. To protect against this, keep the path to each asset and try to re-find any if they disappear.
+				struct FLocalAssetInfo
+				{
+					TWeakObjectPtr<UObject> WeakAsset;
+					FString AssetPath;
+
+					FLocalAssetInfo(const TWeakObjectPtr<UObject>& InWeakAsset, const FString& InAssetPath)
+						: WeakAsset(InWeakAsset), AssetPath(InAssetPath) {}
+				};
+
+				TArray<FLocalAssetInfo> AssetInfoList;
+				AssetInfoList.Reserve(Assets.Num());
+				for (auto Asset : Assets)
+				{
+					AssetInfoList.Add(FLocalAssetInfo(Asset, Asset->GetPathName()));
+				}
+
+				// How to handle multiple assets is left up to the type actions (i.e. open a single shared editor or an editor for each)
+				AssetTypeActions.Pin()->OpenAssetEditor(Assets, ActualToolkitMode == EToolkitMode::WorldCentric ? OpenedFromLevelEditor : TSharedPtr<IToolkitHost>());
+
+				// If any assets were destroyed, attempt to find them if they were recreated
+				for (int32 i = 0; i < Assets.Num(); i++)
+				{
+					auto& AssetInfo = AssetInfoList[i];
+					auto Asset = Assets[i];
+
+					if (!AssetInfo.WeakAsset.IsValid() && !AssetInfo.AssetPath.IsEmpty())
+					{
+						Asset = FindObject<UObject>(nullptr, *AssetInfo.AssetPath);
+					}
+				}
+
+				//@todo if needed, broadcast the event for every asset. It is possible, however, that a single shared editor was opened by the AssetTypeActions, not an editor for each asset.
+				/*AssetEditorOpenedEvent.Broadcast(Asset);*/
+
+				GWarn->EndSlowTask();
+			}
+		}
+		else
+		{
+			// Asset types don't match or some are already open, so just open individual editors for the unopened ones
+			for (auto Asset : Assets)
+			{
+				if (!AlreadyOpenAssets.Contains(Asset))
+				{
+					OpenEditorForAsset(Asset, ToolkitMode, OpenedFromLevelEditor);
+				}
+			}
 		}
 	}
-
-	// No asset type actions for this asset. Just use a properties editor.
-	FSimpleAssetEditor::CreateEditor(ToolkitMode, ToolkitMode == EToolkitMode::WorldCentric ? OpenedFromLevelEditor : TSharedPtr<IToolkitHost>(), Assets );
 
 	return true;
 }

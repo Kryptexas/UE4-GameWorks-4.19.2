@@ -18,9 +18,6 @@ public:
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
 
 private:
-	/** Handler for when Edit is selected */
-	void ExecuteEdit(TArray<TWeakObjectPtr<UMaterialFunction>> Objects);
-
 	/** Handler for when FindMaterials is selected */
 	void ExecuteFindMaterials(TArray<TWeakObjectPtr<UMaterialFunction>> Objects);
 };

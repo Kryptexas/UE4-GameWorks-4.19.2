@@ -176,46 +176,55 @@ public:
 		SelectedAssetFunctor->Execute();
 	}
 
-	static void CreateSpriteTextureMenuOptions(FMenuBuilder& Builder, TSharedPtr<FCreateSpriteFromTextureExtension> SpriteCreatorFunctor)
+	static void CreateSpriteActionsSubMenu(FMenuBuilder& MenuBuilder, TSharedPtr<FCreateSpriteFromTextureExtension> SpriteCreator, TSharedPtr<FCreateSpriteFromTextureExtension> SpriteExtractor, TSharedPtr<FConfigureTexturesForSpriteUsageExtension> ConfigFunctor)
 	{
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("SpriteActionsSubMenuLabel", "Sprite Actions"),
+			LOCTEXT("SpriteActionsSubMenuToolTip", "Sprite-related actions for this texture."),
+			FNewMenuDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::PopulateSpriteActionsMenu, SpriteCreator, SpriteExtractor, ConfigFunctor),
+			false,
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.PaperSprite")
+		);
+	}
+
+	static void PopulateSpriteActionsMenu(FMenuBuilder& MenuBuilder, TSharedPtr<FCreateSpriteFromTextureExtension> SpriteCreator, TSharedPtr<FCreateSpriteFromTextureExtension> SpriteExtractor, TSharedPtr<FConfigureTexturesForSpriteUsageExtension> ConfigFunctor)
+	{
+		// Create sprites
 		FUIAction Action_CreateSpritesFromTextures(
-			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(SpriteCreatorFunctor)));
-		Builder.AddMenuEntry(
+			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(SpriteCreator)));
+		
+		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CB_Extension_Texture_CreateSprite", "Create Sprite"),
 			LOCTEXT("CB_Extension_Texture_CreateSprite_Tooltip", "Create sprites from selected textures"),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.PaperSprite"),
 			Action_CreateSpritesFromTextures,
 			NAME_None,
 			EUserInterfaceActionType::Button);
-	}
 
-	static void ExtractSpritesFromTextureMenuOptions(FMenuBuilder& Builder, TSharedPtr<FCreateSpriteFromTextureExtension> SpriteExtractorFunctor)
-	{
+		// Extract Sprites
 		FUIAction Action_ExtractSpritesFromTextures(
-			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(SpriteExtractorFunctor)));
-		Builder.AddMenuEntry(
+			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(SpriteExtractor)));
+
+		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CB_Extension_Texture_ExtractSprites", "Extract Sprites"),
 			LOCTEXT("CB_Extension_Texture_ExtractSprite_Tooltip", "Detects and extracts sprites from the selected textures using transparency"),
 			FSlateIcon(),
 			Action_ExtractSpritesFromTextures,
 			NAME_None,
 			EUserInterfaceActionType::Button);
-	}
 
-	static void CreateTextureSetupMenuOption(FMenuBuilder& Builder, TSharedPtr<FConfigureTexturesForSpriteUsageExtension> ConfigureFunctor)
-	{
+		// Configure for retro sprites
 		FUIAction Action_ConfigureTexturesForSprites(
-			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(ConfigureFunctor)));
-		Builder.AddMenuEntry(
-			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites", "Configure For Retro Sprites"), 
+			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(ConfigFunctor)));
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites", "Configure For Retro Sprites"),
 			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites_Tooltip", "Sets compression settings and sampling modes to good defaults for retro sprites (nearest filtering, uncompressed, etc...)"),
 			FSlateIcon(),
 			Action_ConfigureTexturesForSprites,
 			NAME_None,
 			EUserInterfaceActionType::Button);
 	}
-
-	
 
 	static TSharedRef<FExtender> OnExtendContentBrowserAssetSelectionMenu(const TArray<FAssetData>& SelectedAssets)
 	{
@@ -231,34 +240,26 @@ public:
 
 		if (bAnyTextures)
 		{
+			// Create Sprite
 			TSharedPtr<FCreateSpriteFromTextureExtension> SpriteCreatorFunctor = MakeShareable(new FCreateSpriteFromTextureExtension());
 			SpriteCreatorFunctor->SelectedAssets = SelectedAssets;
 
-			Extender->AddMenuExtension(
-				"GetAssetActions",
-				EExtensionHook::After,
-				NULL,
-				FMenuExtensionDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::CreateSpriteTextureMenuOptions, SpriteCreatorFunctor));
-
-			//@TODO: Already getting nasty, need to refactor the data to be independent of the functor
+			////@TODO: Already getting nasty, need to refactor the data to be independent of the functor
+			// Extract Sprites
 			TSharedPtr<FCreateSpriteFromTextureExtension> SpriteExtractorFunctor = MakeShareable(new FCreateSpriteFromTextureExtension());
 			SpriteExtractorFunctor->SelectedAssets = SelectedAssets;
 			SpriteExtractorFunctor->bExtractSprites = true;
 
-			Extender->AddMenuExtension(
-				"GetAssetActions",
-				EExtensionHook::After,
-				NULL,
-				FMenuExtensionDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExtractSpritesFromTextureMenuOptions, SpriteExtractorFunctor));
-
+			// Configure for retro sprites
 			TSharedPtr<FConfigureTexturesForSpriteUsageExtension> TextureConfigFunctor = MakeShareable(new FConfigureTexturesForSpriteUsageExtension());
 			TextureConfigFunctor->SelectedAssets = SelectedAssets;
 
+			// Add the sprite actions sub-menu extender
 			Extender->AddMenuExtension(
 				"GetAssetActions",
 				EExtensionHook::After,
 				NULL,
-				FMenuExtensionDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::CreateTextureSetupMenuOption, TextureConfigFunctor));
+				FMenuExtensionDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::CreateSpriteActionsSubMenu, SpriteCreatorFunctor, SpriteExtractorFunctor, TextureConfigFunctor));
 		}
 
 		return Extender;

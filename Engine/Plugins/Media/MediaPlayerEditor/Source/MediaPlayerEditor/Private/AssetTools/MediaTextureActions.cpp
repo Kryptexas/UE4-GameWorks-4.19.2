@@ -24,19 +24,9 @@ void FMediaTextureActions::GetActions( const TArray<UObject*>& InObjects, FMenuB
 	auto Textures = GetTypedWeakObjectPtrs<UTexture>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("MediaTexture_Edit", "Edit"),
-		LOCTEXT("MediaTexture_EditTooltip", "Opens the selected textures in the texture viewer."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FMediaTextureActions::ExecuteEdit, Textures),
-			FCanExecuteAction()
-		)
-	);
-
-	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MediaTexture_CreateMaterial", "Create Material"),
 		LOCTEXT("MediaTexture_CreateMaterialTooltip", "Creates a new material using this texture."),
-		FSlateIcon(),
+		FSlateIcon( FEditorStyle::GetStyleSetName(), "ClassIcon.Material" ),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FMediaTextureActions::ExecuteCreateMaterial, Textures),
 			FCanExecuteAction()
@@ -46,7 +36,7 @@ void FMediaTextureActions::GetActions( const TArray<UObject*>& InObjects, FMenuB
 /*	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MediaTexture_CreateSlateBrush", "Create Slate Brush"),
 		LOCTEXT("MediaTexture_CreateSlateBrushToolTip", "Creates a new slate brush using this texture."),
-		FSlateIcon(),
+		FSlateIcon( FEditorStyle::GetStyleSetName(), "ClassIcon.SlateBrushAsset" ),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_MediaTexture::ExecuteCreateSlateBrush, Textures ),
 			FCanExecuteAction()
@@ -235,20 +225,6 @@ void FAssetTypeActions_MediaTexture::ExecuteCreateSlateBrush( TArray<TWeakObject
 		}
 	}
 }*/
-
-
-void FMediaTextureActions::ExecuteEdit( TArray<TWeakObjectPtr<UTexture>> Objects )
-{
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-
-		if (Object != nullptr)
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
-		}
-	}
-}
 
 
 void FMediaTextureActions::ExecuteFindMaterials( TWeakObjectPtr<UTexture> Object )

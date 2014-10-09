@@ -81,8 +81,8 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 		{
 			// New Asset (submenu)
 			MenuBuilder.AddSubMenu(
-				LOCTEXT("NewAsset", "New Asset"),
-				LOCTEXT("NewAssetTooltip", "Create an asset."),
+				LOCTEXT("CreateAsset", "Create Asset"),
+				LOCTEXT("CreateAssetTooltip", "Create a new asset."),
 				FNewMenuDelegate::CreateRaw( this, &FPathContextMenu::MakeNewAssetSubMenu )
 				);
 

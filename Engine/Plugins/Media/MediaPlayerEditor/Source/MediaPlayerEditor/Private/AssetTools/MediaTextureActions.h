@@ -33,9 +33,6 @@ private:
 	/** Callback for selecting CreateSlateBrush. */
 	void ExecuteCreateSlateBrush( TArray<TWeakObjectPtr<UTexture>> Objects );
 
-	/** Callback for selecting Edit. */
-	void ExecuteEdit( TArray<TWeakObjectPtr<UTexture>> Objects );
-
 	/** Callback for selecting FindMaterials. */
 	void ExecuteFindMaterials( TWeakObjectPtr<UTexture> Object );
 };

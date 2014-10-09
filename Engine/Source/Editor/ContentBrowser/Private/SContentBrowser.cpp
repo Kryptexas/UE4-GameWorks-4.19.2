@@ -127,7 +127,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								[
 									SNew( STextBlock )
 									.TextStyle( FEditorStyle::Get(), "ContentBrowser.TopBar.Font" )
-									.Text( LOCTEXT( "NewButton", "New" ) )
+									.Text( LOCTEXT( "NewButton", "Create" ) )
 								]
 							]
 						]
@@ -184,8 +184,27 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnClicked( this, &SContentBrowser::OnSaveClicked )
 							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSaveDirtyPackages")))
 							[
-								SNew( SImage )
-								.Image( FEditorStyle::GetBrush( "ContentBrowser.SaveDirtyPackages" ) )
+								SNew( SHorizontalBox )
+
+								// Save All Icon
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign( VAlign_Center )
+								[
+									SNew( SImage )
+									.Image( FEditorStyle::GetBrush( "ContentBrowser.SaveDirtyPackages" ) )
+								]
+
+								// Save All Text
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								.Padding(0,0,2,0)
+								[
+									SNew( STextBlock )
+									.TextStyle( FEditorStyle::Get(), "ContentBrowser.TopBar.Font" )
+									.Text( LOCTEXT( "SaveAll", "Save All" ) )
+								]
 							]
 						]
 					]
@@ -530,6 +549,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	];
 
 	AssetContextMenu = MakeShareable(new FAssetContextMenu(AssetViewPtr));
+	AssetContextMenu->BindCommands(Commands);
 	AssetContextMenu->SetOnFindInAssetTreeRequested( FOnFindInAssetTreeRequested::CreateSP(this, &SContentBrowser::OnFindInAssetTreeRequested) );
 	AssetContextMenu->SetOnRenameRequested( FAssetContextMenu::FOnRenameRequested::CreateSP(this, &SContentBrowser::OnRenameRequested) );
 	AssetContextMenu->SetOnRenameFolderRequested( FAssetContextMenu::FOnRenameFolderRequested::CreateSP(this, &SContentBrowser::OnRenameFolderRequested) );
@@ -1317,9 +1337,11 @@ void SContentBrowser::OnAssetSelectionChanged(const FAssetData& SelectedAsset)
 	// Notify 'asset selection changed' delegate
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
 	FContentBrowserModule::FOnAssetSelectionChanged& AssetSelectionChangedDelegate = ContentBrowserModule.GetOnAssetSelectionChanged();
+	
+	const TArray<FAssetData>& SelectedAssets = AssetViewPtr->GetSelectedAssets();
+	AssetContextMenu->SetSelectedAssets(SelectedAssets);
 	if(AssetSelectionChangedDelegate.IsBound())
 	{
-		const TArray<FAssetData>& SelectedAssets = AssetViewPtr->GetSelectedAssets();
 		AssetSelectionChangedDelegate.Broadcast(SelectedAssets, bIsPrimaryBrowser);
 	}
 }
