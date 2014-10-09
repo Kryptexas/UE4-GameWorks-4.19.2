@@ -820,9 +820,27 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	FShaderCompilerDefinitions AdditionalDefines;
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1;
 	AdditionalDefines.SetDefine(TEXT("IOS"), 1);
+	AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
+
+	static FName NAME_SF_METAL(TEXT("SF_METAL"));
+	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
+
+	if (Input.ShaderFormat == NAME_SF_METAL)
+	{
 	AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 	AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
-	AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
+	}
+	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
+	{
+		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("SM4_PROFILE"), 1);
+	}
+	else
+	{
+		Output.bSucceeded = false;
+		new(Output.Errors) FShaderCompilerError(*FString::Printf(TEXT("Invalid shader format '%s' passed to compiler."), *Input.ShaderFormat.ToString()));
+		return;
+	}
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 

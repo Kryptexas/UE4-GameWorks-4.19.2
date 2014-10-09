@@ -13,7 +13,7 @@ FMetalShaderResourceView::~FMetalShaderResourceView()
 
 FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FStructuredBufferRHIParamRef StructuredBufferRHI, bool bUseUAVCounter, bool bAppendBuffer)
 {
-	DYNAMIC_CAST_METGALRESOURCE(StructuredBuffer,StructuredBuffer);
+	DYNAMIC_CAST_METALRESOURCE(StructuredBuffer,StructuredBuffer);
 
 	// create the UAV buffer to point to the structured buffer's memory
 	FMetalUnorderedAccessView* UAV = new FMetalUnorderedAccessView;
@@ -35,7 +35,7 @@ FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FTextu
 
 FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FVertexBufferRHIParamRef VertexBufferRHI, uint8 Format)
 {
-	DYNAMIC_CAST_METGALRESOURCE(VertexBuffer, VertexBuffer);
+	DYNAMIC_CAST_METALRESOURCE(VertexBuffer, VertexBuffer);
 
 	// create the UAV buffer to point to the structured buffer's memory
 	FMetalUnorderedAccessView* UAV = new FMetalUnorderedAccessView;
@@ -46,7 +46,7 @@ FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FVerte
 
 FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FStructuredBufferRHIParamRef StructuredBufferRHI)
 {
-	DYNAMIC_CAST_METGALRESOURCE(StructuredBuffer, StructuredBuffer);
+	DYNAMIC_CAST_METALRESOURCE(StructuredBuffer, StructuredBuffer);
 
 	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
 	return SRV;
@@ -54,7 +54,7 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FStructu
 
 FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint8 Format)
 {
-	DYNAMIC_CAST_METGALRESOURCE(VertexBuffer, VertexBuffer);
+	DYNAMIC_CAST_METALRESOURCE(VertexBuffer, VertexBuffer);
 
 	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
 	SRV->SourceVertexBuffer = VertexBuffer;
@@ -77,7 +77,7 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 
 void FMetalDynamicRHI::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
 {
-	DYNAMIC_CAST_METGALRESOURCE(UnorderedAccessView, UnorderedAccessView);
+	DYNAMIC_CAST_METALRESOURCE(UnorderedAccessView, UnorderedAccessView);
 
 }
 

@@ -28,7 +28,7 @@ void FMetalRenderQuery::Begin()
 	*QueryMemory = 0;
 
 	// remember which command buffer we are in
-	CommandBufferIndex = FMetalManager::Get()->GetCommandBufferIndex();
+	QueryCompleteEvent = FMetalManager::Get()->GetCurrentQueryCompleteEvent();
 
 	[FMetalManager::GetContext() setVisibilityResultMode:MTLVisibilityResultModeBoolean offset:Offset];
 }
@@ -48,27 +48,29 @@ FRenderQueryRHIRef FMetalDynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 
 void FMetalDynamicRHI::RHIResetRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
-	DYNAMIC_CAST_METGALRESOURCE(RenderQuery,Query);
+	DYNAMIC_CAST_METALRESOURCE(RenderQuery,Query);
 
 //	NOT_SUPPORTED("RHIResetRenderQuery");
 }
 
 bool FMetalDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,uint64& OutNumPixels,bool bWait)
 {
-	DYNAMIC_CAST_METGALRESOURCE(RenderQuery, Query);
+	DYNAMIC_CAST_METALRESOURCE(RenderQuery, Query);
 
 	uint32* QueryMemory = (uint32*)((uint8*)[FMetalManager::Get()->GetQueryBuffer() contents] + Query->Offset);
 
-	// timer queries are used for Benchmarks which can stall a bit more
-	double Timeout = 0.0;
 	if (bWait)
 	{
-		Timeout = 0.5f;//(Query->QueryType == RQT_AbsoluteTime) ? 2.0 : 0.5;
+		// wait for half a second
+		uint64 WaitTimeMS = 500;
+		Query->QueryCompleteEvent->Wait(WaitTimeMS);
 	}
-	if (!FMetalManager::Get()->WaitForCommandBufferComplete(Query->CommandBufferIndex, Timeout))
-	{
-		return false;
-	}
+
+	// waiting for 0 time on a manual reset event will return true if it was already triggered
+ 	if (Query->QueryCompleteEvent->Wait(0) == false)
+ 	{
+ 		return false;
+ 	}
 
 	// at this point, we are ready to read the value!
 	OutNumPixels = *QueryMemory;

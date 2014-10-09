@@ -225,12 +225,12 @@ FMetalBoundShaderState::FMetalBoundShaderState(
 			FGeometryShaderRHIParamRef InGeometryShaderRHI)
 	:	CacheLink(InVertexDeclarationRHI,InVertexShaderRHI,InPixelShaderRHI,InHullShaderRHI,InDomainShaderRHI,InGeometryShaderRHI,this)
 {
-	DYNAMIC_CAST_METGALRESOURCE(VertexDeclaration,InVertexDeclaration);
-	DYNAMIC_CAST_METGALRESOURCE(VertexShader,InVertexShader);
-	DYNAMIC_CAST_METGALRESOURCE(PixelShader,InPixelShader);
-	DYNAMIC_CAST_METGALRESOURCE(HullShader,InHullShader);
-	DYNAMIC_CAST_METGALRESOURCE(DomainShader,InDomainShader);
-	DYNAMIC_CAST_METGALRESOURCE(GeometryShader,InGeometryShader);
+	DYNAMIC_CAST_METALRESOURCE(VertexDeclaration,InVertexDeclaration);
+	DYNAMIC_CAST_METALRESOURCE(VertexShader,InVertexShader);
+	DYNAMIC_CAST_METALRESOURCE(PixelShader,InPixelShader);
+	DYNAMIC_CAST_METALRESOURCE(HullShader,InHullShader);
+	DYNAMIC_CAST_METALRESOURCE(DomainShader,InDomainShader);
+	DYNAMIC_CAST_METALRESOURCE(GeometryShader,InGeometryShader);
 
 	// cache everything
 	VertexDeclaration = InVertexDeclaration;

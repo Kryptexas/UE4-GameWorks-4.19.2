@@ -30,7 +30,7 @@ void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint32
 {
 	check( IsInGameThread() );
 
-	DYNAMIC_CAST_METGALRESOURCE(Viewport,Viewport);
+	DYNAMIC_CAST_METALRESOURCE(Viewport,Viewport);
 }
 
 void FMetalDynamicRHI::RHITick( float DeltaTime )

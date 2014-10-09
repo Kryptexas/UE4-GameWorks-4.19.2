@@ -8,8 +8,8 @@
 
 #include "Engine.h"
 
-// UE4 has a Max of 8 RTs, but we max out at 4, no need to waste time processing 8
-const uint32 MaxMetalRenderTargets = 4;
+// UE4 has a Max of 8 RTs, but we can spend less time looping with 6
+const uint32 MaxMetalRenderTargets = 6;
 
 // How many possible vertex streams are allowed
 const uint32 MaxMetalStreams = 16;

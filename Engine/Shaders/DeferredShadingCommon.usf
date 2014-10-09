@@ -565,6 +565,21 @@ SamplerState CustomDepthTextureSampler;
 // @param UV - UV space in the GBuffer textures (BufferSize resolution)
 FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 {
+#if 0 //METAL_MRT_PROFILE
+	// @todo metal mrt: The deferred renderer isn't keeping these in tiled memory all the time - we don't know when this makes sense
+	// versus just sampling a bound resolved texture
+	float4 GBufferA = FramebufferFetchMRT(1);
+	float4 GBufferB = FramebufferFetchMRT(2);
+	float4 GBufferC = FramebufferFetchMRT(3);
+	float4 GBufferD = FramebufferFetchMRT(4);
+	// @todo metal mrt: We can't framebuffer fetch the depth, can we jam it in somewhere?
+	float CustomNativeDepth = 0.5;
+	#if ALLOW_STATIC_LIGHTING
+		float4 GBufferE = FramebufferFetchMRT(5);
+	#else
+		float4 GBufferE = 1;
+	#endif
+#else	
 	float4 GBufferA = Texture2DSampleLevel(GBuffers.GBufferATexture, GBuffers.GBufferATextureSampler, UV, 0);
 	float4 GBufferB = Texture2DSampleLevel(GBuffers.GBufferBTexture, GBuffers.GBufferBTextureSampler, UV, 0);
 	float4 GBufferC = Texture2DSampleLevel(GBuffers.GBufferCTexture, GBuffers.GBufferCTextureSampler, UV, 0);
@@ -576,6 +591,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 	#else
 		float4 GBufferE = 1;
 	#endif
+#endif
 
 	float SceneDepth = CalcSceneDepth(UV);
 	

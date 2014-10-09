@@ -57,8 +57,7 @@
 	#define MaterialFloat4x3 float4x3 
 #endif
 
-//@todo-rco: Temp workaround for Seed 2 & 3
-#if COMPILER_GLSL_ES2 || METAL_PROFILE
+#if COMPILER_GLSL_ES2 || METAL_PROFILE || METAL_MRT_PROFILE
 
 	float determinant(float3x3 M)
 	{    
@@ -119,6 +118,9 @@
 	#endif
 #elif METAL_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
+#elif METAL_MRT_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 #elif ES2_PROFILE || ES3_1_PROFILE
 	//@todo ES3_1 GL

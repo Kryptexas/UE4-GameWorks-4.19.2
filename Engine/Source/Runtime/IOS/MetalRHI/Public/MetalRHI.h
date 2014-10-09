@@ -9,7 +9,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogMetal, Display, All);
 
 /** This is a macro that casts a dynamically bound RHI reference to the appropriate type. */
-#define DYNAMIC_CAST_METGALRESOURCE(Type,Name) \
+#define DYNAMIC_CAST_METALRESOURCE(Type,Name) \
 	FMetal##Type* Name = (FMetal##Type*)Name##RHI;
 
 // Metal RHI public headers.

@@ -294,6 +294,7 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 {
 	static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
+	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 
 	// default to supporting ES2
 	bool bSupportsOpenGLES2 = true;
@@ -309,6 +310,8 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 	if (bSupportsMetal)
 	{
 		OutFormats.AddUnique(NAME_SF_METAL);
+		// @todo metal mrt: Add a project setting to support MetalMRT mode
+		// OutFormats.AddUnique(NAME_SF_METAL_MRT);
 	}
 }
 

@@ -40,7 +40,9 @@ struct FPipelineShadow
 	id<MTLRenderPipelineState> CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS) const;
 
 	MTLRenderPipelineColorAttachmentDescriptor* RenderTargets[MaxMetalRenderTargets];
+	uint8 RenderTargetFormatKeys[MaxMetalRenderTargets];
 	MTLPixelFormat DepthTargetFormat;
+	MTLPixelFormat StencilTargetFormat;
     uint32 SampleCount;
 
 	// running hash of the pipeline state
@@ -100,8 +102,14 @@ public:
 	void SetBlendState(FMetalBlendState* BlendState);
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
 	void SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, uint32 MipIndex, uint32 ArraySliceIndex, MTLLoadAction LoadAction, MTLStoreAction StoreAction, int32 TotalNumRenderTargets);
-	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface, MTLLoadAction LoadAction, MTLStoreAction StoreAction, float ClearDepthValue);
+	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface, MTLLoadAction DepthLoadAction=MTLLoadActionDontCare, MTLStoreAction DepthStoreAction=MTLStoreActionDontCare, float ClearDepthValue=0, 
+		MTLLoadAction StencilLoadAction=MTLLoadActionDontCare, MTLStoreAction StencilStoreAction=MTLStoreActionDontCare, uint8 ClearStencilValue=0);
 	
+	/**
+	 * Set the color, depth and stencil render targets, and then make the new command buffer/encoder
+	 */
+	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo);
+
 	/**
 	 * Update the context with the current render targets
 	 */
@@ -122,18 +130,13 @@ public:
 		return QueryBuffer.Buffer;
 	}
 
-	uint64 GetCommandBufferIndex()
+	FEvent* GetCurrentQueryCompleteEvent()
 	{
-		return CommandBufferIndex;
-	}
-	
-	void SetCompletedCommandBufferIndex(uint64 Index)
-	{
-		CompletedCommandBufferIndex = Index;
+		checkf(CurrentQueryEventIndex < QueryEvents[WhichFreeList].Num(), TEXT("Attempted to get the current query event, but it doesn't exist"));
+		return QueryEvents[WhichFreeList][CurrentQueryEventIndex];
 	}
 
 	void SubmitCommandBufferAndWait();
-	bool WaitForCommandBufferComplete(uint64 IndexToWaitFor, double Timeout);
 
 	void SetRasterizerState(const FRasterizerStateInitializerRHI& State);
 
@@ -165,6 +168,16 @@ protected:
 
 	void CreateCurrentCommandBuffer(bool bWait);
 
+	/**
+	 * If the given surface is rendering to the back buffer, make sure it's fixed up
+	 */
+	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);
+
+	/**
+	 * Check to see if the new RenderTargetInfo needs to create an entire new encoder/command buffer
+	 */
+	bool NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& RenderTargetsInfo);
+
 
 	id<MTLDevice> Device;
 
@@ -193,11 +206,22 @@ protected:
 		MTLStoreAction StoreAction;
 	};
 
+	struct FStencilRenderTargetViewInfo
+	{
+		uint8 ClearStencilValue;
+		MTLLoadAction LoadAction;
+		MTLStoreAction StoreAction;
+	};
+
+	FRHISetRenderTargetsInfo PreviousRenderTargetsInfo;
+
 	FRenderTargetViewInfo CurrentRenderTargetsViewInfo[MaxMetalRenderTargets], PreviousRenderTargetsViewInfo[MaxMetalRenderTargets];
 	uint32 CurrentNumRenderTargets, PreviousNumRenderTargets;
 	id<MTLTexture> CurrentColorRenderTextures[MaxMetalRenderTargets], PreviousColorRenderTextures[MaxMetalRenderTargets];
 	FDepthRenderTargetViewInfo CurrentDepthViewInfo, PreviousDepthViewInfo;
+	FStencilRenderTargetViewInfo CurrentStencilViewInfo, PreviousStencilViewInfo;
 	id<MTLTexture> CurrentDepthRenderTexture, PreviousDepthRenderTexture;
+	id<MTLTexture> CurrentStencilRenderTexture, PreviousStencilRenderTexture;
 	id<MTLTexture> CurrentMSAARenderTexture;
 	
 	TRefCountPtr<FMetalTexture2D> BackBuffer;
@@ -218,6 +242,8 @@ protected:
 
 	TArray<id> DelayedFreeLists[4];
 	uint32 WhichFreeList;
+	TArray<FEvent*> QueryEvents[4];
+	int32 CurrentQueryEventIndex;
 
 	// the slot to store a per-thread autorelease pool
 	uint32 AutoReleasePoolTLSSlot;

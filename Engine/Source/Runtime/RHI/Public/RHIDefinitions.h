@@ -42,9 +42,10 @@ enum EShaderPlatform
 	SP_OPENGL_ES2_IOS	= 10,
 	SP_METAL			= 11,
 	SP_OPENGL_SM4_MAC	= 12,
-	SP_OPENGL_ES31_EXT	= 13,
+	SP_METAL_MRT		= 13,
+	SP_OPENGL_ES31_EXT	= 14,
 
-	SP_NumPlatforms		= 14,
+	SP_NumPlatforms		= 15,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -579,6 +580,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
 	case SP_OPENGL_SM4_MAC:
+	case SP_METAL_MRT:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 	case SP_OPENGL_PCES2:
@@ -624,6 +626,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL: 
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
+	case SP_METAL_MRT:
+		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_OPENGL_ES31_EXT:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	default:
@@ -655,7 +659,17 @@ inline bool RHISupportsInstancing(const EShaderPlatform Platform)
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
 	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
-	return Platform != SP_METAL;
+	return Platform != SP_METAL && Platform != SP_METAL_MRT;
+}
+
+inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
+{
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && Platform != SP_METAL_MRT;
+}
+
+inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
+{
+	return Platform == SP_METAL_MRT|| Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)

@@ -9,25 +9,34 @@ const uint32 RingBufferSize = 8 * 1024 * 1024;
 TMap<id, int32> ClassCounts;
 #endif
 
-#define NUMBITS_BLEND_STATE				5
-#define NUMBITS_RENDER_TARGET_FORMAT	8
-#define NUMBITS_DEPTH_TARGET_FORMAT		8
-#define NUMBITS_SAMPLE_COUNT			3
+#define NUMBITS_BLEND_STATE				5 //(x6=30)
+#define NUMBITS_RENDER_TARGET_FORMAT	4 //(x6=24)
+#define NUMBITS_DEPTH_ENABLED			1 //(x1=1)
+#define NUMBITS_STENCIL_ENABLED			1 //(x1=1)
+#define NUMBITS_SAMPLE_COUNT			3 //(x1=3)
 
 
 #define OFFSET_BLEND_STATE0				(0)
-#define OFFSET_BLEND_STATE1				(OFFSET_BLEND_STATE0	+ NUMBITS_BLEND_STATE)
-#define OFFSET_BLEND_STATE2				(OFFSET_BLEND_STATE1	+ NUMBITS_BLEND_STATE)
-#define OFFSET_BLEND_STATE3				(OFFSET_BLEND_STATE2	+ NUMBITS_BLEND_STATE)
-#define OFFSET_RENDER_TARGET_FORMAT0	(OFFSET_BLEND_STATE3	+ NUMBITS_BLEND_STATE)
+#define OFFSET_BLEND_STATE1				(OFFSET_BLEND_STATE0			+ NUMBITS_BLEND_STATE)
+#define OFFSET_BLEND_STATE2				(OFFSET_BLEND_STATE1			+ NUMBITS_BLEND_STATE)
+#define OFFSET_BLEND_STATE3				(OFFSET_BLEND_STATE2			+ NUMBITS_BLEND_STATE)
+#define OFFSET_BLEND_STATE4				(OFFSET_BLEND_STATE3			+ NUMBITS_BLEND_STATE)
+#define OFFSET_BLEND_STATE5				(OFFSET_BLEND_STATE4			+ NUMBITS_BLEND_STATE)
+#define OFFSET_RENDER_TARGET_FORMAT0	(OFFSET_BLEND_STATE5			+ NUMBITS_BLEND_STATE)
 #define OFFSET_RENDER_TARGET_FORMAT1	(OFFSET_RENDER_TARGET_FORMAT0	+ NUMBITS_RENDER_TARGET_FORMAT)
 #define OFFSET_RENDER_TARGET_FORMAT2	(OFFSET_RENDER_TARGET_FORMAT1	+ NUMBITS_RENDER_TARGET_FORMAT)
 #define OFFSET_RENDER_TARGET_FORMAT3	(OFFSET_RENDER_TARGET_FORMAT2	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_DEPTH_TARGET_FORMAT		(OFFSET_RENDER_TARGET_FORMAT3	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_SAMPLE_COUNT				(OFFSET_DEPTH_TARGET_FORMAT		+ NUMBITS_DEPTH_TARGET_FORMAT)
+#define OFFSET_RENDER_TARGET_FORMAT4	(OFFSET_RENDER_TARGET_FORMAT3	+ NUMBITS_RENDER_TARGET_FORMAT)
+#define OFFSET_RENDER_TARGET_FORMAT5	(OFFSET_RENDER_TARGET_FORMAT4	+ NUMBITS_RENDER_TARGET_FORMAT)
+#define OFFSET_DEPTH_ENABLED			(OFFSET_RENDER_TARGET_FORMAT5	+ NUMBITS_RENDER_TARGET_FORMAT)
+#define OFFSET_STENCIL_ENABLED			(OFFSET_DEPTH_ENABLED			+ NUMBITS_DEPTH_ENABLED)
+#define OFFSET_SAMPLE_COUNT				(OFFSET_STENCIL_ENABLED			+ NUMBITS_STENCIL_ENABLED)
+#define OFFSET_END						(OFFSET_SAMPLE_COUNT			+ NUMBITS_SAMPLE_COUNT)
 
-static uint32 BlendBitOffsets[] = { OFFSET_BLEND_STATE0, OFFSET_BLEND_STATE1, OFFSET_BLEND_STATE2, OFFSET_BLEND_STATE3, };
-static uint32 RTBitOffsets[] = { OFFSET_RENDER_TARGET_FORMAT0, OFFSET_RENDER_TARGET_FORMAT1, OFFSET_RENDER_TARGET_FORMAT2, OFFSET_RENDER_TARGET_FORMAT3, };
+static_assert(OFFSET_END <= 64, "Too many bits used for the Hash");
+
+static uint32 BlendBitOffsets[] = { OFFSET_BLEND_STATE0, OFFSET_BLEND_STATE1, OFFSET_BLEND_STATE2, OFFSET_BLEND_STATE3, OFFSET_BLEND_STATE4, OFFSET_BLEND_STATE5, };
+static uint32 RTBitOffsets[] = { OFFSET_RENDER_TARGET_FORMAT0, OFFSET_RENDER_TARGET_FORMAT1, OFFSET_RENDER_TARGET_FORMAT2, OFFSET_RENDER_TARGET_FORMAT3, OFFSET_RENDER_TARGET_FORMAT4, OFFSET_RENDER_TARGET_FORMAT5, };
 
 #define SET_HASH(Offset, NumBits, Value) \
 	{ \
@@ -96,10 +105,8 @@ id<MTLRenderPipelineState> FPipelineShadow::CreatePipelineStateForBoundShaderSta
 	}
 
 	// depth setting if it's actually used
-//	if (DepthTargetFormat != MTLPixelFormatInvalid)
-	{
-		Desc.depthAttachmentPixelFormat = DepthTargetFormat;
-	}
+	Desc.depthAttachmentPixelFormat = DepthTargetFormat;
+	Desc.stencilAttachmentPixelFormat = StencilTargetFormat;
 
 	// set the bound shader state settings
 	Desc.vertexDescriptor = BSS->VertexDeclaration->Layout;
@@ -113,13 +120,16 @@ id<MTLRenderPipelineState> FPipelineShadow::CreatePipelineStateForBoundShaderSta
 	id<MTLRenderPipelineState> PipelineState = [FMetalManager::GetDevice() newRenderPipelineStateWithDescriptor:Desc error : &Error];
 	TRACK_OBJECT(PipelineState);
 
-	[Desc release];
-
 	if (PipelineState == nil)
 	{
 		NSLog(@"Failed to generate a pipeline state object: %@", Error);
+		NSLog(@"Vertex shader: %@", BSS->VertexShader->GlslCodeNSString);
+		NSLog(@"Pixel shader: %@", BSS->PixelShader->GlslCodeNSString);
+		NSLog(@"Descriptor: %@", Desc);
 		return nil;
 	}
+
+	[Desc release];
 
 	return PipelineState;
 }
@@ -155,12 +165,13 @@ FMetalManager::FMetalManager()
 	, PreviousNumRenderTargets(0)
 	, CurrentDepthRenderTexture(nil)
 	, PreviousDepthRenderTexture(nil)
+	, CurrentStencilRenderTexture(nil)
+	, PreviousStencilRenderTexture(nil)
 	, CurrentMSAARenderTexture(nil)
 	, RingBuffer(Device, RingBufferSize, BufferOffsetAlignment)
 	, QueryBuffer(Device, 64 * 1024, 8)
 	, WhichFreeList(0)
-	, CommandBufferIndex(0)
-	, CompletedCommandBufferIndex(0)
+	, CurrentQueryEventIndex(-1)
 	, SceneFrameCounter(0)
 	, ResourceTableFrameCounter(INDEX_NONE)
 {
@@ -173,6 +184,8 @@ FMetalManager::FMetalManager()
 	FMemory::MemSet(PreviousRenderTargetsViewInfo, 0);
 	FMemory::MemSet(CurrentDepthViewInfo, 0);
 	FMemory::MemSet(PreviousDepthViewInfo, 0);
+	FMemory::MemSet(CurrentStencilViewInfo, 0);
+	FMemory::MemSet(PreviousStencilViewInfo, 0);
 
 	CommandQueue = [Device newCommandQueue];
 
@@ -246,6 +259,9 @@ void FMetalManager::BeginFrame()
 
 void FMetalManager::InitFrame()
 {
+	// reset the event index for this frame
+	CurrentQueryEventIndex = -1;
+
 	// start an auto release pool (EndFrame will drain and remake)
 	CreateAutoreleasePool();
 
@@ -258,6 +274,9 @@ void FMetalManager::InitFrame()
 
 	// mark us to get later
 	BackBuffer->Surface.Texture = nil;
+
+	// make sure first SetRenderTarget goes through
+	PreviousRenderTargetsInfo.NumColorRenderTargets = -1;
 
 //	double End = FPlatformTime::Seconds();
 //	NSLog(@"Semaphore Block Time: %.2f   -- MakeDrawable Time: %.2f", 1000.0f*(Mid - Start), 1000.0f*(End - Mid));
@@ -280,10 +299,28 @@ void FMetalManager::CreateCurrentCommandBuffer(bool bWait)
 	[CurrentCommandBuffer retain];
 	TRACK_OBJECT(CurrentCommandBuffer);
 
-	uint64 LocalCommandBufferIndex = CommandBufferIndex++;
-	[CurrentCommandBuffer addScheduledHandler : ^ (id <MTLCommandBuffer> Buffer)
+	// move to the next event index
+	CurrentQueryEventIndex++;
+
+	FEvent* LocalEvent;
+	// make a new event if we don't have enough
+	if (CurrentQueryEventIndex >= QueryEvents[WhichFreeList].Num())
 	{
-		FMetalManager::Get()->SetCompletedCommandBufferIndex(LocalCommandBufferIndex);
+		LocalEvent = FPlatformProcess::CreateSynchEvent(true);
+		CurrentQueryEventIndex = QueryEvents[WhichFreeList].Add(LocalEvent);
+	}
+	// otherwise, reuse an old one
+	else
+	{
+		LocalEvent = QueryEvents[WhichFreeList][CurrentQueryEventIndex];
+	}
+
+	// unset the event
+	LocalEvent->Reset();
+	[CurrentCommandBuffer addCompletedHandler:^(id <MTLCommandBuffer> Buffer)
+	{
+		// when the command buffer is done, release the event
+		LocalEvent->Trigger();
 	}];
 }
 
@@ -435,19 +472,15 @@ void FMetalManager::SetBoundShaderState(FMetalBoundShaderState* BoundShaderState
 	CurrentBoundShaderState = BoundShaderState;
 }
 
-void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, uint32 MipIndex, uint32 ArraySliceIndex, MTLLoadAction LoadAction, MTLStoreAction StoreAction, int32 TotalNumRenderTargets)
-{
-	// rememeber our new max
-	CurrentNumRenderTargets = TotalNumRenderTargets;
-	
-	// user code generally passes -1 as a default, but we need 0
-	ArraySliceIndex = ArraySliceIndex == 0xFFFFFFFF ? 0 : ArraySliceIndex;
 
-	// update the current rendered-to pixel format
-	if (RenderSurface)
+
+void FMetalManager::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
+{
+	// are we setting the back buffer? if so, make sure we have the drawable
+	if (&Surface == &BackBuffer->Surface)
 	{
-		// first time in a frame that we are setting the backbuffer, get it
-		if (RenderSurface == &BackBuffer->Surface && RenderSurface->Texture == nil && CurrentDrawable == nil)
+		// update the back buffer texture the first time used this frame
+		if (Surface.Texture == nil && CurrentDrawable == nil)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MetalMakeDrawableTime);
 
@@ -460,192 +493,191 @@ void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 R
 			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 
 			// set the texture into the backbuffer
-			RenderSurface->Texture = CurrentDrawable.texture;
+			Surface.Texture = CurrentDrawable.texture;
 		}
-		
-		if (RenderSurface->bIsCubemap)
-		{
-			ArraySliceIndex = GetMetalCubeFace((ECubeFace)ArraySliceIndex);
-		}
-
-		CurrentColorRenderTextures[RenderTargetIndex] = RenderSurface->Texture;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].MipIndex = MipIndex;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].ArraySliceIndex = ArraySliceIndex;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].LoadAction = LoadAction;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].StoreAction = StoreAction;
-
-		// only allow one MRT when using MSAA
-		checkf(RenderSurface->MSAATexture == NULL || TotalNumRenderTargets == 1);
-		CurrentMSAARenderTexture = RenderSurface->MSAATexture;
-	}
-	else
-	{
-		CurrentColorRenderTextures[RenderTargetIndex] = nil;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].MipIndex = 0;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].ArraySliceIndex = 0;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].LoadAction = MTLLoadActionDontCare;
-		CurrentRenderTargetsViewInfo[RenderTargetIndex].StoreAction = MTLStoreActionStore;
 	}
 }
 
-void FMetalManager::SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface, MTLLoadAction LoadAction, MTLStoreAction StoreAction, float ClearDepthValue)
+bool FMetalManager::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
-	if (RenderSurface)
-	{
-		// @todo metal stencil: track stencil here
-		CurrentDepthRenderTexture = RenderSurface->Texture;
-		CurrentDepthViewInfo.LoadAction = LoadAction;
-		CurrentDepthViewInfo.StoreAction = StoreAction;
-		CurrentDepthViewInfo.ClearDepthValue = ClearDepthValue;
-	}
-	else
-	{
-		CurrentDepthRenderTexture = nil;
-		CurrentDepthViewInfo.LoadAction = MTLLoadActionClear;
-		CurrentDepthViewInfo.StoreAction = MTLStoreActionDontCare;
-		CurrentDepthViewInfo.ClearDepthValue = 0.0f;
-	}
-}
+	// see if our new Info matches our previous Info
 
-void FMetalManager::UpdateContext()
-{
-	// if all render targets match, we can early out
-	if (CurrentNumRenderTargets == PreviousNumRenderTargets && CurrentDepthRenderTexture == PreviousDepthRenderTexture)
+	// basic checks
+	bool bAllChecksPassed = RenderTargetsInfo.NumColorRenderTargets == PreviousRenderTargetsInfo.NumColorRenderTargets &&
+		// handle the case where going from backbuffer + depth -> backbuffer + null, no need to reset RT and do a store/load
+		(RenderTargetsInfo.DepthStencilRenderTarget.Texture == PreviousRenderTargetsInfo.DepthStencilRenderTarget.Texture || RenderTargetsInfo.DepthStencilRenderTarget.Texture == nullptr);
+
+	// now check each color target if the basic tests passe
+	if (bAllChecksPassed)
 	{
-		// make sure all match
-		bool bAllMatch = true;
-		for (uint32 AttachmentIndex = 0; AttachmentIndex < CurrentNumRenderTargets; AttachmentIndex++)
+		for (int32 RenderTargetIndex = 0; RenderTargetIndex < RenderTargetsInfo.NumColorRenderTargets; RenderTargetIndex++)
 		{
-			if (CurrentColorRenderTextures[AttachmentIndex] != PreviousColorRenderTextures[AttachmentIndex] ||
-				CurrentRenderTargetsViewInfo[AttachmentIndex].MipIndex != PreviousRenderTargetsViewInfo[AttachmentIndex].MipIndex ||
-				CurrentRenderTargetsViewInfo[AttachmentIndex].ArraySliceIndex != PreviousRenderTargetsViewInfo[AttachmentIndex].ArraySliceIndex)
+			const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
+			const FRHIRenderTargetView& PreviousRenderTargetView = PreviousRenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
+
+			if (!(RenderTargetView == PreviousRenderTargetView))
 			{
-				bAllMatch = false;
+				bAllChecksPassed = false;
+				break;
 			}
 		}
-
-		if (bAllMatch)
-		{
-			return;
-		}
-
-		//@todo-rco: Do we need to test changes in Load/Store actions (and/or clear values) for Color & Depth?
 	}
-
-	// handle the case where going from backbuffer + depth -> backbuffer + null, no need to reset RT and do a store/load
-	if (CurrentNumRenderTargets == 1 && CurrentColorRenderTextures[0] == PreviousColorRenderTextures[0] && CurrentDepthRenderTexture == nil)
-	{
-		return;
-	}
-
-	PreviousNumRenderTargets = CurrentNumRenderTargets;
 
 	// if we are setting them to nothing, then this is probably end of frame, and we can't make a framebuffer
 	// with nothng, so just abort this (only need to check on single MRT case)
-	if (CurrentNumRenderTargets == 1 && CurrentColorRenderTextures[0] == nil && CurrentDepthRenderTexture == nil)
+	if (RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture == nullptr &&
+		RenderTargetsInfo.DepthStencilRenderTarget.Texture == nullptr)
+	{
+		bAllChecksPassed = true;
+	}
+
+	return bAllChecksPassed == false;
+}
+
+void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
+{
+	// see if our new Info matches our previous Info
+	if (NeedsToSetRenderTarget(RenderTargetsInfo) == false)
 	{
 		return;
 	}
 
-	// make a new one (autoreleased)
-	MTLRenderPassDescriptor* CurrentRenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
+	// back this up for next frame
+	PreviousRenderTargetsInfo = RenderTargetsInfo;
+
+	// at this point, we need to fully set up an encoder/command buffer, so make a new one (autoreleased)
+	MTLRenderPassDescriptor* RenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
 
 	// if we need to do queries, write to the ring buffer (we set the offset into the ring buffer per query)
-	CurrentRenderPass.visibilityResultBuffer = QueryBuffer.Buffer;
+	RenderPass.visibilityResultBuffer = QueryBuffer.Buffer;
 
 	// default to non-msaa
 	Pipeline.SampleCount = 0;
 
-	for (uint32 AttachmentIndex = 0; AttachmentIndex < MaxMetalRenderTargets; AttachmentIndex++)
+	for (uint32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; RenderTargetIndex++)
 	{
 		// only try to set it if it was one that was set (ie less than CurrentNumRenderTargets)
-		if (AttachmentIndex < CurrentNumRenderTargets && CurrentColorRenderTextures[AttachmentIndex])
+		if (RenderTargetIndex < RenderTargetsInfo.NumColorRenderTargets && RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex].Texture != nullptr)
 		{
+			const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
+			FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+		
+			// if this is the back buffer, make sure we have a usable drawable
+			ConditionalUpdateBackBuffer(Surface);
+
+			// user code generally passes -1 as a default, but we need 0
+			uint32 ArraySliceIndex = RenderTargetView.ArraySliceIndex == 0xFFFFFFFF ? 0 : RenderTargetView.ArraySliceIndex;
+			if (Surface.bIsCubemap)
+			{
+				ArraySliceIndex = GetMetalCubeFace((ECubeFace)ArraySliceIndex);
+			}
+
 			MTLRenderPassColorAttachmentDescriptor* ColorAttachment = [[MTLRenderPassColorAttachmentDescriptor alloc] init];
 
-			if (CurrentMSAARenderTexture)
+			if (Surface.MSAATexture != nil)
 			{
 				// set up an MSAA attachment
-				ColorAttachment.texture = CurrentMSAARenderTexture;
-				[ColorAttachment setStoreAction:MTLStoreActionMultisampleResolve];
-				[ColorAttachment setResolveTexture:CurrentColorRenderTextures[AttachmentIndex]];
-				Pipeline.SampleCount = CurrentMSAARenderTexture.sampleCount;
+				ColorAttachment.texture = Surface.MSAATexture;
+				ColorAttachment.storeAction = MTLStoreActionMultisampleResolve;
+				ColorAttachment.resolveTexture = Surface.Texture;
+				Pipeline.SampleCount = Surface.MSAATexture.sampleCount;
 
 				// only allow one MRT with msaa
-				checkf(CurrentNumRenderTargets == 1, TEXT("Only expected one MRT when using MSAA"));
+				checkf(RenderTargetsInfo.NumColorRenderTargets == 1, TEXT("Only expected one MRT when using MSAA"));
 			}
 			else
 			{
 				// set up non-MSAA attachment
-				ColorAttachment.texture = CurrentColorRenderTextures[AttachmentIndex];
-				[ColorAttachment setStoreAction:MTLStoreActionStore];
+				ColorAttachment.texture = Surface.Texture;
+				ColorAttachment.storeAction = GetMetalRTStoreAction(RenderTargetView.StoreAction);
 				Pipeline.SampleCount = 1;
 			}
-			ColorAttachment.level = CurrentRenderTargetsViewInfo[AttachmentIndex].MipIndex;
-			ColorAttachment.slice = CurrentRenderTargetsViewInfo[AttachmentIndex].ArraySliceIndex;
-			ColorAttachment.LoadAction = CurrentRenderTargetsViewInfo[AttachmentIndex].LoadAction;
-			//@todo implement store, but making sure that multisampleresolve is handled properly.
+			ColorAttachment.level = RenderTargetView.MipIndex;
+			ColorAttachment.slice = ArraySliceIndex;
+			ColorAttachment.loadAction = GetMetalRTLoadAction(RenderTargetView.LoadAction);
+			const FLinearColor& ClearColor = RenderTargetsInfo.ClearColors[RenderTargetIndex];
+			ColorAttachment.clearColor = MTLClearColorMake(ClearColor.R, ClearColor.G, ClearColor.B, ClearColor.A);
 
 			// assign the attachment to the slot
-			[CurrentRenderPass.colorAttachments setObject:ColorAttachment atIndexedSubscript:AttachmentIndex];
-			[ColorAttachment release];
+			[RenderPass.colorAttachments setObject:ColorAttachment atIndexedSubscript:RenderTargetIndex];
 
-			Pipeline.RenderTargets[AttachmentIndex].pixelFormat = CurrentColorRenderTextures[AttachmentIndex].pixelFormat;
+			Pipeline.RenderTargets[RenderTargetIndex].pixelFormat = ColorAttachment.texture.pixelFormat;
+
+			[ColorAttachment release];
 		}
 		else
 		{
-			Pipeline.RenderTargets[AttachmentIndex].pixelFormat = MTLPixelFormatInvalid;
+			Pipeline.RenderTargets[RenderTargetIndex].pixelFormat = MTLPixelFormatInvalid;
 		}
-		
+
 		// update the hash no matter what case (null, unused, used)
-		SET_HASH(RTBitOffsets[AttachmentIndex], NUMBITS_RENDER_TARGET_FORMAT, Pipeline.RenderTargets[AttachmentIndex].pixelFormat);
-
-		// remember this for next time
-		PreviousColorRenderTextures[AttachmentIndex] = CurrentColorRenderTextures[AttachmentIndex];
-		PreviousRenderTargetsViewInfo[AttachmentIndex] = CurrentRenderTargetsViewInfo[AttachmentIndex];
+		SET_HASH(RTBitOffsets[RenderTargetIndex], NUMBITS_RENDER_TARGET_FORMAT, Pipeline.RenderTargetFormatKeys[RenderTargetIndex]);
 	}
-	
-	if (CurrentDepthRenderTexture)
+
+	// default to invalid
+	Pipeline.DepthTargetFormat = MTLPixelFormatInvalid;
+	Pipeline.StencilTargetFormat = MTLPixelFormatInvalid;
+
+	// setup depth and/or stencil
+	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture != nullptr)
 	{
-		MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
-
-		// set up the depth attachment
-		DepthAttachment.texture = CurrentDepthRenderTexture;
-		[DepthAttachment setLoadAction:CurrentDepthViewInfo.LoadAction];
-		[DepthAttachment setStoreAction : CurrentDepthViewInfo.StoreAction];
-		[DepthAttachment setClearDepth : CurrentDepthViewInfo.ClearDepthValue];
-
-		Pipeline.DepthTargetFormat = CurrentDepthRenderTexture.pixelFormat;
-		if (Pipeline.SampleCount == 0)
+		FMetalSurface& Surface= GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
+		if (Surface.Texture != nil)
 		{
-			Pipeline.SampleCount = CurrentDepthRenderTexture.sampleCount;
+			MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
+
+			// set up the depth attachment
+			DepthAttachment.texture = Surface.Texture;
+			DepthAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction);
+			DepthAttachment.storeAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction);
+			DepthAttachment.clearDepth = RenderTargetsInfo.DepthClearValue;
+
+			Pipeline.DepthTargetFormat = DepthAttachment.texture.pixelFormat;
+			if (Pipeline.SampleCount == 0)
+			{
+				Pipeline.SampleCount = DepthAttachment.texture.sampleCount;
+			}
+
+			// and assign it
+			RenderPass.depthAttachment = DepthAttachment;
+			[DepthAttachment release];
 		}
 
-		// and assign it
-		CurrentRenderPass.depthAttachment = DepthAttachment;
-		[DepthAttachment release];
+		if (Surface.StencilTexture != nil)
+		{
+			MTLRenderPassStencilAttachmentDescriptor* StencilAttachment = [[MTLRenderPassStencilAttachmentDescriptor alloc] init];
+
+			// set up the stencil attachment
+			StencilAttachment.texture = Surface.StencilTexture;
+			StencilAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction);
+			StencilAttachment.storeAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.StencilStoreAction);
+			StencilAttachment.clearStencil = RenderTargetsInfo.StencilClearValue;
+
+			Pipeline.StencilTargetFormat = StencilAttachment.texture.pixelFormat;
+			if (Pipeline.SampleCount == 0)
+			{
+				Pipeline.SampleCount = StencilAttachment.texture.sampleCount;
+			}
+
+			// and assign it
+			RenderPass.stencilAttachment = StencilAttachment;
+			[StencilAttachment release];
+		}
 	}
-	else
-	{
-		Pipeline.DepthTargetFormat = MTLPixelFormatInvalid;
-	}
+
 	// update hash for the depth buffer
-	SET_HASH(OFFSET_DEPTH_TARGET_FORMAT, NUMBITS_DEPTH_TARGET_FORMAT, Pipeline.DepthTargetFormat);
-
-	// remember this for next time
-	PreviousDepthViewInfo = CurrentDepthViewInfo;
-	PreviousDepthRenderTexture = CurrentDepthRenderTexture;
-
+	SET_HASH(OFFSET_DEPTH_ENABLED, NUMBITS_DEPTH_ENABLED, (Pipeline.DepthTargetFormat == MTLPixelFormatInvalid ? 0 : 1));
+	SET_HASH(OFFSET_STENCIL_ENABLED, NUMBITS_STENCIL_ENABLED, (Pipeline.StencilTargetFormat == MTLPixelFormatInvalid ? 0 : 1));
 	SET_HASH(OFFSET_SAMPLE_COUNT, NUMBITS_SAMPLE_COUNT, Pipeline.SampleCount);
 
 	// commit pending commands on the old render target
 	if (CurrentContext)
 	{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		if (NumDrawCalls == 0)
-		{
-			NSLog(@"There were %d draw calls for an RT in frame %lld", NumDrawCalls, GFrameCounter);
-		}
+//		if (NumDrawCalls == 0)
+//		{
+//			NSLog(@"There were %d draw calls for an RT in frame %lld", NumDrawCalls, GFrameCounter);
+//		}
 #endif
 
 		[CurrentContext endEncoding];
@@ -653,27 +685,23 @@ void FMetalManager::UpdateContext()
 
 		[CurrentContext release];
 
-		// if we are doing occlusion queries, we could use this method, along with a completion callback
-		// to set a "render target complete" flag that the OQ code next frame would wait on
 		// commit the buffer for this context
 		[CurrentCommandBuffer commit];
 		UNTRACK_OBJECT(CurrentCommandBuffer);
 		[CurrentCommandBuffer release];
-		
+
 		// create the command buffer for this frame
 		CreateCurrentCommandBuffer(false);
 	}
-		
+
 	// make a new render context to use to render to the framebuffer
-	CurrentContext = [CurrentCommandBuffer renderCommandEncoderWithDescriptor:CurrentRenderPass];
+	CurrentContext = [CurrentCommandBuffer renderCommandEncoderWithDescriptor:RenderPass];
 	[CurrentContext retain];
 	TRACK_OBJECT(CurrentContext);
 
-	// make suire the rasterizer state is set the first time for each new encoder
+	// make sure the rasterizer state is set the first time for each new encoder
 	bFirstRasterizerState = true;
 }
-
-
 
 uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 {
@@ -822,45 +850,6 @@ void FMetalManager::CommitNonComputeShaderConstants()
 		ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedGlobals(CrossCompiler::SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->Bindings);
 	}
 }
-
-bool FMetalManager::WaitForCommandBufferComplete(uint64 IndexToWaitFor, double Timeout)
-{
-	// don't track a block if not needed
-	if (CompletedCommandBufferIndex >= IndexToWaitFor)
-	{
-		return true;
-	}
-
-	// if we don't want to wait, then we have failed
-	if (Timeout == 0.0)
-	{
-		return false;
-	}
-
-	// if we block until it's ready, loop here until it is
-	SCOPE_CYCLE_COUNTER(STAT_RenderQueryResultTime);
-	uint32 IdleStart = FPlatformTime::Cycles();
-	double StartTime = FPlatformTime::Seconds();
-
-	while (CompletedCommandBufferIndex < IndexToWaitFor)
-	{
-		FPlatformProcess::Sleep(0);
-
-		// look for gpu stuck/crashed
-		if ((FPlatformTime::Seconds() - StartTime) > Timeout)
-		{
-			UE_LOG(LogRHI, Log, TEXT("Timed out while waiting for GPU to catch up on occlusion/timer results. (%.1f s)"), Timeout);
-			return false;
-		}
-	}
-
-	// track idle time blocking on GPU
-	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUQuery] += FPlatformTime::Cycles() - IdleStart;
-	GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUQuery]++;
-
-	return true;
-}
-
 
 void FMetalManager::SetRasterizerState(const FRasterizerStateInitializerRHI& State)
 {
