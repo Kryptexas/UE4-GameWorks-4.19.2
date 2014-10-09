@@ -496,21 +496,12 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 	UFunction* Function = FindFunction(Context, Node);
 	if (Function != NULL)
 	{
-		// Auto-created term defaults
-		TArray<FString> AutoCreateRefTermPinNames;
-		const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
-		if (bHasAutoCreateRefTerms)
-		{
-			CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
-		}
-
 		TArray<FString> DefaultToSelfParamNames;
 		TArray<FString> RequiresSetValue;
 
 		if (Function->HasMetaData(FBlueprintMetadata::MD_DefaultToSelf))
 		{
 			FString const DefaltToSelfPinName = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-			AutoCreateRefTermPinNames.Remove(DefaltToSelfPinName);
 
 			DefaultToSelfParamNames.Add(DefaltToSelfPinName);
 		}
@@ -519,7 +510,6 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			const bool bHasIntrinsicWorldContext = Context.Blueprint->ParentClass->GetDefaultObject()->ImplementsGetWorld();
 
 			FString const WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
-			AutoCreateRefTermPinNames.Remove(WorldContextPinName);
 
 			if (bHasIntrinsicWorldContext)
 			{
@@ -551,37 +541,6 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 				else if (RequiresSetValue.Contains(Pin->PinName))
 				{
 					CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "PinMustHaveConnection_Error", "Pin @@ must have a connection").ToString(), Pin);
-				}
-			}
-
-			// Check for default term for ref parameters
-			if (bHasAutoCreateRefTerms && (AutoCreateRefTermPinNames.Contains(Pin->PinName)))
-			{
-				if (Pin->PinType.bIsReference
-					&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
-					&& !CompilerContext.GetSchema()->IsSelfPin(*Pin)
-					&& (Pin->Direction == EGPD_Input)
-					&& !bIsConnected
-					&& (Pin->PinType.bIsArray || !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject))
-				{
-					// These terms have to be class members, because they hold default values.  If we don't have a valid ubergraph context, we've already failed, so no use creating the term
-					if (CompilerContext.UbergraphContext != NULL)
-					{
-						check(CompilerContext.UbergraphContext->NetNameMap);
-						FBPTerminal* Term = Context.CreateLocalTerminal(ETerminalSpecification::TS_ForcedShared);
-						Term->CopyFromPin(Pin, *CompilerContext.UbergraphContext->NetNameMap->MakeValidName(Pin));
-						Term->Name += TEXT("_RefProperty");
-						if (!Pin->PinType.bIsArray)
-						{
-							Term->PropertyDefault = Pin->DefaultObject ? Pin->DefaultObject->GetPathName() : Pin->DefaultValue;
-						}
-
-						Context.NetMap.Add(Pin, Term);
-					}
-					else
-					{
-						CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "PinMustHaveConnection_Error", "Pin @@ must have a connection").ToString(), Pin);
-					}
 				}
 			}
 		}

@@ -157,6 +157,8 @@ public:
 
 	static void CallForEachElementInArrayExpansion(UK2Node* Node, UEdGraphPin* MultiSelf, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
 
+	static UEdGraphPin* InnerHandleAutoCreateRef(UK2Node* Node, UEdGraphPin* Pin, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, bool bForceAssignment);
+
 	/**
 	 * Returns the graph for this function, if available. In cases of calling an event, it will be the ubergraph for the event
 	 *

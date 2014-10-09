@@ -14,50 +14,6 @@
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_AddComponent
 
-class FKCHandler_AddComponent : public FKCHandler_CallFunction
-{
-public:
-	FKCHandler_AddComponent(FKismetCompilerContext& InCompilerContext)
-		: FKCHandler_CallFunction(InCompilerContext)
-	{
-	}
-
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
-	{
-		FKCHandler_CallFunction::RegisterNets(Context, Node);
-
-		UK2Node_AddComponent* AddComponentNode = CastChecked<UK2Node_AddComponent>(Node);
-		UEdGraphPin* TransformPin = AddComponentNode->GetRelativeTransformPin();
-
-		// If the transform pin is not connected, create a term that grabs its value from the template, so that value is used and not replaced with the identity.
-		if (TransformPin->LinkedTo.Num() == 0)
-		{
-			// The context can be NULL if the graph failed validation previously; no point in even trying to register nets, as the skeleton will be used instead
-			if (CompilerContext.UbergraphContext != NULL)
-			{
-				check(CompilerContext.UbergraphContext->NetNameMap);
-				// If there's no term, add a dummy identity transform here.  Term is defined in the event graph's scope, because a default value needs to be set
-				FBPTerminal* TransformTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_ForcedShared);
-				TransformTerm->CopyFromPin(TransformPin, FString::Printf(TEXT("%s_AddComponentDefaultTransform"), *CompilerContext.UbergraphContext->NetNameMap->MakeValidName(TransformPin)));
-				TransformTerm->bIsConst = true;
-				TransformTerm->PropertyDefault = TEXT("");
-
-				// Try and find the template and get relative transform from it
-				UEdGraphPin* TemplateNamePin = AddComponentNode->GetTemplateNamePinChecked();
-				const FString TemplateName = TemplateNamePin->DefaultValue;
-				USceneComponent* SceneCompTemplate = Cast<USceneComponent>(Context.GetBlueprint()->FindTemplateByName(FName(*TemplateName)));
-				if (SceneCompTemplate != NULL)
-				{
-					FTransform TemplateTransform = FTransform(SceneCompTemplate->RelativeRotation, SceneCompTemplate->RelativeLocation, SceneCompTemplate->RelativeScale3D);
-					TransformTerm->PropertyDefault = TemplateTransform.ToString();
-				}
-
-				Context.NetMap.Add(TransformPin, TransformTerm);
-			}
-		}
-	}
-};
-
 UK2Node_AddComponent::UK2Node_AddComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -406,14 +362,36 @@ bool UK2Node_AddComponent::IsCompatibleWithGraph(UEdGraph const* Graph) const
 	return (Blueprint != nullptr) && FBlueprintEditorUtils::IsActorBased(Blueprint) && Super::IsCompatibleWithGraph(Graph);
 }
 
-FNodeHandlingFunctor* UK2Node_AddComponent::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
-{
-	return new FKCHandler_AddComponent(CompilerContext);
-}
-
 void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
+
+	
+	if (CompilerContext.bIsFullCompile)
+	{
+		auto TransformPin = GetRelativeTransformPin();
+		if (TransformPin && !TransformPin->LinkedTo.Num())
+		{
+			FString DefaultValue;
+
+			// Try and find the template and get relative transform from it
+			UEdGraphPin* TemplateNamePin = GetTemplateNamePinChecked();
+			const FString TemplateName = TemplateNamePin->DefaultValue;
+			check(CompilerContext.Blueprint);
+			USceneComponent* SceneCompTemplate = Cast<USceneComponent>(CompilerContext.Blueprint->FindTemplateByName(FName(*TemplateName)));
+			if (SceneCompTemplate)
+			{
+				FTransform TemplateTransform = FTransform(SceneCompTemplate->RelativeRotation, SceneCompTemplate->RelativeLocation, SceneCompTemplate->RelativeScale3D);
+				DefaultValue = TemplateTransform.ToString();
+			}
+
+			auto ValuePin = InnerHandleAutoCreateRef(this, TransformPin, CompilerContext, SourceGraph, !DefaultValue.IsEmpty());
+			if (ValuePin)
+			{
+				ValuePin->DefaultValue = DefaultValue;
+			}
+		}
+	}
 
 	if (CompilerContext.bIsFullCompile && bHasExposedVariable)
 	{

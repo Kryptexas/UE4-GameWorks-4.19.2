@@ -8,6 +8,7 @@
 #include "K2Node_SwitchEnum.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "K2Node_PureAssignmentStatement.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -1382,50 +1383,50 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 					// Expanded as input execs pins
 					if (EnumParamPin->Direction == EGPD_Input)
 					{
-					// Create normal exec input
-					UEdGraphPin* ExecutePin = CreatePin(EGPD_Input, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
+						// Create normal exec input
+						UEdGraphPin* ExecutePin = CreatePin(EGPD_Input, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
 
-					// Create temp enum variable
-					UK2Node_TemporaryVariable* TempEnumVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
-					TempEnumVarNode->VariableType.PinCategory = Schema->PC_Byte;
-					TempEnumVarNode->VariableType.PinSubCategoryObject = EnumProp->Enum;
-					TempEnumVarNode->AllocateDefaultPins();
-					// Get the output pin
-					UEdGraphPin* TempEnumVarOutput = TempEnumVarNode->GetVariablePin();
+						// Create temp enum variable
+						UK2Node_TemporaryVariable* TempEnumVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
+						TempEnumVarNode->VariableType.PinCategory = Schema->PC_Byte;
+						TempEnumVarNode->VariableType.PinSubCategoryObject = EnumProp->Enum;
+						TempEnumVarNode->AllocateDefaultPins();
+						// Get the output pin
+						UEdGraphPin* TempEnumVarOutput = TempEnumVarNode->GetVariablePin();
 
-					// Connect temp enum variable to (hidden) enum pin
-					Schema->TryCreateConnection(TempEnumVarOutput, EnumParamPin);
+						// Connect temp enum variable to (hidden) enum pin
+						Schema->TryCreateConnection(TempEnumVarOutput, EnumParamPin);
 
-					// Now we want to iterate over other exec inputs...
-					for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
-					{
-						UEdGraphPin* Pin = Pins[PinIdx];
-						if( Pin != NULL && 
-							Pin != ExecutePin &&
-							Pin->Direction == EGPD_Input && 
-							Pin->PinType.PinCategory == Schema->PC_Exec )
+						// Now we want to iterate over other exec inputs...
+						for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
 						{
-							// Create node to set the temp enum var
-							UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
-							AssignNode->AllocateDefaultPins();
+							UEdGraphPin* Pin = Pins[PinIdx];
+							if( Pin != NULL && 
+								Pin != ExecutePin &&
+								Pin->Direction == EGPD_Input && 
+								Pin->PinType.PinCategory == Schema->PC_Exec )
+							{
+								// Create node to set the temp enum var
+								UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
+								AssignNode->AllocateDefaultPins();
 
-							// Move connections from fake 'enum exec' pint to this assignment node
-								CompilerContext.MovePinLinksToIntermediate(*Pin, *AssignNode->GetExecPin());
+								// Move connections from fake 'enum exec' pint to this assignment node
+									CompilerContext.MovePinLinksToIntermediate(*Pin, *AssignNode->GetExecPin());
 
-							// Connect this to out temp enum var
-							Schema->TryCreateConnection(AssignNode->GetVariablePin(), TempEnumVarOutput);
+								// Connect this to out temp enum var
+								Schema->TryCreateConnection(AssignNode->GetVariablePin(), TempEnumVarOutput);
 
-							// Connect exec output to 'real' exec pin
-							Schema->TryCreateConnection(AssignNode->GetThenPin(), ExecutePin);
+								// Connect exec output to 'real' exec pin
+								Schema->TryCreateConnection(AssignNode->GetThenPin(), ExecutePin);
 
-							// set the literal enum value to set to
-							AssignNode->GetValuePin()->DefaultValue = Pin->PinName;
+								// set the literal enum value to set to
+								AssignNode->GetValuePin()->DefaultValue = Pin->PinName;
 
-							// Finally remove this 'cosmetic' exec pin
-							Pins.RemoveAt(PinIdx);
+								// Finally remove this 'cosmetic' exec pin
+								Pins.RemoveAt(PinIdx);
+							}
 						}
 					}
-				}
 					// Expanded as output execs pins
 					else if (EnumParamPin->Direction == EGPD_Output)
 					{
@@ -1464,6 +1465,44 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 			}
 		}
 
+		// AUTO CREATED REFS
+		{
+			TArray<FString> AutoCreateRefTermPinNames;
+			const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
+			if (bHasAutoCreateRefTerms)
+			{
+				CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
+			}
+
+			for (auto Pin : Pins)
+			{
+				if (Pin && bHasAutoCreateRefTerms && AutoCreateRefTermPinNames.Contains(Pin->PinName))
+				{
+					const bool bHasDefaultValue = !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject || !Pin->DefaultTextValue.IsEmpty();
+					const bool bValidAutoRefPin = Pin->PinType.bIsReference
+						&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
+						&& (Pin->Direction == EGPD_Input)
+						&& !Pin->LinkedTo.Num()
+						&& (Pin->PinType.bIsArray || bHasDefaultValue);
+					if (bValidAutoRefPin)
+					{
+						//default values can be reset when the pin is connected
+						const auto DefaultValue = Pin->DefaultValue;
+						const auto DefaultObject = Pin->DefaultObject;
+						const auto DefaultTextValue = Pin->DefaultTextValue;
+
+						auto ValuePin = InnerHandleAutoCreateRef(this, Pin, CompilerContext, SourceGraph, bHasDefaultValue);
+						if (ValuePin)
+						{
+							ValuePin->DefaultValue = DefaultValue;
+							ValuePin->DefaultObject = DefaultObject;
+							ValuePin->DefaultTextValue = DefaultTextValue;
+						}
+					}
+				}
+			}
+		}
+
 		// Then we go through and expand out array iteration if necessary
 		const bool bAllowMultipleSelfs = AllowMultipleSelfs(true);
 		UEdGraphPin* MultiSelf = Schema->FindSelfPin(*this, EEdGraphPinDirection::EGPD_Input);
@@ -1479,6 +1518,42 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 			}
 		}
 	}
+}
+
+UEdGraphPin* UK2Node_CallFunction::InnerHandleAutoCreateRef(UK2Node* Node, UEdGraphPin* Pin, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, bool bForceAssignment)
+{
+	const bool bAddAssigment = !Pin->PinType.bIsArray && bForceAssignment;
+
+	// ADD LOCAL VARIABLE
+	UK2Node_TemporaryVariable* LocalVariable = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(Node, SourceGraph);
+	LocalVariable->VariableType = Pin->PinType;
+	LocalVariable->VariableType.bIsReference = false;
+	LocalVariable->AllocateDefaultPins();
+	if (!bAddAssigment)
+	{
+		if (!CompilerContext.GetSchema()->TryCreateConnection(LocalVariable->GetVariablePin(), Pin))
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("AutoCreateRefTermPin_NotConnected", "AutoCreateRefTerm Expansion: Pin @@ cannot be connected to @@").ToString(), LocalVariable->GetVariablePin(), Pin);
+			return NULL;
+		}
+	}
+	// ADD ASSIGMENT
+	else
+	{
+		// TODO connect to dest..
+		UK2Node_PureAssignmentStatement* AssignDefaultValue = CompilerContext.SpawnIntermediateNode<UK2Node_PureAssignmentStatement>(Node, SourceGraph);
+		AssignDefaultValue->AllocateDefaultPins();
+		const bool bVariableConnected = CompilerContext.GetSchema()->TryCreateConnection(AssignDefaultValue->GetVariablePin(), LocalVariable->GetVariablePin());
+		const bool bOutputConnected = CompilerContext.GetSchema()->TryCreateConnection(AssignDefaultValue->GetOutputPin(), Pin);
+		if (!bVariableConnected || !bOutputConnected)
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("AutoCreateRefTermPin_AssignmentError", "AutoCreateRefTerm Expansion: Assignment Error @@").ToString(), AssignDefaultValue);
+			return NULL;
+		}
+		CompilerContext.GetSchema()->SetPinDefaultValueBasedOnType(AssignDefaultValue->GetValuePin());
+		return AssignDefaultValue->GetValuePin();
+	}
+	return NULL;
 }
 
 void UK2Node_CallFunction::CallForEachElementInArrayExpansion(UK2Node* Node, UEdGraphPin* MultiSelf, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
