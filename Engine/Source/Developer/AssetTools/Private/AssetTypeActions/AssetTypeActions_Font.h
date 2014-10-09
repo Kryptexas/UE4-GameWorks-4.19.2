@@ -7,7 +7,7 @@ class FAssetTypeActions_Font : public FAssetTypeActions_Base
 public:
 	// IAssetTypeActions Implementation
 	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_Font", "Font"); }
-	virtual FColor GetTypeColor() const override { return FColor(255,0,0); }
+	virtual FColor GetTypeColor() const override { return FColor(128,128,64); }
 	virtual UClass* GetSupportedClass() const override { return UFont::StaticClass(); }
 	virtual bool HasActions(const TArray<UObject*>& InObjects) const override { return true; }
 	virtual void GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder) override;

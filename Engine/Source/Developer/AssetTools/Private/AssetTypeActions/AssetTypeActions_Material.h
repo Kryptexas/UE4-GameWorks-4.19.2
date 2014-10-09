@@ -7,7 +7,7 @@ class FAssetTypeActions_Material : public FAssetTypeActions_MaterialInterface
 public:
 	// IAssetTypeActions Implementation
 	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_Material", "Material"); }
-	virtual FColor GetTypeColor() const override { return FColor(0,255,0); }
+	virtual FColor GetTypeColor() const override { return FColor(64,192,64); }
 	virtual UClass* GetSupportedClass() const override { return UMaterial::StaticClass(); }
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
 	virtual bool CanFilter() override { return true; }

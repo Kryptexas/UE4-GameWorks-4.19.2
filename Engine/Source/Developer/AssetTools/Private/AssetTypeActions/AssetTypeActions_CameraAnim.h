@@ -7,7 +7,7 @@ class FAssetTypeActions_CameraAnim : public FAssetTypeActions_Base
 public:
 	// IAssetTypeActions Implementation
 	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_CameraAnim", "Camera Anim"); }
-	virtual FColor GetTypeColor() const override { return FColor(255,0,0); }
+	virtual FColor GetTypeColor() const override { return FColor(128,0,64); }
 	virtual UClass* GetSupportedClass() const override { return UCameraAnim::StaticClass(); }
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
 	virtual bool CanFilter() override { return true; }
