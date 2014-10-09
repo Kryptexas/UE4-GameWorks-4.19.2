@@ -12,6 +12,7 @@
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "EngineModule.h"
 #include "PrecomputedLightVolume.h"
+#include "FXSystem.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -189,7 +190,7 @@ FORCEINLINE static void VerifyProperPIEScene(UPrimitiveComponent* Component, UWo
 #endif
 }
 
-FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, ERHIFeatureLevel::Type InFeatureLevel)
+FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel)
 :	World(InWorld)
 ,	FXSystem(NULL)
 ,	bStaticDrawListsMobileHDR(false)
@@ -216,6 +217,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	bHasSkyLight(false)
 {
 	check(World);
+	World->Scene = this;
 
 	FeatureLevel = World->FeatureLevel;
 
@@ -226,6 +228,23 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 
 	static auto* EarlyZPassCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
 	StaticDrawListsEarlyZPassMode = EarlyZPassCvar->GetValueOnAnyThread();
+
+	if (World->FXSystem)
+	{
+		FFXSystemInterface::Destroy(World->FXSystem);
+	}
+
+	if (bCreateFXSystem)
+	{
+		World->CreateFXSystem();
+	}
+	else
+	{
+		World->FXSystem = NULL;
+		SetFXSystem(NULL);
+	}
+
+	World->UpdateParameterCollectionInstances(false);
 }
 
 FScene::~FScene()
@@ -2139,14 +2158,14 @@ private:
 	class FFXSystemInterface* FXSystem;
 };
 
-FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel)
+FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresHitProxies, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	check(IsInGameThread());
 
 	// Create a full fledged scene if we have something to render.
 	if( GIsClient && !IsRunningCommandlet() && !GUsingNullRHI )
 	{
-		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), InFeatureLevel);
+		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), bCreateFXSystem, InFeatureLevel);
 		AllocatedScenes.Add(NewScene);
 		return NewScene;
 	}

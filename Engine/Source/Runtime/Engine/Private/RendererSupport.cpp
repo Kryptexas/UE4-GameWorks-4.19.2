@@ -133,13 +133,7 @@ void RestoreReferencesToRendererModuleClasses(
 	{
 		UWorld* World = It.Key();
 
-		World->Scene = RendererModule.AllocateScene(World, World->RequiresHitProxies(), World->FeatureLevel);
-
-		if (It.Value())
-		{
-			World->FXSystem = FFXSystemInterface::Create(World->FeatureLevel);
-			World->Scene->SetFXSystem( World->FXSystem );
-		}
+		RendererModule.AllocateScene(World, World->RequiresHitProxies(), It.Value(), World->FeatureLevel);
 
 		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
 		{

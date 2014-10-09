@@ -803,16 +803,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		
 		// Save off the value used to create the scene, so this UWorld can recreate its scene later
 		bRequiresHitProxies = IVS.bRequiresHitProxies;
-		Scene = GetRendererModule().AllocateScene( this, bRequiresHitProxies, FeatureLevel );
-		if ( IVS.bCreateFXSystem )
-		{
-			CreateFXSystem();
-		}
-		else
-		{
-			FXSystem = NULL;
-			Scene->SetFXSystem(NULL);
-		}
+		GetRendererModule().AllocateScene(this, bRequiresHitProxies, IVS.bCreateFXSystem, FeatureLevel);
 	}
 
 	// Prepare AI systems
@@ -5379,11 +5370,7 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 			Scene->Release();
 			GetRendererModule().RemoveScene(Scene);
 
-			Scene = GetRendererModule().AllocateScene(this, bRequiresHitProxies, InFeatureLevel);
-
-			FFXSystemInterface::Destroy(FXSystem);
-			FXSystem = FFXSystemInterface::Create(InFeatureLevel);
-			Scene->SetFXSystem(FXSystem);
+			GetRendererModule().AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel );
 		}
 
 		TriggerStreamingDataRebuild();
