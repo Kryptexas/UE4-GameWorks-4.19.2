@@ -1022,7 +1022,8 @@ void FSceneView::EndFinalPostprocessSettings()
 		}
 
 		// Not supported in ES2.
-		if(Family->Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2)
+		auto FeatureLevel = Family->Scene->GetFeatureLevel();
+		if(FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
 		{
 			FinalPostProcessSettings.ScreenPercentage = 100.0f;
 		}
@@ -1118,7 +1119,7 @@ void FSceneView::EndFinalPostprocessSettings()
 		if( !Family->EngineShowFlags.PostProcessing || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
 			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
-			|| (FeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue > 1)))
+			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && (MSAAValue > 1)))
 		{
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}

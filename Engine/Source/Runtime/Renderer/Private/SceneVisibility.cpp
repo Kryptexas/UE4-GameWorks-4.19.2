@@ -763,7 +763,7 @@ static void ComputeRelevanceForView(
 
 		// Cache the nearest reflection proxy if needed
 		if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
-			// In ES2, the per-object reflection is used for everything
+			// During Forward Shading, the per-object reflection is used for everything
 			// Otherwise it is just used on translucency
 			&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
 		{
@@ -1005,9 +1005,9 @@ struct FRelevancePacket
 
 			// Cache the nearest reflection proxy if needed
 			if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
-				// In ES2, the per-object reflection is used for everything
-					// Otherwise it is just used on translucency
-						&& (Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2 || bTranslucentRelevance))
+				// During Forward Shading, the per-object reflection is used for everything
+				// Otherwise it is just used on translucency
+				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
 				PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;

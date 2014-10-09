@@ -412,7 +412,7 @@ void ULandscapeComponent::PostLoad()
 		}
 
 		// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
-		if (!FPlatformProperties::RequiresCookedData() && (GIsEditor || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2))
+		if (!FPlatformProperties::RequiresCookedData() && (GIsEditor || (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1)))
 		{
 			// Only check the DDC if we don't already have it loaded
 			if (!PlatformData.HasValidPlatformData())

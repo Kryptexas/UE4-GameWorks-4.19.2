@@ -9027,7 +9027,8 @@ int32 UMaterialExpressionLandscapeLayerCoords::Compile(class FMaterialCompiler* 
 		Compiler->Constant2(MappingPanU, MappingPanV)
 		);
 
-	if (Compiler->GetFeatureLevel() != ERHIFeatureLevel::ES2) // No need to localize UV
+	auto FeatureLevel = Compiler->GetFeatureLevel();
+	if (FeatureLevel != ERHIFeatureLevel::ES2 && FeatureLevel != ERHIFeatureLevel::ES3_1) // No need to localize UV
 	{
 		ResultUV = TransformedUV;
 	}
