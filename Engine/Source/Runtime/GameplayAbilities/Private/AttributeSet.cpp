@@ -77,6 +77,17 @@ UAbilitySystemComponent* UAttributeSet::GetOwningAbilitySystemComponent() const
 	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CastChecked<AActor>(GetOuter()));
 }
 
+FGameplayAbilityActorInfo* UAttributeSet::GetActorInfo() const
+{
+	UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+	if (ASC)
+	{
+		return ASC->AbilityActorInfo.Get();
+	}
+
+	return nullptr;
+}
+
 void UAttributeSet::PrintDebug()
 {
 	

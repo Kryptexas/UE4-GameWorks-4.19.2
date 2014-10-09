@@ -5,6 +5,7 @@
 #include "AttributeSet.generated.h"
 
 class UAbilitySystemComponent;
+struct FGameplayAbilityActorInfo;
 
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAttribute
@@ -123,6 +124,7 @@ public:
 	void InitFromMetaDataTable(const UDataTable* DataTable);
 
 	UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
+	FGameplayAbilityActorInfo* GetActorInfo() const;
 
 	virtual void PrintDebug();
 

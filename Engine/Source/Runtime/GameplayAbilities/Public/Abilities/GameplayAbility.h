@@ -491,6 +491,12 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="Ability|Animation")
 	void MontageStop();
 
+	// ----------------------------------------------------------------------------------------------------------------
+	//
+	//	Target Data
+	//
+	// ----------------------------------------------------------------------------------------------------------------
+
 	UFUNCTION(BlueprintPure, Category = Ability, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
 	FGameplayAbilityTargetingLocationInfo MakeTargetLocationInfoFromOwnerActor();
 
@@ -499,8 +505,7 @@ protected:
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
-	//	
-	//
+	//	Ability Levels
 	// 
 	// ----------------------------------------------------------------------------------------------------------------
 	
