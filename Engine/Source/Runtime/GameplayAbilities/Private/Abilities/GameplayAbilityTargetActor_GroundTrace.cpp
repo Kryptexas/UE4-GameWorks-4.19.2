@@ -74,7 +74,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 	{
 		TraceEnd = TraceStart = OriginalEndPoint - (LerpValue * Movement);
 		TraceEnd.Z -= 99999.0f;
-		ThisWorld->SweepSingle(LocalResult, TraceStart, TraceEnd, FQuat::Identity, ECC_WorldStatic, CollisionShape, Params);
+		ThisWorld->SweepSingle(LocalResult, TraceStart, TraceEnd, FQuat::Identity, TraceChannel, CollisionShape, Params);
 		if (!LocalResult.bStartPenetrating)
 		{
 			if (!LocalResult.bBlockingHit)
@@ -123,7 +123,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 	return false;
 }
 
-FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourceActor) const
+FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourceActor)
 {
 	static const FName LineTraceSingleName(TEXT("AGameplayAbilityTargetActor_GroundTrace"));
 	bool bTraceComplex = false;
@@ -159,6 +159,8 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 	InSourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, TraceChannel, Params);
 	//if (!ReturnHitResult.bBlockingHit) then our endpoint may be off the map. Hopefully this is only possible in debug maps.
 
+	bLastTraceWasGood = true;		//So far, we're good. If we need a ground spot and can't find one, we'll come back.
+
 	//Use collision shape to find a valid ground spot, if appropriate
 	if (CollisionShape.ShapeType != ECollisionShape::Line)
 	{
@@ -166,7 +168,8 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 		TraceStart = InSourceActor->GetActorLocation();
 		TraceEnd = ReturnHitResult.Location;
 		TraceStart.Z += CollisionHeightOffset;
-		if (AdjustCollisionResultForShape(TraceStart, TraceEnd, Params, ReturnHitResult))
+		bLastTraceWasGood = AdjustCollisionResultForShape(TraceStart, TraceEnd, Params, ReturnHitResult);
+		if (bLastTraceWasGood)
 		{
 			ReturnHitResult.Location.Z -= CollisionHeightOffset;	//Undo the artificial height adjustment
 		}
@@ -174,8 +177,14 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 
 	if (AActor* LocalReticleActor = ReticleActor.Get())
 	{
+		//TODO Special (for now) functionality: We should tell the reticle to turn red or something, indicating this isn't a valid location
 		LocalReticleActor->SetActorLocation(ReturnHitResult.Location);
 	}
 
 	return ReturnHitResult;
+}
+
+bool AGameplayAbilityTargetActor_GroundTrace::IsConfirmTargetingAllowed()
+{
+	return bLastTraceWasGood;
 }

@@ -975,15 +975,22 @@ void UAbilitySystemComponent::ServerInputRelease_Implementation(FGameplayAbility
 
 void UAbilitySystemComponent::TargetConfirm()
 {
+	TArray<AGameplayAbilityTargetActor*> LeftoverTargetActors;
 	for (AGameplayAbilityTargetActor* TargetActor : SpawnedTargetActors)
 	{
 		if (TargetActor)
 		{
-			TargetActor->ConfirmTargeting();
+			if (TargetActor->IsConfirmTargetingAllowed())
+			{
+				TargetActor->ConfirmTargeting();
+			}
+			else
+			{
+				LeftoverTargetActors.Add(TargetActor);
+			}
 		}
 	}
-
-	SpawnedTargetActors.Empty();
+	SpawnedTargetActors = LeftoverTargetActors;		//These actors declined to confirm targeting, so keep contact with them.
 }
 
 void UAbilitySystemComponent::TargetCancel()

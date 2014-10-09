@@ -35,8 +35,10 @@ void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPl
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
 {
+	check(false);		//This should never actually be called, and if it is, it will require a const version of PerformTrace()
 	AActor* StaticSourceActor = ActorInfo->AvatarActor.Get();
-	return MakeTargetData(PerformTrace(StaticSourceActor));
+	//return MakeTargetData(PerformTrace(StaticSourceActor));		//Old way, requires PerformTrace to be a const call
+	return MakeTargetData(FHitResult());
 }
 
 void AGameplayAbilityTargetActor_Trace::AimWithPlayerController(AActor* InSourceActor, FCollisionQueryParams Params, FVector TraceStart, FVector& TraceEnd) const

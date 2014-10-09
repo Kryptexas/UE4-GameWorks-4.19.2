@@ -42,10 +42,12 @@ public:
 	/** Initialize and begin targeting logic  */
 	virtual void StartTargeting(UGameplayAbility* Ability);
 
+	virtual bool IsConfirmTargetingAllowed();
+
 	/** Requesting targeting data, but not necessarily stopping/destroying the task. Useful for external target data requests. */
 	virtual void ConfirmTargetingAndContinue();
 
-	/** Outside code is saying 'stop and just give me what you have' */
+	/** Outside code is saying 'stop and just give me what you have.' Returns true if the ability accepts this and can be forgotten. */
 	UFUNCTION()
 	virtual void ConfirmTargeting();
 

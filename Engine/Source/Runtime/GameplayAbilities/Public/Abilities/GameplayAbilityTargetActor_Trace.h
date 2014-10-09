@@ -34,7 +34,7 @@ public:
 	TEnumAsByte<ECollisionChannel> TraceChannel;
 
 protected:
-	virtual FHitResult PerformTrace(AActor* InSourceActor) const PURE_VIRTUAL(AGameplayAbilityTargetActor_Trace, return FHitResult(););
+	virtual FHitResult PerformTrace(AActor* InSourceActor) PURE_VIRTUAL(AGameplayAbilityTargetActor_Trace, return FHitResult(););
 
 	FGameplayAbilityTargetDataHandle MakeTargetData(FHitResult HitResult) const;
 

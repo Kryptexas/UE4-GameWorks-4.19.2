@@ -34,18 +34,29 @@ void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
 	OwningAbility = Ability;
 }
 
+bool AGameplayAbilityTargetActor::IsConfirmTargetingAllowed()
+{
+	return true;
+}
+
 void AGameplayAbilityTargetActor::ConfirmTargetingAndContinue()
 {
 	check(ShouldProduceTargetData());
-	TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+	if (IsConfirmTargetingAllowed())
+	{
+		TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+	}
 }
 
 void AGameplayAbilityTargetActor::ConfirmTargeting()
 {
-	ConfirmTargetingAndContinue();
-	if (bDestroyOnConfirmation)
+	if (IsConfirmTargetingAllowed())
 	{
-		Destroy();
+		ConfirmTargetingAndContinue();
+		if (bDestroyOnConfirmation)
+		{
+			Destroy();
+		}
 	}
 }
 
