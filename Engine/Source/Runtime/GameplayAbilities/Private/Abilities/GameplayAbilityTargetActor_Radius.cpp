@@ -55,26 +55,21 @@ TArray<TWeakObjectPtr<AActor> >	AGameplayAbilityTargetActor_Radius::PerformOverl
 	static FName RadiusTargetingOverlap = FName(TEXT("RadiusTargetingOverlap"));
 	bool bTraceComplex = false;
 	
-	TArray<TWeakObjectPtr<AActor> > ActorsToIgnore;
-	ActorsToIgnore.Add(SourceActor);
-
 	FCollisionQueryParams Params(RadiusTargetingOverlap, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
 	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
 
 	TArray<FOverlapResult> Overlaps;
 
 	SourceActor->GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(Radius), Params);
 
-
-	TArray<TWeakObjectPtr<AActor> >	HitActors;
+	TArray<TWeakObjectPtr<AActor>>	HitActors;
 
 	for (int32 i=0; i < Overlaps.Num(); ++i)
 	{
-		// Temp, this needs to be way more robust
+		//Should this check to see if these pawns are in the AimTarget list?
 		APawn* PawnActor = Cast<APawn>(Overlaps[i].GetActor());
-		if (PawnActor)
+		if (PawnActor && FilterHandle.FilterPassesForActor(PawnActor))
 		{
 			HitActors.Add(PawnActor);
 		}
