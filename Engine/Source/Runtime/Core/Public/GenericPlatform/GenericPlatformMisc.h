@@ -347,7 +347,7 @@ struct CORE_API FGenericPlatformMisc
 	/**
 	 * Enforces strict memory load/store ordering across the memory barrier call.
 	 */
-	static void MemoryBarrier();
+	FORCENOINLINE static void MemoryBarrier();
 
 	/**
 	 * Handles IO failure by ending gameplay.
