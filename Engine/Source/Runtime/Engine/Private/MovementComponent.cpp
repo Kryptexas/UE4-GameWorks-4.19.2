@@ -29,6 +29,7 @@ UMovementComponent::UMovementComponent(const class FPostConstructInitializePrope
 
 	bWantsInitializeComponent = true;
 	bAutoActivate = true;
+	bInOnRegister = false;
 }
 
 
@@ -49,8 +50,13 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	if ( UpdatedComponent != NULL )
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
-		UpdatedComponent->UpdatePhysicsVolume(true);
 		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
+
+		if (!bInOnRegister)
+		{
+			// UpdateOverlaps() in component registration will take care of this.
+			UpdatedComponent->UpdatePhysicsVolume(true);
+		}
 		
 		// force ticks after movement component updates
 		UpdatedComponent->PrimaryComponentTick.AddPrerequisite(this, PrimaryComponentTick); 
@@ -67,6 +73,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 
 void UMovementComponent::OnRegister()
 {
+	TGuardValue<bool> InOnRegisterGuard(bInOnRegister, true);
 	Super::OnRegister();
 
 	UPrimitiveComponent* NewUpdatedComponent = NULL;

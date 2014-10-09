@@ -310,6 +310,11 @@ public:
 	/** Snap the updated component to the plane constraint, if enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SnapUpdatedComponentToPlane();
+
+private:
+
+	/** Transient flag indicating whether we are executing OnRegister(). */
+	bool bInOnRegister;
 };
 
 
