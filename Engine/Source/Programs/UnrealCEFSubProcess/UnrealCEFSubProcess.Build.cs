@@ -26,9 +26,9 @@ public class UnrealCEFSubProcess : ModuleRules
 			}
 		);
 
-		/*AddThirdPartyPrivateStaticDependencies(Target,
+		AddThirdPartyPrivateStaticDependencies(Target,
 			"CEF3"
-			);*/
+			);
 	}
 }
 
