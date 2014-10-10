@@ -1589,8 +1589,8 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 	FTransform RelativeTM = TheirTM.GetRelativeTransform(MyTM);
 
-	PxScene * PSyncScene = RigidActorSync ? RigidActorSync->getScene() : NULL;
-	PxScene * PAsyncScene = RigidActorAsync ? RigidActorAsync->getScene() : NULL;
+	PxScene* PSyncScene = RigidActorSync ? RigidActorSync->getScene() : NULL;
+	PxScene* PAsyncScene = RigidActorAsync ? RigidActorAsync->getScene() : NULL;
 
 	SCOPED_SCENE_WRITE_LOCK(PSyncScene);
 	SCOPED_SCENE_WRITE_LOCK(PAsyncScene);
@@ -1598,12 +1598,12 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 	//child body gets placed into the same scenes as parent body
 	if (PxRigidActor* MyBody = RigidActorSync)
 	{
-		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM, &PNewShapes);
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, RelativeTM, &PNewShapes);
 	}
 
 	if (PxRigidActor* MyBody = RigidActorAsync)
 	{
-		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM, &PNewShapes);
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, RelativeTM, &PNewShapes);
 	}
 
 
