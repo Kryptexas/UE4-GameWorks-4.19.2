@@ -467,7 +467,7 @@ void FAnimationRuntime::ConvertPoseToAdditive(FTransformArrayA2 & TargetPose, co
 
 		TargetTransform.SetRotation( TargetTransform.GetRotation() * BaseTransform.GetRotation().Inverse() );
 		TargetTransform.SetTranslation( TargetTransform.GetTranslation() - BaseTransform.GetTranslation() );
-		TargetTransform.SetScale3D( TargetTransform.GetScale3D() / BaseTransform.GetScale3D() );
+		TargetTransform.SetScale3D( TargetTransform.GetScale3D() * BaseTransform.GetSafeScaleReciprocal( BaseTransform.GetScale3D() ) );
 		TargetTransform.NormalizeRotation();
 	}
 }
