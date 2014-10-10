@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "HAL/Platform.h"
+
 
 class FArchive;
 class FOutputDevice;
@@ -9,6 +11,7 @@ class FString;
 class UObject;
 
 inline uint32 GetTypeHash(const int64 A);
+
 
 namespace ETimespan
 {
@@ -50,10 +53,8 @@ class FTimespan
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FTimespan( ) { }
+	/** Default constructor (no initialization). */
+	FTimespan() { }
 
 	/**
 	 * Creates and initializes a new time interval with the specified number of ticks.
@@ -69,7 +70,8 @@ public:
 	 *
 	 * @param Hours The hours component.
 	 * @param Minutes The minutes component.
-	 * @param Seconds The seconds component.	 */
+	 * @param Seconds The seconds component.
+	 */
 	FTimespan( int32 Hours, int32 Minutes, int32 Seconds )
 	{
 		Assign(0, Hours, Minutes, Seconds, 0);
@@ -133,7 +135,7 @@ public:
 	 *
 	 * @return Inverse of this time span.
 	 */
-	FTimespan operator-( ) const
+	FTimespan operator-() const
 	{
 		return FTimespan(-Ticks);
 	}
@@ -272,7 +274,7 @@ public:
 	 *
 	 * @return Days component.
 	 */
-	int32 GetDays( ) const
+	int32 GetDays() const
 	{
 		return (int32)(Ticks / ETimespan::TicksPerDay);
 	}
@@ -285,7 +287,7 @@ public:
 	 * @return Duration of this time span.
 	 * @see MinValue
 	 */
-	FTimespan GetDuration( )
+	FTimespan GetDuration()
 	{
 		return FTimespan(Ticks >= 0 ? Ticks : -Ticks);
 	}
@@ -296,7 +298,7 @@ public:
 	 * @return Hours component.
 	 * @see GetTotalHours
 	 */
-	int32 GetHours( ) const
+	int32 GetHours() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerHour) % 24);
 	}
@@ -307,7 +309,7 @@ public:
 	 * @return Milliseconds component.
 	 * @see GetTotalMilliseconds
 	 */
-	int32 GetMilliseconds( ) const
+	int32 GetMilliseconds() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerMillisecond) % 1000);
 	}
@@ -318,7 +320,7 @@ public:
 	 * @return Minutes component.
 	 * @see GetTotalMinutes
 	 */
-	int32 GetMinutes( ) const
+	int32 GetMinutes() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerMinute) % 60);
 	}
@@ -329,7 +331,7 @@ public:
 	 * @return Seconds component.
 	 * @see GetTotalSeconds
 	 */
-	int32 GetSeconds( ) const
+	int32 GetSeconds() const
 	{
 		return (int32)((Ticks / ETimespan::TicksPerSecond) % 60);
 	}
@@ -339,7 +341,7 @@ public:
 	 *
 	 * @return Number of ticks.
 	 */
-	int64 GetTicks( ) const
+	int64 GetTicks() const
 	{
 		return Ticks;
 	}
@@ -350,7 +352,7 @@ public:
 	 * @return Number of days.
 	 * @see GetDays
 	 */
-	double GetTotalDays( ) const
+	double GetTotalDays() const
 	{
 		return ((double)Ticks / ETimespan::TicksPerDay);
 	}
@@ -361,7 +363,7 @@ public:
 	 * @return Number of hours.
 	 * @see GetHours
 	 */
-	double GetTotalHours( ) const
+	double GetTotalHours() const
 	{
 		return ((double)Ticks / ETimespan::TicksPerHour);
 	}
@@ -372,7 +374,7 @@ public:
 	 * @return Number of milliseconds.
 	 * @see GetMilliseconds
 	 */
-	double GetTotalMilliseconds( ) const
+	double GetTotalMilliseconds() const
 	{
 		return ((double)Ticks / ETimespan::TicksPerMillisecond);
 	}
@@ -383,7 +385,7 @@ public:
 	 * @return Number of minutes.
 	 * @see GetMinutes
 	 */
-	double GetTotalMinutes( ) const
+	double GetTotalMinutes() const
 	{
 		return ((double)Ticks / ETimespan::TicksPerMinute);
 	}
@@ -394,7 +396,7 @@ public:
 	 * @return Number of seconds.
 	 * @see GetSeconds
 	 */
-	double GetTotalSeconds( ) const
+	double GetTotalSeconds() const
 	{
 		return ((double)Ticks / ETimespan::TicksPerSecond);
 	}
@@ -429,7 +431,7 @@ public:
 	 * @return String representation.
 	 * @see Parse
 	 */
-	CORE_API FString ToString( ) const;
+	CORE_API FString ToString() const;
 
 	/**
 	 * Converts this time span to its string representation.
@@ -509,7 +511,7 @@ public:
 	 * @return Maximum time span.
 	 * @see MinValue,Zero
 	 */
-	static FTimespan MaxValue( )
+	static FTimespan MaxValue()
 	{
 		return FTimespan(9223372036854775807);
 	}
@@ -522,7 +524,7 @@ public:
 	 * @return Minimum time span.
 	 * @see MaxValue, ZeroValue
 	 */
-	static FTimespan MinValue( )
+	static FTimespan MinValue()
 	{
 		return FTimespan(-9223372036854775807 - 1);
 	}
@@ -548,7 +550,7 @@ public:
 	 * @return Zero time span.
 	 * @see MaxValue, MinValue
 	 */
-	static FTimespan Zero( )
+	static FTimespan Zero()
 	{
 		return FTimespan(0);
 	}

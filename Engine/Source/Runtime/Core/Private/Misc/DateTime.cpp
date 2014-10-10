@@ -84,7 +84,7 @@ void FDateTime::GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const
 }
 
 
-int32 FDateTime::GetDay( ) const
+int32 FDateTime::GetDay() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -93,14 +93,14 @@ int32 FDateTime::GetDay( ) const
 }
 
 
-EDayOfWeek::Type FDateTime::GetDayOfWeek( ) const
+EDayOfWeek FDateTime::GetDayOfWeek() const
 {
 	// January 1, 0001 was a Monday
-	return static_cast<EDayOfWeek::Type>((Ticks / ETimespan::TicksPerDay) % 7);
+	return static_cast<EDayOfWeek>((Ticks / ETimespan::TicksPerDay) % 7);
 }
 
 
-int32 FDateTime::GetDayOfYear( ) const
+int32 FDateTime::GetDayOfYear() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -114,7 +114,7 @@ int32 FDateTime::GetDayOfYear( ) const
 }
 
 
-int32 FDateTime::GetHour12( ) const
+int32 FDateTime::GetHour12() const
 {
 	int32 Hour = GetHour();
 
@@ -132,7 +132,7 @@ int32 FDateTime::GetHour12( ) const
 }
 
 
-int32 FDateTime::GetMonth( ) const
+int32 FDateTime::GetMonth() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -141,7 +141,7 @@ int32 FDateTime::GetMonth( ) const
 }
 
 
-int32 FDateTime::GetYear( ) const
+int32 FDateTime::GetYear() const
 {
 	int32 Year, Month, Day;
 	GetDate(Year, Month, Day);
@@ -176,13 +176,13 @@ bool FDateTime::Serialize( FArchive& Ar )
 }
 
 
-FString FDateTime::ToIso8601( ) const
+FString FDateTime::ToIso8601() const
 {
 	return ToString(TEXT("%Y-%m-%dT%H:%M:%S.%sZ"));
 }
 
 
-FString FDateTime::ToString( ) const
+FString FDateTime::ToString() const
 {
 	return ToString(TEXT("%Y.%m.%d-%H.%M.%S"));
 }
@@ -236,7 +236,7 @@ int32 FDateTime::DaysInMonth( int32 Year, int32 Month )
 {
 	check((Month >= 1) && (Month <= 12));
 
-	if ((Month == EMonthOfYear::February) && IsLeapYear(Year))
+	if ((Month == 2) && IsLeapYear(Year))
 	{
 		return 29;
 	}
@@ -267,7 +267,7 @@ bool FDateTime::IsLeapYear( int32 Year )
 }
 
 
-FDateTime FDateTime::Now( )
+FDateTime FDateTime::Now()
 {
 	int32 Year, Month, Day, DayOfWeek;
 	int32 Hour, Minute, Second, Millisecond;
@@ -439,7 +439,7 @@ bool FDateTime::ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTim
 }
 
 
-FDateTime FDateTime::UtcNow( )
+FDateTime FDateTime::UtcNow()
 {
 	int32 Year, Month, Day, DayOfWeek;
 	int32 Hour, Minute, Second, Millisecond;

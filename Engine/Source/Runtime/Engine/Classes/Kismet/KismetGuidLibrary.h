@@ -35,7 +35,7 @@ class UKismetGuidLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName="ToString (Guid)", CompactNodeTitle="->"), Category="Guid")
 	static FString Conv_GuidToString( const FGuid& InGuid );
 
-	/** Converts a String of format EGuidFormats::Type to a Guid. Returns Guid OutGuid, Returns bool Success */
+	/** Converts a String of format EGuidFormats to a Guid. Returns Guid OutGuid, Returns bool Success */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName="Parse String to Guid"), Category="Guid")
 	static void Parse_StringToGuid( const FString& GuidString, FGuid& OutGuid, bool& Success );
 };

@@ -29,7 +29,7 @@ bool FTimespan::Serialize( FArchive& Ar )
 }
 
 
-FString FTimespan::ToString( ) const
+FString FTimespan::ToString() const
 {
 	if (GetDays() == 0)
 	{
