@@ -104,6 +104,19 @@ public:
 						.Size(FVector2D(16.0f, 16.0f))
 				];
 		}
+		else if (ColumnName == "Address")
+		{
+			const TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
+			const FText Address = (TheWidget.IsValid())
+				? FText::FromString( FString::Printf(TEXT("0x%08X"), TheWidget.Get()) ) 
+				: NSLOCTEXT("SWidgetReflector","nullptr","nullptr");
+			
+			return
+				SNew(SHyperlink)
+				.ToolTipText(NSLOCTEXT("SWidgetReflector", "ClickToCopy", "Click to copy address."))
+				.Text( Address )
+				.OnNavigate_Lambda( [Address](){ FPlatformMisc::ClipboardCopy(*Address.ToString()); } ) ;
+		}
 		else
 		{
 			return SNullWidget::NullWidget;

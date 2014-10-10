@@ -113,7 +113,11 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 
 								+ SHeaderRow::Column("WidgetInfo")
 									.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ).ToString())
-									.FillWidth(0.35f)
+									.FillWidth(0.25f)
+
+								+ SHeaderRow::Column("Address")
+									.DefaultLabel( LOCTEXT("Address", "Address") )
+									.FillWidth( 0.10f )
 							)
 					]
 
