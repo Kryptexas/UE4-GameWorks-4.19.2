@@ -419,11 +419,15 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 
 namespace AssetUtil
 {
-	TArray<FAssetData> ExtractAssetDataFromDrag( const FDragDropEvent &DragDropEvent )
+	TArray<FAssetData> ExtractAssetDataFromDrag(const FDragDropEvent &DragDropEvent)
+	{
+		return ExtractAssetDataFromDrag(DragDropEvent.GetOperation());
+	}
+
+	TArray<FAssetData> ExtractAssetDataFromDrag(const TSharedPtr<FDragDropOperation>& Operation)
 	{
 		TArray<FAssetData> DroppedAssetData;
 
-		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 		if (!Operation.IsValid())
 		{
 			return DroppedAssetData;

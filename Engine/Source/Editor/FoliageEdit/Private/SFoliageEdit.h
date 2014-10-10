@@ -44,12 +44,6 @@ public:
 	/** Gets FoliageEditMode. Used by the cluster details to notify changes */
 	class FEdModeFoliage* GetFoliageEditMode() const { return FoliageEditMode; }
 
-	/** Sets the overlay that appears over all items in the list to be visible. */
-	void DisableDragDropOverlay();
-
-	/** Sets the overlay that appears over all items in the list to be invisible. */
-	void EnableDragDropOverlay();
-
 private:
 
 	/** Clears all the tools selection by setting them to false. */
@@ -114,15 +108,6 @@ private:
 	/** Creates the list item widget that displays the instance settings. */
 	TSharedRef<ITableRow> MakeWidgetFromOption(TSharedPtr<FFoliageMeshUIInfo> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
-	/** Handles nothing? */
-	void OnDragEnter_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-
-	/** Handles nothing? */
-	void OnDragLeave_ListView(const FDragDropEvent& DragDropEvent);
-
-	/** @todo - Have something occur to help the user out in knowing something is actually going to occur (besides the mouse changing) */
-	FReply OnDragOver_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-
 	/** Sets the filter settings for if painting will occur on Landscapes. */
 	void OnCheckStateChanged_Landscape(ESlateCheckBoxState::Type InState);
 
@@ -150,8 +135,8 @@ private:
 	/** Checks if the text in the empty list overlay should appear. If the list is has items but the the drag and drop override is true, it will return EVisibility::Visible. */
 	EVisibility GetVisibility_EmptyList() const;
 
-	/** Checks if the empty list overlay and text block should appear. If the list is empty it will return EVisibility::Visible. */
-	EVisibility GetVisibility_EmptyListText() const;
+	/** Should the drop area be visible currently?  Happens when the user is dragging static meshes */
+	EVisibility GetVisibility_FoliageDropTarget() const;
 
 	/** Checks if the list should appear. */
 	EVisibility GetVisibility_NonEmptyList() const;
@@ -202,7 +187,4 @@ private:
 
 	/** List of items currently being displayed. */
 	TArray<TSharedRef<SFoliageEditMeshDisplayItem>> DisplayItemList;
-
-	/** Used to override the empty list overlay to be visible, not including the text. */
-	bool bOverlayOverride;
 };
