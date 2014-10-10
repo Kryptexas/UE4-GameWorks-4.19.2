@@ -24,7 +24,7 @@ class SSuperSearchBox
 public:
 
 	SLATE_BEGIN_ARGS( SSuperSearchBox )
-		: _SuggestionListPlacement( MenuPlacement_BelowAnchor )
+		: _SuggestionListPlacement( MenuPlacement_ComboBoxRight )
 		{}
 
 		/** Where to place the suggestion list */
