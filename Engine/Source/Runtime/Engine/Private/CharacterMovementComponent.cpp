@@ -192,7 +192,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	BrakingDecelerationSwimming = 0.f;
 	LedgeCheckThreshold = 4.0f;
 	JumpOutOfWaterPitch = 11.25f;
-	UpperImpactNormalScale = 0.5f;
+	UpperImpactNormalScale_DEPRECATED = 0.5f;
+	
 	Mass = 100.0f;
 	bJustTeleported = true;
 	CrouchedHalfHeight = 40.0f;
@@ -1949,30 +1950,12 @@ void UCharacterMovementComponent::TwoWallAdjust(FVector &Delta, const FHitResult
 }
 
 
-FVector UCharacterMovementComponent::ComputeSlideVector(const FVector& InDelta, const float Time, const FVector& Normal, const FHitResult& Hit) const
+FVector UCharacterMovementComponent::ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const
 {
-	const bool bFalling = IsFalling();
-	FVector Delta = InDelta;
-
-	// Don't make impacts on the upper hemisphere feel so much like a capsule
-	if (bFalling && Delta.Z > 0.f)
-	{
-		if (Hit.Normal.Z < KINDA_SMALL_NUMBER)
-		{
-			float PawnRadius, PawnHalfHeight;
-			CharacterOwner->CapsuleComponent->GetScaledCapsuleSize(PawnRadius, PawnHalfHeight);
-			const float UpperHemisphereZ = UpdatedComponent->GetComponentLocation().Z + PawnHalfHeight - PawnRadius;
-			if (Hit.ImpactPoint.Z > UpperHemisphereZ + KINDA_SMALL_NUMBER && IsWithinEdgeTolerance(Hit.Location, Hit.ImpactPoint, PawnRadius))
-			{
-				Delta = AdjustUpperHemisphereImpact(Delta, Hit);
-			}
-		}
-	}
-
 	FVector Result = Super::ComputeSlideVector(Delta, Time, Normal, Hit);
 
 	// prevent boosting up slopes
-	if ( bFalling && Result.Z > 0.f )
+	if (Result.Z > 0.f && IsFalling())
 	{
 		Result = HandleSlopeBoosting(Result, Delta, Time, Normal, Hit);
 	}
@@ -2016,9 +1999,10 @@ FVector UCharacterMovementComponent::HandleSlopeBoosting(const FVector& SlideRes
 }
 
 
+// TODO: deprecated, remove.
 FVector UCharacterMovementComponent::AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const
 {
-	const float ZScale = FMath::Clamp(1.f - (FMath::Abs(Hit.Normal.Z) * UpperImpactNormalScale), 0.f, 1.f);
+	const float ZScale = FMath::Clamp(1.f - (FMath::Abs(Hit.Normal.Z) * UpperImpactNormalScale_DEPRECATED), 0.f, 1.f);
 	return FVector(Delta.X, Delta.Y, Delta.Z * ZScale);
 }
 

@@ -439,6 +439,9 @@ public:
 	UPROPERTY()
 	float CrouchedSpeedMultiplier_DEPRECATED;
 
+	UPROPERTY()
+	float UpperImpactNormalScale_DEPRECATED;
+
 protected:
 
 	/**
@@ -513,14 +516,6 @@ public:
 	/** When exiting water, jump if control pitch angle is this high or above. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	float JumpOutOfWaterPitch;
-
-	/**
-	 * Impacts on the upper hemisphere will have the vertical velocity scaled by this factor of the normal's Z component (in AdjustUpperHemisphereImpact()).
-	 * This can dampen such impacts to feel less like a capsule. A value of 0 indicates that this behavior is disabled.
-	 * @see AdjustUpperHemisphereImpact()
-	 */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
-	float UpperImpactNormalScale;
 
 	/** Information about the floor the Character is standing on (updated only during walking movement). */
 	UPROPERTY(Category="Character Movement", VisibleInstanceOnly, BlueprintReadOnly)
@@ -1286,8 +1281,8 @@ protected:
 
 	/**
 	 * Calculate slide vector along a surface.
-	 * Has special treatment when falling, to avoid boosting up slopes (calling HandleSlopeBoosting in this case).
-	 * Calls AdjustUpperHemisphereImpact() for upward falling movement that hits the top of the capsule, because commonly we don't want this to behave like a smooth capsule.
+	 * Has special treatment when falling, to avoid boosting up slopes (calling HandleSlopeBoosting() in this case).
+	 *
 	 * @param Delta:	Attempted move.
 	 * @param Time:		Amount of move to apply (between 0 and 1).
 	 * @param Normal:	Normal opposed to movement. Not necessarily equal to Hit.Normal (but usually is).
@@ -1297,10 +1292,9 @@ protected:
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
 
 	/**
-	 * Given an upward impact on the top of the capsule, allows calculation of a different movement delta. This can dampen such impacts to feel less like a capsule.
-	 * Default implementation scales the Delta Z value by: 1 - (Abs(Normal.Z) * UpperImpactNormalScale), clamped to [0..1]
-	 * @see UpperImpactNormalScale
+	 * (DEPRECATED) Given an upward impact on the top of the capsule, allows calculation of a different movement delta.
 	 */
+	DEPRECATED(4.6, "AdjustUpperHemisphereImpact() is deprecated, for custom behavior override ComputeSlideVector() instead.")
 	virtual FVector AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const;
 
 	/** 

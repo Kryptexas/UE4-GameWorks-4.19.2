@@ -624,6 +624,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_GLOBAL_EMITTER_SPAWN_RATE_SCALE,
 	// Cleanup destructible mesh settings
 	VER_UE4_CLEAN_DESTRUCTIBLE_SETTINGS,
+	// CharacterMovementComponent refactor of AdjustUpperHemisphereImpact and deprecation of some associated vars.
+	VER_UE4_CHARACTER_MOVEMENT_UPPER_IMPACT_BEHAVIOR,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
