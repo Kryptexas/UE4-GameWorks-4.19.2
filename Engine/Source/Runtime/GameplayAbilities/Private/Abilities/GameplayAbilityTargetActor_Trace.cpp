@@ -57,7 +57,6 @@ void AGameplayAbilityTargetActor_Trace::AimWithPlayerController(AActor* InSource
 
 		FHitResult TempHitResult;
 		InSourceActor->GetWorld()->LineTraceSingle(TempHitResult, CamLoc, CamTarget, TraceChannel, Params);
-		//TraceStart = ;
 		if (TempHitResult.bBlockingHit && (FVector::DistSquared(TraceStart, TempHitResult.Location) <= (MaxRange * MaxRange)))
 		{
 			//We actually made a hit? Pull back.
