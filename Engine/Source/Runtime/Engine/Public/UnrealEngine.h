@@ -415,11 +415,21 @@ struct ENGINE_API FSystemResolution
 	int32 ResX;
 	int32 ResY;
 	EWindowMode::Type WindowMode;
+	bool bForceRefresh;
 
 	// Helper function for changing system resolution via the r.setres console command
 	// This function will set r.setres, which will trigger a resolution change later on
 	// when the console variable sinks are called
 	static void RequestResolutionChange(int32 InResX, int32 InResY, EWindowMode::Type InWindowMode);
+
+	FSystemResolution()
+		: ResX(0)
+		, ResY(0)
+		, WindowMode(EWindowMode::Windowed)
+		, bForceRefresh(false)
+	{
+
+	}
 };
 
 ENGINE_API extern FSystemResolution GSystemResolution;

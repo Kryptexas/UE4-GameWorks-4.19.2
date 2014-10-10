@@ -869,8 +869,20 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 
 		if( WindowToResize.IsValid() )
 		{
-			int32 CVarValue = GetBoundFullScreenModeCVar();
 			EWindowMode::Type DesiredWindowMode = GetWindowModeType(NewWindowMode);
+
+			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
+			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
+			// scaling so we actual render to the resolution we've been asked for.
+			if (DesiredWindowMode == EWindowMode::WindowedFullscreen)
+			{
+				FSlateRect Rect = WindowToResize->GetFullScreenInfo();
+				if (Rect.IsValid())
+				{
+					NewSizeX = Rect.GetSize().X;
+					NewSizeY = Rect.GetSize().Y;
+				}
+			}
 			
 			// Avoid resizing if nothing changes.
 			bool bNeedsResize = SizeX != NewSizeX || SizeY != NewSizeY || NewWindowMode != DesiredWindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
@@ -930,12 +942,9 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 
 				LockMouseToViewport(!CurrentReplyState.ShouldReleaseMouseLock());
 
-				int32 NewWindowSizeX = NewSizeX;
-				int32 NewWindowSizeY = NewSizeY;
+				WindowToResize->Resize(FVector2D(NewSizeX, NewSizeY));
 
-				WindowToResize->Resize( FVector2D(NewWindowSizeX, NewWindowSizeY) );
-
-				ResizeViewport(NewWindowSizeX, NewWindowSizeY, NewWindowMode, InPosX, InPosY);
+				ResizeViewport(NewSizeX, NewSizeY, NewWindowMode, InPosX, InPosY);
 			}
 			UCanvas::UpdateAllCanvasSafeZoneData();
 		}		

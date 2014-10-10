@@ -2429,7 +2429,9 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 
 bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	return SetDisplayConfiguration(NULL, Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen);
+	auto FullScreenMode = (EWindowMode::Type)GetBoundFullScreenModeCVar() == EWindowMode::Fullscreen ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode);
+	return true;
 }
 
 bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& Ar )

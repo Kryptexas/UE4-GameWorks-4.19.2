@@ -318,11 +318,13 @@ void SystemResolutionSinkCallback()
 
 		if( GSystemResolution.ResX != ResX ||
 			GSystemResolution.ResY != ResY ||
-			GSystemResolution.WindowMode != WindowMode)
+			GSystemResolution.WindowMode != WindowMode ||
+			GSystemResolution.bForceRefresh)
 		{
 			GSystemResolution.ResX = ResX;
 			GSystemResolution.ResY = ResY;
 			GSystemResolution.WindowMode = WindowMode;
+			GSystemResolution.bForceRefresh = false;
 
 			if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 			{
