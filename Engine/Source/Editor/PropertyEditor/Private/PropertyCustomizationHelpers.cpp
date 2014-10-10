@@ -388,9 +388,9 @@ void SObjectPropertyEntryBox::OnSetObject(const FAssetData& AssetData)
 			}
 
 			PropertyHandle->SetValueFromFormattedString(ObjectPathName);
-			OnObjectChanged.ExecuteIfBound(AssetData);
 		}
 	}
+	OnObjectChanged.ExecuteIfBound(AssetData);
 }
 
 void SClassPropertyEntryBox::Construct(const FArguments& InArgs)
