@@ -352,6 +352,22 @@ void UAbilitySystemComponent::UnBlockAbilitiesWithTags(const FGameplayTagContain
 	BlockedAbilityTags.UpdateTagMap(Tags, -1);
 }
 
+void UAbilitySystemComponent::BlockAbilityByInputID(int32 InputID)
+{
+	if (InputID >= 0 && InputID < BlockedAbilityBindings.Num())
+	{
+		++BlockedAbilityBindings[InputID];
+	}
+}
+
+void UAbilitySystemComponent::UnBlockAbilityByInputID(int32 InputID)
+{
+	if (InputID >= 0 && InputID < BlockedAbilityBindings.Num() && BlockedAbilityBindings[InputID] > 0)
+	{
+		--BlockedAbilityBindings[InputID];
+	}
+}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 int32 DenyClientActivation = 0;
 static FAutoConsoleVariableRef CVarDenyClientActivation(
@@ -403,6 +419,12 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	if (!Ability)
 	{
 		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Ability"));
+		return false;
+	}
+
+	// Check if this ability's input binding is currently blocked
+	if (Spec->InputID >= 0 && Spec->InputID < BlockedAbilityBindings.Num() && BlockedAbilityBindings[Spec->InputID] > 0)
+	{
 		return false;
 	}
 
@@ -819,6 +841,7 @@ void UAbilitySystemComponent::BindToInputComponent(UInputComponent* InputCompone
 void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo)
 {
 	UEnum* EnumBinds = BindInfo.GetBindEnum();
+	BlockedAbilityBindings.SetNumZeroed(EnumBinds->NumEnums());
 
 	for(int32 idx=0; idx < EnumBinds->NumEnums(); ++idx)
 	{

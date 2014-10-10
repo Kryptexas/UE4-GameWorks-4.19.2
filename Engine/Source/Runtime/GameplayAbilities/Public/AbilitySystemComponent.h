@@ -347,6 +347,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void BlockAbilitiesWithTags(const FGameplayTagContainer Tags);
 	void UnBlockAbilitiesWithTags(const FGameplayTagContainer Tags);
+
+	void BlockAbilityByInputID(int32 InputID);
+	void UnBlockAbilityByInputID(int32 InputID);
 	
 	/** FUll list of all instance-per-execution gameplay abilities associated with this component */
 	UPROPERTY()
@@ -611,6 +614,10 @@ private:
 
 	/** Abilities with these tags are not able to be activated */
 	FGameplayTagCountContainer BlockedAbilityTags;
+
+	/** Tracks abilities that are blocked based on input binding. An ability is blocked if BlockedAbilityBindings[InputID] > 0 */
+	UPROPERTY(Transient, Replicated)
+	TArray<uint8> BlockedAbilityBindings;
 
 	UFUNCTION()
 	void OnRep_GameplayEffects();

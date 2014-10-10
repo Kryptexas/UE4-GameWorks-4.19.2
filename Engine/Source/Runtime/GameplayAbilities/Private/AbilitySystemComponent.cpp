@@ -712,6 +712,7 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
 	
 	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, ActivatableAbilities, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, BlockedAbilityBindings, COND_OwnerOnly)
 
 	DOREPLIFETIME(UAbilitySystemComponent, OwnerActor);
 	DOREPLIFETIME(UAbilitySystemComponent, AvatarActor);
