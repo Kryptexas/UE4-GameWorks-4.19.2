@@ -186,16 +186,35 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	{
 		UFbxStaticMeshImportData* StaticMeshData	= ImportUI->StaticMeshImportData;
 		InOutImportOptions.NormalImportMethod		= StaticMeshData->NormalImportMethod;
+		InOutImportOptions.ImportTranslation		= StaticMeshData->ImportTranslation;
+		InOutImportOptions.ImportRotation			= StaticMeshData->ImportRotation;
+		InOutImportOptions.ImportUniformScale		= StaticMeshData->ImportUniformScale;
 	}
 	else if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 	{
 		UFbxSkeletalMeshImportData* SkeletalMeshData	= ImportUI->SkeletalMeshImportData;
 		InOutImportOptions.NormalImportMethod			= SkeletalMeshData->NormalImportMethod;
+		InOutImportOptions.ImportTranslation			= SkeletalMeshData->ImportTranslation;
+		InOutImportOptions.ImportRotation				= SkeletalMeshData->ImportRotation;
+		InOutImportOptions.ImportUniformScale			= SkeletalMeshData->ImportUniformScale;
+
+		if(ImportUI->bImportAnimations)
+		{
+			// Copy the transform information into the animation data to match the mesh.
+			UFbxAnimSequenceImportData* AnimData	= ImportUI->AnimSequenceImportData;
+			AnimData->ImportTranslation				= SkeletalMeshData->ImportTranslation;
+			AnimData->ImportRotation				= SkeletalMeshData->ImportRotation;
+			AnimData->ImportUniformScale			= SkeletalMeshData->ImportUniformScale;
+		}
+
 	}
 	else
 	{
 		UFbxAnimSequenceImportData* AnimData	= ImportUI->AnimSequenceImportData;
 		InOutImportOptions.NormalImportMethod = FBXNIM_ComputeNormals;
+		InOutImportOptions.ImportTranslation	= AnimData->ImportTranslation;
+		InOutImportOptions.ImportRotation		= AnimData->ImportRotation;
+		InOutImportOptions.ImportUniformScale	= AnimData->ImportUniformScale;
 	}
 
 	// only re-sample if they don't want to use default sample rate
@@ -1134,6 +1153,77 @@ void FFbxImporter::DumpFBXNode(FbxNode* Node)
 		DumpFBXNode(ChildNode);
 	}
 
+}
+
+void FFbxImporter::ApplyTransformSettingsToFbxNode(FbxNode* Node, UFbxAssetImportData* AssetData)
+{
+	check(Node);
+	check(AssetData);
+
+	FbxAMatrix TransformMatrix;
+	BuildFbxMatrixForImportTransform(TransformMatrix, AssetData);
+
+	FbxDouble3 ExistingTranslation = Node->LclTranslation.Get();
+	FbxDouble3 ExistingRotation = Node->LclRotation.Get();
+	FbxDouble3 ExistingScaling = Node->LclScaling.Get();
+
+	// A little slower to build up this information from the matrix, but it means we get
+	// the same result across all import types, as other areas can use the matrix directly
+	FbxVector4 AddedTranslation = TransformMatrix.GetT();
+	FbxVector4 AddedRotation = TransformMatrix.GetR();
+	FbxVector4 AddedScaling = TransformMatrix.GetS();
+
+	FbxDouble3 NewTranslation = FbxDouble3(ExistingTranslation[0] + AddedTranslation[0], ExistingTranslation[1] + AddedTranslation[1], ExistingTranslation[2] + AddedTranslation[2]);
+	FbxDouble3 NewRotation = FbxDouble3(ExistingRotation[0] + AddedRotation[0], ExistingRotation[1] + AddedRotation[1], ExistingRotation[2] + AddedRotation[2]);
+	FbxDouble3 NewScaling = FbxDouble3(ExistingScaling[0] * AddedScaling[0], ExistingScaling[1] * AddedScaling[1], ExistingScaling[2] * AddedScaling[2]);
+
+	Node->LclTranslation.Set(NewTranslation);
+	Node->LclRotation.Set(NewRotation);
+	Node->LclScaling.Set(NewScaling);
+}
+
+
+void FFbxImporter::RemoveTransformSettingsFromFbxNode(FbxNode* Node, UFbxAssetImportData* AssetData)
+{
+	check(Node);
+	check(AssetData);
+
+	FbxAMatrix TransformMatrix;
+	BuildFbxMatrixForImportTransform(TransformMatrix, AssetData);
+
+	FbxDouble3 ExistingTranslation = Node->LclTranslation.Get();
+	FbxDouble3 ExistingRotation = Node->LclRotation.Get();
+	FbxDouble3 ExistingScaling = Node->LclScaling.Get();
+
+	// A little slower to build up this information from the matrix, but it means we get
+	// the same result across all import types, as other areas can use the matrix directly
+	FbxVector4 AddedTranslation = TransformMatrix.GetT();
+	FbxVector4 AddedRotation = TransformMatrix.GetR();
+	FbxVector4 AddedScaling = TransformMatrix.GetS();
+
+	FbxDouble3 NewTranslation = FbxDouble3(ExistingTranslation[0] - AddedTranslation[0], ExistingTranslation[1] - AddedTranslation[1], ExistingTranslation[2] - AddedTranslation[2]);
+	FbxDouble3 NewRotation = FbxDouble3(ExistingRotation[0] - AddedRotation[0], ExistingRotation[1] - AddedRotation[1], ExistingRotation[2] - AddedRotation[2]);
+	FbxDouble3 NewScaling = FbxDouble3(ExistingScaling[0] / AddedScaling[0], ExistingScaling[1] / AddedScaling[1], ExistingScaling[2] / AddedScaling[2]);
+
+	Node->LclTranslation.Set(NewTranslation);
+	Node->LclRotation.Set(NewRotation);
+	Node->LclScaling.Set(NewScaling);
+}
+
+
+void FFbxImporter::BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxAssetImportData* AssetData)
+{
+	if(!AssetData)
+	{
+		OutMatrix.SetIdentity();
+		return;
+	}
+
+	FbxVector4 FbxAddedTranslation = Converter.ConvertToFbxPos(AssetData->ImportTranslation);
+	FbxVector4 FbxAddedScale = Converter.ConvertToFbxScale(FVector(AssetData->ImportUniformScale));
+	FbxVector4 FbxAddedRotation = Converter.ConvertToFbxRot(AssetData->ImportRotation.Euler());
+	
+	OutMatrix = FbxAMatrix(FbxAddedTranslation, FbxAddedRotation, FbxAddedScale);
 }
 
 /**

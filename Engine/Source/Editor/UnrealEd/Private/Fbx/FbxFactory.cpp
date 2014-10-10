@@ -240,6 +240,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 			bool bImportStaticMeshLODs = ImportUI->StaticMeshImportData->bImportMeshLODs;
 			bool bCombineMeshes = ImportUI->bCombineMeshes;
+
 			if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 			{
 				FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false);
@@ -247,6 +248,8 @@ UObject* UFbxFactory::FactoryCreateBinary
 			}
 			else if( ImportUI->MeshTypeToImport == FBXIT_StaticMesh )
 			{
+				FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->StaticMeshImportData);
+
 				if( bCombineMeshes && !bImportStaticMeshLODs )
 				{
 					// If Combine meshes and dont import mesh LODs, the interesting node count should be 1 so all the meshes are grouped together into one static mesh
@@ -387,7 +390,13 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 								if ( NewMesh && ImportUI->bImportAnimations )
 								{
+									// We need to remove all scaling from the root node before we set up animation data.
+									// Othewise some of the global transform calculations will be incorrect.
+									FbxImporter->RemoveTransformSettingsFromFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
 									FbxImporter->SetupAnimationDataFromMesh(NewMesh, InParent, SkelMeshNodeArray, ImportUI->AnimSequenceImportData, OutputName.ToString());
+
+									// Reapply the transforms for the rest of the import
+									FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
 								}
 							}
 							else if (NewObject) // the base skeletal mesh is imported successfully

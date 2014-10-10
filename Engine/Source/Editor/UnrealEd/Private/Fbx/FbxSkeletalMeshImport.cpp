@@ -742,7 +742,7 @@ bool UnFbx::FFbxImporter::RetrievePoseFromBindPose(const TArray<FbxNode*>& NodeA
 	return (PoseArray.Size() > 0);
 }
 
-bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, TArray<FbxNode*> &SortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose)
+bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, UFbxSkeletalMeshImportData* TemplateData ,TArray<FbxNode*> &SortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose)
 {
 	bOutDiffPose = false;
 	int32 SkelType = 0; // 0 for skeletal mesh, 1 for rigid mesh
@@ -781,16 +781,16 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		for ( int32 i = 0; i < NodeArray.Num(); i++)
 		{
 			FbxMesh* FbxMesh = NodeArray[i]->GetMesh();
-				const int32 SkinDeformerCount = FbxMesh->GetDeformerCount(FbxDeformer::eSkin);
-				for (int32 DeformerIndex=0; DeformerIndex < SkinDeformerCount; DeformerIndex++)
+			const int32 SkinDeformerCount = FbxMesh->GetDeformerCount(FbxDeformer::eSkin);
+			for (int32 DeformerIndex=0; DeformerIndex < SkinDeformerCount; DeformerIndex++)
+			{
+				FbxSkin* Skin = (FbxSkin*)FbxMesh->GetDeformer(DeformerIndex, FbxDeformer::eSkin);
+				for ( int32 ClusterIndex = 0; ClusterIndex < Skin->GetClusterCount(); ClusterIndex++)
 				{
-					FbxSkin* Skin = (FbxSkin*)FbxMesh->GetDeformer(DeformerIndex, FbxDeformer::eSkin);
-					for ( int32 ClusterIndex = 0; ClusterIndex < Skin->GetClusterCount(); ClusterIndex++)
-					{
-						ClusterArray.Add(Skin->GetCluster(ClusterIndex));
-					}
-				}			
+					ClusterArray.Add(Skin->GetCluster(ClusterIndex));
+				}
 			}
+		}
 
 		if (ClusterArray.Num() == 0)
 		{
@@ -871,7 +871,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	FbxArray<FbxAMatrix> GlobalsPerLink;
 	GlobalsPerLink.Grow(SortedLinks.Num());
 	GlobalsPerLink[0].SetIdentity();
-	
+
 	bool GlobalLinkFoundFlag;
 	FbxVector4 LocalLinkT;
 	FbxQuaternion LocalLinkQ;
@@ -880,6 +880,8 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	bool bAnyLinksNotInBindPose = false;
 	FString LinksWithoutBindPoses;
 	int32 NumberOfRoot = 0;
+
+	int32 RootIdx = -1;
 
 	for (LinkIndex=0; LinkIndex<SortedLinks.Num(); LinkIndex++)
 	{
@@ -909,6 +911,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		if (ParentIndex == INDEX_NONE)
 		{
 			++NumberOfRoot;
+			RootIdx = LinkIndex;
 			if (NumberOfRoot > 1)
 			{
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("MultipleRootsFound", "Multiple roots are found in the bone hierarchy. We only support single root bone.")), FFbxErrors::SkeletalMesh_MultipleRoots);
@@ -962,9 +965,6 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 
 		if (!GlobalLinkFoundFlag)
 		{
-			// The node is not included in a bind pose and is not associated with any cluster, so just use its 'default'
-			// matrix as its bind pose.  
-			// Passing a time of Infinite (the default value) to EvaluateGlobalTransform returns the 'default' matrix for the node
 			GlobalsPerLink[LinkIndex] = Link->EvaluateGlobalTransform();
 		}
 		
@@ -978,8 +978,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			
 			GlobalsPerLink[LinkIndex] = T0Matrix;
 		}
-		
-
+	
 		if (LinkIndex)
 		{
 			FbxAMatrix	Matrix;
@@ -1036,6 +1035,17 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		JointMatrix.Transform.SetTranslation(Converter.ConvertPos(LocalLinkT));
 		JointMatrix.Transform.SetRotation(Converter.ConvertRotToQuat(LocalLinkQ));
 		JointMatrix.Transform.SetScale3D(Converter.ConvertScale(LocalLinkS));
+	}
+	
+	if(TemplateData)
+	{
+		FbxAMatrix FbxAddedMatrix;
+		BuildFbxMatrixForImportTransform(FbxAddedMatrix, TemplateData);
+		FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
+
+		VBone& RootBone = ImportData.RefBonesBinary[RootIdx];
+		FTransform& RootTransform = RootBone.BonePos.Transform;
+		RootTransform.SetFromMatrix(RootTransform.ToMatrixWithScale() * AddedMatrix);
 	}
 	
 	if(bAnyLinksNotInBindPose)
@@ -1120,7 +1130,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	bool bUseTime0AsRefPose = ImportOptions->bUseT0AsRefPose;
 	// Note: importing morph data causes additional passes through this function, so disable the warning dialogs
 	// from popping up again on each additional pass.  
-	if ( !ImportBone(NodeArray, *SkelMeshImportDataPtr, SortedLinkArray,  bDiffPose, (FbxShapeArray != NULL), bUseTime0AsRefPose))
+	if ( !ImportBone(NodeArray, *SkelMeshImportDataPtr, TemplateImportData, SortedLinkArray,  bDiffPose, (FbxShapeArray != NULL), bUseTime0AsRefPose))
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FbxSkeletaLMeshimport_MultipleRootFound", "Multiple roots found")), FFbxErrors::SkeletalMesh_MultipleRoots);
 		// I can't delete object here since this is middle of import
@@ -1129,6 +1139,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkeletalMesh->Rename(NULL, GetTransientPackage());
 		return NULL;
 	}
+
+ 	FbxNode* RootNode = Scene->GetRootNode();
+ 	if(RootNode && TemplateImportData)
+ 	{
+ 		ApplyTransformSettingsToFbxNode(RootNode, TemplateImportData);
+ 	}
 
 	// Create a list of all unique fbx materials.  This needs to be done as a separate pass before reading geometry
 	// so that we know about all possible materials before assigning material indices to each triangle

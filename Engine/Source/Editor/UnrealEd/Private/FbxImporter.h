@@ -108,6 +108,9 @@ struct FBXImportOptions
 	bool bUsedAsFullName;
 	bool bConvertScene;
 	bool bRemoveNameSpace;
+	FVector ImportTranslation;
+	FRotator ImportRotation;
+	float ImportUniformScale;
 	EFBXNormalImportMethod NormalImportMethod;
 	// Static Mesh options
 	bool bCombineToSingle;
@@ -549,6 +552,32 @@ public:
 
 	/** helper function **/
 	UNREALED_API static void DumpFBXNode(FbxNode* Node);
+
+	/**
+	 * Apply asset import settings for transform to an FBX node
+	 *
+	 * @param Node Node to apply transform settings too
+	 * @param AssetData the asset data object to get transform data from
+	 */
+	void ApplyTransformSettingsToFbxNode(FbxNode* Node, UFbxAssetImportData* AssetData);
+
+	/**
+	 * Remove asset import settings for transform to an FBX node
+	 *
+	 * @param Node Node to apply transform settings too
+	 * @param AssetData the asset data object to get transform data from
+	 */
+	void RemoveTransformSettingsFromFbxNode(FbxNode* Node, UFbxAssetImportData* AssetData);
+
+	/**
+	 * Populate the given matrix with the correct information for the asset data, in
+	 * a format that matches FBX internals or without conversion
+	 *
+	 * @param OutMatrix The matrix to fill
+	 * @param AssetData The asset data to extract the transform info from
+	 */
+	void BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxAssetImportData* AssetData);
+
 private:
 	/**
 	 * ActorX plug-in can export mesh and dummy as skeleton.
@@ -734,7 +763,7 @@ protected:
 	 * @param bDisableMissingBindPoseWarning
 	 * @param bUseTime0AsRefPose	in/out - Use Time 0 as Ref Pose 
 	 */
-	bool ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, TArray<FbxNode*> &OutSortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose);
+	bool ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, UFbxSkeletalMeshImportData* TemplateData, TArray<FbxNode*> &OutSortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose);
 	
 	/**
 	 * Skins the control points of the given mesh or shape using either the default pose for skinning or the first frame of the

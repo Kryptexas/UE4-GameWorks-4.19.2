@@ -1104,8 +1104,9 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 				//Calculate the new delta rotation
 				FQuat DeltaQuat( BoneSpaceAxis, RotAngle );
+				DeltaQuat.Normalize();
 
-				FRotator NewRotation = ( CurrentSkelControlTM * FTransform( DeltaQuat ) ).Rotator();
+				FRotator NewRotation = ( CurrentSkelControlTM * FTransform( DeltaQuat )).Rotator();
 
 				if ( SelectedSocket )
 				{
@@ -1302,9 +1303,9 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 		{
 			int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest.Last();
 
-			FMatrix BoneMatrix = PreviewSkelMeshComp->GetBoneMatrix(BoneIndex);
+			FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
 
-			return BoneMatrix.RemoveTranslation();
+			return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
 		}
 		else if( PreviewSkelMeshComp->SocketsOfInterest.Num() > 0 )
 		{

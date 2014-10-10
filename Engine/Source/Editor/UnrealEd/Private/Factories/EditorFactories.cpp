@@ -5694,6 +5694,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 
 		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
 		{
+			FFbxImporter->ApplyTransformSettingsToFbxNode(FFbxImporter->Scene->GetRootNode(), ImportData);
 			const TArray<UAssetUserData*>* UserData = Mesh->GetAssetUserDataArray();
 			TArray<UAssetUserData*> UserDataCopy;
 			if (UserData)

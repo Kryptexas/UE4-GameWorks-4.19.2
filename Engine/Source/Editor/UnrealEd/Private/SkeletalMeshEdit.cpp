@@ -905,7 +905,7 @@ namespace AnimationTransformDebug
 					}
 					
 					// now print information - it doesn't match well, find out what it is
-					UE_LOG(LogFbx, Warning, TEXT("IMPORT TRASNFORM ERROR : Bone (%s:%d) \r\nSource Global Transform (%s), \r\nConverted Global Trasnform (%s)"),
+					UE_LOG(LogFbx, Warning, TEXT("IMPORT TRANSFORM ERROR : Bone (%s:%d) \r\nSource Global Transform (%s), \r\nConverted Global Transform (%s)"),
 						*Data.BoneName.ToString(), Data.BoneIndex, *Data.SourceGlobalTransform[Key].ToString(), *GlobalTransform.ToString());
 				}
 			}
@@ -1102,6 +1102,12 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 	const bool bPreserveLocalTransform = FbxImporter->GetImportOptions()->bPreserveLocalTransform;
 
+	// Build additional transform matrix
+	UFbxAnimSequenceImportData* TemplateData = Cast<UFbxAnimSequenceImportData>(DestSeq->AssetImportData);
+	FbxAMatrix FbxAddedMatrix;
+	BuildFbxMatrixForImportTransform(FbxAddedMatrix, TemplateData);
+	FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
+
 	int32 TotalNumKeys = 0;
 	for(int32 SourceTrackIdx = 0; SourceTrackIdx < FbxRawBoneNames.Num(); ++SourceTrackIdx)
 	{
@@ -1149,8 +1155,10 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 										"Track {0} did not yeild valid transform. Please report this to animation team."), FText::FromName(BoneName))), FFbxErrors::Animation_TransformError);
 					break;
 				}
-				// debug data
-				NewDebugData.SourceGlobalTransform.Add(GlobalTransform);
+
+				// debug data, including import transformation
+				FTransform AddedTransform(AddedMatrix);
+				NewDebugData.SourceGlobalTransform.Add(GlobalTransform * AddedTransform);
 
 				FTransform LocalTransform;
 				if( !bPreserveLocalTransform && LinkParent)
@@ -1168,10 +1176,19 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 					FbxVector4 NewLocalT = LocalMatrix.GetT();
 					FbxVector4 NewLocalS = LocalMatrix.GetS();
 					FbxQuaternion NewLocalQ = LocalMatrix.GetQ();
+
 					LocalTransform.SetTranslation(Converter.ConvertPos(NewLocalT));
 					LocalTransform.SetScale3D(Converter.ConvertScale(NewLocalS));
 					LocalTransform.SetRotation(Converter.ConvertRotToQuat(NewLocalQ));
+
 					NewDebugData.SourceParentGlobalTransform.Add(FTransform::Identity);
+				}
+
+				if(TemplateData && BoneTreeIndex == 0)
+				{
+					// If we found template data earlier, apply the import transform matrix to
+					// the root track.
+					LocalTransform.SetFromMatrix(LocalTransform.ToMatrixWithScale() * AddedMatrix);
 				}
 
 				if (LocalTransform.ContainsNaN())

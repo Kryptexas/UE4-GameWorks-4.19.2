@@ -92,14 +92,15 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 		if(IsImportTypeMetaDataValid(ImportType, ImportTypeMetaData))
 		{
 			// Decide on category
-			if(CategoryMetaData == TEXT("Transform"))
+			if(!CategoryMetaData.IsEmpty())
 			{
-				// Transform data can be held inside the asset uobjects (used for reimport later).
-				// Move it out into its own UI section.
-				TransformCategory.AddProperty(Handle);
+				// Populate custom categories.
+				IDetailCategoryBuilder& CustomCategory = DetailBuilder.EditCategory(*CategoryMetaData);
+				CustomCategory.AddProperty(Handle);
 			}
 			else
 			{
+				// No override, add to default mesh category
 				MeshCategory.AddProperty(Handle);
 			}
 		}
@@ -139,15 +140,20 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 
 		for(TSharedPtr<IPropertyHandle> Handle : ExtraProperties)
 		{
-			if(Handle->GetProperty()->GetOuter() == UFbxAnimSequenceImportData::StaticClass())
+			FString CategoryMetaData = Handle->GetMetaData(TEXT("ImportCategory"));
+			if(Handle->GetProperty()->GetOuter() == UFbxAnimSequenceImportData::StaticClass()
+			   && CategoryMetaData.IsEmpty())
 			{
+				// Add to default anim category if no override specified
 				IDetailPropertyRow& PropertyRow = AnimCategory.AddProperty(Handle);
 			}
+			else if(ImportType == FBXIT_Animation && !CategoryMetaData.IsEmpty())
+			{
+				// Override category is available
+				IDetailCategoryBuilder& CustomCategory = DetailBuilder.EditCategory(*CategoryMetaData);
+				CustomCategory.AddProperty(Handle);
+			}
 		}
-
-		// Start and End frame for animations need a custom edit condition
-		TSharedRef<IPropertyHandle> StartFrameProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFbxAnimSequenceImportData, StartFrame));
-		TSharedRef<IPropertyHandle> EndFrameProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFbxAnimSequenceImportData, EndFrame));	
 	}
 	else
 	{
