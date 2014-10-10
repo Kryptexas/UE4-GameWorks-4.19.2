@@ -1178,10 +1178,10 @@ public: \
 	static_assert(false, "You have to define " #TClass "::" #TClass "() or " #TClass "::" #TClass "(const FPostConstructInitializeProperties&). This is required by UObject system to work correctly.");
 
 #define DEFINE_DEFAULT_CONSTRUCTOR_CALL(TClass) \
-	static void __DefaultConstructor(const class FPostConstructInitializeProperties& X) { const_cast<FPostConstructInitializeProperties&>(X).FinalizeSubobjectClassInitialization(); new((EInternal*)X.GetObject())TClass(); }
+	static void __DefaultConstructor(const class FPostConstructInitializeProperties& X) { const_cast<FPostConstructInitializeProperties&>(X).FinalizeSubobjectClassInitialization(); new((EInternal*)X.GetObj())TClass(); }
 
 #define DEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(TClass) \
-	static void __DefaultConstructor(const class FPostConstructInitializeProperties& X) { new((EInternal*)X.GetObject())TClass(X); }
+	static void __DefaultConstructor(const class FPostConstructInitializeProperties& X) { new((EInternal*)X.GetObj())TClass(X); }
 
 #define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
 	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \

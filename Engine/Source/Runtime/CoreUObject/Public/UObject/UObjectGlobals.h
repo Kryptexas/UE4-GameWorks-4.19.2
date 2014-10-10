@@ -677,7 +677,7 @@ public:
 	/**
 	* Return the object that is being constructed
 	**/
-	FORCEINLINE UObject* GetObject() const
+	FORCEINLINE UObject* GetObj() const
 	{
 		return Obj;
 	}
