@@ -60,8 +60,6 @@ bool UEditorBrushBuilder::EndBrush( UWorld* InWorld, ABrush* InBrush )
 	Brush->Modify();
 	BuilderBrush->Modify();
 
-	BuilderBrush->Layers.AddUnique( Layer );
-
 	FRotator Temp(0.0f,0.0f,0.0f);
 	FSnappingUtils::SnapToBSPVertex( Location, FVector::ZeroVector, Temp );
 	BuilderBrush->SetActorLocation(Location, false);
