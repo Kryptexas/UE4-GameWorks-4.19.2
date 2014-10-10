@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Core.cpp: Unreal core.
-=============================================================================*/
-
 #include "Core.h"
 #include "ModuleManager.h"
 
+
 #define LOCTEXT_NAMESPACE "Core"
+
 
 class FCoreModule : public FDefaultModuleImpl
 {
@@ -18,7 +16,10 @@ public:
 		return false;
 	}
 };
+
+
 IMPLEMENT_MODULE( FCoreModule, Core );
+
 
 /*-----------------------------------------------------------------------------
 	Global variables.

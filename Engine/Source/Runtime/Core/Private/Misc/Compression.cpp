@@ -1,16 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Compression.cpp: Compression classes
-=============================================================================*/
-
 #include "Core.h"
 #include "CompressedGrowableBuffer.h"
+#include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogCompression, Log, All);
-
-
-#include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
 
 /**
  * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed

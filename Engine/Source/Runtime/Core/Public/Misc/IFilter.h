@@ -1,8 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
+
 /**
- *	A generic interface that represents a Filter of ItemType
+ * A generic interface that represents a Filter of ItemType.
  */
 template< typename TItemType >
 class IFilter

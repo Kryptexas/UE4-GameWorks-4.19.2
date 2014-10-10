@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CoreMisc.h: General-purpose file utilities.
-=============================================================================*/
-
 #pragma once
 
 #include "IntPoint.h"
- 
+
+
 /**
  * Exec handler that registers itself and is being routed via StaticExec.
  * Note: Not intended for use with UObjects!

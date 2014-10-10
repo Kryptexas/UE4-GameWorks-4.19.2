@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CoreMiscDefines.h: Misc defines and enums for core
-=============================================================================*/
-
 #pragma once
+
 
 // This file is included in some resource files, which issue a warning:
 //

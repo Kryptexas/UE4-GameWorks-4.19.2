@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RocketSupport.cpp: Implements the FRocketSupport class.
-=============================================================================*/
-
 #include "Core.h"
 #include "RocketSupport.h"
 #include "EngineVersion.h"

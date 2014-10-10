@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WildcardString.h: Declares the FWildcardString class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,9 +11,7 @@ class FWildcardString
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FWildcardString( )
 		: FString()
 	{ }

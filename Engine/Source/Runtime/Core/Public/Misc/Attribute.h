@@ -2,8 +2,8 @@
 
 #pragma once
 
-
 #include "Delegate.h"
+
 
 /**
  * Attribute object
@@ -24,16 +24,12 @@ public:
 	DECLARE_DELEGATE_RetVal( ObjectType, FGetter );
 
 
-	/**
-	 * Default constructor
-	 */
+	/** Default constructor. */
 	TAttribute()
 		: Value()         // NOTE: Potentially uninitialized for atomics!!
 		, Getter()
 		, bIsSet(false)
-	{
-	}
-
+	{ }
 
 	/**
 	 * Construct implicitly from an initial value
@@ -45,9 +41,7 @@ public:
 		: Value( InInitialValue )
 		, Getter()
 		, bIsSet(true)
-	{
-	}
-
+	{ }
 
 	/**
 	 * Constructs by binding an arbitrary function that will be called to generate this attribute's value on demand. 
@@ -62,9 +56,7 @@ public:
 		: Value()
 		, Getter( FGetter::CreateSP( InUserObject, InMethodPtr ) )
 		, bIsSet(true)
-	{
-	}
-
+	{ }
 	
 	/**
 	 * Constructs by binding an arbitrary function that will be called to generate this attribute's value on demand. 
@@ -79,9 +71,7 @@ public:
 		: Value()
 		, Getter( FGetter::CreateSP( InUserObject, InMethodPtr ) )	
 		, bIsSet(true)
-	{
-	}
-
+	{ }
 
 	/**
 	 * Static: Creates an attribute that's pre-bound to the specified 'getter' delegate
@@ -93,7 +83,6 @@ public:
 		const bool bExplicitConstructor = true;
 		return TAttribute( InGetter, bExplicitConstructor );
 	}
-
 	
 	/**
 	 * Creates an attribute by binding an arbitrary function that will be called to generate this attribute's value on demand. 
@@ -107,7 +96,6 @@ public:
 		const bool bExplicitConstructor = true;
 		return TAttribute( FGetter::CreateStatic( InFuncPtr ), bExplicitConstructor );
 	}
-
 
 	/**
 	 * Sets the attribute's value
@@ -160,7 +148,6 @@ public:
 		return bIsSet ? Get() : DefaultValue;
 	}
 
-
 	/**
 	 * Binds an arbitrary function that will be called to generate this attribute's value on demand.  After
 	 * binding, the attribute will no longer have a value that can be accessed directly, and instead the bound
@@ -174,7 +161,6 @@ public:
 		Getter = InGetter;
 	}
 
-
 	/**
 	 * Binds an arbitrary function that will be called to generate this attribute's value on demand. 
 	 * After binding, the attribute will no longer have a value that can be accessed directly, and instead the bound
@@ -187,7 +173,6 @@ public:
 		bIsSet = true;
 		Getter.BindStatic( InFuncPtr );
 	}
-
 	
 	/**
 	 * Binds an arbitrary function that will be called to generate this attribute's value on demand. 
@@ -204,7 +189,6 @@ public:
 		Getter.BindRaw( InUserObject, InMethodPtr );
 	}
 
-
 	/**
 	 * Binds an arbitrary function that will be called to generate this attribute's value on demand. 
 	 * After binding, the attribute will no longer have a value that can be accessed directly, and instead the bound
@@ -219,7 +203,6 @@ public:
 		bIsSet = true;
 		Getter.BindSP( InUserObject, InMethodPtr );
 	}
-
 	
 	/**
 	 * Binds an arbitrary function that will be called to generate this attribute's value on demand. 
@@ -235,7 +218,6 @@ public:
 		bIsSet = true;
 		Getter.BindSP( InUserObject, InMethodPtr );
 	}
-
 	
 	/**
 	 * Binds an arbitrary function that will be called to generate this attribute's value on demand. 
@@ -252,7 +234,6 @@ public:
 		Getter.BindUObject( InUserObject, InMethodPtr );
 	}
 
-
 	/**
 	 * Binds an arbitrary function that will be called to generate this attribute's value on demand.
 	 * After binding, the attribute will no longer have a value that can be accessed directly, and instead the bound
@@ -267,7 +248,6 @@ public:
 		bIsSet = true;
 		Getter.BindUFunction(InUserObject, InFunctionName);
 	}
-
 
 	/**
 	 * Creates an attribute by binding an arbitrary function that will be called to generate this attribute's value on demand.
@@ -284,7 +264,6 @@ public:
 		Attrib.BindUFunction<SourceType>(InUserObject, InFunctionName);
 		return Attrib;
 	}
-
 
 	/**
 	 * Checks to see if this attribute has a 'getter' function bound
@@ -306,9 +285,11 @@ public:
 		return Getter;
 	}
 
-
 	/**
 	 * Equality operator
+	 *
+	 * @param InOther The other attribute to compare with.
+	 * @return true if the attributes are equal, false otherwise.
 	 */
 	bool operator==( const TAttribute& InOther ) const
 	{
@@ -317,13 +298,15 @@ public:
 
 
 	/**
-	 * Not equal operator
+	 * Not equal operator.
+	 *
+	 * @param InOther The other attribute to compare with.
+	 * @return true if the attributes are not equal, false otherwise.
 	 */
 	bool operator!=( const TAttribute& InOther ) const
 	{
 		return InOther.Get() != Get();
 	}
-
 	
 private:
 
@@ -332,8 +315,7 @@ private:
 		: Value()
 		, Getter( InGetter )
 		, bIsSet( true )
-	{
-	}
+	{ }
 
 	// We declare ourselves as a friend (templated using OtherType) so we can access members as needed
 	template< class OtherType > friend class TAttribute;
@@ -348,7 +330,4 @@ private:
 
 	/** true when this attribute was explicitly set by a consumer, false when the attribute's value is set to the default*/
 	bool bIsSet;
-
 };
-
-

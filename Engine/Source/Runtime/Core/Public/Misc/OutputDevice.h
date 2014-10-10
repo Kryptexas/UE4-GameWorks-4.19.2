@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	OutputDevice.h: FOutputDevice and OutputDebugString type functions
-=============================================================================*/
-
 #pragma once
+
 
 class FText;
 

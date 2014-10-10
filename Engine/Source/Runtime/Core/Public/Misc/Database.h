@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Database.h: Database integration
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Whether to compile in support for database connectivity and SQL execution.
@@ -12,7 +9,6 @@
 #ifndef WITH_DATABASE_SUPPORT
 	#define WITH_DATABASE_SUPPORT (!UE_BUILD_MINIMAL && !UE_BUILD_SHIPPING)
 #endif
-
 
 // Only use ADO on windows, if support is enabled and not for shipping games.
 // @todo clang: #import is not supported by Clang on Windows platform, but we currently need this for ADO symbol importing.  For now we disable ADO support in Clang builds.

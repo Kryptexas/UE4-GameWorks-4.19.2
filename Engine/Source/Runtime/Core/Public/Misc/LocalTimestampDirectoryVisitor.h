@@ -1,21 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LocalTimestampDirectoryVisitor.h: Declares the FLocalTimestampDirectoryVisitor class.
-=============================================================================*/
-
 #pragma once
 
 
 /**
- * Visitor to gather local files with their timestamps
+ * Visitor to gather local files with their timestamps.
  */
 class CORE_API FLocalTimestampDirectoryVisitor
 	: public IPlatformFile::FDirectoryVisitor
 {
 public:
 
-	/** Relative paths to local files and their timestamps */
+	/** Relative paths to local files and their timestamps. */
 	TMap<FString, FDateTime> FileTimes;
 
 	/**
@@ -28,27 +24,23 @@ public:
 	 */
 	FLocalTimestampDirectoryVisitor( IPlatformFile& InFileInterface, const TArray<FString>& InDirectoriesToIgnore, const TArray<FString>& InDirectoriesToNotRecurse, bool bInCacheDirectories = false );
 
-
 public:
 
-	// Begin IPlatformFile::FDirectoryVisitor interface
+	// IPlatformFile::FDirectoryVisitor interface
 
 	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory);
 
-	// End IPlatformFile::FDirectoryVisitor interface
-
-
 private:
 
-	// true if we want directories in this list.
+	// true if we want directories in this list. */
 	bool bCacheDirectories;
 
-	// Holds a list of directories that we should not traverse into.
+	// Holds a list of directories that we should not traverse into. */
 	TArray<FString> DirectoriesToIgnore;
 
-	// Holds a list of directories that we should only go one level into.
+	// Holds a list of directories that we should only go one level into. */
 	TArray<FString> DirectoriesToNotRecurse;
 
-	// Holds the file interface to use for any file operations.
+	// Holds the file interface to use for any file operations. */
 	IPlatformFile& FileInterface;
 };

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ConfigCacheIni.cpp: Unreal config file reading/writing.
-=============================================================================*/
-
 #include "Core.h"
 #include "ConfigCacheIni.h"
 #include "RemoteConfigIni.h"
@@ -12,7 +8,9 @@
 #include "DefaultValueHelper.h"
 #include "EngineBuildSettings.h"
 
+
 DEFINE_LOG_CATEGORY(LogConfig);
+
 
 class FTextFriendHelper
 {

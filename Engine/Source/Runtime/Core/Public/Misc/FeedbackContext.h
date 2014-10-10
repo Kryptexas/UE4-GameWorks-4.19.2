@@ -1,14 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FeedbackContext.h: FFeedbackContext
-=============================================================================*/
-
 #pragma once
 
 #include "UniquePtr.h"
 
+
 struct FScopedSlowTask;
+
 
 /** A stack of feedback scopes */
 struct FScopedSlowTaskStack : TArray<FScopedSlowTask*>
@@ -17,8 +15,10 @@ struct FScopedSlowTaskStack : TArray<FScopedSlowTask*>
 	CORE_API float GetProgressFraction(int32 Index) const;
 };
 
+
 /** A context for displaying modal warning messages. */
-class CORE_API FFeedbackContext : public FOutputDevice
+class CORE_API FFeedbackContext
+	: public FOutputDevice
 {
 public:
 
@@ -103,7 +103,6 @@ protected:
 	void UpdateUI();
 
 };
-
 
 
 /**

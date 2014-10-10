@@ -2,9 +2,6 @@
 
 #pragma once
 
-/*=============================================================================
-	CompilationResult.h:  Defines an enum for return codes between build tools.
-=============================================================================*/
 
 /**
  * Enumerates possible results of a compilation operation.

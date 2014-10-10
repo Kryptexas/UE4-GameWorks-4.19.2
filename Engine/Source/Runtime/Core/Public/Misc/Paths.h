@@ -1,9 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
-/*-----------------------------------------------------------------------------
-	Path helpers for retrieving game dir, engine dir, etc.
------------------------------------------------------------------------------*/
+
+/**
+ * Path helpers for retrieving game dir, engine dir, etc.
+ */
 class CORE_API FPaths
 {
 	/**
@@ -12,6 +14,7 @@ class CORE_API FPaths
 	static bool ShouldSaveToUserDir();
 
 public:
+
 	/** 
 	 * Returns the base directory of the "core" engine that can be shared across
 	 * several games or across games & mods. Shaders and base localization files
@@ -193,7 +196,6 @@ public:
 	 */
 	static FString GameLogDir();
 
-
 	/**
 	 * @return The directory for automation save files
 	 */
@@ -359,43 +361,43 @@ public:
 	static void MakePlatformFilename(FString& InPath);
 
 	/** 
-	 * Assuming both paths (or filenames) are relative to the base dir, find the relative path to the InPath 
+	 * Assuming both paths (or filenames) are relative to the base dir, find the relative path to the InPath.
 	 *
-	 * @Param InPath - Path to make this path relative to.
-	 * @return Path relative to InPath
-	 **/
+	 * @Param InPath Path to make this path relative to.
+	 * @return Path relative to InPath.
+	 */
 	static bool MakePathRelativeTo( FString& InPath, const TCHAR* InRelativeTo );
 
 	/**
-	 * Converts a relative path name to a fully qualified name relative to the process BaseDir()
+	 * Converts a relative path name to a fully qualified name relative to the process BaseDir().
 	 */
 	static FString ConvertRelativePathToFull(const FString& InPath);
 
 	/**
-	 * Converts a relative path name to a fully qualified name relative to the specified BasePath
+	 * Converts a relative path name to a fully qualified name relative to the specified BasePath.
 	 */
 	static FString ConvertRelativePathToFull(const FString& BasePath, const FString& InPath);
 
 	/**
-	 * Converts a normal path to a sandbox path (in Saved/Sandboxes)
+	 * Converts a normal path to a sandbox path (in Saved/Sandboxes).
 	 *
-	 * @param InSandboxName - name of the sandbox
+	 * @param InSandboxName The name of the sandbox.
 	 */
 	static FString ConvertToSandboxPath( const FString& InPath, const TCHAR* InSandboxName );
 
 	/**
-	 * Converts a sandbox (in Saved/Sandboxes) path to a normal path
+	 * Converts a sandbox (in Saved/Sandboxes) path to a normal path.
 	 *
-	 * @param InSandboxName - name of the sandbox
+	 * @param InSandboxName The name of the sandbox.
 	 */
 	static FString ConvertFromSandboxPath( const FString& InPath, const TCHAR* InSandboxName );
 
 	/** 
-	 * Creates a temporary filename with the specified prefix 
+	 * Creates a temporary filename with the specified prefix.
 	 *
-	 * @param Path - file pathname
-	 * @param Prefix - file prefix
-	 * @param Extension - file extension ('.' required!)
+	 * @param Path The file pathname.
+	 * @param Prefix The file prefix.
+	 * @param Extension File extension ('.' required).
 	 */
 	static FString CreateTempFilename( const TCHAR* Path, const TCHAR* Prefix = TEXT(""), const TCHAR* Extension = TEXT(".tmp") );
 
@@ -471,5 +473,4 @@ private:
 		static FCriticalSection Lock;
 		return &Lock; 
 	}
-
 };

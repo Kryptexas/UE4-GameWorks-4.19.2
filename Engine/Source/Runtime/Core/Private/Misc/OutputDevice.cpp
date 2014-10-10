@@ -1,15 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	OutputDevice.cpp: Implementation of OutputDevice
-=============================================================================*/
-
 #include "Core.h"
 #include "ExceptionHandling.h"
 #include "VarargsHelper.h"
 #include "MallocCrash.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogOutputDevice, Log, All);
+
 
 namespace
 {

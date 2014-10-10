@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnMisc.cpp: Various core platform-independent functions.
-=============================================================================*/
-
 // Core includes.
 #include "Core.h"
 #include "ExceptionHandling.h"
@@ -20,6 +16,7 @@
 #include "ModuleManager.h"
 #include "Ticker.h"
 #include "DerivedDataCacheInterface.h"
+
 
 DEFINE_LOG_CATEGORY(LogSHA);
 DEFINE_LOG_CATEGORY(LogStats);

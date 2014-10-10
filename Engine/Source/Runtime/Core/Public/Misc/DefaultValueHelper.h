@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CppDefaultValueHelper.h: Parses default values for C++ function parameters
-=============================================================================*/
-
 #pragma once
+
 
 //
 //	FDefaultValueHelper

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineVersion.h: Encapsulates version information for the engine.
-=============================================================================*/
-
 #pragma once
+
 
 /** Enum for the components of a version string. */
 namespace EVersionComponent
@@ -19,6 +16,7 @@ namespace EVersionComponent
 	};
 }
 
+
 /** Components of a version string. */
 namespace EVersionComparison
 {
@@ -30,10 +28,12 @@ namespace EVersionComparison
 	};
 }
 
+
 /** Utility functions. */
 class CORE_API FEngineVersion
 {
 public:
+
 	/** Empty constructor. Initializes the version to 0.0.0-0. */
 	FEngineVersion();
 
@@ -74,6 +74,7 @@ public:
 	friend CORE_API void operator<<(FArchive &Ar, FEngineVersion &Version);
 
 private:
+
 	/** Major version number. */
 	uint16 Major;
 
@@ -89,6 +90,7 @@ private:
 	/** Branch name. */
 	FString Branch;
 };
+
 
 /** Global instance of the current engine version. */
 CORE_API extern const FEngineVersion GEngineVersion;

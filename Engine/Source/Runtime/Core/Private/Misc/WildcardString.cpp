@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WildcardString.cpp: Implements the FWildcardString class.
-=============================================================================*/
-
 #include "Core.h"
 
 
@@ -12,7 +8,7 @@
 
 bool FWildcardString::ContainsWildcards(const TCHAR* Pattern)
 {
-	if (Pattern != NULL)
+	if (Pattern != nullptr)
 	{
 		while (*Pattern != EndOfString)
 		{
@@ -31,13 +27,13 @@ bool FWildcardString::ContainsWildcards(const TCHAR* Pattern)
 
 bool FWildcardString::IsMatch(const TCHAR* Pattern, const TCHAR* Input)
 {
-	if ((Pattern == NULL) || (Input == NULL))
+	if ((Pattern == nullptr) || (Input == nullptr))
 	{
 		return false;
 	}
 
 	const TCHAR* pp = Pattern;
-	const TCHAR* pinput = NULL;
+	const TCHAR* pinput = nullptr;
 
 	while (*Input != EndOfString)
 	{
@@ -58,7 +54,7 @@ bool FWildcardString::IsMatch(const TCHAR* Pattern, const TCHAR* Input)
 			Pattern++;
 			Input++;
 		}
-		else if (pinput == NULL)
+		else if (pinput == nullptr)
 		{
 			// single mismatch
 			return false;

@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	App.h: Declares the FApp class.
-=============================================================================*/
-
 #pragma once
+
 
 // platforms which can have runtime threading switches
 #define HAVE_RUNTIME_THREADING_SWITCHES			(PLATFORM_DESKTOP || PLATFORM_ANDROID || PLATFORM_IOS)
+
 
 /**
  * Provides information about the application.
@@ -64,7 +62,6 @@ public:
 	 * that can be used to identify it from anywhere on the network.
 	 *
 	 * @return Instance identifier, or an invalid GUID if there is no local instance.
-	 *
 	 * @see GetSessionId
 	 */
 	FORCEINLINE static FGuid GetInstanceId()
@@ -88,7 +85,6 @@ public:
 	 * Gets the name of the application, i.e. "UE4" or "Rocket".
 	 *
 	 * @todo need better application name discovery. this is quite horrible and may not work on future platforms.
-	 *
 	 * @return Application name string.
 	 */
 	static FString GetName()
@@ -119,7 +115,6 @@ public:
 	 * Conversely, sessions that were launched separately will have different session identifiers.
 	 *
 	 * @return Session identifier, or an invalid GUID if there is no local instance.
-	 *
 	 * @see GetInstanceId
 	 */
 	FORCEINLINE static FGuid GetSessionId()
@@ -276,7 +271,7 @@ public:
 	/**
 	 * Sets application benchmarking mode.
 	 *
-	 * @param bVal - True sets application in benchmark mode, false sets to non-benchmark mode.
+	 * @param bVal True sets application in benchmark mode, false sets to non-benchmark mode.
 	 */
 	static void SetBenchmarking(bool bVal)
 	{
@@ -296,7 +291,7 @@ public:
 	/**
 	 * Sets time step in seconds if a fixed delta time is wanted.
 	 *
-	 * @param seconds - Time step in seconds for fixed delta time.
+	 * @param seconds Time step in seconds for fixed delta time.
 	 */
 	static void SetFixedDeltaTime(double Seconds)
 	{
@@ -344,9 +339,7 @@ public:
 		return LastTime;
 	}
 
-	/**
-	 * Updates Last time to CurrentTime.
-	 */
+	/** Updates Last time to CurrentTime. */
 	static void UpdateLastTime()
 	{
 		LastTime = CurrentTime;
@@ -365,7 +358,7 @@ public:
 	/**
 	 * Sets time delta in seconds.
 	 *
-	 * @param seconds - Time in seconds.
+	 * @param seconds Time in seconds.
 	 */
 	static void SetDeltaTime(double Seconds)
 	{
@@ -374,42 +367,41 @@ public:
 
 private:
 
-	// Holds the instance identifier.
+	/** Holds the instance identifier. */
 	static FGuid InstanceId;
 
-	// Holds the session identifier.
+	/** Holds the session identifier. */
 	static FGuid SessionId;
 
-	// Holds the session name.
+	/** Holds the session name. */
 	static FString SessionName;
 
-	// Holds the name of the user that launched session.
+	/** Holds the name of the user that launched session. */
 	static FString SessionOwner;
 
-	// Holds a flag indicating whether this is a standalone session.
+	/** Holds a flag indicating whether this is a standalone session. */
 	static bool Standalone;
 
-	// Holds a flag Whether we are in benchmark mode or not.
+	/** Holds a flag Whether we are in benchmark mode or not. */
 	static bool bIsBenchmarking;
 
-	// Holds time step if a fixed delta time is wanted.
+	/** Holds time step if a fixed delta time is wanted. */
 	static double FixedDeltaTime;
 
-	// Holds current time.
+	/** Holds current time. */
 	static double CurrentTime;
 
-	// Holds previous value of CurrentTime.
+	/** Holds previous value of CurrentTime. */
 	static double LastTime;
 
-	// Holds current delta time in seconds.
+	/** Holds current delta time in seconds. */
 	static double DeltaTime;
 };
 
 
-/**
- * Called to determine the result of IsServerForOnlineSubsystems()
- */
+/** Called to determine the result of IsServerForOnlineSubsystems() */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FQueryIsRunningServer, FName);
+
 
 /**
  * @return true if there is a running game world that is a server (including listen servers), false otherwise

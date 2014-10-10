@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DataCodec.h: Data compression codecs.
-=============================================================================*/
+#pragma once
+
 
 /*-----------------------------------------------------------------------------
 	Coder/decoder base class.
 -----------------------------------------------------------------------------*/
-#pragma once
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDataCodex, Log, All);
 
@@ -18,6 +16,7 @@ public:
 	virtual bool Decode( FArchive& In, FArchive& Out )=0;
 	virtual ~FCodec(){}
 };
+
 
 /*-----------------------------------------------------------------------------
 	Burrows-Wheeler inspired data compressor.

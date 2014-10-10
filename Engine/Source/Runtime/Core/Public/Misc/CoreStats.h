@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CoreStats.h: Stats enums for core
-=============================================================================*/
-
 #pragma once
 
 #include "Stats.h"
+
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSHA, Warning, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogStats, Log, All);

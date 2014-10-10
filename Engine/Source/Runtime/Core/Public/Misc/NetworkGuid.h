@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkGuid.h: Declares the FNetworkGUID class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -19,10 +15,9 @@ public:
 
 	uint32 Value;
 
-
 public:
 
-	FNetworkGUID( )
+	FNetworkGUID()
 		: Value(0)
 	{ }
 
@@ -30,7 +25,6 @@ public:
 		: Value(V)
 	{ }
 		
-
 public:
 
 	friend bool operator==( const FNetworkGUID& X, const FNetworkGUID& Y )
@@ -48,7 +42,6 @@ public:
 		return Ar << G.Value;
 	}
 
-
 public:
 
 	void BuildFromNetIndex( int32 StaticNetIndex )
@@ -56,7 +49,7 @@ public:
 		Value = (StaticNetIndex << 1 | 1);
 	}
 
-	int32 ExtractNetIndex( )
+	int32 ExtractNetIndex()
 	{
 		if (Value & 1)
 		{
@@ -70,17 +63,17 @@ public:
 		return Guid.Value;
 	}
 
-	bool IsDynamic( ) const
+	bool IsDynamic() const
 	{
 		return Value > 0 && !(Value & 1);
 	}
 
-	bool IsStatic( ) const
+	bool IsStatic() const
 	{
 		return Value & 1;
 	}
 
-	bool IsValid( ) const
+	bool IsValid() const
 	{
 		return Value > 0;
 	}
@@ -103,11 +96,10 @@ public:
 		Value = 0;
 	}
 
-	FString ToString( ) const
+	FString ToString() const
 	{
 		return FString::Printf(TEXT("%d"), Value);
 	}
-
 
 public:
 

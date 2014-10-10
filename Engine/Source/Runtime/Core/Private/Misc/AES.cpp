@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AES.cpp: Handling of Advanced Encryption Standard
-=============================================================================*/
-
 #include "Core.h"
 #include "AES.h"
+
 
 // Uncomment this line to skip encryption
 // #undef AES_KEY
@@ -21,7 +18,6 @@
 // The approach used in CryptoPP is better, but much more complicated.
 
 // It may be useful to integrate this into a class derived from FArchive to allow streaming encryption/decryption - but that's a mission for another day.
-
 
 #ifdef AES_KEY
 

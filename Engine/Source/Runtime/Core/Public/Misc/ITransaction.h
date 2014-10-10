@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITransaction.h: Declares the ITransaction interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,6 +19,7 @@ typedef void(*STRUCT_DTOR)( void* TPtr );					// destruct
  */
 class ITransactionObjectAnnotation { };
 
+
 /**
  * Interface for transactions.
  *
@@ -33,9 +30,7 @@ class ITransaction
 {
 public:
 
-	/**
-	 * Applies the transaction.
-	 */
+	/** Applies the transaction. */
 	virtual void Apply( ) = 0;
 
 	/**
@@ -49,6 +44,7 @@ public:
 	 * @param ElementSize
 	 * @param Serializer
 	 * @param Destructor
+	 * @see SaveObject
 	 */
 	virtual void SaveArray( UObject* Object, class FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor ) = 0;
 
@@ -56,6 +52,7 @@ public:
 	 * Saves an UObject to the transaction.
 	 *
 	 * @param Object The object to save.
+	 * @see SaveArray
 	 */
 	virtual void SaveObject( UObject* Object ) = 0;
 

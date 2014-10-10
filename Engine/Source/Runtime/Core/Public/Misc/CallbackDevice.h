@@ -1,15 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CallbackDevice.h:  Allows the engine to do callbacks into the editor
-=============================================================================*/
-
 #pragma once
 
 #include "ScopedCallback.h"
 
+
+class AActor;
+class FUniqueNetIdString;
+
+
 /**
- * The list of events that can be fired from the engine to unknown listeners
+ * The list of events that can be fired from the engine to unknown listeners.
  */
 enum ECallbackQueryType
 {
@@ -18,7 +19,6 @@ enum ECallbackQueryType
 	CALLBACK_QueryCount,
 };
 
-class AActor;
 
 // delegates for hotfixes
 namespace EHotfixDelegates
@@ -29,6 +29,7 @@ namespace EHotfixDelegates
 	};
 }
 
+
 // this is an example of a hotfix arg and return value structure. Once we have other examples, it can be deleted.
 struct FTestHotFixPayload
 {
@@ -37,8 +38,6 @@ struct FTestHotFixPayload
 	bool Result;
 };
 
-//forward declares
-class FUniqueNetIdString;
 
 class CORE_API FCoreDelegates
 {
@@ -198,8 +197,10 @@ public:
 	static FApplicationLicenseChange ApplicationLicenseChange;
 
 private:
+
 	// Callbacks for hotfixes
 	static TArray<FHotFixDelegate> HotFixDelegates;
+
 	// This class is only for namespace use
 	FCoreDelegates() {}
 };

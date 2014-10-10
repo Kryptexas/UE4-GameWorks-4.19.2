@@ -1,16 +1,22 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MemStack.h: FMemStack class, ultra-fast temporary memory allocation
-=============================================================================*/
-
 #pragma once
+
 #include "LockFreeFixedSizeAllocator.h"
 
 
 // Enums for specifying memory allocation type.
-enum EMemZeroed {MEM_Zeroed=1};
-enum EMemOned   {MEM_Oned  =1};
+enum EMemZeroed
+{
+	MEM_Zeroed = 1
+};
+
+
+enum EMemOned
+{
+	MEM_Oned = 1
+};
+
 
 class CORE_API FPageAllocator
 {
@@ -58,6 +64,7 @@ private:
 	static TLockFreeFixedSizeAllocator<PageSize, FThreadSafeCounter> TheAllocator;
 	static TLockFreeFixedSizeAllocator<SmallPageSize, FThreadSafeCounter> TheSmallAllocator;
 };
+
 
 /**
  * Simple linear-allocation memory stack.
@@ -182,9 +189,11 @@ private:
 	int32 MinMarksToAlloc;
 };
 
+
 class CORE_API FMemStack : public TThreadSingleton<FMemStack>, public FMemStackBase
 {
 };
+
 
 /*-----------------------------------------------------------------------------
 	FMemStack templates.
@@ -207,6 +216,7 @@ template <class T> inline T* NewOned(FMemStackBase& Mem, int32 Count = 1, int32 
 	FMemory::Memset( Result, 0xff, Count*sizeof(T) );
 	return (T*)Result;
 }
+
 
 /*-----------------------------------------------------------------------------
 	FMemStack operator new's.
@@ -251,6 +261,7 @@ inline void* operator new[](size_t Size, FMemStackBase& Mem, EMemOned Tag, int32
 	FMemory::Memset( Result, 0xff, Size*Count );
 	return Result;
 }
+
 
 /** A container allocator that allocates from a mem-stack. */
 template<uint32 Alignment = DEFAULT_ALIGNMENT>
@@ -314,6 +325,7 @@ public:
 	typedef ForElementType<FScriptContainerElement> ForAnyElementType;
 };
 
+
 /**
  * FMemMark marks a top-of-stack position in the memory stack.
  * When the marker is constructed or initialized with a particular memory 
@@ -370,6 +382,7 @@ public:
 	}
 
 private:
+
 	// Implementation variables.
 	FMemStackBase& Mem;
 	uint8* Top;
