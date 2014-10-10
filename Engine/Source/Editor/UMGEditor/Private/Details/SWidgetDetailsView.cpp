@@ -58,7 +58,7 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 				.WidthOverride(200.0f)
 				.VAlign(VAlign_Center)
 				[
-					SAssignNew(NameTextBox, SEditableTextBox)
+					SNew(SEditableTextBox)
 					.SelectAllTextWhenFocused(true)
 					.ToolTipText(LOCTEXT("CategoryToolTip", "Sets the category of the widget"))
 					.HintText(LOCTEXT("Category", "Category"))
