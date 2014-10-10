@@ -1,12 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "HAL/Platform.h"
 
 class FArchive;
 class FOutputDevice;
+class FString;
 class UObject;
 
+inline uint32 GetTypeHash(const int64 A);
 
 namespace ETimespan
 {

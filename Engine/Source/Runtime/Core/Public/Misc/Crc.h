@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "HAL/Platform.h"
+#include "Misc/Char.h"
 #include "Templates/EnableIf.h"
-
 /** 
  * CRC hash generation for different types of input data
  **/

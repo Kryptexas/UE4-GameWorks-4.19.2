@@ -5,8 +5,9 @@
 =============================================================================*/
 
 #pragma once
-
 #include "EnableIf.h"
+#include "HAL/Platform.h"
+#include "Templates/UnrealTypeTraits.h"
 
 /*-----------------------------------------------------------------------------
 	Standard templates.

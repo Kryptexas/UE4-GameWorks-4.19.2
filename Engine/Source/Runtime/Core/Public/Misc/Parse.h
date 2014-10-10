@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "HAL/Platform.h"
+
+class FName;
+class FString;
+class FText;
 
 /*-----------------------------------------------------------------------------
 	Parsing functions.
@@ -14,7 +19,7 @@ struct CORE_API FParse
 	 */
 	static bool Command( const TCHAR** Stream, const TCHAR* Match, bool bParseMightTriggerExecution = true );
 	/** Parses a name. */
-	static bool Value( const TCHAR* Stream, const TCHAR* Match, class FName& Name );
+	static bool Value( const TCHAR* Stream, const TCHAR* Match, FName& Name );
 	/** Parses a uint32. */
 	static bool Value( const TCHAR* Stream, const TCHAR* Match, uint32& Value );
 	/** Parses a globally unique identifier. */
