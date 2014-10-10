@@ -149,6 +149,18 @@ namespace APIDocTool
 		{
 			if (PinCategory == "struct")
 			{
+				if (PinSubCategoryObject == "Vector")
+				{
+					return "vector";
+				}
+				else if (PinSubCategoryObject == "Transform")
+				{
+					return "transform";
+				}
+				else if (PinSubCategoryObject == "Rotator")
+				{
+					return "rotator";
+				}
 				if (PinSubCategoryObject == "Vector2D")
 				{
 					return "vector2d struct";
@@ -165,6 +177,13 @@ namespace APIDocTool
 			else if (PinCategory == "int")
 			{
 				return "integer";
+			}
+			else if (PinCategory == "byte")
+			{
+				if (PinSubCategoryObject != "")
+				{
+					return "enum";
+				}
 			}
 
 			return PinCategory;
