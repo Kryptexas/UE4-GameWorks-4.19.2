@@ -3671,16 +3671,6 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 				CurrentTouchablePrimitives[TouchIndexInt] = CurrentComponent;
 			}
 		}
-
-		// force touch UI on when it should be
-		if (SVirtualJoystick::ShouldDisplayTouchInterface())
-		{
-			CreateTouchInterface();
-		}
-		else
-		{
-			CleanupGameViewport();
-		}
 	}
 
 	if (PlayerInput != NULL)
