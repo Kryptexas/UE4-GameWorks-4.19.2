@@ -714,7 +714,10 @@ namespace APIDocTool
 						JsonExportProcess.BeginOutputReadLine();
 						JsonExportProcess.BeginErrorReadLine();
 						JsonExportProcess.WaitForExit();
-						return JsonExportProcess.ExitCode == 0;
+						if(JsonExportProcess.ExitCode != 0)
+						{
+							return false;
+						}
 					}
 					catch (Exception Ex)
 					{
