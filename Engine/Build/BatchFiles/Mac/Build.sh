@@ -87,5 +87,5 @@ case $ACTION in
 		;;
 esac
 
-exit $?
-
+# UBT can exit with non-zero code that means success, for example 254 when target was up to date. Xcode treats that as error, so we return 0 here instead of $?
+exit 0
