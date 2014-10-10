@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
@@ -24,7 +25,7 @@ namespace UnrealBuildTool
 		 ***********************************************************************
 
 		/** Which version of the Mac OS SDK to target at build time */
-		public static string MacOSSDKVersion = "10.9";
+		public static string MacOSSDKVersion = "latest";
 
 		/** Which version of the Mac OS X to allow at run time */
 		public static string MacOSVersion = "10.9";
@@ -33,7 +34,10 @@ namespace UnrealBuildTool
 		public static string MinMacOSVersion = "10.9.2";
 
 		/** Which developer directory to root from */
-		private static string DeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
+		private static string XcodeDeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
+
+		/** Location of the SDKs */
+		private static string BaseSDKDir;
 
 		/** Which compiler frontend to use */
 		private static string MacCompiler = "clang++";
@@ -56,6 +60,78 @@ namespace UnrealBuildTool
 		public override void SetUpGlobalEnvironment()
 		{
 			base.SetUpGlobalEnvironment();
+
+			BaseSDKDir = XcodeDeveloperDir + "Platforms/MacOSX.platform/Developer/SDKs";
+
+			if (MacOSSDKVersion == "latest")
+			{
+				try
+				{
+					string[] SubDirs = null;
+					if (Utils.IsRunningOnMono)
+					{
+						// on the Mac, we can just get the directory name
+						SubDirs = System.IO.Directory.GetDirectories(BaseSDKDir);
+						Log.TraceInformation(String.Format("Directories : {0} {1}", SubDirs, SubDirs[0]));
+					}
+					else
+					{
+						Hashtable Results = RPCUtilHelper.Command("/", "ls", BaseSDKDir, null);
+						if (Results != null)
+						{
+							string Result = (string)Results["CommandOutput"];
+							SubDirs = Result.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+						}
+					}
+
+					// loop over the subdirs and parse out the version
+					float MaxSDKVersion = 0.0f;
+					string MaxSDKVersionString = null;
+					foreach (string SubDir in SubDirs)
+					{
+						string SubDirName = Path.GetFileNameWithoutExtension(SubDir);
+						if (SubDirName.StartsWith("MacOSX10."))
+						{
+							// get the SDK version from the directory name
+							string SDKString = SubDirName.Replace("MacOSX10.", "");
+							float SDKVersion = 0.0f;
+							try
+							{
+								SDKVersion = float.Parse(SDKString, System.Globalization.CultureInfo.InvariantCulture);
+							}
+							catch (Exception)
+							{
+								// weirdly formatted SDKs
+								continue;
+							}
+
+							// update largest SDK version number
+							if (SDKVersion > MaxSDKVersion)
+							{
+								MaxSDKVersion = SDKVersion;
+								MaxSDKVersionString = SDKString;
+							}
+						}
+					}
+
+					// convert back to a string with the exact format
+					if (MaxSDKVersionString != null)
+					{
+						MacOSSDKVersion = "10." + MaxSDKVersionString;
+					}
+				}
+				catch (Exception Ex)
+				{
+					// on any exception, just use the backup version
+					Log.TraceInformation("Triggered an exception while looking for SDK directory in Xcode.app");
+					Log.TraceInformation("{0}", Ex.ToString());
+				}
+
+				if (MacOSSDKVersion == "latest")
+				{
+					throw new BuildException("Unable to determine SDK version from Xcode, we cannot continue");
+				}
+			}
 
 			if (!ProjectFileGenerator.bGenerateProjectFiles)
 			{
@@ -102,7 +178,7 @@ namespace UnrealBuildTool
 			Result += " -c";
 
 			Result += " -arch x86_64";
-			Result += " -isysroot " + DeveloperDir + "Platforms/MacOSX.platform/Developer/SDKs/MacOSX" + MacOSSDKVersion + ".sdk";
+			Result += " -isysroot " + BaseSDKDir + "/MacOSX" + MacOSSDKVersion + ".sdk";
 			Result += " -mmacosx-version-min=" + MacOSVersion;
 
 			// Optimize non- debug builds.
@@ -190,7 +266,7 @@ namespace UnrealBuildTool
 			string Result = "";
 
 			Result += " -arch x86_64";
-			Result += " -isysroot " + DeveloperDir + "Platforms/MacOSX.platform/Developer/SDKs/MacOSX" + MacOSSDKVersion + ".sdk";
+			Result += " -isysroot " + BaseSDKDir + "/MacOSX" + MacOSSDKVersion + ".sdk";
 			Result += " -mmacosx-version-min=" + MacOSVersion;
 			Result += " -dead_strip";
 

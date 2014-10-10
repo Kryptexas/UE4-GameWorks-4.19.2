@@ -32,7 +32,7 @@ void CrashReporterCrashHandler(const FGenericCrashContext& GenericContext)
 
 static FString GSavedCommandLine;
 
-@interface UE4AppDelegate : NSObject <NSApplicationDelegate>
+@interface UE4AppDelegate : NSObject <NSApplicationDelegate, NSFileManagerDelegate>
 {
 }
 

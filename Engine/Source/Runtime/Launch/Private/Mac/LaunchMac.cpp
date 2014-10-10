@@ -43,7 +43,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	return Context.GenerateCrashInfoAndLaunchReporter();
 }
 
-@interface UE4AppDelegate : NSObject <NSApplicationDelegate>
+@interface UE4AppDelegate : NSObject <NSApplicationDelegate, NSFileManagerDelegate>
 {
 #if WITH_EDITOR
 	NSString* Filename;

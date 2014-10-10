@@ -2,7 +2,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface FUE4EditorServicesAppDelegate : NSObject <NSApplicationDelegate>
+@interface FUE4EditorServicesAppDelegate : NSObject <NSApplicationDelegate, NSFileManagerDelegate>
 {
 	NSWindow* Window;
 }
