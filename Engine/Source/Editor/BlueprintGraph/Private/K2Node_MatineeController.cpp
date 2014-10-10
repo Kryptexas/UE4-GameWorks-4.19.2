@@ -130,6 +130,12 @@ void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerConte
 
 void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	UClass* ActionKey = GetClass();
+	if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		return;
+	}
+
 	auto CanBindObjectLambda = [](UObject const* BindingObject)
 	{
 		if (AMatineeActor const* Actor = Cast<AMatineeActor>(BindingObject))
@@ -187,7 +193,7 @@ void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar
 	NodeSpawner->OnBindObjectDelegate  = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
 	NodeSpawner->DynamicUiSignatureGetter = UBlueprintBoundNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(UiSpecOverride);
 	NodeSpawner->FindPreExistingNodeDelegate = UBlueprintBoundNodeSpawner::FFindPreExistingNodeDelegate::CreateStatic( FindPreExistingNodeLambda );
-	ActionRegistrar.AddBlueprintAction(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 }
 
 void UK2Node_MatineeController::OnEventKeyframeAdded(const AMatineeActor* InMatineeActor, const FName& InPinName, int32 InIndex)

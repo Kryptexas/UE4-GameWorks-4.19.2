@@ -13,6 +13,8 @@
 #include "BlueprintEditorUtils.h"
 #include "SBlueprintActionMenu.h" // for SBlueprintActionMenuExpander
 #include "BlueprintDragDropMenuItem.h"
+#include "BlueprintActionDatabase.h"
+#include "Engine/LevelScriptBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintSubPalette"
 
@@ -176,7 +178,9 @@ public:
 //------------------------------------------------------------------------------
 SBlueprintSubPalette::~SBlueprintSubPalette()
 {
-	GEditor->OnBlueprintCompiled().RemoveAll(this);
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.OnEntryRemoved().RemoveAll(this);
+	ActionDatabase.OnEntryUpdated().RemoveAll(this);
 }
 
 //------------------------------------------------------------------------------
@@ -237,10 +241,9 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 	// has to come after GraphActionMenu has been set
 	BindCommands(CommandList);
 
-	GEditor->OnBlueprintCompiled().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
-	// Register with the Asset Registry to be informed when it is done loading up files.
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.OnEntryRemoved().AddSP(this, &SBlueprintSubPalette::OnDatabaseActionsRemoved);
+	ActionDatabase.OnEntryUpdated().AddSP(this, &SBlueprintSubPalette::OnDatabaseActionsUpdated);
 }
 
 //------------------------------------------------------------------------------
@@ -251,7 +254,7 @@ void SBlueprintSubPalette::Tick(const FGeometry& AllottedGeometry, const double 
 	if(bNeedsRefresh)
 	{
 		bNeedsRefresh = false;
-		RefreshActionsList(true);
+		RefreshActionsList(/*bPreserveExpansion =*/true);
 	}
 }
 
@@ -361,7 +364,7 @@ void SBlueprintSubPalette::BindCommands(TSharedPtr<FUICommandList> CommandListIn
 
 	CommandListIn->MapAction(
 		PaletteCommands.RefreshPalette,
-		FExecuteAction::CreateSP(this, &SBlueprintSubPalette::RefreshActionsList, true)
+		FExecuteAction::CreateSP(this, &SBlueprintSubPalette::RefreshActionsList, /*bPreserveExpansion =*/true)
 	);
 }
 
@@ -386,9 +389,40 @@ void SBlueprintSubPalette::RequestRefreshActionsList()
 	bNeedsRefresh = true;
 }
 
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::OnDatabaseActionsUpdated(UObject* /*ActionsKey*/)
+{
+	RequestRefreshActionsList();
+}
+
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::OnDatabaseActionsRemoved(UObject* ActionsKey)
+{
+	ULevelScriptBlueprint* RemovedLevelScript = Cast<ULevelScriptBlueprint>(ActionsKey);
+	bool const bAssumeDestroyingWorld = (RemovedLevelScript != nullptr);
+
+	if (bAssumeDestroyingWorld)
+	{
+		// have to update the action list immediatly (cannot wait until Tick(), 
+		// because we have to handle level switching, which expects all references 
+		// to be cleared immediately)
+		ForceRefreshActionList();
+	}
+	else
+	{
+		RequestRefreshActionsList();
+	}
+}
+
 /*******************************************************************************
 * Private SBlueprintSubPalette Methods
 *******************************************************************************/
+
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::ForceRefreshActionList()
+{
+	RefreshActionsList(/*bPreserveExpansion =*/true);
+}
 
 //------------------------------------------------------------------------------
 TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FText const& TitleText, FText const& ToolTipText)

@@ -24,6 +24,8 @@ class FBlueprintActionDatabaseRegistrar;
 class BLUEPRINTGRAPH_API FBlueprintActionDatabase : public FGCObject, public FTickableEditorObject
 {
 public:
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDatabaseEntryUpdated, UObject*);
+
 	typedef TMap<TWeakObjectPtr<UObject>, int32>			FPrimingQueue;
 	typedef TArray<UBlueprintNodeSpawner*>					FActionList;
 	typedef TMap<UObject const*, FActionList>				FActionRegistry;
@@ -108,11 +110,10 @@ public:
 	 */
 	void MoveUnloadedAssetActions(FName SourceObjectPath, FName TargetObjectPath);
 
-	/**
-	 * 
-	 * @return An estimated memory footprint of this database (in bytes).
-	 */
-	int32 EstimatedSize() const;
+	/** */
+	FOnDatabaseEntryUpdated& OnEntryUpdated() { return EntryRefreshDelegate; }
+	/** */
+	FOnDatabaseEntryUpdated& OnEntryRemoved() { return EntryRemovedDelegate; }
 
 private:
 	/** Private constructor for singleton purposes. */
@@ -148,4 +149,8 @@ private:
 	 * caching each spawner's template-node, etc.).
 	 */
 	FPrimingQueue ActionPrimingQueue;
+
+	/** */
+	FOnDatabaseEntryUpdated EntryRefreshDelegate;
+	FOnDatabaseEntryUpdated EntryRemovedDelegate;
 };

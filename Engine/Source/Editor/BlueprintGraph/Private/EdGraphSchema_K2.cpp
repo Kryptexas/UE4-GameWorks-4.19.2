@@ -838,6 +838,12 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 		{
 			return false;
 		}
+		
+		// cannot have level script variables
+		if (InClass->IsChildOf(ALevelScriptActor::StaticClass()))
+		{
+			return false;
+		}
 
 		const UClass* ParentClass = InClass;
 		while(ParentClass)

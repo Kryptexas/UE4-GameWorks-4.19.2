@@ -821,7 +821,7 @@ static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld
 {
 	for(auto It = DestroyedWorld->GetLevelIterator() ; It ; ++It)
 	{
-		if(const ULevelScriptBlueprint* LevelScript = (*It)->GetLevelScriptBlueprint(true))
+		if(const ULevelScriptBlueprint* LevelScript = (*It)->GetLevelScriptBlueprint(/*bDontCreate =*/true))
 		{
 			FBlueprintActionDatabase::Get().ClearAssetActions((UObject*)LevelScript);
 		}
@@ -1049,6 +1049,12 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 			ActionRegistry.Remove(Class);
 		}
 	}
+
+	// blueprints are handled in RefreshAssetActions()
+	if (!bIsInitializing && !bIsBlueprintClass)
+	{
+		EntryRefreshDelegate.Broadcast(Class);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -1109,17 +1115,39 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	{
 		ClearAssetActions(AssetObject);
 	}
+
+	if (!bIsInitializing)
+	{
+		EntryRefreshDelegate.Broadcast(AssetObject);
+	}
 }
 
 //------------------------------------------------------------------------------
 void FBlueprintActionDatabase::ClearAssetActions(UObject* const AssetObject)
 {
-	check(BlueprintActionDatabaseImpl::IsObjectValidForDatabase(AssetObject));
-	ActionRegistry.Remove(AssetObject);
+	FActionList* ActionList = ActionRegistry.Find(AssetObject);
+
+	bool const bHasEntry = (ActionList != nullptr);
+	if (bHasEntry)
+	{
+		for (UBlueprintNodeSpawner* Action : *ActionList)
+		{
+			// because some asserts expect everything to be cleaned up in a 
+			// single GC pass, we can't wait for the GC'd Action to release its
+			// template node from the cache
+			Action->ClearCachedTemplateNode();
+		}
+		ActionRegistry.Remove(AssetObject);
+	}
 
 	if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject))
 	{
 		BlueprintAsset->OnChanged().RemoveStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+	}
+
+	if (bHasEntry && (ActionList->Num() > 0) && !BlueprintActionDatabaseImpl::bIsInitializing)
+	{
+		EntryRemovedDelegate.Broadcast(AssetObject);
 	}
 }
 
@@ -1168,17 +1196,6 @@ FBlueprintActionDatabase::FActionRegistry const& FBlueprintActionDatabase::GetAl
 		RefreshAll();
 	}
 	return ActionRegistry;
-}
-
-//------------------------------------------------------------------------------
-int32 FBlueprintActionDatabase::EstimatedSize() const
-{
-	int32 TotalSize = sizeof(*this);
-	for (TObjectIterator<UBlueprintNodeSpawner> NodeSpawnerIt; NodeSpawnerIt; ++NodeSpawnerIt)
-	{
-		TotalSize += sizeof(**NodeSpawnerIt);
-	}
-	return TotalSize;
 }
 
 //------------------------------------------------------------------------------

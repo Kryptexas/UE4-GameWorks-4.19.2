@@ -71,9 +71,6 @@ public:
 	static UBlueprintNodeSpawner* Create(UObject* Outer = nullptr, FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate());
 	
 public:
-	/** */
-	virtual ~UBlueprintNodeSpawner();
-
 	/** Holds the node type that this spawner will instantiate. */
 	UPROPERTY()
 	TSubclassOf<UEdGraphNode> NodeClass;
@@ -86,6 +83,10 @@ public:
 
 	/** Provides a way to override DefaultMenuSignature based off blueprint/graph/menu context */
 	FUiSpecOverrideDelegate DynamicUiSignatureGetter;
+
+	// UObject interface
+	virtual void BeginDestroy() override;
+	// End UObject interface
 
 	/**
 	 * Not required, but intended to passively help speed up menu building 
@@ -159,6 +160,13 @@ public:
 	 * @return Should return a new/cached template-node (but could be null, or some pre-existing node... depends on the sub-class's Invoke() method).
 	 */
 	UEdGraphNode* GetTemplateNode(UEdGraph* TargetGraph = nullptr, FBindingSet const& Bindings = FBindingSet()) const;
+
+	/**
+	 * Removes the spawner's cached template node (if it has one), meaning that
+	 * the next GetTemplateNode() call will spawn a new one (and that calls to 
+	 * GetCachedTemplateNode() will return null).
+	 */
+	void ClearCachedTemplateNode() const;
 
 	// IBlueprintNodeBinder interface
 	virtual bool IsBindingCompatible(UObject const* BindingCandidate) const override { return false; }

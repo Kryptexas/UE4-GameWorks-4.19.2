@@ -95,11 +95,17 @@ protected:
 
 	/** Delegate to call to request a refresh */
 	void RequestRefreshActionsList();
+	/** Delegate handlers for when the blueprint database is updated (so we can release references and refresh the list) */
+	void OnDatabaseActionsUpdated(UObject* ActionsKey);
+	void OnDatabaseActionsRemoved(UObject* ActionsKey);
 
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
 
 private:
+	/** Immediately calls RefreshActionsList(), doesn't not defer until Tick() like RequestRefreshActionsList() does. */
+	void ForceRefreshActionList();
+
 	/**
 	 * Constructs a slate widget for the right-click context menu in this 
 	 * palette. While this isn't virtual, sub-classes can override GenerateContextMenuEntries()

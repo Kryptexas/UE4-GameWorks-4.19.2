@@ -59,14 +59,10 @@ UBlueprintNodeSpawner::UBlueprintNodeSpawner(class FPostConstructInitializePrope
 }
 
 //------------------------------------------------------------------------------
-UBlueprintNodeSpawner::~UBlueprintNodeSpawner()
+void UBlueprintNodeSpawner::BeginDestroy()
 {
-	// @TODO: What if, on shutdown, the "SharedTemplateCache" is destroyed 
-	//        first? Then we'd be working with a bad pointer here
-	if (FBlueprintNodeTemplateCache* TemplateCache = BlueprintNodeSpawnerImpl::GetSharedTemplateCache(/*bNoInit =*/true))
-	{
-		TemplateCache->ClearCachedTemplate(this);
-	}
+	ClearCachedTemplateNode();
+	Super::BeginDestroy();
 }
 
 //------------------------------------------------------------------------------
@@ -250,6 +246,16 @@ UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* TargetGraph, FBin
 		return BoundTemplateNode; 
 	} 
 	return TemplateNode; 
+}
+
+//------------------------------------------------------------------------------
+void UBlueprintNodeSpawner::ClearCachedTemplateNode() const
+{
+	FBlueprintNodeTemplateCache* TemplateCache = BlueprintNodeSpawnerImpl::GetSharedTemplateCache(/*bNoInit =*/true);
+	if (TemplateCache != nullptr)
+	{
+		TemplateCache->ClearCachedTemplate(this);
+	}
 }
 
 //------------------------------------------------------------------------------

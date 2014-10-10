@@ -151,6 +151,12 @@ FLinearColor UK2Node_Literal::GetNodeTitleColor() const
 
 void UK2Node_Literal::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	UClass* ActionKey = GetClass();
+	if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		return;
+	}
+
 	auto CanBindObjectLambda = [](UObject const* BindingObject)
 	{
 		if(AActor const* Actor = Cast<AActor>(BindingObject))
@@ -220,7 +226,7 @@ void UK2Node_Literal::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRe
 	NodeSpawner->OnBindObjectDelegate     = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
 	NodeSpawner->DynamicUiSignatureGetter = UBlueprintBoundNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(UiSpecOverride);
 
-	ActionRegistrar.AddBlueprintAction(NodeSpawner);
+	ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 }
 
 UK2Node::ERedirectType UK2Node_Literal::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
