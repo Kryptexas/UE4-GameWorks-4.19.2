@@ -1237,11 +1237,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		BroadcastPostTickFlush(RealDeltaSeconds); // note: undilated time is being used here
 	}
 
-	// Update SpeedTree wind objects.
-	Scene->UpdateSpeedTreeWind(TimeSeconds);
-
 	if( Scene )
 	{
+		// Update SpeedTree wind objects.
+		Scene->UpdateSpeedTreeWind(TimeSeconds);
+
 		USceneCaptureComponent2D::UpdateDeferredCaptures( Scene );
 		USceneCaptureComponentCube::UpdateDeferredCaptures( Scene );
 	}
