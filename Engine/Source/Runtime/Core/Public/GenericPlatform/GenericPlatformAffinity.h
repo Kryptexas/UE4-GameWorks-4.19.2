@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "Core.h"
+#include "HAL/Platform.h"
 
 #define		MAKEAFFINITYMASK1(x)			(1<<x)
 #define		MAKEAFFINITYMASK2(x,y)			((1<<x)+(1<<y))

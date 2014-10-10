@@ -6,13 +6,20 @@
 ==============================================================================================*/
 
 #pragma once
+#include "Containers/ContainersFwd.h"
+#include "HAL/Platform.h"
 
 struct FGenericCrashContext;
 struct FGenericMemoryWarningContext;
 
+class FDefaultAllocator;
+class FOutputDevice;
+class FString;
 class FText;
+class GenericApplication;
+class IPlatformChunkInstall;
+class UWorld;
 
-template<typename KeyType, typename ValueType> class TPair;
 
 namespace EBuildConfigurations
 {
@@ -208,11 +215,11 @@ struct CORE_API FGenericPlatformMisc
 	{
 	}
 
-	static class GenericApplication* CreateApplication();
+	static GenericApplication* CreateApplication();
 
 	static void* GetHardwareWindow()
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	/**
@@ -352,7 +359,7 @@ struct CORE_API FGenericPlatformMisc
 	/**
 	 * Handles IO failure by ending gameplay.
 	 *
-	 * @param Filename	If not NULL, name of the file the I/O error occured with
+	 * @param Filename	If not nullptr, name of the file the I/O error occured with
 	 */
 	void static HandleIOFailure( const TCHAR* Filename );
 
@@ -614,18 +621,18 @@ public:
 	static int32 NumberOfWorkerThreadsToSpawn();
 
 	/**
-	 * Return the platform specific async IO system, or NULL if the standard one should be used.
+	 * Return the platform specific async IO system, or nullptr if the standard one should be used.
 	 */
 	static struct FAsyncIOSystemBase* GetPlatformSpecificAsyncIOSystem()
 	{
-		return NULL;
+		return nullptr;
 	}
 
-	/** Return the name of the platform features module. Can be NULL if there are no extra features for this platform */
+	/** Return the name of the platform features module. Can be nullptr if there are no extra features for this platform */
 	static const TCHAR* GetPlatformFeaturesModuleName()
 	{
 		// by default, no module
-		return NULL;
+		return nullptr;
 	}
 
 	/** Get the application root directory. */
@@ -666,7 +673,7 @@ public:
 	 *
 	 * @return	Returns the platform specific chunk based install implementation
 	 */
-	static class IPlatformChunkInstall* GetPlatformChunkInstall();
+	static IPlatformChunkInstall* GetPlatformChunkInstall();
 
 	/**
 	 * Has the OS execute a command and path pair (such as launch a browser)
@@ -718,7 +725,7 @@ public:
 	 *
 	 *	@return	bool		true if command was processed, false if not
 	 */
-	static bool Exec(class UWorld* InWorld, const TCHAR* Cmd, class FOutputDevice& Out)
+	static bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out)
 	{
 		return false;
 	}
@@ -777,7 +784,7 @@ public:
 	 * Return an ordered list of target platforms this runtime can support (ie Android_DXT, Android
 	 * would mean that it prefers Android_DXT, but can use Android as well)
 	 */
-	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
+	static void GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames);
 
 	/**
 	 * Returns whether the platform wants to use a touch screen for virtual joysticks.

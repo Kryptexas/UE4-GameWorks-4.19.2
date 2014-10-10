@@ -2,7 +2,11 @@
 
 
 #pragma once
+#include "HAL/Platform.h"
 
+class FHttpManager;
+class FString;
+class IHttpRequest;
 
 /**
  * Platform specific Http implementations
@@ -19,11 +23,11 @@ public:
 	/**
 	 * Creates a platform-specific HTTP manager.
 	 *
-	 * @return NULL if default implementation is to be used
+	 * @return nullptr if default implementation is to be used
 	 */
-	static class FHttpManager * CreatePlatformHttpManager()
+	static FHttpManager* CreatePlatformHttpManager()
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	/**
@@ -36,7 +40,7 @@ public:
 	 *
 	 * @return request object
 	 */
-	static class IHttpRequest* ConstructRequest();
+	static IHttpRequest* ConstructRequest();
 
 	/**
 	 * Returns a percent-encoded version of the passed in string

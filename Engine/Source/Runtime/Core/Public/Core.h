@@ -12,8 +12,7 @@
 #include "CoreMiscDefines.h"					// Misc defines and enumerations
 class FString;									// @todo Figure out better include order in Core.h
 inline uint32 GetTypeHash (const int64 A);		// @todo Figure out better include order in Core.h
-class FDefaultAllocator;						// @todo Figure out better include order in Core.h
-template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @todo Figure out better include order in Core.h
+#include "Containers/ContainersFwd.h"
 #include "Timespan.h"							// Time span definition
 #include "DateTime.h"							// Date and time handling
 #include "PlatformIncludes.h"					// Include the main and misc platform headers
@@ -45,12 +44,6 @@ template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @to
 
 // Container forward declarations
 #include "Containers/ContainerAllocationPolicies.h"
-
-template<typename T> class TTransArray;
-template<typename KeyType,typename ValueType,bool bInAllowDuplicateKeys> struct TDefaultMapKeyFuncs;
-template<typename KeyType,typename ValueType,typename SetAllocator = FDefaultSetAllocator, typename KeyFuncs = TDefaultMapKeyFuncs<KeyType,ValueType,false> > class TMap;
-template<typename KeyType,typename ValueType,typename SetAllocator = FDefaultSetAllocator, typename KeyFuncs = TDefaultMapKeyFuncs<KeyType,ValueType,true > > class TMultiMap;
-
 
 // Objects
 class UObjectBase;

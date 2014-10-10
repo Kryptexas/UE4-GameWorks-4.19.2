@@ -6,6 +6,12 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+#include "HAL/PlatformCodeAnalysis.h"
+#include <wchar.h>
+#include <string.h>
+
+class FString;
 
 /** Holds generic memory stats, internally implemented as a map. */
 struct FGenericMemoryStats;
