@@ -1003,7 +1003,7 @@ private:
 
 	FOptionalSize GetScaledImageBrushWidth() const
 	{
-		if ( TemporaryBrush.DrawAs == ESlateBrushDrawType::Image )
+		if (TemporaryBrush.DrawAs == ESlateBrushDrawType::Image)
 		{
 			const FVector2D& Size = TemporaryBrush.ImageSize;
 			if (Size.X > 0 && Size.Y > 0)
@@ -1035,7 +1035,11 @@ private:
 	FSlateBrush TemporaryBrush;
 
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty;
+
+	static float TargetHeight;
 };
+
+float SSlateBrushStaticPreview::TargetHeight = 40.f;
 
 // SBrushResourceObjectBox
 ////////////////////////////////////////////////////////////////////////////////
@@ -1183,8 +1187,6 @@ void FSlateBrushStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Center)
 		[
 			SNew(SSlateBrushStaticPreview, StructPropertyHandle)
 		];
