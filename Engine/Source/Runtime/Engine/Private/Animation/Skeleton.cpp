@@ -317,6 +317,10 @@ FString USkeleton::GetRetargetingModeString(const EBoneTranslationRetargetingMod
 		ModeNameText = LOCTEXT( "BoneRetargetingMode", "AnimationScaled" );
 		break;
 
+	case EBoneTranslationRetargetingMode::AnimationRelative:
+		ModeNameText = LOCTEXT("BoneRetargetingModeAnimationRelative", "AnimationRelative");
+		break;
+
 	default:
 		// Unknown mode
 		check( 0 );

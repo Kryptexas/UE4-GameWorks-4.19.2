@@ -49,6 +49,8 @@ namespace EBoneTranslationRetargetingMode
 		Skeleton,
 		/** Use Translation from animation, but scale length by Skeleton's proportions. */
 		AnimationScaled,
+		/** Use Translation from animation, but also play the difference from retargeting pose as an additive. */
+		AnimationRelative,
 	};
 }
 

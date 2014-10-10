@@ -879,11 +879,13 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 	BoneTrackArray RotationScalePairs;
 	BoneTrackArray TranslationPairs;
 	BoneTrackArray AnimScaleRetargetingPairs;
+	BoneTrackArray AnimRelativeRetargetingPairs;
 
 	// build a list of desired bones
 	RotationScalePairs.Empty(NumTracks);
 	TranslationPairs.Empty(NumTracks);
 	AnimScaleRetargetingPairs.Empty(NumTracks);
+	AnimRelativeRetargetingPairs.Empty(NumTracks);
 
 	// Optimization: assuming first index is root bone. That should always be the case in Skeletons.
 	checkSlow( (SkeletonToPoseBoneIndexArray[0] == 0) );
@@ -911,6 +913,10 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 				case EBoneTranslationRetargetingMode::AnimationScaled :
 					TranslationPairs.Add(BoneTrackPair(PoseBoneIndex, TrackIndex));
 					AnimScaleRetargetingPairs.Add(BoneTrackPair(PoseBoneIndex, SkeletonBoneIndex));
+					break;
+				case EBoneTranslationRetargetingMode::AnimationRelative:
+					TranslationPairs.Add(BoneTrackPair(PoseBoneIndex, TrackIndex));
+					AnimRelativeRetargetingPairs.Add(BoneTrackPair(PoseBoneIndex, SkeletonBoneIndex));
 					break;
 			}
 		}
@@ -948,13 +954,13 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 	}
 
 	// Anim Scale Retargeting
-	int32 const NumBonesToRetarget = AnimScaleRetargetingPairs.Num();
-	if (NumBonesToRetarget > 0)
+	int32 const NumBonesToScaleRetarget = AnimScaleRetargetingPairs.Num();
+	if (NumBonesToScaleRetarget > 0)
 	{
 		TArray<FTransform> const & AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
 		TArray<FTransform> const & PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
 
-		for (int32 Index = 0; Index<NumBonesToRetarget; Index++)
+		for (int32 Index = 0; Index<NumBonesToScaleRetarget; Index++)
 		{
 			BoneTrackPair const & BonePair = AnimScaleRetargetingPairs[Index];
 			int32 const & PoseBoneIndex = BonePair.AtomIndex;
@@ -967,6 +973,27 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 				float const TargetTranslationLength = PlayingOnRefSkeleton[PoseBoneIndex].GetTranslation().Size();
 				OutAtoms[PoseBoneIndex].ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
 			}
+		}
+	}
+
+	// Anim Relative Retargeting
+	int32 const NumBonesToRelativeRetarget = AnimRelativeRetargetingPairs.Num();
+	if (NumBonesToRelativeRetarget > 0)
+	{
+		TArray<FTransform> const & AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
+		TArray<FTransform> const & PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
+
+		for (int32 Index = 0; Index < NumBonesToRelativeRetarget; Index++)
+		{
+			BoneTrackPair const & BonePair = AnimRelativeRetargetingPairs[Index];
+			int32 const & PoseBoneIndex = BonePair.AtomIndex;
+			int32 const & SkeletonBoneIndex = BonePair.TrackIndex;
+
+			// Apply the retargeting as if it were an additive difference between the current skeleton and the retarget skeleton. 
+			OutAtoms[PoseBoneIndex].SetRotation(OutAtoms[PoseBoneIndex].GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * PlayingOnRefSkeleton[PoseBoneIndex].GetRotation() );
+			OutAtoms[PoseBoneIndex].SetTranslation(OutAtoms[PoseBoneIndex].GetTranslation() + (PlayingOnRefSkeleton[PoseBoneIndex].GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
+			OutAtoms[PoseBoneIndex].SetScale3D(OutAtoms[PoseBoneIndex].GetScale3D() * (PlayingOnRefSkeleton[PoseBoneIndex].GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
+			OutAtoms[PoseBoneIndex].NormalizeRotation();
 		}
 	}
 }
@@ -1069,6 +1096,17 @@ void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32
 			const float TargetTranslationLength = TargetRefPoseArray[PoseBoneIndex].GetTranslation().Size();
 			BoneTransform.ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
 		}
+	}
+	else if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationRelative)
+	{
+		const TArray<FTransform> & AuthoredOnRefSkeleton = GetSkeleton()->GetRefLocalPoses(RetargetSource);
+		const TArray<FTransform> & PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
+
+		// Apply the retargeting as if it were an additive difference between the current skeleton and the retarget skeleton. 
+		BoneTransform.SetRotation(BoneTransform.GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * PlayingOnRefSkeleton[PoseBoneIndex].GetRotation());
+		BoneTransform.SetTranslation(BoneTransform.GetTranslation() + (PlayingOnRefSkeleton[PoseBoneIndex].GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
+		BoneTransform.SetScale3D(BoneTransform.GetScale3D() * (PlayingOnRefSkeleton[PoseBoneIndex].GetScale3D() / AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D()));
+		BoneTransform.NormalizeRotation();
 	}
 }
 
