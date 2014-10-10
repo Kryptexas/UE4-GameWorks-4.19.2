@@ -86,7 +86,8 @@ protected:
 	uint32 bShowInverseConditionDesc : 1;
 
 private:
-	UPROPERTY(Category=Condition, EditAnywhere)
+	/** if set, condition check result will be inversed */
+	UPROPERTY(Category = Condition, EditAnywhere)
 	uint32 bInverseCondition : 1;
 
 protected:
