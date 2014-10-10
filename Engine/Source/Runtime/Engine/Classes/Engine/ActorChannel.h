@@ -47,8 +47,6 @@ class ENGINE_API UActorChannel : public UChannel
 	// Variables.
 	UPROPERTY()
 	AActor* Actor;			// Actor this corresponds to.
-	UPROPERTY()
-	UClass* ActorClass;		// Class of the actor.
 
 	// Variables.
 	double	RelevantTime;			// Last time this actor was relevant to client.
