@@ -37,11 +37,13 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 {
 	// Declarations.
 	DECLARE_CLASS(UObject,UObject,CLASS_Abstract|CLASS_NoExport,CASTCLASS_None,CoreUObject,NO_API)
+	DEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(UObject)
 
 	typedef UObject WithinClass;
 	static const TCHAR* StaticConfigName() {return TEXT("Engine");}
 
 	// Constructors and destructors.
+	UObject() { };
 	UObject(const class FPostConstructInitializeProperties& PCIP);
 	UObject( EStaticConstructor, EObjectFlags InFlags );
 

@@ -11,7 +11,12 @@ struct FReplicationFlags;
 UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	/**
+	 * Default UObject constructor.
+	 */
+	UActorComponent(const class FPostConstructInitializeProperties& PCIP);
 
 	/** Main tick function for the Actor */
 	UPROPERTY()

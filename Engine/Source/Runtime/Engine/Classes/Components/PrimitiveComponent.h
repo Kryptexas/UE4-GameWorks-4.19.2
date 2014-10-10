@@ -101,7 +101,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentEndTouchOverSignature, E
 UCLASS(abstract, HideCategories=(Mobility), ShowCategories=(PhysicsVolume))
 class ENGINE_API UPrimitiveComponent : public USceneComponent, public INavRelevantInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	/**
+	 * Default UObject constructor.
+	 */
+	UPrimitiveComponent(const class FPostConstructInitializeProperties& PCIP);
 
 	// Rendering
 	

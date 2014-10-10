@@ -79,7 +79,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysic
 UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger, PhysicsVolume), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USceneComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	/**
+	 * Default UObject constructor.
+	 */
+	USceneComponent(const class FPostConstructInitializeProperties& PCIP);
 
 	/** Current transform of this component, relative to the world */
 	FTransform ComponentToWorld;

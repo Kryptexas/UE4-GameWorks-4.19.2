@@ -221,7 +221,7 @@ protected:
 	// Indicates that UCLASS/USTRUCT/UINTERFACE has already been parsed in this .h file..
 	bool bHaveSeenUClass;
 
-	// Indicates that a GENERATED_UCLASS_BODY has been found in the UClass.
+	// Indicates that a GENERATED_UCLASS_BODY or GENERATED_BODY has been found in the UClass.
 	bool bClassHasGeneratedBody;
 
 	// public, private, etc at the current parse spot
@@ -315,6 +315,7 @@ protected:
 	UEnum* CompileEnum(UClass* Owner);
 	UScriptStruct* CompileStructDeclaration(FClasses& AllClasses, FClass* Owner);
 	bool CompileDeclaration(FClasses& AllClasses, FToken& Token);
+
 	/** Skip C++ (noexport) declaration. */
 	bool SkipDeclaration(FToken& Token);
 	/** Similar to MatchSymbol() but will return to the exact location as on entry if the symbol was not found. */
@@ -543,6 +544,19 @@ protected:
 	}
 
 	static void ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarProperty, FToken* OuterPropertyType);
+
+private:
+	/**
+	 * Tries to match constructor parameter list. Assumes that constructor
+	 * name is already matched.
+	 *
+	 * If fails it reverts all parsing done.
+	 *
+	 * @param Token Token to start parsing from.
+	 *
+	 * @returns True if matched. False otherwise.
+	 */
+	bool TryToMatchConstructorParameterList(FToken Token);
 };
 
 /////////////////////////////////////////////////////

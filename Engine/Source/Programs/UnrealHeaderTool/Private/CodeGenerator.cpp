@@ -1634,6 +1634,20 @@ void FNativeClassHeaderGenerator::ExportNames()
 }
 
 /**
+ * Gets preprocessor string to emit GENERATED_U*_BODY() macro is deprecated.
+ *
+ * @param MacroName Name of the macro to be deprecated.
+ *
+ * @returns Preprocessor string to emit the message.
+ */
+FString GetGeneratedMacroDeprecationWarning(const TCHAR* MacroName)
+{
+	// Deprecation warning is disabled right now. After people get familiar with the new macro it should be re-enabled.
+	//return FString() + TEXT("EMIT_DEPRECATED_WARNING_MESSAGE(\"") + MacroName + TEXT("() macro is deprecated. Please use GENERATED_BODY() macro instead.\")") LINE_TERMINATOR;
+	return TEXT("");
+}
+
+/**
  * Exports the C++ class declarations for a native interface class.
  */
 void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class )
@@ -1707,10 +1721,7 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 			bCastedClass ? *FString::Printf(TEXT("CASTCLASS_%s"), ClassCPPName) : TEXT("0"),
 			*FPackageName::GetShortName(Class->GetOuter()->GetName()), 
 			*APIArg );
-		if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
-		{
-			UInterfaceBoilerplate.Logf(TEXT("    %s_API %s(const class FPostConstructInitializeProperties& PCIP);\r\n"), *APIArg, ClassCPPName);
-		}
+		
 		UInterfaceBoilerplate.Logf(TEXT("    DECLARE_SERIALIZER(%s)\r\n"), ClassCPPName);
 		UInterfaceBoilerplate.Log(TEXT("    enum {IsIntrinsic=COMPILED_IN_INTRINSIC};\r\n"));
 
@@ -1719,10 +1730,31 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 			UInterfaceBoilerplate.Logf(TEXT("    DECLARE_WITHIN(%s)\r\n"), NameLookupCPP.GetNameCPP( Class->GetClassWithin() ) );
 		}
 
-		FString MacroName = TEXT("GENERATED_UINTERFACE_BODY()");
-		FString Macroized = Macroize(*MacroName, *UInterfaceBoilerplate);
+		ExportConstructorsMacros(Class);
+
+		GeneratedHeaderText.Log(TEXT("#undef GENERATED_UINTERFACE_BODY_COMMON\r\n"));
+		GeneratedHeaderText.Log(Macroize(TEXT("GENERATED_UINTERFACE_BODY_COMMON()"), *UInterfaceBoilerplate));
+
+		auto DeprecationWarning = GetGeneratedMacroDeprecationWarning(TEXT("GENERATED_UINTERFACE_BODY"));
+		
+		auto DeprecationPushString = TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
+		auto DeprecationPopString = TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
+		auto Offset = FCString::Spc(4);
+
 		GeneratedHeaderText.Log(TEXT("#undef GENERATED_UINTERFACE_BODY\r\n"));
-		GeneratedHeaderText.Log(*Macroized);
+		GeneratedHeaderText.Log(Macroize(TEXT("GENERATED_UINTERFACE_BODY()"), *(FString() +
+			Offset + DeprecationWarning +
+			Offset + DeprecationPushString +
+			Offset + TEXT("GENERATED_UINTERFACE_BODY_COMMON()") LINE_TERMINATOR +
+			StandardUObjectConstructorsMacroCall +
+			Offset + DeprecationPopString)));
+
+		GeneratedHeaderText.Log(TEXT("#undef GENERATED_BODY\r\n"));
+		GeneratedHeaderText.Log(Macroize(TEXT("GENERATED_BODY()"), *(FString() +
+			Offset + DeprecationPushString +
+			Offset + TEXT("GENERATED_UINTERFACE_BODY_COMMON()") LINE_TERMINATOR +
+			EnhancedUObjectConstructorsMacroCall +
+			Offset + DeprecationPopString)));
 	}
 
 	// =============================================
@@ -1898,11 +1930,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 					bCastedClass ? *FString::Printf(TEXT("CASTCLASS_%s"), ClassCPPName) : TEXT("0"),
 					*FPackageName::GetShortName(*Class->GetOuter()->GetName()), 
 					*APIArg );
-				if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
-				{
-					ClassBoilerplate.Logf(TEXT("    /** Standard constructor, called after all reflected properties have been initialized */"));
-					ClassBoilerplate.Logf(TEXT("    %s_API %s(const class FPostConstructInitializeProperties& PCIP);\r\n"), *APIArg, ClassCPPName);
-				}
+
 				ClassBoilerplate.Logf(TEXT("    DECLARE_SERIALIZER(%s)\r\n"), ClassCPPName);
 				ClassBoilerplate.Log(TEXT("    /** Indicates whether the class is compiled into the engine */"));
 				ClassBoilerplate.Log(TEXT("    enum {IsIntrinsic=COMPILED_IN_INTRINSIC};\r\n"));
@@ -1935,7 +1963,9 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 				FString MacroName = FString(NameLookupCPP.GetNameCPP(Class)) + Suffix;
 				FString Macroized = Macroize(*MacroName, *ClassBoilerplate);
 				GeneratedHeaderText.Log(*Macroized);
-				InClassMacroCalls.Logf( TEXT("%s%s\r\n"), FCString::Spc(4),  *MacroName);
+				InClassMacroCalls.Logf(TEXT("%s%s\r\n"), FCString::Spc(4), *MacroName);
+
+				ExportConstructorsMacros(Class);
 			}
 		}
 	}
@@ -1944,6 +1974,104 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 		// this is an interface class
 		ExportInterfaceClassDeclaration(Class);
 	}
+}
+
+/**
+ * Generates standard constructor declaration.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportStandardConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
+	{
+		Out.Logf(TEXT("%s/** Standard constructor, called after all reflected properties have been initialized */\r\n"), FCString::Spc(4));
+		Out.Logf(TEXT("%s%s_API %s(const class FPostConstructInitializeProperties& PCIP);\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
+	}
+
+	Out.Logf(TEXT("%sDEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+}
+
+/**
+ * Generates constructor definition.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportConstructorDefinition(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+
+	if (!ClassData->bConstructorDeclared)
+	{
+		Out.Logf(TEXT("%s/** Standard constructor, called after all reflected properties have been initialized */"), FCString::Spc(4));
+		Out.Logf(TEXT("%s%s_API %s(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { };\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
+
+		ClassData->bConstructorDeclared = true;
+		ClassData->bPCIPConstructorDeclared = true;
+	}
+}
+
+/**
+ * Generates constructor call definition.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor call definition for.
+ */
+void ExportDefaultConstructorCallDefinition(FStringOutputDevice& Out, FClass* Class)
+{
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+
+	if (ClassData->bPCIPConstructorDeclared)
+	{
+		Out.Logf(TEXT("%sDEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	}
+	else if (ClassData->bDefaultConstructorDeclared)
+	{
+		Out.Logf(TEXT("%sDEFINE_DEFAULT_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	}
+	else
+	{
+		Out.Logf(TEXT("%sDEFINE_FORBIDDEN_DEFAULT_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	}
+}
+
+/**
+ * Generates enhanced constructor declaration.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportEnhancedConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	ExportConstructorDefinition(Out, Class, API);
+	ExportDefaultConstructorCallDefinition(Out, Class);
+}
+
+void FNativeClassHeaderGenerator::ExportConstructorsMacros(FClass* Class)
+{
+	FString APIArg(API);
+	if (!Class->HasAnyClassFlags(CLASS_MinimalAPI))
+	{
+		APIArg = TEXT("NO");
+	}
+
+	FStringOutputDevice StdMacro, EnhMacro;
+	FString StdMacroName = FString(NameLookupCPP.GetNameCPP(Class)) + TEXT("_STANDARD_CONSTRUCTORS");
+	FString EnhMacroName = FString(NameLookupCPP.GetNameCPP(Class)) + TEXT("_ENHANCED_CONSTRUCTORS");
+
+	ExportStandardConstructorsMacro(StdMacro, Class, APIArg);
+	ExportEnhancedConstructorsMacro(EnhMacro, Class, APIArg);
+
+	GeneratedHeaderText.Log(*Macroize(*StdMacroName, *StdMacro));
+	GeneratedHeaderText.Log(*Macroize(*EnhMacroName, *EnhMacro));
+
+	StandardUObjectConstructorsMacroCall.Logf(TEXT("%s%s\r\n"), FCString::Spc(4), *StdMacroName);
+	EnhancedUObjectConstructorsMacroCall.Logf(TEXT("%s%s\r\n"), FCString::Spc(4), *EnhMacroName);
 }
 
 void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( FClass* Class, bool bIsExportClass )
@@ -1979,45 +2107,46 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( FClass* Class, bool 
 		}
 
 		{
-			GeneratedHeaderText.Logf(TEXT("#undef GENERATED_UCLASS_BODY\r\n"));
-			GeneratedHeaderText.Logf(TEXT("#undef GENERATED_IINTERFACE_BODY\r\n"));
-			auto ClangDeprecationPushString =
-				TEXT("_Pragma (\"clang diagnostic push\")") LINE_TERMINATOR
-				TEXT("_Pragma (\"clang diagnostic ignored \\\"-Wdeprecated-declarations\\\"\")") LINE_TERMINATOR;
-			auto MSVCDeprecationPushString =
-				TEXT("__pragma (warning(push))") LINE_TERMINATOR
-				TEXT("__pragma (warning(disable:4995))") LINE_TERMINATOR
-				TEXT("__pragma (warning(disable:4996))") LINE_TERMINATOR;
-			auto UnknownCompilerDeprecationPushString = 
-				TEXT("#error Unsupported compiler") LINE_TERMINATOR;
+			bool bIsIInterface = Class->HasAnyClassFlags(CLASS_Interface);
 
-			auto ClangDeprecationPopString =
-				TEXT("_Pragma(\"clang diagnostic pop\")") LINE_TERMINATOR;
-			auto MSVCDeprecationPopString =
-				TEXT("__pragma(warning(pop))") LINE_TERMINATOR;
-			auto UnknownCompilerDeprecationPopString =
-				TEXT("#error Unsupported compiler") LINE_TERMINATOR;
+			GeneratedHeaderText.Logf(TEXT("#undef GENERATED_UCLASS_BODY\r\n"));
+			
+			if (!bIsIInterface)
+			{
+				GeneratedHeaderText.Logf(TEXT("#undef GENERATED_BODY\r\n"));
+			}
+
+			GeneratedHeaderText.Logf(TEXT("#undef GENERATED_IINTERFACE_BODY\r\n"));
+
+			FString MacroName = FString::Printf(TEXT("GENERATED_%s_BODY()"), bIsIInterface ? TEXT("IINTERFACE") : TEXT("UCLASS"));
+
+			auto DeprecationWarning = bIsIInterface ? FString(TEXT("")) : GetGeneratedMacroDeprecationWarning(*MacroName);
+
+			auto DeprecationPushString = TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
+			auto DeprecationPopString = TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
 
 			auto Public = TEXT("public:" LINE_TERMINATOR);
-			auto WrappedInClassMacroCalls = Public + InClassMacroCalls + Public;
 
-			FString MacroName = FString::Printf(TEXT("GENERATED_%s_BODY()"), Class->HasAnyClassFlags(CLASS_Interface) ? TEXT("IINTERFACE") : TEXT("UCLASS"));
-			FString MacroizedMSVC =
-				FString(TEXT("#if _MSC_VER") LINE_TERMINATOR) +
-				Macroize(*MacroName, *(FString(MSVCDeprecationPushString) + WrappedInClassMacroCalls + MSVCDeprecationPopString));
-			FString MacroizedClang = 
-				FString(TEXT("#elif __clang__") LINE_TERMINATOR) +
-				Macroize(*MacroName, *(FString(ClangDeprecationPushString) + WrappedInClassMacroCalls + ClangDeprecationPopString));
-			FString MacroizedUnknownCompiler =
-				FString(TEXT("#else") LINE_TERMINATOR) +
-				Macroize(*MacroName, *(FString(UnknownCompilerDeprecationPushString) + WrappedInClassMacroCalls + UnknownCompilerDeprecationPopString)) +
-				FString(TEXT("#endif") LINE_TERMINATOR);
+			FString BodyMacros;
+			
+			if (bIsIInterface)
+			{
+				BodyMacros = Macroize(*MacroName, *(DeprecationPushString + FString(Public) + InClassMacroCalls + Public + DeprecationPopString));
+			}
+			else
+			{
+				auto StandardWrappedInClassMacroCalls = Public + InClassMacroCalls + StandardUObjectConstructorsMacroCall + Public;
+				auto EnhancedWrappedInClassMacroCalls = Public + InClassMacroCalls + EnhancedUObjectConstructorsMacroCall + Public;
 
-			GeneratedHeaderText.Log(*MacroizedMSVC);
-			GeneratedHeaderText.Log(*MacroizedClang);
-			GeneratedHeaderText.Log(*MacroizedUnknownCompiler);
+				BodyMacros = Macroize(*MacroName, *(DeprecationWarning + DeprecationPushString + StandardWrappedInClassMacroCalls + DeprecationPopString)) +
+					Macroize(TEXT("GENERATED_BODY()"), *(FString(DeprecationPushString) + EnhancedWrappedInClassMacroCalls + DeprecationPopString));
+			}
+
+			GeneratedHeaderText.Log(*BodyMacros);
 
 			InClassMacroCalls.Empty();
+			StandardUObjectConstructorsMacroCall.Empty();
+			EnhancedUObjectConstructorsMacroCall.Empty();
 		}
 	}
 

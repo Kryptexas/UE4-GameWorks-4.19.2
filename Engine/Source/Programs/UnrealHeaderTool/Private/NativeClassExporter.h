@@ -61,6 +61,8 @@ private:
 	FStringOutputDevice GeneratedMCPText;
 	FStringOutputDevice	PrologMacroCalls;
 	FStringOutputDevice	InClassMacroCalls;
+	FStringOutputDevice	StandardUObjectConstructorsMacroCall;
+	FStringOutputDevice	EnhancedUObjectConstructorsMacroCall;
 	FStringOutputDevice	AllConstructors;
 
 	/** Generated function implementations that belong in the cpp file, split into multiple files base on line count **/
@@ -462,6 +464,13 @@ private:
 	 * Deletes all .generated.h files which do not correspond to any of the classes.
 	 */
 	void DeleteUnusedGeneratedHeaders();
+
+	/**
+	 * Exports macros that manages UObject constructors.
+	 * 
+	 * @param Class Class for which to export macros.
+	 */
+	void ExportConstructorsMacros(FClass* Class);
 
 public:
 

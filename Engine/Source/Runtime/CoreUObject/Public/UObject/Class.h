@@ -2188,7 +2188,7 @@ protected:
 template<class T>
 void InternalConstructor( const class FPostConstructInitializeProperties& X )
 { 
-	new( (EInternal*)X.Obj )T(X); 
+	T::__DefaultConstructor(X);
 }
 
 COREUOBJECT_API void InitializePrivateStaticClass(

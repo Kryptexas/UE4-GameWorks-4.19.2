@@ -1307,7 +1307,10 @@ class FClassMetaData
 public:
 	/** Default constructor */
 	FClassMetaData()
-	: bContainsDelegates(false)
+		: bContainsDelegates(false),
+		bConstructorDeclared(false),
+		bDefaultConstructorDeclared(false),
+		bPCIPConstructorDeclared(false)
 	{
 	}
 
@@ -1546,6 +1549,15 @@ public:
 		FunctionData.Shrink();
 		MultipleInheritanceParents.Shrink();
 	}
+
+	// Is constructor declared?
+	bool bConstructorDeclared;
+
+	// Is default constructor declared?
+	bool bDefaultConstructorDeclared;
+
+	// Is PCIP constructor (i.e. a constructor with only one parameter of type FPostConstructInitializeProperties) declared?
+	bool bPCIPConstructorDeclared;
 };
 
 /**

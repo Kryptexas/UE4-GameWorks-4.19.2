@@ -3828,6 +3828,24 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		bHaveSeenSecondInterfaceClass = true;
 		ParseSecondInterfaceClass(AllClasses);
 	}
+	else if (Token.Matches(TEXT("GENERATED_BODY")) && (TopNest->NestType != NEST_Interface
+		|| (bHaveSeenFirstInterfaceClass && !bHaveSeenSecondInterfaceClass)))
+	{
+		if (TopNest->NestType != NEST_Class && TopNest->NestType != NEST_Interface)
+		{
+			FError::Throwf(TEXT("%s must occur inside the class or interface definition"), Token.Identifier);
+		}
+
+		RequireSymbol(TEXT("("), Token.Identifier);
+		RequireSymbol(TEXT(")"), Token.Identifier);
+
+		CurrentAccessSpecifier = ACCESS_Public;
+
+		if (TopNest->NestType == NEST_Class)
+		{
+			bClassHasGeneratedBody = true;
+		}
+	}
 	else if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")))
 	{
 		if (TopNest->NestType != NEST_Class)
@@ -3958,6 +3976,13 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		else
 		{
 			FError::Throwf(TEXT("Extra ';' before end of file") );
+		}
+	}
+	else if (Token.Matches(NameLookupCPP.GetNameCPP(Class)))
+	{
+		if(!TryToMatchConstructorParameterList(Token))
+		{
+			return SkipDeclaration(Token);
 		}
 	}
 	else
@@ -7471,4 +7496,104 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 	}
 
 	return !OutForm.IsEmpty();
+}
+
+bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
+{
+	FToken PotentialParenthesisToken;
+	if (!GetToken(PotentialParenthesisToken))
+	{
+		return false;
+	}
+
+	if (!PotentialParenthesisToken.Matches(TEXT("(")))
+	{
+		UngetToken(PotentialParenthesisToken);
+		return false;
+	}
+
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+
+	ClassData->bConstructorDeclared = true;
+
+	if (!ClassData->bDefaultConstructorDeclared && MatchSymbol(TEXT(")")))
+	{
+		ClassData->bDefaultConstructorDeclared = true;
+	}
+	else if (!ClassData->bPCIPConstructorDeclared)
+	{
+		FToken PCIPParamParsingToken;
+
+		bool bIsConst = false;
+		bool bIsRef = false;
+		int32 ParenthesesNestingLevel = 1;
+
+		while (ParenthesesNestingLevel && GetToken(PCIPParamParsingToken))
+		{
+			// Template instantiation or additional parameter excludes PCIP constructor.
+			if (PCIPParamParsingToken.Matches(TEXT(",")) || PCIPParamParsingToken.Matches(TEXT("<")))
+			{
+				ClassData->bPCIPConstructorDeclared = false;
+				break;
+			}
+
+			if (PCIPParamParsingToken.Matches(TEXT("(")))
+			{
+				ParenthesesNestingLevel++;
+				continue;
+			}
+
+			if (PCIPParamParsingToken.Matches(TEXT(")")))
+			{
+				ParenthesesNestingLevel--;
+				continue;
+			}
+
+			if (PCIPParamParsingToken.Matches(TEXT("const")))
+			{
+				bIsConst = true;
+				continue;
+			}
+
+			if (PCIPParamParsingToken.Matches(TEXT("&")))
+			{
+				bIsRef = true;
+				continue;
+			}
+
+			if (PCIPParamParsingToken.Matches(TEXT("FPostConstructInitializeProperties")))
+			{
+				ClassData->bPCIPConstructorDeclared = true;
+			}
+		}
+
+		// Parse until finish.
+		while (ParenthesesNestingLevel && GetToken(PCIPParamParsingToken))
+		{
+			if (PCIPParamParsingToken.Matches(TEXT("(")))
+			{
+				ParenthesesNestingLevel++;
+				continue;
+			}
+
+			if (PCIPParamParsingToken.Matches(TEXT(")")))
+			{
+				ParenthesesNestingLevel--;
+				continue;
+			}
+		}
+
+		ClassData->bPCIPConstructorDeclared = ClassData->bPCIPConstructorDeclared && bIsRef && bIsConst;
+	}
+
+	// Optionally match semicolon.
+	if (!MatchSymbol(TEXT(";")))
+	{
+		// If not matched a semicolon, this is inline constructor definition. We have to skip it.
+		UngetToken(Token); // Resets input stream to the initial token.
+		GetToken(Token); // Re-gets the initial token to start constructor definition skip.
+		return SkipDeclaration(Token);
+	}
+
+	return true;
 }

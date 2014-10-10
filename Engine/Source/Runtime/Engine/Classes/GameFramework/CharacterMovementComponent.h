@@ -124,7 +124,12 @@ struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
 UCLASS()
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	/**
+	 * Default UObject constructor.
+	 */
+	UCharacterMovementComponent(const class FPostConstructInitializeProperties& PCIP);
 
 protected:
 

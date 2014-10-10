@@ -837,7 +837,12 @@ struct FInt32Range
 UCLASS(abstract, noexport)
 class UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	/**
+	 * Default UObject constructor.
+	 */
+	UObject(const class FPostConstructInitializeProperties& PCIP);
 
 	//=============================================================================
 	// K2 support functions.

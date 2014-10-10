@@ -66,7 +66,12 @@ class ENGINE_API AActor : public UObject
 	* AActor::BeginPlay - Called when the level is started
 	*/
 
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	/**
+	 * Default UObject constructor.
+	 */
+	AActor(const class FPostConstructInitializeProperties& PCIP);
 
 public:
 
