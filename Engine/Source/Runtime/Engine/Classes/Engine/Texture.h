@@ -31,8 +31,8 @@ enum TextureFilter
 	TF_Nearest UMETA(DisplayName="Nearest"),
 	TF_Bilinear UMETA(DisplayName="Bi-linear"),
 	TF_Trilinear UMETA(DisplayName="Tri-linear"),
-	/** use setting from the LOD Group */
-	TF_Default UMETA(DisplayName="Default (from LOD Group)"),
+	/** use setting from the Texture Group */
+	TF_Default UMETA(DisplayName="Default (from Texture Group)"),
 	TF_MAX,
 };
 
@@ -504,8 +504,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AssetRegistrySearchable, AdvancedDisplay)
 	TEnumAsByte<enum TextureFilter> Filter;
 
-	/** LOD group this texture belongs to for LOD bias */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, meta=(DisplayName="LOD Group"), AssetRegistrySearchable)
+	/** Texture group this texture belongs to */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, meta=(DisplayName="Texture Group"), AssetRegistrySearchable)
 	TEnumAsByte<enum TextureGroup> LODGroup;
 
 public:

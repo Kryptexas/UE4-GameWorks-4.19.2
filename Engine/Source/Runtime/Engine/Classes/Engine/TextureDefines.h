@@ -58,7 +58,7 @@ UENUM()
 enum TextureMipGenSettings
 {
 	// default for the "texture"
-	TMGS_FromTextureGroup UMETA(DisplayName="FromLODGroup"),
+	TMGS_FromTextureGroup UMETA(DisplayName="FromTextureGroup"),
 	// 2x2 average, default for the "texture group"
 	TMGS_SimpleAverage UMETA(DisplayName="SimpleAverage"),
 	// 8x8 with sharpening: 0=no sharpening but better quality which is softer, 1..little, 5=medium, 10=extreme
