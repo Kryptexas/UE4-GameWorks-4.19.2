@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "GameplayAbility.h"
 #include "GameplayAbilityTargetDataFilter.generated.h"
 
 UENUM(BlueprintType)
@@ -27,18 +26,16 @@ struct GAMEPLAYABILITIES_API FGameplayTargetDataFilter
 
 	virtual bool FilterPassesForActor(const AActor* ActorToBeFiltered) const
 	{
-		check(SourceAbility.IsValid());
-		check(SourceAbility.Get()->GetAvatarActorFromActorInfo());
 		switch (SelfFilter.GetValue())
 		{
 		case ETargetDataFilterSelf::Type::TDFS_NoOthers:
-			if (ActorToBeFiltered != SourceAbility.Get()->GetAvatarActorFromActorInfo())
+			if (ActorToBeFiltered != SelfActor)
 			{
 				return false;
 			}
 			break;
 		case ETargetDataFilterSelf::Type::TDFS_NoSelf:
-			if (ActorToBeFiltered == SourceAbility.Get()->GetAvatarActorFromActorInfo())
+			if (ActorToBeFiltered == SelfActor)
 			{
 				return false;
 			}
@@ -50,9 +47,13 @@ struct GAMEPLAYABILITIES_API FGameplayTargetDataFilter
 		return true;
 	}
 
-	/** Filled out while running */
-	TWeakObjectPtr<UGameplayAbility> SourceAbility;
+	void InitializeFilterContext(AActor* FilterActor);
 
+	/** Filled out while running */
+	UPROPERTY()
+	AActor* SelfActor;
+
+	/** Our actual filter. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Filter)
 	TEnumAsByte<ETargetDataFilterSelf::Type> SelfFilter;
 };

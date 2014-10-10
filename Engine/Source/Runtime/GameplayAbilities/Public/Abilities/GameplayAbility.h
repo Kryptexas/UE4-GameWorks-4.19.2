@@ -8,6 +8,7 @@
 #include "GameplayAbilityTargetTypes.h"
 #include "GameplayAbilityTypes.h"
 #include "GameplayEffect.h"
+#include "Abilities/GameplayAbilityTargetDataFilter.h"
 #include "GameplayAbility.generated.h"
 
 /**
@@ -404,12 +405,12 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	AActor* GetOwningActorFromActorInfo() const;
 
-	/** Returns the physical actor that is executing this abilit. May be null */
+	/** Returns the physical actor that is executing this ability. May be null */
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	AActor* GetAvatarActorFromActorInfo() const;
 
 	/** Convenience method for abilities to get skeletal mesh component - useful for aiming abilities */
-	UFUNCTION(BlueprintCallable, Category = Ability)
+	UFUNCTION(BlueprintCallable, FriendlyName = "GetSkeletalMeshComponentFromActorInfo", Category = Ability)
 	USkeletalMeshComponent* GetOwningComponentFromActorInfo() const;
 
 	/** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */

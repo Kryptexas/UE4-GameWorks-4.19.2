@@ -486,6 +486,7 @@ FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingGameplayEffectSpec(UGamep
 	return CurrentActorInfo->AbilitySystemComponent->GetOutgoingSpec(GameplayEffect, Level);
 }
 
+
 /** Fixme: Naming is confusing here */
 
 bool UGameplayAbility::K2_CommitAbility()

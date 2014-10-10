@@ -8,3 +8,8 @@
 //	FGameplayTargetDataFilter
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+void FGameplayTargetDataFilter::InitializeFilterContext(AActor* FilterActor)
+{
+	SelfActor = FilterActor;
+}
