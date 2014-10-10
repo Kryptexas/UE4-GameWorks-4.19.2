@@ -11,7 +11,12 @@
 
 void SScaleBox::Construct( const SScaleBox::FArguments& InArgs )
 {
+	Stretch = InArgs._Stretch;
+	StretchDirection = InArgs._StretchDirection;
+
 	ChildSlot
+	.HAlign(InArgs._HAlign)
+	.VAlign(InArgs._VAlign)
 	[
 		InArgs._Content.Widget
 	];
