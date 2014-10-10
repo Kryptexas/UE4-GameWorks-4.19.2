@@ -964,7 +964,7 @@ protected:
 	virtual void visit(ir_texture *tex) override
 	{
 		check(scope_depth > 0);
-
+		bool bNeedsClosingParenthesis = true;
 		tex->sampler->accept(this);
 		if (tex->op == ir_tex || tex->op == ir_txl || tex->op == ir_txb)
 		{
@@ -996,8 +996,18 @@ protected:
 		}
 		else if (tex->op == ir_txf)
 		{
-			ralloc_asprintf_append(buffer, ".read(");
-			tex->coordinate->accept(this);
+			if (tex->sampler->type && tex->sampler->type->is_sampler() && tex->sampler->type->sampler_buffer)
+			{
+				ralloc_asprintf_append(buffer, "[");
+				tex->coordinate->accept(this);
+				ralloc_asprintf_append(buffer, "]");
+				bNeedsClosingParenthesis = false;
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, ".read(");
+				tex->coordinate->accept(this);
+			}
 		}
 		else
 		{
@@ -1005,7 +1015,10 @@ protected:
 			check(0);
 		}
 
-		ralloc_asprintf_append(buffer, ")");
+		if (bNeedsClosingParenthesis)
+		{
+			ralloc_asprintf_append(buffer, ")");
+		}
 	}
 
 	virtual void visit(ir_swizzle *swizzle) override

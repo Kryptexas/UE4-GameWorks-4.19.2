@@ -54,7 +54,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	}
 	else
 	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES2;
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
 		GMaxRHIShaderPlatform = SP_METAL;
 	}
 
@@ -90,8 +90,8 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GMaxCubeTextureDimensions = 4096;
 	GMaxTextureArrayLayers = 2048;
 
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_NumPlatforms;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_NumPlatforms;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIShaderPlatform == SP_METAL_MRT) ? SP_METAL_MRT : SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_NumPlatforms;
 

@@ -587,8 +587,9 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES2:
 	case SP_OPENGL_ES2_WEBGL:
 	case SP_OPENGL_ES2_IOS:
-	case SP_METAL:
 		return ERHIFeatureLevel::ES2;
+	case SP_METAL:
+		return ERHIFeatureLevel::ES3_1;
 	default:
 		check(0);
 		return ERHIFeatureLevel::Num;
@@ -625,7 +626,7 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 	case SP_XBOXONE:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL: 
-		return InFeatureLevel <= ERHIFeatureLevel::ES2;
+		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_METAL_MRT:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_OPENGL_ES31_EXT:
