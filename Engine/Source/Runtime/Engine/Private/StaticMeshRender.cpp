@@ -55,7 +55,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	ForcedLodModel(InComponent->ForcedLodModel),
 	bCastShadow(InComponent->CastShadow),
 	CollisionTraceFlag(ECollisionTraceFlag::CTF_UseDefault),
-	MaterialRelevance(InComponent->GetMaterialRelevance(GetScene()->GetFeatureLevel())),
+	MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel())),
 	CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
 	check(RenderData);
@@ -64,7 +64,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	LevelColor = FLinearColor(1,1,1);
 	PropertyColor = FLinearColor(1,1,1);
 
-	const auto FeatureLevel = GetScene()->GetFeatureLevel();
+	const auto FeatureLevel = GetScene().GetFeatureLevel();
 
 	// Copy the pointer to the volume data, async building of the data may modify the one on FStaticMeshLODResources while we are rendering
 	DistanceFieldData = RenderData->LODResources[0].DistanceFieldData;
@@ -220,7 +220,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int
 	}
 
 	const bool bWireframe = false;
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshBatch.VertexFactory->GetType(), GetScene()->GetFeatureLevel() );
+	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshBatch.VertexFactory->GetType(), GetScene().GetFeatureLevel() );
 
 	SetIndexSource(LODIndex, SectionIndex, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation );
 
@@ -309,7 +309,7 @@ void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, F
 	if (bWireframe)
 	{
 		if( LODModel.WireframeIndexBuffer.IsInitialized()
-			&& !(RHISupportsTessellation(GetScene()->GetShaderPlatform()) && OutMeshElement.VertexFactory->GetType()->SupportsTessellationShaders())
+			&& !(RHISupportsTessellation(GetScene().GetShaderPlatform()) && OutMeshElement.VertexFactory->GetType()->SupportsTessellationShaders())
 			)
 		{
 			OutMeshElement.Type = PT_LineList;
@@ -425,7 +425,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 		//Never use the dynamic path in this path, because only unselected elements will use DrawStaticElements
 		bool bUseSelectedMaterial = false;
 		const bool bUseHoveredMaterial = false;
-		const auto FeatureLevel = GetScene()->GetFeatureLevel();
+		const auto FeatureLevel = GetScene().GetFeatureLevel();
 
 		//check if a LOD is being forced
 		if (ForcedLodModel > 0) 

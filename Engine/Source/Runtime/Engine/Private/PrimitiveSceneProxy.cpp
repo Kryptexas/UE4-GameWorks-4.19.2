@@ -73,6 +73,8 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	NumUncachedStaticLightingInteractions(0)
 #endif
 {
+	check(Scene);
+
 #if STATS
 	{
 		UObject const* StatObject = InComponent->AdditionalStatObject(); // prefer the additional object, this is usually the thing related to the component

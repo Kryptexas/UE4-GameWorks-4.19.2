@@ -554,7 +554,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 {
 	LevelColor = FLinearColor(1.f, 1.f, 1.f);
 
-	const auto FeatureLevel = GetScene()->GetFeatureLevel();
+	const auto FeatureLevel = GetScene().GetFeatureLevel();
 	if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
 	{
 		HeightmapTexture = NULL;
@@ -696,10 +696,12 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 {
 	check(HeightmapTexture != NULL);
 
+	auto FeatureLevel = GetScene().GetFeatureLevel();
+
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
 	if( SharedBuffers == NULL )
 	{
-		SharedBuffers = new FLandscapeSharedBuffers(SharedBuffersKey, SubsectionSizeQuads, NumSubsections, GetScene()->GetFeatureLevel(), bRequiresAdjacencyInformation);
+		SharedBuffers = new FLandscapeSharedBuffers(SharedBuffersKey, SubsectionSizeQuads, NumSubsections, FeatureLevel, bRequiresAdjacencyInformation);
 		FLandscapeComponentSceneProxy::SharedBuffersMap.Add(SharedBuffersKey, SharedBuffers);
 
 		if (!XYOffsetmapTexture)
@@ -730,11 +732,11 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 				// Recreate Index Buffers, this case happens only there are Landscape Components using different material (one uses tessellation, other don't use it) 
 				if (SharedBuffers->bUse32BitIndices && !((FRawStaticIndexBuffer16or32<uint32>*)SharedBuffers->IndexBuffers[0])->Num())
 				{
-					SharedBuffers->CreateIndexBuffers<uint32>(GetScene()->GetFeatureLevel(), bRequiresAdjacencyInformation);
+					SharedBuffers->CreateIndexBuffers<uint32>(FeatureLevel, bRequiresAdjacencyInformation);
 				}
 				else if (!((FRawStaticIndexBuffer16or32<uint16>*)SharedBuffers->IndexBuffers[0])->Num())
 				{
-					SharedBuffers->CreateIndexBuffers<uint16>(GetScene()->GetFeatureLevel(), bRequiresAdjacencyInformation);
+					SharedBuffers->CreateIndexBuffers<uint16>(FeatureLevel, bRequiresAdjacencyInformation);
 				}
 			}
 
@@ -1080,7 +1082,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
 
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
-	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy, GetScene()->GetFeatureLevel() );
+	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy, GetScene().GetFeatureLevel() );
 
 	MeshBatch.VertexFactory = VertexFactory;
 	MeshBatch.MaterialRenderProxy = RenderProxy;
@@ -2634,7 +2636,7 @@ IMPLEMENT_VERTEX_FACTORY_TYPE(FLandscapeVertexFactory, "LandscapeVertexFactory",
 */
 void FLandscapeVertexFactory::Copy(const FLandscapeVertexFactory& Other)
 {
-	//SetSceneProxy(Other.GetSceneProxy());
+	//SetSceneProxy(Other.Proxy());
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FLandscapeVertexFactoryCopyData,
 		FLandscapeVertexFactory*,VertexFactory,this,

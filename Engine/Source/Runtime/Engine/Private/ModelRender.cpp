@@ -163,7 +163,7 @@ public:
 		{
 			const FModelElement& SourceElement = SourceElements[ElementIndex];
 			FElementInfo* Element = new(Elements) FElementInfo(SourceElement);
-			MaterialRelevance |= Element->GetMaterial()->GetRelevance(GetScene()->GetFeatureLevel());
+			MaterialRelevance |= Element->GetMaterial()->GetRelevance(GetScene().GetFeatureLevel());
 		}
 
 		// Try to find a color for level coloration.

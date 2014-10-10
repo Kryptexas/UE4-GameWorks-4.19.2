@@ -3809,7 +3809,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		,	PhysicsAssetForDebug(Component->GetPhysicsAsset())
 		,	bForceWireframe(Component->bForceWireframe)
 		,	bCanHighlightSelectedSections(Component->bCanHighlightSelectedSections)
-		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene()->GetFeatureLevel()))
+		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 		,	bMaterialsNeedMorphUsage_GameThread(false)
 {
 	check(MeshObject);
@@ -3824,7 +3824,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		bAlwaysHasVelocity = true;
 	}
 
-	const auto FeatureLevel = GetScene()->GetFeatureLevel();
+	const auto FeatureLevel = GetScene().GetFeatureLevel();
 
 	// setup materials and performance classification for each LOD.
 	extern bool GForceDefaultMaterial;
@@ -3886,7 +3886,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 				MaterialRelevance |= Material->GetRelevance(FeatureLevel);
 			}
 
-			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, GetScene()->GetFeatureLevel() );
+			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, FeatureLevel );
 			if ( bRequiresAdjacencyInformation && LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() == false )
 			{
 				UE_LOG(LogSkeletalMesh, Warning, 
@@ -4625,7 +4625,7 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 			UpdateSkelProxyLODSectionElementsCmd,
 				TSet<UMaterialInterface*>,MaterialsToSwap,MaterialsToSwap,
 				UMaterialInterface*,DefaultMaterial,UMaterial::GetDefaultMaterial(MD_Surface),
-				ERHIFeatureLevel::Type, FeatureLevel, GetScene()->GetFeatureLevel(),
+				ERHIFeatureLevel::Type, FeatureLevel, GetScene().GetFeatureLevel(),
 			FSkeletalMeshSceneProxy*,SkelMeshSceneProxy,this,
 			{
 					for( int32 LodIdx=0; LodIdx < SkelMeshSceneProxy->LODSections.Num(); LodIdx++ )

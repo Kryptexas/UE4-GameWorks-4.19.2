@@ -318,7 +318,7 @@ public:
 	void SetCollisionEnabled_RenderThread(const bool bNewEnabled);
 
 	// Accessors.
-	inline FSceneInterface* GetScene() const { return Scene; }
+	inline FSceneInterface& GetScene() const { return *Scene; }
 	inline FPrimitiveComponentId GetPrimitiveComponentId() const { return PrimitiveComponentId; }
 	inline FPrimitiveSceneInfo* GetPrimitiveSceneInfo() const { return PrimitiveSceneInfo; }
 	inline const FMatrix& GetLocalToWorld() const { return LocalToWorld; }

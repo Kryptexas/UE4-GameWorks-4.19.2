@@ -381,7 +381,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	
 	// Update the primitive motion blur information.
 	// hack
-	FScene* Scene = (FScene*)PrimitiveSceneProxy->GetScene();
+	FScene* Scene = (FScene*)&PrimitiveSceneProxy->GetScene();
 
 	Scene->MotionBlurInfoData.UpdatePrimitiveMotionBlur(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 	

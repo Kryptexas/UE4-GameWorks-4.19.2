@@ -250,7 +250,7 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	FViewInfo& View = (FViewInfo&)SceneView;	// NOTE: Assuming this cast is always safe!
 
 	// hack
-	FScene* Scene = (FScene*)PrimitiveSceneProxy->GetScene();
+	FScene* Scene = (FScene*)&PrimitiveSceneProxy->GetScene();
 
 	// previous transform can be stored in the scene for each primitive
 	if(Scene->MotionBlurInfoData.GetPrimitiveMotionBlurInfo(PrimitiveSceneProxy->GetPrimitiveSceneInfo(), PreviousLocalToWorld))

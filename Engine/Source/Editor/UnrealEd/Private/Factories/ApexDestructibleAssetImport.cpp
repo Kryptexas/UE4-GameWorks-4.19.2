@@ -734,7 +734,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 	for(TObjectIterator<UDestructibleComponent> It; It; ++It)
 	{
 		UDestructibleComponent* DestructibleComponent = *It;
-		if(DestructibleComponent->SkeletalMesh == &DestructibleMesh && DestructibleComponent->GetScene())
+		if(DestructibleComponent->SkeletalMesh == &DestructibleMesh)
 		{
 			DestructibleComponent->DestroyPhysicsState();
 		}
@@ -903,7 +903,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 		for(TObjectIterator<UDestructibleComponent> It; It; ++It)
 		{
 			UDestructibleComponent* DestructibleComponent = *It;
-			if(DestructibleComponent->SkeletalMesh == &DestructibleMesh && DestructibleComponent->GetScene())
+			if(DestructibleComponent->SkeletalMesh == &DestructibleMesh)
 			{
 				FComponentReregisterContext ReregisterContext(DestructibleComponent);
 			}

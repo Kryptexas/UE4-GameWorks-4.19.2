@@ -1330,7 +1330,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
 		{
 			USkeletalMeshComponent* SkelComp = *It;
-			if(SkelComp->SkeletalMesh == SkeletalMesh && SkelComp->GetScene())
+			if(SkelComp->SkeletalMesh == SkeletalMesh)
 			{
 				FComponentReregisterContext ReregisterContext(SkelComp);
 			}

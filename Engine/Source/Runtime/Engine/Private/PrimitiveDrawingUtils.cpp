@@ -15,7 +15,7 @@ void EmitMeshDrawEvents_Inner(FRHICommandList& RHICmdList, const FPrimitiveScene
 {
 	// Only show material name at the top level
 	// Note: this is the parent's material name, not the material instance
-	SCOPED_DRAW_EVENTF(RHICmdList, MaterialEvent, DEC_SCENE_ITEMS, *Mesh.MaterialRenderProxy->GetMaterial(PrimitiveSceneProxy->GetScene()->GetFeatureLevel())->GetFriendlyName());
+	SCOPED_DRAW_EVENTF(RHICmdList, MaterialEvent, DEC_SCENE_ITEMS, *Mesh.MaterialRenderProxy->GetMaterial(PrimitiveSceneProxy->GetScene().GetFeatureLevel())->GetFriendlyName());
 	if (PrimitiveSceneProxy)
 	{
 		// Show Actor, level and resource name inside the material name
