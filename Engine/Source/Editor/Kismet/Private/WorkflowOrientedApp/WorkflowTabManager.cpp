@@ -256,17 +256,18 @@ TSharedRef< SWidget > FTabInfo::CreateHistoryNavigationWidget()
 {
 	if(!HistoryNavigationWidget.IsValid())
 	{
-		TWeakPtr< SMenuAnchor > MenuAnchorPtr;
+		TWeakPtr< SMenuAnchor > BackMenuAnchorPtr;
+		TWeakPtr< SMenuAnchor > FwdMenuAnchorPtr;
 		HistoryNavigationWidget = 
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, BackMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(BackMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &FTabInfo::CreateHistoryMenu, true )
 					[
@@ -287,10 +288,10 @@ TSharedRef< SWidget > FTabInfo::CreateHistoryNavigationWidget()
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &FTabInfo::OnMouseDownHisory, FwdMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(FwdMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &FTabInfo::CreateHistoryMenu, false )
 					[

@@ -131,6 +131,8 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 	TSharedRef<SWidget> SuperSearchWidget = SuperSearchModule.MakeSearchBox(ExposedEditableTextBox);
 #endif
 	
+	MenuOverlayWidgetContent.Reset();
+	MenuWidgetContent.Reset();
 	this->ChildSlot
 	[
 		SNew( SVerticalBox )

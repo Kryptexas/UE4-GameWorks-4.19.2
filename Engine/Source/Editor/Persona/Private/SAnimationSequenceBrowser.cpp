@@ -439,8 +439,8 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
 
-	TWeakPtr< SMenuAnchor > MenuAnchorPtr;
-	
+	TWeakPtr< SMenuAnchor > BackMenuAnchorPtr;
+	TWeakPtr< SMenuAnchor > FwdMenuAnchorPtr;	
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -463,10 +463,10 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, BackMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(BackMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, true )
 					[
@@ -487,10 +487,10 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, MenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, FwdMenuAnchorPtr)
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(MenuAnchorPtr, SMenuAnchor)
+					SAssignNew(FwdMenuAnchorPtr, SMenuAnchor)
 					.Placement( MenuPlacement_BelowAnchor )
 					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, false )
 					[
