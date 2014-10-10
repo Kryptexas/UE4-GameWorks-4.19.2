@@ -168,13 +168,7 @@ void UBehaviorTreeComponent::StopTree()
 	PendingExecution = FBTPendingExecutionInfo();
 	ActiveInstanceIdx = 0;
 
-	if (IsRegistered())
-	{
-		check(GetWorld() != NULL);
-		GetWorld()->GetTimerManager().ClearTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest);
-	}
-
-	// make sure to allow new execution requests since we just removed last request timer
+	// make sure to allow new execution requests
 	bRequestedFlowUpdate = false;
 }
 
@@ -495,12 +489,7 @@ static void FindCommonParent(const TArray<FBehaviorTreeInstance>& Instances, con
 
 void UBehaviorTreeComponent::ScheduleExecutionUpdate()
 {
-	if (!bRequestedFlowUpdate && IsRegistered())
-	{
-		bRequestedFlowUpdate = true;
-
-		GetWorld()->GetTimerManager().SetTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest, 0.001f, false);
-	}
+	bRequestedFlowUpdate = true;
 }
 
 void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int32 InstanceIdx, const UBTNode* RequestedBy,
@@ -791,11 +780,16 @@ void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 
 	check(this && this->IsPendingKill() == false);
 		
+	if (bRequestedFlowUpdate)
+	{
+		ProcessExecutionRequest();
+	}
+	
 	if (InstanceStack.Num() == 0 || !bIsRunning)
 	{
 		return;
 	}
-	
+
 	// tick active auxiliary nodes and parallel tasks (in execution order, before task)
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
 	{
