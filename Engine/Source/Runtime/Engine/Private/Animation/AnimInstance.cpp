@@ -65,6 +65,7 @@ UAnimInstance::UAnimInstance(const class FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 {
 	RootNode = NULL;
+	RootMotionMode = ERootMotionMode::RootMotionFromMontagesOnly;
 }
 
 void UAnimInstance::MakeSequenceTickRecord(FAnimTickRecord& TickRecord, class UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const
@@ -94,7 +95,7 @@ void UAnimInstance::SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool b
 	FAnimTickRecord TickRecord;
 	MakeSequenceTickRecord(TickRecord, Sequence, bLooping, PlayRate, /*FinalBlendWeight=*/ 1.0f, CurrentTime);
 
-	FAnimAssetTickContext TickContext(DeltaSeconds);
+	FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
 	TickRecord.SourceAsset->TickAssetPlayerInstance(TickRecord, this, TickContext);
 }
 
@@ -103,7 +104,7 @@ void UAnimInstance::BlendSpaceAdvanceImmediate(class UBlendSpaceBase* BlendSpace
 	FAnimTickRecord TickRecord;
 	MakeBlendSpaceTickRecord(TickRecord, BlendSpace, BlendInput, BlendSampleDataCache, BlendFilter, bLooping, PlayRate, /*FinalBlendWeight=*/ 1.0f, CurrentTime);
 	
-	FAnimAssetTickContext TickContext(DeltaSeconds);
+	FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
 	TickRecord.SourceAsset->TickAssetPlayerInstance(TickRecord, this, TickContext);
 }
 
@@ -133,13 +134,16 @@ void UAnimInstance::SequenceEvaluatePose(UAnimSequenceBase* Sequence, FA2Pose& P
 
 	USkeletalMeshComponent* Component = GetSkelMeshComponent();
 
+	FAnimExtractContext NewExtractContext(ExtractionContext);
+	NewExtractContext.bExtractRootMotion = RootMotionMode == ERootMotionMode::RootMotionFromEverything;
+
 	if(const UAnimSequence* AnimSequence = Cast<const UAnimSequence>(Sequence))
 	{
 		FAnimationRuntime::GetPoseFromSequence(
 			AnimSequence,
 			RequiredBones,
 			/*out*/ Pose.Bones, 
-			ExtractionContext);
+			NewExtractContext);
 	}
 	else if(const UAnimComposite* Composite = Cast<const UAnimComposite>(Sequence))
 	{
@@ -147,7 +151,7 @@ void UAnimInstance::SequenceEvaluatePose(UAnimSequenceBase* Sequence, FA2Pose& P
 			Composite->AnimationTrack, 
 			RequiredBones, 
 			/*out*/ Pose.Bones,
-			ExtractionContext);
+			NewExtractContext);
 	}
 	else
 	{
@@ -402,7 +406,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 			const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
 
 			// Tick the group leader
-			FAnimAssetTickContext TickContext(DeltaSeconds);
+			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
 			FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[GroupLeaderIndex];
 			GroupLeader.SourceAsset->TickAssetPlayerInstance(GroupLeader, this, TickContext);
 
@@ -420,6 +424,11 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 					}
 				}
 			}
+
+			if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+			{
+				ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
+			}
 		}
 	}
 
@@ -427,13 +436,21 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	for (int32 TickIndex = 0; TickIndex < UngroupedActivePlayers.Num(); ++TickIndex)
 	{
 		const FAnimTickRecord& AssetPlayerToTick = UngroupedActivePlayers[TickIndex];
-		FAnimAssetTickContext TickContext(DeltaSeconds);
+		FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
 		AssetPlayerToTick.SourceAsset->TickAssetPlayerInstance(AssetPlayerToTick, this, TickContext);
+		if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
+		{
+			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayerToTick.EffectiveBlendWeight);
+		}
 	}
 
 	// update montage should run in game thread
 	// if we do multi threading, make sure this stays in game thread
 	Montage_Advance(DeltaSeconds);
+
+	// We may have just partially blended root motion, so make it up to 1 by
+	// blending in identity too
+	ExtractedRootMotion.MakeUpToFullWeight();
 
 	// now trigger Notifies
 	TriggerAnimNotifies(DeltaSeconds);
@@ -1264,7 +1281,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 
 			// Extract pose from Track
 			UAnimMontage const * const MontageAsset = MontageInstance->Montage;
-			FAnimExtractContext ExtractionContext(MontageInstance->GetPosition(), MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
+			FAnimExtractContext ExtractionContext(MontageInstance->GetPosition(), MontageInstance->Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
 			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, NewPose.Pose.Bones, ExtractionContext);
 
 			TotalWeight += MontageInstance->Weight;
@@ -1383,6 +1400,7 @@ void UAnimInstance::RegisterSlotNode(FName SlotNodeName)
 	}
 
 	ActiveSlotWeights.Add(SlotNodeName, 0.f);
+	ActiveSlotRootMotionWeights.Add(SlotNodeName, 0.f);
 }
 
 void UAnimInstance::UpdateSlotNodeWeight(FName SlotNodeName, float Weight)
@@ -1401,12 +1419,33 @@ void UAnimInstance::ClearSlotNodeWeights()
 		float& Weight = Iter.Value();
 		Weight = 0.f;
 	}
+
+	for (auto Iter = ActiveSlotRootMotionWeights.CreateIterator(); Iter; ++Iter)
+	{
+		float& Weight = Iter.Value();
+		Weight = 0.f;
+	}
 }
 
 bool UAnimInstance::IsActiveSlotNode(FName SlotNodeName) const
 {
 	const float* SlotNodeWeight = ActiveSlotWeights.Find(SlotNodeName);
 	return ( SlotNodeWeight && (*SlotNodeWeight > ZERO_ANIMWEIGHT_THRESH) );
+}
+
+void UAnimInstance::UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight)
+{
+	float* CurrentWeight = ActiveSlotRootMotionWeights.Find(SlotNodeName);
+	if (CurrentWeight)
+	{
+		*CurrentWeight += Weight;
+	}
+}
+
+float UAnimInstance::GetSlotRootMotionWeight(FName SlotNodeName) const
+{
+	const float* SlotNodeWeight = ActiveSlotRootMotionWeights.Find(SlotNodeName);
+	return SlotNodeWeight ? *SlotNodeWeight : 0.f;
 }
 
 float UAnimInstance::GetCurveValue(FName CurveName)
@@ -1517,8 +1556,6 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
-	FRootMotionMovementParams LocalExtractedRootMotion;
-
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
 	for (int32 InstanceIndex = 0; InstanceIndex<MontageInstances.Num(); InstanceIndex++)
@@ -1528,10 +1565,22 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		ensure(MontageInstance);
 		if (MontageInstance)
 		{
-			// Only use root motion from active root motion montage.
-			// we don't support blending/weighting because of networking constraints.
-			bool const bExtractRootMotion = (MontageInstance == GetRootMotionMontageInstance());
-			MontageInstance->Advance(DeltaSeconds, bExtractRootMotion ? &LocalExtractedRootMotion : NULL);
+			bool const bUsingBlendedRootMotion = RootMotionMode == ERootMotionMode::RootMotionFromEverything;
+			bool const bNoRootMotionExtraction = RootMotionMode == ERootMotionMode::NoRootMotionExtraction;
+
+			// Extract root motion if we are using blend root motion (RootMotionFromEverything) or if we are set to extract root 
+			// motion AND we are the active root motion instance. This is so we can make root motion deterministic for networking when
+			// we are not using RootMotionFromEverything
+			bool const bExtractRootMotion = bUsingBlendedRootMotion || (!bNoRootMotionExtraction && MontageInstance == GetRootMotionMontageInstance());
+
+			FRootMotionMovementParams LocalExtractedRootMotion;
+			FRootMotionMovementParams* RootMotionParams = NULL;
+			if (bExtractRootMotion)
+			{
+				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &ExtractedRootMotion : &LocalExtractedRootMotion;
+			}
+
+			MontageInstance->Advance(DeltaSeconds, bExtractRootMotion ? &ExtractedRootMotion : NULL, bUsingBlendedRootMotion);
 
 			if (!MontageInstance->IsValid())
 			{
@@ -1550,12 +1599,6 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 			}
 #endif
 		}
-	}
-
-	// If Root Motion has been extracted, store it.
-	if ((GetRootMotionMontageInstance() != NULL) && LocalExtractedRootMotion.bHasRootMotion)
-	{
-		ExtractedRootMotion.Accumulate(LocalExtractedRootMotion);
 	}
 }
 
@@ -1666,7 +1709,7 @@ float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate
 			ActiveMontagesMap.Add(MontageToPlay, NewInstance);
 
 			// If we are playing root motion, set this instance as the one providing root motion.
-			if (MontageToPlay->bEnableRootMotionTranslation || MontageToPlay->bEnableRootMotionRotation)
+			if (MontageToPlay->HasRootMotion())
 			{
 				RootMotionMontageInstance = NewInstance;
 			}

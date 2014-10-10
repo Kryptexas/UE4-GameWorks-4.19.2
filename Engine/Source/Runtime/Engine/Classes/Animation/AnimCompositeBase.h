@@ -158,6 +158,9 @@ struct FAnimTrack
 
 	ENGINE_API int32 GetTrackAdditiveType() const;
 
+	/** Returns whether any of the animation sequences this track uses has root motion */
+	bool HasRootMotion() const;
+
 	/** 
 	 * Given a Track delta position [StartTrackPosition, EndTrackPosition]
 	 * See if any AnimSegment overlaps any of it, and if it does, break it up into RootMotionExtractionPieces.
@@ -189,5 +192,8 @@ class UAnimCompositeBase : public UAnimSequenceBase
 	/** Set Sequence Length */
 	ENGINE_API void SetSequenceLength(float InSequenceLength);
 #endif
+
+	// Extracts root motion from the supplied FAnimTrack between the Start End range specified
+	ENGINE_API void ExtractRootMotionFromTrack(const FAnimTrack &SlotAnimTrack, float StartTrackPosition, float EndTrackPosition, FRootMotionMovementParams &RootMotion) const;
 };
 

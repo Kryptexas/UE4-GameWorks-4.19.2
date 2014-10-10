@@ -426,6 +426,7 @@ void FAnimationRuntime::GetPoseFromAnimTrack(
 				// Copy passed in Extraction Context, but override position and looping parameters.
 				FAnimExtractContext SequenceExtractionContext(ExtractionContext);
 				SequenceExtractionContext.CurrentTime = PositionInAnim;
+				SequenceExtractionContext.bExtractRootMotion &= Sequence->bEnableRootMotion;
 				FAnimationRuntime::GetPoseFromSequence(Sequence, RequiredBones, SourcePoses[NewIndex], SequenceExtractionContext);
 			}
 		}
@@ -585,7 +586,7 @@ void FAnimationRuntime::GetPoseFromBlendSpace(
 				const float Time = FMath::Clamp<float>(BlendSampleDataCache[I].Time, 0.f, Sample.Animation->SequenceLength);
 
 				// first one always fills up the source one
-				FAnimationRuntime::GetPoseFromSequence(Sample.Animation, RequiredBones, ChildrenTransform[I], FAnimExtractContext(Time));
+				FAnimationRuntime::GetPoseFromSequence(Sample.Animation, RequiredBones, ChildrenTransform[I], FAnimExtractContext(Time, true));
 			}
 			else
 			{

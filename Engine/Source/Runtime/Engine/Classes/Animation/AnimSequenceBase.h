@@ -412,10 +412,10 @@ class UAnimSequenceBase : public UAnimationAsset
 	virtual float GetMaxCurrentTime() override { return SequenceLength; }
 	// End of UAnimationAsset interface
 
-protected:
-	virtual void ExtractRootTrack(float Pos, FTransform& RootTransform, const FBoneContainer* RequiredBones) const;
+	virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const;
 
-public:
+	virtual bool HasRootMotion() const { return false; }
+
 	virtual void Serialize(FArchive& Ar) override;
 
 #if WITH_EDITOR

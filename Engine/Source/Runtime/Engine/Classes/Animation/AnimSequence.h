@@ -496,6 +496,18 @@ class UAnimSequence : public UAnimSequenceBase
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=Animation)
 	FName RetargetSource;
 
+	/** If this is on, it will allow extracting of root motion **/
+	UPROPERTY(EditAnywhere, Category = RootMotion)
+	bool bEnableRootMotion;
+
+	/** Root Bone will be locked to that position when extracting root motion.**/
+	UPROPERTY(EditAnywhere, Category = RootMotion)
+	TEnumAsByte<ERootMotionRootLock::Type> RootMotionRootLock;
+
+	/** Have we copied root motion settings from an owning montage */
+	UPROPERTY()
+	bool bRootMotionSettingsCopiedFromMontage;
+
 #if WITH_EDITORONLY_DATA
 	/** Saved version number with CompressAnimations commandlet. To help with doing it in multiple passes. */
 	UPROPERTY()
@@ -549,9 +561,19 @@ class UAnimSequence : public UAnimSequenceBase
 	// End of UAnimationAsset interface
 
 	// Begin UAnimSequenceBase interface
-	ENGINE_API virtual void ExtractRootTrack(float Pos, FTransform& RootTransform, const FBoneContainer* RequiredBones) const override;
+	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
 	ENGINE_API virtual void UpgradeMorphTargetCurves() override;
+	ENGINE_API virtual bool HasRootMotion() const { return bEnableRootMotion; }
 	// End UAnimSequenceBase interface
+
+	// Extract Root Motion transform from the animation
+	FTransform ExtractRootMotion(const float & StartTime, const float & DeltaTime, const float bAllowLooping) const;
+
+	// Extract Root Motion transform from a contiguous position range (no looping)
+	FTransform ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const;
+
+	// Extract the transform from the root track for the given animation position
+	FTransform ExtractRootTrackTransform(float Pos, const FBoneContainer * RequiredBones) const;
 
 	// Begin Transform related functions 
 
@@ -583,7 +605,7 @@ private:
 	 * @param	RequiredBones		BoneContainer
 	 * @param	ExtractionContext	Extraction Context to access root motion extraction information.
 	 */
-	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const;
 	
 	/** 
 	 * Retarget a single bone transform, to apply right after extraction.

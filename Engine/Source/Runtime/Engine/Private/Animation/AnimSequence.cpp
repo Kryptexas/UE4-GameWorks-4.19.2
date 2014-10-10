@@ -98,6 +98,9 @@ bool FCurveTrack::CompressCurveWeights()
 
 UAnimSequence::UAnimSequence(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bEnableRootMotion(false)
+	, RootMotionRootLock(ERootMotionRootLock::RefPose)
+	, bRootMotionSettingsCopiedFromMontage(false)
 {
 
 	RateScale = 1.0;
@@ -663,41 +666,105 @@ void UAnimSequence::ExtractBoneTransform(const TArray<struct FRawAnimSequenceTra
 	OutAtom.NormalizeRotation();
 }
 
-void UAnimSequence::ExtractRootTrack(float Pos, FTransform& RootTransform, const FBoneContainer* RequiredBones) const
+void UAnimSequence::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const
+{
+	Super::OnAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InstanceOwner);
+
+	if (bEnableRootMotion)
+	{
+		Context.RootMotionMovementParams.Accumulate(ExtractRootMotion(PreviousTime, MoveDelta, Instance.bLooping));
+	}
+}
+
+FTransform UAnimSequence::ExtractRootTrackTransform(float Pos, const FBoneContainer * RequiredBones) const
 {
 	// we assume root is in first data if available = SkeletonIndex == 0 && BoneTreeIndex == 0)
 	if ((TrackToSkeletonMapTable.Num() > 0) && (TrackToSkeletonMapTable[0].BoneTreeIndex == 0) )
 	{
 		// if we do have root data, then return root data
+		FTransform RootTransform;
 		GetBoneTransform(RootTransform, 0, Pos, false );
-		return;
+		return RootTransform;
 	}
 
 	// Fallback to root bone from reference skeleton.
 	if( RequiredBones )
 	{
-		const FReferenceSkeleton& RefSkeleton = RequiredBones->GetReferenceSkeleton();
+		const FReferenceSkeleton & RefSkeleton = RequiredBones->GetReferenceSkeleton();
 		if( RefSkeleton.GetNum() > 0 )
 		{
-			RootTransform = RefSkeleton.GetRefBonePose()[0];
-			return;
+			return RefSkeleton.GetRefBonePose()[0];
 		}
 	}
 
-	USkeleton* MySkeleton = GetSkeleton();
+	USkeleton * MySkeleton = GetSkeleton();
 	// If we don't have a RequiredBones array, get root bone from default skeleton.
 	if( !RequiredBones &&  MySkeleton )
 	{
 		const FReferenceSkeleton RefSkeleton = MySkeleton->GetReferenceSkeleton();
 		if( RefSkeleton.GetNum() > 0 )
 		{
-			RootTransform = RefSkeleton.GetRefBonePose()[0];
-			return;
+			return RefSkeleton.GetRefBonePose()[0];
 		}
 	}
 
 	// Otherwise, use identity.
-	RootTransform = FTransform::Identity;
+	return FTransform::Identity;
+}
+
+FTransform UAnimSequence::ExtractRootMotion(const float & StartTime, const float & DeltaTime, const float bAllowLooping) const
+{
+	FRootMotionMovementParams RootMotionParams;
+
+	if (DeltaTime != 0.f)
+	{
+		bool const bPlayingBackwards = (DeltaTime < 0.f);
+
+		float PreviousPosition = StartTime;
+		float CurrentPosition = StartTime;
+		float DesiredDeltaMove = DeltaTime;
+
+		do
+		{
+			// Disable looping here. Advance to desired position, or beginning / end of animation 
+			const ETypeAdvanceAnim AdvanceType = FAnimationRuntime::AdvanceTime(false, DesiredDeltaMove, CurrentPosition, SequenceLength);
+
+			// Verify position assumptions
+			check(bPlayingBackwards ? (CurrentPosition <= PreviousPosition) : (CurrentPosition >= PreviousPosition));
+
+			RootMotionParams.Accumulate(ExtractRootMotionFromRange(PreviousPosition, CurrentPosition));
+
+			// If we've hit the end of the animation, and we're allowed to loop, keep going.
+			if ((AdvanceType == ETAA_Finished) && bAllowLooping)
+			{
+				const float ActualDeltaMove = (CurrentPosition - PreviousPosition);
+				DesiredDeltaMove -= ActualDeltaMove;
+
+				PreviousPosition = bPlayingBackwards ? SequenceLength : 0.f;
+				CurrentPosition = PreviousPosition;
+			}
+			else
+			{
+				break;
+			}
+		} while (true);
+	}
+
+	return RootMotionParams.RootMotionTransform;
+}
+
+FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const
+{
+	FTransform InitialTransform = ExtractRootTrackTransform(0.f, NULL);
+	FTransform StartTransform = ExtractRootTrackTransform(StartTrackPosition, NULL);
+	FTransform EndTransform = ExtractRootTrackTransform(EndTrackPosition, NULL);
+
+	// Transform to Component Space Rotation (inverse root transform from first frame)
+	const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
+	StartTransform = RootToComponentRot * StartTransform;
+	EndTransform = RootToComponentRot * EndTransform;
+
+	return EndTransform.GetRelativeTransform(StartTransform);
 }
 
 void UAnimSequence::GetAnimationPose(FTransformArrayA2 & OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const
@@ -720,27 +787,14 @@ void UAnimSequence::GetAnimationPose(FTransformArrayA2 & OutAtoms, const FBoneCo
 	}
 }
 
-void UAnimSequence::ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const
 {
-	FTransform LockedRootBone;
-	switch (ExtractionContext.RootMotionRootLock)
+	switch (RootMotionRootLock)
 	{
-		case ERootMotionRootLock::AnimFirstFrame : ExtractRootTrack(0.f, LockedRootBone, &RequiredBones); break;
-		case ERootMotionRootLock::Zero : LockedRootBone = FTransform::Identity; break;
+		case ERootMotionRootLock::AnimFirstFrame: BoneTransforms[0] = ExtractRootTrackTransform(0.f, &RequiredBones); break;
+		case ERootMotionRootLock::Zero: BoneTransforms[0] = FTransform::Identity; break;
 		default:
-		case ERootMotionRootLock::RefPose : LockedRootBone = RequiredBones.GetRefPoseArray()[0]; break;
-	}
-
-	// If extracting root motion translation, reset translation part to first frame of animation.
-	if( ExtractionContext.bExtractRootMotionTranslation )
-	{
-		BoneTransforms[0].SetTranslation(LockedRootBone.GetTranslation());
-	}
-
-	// If extracting root motion rotation, reset rotation part to first frame of animation.
-	if( ExtractionContext.bExtractRootMotionRotation )
-	{
-		BoneTransforms[0].SetRotation(LockedRootBone.GetRotation());
+		case ERootMotionRootLock::RefPose: BoneTransforms[0] = RequiredBones.GetRefPoseArray()[0]; break;
 	}
 }
 
@@ -811,9 +865,9 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 			}
 		}
 
-		if( ExtractionContext.bExtractRootMotionTranslation || ExtractionContext.bExtractRootMotionRotation )
+		if( ExtractionContext.bExtractRootMotion && bEnableRootMotion )
 		{
-			ResetRootBoneForRootMotion(OutAtoms, RequiredBones, ExtractionContext);
+			ResetRootBoneForRootMotion(OutAtoms, RequiredBones, RootMotionRootLock);
 		}
 		return;
 	}
@@ -888,9 +942,9 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 		ExtractionContext.CurrentTime);
 
 	// Once pose has been extracted, snap root bone back to first frame if we are extracting root motion.
-	if( ExtractionContext.bExtractRootMotionTranslation || ExtractionContext.bExtractRootMotionRotation )
+	if( ExtractionContext.bExtractRootMotion && bEnableRootMotion)
 	{
-		ResetRootBoneForRootMotion(OutAtoms, RequiredBones, ExtractionContext);
+		ResetRootBoneForRootMotion(OutAtoms, RequiredBones, RootMotionRootLock);
 	}
 
 	// Anim Scale Retargeting

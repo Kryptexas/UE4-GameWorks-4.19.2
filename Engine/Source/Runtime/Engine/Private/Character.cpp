@@ -903,7 +903,7 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 	}
 
 	// Skip base updates while playing root motion, it is handled inside of OnRep_RootMotion
-	if (IsPlayingRootMotion())
+	if (IsPlayingNetworkedRootMotionMontage())
 	{
 		return;
 	}
@@ -958,7 +958,7 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 void ACharacter::OnRep_ReplicatedMovement()
 {
 	// Skip standard position correction if we are playing root motion, OnRep_RootMotion will handle it.
-	if( !IsPlayingRootMotion() )
+	if (!IsPlayingNetworkedRootMotionMontage())
 	{
 		Super::OnRep_ReplicatedMovement();
 	}
@@ -1247,7 +1247,22 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 
 bool ACharacter::IsPlayingRootMotion() const
 {
-	return (GetRootMotionAnimMontageInstance() != NULL);
+	if (Mesh && Mesh->AnimScriptInstance)
+	{
+		return	(Mesh->AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) ||
+				(Mesh->AnimScriptInstance->GetRootMotionMontageInstance() != NULL);
+	}
+	return false;
+}
+
+bool ACharacter::IsPlayingNetworkedRootMotionMontage() const
+{
+	if (Mesh && Mesh->AnimScriptInstance)
+	{
+		return	(Mesh->AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) &&
+			(Mesh->AnimScriptInstance->GetRootMotionMontageInstance() != NULL);
+	}
+	return false;
 }
 
 float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)

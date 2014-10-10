@@ -921,7 +921,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementSimulated);
 
 	// If we are playing a RootMotion AnimMontage.
-	if( CharacterOwner && CharacterOwner->IsPlayingRootMotion() )
+	if (CharacterOwner && CharacterOwner->IsPlayingNetworkedRootMotionMontage())
 	{
 		bWasSimulatingRootMotion = true;
 		UE_LOG(LogRootMotion, Verbose, TEXT("UCharacterMovementComponent::SimulatedTick"));
@@ -981,7 +981,9 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			}
 		}
 
-		if( UpdatedComponent->IsSimulatingPhysics() || CharacterOwner->IsMatineeControlled()  )
+		if( UpdatedComponent->IsSimulatingPhysics() 
+			|| (CharacterOwner && CharacterOwner->IsMatineeControlled()) 
+			|| (CharacterOwner && CharacterOwner->IsPlayingRootMotion()))
 		{
 			PerformMovement(DeltaSeconds);
 		}
@@ -1423,7 +1425,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 			}
 
 			// For local human clients, save off root motion data so it can be used by movement networking code.
-			if( CharacterOwner->IsLocallyControlled() && (CharacterOwner->Role == ROLE_AutonomousProxy) )
+			if( CharacterOwner->IsLocallyControlled() && (CharacterOwner->Role == ROLE_AutonomousProxy) && CharacterOwner->IsPlayingNetworkedRootMotionMontage() )
 			{
 				CharacterOwner->ClientRootMotionParams = RootMotionParams;
 			}
@@ -5817,7 +5819,7 @@ void UCharacterMovementComponent::SendClientAdjustment()
 	}
 	else
 	{
-		if( CharacterOwner->IsPlayingRootMotion() )
+		if( CharacterOwner->IsPlayingNetworkedRootMotionMontage() )
 		{
 			FRotator Rotation = ServerData->PendingAdjustment.NewRot.GetNormalized();
 			FVector_NetQuantizeNormal CompressedRotation(Rotation.Pitch / 180.f, Rotation.Yaw / 180.f, Rotation.Roll / 180.f);

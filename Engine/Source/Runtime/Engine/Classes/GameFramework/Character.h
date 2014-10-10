@@ -671,6 +671,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Animation)
 	bool IsPlayingRootMotion() const;
 
+	/** true if we are playing Root Motion right now, through a Montage with RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly.
+	 * This means code path for networked root motion is enabled. */
+	UFUNCTION(BlueprintCallable, Category = Animation)
+	bool IsPlayingNetworkedRootMotionMontage() const;
+
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
 };

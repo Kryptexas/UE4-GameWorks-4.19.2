@@ -187,6 +187,18 @@ void FAnimSegment::GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionE
 	}
 }
 
+bool FAnimTrack::HasRootMotion() const
+{
+	for (const FAnimSegment& AnimSegment : AnimSegments)
+	{
+		if (AnimSegment.AnimReference->HasRootMotion())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 /** 
  * Given a Track delta position [StartTrackPosition, EndTrackPosition]
  * See if any AnimSegment overlaps any of it, and if any do, break them up into a sequence of FRootMotionExtractionStep.
@@ -421,15 +433,28 @@ void UAnimCompositeBase::SetSequenceLength(float InSequenceLength)
 }
 #endif
 
-/*
-void UAnimCompositeBase::AddAnimSegment( FAnimTrack & Track, FAnimSegment& NewSegment )
+void UAnimCompositeBase::ExtractRootMotionFromTrack(const FAnimTrack &SlotAnimTrack, float StartTrackPosition, float EndTrackPosition, FRootMotionMovementParams &RootMotion) const
 {
+	TArray<FRootMotionExtractionStep> RootMotionExtractionSteps;
+	SlotAnimTrack.GetRootMotionExtractionStepsForTrackRange(RootMotionExtractionSteps, StartTrackPosition, EndTrackPosition);
 
+	UE_LOG(LogRootMotion, Log, TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange, NumSteps: %d, StartTrackPosition: %.3f, EndTrackPosition: %.3f"),
+		RootMotionExtractionSteps.Num(), StartTrackPosition, EndTrackPosition);
+
+	// Go through steps sequentially, extract root motion, and accumulate it.
+	// This has to be done in order so root motion translation & rotation is applied properly (as translation is relative to rotation)
+	for (int32 StepIndex = 0; StepIndex < RootMotionExtractionSteps.Num(); StepIndex++)
+	{
+		const FRootMotionExtractionStep & CurrentStep = RootMotionExtractionSteps[StepIndex];
+		if (CurrentStep.AnimSequence->bEnableRootMotion)
+		{
+			FTransform DeltaTransform = CurrentStep.AnimSequence->ExtractRootMotionFromRange(CurrentStep.StartPosition, CurrentStep.EndPosition);
+			RootMotion.Accumulate(DeltaTransform);
+		
+			UE_LOG(LogRootMotion, Log, TEXT("\t\tCurrentStep: %d, StartPos: %.3f, EndPos: %.3f, Anim: %s DeltaTransform Translation: %s, Rotation: %s"),
+				StepIndex, CurrentStep.StartPosition, CurrentStep.EndPosition, *CurrentStep.AnimSequence->GetName(),
+				*DeltaTransform.GetTranslation().ToCompactString(), *DeltaTransform.GetRotation().Rotator().ToCompactString());
+		}
+	}
 }
-
-bool UAnimCompositeBase::DeleteAnimSegment( FAnimTrack & Track, FAnimSegment& SegmentToDelete )
-{
-
-}
-*/
 

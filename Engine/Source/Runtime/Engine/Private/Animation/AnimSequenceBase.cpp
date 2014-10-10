@@ -423,24 +423,19 @@ void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance,
 {
 	float& CurrentTime = *(Instance.TimeAccumulator);
 	const float PreviousTime = CurrentTime;
-
 	const float PlayRate = Instance.PlayRateMultiplier * this->RateScale;
+
+	float MoveDelta = 0.f;
+
 	if( Context.IsLeader() )
 	{
 		const float DeltaTime = Context.GetDeltaTime();
-		const float MoveDelta = PlayRate * DeltaTime;
+		MoveDelta = PlayRate * DeltaTime;
+
 		if( MoveDelta != 0.f )
 		{
 			// Advance time
 			FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
-
-			if( Context.ShouldGenerateNotifies() )
-			{
-				// Harvest and record notifies
-				TArray<const FAnimNotifyEvent*> AnimNotifies;
-				GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
-				InstanceOwner->AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
-			}
 		}
 
 		Context.SetSyncPoint(CurrentTime / SequenceLength);
@@ -451,22 +446,19 @@ void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance,
 		CurrentTime = Context.GetSyncPoint() * SequenceLength;
 		//@TODO: NOTIFIES: Calculate AdvanceType based on what the new delta time is
 
-		if( Context.ShouldGenerateNotifies() && (CurrentTime != PreviousTime) )
+		if( CurrentTime != PreviousTime )
 		{
 			// Figure out delta time 
-			float MoveDelta = CurrentTime - PreviousTime;
+			MoveDelta = CurrentTime - PreviousTime;
 			// if we went against play rate, then loop around.
 			if( (MoveDelta * PlayRate) < 0.f )
 			{
 				MoveDelta += FMath::Sign<float>(PlayRate) * SequenceLength;
 			}
-
-			// Harvest and record notifies
-			TArray<const FAnimNotifyEvent*> AnimNotifies;
-			GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
-			InstanceOwner->AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
 		}
 	}
+
+	OnAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InstanceOwner);
 
 	// Evaluate Curve data now - even if time did not move, we still need to return curve if it exists
 	EvaluateCurveData(InstanceOwner, CurrentTime, Instance.EffectiveBlendWeight);
@@ -628,35 +620,6 @@ void UAnimSequenceBase::EvaluateCurveData(class UAnimInstance* Instance, float C
 	RawCurveData.EvaluateCurveData(Instance, CurrentTime, BlendWeight);
 }
 
-void UAnimSequenceBase::ExtractRootTrack(float Pos, FTransform& RootTransform, const FBoneContainer* RequiredBones) const
-{
-	// Fallback to root bone from reference skeleton.
-	if (RequiredBones)
-	{
-		const FReferenceSkeleton& RefSkeleton = RequiredBones->GetReferenceSkeleton();
-		if (RefSkeleton.GetNum() > 0)
-		{
-			RootTransform = RefSkeleton.GetRefBonePose()[0];
-			return;
-		}
-	}
-
-	USkeleton* MySkeleton = GetSkeleton();
-	// If we don't have a RequiredBones array, get root bone from default skeleton.
-	if (!RequiredBones && MySkeleton)
-	{
-		const FReferenceSkeleton RefSkeleton = MySkeleton->GetReferenceSkeleton();
-		if (RefSkeleton.GetNum() > 0)
-		{
-			RootTransform = RefSkeleton.GetRefBonePose()[0];
-			return;
-		}
-	}
-
-	// Otherwise, use identity.
-	RootTransform = FTransform::Identity;
-};
-
 void UAnimSequenceBase::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -671,4 +634,15 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 		}
 	}
 	RawCurveData.Serialize(Ar);
+}
+
+void UAnimSequenceBase::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const
+{
+	if (Context.ShouldGenerateNotifies())
+	{
+		// Harvest and record notifies
+		TArray<const FAnimNotifyEvent*> AnimNotifies;
+		GetAnimNotifies(PreviousTime, MoveDelta, Instance.bLooping, AnimNotifies);
+		InstanceOwner->AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
+	}
 }

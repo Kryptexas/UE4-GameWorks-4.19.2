@@ -27,7 +27,6 @@ UAnimMontage::UAnimMontage(const class FPostConstructInitializeProperties& PCIP)
 	bAnimBranchingPointNeedsSort = true;
 	BlendInTime = 0.25f;
 	BlendOutTime = 0.25f;
-	RootMotionRootLock = ERootMotionRootLock::RefPose;
 }
 
 bool UAnimMontage::IsValidSlot(FName InSlotName) const
@@ -374,6 +373,24 @@ void UAnimMontage::PostLoad()
 
 	SortAnimBranchingPointByTime();
 
+	bool bRootMotionEnabled = bEnableRootMotionTranslation || bEnableRootMotionRotation;
+
+	if (bRootMotionEnabled)
+	{
+		for (FSlotAnimationTrack& Slot : SlotAnimTracks)
+		{
+			for (FAnimSegment& Segment : Slot.AnimTrack.AnimSegments)
+			{
+				UAnimSequence * Sequence = Cast<UAnimSequence>(Segment.AnimReference);
+				if (Sequence && !Sequence->bRootMotionSettingsCopiedFromMontage)
+				{
+					Sequence->bEnableRootMotion = true;
+					Sequence->RootMotionRootLock = RootMotionRootLock;
+					Sequence->bRootMotionSettingsCopiedFromMontage = true;
+				}
+			}
+		}
+	}
 	// find preview base pose if it can
 #if WITH_EDITORONLY_DATA
 	if ( IsValidAdditive() && PreviewBasePose == NULL )
@@ -547,6 +564,18 @@ EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetForNotify(float Noti
 }
 #endif
 
+bool UAnimMontage::HasRootMotion() const
+{
+	for (const FSlotAnimationTrack& Track : SlotAnimTracks)
+	{
+		if (Track.AnimTrack.HasRootMotion())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 /** Extract RootMotion Transform from a contiguous Track position range.
  * *CONTIGUOUS* means that if playing forward StartTractPosition < EndTrackPosition.
  * No wrapping over if looping. No jumping across different sections.
@@ -569,51 +598,8 @@ FTransform UAnimMontage::ExtractRootMotionFromTrackRange(float StartTrackPositio
 		// Get RootMotion pieces from this track.
 		// We can deal with looping animations, or multiple animations. So we break those up into sequential operations.
 		// (Animation, StartFrame, EndFrame) so we can then extract root motion sequentially.
-		TArray<FRootMotionExtractionStep> RootMotionExtractionSteps;
-		SlotAnimTrack.GetRootMotionExtractionStepsForTrackRange(RootMotionExtractionSteps, StartTrackPosition, EndTrackPosition);
+		ExtractRootMotionFromTrack(SlotAnimTrack, StartTrackPosition, EndTrackPosition, RootMotion);
 
-		UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange, NumSteps: %d, StartTrackPosition: %.3f, EndTrackPosition: %.3f"), 
-			RootMotionExtractionSteps.Num(), StartTrackPosition, EndTrackPosition);
-
-		// Process root motion steps if any
-		if( RootMotionExtractionSteps.Num() > 0 )
-		{
-			FTransform InitialTransform, StartTransform, EndTransform;
-
-			// Go through steps sequentially, extract root motion, and accumulate it.
-			// This has to be done in order so root motion translation & rotation is applied properly (as translation is relative to rotation)
-			for(int32 StepIndex=0; StepIndex<RootMotionExtractionSteps.Num(); StepIndex++)
-			{
-				const FRootMotionExtractionStep& CurrentStep = RootMotionExtractionSteps[StepIndex];
-				CurrentStep.AnimSequence->ExtractRootTrack(0.f, InitialTransform, NULL);
-				CurrentStep.AnimSequence->ExtractRootTrack(CurrentStep.StartPosition, StartTransform, NULL);
-				CurrentStep.AnimSequence->ExtractRootTrack(CurrentStep.EndPosition, EndTransform, NULL);
-				
-				// Transform to Component Space Rotation (inverse root transform from first frame)
-				const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
-				StartTransform = RootToComponentRot * StartTransform;
-				EndTransform = RootToComponentRot * EndTransform;
-
-				FTransform DeltaTransform = EndTransform.GetRelativeTransform(StartTransform);
-
-				// Filter out rotation 
-				if( !bEnableRootMotionRotation )
-				{
-					DeltaTransform.SetRotation(FQuat::Identity);
-				}
-				// Filter out translation
-				if( !bEnableRootMotionTranslation )
-				{
-					DeltaTransform.SetTranslation(FVector::ZeroVector);
-				}
-
-				RootMotion.Accumulate(DeltaTransform);
-
-				UE_LOG(LogRootMotion, Log,  TEXT("\t\tCurrentStep: %d, StartPos: %.3f, EndPos: %.3f, Anim: %s DeltaTransform Translation: %s, Rotation: %s"),
-					StepIndex, CurrentStep.StartPosition, CurrentStep.EndPosition, *CurrentStep.AnimSequence->GetName(), 
-					*DeltaTransform.GetTranslation().ToCompactString(), *DeltaTransform.GetRotation().Rotator().ToCompactString() );
-			}
-		}
 	}
 
 	UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange RootMotionTransform: Translation: %s, Rotation: %s"),
@@ -926,7 +912,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition
 	const float CombinedPlayRate = PlayRate * Montage->RateScale;
 	const bool bPlayingForward = (CombinedPlayRate > 0.f);
 
-	const bool bExtractRootMotion = (Montage->bEnableRootMotionRotation || Montage->bEnableRootMotionTranslation);
+	const bool bExtractRootMotion = Montage->HasRootMotion();
 
 	float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
 	float OriginalMoveDelta = DesiredDeltaMove;
@@ -1006,7 +992,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition
 	return true;
 }
 
-void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams)
+void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion)
 {
 	if( IsValid() )
 	{
@@ -1027,7 +1013,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 			const float CombinedPlayRate = PlayRate * Montage->RateScale;
 			const bool bPlayingForward = (CombinedPlayRate > 0.f);
 
-			const bool bExtractRootMotion = (OutRootMotionParams != NULL) && (Montage->bEnableRootMotionRotation || Montage->bEnableRootMotionTranslation);
+			const bool bExtractRootMotion = (OutRootMotionParams != NULL) && Montage->HasRootMotion();
 			
 			float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
 			float OriginalMoveDelta = DesiredDeltaMove;
@@ -1078,7 +1064,17 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 						// Extract Root Motion for this time slice, and accumulate it.
 						if( bExtractRootMotion && AnimInstance.IsValid() )
 						{
-							OutRootMotionParams->Accumulate( Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position) );
+							FTransform RootMotion = Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position);
+							if (bBlendRootMotion)
+							{
+								const float RootMotionSlotWeight = AnimInstance.Get()->GetSlotRootMotionWeight(Montage->SlotAnimTracks[0].SlotName);
+								const float RootMotionInstanceWeight = Weight * RootMotionSlotWeight;
+								OutRootMotionParams->AccumulateWithBlend(RootMotion, RootMotionInstanceWeight);
+							}
+							else
+							{
+								OutRootMotionParams->Accumulate(RootMotion);
+							}
 						}
 
 						// If about to reach the end of the montage...

@@ -267,6 +267,10 @@ class ENGINE_API UAnimInstance : public UObject
 	UPROPERTY(transient)
 	TArray<struct FActiveVertexAnim> VertexAnims;
 
+	// Sets where this blueprint pulls Root Motion from
+	UPROPERTY(Category = RootMotion, EditDefaultsOnly)
+	TEnumAsByte<ERootMotionMode::Type> RootMotionMode;
+
 public:
 
 	// @todo document
@@ -304,6 +308,12 @@ public:
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	void ClearSlotNodeWeights();
 	bool IsActiveSlotNode(FName SlotNodeName) const;
+
+	// Allow slot nodes to store off their root motion weight during ticking
+	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
+	// Get the root motion weight for the montage slot
+	float GetSlotRootMotionWeight(FName SlotNodeName) const;
+
 
 	// kismet event functions
 
@@ -576,6 +586,9 @@ public:
 	TArray<FName> MaterialParamatersToClear;
 
 	TMap<FName, float> ActiveSlotWeights;
+
+	// Mapping from slot name to weighting for that root motion
+	TMap<FName, float> ActiveSlotRootMotionWeights;
 
 #if WITH_EDITORONLY_DATA
 	// Maximum playback position ever reached (only used when debugging in Persona)

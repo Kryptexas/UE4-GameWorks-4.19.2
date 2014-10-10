@@ -11,7 +11,7 @@ UAnimPreviewInstance::UAnimPreviewInstance(const class FPostConstructInitializeP
 	, bForceRetargetBasePose(false)
 #endif
 {
-	
+	RootMotionMode = ERootMotionMode::RootMotionFromEverything;
 }
 
 void UAnimPreviewInstance::NativeInitializeAnimation()

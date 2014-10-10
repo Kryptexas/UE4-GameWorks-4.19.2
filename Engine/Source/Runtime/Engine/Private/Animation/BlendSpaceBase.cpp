@@ -282,20 +282,25 @@ void UBlendSpaceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, c
 							float& CurrentSampleDataTime = SampleEntry.Time;
 							CurrentSampleDataTime = SampleNormalizedCurrentTime * Sample.Animation->SequenceLength;
 
+							// Figure out delta time 
+							float DeltaTimePosition = CurrentSampleDataTime - PrevSampleDataTime;
+							const float SampleMoveDelta = MoveDelta * Sample.Animation->RateScale;
+
+							// if we went against play rate, then loop around.
+							if ((SampleMoveDelta * DeltaTimePosition) < 0.f)
+							{
+								DeltaTimePosition += FMath::Sign<float>(SampleMoveDelta) * Sample.Animation->SequenceLength;
+							}
+
 							if( bGenerateNotifies && (!bTriggerNotifyHighestWeightedAnim || (I == HighestWeightIndex)))
 							{
-								// Figure out delta time 
-								float DeltaTimePosition = CurrentSampleDataTime - PrevSampleDataTime;
-								const float SampleMoveDelta = MoveDelta * Sample.Animation->RateScale;
-
-								// if we went against play rate, then loop around.
-								if ((SampleMoveDelta * DeltaTimePosition) < 0.f)
-								{
-									DeltaTimePosition += FMath::Sign<float>(SampleMoveDelta) * Sample.Animation->SequenceLength;
-								}
-
 								// Harvest and record notifies
 								Sample.Animation->GetAnimNotifies(PrevSampleDataTime, DeltaTimePosition, Instance.bLooping, Notifies);
+							}
+
+							if (Context.RootMotionMode == ERootMotionMode::RootMotionFromEverything && Sample.Animation->bEnableRootMotion)
+							{
+								Context.RootMotionMovementParams.AccumulateWithBlend(Sample.Animation->ExtractRootMotion(PrevSampleDataTime, DeltaTimePosition, Instance.bLooping), SampleEntry.GetWeight());
 							}
 
 							// handle curves

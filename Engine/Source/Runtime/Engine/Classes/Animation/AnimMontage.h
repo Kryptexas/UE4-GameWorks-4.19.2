@@ -243,7 +243,7 @@ public:
 	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. 
 	 * @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync? */
 	bool SimulateAdvance(float DeltaTime, float& InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
-	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams);
+	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion);
 
 	FName GetCurrentSection() const;
 	FName GetNextSection() const;
@@ -288,16 +288,16 @@ class UAnimMontage : public UAnimCompositeBase
 	UPROPERTY()
 	TArray<struct FBranchingPoint> BranchingPoints;
 
-	/** If this is on, it will allow extracting root motion translation **/
-	UPROPERTY(EditAnywhere, Category=RootMotion)
+	/** If this is on, it will allow extracting root motion translation. DEPRECATED in 4.5 root motion is controlled by anim sequences **/
+	UPROPERTY()
 	bool bEnableRootMotionTranslation;
 
-	/** If this is on, it will allow extracting root motion rotation **/
-	UPROPERTY(EditAnywhere, Category=RootMotion)
+	/** If this is on, it will allow extracting root motion rotation. DEPRECATED in 4.5 root motion is controlled by anim sequences **/
+	UPROPERTY()
 	bool bEnableRootMotionRotation;
 
-	/** Root Bone will be locked to that position when extracting root motion. **/
-	UPROPERTY(EditAnywhere, Category=RootMotion)
+	/** Root Bone will be locked to that position when extracting root motion. DEPRECATED in 4.5 root motion is controlled by anim sequences **/
+	UPROPERTY()
 	TEnumAsByte<ERootMotionRootLock::Type> RootMotionRootLock;
 
 #if WITH_EDITORONLY_DATA
@@ -374,6 +374,9 @@ public:
 	
 	/** Prototype function to get animation data - this will need rework */
 	const FAnimTrack* GetAnimationData(FName SlotName) const;
+
+	/** Returns whether the anim sequences this montage have root motion enabled */
+	virtual bool HasRootMotion() const override;
 
 	/** Extract RootMotion Transform from a contiguous Track position range.
 	 * *CONTIGUOUS* means that if playing forward StartTractPosition < EndTrackPosition.

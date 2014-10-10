@@ -29,6 +29,8 @@ void FAnimNode_Slot::Update(const FAnimationUpdateContext& Context)
 
 	// Update cache in AnimInstance.
 	Context.AnimInstance->UpdateSlotNodeWeight(SlotName, SlotNodeWeight);
+	Context.AnimInstance->UpdateSlotRootMotionWeight(SlotName, Context.GetFinalBlendWeight());
+
 
 	if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
 	{

@@ -90,6 +90,24 @@ namespace ERootMotionRootLock
 	};
 }
 
+UENUM()
+namespace ERootMotionMode
+{
+	enum Type
+	{
+		// Leave root motion in animation.
+		NoRootMotionExtraction,
+
+		// Extract root motion but do not apply it.
+		IgnoreRootMotion,
+
+		// Root motion is taken from all animations contributing to the final pose, not suitable for network multiplayer setups
+		RootMotionFromEverything,
+
+		// Root motion is only taken from montages, suitable for network multiplayer setups
+		RootMotionFromMontagesOnly,
+	};
+}
 
 /** Animation Extraction Context */
 USTRUCT()
@@ -97,43 +115,29 @@ struct FAnimExtractContext
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Is Root Motion Translation being extracted? */
+	/** Is Root Motion being extracted? */
 	UPROPERTY()
-	bool bExtractRootMotionTranslation;
-
-	/** Is Root Motion Rotation being extracted? */
-	UPROPERTY()
-	bool bExtractRootMotionRotation;
+	bool bExtractRootMotion;
 
 	/** Position in animation to extract pose from */
 	UPROPERTY()
 	float CurrentTime;
 
-	/** Root Motion Root Bone Lock option. **/
-	UPROPERTY()
-	TEnumAsByte<ERootMotionRootLock::Type> RootMotionRootLock;
-
 	FAnimExtractContext()
-		: bExtractRootMotionTranslation(false)
-		, bExtractRootMotionRotation(false)
+		: bExtractRootMotion(false)
 		, CurrentTime(0.f)
-		, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	{
 	}
 
 	FAnimExtractContext(float InCurrentTime)
-		: bExtractRootMotionTranslation(false)
-		, bExtractRootMotionRotation(false)
+		: bExtractRootMotion(false)
 		, CurrentTime(InCurrentTime)
-		, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	{
 	}
 
-	FAnimExtractContext(float InCurrentTime, bool InbExtractRootMotionTranslation, bool InbExtractRootMotionRotation, ERootMotionRootLock::Type InRootMotionRootLock)
-		: bExtractRootMotionTranslation(InbExtractRootMotionTranslation)
-		, bExtractRootMotionRotation(InbExtractRootMotionRotation)
+	FAnimExtractContext(float InCurrentTime, bool InbExtractRootMotion)
+		: bExtractRootMotion(InbExtractRootMotion)
 		, CurrentTime(InCurrentTime)
-		, RootMotionRootLock(InRootMotionRootLock)
 	{
 	}
 };
@@ -238,15 +242,19 @@ struct FRootMotionMovementParams
 {
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY()
-		bool bHasRootMotion;
+	UPROPERTY()
+	bool bHasRootMotion;
 
 	UPROPERTY()
-		FTransform RootMotionTransform;
+	float BlendWeight;
+
+	UPROPERTY()
+	FTransform RootMotionTransform;
 
 	FRootMotionMovementParams()
 		: bHasRootMotion(false)
 		, RootMotionTransform(FTransform::Identity)
+		, BlendWeight(0.f)
 	{
 	}
 
@@ -254,6 +262,7 @@ struct FRootMotionMovementParams
 	{
 		bHasRootMotion = true;
 		RootMotionTransform = InTransform;
+		BlendWeight = 1.f;
 	}
 
 	void Accumulate(const FTransform& InTransform)
@@ -276,9 +285,43 @@ struct FRootMotionMovementParams
 		}
 	}
 
+	void AccumulateWithBlend(const FTransform& InTransform, float InBlendWeight)
+	{
+		const ScalarRegister VBlendWeight(InBlendWeight);
+		if (bHasRootMotion)
+		{
+			RootMotionTransform.AccumulateWithShortestRotation(InTransform, VBlendWeight);
+			BlendWeight += InBlendWeight;
+		}
+		else
+		{
+			Set(InTransform * VBlendWeight);
+			BlendWeight = InBlendWeight;
+		}
+		RootMotionTransform.NormalizeRotation();
+	}
+
+	void AccumulateWithBlend(const FRootMotionMovementParams & MovementParams, float InBlendWeight)
+	{
+		if (MovementParams.bHasRootMotion)
+		{
+			AccumulateWithBlend(MovementParams.RootMotionTransform, InBlendWeight);
+		}
+	}
+
 	void Clear()
 	{
 		bHasRootMotion = false;
+		BlendWeight = 0.f;
+	}
+
+	void MakeUpToFullWeight()
+	{
+		float WeightLeft = FMath::Max(1.f - BlendWeight, 0.f);
+		if (WeightLeft > KINDA_SMALL_NUMBER)
+		{
+			AccumulateWithBlend(FTransform(), WeightLeft);
+		}
 	}
 };
 
@@ -286,8 +329,9 @@ struct FRootMotionMovementParams
 struct FAnimAssetTickContext
 {
 public:
-	FAnimAssetTickContext(float InDeltaTime)
+	FAnimAssetTickContext(float InDeltaTime, ERootMotionMode::Type InRootMotionMode)
 		: DeltaTime(InDeltaTime)
+		, RootMotionMode(InRootMotionMode)
 		, SyncPoint(0.0f)
 		, bIsLeader(true)
 	{
@@ -331,6 +375,12 @@ public:
 	{
 		return IsLeader();
 	}
+
+	//Root Motion accumulated from this tick context
+	FRootMotionMovementParams RootMotionMovementParams;
+
+	// The root motion mode of the owning AnimInstance
+	ERootMotionMode::Type RootMotionMode;
 
 private:
 	float DeltaTime;

@@ -190,23 +190,29 @@ float WrapInRange(float StartVal, float MinVal, float MaxVal)
 
 void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const FVector& FloorMax)
 {
+	//Extract root motion regardless of where we use it so that we don't hit
+	//problems with it building up in the instance
+
+	FRootMotionMovementParams ExtractedRootMotion;
+
+	if (UAnimInstance* AnimInst = GetAnimInstance())
+	{
+		ExtractedRootMotion = AnimInst->ConsumeExtractedRootMotion();
+	}
+
 	if (bPreviewRootMotion)
 	{
-		if (UAnimInstance* AnimInst = GetAnimInstance())
+		if (ExtractedRootMotion.bHasRootMotion)
 		{
-			FRootMotionMovementParams ExtractedRootMotion = AnimInst->ConsumeExtractedRootMotion();
-			if (ExtractedRootMotion.bHasRootMotion)
-			{
-				AddLocalTransform(ExtractedRootMotion.RootMotionTransform);
+			AddLocalTransform(ExtractedRootMotion.RootMotionTransform);
 
-				//Handle moving component so that it stays within the editor floor
-				FTransform CurrentTransform = GetRelativeTransform();
-				FVector Trans = CurrentTransform.GetTranslation();
-				Trans.X = WrapInRange(Trans.X, FloorMin.X, FloorMax.X);
-				Trans.Y = WrapInRange(Trans.Y, FloorMin.Y, FloorMax.Y);
-				CurrentTransform.SetTranslation(Trans);
-				SetRelativeTransform(CurrentTransform);
-			}
+			//Handle moving component so that it stays within the editor floor
+			FTransform CurrentTransform = GetRelativeTransform();
+			FVector Trans = CurrentTransform.GetTranslation();
+			Trans.X = WrapInRange(Trans.X, FloorMin.X, FloorMax.X);
+			Trans.Y = WrapInRange(Trans.Y, FloorMin.Y, FloorMax.Y);
+			CurrentTransform.SetTranslation(Trans);
+			SetRelativeTransform(CurrentTransform);
 		}
 	}
 	else
