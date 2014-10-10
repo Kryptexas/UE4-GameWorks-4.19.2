@@ -158,7 +158,7 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 			if (EventFunc != nullptr)
 			{
 				EventNode->EventSignatureName  = EventName;
-				EventNode->EventSignatureClass = EventFunc->GetOuterUClass();
+				EventNode->EventSignatureClass = EventFunc->GetOuterUClass()->GetAuthoritativeClass();
 				EventNode->bOverrideFunction   = true;
 			}
 			else if (!bIsTemplateNode)
@@ -197,7 +197,7 @@ UK2Node_Event const* UBlueprintEventNodeSpawner::FindPreExistingEvent(UBlueprint
 	else
 	{
 		check(EventFunc != nullptr);
-		UClass* ClassOwner = EventFunc->GetOwnerClass();
+		UClass* ClassOwner = EventFunc->GetOwnerClass()->GetAuthoritativeClass();
 
 		PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventFunc->GetFName());
 	}

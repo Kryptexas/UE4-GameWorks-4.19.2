@@ -278,6 +278,14 @@ namespace BlueprintActionDatabaseImpl
 	/**
 	 * 
 	 * 
+	 * @param  Function	
+	 * @return 
+	 */
+	static bool IsBlueprintInterfaceFunction(const UFunction* Function);
+
+	/**
+	 * 
+	 * 
 	 * @param  Class	
 	 * @param  ActionListOut	
 	 */
@@ -456,6 +464,33 @@ static bool BlueprintActionDatabaseImpl::IsPropertyBlueprintVisible(UProperty co
 }
 
 //------------------------------------------------------------------------------
+static bool BlueprintActionDatabaseImpl::IsBlueprintInterfaceFunction(const UFunction* Function)
+{
+	bool bIsBpInterfaceFunc = false;
+	if (UClass* FuncClass = Function->GetOwnerClass())
+	{
+		if (UBlueprint* BpOuter = Cast<UBlueprint>(FuncClass->ClassGeneratedBy))
+		{
+			FName FuncName = Function->GetFName();
+
+			for (int32 InterfaceIndex = 0; (InterfaceIndex < BpOuter->ImplementedInterfaces.Num()) && !bIsBpInterfaceFunc; ++InterfaceIndex)
+			{
+				FBPInterfaceDescription& InterfaceDesc = BpOuter->ImplementedInterfaces[InterfaceIndex];
+				for (TFieldIterator<UFunction> FunctionIt(InterfaceDesc.Interface, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
+				{
+					if (FunctionIt->GetFName() == FuncName)
+					{
+						bIsBpInterfaceFunc = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return bIsBpInterfaceFunc;
+}
+
+//------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::GetClassMemberActions(UClass* const Class, FActionList& ActionListOut)
 {
 	// class field actions (nodes that represent and perform actions on
@@ -486,8 +521,9 @@ static void BlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* c
 	for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::ExcludeSuper); FunctionIt; ++FunctionIt)
 	{
 		UFunction* Function = *FunctionIt;
+		bool const bIsBpInterfaceFunc = BlueprintActionDatabaseImpl::IsBlueprintInterfaceFunction(Function);
 
-		if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
+		if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) && !bIsBpInterfaceFunc)
 		{
 			if (UBlueprintEventNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(Function))
 			{

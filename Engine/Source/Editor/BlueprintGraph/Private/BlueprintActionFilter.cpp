@@ -1240,7 +1240,8 @@ static bool BlueprintActionFilterImpl::IsExtraneousInterfaceCall(FBlueprintActio
 {
 	bool bIsFilteredOut = false;
 
-	if (BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_Message>())
+	const UClass* NodeClass = BlueprintAction.GetNodeClass();
+	if (NodeClass->IsChildOf<UK2Node_Message>())
 	{
 		UFunction const* Function = BlueprintAction.GetAssociatedFunction();
 		checkSlow(Function != nullptr);
@@ -1253,7 +1254,7 @@ static bool BlueprintActionFilterImpl::IsExtraneousInterfaceCall(FBlueprintActio
 		{
 			// if the target class implements (or is) the message spawner's 
 			// interface owner, then we don't need the message node (the regular
-			// interface call shouldt be available)
+			// interface call shouldn't be available)
 			if (!IsClassOfType(TargetClass, InterfaceClass))
 			{
 				bIsFilteredOut = false;
@@ -1266,7 +1267,7 @@ static bool BlueprintActionFilterImpl::IsExtraneousInterfaceCall(FBlueprintActio
 		UClass* FuncClass = Function->GetOwnerClass();
 		bool const bIsInterfaceAction = FuncClass->IsChildOf<UInterface>();
 
-		if (bIsInterfaceAction)
+		if (bIsInterfaceAction && !NodeClass->IsChildOf<UK2Node_Event>())
 		{
 			bIsFilteredOut = (Filter.TargetClasses.Num() > 0);
 			for (const UClass* TargetClass : Filter.TargetClasses)
@@ -1540,11 +1541,6 @@ FBlueprintActionFilter const& FBlueprintActionFilter::operator&=(FBlueprintActio
 bool FBlueprintActionFilter::IsFilteredByThis(FBlueprintActionInfo& BlueprintAction) const
 {
 	FBlueprintActionFilter const& FilterRef = *this;
-
-	if (BlueprintAction.NodeSpawner->DefaultMenuSignature.MenuName.ToString().StartsWith("My"))
-	{
-		printf("");
-	}
 
 	bool bIsFiltered = false;
 	// iterate backwards so that custom user test are ran first (and the slow
