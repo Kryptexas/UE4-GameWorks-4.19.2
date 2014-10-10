@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "Char.h"
-#include "UnrealTypeTraits.h"
+#include "HAL/Platform.h"
+#include "Misc/Char.h"
+#include "Templates/EnableIf.h"
+#include "Templates/UnrealTypeTraits.h"
 
 /**
  * This trait tells if given CharTypeA is comparison compatible with CharTypeB, i.e.

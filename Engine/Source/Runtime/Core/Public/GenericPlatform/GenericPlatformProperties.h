@@ -9,7 +9,8 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "HAL/Platform.h"
 
 /**
  * Base class for platform properties.

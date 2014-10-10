@@ -6,7 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "HAL/Platform.h"
 
 // time and amount of work that was measured
 struct FTimeSample

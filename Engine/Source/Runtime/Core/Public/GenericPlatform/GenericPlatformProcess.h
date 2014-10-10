@@ -6,8 +6,11 @@
 ==============================================================================================*/
 
 #pragma once
+#include "Containers/ContainersFwd.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "HAL/Platform.h"
 
-#include "Platform.h"
+class FString;
 
 namespace EProcessResource
 {

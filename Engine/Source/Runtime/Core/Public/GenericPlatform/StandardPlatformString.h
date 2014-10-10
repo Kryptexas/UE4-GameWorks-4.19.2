@@ -1,9 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "Char.h"
-#include "GenericPlatformStricmp.h"
+#include "GenericPlatform/GenericPlatformStricmp.h"
+#include "GenericPlatform/GenericPlatformString.h"
+#include "HAL/Platform.h"
+#include "Misc/Char.h"
+#include <wchar.h>
 
 /**
 * Standard implementation

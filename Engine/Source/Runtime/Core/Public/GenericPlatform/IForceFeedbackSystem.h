@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "HAL/Platform.h"
 
 // General identifiers for potential force feedback channels. These will be mapped according to the
 // platform specific implementation.

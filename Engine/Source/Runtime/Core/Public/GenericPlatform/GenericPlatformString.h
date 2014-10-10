@@ -6,7 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "HAL/Platform.h"
 #include "Templates/EnableIf.h"
 
 /**

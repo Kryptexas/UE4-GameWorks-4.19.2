@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
 
 /**
  * It should be possible to provide a generic implementation as long as a threadID is provided. We don't do that yet.
