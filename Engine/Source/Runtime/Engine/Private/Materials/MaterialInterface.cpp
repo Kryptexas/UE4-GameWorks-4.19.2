@@ -45,8 +45,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		const FMaterialResource* MaterialResource = Material->GetMaterialResource(InFeatureLevel);
 		const bool bIsTranslucent = IsTranslucentBlendMode((EBlendMode)GetBlendMode());
 
-		// get the value from the game thread
-		EMaterialShadingModel ShadingModel = GetShadingModel_Internal();
+		EMaterialShadingModel ShadingModel = GetShadingModel();
 
 		const bool bIsLit =  ShadingModel != MSM_Unlit;
 		// Determine the material's view relevance.

@@ -340,6 +340,7 @@ public:
 	/** @return The material's relevance, from concurrent render thread updates. */
 	ENGINE_API FMaterialRelevance GetRelevance_Concurrent(ERHIFeatureLevel::Type InFeatureLevel) const;
 private:
+	// might get called from game or render thread
 	ENGINE_API FMaterialRelevance GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const;
 public:
 
