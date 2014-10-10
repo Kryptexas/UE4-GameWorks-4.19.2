@@ -1296,7 +1296,7 @@ void FMacApplication::OnWindowDidMove( FCocoaWindow* Window )
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	NSRect WindowFrame = [Window frame];
+	NSRect WindowFrame = (Window.bDeferSetFrame || Window.bDeferSetOrigin) ? Window.DeferFrame : [Window frame];
 	NSRect OpenGLFrame = [Window openGLFrame];
 	
 	const int32 X = (int32)WindowFrame.origin.x;

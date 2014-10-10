@@ -34,8 +34,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bDeferOrderFront = false;
 	DeferOpacity = 0.0f;
 	bRenderInitialised = false;
-	bDeferSetFrame = false;
-	bDeferSetOrigin = false;
+	self.bDeferSetFrame = false;
+	self.bDeferSetOrigin = false;
 
 	id NewSelf = [super initWithContentRect:ContentRect styleMask:Style backing:BufferingType defer:Flag];
 	if(NewSelf)
@@ -44,8 +44,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		self.bForwardEvents = true;
 		self.TargetWindowMode = EWindowMode::Windowed;
 		[super setAlphaValue:DeferOpacity];
-		DeferFrame = [super frame];
-		self.PreFullScreenRect = DeferFrame;
+		self.DeferFrame = [super frame];
+		self.PreFullScreenRect = self.DeferFrame;
 	}
 	return NewSelf;
 }
@@ -64,11 +64,11 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 	else if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
-		return (!bDeferSetFrame ? [self frame] : DeferFrame);
+		return (!self.bDeferSetFrame ? [self frame] : self.DeferFrame);
 	}
 	else
 	{
-		return (!bDeferSetFrame ? [[self contentView] frame] : [self contentRectForFrameRect:DeferFrame]);
+		return (!self.bDeferSetFrame ? [[self contentView] frame] : [self contentRectForFrameRect:self.DeferFrame]);
 	}
 }
 
@@ -104,7 +104,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if(bDeferOrderFront)
 	{
 		SCOPED_AUTORELEASE_POOL;
-		if(!(bDeferSetFrame || bDeferSetOrigin))
+		if(!(self.bDeferSetFrame || self.bDeferSetOrigin))
 		{
 			bDeferOrderFront = false;
 			[super setAlphaValue:DeferOpacity];
@@ -118,17 +118,17 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 - (void)performDeferredSetFrame
 {
-	if(bRenderInitialised && (bDeferSetFrame || bDeferSetOrigin))
+	if(bRenderInitialised && (self.bDeferSetFrame || self.bDeferSetOrigin))
 	{
 		SCOPED_AUTORELEASE_POOL;
 		dispatch_block_t Block = ^{
 			SCOPED_AUTORELEASE_POOL;
-			if(!bDeferSetFrame && bDeferSetOrigin)
+			if(!self.bDeferSetFrame && self.bDeferSetOrigin)
 			{
-				DeferFrame.size = [self frame].size;
+				self.DeferFrame.size = [self frame].size;
 			}
 			
-			[super setFrame:DeferFrame display:YES];
+			[super setFrame:self.DeferFrame display:YES];
 		};
 		
 		if([NSThread isMainThread])
@@ -140,8 +140,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 			dispatch_async(dispatch_get_main_queue(), Block);
 		}
 		
-		bDeferSetFrame = false;
-		bDeferSetOrigin = false;
+		self.bDeferSetFrame = false;
+		self.bDeferSetOrigin = false;
 	}
 }
 
@@ -307,12 +307,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1 || NewSize.width > 1 || NewSize.height > 1)))
 	{
 		[super setFrame:FrameRect display:Flag];
-		bDeferSetFrame = false;
+		self.bDeferSetFrame = false;
 	}
 	else
 	{
-		bDeferSetFrame = true;
-		DeferFrame = FrameRect;
+		self.bDeferSetFrame = true;
+		self.DeferFrame = FrameRect;
 		if(self.bForwardEvents)
 		{
 			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDidResizeNotification object:self];
@@ -331,12 +331,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 			SCOPED_AUTORELEASE_POOL;
 			[super setFrameOrigin:Point];
 		});
-		bDeferSetOrigin = false;
+		self.bDeferSetOrigin = false;
 	}
 	else
 	{
-		bDeferSetOrigin = true;
-		DeferFrame.origin = Point;
+		self.bDeferSetOrigin = true;
+		self.DeferFrame.origin = Point;
 		NSNotification* Notification = [NSNotification notificationWithName:NSWindowDidMoveNotification object:self];
 		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode ]);
 	}
