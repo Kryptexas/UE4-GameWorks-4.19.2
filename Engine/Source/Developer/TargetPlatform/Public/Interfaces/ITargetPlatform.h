@@ -115,15 +115,14 @@ public:
 	virtual FText DisplayName( ) const = 0;
 
 	/**
-	 * Checks whether the platform's build requirements are met so that we can do things like
-	 * package for the platform
+	 * Checks whether the platform's build requirements are met so that we can do things like package for the platform.
 	 *
-	 * @param ProjectPath Path to the project
-	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
-	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem
-	 * @return Readiness status
+	 * @param ProjectPath Path to the project.
+	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked.
+	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem.
+	 * @return Readiness status.
 	 */
-	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
+	virtual int32 DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 	/**
 	 * Returns the information about this platform

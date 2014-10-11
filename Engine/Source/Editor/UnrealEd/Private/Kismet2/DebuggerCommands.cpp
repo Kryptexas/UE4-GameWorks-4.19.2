@@ -113,6 +113,15 @@ public:
 protected:
 
 	/**
+	 * Adds a message to the message log.
+	 *
+	 * @param Text The main message text.
+	 * @param Detail The detailed description.
+	 * @param TutorialLink A link to an associated tutorial.
+	 */
+	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
+
+	/**
 	 * Checks whether the specified platform has a default device that can be launched on.
 	 *
 	 * @param PlatformName - The name of the platform to check.
@@ -1408,42 +1417,43 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.LaunchOn.Failed"), PlatformName, bHasCode, Result);
 
 		// report to message log
-		FText MessageLogText;
-		FText MessageLogTextDetail;
+		bool UnrecoverableError = false;
 
-		switch (Result)
+		if ((Result & ETargetPlatformReadyStatus::SDKNotFound) != 0)
 		{
-			case ETargetPlatformReadyStatus::SDKNotFound:
-				MessageLogText = LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found.");
-				MessageLogTextDetail = FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName());
-				break;
+			AddMessageLog(
+				LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
+				FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
+				NotInstalledTutorialLink
+			);
 
-			case ETargetPlatformReadyStatus::ProvisionNotFound:
-				MessageLogText = LOCTEXT("ProvisionNotFoundMessage", "Provision not found.");
-				MessageLogTextDetail = LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.");
-				break;
-
-			case ETargetPlatformReadyStatus::SigningKeyNotFound:
-				MessageLogText = LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found.");
-				MessageLogTextDetail = LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.");
-				break;
-
-			default:
-				break;
+			UnrecoverableError = true;
 		}
 
-		if (!MessageLogText.IsEmpty())
+		if ((Result & ETargetPlatformReadyStatus::ProvisionNotFound) != 0)
 		{
-			TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
-			Message->AddToken(FTextToken::Create(MessageLogText));
-			Message->AddToken(FTextToken::Create(MessageLogTextDetail));
-			Message->AddToken(FTutorialToken::Create(NotInstalledTutorialLink));
-			Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+			AddMessageLog(
+				LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
+				LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
+				NotInstalledTutorialLink
+			);
 
-			FMessageLog MessageLog("PackagingResults");
-			MessageLog.AddMessage(Message);
-			MessageLog.Open();
+			UnrecoverableError = true;
+		}
 
+		if ((Result & ETargetPlatformReadyStatus::SigningKeyNotFound) != 0)
+		{
+			AddMessageLog(
+				LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
+				LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
+				NotInstalledTutorialLink
+			);
+
+			UnrecoverableError = true;
+		}
+
+		if (UnrecoverableError)
+		{
 			return false;
 		}
 
@@ -1702,6 +1712,20 @@ bool FInternalPlayWorldCommandCallbacks::CanPossessEjectPlayer()
 		}
 	}
 	return false;
+}
+
+
+void FInternalPlayWorldCommandCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink )
+{
+	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
+	Message->AddToken(FTextToken::Create(Text));
+	Message->AddToken(FTextToken::Create(Detail));
+	Message->AddToken(FTutorialToken::Create(TutorialLink));
+	Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+
+	FMessageLog MessageLog("PackagingResults");
+	MessageLog.AddMessage(Message);
+	MessageLog.Open();
 }
 
 

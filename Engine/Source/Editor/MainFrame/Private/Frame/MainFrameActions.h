@@ -229,8 +229,16 @@ public:
 	// List of projects that the user can switch to.
 	static TArray<FString> ProjectNames;
 
-
 protected:
+
+	/**
+	 * Adds a message to the message log.
+	 *
+	 * @param Text The main message text.
+	 * @param Detail The detailed description.
+	 * @param TutorialLink A link to an associated tutorial.
+	 */
+	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
 
 	/**
 	 * Creates an asynchronous UAT task.
