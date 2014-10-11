@@ -13,19 +13,19 @@ class FTargetPlatformBase
 {
 public:
 
-	// Begin ITargetPlatform interface
+	// ITargetPlatform interface
 
 	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) override
 	{
 		return false;
 	}
 
-	virtual FText DisplayName( ) const override
+	virtual FText DisplayName() const override
 	{
 		return PlatformInfo->DisplayName;
 	}
 
-	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const override
+	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo() const override
 	{
 		return *PlatformInfo;
 	}
@@ -196,9 +196,8 @@ public:
 		return 0.0f;
 	}
 
-	// End ITargetPlatform interface
-
 protected:
+
 	FTargetPlatformBase(const PlatformInfo::FPlatformInfo *const InPlatformInfo)
 		: PlatformInfo(InPlatformInfo)
 	{
@@ -222,7 +221,7 @@ class TTargetPlatformBase
 public:
 
 	/** Default constructor. */
-	TTargetPlatformBase( )
+	TTargetPlatformBase()
 		: FTargetPlatformBase( PlatformInfo::FindPlatformInfo(TPlatformProperties::PlatformName()) )
 	{
 		// HasEditorOnlyData and RequiresCookedData are mutually exclusive.
@@ -233,37 +232,37 @@ public:
 
 	// ITargetPlatform interface
 
-	virtual bool HasEditorOnlyData( ) const override
+	virtual bool HasEditorOnlyData() const override
 	{
 		return TPlatformProperties::HasEditorOnlyData();
 	}
 
-	virtual bool IsLittleEndian( ) const override
+	virtual bool IsLittleEndian() const override
 	{
 		return TPlatformProperties::IsLittleEndian();
 	}
 
-	virtual bool IsServerOnly( ) const override
+	virtual bool IsServerOnly() const override
 	{
 		return TPlatformProperties::IsServerOnly();
 	}
 
-	virtual bool IsClientOnly( ) const override
+	virtual bool IsClientOnly() const override
 	{
 		return TPlatformProperties::IsClientOnly();
 	}
 
-	virtual FString PlatformName( ) const override
+	virtual FString PlatformName() const override
 	{
 		return FString(TPlatformProperties::PlatformName());
 	}
 
-	virtual FString IniPlatformName( ) const override
+	virtual FString IniPlatformName() const override
 	{
 		return FString(TPlatformProperties::IniPlatformName());
 	}
 
-	virtual bool RequiresCookedData( ) const override
+	virtual bool RequiresCookedData() const override
 	{
 		return TPlatformProperties::RequiresCookedData();
 	}
@@ -321,7 +320,7 @@ public:
 		return false;
 	}
 	
-	virtual uint32 MaxGpuSkinBones( ) const override
+	virtual uint32 MaxGpuSkinBones() const override
 	{
 		return TPlatformProperties::MaxGpuSkinBones();
 	}

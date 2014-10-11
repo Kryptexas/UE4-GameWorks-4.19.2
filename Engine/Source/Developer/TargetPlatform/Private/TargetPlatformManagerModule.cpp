@@ -553,7 +553,7 @@ protected:
 	}
 
 	/** Discovers the available target platforms. */
-	void DiscoverAvailablePlatforms( )
+	void DiscoverAvailablePlatforms()
 	{
 		Platforms.Empty(Platforms.Num());
 

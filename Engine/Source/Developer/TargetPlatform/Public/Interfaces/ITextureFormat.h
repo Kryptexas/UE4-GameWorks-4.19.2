@@ -8,7 +8,7 @@
  */
 struct FTextureFormatCompressorCaps
 {
-	FTextureFormatCompressorCaps( )
+	FTextureFormatCompressorCaps()
 		: MaxTextureDimension(TNumericLimits<uint32>::Max())
 	{ }
 
@@ -28,7 +28,7 @@ public:
 	 *
 	 * @return true if parallel compression is supported, false otherwise.
 	 */
-	virtual bool AllowParallelBuild( ) const
+	virtual bool AllowParallelBuild() const
 	{
 		return false;
 	}
@@ -65,7 +65,7 @@ public:
 	*
 	* @param OutCaps Filled with capability properties of texture format compressor.
 	*/
-	virtual FTextureFormatCompressorCaps GetFormatCapabilities( ) const = 0;
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const = 0;
 
 	/**
 	 * Compresses a single image.
@@ -87,5 +87,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~ITextureFormat( ) { }
+	virtual ~ITextureFormat() { }
 };

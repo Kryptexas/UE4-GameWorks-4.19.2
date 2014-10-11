@@ -16,10 +16,10 @@ public:
 	 *
 	 * @return The shader format interface.
 	 */
-	virtual IShaderFormat* GetShaderFormat( ) = 0;
+	virtual IShaderFormat* GetShaderFormat() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	~IShaderFormatModule( ) { }
+	~IShaderFormatModule() { }
 };

@@ -16,7 +16,7 @@ public:
 	 *
 	 * @return The texture format interface.
 	 */
-	virtual ITextureFormat* GetTextureFormat( ) = 0;
+	virtual ITextureFormat* GetTextureFormat() = 0;
 
 public:
 

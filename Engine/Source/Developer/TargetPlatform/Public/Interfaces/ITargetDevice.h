@@ -203,7 +203,7 @@ public:
 	 *
 	 * @return true if the device is connected, false otherwise.
 	 */
-	virtual bool Connect( ) = 0;
+	virtual bool Connect() = 0;
 
 	/**
 	 * Deploys an application in the specified folder to the device.
@@ -217,14 +217,14 @@ public:
 	/**
 	 * Disconnect from the physical device.
 	 */
-	virtual void Disconnect( ) = 0;
+	virtual void Disconnect() = 0;
 
 	/**
 	 * Gets the device type.
 	 *
 	 * @return Device type.
 	 */
-	virtual ETargetDeviceTypes GetDeviceType( ) const = 0;
+	virtual ETargetDeviceTypes GetDeviceType() const = 0;
 
 	/**
 	 * Gets the unique device identifier.
@@ -232,7 +232,7 @@ public:
 	 * @return Device identifier.
 	 * @see GetName
 	 */
-	virtual FTargetDeviceId GetId( ) const = 0;
+	virtual FTargetDeviceId GetId() const = 0;
 
 	/**
 	 * Gets the name of the device.
@@ -245,14 +245,14 @@ public:
 	 * @return Device name.
 	 * @see GetId
 	 */
-	virtual FString GetName( ) const = 0;
+	virtual FString GetName() const = 0;
 
 	/**
 	 * Gets the name of the operating system running on this device.
 	 *
 	 * @return Operating system name.
 	 */
-	virtual FString GetOperatingSystemName( ) = 0;
+	virtual FString GetOperatingSystemName() = 0;
 
 	/**
 	 * Creates a snapshot of processes currently running on the device.
@@ -265,14 +265,14 @@ public:
 	/**
 	 * Gets the TargetPlatform that this device belongs to.
 	 */
-	virtual const class ITargetPlatform& GetTargetPlatform( ) const = 0;
+	virtual const class ITargetPlatform& GetTargetPlatform() const = 0;
 
 	/**
 	 * Checks whether this device is connected.
 	 *
 	 * @return true if the device is connected, false otherwise.
 	 */
-	virtual bool IsConnected( ) = 0;
+	virtual bool IsConnected() = 0;
 
 	/**
 	 * Checks whether this is the default device.
@@ -281,7 +281,7 @@ public:
 	 *
 	 * @return true if this is the default device, false otherwise.
 	 */
-	virtual bool IsDefault( ) const = 0;
+	virtual bool IsDefault() const = 0;
 
 	/**
 	 * Launches a previously deployed build.
@@ -308,7 +308,7 @@ public:
 	 *
 	 * @return true if the device will be powered on, false otherwise.
 	 */
-	virtual bool PowerOn( ) = 0;
+	virtual bool PowerOn() = 0;
 
 	/** 
 	 * Reboot the device.
@@ -372,5 +372,5 @@ public:
 public:
 	
 	/** Virtual destructor. */
-	virtual ~ITargetDevice( ) { }
+	virtual ~ITargetDevice() { }
 };

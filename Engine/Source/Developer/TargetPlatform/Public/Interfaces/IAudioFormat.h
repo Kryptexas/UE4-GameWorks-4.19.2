@@ -43,7 +43,7 @@ public:
 	 *
 	 * @return true if this audio format can cook in parallel, false otherwise.
 	 */
-	virtual bool AllowParallelBuild( ) const
+	virtual bool AllowParallelBuild() const
 	{
 		return false;
 	}

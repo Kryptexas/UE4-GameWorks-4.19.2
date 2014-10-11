@@ -112,7 +112,7 @@ public:
 	 *
 	 * @see PlatformName
 	 */
-	virtual FText DisplayName( ) const = 0;
+	virtual FText DisplayName() const = 0;
 
 	/**
 	 * Checks whether the platform's build requirements are met so that we can do things like package for the platform.
@@ -120,21 +120,21 @@ public:
 	 * @param ProjectPath Path to the project.
 	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked.
 	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem.
-	 * @return Readiness status.
+	 * @return A mask of ETargetPlatformReadyStatus flags to indicate missing requirements, or 0 if all requirements are met.
 	 */
 	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 	/**
 	 * Returns the information about this platform
 	 */
-	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const = 0;
+	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo() const = 0;
 
 	/**
 	 * Gets the platform's INI name (so an offline tool can load the INI for the given target platform).
 	 *
 	 * @see PlatformName
 	 */
-	virtual FString IniPlatformName( ) const = 0;
+	virtual FString IniPlatformName() const = 0;
 
 	/**
 	 * Enables/Disable the device check
@@ -153,7 +153,7 @@ public:
 	 *
 	 * @return Compression method.
 	 */
-	virtual ECompressionFlags GetBaseCompressionMethod( ) const = 0;
+	virtual ECompressionFlags GetBaseCompressionMethod() const = 0;
 
 	/** 
 	 * Generates a platform specific asset manifest given an array of FAssetData.
@@ -171,7 +171,7 @@ public:
 	 *
 	 * @return Default device.
 	 */
-	virtual ITargetDevicePtr GetDefaultDevice( ) const = 0;
+	virtual ITargetDevicePtr GetDefaultDevice() const = 0;
 
 	/** 
 	 * Gets an interface to the specified device.
@@ -186,21 +186,21 @@ public:
 	 *
 	 * @return true if this platform has editor only data, false otherwise.
 	 */
-	virtual bool HasEditorOnlyData( ) const = 0;
+	virtual bool HasEditorOnlyData() const = 0;
 
 	/**
 	 * Checks whether this platform is only a client (and must connect to a server to run).
 	 *
 	 * @return true if this platform must connect to a server.
 	 */
-	virtual bool IsClientOnly( ) const = 0;
+	virtual bool IsClientOnly() const = 0;
 
 	/**
 	 * Checks whether this platform is little endian.
 	 *
 	 * @return true if this platform is little-endian, false otherwise.
 	 */
-	virtual bool IsLittleEndian( ) const = 0;
+	virtual bool IsLittleEndian() const = 0;
 
 	/**
 	 * Checks whether this platform is the platform that's currently running.
@@ -210,14 +210,14 @@ public:
 	 *
 	 * @return true if this platform is running, false otherwise.
 	 */
-	virtual bool IsRunningPlatform( ) const = 0;
+	virtual bool IsRunningPlatform() const = 0;
 
 	/**
 	 * Checks whether this platform is only a server.
 	 *
 	 * @return true if this platform has no graphics or audio, etc, false otherwise.
 	 */
-	virtual bool IsServerOnly( ) const = 0;
+	virtual bool IsServerOnly() const = 0;
 
 	/**
 	 * Checks whether the platform's SDK requirements are met so that we can do things like
@@ -234,14 +234,14 @@ public:
 	 *
 	 * @return the maximum bones the platform supports.
 	 */
-	virtual uint32 MaxGpuSkinBones( ) const = 0;
+	virtual uint32 MaxGpuSkinBones() const = 0;
 
 	/**
 	 * Checks whether this platform requires cooked data (typically console platforms).
 	 *
 	 * @return true if this platform requires cooked data, false otherwise.
 	 */
-	virtual bool RequiresCookedData( ) const = 0;
+	virtual bool RequiresCookedData() const = 0;
 
 	/**
 	 * Checks whether this platform requires user credentials (typically server platforms).
@@ -321,7 +321,7 @@ public:
 	 *
 	 * @return A texture LOD settings structure.
 	 */
-	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const = 0;
+	virtual const struct FTextureLODSettings& GetTextureLODSettings() const = 0;
 
 	/**
 	 * Gets the static mesh LOD settings used by this platform.

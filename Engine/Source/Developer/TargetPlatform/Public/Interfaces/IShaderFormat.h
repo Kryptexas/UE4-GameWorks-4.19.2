@@ -42,5 +42,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IShaderFormat( ) { }
+	virtual ~IShaderFormat() { }
 };

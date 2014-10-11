@@ -11,7 +11,7 @@ class FTargetDeviceId
 public:
 
 	/** Default constructor. */
-	FTargetDeviceId( ) { }
+	FTargetDeviceId() { }
 
 	/**
 	 * Creates and initializes a new target device identifier.
@@ -67,7 +67,7 @@ public:
 	 *
 	 * @return Device identifier.
 	 */
-	const FString& GetDeviceName( ) const
+	const FString& GetDeviceName() const
 	{
 		return DeviceName;
 	}
@@ -77,7 +77,7 @@ public:
 	 *
 	 * @return Platform name.
 	 */
-	const FString& GetPlatformName( ) const
+	const FString& GetPlatformName() const
 	{
 		return PlatformName;
 	}
@@ -87,7 +87,7 @@ public:
 	 *
 	 * @return true if the identifier is valid, false otherwise.
 	 */
-	bool IsValid( ) const
+	bool IsValid() const
 	{
 		return (!PlatformName.IsEmpty() && !DeviceName.IsEmpty());
 	}
@@ -97,7 +97,7 @@ public:
 	 *
 	 * @return String representation.
 	 */
-	FString ToString( ) const
+	FString ToString() const
 	{
 		return PlatformName + TEXT("@") + DeviceName;
 	}

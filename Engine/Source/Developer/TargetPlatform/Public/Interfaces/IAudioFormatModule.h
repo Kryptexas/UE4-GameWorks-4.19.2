@@ -16,10 +16,10 @@ public:
 	 *
 	 * @return The audio format interface.
 	 */
-	virtual IAudioFormat* GetAudioFormat( ) = 0;
+	virtual IAudioFormat* GetAudioFormat() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	~IAudioFormatModule( ) { }
+	~IAudioFormatModule() { }
 };
