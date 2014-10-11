@@ -60,8 +60,8 @@ bool FEngineVersion::IsCompatibleWith(const FEngineVersion &Other) const
 	}
 
 	// Otherwise compare the versions
-	EVersionComponent::Type Component;
-	EVersionComparison::Type Comparison = FEngineVersion::GetNewest(*this, Other, &Component);
+	EVersionComponent Component;
+	EVersionComparison Comparison = FEngineVersion::GetNewest(*this, Other, &Component);
 
 	// If this engine version is the same or newer, it's definitely compatible
 	if(Comparison == EVersionComparison::Neither || Comparison == EVersionComparison::First)
@@ -80,7 +80,7 @@ bool FEngineVersion::IsCompatibleWith(const FEngineVersion &Other) const
 	}
 }
 
-FString FEngineVersion::ToString(EVersionComponent::Type LastComponent) const
+FString FEngineVersion::ToString(EVersionComponent LastComponent) const
 {
 	FString Result = FString::Printf(TEXT("%u"), Major);
 	if(LastComponent >= EVersionComponent::Minor)
@@ -139,9 +139,9 @@ bool FEngineVersion::Parse(const FString &Text, FEngineVersion &OutVersion)
 	return true;
 }
 
-EVersionComparison::Type FEngineVersion::GetNewest(const FEngineVersion &First, const FEngineVersion &Second, EVersionComponent::Type *OutComponent)
+EVersionComparison FEngineVersion::GetNewest(const FEngineVersion &First, const FEngineVersion &Second, EVersionComponent *OutComponent)
 {
-	EVersionComponent::Type LocalComponent = EVersionComponent::Minor;
+	EVersionComponent LocalComponent = EVersionComponent::Minor;
 	auto& Component = OutComponent ? *OutComponent : LocalComponent;
 
 	// Compare major versions

@@ -4,29 +4,23 @@
 
 
 /** Enum for the components of a version string. */
-namespace EVersionComponent
+enum class EVersionComponent
 {
-	enum Type
-	{
-		Major,					///< Major version increments introduce breaking API changes.
-		Minor,					///< Minor version increments add additional functionality without breaking existing APIs.
-		Patch,					///< Patch version increments fix existing functionality without changing the API.
-		Changelist,				///< The pre-release field adds additional versioning through a series of comparable dotted strings or numbers.
-		Branch,					///<
-	};
-}
+	Major,					///< Major version increments introduce breaking API changes.
+	Minor,					///< Minor version increments add additional functionality without breaking existing APIs.
+	Patch,					///< Patch version increments fix existing functionality without changing the API.
+	Changelist,				///< The pre-release field adds additional versioning through a series of comparable dotted strings or numbers.
+	Branch,					///<
+};
 
 
 /** Components of a version string. */
-namespace EVersionComparison
+enum class EVersionComparison
 {
-	enum Type
-	{
-		Neither,
-		First,
-		Second,
-	};
-}
+	Neither,
+	First,
+	Second,
+};
 
 
 /** Utility functions. */
@@ -62,13 +56,13 @@ public:
 	bool IsCompatibleWith(const FEngineVersion &Other) const;
 
 	/** Generates a version string */
-	FString ToString(EVersionComponent::Type LastComponent = EVersionComponent::Branch) const;
+	FString ToString(EVersionComponent LastComponent = EVersionComponent::Branch) const;
 
 	/** Parses a version object from a string. Returns true on success. */
 	static bool Parse(const FString &Text, FEngineVersion &OutVersion);
 	
 	/** Returns the newest of two versions, and the component at which they differ */
-	static EVersionComparison::Type GetNewest(const FEngineVersion &First, const FEngineVersion &Second, EVersionComponent::Type *OutComponent);
+	static EVersionComparison GetNewest(const FEngineVersion &First, const FEngineVersion &Second, EVersionComponent *OutComponent);
 
 	/** Serialization function */
 	friend CORE_API void operator<<(FArchive &Ar, FEngineVersion &Version);
