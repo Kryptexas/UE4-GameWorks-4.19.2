@@ -527,7 +527,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		{
 			FString NotInstalledTutorialLink;
 			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-			int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
+			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
 
 			// report to analytics
 			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);

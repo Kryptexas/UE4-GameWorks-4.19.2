@@ -106,7 +106,7 @@ static void OnOutput(FString Message)
 	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
 }
 
-int32 FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
+int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
 {
 	int32 bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
 	if (!IsSdkInstalled(bProjectHasCode, OutTutorialPath))

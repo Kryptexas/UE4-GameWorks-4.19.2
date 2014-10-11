@@ -122,7 +122,7 @@ public:
 	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem.
 	 * @return Readiness status.
 	 */
-	virtual int32 DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
+	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 	/**
 	 * Returns the information about this platform

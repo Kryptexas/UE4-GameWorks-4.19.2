@@ -1411,7 +1411,7 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 	{
 		FString NotInstalledTutorialLink;
 		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-		int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink);
+		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink);
 		
 		// report to analytics
 		FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.LaunchOn.Failed"), PlatformName, bHasCode, Result);
