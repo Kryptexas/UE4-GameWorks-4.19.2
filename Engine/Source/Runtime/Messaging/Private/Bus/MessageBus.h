@@ -20,18 +20,18 @@ public:
 	FMessageBus( const IAuthorizeMessageRecipientsPtr& InRecipientAuthorizer );
 
 	/** Destructor */
-	~FMessageBus( );
+	~FMessageBus();
 
 public:
 
 	// IMessageBus interface
 
-	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) override
+	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope ForwardingScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) override
 	{
 		Router->RouteMessage(MakeShareable(new FMessageContext(Context, Forwarder->GetSenderAddress(), Recipients, ForwardingScope, FDateTime::UtcNow(), FTaskGraphInterface::Get().GetCurrentThreadIfKnown())));
 	}
 
-	virtual IMessageTracerRef GetTracer( ) override
+	virtual IMessageTracerRef GetTracer() override
 	{
 		return Router->GetTracer();
 	}
@@ -47,12 +47,12 @@ public:
 		}
 	}
 
-	virtual FOnMessageBusShutdown& OnShutdown( ) override
+	virtual FOnMessageBusShutdown& OnShutdown() override
 	{
 		return ShutdownDelegate;
 	}
 
-	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Publisher ) override
+	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Publisher ) override
 	{
 		Router->RouteMessage(MakeShareable(new FMessageContext(Message, TypeInfo, nullptr, Publisher->GetSenderAddress(), TArray<FMessageAddress>(), Scope, FDateTime::UtcNow() + Delay, Expiration, FTaskGraphInterface::Get().GetCurrentThreadIfKnown())));
 	}
@@ -67,7 +67,7 @@ public:
 		Router->RouteMessage(MakeShareable(new FMessageContext(Message, TypeInfo, Attachment, Sender->GetSenderAddress(), Recipients, EMessageScope::Network, FDateTime::UtcNow() + Delay, Expiration, FTaskGraphInterface::Get().GetCurrentThreadIfKnown())));
 	}
 
-	virtual void Shutdown( ) override;
+	virtual void Shutdown() override;
 
 	virtual IMessageSubscriptionPtr Subscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType, const FMessageScopeRange& ScopeRange ) override
 	{

@@ -25,16 +25,16 @@ public:
 	FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const ITransportMessagesRef& InTransport );
 
 	/** Destructor. */
-	~FMessageBridge( );
+	~FMessageBridge();
 
 public:
 
 	// IMessageBridge interface
 
-	virtual void Disable( ) override;
-	virtual void Enable( ) override;
+	virtual void Disable() override;
+	virtual void Enable() override;
 
-	virtual bool IsEnabled( ) const override
+	virtual bool IsEnabled() const override
 	{
 		return Enabled;
 	}
@@ -43,22 +43,22 @@ public:
 
 	// IReceiveMessages interface
 
-	virtual FName GetDebugName( ) const override
+	virtual FName GetDebugName() const override
 	{
 		return *FString::Printf(TEXT("FMessageBridge (%s)"), *Transport->GetDebugName().ToString());
 	}
 
-	virtual const FGuid& GetRecipientId( ) const override
+	virtual const FGuid& GetRecipientId() const override
 	{
 		return Id;
 	}
 
-	virtual ENamedThreads::Type GetRecipientThread( ) const override
+	virtual ENamedThreads::Type GetRecipientThread() const override
 	{
 		return ENamedThreads::AnyThread;
 	}
 
-	virtual bool IsLocal( ) const override
+	virtual bool IsLocal() const override
 	{
 		return false;
 	}
@@ -69,7 +69,7 @@ public:
 
 	// ISendMessages interface
 
-	virtual FMessageAddress GetSenderAddress( ) override
+	virtual FMessageAddress GetSenderAddress() override
 	{
 		return Address;
 	}
@@ -79,12 +79,12 @@ public:
 protected:
 
 	/** Shuts down the bridge. */
-	void Shutdown( );
+	void Shutdown();
 
 private:
 
 	/** Callback for message bus shut downs. */
-	void HandleMessageBusShutdown( );
+	void HandleMessageBusShutdown();
 
 	/** Callback for received transport messages. */
 	void HandleTransportMessageReceived( FArchive& MessageData, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId );

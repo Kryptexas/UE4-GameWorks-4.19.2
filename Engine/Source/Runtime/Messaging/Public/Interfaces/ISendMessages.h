@@ -35,7 +35,7 @@ public:
 	 *
 	 * @return The message address.
 	 */
-	virtual FMessageAddress GetSenderAddress( ) = 0;
+	virtual FMessageAddress GetSenderAddress() = 0;
 
 	/**
 	 * Notifies the sender of errors.
@@ -48,5 +48,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~ISendMessages( ) { }
+	virtual ~ISendMessages() { }
 };

@@ -36,7 +36,7 @@ public:
 	 *
 	 * @see Enable, IsEnabled
 	 */
-	virtual void Disable( ) = 0;
+	virtual void Disable() = 0;
 
 	/**
 	 * Enables this bridge.
@@ -46,7 +46,7 @@ public:
 	 *
 	 * @see Disable, IsEnabled
 	 */
-	virtual void Enable( ) = 0;
+	virtual void Enable() = 0;
 
 	/**
 	 * Checks whether the bridge is currently enabled.
@@ -54,10 +54,10 @@ public:
 	 * @return true if the bridge is enabled, false otherwise.
 	 * @see Disable, Enable
 	 */
-	virtual bool IsEnabled( ) const = 0;
+	virtual bool IsEnabled() const = 0;
 
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMessageBridge( ) { }
+	virtual ~IMessageBridge() { }
 };

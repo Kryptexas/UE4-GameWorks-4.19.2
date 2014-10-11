@@ -36,10 +36,10 @@ public:
 	 *
 	 * @return An archive reader.
 	 */
-	virtual FArchive* CreateReader( ) = 0;
+	virtual FArchive* CreateReader() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMessageAttachment( ) { }
+	virtual ~IMessageAttachment() { }
 };

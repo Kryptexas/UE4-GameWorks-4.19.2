@@ -35,7 +35,7 @@ public:
 	{ }
 
 	/** Destructor. */
-	~FFileMessageAttachment( )
+	~FFileMessageAttachment()
 	{
 		if (AutoDeleteFile)
 		{
@@ -47,7 +47,7 @@ public:
 
 	// IMessageAttachment interface
 
-	virtual FArchive* CreateReader( ) override
+	virtual FArchive* CreateReader() override
 	{
 		return IFileManager::Get().CreateFileReader(*Filename);
 	}

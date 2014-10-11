@@ -206,7 +206,7 @@ bool FJsonMessageSerializer::DeserializeMessage( FArchive& Archive, IMutableMess
 		OutContext->AddRecipient(Recipients[RecipientIndex]);
 	}
 
-	TEnumAsByte<EMessageScope::Type> Scope;
+	TEnumAsByte<EMessageScope> Scope;
 	Archive << Scope;
 	OutContext->SetScope(Scope);
 
@@ -584,7 +584,7 @@ bool FJsonMessageSerializer::SerializeMessage( const IMessageContextRef& Context
 		TArray<FMessageAddress> Recipients = Context->GetRecipients();
 		Archive << Recipients;
 
-		TEnumAsByte<EMessageScope::Type> Scope = Context->GetScope();
+		TEnumAsByte<EMessageScope> Scope = Context->GetScope();
 		Archive << Scope;
 
 		FDateTime TimeSent = Context->GetTimeSent();

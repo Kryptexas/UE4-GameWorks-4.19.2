@@ -22,7 +22,7 @@ public:
 	 *
 	 * @return The name of the message type.
 	 */
-	virtual const FName GetHandledMessageType( ) const = 0;
+	virtual const FName GetHandledMessageType() const = 0;
 
 	/**
 	 * Handles the specified message.
@@ -34,7 +34,7 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMessageHandler( ) { }
+	virtual ~IMessageHandler() { }
 };
 
 
@@ -80,7 +80,7 @@ public:
 
 	// IMessageHandler interface
 	
-	virtual const FName GetHandledMessageType( ) const override
+	virtual const FName GetHandledMessageType() const override
 	{
 		return MessageType::StaticStruct()->GetFName();
 	}

@@ -42,14 +42,14 @@ public:
 	 *
 	 * @return A new serializer.
 	 */
-	virtual ISerializeMessagesPtr CreateJsonMessageSerializer( ) = 0;
+	virtual ISerializeMessagesPtr CreateJsonMessageSerializer() = 0;
 
 	/**
 	 * Gets the default message bus if it has been initialized.
 	 *
 	 * @return The default bus.
 	 */
-	virtual IMessageBusPtr GetDefaultBus( ) const = 0;
+	virtual IMessageBusPtr GetDefaultBus() const = 0;
 
 public:
 
@@ -60,7 +60,7 @@ public:
 	 *
 	 * @return A reference to the Messaging module.
 	 */
-	static IMessagingModule& Get( )
+	static IMessagingModule& Get()
 	{
 #if PLATFORM_IOS
         static IMessagingModule& MessageModule = FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
@@ -73,5 +73,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMessagingModule( ) { }
+	virtual ~IMessagingModule() { }
 };

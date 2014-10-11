@@ -40,23 +40,20 @@ typedef TSharedPtr<struct FMessageTracerTypeInfo> FMessageTracerTypeInfoPtr;
 typedef TSharedRef<struct FMessageTracerTypeInfo> FMessageTracerTypeInfoRef;
 
 
-namespace EMessageTracerDispatchTypes
+/**
+ * Enumerates message dispatch types.
+ */
+enum class EMessageTracerDispatchTypes
 {
-	/**
-	 * Enumerates message dispatch types.
-	 */
-	enum Type
-	{
-		/** The message is being dispatched directly. */
-		Direct,
+	/** The message is being dispatched directly. */
+	Direct,
 
-		/** The message hasn't been dispatched yet. */
-		Pending,
+	/** The message hasn't been dispatched yet. */
+	Pending,
 
-		/** The message is being dispatched using the task graph system. */
-		TaskGraph
-	};
-}
+	/** The message is being dispatched using the task graph system. */
+	TaskGraph
+};
 
 
 /**
@@ -68,7 +65,7 @@ struct FMessageTracerDispatchState
 	double DispatchLatency;
 
 	/** Holds the message's dispatch type for the specified endpoint. */
-	EMessageTracerDispatchTypes::Type DispatchType;
+	EMessageTracerDispatchTypes DispatchType;
 
 	/** Holds the endpoint to which the message was or is being dispatched. */
 	FMessageTracerEndpointInfoPtr EndpointInfo;
@@ -188,14 +185,14 @@ public:
 	 *
 	 * @see Continue, IsBreaking, Step
 	 */
-	virtual void Break( ) = 0;
+	virtual void Break() = 0;
 
 	/**
 	 * Continues message routing from the current breakpoint.
 	 *
 	 * @see Break, Step
 	 */
-	virtual void Continue( ) = 0;
+	virtual void Continue() = 0;
 
 	/**
 	 * Checks whether the tracer is currently at a breakpoint.
@@ -203,7 +200,7 @@ public:
 	 * @return true if at breakpoint, false otherwise.
 	 * @see Break
 	 */
-	virtual bool IsBreaking( ) const = 0;
+	virtual bool IsBreaking() const = 0;
 
 	/**
 	 * Checks whether the tracer is currently running.
@@ -212,33 +209,33 @@ public:
 	 *
 	 * @see Start, Stop
 	 */
-	virtual bool IsRunning( ) const = 0;
+	virtual bool IsRunning() const = 0;
 
 	/**
 	 * Resets the tracer.
 	 */
-	virtual void Reset( ) = 0;
+	virtual void Reset() = 0;
 
 	/**
 	 * Starts the tracer.
 	 *
 	 * @see IsRunning, Stop
 	 */
-	virtual void Start( ) = 0;
+	virtual void Start() = 0;
 
 	/**
 	 * Steps the tracer to the next message.
 	 *
 	 * @see Break, Continue
 	 */
-	virtual void Step( ) = 0;
+	virtual void Step() = 0;
 
 	/**
 	 * Stops the tracer.
 	 *
 	 * @see IsRunning, Start
 	 */
-	virtual void Stop( ) = 0;
+	virtual void Stop() = 0;
 
 	/**
 	 * Ticks the tracer.
@@ -279,7 +276,7 @@ public:
 	 *
 	 * @return true if there are messages, false otherwise.
 	 */
-	virtual bool HasMessages( ) const = 0;
+	virtual bool HasMessages() const = 0;
 
 public:
 
@@ -288,24 +285,24 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FMessageTracerMessageAdded& OnMessageAdded( ) = 0;
+	virtual FMessageTracerMessageAdded& OnMessageAdded() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the message history has been reset.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FSimpleMulticastDelegate& OnMessagesReset( ) = 0;
+	virtual FSimpleMulticastDelegate& OnMessagesReset() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the collection of known messages types has changed.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FMessageTracerTypeAdded& OnTypeAdded( ) = 0;
+	virtual FMessageTracerTypeAdded& OnTypeAdded() = 0;
 
 protected:
 
 	/** Hidden destructor. The life time of a message tracer is managed by the message bus. */
-	virtual ~IMessageTracer( ) { }
+	virtual ~IMessageTracer() { }
 };

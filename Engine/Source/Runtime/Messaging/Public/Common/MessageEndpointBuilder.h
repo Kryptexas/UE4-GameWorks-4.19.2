@@ -78,7 +78,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see ReceivingOnThread
 	 */
-	FMessageEndpointBuilder& ReceivingOnAnyThread( )
+	FMessageEndpointBuilder& ReceivingOnAnyThread()
 	{
 		RecipientThread = ENamedThreads::AnyThread;
 
@@ -109,7 +109,7 @@ public:
 	 *
 	 * @return This instance (for method chaining).
 	 */
-	FMessageEndpointBuilder& ThatIsDisabled( )
+	FMessageEndpointBuilder& ThatIsDisabled()
 	{
 		Disabled = true;
 
@@ -136,7 +136,7 @@ public:
 	 *
 	 * @return This instance (for method chaining).
 	 */
-	FMessageEndpointBuilder& WithInbox( )
+	FMessageEndpointBuilder& WithInbox()
 	{
 		InboxEnabled = true;
 
@@ -150,7 +150,7 @@ public:
 	 *
 	 * @return A new message endpoint, or nullptr if it couldn't be built.
 	 */
-	FMessageEndpointPtr Build( )
+	FMessageEndpointPtr Build()
 	{
 		FMessageEndpointPtr Endpoint;
 
@@ -185,7 +185,7 @@ public:
 	 *
 	 * @return The message endpoint.
 	 */
-	operator FMessageEndpointPtr( )
+	operator FMessageEndpointPtr()
 	{
 		return Build();
 	}

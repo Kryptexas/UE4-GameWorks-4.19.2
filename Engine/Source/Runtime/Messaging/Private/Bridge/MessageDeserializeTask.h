@@ -56,7 +56,7 @@ public:
 	 *
 	 * @return Thread name.
 	 */
-	ENamedThreads::Type GetDesiredThread( )
+	ENamedThreads::Type GetDesiredThread()
 	{
 		return Thread;
 	}
@@ -75,7 +75,7 @@ public:
 	 *
 	 * @return Always track subsequent tasks.
 	 */
-	static ESubsequentsMode::Type GetSubsequentsMode( ) 
+	static ESubsequentsMode::Type GetSubsequentsMode() 
 	{ 
 		return ESubsequentsMode::TrackSubsequents; 
 	}

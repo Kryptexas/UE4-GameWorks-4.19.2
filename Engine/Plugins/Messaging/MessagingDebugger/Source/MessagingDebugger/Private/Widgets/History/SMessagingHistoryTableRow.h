@@ -223,7 +223,7 @@ protected:
 	 *
 	 * @return The string representation.
 	 */
-	FText ScopeToText( EMessageScope::Type Scope ) const
+	FText ScopeToText( EMessageScope Scope ) const
 	{
 		switch (Scope)
 		{

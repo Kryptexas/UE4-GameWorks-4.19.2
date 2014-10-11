@@ -52,7 +52,7 @@ public:
 	 *
 	 * @return The debug name.
 	 */
-	virtual FName GetDebugName( ) const = 0;
+	virtual FName GetDebugName() const = 0;
 
 	/**
 	 * Starts up the message transport.
@@ -60,14 +60,14 @@ public:
 	 * @return Whether the transport was started successfully.
 	 * @see StopTransport
 	 */
-	virtual bool StartTransport( ) = 0;
+	virtual bool StartTransport() = 0;
 
 	/**
 	 * Shuts down the message transport.
 	 *
 	 * @see StartTransport
 	 */
-	virtual void StopTransport( ) = 0;
+	virtual void StopTransport() = 0;
 
 	/**
 	 * Transports the given message data to the specified network nodes.
@@ -86,24 +86,24 @@ public:
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	virtual FOnMessageTransportMessageReceived& OnMessageReceived( ) = 0;
+	virtual FOnMessageTransportMessageReceived& OnMessageReceived() = 0;
 
 	/**
 	 * Returns a delegate that is executed when a transport node has been discovered.
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered( ) = 0;
+	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered() = 0;
 
 	/**
 	 * Returns a delegate that is executed when a transport node has closed or timed out.
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	virtual FOnMessageTransportNodeLost& OnNodeLost( ) = 0;
+	virtual FOnMessageTransportNodeLost& OnNodeLost() = 0;
 
 protected:
 
 	/** Virtual constructor. */
-	~ITransportMessages( ) { }
+	~ITransportMessages() { }
 };

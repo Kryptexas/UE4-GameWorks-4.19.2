@@ -60,7 +60,7 @@ public:
 	 *
 	 * @param InScope The message scope.
 	 */
-	virtual void SetScope( EMessageScope::Type InScope ) = 0;
+	virtual void SetScope( EMessageScope InScope ) = 0;
 
 	/**
 	 * Sets the address of the message's sender.
@@ -79,5 +79,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMutableMessageContext( ) { }
+	virtual ~IMutableMessageContext() { }
 };

@@ -11,13 +11,13 @@ class FMessageAddressBook
 public:
 
 	/** Default constructor. */
-	FMessageAddressBook( )
+	FMessageAddressBook()
 	{
 		CriticalSection = new FCriticalSection();
 	}
 
 	/** Destructor. */
-	~FMessageAddressBook( )
+	~FMessageAddressBook()
 	{
 		delete CriticalSection;
 	}
@@ -38,7 +38,7 @@ public:
 	}
 
 	/** Clears the address book. */
-	void Clear( )
+	void Clear()
 	{
 		FScopeLock Lock(CriticalSection);
 

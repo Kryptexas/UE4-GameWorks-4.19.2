@@ -24,7 +24,7 @@ public:
 	 *
 	 * @return true if the breakpoint is enabled, false otherwise.
 	 */
-	virtual bool IsEnabled( ) const = 0;
+	virtual bool IsEnabled() const = 0;
 
 	/**
 	 * Checks whether the tracer should break on the given message.
@@ -37,5 +37,5 @@ public:
 protected:
 
 	/** Hidden destructor. */
-	virtual ~IMessageTracerBreakpoint( ) { }
+	virtual ~IMessageTracerBreakpoint() { }
 };

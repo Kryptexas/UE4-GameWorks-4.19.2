@@ -3,23 +3,20 @@
 #pragma once
 
 
-namespace EMessageDataState
+/**
+ * Enumerates message data states.
+ */
+enum class EMessageDataState
 {
-	/**
-	 * Enumerates message data states.
-	 */
-	enum Type
-	{
-		/** The message data is complete. */
-		Complete,
+	/** The message data is complete. */
+	Complete,
 
-		/** The message data is incomplete. */
-		Incomplete,
+	/** The message data is incomplete. */
+	Incomplete,
 
-		/** The message data is invalid. */
-		Invalid
-	};
-}
+	/** The message data is invalid. */
+	Invalid
+};
 
 
 /** Type definition for shared pointers to instances of IMessageData. */
@@ -43,14 +40,14 @@ public:
 	 *
 	 * @return An archive reader.
 	 */
-	virtual FArchive* CreateReader( ) = 0;
+	virtual FArchive* CreateReader() = 0;
 
 	/**
 	 * Gets the state of the message data.
 	 *
 	 * @return Message data state.
 	 */
-	virtual EMessageDataState::Type GetState( ) const = 0;
+	virtual EMessageDataState GetState() const = 0;
 
 public:
 
@@ -59,10 +56,10 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FSimpleDelegate& OnStateChanged( ) = 0;
+	virtual FSimpleDelegate& OnStateChanged() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMessageData( ) { }
+	virtual ~IMessageData() { }
 };

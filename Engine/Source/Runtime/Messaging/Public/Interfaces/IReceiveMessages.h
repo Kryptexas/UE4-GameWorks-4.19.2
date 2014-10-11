@@ -35,7 +35,7 @@ public:
 	 * @return The debug name.
 	 * @see GetRecipientId, GetRecipientThread
 	 */
-	virtual FName GetDebugName( ) const = 0;
+	virtual FName GetDebugName() const = 0;
 
 	/**
 	 * Gets the recipient's unique identifier (for debugging purposes).
@@ -43,7 +43,7 @@ public:
 	 * @return The recipient's identifier.
 	 * @see GetDebugName, GetRecipientThread
 	 */
-	virtual const FGuid& GetRecipientId( ) const = 0;
+	virtual const FGuid& GetRecipientId() const = 0;
 
 	/**
 	 * Gets the name of the thread on which to receive messages.
@@ -53,7 +53,7 @@ public:
 	 * @return Name of the receiving thread.
 	 * @see GetDebugName, GetRecipientId
 	 */
-	virtual ENamedThreads::Type GetRecipientThread( ) const = 0;
+	virtual ENamedThreads::Type GetRecipientThread() const = 0;
 
 	/**
 	 * Checks whether this recipient represents a local endpoint.
@@ -64,7 +64,7 @@ public:
 	 * @return true if this recipient is local, false otherwise.
 	 * @see IsRemote
 	 */
-	virtual bool IsLocal( ) const = 0;
+	virtual bool IsLocal() const = 0;
 
 	/**
 	 * Handles the given message.
@@ -84,7 +84,7 @@ public:
 	 * @return true if this recipient is remote, false otherwise.
 	 * @see IsLocal
 	 */
-	bool IsRemote( ) const
+	bool IsRemote() const
 	{
 		return !IsLocal();
 	}
@@ -92,5 +92,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IReceiveMessages( ) { }
+	virtual ~IReceiveMessages() { }
 };

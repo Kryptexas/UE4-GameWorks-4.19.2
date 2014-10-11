@@ -164,7 +164,7 @@ void FMessageRouter::DispatchMessage( const IMessageContextRef& Context )
 
 void FMessageRouter::FilterSubscriptions( TArray<IMessageSubscriptionPtr>& Subscriptions, const IMessageContextRef& Context, TArray<IReceiveMessagesPtr>& OutRecipients )
 {
-	EMessageScope::Type MessageScope = Context->GetScope();
+	EMessageScope MessageScope = Context->GetScope();
 
 	for (int32 SubscriptionIndex = 0; SubscriptionIndex < Subscriptions.Num(); ++SubscriptionIndex)
 	{

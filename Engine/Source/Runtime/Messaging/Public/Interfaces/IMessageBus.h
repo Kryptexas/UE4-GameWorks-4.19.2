@@ -114,14 +114,14 @@ public:
 	 * @param Forwarder The sender that forwards the message.
 	 * @see Publish, Send
 	 */
-	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type NewScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) = 0;
+	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope NewScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) = 0;
 
 	/**
 	 * Gets the message bus tracer.
 	 *
 	 * @return Weak pointer to the tracer object.
 	 */
-	virtual IMessageTracerRef GetTracer( ) = 0;
+	virtual IMessageTracerRef GetTracer() = 0;
 
 	/**
 	 * Adds an interceptor for messages of the specified type.
@@ -145,7 +145,7 @@ public:
 	 * @param Publisher The message publisher.
 	 * @see Forward, Send
 	 */
-	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Publisher ) = 0;
+	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Publisher ) = 0;
 
 	/**
 	 * Registers a message recipient with the message bus.
@@ -175,7 +175,7 @@ public:
 	 *
 	 * @see OnShutdown
 	 */
-	virtual void Shutdown( ) = 0;
+	virtual void Shutdown() = 0;
 
 	/**
 	 * Adds a subscription for published messages of the specified type.
@@ -225,10 +225,10 @@ public:
 	 * @return The delegate.
 	 * @see Shutdown
 	 */
-	virtual FOnMessageBusShutdown& OnShutdown( ) = 0;
+	virtual FOnMessageBusShutdown& OnShutdown() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMessageBus( ) { }
+	virtual ~IMessageBus() { }
 };

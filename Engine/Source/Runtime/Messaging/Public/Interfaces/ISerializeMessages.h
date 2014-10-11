@@ -41,5 +41,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~ISerializeMessages( ) { }
+	virtual ~ISerializeMessages() { }
 };

@@ -9,14 +9,15 @@
 class FMessageRouter
 	: public FRunnable
 {
-public:
 	DECLARE_DELEGATE(CommandDelegate)
 
+public:
+
 	/** Default constructor. */
-	FMessageRouter( );
+	FMessageRouter();
 
 	/** Destructor. */
-	~FMessageRouter( );
+	~FMessageRouter();
 
 public:
 
@@ -57,7 +58,7 @@ public:
 	 *
 	 * @return Weak pointer to the message tracer.
 	 */
-	FORCEINLINE IMessageTracerRef GetTracer( )
+	FORCEINLINE IMessageTracerRef GetTracer()
 	{
 		return Tracer;
 	}
@@ -109,10 +110,10 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override;
-	virtual uint32 Run( ) override;
-	virtual void Stop( ) override;
-	virtual void Exit( ) override;
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override;
 
 protected:
 
@@ -121,7 +122,7 @@ protected:
 	 *
 	 * @return Wait time.
 	 */
-	FTimespan CalculateWaitTime( );
+	FTimespan CalculateWaitTime();
 
 	/**
 	 * Queues up a router command.
@@ -159,7 +160,7 @@ protected:
 	void DispatchMessage( const IMessageContextRef& Message );
 
 	/** Processes all delayed messages. */
-	void ProcessDelayedMessages( );
+	void ProcessDelayedMessages();
 
 private:
 
@@ -174,7 +175,7 @@ private:
 
 
 		// Default constructor.
-		FDelayedMessage( ) { }
+		FDelayedMessage() { }
 
 		// Creates and initializes a new instance.
 		FDelayedMessage( const IMessageContextRef& InContext, int64 InSequence )

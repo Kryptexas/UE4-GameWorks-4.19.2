@@ -43,10 +43,10 @@ public:
 	DECLARE_DELEGATE(TraceDelegate)
 
 	/** Default constructor. */
-	FMessageTracer( );
+	FMessageTracer();
 
 	/** Destructor. */
-	~FMessageTracer( );
+	~FMessageTracer();
 
 public:
 
@@ -218,12 +218,12 @@ public:
 
 	// IMessageTracer interface
 
-	virtual void Break( ) override
+	virtual void Break() override
 	{
 		Breaking = true;
 	}
 
-	virtual void Continue( ) override
+	virtual void Continue() override
 	{
 		if (!Breaking)
 		{
@@ -238,42 +238,42 @@ public:
 	virtual int32 GetMessages( TArray<FMessageTracerMessageInfoPtr>& OutMessages ) const override;
 	virtual int32 GetMessageTypes( TArray<FMessageTracerTypeInfoPtr>& OutTypes ) const override;
 
-	virtual bool HasMessages( ) const override
+	virtual bool HasMessages() const override
 	{
 		return (MessageInfos.Num() > 0);
 	}
 
-	virtual bool IsBreaking( ) const override
+	virtual bool IsBreaking() const override
 	{
 		return Breaking;
 	}
 
-	virtual bool IsRunning( ) const override
+	virtual bool IsRunning() const override
 	{
 		return Running;
 	}
 
-	virtual FMessageTracerMessageAdded& OnMessageAdded( ) override
+	virtual FMessageTracerMessageAdded& OnMessageAdded() override
 	{
 		return MessagesAddedDelegate;
 	}
 
-	virtual FSimpleMulticastDelegate& OnMessagesReset( ) override
+	virtual FSimpleMulticastDelegate& OnMessagesReset() override
 	{
 		return MessagesResetDelegate;
 	}
 
-	virtual FMessageTracerTypeAdded& OnTypeAdded( ) override
+	virtual FMessageTracerTypeAdded& OnTypeAdded() override
 	{
 		return TypeAddedDelegate;
 	}
 
-	virtual void Reset( ) override
+	virtual void Reset() override
 	{
 		ResetPending = true;
 	}
 
-	virtual void Start( ) override
+	virtual void Start() override
 	{
 		if (Running)
 		{
@@ -283,7 +283,7 @@ public:
 		Running = true;
 	}
 
-	virtual void Step( ) override
+	virtual void Step() override
 	{
 		if (!Breaking)
 		{
@@ -293,7 +293,7 @@ public:
 		ContinueEvent->Trigger();
 	}
 
-	virtual void Stop( ) override
+	virtual void Stop() override
 	{
 		if (!Running)
 		{
@@ -411,7 +411,7 @@ protected:
 	/**
 	 * Resets traced messages.
 	 */
-	void ResetMessages( );
+	void ResetMessages();
 
 	/**
 	 * Checks whether the tracer should break on the given message.

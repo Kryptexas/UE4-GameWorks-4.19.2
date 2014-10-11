@@ -64,5 +64,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IAuthorizeMessageRecipients( ) { }
+	virtual ~IAuthorizeMessageRecipients() { }
 };

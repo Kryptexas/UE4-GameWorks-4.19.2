@@ -77,7 +77,7 @@ public:
 	{ }
 
 	/** Destructor. */
-	~FMessageEndpoint( )
+	~FMessageEndpoint()
 	{
 		IMessageBusPtr Bus = BusPtr.Pin();
 
@@ -97,7 +97,7 @@ public:
 	 *
 	 * @see Enable
 	 */
-	void Disable( )
+	void Disable()
 	{
 		Enabled = false;
 	}
@@ -110,7 +110,7 @@ public:
 	 *
 	 * @see Disable
 	 */
-	void Enable( )
+	void Enable()
 	{
 		Enabled = true;
 	}
@@ -120,7 +120,7 @@ public:
 	 *
 	 * @return Message address.
 	 */
-	const FMessageAddress& GetAddress( ) const
+	const FMessageAddress& GetAddress() const
 	{
 		return Address;
 	}
@@ -128,7 +128,7 @@ public:
 	/**
 	 * Checks whether this endpoint is connected to the bus.
 	 */
-	bool IsConnected( ) const
+	bool IsConnected() const
 	{
 		return BusPtr.IsValid();
 	}
@@ -138,7 +138,7 @@ public:
 	 *
 	 * @return true if the endpoint is enabled, false otherwise.
 	 */
-	bool IsEnabled( ) const
+	bool IsEnabled() const
 	{
 		return Enabled;
 	}
@@ -193,7 +193,7 @@ public:
 	 * @param ForwardingScope The scope of the forwarded message.
 	 * @param Delay The time delay.
 	 */
-	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay )
+	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope ForwardingScope, const FTimespan& Delay )
 	{
 		IMessageBusPtr Bus = GetBusIfEnabled();
 
@@ -213,7 +213,7 @@ public:
 	 * @param Delay The delay after which to publish the message.
 	 * @param Expiration The time at which the message expires.
 	 */
-	void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration )
+	void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration )
 	{
 		IMessageBusPtr Bus = GetBusIfEnabled();
 
@@ -284,7 +284,7 @@ public:
 	 *
 	 * @see EnableInbox, IsInboxEmpty, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
-	void DisableInbox( )
+	void DisableInbox()
 	{
 		InboxEnabled = false;
 	}
@@ -298,7 +298,7 @@ public:
 	 *
 	 * @see DisableInbox, IsInboxEmpty, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
-	void EnableInbox( )
+	void EnableInbox()
 	{
 		InboxEnabled = true;
 	}
@@ -309,7 +309,7 @@ public:
 	 * @return true if the inbox is empty, false otherwise.
 	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
-	bool IsInboxEmpty( ) const
+	bool IsInboxEmpty() const
 	{
 		return Inbox.IsEmpty();
 	}
@@ -319,7 +319,7 @@ public:
 	 *
 	 * @see DisableInbox, EnableInbox, IsInboxEmpty, ProcessInbox, ReceiveFromInbox
 	 */
-	bool IsInboxEnabled( ) const
+	bool IsInboxEnabled() const
 	{
 		return InboxEnabled;
 	}
@@ -333,7 +333,7 @@ public:
 	 *
 	 * @see IsInboxEmpty, ReceiveFromInbox
 	 */
-	void ProcessInbox( )
+	void ProcessInbox()
 	{
 		IMessageContextPtr Context;
 
@@ -369,7 +369,7 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	FOnMessageEndpointReceiveMessage& OnReceiveMessage( )
+	FOnMessageEndpointReceiveMessage& OnReceiveMessage()
 	{
 		return ReceiveDelegate;
 	}
@@ -378,22 +378,22 @@ public:
 
 	// IReceiveMessages interface
 
-	virtual FName GetDebugName( ) const override
+	virtual FName GetDebugName() const override
 	{
 		return Name;
 	}
 
-	virtual const FGuid& GetRecipientId( ) const override
+	virtual const FGuid& GetRecipientId() const override
 	{
 		return Id;
 	}
 
-	virtual ENamedThreads::Type GetRecipientThread( ) const override
+	virtual ENamedThreads::Type GetRecipientThread() const override
 	{
 		return RecipientThread;
 	}
 
-	virtual bool IsLocal( ) const override
+	virtual bool IsLocal() const override
 	{
 		return true;
 	}
@@ -424,7 +424,7 @@ public:
 
 	// ISendMessages interface
 
-	virtual FMessageAddress GetSenderAddress( ) override
+	virtual FMessageAddress GetSenderAddress() override
 	{
 		return Address;
 	}
@@ -445,7 +445,7 @@ public:
 	 * @param Recipient The address of the recipient to forward the message to.
 	 * @param ForwardingScope The scope of the forwarded message.
 	 */
-	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope::Type ForwardingScope )
+	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope ForwardingScope )
 	{
 		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), ForwardingScope, FTimespan::Zero());
 	}
@@ -460,7 +460,7 @@ public:
 	 * @param ForwardingScope The scope of the forwarded message.
 	 * @param Delay The delay after which to publish the message.
 	 */
-	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope::Type ForwardingScope, const FTimespan& Delay )
+	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope ForwardingScope, const FTimespan& Delay )
 	{
 		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), ForwardingScope, Delay);
 	}
@@ -474,7 +474,7 @@ public:
 	 * @param Recipients The list of message recipients to forward the message to.
 	 * @param ForwardingScope The scope of the forwarded message.
 	 */
-	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope )
+	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope ForwardingScope )
 	{
 		Forward(Context, Recipients, ForwardingScope, FTimespan::Zero());
 	}
@@ -497,7 +497,7 @@ public:
 	 * @param Scope The message scope.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message, EMessageScope::Type Scope )
+	void Publish( MessageType* Message, EMessageScope Scope )
 	{
 		Publish(Message, MessageType::StaticStruct(), Scope, FTimespan::Zero(), FDateTime::MaxValue());
 	}
@@ -522,7 +522,7 @@ public:
 	 * @param Delay The delay after which to publish the message.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message, EMessageScope::Type Scope, const FTimespan& Delay )
+	void Publish( MessageType* Message, EMessageScope Scope, const FTimespan& Delay )
 	{
 		Publish(Message, MessageType::StaticStruct(), Scope, Delay, FDateTime::MaxValue());
 	}
@@ -537,7 +537,7 @@ public:
 	 * @param Expiration The time at which the message expires.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration )
+	void Publish( MessageType* Message, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration )
 	{
 		Publish(Message, MessageType::StaticStruct(), Scope, Delay, Expiration);
 	}
@@ -683,7 +683,7 @@ public:
 	 * @param HandlerFunc The class function handling the messages.
 	 */
 	template<class MessageType>
-	void Subscribe( )
+	void Subscribe()
 	{
 		Subscribe(MessageType::StaticStruct()->GetFName(), FMessageScopeRange::AtLeast(EMessageScope::Thread));
 	}
@@ -708,7 +708,7 @@ public:
 	 *
 	 * @see Subscribe
 	 */
-	void Unsubscribe( )
+	void Unsubscribe()
 	{
 		Unsubscribe(NAME_All);
 	}
@@ -720,7 +720,7 @@ public:
 	 * @see Subscribe
 	 */
 	template<class MessageType>
-	void Unsubscribe( )
+	void Unsubscribe()
 	{
 		Unsubscribe(MessageType::StaticStruct()->GetFName());
 	}
@@ -755,7 +755,7 @@ protected:
 	 *
 	 * @return The message bus.
 	 */
-	FORCEINLINE IMessageBusPtr GetBusIfEnabled( ) const
+	FORCEINLINE IMessageBusPtr GetBusIfEnabled() const
 	{
 		if (Enabled)
 		{

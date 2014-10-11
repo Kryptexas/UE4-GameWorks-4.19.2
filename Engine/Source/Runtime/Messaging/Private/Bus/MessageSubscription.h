@@ -34,32 +34,32 @@ public:
 
 	// IMessageSubscription interface
 
-	virtual void Disable( ) override
+	virtual void Disable() override
 	{
 		Enabled = false;
 	}
 
-	virtual void Enable( ) override
+	virtual void Enable() override
 	{
 		Enabled = true;
 	}
 
-	virtual FName GetMessageType( ) override
+	virtual FName GetMessageType() override
 	{
 		return MessageType;
 	}
 
-	virtual const FMessageScopeRange& GetScopeRange( ) override
+	virtual const FMessageScopeRange& GetScopeRange() override
 	{
 		return ScopeRange;
 	}
 
-	virtual const IReceiveMessagesWeakPtr& GetSubscriber( ) override
+	virtual const IReceiveMessagesWeakPtr& GetSubscriber() override
 	{
 		return Subscriber;
 	}
 
-	virtual bool IsEnabled( ) override
+	virtual bool IsEnabled() override
 	{
 		return Enabled;
 	}

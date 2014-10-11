@@ -11,7 +11,7 @@ class FMessageBridgeBuilder
 public:
 
 	/** Default constructor. */
-	FMessageBridgeBuilder( )
+	FMessageBridgeBuilder()
 		: Address(FMessageAddress::NewGuid())
 		, BusPtr(IMessagingModule::Get().GetDefaultBus())
 		, Disabled(false)
@@ -37,7 +37,7 @@ public:
 	 *
 	 * @return This instance (for method chaining).
 	 */
-	FMessageBridgeBuilder& ThatIsDisabled( )
+	FMessageBridgeBuilder& ThatIsDisabled()
 	{
 		Disabled = true;
 
@@ -75,7 +75,7 @@ public:
 	 *
 	 * @return This instance (for method chaining).
 	 */
-	FMessageBridgeBuilder& UsingJsonSerializer( )
+	FMessageBridgeBuilder& UsingJsonSerializer()
 	{
 		Serializer = IMessagingModule::Get().CreateJsonMessageSerializer();
 
@@ -104,7 +104,7 @@ public:
 	 *
 	 * @return A new message bridge, or nullptr if it couldn't be built.
 	 */
-	IMessageBridgePtr Build( )
+	IMessageBridgePtr Build()
 	{
 		IMessageBridgePtr Bridge;
 
@@ -137,7 +137,7 @@ public:
 	 *
 	 * @return A new message bridge, or nullptr if it couldn't be built.
 	 */
-	operator IMessageBridgePtr( )
+	operator IMessageBridgePtr()
 	{
 		return Build();
 	}

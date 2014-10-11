@@ -15,7 +15,7 @@ class FMessageContext
 public:
 
 	/** Default constructor. */
-	FMessageContext( )
+	FMessageContext()
 		: Message(nullptr)
 		, TypeInfo(nullptr)
 	{ }
@@ -33,7 +33,7 @@ public:
 	 * @param InExpiration The message's expiration time.
 	 * @param InSenderThread The name of the thread from which the message was sent.
 	 */
-	FMessageContext( void* InMessage, UScriptStruct* InTypeInfo, const IMessageAttachmentPtr& InAttachment, const FMessageAddress& InSender, const TArray<FMessageAddress>& InRecipients, EMessageScope::Type InScope, const FDateTime& InTimeSent, const FDateTime& InExpiration, ENamedThreads::Type InSenderThread )
+	FMessageContext( void* InMessage, UScriptStruct* InTypeInfo, const IMessageAttachmentPtr& InAttachment, const FMessageAddress& InSender, const TArray<FMessageAddress>& InRecipients, EMessageScope InScope, const FDateTime& InTimeSent, const FDateTime& InExpiration, ENamedThreads::Type InSenderThread )
 		: Attachment(InAttachment)
 		, Expiration(InExpiration)
 		, Message(InMessage)
@@ -55,7 +55,7 @@ public:
 	 * @param InTimeForwarded The time at which the message was forwarded.
 	 * @param InSenderThread The name of the thread from which the message was sent.
 	 */
-	FMessageContext( const IMessageContextRef& InContext, const FMessageAddress& InForwarder, const TArray<FMessageAddress>& NewRecipients, EMessageScope::Type NewScope, const FDateTime& InTimeForwarded, ENamedThreads::Type InSenderThread )
+	FMessageContext( const IMessageContextRef& InContext, const FMessageAddress& InForwarder, const TArray<FMessageAddress>& NewRecipients, EMessageScope NewScope, const FDateTime& InTimeForwarded, ENamedThreads::Type InSenderThread )
 		: Attachment(nullptr)
 		, Forwarder(InForwarder)
 		, Message(nullptr)
@@ -81,7 +81,7 @@ public:
 
 	// IMessageContext interface
 
-	virtual IMessageAttachmentPtr GetAttachment( ) const override
+	virtual IMessageAttachmentPtr GetAttachment() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -91,7 +91,7 @@ public:
 		return Attachment;
 	}
 
-	virtual const FDateTime& GetExpiration( ) const override
+	virtual const FDateTime& GetExpiration() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -101,12 +101,12 @@ public:
 		return Expiration;
 	}
 
-	virtual const FMessageAddress& GetForwarder( ) const override
+	virtual const FMessageAddress& GetForwarder() const override
 	{
 		return Forwarder;
 	}
 
-	virtual const TMap<FName, FString>& GetHeaders( ) const override
+	virtual const TMap<FName, FString>& GetHeaders() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -116,7 +116,7 @@ public:
 		return Headers;
 	}
 
-	virtual const void* GetMessage( ) const override
+	virtual const void* GetMessage() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -126,7 +126,7 @@ public:
 		return Message;
 	}
 
-	virtual FName GetMessageType( ) const override
+	virtual FName GetMessageType() const override
 	{
 		if (IsValid())
 		{
@@ -136,7 +136,7 @@ public:
 		return NAME_None;
 	}
 
-	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo( ) const override
+	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -146,22 +146,22 @@ public:
 		return TypeInfo;
 	}
 
-	virtual IMessageContextPtr GetOriginalContext( ) const override
+	virtual IMessageContextPtr GetOriginalContext() const override
 	{
 		return OriginalContext;
 	}
 
-	virtual const TArray<FMessageAddress>& GetRecipients( ) const override
+	virtual const TArray<FMessageAddress>& GetRecipients() const override
 	{
 		return Recipients;
 	}
 
-	virtual EMessageScope::Type GetScope( ) const override
+	virtual EMessageScope GetScope() const override
 	{
 		return Scope;
 	}
 
-	virtual const FMessageAddress& GetSender( ) const override
+	virtual const FMessageAddress& GetSender() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -171,17 +171,17 @@ public:
 		return Sender;
 	}
 
-	virtual ENamedThreads::Type GetSenderThread( ) const override
+	virtual ENamedThreads::Type GetSenderThread() const override
 	{
 		return SenderThread;
 	}
 
-	virtual const FDateTime& GetTimeForwarded( ) const override
+	virtual const FDateTime& GetTimeForwarded() const override
 	{
 		return TimeForwarded;
 	}
 
-	virtual const FDateTime& GetTimeSent( ) const override
+	virtual const FDateTime& GetTimeSent() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -191,12 +191,12 @@ public:
 		return TimeSent;
 	}
 
-	virtual bool IsForwarded( ) const override
+	virtual bool IsForwarded() const override
 	{
 		return OriginalContext.IsValid();
 	}
 
-	virtual bool IsValid( ) const override
+	virtual bool IsValid() const override
 	{
 		if (OriginalContext.IsValid())
 		{
@@ -236,7 +236,7 @@ public:
 		Headers.Add(Key, Value);
 	}
 
-	virtual void SetScope( EMessageScope::Type InScope ) override
+	virtual void SetScope( EMessageScope InScope ) override
 	{
 		Scope = InScope;
 	}
@@ -275,7 +275,7 @@ private:
 	TArray<FMessageAddress> Recipients;
 
 	/** Holds the message's scope. */
-	EMessageScope::Type Scope;
+	EMessageScope Scope;
 
 	/** Holds the sender's identifier. */
 	FMessageAddress Sender;

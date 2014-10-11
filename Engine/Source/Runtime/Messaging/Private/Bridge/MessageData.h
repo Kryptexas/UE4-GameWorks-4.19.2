@@ -20,7 +20,7 @@ class FMessageData
 public:
 
 	/** Default constructor. */
-	FMessageData( )
+	FMessageData()
 		: FMemoryWriter(Data, true)
 		, State(EMessageDataState::Incomplete)
 	{ }
@@ -32,7 +32,7 @@ public:
 	 *
 	 * @param InState The state to set.
 	 */
-	void UpdateState( EMessageDataState::Type InState )
+	void UpdateState( EMessageDataState InState )
 	{
 		State = InState;
 		StateChangedDelegate.ExecuteIfBound();
@@ -42,17 +42,17 @@ public:
 
 	// IMessageAttachment interface
 
-	virtual FArchive* CreateReader( ) override
+	virtual FArchive* CreateReader() override
 	{
 		return new FMemoryReader(Data, true);
 	}
 
-	virtual EMessageDataState::Type GetState( ) const override
+	virtual EMessageDataState GetState() const override
 	{
 		return State;
 	}
 
-	virtual FSimpleDelegate& OnStateChanged( ) override
+	virtual FSimpleDelegate& OnStateChanged() override
 	{
 		return StateChangedDelegate;
 	}
@@ -63,7 +63,7 @@ private:
 	TArray<uint8> Data;
 
 	/** Holds the message data state. */
-	EMessageDataState::Type State;
+	EMessageDataState State;
 
 private:
 
