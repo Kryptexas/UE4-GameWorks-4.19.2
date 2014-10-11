@@ -38,7 +38,7 @@ bool FLinuxTargetDevice::Run( const FString& ExecutablePath, const FString& Para
 	return false;
 }
 
-bool FLinuxTargetDevice::SupportsFeature( ETargetDeviceFeatures::Type Feature ) const
+bool FLinuxTargetDevice::SupportsFeature( ETargetDeviceFeatures Feature ) const
 {
 	return false;
 }

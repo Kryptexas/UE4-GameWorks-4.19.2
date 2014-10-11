@@ -73,7 +73,7 @@ inline bool FAndroidTargetDevice::Run( const FString& ExecutablePath, const FStr
 }
 
 
-inline bool FAndroidTargetDevice::SupportsFeature( ETargetDeviceFeatures::Type Feature ) const
+inline bool FAndroidTargetDevice::SupportsFeature( ETargetDeviceFeatures Feature ) const
 {
 	switch (Feature)
 	{

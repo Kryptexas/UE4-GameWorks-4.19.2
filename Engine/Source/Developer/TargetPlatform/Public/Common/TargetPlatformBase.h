@@ -168,10 +168,10 @@ public:
 
 	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override
 	{
-		int bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+		int bReadyToBuild = static_cast<int>(ETargetPlatformReadyStatus::Ready); // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
 		if (!IsSdkInstalled(bProjectHasCode, OutDocumentationPath))
 		{
-			bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
+			bReadyToBuild |= static_cast<int>(ETargetPlatformReadyStatus::SDKNotFound);
 		}
 		return bReadyToBuild;
 	}
@@ -283,7 +283,7 @@ public:
 		return TPlatformProperties::SupportsAutoSDK();
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
 	{
 		switch (Feature)
 		{

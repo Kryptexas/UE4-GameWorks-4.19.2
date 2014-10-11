@@ -50,7 +50,7 @@ public:
 	virtual void Disconnect( )
 	{ }
 
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const override
+	virtual ETargetDeviceTypes GetDeviceType( ) const override
 	{
 		return ETargetDeviceTypes::Desktop;
 	}
@@ -103,7 +103,7 @@ public:
 
 	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) override;
 
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const override;
+	virtual bool SupportsFeature( ETargetDeviceFeatures Feature ) const override;
 
 	virtual bool SupportsSdkVersion( const FString& VersionString ) const override;
 

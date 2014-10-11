@@ -111,7 +111,7 @@ public:
 	{
 	}
 
-	virtual ETargetDeviceTypes::Type GetDeviceType() const override
+	virtual ETargetDeviceTypes GetDeviceType() const override
 	{
 		//@TODO: How to distinguish between a Tablet and a Phone (or a TV microconsole, etc...), and is it important?
 		return ETargetDeviceTypes::Tablet;
@@ -163,7 +163,7 @@ public:
 	virtual bool Launch(const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId);
 	virtual bool Reboot(bool bReconnect = false) override;
 	virtual bool Run(const FString& ExecutablePath, const FString& Params, uint32* OutProcessId) override;
-	virtual bool SupportsFeature(ETargetDeviceFeatures::Type Feature) const override;
+	virtual bool SupportsFeature(ETargetDeviceFeatures Feature) const override;
 	virtual bool SupportsSdkVersion(const FString& VersionString) const override;
 	virtual bool TerminateProcess(const int32 ProcessId) override;
 	virtual void SetUserCredentials(const FString& UserName, const FString& UserPassword) override;

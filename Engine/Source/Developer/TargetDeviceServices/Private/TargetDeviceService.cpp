@@ -395,7 +395,7 @@ void FTargetDeviceService::HandlePingMessage(const FTargetDeviceServicePing& InM
 		FTargetDeviceServicePong* Message = new FTargetDeviceServicePong();
 
 		Message->Name = DefaultDevice->GetName();
-		Message->Type = ETargetDeviceTypes::ToString(DefaultDevice->GetDeviceType());
+		Message->Type = TargetDeviceTypes::ToString(DefaultDevice->GetDeviceType());
 		Message->HostName = FPlatformProcess::ComputerName();
 		Message->HostUser = FPlatformProcess::UserName(true);
 		Message->Connected = DefaultDevice->IsConnected();

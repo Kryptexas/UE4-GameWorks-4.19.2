@@ -47,7 +47,7 @@ class FAndroid_ES31TargetPlatform
 		return (ExtensionsString.Contains(TEXT("GL_EXT_tessellation_shader")));
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
 	{
 		switch (Feature)
 		{

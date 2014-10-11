@@ -139,7 +139,7 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bPr
 
 
 template<class TPlatformProperties>
-inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETargetPlatformFeatures::Type Feature ) const
+inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETargetPlatformFeatures Feature ) const
 {
 	if (Feature == ETargetPlatformFeatures::Packaging)
 	{

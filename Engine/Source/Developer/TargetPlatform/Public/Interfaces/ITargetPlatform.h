@@ -10,112 +10,82 @@ namespace PlatformInfo
 }
 
 
-namespace ETargetPlatformBuildArtifacts
+/**
+ * Enumerates features that may be supported by target platforms.
+ */
+enum class ETargetPlatformFeatures
 {
-	/**
-	 * Enumerates build artifact types.
-	 */
-	enum Type
-	{
-		/** Include content files. */
-		Content = 0x1,
+	/** Audio Streaming */
+	AudioStreaming,
 
-		/**
-		 * Include debug symbol files, i.e PDB.
-		 *
-		 * Requires 'Engine' artifact type.
-		 */
-		DebugSymbols = 0x2,
+	/** Distance field shadows. */
+	DistanceFieldShadows,
 
-		/** Include Engine binaries and DLLs. */
-		Engine = 0x4,
+	/** Gray scale SRGB texture formats support. */
+	GrayscaleSRGB,
 
-		/** Include tools. */
-		Tools = 0x8,
-	};
-}
+	/** High quality light maps. */
+	HighQualityLightmaps,
 
+	/** Low quality light maps. */
+	LowQualityLightmaps,
 
-namespace ETargetPlatformFeatures
-{
-	/**
-	 * Enumerates features that may be supported by target platforms.
-	 */
-	enum Type
-	{
-		/** Audio Streaming */
-		AudioStreaming,
+	/** Run multiple game instances on a single device. */
+	MultipleGameInstances,
 
-		/** Distance field shadows. */
-		DistanceFieldShadows,
+	/** Builds can be packaged for this platform. */
+	Packaging,
 
-		/** Gray scale SRGB texture formats support. */
-		GrayscaleSRGB,
+	/** Connect and disconnect devices through the SDK. */
+	SdkConnectDisconnect,
 
-		/** High quality light maps. */
-		HighQualityLightmaps,
+	/** GPU tesselation. */
+	Tessellation,
 
-		/** Low quality light maps. */
-		LowQualityLightmaps,
+	/** Texture streaming. */
+	TextureStreaming,
 
-		/** Run multiple game instances on a single device. */
-		MultipleGameInstances,
+	/** User credentials are required to use the device. */
+	UserCredentials,
 
-		/** Builds can be packaged for this platform. */
-		Packaging,
-
-		/** Connect and disconnect devices through the SDK. */
-		SdkConnectDisconnect,
-
-		/** GPU tesselation. */
-		Tessellation,
-
-		/** Texture streaming. */
-		TextureStreaming,
-
-		/** User credentials are required to use the device. */
-		UserCredentials,
-
-		/** Vertex Shader Texture Sampling. */
-		VertexShaderTextureSampling,
-	};
-};
-
-
-namespace ETargetPlatformReadyStatus
-{
-	/**
-	 * Flags specifiying what is needed to be able to complete and deploy a build
-	 */
-	enum Type
-	{
-		/** Ready */
-		Ready = 0,
-
-		/** SDK Not Found*/
-		SDKNotFound = 1,
-
-		/** Code Build Not Supported */
-		CodeUnsupported = 2,
-
-		/** Plugins Not Supported */
-		PluginsUnsupported = 4,
-
-		/** Signing Key Not Found */
-		SigningKeyNotFound = 8,
-
-		/** Provision Not Found */
-		ProvisionNotFound = 16,
-
-		/** Manifest Not Found */
-		ManifestNotFound = 32,
-	};
+	/** Vertex Shader Texture Sampling. */
+	VertexShaderTextureSampling,
 };
 
 
 /**
- * ITargetPlatform, abstraction for cooking platforms and enumerating actual target devices
-**/
+ * Flags specifying what is needed to be able to complete and deploy a build.
+ */
+namespace ETargetPlatformReadyStatus
+{
+	/** Ready */
+	const int32 Ready = 0;
+
+	/** SDK Not Found*/
+	const int32 SDKNotFound = 1;
+
+	/** Code Build Not Supported */
+	const int32 CodeUnsupported = 2;
+
+	/** Plugins Not Supported */
+	const int32 PluginsUnsupported = 4;
+
+	/** Signing Key Not Found */
+	const int32 SigningKeyNotFound = 8;
+
+	/** Provision Not Found */
+	const int32 ProvisionNotFound = 16;
+
+	/** Manifest Not Found */
+	const int32 ManifestNotFound = 32;
+};
+
+
+/**
+ * Interface for target platforms.
+ *
+ * This interface provides an abstraction for cooking platforms and enumerating actual target devices.
+ */
 class ITargetPlatform
 {
 public:
@@ -143,6 +113,17 @@ public:
 	 * @see PlatformName
 	 */
 	virtual FText DisplayName( ) const = 0;
+
+	/**
+	 * Checks whether the platform's build requirements are met so that we can do things like
+	 * package for the platform
+	 *
+	 * @param ProjectPath Path to the project
+	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
+	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem
+	 * @return Readiness status
+	 */
+	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 	/**
 	 * Returns the information about this platform
@@ -209,6 +190,13 @@ public:
 	virtual bool HasEditorOnlyData( ) const = 0;
 
 	/**
+	 * Checks whether this platform is only a client (and must connect to a server to run).
+	 *
+	 * @return true if this platform must connect to a server.
+	 */
+	virtual bool IsClientOnly( ) const = 0;
+
+	/**
 	 * Checks whether this platform is little endian.
 	 *
 	 * @return true if this platform is little-endian, false otherwise.
@@ -233,11 +221,14 @@ public:
 	virtual bool IsServerOnly( ) const = 0;
 
 	/**
-	 * Checks whether this platform is only a client (and must connect to a server to run).
+	 * Checks whether the platform's SDK requirements are met so that we can do things like
+	 * package for the platform
 	 *
-	 * @return true if this platform must connect to a server.
+	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
+	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some documentation about how to set up the SDK
+	 * @return true if the platform is ready for use
 	 */
-	virtual bool IsClientOnly( ) const = 0;
+	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 	/**
 	 * Returns the maximum bones the platform supports.
@@ -261,6 +252,11 @@ public:
 	virtual bool RequiresUserCredentials() const = 0;
 
 	/**
+	 * Returns true if the platform supports the AutoSDK system
+	 */
+	virtual bool SupportsAutoSDK() const = 0;
+
+	/**
 	 * Checks whether this platform supports the specified build target, i.e. Game or Editor.
 	 *
 	 * @param BuildTarget The build target to check.
@@ -269,40 +265,12 @@ public:
 	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const = 0;
 
 	/**
-	 * Returns true if the platform supports the AutoSDK system
-	 */
-	virtual bool SupportsAutoSDK() const = 0;
-
-	/**
 	 * Checks whether the target platform supports the specified feature.
 	 *
 	 * @param Feature The feature to check.
 	 * @return true if the feature is supported, false otherwise.
 	 */
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const = 0;
-
-
-	/**
-	 * Checks whether the platform's SDK requirements are met so that we can do things like
-	 * package for the platform
-	 *
-	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
-	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some documentation about how to set up the SDK
-	 * @return true if the platform is ready for use
-	 */
-	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
-
-
-	/**
-	 * Checks whether the platform's build requirements are met so that we can do things like
-	 * package for the platform
-	 *
-	 * @param ProjectPath Path to the project
-	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
-	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem
-	 * @return Readiness status
-	 */
-	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const = 0;
 
 #if WITH_ENGINE
 	/**

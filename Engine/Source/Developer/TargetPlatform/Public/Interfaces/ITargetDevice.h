@@ -3,141 +3,135 @@
 #pragma once
 
 
-namespace ETargetDeviceFeatures
+/**
+ * Enumerates features that may be supported by target devices.
+ */
+enum class ETargetDeviceFeatures
 {
-	/**
-	 * Enumerates features that may be supported by target devices.
-	 */
-	enum Type
-	{
-		/** Multiple instances of a game can run at the same time. */
-		MultiLaunch,
+	/** Multiple instances of a game can run at the same time. */
+	MultiLaunch,
 
-		/** The device can be powered off remotely. */
-		PowerOff,
+	/** The device can be powered off remotely. */
+	PowerOff,
 
-		/** The device can be powered on remotely. */	  
-		PowerOn,
+	/** The device can be powered on remotely. */	  
+	PowerOn,
 
-		/** Snapshot of processes running on the device. */
-		ProcessSnapshot,
+	/** Snapshot of processes running on the device. */
+	ProcessSnapshot,
 
-		/** The device can be rebooted remotely. */
-		Reboot
-	};
-}
+	/** The device can be rebooted remotely. */
+	Reboot
+};
 
 
-namespace ETargetDeviceTypes
+/**
+ * Enumerates target device types.
+ */
+enum class ETargetDeviceTypes
 {
-	/**
-	 * Enumerates target device types.
-	 */
-	enum Type
-	{
-		/** Indeterminate device type. */
-		Indeterminate,
+	/** Indeterminate device type. */
+	Indeterminate,
 
-		/** The device is a web browser (i.e. Flash). */
-		Browser,
+	/** The device is a web browser (i.e. Flash). */
+	Browser,
 
-		/** The device is a game console. */
-		Console,
+	/** The device is a game console. */
+	Console,
 
-		/** The device is a desktop computer. */
-		Desktop,
+	/** The device is a desktop computer. */
+	Desktop,
 
-		/** The device is a smart phone. */
-		Phone,
+	/** The device is a smart phone. */
+	Phone,
 
-		/** The device is a tablet computer. */
-		Tablet
-	};
+	/** The device is a tablet computer. */
+	Tablet
+};
 
 
+namespace TargetDeviceTypes
+{
 	/**
 	 * Returns the string representation of the specified ETargetDeviceTypes value.
 	 *
 	 * @param Configuration The value to get the string for.
 	 * @return A string value.
 	 */
-	inline FString ToString(ETargetDeviceTypes::Type DeviceType)
+	inline FString ToString(ETargetDeviceTypes DeviceType)
 	{
 		switch (DeviceType)
 		{
-			case Browser:
-				return FString("Browser");
+		case ETargetDeviceTypes::Browser:
+			return FString("Browser");
 
-			case Console:
-				return FString("Console");
+		case ETargetDeviceTypes::Console:
+			return FString("Console");
 
-			case Desktop:
-				return FString("Desktop");
+		case ETargetDeviceTypes::Desktop:
+			return FString("Desktop");
 
-			case Phone:
-				return FString("Phone");
+		case ETargetDeviceTypes::Phone:
+			return FString("Phone");
 
-			case Tablet:
-				return FString("Tablet");
+		case ETargetDeviceTypes::Tablet:
+			return FString("Tablet");
 
-			default:
-				return FString("Indeterminate");
+		default:
+			return FString("Indeterminate");
 		}
 	}
 }
 
 
-namespace ETargetDeviceThreadStates
+/**
+ * Enumerates states of threads running on a target device.
+ */
+enum class ETargetDeviceThreadStates
 {
-	/**
-	 * Enumerates thread states.
-	 */
-	enum Type
-	{
-		/** Unknown thread state. */
-		Unknown,
+	/** Unknown thread state. */
+	Unknown,
 
-		/** The thread can run, but is not running right now. */
-		CanRun,
+	/** The thread can run, but is not running right now. */
+	CanRun,
 
-		/** The thread is inactive, i.e. has just been created or exited. */
-		Inactive,
+	/** The thread is inactive, i.e. has just been created or exited. */
+	Inactive,
 
-		/** The thread cannot run right now. */
-		Inhibited,
+	/** The thread cannot run right now. */
+	Inhibited,
 
-		/** The thread is in the run queue. */
-		RunQueue,
+	/** The thread is in the run queue. */
+	RunQueue,
 
-		/** The thread is running. */
-		Running
-	};
-}
+	/** The thread is running. */
+	Running
+};
 
 
-namespace ETargetDeviceThreadWaitStates
+/**
+ * Enumerates wait states of threads running on a target device.
+ */
+enum class ETargetDeviceThreadWaitStates
 {
-	enum Type
-	{
-		/** Unknown wait state. */
-		Unknown,
+	/** Unknown wait state. */
+	Unknown,
 
-		/** The thread is blocked by a lock. */
-		Locked,
+	/** The thread is blocked by a lock. */
+	Locked,
 	
-		/** The thread is sleeping. */
-		Sleeping,
+	/** The thread is sleeping. */
+	Sleeping,
 
-		/** The thread is suspended. */
-		Suspended,
+	/** The thread is suspended. */
+	Suspended,
 
-		/** The thread is swapped. */
-		Swapped,
+	/** The thread is swapped. */
+	Swapped,
 
-		/** The thread is waiting on an interrupt. */
-		Waiting
-	};
-}
+	/** The thread is waiting on an interrupt. */
+	Waiting
+};
 
 
 /**
@@ -158,10 +152,10 @@ struct FTargetDeviceThreadInfo
 	uint64 StackSize;
 
 	/** Holds the thread's current state. */
-	ETargetDeviceThreadStates::Type State;
+	ETargetDeviceThreadStates State;
 
 	/** Holds the thread's current wait state. */
-	ETargetDeviceThreadWaitStates::Type WaitState;
+	ETargetDeviceThreadWaitStates WaitState;
 };
 
 
@@ -230,7 +224,7 @@ public:
 	 *
 	 * @return Device type.
 	 */
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const = 0;
+	virtual ETargetDeviceTypes GetDeviceType( ) const = 0;
 
 	/**
 	 * Gets the unique device identifier.
@@ -340,7 +334,7 @@ public:
 	 * @param Feature The feature to check.
 	 * @return true if the feature is supported, false otherwise.
 	 */
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const = 0;
+	virtual bool SupportsFeature( ETargetDeviceFeatures Feature ) const = 0;
 
 	/**
 	 * Checks whether this device supports the specified SDK version.

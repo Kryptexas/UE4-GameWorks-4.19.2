@@ -121,7 +121,7 @@ public:
 		return PLATFORM_LINUX && !UE_SERVER && !UE_GAME && WITH_EDITOR && HAS_EDITOR_DATA;
 	}
 
-	virtual bool SupportsFeature(ETargetPlatformFeatures::Type Feature) const override
+	virtual bool SupportsFeature(ETargetPlatformFeatures Feature) const override
 	{
 		if (Feature == ETargetPlatformFeatures::UserCredentials || Feature == ETargetPlatformFeatures::Packaging)
 		{

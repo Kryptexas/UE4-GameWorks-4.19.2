@@ -81,7 +81,7 @@ public:
 		return PLATFORM_MAC && !UE_SERVER && !UE_GAME && WITH_EDITOR && HAS_EDITOR_DATA;
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
 	{
 		// we currently do not have a build target for MacServer
 		if (Feature == ETargetPlatformFeatures::Packaging)

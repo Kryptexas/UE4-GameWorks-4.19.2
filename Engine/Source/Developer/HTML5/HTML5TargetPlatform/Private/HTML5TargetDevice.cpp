@@ -77,7 +77,7 @@ bool FHTML5TargetDevice::Run( const FString& ExecutablePath, const FString& Para
 }
 
 
-bool FHTML5TargetDevice::SupportsFeature( ETargetDeviceFeatures::Type Feature ) const
+bool FHTML5TargetDevice::SupportsFeature( ETargetDeviceFeatures Feature ) const
 {
 	switch (Feature)
 	{
