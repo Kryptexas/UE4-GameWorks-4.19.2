@@ -5,6 +5,7 @@
 
 #include "SoundDefinitions.h"
 #include "Perception/PawnSensingComponent.h"
+#include "PhysicsEngine/PhysicsSpringComponent.h"
 
 #include "PointLightComponentVisualizer.h"
 #include "SpotLightComponentVisualizer.h"
@@ -14,6 +15,7 @@
 #include "SpringArmComponentVisualizer.h"
 #include "SplineComponentVisualizer.h"
 #include "SensingComponentVisualizer.h"
+#include "SpringComponentVisualizer.h"
 
 IMPLEMENT_MODULE( FComponentVisualizersModule, ComponentVisualizers );
 
@@ -27,6 +29,7 @@ void FComponentVisualizersModule::StartupModule()
 	RegisterComponentVisualizer(USpringArmComponent::StaticClass()->GetFName(), MakeShareable(new FSpringArmComponentVisualizer));
 	RegisterComponentVisualizer(USplineComponent::StaticClass()->GetFName(), MakeShareable(new FSplineComponentVisualizer));
 	RegisterComponentVisualizer(UPawnSensingComponent::StaticClass()->GetFName(), MakeShareable(new FSensingComponentVisualizer));
+	RegisterComponentVisualizer(UPhysicsSpringComponent::StaticClass()->GetFName(), MakeShareable(new FSpringComponentVisualizer));
 }
 
 void FComponentVisualizersModule::ShutdownModule()
