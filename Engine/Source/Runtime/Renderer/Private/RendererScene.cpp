@@ -2062,7 +2062,9 @@ class FNULLSceneInterface : public FSceneInterface
 public:
 	FNULLSceneInterface( UWorld* InWorld )
 		:	World( InWorld )
-	{}
+	{
+		World->Scene = this;
+	}
 
 	virtual void AddPrimitive(UPrimitiveComponent* Primitive){}
 	virtual void RemovePrimitive(UPrimitiveComponent* Primitive){}
