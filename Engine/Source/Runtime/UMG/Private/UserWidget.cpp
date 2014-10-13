@@ -325,6 +325,16 @@ void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
 	StoppedSequencePlayers.Add( &Player );
 }
 
+void UUserWidget::PlaySound(USoundBase* SoundToPlay)
+{
+	if (SoundToPlay)
+	{
+		FSlateSound NewSound;
+		NewSound.SetResourceObject(SoundToPlay);
+		FSlateApplication::Get().PlaySound(NewSound);
+	}
+}
+
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
 	return WidgetTree->FindWidget(InWidget);

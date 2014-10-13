@@ -30,6 +30,14 @@ public:
 	UObject* GetResourceObject( ) const;
 
 	/**
+	* Sets the sound that is supposed to be played.
+	*/
+	void SetResourceObject(class UObject* InResourceObject)
+	{
+		ResourceObject = InResourceObject;
+	}
+
+	/**
 	 * Used when updating the ResourceObject within an FSlateSound from the editor to clear out any legacy data that may be set.
 	 */
 	void StripLegacyData_DEPRECATED( );

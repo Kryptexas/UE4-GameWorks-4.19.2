@@ -300,6 +300,14 @@ public:
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
 
+	/**
+	* Plays a sound through the UI
+	*
+	* @param The sound to play
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Sound")
+	void PlaySound(class USoundBase* SoundToPlay);
+
 	/** @returns The UObject wrapper for a given SWidget */
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
