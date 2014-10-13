@@ -5,7 +5,6 @@
 ==============================================================================================*/
 
 #pragma once
-#include "GenericPlatform/GenericPlatformMath.h"
 
 /**
 * IOS implementation of the Math OS functions

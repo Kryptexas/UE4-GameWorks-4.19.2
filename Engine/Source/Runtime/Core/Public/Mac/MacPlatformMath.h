@@ -5,8 +5,6 @@
 ==============================================================================================*/
 
 #pragma once
-#include "GenericPlatform/GenericPlatformMath.h"
-#include "Mac/MacSystemIncludes.h"
 
 /**
 * Mac implementation of the Math OS functions

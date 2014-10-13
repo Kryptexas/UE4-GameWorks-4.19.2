@@ -5,8 +5,6 @@
 ==============================================================================================*/
 
 #pragma once
-#include "GenericPlatform/GenericPlatformMath.h"
-#include "Linux/LinuxSystemIncludes.h"
 
 /**
 * Linux implementation of the Math OS functions

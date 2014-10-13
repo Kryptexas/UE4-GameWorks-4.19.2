@@ -6,8 +6,6 @@
 ==============================================================================================*/
 
 #pragma once
-#include "GenericPlatform/GenericPlatformMath.h"
-#include "Windows/WindowsSystemIncludes.h"
 
 /**
 * Windows implementation of the Math OS functions
