@@ -125,6 +125,7 @@ UCLASS()
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.

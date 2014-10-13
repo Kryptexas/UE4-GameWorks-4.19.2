@@ -1648,6 +1648,33 @@ FString GetGeneratedMacroDeprecationWarning(const TCHAR* MacroName)
 }
 
 /**
+ * Returns a string with access specifier that was met before parsing GENERATED_BODY() macro to preserve it.
+ *
+ * @param Class Class for which to return the access specifier.
+ *
+ * @returns Access specifier string.
+ */
+FString GetPreservedAccessSpecifierString(FClass* Class)
+{
+	FString PreservedAccessSpecifier = "static_assert(false, \"Access specifier for GENERATED_BODY() macro is wrong.\");";
+
+	switch (GScriptHelper.FindClassData(Class)->GeneratedBodyMacroAccessSpecifier)
+	{
+	case EAccessSpecifier::ACCESS_Private:
+		PreservedAccessSpecifier = "private:";
+		break;
+	case EAccessSpecifier::ACCESS_Protected:
+		PreservedAccessSpecifier = "protected:";
+		break;
+	case EAccessSpecifier::ACCESS_Public:
+		PreservedAccessSpecifier = "public:";
+		break;
+	}
+
+	return PreservedAccessSpecifier + LINE_TERMINATOR;
+}
+
+/**
  * Exports the C++ class declarations for a native interface class.
  */
 void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class )
@@ -1754,6 +1781,7 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 			Offset + DeprecationPushString +
 			Offset + TEXT("GENERATED_UINTERFACE_BODY_COMMON()") LINE_TERMINATOR +
 			EnhancedUObjectConstructorsMacroCall +
+			GetPreservedAccessSpecifierString(Class) +
 			Offset + DeprecationPopString)));
 	}
 
@@ -2136,7 +2164,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( FClass* Class, bool 
 			else
 			{
 				auto StandardWrappedInClassMacroCalls = Public + InClassMacroCalls + StandardUObjectConstructorsMacroCall + Public;
-				auto EnhancedWrappedInClassMacroCalls = Public + InClassMacroCalls + EnhancedUObjectConstructorsMacroCall + Public;
+				auto EnhancedWrappedInClassMacroCalls = Public + InClassMacroCalls + EnhancedUObjectConstructorsMacroCall + GetPreservedAccessSpecifierString(Class);
 
 				BodyMacros = Macroize(*MacroName, *(DeprecationWarning + DeprecationPushString + StandardWrappedInClassMacroCalls + DeprecationPopString)) +
 					Macroize(TEXT("GENERATED_BODY()"), *(FString(DeprecationPushString) + EnhancedWrappedInClassMacroCalls + DeprecationPopString));

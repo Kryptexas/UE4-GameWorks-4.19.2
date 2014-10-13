@@ -12,6 +12,7 @@ UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.

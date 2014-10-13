@@ -80,6 +80,7 @@ UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger, PhysicsVolume
 class ENGINE_API USceneComponent : public UActorComponent
 {
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.

@@ -35,16 +35,6 @@ enum ENestAllowFlags
 	ALLOW_TypeDecl			= 16,	// Allow declarations which do not affect memory layout, such as structs, enums, and consts
 };
 
-/** Types access specifiers. */
-enum EAccessSpecifier
-{
-	ACCESS_NotAnAccessSpecifier	= 0,	
-	ACCESS_Public,
-	ACCESS_Private,
-	ACCESS_Protected,
-	ACCESS_Num,
-};
-
 namespace EDelegateSpecifierAction
 {
 	enum Type

@@ -838,6 +838,7 @@ UCLASS(abstract, noexport)
 class UObject
 {
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.

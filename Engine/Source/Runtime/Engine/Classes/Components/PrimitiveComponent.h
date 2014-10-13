@@ -102,6 +102,7 @@ UCLASS(abstract, HideCategories=(Mobility), ShowCategories=(PhysicsVolume))
 class ENGINE_API UPrimitiveComponent : public USceneComponent, public INavRelevantInterface
 {
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.

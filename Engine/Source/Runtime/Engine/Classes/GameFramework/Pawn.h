@@ -30,6 +30,7 @@ UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navi
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.
@@ -43,7 +44,6 @@ class ENGINE_API APawn : public AActor, public INavAgentInterface
 	/** Return PrimitiveComponent we are based on (standing on, attached to, and moving on). */
 	virtual UPrimitiveComponent* GetMovementBase() const { return NULL; }
 
-public:
 	/** If true, this Pawn's pitch will be updated to match the Controller's ControlRotation pitch, if controlled by a PlayerController. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Pawn)
 	uint32 bUseControllerRotationPitch:1;

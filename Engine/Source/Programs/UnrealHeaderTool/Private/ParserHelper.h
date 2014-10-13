@@ -1558,6 +1558,9 @@ public:
 
 	// Is PCIP constructor (i.e. a constructor with only one parameter of type FPostConstructInitializeProperties) declared?
 	bool bPCIPConstructorDeclared;
+
+	// GENERATED_BODY access specifier to preserve.
+	EAccessSpecifier GeneratedBodyMacroAccessSpecifier;
 };
 
 /**

@@ -200,6 +200,7 @@ UCLASS(abstract, config=Game, BlueprintType, hidecategories=("Pawn|Character|Int
 class ENGINE_API ACharacter : public APawn
 {
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.

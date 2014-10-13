@@ -3839,7 +3839,7 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		RequireSymbol(TEXT("("), Token.Identifier);
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
-		CurrentAccessSpecifier = ACCESS_Public;
+		GScriptHelper.FindClassData(Class)->GeneratedBodyMacroAccessSpecifier = CurrentAccessSpecifier;
 
 		if (TopNest->NestType == NEST_Class)
 		{

@@ -67,13 +67,12 @@ class ENGINE_API AActor : public UObject
 	*/
 
 	GENERATED_BODY()
+public:
 
 	/**
 	 * Default UObject constructor.
 	 */
 	AActor(const class FPostConstructInitializeProperties& PCIP);
-
-public:
 
 	/**
 	 * Primary Actor tick function, which calls TickActor().
