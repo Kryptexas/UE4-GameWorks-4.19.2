@@ -645,10 +645,8 @@ void FBuildPatchAppManifest::InitLookups()
 	FileNameLookup.Empty(Data->bIsFileData ? Data->FileManifestList.Num() : 0);
 	for (auto& File : Data->FileManifestList)
 	{
-		for (auto& FilePart : File.FileChunkParts)
-		{
-			TotalBuildSize += FilePart.Size;
-		}
+		File.Init();
+		TotalBuildSize += File.GetFileSize();
 		FileManifestLookup.Add(File.Filename, &File);
 		if (Data->bIsFileData)
 		{
