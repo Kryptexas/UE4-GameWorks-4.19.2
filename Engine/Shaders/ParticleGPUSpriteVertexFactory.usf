@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ParticleGPUVertexFactory.usf: Vertex factory for GPU simulated particles.
+	ParticleGPUSpriteVertexFactory.usf: Vertex factory for GPU simulated particles.
 =============================================================================*/
 
 #define PARTICLE_SPRITE_FACTORY 1
