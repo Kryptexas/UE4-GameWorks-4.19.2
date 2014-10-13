@@ -5,6 +5,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMath.h"
 
 /**
  * Android implementation of the Math OS functions
