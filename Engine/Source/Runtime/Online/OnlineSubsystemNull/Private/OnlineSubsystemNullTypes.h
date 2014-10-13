@@ -5,6 +5,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "IPAddress.h"
 
+class FOnlineSubsystemNull;
 
 /** 
  * Implementation of session information
