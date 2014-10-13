@@ -77,7 +77,7 @@ public:
 	/**
 	* Generates a new FCanvasTileRendererItem for the current sortkey and adds it to the sortelement list of itmes to render
 	*/
-	ENGINE_API void AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,const FMaterialRenderProxy* MaterialRenderProxy,FHitProxyId HitProxyId,bool bFreezeTime);
+	ENGINE_API void AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,const FMaterialRenderProxy* MaterialRenderProxy,FHitProxyId HitProxyId,bool bFreezeTime,FColor InColor);
 
 	/** 
 	* Sends a message to the rendering thread to draw the batched elements. 
@@ -791,11 +791,11 @@ public:
 	* @param SizeV - tile V size
 	* @param return number of tiles added
 	*/
-	FORCEINLINE int32 AddTile(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,FHitProxyId HitProxyId)
+	FORCEINLINE int32 AddTile(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,FHitProxyId HitProxyId,FColor InColor)
 	{
-		return Data->AddTile(X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId);
+		return Data->AddTile(X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor);
 	};
-
+	
 private:
 	class FRenderData
 	{
@@ -816,12 +816,13 @@ private:
 			float U,V;
 			float SizeU,SizeV;
 			FHitProxyId HitProxyId;
+			FColor InColor;
 		};
 		TArray<FTileInst> Tiles;
 
-		FORCEINLINE int32 AddTile(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,FHitProxyId HitProxyId)
+		FORCEINLINE int32 AddTile(float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, FHitProxyId HitProxyId, FColor InColor)
 		{
-			FTileInst NewTile = {X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId};
+			FTileInst NewTile = {X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor};
 			return Tiles.Add(NewTile);
 		};
 	};

@@ -318,16 +318,17 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 	{
 		const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
 		FTileRenderer::DrawTile(
-			RHICmdList,
+			RHICmdList, 
 			*View, 
 			Data->MaterialRenderProxy, 
 			bNeedsToSwitchVerticalAxis,
 			Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
 			Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-			Canvas->IsHitTesting(), Tile.HitProxyId
+			Canvas->IsHitTesting(), Tile.HitProxyId,
+			Tile.InColor
 			);
 	}
-
+	
 	delete View->Family;
 	delete View;
 	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
@@ -409,8 +410,8 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 				Parameters.bNeedsToSwitchVerticalAxis,
 				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
 				Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-				Parameters.bIsHitTesting, Tile.HitProxyId
-				);
+				Parameters.bIsHitTesting, Tile.HitProxyId,
+				Tile.InColor);
 		}
 
 		delete Parameters.View->Family;
@@ -491,7 +492,7 @@ FBatchedElements* FCanvas::GetBatchedElements(EElementType InElementType, FBatch
 }
 
 
-void FCanvas::AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,float V,float SizeU,float SizeV,const FMaterialRenderProxy* MaterialRenderProxy,FHitProxyId HitProxyId,bool bFreezeTime)
+void FCanvas::AddTileRenderItem(float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, const FMaterialRenderProxy* MaterialRenderProxy, FHitProxyId HitProxyId, bool bFreezeTime, FColor InColor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_AddTileRenderTime);
 
@@ -518,7 +519,7 @@ void FCanvas::AddTileRenderItem(float X,float Y,float SizeX,float SizeY,float U,
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 	// add the quad to the tile render batch
-	RenderBatch->AddTile( X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId);
+	RenderBatch->AddTile( X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor);
 }
 
 FCanvas::~FCanvas()
