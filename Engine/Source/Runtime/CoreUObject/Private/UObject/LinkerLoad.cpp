@@ -59,6 +59,11 @@ TMap<FName, FName> ULinkerLoad::StructNameRedirects;				// Old struct name to ne
 TMap<FString, FString> ULinkerLoad::PluginNameRedirects;			// Old plugin name to new plugin name mapping
 TMap<FName, ULinkerLoad::FSubobjectRedirect> ULinkerLoad::SubobjectNameRedirects;	
 
+void ULinkerLoad::AddGameNameRedirect(const FName OldName, const FName NewName)
+{
+	GameNameRedirects.Add(OldName, NewName);
+}
+
 /*----------------------------------------------------------------------------
 	Helpers
 ----------------------------------------------------------------------------*/

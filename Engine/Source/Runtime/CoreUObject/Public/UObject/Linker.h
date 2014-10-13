@@ -1260,6 +1260,8 @@ public:
 	static TMap<FName, FName> ObjectNameRedirectsObjectOnly;	
 	/** Old game name to new game name for ImportMap */
 	static TMap<FName, FName> GameNameRedirects;
+	/** Add a new redirect from old game name to new game name for ImportMap */
+	COREUOBJECT_API static void AddGameNameRedirect(const FName OldName, const FName NewName);
 	/** Old struct name to new struct name mapping */
 	static TMap<FName, FName> StructNameRedirects;
 	/** Old plugin name to new plugin name mapping */
