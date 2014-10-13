@@ -4946,5 +4946,11 @@ void USkeletalMeshComponent::ForceClothNextUpdateTeleportAndReset()
 #endif// #if WITH_APEX_CLOTHING
 }
 
-
+FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyInstance* UseBI)
+{
+	// undo root transform so that it only moves according to what actor itself suppose to move
+	FTransform BodyTransform = UseBI->GetUnrealWorldTransform();
+	FTransform RootTransform(LocalAtoms[0].GetRotation());
+	return RootTransform.GetRelativeTransformReverse(BodyTransform);
+}
 #undef LOCTEXT_NAMESPACE

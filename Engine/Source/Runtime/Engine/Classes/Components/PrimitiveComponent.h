@@ -1015,7 +1015,7 @@ public:
 
 	/** Move this component to match the physics rigid body pose. Note, a warning will be generated if you call this function on a component that is attached to something */
 	void SyncComponentToRBPhysics();
-
+	
 	/** 
 	 *	Returns the matrix that should be used to render this component. 
 	 *	Allows component class to perform graphical distortion to the component not supported by an FTransform 
@@ -1144,6 +1144,16 @@ protected:
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
 	virtual void OnActorEnableCollisionChanged() override;
+	/**
+	 * Called to get the Component To World Transform from the Root BodyInstance
+	 * This needs to be virtual since SkeletalMeshComponent Root has to undo its own transform
+	 * Without this, the root LocalToAtom is overriden by physics simulation, causing kinematic velocity to 
+	 * accelerate simulation
+	 *
+	 * @param : UseBI - root body instsance
+	 * @return : New ComponentToWorld to use
+	 */
+	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI);
 public:
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 #if WITH_EDITOR

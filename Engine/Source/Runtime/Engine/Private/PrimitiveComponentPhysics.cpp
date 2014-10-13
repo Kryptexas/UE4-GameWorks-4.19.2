@@ -443,6 +443,11 @@ void UPrimitiveComponent::SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMate
 	BodyInstance.SetPhysMaterialOverride(NewPhysMaterial);
 }
 
+FTransform UPrimitiveComponent::GetComponentTransformFromBodyInstance(FBodyInstance* UseBI)
+{
+	return UseBI->GetUnrealWorldTransform();
+}
+
 void UPrimitiveComponent::SyncComponentToRBPhysics()
 {
 	if(!IsRegistered())
@@ -474,7 +479,7 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 	}
 
 	// See if the transform is actually different, and if so, move the component to match physics
-	const FTransform NewTransform = UseBI->GetUnrealWorldTransform();	
+	const FTransform NewTransform = GetComponentTransformFromBodyInstance(UseBI);	
 	if(!NewTransform.EqualsNoScale(ComponentToWorld))
 	{
 		const FVector MoveBy = NewTransform.GetLocation() - ComponentToWorld.GetLocation();

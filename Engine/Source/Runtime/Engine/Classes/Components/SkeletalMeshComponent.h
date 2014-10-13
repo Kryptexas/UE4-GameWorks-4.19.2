@@ -833,8 +833,11 @@ public:
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) override;
 	virtual float GetMass() const override;
 	virtual float CalculateMass(FName BoneName = NAME_None) override;
+protected:
+	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI) override;
 	// End UPrimitiveComponent interface.
 
+public:
 	// Begin USkinnedMeshComponent interface
 	virtual bool UpdateLODStatus() override;
 	virtual void RefreshBoneTransforms( FActorComponentTickFunction* TickFunction = NULL ) override;
