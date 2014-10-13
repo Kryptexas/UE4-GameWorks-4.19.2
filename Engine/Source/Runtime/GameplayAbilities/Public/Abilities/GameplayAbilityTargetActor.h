@@ -51,6 +51,8 @@ public:
 	UFUNCTION()
 	virtual void ConfirmTargeting();
 
+	void NotifyPlayerControllerOfRejectedConfirmation();
+
 	/** Outside code is saying 'stop everything and just forget about it' */
 	UFUNCTION()
 	virtual void CancelTargeting();

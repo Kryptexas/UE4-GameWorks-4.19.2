@@ -4,6 +4,7 @@
 #include "GameplayAbilityTargetActor.h"
 #include "AbilitySystemComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "GameplayAbility.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -48,13 +49,7 @@ void AGameplayAbilityTargetActor::ConfirmTargetingAndContinue()
 	}
 	else
 	{
-		if (OwningAbility)
-		{
-			if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
-			{
-				PC->ClientNotifyRejectedAbilityConfirmation();
-			}
-		}
+		NotifyPlayerControllerOfRejectedConfirmation();
 	}
 }
 
@@ -70,11 +65,19 @@ void AGameplayAbilityTargetActor::ConfirmTargeting()
 	}
 	else
 	{
-		if (OwningAbility)
+		NotifyPlayerControllerOfRejectedConfirmation();
+	}
+}
+
+void AGameplayAbilityTargetActor::NotifyPlayerControllerOfRejectedConfirmation()
+{
+	if (OwningAbility && OwningAbility->IsInstantiated())
+	{
+		if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
 		{
-			if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
+			if (FGameplayAbilitySpec* AbilitySpec = OwningAbility->GetCurrentAbilitySpec())
 			{
-				PC->ClientNotifyRejectedAbilityConfirmation();
+				PC->ClientNotifyRejectedAbilityConfirmation(AbilitySpec->InputID);
 			}
 		}
 	}

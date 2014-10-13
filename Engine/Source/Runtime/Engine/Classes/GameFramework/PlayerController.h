@@ -650,7 +650,7 @@ public:
 
 	/** Informs the client of a rejected attempt to confirm an ability. */
 	UFUNCTION(Unreliable, Client)
-	void ClientNotifyRejectedAbilityConfirmation();
+	void ClientNotifyRejectedAbilityConfirmation(int32 InputID);
 
 	/**
 	 * Outputs a message to HUD

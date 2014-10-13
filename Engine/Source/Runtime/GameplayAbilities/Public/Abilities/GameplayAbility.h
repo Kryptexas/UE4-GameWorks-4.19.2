@@ -363,11 +363,13 @@ protected:
 	// -------------------------------------
 
 
+	public:
 	bool IsInstantiated() const
 	{
 		return !HasAllFlags(RF_ClassDefaultObject);
 	}
 
+	protected:
 	void SetCurrentActorInfo(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 	{
 		if (IsInstantiated())
