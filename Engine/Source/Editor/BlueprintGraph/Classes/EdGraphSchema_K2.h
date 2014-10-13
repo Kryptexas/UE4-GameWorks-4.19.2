@@ -877,6 +877,16 @@ public:
 	/** Create menu for variable get/set nodes which refer to a variable which does not exist. */
 	void GetNonExistentVariableMenu(const UEdGraphNode* InGraphNode, UBlueprint* OwnerBlueprint, FMenuBuilder* MenuBuilder) const;
 
+	/**
+	 * Create menu for variable get/set nodes which allows for the replacement of variables
+	 *
+	 * @param InGraphNode					Variable node to replace
+	 * @param InOwnerBlueprint				The owning Blueprint of the variable
+	 * @param InMenuBuilder					MenuBuilder to place the menu items into
+	 * @param bInReplaceExistingVariable	TRUE if replacing an existing variable, will keep the variable from appearing on the list
+	 */
+	void GetReplaceVariableMenu(const UEdGraphNode* InGraphNode, UBlueprint* InOwnerBlueprint, FMenuBuilder* InMenuBuilder, bool bInReplaceExistingVariable = false) const;
+
 	// Calculates an average position between the nodes owning the two specified pins
 	static FVector2D CalculateAveragePositionBetweenNodes(UEdGraphPin* InputPin, UEdGraphPin* OutputPin);
 
@@ -951,7 +961,7 @@ public:
 	static void OnReplaceVariableForVariableNode(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName, bool bIsSelfMember);
 
 	/** Create sub menu that shows all possible variables that can be used to replace the existing variable reference */
-	static void GetReplaceNonExistentVariableMenu(class FMenuBuilder& MenuBuilder, class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint);
+	static void GetReplaceVariableMenu(class FMenuBuilder& MenuBuilder, class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, bool bReplaceExistingVariable = false);
 
 private:
 
