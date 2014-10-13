@@ -17,7 +17,7 @@ struct FModuleContextInfo
 	FString ModuleName;
 
 	/** Type of this module, eg, Runtime, Editor, etc */
-	EHostType::Type ModuleType;
+	enum EHostType::Type ModuleType;
 };
 
 
