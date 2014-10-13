@@ -120,8 +120,8 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		, OnSpawnTab( InSpawnTabMethod )
 		, OnFindTabToReuse()
 		, MenuType(ETabSpawnerMenuType::Display)
-		, SpawnedTabPtr()
 		, bAutoGenerateMenuEntry(true)
+		, SpawnedTabPtr()
 
 	{
 	}
