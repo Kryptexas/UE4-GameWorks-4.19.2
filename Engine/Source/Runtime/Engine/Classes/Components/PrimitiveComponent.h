@@ -444,7 +444,7 @@ public:
 	/**
 	 * Determine whether a Character can step up onto this component.
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Base)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Collision)
 	TEnumAsByte<enum ECanBeCharacterBase> CanCharacterStepUpOn;
 
 	/**
