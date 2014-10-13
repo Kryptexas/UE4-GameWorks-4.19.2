@@ -339,10 +339,27 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 				SNew(SButton)
 				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 				.Visibility(this, &SAnimationEditorViewportTabBody::GetViewportCornerTextVisibility)
-				.TextStyle(FEditorStyle::Get(), "Persona.Viewport.BlueprintDirtyText")
-				.Text(this, &SAnimationEditorViewportTabBody::GetViewportCornerText)
-				.ToolTipText(LOCTEXT("BlueprintStatusTooltip", "Shows the status of the animation blueprint.\nClick to recompile a dirty blueprint"))
 				.OnClicked(this, &SAnimationEditorViewportTabBody::ClickedOnViewportCornerText)
+				.Content()
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SImage)
+						.Visibility(this, &SAnimationEditorViewportTabBody::GetViewportCornerImageVisibility)
+						.Image(this, &SAnimationEditorViewportTabBody::GetViewportCornerImage)
+					]
+						
+					+SHorizontalBox::Slot()
+					.FillWidth(1)
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "Persona.Viewport.BlueprintDirtyText")
+						.Text(this, &SAnimationEditorViewportTabBody::GetViewportCornerText)
+						.ToolTipText(this, &SAnimationEditorViewportTabBody::GetViewportCornerTooltip)
+					]
+				]
 			]
 		]
 	];
@@ -1765,10 +1782,45 @@ bool SAnimationEditorViewportTabBody::IsSectionsDisplayMode(int32 DisplayMode) c
 }
 #endif // #if WITH_APEX_CLOTHING
 
+EVisibility SAnimationEditorViewportTabBody::GetViewportCornerImageVisibility() const
+{
+	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();	
+	return Persona->Recorder.InRecording()? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+const FSlateBrush * SAnimationEditorViewportTabBody::GetViewportCornerImage() const
+{
+	static int32 Count=0;
+
+	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
+//	if(Persona->Recorder.InRecording())
+	{
+		if(Count++ < 5)
+		{
+			return FEditorStyle::GetBrush("Persona.StopRecordAnimation");
+		}
+		else
+		{
+			if(Count == 10)
+			{
+				Count = 0;
+			}
+
+			return FEditorStyle::GetBrush("Persona.StopRecordAnimation_Alt");
+		}
+	}
+
+//	return NULL;
+}
+
 EVisibility SAnimationEditorViewportTabBody::GetViewportCornerTextVisibility() const
 {
 	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
-	if (Persona->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode))
+	if (Persona->Recorder.InRecording())
+	{
+		return EVisibility::Visible;
+	}
+	else if (Persona->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode))
 	{
 		if (UBlueprint* Blueprint = Persona->GetBlueprintObj())
 		{
@@ -1783,6 +1835,16 @@ EVisibility SAnimationEditorViewportTabBody::GetViewportCornerTextVisibility() c
 FText SAnimationEditorViewportTabBody::GetViewportCornerText() const
 {
 	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
+	if(Persona->Recorder.InRecording())
+	{
+		const FString & Name = Persona->Recorder.GetAnimationObject()->GetName();
+		float TimeRecorded = Persona->Recorder.GetTimeRecorded();
+		FNumberFormattingOptions NumberOption;
+		NumberOption.MaximumFractionalDigits = 2;
+		NumberOption.MinimumFractionalDigits = 2;
+		return FText::Format(LOCTEXT("AnimRecorder", "Recording '{0}' - Time {1} sec(s)]\nTo stop, click here. "),
+			FText::FromString(Name), FText::AsNumber(TimeRecorded, &NumberOption));
+	}
 	if (Persona->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode))
 	{
 		if (UBlueprint* Blueprint = Persona->GetBlueprintObj())
@@ -1806,12 +1868,33 @@ FText SAnimationEditorViewportTabBody::GetViewportCornerText() const
 	return FText::GetEmpty();
 }
 
+FText SAnimationEditorViewportTabBody::GetViewportCornerTooltip() const
+{
+	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
+	if(Persona->Recorder.InRecording())
+	{
+		return LOCTEXT("RecordingStatusTooltip", "Shows the status of animation recording.\nClick to stop the recording.");
+	}
+	if(Persona->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode))
+	{
+		return LOCTEXT("BlueprintStatusTooltip", "Shows the status of the animation blueprint.\nClick to recompile a dirty blueprint");
+	}
+
+return FText::GetEmpty();
+}
+
 FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 {
 	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
-	if (UBlueprint* Blueprint = Persona->GetBlueprintObj())
+	// if it's recording, it won't be able to see the message
+	// so disable it
+	if( Persona->Recorder.InRecording() )
 	{
-		if (!Blueprint->IsUpToDate())
+		Persona->Recorder.StopRecord(true);
+	}
+	else if(UBlueprint* Blueprint = Persona->GetBlueprintObj())
+	{
+		if(!Blueprint->IsUpToDate())
 		{
 			FKismetEditorUtilities::CompileBlueprint(Blueprint);
 		}

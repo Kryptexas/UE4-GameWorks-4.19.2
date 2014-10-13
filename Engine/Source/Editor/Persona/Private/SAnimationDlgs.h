@@ -32,13 +32,9 @@ public:
 	/** Gets the resulting full asset path (path+'/'+name) */
 	FString GetFullAssetPath();
 
-	/** Get Duration **/
-	float GetDuration();
-
 protected:
 	void OnPathChange(const FString& NewPath);
 	void OnNameChange(const FText& NewName, ETextCommit::Type CommitInfo);
-	void OnDurationChange(const FText& NewName, ETextCommit::Type CommitInfo);
 	FReply OnButtonClick(EAppReturnType::Type ButtonID);
 
 	bool ValidatePackage();
@@ -46,7 +42,6 @@ protected:
 	EAppReturnType::Type UserResponse;
 	FText AssetPath;
 	FText AssetName;
-	FText Duration;
 
 	static FText LastUsedAssetPath;
 };

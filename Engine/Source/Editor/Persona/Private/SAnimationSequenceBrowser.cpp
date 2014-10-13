@@ -930,7 +930,9 @@ void SAnimationSequenceBrowser::Tick(const FGeometry& AllottedGeometry, const do
 bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
 {
 	bool bVisible = false;
-	if(ViewportWidget.IsValid())
+	// during persona recording, disable this
+	if( PersonaPtr.IsValid() && PersonaPtr.Pin()->Recorder.InRecording() == false 
+		&& ViewportWidget.IsValid())
 	{
 		bVisible = ViewportWidget->GetVisibility() == EVisibility::Visible;
 	}

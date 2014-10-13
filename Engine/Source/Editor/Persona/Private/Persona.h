@@ -9,7 +9,7 @@
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
 
-#include "Shared/AnimationRecorder.h"
+#include "AnimationRecorder.h"
 //////////////////////////////////////////////////////////////////////////
 // FPersona
 
@@ -193,6 +193,7 @@ public:
 
 	// FTickableEditorObject interface
 	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject interface
 
 	/** Returns the image brush to use for each modes dirty marker */
@@ -274,6 +275,9 @@ public:
 	// The animation document currently being edited
 	mutable TWeakObjectPtr<UObject> SharedAnimAssetBeingEdited;
 	TWeakPtr<SDockTab> SharedAnimDocumentTab;
+
+	/** Animation recorder **/
+	FAnimationRecorder Recorder;
 
 public:
 	/** Viewport widget */
@@ -535,14 +539,14 @@ protected:
 	TSharedPtr<class FPersonaToolbar> PersonaToolbar;
 
 private:
-	/** Animation recorder **/
-	FAnimationRecorder Recorder;
 
 	/** Recording animation functions **/
 	void RecordAnimation();
-	bool CanRecordAnimation() const;
 	bool IsRecordAvailable() const;
-	bool IsAnimationBeingRecorded() const;
+	FSlateIcon GetRecordStatusImage() const;
+	FText GetRecordStatusTooltip() const;
+	FText GetRecordStatusLabel() const;
+	FText GetRecordMenuLabel() const;
 
 	/** Animation menu functions **/
 	void OnApplyCompression();

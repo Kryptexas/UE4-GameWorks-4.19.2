@@ -436,7 +436,11 @@ private:
 	/** Function to replace root translation */
 	void UpdateMeshRootTranslation(const FText& NewText, ETextCommit::Type CommitInfo, int32 Dimension);
 
+	EVisibility GetViewportCornerImageVisibility() const;
+	const FSlateBrush * GetViewportCornerImage() const;
+
 	EVisibility GetViewportCornerTextVisibility() const;
 	FText GetViewportCornerText() const;
+	FText GetViewportCornerTooltip() const;
 	FReply ClickedOnViewportCornerText();
 };

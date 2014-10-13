@@ -102,30 +102,6 @@ void SCreateAnimationDlg::Construct(const FArguments& InArgs)
 							.MinDesiredWidth(250)
 						]
 					]
-
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(3)
-					[
-						SNew(SHorizontalBox)
-
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(0, 0, 10, 0)
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("DurationInSec", "Duration (in sec) "))
-						]
-
-						+SHorizontalBox::Slot()
-						[
-							SNew(SEditableTextBox)
-							.Text(Duration)
-							.OnTextCommitted(this, &SCreateAnimationDlg::OnDurationChange)
-							.MinDesiredWidth(100)
-						]
-					]
 				]
 			]
 
@@ -156,11 +132,6 @@ void SCreateAnimationDlg::Construct(const FArguments& InArgs)
 					]
 			]
 		]);
-}
-
-void SCreateAnimationDlg::OnDurationChange(const FText& InDuration, ETextCommit::Type CommitInfo)
-{
-	Duration = InDuration;
 }
 
 void SCreateAnimationDlg::OnNameChange(const FText& NewName, ETextCommit::Type CommitInfo)
@@ -205,12 +176,6 @@ bool SCreateAnimationDlg::ValidatePackage()
 		return false;
 	}
 
-	if (GetDuration() <= 0.0f)
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("InvalidDuration", "Invalid duration"));
-		return false;
-	}
-
 	return true;
 }
 
@@ -233,11 +198,6 @@ FString SCreateAnimationDlg::GetAssetName()
 FString SCreateAnimationDlg::GetFullAssetPath()
 {
 	return AssetPath.ToString() + "/" + AssetName.ToString();
-}
-
-float SCreateAnimationDlg::GetDuration()
-{
-	return FCString::Atof(*Duration.ToString());
 }
 
 /////////////////////////////////////////////////////
