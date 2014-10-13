@@ -5,10 +5,13 @@
 =============================================================================*/
 
 #pragma once
+#include "Containers/ContainerAllocationPolicies.h"
+#include "HAL/Platform.h"
+#include "Serialization/ArchiveBase.h"
+#include "Templates/EnableIf.h"
+#include "Templates/UnrealTemplate.h"
 
 #define DEBUG_HEAP 0
-
-#include "Core.h"
 
 /**
  * Generic iterator which can operate on types that expose the following:

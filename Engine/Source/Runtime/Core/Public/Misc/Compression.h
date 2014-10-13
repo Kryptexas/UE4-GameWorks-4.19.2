@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "HAL/Platform.h"
 
 /**
  * Flags controlling [de]compression

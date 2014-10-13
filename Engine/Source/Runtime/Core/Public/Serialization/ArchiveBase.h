@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Containers/EnumAsByte.h"
+#include "HAL/PlatformProperties.h"
+#include "Misc/Compression.h"
 
 class FCustomVersionContainer;
 struct FUntypedBulkData;
