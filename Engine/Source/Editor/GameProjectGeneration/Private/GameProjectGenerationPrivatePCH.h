@@ -10,6 +10,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogGameProjectGeneration, Verbose, All);
 
 #include "GameProjectGenerationClasses.h"
+#include "GameProjectGenerationModule.h"
 #include "GameProjectUtils.h"
 #include "SProjectBrowser.h"
 #include "SNewProjectWizard.h"
