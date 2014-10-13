@@ -46,6 +46,16 @@ void AGameplayAbilityTargetActor::ConfirmTargetingAndContinue()
 	{
 		TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
 	}
+	else
+	{
+		if (OwningAbility)
+		{
+			if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
+			{
+				PC->ClientNotifyRejectedAbilityConfirmation();
+			}
+		}
+	}
 }
 
 void AGameplayAbilityTargetActor::ConfirmTargeting()
@@ -56,6 +66,16 @@ void AGameplayAbilityTargetActor::ConfirmTargeting()
 		if (bDestroyOnConfirmation)
 		{
 			Destroy();
+		}
+	}
+	else
+	{
+		if (OwningAbility)
+		{
+			if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
+			{
+				PC->ClientNotifyRejectedAbilityConfirmation();
+			}
 		}
 	}
 }

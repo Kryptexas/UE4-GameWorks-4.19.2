@@ -999,21 +999,39 @@ void UAbilitySystemComponent::ServerInputRelease_Implementation(FGameplayAbility
 void UAbilitySystemComponent::TargetConfirm()
 {
 	TArray<AGameplayAbilityTargetActor*> LeftoverTargetActors;
+	bool bAnyAbilityDeclined = false;
 	for (AGameplayAbilityTargetActor* TargetActor : SpawnedTargetActors)
 	{
 		if (TargetActor)
 		{
 			if (TargetActor->IsConfirmTargetingAllowed())
 			{
+				//TODO: There might not be any cases where this bool is false
+				if (!TargetActor->bDestroyOnConfirmation)
+				{
+					LeftoverTargetActors.Add(TargetActor);
+				}
 				TargetActor->ConfirmTargeting();
 			}
 			else
 			{
+				bAnyAbilityDeclined = true;
 				LeftoverTargetActors.Add(TargetActor);
 			}
 		}
 	}
-	SpawnedTargetActors = LeftoverTargetActors;		//These actors declined to confirm targeting, so keep contact with them.
+	SpawnedTargetActors = LeftoverTargetActors;		//These actors declined to confirm targeting, or are allowed to fire multiple times, so keep contact with them.
+	if (bAnyAbilityDeclined)
+	{
+		//Tell the client's player controller that we rejected at least one attempt to confirm. Mixed success/confirmation is a weird situation that may require further thought.
+		if (FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get())
+		{
+			if (APlayerController* PC = ActorInfo->PlayerController.Get())
+			{
+				PC->ClientNotifyRejectedAbilityConfirmation();
+			}
+		}
+	}
 }
 
 void UAbilitySystemComponent::TargetCancel()

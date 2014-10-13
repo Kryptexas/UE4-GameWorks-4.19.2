@@ -2741,6 +2741,11 @@ void APlayerController::ClientIgnoreLookInput_Implementation(bool bIgnore)
 	SetIgnoreLookInput(bIgnore);
 }
 
+void APlayerController::ClientNotifyRejectedAbilityConfirmation_Implementation()
+{
+	//TODO: Hook UI notification here. Might be good to include a cooldown on this.
+}
+
 
 void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
