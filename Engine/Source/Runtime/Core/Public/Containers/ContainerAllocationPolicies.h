@@ -7,6 +7,7 @@
 #pragma once
 
 #include "MemoryBase.h"
+#include "Misc/OutputDevice.h"
 
 /** Used to determine the alignment of an element type. */
 template<typename ElementType>
