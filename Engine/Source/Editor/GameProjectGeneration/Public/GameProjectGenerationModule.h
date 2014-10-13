@@ -4,6 +4,7 @@
 #pragma once
 
 #include "ModuleInterface.h"
+#include "ModuleDescriptor.h"
 
 struct FTemplateCategory;
 
