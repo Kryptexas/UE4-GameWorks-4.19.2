@@ -33,7 +33,7 @@ PACKAGE_SCOPE:
 	 * Initialize a Null session info with the address of this machine
 	 * and an id for the session
 	 */
-	void Init();
+	void Init(const FOnlineSubsystemNull& Subsystem);
 
 	/** The ip & port that the host is listening on (valid for LAN/GameServer) */
 	TSharedPtr<class FInternetAddr> HostAddr;

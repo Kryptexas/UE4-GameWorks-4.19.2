@@ -139,6 +139,16 @@ private:
 	 */
 	void OnLANSearchTimeout();
 
+	/**
+	 * Attempt to set the host port in the session info based on the actual port the netdriver is using.
+	 */
+	static void SetPortFromNetDriver(const FOnlineSubsystemNull& Subsystem, const TSharedPtr<FOnlineSessionInfo>& SessionInfo);
+
+	/**
+	 * Returns true if the session owner is also the host.
+	 */
+	bool IsHost(const FNamedOnlineSession& Session) const;
+
 PACKAGE_SCOPE:
 
 	/** Critical sections for thread safe operation of session lists */

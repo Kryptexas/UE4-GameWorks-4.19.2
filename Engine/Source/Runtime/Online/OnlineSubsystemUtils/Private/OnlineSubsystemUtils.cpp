@@ -95,6 +95,32 @@ UWorld* GetWorldForOnline(FName InstanceName)
 	return World;
 }
 
+int32 GetPortFromNetDriver(FName InstanceName)
+{
+	int32 Port = 0;
+#if WITH_ENGINE
+	if (GEngine)
+	{
+		UWorld* World = GetWorldForOnline(InstanceName);
+		UNetDriver* NetDriver = World ? GEngine->FindNamedNetDriver(World, NAME_GameNetDriver) : NULL;
+		if (NetDriver && NetDriver->GetNetMode() < NM_Client)
+		{
+			FString AddressStr = NetDriver->LowLevelGetNetworkNumber();
+			int32 Colon = AddressStr.Find(":", ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+			if (Colon != INDEX_NONE)
+			{
+				FString PortStr = AddressStr.Mid(Colon + 1);
+				if (!PortStr.IsEmpty())
+				{
+					Port = FCString::Atoi(*PortStr);
+				}
+			}
+		}
+	}
+#endif
+	return Port;
+}
+
 /**
  * Exec handler that routes online specific execs to the proper subsystem
  *
