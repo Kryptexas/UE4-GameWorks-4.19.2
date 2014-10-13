@@ -6,8 +6,10 @@
 ==============================================================================================*/
 
 #pragma once
-
-#include "HTML5DebugLogging.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "HAL/Platform.h"
+#include "HTML5/HTML5DebugLogging.h"
+#include "HTML5/HTML5SystemIncludes.h"
 
 /**
  * HTML5 implementation of the misc OS functions

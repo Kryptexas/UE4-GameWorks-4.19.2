@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "Windows/WindowsHWrapper.h"
 
 /** Helper struct used to get the string version of the Windows version. */
 struct FWindowsOSVersionHelper

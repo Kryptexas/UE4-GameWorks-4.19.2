@@ -6,7 +6,11 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "Linux/LinuxSystemIncludes.h"
+#include "Misc/Build.h"
 
+class FString;
 struct FGenericCrashContext;
 
 /**

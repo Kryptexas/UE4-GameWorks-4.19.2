@@ -5,6 +5,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "Mac/MacSystemIncludes.h"
 
 typedef void (*UpdateCachedMacMenuStateProc)(void);
 

@@ -5,6 +5,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "IOS/IOSSystemIncludes.h"
 
 /**
 * iOS implementation of the misc OS functions
