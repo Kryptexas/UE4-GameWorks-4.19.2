@@ -1950,6 +1950,12 @@ void USkeletalMesh::ReleaseResources()
 	ImportedResource->ReleaseResources();
 	// insert a fence to signal when these commands completed
 	ReleaseResourcesFence.BeginFence();
+
+	// release clothing assets
+	for (FClothingAssetData& Data : ClothingAssets)
+	{
+		Data.ApexClothingAsset.Reset();
+	}
 }
 
 template <bool bExtraBoneInfluencesT>
