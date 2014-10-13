@@ -240,6 +240,10 @@ public:
 	/** @todo document */
 	TMap<TWeakObjectPtr<AActor>,class UActorChannel*> ActorChannels;
 
+	/** This holds a list of actor channels that want to fully shutdown, but need to continue processing bunches before doing so */
+	UPROPERTY()
+	TArray<class UActorChannel*> KeepProcessingActorChannelBunches;
+
 	/** Actors that have gone dormant on this connection	
 	 *  The only way to get on this list is when the actor channel closes. UActorChannel::Close.
      *  Once in this set, and only then, is an actor considered network dormant.

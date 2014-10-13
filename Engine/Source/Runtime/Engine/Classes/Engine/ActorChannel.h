@@ -91,7 +91,8 @@ class ENGINE_API UActorChannel : public UChannel
 
 	virtual void Tick() override;
 	void ProcessBunch( FInBunch & Bunch );
-	
+	void ProcessQueuedBunches();
+
 	virtual void ReceivedNak( int32 NakPacketId ) override;
 	
 	virtual void Close() override;
@@ -239,7 +240,7 @@ protected:
 	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
 	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
 
-	virtual void CleanUp() override;
+	virtual bool CleanUp() override;
 
 	/** Closes the actor channel but with a 'dormant' flag set so it can be reopened */
 	virtual void BecomeDormant();

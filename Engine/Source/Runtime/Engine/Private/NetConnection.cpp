@@ -1379,6 +1379,11 @@ void UNetConnection::Tick()
 			OpenChannels[i]->Tick();
 		}
 
+		for ( int32 i = KeepProcessingActorChannelBunches.Num() - 1; i >= 0; i-- )
+		{
+			KeepProcessingActorChannelBunches[i]->ProcessQueuedBunches();
+		}
+
 		// If channel 0 has closed, mark the connection as closed.
 		if( Channels[0]==NULL && (OutReliable[0]!=0 || InReliable[0]!=0) )
 		{

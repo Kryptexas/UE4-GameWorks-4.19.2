@@ -111,14 +111,7 @@ class ENGINE_API UChannel : public UObject
 	void AssertInSequenced();
 
 	/** cleans up channel if it hasn't already been */
-	void ConditionalCleanUp()
-	{
-		if (!IsPendingKill())
-		{
-			MarkPendingKill();
-			CleanUp();
-		}
-	}
+	void ConditionalCleanUp();
 
 	/** Returns true if channel is ready to go dormant (e.g., all outstanding property updates have been ACK'd) */
 	virtual bool ReadyForDormancy(bool suppressLogs=false) { return false; }
@@ -134,7 +127,7 @@ protected:
 	virtual void BecomeDormant() { }
 
 	/** cleans up channel structures and NULLs references to the channel */
-	virtual void CleanUp();
+	virtual bool CleanUp();
 
 private:
 

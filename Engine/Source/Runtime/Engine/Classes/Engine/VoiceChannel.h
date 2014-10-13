@@ -36,7 +36,7 @@ protected:
 	/** 
 	 * Cleans up any voice data remaining in the queue 
 	 */
-	virtual void CleanUp();
+	virtual bool CleanUp() override;
 
 	/**
 	 * Processes the in bound bunch to extract the voice data
