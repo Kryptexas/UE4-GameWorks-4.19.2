@@ -313,6 +313,13 @@ void FTimerManager::InternalClearAllTimers(void const* Object)
 				PendingTimerList.RemoveAtSwap(Idx--);
 			}
 		}
+
+		// Edge case. We're currently handling this timer when it got cleared.  Unbind it to prevent it firing again
+		// in case it was scheduled to fire multiple times.
+		if (CurrentlyExecutingTimer.TimerDelegate.IsBoundToObject(Object))
+		{
+			CurrentlyExecutingTimer.TimerDelegate.Unbind();
+		}
 	}
 }
 
