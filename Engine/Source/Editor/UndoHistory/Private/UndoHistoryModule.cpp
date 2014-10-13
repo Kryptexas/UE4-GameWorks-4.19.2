@@ -8,27 +8,22 @@
 
 void FUndoHistoryModule::StartupModule()
 {
-	FGlobalTabmanager::Get()->RegisterTabSpawner(UndoHistoryTabName, FOnSpawnTab::CreateRaw(this, &FUndoHistoryModule::HandleSpawnSettingsTab))
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(UndoHistoryTabName, FOnSpawnTab::CreateRaw(this, &FUndoHistoryModule::HandleSpawnSettingsTab))
 		.SetDisplayName(NSLOCTEXT("FUndoHistoryModule", "UndoHistoryTabTitle", "Undo History"))
 		.SetTooltipText(NSLOCTEXT("FUndoHistoryModule", "UndoHistoryTooltipText", "Open the Undo History tab."))
-		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "UndoHistory.TabIcon"));
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "UndoHistory.TabIcon"))
+		.SetAutoGenerateMenuEntry(false);
 }
 
 void FUndoHistoryModule::ShutdownModule()
 {
-	FGlobalTabmanager::Get()->UnregisterTabSpawner(UndoHistoryTabName);
-	//FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(UndoHistoryTabName);
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(UndoHistoryTabName);
 }
 
 bool FUndoHistoryModule::SupportsDynamicReloading()
 {
 	return true;
 }
-
-//void FUndoHistoryModule::ExecuteOpenUndoHistory() /*const*/
-//{
-//	FGlobalTabmanager::Get()->InvokeTab(UndoHistoryTabName);
-//}
 
 TSharedRef<SDockTab> FUndoHistoryModule::HandleSpawnSettingsTab(const FSpawnTabArgs& SpawnTabArgs)
 {

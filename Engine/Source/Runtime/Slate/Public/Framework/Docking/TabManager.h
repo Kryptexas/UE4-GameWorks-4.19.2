@@ -121,6 +121,7 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		, OnFindTabToReuse()
 		, MenuType(ETabSpawnerMenuType::Display)
 		, SpawnedTabPtr()
+		, bAutoGenerateMenuEntry(true)
 
 	{
 	}
@@ -161,6 +162,12 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		return *this;
 	}
 
+	FTabSpawnerEntry& SetAutoGenerateMenuEntry( bool bInAutoGenerateMenuEntry )
+	{
+		bAutoGenerateMenuEntry = bInAutoGenerateMenuEntry;
+		return *this;
+	}
+
 	virtual TSharedPtr<FTabSpawnerEntry> AsSpawnerEntry() override
 	{
 		return SharedThis(this);
@@ -172,6 +179,8 @@ private:
 	/** When this method is not provided, we assume that the tab should only allow 0 or 1 instances */
 	FOnFindTabToReuse OnFindTabToReuse;
 	ETabSpawnerMenuType::Type MenuType;
+	/** Whether to automatically generate a menu entry for this tab spawner */
+	bool bAutoGenerateMenuEntry;
 
 	TWeakPtr<SDockTab> SpawnedTabPtr;
 

@@ -21,8 +21,7 @@ public:
 
 	// End IModuleInterface interface
 
-	//static /*virtual */void ExecuteOpenUndoHistory() /*const override*/;
-	static void ExecuteOpenUndoHistory() /*const*/
+	static void ExecuteOpenUndoHistory()
 	{
 		FGlobalTabmanager::Get()->InvokeTab(UndoHistoryTabName);
 	}

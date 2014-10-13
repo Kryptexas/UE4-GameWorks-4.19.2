@@ -775,14 +775,20 @@ void FTabManager::PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<F
 		for ( FTabSpawner::TIterator SpawnerIterator(TabSpawner); SpawnerIterator; ++SpawnerIterator  )	
 		{
 			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
-			AllSpawners->AddUnique(SpawnerEntry);
+			if (SpawnerEntry->bAutoGenerateMenuEntry)
+			{
+				AllSpawners->AddUnique( SpawnerEntry );
+			}
 		}
 
 		// General Tabs
 		for ( FTabSpawner::TIterator SpawnerIterator(*NomadTabSpawner); SpawnerIterator; ++SpawnerIterator  )	
 		{
 			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
-			AllSpawners->AddUnique(SpawnerEntry);
+			if (SpawnerEntry->bAutoGenerateMenuEntry)
+			{
+				AllSpawners->AddUnique( SpawnerEntry );
+			}
 		}
 	}
 
