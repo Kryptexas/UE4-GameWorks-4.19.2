@@ -555,12 +555,13 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 	return PSC;
 }
 
-void UGameplayStatics::BreakHitResult(const FHitResult& Hit, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem)
+void UGameplayStatics::BreakHitResult(const FHitResult& Hit, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, float& Time, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem)
 {
 	Location = Hit.Location;
 	Normal = Hit.Normal;
 	ImpactPoint = Hit.ImpactPoint;
 	ImpactNormal = Hit.ImpactNormal;
+	Time = Hit.Time;
 	PhysMat = Hit.PhysMaterial.Get();
 	HitActor = Hit.GetActor();
 	HitComponent = Hit.Component.Get();
