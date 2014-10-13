@@ -1960,12 +1960,28 @@ protected:
 				SamplerStates += "]";
 			}
 
+			// Try to find SRV index
+			uint32 Offset = Sampler.offset;
+			for (int i = 0; i < Buffers.Buffers.Num(); ++i)
+			{
+				if (Buffers.Buffers[i])
+				{
+					auto* Var = Buffers.Buffers[i]->as_variable();
+					if (!Var->semantic && Var->type->is_sampler() && Var->name && Sampler.CB_PackedSampler == Var->name && Var->type->sampler_buffer)
+					{
+						Offset = i;
+						break;
+					}
+				}
+			}
+
+
 			ralloc_asprintf_append(
 				buffer,
 				"%s%s(%u:%u%s)",
 				bNeedsComma ? "," : "",
 				Sampler.Name.c_str(),
-				Sampler.offset,
+				Offset,
 				Sampler.num_components,
 				SamplerStates.c_str()
 				);

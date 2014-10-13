@@ -304,8 +304,11 @@ void DebugPrintVisitor::visit(ir_texture* ir)
 		case ir_txf:
 			irdump_printf(".Load(");
 			ir->coordinate->accept(this);
-			irdump_printf(",");
-			ir->lod_info.lod->accept(this);
+			if (ir->lod_info.lod)
+			{
+				irdump_printf(",");
+				ir->lod_info.lod->accept(this);
+			}
 			break;
 
 		case ir_txs:
