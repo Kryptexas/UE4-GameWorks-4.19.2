@@ -4,6 +4,8 @@
 
 #include "HardwareTargetingModule.h"
 
+struct FModuleContextInfo;
+
 struct FProjectInformation
 {
 	FProjectInformation(FString InProjectFilename, bool bInGenerateCode, bool bInCopyStarterContent, FString InTemplateFile = FString())
@@ -28,19 +30,6 @@ struct FProjectInformation
 class GameProjectUtils
 {
 public:
-	/** Context information used when validating that source code is being placed in the correct place for a given module */
-	struct FModuleContextInfo
-	{
-		/** Path to the Source folder of the module */
-		FString ModuleSourcePath;
-
-		/** Name of the module */
-		FString ModuleName;
-
-		/** Type of this module, eg, Runtime, Editor, etc */
-		EHostType::Type ModuleType;
-	};
-
 	/** Where is this class located within the Source folder? */
 	enum class EClassLocation : uint8
 	{
@@ -273,6 +262,15 @@ public:
 	/** Clear the list of supported target platforms */
 	static void ClearSupportedTargetPlatforms();
 
+	/** Returns the path to the module's include header */
+	static FString DetermineModuleIncludePath(const FModuleContextInfo& ModuleInfo, const FString& FileRelativeTo);
+
+	/** Creates the basic source code for a new project. On failure, OutFailReason will be populated. */
+	static bool GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
+
+	/** Returns true if the currently loaded project has code files */
+	static bool ProjectHasCodeFiles();
+
 	/** Returns the contents of the specified template file */
 	static bool ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason);
 private:
@@ -399,9 +397,6 @@ private:
 
 	/** Checks the specified game project file out from source control */
 	static bool CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason);
-
-	/** Returns true if the currently loaded project has code files */
-	static bool ProjectHasCodeFiles();
 
 	/** Internal handler for AddCodeToProject*/
 	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);

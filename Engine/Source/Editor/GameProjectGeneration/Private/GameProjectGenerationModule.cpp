@@ -86,10 +86,24 @@ bool FGameProjectGenerationModule::UpdateCodeProject(FText& OutFailReason)
 	return GameProjectUtils::GenerateCodeProjectFiles(FPaths::GetProjectFilePath(), OutFailReason);
 }
 
-
-int32 FGameProjectGenerationModule::GetProjectCodeFileCount()
+bool FGameProjectGenerationModule::GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
 {
-	return GameProjectUtils::GetProjectCodeFileCount();
+	return GameProjectUtils::GenerateBasicSourceCode(OutCreatedFiles, OutFailReason);
+}
+
+bool FGameProjectGenerationModule::ProjectHasCodeFiles()
+{
+	return GameProjectUtils::ProjectHasCodeFiles();
+}
+
+FString FGameProjectGenerationModule::DetermineModuleIncludePath(const FModuleContextInfo& ModuleInfo, const FString& FileRelativeTo)
+{
+	return GameProjectUtils::DetermineModuleIncludePath(ModuleInfo, FileRelativeTo);
+}
+
+TArray<FModuleContextInfo> FGameProjectGenerationModule::GetCurrentProjectModules()
+{
+	return GameProjectUtils::GetCurrentProjectModules();
 }
 
 void FGameProjectGenerationModule::GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize)

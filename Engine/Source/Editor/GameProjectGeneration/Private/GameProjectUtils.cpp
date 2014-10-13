@@ -1606,6 +1606,18 @@ bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectI
 	return true;
 }
 
+bool GameProjectUtils::GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
+{
+	TArray<FString> StartupModuleNames;
+	if (GameProjectUtils::GenerateBasicSourceCode(FPaths::GameSourceDir().LeftChop(1), FApp::GetGameName(), FPaths::GameDir(), StartupModuleNames, OutCreatedFiles, OutFailReason))
+	{
+		GameProjectUtils::UpdateProject(&StartupModuleNames);
+		return true;
+	}
+
+	return false;
+}
+
 bool GameProjectUtils::GenerateBasicSourceCode(const FString& NewProjectSourcePath, const FString& NewProjectName, const FString& NewProjectRoot, TArray<FString>& OutGeneratedStartupModuleNames, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
 {
 	const FString GameModulePath = NewProjectSourcePath / NewProjectName;
@@ -1774,7 +1786,7 @@ bool GameProjectUtils::IsStarterContentAvailableForNewProjects()
 	return (StarterContentFiles.Num() > 0);
 }
 
-TArray<GameProjectUtils::FModuleContextInfo> GameProjectUtils::GetCurrentProjectModules()
+TArray<FModuleContextInfo> GameProjectUtils::GetCurrentProjectModules()
 {
 	const FProjectDescriptor* const CurrentProject = IProjectManager::Get().GetCurrentProject();
 	check(CurrentProject);
@@ -2180,6 +2192,58 @@ FString GameProjectUtils::MakeIncludeList(const TArray<FString>& InList)
 	return ReturnString;
 }
 
+FString GameProjectUtils::DetermineModuleIncludePath(const FModuleContextInfo& ModuleInfo, const FString& FileRelativeTo)
+{
+	FString ModuleIncludePath;
+
+	if(FindSourceFileInProject(ModuleInfo.ModuleName + ".h", ModuleInfo.ModuleSourcePath, ModuleIncludePath))
+	{
+		// Work out where the module header is; 
+		// if it's Public then we can include it without any path since all Public and Classes folders are on the include path
+		// if it's located elsewhere, then we'll need to include it relative to the module source root as we can't guarantee 
+		// that other folders are on the include paths
+		EClassLocation ModuleLocation;
+		if(GetClassLocation(ModuleIncludePath, ModuleInfo, ModuleLocation))
+		{
+			if(ModuleLocation == EClassLocation::Public || ModuleLocation == EClassLocation::Classes)
+			{
+				ModuleIncludePath = ModuleInfo.ModuleName + ".h";
+			}
+			else
+			{
+				// If the path to our new class is the same as the path to the module, we can include it directly
+				const FString ModulePath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(ModuleIncludePath));
+				const FString ClassPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FileRelativeTo));
+				if(ModulePath == ClassPath)
+				{
+					ModuleIncludePath = ModuleInfo.ModuleName + ".h";
+				}
+				else
+				{
+					// Updates ModuleIncludePath internally
+					if(!FPaths::MakePathRelativeTo(ModuleIncludePath, *ModuleInfo.ModuleSourcePath))
+					{
+						// Failed; just assume we can include it without any relative path
+						ModuleIncludePath = ModuleInfo.ModuleName + ".h";
+					}
+				}
+			}
+		}
+		else
+		{
+			// Failed; just assume we can include it without any relative path
+			ModuleIncludePath = ModuleInfo.ModuleName + ".h";
+		}
+	}
+	else
+	{
+		// This could potentially fail when generating new projects if the module file hasn't yet been created; just assume we can include it without any relative path
+		ModuleIncludePath = ModuleInfo.ModuleName + ".h";
+	}
+
+	return ModuleIncludePath;
+}
+
 /**
  * Generates UObject class constructor definition with property overrides.
  *
@@ -2348,51 +2412,8 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 	}
 
 	// Calculate the correct include path for the module header
-	FString ModuleIncludePath;
-	if(FindSourceFileInProject(ModuleInfo.ModuleName + ".h", ModuleInfo.ModuleSourcePath, ModuleIncludePath))
-	{
-		// Work out where the module header is; 
-		// if it's Public then we can include it without any path since all Public and Classes folders are on the include path
-		// if it's located elsewhere, then we'll need to include it relative to the module source root as we can't guarantee 
-		// that other folders are on the include paths
-		EClassLocation ModuleLocation;
-		if(GetClassLocation(ModuleIncludePath, ModuleInfo, ModuleLocation))
-		{
-			if(ModuleLocation == EClassLocation::Public || ModuleLocation == EClassLocation::Classes)
-			{
-				ModuleIncludePath = ModuleInfo.ModuleName + ".h";
-			}
-			else
-			{
-				// If the path to our new class is the same as the path to the module, we can include it directly
-				const FString ModulePath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(ModuleIncludePath));
-				const FString ClassPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(NewCPPFileName));
-				if(ModulePath == ClassPath)
-				{
-					ModuleIncludePath = ModuleInfo.ModuleName + ".h";
-				}
-				else
-				{
-					// Updates ModuleIncludePath internally
-					if(!FPaths::MakePathRelativeTo(ModuleIncludePath, *ModuleInfo.ModuleSourcePath))
-					{
-						// Failed; just assume we can include it without any relative path
-						ModuleIncludePath = ModuleInfo.ModuleName + ".h";
-					}
-				}
-			}
-		}
-		else
-		{
-			// Failed; just assume we can include it without any relative path
-			ModuleIncludePath = ModuleInfo.ModuleName + ".h";
-		}
-	}
-	else
-	{
-		// This could potentially fail when generating new projects if the module file hasn't yet been created; just assume we can include it without any relative path
-		ModuleIncludePath = ModuleInfo.ModuleName + ".h";
-	}
+	const FString ModuleIncludePath = DetermineModuleIncludePath(ModuleInfo, NewCPPFileName);
+
 
 	FString EventualConstructorDefinition;
 	if (PropertyOverrides.Num() != 0)
