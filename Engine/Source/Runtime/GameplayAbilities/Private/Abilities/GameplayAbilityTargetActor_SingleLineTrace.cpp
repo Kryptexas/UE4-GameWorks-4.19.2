@@ -34,17 +34,6 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 	FVector TraceEnd;
 	AimWithPlayerController(InSourceActor, Params, TraceStart, TraceEnd);		//Effective on server and launching client only
 
-	//Readjust so we have a full-length line going through the predicted target point.
-	FVector AimDirection = (TraceEnd - TraceStart).SafeNormal();
-	if (AimDirection.SizeSquared() > 0.0f)
-	{
-		TraceEnd = TraceStart + (AimDirection * MaxRange);
-	}
-	else
-	{
-		FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);		//Default
-	}
-
 	// ------------------------------------------------------
 
 	FHitResult ReturnHitResult;
