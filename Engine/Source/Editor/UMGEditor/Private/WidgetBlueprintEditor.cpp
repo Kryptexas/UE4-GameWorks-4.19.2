@@ -24,7 +24,7 @@
 
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
-	, PreviewBlueprint(NULL)
+	, PreviewBlueprint(nullptr)
 {
 	
 }

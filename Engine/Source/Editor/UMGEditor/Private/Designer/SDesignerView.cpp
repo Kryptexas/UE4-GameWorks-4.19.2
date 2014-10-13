@@ -491,6 +491,15 @@ FOptionalSize SDesignerView::GetPreviewHeight() const
 
 float SDesignerView::GetPreviewDPIScale() const
 {
+	// If the user is using a custom size then we disable the DPI scaling logic.
+	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
+	{
+		if ( DefaultWidget->bUseDesignTimeSize )
+		{
+			return 1.0f;
+		}
+	}
+
 	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(PreviewWidth, PreviewHeight));
 }
 
