@@ -144,6 +144,9 @@ void FIntroTutorials::StartupModule()
 		ContentIntroCurveAsset->AddToRoot();
 		ContentIntroCurve = ContentIntroCurveAsset;
 	}
+
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("TutorialsBrowser"), FOnSpawnTab::CreateRaw(this, &FIntroTutorials::SpawnTutorialsBrowserTab))
+		.SetMenuType(ETabSpawnerMenuType::Hide);
 }
 
 void FIntroTutorials::ShutdownModule()
@@ -189,6 +192,8 @@ void FIntroTutorials::ShutdownModule()
 		ContentIntroCurve.Get()->RemoveFromRoot();
 		ContentIntroCurve = nullptr;
 	}
+
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("TutorialsBrowser"));
 }
 
 void FIntroTutorials::AddSummonTutorialsMenuExtension(FMenuBuilder& MenuBuilder)
@@ -367,11 +372,12 @@ FOnIsPicking& FIntroTutorials::OnIsPicking()
 	return OnIsPickingDelegate;
 }
 
-void FIntroTutorials::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
+void FIntroTutorials::SummonTutorialBrowser()
 {
 	if(TutorialRoot.IsValid())
 	{
-		TutorialRoot->SummonTutorialBrowser(InWindow, InFilter);
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+		LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"));
 	}
 }
 
@@ -442,6 +448,23 @@ float FIntroTutorials::GetIntroCurveValue(float InTime)
 	}
 
 	return 1.0f;
+}
+
+TSharedRef<SDockTab> FIntroTutorials::SpawnTutorialsBrowserTab(const FSpawnTabArgs& SpawnTabArgs)
+{
+	TAttribute<FText> Label = LOCTEXT("TutorialsBrowserTabLabel", "Tutorials");
+
+	TSharedRef<SDockTab> NewTab = SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
+		.Label(Label)
+		.ToolTip(IDocumentation::Get()->CreateToolTip(Label, nullptr, "Shared/TutorialsBrowser", "Tab"));	
+
+	TSharedRef<STutorialsBrowser> TutorialsBrowser = SNew(STutorialsBrowser)
+		.OnLaunchTutorial(FOnLaunchTutorial::CreateRaw(this, &FIntroTutorials::LaunchTutorial));
+
+	NewTab->SetContent(TutorialsBrowser);
+
+	return NewTab;
 }
 
 #undef LOCTEXT_NAMESPACE

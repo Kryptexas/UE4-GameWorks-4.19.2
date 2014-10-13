@@ -11,7 +11,6 @@
 
 void SEditorTutorials::Construct(const FArguments& InArgs)
 {
-	bBrowserVisible = false;
 	bIsNavigationWindow = false;
 	ParentWindow = InArgs._ParentWindow;
 	OnNextClicked = InArgs._OnNextClicked;
@@ -23,62 +22,11 @@ void SEditorTutorials::Construct(const FArguments& InArgs)
 	OnWidgetWasDrawn = InArgs._OnWidgetWasDrawn;
 	OnWasWidgetDrawn = InArgs._OnWasWidgetDrawn;
 
-	TutorialHome = SNew(STutorialsBrowser)
-		.Visibility(this, &SEditorTutorials::GetBrowserVisibility)
-		.OnClosed(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleCloseClicked))
-		.OnLaunchTutorial(InArgs._OnLaunchTutorial)
-		.ParentWindow(InArgs._ParentWindow);
-
-	NavigationWidget = SNew(STutorialNavigation)
-		.Visibility(this, &SEditorTutorials::GetNavigationVisibility)
-		.OnBackClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleBackClicked))
-		.OnHomeClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleHomeClicked))
-		.OnNextClicked(FSimpleDelegate::CreateSP(this, &SEditorTutorials::HandleNextClicked))
-		.IsBackEnabled(this, &SEditorTutorials::IsBackButtonEnabled)
-		.IsHomeEnabled(this, &SEditorTutorials::IsHomeButtonEnabled)
-		.IsNextEnabled(this, &SEditorTutorials::IsNextButtonEnabled)
-		.OnGetProgress(this, &SEditorTutorials::GetProgress)
-		.ParentWindow(InArgs._ParentWindow);
-
 	ContentBox = SNew(SHorizontalBox);
 
 	ChildSlot
 	[
-		SNew(SOverlay)
-		+SOverlay::Slot()
-		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			[
-				TutorialHome.ToSharedRef()
-			]
-		]
-		+SOverlay::Slot()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.FillHeight(0.75f)
-			[
-				SNew( SSpacer )
-			]
-			+SVerticalBox::Slot()
-			.FillHeight(0.25f)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			[
-				NavigationWidget.ToSharedRef()
-			]
-		]
-		+SOverlay::Slot()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		[
-			ContentBox.ToSharedRef()
-		]
+		ContentBox.ToSharedRef()
 	];
 }
 
@@ -91,20 +39,9 @@ void SEditorTutorials::LaunchTutorial(bool bInIsNavigationWindow, FSimpleDelegat
 	RebuildCurrentContent();
 }
 
-
-void SEditorTutorials::ShowBrowser(const FString& InFilter)
-{
-	TutorialHome->SetFilter(InFilter);
-	OnHomeClicked.ExecuteIfBound();
-	ContentBox->ClearChildren();
-	OnTutorialExited.ExecuteIfBound();
-	bBrowserVisible = true;
-}
-
 void SEditorTutorials::HideContent()
 {
 	HandleHomeClicked();
-	bBrowserVisible = false;
 	bIsNavigationWindow = false;
 }
 
@@ -115,7 +52,7 @@ bool SEditorTutorials::IsNavigationVisible() const
 
 EVisibility SEditorTutorials::GetBrowserVisibility() const
 {
-	return bBrowserVisible && OnGetCurrentTutorial.Execute() == nullptr ? EVisibility::Visible : EVisibility::Collapsed;
+	return OnGetCurrentTutorial.Execute() == nullptr ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SEditorTutorials::GetNavigationVisibility() const
@@ -128,8 +65,8 @@ void SEditorTutorials::HandleCloseClicked()
 	OnCloseClicked.ExecuteIfBound();
 	OnTutorialClosed.ExecuteIfBound();
 
-	HandleHomeClicked();
-	bBrowserVisible = false;
+	ContentBox->ClearChildren();
+	OnTutorialExited.ExecuteIfBound();
 }
 
 void SEditorTutorials::HandleBackClicked()

@@ -84,22 +84,6 @@ void STutorialRoot::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	DrawnWidgets.Empty(DrawnWidgets.Max());
 }
 
-void STutorialRoot::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
-{
-	// Use main frame if non specified
-	if (!InWindow.IsValid())
-	{
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		InWindow = MainFrameModule.GetParentWindow();
-	}
-
-	TWeakPtr<SEditorTutorials>* FoundWidget = TutorialWidgets.Find(InWindow);
-	if(FoundWidget != nullptr && FoundWidget->IsValid())
-	{
-		FoundWidget->Pin()->ShowBrowser(InFilter);
-	}
-}
-
 void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
 {
 	if(InTutorial != nullptr)

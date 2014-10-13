@@ -24,7 +24,7 @@ public:
 
 	float GetIntroCurveValue(float InTime);
 
-	void SummonTutorialBrowser(TWeakPtr<SWindow> InWindow = nullptr, const FString& InFilter = TEXT(""));
+	void SummonTutorialBrowser();
 
 	static FString AnalyticsEventNameFromTutorial(const FString& BaseEventName, UEditorTutorial* Tutorial);
 
@@ -79,6 +79,9 @@ private:
 
 	/** Internal helper to launch a tutorial from a path */
 	void LaunchTutorialByName(const FString& InAssetPath, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr, FSimpleDelegate OnTutorialClosed = FSimpleDelegate(), FSimpleDelegate OnTutorialExited = FSimpleDelegate());
+
+	/** Spawn a tab for browsing tutorials */
+	TSharedRef<SDockTab> SpawnTutorialsBrowserTab(const FSpawnTabArgs& SpawnTabArgs);
 
 public:
 
