@@ -134,6 +134,24 @@ public:
 		return this->NumElements - 1;
 	}
 
+	/**
+	 * Appends the specified array to this array.
+	 * Cannot append to self.
+	 *
+	 * @param Other The array to append.
+	 */
+	FORCEINLINE TChunkedArray& operator+=(const TArray<ElementType>& Other) 
+	{ 
+		if( (UPTRINT*)this != (UPTRINT*)&Other )
+		{
+			for( const auto& It : Other )
+			{
+				AddElement(It);
+			}
+		}
+		return *this; 
+	}
+
 	int32 Add( int32 Count=1 )
 	{
 		check(Count>=0);
@@ -157,12 +175,25 @@ public:
 		NumElements = 0;
 	}
 
+	/**
+	 * Reserves memory such that the array can contain at least Number elements.
+	 *
+	 * @param Number The number of elements that the array should be able to
+	 *               contain after allocation.
+	 */
+	void Reserve(int32 Number)
+	{
+		Chunks.Reserve(Number % NumElementsPerChunk + 1);
+	}
+
 	void Shrink()
 	{
 		Chunks.Shrink();
 	}
 
-private:
+protected:
+	friend struct TContainerTraits<TChunkedArray<ElementType, TargetBytesPerChunk>>;
+
 	enum { NumElementsPerChunk = TargetBytesPerChunk / sizeof(ElementType) };
 
 	/** A chunk of the array's elements. */

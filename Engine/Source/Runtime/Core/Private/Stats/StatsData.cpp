@@ -523,7 +523,7 @@ int64 FStatsThreadState::GetLatestValidFrame() const
 	return Result;
 }
 
-void FStatsThreadState::ScanForAdvance(TArray<FStatMessage> const& Data)
+void FStatsThreadState::ScanForAdvance(FStatPacket::TStatMessagesArray const& Data)
 {
 	for (int32 Index = Data.Num() - 1; Index >= 0 ; Index--)
 	{
@@ -587,7 +587,7 @@ void FStatsThreadState::ScanForAdvance(FStatPacketArray& NewData)
 	{
 		int64 FrameNum = NewData.Packets[Index]->ThreadType == EThreadType::Renderer ? CurrentRenderFrame : CurrentGameFrame;
 		NewData.Packets[Index]->Frame = FrameNum;
-		TArray<FStatMessage> const& Data = NewData.Packets[Index]->StatMessages;
+		FStatPacket::TStatMessagesArray const& Data = NewData.Packets[Index]->StatMessages;
 		ScanForAdvance(Data);
 		Count += Data.Num();
 	}
@@ -652,7 +652,7 @@ void FStatsThreadState::ProcessMetaDataOnly(TArray<FStatMessage>& Data)
 	}
 }
 
-void FStatsThreadState::ProcessNonFrameStats(TArray<FStatMessage>& Data, TSet<FName>* NonFrameStatsFound)
+void FStatsThreadState::ProcessNonFrameStats(FStatPacket::TStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound)
 {
 	check(!bWasLoaded);
 	for (int32 Index = 0; Index < Data.Num() ; Index++)
@@ -760,7 +760,7 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 
 				check(PacketToCopyForNonFrame);
 
-				TArray<FStatMessage>* NonFrameMessages = NULL;
+				FStatPacket::TStatMessagesArray* NonFrameMessages = NULL;
 
 				for (TMap<FName, FStatMessage>::TConstIterator It(NotClearedEveryFrame); It; ++It)
 				{
@@ -1018,7 +1018,7 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 			Stack.Add(ThreadRoot);
 			FRawStatStackNode* Current = Stack.Last();
 
-			TArray<FStatMessage> const& Data = Packet.StatMessages;
+			FStatPacket::TStatMessagesArray const& Data = Packet.StatMessages;
 			for (int32 Index = 0; Index < Data.Num(); Index++)
 			{
 				FStatMessage const& Item = Data[Index];
@@ -1154,7 +1154,7 @@ int64 FStatsThreadState::GetFastThreadFrameTimeInternal( int64 TargetFrame, int3
 
 		if( Packet.ThreadId == ThreadID || Packet.ThreadType == Thread )
 		{
-			TArray<FStatMessage> const& Data = Packet.StatMessages;
+			FStatPacket::TStatMessagesArray const& Data = Packet.StatMessages;
 			for (int32 Index = 0; Index < Data.Num(); Index++)
 			{
 				FStatMessage const& Item = Data[Index];

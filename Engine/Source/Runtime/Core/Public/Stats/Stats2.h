@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnStats.h: Performance stats framework.
-=============================================================================*/
 #pragma once
+
+#include "ChunkedArray.h"
 
 /**
 * This is thread-private information about the thread idle stats, which we always collect, even in final builds
@@ -955,6 +954,13 @@ template<> struct TIsPODType<FComplexStatMessage> { enum { Value = true }; };
 */
 struct FStatPacket
 {
+	enum 
+	{
+		MESSAGES_CHUNK_SIZE = 64*1024,
+	};
+
+	typedef TChunkedArray<FStatMessage,MESSAGES_CHUNK_SIZE> TStatMessagesArray;
+
 	/** Assigned later, this is the frame number this packet is for **/
 	int64 Frame;
 	/** ThreadId this packet came from **/
@@ -964,7 +970,7 @@ struct FStatPacket
 	/** true if this packet has broken callstacks **/
 	bool bBrokenCallstacks;
 	/** messages in this packet **/
-	TArray<FStatMessage> StatMessages;
+	TStatMessagesArray StatMessages;
 	/** Size we presize the message buffer to, currently the max of what we have seen so far. **/
 	TArray<int32> StatMessagesPresize;
 

@@ -816,6 +816,9 @@ void FThreadStats::Flush(bool bHasBrokenCallstacks)
 		{
 			UE_LOG( LogStats, Verbose, TEXT( "StatMessage Packet has more than %i messages.  Ignoring for the presize history." ), (int32)PresizeMaxSize );
 		}
+
+		UE_CLOG( Packet.StatMessages.Num()>256, LogStats, Log, TEXT("Packet.StatMessages.Num() %i"), Packet.StatMessages.Num() );
+
 		FStatPacket* ToSend = new FStatPacket(Packet);
 		Exchange(ToSend->StatMessages, Packet.StatMessages);
 		ToSend->bBrokenCallstacks = bHasBrokenCallstacks;

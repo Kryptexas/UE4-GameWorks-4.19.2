@@ -419,7 +419,7 @@ class CORE_API FStatsThreadState
 	friend class FStatsThread;
 
 	/** Internal method to scan the messages to update the current frame **/
-	void ScanForAdvance(TArray<FStatMessage> const& Data);
+	void ScanForAdvance(FStatPacket::TStatMessagesArray const& Data);
 
 	/** Internal method to scan the messages to update the current frame and accumulate any non-frame stats. **/
 	void ScanForAdvance(FStatPacketArray& NewData);
@@ -439,7 +439,7 @@ public:
 
 private:
 	/** Internal method to scan the messages to accumulate any non-frame stats. **/
-	void ProcessNonFrameStats(TArray<FStatMessage>& Data, TSet<FName>* NonFrameStatsFound);
+	void ProcessNonFrameStats(FStatPacket::TStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound);
 
 	/** Internal method to place the data into the history, discard and broadcast any new frames to anyone who cares. **/
 	void AddToHistoryAndEmpty(FStatPacketArray& NewData);
