@@ -131,6 +131,17 @@ bool SGraphNode::CanAllowInteractionUsingDragDropOp( const UEdGraphNode* GraphNo
 void SGraphNode::SetIsEditable(TAttribute<bool> InIsEditable)
 {
 	IsEditable = InIsEditable;
+
+	int32 i;
+	for(i = 0; i < InputPins.Num(); ++i)
+	{
+		InputPins[i]->SetIsEditable(IsEditable);
+	}
+
+	for(i = 0; i < OutputPins.Num(); ++i)
+	{
+		OutputPins[i]->SetIsEditable(IsEditable);
+	}
 }
 
 bool SGraphNode::IsNodeEditable() const

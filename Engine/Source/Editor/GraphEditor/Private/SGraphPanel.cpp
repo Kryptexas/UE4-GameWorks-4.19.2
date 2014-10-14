@@ -970,13 +970,7 @@ void SGraphPanel::AddNode(UEdGraphNode* Node)
 		VisibleChildren.Add(NewNode.ToSharedRef());
 
 		NewNode->PlaySpawnEffect();
-
-		NewNode->UpdateGraphNode();
 		NewNode->RequestRenameOnSpawn();
-	}
-	else
-	{
-		NewNode->UpdateGraphNode();
 	}
 }
 
