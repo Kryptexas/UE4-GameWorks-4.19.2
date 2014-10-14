@@ -503,17 +503,6 @@ void ContentBrowserUtils::MoveAssets(const TArray<UObject*>& Assets, const FStri
 	{
 		AssetToolsModule.Get().RenameAssets(AssetsAndNames);
 	}
-
-	// Now branch the files in source control if possible
-	for(const auto& AssetAndName : AssetsAndNames)
-	{
-		check(AssetAndName.Asset.Get());
-		UPackage* DestPackage = FindPackage(nullptr, *(AssetAndName.PackagePath / AssetAndName.NewName));
-		UPackage* SourcePackage = FindPackage(nullptr, *AssetAndName.OriginalAssetPath);
-		check(DestPackage);
-		check(SourcePackage);
-		SourceControlHelpers::BranchPackage(DestPackage, SourcePackage);
-	}
 }
 
 int32 ContentBrowserUtils::DeleteAssets(const TArray<UObject*>& AssetsToDelete)

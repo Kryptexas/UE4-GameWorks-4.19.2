@@ -555,7 +555,10 @@ void SPackagesDialog::PopulateIgnoreForSaveItems( const TSet<FString>& InIgnoreP
 
 		const ESlateCheckBoxState::Type CheckedStatus = (InIgnorePackages.Find(ItemName) != NULL) ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
 
-		(*ItItem)->SetState( CheckedStatus );
+		if (!(*ItItem)->IsDisabled())
+		{
+			(*ItItem)->SetState(CheckedStatus);
+		}
 	}
 }
 
