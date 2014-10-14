@@ -30,6 +30,7 @@
 
 #include "PanelSlot.h"
 
+#include "WidgetNavigation.h"
 #include "Widget.h"
 
 #include "PanelWidget.h"

@@ -13,6 +13,9 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	bDesignTime = false;
 	Visiblity = ESlateVisibility::Visible;
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
+
+	//TODO UMG ToolTipWidget
+	//TODO UMG Cursor doesn't work yet, the underlying slate version needs it to be TOptional.
 }
 
 void UWidget::SetRenderTransform(FWidgetTransform Transform)
@@ -311,7 +314,7 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 bool UWidget::IsGeneratedName() const
 {
 	FString Name = GetName();
-	FString BaseName = GetClass()->GetName() + "_";
+	FString BaseName = GetClass()->GetName() + TEXT("_");
 
 	if ( Name.StartsWith(BaseName) )
 	{
@@ -323,14 +326,14 @@ bool UWidget::IsGeneratedName() const
 
 FString UWidget::GetLabelMetadata() const
 {
-	return "";
+	return TEXT("");
 }
 
 FString UWidget::GetLabel() const
 {
 	if ( IsGeneratedName() && !bIsVariable )
 	{
-		return "[" + GetClass()->GetName() + "]" + GetLabelMetadata();
+		return TEXT("[") + GetClass()->GetName() + TEXT("]") + GetLabelMetadata();
 	}
 	else
 	{

@@ -80,8 +80,6 @@ public:
 	UPROPERTY()
 	FGetBool bIsEnabledDelegate;
 
-	//TODO UMG ToolTipWidget
-
 	/** Tooltip text to show when the user hovers over the widget with the mouse */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	FText ToolTipText;
@@ -98,8 +96,6 @@ public:
 	UPROPERTY()
 	FGetSlateVisibility VisiblityDelegate;
 
-	//TODO UMG Cursor doesn't work yet, the underlying slate version needs it to be TOptional.
-
 	/** The cursor to show when the mouse is over the widget */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
@@ -112,9 +108,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Transform" ))
 	FWidgetTransform RenderTransform;
 
-	/** The render transform pivot controls the location about which transforms are applied.  This value is a normalized coordinate about which things like rotations will occur. */
+	/**
+	 * The render transform pivot controls the location about which transforms are applied.  
+	 * This value is a normalized coordinate about which things like rotations will occur.
+	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Pivot" ))
 	FVector2D RenderTransformPivot;
+
+	/**  */
+	UPROPERTY(Instanced, EditAnywhere, BlueprintReadOnly, Category="Navigation")
+	class UWidgetNavigation* Navigation;
 
 #if WITH_EDITORONLY_DATA
 
