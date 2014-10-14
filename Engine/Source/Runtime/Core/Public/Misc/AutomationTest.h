@@ -520,9 +520,9 @@ public:
 	/**
 	 * Sets forcing smoke tests.
 	 */
-	void SetForceSmokeTests(bool bForceSmokeTests)
+	void SetForceSmokeTests(const bool bInForceSmokeTests)
 	{
-		this->bForceSmokeTests = bForceSmokeTests;
+		bForceSmokeTests = bInForceSmokeTests;
 	}
 private:
 

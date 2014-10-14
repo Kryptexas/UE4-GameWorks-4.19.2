@@ -127,12 +127,14 @@ private:
 	{
 		FScopedTransaction Transaction(LOCTEXT("ChangeAnchors", "Changed Anchors"));
 
-		FString Value = FString::Printf(TEXT("(Minimum=(X=%f,Y=%f),Maximum=(X=%f,Y=%f))"), Anchors.Minimum.X, Anchors.Minimum.Y, Anchors.Maximum.X, Anchors.Maximum.Y);
-		AnchorsHandle->SetValueFromFormattedString(Value);
+		{
+			const FString Value = FString::Printf(TEXT("(Minimum=(X=%f,Y=%f),Maximum=(X=%f,Y=%f))"), Anchors.Minimum.X, Anchors.Minimum.Y, Anchors.Maximum.X, Anchors.Maximum.Y);
+			AnchorsHandle->SetValueFromFormattedString(Value);
+		}
 
 		if ( FSlateApplication::Get().GetModifierKeys().IsShiftDown() )
 		{
-			FString Value = FString::Printf(TEXT("(X=%f,Y=%f)"), Anchors.IsStretchedHorizontal() ? 0 : Anchors.Minimum.X, Anchors.IsStretchedVertical() ? 0 : Anchors.Minimum.Y);
+			const FString Value = FString::Printf(TEXT("(X=%f,Y=%f)"), Anchors.IsStretchedHorizontal() ? 0 : Anchors.Minimum.X, Anchors.IsStretchedVertical() ? 0 : Anchors.Minimum.Y);
 			AlignmentHandle->SetValueFromFormattedString(Value);
 		}
 
@@ -142,7 +144,7 @@ private:
 			OffsetsHandle->AccessRawData(RawOffsetData);
 			FMargin* Offsets = reinterpret_cast<FMargin*>( RawOffsetData[0] );
 
-			FString Value = FString::Printf(TEXT("(Left=%f,Top=%f,Right=%f,Bottom=%f)"), 0, 0, Anchors.IsStretchedHorizontal() ? 0 : Offsets->Right, Anchors.IsStretchedVertical() ? 0 : Offsets->Bottom);
+			const FString Value = FString::Printf(TEXT("(Left=%f,Top=%f,Right=%f,Bottom=%f)"), 0, 0, Anchors.IsStretchedHorizontal() ? 0 : Offsets->Right, Anchors.IsStretchedVertical() ? 0 : Offsets->Bottom);
 			OffsetsHandle->SetValueFromFormattedString(Value);
 		}
 

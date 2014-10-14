@@ -232,9 +232,9 @@ UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(UObject* Outer, FCustomizeN
 
 //------------------------------------------------------------------------------
 template <class NodeType>
-NodeType* UBlueprintNodeSpawner::SpawnNode(TSubclassOf<UEdGraphNode> NodeClass, UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
+NodeType* UBlueprintNodeSpawner::SpawnNode(TSubclassOf<UEdGraphNode> InNodeClass, UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
 {
-	return CastChecked<NodeType>(SpawnEdGraphNode(NodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate));
+	return CastChecked<NodeType>(SpawnEdGraphNode(InNodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate));
 }
 
 //------------------------------------------------------------------------------

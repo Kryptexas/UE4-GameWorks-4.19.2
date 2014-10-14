@@ -588,9 +588,9 @@ void SDesignerView::MarkDesignModifed(bool bRequiresRecompile)
 
 bool SDesignerView::GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const
 {
-	if ( UWidget* PreviewWidget = Widget.GetPreview() )
+	if ( UWidget* WidgetPreview = Widget.GetPreview() )
 	{
-		if ( UPanelWidget* Parent = PreviewWidget->GetParent() )
+		if ( UPanelWidget* Parent = WidgetPreview->GetParent() )
 		{
 			FWidgetReference ParentReference = BlueprintEditor.Pin()->GetReferenceFromPreview(Parent);
 			return GetWidgetGeometry(ParentReference, Geometry);
@@ -603,9 +603,9 @@ bool SDesignerView::GetWidgetParentGeometry(const FWidgetReference& Widget, FGeo
 
 bool SDesignerView::GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const
 {
-	if ( UWidget* PreviewWidget = Widget.GetPreview() )
+	if ( UWidget* WidgetPreview = Widget.GetPreview() )
 	{
-		TSharedPtr<SWidget> CachedPreviewWidget = PreviewWidget->GetCachedWidget();
+		TSharedPtr<SWidget> CachedPreviewWidget = WidgetPreview->GetCachedWidget();
 		if ( CachedPreviewWidget.IsValid() )
 		{
 			const FArrangedWidget* ArrangedWidget = CachedWidgetGeometry.Find(CachedPreviewWidget.ToSharedRef());
@@ -685,14 +685,14 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 		FWidgetReference ParentRef = BlueprintEditor.Pin()->GetReferenceFromTemplate(SelectedWidget.GetTemplate()->GetParent());
 
 		UWidget* Preview = ParentRef.GetPreview();
-		TSharedPtr<SWidget> PreviewSlateWidget = Preview ? Preview->GetCachedWidget() : NULL;
-		if ( PreviewSlateWidget.IsValid() )
+		TSharedPtr<SWidget> CachedPreviewSlateWidget = Preview ? Preview->GetCachedWidget() : NULL;
+		if ( CachedPreviewSlateWidget.IsValid() )
 		{
 			FWidgetPath WidgetPath;
 			SelectedWidgetPath.ToWidgetPath(WidgetPath);
 		
 			FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-			FDesignTimeUtils::GetArrangedWidgetRelativeToParent(WidgetPath, PreviewSlateWidget.ToSharedRef(), AsShared(), ArrangedWidget);
+			FDesignTimeUtils::GetArrangedWidgetRelativeToParent(WidgetPath, CachedPreviewSlateWidget.ToSharedRef(), AsShared(), ArrangedWidget);
 
 			ParentPosition = ArrangedWidget.Geometry.AbsolutePosition;
 			ParentSize = ArrangedWidget.Geometry.Size * GetPreviewScale();
@@ -933,19 +933,19 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 
 				BeginTransaction(LOCTEXT("MoveWidgetRT", "Move Widget (Render Transform)"));
 
-				if ( UWidget* PreviewWidget = SelectedWidget.GetPreview() )
+				if ( UWidget* WidgetPreview = SelectedWidget.GetPreview() )
 				{
 					FGeometry ParentGeometry;
 					if ( GetWidgetParentGeometry(SelectedWidget, ParentGeometry) )
 					{
 						const FSlateRenderTransform& AbsoluteToLocalTransform = Inverse(ParentGeometry.GetAccumulatedRenderTransform());
 
-						FWidgetTransform RenderTransform = PreviewWidget->RenderTransform;
+						FWidgetTransform RenderTransform = WidgetPreview->RenderTransform;
 						RenderTransform.Translation += AbsoluteToLocalTransform.TransformVector(MouseEvent.GetCursorDelta());
 
 						static const FName RenderTransformName(TEXT("RenderTransform"));
 
-						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(PreviewWidget, RenderTransformName, RenderTransform);
+						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(WidgetPreview, RenderTransformName, RenderTransform);
 						FObjectEditorUtils::SetPropertyValue<UWidget, FWidgetTransform>(SelectedWidget.GetTemplate(), RenderTransformName, RenderTransform);
 					}
 				}

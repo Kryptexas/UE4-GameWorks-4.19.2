@@ -36,19 +36,19 @@ public:
 		, MyClippingRect(NullRect)
 		, OutDrawElements(NullElementList)
 		, LayerId(0)
-		, InWidgetStyle(NullStyle)
+		, WidgetStyle(NullStyle)
 		, bParentEnabled(true)
 		, MaxLayer(0)
 	{ }
 
-	FPaintContext(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
-		: AllottedGeometry(AllottedGeometry)
-		, MyClippingRect(MyClippingRect)
-		, OutDrawElements(OutDrawElements)
-		, LayerId(LayerId)
-		, InWidgetStyle(InWidgetStyle)
-		, bParentEnabled(bParentEnabled)
-		, MaxLayer(LayerId)
+	FPaintContext(const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, const int32 InLayerId, const FWidgetStyle& InWidgetStyle, const bool bInParentEnabled)
+		: AllottedGeometry(InAllottedGeometry)
+		, MyClippingRect(InMyClippingRect)
+		, OutDrawElements(InOutDrawElements)
+		, LayerId(InLayerId)
+		, WidgetStyle(InWidgetStyle)
+		, bParentEnabled(bInParentEnabled)
+		, MaxLayer(InLayerId)
 	{
 	}
 
@@ -59,7 +59,7 @@ public:
 		const_cast<FSlateRect&>( MyClippingRect ) = Other.MyClippingRect;
 		OutDrawElements = Other.OutDrawElements;
 		LayerId = Other.LayerId;
-		const_cast<FWidgetStyle&>( InWidgetStyle ) = Other.InWidgetStyle;
+		const_cast<FWidgetStyle&>( WidgetStyle ) = Other.WidgetStyle;
 		bParentEnabled = Other.bParentEnabled;
 	}
 
@@ -69,7 +69,7 @@ public:
 	const FSlateRect& MyClippingRect;
 	FSlateWindowElementList& OutDrawElements;
 	int32 LayerId;
-	const FWidgetStyle& InWidgetStyle;
+	const FWidgetStyle& WidgetStyle;
 	bool bParentEnabled;
 
 	int32 MaxLayer;

@@ -524,7 +524,7 @@ public:
 	 * @param bSpeaking enable or disable voice chat
 	 */
 	UFUNCTION(exec)
-	virtual void ToggleSpeaking(bool bSpeaking);
+	virtual void ToggleSpeaking(bool bInSpeaking);
 
 	/**
 	 * Tells the client that the server has all the information it needs and that it

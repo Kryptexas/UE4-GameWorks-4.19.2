@@ -372,9 +372,9 @@ void FBlueprintWidgetCustomization::PerformBindingCustomization(IDetailLayoutBui
 					CreateEventCustomization(DetailLayout, DelegateProperty, Widget);
 				}
 			}
-			else if ( UMulticastDelegateProperty* DelegateProperty = Cast<UMulticastDelegateProperty>(Property) )
+			else if ( UMulticastDelegateProperty* MulticastDelegateProperty = Cast<UMulticastDelegateProperty>(Property) )
 			{
-				CreateMulticastEventCustomization(DetailLayout, OutObjects[0].Get()->GetFName(), PropertyClass, DelegateProperty);
+				CreateMulticastEventCustomization(DetailLayout, OutObjects[0].Get()->GetFName(), PropertyClass, MulticastDelegateProperty);
 			}
 		}
 	}

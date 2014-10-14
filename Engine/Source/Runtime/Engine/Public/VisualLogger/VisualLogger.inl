@@ -51,20 +51,20 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 	{
 		CurrentEntry->Reset();
 		CurrentEntry->TimeStamp = TimeStamp;
-		const class AActor* AsActor = Cast<class AActor>(Object);
-		if (AsActor)
+		const class AActor* ObjectAsActor = Cast<class AActor>(Object);
+		if (ObjectAsActor)
 		{
-			CurrentEntry->Location = AsActor->GetActorLocation();
-			AsActor->GrabDebugSnapshot(CurrentEntry);
+			CurrentEntry->Location = ObjectAsActor->GetActorLocation();
+			ObjectAsActor->GrabDebugSnapshot(CurrentEntry);
 		}
 		if (RedirectionMap.Contains(Object))
 		{
 			for (auto Child : RedirectionMap[Object])
 			{
-				const class AActor* AsActor = Cast<class AActor>(Child);
-				if (AsActor)
+				const class AActor* ChildAsActor = Cast<class AActor>(Child);
+				if (ChildAsActor)
 				{
-					AsActor->GrabDebugSnapshot(CurrentEntry);
+					ChildAsActor->GrabDebugSnapshot(CurrentEntry);
 				}
 			}
 		}

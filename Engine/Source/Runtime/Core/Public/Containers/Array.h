@@ -3001,32 +3001,32 @@ public:
 	 * Serialization operator for TIndirectArray.
 	 *
 	 * @param	Ar		Archive to serialize with.
-	 * @param	Array	Array to serialize.
+	 * @param	A		Array to serialize.
 	 *
 	 * @returns Passing down serializing archive.
 	 */
-	friend FArchive& operator<<(FArchive& Ar, TIndirectArray& Array)
+	friend FArchive& operator<<(FArchive& Ar, TIndirectArray& A)
 	{
-		Array.CountBytes(Ar);
+		A.CountBytes(Ar);
 		if (Ar.IsLoading())
 		{
 			// Load array.
 			int32 NewNum;
 			Ar << NewNum;
-			Array.Empty(NewNum);
+			A.Empty(NewNum);
 			for (int32 Index = 0; Index < NewNum; Index++)
 			{
-				Ar << *new(Array)T;
+				Ar << *new(A)T;
 			}
 		}
 		else
 		{
 			// Save array.
-			int32 Num = Array.Num();
+			int32 Num = A.Num();
 			Ar << Num;
 			for (int32 Index = 0; Index < Num; Index++)
 			{
-				Ar << Array[Index];
+				Ar << A[Index];
 			}
 		}
 		return Ar;

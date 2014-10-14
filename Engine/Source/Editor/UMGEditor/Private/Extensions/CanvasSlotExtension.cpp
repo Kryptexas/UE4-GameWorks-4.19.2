@@ -291,8 +291,8 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 			{
 				UCanvasPanelSlot* PreviewCanvasSlot = Cast<UCanvasPanelSlot>(PreviewWidget->Slot);
 
-				FGeometry Geometry;
-				if ( Canvas->GetGeometryForSlot(PreviewCanvasSlot, Geometry) )
+				FGeometry GeometryForSlot;
+				if ( Canvas->GetGeometryForSlot(PreviewCanvasSlot, GeometryForSlot) )
 				{
 					FGeometry CanvasGeometry = Canvas->GetCanvasWidget()->GetCachedGeometry();
 					FVector2D StartLocalPosition = CanvasGeometry.AbsoluteToLocal(MouseDownPosition);

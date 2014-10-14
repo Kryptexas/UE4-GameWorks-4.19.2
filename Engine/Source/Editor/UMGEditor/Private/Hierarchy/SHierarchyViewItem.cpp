@@ -162,10 +162,10 @@ FReply ProcessHierarchyDragDrop(const FDragDropEvent& DragDropEvent, bool bIsDro
 					}
 					else
 					{
-						TSharedPtr<SWidget> Widget = TargetItem.GetPreview()->GetCachedWidget();
-						if ( Widget.IsValid() )
+						TSharedPtr<SWidget> CachedWidget = TargetItem.GetPreview()->GetCachedWidget();
+						if ( CachedWidget.IsValid() )
 						{
-							Widget->SlatePrepass();
+							CachedWidget->SlatePrepass();
 						}
 					}
 				}

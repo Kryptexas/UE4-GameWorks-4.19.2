@@ -32,9 +32,9 @@ public:
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedBoneMappingInfo(const FName InNodeName, const FString DisplayName, USkeleton* InSkeleton)
+	FDisplayedBoneMappingInfo(const FName InNodeName, const FString InDisplayName, USkeleton* InSkeleton)
 		: Name( InNodeName )
-		, DisplayName( DisplayName )
+		, DisplayName( InDisplayName )
 		, Skeleton( InSkeleton )
 	{}
 

@@ -703,13 +703,13 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 				SortedActions.Add( SortIndex, Action );
 			}
 
-			void GetAllActions( FGraphActionListBuilderBase& OutAllActions )
+			void GetAllActions( FGraphActionListBuilderBase& OutActions )
 			{
 				SortedActions.KeySort( TLess<int32>() );
 
 				for( auto Iter : SortedActions )
 				{
-					OutAllActions.AddAction( Iter.Value );
+					OutActions.AddAction( Iter.Value );
 				}
 			}
 
@@ -1830,15 +1830,15 @@ void SMyBlueprint::OnDeleteEntry()
 				}
 				else if (Actions[i]->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
 				{
-					FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)Actions[i].Get();
+					FEdGraphSchemaAction_K2LocalVar* K2LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)Actions[i].Get();
 
-					FBlueprintEditorUtils::RemoveLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName());
+					FBlueprintEditorUtils::RemoveLocalVariable(GetBlueprintObj(), K2LocalVarAction->GetVariableScope(), K2LocalVarAction->GetVariableName());
 				}
 				else if (Actions[i]->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 				{
-					FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)Actions[i].Get();
+					FEdGraphSchemaAction_K2Graph* K2GraphAction = (FEdGraphSchemaAction_K2Graph*)Actions[i].Get();
 
-					OnDeleteGraph(GraphAction->EdGraph, GraphAction->GraphType);
+					OnDeleteGraph(K2GraphAction->EdGraph, K2GraphAction->GraphType);
 				}
 				else if (Actions[i]->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
 				{

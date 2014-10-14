@@ -67,7 +67,7 @@ public:
 						const bool bInIsRightAltDown,
 						const bool bInIsLeftCommandDown,
 						const bool bInIsRightCommandDown,
-						const bool bAreCapsLocked)
+						const bool bInAreCapsLocked)
 		: bIsLeftShiftDown( bInIsLeftShiftDown ),
 		  bIsRightShiftDown( bInIsRightShiftDown ),
 		  bIsLeftControlDown( bInIsLeftControlDown ),
@@ -76,7 +76,7 @@ public:
 		  bIsRightAltDown( bInIsRightAltDown ),
 		  bIsLeftCommandDown( bInIsLeftCommandDown ),
 		  bIsRightCommandDown( bInIsRightCommandDown ),
-		  bAreCapsLocked( bAreCapsLocked )
+		  bAreCapsLocked( bInAreCapsLocked )
 	{
 	}
 

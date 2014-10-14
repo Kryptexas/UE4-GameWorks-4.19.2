@@ -503,11 +503,11 @@ void FPersona::ExtendMenu()
 	UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
 	if(AnimBlueprint)
 	{
-		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender);
-		FKismet2Menu::SetupBlueprintEditorMenu(MenuExtender, *this);
-		AddMenuExtender(MenuExtender);
+		TSharedPtr<FExtender> AnimBPMenuExtender = MakeShareable(new FExtender);
+		FKismet2Menu::SetupBlueprintEditorMenu(AnimBPMenuExtender, *this);
+		AddMenuExtender(AnimBPMenuExtender);
 
-		MenuExtender->AddMenuExtension(
+		AnimBPMenuExtender->AddMenuExtension(
 			"FileLoadAndSave",
 			EExtensionHook::After,
 			GetToolkitCommands(),
@@ -2811,10 +2811,10 @@ void FPersona::OnImportAsset(enum EFBXImportType DefaultImportType)
 void FPersona::OnReimportMesh()
 {
 	// Reimport the asset
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewMeshComponent();
-	if(PreviewComponent && PreviewComponent->SkeletalMesh)
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetPreviewMeshComponent();
+	if(PreviewMeshComponent && PreviewMeshComponent->SkeletalMesh)
 	{
-		FReimportManager::Instance()->Reimport(PreviewComponent->SkeletalMesh, true);
+		FReimportManager::Instance()->Reimport(PreviewMeshComponent->SkeletalMesh, true);
 	}
 }
 

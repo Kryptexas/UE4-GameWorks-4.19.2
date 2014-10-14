@@ -449,11 +449,11 @@ public:
 			}
 			else
 			{
-				for (int32 SubgroupStart = 0; SubgroupStart < Num; SubgroupStart += 2)
+				for (int32 Subgroup = 0; Subgroup < Num; Subgroup += 2)
 				{
-					if (SubgroupStart + 1 < Num && Predicate(First[SubgroupStart + 1], First[SubgroupStart]))
+					if (Subgroup + 1 < Num && Predicate(First[Subgroup + 1], First[Subgroup]))
 					{
-						Exchange(First[SubgroupStart], First[SubgroupStart + 1]);
+						Exchange(First[Subgroup], First[Subgroup + 1]);
 					}
 				}
 			}

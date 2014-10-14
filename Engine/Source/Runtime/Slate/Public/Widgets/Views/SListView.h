@@ -399,8 +399,8 @@ private:
 	class FWidgetGenerator
 	{
 	public:
-		FWidgetGenerator(SListView<ItemType>* OwnerList)
-			: OwnerList(OwnerList)
+		FWidgetGenerator(SListView<ItemType>* InOwnerList)
+			: OwnerList(InOwnerList)
 		{
 		}
 

@@ -4,8 +4,8 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-FWidgetHandle::FWidgetHandle(UWidget* Widget)
-	: Widget(Widget)
+FWidgetHandle::FWidgetHandle(UWidget* InWidget)
+	: Widget(InWidget)
 {
 
 }
@@ -19,9 +19,9 @@ FWidgetReference::FWidgetReference()
 
 }
 
-FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, TSharedPtr< FWidgetHandle > TemplateHandle)
-	: WidgetEditor(WidgetEditor)
-	, TemplateHandle(TemplateHandle)
+FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor, TSharedPtr< FWidgetHandle > InTemplateHandle)
+	: WidgetEditor(InWidgetEditor)
+	, TemplateHandle(InTemplateHandle)
 {
 	
 }

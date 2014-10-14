@@ -29,7 +29,7 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 
 	for ( FDelegateEditorBinding& EditorBinding : WidgetBlueprint()->Bindings )
 	{
-		FName PropertyName = EditorBinding.SourceProperty;
+		const FName PropertyName = EditorBinding.SourceProperty;
 
 		UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
 		if ( Property )
@@ -68,8 +68,6 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 			ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
 			ReturnNode->NodePosY = EntryNode->NodePosY;
 			FunctionReturnCreator.Finalize();
-
-			UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
 
 			FEdGraphPinType PinType;
 			K2Schema->ConvertPropertyToPinType(Property, /*out*/ PinType);
