@@ -17,6 +17,11 @@ void UChildActorComponent::OnRegister()
 	if (ChildActor)
 	{
 		ChildActorName = ChildActor->GetFName();
+		// attach new actor to this component
+		// we can't attach in CreateChildActor since it has intermediate Mobility set up
+		// causing spam with inconsistent mobility set up
+		// so moving Attach to happen in Register
+		ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
 	}
 }
 
@@ -179,9 +184,6 @@ void UChildActorComponent::CreateChildActor()
 
 					// Parts that we deferred from SpawnActor
 					ChildActor->FinishSpawning(ComponentToWorld);
-
-					// attach new actor to this component
-					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
 				}
 			}
 		}
